@@ -201,55 +201,5 @@ func (c *Code) UnmarshalJSON(data []byte) error {
 	return nil
 }
 
-// Order is the closed result of comparing same-currency amounts.
-type Order uint8
-
-const (
-	// OrderUnknown is the invalid zero order.
-	OrderUnknown Order = iota
-	// OrderLess reports that the left amount is less than the right.
-	OrderLess
-	// OrderEqual reports that both amounts are equal.
-	OrderEqual
-	// OrderGreater reports that the left amount is greater than the right.
-	OrderGreater
-	orderLimit
-)
-
-const (
-	orderTokenLess    = "less"
-	orderTokenEqual   = "equal"
-	orderTokenGreater = "greater"
-)
-
-func orderTokens() [orderLimit]string {
-	return [...]string{
-		OrderLess:    orderTokenLess,
-		OrderEqual:   orderTokenEqual,
-		OrderGreater: orderTokenGreater,
-	}
-}
-
-// IsValid reports whether o belongs to the closed comparison domain.
-func (o Order) IsValid() bool {
-	return o > OrderUnknown && o < orderLimit
-}
-
-// Validate rejects values outside the closed comparison domain.
-func (o Order) Validate() error {
-	if !o.IsValid() {
-		return contractError("currency order is outside the admitted domain")
-	}
-	return nil
-}
-
-// String returns the comparison token, or empty text for an invalid order.
-func (o Order) String() string {
-	if !o.IsValid() {
-		return ""
-	}
-	return orderTokens()[o]
-}
-
 var _ [math.MaxUint8 - int(codeLimit)]struct{}
 var _ core.Validatable = CodeUnknown

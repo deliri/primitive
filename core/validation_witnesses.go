@@ -8,6 +8,7 @@ var (
 	_ Validatable = DirectImportContract{}
 	_ Validatable = StrictJSONLimits{}
 	_ Validatable = ErrorIdentity(0)
+	_ Validatable = Comparison(0)
 	_ Validatable = ByteCount{}
 	_ Validatable = SHA256Digest{}
 	_ Validatable = CRC32C{}
@@ -42,4 +43,12 @@ var (
 	_ ValidatedJSONMarshaler = Platform{}
 	_ ValidatedJSONMarshaler = OperatingSystem(0)
 	_ ValidatedJSONMarshaler = CPUArchitecture(0)
+)
+
+// Off-wire enums are bound to the shared interface here so that the marker is a
+// compiler-checked contract rather than a repeated method name. A declaring
+// enum that later grows a marshaler still compiles, so the paired absence proof
+// stays in each owner's tests.
+var (
+	_ OffWireEnum = Comparison(0)
 )

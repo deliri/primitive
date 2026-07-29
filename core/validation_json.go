@@ -24,6 +24,16 @@ type ValidatedJSONMarshaler interface {
 	json.Marshaler
 }
 
+// OffWireEnum is the compiler-visible positive declaration that a validated
+// closed enum is intentionally off wire. Go interfaces cannot express method
+// absence, so each declaring package separately proves that its enum implements
+// no marshaler. This interface owns the marker method instead of leaving its
+// name as an informal convention repeated across packages.
+type OffWireEnum interface {
+	Validatable
+	OffWireEnum()
+}
+
 const (
 	// JSONDocumentMaximumBytes is the one-mebibyte document cap.
 	JSONDocumentMaximumBytes = 1 << 20

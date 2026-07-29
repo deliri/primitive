@@ -10,12 +10,17 @@ Last updated: `2026-07-29`
   `github.com/deliri/primitive/v2026`. Historical evidence remains unchanged
   and therefore retains its original Foundation module paths. `PLAN.md` is
   local-only and excluded from the public repository.
-- Phase: the Filestore implementation slice is accepted. `filestore` is
-  `DONE`; `testserial` remains in its required `CONSUMER_SURGERY`.
-- Review gate: the user's review findings were independently reproduced and
-  adjudicated. No external reviewing agent was initialized. The user explicitly
-  authorized correction, commit, and push for the accepted slice.
-- Production packages: 7 of 19 complete.
+- Phase: the Temporal implementation slice is accepted. It cleanly reopened
+  Core, Contextstate, and Currency only for the shared comparison identity,
+  temporal overflow identity, public context observation boundary, and removal
+  of Currency's duplicate ordering domain. `temporal` and `filestore` are
+  `DONE`;
+  `testserial` remains in its required `CONSUMER_SURGERY`.
+- Review gate: no external reviewing agent was initialized. The user's
+  Temporal review was independently checked and its verified findings were
+  corrected. The user explicitly authorized commit and push. No tag or release
+  is authorized.
+- Production packages: 8 of 19 accepted.
 - Test-support packages: 0 of 1 complete and 1 in consumer surgery.
 - Active-package consumer surgery: Witness must adopt the exact typed
   `testserial.Declare` contract before Testserial can become `DONE`.
@@ -397,6 +402,60 @@ Last updated: `2026-07-29`
   retired Testserial doctrines; the one new test-diagnostic finding was
   corrected and does not recur. Fieldalignment reports only existing test
   fixture layouts outside the new append-intent file.
+- Temporal accepted state: the package is a typed exact-nanosecond layer over
+  Go's real `time`, `context`, and arithmetic primitives. `Instant` owns the
+  complete signed int64 Unix-nanosecond domain and distinguishes an unset zero
+  value from the epoch. `Duration` owns nonnegative bounded elapsed time.
+  `AggregateDuration` is an unsigned 128-bit accumulator with fixed-storage,
+  canonical decimal persistence. `Observation` preserves the standard
+  library's monotonic reading, and `Interval` closes start/end/elapsed
+  arithmetic. Timeout, deadline, wait, and ticker effects validate typed
+  requests and return or use real standard-library capabilities. Temporal owns
+  no clock interface, fake clock, scheduler, worker, retry engine, state
+  machine, humanization policy, provider persistence shape, or custom timer or
+  ticker wrapper.
+- Temporal supporting contracts: Core now owns the one closed `Comparison`
+  vocabulary used by Currency and Temporal. Currency's duplicate `Order`
+  domain is deleted without an alias or shim. `ErrTemporalOverflow` is
+  Core-owned and remains reachable as both `ErrTemporalContract` and
+  `ErrNumericOverflow`. Contextstate now exposes `Observe`, allowing Temporal
+  to consume the existing typed context-state boundary rather than copying
+  terminal-context classification. Core also owns the positive `OffWireEnum`
+  marker shared by Comparison, Contextstate State, and Temporal Precision;
+  package method-set tests remain the negative proof that those types implement
+  no wire interfaces.
+- Temporal review corrections: Comparison and Precision now project from
+  complete limit-sized fact tables, so adding an enum member without its fact
+  row fails compilation. Aggregate widening validates Duration rather than
+  silently mapping an internally negative value to zero, and the checked error
+  flows through `Duration.Aggregate` and `AddDuration`. The Instant difference
+  overflow guard checks sign before bounded arithmetic. Compile-time witnesses
+  now pin every Temporal function and method signature and all public request
+  layouts, plus the touched Contextstate and Currency signatures; the existing
+  AST ratchets continue to reject added or removed public names.
+- Temporal hostile proof: signed instant construction and arithmetic exercise
+  both int64 extremes, epoch crossings, full-span overflow, reverse ordering,
+  and negative truncation toward the preceding boundary. Every duration unit
+  constructor is held at zero, one, the largest exact value, one above, and
+  maximum uint64. Aggregate arithmetic crosses the uint64 limb, carries into
+  the high limb, reaches the uint128 maximum, rejects maximum-plus-one, and
+  proves narrowing. Canonical JSON tests reject malformed, noncanonical,
+  wrong-type, over-bound, signed/unsigned-domain, and mutation-on-error cases.
+  Observation, interval, timeout, deadline, wait, and ticker seams each have
+  exact positive, negative, and neutral proof over Go's real primitives;
+  `testing/synctest` controls the standard clock without a production clock
+  abstraction.
+- Temporal current proof: focused ordinary and race/shuffle tests, full
+  ordinary and race/shuffle repository tests, vet, staticcheck, errcheck,
+  nilaway, production `gocyclo <= 10`, Temporal goconst and fieldalignment,
+  gosec, govulncheck, actionlint, formatting, module-tidiness, and diff checks
+  pass. Fresh Aggregate and signed Temporal fuzz runs each crossed 10,000
+  executions. Temporal statement coverage is 86.3% and is used only as a
+  zero-function ratchet; `Precision.OffWireEnum` is intentionally an empty
+  compiler marker with no executable statement. Direct Witness analysis of
+  Temporal is clean. The canonical gate passes through nilaway and then stops
+  only at the already classified stale Witness off-wire-enum JSON/String
+  doctrine and retired Testserial convention.
 - Fuzz scope for this slice is limited to externally controlled text or bytes.
   Fresh 100,000-execution differential runs pass for Currency decimal text,
   Currency Amount JSON, and Garble Seed JSON. Keygen has no external parser and
@@ -426,12 +485,10 @@ Last updated: `2026-07-29`
 
 Next:
 
-1. Publish the approved Filestore Primitive slice.
-2. Migrate Bug directly to the published `contextstate` and `filestore`
-   packages without a local replace, compatibility path, or copied contract.
-3. Perform the exact Witness analyzer migration, publish Witness, repin it
-   here, and run a fresh canonical gate.
-4. Mark Testserial `DONE` only after the repinned gate passes.
+1. Publish the accepted Temporal revision without creating a tag or release.
+2. Read the complete Exchange interview and preserved implementation, then
+   present Exchange's exact typed API and ownership boundary for user review.
+3. Reassess Timeproof after Exchange supplies its required typed evidence.
 
 ## Packages
 
@@ -449,8 +506,8 @@ State vocabulary: `NEXT`, `BLOCKED_BY_DEPENDENCY`, `NOT_STARTED`, `RED`,
 | `testserial`       | `CONSUMER_SURGERY`       |
 | `filestore`        | `DONE`                  |
 | `hostresource`     | `BLOCKED_BY_DEPENDENCY` |
-| `temporal`         | `BLOCKED_BY_DEPENDENCY` |
-| `exchange`         | `BLOCKED_BY_DEPENDENCY` |
+| `temporal`         | `DONE`                  |
+| `exchange`         | `NEXT`                  |
 | `fuzz`             | `BLOCKED_BY_DEPENDENCY` |
 | `lease`            | `BLOCKED_BY_DEPENDENCY` |
 | `process`          | `BLOCKED_BY_DEPENDENCY` |
@@ -472,8 +529,8 @@ ceremony. `Validate` is the usable-now admission gate; `ObserveAfterDone`
 carries the post-event precondition in its name; and `String` remains
 diagnostic-only. The no-wire decision is proved by asserting that neither the
 value nor the pointer receiver implements any standard marshaling interface.
-`OffWireEnum` remains only as the declaration required by the pinned doctrine
-analyzer; the interface-absence test, not the marker, is the proof. The
+`OffWireEnum` is a shared compiler-owned positive declaration; the
+interface-absence test, not the marker, is the negative proof. The
 synthetic-plus-live no-clone AST ratchet is active, and the live scan now
 asserts its own coverage against the catalog directories present on disk, so a
 drifted path derivation fails instead of silently auditing nothing.

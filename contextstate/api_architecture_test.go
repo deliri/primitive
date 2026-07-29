@@ -1,6 +1,7 @@
 package contextstate
 
 import (
+	"context"
 	"go/ast"
 	"go/parser"
 	"go/token"
@@ -11,6 +12,13 @@ import (
 	"testing"
 
 	"github.com/deliri/primitive/v2026/core"
+)
+
+var (
+	_ func(error) (State, error)           = Classify
+	_ func(context.Context) (State, error) = Observe
+	_ func(context.Context) (State, error) = ObserveAfterDone
+	_ func(context.Context) error          = Validate
 )
 
 type publicSymbolKind uint8
@@ -51,6 +59,7 @@ func TestContextstatePublicSurfaceIsExactRatchet(t *testing.T) {
 		{kind: publicSymbolConstant, name: "StateNone"},
 		{kind: publicSymbolConstant, name: "StateUnknown"},
 		{kind: publicSymbolFunction, name: "Classify"},
+		{kind: publicSymbolFunction, name: "Observe"},
 		{kind: publicSymbolFunction, name: "ObserveAfterDone"},
 		{kind: publicSymbolFunction, name: "Validate"},
 		{kind: publicSymbolMethod, receiver: publicReceiverState, name: "IsValid"},

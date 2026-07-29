@@ -23,7 +23,7 @@ const (
 // would treat it. Detecting that case needs reflection, which this package
 // excludes.
 func Validate(ctx context.Context) error {
-	state, err := observeContext(ctx)
+	state, err := Observe(ctx)
 	if err != nil {
 		return err
 	}
@@ -42,7 +42,7 @@ func Validate(ctx context.Context) error {
 // ObserveAfterDone returns the standard terminal state after the caller has
 // received from ctx.Done. An active or nonstandard state is unobservable.
 func ObserveAfterDone(ctx context.Context) (State, error) {
-	state, err := observeContext(ctx)
+	state, err := Observe(ctx)
 	if err != nil {
 		return StateUnknown, err
 	}
@@ -52,9 +52,10 @@ func ObserveAfterDone(ctx context.Context) (State, error) {
 	return state, nil
 }
 
-// observeContext returns a valid State with a nil error, or StateUnknown with a
-// typed error. Callers therefore need no second State validation.
-func observeContext(ctx context.Context) (State, error) {
+// Observe returns the current standard terminal state. An active context
+// returns StateNone. A nil, panicking, or nonstandard context returns
+// StateUnknown with a typed error.
+func Observe(ctx context.Context) (State, error) {
 	if ctx == nil {
 		return StateUnknown, core.ErrNilContext
 	}

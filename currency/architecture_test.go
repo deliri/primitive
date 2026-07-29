@@ -10,13 +10,14 @@ import (
 	"strconv"
 	"strings"
 	"testing"
+
+	"github.com/deliri/primitive/v2026/core"
 )
 
 type (
 	currencyProtocolFact[T any]   struct{}
 	currencySealedValue[T any]    struct{}
 	currencyWireProjection[T any] struct{}
-	currencyOperationValue[T any] struct{}
 	currencyDefinitionFact[T any] struct{}
 	currencyInternalScalar[T any] struct{}
 )
@@ -31,9 +32,9 @@ type currencyContractInventory struct {
 }
 
 var (
-	_ = currencyProtocolFact[Code]{}
-	_ = currencyOperationValue[Order]{}
-	_ = currencyContractInventory{}
+	_                                               = currencyProtocolFact[Code]{}
+	_                                               = currencyContractInventory{}
+	_ func(Amount, Amount) (core.Comparison, error) = Amount.Compare
 )
 
 func TestCurrencyProductionStructsHaveCompilerVisibleDataFlowRoles(t *testing.T) {
@@ -93,10 +94,6 @@ func TestCurrencyExactPublicSurfaceAndNoAliases(t *testing.T) {
 		"const MinorUnitDigitsThree",
 		"const MinorUnitDigitsTwo",
 		"const MinorUnitDigitsZero",
-		"const OrderEqual",
-		"const OrderGreater",
-		"const OrderLess",
-		"const OrderUnknown",
 		"func New",
 		"func Parse",
 		"func ParseCode",
@@ -115,12 +112,8 @@ func TestCurrencyExactPublicSurfaceAndNoAliases(t *testing.T) {
 		"method Code.String",
 		"method Code.UnmarshalJSON",
 		"method Code.Validate",
-		"method Order.IsValid",
-		"method Order.String",
-		"method Order.Validate",
 		"type Amount",
 		"type Code",
-		"type Order",
 	}
 	slices.Sort(wantSurface)
 	if !slices.Equal(gotScan.surface, wantSurface) {

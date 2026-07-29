@@ -97,6 +97,9 @@ const (
 
 	// ErrTemporalContract identifies a temporal contract violation.
 	ErrTemporalContract
+	// ErrTemporalOverflow identifies temporal arithmetic outside its exact
+	// representable domain.
+	ErrTemporalOverflow
 
 	// ErrExchangeContract identifies an exchange contract violation.
 	ErrExchangeContract
@@ -317,6 +320,8 @@ func errorIdentityTextHostResourceThroughExchangeRequest(i ErrorIdentity) string
 		return "disk floor reached"
 	case ErrTemporalContract:
 		return "temporal contract violation"
+	case ErrTemporalOverflow:
+		return "temporal arithmetic overflow"
 	case ErrExchangeContract:
 		return "exchange contract violation"
 	case ErrExchangeRequest:
@@ -552,6 +557,8 @@ func errorIdentityParents(identity ErrorIdentity) errorIdentityParentSet {
 		return oneErrorIdentityParent(ErrFilestoreActivation)
 	case ErrDiskFloorReached:
 		return oneErrorIdentityParent(ErrHostResourceContract)
+	case ErrTemporalOverflow:
+		return twoErrorIdentityParents(ErrTemporalContract, ErrNumericOverflow)
 	case ErrExchangeRequest, ErrExchangeResponse, ErrExchangeBodyLimit,
 		ErrExchangeContentType, ErrExchangeCancelled, ErrExchangeRedirect,
 		ErrExchangeTransport, ErrExchangeRetryExhausted, ErrExchangeWrite:

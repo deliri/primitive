@@ -37,8 +37,10 @@ func (s State) IsValid() bool {
 	return s.Validate() == nil
 }
 
-// OffWireEnum declares State as an off-wire enum to the pinned doctrine
-// analyzer. The standard-interface absence is proved independently in tests.
+// OffWireEnum declares State as an off-wire enum. The declaration binds State
+// to core.OffWireEnum below, so the marker is compiler-checked rather than a
+// bare name the pinned doctrine analyzer matches by convention. The
+// standard-interface absence is proved independently in tests.
 func (State) OffWireEnum() {}
 
 // String returns a diagnostic projection of s. It is not a wire format, and
@@ -58,4 +60,7 @@ func (s State) String() string {
 	}
 }
 
-var _ core.Validatable = StateUnknown
+var (
+	_ core.Validatable = StateUnknown
+	_ core.OffWireEnum = StateUnknown
+)

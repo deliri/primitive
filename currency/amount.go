@@ -69,17 +69,17 @@ func (a Amount) Subtract(other Amount) (Amount, error) {
 }
 
 // Compare orders two amounts of the same currency.
-func (a Amount) Compare(other Amount) (Order, error) {
+func (a Amount) Compare(other Amount) (core.Comparison, error) {
 	if err := validatePair(a, other); err != nil {
-		return OrderUnknown, err
+		return core.ComparisonUnknown, err
 	}
 	switch {
 	case a.minorUnits < other.minorUnits:
-		return OrderLess, nil
+		return core.ComparisonLess, nil
 	case a.minorUnits > other.minorUnits:
-		return OrderGreater, nil
+		return core.ComparisonGreater, nil
 	default:
-		return OrderEqual, nil
+		return core.ComparisonEqual, nil
 	}
 }
 

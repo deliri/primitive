@@ -532,15 +532,15 @@ func TestAmountZeroValueRejectsEveryPublicBoundary(t *testing.T) {
 		}},
 		{name: "Compare rejects zero left amount", operation: func(t *testing.T) error {
 			got, gotErr := (currency.Amount{}).Compare(valid)
-			if got != currency.OrderUnknown {
-				t.Fatalf("zero Amount.Compare(valid) value = %v, want %v", got, currency.OrderUnknown)
+			if got != core.ComparisonUnknown {
+				t.Fatalf("zero Amount.Compare(valid) value = %v, want %v", got, core.ComparisonUnknown)
 			}
 			return gotErr
 		}},
 		{name: "Compare rejects zero right amount", operation: func(t *testing.T) error {
 			got, gotErr := valid.Compare(currency.Amount{})
-			if got != currency.OrderUnknown {
-				t.Fatalf("valid Amount.Compare(zero) value = %v, want %v", got, currency.OrderUnknown)
+			if got != core.ComparisonUnknown {
+				t.Fatalf("valid Amount.Compare(zero) value = %v, want %v", got, core.ComparisonUnknown)
 			}
 			return gotErr
 		}},
@@ -577,7 +577,7 @@ func TestAmountZeroValueRejectsEveryPublicBoundary(t *testing.T) {
 	}
 }
 
-func TestAmountComparisonReturnsClosedOrder(t *testing.T) {
+func TestAmountComparisonReturnsCoreComparison(t *testing.T) {
 	t.Parallel()
 
 	cases := []struct {
@@ -585,21 +585,21 @@ func TestAmountComparisonReturnsClosedOrder(t *testing.T) {
 		name    string
 		left    currency.Amount
 		right   currency.Amount
-		want    currency.Order
+		want    core.Comparison
 	}{
-		{name: "negative one is less than zero", left: mustAmount(t, currency.CodeCAD, -1), right: mustAmount(t, currency.CodeCAD, 0), want: currency.OrderLess},
-		{name: "zero equals zero", left: mustAmount(t, currency.CodeCAD, 0), right: mustAmount(t, currency.CodeCAD, 0), want: currency.OrderEqual},
-		{name: "positive one is greater than zero", left: mustAmount(t, currency.CodeCAD, 1), right: mustAmount(t, currency.CodeCAD, 0), want: currency.OrderGreater},
-		{name: "minimum is less than maximum", left: mustAmount(t, currency.CodeCAD, math.MinInt64), right: mustAmount(t, currency.CodeCAD, math.MaxInt64), want: currency.OrderLess},
-		{name: "maximum is greater than minimum", left: mustAmount(t, currency.CodeCAD, math.MaxInt64), right: mustAmount(t, currency.CodeCAD, math.MinInt64), want: currency.OrderGreater},
-		{name: "minimum equals minimum", left: mustAmount(t, currency.CodeCAD, math.MinInt64), right: mustAmount(t, currency.CodeCAD, math.MinInt64), want: currency.OrderEqual},
-		{name: "maximum equals maximum", left: mustAmount(t, currency.CodeCAD, math.MaxInt64), right: mustAmount(t, currency.CodeCAD, math.MaxInt64), want: currency.OrderEqual},
-		{name: "negative maximum magnitude is less", left: mustAmount(t, currency.CodeCAD, -math.MaxInt64), right: mustAmount(t, currency.CodeCAD, math.MaxInt64), want: currency.OrderLess},
-		{name: "positive maximum magnitude is greater", left: mustAmount(t, currency.CodeCAD, math.MaxInt64), right: mustAmount(t, currency.CodeCAD, -math.MaxInt64), want: currency.OrderGreater},
-		{name: "adjacent high values preserve order", left: mustAmount(t, currency.CodeCAD, math.MaxInt64-1), right: mustAmount(t, currency.CodeCAD, math.MaxInt64), want: currency.OrderLess},
-		{name: "mismatch rejected", left: mustAmount(t, currency.CodeCAD, 0), right: mustAmount(t, currency.CodeUSD, 0), want: currency.OrderUnknown, wantErr: core.ErrCurrencyMismatch},
-		{name: "zero left rejected", left: currency.Amount{}, right: mustAmount(t, currency.CodeCAD, 0), want: currency.OrderUnknown, wantErr: core.ErrCurrencyContract},
-		{name: "zero right rejected", left: mustAmount(t, currency.CodeCAD, 0), right: currency.Amount{}, want: currency.OrderUnknown, wantErr: core.ErrCurrencyContract},
+		{name: "negative one is less than zero", left: mustAmount(t, currency.CodeCAD, -1), right: mustAmount(t, currency.CodeCAD, 0), want: core.ComparisonLess},
+		{name: "zero equals zero", left: mustAmount(t, currency.CodeCAD, 0), right: mustAmount(t, currency.CodeCAD, 0), want: core.ComparisonEqual},
+		{name: "positive one is greater than zero", left: mustAmount(t, currency.CodeCAD, 1), right: mustAmount(t, currency.CodeCAD, 0), want: core.ComparisonGreater},
+		{name: "minimum is less than maximum", left: mustAmount(t, currency.CodeCAD, math.MinInt64), right: mustAmount(t, currency.CodeCAD, math.MaxInt64), want: core.ComparisonLess},
+		{name: "maximum is greater than minimum", left: mustAmount(t, currency.CodeCAD, math.MaxInt64), right: mustAmount(t, currency.CodeCAD, math.MinInt64), want: core.ComparisonGreater},
+		{name: "minimum equals minimum", left: mustAmount(t, currency.CodeCAD, math.MinInt64), right: mustAmount(t, currency.CodeCAD, math.MinInt64), want: core.ComparisonEqual},
+		{name: "maximum equals maximum", left: mustAmount(t, currency.CodeCAD, math.MaxInt64), right: mustAmount(t, currency.CodeCAD, math.MaxInt64), want: core.ComparisonEqual},
+		{name: "negative maximum magnitude is less", left: mustAmount(t, currency.CodeCAD, -math.MaxInt64), right: mustAmount(t, currency.CodeCAD, math.MaxInt64), want: core.ComparisonLess},
+		{name: "positive maximum magnitude is greater", left: mustAmount(t, currency.CodeCAD, math.MaxInt64), right: mustAmount(t, currency.CodeCAD, -math.MaxInt64), want: core.ComparisonGreater},
+		{name: "adjacent high values preserve order", left: mustAmount(t, currency.CodeCAD, math.MaxInt64-1), right: mustAmount(t, currency.CodeCAD, math.MaxInt64), want: core.ComparisonLess},
+		{name: "mismatch rejected", left: mustAmount(t, currency.CodeCAD, 0), right: mustAmount(t, currency.CodeUSD, 0), want: core.ComparisonUnknown, wantErr: core.ErrCurrencyMismatch},
+		{name: "zero left rejected", left: currency.Amount{}, right: mustAmount(t, currency.CodeCAD, 0), want: core.ComparisonUnknown, wantErr: core.ErrCurrencyContract},
+		{name: "zero right rejected", left: mustAmount(t, currency.CodeCAD, 0), right: currency.Amount{}, want: core.ComparisonUnknown, wantErr: core.ErrCurrencyContract},
 	}
 	for _, tc := range cases {
 		t.Run(tc.name, func(t *testing.T) {
@@ -611,46 +611,11 @@ func TestAmountComparisonReturnsClosedOrder(t *testing.T) {
 			}
 			if gotErr == nil {
 				if gotValidateErr := got.Validate(); gotValidateErr != nil {
-					t.Fatalf("Order.Validate() error = %v, want nil", gotValidateErr)
+					t.Fatalf("Comparison.Validate() error = %v, want nil", gotValidateErr)
 				}
-				if got.String() == "" {
-					t.Fatalf("Order.String() = empty, want admitted token")
+				if got.String() == core.ComparisonUnknown.String() {
+					t.Fatalf("Comparison.String() = %q, want admitted diagnostic", got.String())
 				}
-			}
-		})
-	}
-}
-
-func TestOrderExhaustsClosedDomain(t *testing.T) {
-	t.Parallel()
-
-	cases := []struct {
-		wantErr error
-		name    string
-		order   currency.Order
-	}{
-		{name: "unknown order rejected", order: currency.OrderUnknown, wantErr: core.ErrCurrencyContract},
-		{name: "less order admitted", order: currency.OrderLess},
-		{name: "equal order admitted", order: currency.OrderEqual},
-		{name: "greater order admitted", order: currency.OrderGreater},
-		{name: "first future order rejected", order: currency.OrderGreater + 1, wantErr: core.ErrCurrencyContract},
-		{name: "maximum order backing value rejected", order: currency.Order(math.MaxUint8), wantErr: core.ErrCurrencyContract},
-	}
-	for _, tc := range cases {
-		t.Run(tc.name, func(t *testing.T) {
-			t.Parallel()
-
-			gotErr := tc.order.Validate()
-			if tc.wantErr == nil {
-				if gotErr != nil || tc.order.String() == "" {
-					t.Fatalf("Order(%d) = (Validate:%v, String:%q), want (nil, admitted token)", tc.order, gotErr, tc.order.String())
-				}
-				return
-			}
-			if !errors.Is(gotErr, tc.wantErr) ||
-				!errors.Is(gotErr, core.ErrPrimitiveContract) ||
-				tc.order.String() != "" {
-				t.Fatalf("Order(%d) = (Validate:%v, String:%q), want (%v, %v, empty)", tc.order, gotErr, tc.order.String(), tc.wantErr, core.ErrPrimitiveContract)
 			}
 		})
 	}
