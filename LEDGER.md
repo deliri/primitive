@@ -10,17 +10,17 @@ Last updated: `2026-07-29`
   `github.com/deliri/primitive/v2026`. Historical evidence remains unchanged
   and therefore retains its original Foundation module paths. `PLAN.md` is
   local-only and excluded from the public repository.
-- Phase: the Exchange implementation slice is accepted. It cleanly reopened
-  Core only for typed HTTP endpoint, content-coding, field-value, method-domain,
-  media-type, header, strict-JSON projection, and checked-I/O contracts.
-  `exchange`, `temporal`, and `filestore` are `DONE`; `testserial` remains in
-  its required `CONSUMER_SURGERY`.
+- Phase: the transport-free Timeproof implementation slice is accepted.
+  Callers prepare an RFC 3161 request, send it by any transport they own, and
+  pass the authority's exact response back for verification and replay.
+  `timeproof`, `exchange`, `temporal`, and `filestore` are `DONE`;
+  `testserial` remains in its required `CONSUMER_SURGERY`.
 - Review gate: no external reviewing agent was initialized. The user's two
   Exchange reviews were independently checked against real `net/http`, TCP,
   filesystem, context, and stream paths; every reproduced defect was corrected
   and incorrect findings were rejected with direct evidence. The user
   explicitly authorized commit and push. No tag or release is authorized.
-- Production packages: 9 of 19 accepted.
+- Production packages: 10 of 19 accepted.
 - Test-support packages: 0 of 1 complete and 1 in consumer surgery.
 - Active-package consumer surgery: Witness must adopt the exact typed
   `testserial.Declare` contract before Testserial can become `DONE`.
@@ -497,6 +497,36 @@ Last updated: `2026-07-29`
   3.626 GB/s, 111,523 B/op, and 129 allocs/op for upload and 3.643 GB/s,
   109,726 B/op, and 137 allocs/op for download; these are local measurements,
   not network promises.
+- Exchange JSON-boundary benchmark proof: exact 128-byte, 1-KiB, and 8-KiB
+  encoded documents cross real Exchange client/server TCP loopback paths in
+  serial and parallel forms. Separate request-construction and configured-limit
+  controls prevent transport cost and benchmark setup from being confused.
+  Result validation is non-vacuous and aggregate request-plus-response byte
+  reporting is exact.
+- Timeproof review state: the package owns RFC 3161 request construction,
+  bounded response verification, and evidence replay. It owns no HTTP, TLS,
+  retry, authority server, certificate acquisition, CRL service, clock,
+  scheduler, state machine, or custody store. Refusals preserve
+  `core.ErrTimeProofRefused` through `errors.Is` while exposing the authority's
+  typed status and failure codes through `errors.As`. CMS and TSTInfo
+  structure, versions, digest binding, signer-certificate attributes, TSA
+  identity, pinned trust, nonce, serial, policy, generation time, and optional
+  accuracy are verified before evidence is admitted.
+- Timeproof current proof: focused ordinary, race, and tenfold shuffled tests
+  pass at 78.8% statement coverage. A fresh 200,000-execution response fuzz run
+  completed without a crasher. Vet, staticcheck, errcheck, nilaway, production
+  `gocyclo <= 10`, goconst, fieldalignment, gosec, govulncheck, actionlint,
+  formatting, module tidiness, and full ordinary and race repository tests
+  pass. Direct Witness analysis has no unwaived finding; its two narrow waivers
+  cover only RFC 3161's protocol-mandated ESSCertID v1 SHA-1 compatibility
+  path. The canonical gate passes through nilaway and stops at the already
+  recorded stale Witness off-wire-enum and retired Testserial doctrines.
+- Timeproof benchmark evidence on the M1 Max: Prepare is 4,436 ns/op,
+  2,725 B/op, and 73 allocs/op; authentic Verify is 699,644 ns/op,
+  105,490 B/op, and 666 allocs/op; oversized-response rejection is 1,681 ns/op,
+  1,312 B/op, and 37 allocs/op; and replay is 283,584 ns/op, 189,389 B/op, and
+  1,304 allocs/op. The bounded response and evidence limits, rather than input
+  extent, cap memory.
 - Fuzz scope for this slice is limited to externally controlled text or bytes.
   Fresh 100,000-execution differential runs pass for Currency decimal text,
   Currency Amount JSON, and Garble Seed JSON. Keygen has no external parser and
@@ -526,10 +556,12 @@ Last updated: `2026-07-29`
 
 Next:
 
-1. Publish the accepted Exchange revision without creating a tag or release.
-2. Reassess the next package or consumer surgery only after Exchange
-   publication; do not broaden this slice during publication.
-3. Reassess Timeproof now that Exchange supplies its required typed evidence.
+1. Inspect the Objectstore interview, preserved implementation, and current
+   official provider documentation before selecting its exact boundary.
+2. Stop for user authority before changing PLAN's GCS-only scope or its
+   compiler-owned dependency graph to include S3 or Cloudflare Images.
+3. Preserve the deferred Witness Testserial/analyzer consumer surgery without
+   compatibility paths or analyzer waivers.
 
 ## Packages
 
@@ -554,8 +586,8 @@ State vocabulary: `NEXT`, `BLOCKED_BY_DEPENDENCY`, `NOT_STARTED`, `RED`,
 | `process`          | `BLOCKED_BY_DEPENDENCY` |
 | `release`          | `BLOCKED_BY_DEPENDENCY` |
 | `shutdown`         | `BLOCKED_BY_DEPENDENCY` |
-| `objectstore`      | `BLOCKED_BY_DEPENDENCY` |
-| `timeproof`        | `BLOCKED_BY_DEPENDENCY` |
+| `objectstore`      | `NEXT`                  |
+| `timeproof`        | `DONE`                  |
 | `workloadidentity` | `BLOCKED_BY_DEPENDENCY` |
 | `upgrade`          | `BLOCKED_BY_DEPENDENCY` |
 
@@ -657,3 +689,7 @@ drifted path derivation fails instead of silently auditing nothing.
   synchronize both affected parents. The OS still owns namespace arbitration,
   and no copy, scheduler, lock, transaction model, or filesystem wrapper was
   introduced.
+- `2026-07-29`: The user reviewed Timeproof, supplied concrete RFC 3161/CMS
+  hardening findings, accepted their corrected implementation, and explicitly
+  authorized commit and push together with the completed Exchange JSON
+  boundary benchmarks. No tag or release was authorized.

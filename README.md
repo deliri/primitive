@@ -64,9 +64,7 @@ flowchart TD
     objectstore --> temporal
     objectstore --> exchange
     timeproof[timeproof] --> core
-    timeproof --> contextstate
     timeproof --> temporal
-    timeproof --> exchange
     timeproof --> keygen
     workloadidentity[workloadidentity] --> core
     workloadidentity --> temporal

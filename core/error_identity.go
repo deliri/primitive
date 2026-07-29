@@ -173,6 +173,10 @@ const (
 
 	// ErrTimeProofContract identifies a time-proof contract violation.
 	ErrTimeProofContract
+	// ErrTimeProofRefused identifies a valid authority refusal.
+	ErrTimeProofRefused
+	// ErrTimeProofInvalid identifies evidence that failed verification.
+	ErrTimeProofInvalid
 	// ErrWorkloadIdentityContract identifies a workload-identity violation.
 	ErrWorkloadIdentityContract
 	// ErrUpgradeContract identifies an upgrade contract violation.
@@ -213,10 +217,19 @@ func (i ErrorIdentity) Error() string {
 		return errorIdentityTextFuzzHead(i)
 	case i <= ErrReleaseManifest:
 		return errorIdentityTextFuzzThroughReleaseManifest(i)
+	default:
+		return errorIdentityTextObjectStoreThroughGovernance(i)
+	}
+}
+
+func errorIdentityTextObjectStoreThroughGovernance(i ErrorIdentity) string {
+	switch {
 	case i <= ErrObjectStoreIntegrity:
 		return errorIdentityTextReleaseThroughObjectIntegrity(i)
+	case i <= ErrTimeProofInvalid:
+		return errorIdentityTextObjectTailThroughTimeProof(i)
 	case i <= ErrUpgradeContract:
-		return errorIdentityTextObjectTailThroughUpgrade(i)
+		return errorIdentityTextWorkloadIdentityThroughUpgrade(i)
 	default:
 		return errorIdentityTextGovernance(i)
 	}
@@ -409,7 +422,7 @@ func errorIdentityTextReleaseThroughObjectIntegrity(i ErrorIdentity) string {
 	}
 }
 
-func errorIdentityTextObjectTailThroughUpgrade(i ErrorIdentity) string {
+func errorIdentityTextObjectTailThroughTimeProof(i ErrorIdentity) string {
 	switch i {
 	case ErrObjectStoreSource:
 		return "object store source failed"
@@ -423,6 +436,19 @@ func errorIdentityTextObjectTailThroughUpgrade(i ErrorIdentity) string {
 		return "object store object absent"
 	case ErrTimeProofContract:
 		return "time proof contract violation"
+	case ErrTimeProofRefused:
+		return "time proof authority refused"
+	case ErrTimeProofInvalid:
+		return "time proof evidence invalid"
+	default:
+		return unknownErrorIdentityText
+	}
+}
+
+func errorIdentityTextWorkloadIdentityThroughUpgrade(
+	i ErrorIdentity,
+) string {
+	switch i {
 	case ErrWorkloadIdentityContract:
 		return "workload identity contract violation"
 	case ErrUpgradeContract:
@@ -600,6 +626,8 @@ func errorIdentityParentsFuzzThroughObjectStore(identity ErrorIdentity) errorIde
 		ErrObjectStoreDestination, ErrObjectStoreConflict, ErrObjectStoreSize,
 		ErrObjectStoreAbsent:
 		return oneErrorIdentityParent(ErrObjectStoreContract)
+	case ErrTimeProofRefused, ErrTimeProofInvalid:
+		return oneErrorIdentityParent(ErrTimeProofContract)
 	default:
 		return errorIdentityParentSet{}
 	}
