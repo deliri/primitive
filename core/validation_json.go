@@ -213,6 +213,22 @@ func DecodeStrictJSON[T Validatable](data []byte, limits StrictJSONLimits) (T, e
 	return value, nil
 }
 
+// DecodeStrictJSONStructure applies the complete strict JSON grammar and
+// configured bounds without invoking T.Validate. It exists for typed boundary
+// projection: a caller decodes into a private temporary, adds non-wire request
+// state, validates the completed owning value, and only then permits it to
+// escape. Callers that do not need that exact sequence use DecodeStrictJSON.
+func DecodeStrictJSONStructure[T any](
+	data []byte,
+	limits StrictJSONLimits,
+) (T, error) {
+	if err := limits.Validate(); err != nil {
+		var zero T
+		return zero, err
+	}
+	return decodeStrictJSONStructureValidatedLimits[T](data, limits)
+}
+
 func decodeStrictJSONStructureValidatedLimits[T any](data []byte, limits StrictJSONLimits) (T, error) {
 	var value T
 	if err := validateStrictJSONInput(data, limits); err != nil {

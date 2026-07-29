@@ -124,6 +124,15 @@ func CheckedInt64FromUint64(value uint64) (int64, error) {
 	return int64(value), nil
 }
 
+// CheckedUint64FromInt64 converts a non-negative value or returns
+// ErrNumericOverflow.
+func CheckedUint64FromInt64(value int64) (uint64, error) {
+	if value < 0 {
+		return 0, numericOverflow("negative int64 does not fit uint64")
+	}
+	return uint64(value), nil
+}
+
 func parseCanonicalUint64JSON(data []byte) (uint64, error) {
 	if len(data) == 0 {
 		return 0, errors.Join(ErrJSONContract, errors.New("empty unsigned integer"))

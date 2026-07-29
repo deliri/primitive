@@ -68,9 +68,9 @@ func TestStageNoProgressThresholdBoundaryMatrix(t *testing.T) {
 	t.Parallel()
 
 	cases := []struct {
+		wantErr    error
 		name       string
 		emptyReads int
-		wantErr    error
 	}{
 		{
 			name:       "two below consecutive empty-read limit reaches eof",
@@ -126,8 +126,8 @@ func TestStageRejectsImpossibleReaderCountsWithoutResidue(t *testing.T) {
 	t.Parallel()
 
 	cases := []struct {
-		name   string
 		source io.Reader
+		name   string
 	}{
 		{
 			name:   "negative reader count violates io reader contract",
@@ -162,9 +162,9 @@ func TestReadRejectsImpossibleWriterCountsWithExactAccounting(t *testing.T) {
 	t.Parallel()
 
 	cases := []struct {
-		name       string
 		writer     io.Writer
 		wantNative error
+		name       string
 		wantCount  uint64
 	}{
 		{

@@ -86,12 +86,12 @@ func TestBoundedReadLayerTriad(t *testing.T) {
 	t.Parallel()
 
 	cases := []struct {
-		name       string
-		source     []byte
-		path       string
-		want       []byte
 		wantErr    error
 		wantNative error
+		name       string
+		path       string
+		source     []byte
+		want       []byte
 	}{
 		{
 			name:   "positive regular file streams its exact bytes and count",

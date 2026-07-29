@@ -10,17 +10,17 @@ Last updated: `2026-07-29`
   `github.com/deliri/primitive/v2026`. Historical evidence remains unchanged
   and therefore retains its original Foundation module paths. `PLAN.md` is
   local-only and excluded from the public repository.
-- Phase: the Temporal implementation slice is accepted. It cleanly reopened
-  Core, Contextstate, and Currency only for the shared comparison identity,
-  temporal overflow identity, public context observation boundary, and removal
-  of Currency's duplicate ordering domain. `temporal` and `filestore` are
-  `DONE`;
-  `testserial` remains in its required `CONSUMER_SURGERY`.
-- Review gate: no external reviewing agent was initialized. The user's
-  Temporal review was independently checked and its verified findings were
-  corrected. The user explicitly authorized commit and push. No tag or release
-  is authorized.
-- Production packages: 8 of 19 accepted.
+- Phase: the Exchange implementation slice is accepted. It cleanly reopened
+  Core only for typed HTTP endpoint, content-coding, field-value, method-domain,
+  media-type, header, strict-JSON projection, and checked-I/O contracts.
+  `exchange`, `temporal`, and `filestore` are `DONE`; `testserial` remains in
+  its required `CONSUMER_SURGERY`.
+- Review gate: no external reviewing agent was initialized. The user's two
+  Exchange reviews were independently checked against real `net/http`, TCP,
+  filesystem, context, and stream paths; every reproduced defect was corrected
+  and incorrect findings were rejected with direct evidence. The user
+  explicitly authorized commit and push. No tag or release is authorized.
+- Production packages: 9 of 19 accepted.
 - Test-support packages: 0 of 1 complete and 1 in consumer surgery.
 - Active-package consumer surgery: Witness must adopt the exact typed
   `testserial.Declare` contract before Testserial can become `DONE`.
@@ -456,6 +456,47 @@ Last updated: `2026-07-29`
   Temporal is clean. The canonical gate passes through nilaway and then stops
   only at the already classified stale Witness off-wire-enum JSON/String
   doctrine and retired Testserial convention.
+- Exchange review state: the package is a typed policy layer over the caller's
+  real `*http.Client`, `net/http`, `io.Reader`, `io.Writer`, Go runtime, and OS
+  network stack. It owns bounded aggregate JSON/byte operations, exact bounded
+  streaming, replay eligibility, finite retry and server hints, total and
+  per-attempt budgets, rejected or same-origin redirects, typed response
+  metadata, and typed/native error reachability. It owns no DNS, TLS, proxy,
+  connection, pool, framing, socket, queue, worker, transport, copy engine,
+  persistence, custody, or Objectstore policy.
+- Exchange review corrections: HTTP field-value grammar now belongs to
+  `Header.Validate`, including captured projections, after direct Go source
+  inspection and a real TCP probe disproved the claimed reader/writer
+  asymmetry. Upload preserves both `StatusError` and an oversized diagnostic
+  drain failure. Response observation cannot return a silent zero success and
+  does not fabricate response identity over a native dial failure. Retry-After
+  parsing, every request-family validator, header collection bounds, closed
+  modes, and the transport/response precedence path now have hostile proof.
+  One single-behavior regression test no longer carries a false `LayerTriad`
+  name. `JSONWriteCall` intentionally has no context because one bounded
+  `ResponseWriter.Write` offers no honest mid-write interruption point.
+- Exchange Core-export ownership deferral: `core.HTTPMethodCount` and
+  `core.HTTPEndpoint.SameOrigin` presently have exactly one production
+  consumer, Exchange, so a future export-to-consumer Sentinel will report both
+  under PLAN section 5 until another named package consumes them. This is a
+  deliberate, named deferral rather than drift. Keeping the method-domain size
+  compiler-owned eliminates a latent replay-table index panic; keeping origin
+  comparison on `HTTPEndpoint` prevents Exchange from copying HTTP schemes,
+  default ports, and endpoint normalization. Private Exchange copies would
+  violate section 1's single-owner law, so they are not introduced merely to
+  silence the future ownership finding.
+- Exchange current proof: focused ordinary and shuffled race tests pass at
+  79.3% statement coverage; `parseRetryAfter` is 85% and
+  `observedAggregateResponse` is 100%. Fresh full repository ordinary and race
+  tests pass. Vet, staticcheck, errcheck, nilaway, production `gocyclo <= 10`,
+  goconst, fieldalignment, gosec, govulncheck, actionlint, formatting, module
+  tidiness, and diff checks pass. Direct Witness analysis of Exchange is clean.
+  The canonical gate passes through nilaway and then stops only at the already
+  classified stale Witness off-wire-enum JSON/String doctrine and retired
+  Testserial convention. The measured M1 Max loopback benchmarks are
+  3.626 GB/s, 111,523 B/op, and 129 allocs/op for upload and 3.643 GB/s,
+  109,726 B/op, and 137 allocs/op for download; these are local measurements,
+  not network promises.
 - Fuzz scope for this slice is limited to externally controlled text or bytes.
   Fresh 100,000-execution differential runs pass for Currency decimal text,
   Currency Amount JSON, and Garble Seed JSON. Keygen has no external parser and
@@ -485,10 +526,10 @@ Last updated: `2026-07-29`
 
 Next:
 
-1. Publish the accepted Temporal revision without creating a tag or release.
-2. Read the complete Exchange interview and preserved implementation, then
-   present Exchange's exact typed API and ownership boundary for user review.
-3. Reassess Timeproof after Exchange supplies its required typed evidence.
+1. Publish the accepted Exchange revision without creating a tag or release.
+2. Reassess the next package or consumer surgery only after Exchange
+   publication; do not broaden this slice during publication.
+3. Reassess Timeproof now that Exchange supplies its required typed evidence.
 
 ## Packages
 
@@ -507,7 +548,7 @@ State vocabulary: `NEXT`, `BLOCKED_BY_DEPENDENCY`, `NOT_STARTED`, `RED`,
 | `filestore`        | `DONE`                  |
 | `hostresource`     | `BLOCKED_BY_DEPENDENCY` |
 | `temporal`         | `DONE`                  |
-| `exchange`         | `NEXT`                  |
+| `exchange`         | `DONE`                  |
 | `fuzz`             | `BLOCKED_BY_DEPENDENCY` |
 | `lease`            | `BLOCKED_BY_DEPENDENCY` |
 | `process`          | `BLOCKED_BY_DEPENDENCY` |

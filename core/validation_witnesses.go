@@ -19,7 +19,8 @@ var (
 	_ Validatable = HTTPMethod(0)
 	_ Validatable = HTTPStatusCode{}
 	_ Validatable = HTTPHeaderName{}
-	_ Validatable = HTTPMediaType(0)
+	_ Validatable = HTTPMediaType{}
+	_ Validatable = HTTPContentCoding{}
 	_ Validatable = Platform{}
 	_ Validatable = OperatingSystem(0)
 	_ Validatable = CPUArchitecture(0)
@@ -39,7 +40,8 @@ var (
 	_ ValidatedJSONMarshaler = HTTPMethod(0)
 	_ ValidatedJSONMarshaler = HTTPStatusCode{}
 	_ ValidatedJSONMarshaler = HTTPHeaderName{}
-	_ ValidatedJSONMarshaler = HTTPMediaType(0)
+	_ ValidatedJSONMarshaler = HTTPMediaType{}
+	_ ValidatedJSONMarshaler = HTTPContentCoding{}
 	_ ValidatedJSONMarshaler = Platform{}
 	_ ValidatedJSONMarshaler = OperatingSystem(0)
 	_ ValidatedJSONMarshaler = CPUArchitecture(0)

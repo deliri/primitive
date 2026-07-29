@@ -315,9 +315,9 @@ func TestMutationRequestsRejectNonAtomicOrRootEntryPaths(t *testing.T) {
 	positive := mustByteCount(t, 1)
 	target := mustRelativePath(t, filepath.Join("objects", "target"))
 	cases := []struct {
+		wantErr error
 		run     func(*testing.T) error
 		name    string
-		wantErr error
 	}{
 		{
 			name:    "write temporary equals target",

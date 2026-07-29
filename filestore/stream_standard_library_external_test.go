@@ -19,10 +19,10 @@ func TestStreamingAcceptsAndRejectsStandardLibraryReaderBehaviors(t *testing.T) 
 
 	payload := deterministicPayload((32 << 10) + 17)
 	cases := []struct {
-		name       string
-		reader     func([]byte) io.Reader
 		wantErr    error
 		wantNative error
+		reader     func([]byte) io.Reader
+		name       string
 	}{
 		{
 			name:   "bytes reader may return a full bounded chunk",
@@ -107,8 +107,8 @@ func TestStreamingAcceptsAndRejectsStandardLibraryReaderBehaviors(t *testing.T) 
 		},
 	}
 	operations := []struct {
-		name string
 		run  func(*testing.T, *os.Root, io.Reader, uint64) (string, error)
+		name string
 	}{
 		{
 			name: "stage",

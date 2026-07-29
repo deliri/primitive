@@ -196,10 +196,12 @@ const (
 	appendModeLimit
 )
 
+const appendModeInvalidReason = "filestore append mode is invalid"
+
 // Validate rejects values outside the closed append domain.
 func (m AppendMode) Validate() error {
 	if m <= AppendUnknown || m >= appendModeLimit {
-		return contractError(errors.New("filestore append mode is invalid"))
+		return contractError(errors.New(appendModeInvalidReason))
 	}
 	return nil
 }

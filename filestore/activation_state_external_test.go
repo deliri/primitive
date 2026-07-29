@@ -31,13 +31,13 @@ func TestCommitExhaustsOwnedAndHostileNamespaceStates(t *testing.T) {
 	t.Parallel()
 
 	cases := []struct {
+		wantErr             error
 		name                string
+		wantTarget          string
+		wantStage           string
 		stage               stageNamespaceState
 		target              targetNamespaceState
 		install             filestore.InstallMode
-		wantErr             error
-		wantTarget          string
-		wantStage           string
 		wantTargetDirectory bool
 	}{
 		{
@@ -130,13 +130,13 @@ func TestRecoverExhaustsReachableAndHostileNamespaceStates(t *testing.T) {
 	t.Parallel()
 
 	cases := []struct {
+		wantErr    error
 		name       string
+		wantTarget string
+		wantStage  string
 		stage      stageNamespaceState
 		target     targetNamespaceState
 		install    filestore.InstallMode
-		wantErr    error
-		wantTarget string
-		wantStage  string
 	}{
 		{
 			name:  "create resumes before namespace activation",

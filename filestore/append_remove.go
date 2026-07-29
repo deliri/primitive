@@ -25,7 +25,7 @@ func OpenAppend(ctx context.Context, request AppendRequest) (*os.File, error) {
 	case AppendCreateOrOpen:
 		return createOrOpenAppend(request)
 	default:
-		return nil, contractError(errors.New("filestore append mode is invalid"))
+		return nil, contractError(errors.New(appendModeInvalidReason))
 	}
 }
 

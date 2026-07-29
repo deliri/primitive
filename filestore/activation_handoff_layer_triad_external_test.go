@@ -20,12 +20,12 @@ import (
 // own bounded copy, sync, and stat path and observes a genuine identity change
 // between staging and activation.
 type stageIdentitySwapSource struct {
-	remaining []byte
-	foreign   []byte
 	swapErr   error
 	directory string
 	name      string
 	preserve  string
+	remaining []byte
+	foreign   []byte
 	swapped   bool
 }
 

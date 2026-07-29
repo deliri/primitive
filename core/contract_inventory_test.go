@@ -48,6 +48,9 @@ type coreContractInventory struct {
 	RelativePath               protocolFact[RelativePath]
 	HTTPStatusCode             protocolFact[HTTPStatusCode]
 	HTTPHeaderName             protocolFact[HTTPHeaderName]
+	HTTPMediaType              protocolFact[HTTPMediaType]
+	HTTPContentCoding          protocolFact[HTTPContentCoding]
+	HTTPEndpoint               protocolFact[HTTPEndpoint]
 	Platform                   protocolFact[Platform]
 }
 

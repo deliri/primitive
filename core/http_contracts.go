@@ -5,6 +5,7 @@ import (
 	"mime"
 	"net/textproto"
 	"strconv"
+	"strings"
 )
 
 // HTTPMethod is a closed set of admitted HTTP request methods.
@@ -28,6 +29,9 @@ const (
 	// HTTPMethodOptions is OPTIONS.
 	HTTPMethodOptions
 	httpMethodLimit
+	// HTTPMethodCount is the compiler-owned size of the complete method domain,
+	// including the invalid zero value.
+	HTTPMethodCount = uint8(httpMethodLimit)
 )
 
 const (
@@ -44,6 +48,7 @@ const (
 	httpMediaTypeTimestampQueryText = "application/timestamp-query"
 	httpMediaTypeTimestampReplyText = "application/timestamp-reply"
 	httpMediaTypePKIXCRLText        = "application/pkix-crl"
+	httpMediaTypeSyntaxErrorText    = "HTTP media type syntax is invalid"
 	httpStatusRangeErrorText        = "HTTP status code is outside 100..599"
 	// HTTPMethodTokenMaximumBytes bounds admitted method text.
 	HTTPMethodTokenMaximumBytes = len(httpMethodOptionsText)
@@ -68,29 +73,17 @@ func ParseHTTPMethod(value string) (HTTPMethod, error) {
 
 // String returns the standard method token, or empty text when invalid.
 func (m HTTPMethod) String() string {
-	switch m {
-	case HTTPMethodGet:
-		return httpMethodGetText
-	case HTTPMethodHead:
-		return httpMethodHeadText
-	case HTTPMethodPost:
-		return httpMethodPostText
-	case HTTPMethodPut:
-		return httpMethodPutText
-	case HTTPMethodPatch:
-		return httpMethodPatchText
-	case HTTPMethodDelete:
-		return httpMethodDeleteText
-	case HTTPMethodOptions:
-		return httpMethodOptionsText
-	default:
+	if m >= httpMethodLimit {
 		return ""
 	}
+	return httpMethodFacts()[m]
 }
 
 // Validate rejects methods outside the closed domain.
 func (m HTTPMethod) Validate() error {
-	if m <= HTTPMethodUnknown || m >= httpMethodLimit {
+	if m <= HTTPMethodUnknown ||
+		m >= httpMethodLimit ||
+		httpMethodFacts()[m] == "" {
 		return httpContractError("HTTP method is invalid")
 	}
 	return nil
@@ -98,6 +91,19 @@ func (m HTTPMethod) Validate() error {
 
 // IsValid reports whether m belongs to the closed method domain.
 func (m HTTPMethod) IsValid() bool { return m.Validate() == nil }
+
+func httpMethodFacts() [httpMethodLimit]string {
+	return [...]string{
+		HTTPMethodUnknown: "",
+		HTTPMethodGet:     httpMethodGetText,
+		HTTPMethodHead:    httpMethodHeadText,
+		HTTPMethodPost:    httpMethodPostText,
+		HTTPMethodPut:     httpMethodPutText,
+		HTTPMethodPatch:   httpMethodPatchText,
+		HTTPMethodDelete:  httpMethodDeleteText,
+		HTTPMethodOptions: httpMethodOptionsText,
+	}
+}
 
 // MarshalJSON emits the canonical uppercase method token.
 func (m HTTPMethod) MarshalJSON() ([]byte, error) {
@@ -294,6 +300,8 @@ const (
 	httpHeaderContentRangeText    = "Content-Range"
 	httpHeaderContentEncodingText = "Content-Encoding"
 	httpHeaderAcceptEncodingText  = "Accept-Encoding"
+	httpHeaderIdempotencyKeyText  = "Idempotency-Key"
+	httpHeaderLocationText        = "Location"
 )
 
 // HTTPHeaderContentType returns the validated Content-Type field name.
@@ -336,78 +344,89 @@ func HTTPHeaderAcceptEncoding() HTTPHeaderName {
 	return HTTPHeaderName{value: httpHeaderAcceptEncodingText}
 }
 
-// HTTPMediaType is a closed set of normalized media type bases. Parameters are
-// accepted by ParseHTTPMediaType but are not retained.
-type HTTPMediaType uint8
+// HTTPHeaderIdempotencyKey returns the validated Idempotency-Key field name.
+func HTTPHeaderIdempotencyKey() HTTPHeaderName {
+	return HTTPHeaderName{value: httpHeaderIdempotencyKeyText}
+}
 
-const (
-	// HTTPMediaTypeUnknown is the invalid zero media type.
-	HTTPMediaTypeUnknown HTTPMediaType = iota
-	// HTTPMediaTypeJSON is application/json.
-	HTTPMediaTypeJSON
-	// HTTPMediaTypeOctetStream is application/octet-stream.
-	HTTPMediaTypeOctetStream
-	// HTTPMediaTypeTextPlain is text/plain.
-	HTTPMediaTypeTextPlain
-	// HTTPMediaTypeTimestampQuery is application/timestamp-query.
-	HTTPMediaTypeTimestampQuery
-	// HTTPMediaTypeTimestampReply is application/timestamp-reply.
-	HTTPMediaTypeTimestampReply
-	// HTTPMediaTypePKIXCRL is application/pkix-crl.
-	HTTPMediaTypePKIXCRL
-	httpMediaTypeLimit
-)
+// HTTPHeaderLocation returns the validated Location field name.
+func HTTPHeaderLocation() HTTPHeaderName {
+	return HTTPHeaderName{value: httpHeaderLocationText}
+}
 
-// ParseHTTPMediaType parses standard media-type syntax, including parameters
-// and case-insensitive type/subtype text, then returns an admitted base.
+// HTTPMediaType is one canonical standard-library-parsed media type, including
+// any parameters. Its zero value is unset. It is deliberately not a closed
+// enum: HTTP protocols and providers define legitimate vendor media types.
+type HTTPMediaType struct {
+	value string
+}
+
+// ParseHTTPMediaType parses standard media-type syntax and stores the
+// canonical standard-library projection.
 func ParseHTTPMediaType(value string) (HTTPMediaType, error) {
 	if len(value) == 0 || len(value) > HTTPMediaTypeMaximumBytes {
-		return HTTPMediaTypeUnknown, httpContractError("HTTP media type has invalid length")
+		return HTTPMediaType{}, httpContractError("HTTP media type has invalid length")
 	}
-	base, _, err := mime.ParseMediaType(value)
+	base, parameters, err := mime.ParseMediaType(value)
 	if err != nil {
-		return HTTPMediaTypeUnknown, httpContractError("HTTP media type syntax is invalid")
+		return HTTPMediaType{}, httpContractError(httpMediaTypeSyntaxErrorText)
 	}
-	for mediaType := HTTPMediaTypeJSON; mediaType < httpMediaTypeLimit; mediaType++ {
-		if mediaType.String() == base {
-			return mediaType, nil
-		}
+	if strings.Count(base, "/") != 1 {
+		return HTTPMediaType{}, httpContractError("HTTP media type requires type and subtype")
 	}
-	return HTTPMediaTypeUnknown, httpContractError("HTTP media type is not admitted")
+	canonical := mime.FormatMediaType(base, parameters)
+	if canonical == "" || len(canonical) > HTTPMediaTypeMaximumBytes {
+		return HTTPMediaType{}, httpContractError("HTTP media type cannot be represented canonically")
+	}
+	return HTTPMediaType{value: canonical}, nil
 }
 
-// String returns the canonical lowercase media-type base.
+// String returns the canonical media type and parameters.
 func (m HTTPMediaType) String() string {
-	switch m {
-	case HTTPMediaTypeJSON:
-		return httpMediaTypeJSONText
-	case HTTPMediaTypeOctetStream:
-		return httpMediaTypeOctetStreamText
-	case HTTPMediaTypeTextPlain:
-		return httpMediaTypeTextPlainText
-	case HTTPMediaTypeTimestampQuery:
-		return httpMediaTypeTimestampQueryText
-	case HTTPMediaTypeTimestampReply:
-		return httpMediaTypeTimestampReplyText
-	case HTTPMediaTypePKIXCRL:
-		return httpMediaTypePKIXCRLText
-	default:
-		return ""
-	}
+	return m.value
 }
 
-// Validate rejects media types outside the closed domain.
+// Validate rejects unset or noncanonical media types.
 func (m HTTPMediaType) Validate() error {
-	if m <= HTTPMediaTypeUnknown || m >= httpMediaTypeLimit {
+	parsed, err := ParseHTTPMediaType(m.value)
+	if err != nil || parsed.value != m.value {
 		return httpContractError("HTTP media type is invalid")
 	}
 	return nil
 }
 
-// IsValid reports whether m belongs to the closed media-type domain.
+// IsValid reports whether m is a canonical parsed media type.
 func (m HTTPMediaType) IsValid() bool { return m.Validate() == nil }
 
-// MarshalJSON emits the canonical lowercase media-type base without parameters.
+// IsZero reports whether no media type is set.
+func (m HTTPMediaType) IsZero() bool { return m.value == "" }
+
+// Base returns the normalized type/subtype without parameters.
+func (m HTTPMediaType) Base() (string, error) {
+	if err := m.Validate(); err != nil {
+		return "", err
+	}
+	base, _, err := mime.ParseMediaType(m.value)
+	if err != nil {
+		return "", httpContractError(httpMediaTypeSyntaxErrorText)
+	}
+	return base, nil
+}
+
+// SameBase reports whether two media types share a normalized type/subtype.
+func (m HTTPMediaType) SameBase(other HTTPMediaType) (bool, error) {
+	left, err := m.Base()
+	if err != nil {
+		return false, err
+	}
+	right, err := other.Base()
+	if err != nil {
+		return false, err
+	}
+	return left == right, nil
+}
+
+// MarshalJSON emits the canonical media type.
 func (m HTTPMediaType) MarshalJSON() ([]byte, error) {
 	if err := m.Validate(); err != nil {
 		return nil, errors.Join(ErrJSONContract, err)
@@ -430,6 +449,55 @@ func (m *HTTPMediaType) UnmarshalJSON(data []byte) error {
 	}
 	*m = decoded
 	return nil
+}
+
+// HTTPMediaTypeJSON returns canonical application/json.
+func HTTPMediaTypeJSON() HTTPMediaType {
+	return HTTPMediaType{value: httpMediaTypeJSONText}
+}
+
+// HTTPMediaTypeOctetStream returns canonical application/octet-stream.
+func HTTPMediaTypeOctetStream() HTTPMediaType {
+	return HTTPMediaType{value: httpMediaTypeOctetStreamText}
+}
+
+// HTTPMediaTypeTextPlain returns canonical text/plain.
+func HTTPMediaTypeTextPlain() HTTPMediaType {
+	return HTTPMediaType{value: httpMediaTypeTextPlainText}
+}
+
+// HTTPMediaTypeTimestampQuery returns canonical application/timestamp-query.
+func HTTPMediaTypeTimestampQuery() HTTPMediaType {
+	return HTTPMediaType{value: httpMediaTypeTimestampQueryText}
+}
+
+// HTTPMediaTypeTimestampReply returns canonical application/timestamp-reply.
+func HTTPMediaTypeTimestampReply() HTTPMediaType {
+	return HTTPMediaType{value: httpMediaTypeTimestampReplyText}
+}
+
+// HTTPMediaTypePKIXCRL returns canonical application/pkix-crl.
+func HTTPMediaTypePKIXCRL() HTTPMediaType {
+	return HTTPMediaType{value: httpMediaTypePKIXCRLText}
+}
+
+// ValidateHTTPFieldValue rejects field content that no HTTP message can carry.
+// The admitted grammar is RFC 9110 field-value: visible ASCII, space,
+// horizontal tab, and obs-text. Control bytes and DEL are refused because
+// net/http refuses to transmit them, so accepting one here would defer a
+// permanent contract violation into an opaque transport failure.
+func ValidateHTTPFieldValue(value string) error {
+	for index := range len(value) {
+		if !isHTTPFieldValueByte(value[index]) {
+			return httpContractError("HTTP field value contains an untransmittable byte")
+		}
+	}
+	return nil
+}
+
+func isHTTPFieldValueByte(value byte) bool {
+	const deleteByte = 0x7f
+	return value == '\t' || (value >= ' ' && value != deleteByte)
 }
 
 func isHTTPTokenByte(value byte) bool {

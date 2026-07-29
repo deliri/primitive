@@ -14,9 +14,9 @@ import (
 )
 
 type writeObservation struct {
+	err   error
 	calls int
 	bytes int
-	err   error
 }
 
 func (w *writeObservation) Write(data []byte) (int, error) {
