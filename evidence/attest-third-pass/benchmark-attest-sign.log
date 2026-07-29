@@ -1,0 +1,8 @@
+goos: darwin
+goarch: arm64
+pkg: github.com/offGridSoft/foundation/v2026/attest
+cpu: Apple M1 Max
+BenchmarkSignCanonicalBody64KiB-10      	   10377	    116987 ns/op	    8878 B/op	      15 allocs/op
+BenchmarkSignCanonicalBodyMaximum-10    	    2158	    554214 ns/op	    8876 B/op	      15 allocs/op
+PASS
+ok  	github.com/offGridSoft/foundation/v2026/attest	2.626s

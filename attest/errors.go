@@ -1,0 +1,57 @@
+package attest
+
+import (
+	"errors"
+
+	"github.com/deliri/primitive/v2026/core"
+)
+
+const (
+	panicAtConsumerBoundaryErrorText = "attest consumer callback panicked"
+	privateKeyLengthErrorText        = "ed25519 private key has invalid length"
+	privateKeyPublicHalfErrorText    = "ed25519 private key public half is inconsistent"
+	bodyMissingErrorText             = "canonical body is missing"
+	bodyEmptyErrorText               = "canonical body is empty"
+	bodyLimitErrorText               = "canonical body exceeds its byte limit"
+	writerClosedErrorText            = "canonical body writer is closed"
+	signatureUnsetErrorText          = "ed25519 signature is unset"
+	signatureLengthErrorText         = "ed25519 signature has invalid length"
+	signatureEncodingErrorText       = "ed25519 signature is not canonical lowercase hexadecimal"
+	domainCanonicalErrorText         = "signing domain is not canonical"
+	frameExtentErrorText             = "attestation frame extent is outside the supported range"
+	trustedKeyCountErrorText         = "trusted key count is outside the supported range"
+	trustedKeyDuplicateErrorText     = "trusted keys contain a duplicate"
+	trustedKeyStorageErrorText       = "trusted key storage is not closed"
+	envelopeWireMissingErrorText     = "envelope wire field is missing"
+	envelopeBodyLengthErrorText      = "envelope body length is outside the supported range"
+	envelopeDomainMismatchErrorText  = "envelope domain does not match the canonical body"
+	envelopeLengthMismatchErrorText  = "envelope body length does not match the canonical body"
+	envelopeDigestMismatchErrorText  = "envelope body digest does not match the canonical body"
+	envelopeSignerUntrustedErrorText = "envelope signer is not trusted"
+	envelopeSignatureErrorText       = "envelope signature does not verify"
+	postSignVerificationErrorText    = "new signature did not verify"
+	verifiedProofUnsetErrorText      = "attestation proof is unset"
+)
+
+func contractError(errs ...error) error {
+	return joinIdentity(core.ErrAttestContract, errs...)
+}
+
+func verificationError(errs ...error) error {
+	return joinIdentity(core.ErrAttestVerification, errs...)
+}
+
+func envelopeJSONError(errs ...error) error {
+	return errors.Join(core.ErrJSONContract, contractError(errs...))
+}
+
+func joinIdentity(identity error, errs ...error) error {
+	values := make([]error, 1, len(errs)+1)
+	values[0] = identity
+	for _, err := range errs {
+		if err != nil {
+			values = append(values, err)
+		}
+	}
+	return errors.Join(values...)
+}

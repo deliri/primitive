@@ -1,0 +1,58 @@
+# Operating system metadata
+.DS_Store
+.AppleDouble
+.LSOverride
+Icon?
+Thumbs.db
+Desktop.ini
+
+# Editors
+.idea/
+.fleet/
+.vscode/
+*.swp
+*.swo
+*~
+
+# Local environment and secrets
+.env
+.env.*
+!.env.example
+!.env.sample
+.secrets/
+
+# Go workspace files
+go.work
+go.work.sum
+
+# Local architecture governance
+/PLAN.md
+
+# Build outputs
+/.artifacts/
+/bin/
+/dist/
+*.exe
+*.exe~
+*.dll
+*.so
+*.dylib
+*.test
+
+# Test, coverage, benchmark, and profiling output
+/coverage/
+coverage*.out
+*.coverprofile
+*.prof
+*.pprof
+*.trace
+
+# Local caches, scratch space, and logs
+/.cache/
+/.tmp/
+/tmp/
+*.log
+
+# Durable review evidence
+!/evidence/
+!/evidence/**

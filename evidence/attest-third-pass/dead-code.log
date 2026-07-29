@@ -1,0 +1,6 @@
+attest/architecture_test.go:64:31: unreachable func: testArchitectureDomain.Validate
+attest/architecture_test.go:68:31: unreachable func: testArchitectureDomain.MarshalText
+attest/architecture_test.go:72:31: unreachable func: testArchitectureDomain.ParseCanonicalText
+attest/internal_contract_test.go:164:29: unreachable func: internalTestDomain.Validate
+attest/internal_contract_test.go:171:29: unreachable func: internalTestDomain.MarshalText
+attest/internal_contract_test.go:175:27: unreachable func: internalTestDomain.ParseCanonicalText

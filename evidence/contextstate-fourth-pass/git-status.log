@@ -1,0 +1,10 @@
+## main...origin/main
+ M LEDGER.md
+ M PLAN.md
+ M _docs/interviews/contextstate.md
+ M core/contract_inventory_test.go
+ M core/validation_json.go
+ M core/validation_json_hostile_test.go
+?? contextstate/
+?? evidence/contextstate-fourth-pass/
+?? evidence/contextstate-third-pass/

@@ -1,0 +1,6 @@
+attest/architecture_test.go:60:31: unreachable func: testArchitectureDomain.Validate
+attest/architecture_test.go:64:31: unreachable func: testArchitectureDomain.MarshalText
+attest/architecture_test.go:68:31: unreachable func: testArchitectureDomain.ParseCanonicalText
+attest/canonical.go:78:6: unreachable func: validateBodyShape
+attest/contracts.go:64:25: unreachable func: SignRequest.Validate
+attest/contracts.go:75:27: unreachable func: VerifyRequest.Validate

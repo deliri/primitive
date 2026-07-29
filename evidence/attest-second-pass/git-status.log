@@ -1,0 +1,6 @@
+## main...origin/main
+ M scripts/gate.sh
+?? attest/
+?? core/architecture_projection_hostile_test.go
+?? evidence/attest-pre-protocol-audit/
+?? evidence/attest-second-pass/

@@ -1,0 +1,11 @@
+goos: darwin
+goarch: arm64
+pkg: github.com/offGridSoft/foundation/v2026/core
+cpu: Apple M1 Max
+BenchmarkEncodeValidatedJSONAbsolutePath-10                           	  415381	      2738 ns/op	      5391 ratchet-B/op	    5364 B/op	      25 allocs/op
+BenchmarkRejectDuplicateJSONFieldsMaximum-10                          	    8977	    133928 ns/op	   69128 B/op	    3077 allocs/op
+BenchmarkRejectDuplicateJSONFieldsGlobalMaximumLongSharedPrefix-10    	     206	   6134930 ns/op	 167.23 MB/s	 1130004 B/op	    3089 allocs/op
+BenchmarkDecodeStrictJSONAdvertisedMaximumComposition-10              	      19	  62555844 ns/op	  16.75 MB/s	  28383440 ratchet-B/op	28383703 B/op	 1192375 allocs/op
+BenchmarkJSONMarshalAbsolutePath-10                                   	 3063774	       392.4 ns/op	     128 B/op	       4 allocs/op
+PASS
+ok  	github.com/offGridSoft/foundation/v2026/core	6.434s

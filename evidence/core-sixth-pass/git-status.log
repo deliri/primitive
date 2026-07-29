@@ -1,0 +1,20 @@
+## main...origin/main
+ A .github/workflows/ci.yml
+ M .gitignore
+ D .ledger_completed.md
+ D .ledger_pending.md
+ A AGENTS.md
+ A PLAN.md
+ A README.md
+ D SPEC.md
+ A _docs/testing_protocol.md
+ D _docs/toolchain.md
+ A go.mod
+ A scripts/gate.sh
+ A scripts/install-tools.sh
+?? .review_from_claude.md
+?? LEDGER.md
+?? _docs/interviews/
+?? core/
+?? evidence/
+?? scripts/install-package-tools.sh

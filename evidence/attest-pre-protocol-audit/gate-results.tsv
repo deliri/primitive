@@ -1,0 +1,30 @@
+gate	command	platform	duration_seconds	exit_status	log	sha256
+go-version	go version	darwin/arm64	0	0	go-version.log	278375c8a03c34bb0f855154850de7c4f217fd3b8cdf37986819e3f05d0a4c33
+go-environment	go env GOOS GOARCH GOVERSION	darwin/arm64	0	0	go-environment.log	01b2369ac9df998372b72e5e162592d4055d17ed973959ce983af0673b20f80a
+git-status	git status --short --branch	darwin/arm64	0	0	git-status.log	50e5c94f80dbda69cb4377001a53533cd2aeacce5cdcc12cad630b04698b1735
+install-tools	bash scripts/install-tools.sh	darwin/arm64	0	0	install-tools.log	e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855
+module-tidy	go mod tidy -diff	darwin/arm64	0	0	module-tidy.log	e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855
+workflow	actionlint .github/workflows/ci.yml	darwin/arm64	0	0	workflow.log	e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855
+format	gofmt -l .	darwin/arm64	0	0	format.log	e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855
+package-list-stdout	go list ./...	darwin/arm64	0	0	packages.log	15e248017f0dc62521fea78699a7784a0056c029cf7bf92ae2cc97ef422405fb
+package-list-stderr	go list ./...	darwin/arm64	0	0	packages.stderr.log	e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855
+install-package-tools	bash scripts/install-package-tools.sh	darwin/arm64	5	0	install-package-tools.log	e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855
+test	go test -count=1 ./...	darwin/arm64	1	0	test.log	8cfac90a871dcf4da14dbdbc4d90c7759082efc39ad0f38e4a32113386d969f5
+test-race	go test -race -count=1 ./...	darwin/arm64	3	0	test-race.log	c825e5218ce4ed749682a09b9b25277defa46f011eb663f6f61c79efb0837a8f
+vet	go vet ./...	darwin/arm64	0	0	vet.log	e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855
+staticcheck	staticcheck ./...	darwin/arm64	0	0	staticcheck.log	e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855
+errcheck	errcheck ./...	darwin/arm64	1	0	errcheck.log	e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855
+nilaway	nilaway ./...	darwin/arm64	2	0	nilaway.log	e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855
+witness-lint	witness-lint ./...	darwin/arm64	0	0	witness-lint.log	e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855
+complexity	gocyclo -over 10 --ignore _test.go .	darwin/arm64	0	0	complexity.log	e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855
+constants	goconst -set-exit-status ./...	darwin/arm64	0	0	constants.log	5e7750d2749f0f0239faa91006551c7f2fa1127e2e3beb9edfab381d9ea1efcf
+field-alignment	fieldalignment ./...	darwin/arm64	1	0	field-alignment.log	e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855
+security	gosec -quiet ./...	darwin/arm64	0	0	security.log	e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855
+vulnerabilities	govulncheck ./...	darwin/arm64	1	0	vulnerabilities.log	3016e51e4eac0d421674d2128bbbdefb2924b4646e0c14a1ab034977ad73fae5
+dead-code	deadcode -test ./...	darwin/arm64	1	0	dead-code.log	06ce12e05abbc2f8fcd3acb25525a19b09e53c717aa7860132078c237d423e86
+benchmark-json-contracts	go test -run ^$ -bench ^Benchmark(DecodeStrictJSON|EncodeValidatedJSON|JSONMarshal|RejectDuplicateJSONFields) -benchmem -count=1 ./core	darwin/arm64	8	0	benchmark-json-contracts.log	ec000baf034eb1cf2f5c57430313bd8f81a3c1548738c218178b34ff14d01d15
+benchmark-attest-sign	go test -run ^$ -bench ^BenchmarkSignCanonicalBody64KiB$ -benchmem -count=1 ./attest	darwin/arm64	1	0	benchmark-attest-sign.log	fa1725431b1de3c2db2632428bdbcb7a4ca1adc0106d86454efb73d9d72c2bf3
+fuzz-decode-strict-json-absolute-path	go test -run ^$ -fuzz ^FuzzDecodeStrictJSONAbsolutePathPublicBoundary$ -fuzztime=100000x -parallel=1 ./core	darwin/arm64	7	0	fuzz-decode-strict-json-absolute-path.log	05c0436102c97ccb66494b5f9919d336aefec4a1c03d84188239fe76a8b648ea
+fuzz-marshal-json-string	go test -run ^$ -fuzz ^FuzzMarshalJSONStringRoundTrip$ -fuzztime=100000x -parallel=1 ./core	darwin/arm64	5	0	fuzz-marshal-json-string.log	aee5051b1e3bb7d118cf6801b971e6b23889ab6ea7be4ec217aaee5dfd920d9b
+fuzz-attest-envelope-json	go test -run ^$ -fuzz ^FuzzEnvelopeJSONSemanticClosure$ -fuzztime=100000x -parallel=1 ./attest	darwin/arm64	17	0	fuzz-attest-envelope-json.log	5f69c4cdf1210255099ebde7c35c9284bf117fa88570c0f53570bfa60d94ddf4
+fuzz-attest-signed-fields	go test -run ^$ -fuzz ^FuzzVerifyRejectsEveryIndependentlyMutatedSignedField$ -fuzztime=100000x -parallel=1 ./attest	darwin/arm64	24	0	fuzz-attest-signed-fields.log	050bfd8fada48329bd95cc24dbc7110e746eccde1765301669068e633cffd934

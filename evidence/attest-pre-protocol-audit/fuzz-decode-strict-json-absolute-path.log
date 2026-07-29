@@ -1,0 +1,6 @@
+fuzz: elapsed: 0s, gathering baseline coverage: 0/403 completed
+fuzz: elapsed: 1s, gathering baseline coverage: 403/403 completed, now fuzzing with 1 workers
+fuzz: elapsed: 3s, execs: 61864 (20617/sec), new interesting: 3 (total: 406)
+fuzz: elapsed: 5s, execs: 100000 (20212/sec), new interesting: 5 (total: 408)
+PASS
+ok  	github.com/offGridSoft/foundation/v2026/core	5.206s
