@@ -415,8 +415,8 @@ func TestMutationRequestsRejectNonAtomicOrRootEntryPaths(t *testing.T) {
 		Target:  target,
 		Install: filestore.InstallCreate,
 	}).Validate()
-	if !errors.Is(gotErr, core.ErrFilestoreContract) {
-		t.Fatalf("cross-directory CommitRequest.Validate() error = %v, want %v", gotErr, core.ErrFilestoreContract)
+	if gotErr != nil {
+		t.Fatalf("cross-directory CommitRequest.Validate() error = %v, want nil within one rooted capability", gotErr)
 	}
 }
 

@@ -313,9 +313,9 @@ retry framework, transaction engine, or other filesystem world-building.
 
 ### Conclusion
 
-The archive contains valuable evidence: typed ambiguous outcomes,
-same-directory staging, file-plus-directory synchronization, bounded
-streaming, real append accounting, and recovery. It is not promotion-ready.
+The archive contains valuable evidence: typed ambiguous outcomes, rooted
+target-late staging, file-plus-directory synchronization, bounded streaming,
+real append accounting, and recovery. It is not promotion-ready.
 Its stricter-than-Go platform layer, lock sidecars, custom reader/writer
 wrappers, wire enums, recursive removal surface, and Primitive-owned append
 ceilings are rejected. The redesign must prove rooted confinement through

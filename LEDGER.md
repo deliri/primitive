@@ -1,6 +1,6 @@
 # Primitive 2026 Ledger
 
-Last updated: `2026-07-28`
+Last updated: `2026-07-29`
 
 ## Current
 
@@ -548,3 +548,14 @@ drifted path derivation fails instead of silently auditing nothing.
   `TestRemovalLayerTriad` reproduced the native `ENOENT`; `Remove` now returns
   immediately on `fs.ErrNotExist`, while successful removals still synchronize
   the real parent and other failures retain typed and native cleanup identity.
+- `2026-07-29`: Peachfuzz consumer surgery exposed Filestore's rejected
+  target-late crossing. A content digest cannot name its final directory until
+  after bounded staging completes, while the old `CommitRequest` admitted only
+  a same-directory target. A red-first cross-directory activation triad now
+  proves create and replace through one real `os.Root`, missing-parent native
+  failure without stage loss, and idempotent recovery of already-landed link
+  and rename effects. Create synchronizes the target parent before removing
+  the stage name and then synchronizes the stage parent; replace and recovery
+  synchronize both affected parents. The OS still owns namespace arbitration,
+  and no copy, scheduler, lock, transaction model, or filesystem wrapper was
+  introduced.

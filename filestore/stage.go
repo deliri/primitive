@@ -245,7 +245,7 @@ func commitCreate(request CommitRequest) error {
 	if err := removeStageName(request.Staged); err != nil {
 		return err
 	}
-	if err := syncParent(request.Staged.root, request.Target); err != nil {
+	if err := syncParent(request.Staged.root, request.Staged.path); err != nil {
 		return cleanupError(err)
 	}
 	return nil
@@ -261,6 +261,11 @@ func commitReplace(request CommitRequest) error {
 	}
 	if err := syncParent(request.Staged.root, request.Target); err != nil {
 		return indeterminateActivationError(err)
+	}
+	if differentParentDirectories(request.Staged.path, request.Target) {
+		if err := syncParent(request.Staged.root, request.Staged.path); err != nil {
+			return indeterminateActivationError(err)
+		}
 	}
 	return nil
 }
@@ -301,6 +306,11 @@ func recoverMissingStage(request CommitRequest, targetInfo fs.FileInfo) error {
 	if err := syncParent(request.Staged.root, request.Target); err != nil {
 		return indeterminateActivationError(err)
 	}
+	if differentParentDirectories(request.Staged.path, request.Target) {
+		if err := syncParent(request.Staged.root, request.Staged.path); err != nil {
+			return indeterminateActivationError(err)
+		}
+	}
 	return nil
 }
 
@@ -323,10 +333,14 @@ func recoverPresentStage(request CommitRequest, targetInfo fs.FileInfo) error {
 	if err := removeStageName(request.Staged); err != nil {
 		return err
 	}
-	if err := syncParent(request.Staged.root, request.Target); err != nil {
+	if err := syncParent(request.Staged.root, request.Staged.path); err != nil {
 		return cleanupError(err)
 	}
 	return nil
+}
+
+func differentParentDirectories(left, right core.RelativePath) bool {
+	return filepath.Dir(left.String()) != filepath.Dir(right.String())
 }
 
 // Discard durably removes only the name owned by one staged receipt.

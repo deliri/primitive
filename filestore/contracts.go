@@ -158,7 +158,8 @@ func (r StageRequest) Validate() error {
 	return nil
 }
 
-// CommitRequest names the target selected for one completed stage.
+// CommitRequest names the target selected for one completed stage. Target and
+// stage may occupy different directories within the same rooted capability.
 type CommitRequest struct {
 	Target  core.RelativePath
 	Staged  StagedFile
@@ -175,9 +176,6 @@ func (r CommitRequest) Validate() error {
 	}
 	if r.Target == r.Staged.path {
 		return contractError(errors.New(targetEqualsTemporaryDiagnostic))
-	}
-	if filepath.Dir(r.Target.String()) != filepath.Dir(r.Staged.path.String()) {
-		return contractError(errors.New(crossDirectoryDiagnostic))
 	}
 	return r.Install.Validate()
 }
