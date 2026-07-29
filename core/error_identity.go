@@ -175,6 +175,19 @@ const (
 	// ErrUpgradeContract identifies an upgrade contract violation.
 	ErrUpgradeContract
 
+	// ErrGovernanceContract identifies a governance contract violation.
+	ErrGovernanceContract
+	// ErrGovernanceDocumentSource identifies a governance document that could
+	// not be read. Core owns this rejection so a caller distinguishes an
+	// unreadable document from one whose content violates the contract.
+	ErrGovernanceDocumentSource
+	// ErrGovernanceDocumentLength identifies a governance document whose byte
+	// length is not the exact canonical length.
+	ErrGovernanceDocumentLength
+	// ErrGovernanceDocumentDigest identifies a governance document whose digest
+	// is not the canonical digest.
+	ErrGovernanceDocumentDigest
+
 	errorIdentityLimit
 )
 
@@ -199,8 +212,25 @@ func (i ErrorIdentity) Error() string {
 		return errorIdentityTextFuzzThroughReleaseManifest(i)
 	case i <= ErrObjectStoreIntegrity:
 		return errorIdentityTextReleaseThroughObjectIntegrity(i)
-	default:
+	case i <= ErrUpgradeContract:
 		return errorIdentityTextObjectTailThroughUpgrade(i)
+	default:
+		return errorIdentityTextGovernance(i)
+	}
+}
+
+func errorIdentityTextGovernance(i ErrorIdentity) string {
+	switch i {
+	case ErrGovernanceContract:
+		return "governance contract violation"
+	case ErrGovernanceDocumentSource:
+		return "governance document source failed"
+	case ErrGovernanceDocumentLength:
+		return "governance document length rejected"
+	case ErrGovernanceDocumentDigest:
+		return "governance document digest rejected"
+	default:
+		return unknownErrorIdentityText
 	}
 }
 
@@ -506,8 +536,11 @@ func errorIdentityParents(identity ErrorIdentity) errorIdentityParentSet {
 		ErrHostResourceContract, ErrTemporalContract, ErrExchangeContract,
 		ErrFuzzContract, ErrLeaseContract, ErrReleaseContract,
 		ErrShutdownContract, ErrObjectStoreContract, ErrTimeProofContract,
-		ErrWorkloadIdentityContract, ErrUpgradeContract:
+		ErrWorkloadIdentityContract, ErrUpgradeContract, ErrGovernanceContract:
 		return oneErrorIdentityParent(ErrPrimitiveContract)
+	case ErrGovernanceDocumentSource, ErrGovernanceDocumentLength,
+		ErrGovernanceDocumentDigest:
+		return oneErrorIdentityParent(ErrGovernanceContract)
 	case ErrAttestVerification, ErrNilContext, ErrContextObservation,
 		ErrCurrencyMismatch, ErrCurrencyDecimal, ErrCurrencyOverflow,
 		ErrGarbleDerivation, ErrGarbleBuildIntent, ErrKeygenEntropy:
