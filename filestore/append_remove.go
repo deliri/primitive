@@ -132,7 +132,10 @@ func Remove(ctx context.Context, request RemovalRequest) error {
 		return err
 	}
 	err := request.Location.Root.Remove(request.Location.Path.String())
-	if err != nil && !errors.Is(err, fs.ErrNotExist) {
+	if errors.Is(err, fs.ErrNotExist) {
+		return nil
+	}
+	if err != nil {
 		return cleanupError(err)
 	}
 	if err := syncParent(request.Location.Root, request.Location.Path); err != nil {

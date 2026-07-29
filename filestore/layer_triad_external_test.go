@@ -398,7 +398,7 @@ func TestRemovalLayerTriad(t *testing.T) {
 			t.Fatalf("preserved child bytes = %q, want %q", got, "keep")
 		}
 	})
-	t.Run("neutral missing name is an idempotent no-op that preserves siblings", func(t *testing.T) {
+	t.Run("neutral missing leaf and missing parent are idempotent no-ops that preserve siblings", func(t *testing.T) {
 		t.Parallel()
 
 		rootDirectory := t.TempDir()
@@ -406,12 +406,13 @@ func TestRemovalLayerTriad(t *testing.T) {
 		if err := os.WriteFile(filepath.Join(rootDirectory, "keep"), []byte("kept"), 0o600); err != nil {
 			t.Fatal(err)
 		}
-		for attempt := range 3 {
+		missingPaths := []string{"missing", filepath.Join("missing-parent", "missing")}
+		for _, missingPath := range missingPaths {
 			gotErr := filestore.Remove(t.Context(), filestore.RemovalRequest{
-				Location: filestore.Location{Root: root, Path: mustRelativePath(t, "missing")},
+				Location: filestore.Location{Root: root, Path: mustRelativePath(t, missingPath)},
 			})
 			if gotErr != nil {
-				t.Fatalf("Remove() attempt %d error = %v, want nil", attempt, gotErr)
+				t.Fatalf("Remove(%q) error = %v, want nil", missingPath, gotErr)
 			}
 		}
 		requireDirectoryEntryNames(t, rootDirectory, []string{"keep"})

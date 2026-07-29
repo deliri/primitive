@@ -521,3 +521,10 @@ drifted path derivation fails instead of silently auditing nothing.
   clearing remains harmless ownership cleanup; and `fmt.Appendf` modernization
   is not a contract correction. The testing protocol's retired `Serial` prose
   was updated to the typed `Declare` contract.
+- `2026-07-28`: Witness consumer surgery exposed Filestore removal's missing-
+  parent neutral case. `Remove` had correctly classified an absent target as
+  idempotent but then attempted to synchronize a parent whose namespace had
+  not changed and might itself be absent. A red-first extension of
+  `TestRemovalLayerTriad` reproduced the native `ENOENT`; `Remove` now returns
+  immediately on `fs.ErrNotExist`, while successful removals still synchronize
+  the real parent and other failures retain typed and native cleanup identity.
