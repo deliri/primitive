@@ -182,13 +182,38 @@ func (r CommitRequest) Validate() error {
 	return r.Install.Validate()
 }
 
+// AppendMode declares which namespace state an append open admits.
+type AppendMode uint8
+
+const (
+	// AppendUnknown is the invalid zero state.
+	AppendUnknown AppendMode = iota
+	// AppendCreate requires the target to be absent and creates it exclusively.
+	AppendCreate
+	// AppendExisting requires the target to be an existing regular file.
+	AppendExisting
+	// AppendCreateOrOpen creates an absent target or opens an existing regular
+	// file without truncating it.
+	AppendCreateOrOpen
+	appendModeLimit
+)
+
+// Validate rejects values outside the closed append domain.
+func (m AppendMode) Validate() error {
+	if m <= AppendUnknown || m >= appendModeLimit {
+		return contractError(errors.New("filestore append mode is invalid"))
+	}
+	return nil
+}
+
 // AppendRequest opens one real OS file for append below a rooted boundary.
 type AppendRequest struct {
 	Location Location
 	Mode     fs.FileMode
+	Append   AppendMode
 }
 
-// Validate rejects an invalid location or creation mode.
+// Validate rejects an invalid location, permission mode, or append intent.
 func (r AppendRequest) Validate() error {
 	if err := r.Location.Validate(); err != nil {
 		return err
@@ -196,7 +221,10 @@ func (r AppendRequest) Validate() error {
 	if err := validateMutablePath(r.Location.Path); err != nil {
 		return err
 	}
-	return validatePermissionMode(r.Mode)
+	if err := validatePermissionMode(r.Mode); err != nil {
+		return err
+	}
+	return r.Append.Validate()
 }
 
 // RotationRequest transfers Outgoing to the append-rotation operation and
@@ -206,12 +234,19 @@ type RotationRequest struct {
 	Incoming AppendRequest
 }
 
-// Validate rejects a missing outgoing handle or invalid incoming request.
+// Validate rejects a missing outgoing handle or an incoming request that does
+// not exclusively create the next generation.
 func (r RotationRequest) Validate() error {
 	if r.Outgoing == nil {
 		return contractError(errors.New("filestore rotation outgoing handle is missing"))
 	}
-	return r.Incoming.Validate()
+	if err := r.Incoming.Validate(); err != nil {
+		return err
+	}
+	if r.Incoming.Append != AppendCreate {
+		return contractError(errors.New("filestore rotation incoming append mode must create"))
+	}
+	return nil
 }
 
 // RemovalRequest names one rooted entry to remove durably.
@@ -265,6 +300,7 @@ var (
 	_ core.Validatable = WriteRequest{}
 	_ core.Validatable = StageRequest{}
 	_ core.Validatable = CommitRequest{}
+	_ core.Validatable = AppendMode(0)
 	_ core.Validatable = AppendRequest{}
 	_ core.Validatable = RotationRequest{}
 	_ core.Validatable = RemovalRequest{}

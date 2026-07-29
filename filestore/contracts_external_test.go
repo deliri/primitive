@@ -166,13 +166,21 @@ func TestRequestsRejectUnsetOwnershipBoundaries(t *testing.T) {
 				Staged: staged, Target: target, Install: filestore.InstallReplace,
 			}).Validate()
 		}},
-		{name: "valid append owns location and creation mode", wantValid: true, run: func(_ *testing.T) error {
-			return (filestore.AppendRequest{Location: location, Mode: 0o600}).Validate()
+		{name: "valid append owns location permission and create-or-open intent", wantValid: true, run: func(_ *testing.T) error {
+			return (filestore.AppendRequest{
+				Location: location,
+				Mode:     0o600,
+				Append:   filestore.AppendCreateOrOpen,
+			}).Validate()
 		}},
 		{name: "valid rotation transfers a real outgoing handle and incoming request", wantValid: true, run: func(_ *testing.T) error {
 			return (filestore.RotationRequest{
 				Outgoing: outgoing,
-				Incoming: filestore.AppendRequest{Location: location, Mode: 0o600},
+				Incoming: filestore.AppendRequest{
+					Location: location,
+					Mode:     0o600,
+					Append:   filestore.AppendCreate,
+				},
 			}).Validate()
 		}},
 		{name: "valid removal owns one mutable rooted name", wantValid: true, run: func(_ *testing.T) error {
@@ -252,12 +260,29 @@ func TestRequestsRejectUnsetOwnershipBoundaries(t *testing.T) {
 				Staged: staged, Target: target,
 			}).Validate()
 		}},
-		{name: "append without mode", run: func(_ *testing.T) error {
+		{name: "append without permission mode", run: func(_ *testing.T) error {
 			return (filestore.AppendRequest{Location: location}).Validate()
+		}},
+		{name: "append without namespace intent", run: func(_ *testing.T) error {
+			return (filestore.AppendRequest{Location: location, Mode: 0o600}).Validate()
 		}},
 		{name: "rotation without outgoing handle", run: func(_ *testing.T) error {
 			return (filestore.RotationRequest{
-				Incoming: filestore.AppendRequest{Location: location, Mode: 0o600},
+				Incoming: filestore.AppendRequest{
+					Location: location,
+					Mode:     0o600,
+					Append:   filestore.AppendCreate,
+				},
+			}).Validate()
+		}},
+		{name: "rotation incoming mode cannot reopen an existing generation", run: func(_ *testing.T) error {
+			return (filestore.RotationRequest{
+				Outgoing: outgoing,
+				Incoming: filestore.AppendRequest{
+					Location: location,
+					Mode:     0o600,
+					Append:   filestore.AppendExisting,
+				},
 			}).Validate()
 		}},
 		{name: "removal without location", run: func(_ *testing.T) error {
@@ -355,6 +380,7 @@ func TestMutationRequestsRejectNonAtomicOrRootEntryPaths(t *testing.T) {
 				return (filestore.AppendRequest{
 					Location: filestore.Location{Root: root, Path: mustRelativePath(t, ".")},
 					Mode:     0o600,
+					Append:   filestore.AppendCreate,
 				}).Validate()
 			},
 		},

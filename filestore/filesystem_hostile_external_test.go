@@ -325,6 +325,7 @@ func TestClosedOSRootNativeErrorMatrix(t *testing.T) {
 				file, err := filestore.OpenAppend(t.Context(), filestore.AppendRequest{
 					Location: filestore.Location{Root: root, Path: mustRelativePath(t, "ledger")},
 					Mode:     0o600,
+					Append:   filestore.AppendCreate,
 				})
 				if file != nil {
 					if closeErr := file.Close(); closeErr != nil {

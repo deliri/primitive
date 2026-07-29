@@ -315,6 +315,7 @@ func buildOpenAppendContextFixture(t *testing.T, rootDirectory string) contextEf
 			file, err := filestore.OpenAppend(ctx, filestore.AppendRequest{
 				Location: filestore.Location{Root: root, Path: mustRelativePath(t, "ledger")},
 				Mode:     0o600,
+				Append:   filestore.AppendCreate,
 			})
 			if file != nil {
 				if closeErr := file.Close(); closeErr != nil {
@@ -336,6 +337,7 @@ func buildRotateAppendContextFixture(t *testing.T, rootDirectory string) context
 	outgoing, err := filestore.OpenAppend(t.Context(), filestore.AppendRequest{
 		Location: filestore.Location{Root: root, Path: mustRelativePath(t, "ledger-0001")},
 		Mode:     0o600,
+		Append:   filestore.AppendCreate,
 	})
 	if err != nil {
 		t.Fatal(err)
@@ -352,6 +354,7 @@ func buildRotateAppendContextFixture(t *testing.T, rootDirectory string) context
 				Incoming: filestore.AppendRequest{
 					Location: filestore.Location{Root: root, Path: mustRelativePath(t, "ledger-0002")},
 					Mode:     0o600,
+					Append:   filestore.AppendCreate,
 				},
 			})
 			if incoming != nil {

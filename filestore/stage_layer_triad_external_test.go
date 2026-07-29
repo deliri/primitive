@@ -130,6 +130,7 @@ func TestOpenAppendRefusesAnExistingDirectoryNameAndPreservesIt(t *testing.T) {
 	file, gotErr := filestore.OpenAppend(t.Context(), filestore.AppendRequest{
 		Location: filestore.Location{Root: root, Path: mustRelativePath(t, "ledger")},
 		Mode:     0o600,
+		Append:   filestore.AppendExisting,
 	})
 	if file != nil {
 		if closeErr := file.Close(); closeErr != nil {

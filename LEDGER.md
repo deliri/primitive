@@ -361,6 +361,18 @@ Last updated: `2026-07-28`
   nonrecursive single-entry removal. It owns no virtual filesystem, reader or
   writer wrapper, lock, scheduler, retry framework, transaction engine, or
   recursive walk.
+- Filestore consumer-review hardening: Witness recovery proved that the former
+  implicit create-or-open append behavior could durably fabricate a zero-byte
+  segment after a stat/open race. `AppendMode` now makes exclusive create,
+  existing-only, and ordinary create-or-open intent compiler-visible.
+  `RotationRequest` admits only exclusive creation for the incoming generation.
+  Rotation ownership transfers only after context and request validation;
+  rejected validation or cancellation leaves the outgoing real `*os.File`
+  caller-owned, while every accepted rotation closes it even when the cutover
+  fails. Dedicated real-filesystem layer triads prove all three append intents,
+  native conflict/not-exist reachability, absence of ghost files, preservation
+  of existing identity and mode, and both sides of the rotation ownership
+  boundary.
 - Filestore seam proof: dedicated positive, negative, and neutral triads cover
   typed ingress, context ingress, rooted confinement, directory creation,
   bounded source reads, destination writes, stage synchronization, receipt
@@ -377,6 +389,14 @@ Last updated: `2026-07-28`
   known stale off-wire enum JSON/String doctrine and retired Testserial
   convention. Primitive does not add compatibility or wire behavior to
   satisfy those findings.
+- Filestore append-intent proof: fresh ordinary repository tests and
+  race/shuffle tests with two repetitions pass. Vet, staticcheck, errcheck,
+  nilaway, production `gocyclo <= 10`, gosec, govulncheck, actionlint, gofmt,
+  module tidiness, and diff checks pass. The canonical gate passes through
+  nilaway and stops only at the already classified stale Witness enum-wire and
+  retired Testserial doctrines; the one new test-diagnostic finding was
+  corrected and does not recur. Fieldalignment reports only existing test
+  fixture layouts outside the new append-intent file.
 - Fuzz scope for this slice is limited to externally controlled text or bytes.
   Fresh 100,000-execution differential runs pass for Currency decimal text,
   Currency Amount JSON, and Garble Seed JSON. Keygen has no external parser and

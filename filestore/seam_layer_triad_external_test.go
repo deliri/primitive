@@ -335,6 +335,7 @@ func TestOpenAppendLayerTriad(t *testing.T) {
 		file, gotErr := filestore.OpenAppend(t.Context(), filestore.AppendRequest{
 			Location: filestore.Location{Root: root, Path: mustRelativePath(t, "ledger")},
 			Mode:     0o640,
+			Append:   filestore.AppendCreate,
 		})
 		if gotErr != nil {
 			t.Fatalf("OpenAppend(absent) error = %v, want nil", gotErr)
@@ -368,6 +369,7 @@ func TestOpenAppendLayerTriad(t *testing.T) {
 		file, gotErr := filestore.OpenAppend(t.Context(), filestore.AppendRequest{
 			Location: filestore.Location{Root: root, Path: mustRelativePath(t, "ledger")},
 			Mode:     0o600,
+			Append:   filestore.AppendCreateOrOpen,
 		})
 		if file != nil {
 			_ = file.Close()
@@ -392,6 +394,7 @@ func TestOpenAppendLayerTriad(t *testing.T) {
 		file, gotErr := filestore.OpenAppend(t.Context(), filestore.AppendRequest{
 			Location: filestore.Location{Root: root, Path: mustRelativePath(t, "ledger")},
 			Mode:     0o640,
+			Append:   filestore.AppendCreateOrOpen,
 		})
 		if gotErr != nil {
 			t.Fatalf("OpenAppend(existing) error = %v, want nil", gotErr)
@@ -414,6 +417,7 @@ func TestRotateAppendLayerTriad(t *testing.T) {
 		outgoing, err := filestore.OpenAppend(t.Context(), filestore.AppendRequest{
 			Location: filestore.Location{Root: root, Path: mustRelativePath(t, "current")},
 			Mode:     0o600,
+			Append:   filestore.AppendCreate,
 		})
 		if err != nil {
 			t.Fatal(err)
@@ -426,6 +430,7 @@ func TestRotateAppendLayerTriad(t *testing.T) {
 			Incoming: filestore.AppendRequest{
 				Location: filestore.Location{Root: root, Path: mustRelativePath(t, "next")},
 				Mode:     0o600,
+				Append:   filestore.AppendCreate,
 			},
 		})
 		if gotErr != nil {
@@ -457,6 +462,7 @@ func TestRotateAppendLayerTriad(t *testing.T) {
 		outgoing, err := filestore.OpenAppend(t.Context(), filestore.AppendRequest{
 			Location: filestore.Location{Root: root, Path: mustRelativePath(t, "current")},
 			Mode:     0o600,
+			Append:   filestore.AppendCreate,
 		})
 		if err != nil {
 			t.Fatal(err)
@@ -466,6 +472,7 @@ func TestRotateAppendLayerTriad(t *testing.T) {
 			Incoming: filestore.AppendRequest{
 				Location: filestore.Location{Root: root, Path: mustRelativePath(t, "next")},
 				Mode:     0o600,
+				Append:   filestore.AppendCreate,
 			},
 		})
 		if incoming != nil {
@@ -489,6 +496,7 @@ func TestRotateAppendLayerTriad(t *testing.T) {
 		outgoing, err := filestore.OpenAppend(t.Context(), filestore.AppendRequest{
 			Location: filestore.Location{Root: root, Path: mustRelativePath(t, "current")},
 			Mode:     0o600,
+			Append:   filestore.AppendCreate,
 		})
 		if err != nil {
 			t.Fatal(err)
@@ -498,6 +506,7 @@ func TestRotateAppendLayerTriad(t *testing.T) {
 			Incoming: filestore.AppendRequest{
 				Location: filestore.Location{Root: root, Path: mustRelativePath(t, "next")},
 				Mode:     0o600,
+				Append:   filestore.AppendCreate,
 			},
 		})
 		if gotErr != nil {

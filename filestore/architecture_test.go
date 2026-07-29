@@ -82,6 +82,7 @@ func TestFilestorePublicSurfaceIsExactRatchet(t *testing.T) {
 		}
 	}
 	requireExactNames(t, "exported types", gotTypes, []string{
+		"AppendMode",
 		"AppendRequest",
 		"CommitRequest",
 		"DirectoryRequest",
@@ -107,11 +108,16 @@ func TestFilestorePublicSurfaceIsExactRatchet(t *testing.T) {
 		"Write",
 	})
 	requireExactNames(t, "exported constants", gotConstants, []string{
+		"AppendCreate",
+		"AppendCreateOrOpen",
+		"AppendExisting",
+		"AppendUnknown",
 		"InstallCreate",
 		"InstallReplace",
 		"InstallUnknown",
 	})
 	requireExactNames(t, "exported methods", gotMethods, []string{
+		"AppendMode.Validate",
 		"AppendRequest.Validate",
 		"CommitRequest.Validate",
 		"DirectoryRequest.Validate",

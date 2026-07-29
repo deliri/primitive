@@ -31,6 +31,7 @@ func TestOpenAppendReturnsTheRealOSFile(t *testing.T) {
 	request := filestore.AppendRequest{
 		Location: filestore.Location{Root: root, Path: mustRelativePath(t, "ledger")},
 		Mode:     0o600,
+		Append:   filestore.AppendCreateOrOpen,
 	}
 	for _, line := range []string{"first\n", "second\n"} {
 		file, openErr := filestore.OpenAppend(t.Context(), request)
@@ -72,6 +73,7 @@ func TestRotateAppendOwnsOnlyThePhysicalCutover(t *testing.T) {
 	outgoing, err := filestore.OpenAppend(t.Context(), filestore.AppendRequest{
 		Location: filestore.Location{Root: root, Path: mustRelativePath(t, "ledger-0001")},
 		Mode:     0o600,
+		Append:   filestore.AppendCreate,
 	})
 	if err != nil {
 		t.Fatalf("OpenAppend() error = %v, want nil", err)
@@ -84,6 +86,7 @@ func TestRotateAppendOwnsOnlyThePhysicalCutover(t *testing.T) {
 		Incoming: filestore.AppendRequest{
 			Location: filestore.Location{Root: root, Path: mustRelativePath(t, "ledger-0002")},
 			Mode:     0o600,
+			Append:   filestore.AppendCreate,
 		},
 	})
 	if err != nil {
@@ -133,6 +136,7 @@ func TestRotateAppendNeverOverwritesAnIncomingGeneration(t *testing.T) {
 	outgoing, err := filestore.OpenAppend(t.Context(), filestore.AppendRequest{
 		Location: filestore.Location{Root: root, Path: mustRelativePath(t, "ledger-0001")},
 		Mode:     0o600,
+		Append:   filestore.AppendCreate,
 	})
 	if err != nil {
 		t.Fatal(err)
@@ -142,6 +146,7 @@ func TestRotateAppendNeverOverwritesAnIncomingGeneration(t *testing.T) {
 		Incoming: filestore.AppendRequest{
 			Location: filestore.Location{Root: root, Path: mustRelativePath(t, "ledger-0002")},
 			Mode:     0o600,
+			Append:   filestore.AppendCreate,
 		},
 	})
 	if !errors.Is(gotErr, core.ErrFilestoreConflict) || !errors.Is(gotErr, os.ErrExist) {

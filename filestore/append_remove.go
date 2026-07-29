@@ -17,6 +17,19 @@ func OpenAppend(ctx context.Context, request AppendRequest) (*os.File, error) {
 	if err := request.Validate(); err != nil {
 		return nil, err
 	}
+	switch request.Append {
+	case AppendCreate:
+		return createAppend(request)
+	case AppendExisting:
+		return openExistingAppend(request)
+	case AppendCreateOrOpen:
+		return createOrOpenAppend(request)
+	default:
+		return nil, contractError(errors.New("filestore append mode is invalid"))
+	}
+}
+
+func createOrOpenAppend(request AppendRequest) (*os.File, error) {
 	file, err := createAppend(request)
 	if err == nil {
 		return file, nil
@@ -24,7 +37,11 @@ func OpenAppend(ctx context.Context, request AppendRequest) (*os.File, error) {
 	if !errors.Is(err, fs.ErrExist) {
 		return nil, err
 	}
-	file, err = request.Location.Root.OpenFile(
+	return openExistingAppend(request)
+}
+
+func openExistingAppend(request AppendRequest) (*os.File, error) {
+	file, err := request.Location.Root.OpenFile(
 		request.Location.Path.String(),
 		os.O_WRONLY|os.O_APPEND,
 		0,
@@ -40,6 +57,11 @@ func OpenAppend(ctx context.Context, request AppendRequest) (*os.File, error) {
 
 // RotateAppend synchronizes and closes the transferred outgoing handle, then
 // exclusively creates and returns one caller-owned incoming handle.
+//
+// Ownership transfers only after context and request validation succeed. A
+// rejected call leaves Outgoing caller-owned and usable. Once validation
+// succeeds, RotateAppend closes Outgoing even when synchronization or incoming
+// creation fails.
 func RotateAppend(ctx context.Context, request RotationRequest) (*os.File, error) {
 	if err := contextstate.Validate(ctx); err != nil {
 		return nil, err
