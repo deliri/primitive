@@ -510,8 +510,7 @@ func (r ServerJSONResponse[Body]) Validate() error {
 	if err := r.Status.Validate(); err != nil {
 		return responseError(err)
 	}
-	status, _ := r.Status.Int()
-	if !statusPermitsBody(status) {
+	if !r.Status.PermitsResponseBody() {
 		return responseError(core.ErrExchangeContract)
 	}
 	return nil
@@ -679,12 +678,6 @@ func executeResponseWriterOperation(operation func() error) error {
 		result = operation()
 	}()
 	return result
-}
-
-func statusPermitsBody(status int) bool {
-	return status >= http.StatusOK &&
-		status != http.StatusNoContent &&
-		status != http.StatusNotModified
 }
 
 var (

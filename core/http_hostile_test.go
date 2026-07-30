@@ -86,18 +86,22 @@ func TestHTTPStatusCodeExhaustsProtocolDomain(t *testing.T) {
 		wantRedirect := raw >= HTTPStatusRedirectMinimum && raw <= HTTPStatusRedirectMaximum
 		wantClientError := raw >= HTTPStatusClientErrorMinimum && raw <= HTTPStatusClientErrorMaximum
 		wantServerError := raw >= HTTPStatusServerErrorMinimum && raw <= HTTPStatusCodeMaximum
+		wantBodyPermitted := raw > HTTPStatusInformationalMaximum &&
+			raw != 204 &&
+			raw != 304
 		if got.IsInformational() != wantInformational ||
 			got.IsSuccess() != wantSuccess ||
 			got.IsRedirect() != wantRedirect ||
 			got.IsClientError() != wantClientError ||
-			got.IsServerError() != wantServerError {
+			got.IsServerError() != wantServerError ||
+			got.PermitsResponseBody() != wantBodyPermitted {
 			t.Fatalf(
-				"HTTPStatusCode(%d) classes = (%t,%t,%t,%t,%t), want (%t,%t,%t,%t,%t)",
+				"HTTPStatusCode(%d) classes/body = (%t,%t,%t,%t,%t,%t), want (%t,%t,%t,%t,%t,%t)",
 				raw,
 				got.IsInformational(), got.IsSuccess(), got.IsRedirect(),
-				got.IsClientError(), got.IsServerError(),
+				got.IsClientError(), got.IsServerError(), got.PermitsResponseBody(),
 				wantInformational, wantSuccess, wantRedirect,
-				wantClientError, wantServerError,
+				wantClientError, wantServerError, wantBodyPermitted,
 			)
 		}
 	}

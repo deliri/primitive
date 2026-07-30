@@ -207,6 +207,16 @@ func (s HTTPStatusCode) IsServerError() bool {
 	return s.value >= HTTPStatusServerErrorMinimum && s.value <= HTTPStatusCodeMaximum
 }
 
+// PermitsResponseBody reports whether the status alone permits a response body.
+// Informational responses, 204, and 304 never carry one. Request-method rules,
+// such as HEAD suppressing a body that the status otherwise permits, remain the
+// HTTP operation owner's decision.
+func (s HTTPStatusCode) PermitsResponseBody() bool {
+	return s.value > HTTPStatusInformationalMaximum &&
+		s.value != 204 &&
+		s.value != 304
+}
+
 // MarshalJSON emits the status as a canonical JSON integer.
 func (s HTTPStatusCode) MarshalJSON() ([]byte, error) {
 	if err := s.Validate(); err != nil {
