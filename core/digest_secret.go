@@ -88,7 +88,7 @@ func (d *SHA256Digest) UnmarshalJSON(data []byte) error {
 	if d == nil {
 		return errors.Join(ErrJSONContract, errors.New("nil SHA-256 digest receiver"))
 	}
-	value, err := decodeJSONString(data)
+	value, err := DecodeJSONStringToken(data)
 	if err != nil {
 		return err
 	}
@@ -163,7 +163,7 @@ func (c *CRC32C) UnmarshalJSON(data []byte) error {
 	if c == nil {
 		return errors.Join(ErrJSONContract, errors.New("nil CRC32C receiver"))
 	}
-	value, err := decodeJSONString(data)
+	value, err := DecodeJSONStringToken(data)
 	if err != nil {
 		return err
 	}
@@ -240,7 +240,7 @@ func (k *Ed25519PublicKey) UnmarshalJSON(data []byte) error {
 	if k == nil {
 		return errors.Join(ErrJSONContract, errors.New("nil Ed25519 public key receiver"))
 	}
-	value, err := decodeJSONString(data)
+	value, err := DecodeJSONStringToken(data)
 	if err != nil {
 		return err
 	}

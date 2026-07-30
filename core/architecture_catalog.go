@@ -47,8 +47,8 @@ const (
 	PackageTemporal
 	// PackageExchange identifies the HTTP exchange package.
 	PackageExchange
-	// PackageFuzz identifies the fuzz-support package.
-	PackageFuzz
+	// PackageFuzzFinder identifies the fuzz-artifact finder package.
+	PackageFuzzFinder
 	// PackageLease identifies the lease package.
 	PackageLease
 	// PackageProcess identifies the process package.
@@ -123,7 +123,7 @@ func PrimitiveArchitecture() ArchitectureCatalog {
 			{Identity: PackageHostFacts, Kind: PackageKindProduction},
 			{Identity: PackageTemporal, Kind: PackageKindProduction},
 			{Identity: PackageExchange, Kind: PackageKindProduction},
-			{Identity: PackageFuzz, Kind: PackageKindProduction},
+			{Identity: PackageFuzzFinder, Kind: PackageKindProduction},
 			{Identity: PackageLease, Kind: PackageKindProduction},
 			{Identity: PackageProcess, Kind: PackageKindProduction},
 			{Identity: PackageRelease, Kind: PackageKindProduction},
@@ -151,8 +151,8 @@ func PrimitiveArchitecture() ArchitectureCatalog {
 			{Importer: PackageExchange, Imported: PackageCore},
 			{Importer: PackageExchange, Imported: PackageContextState},
 			{Importer: PackageExchange, Imported: PackageTemporal},
-			{Importer: PackageFuzz, Imported: PackageCore},
-			{Importer: PackageFuzz, Imported: PackageFilestore},
+			{Importer: PackageFuzzFinder, Imported: PackageCore},
+			{Importer: PackageFuzzFinder, Imported: PackageFilestore},
 			{Importer: PackageLease, Imported: PackageCore},
 			{Importer: PackageLease, Imported: PackageTemporal},
 			{Importer: PackageLease, Imported: PackageAttest},
@@ -270,7 +270,7 @@ func (p *PackageIdentity) UnmarshalJSON(data []byte) error {
 	if p == nil {
 		return errors.Join(ErrJSONContract, architectureContractError("nil package identity receiver"))
 	}
-	value, err := decodeJSONString(data)
+	value, err := DecodeJSONStringToken(data)
 	if err != nil {
 		return err
 	}
@@ -327,7 +327,7 @@ func (k *PackageKind) UnmarshalJSON(data []byte) error {
 	if k == nil {
 		return errors.Join(ErrJSONContract, architectureContractError("nil package kind receiver"))
 	}
-	value, err := decodeJSONString(data)
+	value, err := DecodeJSONStringToken(data)
 	if err != nil {
 		return err
 	}
@@ -420,8 +420,8 @@ func packageIdentityTextFilestoreThroughProcess(identity PackageIdentity) string
 		return "temporal"
 	case PackageExchange:
 		return "exchange"
-	case PackageFuzz:
-		return "fuzz"
+	case PackageFuzzFinder:
+		return "fuzzfinder"
 	case PackageLease:
 		return "lease"
 	case PackageProcess:

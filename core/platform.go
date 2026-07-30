@@ -156,7 +156,7 @@ func (p *Platform) UnmarshalJSON(data []byte) error {
 	if p == nil {
 		return errors.Join(ErrJSONContract, errors.New("nil platform receiver"))
 	}
-	value, err := decodeJSONString(data)
+	value, err := DecodeJSONStringToken(data)
 	if err != nil {
 		return err
 	}
@@ -206,7 +206,7 @@ func (o *OperatingSystem) UnmarshalJSON(data []byte) error {
 	if o == nil {
 		return errors.Join(ErrJSONContract, platformError("nil operating system receiver"))
 	}
-	value, err := decodeJSONString(data)
+	value, err := DecodeJSONStringToken(data)
 	if err != nil {
 		return err
 	}
@@ -254,7 +254,7 @@ func (a *CPUArchitecture) UnmarshalJSON(data []byte) error {
 	if a == nil {
 		return errors.Join(ErrJSONContract, platformError("nil CPU architecture receiver"))
 	}
-	value, err := decodeJSONString(data)
+	value, err := DecodeJSONStringToken(data)
 	if err != nil {
 		return err
 	}

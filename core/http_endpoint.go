@@ -88,7 +88,7 @@ func (e *HTTPEndpoint) UnmarshalJSON(data []byte) error {
 	if e == nil {
 		return errors.Join(ErrJSONContract, httpContractError("nil HTTP endpoint receiver"))
 	}
-	value, err := decodeJSONString(data)
+	value, err := DecodeJSONStringToken(data)
 	if err != nil {
 		return err
 	}

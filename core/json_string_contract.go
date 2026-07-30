@@ -26,7 +26,14 @@ func marshalJSONString(value string) ([]byte, error) {
 	return encoded[:len(encoded)-1], nil
 }
 
-func decodeJSONString(data []byte) (string, error) {
+// DecodeJSONStringToken decodes one JSON string token into its exact Go string.
+// It is the single owner of the repository's JSON string-token admission rule:
+// absence, JSON null, invalid UTF-8, and unpaired surrogates are refused before
+// any domain parse sees the value, so every typed enum and identity that arrives
+// as a JSON string inherits one hardening contract instead of restating it.
+// It does not impose a domain-specific byte ceiling; the owning caller must
+// reject an over-extent document before calling it.
+func DecodeJSONStringToken(data []byte) (string, error) {
 	var value string
 	if len(data) == 0 || bytes.Equal(bytes.TrimSpace(data), []byte(jsonNullLiteralText)) {
 		return "", errors.Join(ErrJSONContract, errors.New("json string is absent"))

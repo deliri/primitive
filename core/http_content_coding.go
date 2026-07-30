@@ -64,7 +64,7 @@ func (c *HTTPContentCoding) UnmarshalJSON(data []byte) error {
 	if c == nil {
 		return errors.Join(ErrJSONContract, httpContractError("nil HTTP content coding receiver"))
 	}
-	value, err := decodeJSONString(data)
+	value, err := DecodeJSONStringToken(data)
 	if err != nil {
 		return err
 	}

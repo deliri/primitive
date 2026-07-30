@@ -83,7 +83,7 @@ func (c *PathComponent) UnmarshalJSON(data []byte) error {
 	if c == nil {
 		return errors.Join(ErrJSONContract, filesystemPathError("nil path component receiver"))
 	}
-	value, err := decodeJSONString(data)
+	value, err := DecodeJSONStringToken(data)
 	if err != nil {
 		return err
 	}
@@ -193,7 +193,7 @@ func (p *AbsolutePath) UnmarshalJSON(data []byte) error {
 	if p == nil {
 		return errors.Join(ErrJSONContract, filesystemPathError("nil absolute path receiver"))
 	}
-	value, err := decodeJSONString(data)
+	value, err := DecodeJSONStringToken(data)
 	if err != nil {
 		return err
 	}

@@ -138,12 +138,12 @@ const (
 	// ErrExchangeWrite identifies an exchange write failure.
 	ErrExchangeWrite
 
-	// ErrFuzzContract identifies a fuzz contract violation.
-	ErrFuzzContract
-	// ErrFuzzFormat identifies an unsupported fuzz format.
-	ErrFuzzFormat
-	// ErrFuzzObservation identifies failed fuzz observation.
-	ErrFuzzObservation
+	// ErrFuzzFinderContract identifies a fuzz-finder contract violation.
+	ErrFuzzFinderContract
+	// ErrFuzzFinderFormat identifies an unsupported Go fuzz-artifact format.
+	ErrFuzzFinderFormat
+	// ErrFuzzFinderObservation identifies failed fuzz-artifact observation.
+	ErrFuzzFinderObservation
 
 	// ErrLeaseContract identifies a lease contract violation.
 	ErrLeaseContract
@@ -231,10 +231,10 @@ func (i ErrorIdentity) Error() string {
 		return errorIdentityTextTemporalThroughExchangeRequest(i)
 	case i <= ErrExchangeWrite:
 		return errorIdentityTextExchange(i)
-	case i <= ErrFuzzFormat:
-		return errorIdentityTextFuzzHead(i)
+	case i <= ErrFuzzFinderFormat:
+		return errorIdentityTextFuzzFinderHead(i)
 	case i <= ErrReleaseManifest:
-		return errorIdentityTextFuzzThroughReleaseManifest(i)
+		return errorIdentityTextFuzzFinderThroughReleaseManifest(i)
 	default:
 		return errorIdentityTextObjectStoreThroughGovernance(i)
 	}
@@ -422,21 +422,21 @@ func errorIdentityTextExchange(i ErrorIdentity) string {
 	}
 }
 
-func errorIdentityTextFuzzHead(i ErrorIdentity) string {
+func errorIdentityTextFuzzFinderHead(i ErrorIdentity) string {
 	switch i {
-	case ErrFuzzContract:
-		return "fuzz contract violation"
-	case ErrFuzzFormat:
-		return "fuzz format unsupported"
+	case ErrFuzzFinderContract:
+		return "fuzz finder contract violation"
+	case ErrFuzzFinderFormat:
+		return "Go fuzz artifact format unsupported"
 	default:
 		return unknownErrorIdentityText
 	}
 }
 
-func errorIdentityTextFuzzThroughReleaseManifest(i ErrorIdentity) string {
+func errorIdentityTextFuzzFinderThroughReleaseManifest(i ErrorIdentity) string {
 	switch i {
-	case ErrFuzzObservation:
-		return "fuzz observation failed"
+	case ErrFuzzFinderObservation:
+		return "fuzz artifact observation failed"
 	case ErrLeaseContract:
 		return "lease contract violation"
 	case ErrLeaseVerification:
@@ -532,7 +532,7 @@ func (i *ErrorIdentity) UnmarshalJSON(data []byte) error {
 	if i == nil {
 		return errors.Join(ErrJSONContract, errorIdentityContractError("nil error identity receiver"))
 	}
-	value, err := decodeJSONString(data)
+	value, err := DecodeJSONStringToken(data)
 	if err != nil {
 		return err
 	}
@@ -620,7 +620,7 @@ func errorIdentityParents(identity ErrorIdentity) errorIdentityParentSet {
 		ErrContextStateContract, ErrCurrencyContract, ErrGarbleContract,
 		ErrKeygenContract, ErrTestIsolationContract, ErrFilestoreContract,
 		ErrTemporalContract, ErrExchangeContract,
-		ErrFuzzContract, ErrLeaseContract, ErrReleaseContract,
+		ErrFuzzFinderContract, ErrLeaseContract, ErrReleaseContract,
 		ErrShutdownContract, ErrObjectStoreContract, ErrTimeProofContract,
 		ErrCloudIdentityContract, ErrUpgradeContract, ErrGovernanceContract:
 		return oneErrorIdentityParent(ErrPrimitiveContract)
@@ -648,7 +648,7 @@ func errorIdentityParents(identity ErrorIdentity) errorIdentityParentSet {
 		ErrExchangeTransport, ErrExchangeRetryExhausted, ErrExchangeWrite:
 		return oneErrorIdentityParent(ErrExchangeContract)
 	default:
-		return errorIdentityParentsFuzzThroughObjectStore(identity)
+		return errorIdentityParentsFuzzFinderThroughObjectStore(identity)
 	}
 }
 
@@ -689,10 +689,10 @@ func errorIdentityParentsAttestThroughKeygen(identity ErrorIdentity) errorIdenti
 	}
 }
 
-func errorIdentityParentsFuzzThroughObjectStore(identity ErrorIdentity) errorIdentityParentSet {
+func errorIdentityParentsFuzzFinderThroughObjectStore(identity ErrorIdentity) errorIdentityParentSet {
 	switch identity {
-	case ErrFuzzFormat, ErrFuzzObservation:
-		return oneErrorIdentityParent(ErrFuzzContract)
+	case ErrFuzzFinderFormat, ErrFuzzFinderObservation:
+		return oneErrorIdentityParent(ErrFuzzFinderContract)
 	case ErrLeaseVerification, ErrLeaseRollback, ErrLeaseConflict:
 		return oneErrorIdentityParent(ErrLeaseContract)
 	case ErrReleaseManifest, ErrReleaseVerification, ErrReleaseLatest,

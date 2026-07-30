@@ -118,7 +118,7 @@ func (m *HTTPMethod) UnmarshalJSON(data []byte) error {
 	if m == nil {
 		return errors.Join(ErrJSONContract, errors.New("nil HTTP method receiver"))
 	}
-	value, err := decodeJSONString(data)
+	value, err := DecodeJSONStringToken(data)
 	if err != nil {
 		return err
 	}
@@ -289,7 +289,7 @@ func (n *HTTPHeaderName) UnmarshalJSON(data []byte) error {
 	if n == nil {
 		return errors.Join(ErrJSONContract, httpContractError("nil HTTP header name receiver"))
 	}
-	value, err := decodeJSONString(data)
+	value, err := DecodeJSONStringToken(data)
 	if err != nil {
 		return err
 	}
@@ -455,7 +455,7 @@ func (m *HTTPMediaType) UnmarshalJSON(data []byte) error {
 	if m == nil {
 		return errors.Join(ErrJSONContract, errors.New("nil HTTP media type receiver"))
 	}
-	value, err := decodeJSONString(data)
+	value, err := DecodeJSONStringToken(data)
 	if err != nil {
 		return err
 	}

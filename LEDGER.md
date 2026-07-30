@@ -10,13 +10,14 @@ Last updated: `2026-07-30`
   `github.com/deliri/primitive/v2026`. Historical evidence remains unchanged
   and therefore retains its original Foundation module paths. `PLAN.md` is
   local-only and excluded from the public repository.
-- Phase: Hostfacts is accepted as the clean replacement for archived
-  Hostresource. It owns five bounded read-only facts: caller-relative disk
-  capacity, Go-managed memory, effective Linux cgroup memory ceiling, logical
-  regular-file tree extent, and canonical Go OOM-banner presence.
-  Cloudidentity, Objectstore, `timeproof`, `exchange`, `temporal`, and
-  `filestore` are `DONE`; `testserial` remains in its required
-  `CONSUMER_SURGERY`.
+- Phase: Fuzzfinder is in user review as the clean, production replacement for
+  archived Fuzz. It owns only typed Go-generated corpus/crasher identity and
+  one bounded deterministic rooted-directory observation. It does not run fuzz
+  tests, mutate a corpus, retain payload custody, count generic sidecar lines,
+  or own product evidence.
+  Hostfacts, Cloudidentity, Objectstore, `timeproof`, `exchange`, `temporal`,
+  and `filestore` are `DONE`; `testserial` consumer surgery is deferred until
+  all Primitive production packages are complete.
 - Review gate: no external reviewing agent was initialized. The user reviewed
   Objectstore and Exchange, then explicitly authorized their commit and push at
   `c65460d7b54a74f665cdb30bdf627adf20f191fe`. No tag or release is
@@ -27,11 +28,12 @@ Last updated: `2026-07-30`
   that base advanced. The user reviewed Hostfacts, supplied concrete cgroup,
   filesystem, error-ownership, and proof findings, accepted the corrected
   package, and explicitly authorized its commit and push. No tag or release is
-  authorized.
+  authorized. Fuzzfinder has no commit or push authorization.
 - Production packages: 13 of 19 accepted.
 - Test-support packages: 0 of 1 complete and 1 in consumer surgery.
-- Active-package consumer surgery: Witness must adopt the exact typed
-  `testserial.Declare` contract before Testserial can become `DONE`.
+- Deferred consumer surgery: Witness must adopt the exact typed
+  `testserial.Declare` contract before Testserial can become `DONE`, after all
+  Primitive production packages are complete.
 - Canonical local gate: `PASS` on every phase in
   `evidence/attest-accepted/gate-results.tsv` for the accepted Attest
   worktree. This includes ordinary and race tests, vet, static analysis,
@@ -640,21 +642,59 @@ Last updated: `2026-07-30`
   directories, separate ingress-contract failures from observation failures,
   and keep one public `Failure` owner per effect boundary. The public Go-memory
   operation discloses the stop-the-world cost of `runtime.ReadMemStats`.
+- Fuzzfinder scope: `Find` accepts one validated `filestore.Location`, one
+  explicit Go cache format, and one caller-selected retention limit. It opens,
+  streams, and closes the real rooted directory through Go's `os.Root` and
+  `fs.ReadDirFile`, retains the canonical lowest names in a fixed 128-entry
+  array, and separately counts ignored directories, non-regular entries,
+  over-limit observations, and unsupported regular files. Returned names are
+  observations, not payload custody.
+- Fuzzfinder format decision: `CacheFormatGo1_26` binds the exact
+  16-lowercase-hex generated filename emitted by Go 1.26.5's
+  `internal/fuzz.writeToCorpus` path. The archive's invented 8..64-character
+  compatibility range is retired. An unknown regular filename returns a
+  validated `ObservationUnsupportedFormat` plus
+  `ErrFuzzFinderFormat`; partial directory reads retain observed facts and
+  preserve both `ErrFuzzFinderObservation` and the native source error.
+- Fuzzfinder proof: focused coverage is 97.4%; focused shuffled race proof,
+  full repository tests and race tests, vet, staticcheck, errcheck, nilaway,
+  fieldalignment, gosec, goconst, govulncheck, actionlint, production
+  `gocyclo <= 10`, formatting, module tidiness, and diff checks pass. Linux,
+  Windows, and FreeBSD amd64 test binaries cross-compile. The independent
+  semantic generated-name fuzzer completed 12,988,618 review executions and a
+  fresh 100,000-execution post-review run without failure.
+  Direct Witness analysis has no waiver and reports only stale `String`
+  demands on the two compiler-declared off-wire enums. The canonical gate
+  passes through nilaway and stops at the recorded repository-wide enum and
+  Testserial analyzer baseline.
+- Fuzzfinder review corrections: `ArtifactKind` now inherits Core's one public
+  JSON string-token admission rule, classification is mandatory ingress and is
+  carried through every result, generated-name parsing derives its width from
+  the declared format, impossible over-limit accounting is rejected, and the
+  zero-information `EntryCount.Validate` ceremony is removed. Tests classify
+  ordinary entry kinds and multi-batch traversal on real rooted directories;
+  the non-native `fs.ReadDirFile` seam remains only for nil-entry,
+  zero-progress, mid-read failure, and duplicate-name states that a real
+  directory cannot produce in-process.
+- Fuzzfinder M1 Max real-directory benchmarks: 128 entries complete in
+  237,251 ns/op, 48,194 B/op, and 539 allocs/op; 8,192 entries complete in
+  18,918,915 ns/op, 2,982,499 B/op, and 33,929 allocs/op. These numbers include
+  `os.Root` open/stat/close and Go/OS directory-entry materialization. Total
+  allocation is linear in directory entries; Fuzzfinder's retained working set
+  remains the fixed 128-name array and 64-entry read batch.
 
 Next:
 
-1. Inspect Kernel's exact pin and complete dirty state before selecting the
-   first clean Hostfacts consumer cutover.
-2. Update Kernel and Peachfuzz independently to the exact published Hostfacts
-   revision; remove retired Hostresource call sites and persistence shapes
-   without aliases, shims, dual decoders, or local replacements. Preserve
-   consumer policy and process-cause classification.
-3. Remove Witness's duplicated observations only where Hostfacts fully replaces
-   them, independently of the still-deferred Testserial analyzer surgery.
-4. Run disposable Objectstore live-provider proof when caller-supplied S3/GCS signed URLs
+1. Complete and review Fuzzfinder, then finish Lease, Process, Release,
+   Shutdown, and Upgrade before any consumer surgery.
+2. After all Primitive production packages are published, migrate Witness,
+   Bug, and Peachfuzz independently where each has a concrete matching
+   capability. Do not perform Kernel surgery and do not manufacture unused
+   consumer edges.
+3. Run disposable Objectstore live-provider proof when caller-supplied S3/GCS signed URLs
    and a Cloudflare Images one-time upload URL are available; local tests do not
    claim remote-provider proof.
-5. Preserve the deferred Witness Testserial/analyzer consumer surgery without
+4. Preserve the deferred Witness Testserial/analyzer consumer surgery without
    compatibility paths or analyzer waivers.
 
 ## Packages
@@ -675,7 +715,7 @@ State vocabulary: `NEXT`, `BLOCKED_BY_DEPENDENCY`, `NOT_STARTED`, `RED`,
 | `hostfacts`        | `DONE`                  |
 | `temporal`         | `DONE`                  |
 | `exchange`         | `DONE`                  |
-| `fuzz`             | `BLOCKED_BY_DEPENDENCY` |
+| `fuzzfinder`       | `REVIEW`                |
 | `lease`            | `BLOCKED_BY_DEPENDENCY` |
 | `process`          | `BLOCKED_BY_DEPENDENCY` |
 | `release`          | `BLOCKED_BY_DEPENDENCY` |

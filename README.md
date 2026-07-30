@@ -44,8 +44,8 @@ flowchart TD
     exchange[exchange] --> core
     exchange --> contextstate
     exchange --> temporal
-    fuzz[fuzz] --> core
-    fuzz --> filestore
+    fuzzfinder[fuzzfinder] --> core
+    fuzzfinder --> filestore
     lease[lease] --> core
     lease --> temporal
     lease --> attest

@@ -354,6 +354,54 @@ func TestMarshalJSONStringRejectsInvalidUTF8(t *testing.T) {
 	}
 }
 
+func TestDecodeJSONStringTokenHostileBoundaryTable(t *testing.T) {
+	t.Parallel()
+
+	cases := []struct {
+		name    string
+		want    string
+		wire    []byte
+		wantErr bool
+	}{
+		{name: "empty string token is admitted", wire: []byte(`""`)},
+		{name: "plain ASCII token is admitted", wire: []byte(`"plain"`), want: "plain"},
+		{name: "leading and trailing document whitespace is admitted", wire: []byte(" \n\t\"plain\"\r "), want: "plain"},
+		{name: "escaped quote is decoded exactly", wire: []byte(`"a\"b"`), want: `a"b`},
+		{name: "escaped backslash is decoded exactly", wire: []byte(`"a\\b"`), want: `a\b`},
+		{name: "paired surrogate is decoded exactly", wire: []byte(`"\ud83d\ude42"`), want: "🙂"},
+		{name: "literal surrogate text stays literal", wire: []byte(`"\\ud800"`), want: `\ud800`},
+		{name: "empty document is rejected", wantErr: true},
+		{name: "whitespace-only document is rejected", wire: []byte(" \n\t"), wantErr: true},
+		{name: "null is rejected", wire: []byte("null"), wantErr: true},
+		{name: "number token is rejected", wire: []byte("1"), wantErr: true},
+		{name: "object token is rejected", wire: []byte("{}"), wantErr: true},
+		{name: "trailing second document is rejected", wire: []byte(`"plain" true`), wantErr: true},
+		{name: "truncated string is rejected", wire: []byte(`"plain`), wantErr: true},
+		{name: "invalid UTF8 is rejected", wire: []byte{'"', 0xff, '"'}, wantErr: true},
+		{name: "minimum lone high surrogate is rejected", wire: []byte(`"\ud800"`), wantErr: true},
+		{name: "maximum lone high surrogate is rejected", wire: []byte(`"\udbff"`), wantErr: true},
+		{name: "minimum lone low surrogate is rejected", wire: []byte(`"\udc00"`), wantErr: true},
+		{name: "maximum lone low surrogate is rejected", wire: []byte(`"\udfff"`), wantErr: true},
+		{name: "high surrogate followed by plain code unit is rejected", wire: []byte(`"\ud800\u0041"`), wantErr: true},
+	}
+	for _, tc := range cases {
+		t.Run(tc.name, func(t *testing.T) {
+			t.Parallel()
+
+			got, gotErr := DecodeJSONStringToken(tc.wire)
+			if tc.wantErr {
+				if !errors.Is(gotErr, ErrJSONContract) || got != "" {
+					t.Fatalf("DecodeJSONStringToken(%q) = (%q, %v), want (empty, %v)", tc.wire, got, gotErr, ErrJSONContract)
+				}
+				return
+			}
+			if gotErr != nil || got != tc.want {
+				t.Fatalf("DecodeJSONStringToken(%q) = (%q, %v), want (%q, nil)", tc.wire, got, gotErr, tc.want)
+			}
+		})
+	}
+}
+
 // TestMarshalJSONStringEscapingHostileBoundaryTable directly ratchets the
 // shared string primitive used by every Core JSON string producer. Exact wire
 // assertions are intentional: HTML characters must remain literal while

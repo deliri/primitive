@@ -1,8 +1,11 @@
-# Fuzz package interview
+# Fuzzfinder package interview
 
 Status: `COMPLETE` | Decision: `REDESIGN`
 
-This is the sole reconstruction report for archived package `fuzz`.
+This is the sole reconstruction report for archived package `fuzz` and its
+cleanly renamed Primitive 2026 replacement, `fuzzfinder`. The user selected the
+new name because the package finds Go-generated fuzz artifacts; it does not run
+fuzz tests. No `fuzz` compatibility package or alias is admitted.
 The archive is evidence, not authority. No archived production or test source
 was copied.
 
