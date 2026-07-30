@@ -153,6 +153,10 @@ const (
 	ErrLeaseRollback
 	// ErrLeaseConflict identifies a lease identity conflict.
 	ErrLeaseConflict
+	// ErrLeaseScope identifies a verified lease for a different subject.
+	ErrLeaseScope
+	// ErrLeaseClock identifies a local clock contradiction.
+	ErrLeaseClock
 
 	// ErrReleaseContract identifies a release contract violation.
 	ErrReleaseContract
@@ -445,6 +449,10 @@ func errorIdentityTextFuzzFinderThroughReleaseManifest(i ErrorIdentity) string {
 		return "lease rollback rejected"
 	case ErrLeaseConflict:
 		return "lease identity conflict"
+	case ErrLeaseScope:
+		return "lease subject mismatch"
+	case ErrLeaseClock:
+		return "lease clock contradiction"
 	case ErrReleaseContract:
 		return "release contract violation"
 	case ErrReleaseManifest:
@@ -693,7 +701,8 @@ func errorIdentityParentsFuzzFinderThroughObjectStore(identity ErrorIdentity) er
 	switch identity {
 	case ErrFuzzFinderFormat, ErrFuzzFinderObservation:
 		return oneErrorIdentityParent(ErrFuzzFinderContract)
-	case ErrLeaseVerification, ErrLeaseRollback, ErrLeaseConflict:
+	case ErrLeaseVerification, ErrLeaseRollback, ErrLeaseConflict,
+		ErrLeaseScope, ErrLeaseClock:
 		return oneErrorIdentityParent(ErrLeaseContract)
 	case ErrReleaseManifest, ErrReleaseVerification, ErrReleaseLatest,
 		ErrReleaseRollback, ErrReleaseConflict:

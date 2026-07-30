@@ -10,14 +10,79 @@ Last updated: `2026-07-30`
   `github.com/deliri/primitive/v2026`. Historical evidence remains unchanged
   and therefore retains its original Foundation module paths. `PLAN.md` is
   local-only and excluded from the public repository.
-- Phase: Fuzzfinder is in user review as the clean, production replacement for
-  archived Fuzz. It owns only typed Go-generated corpus/crasher identity and
-  one bounded deterministic rooted-directory observation. It does not run fuzz
-  tests, mutate a corpus, retain payload custody, count generic sidecar lines,
-  or own product evidence.
+- Phase: Lease is in user review. It owns one fixed-size OGS-signed grant,
+  recoverable refusal, or for-cause revocation; exact subject binding;
+  generation advance; and pure rollback-hardened local assessment. It does not
+  own payment policy, transport, protocol binding, persistence, retry,
+  background work, product command mapping, or customer-facing copy.
+  Fuzzfinder was reviewed, committed, and published at
+  `6c38ac1623232a95f3d150b2aff414b516599ec5`.
   Hostfacts, Cloudidentity, Objectstore, `timeproof`, `exchange`, `temporal`,
   and `filestore` are `DONE`; `testserial` consumer surgery is deferred until
   all Primitive production packages are complete.
+- Lease review sweep, 2026-07-30: a hostile re-review of the package under
+  `_docs/testing_protocol.md` found and fixed two production defects and closed
+  the surfaces that hid them.
+  - `Evaluate` anchored monotonic elapsed time to the floor (the later of the
+    signed issuance and the consumer's durable high-water) instead of to the
+    start observation's own wall reading. That counted the interval between the
+    start observation and the committed high-water twice, so the effective
+    clock ran fast whenever the high-water was fed back, and once a process's
+    uptime passed `ClockRollbackToleranceNanoseconds` the process rejected its
+    own committed high-water as a `ClockContradiction`. The documented consumer
+    loop therefore self-destructed after five minutes of uptime. Trusted
+    progress is now `max(floor, startWall + monotonicElapsed)` under one
+    contradiction check against the current wall reading; `checkedBaseline` is
+    deleted. Every previously expected rejection still holds.
+  - `Advance` decided generation order before lease identity, so a decision
+    naming a different subject returned `ErrLeaseRollback` when its generation
+    was lower and `ErrLeaseConflict` when it was equal or higher. A consumer
+    that retries on rollback and stops on conflict would silently discard a
+    decision belonging to another installation. Identity is now decided first
+    through `requireSameLeaseIdentity`; every cross-subject or cross-revision
+    pair conflicts regardless of generation.
+  - Test upgrade: statement coverage 80.3 percent to 92.0 percent after the
+    final contract deletion. Added
+    hostile strict-JSON tables for `Subject`, `Grant`, `Refusal`, and
+    `Revocation`; nil-receiver and zero-value marshal matrices for every wire
+    type; exhaustive 256-value label and validity proofs for every enum and
+    off-wire state; signing-domain text round trip; typed-failure identity,
+    `errors.As`, and field recovery; unset-carrier projection refusal for
+    `Verified`, `Assessment`, `AdvanceResult`, and `Decision`; `Header`
+    validation pressure; an `Evaluate` ingress matrix; a high-water fixed-point
+    and long-uptime regression; `Assessment` tampered-projection refusal; and
+    out-of-domain outcome refusal on every switch. Canonical maxima are now
+    proven exactly attained per type rather than only for the grant decision,
+    and both fuzz oracles now assert canonical idempotence, declared bounds,
+    and, for documents, that verification either authenticates the exact signed
+    fixture or fails with a typed identity.
+  - Contract reduction after user review: recoverable refusal now carries only
+    OGS's signed `ContactAfter` boundary. The deleted `RefusalReason` enum
+    copied payment, entitlement, and clock policy into Primitive even though
+    Lease had no reader for it. The continuing sequence identity is exactly
+    `(Revision, Subject)`; `Subject` remains the product, entitlement, and
+    registered-installation tuple. No unused lease ID, account, organization,
+    parent, seat, or device-key custody was admitted.
+  - Protocol ratchets now pin the exact revision-v1 signed decision body with a
+    typed SHA-256 vector, require all wire members explicitly, and keep semantic
+    field order independent of field-alignment pressure. JSON structure limits
+    are passed as one inventoried typed contract instead of four loose helper
+    parameters. Unchanged advance is proved with two different trusted signing
+    keys, and real `temporal.Observe` values traverse Lease under Go's
+    deterministic monotonic clock.
+  - Temporal follow-through: `Observation` now keeps Go's real `time.Time`
+    monotonic carrier separate from its exact wall projection. The typed
+    `WithWall` value operation can model an OS wall correction without
+    replacing Go's elapsed-time substrate or creating a clock framework. Lease
+    now proves that seven minutes of real monotonic progress paired with a
+    six-minute backward wall correction is rejected through `ErrLeaseClock`
+    with the exact observed and trusted instants recoverable by `errors.As`.
+  - Remaining defensive branches with no reachable caller, reported and not
+    faked: the `Verified.Validate` envelope-domain check (`Document.Validate`
+    already rejects that pair and `attest.Verified` cannot be constructed
+    outside Attest), the `enumFact` "has no contract" leg, and the
+    `jsonLimits`, `marshalEnum`, `maximumInstant`, and `requireBefore` error
+    legs whose inputs are already closed by an earlier `Validate`.
 - Review gate: no external reviewing agent was initialized. The user reviewed
   Objectstore and Exchange, then explicitly authorized their commit and push at
   `c65460d7b54a74f665cdb30bdf627adf20f191fe`. No tag or release is
@@ -28,8 +93,9 @@ Last updated: `2026-07-30`
   that base advanced. The user reviewed Hostfacts, supplied concrete cgroup,
   filesystem, error-ownership, and proof findings, accepted the corrected
   package, and explicitly authorized its commit and push. No tag or release is
-  authorized. Fuzzfinder has no commit or push authorization.
-- Production packages: 13 of 19 accepted.
+  authorized. Fuzzfinder was subsequently reviewed and published at the
+  revision above. Lease has no commit or push authorization.
+- Production packages: 14 of 19 accepted.
 - Test-support packages: 0 of 1 complete and 1 in consumer surgery.
 - Deferred consumer surgery: Witness must adopt the exact typed
   `testserial.Declare` contract before Testserial can become `DONE`, after all
@@ -682,11 +748,54 @@ Last updated: `2026-07-30`
   `os.Root` open/stat/close and Go/OS directory-entry materialization. Total
   allocation is linear in directory entries; Fuzzfinder's retained working set
   remains the fixed 128-name array and 64-entry read batch.
+- Lease contract: OGS signs exactly one `Grant`, `Refusal`, or `Revocation`
+  decision for one opaque product, entitlement, and registered-installation
+  subject. Every variant shares one revision, generation, and issuance time.
+  Grant carries exact `NotBefore`, `ContactAfter`, `NotAfter`, and `GoodUntil`
+  instants; recoverable refusal carries only the next-contact instant;
+  revocation carries only one closed for-cause reason. Expected
+  subject binding is mandatory during real Attest verification.
+- Lease time decision: evaluation is pure and fixed-size. The caller supplies
+  a real Temporal start/current observation and a durably committed
+  high-water. Lease advances the signed issuance floor with Go's monotonic
+  elapsed time, selects the maximum trusted instant, and rejects a wall
+  contradiction beyond the compiler-visible five-minute tolerance. The caller
+  persists the returned high-water before starting paid work. Lease performs
+  no clock read, filesystem operation, network call, retry, goroutine, or
+  background scheduling.
+- Lease proof: focused coverage is 92.0%; focused shuffled race proof, full
+  repository tests, doubled shuffled tests, and isolated full race tests pass.
+  Vet, staticcheck, errcheck, nilaway, fieldalignment, gosec, goconst,
+  govulncheck, actionlint, production `gocyclo <= 10`, formatting, module
+  tidiness, and diff checks pass. Linux amd64/arm64 plus Windows and FreeBSD
+  amd64 test binaries cross-compile. The strict signed-decision fuzz boundary
+  completed 651,773 executions and the signed-document boundary completed
+  754,047 executions in 30 seconds each without failure. Direct Witness
+  analysis of Lease is clean with no waiver; the canonical gate passes through
+  nilaway and stops only at the recorded repository-wide enum and Testserial
+  analyzer baseline.
+- Lease M1 Max median benchmarks across five runs: pure evaluation completes in
+  929.6 ns/op, 128 B/op, and 4 allocs/op; real Ed25519/Attest verification
+  completes in 58,736 ns/op, 2,002 B/op, and 52 allocs/op; canonical decision
+  JSON completes in 4,326 ns/op, 1,361 B/op, and 40 allocs/op. Lease has no
+  variable-size data plane: exact schema maxima bound every accepted document,
+  so these are fixed-size cost measurements rather than a false asymptotic
+  streaming claim.
+- Lease legal-copy follow-up: on the OGS
+  `legal/licensing-units-peachfuzz-coverage` branch, `legal/ogs_contract.md`
+  was amended first and `alfred/website/agreement.go` was then brought into
+  exact agreement. The copy now places enforcement at new-work boundaries,
+  keeps existing-record inspection outside licensing state, makes revocation
+  prohibit later contact under that decision, promises continued support for
+  authentic binaries' compiled wire revision, describes signed continuity and
+  offline absolute boundaries, and makes payment recovery automatic at the
+  next permitted operation or check-in. OGS's Markdown/Go sync test passes;
+  legal review remains external.
 
 Next:
 
-1. Complete and review Fuzzfinder, then finish Lease, Process, Release,
-   Shutdown, and Upgrade before any consumer surgery.
+1. Lease has completed user review but has no commit or push authorization.
+   Finish Process, Release, Shutdown, and Upgrade before any consumer surgery.
 2. After all Primitive production packages are published, migrate Witness,
    Bug, and Peachfuzz independently where each has a concrete matching
    capability. Do not perform Kernel surgery and do not manufacture unused
@@ -715,11 +824,11 @@ State vocabulary: `NEXT`, `BLOCKED_BY_DEPENDENCY`, `NOT_STARTED`, `RED`,
 | `hostfacts`        | `DONE`                  |
 | `temporal`         | `DONE`                  |
 | `exchange`         | `DONE`                  |
-| `fuzzfinder`       | `REVIEW`                |
-| `lease`            | `BLOCKED_BY_DEPENDENCY` |
-| `process`          | `BLOCKED_BY_DEPENDENCY` |
-| `release`          | `BLOCKED_BY_DEPENDENCY` |
-| `shutdown`         | `BLOCKED_BY_DEPENDENCY` |
+| `fuzzfinder`       | `DONE`                  |
+| `lease`            | `REVIEW`                |
+| `process`          | `NEXT`                  |
+| `release`          | `NOT_STARTED`           |
+| `shutdown`         | `NOT_STARTED`           |
 | `objectstore`      | `DONE`                  |
 | `timeproof`        | `DONE`                  |
 | `cloudidentity`    | `DONE`                  |

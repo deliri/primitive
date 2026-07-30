@@ -66,18 +66,53 @@ func TestObservationUsesGoClockWithoutClockFramework(t *testing.T) {
 
 	synctest.Test(t, func(t *testing.T) {
 		start, startErr := Observe()
+		startWall, startWallErr := start.Instant()
 		timer := time.NewTimer(17 * time.Nanosecond)
 		<-timer.C
 		finish, finishErr := Observe()
 		got, gotErr := finish.Since(start)
-		if startErr != nil || finishErr != nil || gotErr != nil ||
+		if startErr != nil || startWallErr != nil || finishErr != nil || gotErr != nil ||
 			got.Nanoseconds() != 17 {
 			t.Fatalf(
-				"real Go clock observations = (%d, %v, %v, %v), want (17, nil, nil, nil)",
+				"real Go clock observations = (%d, %v, %v, %v, %v), want (17, nil, nil, nil, nil)",
 				got.Nanoseconds(),
 				startErr,
+				startWallErr,
 				finishErr,
 				gotErr,
+			)
+		}
+
+		fiveNanoseconds, durationErr := DurationFromNanoseconds(5)
+		correctedWall, wallErr := startWall.Add(fiveNanoseconds)
+		corrected, correctedErr := finish.WithWall(correctedWall)
+		correctedElapsed, elapsedErr := corrected.Since(start)
+		projectedWall, projectedErr := corrected.Instant()
+		if durationErr != nil || wallErr != nil || correctedErr != nil ||
+			elapsedErr != nil || projectedErr != nil ||
+			correctedElapsed.Nanoseconds() != 17 ||
+			projectedWall != correctedWall {
+			t.Fatalf(
+				"wall-corrected observation = (wall:%v elapsed:%d errors:%v/%v/%v/%v/%v), want %v/17 and nil errors",
+				projectedWall,
+				correctedElapsed.Nanoseconds(),
+				durationErr,
+				wallErr,
+				correctedErr,
+				elapsedErr,
+				projectedErr,
+				correctedWall,
+			)
+		}
+
+		rejected, rejectedErr := finish.WithWall(Instant{})
+		if !errors.Is(rejectedErr, core.ErrTemporalContract) ||
+			rejected != (Observation{}) {
+			t.Fatalf(
+				"Observation.WithWall(unset) = (%v, %v), want zero/%v",
+				rejected,
+				rejectedErr,
+				core.ErrTemporalContract,
 			)
 		}
 	})

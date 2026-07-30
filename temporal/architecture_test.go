@@ -86,6 +86,7 @@ type temporalAggregateDurationSignature interface {
 type temporalObservationSignature interface {
 	Validate() error
 	Instant() (Instant, error)
+	WithWall(Instant) (Observation, error)
 	Since(Observation) (Duration, error)
 }
 
@@ -281,6 +282,7 @@ func TestTemporalPublicSurfaceMatchesReviewedContract(t *testing.T) {
 		"method Observation.Instant",
 		"method Observation.Since",
 		"method Observation.Validate",
+		"method Observation.WithWall",
 		"method Precision.IsValid",
 		"method Precision.OffWireEnum",
 		"method Precision.String",
