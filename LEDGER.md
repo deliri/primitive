@@ -10,19 +10,16 @@ Last updated: `2026-07-29`
   `github.com/deliri/primitive/v2026`. Historical evidence remains unchanged
   and therefore retains its original Foundation module paths. `PLAN.md` is
   local-only and excluded from the public repository.
-- Phase: Objectstore is in user review. It performs one bounded Amazon S3,
-  Google Cloud Storage, or Cloudflare Images transfer through an already-issued
-  capability; callers compose multi-provider replication by reopening the
-  source and making explicit calls. `timeproof`, `exchange`, `temporal`, and
-  `filestore` are `DONE`; `testserial` remains in its required
-  `CONSUMER_SURGERY`.
-- Review gate: no external reviewing agent was initialized. The user's two
-  Exchange reviews were independently checked against real `net/http`, TCP,
-  filesystem, context, and stream paths; every reproduced defect was corrected
-  and incorrect findings were rejected with direct evidence. The user
-  explicitly authorized commit and push. No tag or release is authorized.
-  Objectstore has no commit or push authorization and remains uncommitted for
-  exact-diff review.
+- Phase: Cloudidentity is in user review with one common opaque outbound bearer and
+  explicit Google Cloud metadata and AWS regional STS acquisition functions.
+  Objectstore, `timeproof`, `exchange`, `temporal`, and `filestore` are `DONE`;
+  `testserial` remains in its required `CONSUMER_SURGERY`.
+- Review gate: no external reviewing agent was initialized. The user reviewed
+  Objectstore and Exchange, then explicitly authorized their commit and push at
+  `c65460d7b54a74f665cdb30bdf627adf20f191fe`. No tag or release is
+  authorized. Cloudidentity has no commit or push authorization. Its direct
+  Witness-lint analysis is clean; the canonical gate stops only on the
+  previously recorded repository-wide enum and Testserial analyzer baseline.
 - Production packages: 10 of 19 accepted.
 - Test-support packages: 0 of 1 complete and 1 in consumer surgery.
 - Active-package consumer surgery: Witness must adopt the exact typed
@@ -595,12 +592,12 @@ Last updated: `2026-07-29`
 
 Next:
 
-1. Review the exact uncommitted Objectstore API, implementation, hostile tests,
-   benchmark, and vendor-contract decisions.
-2. Run disposable live-provider proof when caller-supplied S3/GCS signed URLs
+1. Review Cloudidentity's common token plus explicit Google Cloud and AWS
+   acquisition entry points.
+2. Run disposable Objectstore live-provider proof when caller-supplied S3/GCS signed URLs
    and a Cloudflare Images one-time upload URL are available; local tests do not
    claim remote-provider proof.
-3. Commit and push Objectstore only after fresh explicit user approval.
+3. Commit and push Cloudidentity only after fresh explicit user approval.
 4. Preserve the deferred Witness Testserial/analyzer consumer surgery without
    compatibility paths or analyzer waivers.
 
@@ -627,9 +624,9 @@ State vocabulary: `NEXT`, `BLOCKED_BY_DEPENDENCY`, `NOT_STARTED`, `RED`,
 | `process`          | `BLOCKED_BY_DEPENDENCY` |
 | `release`          | `BLOCKED_BY_DEPENDENCY` |
 | `shutdown`         | `BLOCKED_BY_DEPENDENCY` |
-| `objectstore`      | `REVIEW`                |
+| `objectstore`      | `DONE`                  |
 | `timeproof`        | `DONE`                  |
-| `workloadidentity` | `BLOCKED_BY_DEPENDENCY` |
+| `cloudidentity`    | `REVIEW`                |
 | `upgrade`          | `BLOCKED_BY_DEPENDENCY` |
 
 Consumer state is recorded under the active package only. There is no separate
@@ -734,3 +731,21 @@ drifted path derivation fails instead of silently auditing nothing.
   hardening findings, accepted their corrected implementation, and explicitly
   authorized commit and push together with the completed Exchange JSON
   boundary benchmarks. No tag or release was authorized.
+- `2026-07-29`: Cloudidentity was reconstructed as one bounded outbound bearer
+  with explicit `AcquireGoogleCloud` and `AcquireAmazonWebServices` functions.
+  Google explicitly requests the standard service-account token format. AWS
+  accepts only an already query-signed regional STS capability, binds every
+  consumed XML element to the requested API namespace, rejects ambiguous
+  element multiplicity or token markup, and structurally redacts capability
+  construction and acquisition failures. The two providers derive distinct
+  bare-token and token-plus-envelope response bounds. Cloudidentity does not
+  discover credentials or implement SigV4. Real loopback HTTP, cancellation,
+  redirect, native-error, response-bound, XML, redaction, race, shuffle, fuzz,
+  allocation-benchmark, and architecture proofs pass at 92.1% statement
+  coverage. Latest Apple M1 Max loopback benchmarks: Google 1 KiB
+  56,164 ns/op and 12,679 B/op; Google 16 KiB 89,825 ns/op and 60,200 B/op;
+  AWS 1 KiB 73,162 ns/op and 24,644 B/op; AWS 16 KiB 250,005 ns/op and
+  169,628 B/op. Direct Witness-lint analysis is clean with no waivers. The
+  canonical gate stops only at the recorded repository-wide enum and
+  Testserial analyzer baseline. No live Google metadata or AWS STS call is
+  claimed. User review and publication authorization remain pending.

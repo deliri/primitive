@@ -66,9 +66,9 @@ flowchart TD
     timeproof[timeproof] --> core
     timeproof --> temporal
     timeproof --> keygen
-    workloadidentity[workloadidentity] --> core
-    workloadidentity --> temporal
-    workloadidentity --> exchange
+    cloudidentity[cloudidentity] --> core
+    cloudidentity --> temporal
+    cloudidentity --> exchange
 
     upgrade[upgrade] --> core
     upgrade --> filestore

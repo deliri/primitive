@@ -177,8 +177,8 @@ const (
 	ErrTimeProofRefused
 	// ErrTimeProofInvalid identifies evidence that failed verification.
 	ErrTimeProofInvalid
-	// ErrWorkloadIdentityContract identifies a workload-identity violation.
-	ErrWorkloadIdentityContract
+	// ErrCloudIdentityContract identifies a cloud-identity violation.
+	ErrCloudIdentityContract
 	// ErrUpgradeContract identifies an upgrade contract violation.
 	ErrUpgradeContract
 
@@ -229,7 +229,7 @@ func errorIdentityTextObjectStoreThroughGovernance(i ErrorIdentity) string {
 	case i <= ErrTimeProofInvalid:
 		return errorIdentityTextObjectTailThroughTimeProof(i)
 	case i <= ErrUpgradeContract:
-		return errorIdentityTextWorkloadIdentityThroughUpgrade(i)
+		return errorIdentityTextCloudIdentityThroughUpgrade(i)
 	default:
 		return errorIdentityTextGovernance(i)
 	}
@@ -445,12 +445,12 @@ func errorIdentityTextObjectTailThroughTimeProof(i ErrorIdentity) string {
 	}
 }
 
-func errorIdentityTextWorkloadIdentityThroughUpgrade(
+func errorIdentityTextCloudIdentityThroughUpgrade(
 	i ErrorIdentity,
 ) string {
 	switch i {
-	case ErrWorkloadIdentityContract:
-		return "workload identity contract violation"
+	case ErrCloudIdentityContract:
+		return "cloud identity contract violation"
 	case ErrUpgradeContract:
 		return "upgrade contract violation"
 	default:
@@ -567,7 +567,7 @@ func errorIdentityParents(identity ErrorIdentity) errorIdentityParentSet {
 		ErrHostResourceContract, ErrTemporalContract, ErrExchangeContract,
 		ErrFuzzContract, ErrLeaseContract, ErrReleaseContract,
 		ErrShutdownContract, ErrObjectStoreContract, ErrTimeProofContract,
-		ErrWorkloadIdentityContract, ErrUpgradeContract, ErrGovernanceContract:
+		ErrCloudIdentityContract, ErrUpgradeContract, ErrGovernanceContract:
 		return oneErrorIdentityParent(ErrPrimitiveContract)
 	case ErrGovernanceDocumentSource, ErrGovernanceDocumentLength,
 		ErrGovernanceDocumentDigest:

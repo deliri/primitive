@@ -61,8 +61,8 @@ const (
 	PackageObjectStore
 	// PackageTimeProof identifies the time-proof package.
 	PackageTimeProof
-	// PackageWorkloadIdentity identifies the workload-identity package.
-	PackageWorkloadIdentity
+	// PackageCloudIdentity identifies the cloud-identity package.
+	PackageCloudIdentity
 	// PackageUpgrade identifies the upgrade package.
 	PackageUpgrade
 	packageIdentityLimit
@@ -130,7 +130,7 @@ func PrimitiveArchitecture() ArchitectureCatalog {
 			{Identity: PackageShutdown, Kind: PackageKindProduction},
 			{Identity: PackageObjectStore, Kind: PackageKindProduction},
 			{Identity: PackageTimeProof, Kind: PackageKindProduction},
-			{Identity: PackageWorkloadIdentity, Kind: PackageKindProduction},
+			{Identity: PackageCloudIdentity, Kind: PackageKindProduction},
 			{Identity: PackageUpgrade, Kind: PackageKindProduction},
 		},
 		imports: [PrimitiveDirectImportCount]DirectImportContract{
@@ -173,9 +173,9 @@ func PrimitiveArchitecture() ArchitectureCatalog {
 			{Importer: PackageTimeProof, Imported: PackageCore},
 			{Importer: PackageTimeProof, Imported: PackageTemporal},
 			{Importer: PackageTimeProof, Imported: PackageKeygen},
-			{Importer: PackageWorkloadIdentity, Imported: PackageCore},
-			{Importer: PackageWorkloadIdentity, Imported: PackageTemporal},
-			{Importer: PackageWorkloadIdentity, Imported: PackageExchange},
+			{Importer: PackageCloudIdentity, Imported: PackageCore},
+			{Importer: PackageCloudIdentity, Imported: PackageTemporal},
+			{Importer: PackageCloudIdentity, Imported: PackageExchange},
 
 			{Importer: PackageUpgrade, Imported: PackageCore},
 			{Importer: PackageUpgrade, Imported: PackageFilestore},
@@ -441,8 +441,8 @@ func packageIdentityTextReleaseThroughUpgrade(identity PackageIdentity) string {
 		return "objectstore"
 	case PackageTimeProof:
 		return "timeproof"
-	case PackageWorkloadIdentity:
-		return "workloadidentity"
+	case PackageCloudIdentity:
+		return "cloudidentity"
 	case PackageUpgrade:
 		return "upgrade"
 	default:

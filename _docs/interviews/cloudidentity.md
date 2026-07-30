@@ -1,27 +1,51 @@
-# Workloadidentity package interview
+# Cloudidentity package interview
 
 Status: `COMPLETE` | Decision: `REDESIGN`
 
-This is the sole reconstruction report for archived package
-`workloadidentity`. It integrates the archived implementation, the
+This is the reconstruction report for the 2026 `cloudidentity` package and the
+archived `workloadidentity` evidence. It integrates the archived implementation, the
 Primitive-internal dependency audit, and all four required consumer
 interviews. The archive and consumer repositories were read-only. No archived
 or consumer source was copied or changed.
 
-The reconstruction decision is deliberately two-part:
+The user approved the widened provider-neutral scope on 2026-07-29 after
+current Google Cloud and AWS vendor-contract review:
 
-- Primitive 2026 has evidence for one product-neutral capability: obtain a
-  bounded Google service-account ID token for an exact outbound audience and
-  carry it as a redacted bearer capability.
+- Primitive 2026 owns one common opaque, redacted outbound identity-token
+  bearer for one exact audience.
+- `AcquireGoogleCloud` obtains that bearer through Google Cloud's metadata
+  identity endpoint.
+- `AcquireAmazonWebServices` obtains the same kind of bearer through the
+  regional AWS STS `GetWebIdentityToken` API using an already-signed exact
+  caller capability.
+- The two provider functions retain distinct typed request mechanics and share
+  no runtime selector or generic dispatch path.
 - The July 27 package must not be admitted unchanged. It collapses an
   unverified inbound bearer and a metadata-acquired outbound token into the
   same type, calls a lexical three-segment check canonical JWT validation,
   advertises principal projection it never performs, and accepts and rejects
   the wrong Google service-account principal forms.
 
-The archive has good transport closure and redaction work worth preserving.
-Its trust semantics and proof suite are not yet an admissible 2026 contract.
-The reconstruction decision and its conditions are recorded below.
+Cloudidentity does not discover credentials, implement AWS Signature Version
+4, parse or verify token claims, cache or refresh tokens, execute provider
+tools, or authorize a consumer operation. The archive has good transport
+closure and redaction work worth preserving; its trust semantics and proof
+suite are evidence, not the 2026 contract.
+
+The implemented wire contracts are deliberately narrower than each provider's
+complete API:
+
+- Google Cloud uses the documented Compute metadata identity endpoint with one
+  exact `audience` and `Metadata-Flavor: Google`
+  ([instance identity](https://docs.cloud.google.com/compute/docs/instances/verifying-instance-identity)).
+- AWS uses the regional-only `GetWebIdentityToken` action, one audience,
+  `RS256`, and a 300-second token duration
+  ([API contract](https://docs.aws.amazon.com/STS/latest/APIReference/API_GetWebIdentityToken.html)).
+- The AWS input is an already query-signed, short-lived regional HTTPS request.
+  Cloudidentity validates its exact visible SigV4 query surface but does not
+  discover credentials or calculate a signature
+  ([signed requests](https://docs.aws.amazon.com/IAM/latest/UserGuide/reference_sigv-create-signed-request.html),
+  [regional endpoints](https://docs.aws.amazon.com/general/latest/gr/sts.html)).
 
 ## Evidence boundary
 
@@ -707,36 +731,42 @@ line problem; it is a wrong oracle.
 The clean dependency direction should be:
 
 ```text
-core -> google/workload token acquisition
+core -> cloudidentity
 temporal -> exchange
 core -> exchange
-exchange -> google/workload token acquisition
-google/workload token acquisition -> Bug release composition
-google/workload token acquisition -> Witness release composition
-google/workload token acquisition -> Peachfuzz evidence composition
+exchange -> cloudidentity
+cloudidentity -> Bug release composition
+cloudidentity -> Witness release composition
+cloudidentity -> Peachfuzz evidence composition
 Peachfuzz evidence composition -> product-owned gcloud/cache
 ```
 
-The package name may remain `workloadidentity` if its scope is explicit, but a
-Google-specific name would be more honest if Primitive expects other identity
-providers later.
+The approved package name is `cloudidentity`: the result contract is common,
+while provider mechanics remain explicit compile-time entry points. There is
+no provider enum argument and no generic runtime dispatch function.
 
 The admitted leaf should own:
 
-- a redacted, private-representation **outbound** ID-token bearer;
+- a redacted, private-representation **outbound** opaque bearer;
 - one explicit authorization-header disclosure;
-- one exact audience type or a deliberately documented API-endpoint audience;
-- a metadata-source constructor over Exchange;
-- fixed Google metadata request facts;
-- a single bounded request, redirect refusal, and response ceiling;
+- one exact shared audience type;
+- `AcquireGoogleCloud` over the fixed Google metadata request with explicit
+  `format=standard`; the common contract identifies the attached service
+  account and does not promise Google-specific VM or project claims;
+- `AcquireAmazonWebServices` over one caller-created, query-signed regional
+  AWS STS request capability;
+- a single bounded request, redirect refusal, and provider-specific response
+  ceiling: the Google bare-token bound and the AWS token-plus-XML-envelope
+  bound;
 - stable package-owned error identities; and
-- hostile tests with an authentic token fixture or an honest opaque-token
-  contract.
+- hostile tests against an honest opaque-token contract.
 
 It should not own:
 
 - `ParseAuthorization`;
 - an inbound-authentication claim;
+- provider discovery or runtime selection;
+- AWS credential discovery or SigV4 signing;
 - product authorization;
 - process execution;
 - token caching or refresh scheduling;
