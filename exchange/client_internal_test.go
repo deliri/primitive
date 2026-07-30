@@ -1,7 +1,11 @@
 package exchange
 
 import (
+	"bytes"
+	"context"
 	"errors"
+	"io"
+	"math"
 	"net/http"
 	"testing"
 	"time"
@@ -9,6 +13,309 @@ import (
 	"github.com/deliri/primitive/v2026/core"
 	"github.com/deliri/primitive/v2026/temporal"
 )
+
+func TestAdmittedBodyLengthExhaustsTransportBoundaries(t *testing.T) {
+	t.Parallel()
+
+	const limitBytes = 4096
+	limit := mustInternalByteCount(t, limitBytes)
+	cases := []struct {
+		wantIdentity  error
+		name          string
+		contentLength int64
+		limit         core.ByteCount
+		wantLength    uint64
+		wantPresent   bool
+	}{
+		{
+			name:          "minimum integer is an unexpressible transport extent",
+			contentLength: math.MinInt64,
+			limit:         limit,
+			wantIdentity:  core.ErrExchangeContract,
+		},
+		{
+			name:          "one below absence is an unexpressible transport extent",
+			contentLength: -2,
+			limit:         limit,
+			wantIdentity:  core.ErrExchangeContract,
+		},
+		{
+			name:          "absence is admitted without an extent",
+			contentLength: -1,
+			limit:         limit,
+		},
+		{
+			name:          "declared empty is distinct from absence",
+			contentLength: 0,
+			limit:         limit,
+			wantPresent:   true,
+		},
+		{
+			name:          "smallest nonempty extent is admitted",
+			contentLength: 1,
+			limit:         limit,
+			wantPresent:   true,
+			wantLength:    1,
+		},
+		{
+			name:          "one below the limit is admitted",
+			contentLength: limitBytes - 1,
+			limit:         limit,
+			wantPresent:   true,
+			wantLength:    limitBytes - 1,
+		},
+		{
+			name:          "exactly the limit is admitted",
+			contentLength: limitBytes,
+			limit:         limit,
+			wantPresent:   true,
+			wantLength:    limitBytes,
+		},
+		{
+			name:          "one above the limit is refused",
+			contentLength: limitBytes + 1,
+			limit:         limit,
+			wantIdentity:  core.ErrExchangeBodyLimit,
+		},
+		{
+			name:          "maximum integer cannot inflate the authorized limit",
+			contentLength: math.MaxInt64,
+			limit:         limit,
+			wantIdentity:  core.ErrExchangeBodyLimit,
+		},
+		{
+			name:          "unset limit is a contract defect",
+			contentLength: 1,
+			wantIdentity:  core.ErrExchangeContract,
+		},
+	}
+
+	for _, testCase := range cases {
+		t.Run(testCase.name, func(t *testing.T) {
+			t.Parallel()
+
+			got, gotErr := admittedBodyLength(
+				testCase.contentLength,
+				testCase.limit,
+			)
+			if testCase.wantIdentity != nil {
+				if !errors.Is(gotErr, testCase.wantIdentity) {
+					t.Fatalf(
+						"admittedBodyLength(%d) error = %v, want errors.Is %v",
+						testCase.contentLength,
+						gotErr,
+						testCase.wantIdentity,
+					)
+				}
+				if got != (core.DeclaredBodyLength{}) {
+					t.Fatalf(
+						"admittedBodyLength(%d) = %+v, want zero on refusal",
+						testCase.contentLength,
+						got,
+					)
+				}
+				return
+			}
+			if gotErr != nil {
+				t.Fatalf(
+					"admittedBodyLength(%d) error = %v, want nil",
+					testCase.contentLength,
+					gotErr,
+				)
+			}
+			if got.Present() != testCase.wantPresent ||
+				got.Length().Uint64() != testCase.wantLength {
+				t.Fatalf(
+					"admittedBodyLength(%d) = (present %t, length %d), want (present %t, length %d)",
+					testCase.contentLength,
+					got.Present(),
+					got.Length().Uint64(),
+					testCase.wantPresent,
+					testCase.wantLength,
+				)
+			}
+		})
+	}
+}
+
+func TestAggregateResponseDeclaredExtentCannotWeakenTheBodyLimit(t *testing.T) {
+	t.Parallel()
+
+	const limitBytes = 4096
+	limit := mustInternalByteCount(t, limitBytes)
+	cases := []struct {
+		wantIdentity  error
+		name          string
+		bodyBytes     int
+		declaredBytes int64
+		wantBytes     int
+		wantUnread    int
+	}{
+		{
+			name:          "exact declaration admits the exact bounded response",
+			bodyBytes:     limitBytes,
+			declaredBytes: limitBytes,
+			wantBytes:     limitBytes,
+		},
+		{
+			name:          "absent declaration remains bounded while reading",
+			bodyBytes:     limitBytes + 1,
+			declaredBytes: -1,
+			wantIdentity:  core.ErrExchangeBodyLimit,
+		},
+		{
+			name:          "understated declaration does not raise the read limit",
+			bodyBytes:     limitBytes + 1,
+			declaredBytes: 1,
+			wantIdentity:  core.ErrExchangeBodyLimit,
+		},
+		{
+			name:          "understated declaration admits bytes within the limit",
+			bodyBytes:     limitBytes,
+			declaredBytes: 1,
+			wantBytes:     limitBytes,
+		},
+		{
+			name:          "declared empty cannot conceal one byte over the limit",
+			bodyBytes:     limitBytes + 1,
+			declaredBytes: 0,
+			wantIdentity:  core.ErrExchangeBodyLimit,
+		},
+		{
+			name:          "one over declared limit is refused before reading",
+			bodyBytes:     1,
+			declaredBytes: limitBytes + 1,
+			wantUnread:    1,
+			wantIdentity:  core.ErrExchangeBodyLimit,
+		},
+		{
+			name:          "maximum declaration is refused before reading",
+			bodyBytes:     1,
+			declaredBytes: math.MaxInt64,
+			wantUnread:    1,
+			wantIdentity:  core.ErrExchangeBodyLimit,
+		},
+		{
+			name:          "one below absence is a response contract defect",
+			bodyBytes:     1,
+			declaredBytes: -2,
+			wantUnread:    1,
+			wantIdentity:  core.ErrExchangeContract,
+		},
+		{
+			name:          "minimum integer is a response contract defect",
+			bodyBytes:     1,
+			declaredBytes: math.MinInt64,
+			wantUnread:    1,
+			wantIdentity:  core.ErrExchangeContract,
+		},
+		{
+			name:          "declared and actual empty response stays empty",
+			declaredBytes: 0,
+		},
+	}
+
+	for _, testCase := range cases {
+		t.Run(testCase.name, func(t *testing.T) {
+			t.Parallel()
+
+			source := bytes.NewReader(bytes.Repeat(
+				[]byte{0x7d},
+				testCase.bodyBytes,
+			))
+			got, gotErr := readAggregateResponseBody(aggregateReadRequest{
+				context: context.Background(),
+				response: &http.Response{
+					Body:          io.NopCloser(source),
+					ContentLength: testCase.declaredBytes,
+				},
+				limit: limit,
+			})
+			if testCase.wantIdentity != nil {
+				if !errors.Is(gotErr, testCase.wantIdentity) {
+					t.Fatalf(
+						"readAggregateResponseBody() error = %v, want errors.Is %v",
+						gotErr,
+						testCase.wantIdentity,
+					)
+				}
+				if len(got) != 0 {
+					t.Fatalf(
+						"readAggregateResponseBody() returned %d refused bytes, want none",
+						len(got),
+					)
+				}
+			} else {
+				if gotErr != nil {
+					t.Fatalf(
+						"readAggregateResponseBody() error = %v, want nil",
+						gotErr,
+					)
+				}
+				if len(got) != testCase.wantBytes {
+					t.Fatalf(
+						"len(readAggregateResponseBody()) = %d, want %d",
+						len(got),
+						testCase.wantBytes,
+					)
+				}
+			}
+			if gotUnread := source.Len(); gotUnread != testCase.wantUnread {
+				t.Fatalf(
+					"source bytes unread = %d, want %d",
+					gotUnread,
+					testCase.wantUnread,
+				)
+			}
+		})
+	}
+}
+
+func TestDeclaredReservationDoesNotDoubleBeforeEOF(t *testing.T) {
+	t.Parallel()
+
+	const bodyBytes = 512 * 1024
+	body := bytes.Repeat([]byte{0x3c}, bodyBytes)
+	declared, err := core.ParseDeclaredBodyLength(bodyBytes)
+	if err != nil {
+		t.Fatalf(
+			"core.ParseDeclaredBodyLength(%d) error = %v, want nil",
+			bodyBytes,
+			err,
+		)
+	}
+	got, gotErr := readBoundedBody(boundedBodyRead{
+		context:  context.Background(),
+		source:   bytes.NewReader(body),
+		declared: declared,
+		limit:    mustInternalByteCount(t, bodyBytes),
+	})
+	if gotErr != nil {
+		t.Fatalf("readBoundedBody() error = %v, want nil", gotErr)
+	}
+	if !bytes.Equal(got, body) {
+		t.Fatalf(
+			"bytes.Equal(readBoundedBody(), source) = false for %d bytes, want true",
+			bodyBytes,
+		)
+	}
+	if gotCapacity := cap(got); gotCapacity != bodyBytes {
+		t.Fatalf(
+			"cap(readBoundedBody()) = %d, want exact declared reservation %d",
+			gotCapacity,
+			bodyBytes,
+		)
+	}
+}
+
+func mustInternalByteCount(t *testing.T, value uint64) core.ByteCount {
+	t.Helper()
+	got, err := core.NewByteCount(value)
+	if err != nil {
+		t.Fatalf("core.NewByteCount(%d) error = %v, want nil", value, err)
+	}
+	return got
+}
 
 func TestRetryAfterParserHostileBoundaryTable(t *testing.T) {
 	t.Parallel()

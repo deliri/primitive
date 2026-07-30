@@ -302,6 +302,7 @@ const (
 	httpHeaderAcceptEncodingText  = "Accept-Encoding"
 	httpHeaderIdempotencyKeyText  = "Idempotency-Key"
 	httpHeaderLocationText        = "Location"
+	httpHeaderCacheControlText    = "Cache-Control"
 )
 
 // HTTPHeaderContentType returns the validated Content-Type field name.
@@ -352,6 +353,11 @@ func HTTPHeaderIdempotencyKey() HTTPHeaderName {
 // HTTPHeaderLocation returns the validated Location field name.
 func HTTPHeaderLocation() HTTPHeaderName {
 	return HTTPHeaderName{value: httpHeaderLocationText}
+}
+
+// HTTPHeaderCacheControl returns the validated Cache-Control field name.
+func HTTPHeaderCacheControl() HTTPHeaderName {
+	return HTTPHeaderName{value: httpHeaderCacheControlText}
 }
 
 // HTTPMediaType is one canonical standard-library-parsed media type, including

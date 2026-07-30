@@ -85,6 +85,8 @@ type exchangeContractInventory struct {
 	uploadResponseRequest   internalFlow[uploadResponseRequest]
 	downloadResponseRequest internalFlow[downloadResponseRequest]
 	streamDrainRequest      internalFlow[streamDrainRequest]
+	boundedBodyRead         internalFlow[boundedBodyRead]
+	boundedBodyDestination  internalFlow[boundedBodyDestination]
 	downloadCopyRequest     internalFlow[downloadCopyRequest]
 	streamTransportFailure  internalFlow[streamTransportFailure]
 
@@ -230,6 +232,8 @@ var (
 	_                             = exchangeContractInventory{}.uploadResponseRequest
 	_                             = exchangeContractInventory{}.downloadResponseRequest
 	_                             = exchangeContractInventory{}.streamDrainRequest
+	_                             = exchangeContractInventory{}.boundedBodyRead
+	_                             = exchangeContractInventory{}.boundedBodyDestination
 	_                             = exchangeContractInventory{}.downloadCopyRequest
 	_                             = exchangeContractInventory{}.streamTransportFailure
 	_                             = exchangeContractInventory{}.projectionRequest

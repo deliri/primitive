@@ -622,11 +622,7 @@ func readAggregateHTTPResponse(
 			closeResponseBody(input.response.Body),
 		)
 	}
-	result.body, err = readBoundedBody(
-		input.context,
-		input.response.Body,
-		input.limit,
-	)
+	result.body, err = readAggregateResponseBody(input)
 	closeErr := closeResponseBody(input.response.Body)
 	if err != nil && !errors.Is(err, core.ErrExchangeCancelled) {
 		err = responseError(err)
@@ -637,6 +633,27 @@ func readAggregateHTTPResponse(
 		}
 	}
 	return result, errors.Join(err, closeErr)
+}
+
+// readAggregateResponseBody reads one bounded response body, reserving the extent
+// the response declares. The declaration is only a reservation: the limit still
+// bounds what is read, so an understated or absent declaration cannot widen it.
+func readAggregateResponseBody(
+	input aggregateReadRequest,
+) ([]byte, error) {
+	declared, err := admittedBodyLength(
+		input.response.ContentLength,
+		input.limit,
+	)
+	if err != nil {
+		return nil, err
+	}
+	return readBoundedBody(boundedBodyRead{
+		context:  input.context,
+		source:   input.response.Body,
+		declared: declared,
+		limit:    input.limit,
+	})
 }
 
 func validateIdentityContentCoding(headers http.Header) error {
@@ -688,25 +705,49 @@ func validateResponseContentType(
 	return nil
 }
 
-func readBoundedBody(
-	ctx context.Context,
-	body io.Reader,
-	limit core.ByteCount,
-) (data []byte, err error) {
+// boundedBodyRead is one complete bounded aggregate body read. The declared
+// extent travels with the read so the buffer can be reserved once instead of
+// doubled through every intermediate size on the way to the real length.
+type boundedBodyRead struct {
+	context  context.Context
+	source   io.Reader
+	declared core.DeclaredBodyLength
+	limit    core.ByteCount
+}
+
+// boundedBodyDestination deliberately exposes only io.Writer. bytes.Buffer
+// implements io.ReaderFrom, which makes io.CopyBuffer ignore Exchange's bounded
+// transfer buffer and call bytes.Buffer.ReadFrom. ReadFrom grows once more before
+// discovering EOF, so even an exactly reserved extent is doubled. Keeping that
+// optional fast path out of the method set makes the declared reservation exact.
+type boundedBodyDestination struct {
+	buffer *bytes.Buffer
+}
+
+func (d boundedBodyDestination) Write(payload []byte) (int, error) {
+	return d.buffer.Write(payload)
+}
+
+func readBoundedBody(read boundedBodyRead) (data []byte, err error) {
 	defer func() {
 		if recover() != nil {
 			data = nil
 			err = core.ErrExchangeContract
 		}
 	}()
-	if err := contextstate.Validate(ctx); err != nil {
+	if err := contextstate.Validate(read.context); err != nil {
 		return nil, cancelledError(err)
 	}
-	var buffer bytes.Buffer
+	reserved, err := read.declared.ReservedExtent(read.limit)
+	if err != nil {
+		return nil, err
+	}
+	buffer := bytes.NewBuffer(make([]byte, 0, reserved))
 	_, err = copyDownload(
 		downloadCopyRequest{
-			context: ctx, source: body,
-			destination: &buffer, limit: limit,
+			context: read.context, source: read.source,
+			destination: boundedBodyDestination{buffer: buffer},
+			limit:       read.limit,
 		},
 	)
 	if err != nil {

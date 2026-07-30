@@ -36,6 +36,7 @@ type coreContractInventory struct {
 	errorIdentityParentSet     internalFlow[errorIdentityParentSet]
 	ByteCount                  protocolFact[ByteCount]
 	ByteLength                 protocolFact[ByteLength]
+	DeclaredBodyLength         protocolFact[DeclaredBodyLength]
 	SHA256Digest               protocolFact[SHA256Digest]
 	CRC32C                     protocolFact[CRC32C]
 	Ed25519PublicKey           protocolFact[Ed25519PublicKey]

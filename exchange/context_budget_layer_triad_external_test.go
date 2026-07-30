@@ -78,7 +78,11 @@ func TestContextBudgetLayerTriad(t *testing.T) {
 		ok := mustHTTPStatus(t, http.StatusOK)
 		policy := singleAttemptOperationPolicy(t)
 		policy.OperationTimeout = mustDurationMilliseconds(t, 5_000)
-		policy.AttemptTimeout = mustDurationMilliseconds(t, 5)
+		// Five milliseconds let the deadline fire before a race-instrumented
+		// request reached the real handler, making "handler was cancelled"
+		// impossible to observe. One second still proves the attempt budget owns
+		// cancellation while leaving enough ingress margin under the full gate.
+		policy.AttemptTimeout = mustDurationMilliseconds(t, 1_000)
 		got, gotErr := exchange.SendNoBodyBounded(
 			exchange.NoBodyBoundedCall{
 				Context: context.Background(),

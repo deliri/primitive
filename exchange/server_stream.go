@@ -104,18 +104,19 @@ func receiveBounded(call BoundedReceiveCall) (ReceivedBytes, error) {
 	if err != nil {
 		return ReceivedBytes{}, err
 	}
-	limit, _ := call.Policy.RequestBodyLimit.Int64()
-	if err := validateRequestBodyLength(
+	declared, err := admittedBodyLength(
 		call.Request.ContentLength,
-		limit,
-	); err != nil {
-		return ReceivedBytes{}, err
-	}
-	body, readErr := readBoundedBody(
-		call.Request.Context(),
-		call.Request.Body,
 		call.Policy.RequestBodyLimit,
 	)
+	if err != nil {
+		return ReceivedBytes{}, requestError(err)
+	}
+	body, readErr := readBoundedBody(boundedBodyRead{
+		context:  call.Request.Context(),
+		source:   call.Request.Body,
+		declared: declared,
+		limit:    call.Policy.RequestBodyLimit,
+	})
 	if readErr != nil {
 		return ReceivedBytes{}, asRequestReadError(readErr)
 	}
@@ -145,12 +146,11 @@ func receiveStream(call StreamReceiveCall) (ReceivedStream, error) {
 	if err != nil {
 		return ReceivedStream{}, err
 	}
-	limit, _ := call.Policy.RequestBodyLimit.Int64()
-	if err := validateRequestBodyLength(
+	if _, err := admittedBodyLength(
 		call.Request.ContentLength,
-		limit,
+		call.Policy.RequestBodyLimit,
 	); err != nil {
-		return ReceivedStream{}, err
+		return ReceivedStream{}, requestError(err)
 	}
 	bytes, copyErr := copyDownload(
 		downloadCopyRequest{

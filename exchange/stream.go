@@ -437,15 +437,8 @@ func validateDownloadResponseLength(
 	contentLength int64,
 	limit core.ByteCount,
 ) error {
-	if contentLength < -1 {
-		return responseError(core.ErrExchangeContract)
-	}
-	maximum, err := limit.Int64()
-	if err != nil {
+	if _, err := admittedBodyLength(contentLength, limit); err != nil {
 		return responseError(err)
-	}
-	if contentLength > maximum {
-		return responseError(core.ErrExchangeBodyLimit)
 	}
 	return nil
 }

@@ -3,7 +3,11 @@ package core
 import (
 	"encoding/json"
 	"errors"
+	"go/ast"
+	"go/parser"
+	"go/token"
 	"math"
+	"os"
 	"strconv"
 	"strings"
 	"testing"
@@ -275,7 +279,9 @@ func TestCoreHTTPHeaderConstantsAreValidated(t *testing.T) {
 		HTTPHeaderAcceptEncoding(),
 		HTTPHeaderIdempotencyKey(),
 		HTTPHeaderLocation(),
+		HTTPHeaderCacheControl(),
 	}
+	seen := make(map[string]int, len(headers))
 	for index, header := range headers {
 		if gotErr := header.Validate(); gotErr != nil {
 			t.Fatalf("HTTP header constant index %d Validate() error = %v, want nil", index, gotErr)
@@ -284,7 +290,63 @@ func TestCoreHTTPHeaderConstantsAreValidated(t *testing.T) {
 		if gotParseErr != nil || parsed != header {
 			t.Fatalf("HTTP header constant index %d parser round trip = (%v, %v), want (%v, nil)", index, parsed, gotParseErr, header)
 		}
+		if prior, duplicate := seen[header.String()]; duplicate {
+			t.Fatalf("HTTP header constant index %d repeats %q from index %d, want one accessor per field name", index, header.String(), prior)
+		}
+		seen[header.String()] = index
 	}
+	if gotDeclared := countHTTPHeaderNameAccessors(t); gotDeclared != len(headers) {
+		t.Fatalf(
+			"declared HTTPHeaderName accessors = %d, want the %d this table validates",
+			gotDeclared,
+			len(headers),
+		)
+	}
+}
+
+// countHTTPHeaderNameAccessors counts every package-level accessor returning a
+// HTTPHeaderName. Reflection cannot enumerate package functions, so the count is
+// read from the source: without it, adding a typed field name and forgetting to
+// list it above would leave an unvalidated protocol constant in the package.
+func countHTTPHeaderNameAccessors(t *testing.T) int {
+	t.Helper()
+
+	entries, err := os.ReadDir(".")
+	if err != nil {
+		t.Fatalf("os.ReadDir() error = %v, want nil", err)
+	}
+	positions := token.NewFileSet()
+	count := 0
+	for _, entry := range entries {
+		if entry.IsDir() ||
+			!strings.HasSuffix(entry.Name(), ".go") ||
+			strings.HasSuffix(entry.Name(), "_test.go") {
+			continue
+		}
+		file, parseErr := parser.ParseFile(positions, entry.Name(), nil, 0)
+		if parseErr != nil {
+			t.Fatalf("parser.ParseFile(%q) error = %v, want nil", entry.Name(), parseErr)
+		}
+		count += httpHeaderAccessorsInFile(file)
+	}
+	return count
+}
+
+func httpHeaderAccessorsInFile(file *ast.File) int {
+	count := 0
+	for _, declaration := range file.Decls {
+		function, ok := declaration.(*ast.FuncDecl)
+		if !ok || function.Recv != nil ||
+			function.Type.Params.NumFields() != 0 ||
+			function.Type.Results.NumFields() != 1 {
+			continue
+		}
+		result, ok := function.Type.Results.List[0].Type.(*ast.Ident)
+		if ok && result.Name == "HTTPHeaderName" {
+			count++
+		}
+	}
+	return count
 }
 
 func TestHTTPMediaTypeParsesRealHeaderValues(t *testing.T) {

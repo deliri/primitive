@@ -326,33 +326,23 @@ func receiveValidatedJSONDocument(
 	if err != nil {
 		return nil, IdempotencyKey{}, err
 	}
-	limit, _ := call.Policy.RequestBodyLimit.Int64()
-	if err := validateRequestBodyLength(
+	declared, err := admittedBodyLength(
 		call.Request.ContentLength,
-		limit,
-	); err != nil {
-		return nil, IdempotencyKey{}, err
-	}
-	var readErr error
-	data, readErr := readBoundedBody(
-		call.Request.Context(),
-		call.Request.Body,
 		call.Policy.RequestBodyLimit,
 	)
+	if err != nil {
+		return nil, IdempotencyKey{}, requestError(err)
+	}
+	data, readErr := readBoundedBody(boundedBodyRead{
+		context:  call.Request.Context(),
+		source:   call.Request.Body,
+		declared: declared,
+		limit:    call.Policy.RequestBodyLimit,
+	})
 	if readErr != nil {
 		return nil, IdempotencyKey{}, asRequestReadError(readErr)
 	}
 	return data, key, nil
-}
-
-func validateRequestBodyLength(contentLength, limit int64) error {
-	if contentLength < -1 {
-		return requestError(core.ErrExchangeContract)
-	}
-	if contentLength > limit {
-		return requestError(core.ErrExchangeBodyLimit)
-	}
-	return nil
 }
 
 func validateServerIngress(
