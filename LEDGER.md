@@ -10,16 +10,19 @@ Last updated: `2026-07-29`
   `github.com/deliri/primitive/v2026`. Historical evidence remains unchanged
   and therefore retains its original Foundation module paths. `PLAN.md` is
   local-only and excluded from the public repository.
-- Phase: the transport-free Timeproof implementation slice is accepted.
-  Callers prepare an RFC 3161 request, send it by any transport they own, and
-  pass the authority's exact response back for verification and replay.
-  `timeproof`, `exchange`, `temporal`, and `filestore` are `DONE`;
-  `testserial` remains in its required `CONSUMER_SURGERY`.
+- Phase: Objectstore is in user review. It performs one bounded Amazon S3,
+  Google Cloud Storage, or Cloudflare Images transfer through an already-issued
+  capability; callers compose multi-provider replication by reopening the
+  source and making explicit calls. `timeproof`, `exchange`, `temporal`, and
+  `filestore` are `DONE`; `testserial` remains in its required
+  `CONSUMER_SURGERY`.
 - Review gate: no external reviewing agent was initialized. The user's two
   Exchange reviews were independently checked against real `net/http`, TCP,
   filesystem, context, and stream paths; every reproduced defect was corrected
   and incorrect findings were rejected with direct evidence. The user
   explicitly authorized commit and push. No tag or release is authorized.
+  Objectstore has no commit or push authorization and remains uncommitted for
+  exact-diff review.
 - Production packages: 10 of 19 accepted.
 - Test-support packages: 0 of 1 complete and 1 in consumer surgery.
 - Active-package consumer surgery: Witness must adopt the exact typed
@@ -462,7 +465,7 @@ Last updated: `2026-07-29`
   streaming, replay eligibility, finite retry and server hints, total and
   per-attempt budgets, rejected or same-origin redirects, typed response
   metadata, and typed/native error reachability. It owns no DNS, TLS, proxy,
-  connection, pool, framing, socket, queue, worker, transport, copy engine,
+  connection pool, framing, socket, queue, worker, transport, copy engine,
   persistence, custody, or Objectstore policy.
 - Exchange review corrections: HTTP field-value grammar now belongs to
   `Header.Validate`, including captured projections, after direct Go source
@@ -497,6 +500,12 @@ Last updated: `2026-07-29`
   3.626 GB/s, 111,523 B/op, and 129 allocs/op for upload and 3.643 GB/s,
   109,726 B/op, and 137 allocs/op for download; these are local measurements,
   not network promises.
+- Exchange buffer-reuse proof: the fixed `sync.Pool` path is
+  race-clean and preserves O(1) input-extent memory while reducing the measured
+  10 MiB loopback download to approximately 42.2 to 43.6 KiB/op and 134 to 135
+  allocations/op. Release scrubs the fixed extent before returning it, and an
+  AST ratchet proves that order without reading memory after its ownership has
+  passed back to the shared pool.
 - Exchange JSON-boundary benchmark proof: exact 128-byte, 1-KiB, and 8-KiB
   encoded documents cross real Exchange client/server TCP loopback paths in
   serial and parallel forms. Separate request-construction and configured-limit
@@ -553,14 +562,46 @@ Last updated: `2026-07-29`
   `shasum`, extracts the digest without positional-parameter mutation, and
   validates the exact 64-hex-character shape. This addresses the observed
   Windows runner failure without changing evidence semantics.
+- Objectstore scope authority: the user expanded the original GCS-only
+  interview boundary to the official Amazon S3 whole-object PUT/GET, Google
+  Cloud Storage XML PUT/GET, and Cloudflare Images direct creator upload
+  contracts. Object naming and browser-side naming hashes remain above the
+  package. Each call owns one provider and one stream; no fan-out, bucket,
+  credential, signed-URL, draft-record, retry, scheduler, queue, state-machine,
+  or recovery ownership entered the package.
+- Objectstore operation selection is compiler-owned at the public boundary:
+  `UploadS3`, `UploadGCS`, `UploadCloudflareImages`, `DownloadS3`, and
+  `DownloadGCS` are the only transfer entry points. Targets carry no runtime
+  provider selector, and the retired generic `Upload` and `Download` paths have
+  no wrapper or compatibility alias.
+- Objectstore proof: real TLS loopback paths pass for all three uploads and
+  both whole-object downloads, including exact zero/short/exact/long streams,
+  create-only and checksum headers, Cloudflare multipart framing, provider
+  version projection, S3 full-object versus composite checksum semantics,
+  provider checksum contradictions, conflict/absence, cancellation, native I/O
+  errors, secret redaction, and commitment boundaries. Coverage is 88.0%; the signed
+  URL fuzz boundary passed 100,000 executions; focused shuffle and race proof,
+  full repository tests and race tests, vet, staticcheck, errcheck, nilaway,
+  fieldalignment, production `gocyclo <= 10`, goconst, gosec, govulncheck,
+  deadcode, actionlint, formatting, module-tidy, Linux build, and Windows build
+  pass. Direct Objectstore witness-lint is clean with zero waivers. The
+  canonical gate reaches only the recorded stale off-wire-enum and retired
+  Testserial analyzer baseline.
+- Objectstore M1 Max streaming benchmark: the public Objectstore-plus-Exchange
+  pipeline holds exactly 91 allocations for both 1 KiB and 10 MiB inputs.
+  The serial five-run 10 MiB range is 1.697 to 1.735 GB/s with approximately
+  39.2 to 39.4 KiB/op. This proves source-size-independent allocation shape across a
+  10,240-fold input increase; it is not a remote-provider throughput claim.
 
 Next:
 
-1. Inspect the Objectstore interview, preserved implementation, and current
-   official provider documentation before selecting its exact boundary.
-2. Stop for user authority before changing PLAN's GCS-only scope or its
-   compiler-owned dependency graph to include S3 or Cloudflare Images.
-3. Preserve the deferred Witness Testserial/analyzer consumer surgery without
+1. Review the exact uncommitted Objectstore API, implementation, hostile tests,
+   benchmark, and vendor-contract decisions.
+2. Run disposable live-provider proof when caller-supplied S3/GCS signed URLs
+   and a Cloudflare Images one-time upload URL are available; local tests do not
+   claim remote-provider proof.
+3. Commit and push Objectstore only after fresh explicit user approval.
+4. Preserve the deferred Witness Testserial/analyzer consumer surgery without
    compatibility paths or analyzer waivers.
 
 ## Packages
@@ -586,7 +627,7 @@ State vocabulary: `NEXT`, `BLOCKED_BY_DEPENDENCY`, `NOT_STARTED`, `RED`,
 | `process`          | `BLOCKED_BY_DEPENDENCY` |
 | `release`          | `BLOCKED_BY_DEPENDENCY` |
 | `shutdown`         | `BLOCKED_BY_DEPENDENCY` |
-| `objectstore`      | `NEXT`                  |
+| `objectstore`      | `REVIEW`                |
 | `timeproof`        | `DONE`                  |
 | `workloadidentity` | `BLOCKED_BY_DEPENDENCY` |
 | `upgrade`          | `BLOCKED_BY_DEPENDENCY` |
