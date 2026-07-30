@@ -1,8 +1,9 @@
-# Hostresource package interview
+# Hostfacts package interview
 
 Status: `COMPLETE` | Decision: `REDESIGN`
 
-This is the sole reconstruction report for archived package `hostresource`.
+This is the sole reconstruction report for current package `hostfacts`, mined
+from archived package `hostresource`.
 The archive is evidence, not authority. No archived production or test source
 was copied.
 

@@ -1,6 +1,6 @@
 # Primitive 2026 Ledger
 
-Last updated: `2026-07-29`
+Last updated: `2026-07-30`
 
 ## Current
 
@@ -10,17 +10,25 @@ Last updated: `2026-07-29`
   `github.com/deliri/primitive/v2026`. Historical evidence remains unchanged
   and therefore retains its original Foundation module paths. `PLAN.md` is
   local-only and excluded from the public repository.
-- Phase: Cloudidentity is in user review with one common opaque outbound bearer and
-  explicit Google Cloud metadata and AWS regional STS acquisition functions.
-  Objectstore, `timeproof`, `exchange`, `temporal`, and `filestore` are `DONE`;
-  `testserial` remains in its required `CONSUMER_SURGERY`.
+- Phase: Hostfacts is accepted as the clean replacement for archived
+  Hostresource. It owns five bounded read-only facts: caller-relative disk
+  capacity, Go-managed memory, effective Linux cgroup memory ceiling, logical
+  regular-file tree extent, and canonical Go OOM-banner presence.
+  Cloudidentity, Objectstore, `timeproof`, `exchange`, `temporal`, and
+  `filestore` are `DONE`; `testserial` remains in its required
+  `CONSUMER_SURGERY`.
 - Review gate: no external reviewing agent was initialized. The user reviewed
   Objectstore and Exchange, then explicitly authorized their commit and push at
   `c65460d7b54a74f665cdb30bdf627adf20f191fe`. No tag or release is
-  authorized. Cloudidentity has no commit or push authorization. Its direct
-  Witness-lint analysis is clean; the canonical gate stops only on the
-  previously recorded repository-wide enum and Testserial analyzer baseline.
-- Production packages: 10 of 19 accepted.
+  authorized. Cloudidentity was subsequently reviewed, committed, and pushed
+  at `44b297a97c02e417a8cda84c28cb177847ededed`. The user independently
+  published subsequent Exchange/Core work through
+  `021373fb01141b51ed84e755f9961f1676875661`; Hostfacts was kept isolated while
+  that base advanced. The user reviewed Hostfacts, supplied concrete cgroup,
+  filesystem, error-ownership, and proof findings, accepted the corrected
+  package, and explicitly authorized its commit and push. No tag or release is
+  authorized.
+- Production packages: 13 of 19 accepted.
 - Test-support packages: 0 of 1 complete and 1 in consumer surgery.
 - Active-package consumer surgery: Witness must adopt the exact typed
   `testserial.Declare` contract before Testserial can become `DONE`.
@@ -589,16 +597,64 @@ Last updated: `2026-07-29`
   The serial five-run 10 MiB range is 1.697 to 1.735 GB/s with approximately
   39.2 to 39.4 KiB/op. This proves source-size-independent allocation shape across a
   10,240-fold input increase; it is not a remote-provider throughput claim.
+- Hostfacts scope: five explicit structure-to-structure operations own
+  caller-available held-root disk capacity, the Go `Sys - HeapReleased`
+  managed-memory metric, Linux cgroup current-plus-ancestor effective memory
+  ceiling, held-root logical regular-file tree extent, and exact Go OOM-banner
+  presence. There is no runtime observation selector, filesystem model,
+  watcher, cache, scheduler, worker, fake clock, compatibility path, or process
+  termination claim. Percent and regular-file count remain package-owned
+  because no second named Primitive package currently requires them.
+- Hostfacts proof: focused coverage is 85.4%; five shuffled race repetitions
+  and the full repository test/race suites pass. The OOM fuzz boundary passed
+  1,370,342 executions without a failure. Vet, staticcheck, errcheck, nilaway,
+  fieldalignment, gosec, govulncheck, production `gocyclo <= 10`, formatting,
+  module tidy, and diff checks pass. Linux amd64/arm64, Windows amd64, and
+  FreeBSD amd64 test binaries cross-compile; Linux and Windows staticcheck
+  pass. The canonical gate passes through nilaway and stops at the recorded
+  stale Witness enum/Testserial doctrine. Direct Hostfacts findings are only
+  demands for JSON and String methods on six intentionally off-wire enums;
+  Hostfacts has no waiver.
+- Hostfacts M1 Max bounded-stream benchmarks: OOM classification is
+  8,205 ns/op for 1 KiB and 4,395,141 ns/op for 1 MiB, with 41,008 B/op and
+  two allocations at both extents. Cgroup mountinfo scanning is 4,939 ns/op
+  for 1 KiB and 204,544 ns/op for 1 MiB, with 69,704 B/op and five
+  allocations at both extents. Tree traversal uses 64-entry read batches and a
+  path-component-bounded descriptor stack; its 1,000-file benchmark is
+  14,060,135 ns/op, 166,585 B/op, and 4,152 allocations. Total traversal
+  allocations necessarily reflect Go/OS directory entries and are not a
+  retained-working-set claim.
+- Hostfacts native proof covers real Darwin/APFS disk, tree, memory, and OOM
+  paths plus real Linux cgroup v2 execution. A standard Colima host proved the
+  cgroup-root `memory.max` absence and an unlimited current hierarchy; a
+  Docker container with a 64 MiB memory limit proved the exact finite
+  67,108,864-byte result through the public operation. Windows
+  NTFS/ReFS/quota behavior remains cross-build/static proof, not native
+  certification. Windows derives the capacity query path from the held
+  directory handle and revalidates the volume serial afterward; it does not
+  claim a direct handle-only capacity API.
+- Hostfacts review corrections make a missing cgroup interface a typed
+  no-declaration level, preserve the closest declared interface for unlimited
+  results, saturate mount ambiguity instead of allowing count wraparound,
+  reject unclassified tree entries, deterministically close refused
+  directories, separate ingress-contract failures from observation failures,
+  and keep one public `Failure` owner per effect boundary. The public Go-memory
+  operation discloses the stop-the-world cost of `runtime.ReadMemStats`.
 
 Next:
 
-1. Review Cloudidentity's common token plus explicit Google Cloud and AWS
-   acquisition entry points.
-2. Run disposable Objectstore live-provider proof when caller-supplied S3/GCS signed URLs
+1. Inspect Kernel's exact pin and complete dirty state before selecting the
+   first clean Hostfacts consumer cutover.
+2. Update Kernel and Peachfuzz independently to the exact published Hostfacts
+   revision; remove retired Hostresource call sites and persistence shapes
+   without aliases, shims, dual decoders, or local replacements. Preserve
+   consumer policy and process-cause classification.
+3. Remove Witness's duplicated observations only where Hostfacts fully replaces
+   them, independently of the still-deferred Testserial analyzer surgery.
+4. Run disposable Objectstore live-provider proof when caller-supplied S3/GCS signed URLs
    and a Cloudflare Images one-time upload URL are available; local tests do not
    claim remote-provider proof.
-3. Commit and push Cloudidentity only after fresh explicit user approval.
-4. Preserve the deferred Witness Testserial/analyzer consumer surgery without
+5. Preserve the deferred Witness Testserial/analyzer consumer surgery without
    compatibility paths or analyzer waivers.
 
 ## Packages
@@ -616,7 +672,7 @@ State vocabulary: `NEXT`, `BLOCKED_BY_DEPENDENCY`, `NOT_STARTED`, `RED`,
 | `keygen`           | `DONE`                  |
 | `testserial`       | `CONSUMER_SURGERY`       |
 | `filestore`        | `DONE`                  |
-| `hostresource`     | `BLOCKED_BY_DEPENDENCY` |
+| `hostfacts`        | `DONE`                  |
 | `temporal`         | `DONE`                  |
 | `exchange`         | `DONE`                  |
 | `fuzz`             | `BLOCKED_BY_DEPENDENCY` |
@@ -626,7 +682,7 @@ State vocabulary: `NEXT`, `BLOCKED_BY_DEPENDENCY`, `NOT_STARTED`, `RED`,
 | `shutdown`         | `BLOCKED_BY_DEPENDENCY` |
 | `objectstore`      | `DONE`                  |
 | `timeproof`        | `DONE`                  |
-| `cloudidentity`    | `REVIEW`                |
+| `cloudidentity`    | `DONE`                  |
 | `upgrade`          | `BLOCKED_BY_DEPENDENCY` |
 
 Consumer state is recorded under the active package only. There is no separate

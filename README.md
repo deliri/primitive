@@ -36,8 +36,8 @@ flowchart TD
 
     filestore[filestore] --> core
     filestore --> contextstate
-    hostresource[hostresource] --> core
-    hostresource --> contextstate
+    hostfacts[hostfacts] --> core
+    hostfacts --> contextstate
     temporal[temporal] --> core
     temporal --> contextstate
 
@@ -72,7 +72,7 @@ flowchart TD
 
     upgrade[upgrade] --> core
     upgrade --> filestore
-    upgrade --> hostresource
+    upgrade --> hostfacts
     upgrade --> objectstore
     upgrade --> release
     upgrade --> temporal

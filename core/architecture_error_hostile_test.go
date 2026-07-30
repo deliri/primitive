@@ -189,8 +189,21 @@ func TestErrorIdentityExhaustsClosedDomainAndParentDecisions(t *testing.T) {
 			if !errors.Is(identity, identity) {
 				t.Fatalf("errors.Is(ErrorIdentity(%d), itself) = false, want true", raw)
 			}
-			if !errors.Is(identity, ErrPrimitiveContract) {
-				t.Fatalf("errors.Is(ErrorIdentity(%d), ErrPrimitiveContract) = false, want true", raw)
+			wantPrimitiveContract := true
+			switch identity {
+			case ErrHostFacts, ErrHostFactsObservation, ErrHostFactsUnsupported,
+				ErrHostFactsPressure, ErrHostFactsEvidence,
+				ErrDiskCapacityUnsupported, ErrTreeMeasurementUnsupported,
+				ErrDiskFloorReached, ErrMemoryLimitReached:
+				wantPrimitiveContract = false
+			}
+			if gotPrimitiveContract := errors.Is(identity, ErrPrimitiveContract); gotPrimitiveContract != wantPrimitiveContract {
+				t.Fatalf(
+					"errors.Is(ErrorIdentity(%d), ErrPrimitiveContract) = %t, want %t",
+					raw,
+					gotPrimitiveContract,
+					wantPrimitiveContract,
+				)
 			}
 		}
 	}
@@ -204,6 +217,8 @@ func TestErrorIdentityExhaustsClosedDomainAndParentDecisions(t *testing.T) {
 		{name: "currency overflow is numeric overflow", produced: ErrCurrencyOverflow, wantMatch: ErrNumericOverflow, wantReject: ErrCurrencyMismatch},
 		{name: "currency mismatch remains currency family", produced: ErrCurrencyMismatch, wantMatch: ErrCurrencyContract, wantReject: ErrNumericOverflow},
 		{name: "indeterminate activation is activation failure", produced: ErrFilestoreActivationIndeterminate, wantMatch: ErrFilestoreActivation, wantReject: ErrFilestoreCleanup},
+		{name: "disk pressure is host facts pressure not contract", produced: ErrDiskFloorReached, wantMatch: ErrHostFactsPressure, wantReject: ErrHostFactsContract},
+		{name: "tree unsupported is host facts unsupported not observation", produced: ErrTreeMeasurementUnsupported, wantMatch: ErrHostFactsUnsupported, wantReject: ErrHostFactsObservation},
 		{name: "exchange transport is exchange family", produced: ErrExchangeTransport, wantMatch: ErrExchangeContract, wantReject: ErrExchangeResponse},
 		{name: "object absence is objectstore family", produced: ErrObjectStoreAbsent, wantMatch: ErrObjectStoreContract, wantReject: ErrObjectStoreIntegrity},
 	}

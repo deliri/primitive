@@ -90,10 +90,26 @@ const (
 	// ErrFilestoreCleanup identifies failed file-store cleanup.
 	ErrFilestoreCleanup
 
-	// ErrHostResourceContract identifies a host-resource contract violation.
-	ErrHostResourceContract
+	// ErrHostFacts identifies the neutral host-facts error family.
+	ErrHostFacts
+	// ErrHostFactsContract identifies a host-facts contract violation.
+	ErrHostFactsContract
+	// ErrHostFactsObservation identifies a failed host observation.
+	ErrHostFactsObservation
+	// ErrHostFactsUnsupported identifies an unsupported host observation.
+	ErrHostFactsUnsupported
+	// ErrHostFactsPressure identifies a reached caller-supplied pressure policy.
+	ErrHostFactsPressure
+	// ErrHostFactsEvidence identifies invalid persisted host evidence.
+	ErrHostFactsEvidence
+	// ErrDiskCapacityUnsupported identifies unsupported disk-capacity observation.
+	ErrDiskCapacityUnsupported
+	// ErrTreeMeasurementUnsupported identifies unsupported tree measurement.
+	ErrTreeMeasurementUnsupported
 	// ErrDiskFloorReached identifies insufficient available disk capacity.
 	ErrDiskFloorReached
+	// ErrMemoryLimitReached identifies reached Go-managed-memory pressure.
+	ErrMemoryLimitReached
 
 	// ErrTemporalContract identifies a temporal contract violation.
 	ErrTemporalContract
@@ -209,8 +225,10 @@ func (i ErrorIdentity) Error() string {
 		return errorIdentityTextCurrencyThroughKeygen(i)
 	case i <= ErrFilestoreCleanup:
 		return errorIdentityTextIsolationThroughFilestoreCleanup(i)
+	case i <= ErrMemoryLimitReached:
+		return errorIdentityTextHostFacts(i)
 	case i <= ErrExchangeRequest:
-		return errorIdentityTextHostResourceThroughExchangeRequest(i)
+		return errorIdentityTextTemporalThroughExchangeRequest(i)
 	case i <= ErrExchangeWrite:
 		return errorIdentityTextExchange(i)
 	case i <= ErrFuzzFormat:
@@ -325,12 +343,49 @@ func errorIdentityTextIsolationThroughFilestoreCleanup(i ErrorIdentity) string {
 	}
 }
 
-func errorIdentityTextHostResourceThroughExchangeRequest(i ErrorIdentity) string {
+func errorIdentityTextHostFacts(i ErrorIdentity) string {
+	if i <= ErrHostFactsEvidence {
+		return errorIdentityTextHostFactsFamily(i)
+	}
+	return errorIdentityTextHostFactsSubject(i)
+}
+
+func errorIdentityTextHostFactsFamily(i ErrorIdentity) string {
 	switch i {
-	case ErrHostResourceContract:
-		return "host resource contract violation"
+	case ErrHostFacts:
+		return "host facts failure"
+	case ErrHostFactsContract:
+		return "host facts contract violation"
+	case ErrHostFactsObservation:
+		return "host facts observation failed"
+	case ErrHostFactsUnsupported:
+		return "host facts observation unsupported"
+	case ErrHostFactsPressure:
+		return "host facts pressure reached"
+	case ErrHostFactsEvidence:
+		return "host facts evidence invalid"
+	default:
+		return unknownErrorIdentityText
+	}
+}
+
+func errorIdentityTextHostFactsSubject(i ErrorIdentity) string {
+	switch i {
+	case ErrDiskCapacityUnsupported:
+		return "disk capacity observation unsupported"
+	case ErrTreeMeasurementUnsupported:
+		return "tree measurement unsupported"
 	case ErrDiskFloorReached:
 		return "disk floor reached"
+	case ErrMemoryLimitReached:
+		return "memory limit reached"
+	default:
+		return unknownErrorIdentityText
+	}
+}
+
+func errorIdentityTextTemporalThroughExchangeRequest(i ErrorIdentity) string {
+	switch i {
 	case ErrTemporalContract:
 		return "temporal contract violation"
 	case ErrTemporalOverflow:
@@ -564,7 +619,7 @@ func errorIdentityParents(identity ErrorIdentity) errorIdentityParentSet {
 		ErrAttestContract,
 		ErrContextStateContract, ErrCurrencyContract, ErrGarbleContract,
 		ErrKeygenContract, ErrTestIsolationContract, ErrFilestoreContract,
-		ErrHostResourceContract, ErrTemporalContract, ErrExchangeContract,
+		ErrTemporalContract, ErrExchangeContract,
 		ErrFuzzContract, ErrLeaseContract, ErrReleaseContract,
 		ErrShutdownContract, ErrObjectStoreContract, ErrTimeProofContract,
 		ErrCloudIdentityContract, ErrUpgradeContract, ErrGovernanceContract:
@@ -581,8 +636,11 @@ func errorIdentityParents(identity ErrorIdentity) errorIdentityParentSet {
 		return oneErrorIdentityParent(ErrFilestoreContract)
 	case ErrFilestoreActivationIndeterminate:
 		return oneErrorIdentityParent(ErrFilestoreActivation)
-	case ErrDiskFloorReached:
-		return oneErrorIdentityParent(ErrHostResourceContract)
+	case ErrHostFacts, ErrHostFactsContract, ErrHostFactsObservation,
+		ErrHostFactsUnsupported, ErrHostFactsPressure, ErrHostFactsEvidence,
+		ErrDiskCapacityUnsupported, ErrTreeMeasurementUnsupported,
+		ErrDiskFloorReached, ErrMemoryLimitReached:
+		return errorIdentityParentsHostFacts(identity)
 	case ErrTemporalOverflow:
 		return twoErrorIdentityParents(ErrTemporalContract, ErrNumericOverflow)
 	case ErrExchangeRequest, ErrExchangeResponse, ErrExchangeBodyLimit,
@@ -591,6 +649,24 @@ func errorIdentityParents(identity ErrorIdentity) errorIdentityParentSet {
 		return oneErrorIdentityParent(ErrExchangeContract)
 	default:
 		return errorIdentityParentsFuzzThroughObjectStore(identity)
+	}
+}
+
+func errorIdentityParentsHostFacts(identity ErrorIdentity) errorIdentityParentSet {
+	switch identity {
+	case ErrHostFacts:
+		return errorIdentityParentSet{}
+	case ErrHostFactsContract:
+		return twoErrorIdentityParents(ErrHostFacts, ErrPrimitiveContract)
+	case ErrHostFactsObservation, ErrHostFactsUnsupported, ErrHostFactsPressure,
+		ErrHostFactsEvidence:
+		return oneErrorIdentityParent(ErrHostFacts)
+	case ErrDiskCapacityUnsupported, ErrTreeMeasurementUnsupported:
+		return oneErrorIdentityParent(ErrHostFactsUnsupported)
+	case ErrDiskFloorReached, ErrMemoryLimitReached:
+		return oneErrorIdentityParent(ErrHostFactsPressure)
+	default:
+		return errorIdentityParentSet{}
 	}
 }
 

@@ -41,8 +41,8 @@ const (
 	PackageTestSerial
 	// PackageFilestore identifies the file-store package.
 	PackageFilestore
-	// PackageHostResource identifies the host-resource package.
-	PackageHostResource
+	// PackageHostFacts identifies the host-facts package.
+	PackageHostFacts
 	// PackageTemporal identifies the temporal package.
 	PackageTemporal
 	// PackageExchange identifies the HTTP exchange package.
@@ -120,7 +120,7 @@ func PrimitiveArchitecture() ArchitectureCatalog {
 			{Identity: PackageKeygen, Kind: PackageKindProduction},
 			{Identity: PackageTestSerial, Kind: PackageKindTestSupport},
 			{Identity: PackageFilestore, Kind: PackageKindProduction},
-			{Identity: PackageHostResource, Kind: PackageKindProduction},
+			{Identity: PackageHostFacts, Kind: PackageKindProduction},
 			{Identity: PackageTemporal, Kind: PackageKindProduction},
 			{Identity: PackageExchange, Kind: PackageKindProduction},
 			{Identity: PackageFuzz, Kind: PackageKindProduction},
@@ -143,8 +143,8 @@ func PrimitiveArchitecture() ArchitectureCatalog {
 
 			{Importer: PackageFilestore, Imported: PackageCore},
 			{Importer: PackageFilestore, Imported: PackageContextState},
-			{Importer: PackageHostResource, Imported: PackageCore},
-			{Importer: PackageHostResource, Imported: PackageContextState},
+			{Importer: PackageHostFacts, Imported: PackageCore},
+			{Importer: PackageHostFacts, Imported: PackageContextState},
 			{Importer: PackageTemporal, Imported: PackageCore},
 			{Importer: PackageTemporal, Imported: PackageContextState},
 
@@ -179,7 +179,7 @@ func PrimitiveArchitecture() ArchitectureCatalog {
 
 			{Importer: PackageUpgrade, Imported: PackageCore},
 			{Importer: PackageUpgrade, Imported: PackageFilestore},
-			{Importer: PackageUpgrade, Imported: PackageHostResource},
+			{Importer: PackageUpgrade, Imported: PackageHostFacts},
 			{Importer: PackageUpgrade, Imported: PackageObjectStore},
 			{Importer: PackageUpgrade, Imported: PackageRelease},
 			{Importer: PackageUpgrade, Imported: PackageTemporal},
@@ -414,8 +414,8 @@ func packageIdentityTextFilestoreThroughProcess(identity PackageIdentity) string
 	switch identity {
 	case PackageFilestore:
 		return "filestore"
-	case PackageHostResource:
-		return "hostresource"
+	case PackageHostFacts:
+		return "hostfacts"
 	case PackageTemporal:
 		return "temporal"
 	case PackageExchange:
