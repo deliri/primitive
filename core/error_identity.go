@@ -158,6 +158,17 @@ const (
 	// ErrLeaseClock identifies a local clock contradiction.
 	ErrLeaseClock
 
+	// ErrProcessContract identifies a process contract violation.
+	ErrProcessContract
+	// ErrProcessStart identifies failure to start a process.
+	ErrProcessStart
+	// ErrProcessStream identifies a process stream failure.
+	ErrProcessStream
+	// ErrProcessOutputLimit identifies a reached process output bound.
+	ErrProcessOutputLimit
+	// ErrProcessWait identifies failure while waiting for a process.
+	ErrProcessWait
+
 	// ErrReleaseContract identifies a release contract violation.
 	ErrReleaseContract
 	// ErrReleaseManifest identifies a rejected release manifest.
@@ -237,8 +248,10 @@ func (i ErrorIdentity) Error() string {
 		return errorIdentityTextExchange(i)
 	case i <= ErrFuzzFinderFormat:
 		return errorIdentityTextFuzzFinderHead(i)
+	case i <= ErrLeaseClock:
+		return errorIdentityTextFuzzFinderThroughLease(i)
 	case i <= ErrReleaseManifest:
-		return errorIdentityTextFuzzFinderThroughReleaseManifest(i)
+		return errorIdentityTextProcessThroughReleaseManifest(i)
 	default:
 		return errorIdentityTextObjectStoreThroughGovernance(i)
 	}
@@ -437,7 +450,7 @@ func errorIdentityTextFuzzFinderHead(i ErrorIdentity) string {
 	}
 }
 
-func errorIdentityTextFuzzFinderThroughReleaseManifest(i ErrorIdentity) string {
+func errorIdentityTextFuzzFinderThroughLease(i ErrorIdentity) string {
 	switch i {
 	case ErrFuzzFinderObservation:
 		return "fuzz artifact observation failed"
@@ -453,6 +466,23 @@ func errorIdentityTextFuzzFinderThroughReleaseManifest(i ErrorIdentity) string {
 		return "lease subject mismatch"
 	case ErrLeaseClock:
 		return "lease clock contradiction"
+	default:
+		return unknownErrorIdentityText
+	}
+}
+
+func errorIdentityTextProcessThroughReleaseManifest(i ErrorIdentity) string {
+	switch i {
+	case ErrProcessContract:
+		return "process contract violation"
+	case ErrProcessStart:
+		return "process start failed"
+	case ErrProcessStream:
+		return "process stream failed"
+	case ErrProcessOutputLimit:
+		return "process output limit exceeded"
+	case ErrProcessWait:
+		return "process wait failed"
 	case ErrReleaseContract:
 		return "release contract violation"
 	case ErrReleaseManifest:
@@ -628,7 +658,8 @@ func errorIdentityParents(identity ErrorIdentity) errorIdentityParentSet {
 		ErrContextStateContract, ErrCurrencyContract, ErrGarbleContract,
 		ErrKeygenContract, ErrTestIsolationContract, ErrFilestoreContract,
 		ErrTemporalContract, ErrExchangeContract,
-		ErrFuzzFinderContract, ErrLeaseContract, ErrReleaseContract,
+		ErrFuzzFinderContract, ErrLeaseContract, ErrProcessContract,
+		ErrReleaseContract,
 		ErrShutdownContract, ErrObjectStoreContract, ErrTimeProofContract,
 		ErrCloudIdentityContract, ErrUpgradeContract, ErrGovernanceContract:
 		return oneErrorIdentityParent(ErrPrimitiveContract)
@@ -704,6 +735,10 @@ func errorIdentityParentsFuzzFinderThroughObjectStore(identity ErrorIdentity) er
 	case ErrLeaseVerification, ErrLeaseRollback, ErrLeaseConflict,
 		ErrLeaseScope, ErrLeaseClock:
 		return oneErrorIdentityParent(ErrLeaseContract)
+	case ErrProcessStart, ErrProcessStream, ErrProcessWait:
+		return oneErrorIdentityParent(ErrProcessContract)
+	case ErrProcessOutputLimit:
+		return oneErrorIdentityParent(ErrProcessStream)
 	case ErrReleaseManifest, ErrReleaseVerification, ErrReleaseLatest,
 		ErrReleaseRollback, ErrReleaseConflict:
 		return oneErrorIdentityParent(ErrReleaseContract)

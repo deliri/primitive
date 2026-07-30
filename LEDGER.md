@@ -10,16 +10,110 @@ Last updated: `2026-07-30`
   `github.com/deliri/primitive/v2026`. Historical evidence remains unchanged
   and therefore retains its original Foundation module paths. `PLAN.md` is
   local-only and excluded from the public repository.
-- Phase: Lease is in user review. It owns one fixed-size OGS-signed grant,
-  recoverable refusal, or for-cause revocation; exact subject binding;
-  generation advance; and pure rollback-hardened local assessment. It does not
-  own payment policy, transport, protocol binding, persistence, retry,
-  background work, product command mapping, or customer-facing copy.
-  Fuzzfinder was reviewed, committed, and published at
+- Phase: Process is implementing as one typed, bounded, streaming projection
+  onto `os/exec`. It owns exact argv and environment lowering, direct-child
+  execution and reaping, bounded stream forwarding, exit observation, and
+  context-driven termination. It owns no process registry, process-tree model,
+  scheduler, queue, worker, shell, pipeline graph, lifecycle state machine, or
+  product command policy. Lease was reviewed, committed, and published at
+  `c86bca9c93c2bbde390fb82291a7fa38db691201`; Fuzzfinder was reviewed,
+  committed, and published at
   `6c38ac1623232a95f3d150b2aff414b516599ec5`.
   Hostfacts, Cloudidentity, Objectstore, `timeproof`, `exchange`, `temporal`,
   and `filestore` are `DONE`; `testserial` consumer surgery is deferred until
   all Primitive production packages are complete.
+- Process implementation proof, 2026-07-30: the public contract is one typed
+  command request over caller-owned `io.Reader` and `io.Writer` streams. It
+  lowers exact argv and environment values only at the `os/exec` boundary,
+  forwards stdout and stderr under independent byte bounds, retains only
+  fixed-size counters and typed failures, and returns nonzero child exit as an
+  observation rather than an infrastructure error. Structural ratchets reject
+  production maps, goroutines, retained byte slices, whole-output helpers,
+  raw syscall/signal paths, and functions with four or more loose parameters.
+  A real-child hostile stream test found that an invalid `io.Reader` count
+  could panic inside `os/exec` and terminate the program; Process now rejects
+  impossible reader and writer counts as typed stream failures without false
+  byte accounting. Process has no fuzz target: it owns no parser or wire
+  boundary, its closed enum backing spaces are exhausted, and its variable
+  stream boundary is pressured through real child processes.
+- Process hostile re-review, 2026-07-30: a second pass under
+  `_docs/testing_protocol.md` fixed two production defects and closed five
+  untested contract surfaces.
+  - Native wait error destroyed on cancellation. When this package's kill
+    signaled the direct child, `waitCommand` reported only `parent.Err()` and
+    discarded the `os/exec` wait error, so a caller could not reach the native
+    `*exec.ExitError` and could not observe how the child actually terminated.
+    That contradicts the section 1 and section 7 requirement that native errors
+    remain reachable. The cause is now `errors.Join(parent.Err(), waitErr)`, so
+    the context cause and the native error are both reachable. Proved red by
+    reverting the join with the new assertion in place.
+  - Silent error discard at bounded-writer construction. `newBoundedWriter`
+    resolved the output bound with `maximum, _ := limit.Uint64()`, discarding a
+    validation error and caching a duplicate of a fact `core.ByteCount` already
+    owns. The bound is now resolved from the owning type inside `Write` and
+    reported as a stream failure if it ever fails, which deleted the duplicate
+    field, the `boundedWriterRequest` carrier, and its constructor. The shared
+    output mutex now has one documented owner in `newCommandStreams`.
+  - Untested contracts now proved with real children: exact argv lowering
+    across 20 hostile shapes including empty, quoted, shell-metacharacter,
+    glob, redirection, flag-shaped, invalid UTF-8, and every admitted byte
+    value; ambient inheritance versus exact-environment withholding; the exit
+    code domain from 0 through 255; stdin streamed to one mebibyte with exact
+    accounting; independent stdout and stderr bounds including simultaneous
+    breach; one writer shared by both output streams; and `WaitDelay` bounding
+    a lingering descendant with the native `exec.ErrWaitDelay` reachable.
+  - Structural ratchets strengthened. The import blocklist became an exact
+    allowlist over the section 3 frontier plus the standard library actually
+    used, so any new edge fails rather than only the edges already imagined.
+    The forbidden-selector scan became package-qualified, which removed a
+    false positive on the typed `Command` field and added `exec.Command`,
+    `exec.LookPath`, ambient environment reads, and raw process and signal
+    paths. That matcher now carries its own synthetic red-state table.
+  - Test defects removed: loops that produced duplicate generated subtest
+    names instead of naming their boundary; a terminal-context test that
+    asserted refusal without proving no child ran; a cancellation test whose
+    child lifetime equaled its own deadlock backstop; a `zeroReader` fixture
+    that actually emitted `'x'`; and diagnostic assertions that checked only
+    for a nonempty string rather than the operator-facing detail.
+  - One claim in the first proof was wrong and is corrected here: on the
+    cancellation path `os/exec` gives the process `ExitError` precedence over
+    the copy error, so `exec.ErrWaitDelay` is not nameable there. The delay
+    still bounds the wait, and the lingering-descendant test asserts
+    termination rather than an identity the substrate does not provide.
+  Focused tests, full race, shuffled sweeps, vet, staticcheck, errcheck,
+  fieldalignment, and production gocyclo (maximum 9) pass. Statement coverage
+  is 93.9 percent; every remaining uncovered statement is a defensive guard on
+  a state unconstructible from outside the module. Benchmarks on Apple M1 Max
+  at 30 iterations report stdout 64 KiB at 3,706,253 ns/op, 114,128 B/op, 81
+  allocs/op and 1 MiB at 4,211,589 ns/op, 113,529 B/op, 80 allocs/op; stdin
+  64 KiB at 3,673,936 ns/op, 113,654 B/op, 80 allocs/op and 1 MiB at
+  4,157,682 ns/op, 113,282 B/op, 80 allocs/op. Allocation is flat on both the
+  output and the newly measured input path while streamed extent grows 16
+  times.
+- Process known gap, not a defect: `TestProcessHelper` is the child-process
+  entry point and calls `os.Exit`, so it cannot call `t.Parallel`. The
+  protocol's canonical mechanism is `testserial.Declare`, but Core's graph
+  audit counts a test-only sibling import as a real extra coupling edge, so
+  importing Testserial here would move the coupling coefficient off zero. The
+  reason is documented at the call site instead. This closes when Testserial
+  consumer surgery lands, which the ledger already defers until all Primitive
+  production packages are complete.
+- Process deferred Witness upgrade: Process-scoped `witness-lint` has exactly
+  two findings at the single `exec.CommandContext` leaf. Witness recognizes
+  that effect only when the package imports Foundation Core and declares its
+  typed `DoctrinePackageCapabilityProcessExecution`. That would add an
+  undeclared dependency outside Process's exact `core`, `contextstate`, and
+  `temporal` frontier. Constructing `exec.Cmd` manually would merely evade the
+  compiler contract while duplicating standard-library behavior and is
+  rejected. No waiver, shim, copied capability, or hidden execution path has
+  been added. Repository-wide Witness retains its previously recorded enum and
+  Testserial baseline in addition to these two Process findings. The user
+  directed that Witness remain untouched until all Primitive packages are
+  complete, when Witness will receive the full compiler-owned contract
+  upgrade. Until then the findings are a named existing tool-contract gap, not
+  permission to weaken Process or add Foundation to its graph. The canonical
+  gate passes through full tests, full race, vet, staticcheck, errcheck, and
+  nilaway, then stops at this repository-wide Witness baseline as expected.
 - Lease review sweep, 2026-07-30: a hostile re-review of the package under
   `_docs/testing_protocol.md` found and fixed two production defects and closed
   the surfaces that hid them.
@@ -94,8 +188,9 @@ Last updated: `2026-07-30`
   filesystem, error-ownership, and proof findings, accepted the corrected
   package, and explicitly authorized its commit and push. No tag or release is
   authorized. Fuzzfinder was subsequently reviewed and published at the
-  revision above. Lease has no commit or push authorization.
-- Production packages: 14 of 19 accepted.
+  revision above. Lease was subsequently reviewed and explicitly authorized
+  for commit and push at the revision above.
+- Production packages: 15 of 19 accepted.
 - Test-support packages: 0 of 1 complete and 1 in consumer surgery.
 - Deferred consumer surgery: Witness must adopt the exact typed
   `testserial.Declare` contract before Testserial can become `DONE`, after all
@@ -794,8 +889,7 @@ Last updated: `2026-07-30`
 
 Next:
 
-1. Lease has completed user review but has no commit or push authorization.
-   Finish Process, Release, Shutdown, and Upgrade before any consumer surgery.
+1. Finish Process, Release, Shutdown, and Upgrade before any consumer surgery.
 2. After all Primitive production packages are published, migrate Witness,
    Bug, and Peachfuzz independently where each has a concrete matching
    capability. Do not perform Kernel surgery and do not manufacture unused
@@ -825,8 +919,8 @@ State vocabulary: `NEXT`, `BLOCKED_BY_DEPENDENCY`, `NOT_STARTED`, `RED`,
 | `temporal`         | `DONE`                  |
 | `exchange`         | `DONE`                  |
 | `fuzzfinder`       | `DONE`                  |
-| `lease`            | `REVIEW`                |
-| `process`          | `NEXT`                  |
+| `lease`            | `DONE`                  |
+| `process`          | `IMPLEMENTING`          |
 | `release`          | `NOT_STARTED`           |
 | `shutdown`         | `NOT_STARTED`           |
 | `objectstore`      | `DONE`                  |
