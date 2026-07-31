@@ -10,8 +10,8 @@ Last updated: `2026-07-31`
   `github.com/deliri/primitive/v2026`. Historical evidence remains unchanged
   and therefore retains its original Foundation module paths. `PLAN.md` is
   local-only and excluded from the public repository.
-- Phase: Receipt is implemented and awaiting user review. Its admitted surface
-  is one authenticated accepted-evidence fact plus one fixed-size monotonic
+- Phase: Receipt is reviewed, accepted, and published. Its admitted surface is
+  one authenticated accepted-evidence fact plus one fixed-size monotonic
   watermark; it owns no transport, persistence, retry, provider, payment,
   pagination, scheduler, or customer-rendering behavior. Gate is reviewed and
   accepted for publication. It is the CLI-side new-work enforcement boundary
@@ -1457,14 +1457,14 @@ Last updated: `2026-07-31`
 
 Next:
 
-1. Obtain user review of Receipt. Do not commit or push before fresh approval.
-2. After Receipt is accepted and published, reconcile Controlstate as the next
-   likely consumer of the fixed watermark without adding a store, scheduler,
-   or generic state-machine framework.
-3. Run disposable Objectstore live-provider proof when caller-supplied S3/GCS signed URLs
+1. Reconcile deferred Controlstate as the next candidate consumer of Receipt's
+   fixed watermark without adding a store, scheduler, or generic state-machine
+   framework; re-entry still requires the explicit scope decision required by
+   `PLAN` section 3.
+2. Run disposable Objectstore live-provider proof when caller-supplied S3/GCS signed URLs
    and a Cloudflare Images one-time upload URL are available; local tests do not
    claim remote-provider proof.
-4. Preserve the deferred Witness Testserial/analyzer consumer surgery without
+3. Preserve the deferred Witness Testserial/analyzer consumer surgery without
    compatibility paths or analyzer waivers.
 
 ## Packages
@@ -1488,7 +1488,7 @@ State vocabulary: `NEXT`, `BLOCKED_BY_DEPENDENCY`, `NOT_STARTED`, `RED`,
 | `fuzzfinder`       | `DONE`                  |
 | `lease`            | `DONE`                  |
 | `gate`             | `DONE`                  |
-| `receipt`          | `REVIEW`                |
+| `receipt`          | `DONE`                  |
 | `process`          | `DONE`                  |
 | `release`          | `DONE`                  |
 | `shutdown`         | `DONE`                  |
