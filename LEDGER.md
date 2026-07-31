@@ -10,11 +10,11 @@ Last updated: `2026-07-31`
   `github.com/deliri/primitive/v2026`. Historical evidence remains unchanged
   and therefore retains its original Foundation module paths. `PLAN.md` is
   local-only and excluded from the public repository.
-- Phase: Receipt is reviewed, accepted, and published. Its admitted surface is
-  one authenticated accepted-evidence fact plus one fixed-size monotonic
-  watermark; it owns no transport, persistence, retry, provider, payment,
-  pagination, scheduler, or customer-rendering behavior. Gate is reviewed and
-  accepted for publication. It is the CLI-side new-work enforcement boundary
+- Phase: all 21 admitted Primitive production packages are reviewed, accepted,
+  and published. Receipt's admitted surface is one authenticated
+  accepted-evidence fact plus one fixed-size monotonic watermark; it owns no
+  transport, persistence, retry, provider, payment, pagination, scheduler, or
+  customer-rendering behavior. Gate is the CLI-side new-work enforcement boundary
   over one authentic Lease assessment; current and continuity states permit,
   while not-yet-valid, expired, refused, and revoked states return a typed denial.
   OGS's control-plane authentication, route protection, authoritative
@@ -1457,14 +1457,17 @@ Last updated: `2026-07-31`
 
 Next:
 
-1. Reconcile deferred Controlstate as the next candidate consumer of Receipt's
-   fixed watermark without adding a store, scheduler, or generic state-machine
-   framework; re-entry still requires the explicit scope decision required by
-   `PLAN` section 3.
-2. Run disposable Objectstore live-provider proof when caller-supplied S3/GCS signed URLs
+1. Begin the consumer-upgrade phase. Select the first Witness package surgery
+   from its interview evidence, pin the published Primitive revision, delete
+   the superseded implementation, and preserve direct typed ownership.
+2. Keep Controlstate deferred. Its complete interview finds no real consumer
+   requiring the archived nine-domain atomic aggregate, and its 30-minute
+   expiry conflicts with demonstrated offline Lease authority. Re-entry needs
+   new source-cited consumer proof and explicit approval under `PLAN` section 3.
+3. Run disposable Objectstore live-provider proof when caller-supplied S3/GCS signed URLs
    and a Cloudflare Images one-time upload URL are available; local tests do not
    claim remote-provider proof.
-3. Preserve the deferred Witness Testserial/analyzer consumer surgery without
+4. Preserve the deferred Witness Testserial/analyzer consumer surgery without
    compatibility paths or analyzer waivers.
 
 ## Packages
