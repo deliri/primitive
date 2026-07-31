@@ -18,6 +18,69 @@ import (
 func TestRetryTransportLayerTriad(t *testing.T) {
 	t.Parallel()
 
+	t.Run("retryable proxy representation cannot preempt status retry", func(t *testing.T) {
+		t.Parallel()
+
+		var attempts atomic.Uint64
+		ok := mustHTTPStatus(t, http.StatusOK)
+		server := httptest.NewServer(http.HandlerFunc(func(
+			writer http.ResponseWriter,
+			_ *http.Request,
+		) {
+			current := attempts.Add(1)
+			if current == 1 {
+				writer.Header().Set(
+					core.HTTPHeaderContentType().String(),
+					core.HTTPMediaTypeTextPlain().String(),
+				)
+				writer.WriteHeader(http.StatusServiceUnavailable)
+				_, _ = writer.Write([]byte("proxy unavailable"))
+				return
+			}
+			writer.Header().Set(
+				core.HTTPHeaderContentType().String(),
+				core.HTTPMediaTypeJSON().String(),
+			)
+			writer.WriteHeader(http.StatusOK)
+			_, _ = writer.Write([]byte(`{"ready":true}`))
+		}))
+		defer server.Close()
+
+		got, gotErr := exchange.SendNoBodyBounded(
+			exchange.NoBodyBoundedCall{
+				Context: context.Background(),
+				Client:  mustExchangeClient(t, server.Client()),
+				Request: exchange.NoBodyBoundedRequest{
+					Target: mustEndpoint(t, server.URL),
+					Semantics: exchange.RequestSemantics{
+						Method: core.HTTPMethodGet,
+						Replay: exchange.ReplaySafe,
+					},
+					ExpectedResponseContentType: core.HTTPMediaTypeJSON(),
+					ExpectedStatus:              ok,
+				},
+				Policy: exchange.NoBodyBoundedPolicy{
+					Operation:         retryOperationPolicy(t, 2),
+					ResponseBodyLimit: mustByteCount(t, 4*1024),
+				},
+			},
+		)
+		if gotErr != nil {
+			t.Fatalf("exchange.SendNoBodyBounded() error = %v, want nil", gotErr)
+		}
+		if string(got.Body) != `{"ready":true}` ||
+			got.Metadata.Attempts != 2 ||
+			attempts.Load() != 2 {
+			t.Fatalf(
+				"proxy retry result body/metadata/server attempts = (%q, %d, %d), want (%q, 2, 2)",
+				got.Body,
+				got.Metadata.Attempts,
+				attempts.Load(),
+				`{"ready":true}`,
+			)
+		}
+	})
+
 	t.Run("positive Retry-After is bounded and a safe request succeeds on its second attempt", func(t *testing.T) {
 		t.Parallel()
 

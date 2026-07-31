@@ -519,6 +519,7 @@ func executeAggregateAttempt(input aggregateAttempt) (attemptResponse, error) {
 			context: attemptContext, response: response,
 			limit: input.limit, capture: input.request.capture,
 			expectedContentType: input.request.expectedResponseContentType,
+			expectedStatus:      input.request.expectedStatus,
 		},
 	)
 }
@@ -584,6 +585,7 @@ type aggregateReadRequest struct {
 	context             context.Context
 	response            *http.Response
 	expectedContentType core.HTTPMediaType
+	expectedStatus      core.HTTPStatusCode
 	capture             HeaderSelection
 	limit               core.ByteCount
 }
@@ -607,20 +609,22 @@ func readAggregateHTTPResponse(
 	result.retryAfter = input.response.Header.Get(
 		core.HTTPHeaderRetryAfter().String(),
 	)
-	if err := validateIdentityContentCoding(input.response.Header); err != nil {
-		return result, errors.Join(
-			err,
-			closeResponseBody(input.response.Body),
-		)
-	}
-	if err := validateResponseContentType(
-		input.response.Header,
-		input.expectedContentType,
-	); err != nil {
-		return result, errors.Join(
-			err,
-			closeResponseBody(input.response.Body),
-		)
+	if status == input.expectedStatus {
+		if err := validateIdentityContentCoding(input.response.Header); err != nil {
+			return result, errors.Join(
+				err,
+				closeResponseBody(input.response.Body),
+			)
+		}
+		if err := validateResponseContentType(
+			input.response.Header,
+			input.expectedContentType,
+		); err != nil {
+			return result, errors.Join(
+				err,
+				closeResponseBody(input.response.Body),
+			)
+		}
 	}
 	result.body, err = readAggregateResponseBody(input)
 	closeErr := closeResponseBody(input.response.Body)
