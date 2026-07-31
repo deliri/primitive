@@ -225,6 +225,25 @@ const (
 	ErrCloudIdentityContract
 	// ErrUpgradeContract identifies an upgrade contract violation.
 	ErrUpgradeContract
+	// ErrUpgradeDownload identifies a candidate download failure.
+	ErrUpgradeDownload
+	// ErrUpgradeCapacity identifies insufficient admitted candidate capacity.
+	ErrUpgradeCapacity
+	// ErrUpgradeVerification identifies candidate or primary bytes that do not
+	// match their authenticated Release artifact.
+	ErrUpgradeVerification
+	// ErrUpgradeTrial identifies a candidate rejected by its product-owned
+	// trial.
+	ErrUpgradeTrial
+	// ErrUpgradePromotion identifies a rejected primary-selection change.
+	ErrUpgradePromotion
+	// ErrUpgradePersistence identifies unreadable or uncommitted upgrade
+	// metadata.
+	ErrUpgradePersistence
+	// ErrUpgradeCleanup identifies an obsolete slot that could not be removed.
+	ErrUpgradeCleanup
+	// ErrUpgradeConflict identifies concurrent or stale upgrade authority.
+	ErrUpgradeConflict
 
 	// ErrGovernanceContract identifies a governance contract violation.
 	ErrGovernanceContract
@@ -280,7 +299,7 @@ func errorIdentityTextObjectStoreThroughGovernance(i ErrorIdentity) string {
 		return errorIdentityTextObjectStoreHead(i)
 	case i <= ErrTimeProofInvalid:
 		return errorIdentityTextObjectTailThroughTimeProof(i)
-	case i <= ErrUpgradeContract:
+	case i <= ErrUpgradeConflict:
 		return errorIdentityTextCloudIdentityThroughUpgrade(i)
 	default:
 		return errorIdentityTextGovernance(i)
@@ -584,11 +603,32 @@ func errorIdentityTextObjectTailThroughTimeProof(i ErrorIdentity) string {
 func errorIdentityTextCloudIdentityThroughUpgrade(
 	i ErrorIdentity,
 ) string {
-	switch i {
-	case ErrCloudIdentityContract:
+	if i == ErrCloudIdentityContract {
 		return "cloud identity contract violation"
+	}
+	return errorIdentityTextUpgrade(i)
+}
+
+func errorIdentityTextUpgrade(i ErrorIdentity) string {
+	switch i {
 	case ErrUpgradeContract:
 		return "upgrade contract violation"
+	case ErrUpgradeDownload:
+		return "upgrade candidate download failed"
+	case ErrUpgradeCapacity:
+		return "upgrade candidate capacity rejected"
+	case ErrUpgradeVerification:
+		return "upgrade artifact verification failed"
+	case ErrUpgradeTrial:
+		return "upgrade candidate trial failed"
+	case ErrUpgradePromotion:
+		return "upgrade promotion failed"
+	case ErrUpgradePersistence:
+		return "upgrade persistence failed"
+	case ErrUpgradeCleanup:
+		return "upgrade obsolete slot cleanup failed"
+	case ErrUpgradeConflict:
+		return "upgrade authority conflict"
 	default:
 		return unknownErrorIdentityText
 	}
@@ -706,6 +746,10 @@ func errorIdentityParents(identity ErrorIdentity) errorIdentityParentSet {
 		ErrShutdownContract, ErrObjectStoreContract, ErrTimeProofContract,
 		ErrCloudIdentityContract, ErrUpgradeContract, ErrGovernanceContract:
 		return oneErrorIdentityParent(ErrPrimitiveContract)
+	case ErrUpgradeDownload, ErrUpgradeCapacity, ErrUpgradeVerification, ErrUpgradeTrial,
+		ErrUpgradePromotion, ErrUpgradePersistence, ErrUpgradeCleanup,
+		ErrUpgradeConflict:
+		return oneErrorIdentityParent(ErrUpgradeContract)
 	case ErrGovernanceDocumentSource, ErrGovernanceDocumentLength,
 		ErrGovernanceDocumentDigest:
 		return oneErrorIdentityParent(ErrGovernanceContract)

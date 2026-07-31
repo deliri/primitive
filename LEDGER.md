@@ -1,6 +1,6 @@
 # Primitive 2026 Ledger
 
-Last updated: `2026-07-30`
+Last updated: `2026-07-31`
 
 ## Current
 
@@ -10,16 +10,20 @@ Last updated: `2026-07-30`
   `github.com/deliri/primitive/v2026`. Historical evidence remains unchanged
   and therefore retains its original Foundation module paths. `PLAN.md` is
   local-only and excluded from the public repository.
-- Phase: Shutdown was reviewed, corrected, accepted, and authorized for
-  publication as one fixed-capacity phased cleanup and OS-signal observation
-  contract. Upgrade is the next production slice.
-  It owns no transport, persistence, installer, retry, background worker,
-  scheduler, build tool, release workflow, or lifecycle state-machine
-  framework. Process was reviewed, committed, and published at
+- Phase: Upgrade is reviewed and published by the commit carrying this ledger
+  entry as the final Primitive production slice. It owns one fixed two-slot installation layout,
+  bounded candidate staging and verification, typed product-trial handoff, one
+  atomic primary selector, and exact obsolete-slot cleanup. It owns no command
+  arguments, test semantics, live-data sandbox, consent UI, ticket submission,
+  retry, scheduler, background worker, transport, release authority, or
+  general persistence/state-machine framework. Process was reviewed,
+  committed, and published at
   `15d64adc1ea5f6c932bcb1a587ecc4d4ed68d4d8`; Lease was reviewed, committed,
   and published at `c86bca9c93c2bbde390fb82291a7fa38db691201`;
   Fuzzfinder was reviewed, committed, and published at
   `6c38ac1623232a95f3d150b2aff414b516599ec5`.
+  Shutdown was reviewed, committed, and published at
+  `adaa7b49eb950c289625c64824e8d10fcfd03662`.
   Hostfacts, Cloudidentity, Objectstore, `timeproof`, `exchange`, `temporal`,
   and `filestore` are `DONE`; `testserial` consumer surgery is deferred until
   all Primitive production packages are complete.
@@ -377,9 +381,11 @@ Last updated: `2026-07-30`
   for commit and push at the revision above. Release was subsequently reviewed,
   supplied four concrete implementation findings and three contract notes,
   accepted after correction, and explicitly authorized for commit and push.
-- Production packages: 17 of 19 accepted. This authorized Release publication
-  completes Upgrade's dependency frontier; Shutdown remains the selected next
-  slice, followed by Upgrade.
+  Shutdown was subsequently reviewed, corrected, accepted, and explicitly
+  authorized for publication at the revision above. Upgrade has not been
+  accepted, committed, or pushed.
+- Production packages: 18 of 19 accepted. Upgrade is the one package in user
+  review.
 - Test-support packages: 0 of 1 complete and 1 in consumer surgery.
 - Deferred consumer surgery: Witness must adopt the exact typed
   `testserial.Declare` contract before Testserial can become `DONE`, after all
@@ -1075,18 +1081,158 @@ Last updated: `2026-07-30`
   offline absolute boundaries, and makes payment recovery automatic at the
   next permitted operation or check-in. OGS's Markdown/Go sync test passes;
   legal review remains external.
+- Upgrade contract: Release remains the sole signed release authority.
+  Upgrade accepts `release.PreparedRelease`, streams the exact artifact through
+  Objectstore into the fixed unselected slot, applies a caller-owned Hostfacts
+  free-space reserve, and verifies exact extent, SHA-256, and CRC32C through a
+  bounded Filestore read. `TrialTarget.Command` is the compiler-owned absolute
+  path products pass directly to Process; products retain ownership of argv,
+  automated test meaning, old-data sandboxing, user trials, customer copy,
+  telemetry, and ticket submission.
+- Upgrade selection decision: one canonical typed selector names revision,
+  slot, and exact Release artifact. A passing product-owned `TrialReport`
+  creates a sealed `Promotion`; promotion re-reads the prior selector,
+  re-verifies candidate bytes, atomically replaces only the selector, resolves
+  the new primary, and then removes the former exact binary and empty slot.
+  Cleanup failure returns the already-selected `Primary` with a typed
+  `ErrUpgradeCleanup`; it never reports the old primary after selector commit.
+  A failed or abandoned trial uses `DiscardTrial`, which verifies the exact
+  candidate before removing it and refuses stale selection authority.
+- Upgrade hostile findings: the first staging design could lose exclusive
+  creation and then delete another attempt's candidate, while bootstrap
+  collision cleanup could delete a pre-existing primary. Both now use
+  compiler-owned in-call ownership receipts, so cleanup touches only bytes the
+  failing call created. Effect recovery and owned cleanup use
+  `context.WithoutCancel` only after filesystem state exists, preventing
+  cancellation from stranding an owned partial file. Staging never
+  pre-emptively deletes an occupied trial slot. A consumer-path review also
+  removed the need for products to reconstruct executable paths with copied
+  `filepath.Join` conventions.
+- Upgrade review corrections, `2026-07-31`: an instrumented probe against the
+  submitted package produced red evidence for six defects, all fixed.
+  1. Staging was not crash-recoverable. Any interrupted attempt left bytes in
+     the unselected slot, and the exclusive-create download then failed with a
+     namespace conflict forever, including when the occupant was the exact
+     authenticated candidate. `TrialTarget` is unconstructable outside `Stage`,
+     so no public call could reclaim the slot and the ledger's own
+     "a restart restages the candidate" claim was false. `Stage` now reclaims
+     through one durable typed trial receipt written before candidate bytes.
+     `reclaimCandidateSlot` adopts an occupant that verifies as the exact
+     receipt-bound artifact and removes only partial bytes owned by that same
+     attempt. A receipt for a different live candidate conflicts without
+     deleting it. The slot is provably not the primary, because
+     `stageAuthority` already matched the on-disk selector to the prior
+     selection and the candidate slot is its opposite.
+  2. Failing to create the candidate slot was reported as
+     `FailurePhaseCleanup` with `ErrUpgradeCleanup`, telling an operator the
+     failure came after bytes landed. It is now persistence.
+  3. `Promote`'s post-commit removal of the former slot used the caller's
+     cancellable context, so a cancelled caller stranded the old binary and
+     wedged the next candidate's slot. It now settles through
+     `recoveryContext`, as does bootstrap's post-write cleanup and the
+     verification-failure removal.
+  4. `writeBootstrapArtifact` returned an unowned receipt when Filestore
+     recovery failed, which is exactly the case where the target name may
+     exist. That state is now owned and cleaned.
+  5. `mustByteCount` silently returned zero for an unrepresentable extent,
+     which is a swallowed error on a verification path.
+  6. Upgrade bounded its own selection document with Release's exported
+     document maximum and `release.TargetCount`, an informal cross-package
+     contract for a document Release does not own. Upgrade now owns
+     `selectionDocumentMaximumBytes` and `selectionArrayItemMaximum`, and the
+     Release export widening was reverted, leaving Release untouched.
+  `absoluteBinaryPath` also gained the explicit slot gate that every other path
+  builder already had, and the three enums moved to package-level label tables
+  with the house compile-time limit guards.
+- Upgrade final hostile corrections, `2026-07-31`: reviewing the review found
+  three more live authority and crash failures.
+  1. The first reclamation correction still treated every nonmatching occupant
+     as crash debris. Every version of one offering uses the same fixed binary
+     path, so a sequential Stage for v3 deleted a v2 `TrialTarget` that a caller
+     was still testing. Red proof observed a nil reclaim error and missing v2
+     bytes. The durable `trialDocument` now binds the exact prior selector and
+     candidate before download. Same-candidate restart adopts authentic bytes
+     or replaces only its own partial bytes; a different candidate returns
+     `ErrUpgradeConflict` and preserves the active trial.
+  2. A stale in-memory `TrialTarget` could Promote or Discard after the durable
+     trial owner changed, including when two signed builds had identical
+     bytes. Promote and Discard now re-read and require the exact typed receipt
+     before verification or mutation. Promotion removes the consumed receipt
+     after selector commitment, and all exact cleanup removes fixed receipt
+     names without recursion.
+  3. A process crash leaving `.primitive-primary.next` wedged the next selector
+     write for the same exclusive-create reason as the original candidate bug.
+     `writeSelection` now settles only Upgrade's fixed temporary before
+     starting the next atomic Filestore write.
+  `AttemptError.Error` now names the bounded offering, version, platform, and
+  commit while continuing not to render a signed download capability; the
+  native cause and stable Core identity remain reachable through `Unwrap`.
+  Direct Witness analysis also found the test suite was searching rendered
+  error text even though Upgrade diagnostics are typed enums in the error
+  graph. Every diagnostic assertion now uses `errors.Is`; no waiver was added.
+- Upgrade review test corrections, `2026-07-31`: the zero-value ingress table
+  asserted only `ErrUpgradeContract`, which every Upgrade identity parents to,
+  so it could not separate an unset primary from an unset root; it is now
+  two-tier. The selection-decoder and trial-report rejection loops were
+  index-named with no typed assertion; both are now named hostile tables, the
+  decoder at thirty rows. The verification table had no passing row at all, so
+  no fixture proved the accept path. New coverage: `validateUpgradePair`, the
+  diagnostic table's totality and distinctness, slot projections across the
+  whole byte domain, and the failure-phase honesty ratchet. The production
+  "no world model" scan was a raw substring search over file bytes that could
+  not tell code from prose and missed `go\tf()`; it is now an AST match with a
+  synthetic-source proof that the matcher is not vacuous, plus a named-exception
+  ratchet that every settled removal carries `recoveryContext`.
+- Upgrade processing proof: candidate download and verification are streaming
+  with fixed hash state; selector processing is bounded by Upgrade's own
+  8 KiB selection-document maximum and trial-receipt processing by its own
+  16 KiB maximum. Cleanup names one binary, two fixed receipt names, and one
+  empty directory and never recurses. Production contains no goroutine, map,
+  scheduler, queue, worker, generic state machine, command execution, or
+  retained artifact buffer. The package's six sibling imports exactly match
+  Core's existing Upgrade frontier, and production `gocyclo <= 10`.
+- Upgrade hostile evidence: focused coverage is 65.7%, used as disclosure
+  rather than a quality proxy. Real rooted-filesystem tests prove canonical
+  selection and trial-receipt persistence, fixed-temporary recovery, exact
+  hashing at short/equal/long extent
+  contradictions, stale-promotion refusal, post-commit cleanup truth,
+  occupied-slot preservation, exact-candidate restart, different-live-trial
+  preservation, stale-target promotion/discard refusal, bootstrap collision
+  preservation,
+  cancellation-resistant owned cleanup, rejected-trial discard, and the
+  direct Process command projection. The selection fuzzer completed 2,380,986
+  executions and the trial-receipt fuzzer completed 1,665,491 executions,
+  each in 30 seconds with no failure. The public authenticated
+  `Stage`/`Bootstrap` success composition is not fabricated inside Upgrade
+  tests because constructing Release and Objectstore witnesses would add
+  forbidden Attest and Exchange package edges; Release/Objectstore own those
+  proofs, and a live-provider Upgrade proof remains pending caller-supplied
+  signed S3 or GCS authority.
+- Upgrade verification: focused shuffled race tests, full repository tests and
+  race/shuffle tests, vet, staticcheck, errcheck, nilaway, gosec, goconst,
+  govulncheck, actionlint, fieldalignment on touched packages, direct
+  Witness analysis, formatting, module tidiness, and diff checks pass.
+  Linux amd64/arm64, Windows amd64, and FreeBSD amd64 Upgrade test binaries
+  cross-compile. The canonical gate passes through nilaway and stops at the
+  existing repository-wide Witness enum/Testserial/Process baseline; Upgrade
+  itself has no Witness finding or waiver. The repository-wide fieldalignment
+  command continues to report only two pre-existing Shutdown test fixtures.
+- Upgrade M1 Max fixed-selector benchmark: the actual shipped 4 KiB
+  `ResolvePrimary` path, including selector read/strict decode and complete
+  artifact re-hash, has a five-run median of 234,136 ns/op, 143,458 B/op, and
+  1,937 allocs/op. The byte path is streaming and memory is bounded, but these
+  costs are disclosed without calling the operation cheap or allocation-free.
 
 Next:
 
-1. Finish Upgrade before any consumer surgery.
-2. After all Primitive production packages are published, migrate Witness,
+1. Migrate Witness,
    Bug, and Peachfuzz independently where each has a concrete matching
    capability. Do not perform Kernel surgery and do not manufacture unused
    consumer edges.
-3. Run disposable Objectstore live-provider proof when caller-supplied S3/GCS signed URLs
+2. Run disposable Objectstore live-provider proof when caller-supplied S3/GCS signed URLs
    and a Cloudflare Images one-time upload URL are available; local tests do not
    claim remote-provider proof.
-4. Preserve the deferred Witness Testserial/analyzer consumer surgery without
+3. Preserve the deferred Witness Testserial/analyzer consumer surgery without
    compatibility paths or analyzer waivers.
 
 ## Packages
@@ -1115,7 +1261,7 @@ State vocabulary: `NEXT`, `BLOCKED_BY_DEPENDENCY`, `NOT_STARTED`, `RED`,
 | `objectstore`      | `DONE`                  |
 | `timeproof`        | `DONE`                  |
 | `cloudidentity`    | `DONE`                  |
-| `upgrade`          | `NOT_STARTED`           |
+| `upgrade`          | `DONE`                  |
 
 Consumer state is recorded under the active package only. There is no separate
 all-consumer phase.
