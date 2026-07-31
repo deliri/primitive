@@ -1331,7 +1331,7 @@ Last updated: `2026-07-31`
   lowercase hexadecimal persistence and distinct non-convertible Go types.
   Core retains only their stable error identity.
   The compiler-owned graph admits exactly `receipt -> core, attest, temporal`,
-  bringing the catalog to 22 production packages plus Testserial and 50
+  bringing the catalog to 21 production packages plus Testserial and 50
   production edges while retaining the six-edge ceiling and zero undeclared
   coupling.
 - Receipt watermark design: `Watermark` is one fixed-size durable fact over
