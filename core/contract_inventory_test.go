@@ -14,10 +14,11 @@ type (
 	protocolFact[T any]      struct{}
 	internalFlow[T any]      struct{}
 	capabilityWrapper[T any] struct{}
+	failureDetail[T any]     struct{}
 	productionStructName     string
 )
 
-const coreProductionStructMaximum = 32
+const coreProductionStructMaximum = 40
 
 type productionStructInventory struct {
 	names [coreProductionStructMaximum]productionStructName
@@ -27,32 +28,38 @@ type productionStructInventory struct {
 // coreContractInventory classifies every production struct by its real role.
 // It is a compiler-visible wiring ratchet, not behavioral proof.
 type coreContractInventory struct {
-	PackageContract            architectureFact[PackageContract]
-	DirectImportContract       architectureFact[DirectImportContract]
-	ArchitectureCatalog        architectureFact[ArchitectureCatalog]
-	StrictJSONLimits           protocolFact[StrictJSONLimits]
-	strictJSONContainer        internalFlow[strictJSONContainer]
-	jsonContractDiagnostic     internalFlow[jsonContractDiagnostic]
-	errorIdentityParentSet     internalFlow[errorIdentityParentSet]
-	ByteCount                  protocolFact[ByteCount]
-	ByteLength                 protocolFact[ByteLength]
-	DeclaredBodyLength         protocolFact[DeclaredBodyLength]
-	SHA256Digest               protocolFact[SHA256Digest]
-	CRC32C                     protocolFact[CRC32C]
-	Ed25519PublicKey           protocolFact[Ed25519PublicKey]
-	SecretMaterial             capabilityWrapper[SecretMaterial]
-	secretMaterialState        internalFlow[secretMaterialState]
-	GovernanceDocumentContract protocolFact[GovernanceDocumentContract]
-	TestIsolationDeclaration   protocolFact[TestIsolationDeclaration]
-	PathComponent              protocolFact[PathComponent]
-	AbsolutePath               protocolFact[AbsolutePath]
-	RelativePath               protocolFact[RelativePath]
-	HTTPStatusCode             protocolFact[HTTPStatusCode]
-	HTTPHeaderName             protocolFact[HTTPHeaderName]
-	HTTPMediaType              protocolFact[HTTPMediaType]
-	HTTPContentCoding          protocolFact[HTTPContentCoding]
-	HTTPEndpoint               protocolFact[HTTPEndpoint]
-	Platform                   protocolFact[Platform]
+	PackageContract              architectureFact[PackageContract]
+	DirectImportContract         architectureFact[DirectImportContract]
+	ArchitectureCatalog          architectureFact[ArchitectureCatalog]
+	StrictJSONLimits             protocolFact[StrictJSONLimits]
+	strictJSONContainer          internalFlow[strictJSONContainer]
+	jsonContractDiagnostic       internalFlow[jsonContractDiagnostic]
+	errorIdentityParentSet       internalFlow[errorIdentityParentSet]
+	ByteCount                    protocolFact[ByteCount]
+	ByteLength                   protocolFact[ByteLength]
+	DeclaredBodyLength           protocolFact[DeclaredBodyLength]
+	SHA256Digest                 protocolFact[SHA256Digest]
+	CRC32C                       protocolFact[CRC32C]
+	Ed25519PublicKey             protocolFact[Ed25519PublicKey]
+	SecretMaterial               capabilityWrapper[SecretMaterial]
+	secretMaterialState          internalFlow[secretMaterialState]
+	GovernanceDocumentContract   protocolFact[GovernanceDocumentContract]
+	TestIsolationDeclaration     protocolFact[TestIsolationDeclaration]
+	PathComponent                protocolFact[PathComponent]
+	AbsolutePath                 protocolFact[AbsolutePath]
+	RelativePath                 protocolFact[RelativePath]
+	HTTPStatusCode               protocolFact[HTTPStatusCode]
+	HTTPHeaderName               protocolFact[HTTPHeaderName]
+	HTTPMediaType                protocolFact[HTTPMediaType]
+	HTTPContentCoding            protocolFact[HTTPContentCoding]
+	HTTPEndpoint                 protocolFact[HTTPEndpoint]
+	Platform                     protocolFact[Platform]
+	ReleaseOfferingMismatchError failureDetail[ReleaseOfferingMismatchError]
+	ReleaseVersion               protocolFact[ReleaseVersion]
+	BuildCommit                  protocolFact[BuildCommit]
+	BuildIdentityRequest         internalFlow[BuildIdentityRequest]
+	BuildIdentity                protocolFact[BuildIdentity]
+	buildIdentityWire            internalFlow[buildIdentityWire]
 }
 
 var (
@@ -60,6 +67,7 @@ var (
 	_ = coreContractInventory{}.jsonContractDiagnostic
 	_ = coreContractInventory{}.errorIdentityParentSet
 	_ = coreContractInventory{}.secretMaterialState
+	_ = coreContractInventory{}.buildIdentityWire
 )
 
 // TestCoreProductionStructsHaveCompilerVisibleDataFlowRoles prevents a new

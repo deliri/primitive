@@ -1,0 +1,453 @@
+package release
+
+import (
+	"crypto/ed25519"
+	"crypto/sha256"
+	"encoding/json"
+	"errors"
+	"io"
+
+	"github.com/deliri/primitive/v2026/attest"
+	"github.com/deliri/primitive/v2026/core"
+	"github.com/deliri/primitive/v2026/temporal"
+)
+
+// ManifestIdentity is the nominal digest of one manifest's signed facts.
+type ManifestIdentity struct {
+	digest core.SHA256Digest
+}
+
+func newManifestIdentity(digest core.SHA256Digest) ManifestIdentity {
+	return ManifestIdentity{digest: digest}
+}
+
+func (i ManifestIdentity) Validate() error { return i.digest.Validate() }
+func (i ManifestIdentity) String() string {
+	value, _ := i.digest.Hex()
+	return value
+}
+func (i ManifestIdentity) MarshalJSON() ([]byte, error) { return i.digest.MarshalJSON() }
+func (i *ManifestIdentity) UnmarshalJSON(data []byte) error {
+	if i == nil {
+		return jsonError(errors.New("manifest identity receiver is nil"))
+	}
+	var digest core.SHA256Digest
+	if err := json.Unmarshal(data, &digest); err != nil {
+		return jsonError(err)
+	}
+	*i = newManifestIdentity(digest)
+	return nil
+}
+
+// ManifestDocumentDigest names exact canonical document bytes, including the
+// signer and signature.
+type ManifestDocumentDigest struct {
+	digest core.SHA256Digest
+}
+
+func newManifestDocumentDigest(digest core.SHA256Digest) ManifestDocumentDigest {
+	return ManifestDocumentDigest{digest: digest}
+}
+
+func (d ManifestDocumentDigest) Validate() error { return d.digest.Validate() }
+func (d ManifestDocumentDigest) String() string {
+	value, _ := d.digest.Hex()
+	return value
+}
+
+// ManifestFactRequest supplies the facts an artifact producer asks a manifest
+// authority to sign.
+type ManifestFactRequest struct {
+	Revision  Revision
+	Offering  core.Offering
+	Version   core.ReleaseVersion
+	Commit    core.BuildCommit
+	CreatedAt temporal.Instant
+	Artifacts ArtifactSet
+}
+
+// ManifestFact is the immutable canonical body authenticated by Attest.
+type ManifestFact struct {
+	artifacts   ArtifactSet
+	createdAt   temporal.Instant
+	totalExtent core.ByteCount
+	version     core.ReleaseVersion
+	identity    ManifestIdentity
+	commit      core.BuildCommit
+	revision    Revision
+	offering    core.Offering
+	valid       bool
+}
+
+type manifestFactWire struct {
+	Identity    *ManifestIdentity    `json:"identity"`
+	Revision    *Revision            `json:"revision"`
+	Offering    *core.Offering       `json:"offering"`
+	Version     *core.ReleaseVersion `json:"version"`
+	Commit      *core.BuildCommit    `json:"commit"`
+	CreatedAt   *temporal.Instant    `json:"created_at"`
+	TotalExtent *core.ByteCount      `json:"total_extent_bytes"`
+	Artifacts   *ArtifactSet         `json:"artifacts"`
+}
+
+type manifestIdentityWire struct {
+	Revision    Revision            `json:"revision"`
+	Offering    core.Offering       `json:"offering"`
+	Version     core.ReleaseVersion `json:"version"`
+	Commit      core.BuildCommit    `json:"commit"`
+	CreatedAt   temporal.Instant    `json:"created_at"`
+	TotalExtent core.ByteCount      `json:"total_extent_bytes"`
+	Artifacts   ArtifactSet         `json:"artifacts"`
+}
+
+func NewManifestFact(request ManifestFactRequest) (ManifestFact, error) {
+	total, err := request.Artifacts.TotalExtent()
+	if err != nil {
+		return ManifestFact{}, manifestError(err)
+	}
+	candidate := ManifestFact{
+		revision: request.Revision, offering: request.Offering,
+		version: request.Version, commit: request.Commit,
+		createdAt: request.CreatedAt, totalExtent: total,
+		artifacts: request.Artifacts,
+	}
+	if err := candidate.validateWithoutIdentity(); err != nil {
+		return ManifestFact{}, err
+	}
+	digest, err := manifestFactDigest(candidate)
+	if err != nil {
+		return ManifestFact{}, err
+	}
+	candidate.identity = newManifestIdentity(digest)
+	candidate.valid = true
+	if err := candidate.Validate(); err != nil {
+		return ManifestFact{}, err
+	}
+	return candidate, nil
+}
+
+func (f ManifestFact) validateWithoutIdentity() error {
+	for _, err := range []error{
+		f.revision.Validate(), f.offering.Validate(), f.version.Validate(),
+		f.commit.Validate(), f.createdAt.Validate(), f.totalExtent.Validate(),
+		f.artifacts.Validate(),
+	} {
+		if err != nil {
+			return manifestError(err)
+		}
+	}
+	// f.artifacts.Validate has already proven the set, so read its sealed
+	// total and slots directly instead of revalidating once per access.
+	if f.artifacts.total != f.totalExtent {
+		return manifestError(errors.New("manifest total extent differs from its artifacts"))
+	}
+	return validateManifestBuildBindings(f)
+}
+
+func validateManifestBuildBindings(f ManifestFact) error {
+	for _, artifact := range f.artifacts.artifacts {
+		build := artifact.Build()
+		if build.Offering() != f.offering ||
+			build.Version() != f.version ||
+			build.Commit() != f.commit {
+			return manifestError(errors.New("manifest facts differ from an artifact build"))
+		}
+	}
+	return nil
+}
+
+func (f ManifestFact) Validate() error {
+	if !f.valid {
+		return manifestError(errors.New("manifest fact is unset"))
+	}
+	if err := f.identity.Validate(); err != nil {
+		return manifestError(err)
+	}
+	if err := f.validateWithoutIdentity(); err != nil {
+		return err
+	}
+	digest, err := manifestFactDigest(f)
+	if err != nil || f.identity != newManifestIdentity(digest) {
+		return manifestError(errors.New("manifest identity does not name its facts"), err)
+	}
+	return nil
+}
+
+func (f ManifestFact) Identity() ManifestIdentity   { return f.identity }
+func (f ManifestFact) Revision() Revision           { return f.revision }
+func (f ManifestFact) Offering() core.Offering      { return f.offering }
+func (f ManifestFact) Version() core.ReleaseVersion { return f.version }
+func (f ManifestFact) Commit() core.BuildCommit     { return f.commit }
+func (f ManifestFact) CreatedAt() temporal.Instant  { return f.createdAt }
+func (f ManifestFact) TotalExtent() core.ByteCount  { return f.totalExtent }
+func (f ManifestFact) Artifacts() ArtifactSet       { return f.artifacts }
+func (ManifestFact) AttestationDomain() Domain      { return DomainManifestV1 }
+
+func (f ManifestFact) MarshalJSON() ([]byte, error) {
+	if err := f.Validate(); err != nil {
+		return nil, err
+	}
+	identity, revision := f.identity, f.revision
+	offering, version, commit := f.offering, f.version, f.commit
+	createdAt, total, artifacts := f.createdAt, f.totalExtent, f.artifacts
+	return json.Marshal(manifestFactWire{
+		Identity: &identity, Revision: &revision, Offering: &offering,
+		Version: &version, Commit: &commit, CreatedAt: &createdAt,
+		TotalExtent: &total, Artifacts: &artifacts,
+	})
+}
+
+func (f *ManifestFact) UnmarshalJSON(data []byte) error {
+	if f == nil {
+		return jsonError(errors.New("manifest fact receiver is nil"))
+	}
+	wire, err := decodeStructure[manifestFactWire](data)
+	if err != nil {
+		return err
+	}
+	if manifestWireMissing(wire) {
+		return jsonError(errors.New("manifest fact field is missing"))
+	}
+	candidate := ManifestFact{
+		identity: *wire.Identity, revision: *wire.Revision,
+		offering: *wire.Offering, version: *wire.Version, commit: *wire.Commit,
+		createdAt: *wire.CreatedAt, totalExtent: *wire.TotalExtent,
+		artifacts: *wire.Artifacts, valid: true,
+	}
+	if err := candidate.Validate(); err != nil {
+		return jsonError(err)
+	}
+	*f = candidate
+	return nil
+}
+
+func manifestWireMissing(w manifestFactWire) bool {
+	return w.Identity == nil || w.Revision == nil || w.Offering == nil ||
+		w.Version == nil || w.Commit == nil || w.CreatedAt == nil ||
+		w.TotalExtent == nil || w.Artifacts == nil
+}
+
+func (f ManifestFact) WriteCanonical(destination io.Writer) error {
+	if destination == nil {
+		return manifestError(errors.New(canonicalDestinationNilDiagnostic))
+	}
+	encoded, err := f.MarshalJSON()
+	if err != nil {
+		return err
+	}
+	written, err := destination.Write(encoded)
+	if err != nil {
+		return manifestError(err)
+	}
+	if written != len(encoded) {
+		return manifestError(io.ErrShortWrite)
+	}
+	return nil
+}
+
+func manifestFactDigest(f ManifestFact) (core.SHA256Digest, error) {
+	body, err := json.Marshal(manifestIdentityWire{
+		Revision: f.revision, Offering: f.offering, Version: f.version,
+		Commit: f.commit, CreatedAt: f.createdAt,
+		TotalExtent: f.totalExtent, Artifacts: f.artifacts,
+	})
+	if err != nil {
+		return core.SHA256Digest{}, manifestError(err)
+	}
+	sum := sha256.New()
+	writeDigestFrame(sum, manifestIdentityDomain, body)
+	var value [sha256.Size]byte
+	copy(value[:], sum.Sum(nil))
+	return core.NewSHA256Digest(value), nil
+}
+
+// ManifestDocument is an untrusted fact and structural Attest envelope.
+type ManifestDocument struct {
+	Fact        ManifestFact            `json:"fact"`
+	Attestation attest.Envelope[Domain] `json:"attestation"`
+}
+
+func (d ManifestDocument) Validate() error {
+	if err := d.Fact.Validate(); err != nil {
+		return manifestError(err)
+	}
+	if err := d.Attestation.Validate(); err != nil {
+		return verificationError(err)
+	}
+	if d.Attestation.Domain != DomainManifestV1 {
+		return verificationError(errors.New("manifest attestation domain differs from its body"))
+	}
+	return nil
+}
+
+func (d ManifestDocument) MarshalJSON() ([]byte, error) {
+	type wire ManifestDocument
+	if err := d.Validate(); err != nil {
+		return nil, err
+	}
+	encoded, err := json.Marshal(wire(d))
+	if err != nil || len(encoded) > documentExtentMaximum {
+		return nil, jsonError(errors.New("manifest document extent exceeded"), err)
+	}
+	return encoded, nil
+}
+
+func (d *ManifestDocument) UnmarshalJSON(data []byte) error {
+	if d == nil {
+		return jsonError(errors.New("manifest document receiver is nil"))
+	}
+	type wire struct {
+		Fact        *ManifestFact            `json:"fact"`
+		Attestation *attest.Envelope[Domain] `json:"attestation"`
+	}
+	decoded, err := decodeStructure[wire](data)
+	if err != nil {
+		return err
+	}
+	if decoded.Fact == nil || decoded.Attestation == nil {
+		return jsonError(errors.New("manifest document field is missing"))
+	}
+	candidate := ManifestDocument{Fact: *decoded.Fact, Attestation: *decoded.Attestation}
+	if err := candidate.Validate(); err != nil {
+		return jsonError(err)
+	}
+	*d = candidate
+	return nil
+}
+
+type IssueManifestRequest struct {
+	Key  ed25519.PrivateKey
+	Fact ManifestFact
+}
+
+func IssueManifest(request IssueManifestRequest) (ManifestDocument, error) {
+	if err := request.Fact.Validate(); err != nil {
+		return ManifestDocument{}, manifestError(err)
+	}
+	envelope, err := attest.Sign(attest.SignRequest[Domain]{Body: request.Fact, Key: request.Key})
+	if err != nil {
+		return ManifestDocument{}, manifestError(err)
+	}
+	document := ManifestDocument{Fact: request.Fact, Attestation: envelope}
+	if err := document.Validate(); err != nil {
+		return ManifestDocument{}, err
+	}
+	return document, nil
+}
+
+type VerifyManifestRequest struct {
+	Document         ManifestDocument
+	TrustedKeys      attest.TrustedKeys
+	ExpectedOffering core.Offering
+}
+
+// VerifiedManifest is a private-witness proof that one exact manifest
+// document authenticated against caller-selected authority.
+type VerifiedManifest struct {
+	document ManifestDocument
+	proof    attest.Verified[Domain]
+	digest   ManifestDocumentDigest
+	seal     verificationSeal
+}
+
+func VerifyManifest(request VerifyManifestRequest) (VerifiedManifest, error) {
+	if err := request.ExpectedOffering.Validate(); err != nil {
+		return VerifiedManifest{}, verificationError(err)
+	}
+	if err := request.Document.Validate(); err != nil {
+		return VerifiedManifest{}, verificationError(err)
+	}
+	if request.Document.Fact.Offering() != request.ExpectedOffering {
+		return VerifiedManifest{}, offeringMismatchError(
+			request.Document.Fact.Offering(),
+			request.ExpectedOffering,
+		)
+	}
+	proof, err := attest.Verify(attest.VerifyRequest[Domain]{
+		Body: request.Document.Fact, Envelope: request.Document.Attestation,
+		TrustedKeys: request.TrustedKeys,
+	})
+	if err != nil {
+		return VerifiedManifest{}, verificationError(err)
+	}
+	digest, err := digestManifestDocument(request.Document)
+	if err != nil {
+		return VerifiedManifest{}, verificationError(err)
+	}
+	result := VerifiedManifest{
+		document: request.Document, digest: newManifestDocumentDigest(digest),
+		proof: proof,
+	}
+	result.seal = verificationSealAuthenticated
+	return result, nil
+}
+
+// Validate proves that VerifyManifest issued the private witness and that its
+// complete closure was authenticated. Authentication and document hashing run
+// once, before the seal is issued, rather than on every accessor.
+func (v VerifiedManifest) Validate() error {
+	if v.seal != verificationSealAuthenticated {
+		return verificationError(errors.New("verified manifest proof is unset"))
+	}
+	return nil
+}
+
+func (v VerifiedManifest) Document() (ManifestDocument, error) {
+	if err := v.Validate(); err != nil {
+		return ManifestDocument{}, err
+	}
+	return v.document, nil
+}
+
+func (v VerifiedManifest) Identity() (ManifestIdentity, error) {
+	if err := v.Validate(); err != nil {
+		return ManifestIdentity{}, err
+	}
+	return v.document.Fact.Identity(), nil
+}
+
+func (v VerifiedManifest) DocumentDigest() (ManifestDocumentDigest, error) {
+	if err := v.Validate(); err != nil {
+		return ManifestDocumentDigest{}, err
+	}
+	return v.digest, nil
+}
+
+func (v VerifiedManifest) Offering() (core.Offering, error) {
+	if err := v.Validate(); err != nil {
+		return core.OfferingUnknown, err
+	}
+	return v.document.Fact.Offering(), nil
+}
+
+func (v VerifiedManifest) Version() (core.ReleaseVersion, error) {
+	if err := v.Validate(); err != nil {
+		return core.ReleaseVersion{}, err
+	}
+	return v.document.Fact.Version(), nil
+}
+
+func (v VerifiedManifest) Artifacts() (ArtifactSet, error) {
+	if err := v.Validate(); err != nil {
+		return ArtifactSet{}, err
+	}
+	return v.document.Fact.Artifacts(), nil
+}
+
+func (v VerifiedManifest) TotalExtent() (core.ByteCount, error) {
+	if err := v.Validate(); err != nil {
+		return core.ByteCount{}, err
+	}
+	return v.document.Fact.TotalExtent(), nil
+}
+
+func digestManifestDocument(document ManifestDocument) (core.SHA256Digest, error) {
+	encoded, err := document.MarshalJSON()
+	if err != nil {
+		return core.SHA256Digest{}, err
+	}
+	sum := sha256.Sum256(encoded)
+	return core.NewSHA256Digest(sum), nil
+}
+
+var _ attest.CanonicalBody[Domain] = ManifestFact{}

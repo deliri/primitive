@@ -10,14 +10,16 @@ Last updated: `2026-07-30`
   `github.com/deliri/primitive/v2026`. Historical evidence remains unchanged
   and therefore retains its original Foundation module paths. `PLAN.md` is
   local-only and excluded from the public repository.
-- Phase: Process is implementing as one typed, bounded, streaming projection
-  onto `os/exec`. It owns exact argv and environment lowering, direct-child
-  execution and reaping, bounded stream forwarding, exit observation, and
-  context-driven termination. It owns no process registry, process-tree model,
-  scheduler, queue, worker, shell, pipeline graph, lifecycle state machine, or
-  product command policy. Lease was reviewed, committed, and published at
-  `c86bca9c93c2bbde390fb82291a7fa38db691201`; Fuzzfinder was reviewed,
-  committed, and published at
+- Phase: Release was reviewed, corrected, accepted, and authorized for
+  publication as one fixed-size authenticated artifact, Manifest, Latest,
+  advance, and pure installed-selection contract. Shutdown is the next
+  production slice.
+  It owns no transport, persistence, installer, retry, background worker,
+  scheduler, build tool, release workflow, or lifecycle state-machine
+  framework. Process was reviewed, committed, and published at
+  `15d64adc1ea5f6c932bcb1a587ecc4d4ed68d4d8`; Lease was reviewed, committed,
+  and published at `c86bca9c93c2bbde390fb82291a7fa38db691201`;
+  Fuzzfinder was reviewed, committed, and published at
   `6c38ac1623232a95f3d150b2aff414b516599ec5`.
   Hostfacts, Cloudidentity, Objectstore, `timeproof`, `exchange`, `temporal`,
   and `filestore` are `DONE`; `testserial` consumer surgery is deferred until
@@ -114,6 +116,92 @@ Last updated: `2026-07-30`
   permission to weaken Process or add Foundation to its graph. The canonical
   gate passes through full tests, full race, vet, staticcheck, errcheck, and
   nilaway, then stops at this repository-wide Witness baseline as expected.
+- Release contract, 2026-07-30: Core now owns the closed Bug, Witness, and
+  Peachfuzz offering domain; exact three-`uint32` release ordering; canonical
+  SHA-1/SHA-256 build commits; immutable offering/version/commit/platform build
+  identity; and compiler-visible linker symbol names. Release reads installed
+  identity only from Core's link-injected binary facts. A Manifest signs
+  exactly four ordered artifacts for Windows amd64, Darwin arm64, Linux amd64,
+  and Linux arm64, including complete byte integrity and a checked signed total
+  extent. Latest signs the exact nested Manifest document, generation, issue
+  instant, validity interval, and stable offering stream identity. Pure
+  selection absorbs the former Update purpose and yields current, available,
+  refresh-required, or reassess-at. Only a freshly current
+  `PreparedRelease` carries authority into the later Upgrade package; value
+  summaries are validated but non-authoritative.
+- Release archive review: all six concrete defects or ownership failures were
+  verified against the preserved implementation. Equal-generation advance
+  compared only the Latest fact and could accept a differently signed
+  document; higher generations did not ratchet all signed timeline bounds; the
+  alleged per-target authorization set did not name a target; the specification
+  promised total artifact extent that was neither signed nor checked; Update
+  accepted caller-constructed installed identity as provenance; and the archive
+  retained build-tool/authentication workflow with no current Release or
+  Upgrade reader. The new contract compares complete signed documents, ratchets
+  issue/from/until before version, signs checked total extent, obtains installed
+  identity from the binary, and deletes the unused authorization and build
+  workflow surfaces. Identity and offering conflicts precede generation and
+  version order. Signer rotation is accepted only through a strictly later
+  document where the complete retained contract permits it; it is not treated
+  as an equal-generation replay.
+- Release acceptance review: four additional live findings were verified and
+  corrected. `ArtifactSet.UnmarshalJSON` decoded through a fixed Go array and
+  silently discarded trailing signed artifacts; it now decodes a bounded
+  slice and requires exact `TargetCount` cardinality. Manifest and Latest
+  offering mismatches previously wrapped a nil cause and produced no useful
+  distinction from malformed documents; Core now owns the typed
+  `ReleaseOfferingMismatchError` with exact observed and expected offerings,
+  reachable through both `errors.As` and `ErrReleaseVerification`.
+  `newArtifactSetUnchecked` duplicated set closure, used untyped diagnostics,
+  and discarded extent failure; it is deleted in favor of the single
+  `artifactSetTotalExtent` owner, and validation names a signed-total mismatch
+  directly. `ManifestFact.Validate` repeatedly called `ArtifactSet.At`, which
+  revalidated and rehashed the complete set once per slot immediately after
+  the set had already been validated; validated slots are now traversed
+  directly.
+- Release acceptance design: `VerifiedManifest` and `VerifiedLatest` are
+  private-witness values with no external constructor, decoder, mutator, or
+  exported field. Real document validation, offering closure, Attest
+  verification, and document-digest construction run once before a private
+  typed seal is issued. Their public `Validate` methods now check that seal in
+  O(1) instead of re-marshaling and re-hashing immutable authenticated state on
+  every accessor. A benchmark ratchet requires zero allocations on the
+  assessment path. The per-wire empirical JSON field/depth numbers are
+  deleted; every Release decoder uses one package-owned admission contract
+  over Core's compiler-owned global structure limits, Release's 64 KiB
+  document bound, and exact four-item array bound. `Artifact` now carries an
+  explicit constructor bit rather than depending on its zero digest to reject
+  the zero value. The public `Evaluate` entry is exercised against a real
+  unstamped test binary and returns `ErrReleaseConflict`; successful
+  link-stamped selection remains consumer integration proof.
+- Release proof: focused statement coverage is 81.8 percent; Core is 88.1
+  percent. Exhaustive byte-domain enum tests, numeric generation extremes,
+  exact 24-hour lifetime and five-minute correction edges, every selection and
+  preparation boundary, signed-document identity under signer rotation,
+  authority separation, strict JSON mutation and receiver preservation,
+  artifact closure, overflow, zero-value capabilities, compiler-owned embedded
+  identity provenance, and complete proof rebinding pass. Full tests, full
+  race, ten shuffled focused repetitions, vet, staticcheck, errcheck, nilaway,
+  fieldalignment, goconst, gosec, govulncheck, actionlint, production
+  `gocyclo <= 10`, formatting, module tidiness, and diff checks pass. The
+  signed Latest JSON fuzz boundary completed 92,271 executions in 30 seconds
+  without failure after its corpus expanded during review. Windows amd64 and
+  Linux amd64/arm64 test binaries
+  cross-compile; Darwin arm64 is the native test platform. Direct Release
+  Witness analysis is clean with no waiver. The canonical gate passes through
+  full tests, full race, vet, staticcheck, errcheck, and nilaway, then stops at
+  the recorded repository-wide Witness enum, Process, and Testserial baseline.
+- Release M1 Max median benchmarks across five acceptance runs: complete
+  Latest verification is 1,272,646 ns/op, 524,260 B/op, and 11,067 allocs/op;
+  pure Latest assessment is 370.5 ns/op, zero B/op, and zero allocations; and
+  strict Latest document JSON is 489,936 ns/op, 215,380 B/op, and 4,348
+  allocations/op. The original multi-millisecond, tens-of-thousands-of-
+  allocations assessment numbers were not merely honest fixed-size cost: they
+  exposed repeated quadratic-style closure work across nested accessors. The
+  corrected numbers measure the shipped paths over the fixed 64 KiB document
+  ceiling and make no throughput claim. The package has no variable-size
+  stream or I/O effect and retains only fixed arrays and bounded canonical
+  documents, so its memory bound is constant in admitted input extent.
 - Lease review sweep, 2026-07-30: a hostile re-review of the package under
   `_docs/testing_protocol.md` found and fixed two production defects and closed
   the surfaces that hid them.
@@ -189,8 +277,12 @@ Last updated: `2026-07-30`
   package, and explicitly authorized its commit and push. No tag or release is
   authorized. Fuzzfinder was subsequently reviewed and published at the
   revision above. Lease was subsequently reviewed and explicitly authorized
-  for commit and push at the revision above.
-- Production packages: 15 of 19 accepted.
+  for commit and push at the revision above. Release was subsequently reviewed,
+  supplied four concrete implementation findings and three contract notes,
+  accepted after correction, and explicitly authorized for commit and push.
+- Production packages: 17 of 19 accepted. This authorized Release publication
+  completes Upgrade's dependency frontier; Shutdown remains the selected next
+  slice, followed by Upgrade.
 - Test-support packages: 0 of 1 complete and 1 in consumer surgery.
 - Deferred consumer surgery: Witness must adopt the exact typed
   `testserial.Declare` contract before Testserial can become `DONE`, after all
@@ -889,7 +981,8 @@ Last updated: `2026-07-30`
 
 Next:
 
-1. Finish Process, Release, Shutdown, and Upgrade before any consumer surgery.
+1. Publish the accepted Release slice, then finish Shutdown and Upgrade before
+   any consumer surgery.
 2. After all Primitive production packages are published, migrate Witness,
    Bug, and Peachfuzz independently where each has a concrete matching
    capability. Do not perform Kernel surgery and do not manufacture unused
@@ -920,13 +1013,13 @@ State vocabulary: `NEXT`, `BLOCKED_BY_DEPENDENCY`, `NOT_STARTED`, `RED`,
 | `exchange`         | `DONE`                  |
 | `fuzzfinder`       | `DONE`                  |
 | `lease`            | `DONE`                  |
-| `process`          | `IMPLEMENTING`          |
-| `release`          | `NOT_STARTED`           |
-| `shutdown`         | `NOT_STARTED`           |
+| `process`          | `DONE`                  |
+| `release`          | `DONE`                  |
+| `shutdown`         | `NEXT`                  |
 | `objectstore`      | `DONE`                  |
 | `timeproof`        | `DONE`                  |
 | `cloudidentity`    | `DONE`                  |
-| `upgrade`          | `BLOCKED_BY_DEPENDENCY` |
+| `upgrade`          | `NOT_STARTED`           |
 
 Consumer state is recorded under the active package only. There is no separate
 all-consumer phase.
