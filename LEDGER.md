@@ -10,10 +10,9 @@ Last updated: `2026-07-30`
   `github.com/deliri/primitive/v2026`. Historical evidence remains unchanged
   and therefore retains its original Foundation module paths. `PLAN.md` is
   local-only and excluded from the public repository.
-- Phase: Release was reviewed, corrected, accepted, and authorized for
-  publication as one fixed-size authenticated artifact, Manifest, Latest,
-  advance, and pure installed-selection contract. Shutdown is the next
-  production slice.
+- Phase: Shutdown was reviewed, corrected, accepted, and authorized for
+  publication as one fixed-capacity phased cleanup and OS-signal observation
+  contract. Upgrade is the next production slice.
   It owns no transport, persistence, installer, retry, background worker,
   scheduler, build tool, release workflow, or lifecycle state-machine
   framework. Process was reviewed, committed, and published at
@@ -202,6 +201,104 @@ Last updated: `2026-07-30`
   ceiling and make no throughput claim. The package has no variable-size
   stream or I/O effect and retains only fixed arrays and bounded canonical
   documents, so its memory bound is constant in admitted input extent.
+- Shutdown review state, 2026-07-30: the preserved implementation's useful
+  mechanics were retained only where they ride directly on Go. The archive's
+  unphased LIFO list could not express lifecycle order; its one step budget
+  duplicated distinct consumer cleanup bounds; and its synchronous force
+  callback made `Controller.Close` permanently unjoinable when arbitrary Go
+  code ignored cancellation. The new Plan has five closed phases:
+  stop-admission, drain, persist, flush, and release. Phases execute in order,
+  steps execute LIFO within their phase, every step owns its own cooperative
+  Temporal budget, and one total budget clips the complete run. A fixed
+  64-entry array owns registration and another fixed 64-entry array owns the
+  immutable report. No callback runs in a helper goroutine.
+- Shutdown signal design: one Controller owns one real `os/signal`
+  subscription, one fixed two-event channel, and one goroutine. The first
+  supported signal cancels its context with an authentic typed SignalCause.
+  A second supported signal or real Go timer may publish one sealed Escalation
+  fact, but Shutdown never runs force work, exits a process, or invents a
+  process supervisor. Signal release completes before escalation publication,
+  so the composition root receives policy authority only after Primitive has
+  stopped observation. Parent cancellation and concurrent Close always join
+  the owned goroutine. Stable step, total-timeout, signal-source, and
+  signal-received identities are Core-owned.
+- Shutdown hostile proof: all seven closed enum domains exhaust all 256 backing
+  values and are compiler-marked off-wire. Plan tests pressure zero,
+  one-nanosecond, maximum-duration, longer-than-total clipping, all five
+  phases, mixed registration order, duplicate identities, 64 concurrent
+  registrations, one-over capacity, callback reentry, terminal-parent
+  detachment, panic containment, step timeout, total timeout, and accounting
+  for every skipped step. Controller tests pressure invalid policy
+  cross-products, unknown signals, closed sources, parent cancellation, first
+  and second signals, exact release-before-escalation ordering, seven-minute
+  grace expiry under Go `testing/synctest`, 64 concurrent Close calls, forged
+  values, and typed nils. Real child processes prove SIGINT, SIGTERM, and
+  SIGHUP through public Watch on Darwin. Windows amd64 and Linux amd64/arm64
+  test binaries cross-compile. Focused statement coverage is 92.9 percent.
+- Shutdown review corrections, 2026-07-30: five defects were found and fixed
+  under review. A started step that ran and then failed reported only the
+  budget fact, discarding the callback's native error, so Core's total-timeout
+  identity was returned for work that was not skipped; every classification
+  branch now joins what the callback actually produced, and a contained panic
+  now outranks the clock observations because it is an unambiguous fact about
+  the callback. A contained panic discarded its value outright; the value is
+  now preserved, and a panic carrying an error stays reachable through
+  `errors.Is`. `Report.Validate` proved only its own seal flag and count, so a
+  report could certify observations that failed their own contract; it now
+  proves every retained result, while `Result` performs only constant-time
+  seal, capacity, and index checks so walking a report stays linear rather than
+  quadratic. Every rejection in
+  the package returned one diagnostic-free `core.ErrShutdownContract`, leaving
+  a full plan, a duplicate identity, and a closed plan indistinguishable to an
+  operator; `errors.go` now names each rejection while preserving the Core
+  identity for `errors.Is`. `Plan.Run` returned its parent-context rejection
+  without the Shutdown identity at all, the one rejection in the package a
+  caller could not classify; it is now wrapped like every other. Core's
+  total-timeout doc line was corrected to cover work stopped as well as
+  skipped. Tests: the panic table asserted containment but never the
+  preservation its name claimed, and the boundary table asserted only the bare
+  sentinel for six distinct rejections; both were upgraded to two-tier
+  assertions that prove the typed class first and the operator diagnostic
+  second. `StepResult.Validate` and `Report.Validate` had no direct coverage
+  and now carry hostile matrices over every outcome/identity pairing.
+- Shutdown independent hardening found two more defects and one duplicated
+  contract in the reviewed correction. Rendering a recovered panic with
+  `fmt.Sprint` could invoke hostile caller-owned `Error` or `String` methods,
+  panic again outside containment, and allocate in proportion to an arbitrary
+  byte payload. Panic facts now use a typed `StepPanicError`: error-valued
+  panics remain reachable without rendering the native error; non-error
+  diagnostics stream into a fixed 256-rune bound; byte payloads are decoded
+  without a whole-payload string copy; invalid UTF-8 is normalized; and
+  arbitrary values expose only their Go type. The new rejection reasons were
+  duplicated string literals rather than a compiler-owned domain; one closed
+  `uint8` diagnostic enum now owns every detail and tests recover the exact
+  typed value with `errors.As`. Finally, impossible retained Plan and Report
+  counts could still index beyond their fixed arrays; validation, registration,
+  execution, and report reads now reject those corrupt seals before indexing.
+  Direct Shutdown Witness analysis is clean with no waiver.
+- Shutdown benchmark proof on Apple M1 Max: the actual maximum 64-step no-op
+  construction, registration, phased run, timeout ownership, and report path
+  allocates exactly 8,592 B and 137 allocations per operation across three
+  final runs. Wall time ranged from 34.9 to 35.1 microseconds; this is a local
+  observation, not a latency promise. Allocation is fixed by the
+  compiler-owned 64-step ceiling rather than external workload or process
+  lifetime.
+- Shutdown verification: focused coverage is 92.9 percent; five shuffled
+  focused race repetitions, full tests, full race, and a full shuffled
+  repository run pass. Vet, staticcheck, errcheck, nilaway, production-only
+  fieldalignment, goconst, gosec, govulncheck, actionlint, production
+  `gocyclo <= 10`, formatting, module tidiness, and diff checks pass. Windows
+  amd64 and Linux amd64/arm64 test binaries cross-compile. The canonical gate
+  passes through full tests, full race, vet, staticcheck, errcheck, and
+  nilaway, then stops at the recorded repository-wide Witness enum, Process,
+  and Testserial baseline.
+- Shutdown limitation: Go cannot preempt a non-cooperative in-process cleanup
+  callback. Plan therefore remains synchronously joined and may be delayed by
+  caller code that ignores its context. Guaranteed termination, process exit,
+  worker discovery, and hard kill remain explicit composition-root or
+  supervisor policy. Native Windows Control-C/Control-Break execution is not
+  proved on the Darwin host; only the exact Windows projection and cross-build
+  are local evidence.
 - Lease review sweep, 2026-07-30: a hostile re-review of the package under
   `_docs/testing_protocol.md` found and fixed two production defects and closed
   the surfaces that hid them.
@@ -981,8 +1078,7 @@ Last updated: `2026-07-30`
 
 Next:
 
-1. Publish the accepted Release slice, then finish Shutdown and Upgrade before
-   any consumer surgery.
+1. Finish Upgrade before any consumer surgery.
 2. After all Primitive production packages are published, migrate Witness,
    Bug, and Peachfuzz independently where each has a concrete matching
    capability. Do not perform Kernel surgery and do not manufacture unused
@@ -1015,7 +1111,7 @@ State vocabulary: `NEXT`, `BLOCKED_BY_DEPENDENCY`, `NOT_STARTED`, `RED`,
 | `lease`            | `DONE`                  |
 | `process`          | `DONE`                  |
 | `release`          | `DONE`                  |
-| `shutdown`         | `NEXT`                  |
+| `shutdown`         | `DONE`                  |
 | `objectstore`      | `DONE`                  |
 | `timeproof`        | `DONE`                  |
 | `cloudidentity`    | `DONE`                  |

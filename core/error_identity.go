@@ -184,6 +184,19 @@ const (
 
 	// ErrShutdownContract identifies a shutdown contract violation.
 	ErrShutdownContract
+	// ErrShutdownStepFailure identifies a cleanup step that returned failure.
+	ErrShutdownStepFailure
+	// ErrShutdownStepTimeout identifies a cleanup step whose budget expired.
+	ErrShutdownStepTimeout
+	// ErrShutdownStepPanic identifies a cleanup step whose panic was contained.
+	ErrShutdownStepPanic
+	// ErrShutdownTotalTimeout identifies cleanup work stopped or skipped by
+	// total budget expiry.
+	ErrShutdownTotalTimeout
+	// ErrShutdownSignalSource identifies failed signal observation.
+	ErrShutdownSignalSource
+	// ErrShutdownSignalReceived identifies authentic observed shutdown signal.
+	ErrShutdownSignalReceived
 
 	// ErrObjectStoreContract identifies an object-store contract violation.
 	ErrObjectStoreContract
@@ -259,8 +272,12 @@ func (i ErrorIdentity) Error() string {
 
 func errorIdentityTextObjectStoreThroughGovernance(i ErrorIdentity) string {
 	switch {
+	case i <= ErrReleaseConflict:
+		return errorIdentityTextReleaseTail(i)
+	case i <= ErrShutdownSignalReceived:
+		return errorIdentityTextShutdown(i)
 	case i <= ErrObjectStoreIntegrity:
-		return errorIdentityTextReleaseThroughObjectIntegrity(i)
+		return errorIdentityTextObjectStoreHead(i)
 	case i <= ErrTimeProofInvalid:
 		return errorIdentityTextObjectTailThroughTimeProof(i)
 	case i <= ErrUpgradeContract:
@@ -492,7 +509,7 @@ func errorIdentityTextProcessThroughReleaseManifest(i ErrorIdentity) string {
 	}
 }
 
-func errorIdentityTextReleaseThroughObjectIntegrity(i ErrorIdentity) string {
+func errorIdentityTextReleaseTail(i ErrorIdentity) string {
 	switch i {
 	case ErrReleaseVerification:
 		return "release verification failed"
@@ -502,8 +519,34 @@ func errorIdentityTextReleaseThroughObjectIntegrity(i ErrorIdentity) string {
 		return "release rollback rejected"
 	case ErrReleaseConflict:
 		return "release identity conflict"
+	default:
+		return unknownErrorIdentityText
+	}
+}
+
+func errorIdentityTextShutdown(i ErrorIdentity) string {
+	switch i {
 	case ErrShutdownContract:
 		return "shutdown contract violation"
+	case ErrShutdownStepFailure:
+		return "shutdown step failed"
+	case ErrShutdownStepTimeout:
+		return "shutdown step timed out"
+	case ErrShutdownStepPanic:
+		return "shutdown step panicked"
+	case ErrShutdownTotalTimeout:
+		return "shutdown total budget expired"
+	case ErrShutdownSignalSource:
+		return "shutdown signal source failed"
+	case ErrShutdownSignalReceived:
+		return "shutdown signal received"
+	default:
+		return unknownErrorIdentityText
+	}
+}
+
+func errorIdentityTextObjectStoreHead(i ErrorIdentity) string {
+	switch i {
 	case ErrObjectStoreContract:
 		return "object store contract violation"
 	case ErrObjectStoreExpired:
@@ -742,6 +785,10 @@ func errorIdentityParentsFuzzFinderThroughObjectStore(identity ErrorIdentity) er
 	case ErrReleaseManifest, ErrReleaseVerification, ErrReleaseLatest,
 		ErrReleaseRollback, ErrReleaseConflict:
 		return oneErrorIdentityParent(ErrReleaseContract)
+	case ErrShutdownStepFailure, ErrShutdownStepTimeout, ErrShutdownStepPanic,
+		ErrShutdownTotalTimeout, ErrShutdownSignalSource,
+		ErrShutdownSignalReceived:
+		return oneErrorIdentityParent(ErrShutdownContract)
 	case ErrObjectStoreExpired, ErrObjectStoreIntegrity, ErrObjectStoreSource,
 		ErrObjectStoreDestination, ErrObjectStoreConflict, ErrObjectStoreSize,
 		ErrObjectStoreAbsent:
