@@ -49,6 +49,8 @@ flowchart TD
     lease[lease] --> core
     lease --> temporal
     lease --> attest
+    gate[gate] --> core
+    gate --> lease
     process[process] --> core
     process --> contextstate
     process --> temporal
@@ -77,6 +79,14 @@ flowchart TD
     upgrade --> release
     upgrade --> temporal
 ```
+
+The diagram is the production graph. A package may additionally declare
+test-only edges in the same compiler-owned catalog when its real ingress value
+cannot be constructed without the package that produces it. A declared test
+edge grants no production dependency, counts against the same per-package
+coupling ceiling, and is rejected when no test source uses it. Today `gate`
+declares the only test-only edges, to `attest` and `temporal`, so its proofs
+run against a real signed lease rather than a fabricated assessment.
 
 ## License
 

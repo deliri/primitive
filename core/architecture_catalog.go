@@ -12,9 +12,11 @@ const (
 	// PrimitivePackagePathPrefix prefixes every Primitive package import path.
 	PrimitivePackagePathPrefix = PrimitiveModulePath + "/"
 	// PrimitivePackageCount is the number of packages in the complete catalog.
-	PrimitivePackageCount = 20
+	PrimitivePackageCount = 21
 	// PrimitiveDirectImportCount is the number of admitted direct import edges.
-	PrimitiveDirectImportCount = 45
+	PrimitiveDirectImportCount = 47
+	// PrimitiveDirectTestImportCount is the number of admitted test-only edges.
+	PrimitiveDirectTestImportCount = 2
 	// PrimitiveMaximumDirectImports caps direct sibling imports per package.
 	PrimitiveMaximumDirectImports = 6
 )
@@ -51,6 +53,8 @@ const (
 	PackageFuzzFinder
 	// PackageLease identifies the lease package.
 	PackageLease
+	// PackageGate identifies the new-work authorization package.
+	PackageGate
 	// PackageProcess identifies the process package.
 	PackageProcess
 	// PackageRelease identifies the release package.
@@ -102,10 +106,26 @@ type DirectImportContract struct {
 	Imported PackageIdentity
 }
 
+// DirectTestImportContract admits one test-only importer-to-imported edge.
+//
+// A test-only edge exists when a package's real ingress value cannot be
+// constructed without the substrate that produces it, so the package's own
+// tests must build that value through the real producing package. It grants no
+// production dependency: production sources that import the edge remain an
+// undeclared production edge, and a declared test edge that no test file uses
+// is a ceremonial import and equally rejected.
+type DirectTestImportContract struct {
+	// Importer is the package whose test sources own the import declaration.
+	Importer PackageIdentity
+	// Imported is the directly imported Primitive package.
+	Imported PackageIdentity
+}
+
 // ArchitectureCatalog is the complete, validated Primitive package graph.
 type ArchitectureCatalog struct {
-	packages [PrimitivePackageCount]PackageContract
-	imports  [PrimitiveDirectImportCount]DirectImportContract
+	packages    [PrimitivePackageCount]PackageContract
+	imports     [PrimitiveDirectImportCount]DirectImportContract
+	testImports [PrimitiveDirectTestImportCount]DirectTestImportContract
 }
 
 // PrimitiveArchitecture returns the complete compiler-owned package catalog.
@@ -125,6 +145,7 @@ func PrimitiveArchitecture() ArchitectureCatalog {
 			{Identity: PackageExchange, Kind: PackageKindProduction},
 			{Identity: PackageFuzzFinder, Kind: PackageKindProduction},
 			{Identity: PackageLease, Kind: PackageKindProduction},
+			{Identity: PackageGate, Kind: PackageKindProduction},
 			{Identity: PackageProcess, Kind: PackageKindProduction},
 			{Identity: PackageRelease, Kind: PackageKindProduction},
 			{Identity: PackageShutdown, Kind: PackageKindProduction},
@@ -156,6 +177,8 @@ func PrimitiveArchitecture() ArchitectureCatalog {
 			{Importer: PackageLease, Imported: PackageCore},
 			{Importer: PackageLease, Imported: PackageTemporal},
 			{Importer: PackageLease, Imported: PackageAttest},
+			{Importer: PackageGate, Imported: PackageCore},
+			{Importer: PackageGate, Imported: PackageLease},
 			{Importer: PackageProcess, Imported: PackageCore},
 			{Importer: PackageProcess, Imported: PackageContextState},
 			{Importer: PackageProcess, Imported: PackageTemporal},
@@ -184,6 +207,10 @@ func PrimitiveArchitecture() ArchitectureCatalog {
 			{Importer: PackageUpgrade, Imported: PackageRelease},
 			{Importer: PackageUpgrade, Imported: PackageTemporal},
 		},
+		testImports: [PrimitiveDirectTestImportCount]DirectTestImportContract{
+			{Importer: PackageGate, Imported: PackageAttest},
+			{Importer: PackageGate, Imported: PackageTemporal},
+		},
 	}
 }
 
@@ -193,6 +220,9 @@ func (c ArchitectureCatalog) Validate() error {
 		return err
 	}
 	if err := c.validateDirectImports(); err != nil {
+		return err
+	}
+	if err := c.validateDirectTestImports(); err != nil {
 		return err
 	}
 	if c.hasCycle() {
@@ -221,6 +251,37 @@ func (c ArchitectureCatalog) DirectImports() iter.Seq[DirectImportContract] {
 			}
 		}
 	}
+}
+
+// DirectTestImports yields every admitted test-only edge in catalog order.
+func (c ArchitectureCatalog) DirectTestImports() iter.Seq[DirectTestImportContract] {
+	return func(yield func(DirectTestImportContract) bool) {
+		for _, contract := range c.testImports {
+			if !yield(contract) {
+				return
+			}
+		}
+	}
+}
+
+// ContainsDirectImport reports membership in the admitted production graph.
+func (c ArchitectureCatalog) ContainsDirectImport(target DirectImportContract) bool {
+	for _, contract := range c.imports {
+		if contract == target {
+			return true
+		}
+	}
+	return false
+}
+
+// ContainsDirectTestImport reports membership in the admitted test-only graph.
+func (c ArchitectureCatalog) ContainsDirectTestImport(target DirectTestImportContract) bool {
+	for _, contract := range c.testImports {
+		if contract == target {
+			return true
+		}
+	}
+	return false
 }
 
 // Lookup returns the contract for identity.
@@ -378,6 +439,17 @@ func (c DirectImportContract) Validate() error {
 	return nil
 }
 
+// Validate enforces a legal test-only package relationship.
+//
+// A test edge obeys the identical relationship legality as a production edge:
+// both endpoints are admitted packages and a package never imports itself or
+// is imported by Core. Unlike a production edge, a test edge may target the
+// test-support package, because declaring test isolation is exactly what test
+// sources do.
+func (c DirectTestImportContract) Validate() error {
+	return DirectImportContract(c).Validate()
+}
+
 func packageIdentityText(identity PackageIdentity) string {
 	switch {
 	case identity <= PackageTestSerial:
@@ -424,6 +496,8 @@ func packageIdentityTextFilestoreThroughProcess(identity PackageIdentity) string
 		return "fuzzfinder"
 	case PackageLease:
 		return "lease"
+	case PackageGate:
+		return "gate"
 	case PackageProcess:
 		return "process"
 	default:
@@ -484,17 +558,44 @@ func (c ArchitectureCatalog) validateDirectImports() error {
 	return nil
 }
 
+func (c ArchitectureCatalog) validateDirectTestImports() error {
+	for index, contract := range c.testImports {
+		if err := contract.Validate(); err != nil {
+			return err
+		}
+		if _, found := c.Lookup(contract.Imported); !found {
+			return architectureContractError("direct test import targets an absent package")
+		}
+		if c.ContainsDirectImport(DirectImportContract(contract)) {
+			return architectureContractError("direct test import duplicates a production edge")
+		}
+		for prior := range index {
+			if c.testImports[prior] == contract {
+				return architectureContractError("architecture catalog contains a duplicate direct test import")
+			}
+		}
+	}
+	return nil
+}
+
+// validateImportCardinality bounds each package's total compiler-visible
+// sibling coupling. Test-only edges count against the same ceiling as
+// production edges; a package does not buy extra coupling by spending it in
+// its test sources.
 func (c ArchitectureCatalog) validateImportCardinality() error {
 	var counts [packageIdentityLimit]uint8
 	for _, contract := range c.imports {
 		counts[contract.Importer]++
-		if counts[contract.Importer] > PrimitiveMaximumDirectImports {
-			return architectureContractError("package exceeds the direct import limit")
-		}
+	}
+	for _, contract := range c.testImports {
+		counts[contract.Importer]++
 	}
 	for identity := PackageAttest; identity < packageIdentityLimit; identity++ {
 		if counts[identity] == 0 {
 			return architectureContractError("non-core package has no direct imports")
+		}
+		if counts[identity] > PrimitiveMaximumDirectImports {
+			return architectureContractError("package exceeds the direct import limit")
 		}
 	}
 	return nil

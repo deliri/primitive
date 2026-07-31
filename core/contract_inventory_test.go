@@ -30,6 +30,7 @@ type productionStructInventory struct {
 type coreContractInventory struct {
 	PackageContract              architectureFact[PackageContract]
 	DirectImportContract         architectureFact[DirectImportContract]
+	DirectTestImportContract     architectureFact[DirectTestImportContract]
 	ArchitectureCatalog          architectureFact[ArchitectureCatalog]
 	StrictJSONLimits             protocolFact[StrictJSONLimits]
 	strictJSONContainer          internalFlow[strictJSONContainer]

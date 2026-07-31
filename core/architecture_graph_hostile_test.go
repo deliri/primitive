@@ -13,7 +13,7 @@ import (
 )
 
 type directImportInventory struct {
-	values [PrimitiveDirectImportCount]DirectImportContract
+	values [PrimitivePackageCount - 1]DirectImportContract
 	count  uint8
 }
 
@@ -25,12 +25,31 @@ const (
 	architectureImportViolationExtra
 )
 
+// architectureImportScope names the source set a violation was observed in.
+// Production and test sources are audited against different admitted graphs,
+// so a violation is only readable together with the scope that produced it.
+type architectureImportScope uint8
+
+const (
+	architectureImportScopeUnknown architectureImportScope = iota
+	architectureImportScopeProduction
+	architectureImportScopeTest
+)
+
 type architectureImportViolation struct {
 	contract DirectImportContract
 	kind     architectureImportViolationKind
+	scope    architectureImportScope
 }
 
-const architectureImportViolationMaximum = PrimitiveDirectImportCount * 2
+// packageImportSources separates one landed package's compiler-visible sibling
+// imports by the source set that declares them.
+type packageImportSources struct {
+	production directImportInventory
+	test       directImportInventory
+}
+
+const architectureImportViolationMaximum = (PrimitivePackageCount - 1) * 2
 
 type architectureImportViolationInventory struct {
 	values [architectureImportViolationMaximum]architectureImportViolation
@@ -73,8 +92,9 @@ func TestLandedPackageImportsMatchPrimitiveArchitecture(t *testing.T) {
 		}
 		for _, gotViolation := range gotViolations.Values() {
 			t.Errorf(
-				"landed package import violation kind=%v edge=%v -> %v",
+				"landed package import violation kind=%v scope=%v edge=%v -> %v",
 				gotViolation.kind,
+				gotViolation.scope,
 				gotViolation.contract.Importer,
 				gotViolation.contract.Imported,
 			)
@@ -91,14 +111,20 @@ func TestArchitectureImportMatcherSyntheticRedGreenRatchet(t *testing.T) {
 	unknownPath := PrimitivePackagePathPrefix + "notadmitted"
 	nestedCorePath := corePath + "/internal"
 
+	gatePath := mustPackageImportPathForTest(t, PackageGate)
+	leasePath := mustPackageImportPathForTest(t, PackageLease)
+	temporalPath := mustPackageImportPathForTest(t, PackageTemporal)
+
 	cases := []struct {
-		wantErr     error
-		name        string
-		files       syntheticGoFileSet
-		wantMissing int
-		wantExtra   int
-		identity    PackageIdentity
-		wantExists  bool
+		wantErr         error
+		name            string
+		files           syntheticGoFileSet
+		wantMissing     int
+		wantExtra       int
+		wantTestMissing int
+		wantTestExtra   int
+		identity        PackageIdentity
+		wantExists      bool
 	}{
 		{name: "absent package is a neutral not-landed result", identity: PackageCore},
 		{
@@ -161,7 +187,7 @@ func TestArchitectureImportMatcherSyntheticRedGreenRatchet(t *testing.T) {
 			wantExtra:  1,
 		},
 		{
-			name:     "test-only sibling import is a real extra coupling edge",
+			name:     "undeclared test-only sibling import is a real extra coupling edge",
 			identity: PackageAttest,
 			files: syntheticGoFileSet{
 				values: [3]syntheticGoFile{
@@ -170,8 +196,84 @@ func TestArchitectureImportMatcherSyntheticRedGreenRatchet(t *testing.T) {
 				},
 				count: 2,
 			},
+			wantExists:    true,
+			wantTestExtra: 1,
+		},
+		{
+			name:     "gate declared test edges are admitted only in test sources",
+			identity: PackageGate,
+			files: syntheticGoFileSet{
+				values: [3]syntheticGoFile{
+					{name: "authorize.go", source: goSourceWithImports(corePath, leasePath)},
+					{
+						name:   "authorize_external_test.go",
+						source: goSourceWithImports(corePath, leasePath, attestPath, temporalPath),
+					},
+				},
+				count: 2,
+			},
+			wantExists: true,
+		},
+		{
+			name:     "gate production import of a declared test edge is an extra production edge",
+			identity: PackageGate,
+			files: syntheticGoFileSet{
+				values: [3]syntheticGoFile{
+					{name: "authorize.go", source: goSourceWithImports(corePath, leasePath, attestPath)},
+					{
+						name:   "authorize_external_test.go",
+						source: goSourceWithImports(attestPath, temporalPath),
+					},
+				},
+				count: 2,
+			},
 			wantExists: true,
 			wantExtra:  1,
+		},
+		{
+			name:     "gate test sources omitting a declared test edge report the ceremonial import",
+			identity: PackageGate,
+			files: syntheticGoFileSet{
+				values: [3]syntheticGoFile{
+					{name: "authorize.go", source: goSourceWithImports(corePath, leasePath)},
+					{name: "authorize_external_test.go", source: goSourceWithImports(attestPath)},
+				},
+				count: 2,
+			},
+			wantExists:      true,
+			wantTestMissing: 1,
+		},
+		{
+			name:     "gate production edge satisfied only by a test import stays missing",
+			identity: PackageGate,
+			files: syntheticGoFileSet{
+				values: [3]syntheticGoFile{
+					{name: "authorize.go", source: goSourceWithImports(corePath)},
+					{
+						name:   "authorize_external_test.go",
+						source: goSourceWithImports(leasePath, attestPath, temporalPath),
+					},
+				},
+				count: 2,
+			},
+			wantExists:  true,
+			wantMissing: 1,
+		},
+		{
+			name:     "another package may not spend gate's declared test edges",
+			identity: PackageLease,
+			files: syntheticGoFileSet{
+				values: [3]syntheticGoFile{
+					{
+						name:   "lease.go",
+						source: goSourceWithImports(corePath, attestPath, temporalPath),
+					},
+					{name: "lease_test.go", source: goSourceWithImports(gatePath)},
+				},
+				count: 2,
+			},
+			wantExists:    true,
+			wantTestExtra: 1,
 		},
 		{
 			name:     "external-package test self import is not a sibling edge",
@@ -267,73 +369,157 @@ func TestArchitectureImportMatcherSyntheticRedGreenRatchet(t *testing.T) {
 			if gotErr != nil {
 				return
 			}
-			gotMissing := gotViolations.CountKind(architectureImportViolationMissing)
+			gotMissing := gotViolations.CountKind(
+				architectureImportViolationMissing, architectureImportScopeProduction,
+			)
 			if gotMissing != tc.wantMissing {
-				t.Fatalf("missing import violation count = %d, want %d", gotMissing, tc.wantMissing)
+				t.Fatalf("missing production import violation count = %d, want %d", gotMissing, tc.wantMissing)
 			}
-			gotExtra := gotViolations.CountKind(architectureImportViolationExtra)
+			gotExtra := gotViolations.CountKind(
+				architectureImportViolationExtra, architectureImportScopeProduction,
+			)
 			if gotExtra != tc.wantExtra {
-				t.Fatalf("extra import violation count = %d, want %d", gotExtra, tc.wantExtra)
+				t.Fatalf("extra production import violation count = %d, want %d", gotExtra, tc.wantExtra)
+			}
+			gotTestMissing := gotViolations.CountKind(
+				architectureImportViolationMissing, architectureImportScopeTest,
+			)
+			if gotTestMissing != tc.wantTestMissing {
+				t.Fatalf("missing test import violation count = %d, want %d", gotTestMissing, tc.wantTestMissing)
+			}
+			gotTestExtra := gotViolations.CountKind(
+				architectureImportViolationExtra, architectureImportScopeTest,
+			)
+			if gotTestExtra != tc.wantTestExtra {
+				t.Fatalf("extra test import violation count = %d, want %d", gotTestExtra, tc.wantTestExtra)
+			}
+			wantTotal := tc.wantMissing + tc.wantExtra + tc.wantTestMissing + tc.wantTestExtra
+			if int(gotViolations.count) != wantTotal {
+				t.Fatalf(
+					"total import violations = %d, want %d (%+v)",
+					gotViolations.count, wantTotal, gotViolations.Values(),
+				)
 			}
 		})
 	}
 }
 
+// auditPackageImports decides both terms of the coupling coefficient for one
+// landed package. Production sources are audited against the admitted
+// production frontier alone, so a declared production edge cannot be satisfied
+// by a test-only import. Test sources are audited against the production
+// frontier plus the package's declared test-only edges, so an honest proof
+// against the real producing substrate is admitted exactly once and every
+// other sibling import in tests stays a violation.
 func auditPackageImports(
 	root string,
 	identity PackageIdentity,
 	catalog ArchitectureCatalog,
 ) (bool, architectureImportViolationInventory, error) {
-	exists, imports, err := readPackageImports(root, identity)
+	exists, sources, err := readPackageImports(root, identity)
 	if err != nil || !exists {
 		return exists, architectureImportViolationInventory{}, err
 	}
 	var violations architectureImportViolationInventory
-	for _, gotImport := range imports.Values() {
-		if !catalogContainsDirectImport(catalog, gotImport) {
-			if addErr := violations.Add(architectureImportViolation{
-				contract: gotImport,
-				kind:     architectureImportViolationExtra,
-			}); addErr != nil {
-				return true, architectureImportViolationInventory{}, addErr
-			}
-		}
+	if addErr := auditProductionScope(identity, catalog, sources, &violations); addErr != nil {
+		return true, architectureImportViolationInventory{}, addErr
 	}
-	for wantImport := range catalog.DirectImports() {
-		if wantImport.Importer == identity && !imports.Contains(wantImport) {
-			if addErr := violations.Add(architectureImportViolation{
-				contract: wantImport,
-				kind:     architectureImportViolationMissing,
-			}); addErr != nil {
-				return true, architectureImportViolationInventory{}, addErr
-			}
-		}
+	if addErr := auditTestScope(identity, catalog, sources, &violations); addErr != nil {
+		return true, architectureImportViolationInventory{}, addErr
 	}
 	return true, violations, nil
 }
 
-func readPackageImports(root string, identity PackageIdentity) (bool, directImportInventory, error) {
+func auditProductionScope(
+	identity PackageIdentity,
+	catalog ArchitectureCatalog,
+	sources packageImportSources,
+	violations *architectureImportViolationInventory,
+) error {
+	for _, gotImport := range sources.production.Values() {
+		if catalog.ContainsDirectImport(gotImport) {
+			continue
+		}
+		if err := violations.Add(architectureImportViolation{
+			contract: gotImport,
+			kind:     architectureImportViolationExtra,
+			scope:    architectureImportScopeProduction,
+		}); err != nil {
+			return err
+		}
+	}
+	for wantImport := range catalog.DirectImports() {
+		if wantImport.Importer != identity || sources.production.Contains(wantImport) {
+			continue
+		}
+		if err := violations.Add(architectureImportViolation{
+			contract: wantImport,
+			kind:     architectureImportViolationMissing,
+			scope:    architectureImportScopeProduction,
+		}); err != nil {
+			return err
+		}
+	}
+	return nil
+}
+
+func auditTestScope(
+	identity PackageIdentity,
+	catalog ArchitectureCatalog,
+	sources packageImportSources,
+	violations *architectureImportViolationInventory,
+) error {
+	for _, gotImport := range sources.test.Values() {
+		if catalog.ContainsDirectImport(gotImport) ||
+			catalog.ContainsDirectTestImport(DirectTestImportContract(gotImport)) {
+			continue
+		}
+		if err := violations.Add(architectureImportViolation{
+			contract: gotImport,
+			kind:     architectureImportViolationExtra,
+			scope:    architectureImportScopeTest,
+		}); err != nil {
+			return err
+		}
+	}
+	for wantImport := range catalog.DirectTestImports() {
+		if wantImport.Importer != identity ||
+			sources.test.Contains(DirectImportContract(wantImport)) {
+			continue
+		}
+		if err := violations.Add(architectureImportViolation{
+			contract: DirectImportContract(wantImport),
+			kind:     architectureImportViolationMissing,
+			scope:    architectureImportScopeTest,
+		}); err != nil {
+			return err
+		}
+	}
+	return nil
+}
+
+func readPackageImports(root string, identity PackageIdentity) (bool, packageImportSources, error) {
 	name, err := identity.Name()
 	if err != nil {
-		return false, directImportInventory{}, err
+		return false, packageImportSources{}, err
 	}
 	packageDirectory := filepath.Join(root, name)
 	entries, err := os.ReadDir(packageDirectory)
 	if errors.Is(err, os.ErrNotExist) {
-		return false, directImportInventory{}, nil
+		return false, packageImportSources{}, nil
 	}
 	if err != nil {
-		return false, directImportInventory{}, errors.Join(
+		return false, packageImportSources{}, errors.Join(
 			architectureContractError("landed package directory cannot be read"),
 			err,
 		)
 	}
-	var imports directImportInventory
+	var sources packageImportSources
 	files := token.NewFileSet()
 	for _, entry := range entries {
 		if entry.IsDir() {
 			if nestedErr := rejectNestedGoSources(filepath.Join(packageDirectory, entry.Name())); nestedErr != nil {
-				return true, directImportInventory{}, nestedErr
+				return true, packageImportSources{}, nestedErr
 			}
 			continue
 		}
@@ -341,11 +527,21 @@ func readPackageImports(root string, identity PackageIdentity) (bool, directImpo
 			continue
 		}
 		filename := filepath.Join(packageDirectory, entry.Name())
-		if readErr := readGoFileImports(files, filename, identity, &imports); readErr != nil {
-			return true, directImportInventory{}, readErr
+		if readErr := readGoFileImports(files, filename, identity, sources.scope(entry.Name())); readErr != nil {
+			return true, packageImportSources{}, readErr
 		}
 	}
-	return true, imports, nil
+	return true, sources, nil
+}
+
+// scope returns the inventory that owns filename's imports. Go decides the
+// production/test split by the exact `_test.go` suffix, so the audit uses the
+// identical rule rather than a second convention.
+func (s *packageImportSources) scope(filename string) *directImportInventory {
+	if strings.HasSuffix(filename, "_test.go") {
+		return &s.test
+	}
+	return &s.production
 }
 
 func rejectNestedGoSources(directory string) error {
@@ -419,15 +615,6 @@ func parsePrimitiveImportPath(importPath string) (PackageIdentity, bool, error) 
 		}
 	}
 	return PackageUnknown, true, architectureContractError("landed package imports an undeclared Primitive package path")
-}
-
-func catalogContainsDirectImport(catalog ArchitectureCatalog, target DirectImportContract) bool {
-	for candidate := range catalog.DirectImports() {
-		if candidate == target {
-			return true
-		}
-	}
-	return false
 }
 
 func mustPackageImportPathForTest(t *testing.T, identity PackageIdentity) string {
@@ -514,6 +701,9 @@ func (i *architectureImportViolationInventory) Add(violation architectureImportV
 	if violation.kind == architectureImportViolationUnknown {
 		return architectureContractError("architecture import violation kind is unset")
 	}
+	if violation.scope == architectureImportScopeUnknown {
+		return architectureContractError("architecture import violation scope is unset")
+	}
 	if int(i.count) >= len(i.values) {
 		return architectureContractError("architecture import violation inventory exceeds its fixed capacity")
 	}
@@ -522,10 +712,13 @@ func (i *architectureImportViolationInventory) Add(violation architectureImportV
 	return nil
 }
 
-func (i architectureImportViolationInventory) CountKind(kind architectureImportViolationKind) int {
+func (i architectureImportViolationInventory) CountKind(
+	kind architectureImportViolationKind,
+	scope architectureImportScope,
+) int {
 	count := 0
 	for _, violation := range i.Values() {
-		if violation.kind == kind {
+		if violation.kind == kind && violation.scope == scope {
 			count++
 		}
 	}

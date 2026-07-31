@@ -158,6 +158,11 @@ const (
 	// ErrLeaseClock identifies a local clock contradiction.
 	ErrLeaseClock
 
+	// ErrGateContract identifies a new-work Gate contract violation.
+	ErrGateContract
+	// ErrGateDenied identifies an authentic Lease state that denies new work.
+	ErrGateDenied
+
 	// ErrProcessContract identifies a process contract violation.
 	ErrProcessContract
 	// ErrProcessStart identifies failure to start a process.
@@ -280,8 +285,8 @@ func (i ErrorIdentity) Error() string {
 		return errorIdentityTextExchange(i)
 	case i <= ErrFuzzFinderFormat:
 		return errorIdentityTextFuzzFinderHead(i)
-	case i <= ErrLeaseClock:
-		return errorIdentityTextFuzzFinderThroughLease(i)
+	case i <= ErrGateDenied:
+		return errorIdentityTextFuzzFinderThroughGate(i)
 	case i <= ErrReleaseManifest:
 		return errorIdentityTextProcessThroughReleaseManifest(i)
 	default:
@@ -486,7 +491,7 @@ func errorIdentityTextFuzzFinderHead(i ErrorIdentity) string {
 	}
 }
 
-func errorIdentityTextFuzzFinderThroughLease(i ErrorIdentity) string {
+func errorIdentityTextFuzzFinderThroughGate(i ErrorIdentity) string {
 	switch i {
 	case ErrFuzzFinderObservation:
 		return "fuzz artifact observation failed"
@@ -502,6 +507,10 @@ func errorIdentityTextFuzzFinderThroughLease(i ErrorIdentity) string {
 		return "lease subject mismatch"
 	case ErrLeaseClock:
 		return "lease clock contradiction"
+	case ErrGateContract:
+		return "gate contract violation"
+	case ErrGateDenied:
+		return "gate denied new work"
 	default:
 		return unknownErrorIdentityText
 	}
@@ -741,7 +750,8 @@ func errorIdentityParents(identity ErrorIdentity) errorIdentityParentSet {
 		ErrContextStateContract, ErrCurrencyContract, ErrGarbleContract,
 		ErrKeygenContract, ErrTestIsolationContract, ErrFilestoreContract,
 		ErrTemporalContract, ErrExchangeContract,
-		ErrFuzzFinderContract, ErrLeaseContract, ErrProcessContract,
+		ErrFuzzFinderContract, ErrLeaseContract, ErrGateContract,
+		ErrProcessContract,
 		ErrReleaseContract,
 		ErrShutdownContract, ErrObjectStoreContract, ErrTimeProofContract,
 		ErrCloudIdentityContract, ErrUpgradeContract, ErrGovernanceContract:
@@ -822,6 +832,8 @@ func errorIdentityParentsFuzzFinderThroughObjectStore(identity ErrorIdentity) er
 	case ErrLeaseVerification, ErrLeaseRollback, ErrLeaseConflict,
 		ErrLeaseScope, ErrLeaseClock:
 		return oneErrorIdentityParent(ErrLeaseContract)
+	case ErrGateDenied:
+		return oneErrorIdentityParent(ErrGateContract)
 	case ErrProcessStart, ErrProcessStream, ErrProcessWait:
 		return oneErrorIdentityParent(ErrProcessContract)
 	case ErrProcessOutputLimit:

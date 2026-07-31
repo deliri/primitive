@@ -10,13 +10,16 @@ Last updated: `2026-07-31`
   `github.com/deliri/primitive/v2026`. Historical evidence remains unchanged
   and therefore retains its original Foundation module paths. `PLAN.md` is
   local-only and excluded from the public repository.
-- Phase: Upgrade is reviewed and published by the commit carrying this ledger
-  entry as the final Primitive production slice. It owns one fixed two-slot installation layout,
-  bounded candidate staging and verification, typed product-trial handoff, one
-  atomic primary selector, and exact obsolete-slot cleanup. It owns no command
-  arguments, test semantics, live-data sandbox, consent UI, ticket submission,
-  retry, scheduler, background worker, transport, release authority, or
-  general persistence/state-machine framework. Process was reviewed,
+- Phase: Gate is reviewed and accepted for publication by the commit carrying
+  this ledger entry. It is the CLI-side new-work enforcement boundary over one
+  authentic Lease assessment; current and continuity states permit, while
+  not-yet-valid, expired, refused, and revoked states return a typed denial.
+  OGS's control-plane authentication, route protection, authoritative
+  operation authorization, and policy issuance remain separate server-owned
+  gates. Existing-record inspection, registration, check-in, recovery,
+  persistence, product command mapping, rendering, and customer-facing copy
+  remain outside Primitive Gate. Upgrade was reviewed and published at
+  `a74ad9a8b84c80f1027e930440ca2e96b8bbdb1f`. Process was reviewed,
   committed, and published at
   `15d64adc1ea5f6c932bcb1a587ecc4d4ed68d4d8`; Lease was reviewed, committed,
   and published at `c86bca9c93c2bbde390fb82291a7fa38db691201`;
@@ -382,10 +385,12 @@ Last updated: `2026-07-31`
   supplied four concrete implementation findings and three contract notes,
   accepted after correction, and explicitly authorized for commit and push.
   Shutdown was subsequently reviewed, corrected, accepted, and explicitly
-  authorized for publication at the revision above. Upgrade has not been
-  accepted, committed, or pushed.
-- Production packages: 18 of 19 accepted. Upgrade is the one package in user
-  review.
+  authorized for publication at the revision above. Upgrade was subsequently
+  reviewed, corrected, accepted, and explicitly authorized for publication at
+  the revision above. Gate was subsequently reviewed, corrected, accepted, and
+  explicitly authorized for publication by the commit carrying this ledger
+  entry.
+- Production packages: 20 of 20 accepted.
 - Test-support packages: 0 of 1 complete and 1 in consumer surgery.
 - Deferred consumer surgery: Witness must adopt the exact typed
   `testserial.Declare` contract before Testserial can become `DONE`, after all
@@ -1222,13 +1227,103 @@ Last updated: `2026-07-31`
   artifact re-hash, has a five-run median of 234,136 ns/op, 143,458 B/op, and
   1,937 allocs/op. The byte path is streaming and memory is bounded, but these
   costs are disclosed without calling the operation cheap or allocation-free.
+- Gate contract: Primitive Gate is only the authentic CLI-side new-work
+  boundary. `AuthorizeNewWork` accepts one proof-carrying `lease.Assessment`;
+  its private `NewWorkPermit` closes only over current and continuity, while
+  `DenialError` retains the exact rejected assessment for typed state and
+  contact recovery. Products own exhaustive command-to-new-work mapping and
+  bypass Gate entirely for permanent existing-record inspection, check-in,
+  registration, and recovery. OGS owns a separate hard server boundary through
+  its route/auth gates and handler-specific authority; a client permit never
+  authenticates an OGS request, and OGS authentication never substitutes for
+  the signed Lease assessed by the CLI.
+- Gate archive reconciliation: the preserved signed action-policy package was
+  rejected rather than repaired. Its second signed policy duplicated the
+  settled OGS Grant/Refusal/Revocation authority, its seventeen actions copied
+  product workflow, its bare observed time could roll authority backward, and
+  its standalone verification did not bind expected subject. Gate therefore
+  imports only Core and Lease and creates no signing domain, action vocabulary,
+  policy document, clock, persistence, transport, scheduler, callback, worker,
+  or state machine.
+- Core reopening for declared test edges: `PLAN.md` section 5 names an
+  undeclared test edge as a Sentinel failure and a term of the coupling
+  coefficient, but the catalog modelled only production edges and the landed
+  scan audited production and test sources against one conflated allowlist.
+  Gate is the first package to prove the gap, because a valid
+  `lease.Assessment` is deliberately unconstructable without a real Attest
+  signature. Core now owns `DirectTestImportContract` and
+  `PrimitiveDirectTestImportCount`, and admits exactly `gate -> attest` and
+  `gate -> temporal`. A declared test edge grants no production dependency,
+  counts against the same `PrimitiveMaximumDirectImports` ceiling, may not
+  duplicate a production edge, and is rejected when no test source spends it.
+  The landed scan now audits production sources against the production
+  frontier alone, which also closes the prior hole where a declared production
+  edge could be satisfied by a test-only import.
+- Gate proof: the Lease-state disposition test exhausts all 256 underlying
+  values; only current and continuity permit, every other admitted state
+  denies, and every unknown or future value fails closed with both Gate and
+  Lease identity. The external suite drives the real path end to end: an
+  Ed25519-signed grant, refusal, and revocation are verified through Attest and
+  Lease, evaluated at one exact instant, and authorized. It pressures both
+  sides of every grant boundary, including the exact `NotBefore`, `NotAfter`,
+  and `GoodUntil` instants, and proves the permit carries the caller's exact
+  assessment while each denial carries the exact state and contact posture.
+  The internal suite forges both capabilities over the wrong authentic state
+  and proves each rejects itself. Zero request, zero permit, zero denial, the
+  complete diagnostic-boundary domain, denial-versus-contract identity
+  separation, exact operator-facing text, exact public function surface,
+  production struct data-flow roles, and the exact production and test-only
+  import frontiers projected from the Core catalog are ratcheted. Focused
+  statement coverage is 89.6%; the remainder is the fail-closed arms that no
+  admitted state can currently reach.
+- Gate defects corrected in review: `AuthorizeNewWork` returned a populated
+  `NewWorkPermit` alongside the validation error when a permit failed its own
+  gate, so a caller could hold a capability and a failure at once; it now
+  returns the zero permit on every error path. `DenialError` was a pointer
+  whose `Error` and `Unwrap` answered on a nil receiver, so a nil denial
+  carried Gate's denial identity with no assessment behind it; the reviewed
+  correction first changed it to a value and deleted the test that blessed the
+  nil receiver, before the independent hardening below closed the remaining
+  zero-value form. Permit and denial validation conflated a domain error with a
+  wrong-disposition result and discarded the distinction; each now returns its
+  own named boundary. The package architecture test restated the import
+  frontier instead of projecting it from Core, and the struct inventory listed
+  names without classifying roles.
+- Gate independent hardening: the reviewed change from pointer to value removed
+  the nil receiver but left `DenialError{}` externally constructable as an
+  `error` that unwrapped to `ErrGateDenied` without an assessment; a
+  `*DenialError` typed nil also inherited the value-receiver methods and could
+  panic through the error interface. The permanent zero-denial ratchet was
+  observed red. `DenialError` is now a sealed interface whose unexported method
+  can be implemented only by Gate; the package returns one private value
+  implementation after validation. The zero interface is nil and cannot claim
+  denial identity, while authentic denials remain recoverable through
+  `errors.As`. The two unreachable wrong-disposition guards now use their
+  compiler-owned `ContractBoundary` rather than untyped local error strings.
+  Core's test-edge contract matrix was also extended across unset and future
+  endpoints, Core/self edges, duplicates, production overlap, a Testserial
+  target, and the combined production-plus-test coupling ceiling. Per-package
+  import and violation inventories now derive their exact capacities from the
+  package catalog instead of the unrelated repository-wide production-edge
+  count.
+- Gate canonical gate: module tidiness, workflow, formatting, full ordinary and
+  race tests, vet, staticcheck, errcheck, and nilaway pass. The canonical gate
+  then stops exactly at the existing repository-wide Witness enum, Process,
+  and Testserial baseline. Direct Gate Witness analysis is clean with no
+  waiver. Five focused shuffled race repetitions pass; Gate coverage remains
+  89.6 percent, with only compiler markers and fail-closed arms unreachable
+  from the admitted state domain. Production `gocyclo <= 10`, Gate-scoped
+  goconst, touched-package fieldalignment, full gosec and govulncheck, full
+  build, and Linux amd64/arm64, Windows amd64, and FreeBSD amd64 Gate
+  cross-builds pass. A post-baseline repository-wide goconst run reports only
+  seven existing cross-package literal pairs outside Gate; no compatibility
+  constant or copied literal was added to silence them.
 
 Next:
 
-1. Migrate Witness,
-   Bug, and Peachfuzz independently where each has a concrete matching
-   capability. Do not perform Kernel surgery and do not manufacture unused
-   consumer edges.
+1. Select the next deferred Primitive package with a complete published
+   dependency frontier. Keep OGS, Witness, Bug, and Peachfuzz unchanged until
+   all selected Primitive packages are accepted.
 2. Run disposable Objectstore live-provider proof when caller-supplied S3/GCS signed URLs
    and a Cloudflare Images one-time upload URL are available; local tests do not
    claim remote-provider proof.
@@ -1255,6 +1350,7 @@ State vocabulary: `NEXT`, `BLOCKED_BY_DEPENDENCY`, `NOT_STARTED`, `RED`,
 | `exchange`         | `DONE`                  |
 | `fuzzfinder`       | `DONE`                  |
 | `lease`            | `DONE`                  |
+| `gate`             | `DONE`                  |
 | `process`          | `DONE`                  |
 | `release`          | `DONE`                  |
 | `shutdown`         | `DONE`                  |

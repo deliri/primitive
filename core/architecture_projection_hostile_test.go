@@ -203,7 +203,7 @@ func auditArchitectureProjection(
 		}
 	}
 	for _, contract := range projection.Imports() {
-		if !catalogContainsDirectImport(catalog, contract) {
+		if !catalog.ContainsDirectImport(contract) {
 			if addErr := violations.Add(architectureProjectionViolation{
 				importContract: contract,
 				kind:           architectureProjectionViolationImportExtra,

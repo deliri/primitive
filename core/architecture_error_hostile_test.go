@@ -43,6 +43,34 @@ func TestPrimitiveArchitectureExactCatalogRatchet(t *testing.T) {
 	if gotImports != PrimitiveDirectImportCount {
 		t.Fatalf("catalog direct import count = %d, want %d", gotImports, PrimitiveDirectImportCount)
 	}
+	gotTestImports := 0
+	for contract := range catalog.DirectTestImports() {
+		gotTestImports++
+		if gotErr := contract.Validate(); gotErr != nil {
+			t.Errorf(
+				"DirectTestImportContract(%v -> %v).Validate() error = %v, want nil",
+				contract.Importer, contract.Imported, gotErr,
+			)
+		}
+		if catalog.ContainsDirectImport(DirectImportContract(contract)) {
+			t.Errorf(
+				"DirectTestImportContract(%v -> %v) duplicates a production edge",
+				contract.Importer, contract.Imported,
+			)
+		}
+		if !catalog.ContainsDirectTestImport(contract) {
+			t.Errorf(
+				"ContainsDirectTestImport(%v -> %v) = false, want true",
+				contract.Importer, contract.Imported,
+			)
+		}
+	}
+	if gotTestImports != PrimitiveDirectTestImportCount {
+		t.Fatalf(
+			"catalog direct test import count = %d, want %d",
+			gotTestImports, PrimitiveDirectTestImportCount,
+		)
+	}
 }
 
 func TestArchitectureCatalogRejectsEveryStructuralFailureMode(t *testing.T) {
@@ -67,11 +95,28 @@ func TestArchitectureCatalogRejectsEveryStructuralFailureMode(t *testing.T) {
 		{name: "unknown imported package crosses catalog boundary", mutate: func(c *ArchitectureCatalog) { c.imports[0].Imported = PackageUnknown }, wantErr: ErrPrimitiveContract},
 		{name: "future importer crosses closed domain", mutate: func(c *ArchitectureCatalog) { c.imports[0].Importer = packageIdentityLimit }, wantErr: ErrPrimitiveContract},
 		{name: "future imported package crosses closed domain", mutate: func(c *ArchitectureCatalog) { c.imports[0].Imported = packageIdentityLimit }, wantErr: ErrPrimitiveContract},
+		{name: "unset test edge is rejected", mutate: func(c *ArchitectureCatalog) { c.testImports[0] = DirectTestImportContract{} }, wantErr: ErrPrimitiveContract},
+		{name: "core may not own a test edge", mutate: func(c *ArchitectureCatalog) { c.testImports[0].Importer = PackageCore }, wantErr: ErrPrimitiveContract},
+		{name: "test edge may not import itself", mutate: func(c *ArchitectureCatalog) { c.testImports[0].Imported = PackageGate }, wantErr: ErrPrimitiveContract},
+		{name: "unknown test importer crosses catalog boundary", mutate: func(c *ArchitectureCatalog) { c.testImports[0].Importer = PackageUnknown }, wantErr: ErrPrimitiveContract},
+		{name: "unknown test target crosses catalog boundary", mutate: func(c *ArchitectureCatalog) { c.testImports[0].Imported = PackageUnknown }, wantErr: ErrPrimitiveContract},
+		{name: "future test importer crosses closed domain", mutate: func(c *ArchitectureCatalog) { c.testImports[0].Importer = packageIdentityLimit }, wantErr: ErrPrimitiveContract},
+		{name: "future test target crosses closed domain", mutate: func(c *ArchitectureCatalog) { c.testImports[0].Imported = packageIdentityLimit }, wantErr: ErrPrimitiveContract},
+		{name: "duplicate test edge hides required proof substrate", mutate: func(c *ArchitectureCatalog) { c.testImports[1] = c.testImports[0] }, wantErr: ErrPrimitiveContract},
+		{name: "test edge may not duplicate production dependency", mutate: func(c *ArchitectureCatalog) {
+			c.testImports[0] = DirectTestImportContract(c.imports[0])
+		}, wantErr: ErrPrimitiveContract},
 		{name: "cycle from core to upgrade is rejected", mutate: func(c *ArchitectureCatalog) {
 			c.imports[0] = DirectImportContract{Importer: PackageCore, Imported: PackageUpgrade}
 		}, wantErr: ErrPrimitiveContract},
 		{name: "seventh direct import exceeds graph maximum", mutate: func(c *ArchitectureCatalog) {
 			c.imports[0] = DirectImportContract{Importer: PackageUpgrade, Imported: PackageContextState}
+		}, wantErr: ErrPrimitiveContract},
+		{name: "seventh combined production and test import exceeds graph maximum", mutate: func(c *ArchitectureCatalog) {
+			c.testImports[0] = DirectTestImportContract{
+				Importer: PackageUpgrade,
+				Imported: PackageAttest,
+			}
 		}, wantErr: ErrPrimitiveContract},
 	}
 	for _, tc := range cases {
@@ -85,6 +130,19 @@ func TestArchitectureCatalogRejectsEveryStructuralFailureMode(t *testing.T) {
 				t.Fatalf("mutated ArchitectureCatalog.Validate() error = %v, want %v", gotErr, tc.wantErr)
 			}
 		})
+	}
+}
+
+func TestArchitectureCatalogAllowsTestsToImportTestSupport(t *testing.T) {
+	t.Parallel()
+
+	catalog := PrimitiveArchitecture()
+	catalog.testImports[0].Imported = PackageTestSerial
+	if gotErr := catalog.Validate(); gotErr != nil {
+		t.Fatalf(
+			"ArchitectureCatalog with test-only Testserial edge Validate() error = %v, want nil",
+			gotErr,
+		)
 	}
 }
 
