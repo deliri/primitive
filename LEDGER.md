@@ -10,10 +10,13 @@ Last updated: `2026-07-31`
   `github.com/deliri/primitive/v2026`. Historical evidence remains unchanged
   and therefore retains its original Foundation module paths. `PLAN.md` is
   local-only and excluded from the public repository.
-- Phase: Gate is reviewed and accepted for publication by the commit carrying
-  this ledger entry. It is the CLI-side new-work enforcement boundary over one
-  authentic Lease assessment; current and continuity states permit, while
-  not-yet-valid, expired, refused, and revoked states return a typed denial.
+- Phase: Receipt is implemented and awaiting user review. Its admitted surface
+  is one authenticated accepted-evidence fact plus one fixed-size monotonic
+  watermark; it owns no transport, persistence, retry, provider, payment,
+  pagination, scheduler, or customer-rendering behavior. Gate is reviewed and
+  accepted for publication. It is the CLI-side new-work enforcement boundary
+  over one authentic Lease assessment; current and continuity states permit,
+  while not-yet-valid, expired, refused, and revoked states return a typed denial.
   OGS's control-plane authentication, route protection, authoritative
   operation authorization, and policy issuance remain separate server-owned
   gates. Existing-record inspection, registration, check-in, recovery,
@@ -1318,16 +1321,150 @@ Last updated: `2026-07-31`
   cross-builds pass. A post-baseline repository-wide goconst run reports only
   seven existing cross-package literal pairs outside Gate; no compatibility
   constant or copied literal was added to silence them.
+- Receipt contract, `2026-07-31`: the archive was reduced rather than restored.
+  Receipt signs one typed `EvidencePayload` through Attest: receipt, account,
+  offering, revision, occurrence instant, submission, object, extent, SHA-256,
+  and CRC32C. Verification authenticates before comparing caller intent and
+  reports the exact mismatched field through typed `ScopeMismatch`; malformed
+  evidence cannot borrow scope diagnostics. Receipt owns nominal 16-byte
+  account, offering, submission, and object identities, with canonical
+  lowercase hexadecimal persistence and distinct non-convertible Go types.
+  Core retains only their stable error identity.
+  The compiler-owned graph admits exactly `receipt -> core, attest, temporal`,
+  bringing the catalog to 22 production packages plus Testserial and 50
+  production edges while retaining the six-edge ceiling and zero undeclared
+  coupling.
+- Receipt watermark design: `Watermark` is one fixed-size durable fact over
+  revision, account/offering scope, positive generation, remote-cursor digest,
+  and accepted-chain hash. `AdvanceWatermark` is a pure comparison, not a
+  state-machine or persistence framework. Identity and scope decide before
+  generation; lower generations roll back, equal generations require exact
+  replay, and a higher generation must replace both closures. Callers own the
+  durable write and transaction boundary. The archived Payment, Page, Summary,
+  Store, provider-version field, derived watermark identity, and duplicated
+  body digest were rejected because no current independent reader justified
+  them or because they rebuilt transport/persistence state above existing
+  Primitive owners.
+- Receipt hostile corrections found during implementation: `fieldalignment`
+  proved that using exported struct declaration order as canonical JSON order
+  was an implicit wire contract—alignment reordered `EvidenceBody` and
+  `Watermark` while all length checks remained green. Dedicated pointer-only
+  projection structs now own canonical member order independently of memory
+  layout. Gosec also found a signed-to-unsigned JSON-bound conversion; the
+  conversion now crosses Core's checked numeric boundary before constructing a
+  byte count. Both are retained as structural and tool ratchets.
+- Receipt defects corrected in review, `2026-07-31`: the projection correction
+  above was incomplete and unproven. Only `EvidenceBody` and `Watermark` had
+  received a projection; `Header`, `EvidencePayload`, `EvidenceDocument`, and
+  `Scope` still reached the encoder through a local alias of their own exported
+  type, so the two structures inside the signed payload still derived signed
+  member order from memory layout. Nothing tested member order at all, so the
+  original correction could not have failed. Every canonical structure now has
+  one pointer-only wire projection used in both directions, the duplicate
+  `evidenceBodyProjection` and `watermarkProjection` twins were deleted, and
+  three ratchets were added: exact member order for every signed and durable
+  structure, exact signed payload bytes for a determined fixture, and a
+  structural proof that every wire structure is pointer-only.
+  Five further defects were corrected. `AdvanceWatermark` returned a populated
+  result alongside its error on both success paths, the shape Gate's review
+  already removed. `ScopeMismatch` was an exported struct with an exported
+  field, so any caller could build a value carrying `ErrReceiptScope` with no
+  authenticated fact behind it, and a test asserted that this worked; it is now
+  a sealed interface over a package-private value, matching `gate.DenialError`.
+  `AdvanceResult.State`, `AdvanceResult.Watermark`, `VerifiedEvidence.Document`,
+  `VerifiedEvidence.Header`, and `VerifiedEvidence.Body` returned silent zeros
+  for an unset receiver, which a caller cannot distinguish from a real answer;
+  all five now return an error, and a test blessing the silent zeros was
+  replaced by one requiring refusal. `EvidenceBody.Validate` enforced the
+  empty-stream integrity rule in one direction only, admitting a nonzero extent
+  that claimed the digest of zero bytes; the rule is now biconditional. Watermark
+  conflict rejection collapsed its distinct causes into one opaque sentinel
+  with no diagnostic; `ConflictReason` and a sealed `WatermarkConflict` now name
+  the four behaviorally reachable conflict invariants, with cursor-before-chain
+  precedence proved. Rollback remains its own typed rejection.
+  The lifecycle decoder formerly in Core carried the wrong identities: a
+  malformed JSON token returned `ErrLifecycleIdentityContract` without
+  `ErrJSONContract`, while an invalid identity returned `ErrJSONContract`, so a
+  caller classifying wire failures missed every malformed lifecycle token.
+  `IssueEvidenceRequest` built the signed payload twice, once in `Validate` and
+  once in `IssueEvidence`; one `payload` projection now feeds both. The
+  unexplained `(7 - 3)` in the envelope bound is now two named constants.
+- Receipt weak tests replaced in review: two tables derived their expected
+  outcome from their own case names, through `strings.Contains(tc.name,
+  "admitted")` and an equality check against one case name, so any rename
+  silently changed the assertion; both now carry a typed `wantErr`. The closed
+  enum test proved only that admitted values had nonempty text, which cannot
+  see two swapped labels, so exact label content and cross-label distinctness
+  are now proved. The evidence-body, watermark-advance, and sealed-result
+  tables were below the `test/boundaries` floor and are now at or above it,
+  with both sides of every generation, extent, and closure boundary. New proofs
+  cover strict scope JSON, the nominal closure constructors, `Watermark`
+  validation branch by branch, forged sealed rejections, and non-sensitive
+  diagnostics. Four mutations were run against the new proofs: reverting the
+  integrity rule to one-sided, swapping conflict precedence, reordering
+  `headerWire`, and restoring a silent-zero accessor each produced targeted red,
+  and production was restored byte-exact afterward.
+- Receipt post-review ownership and dead-path correction, `2026-07-31`: the four
+  lifecycle identities were non-error facts exported by Core for exactly one
+  landed consumer, violating `PLAN` sections 2 and 5. They now live directly in
+  Receipt; no alias, wrapper, compatibility type, or copied Core definition
+  remains. A compiler-red move exposed every old call site before the real
+  callers and inventories were updated. The stable lifecycle error remains in
+  Core, as required for shared error classification. Receipt's canonical
+  decoder now preserves native `encoding/hex` errors through `errors.As`; the
+  previous formatted wrapper retained prose but destroyed that typed cause. A
+  hostile red probe proved the loss before correction. The advertised
+  `ConflictReasonRevision` was also dead: both watermarks must validate before
+  comparison and the only admitted revision is `RevisionV1`, so two valid
+  revisions cannot differ. A totality ratchet failed red for the unreachable
+  enum member; the member and branch were deleted instead of preserving a
+  speculative path.
+- Receipt proof: focused statement coverage is 93.5 percent. Tests exhaust all
+  256 values of every closed enum, press zero and maximum identities,
+  generations, instants, and extents, prove canonical empty integrity, mutate
+  every signed and expected field, preserve receivers across strict JSON
+  failure, attain the exact payload/document/watermark maxima, retain native
+  writer errors, validate sealed projections, and inventory every production
+  struct by compiler-visible data-flow role. The post-review signed-document
+  fuzz pass completed 3,559,238 executions in 30 seconds; its oracle either
+  authenticates the exact signed fixture or requires a typed verification
+  failure, and every accepted document round-trips canonically. Apple M1 Max
+  five-run medians are 66,380 ns/op, 2,924 B/op, and 50 allocs/op for complete
+  evidence verification, and 203.1 ns/op, zero B/op, and zero allocations for
+  watermark advance. Full ordinary and shuffled race tests,
+  vet, staticcheck, errcheck, nilaway, fieldalignment on touched packages,
+  production gocyclo at or below 10, Receipt-scoped goconst, full gosec and
+  govulncheck, actionlint, formatting, module tidiness, diff checks, direct
+  Receipt Witness lint, and Linux amd64/arm64, Windows amd64, and FreeBSD amd64
+  cross-builds pass. The canonical gate passes through nilaway and then stops
+  at the recorded repository-wide Witness enum, Process, and Testserial
+  baseline; Receipt itself has no Witness finding or waiver.
+- Receipt review-proof correction: direct nilaway and Witness lint initially
+  disproved the review report's clean-tool claim. The canonical-member-order
+  walker could slice an empty stack on malformed structure, one failure omitted
+  its observed error, and one diagnostic test searched error text despite
+  already proving exact sealed output. The walker now rejects decoder and
+  delimiter faults, the failure carries got/want context, and the redundant
+  substring search is gone. Direct Receipt Witness lint and repository nilaway
+  are green after those test corrections. The canonical gate passes module,
+  workflow, formatting, ordinary tests, race, vet, staticcheck, errcheck, and
+  nilaway, then stops at the existing repository-wide Witness enum, Process,
+  and Testserial baseline; it reports no Receipt finding or waiver. Full
+  repository goconst still reports the prior seven literal pairs plus two
+  Receipt-era semantic coincidences (`replay` and `crc32c`); Receipt-scoped
+  goconst is clean, and unrelated enum domains were not coupled through a
+  manufactured Core constant.
 
 Next:
 
-1. Select the next deferred Primitive package with a complete published
-   dependency frontier. Keep OGS, Witness, Bug, and Peachfuzz unchanged until
-   all selected Primitive packages are accepted.
-2. Run disposable Objectstore live-provider proof when caller-supplied S3/GCS signed URLs
+1. Obtain user review of Receipt. Do not commit or push before fresh approval.
+2. After Receipt is accepted and published, reconcile Controlstate as the next
+   likely consumer of the fixed watermark without adding a store, scheduler,
+   or generic state-machine framework.
+3. Run disposable Objectstore live-provider proof when caller-supplied S3/GCS signed URLs
    and a Cloudflare Images one-time upload URL are available; local tests do not
    claim remote-provider proof.
-3. Preserve the deferred Witness Testserial/analyzer consumer surgery without
+4. Preserve the deferred Witness Testserial/analyzer consumer surgery without
    compatibility paths or analyzer waivers.
 
 ## Packages
@@ -1351,6 +1488,7 @@ State vocabulary: `NEXT`, `BLOCKED_BY_DEPENDENCY`, `NOT_STARTED`, `RED`,
 | `fuzzfinder`       | `DONE`                  |
 | `lease`            | `DONE`                  |
 | `gate`             | `DONE`                  |
+| `receipt`          | `REVIEW`                |
 | `process`          | `DONE`                  |
 | `release`          | `DONE`                  |
 | `shutdown`         | `DONE`                  |

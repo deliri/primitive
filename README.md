@@ -51,6 +51,9 @@ flowchart TD
     lease --> attest
     gate[gate] --> core
     gate --> lease
+    receipt[receipt] --> core
+    receipt --> attest
+    receipt --> temporal
     process[process] --> core
     process --> contextstate
     process --> temporal

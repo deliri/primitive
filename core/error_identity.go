@@ -250,6 +250,19 @@ const (
 	// ErrUpgradeConflict identifies concurrent or stale upgrade authority.
 	ErrUpgradeConflict
 
+	// ErrLifecycleIdentityContract identifies an invalid lifecycle identity.
+	ErrLifecycleIdentityContract
+	// ErrReceiptContract identifies a Receipt contract violation.
+	ErrReceiptContract
+	// ErrReceiptVerification identifies evidence that failed authentication.
+	ErrReceiptVerification
+	// ErrReceiptScope identifies authentic evidence for a different expected scope.
+	ErrReceiptScope
+	// ErrReceiptRollback identifies a rejected watermark rollback.
+	ErrReceiptRollback
+	// ErrReceiptConflict identifies incompatible watermark histories or scopes.
+	ErrReceiptConflict
+
 	// ErrGovernanceContract identifies a governance contract violation.
 	ErrGovernanceContract
 	// ErrGovernanceDocumentSource identifies a governance document that could
@@ -306,8 +319,29 @@ func errorIdentityTextObjectStoreThroughGovernance(i ErrorIdentity) string {
 		return errorIdentityTextObjectTailThroughTimeProof(i)
 	case i <= ErrUpgradeConflict:
 		return errorIdentityTextCloudIdentityThroughUpgrade(i)
+	case i <= ErrReceiptConflict:
+		return errorIdentityTextReceipt(i)
 	default:
 		return errorIdentityTextGovernance(i)
+	}
+}
+
+func errorIdentityTextReceipt(i ErrorIdentity) string {
+	switch i {
+	case ErrLifecycleIdentityContract:
+		return "lifecycle identity contract violation"
+	case ErrReceiptContract:
+		return "receipt contract violation"
+	case ErrReceiptVerification:
+		return "receipt verification failed"
+	case ErrReceiptScope:
+		return "receipt scope mismatch"
+	case ErrReceiptRollback:
+		return "receipt watermark rollback rejected"
+	case ErrReceiptConflict:
+		return "receipt watermark conflict"
+	default:
+		return unknownErrorIdentityText
 	}
 }
 
@@ -754,7 +788,8 @@ func errorIdentityParents(identity ErrorIdentity) errorIdentityParentSet {
 		ErrProcessContract,
 		ErrReleaseContract,
 		ErrShutdownContract, ErrObjectStoreContract, ErrTimeProofContract,
-		ErrCloudIdentityContract, ErrUpgradeContract, ErrGovernanceContract:
+		ErrCloudIdentityContract, ErrUpgradeContract,
+		ErrLifecycleIdentityContract, ErrReceiptContract, ErrGovernanceContract:
 		return oneErrorIdentityParent(ErrPrimitiveContract)
 	case ErrUpgradeDownload, ErrUpgradeCapacity, ErrUpgradeVerification, ErrUpgradeTrial,
 		ErrUpgradePromotion, ErrUpgradePersistence, ErrUpgradeCleanup,
@@ -783,6 +818,16 @@ func errorIdentityParents(identity ErrorIdentity) errorIdentityParentSet {
 		ErrExchangeContentType, ErrExchangeCancelled, ErrExchangeRedirect,
 		ErrExchangeTransport, ErrExchangeRetryExhausted, ErrExchangeWrite:
 		return oneErrorIdentityParent(ErrExchangeContract)
+	default:
+		return errorIdentityParentsReceipt(identity)
+	}
+}
+
+func errorIdentityParentsReceipt(identity ErrorIdentity) errorIdentityParentSet {
+	switch identity {
+	case ErrReceiptVerification, ErrReceiptScope, ErrReceiptRollback,
+		ErrReceiptConflict:
+		return oneErrorIdentityParent(ErrReceiptContract)
 	default:
 		return errorIdentityParentsFuzzFinderThroughObjectStore(identity)
 	}

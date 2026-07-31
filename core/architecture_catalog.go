@@ -12,9 +12,9 @@ const (
 	// PrimitivePackagePathPrefix prefixes every Primitive package import path.
 	PrimitivePackagePathPrefix = PrimitiveModulePath + "/"
 	// PrimitivePackageCount is the number of packages in the complete catalog.
-	PrimitivePackageCount = 21
+	PrimitivePackageCount = 22
 	// PrimitiveDirectImportCount is the number of admitted direct import edges.
-	PrimitiveDirectImportCount = 47
+	PrimitiveDirectImportCount = 50
 	// PrimitiveDirectTestImportCount is the number of admitted test-only edges.
 	PrimitiveDirectTestImportCount = 2
 	// PrimitiveMaximumDirectImports caps direct sibling imports per package.
@@ -55,6 +55,8 @@ const (
 	PackageLease
 	// PackageGate identifies the new-work authorization package.
 	PackageGate
+	// PackageReceipt identifies authenticated accepted-evidence facts and watermarks.
+	PackageReceipt
 	// PackageProcess identifies the process package.
 	PackageProcess
 	// PackageRelease identifies the release package.
@@ -146,6 +148,7 @@ func PrimitiveArchitecture() ArchitectureCatalog {
 			{Identity: PackageFuzzFinder, Kind: PackageKindProduction},
 			{Identity: PackageLease, Kind: PackageKindProduction},
 			{Identity: PackageGate, Kind: PackageKindProduction},
+			{Identity: PackageReceipt, Kind: PackageKindProduction},
 			{Identity: PackageProcess, Kind: PackageKindProduction},
 			{Identity: PackageRelease, Kind: PackageKindProduction},
 			{Identity: PackageShutdown, Kind: PackageKindProduction},
@@ -179,6 +182,9 @@ func PrimitiveArchitecture() ArchitectureCatalog {
 			{Importer: PackageLease, Imported: PackageAttest},
 			{Importer: PackageGate, Imported: PackageCore},
 			{Importer: PackageGate, Imported: PackageLease},
+			{Importer: PackageReceipt, Imported: PackageCore},
+			{Importer: PackageReceipt, Imported: PackageAttest},
+			{Importer: PackageReceipt, Imported: PackageTemporal},
 			{Importer: PackageProcess, Imported: PackageCore},
 			{Importer: PackageProcess, Imported: PackageContextState},
 			{Importer: PackageProcess, Imported: PackageTemporal},
@@ -498,6 +504,8 @@ func packageIdentityTextFilestoreThroughProcess(identity PackageIdentity) string
 		return "lease"
 	case PackageGate:
 		return "gate"
+	case PackageReceipt:
+		return "receipt"
 	case PackageProcess:
 		return "process"
 	default:
