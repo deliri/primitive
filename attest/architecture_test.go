@@ -37,6 +37,8 @@ type productionStructInventory struct {
 type attestContractInventory struct {
 	canonicalFacts        internalFlow[canonicalFacts[testArchitectureDomain]]
 	canonicalDigestWriter capabilityWrapper[canonicalDigestWriter]
+	CanonicalObject       capabilityWrapper[CanonicalObject]
+	canonicalNameSpan     internalFlow[canonicalNameSpan]
 	TrustedKeysRequest    protocolFact[TrustedKeysRequest]
 	SignRequest           operationRequest[SignRequest[testArchitectureDomain]]
 	VerifyRequest         operationRequest[VerifyRequest[testArchitectureDomain]]
@@ -53,6 +55,7 @@ type attestContractInventory struct {
 var (
 	_ = attestContractInventory{}.canonicalFacts
 	_ = attestContractInventory{}.canonicalDigestWriter
+	_ = attestContractInventory{}.canonicalNameSpan
 	_ = attestContractInventory{}.domainToken
 	_ = attestContractInventory{}.envelopeWire
 	_ = attestContractInventory{}.attestationFrame
@@ -105,13 +108,23 @@ func TestAttestExactPublicSurfaceAndNoTypeAliases(t *testing.T) {
 	}
 	wantSurface := []string{
 		"const CanonicalBodyMaximumBytes",
+		"const CanonicalFieldNameMaximumBytes",
+		"const CanonicalFieldNameSeparator",
+		"const CanonicalObjectMaximumFields",
 		"const EnvelopeCanonicalJSONMaximumBytes",
 		"const EnvelopeJSONMaximumBytes",
 		"const SigningDomainMaximumBytes",
 		"const TrustedKeyMaximumCount",
+		"func BeginCanonicalObject",
 		"func NewTrustedKeys",
 		"func Sign",
 		"func Verify",
+		"method CanonicalObject.Bool",
+		"method CanonicalObject.End",
+		"method CanonicalObject.Int64",
+		"method CanonicalObject.String",
+		"method CanonicalObject.Uint64",
+		"method CanonicalObject.Value",
 		"method Envelope.MarshalJSON",
 		"method Envelope.UnmarshalJSON",
 		"method Envelope.Validate",
@@ -127,6 +140,7 @@ func TestAttestExactPublicSurfaceAndNoTypeAliases(t *testing.T) {
 		"method Verified.Validate",
 		"method VerifyRequest.Validate",
 		"type CanonicalBody",
+		"type CanonicalObject",
 		"type Envelope",
 		"type SignRequest",
 		"type Signature",
@@ -153,6 +167,7 @@ func TestAttestProductionImportsStayOnApprovedStandardLibraryAndCoreSubstrate(t 
 		t.Fatalf("productionImports() error = %v, want nil", gotErr)
 	}
 	wantImports := []string{
+		"bytes",
 		"crypto/ed25519",
 		"crypto/sha256",
 		"crypto/subtle",
@@ -166,6 +181,8 @@ func TestAttestProductionImportsStayOnApprovedStandardLibraryAndCoreSubstrate(t 
 		"io",
 		"math",
 		"slices",
+		"strconv",
+		"unicode/utf8",
 	}
 	if !slices.Equal(gotImports, wantImports) {
 		t.Fatalf("Attest production imports = %q, want %q", gotImports, wantImports)

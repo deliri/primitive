@@ -40,6 +40,11 @@ type exchangeContractInventory struct {
 	redirectFact    internalFlow[redirectFact]
 	requestMetadata internalFlow[requestMetadata]
 
+	APIRequestID protocolContract[APIRequestID]
+	APIErrorBody protocolContract[APIErrorBody]
+	APINoBody    protocolContract[APINoBody]
+	APIEnvelope  protocolContract[APIEnvelope[inventoryDocument]]
+
 	RedirectPolicy       protocolContract[RedirectPolicy]
 	IdempotencyKey       protocolContract[IdempotencyKey]
 	Header               protocolContract[Header]

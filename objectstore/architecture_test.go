@@ -118,6 +118,10 @@ func productionStructRole(name string) (string, bool) {
 		return "internal streaming flow", true
 	case "providerHeader":
 		return "internal protocol field projection", true
+	case "UploadCapability":
+		return "received wire projection of a capability value", true
+	case "uploadCapabilityWire", "uploadCapabilityHeaderWire":
+		return "internal decode temporary", true
 	default:
 		return "", false
 	}

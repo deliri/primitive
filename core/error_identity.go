@@ -688,7 +688,7 @@ func (i ErrorIdentity) MarshalJSON() ([]byte, error) {
 	if err := i.Validate(); err != nil {
 		return nil, errors.Join(ErrJSONContract, err)
 	}
-	return marshalJSONString(i.String())
+	return MarshalCanonicalJSONString(i.String())
 }
 
 // UnmarshalJSON accepts only the stable text of an admitted identity.

@@ -7,23 +7,54 @@ import (
 	"unicode/utf8"
 )
 
-const jsonEncoderTerminatorByte = '\n'
+const (
+	jsonEncoderTerminatorByte      = '\n'
+	jsonEncoderTerminatorErrorText = "json encoder omitted its terminator"
+	jsonStringInvalidUTF8ErrorText = "json string value is not valid utf-8"
+)
 
-func marshalJSONString(value string) ([]byte, error) {
-	if !utf8.ValidString(value) {
-		return nil, errors.Join(ErrJSONContract, errors.New("json string value is not valid utf-8"))
-	}
-	var document bytes.Buffer
-	encoder := json.NewEncoder(&document)
+// MarshalCanonicalJSONDocument encodes one Go value as the repository's single
+// canonical JSON document. HTML escaping is off, so a value has exactly one
+// accepted spelling rather than one spelling per encoder setting, and the
+// encoder's trailing terminator is removed so the result is exactly the
+// document and nothing else.
+//
+// The caller owns the document invariant. This helper owns only the shared
+// encoder configuration; typed protocol values still validate before calling
+// it, and raw strings use MarshalCanonicalJSONString for the UTF-8 gate.
+//
+// This is the one owner of that mechanic. A second copy anywhere in the
+// repository would let two owners disagree about the bytes a protocol carries,
+// which is why MarshalCanonicalJSONString projects from it instead of
+// repeating it.
+func MarshalCanonicalJSONDocument[Document any](document Document) ([]byte, error) {
+	var buffer bytes.Buffer
+	encoder := json.NewEncoder(&buffer)
 	encoder.SetEscapeHTML(false)
-	if err := encoder.Encode(value); err != nil {
+	if err := encoder.Encode(document); err != nil {
 		return nil, errors.Join(ErrJSONContract, err)
 	}
-	encoded := document.Bytes()
+	encoded := buffer.Bytes()
 	if len(encoded) == 0 || encoded[len(encoded)-1] != jsonEncoderTerminatorByte {
-		return nil, errors.Join(ErrJSONContract, errors.New("json string encoder omitted its terminator"))
+		return nil, errors.Join(ErrJSONContract, errors.New(jsonEncoderTerminatorErrorText))
 	}
 	return encoded[:len(encoded)-1], nil
+}
+
+// MarshalCanonicalJSONString encodes one Go string as the repository's single
+// canonical JSON string token. It is the encoding counterpart of
+// DecodeJSONStringToken: it adds the string-specific gate, refusing invalid
+// UTF-8 before any protocol sees it, and takes the canonical encoding itself
+// from MarshalCanonicalJSONDocument.
+//
+// A second string-escaping grammar anywhere in the repository would let two
+// owners disagree about the bytes a signature covers, which is why this rule
+// has one home instead of one copy per package.
+func MarshalCanonicalJSONString(value string) ([]byte, error) {
+	if !utf8.ValidString(value) {
+		return nil, errors.Join(ErrJSONContract, errors.New(jsonStringInvalidUTF8ErrorText))
+	}
+	return MarshalCanonicalJSONDocument(value)
 }
 
 // DecodeJSONStringToken decodes one JSON string token into its exact Go string.

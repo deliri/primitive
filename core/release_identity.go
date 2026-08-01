@@ -149,7 +149,7 @@ func (o Offering) MarshalJSON() ([]byte, error) {
 	if err := o.Validate(); err != nil {
 		return nil, errors.Join(ErrJSONContract, err)
 	}
-	return marshalJSONString(o.String())
+	return MarshalCanonicalJSONString(o.String())
 }
 
 // UnmarshalJSON accepts only canonical offering text.
@@ -274,7 +274,7 @@ func (v ReleaseVersion) MarshalJSON() ([]byte, error) {
 	if err := v.Validate(); err != nil {
 		return nil, errors.Join(ErrJSONContract, err)
 	}
-	return marshalJSONString(v.String())
+	return MarshalCanonicalJSONString(v.String())
 }
 
 // UnmarshalJSON accepts only canonical version text.
@@ -349,7 +349,7 @@ func (c BuildCommit) MarshalJSON() ([]byte, error) {
 	if err := c.Validate(); err != nil {
 		return nil, errors.Join(ErrJSONContract, err)
 	}
-	return marshalJSONString(c.String())
+	return MarshalCanonicalJSONString(c.String())
 }
 
 // UnmarshalJSON accepts a canonical supported Git object name.

@@ -329,7 +329,7 @@ func (p PackageIdentity) MarshalJSON() ([]byte, error) {
 	if err := p.Validate(); err != nil {
 		return nil, errors.Join(ErrJSONContract, err)
 	}
-	return marshalJSONString(p.String())
+	return MarshalCanonicalJSONString(p.String())
 }
 
 // UnmarshalJSON accepts only a canonical admitted package name.
@@ -386,7 +386,7 @@ func (k PackageKind) MarshalJSON() ([]byte, error) {
 	if err := k.Validate(); err != nil {
 		return nil, errors.Join(ErrJSONContract, err)
 	}
-	return marshalJSONString(k.String())
+	return MarshalCanonicalJSONString(k.String())
 }
 
 // UnmarshalJSON accepts only a canonical package-kind string.

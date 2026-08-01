@@ -389,12 +389,12 @@ func TestMarshalJSONStringRejectsInvalidUTF8(t *testing.T) {
 		t.Run(tc.name, func(t *testing.T) {
 			t.Parallel()
 
-			got, gotErr := marshalJSONString(tc.value)
+			got, gotErr := MarshalCanonicalJSONString(tc.value)
 			if !errors.Is(gotErr, ErrJSONContract) {
-				t.Fatalf("marshalJSONString() error = %v, want %v", gotErr, ErrJSONContract)
+				t.Fatalf("MarshalCanonicalJSONString() error = %v, want %v", gotErr, ErrJSONContract)
 			}
 			if got != nil {
-				t.Fatalf("marshalJSONString() = %q, want nil", got)
+				t.Fatalf("MarshalCanonicalJSONString() = %q, want nil", got)
 			}
 
 			typedWire, typedErr := (PathComponent{value: tc.value}).MarshalJSON()
@@ -405,6 +405,35 @@ func TestMarshalJSONStringRejectsInvalidUTF8(t *testing.T) {
 				t.Fatalf("PathComponent.MarshalJSON() = %q, want nil", typedWire)
 			}
 		})
+	}
+}
+
+func TestMarshalCanonicalJSONDocumentOwnsSharedEncoderConfiguration(t *testing.T) {
+	t.Parallel()
+
+	document := struct {
+		Message string `json:"message"`
+		Values  []int  `json:"values"`
+	}{
+		Message: "a<b>c&d",
+		Values:  []int{1, 2, 3},
+	}
+	got, gotErr := MarshalCanonicalJSONDocument(document)
+	if gotErr != nil {
+		t.Fatalf("MarshalCanonicalJSONDocument() error = %v, want nil", gotErr)
+	}
+	want := `{"message":"a<b>c&d","values":[1,2,3]}`
+	if !bytes.Equal(got, []byte(want)) {
+		t.Fatalf("MarshalCanonicalJSONDocument() = %q, want %q", got, want)
+	}
+
+	refused, refusedErr := MarshalCanonicalJSONDocument(math.NaN())
+	if !errors.Is(refusedErr, ErrJSONContract) {
+		t.Fatalf("MarshalCanonicalJSONDocument(NaN) error = %v, want %v",
+			refusedErr, ErrJSONContract)
+	}
+	if refused != nil {
+		t.Fatalf("MarshalCanonicalJSONDocument(NaN) = %q, want nil", refused)
 	}
 }
 
@@ -485,15 +514,15 @@ func TestMarshalJSONStringEscapingHostileBoundaryTable(t *testing.T) {
 		t.Run(tc.name, func(t *testing.T) {
 			t.Parallel()
 
-			got, gotErr := marshalJSONString(tc.value)
+			got, gotErr := MarshalCanonicalJSONString(tc.value)
 			if gotErr != nil {
-				t.Fatalf("marshalJSONString(%q) error = %v, want nil", tc.value, gotErr)
+				t.Fatalf("MarshalCanonicalJSONString(%q) error = %v, want nil", tc.value, gotErr)
 			}
 			if !bytes.Equal(got, []byte(tc.want)) {
-				t.Fatalf("marshalJSONString(%q) = %q, want %q", tc.value, got, tc.want)
+				t.Fatalf("MarshalCanonicalJSONString(%q) = %q, want %q", tc.value, got, tc.want)
 			}
 			if !json.Valid(got) {
-				t.Fatalf("marshalJSONString(%q) = %q, want valid JSON", tc.value, got)
+				t.Fatalf("MarshalCanonicalJSONString(%q) = %q, want valid JSON", tc.value, got)
 			}
 			roundTrip, gotUnquoteErr := strconv.Unquote(string(got))
 			if gotUnquoteErr != nil || roundTrip != tc.value {
@@ -526,15 +555,15 @@ func FuzzMarshalJSONStringRoundTrip(f *testing.F) {
 
 	f.Fuzz(func(t *testing.T, data []byte) {
 		value := string(data)
-		got, gotErr := marshalJSONString(value)
+		got, gotErr := MarshalCanonicalJSONString(value)
 		if !utf8.Valid(data) {
 			if !errors.Is(gotErr, ErrJSONContract) || got != nil {
-				t.Fatalf("marshalJSONString(invalid UTF-8) = (%q, %v), want (nil, %v)", got, gotErr, ErrJSONContract)
+				t.Fatalf("MarshalCanonicalJSONString(invalid UTF-8) = (%q, %v), want (nil, %v)", got, gotErr, ErrJSONContract)
 			}
 			return
 		}
 		if gotErr != nil || !json.Valid(got) {
-			t.Fatalf("marshalJSONString(valid UTF-8) = (%q, %v), want valid JSON/nil", got, gotErr)
+			t.Fatalf("MarshalCanonicalJSONString(valid UTF-8) = (%q, %v), want valid JSON/nil", got, gotErr)
 		}
 		roundTrip, gotUnquoteErr := strconv.Unquote(string(got))
 		if gotUnquoteErr != nil || roundTrip != value {

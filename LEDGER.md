@@ -1,6 +1,6 @@
 # Primitive 2026 Ledger
 
-Last updated: `2026-07-31`
+Last updated: `2026-08-01`
 
 ## Current
 
@@ -874,7 +874,7 @@ Last updated: `2026-07-31`
     `FuzzNumericDurationJSON` 6,744,037 executions in 30 seconds each; both
     oracles require an accepted document to re-encode to exactly the accepted
     bytes and a rejection to carry a stable typed identity with an untouched
-    receiver. The repository-wide gate is the user's to run and was not run here.
+    receiver. The repository-wide delivery result is recorded below.
 - Core canonical integer ownership, 2026-08-01: `parseCanonicalUint64JSON` was
   a Core-private fact used by three Core files while Temporal separately carried
   its own hand-written `canonicalSignedDecimal` grammar. Two grammars for one
@@ -890,18 +890,330 @@ Last updated: `2026-07-31`
   `canonicalUnsignedDecimal` is deliberately retained: AggregateDuration's
   39-digit unsigned-128 decimal exceeds uint64 and cannot route through
   `strconv.ParseUint`.
-- Remaining capability work, 2026-08-01 (not started, named so it is not lost):
-  canonical JSON field append belongs in `attest`, not Core. Zero Primitive
-  packages need it in Core, so PLAN section 2 fails and Sentinel's
-  fewer-than-two-consumers rule would reject it; `attest.CanonicalBody`'s
-  `WriteCanonical` is what creates the need, so Attest owns the mechanic. The API
-  envelope belongs in `exchange`, which already owns `JSONCall`,
-  `decodeJSONResponse`, and server ingress/egress; Core fails the same two-package
-  test. The signed-upload-grant wire projection belongs in `objectstore`:
-  receiving and projecting a grant is distinct from creating credentials, which
-  its doc excludes, and it is the only package that can validate a `SignedURL`.
-  Each still needs production, hostile tables at the protocol floor, and its
-  package public-surface ratchet updated.
+- Attest canonical object, 2026-08-01 (delivery review complete):
+  `CanonicalObject` closes the canonical JSON field-append gap. Placement in
+  Attest rather than Core was re-verified from source before any code was
+  written, because reversing it would fail the gate silently: `lease` and
+  `receipt` build their canonical JSON from ordered pointer-field wire structs
+  through `json.Marshal` (`lease/decision.go:436`, `receipt/evidence.go:461`,
+  `receipt/evidence.go:506`), not from an append mechanic. A Core placement
+  would therefore have zero Primitive consumers, failing PLAN section 2 and
+  Sentinel's fewer-than-two-named-packages rule. `CanonicalBody.WriteCanonical`
+  is what creates the need, so Attest owns it.
+  - The mined Peachfuzz version (`protocol/canonical_json.go`) routed every
+    value through `json.Marshal` on a generic `T any`, which is reflection on
+    the signing path. The Primitive version is a closed set of typed member
+    methods, `String`, `Int64`, `Uint64`, `Bool`, plus `Value` for a nested
+    `core.ValidatedJSONMarshaler`. That covers every observed Peachfuzz call
+    site, keeps reflection off the signing path, and satisfies
+    `protocol/typed-boundary`: the one interface is a narrow behavior interface,
+    not a payload bag.
+  - Two properties the mined version lacked are now enforced. Member names are
+    deduplicated, so a body cannot be signed as bytes that Core's strict decoder
+    would later refuse. A nested member owner runs under the existing
+    `guardedCall` panic guard and its output must be non-null valid UTF-8 JSON,
+    so a hostile or defective member cannot escape as signed bytes or replace
+    Attest's error identities.
+  - Errors are threaded and the first failure is retained, so `End` returns nil
+    bytes on any rejection. A partially built document is never returned.
+  - Core admission: `marshalJSONString` was a Core-private fact and Attest needs
+    the same rule for member names and string values. It is now exported as
+    `core.MarshalCanonicalJSONString`, the encoding counterpart of
+    `DecodeJSONStringToken`. Core and Attest are two named Primitive packages, so
+    this satisfies PLAN section 2 without an exception, exactly as the canonical
+    integer owner did. A second string-escaping grammar would let two owners
+    disagree about the bytes a signature covers.
+  - Red proof: six production mutations were each observed red and reverted.
+    Dropping the duplicate-name check, dropping the null-member rejection,
+    admitting uppercase in member names, returning the buffer despite a threaded
+    error, dropping the empty-object refusal, and switching string encoding to
+    HTML-escaping `json.Marshal` each failed the tables. The public-surface
+    ratchet was separately observed red by removing one new method.
+  - Proof: focused tests, race with shuffle at `-count=2`, vet, staticcheck,
+    errcheck, fieldalignment, production `gocyclo <= 10`, and `witness-lint` are
+    clean for `./core` and `./attest`; the full repository suite passes.
+    `FuzzCanonicalObjectEmitsStrictlyDecodableAndStableDocuments` completed
+    1,513,520 executions in 30 seconds. Its oracle requires an accepted document
+    to decode under Core's strict JSON contract, preserve every typed member
+    exactly, and rebuild to identical bytes, and a rejection to carry
+    `core.ErrAttestContract` with no bytes returned. The repository-wide
+    delivery result is recorded below.
+- Exchange API envelope, 2026-08-01 (delivery review complete): `APIEnvelope`
+  closes the typed API response gap that Kernel (`kernel/core/api_contracts.go`)
+  and Peachfuzz (`protocol/api_envelope.go`) currently carry as two
+  near-identical hand-written copies. Placement in Exchange was re-verified from
+  source before any code was written: a repository-wide search for an envelope,
+  request-identifier, or failure-code concept across every Primitive package
+  found none, so a Core placement would have had zero Primitive consumers and
+  failed PLAN section 2 and Sentinel's fewer-than-two-named-packages rule.
+  Exchange already owns `JSONCall` (`exchange/client.go:43`),
+  `decodeJSONResponse` (`exchange/client.go:377`), and both server ingress and
+  egress, so the envelope is the shape those already imply and no exception is
+  required. Correction to the handoff note: Witness owns no API envelope. Its
+  only match is `internal/updatecmd/update_test.go`, so the named consumers are
+  Kernel and Peachfuzz, not three.
+  - Surface: `APICode` (8 closed members plus exact tokens), `APIRequestID`,
+    `APIErrorBody`, `APINoBody`, and `APIEnvelope[Body]`.
+  - `APIBody` was deliberately not absorbed. Both consumers own a marker
+    interface whose implementers are product response types, so it decides which
+    types a given product's API may return. That is local policy; Primitive
+    cannot own a marker whose closed set is a product's. The generic constraint
+    carries the load instead.
+  - The constraint is `core.ValidatedJSONMarshaler`, not `core.Validatable` as
+    both mined copies had. Exchange already demands an explicit JSON
+    representation of every JSON request body, `core.EncodeValidatedJSON` cannot
+    accept a value without one, and Core's own doc gives the reason: it prevents
+    an opaque typed value from silently encoding as an empty object, which is
+    exactly the failure every validation in the envelope would otherwise miss.
+  - The absent arm is omitted rather than emitted as null, matching the deployed
+    producer (Kernel), which uses `omitempty`. Peachfuzz emits explicit null but
+    is the client on this wire and its decoder accepts both, so no consumer
+    breaks and the live bytes do not move.
+  - Encoding is canonical with HTML escaping off, through
+    `core.MarshalCanonicalJSONString` for tokens and one small unescaped
+    document encoder for the two wire structs. Both mined copies used
+    `json.Marshal`, which escapes `<`, `>`, and `&`; that is a second string
+    grammar, the exact duplication the 2b Core admission removed.
+  - `validateAPIText` is the single admission rule for every operator-facing
+    token, and it is the strict union of the two mined copies: present, valid
+    UTF-8, no control runes, no replacement rune, no surrounding whitespace, and
+    bounded in runes rather than bytes. Kernel admitted U+FFFD and Peachfuzz
+    admitted untrimmed text; both are now refused, since a literal U+FFFD is
+    always the residue of a lossy decode upstream and two separately mangled
+    identifiers would otherwise correlate as one.
+  - `MarshalJSON` validates first on all four wire types, so a both-arm or
+    invalid envelope can never become bytes. Neither mined copy did this.
+  - Deliberate exclusion: `APIHeaderXRequestID`. It has one consumer (Kernel),
+    zero Primitive consumers, and Exchange cannot construct a
+    `core.HTTPHeaderName` without a Core admission that PLAN section 2 forbids
+    at one consumer. It stays Kernel-local product routing policy.
+  - Red proof: ten production mutations were each observed red and reverted.
+    Emitting the absent arm as null, resolving both-arms by data precedence,
+    admitting surrounding whitespace, admitting the replacement rune, counting
+    the rune bound in bytes, leaving HTML escaping on, marshalling without
+    validating, matching failure tokens case-insensitively, admitting an unset
+    request identifier, and marshalling an out-of-domain code each failed the
+    tables. The data-flow struct inventory ratchet was separately observed red
+    naming all four new structs.
+  - Correction to the handoff note: Exchange has no public-surface ratchet, so
+    the applicable structural ratchet is its data-flow struct inventory, which
+    is what was updated. Adding a public-surface ratchet to Exchange is a
+    separate slice and is not claimed here.
+  - Proof: 165 subtests, focused tests, race with shuffle at `-count=2`, vet,
+    staticcheck, errcheck, fieldalignment, production `gocyclo <= 10`, and
+    `witness-lint` are clean for `./exchange`; the full repository suite passes.
+    `FuzzAPIEnvelopeDecodeAcceptsOnlyStableSingleArmDocuments` completed 460,758
+    executions and `FuzzNewAPIRequestIDAlwaysProducesOneCanonicalIdentifier`
+    1,427,321 executions in 30 seconds each, with no crashers written. The
+    repository-wide delivery result is recorded below.
+- Objectstore upload capability, 2026-08-01 (delivery review complete):
+  `UploadCapability` closes the received-capability gap. The boundary was
+  re-verified against the objectstore interview before any code was written,
+  because the interview excludes "grants" from this package
+  (`_docs/interviews/objectstore.md:79`) and assigns grant issuance and
+  target-to-authorization binding to the issuing protocol (`:567`). Reading
+  `peachfuzz/protocol/upload_capability.go` against
+  `peachfuzz/protocol/run_evidence_upload.go:328` settles it: the grant is
+  `RunEvidenceUploadGrant`, which binds a descriptor, a schema, and a
+  `ValidateRequest` replay check, and it stays in Peachfuzz. What moves is only
+  its capability fields, which are the wire projection of values this package
+  already owns: `SignedURL`, `SignedHeaders`, `Provider`, and the target expiry.
+  That is squarely inside the interview's proposed contract (`:549-557`).
+  - The gap exists because those values are deliberately off the wire.
+    `SignedURL` has no string accessor and redacts under every formatting verb
+    (`objectstore/values.go:128`, `:158`), so a capability received as JSON
+    cannot be projected by any package that cannot validate a signed URL. This
+    is the only package that can.
+  - It decodes only. `UploadCapability` implements `json.Unmarshaler` and
+    deliberately not `json.Marshaler`, because emitting a capability is issuing
+    one, which the package doc excludes alongside buckets, credentials, and
+    signed-URL creation. It also never retains the received URL text: the bytes
+    are parsed into an opaque `SignedURL` and dropped, so re-serializing the
+    bearer is structurally impossible rather than merely discouraged. The mined
+    Peachfuzz type kept `value string` and marshalled it, which would have
+    carried that leak into Primitive. A structural ratchet asserts the absence
+    of `json.Marshaler`, `fmt.Stringer`, and `encoding.TextMarshaler`.
+    Consequence for consumers: a test double acting as the issuing server builds
+    the document as JSON text rather than marshalling the type.
+  - The provider token is already general. `Provider` covers Amazon S3, Google
+    Cloud Storage, and Cloudflare Images, so no GCS-only enum was shipped; the
+    accepted token is `Provider.String()` itself, so the wire vocabulary and the
+    execution domain cannot drift into two tables that disagree. `Provider`
+    keeps `OffWireEnum`: it is never a JSON field, the capability owns its own
+    decoding, and it stays inside the ratcheted execution-enum family that
+    `TestOffWireEnumExhaustiveDomains` enumerates. Naming this as the one
+    reversible call in the slice: making `Provider` a wire enum outright would
+    be simpler but breaks that reviewed family.
+  - No second method enum was created. The wire `method` token is checked
+    against `Spec(provider)` and then discarded, because the vendor
+    specification already decides how the transfer runs. The token is the
+    issuer's assertion about what its signature covers, so a disagreement means
+    the capability would be spent on a request the vendor rejects. That turns a
+    redundant field into a real integrity check instead of a second source of
+    truth.
+  - Bounds reuse the owned ones: `SignedHeaderMaximumCount`,
+    `SignedHeaderMaximumBytes`, and one new URL and document bound. Decoding
+    runs `core.DecodeStrictJSONStructure` into a private temporary and writes
+    the receiver only after the completed value validates, which is the exact
+    sequence Core documents for typed boundary projection.
+  - Red proof: fourteen production mutations were run. Ten were observed red and
+    reverted: admitting absent wire members, skipping the vendor method check,
+    matching the provider token case-insensitively, dropping the URL extent
+    bound, skipping revalidation before the value escapes, admitting absent
+    header members, letting a multipart vendor accept the signed-put token,
+    replacing redaction with a real rendering, and raising or lowering the
+    document byte bound by any amount. The data-flow struct inventory ratchet
+    was separately observed red naming all three new structs.
+  - Raising the document bound initially survived, which was a real table gap:
+    every oversize case also tripped a sub-bound. It is closed by a case that
+    pads a valid document with insignificant whitespace, isolating the document
+    bound from the URL and header-set bounds, and the bound is now ratcheted on
+    both sides.
+  - Three surviving mutations are reported as behavior-equivalent rather than as
+    closed gaps, because each is masked by a downstream gate that is itself
+    ratcheted: admitting the zero provider as a token still fails at
+    `Spec(ProviderUnknown)`; building the signed-header set without
+    `NewSignedHeaders` still fails when the completed value revalidates; and
+    dropping the unset check still fails at `Provider.Validate`. Mutation 5 in
+    that list, removing the revalidation those two depend on, was observed red,
+    so the layering is proved rather than assumed.
+  - One contract question the tables answered: an empty signed header value is
+    admitted. The mined Peachfuzz copy refused it, but an empty field value is
+    legal HTTP and is what the already-landed `SignedHeader` owner admits.
+    Refusing it only in the decoder would have been a second grammar.
+  - `witness-lint` rejected a bare error-string search in the disclosure test.
+    It was restructured rather than waived, and the restructure added the
+    missing typed tier: the rejection is now proved by `errors.Is` first, and
+    the rendering check is explicitly the second-tier operator-facing proof.
+  - Proof: 67 subtests, focused tests, race with shuffle at `-count=2`, vet,
+    staticcheck, errcheck, fieldalignment, production `gocyclo <= 10`, and
+    `witness-lint` are clean for `./objectstore`; the full repository suite
+    passes. `FuzzUploadCapabilityAdmitsOnlyTransferableCapabilities` completed
+    252,080 executions in 30 seconds with no crashers written. Its oracle
+    requires every rejection to carry this package's identity with an unset
+    receiver, every acceptance to project onto a target the transfer entry point
+    would itself admit, and no formatting verb to render anything but redacted
+    text. The repository-wide delivery result is recorded below.
+- Doctrine audit of capabilities 3 and 4, 2026-08-01: the two slices were
+  re-read against the single-source-of-truth and compiler-owned rules. Three
+  violations were found and fixed, and three findings are named below as open
+  judgment calls rather than silently accepted.
+  - Fixed, duplicated mechanic: `exchange` had its own copy of Core's canonical
+    JSON encoder, including a second terminator constant. It was the same
+    twelve lines as `core.MarshalCanonicalJSONString`, which is exactly the
+    duplication class the 2b entry above says a second grammar creates. Core now
+    owns `MarshalCanonicalJSONDocument`, `MarshalCanonicalJSONString` projects
+    from it and keeps only its string-specific UTF-8 gate, and Exchange calls the
+    Core owner and restates the failure under its own identity. Core and
+    Exchange are two named Primitive packages, so PLAN section 2 is satisfied.
+  - Fixed, duplicated constants in tests: three tables restated `256` and `1024`
+    instead of binding to `APIRequestIDMaximumRunes`,
+    `APIErrorMessageMaximumRunes`, and `APIErrorTipMaximumRunes`. The message
+    and tip bounds are two separate contracts that are equal today; one shared
+    literal would have hidden the day they diverge, so they are now bound
+    separately.
+  - Fixed, untested error identity: moving the encoder to Core left
+    Exchange's identity restatement unproved. A mutation dropping it survived.
+    `apiRefusingBody` is a payload that validates and then refuses to encode,
+    which is the only way Core's encoder fails on the envelope path; the
+    mutation now fires red and the test also proves the Core and originating
+    identities stay reachable through `errors.Is`.
+  - Mutation-harness correction: an earlier surviving mutation was a harness
+    defect, not a test gap. Its anchor also matched an identical snippet in
+    `APICode.MarshalJSON`, so the first-occurrence replacement mutated a
+    different function. Re-run against a unique anchor it fires red. The two
+    remaining survivors on that path are genuinely equivalent: Core returns nil
+    bytes on failure, so returning them alongside the error changes nothing.
+  - Fixed, restated vendor grammar in tests: the capability tests restated
+    `X-Goog-Signature`, `X-Amz-Signature`, the signed-header query names, the
+    HTTPS scheme, and the Cloudflare upload host that production owns as
+    unexported constants. Exporting the grammar would be wrong, since a caller
+    never constructs a signed URL, so both test files are now `package
+    objectstore`, as `provider_validation_test.go` already was, and every vendor
+    token binds to `queryGCSSignature`, `queryS3Signature`,
+    `queryGCSSignedHeaders`, `queryS3SignedHeaders`, `httpsScheme`, and
+    `cloudflareImagesUploadHost`. Zero vendor literals remain restated. The
+    external-view proof is unaffected: interface satisfaction is identical from
+    inside the package, and `capabilityCarrier` still decodes through
+    `core.DecodeStrictJSON`, which is the real consumer path.
+  - Fixed, chosen constant: `uploadCapabilityFramingBytes` was an 8 KiB
+    allowance. Every term of `UploadCapabilityJSONMaximumBytes` is now derived:
+    the URL bound, the owned signed-header aggregate,
+    `SignedHeaderMaximumCount` times the exact JSON punctuation one header
+    object adds, and the exact punctuation and member names of the widest
+    document, both spelled as `len` of a real literal so the compiler computes
+    them. The bound moved from 49,152 to 41,813 and is ratcheted on both sides.
+  - Fixed, informal protocol: the envelope's arm was read as pointer nullity,
+    a convention every consumer would repeat at each call site. `APIOutcome` is
+    now a closed off-wire reading with `Outcome()`, and `Payload()` and
+    `Failure()` extract the arm so a caller cannot dereference without checking.
+    `ValidateSuccess` and `ValidateFailure` were removed rather than kept
+    alongside them: the extracting accessors subsume both, and two ways to
+    assert one contract is the duplication this audit exists to remove. This
+    changes what Kernel and Peachfuzz call, which is the point.
+  - Post-audit red proof: fifteen production mutations were each observed red
+    and reverted, ten in `objectstore` and five in `exchange`, including the
+    derived document bound moved in either direction, `Outcome` disagreeing with
+    the arm it reads, `Payload` and `Failure` returning a zero body instead of
+    refusing, `Payload` skipping validation, and `APIOutcome` admitting its zero
+    reading. `APIOutcome` also has an exhaustive 256-value domain walk that pins
+    it as off-wire.
+  - Post-audit proof: `gofmt`, vet, staticcheck, errcheck, fieldalignment,
+    production `gocyclo <= 10`, and `witness-lint` are clean for `./exchange`
+    and `./objectstore`; `./core` carries only the sanctioned baseline. The full
+    repository suite passes, as does `-race -shuffle=on -count=2`. Fuzz re-ran
+    against the changed code: 504,263 and 233,501 executions in 30 seconds each,
+    no crashers.
+  - `witness-lint ./core/` reports 10 findings, all the stale off-wire-enum
+    doctrine in `governance_contracts.go` and `test_isolation_contract.go`,
+    which are untouched at HEAD and are already named in the sanctioned
+    baseline. Zero findings are in any file this work modified. Correction to
+    the handoff note, which claimed `./core/` was clean: it is not, and its own
+    expected-findings list says so.
+  - `filestore` `TestCreateOnlyWritersResolveRealNamespaceContentionWithoutPrimitiveLocks`
+    failed once at 62.9 seconds when the full suite was run concurrently with a
+    race-and-shuffle run on the same machine. It passes isolated and on a clean
+    full run. The load was self-inflicted, but the test's wall-clock deadline is
+    doing double duty as both a deadlock backstop and a throughput assertion,
+    which `test/sync/no-sleep` warns against. Named for Ase; it is not in this
+    slice and was not changed.
+- Delivery review of capabilities 2b, 3, and 4, 2026-08-01: source review found
+  and closed four gaps before publication.
+  - Attest had rejected only the exact bytes `null`; a nested owner could emit
+    whitespace-wrapped null. Nested output now passes Core's strict structural
+    decoder, so exact and case-folded duplicate nested names are also refused,
+    and all three hostile cases are ratcheted. Duplicate top-level name checks
+    now compare byte spans directly without temporary string projections.
+  - Exchange's `APINoBody` documentation said it existed only to instantiate a
+    failure envelope, but its former always-valid value could become a success
+    data arm encoded as `{}`. Its owned invariant now refuses that use, while a
+    failure envelope remains valid because the absent data arm is not read.
+  - Core's newly exported canonical document encoder now has a direct local
+    success/error-identity ratchet in addition to its Exchange consumer proof,
+    and the last raw `256` in the envelope round-trip test now binds to
+    `APIRequestIDMaximumRunes`.
+  - Objectstore now proves a rejected replacement decode preserves a previously
+    valid receiver. Its private wire comment also states the actual typed rule:
+    provider, method, URL, and expiry are required; absent and empty headers
+    both project to the one empty `SignedHeaders` value.
+  - Requested delivery proof passed: `go fix ./...` (no rewrite), `go vet`,
+    `fieldalignment`, production `gocyclo -over 10`, `goconst`, `nilaway`,
+    `errcheck`, `staticcheck`, `deadcode`, `deadcode -test`, `govulncheck`,
+    `gosec`, `go test ./...`, and `go test -race -shuffle=on -count=2 ./...`.
+    Direct `witness-lint ./attest ./exchange ./objectstore` is clean. The exact
+    repository-wide `witness-lint ./...` and canonical gate stop only at the
+    already-recorded enum, Process, and Testserial baseline after every prior
+    gate stage passes; no finding names a file added or modified by this slice.
+- Peachfuzz half, 2026-08-01 (not started, named so it is not lost): Peachfuzz
+  repins and rewires only after capabilities 2b, 3, and 4 are reviewed,
+  committed, and pushed. Its scope is the go.mod repin, retiring
+  `protocol/wire_time.go`, `protocol/canonical_json.go`,
+  `protocol/api_envelope.go`, and the absorbed part of
+  `protocol/upload_capability.go`, moving `MachineEvidenceIdentity` out of the
+  wire package under `internal/professor`, the door-to-door call-site rewire
+  that `peach_fuzz_policy.md:198-200` forbids doing mechanically, hostile tables
+  for `protocol/` at the testing-protocol floor, and complete Foundation removal
+  from all 80 importing files.
 - Exchange review state: the package is a typed policy layer over the caller's
   real `*http.Client`, `net/http`, `io.Reader`, `io.Writer`, Go runtime, and OS
   network stack. It owns bounded aggregate JSON/byte operations, exact bounded

@@ -75,7 +75,7 @@ func (c PathComponent) MarshalJSON() ([]byte, error) {
 	if err := c.Validate(); err != nil {
 		return nil, errors.Join(ErrJSONContract, err)
 	}
-	return marshalJSONString(c.String())
+	return MarshalCanonicalJSONString(c.String())
 }
 
 // UnmarshalJSON accepts one canonical native path component.
@@ -185,7 +185,7 @@ func (p AbsolutePath) MarshalJSON() ([]byte, error) {
 	if err := p.Validate(); err != nil {
 		return nil, errors.Join(ErrJSONContract, err)
 	}
-	return marshalJSONString(p.String())
+	return MarshalCanonicalJSONString(p.String())
 }
 
 // UnmarshalJSON accepts one canonical native absolute path.

@@ -110,7 +110,7 @@ func (m HTTPMethod) MarshalJSON() ([]byte, error) {
 	if err := m.Validate(); err != nil {
 		return nil, errors.Join(ErrJSONContract, err)
 	}
-	return marshalJSONString(m.String())
+	return MarshalCanonicalJSONString(m.String())
 }
 
 // UnmarshalJSON accepts one canonical uppercase admitted method token.
@@ -281,7 +281,7 @@ func (n HTTPHeaderName) MarshalJSON() ([]byte, error) {
 	if err := n.Validate(); err != nil {
 		return nil, errors.Join(ErrJSONContract, err)
 	}
-	return marshalJSONString(n.String())
+	return MarshalCanonicalJSONString(n.String())
 }
 
 // UnmarshalJSON accepts HTTP token syntax and stores canonical MIME-style text.
@@ -447,7 +447,7 @@ func (m HTTPMediaType) MarshalJSON() ([]byte, error) {
 	if err := m.Validate(); err != nil {
 		return nil, errors.Join(ErrJSONContract, err)
 	}
-	return marshalJSONString(m.String())
+	return MarshalCanonicalJSONString(m.String())
 }
 
 // UnmarshalJSON accepts standard media-type syntax and stores its admitted base.

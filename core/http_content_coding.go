@@ -56,7 +56,7 @@ func (c HTTPContentCoding) MarshalJSON() ([]byte, error) {
 	if err := c.Validate(); err != nil {
 		return nil, errors.Join(ErrJSONContract, err)
 	}
-	return marshalJSONString(c.String())
+	return MarshalCanonicalJSONString(c.String())
 }
 
 // UnmarshalJSON accepts one content-coding token without mutating on failure.

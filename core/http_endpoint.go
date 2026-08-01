@@ -80,7 +80,7 @@ func (e HTTPEndpoint) MarshalJSON() ([]byte, error) {
 	if err := e.Validate(); err != nil {
 		return nil, errors.Join(ErrJSONContract, err)
 	}
-	return marshalJSONString(e.String())
+	return MarshalCanonicalJSONString(e.String())
 }
 
 // UnmarshalJSON parses one absolute endpoint without mutating on failure.

@@ -148,7 +148,7 @@ func (p Platform) MarshalJSON() ([]byte, error) {
 	if err := p.Validate(); err != nil {
 		return nil, errors.Join(ErrJSONContract, err)
 	}
-	return marshalJSONString(p.String())
+	return MarshalCanonicalJSONString(p.String())
 }
 
 // UnmarshalJSON accepts only canonical admitted platform text.
@@ -198,7 +198,7 @@ func (o OperatingSystem) MarshalJSON() ([]byte, error) {
 	if err := o.Validate(); err != nil {
 		return nil, errors.Join(ErrJSONContract, err)
 	}
-	return marshalJSONString(o.String())
+	return MarshalCanonicalJSONString(o.String())
 }
 
 // UnmarshalJSON accepts only a canonical admitted operating-system token.
@@ -246,7 +246,7 @@ func (a CPUArchitecture) MarshalJSON() ([]byte, error) {
 	if err := a.Validate(); err != nil {
 		return nil, errors.Join(ErrJSONContract, err)
 	}
-	return marshalJSONString(a.String())
+	return MarshalCanonicalJSONString(a.String())
 }
 
 // UnmarshalJSON accepts only a canonical admitted architecture token.

@@ -80,7 +80,7 @@ func (d SHA256Digest) MarshalJSON() ([]byte, error) {
 	if err != nil {
 		return nil, errors.Join(ErrJSONContract, err)
 	}
-	return marshalJSONString(value)
+	return MarshalCanonicalJSONString(value)
 }
 
 // UnmarshalJSON accepts only canonical lowercase hexadecimal.
@@ -155,7 +155,7 @@ func (c CRC32C) MarshalJSON() ([]byte, error) {
 	if err != nil {
 		return nil, errors.Join(ErrJSONContract, err)
 	}
-	return marshalJSONString(value)
+	return MarshalCanonicalJSONString(value)
 }
 
 // UnmarshalJSON accepts only canonical padded standard Base64.
@@ -232,7 +232,7 @@ func (k Ed25519PublicKey) MarshalJSON() ([]byte, error) {
 	if err != nil {
 		return nil, errors.Join(ErrJSONContract, err)
 	}
-	return marshalJSONString(value)
+	return MarshalCanonicalJSONString(value)
 }
 
 // UnmarshalJSON accepts only canonical lowercase hexadecimal.
