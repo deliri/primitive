@@ -50,6 +50,7 @@ type coreContractInventory struct {
 	PathComponent                protocolFact[PathComponent]
 	AbsolutePath                 protocolFact[AbsolutePath]
 	RelativePath                 protocolFact[RelativePath]
+	IPNetwork                    protocolFact[IPNetwork]
 	HTTPStatusCode               protocolFact[HTTPStatusCode]
 	HTTPHeaderName               protocolFact[HTTPHeaderName]
 	HTTPMediaType                protocolFact[HTTPMediaType]
