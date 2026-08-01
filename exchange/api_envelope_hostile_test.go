@@ -1,6 +1,7 @@
 package exchange_test
 
 import (
+	"encoding"
 	"encoding/json"
 	"errors"
 	"strings"
@@ -9,23 +10,6 @@ import (
 	"github.com/deliri/primitive/v2026/core"
 	"github.com/deliri/primitive/v2026/exchange"
 )
-
-// apiRunes builds one string of exactly count copies of fill. Rune-bounded
-// contracts must be pressured with multi-byte fills, so the tables can prove the
-// bound counts runes rather than bytes.
-func apiRunes(count int, fill rune) string {
-	return strings.Repeat(string(fill), count)
-}
-
-func apiTestEnvelopeBody(t *testing.T, message string) *transportDocument {
-	t.Helper()
-
-	document := transportDocument{Message: message}
-	if err := document.Validate(); err != nil {
-		t.Fatalf("transportDocument.Validate() error = %v, want nil", err)
-	}
-	return &document
-}
 
 func apiTestRequestID(t *testing.T, value string) exchange.APIRequestID {
 	t.Helper()
@@ -583,8 +567,9 @@ func TestAPIEnvelopeArmContractRejectsRatherThanResolvingPrecedence(t *testing.T
 	t.Run("data arm alone reads as success and yields its payload", func(t *testing.T) {
 		t.Parallel()
 
-		envelope := exchange.APIEnvelope[transportDocument]{
-			Data: apiTestEnvelopeBody(t, "payload"), RequestID: id,
+		envelope, envelopeErr := exchange.NewAPISuccessEnvelope(id, transportDocument{Message: "payload"})
+		if envelopeErr != nil {
+			t.Fatalf("NewAPISuccessEnvelope() error = %v, want nil", envelopeErr)
 		}
 		if err := envelope.Validate(); err != nil {
 			t.Fatalf("APIEnvelope.Validate() error = %v, want nil", err)
@@ -606,7 +591,10 @@ func TestAPIEnvelopeArmContractRejectsRatherThanResolvingPrecedence(t *testing.T
 	t.Run("error arm alone reads as failure and yields its failure body", func(t *testing.T) {
 		t.Parallel()
 
-		envelope := exchange.APIEnvelope[transportDocument]{Error: &failure, RequestID: id}
+		envelope, envelopeErr := exchange.NewAPIFailureEnvelope[transportDocument](id, failure)
+		if envelopeErr != nil {
+			t.Fatalf("NewAPIFailureEnvelope() error = %v, want nil", envelopeErr)
+		}
 		if err := envelope.Validate(); err != nil {
 			t.Fatalf("APIEnvelope.Validate() error = %v, want nil", err)
 		}
@@ -624,42 +612,35 @@ func TestAPIEnvelopeArmContractRejectsRatherThanResolvingPrecedence(t *testing.T
 		}
 	})
 
-	t.Run("both arms present is refused rather than resolved", func(t *testing.T) {
+	t.Run("both arms present is refused at the only boundary that can express it", func(t *testing.T) {
 		t.Parallel()
 
-		envelope := exchange.APIEnvelope[transportDocument]{
-			Data: apiTestEnvelopeBody(t, "payload"), Error: &failure, RequestID: id,
+		// No constructor can build a two-armed envelope, so the wire is the
+		// only place the state can arrive. Refusing it there is the whole rule.
+		var envelope exchange.APIEnvelope[transportDocument]
+		document := []byte(`{"data":{"message":"payload"},` +
+			`"error":{"message":"Not found.","code":"not_found"},"request_id":"trace-41"}`)
+		if gotErr := envelope.UnmarshalJSON(document); !errors.Is(gotErr, core.ErrExchangeContract) {
+			t.Fatalf("both-arm UnmarshalJSON() error = %v, want %v",
+				gotErr, core.ErrExchangeContract)
 		}
-		_, payloadErr := envelope.Payload()
-		_, failureErr := envelope.Failure()
-		_, outcomeErr := envelope.Outcome()
-		for _, reading := range []struct {
-			err  error
-			name string
-		}{
-			{name: "Validate", err: envelope.Validate()},
-			{name: "Payload", err: payloadErr},
-			{name: "Failure", err: failureErr},
-			{name: "Outcome", err: outcomeErr},
-		} {
-			if !errors.Is(reading.err, core.ErrExchangeContract) {
-				t.Fatalf("both-arm APIEnvelope.%s() error = %v, want %v",
-					reading.name, reading.err, core.ErrExchangeContract)
-			}
-		}
-		encoded, marshalErr := envelope.MarshalJSON()
-		if !errors.Is(marshalErr, core.ErrExchangeContract) || encoded != nil {
-			t.Fatalf("both-arm APIEnvelope.MarshalJSON() = (%q, %v), want (nil, %v)",
-				encoded, marshalErr, core.ErrExchangeContract)
+		if _, gotErr := envelope.Outcome(); !errors.Is(gotErr, core.ErrExchangeContract) {
+			t.Fatalf("refused decode left a readable envelope: Outcome() error = %v, want %v",
+				gotErr, core.ErrExchangeContract)
 		}
 	})
 
 	t.Run("neither arm present is refused", func(t *testing.T) {
 		t.Parallel()
 
-		envelope := exchange.APIEnvelope[transportDocument]{RequestID: id}
+		var envelope exchange.APIEnvelope[transportDocument]
+		if gotErr := envelope.UnmarshalJSON([]byte(`{"request_id":"trace-41"}`)); !errors.Is(
+			gotErr, core.ErrExchangeContract) {
+			t.Fatalf("armless UnmarshalJSON() error = %v, want %v",
+				gotErr, core.ErrExchangeContract)
+		}
 		if gotErr := envelope.Validate(); !errors.Is(gotErr, core.ErrExchangeContract) {
-			t.Fatalf("empty APIEnvelope.Validate() error = %v, want %v",
+			t.Fatalf("zero APIEnvelope.Validate() error = %v, want %v",
 				gotErr, core.ErrExchangeContract)
 		}
 	})
@@ -667,14 +648,17 @@ func TestAPIEnvelopeArmContractRejectsRatherThanResolvingPrecedence(t *testing.T
 	t.Run("an unset request identifier is refused on both arms", func(t *testing.T) {
 		t.Parallel()
 
-		data := exchange.APIEnvelope[transportDocument]{Data: apiTestEnvelopeBody(t, "payload")}
-		if gotErr := data.Validate(); !errors.Is(gotErr, core.ErrExchangeContract) {
-			t.Fatalf("identifier-less data envelope Validate() error = %v, want %v",
+		var unset exchange.APIRequestID
+		if _, gotErr := exchange.NewAPISuccessEnvelope(
+			unset, transportDocument{Message: "payload"},
+		); !errors.Is(gotErr, core.ErrExchangeContract) {
+			t.Fatalf("identifier-less NewAPISuccessEnvelope() error = %v, want %v",
 				gotErr, core.ErrExchangeContract)
 		}
-		failureEnvelope := exchange.APIEnvelope[transportDocument]{Error: &failure}
-		if gotErr := failureEnvelope.Validate(); !errors.Is(gotErr, core.ErrExchangeContract) {
-			t.Fatalf("identifier-less failure envelope Validate() error = %v, want %v",
+		if _, gotErr := exchange.NewAPIFailureEnvelope[transportDocument](
+			unset, failure,
+		); !errors.Is(gotErr, core.ErrExchangeContract) {
+			t.Fatalf("identifier-less NewAPIFailureEnvelope() error = %v, want %v",
 				gotErr, core.ErrExchangeContract)
 		}
 	})
@@ -682,15 +666,13 @@ func TestAPIEnvelopeArmContractRejectsRatherThanResolvingPrecedence(t *testing.T
 	t.Run("an invalid payload is refused through the data arm", func(t *testing.T) {
 		t.Parallel()
 
-		invalid := transportDocument{}
-		envelope := exchange.APIEnvelope[transportDocument]{Data: &invalid, RequestID: id}
-		gotErr := envelope.Validate()
+		_, gotErr := exchange.NewAPISuccessEnvelope(id, transportDocument{})
 		if !errors.Is(gotErr, core.ErrExchangeContract) {
-			t.Fatalf("invalid-payload APIEnvelope.Validate() error = %v, want %v",
+			t.Fatalf("invalid-payload NewAPISuccessEnvelope() error = %v, want %v",
 				gotErr, core.ErrExchangeContract)
 		}
 		if !errors.Is(gotErr, errTransportDocumentContract) {
-			t.Fatalf("invalid-payload APIEnvelope.Validate() error = %v, want it to reach %v",
+			t.Fatalf("invalid-payload NewAPISuccessEnvelope() error = %v, want it to reach %v",
 				gotErr, errTransportDocumentContract)
 		}
 	})
@@ -699,9 +681,10 @@ func TestAPIEnvelopeArmContractRejectsRatherThanResolvingPrecedence(t *testing.T
 		t.Parallel()
 
 		invalid := exchange.APIErrorBody{Code: exchange.APICodeNotFound}
-		envelope := exchange.APIEnvelope[transportDocument]{Error: &invalid, RequestID: id}
-		if gotErr := envelope.Validate(); !errors.Is(gotErr, core.ErrExchangeContract) {
-			t.Fatalf("invalid-failure APIEnvelope.Validate() error = %v, want %v",
+		if _, gotErr := exchange.NewAPIFailureEnvelope[transportDocument](
+			id, invalid,
+		); !errors.Is(gotErr, core.ErrExchangeContract) {
+			t.Fatalf("invalid-failure NewAPIFailureEnvelope() error = %v, want %v",
 				gotErr, core.ErrExchangeContract)
 		}
 	})
@@ -709,16 +692,15 @@ func TestAPIEnvelopeArmContractRejectsRatherThanResolvingPrecedence(t *testing.T
 	t.Run("the no-body marker cannot become a success data arm", func(t *testing.T) {
 		t.Parallel()
 
-		noBody := exchange.APINoBody{}
-		envelope := exchange.APIEnvelope[exchange.APINoBody]{Data: &noBody, RequestID: id}
-		if gotErr := envelope.Validate(); !errors.Is(gotErr, core.ErrExchangeContract) {
-			t.Fatalf("APIEnvelope[APINoBody].Validate() error = %v, want %v",
+		envelope, gotErr := exchange.NewAPISuccessEnvelope(id, exchange.APINoBody{})
+		if !errors.Is(gotErr, core.ErrExchangeContract) {
+			t.Fatalf("NewAPISuccessEnvelope(APINoBody) error = %v, want %v",
 				gotErr, core.ErrExchangeContract)
 		}
-		encoded, gotErr := envelope.MarshalJSON()
-		if !errors.Is(gotErr, core.ErrExchangeContract) || encoded != nil {
-			t.Fatalf("APIEnvelope[APINoBody].MarshalJSON() = (%q, %v), want (nil, %v)",
-				encoded, gotErr, core.ErrExchangeContract)
+		encoded, encodeErr := exchange.MarshalAPIEnvelope(envelope)
+		if !errors.Is(encodeErr, core.ErrExchangeContract) || encoded != nil {
+			t.Fatalf("MarshalAPIEnvelope(refused envelope) = (%q, %v), want (nil, %v)",
+				encoded, encodeErr, core.ErrExchangeContract)
 		}
 	})
 }
@@ -735,16 +717,14 @@ func TestAPIEnvelopeLayerTriad(t *testing.T) {
 	t.Run("positive the success document carries exactly the data and identifier members", func(t *testing.T) {
 		t.Parallel()
 
-		envelope := exchange.APIEnvelope[transportDocument]{
-			Data: apiTestEnvelopeBody(t, "payload"), RequestID: id,
-		}
-		got, gotErr := envelope.MarshalJSON()
+		envelope := apiSuccessEnvelope(t, id, "payload")
+		got, gotErr := exchange.MarshalAPIEnvelope(envelope)
 		if gotErr != nil {
-			t.Fatalf("APIEnvelope.MarshalJSON() error = %v, want nil", gotErr)
+			t.Fatalf("MarshalAPIEnvelope() error = %v, want nil", gotErr)
 		}
 		want := `{"data":{"message":"payload"},"request_id":"trace-41"}`
 		if string(got) != want {
-			t.Fatalf("APIEnvelope.MarshalJSON() = %s, want %s", got, want)
+			t.Fatalf("MarshalAPIEnvelope() = %s, want %s", got, want)
 		}
 	})
 
@@ -754,26 +734,26 @@ func TestAPIEnvelopeLayerTriad(t *testing.T) {
 		withTip := exchange.APIErrorBody{
 			Code: exchange.APICodeInvalidInput, Message: "Invalid input.", Tip: "Check id.",
 		}
-		envelope := exchange.APIEnvelope[transportDocument]{Error: &withTip, RequestID: id}
-		got, gotErr := envelope.MarshalJSON()
+		envelope := apiFailureEnvelope(t, id, withTip)
+		got, gotErr := exchange.MarshalAPIEnvelope(envelope)
 		if gotErr != nil {
-			t.Fatalf("APIEnvelope.MarshalJSON() error = %v, want nil", gotErr)
+			t.Fatalf("MarshalAPIEnvelope() error = %v, want nil", gotErr)
 		}
 		want := `{"error":{"message":"Invalid input.","tip":"Check id.","code":"invalid_input"},` +
 			`"request_id":"trace-41"}`
 		if string(got) != want {
-			t.Fatalf("APIEnvelope.MarshalJSON() = %s, want %s", got, want)
+			t.Fatalf("MarshalAPIEnvelope() = %s, want %s", got, want)
 		}
 
 		withoutTip := exchange.APIErrorBody{Code: exchange.APICodeInvalidInput, Message: "Invalid input."}
-		bare := exchange.APIEnvelope[transportDocument]{Error: &withoutTip, RequestID: id}
-		gotBare, gotBareErr := bare.MarshalJSON()
+		bare := apiFailureEnvelope(t, id, withoutTip)
+		gotBare, gotBareErr := exchange.MarshalAPIEnvelope(bare)
 		if gotBareErr != nil {
-			t.Fatalf("APIEnvelope.MarshalJSON() error = %v, want nil", gotBareErr)
+			t.Fatalf("MarshalAPIEnvelope() error = %v, want nil", gotBareErr)
 		}
 		wantBare := `{"error":{"message":"Invalid input.","code":"invalid_input"},"request_id":"trace-41"}`
 		if string(gotBare) != wantBare {
-			t.Fatalf("tipless APIEnvelope.MarshalJSON() = %s, want %s", gotBare, wantBare)
+			t.Fatalf("tipless MarshalAPIEnvelope() = %s, want %s", gotBare, wantBare)
 		}
 	})
 
@@ -781,14 +761,14 @@ func TestAPIEnvelopeLayerTriad(t *testing.T) {
 		t.Parallel()
 
 		body := exchange.APIErrorBody{Code: exchange.APICodeInvalidInput, Message: `a<b>c&d`}
-		envelope := exchange.APIEnvelope[transportDocument]{Error: &body, RequestID: id}
-		got, gotErr := envelope.MarshalJSON()
+		envelope := apiFailureEnvelope(t, id, body)
+		got, gotErr := exchange.MarshalAPIEnvelope(envelope)
 		if gotErr != nil {
-			t.Fatalf("APIEnvelope.MarshalJSON() error = %v, want nil", gotErr)
+			t.Fatalf("MarshalAPIEnvelope() error = %v, want nil", gotErr)
 		}
 		want := `{"error":{"message":"a<b>c&d","code":"invalid_input"},"request_id":"trace-41"}`
 		if string(got) != want {
-			t.Fatalf("APIEnvelope.MarshalJSON() = %s, want %s", got, want)
+			t.Fatalf("MarshalAPIEnvelope() = %s, want %s", got, want)
 		}
 	})
 
@@ -834,9 +814,13 @@ func TestAPIEnvelopeLayerTriad(t *testing.T) {
 				if gotErr == nil {
 					t.Fatalf("DecodeStrictJSON(%s) error = nil, want a rejection", tc.document)
 				}
-				if got.RequestID.String() != "" || got.Data != nil || got.Error != nil {
-					t.Fatalf("rejected DecodeStrictJSON(%s) = %+v, want the zero envelope",
-						tc.document, got)
+				if _, outcomeErr := got.Outcome(); outcomeErr == nil {
+					t.Fatalf("rejected DecodeStrictJSON(%s) left a readable envelope, want the zero envelope",
+						tc.document)
+				}
+				if identifier := got.RequestID().String(); identifier != "" {
+					t.Fatalf("rejected DecodeStrictJSON(%s) left request identifier %q, want the zero envelope",
+						tc.document, identifier)
 				}
 			})
 		}
@@ -846,27 +830,25 @@ func TestAPIEnvelopeLayerTriad(t *testing.T) {
 		t.Parallel()
 
 		failure := exchange.APIErrorBody{Code: exchange.APICodeInternal, Message: "Internal."}
-		envelope := exchange.APIEnvelope[transportDocument]{Error: &failure, RequestID: id}
-		got, gotErr := envelope.MarshalJSON()
+		envelope := apiFailureEnvelope(t, id, failure)
+		got, gotErr := exchange.MarshalAPIEnvelope(envelope)
 		if gotErr != nil {
-			t.Fatalf("APIEnvelope.MarshalJSON() error = %v, want nil", gotErr)
+			t.Fatalf("MarshalAPIEnvelope() error = %v, want nil", gotErr)
 		}
 		if strings.Contains(string(got), `"data"`) {
-			t.Fatalf("failure APIEnvelope.MarshalJSON() = %s, want no data member", got)
+			t.Fatalf("failure MarshalAPIEnvelope() = %s, want no data member", got)
 		}
 		if strings.Contains(string(got), "null") {
-			t.Fatalf("failure APIEnvelope.MarshalJSON() = %s, want no null member", got)
+			t.Fatalf("failure MarshalAPIEnvelope() = %s, want no null member", got)
 		}
 
-		success := exchange.APIEnvelope[transportDocument]{
-			Data: apiTestEnvelopeBody(t, "payload"), RequestID: id,
-		}
-		gotSuccess, gotSuccessErr := success.MarshalJSON()
+		success := apiSuccessEnvelope(t, id, "payload")
+		gotSuccess, gotSuccessErr := exchange.MarshalAPIEnvelope(success)
 		if gotSuccessErr != nil {
-			t.Fatalf("APIEnvelope.MarshalJSON() error = %v, want nil", gotSuccessErr)
+			t.Fatalf("MarshalAPIEnvelope() error = %v, want nil", gotSuccessErr)
 		}
 		if strings.Contains(string(gotSuccess), `"error"`) {
-			t.Fatalf("success APIEnvelope.MarshalJSON() = %s, want no error member", gotSuccess)
+			t.Fatalf("success MarshalAPIEnvelope() = %s, want no error member", gotSuccess)
 		}
 	})
 
@@ -874,14 +856,17 @@ func TestAPIEnvelopeLayerTriad(t *testing.T) {
 		t.Parallel()
 
 		failure := exchange.APIErrorBody{Code: exchange.APICodeServiceUnavailable, Message: "Unavailable."}
-		envelope := exchange.APIEnvelope[exchange.APINoBody]{Error: &failure, RequestID: id}
-		got, gotErr := envelope.MarshalJSON()
+		envelope, envelopeErr := exchange.NewAPIFailureEnvelope[exchange.APINoBody](id, failure)
+		if envelopeErr != nil {
+			t.Fatalf("NewAPIFailureEnvelope[APINoBody]() error = %v, want nil", envelopeErr)
+		}
+		got, gotErr := exchange.MarshalAPIEnvelope(envelope)
 		if gotErr != nil {
-			t.Fatalf("APIEnvelope[APINoBody].MarshalJSON() error = %v, want nil", gotErr)
+			t.Fatalf("MarshalAPIEnvelope[APINoBody]() error = %v, want nil", gotErr)
 		}
 		want := `{"error":{"message":"Unavailable.","code":"service_unavailable"},"request_id":"trace-41"}`
 		if string(got) != want {
-			t.Fatalf("APIEnvelope[APINoBody].MarshalJSON() = %s, want %s", got, want)
+			t.Fatalf("MarshalAPIEnvelope[APINoBody]() = %s, want %s", got, want)
 		}
 	})
 }
@@ -899,62 +884,46 @@ func TestAPIEnvelopeStrictJSONRoundTripIsStable(t *testing.T) {
 		envelope exchange.APIEnvelope[transportDocument]
 	}{
 		{
-			name: "success envelope",
-			envelope: exchange.APIEnvelope[transportDocument]{
-				Data: &transportDocument{Message: "payload"}, RequestID: id,
-			},
+			name:     "success envelope",
+			envelope: apiSuccessEnvelope(t, id, "payload"),
 		},
 		{
 			name: "failure envelope without a tip",
-			envelope: exchange.APIEnvelope[transportDocument]{
-				Error: &exchange.APIErrorBody{
-					Code: exchange.APICodeNotFound, Message: "Not found.",
-				},
-				RequestID: id,
-			},
+			envelope: apiFailureEnvelope(t, id, exchange.APIErrorBody{
+				Code: exchange.APICodeNotFound, Message: "Not found.",
+			}),
 		},
 		{
 			name: "failure envelope with a tip",
-			envelope: exchange.APIEnvelope[transportDocument]{
-				Error: &exchange.APIErrorBody{
-					Code: exchange.APICodeConflict, Message: "Conflict.", Tip: "Retry with a fresh version.",
-				},
-				RequestID: id,
-			},
+			envelope: apiFailureEnvelope(t, id, exchange.APIErrorBody{
+				Code: exchange.APICodeConflict, Message: "Conflict.", Tip: "Retry with a fresh version.",
+			}),
 		},
 		{
 			name: "multi byte operator text",
-			envelope: exchange.APIEnvelope[transportDocument]{
-				Error: &exchange.APIErrorBody{
-					Code: exchange.APICodeForbidden, Message: "権限がありません", Tip: "🛰",
-				},
-				RequestID: apiTestRequestID(t, "追跡-41"),
-			},
+			envelope: apiFailureEnvelope(t, apiTestRequestID(t, "追跡-41"), exchange.APIErrorBody{
+				Code: exchange.APICodeForbidden, Message: "権限がありません", Tip: "🛰",
+			}),
 		},
 		{
 			name: "markup bearing operator text",
-			envelope: exchange.APIEnvelope[transportDocument]{
-				Error: &exchange.APIErrorBody{
-					Code: exchange.APICodeInvalidInput, Message: `a<b>c&d"e`,
-				},
-				RequestID: id,
-			},
+			envelope: apiFailureEnvelope(t, id, exchange.APIErrorBody{
+				Code: exchange.APICodeInvalidInput, Message: `a<b>c&d"e`,
+			}),
 		},
 		{
 			name: "identifier at the rune bound",
-			envelope: exchange.APIEnvelope[transportDocument]{
-				Data:      &transportDocument{Message: "payload"},
-				RequestID: apiTestRequestID(t, apiRunes(exchange.APIRequestIDMaximumRunes, 'a')),
-			},
+			envelope: apiSuccessEnvelope(
+				t, apiTestRequestID(t, apiRunes(exchange.APIRequestIDMaximumRunes, 'a')), "payload"),
 		},
 	}
 	for _, tc := range cases {
 		t.Run(tc.name, func(t *testing.T) {
 			t.Parallel()
 
-			encoded, gotErr := core.EncodeValidatedJSON(tc.envelope, core.DefaultStrictJSONLimits())
+			encoded, gotErr := exchange.MarshalAPIEnvelope(tc.envelope)
 			if gotErr != nil {
-				t.Fatalf("EncodeValidatedJSON() error = %v, want nil", gotErr)
+				t.Fatalf("MarshalAPIEnvelope() error = %v, want nil", gotErr)
 			}
 			decoded, decodeErr := core.DecodeStrictJSON[exchange.APIEnvelope[transportDocument]](
 				encoded,
@@ -963,20 +932,59 @@ func TestAPIEnvelopeStrictJSONRoundTripIsStable(t *testing.T) {
 			if decodeErr != nil {
 				t.Fatalf("DecodeStrictJSON(%s) error = %v, want nil", encoded, decodeErr)
 			}
-			if decoded.RequestID != tc.envelope.RequestID {
+			if decoded.RequestID() != tc.envelope.RequestID() {
 				t.Fatalf("decoded RequestID = %q, want %q",
-					decoded.RequestID.String(), tc.envelope.RequestID.String())
+					decoded.RequestID().String(), tc.envelope.RequestID().String())
 			}
 			requireAPIArmsMatch(t, decoded, tc.envelope)
-			reencoded, reencodeErr := decoded.MarshalJSON()
+			reencoded, reencodeErr := exchange.MarshalAPIEnvelope(decoded)
 			if reencodeErr != nil {
-				t.Fatalf("decoded APIEnvelope.MarshalJSON() error = %v, want nil", reencodeErr)
+				t.Fatalf("decoded MarshalAPIEnvelope() error = %v, want nil", reencodeErr)
 			}
 			if string(reencoded) != string(encoded) {
 				t.Fatalf("re-encoded envelope = %s, want %s", reencoded, encoded)
 			}
 		})
 	}
+}
+
+// apiRunes builds a fill string of exactly count runes, so a rune-counted
+// bound is exercised at its real boundary rather than at a byte count that
+// happens to agree for ASCII.
+func apiRunes(count int, fill rune) string {
+	return strings.Repeat(string(fill), count)
+}
+
+// apiSuccessEnvelope seals one data-arm envelope for a test that needs a valid
+// one. Construction is itself a proof now, so the helper fails the test rather
+// than letting an unchecked envelope reach an assertion about something else.
+func apiSuccessEnvelope(
+	t *testing.T,
+	id exchange.APIRequestID,
+	message string,
+) exchange.APIEnvelope[transportDocument] {
+	t.Helper()
+
+	envelope, err := exchange.NewAPISuccessEnvelope(id, transportDocument{Message: message})
+	if err != nil {
+		t.Fatalf("NewAPISuccessEnvelope(%q) error = %v, want nil", message, err)
+	}
+	return envelope
+}
+
+// apiFailureEnvelope seals one error-arm envelope for the same reason.
+func apiFailureEnvelope(
+	t *testing.T,
+	id exchange.APIRequestID,
+	failure exchange.APIErrorBody,
+) exchange.APIEnvelope[transportDocument] {
+	t.Helper()
+
+	envelope, err := exchange.NewAPIFailureEnvelope[transportDocument](id, failure)
+	if err != nil {
+		t.Fatalf("NewAPIFailureEnvelope(%+v) error = %v, want nil", failure, err)
+	}
+	return envelope
 }
 
 func requireAPIArmsMatch(
@@ -986,15 +994,32 @@ func requireAPIArmsMatch(
 ) {
 	t.Helper()
 
-	if (got.Data == nil) != (want.Data == nil) || (got.Error == nil) != (want.Error == nil) {
-		t.Fatalf("decoded arms = (data present %t, error present %t), want (%t, %t)",
-			got.Data != nil, got.Error != nil, want.Data != nil, want.Error != nil)
+	gotOutcome, gotOutcomeErr := got.Outcome()
+	wantOutcome, wantOutcomeErr := want.Outcome()
+	if gotOutcomeErr != nil || wantOutcomeErr != nil {
+		t.Fatalf("Outcome() errors = (%v, %v), want (nil, nil)", gotOutcomeErr, wantOutcomeErr)
 	}
-	if got.Data != nil && *got.Data != *want.Data {
-		t.Fatalf("decoded data = %+v, want %+v", *got.Data, *want.Data)
+	if gotOutcome != wantOutcome {
+		t.Fatalf("decoded outcome = %v, want %v", gotOutcome, wantOutcome)
 	}
-	if got.Error != nil && *got.Error != *want.Error {
-		t.Fatalf("decoded error = %+v, want %+v", *got.Error, *want.Error)
+	if gotOutcome == exchange.APIOutcomeSuccess {
+		gotPayload, gotErr := got.Payload()
+		wantPayload, wantErr := want.Payload()
+		if gotErr != nil || wantErr != nil {
+			t.Fatalf("Payload() errors = (%v, %v), want (nil, nil)", gotErr, wantErr)
+		}
+		if gotPayload != wantPayload {
+			t.Fatalf("decoded data = %+v, want %+v", gotPayload, wantPayload)
+		}
+		return
+	}
+	gotFailure, gotErr := got.Failure()
+	wantFailure, wantErr := want.Failure()
+	if gotErr != nil || wantErr != nil {
+		t.Fatalf("Failure() errors = (%v, %v), want (nil, nil)", gotErr, wantErr)
+	}
+	if gotFailure != wantFailure {
+		t.Fatalf("decoded error = %+v, want %+v", gotFailure, wantFailure)
 	}
 }
 
@@ -1021,28 +1046,195 @@ func (apiRefusingBody) MarshalJSON() ([]byte, error) {
 func TestAPIEnvelopeRestatesCanonicalEncoderFailures(t *testing.T) {
 	t.Parallel()
 
-	envelope := exchange.APIEnvelope[apiRefusingBody]{
-		Data:      &apiRefusingBody{},
-		RequestID: apiTestRequestID(t, "trace-41"),
+	envelope, envelopeErr := exchange.NewAPISuccessEnvelope(
+		apiTestRequestID(t, "trace-41"), apiRefusingBody{})
+	if envelopeErr != nil {
+		t.Fatalf("NewAPISuccessEnvelope() error = %v, want nil", envelopeErr)
 	}
 	if err := envelope.Validate(); err != nil {
 		t.Fatalf("APIEnvelope.Validate() error = %v, want nil", err)
 	}
 
-	got, gotErr := envelope.MarshalJSON()
+	got, gotErr := exchange.MarshalAPIEnvelope(envelope)
 	if !errors.Is(gotErr, core.ErrExchangeContract) {
-		t.Fatalf("APIEnvelope.MarshalJSON() error = %v, want %v", gotErr, core.ErrExchangeContract)
+		t.Fatalf("MarshalAPIEnvelope() error = %v, want %v", gotErr, core.ErrExchangeContract)
 	}
 	if !errors.Is(gotErr, core.ErrJSONContract) {
-		t.Fatalf("APIEnvelope.MarshalJSON() error = %v, want it to reach %v",
+		t.Fatalf("MarshalAPIEnvelope() error = %v, want it to reach %v",
 			gotErr, core.ErrJSONContract)
 	}
 	if !errors.Is(gotErr, errAPIRefusingBodyMarshal) {
-		t.Fatalf("APIEnvelope.MarshalJSON() error = %v, want it to reach %v",
+		t.Fatalf("MarshalAPIEnvelope() error = %v, want it to reach %v",
 			gotErr, errAPIRefusingBodyMarshal)
 	}
 	if got != nil {
-		t.Fatalf("APIEnvelope.MarshalJSON() bytes = %q, want nil", got)
+		t.Fatalf("MarshalAPIEnvelope() bytes = %q, want nil", got)
+	}
+}
+
+// TestAPIEnvelopeDecodeLeavesTheReceiverUntouchedOnRejection proves the decode
+// boundary is transactional. A receiver already holding a good envelope must
+// still hold exactly that envelope after a rejected document, so a hostile
+// payload cannot half-overwrite a value a caller is still using.
+func TestAPIEnvelopeDecodeLeavesTheReceiverUntouchedOnRejection(t *testing.T) {
+	t.Parallel()
+
+	id := apiTestRequestID(t, "trace-41")
+	envelope := apiSuccessEnvelope(t, id, "payload")
+	encoded, encodeErr := exchange.MarshalAPIEnvelope(envelope)
+	if encodeErr != nil {
+		t.Fatalf("MarshalAPIEnvelope() error = %v, want nil", encodeErr)
+	}
+
+	var receiver exchange.APIEnvelope[transportDocument]
+	if err := receiver.UnmarshalJSON(encoded); err != nil {
+		t.Fatalf("UnmarshalJSON(%s) error = %v, want nil", encoded, err)
+	}
+
+	hostile := []struct {
+		name     string
+		document string
+	}{
+		{name: "both arms", document: `{"data":{"message":"p"},` +
+			`"error":{"message":"m","code":"internal"},"request_id":"t"}`},
+		{name: "no arm", document: `{"request_id":"t"}`},
+		{name: "invalid payload", document: `{"data":{"message":""},"request_id":"t"}`},
+		{name: "unknown code", document: `{"error":{"message":"m","code":"teapot"},"request_id":"t"}`},
+		{name: "not an object", document: `[]`},
+	}
+	for _, tc := range hostile {
+		if err := receiver.UnmarshalJSON([]byte(tc.document)); err == nil {
+			t.Fatalf("UnmarshalJSON(%s) error = nil, want a rejection", tc.document)
+		}
+		requireAPIArmsMatch(t, receiver, envelope)
+		if receiver.RequestID() != id {
+			t.Fatalf("after rejected %s the receiver RequestID = %q, want %q",
+				tc.name, receiver.RequestID().String(), id.String())
+		}
+	}
+}
+
+// TestAPIEnvelopeEmitterRefusesAnUnprovenValue proves MarshalAPIEnvelope gates
+// on Validate rather than trusting that every envelope reaching it came from a
+// constructor. The zero value is the one unproven envelope Go itself can build,
+// so it is what the emitter must refuse.
+func TestAPIEnvelopeEmitterRefusesAnUnprovenValue(t *testing.T) {
+	t.Parallel()
+
+	var unset exchange.APIEnvelope[transportDocument]
+	got, gotErr := exchange.MarshalAPIEnvelope(unset)
+	if !errors.Is(gotErr, core.ErrExchangeContract) {
+		t.Fatalf("MarshalAPIEnvelope(zero) error = %v, want %v", gotErr, core.ErrExchangeContract)
+	}
+	if got != nil {
+		t.Fatalf("MarshalAPIEnvelope(zero) = %s, want no bytes", got)
+	}
+}
+
+// TestAPIEnvelopeNilReceiverIsRefusedRatherThanPanicking proves the decode
+// boundary reports a typed contract failure for a nil receiver instead of
+// faulting, which is what every other decoding contract in this package does.
+func TestAPIEnvelopeNilReceiverIsRefusedRatherThanPanicking(t *testing.T) {
+	t.Parallel()
+
+	var receiver *exchange.APIEnvelope[transportDocument]
+	gotErr := receiver.UnmarshalJSON([]byte(`{"data":{"message":"p"},"request_id":"t"}`))
+	if !errors.Is(gotErr, core.ErrExchangeContract) {
+		t.Fatalf("nil receiver UnmarshalJSON() error = %v, want %v",
+			gotErr, core.ErrExchangeContract)
+	}
+}
+
+// TestAPIEnvelopeRefusesReflectedEncoding proves the envelope cannot be emitted
+// by any path except MarshalAPIEnvelope. The arms are unexported, so a reflected
+// encode would otherwise produce a document carrying only request_id and lose
+// the payload silently. Failing loudly here is what makes the constrained
+// emitter the single emission owner rather than merely the recommended one.
+func TestAPIEnvelopeRefusesReflectedEncoding(t *testing.T) {
+	t.Parallel()
+
+	envelope := apiSuccessEnvelope(t, apiTestRequestID(t, "trace-41"), "payload")
+	if _, implements := any(envelope).(json.Marshaler); implements {
+		t.Fatalf("APIEnvelope implements json.Marshaler = %t, want false", implements)
+	}
+	if _, implements := any(envelope).(encoding.TextMarshaler); !implements {
+		t.Fatalf("APIEnvelope implements encoding.TextMarshaler = %t, want true", implements)
+	}
+
+	got, gotErr := json.Marshal(envelope)
+	if !errors.Is(gotErr, core.ErrExchangeContract) {
+		t.Fatalf("json.Marshal(APIEnvelope) error = %v, want %v", gotErr, core.ErrExchangeContract)
+	}
+	if got != nil {
+		t.Fatalf("json.Marshal(APIEnvelope) = %s, want no bytes", got)
+	}
+
+	// A value that merely contains an envelope must fail the same way rather
+	// than emitting an object with the arms missing.
+	container := struct {
+		Envelope exchange.APIEnvelope[transportDocument] `json:"envelope"`
+	}{Envelope: envelope}
+	nested, nestedErr := json.Marshal(container)
+	if !errors.Is(nestedErr, core.ErrExchangeContract) {
+		t.Fatalf("json.Marshal(container) error = %v, want %v", nestedErr, core.ErrExchangeContract)
+	}
+	if nested != nil {
+		t.Fatalf("json.Marshal(container) = %s, want no bytes", nested)
+	}
+
+	// The sanctioned emitter still works on the same value, so the refusal is
+	// about the path taken and not about the envelope being unusable.
+	encoded, encodeErr := exchange.MarshalAPIEnvelope(envelope)
+	if encodeErr != nil {
+		t.Fatalf("MarshalAPIEnvelope() error = %v, want nil", encodeErr)
+	}
+	want := `{"data":{"message":"payload"},"request_id":"trace-41"}`
+	if string(encoded) != want {
+		t.Fatalf("MarshalAPIEnvelope() = %s, want %s", encoded, want)
+	}
+}
+
+// apiDecodeOnlyBody is a consumer-owned payload. It can be populated from a
+// received document and validated, but deliberately owns no JSON emission
+// method because a consumer is not permitted to reproduce the bearer it read.
+type apiDecodeOnlyBody struct {
+	Token string `json:"token"`
+}
+
+func (body apiDecodeOnlyBody) Validate() error {
+	if body.Token == "" {
+		return errors.New("decode-only test body requires a token")
+	}
+	return nil
+}
+
+// TestAPIEnvelopeAdmitsDecodeOnlyBodies proves the envelope's read contract is
+// strictly weaker than its emission contract. The body and envelope remain
+// Validatable without accidentally satisfying ValidatedJSONMarshaler.
+func TestAPIEnvelopeAdmitsDecodeOnlyBodies(t *testing.T) {
+	t.Parallel()
+
+	document := []byte(`{"data":{"token":"bearer"},"request_id":"trace-41"}`)
+	envelope, gotErr := core.DecodeStrictJSON[exchange.APIEnvelope[apiDecodeOnlyBody]](
+		document,
+		core.DefaultStrictJSONLimits(),
+	)
+	if gotErr != nil {
+		t.Fatalf("DecodeStrictJSON(%s) error = %v, want nil", document, gotErr)
+	}
+	payload, payloadErr := envelope.Payload()
+	if payloadErr != nil {
+		t.Fatalf("APIEnvelope.Payload() error = %v, want nil", payloadErr)
+	}
+	if payload.Token != "bearer" {
+		t.Fatalf("APIEnvelope.Payload().Token = %q, want bearer", payload.Token)
+	}
+	if _, implements := any(apiDecodeOnlyBody{}).(core.ValidatedJSONMarshaler); implements {
+		t.Fatalf("apiDecodeOnlyBody implements core.ValidatedJSONMarshaler = %t, want false", implements)
+	}
+	if _, implements := any(envelope).(core.ValidatedJSONMarshaler); implements {
+		t.Fatalf("APIEnvelope[apiDecodeOnlyBody] implements core.ValidatedJSONMarshaler = %t, want false",
+			implements)
 	}
 }
 

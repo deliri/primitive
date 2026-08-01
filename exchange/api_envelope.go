@@ -1,6 +1,7 @@
 package exchange
 
 import (
+	"encoding"
 	"encoding/json"
 	"errors"
 	"strings"
@@ -318,33 +319,106 @@ func (o APIOutcome) String() string {
 // reports success and failure at once has no correct reading, and choosing one
 // arm would hide the producer defect that created it.
 //
-// The body constrains to core.ValidatedJSONMarshaler rather than
-// core.Validatable so a payload always owns an explicit JSON representation.
-// Exchange already demands that of every JSON request body, and Core's strict
-// encoder cannot accept a value without it; a payload that silently encoded as
-// an empty object would otherwise pass every validation the envelope performs.
-type APIEnvelope[Body core.ValidatedJSONMarshaler] struct {
+// The body constrains to core.Validatable, which is what reading an envelope
+// actually requires. Emission demands more, and demands it separately: an
+// envelope is encoded through MarshalAPIEnvelope, whose own constraint is
+// core.ValidatedJSONMarshaler. Splitting the two is not a convenience. A
+// producer must own an explicit JSON representation, because a payload that
+// silently encoded as an empty object would pass every validation performed
+// here; but a consumer decoding a document it will never re-emit has no such
+// obligation, and forcing one on it would exclude exactly the payloads that
+// must not be re-emittable, such as a decoded bearer credential.
+//
+// The arms are unexported. A caller constructs one through
+// NewAPISuccessEnvelope or NewAPIFailureEnvelope, which cannot produce a
+// two-armed or armless value, and receives one through UnmarshalJSON, which
+// proves the same rule. Exporting them would let a struct literal build an
+// envelope no constructor would admit, and would let reflection encode a body
+// that owns no JSON representation as an empty object.
+//
+// The zero value is unset and fails Validate.
+type APIEnvelope[Body core.Validatable] struct {
+	data      *Body
+	failure   *APIErrorBody
+	requestID APIRequestID
+}
+
+// apiEnvelopeWire is the private projection the JSON boundary uses in both
+// directions. Its exported fields let encoding/json see the wire members while
+// the envelope's arms stay unreachable to a caller.
+type apiEnvelopeWire[Body core.Validatable] struct {
 	Data      *Body         `json:"data,omitempty"`
 	Error     *APIErrorBody `json:"error,omitempty"`
 	RequestID APIRequestID  `json:"request_id"`
 }
 
+// NewAPISuccessEnvelope seals one data-arm envelope. The body is proven here,
+// so an invalid payload cannot become a response that merely fails later.
+func NewAPISuccessEnvelope[Body core.Validatable](
+	requestID APIRequestID,
+	body Body,
+) (APIEnvelope[Body], error) {
+	envelope := APIEnvelope[Body]{data: &body, requestID: requestID}
+	if err := envelope.Validate(); err != nil {
+		return APIEnvelope[Body]{}, err
+	}
+	return envelope, nil
+}
+
+// NewAPIFailureEnvelope seals one error-arm envelope.
+func NewAPIFailureEnvelope[Body core.Validatable](
+	requestID APIRequestID,
+	failure APIErrorBody,
+) (APIEnvelope[Body], error) {
+	envelope := APIEnvelope[Body]{failure: &failure, requestID: requestID}
+	if err := envelope.Validate(); err != nil {
+		return APIEnvelope[Body]{}, err
+	}
+	return envelope, nil
+}
+
+// RequestID returns the correlation identifier the envelope carries.
+func (e APIEnvelope[Body]) RequestID() APIRequestID { return e.requestID }
+
 // Validate requires a canonical correlation identifier and exactly one arm.
 func (e APIEnvelope[Body]) Validate() error {
-	if err := e.RequestID.Validate(); err != nil {
+	if err := e.requestID.Validate(); err != nil {
 		return err
 	}
 	switch {
-	case e.Data != nil && e.Error == nil:
-		if err := (*e.Data).Validate(); err != nil {
+	case e.data != nil && e.failure == nil:
+		if err := (*e.data).Validate(); err != nil {
 			return apiContractError(err)
 		}
 		return nil
-	case e.Data == nil && e.Error != nil:
-		return e.Error.Validate()
+	case e.data == nil && e.failure != nil:
+		return e.failure.Validate()
 	default:
 		return apiContractError(errors.New(apiEnvelopeArmErrorText))
 	}
+}
+
+// UnmarshalJSON decodes one envelope into a temporary, proves the arm rule, and
+// only then writes the receiver. Every rejection leaves the receiver untouched.
+func (e *APIEnvelope[Body]) UnmarshalJSON(data []byte) error {
+	if e == nil {
+		return apiContractError(errors.New(apiEnvelopeReceiverErrorText))
+	}
+	wire, err := core.DecodeStrictJSONStructure[apiEnvelopeWire[Body]](
+		data, core.DefaultStrictJSONLimits())
+	if err != nil {
+		return apiContractError(err)
+	}
+	candidate := APIEnvelope[Body]{
+		data:      wire.Data,
+		failure:   wire.Error,
+		requestID: wire.RequestID,
+	}
+	if err := candidate.Validate(); err != nil {
+		return err
+	}
+	*e = candidate
+	return nil
 }
 
 // Outcome reports which arm the envelope carries. It exists so a consumer
@@ -355,7 +429,7 @@ func (e APIEnvelope[Body]) Outcome() (APIOutcome, error) {
 	if err := e.Validate(); err != nil {
 		return APIOutcomeUnknown, err
 	}
-	if e.Data != nil {
+	if e.data != nil {
 		return APIOutcomeSuccess, nil
 	}
 	return APIOutcomeFailure, nil
@@ -369,10 +443,10 @@ func (e APIEnvelope[Body]) Payload() (Body, error) {
 	if err := e.Validate(); err != nil {
 		return zero, err
 	}
-	if e.Data == nil {
+	if e.data == nil {
 		return zero, apiContractError(errors.New(apiEnvelopeSuccessErrorText))
 	}
-	return *e.Data, nil
+	return *e.data, nil
 }
 
 // Failure returns the failure payload. It fails unless the envelope carries the
@@ -381,20 +455,43 @@ func (e APIEnvelope[Body]) Failure() (APIErrorBody, error) {
 	if err := e.Validate(); err != nil {
 		return APIErrorBody{}, err
 	}
-	if e.Error == nil {
+	if e.failure == nil {
 		return APIErrorBody{}, apiContractError(errors.New(apiEnvelopeFailureErrorText))
 	}
-	return *e.Error, nil
+	return *e.failure, nil
 }
 
-// MarshalJSON emits one canonical envelope. The absent arm is omitted rather
-// than emitted as null, so exactly one arm is ever present on the wire.
-func (e APIEnvelope[Body]) MarshalJSON() ([]byte, error) {
-	if err := e.Validate(); err != nil {
+// MarshalAPIEnvelope emits one canonical envelope. The absent arm is omitted
+// rather than emitted as null, so exactly one arm is ever present on the wire.
+//
+// It is a function rather than a method because its body constraint is
+// stricter than the envelope's own. A producer must own an explicit JSON
+// representation; a consumer that only decodes need not, and must not be
+// forced to invent one for a payload it is not permitted to re-emit. Writing
+// the rule here means the compiler refuses to encode such an envelope instead
+// of a reflected walk quietly encoding the payload as an empty object.
+func MarshalAPIEnvelope[Body core.ValidatedJSONMarshaler](
+	envelope APIEnvelope[Body],
+) ([]byte, error) {
+	if err := envelope.Validate(); err != nil {
 		return nil, err
 	}
-	type wire APIEnvelope[Body]
-	return marshalCanonicalAPIDocument(wire(e))
+	return marshalCanonicalAPIDocument(apiEnvelopeWire[Body]{
+		Data:      envelope.data,
+		Error:     envelope.failure,
+		RequestID: envelope.requestID,
+	})
+}
+
+// MarshalText refuses. An envelope is emitted through MarshalAPIEnvelope,
+// which proves at compile time that the body owns a JSON representation. The
+// method exists so a reflected encode of a value that merely contains an
+// envelope fails loudly here rather than emitting an empty object for arms the
+// encoder cannot see. This is deliberately not MarshalJSON: implementing that
+// method would make every APIEnvelope satisfy core.ValidatedJSONMarshaler and
+// erase the compiler-owned distinction between decode-only and emitted bodies.
+func (APIEnvelope[Body]) MarshalText() ([]byte, error) {
+	return nil, apiContractError(errors.New(apiEnvelopeEncodeErrorText))
 }
 
 // marshalCanonicalAPIDocument projects one API wire value through Core's single
@@ -485,5 +582,7 @@ var (
 	_ json.Unmarshaler            = (*APIRequestID)(nil)
 	_ core.ValidatedJSONMarshaler = APIErrorBody{}
 	_ core.ValidatedJSONMarshaler = APINoBody{}
-	_ core.ValidatedJSONMarshaler = APIEnvelope[APINoBody]{}
+	_ core.Validatable            = APIEnvelope[APINoBody]{}
+	_ encoding.TextMarshaler      = APIEnvelope[APINoBody]{}
+	_ json.Unmarshaler            = (*APIEnvelope[APINoBody])(nil)
 )

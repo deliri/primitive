@@ -40,10 +40,11 @@ type exchangeContractInventory struct {
 	redirectFact    internalFlow[redirectFact]
 	requestMetadata internalFlow[requestMetadata]
 
-	APIRequestID protocolContract[APIRequestID]
-	APIErrorBody protocolContract[APIErrorBody]
-	APINoBody    protocolContract[APINoBody]
-	APIEnvelope  protocolContract[APIEnvelope[inventoryDocument]]
+	APIRequestID    protocolContract[APIRequestID]
+	APIErrorBody    protocolContract[APIErrorBody]
+	APINoBody       protocolContract[APINoBody]
+	APIEnvelope     protocolContract[APIEnvelope[inventoryDocument]]
+	apiEnvelopeWire internalFlow[apiEnvelopeWire[inventoryDocument]]
 
 	RedirectPolicy       protocolContract[RedirectPolicy]
 	IdempotencyKey       protocolContract[IdempotencyKey]
@@ -221,6 +222,7 @@ func classifiedStructNames(t *testing.T) []string {
 var (
 	_ core.Validatable            = inventoryDocument{}
 	_ core.ValidatedJSONMarshaler = inventoryDocument{}
+	_                             = exchangeContractInventory{}.apiEnvelopeWire
 	_                             = exchangeContractInventory{}.replayFact
 	_                             = exchangeContractInventory{}.redirectFact
 	_                             = exchangeContractInventory{}.requestMetadata

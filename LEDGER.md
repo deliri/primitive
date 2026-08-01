@@ -938,6 +938,51 @@ Last updated: `2026-08-01`
     exactly, and rebuild to identical bytes, and a rejection to carry
     `core.ErrAttestContract` with no bytes returned. The repository-wide
     delivery result is recorded below.
+- Exchange envelope read/write split, 2026-08-01 (delivery review complete): `APIEnvelope`
+  now constrains its body to `core.Validatable`, and emission moved to
+  `MarshalAPIEnvelope`, whose own constraint stays `core.ValidatedJSONMarshaler`.
+  The split came from a real consumer proof rather than a preference. Peachfuzz
+  decodes an upload grant whose capability is `objectstore.UploadCapability`,
+  which is deliberately decode-only: it never retains the received URL text, so
+  re-serializing the bearer is structurally impossible. Under the old single
+  constraint that response could not be an envelope body at all, which would
+  have forced Peachfuzz to keep a second hand-written envelope, the exact
+  duplication this contract was added to retire. A producer must own an explicit
+  JSON representation; a consumer that will never re-emit the document must not
+  be forced to invent one, least of all for a bearer credential.
+  The arms became unexported in the same slice, because relaxing the constraint
+  without that would have opened a silent hole: a reflected encode of a body
+  owning no `MarshalJSON` emits an empty object, and the envelope would have
+  passed every validation on the way there. Ingress is now
+  `NewAPISuccessEnvelope`, `NewAPIFailureEnvelope`, and `UnmarshalJSON`; egress
+  is `MarshalAPIEnvelope`; reading is `Outcome`, `Payload`, `Failure`, and
+  `RequestID`. `MarshalText` remains only to refuse, so a value that merely
+  contains an envelope fails loudly instead of emitting arms the encoder cannot
+  see, without accidentally making every envelope satisfy
+  `core.ValidatedJSONMarshaler`. Review caught that a refusal-only `MarshalJSON`
+  erased this compiler distinction; the text-marshaler refusal preserves both
+  the loud reflected-encoding failure and the stricter emission constraint.
+  `TestAPIEnvelopeAdmitsDecodeOnlyBodies` now proves the motivating consumer can
+  decode while neither its body nor its envelope claims an emission contract.
+  Two-armed, armless, identifier-less, and invalid-payload envelopes are no
+  longer constructible, so those cases moved from struct literals to the decode
+  boundary, which is the only place they can still arrive.
+  Proof: 7 mutations of the new paths, 6 RED. The survivor removes the emitter's
+  `Validate`; it is masked by `APIRequestID.MarshalJSON`, which validates the
+  only unproven envelope Go can build, the zero value. Removing both gates
+  together is RED, so the masking gate is itself ratcheted. Three earlier
+  survivors were real gaps and are now closed by
+  `TestAPIEnvelopeDecodeLeavesTheReceiverUntouchedOnRejection`,
+  `TestAPIEnvelopeEmitterRefusesAnUnprovenValue`, and
+  `TestAPIEnvelopeNilReceiverIsRefusedRatherThanPanicking`;
+  `TestAPIEnvelopeRefusesReflectedEncoding` covers the refusal contract and
+  asserts the envelope does not implement `json.Marshaler`. The
+  data-flow struct inventory ratchet fired for `apiEnvelopeWire` and was
+  classified rather than widened. gofmt, vet, staticcheck, errcheck,
+  fieldalignment, gocyclo, and witness-lint are clean for `./exchange`; the full
+  repository suite and `-race -shuffle=on -count=2` are green;
+  `FuzzAPIEnvelopeDecodeAcceptsOnlyStableSingleArmDocuments` completed 140,760
+  executions with no crashers.
 - Exchange API envelope, 2026-08-01 (delivery review complete): `APIEnvelope`
   closes the typed API response gap that Kernel (`kernel/core/api_contracts.go`)
   and Peachfuzz (`protocol/api_envelope.go`) currently carry as two

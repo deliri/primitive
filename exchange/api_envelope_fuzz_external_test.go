@@ -33,16 +33,17 @@ func FuzzAPIEnvelopeDecodeAcceptsOnlyStableSingleArmDocuments(f *testing.F) {
 			[]byte(document), core.DefaultStrictJSONLimits(),
 		)
 		if err != nil {
-			if decoded.Data != nil || decoded.Error != nil || decoded.RequestID.String() != "" {
-				t.Fatalf("rejected DecodeStrictJSON(%q) = %+v, want the zero envelope", document, decoded)
+			if _, outcomeErr := decoded.Outcome(); outcomeErr == nil {
+				t.Fatalf("rejected DecodeStrictJSON(%q) left a readable envelope, want the zero envelope",
+					document)
+			}
+			if got := decoded.RequestID().String(); got != "" {
+				t.Fatalf("rejected DecodeStrictJSON(%q) left request identifier %q, want the zero envelope",
+					document, got)
 			}
 			return
 		}
 
-		if (decoded.Data == nil) == (decoded.Error == nil) {
-			t.Fatalf("accepted envelope arms for %q = (data present %t, error present %t), want exactly one",
-				document, decoded.Data != nil, decoded.Error != nil)
-		}
 		if validateErr := decoded.Validate(); validateErr != nil {
 			t.Fatalf("accepted envelope Validate() error = %v, want nil for %q", validateErr, document)
 		}
@@ -51,14 +52,21 @@ func FuzzAPIEnvelopeDecodeAcceptsOnlyStableSingleArmDocuments(f *testing.F) {
 			t.Fatalf("accepted envelope Outcome() = (%v, %v), want a closed reading for %q",
 				outcome, outcomeErr, document)
 		}
-		if (outcome == exchange.APIOutcomeSuccess) != (decoded.Data != nil) {
-			t.Fatalf("Outcome() = %v but data present = %t for %q",
-				outcome, decoded.Data != nil, document)
+		_, payloadErr := decoded.Payload()
+		_, failureErr := decoded.Failure()
+		if (payloadErr == nil) == (failureErr == nil) {
+			t.Fatalf("accepted envelope arms for %q = (payload %v, failure %v), want exactly one",
+				document, payloadErr, failureErr)
+		}
+		if (outcome == exchange.APIOutcomeSuccess) != (payloadErr == nil) {
+			t.Fatalf("Outcome() = %v but payload readable = %t for %q",
+				outcome, payloadErr == nil, document)
 		}
 
-		encoded, encodeErr := decoded.MarshalJSON()
+		encoded, encodeErr := exchange.MarshalAPIEnvelope(decoded)
 		if encodeErr != nil {
-			t.Fatalf("accepted envelope MarshalJSON() error = %v, want nil for %q", encodeErr, document)
+			t.Fatalf("accepted envelope MarshalAPIEnvelope() error = %v, want nil for %q",
+				encodeErr, document)
 		}
 		round, roundErr := core.DecodeStrictJSON[exchange.APIEnvelope[transportDocument]](
 			encoded, core.DefaultStrictJSONLimits(),
@@ -67,10 +75,11 @@ func FuzzAPIEnvelopeDecodeAcceptsOnlyStableSingleArmDocuments(f *testing.F) {
 			t.Fatalf("re-decode of %s error = %v, want nil", encoded, roundErr)
 		}
 		requireAPIArmsMatch(t, round, decoded)
-		if round.RequestID != decoded.RequestID {
-			t.Fatalf("re-decoded RequestID = %q, want %q", round.RequestID.String(), decoded.RequestID.String())
+		if round.RequestID() != decoded.RequestID() {
+			t.Fatalf("re-decoded RequestID = %q, want %q",
+				round.RequestID().String(), decoded.RequestID().String())
 		}
-		reencoded, reencodeErr := round.MarshalJSON()
+		reencoded, reencodeErr := exchange.MarshalAPIEnvelope(round)
 		if reencodeErr != nil {
 			t.Fatalf("re-encode error = %v, want nil for %s", reencodeErr, encoded)
 		}

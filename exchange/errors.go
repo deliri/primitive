@@ -14,6 +14,8 @@ const (
 	apiRequestIDReceiverErrorText = "nil api request identifier receiver"
 	apiOutcomeDomainErrorText     = "api envelope outcome is outside the closed domain"
 	apiEnvelopeArmErrorText       = "api envelope does not carry exactly one of data or error"
+	apiEnvelopeReceiverErrorText  = "nil api envelope receiver"
+	apiEnvelopeEncodeErrorText    = "api envelope is encoded through MarshalAPIEnvelope"
 	apiEnvelopeSuccessErrorText   = "api envelope carries no data arm"
 	apiEnvelopeFailureErrorText   = "api envelope carries no error arm"
 	apiNoBodyDataErrorText        = "api no-body value cannot be used as a data arm"
