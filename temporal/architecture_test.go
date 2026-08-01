@@ -30,6 +30,8 @@ type temporalContractInventory struct {
 	AggregateDuration temporalSealedValue[AggregateDuration]
 	Observation       temporalSealedValue[Observation]
 	Interval          temporalSealedValue[Interval]
+	NumericInstant    temporalPersistenceFact[NumericInstant]
+	NumericDuration   temporalPersistenceFact[NumericDuration]
 	IntervalRequest   temporalIngressRequest[IntervalRequest]
 	IntervalBounds    temporalPersistenceFact[IntervalBounds]
 	TimeoutRequest    temporalCapabilityIntent[TimeoutRequest]
@@ -99,6 +101,20 @@ type temporalIntervalSignature interface {
 	Bounds() (IntervalBounds, error)
 }
 
+type temporalNumericInstantSignature interface {
+	Validate() error
+	IsSet() bool
+	Instant() (Instant, error)
+	MarshalJSON() ([]byte, error)
+}
+
+type temporalNumericDurationSignature interface {
+	Validate() error
+	IsZero() bool
+	Duration() Duration
+	MarshalJSON() ([]byte, error)
+}
+
 type temporalPrecisionSignature interface {
 	Validate() error
 	IsValid() bool
@@ -113,6 +129,10 @@ var (
 	_ interface{ UnmarshalJSON([]byte) error } = (*Duration)(nil)
 	_ temporalAggregateDurationSignature       = AggregateDuration{}
 	_ interface{ UnmarshalJSON([]byte) error } = (*AggregateDuration)(nil)
+	_ temporalNumericInstantSignature          = NumericInstant{}
+	_ interface{ UnmarshalJSON([]byte) error } = (*NumericInstant)(nil)
+	_ temporalNumericDurationSignature         = NumericDuration{}
+	_ interface{ UnmarshalJSON([]byte) error } = (*NumericDuration)(nil)
 	_ temporalObservationSignature             = Observation{}
 	_ temporalIntervalSignature                = Interval{}
 	_ temporalPrecisionSignature               = PrecisionUnknown
@@ -145,6 +165,8 @@ var (
 	_ func(uint64) AggregateDuration                                     = AggregateDurationFromNanoseconds
 	_ func(Duration) (AggregateDuration, error)                          = AggregateDurationFromDuration
 	_ func(string) (AggregateDuration, error)                            = ParseAggregateDuration
+	_ func(Instant) (NumericInstant, error)                              = NewNumericInstant
+	_ func(Duration) (NumericDuration, error)                            = NewNumericDuration
 	_ func() (Observation, error)                                        = Observe
 	_ func(time.Time) (Observation, error)                               = NewObservation
 	_ func(IntervalRequest) (Interval, error)                            = NewInterval
@@ -180,6 +202,8 @@ func TestTemporalProductionStructsHaveCompilerVisibleDataFlowRoles(t *testing.T)
 		"Interval",
 		"IntervalBounds",
 		"IntervalRequest",
+		"NumericDuration",
+		"NumericInstant",
 		"Observation",
 		"Ticker",
 		"TickerRequest",
@@ -215,6 +239,8 @@ func TestTemporalPublicSurfaceMatchesReviewedContract(t *testing.T) {
 		"const NanosecondsPerMillisecond",
 		"const NanosecondsPerMinute",
 		"const NanosecondsPerSecond",
+		"const NumericDurationCanonicalJSONMaximumBytes",
+		"const NumericInstantCanonicalJSONMaximumBytes",
 		"const PrecisionMicrosecond",
 		"const PrecisionMillisecond",
 		"const PrecisionNanosecond",
@@ -235,6 +261,8 @@ func TestTemporalPublicSurfaceMatchesReviewedContract(t *testing.T) {
 		"func NewDuration",
 		"func NewInstant",
 		"func NewInterval",
+		"func NewNumericDuration",
+		"func NewNumericInstant",
 		"func NewObservation",
 		"func Observe",
 		"func OpenTicker",
@@ -284,6 +312,16 @@ func TestTemporalPublicSurfaceMatchesReviewedContract(t *testing.T) {
 		"method Interval.Validate",
 		"method IntervalBounds.Validate",
 		"method IntervalRequest.Validate",
+		"method NumericDuration.Duration",
+		"method NumericDuration.IsZero",
+		"method NumericDuration.MarshalJSON",
+		"method NumericDuration.UnmarshalJSON",
+		"method NumericDuration.Validate",
+		"method NumericInstant.Instant",
+		"method NumericInstant.IsSet",
+		"method NumericInstant.MarshalJSON",
+		"method NumericInstant.UnmarshalJSON",
+		"method NumericInstant.Validate",
 		"method Observation.Instant",
 		"method Observation.Since",
 		"method Observation.Validate",
@@ -305,6 +343,8 @@ func TestTemporalPublicSurfaceMatchesReviewedContract(t *testing.T) {
 		"type Interval",
 		"type IntervalBounds",
 		"type IntervalRequest",
+		"type NumericDuration",
+		"type NumericInstant",
 		"type Observation",
 		"type Precision",
 		"type TickerRequest",

@@ -830,6 +830,78 @@ Last updated: `2026-07-31`
   Temporal is clean. The canonical gate passes through nilaway and then stops
   only at the already classified stale Witness off-wire-enum JSON/String
   doctrine and retired Testserial convention.
+- Temporal numeric projection, 2026-08-01 (awaiting review, uncommitted):
+  `NumericInstant` and `NumericDuration` close the gap the temporal interview
+  already specified at `_docs/interviews/temporal.md:122` and `:130`, where wire
+  and persistence formats are compiler-owned Primitive contracts and preserved
+  mechanics include numeric persistence projections. `Instant` and `Duration`
+  marshal exact nanoseconds as a JSON string; a consumer whose wire has always
+  carried those nanoseconds as a JSON integer previously had to hand-roll a
+  wrapper. Three consumers prove the demand: Kernel wraps
+  `foundationcore.UnixNanoTime` (`:107`), Witness `VerifierBudget` uses raw
+  durations under `_ns` JSON names (`:320`), and Peachfuzz wrote
+  `protocol/wire_time.go` this session for exactly this reason, including a
+  second copy of `canonicalSignedDecimal`.
+  - Both types are placed directly in a wire struct with a json tag. That is the
+    point: append and parse helpers alone would leave every consumer writing the
+    same wrapper, which is the duplication being removed.
+  - The projection wraps the owning typed value rather than a raw `int64`, so
+    value semantics stay `Instant`'s and `Duration`'s and there is no second
+    home for the nanosecond fact. `NumericInstant.Instant` returns an error
+    because its Go zero value carries no instant; `NumericDuration.Duration`
+    cannot fail because its zero value is an exact zero duration, which
+    `Duration` admits. No always-nil error is invented for symmetry.
+  - Encoding is deliberately separate from range policy. The types admit the
+    complete signed Unix-nanosecond domain including pre-epoch instants. Kernel's
+    `PositiveUnixNanoTime`/`OptionalUnixNanoTime` and Peachfuzz's post-epoch
+    evidence rule are a distinct shared need with a second real consumer; that
+    contract is named here and deliberately not folded in. It needs its own
+    interview pass and its own slice.
+  - Decode admits no insignificant whitespace, unlike the string projection.
+    `encoding/json` hands a member's exact literal bytes to `UnmarshalJSON`, so
+    one value keeps exactly one accepted encoding. `decodeNumericNanoseconds`
+    delegates to the existing `parseSignedNanoseconds`, so the canonical-decimal
+    rule keeps one owner rather than gaining a byte-slice twin.
+  - Red proof: four production mutations were each observed red and reverted.
+    Emitting the string form failed the bare-number tables and the wire-struct
+    ratchet; dropping the canonical-decimal gate admitted `+1`, `-0`, `01`, and
+    `-01`; assigning the receiver before admission failed every
+    mutation-on-rejection assertion; and removing the nonnegative gate admitted
+    `-1` and `-1000000000`.
+  - Proof: focused tests, race with shuffle, vet, staticcheck, errcheck,
+    fieldalignment, and production `gocyclo <= 10` are clean for `./temporal`.
+    `FuzzNumericInstantJSON` completed 5,733,868 executions and
+    `FuzzNumericDurationJSON` 6,744,037 executions in 30 seconds each; both
+    oracles require an accepted document to re-encode to exactly the accepted
+    bytes and a rejection to carry a stable typed identity with an untouched
+    receiver. The repository-wide gate is the user's to run and was not run here.
+- Core canonical integer ownership, 2026-08-01: `parseCanonicalUint64JSON` was
+  a Core-private fact used by three Core files while Temporal separately carried
+  its own hand-written `canonicalSignedDecimal` grammar. Two grammars for one
+  rule is the duplication class Primitive exists to remove. Core now exports
+  `ParseCanonicalUint64JSON` and adds `ParseCanonicalInt64JSON`; Temporal's
+  `parseSignedNanoseconds` projects from that owner and its local grammar is
+  deleted. The rule is parse, re-encode, require byte equality, so the accepted
+  grammar is the encoder's own output and cannot drift from it. This admission
+  satisfies PLAN section 2 without an exception: Core itself and Temporal are two
+  named Primitive packages. Temporal's existing string-projection tests and the
+  new numeric tables both pass unchanged across the substitution, which is the
+  evidence that the two grammars were semantically identical.
+  `canonicalUnsignedDecimal` is deliberately retained: AggregateDuration's
+  39-digit unsigned-128 decimal exceeds uint64 and cannot route through
+  `strconv.ParseUint`.
+- Remaining capability work, 2026-08-01 (not started, named so it is not lost):
+  canonical JSON field append belongs in `attest`, not Core. Zero Primitive
+  packages need it in Core, so PLAN section 2 fails and Sentinel's
+  fewer-than-two-consumers rule would reject it; `attest.CanonicalBody`'s
+  `WriteCanonical` is what creates the need, so Attest owns the mechanic. The API
+  envelope belongs in `exchange`, which already owns `JSONCall`,
+  `decodeJSONResponse`, and server ingress/egress; Core fails the same two-package
+  test. The signed-upload-grant wire projection belongs in `objectstore`:
+  receiving and projecting a grant is distinct from creating credentials, which
+  its doc excludes, and it is the only package that can validate a `SignedURL`.
+  Each still needs production, hostile tables at the protocol floor, and its
+  package public-surface ratchet updated.
 - Exchange review state: the package is a typed policy layer over the caller's
   real `*http.Client`, `net/http`, `io.Reader`, `io.Writer`, Go runtime, and OS
   network stack. It owns bounded aggregate JSON/byte operations, exact bounded

@@ -133,6 +133,36 @@ func CheckedUint64FromInt64(value int64) (uint64, error) {
 	return uint64(value), nil
 }
 
+// ParseCanonicalUint64JSON admits exactly the unsigned decimal text strconv
+// emits. It is the single owner of the canonical-integer rule: parse, re-encode,
+// and require byte equality. That makes the accepted grammar the encoder's own
+// output rather than a second hand-written grammar that can drift from it, so a
+// quoted number, a plus sign, a leading zero, a fraction, an exponent, or
+// surrounding whitespace is rejected without enumerating those cases.
+//
+// A value therefore has exactly one accepted encoding, which is the property a
+// byte-signing protocol depends on.
+func ParseCanonicalUint64JSON(data []byte) (uint64, error) {
+	return parseCanonicalUint64JSON(data)
+}
+
+// ParseCanonicalInt64JSON admits exactly the signed decimal text strconv emits,
+// under the same round-trip rule as ParseCanonicalUint64JSON. Negative zero is
+// rejected because strconv never emits it.
+func ParseCanonicalInt64JSON(data []byte) (int64, error) {
+	if len(data) == 0 {
+		return 0, errors.Join(ErrJSONContract, errors.New("empty signed integer"))
+	}
+	value, err := strconv.ParseInt(string(data), 10, 64)
+	if err != nil {
+		return 0, errors.Join(ErrJSONContract, err)
+	}
+	if !bytes.Equal(data, strconv.AppendInt(nil, value, 10)) {
+		return 0, errors.Join(ErrJSONContract, errors.New("signed integer is not canonical"))
+	}
+	return value, nil
+}
+
 func parseCanonicalUint64JSON(data []byte) (uint64, error) {
 	if len(data) == 0 {
 		return 0, errors.Join(ErrJSONContract, errors.New("empty unsigned integer"))

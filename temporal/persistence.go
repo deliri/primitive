@@ -2,7 +2,8 @@ package temporal
 
 import (
 	"encoding/json"
-	"strconv"
+
+	"github.com/deliri/primitive/v2026/core"
 )
 
 func decodeNanosecondJSON(data []byte, maximumBytes int) (string, error) {
@@ -16,37 +17,27 @@ func decodeNanosecondJSON(data []byte, maximumBytes int) (string, error) {
 	return decimal, nil
 }
 
-func parseSignedNanoseconds(decimal string) (int64, error) {
-	if !canonicalSignedDecimal(decimal) {
-		return 0, contractError("signed nanosecond decimal is not canonical")
+// decodeNumericNanoseconds admits one bare JSON number. Unlike the string
+// projection it allows no insignificant whitespace: encoding/json hands a
+// member's exact literal bytes to UnmarshalJSON, so one value keeps exactly one
+// accepted encoding.
+func decodeNumericNanoseconds(data []byte, maximumBytes int) (int64, error) {
+	if len(data) == 0 || len(data) > maximumBytes {
+		return 0, jsonContractError("temporal numeric JSON extent is outside its bound")
 	}
-	value, err := strconv.ParseInt(decimal, 10, 64)
-	if err != nil {
-		return 0, overflowError("signed nanosecond decimal exceeded int64")
-	}
-	return value, nil
+	return parseSignedNanoseconds(string(data))
 }
 
-func canonicalSignedDecimal(decimal string) bool {
-	if decimal == "0" {
-		return true
+// parseSignedNanoseconds projects Core's canonical-integer owner. Temporal
+// previously carried its own hand-written signed-decimal grammar beside Core's
+// round-trip rule; two grammars for one fact is the duplication this package
+// exists to remove, so the rule now has exactly one home.
+func parseSignedNanoseconds(decimal string) (int64, error) {
+	value, err := core.ParseCanonicalInt64JSON([]byte(decimal))
+	if err != nil {
+		return 0, contractError("signed nanosecond decimal is not canonical", err)
 	}
-	if len(decimal) == 0 {
-		return false
-	}
-	start := 0
-	if decimal[0] == '-' {
-		start = 1
-	}
-	if start == len(decimal) || decimal[start] == '0' {
-		return false
-	}
-	for index := start; index < len(decimal); index++ {
-		if decimal[index] < '0' || decimal[index] > '9' {
-			return false
-		}
-	}
-	return true
+	return value, nil
 }
 
 func canonicalUnsignedDecimal(decimal string) bool {
