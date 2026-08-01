@@ -173,7 +173,7 @@ func semicolonTokenContains(value, token string) bool {
 	if token == "" {
 		return false
 	}
-	for _, candidate := range strings.Split(value, signedHeaderTokenSeparator) {
+	for candidate := range strings.SplitSeq(value, signedHeaderTokenSeparator) {
 		if strings.EqualFold(candidate, token) {
 			return true
 		}
@@ -435,7 +435,7 @@ func googleCloudStorageDownloadCRC32C(
 func googleCloudStorageHashComponent(value string) (string, bool, error) {
 	found := ""
 	count := 0
-	for _, component := range strings.Split(value, gcsHashComponentSeparator) {
+	for component := range strings.SplitSeq(value, gcsHashComponentSeparator) {
 		trimmed := strings.TrimSpace(component)
 		if !strings.HasPrefix(trimmed, headerGCSChecksumPrefix) {
 			continue

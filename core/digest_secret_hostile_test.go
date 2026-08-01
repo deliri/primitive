@@ -141,7 +141,6 @@ func TestCRC32CCanonicalBoundaryTable(t *testing.T) {
 		math.MaxUint16, math.MaxUint16 + 1, 1 << 31, math.MaxUint32 - 1, math.MaxUint32,
 	}
 	for _, value := range values {
-		value := value
 		t.Run(fmt.Sprintf("uint32 boundary %d", value), func(t *testing.T) {
 			t.Parallel()
 
@@ -278,7 +277,6 @@ func TestEd25519PublicKeyOwnershipAndLengthBoundaries(t *testing.T) {
 		1024, JSONDocumentMaximumBytes,
 	}
 	for _, length := range invalidLengths {
-		length := length
 		t.Run(fmt.Sprintf("reject key length %d", length), func(t *testing.T) {
 			t.Parallel()
 

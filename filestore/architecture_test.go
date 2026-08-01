@@ -13,9 +13,11 @@ import (
 )
 
 type (
-	validatedRequest[T any]  struct{}
-	capabilityWrapper[T any] struct{}
-	ownershipReceipt[T any]  struct{}
+	validatedRequest[T any]    struct{}
+	capabilityWrapper[T any]   struct{}
+	ownershipReceipt[T any]    struct{}
+	streamedObservation[T any] struct{}
+	boundedFact[T any]         struct{}
 )
 
 type architectureScan struct {
@@ -26,16 +28,20 @@ type architectureScan struct {
 // filestoreContractInventory classifies every production struct by its real
 // role. The generic arguments make every inventory entry compiler-visible.
 type filestoreContractInventory struct {
-	Location         capabilityWrapper[Location]
-	DirectoryRequest validatedRequest[DirectoryRequest]
-	ReadRequest      validatedRequest[ReadRequest]
-	WriteRequest     validatedRequest[WriteRequest]
-	StageRequest     validatedRequest[StageRequest]
-	CommitRequest    validatedRequest[CommitRequest]
-	AppendRequest    validatedRequest[AppendRequest]
-	RotationRequest  validatedRequest[RotationRequest]
-	RemovalRequest   validatedRequest[RemovalRequest]
-	StagedFile       ownershipReceipt[StagedFile]
+	Location              capabilityWrapper[Location]
+	DirectoryRequest      validatedRequest[DirectoryRequest]
+	ReadRequest           validatedRequest[ReadRequest]
+	WriteRequest          validatedRequest[WriteRequest]
+	StageRequest          validatedRequest[StageRequest]
+	CommitRequest         validatedRequest[CommitRequest]
+	AppendRequest         validatedRequest[AppendRequest]
+	RotationRequest       validatedRequest[RotationRequest]
+	RemovalRequest        validatedRequest[RemovalRequest]
+	TreeRemovalRequest    validatedRequest[TreeRemovalRequest]
+	WalkRequest           validatedRequest[WalkRequest]
+	WalkEntry             streamedObservation[WalkEntry]
+	DirectoryEntryMaximum boundedFact[DirectoryEntryMaximum]
+	StagedFile            ownershipReceipt[StagedFile]
 }
 
 var _ = filestoreContractInventory{}
@@ -86,6 +92,7 @@ func TestFilestorePublicSurfaceIsExactRatchet(t *testing.T) {
 		"AppendRequest",
 		"CommitRequest",
 		"DirectoryRequest",
+		"DirectoryEntryMaximum",
 		"InstallMode",
 		"Location",
 		"ReadRequest",
@@ -93,18 +100,26 @@ func TestFilestorePublicSurfaceIsExactRatchet(t *testing.T) {
 		"RotationRequest",
 		"StageRequest",
 		"StagedFile",
+		"TreeRemovalRequest",
+		"WalkDirective",
+		"WalkEntry",
+		"WalkOrder",
+		"WalkRequest",
 		"WriteRequest",
 	})
 	requireExactNames(t, "exported functions", gotFunctions, []string{
 		"Commit",
 		"Discard",
 		"EnsureDirectory",
+		"NewDirectoryEntryMaximum",
 		"OpenAppend",
 		"Read",
 		"Recover",
 		"Remove",
+		"RemoveTree",
 		"RotateAppend",
 		"Stage",
+		"Walk",
 		"Write",
 	})
 	requireExactNames(t, "exported constants", gotConstants, []string{
@@ -115,12 +130,17 @@ func TestFilestorePublicSurfaceIsExactRatchet(t *testing.T) {
 		"InstallCreate",
 		"InstallReplace",
 		"InstallUnknown",
+		"WalkContinue",
+		"WalkOrderLexical",
+		"WalkOrderNative",
+		"WalkSkipDirectory",
 	})
 	requireExactNames(t, "exported methods", gotMethods, []string{
 		"AppendMode.Validate",
 		"AppendRequest.Validate",
 		"CommitRequest.Validate",
 		"DirectoryRequest.Validate",
+		"DirectoryEntryMaximum.Validate",
 		"InstallMode.Validate",
 		"Location.Validate",
 		"ReadRequest.Validate",
@@ -130,6 +150,11 @@ func TestFilestorePublicSurfaceIsExactRatchet(t *testing.T) {
 		"StagedFile.BytesWritten",
 		"StagedFile.Path",
 		"StagedFile.Validate",
+		"TreeRemovalRequest.Validate",
+		"WalkDirective.Validate",
+		"WalkEntry.Validate",
+		"WalkOrder.Validate",
+		"WalkRequest.Validate",
 		"WriteRequest.Validate",
 	})
 }

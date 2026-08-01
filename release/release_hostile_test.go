@@ -16,7 +16,6 @@ func TestArtifactSetRejectsEveryBrokenSlotContract(t *testing.T) {
 	fixture := newReleaseFixture(t, core.NewReleaseVersion(2026, 7, 30), 1)
 
 	for index := range TargetCount {
-		index := index
 		target, ok := Targets().At(index)
 		if !ok {
 			t.Fatalf("Targets().At(%d) ok = false, want true", index)
@@ -148,7 +147,6 @@ func TestLatestLifetimeAndFreshnessBoundaries(t *testing.T) {
 		{name: "exact valid until is expired", at: fact.ValidUntilNanoseconds(t), want: LatestFreshnessExpired, wantClock: LatestClockObserved},
 	}
 	for _, tc := range cases {
-		tc := tc
 		t.Run(tc.name, func(t *testing.T) {
 			t.Parallel()
 			got, err := AssessLatest(AssessLatestRequest{

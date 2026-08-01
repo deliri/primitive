@@ -205,13 +205,13 @@ func TestAmountJSONUsesClosedExactProjection(t *testing.T) {
 		t.Fatalf("json.Marshal(Amount) error = %v, want nil", gotMarshalErr)
 	}
 
-	wantWire := []byte(fmt.Sprintf(
+	wantWire := fmt.Appendf(nil,
 		`{"%s":%q,"%s":%q}`,
 		currency.JSONFieldCurrency,
 		currency.CodeTokenCAD,
 		currency.JSONFieldMinorUnits,
 		"-9223372036854775808",
-	))
+	)
 	if string(wire) != string(wantWire) {
 		t.Fatalf("json.Marshal(Amount) = %s, want %s", wire, wantWire)
 	}
@@ -292,35 +292,35 @@ func TestAmountJSONValidSemanticMatrix(t *testing.T) {
 		{name: "CLF arbitrary signed extent", data: amountJSONFixture(currency.CodeTokenCLF, "123456789"), wantCode: currency.CodeCLF, wantMinor: 123456789},
 		{
 			name: "field order is semantically irrelevant",
-			data: []byte(fmt.Sprintf(
+			data: fmt.Appendf(nil,
 				`{"%s":%q,"%s":%q}`,
 				currency.JSONFieldMinorUnits,
 				"73",
 				currency.JSONFieldCurrency,
 				currency.CodeTokenCAD,
-			)),
+			),
 			wantCode:  currency.CodeCAD,
 			wantMinor: 73,
 		},
 		{
 			name: "equivalent JSON string escapes normalize",
-			data: []byte(fmt.Sprintf(
+			data: fmt.Appendf(nil,
 				`{"%s":"C\u0041D","%s":"\u0037\u0033"}`,
 				currency.JSONFieldCurrency,
 				currency.JSONFieldMinorUnits,
-			)),
+			),
 			wantCode:  currency.CodeCAD,
 			wantMinor: 73,
 		},
 		{
 			name: "leading trailing and structural whitespace normalize",
-			data: []byte(fmt.Sprintf(
+			data: fmt.Appendf(nil,
 				" \n{\t%q : %q,\r%q : %q }\n",
 				currency.JSONFieldCurrency,
 				currency.CodeTokenCAD,
 				currency.JSONFieldMinorUnits,
 				"73",
-			)),
+			),
 			wantCode:  currency.CodeCAD,
 			wantMinor: 73,
 		},
@@ -399,24 +399,24 @@ func TestAmountJSONHostileMatrixPreservesReceiver(t *testing.T) {
 		{name: "array rejected", data: []byte("[]"), wantErr: core.ErrJSONContract},
 		{name: "empty object rejected", data: []byte("{}"), wantErr: core.ErrCurrencyContract},
 		{name: "opening object is truncated", data: []byte("{"), wantErr: core.ErrJSONContract},
-		{name: "currency string is truncated", data: []byte(fmt.Sprintf(
+		{name: "currency string is truncated", data: fmt.Appendf(nil,
 			`{"%s":"CAD`,
 			currency.JSONFieldCurrency,
-		)), wantErr: core.ErrJSONContract},
-		{name: "minor unit string is truncated", data: []byte(fmt.Sprintf(
+		), wantErr: core.ErrJSONContract},
+		{name: "minor unit string is truncated", data: fmt.Appendf(nil,
 			`{"%s":%q,"%s":"125`,
 			currency.JSONFieldCurrency,
 			currency.CodeTokenCAD,
 			currency.JSONFieldMinorUnits,
-		)), wantErr: core.ErrJSONContract},
-		{name: "unknown field rejected", data: []byte(fmt.Sprintf(
+		), wantErr: core.ErrJSONContract},
+		{name: "unknown field rejected", data: fmt.Appendf(nil,
 			`{"%s":%q,"%s":%q,"unknown":true}`,
 			currency.JSONFieldCurrency,
 			currency.CodeTokenCAD,
 			currency.JSONFieldMinorUnits,
 			"125",
-		)), wantErr: core.ErrJSONContract},
-		{name: "duplicate field rejected", data: []byte(fmt.Sprintf(
+		), wantErr: core.ErrJSONContract},
+		{name: "duplicate field rejected", data: fmt.Appendf(nil,
 			`{"%s":%q,"%s":%q,"%s":%q}`,
 			currency.JSONFieldCurrency,
 			currency.CodeTokenCAD,
@@ -424,8 +424,8 @@ func TestAmountJSONHostileMatrixPreservesReceiver(t *testing.T) {
 			currency.CodeTokenUSD,
 			currency.JSONFieldMinorUnits,
 			"125",
-		)), wantErr: core.ErrJSONContract},
-		{name: "duplicate minor units rejected", data: []byte(fmt.Sprintf(
+		), wantErr: core.ErrJSONContract},
+		{name: "duplicate minor units rejected", data: fmt.Appendf(nil,
 			`{"%s":%q,"%s":%q,"%s":%q}`,
 			currency.JSONFieldCurrency,
 			currency.CodeTokenCAD,
@@ -433,88 +433,88 @@ func TestAmountJSONHostileMatrixPreservesReceiver(t *testing.T) {
 			"125",
 			currency.JSONFieldMinorUnits,
 			"126",
-		)), wantErr: core.ErrJSONContract},
-		{name: "case variant duplicate rejected", data: []byte(fmt.Sprintf(
+		), wantErr: core.ErrJSONContract},
+		{name: "case variant duplicate rejected", data: fmt.Appendf(nil,
 			`{"%s":%q,"Currency":%q,"%s":%q}`,
 			currency.JSONFieldCurrency,
 			currency.CodeTokenCAD,
 			currency.CodeTokenUSD,
 			currency.JSONFieldMinorUnits,
 			"125",
-		)), wantErr: core.ErrJSONContract},
-		{name: "case variant field rejected without canonical spelling", data: []byte(fmt.Sprintf(
+		), wantErr: core.ErrJSONContract},
+		{name: "case variant field rejected without canonical spelling", data: fmt.Appendf(nil,
 			`{"%s":%q,"%s":%q}`,
 			strings.ToUpper(currency.JSONFieldCurrency),
 			currency.CodeTokenCAD,
 			currency.JSONFieldMinorUnits,
 			"125",
-		)), wantErr: core.ErrJSONContract},
-		{name: "missing currency rejected", data: []byte(fmt.Sprintf(
+		), wantErr: core.ErrJSONContract},
+		{name: "missing currency rejected", data: fmt.Appendf(nil,
 			`{"%s":%q}`,
 			currency.JSONFieldMinorUnits,
 			"125",
-		)), wantErr: core.ErrCurrencyContract},
-		{name: "missing minor units rejected", data: []byte(fmt.Sprintf(
+		), wantErr: core.ErrCurrencyContract},
+		{name: "missing minor units rejected", data: fmt.Appendf(nil,
 			`{"%s":%q}`,
 			currency.JSONFieldCurrency,
 			currency.CodeTokenCAD,
-		)), wantErr: core.ErrCurrencyDecimal},
-		{name: "currency number rejected", data: []byte(fmt.Sprintf(
+		), wantErr: core.ErrCurrencyDecimal},
+		{name: "currency number rejected", data: fmt.Appendf(nil,
 			`{"%s":1,"%s":%q}`,
 			currency.JSONFieldCurrency,
 			currency.JSONFieldMinorUnits,
 			"125",
-		)), wantErr: core.ErrCurrencyContract},
-		{name: "numeric minor units rejected", data: []byte(fmt.Sprintf(
+		), wantErr: core.ErrCurrencyContract},
+		{name: "numeric minor units rejected", data: fmt.Appendf(nil,
 			`{"%s":%q,"%s":125}`,
 			currency.JSONFieldCurrency,
 			currency.CodeTokenCAD,
 			currency.JSONFieldMinorUnits,
-		)), wantErr: core.ErrCurrencyDecimal},
-		{name: "null currency rejected", data: []byte(fmt.Sprintf(
+		), wantErr: core.ErrCurrencyDecimal},
+		{name: "null currency rejected", data: fmt.Appendf(nil,
 			`{"%s":null,"%s":%q}`,
 			currency.JSONFieldCurrency,
 			currency.JSONFieldMinorUnits,
 			"125",
-		)), wantErr: core.ErrCurrencyContract},
-		{name: "null minor units rejected", data: []byte(fmt.Sprintf(
+		), wantErr: core.ErrCurrencyContract},
+		{name: "null minor units rejected", data: fmt.Appendf(nil,
 			`{"%s":%q,"%s":null}`,
 			currency.JSONFieldCurrency,
 			currency.CodeTokenCAD,
 			currency.JSONFieldMinorUnits,
-		)), wantErr: core.ErrCurrencyDecimal},
+		), wantErr: core.ErrCurrencyDecimal},
 		{name: "lowercase currency rejected", data: amountJSONFixture("cad", "125"), wantErr: core.ErrCurrencyContract},
 		{name: "unknown currency rejected", data: amountJSONFixture("ZZZ", "125"), wantErr: core.ErrCurrencyContract},
-		{name: "noncanonical integer rejected", data: []byte(fmt.Sprintf(
+		{name: "noncanonical integer rejected", data: fmt.Appendf(nil,
 			`{"%s":%q,"%s":%q}`,
 			currency.JSONFieldCurrency,
 			currency.CodeTokenCAD,
 			currency.JSONFieldMinorUnits,
 			"0125",
-		)), wantErr: core.ErrCurrencyDecimal},
+		), wantErr: core.ErrCurrencyDecimal},
 		{name: "explicit plus integer rejected", data: amountJSONFixture(currency.CodeTokenCAD, "+125"), wantErr: core.ErrCurrencyDecimal},
 		{name: "negative zero integer rejected", data: amountJSONFixture(currency.CodeTokenCAD, "-0"), wantErr: core.ErrCurrencyDecimal},
 		{name: "positive overflow rejected", data: amountJSONFixture(currency.CodeTokenCAD, "9223372036854775808"), wantErr: core.ErrCurrencyDecimal},
 		{name: "negative overflow rejected", data: amountJSONFixture(currency.CodeTokenCAD, "-9223372036854775809"), wantErr: core.ErrCurrencyDecimal},
-		{name: "trailing comma rejected", data: []byte(fmt.Sprintf(
+		{name: "trailing comma rejected", data: fmt.Appendf(nil,
 			`{"%s":%q,"%s":%q,}`,
 			currency.JSONFieldCurrency,
 			currency.CodeTokenCAD,
 			currency.JSONFieldMinorUnits,
 			"125",
-		)), wantErr: core.ErrJSONContract},
-		{name: "nested currency object rejected", data: []byte(fmt.Sprintf(
+		), wantErr: core.ErrJSONContract},
+		{name: "nested currency object rejected", data: fmt.Appendf(nil,
 			`{"%s":{},"%s":%q}`,
 			currency.JSONFieldCurrency,
 			currency.JSONFieldMinorUnits,
 			"125",
-		)), wantErr: core.ErrJSONContract},
-		{name: "unpaired surrogate rejected", data: []byte(fmt.Sprintf(
+		), wantErr: core.ErrJSONContract},
+		{name: "unpaired surrogate rejected", data: fmt.Appendf(nil,
 			`{"%s":"\uD800","%s":%q}`,
 			currency.JSONFieldCurrency,
 			currency.JSONFieldMinorUnits,
 			"125",
-		)), wantErr: core.ErrJSONContract},
+		), wantErr: core.ErrJSONContract},
 		{name: "invalid UTF-8 rejected", data: []byte{'{', '"', 0xff, '"', '}'}, wantErr: core.ErrJSONContract},
 		{name: "trailing document rejected", data: append(append([]byte(nil), canonical...), canonical...), wantErr: core.ErrJSONContract},
 		{name: "one byte above document bound rejected", data: append(append([]byte(nil), maximumCanonical...), []byte(strings.Repeat(" ", currency.AmountJSONDocumentSlackBytes+1))...), wantErr: core.ErrJSONContract},
@@ -552,11 +552,11 @@ func TestAmountJSONHostileMatrixPreservesReceiver(t *testing.T) {
 }
 
 func amountJSONFixture(code, minorUnits string) []byte {
-	return []byte(fmt.Sprintf(
+	return fmt.Appendf(nil,
 		`{"%s":%q,"%s":%q}`,
 		currency.JSONFieldCurrency,
 		code,
 		currency.JSONFieldMinorUnits,
 		minorUnits,
-	))
+	)
 }

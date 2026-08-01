@@ -175,7 +175,6 @@ func TestDecisionUnionRejectsEveryDormantPayload(t *testing.T) {
 		{name: "unknown with all payloads", decision: Decision{header: header, grant: grant, refusal: refusal, revocation: revocation}},
 	}
 	for _, tc := range cases {
-		tc := tc
 		t.Run(tc.name, func(t *testing.T) {
 			t.Parallel()
 
@@ -279,7 +278,6 @@ func TestDecisionTaggedUnionRejectsContradictoryWireBodies(t *testing.T) {
 		{name: "missing body", data: missingBody},
 	}
 	for _, tc := range cases {
-		tc := tc
 		t.Run(tc.name, func(t *testing.T) {
 			t.Parallel()
 
@@ -407,7 +405,6 @@ func TestAssessmentRejectsATamperedProjection(t *testing.T) {
 	}
 
 	for _, tc := range cases {
-		tc := tc
 		t.Run(tc.name, func(t *testing.T) {
 			t.Parallel()
 

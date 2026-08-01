@@ -66,6 +66,12 @@ type TickerRequest struct {
 	Interval Duration
 }
 
+// Ticker is one caller-owned standard-library ticker capability. Its channel
+// remains the Go time data plane while construction and ownership stay typed.
+type Ticker struct {
+	ticker *time.Ticker
+}
+
 type contextConstruction struct {
 	ctx    context.Context
 	cancel context.CancelFunc
@@ -180,8 +186,8 @@ func terminalContextError(ctx context.Context) error {
 	}
 }
 
-// OpenTicker returns a caller-owned real standard-library ticker.
-func OpenTicker(request TickerRequest) (*time.Ticker, error) {
+// OpenTicker returns a caller-owned real standard-library ticker capability.
+func OpenTicker(request TickerRequest) (*Ticker, error) {
 	if err := request.Validate(); err != nil {
 		return nil, err
 	}
@@ -189,7 +195,30 @@ func OpenTicker(request TickerRequest) (*time.Ticker, error) {
 	if err != nil {
 		return nil, err
 	}
-	return time.NewTicker(interval), nil
+	return &Ticker{ticker: time.NewTicker(interval)}, nil
+}
+
+// Validate rejects an unset ticker capability.
+func (t *Ticker) Validate() error {
+	if t == nil || t.ticker == nil {
+		return contractError("ticker is unset")
+	}
+	return nil
+}
+
+// Ticks returns the real standard-library tick channel.
+func (t *Ticker) Ticks() <-chan time.Time {
+	if t == nil || t.ticker == nil {
+		return nil
+	}
+	return t.ticker.C
+}
+
+// Stop releases the underlying standard-library ticker resource.
+func (t *Ticker) Stop() {
+	if t != nil && t.ticker != nil {
+		t.ticker.Stop()
+	}
 }
 
 func validateEffectParent(parent context.Context) error {
@@ -202,4 +231,5 @@ var (
 	_ core.Validatable = DeadlineRequest{}
 	_ core.Validatable = WaitRequest{}
 	_ core.Validatable = TickerRequest{}
+	_ core.Validatable = (*Ticker)(nil)
 )

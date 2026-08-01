@@ -27,6 +27,7 @@ func productionStructRoles() map[string]string {
 		"Result":              "fixed-size execution result",
 		"StreamFailure":       "typed stream failure",
 		"Streams":             "caller-owned stream capabilities",
+		"TruncatingWriter":    "bounded streaming output capability",
 		"boundedWriter":       "bounded streaming output projection",
 		"commandStreams":      "fixed execution stream carrier",
 		"observedReader":      "streaming input observation",
@@ -142,6 +143,10 @@ func TestPublicOperationsAreOnlyTypedConstructionAndExecution(t *testing.T) {
 		"NewArgument",
 		"NewEnvironmentName",
 		"NewEnvironmentValue",
+		"NewTruncatingWriter",
+		"ParseArguments",
+		"ParseEffectiveEnvironment",
+		"ParseExactEnvironment",
 		"Run",
 	}
 	if !slices.Equal(got, want) {

@@ -54,6 +54,7 @@ type exchangeContractInventory struct {
 	NoBodyBoundedPolicy  protocolContract[NoBodyBoundedPolicy]
 	BoundedPolicy        protocolContract[BoundedPolicy]
 	StreamPolicy         protocolContract[StreamPolicy]
+	StreamReplayPolicy   protocolContract[StreamReplayPolicy]
 	JSONRequest          protocolContract[JSONRequest[inventoryDocument]]
 	NoBodyRequest        protocolContract[NoBodyRequest]
 	NoBodyBoundedRequest protocolContract[NoBodyBoundedRequest]
@@ -80,6 +81,7 @@ type exchangeContractInventory struct {
 
 	UploadCall              protocolContract[UploadCall]
 	DownloadCall            protocolContract[DownloadCall]
+	StreamReplayCall        protocolContract[StreamReplayCall]
 	uploadHTTPRequest       internalFlow[uploadHTTPRequest]
 	downloadHTTPRequest     internalFlow[downloadHTTPRequest]
 	uploadResponseRequest   internalFlow[uploadResponseRequest]

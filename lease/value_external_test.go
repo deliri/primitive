@@ -32,7 +32,6 @@ func TestIdentifierEntryPointPressure(t *testing.T) {
 	}
 
 	for _, tc := range cases {
-		tc := tc
 		t.Run(tc.name, func(t *testing.T) {
 			t.Parallel()
 
@@ -113,7 +112,6 @@ func TestIdentifierJSONHostilePressure(t *testing.T) {
 	}
 
 	for _, tc := range cases {
-		tc := tc
 		t.Run(tc.name, func(t *testing.T) {
 			t.Parallel()
 
@@ -143,7 +141,6 @@ func TestGenerationBoundaryPressure(t *testing.T) {
 		{name: "zero", wantErr: core.ErrLeaseContract},
 	}
 	for _, tc := range cases {
-		tc := tc
 		t.Run(tc.name, func(t *testing.T) {
 			t.Parallel()
 
@@ -191,7 +188,6 @@ func TestGenerationJSONEntryPointPressure(t *testing.T) {
 		t.Fatalf("lease.NewGeneration() error = %v, want nil", err)
 	}
 	for _, tc := range cases {
-		tc := tc
 		t.Run(tc.name, func(t *testing.T) {
 			t.Parallel()
 
@@ -286,7 +282,6 @@ func runEnumJSONPressure[T comparable](t *testing.T, contract enumJSONPressure[T
 		{name: "over document bound", data: make([]byte, contract.maximum+1), wantErr: core.ErrJSONContract},
 	}
 	for _, tc := range cases {
-		tc := tc
 		t.Run(contract.name+"/"+tc.name, func(t *testing.T) {
 			t.Parallel()
 

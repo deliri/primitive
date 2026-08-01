@@ -585,9 +585,23 @@ type aggregateReadRequest struct {
 	context             context.Context
 	response            *http.Response
 	expectedContentType core.HTTPMediaType
-	expectedStatus      core.HTTPStatusCode
 	capture             HeaderSelection
 	limit               core.ByteCount
+	expectedStatus      core.HTTPStatusCode
+}
+
+// validateExpectedResponseHeaders enforces the content codings and media type
+// that only an expected-status response must satisfy. An unexpected status
+// carries a provider error document, so its representation headers are not
+// held to the caller's declared success contract.
+func validateExpectedResponseHeaders(input aggregateReadRequest) error {
+	if err := validateIdentityContentCoding(input.response.Header); err != nil {
+		return err
+	}
+	return validateResponseContentType(
+		input.response.Header,
+		input.expectedContentType,
+	)
 }
 
 func readAggregateHTTPResponse(
@@ -610,16 +624,7 @@ func readAggregateHTTPResponse(
 		core.HTTPHeaderRetryAfter().String(),
 	)
 	if status == input.expectedStatus {
-		if err := validateIdentityContentCoding(input.response.Header); err != nil {
-			return result, errors.Join(
-				err,
-				closeResponseBody(input.response.Body),
-			)
-		}
-		if err := validateResponseContentType(
-			input.response.Header,
-			input.expectedContentType,
-		); err != nil {
+		if err := validateExpectedResponseHeaders(input); err != nil {
 			return result, errors.Join(
 				err,
 				closeResponseBody(input.response.Body),

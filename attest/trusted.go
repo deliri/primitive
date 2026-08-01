@@ -2,6 +2,7 @@ package attest
 
 import (
 	"errors"
+	"slices"
 
 	"github.com/deliri/primitive/v2026/core"
 )
@@ -31,10 +32,8 @@ func validateTrustedKeyInput(keys []core.Ed25519PublicKey) error {
 		if err := key.Validate(); err != nil {
 			return contractError(err)
 		}
-		for _, prior := range keys[:index] {
-			if prior == key {
-				return contractError(errors.New(trustedKeyDuplicateErrorText))
-			}
+		if slices.Contains(keys[:index], key) {
+			return contractError(errors.New(trustedKeyDuplicateErrorText))
 		}
 	}
 	return nil
@@ -58,10 +57,5 @@ func (t TrustedKeys) Validate() error {
 }
 
 func (t TrustedKeys) contains(key core.Ed25519PublicKey) bool {
-	for _, candidate := range t.keys[:t.count] {
-		if candidate == key {
-			return true
-		}
-	}
-	return false
+	return slices.Contains(t.keys[:t.count], key)
 }

@@ -204,8 +204,8 @@ func TestTickerEffectLayerTriad(t *testing.T) {
 				t.Fatalf("OpenTicker() = (%v, %v), want real ticker/nil", ticker, gotErr)
 			}
 			defer ticker.Stop()
-			first := <-ticker.C
-			second := <-ticker.C
+			first := <-ticker.Ticks()
+			second := <-ticker.Ticks()
 			if got := second.Sub(first); got != 11*time.Nanosecond {
 				t.Fatalf("two real ticker readings differ by %v, want %v", got, 11*time.Nanosecond)
 			}
@@ -229,12 +229,12 @@ func TestTickerEffectLayerTriad(t *testing.T) {
 			if gotErr != nil {
 				t.Fatalf("OpenTicker() error = %v, want nil", gotErr)
 			}
-			<-ticker.C
+			<-ticker.Ticks()
 			ticker.Stop()
 			backstop := time.NewTimer(14 * time.Nanosecond)
 			defer backstop.Stop()
 			select {
-			case got := <-ticker.C:
+			case got := <-ticker.Ticks():
 				t.Fatalf("stopped ticker emitted %v, want no further tick", got)
 			case <-backstop.C:
 			}

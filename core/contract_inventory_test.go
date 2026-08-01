@@ -5,6 +5,7 @@ import (
 	"go/parser"
 	"go/token"
 	"os"
+	"slices"
 	"strings"
 	"testing"
 )
@@ -182,12 +183,7 @@ func (i *productionStructInventory) Add(name productionStructName) error {
 }
 
 func (i productionStructInventory) Contains(name productionStructName) bool {
-	for _, candidate := range i.Values() {
-		if candidate == name {
-			return true
-		}
-	}
-	return false
+	return slices.Contains(i.Values(), name)
 }
 
 func (i productionStructInventory) Values() []productionStructName {

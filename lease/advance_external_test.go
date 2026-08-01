@@ -134,7 +134,6 @@ func TestAdvanceGenerationAndOutcomePressure(t *testing.T) {
 	}
 
 	for _, tc := range cases {
-		tc := tc
 		t.Run(tc.name, func(t *testing.T) {
 			t.Parallel()
 
@@ -207,7 +206,6 @@ func TestAdvanceIdentityPrecedesSequence(t *testing.T) {
 	}
 
 	for _, tc := range cases {
-		tc := tc
 		t.Run(tc.name, func(t *testing.T) {
 			t.Parallel()
 
@@ -251,7 +249,6 @@ func TestAdvanceRejectsZeroAndUnverifiedInputs(t *testing.T) {
 	}
 
 	for _, tc := range cases {
-		tc := tc
 		t.Run(tc.name, func(t *testing.T) {
 			t.Parallel()
 

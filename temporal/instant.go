@@ -79,6 +79,16 @@ func (i Instant) Time() (time.Time, error) {
 	return time.Unix(0, i.nanoseconds).UTC(), nil
 }
 
+// RFC3339 returns the canonical UTC second-precision representation used by
+// human-facing protocols that require RFC 3339 text.
+func (i Instant) RFC3339() (string, error) {
+	value, err := i.Time()
+	if err != nil {
+		return "", err
+	}
+	return value.Format(time.RFC3339), nil
+}
+
 // Add returns i advanced by duration.
 func (i Instant) Add(duration Duration) (Instant, error) {
 	if err := i.Validate(); err != nil {

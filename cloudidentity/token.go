@@ -1,6 +1,7 @@
 package cloudidentity
 
 import (
+	"bytes"
 	"fmt"
 	"io"
 
@@ -11,6 +12,10 @@ import (
 // one-package fact: Cloudidentity is the only Primitive package that produces
 // an outbound Authorization value.
 const bearerPrefix = "Bearer "
+
+// GoogleCloudCommandOutputMaximumBytes bounds one token plus the longest
+// line ending emitted by a provider command.
+const GoogleCloudCommandOutputMaximumBytes = TokenMaximumBytes + 2
 
 // Token is one opaque provider-acquired outbound identity bearer. Its value
 // has no assertion accessor and every generic formatting surface is redacted.
@@ -25,6 +30,24 @@ func newToken(provider Provider, value string) (Token, error) {
 		return Token{}, err
 	}
 	return token, nil
+}
+
+// ParseGoogleCloudCommandOutput validates the complete stdout of one
+// caller-owned Google Cloud credential command. The command lifecycle, exit
+// status, and output capture remain caller-owned; Cloudidentity owns the
+// bounded token syntax, provider provenance, and redacted disclosure.
+func ParseGoogleCloudCommandOutput(output []byte) (Token, error) {
+	if len(output) == 0 || len(output) > GoogleCloudCommandOutputMaximumBytes {
+		return Token{}, core.ErrCloudIdentityContract
+	}
+	value := output
+	if bytes.HasSuffix(value, []byte{'\n'}) {
+		value = value[:len(value)-1]
+		if bytes.HasSuffix(value, []byte{'\r'}) {
+			value = value[:len(value)-1]
+		}
+	}
+	return newToken(ProviderGoogleCloud, string(value))
 }
 
 // Provider returns the authority that issued the token.

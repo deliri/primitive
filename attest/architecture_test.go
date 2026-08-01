@@ -165,6 +165,7 @@ func TestAttestProductionImportsStayOnApprovedStandardLibraryAndCoreSubstrate(t 
 		"hash",
 		"io",
 		"math",
+		"slices",
 	}
 	if !slices.Equal(gotImports, wantImports) {
 		t.Fatalf("Attest production imports = %q, want %q", gotImports, wantImports)
@@ -623,12 +624,7 @@ func (i *productionStructInventory) Add(name productionStructName) error {
 }
 
 func (i productionStructInventory) Contains(name productionStructName) bool {
-	for _, candidate := range i.Values() {
-		if candidate == name {
-			return true
-		}
-	}
-	return false
+	return slices.Contains(i.Values(), name)
 }
 
 func (i productionStructInventory) Values() []productionStructName {

@@ -36,6 +36,7 @@ type temporalContractInventory struct {
 	DeadlineRequest   temporalCapabilityIntent[DeadlineRequest]
 	WaitRequest       temporalCapabilityIntent[WaitRequest]
 	TickerRequest     temporalCapabilityIntent[TickerRequest]
+	Ticker            temporalCapabilityIntent[Ticker]
 	ContextResult     temporalCapabilityIntent[contextConstruction]
 	PrecisionFact     temporalDefinitionFact[precisionFact]
 }
@@ -122,6 +123,7 @@ var (
 	_ interface{ Validate() error } = DeadlineRequest{}
 	_ interface{ Validate() error } = WaitRequest{}
 	_ interface{ Validate() error } = TickerRequest{}
+	_ interface{ Validate() error } = (*Ticker)(nil)
 
 	_ = IntervalRequest{Observation{}, Observation{}}
 	_ = IntervalBounds{Instant{}, Instant{}}
@@ -150,7 +152,7 @@ var (
 	_ func(TimeoutRequest) (context.Context, context.CancelFunc, error)  = WithTimeout
 	_ func(DeadlineRequest) (context.Context, context.CancelFunc, error) = WithDeadline
 	_ func(WaitRequest) error                                            = Wait
-	_ func(TickerRequest) (*time.Ticker, error)                          = OpenTicker
+	_ func(TickerRequest) (*Ticker, error)                               = OpenTicker
 )
 
 type temporalArchitecture struct {
@@ -179,6 +181,7 @@ func TestTemporalProductionStructsHaveCompilerVisibleDataFlowRoles(t *testing.T)
 		"IntervalBounds",
 		"IntervalRequest",
 		"Observation",
+		"Ticker",
 		"TickerRequest",
 		"TimeoutRequest",
 		"WaitRequest",
@@ -236,6 +239,7 @@ func TestTemporalPublicSurfaceMatchesReviewedContract(t *testing.T) {
 		"func Observe",
 		"func OpenTicker",
 		"func ParseAggregateDuration",
+		"func ParseDuration",
 		"func Wait",
 		"func WithDeadline",
 		"func WithTimeout",
@@ -266,6 +270,7 @@ func TestTemporalPublicSurfaceMatchesReviewedContract(t *testing.T) {
 		"method Instant.IsSet",
 		"method Instant.MarshalJSON",
 		"method Instant.Nanoseconds",
+		"method Instant.RFC3339",
 		"method Instant.Since",
 		"method Instant.Subtract",
 		"method Instant.Time",
@@ -288,6 +293,9 @@ func TestTemporalPublicSurfaceMatchesReviewedContract(t *testing.T) {
 		"method Precision.String",
 		"method Precision.Validate",
 		"method TickerRequest.Validate",
+		"method Ticker.Stop",
+		"method Ticker.Ticks",
+		"method Ticker.Validate",
 		"method TimeoutRequest.Validate",
 		"method WaitRequest.Validate",
 		"type AggregateDuration",
@@ -300,6 +308,7 @@ func TestTemporalPublicSurfaceMatchesReviewedContract(t *testing.T) {
 		"type Observation",
 		"type Precision",
 		"type TickerRequest",
+		"type Ticker",
 		"type TimeoutRequest",
 		"type WaitRequest",
 	}

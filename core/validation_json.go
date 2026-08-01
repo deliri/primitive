@@ -5,6 +5,7 @@ import (
 	"encoding/json"
 	"errors"
 	"io"
+	"reflect"
 	"slices"
 	"strings"
 	"unicode"
@@ -231,7 +232,7 @@ func DecodeStrictJSONStructure[T any](
 
 func decodeStrictJSONStructureValidatedLimits[T any](data []byte, limits StrictJSONLimits) (T, error) {
 	var value T
-	if err := validateStrictJSONInput(data, limits); err != nil {
+	if err := validateStrictJSONTypedInput[T](data, limits); err != nil {
 		return value, err
 	}
 	decoder := json.NewDecoder(bytes.NewReader(data))
@@ -256,7 +257,19 @@ func decodeJSONValue[T any](decoder *json.Decoder, destination *T) (err error) {
 	return decoder.Decode(destination)
 }
 
-func validateStrictJSONInput(data []byte, limits StrictJSONLimits) error {
+func validateStrictJSONTypedInput[T any](data []byte, limits StrictJSONLimits) error {
+	return validateStrictJSONInputWithFields(
+		data,
+		limits,
+		jsonFieldNamesForType(reflect.TypeFor[T]()),
+	)
+}
+
+func validateStrictJSONInputWithFields(
+	data []byte,
+	limits StrictJSONLimits,
+	fields []string,
+) error {
 	if len(data) == 0 {
 		return jsonContractError("json document is empty", nil)
 	}
@@ -269,7 +282,7 @@ func validateStrictJSONInput(data []byte, limits StrictJSONLimits) error {
 	if err := rejectUnpairedJSONSurrogates(data); err != nil {
 		return err
 	}
-	return rejectDuplicateJSONFields(data, limits)
+	return rejectDuplicateJSONFieldsWithFields(data, limits, fields)
 }
 
 func rejectTrailingJSON(decoder *json.Decoder) error {
@@ -303,7 +316,11 @@ func (d jsonContractDiagnostic) Error() string {
 	return d.message
 }
 
-func rejectDuplicateJSONFields(data []byte, limits StrictJSONLimits) error {
+func rejectDuplicateJSONFieldsWithFields(
+	data []byte,
+	limits StrictJSONLimits,
+	fields []string,
+) error {
 	decoder := json.NewDecoder(bytes.NewReader(data))
 	stack := make([]strictJSONContainer, 0)
 	for {
@@ -317,7 +334,7 @@ func rejectDuplicateJSONFields(data []byte, limits StrictJSONLimits) error {
 		if err != nil {
 			return jsonContractError("json token scan failed", err)
 		}
-		stack, err = scanStrictJSONToken(stack, token, limits)
+		stack, err = scanStrictJSONToken(stack, token, limits, fields)
 		if err != nil {
 			return err
 		}
@@ -328,12 +345,13 @@ func scanStrictJSONToken(
 	stack []strictJSONContainer,
 	token json.Token,
 	limits StrictJSONLimits,
+	fields []string,
 ) ([]strictJSONContainer, error) {
 	if delimiter, ok := token.(json.Delim); ok {
 		return scanStrictJSONDelimiter(stack, delimiter, limits)
 	}
 	if key, ok := token.(string); ok && topExpectsObjectKey(stack) {
-		return scanStrictJSONObjectKey(stack, key, limits)
+		return scanStrictJSONObjectKey(stack, key, limits, fields)
 	}
 	return completeStrictJSONValue(stack, limits)
 }
@@ -401,14 +419,105 @@ func scanStrictJSONObjectKey(
 	stack []strictJSONContainer,
 	key string,
 	limits StrictJSONLimits,
+	fields []string,
 ) ([]strictJSONContainer, error) {
 	top := &stack[len(stack)-1]
 	if len(top.keys) >= int(limits.ObjectFieldMaximum) {
 		return nil, jsonContractError(jsonObjectFieldLimitExceededErrorText, nil)
 	}
+	if matchesDeclaredJSONFieldOnlyByCaseFold(fields, key) {
+		return nil, jsonContractError("json object field casing is not canonical", nil)
+	}
 	top.keys = append(top.keys, foldStrictJSONKey(key))
 	top.expectKey = false
 	return stack, nil
+}
+
+func matchesDeclaredJSONFieldOnlyByCaseFold(fields []string, key string) bool {
+	if _, exact := slices.BinarySearch(fields, key); exact {
+		return false
+	}
+	return slices.ContainsFunc(fields, func(field string) bool {
+		return strings.EqualFold(field, key)
+	})
+}
+
+func jsonFieldNamesForType(root reflect.Type) []string {
+	fields := make([]string, 0)
+	pending := []reflect.Type{root}
+	visited := make([]reflect.Type, 0)
+	for len(pending) > 0 {
+		last := len(pending) - 1
+		valueType := indirectJSONFieldType(pending[last])
+		pending = pending[:last]
+		fields, pending, visited = collectJSONFieldType(
+			valueType,
+			fields,
+			pending,
+			visited,
+		)
+	}
+	slices.Sort(fields)
+	return slices.Compact(fields)
+}
+
+func collectJSONFieldType(
+	valueType reflect.Type,
+	fields []string,
+	pending []reflect.Type,
+	visited []reflect.Type,
+) ([]string, []reflect.Type, []reflect.Type) {
+	if valueType == nil || jsonFieldTypeOwnsContract(valueType) || valueType.Kind() == reflect.Interface {
+		return fields, pending, visited
+	}
+	if valueType.Kind() == reflect.Map {
+		return fields, append(pending, valueType.Elem()), visited
+	}
+	if valueType.Kind() != reflect.Struct || slices.Contains(visited, valueType) {
+		return fields, pending, visited
+	}
+	visited = append(visited, valueType)
+	for field := range valueType.Fields() {
+		name, included, nested := reflectedJSONFieldName(field)
+		if included {
+			fields = append(fields, name)
+		}
+		if nested {
+			pending = append(pending, field.Type)
+		}
+	}
+	return fields, pending, visited
+}
+
+func indirectJSONFieldType(valueType reflect.Type) reflect.Type {
+	for valueType != nil && (valueType.Kind() == reflect.Pointer || valueType.Kind() == reflect.Slice || valueType.Kind() == reflect.Array) {
+		valueType = valueType.Elem()
+	}
+	return valueType
+}
+
+func jsonFieldTypeOwnsContract(valueType reflect.Type) bool {
+	unmarshaler := reflect.TypeFor[json.Unmarshaler]()
+	return valueType.Implements(unmarshaler) || reflect.PointerTo(valueType).Implements(unmarshaler)
+}
+
+func reflectedJSONFieldName(field reflect.StructField) (string, bool, bool) {
+	if !field.IsExported() {
+		return "", false, false
+	}
+	tag := field.Tag.Get("json")
+	name, _, _ := strings.Cut(tag, ",")
+	if name == "-" {
+		return "", false, false
+	}
+	if name != "" {
+		return name, true, true
+	}
+	fieldType := indirectJSONFieldType(field.Type)
+	if field.Anonymous && fieldType != nil && fieldType.Kind() == reflect.Struct {
+		return "", false, true
+	}
+	return field.Name, true, true
 }
 
 func rejectDuplicateStrictJSONObjectKeys(keys []string) error {

@@ -165,3 +165,26 @@ func Remove(ctx context.Context, request RemovalRequest) error {
 	}
 	return nil
 }
+
+// RemoveTree durably removes one rooted tree without following a symlink at
+// the named entry. The operating system owns traversal and bounded buffering;
+// Primitive owns validation, rooted capability confinement, and durability.
+func RemoveTree(ctx context.Context, request TreeRemovalRequest) error {
+	if err := contextstate.Validate(ctx); err != nil {
+		return err
+	}
+	if err := request.Validate(); err != nil {
+		return err
+	}
+	err := request.Location.Root.RemoveAll(request.Location.Path.String())
+	if errors.Is(err, fs.ErrNotExist) {
+		return nil
+	}
+	if err != nil {
+		return cleanupError(err)
+	}
+	if err := syncParent(request.Location.Root, request.Location.Path); err != nil {
+		return cleanupError(err)
+	}
+	return nil
+}

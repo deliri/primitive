@@ -80,7 +80,6 @@ func TestDecisionLayerTriad(t *testing.T) {
 	}
 
 	for _, tc := range cases {
-		tc := tc
 		t.Run(tc.name, func(t *testing.T) {
 			t.Parallel()
 
@@ -173,7 +172,6 @@ func TestGrantTimelineBoundaryPressure(t *testing.T) {
 	}
 
 	for _, tc := range cases {
-		tc := tc
 		t.Run(tc.name, func(t *testing.T) {
 			t.Parallel()
 
@@ -218,7 +216,6 @@ func TestDecisionOutcomeJSONRoundTrips(t *testing.T) {
 		{name: "revocation tagged union", decision: revocation},
 	}
 	for _, tc := range cases {
-		tc := tc
 		t.Run(tc.name, func(t *testing.T) {
 			t.Parallel()
 
@@ -270,7 +267,6 @@ func TestDecisionVariantProjectionPressure(t *testing.T) {
 		{name: "revocation", decision: revocation, outcome: lease.OutcomeRevocation},
 	}
 	for _, tc := range cases {
-		tc := tc
 		t.Run(tc.name, func(t *testing.T) {
 			t.Parallel()
 

@@ -96,7 +96,6 @@ func TestDiagnosticLabelsAreExhaustiveAndClosed(t *testing.T) {
 	}
 
 	for _, tc := range cases {
-		tc := tc
 		t.Run(tc.name, func(t *testing.T) {
 			t.Parallel()
 
@@ -146,7 +145,6 @@ func TestUnsetNominalValuesProjectEmptyText(t *testing.T) {
 	}
 
 	for _, tc := range cases {
-		tc := tc
 		t.Run(tc.name, func(t *testing.T) {
 			t.Parallel()
 
@@ -407,7 +405,6 @@ func TestHeaderValidationRejectsEveryUnsetComponent(t *testing.T) {
 	}
 
 	for _, tc := range cases {
-		tc := tc
 		t.Run(tc.name, func(t *testing.T) {
 			t.Parallel()
 

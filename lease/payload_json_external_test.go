@@ -101,7 +101,6 @@ func runPayloadJSONPressure[T comparable](
 	}
 	cases := payloadJSONCases(t, contract, canonical)
 	for _, tc := range cases {
-		tc := tc
 		t.Run(contract.name+"/"+tc.name, func(t *testing.T) {
 			t.Parallel()
 
@@ -193,14 +192,16 @@ func payloadJSONCases[T comparable](
 				data:    appendObjectField(canonical, caseVariantField(t, canonical, field)),
 				wantErr: core.ErrJSONContract,
 			},
-			// A lone alternate casing is accepted by Core's strict grammar and
-			// projects to the identical typed value. Lease signs that typed
-			// value's canonical projection rather than the received bytes, so
-			// the case-variant input re-encodes to the exact canonical object
-			// and cannot become a second wire form of the same decision.
+			// A lone alternate casing is rejected. Go's decoder matches object
+			// keys case-insensitively, so without this rule `Contact_After`
+			// would silently populate `contact_after`. Core owns one grammar
+			// for every consumer and cannot know whether a caller re-encodes
+			// what it decoded, so the exact declared casing is required at the
+			// wire boundary rather than trusted to each caller's projection.
 			payloadJSONCase{
-				name: "lone case variant " + field + " field projects canonically",
-				data: appendObjectField(removeField(t, canonical, field), caseVariantField(t, canonical, field)),
+				name:    "lone case variant " + field + " field is rejected",
+				data:    appendObjectField(removeField(t, canonical, field), caseVariantField(t, canonical, field)),
+				wantErr: core.ErrJSONContract,
 			},
 			payloadJSONCase{
 				name:    "missing " + field + " field",
@@ -317,7 +318,6 @@ func TestPayloadUnmarshalRejectsNilReceivers(t *testing.T) {
 	}
 
 	for _, tc := range cases {
-		tc := tc
 		t.Run(tc.name, func(t *testing.T) {
 			t.Parallel()
 
@@ -356,7 +356,6 @@ func TestZeroPayloadsRefuseToMarshal(t *testing.T) {
 	}
 
 	for _, tc := range cases {
-		tc := tc
 		t.Run(tc.name, func(t *testing.T) {
 			t.Parallel()
 

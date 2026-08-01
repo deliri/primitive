@@ -63,6 +63,7 @@ func TestCloudidentityProductionStructsHaveCompilerVisibleDataFlowRoles(
 		)
 	}
 	wantImports := []string{
+		"bytes",
 		"context",
 		"encoding/hex",
 		"encoding/xml",
@@ -107,6 +108,7 @@ func TestProviderSelectionHasOnlyExplicitAcquisitionEntryPoints(t *testing.T) {
 		"NewAmazonWebServicesRequest",
 		"NewClient",
 		"ParseAudience",
+		"ParseGoogleCloudCommandOutput",
 	}
 	if !slices.Equal(got, want) {
 		t.Fatalf(
@@ -163,10 +165,10 @@ func mentionsProvider(node ast.Expr) bool {
 }
 
 func classifiedCloudidentityStructs() []string {
-	inventory := reflect.TypeOf(cloudidentityStructInventory{})
+	inventory := reflect.TypeFor[cloudidentityStructInventory]()
 	classified := make([]string, 0, inventory.NumField())
-	for index := range inventory.NumField() {
-		role := inventory.Field(index).Type
+	for field := range inventory.Fields() {
+		role := field.Type
 		classified = append(
 			classified,
 			role.Field(0).Type.Name(),

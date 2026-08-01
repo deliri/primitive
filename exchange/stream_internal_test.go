@@ -134,9 +134,7 @@ func TestTransferBufferPoolIsSafeUnderConcurrentTransfers(t *testing.T) {
 	residue := make(chan int, workers*rounds)
 	var group sync.WaitGroup
 	for range workers {
-		group.Add(1)
-		go func() {
-			defer group.Done()
+		group.Go(func() {
 			for range rounds {
 				buffer := acquireTransferBuffer()
 				if index := firstNonZeroIndex(buffer); index >= 0 {
@@ -145,7 +143,7 @@ func TestTransferBufferPoolIsSafeUnderConcurrentTransfers(t *testing.T) {
 				dirtyTransferBuffer(buffer)
 				releaseTransferBuffer(buffer)
 			}
-		}()
+		})
 	}
 	group.Wait()
 	close(residue)

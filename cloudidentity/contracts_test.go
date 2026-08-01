@@ -206,42 +206,45 @@ func TestTokenBearerBoundaryHostileTable(t *testing.T) {
 
 	cases := []struct {
 		name    string
-		value   string
+		output  string
 		wantErr bool
 	}{
-		{name: "JWT-shaped bearer remains opaque", value: testIdentityToken},
-		{name: "lexical three-segment material is accepted without JWT claim", value: "a.b.c"},
-		{name: "one token byte reaches the minimum", value: "a"},
-		{name: "standard Base64 alphabet is accepted", value: "abc+/"},
-		{name: "URL-safe Base64 alphabet is accepted", value: "abc-_"},
-		{name: "tilde bearer byte is accepted", value: "abc~"},
-		{name: "one padding byte is accepted at end", value: "abc="},
-		{name: "two padding bytes are accepted at end", value: "abc=="},
-		{name: "one below maximum is accepted", value: strings.Repeat("a", TokenMaximumBytes-1)},
-		{name: "exact maximum is accepted", value: strings.Repeat("a", TokenMaximumBytes)},
+		{name: "JWT-shaped bearer remains opaque", output: testIdentityToken},
+		{name: "lexical three-segment material is accepted without JWT claim", output: "a.b.c"},
+		{name: "one token byte reaches the minimum", output: "a"},
+		{name: "standard Base64 alphabet is accepted", output: "abc+/"},
+		{name: "URL-safe Base64 alphabet is accepted", output: "abc-_"},
+		{name: "tilde bearer byte is accepted", output: "abc~"},
+		{name: "one padding byte is accepted at end", output: "abc="},
+		{name: "two padding bytes are accepted at end", output: "abc=="},
+		{name: "one trailing line feed is accepted", output: "abc\n"},
+		{name: "one trailing carriage-return line feed is accepted", output: "abc\r\n"},
+		{name: "one below maximum is accepted", output: strings.Repeat("a", TokenMaximumBytes-1)},
+		{name: "exact maximum is accepted", output: strings.Repeat("a", TokenMaximumBytes)},
 		{name: "empty bearer is rejected", wantErr: true},
-		{name: "leading padding is rejected", value: "=abc", wantErr: true},
-		{name: "interior padding is rejected", value: "ab=c", wantErr: true},
-		{name: "space is rejected", value: "ab c", wantErr: true},
-		{name: "tab is rejected", value: "ab\tc", wantErr: true},
-		{name: "newline is rejected", value: "ab\nc", wantErr: true},
-		{name: "carriage return is rejected", value: "ab\rc", wantErr: true},
-		{name: "comma is rejected", value: "ab,c", wantErr: true},
-		{name: "non-ASCII is rejected", value: "ab界c", wantErr: true},
-		{name: "one above maximum is rejected", value: strings.Repeat("a", TokenMaximumBytes+1), wantErr: true},
+		{name: "leading padding is rejected", output: "=abc", wantErr: true},
+		{name: "interior padding is rejected", output: "ab=c", wantErr: true},
+		{name: "space is rejected", output: "ab c", wantErr: true},
+		{name: "tab is rejected", output: "ab\tc", wantErr: true},
+		{name: "interior newline is rejected", output: "ab\nc", wantErr: true},
+		{name: "bare carriage return is rejected", output: "abc\r", wantErr: true},
+		{name: "two trailing line feeds are rejected", output: "abc\n\n", wantErr: true},
+		{name: "leading line feed is rejected", output: "\nabc", wantErr: true},
+		{name: "trailing space is rejected", output: "abc ", wantErr: true},
+		{name: "comma is rejected", output: "ab,c", wantErr: true},
+		{name: "non-ASCII is rejected", output: "ab界c", wantErr: true},
+		{name: "one above token maximum is rejected", output: strings.Repeat("a", TokenMaximumBytes+1), wantErr: true},
+		{name: "one above command-output maximum is rejected", output: strings.Repeat("a", GoogleCloudCommandOutputMaximumBytes+1), wantErr: true},
 	}
 	for _, tc := range cases {
 		t.Run(tc.name, func(t *testing.T) {
 			t.Parallel()
 
-			got, gotErr := newToken(
-				ProviderGoogleCloud,
-				tc.value,
-			)
+			got, gotErr := ParseGoogleCloudCommandOutput([]byte(tc.output))
 			if tc.wantErr {
 				if !errors.Is(gotErr, core.ErrCloudIdentityContract) {
 					t.Fatalf(
-						"newToken() error = %v, want %v",
+						"ParseGoogleCloudCommandOutput() error = %v, want %v",
 						gotErr,
 						core.ErrCloudIdentityContract,
 					)
@@ -249,10 +252,11 @@ func TestTokenBearerBoundaryHostileTable(t *testing.T) {
 				return
 			}
 			if gotErr != nil {
-				t.Fatalf("newToken() error = %v, want nil", gotErr)
+				t.Fatalf("ParseGoogleCloudCommandOutput() error = %v, want nil", gotErr)
 			}
 			gotBearer, gotBearerErr := got.BearerValue()
-			wantBearer := bearerPrefix + tc.value
+			wantValue := strings.TrimSuffix(strings.TrimSuffix(tc.output, "\n"), "\r")
+			wantBearer := bearerPrefix + wantValue
 			if gotBearerErr != nil || gotBearer != wantBearer {
 				t.Fatalf(
 					"Token.BearerValue() = (%q, %v), want (%q, nil)",

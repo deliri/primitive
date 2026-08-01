@@ -358,8 +358,8 @@ func resolveCgroupDirectory(membershipPath string, mount cgroupMount) (core.Abso
 		relative = strings.TrimPrefix(membershipPath, "/")
 	} else if membershipPath == mount.root {
 		relative = ""
-	} else if strings.HasPrefix(membershipPath, mount.root+"/") {
-		relative = strings.TrimPrefix(membershipPath, mount.root+"/")
+	} else if after, ok := strings.CutPrefix(membershipPath, mount.root+"/"); ok {
+		relative = after
 	} else {
 		return core.AbsolutePath{}, core.ErrHostFactsObservation
 	}

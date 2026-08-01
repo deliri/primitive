@@ -25,19 +25,19 @@ func TestGoOOMBannerClassifierHostileBoundaryTable(t *testing.T) {
 	}{
 		{name: "empty declared extent is absent", data: "", length: 0, chunk: 1, wantState: GoOOMBannerAbsent},
 		{name: "unrelated one byte is absent", data: "x", length: 1, chunk: 1, wantState: GoOOMBannerAbsent},
-		{name: "plain banner is present", data: goOOMPlainBanner, length: uint64(len(goOOMPlainBanner)), chunk: len(goOOMPlainBanner), wantState: GoOOMBannerPresent},
-		{name: "prefixed banner is present", data: goOOMPrefixedBanner, length: uint64(len(goOOMPrefixedBanner)), chunk: len(goOOMPrefixedBanner), wantState: GoOOMBannerPresent},
-		{name: "plain banner split every byte is present", data: goOOMPlainBanner, length: uint64(len(goOOMPlainBanner)), chunk: 1, wantState: GoOOMBannerPresent},
-		{name: "prefixed banner split every byte is present", data: goOOMPrefixedBanner, length: uint64(len(goOOMPrefixedBanner)), chunk: 1, wantState: GoOOMBannerPresent},
-		{name: "plain banner after prefix noise is present", data: "noise\n" + goOOMPlainBanner, length: uint64(len("noise\n" + goOOMPlainBanner)), chunk: 3, wantState: GoOOMBannerPresent},
-		{name: "prefixed banner before suffix noise is present", data: goOOMPrefixedBanner + "\nnoise", length: uint64(len(goOOMPrefixedBanner + "\nnoise")), chunk: 5, wantState: GoOOMBannerPresent},
-		{name: "both banners remain present", data: goOOMPlainBanner + goOOMPrefixedBanner, length: uint64(len(goOOMPlainBanner + goOOMPrefixedBanner)), chunk: 7, wantState: GoOOMBannerPresent},
-		{name: "banner at maximum extent tail is present", data: strings.Repeat("x", GoOOMMaximumEvidenceBytes-len(goOOMPlainBanner)) + goOOMPlainBanner, length: GoOOMMaximumEvidenceBytes, chunk: 4093, wantState: GoOOMBannerPresent},
-		{name: "one byte short plain banner is absent", data: goOOMPlainBanner[:len(goOOMPlainBanner)-1], length: uint64(len(goOOMPlainBanner) - 1), chunk: 2, wantState: GoOOMBannerAbsent},
-		{name: "one byte short prefixed banner is absent", data: goOOMPrefixedBanner[:len(goOOMPrefixedBanner)-1], length: uint64(len(goOOMPrefixedBanner) - 1), chunk: 2, wantState: GoOOMBannerAbsent},
+		{name: "plain banner is present", data: GoOOMPlainBanner, length: uint64(len(GoOOMPlainBanner)), chunk: len(GoOOMPlainBanner), wantState: GoOOMBannerPresent},
+		{name: "prefixed banner is present", data: GoOOMPrefixedBanner, length: uint64(len(GoOOMPrefixedBanner)), chunk: len(GoOOMPrefixedBanner), wantState: GoOOMBannerPresent},
+		{name: "plain banner split every byte is present", data: GoOOMPlainBanner, length: uint64(len(GoOOMPlainBanner)), chunk: 1, wantState: GoOOMBannerPresent},
+		{name: "prefixed banner split every byte is present", data: GoOOMPrefixedBanner, length: uint64(len(GoOOMPrefixedBanner)), chunk: 1, wantState: GoOOMBannerPresent},
+		{name: "plain banner after prefix noise is present", data: "noise\n" + GoOOMPlainBanner, length: uint64(len("noise\n" + GoOOMPlainBanner)), chunk: 3, wantState: GoOOMBannerPresent},
+		{name: "prefixed banner before suffix noise is present", data: GoOOMPrefixedBanner + "\nnoise", length: uint64(len(GoOOMPrefixedBanner + "\nnoise")), chunk: 5, wantState: GoOOMBannerPresent},
+		{name: "both banners remain present", data: GoOOMPlainBanner + GoOOMPrefixedBanner, length: uint64(len(GoOOMPlainBanner + GoOOMPrefixedBanner)), chunk: 7, wantState: GoOOMBannerPresent},
+		{name: "banner at maximum extent tail is present", data: strings.Repeat("x", GoOOMMaximumEvidenceBytes-len(GoOOMPlainBanner)) + GoOOMPlainBanner, length: GoOOMMaximumEvidenceBytes, chunk: 4093, wantState: GoOOMBannerPresent},
+		{name: "one byte short plain banner is absent", data: GoOOMPlainBanner[:len(GoOOMPlainBanner)-1], length: uint64(len(GoOOMPlainBanner) - 1), chunk: 2, wantState: GoOOMBannerAbsent},
+		{name: "one byte short prefixed banner is absent", data: GoOOMPrefixedBanner[:len(GoOOMPrefixedBanner)-1], length: uint64(len(GoOOMPrefixedBanner) - 1), chunk: 2, wantState: GoOOMBannerAbsent},
 		{name: "wrong capitalization is absent", data: "Fatal error: out of memory", length: uint64(len("Fatal error: out of memory")), chunk: 4, wantState: GoOOMBannerAbsent},
 		{name: "embedded NUL near miss is absent", data: "fatal error:\x00 out of memory", length: uint64(len("fatal error:\x00 out of memory")), chunk: 4, wantState: GoOOMBannerAbsent},
-		{name: "declared extent hides trailing banner", data: "prefix" + goOOMPlainBanner, length: uint64(len("prefix")), chunk: 2, wantState: GoOOMBannerAbsent},
+		{name: "declared extent hides trailing banner", data: "prefix" + GoOOMPlainBanner, length: uint64(len("prefix")), chunk: 2, wantState: GoOOMBannerAbsent},
 		{name: "short source fails", data: "short", length: 6, chunk: 2, wantErr: io.ErrUnexpectedEOF},
 		{name: "empty source with positive extent fails", data: "", length: 1, chunk: 1, wantErr: io.ErrUnexpectedEOF},
 		{name: "declared maximum with short source fails", data: "x", length: GoOOMMaximumEvidenceBytes, chunk: 1, wantErr: io.ErrUnexpectedEOF},
@@ -81,7 +81,7 @@ func TestGoOOMBannerClassifierHostileBoundaryTable(t *testing.T) {
 func TestGoOOMBannerEverySplitPositionPreservesPresence(t *testing.T) {
 	t.Parallel()
 
-	for _, banner := range []string{goOOMPlainBanner, goOOMPrefixedBanner} {
+	for _, banner := range []string{GoOOMPlainBanner, GoOOMPrefixedBanner} {
 		for split := 1; split < len(banner); split++ {
 			reader := io.MultiReader(
 				bytes.NewReader([]byte(banner[:split])),
@@ -224,8 +224,8 @@ func TestGoOOMBannerStateJSONExhaustsClosedDomain(t *testing.T) {
 }
 
 func FuzzGoOOMBannerClassifier(f *testing.F) {
-	f.Add([]byte(goOOMPlainBanner), uint32(1))
-	f.Add([]byte(goOOMPrefixedBanner), uint32(7))
+	f.Add([]byte(GoOOMPlainBanner), uint32(1))
+	f.Add([]byte(GoOOMPrefixedBanner), uint32(7))
 	f.Add([]byte("fatal error: out of memorx"), uint32(3))
 	f.Add([]byte{}, uint32(1))
 
@@ -241,8 +241,8 @@ func FuzzGoOOMBannerClassifier(f *testing.F) {
 		if gotErr != nil {
 			t.Fatalf("ClassifyGoOOMBanner(%d bytes) error = %v, want nil", len(data), gotErr)
 		}
-		wantPresent := bytes.Contains(data, []byte(goOOMPlainBanner)) ||
-			bytes.Contains(data, []byte(goOOMPrefixedBanner))
+		wantPresent := bytes.Contains(data, []byte(GoOOMPlainBanner)) ||
+			bytes.Contains(data, []byte(GoOOMPrefixedBanner))
 		if gotPresent := got.State() == GoOOMBannerPresent; gotPresent != wantPresent {
 			t.Fatalf("ClassifyGoOOMBanner(%d bytes).State() = %v, want present %t", len(data), got.State(), wantPresent)
 		}

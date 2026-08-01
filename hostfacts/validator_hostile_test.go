@@ -59,7 +59,7 @@ func TestOwnerValidatorsRejectImpossibleCrossingShapes(t *testing.T) {
 		t.Fatalf("contradictory WorkloadMemoryLimit.Validate() error = %v, want %v", gotErr, core.ErrHostFactsContract)
 	}
 
-	for _, examined := range []uint64{0, uint64(len(goOOMPlainBanner) - 1)} {
+	for _, examined := range []uint64{0, uint64(len(GoOOMPlainBanner) - 1)} {
 		impossibleEvidence := GoOOMBannerEvidence{
 			examined: core.NewByteLength(examined),
 			state:    GoOOMBannerPresent,

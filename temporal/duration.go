@@ -21,6 +21,16 @@ func NewDuration(value time.Duration) (Duration, error) {
 	return DurationFromNanoseconds(int64(value))
 }
 
+// ParseDuration raises Go's documented duration syntax into a validated,
+// nonnegative compiler-owned duration.
+func ParseDuration(value string) (Duration, error) {
+	parsed, err := time.ParseDuration(value)
+	if err != nil {
+		return Duration{}, contractError("duration text is invalid", err)
+	}
+	return NewDuration(parsed)
+}
+
 // DurationFromNanoseconds constructs exact nonnegative nanoseconds.
 func DurationFromNanoseconds(nanoseconds int64) (Duration, error) {
 	if nanoseconds < 0 {

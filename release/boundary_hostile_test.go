@@ -74,7 +74,6 @@ func TestGenerationJSONPressuresNumericBoundaries(t *testing.T) {
 
 	valid := []uint64{1, 2, math.MaxUint32, math.MaxUint64 - 1, math.MaxUint64}
 	for _, value := range valid {
-		value := value
 		t.Run(strconv.FormatUint(value, 10), func(t *testing.T) {
 			t.Parallel()
 			generation, err := NewGeneration(value)
@@ -159,7 +158,6 @@ func TestLatestTimelineConstructionPressuresEveryBoundary(t *testing.T) {
 		{name: "one above maximum lifetime is rejected", issuedAt: 1, validFrom: 1, validUntil: 2 + ReleaseLatestMaximumLifetimeNanoseconds, wantErr: core.ErrReleaseLatest},
 	}
 	for index, tc := range cases {
-		tc := tc
 		t.Run(tc.name, func(t *testing.T) {
 			t.Parallel()
 			_, err := IssueLatest(IssueLatestRequest{
@@ -196,7 +194,6 @@ func TestAdvanceLatestRejectsEveryMonotonicRegression(t *testing.T) {
 		{name: "higher generation may extend exact manifest", generation: 11, issuedAt: 1_001, validFrom: 2_001, validUntil: 10_001},
 	}
 	for _, tc := range cases {
-		tc := tc
 		t.Run(tc.name, func(t *testing.T) {
 			t.Parallel()
 			proposed := issueVerifiedLatest(t, fixture, fixture.verified, tc.generation, tc.issuedAt, tc.validFrom, tc.validUntil)

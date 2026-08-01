@@ -7,6 +7,7 @@ import (
 	"os"
 	"path/filepath"
 	"runtime/debug"
+	"slices"
 	"strconv"
 	"strings"
 	"testing"
@@ -685,12 +686,7 @@ func (i *directImportInventory) Add(contract DirectImportContract) error {
 }
 
 func (i directImportInventory) Contains(contract DirectImportContract) bool {
-	for _, candidate := range i.Values() {
-		if candidate == contract {
-			return true
-		}
-	}
-	return false
+	return slices.Contains(i.Values(), contract)
 }
 
 func (i directImportInventory) Values() []DirectImportContract {

@@ -21,7 +21,6 @@ func TestDerivedFilenameIsCanonicalForEveryTarget(t *testing.T) {
 		"witness-2026.7.30-linux-arm64",
 	}
 	for index, artifact := range fixture.artifacts {
-		index, artifact := index, artifact
 		t.Run(wants[index], func(t *testing.T) {
 			t.Parallel()
 			filename, err := artifact.Filename()

@@ -27,6 +27,20 @@ func NewArgument(value string) (Argument, error) {
 	return argument, nil
 }
 
+// ParseArguments raises an ordered argv projection into compiler-owned exact
+// arguments without changing boundaries or shell-interpreting any value.
+func ParseArguments(values []string) ([]Argument, error) {
+	arguments := make([]Argument, len(values))
+	for index, value := range values {
+		argument, err := NewArgument(value)
+		if err != nil {
+			return nil, err
+		}
+		arguments[index] = argument
+	}
+	return arguments, nil
+}
+
 // Validate rejects an unset or NUL-containing argument.
 func (a Argument) Validate() error {
 	if !a.set {
@@ -38,8 +52,13 @@ func (a Argument) Validate() error {
 	return nil
 }
 
-func (a Argument) text() string {
-	return a.value
+// String returns the exact validated argv value for a caller-owned execution
+// policy that composes Primitive values over os/exec.
+func (a Argument) String() (string, error) {
+	if err := a.Validate(); err != nil {
+		return "", err
+	}
+	return a.value, nil
 }
 
 // EnvironmentName is one exact environment variable name.
@@ -165,6 +184,73 @@ type Environment struct {
 	Mode      EnvironmentMode
 }
 
+// ParseExactEnvironment raises ordered os/exec environment projections into
+// compiler-owned name/value pairs. The first '=' separates the name, so '='
+// bytes in values remain exact.
+func ParseExactEnvironment(values []string) (Environment, error) {
+	variables := make([]EnvironmentVariable, len(values))
+	for index, projection := range values {
+		variable, err := parseEnvironmentVariable(projection)
+		if err != nil {
+			return Environment{}, err
+		}
+		variables[index] = variable
+	}
+	environment := Environment{Mode: EnvironmentModeExact, Variables: variables}
+	if err := environment.Validate(); err != nil {
+		return Environment{}, err
+	}
+	return environment, nil
+}
+
+// ParseEffectiveEnvironment raises an os/exec environment projection while
+// applying os/exec's declared last-value-wins rule for duplicate names. The
+// returned exact environment contains each effective name exactly once.
+func ParseEffectiveEnvironment(values []string) (Environment, error) {
+	parsed := make([]EnvironmentVariable, len(values))
+	for index, projection := range values {
+		variable, err := parseEnvironmentVariable(projection)
+		if err != nil {
+			return Environment{}, err
+		}
+		parsed[index] = variable
+	}
+	variables := make([]EnvironmentVariable, 0, len(parsed))
+	for index, variable := range parsed {
+		if environmentNameOccursLater(parsed[index+1:], variable.Name) {
+			continue
+		}
+		variables = append(variables, variable)
+	}
+	environment := Environment{Mode: EnvironmentModeExact, Variables: variables}
+	return environment, environment.Validate()
+}
+
+func parseEnvironmentVariable(projection string) (EnvironmentVariable, error) {
+	nameText, valueText, found := strings.Cut(projection, "=")
+	if !found {
+		return EnvironmentVariable{}, contractError("environment projection has no separator")
+	}
+	name, err := NewEnvironmentName(nameText)
+	if err != nil {
+		return EnvironmentVariable{}, err
+	}
+	value, err := NewEnvironmentValue(valueText)
+	if err != nil {
+		return EnvironmentVariable{}, err
+	}
+	return EnvironmentVariable{Name: name, Value: value}, nil
+}
+
+func environmentNameOccursLater(variables []EnvironmentVariable, name EnvironmentName) bool {
+	for _, variable := range variables {
+		if variable.Name == name {
+			return true
+		}
+	}
+	return false
+}
+
 // Validate rejects contradictory modes, unset variables, and duplicate names.
 func (e Environment) Validate() error {
 	if err := e.Mode.Validate(); err != nil {
@@ -189,7 +275,7 @@ func (e Environment) validateVariable(index int) error {
 	if err := current.Validate(); err != nil {
 		return err
 	}
-	for prior := 0; prior < index; prior++ {
+	for prior := range index {
 		if e.Variables[prior].Name == current.Name {
 			return contractError("exact environment contains a duplicate name")
 		}
@@ -206,6 +292,16 @@ func (e Environment) project() []string {
 		projected[index] = variable.Name.text() + "=" + variable.Value.text()
 	}
 	return projected
+}
+
+// Strings returns the exact ordered os/exec environment projection. A nil
+// result means ambient inheritance; an empty non-nil result means an exact
+// empty environment.
+func (e Environment) Strings() ([]string, error) {
+	if err := e.Validate(); err != nil {
+		return nil, err
+	}
+	return e.project(), nil
 }
 
 // Streams are the caller-owned byte streams for one direct child.
@@ -281,7 +377,7 @@ func validateRequestHead(r Request) error {
 func (r Request) projectArguments() []string {
 	arguments := make([]string, len(r.Arguments))
 	for index, argument := range r.Arguments {
-		arguments[index] = argument.text()
+		arguments[index] = argument.value
 	}
 	return arguments
 }

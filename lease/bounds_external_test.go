@@ -118,7 +118,6 @@ func TestCanonicalMaximumsAreExactlyAttained(t *testing.T) {
 	}
 
 	for _, tc := range cases {
-		tc := tc
 		t.Run(tc.name, func(t *testing.T) {
 			t.Parallel()
 
@@ -223,7 +222,6 @@ func TestGrantIsTheBindingDecisionVariant(t *testing.T) {
 		{name: "maximal revocation", decision: revocation},
 	}
 	for _, tc := range cases {
-		tc := tc
 		t.Run(tc.name+" encodes strictly smaller than the maximal grant", func(t *testing.T) {
 			t.Parallel()
 
@@ -309,7 +307,6 @@ func TestAcceptedJSONBoundsExceedTheirCanonicalMaximums(t *testing.T) {
 	}
 
 	for _, tc := range cases {
-		tc := tc
 		t.Run(tc.name, func(t *testing.T) {
 			t.Parallel()
 

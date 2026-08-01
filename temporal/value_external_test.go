@@ -75,6 +75,22 @@ func TestInstantConstructionAndProjectionHostileBoundaries(t *testing.T) {
 	}
 }
 
+func TestInstantRFC3339ProjectsCanonicalUTCText(t *testing.T) {
+	t.Parallel()
+
+	instant, err := temporal.NewInstant(time.Date(2026, time.July, 31, 12, 34, 56, 987_654_321, time.FixedZone("east", 2*60*60)))
+	if err != nil {
+		t.Fatal(err)
+	}
+	got, err := instant.RFC3339()
+	if err != nil || got != "2026-07-31T10:34:56Z" {
+		t.Fatalf("Instant.RFC3339() = (%q, %v), want (%q, nil)", got, err, "2026-07-31T10:34:56Z")
+	}
+	if got, gotErr := (temporal.Instant{}).RFC3339(); got != "" || !errors.Is(gotErr, core.ErrTemporalContract) {
+		t.Fatalf("zero Instant.RFC3339() = (%q, %v), want (empty, %v)", got, gotErr, core.ErrTemporalContract)
+	}
+}
+
 func TestInstantArithmeticAttacksSignedEdges(t *testing.T) {
 	t.Parallel()
 
@@ -273,7 +289,6 @@ func TestDurationConstructorsAndArithmeticAttackEveryMagnitude(t *testing.T) {
 				{name: "maximum unsigned input overflows", value: math.MaxUint64, wantErr: core.ErrTemporalOverflow},
 			}
 			for _, boundary := range boundaries {
-				boundary := boundary
 				t.Run(boundary.name, func(t *testing.T) {
 					t.Parallel()
 
@@ -290,6 +305,36 @@ func TestDurationConstructorsAndArithmeticAttackEveryMagnitude(t *testing.T) {
 						t.Fatalf("unit constructor = (%d, %v), want (%d, nil)", got.Nanoseconds(), gotErr, boundary.want)
 					}
 				})
+			}
+		})
+	}
+}
+
+func TestParseDurationAcceptsGoSyntaxWithoutAdmittingNegativeTime(t *testing.T) {
+	t.Parallel()
+
+	cases := []struct {
+		wantErr error
+		name    string
+		value   string
+		want    int64
+	}{
+		{name: "zero", value: "0s"},
+		{name: "compound exact", value: "1h2m3.004005006s", want: 3_723_004_005_006},
+		{name: "fractional", value: "1.5ms", want: 1_500_000},
+		{name: "negative rejected", value: "-1ns", wantErr: core.ErrTemporalContract},
+		{name: "empty rejected", value: "", wantErr: core.ErrTemporalContract},
+		{name: "overflow rejected", value: "2562048h", wantErr: core.ErrTemporalContract},
+	}
+	for _, testCase := range cases {
+		t.Run(testCase.name, func(t *testing.T) {
+			t.Parallel()
+			got, gotErr := temporal.ParseDuration(testCase.value)
+			if !errors.Is(gotErr, testCase.wantErr) {
+				t.Fatalf("ParseDuration(%q) error = %v, want %v", testCase.value, gotErr, testCase.wantErr)
+			}
+			if testCase.wantErr == nil && got.Nanoseconds() != testCase.want {
+				t.Fatalf("ParseDuration(%q) nanoseconds = %d, want %d", testCase.value, got.Nanoseconds(), testCase.want)
 			}
 		})
 	}

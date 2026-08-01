@@ -76,8 +76,8 @@ func TestRegisterNamesEveryRejectionClassDistinctly(t *testing.T) {
 
 	rejected := []struct {
 		name           string
-		wantDiagnostic diagnostic
 		step           Step
+		wantDiagnostic diagnostic
 	}{
 		{
 			name:           "zero step identity is rejected",

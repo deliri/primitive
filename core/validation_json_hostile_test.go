@@ -229,6 +229,60 @@ type strictJSONTextRecordWire struct {
 	Text string `json:"text"`
 }
 
+type strictJSONExactFieldRecord struct {
+	Nested *strictJSONExactFieldNested `json:"nested"`
+	Name   string                      `json:"name"`
+	State  string                      `json:"state"`
+}
+
+type strictJSONExactFieldNested struct {
+	Count uint64 `json:"count"`
+}
+
+func TestDecodeStrictJSONStructureRejectsNoncanonicalDeclaredFieldCase(t *testing.T) {
+	t.Parallel()
+
+	cases := []struct {
+		name string
+		wire string
+		want boundaryDisposition
+	}{
+		{name: "exact lowercase root fields are accepted", wire: `{"name":"value","nested":{"count":1}}`, want: boundaryAccept},
+		{name: "reordered exact root fields are accepted", wire: `{"nested":{"count":1},"name":"value"}`, want: boundaryAccept},
+		{name: "exact nested field is accepted", wire: `{"name":"value","nested":{"count":0}}`, want: boundaryAccept},
+		{name: "absent optional pointer is accepted", wire: `{"name":"value"}`, want: boundaryAccept},
+		{name: "null optional pointer is structurally accepted", wire: `{"name":"value","nested":null}`, want: boundaryAccept},
+		{name: "uppercase root field is rejected", wire: `{"Name":"value"}`},
+		{name: "title case nested owner is rejected", wire: `{"name":"value","Nested":{"count":1}}`},
+		{name: "uppercase nested field is rejected", wire: `{"name":"value","nested":{"Count":1}}`},
+		{name: "all uppercase root field is rejected", wire: `{"NAME":"value"}`},
+		{name: "all uppercase nested field is rejected", wire: `{"name":"value","nested":{"COUNT":1}}`},
+		{name: "unicode simple fold root spelling is rejected", wire: `{"\u017ftate":"value"}`},
+		{name: "canonical field plus folded duplicate is rejected", wire: `{"name":"value","Name":"other"}`},
+	}
+	for _, testCase := range cases {
+		t.Run(testCase.name, func(t *testing.T) {
+			t.Parallel()
+			got, gotErr := DecodeStrictJSONStructure[strictJSONExactFieldRecord](
+				[]byte(testCase.wire),
+				DefaultStrictJSONLimits(),
+			)
+			if testCase.want == boundaryAccept {
+				if gotErr != nil {
+					t.Fatalf("DecodeStrictJSONStructure() error = %v, want nil", gotErr)
+				}
+				return
+			}
+			if !errors.Is(gotErr, ErrJSONContract) {
+				t.Fatalf("DecodeStrictJSONStructure() error = %v, want %v", gotErr, ErrJSONContract)
+			}
+			if got != (strictJSONExactFieldRecord{}) {
+				t.Fatalf("DecodeStrictJSONStructure() rejected value = %+v, want zero", got)
+			}
+		})
+	}
+}
+
 type strictJSONBenchmarkDocument struct {
 	decoded bool
 }
@@ -848,8 +902,8 @@ func BenchmarkRejectDuplicateJSONFieldsMaximum(b *testing.B) {
 	b.ReportAllocs()
 	b.ResetTimer()
 	for b.Loop() {
-		if err := rejectDuplicateJSONFields(document, limits); err != nil {
-			b.Fatalf("rejectDuplicateJSONFields(maximum) error = %v, want nil", err)
+		if err := rejectDuplicateJSONFieldsWithFields(document, limits, nil); err != nil {
+			b.Fatalf("rejectDuplicateJSONFieldsWithFields(maximum) error = %v, want nil", err)
 		}
 	}
 }
@@ -883,9 +937,9 @@ func BenchmarkRejectDuplicateJSONFieldsGlobalMaximumLongSharedPrefix(b *testing.
 	b.ReportAllocs()
 	b.ResetTimer()
 	for b.Loop() {
-		if err := rejectDuplicateJSONFields(document, limits); err != nil {
+		if err := rejectDuplicateJSONFieldsWithFields(document, limits, nil); err != nil {
 			b.Fatalf(
-				"rejectDuplicateJSONFields(global maximum long shared prefix) error = %v, want nil",
+				"rejectDuplicateJSONFieldsWithFields(global maximum long shared prefix) error = %v, want nil",
 				err,
 			)
 		}

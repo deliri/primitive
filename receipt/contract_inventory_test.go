@@ -108,8 +108,8 @@ func TestReceiptProductionStructsHaveCompilerVisibleDataFlowRoles(t *testing.T) 
 	}
 	for _, gotName := range got {
 		var found bool
-		for index := range inventory.NumField() {
-			found = found || gotName == receiptProductionStructName(inventory.Field(index).Name)
+		for field := range inventory.Fields() {
+			found = found || gotName == receiptProductionStructName(field.Name)
 		}
 		if !found {
 			t.Errorf("production struct %q has no compiler-visible data-flow role", gotName)

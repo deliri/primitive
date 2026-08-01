@@ -17,8 +17,11 @@ const (
 	GoOOMMaximumEvidenceBytes = 1 << 20
 	zeroReadMaximum           = 100
 
-	goOOMPrefixedBanner = "fatal error: runtime: out of memory"
-	goOOMPlainBanner    = "fatal error: out of memory"
+	// GoOOMPrefixedBanner and GoOOMPlainBanner are the exact Go runtime
+	// diagnostics recognized by ClassifyGoOOMBanner. Consumers use these
+	// compiler-visible values when constructing boundary fixtures.
+	GoOOMPrefixedBanner = "fatal error: runtime: out of memory"
+	GoOOMPlainBanner    = "fatal error: out of memory"
 
 	goOOMAbsentToken  = "absent"
 	goOOMPresentToken = "present"
@@ -135,7 +138,7 @@ func (e GoOOMBannerEvidence) Validate() error {
 		return err
 	}
 	if e.state == GoOOMBannerPresent &&
-		e.examined.Uint64() < uint64(len(goOOMPlainBanner)) {
+		e.examined.Uint64() < uint64(len(GoOOMPlainBanner)) {
 		return errors.Join(core.ErrHostFactsEvidence, errors.New("go OOM banner presence contradicts examined extent"))
 	}
 	return nil
@@ -224,8 +227,8 @@ type bannerCursor struct {
 
 func newBannerMatcher() bannerMatcher {
 	return bannerMatcher{
-		prefixed: bannerCursor{pattern: goOOMPrefixedBanner},
-		plain:    bannerCursor{pattern: goOOMPlainBanner},
+		prefixed: bannerCursor{pattern: GoOOMPrefixedBanner},
+		plain:    bannerCursor{pattern: GoOOMPlainBanner},
 	}
 }
 

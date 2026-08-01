@@ -262,6 +262,127 @@ func (r RemovalRequest) Validate() error {
 	return validateMutablePath(r.Location.Path)
 }
 
+// TreeRemovalRequest names one rooted tree to remove durably. Symlinks are
+// removed as entries and are never traversed outside the rooted namespace.
+type TreeRemovalRequest struct {
+	Location Location
+}
+
+// Validate rejects an invalid or root-naming tree location.
+func (r TreeRemovalRequest) Validate() error {
+	if err := r.Location.Validate(); err != nil {
+		return err
+	}
+	return validateMutablePath(r.Location.Path)
+}
+
+// WalkDirective controls descent after one streamed directory entry.
+type WalkDirective uint8
+
+const (
+	// WalkContinue visits a directory's descendants.
+	WalkContinue WalkDirective = iota + 1
+	// WalkSkipDirectory omits a directory's descendants.
+	WalkSkipDirectory
+	walkDirectiveLimit
+)
+
+// Validate closes the walk-directive domain.
+func (d WalkDirective) Validate() error {
+	if d < WalkContinue || d >= walkDirectiveLimit {
+		return contractError(errors.New("filestore walk directive is invalid"))
+	}
+	return nil
+}
+
+// WalkOrder selects the bounded directory-entry observation strategy.
+type WalkOrder uint8
+
+const (
+	// WalkOrderNative streams fixed batches in operating-system order.
+	WalkOrderNative WalkOrder = iota + 1
+	// WalkOrderLexical sorts each directory under an explicit entry ceiling.
+	WalkOrderLexical
+	walkOrderLimit
+)
+
+// Validate closes the walk-order domain.
+func (o WalkOrder) Validate() error {
+	if o < WalkOrderNative || o >= walkOrderLimit {
+		return contractError(errors.New("filestore walk order is invalid"))
+	}
+	return nil
+}
+
+// DirectoryEntryMaximum is one positive fixed allocation ceiling for a
+// lexically ordered directory.
+type DirectoryEntryMaximum struct {
+	value uint32
+}
+
+// NewDirectoryEntryMaximum constructs one lexical directory ceiling.
+func NewDirectoryEntryMaximum(value uint32) (DirectoryEntryMaximum, error) {
+	maximum := DirectoryEntryMaximum{value: value}
+	if err := maximum.Validate(); err != nil {
+		return DirectoryEntryMaximum{}, err
+	}
+	return maximum, nil
+}
+
+// Validate rejects a zero lexical directory ceiling.
+func (m DirectoryEntryMaximum) Validate() error {
+	if m.value == 0 {
+		return contractError(errors.New("filestore directory entry maximum is zero"))
+	}
+	return nil
+}
+
+// WalkEntry is one descendant observed from a rooted streaming traversal.
+type WalkEntry struct {
+	Entry fs.DirEntry
+	Path  core.RelativePath
+}
+
+// Validate rejects an unset path or directory entry.
+func (e WalkEntry) Validate() error {
+	if err := e.Path.Validate(); err != nil {
+		return contractError(err)
+	}
+	if e.Entry == nil {
+		return contractError(errors.New("filestore walk entry is missing"))
+	}
+	return nil
+}
+
+// WalkRequest streams every descendant of one rooted directory to Visit.
+type WalkRequest struct {
+	Visit                 func(WalkEntry) (WalkDirective, error)
+	Location              Location
+	DirectoryEntryMaximum DirectoryEntryMaximum
+	Order                 WalkOrder
+}
+
+// Validate rejects an unset root, path, or visitor.
+func (r WalkRequest) Validate() error {
+	if err := r.Location.Validate(); err != nil {
+		return err
+	}
+	if err := r.Order.Validate(); err != nil {
+		return err
+	}
+	if r.Order == WalkOrderLexical {
+		if err := r.DirectoryEntryMaximum.Validate(); err != nil {
+			return err
+		}
+	} else if r.DirectoryEntryMaximum != (DirectoryEntryMaximum{}) {
+		return contractError(errors.New("filestore native walk carries a lexical entry maximum"))
+	}
+	if r.Visit == nil {
+		return contractError(errors.New("filestore walk visitor is missing"))
+	}
+	return nil
+}
+
 func validatePermissionMode(mode fs.FileMode) error {
 	if mode == 0 || mode != mode.Perm() {
 		return contractError(errors.New("filestore permission mode is invalid"))
@@ -304,4 +425,10 @@ var (
 	_ core.Validatable = AppendRequest{}
 	_ core.Validatable = RotationRequest{}
 	_ core.Validatable = RemovalRequest{}
+	_ core.Validatable = TreeRemovalRequest{}
+	_ core.Validatable = WalkDirective(0)
+	_ core.Validatable = WalkOrder(0)
+	_ core.Validatable = DirectoryEntryMaximum{}
+	_ core.Validatable = WalkEntry{}
+	_ core.Validatable = WalkRequest{}
 )

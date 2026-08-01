@@ -3,6 +3,7 @@ package core
 import (
 	"errors"
 	"os"
+	"slices"
 	"strings"
 	"testing"
 )
@@ -230,7 +231,7 @@ func parseArchitectureProjection(
 func parseReadmeArchitectureProjection(source string) (architectureProjection, error) {
 	var projection architectureProjection
 	inDiagram := false
-	for _, rawLine := range strings.Split(source, "\n") {
+	for rawLine := range strings.SplitSeq(source, "\n") {
 		line := strings.TrimSpace(rawLine)
 		if line == "```mermaid" {
 			inDiagram = true
@@ -276,8 +277,8 @@ func parseReadmeArchitectureProjection(source string) (architectureProjection, e
 }
 
 func readmeNodeName(value string) string {
-	if bracket := strings.IndexByte(value, '['); bracket >= 0 {
-		return value[:bracket]
+	if before, _, ok := strings.Cut(value, "["); ok {
+		return before
 	}
 	return value
 }
@@ -322,21 +323,11 @@ func (p *architectureProjection) AddImport(contract DirectImportContract) error 
 }
 
 func (p architectureProjection) ContainsPackage(identity PackageIdentity) bool {
-	for _, candidate := range p.Packages() {
-		if candidate == identity {
-			return true
-		}
-	}
-	return false
+	return slices.Contains(p.Packages(), identity)
 }
 
 func (p architectureProjection) ContainsImport(contract DirectImportContract) bool {
-	for _, candidate := range p.Imports() {
-		if candidate == contract {
-			return true
-		}
-	}
-	return false
+	return slices.Contains(p.Imports(), contract)
 }
 
 func (p architectureProjection) Packages() []PackageIdentity {

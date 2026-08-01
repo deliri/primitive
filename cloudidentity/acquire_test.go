@@ -973,9 +973,7 @@ func TestConcurrentAcquisitionsShareNoMutableState(t *testing.T) {
 			))
 			var group sync.WaitGroup
 			for range workers {
-				group.Add(1)
-				go func() {
-					defer group.Done()
+				group.Go(func() {
 					for range rounds {
 						token, err := provider.acquire(
 							t.Context(),
@@ -998,7 +996,7 @@ func TestConcurrentAcquisitionsShareNoMutableState(t *testing.T) {
 							return
 						}
 					}
-				}()
+				})
 			}
 			group.Wait()
 		})

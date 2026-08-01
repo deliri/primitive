@@ -175,7 +175,6 @@ func TestGoMemoryPolicyAndSnapshotRejectBoundaryContradictions(t *testing.T) {
 	t.Parallel()
 
 	for _, value := range []uint8{0, 101, 127, 128, 200, 254, 255} {
-		value := value
 		t.Run("out of range percentage "+new(big.Int).SetUint64(uint64(value)).String(), func(t *testing.T) {
 			t.Parallel()
 

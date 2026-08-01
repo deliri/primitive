@@ -18,6 +18,7 @@ var (
 	_ core.Validatable = OutputLimitExceeded{}
 	_ core.Validatable = ExitCode{}
 	_ core.Validatable = Result{}
+	_ core.Validatable = (*TruncatingWriter)(nil)
 )
 
 var (

@@ -63,8 +63,8 @@ func TestSignalPolicyCrossProductAndWatchIngress(t *testing.T) {
 	cancel()
 	rejected := []struct {
 		name           string
-		wantDiagnostic diagnostic
 		request        WatchRequest
+		wantDiagnostic diagnostic
 	}{
 		{
 			name:           "wholly unset request names the parent",

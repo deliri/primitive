@@ -489,7 +489,7 @@ func BenchmarkPlanRunMaximumNoop(b *testing.B) {
 		if err != nil {
 			b.Fatal(err)
 		}
-		for index := 0; index < MaximumSteps; index++ {
+		for index := range MaximumSteps {
 			err := plan.Register(validStep(
 				b, uint16(index+1), Phase(index%int(phaseLimit-1)+1), budget,
 			))

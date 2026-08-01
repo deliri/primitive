@@ -30,7 +30,6 @@ func TestReleaseVersionBoundaries(t *testing.T) {
 		{name: "prerelease convention is not implicit", text: "2026.7.30-rc1", wantErr: core.ErrPrimitiveContract},
 	}
 	for _, tc := range cases {
-		tc := tc
 		t.Run(tc.name, func(t *testing.T) {
 			t.Parallel()
 			got, err := core.ParseReleaseVersion(tc.text)
@@ -61,7 +60,6 @@ func TestBuildCommitBoundaries(t *testing.T) {
 		{name: "nonhex is rejected", text: "g123456789abcdef0123456789abcdef01234567", wantErr: core.ErrPrimitiveContract},
 	}
 	for _, tc := range cases {
-		tc := tc
 		t.Run(tc.name, func(t *testing.T) {
 			t.Parallel()
 			got, err := core.ParseBuildCommit(tc.text)
@@ -197,7 +195,6 @@ func TestReleaseOfferingMismatchErrorOwnsExactTypedFacts(t *testing.T) {
 		{name: "equal peachfuzz offerings are not a mismatch", observed: core.OfferingPeachfuzz, wantOffering: core.OfferingPeachfuzz},
 	}
 	for _, tc := range cases {
-		tc := tc
 		t.Run(tc.name, func(t *testing.T) {
 			t.Parallel()
 			got, err := core.NewReleaseOfferingMismatchError(tc.observed, tc.wantOffering)
@@ -243,7 +240,6 @@ func TestReleaseVersionComparePressuresEveryComponent(t *testing.T) {
 		{name: "maximum release exceeds zero release", left: core.NewReleaseVersion(math.MaxUint32, math.MaxUint32, math.MaxUint32), right: core.NewReleaseVersion(0, 0, 0), want: core.ComparisonGreater},
 	}
 	for _, tc := range cases {
-		tc := tc
 		t.Run(tc.name, func(t *testing.T) {
 			t.Parallel()
 			got, err := tc.left.Compare(tc.right)

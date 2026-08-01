@@ -84,7 +84,7 @@ func FuzzEnvelopeJSONSemanticClosure(f *testing.F) {
 }
 
 func FuzzVerifyRejectsEveryIndependentlyMutatedSignedField(f *testing.F) {
-	for mutation := signedFieldMutationDomain; mutation < signedFieldMutationLimit; mutation++ {
+	for mutation := range signedFieldMutationLimit {
 		f.Add(uint8(mutation), []byte("seed"))
 	}
 

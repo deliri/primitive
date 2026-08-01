@@ -106,10 +106,10 @@ func TestTimeproofProductionStructsHaveCompilerVisibleDataFlowRoles(
 }
 
 func classifiedTimeproofStructs() []string {
-	inventory := reflect.TypeOf(timeproofContractInventory{})
+	inventory := reflect.TypeFor[timeproofContractInventory]()
 	classified := make([]string, 0, inventory.NumField())
-	for index := range inventory.NumField() {
-		role := inventory.Field(index).Type
+	for field := range inventory.Fields() {
+		role := field.Type
 		classified = append(
 			classified,
 			role.Field(0).Type.Name(),

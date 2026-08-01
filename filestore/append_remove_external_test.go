@@ -262,7 +262,7 @@ func TestCreateOnlyWritersResolveRealNamespaceContentionWithoutPrimitiveLocks(t 
 	requests := make([]filestore.WriteRequest, writers)
 	payloads := make([][]byte, writers)
 	for index := range writers {
-		payloads[index] = []byte(fmt.Sprintf("writer-%04d-complete-payload", index))
+		payloads[index] = fmt.Appendf(nil, "writer-%04d-complete-payload", index)
 		requests[index] = filestore.WriteRequest{
 			Source: bytes.NewReader(payloads[index]),
 			Location: filestore.Location{
@@ -421,7 +421,7 @@ func TestNamespaceConcurrencyLayerTriad(t *testing.T) {
 		requests := make([]filestore.WriteRequest, writers)
 		payloads := make([][]byte, writers)
 		for index := range writers {
-			payloads[index] = []byte(fmt.Sprintf("contender-%02d", index))
+			payloads[index] = fmt.Appendf(nil, "contender-%02d", index)
 			requests[index] = filestore.WriteRequest{
 				Source:       bytes.NewReader(payloads[index]),
 				Location:     filestore.Location{Root: root, Path: mustRelativePath(t, "shared")},
