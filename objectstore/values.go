@@ -5,10 +5,8 @@ import (
 	"fmt"
 	"io"
 	"net/url"
-	"slices"
 	"strconv"
 	"strings"
-	"sync"
 	"unicode/utf8"
 
 	"github.com/deliri/primitive/v2026/core"
@@ -20,8 +18,9 @@ const (
 	// SignedHeaderMaximumCount bounds caller-owned signed request fields.
 	SignedHeaderMaximumCount = 32
 	// SignedHeaderMaximumBytes bounds their aggregate HTTP wire extent.
-	SignedHeaderMaximumBytes = 32 * 1024
-	httpsScheme              = "https"
+	SignedHeaderMaximumBytes    = 32 * 1024
+	httpsScheme                 = "https"
+	objectstoreOwnedHeaderCount = 15
 )
 
 // Direction identifies one transfer operation.
@@ -255,7 +254,9 @@ func (t UploadTarget) validateFor(provider Provider) error {
 	if err := validateCapability(provider, t.URL.value); err != nil {
 		return err
 	}
-	return validateCallerSignedHeaders(provider, t.URL.value, t.Headers)
+	return validateCallerSignedHeaders(
+		provider, t.URL.value, t.Headers, DirectionUpload,
+	)
 }
 
 // DownloadTarget is one already-issued whole-object download capability.
@@ -294,9 +295,7 @@ func (t DownloadTarget) validateFor(provider Provider) error {
 		return err
 	}
 	if err := validateCallerSignedHeaders(
-		provider,
-		t.URL.value,
-		t.Headers,
+		provider, t.URL.value, t.Headers, DirectionDownload,
 	); err != nil {
 		return err
 	}
@@ -473,21 +472,20 @@ func validateCapability(provider Provider, value url.URL) error {
 	return nil
 }
 
-// objectstoreOwnedHeaderNames is the one set of request fields Objectstore sets
-// itself. It is resolved once so a constant that cannot parse fails loudly at
-// the first ingress instead of becoming a zero name that guards nothing.
-var objectstoreOwnedHeaderNames = sync.OnceValues(loadObjectstoreOwnedHeaderNames)
-
-func loadObjectstoreOwnedHeaderNames() ([]core.HTTPHeaderName, error) {
+// objectstoreOwnedHeaderNames resolves the one compiler-sized set of request
+// fields Objectstore and Exchange set themselves. Constants cross the typed
+// parser on every ingress; there is no process-global cache or mutable slice
+// whose contents can become a second runtime contract.
+func objectstoreOwnedHeaderNames() ([objectstoreOwnedHeaderCount]core.HTTPHeaderName, error) {
 	authorization, err := headerName(headerAuthorization)
 	if err != nil {
-		return nil, err
+		return [objectstoreOwnedHeaderCount]core.HTTPHeaderName{}, err
 	}
 	contentRange, err := headerName(headerContentRange)
 	if err != nil {
-		return nil, err
+		return [objectstoreOwnedHeaderCount]core.HTTPHeaderName{}, err
 	}
-	names := []core.HTTPHeaderName{
+	names := [objectstoreOwnedHeaderCount]core.HTTPHeaderName{
 		core.HTTPHeaderContentType(),
 		core.HTTPHeaderContentLength(),
 		core.HTTPHeaderAcceptEncoding(),
@@ -497,6 +495,7 @@ func loadObjectstoreOwnedHeaderNames() ([]core.HTTPHeaderName, error) {
 		core.HTTPHeaderIdempotencyKey(),
 		contentRange,
 	}
+	index := 8
 	for _, value := range [...]string{
 		headerHost,
 		headerRange,
@@ -508,9 +507,10 @@ func loadObjectstoreOwnedHeaderNames() ([]core.HTTPHeaderName, error) {
 	} {
 		name, parseErr := headerName(value)
 		if parseErr != nil {
-			return nil, parseErr
+			return [objectstoreOwnedHeaderCount]core.HTTPHeaderName{}, parseErr
 		}
-		names = append(names, name)
+		names[index] = name
+		index++
 	}
 	return names, nil
 }
@@ -520,7 +520,12 @@ func objectstoreOwnedHeader(name core.HTTPHeaderName) (bool, error) {
 	if err != nil {
 		return false, err
 	}
-	return slices.Contains(owned, name), nil
+	for _, candidate := range owned {
+		if candidate == name {
+			return true, nil
+		}
+	}
+	return false, nil
 }
 
 var (
@@ -553,11 +558,15 @@ func (d Direction) String() string {
 	if !d.IsValid() {
 		return ""
 	}
-	return [...]string{
+	return directionDiagnostics()[d]
+}
+
+func directionDiagnostics() [directionLimit]string {
+	return [directionLimit]string{
 		DirectionUnknown:  "",
 		DirectionUpload:   "upload",
 		DirectionDownload: "download",
-	}[d]
+	}
 }
 
 // OffWireEnum declares Direction as an execution enum.
@@ -579,13 +588,17 @@ func (c Commitment) String() string {
 	if !c.IsValid() {
 		return ""
 	}
-	return [...]string{
+	return commitmentDiagnostics()[c]
+}
+
+func commitmentDiagnostics() [commitmentLimit]string {
+	return [commitmentLimit]string{
 		CommitmentUnknown:       "",
 		CommitmentNotAttempted:  "not_attempted",
 		CommitmentRejected:      "rejected",
 		CommitmentConfirmed:     "confirmed",
 		CommitmentIndeterminate: "indeterminate",
-	}[c]
+	}
 }
 
 // OffWireEnum declares Commitment as an execution enum.

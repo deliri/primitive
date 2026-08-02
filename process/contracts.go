@@ -3,6 +3,7 @@ package process
 import (
 	"errors"
 	"io"
+	"os/exec"
 	"strings"
 
 	"github.com/deliri/primitive/v2026/core"
@@ -148,7 +149,16 @@ const (
 	EnvironmentModeInherit
 	// EnvironmentModeExact supplies exactly Environment.Variables.
 	EnvironmentModeExact
+	environmentModeLimit
 )
+
+func environmentModeDiagnostics() [environmentModeLimit]string {
+	return [environmentModeLimit]string{
+		EnvironmentModeUnknown: unknownEnumLabel,
+		EnvironmentModeInherit: "inherit",
+		EnvironmentModeExact:   "exact",
+	}
+}
 
 // Validate rejects values outside the closed mode domain.
 func (m EnvironmentMode) Validate() error {
@@ -160,7 +170,10 @@ func (m EnvironmentMode) Validate() error {
 
 // IsValid reports whether m is admitted.
 func (m EnvironmentMode) IsValid() bool {
-	return m == EnvironmentModeInherit || m == EnvironmentModeExact
+	diagnostics := environmentModeDiagnostics()
+	return m > EnvironmentModeUnknown &&
+		m < environmentModeLimit &&
+		diagnostics[m] != ""
 }
 
 // OffWireEnum declares that EnvironmentMode is not a wire encoding.
@@ -168,14 +181,11 @@ func (EnvironmentMode) OffWireEnum() {}
 
 // String returns the compiler-owned label for m.
 func (m EnvironmentMode) String() string {
-	switch m {
-	case EnvironmentModeInherit:
-		return "inherit"
-	case EnvironmentModeExact:
-		return "exact"
-	default:
-		return unknownEnumLabel
+	diagnostics := environmentModeDiagnostics()
+	if m < environmentModeLimit && diagnostics[m] != "" {
+		return diagnostics[m]
 	}
+	return unknownEnumLabel
 }
 
 // Environment describes ambient inheritance or one exact ordered environment.
@@ -203,27 +213,23 @@ func ParseExactEnvironment(values []string) (Environment, error) {
 	return environment, nil
 }
 
-// ParseEffectiveEnvironment raises an os/exec environment projection while
-// applying os/exec's declared last-value-wins rule for duplicate names. The
-// returned exact environment contains each effective name exactly once.
+// ParseEffectiveEnvironment raises the environment os/exec would actually
+// supply after its OS-aware last-value-wins projection and required critical
+// additions. Primitive validates every caller projection before delegating, so
+// malformed or NUL-containing input cannot be silently omitted by os/exec.
 func ParseEffectiveEnvironment(values []string) (Environment, error) {
-	parsed := make([]EnvironmentVariable, len(values))
-	for index, projection := range values {
-		variable, err := parseEnvironmentVariable(projection)
-		if err != nil {
+	for _, projection := range values {
+		if _, err := parseEnvironmentVariable(projection); err != nil {
 			return Environment{}, err
 		}
-		parsed[index] = variable
 	}
-	variables := make([]EnvironmentVariable, 0, len(parsed))
-	for index, variable := range parsed {
-		if environmentNameOccursLater(parsed[index+1:], variable.Name) {
-			continue
-		}
-		variables = append(variables, variable)
+	command := exec.Cmd{Env: values}
+	if values == nil {
+		// A nil Cmd.Env inherits the ambient environment. The caller supplied an
+		// exact empty projection, so preserve that distinction for os/exec.
+		command.Env = []string{}
 	}
-	environment := Environment{Mode: EnvironmentModeExact, Variables: variables}
-	return environment, environment.Validate()
+	return ParseExactEnvironment(command.Environ())
 }
 
 func parseEnvironmentVariable(projection string) (EnvironmentVariable, error) {
@@ -240,15 +246,6 @@ func parseEnvironmentVariable(projection string) (EnvironmentVariable, error) {
 		return EnvironmentVariable{}, err
 	}
 	return EnvironmentVariable{Name: name, Value: value}, nil
-}
-
-func environmentNameOccursLater(variables []EnvironmentVariable, name EnvironmentName) bool {
-	for _, variable := range variables {
-		if variable.Name == name {
-			return true
-		}
-	}
-	return false
 }
 
 // Validate rejects contradictory modes, unset variables, and duplicate names.
@@ -344,14 +341,21 @@ func (r Request) Validate() error {
 	if err := r.Streams.Validate(); err != nil {
 		return err
 	}
-	if err := r.OutputLimit.Validate(); err != nil {
-		return errors.Join(core.ErrProcessContract, err)
+	if err := validateOutputLimit(r.OutputLimit); err != nil {
+		return err
 	}
 	if err := r.WaitDelay.Validate(); err != nil {
 		return errors.Join(core.ErrProcessContract, err)
 	}
 	if r.WaitDelay.IsZero() {
 		return contractError("wait delay is zero")
+	}
+	return nil
+}
+
+func validateOutputLimit(limit core.ByteCount) error {
+	if _, err := limit.Int64(); err != nil {
+		return errors.Join(core.ErrProcessContract, err)
 	}
 	return nil
 }

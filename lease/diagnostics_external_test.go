@@ -199,56 +199,6 @@ func TestSigningDomainTextRoundTripsExactly(t *testing.T) {
 	}
 }
 
-// TestTypedFailuresCarryCoreIdentityAndOperatorFacts proves each typed failure
-// is reachable by class through errors.Is, recoverable by shape through
-// errors.As, and renders a non-sensitive diagnostic. A consumer branches on the
-// class; an operator reads the fields.
-func TestTypedFailuresCarryCoreIdentityAndOperatorFacts(t *testing.T) {
-	t.Parallel()
-
-	t.Run("scope mismatch names both subjects", func(t *testing.T) {
-		t.Parallel()
-
-		expected := fixtureSubject(t, 35)
-		actual := fixtureSubject(t, 37)
-		var err error = lease.ScopeMismatch{Expected: expected, Actual: actual}
-		if !errors.Is(err, core.ErrLeaseScope) || !errors.Is(err, core.ErrLeaseContract) {
-			t.Fatalf("ScopeMismatch identities = %v, want scope and contract", err)
-		}
-		if errors.Is(err, core.ErrLeaseClock) {
-			t.Fatalf("ScopeMismatch matched the clock identity")
-		}
-		var recovered lease.ScopeMismatch
-		if !errors.As(err, &recovered) {
-			t.Fatalf("errors.As(ScopeMismatch) = false, want true")
-		}
-		if recovered.Expected != expected || recovered.Actual != actual {
-			t.Fatalf("recovered ScopeMismatch = %+v, want fields %v/%v", recovered, expected, actual)
-		}
-	})
-
-	t.Run("clock contradiction names both instants", func(t *testing.T) {
-		t.Parallel()
-
-		observed := fixtureInstant(1_000)
-		trusted := fixtureInstant(9_000)
-		var err error = lease.ClockContradiction{Observed: observed, Trusted: trusted}
-		if !errors.Is(err, core.ErrLeaseClock) || !errors.Is(err, core.ErrLeaseContract) {
-			t.Fatalf("ClockContradiction identities = %v, want clock and contract", err)
-		}
-		if errors.Is(err, core.ErrLeaseScope) {
-			t.Fatalf("ClockContradiction matched the scope identity")
-		}
-		var recovered lease.ClockContradiction
-		if !errors.As(err, &recovered) {
-			t.Fatalf("errors.As(ClockContradiction) = false, want true")
-		}
-		if recovered.Observed != observed || recovered.Trusted != trusted {
-			t.Fatalf("recovered ClockContradiction = %+v, want observed %v and trusted %v", recovered, observed, trusted)
-		}
-	})
-}
-
 // The four unset-carrier tests below prove no proof-carrying or assessed value
 // can be read out of its zero form. Each carrier's unset flag is the only thing
 // separating "OGS decided this" from "Go allocated this", so every accessor

@@ -1,7 +1,6 @@
 package process
 
 import (
-	"errors"
 	"io"
 	"math"
 	"sync"
@@ -25,8 +24,8 @@ func NewTruncatingWriter(destination io.Writer, limit core.ByteCount) (*Truncati
 	if destination == nil {
 		return nil, contractError("truncating writer destination is nil")
 	}
-	if err := limit.Validate(); err != nil {
-		return nil, errors.Join(core.ErrProcessContract, err)
+	if err := validateOutputLimit(limit); err != nil {
+		return nil, err
 	}
 	return &TruncatingWriter{destination: destination, limit: limit}, nil
 }
@@ -36,8 +35,8 @@ func (w *TruncatingWriter) Validate() error {
 	if w == nil || w.destination == nil {
 		return contractError("truncating writer is unset")
 	}
-	if err := w.limit.Validate(); err != nil {
-		return errors.Join(core.ErrProcessContract, err)
+	if err := validateOutputLimit(w.limit); err != nil {
+		return err
 	}
 	return nil
 }
@@ -59,24 +58,14 @@ func (w *TruncatingWriter) Write(buffer []byte) (int, error) {
 	if uint64(len(buffer)) <= available {
 		return w.forward(buffer)
 	}
-	// available is strictly below len(buffer) on this branch, so it always
-	// indexes the buffer. The bound is checked rather than reasoned so a later
-	// change to the branch condition cannot turn it into a silent truncation.
-	if available > uint64(math.MaxInt) {
-		return 0, errors.Join(core.ErrNumericOverflow, contractError("retainable extent exceeds addressable range"))
-	}
-	retained, err := w.forward(buffer[:int(available)])
+	// This branch proves available < len(buffer), so the uint64 index is
+	// representable by the platform int that already bounds the slice.
+	retained, err := forwardFullWrite(w.destination, &w.retained, buffer[:available])
 	if err != nil {
 		return retained, err
 	}
-	if retained < 0 || retained > len(buffer) {
-		return retained, io.ErrShortWrite
-	}
-	dropped, err := core.CheckedUint64FromInt64(int64(len(buffer) - retained))
-	if err != nil {
-		return retained, err
-	}
-	if dropped > math.MaxUint64-w.dropped {
+	dropped := uint64(len(buffer) - retained) // #nosec G115 -- retained is normalized to [0, len(buffer)].
+	if dropped > math.MaxInt64-w.dropped {
 		return retained, core.ErrNumericOverflow
 	}
 	w.dropped += dropped
@@ -84,21 +73,7 @@ func (w *TruncatingWriter) Write(buffer []byte) (int, error) {
 }
 
 func (w *TruncatingWriter) forward(buffer []byte) (int, error) {
-	if len(buffer) == 0 {
-		return 0, nil
-	}
-	count, err := w.destination.Write(buffer)
-	if count < 0 || count > len(buffer) {
-		return 0, io.ErrShortWrite
-	}
-	w.retained += uint64(count)
-	if err != nil {
-		return count, err
-	}
-	if count != len(buffer) {
-		return count, io.ErrShortWrite
-	}
-	return count, nil
+	return forwardFullWrite(w.destination, &w.retained, buffer)
 }
 
 // RetainedBytes returns the exact bytes accepted by the destination.

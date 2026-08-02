@@ -28,16 +28,17 @@ func TestUploadProviderValidationHostileBoundaryTable(t *testing.T) {
 		{name: "Cloudflare complete capability is accepted", provider: ProviderCloudflareImages},
 		{name: "unknown provider is rejected", provider: ProviderUnknown, wantErr: core.ErrObjectStoreContract},
 		{name: "future provider is rejected", provider: providerLimit, wantErr: core.ErrObjectStoreContract},
-		{name: "S3 missing signature is rejected", provider: ProviderAmazonS3, mutate: setUploadURL("https://s3.amazonaws.com/bucket/object?X-Amz-SignedHeaders=" + url.QueryEscape(s3SignedHeaderFixture())), wantErr: core.ErrObjectStoreContract},
+		{name: "S3 missing signature is rejected", provider: ProviderAmazonS3, mutate: setUploadURL("https://s3.amazonaws.com/bucket/object?X-Amz-SignedHeaders=" + url.QueryEscape(s3UploadSignedHeaderFixture())), wantErr: core.ErrObjectStoreContract},
 		{name: "S3 missing signed-header declaration is rejected", provider: ProviderAmazonS3, mutate: setUploadURL("https://s3.amazonaws.com/bucket/object?X-Amz-Signature=sig"), wantErr: core.ErrObjectStoreContract},
 		{name: "S3 duplicate signature is rejected", provider: ProviderAmazonS3, mutate: appendUploadQuery("&X-Amz-Signature=second"), wantErr: core.ErrObjectStoreContract},
-		{name: "S3 duplicate signed-header declaration is rejected", provider: ProviderAmazonS3, mutate: appendUploadQuery("&X-Amz-SignedHeaders=" + url.QueryEscape(s3SignedHeaderFixture())), wantErr: core.ErrObjectStoreContract},
+		{name: "S3 duplicate signed-header declaration is rejected", provider: ProviderAmazonS3, mutate: appendUploadQuery("&X-Amz-SignedHeaders=" + url.QueryEscape(s3UploadSignedHeaderFixture())), wantErr: core.ErrObjectStoreContract},
 		{name: "S3 unsigned checksum field is rejected", provider: ProviderAmazonS3, mutate: setUploadURL("https://s3.amazonaws.com/bucket/object?X-Amz-Signature=sig&X-Amz-SignedHeaders=" + url.QueryEscape("host;if-none-match")), wantErr: core.ErrObjectStoreContract},
 		{name: "S3 unsigned create-only field is rejected", provider: ProviderAmazonS3, mutate: setUploadURL("https://s3.amazonaws.com/bucket/object?X-Amz-Signature=sig&X-Amz-SignedHeaders=" + url.QueryEscape("host;x-amz-checksum-crc32c")), wantErr: core.ErrObjectStoreContract},
-		{name: "GCS missing signature is rejected", provider: ProviderGoogleCloudStorage, mutate: setUploadURL("https://storage.googleapis.com/bucket/object?X-Goog-SignedHeaders=" + url.QueryEscape(gcsSignedHeaderFixture())), wantErr: core.ErrObjectStoreContract},
+		{name: "GCS missing signature is rejected", provider: ProviderGoogleCloudStorage, mutate: setUploadURL("https://storage.googleapis.com/bucket/object?X-Goog-SignedHeaders=" + url.QueryEscape(gcsUploadSignedHeaderFixture())), wantErr: core.ErrObjectStoreContract},
 		{name: "GCS missing signed-header declaration is rejected", provider: ProviderGoogleCloudStorage, mutate: setUploadURL("https://storage.googleapis.com/bucket/object?X-Goog-Signature=sig"), wantErr: core.ErrObjectStoreContract},
 		{name: "GCS unsigned checksum field is rejected", provider: ProviderGoogleCloudStorage, mutate: setUploadURL("https://storage.googleapis.com/bucket/object?X-Goog-Signature=sig&X-Goog-SignedHeaders=" + url.QueryEscape("host;x-goog-if-generation-match")), wantErr: core.ErrObjectStoreContract},
 		{name: "GCS unsigned create-only field is rejected", provider: ProviderGoogleCloudStorage, mutate: setUploadURL("https://storage.googleapis.com/bucket/object?X-Goog-Signature=sig&X-Goog-SignedHeaders=" + url.QueryEscape("host;x-goog-hash")), wantErr: core.ErrObjectStoreContract},
+		{name: "GCS declared caller field omitted from request is rejected", provider: ProviderGoogleCloudStorage, mutate: setUploadURL("https://storage.googleapis.com/bucket/object?X-Goog-Signature=sig&X-Goog-SignedHeaders=" + url.QueryEscape("host;x-goog-hash;x-goog-if-generation-match;x-goog-meta-missing")), wantErr: core.ErrObjectStoreContract},
 		{name: "Cloudflare alternate host is rejected", provider: ProviderCloudflareImages, mutate: setUploadURL("https://example.com/image-id"), wantErr: core.ErrObjectStoreContract},
 		{name: "S3 one below PutObject maximum is accepted", provider: ProviderAmazonS3, mutate: setUploadLength(AmazonS3PutObjectMaximumBytes - 1)},
 		{name: "S3 exact PutObject maximum is accepted", provider: ProviderAmazonS3, mutate: setUploadLength(AmazonS3PutObjectMaximumBytes)},
@@ -93,10 +94,11 @@ func TestDownloadProviderValidationHostileBoundaryTable(t *testing.T) {
 		{name: "unknown provider is rejected", provider: ProviderUnknown, wantErr: core.ErrObjectStoreContract},
 		{name: "future provider is rejected", provider: providerLimit, wantErr: core.ErrObjectStoreContract},
 		{name: "S3 missing signed checksum mode is rejected", provider: ProviderAmazonS3, mutate: setDownloadURL("https://s3.amazonaws.com/bucket/object?X-Amz-Signature=sig&X-Amz-SignedHeaders=host"), wantErr: core.ErrObjectStoreContract},
-		{name: "S3 missing signature is rejected", provider: ProviderAmazonS3, mutate: setDownloadURL("https://s3.amazonaws.com/bucket/object?X-Amz-SignedHeaders=" + url.QueryEscape(s3SignedHeaderFixture())), wantErr: core.ErrObjectStoreContract},
+		{name: "S3 missing signature is rejected", provider: ProviderAmazonS3, mutate: setDownloadURL("https://s3.amazonaws.com/bucket/object?X-Amz-SignedHeaders=" + url.QueryEscape(s3DownloadSignedHeaderFixture())), wantErr: core.ErrObjectStoreContract},
 		{name: "S3 duplicate signature is rejected", provider: ProviderAmazonS3, mutate: appendDownloadQuery("&X-Amz-Signature=second"), wantErr: core.ErrObjectStoreContract},
-		{name: "GCS missing signature is rejected", provider: ProviderGoogleCloudStorage, mutate: setDownloadURL("https://storage.googleapis.com/bucket/object?X-Goog-SignedHeaders=" + url.QueryEscape(gcsSignedHeaderFixture())), wantErr: core.ErrObjectStoreContract},
-		{name: "GCS duplicate signed-header declaration is rejected", provider: ProviderGoogleCloudStorage, mutate: appendDownloadQuery("&X-Goog-SignedHeaders=" + url.QueryEscape(gcsSignedHeaderFixture())), wantErr: core.ErrObjectStoreContract},
+		{name: "GCS missing signature is rejected", provider: ProviderGoogleCloudStorage, mutate: setDownloadURL("https://storage.googleapis.com/bucket/object?X-Goog-SignedHeaders=" + url.QueryEscape(gcsDownloadSignedHeaderFixture())), wantErr: core.ErrObjectStoreContract},
+		{name: "GCS duplicate signed-header declaration is rejected", provider: ProviderGoogleCloudStorage, mutate: appendDownloadQuery("&X-Goog-SignedHeaders=" + url.QueryEscape(gcsDownloadSignedHeaderFixture())), wantErr: core.ErrObjectStoreContract},
+		{name: "GCS declared caller field omitted from request is rejected", provider: ProviderGoogleCloudStorage, mutate: setDownloadURL("https://storage.googleapis.com/bucket/object?X-Goog-Signature=sig&X-Goog-SignedHeaders=" + url.QueryEscape("host;x-goog-meta-missing")), wantErr: core.ErrObjectStoreContract},
 		{name: "S3 one below object maximum is accepted", provider: ProviderAmazonS3, mutate: setDownloadLength(AmazonS3ObjectMaximumBytes - 1)},
 		{name: "S3 exact object maximum is accepted", provider: ProviderAmazonS3, mutate: setDownloadLength(AmazonS3ObjectMaximumBytes)},
 		{name: "S3 one above object maximum is rejected", provider: ProviderAmazonS3, mutate: setDownloadLength(AmazonS3ObjectMaximumBytes + 1), wantErr: core.ErrObjectStoreSize},
@@ -154,7 +156,7 @@ func providerDownloadRequest(t *testing.T, provider Provider) DownloadRequest {
 		Destination: io.Discard,
 		ContentType: core.HTTPMediaTypeOctetStream(),
 		Target: DownloadTarget{
-			URL:       providerSignedURL(t, provider),
+			URL:       providerSignedURL(t, provider, DirectionDownload),
 			ExpiresAt: providerFutureInstant(t),
 		},
 		Integrity: providerIntegrity(t, payload),
@@ -166,22 +168,34 @@ func providerUploadTarget(t *testing.T, provider Provider) UploadTarget {
 	t.Helper()
 
 	return UploadTarget{
-		URL:       providerSignedURL(t, provider),
+		URL:       providerSignedURL(t, provider, DirectionUpload),
 		ExpiresAt: providerFutureInstant(t),
 	}
 }
 
-func providerSignedURL(t *testing.T, provider Provider) SignedURL {
+func providerSignedURL(
+	t *testing.T,
+	provider Provider,
+	direction Direction,
+) SignedURL {
 	t.Helper()
 
 	value := "https://example.com/object"
 	switch provider {
 	case ProviderAmazonS3:
+		signed := s3UploadSignedHeaderFixture()
+		if direction == DirectionDownload {
+			signed = s3DownloadSignedHeaderFixture()
+		}
 		value = "https://s3.amazonaws.com/bucket/object?X-Amz-Signature=sig&X-Amz-SignedHeaders=" +
-			url.QueryEscape(s3SignedHeaderFixture())
+			url.QueryEscape(signed)
 	case ProviderGoogleCloudStorage:
+		signed := gcsUploadSignedHeaderFixture()
+		if direction == DirectionDownload {
+			signed = gcsDownloadSignedHeaderFixture()
+		}
 		value = "https://storage.googleapis.com/bucket/object?X-Goog-Signature=sig&X-Goog-SignedHeaders=" +
-			url.QueryEscape(gcsSignedHeaderFixture())
+			url.QueryEscape(signed)
 	case ProviderCloudflareImages:
 		value = "https://upload.imagedelivery.net/image-id"
 	case ProviderUnknown, providerLimit:
@@ -301,10 +315,14 @@ func setDownloadLength(value uint64) func(*DownloadRequest) error {
 	}
 }
 
-func s3SignedHeaderFixture() string {
-	return "host;if-none-match;x-amz-checksum-crc32c;x-amz-checksum-mode"
+func s3UploadSignedHeaderFixture() string {
+	return "host;if-none-match;x-amz-checksum-crc32c"
 }
 
-func gcsSignedHeaderFixture() string {
+func s3DownloadSignedHeaderFixture() string { return "host;x-amz-checksum-mode" }
+
+func gcsUploadSignedHeaderFixture() string {
 	return "host;x-goog-hash;x-goog-if-generation-match"
 }
+
+func gcsDownloadSignedHeaderFixture() string { return "host" }

@@ -60,8 +60,9 @@ func TestVerifyLayerTriad(t *testing.T) {
 		if !errors.As(err, &mismatch) {
 			t.Fatalf("lease.Verify() error = %v, want lease.ScopeMismatch", err)
 		}
-		if mismatch.Expected != other || mismatch.Actual != subject {
-			t.Fatalf("ScopeMismatch = %+v, want caller subject and signed subject", mismatch)
+		expected, actual, factErr := mismatch.Subjects()
+		if factErr != nil || expected != other || actual != subject {
+			t.Fatalf("ScopeMismatch.Subjects() = (%v, %v, %v), want caller subject, signed subject, and nil", expected, actual, factErr)
 		}
 		if got != (lease.Verified{}) {
 			t.Fatalf("lease.Verify() = %v, want zero", got)

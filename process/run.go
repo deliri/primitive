@@ -81,9 +81,7 @@ func prepareCommand(
 	}
 	command.WaitDelay = waitDelay
 	if err := command.Start(); err != nil {
-		return preparedCommand{}, Failure{
-			Kind: FailureKindStart, Command: request.Command, Cause: err,
-		}
+		return preparedCommand{}, newFailure(FailureKindStart, request.Command, err)
 	}
 	return preparedCommand{
 		command: command, cancellation: cancellation,
@@ -105,27 +103,23 @@ func waitCommand(request waitRequest) (Result, error) {
 		request.streams,
 	)
 	if resultErr != nil {
-		return Result{}, Failure{
-			Kind: FailureKindWait, Command: request.commandPath, Cause: resultErr,
-		}
+		return Result{}, newFailure(FailureKindWait, request.commandPath, resultErr)
 	}
 	if streamErr := request.failures.joined(); streamErr != nil {
 		return result, streamErr
 	}
 	if request.prepared.cancellation.Load() {
-		return result, Failure{
-			Kind:    FailureKindWait,
-			Command: request.commandPath,
-			Cause:   errors.Join(request.parent.Err(), waitErr),
-		}
+		return result, newFailure(
+			FailureKindWait,
+			request.commandPath,
+			errors.Join(request.parent.Err(), waitErr),
+		)
 	}
 	_, exited := errors.AsType[*exec.ExitError](waitErr)
 	if waitErr == nil || exited {
 		return result, nil
 	}
-	return result, Failure{
-		Kind: FailureKindWait, Command: request.commandPath, Cause: waitErr,
-	}
+	return result, newFailure(FailureKindWait, request.commandPath, waitErr)
 }
 
 func newResult(

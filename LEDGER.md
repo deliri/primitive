@@ -183,6 +183,117 @@ Last updated: `2026-08-02`
   construction of that same constant through a fallible API and its
   unreachable error branch are gone. Lease, Gate, race, vet, and staticcheck
   pass; the remainder of the package sweep continues after this checkpoint.
+- Lease typed-failure ownership, 2026-08-02 (awaiting review, uncommitted):
+  `ScopeMismatch` and `ClockContradiction` are sealed Lease capabilities rather
+  than caller-constructible public structs. Package-owned constructors prove
+  two valid unequal subjects or a valid wall rollback strictly beyond the
+  five-minute tolerance before the specialized Core identity can escape.
+  Invalid constructors and even package-internal zero implementations carry
+  only `ErrLeaseContract`; authentic reports preserve their exact facts through
+  typed `Subjects` and `Instants` projections. A red-first hostile test captured
+  the former forgery, including an eight-microsecond value that falsely claimed
+  a five-minute clock contradiction. Lease ordinary, race, vet, staticcheck,
+  Witness, and production-complexity proof pass.
+- Process bounded-write convergence, 2026-08-02 (awaiting review, uncommitted):
+  the child-output limiter and public truncating writer retain their distinct
+  policies—cancel on overflow versus consume and count dropped bytes—but now
+  funnel all admitted-prefix forwarding through one package-private rule. A
+  red-first hostile destination proved the child limiter called caller code
+  with an empty slice after its bound was exactly full, allowing a legal empty
+  write error to replace `ErrProcessOutputLimit` and cancel for the wrong
+  reason. Empty prefixes no longer reach caller code; invalid and short counts
+  have one implementation. The divergent addressability guard and the
+  post-forward count check were semantically unreachable and are removed.
+- Process top-down completion, 2026-08-02 (awaiting review, uncommitted): the
+  effective-environment projection no longer rebuilds `os/exec`'s
+  last-value-wins rule with an O(n-squared) suffix scan. Primitive first rejects
+  malformed and NUL-containing caller entries, then delegates canonicalization
+  and OS-specific name handling to `exec.Cmd.Environ` before raising the result
+  into typed variables. A red-first writer test also proved an impossible count
+  discarded a simultaneous native error; the shared forwarder now preserves
+  both `io.ErrShortWrite` and the caller cause, matching the reader boundary.
+  `Failure`, `StreamFailure`, and `OutputLimitExceeded` are sealed
+  Process-produced reports with typed fact projections. Invalid constructors
+  and internal zero implementations carry only `ErrProcessContract`; the former
+  zero `Failure` can no longer silently identify itself as a wait failure.
+  Output policies are bounded by `math.MaxInt64`, the same compiler-owned
+  `ByteLength` domain used by every returned count, so a successful observation
+  is always representable. Stdin and dropped-byte accounting reject before
+  leaving that domain, and redundant checked conversions are removed. All
+  three closed Process enums project diagnostics and failure identities from
+  compiler-sized immutable tables. Real-child ordinary and race suites pass at
+  90.9% statement coverage; vet, staticcheck, formatting, and production
+  cyclomatic complexity are clean. Witness continues to report only the two
+  previously recorded analyzer capability findings at Process's legitimate
+  `os/exec` ownership boundary; no shim or waiver was added.
+- Contextstate and Release dead-path correction, 2026-08-02 (awaiting review,
+  uncommitted): `classifyContextTerminal` now only compares a known non-nil
+  error against Go's two exact terminal sentinels. Its unreachable nil arm and
+  impossible comparison panic recovery are removed; the reachable recovery
+  remains solely around caller-controlled `Context.Err`. Hostile test names now
+  describe rejection without custom identity traversal rather than claiming a
+  panic occurred. Release's SHA-256 identity framing documents the standard
+  library's infallible `hash.Hash.Write` contract and the fixed NUL-free domain
+  separator that makes discarded write errors safe. Focused ordinary and race
+  tests plus vet, staticcheck, and production complexity pass; the full
+  repository test remains green.
+- Shutdown top-down recheck, 2026-08-02 (awaiting review, uncommitted): the live
+  redesign satisfies its interview blockers with five typed phases, per-step
+  cooperative budgets clipped by one total budget, fixed sixty-four-step
+  custody, structured outcomes, and one joined signal-subscription goroutine.
+  A red-first hostile test proved an unauthentic zero `SignalCause` failed
+  validation yet still claimed `ErrShutdownSignalReceived`; its private
+  authenticity seal now governs `Error` and `Unwrap`, so only controller-made
+  causes carry that identity. Watch performs its hostile context ingress once
+  instead of re-reading caller behavior after signal registration. All seven
+  enum domains, internal diagnostics, and step-outcome identities project from
+  keyed compiler-sized functions rather than mutable positional tables.
+  Grace expiry no longer constructs its own raw timer: immediately after the
+  first signal, the sole controller goroutine creates a detached
+  `temporal.WithTimeout` context and selects on its `Done` channel, preserving
+  the parent-cancellation and second-signal branches without another goroutine.
+  The exact-import and forbidden-selector ratchets now reject raw timer
+  ownership in Shutdown. Ordinary and race suites pass at 92.2% statement
+  coverage; vet, staticcheck, formatting, and production complexity are clean.
+- Fail-closed internal discriminator correction, 2026-08-02 (awaiting review,
+  uncommitted): Hostfacts' cgroup-level memory declaration no longer assigns
+  meaningful observed absence to the Go zero value. Its state domain now names
+  and rejects an explicit unknown zero; absent, finite, and unlimited are
+  distinct admitted members with compiler-sized diagnostics and a typed
+  off-wire witness. Core's strict-JSON container kind likewise names unknown
+  and limit sentinels instead of leaving an anonymous `iota + 1` hole. Stack
+  admission validates the kind, and value completion switches explicitly over
+  object and array before rejecting every other state rather than defaulting to
+  array item accounting. Red-first hostile tests captured both former defaults,
+  and exhaustive 256-value ratchets prove the closed domains. Focused ordinary,
+  race, vet, and staticcheck proof passes for Core, Hostfacts, and Shutdown.
+- Receipt top-down recheck, 2026-08-02 (awaiting review, uncommitted): the live
+  package remains the deliberately reduced accepted-evidence and pure
+  watermark contract; none of the archived Store, payment, pagination,
+  transport, or persistence world was restored. A red-first hostile proof
+  exposed that Receipt's two private sealed rejection implementations failed
+  validation at zero yet still claimed the specialized scope or conflict
+  identity. `Error` and `Unwrap` now expose those identities only after the
+  typed field or reason validates; invalid internal values carry only
+  `ErrReceiptContract`. Revision, scope-field, advance-state, and conflict-reason
+  diagnostics now come from keyed compiler-sized functions rather than mutable
+  package-global positional arrays. Focused ordinary and race suites pass at
+  93.3% statement coverage; vet, staticcheck, errcheck, nilaway, Witness,
+  gosec, goconst, field alignment, formatting, production complexity, and the
+  100,000-execution signed-document semantic fuzz budget are clean.
+- Filestore fail-closed discriminator correction, 2026-08-02 (awaiting review,
+  uncommitted): the two internal execution enums no longer leave zero unnamed.
+  `streamDestination` validates before streaming and its error classifier
+  switches explicitly between caller destination and file activation; an
+  unknown value carries only the Filestore contract plus the native cause.
+  `directoryPosition` validates before touching the rooted namespace, so an
+  unset value cannot silently choose intermediate-directory mode checking over
+  final-directory mode synchronization. Both domains have named unknown and
+  limit members, compiler-sized diagnostics, typed validation, and exhaustive
+  256-value hostile proof. The unrelated `mkdir` operation token moved outside
+  the enum declaration. Exported `WalkDirective` and `WalkOrder` now name their
+  invalid zero while preserving the same admitted values and off-wire behavior.
+  Focused ordinary, race, vet, staticcheck, and Witness proof passes.
 - Core ownership closure, 2026-08-02 (awaiting review, uncommitted): the
   one-consumer deferral count is zero and the deferral machinery itself is
   deleted. HTTP method parsing, its closed method/replay lattice, content

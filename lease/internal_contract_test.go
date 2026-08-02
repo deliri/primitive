@@ -34,8 +34,8 @@ var (
 )
 
 type leaseContractInventory struct {
-	ScopeMismatch             typedFailure[ScopeMismatch]
-	ClockContradiction        typedFailure[ClockContradiction]
+	scopeMismatch             typedFailure[scopeMismatch]
+	clockContradiction        typedFailure[clockContradiction]
 	identifier                internalFlow[identifier]
 	Product                   protocolFact[Product]
 	EntitlementID             protocolFact[EntitlementID]
@@ -65,6 +65,8 @@ type leaseContractInventory struct {
 var _ leaseContractInventory
 
 var (
+	_ = leaseContractInventory{}.scopeMismatch
+	_ = leaseContractInventory{}.clockContradiction
 	_ = leaseContractInventory{}.identifier
 	_ = leaseContractInventory{}.enumFact
 	_ = leaseContractInventory{}.jsonStructureContract

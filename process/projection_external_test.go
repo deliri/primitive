@@ -4,6 +4,7 @@ import (
 	"bytes"
 	"errors"
 	"io"
+	"math"
 	"slices"
 	"strings"
 	"testing"
@@ -244,6 +245,19 @@ func TestTruncatingWriterPreservesDestinationFailures(t *testing.T) {
 	dropped, droppedErr := writer.DroppedBytes()
 	if retainedErr != nil || droppedErr != nil || retained.Uint64() != 0 || dropped.Uint64() != 0 {
 		t.Fatalf("failed write counts = retained %d/%v dropped %d/%v, want zeros/nil", retained.Uint64(), retainedErr, dropped.Uint64(), droppedErr)
+	}
+}
+
+func TestTruncatingWriterRejectsAnUnreportableLimit(t *testing.T) {
+	t.Parallel()
+
+	_, err := process.NewTruncatingWriter(
+		io.Discard,
+		byteCount(t, uint64(math.MaxInt64)+1),
+	)
+	if !errors.Is(err, core.ErrNumericOverflow) ||
+		!errors.Is(err, core.ErrProcessContract) {
+		t.Fatalf("NewTruncatingWriter(unsigned-only limit) error = %v, want %v and %v", err, core.ErrNumericOverflow, core.ErrProcessContract)
 	}
 }
 

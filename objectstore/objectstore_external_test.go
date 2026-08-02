@@ -25,8 +25,10 @@ import (
 )
 
 const (
-	testS3SignedHeaders  = "host;if-none-match;x-amz-checksum-crc32c;x-amz-checksum-mode"
-	testGCSSignedHeaders = "host;x-goog-hash;x-goog-if-generation-match"
+	testS3UploadSignedHeaders    = "host;if-none-match;x-amz-checksum-crc32c"
+	testS3DownloadSignedHeaders  = "host;x-amz-checksum-mode"
+	testGCSUploadSignedHeaders   = "host;x-goog-hash;x-goog-if-generation-match"
+	testGCSDownloadSignedHeaders = "host"
 )
 
 type providerObservation struct {
@@ -307,6 +309,7 @@ func TestUploadProviderLayerTriad(t *testing.T) {
 			targetURL, httpClient := providerServer(
 				t,
 				tc.provider,
+				objectstore.DirectionUpload,
 				handler,
 			)
 			client := newObjectstoreClient(t, httpClient)
@@ -395,7 +398,9 @@ func TestUploadEntryPointsComposeBackToBack(t *testing.T) {
 			setProviderVersion(writer.Header(), tc.provider)
 			writer.WriteHeader(http.StatusOK)
 		})
-		targetURL, httpClient := providerServer(t, tc.provider, handler)
+		targetURL, httpClient := providerServer(
+			t, tc.provider, objectstore.DirectionUpload, handler,
+		)
 		request := uploadRequest(t, tc.provider, targetURL, payload)
 		got, gotErr := tc.operation(
 			context.Background(),
@@ -461,6 +466,7 @@ func TestDownloadProviderLayerTriad(t *testing.T) {
 			targetURL, httpClient := providerServer(
 				t,
 				tc.provider,
+				objectstore.DirectionDownload,
 				handler,
 			)
 			client := newObjectstoreClient(t, httpClient)
@@ -539,6 +545,7 @@ func TestZeroLengthStreamLayerTriad(t *testing.T) {
 		targetURL, httpClient := providerServer(
 			t,
 			objectstore.ProviderGoogleCloudStorage,
+			objectstore.DirectionUpload,
 			handler,
 		)
 		request := uploadRequest(
@@ -573,6 +580,7 @@ func TestZeroLengthStreamLayerTriad(t *testing.T) {
 			signedProviderURL(
 				"https://storage.googleapis.com/bucket/object",
 				objectstore.ProviderGoogleCloudStorage,
+				objectstore.DirectionUpload,
 			),
 			nil,
 		)
@@ -620,6 +628,7 @@ func TestZeroLengthStreamLayerTriad(t *testing.T) {
 		targetURL, httpClient := providerServer(
 			t,
 			objectstore.ProviderGoogleCloudStorage,
+			objectstore.DirectionDownload,
 			handler,
 		)
 		var destination bytes.Buffer
@@ -1024,6 +1033,7 @@ func TestProviderVersionProjectionLayerTriad(t *testing.T) {
 				signedProviderURL(
 					providerEndpoint(tc.provider),
 					tc.provider,
+					objectstore.DirectionUpload,
 				),
 				payload,
 			)
@@ -1089,7 +1099,7 @@ func TestUploadRequestHostileBoundaryTable(t *testing.T) {
 
 	payload := []byte("boundary-payload")
 	baseURL := "https://example.com/object?X-Amz-Signature=sig&X-Amz-SignedHeaders=" +
-		url.QueryEscape(testS3SignedHeaders)
+		url.QueryEscape(testS3UploadSignedHeaders)
 	base := uploadRequest(
 		t,
 		objectstore.ProviderAmazonS3,
@@ -1167,6 +1177,7 @@ func TestDownloadRequestHostileBoundaryTable(t *testing.T) {
 	baseURL := signedProviderURL(
 		"https://storage.googleapis.com/bucket/object",
 		objectstore.ProviderGoogleCloudStorage,
+		objectstore.DirectionDownload,
 	)
 	base := downloadRequest(
 		t,
@@ -1259,6 +1270,7 @@ func TestUploadFailureCommitmentAndExactExtent(t *testing.T) {
 			targetURL, httpClient := providerServer(
 				t,
 				objectstore.ProviderAmazonS3,
+				objectstore.DirectionUpload,
 				handler,
 			)
 			client := newObjectstoreClient(t, httpClient)
@@ -1392,6 +1404,7 @@ func TestDownloadFailureLayerTriad(t *testing.T) {
 			targetURL, httpClient := providerServer(
 				t,
 				objectstore.ProviderGoogleCloudStorage,
+				objectstore.DirectionDownload,
 				handler,
 			)
 			client := newObjectstoreClient(t, httpClient)
@@ -1442,7 +1455,7 @@ func TestSignedURLFormattingIsAlwaysRedacted(t *testing.T) {
 	value := signedURL(
 		t,
 		"https://example.com/object?X-Amz-Signature="+secret+
-			"&X-Amz-SignedHeaders="+url.QueryEscape(testS3SignedHeaders),
+			"&X-Amz-SignedHeaders="+url.QueryEscape(testS3UploadSignedHeaders),
 	)
 	for _, format := range []string{"%v", "%+v", "%s", "%q", "%#v"} {
 		got := fmt.Sprintf(format, value)
@@ -1465,6 +1478,7 @@ func TestUploadAttemptBoundaryTable(t *testing.T) {
 	targetURL := signedProviderURL(
 		"https://s3.amazonaws.com/bucket/object",
 		objectstore.ProviderAmazonS3,
+		objectstore.DirectionUpload,
 	)
 	base := uploadRequest(
 		t,
@@ -1583,6 +1597,7 @@ func benchmarkUploadStreaming(b *testing.B, size int) {
 		signedProviderURL(
 			"https://storage.googleapis.com/bucket/object",
 			objectstore.ProviderGoogleCloudStorage,
+			objectstore.DirectionUpload,
 		),
 		payload,
 	)
@@ -1677,6 +1692,7 @@ func (t failureTransport) RoundTrip(*http.Request) (*http.Response, error) {
 func providerServer(
 	tb testing.TB,
 	provider objectstore.Provider,
+	direction objectstore.Direction,
 	handler http.Handler,
 ) (string, *http.Client) {
 	tb.Helper()
@@ -1684,7 +1700,7 @@ func providerServer(
 	server := httptest.NewTLSServer(handler)
 	tb.Cleanup(server.Close)
 	if provider != objectstore.ProviderCloudflareImages {
-		return signedProviderURL(server.URL+"/object", provider), server.Client()
+		return signedProviderURL(server.URL+"/object", provider, direction), server.Client()
 	}
 	serverAddress := strings.TrimPrefix(server.URL, "https://")
 	transport := server.Client().Transport.(*http.Transport).Clone()
@@ -1703,16 +1719,28 @@ func providerServer(
 	return "https://upload.imagedelivery.net/image-id", client
 }
 
-func signedProviderURL(endpoint string, provider objectstore.Provider) string {
+func signedProviderURL(
+	endpoint string,
+	provider objectstore.Provider,
+	direction objectstore.Direction,
+) string {
 	switch provider {
 	case objectstore.ProviderAmazonS3:
+		signed := testS3UploadSignedHeaders
+		if direction == objectstore.DirectionDownload {
+			signed = testS3DownloadSignedHeaders
+		}
 		return endpoint +
 			"?X-Amz-Signature=signature&X-Amz-SignedHeaders=" +
-			url.QueryEscape(testS3SignedHeaders)
+			url.QueryEscape(signed)
 	case objectstore.ProviderGoogleCloudStorage:
+		signed := testGCSUploadSignedHeaders
+		if direction == objectstore.DirectionDownload {
+			signed = testGCSDownloadSignedHeaders
+		}
 		return endpoint +
 			"?X-Goog-Signature=signature&X-Goog-SignedHeaders=" +
-			url.QueryEscape(testGCSSignedHeaders)
+			url.QueryEscape(signed)
 	case objectstore.ProviderCloudflareImages:
 		return endpoint
 	default:
@@ -2275,7 +2303,9 @@ func TestDownloadProviderChecksumLayerTriad(t *testing.T) {
 				writer.WriteHeader(http.StatusOK)
 				_, _ = writer.Write(payload)
 			})
-			targetURL, httpClient := providerServer(t, tc.provider, handler)
+			targetURL, httpClient := providerServer(
+				t, tc.provider, objectstore.DirectionDownload, handler,
+			)
 			client := newObjectstoreClient(t, httpClient)
 			var destination bytes.Buffer
 			request := downloadRequest(

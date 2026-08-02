@@ -206,12 +206,16 @@ func (p Provider) String() string {
 	if !p.IsValid() {
 		return ""
 	}
-	return [...]string{
+	return providerDiagnostics()[p]
+}
+
+func providerDiagnostics() [providerLimit]string {
+	return [providerLimit]string{
 		ProviderUnknown:            "",
 		ProviderAmazonS3:           "amazon_s3",
 		ProviderGoogleCloudStorage: "google_cloud_storage",
 		ProviderCloudflareImages:   "cloudflare_images",
-	}[p]
+	}
 }
 
 // OffWireEnum declares Provider as an execution enum rather than wire syntax.
@@ -233,12 +237,16 @@ func (a VendorAPI) String() string {
 	if !a.IsValid() {
 		return ""
 	}
-	return [...]string{
+	return vendorAPIDiagnostics()[a]
+}
+
+func vendorAPIDiagnostics() [vendorAPILimit]string {
+	return [vendorAPILimit]string{
 		VendorAPIUnknown:                "",
 		VendorAPIAmazonS3Object:         "amazon_s3_object",
 		VendorAPIGoogleCloudStorageXML:  "google_cloud_storage_xml",
 		VendorAPICloudflareImagesDirect: "cloudflare_images_direct",
-	}[a]
+	}
 }
 
 // OffWireEnum declares VendorAPI as an execution enum.
@@ -260,11 +268,15 @@ func (c DirectionCapability) String() string {
 	if !c.IsValid() {
 		return ""
 	}
-	return [...]string{
+	return directionCapabilityDiagnostics()[c]
+}
+
+func directionCapabilityDiagnostics() [directionCapabilityLimit]string {
+	return [directionCapabilityLimit]string{
 		DirectionCapabilityUnknown:        "",
 		DirectionCapabilityUploadOnly:     "upload_only",
 		DirectionCapabilityUploadDownload: "upload_download",
-	}[c]
+	}
 }
 
 // OffWireEnum declares DirectionCapability as an execution enum.
@@ -286,11 +298,15 @@ func (e UploadEncoding) String() string {
 	if !e.IsValid() {
 		return ""
 	}
-	return [...]string{
+	return uploadEncodingDiagnostics()[e]
+}
+
+func uploadEncodingDiagnostics() [uploadEncodingLimit]string {
+	return [uploadEncodingLimit]string{
 		UploadEncodingUnknown:       "",
 		UploadEncodingRawObject:     "raw_object",
 		UploadEncodingMultipartFile: "multipart_file",
-	}[e]
+	}
 }
 
 // OffWireEnum declares UploadEncoding as an execution enum.
@@ -312,11 +328,15 @@ func (i ProviderIntegrity) String() string {
 	if !i.IsValid() {
 		return ""
 	}
-	return [...]string{
+	return providerIntegrityDiagnostics()[i]
+}
+
+func providerIntegrityDiagnostics() [providerIntegrityLimit]string {
+	return [providerIntegrityLimit]string{
 		ProviderIntegrityUnknown:   "",
 		ProviderIntegrityCRC32C:    "crc32c",
 		ProviderIntegrityLocalOnly: "local_only",
-	}[i]
+	}
 }
 
 // OffWireEnum declares ProviderIntegrity as an execution enum.
@@ -338,11 +358,15 @@ func (p WritePreference) String() string {
 	if !p.IsValid() {
 		return ""
 	}
-	return [...]string{
+	return writePreferenceDiagnostics()[p]
+}
+
+func writePreferenceDiagnostics() [writePreferenceLimit]string {
+	return [writePreferenceLimit]string{
 		WritePreferenceUnknown:           "",
 		WritePreferenceCreateOnly:        "create_only",
 		WritePreferenceOneTimeCapability: "one_time_capability",
-	}[p]
+	}
 }
 
 // OffWireEnum declares WritePreference as an execution enum.

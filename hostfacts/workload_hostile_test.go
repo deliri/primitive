@@ -226,13 +226,27 @@ func TestCgroupLimitTokenHostileBoundaryTable(t *testing.T) {
 
 func TestCgroupLevelLimitExhaustsDeclarationCombinations(t *testing.T) {
 	t.Parallel()
+	unknown := cgroupLevelLimitStateUnknown.String()
+	for raw := 0; raw <= math.MaxUint8; raw++ {
+		state := cgroupLevelLimitState(raw)
+		admitted := state == cgroupLevelLimitAbsent ||
+			state == cgroupLevelLimitFinite ||
+			state == cgroupLevelLimitUnlimited
+		if state.IsValid() != admitted || (state.Validate() == nil) != admitted {
+			t.Errorf("cgroupLevelLimitState(%d) validity disagrees with admitted=%t", raw, admitted)
+		}
+		if label := state.String(); label == "" || (!admitted && label != unknown) {
+			t.Errorf("cgroupLevelLimitState(%d).String() = %q, want safe closed-domain label", raw, label)
+		}
+	}
 
 	cases := []struct {
 		name    string
 		level   cgroupLevelLimit
 		wantErr bool
 	}{
-		{name: "absent zero value is valid", level: cgroupLevelLimit{state: cgroupLevelLimitAbsent}},
+		{name: "unset zero state is rejected", level: cgroupLevelLimit{}, wantErr: true},
+		{name: "observed absence is valid", level: cgroupLevelLimit{state: cgroupLevelLimitAbsent}},
 		{name: "finite zero is valid", level: cgroupLevelLimit{state: cgroupLevelLimitFinite}},
 		{name: "finite one is valid", level: cgroupLevelLimit{state: cgroupLevelLimitFinite, value: 1}},
 		{name: "finite maximum is valid", level: cgroupLevelLimit{state: cgroupLevelLimitFinite, value: math.MaxUint64}},

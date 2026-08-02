@@ -12,15 +12,20 @@ import (
 )
 
 const (
-	// capabilityGCSURL declares host plus one caller-owned metadata field, so a
-	// test header can be signed without colliding with a field this package
-	// sets itself. Every vendor token comes from the production constant that
-	// owns it, so the fixtures cannot drift from the grammar under test.
+	// The base URLs declare exactly the headers Objectstore sends itself. The
+	// metadata variants add caller-owned fields and are used only when the
+	// capability document carries those exact fields.
 	capabilityGCSObject = httpsScheme + "://storage.googleapis.com/bucket/object"
 	capabilityGCSURL    = capabilityGCSObject + "?" + queryGCSSignature + "=signature&" +
-		queryGCSSignedHeaders + "=host%3Bx-goog-meta-run%3Bx-goog-meta-shard"
+		queryGCSSignedHeaders + "=host%3Bx-goog-hash%3Bx-goog-if-generation-match"
+	capabilityGCSMetadataRunURL = capabilityGCSObject + "?" + queryGCSSignature + "=signature&" +
+		queryGCSSignedHeaders + "=host%3Bx-goog-hash%3Bx-goog-if-generation-match%3Bx-goog-meta-run"
+	capabilityGCSMetadataURL = capabilityGCSObject + "?" + queryGCSSignature + "=signature&" +
+		queryGCSSignedHeaders + "=host%3Bx-goog-hash%3Bx-goog-if-generation-match%3Bx-goog-meta-run%3Bx-goog-meta-shard"
 	capabilityS3URL = httpsScheme + "://s3.amazonaws.com/bucket/object" +
-		"?" + queryS3Signature + "=signature&" + queryS3SignedHeaders + "=host%3Bx-amz-meta-run"
+		"?" + queryS3Signature + "=signature&" + queryS3SignedHeaders + "=host%3Bif-none-match%3Bx-amz-checksum-crc32c"
+	capabilityS3MetadataURL = httpsScheme + "://s3.amazonaws.com/bucket/object" +
+		"?" + queryS3Signature + "=signature&" + queryS3SignedHeaders + "=host%3Bif-none-match%3Bx-amz-checksum-crc32c%3Bx-amz-meta-run"
 	capabilityImagesURL = httpsScheme + "://" + cloudflareImagesUploadHost + "/image-id"
 
 	// capabilitySecret is the value a rejection must never disclose. It is
@@ -60,20 +65,20 @@ func TestUploadCapabilityAdmitsOnlyPublishedVendorShapes(t *testing.T) {
 		{
 			name: "google cloud storage with one signed metadata field",
 			document: `{"provider":"google_cloud_storage","method":"signed_put",` +
-				`"url":"` + capabilityGCSURL + `","expires_at":1893456000000000000,` +
+				`"url":"` + capabilityGCSMetadataRunURL + `","expires_at":1893456000000000000,` +
 				`"headers":[{"name":"X-Goog-Meta-Run","value":"run-41"}]}`,
 		},
 		{
 			name: "google cloud storage with two signed metadata fields",
 			document: `{"provider":"google_cloud_storage","method":"signed_put",` +
-				`"url":"` + capabilityGCSURL + `","expires_at":1893456000000000000,` +
+				`"url":"` + capabilityGCSMetadataURL + `","expires_at":1893456000000000000,` +
 				`"headers":[{"name":"X-Goog-Meta-Run","value":"run-41"},` +
 				`{"name":"X-Goog-Meta-Shard","value":"7"}]}`,
 		},
 		{
 			name: "google cloud storage header name in lowercase is canonicalized",
 			document: `{"provider":"google_cloud_storage","method":"signed_put",` +
-				`"url":"` + capabilityGCSURL + `","expires_at":1893456000000000000,` +
+				`"url":"` + capabilityGCSMetadataRunURL + `","expires_at":1893456000000000000,` +
 				`"headers":[{"name":"x-goog-meta-run","value":"run-41"}]}`,
 		},
 		{
@@ -84,7 +89,7 @@ func TestUploadCapabilityAdmitsOnlyPublishedVendorShapes(t *testing.T) {
 		{
 			name: "amazon s3 with one signed metadata field",
 			document: `{"provider":"amazon_s3","method":"signed_put",` +
-				`"url":"` + capabilityS3URL + `","expires_at":1893456000000000000,` +
+				`"url":"` + capabilityS3MetadataURL + `","expires_at":1893456000000000000,` +
 				`"headers":[{"name":"X-Amz-Meta-Run","value":"run-41"}]}`,
 		},
 		{
@@ -294,7 +299,7 @@ func TestUploadCapabilityAdmitsOnlyPublishedVendorShapes(t *testing.T) {
 		{
 			name: "a header with an empty but present value is admitted",
 			document: `{"provider":"google_cloud_storage","method":"signed_put","url":"` +
-				capabilityGCSURL + `","expires_at":1893456000000000000,` +
+				capabilityGCSMetadataRunURL + `","expires_at":1893456000000000000,` +
 				`"headers":[{"name":"X-Goog-Meta-Run","value":""}]}`,
 		},
 		{
@@ -469,7 +474,8 @@ func TestUploadCapabilityNeverDisclosesItsBearer(t *testing.T) {
 
 	document := `{"provider":"google_cloud_storage","method":"signed_put",` +
 		`"url":"` + capabilityGCSObject + `?` + queryGCSSignature + `=` +
-		capabilitySecret + `&` + queryGCSSignedHeaders + `=host","expires_at":1893456000000000000}`
+		capabilitySecret + `&` + queryGCSSignedHeaders +
+		`=host%3Bx-goog-hash%3Bx-goog-if-generation-match","expires_at":1893456000000000000}`
 
 	capability, err := capabilityDocument(t, document)
 	if err != nil {
@@ -612,7 +618,8 @@ func TestUploadCapabilityRejectedDecodePreservesExistingReceiver(t *testing.T) {
 func TestUploadCapabilityBoundsItsReceivedExtents(t *testing.T) {
 	t.Parallel()
 
-	base := capabilityGCSObject + "?" + queryGCSSignedHeaders + "=host&" +
+	base := capabilityGCSObject + "?" + queryGCSSignedHeaders +
+		"=host%3Bx-goog-hash%3Bx-goog-if-generation-match&" +
 		queryGCSSignature + "="
 
 	cases := []struct {
@@ -666,10 +673,11 @@ func TestUploadCapabilityBoundsItsReceivedExtents(t *testing.T) {
 	t.Run("a header set above the owned count bound is rejected", func(t *testing.T) {
 		t.Parallel()
 
-		signed := make([]string, 0, SignedHeaderMaximumCount+1)
+		signed := make([]string, 0, SignedHeaderMaximumCount+4)
+		signed = append(signed, "host", "x-goog-hash", "x-goog-if-generation-match")
 		wire := make([]string, 0, SignedHeaderMaximumCount+1)
 		for index := 1; index <= SignedHeaderMaximumCount+1; index++ {
-			name := fmt.Sprintf("x-goog-meta-f%d", index)
+			name := fmt.Sprintf("x-goog-meta-f%02d", index)
 			signed = append(signed, name)
 			wire = append(wire, fmt.Sprintf(`{"name":%q,"value":"v"}`, name))
 		}
@@ -719,7 +727,7 @@ func TestUploadCapabilityBoundsItsReceivedExtents(t *testing.T) {
 		t.Parallel()
 
 		document := `{"provider":"google_cloud_storage","method":"signed_put","url":"` +
-			capabilityGCSURL + `","expires_at":1893456000000000000,"headers":[{"name":"X-Goog-Meta-Run",` +
+			capabilityGCSMetadataRunURL + `","expires_at":1893456000000000000,"headers":[{"name":"X-Goog-Meta-Run",` +
 			`"value":"` + strings.Repeat("v", UploadCapabilityJSONMaximumBytes) + `"}]}`
 		got, gotErr := capabilityDocument(t, document)
 		if !errors.Is(gotErr, core.ErrObjectStoreContract) {

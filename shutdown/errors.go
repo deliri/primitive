@@ -58,52 +58,55 @@ const (
 	diagnosticLimit
 )
 
-var diagnosticLabels = [diagnosticLimit]string{
-	diagnosticUnknown:                     unknownLabel,
-	diagnosticPhaseUnsupported:            "phase is not a supported cleanup phase",
-	diagnosticStepOutcomeUnsupported:      "step outcome is not a supported outcome",
-	diagnosticSignalKindUnsupported:       "signal kind is not a supported signal",
-	diagnosticSignalSetUnsupported:        "signal set is not a supported platform set",
-	diagnosticSecondSignalUnsupported:     "second signal action is not a supported action",
-	diagnosticGraceExpiryUnsupported:      "grace expiry action is not a supported action",
-	diagnosticEscalationReasonUnsupported: "escalation reason is not a supported reason",
-	diagnosticStepIdentityZero:            "step identity is zero",
-	diagnosticStepBudgetInvalid:           "step budget is not a positive duration",
-	diagnosticStepActionNil:               "step action is nil",
-	diagnosticTotalBudgetInvalid:          "total budget is not a positive duration",
-	diagnosticPlanNil:                     "plan is nil",
-	diagnosticPlanRegistrationClosed:      "plan is no longer open for registration",
-	diagnosticPlanFull:                    "plan already holds its maximum step count",
-	diagnosticStepIdentityDuplicate:       "step identity duplicates a registered step",
-	diagnosticPlanStateUnset:              "plan state is unset",
-	diagnosticCompletedStepFailure:        "completed step result carries a failure",
-	diagnosticStepResultIdentityMismatch:  "step result failure does not carry its outcome error identity",
-	diagnosticReportUnset:                 "report is unset",
-	diagnosticReportCount:                 "report count exceeds its fixed capacity",
-	diagnosticReportResult:                "report retains an invalid step result",
-	diagnosticParentContext:               "parent context is unusable",
-	diagnosticTotalBudgetConstruction:     "total budget could not bound the run",
-	diagnosticPlanAlreadyRun:              "plan has already started its single run",
-	diagnosticPlanCount:                   "plan count exceeds its fixed capacity",
-	diagnosticStepSkipped:                 "step was skipped before it started",
-	diagnosticGracePeriodInvalid:          "grace period is not a valid duration",
-	diagnosticGracePeriodCoupling:         "grace period is set if and only if grace expiry escalates",
-	diagnosticEscalationUnset:             "escalation is unset",
-	diagnosticGraceEscalationTrigger:      "grace expiry escalation names a trigger signal",
-	diagnosticSignalCauseUnauthentic:      "signal cause was not produced by an observation",
-	diagnosticSignalProjectionEmpty:       "signal set projects no platform signal",
-	diagnosticSignalSourceIncomplete:      "signal source is incomplete",
-	diagnosticGraceProjection:             "grace period has no standard projection",
-	diagnosticControllerNil:               "controller is nil",
-	diagnosticSignalSourceClosed:          "signal source closed before any supported signal",
-	diagnosticPanicErrorInvalid:           "step panic error is invalid",
+func diagnosticLabels() [diagnosticLimit]string {
+	return [diagnosticLimit]string{
+		diagnosticUnknown:                     unknownLabel,
+		diagnosticPhaseUnsupported:            "phase is not a supported cleanup phase",
+		diagnosticStepOutcomeUnsupported:      "step outcome is not a supported outcome",
+		diagnosticSignalKindUnsupported:       "signal kind is not a supported signal",
+		diagnosticSignalSetUnsupported:        "signal set is not a supported platform set",
+		diagnosticSecondSignalUnsupported:     "second signal action is not a supported action",
+		diagnosticGraceExpiryUnsupported:      "grace expiry action is not a supported action",
+		diagnosticEscalationReasonUnsupported: "escalation reason is not a supported reason",
+		diagnosticStepIdentityZero:            "step identity is zero",
+		diagnosticStepBudgetInvalid:           "step budget is not a positive duration",
+		diagnosticStepActionNil:               "step action is nil",
+		diagnosticTotalBudgetInvalid:          "total budget is not a positive duration",
+		diagnosticPlanNil:                     "plan is nil",
+		diagnosticPlanRegistrationClosed:      "plan is no longer open for registration",
+		diagnosticPlanFull:                    "plan already holds its maximum step count",
+		diagnosticStepIdentityDuplicate:       "step identity duplicates a registered step",
+		diagnosticPlanStateUnset:              "plan state is unset",
+		diagnosticCompletedStepFailure:        "completed step result carries a failure",
+		diagnosticStepResultIdentityMismatch:  "step result failure does not carry its outcome error identity",
+		diagnosticReportUnset:                 "report is unset",
+		diagnosticReportCount:                 "report count exceeds its fixed capacity",
+		diagnosticReportResult:                "report retains an invalid step result",
+		diagnosticParentContext:               "parent context is unusable",
+		diagnosticTotalBudgetConstruction:     "total budget could not bound the run",
+		diagnosticPlanAlreadyRun:              "plan has already started its single run",
+		diagnosticPlanCount:                   "plan count exceeds its fixed capacity",
+		diagnosticStepSkipped:                 "step was skipped before it started",
+		diagnosticGracePeriodInvalid:          "grace period is not a valid duration",
+		diagnosticGracePeriodCoupling:         "grace period is set if and only if grace expiry escalates",
+		diagnosticEscalationUnset:             "escalation is unset",
+		diagnosticGraceEscalationTrigger:      "grace expiry escalation names a trigger signal",
+		diagnosticSignalCauseUnauthentic:      "signal cause was not produced by an observation",
+		diagnosticSignalProjectionEmpty:       "signal set projects no platform signal",
+		diagnosticSignalSourceIncomplete:      "signal source is incomplete",
+		diagnosticGraceProjection:             "grace period has no standard projection",
+		diagnosticControllerNil:               "controller is nil",
+		diagnosticSignalSourceClosed:          "signal source closed before any supported signal",
+		diagnosticPanicErrorInvalid:           "step panic error is invalid",
+	}
 }
 
 func (d diagnostic) Error() string {
-	if d <= diagnosticUnknown || d >= diagnosticLimit {
-		return unknownLabel
+	labels := diagnosticLabels()
+	if d > diagnosticUnknown && d < diagnosticLimit && labels[d] != "" {
+		return labels[d]
 	}
-	return diagnosticLabels[d]
+	return unknownLabel
 }
 
 func contractError(detail diagnostic, causes ...error) error {

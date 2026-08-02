@@ -52,10 +52,10 @@ func Verify(request VerifyRequest) (Verified, error) {
 		return Verified{}, verificationError(err)
 	}
 	if header.Subject != request.ExpectedSubject {
-		return Verified{}, verificationError(ScopeMismatch{
-			Expected: request.ExpectedSubject,
-			Actual:   header.Subject,
-		})
+		return Verified{}, verificationError(newScopeMismatch(
+			request.ExpectedSubject,
+			header.Subject,
+		))
 	}
 	result := Verified{
 		decision: request.Document.Decision, proof: proof,
@@ -83,10 +83,7 @@ func (v Verified) Validate() error {
 		return verificationError(err)
 	}
 	if header.Subject != v.subject {
-		return verificationError(ScopeMismatch{
-			Expected: v.subject,
-			Actual:   header.Subject,
-		})
+		return verificationError(newScopeMismatch(v.subject, header.Subject))
 	}
 	envelope, err := v.proof.Envelope()
 	if err != nil {

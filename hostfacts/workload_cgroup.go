@@ -109,11 +109,45 @@ func cgroupRootContains(root, membership string) bool {
 type cgroupLevelLimitState uint8
 
 const (
-	cgroupLevelLimitAbsent cgroupLevelLimitState = iota
+	cgroupLevelLimitStateUnknown cgroupLevelLimitState = iota
+	cgroupLevelLimitAbsent
 	cgroupLevelLimitFinite
 	cgroupLevelLimitUnlimited
 	cgroupLevelLimitStateLimit
 )
+
+func cgroupLevelLimitStateLabels() [cgroupLevelLimitStateLimit]string {
+	return [cgroupLevelLimitStateLimit]string{
+		cgroupLevelLimitStateUnknown: "unknown",
+		cgroupLevelLimitAbsent:       "absent",
+		cgroupLevelLimitFinite:       "finite",
+		cgroupLevelLimitUnlimited:    "unlimited",
+	}
+}
+
+func (s cgroupLevelLimitState) IsValid() bool {
+	labels := cgroupLevelLimitStateLabels()
+	return s > cgroupLevelLimitStateUnknown &&
+		s < cgroupLevelLimitStateLimit &&
+		labels[s] != ""
+}
+
+func (s cgroupLevelLimitState) Validate() error {
+	if !s.IsValid() {
+		return core.ErrHostFactsObservation
+	}
+	return nil
+}
+
+func (s cgroupLevelLimitState) String() string {
+	labels := cgroupLevelLimitStateLabels()
+	if s < cgroupLevelLimitStateLimit && labels[s] != "" {
+		return labels[s]
+	}
+	return labels[cgroupLevelLimitStateUnknown]
+}
+
+func (cgroupLevelLimitState) OffWireEnum() {}
 
 // cgroupLevelLimit is one cgroup level's memory declaration. The discriminator
 // makes absence, a finite ceiling, and an unlimited declaration mutually
@@ -124,6 +158,9 @@ type cgroupLevelLimit struct {
 }
 
 func (l cgroupLevelLimit) Validate() error {
+	if err := l.state.Validate(); err != nil {
+		return err
+	}
 	switch l.state {
 	case cgroupLevelLimitAbsent, cgroupLevelLimitUnlimited:
 		if l.value != 0 {
@@ -136,6 +173,11 @@ func (l cgroupLevelLimit) Validate() error {
 		return core.ErrHostFactsObservation
 	}
 }
+
+var (
+	_ core.Validatable = cgroupLevelLimitStateUnknown
+	_ core.OffWireEnum = cgroupLevelLimitStateUnknown
+)
 
 // cgroupLimitFold folds the finite ceilings declared from the current cgroup
 // through its mounted ancestors.

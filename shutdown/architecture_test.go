@@ -87,7 +87,6 @@ func TestProductionArchitectureHasOneOwnedGoroutineAndExactImports(t *testing.T)
 		"strings",
 		"sync",
 		"syscall",
-		"time",
 		"unicode/utf8",
 	}
 	if !slices.Equal(gotImports, wantImports) {
@@ -115,6 +114,7 @@ func TestProductionRejectsProcessExitAndWorldBuildingRatchet(t *testing.T) {
 			"runtime.NumGoroutine",
 			"encoding/json",
 			"map[",
+			"time.NewTimer(",
 		} {
 			if strings.Contains(source, forbidden) {
 				t.Fatalf("%s contains %q, want no process policy or world model",

@@ -42,7 +42,61 @@ const (
 	// headerWireSyntaxBytes is the ": " and CRLF framing each field adds to the
 	// HTTP wire extent, beyond its name and value.
 	headerWireSyntaxBytes = 4
+	// automaticSignedHeaderMaximumCount is the widest set Objectstore and
+	// Exchange place on one request without caller-supplied fields.
+	automaticSignedHeaderMaximumCount   = 6
+	signedHeaderDeclarationMaximumCount = SignedHeaderMaximumCount +
+		automaticSignedHeaderMaximumCount
 )
+
+// signedHeaderDeclaration is the bounded canonical header-name set a V4
+// capability says its signature covers. Both admitted V4 protocols require
+// lowercase, strictly sorted, semicolon-separated names.
+type signedHeaderDeclaration struct {
+	values [signedHeaderDeclarationMaximumCount]core.HTTPHeaderName
+	count  uint8
+}
+
+func parseSignedHeaderDeclaration(value string) (signedHeaderDeclaration, error) {
+	var declaration signedHeaderDeclaration
+	previous := ""
+	for token := range strings.SplitSeq(value, signedHeaderTokenSeparator) {
+		if token == "" || token != strings.ToLower(token) ||
+			(previous != "" && token <= previous) ||
+			int(declaration.count) >= len(declaration.values) {
+			return signedHeaderDeclaration{}, core.ErrObjectStoreContract
+		}
+		name, err := headerName(token)
+		if err != nil {
+			return signedHeaderDeclaration{}, err
+		}
+		declaration.values[declaration.count] = name
+		declaration.count++
+		previous = token
+	}
+	if declaration.count == 0 {
+		return signedHeaderDeclaration{}, core.ErrObjectStoreContract
+	}
+	return declaration, nil
+}
+
+func (d signedHeaderDeclaration) contains(name core.HTTPHeaderName) bool {
+	for index := range int(d.count) {
+		if d.values[index] == name {
+			return true
+		}
+	}
+	return false
+}
+
+func (d signedHeaderDeclaration) each(visitor func(core.HTTPHeaderName) bool) bool {
+	for index := range int(d.count) {
+		if !visitor(d.values[index]) {
+			return false
+		}
+	}
+	return true
+}
 
 func validateProviderSignedHeaders(
 	provider Provider,
@@ -74,6 +128,7 @@ func validateCallerSignedHeaders(
 	provider Provider,
 	value url.URL,
 	headers SignedHeaders,
+	direction Direction,
 ) error {
 	if provider == ProviderCloudflareImages {
 		if len(headers.values) != 0 {
@@ -85,12 +140,105 @@ func validateCallerSignedHeaders(
 	if err != nil {
 		return err
 	}
+	declaration, err := parseSignedHeaderDeclaration(signed)
+	if err != nil {
+		return err
+	}
 	for _, header := range headers.values {
-		if !semicolonTokenContains(signed, header.name.String()) {
+		if !declaration.contains(header.name) {
 			return core.ErrObjectStoreContract
 		}
 	}
+	sent, err := sentRequestHeaderNames(provider, direction, headers)
+	if err != nil {
+		return err
+	}
+	if !declaration.each(sent.contains) {
+		return core.ErrObjectStoreContract
+	}
 	return nil
+}
+
+type sentHeaderNames struct {
+	values [signedHeaderDeclarationMaximumCount]core.HTTPHeaderName
+	count  uint8
+}
+
+func sentRequestHeaderNames(
+	provider Provider,
+	direction Direction,
+	caller SignedHeaders,
+) (sentHeaderNames, error) {
+	if err := provider.Validate(); err != nil {
+		return sentHeaderNames{}, err
+	}
+	if err := direction.Validate(); err != nil {
+		return sentHeaderNames{}, err
+	}
+	var names sentHeaderNames
+	names.add(core.HTTPHeaderAcceptEncoding())
+	if err := names.addText(headerHost); err != nil {
+		return sentHeaderNames{}, err
+	}
+	if err := addAutomaticDirectionHeaders(&names, provider, direction); err != nil {
+		return sentHeaderNames{}, err
+	}
+	for _, header := range caller.values {
+		names.add(header.name)
+	}
+	return names, nil
+}
+
+func addAutomaticDirectionHeaders(
+	names *sentHeaderNames,
+	provider Provider,
+	direction Direction,
+) error {
+	if direction == DirectionDownload {
+		names.add(core.HTTPHeaderAccept())
+		if provider == ProviderAmazonS3 {
+			return names.addText(headerS3ChecksumMode)
+		}
+		return nil
+	}
+	names.add(core.HTTPHeaderContentType())
+	names.add(core.HTTPHeaderContentLength())
+	required, err := providerRequiredSignedHeaders(provider)
+	if err != nil {
+		return err
+	}
+	for _, value := range required {
+		if err := names.addText(value); err != nil {
+			return err
+		}
+	}
+	return nil
+}
+
+func (s *sentHeaderNames) addText(value string) error {
+	name, err := headerName(value)
+	if err != nil {
+		return err
+	}
+	s.add(name)
+	return nil
+}
+
+func (s *sentHeaderNames) add(name core.HTTPHeaderName) {
+	if s.contains(name) {
+		return
+	}
+	s.values[s.count] = name
+	s.count++
+}
+
+func (s sentHeaderNames) contains(name core.HTTPHeaderName) bool {
+	for index := range int(s.count) {
+		if s.values[index] == name {
+			return true
+		}
+	}
+	return false
 }
 
 func providerSignedHeaderDeclaration(

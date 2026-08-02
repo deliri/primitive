@@ -19,7 +19,7 @@ type streamFailures struct {
 }
 
 func (f *streamFailures) record(stream Stream, cause error) {
-	failure := StreamFailure{Stream: stream, Cause: cause}
+	failure := newStreamFailure(stream, cause)
 	f.mu.Lock()
 	if f.values[stream] == nil {
 		f.values[stream] = failure
@@ -109,12 +109,8 @@ func (r *observedReader) Read(buffer []byte) (count int, err error) {
 }
 
 func (r *observedReader) observeCount(count int) error {
-	increment, err := core.CheckedUint64FromInt64(int64(count))
-	if err != nil {
-		r.failures.record(StreamStdin, err)
-		return err
-	}
-	if increment > math.MaxUint64-r.count {
+	increment := uint64(count) // #nosec G115 -- Read proved count is positive and bounded by len(buffer).
+	if increment > math.MaxInt64-r.count {
 		r.failures.record(StreamStdin, core.ErrNumericOverflow)
 		return core.ErrNumericOverflow
 	}
@@ -150,29 +146,21 @@ func (w *boundedWriter) Write(buffer []byte) (count int, err error) {
 	if uint64(len(buffer)) <= available {
 		return w.forward(buffer)
 	}
+	// This branch proves available < len(buffer), so the uint64 index is
+	// representable by the platform int that already bounds the slice.
 	count, err = w.forward(buffer[:available])
 	if err != nil {
 		return count, err
 	}
-	exceeded := OutputLimitExceeded{Stream: w.stream, Limit: w.limit}
+	exceeded := newOutputLimitExceeded(w.stream, w.limit)
 	w.failures.record(w.stream, exceeded)
 	return count, exceeded
 }
 
 func (w *boundedWriter) forward(buffer []byte) (int, error) {
-	count, err := w.destination.Write(buffer)
-	if count < 0 || count > len(buffer) {
-		w.failures.record(w.stream, io.ErrShortWrite)
-		return 0, io.ErrShortWrite
-	}
-	w.count += uint64(count)
+	count, err := forwardFullWrite(w.destination, &w.count, buffer)
 	if err != nil {
 		w.failures.record(w.stream, err)
-		return count, err
 	}
-	if count != len(buffer) {
-		w.failures.record(w.stream, io.ErrShortWrite)
-		return count, io.ErrShortWrite
-	}
-	return count, nil
+	return count, err
 }

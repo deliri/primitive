@@ -112,8 +112,8 @@ func TestRunStreamingLayerTriad(t *testing.T) {
 		}
 		var exceeded process.OutputLimitExceeded
 		if !errors.As(gotErr, &exceeded) ||
-			exceeded.Stream != process.StreamStdout ||
-			exceeded.Limit != request.OutputLimit {
+			exceeded.Stream() != process.StreamStdout ||
+			exceeded.Limit() != request.OutputLimit {
 			t.Fatalf(
 				"process.Run(output over bound) typed detail = %+v from %v, want stdout/%v",
 				exceeded,
@@ -754,8 +754,8 @@ func TestRunPreservesNativeStreamFailures(t *testing.T) {
 			}
 			var failure process.StreamFailure
 			if !errors.As(gotErr, &failure) ||
-				failure.Stream != tc.wantStream ||
-				!errors.Is(failure.Cause, native) {
+				failure.Stream() != tc.wantStream ||
+				!errors.Is(failure.Cause(), native) {
 				t.Fatalf(
 					"stream failure = %+v from %v, want %v with the native cause",
 					failure,
@@ -1034,7 +1034,7 @@ func TestRunCancellationReapsTheDirectChild(t *testing.T) {
 			)
 		}
 		var failure process.Failure
-		if !errors.As(got.err, &failure) || failure.Kind != process.FailureKindWait {
+		if !errors.As(got.err, &failure) || failure.Kind() != process.FailureKindWait {
 			t.Fatalf("cancelled failure = %+v from %v, want a wait-phase failure", failure, got.err)
 		}
 		if err := failure.Validate(); err != nil {
@@ -1100,7 +1100,7 @@ func TestRunWaitDelayBoundsALingeringDescendant(t *testing.T) {
 		)
 	}
 	var failure process.Failure
-	if !errors.As(gotErr, &failure) || failure.Kind != process.FailureKindWait {
+	if !errors.As(gotErr, &failure) || failure.Kind() != process.FailureKindWait {
 		t.Fatalf("wait-delay failure = %+v from %v, want a wait-phase failure", failure, gotErr)
 	}
 	if err := failure.Validate(); err != nil {
@@ -1168,7 +1168,7 @@ func TestRunCancellationTerminatesDespiteALingeringDescendant(t *testing.T) {
 		)
 	}
 	var failure process.Failure
-	if !errors.As(gotErr, &failure) || failure.Kind != process.FailureKindWait {
+	if !errors.As(gotErr, &failure) || failure.Kind() != process.FailureKindWait {
 		t.Fatalf("cancelled wait failure = %v, want a typed wait-phase failure", gotErr)
 	}
 	if err := failure.Validate(); err != nil {
@@ -1271,8 +1271,8 @@ func TestRunStartFailurePressure(t *testing.T) {
 			}
 			var failure process.Failure
 			if !errors.As(gotErr, &failure) ||
-				failure.Kind != process.FailureKindStart ||
-				failure.Command != request.Command {
+				failure.Kind() != process.FailureKindStart ||
+				failure.Command() != request.Command {
 				t.Fatalf(
 					"start failure = %+v from %v, want the exact requested command",
 					failure,
@@ -1562,7 +1562,7 @@ func runWithinBackstop(
 func breachedStreams(err error) (bool, bool) {
 	var stdout, stderr bool
 	for _, exceeded := range collectOutputLimits(err) {
-		switch exceeded.Stream {
+		switch exceeded.Stream() {
 		case process.StreamStdout:
 			stdout = true
 		case process.StreamStderr:

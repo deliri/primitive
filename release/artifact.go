@@ -465,6 +465,9 @@ func artifactDigest(artifact Artifact) (core.SHA256Digest, error) {
 }
 
 func writeDigestFrame(destination hash.Hash, domain string, body []byte) {
+	// hash.Hash.Write must never return an error. The framing is injective
+	// because each compiler-owned domain is NUL-free and the body begins after
+	// the one NUL separator.
 	_, _ = destination.Write([]byte(domain))
 	_, _ = destination.Write([]byte{0})
 	_, _ = destination.Write(body)

@@ -17,9 +17,40 @@ const (
 type streamDestination uint8
 
 const (
-	streamDestinationCaller streamDestination = iota + 1
+	streamDestinationUnknown streamDestination = iota
+	streamDestinationCaller
 	streamDestinationFile
+	streamDestinationLimit
 )
+
+func streamDestinationDiagnostics() [streamDestinationLimit]string {
+	return [streamDestinationLimit]string{
+		streamDestinationUnknown: unknownEnumDiagnostic,
+		streamDestinationCaller:  "caller",
+		streamDestinationFile:    "file",
+	}
+}
+
+func (d streamDestination) Validate() error {
+	if !d.IsValid() {
+		return contractError(errors.New("filestore stream destination is invalid"))
+	}
+	return nil
+}
+
+func (d streamDestination) IsValid() bool {
+	return d > streamDestinationUnknown && d < streamDestinationLimit &&
+		streamDestinationDiagnostics()[d] != unknownEnumDiagnostic
+}
+
+func (d streamDestination) String() string {
+	if !d.IsValid() {
+		return unknownEnumDiagnostic
+	}
+	return streamDestinationDiagnostics()[d]
+}
+
+func (streamDestination) OffWireEnum() {}
 
 func copyBounded(
 	ctx context.Context,
@@ -28,6 +59,9 @@ func copyBounded(
 	maximum core.ByteCount,
 	kind streamDestination,
 ) (core.ByteLength, error) {
+	if err := kind.Validate(); err != nil {
+		return core.ByteLength{}, err
+	}
 	maximumBytes, err := maximum.Uint64()
 	if err != nil {
 		return core.ByteLength{}, contractError(err)
@@ -132,8 +166,19 @@ func finishStream(total uint64, cause error) (core.ByteLength, error) {
 }
 
 func classifyDestinationError(kind streamDestination, err error) error {
-	if kind == streamDestinationCaller {
-		return destinationError(err)
+	if validationErr := kind.Validate(); validationErr != nil {
+		return errors.Join(validationErr, err)
 	}
-	return activationError(err)
+	switch kind {
+	case streamDestinationCaller:
+		return destinationError(err)
+	case streamDestinationFile:
+		return activationError(err)
+	}
+	return contractError(err)
 }
+
+var (
+	_ core.Validatable = streamDestinationUnknown
+	_ core.OffWireEnum = streamDestinationUnknown
+)

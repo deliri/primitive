@@ -278,13 +278,16 @@ func TestEvaluateUsesRealGoMonotonicObservations(t *testing.T) {
 			)
 		}
 		var contradiction lease.ClockContradiction
-		if !errors.As(err, &contradiction) ||
-			contradiction.Observed != rolledBackWall ||
-			contradiction.Trusted != want {
+		if !errors.As(err, &contradiction) {
+			t.Fatalf("wall-rollback error = %v, want ClockContradiction", err)
+		}
+		observed, trusted, factErr := contradiction.Instants()
+		if factErr != nil || observed != rolledBackWall || trusted != want {
 			t.Fatalf(
-				"wall-rollback contradiction = %+v from %v, want observed/trusted %v/%v",
-				contradiction,
-				err,
+				"ClockContradiction.Instants() = (%v, %v, %v), want %v, %v, nil",
+				observed,
+				trusted,
+				factErr,
 				rolledBackWall,
 				want,
 			)

@@ -15,11 +15,42 @@ import (
 type directoryPosition uint8
 
 const (
-	directoryIntermediate directoryPosition = iota + 1
+	directoryPositionUnknown directoryPosition = iota
+	directoryIntermediate
 	directoryFinal
-
-	mkdirOperation = "mkdir"
+	directoryPositionLimit
 )
+
+const mkdirOperation = "mkdir"
+
+func directoryPositionDiagnostics() [directoryPositionLimit]string {
+	return [directoryPositionLimit]string{
+		directoryPositionUnknown: unknownEnumDiagnostic,
+		directoryIntermediate:    "intermediate",
+		directoryFinal:           "final",
+	}
+}
+
+func (p directoryPosition) Validate() error {
+	if !p.IsValid() {
+		return contractError(errors.New("filestore directory position is invalid"))
+	}
+	return nil
+}
+
+func (p directoryPosition) IsValid() bool {
+	return p > directoryPositionUnknown && p < directoryPositionLimit &&
+		directoryPositionDiagnostics()[p] != unknownEnumDiagnostic
+}
+
+func (p directoryPosition) String() string {
+	if !p.IsValid() {
+		return unknownEnumDiagnostic
+	}
+	return directoryPositionDiagnostics()[p]
+}
+
+func (directoryPosition) OffWireEnum() {}
 
 // EnsureDirectory creates one real directory chain and durably synchronizes
 // each namespace addition.
@@ -66,6 +97,9 @@ func ensureDirectoryEntry(
 	mode fs.FileMode,
 	position directoryPosition,
 ) error {
+	if err := position.Validate(); err != nil {
+		return err
+	}
 	err := root.Mkdir(path.String(), mode)
 	if err == nil {
 		if err := synchronizeDirectoryMode(root, path, mode); err != nil {
@@ -87,6 +121,11 @@ func ensureDirectoryEntry(
 	}
 	return validateExistingDirectory(root, path)
 }
+
+var (
+	_ core.Validatable = directoryPositionUnknown
+	_ core.OffWireEnum = directoryPositionUnknown
+)
 
 func synchronizeDirectoryMode(
 	root *os.Root,

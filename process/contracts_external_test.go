@@ -5,7 +5,6 @@ import (
 	"errors"
 	"io"
 	"math"
-	"os"
 	"strings"
 	"testing"
 
@@ -632,11 +631,19 @@ func TestRequestIngressPressure(t *testing.T) {
 			},
 		},
 		{
-			name: "maximum output limit is accepted",
+			name: "maximum signed output limit is accepted",
 			mutate: func(tb testing.TB, value process.Request) process.Request {
-				value.OutputLimit = byteCount(tb, math.MaxUint64)
+				value.OutputLimit = byteCount(tb, math.MaxInt64)
 				return value
 			},
+		},
+		{
+			name: "first unsigned-only output limit is rejected",
+			mutate: func(tb testing.TB, value process.Request) process.Request {
+				value.OutputLimit = byteCount(tb, uint64(math.MaxInt64)+1)
+				return value
+			},
+			wantErr: core.ErrNumericOverflow,
 		},
 		{
 			name: "one nanosecond wait delay is accepted",
@@ -1039,232 +1046,6 @@ func TestProcessErrorIdentityHierarchy(t *testing.T) {
 			}
 		})
 	}
-}
-
-func TestTypedFailureContractsPreserveStableAndNativeIdentity(t *testing.T) {
-	t.Parallel()
-
-	command := absolutePath(t, string(os.PathSeparator)+"command")
-	limit := byteCount(t, 8)
-	native := errors.New("native process failure")
-	cases := []struct {
-		value       typedErrorContract
-		wantErr     error
-		name        string
-		wantNotErrs []error
-		wantNative  bool
-	}{
-		{
-			name: "start failure preserves start and native identities",
-			value: process.Failure{
-				Kind: process.FailureKindStart, Command: command, Cause: native,
-			},
-			wantErr:     core.ErrProcessStart,
-			wantNative:  true,
-			wantNotErrs: []error{core.ErrProcessWait, core.ErrProcessStream},
-		},
-		{
-			name: "wait failure preserves wait and native identities",
-			value: process.Failure{
-				Kind: process.FailureKindWait, Command: command, Cause: native,
-			},
-			wantErr:     core.ErrProcessWait,
-			wantNative:  true,
-			wantNotErrs: []error{core.ErrProcessStart, core.ErrProcessStream},
-		},
-		{
-			name: "stream failure preserves stream and native identities",
-			value: process.StreamFailure{
-				Stream: process.StreamStdout, Cause: native,
-			},
-			wantErr:     core.ErrProcessStream,
-			wantNative:  true,
-			wantNotErrs: []error{core.ErrProcessOutputLimit, core.ErrProcessStart},
-		},
-		{
-			name: "stderr output failure nested in a stream failure keeps both identities",
-			value: process.StreamFailure{
-				Stream: process.StreamStderr,
-				Cause: process.OutputLimitExceeded{
-					Stream: process.StreamStderr, Limit: limit,
-				},
-			},
-			wantErr:     core.ErrProcessOutputLimit,
-			wantNotErrs: []error{core.ErrProcessStart, core.ErrProcessWait},
-		},
-		{
-			name: "direct output failure carries the stream parent identity",
-			value: process.OutputLimitExceeded{
-				Stream: process.StreamStdout, Limit: limit,
-			},
-			wantErr:     core.ErrProcessOutputLimit,
-			wantNotErrs: []error{core.ErrProcessStart, core.ErrProcessWait},
-		},
-	}
-	for _, tc := range cases {
-		t.Run(tc.name, func(t *testing.T) {
-			t.Parallel()
-
-			if gotErr := tc.value.Validate(); gotErr != nil {
-				t.Fatalf("typed failure Validate() error = %v, want nil", gotErr)
-			}
-			gotErr := error(tc.value)
-			// Tier one: the load-bearing typed rejection proof.
-			if !errors.Is(gotErr, tc.wantErr) ||
-				!errors.Is(gotErr, core.ErrProcessContract) {
-				t.Fatalf(
-					"typed failure error = %v, want %v and %v",
-					gotErr,
-					tc.wantErr,
-					core.ErrProcessContract,
-				)
-			}
-			if errors.Is(gotErr, core.ErrProcessOutputLimit) &&
-				!errors.Is(gotErr, core.ErrProcessStream) {
-				t.Fatalf(
-					"output-limit failure %v does not match its %v parent",
-					gotErr,
-					core.ErrProcessStream,
-				)
-			}
-			for _, unwanted := range tc.wantNotErrs {
-				if errors.Is(gotErr, unwanted) {
-					t.Fatalf("typed failure %v also matches unrelated %v", gotErr, unwanted)
-				}
-			}
-			if tc.wantNative && !errors.Is(gotErr, native) {
-				t.Fatalf("typed failure error = %v, want native cause", gotErr)
-			}
-		})
-	}
-}
-
-func TestTypedFailureValidationRejectsEveryUnsetField(t *testing.T) {
-	t.Parallel()
-
-	command := absolutePath(t, string(os.PathSeparator)+"command")
-	limit := byteCount(t, 8)
-	native := errors.New("native process failure")
-	cases := []struct {
-		value typedErrorContract
-		name  string
-	}{
-		{
-			name:  "zero failure rejects unknown kind first",
-			value: process.Failure{},
-		},
-		{
-			name: "future failure kind is rejected",
-			value: process.Failure{
-				Kind: process.FailureKind(math.MaxUint8), Command: command, Cause: native,
-			},
-		},
-		{
-			name: "start failure rejects unset command",
-			value: process.Failure{
-				Kind: process.FailureKindStart, Cause: native,
-			},
-		},
-		{
-			name: "start failure rejects nil cause",
-			value: process.Failure{
-				Kind: process.FailureKindStart, Command: command,
-			},
-		},
-		{
-			name: "wait failure rejects nil cause",
-			value: process.Failure{
-				Kind: process.FailureKindWait, Command: command,
-			},
-		},
-		{
-			name:  "zero stream failure rejects unknown stream first",
-			value: process.StreamFailure{},
-		},
-		{
-			name: "future stream value is rejected",
-			value: process.StreamFailure{
-				Stream: process.Stream(math.MaxUint8), Cause: native,
-			},
-		},
-		{
-			name: "stdout failure rejects nil cause",
-			value: process.StreamFailure{
-				Stream: process.StreamStdout,
-			},
-		},
-		{
-			name: "stderr failure rejects nil cause",
-			value: process.StreamFailure{
-				Stream: process.StreamStderr,
-			},
-		},
-		{
-			name:  "zero output failure rejects unknown stream first",
-			value: process.OutputLimitExceeded{},
-		},
-		{
-			name: "stdout output failure rejects unset limit",
-			value: process.OutputLimitExceeded{
-				Stream: process.StreamStdout,
-			},
-		},
-		{
-			name: "future stream output failure is rejected",
-			value: process.OutputLimitExceeded{
-				Stream: process.Stream(math.MaxUint8), Limit: limit,
-			},
-		},
-		{
-			name: "stdin rejects an output limit",
-			value: process.OutputLimitExceeded{
-				Stream: process.StreamStdin, Limit: limit,
-			},
-		},
-	}
-	for _, tc := range cases {
-		t.Run(tc.name, func(t *testing.T) {
-			t.Parallel()
-
-			gotErr := tc.value.Validate()
-			if !errors.Is(gotErr, core.ErrProcessContract) {
-				t.Fatalf(
-					"typed failure Validate() error = %v, want %v",
-					gotErr,
-					core.ErrProcessContract,
-				)
-			}
-			// An invalid typed failure must still render a safe diagnostic rather
-			// than panic or hide the missing cause.
-			if gotText := tc.value.Error(); gotText == "" {
-				t.Fatal("invalid typed failure Error() = empty, want a safe diagnostic")
-			}
-		})
-	}
-}
-
-// TestFailureDiagnosticNamesAMissingCause pins the nil-cause rendering path,
-// which only an invalid failure can reach.
-func TestFailureDiagnosticNamesAMissingCause(t *testing.T) {
-	t.Parallel()
-
-	command := absolutePath(t, string(os.PathSeparator)+"command")
-	failure := process.Failure{Kind: process.FailureKindWait, Command: command}
-	if gotErr := failure.Validate(); !errors.Is(gotErr, core.ErrProcessContract) {
-		t.Fatalf("Failure.Validate() error = %v, want %v", gotErr, core.ErrProcessContract)
-	}
-	if got := failure.Error(); !strings.Contains(got, "missing cause") {
-		t.Fatalf("Failure.Error() = %q, want it to name the missing cause", got)
-	}
-	streamFailure := process.StreamFailure{Stream: process.StreamStdin}
-	if got := streamFailure.Error(); !strings.Contains(got, "missing cause") {
-		t.Fatalf("StreamFailure.Error() = %q, want it to name the missing cause", got)
-	}
-}
-
-type typedErrorContract interface {
-	error
-	Validate() error
 }
 
 func environmentVariable(

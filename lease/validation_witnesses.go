@@ -27,6 +27,8 @@ var (
 	_ core.Validatable = Assessment{}
 	_ core.Validatable = AdvanceRequest{}
 	_ core.Validatable = AdvanceResult{}
+	_ core.Validatable = scopeMismatch{}
+	_ core.Validatable = clockContradiction{}
 )
 
 var (

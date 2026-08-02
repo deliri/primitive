@@ -77,25 +77,46 @@ const (
 	conflictReasonLimit
 )
 
-var revisionLabels = [...]string{"", "v1"}
-var scopeFieldLabels = [...]string{
-	"", "account", "offering", "submission", "object", "extent", "sha256", "crc32c",
-}
-var advanceStateLabels = [...]string{"", "accepted", "replay"}
-var conflictReasonLabels = [...]string{
-	"", "scope", "replay-divergence", "cursor-unchanged", "chain-unchanged",
+// Each diagnostic projection is compiler-sized to its closed enum. Keyed rows
+// make the mapping visible at the declaration and returning the array by value
+// prevents package-global mutation from changing protocol text at runtime.
+func revisionDiagnostics() [revisionLimit]string {
+	return [revisionLimit]string{
+		RevisionUnknown: unknownText,
+		RevisionV1:      "v1",
+	}
 }
 
-var (
-	_ [revisionLimit - Revision(len(revisionLabels))]struct{}
-	_ [Revision(len(revisionLabels)) - revisionLimit]struct{}
-	_ [scopeFieldLimit - ScopeField(len(scopeFieldLabels))]struct{}
-	_ [ScopeField(len(scopeFieldLabels)) - scopeFieldLimit]struct{}
-	_ [advanceStateLimit - AdvanceState(len(advanceStateLabels))]struct{}
-	_ [AdvanceState(len(advanceStateLabels)) - advanceStateLimit]struct{}
-	_ [conflictReasonLimit - ConflictReason(len(conflictReasonLabels))]struct{}
-	_ [ConflictReason(len(conflictReasonLabels)) - conflictReasonLimit]struct{}
-)
+func scopeFieldDiagnostics() [scopeFieldLimit]string {
+	return [scopeFieldLimit]string{
+		ScopeFieldUnknown:    unknownText,
+		ScopeFieldAccount:    "account",
+		ScopeFieldOffering:   "offering",
+		ScopeFieldSubmission: "submission",
+		ScopeFieldObject:     "object",
+		ScopeFieldExtent:     "extent",
+		ScopeFieldSHA256:     "sha256",
+		ScopeFieldCRC32C:     "crc32c",
+	}
+}
+
+func advanceStateDiagnostics() [advanceStateLimit]string {
+	return [advanceStateLimit]string{
+		AdvanceUnknown:  unknownText,
+		AdvanceAccepted: "accepted",
+		AdvanceReplay:   "replay",
+	}
+}
+
+func conflictReasonDiagnostics() [conflictReasonLimit]string {
+	return [conflictReasonLimit]string{
+		ConflictReasonUnknown:          unknownText,
+		ConflictReasonScope:            "scope",
+		ConflictReasonReplayDivergence: "replay-divergence",
+		ConflictReasonCursorUnchanged:  "cursor-unchanged",
+		ConflictReasonChainUnchanged:   "chain-unchanged",
+	}
+}
 
 func (r Revision) Validate() error {
 	if r != RevisionV1 {
@@ -109,7 +130,7 @@ func (r Revision) String() string {
 	if !r.IsValid() {
 		return unknownText
 	}
-	return revisionLabels[r]
+	return revisionDiagnostics()[r]
 }
 
 func (r Revision) MarshalJSON() ([]byte, error) {
@@ -127,7 +148,7 @@ func (r *Revision) UnmarshalJSON(data []byte) error {
 	if err != nil {
 		return jsonError(err)
 	}
-	if value != revisionLabels[RevisionV1] {
+	if value != revisionDiagnostics()[RevisionV1] {
 		return jsonError(errors.New("receipt revision text is unsupported"))
 	}
 	*r = RevisionV1
@@ -175,7 +196,7 @@ func (f ScopeField) String() string {
 	if !f.IsValid() {
 		return unknownText
 	}
-	return scopeFieldLabels[f]
+	return scopeFieldDiagnostics()[f]
 }
 func (ScopeField) OffWireEnum() {}
 
@@ -190,7 +211,7 @@ func (s AdvanceState) String() string {
 	if !s.IsValid() {
 		return unknownText
 	}
-	return advanceStateLabels[s]
+	return advanceStateDiagnostics()[s]
 }
 func (AdvanceState) OffWireEnum() {}
 
@@ -205,7 +226,7 @@ func (r ConflictReason) String() string {
 	if !r.IsValid() {
 		return unknownText
 	}
-	return conflictReasonLabels[r]
+	return conflictReasonDiagnostics()[r]
 }
 func (ConflictReason) OffWireEnum() {}
 

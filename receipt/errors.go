@@ -54,11 +54,21 @@ func newScopeMismatch(field ScopeField) error {
 // Validate rejects a mismatch that names no admitted field.
 func (e scopeMismatch) Validate() error { return e.field.Validate() }
 
-// Error returns the stable non-sensitive diagnostic.
-func (scopeMismatch) Error() string { return core.ErrReceiptScope.Error() }
+// Error returns the specialized diagnostic only for a proved mismatch.
+func (e scopeMismatch) Error() string {
+	if e.Validate() != nil {
+		return core.ErrReceiptContract.Error()
+	}
+	return core.ErrReceiptScope.Error()
+}
 
-// Unwrap preserves the stable Core identity.
-func (scopeMismatch) Unwrap() error { return core.ErrReceiptScope }
+// Unwrap preserves the specialized Core identity only for a proved mismatch.
+func (e scopeMismatch) Unwrap() error {
+	if e.Validate() != nil {
+		return core.ErrReceiptContract
+	}
+	return core.ErrReceiptScope
+}
 
 // Field returns the exact authenticated fact that differed from caller intent.
 func (e scopeMismatch) Field() (ScopeField, error) {
@@ -98,11 +108,21 @@ func conflictError(reason ConflictReason) error {
 // Validate rejects a conflict that names no admitted reason.
 func (e watermarkConflict) Validate() error { return e.reason.Validate() }
 
-// Error returns the stable non-sensitive diagnostic.
-func (watermarkConflict) Error() string { return core.ErrReceiptConflict.Error() }
+// Error returns the specialized diagnostic only for a proved conflict.
+func (e watermarkConflict) Error() string {
+	if e.Validate() != nil {
+		return core.ErrReceiptContract.Error()
+	}
+	return core.ErrReceiptConflict.Error()
+}
 
-// Unwrap preserves the stable Core identity.
-func (watermarkConflict) Unwrap() error { return core.ErrReceiptConflict }
+// Unwrap preserves the specialized Core identity only for a proved conflict.
+func (e watermarkConflict) Unwrap() error {
+	if e.Validate() != nil {
+		return core.ErrReceiptContract
+	}
+	return core.ErrReceiptConflict
+}
 
 // Reason returns the exact invariant that refused the advance.
 func (e watermarkConflict) Reason() (ConflictReason, error) {

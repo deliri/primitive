@@ -536,8 +536,11 @@ func TestReceiptEnumLabelsAreExactAndDistinct(t *testing.T) {
 		})
 	}
 
+	scopeFields := scopeFieldDiagnostics()
+	advanceStates := advanceStateDiagnostics()
+	conflictReasons := conflictReasonDiagnostics()
 	for _, labels := range [][]string{
-		scopeFieldLabels[1:], advanceStateLabels[1:], conflictReasonLabels[1:],
+		scopeFields[1:], advanceStates[1:], conflictReasons[1:],
 	} {
 		seen := make(map[string]int, len(labels))
 		for index, label := range labels {

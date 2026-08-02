@@ -83,7 +83,11 @@ func TestFilestorePublicSurfaceIsExactRatchet(t *testing.T) {
 					gotFunctions = append(gotFunctions, value.Name.Name)
 					continue
 				}
-				gotMethods = append(gotMethods, receiverName(value.Recv.List[0].Type)+"."+value.Name.Name)
+				receiver := receiverName(value.Recv.List[0].Type)
+				if !ast.IsExported(receiver) {
+					continue
+				}
+				gotMethods = append(gotMethods, receiver+"."+value.Name.Name)
 			}
 		}
 	}
@@ -132,8 +136,10 @@ func TestFilestorePublicSurfaceIsExactRatchet(t *testing.T) {
 		"InstallReplace",
 		"InstallUnknown",
 		"WalkContinue",
+		"WalkDirectiveUnknown",
 		"WalkOrderLexical",
 		"WalkOrderNative",
+		"WalkOrderUnknown",
 		"WalkSkipDirectory",
 	})
 	requireExactNames(t, "exported methods", gotMethods, []string{

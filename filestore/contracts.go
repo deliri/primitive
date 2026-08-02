@@ -331,17 +331,20 @@ func (r TreeRemovalRequest) Validate() error {
 type WalkDirective uint8
 
 const (
+	// WalkDirectiveUnknown is the invalid zero directive.
+	WalkDirectiveUnknown WalkDirective = iota
 	// WalkContinue visits a directory's descendants.
-	WalkContinue WalkDirective = iota + 1
+	WalkContinue
 	// WalkSkipDirectory omits a directory's descendants.
 	WalkSkipDirectory
 	walkDirectiveLimit
 )
 
 func walkDirectiveDiagnostics() [walkDirectiveLimit]string {
-	return [...]string{
-		WalkContinue:      "continue",
-		WalkSkipDirectory: "skip-directory",
+	return [walkDirectiveLimit]string{
+		WalkDirectiveUnknown: unknownEnumDiagnostic,
+		WalkContinue:         "continue",
+		WalkSkipDirectory:    "skip-directory",
 	}
 }
 
@@ -374,15 +377,18 @@ func (d WalkDirective) String() string {
 type WalkOrder uint8
 
 const (
+	// WalkOrderUnknown is the invalid zero order.
+	WalkOrderUnknown WalkOrder = iota
 	// WalkOrderNative streams fixed batches in operating-system order.
-	WalkOrderNative WalkOrder = iota + 1
+	WalkOrderNative
 	// WalkOrderLexical sorts each directory under an explicit entry ceiling.
 	WalkOrderLexical
 	walkOrderLimit
 )
 
 func walkOrderDiagnostics() [walkOrderLimit]string {
-	return [...]string{
+	return [walkOrderLimit]string{
+		WalkOrderUnknown: unknownEnumDiagnostic,
 		WalkOrderNative:  "native",
 		WalkOrderLexical: "lexical",
 	}

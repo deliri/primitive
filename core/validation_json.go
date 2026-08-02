@@ -344,9 +344,38 @@ func rejectTrailingJSON(decoder *json.Decoder) error {
 type strictJSONContainerKind uint8
 
 const (
-	strictJSONContainerObject strictJSONContainerKind = iota + 1
+	strictJSONContainerUnknown strictJSONContainerKind = iota
+	strictJSONContainerObject
 	strictJSONContainerArray
+	strictJSONContainerKindLimit
 )
+
+func strictJSONContainerKindLabels() [strictJSONContainerKindLimit]string {
+	return [strictJSONContainerKindLimit]string{
+		strictJSONContainerUnknown: "unknown",
+		strictJSONContainerObject:  "object",
+		strictJSONContainerArray:   "array",
+	}
+}
+
+// IsValid reports whether the internal parser discriminator is admitted.
+func (k strictJSONContainerKind) IsValid() bool {
+	labels := strictJSONContainerKindLabels()
+	return k > strictJSONContainerUnknown &&
+		k < strictJSONContainerKindLimit &&
+		labels[k] != ""
+}
+
+// Validate rejects an unset or future parser discriminator.
+func (k strictJSONContainerKind) Validate() error {
+	if !k.IsValid() {
+		return jsonContractError("json container kind is invalid", nil)
+	}
+	return nil
+}
+
+// OffWireEnum declares that the parser discriminator has no wire encoding.
+func (strictJSONContainerKind) OffWireEnum() {}
 
 type strictJSONContainer struct {
 	keys      []string
@@ -434,6 +463,9 @@ func pushStrictJSONContainer(
 	kind strictJSONContainerKind,
 	limits StrictJSONLimits,
 ) ([]strictJSONContainer, error) {
+	if err := kind.Validate(); err != nil {
+		return nil, err
+	}
 	if len(stack) >= int(limits.NestingDepthMaximum) {
 		return nil, jsonContractError(jsonNestingLimitExceededErrorText, nil)
 	}
@@ -619,19 +651,28 @@ func completeStrictJSONValue(
 		return stack, nil
 	}
 	top := &stack[len(stack)-1]
-	if top.kind == strictJSONContainerObject {
+	switch top.kind {
+	case strictJSONContainerObject:
 		if top.expectKey {
 			return nil, jsonContractError("json object value is missing", nil)
 		}
 		top.expectKey = true
 		return stack, nil
+	case strictJSONContainerArray:
+		if top.itemCount >= limits.ArrayItemMaximum {
+			return nil, jsonContractError(jsonArrayItemLimitExceededErrorText, nil)
+		}
+		top.itemCount++
+		return stack, nil
+	default:
+		return nil, jsonContractError("json container kind is invalid", nil)
 	}
-	if top.itemCount >= limits.ArrayItemMaximum {
-		return nil, jsonContractError(jsonArrayItemLimitExceededErrorText, nil)
-	}
-	top.itemCount++
-	return stack, nil
 }
+
+var (
+	_ Validatable = strictJSONContainerUnknown
+	_ OffWireEnum = strictJSONContainerUnknown
+)
 
 func jsonContractError(message string, cause error) error {
 	detail := jsonContractDiagnostic{message: message}

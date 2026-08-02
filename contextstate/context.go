@@ -61,21 +61,8 @@ func Observe(ctx context.Context) (State, error) {
 	return classifyContextTerminal(terminal)
 }
 
-func classifyContextTerminal(terminal error) (
-	state State,
-	err error,
-) {
-	state = stateUnknown
-	err = core.ErrContextObservation
-	defer func() {
-		if recover() != nil {
-			state = stateUnknown
-			err = core.ErrContextObservation
-		}
-	}()
+func classifyContextTerminal(terminal error) (State, error) {
 	switch terminal {
-	case nil:
-		return StateNone, nil
 	case context.Canceled:
 		return StateCancelled, nil
 	case context.DeadlineExceeded:

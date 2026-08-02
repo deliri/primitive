@@ -208,19 +208,21 @@ func (r StepResult) Validate() error {
 	return nil
 }
 
-func stepOutcomeIdentity(outcome StepOutcome) error {
-	switch outcome {
-	case StepOutcomeFailed:
-		return core.ErrShutdownStepFailure
-	case StepOutcomeTimedOut:
-		return core.ErrShutdownStepTimeout
-	case StepOutcomePanicked:
-		return core.ErrShutdownStepPanic
-	case StepOutcomeTotalBudgetExceeded:
-		return core.ErrShutdownTotalTimeout
-	default:
-		return nil
+func stepOutcomeIdentities() [stepOutcomeLimit]error {
+	return [stepOutcomeLimit]error{
+		StepOutcomeFailed:              core.ErrShutdownStepFailure,
+		StepOutcomeTimedOut:            core.ErrShutdownStepTimeout,
+		StepOutcomePanicked:            core.ErrShutdownStepPanic,
+		StepOutcomeTotalBudgetExceeded: core.ErrShutdownTotalTimeout,
 	}
+}
+
+func stepOutcomeIdentity(outcome StepOutcome) error {
+	identities := stepOutcomeIdentities()
+	if outcome < stepOutcomeLimit {
+		return identities[outcome]
+	}
+	return nil
 }
 
 // Report is one sealed fixed-capacity cleanup result.

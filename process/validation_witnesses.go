@@ -13,9 +13,9 @@ var (
 	_ core.Validatable = Request{}
 	_ core.Validatable = StreamUnknown
 	_ core.Validatable = FailureKindUnknown
-	_ core.Validatable = Failure{}
-	_ core.Validatable = StreamFailure{}
-	_ core.Validatable = OutputLimitExceeded{}
+	_ core.Validatable = failure{}
+	_ core.Validatable = streamFailure{}
+	_ core.Validatable = outputLimitExceeded{}
 	_ core.Validatable = ExitCode{}
 	_ core.Validatable = Result{}
 	_ core.Validatable = (*TruncatingWriter)(nil)

@@ -260,7 +260,10 @@ func (c UploadCapability) Validate() error {
 	if err := c.provider.Validate(); err != nil {
 		return err
 	}
-	return c.target.validateFor(c.provider)
+	if err := c.target.validateFor(c.provider); err != nil {
+		return err
+	}
+	return validateProviderSignedHeaders(c.provider, c.target)
 }
 
 // IsZero reports whether no capability has been decoded.

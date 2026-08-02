@@ -6,7 +6,6 @@ import (
 	"os"
 	"os/signal"
 	"sync"
-	"time"
 
 	"github.com/deliri/primitive/v2026/contextstate"
 	"github.com/deliri/primitive/v2026/core"
@@ -95,10 +94,18 @@ func (e SignalCause) Validate() error {
 }
 
 func (e SignalCause) Error() string {
+	if e.Validate() != nil {
+		return core.ErrShutdownContract.Error()
+	}
 	return fmt.Sprintf("shutdown: received %s signal", e.kind)
 }
 
-func (e SignalCause) Unwrap() error { return core.ErrShutdownSignalReceived }
+func (e SignalCause) Unwrap() error {
+	if e.Validate() != nil {
+		return core.ErrShutdownContract
+	}
+	return core.ErrShutdownSignalReceived
+}
 
 // WatchRequest starts one owned OS-signal observation.
 type WatchRequest struct {
@@ -149,7 +156,7 @@ func Watch(request WatchRequest) (*Controller, error) {
 		events:  events,
 		release: func() { signal.Stop(events) },
 	}
-	controller, err := watchSource(request, source)
+	controller, err := watchValidatedSource(request, source)
 	if err != nil {
 		source.release()
 		return nil, err
@@ -161,12 +168,12 @@ func watchSource(request WatchRequest, source signalSource) (*Controller, error)
 	if err := request.Validate(); err != nil {
 		return nil, err
 	}
+	return watchValidatedSource(request, source)
+}
+
+func watchValidatedSource(request WatchRequest, source signalSource) (*Controller, error) {
 	if source.events == nil || source.release == nil {
 		return nil, contractError(diagnosticSignalSourceIncomplete)
-	}
-	gracePeriod, err := request.Policy.GracePeriod.Stdlib()
-	if err != nil {
-		return nil, contractError(diagnosticGraceProjection, err)
 	}
 	ctx, cancel := context.WithCancelCause(request.Parent)
 	controller := &Controller{
@@ -177,7 +184,7 @@ func watchSource(request WatchRequest, source signalSource) (*Controller, error)
 		done:      make(chan struct{}, controllerChannelCapacity),
 		escalated: make(chan Escalation, escalationCapacity),
 	}
-	go controller.run(request.Parent, request.Policy, gracePeriod)
+	go controller.run(request.Parent, request.Policy)
 	return controller, nil
 }
 
@@ -222,7 +229,6 @@ func (c *Controller) release() {
 func (c *Controller) run(
 	parent context.Context,
 	policy SignalPolicy,
-	gracePeriod time.Duration,
 ) {
 	defer close(c.done)
 	defer close(c.escalated)
@@ -231,6 +237,12 @@ func (c *Controller) run(
 	if !ok {
 		return
 	}
+	grace, stopGrace, err := escalationGrace(parent, policy)
+	if err != nil {
+		c.cancel(contractError(diagnosticGraceProjection, err))
+		return
+	}
+	defer stopGrace()
 	c.cancel(SignalCause{kind: first, authentic: true})
 	if policy.SecondSignal == SecondSignalRelease {
 		c.release()
@@ -240,8 +252,25 @@ func (c *Controller) run(
 		return
 	}
 	c.waitEscalation(escalationWait{
-		parent: parent, policy: policy, gracePeriod: gracePeriod, first: first,
+		parent: parent, grace: grace, policy: policy, first: first,
 	})
+}
+
+func escalationGrace(
+	parent context.Context,
+	policy SignalPolicy,
+) (<-chan struct{}, context.CancelFunc, error) {
+	if policy.GraceExpiry == GraceExpiryDisabled {
+		return nil, func() {}, nil
+	}
+	grace, cancel, err := temporal.WithTimeout(temporal.TimeoutRequest{
+		Parent:   context.WithoutCancel(parent),
+		Duration: policy.GracePeriod,
+	})
+	if err != nil {
+		return nil, func() {}, err
+	}
+	return grace.Done(), cancel, nil
 }
 
 func (c *Controller) waitFirst() (SignalKind, bool) {
@@ -265,20 +294,13 @@ func (c *Controller) waitFirst() (SignalKind, bool) {
 }
 
 type escalationWait struct {
-	parent      context.Context
-	gracePeriod time.Duration
-	policy      SignalPolicy
-	first       SignalKind
+	parent context.Context
+	grace  <-chan struct{}
+	policy SignalPolicy
+	first  SignalKind
 }
 
 func (c *Controller) waitEscalation(request escalationWait) {
-	var timer *time.Timer
-	var timerEvents <-chan time.Time
-	if request.policy.GraceExpiry == GraceExpiryEscalate {
-		timer = time.NewTimer(request.gracePeriod)
-		timerEvents = timer.C
-		defer timer.Stop()
-	}
 	events := c.source.events
 	if request.policy.SecondSignal == SecondSignalRelease {
 		events = nil
@@ -289,7 +311,7 @@ func (c *Controller) waitEscalation(request escalationWait) {
 			return
 		case <-request.parent.Done():
 			return
-		case <-timerEvents:
+		case <-request.grace:
 			c.publish(newGraceEscalation(request.first))
 			return
 		case observed, open := <-events:

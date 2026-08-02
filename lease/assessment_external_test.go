@@ -211,6 +211,9 @@ func TestEvaluateClockContradictionPressure(t *testing.T) {
 					if !errors.As(err, &contradiction) {
 						t.Fatalf("lease.Evaluate() error = %v, want ClockContradiction", err)
 					}
+					if validationErr := contradiction.Validate(); validationErr != nil {
+						t.Fatalf("ClockContradiction.Validate() error = %v, want nil", validationErr)
+					}
 				}
 				return
 			}

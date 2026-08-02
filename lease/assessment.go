@@ -234,14 +234,10 @@ func rejectClockContradiction(observed, trusted temporal.Instant) error {
 	}
 	difference, err := trusted.Since(observed)
 	if err != nil {
-		return errors.Join(core.ErrLeaseClock, ClockContradiction{
-			Observed: observed, Trusted: trusted,
-		}, err)
+		return errors.Join(newClockContradiction(observed, trusted), err)
 	}
 	if difference.Nanoseconds() > ClockRollbackToleranceNanoseconds {
-		return errors.Join(core.ErrLeaseClock, ClockContradiction{
-			Observed: observed, Trusted: trusted,
-		})
+		return newClockContradiction(observed, trusted)
 	}
 	return nil
 }

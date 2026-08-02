@@ -18,7 +18,17 @@ const (
 	StreamStdout
 	// StreamStderr identifies child standard error.
 	StreamStderr
+	streamLimit
 )
+
+func streamDiagnostics() [streamLimit]string {
+	return [streamLimit]string{
+		StreamUnknown: unknownEnumLabel,
+		StreamStdin:   "stdin",
+		StreamStdout:  "stdout",
+		StreamStderr:  "stderr",
+	}
+}
 
 // Validate rejects values outside the closed stream domain.
 func (s Stream) Validate() error {
@@ -30,7 +40,8 @@ func (s Stream) Validate() error {
 
 // IsValid reports whether s is admitted.
 func (s Stream) IsValid() bool {
-	return s >= StreamStdin && s <= StreamStderr
+	diagnostics := streamDiagnostics()
+	return s > StreamUnknown && s < streamLimit && diagnostics[s] != ""
 }
 
 // OffWireEnum declares that Stream is not a wire encoding.
@@ -38,16 +49,11 @@ func (Stream) OffWireEnum() {}
 
 // String returns the compiler-owned label for s.
 func (s Stream) String() string {
-	switch s {
-	case StreamStdin:
-		return "stdin"
-	case StreamStdout:
-		return "stdout"
-	case StreamStderr:
-		return "stderr"
-	default:
-		return unknownEnumLabel
+	diagnostics := streamDiagnostics()
+	if s < streamLimit && diagnostics[s] != "" {
+		return diagnostics[s]
 	}
+	return unknownEnumLabel
 }
 
 // FailureKind identifies the os/exec phase that failed.
@@ -60,7 +66,23 @@ const (
 	FailureKindStart
 	// FailureKindWait identifies failure while reaping the direct child.
 	FailureKindWait
+	failureKindLimit
 )
+
+func failureKindDiagnostics() [failureKindLimit]string {
+	return [failureKindLimit]string{
+		FailureKindUnknown: unknownEnumLabel,
+		FailureKindStart:   "start",
+		FailureKindWait:    "wait",
+	}
+}
+
+func failureKindIdentities() [failureKindLimit]core.ErrorIdentity {
+	return [failureKindLimit]core.ErrorIdentity{
+		FailureKindStart: core.ErrProcessStart,
+		FailureKindWait:  core.ErrProcessWait,
+	}
+}
 
 // Validate rejects values outside the closed failure-kind domain.
 func (k FailureKind) Validate() error {
@@ -72,7 +94,12 @@ func (k FailureKind) Validate() error {
 
 // IsValid reports whether k is admitted.
 func (k FailureKind) IsValid() bool {
-	return k == FailureKindStart || k == FailureKindWait
+	diagnostics := failureKindDiagnostics()
+	identities := failureKindIdentities()
+	return k > FailureKindUnknown &&
+		k < failureKindLimit &&
+		diagnostics[k] != "" &&
+		identities[k] != core.ErrUnknown
 }
 
 // OffWireEnum declares that FailureKind is not a wire encoding.
@@ -80,115 +107,213 @@ func (FailureKind) OffWireEnum() {}
 
 // String returns the compiler-owned label for k.
 func (k FailureKind) String() string {
-	switch k {
-	case FailureKindStart:
-		return "start"
-	case FailureKindWait:
-		return "wait"
-	default:
-		return unknownEnumLabel
+	diagnostics := failureKindDiagnostics()
+	if k < failureKindLimit && diagnostics[k] != "" {
+		return diagnostics[k]
 	}
+	return unknownEnumLabel
 }
 
 func (k FailureKind) identity() core.ErrorIdentity {
-	if k == FailureKindStart {
-		return core.ErrProcessStart
+	identities := failureKindIdentities()
+	if k < failureKindLimit && identities[k] != core.ErrUnknown {
+		return identities[k]
 	}
-	return core.ErrProcessWait
+	return core.ErrProcessContract
 }
 
-// Failure preserves one native os/exec failure with its typed phase and
-// command.
-type Failure struct {
-	Cause   error
-	Command core.AbsolutePath
-	Kind    FailureKind
+// Failure is a sealed Process report that preserves one native os/exec
+// failure with its typed phase and command.
+type Failure interface {
+	error
+	Validate() error
+	Kind() FailureKind
+	Command() core.AbsolutePath
+	Cause() error
+	processFailure()
+}
+
+type failure struct {
+	cause   error
+	command core.AbsolutePath
+	kind    FailureKind
+}
+
+func newFailure(kind FailureKind, command core.AbsolutePath, cause error) error {
+	value := failure{kind: kind, command: command, cause: cause}
+	if err := value.Validate(); err != nil {
+		return err
+	}
+	return value
 }
 
 // Error reports the typed phase without replacing the native cause.
-func (f Failure) Error() string {
-	return f.Kind.String() + " process " + f.Command.String() + ": " + causeText(f.Cause)
+func (f failure) Error() string {
+	if f.Validate() != nil {
+		return core.ErrProcessContract.Error()
+	}
+	return f.kind.String() + " process " + f.command.String() + ": " + f.cause.Error()
 }
 
-// Unwrap preserves both the stable identity and native cause.
-func (f Failure) Unwrap() []error {
-	return []error{f.Kind.identity(), f.Cause}
+// Unwrap preserves the stable identity and native cause only for a complete
+// Process-built report.
+func (f failure) Unwrap() []error {
+	if f.Validate() != nil {
+		return []error{core.ErrProcessContract}
+	}
+	return []error{f.kind.identity(), f.cause}
 }
 
 // Validate rejects incomplete failure detail.
-func (f Failure) Validate() error {
-	if err := f.Kind.Validate(); err != nil {
+func (f failure) Validate() error {
+	if err := f.kind.Validate(); err != nil {
 		return err
 	}
-	if err := f.Command.Validate(); err != nil {
+	if err := f.command.Validate(); err != nil {
 		return errors.Join(core.ErrProcessContract, err)
 	}
-	if f.Cause == nil {
+	if f.cause == nil {
 		return contractError("process failure cause is nil")
 	}
 	return nil
 }
 
-// StreamFailure preserves one caller stream failure and its native cause.
-type StreamFailure struct {
-	Cause  error
-	Stream Stream
+// Kind returns the exact os/exec phase that failed.
+func (f failure) Kind() FailureKind { return f.kind }
+
+// Command returns the exact command that failed.
+func (f failure) Command() core.AbsolutePath { return f.command }
+
+// Cause returns the preserved native os/exec failure.
+func (f failure) Cause() error { return f.cause }
+
+func (failure) processFailure() {}
+
+// StreamFailure is a sealed Process report that preserves one caller stream
+// failure and its native cause.
+type StreamFailure interface {
+	error
+	Validate() error
+	Stream() Stream
+	Cause() error
+	processStreamFailure()
+}
+
+type streamFailure struct {
+	cause  error
+	stream Stream
+}
+
+func newStreamFailure(stream Stream, cause error) error {
+	value := streamFailure{stream: stream, cause: cause}
+	if err := value.Validate(); err != nil {
+		return err
+	}
+	return value
 }
 
 // Error reports the failed stream without replacing the native cause.
-func (f StreamFailure) Error() string {
-	return f.Stream.String() + ": " + causeText(f.Cause)
+func (f streamFailure) Error() string {
+	if f.Validate() != nil {
+		return core.ErrProcessContract.Error()
+	}
+	return f.stream.String() + ": " + f.cause.Error()
 }
 
-// Unwrap preserves both the stable identity and native cause.
-func (f StreamFailure) Unwrap() []error {
-	return []error{core.ErrProcessStream, f.Cause}
+// Unwrap preserves both identities only for a complete Process-built report.
+func (f streamFailure) Unwrap() []error {
+	if f.Validate() != nil {
+		return []error{core.ErrProcessContract}
+	}
+	return []error{core.ErrProcessStream, f.cause}
 }
 
 // Validate rejects incomplete stream failure detail.
-func (f StreamFailure) Validate() error {
-	if err := f.Stream.Validate(); err != nil {
+func (f streamFailure) Validate() error {
+	if err := f.stream.Validate(); err != nil {
 		return err
 	}
-	if f.Cause == nil {
+	if f.cause == nil {
 		return contractError("stream failure cause is nil")
 	}
 	return nil
 }
 
-// OutputLimitExceeded identifies the bounded output stream and exact bound.
-type OutputLimitExceeded struct {
-	Stream Stream
-	Limit  core.ByteCount
+// Stream returns the exact caller stream that failed.
+func (f streamFailure) Stream() Stream { return f.stream }
+
+// Cause returns the preserved caller stream failure.
+func (f streamFailure) Cause() error { return f.cause }
+
+func (streamFailure) processStreamFailure() {}
+
+// OutputLimitExceeded is a sealed Process report that identifies the bounded
+// output stream and exact bound.
+type OutputLimitExceeded interface {
+	error
+	Validate() error
+	Stream() Stream
+	Limit() core.ByteCount
+	processOutputLimitExceeded()
+}
+
+type outputLimitExceeded struct {
+	stream Stream
+	limit  core.ByteCount
+}
+
+func newOutputLimitExceeded(stream Stream, limit core.ByteCount) error {
+	value := outputLimitExceeded{stream: stream, limit: limit}
+	if err := value.Validate(); err != nil {
+		return err
+	}
+	return value
 }
 
 // Error reports which bounded stream reached its limit.
-func (e OutputLimitExceeded) Error() string {
-	return e.Stream.String() + ": " + core.ErrProcessOutputLimit.Error()
+func (e outputLimitExceeded) Error() string {
+	if e.Validate() != nil {
+		return core.ErrProcessContract.Error()
+	}
+	return e.stream.String() + ": " + core.ErrProcessOutputLimit.Error()
 }
 
-// Unwrap preserves the stable output-limit identity.
-func (e OutputLimitExceeded) Unwrap() error {
+// Unwrap preserves the stable output-limit identity only for a complete
+// Process-built report.
+func (e outputLimitExceeded) Unwrap() error {
+	if e.Validate() != nil {
+		return core.ErrProcessContract
+	}
 	return core.ErrProcessOutputLimit
 }
 
 // Validate rejects incomplete output-limit detail.
-func (e OutputLimitExceeded) Validate() error {
-	if err := e.Stream.Validate(); err != nil {
+func (e outputLimitExceeded) Validate() error {
+	if err := e.stream.Validate(); err != nil {
 		return err
 	}
-	if err := e.Limit.Validate(); err != nil {
-		return errors.Join(core.ErrProcessContract, err)
+	if err := validateOutputLimit(e.limit); err != nil {
+		return err
 	}
-	if e.Stream == StreamStdin {
+	if e.stream == StreamStdin {
 		return contractError("stdin cannot have an output limit")
 	}
 	return nil
 }
 
-func causeText(cause error) string {
-	if cause == nil {
-		return "missing cause"
-	}
-	return cause.Error()
-}
+// Stream returns the exact output stream that exceeded its bound.
+func (e outputLimitExceeded) Stream() Stream { return e.stream }
+
+// Limit returns the exact bound that was exceeded.
+func (e outputLimitExceeded) Limit() core.ByteCount { return e.limit }
+
+func (outputLimitExceeded) processOutputLimitExceeded() {}
+
+var (
+	_ Failure             = failure{}
+	_ StreamFailure       = streamFailure{}
+	_ OutputLimitExceeded = outputLimitExceeded{}
+	_ core.Validatable    = failure{}
+	_ core.Validatable    = streamFailure{}
+	_ core.Validatable    = outputLimitExceeded{}
+)

@@ -19,21 +19,21 @@ const (
 	phaseLimit
 )
 
-var phaseLabels = [...]string{
-	unknownLabel,
-	"stop-admission",
-	"drain",
-	"persist",
-	"flush",
-	releaseLabel,
+func phaseLabels() [phaseLimit]string {
+	return [phaseLimit]string{
+		PhaseUnknown:       unknownLabel,
+		PhaseStopAdmission: "stop-admission",
+		PhaseDrain:         "drain",
+		PhasePersist:       "persist",
+		PhaseFlush:         "flush",
+		PhaseRelease:       releaseLabel,
+	}
 }
 
-var (
-	_ [int(phaseLimit) - len(phaseLabels)]struct{}
-	_ [len(phaseLabels) - int(phaseLimit)]struct{}
-)
-
-func (p Phase) IsValid() bool { return p > PhaseUnknown && p < phaseLimit }
+func (p Phase) IsValid() bool {
+	labels := phaseLabels()
+	return p > PhaseUnknown && p < phaseLimit && labels[p] != ""
+}
 
 func (p Phase) Validate() error {
 	if !p.IsValid() {
@@ -43,10 +43,11 @@ func (p Phase) Validate() error {
 }
 
 func (p Phase) String() string {
-	if p >= phaseLimit {
-		return unknownLabel
+	labels := phaseLabels()
+	if p < phaseLimit && labels[p] != "" {
+		return labels[p]
 	}
-	return phaseLabels[p]
+	return unknownLabel
 }
 
 func (Phase) OffWireEnum() {}
@@ -64,22 +65,20 @@ const (
 	stepOutcomeLimit
 )
 
-var stepOutcomeLabels = [...]string{
-	unknownLabel,
-	"completed",
-	"failed",
-	"timed-out",
-	"panicked",
-	"total-budget-exceeded",
+func stepOutcomeLabels() [stepOutcomeLimit]string {
+	return [stepOutcomeLimit]string{
+		StepOutcomeUnknown:             unknownLabel,
+		StepOutcomeCompleted:           "completed",
+		StepOutcomeFailed:              "failed",
+		StepOutcomeTimedOut:            "timed-out",
+		StepOutcomePanicked:            "panicked",
+		StepOutcomeTotalBudgetExceeded: "total-budget-exceeded",
+	}
 }
 
-var (
-	_ [int(stepOutcomeLimit) - len(stepOutcomeLabels)]struct{}
-	_ [len(stepOutcomeLabels) - int(stepOutcomeLimit)]struct{}
-)
-
 func (o StepOutcome) IsValid() bool {
-	return o > StepOutcomeUnknown && o < stepOutcomeLimit
+	labels := stepOutcomeLabels()
+	return o > StepOutcomeUnknown && o < stepOutcomeLimit && labels[o] != ""
 }
 
 func (o StepOutcome) Validate() error {
@@ -90,10 +89,11 @@ func (o StepOutcome) Validate() error {
 }
 
 func (o StepOutcome) String() string {
-	if o >= stepOutcomeLimit {
-		return unknownLabel
+	labels := stepOutcomeLabels()
+	if o < stepOutcomeLimit && labels[o] != "" {
+		return labels[o]
 	}
-	return stepOutcomeLabels[o]
+	return unknownLabel
 }
 
 func (StepOutcome) OffWireEnum() {}
@@ -109,20 +109,18 @@ const (
 	signalKindLimit
 )
 
-var signalKindLabels = [...]string{
-	unknownLabel,
-	"interrupt",
-	"terminate",
-	"hangup",
+func signalKindLabels() [signalKindLimit]string {
+	return [signalKindLimit]string{
+		SignalKindUnknown:   unknownLabel,
+		SignalKindInterrupt: "interrupt",
+		SignalKindTerminate: "terminate",
+		SignalKindHangup:    "hangup",
+	}
 }
 
-var (
-	_ [int(signalKindLimit) - len(signalKindLabels)]struct{}
-	_ [len(signalKindLabels) - int(signalKindLimit)]struct{}
-)
-
 func (k SignalKind) IsValid() bool {
-	return k > SignalKindUnknown && k < signalKindLimit
+	labels := signalKindLabels()
+	return k > SignalKindUnknown && k < signalKindLimit && labels[k] != ""
 }
 
 func (k SignalKind) Validate() error {
@@ -133,10 +131,11 @@ func (k SignalKind) Validate() error {
 }
 
 func (k SignalKind) String() string {
-	if k >= signalKindLimit {
-		return unknownLabel
+	labels := signalKindLabels()
+	if k < signalKindLimit && labels[k] != "" {
+		return labels[k]
 	}
-	return signalKindLabels[k]
+	return unknownLabel
 }
 
 func (SignalKind) OffWireEnum() {}
@@ -156,20 +155,18 @@ const (
 	signalSetLimit
 )
 
-var signalSetLabels = [...]string{
-	unknownLabel,
-	"interactive",
-	"standard",
-	"terminal-lifecycle",
+func signalSetLabels() [signalSetLimit]string {
+	return [signalSetLimit]string{
+		SignalSetUnknown:           unknownLabel,
+		SignalSetInteractive:       "interactive",
+		SignalSetStandard:          "standard",
+		SignalSetTerminalLifecycle: "terminal-lifecycle",
+	}
 }
 
-var (
-	_ [int(signalSetLimit) - len(signalSetLabels)]struct{}
-	_ [len(signalSetLabels) - int(signalSetLimit)]struct{}
-)
-
 func (s SignalSet) IsValid() bool {
-	return s > SignalSetUnknown && s < signalSetLimit
+	labels := signalSetLabels()
+	return s > SignalSetUnknown && s < signalSetLimit && labels[s] != ""
 }
 
 func (s SignalSet) Validate() error {
@@ -180,10 +177,11 @@ func (s SignalSet) Validate() error {
 }
 
 func (s SignalSet) String() string {
-	if s >= signalSetLimit {
-		return unknownLabel
+	labels := signalSetLabels()
+	if s < signalSetLimit && labels[s] != "" {
+		return labels[s]
 	}
-	return signalSetLabels[s]
+	return unknownLabel
 }
 
 func (SignalSet) OffWireEnum() {}
@@ -198,19 +196,19 @@ const (
 	secondSignalActionLimit
 )
 
-var secondSignalActionLabels = [...]string{
-	unknownLabel,
-	releaseLabel,
-	escalateLabel,
+func secondSignalActionLabels() [secondSignalActionLimit]string {
+	return [secondSignalActionLimit]string{
+		SecondSignalActionUnknown: unknownLabel,
+		SecondSignalRelease:       releaseLabel,
+		SecondSignalEscalate:      escalateLabel,
+	}
 }
 
-var (
-	_ [int(secondSignalActionLimit) - len(secondSignalActionLabels)]struct{}
-	_ [len(secondSignalActionLabels) - int(secondSignalActionLimit)]struct{}
-)
-
 func (a SecondSignalAction) IsValid() bool {
-	return a > SecondSignalActionUnknown && a < secondSignalActionLimit
+	labels := secondSignalActionLabels()
+	return a > SecondSignalActionUnknown &&
+		a < secondSignalActionLimit &&
+		labels[a] != ""
 }
 
 func (a SecondSignalAction) Validate() error {
@@ -221,10 +219,11 @@ func (a SecondSignalAction) Validate() error {
 }
 
 func (a SecondSignalAction) String() string {
-	if a >= secondSignalActionLimit {
-		return unknownLabel
+	labels := secondSignalActionLabels()
+	if a < secondSignalActionLimit && labels[a] != "" {
+		return labels[a]
 	}
-	return secondSignalActionLabels[a]
+	return unknownLabel
 }
 
 func (SecondSignalAction) OffWireEnum() {}
@@ -239,19 +238,19 @@ const (
 	graceExpiryActionLimit
 )
 
-var graceExpiryActionLabels = [...]string{
-	unknownLabel,
-	"disabled",
-	escalateLabel,
+func graceExpiryActionLabels() [graceExpiryActionLimit]string {
+	return [graceExpiryActionLimit]string{
+		GraceExpiryActionUnknown: unknownLabel,
+		GraceExpiryDisabled:      "disabled",
+		GraceExpiryEscalate:      escalateLabel,
+	}
 }
 
-var (
-	_ [int(graceExpiryActionLimit) - len(graceExpiryActionLabels)]struct{}
-	_ [len(graceExpiryActionLabels) - int(graceExpiryActionLimit)]struct{}
-)
-
 func (a GraceExpiryAction) IsValid() bool {
-	return a > GraceExpiryActionUnknown && a < graceExpiryActionLimit
+	labels := graceExpiryActionLabels()
+	return a > GraceExpiryActionUnknown &&
+		a < graceExpiryActionLimit &&
+		labels[a] != ""
 }
 
 func (a GraceExpiryAction) Validate() error {
@@ -262,10 +261,11 @@ func (a GraceExpiryAction) Validate() error {
 }
 
 func (a GraceExpiryAction) String() string {
-	if a >= graceExpiryActionLimit {
-		return unknownLabel
+	labels := graceExpiryActionLabels()
+	if a < graceExpiryActionLimit && labels[a] != "" {
+		return labels[a]
 	}
-	return graceExpiryActionLabels[a]
+	return unknownLabel
 }
 
 func (GraceExpiryAction) OffWireEnum() {}
@@ -280,19 +280,19 @@ const (
 	escalationReasonLimit
 )
 
-var escalationReasonLabels = [...]string{
-	unknownLabel,
-	"second-signal",
-	"grace-expired",
+func escalationReasonLabels() [escalationReasonLimit]string {
+	return [escalationReasonLimit]string{
+		EscalationReasonUnknown: unknownLabel,
+		EscalationSecondSignal:  "second-signal",
+		EscalationGraceExpired:  "grace-expired",
+	}
 }
 
-var (
-	_ [int(escalationReasonLimit) - len(escalationReasonLabels)]struct{}
-	_ [len(escalationReasonLabels) - int(escalationReasonLimit)]struct{}
-)
-
 func (r EscalationReason) IsValid() bool {
-	return r > EscalationReasonUnknown && r < escalationReasonLimit
+	labels := escalationReasonLabels()
+	return r > EscalationReasonUnknown &&
+		r < escalationReasonLimit &&
+		labels[r] != ""
 }
 
 func (r EscalationReason) Validate() error {
@@ -303,10 +303,11 @@ func (r EscalationReason) Validate() error {
 }
 
 func (r EscalationReason) String() string {
-	if r >= escalationReasonLimit {
-		return unknownLabel
+	labels := escalationReasonLabels()
+	if r < escalationReasonLimit && labels[r] != "" {
+		return labels[r]
 	}
-	return escalationReasonLabels[r]
+	return unknownLabel
 }
 
 func (EscalationReason) OffWireEnum() {}

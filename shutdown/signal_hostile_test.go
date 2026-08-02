@@ -303,8 +303,12 @@ func TestEscalationAndTypedNilImpossibleStates(t *testing.T) {
 			t.Fatalf("invalid escalation %d error = %v, want contract", index, err)
 		}
 	}
-	if err := (SignalCause{kind: SignalKindInterrupt}).Validate(); !errors.Is(err, core.ErrShutdownContract) {
+	forged := SignalCause{kind: SignalKindInterrupt}
+	if err := forged.Validate(); !errors.Is(err, core.ErrShutdownContract) {
 		t.Fatalf("forged SignalCause error = %v, want contract", err)
+	}
+	if errors.Is(forged, core.ErrShutdownSignalReceived) {
+		t.Fatalf("forged SignalCause carries %v without an authentic observation", core.ErrShutdownSignalReceived)
 	}
 	var controller *Controller
 	if controller.Context() != nil || controller.Done() != nil ||

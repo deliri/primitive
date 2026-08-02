@@ -125,15 +125,22 @@ const strconvMaximumPlusOne = "18446744073709551616"
 //
 // Both identities are sealed interfaces backed only by package-private values,
 // so no consumer can build a carrier at all. Inside the package the remaining
-// hazard is a reasonless carrier reaching a caller: a zero value still answers
-// Error and Unwrap, so it would satisfy errors.Is while naming nothing. Every
-// constructor must refuse it, and every projection must refuse to answer.
+// hazard is a reasonless carrier reaching a caller: an invalid internal value
+// must carry only Receipt's parent contract identity, never the specialized
+// identity whose fact it cannot prove. Every constructor and projection must
+// refuse it.
 func TestSealedRejectionsCannotBeClaimedWithoutAReason(t *testing.T) {
 	t.Parallel()
 
 	t.Run("zero scope mismatch answers no field", func(t *testing.T) {
 		t.Parallel()
 		forged := scopeMismatch{}
+		if errors.Is(forged, core.ErrReceiptScope) ||
+			!errors.Is(forged, core.ErrReceiptContract) {
+			t.Fatalf("scopeMismatch{} identities = scope:%t contract:%t, want false/true",
+				errors.Is(forged, core.ErrReceiptScope),
+				errors.Is(forged, core.ErrReceiptContract))
+		}
 		if got, gotErr := forged.Field(); got != ScopeFieldUnknown ||
 			!errors.Is(gotErr, core.ErrReceiptContract) {
 			t.Fatalf("scopeMismatch{}.Field() = (%v, %v), want unknown and %v",
@@ -143,6 +150,12 @@ func TestSealedRejectionsCannotBeClaimedWithoutAReason(t *testing.T) {
 	t.Run("zero watermark conflict answers no reason", func(t *testing.T) {
 		t.Parallel()
 		forged := watermarkConflict{}
+		if errors.Is(forged, core.ErrReceiptConflict) ||
+			!errors.Is(forged, core.ErrReceiptContract) {
+			t.Fatalf("watermarkConflict{} identities = conflict:%t contract:%t, want false/true",
+				errors.Is(forged, core.ErrReceiptConflict),
+				errors.Is(forged, core.ErrReceiptContract))
+		}
 		if got, gotErr := forged.Reason(); got != ConflictReasonUnknown ||
 			!errors.Is(gotErr, core.ErrReceiptContract) {
 			t.Fatalf("watermarkConflict{}.Reason() = (%v, %v), want unknown and %v",
