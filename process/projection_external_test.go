@@ -12,7 +12,7 @@ import (
 	"github.com/deliri/primitive/v2026/process"
 )
 
-func TestArgumentStringProjectsOnlyValidatedExactValues(t *testing.T) {
+func TestArgumentValueProjectsOnlyValidatedExactValues(t *testing.T) {
 	t.Parallel()
 
 	cases := []struct {
@@ -35,14 +35,14 @@ func TestArgumentStringProjectsOnlyValidatedExactValues(t *testing.T) {
 				t.Fatalf("NewArgument() error = %v, want %v", constructionErr, testCase.wantErr)
 			}
 			if testCase.wantErr != nil {
-				if _, gotErr := argument.String(); !errors.Is(gotErr, core.ErrProcessContract) {
-					t.Fatalf("rejected Argument.String() error = %v, want %v", gotErr, core.ErrProcessContract)
+				if _, gotErr := argument.Value(); !errors.Is(gotErr, core.ErrProcessContract) {
+					t.Fatalf("rejected Argument.Value() error = %v, want %v", gotErr, core.ErrProcessContract)
 				}
 				return
 			}
-			got, gotErr := argument.String()
+			got, gotErr := argument.Value()
 			if gotErr != nil || got != testCase.value {
-				t.Fatalf("Argument.String() = (%q, %v), want (%q, nil)", got, gotErr, testCase.value)
+				t.Fatalf("Argument.Value() = (%q, %v), want (%q, nil)", got, gotErr, testCase.value)
 			}
 		})
 	}
@@ -58,9 +58,9 @@ func TestParseArgumentsPreservesEveryArgumentBoundary(t *testing.T) {
 	}
 	got := make([]string, len(arguments))
 	for index, argument := range arguments {
-		got[index], err = argument.String()
+		got[index], err = argument.Value()
 		if err != nil {
-			t.Fatalf("Argument[%d].String() error = %v, want nil", index, err)
+			t.Fatalf("Argument[%d].Value() error = %v, want nil", index, err)
 		}
 	}
 	if !slices.Equal(got, want) {

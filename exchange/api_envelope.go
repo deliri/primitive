@@ -107,8 +107,9 @@ func (c APICode) String() string {
 // ParseAPICode admits one exact wire token. Token matching is byte-exact: a
 // near-miss spelling is a protocol defect, not a value to be repaired.
 func ParseAPICode(token string) (APICode, error) {
+	tokens := apiCodeTokens()
 	for code := APICodeUnknown + 1; code < apiCodeLimit; code++ {
-		if apiCodeTokens()[code] == token {
+		if tokens[code] == token {
 			return code, nil
 		}
 	}

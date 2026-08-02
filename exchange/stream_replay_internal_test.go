@@ -68,6 +68,34 @@ func TestReplayStreamRejectsMissingFreshCustodyFunction(t *testing.T) {
 	}
 }
 
+func TestStreamReplayValidationPreservesNestedContractIdentity(t *testing.T) {
+	t.Parallel()
+
+	t.Run("zero operation timeout retains temporal cause", func(t *testing.T) {
+		t.Parallel()
+
+		gotErr := (StreamReplayPolicy{Retry: replayStreamPolicy(t, 1).Retry}).Validate()
+		if !errors.Is(gotErr, core.ErrExchangeContract) || !errors.Is(gotErr, core.ErrTemporalContract) {
+			t.Fatalf("StreamReplayPolicy.Validate() error = %v, want %v and %v", gotErr, core.ErrExchangeContract, core.ErrTemporalContract)
+		}
+	})
+
+	t.Run("cancelled context retains context cause and exchange boundary", func(t *testing.T) {
+		t.Parallel()
+
+		ctx, cancel := context.WithCancel(context.Background())
+		cancel()
+		gotErr := (StreamReplayCall{
+			Context: ctx,
+			Attempt: func(context.Context, uint64) (StreamResponse, error) { return StreamResponse{}, nil },
+			Policy:  replayStreamPolicy(t, 1),
+		}).Validate()
+		if !errors.Is(gotErr, core.ErrExchangeContract) || !errors.Is(gotErr, context.Canceled) {
+			t.Fatalf("StreamReplayCall.Validate() error = %v, want %v and %v", gotErr, core.ErrExchangeContract, context.Canceled)
+		}
+	})
+}
+
 func replayStreamPolicy(t testing.TB, attempts uint64) StreamReplayPolicy {
 	t.Helper()
 	zero := replayDuration(t, 0)

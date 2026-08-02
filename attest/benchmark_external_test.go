@@ -1,10 +1,34 @@
 package attest_test
 
 import (
+	"math"
 	"testing"
 
 	"github.com/deliri/primitive/v2026/attest"
 )
+
+func BenchmarkCanonicalObjectReusedScalarBuffer(b *testing.B) {
+	destination := make([]byte, 0, 128)
+	write := func() {
+		object := attest.BeginCanonicalObject(destination[:0])
+		object.Int64("minimum", math.MinInt64)
+		object.Uint64("maximum", math.MaxUint64)
+		object.Bool("accepted", true)
+		encoded, err := object.End()
+		if err != nil {
+			b.Fatalf("CanonicalObject.End() error = %v, want nil", err)
+		}
+		destination = encoded[:0]
+	}
+	if got := testing.AllocsPerRun(100, write); got != 0 {
+		b.Fatalf("reused scalar CanonicalObject allocations = %.0f, want 0", got)
+	}
+	b.ReportAllocs()
+	b.ResetTimer()
+	for b.Loop() {
+		write()
+	}
+}
 
 func BenchmarkSignCanonicalBody64KiB(b *testing.B) {
 	b.ReportAllocs()

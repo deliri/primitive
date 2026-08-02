@@ -590,20 +590,6 @@ type aggregateReadRequest struct {
 	expectedStatus      core.HTTPStatusCode
 }
 
-// validateExpectedResponseHeaders enforces the content codings and media type
-// that only an expected-status response must satisfy. An unexpected status
-// carries a provider error document, so its representation headers are not
-// held to the caller's declared success contract.
-func validateExpectedResponseHeaders(input aggregateReadRequest) error {
-	if err := validateIdentityContentCoding(input.response.Header); err != nil {
-		return err
-	}
-	return validateResponseContentType(
-		input.response.Header,
-		input.expectedContentType,
-	)
-}
-
 func readAggregateHTTPResponse(
 	input aggregateReadRequest,
 ) (attemptResponse, error) {
@@ -623,13 +609,11 @@ func readAggregateHTTPResponse(
 	result.retryAfter = input.response.Header.Get(
 		core.HTTPHeaderRetryAfter().String(),
 	)
-	if status == input.expectedStatus {
-		if err := validateExpectedResponseHeaders(input); err != nil {
-			return result, errors.Join(
-				err,
-				closeResponseBody(input.response.Body),
-			)
-		}
+	if err := validateAggregateResponseHeaders(input, status); err != nil {
+		return result, errors.Join(
+			err,
+			closeResponseBody(input.response.Body),
+		)
 	}
 	result.body, err = readAggregateResponseBody(input)
 	closeErr := closeResponseBody(input.response.Body)
@@ -642,6 +626,25 @@ func readAggregateHTTPResponse(
 		}
 	}
 	return result, errors.Join(err, closeErr)
+}
+
+// validateAggregateResponseHeaders always refuses content transformation. The
+// caller-declared media type applies only to success: an unexpected status may
+// carry a provider error document with a different representation type.
+func validateAggregateResponseHeaders(
+	input aggregateReadRequest,
+	status core.HTTPStatusCode,
+) error {
+	if err := validateIdentityContentCoding(input.response.Header); err != nil {
+		return err
+	}
+	if status != input.expectedStatus {
+		return nil
+	}
+	return validateResponseContentType(
+		input.response.Header,
+		input.expectedContentType,
+	)
 }
 
 // readAggregateResponseBody reads one bounded response body, reserving the extent

@@ -20,9 +20,9 @@ const (
 	boundaryAccept
 	fuzzJSONDocumentMaximumBytes         = 4096
 	validatedJSONEncodeRatchetComponent  = "encode&<>\x01"
-	validatedJSONEncodeAllocationMaximum = 32
+	validatedJSONEncodeAllocationMaximum = 29
 	validatedJSONEncodeAllocationSamples = 100
-	validatedJSONEncodeBytesMaximum      = 6000
+	validatedJSONEncodeBytesMaximum      = 5600
 	validatedJSONEncodeMemorySamples     = 100
 	strictJSONHostileSharedPrefixBytes   = 4000
 	strictJSONHostileComposedPrefixBytes = 3

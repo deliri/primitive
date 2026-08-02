@@ -297,3 +297,35 @@ func TestBoundedByteTransportLayerTriad(t *testing.T) {
 		}
 	})
 }
+
+func TestAggregateUnexpectedStatusStillRejectsTransformingContentCoding(t *testing.T) {
+	t.Parallel()
+
+	ok := mustHTTPStatus(t, http.StatusOK)
+	server := httptest.NewServer(http.HandlerFunc(func(writer http.ResponseWriter, _ *http.Request) {
+		writer.Header().Set(core.HTTPHeaderContentEncoding().String(), "br")
+		writer.WriteHeader(http.StatusInternalServerError)
+		_, _ = writer.Write([]byte("compressed provider error bytes"))
+	}))
+	defer server.Close()
+
+	got, gotErr := exchange.SendNoBodyBounded(exchange.NoBodyBoundedCall{
+		Context: context.Background(),
+		Client:  mustExchangeClient(t, server.Client()),
+		Request: exchange.NoBodyBoundedRequest{
+			Target:         mustEndpoint(t, server.URL),
+			Semantics:      exchange.RequestSemantics{Method: core.HTTPMethodGet, Replay: exchange.ReplaySingleAttempt},
+			ExpectedStatus: ok,
+		},
+		Policy: exchange.NoBodyBoundedPolicy{
+			Operation:         singleAttemptOperationPolicy(t),
+			ResponseBodyLimit: mustByteCount(t, 1024),
+		},
+	})
+	if !errors.Is(gotErr, core.ErrExchangeResponse) || !errors.Is(gotErr, core.ErrExchangeContentType) {
+		t.Fatalf("SendNoBodyBounded(unexpected br response) error = %v, want %v and %v", gotErr, core.ErrExchangeResponse, core.ErrExchangeContentType)
+	}
+	if len(got.Body) != 0 {
+		t.Fatalf("SendNoBodyBounded(unexpected br response) body = %q, want no captured transformed bytes", got.Body)
+	}
+}

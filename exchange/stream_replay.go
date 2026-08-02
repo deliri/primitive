@@ -18,10 +18,16 @@ type StreamReplayPolicy struct {
 
 // Validate closes the total budget and retry schedule.
 func (p StreamReplayPolicy) Validate() error {
-	if err := p.OperationTimeout.Validate(); err != nil || p.OperationTimeout.IsZero() {
-		return core.ErrExchangeContract
+	if err := p.OperationTimeout.Validate(); err != nil {
+		return errors.Join(core.ErrExchangeContract, err)
 	}
-	return p.Retry.Validate()
+	if p.OperationTimeout.IsZero() {
+		return errors.Join(core.ErrExchangeContract, core.ErrTemporalContract)
+	}
+	if err := p.Retry.Validate(); err != nil {
+		return errors.Join(core.ErrExchangeContract, err)
+	}
+	return nil
 }
 
 // StreamAttempt must construct fresh destination custody or rewind source
@@ -38,10 +44,10 @@ type StreamReplayCall struct {
 // Validate rejects missing custody, context, or retry policy.
 func (c StreamReplayCall) Validate() error {
 	if err := contextstate.Validate(c.Context); err != nil {
-		return err
+		return errors.Join(core.ErrExchangeContract, err)
 	}
 	if c.Attempt == nil {
-		return core.ErrExchangeContract
+		return errors.Join(core.ErrExchangeContract, errors.New("stream replay attempt is missing"))
 	}
 	return c.Policy.Validate()
 }

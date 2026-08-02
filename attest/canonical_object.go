@@ -63,8 +63,9 @@ type CanonicalObject struct {
 }
 
 // BeginCanonicalObject starts one canonical object at the end of destination.
-// The caller keeps ownership of the backing array, so a body appending into a
-// reused buffer performs no allocation beyond growth.
+// The caller keeps ownership of the backing array. Integer and boolean members
+// append directly into that buffer; string and nested-value owners may allocate
+// while producing their independently validated canonical encodings.
 func BeginCanonicalObject(destination []byte) CanonicalObject {
 	object := CanonicalObject{buffer: destination, opened: true}
 	if len(destination) > CanonicalBodyMaximumBytes {
@@ -92,22 +93,37 @@ func (o *CanonicalObject) String(name string, value string) {
 // exactly what core.ParseCanonicalInt64JSON admits, so the member keeps one
 // accepted encoding in both directions.
 func (o *CanonicalObject) Int64(name string, value int64) {
-	o.appendMember(name, strconv.AppendInt(nil, value, canonicalDecimalBase))
+	span, ok := o.beginMember(name)
+	if !ok {
+		return
+	}
+	o.buffer = strconv.AppendInt(o.buffer, value, canonicalDecimalBase)
+	o.recordMember(span)
 }
 
 // Uint64 appends one canonical unsigned integer member under the grammar
 // core.ParseCanonicalUint64JSON admits.
 func (o *CanonicalObject) Uint64(name string, value uint64) {
-	o.appendMember(name, strconv.AppendUint(nil, value, canonicalDecimalBase))
+	span, ok := o.beginMember(name)
+	if !ok {
+		return
+	}
+	o.buffer = strconv.AppendUint(o.buffer, value, canonicalDecimalBase)
+	o.recordMember(span)
 }
 
 // Bool appends one canonical JSON boolean member.
 func (o *CanonicalObject) Bool(name string, value bool) {
-	if value {
-		o.appendMember(name, []byte(canonicalTrueText))
+	span, ok := o.beginMember(name)
+	if !ok {
 		return
 	}
-	o.appendMember(name, []byte(canonicalFalseText))
+	if value {
+		o.buffer = append(o.buffer, canonicalTrueText...)
+	} else {
+		o.buffer = append(o.buffer, canonicalFalseText...)
+	}
+	o.recordMember(span)
 }
 
 // Value appends one nested member whose owner supplies both its invariant and
@@ -170,16 +186,25 @@ func (o *CanonicalObject) fail(err error) {
 }
 
 func (o *CanonicalObject) appendMember(name string, encoded []byte) {
-	if !o.ready() {
+	span, ok := o.beginMember(name)
+	if !ok {
 		return
+	}
+	o.buffer = append(o.buffer, encoded...)
+	o.recordMember(span)
+}
+
+func (o *CanonicalObject) beginMember(name string) (canonicalNameSpan, bool) {
+	if !o.ready() {
+		return canonicalNameSpan{}, false
 	}
 	if int(o.count) >= CanonicalObjectMaximumFields {
 		o.fail(errors.New(canonicalObjectFieldCountErrorText))
-		return
+		return canonicalNameSpan{}, false
 	}
 	if err := validateCanonicalFieldName(name); err != nil {
 		o.fail(err)
-		return
+		return canonicalNameSpan{}, false
 	}
 	if o.count > 0 {
 		o.buffer = append(o.buffer, canonicalMemberComma)
@@ -187,15 +212,14 @@ func (o *CanonicalObject) appendMember(name string, encoded []byte) {
 	span, err := o.appendName(name)
 	if err != nil {
 		o.fail(err)
-		return
+		return canonicalNameSpan{}, false
 	}
 	if o.duplicateName(span) {
 		o.fail(errors.New(canonicalObjectDuplicateErrorText))
-		return
+		return canonicalNameSpan{}, false
 	}
 	o.buffer = append(o.buffer, canonicalMemberColon)
-	o.buffer = append(o.buffer, encoded...)
-	o.recordMember(span)
+	return span, true
 }
 
 func (o *CanonicalObject) appendName(name string) (canonicalNameSpan, error) {

@@ -52,9 +52,9 @@ func (a Argument) Validate() error {
 	return nil
 }
 
-// String returns the exact validated argv value for a caller-owned execution
+// Value returns the exact validated argv value for a caller-owned execution
 // policy that composes Primitive values over os/exec.
-func (a Argument) String() (string, error) {
+func (a Argument) Value() (string, error) {
 	if err := a.Validate(); err != nil {
 		return "", err
 	}

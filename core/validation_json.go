@@ -8,6 +8,7 @@ import (
 	"reflect"
 	"slices"
 	"strings"
+	"sync"
 	"unicode"
 	"unicode/utf8"
 )
@@ -261,8 +262,19 @@ func validateStrictJSONTypedInput[T any](data []byte, limits StrictJSONLimits) e
 	return validateStrictJSONInputWithFields(
 		data,
 		limits,
-		jsonFieldNamesForType(reflect.TypeFor[T]()),
+		cachedJSONFieldNamesForType(reflect.TypeFor[T]()),
 	)
+}
+
+var jsonFieldNamesByType sync.Map
+
+func cachedJSONFieldNamesForType(root reflect.Type) []string {
+	if cached, ok := jsonFieldNamesByType.Load(root); ok {
+		return cached.([]string)
+	}
+	fields := jsonFieldNamesForType(root)
+	canonical, _ := jsonFieldNamesByType.LoadOrStore(root, fields)
+	return canonical.([]string)
 }
 
 func validateStrictJSONInputWithFields(

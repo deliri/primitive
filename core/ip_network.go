@@ -35,6 +35,9 @@ func ipNetworkFromPrefix(value string) (IPNetwork, error) {
 		prefix.Masked().String() != value {
 		return IPNetwork{}, ipNetworkContractError("IP prefix is not canonical and masked")
 	}
+	if prefix.Bits() == prefix.Addr().BitLen() {
+		return IPNetwork{}, ipNetworkContractError("full-width prefix is an alternate exact-address spelling")
+	}
 	return IPNetwork{prefix: prefix}, nil
 }
 
