@@ -5,6 +5,7 @@ import (
 	"errors"
 
 	"github.com/deliri/primitive/v2026/core"
+	"github.com/deliri/primitive/v2026/temporal"
 )
 
 const (
@@ -12,10 +13,10 @@ const (
 	TargetCount = 4
 	// ReleaseLatestMaximumLifetimeNanoseconds is the exact 24-hour Latest
 	// validity ceiling.
-	ReleaseLatestMaximumLifetimeNanoseconds int64 = 24 * 60 * 60 * 1_000_000_000
+	ReleaseLatestMaximumLifetimeNanoseconds int64 = int64(temporal.NanosecondsPerDay)
 	// ReleaseClockRollbackToleranceNanoseconds is the exact five-minute
 	// correction tolerance against a signed issue instant.
-	ReleaseClockRollbackToleranceNanoseconds int64 = 5 * 60 * 1_000_000_000
+	ReleaseClockRollbackToleranceNanoseconds int64 = 5 * int64(temporal.NanosecondsPerMinute)
 )
 
 // Revision is the closed Release wire revision.

@@ -531,7 +531,7 @@ func (s boundedLineScan) run(ctx context.Context) error {
 		if done, err := finishLineRead(line, s.visit, readErr); done {
 			return err
 		}
-		if emptyReads >= zeroReadMaximum {
+		if emptyReads >= core.ReaderConsecutiveEmptyReadMaximum {
 			return io.ErrNoProgress
 		}
 	}
@@ -640,7 +640,7 @@ func readBoundedValue(ctx context.Context, reader io.Reader, maximum uint64) ([]
 		if done, err := finishValueRead(readErr); done {
 			return storage[:written], err
 		}
-		if emptyReads >= zeroReadMaximum {
+		if emptyReads >= core.ReaderConsecutiveEmptyReadMaximum {
 			return nil, io.ErrNoProgress
 		}
 	}

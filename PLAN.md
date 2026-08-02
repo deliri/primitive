@@ -124,7 +124,7 @@ The order column is dependency depth, not a mandate to build an entire row.
 | 3 | `filestore` | Rooted OS handles, confinement, durability, activation, append rotation, and recovery | `core`, `contextstate` | none |
 | 3 | `hostfacts` | Host disk, memory, cgroup, tree, and OOM observations | `core`, `contextstate` | none |
 | 3 | `temporal` | Time, duration, arithmetic, persistence, waits, and tickers | `core`, `contextstate` | none |
-| 4 | `exchange` | Policy over `net/http`: replay, retry, backoff, jitter, redirects, budgets, and bounded bodies | `core`, `contextstate`, `temporal` | none |
+| 4 | `exchange` | Bounded client and server boundary policy over `net/http` | `core`, `contextstate`, `temporal` | none |
 | 4 | `fuzzfinder` | Bounded classification and observation of Go-generated fuzz artifacts | `core`, `filestore` | none |
 | 4 | `lease` | Signed lease timeline, assessment, renewal, and monotonic advance | `core`, `temporal`, `attest` | none |
 | 4 | `process` | Argv, environment, containment, bounded output, exit, and reaping over `os/exec` | `core`, `contextstate`, `temporal` | `testserial` |

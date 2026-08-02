@@ -96,6 +96,16 @@ func TestValidateUpgradePairAdmitsOnlyAStrictlyNewerSameTargetBuild(t *testing.T
 			)
 		})
 	}
+	peachfuzzInstalled := buildArtifactForTest(
+		t, []byte("peachfuzz-installed"), core.OfferingPeachfuzz, installed, platform,
+	)
+	peachfuzzCandidate := buildArtifactForTest(
+		t, []byte("peachfuzz-candidate"), core.OfferingPeachfuzz,
+		core.NewReleaseVersion(2, 4, 7), platform,
+	)
+	if err := validateUpgradePair(peachfuzzInstalled, peachfuzzCandidate); err != nil {
+		t.Fatalf("validateUpgradePair(Peachfuzz) error = %v, want nil", err)
+	}
 
 	if err := validateUpgradePair(
 		release.Artifact{}, artifactForTest(t, []byte("candidate"), 2),
@@ -168,9 +178,10 @@ func TestFailedSlotCreationIsReportedAsPersistenceNotCleanup(t *testing.T) {
 	}
 }
 
-// TestSettledCleanupCompletesAfterTheCallerContextIsDone proves the two removal
-// paths that run after their own effect already landed. A cancelled caller must
-// not be able to strand the former slot, because the next candidate needs it.
+// TestSettledCleanupCompletesAfterTheCallerContextIsDone proves the proof and
+// removal paths that run after their own effect already landed. A cancelled
+// caller must not turn a committed selector into a reported failure or strand
+// the former slot, because the next candidate needs it.
 func TestSettledCleanupCompletesAfterTheCallerContextIsDone(t *testing.T) {
 	t.Parallel()
 
@@ -221,6 +232,16 @@ func TestSettledCleanupCompletesAfterTheCallerContextIsDone(t *testing.T) {
 	cancel()
 	if primary.Slot() != SlotB {
 		t.Fatalf("promoted slot = %v, want %v", primary.Slot(), SlotB)
+	}
+
+	committed, committedCancel := context.WithCancel(t.Context())
+	committedCancel()
+	resolved, err := resolveCommittedPrimary(committed, ResolveRequest{
+		Root: root, Directory: absolutePathForTest(t, directory),
+	})
+	if err != nil || resolved != primary {
+		t.Fatalf("resolveCommittedPrimary(done context) = (%v, %v), want (%v, nil)",
+			resolved, err, primary)
 	}
 
 	// Direct ratchet on the settled-removal helper itself: a done context must

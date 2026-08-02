@@ -108,6 +108,16 @@ func ResolvePrimary(
 	return newPrimary(request.Directory, document)
 }
 
+// resolveCommittedPrimary proves a selector whose durable write already
+// succeeded. Caller cancellation no longer owns that proof: reporting failure
+// after commitment would hide the installed primary and skip its settlement.
+func resolveCommittedPrimary(
+	ctx context.Context,
+	request ResolveRequest,
+) (Primary, error) {
+	return ResolvePrimary(recoveryContext(ctx), request)
+}
+
 // PromoteRequest binds a passing trial to the exact rooted installation.
 type PromoteRequest struct {
 	Root      *os.Root
@@ -170,7 +180,7 @@ func Promote(
 			core.ErrUpgradePersistence, err,
 		)
 	}
-	primary, err := ResolvePrimary(ctx, ResolveRequest{
+	primary, err := resolveCommittedPrimary(ctx, ResolveRequest{
 		Root: request.Root, Directory: request.Directory,
 	})
 	if err != nil {

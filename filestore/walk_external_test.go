@@ -148,9 +148,9 @@ func TestDirectoryEntryMaximumRejectsAllocationAndConversionOverflow(t *testing.
 	t.Parallel()
 
 	cases := []struct {
+		wantErr error
 		name    string
 		value   uint32
-		wantErr error
 	}{
 		{name: "zero rejects", value: 0, wantErr: core.ErrFilestoreContract},
 		{name: "one admits", value: 1},

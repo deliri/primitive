@@ -10,8 +10,7 @@ import (
 )
 
 const (
-	streamBufferBytes               = 32 << 10
-	streamMaximumConsecutiveEmpties = 100
+	streamBufferBytes = 32 << 10
 )
 
 type streamDestination uint8
@@ -90,7 +89,7 @@ func copyBounded(
 		if readErr != nil {
 			return finishRead(total, readErr)
 		}
-		if emptyReads >= streamMaximumConsecutiveEmpties {
+		if emptyReads >= core.ReaderConsecutiveEmptyReadMaximum {
 			return finishStream(total, sourceError(io.ErrNoProgress))
 		}
 	}

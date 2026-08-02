@@ -185,12 +185,12 @@ func TestTrialReportBindsExactCandidateAndProducesPromotionOnlyOnPass(t *testing
 	if err != nil {
 		t.Fatalf("newTrialTarget() error = %v, want nil", err)
 	}
-	expectedCommand, err := core.ParseAbsolutePath(
+	wantCommand, err := core.ParseAbsolutePath(
 		filepath.Join(root.String(), target.Path().String()),
 	)
-	if err != nil || target.Command() != expectedCommand {
+	if err != nil || target.Command() != wantCommand {
 		t.Fatalf("trial command projection = (%v, %v), want %v",
-			target.Command(), err, expectedCommand)
+			target.Command(), err, wantCommand)
 	}
 	observation := temporal.InstantFromNanoseconds(7)
 
@@ -339,12 +339,12 @@ func TestPromoteChangesOnlyTheSelectorThenRemovesTheOldFixedSlot(t *testing.T) {
 		t.Fatalf("Promote() primary = %v/%v, want candidate in slot B",
 			primary.Artifact(), primary.Slot())
 	}
-	expectedCommand, err := core.ParseAbsolutePath(
+	wantCommand, err := core.ParseAbsolutePath(
 		filepath.Join(directory, primary.Path().String()),
 	)
-	if err != nil || primary.Command() != expectedCommand {
+	if err != nil || primary.Command() != wantCommand {
 		t.Fatalf("primary command projection = (%v, %v), want %v",
-			primary.Command(), err, expectedCommand)
+			primary.Command(), err, wantCommand)
 	}
 	resolved, err := ResolvePrimary(t.Context(), ResolveRequest{
 		Root: root, Directory: absolutePathForTest(t, directory),
@@ -1141,6 +1141,13 @@ func TestPublicIngressAndOpaqueZeroValuesReject(t *testing.T) {
 			t.Parallel()
 			requireRejection(t, tc.err, core.ErrUpgradeContract, tc.wantDiagnostic)
 		})
+	}
+
+	if got, err := Stage(t.Context(), StageRequest{}); !errors.Is(err, core.ErrUpgradeContract) || got != (TrialTarget{}) {
+		t.Fatalf("Stage(zero) = (%v, %v), want zero and %v", got, err, core.ErrUpgradeContract)
+	}
+	if got, err := Bootstrap(t.Context(), BootstrapRequest{}); !errors.Is(err, core.ErrUpgradeContract) || got != (Primary{}) {
+		t.Fatalf("Bootstrap(zero) = (%v, %v), want zero and %v", got, err, core.ErrUpgradeContract)
 	}
 }
 

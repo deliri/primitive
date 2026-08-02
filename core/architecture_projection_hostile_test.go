@@ -24,13 +24,15 @@ const (
 )
 
 type architectureProjection struct {
-	packages            [PrimitivePackageCount]PackageIdentity
+	purposes            [packageIdentityLimit]string
 	imports             [architectureProjectionImportMaximum]DirectImportContract
+	packages            [PrimitivePackageCount]PackageIdentity
 	testImports         [architectureProjectionTestImportMaximum]DirectTestImportContract
 	packageCount        uint8
 	importCount         uint8
 	testImportCount     uint8
 	declaresTestImports bool
+	declaresPurposes    bool
 }
 
 type architectureProjectionViolationKind uint8
@@ -43,6 +45,7 @@ const (
 	architectureProjectionViolationImportExtra
 	architectureProjectionViolationTestImportMissing
 	architectureProjectionViolationTestImportExtra
+	architectureProjectionViolationPurposeDrift
 )
 
 type architectureProjectionViolation struct {
@@ -130,6 +133,17 @@ func TestArchitectureProjectionMatcherSyntheticRedGreenRatchet(t *testing.T) {
 	}{
 		{name: "unchanged readme is green", source: readme, kind: architectureProjectionReadme},
 		{name: "unchanged plan is green", source: plan, kind: architectureProjectionPlan},
+		{
+			name: "plan exchange purpose drift is red",
+			source: strings.Replace(
+				plan,
+				"| 4 | `exchange` | Bounded client and server boundary policy over `net/http` | `core`, `contextstate`, `temporal` | none |",
+				"| 4 | `exchange` | Unratcheted HTTP behavior | `core`, `contextstate`, `temporal` | none |",
+				1,
+			),
+			kind:          architectureProjectionPlan,
+			wantViolation: architectureProjectionViolationPurposeDrift,
+		},
 		{
 			name: "plan missing attest core edge is red",
 			source: strings.Replace(
@@ -271,6 +285,19 @@ func auditArchitectureProjection(
 			}
 		}
 	}
+	if projection.declaresPurposes {
+		for packageContract := range catalog.Packages() {
+			if projection.Purpose(packageContract.Identity) == packagePurposeText(packageContract.Identity) {
+				continue
+			}
+			if addErr := violations.Add(architectureProjectionViolation{
+				packageIdentity: packageContract.Identity,
+				kind:            architectureProjectionViolationPurposeDrift,
+			}); addErr != nil {
+				return architectureProjectionViolations{}, addErr
+			}
+		}
+	}
 	for contract := range catalog.DirectImports() {
 		if !projection.ContainsImport(contract) {
 			if addErr := violations.Add(architectureProjectionViolation{
@@ -333,6 +360,7 @@ func parseArchitectureProjection(
 func parsePlanArchitectureProjection(source string) (architectureProjection, error) {
 	var projection architectureProjection
 	projection.declaresTestImports = true
+	projection.declaresPurposes = true
 	inGraphSection := false
 	inGraphTable := false
 	for rawLine := range strings.SplitSeq(source, "\n") {
@@ -368,6 +396,9 @@ func parsePlanArchitectureProjection(source string) (architectureProjection, err
 			return architectureProjection{}, err
 		}
 		if err := projection.AddPackage(identity); err != nil {
+			return architectureProjection{}, err
+		}
+		if err := projection.AddPurpose(identity, strings.ReplaceAll(cells[2], "`", "")); err != nil {
 			return architectureProjection{}, err
 		}
 		if err := addPlanImportCell(&projection, identity, cells[3], false); err != nil {
@@ -498,6 +529,17 @@ func (p *architectureProjection) AddPackage(identity PackageIdentity) error {
 	return nil
 }
 
+func (p *architectureProjection) AddPurpose(identity PackageIdentity, purpose string) error {
+	if err := identity.Validate(); err != nil {
+		return err
+	}
+	if !p.ContainsPackage(identity) || purpose == "" || p.purposes[identity] != "" {
+		return architectureContractError("architecture projection contains an invalid package purpose")
+	}
+	p.purposes[identity] = purpose
+	return nil
+}
+
 func (p *architectureProjection) AddImport(contract DirectImportContract) error {
 	if err := contract.Validate(); err != nil {
 		return err
@@ -550,6 +592,13 @@ func (p architectureProjection) Imports() []DirectImportContract {
 
 func (p architectureProjection) TestImports() []DirectTestImportContract {
 	return p.testImports[:p.testImportCount]
+}
+
+func (p architectureProjection) Purpose(identity PackageIdentity) string {
+	if identity >= packageIdentityLimit {
+		return ""
+	}
+	return p.purposes[identity]
 }
 
 func (v *architectureProjectionViolations) Add(violation architectureProjectionViolation) error {

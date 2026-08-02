@@ -273,6 +273,7 @@ func TestOfferingMismatchErrorOwnsExactTypedFacts(t *testing.T) {
 		{name: "future expected", observed: core.OfferingBug, want: core.Offering(255)},
 		{name: "equal bug", observed: core.OfferingBug, want: core.OfferingBug},
 		{name: "equal witness", observed: core.OfferingWitness, want: core.OfferingWitness},
+		{name: "equal peachfuzz", observed: core.OfferingPeachfuzz, want: core.OfferingPeachfuzz},
 	}
 	for _, tc := range cases {
 		t.Run(tc.name, func(t *testing.T) {

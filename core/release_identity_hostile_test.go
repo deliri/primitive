@@ -116,7 +116,8 @@ func TestOfferingExhaustsCompleteByteDomain(t *testing.T) {
 	for value := range 256 {
 		offering := core.Offering(value)
 		wantValid := offering == core.OfferingBug ||
-			offering == core.OfferingWitness
+			offering == core.OfferingWitness ||
+			offering == core.OfferingPeachfuzz
 		if offering.IsValid() != wantValid {
 			t.Fatalf("Offering(%d).IsValid() = %v, want %v", value, offering.IsValid(), wantValid)
 		}
@@ -134,6 +135,10 @@ func TestOfferingExhaustsCompleteByteDomain(t *testing.T) {
 		if err := json.Unmarshal(encoded, &roundTrip); err != nil || roundTrip != offering {
 			t.Fatalf("Offering(%d) round trip = (%v, %v), want (%v, nil)", value, roundTrip, err, offering)
 		}
+		var textRoundTrip core.Offering
+		if err := textRoundTrip.UnmarshalText([]byte(offering.String())); err != nil || textRoundTrip != offering {
+			t.Fatalf("Offering(%d) text round trip = (%v, %v), want (%v, nil)", value, textRoundTrip, err, offering)
+		}
 	}
 
 	var alternateCase core.Offering
@@ -146,6 +151,23 @@ func TestOfferingExhaustsCompleteByteDomain(t *testing.T) {
 	}
 	if _, err := json.Marshal(core.OfferingUnknown); !errors.Is(err, core.ErrJSONContract) {
 		t.Fatalf("json.Marshal(OfferingUnknown) error = %v, want %v", err, core.ErrJSONContract)
+	}
+}
+
+func TestPeachfuzzOfferingTraversesBuildIdentity(t *testing.T) {
+	t.Parallel()
+
+	identity := releaseIdentityFixture(t, core.OfferingPeachfuzz)
+	encoded, err := json.Marshal(identity)
+	if err != nil {
+		t.Fatalf("json.Marshal(Peachfuzz BuildIdentity) error = %v", err)
+	}
+	var roundTrip core.BuildIdentity
+	if err := json.Unmarshal(encoded, &roundTrip); err != nil {
+		t.Fatalf("json.Unmarshal(Peachfuzz BuildIdentity) error = %v", err)
+	}
+	if roundTrip != identity || roundTrip.Offering() != core.OfferingPeachfuzz {
+		t.Fatalf("Peachfuzz BuildIdentity round trip = %v, want %v", roundTrip, identity)
 	}
 }
 

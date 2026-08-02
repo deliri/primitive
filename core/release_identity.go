@@ -9,10 +9,11 @@ import (
 )
 
 const (
-	offeringBugToken     = "bug"
-	offeringWitnessToken = "witness"
+	offeringBugToken       = "bug"
+	offeringPeachfuzzToken = "peachfuzz"
+	offeringWitnessToken   = "witness"
 	// offeringTokenMaximumBytes bounds the closed product identity domain.
-	offeringTokenMaximumBytes = len(offeringWitnessToken)
+	offeringTokenMaximumBytes = len(offeringPeachfuzzToken)
 	// releaseVersionMaximumBytes bounds three uint32 decimal components and
 	// their two separators.
 	releaseVersionMaximumBytes = 3*10 + 2
@@ -37,6 +38,8 @@ const (
 	OfferingBug
 	// OfferingWitness identifies Witness.
 	OfferingWitness
+	// OfferingPeachfuzz identifies Peachfuzz.
+	OfferingPeachfuzz
 	offeringLimit
 )
 
@@ -60,7 +63,7 @@ func (o Offering) String() string {
 }
 
 func offeringTexts() [offeringLimit]string {
-	return [...]string{"", offeringBugToken, offeringWitnessToken}
+	return [...]string{"", offeringBugToken, offeringWitnessToken, offeringPeachfuzzToken}
 }
 
 // parseOffering accepts one canonical offering token.
@@ -70,6 +73,8 @@ func parseOffering(value string) (Offering, error) {
 		return OfferingBug, nil
 	case offeringWitnessToken:
 		return OfferingWitness, nil
+	case offeringPeachfuzzToken:
+		return OfferingPeachfuzz, nil
 	default:
 		return OfferingUnknown, releaseIdentityError("offering token is unsupported")
 	}

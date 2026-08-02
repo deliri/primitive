@@ -354,6 +354,9 @@ func (r IssueLatestRequest) validatedFact() (LatestFact, error) {
 }
 
 func IssueLatest(request IssueLatestRequest) (LatestDocument, error) {
+	if err := request.Validate(); err != nil {
+		return LatestDocument{}, err
+	}
 	fact, err := request.validatedFact()
 	if err != nil {
 		return LatestDocument{}, err

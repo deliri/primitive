@@ -2,15 +2,146 @@ package exchange
 
 import (
 	"bytes"
+	"context"
+	"errors"
 	"go/ast"
 	"go/format"
 	"go/parser"
 	"go/token"
 	"io"
+	"net/http"
 	"slices"
 	"sync"
 	"testing"
+
+	"github.com/deliri/primitive/v2026/core"
 )
+
+type delayedProbeReader struct {
+	emptyReads int
+	reads      int
+}
+
+type emptyForeverReader struct{}
+
+func (emptyForeverReader) Read([]byte) (int, error) { return 0, nil }
+
+func (r *delayedProbeReader) Read(buffer []byte) (int, error) {
+	if r.reads < r.emptyReads {
+		r.reads++
+		return 0, nil
+	}
+	buffer[0] = 'x'
+	return 1, nil
+}
+
+func TestDownloadOverflowProbeDoesNotConfuseAStallWithEOF(t *testing.T) {
+	t.Parallel()
+
+	for _, testCase := range []struct {
+		want       error
+		name       string
+		emptyReads int
+	}{
+		{
+			name:       "one transient empty read still discovers overflow",
+			emptyReads: 1,
+			want:       core.ErrExchangeBodyLimit,
+		},
+		{
+			name:       "last admitted empty read still discovers overflow",
+			emptyReads: core.ReaderConsecutiveEmptyReadMaximum - 1,
+			want:       core.ErrExchangeBodyLimit,
+		},
+		{
+			name:       "the shared empty-read ceiling refuses no progress",
+			emptyReads: core.ReaderConsecutiveEmptyReadMaximum,
+			want:       io.ErrNoProgress,
+		},
+	} {
+		t.Run(testCase.name, func(t *testing.T) {
+			t.Parallel()
+
+			reader := &delayedProbeReader{emptyReads: testCase.emptyReads}
+			written, gotErr := probeDownloadEnd(downloadCopyRequest{
+				context: context.Background(), source: reader,
+			}, 7)
+			if written != 7 || !errors.Is(gotErr, testCase.want) {
+				t.Fatalf("probeDownloadEnd() = (%d, %v), want (7, %v)",
+					written, gotErr, testCase.want)
+			}
+		})
+	}
+}
+
+func TestDownloadTransferRefusesAnUnendingEmptyReader(t *testing.T) {
+	t.Parallel()
+
+	limit, err := core.NewByteCount(1)
+	if err != nil {
+		t.Fatalf("core.NewByteCount(1) error = %v, want nil", err)
+	}
+	written, gotErr := copyDownload(downloadCopyRequest{
+		context: context.Background(), source: emptyForeverReader{},
+		destination: io.Discard, limit: limit,
+	})
+	if written != 0 || !errors.Is(gotErr, io.ErrNoProgress) {
+		t.Fatalf("copyDownload(empty reader) = (%d, %v), want (0, %v)",
+			written, gotErr, io.ErrNoProgress)
+	}
+}
+
+func TestZeroExtentBoundariesDoNotConfuseAStallWithEOF(t *testing.T) {
+	t.Parallel()
+
+	t.Run("bodyless request still discovers a body after one stall", func(t *testing.T) {
+		t.Parallel()
+
+		request := &http.Request{Body: io.NopCloser(&delayedProbeReader{emptyReads: 1})}
+		gotErr := refuseRequestBody(request)
+		if !errors.Is(gotErr, core.ErrExchangeRequest) ||
+			!errors.Is(gotErr, core.ErrExchangeContract) {
+			t.Fatalf("refuseRequestBody(stalled body) error = %v, want %v and %v",
+				gotErr, core.ErrExchangeRequest, core.ErrExchangeContract)
+		}
+	})
+
+	t.Run("bodyless request refuses an unending stall", func(t *testing.T) {
+		t.Parallel()
+
+		request := &http.Request{Body: io.NopCloser(emptyForeverReader{})}
+		gotErr := refuseRequestBody(request)
+		if !errors.Is(gotErr, core.ErrExchangeRequest) ||
+			!errors.Is(gotErr, io.ErrNoProgress) {
+			t.Fatalf("refuseRequestBody(empty reader) error = %v, want %v and %v",
+				gotErr, core.ErrExchangeRequest, io.ErrNoProgress)
+		}
+	})
+
+	t.Run("zero response extent still discovers a byte after one stall", func(t *testing.T) {
+		t.Parallel()
+
+		gotErr := probeEmptyResponseSource(
+			context.Background(), &delayedProbeReader{emptyReads: 1},
+		)
+		if !errors.Is(gotErr, core.ErrExchangeResponse) ||
+			!errors.Is(gotErr, core.ErrExchangeBodyLimit) {
+			t.Fatalf("probeEmptyResponseSource(stalled source) error = %v, want %v and %v",
+				gotErr, core.ErrExchangeResponse, core.ErrExchangeBodyLimit)
+		}
+	})
+
+	t.Run("zero response extent refuses an unending stall", func(t *testing.T) {
+		t.Parallel()
+
+		gotErr := probeEmptyResponseSource(context.Background(), emptyForeverReader{})
+		if !errors.Is(gotErr, core.ErrExchangeResponse) ||
+			!errors.Is(gotErr, io.ErrNoProgress) {
+			t.Fatalf("probeEmptyResponseSource(empty reader) error = %v, want %v and %v",
+				gotErr, core.ErrExchangeResponse, io.ErrNoProgress)
+		}
+	})
+}
 
 // dirtyTransferBuffer fills every byte with a nonzero value so a partial scrub
 // leaves observable residue anywhere in the extent.

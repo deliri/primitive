@@ -75,7 +75,7 @@ func validateSigningTimeAttribute(attributes []cmsAttribute) error {
 	var claimed time.Time
 	trailing, err := asn1.Unmarshal(signingTime.Values[0].FullBytes, &claimed)
 	if err != nil || len(trailing) != 0 {
-		return invalidError(nil)
+		return invalidError(err)
 	}
 	if !canonicalSigningTime(signingTime.Values[0], claimed) {
 		return invalidError(nil)
@@ -129,7 +129,7 @@ func parseTimestampResponse(der []byte) ([]byte, authorityConclusion, error) {
 	}
 	token, trailing, err := consumeRaw(remaining)
 	if err != nil || len(trailing) != 0 || !isUniversal(token, asn1.TagSequence, true) {
-		return nil, authorityConclusion{}, invalidError(nil)
+		return nil, authorityConclusion{}, invalidError(err)
 	}
 	return append([]byte(nil), token.FullBytes...), conclusion, nil
 }
@@ -137,7 +137,7 @@ func parseTimestampResponse(der []byte) ([]byte, authorityConclusion, error) {
 func consumeResponseStatus(der []byte) (authorityConclusion, []byte, error) {
 	statusRaw, remaining, err := consumeRaw(der)
 	if err != nil || !isUniversal(statusRaw, asn1.TagSequence, true) {
-		return authorityConclusion{}, nil, invalidError(nil)
+		return authorityConclusion{}, nil, invalidError(err)
 	}
 	conclusion, err := parseStatusInfo(statusRaw.Bytes)
 	return conclusion, remaining, err
@@ -146,11 +146,11 @@ func consumeResponseStatus(der []byte) (authorityConclusion, []byte, error) {
 func parseStatusInfo(der []byte) (authorityConclusion, error) {
 	statusRaw, fields, err := consumeRaw(der)
 	if err != nil || !isUniversal(statusRaw, asn1.TagInteger, false) {
-		return authorityConclusion{}, invalidError(nil)
+		return authorityConclusion{}, invalidError(err)
 	}
 	var statusInteger int
 	if trailing, decodeErr := asn1.Unmarshal(statusRaw.FullBytes, &statusInteger); decodeErr != nil || len(trailing) != 0 {
-		return authorityConclusion{}, invalidError(nil)
+		return authorityConclusion{}, invalidError(decodeErr)
 	}
 	status, err := refusalStatusFromRFC(statusInteger)
 	if err != nil {
@@ -173,12 +173,15 @@ func parseStatusInfoOptional(fields []byte) (refusalCodeSet, error) {
 	for len(fields) != 0 {
 		field, remaining, err := consumeRaw(fields)
 		if err != nil {
-			return refusalCodeSet{}, invalidError(nil)
+			return refusalCodeSet{}, invalidError(err)
 		}
 		switch {
 		case isUniversal(field, asn1.TagSequence, true):
-			if seenText || seenCodes || !validStatusText(field.Bytes) {
+			if seenText || seenCodes {
 				return refusalCodeSet{}, invalidError(nil)
+			}
+			if err := validateStatusText(field.Bytes); err != nil {
+				return refusalCodeSet{}, err
 			}
 			seenText = true
 		case isUniversal(field, asn1.TagBitString, false):
@@ -199,20 +202,23 @@ func parseStatusInfoOptional(fields []byte) (refusalCodeSet, error) {
 	return codes, nil
 }
 
-func validStatusText(der []byte) bool {
+func validateStatusText(der []byte) error {
 	count := 0
 	for len(der) != 0 {
 		value, remaining, err := consumeRaw(der)
 		if err != nil || !isUniversal(value, asn1.TagUTF8String, false) {
-			return false
+			return invalidError(err)
 		}
 		count++
 		if count > refusalStatusTextCount {
-			return false
+			return invalidError(nil)
 		}
 		der = remaining
 	}
-	return count > 0
+	if count == 0 {
+		return invalidError(nil)
+	}
+	return nil
 }
 
 func parseRefusalCodes(der []byte) (refusalCodeSet, error) {
@@ -240,7 +246,7 @@ func parseFailureBitString(der []byte) (asn1.BitString, error) {
 	if err != nil || len(trailing) != 0 ||
 		maximumErr != nil ||
 		bits.BitLength < 1 || bits.BitLength > int(maximumBit)+1 {
-		return asn1.BitString{}, invalidError(nil)
+		return asn1.BitString{}, invalidError(err, maximumErr)
 	}
 	return bits, nil
 }
@@ -271,7 +277,7 @@ func failureCodesFromBits(bits asn1.BitString) ([]RefusalCode, error) {
 func parseTimestampToken(der []byte) (parsedToken, error) {
 	contentType, explicitContent, err := parseContentInfo(der)
 	if err != nil || !contentType.Equal(oidSignedData) {
-		return parsedToken{}, invalidError(nil)
+		return parsedToken{}, invalidError(err)
 	}
 	signed, err := parseSignedData(explicitContent)
 	if err != nil {
@@ -367,16 +373,16 @@ func parseContentInfo(der []byte) (asn1.ObjectIdentifier, asn1.RawValue, error) 
 	}
 	oidRaw, fields, err := consumeRaw(sequence.Bytes)
 	if err != nil {
-		return nil, asn1.RawValue{}, invalidError(nil)
+		return nil, asn1.RawValue{}, invalidError(err)
 	}
 	var contentType asn1.ObjectIdentifier
 	if trailing, decodeErr := asn1.Unmarshal(oidRaw.FullBytes, &contentType); decodeErr != nil || len(trailing) != 0 {
-		return nil, asn1.RawValue{}, invalidError(nil)
+		return nil, asn1.RawValue{}, invalidError(decodeErr)
 	}
 	content, trailing, err := consumeRaw(fields)
 	if err != nil || len(trailing) != 0 || content.Class != asn1.ClassContextSpecific ||
 		content.Tag != 0 || !content.IsCompound {
-		return nil, asn1.RawValue{}, invalidError(nil)
+		return nil, asn1.RawValue{}, invalidError(err)
 	}
 	return contentType, content, nil
 }
@@ -393,7 +399,7 @@ func parseSignedData(explicit asn1.RawValue) (parsedSignedData, error) {
 	}
 	digests, fields, err := consumeAlgorithmSet(fields)
 	if err != nil || len(digests) == 0 {
-		return parsedSignedData{}, invalidError(nil)
+		return parsedSignedData{}, invalidError(err)
 	}
 	content, fields, err := consumeEncapsulatedContent(fields)
 	if err != nil {
@@ -424,7 +430,7 @@ func parseSignedData(explicit asn1.RawValue) (parsedSignedData, error) {
 func consumeFinalSignerSet(fields []byte) ([]cmsSignerInfo, error) {
 	signers, trailing, err := consumeSignerSet(fields)
 	if err != nil || len(trailing) != 0 {
-		return nil, invalidError(nil)
+		return nil, invalidError(err)
 	}
 	return signers, nil
 }
@@ -432,19 +438,19 @@ func consumeFinalSignerSet(fields []byte) ([]cmsSignerInfo, error) {
 func consumeEncapsulatedContent(der []byte) (cmsEncapsulatedContent, []byte, error) {
 	raw, remaining, err := consumeRaw(der)
 	if err != nil || !isUniversal(raw, asn1.TagSequence, true) {
-		return cmsEncapsulatedContent{}, nil, invalidError(nil)
+		return cmsEncapsulatedContent{}, nil, invalidError(err)
 	}
 	oidRaw, fields, err := consumeRaw(raw.Bytes)
 	if err != nil {
-		return cmsEncapsulatedContent{}, nil, invalidError(nil)
+		return cmsEncapsulatedContent{}, nil, invalidError(err)
 	}
 	var contentType asn1.ObjectIdentifier
 	if trailing, decodeErr := asn1.Unmarshal(oidRaw.FullBytes, &contentType); decodeErr != nil || len(trailing) != 0 {
-		return cmsEncapsulatedContent{}, nil, invalidError(nil)
+		return cmsEncapsulatedContent{}, nil, invalidError(decodeErr)
 	}
 	content, err := consumeExplicitContent(fields)
 	if err != nil {
-		return cmsEncapsulatedContent{}, nil, invalidError(nil)
+		return cmsEncapsulatedContent{}, nil, invalidError(err)
 	}
 	return cmsEncapsulatedContent{ContentType: contentType, Content: content}, remaining, nil
 }
@@ -453,7 +459,7 @@ func consumeExplicitContent(fields []byte) (asn1.RawValue, error) {
 	content, trailing, err := consumeRaw(fields)
 	if err != nil || len(trailing) != 0 || content.Class != asn1.ClassContextSpecific ||
 		content.Tag != 0 || !content.IsCompound {
-		return asn1.RawValue{}, invalidError(nil)
+		return asn1.RawValue{}, invalidError(err)
 	}
 	return content, nil
 }
@@ -461,7 +467,7 @@ func consumeExplicitContent(fields []byte) (asn1.RawValue, error) {
 func consumeAlgorithmSet(der []byte) ([]pkix.AlgorithmIdentifier, []byte, error) {
 	raw, remaining, err := consumeRaw(der)
 	if err != nil || !isUniversal(raw, asn1.TagSet, true) {
-		return nil, nil, invalidError(nil)
+		return nil, nil, invalidError(err)
 	}
 	var algorithms []pkix.AlgorithmIdentifier
 	for fields := raw.Bytes; len(fields) != 0; {
@@ -472,7 +478,7 @@ func consumeAlgorithmSet(der []byte) ([]pkix.AlgorithmIdentifier, []byte, error)
 		var decodeErr error
 		fields, decodeErr = asn1.Unmarshal(fields, &algorithm)
 		if decodeErr != nil {
-			return nil, nil, invalidError(nil)
+			return nil, nil, invalidError(decodeErr)
 		}
 		algorithms = append(algorithms, algorithm)
 	}
@@ -488,7 +494,7 @@ func consumeContextField(der []byte, tag int, required bool) (asn1.RawValue, []b
 	}
 	raw, remaining, err := consumeRaw(der)
 	if err != nil {
-		return asn1.RawValue{}, nil, invalidError(nil)
+		return asn1.RawValue{}, nil, invalidError(err)
 	}
 	if raw.Class != asn1.ClassContextSpecific || raw.Tag != tag {
 		if required {
@@ -502,7 +508,7 @@ func consumeContextField(der []byte, tag int, required bool) (asn1.RawValue, []b
 func consumeSignerSet(der []byte) ([]cmsSignerInfo, []byte, error) {
 	raw, remaining, err := consumeRaw(der)
 	if err != nil || !isUniversal(raw, asn1.TagSet, true) {
-		return nil, nil, invalidError(nil)
+		return nil, nil, invalidError(err)
 	}
 	var signers []cmsSignerInfo
 	for fields := raw.Bytes; len(fields) != 0; {
@@ -522,7 +528,7 @@ func consumeSignerSet(der []byte) ([]cmsSignerInfo, []byte, error) {
 func parseSignerInfo(der []byte) (cmsSignerInfo, []byte, error) {
 	raw, remaining, err := consumeRaw(der)
 	if err != nil || !isUniversal(raw, asn1.TagSequence, true) {
-		return cmsSignerInfo{}, nil, invalidError(nil)
+		return cmsSignerInfo{}, nil, invalidError(err)
 	}
 	fields := raw.Bytes
 	version, fields, err := consumeInteger(fields)
@@ -559,11 +565,11 @@ func parseSignerInfo(der []byte) (cmsSignerInfo, []byte, error) {
 func consumeFinalSignature(fields []byte) ([]byte, error) {
 	signatureRaw, trailing, err := consumeRaw(fields)
 	if err != nil || !isUniversal(signatureRaw, asn1.TagOctetString, false) || len(trailing) != 0 {
-		return nil, invalidError(nil)
+		return nil, invalidError(err)
 	}
 	var signature []byte
 	if rest, decodeErr := asn1.Unmarshal(signatureRaw.FullBytes, &signature); decodeErr != nil || len(rest) != 0 {
-		return nil, invalidError(nil)
+		return nil, invalidError(decodeErr)
 	}
 	return signature, nil
 }
@@ -571,15 +577,15 @@ func consumeFinalSignature(fields []byte) ([]byte, error) {
 func consumeIssuerAndSerial(der []byte) (cmsIssuerAndSerial, []byte, error) {
 	raw, remaining, err := consumeRaw(der)
 	if err != nil || !isUniversal(raw, asn1.TagSequence, true) {
-		return cmsIssuerAndSerial{}, nil, invalidError(nil)
+		return cmsIssuerAndSerial{}, nil, invalidError(err)
 	}
 	issuer, fields, err := consumeRaw(raw.Bytes)
 	if err != nil || !isUniversal(issuer, asn1.TagSequence, true) {
-		return cmsIssuerAndSerial{}, nil, invalidError(nil)
+		return cmsIssuerAndSerial{}, nil, invalidError(err)
 	}
 	serialRaw, trailing, err := consumeRaw(fields)
 	if err != nil || len(trailing) != 0 {
-		return cmsIssuerAndSerial{}, nil, invalidError(nil)
+		return cmsIssuerAndSerial{}, nil, invalidError(err)
 	}
 	serial, err := parsePositiveSerial(serialRaw.FullBytes)
 	if err != nil {
@@ -592,7 +598,7 @@ func parsePositiveSerial(der []byte) (*big.Int, error) {
 	var serial *big.Int
 	rest, err := asn1.Unmarshal(der, &serial)
 	if err != nil || len(rest) != 0 || serial == nil || serial.Sign() <= 0 {
-		return nil, invalidError(nil)
+		return nil, invalidError(err)
 	}
 	return serial, nil
 }
@@ -601,7 +607,7 @@ func consumeAlgorithm(der []byte) (pkix.AlgorithmIdentifier, []byte, error) {
 	var algorithm pkix.AlgorithmIdentifier
 	remaining, err := asn1.Unmarshal(der, &algorithm)
 	if err != nil {
-		return pkix.AlgorithmIdentifier{}, nil, invalidError(nil)
+		return pkix.AlgorithmIdentifier{}, nil, invalidError(err)
 	}
 	return algorithm, remaining, nil
 }
@@ -617,11 +623,11 @@ func parseCertificates(raw asn1.RawValue) ([]*x509.Certificate, error) {
 		}
 		certificateRaw, remaining, err := consumeRaw(fields)
 		if err != nil || !isUniversal(certificateRaw, asn1.TagSequence, true) {
-			return nil, invalidError(nil)
+			return nil, invalidError(err)
 		}
 		certificate, err := x509.ParseCertificate(certificateRaw.FullBytes)
 		if err != nil {
-			return nil, invalidError(nil)
+			return nil, invalidError(err)
 		}
 		for _, prior := range certificates {
 			if bytes.Equal(prior.Raw, certificate.Raw) {
@@ -665,7 +671,7 @@ func parseSignedAttributes(raw asn1.RawValue) ([]cmsAttribute, error) {
 		var attribute cmsAttribute
 		remaining, err := asn1.Unmarshal(fields, &attribute)
 		if err != nil {
-			return nil, invalidError(nil)
+			return nil, invalidError(err)
 		}
 		attributes = append(attributes, attribute)
 		fields = remaining
@@ -675,36 +681,49 @@ func parseSignedAttributes(raw asn1.RawValue) ([]cmsAttribute, error) {
 
 func verifyRequiredSignedAttributes(attributes []cmsAttribute, signer cmsSignerInfo, content []byte) error {
 	contentType, err := uniqueAttribute(attributes, oidContentType)
-	if err != nil || !validContentTypeAttribute(contentType) {
-		return invalidError(nil)
+	if err != nil {
+		return invalidError(err)
+	}
+	if err := validateContentTypeAttribute(contentType); err != nil {
+		return err
 	}
 	messageDigest, err := uniqueAttribute(attributes, oidMessageDigest)
-	if err != nil || !validMessageDigestAttribute(messageDigest, signer, content) {
+	if err != nil {
+		return invalidError(err)
+	}
+	return validateMessageDigestAttribute(messageDigest, signer, content)
+}
+
+func validateContentTypeAttribute(attribute cmsAttribute) error {
+	if len(attribute.Values) != 1 {
 		return invalidError(nil)
+	}
+	var got asn1.ObjectIdentifier
+	trailing, err := asn1.Unmarshal(attribute.Values[0].FullBytes, &got)
+	if err != nil || len(trailing) != 0 || !got.Equal(oidTSTInfo) {
+		return invalidError(err)
 	}
 	return nil
 }
 
-func validContentTypeAttribute(attribute cmsAttribute) bool {
+func validateMessageDigestAttribute(
+	attribute cmsAttribute,
+	signer cmsSignerInfo,
+	content []byte,
+) error {
 	if len(attribute.Values) != 1 {
-		return false
-	}
-	var got asn1.ObjectIdentifier
-	trailing, err := asn1.Unmarshal(attribute.Values[0].FullBytes, &got)
-	return err == nil && len(trailing) == 0 && got.Equal(oidTSTInfo)
-}
-
-func validMessageDigestAttribute(attribute cmsAttribute, signer cmsSignerInfo, content []byte) bool {
-	if len(attribute.Values) != 1 {
-		return false
+		return invalidError(nil)
 	}
 	var gotDigest []byte
 	trailing, err := asn1.Unmarshal(attribute.Values[0].FullBytes, &gotDigest)
 	if err != nil || len(trailing) != 0 {
-		return false
+		return invalidError(err)
 	}
 	wantDigest, err := digestForOID(signer.DigestAlgorithm.Algorithm, content)
-	return err == nil && subtle.ConstantTimeCompare(gotDigest, wantDigest) == 1
+	if err != nil || subtle.ConstantTimeCompare(gotDigest, wantDigest) != 1 {
+		return invalidError(err)
+	}
+	return nil
 }
 
 func verifySignerSignature(signer cmsSignerInfo, certificate *x509.Certificate) error {
@@ -717,7 +736,7 @@ func verifySignerSignature(signer cmsSignerInfo, certificate *x509.Certificate) 
 	}
 	signedDER := derTagged(byte(asn1.TagSet)|derConstructed, signer.SignedAttributes.Bytes)
 	if err := certificate.CheckSignature(algorithm, signedDER, signer.Signature); err != nil {
-		return invalidError(nil)
+		return invalidError(err)
 	}
 	return nil
 }
@@ -849,7 +868,7 @@ func consumeOptionalOrdering(
 		raw.FullBytes,
 		&ordering,
 	); decodeErr != nil || len(trailing) != 0 || !ordering {
-		return nil, invalidError(nil)
+		return nil, invalidError(decodeErr)
 	}
 	return remaining, nil
 }
@@ -905,7 +924,7 @@ func parseTSAField(raw asn1.RawValue) ([]byte, error) {
 		return nil, invalidError(nil)
 	}
 	if name.Class != asn1.ClassContextSpecific ||
-		name.Tag != 4 || !name.IsCompound {
+		name.Tag != generalNameDirectoryNameTag || !name.IsCompound {
 		return nil, invalidError(nil)
 	}
 	subject, err := requireSequence(name.Bytes)
@@ -923,7 +942,7 @@ func peekTSTField(
 	}
 	raw, remaining, err := consumeRaw(fields)
 	if err != nil {
-		return asn1.RawValue{}, nil, false, invalidError(nil)
+		return asn1.RawValue{}, nil, false, invalidError(err)
 	}
 	return raw, remaining, true, nil
 }
@@ -940,11 +959,11 @@ func decodeAccuracyWire(raw asn1.RawValue) (accuracyWire, error) {
 	var wire accuracyWire
 	trailing, err := asn1.Unmarshal(raw.FullBytes, &wire)
 	if err != nil || len(trailing) != 0 {
-		return accuracyWire{}, invalidError(nil)
+		return accuracyWire{}, invalidError(err)
 	}
 	canonical, marshalErr := asn1.Marshal(wire)
 	if marshalErr != nil || !bytes.Equal(canonical, raw.FullBytes) {
-		return accuracyWire{}, invalidError(nil)
+		return accuracyWire{}, invalidError(marshalErr)
 	}
 	if !validAccuracyWire(wire) {
 		return accuracyWire{}, invalidError(nil)
@@ -1020,7 +1039,7 @@ func consumeMessageImprint(der []byte) (messageImprint, []byte, error) {
 	var imprint messageImprint
 	remaining, err := asn1.Unmarshal(der, &imprint)
 	if err != nil {
-		return messageImprint{}, nil, invalidError(nil)
+		return messageImprint{}, nil, invalidError(err)
 	}
 	return imprint, remaining, nil
 }
@@ -1028,11 +1047,11 @@ func consumeMessageImprint(der []byte) (messageImprint, []byte, error) {
 func consumeGenerationTime(der []byte) (temporal.Instant, []byte, error) {
 	raw, remaining, err := consumeRaw(der)
 	if err != nil || !isUniversal(raw, asn1.TagGeneralizedTime, false) {
-		return temporal.Instant{}, nil, invalidError(nil)
+		return temporal.Instant{}, nil, invalidError(err)
 	}
 	var value time.Time
 	if trailing, decodeErr := asn1.Unmarshal(raw.FullBytes, &value); decodeErr != nil || len(trailing) != 0 {
-		return temporal.Instant{}, nil, invalidError(nil)
+		return temporal.Instant{}, nil, invalidError(decodeErr)
 	}
 	instant, err := temporal.NewInstant(value)
 	if err != nil {
@@ -1044,7 +1063,7 @@ func consumeGenerationTime(der []byte) (temporal.Instant, []byte, error) {
 func consumePositiveInteger(der []byte, maximumBits int) (*big.Int, []byte, error) {
 	raw, remaining, err := consumeRaw(der)
 	if err != nil {
-		return nil, nil, invalidError(nil)
+		return nil, nil, invalidError(err)
 	}
 	value, err := decodePositiveInteger(raw.FullBytes, maximumBits)
 	if err != nil {
@@ -1058,7 +1077,7 @@ func decodePositiveInteger(der []byte, maximumBits int) (*big.Int, error) {
 	trailing, err := asn1.Unmarshal(der, &value)
 	if err != nil || len(trailing) != 0 || value == nil || value.Sign() <= 0 ||
 		value.BitLen() > maximumBits {
-		return nil, invalidError(nil)
+		return nil, invalidError(err)
 	}
 	return value, nil
 }
@@ -1067,7 +1086,7 @@ func consumeInteger(der []byte) (int, []byte, error) {
 	var value int
 	remaining, err := asn1.Unmarshal(der, &value)
 	if err != nil {
-		return 0, nil, invalidError(nil)
+		return 0, nil, invalidError(err)
 	}
 	return value, remaining, nil
 }
@@ -1076,7 +1095,7 @@ func consumeOID(der []byte) (asn1.ObjectIdentifier, []byte, error) {
 	var value asn1.ObjectIdentifier
 	remaining, err := asn1.Unmarshal(der, &value)
 	if err != nil {
-		return nil, nil, invalidError(nil)
+		return nil, nil, invalidError(err)
 	}
 	return value, remaining, nil
 }
@@ -1085,7 +1104,7 @@ func explicitOctets(raw asn1.RawValue) ([]byte, error) {
 	var value []byte
 	trailing, err := asn1.Unmarshal(raw.Bytes, &value)
 	if err != nil || len(trailing) != 0 || len(value) == 0 {
-		return nil, invalidError(nil)
+		return nil, invalidError(err)
 	}
 	return append([]byte(nil), value...), nil
 }
@@ -1108,7 +1127,7 @@ func uniqueAttribute(attributes []cmsAttribute, oid asn1.ObjectIdentifier) (cmsA
 func requireSequence(der []byte) (asn1.RawValue, error) {
 	raw, trailing, err := consumeRaw(der)
 	if err != nil || len(trailing) != 0 || !isUniversal(raw, asn1.TagSequence, true) {
-		return asn1.RawValue{}, invalidError(nil)
+		return asn1.RawValue{}, invalidError(err)
 	}
 	return raw, nil
 }
@@ -1117,7 +1136,7 @@ func consumeRaw(der []byte) (asn1.RawValue, []byte, error) {
 	var raw asn1.RawValue
 	remaining, err := asn1.Unmarshal(der, &raw)
 	if err != nil {
-		return asn1.RawValue{}, nil, invalidError(nil)
+		return asn1.RawValue{}, nil, invalidError(err)
 	}
 	return raw, remaining, nil
 }

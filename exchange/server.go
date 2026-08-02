@@ -359,7 +359,10 @@ func validateServerIngress(
 		return requestError(err)
 	}
 	method, err := parseMethod(request.Method)
-	if err != nil || method != route.Method {
+	if err != nil {
+		return requestError(err)
+	}
+	if method != route.Method {
 		return requestError(core.ErrExchangeContract)
 	}
 	return nil
@@ -378,14 +381,17 @@ func validateJSONRequestMetadata(request *http.Request) error {
 	}
 	contentType, err := core.ParseHTTPMediaType(values[0])
 	if err != nil {
-		return requestError(core.ErrExchangeContentType)
+		return requestError(errors.Join(core.ErrExchangeContentType, err))
 	}
 	jsonType, err := jsonMediaType()
 	if err != nil {
 		return requestError(err)
 	}
 	matches, err := contentType.SameBase(jsonType)
-	if err != nil || !matches {
+	if err != nil {
+		return requestError(errors.Join(core.ErrExchangeContentType, err))
+	}
+	if !matches {
 		return requestError(core.ErrExchangeContentType)
 	}
 	return nil
@@ -400,7 +406,10 @@ func validateRequestContentCoding(headers http.Header) error {
 		return requestError(core.ErrExchangeContentType)
 	}
 	coding, err := parseHTTPContentCoding(values[0])
-	if err != nil || coding != identityContentCoding() {
+	if err != nil {
+		return requestError(errors.Join(core.ErrExchangeContentType, err))
+	}
+	if coding != identityContentCoding() {
 		return requestError(core.ErrExchangeContentType)
 	}
 	return nil
@@ -422,17 +431,19 @@ func refuseRequestBody(request *http.Request) error {
 		return nil
 	}
 	var probe [1]byte
-	read, readErr := request.Body.Read(probe[:])
-	if read < 0 || read > len(probe) {
-		return requestError(core.ErrExchangeContract)
-	}
+	read, readErr := io.ReadFull(&progressReader{
+		context: request.Context(), source: request.Body,
+	}, probe[:])
 	if read > 0 {
 		return requestError(core.ErrExchangeContract)
 	}
-	if readErr == nil || errors.Is(readErr, io.EOF) {
+	if errors.Is(readErr, io.EOF) {
 		return nil
 	}
-	return requestError(readErr)
+	if readErr != nil {
+		return requestError(readErr)
+	}
+	return requestError(core.ErrExchangeContract)
 }
 
 func receiveIdempotencyKey(

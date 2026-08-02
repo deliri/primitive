@@ -4,6 +4,7 @@ set -eu
 
 repository_root=$(CDPATH= cd -- "$(dirname -- "$0")/.." && pwd)
 cd "$repository_root"
+normalized_repository_root=$(printf '%s' "$repository_root" | tr '\\' '/')
 
 artifact_directory=${1:-".artifacts/gates/local"}
 mkdir -p "$artifact_directory"
@@ -22,6 +23,12 @@ result_file="$artifact_directory/gate-results.tsv"
 platform=$(go env GOOS)/$(go env GOARCH)
 workflow_run=${GITHUB_RUN_ID:-NOT_APPLICABLE}
 workflow_attempt=${GITHUB_RUN_ATTEMPT:-NOT_APPLICABLE}
+gate_failure_status=0
+goconst_admission_maximum=11
+deadcode_admission_maximum=14
+fuzz_budget_override_maximum=2
+fuzz_budget_override_minimum=10000
+fuzz_default_budget=100000x
 
 printf '%s\t%s\t%s\t%s\t%s\t%s\t%s\n' \
 	"gate" "command" "platform" "duration_seconds" "exit_status" "log" "sha256" \
@@ -96,7 +103,9 @@ run_gate() {
 	fi
 	printf '%s\n' "FAIL $gate_name"
 	cat "$gate_log"
-	exit "$gate_status"
+	if test "$gate_failure_status" -eq 0; then
+		gate_failure_status=$gate_status
+	fi
 }
 
 run_empty_output_gate() {
@@ -123,7 +132,159 @@ run_empty_output_gate() {
 	fi
 	printf '%s\n' "FAIL $gate_name"
 	cat "$gate_log"
-	exit "$gate_status"
+	if test "$gate_failure_status" -eq 0; then
+		gate_failure_status=$gate_status
+	fi
+}
+
+discover_go_targets() {
+	target_prefix=$1
+	while IFS= read -r package_path; do
+		if ! target_output=$(go test -run '^$' -list "^$target_prefix" "$package_path" 2>&1); then
+			printf '%s\n' "$target_output" >&2
+			return 1
+		fi
+		printf '%s\n' "$target_output" | while IFS= read -r target_name; do
+			case "$target_name" in
+				"$target_prefix"*)
+					printf '%s\t%s\n' "$package_path" "$target_name"
+					;;
+			esac
+		done
+	done <"$package_list"
+}
+
+validate_target_inventory() {
+	inventory=$1
+	minimum=$2
+	target_kind=$3
+	actual=$(awk 'END { print NR + 0 }' "$inventory")
+	if test "$actual" -lt "$minimum"; then
+		printf '%s target inventory = %s, want at least %s\n' \
+			"$target_kind" "$actual" "$minimum" >&2
+		return 1
+	fi
+	printf '%s target inventory = %s, ratcheted minimum = %s\n' \
+		"$target_kind" "$actual" "$minimum"
+}
+
+run_benchmark_packages() {
+	benchmark_inventory=$1
+	benchmark_packages="$artifact_directory/benchmark-packages.log"
+	awk -F '\t' '!seen[$1]++ { print $1 }' "$benchmark_inventory" >"$benchmark_packages"
+	while IFS= read -r package_path; do
+		package_name=${package_path##*/}
+		run_gate "benchmark-$package_name" \
+			go test -run '^$' -bench '^Benchmark' -benchmem -count=1 -p=1 "$package_path"
+	done <"$benchmark_packages"
+}
+
+run_fuzz_targets() {
+	fuzz_inventory=$1
+	while read -r package_path target_name; do
+		package_name=${package_path##*/}
+		fuzz_budget=$(fuzz_budget_for "$package_name" "$target_name")
+		run_gate "fuzz-$package_name-$target_name" \
+			go test -run '^$' -fuzz "^$target_name$" \
+			-fuzztime="$fuzz_budget" -parallel=1 "$package_path"
+	done <"$fuzz_inventory"
+}
+
+fuzz_budget_for() {
+	package_name=$1
+	target_name=$2
+	budget=$(awk -F '\t' -v package_name="$package_name" -v target_name="$target_name" '
+		$1 == package_name && $2 == target_name { print $3 }
+	' scripts/fuzz_budget_overrides.tsv)
+	if test -z "$budget"; then
+		budget=$fuzz_default_budget
+	fi
+	printf '%s' "$budget"
+}
+
+validate_fuzz_budget_overrides() {
+	fuzz_inventory=$1
+	overrides="scripts/fuzz_budget_overrides.tsv"
+	if ! awk -F '\t' \
+		-v maximum="$fuzz_budget_override_maximum" \
+		-v minimum="$fuzz_budget_override_minimum" '
+		NR == FNR {
+			component_count = split($1, path, "/")
+			landed[path[component_count] SUBSEP $2] = 1
+			next
+		}
+		NF != 4 || $1 == "" || $2 == "" || $3 !~ /^[1-9][0-9]*x$/ ||
+			int($3) < minimum || $4 == "" { exit 1 }
+		!landed[$1 SUBSEP $2] || seen[$1 SUBSEP $2]++ { exit 1 }
+		END { if (FNR > maximum) exit 1 }
+	' "$fuzz_inventory" "$overrides"; then
+		printf '%s\n' "fuzz budget overrides are malformed, stale, duplicated, or exceed the ratcheted maximum" >&2
+		return 1
+	fi
+	cat "$overrides"
+}
+
+validate_goconst_findings() {
+	admissions="scripts/goconst_admissions.tsv"
+	admitted="$artifact_directory/goconst-admitted.log"
+	observed="$artifact_directory/goconst-observed.log"
+	if ! awk -F '\t' '
+		NF != 2 || $1 == "" || $2 == "" { exit 1 }
+		END { if (NR > maximum) exit 1 }
+	' maximum="$goconst_admission_maximum" "$admissions"; then
+		printf '%s\n' "goconst admissions are malformed or exceed the ratcheted maximum" >&2
+		return 1
+	fi
+	awk -F '\t' '{ print $1 }' "$admissions" | sort >"$admitted"
+	if ! goconst_output=$(goconst -grouped ./... 2>&1); then
+		printf '%s\n' "$goconst_output" >&2
+		return 1
+	fi
+	printf '%s\n' "$goconst_output"
+	printf '%s\n' "$goconst_output" |
+		sed -n 's/.*other occurrence(s) of "\([^"]*\)" found in:.*/\1/p' |
+		sort -u >"$observed"
+	if ! diff -u "$admitted" "$observed"; then
+		printf '%s\n' "goconst findings differ from the reasoned exact admission set" >&2
+		return 1
+	fi
+}
+
+validate_deadcode_findings() {
+	admissions="scripts/deadcode_admissions.tsv"
+	admitted="$artifact_directory/deadcode-admitted.log"
+	observed="$artifact_directory/deadcode-observed.log"
+	if ! awk -F '\t' '
+		NF != 3 || $1 == "" || $2 == "" || $3 == "" { exit 1 }
+		END { if (NR > maximum) exit 1 }
+	' maximum="$deadcode_admission_maximum" "$admissions"; then
+		printf '%s\n' "deadcode admissions are malformed or exceed the ratcheted maximum" >&2
+		return 1
+	fi
+	awk -F '\t' '{ print $1 "\t" $2 }' "$admissions" | sort >"$admitted"
+	if ! deadcode_output=$(deadcode -test ./... 2>&1); then
+		printf '%s\n' "$deadcode_output" >&2
+		return 1
+	fi
+	printf '%s\n' "$deadcode_output"
+	printf '%s\n' "$deadcode_output" |
+		sed -n 's#^\(.*\):[0-9][0-9]*:[0-9][0-9]*: unreachable func: \(.*\)$#\1\t\2#p' |
+		awk -F '\t' -v root="$normalized_repository_root" '
+			{
+				path = $1
+				gsub(/\\/, "/", path)
+				prefix = root "/"
+				if (index(path, prefix) == 1) {
+					path = substr(path, length(prefix) + 1)
+				}
+				print path "\t" $2
+			}
+		' |
+		sort -u >"$observed"
+	if ! diff -u "$admitted" "$observed"; then
+		printf '%s\n' "deadcode findings differ from the reasoned exact admission set" >&2
+		return 1
+	fi
 }
 
 run_gate go-version go version
@@ -175,53 +336,24 @@ run_gate errcheck errcheck ./...
 run_gate nilaway nilaway ./...
 run_gate witness-lint witness-lint ./...
 run_gate complexity gocyclo -over 10 --ignore '_test.go' .
-run_gate constants goconst -set-exit-status ./...
+run_gate constants validate_goconst_findings
 run_gate field-alignment fieldalignment ./...
 run_gate security gosec -quiet ./...
 run_gate vulnerabilities govulncheck ./...
-run_gate dead-code deadcode -test ./...
-run_gate benchmark-json-contracts \
-	go test -run '^$' -bench '^Benchmark(DecodeStrictJSON|EncodeValidatedJSON|JSONMarshal|RejectDuplicateJSONFields)' \
-	-benchmem -count=1 ./core
-run_gate benchmark-attest-sign \
-	go test -run '^$' -bench '^BenchmarkSignCanonicalBody(64KiB|Maximum)$' \
-	-benchmem -count=1 ./attest
-run_gate benchmark-currency \
-	go test -run '^$' -bench '^Benchmark(ParseDecimal|FormatDecimal)$' \
-	-benchmem -count=1 ./currency
-run_gate benchmark-garble \
-	go test -run '^$' -bench '^Benchmark(DeriveSeed|ParseSeed)$' \
-	-benchmem -count=1 ./garble
-run_gate benchmark-keygen \
-	go test -run '^$' -bench '^BenchmarkGenerate(SigningKey|MaximumSecret)$' \
-	-benchmem -count=1 ./keygen
-run_gate fuzz-decode-strict-json-absolute-path \
-	go test -run '^$' -fuzz '^FuzzDecodeStrictJSONAbsolutePathPublicBoundary$' \
-	-fuzztime=100000x -parallel=1 ./core
-run_gate fuzz-marshal-json-string \
-	go test -run '^$' -fuzz '^FuzzMarshalJSONStringRoundTrip$' \
-	-fuzztime=100000x -parallel=1 ./core
-run_gate fuzz-parse-relative-path \
-	go test -run '^$' -fuzz '^FuzzParseRelativePathSemanticClosure$' \
-	-fuzztime=100000x -parallel=1 ./core
-run_gate fuzz-parse-declared-body-length \
-	go test -run '^$' -fuzz '^FuzzParseDeclaredBodyLength$' \
-	-fuzztime=100000x -parallel=1 ./exchange
-run_gate fuzz-attest-envelope-json \
-	go test -run '^$' -fuzz '^FuzzEnvelopeJSONSemanticClosure$' \
-	-fuzztime=100000x -parallel=1 ./attest
-run_gate fuzz-attest-signed-fields \
-	go test -run '^$' -fuzz '^FuzzVerifyRejectsEveryIndependentlyMutatedSignedField$' \
-	-fuzztime=100000x -parallel=1 ./attest
-run_gate fuzz-attest-canonical-object \
-	go test -run '^$' -fuzz '^FuzzCanonicalObjectEmitsStrictlyDecodableAndStableDocuments$' \
-	-fuzztime=100000x -parallel=1 ./attest
-run_gate fuzz-currency-decimal \
-	go test -run '^$' -fuzz '^FuzzDecimalParserAgainstStandardGrammarAndBigRationalOracle$' \
-	-fuzztime=100000x -parallel=1 ./currency
-run_gate fuzz-currency-amount-json \
-	go test -run '^$' -fuzz '^FuzzAmountJSONAgainstStandardTokenStreamOracle$' \
-	-fuzztime=100000x -parallel=1 ./currency
-run_gate fuzz-garble-seed-json \
-	go test -run '^$' -fuzz '^FuzzSeedJSONAgainstDirectStandardLibraryOracle$' \
-	-fuzztime=100000x -parallel=1 ./garble
+run_gate dead-code validate_deadcode_findings
+run_gate benchmark-inventory discover_go_targets Benchmark
+run_gate benchmark-inventory-ratchet validate_target_inventory \
+	"$artifact_directory/benchmark-inventory.log" 51 benchmark
+run_benchmark_packages "$artifact_directory/benchmark-inventory.log"
+run_gate fuzz-inventory discover_go_targets Fuzz
+run_gate fuzz-inventory-ratchet validate_target_inventory \
+	"$artifact_directory/fuzz-inventory.log" 30 fuzz
+run_gate fuzz-budget-overrides validate_fuzz_budget_overrides \
+	"$artifact_directory/fuzz-inventory.log"
+run_fuzz_targets "$artifact_directory/fuzz-inventory.log"
+
+if test "$gate_failure_status" -ne 0; then
+	printf '%s\n' "FAIL canonical gate; see $result_file"
+	exit "$gate_failure_status"
+fi
+printf '%s\n' "PASS canonical gate"

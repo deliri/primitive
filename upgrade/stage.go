@@ -31,7 +31,7 @@ func (s DownloadSource) Validate() error {
 		s.Provider != objectstore.ProviderGoogleCloudStorage {
 		return contractError(errors.New(downloadProviderDiagnostic))
 	}
-	if err := s.Target.Validate(); err != nil {
+	if err := s.Target.ValidateFor(s.Provider); err != nil {
 		return contractError(err)
 	}
 	if err := s.Policy.Validate(); err != nil {

@@ -284,7 +284,10 @@ func (t DownloadTarget) Validate() error {
 	return nil
 }
 
-func (t DownloadTarget) validateFor(provider Provider) error {
+// ValidateFor binds the target to one compiler-selected whole-object provider
+// before a caller performs any preparatory side effects. The transfer entry
+// points apply the same gate again at execution ingress.
+func (t DownloadTarget) ValidateFor(provider Provider) error {
 	if err := t.Validate(); err != nil {
 		return err
 	}
@@ -436,7 +439,7 @@ func (r DownloadRequest) validateFor(provider Provider) error {
 	if err := r.Validate(); err != nil {
 		return err
 	}
-	if err := r.Target.validateFor(provider); err != nil {
+	if err := r.Target.ValidateFor(provider); err != nil {
 		return err
 	}
 	spec, err := Spec(provider)

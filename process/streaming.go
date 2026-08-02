@@ -78,6 +78,7 @@ type observedReader struct {
 	source   io.Reader
 	failures *streamFailures
 	count    uint64
+	empties  int
 }
 
 func (r *observedReader) Read(buffer []byte) (count int, err error) {
@@ -89,23 +90,38 @@ func (r *observedReader) Read(buffer []byte) (count int, err error) {
 		}
 	}()
 	count, err = r.source.Read(buffer)
-	if count < 0 || count > len(buffer) {
+	return r.observeRead(len(buffer), count, err)
+}
+
+func (r *observedReader) observeRead(
+	bufferLength int,
+	count int,
+	readErr error,
+) (int, error) {
+	if count < 0 || count > bufferLength {
 		violation := errors.New("stdin reader returned an invalid byte count")
-		if err != nil {
-			violation = errors.Join(violation, err)
+		if readErr != nil {
+			violation = errors.Join(violation, readErr)
 		}
 		r.failures.record(StreamStdin, violation)
 		return 0, violation
 	}
 	if count > 0 {
+		r.empties = 0
 		if countErr := r.observeCount(count); countErr != nil {
 			return 0, countErr
 		}
+	} else if readErr == nil {
+		r.empties++
+		if r.empties >= core.ReaderConsecutiveEmptyReadMaximum {
+			r.failures.record(StreamStdin, io.ErrNoProgress)
+			return 0, io.ErrNoProgress
+		}
 	}
-	if err != nil && !errors.Is(err, io.EOF) {
-		r.failures.record(StreamStdin, err)
+	if readErr != nil && !errors.Is(readErr, io.EOF) {
+		r.failures.record(StreamStdin, readErr)
 	}
-	return count, err
+	return count, readErr
 }
 
 func (r *observedReader) observeCount(count int) error {

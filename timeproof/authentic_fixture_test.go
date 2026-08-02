@@ -131,6 +131,25 @@ func TestTimeProofVerifierLayerTriad(t *testing.T) {
 	})
 }
 
+func TestVerifierPreservesStandardLibraryDERFailure(t *testing.T) {
+	t.Parallel()
+
+	fixture := loadAuthenticFixture(t)
+	got, gotErr := Verify(VerifyRequest{
+		Response: []byte{0x30, 0x80}, Request: fixture.request,
+		ExpectedDigest: fixture.digest,
+	})
+	var syntaxError asn1.SyntaxError
+	if !errors.Is(gotErr, core.ErrTimeProofInvalid) ||
+		!errors.As(gotErr, &syntaxError) || !got.isZero() {
+		t.Fatalf(
+			"Verify(indefinite DER) timestamp/error = (%v, %v), want zero and Timeproof invalid carrying asn1.SyntaxError",
+			got,
+			gotErr,
+		)
+	}
+}
+
 func TestAuthenticResponseMutationTable(t *testing.T) {
 	t.Parallel()
 

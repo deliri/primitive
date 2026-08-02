@@ -4,9 +4,80 @@ Last updated: `2026-08-02`
 
 ## Current
 
-- Checkpoint status, 2026-08-02: the user authorized committing the complete
-  in-progress doctrine sweep represented by this working tree. Review continues
-  package by package after the checkpoint; no push, tag, or release is implied.
+- Proof-machine and substrate-error closure, 2026-08-02: the canonical gate no
+  longer carries a hand-maintained target list that stopped after Garble. It
+  discovers the compiler's complete landed
+  benchmark and fuzz inventories, records both as hashed evidence, ratchets
+  their current minimum counts, runs every benchmark package serially, and
+  gives every fuzz target one explicit serial budget. Parser and verifier
+  targets receive 100,000 executions; Filestore's two real rooted-I/O targets
+  receive 10,000 executions through a reasoned, exact, two-entry override
+  ratchet after a live run proved the uniform budget exceeded their explicit
+  test timeout. Gate failures are retained while later independent evidence
+  phases continue, and the gate
+  returns the first failure only after the complete manifest is written.
+  Timeproof now joins every `encoding/asn1`, `crypto/x509`, and signature
+  substrate error into `ErrTimeProofInvalid`; a public verifier test proves an
+  `asn1.SyntaxError` remains reachable through `errors.As`. Exchange preserves
+  method, media-type, and content-coding parser causes through its typed request
+  and response identities. PLAN's single-purpose column is now a
+  compiler-owned catalog projection with a synthetic drift ratchet for every
+  package. Core's sixty-two self-projection admissions retain their fixed
+  maximum and compiler witnesses and now carry one of two typed per-entry
+  reasons: architecture catalog or external test-isolation analyzer ABI.
+- Exchange product-protocol removal, 2026-08-02:
+  the house API envelope, product failure codes, request-ID normalization,
+  operator message, and remediation-tip protocol are deleted from Primitive.
+  Repository tracing found no Primitive production consumer and extensive
+  ownership in Kernel's API and transport packages. No shim or alias remains;
+  the later Kernel upgrade must move that product protocol to its actual owner.
+  Exchange now owns only bounded client and server policy over Go's real
+  `net/http` boundary, as stated by the compiler catalog and PLAN projection.
+- Shared reader-progress and committed-upgrade closure, 2026-08-02: Core
+  reopens with one shared `ReaderConsecutiveEmptyReadMaximum`, proved by
+  Exchange, Filestore, Hostfacts,
+  and Process consumers. Each funnels repeated `(0, nil)` reads to Go's
+  `io.ErrNoProgress` without replacing standard-library copy or framing
+  ownership. Upgrade validates Objectstore provider/target binding before
+  creating a slot or trial receipt, and after a durable selector commit it
+  resolves the committed primary through a cleanup context so caller
+  cancellation cannot turn committed success into a false failure. Release's
+  clock bounds derive from Temporal's compiler constants rather than copied
+  nanosecond arithmetic.
+- Peachfuzz release-identity admission, 2026-08-02: Core's single closed
+  `Offering` authority now admits `OfferingPeachfuzz` with canonical token
+  `peachfuzz`. The full byte-domain ratchet proves that only Bug, Witness, and
+  Peachfuzz are valid and round-trip through both text and JSON. A complete
+  Peachfuzz `BuildIdentity` round trip and Release's signed artifact, manifest,
+  Latest, and verification pipeline prove the new product identity reaches
+  every Primitive-owned release boundary unchanged; Upgrade separately proves
+  a newer same-platform Peachfuzz artifact pair is admissible. No consumer-side
+  enum, alias, or compatibility path is admitted.
+- Canonical local evidence, 2026-08-02: the post-Peachfuzz gate manifest at
+  `.artifacts/gates/2026-08-02-world-class-audit-peachfuzz` records seventy-four
+  passing gates and one blocked gate across 879 summed command-seconds. The
+  ordinary and race suites, vet, staticcheck, errcheck, nilaway, complexity,
+  exact constant and dead-code admissions, all-struct field alignment, gosec,
+  govulncheck, all fifty-one benchmarks, and all thirty fuzz targets passed.
+  Twenty-eight parser and protocol fuzz targets ran 100,000 executions each;
+  Filestore's two rooted durable-I/O targets ran their ratcheted 10,000
+  executions each. The sole nonzero row is Witness's two Process findings
+  described below. Admission-path normalization is proved for Windows drive
+  letters and separators, and the three-platform workflow ceiling is ninety
+  minutes against this approximately fifteen-minute local manifest.
+- External analyzer blocker, 2026-08-02: the pinned Witness analyzer still
+  reports Process's sole real `exec.CommandContext` ownership boundary. Its
+  accepted capability declaration is hard-coded to
+  `github.com/offGridSoft/witness/internal/core`, which Go forbids Primitive
+  from importing. Process therefore returns to `BLOCKED_BY_DEPENDENCY` instead
+  of claiming `DONE`; no inaccessible import, ceremonial local lookalike, or
+  waiver is introduced. Upgrade likewise remains `BLOCKED_BY_DEPENDENCY` until
+  caller-supplied live provider capabilities permit PLAN's required remote
+  proof.
+
+- Prior checkpoint, 2026-08-02: the reviewed doctrine and fail-closed protocol
+  sweeps were committed through `6b4acfc` and pushed to `main`. The current
+  proof-machine and Peachfuzz Core reopening are a later slice.
   Entries below that say `uncommitted` record the state when their proof was
   captured, before this checkpoint authorization.
 
@@ -2280,13 +2351,13 @@ State vocabulary: `NEXT`, `BLOCKED_BY_DEPENDENCY`, `NOT_STARTED`, `RED`,
 | `lease`            | `DONE`                  |
 | `gate`             | `DONE`                  |
 | `receipt`          | `DONE`                  |
-| `process`          | `DONE`                  |
+| `process`          | `BLOCKED_BY_DEPENDENCY` |
 | `release`          | `DONE`                  |
 | `shutdown`         | `DONE`                  |
 | `objectstore`      | `DONE`                  |
 | `timeproof`        | `DONE`                  |
 | `cloudidentity`    | `DONE`                  |
-| `upgrade`          | `DONE`                  |
+| `upgrade`          | `BLOCKED_BY_DEPENDENCY` |
 
 Consumer state is recorded under the active package only. There is no separate
 all-consumer phase.

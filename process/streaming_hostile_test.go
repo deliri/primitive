@@ -19,6 +19,10 @@ type invalidCountAndErrorDestination struct {
 	cause error
 }
 
+type emptyForeverReader struct{}
+
+func (emptyForeverReader) Read([]byte) (int, error) { return 0, nil }
+
 func (w invalidCountAndErrorDestination) Write(buffer []byte) (int, error) {
 	return len(buffer) + 1, w.cause
 }
@@ -86,5 +90,27 @@ func TestForwardFullWritePreservesInvalidCountAndNativeFailure(t *testing.T) {
 	if count != 0 || retained != 0 ||
 		!errors.Is(err, io.ErrShortWrite) || !errors.Is(err, native) {
 		t.Fatalf("forwardFullWrite() = (%d, retained %d, %v), want zero, zero, %v, and native cause", count, retained, err, io.ErrShortWrite)
+	}
+}
+
+func TestObservedReaderRefusesUnendingEmptyStdin(t *testing.T) {
+	t.Parallel()
+
+	ctx, cancel := context.WithCancelCause(context.Background())
+	failures := &streamFailures{cancel: cancel}
+	reader := &observedReader{
+		source: emptyForeverReader{}, failures: failures,
+	}
+	var gotErr error
+	for range core.ReaderConsecutiveEmptyReadMaximum {
+		_, gotErr = reader.Read(make([]byte, 1))
+	}
+	if !errors.Is(gotErr, io.ErrNoProgress) {
+		t.Fatalf("observedReader.Read(empty stdin) error = %v, want %v",
+			gotErr, io.ErrNoProgress)
+	}
+	if !errors.Is(context.Cause(ctx), io.ErrNoProgress) {
+		t.Fatalf("process cancellation cause = %v, want %v",
+			context.Cause(ctx), io.ErrNoProgress)
 	}
 }

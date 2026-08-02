@@ -7,25 +7,6 @@ import (
 	"github.com/deliri/primitive/v2026/core"
 )
 
-const (
-	apiCodeDomainErrorText        = "api failure code is outside the closed domain"
-	apiCodeTokenErrorText         = "api failure code token is unknown"
-	apiCodeReceiverErrorText      = "nil api failure code receiver"
-	apiRequestIDReceiverErrorText = "nil api request identifier receiver"
-	apiOutcomeDomainErrorText     = "api envelope outcome is outside the closed domain"
-	apiEnvelopeArmErrorText       = "api envelope does not carry exactly one of data or error"
-	apiEnvelopeReceiverErrorText  = "nil api envelope receiver"
-	apiEnvelopeEncodeErrorText    = "api envelope is encoded through MarshalAPIEnvelope"
-	apiEnvelopeSuccessErrorText   = "api envelope carries no data arm"
-	apiEnvelopeFailureErrorText   = "api envelope carries no error arm"
-	apiNoBodyDataErrorText        = "api no-body value cannot be used as a data arm"
-	apiTextEmptyErrorText         = "api text is empty"
-	apiTextEncodingErrorText      = "api text is not valid utf-8"
-	apiTextWhitespaceErrorText    = "api text carries surrounding whitespace"
-	apiTextRuneErrorText          = "api text contains a control or replacement rune"
-	apiTextExtentErrorText        = "api text exceeds its rune limit"
-)
-
 func requestError(cause error) error {
 	return errors.Join(core.ErrExchangeRequest, cause)
 }

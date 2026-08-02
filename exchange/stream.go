@@ -471,6 +471,44 @@ type downloadCopyRequest struct {
 	limit       core.ByteCount
 }
 
+// progressReader adds only Primitive's bounded cancellation and no-progress
+// policy around a caller-controlled reader. io.CopyBuffer and io.ReadFull stay
+// the sole owners of streaming and exact-read mechanics.
+type progressReader struct {
+	context    context.Context
+	source     io.Reader
+	emptyReads int
+}
+
+func (r *progressReader) Read(buffer []byte) (int, error) {
+	if err := contextAfterTransfer(r.context); err != nil {
+		return 0, err
+	}
+	count, readErr := r.source.Read(buffer)
+	if count < 0 || count > len(buffer) {
+		return 0, core.ErrExchangeContract
+	}
+	// A native read failure describes the bytes returned by that exact call and
+	// therefore wins over cancellation observed immediately afterward. In
+	// particular, a truncated HTTP body remains an extent defect rather than
+	// becoming timing-dependent cancellation.
+	if readErr != nil {
+		return count, readErr
+	}
+	if err := contextAfterTransfer(r.context); err != nil {
+		return 0, err
+	}
+	if count > 0 {
+		r.emptyReads = 0
+		return count, nil
+	}
+	r.emptyReads++
+	if r.emptyReads >= core.ReaderConsecutiveEmptyReadMaximum {
+		return 0, io.ErrNoProgress
+	}
+	return 0, nil
+}
+
 func copyDownload(
 	request downloadCopyRequest,
 ) (written uint64, err error) {
@@ -486,8 +524,12 @@ func copyDownload(
 	if err != nil {
 		return 0, err
 	}
+	progress := &progressReader{
+		context: request.context,
+		source:  request.source,
+	}
 	limited := &io.LimitedReader{
-		R: request.source,
+		R: progress,
 		N: limit,
 	}
 	buffer := acquireTransferBuffer()
@@ -515,17 +557,21 @@ func probeDownloadEnd(
 	written uint64,
 ) (uint64, error) {
 	var probe [1]byte
-	read, readErr := request.source.Read(probe[:])
-	if read < 0 || read > len(probe) {
-		return written, core.ErrExchangeContract
+	progress := &progressReader{
+		context: request.context,
+		source:  request.source,
 	}
+	read, readErr := io.ReadFull(progress, probe[:])
 	if read > 0 {
 		return written, core.ErrExchangeBodyLimit
 	}
-	if readErr != nil && !errors.Is(readErr, io.EOF) {
+	if errors.Is(readErr, io.EOF) {
+		return written, contextAfterTransfer(request.context)
+	}
+	if readErr != nil {
 		return written, readErr
 	}
-	return written, contextAfterTransfer(request.context)
+	return written, core.ErrExchangeContract
 }
 
 func contextAfterTransfer(ctx context.Context) error {

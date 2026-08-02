@@ -15,7 +15,6 @@ const (
 	goOOMBufferBytes = 32 << 10
 	// GoOOMMaximumEvidenceBytes bounds one banner-classification source.
 	GoOOMMaximumEvidenceBytes = 1 << 20
-	zeroReadMaximum           = 100
 
 	// GoOOMPrefixedBanner and GoOOMPlainBanner are the exact Go runtime
 	// diagnostics recognized by ClassifyGoOOMBanner. Consumers use these
@@ -317,7 +316,7 @@ func classifyOOMRead(remaining uint64, emptyReads int, readErr error) error {
 	if readErr != nil {
 		return readErr
 	}
-	if emptyReads >= zeroReadMaximum {
+	if emptyReads >= core.ReaderConsecutiveEmptyReadMaximum {
 		return io.ErrNoProgress
 	}
 	return nil

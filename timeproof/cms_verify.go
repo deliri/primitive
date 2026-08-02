@@ -2,7 +2,7 @@ package timeproof
 
 import (
 	"bytes"
-	// witness:waiver doctrine/security/weak_crypto -- RFC 3161 ESSCertID v1 mandates SHA-1 solely to identify the certificate inside an already signed CMS object.
+	// witness:waiver doctrine/security/weak_crypto -- RFC 3161 ESSCertID v1 mandates SHA-1 solely to identify a certificate inside an independently signature-authenticated CMS token.
 	"crypto/sha1" // #nosec G505 -- RFC 3161 ESSCertID uses SHA-1 only to identify the already signed certificate.
 	"crypto/sha256"
 	"crypto/sha512"
@@ -102,7 +102,7 @@ func verifyTimestampChain(request timestampChainRequest) ([]*x509.Certificate, e
 	})
 	if err != nil || len(chains) != 1 || len(chains[0]) < 2 ||
 		!chains[0][len(chains[0])-1].Equal(request.root) {
-		return nil, invalidError(nil)
+		return nil, invalidError(err)
 	}
 	return chains[0], nil
 }
@@ -165,13 +165,13 @@ func verifySigningCertificateV1(attribute cmsAttribute, signer *x509.Certificate
 	}
 	hashRaw, fields, err := consumeRaw(certificateID.Bytes)
 	if err != nil || !isUniversal(hashRaw, asn1.TagOctetString, false) {
-		return invalidError(nil)
+		return invalidError(err)
 	}
 	var got []byte
 	if trailing, decodeErr := asn1.Unmarshal(hashRaw.FullBytes, &got); decodeErr != nil || len(trailing) != 0 {
-		return invalidError(nil)
+		return invalidError(decodeErr)
 	}
-	// witness:waiver doctrine/security/weak_crypto -- RFC 3161 ESSCertID v1 mandates SHA-1 solely to identify the certificate inside an already signed CMS object.
+	// witness:waiver doctrine/security/weak_crypto -- RFC 3161 ESSCertID v1 mandates SHA-1 solely to identify a certificate inside an independently signature-authenticated CMS token.
 	want := sha1.Sum(signer.Raw) // #nosec G401 -- RFC 3161 ESSCertID mandates SHA-1 certificate identification.
 	if subtle.ConstantTimeCompare(got, want[:]) != 1 {
 		return invalidError(nil)
@@ -190,11 +190,11 @@ func verifySigningCertificateV2(attribute cmsAttribute, signer *x509.Certificate
 	}
 	got, err := decodeOctetString(hashRaw)
 	if err != nil {
-		return invalidError(nil)
+		return invalidError(err)
 	}
 	want, err := certificateDigest(hashOID, signer.Raw)
 	if err != nil || subtle.ConstantTimeCompare(got, want) != 1 {
-		return invalidError(nil)
+		return invalidError(err)
 	}
 	return verifyOptionalIssuerSerial(remaining, signer)
 }
@@ -203,14 +203,14 @@ func consumeESSV2Hash(fields []byte) (asn1.ObjectIdentifier, asn1.RawValue, []by
 	hashOID := oidSHA256
 	first, remaining, err := consumeRaw(fields)
 	if err != nil {
-		return nil, asn1.RawValue{}, nil, invalidError(nil)
+		return nil, asn1.RawValue{}, nil, invalidError(err)
 	}
 	if !isUniversal(first, asn1.TagSequence, true) {
 		return hashOID, first, remaining, nil
 	}
 	var algorithm pkix.AlgorithmIdentifier
 	if trailing, decodeErr := asn1.Unmarshal(first.FullBytes, &algorithm); decodeErr != nil || len(trailing) != 0 {
-		return nil, asn1.RawValue{}, nil, invalidError(nil)
+		return nil, asn1.RawValue{}, nil, invalidError(decodeErr)
 	}
 	// RFC 5035 defines SHA-256 as ESSCertIDv2's DEFAULT. DER requires a
 	// sequence component equal to its default to be omitted, so an explicit
@@ -220,7 +220,7 @@ func consumeESSV2Hash(fields []byte) (asn1.ObjectIdentifier, asn1.RawValue, []by
 	}
 	hashRaw, remaining, err := consumeRaw(remaining)
 	if err != nil {
-		return nil, asn1.RawValue{}, nil, invalidError(nil)
+		return nil, asn1.RawValue{}, nil, invalidError(err)
 	}
 	return algorithm.Algorithm, hashRaw, remaining, nil
 }
@@ -231,7 +231,7 @@ func decodeOctetString(raw asn1.RawValue) ([]byte, error) {
 	}
 	var value []byte
 	if trailing, err := asn1.Unmarshal(raw.FullBytes, &value); err != nil || len(trailing) != 0 {
-		return nil, invalidError(nil)
+		return nil, invalidError(err)
 	}
 	return value, nil
 }
@@ -246,14 +246,14 @@ func signingCertificateID(attribute cmsAttribute) (asn1.RawValue, error) {
 	}
 	certificates, trailing, err := consumeRaw(signingCertificate.Bytes)
 	if err != nil || !isUniversal(certificates, asn1.TagSequence, true) {
-		return asn1.RawValue{}, invalidError(nil)
+		return asn1.RawValue{}, invalidError(err)
 	}
 	if len(trailing) != 0 {
 		return asn1.RawValue{}, invalidError(nil)
 	}
 	certificateID, remaining, err := consumeRaw(certificates.Bytes)
 	if err != nil || len(remaining) != 0 || !isUniversal(certificateID, asn1.TagSequence, true) {
-		return asn1.RawValue{}, invalidError(nil)
+		return asn1.RawValue{}, invalidError(err)
 	}
 	return certificateID, nil
 }
@@ -280,32 +280,38 @@ func verifyOptionalIssuerSerial(fields []byte, signer *x509.Certificate) error {
 	}
 	issuerSerial, trailing, err := consumeRaw(fields)
 	if err != nil || len(trailing) != 0 || !isUniversal(issuerSerial, asn1.TagSequence, true) {
-		return invalidError(nil)
+		return invalidError(err)
 	}
 	generalNames, remainder, err := consumeRaw(issuerSerial.Bytes)
 	if err != nil || !isUniversal(generalNames, asn1.TagSequence, true) {
-		return invalidError(nil)
+		return invalidError(err)
 	}
-	if !issuerSerialMatches(remainder, signer) {
-		return invalidError(nil)
+	if err := validateIssuerSerial(remainder, signer); err != nil {
+		return err
 	}
-	if !generalNamesContainIssuer(generalNames.Bytes, signer.RawIssuer) {
+	if err := validateGeneralNamesIssuer(generalNames.Bytes, signer.RawIssuer); err != nil {
+		return err
+	}
+	return nil
+}
+
+func validateIssuerSerial(fields []byte, signer *x509.Certificate) error {
+	serial, trailing, err := consumePositiveInteger(fields, SerialMaximumBits)
+	if err != nil {
+		return err
+	}
+	if len(trailing) != 0 || serial.Cmp(signer.SerialNumber) != 0 {
 		return invalidError(nil)
 	}
 	return nil
 }
 
-func issuerSerialMatches(fields []byte, signer *x509.Certificate) bool {
-	serial, trailing, err := consumePositiveInteger(fields, SerialMaximumBits)
-	return err == nil && len(trailing) == 0 && serial.Cmp(signer.SerialNumber) == 0
-}
-
-func generalNamesContainIssuer(fields []byte, rawIssuer []byte) bool {
+func validateGeneralNamesIssuer(fields []byte, rawIssuer []byte) error {
 	found := false
 	for len(fields) != 0 {
 		name, remaining, err := consumeRaw(fields)
 		if err != nil {
-			return false
+			return err
 		}
 		if name.Class == asn1.ClassContextSpecific && name.Tag == generalNameDirectoryNameTag &&
 			bytes.Equal(name.Bytes, rawIssuer) {
@@ -313,5 +319,8 @@ func generalNamesContainIssuer(fields []byte, rawIssuer []byte) bool {
 		}
 		fields = remaining
 	}
-	return found
+	if !found {
+		return invalidError(nil)
+	}
+	return nil
 }

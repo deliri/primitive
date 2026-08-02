@@ -1,0 +1,2 @@
+filestore	FuzzStageCommitRoundTrip	10000x	Real rooted stage and durable commit I/O costs about 27 executions per second on the reference host.
+filestore	FuzzWriteReadRoundTrip	10000x	Real rooted write, sync, and read I/O costs about 50 executions per second on the reference host.

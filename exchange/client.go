@@ -687,7 +687,10 @@ func validateIdentityContentCoding(headers http.Header) error {
 		return responseError(core.ErrExchangeContentType)
 	}
 	coding, err := parseHTTPContentCoding(values[0])
-	if err != nil || coding != identityContentCoding() {
+	if err != nil {
+		return responseError(errors.Join(core.ErrExchangeContentType, err))
+	}
+	if coding != identityContentCoding() {
 		return responseError(core.ErrExchangeContentType)
 	}
 	return nil
@@ -718,10 +721,13 @@ func validateResponseContentType(
 	}
 	actual, err := core.ParseHTTPMediaType(values[0])
 	if err != nil {
-		return responseError(core.ErrExchangeContentType)
+		return responseError(errors.Join(core.ErrExchangeContentType, err))
 	}
 	matches, err := actual.SameBase(expected)
-	if err != nil || !matches {
+	if err != nil {
+		return responseError(errors.Join(core.ErrExchangeContentType, err))
+	}
+	if !matches {
 		return responseError(core.ErrExchangeContentType)
 	}
 	return nil

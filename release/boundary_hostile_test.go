@@ -334,6 +334,25 @@ func TestReleaseVerifierLayerTriadSeparatesEveryAuthority(t *testing.T) {
 	}
 }
 
+func TestPeachfuzzOfferingTraversesSignedReleasePipeline(t *testing.T) {
+	t.Parallel()
+
+	fixture := newReleaseFixtureForOffering(
+		t, core.OfferingPeachfuzz, core.NewReleaseVersion(2026, 8, 2), 1,
+	)
+	if fixture.manifest.Fact.Offering() != core.OfferingPeachfuzz ||
+		fixture.verified.Offering() != core.OfferingPeachfuzz ||
+		fixture.latest.Fact.Offering() != core.OfferingPeachfuzz ||
+		fixture.verifiedLatest.Manifest().Offering() != core.OfferingPeachfuzz {
+		t.Fatalf("Peachfuzz offering did not survive the signed release pipeline")
+	}
+	for index, build := range fixture.builds {
+		if build.Offering() != core.OfferingPeachfuzz {
+			t.Fatalf("Peachfuzz build %d offering = %v, want %v", index, build.Offering(), core.OfferingPeachfuzz)
+		}
+	}
+}
+
 func TestSelectionAndPreparationExhaustActionBoundaries(t *testing.T) {
 	t.Parallel()
 	installed := newReleaseFixture(t, core.NewReleaseVersion(2026, 7, 30), 1)

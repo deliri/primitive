@@ -41,6 +41,46 @@ type coreExportInventory struct {
 type coreSpecialExportAdmission struct {
 	witness any
 	name    coreExportName
+	reason  coreSpecialExportAdmissionReason
+}
+
+type coreSpecialExportAdmissionReason uint8
+
+const (
+	coreSpecialExportAdmissionReasonUnknown coreSpecialExportAdmissionReason = iota
+	coreSpecialExportAdmissionReasonArchitectureCatalog
+	coreSpecialExportAdmissionReasonTestIsolationContract
+	coreSpecialExportAdmissionReasonLimit
+)
+
+func coreSpecialExportAdmissionReasonTexts() [coreSpecialExportAdmissionReasonLimit]string {
+	return [...]string{
+		coreSpecialExportAdmissionReasonArchitectureCatalog:   "compiler-owned architecture catalog is Core's self-projection",
+		coreSpecialExportAdmissionReasonTestIsolationContract: "external test-isolation analyzer ABI is Core's self-projection",
+	}
+}
+
+func (r coreSpecialExportAdmissionReason) Validate() error {
+	if r <= coreSpecialExportAdmissionReasonUnknown ||
+		r >= coreSpecialExportAdmissionReasonLimit ||
+		coreSpecialExportAdmissionReasonTexts()[r] == "" {
+		return architectureContractError("Core special export admission reason is invalid")
+	}
+	return nil
+}
+
+func architectureCatalogAdmission(name coreExportName, witness any) coreSpecialExportAdmission {
+	return coreSpecialExportAdmission{
+		name: name, witness: witness,
+		reason: coreSpecialExportAdmissionReasonArchitectureCatalog,
+	}
+}
+
+func testIsolationContractAdmission(name coreExportName, witness any) coreSpecialExportAdmission {
+	return coreSpecialExportAdmission{
+		name: name, witness: witness,
+		reason: coreSpecialExportAdmissionReasonTestIsolationContract,
+	}
 }
 
 // These are PLAN's compiler-owned architecture catalog, not ordinary shared
@@ -48,68 +88,68 @@ type coreSpecialExportAdmission struct {
 // rename breaks the test build instead of changing policy through a filename.
 func coreSpecialExportAdmissions() [62]coreSpecialExportAdmission {
 	return [...]coreSpecialExportAdmission{
-		{name: "ArchitectureCatalog", witness: ArchitectureCatalog{}},
-		{name: "DirectImportContract", witness: DirectImportContract{}},
-		{name: "DirectTestImportContract", witness: DirectTestImportContract{}},
-		{name: "PackageContract", witness: PackageContract{}},
-		{name: "PackageIdentity", witness: PackageIdentity(0)},
-		{name: "PackageKind", witness: PackageKind(0)},
-		{name: "PackageKindUnknown", witness: PackageKindUnknown},
-		{name: "PackageKindProduction", witness: PackageKindProduction},
-		{name: "PackageKindTestSupport", witness: PackageKindTestSupport},
-		{name: "PackageUnknown", witness: PackageUnknown},
-		{name: "PackageCore", witness: PackageCore},
-		{name: "PackageAttest", witness: PackageAttest},
-		{name: "PackageContextState", witness: PackageContextState},
-		{name: "PackageCurrency", witness: PackageCurrency},
-		{name: "PackageGarble", witness: PackageGarble},
-		{name: "PackageKeygen", witness: PackageKeygen},
-		{name: "PackageTestSerial", witness: PackageTestSerial},
-		{name: "PackageFilestore", witness: PackageFilestore},
-		{name: "PackageHostFacts", witness: PackageHostFacts},
-		{name: "PackageTemporal", witness: PackageTemporal},
-		{name: "PackageExchange", witness: PackageExchange},
-		{name: "PackageFuzzFinder", witness: PackageFuzzFinder},
-		{name: "PackageLease", witness: PackageLease},
-		{name: "PackageGate", witness: PackageGate},
-		{name: "PackageReceipt", witness: PackageReceipt},
-		{name: "PackageProcess", witness: PackageProcess},
-		{name: "PackageRelease", witness: PackageRelease},
-		{name: "PackageShutdown", witness: PackageShutdown},
-		{name: "PackageObjectStore", witness: PackageObjectStore},
-		{name: "PackageTimeProof", witness: PackageTimeProof},
-		{name: "PackageCloudIdentity", witness: PackageCloudIdentity},
-		{name: "PackageUpgrade", witness: PackageUpgrade},
-		{name: "ParsePackageIdentity", witness: ParsePackageIdentity},
-		{name: "PrimitiveArchitecture", witness: PrimitiveArchitecture},
-		{name: "PrimitivePackageCount", witness: PrimitivePackageCount},
-		{name: "PrimitiveDirectImportCount", witness: PrimitiveDirectImportCount},
-		{name: "PrimitiveDirectTestImportCount", witness: PrimitiveDirectTestImportCount},
-		{name: "PrimitiveMaximumDirectImports", witness: PrimitiveMaximumDirectImports},
-		{name: "PrimitiveModulePath", witness: PrimitiveModulePath},
-		{name: "PrimitivePackagePathPrefix", witness: PrimitivePackagePathPrefix},
-		{name: "TestIsolationCorePackagePath", witness: TestIsolationCorePackagePath},
-		{name: "TestIsolationDeclarationPackagePath", witness: TestIsolationDeclarationPackagePath},
-		{name: "TestIsolationDeclarationFunctionName", witness: TestIsolationDeclarationFunctionName},
-		{name: "TestIsolationDeclarationTypeName", witness: TestIsolationDeclarationTypeName},
-		{name: "TestIsolationDeclarationHazardFieldName", witness: TestIsolationDeclarationHazardFieldName},
-		{name: "TestIsolationDeclarationScopeFieldName", witness: TestIsolationDeclarationScopeFieldName},
-		{name: "TestIsolationHazard", witness: TestIsolationHazard(0)},
-		{name: "TestIsolationHazardUnknown", witness: TestIsolationHazardUnknown},
-		{name: "TestIsolationHazardProcessEnvironment", witness: TestIsolationHazardProcessEnvironment},
-		{name: "TestIsolationHazardProcessWorkingDirectory", witness: TestIsolationHazardProcessWorkingDirectory},
-		{name: "TestIsolationHazardProcessSignal", witness: TestIsolationHazardProcessSignal},
-		{name: "TestIsolationHazardProcessOutput", witness: TestIsolationHazardProcessOutput},
-		{name: "TestIsolationHazardProcessLogger", witness: TestIsolationHazardProcessLogger},
-		{name: "TestIsolationHazardGlobalRegistry", witness: TestIsolationHazardGlobalRegistry},
-		{name: "TestIsolationHazardRuntimeAllocation", witness: TestIsolationHazardRuntimeAllocation},
-		{name: "TestIsolationHazardSiblingOrder", witness: TestIsolationHazardSiblingOrder},
-		{name: "TestIsolationScope", witness: TestIsolationScope(0)},
-		{name: "TestIsolationScopeUnknown", witness: TestIsolationScopeUnknown},
-		{name: "TestIsolationScopeSiblingTable", witness: TestIsolationScopeSiblingTable},
-		{name: "TestIsolationScopePackageProcess", witness: TestIsolationScopePackageProcess},
-		{name: "TestIsolationDeclaration", witness: TestIsolationDeclaration{}},
-		{name: "ErrTestIsolationContract", witness: ErrTestIsolationContract},
+		architectureCatalogAdmission("ArchitectureCatalog", ArchitectureCatalog{}),
+		architectureCatalogAdmission("DirectImportContract", DirectImportContract{}),
+		architectureCatalogAdmission("DirectTestImportContract", DirectTestImportContract{}),
+		architectureCatalogAdmission("PackageContract", PackageContract{}),
+		architectureCatalogAdmission("PackageIdentity", PackageIdentity(0)),
+		architectureCatalogAdmission("PackageKind", PackageKind(0)),
+		architectureCatalogAdmission("PackageKindUnknown", PackageKindUnknown),
+		architectureCatalogAdmission("PackageKindProduction", PackageKindProduction),
+		architectureCatalogAdmission("PackageKindTestSupport", PackageKindTestSupport),
+		architectureCatalogAdmission("PackageUnknown", PackageUnknown),
+		architectureCatalogAdmission("PackageCore", PackageCore),
+		architectureCatalogAdmission("PackageAttest", PackageAttest),
+		architectureCatalogAdmission("PackageContextState", PackageContextState),
+		architectureCatalogAdmission("PackageCurrency", PackageCurrency),
+		architectureCatalogAdmission("PackageGarble", PackageGarble),
+		architectureCatalogAdmission("PackageKeygen", PackageKeygen),
+		architectureCatalogAdmission("PackageTestSerial", PackageTestSerial),
+		architectureCatalogAdmission("PackageFilestore", PackageFilestore),
+		architectureCatalogAdmission("PackageHostFacts", PackageHostFacts),
+		architectureCatalogAdmission("PackageTemporal", PackageTemporal),
+		architectureCatalogAdmission("PackageExchange", PackageExchange),
+		architectureCatalogAdmission("PackageFuzzFinder", PackageFuzzFinder),
+		architectureCatalogAdmission("PackageLease", PackageLease),
+		architectureCatalogAdmission("PackageGate", PackageGate),
+		architectureCatalogAdmission("PackageReceipt", PackageReceipt),
+		architectureCatalogAdmission("PackageProcess", PackageProcess),
+		architectureCatalogAdmission("PackageRelease", PackageRelease),
+		architectureCatalogAdmission("PackageShutdown", PackageShutdown),
+		architectureCatalogAdmission("PackageObjectStore", PackageObjectStore),
+		architectureCatalogAdmission("PackageTimeProof", PackageTimeProof),
+		architectureCatalogAdmission("PackageCloudIdentity", PackageCloudIdentity),
+		architectureCatalogAdmission("PackageUpgrade", PackageUpgrade),
+		architectureCatalogAdmission("ParsePackageIdentity", ParsePackageIdentity),
+		architectureCatalogAdmission("PrimitiveArchitecture", PrimitiveArchitecture),
+		architectureCatalogAdmission("PrimitivePackageCount", PrimitivePackageCount),
+		architectureCatalogAdmission("PrimitiveDirectImportCount", PrimitiveDirectImportCount),
+		architectureCatalogAdmission("PrimitiveDirectTestImportCount", PrimitiveDirectTestImportCount),
+		architectureCatalogAdmission("PrimitiveMaximumDirectImports", PrimitiveMaximumDirectImports),
+		architectureCatalogAdmission("PrimitiveModulePath", PrimitiveModulePath),
+		architectureCatalogAdmission("PrimitivePackagePathPrefix", PrimitivePackagePathPrefix),
+		testIsolationContractAdmission("TestIsolationCorePackagePath", TestIsolationCorePackagePath),
+		testIsolationContractAdmission("TestIsolationDeclarationPackagePath", TestIsolationDeclarationPackagePath),
+		testIsolationContractAdmission("TestIsolationDeclarationFunctionName", TestIsolationDeclarationFunctionName),
+		testIsolationContractAdmission("TestIsolationDeclarationTypeName", TestIsolationDeclarationTypeName),
+		testIsolationContractAdmission("TestIsolationDeclarationHazardFieldName", TestIsolationDeclarationHazardFieldName),
+		testIsolationContractAdmission("TestIsolationDeclarationScopeFieldName", TestIsolationDeclarationScopeFieldName),
+		testIsolationContractAdmission("TestIsolationHazard", TestIsolationHazard(0)),
+		testIsolationContractAdmission("TestIsolationHazardUnknown", TestIsolationHazardUnknown),
+		testIsolationContractAdmission("TestIsolationHazardProcessEnvironment", TestIsolationHazardProcessEnvironment),
+		testIsolationContractAdmission("TestIsolationHazardProcessWorkingDirectory", TestIsolationHazardProcessWorkingDirectory),
+		testIsolationContractAdmission("TestIsolationHazardProcessSignal", TestIsolationHazardProcessSignal),
+		testIsolationContractAdmission("TestIsolationHazardProcessOutput", TestIsolationHazardProcessOutput),
+		testIsolationContractAdmission("TestIsolationHazardProcessLogger", TestIsolationHazardProcessLogger),
+		testIsolationContractAdmission("TestIsolationHazardGlobalRegistry", TestIsolationHazardGlobalRegistry),
+		testIsolationContractAdmission("TestIsolationHazardRuntimeAllocation", TestIsolationHazardRuntimeAllocation),
+		testIsolationContractAdmission("TestIsolationHazardSiblingOrder", TestIsolationHazardSiblingOrder),
+		testIsolationContractAdmission("TestIsolationScope", TestIsolationScope(0)),
+		testIsolationContractAdmission("TestIsolationScopeUnknown", TestIsolationScopeUnknown),
+		testIsolationContractAdmission("TestIsolationScopeSiblingTable", TestIsolationScopeSiblingTable),
+		testIsolationContractAdmission("TestIsolationScopePackageProcess", TestIsolationScopePackageProcess),
+		testIsolationContractAdmission("TestIsolationDeclaration", TestIsolationDeclaration{}),
+		testIsolationContractAdmission("ErrTestIsolationContract", ErrTestIsolationContract),
 	}
 }
 
@@ -132,6 +172,9 @@ func TestCoreTopLevelExportsHaveTwoNamedPrimitiveConsumers(t *testing.T) {
 		}
 		if _, ok := exports.Lookup(admission.name); !ok {
 			t.Errorf("Core special admission %s names no production export", admission.name)
+		}
+		if err := admission.reason.Validate(); err != nil {
+			t.Errorf("Core special admission %s reason error = %v, want nil", admission.name, err)
 		}
 		for prior := 0; prior < index; prior++ {
 			if admissions[prior].name == admission.name {
@@ -210,7 +253,7 @@ func coreExportIsSpeciallyAdmitted(
 	name coreExportName,
 ) bool {
 	return slices.ContainsFunc(admissions[:], func(admission coreSpecialExportAdmission) bool {
-		return admission.name == name && admission.witness != nil
+		return admission.name == name && admission.witness != nil && admission.reason.Validate() == nil
 	})
 }
 

@@ -13,8 +13,6 @@ import (
 	"github.com/deliri/primitive/v2026/filestore"
 )
 
-const consecutiveEmptyReadLimit = 100
-
 type emptyReadSequence struct {
 	emptyReads int
 	reads      int
@@ -89,20 +87,20 @@ func TestStageNoProgressThresholdBoundaryMatrix(t *testing.T) {
 	}{
 		{
 			name:       "two below consecutive empty-read limit reaches eof",
-			emptyReads: consecutiveEmptyReadLimit - 2,
+			emptyReads: core.ReaderConsecutiveEmptyReadMaximum - 2,
 		},
 		{
 			name:       "one below consecutive empty-read limit reaches eof",
-			emptyReads: consecutiveEmptyReadLimit - 1,
+			emptyReads: core.ReaderConsecutiveEmptyReadMaximum - 1,
 		},
 		{
 			name:       "exact consecutive empty-read limit rejects no progress",
-			emptyReads: consecutiveEmptyReadLimit,
+			emptyReads: core.ReaderConsecutiveEmptyReadMaximum,
 			wantErr:    io.ErrNoProgress,
 		},
 		{
 			name:       "one above consecutive empty-read limit rejects at the exact limit",
-			emptyReads: consecutiveEmptyReadLimit + 1,
+			emptyReads: core.ReaderConsecutiveEmptyReadMaximum + 1,
 			wantErr:    io.ErrNoProgress,
 		},
 	}

@@ -40,12 +40,6 @@ type exchangeContractInventory struct {
 	redirectFact    internalFlow[redirectFact]
 	requestMetadata internalFlow[requestMetadata]
 
-	APIRequestID    protocolContract[APIRequestID]
-	APIErrorBody    protocolContract[APIErrorBody]
-	APINoBody       protocolContract[APINoBody]
-	APIEnvelope     protocolContract[APIEnvelope[inventoryDocument]]
-	apiEnvelopeWire internalFlow[apiEnvelopeWire[inventoryDocument]]
-
 	RedirectPolicy       protocolContract[RedirectPolicy]
 	IdempotencyKey       protocolContract[IdempotencyKey]
 	Header               protocolContract[Header]
@@ -96,6 +90,7 @@ type exchangeContractInventory struct {
 	boundedBodyRead         internalFlow[boundedBodyRead]
 	boundedBodyDestination  internalFlow[boundedBodyDestination]
 	downloadCopyRequest     internalFlow[downloadCopyRequest]
+	progressReader          internalFlow[progressReader]
 	streamTransportFailure  internalFlow[streamTransportFailure]
 	declaredBodyLength      internalFlow[declaredBodyLength]
 	httpContentCoding       internalFlow[httpContentCoding]
@@ -224,7 +219,6 @@ func classifiedStructNames(t *testing.T) []string {
 var (
 	_ core.Validatable            = inventoryDocument{}
 	_ core.ValidatedJSONMarshaler = inventoryDocument{}
-	_                             = exchangeContractInventory{}.apiEnvelopeWire
 	_                             = exchangeContractInventory{}.replayFact
 	_                             = exchangeContractInventory{}.redirectFact
 	_                             = exchangeContractInventory{}.requestMetadata
@@ -248,6 +242,7 @@ var (
 	_                             = exchangeContractInventory{}.boundedBodyRead
 	_                             = exchangeContractInventory{}.boundedBodyDestination
 	_                             = exchangeContractInventory{}.downloadCopyRequest
+	_                             = exchangeContractInventory{}.progressReader
 	_                             = exchangeContractInventory{}.streamTransportFailure
 	_                             = exchangeContractInventory{}.projectionRequest
 	_                             = exchangeContractInventory{}.jsonWriteRequest

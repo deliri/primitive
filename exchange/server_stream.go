@@ -227,10 +227,13 @@ func validateRawRequestMetadata(input rawRequestMetadata) error {
 	}
 	actual, err := core.ParseHTTPMediaType(values[0])
 	if err != nil {
-		return requestError(core.ErrExchangeContentType)
+		return requestError(errors.Join(core.ErrExchangeContentType, err))
 	}
 	matches, err := actual.SameBase(input.expectedContentType)
-	if err != nil || !matches {
+	if err != nil {
+		return requestError(errors.Join(core.ErrExchangeContentType, err))
+	}
+	if !matches {
 		return requestError(core.ErrExchangeContentType)
 	}
 	return nil
@@ -352,7 +355,7 @@ func writeServerStream(call StreamWriteCall) error {
 func writeExactStream(call StreamWriteCall) error {
 	length := call.Response.ContentLength.Uint64()
 	if length == 0 {
-		return probeEmptyResponseSource(call.Response.Source)
+		return probeEmptyResponseSource(call.Context, call.Response.Source)
 	}
 	limit, err := core.NewByteCount(length)
 	if err != nil {
@@ -381,16 +384,11 @@ func writeExactStream(call StreamWriteCall) error {
 	return nil
 }
 
-func probeEmptyResponseSource(source io.Reader) error {
+func probeEmptyResponseSource(ctx context.Context, source io.Reader) error {
 	var probe [1]byte
-	read, err := source.Read(probe[:])
-	if read < 0 || read > len(probe) {
-		return errors.Join(
-			core.ErrExchangeResponse,
-			core.ErrExchangeWrite,
-			core.ErrExchangeContract,
-		)
-	}
+	read, err := io.ReadFull(&progressReader{
+		context: ctx, source: source,
+	}, probe[:])
 	if read > 0 {
 		return errors.Join(
 			core.ErrExchangeResponse,
@@ -398,10 +396,17 @@ func probeEmptyResponseSource(source io.Reader) error {
 			core.ErrExchangeBodyLimit,
 		)
 	}
-	if err != nil && !errors.Is(err, io.EOF) {
+	if errors.Is(err, io.EOF) {
+		return nil
+	}
+	if err != nil {
 		return errors.Join(core.ErrExchangeResponse, core.ErrExchangeWrite, err)
 	}
-	return nil
+	return errors.Join(
+		core.ErrExchangeResponse,
+		core.ErrExchangeWrite,
+		core.ErrExchangeContract,
+	)
 }
 
 // ServerBoundedResponse supplies one aggregate byte response.

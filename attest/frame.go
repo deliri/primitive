@@ -1,6 +1,8 @@
 package attest
 
 import (
+	"crypto/ed25519"
+	"crypto/sha256"
 	"encoding/binary"
 	"errors"
 	"math"
@@ -12,7 +14,7 @@ const (
 	attestationFrameGeneration = "primitive-attestation-2026"
 	attestationFrameSeparator  = byte(0)
 	attestationFrameMaximum    = len(attestationFrameGeneration) + 1 + 2 +
-		SigningDomainMaximumBytes + 32 + 8 + 32
+		SigningDomainMaximumBytes + ed25519.PublicKeySize + 8 + sha256.Size
 )
 
 type attestationFrame struct {

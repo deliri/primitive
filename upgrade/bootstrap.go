@@ -75,7 +75,7 @@ func Bootstrap(
 			err, classifyAttemptCleanup(cleanupErr),
 		)
 	}
-	return ResolvePrimary(ctx, ResolveRequest{
+	return resolveCommittedPrimary(ctx, ResolveRequest{
 		Root: request.Root, Directory: request.Directory,
 	})
 }
