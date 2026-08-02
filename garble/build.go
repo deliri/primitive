@@ -3,6 +3,8 @@ package garble
 import (
 	"errors"
 	"iter"
+
+	"github.com/deliri/primitive/v2026/core"
 )
 
 const (
@@ -10,7 +12,6 @@ const (
 	literalsArgument    = "-literals"
 	tinyArgument        = "-tiny"
 	buildArgument       = "build"
-	unknownEnumLabel    = "unknown"
 	preservePolicyLabel = "preserve"
 )
 
@@ -54,7 +55,7 @@ func (LiteralPolicy) OffWireEnum() {}
 // String returns the compiler-owned diagnostic label for p.
 func (p LiteralPolicy) String() string {
 	if !p.IsValid() {
-		return unknownEnumLabel
+		return core.UnknownEnumDiagnostic
 	}
 	return literalPolicyLabels()[p]
 }
@@ -100,7 +101,7 @@ func (DiagnosticPolicy) OffWireEnum() {}
 // String returns the compiler-owned diagnostic label for p.
 func (p DiagnosticPolicy) String() string {
 	if !p.IsValid() {
-		return unknownEnumLabel
+		return core.UnknownEnumDiagnostic
 	}
 	return diagnosticPolicyLabels()[p]
 }
@@ -200,7 +201,7 @@ func (ArgumentKind) OffWireEnum() {}
 // String returns the compiler-owned diagnostic label for k.
 func (k ArgumentKind) String() string {
 	if !k.IsValid() {
-		return unknownEnumLabel
+		return core.UnknownEnumDiagnostic
 	}
 	return argumentKindLabels()[k]
 }

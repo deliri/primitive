@@ -19,7 +19,8 @@ const (
 )
 
 func (s CachedLatestState) Validate() error {
-	if s <= CachedLatestUnknown || s >= cachedLatestLimit {
+	if s <= CachedLatestUnknown || s >= cachedLatestLimit ||
+		cachedLatestStateLabels()[s] == "" {
 		return contractError(errors.New("cached latest state is outside the closed domain"))
 	}
 	return nil
@@ -30,14 +31,14 @@ func (CachedLatestState) OffWireEnum()    {}
 
 // String returns a stable diagnostic label.
 func (s CachedLatestState) String() string {
-	switch s {
-	case CachedLatestMissing:
-		return "missing"
-	case CachedLatestPresent:
-		return "present"
-	default:
-		return unknownDiagnostic
+	if s >= cachedLatestLimit || cachedLatestStateLabels()[s] == "" {
+		return core.UnknownEnumDiagnostic
 	}
+	return cachedLatestStateLabels()[s]
+}
+
+func cachedLatestStateLabels() [cachedLatestLimit]string {
+	return [...]string{"", "missing", "present"}
 }
 
 // CachedLatest is the explicit optional cache input.
@@ -94,7 +95,8 @@ const (
 )
 
 func (s SelectionState) Validate() error {
-	if s <= SelectionUnknown || s >= selectionLimit {
+	if s <= SelectionUnknown || s >= selectionLimit ||
+		selectionStateLabels()[s] == "" {
 		return contractError(errors.New("selection state is outside the closed domain"))
 	}
 	return nil
@@ -105,17 +107,19 @@ func (SelectionState) OffWireEnum()    {}
 
 // String returns a stable diagnostic label.
 func (s SelectionState) String() string {
-	switch s {
-	case SelectionCurrent:
-		return currentDiagnostic
-	case SelectionAvailable:
-		return "available"
-	case SelectionRefreshRequired:
-		return "refresh-required"
-	case SelectionReassessAt:
-		return "reassess-at"
-	default:
-		return unknownDiagnostic
+	if s >= selectionLimit || selectionStateLabels()[s] == "" {
+		return core.UnknownEnumDiagnostic
+	}
+	return selectionStateLabels()[s]
+}
+
+func selectionStateLabels() [selectionLimit]string {
+	return [...]string{
+		"",
+		currentDiagnostic,
+		"available",
+		"refresh-required",
+		"reassess-at",
 	}
 }
 

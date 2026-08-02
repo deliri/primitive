@@ -6,7 +6,6 @@ import (
 	"context"
 	"errors"
 	"os"
-	"sync"
 
 	"github.com/deliri/primitive/v2026/contextstate"
 	"github.com/deliri/primitive/v2026/core"
@@ -18,14 +17,13 @@ const (
 	procCgroupMaximumBytes = 64 << 10
 )
 
-var (
-	procSelfCgroupPath = sync.OnceValues(func() (core.AbsolutePath, error) {
-		return core.ParseAbsolutePath(procSelfCgroupValue)
-	})
-	procSelfMountsPath = sync.OnceValues(func() (core.AbsolutePath, error) {
-		return core.ParseAbsolutePath(procSelfMountsValue)
-	})
-)
+func procSelfCgroupPath() (core.AbsolutePath, error) {
+	return core.ParseAbsolutePath(procSelfCgroupValue)
+}
+
+func procSelfMountsPath() (core.AbsolutePath, error) {
+	return core.ParseAbsolutePath(procSelfMountsValue)
+}
 
 func observeEffectiveWorkloadMemoryLimit(ctx context.Context) (WorkloadMemoryLimit, error) {
 	if err := contextstate.Validate(ctx); err != nil {

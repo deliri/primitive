@@ -192,7 +192,8 @@ func validateVendorSpecIdentity(spec VendorSpec) error {
 
 // Validate rejects values outside the closed provider domain.
 func (p Provider) Validate() error {
-	if p <= ProviderUnknown || p >= providerLimit {
+	if p <= ProviderUnknown || p >= providerLimit ||
+		providerDiagnostics()[p] == "" {
 		return core.ErrObjectStoreContract
 	}
 	return nil
@@ -210,11 +211,11 @@ func (p Provider) String() string {
 }
 
 func providerDiagnostics() [providerLimit]string {
-	return [providerLimit]string{
-		ProviderUnknown:            "",
-		ProviderAmazonS3:           "amazon_s3",
-		ProviderGoogleCloudStorage: "google_cloud_storage",
-		ProviderCloudflareImages:   "cloudflare_images",
+	return [...]string{
+		"",
+		"amazon_s3",
+		"google_cloud_storage",
+		"cloudflare_images",
 	}
 }
 
@@ -223,7 +224,8 @@ func (Provider) OffWireEnum() {}
 
 // Validate rejects values outside the closed vendor API domain.
 func (a VendorAPI) Validate() error {
-	if a <= VendorAPIUnknown || a >= vendorAPILimit {
+	if a <= VendorAPIUnknown || a >= vendorAPILimit ||
+		vendorAPIDiagnostics()[a] == "" {
 		return core.ErrObjectStoreContract
 	}
 	return nil
@@ -241,11 +243,11 @@ func (a VendorAPI) String() string {
 }
 
 func vendorAPIDiagnostics() [vendorAPILimit]string {
-	return [vendorAPILimit]string{
-		VendorAPIUnknown:                "",
-		VendorAPIAmazonS3Object:         "amazon_s3_object",
-		VendorAPIGoogleCloudStorageXML:  "google_cloud_storage_xml",
-		VendorAPICloudflareImagesDirect: "cloudflare_images_direct",
+	return [...]string{
+		"",
+		"amazon_s3_object",
+		"google_cloud_storage_xml",
+		"cloudflare_images_direct",
 	}
 }
 
@@ -254,7 +256,8 @@ func (VendorAPI) OffWireEnum() {}
 
 // Validate rejects values outside the closed direction-capability domain.
 func (c DirectionCapability) Validate() error {
-	if c <= DirectionCapabilityUnknown || c >= directionCapabilityLimit {
+	if c <= DirectionCapabilityUnknown || c >= directionCapabilityLimit ||
+		directionCapabilityDiagnostics()[c] == "" {
 		return core.ErrObjectStoreContract
 	}
 	return nil
@@ -272,10 +275,10 @@ func (c DirectionCapability) String() string {
 }
 
 func directionCapabilityDiagnostics() [directionCapabilityLimit]string {
-	return [directionCapabilityLimit]string{
-		DirectionCapabilityUnknown:        "",
-		DirectionCapabilityUploadOnly:     "upload_only",
-		DirectionCapabilityUploadDownload: "upload_download",
+	return [...]string{
+		"",
+		"upload_only",
+		"upload_download",
 	}
 }
 
@@ -284,7 +287,8 @@ func (DirectionCapability) OffWireEnum() {}
 
 // Validate rejects values outside the closed upload-encoding domain.
 func (e UploadEncoding) Validate() error {
-	if e <= UploadEncodingUnknown || e >= uploadEncodingLimit {
+	if e <= UploadEncodingUnknown || e >= uploadEncodingLimit ||
+		uploadEncodingDiagnostics()[e] == "" {
 		return core.ErrObjectStoreContract
 	}
 	return nil
@@ -302,10 +306,10 @@ func (e UploadEncoding) String() string {
 }
 
 func uploadEncodingDiagnostics() [uploadEncodingLimit]string {
-	return [uploadEncodingLimit]string{
-		UploadEncodingUnknown:       "",
-		UploadEncodingRawObject:     "raw_object",
-		UploadEncodingMultipartFile: "multipart_file",
+	return [...]string{
+		"",
+		"raw_object",
+		"multipart_file",
 	}
 }
 
@@ -314,7 +318,8 @@ func (UploadEncoding) OffWireEnum() {}
 
 // Validate rejects values outside the closed provider-integrity domain.
 func (i ProviderIntegrity) Validate() error {
-	if i <= ProviderIntegrityUnknown || i >= providerIntegrityLimit {
+	if i <= ProviderIntegrityUnknown || i >= providerIntegrityLimit ||
+		providerIntegrityDiagnostics()[i] == "" {
 		return core.ErrObjectStoreContract
 	}
 	return nil
@@ -332,10 +337,10 @@ func (i ProviderIntegrity) String() string {
 }
 
 func providerIntegrityDiagnostics() [providerIntegrityLimit]string {
-	return [providerIntegrityLimit]string{
-		ProviderIntegrityUnknown:   "",
-		ProviderIntegrityCRC32C:    "crc32c",
-		ProviderIntegrityLocalOnly: "local_only",
+	return [...]string{
+		"",
+		"crc32c",
+		"local_only",
 	}
 }
 
@@ -344,7 +349,8 @@ func (ProviderIntegrity) OffWireEnum() {}
 
 // Validate rejects values outside the closed write-preference domain.
 func (p WritePreference) Validate() error {
-	if p <= WritePreferenceUnknown || p >= writePreferenceLimit {
+	if p <= WritePreferenceUnknown || p >= writePreferenceLimit ||
+		writePreferenceDiagnostics()[p] == "" {
 		return core.ErrObjectStoreContract
 	}
 	return nil
@@ -362,10 +368,10 @@ func (p WritePreference) String() string {
 }
 
 func writePreferenceDiagnostics() [writePreferenceLimit]string {
-	return [writePreferenceLimit]string{
-		WritePreferenceUnknown:           "",
-		WritePreferenceCreateOnly:        "create_only",
-		WritePreferenceOneTimeCapability: "one_time_capability",
+	return [...]string{
+		"",
+		"create_only",
+		"one_time_capability",
 	}
 }
 

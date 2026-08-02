@@ -55,14 +55,14 @@ func TestInternalDiscriminatorDomainsExhaustBackingType(t *testing.T) {
 		wantDestination := destination == streamDestinationCaller ||
 			destination == streamDestinationFile
 		if destination.IsValid() != wantDestination ||
-			(destination.String() != unknownEnumDiagnostic) != wantDestination {
+			(destination.String() != core.UnknownEnumDiagnostic) != wantDestination {
 			t.Fatalf("streamDestination(%d) validity/text = (%t, %q), want admitted=%t",
 				raw, destination.IsValid(), destination.String(), wantDestination)
 		}
 		position := directoryPosition(raw)
 		wantPosition := position == directoryIntermediate || position == directoryFinal
 		if position.IsValid() != wantPosition ||
-			(position.String() != unknownEnumDiagnostic) != wantPosition {
+			(position.String() != core.UnknownEnumDiagnostic) != wantPosition {
 			t.Fatalf("directoryPosition(%d) validity/text = (%t, %q), want admitted=%t",
 				raw, position.IsValid(), position.String(), wantPosition)
 		}

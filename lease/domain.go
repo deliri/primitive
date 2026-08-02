@@ -41,7 +41,7 @@ func (Domain) OffWireEnum() {}
 
 func (d Domain) String() string {
 	if !d.IsValid() {
-		return unknownDiagnostic
+		return core.UnknownEnumDiagnostic
 	}
 	return domainDiagnostics()[d]
 }

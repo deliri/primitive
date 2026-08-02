@@ -27,12 +27,39 @@ const (
 	refusalStatusLimit
 )
 
+type refusalStatusFact struct {
+	text   string
+	status RefusalStatus
+	rfc    int
+}
+
+func refusalStatusFacts() [refusalStatusLimit]refusalStatusFact {
+	return [...]refusalStatusFact{
+		{status: RefusalStatusUnknown},
+		{status: RefusalStatusGranted, text: "granted", rfc: 0},
+		{status: RefusalStatusGrantedWithMods, text: "granted_with_modifications", rfc: 1},
+		{status: RefusalStatusRejection, text: "rejection", rfc: 2},
+		{status: RefusalStatusWaiting, text: "waiting", rfc: 3},
+		{status: RefusalStatusRevocationWarning, text: "revocation_warning", rfc: 4},
+		{status: RefusalStatusRevocationNotification, text: "revocation_notification", rfc: 5},
+	}
+}
+
+func (s RefusalStatus) fact() (refusalStatusFact, error) {
+	if s <= RefusalStatusUnknown || s >= refusalStatusLimit {
+		return refusalStatusFact{}, contractError(nil)
+	}
+	fact := refusalStatusFacts()[s]
+	if fact.status != s || fact.text == "" {
+		return refusalStatusFact{}, contractError(nil)
+	}
+	return fact, nil
+}
+
 // Validate rejects statuses outside the closed RFC 3161 set.
 func (s RefusalStatus) Validate() error {
-	if s <= RefusalStatusUnknown || s >= refusalStatusLimit {
-		return contractError(nil)
-	}
-	return nil
+	_, err := s.fact()
+	return err
 }
 
 // IsValid reports whether s belongs to the closed refusal-status domain.
@@ -43,23 +70,11 @@ func (RefusalStatus) OffWireEnum() {}
 
 // String returns the canonical diagnostic token.
 func (s RefusalStatus) String() string {
-	switch s {
-	case RefusalStatusGranted:
-		return "granted"
-	case RefusalStatusGrantedWithMods:
-		return "granted_with_modifications"
-	case RefusalStatusRejection:
-		return "rejection"
-	case RefusalStatusWaiting:
-		return "waiting"
-	case RefusalStatusRevocationWarning:
-		return "revocation_warning"
-	case RefusalStatusRevocationNotification:
-		return "revocation_notification"
-	case RefusalStatusUnknown, refusalStatusLimit:
+	fact, err := s.fact()
+	if err != nil {
 		return ""
 	}
-	return ""
+	return fact.text
 }
 
 // granted reports whether the authority issued a token for the request.
@@ -69,23 +84,11 @@ func (s RefusalStatus) granted() bool {
 
 // rfcValue returns the PKIStatus integer RFC 3161 assigns to s.
 func (s RefusalStatus) rfcValue() (int, error) {
-	switch s {
-	case RefusalStatusGranted:
-		return 0, nil
-	case RefusalStatusGrantedWithMods:
-		return 1, nil
-	case RefusalStatusRejection:
-		return 2, nil
-	case RefusalStatusWaiting:
-		return 3, nil
-	case RefusalStatusRevocationWarning:
-		return 4, nil
-	case RefusalStatusRevocationNotification:
-		return 5, nil
-	case RefusalStatusUnknown, refusalStatusLimit:
-		return 0, contractError(nil)
+	fact, err := s.fact()
+	if err != nil {
+		return 0, err
 	}
-	return 0, contractError(nil)
+	return fact.rfc, nil
 }
 
 // refusalStatusFromRFC projects one wire integer through the closed enum's own
@@ -125,12 +128,41 @@ const (
 	refusalCodeLimit
 )
 
+type refusalCodeFact struct {
+	text string
+	code RefusalCode
+	bit  uint8
+}
+
+func refusalCodeFacts() [refusalCodeLimit]refusalCodeFact {
+	return [...]refusalCodeFact{
+		{code: RefusalCodeUnknown},
+		{code: RefusalCodeBadAlgorithm, text: "bad_algorithm", bit: 0},
+		{code: RefusalCodeBadRequest, text: "bad_request", bit: 2},
+		{code: RefusalCodeBadDataFormat, text: "bad_data_format", bit: 5},
+		{code: RefusalCodeTimeNotAvailable, text: "time_not_available", bit: 14},
+		{code: RefusalCodeUnacceptedPolicy, text: "unaccepted_policy", bit: 15},
+		{code: RefusalCodeUnacceptedExtension, text: "unaccepted_extension", bit: 16},
+		{code: RefusalCodeAdditionalInfoMissing, text: "additional_info_missing", bit: 17},
+		{code: RefusalCodeSystemFailure, text: "system_failure", bit: 25},
+	}
+}
+
+func (c RefusalCode) fact() (refusalCodeFact, error) {
+	if c <= RefusalCodeUnknown || c >= refusalCodeLimit {
+		return refusalCodeFact{}, contractError(nil)
+	}
+	fact := refusalCodeFacts()[c]
+	if fact.code != c || fact.text == "" {
+		return refusalCodeFact{}, contractError(nil)
+	}
+	return fact, nil
+}
+
 // Validate rejects codes outside the closed RFC 3161 set.
 func (c RefusalCode) Validate() error {
-	if c <= RefusalCodeUnknown || c >= refusalCodeLimit {
-		return contractError(nil)
-	}
-	return nil
+	_, err := c.fact()
+	return err
 }
 
 // IsValid reports whether c belongs to the closed refusal-code domain.
@@ -141,52 +173,20 @@ func (RefusalCode) OffWireEnum() {}
 
 // String returns the canonical diagnostic token.
 func (c RefusalCode) String() string {
-	switch c {
-	case RefusalCodeBadAlgorithm:
-		return "bad_algorithm"
-	case RefusalCodeBadRequest:
-		return "bad_request"
-	case RefusalCodeBadDataFormat:
-		return "bad_data_format"
-	case RefusalCodeTimeNotAvailable:
-		return "time_not_available"
-	case RefusalCodeUnacceptedPolicy:
-		return "unaccepted_policy"
-	case RefusalCodeUnacceptedExtension:
-		return "unaccepted_extension"
-	case RefusalCodeAdditionalInfoMissing:
-		return "additional_info_missing"
-	case RefusalCodeSystemFailure:
-		return "system_failure"
-	case RefusalCodeUnknown, refusalCodeLimit:
+	fact, err := c.fact()
+	if err != nil {
 		return ""
 	}
-	return ""
+	return fact.text
 }
 
 // rfcBit returns the PKIFailureInfo bit position RFC 3161 assigns to c.
 func (c RefusalCode) rfcBit() (uint8, error) {
-	switch c {
-	case RefusalCodeBadAlgorithm:
-		return 0, nil
-	case RefusalCodeBadRequest:
-		return 2, nil
-	case RefusalCodeBadDataFormat:
-		return 5, nil
-	case RefusalCodeTimeNotAvailable:
-		return 14, nil
-	case RefusalCodeUnacceptedPolicy:
-		return 15, nil
-	case RefusalCodeUnacceptedExtension:
-		return 16, nil
-	case RefusalCodeAdditionalInfoMissing:
-		return 17, nil
-	case RefusalCodeSystemFailure:
-		return 25, nil
-	case RefusalCodeUnknown, refusalCodeLimit:
-		return 0, contractError(nil)
+	fact, err := c.fact()
+	if err != nil {
+		return 0, err
 	}
-	return 0, contractError(nil)
+	return fact.bit, nil
 }
 
 // refusalCodeSet is the bounded closed set of declared failure codes.

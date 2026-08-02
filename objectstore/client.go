@@ -10,6 +10,7 @@ import (
 	"hash/crc32"
 	"io"
 	"mime/multipart"
+	"net/http"
 	"net/textproto"
 	"net/url"
 
@@ -20,13 +21,6 @@ import (
 )
 
 const cloudflareImagesFormField = "file"
-
-const (
-	httpStatusOK                 = 200
-	httpStatusNotFound           = 404
-	httpStatusConflict           = 409
-	httpStatusPreconditionFailed = 412
-)
 
 // Client is an immutable capability over one caller-owned Exchange client.
 type Client struct {
@@ -660,10 +654,10 @@ func statusFailure(cause error, direction Direction) []error {
 	}
 	projected := []error{status}
 	code := statusCode(status)
-	if code == httpStatusNotFound && direction == DirectionDownload {
+	if code == http.StatusNotFound && direction == DirectionDownload {
 		projected = append(projected, core.ErrObjectStoreAbsent)
 	}
-	if (code == httpStatusConflict || code == httpStatusPreconditionFailed) &&
+	if (code == http.StatusConflict || code == http.StatusPreconditionFailed) &&
 		direction == DirectionUpload {
 		projected = append(projected, core.ErrObjectStoreConflict)
 	}
@@ -718,7 +712,7 @@ func statusCode(status exchange.StatusError) int {
 }
 
 func statusOK() core.HTTPStatusCode {
-	value, _ := core.NewHTTPStatusCode(httpStatusOK)
+	value, _ := core.NewHTTPStatusCode(http.StatusOK)
 	return value
 }
 

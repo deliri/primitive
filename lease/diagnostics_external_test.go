@@ -11,8 +11,6 @@ import (
 	"github.com/deliri/primitive/v2026/temporal"
 )
 
-const unknownDiagnosticLabel = "unknown"
-
 // TestDiagnosticLabelsAreExhaustiveAndClosed proves every enum and state label
 // over its complete underlying domain. A label is the only projection an
 // operator sees, so a value that silently renders as another member's label
@@ -104,7 +102,7 @@ func TestDiagnosticLabelsAreExhaustiveAndClosed(t *testing.T) {
 				member := uint8(value)
 				want, known := tc.known[member]
 				if !known {
-					want = unknownDiagnosticLabel
+					want = core.UnknownEnumDiagnostic
 				}
 				if got := tc.label(member); got != want {
 					t.Errorf("%s(%d).String() = %q, want %q", tc.name, member, got, want)

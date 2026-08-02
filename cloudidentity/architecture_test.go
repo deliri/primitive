@@ -77,7 +77,6 @@ func TestCloudidentityProductionStructsHaveCompilerVisibleDataFlowRoles(
 		"net/url",
 		"strconv",
 		"strings",
-		"sync",
 		"time",
 		"unicode/utf8",
 	}

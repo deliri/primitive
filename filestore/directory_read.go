@@ -25,9 +25,8 @@ const mkdirOperation = "mkdir"
 
 func directoryPositionDiagnostics() [directoryPositionLimit]string {
 	return [directoryPositionLimit]string{
-		directoryPositionUnknown: unknownEnumDiagnostic,
-		directoryIntermediate:    "intermediate",
-		directoryFinal:           "final",
+		directoryIntermediate: "intermediate",
+		directoryFinal:        "final",
 	}
 }
 
@@ -40,12 +39,12 @@ func (p directoryPosition) Validate() error {
 
 func (p directoryPosition) IsValid() bool {
 	return p > directoryPositionUnknown && p < directoryPositionLimit &&
-		directoryPositionDiagnostics()[p] != unknownEnumDiagnostic
+		directoryPositionDiagnostics()[p] != ""
 }
 
 func (p directoryPosition) String() string {
 	if !p.IsValid() {
-		return unknownEnumDiagnostic
+		return core.UnknownEnumDiagnostic
 	}
 	return directoryPositionDiagnostics()[p]
 }

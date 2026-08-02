@@ -43,7 +43,7 @@ func (AdvanceState) OffWireEnum() {}
 // String returns one diagnostic label.
 func (s AdvanceState) String() string {
 	if !s.IsValid() {
-		return unknownDiagnostic
+		return core.UnknownEnumDiagnostic
 	}
 	return advanceStateDiagnostics()[s]
 }

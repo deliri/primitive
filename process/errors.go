@@ -22,11 +22,10 @@ const (
 )
 
 func streamDiagnostics() [streamLimit]string {
-	return [streamLimit]string{
-		StreamUnknown: unknownEnumLabel,
-		StreamStdin:   "stdin",
-		StreamStdout:  "stdout",
-		StreamStderr:  "stderr",
+	return [...]string{
+		StreamStdin:  "stdin",
+		StreamStdout: "stdout",
+		StreamStderr: "stderr",
 	}
 }
 
@@ -53,7 +52,7 @@ func (s Stream) String() string {
 	if s < streamLimit && diagnostics[s] != "" {
 		return diagnostics[s]
 	}
-	return unknownEnumLabel
+	return core.UnknownEnumDiagnostic
 }
 
 // FailureKind identifies the os/exec phase that failed.
@@ -70,15 +69,14 @@ const (
 )
 
 func failureKindDiagnostics() [failureKindLimit]string {
-	return [failureKindLimit]string{
-		FailureKindUnknown: unknownEnumLabel,
-		FailureKindStart:   "start",
-		FailureKindWait:    "wait",
+	return [...]string{
+		FailureKindStart: "start",
+		FailureKindWait:  "wait",
 	}
 }
 
 func failureKindIdentities() [failureKindLimit]core.ErrorIdentity {
-	return [failureKindLimit]core.ErrorIdentity{
+	return [...]core.ErrorIdentity{
 		FailureKindStart: core.ErrProcessStart,
 		FailureKindWait:  core.ErrProcessWait,
 	}
@@ -111,7 +109,7 @@ func (k FailureKind) String() string {
 	if k < failureKindLimit && diagnostics[k] != "" {
 		return diagnostics[k]
 	}
-	return unknownEnumLabel
+	return core.UnknownEnumDiagnostic
 }
 
 func (k FailureKind) identity() core.ErrorIdentity {

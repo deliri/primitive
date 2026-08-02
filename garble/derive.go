@@ -57,7 +57,7 @@ func (DerivationGeneration) OffWireEnum() {}
 // String returns the compiler-owned diagnostic label for g.
 func (g DerivationGeneration) String() string {
 	if !g.IsValid() {
-		return unknownEnumLabel
+		return core.UnknownEnumDiagnostic
 	}
 	return derivationGenerationLabels()[g]
 }

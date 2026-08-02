@@ -303,7 +303,8 @@ func (c ArchitectureCatalog) Lookup(identity PackageIdentity) (PackageContract, 
 
 // Validate rejects identities outside the closed package domain.
 func (p PackageIdentity) Validate() error {
-	if p <= PackageUnknown || p >= packageIdentityLimit {
+	if p <= PackageUnknown || p >= packageIdentityLimit ||
+		packageIdentityTexts()[p] == "" {
 		return architectureContractError("package identity is outside the admitted domain")
 	}
 	return nil
@@ -361,7 +362,8 @@ func (p PackageIdentity) ImportPath() (string, error) {
 
 // Validate rejects kinds outside the closed package-kind domain.
 func (k PackageKind) Validate() error {
-	if k <= PackageKindUnknown || k >= packageKindLimit {
+	if k <= PackageKindUnknown || k >= packageKindLimit ||
+		packageKindTexts()[k] == "" {
 		return architectureContractError("package kind is outside the admitted domain")
 	}
 	return nil
@@ -372,13 +374,17 @@ func (k PackageKind) IsValid() bool { return k.Validate() == nil }
 
 // String returns the canonical kind text, or an empty string when invalid.
 func (k PackageKind) String() string {
-	switch k {
-	case PackageKindProduction:
-		return packageKindProductionText
-	case PackageKindTestSupport:
-		return packageKindTestSupportText
-	default:
+	if k >= packageKindLimit {
 		return ""
+	}
+	return packageKindTexts()[k]
+}
+
+func packageKindTexts() [packageKindLimit]string {
+	return [...]string{
+		"",
+		packageKindProductionText,
+		packageKindTestSupportText,
 	}
 }
 
@@ -458,78 +464,37 @@ func (c DirectTestImportContract) Validate() error {
 }
 
 func packageIdentityText(identity PackageIdentity) string {
-	switch {
-	case identity <= PackageTestSerial:
-		return packageIdentityTextCoreThroughTestSerial(identity)
-	case identity <= PackageProcess:
-		return packageIdentityTextFilestoreThroughProcess(identity)
-	default:
-		return packageIdentityTextReleaseThroughUpgrade(identity)
-	}
-}
-
-func packageIdentityTextCoreThroughTestSerial(identity PackageIdentity) string {
-	switch identity {
-	case PackageCore:
-		return "core"
-	case PackageAttest:
-		return "attest"
-	case PackageContextState:
-		return "contextstate"
-	case PackageCurrency:
-		return "currency"
-	case PackageGarble:
-		return "garble"
-	case PackageKeygen:
-		return "keygen"
-	case PackageTestSerial:
-		return "testserial"
-	default:
+	if identity >= packageIdentityLimit {
 		return ""
 	}
+	return packageIdentityTexts()[identity]
 }
 
-func packageIdentityTextFilestoreThroughProcess(identity PackageIdentity) string {
-	switch identity {
-	case PackageFilestore:
-		return "filestore"
-	case PackageHostFacts:
-		return "hostfacts"
-	case PackageTemporal:
-		return "temporal"
-	case PackageExchange:
-		return "exchange"
-	case PackageFuzzFinder:
-		return "fuzzfinder"
-	case PackageLease:
-		return "lease"
-	case PackageGate:
-		return "gate"
-	case PackageReceipt:
-		return "receipt"
-	case PackageProcess:
-		return "process"
-	default:
-		return ""
-	}
-}
-
-func packageIdentityTextReleaseThroughUpgrade(identity PackageIdentity) string {
-	switch identity {
-	case PackageRelease:
-		return "release"
-	case PackageShutdown:
-		return "shutdown"
-	case PackageObjectStore:
-		return "objectstore"
-	case PackageTimeProof:
-		return "timeproof"
-	case PackageCloudIdentity:
-		return "cloudidentity"
-	case PackageUpgrade:
-		return "upgrade"
-	default:
-		return ""
+func packageIdentityTexts() [packageIdentityLimit]string {
+	return [...]string{
+		"",
+		"core",
+		"attest",
+		"contextstate",
+		"currency",
+		"garble",
+		"keygen",
+		"testserial",
+		"filestore",
+		"hostfacts",
+		"temporal",
+		"exchange",
+		"fuzzfinder",
+		"lease",
+		"gate",
+		"receipt",
+		"process",
+		"release",
+		"shutdown",
+		"objectstore",
+		"timeproof",
+		"cloudidentity",
+		"upgrade",
 	}
 }
 

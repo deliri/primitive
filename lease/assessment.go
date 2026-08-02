@@ -57,7 +57,7 @@ func (State) OffWireEnum() {}
 // String returns one diagnostic label.
 func (s State) String() string {
 	if !s.IsValid() {
-		return unknownDiagnostic
+		return core.UnknownEnumDiagnostic
 	}
 	return stateDiagnostics()[s]
 }
@@ -101,7 +101,7 @@ func (ContactState) OffWireEnum() {}
 // String returns one diagnostic label.
 func (s ContactState) String() string {
 	if !s.IsValid() {
-		return unknownDiagnostic
+		return core.UnknownEnumDiagnostic
 	}
 	return contactStateDiagnostics()[s]
 }

@@ -6,12 +6,14 @@ import (
 )
 
 const (
-	operatingSystemDarwinText  = "darwin"
-	operatingSystemLinuxText   = "linux"
-	operatingSystemWindowsText = "windows"
-	architectureAMD64Text      = "amd64"
-	architectureARM64Text      = "arm64"
-	platformTokenSeparator     = "-"
+	operatingSystemDarwinText       = "darwin"
+	operatingSystemLinuxText        = "linux"
+	operatingSystemWindowsText      = "windows"
+	architectureAMD64Text           = "amd64"
+	architectureARM64Text           = "arm64"
+	platformTokenSeparator          = "-"
+	platformNilReceiverDiagnostic   = "nil platform receiver"
+	platformInvalidLengthDiagnostic = "platform token has invalid length"
 	// platformTokenMaximumBytes bounds every currently admitted platform token.
 	// Exhaustive tests force this constant to grow with any longer enum member.
 	platformTokenMaximumBytes = len(operatingSystemWindowsText + platformTokenSeparator + architectureAMD64Text)
@@ -56,7 +58,7 @@ type Platform struct {
 // parsePlatform accepts canonical "operating-system-architecture" text.
 func parsePlatform(value string) (Platform, error) {
 	if len(value) == 0 || len(value) > platformTokenMaximumBytes {
-		return Platform{}, platformError("platform token has invalid length")
+		return Platform{}, platformError(platformInvalidLengthDiagnostic)
 	}
 	operatingSystemText, architectureText, found := strings.Cut(value, platformTokenSeparator)
 	if !found || operatingSystemText == "" || architectureText == "" || strings.Contains(architectureText, platformTokenSeparator) {
@@ -133,7 +135,7 @@ func (p Platform) MarshalJSON() ([]byte, error) {
 // UnmarshalJSON accepts only canonical admitted platform text.
 func (p *Platform) UnmarshalJSON(data []byte) error {
 	if p == nil {
-		return errors.Join(ErrJSONContract, errors.New("nil platform receiver"))
+		return errors.Join(ErrJSONContract, errors.New(platformNilReceiverDiagnostic))
 	}
 	value, err := DecodeJSONStringToken(data)
 	if err != nil {
@@ -150,10 +152,10 @@ func (p *Platform) UnmarshalJSON(data []byte) error {
 // UnmarshalText accepts canonical platform text through encoding.TextUnmarshaler.
 func (p *Platform) UnmarshalText(text []byte) error {
 	if p == nil {
-		return platformError("nil platform receiver")
+		return platformError(platformNilReceiverDiagnostic)
 	}
 	if len(text) == 0 || len(text) > platformTokenMaximumBytes {
-		return platformError("platform token has invalid length")
+		return platformError(platformInvalidLengthDiagnostic)
 	}
 	decoded, err := parsePlatform(string(text))
 	if err != nil {
@@ -165,21 +167,25 @@ func (p *Platform) UnmarshalText(text []byte) error {
 
 // String returns the canonical lowercase operating-system token.
 func (o OperatingSystem) String() string {
-	switch o {
-	case OperatingSystemDarwin:
-		return operatingSystemDarwinText
-	case OperatingSystemLinux:
-		return operatingSystemLinuxText
-	case OperatingSystemWindows:
-		return operatingSystemWindowsText
-	default:
+	if o >= operatingSystemLimit {
 		return ""
+	}
+	return operatingSystemTexts()[o]
+}
+
+func operatingSystemTexts() [operatingSystemLimit]string {
+	return [...]string{
+		"",
+		operatingSystemDarwinText,
+		operatingSystemLinuxText,
+		operatingSystemWindowsText,
 	}
 }
 
 // Validate rejects operating systems outside the closed domain.
 func (o OperatingSystem) Validate() error {
-	if o <= operatingSystemUnknown || o >= operatingSystemLimit {
+	if o <= operatingSystemUnknown || o >= operatingSystemLimit ||
+		operatingSystemTexts()[o] == "" {
 		return platformError("operating system is invalid")
 	}
 	return nil
@@ -215,19 +221,20 @@ func (o *OperatingSystem) UnmarshalJSON(data []byte) error {
 
 // String returns the canonical lowercase architecture token.
 func (a CPUArchitecture) String() string {
-	switch a {
-	case CPUArchitectureAMD64:
-		return architectureAMD64Text
-	case CPUArchitectureARM64:
-		return architectureARM64Text
-	default:
+	if a >= cpuArchitectureLimit {
 		return ""
 	}
+	return cpuArchitectureTexts()[a]
+}
+
+func cpuArchitectureTexts() [cpuArchitectureLimit]string {
+	return [...]string{"", architectureAMD64Text, architectureARM64Text}
 }
 
 // Validate rejects architectures outside the closed domain.
 func (a CPUArchitecture) Validate() error {
-	if a <= cpuArchitectureUnknown || a >= cpuArchitectureLimit {
+	if a <= cpuArchitectureUnknown || a >= cpuArchitectureLimit ||
+		cpuArchitectureTexts()[a] == "" {
 		return platformError("CPU architecture is invalid")
 	}
 	return nil

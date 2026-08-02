@@ -2,7 +2,6 @@ package cloudidentity
 
 import (
 	"context"
-	"sync"
 
 	"github.com/deliri/primitive/v2026/core"
 	"github.com/deliri/primitive/v2026/exchange"
@@ -23,9 +22,7 @@ type googleProtocolContracts struct {
 	responseLimit  core.ByteCount
 }
 
-var googleContracts = sync.OnceValues(resolveGoogleContracts)
-
-func resolveGoogleContracts() (googleProtocolContracts, error) {
+func googleContracts() (googleProtocolContracts, error) {
 	endpoint, err := core.ParseHTTPEndpoint(googleMetadataIdentityURL)
 	if err != nil {
 		return googleProtocolContracts{}, contractError(err)

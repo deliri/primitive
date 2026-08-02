@@ -11,7 +11,6 @@ import (
 	"path/filepath"
 	"strconv"
 	"strings"
-	"sync"
 	"unicode/utf8"
 
 	"github.com/deliri/primitive/v2026/contextstate"
@@ -31,14 +30,13 @@ const (
 	streamBufferBytes       = 4 << 10
 )
 
-var (
-	cgroupV2LimitComponent = sync.OnceValues(func() (core.PathComponent, error) {
-		return core.ParsePathComponent(cgroupV2LimitName)
-	})
-	cgroupV1LimitComponent = sync.OnceValues(func() (core.PathComponent, error) {
-		return core.ParsePathComponent(cgroupV1LimitName)
-	})
-)
+func cgroupV2LimitComponent() (core.PathComponent, error) {
+	return core.ParsePathComponent(cgroupV2LimitName)
+}
+
+func cgroupV1LimitComponent() (core.PathComponent, error) {
+	return core.ParsePathComponent(cgroupV1LimitName)
+}
 
 type cgroupMembership struct {
 	path   string

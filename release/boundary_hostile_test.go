@@ -21,49 +21,49 @@ func TestReleaseEnumsExhaustCompleteByteDomains(t *testing.T) {
 		revision := Revision(value)
 		wantRevision := revision == Revision2026V1
 		if revision.IsValid() != wantRevision ||
-			(revision.String() != unknownDiagnostic) != wantRevision {
+			(revision.String() != core.UnknownEnumDiagnostic) != wantRevision {
 			t.Fatalf("Revision(%d) = (%v, %q), want validity %v", value, revision.IsValid(), revision.String(), wantRevision)
 		}
 
 		domain := Domain(value)
 		wantDomain := domain == DomainManifestV1 || domain == DomainLatestV1
 		if domain.IsValid() != wantDomain ||
-			(domain.String() != unknownDiagnostic) != wantDomain {
+			(domain.String() != core.UnknownEnumDiagnostic) != wantDomain {
 			t.Fatalf("Domain(%d) = (%v, %q), want validity %v", value, domain.IsValid(), domain.String(), wantDomain)
 		}
 
 		freshness := LatestFreshness(value)
 		wantFreshness := freshness >= LatestFreshnessNotYetValid && freshness <= LatestFreshnessExpired
 		if freshness.IsValid() != wantFreshness ||
-			(freshness.String() != unknownDiagnostic) != wantFreshness {
+			(freshness.String() != core.UnknownEnumDiagnostic) != wantFreshness {
 			t.Fatalf("LatestFreshness(%d) = (%v, %q), want validity %v", value, freshness.IsValid(), freshness.String(), wantFreshness)
 		}
 
 		clock := LatestClockState(value)
 		wantClock := clock == LatestClockObserved || clock == LatestClockCorrected
 		if clock.IsValid() != wantClock ||
-			(clock.String() != unknownDiagnostic) != wantClock {
+			(clock.String() != core.UnknownEnumDiagnostic) != wantClock {
 			t.Fatalf("LatestClockState(%d) = (%v, %q), want validity %v", value, clock.IsValid(), clock.String(), wantClock)
 		}
 
 		advance := LatestAdvanceState(value)
 		wantAdvance := advance == LatestAdvanceReplay || advance == LatestAdvanceAdvanced
 		if advance.IsValid() != wantAdvance ||
-			(advance.String() != unknownDiagnostic) != wantAdvance {
+			(advance.String() != core.UnknownEnumDiagnostic) != wantAdvance {
 			t.Fatalf("LatestAdvanceState(%d) = (%v, %q), want validity %v", value, advance.IsValid(), advance.String(), wantAdvance)
 		}
 
 		cache := CachedLatestState(value)
 		wantCache := cache == CachedLatestMissing || cache == CachedLatestPresent
 		if cache.IsValid() != wantCache ||
-			(cache.String() != unknownDiagnostic) != wantCache {
+			(cache.String() != core.UnknownEnumDiagnostic) != wantCache {
 			t.Fatalf("CachedLatestState(%d) = (%v, %q), want validity %v", value, cache.IsValid(), cache.String(), wantCache)
 		}
 
 		selection := SelectionState(value)
 		wantSelection := selection >= SelectionCurrent && selection <= SelectionReassessAt
 		if selection.IsValid() != wantSelection ||
-			(selection.String() != unknownDiagnostic) != wantSelection {
+			(selection.String() != core.UnknownEnumDiagnostic) != wantSelection {
 			t.Fatalf("SelectionState(%d) = (%v, %q), want validity %v", value, selection.IsValid(), selection.String(), wantSelection)
 		}
 	}

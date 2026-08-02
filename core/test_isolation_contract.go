@@ -21,8 +21,6 @@ const (
 	TestIsolationDeclarationScopeFieldName = "Scope"
 )
 
-const testIsolationUnknownDiagnostic = "unknown"
-
 // TestIsolationHazard identifies a generic shared-state hazard that prevents a
 // Go test from safely running in parallel.
 type TestIsolationHazard uint8
@@ -75,7 +73,7 @@ func (TestIsolationHazard) OffWireEnum() {}
 // String returns the compiler-owned diagnostic label for h.
 func (h TestIsolationHazard) String() string {
 	if !h.IsValid() {
-		return testIsolationUnknownDiagnostic
+		return UnknownEnumDiagnostic
 	}
 	return testIsolationHazardDiagnostics()[h]
 }
@@ -167,7 +165,7 @@ func (TestIsolationScope) OffWireEnum() {}
 // String returns the compiler-owned diagnostic label for s.
 func (s TestIsolationScope) String() string {
 	if !s.IsValid() {
-		return testIsolationUnknownDiagnostic
+		return UnknownEnumDiagnostic
 	}
 	return testIsolationScopeDiagnostics()[s]
 }

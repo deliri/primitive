@@ -291,7 +291,8 @@ const (
 
 // Validate rejects readings outside the closed domain.
 func (o APIOutcome) Validate() error {
-	if o <= APIOutcomeUnknown || o >= apiOutcomeLimit {
+	if o <= APIOutcomeUnknown || o >= apiOutcomeLimit ||
+		apiOutcomeDiagnostics()[o] == "" {
 		return apiContractError(errors.New(apiOutcomeDomainErrorText))
 	}
 	return nil
@@ -305,14 +306,14 @@ func (APIOutcome) OffWireEnum() {}
 
 // String returns a diagnostic projection, not a wire value.
 func (o APIOutcome) String() string {
-	if !o.IsValid() {
+	if o >= apiOutcomeLimit {
 		return ""
 	}
-	return [...]string{
-		APIOutcomeUnknown: "",
-		APIOutcomeSuccess: "success",
-		APIOutcomeFailure: "failure",
-	}[o]
+	return apiOutcomeDiagnostics()[o]
+}
+
+func apiOutcomeDiagnostics() [apiOutcomeLimit]string {
+	return [...]string{"", "success", "failure"}
 }
 
 // APIEnvelope carries exactly one of data or error. An envelope holding both,

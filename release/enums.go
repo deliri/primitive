@@ -28,7 +28,7 @@ const (
 )
 
 func (r Revision) Validate() error {
-	if r != Revision2026V1 {
+	if r <= RevisionUnknown || r >= revisionLimit || revisionLabels()[r] == "" {
 		return contractError(errors.New("revision is outside the closed domain"))
 	}
 	return nil
@@ -38,10 +38,14 @@ func (r Revision) IsValid() bool { return r.Validate() == nil }
 func (Revision) OffWireEnum()    {}
 
 func (r Revision) String() string {
-	if r == Revision2026V1 {
-		return "2026-v1"
+	if r >= revisionLimit || revisionLabels()[r] == "" {
+		return core.UnknownEnumDiagnostic
 	}
-	return unknownDiagnostic
+	return revisionLabels()[r]
+}
+
+func revisionLabels() [revisionLimit]string {
+	return [...]string{"", "2026-v1"}
 }
 
 // LatestFreshness classifies a verified Latest at one observation.
@@ -56,7 +60,8 @@ const (
 )
 
 func (f LatestFreshness) Validate() error {
-	if f <= LatestFreshnessUnknown || f >= latestFreshnessLimit {
+	if f <= LatestFreshnessUnknown || f >= latestFreshnessLimit ||
+		latestFreshnessLabels()[f] == "" {
 		return latestError(errors.New("freshness is outside the closed domain"))
 	}
 	return nil
@@ -67,16 +72,14 @@ func (LatestFreshness) OffWireEnum()    {}
 
 // String returns a stable diagnostic label.
 func (f LatestFreshness) String() string {
-	switch f {
-	case LatestFreshnessNotYetValid:
-		return "not-yet-valid"
-	case LatestFreshnessCurrent:
-		return currentDiagnostic
-	case LatestFreshnessExpired:
-		return "expired"
-	default:
-		return unknownDiagnostic
+	if f >= latestFreshnessLimit || latestFreshnessLabels()[f] == "" {
+		return core.UnknownEnumDiagnostic
 	}
+	return latestFreshnessLabels()[f]
+}
+
+func latestFreshnessLabels() [latestFreshnessLimit]string {
+	return [...]string{"", "not-yet-valid", currentDiagnostic, "expired"}
 }
 
 // LatestClockState records whether the signed issue floor corrected a local
@@ -91,7 +94,8 @@ const (
 )
 
 func (s LatestClockState) Validate() error {
-	if s <= LatestClockUnknown || s >= latestClockLimit {
+	if s <= LatestClockUnknown || s >= latestClockLimit ||
+		latestClockStateLabels()[s] == "" {
 		return latestError(errors.New("clock state is outside the closed domain"))
 	}
 	return nil
@@ -102,14 +106,14 @@ func (LatestClockState) OffWireEnum()    {}
 
 // String returns a stable diagnostic label.
 func (s LatestClockState) String() string {
-	switch s {
-	case LatestClockObserved:
-		return "observed"
-	case LatestClockCorrected:
-		return "corrected"
-	default:
-		return unknownDiagnostic
+	if s >= latestClockLimit || latestClockStateLabels()[s] == "" {
+		return core.UnknownEnumDiagnostic
 	}
+	return latestClockStateLabels()[s]
+}
+
+func latestClockStateLabels() [latestClockLimit]string {
+	return [...]string{"", "observed", "corrected"}
 }
 
 // LatestAdvanceState is the complete successful advance result domain.
@@ -123,7 +127,8 @@ const (
 )
 
 func (s LatestAdvanceState) Validate() error {
-	if s <= LatestAdvanceUnknown || s >= latestAdvanceLimit {
+	if s <= LatestAdvanceUnknown || s >= latestAdvanceLimit ||
+		latestAdvanceStateLabels()[s] == "" {
 		return contractError(errors.New("advance state is outside the closed domain"))
 	}
 	return nil
@@ -134,14 +139,14 @@ func (LatestAdvanceState) OffWireEnum()    {}
 
 // String returns a stable diagnostic label.
 func (s LatestAdvanceState) String() string {
-	switch s {
-	case LatestAdvanceReplay:
-		return "replay"
-	case LatestAdvanceAdvanced:
-		return "advanced"
-	default:
-		return unknownDiagnostic
+	if s >= latestAdvanceLimit || latestAdvanceStateLabels()[s] == "" {
+		return core.UnknownEnumDiagnostic
 	}
+	return latestAdvanceStateLabels()[s]
+}
+
+func latestAdvanceStateLabels() [latestAdvanceLimit]string {
+	return [...]string{"", "replay", "advanced"}
 }
 
 func (r Revision) MarshalJSON() ([]byte, error) {

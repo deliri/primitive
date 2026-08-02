@@ -59,8 +59,7 @@ const (
 )
 
 func diagnosticLabels() [diagnosticLimit]string {
-	return [diagnosticLimit]string{
-		diagnosticUnknown:                     unknownLabel,
+	return [...]string{
 		diagnosticPhaseUnsupported:            "phase is not a supported cleanup phase",
 		diagnosticStepOutcomeUnsupported:      "step outcome is not a supported outcome",
 		diagnosticSignalKindUnsupported:       "signal kind is not a supported signal",
@@ -106,7 +105,7 @@ func (d diagnostic) Error() string {
 	if d > diagnosticUnknown && d < diagnosticLimit && labels[d] != "" {
 		return labels[d]
 	}
-	return unknownLabel
+	return core.UnknownEnumDiagnostic
 }
 
 func contractError(detail diagnostic, causes ...error) error {

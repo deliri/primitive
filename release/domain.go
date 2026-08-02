@@ -9,7 +9,6 @@ import (
 const (
 	manifestDomainToken = "primitive-release-manifest-v1"
 	latestDomainToken   = "primitive-release-latest-v1"
-	unknownDiagnostic   = "unknown"
 	currentDiagnostic   = "current"
 )
 
@@ -24,7 +23,7 @@ const (
 )
 
 func (d Domain) Validate() error {
-	if d <= DomainUnknown || d >= domainLimit {
+	if d <= DomainUnknown || d >= domainLimit || domainTokens()[d] == "" {
 		return contractError(errors.New("signing domain is outside the closed domain"))
 	}
 	return nil
@@ -34,14 +33,14 @@ func (d Domain) IsValid() bool { return d.Validate() == nil }
 func (Domain) OffWireEnum()    {}
 
 func (d Domain) String() string {
-	switch d {
-	case DomainManifestV1:
-		return manifestDomainToken
-	case DomainLatestV1:
-		return latestDomainToken
-	default:
-		return unknownDiagnostic
+	if d >= domainLimit || domainTokens()[d] == "" {
+		return core.UnknownEnumDiagnostic
 	}
+	return domainTokens()[d]
+}
+
+func domainTokens() [domainLimit]string {
+	return [...]string{"", manifestDomainToken, latestDomainToken}
 }
 
 func (d Domain) MarshalText() ([]byte, error) {

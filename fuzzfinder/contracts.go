@@ -13,7 +13,6 @@ const (
 	MaximumRetainedEntries uint16 = 128
 
 	generatedNameBytesGo1_26 = 16
-	unknownEnumDiagnostic    = "unknown"
 )
 
 func cacheFormatDiagnostics() [cacheFormatLimit]string {
@@ -52,7 +51,7 @@ func (CacheFormat) OffWireEnum() {}
 // String returns the compiler-owned diagnostic label for f.
 func (f CacheFormat) String() string {
 	if !f.IsValid() {
-		return unknownEnumDiagnostic
+		return core.UnknownEnumDiagnostic
 	}
 	return cacheFormatDiagnostics()[f]
 }

@@ -4,17 +4,14 @@ import (
 	"context"
 	"errors"
 	"net/http"
-	"sync"
 
 	"github.com/deliri/primitive/v2026/core"
 	"github.com/deliri/primitive/v2026/exchange"
 )
 
-var successStatus = sync.OnceValues(resolveSuccessStatus)
-
-// resolveSuccessStatus admits the one status either authority may answer one
+// successStatus admits the one status either authority may answer one
 // acquisition with. Every other status is refused by Exchange.
-func resolveSuccessStatus() (core.HTTPStatusCode, error) {
+func successStatus() (core.HTTPStatusCode, error) {
 	status, err := core.NewHTTPStatusCode(http.StatusOK)
 	if err != nil {
 		return core.HTTPStatusCode{}, contractError(err)

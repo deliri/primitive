@@ -29,7 +29,7 @@ const (
 // Validate rejects authorities outside the closed enum. Every admitted member
 // must also carry a registry contract; authorityRegistry owns that gate.
 func (a Authority) Validate() error {
-	if a <= AuthorityUnknown || a >= authorityLimit {
+	if a <= AuthorityUnknown || a >= authorityLimit || authorityTokens()[a] == "" {
 		return contractError(nil)
 	}
 	return nil
@@ -40,10 +40,14 @@ func (a Authority) IsValid() bool { return a.Validate() == nil }
 
 // String returns the canonical persisted token.
 func (a Authority) String() string {
-	if a == AuthorityFreeTSA {
-		return "freetsa"
+	if a >= authorityLimit {
+		return ""
 	}
-	return ""
+	return authorityTokens()[a]
+}
+
+func authorityTokens() [authorityLimit]string {
+	return [...]string{"", "freetsa"}
 }
 
 // WireEnum declares that Authority crosses persistence boundaries.
@@ -83,7 +87,8 @@ const (
 
 // Validate rejects policy identities outside the closed enum.
 func (p TimestampPolicy) Validate() error {
-	if p <= TimestampPolicyUnknown || p >= timestampPolicyLimit {
+	if p <= TimestampPolicyUnknown || p >= timestampPolicyLimit ||
+		timestampPolicyTokens()[p] == "" {
 		return contractError(nil)
 	}
 	return nil
@@ -95,10 +100,14 @@ func (p TimestampPolicy) IsValid() bool { return p.Validate() == nil }
 // String returns the canonical OID token projected from the one ASN.1 policy
 // identity the package owns.
 func (p TimestampPolicy) String() string {
-	if p == TimestampPolicyFreeTSA {
-		return freeTSAPolicyOID.String()
+	if p >= timestampPolicyLimit {
+		return ""
 	}
-	return ""
+	return timestampPolicyTokens()[p]
+}
+
+func timestampPolicyTokens() [timestampPolicyLimit]string {
+	return [...]string{"", freeTSAPolicyOID.String()}
 }
 
 // WireEnum declares that TimestampPolicy crosses persistence boundaries.

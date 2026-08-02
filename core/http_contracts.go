@@ -3,6 +3,7 @@ package core
 import (
 	"errors"
 	"mime"
+	"net/http"
 	"net/textproto"
 	"strconv"
 	"strings"
@@ -103,8 +104,8 @@ func (s HTTPStatusCode) IsServerError() bool {
 // HTTP operation owner's decision.
 func (s HTTPStatusCode) PermitsResponseBody() bool {
 	return s.value > httpStatusInformationalMaximum &&
-		s.value != 204 &&
-		s.value != 304
+		s.value != http.StatusNoContent &&
+		s.value != http.StatusNotModified
 }
 
 // MarshalJSON emits the status as a canonical JSON integer.

@@ -15,6 +15,11 @@ import (
 	"github.com/deliri/primitive/v2026/filestore"
 )
 
+const (
+	filesystemConcurrencyProofTimeout = 10 * time.Minute
+	filesystemCancellationTimeout     = time.Minute
+)
+
 func TestOpenAppendReturnsTheRealOSFile(t *testing.T) {
 	t.Parallel()
 
@@ -194,7 +199,7 @@ func TestTenThousandIndependentWritersHaveNoPrimitiveCoordinationBottleneck(t *t
 			MaximumBytes: mustByteCount(t, uint64(len(data))),
 		}
 	}
-	ctx, cancel := context.WithTimeout(t.Context(), 10*time.Minute)
+	ctx, cancel := context.WithTimeout(t.Context(), filesystemConcurrencyProofTimeout)
 	defer cancel()
 	var group sync.WaitGroup
 	failures := make(chan error, writers)
@@ -217,8 +222,8 @@ func TestTenThousandIndependentWritersHaveNoPrimitiveCoordinationBottleneck(t *t
 		select {
 		case <-done:
 			t.Fatalf("10,000 independent Write() calls required cancellation to terminate: %v", ctx.Err())
-		case <-time.After(time.Minute):
-			t.Fatalf("10,000 independent Write() calls did not exit within %s after cancellation: %v", time.Minute, ctx.Err())
+		case <-time.After(filesystemCancellationTimeout):
+			t.Fatalf("10,000 independent Write() calls did not exit within %s after cancellation: %v", filesystemCancellationTimeout, ctx.Err())
 		}
 	}
 	for gotErr := range failures {
@@ -282,7 +287,7 @@ func TestCreateOnlyWritersResolveRealNamespaceContentionWithoutPrimitiveLocks(t 
 		err   error
 		index int
 	}
-	ctx, cancel := context.WithTimeout(t.Context(), time.Minute)
+	ctx, cancel := context.WithTimeout(t.Context(), filesystemConcurrencyProofTimeout)
 	defer cancel()
 	results := make(chan result, writers)
 	var group sync.WaitGroup
@@ -308,8 +313,8 @@ func TestCreateOnlyWritersResolveRealNamespaceContentionWithoutPrimitiveLocks(t 
 		select {
 		case <-done:
 			t.Fatalf("contending create-only Write() calls required cancellation to terminate: %v", ctx.Err())
-		case <-time.After(time.Minute):
-			t.Fatalf("contending create-only Write() calls did not exit within %s after cancellation: %v", time.Minute, ctx.Err())
+		case <-time.After(filesystemCancellationTimeout):
+			t.Fatalf("contending create-only Write() calls did not exit within %s after cancellation: %v", filesystemCancellationTimeout, ctx.Err())
 		}
 	}
 	successes := 0
@@ -483,7 +488,7 @@ func runConcurrentWriteRequests(
 ) []concurrentWriteResult {
 	t.Helper()
 
-	ctx, cancel := context.WithTimeout(t.Context(), time.Minute)
+	ctx, cancel := context.WithTimeout(t.Context(), filesystemConcurrencyProofTimeout)
 	defer cancel()
 	results := make(chan concurrentWriteResult, len(requests))
 	var group sync.WaitGroup
@@ -506,8 +511,8 @@ func runConcurrentWriteRequests(
 		select {
 		case <-done:
 			t.Fatalf("concurrent Write() calls required cancellation to terminate: %v", ctx.Err())
-		case <-time.After(time.Minute):
-			t.Fatalf("concurrent Write() calls did not exit within %s after cancellation: %v", time.Minute, ctx.Err())
+		case <-time.After(filesystemCancellationTimeout):
+			t.Fatalf("concurrent Write() calls did not exit within %s after cancellation: %v", filesystemCancellationTimeout, ctx.Err())
 		}
 	}
 	got := make([]concurrentWriteResult, 0, len(requests))

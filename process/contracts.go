@@ -10,8 +10,6 @@ import (
 	"github.com/deliri/primitive/v2026/temporal"
 )
 
-const unknownEnumLabel = "unknown"
-
 // Argument is one exact non-NUL argv value. Its zero value is invalid even
 // though a constructed empty argument is valid.
 type Argument struct {
@@ -153,8 +151,7 @@ const (
 )
 
 func environmentModeDiagnostics() [environmentModeLimit]string {
-	return [environmentModeLimit]string{
-		EnvironmentModeUnknown: unknownEnumLabel,
+	return [...]string{
 		EnvironmentModeInherit: "inherit",
 		EnvironmentModeExact:   "exact",
 	}
@@ -185,7 +182,7 @@ func (m EnvironmentMode) String() string {
 	if m < environmentModeLimit && diagnostics[m] != "" {
 		return diagnostics[m]
 	}
-	return unknownEnumLabel
+	return core.UnknownEnumDiagnostic
 }
 
 // Environment describes ambient inheritance or one exact ordered environment.

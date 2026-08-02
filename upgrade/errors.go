@@ -29,30 +29,32 @@ const (
 	diagnosticLimit
 )
 
-var diagnosticText = [diagnosticLimit]string{
-	diagnosticUnknown:          "unknown upgrade rejection",
-	diagnosticSlot:             "slot is outside the closed domain",
-	diagnosticTrialOutcome:     "trial outcome is outside the closed domain",
-	diagnosticFailurePhase:     "failure phase is outside the closed domain",
-	diagnosticJSON:             "upgrade document violates its canonical JSON contract",
-	diagnosticSelection:        "primary selection is invalid",
-	diagnosticRoot:             "root does not name the declared upgrade directory",
-	diagnosticPrimary:          "primary is invalid",
-	diagnosticTrialTarget:      "trial target is invalid",
-	diagnosticTrialReport:      "trial report is invalid",
-	diagnosticPromotion:        "promotion is invalid",
-	diagnosticObservedBuild:    "trial observed a build other than the exact candidate",
-	diagnosticCandidateBytes:   "installed bytes differ from the authenticated artifact",
-	diagnosticCurrentSelection: "current primary differs from the promotion authority",
-	diagnosticTrialDocument:    "durable trial receipt is invalid",
-	diagnosticActiveTrial:      "another exact candidate still owns the trial slot",
+func diagnosticTexts() [diagnosticLimit]string {
+	return [...]string{
+		"unknown upgrade rejection",
+		"slot is outside the closed domain",
+		"trial outcome is outside the closed domain",
+		"failure phase is outside the closed domain",
+		"upgrade document violates its canonical JSON contract",
+		"primary selection is invalid",
+		"root does not name the declared upgrade directory",
+		"primary is invalid",
+		"trial target is invalid",
+		"trial report is invalid",
+		"promotion is invalid",
+		"trial observed a build other than the exact candidate",
+		"installed bytes differ from the authenticated artifact",
+		"current primary differs from the promotion authority",
+		"durable trial receipt is invalid",
+		"another exact candidate still owns the trial slot",
+	}
 }
 
 func (d diagnostic) Error() string {
 	if d <= diagnosticUnknown || d >= diagnosticLimit {
-		return diagnosticText[diagnosticUnknown]
+		return diagnosticTexts()[diagnosticUnknown]
 	}
-	return diagnosticText[d]
+	return diagnosticTexts()[d]
 }
 
 func contractError(causes ...error) error {

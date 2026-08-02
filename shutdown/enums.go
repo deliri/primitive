@@ -1,9 +1,10 @@
 package shutdown
 
+import "github.com/deliri/primitive/v2026/core"
+
 const (
 	escalateLabel = "escalate"
 	releaseLabel  = "release"
-	unknownLabel  = "unknown"
 )
 
 // Phase is a closed cleanup phase executed in declaration order.
@@ -20,8 +21,7 @@ const (
 )
 
 func phaseLabels() [phaseLimit]string {
-	return [phaseLimit]string{
-		PhaseUnknown:       unknownLabel,
+	return [...]string{
 		PhaseStopAdmission: "stop-admission",
 		PhaseDrain:         "drain",
 		PhasePersist:       "persist",
@@ -47,7 +47,7 @@ func (p Phase) String() string {
 	if p < phaseLimit && labels[p] != "" {
 		return labels[p]
 	}
-	return unknownLabel
+	return core.UnknownEnumDiagnostic
 }
 
 func (Phase) OffWireEnum() {}
@@ -66,8 +66,7 @@ const (
 )
 
 func stepOutcomeLabels() [stepOutcomeLimit]string {
-	return [stepOutcomeLimit]string{
-		StepOutcomeUnknown:             unknownLabel,
+	return [...]string{
 		StepOutcomeCompleted:           "completed",
 		StepOutcomeFailed:              "failed",
 		StepOutcomeTimedOut:            "timed-out",
@@ -93,7 +92,7 @@ func (o StepOutcome) String() string {
 	if o < stepOutcomeLimit && labels[o] != "" {
 		return labels[o]
 	}
-	return unknownLabel
+	return core.UnknownEnumDiagnostic
 }
 
 func (StepOutcome) OffWireEnum() {}
@@ -110,8 +109,7 @@ const (
 )
 
 func signalKindLabels() [signalKindLimit]string {
-	return [signalKindLimit]string{
-		SignalKindUnknown:   unknownLabel,
+	return [...]string{
 		SignalKindInterrupt: "interrupt",
 		SignalKindTerminate: "terminate",
 		SignalKindHangup:    "hangup",
@@ -135,7 +133,7 @@ func (k SignalKind) String() string {
 	if k < signalKindLimit && labels[k] != "" {
 		return labels[k]
 	}
-	return unknownLabel
+	return core.UnknownEnumDiagnostic
 }
 
 func (SignalKind) OffWireEnum() {}
@@ -156,8 +154,7 @@ const (
 )
 
 func signalSetLabels() [signalSetLimit]string {
-	return [signalSetLimit]string{
-		SignalSetUnknown:           unknownLabel,
+	return [...]string{
 		SignalSetInteractive:       "interactive",
 		SignalSetStandard:          "standard",
 		SignalSetTerminalLifecycle: "terminal-lifecycle",
@@ -181,7 +178,7 @@ func (s SignalSet) String() string {
 	if s < signalSetLimit && labels[s] != "" {
 		return labels[s]
 	}
-	return unknownLabel
+	return core.UnknownEnumDiagnostic
 }
 
 func (SignalSet) OffWireEnum() {}
@@ -197,10 +194,9 @@ const (
 )
 
 func secondSignalActionLabels() [secondSignalActionLimit]string {
-	return [secondSignalActionLimit]string{
-		SecondSignalActionUnknown: unknownLabel,
-		SecondSignalRelease:       releaseLabel,
-		SecondSignalEscalate:      escalateLabel,
+	return [...]string{
+		SecondSignalRelease:  releaseLabel,
+		SecondSignalEscalate: escalateLabel,
 	}
 }
 
@@ -223,7 +219,7 @@ func (a SecondSignalAction) String() string {
 	if a < secondSignalActionLimit && labels[a] != "" {
 		return labels[a]
 	}
-	return unknownLabel
+	return core.UnknownEnumDiagnostic
 }
 
 func (SecondSignalAction) OffWireEnum() {}
@@ -239,10 +235,9 @@ const (
 )
 
 func graceExpiryActionLabels() [graceExpiryActionLimit]string {
-	return [graceExpiryActionLimit]string{
-		GraceExpiryActionUnknown: unknownLabel,
-		GraceExpiryDisabled:      "disabled",
-		GraceExpiryEscalate:      escalateLabel,
+	return [...]string{
+		GraceExpiryDisabled: "disabled",
+		GraceExpiryEscalate: escalateLabel,
 	}
 }
 
@@ -265,7 +260,7 @@ func (a GraceExpiryAction) String() string {
 	if a < graceExpiryActionLimit && labels[a] != "" {
 		return labels[a]
 	}
-	return unknownLabel
+	return core.UnknownEnumDiagnostic
 }
 
 func (GraceExpiryAction) OffWireEnum() {}
@@ -281,10 +276,9 @@ const (
 )
 
 func escalationReasonLabels() [escalationReasonLimit]string {
-	return [escalationReasonLimit]string{
-		EscalationReasonUnknown: unknownLabel,
-		EscalationSecondSignal:  "second-signal",
-		EscalationGraceExpired:  "grace-expired",
+	return [...]string{
+		EscalationSecondSignal: "second-signal",
+		EscalationGraceExpired: "grace-expired",
 	}
 }
 
@@ -307,7 +301,7 @@ func (r EscalationReason) String() string {
 	if r < escalationReasonLimit && labels[r] != "" {
 		return labels[r]
 	}
-	return unknownLabel
+	return core.UnknownEnumDiagnostic
 }
 
 func (EscalationReason) OffWireEnum() {}

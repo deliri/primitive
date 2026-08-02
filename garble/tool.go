@@ -1,6 +1,10 @@
 package garble
 
-import "errors"
+import (
+	"errors"
+
+	"github.com/deliri/primitive/v2026/core"
+)
 
 const (
 	toolModulePath           = "mvdan.cc/garble"
@@ -53,7 +57,7 @@ func (ToolIdentity) OffWireEnum() {}
 // String returns the compiler-owned diagnostic label for t.
 func (t ToolIdentity) String() string {
 	if !t.IsValid() {
-		return unknownEnumLabel
+		return core.UnknownEnumDiagnostic
 	}
 	return toolIdentityLabels()[t]
 }

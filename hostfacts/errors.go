@@ -7,8 +7,6 @@ import (
 	"github.com/deliri/primitive/v2026/core"
 )
 
-const unknownOperationText = "unknown"
-
 // Operation identifies the exact Hostfacts operation that failed.
 type Operation uint8
 
@@ -44,7 +42,7 @@ func operationLabels() [operationLimit]string {
 // file to learn which observation failed.
 func (o Operation) String() string {
 	if !o.IsValid() {
-		return unknownOperationText
+		return core.UnknownEnumDiagnostic
 	}
 	return operationLabels()[o]
 }

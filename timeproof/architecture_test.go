@@ -46,6 +46,8 @@ type timeproofContractInventory struct {
 	AuthoritativeTimestamp     sealedProjection[AuthoritativeTimestamp]
 	AccuracyWire               protocolFact[accuracyWire]
 	AuthorityConclusion        protocolFact[authorityConclusion]
+	RefusalStatusFact          protocolFact[refusalStatusFact]
+	RefusalCodeFact            protocolFact[refusalCodeFact]
 	RefusalCodeSet             internalFlow[refusalCodeSet]
 	Refusal                    sealedProjection[Refusal]
 	PrepareRequest             operationRequest[PrepareRequest]

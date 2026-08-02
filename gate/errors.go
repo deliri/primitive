@@ -23,16 +23,19 @@ const (
 	contractBoundaryLimit
 )
 
-var contractBoundaryLabels = [contractBoundaryLimit]string{
-	ContractBoundaryAuthorizeRequest: authorizeRequestBoundaryText,
-	ContractBoundaryNewWorkPermit:    newWorkPermitBoundaryText,
-	ContractBoundaryDenial:           denialBoundaryText,
+func contractBoundaryLabels() [contractBoundaryLimit]string {
+	return [...]string{
+		"",
+		authorizeRequestBoundaryText,
+		newWorkPermitBoundaryText,
+		denialBoundaryText,
+	}
 }
 
 // Validate rejects values outside the closed diagnostic boundary domain.
 func (b ContractBoundary) Validate() error {
 	if b <= ContractBoundaryUnknown || b >= contractBoundaryLimit ||
-		contractBoundaryLabels[b] == "" {
+		contractBoundaryLabels()[b] == "" {
 		return core.ErrGateContract
 	}
 	return nil
@@ -49,7 +52,7 @@ func (b ContractBoundary) String() string {
 	if b.Validate() != nil {
 		return ""
 	}
-	return contractBoundaryLabels[b]
+	return contractBoundaryLabels()[b]
 }
 
 // ContractError identifies the exact Gate boundary that rejected a contract.

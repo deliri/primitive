@@ -21,6 +21,10 @@ const (
 	SignedHeaderMaximumBytes    = 32 * 1024
 	httpsScheme                 = "https"
 	objectstoreOwnedHeaderCount = 15
+	googleCloudStorageHost      = "storage.googleapis.com"
+	googleCloudStorageMTLSHost  = "storage.mtls.googleapis.com"
+	amazonWebServicesDNSRoot    = "amazonaws.com"
+	amazonWebServicesChinaRoot  = "amazonaws.com.cn"
 )
 
 // Direction identifies one transfer operation.
@@ -446,6 +450,9 @@ func (r DownloadRequest) validateFor(provider Provider) error {
 }
 
 func validateCapability(provider Provider, value url.URL) error {
+	if err := validateProviderEndpoint(provider, value); err != nil {
+		return err
+	}
 	query := value.Query()
 	switch provider {
 	case ProviderAmazonS3:
@@ -463,13 +470,64 @@ func validateCapability(provider Provider, value url.URL) error {
 			return core.ErrObjectStoreContract
 		}
 	case ProviderCloudflareImages:
-		if !strings.EqualFold(value.Hostname(), cloudflareImagesUploadHost) {
-			return core.ErrObjectStoreContract
-		}
 	default:
 		return core.ErrObjectStoreContract
 	}
 	return nil
+}
+
+// validateProviderEndpoint prevents a provider-labelled bearer received over
+// an API from becoming an arbitrary HTTPS upload or download target. The
+// admitted hosts are vendor-controlled data-plane DNS names; an explicit port
+// may only restate HTTPS's standard port.
+func validateProviderEndpoint(provider Provider, value url.URL) error {
+	if port := value.Port(); port != "" && port != "443" {
+		return core.ErrObjectStoreContract
+	}
+	host := strings.ToLower(value.Hostname())
+	if providerEndpointHost(provider, host) {
+		return nil
+	}
+	return core.ErrObjectStoreContract
+}
+
+func providerEndpointHost(provider Provider, host string) bool {
+	switch provider {
+	case ProviderAmazonS3:
+		return amazonS3DataHost(host)
+	case ProviderGoogleCloudStorage:
+		return googleCloudStorageDataHost(host)
+	case ProviderCloudflareImages:
+		return host == cloudflareImagesUploadHost
+	case ProviderUnknown, providerLimit:
+		return false
+	}
+	return false
+}
+
+func googleCloudStorageDataHost(host string) bool {
+	return host == googleCloudStorageHost ||
+		host == googleCloudStorageMTLSHost ||
+		strings.HasSuffix(host, "."+googleCloudStorageHost)
+}
+
+func amazonS3DataHost(host string) bool {
+	for _, root := range [...]string{
+		amazonWebServicesDNSRoot,
+		amazonWebServicesChinaRoot,
+	} {
+		if host != root && !strings.HasSuffix(host, "."+root) {
+			continue
+		}
+		prefix := strings.TrimSuffix(strings.TrimSuffix(host, root), ".")
+		for label := range strings.SplitSeq(prefix, ".") {
+			if label == "s3" || strings.HasPrefix(label, "s3-") ||
+				strings.HasPrefix(label, "s3express-") {
+				return true
+			}
+		}
+	}
+	return false
 }
 
 // objectstoreOwnedHeaderNames resolves the one compiler-sized set of request
@@ -544,7 +602,8 @@ var (
 
 // Validate rejects values outside the closed direction domain.
 func (d Direction) Validate() error {
-	if d <= DirectionUnknown || d >= directionLimit {
+	if d <= DirectionUnknown || d >= directionLimit ||
+		directionDiagnostics()[d] == "" {
 		return core.ErrObjectStoreContract
 	}
 	return nil
@@ -562,10 +621,10 @@ func (d Direction) String() string {
 }
 
 func directionDiagnostics() [directionLimit]string {
-	return [directionLimit]string{
-		DirectionUnknown:  "",
-		DirectionUpload:   "upload",
-		DirectionDownload: "download",
+	return [...]string{
+		"",
+		"upload",
+		"download",
 	}
 }
 
@@ -574,7 +633,8 @@ func (Direction) OffWireEnum() {}
 
 // Validate rejects values outside the closed commitment domain.
 func (c Commitment) Validate() error {
-	if c <= CommitmentUnknown || c >= commitmentLimit {
+	if c <= CommitmentUnknown || c >= commitmentLimit ||
+		commitmentDiagnostics()[c] == "" {
 		return core.ErrObjectStoreContract
 	}
 	return nil
@@ -592,12 +652,12 @@ func (c Commitment) String() string {
 }
 
 func commitmentDiagnostics() [commitmentLimit]string {
-	return [commitmentLimit]string{
-		CommitmentUnknown:       "",
-		CommitmentNotAttempted:  "not_attempted",
-		CommitmentRejected:      "rejected",
-		CommitmentConfirmed:     "confirmed",
-		CommitmentIndeterminate: "indeterminate",
+	return [...]string{
+		"",
+		"not_attempted",
+		"rejected",
+		"confirmed",
+		"indeterminate",
 	}
 }
 

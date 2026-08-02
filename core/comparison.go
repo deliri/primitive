@@ -1,7 +1,9 @@
 package core
 
 const (
-	comparisonUnknownDiagnostic = "unknown"
+	// UnknownEnumDiagnostic is the one diagnostic projection for a value that
+	// is outside a compiler-owned enumeration domain.
+	UnknownEnumDiagnostic       = "unknown"
 	comparisonLessDiagnostic    = "less"
 	comparisonEqualDiagnostic   = "equal"
 	comparisonGreaterDiagnostic = "greater"
@@ -31,7 +33,7 @@ type comparisonDiagnostic struct {
 // a row fails to compile; moving a member without its row fails validation.
 func comparisonDiagnostics() [comparisonLimit]comparisonDiagnostic {
 	return [...]comparisonDiagnostic{
-		{comparison: ComparisonUnknown, text: comparisonUnknownDiagnostic},
+		{comparison: ComparisonUnknown, text: UnknownEnumDiagnostic},
 		{comparison: ComparisonLess, text: comparisonLessDiagnostic},
 		{comparison: ComparisonEqual, text: comparisonEqualDiagnostic},
 		{comparison: ComparisonGreater, text: comparisonGreaterDiagnostic},
@@ -65,7 +67,7 @@ func (Comparison) OffWireEnum() {}
 // String returns a diagnostic projection of c.
 func (c Comparison) String() string {
 	if err := c.Validate(); err != nil {
-		return comparisonUnknownDiagnostic
+		return UnknownEnumDiagnostic
 	}
 	return comparisonDiagnostics()[c].text
 }

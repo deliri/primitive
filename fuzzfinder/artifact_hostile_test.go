@@ -24,8 +24,8 @@ func TestArtifactKindExhaustsClosedWireDomain(t *testing.T) {
 			if !errors.Is(gotErr, core.ErrFuzzFinderContract) {
 				t.Fatalf("ArtifactKind(%d).Validate() error = %v, want %v", raw, gotErr, core.ErrFuzzFinderContract)
 			}
-			if kind.String() != artifactUnknownToken {
-				t.Fatalf("ArtifactKind(%d).String() = %q, want %q", raw, kind.String(), artifactUnknownToken)
+			if kind.String() != core.UnknownEnumDiagnostic {
+				t.Fatalf("ArtifactKind(%d).String() = %q, want %q", raw, kind.String(), core.UnknownEnumDiagnostic)
 			}
 			if _, marshalErr := json.Marshal(kind); !errors.Is(marshalErr, core.ErrFuzzFinderContract) {
 				t.Fatalf("json.Marshal(ArtifactKind(%d)) error = %v, want %v", raw, marshalErr, core.ErrFuzzFinderContract)
@@ -85,7 +85,7 @@ func TestArtifactKindWireLayerTriad(t *testing.T) {
 			{name: "object token", wire: []byte("{}")},
 			{name: "quoted array", wire: []byte(`"[]"`)},
 			{name: "empty string", wire: []byte(`""`)},
-			{name: "diagnostic unknown token is not admitted as wire", wire: []byte(`"` + artifactUnknownToken + `"`)},
+			{name: "diagnostic unknown token is not admitted as wire", wire: []byte(`"` + core.UnknownEnumDiagnostic + `"`)},
 			{name: "case changed corpus", wire: []byte(`"FUZZ-CORPUS"`)},
 			{name: "underscore instead of hyphen", wire: []byte(`"fuzz_corpus"`)},
 			{name: "leading whitespace inside the token", wire: []byte(`" fuzz-corpus"`)},

@@ -7,7 +7,6 @@ import (
 	"net/url"
 	"strconv"
 	"strings"
-	"sync"
 	"time"
 
 	"github.com/deliri/primitive/v2026/core"
@@ -129,7 +128,8 @@ const (
 
 // validate closes the query-field domain.
 func (f amazonQueryField) validate() error {
-	if f <= amazonQueryFieldUnknown || f >= amazonQueryFieldLimit {
+	if f <= amazonQueryFieldUnknown || f >= amazonQueryFieldLimit ||
+		amazonQueryFieldNames()[f] == "" {
 		return core.ErrCloudIdentityContract
 	}
 	return nil
@@ -137,24 +137,28 @@ func (f amazonQueryField) validate() error {
 
 // name returns the exact AWS-published query name.
 func (f amazonQueryField) name() string {
-	if f.validate() != nil {
+	if f >= amazonQueryFieldLimit {
 		return ""
 	}
+	return amazonQueryFieldNames()[f]
+}
+
+func amazonQueryFieldNames() [amazonQueryFieldLimit]string {
 	return [...]string{
-		amazonQueryFieldUnknown:            "",
-		amazonQueryFieldAction:             amazonActionQuery,
-		amazonQueryFieldVersion:            amazonVersionQuery,
-		amazonQueryFieldAudience:           amazonAudienceQuery,
-		amazonQueryFieldSigningAlgorithm:   amazonSigningAlgorithmQuery,
-		amazonQueryFieldDuration:           amazonDurationQuery,
-		amazonQueryFieldSignatureAlgorithm: amazonSigAlgorithmQuery,
-		amazonQueryFieldCredential:         amazonCredentialQuery,
-		amazonQueryFieldDate:               amazonDateQuery,
-		amazonQueryFieldExpires:            amazonExpiresQuery,
-		amazonQueryFieldSignedHeaders:      amazonSignedHeadersQuery,
-		amazonQueryFieldSignature:          amazonSignatureQuery,
-		amazonQueryFieldSecurityToken:      amazonSecurityTokenQuery,
-	}[f]
+		"",
+		amazonActionQuery,
+		amazonVersionQuery,
+		amazonAudienceQuery,
+		amazonSigningAlgorithmQuery,
+		amazonDurationQuery,
+		amazonSigAlgorithmQuery,
+		amazonCredentialQuery,
+		amazonDateQuery,
+		amazonExpiresQuery,
+		amazonSignedHeadersQuery,
+		amazonSignatureQuery,
+		amazonSecurityTokenQuery,
+	}
 }
 
 // optional reports whether a valid capability may omit the field. Only the
@@ -222,9 +226,7 @@ func amazonResponseToken(body []byte) (Token, error) {
 	return token, nil
 }
 
-var amazonResponseLimit = sync.OnceValues(resolveAmazonResponseLimit)
-
-func resolveAmazonResponseLimit() (core.ByteCount, error) {
+func amazonResponseLimit() (core.ByteCount, error) {
 	limit, err := core.NewByteCount(AmazonResponseMaximumBytes)
 	if err != nil {
 		return core.ByteCount{}, contractError(err)

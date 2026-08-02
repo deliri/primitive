@@ -23,10 +23,8 @@ const (
 	GoOOMPrefixedBanner = "fatal error: runtime: out of memory"
 	GoOOMPlainBanner    = "fatal error: out of memory"
 
-	goOOMAbsentToken  = "absent"
-	goOOMPresentToken = "present"
-	goOOMUnknownToken = "unknown"
-
+	goOOMAbsentToken         = "absent"
+	goOOMPresentToken        = "present"
 	goOOMEvidenceBytesPrefix = `{"bytes_examined":`
 	goOOMEvidenceStatePrefix = `,"state":`
 )
@@ -52,19 +50,20 @@ func (s GoOOMBannerState) Validate() error {
 
 // IsValid reports membership in the closed wire domain.
 func (s GoOOMBannerState) IsValid() bool {
-	return s > GoOOMBannerUnknown && s < goOOMBannerLimit
+	return s > GoOOMBannerUnknown && s < goOOMBannerLimit &&
+		goOOMBannerTokens()[s] != ""
 }
 
 // String returns the canonical wire token or "unknown" for an invalid value.
 func (s GoOOMBannerState) String() string {
-	switch s {
-	case GoOOMBannerAbsent:
-		return goOOMAbsentToken
-	case GoOOMBannerPresent:
-		return goOOMPresentToken
-	default:
-		return goOOMUnknownToken
+	if s >= goOOMBannerLimit || goOOMBannerTokens()[s] == "" {
+		return core.UnknownEnumDiagnostic
 	}
+	return goOOMBannerTokens()[s]
+}
+
+func goOOMBannerTokens() [goOOMBannerLimit]string {
+	return [...]string{"", goOOMAbsentToken, goOOMPresentToken}
 }
 
 // MarshalJSON emits the canonical state token.

@@ -20,19 +20,12 @@ const (
 // slotLabels is also the on-wire token set and the slot directory name set. An
 // invalid slot deliberately projects the empty string, which no path component
 // admits, so a slot that escapes validation cannot name a directory.
-var slotLabels = [...]string{
-	SlotUnknown: "",
-	SlotA:       "slot-a",
-	SlotB:       "slot-b",
+func slotLabels() [slotLimit]string {
+	return [...]string{"", "slot-a", "slot-b"}
 }
 
-var (
-	_ [int(slotLimit) - len(slotLabels)]struct{}
-	_ [len(slotLabels) - int(slotLimit)]struct{}
-)
-
 func (s Slot) Validate() error {
-	if s <= SlotUnknown || s >= slotLimit {
+	if s <= SlotUnknown || s >= slotLimit || slotLabels()[s] == "" {
 		return contractError(diagnosticSlot)
 	}
 	return nil
@@ -42,9 +35,9 @@ func (s Slot) IsValid() bool { return s.Validate() == nil }
 
 func (s Slot) String() string {
 	if !s.IsValid() {
-		return slotLabels[SlotUnknown]
+		return slotLabels()[SlotUnknown]
 	}
-	return slotLabels[s]
+	return slotLabels()[s]
 }
 
 func (s Slot) other() (Slot, error) {
@@ -96,19 +89,13 @@ const (
 	trialOutcomeLimit
 )
 
-var trialOutcomeLabels = [...]string{
-	TrialOutcomeUnknown: "",
-	TrialPassed:         "passed",
-	TrialFailed:         "failed",
+func trialOutcomeLabels() [trialOutcomeLimit]string {
+	return [...]string{"", "passed", "failed"}
 }
 
-var (
-	_ [int(trialOutcomeLimit) - len(trialOutcomeLabels)]struct{}
-	_ [len(trialOutcomeLabels) - int(trialOutcomeLimit)]struct{}
-)
-
 func (o TrialOutcome) Validate() error {
-	if o <= TrialOutcomeUnknown || o >= trialOutcomeLimit {
+	if o <= TrialOutcomeUnknown || o >= trialOutcomeLimit ||
+		trialOutcomeLabels()[o] == "" {
 		return contractError(diagnosticTrialOutcome)
 	}
 	return nil
@@ -119,9 +106,9 @@ func (TrialOutcome) OffWireEnum()    {}
 
 func (o TrialOutcome) String() string {
 	if !o.IsValid() {
-		return trialOutcomeLabels[TrialOutcomeUnknown]
+		return trialOutcomeLabels()[TrialOutcomeUnknown]
 	}
-	return trialOutcomeLabels[o]
+	return trialOutcomeLabels()[o]
 }
 
 // FailurePhase identifies the exact Upgrade boundary that failed.
@@ -140,25 +127,23 @@ const (
 	failurePhaseLimit
 )
 
-var failurePhaseLabels = [...]string{
-	FailurePhaseUnknown:      "",
-	FailurePhaseBootstrap:    "bootstrap",
-	FailurePhaseCapacity:     "capacity",
-	FailurePhaseDownload:     "download",
-	FailurePhaseVerification: "verification",
-	FailurePhaseTrial:        "trial",
-	FailurePhasePromotion:    "promotion",
-	FailurePhasePersistence:  "persistence",
-	FailurePhaseCleanup:      "cleanup",
+func failurePhaseLabels() [failurePhaseLimit]string {
+	return [...]string{
+		"",
+		"bootstrap",
+		"capacity",
+		"download",
+		"verification",
+		"trial",
+		"promotion",
+		"persistence",
+		"cleanup",
+	}
 }
 
-var (
-	_ [int(failurePhaseLimit) - len(failurePhaseLabels)]struct{}
-	_ [len(failurePhaseLabels) - int(failurePhaseLimit)]struct{}
-)
-
 func (p FailurePhase) Validate() error {
-	if p <= FailurePhaseUnknown || p >= failurePhaseLimit {
+	if p <= FailurePhaseUnknown || p >= failurePhaseLimit ||
+		failurePhaseLabels()[p] == "" {
 		return contractError(diagnosticFailurePhase)
 	}
 	return nil
@@ -169,9 +154,9 @@ func (FailurePhase) OffWireEnum()    {}
 
 func (p FailurePhase) String() string {
 	if !p.IsValid() {
-		return failurePhaseLabels[FailurePhaseUnknown]
+		return failurePhaseLabels()[FailurePhaseUnknown]
 	}
-	return failurePhaseLabels[p]
+	return failurePhaseLabels()[p]
 }
 
 var (

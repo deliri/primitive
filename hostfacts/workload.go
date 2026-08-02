@@ -48,7 +48,7 @@ func (WorkloadMemoryLimitState) OffWireEnum() {}
 // String returns the compiler-owned diagnostic label for s.
 func (s WorkloadMemoryLimitState) String() string {
 	if !s.IsValid() {
-		return unknownOperationText
+		return core.UnknownEnumDiagnostic
 	}
 	return workloadMemoryLimitStateLabels()[s]
 }
@@ -93,7 +93,7 @@ func (WorkloadMemoryLimitSource) OffWireEnum() {}
 // String returns the compiler-owned diagnostic label for s.
 func (s WorkloadMemoryLimitSource) String() string {
 	if !s.IsValid() {
-		return unknownOperationText
+		return core.UnknownEnumDiagnostic
 	}
 	return workloadMemoryLimitSourceLabels()[s]
 }

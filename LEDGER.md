@@ -10,6 +10,37 @@ Last updated: `2026-08-02`
   Entries below that say `uncommitted` record the state when their proof was
   captured, before this checkpoint authorization.
 
+- Fail-closed protocol checkpoint, 2026-08-02: Objectstore now proves that each
+  provider-labelled signed capability targets a vendor-controlled HTTPS data
+  host, uses only the standard port, declares a bounded canonical signed-header
+  set, signs every request field it sends, and sends every field the signature
+  declares. Upload decode rejects missing provider checksum and create-only
+  fields before a capability can cross the package boundary. Real TLS loopback
+  tests preserve the production host boundary by redirecting transport dialing,
+  not by admitting test hosts. Objectstore's copied status numbers now use
+  `net/http`; two fuzz targets each passed 100,000 executions.
+  PackageIdentity and PackageKind no longer route text through order-dependent
+  switch partitions: compiler-sized tables own every canonical package and kind
+  projection, and validation refuses any empty row before JSON or import-path
+  output. The same immutable row-aware closure now covers Objectstore, Receipt,
+  Timeproof RFC status/code facts, Release, Process, Shutdown, Contextstate,
+  Cloudidentity, Hostfacts, Gate, Upgrade, Filestore, and shared Core platform
+  identities. `core.UnknownEnumDiagnostic` is the one cross-package invalid
+  enum projection; copied package constants are gone. Tiny `sync.OnceValues`
+  caches around compiler constants were removed from Cloudidentity and
+  Hostfacts; heavy certificate parsing, buffer reuse, synchronization, and the
+  explicitly bounded strict-JSON type cache retain their distinct proved
+  ownership. Filestore's concurrency proofs now share a ten-minute liveness
+  backstop and keep a one-minute post-cancellation termination bound, avoiding
+  a false performance assertion when the 10,000-writer proof runs under heavy
+  repository load. Full ordinary and race suites pass when run as their
+  canonical sequential phases; vet, Staticcheck, Errcheck, Nilaway, Gosec,
+  Goconst, Fieldalignment, production gocyclo <= 10, and diff checks pass.
+  Witness-lint is clean except for the two previously recorded findings at
+  Process's real `exec.Command` ownership boundary; no shim, invented
+  capability, or waiver was added. The user explicitly authorized committing
+  and pushing this checkpoint; no tag or release was authorized.
+
 - Repository transition: Primitive was copied from the complete Foundation
   worktree at `9ae5b28010b90a140cfaac0ee567034fd84a69b0` plus its local
   2026-07-28 substrate-pattern plan note. Its canonical module identity is now

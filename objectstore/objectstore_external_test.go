@@ -1699,9 +1699,6 @@ func providerServer(
 
 	server := httptest.NewTLSServer(handler)
 	tb.Cleanup(server.Close)
-	if provider != objectstore.ProviderCloudflareImages {
-		return signedProviderURL(server.URL+"/object", provider, direction), server.Client()
-	}
 	serverAddress := strings.TrimPrefix(server.URL, "https://")
 	transport := server.Client().Transport.(*http.Transport).Clone()
 	transport.TLSClientConfig = transport.TLSClientConfig.Clone()
@@ -1716,7 +1713,7 @@ func providerServer(
 	}
 	client := &http.Client{Transport: transport}
 	tb.Cleanup(transport.CloseIdleConnections)
-	return "https://upload.imagedelivery.net/image-id", client
+	return signedProviderURL(providerEndpoint(provider), provider, direction), client
 }
 
 func signedProviderURL(

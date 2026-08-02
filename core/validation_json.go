@@ -61,6 +61,7 @@ const (
 	jsonRepresentationUnstableErrorText   = "validated json representation is not stable"
 	jsonDecodedValueInvalidErrorText      = "decoded json value is invalid"
 	jsonMismatchedDelimiterErrorText      = "json delimiter does not close current container"
+	jsonContainerKindInvalidErrorText     = "json container kind is invalid"
 )
 
 // StrictJSONLimits supplies positive, caller-owned bounds for one JSON
@@ -352,9 +353,8 @@ const (
 
 func strictJSONContainerKindLabels() [strictJSONContainerKindLimit]string {
 	return [strictJSONContainerKindLimit]string{
-		strictJSONContainerUnknown: "unknown",
-		strictJSONContainerObject:  "object",
-		strictJSONContainerArray:   "array",
+		strictJSONContainerObject: "object",
+		strictJSONContainerArray:  "array",
 	}
 }
 
@@ -369,7 +369,7 @@ func (k strictJSONContainerKind) IsValid() bool {
 // Validate rejects an unset or future parser discriminator.
 func (k strictJSONContainerKind) Validate() error {
 	if !k.IsValid() {
-		return jsonContractError("json container kind is invalid", nil)
+		return jsonContractError(jsonContainerKindInvalidErrorText, nil)
 	}
 	return nil
 }
@@ -665,7 +665,7 @@ func completeStrictJSONValue(
 		top.itemCount++
 		return stack, nil
 	default:
-		return nil, jsonContractError("json container kind is invalid", nil)
+		return nil, jsonContractError(jsonContainerKindInvalidErrorText, nil)
 	}
 }
 

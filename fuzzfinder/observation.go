@@ -2,6 +2,8 @@ package fuzzfinder
 
 import (
 	"errors"
+
+	"github.com/deliri/primitive/v2026/core"
 )
 
 // ObservationState describes how completely one directory was observed.
@@ -45,7 +47,7 @@ func (ObservationState) OffWireEnum() {}
 // String returns the compiler-owned diagnostic label for s.
 func (s ObservationState) String() string {
 	if !s.IsValid() {
-		return unknownEnumDiagnostic
+		return core.UnknownEnumDiagnostic
 	}
 	return observationStateDiagnostics()[s]
 }

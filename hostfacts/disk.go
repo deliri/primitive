@@ -123,7 +123,7 @@ func (DiskPressureState) OffWireEnum() {}
 // String returns the compiler-owned diagnostic label for s.
 func (s DiskPressureState) String() string {
 	if !s.IsValid() {
-		return unknownOperationText
+		return core.UnknownEnumDiagnostic
 	}
 	return diskPressureStateLabels()[s]
 }

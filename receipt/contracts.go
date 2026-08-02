@@ -81,45 +81,46 @@ const (
 // make the mapping visible at the declaration and returning the array by value
 // prevents package-global mutation from changing protocol text at runtime.
 func revisionDiagnostics() [revisionLimit]string {
-	return [revisionLimit]string{
-		RevisionUnknown: unknownText,
-		RevisionV1:      "v1",
+	return [...]string{
+		unknownText,
+		"v1",
 	}
 }
 
 func scopeFieldDiagnostics() [scopeFieldLimit]string {
-	return [scopeFieldLimit]string{
-		ScopeFieldUnknown:    unknownText,
-		ScopeFieldAccount:    "account",
-		ScopeFieldOffering:   "offering",
-		ScopeFieldSubmission: "submission",
-		ScopeFieldObject:     "object",
-		ScopeFieldExtent:     "extent",
-		ScopeFieldSHA256:     "sha256",
-		ScopeFieldCRC32C:     "crc32c",
+	return [...]string{
+		unknownText,
+		"account",
+		"offering",
+		"submission",
+		"object",
+		"extent",
+		"sha256",
+		"crc32c",
 	}
 }
 
 func advanceStateDiagnostics() [advanceStateLimit]string {
-	return [advanceStateLimit]string{
-		AdvanceUnknown:  unknownText,
-		AdvanceAccepted: "accepted",
-		AdvanceReplay:   "replay",
+	return [...]string{
+		unknownText,
+		"accepted",
+		"replay",
 	}
 }
 
 func conflictReasonDiagnostics() [conflictReasonLimit]string {
-	return [conflictReasonLimit]string{
-		ConflictReasonUnknown:          unknownText,
-		ConflictReasonScope:            "scope",
-		ConflictReasonReplayDivergence: "replay-divergence",
-		ConflictReasonCursorUnchanged:  "cursor-unchanged",
-		ConflictReasonChainUnchanged:   "chain-unchanged",
+	return [...]string{
+		unknownText,
+		"scope",
+		"replay-divergence",
+		"cursor-unchanged",
+		"chain-unchanged",
 	}
 }
 
 func (r Revision) Validate() error {
-	if r != RevisionV1 {
+	if r <= RevisionUnknown || r >= revisionLimit ||
+		revisionDiagnostics()[r] == "" {
 		return contractError(errors.New("receipt revision is outside the closed domain"))
 	}
 	return nil
@@ -156,7 +157,7 @@ func (r *Revision) UnmarshalJSON(data []byte) error {
 }
 
 func (d Domain) Validate() error {
-	if d != DomainEvidenceV1 {
+	if d <= DomainUnknown || d >= domainLimit || domainDiagnostics()[d] == "" {
 		return contractError(errors.New("receipt signing domain is outside the closed domain"))
 	}
 	return nil
@@ -164,10 +165,10 @@ func (d Domain) Validate() error {
 
 func (d Domain) IsValid() bool { return d.Validate() == nil }
 func (d Domain) String() string {
-	if d != DomainEvidenceV1 {
+	if !d.IsValid() {
 		return unknownText
 	}
-	return evidenceDomainToken
+	return domainDiagnostics()[d]
 }
 func (Domain) OffWireEnum() {}
 
@@ -185,8 +186,13 @@ func (Domain) ParseCanonicalText(text []byte) (Domain, error) {
 	return DomainEvidenceV1, nil
 }
 
+func domainDiagnostics() [domainLimit]string {
+	return [...]string{unknownText, evidenceDomainToken}
+}
+
 func (f ScopeField) Validate() error {
-	if f <= ScopeFieldUnknown || f >= scopeFieldLimit {
+	if f <= ScopeFieldUnknown || f >= scopeFieldLimit ||
+		scopeFieldDiagnostics()[f] == "" {
 		return contractError(errors.New("receipt scope field is outside the closed domain"))
 	}
 	return nil
@@ -201,7 +207,8 @@ func (f ScopeField) String() string {
 func (ScopeField) OffWireEnum() {}
 
 func (s AdvanceState) Validate() error {
-	if s <= AdvanceUnknown || s >= advanceStateLimit {
+	if s <= AdvanceUnknown || s >= advanceStateLimit ||
+		advanceStateDiagnostics()[s] == "" {
 		return contractError(errors.New("receipt advance state is outside the closed domain"))
 	}
 	return nil
@@ -216,7 +223,8 @@ func (s AdvanceState) String() string {
 func (AdvanceState) OffWireEnum() {}
 
 func (r ConflictReason) Validate() error {
-	if r <= ConflictReasonUnknown || r >= conflictReasonLimit {
+	if r <= ConflictReasonUnknown || r >= conflictReasonLimit ||
+		conflictReasonDiagnostics()[r] == "" {
 		return contractError(errors.New("receipt conflict reason is outside the closed domain"))
 	}
 	return nil

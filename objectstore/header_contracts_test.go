@@ -2,6 +2,7 @@ package objectstore
 
 import (
 	"errors"
+	"fmt"
 	"slices"
 	"strings"
 	"testing"
@@ -215,6 +216,106 @@ func TestSignedHeaderDeclarationTokenTable(t *testing.T) {
 					got,
 					tc.want,
 				)
+			}
+		})
+	}
+}
+
+func TestSignedHeaderDeclarationIsCanonicalAndBounded(t *testing.T) {
+	t.Parallel()
+
+	valid := []string{
+		"host",
+		"host;if-none-match;x-amz-checksum-crc32c",
+		"accept;accept-encoding;host;x-goog-meta-run",
+	}
+	for _, declaration := range valid {
+		declaration := declaration
+		t.Run("valid "+declaration, func(t *testing.T) {
+			t.Parallel()
+			got, err := parseSignedHeaderDeclaration(declaration)
+			if err != nil || got.count == 0 {
+				t.Fatalf("parseSignedHeaderDeclaration(%q) = (%v, %v), want nonempty and nil",
+					declaration, got, err)
+			}
+		})
+	}
+	invalid := []string{
+		"",
+		"Host",
+		"host;",
+		";host",
+		"host;;range",
+		"host;host",
+		"x-goog-meta-run;host",
+		"host;x goog meta run",
+	}
+	for _, declaration := range invalid {
+		declaration := declaration
+		t.Run("invalid "+declaration, func(t *testing.T) {
+			t.Parallel()
+			if _, err := parseSignedHeaderDeclaration(declaration); !errors.Is(
+				err, core.ErrObjectStoreContract,
+			) {
+				t.Fatalf("parseSignedHeaderDeclaration(%q) error = %v, want %v",
+					declaration, err, core.ErrObjectStoreContract)
+			}
+		})
+	}
+
+	boundary := make([]string, signedHeaderDeclarationMaximumCount+1)
+	for index := range boundary {
+		boundary[index] = fmt.Sprintf("x-objectstore-%02d", index)
+	}
+	exact := strings.Join(
+		boundary[:signedHeaderDeclarationMaximumCount],
+		signedHeaderTokenSeparator,
+	)
+	got, exactErr := parseSignedHeaderDeclaration(exact)
+	if exactErr != nil || int(got.count) != signedHeaderDeclarationMaximumCount {
+		t.Fatalf(
+			"parseSignedHeaderDeclaration(exact maximum) = (count %d, %v), want (%d, nil)",
+			got.count,
+			exactErr,
+			signedHeaderDeclarationMaximumCount,
+		)
+	}
+	over := strings.Join(boundary, signedHeaderTokenSeparator)
+	if _, err := parseSignedHeaderDeclaration(over); !errors.Is(
+		err,
+		core.ErrObjectStoreContract,
+	) {
+		t.Fatalf(
+			"parseSignedHeaderDeclaration(one above maximum) error = %v, want %v",
+			err,
+			core.ErrObjectStoreContract,
+		)
+	}
+}
+
+func TestAmazonS3DataHostDomainBoundary(t *testing.T) {
+	t.Parallel()
+
+	cases := []struct {
+		host string
+		want bool
+	}{
+		{host: "s3.amazonaws.com", want: true},
+		{host: "bucket.s3.us-west-2.amazonaws.com", want: true},
+		{host: "s3.dualstack.us-west-2.amazonaws.com", want: true},
+		{host: "access-123.s3-accesspoint.us-west-2.amazonaws.com", want: true},
+		{host: "bucket.s3.cn-north-1.amazonaws.com.cn", want: true},
+		{host: "amazonaws.com"},
+		{host: "sts.amazonaws.com"},
+		{host: "s3.amazonaws.com.attacker.example"},
+		{host: "attacker.example"},
+	}
+	for _, tc := range cases {
+		tc := tc
+		t.Run(tc.host, func(t *testing.T) {
+			t.Parallel()
+			if got := amazonS3DataHost(tc.host); got != tc.want {
+				t.Fatalf("amazonS3DataHost(%q) = %t, want %t", tc.host, got, tc.want)
 			}
 		})
 	}

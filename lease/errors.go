@@ -11,7 +11,6 @@ import (
 const (
 	decisionOutcomeUnsupportedText = "decision outcome is unsupported"
 	enumJSONExtentInvalidText      = "lease enum JSON extent is invalid"
-	unknownDiagnostic              = "unknown"
 )
 
 func contractError(causes ...error) error {

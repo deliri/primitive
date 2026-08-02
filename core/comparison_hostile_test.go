@@ -15,12 +15,12 @@ func TestComparisonExhaustsClosedDomain(t *testing.T) {
 		wantDiagnostic string
 		value          Comparison
 	}{
-		{name: "unknown zero is rejected", value: ComparisonUnknown, wantDiagnostic: comparisonUnknownDiagnostic, wantErr: ErrPrimitiveContract},
+		{name: "unknown zero is rejected", value: ComparisonUnknown, wantDiagnostic: UnknownEnumDiagnostic, wantErr: ErrPrimitiveContract},
 		{name: "less is admitted", value: ComparisonLess, wantDiagnostic: comparisonLessDiagnostic},
 		{name: "equal is admitted", value: ComparisonEqual, wantDiagnostic: comparisonEqualDiagnostic},
 		{name: "greater is admitted", value: ComparisonGreater, wantDiagnostic: comparisonGreaterDiagnostic},
-		{name: "first future value is rejected", value: comparisonLimit, wantDiagnostic: comparisonUnknownDiagnostic, wantErr: ErrPrimitiveContract},
-		{name: "maximum backing value is rejected", value: Comparison(math.MaxUint8), wantDiagnostic: comparisonUnknownDiagnostic, wantErr: ErrPrimitiveContract},
+		{name: "first future value is rejected", value: comparisonLimit, wantDiagnostic: UnknownEnumDiagnostic, wantErr: ErrPrimitiveContract},
+		{name: "maximum backing value is rejected", value: Comparison(math.MaxUint8), wantDiagnostic: UnknownEnumDiagnostic, wantErr: ErrPrimitiveContract},
 	}
 	for _, tc := range cases {
 		t.Run(tc.name, func(t *testing.T) {
@@ -56,7 +56,7 @@ func TestEveryAdmittedComparisonHasADistinctDiagnostic(t *testing.T) {
 			t.Fatalf("Comparison(%d).Validate() error = %v, want nil for an admitted member", value, gotErr)
 		}
 		diagnostic := value.String()
-		if diagnostic == comparisonUnknownDiagnostic || diagnostic == "" {
+		if diagnostic == UnknownEnumDiagnostic || diagnostic == "" {
 			t.Fatalf(
 				"Comparison(%d).String() = %q, want a distinct diagnostic; its String case is missing",
 				value,

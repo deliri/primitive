@@ -23,6 +23,7 @@ const (
 	crc32CBytes = 4
 	// crc32CBase64Bytes is the canonical padded Base64 width of CRC32C.
 	crc32CBase64Bytes             = 8
+	crc32CNilReceiverDiagnostic   = "nil CRC32C receiver"
 	secretMaterialLengthErrorText = "secret material has invalid length"
 	secretMaterialUnsetErrorText  = "secret material is unset"
 	secretMaterialJSONErrorText   = "secret material JSON serialization is prohibited"
@@ -126,7 +127,7 @@ func parseCRC32CBase64(value string) (CRC32C, error) {
 // receiver on failure.
 func (c *CRC32C) UnmarshalText(data []byte) error {
 	if c == nil {
-		return errors.Join(ErrPrimitiveContract, errors.New("nil CRC32C receiver"))
+		return errors.Join(ErrPrimitiveContract, errors.New(crc32CNilReceiverDiagnostic))
 	}
 	decoded, err := parseCRC32CBase64(string(data))
 	if err != nil {
@@ -174,7 +175,7 @@ func (c CRC32C) MarshalJSON() ([]byte, error) {
 // UnmarshalJSON accepts only canonical padded standard Base64.
 func (c *CRC32C) UnmarshalJSON(data []byte) error {
 	if c == nil {
-		return errors.Join(ErrJSONContract, errors.New("nil CRC32C receiver"))
+		return errors.Join(ErrJSONContract, errors.New(crc32CNilReceiverDiagnostic))
 	}
 	value, err := DecodeJSONStringToken(data)
 	if err != nil {

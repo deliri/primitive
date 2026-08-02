@@ -38,7 +38,7 @@ func (id StepID) Validate() error {
 
 func (id StepID) String() string {
 	if id.Validate() != nil {
-		return unknownLabel
+		return core.UnknownEnumDiagnostic
 	}
 	return strconv.FormatUint(uint64(id.value), 10)
 }

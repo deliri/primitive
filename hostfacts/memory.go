@@ -187,7 +187,7 @@ func (MemoryPressureState) OffWireEnum() {}
 // String returns the compiler-owned diagnostic label for s.
 func (s MemoryPressureState) String() string {
 	if !s.IsValid() {
-		return unknownOperationText
+		return core.UnknownEnumDiagnostic
 	}
 	return memoryPressureStateLabels()[s]
 }

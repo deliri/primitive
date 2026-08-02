@@ -38,7 +38,7 @@ const (
 
 // Validate closes the provider domain.
 func (p Provider) Validate() error {
-	if p <= ProviderUnknown || p >= providerLimit {
+	if p <= ProviderUnknown || p >= providerLimit || providerLabels()[p] == "" {
 		return core.ErrCloudIdentityContract
 	}
 	return nil
@@ -49,14 +49,14 @@ func (p Provider) IsValid() bool { return p.Validate() == nil }
 
 // String returns a diagnostic provider name.
 func (p Provider) String() string {
-	if !p.IsValid() {
+	if p >= providerLimit {
 		return ""
 	}
-	return [...]string{
-		ProviderUnknown:           "",
-		ProviderGoogleCloud:       "google_cloud",
-		ProviderAmazonWebServices: "amazon_web_services",
-	}[p]
+	return providerLabels()[p]
+}
+
+func providerLabels() [providerLimit]string {
+	return [...]string{"", "google_cloud", "amazon_web_services"}
 }
 
 // OffWireEnum declares Provider as an execution enum.

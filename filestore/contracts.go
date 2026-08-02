@@ -13,7 +13,6 @@ import (
 const (
 	targetEqualsTemporaryDiagnostic = "filestore target equals its temporary path"
 	crossDirectoryDiagnostic        = "filestore target and temporary must share a directory"
-	unknownEnumDiagnostic           = "unknown"
 	createModeDiagnostic            = "create"
 )
 
@@ -75,7 +74,7 @@ func (InstallMode) OffWireEnum() {}
 // String returns the compiler-owned diagnostic label for m.
 func (m InstallMode) String() string {
 	if !m.IsValid() {
-		return unknownEnumDiagnostic
+		return core.UnknownEnumDiagnostic
 	}
 	return installModeDiagnostics()[m]
 }
@@ -252,7 +251,7 @@ func (AppendMode) OffWireEnum() {}
 // String returns the compiler-owned diagnostic label for m.
 func (m AppendMode) String() string {
 	if !m.IsValid() {
-		return unknownEnumDiagnostic
+		return core.UnknownEnumDiagnostic
 	}
 	return appendModeDiagnostics()[m]
 }
@@ -342,9 +341,8 @@ const (
 
 func walkDirectiveDiagnostics() [walkDirectiveLimit]string {
 	return [walkDirectiveLimit]string{
-		WalkDirectiveUnknown: unknownEnumDiagnostic,
-		WalkContinue:         "continue",
-		WalkSkipDirectory:    "skip-directory",
+		WalkContinue:      "continue",
+		WalkSkipDirectory: "skip-directory",
 	}
 }
 
@@ -358,7 +356,8 @@ func (d WalkDirective) Validate() error {
 
 // IsValid reports membership in the closed walk-directive domain.
 func (d WalkDirective) IsValid() bool {
-	return d >= WalkContinue && d < walkDirectiveLimit && walkDirectiveDiagnostics()[d] != ""
+	return d > WalkDirectiveUnknown && d < walkDirectiveLimit &&
+		walkDirectiveDiagnostics()[d] != ""
 }
 
 // OffWireEnum declares WalkDirective as traversal control rather than a wire
@@ -368,7 +367,7 @@ func (WalkDirective) OffWireEnum() {}
 // String returns the compiler-owned diagnostic label for d.
 func (d WalkDirective) String() string {
 	if !d.IsValid() {
-		return unknownEnumDiagnostic
+		return core.UnknownEnumDiagnostic
 	}
 	return walkDirectiveDiagnostics()[d]
 }
@@ -388,7 +387,6 @@ const (
 
 func walkOrderDiagnostics() [walkOrderLimit]string {
 	return [walkOrderLimit]string{
-		WalkOrderUnknown: unknownEnumDiagnostic,
 		WalkOrderNative:  "native",
 		WalkOrderLexical: "lexical",
 	}
@@ -404,7 +402,8 @@ func (o WalkOrder) Validate() error {
 
 // IsValid reports membership in the closed walk-order domain.
 func (o WalkOrder) IsValid() bool {
-	return o >= WalkOrderNative && o < walkOrderLimit && walkOrderDiagnostics()[o] != ""
+	return o > WalkOrderUnknown && o < walkOrderLimit &&
+		walkOrderDiagnostics()[o] != ""
 }
 
 // OffWireEnum declares WalkOrder as traversal execution policy rather than a
@@ -414,7 +413,7 @@ func (WalkOrder) OffWireEnum() {}
 // String returns the compiler-owned diagnostic label for o.
 func (o WalkOrder) String() string {
 	if !o.IsValid() {
-		return unknownEnumDiagnostic
+		return core.UnknownEnumDiagnostic
 	}
 	return walkOrderDiagnostics()[o]
 }

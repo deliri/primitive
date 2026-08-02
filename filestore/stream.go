@@ -25,9 +25,8 @@ const (
 
 func streamDestinationDiagnostics() [streamDestinationLimit]string {
 	return [streamDestinationLimit]string{
-		streamDestinationUnknown: unknownEnumDiagnostic,
-		streamDestinationCaller:  "caller",
-		streamDestinationFile:    "file",
+		streamDestinationCaller: "caller",
+		streamDestinationFile:   "file",
 	}
 }
 
@@ -40,12 +39,12 @@ func (d streamDestination) Validate() error {
 
 func (d streamDestination) IsValid() bool {
 	return d > streamDestinationUnknown && d < streamDestinationLimit &&
-		streamDestinationDiagnostics()[d] != unknownEnumDiagnostic
+		streamDestinationDiagnostics()[d] != ""
 }
 
 func (d streamDestination) String() string {
 	if !d.IsValid() {
-		return unknownEnumDiagnostic
+		return core.UnknownEnumDiagnostic
 	}
 	return streamDestinationDiagnostics()[d]
 }
@@ -59,12 +58,9 @@ func copyBounded(
 	maximum core.ByteCount,
 	kind streamDestination,
 ) (core.ByteLength, error) {
-	if err := kind.Validate(); err != nil {
-		return core.ByteLength{}, err
-	}
-	maximumBytes, err := maximum.Uint64()
+	maximumBytes, err := validatedStreamMaximum(maximum, kind)
 	if err != nil {
-		return core.ByteLength{}, contractError(err)
+		return core.ByteLength{}, err
 	}
 	buffer := make([]byte, streamBufferBytes)
 	var total uint64
@@ -98,6 +94,20 @@ func copyBounded(
 			return finishStream(total, sourceError(io.ErrNoProgress))
 		}
 	}
+}
+
+func validatedStreamMaximum(
+	maximum core.ByteCount,
+	kind streamDestination,
+) (uint64, error) {
+	if err := kind.Validate(); err != nil {
+		return 0, err
+	}
+	maximumBytes, err := maximum.Uint64()
+	if err != nil {
+		return 0, contractError(err)
+	}
+	return maximumBytes, nil
 }
 
 func accountWrite(total uint64, written int, err error) (uint64, error) {

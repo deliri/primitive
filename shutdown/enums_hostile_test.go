@@ -71,13 +71,13 @@ func exhaustEnum[T ~uint8](t *testing.T, contract enumContract[T]) {
 		}
 		if !wantValid {
 			if !errors.Is(gotErr, core.ErrShutdownContract) ||
-				gotLabel != unknownLabel {
+				gotLabel != core.UnknownEnumDiagnostic {
 				t.Fatalf("%s(%d) = label:%q error:%v, want unknown/contract",
 					contract.name, raw, gotLabel, gotErr)
 			}
 			continue
 		}
-		if gotLabel == "" || gotLabel == unknownLabel {
+		if gotLabel == "" || gotLabel == core.UnknownEnumDiagnostic {
 			t.Fatalf("%s(%d) label = %q, want admitted diagnostic", contract.name, raw, gotLabel)
 		}
 		if prior, exists := labels[gotLabel]; exists {

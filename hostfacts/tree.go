@@ -52,7 +52,7 @@ func (MissingPathPolicy) OffWireEnum() {}
 // String returns the compiler-owned diagnostic label for p.
 func (p MissingPathPolicy) String() string {
 	if !p.IsValid() {
-		return unknownOperationText
+		return core.UnknownEnumDiagnostic
 	}
 	return missingPathPolicyLabels()[p]
 }

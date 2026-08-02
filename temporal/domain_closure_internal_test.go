@@ -22,7 +22,7 @@ func TestEveryAdmittedPrecisionHasACompleteFact(t *testing.T) {
 			t.Fatalf("Precision(%d).Validate() error = %v, want nil for an admitted member", value, gotErr)
 		}
 		diagnostic := value.String()
-		if diagnostic == precisionUnknownDiagnostic || diagnostic == "" {
+		if diagnostic == core.UnknownEnumDiagnostic || diagnostic == "" {
 			t.Fatalf(
 				"Precision(%d).String() = %q, want a distinct diagnostic; its precisionFacts row is missing",
 				value,
@@ -113,7 +113,7 @@ func TestPrecisionAdmissionAgreesAcrossItsWholeBackingType(t *testing.T) {
 				admitted,
 			)
 		}
-		if got := value.String() != precisionUnknownDiagnostic; got != admitted {
+		if got := value.String() != core.UnknownEnumDiagnostic; got != admitted {
 			t.Fatalf(
 				"Precision(%d).String() = %q, want its non-unknown status %t to agree with Validate %t",
 				value,

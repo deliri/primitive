@@ -10,7 +10,6 @@ import (
 const (
 	artifactCorpusToken          = "fuzz-corpus"
 	artifactCrasherToken         = "fuzz-crasher"
-	artifactUnknownToken         = "unknown"
 	artifactKindJSONMaximumBytes = 64
 )
 
@@ -57,7 +56,7 @@ func (k ArtifactKind) IsValid() bool {
 func (k ArtifactKind) String() string {
 	token, err := k.token()
 	if err != nil {
-		return artifactUnknownToken
+		return core.UnknownEnumDiagnostic
 	}
 	return token
 }

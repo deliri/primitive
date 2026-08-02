@@ -37,7 +37,7 @@ func TestStepIDExhaustsItsBoundaryAndDiagnosticLabel(t *testing.T) {
 		raw       uint16
 		wantErr   bool
 	}{
-		{name: "zero identity is the rejected sentinel", raw: 0, wantLabel: unknownLabel, wantErr: true},
+		{name: "zero identity is the rejected sentinel", raw: 0, wantLabel: core.UnknownEnumDiagnostic, wantErr: true},
 		{name: "one is the minimum admitted identity", raw: 1, wantLabel: "1"},
 		{name: "one above the minimum is admitted", raw: 2, wantLabel: "2"},
 		{name: "a mid-domain identity is admitted", raw: 1 << 8, wantLabel: "256"},

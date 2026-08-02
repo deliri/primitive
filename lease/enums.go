@@ -46,8 +46,7 @@ const (
 )
 
 const (
-	revisionV1Token           = "v1"
-	revisionUnknownDiagnostic = "unknown"
+	revisionV1Token = "v1"
 	// RevisionCanonicalJSONMaximumBytes is the exact compact revision maximum.
 	RevisionCanonicalJSONMaximumBytes = len(`"` + revisionV1Token + `"`)
 	// RevisionJSONMaximumBytes bounds accepted revision JSON.
@@ -77,7 +76,7 @@ func (r Revision) IsValid() bool   { return r.Validate() == nil }
 func (r Revision) String() string {
 	fact, err := r.fact()
 	if err != nil {
-		return revisionUnknownDiagnostic
+		return core.UnknownEnumDiagnostic
 	}
 	return fact.token
 }
@@ -133,7 +132,6 @@ const (
 	outcomeGrantToken                = "grant"
 	outcomeRefusalToken              = "refusal"
 	outcomeRevocationToken           = "revocation"
-	outcomeUnknownDiagnostic         = "unknown"
 	OutcomeCanonicalJSONMaximumBytes = len(`"` + outcomeRevocationToken + `"`)
 	OutcomeJSONMaximumBytes          = OutcomeCanonicalJSONMaximumBytes +
 		enumJSONWhitespaceAllowance
@@ -163,7 +161,7 @@ func (o Outcome) IsValid() bool   { return o.Validate() == nil }
 func (o Outcome) String() string {
 	fact, err := o.fact()
 	if err != nil {
-		return outcomeUnknownDiagnostic
+		return core.UnknownEnumDiagnostic
 	}
 	return fact.token
 }
@@ -218,7 +216,6 @@ const (
 	revocationUnlawfulOrAbusiveUseToken       = "unlawful-or-abusive-use"
 	revocationSecurityOrPlatformRiskToken     = "security-or-platform-risk"
 	revocationInsolvencyToken                 = "insolvency"
-	revocationReasonUnknownDiagnostic         = "unknown"
 	RevocationReasonCanonicalJSONMaximumBytes = len(`"` + revocationSecurityOrPlatformRiskToken + `"`)
 	RevocationReasonJSONMaximumBytes          = RevocationReasonCanonicalJSONMaximumBytes +
 		enumJSONWhitespaceAllowance
@@ -249,7 +246,7 @@ func (r RevocationReason) IsValid() bool   { return r.Validate() == nil }
 func (r RevocationReason) String() string {
 	fact, err := r.fact()
 	if err != nil {
-		return revocationReasonUnknownDiagnostic
+		return core.UnknownEnumDiagnostic
 	}
 	return fact.token
 }

@@ -21,7 +21,10 @@ const (
 	// buildCommitSHA256Bytes is the decoded width of a SHA-256 Git object name.
 	buildCommitSHA256Bytes = 32
 	// buildIdentityJSONMaximumBytes bounds one complete identity projection.
-	buildIdentityJSONMaximumBytes = 2 << 10
+	buildIdentityJSONMaximumBytes         = 2 << 10
+	offeringNilReceiverDiagnostic         = "offering receiver is nil"
+	releaseVersionNilReceiverDiagnostic   = "release version receiver is nil"
+	releaseVersionInvalidLengthDiagnostic = "release version has invalid length"
 )
 
 // Offering is the closed set of products sharing the release protocol.
@@ -39,7 +42,7 @@ const (
 
 // Validate rejects offerings outside the closed domain.
 func (o Offering) Validate() error {
-	if o <= OfferingUnknown || o >= offeringLimit {
+	if o <= OfferingUnknown || o >= offeringLimit || offeringTexts()[o] == "" {
 		return releaseIdentityError("offering is outside the closed domain")
 	}
 	return nil
@@ -50,14 +53,14 @@ func (o Offering) IsValid() bool { return o.Validate() == nil }
 
 // String returns canonical offering text, or empty text when invalid.
 func (o Offering) String() string {
-	switch o {
-	case OfferingBug:
-		return offeringBugToken
-	case OfferingWitness:
-		return offeringWitnessToken
-	default:
+	if o >= offeringLimit {
 		return ""
 	}
+	return offeringTexts()[o]
+}
+
+func offeringTexts() [offeringLimit]string {
+	return [...]string{"", offeringBugToken, offeringWitnessToken}
 }
 
 // parseOffering accepts one canonical offering token.
@@ -83,7 +86,7 @@ func (o Offering) MarshalJSON() ([]byte, error) {
 // UnmarshalJSON accepts only canonical offering text.
 func (o *Offering) UnmarshalJSON(data []byte) error {
 	if o == nil {
-		return errors.Join(ErrJSONContract, releaseIdentityError("offering receiver is nil"))
+		return errors.Join(ErrJSONContract, releaseIdentityError(offeringNilReceiverDiagnostic))
 	}
 	value, err := DecodeJSONStringToken(data)
 	if err != nil {
@@ -100,7 +103,7 @@ func (o *Offering) UnmarshalJSON(data []byte) error {
 // UnmarshalText accepts one canonical offering through encoding.TextUnmarshaler.
 func (o *Offering) UnmarshalText(text []byte) error {
 	if o == nil {
-		return releaseIdentityError("offering receiver is nil")
+		return releaseIdentityError(offeringNilReceiverDiagnostic)
 	}
 	if len(text) == 0 || len(text) > offeringTokenMaximumBytes {
 		return releaseIdentityError("offering token has invalid length")
@@ -129,7 +132,7 @@ func NewReleaseVersion(major, minor, patch uint32) ReleaseVersion {
 // parseReleaseVersion accepts one canonical three-component release version.
 func parseReleaseVersion(value string) (ReleaseVersion, error) {
 	if len(value) == 0 || len(value) > releaseVersionMaximumBytes {
-		return ReleaseVersion{}, releaseIdentityError("release version has invalid length")
+		return ReleaseVersion{}, releaseIdentityError(releaseVersionInvalidLengthDiagnostic)
 	}
 	majorText, remainder, found := strings.Cut(value, ".")
 	if !found {
@@ -224,7 +227,7 @@ func (v ReleaseVersion) MarshalJSON() ([]byte, error) {
 // UnmarshalJSON accepts only canonical version text.
 func (v *ReleaseVersion) UnmarshalJSON(data []byte) error {
 	if v == nil {
-		return errors.Join(ErrJSONContract, releaseIdentityError("release version receiver is nil"))
+		return errors.Join(ErrJSONContract, releaseIdentityError(releaseVersionNilReceiverDiagnostic))
 	}
 	value, err := DecodeJSONStringToken(data)
 	if err != nil {
@@ -241,10 +244,10 @@ func (v *ReleaseVersion) UnmarshalJSON(data []byte) error {
 // UnmarshalText accepts canonical release-version text through encoding.TextUnmarshaler.
 func (v *ReleaseVersion) UnmarshalText(text []byte) error {
 	if v == nil {
-		return releaseIdentityError("release version receiver is nil")
+		return releaseIdentityError(releaseVersionNilReceiverDiagnostic)
 	}
 	if len(text) == 0 || len(text) > releaseVersionMaximumBytes {
-		return releaseIdentityError("release version has invalid length")
+		return releaseIdentityError(releaseVersionInvalidLengthDiagnostic)
 	}
 	parsed, err := parseReleaseVersion(string(text))
 	if err != nil {

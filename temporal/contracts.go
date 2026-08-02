@@ -40,7 +40,6 @@ const (
 )
 
 const (
-	precisionUnknownDiagnostic     = "unknown"
 	precisionNanosecondDiagnostic  = "nanosecond"
 	precisionMicrosecondDiagnostic = "microsecond"
 	precisionMillisecondDiagnostic = "millisecond"
@@ -125,7 +124,7 @@ func (Precision) OffWireEnum() {}
 func (p Precision) String() string {
 	got, err := p.fact()
 	if err != nil {
-		return precisionUnknownDiagnostic
+		return core.UnknownEnumDiagnostic
 	}
 	return got.diagnostic
 }

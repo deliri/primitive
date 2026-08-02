@@ -53,10 +53,19 @@ func TestSealedFailureConstructorsRejectUnprovedIdentities(t *testing.T) {
 			t.Errorf("%s constructor error = %v, want contract without %v", tc.name, rejection, tc.identity)
 		}
 	}
-	if errors.Is(failure{}, core.ErrProcessWait) ||
-		errors.Is(streamFailure{}, core.ErrProcessStream) ||
-		errors.Is(outputLimitExceeded{}, core.ErrProcessOutputLimit) {
-		t.Fatal("a zero internal Process report carries a specialized identity")
+	failureSpecialized := errors.Is(failure{}, core.ErrProcessWait)
+	streamSpecialized := errors.Is(streamFailure{}, core.ErrProcessStream)
+	limitSpecialized := errors.Is(
+		outputLimitExceeded{},
+		core.ErrProcessOutputLimit,
+	)
+	if failureSpecialized || streamSpecialized || limitSpecialized {
+		t.Fatalf(
+			"zero internal Process specialized identities = (failure=%t, stream=%t, limit=%t), want all false",
+			failureSpecialized,
+			streamSpecialized,
+			limitSpecialized,
+		)
 	}
 }
 
