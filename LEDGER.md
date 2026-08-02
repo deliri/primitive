@@ -6,8 +6,9 @@ Last updated: `2026-08-02`
 
 - Consumer-driven HTTP fact closure, 2026-08-02: OGS migration exposed copied
   standard HTTP facts after Core's unused-export sweep. Exchange now owns
-  closed `StandardHeader` and `StandardMediaType` domains for Authorization,
-  Cache-Control, Retry-After, JSON, and plain text; Objectstore consumes the
+  closed `StandardHeader`, `StandardMediaType`, and `StandardContentCoding`
+  domains for Authorization, Cache-Control, Retry-After, JSON, plain text,
+  identity, gzip, Brotli, and Zstandard; Objectstore consumes the
   Authorization projection instead of retaining its own string. Timeproof now
   owns its RFC 3161 request and response `MediaType` domain so consumers can
   compose Exchange without copying protocol media strings. Every new domain

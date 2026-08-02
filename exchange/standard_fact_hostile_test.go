@@ -99,6 +99,38 @@ func requireStandardMediaDomainValue(t *testing.T, media exchange.StandardMediaT
 	return projected.String(), true
 }
 
+func TestStandardContentCodingExhaustsCompleteByteDomain(t *testing.T) {
+	t.Parallel()
+
+	valid := []exchange.StandardContentCoding{
+		exchange.StandardContentCodingIdentity,
+		exchange.StandardContentCodingGzip,
+		exchange.StandardContentCodingBrotli,
+		exchange.StandardContentCodingZstandard,
+	}
+	seen := make([]string, 0, len(valid))
+	for value := range math.MaxUint8 + 1 {
+		coding := exchange.StandardContentCoding(value)
+		wantValid := slices.Contains(valid, coding)
+		if got := coding.IsValid(); got != wantValid {
+			t.Fatalf("StandardContentCoding(%d).IsValid() = %t, want %t", coding, got, wantValid)
+		}
+		if !wantValid {
+			if !errors.Is(coding.Validate(), core.ErrExchangeContract) || coding.String() != "" {
+				t.Fatalf("invalid StandardContentCoding(%d) = (%q, %v), want empty and %v", coding, coding.String(), coding.Validate(), core.ErrExchangeContract)
+			}
+			continue
+		}
+		requireDistinctStandardFact(t, value, coding.String(), seen)
+		seen = append(seen, coding.String())
+		var offWire core.OffWireEnum = coding
+		offWire.OffWireEnum()
+	}
+	if len(seen) != len(valid) {
+		t.Fatalf("distinct valid standard content codings = %d, want %d", len(seen), len(valid))
+	}
+}
+
 func requireDistinctStandardFact(t *testing.T, value int, name string, seen []string) {
 	t.Helper()
 
@@ -148,6 +180,29 @@ func TestStandardHTTPFactsReachRealStandardLibraryHandoffs(t *testing.T) {
 			base, parameters, gotParseErr := mime.ParseMediaType(projected.String())
 			if gotParseErr != nil || base != media.String() || len(parameters) != 0 {
 				t.Fatalf("mime.ParseMediaType(%q) = (%q, %v, %v), want (%q, empty, nil)", projected.String(), base, parameters, gotParseErr, media.String())
+			}
+		})
+	}
+}
+
+func TestStandardContentCodingsReachRealStandardLibraryHandoff(t *testing.T) {
+	t.Parallel()
+
+	codingCases := []exchange.StandardContentCoding{
+		exchange.StandardContentCodingIdentity,
+		exchange.StandardContentCodingGzip,
+		exchange.StandardContentCodingBrotli,
+		exchange.StandardContentCodingZstandard,
+	}
+	for _, coding := range codingCases {
+		coding := coding
+		t.Run(coding.String(), func(t *testing.T) {
+			t.Parallel()
+
+			fields := make(http.Header)
+			fields.Set("Content-Encoding", coding.String())
+			if got := fields.Get("Content-Encoding"); got != coding.String() {
+				t.Fatalf("http.Header.Get(Content-Encoding) = %q, want %q", got, coding.String())
 			}
 		})
 	}
