@@ -19,6 +19,7 @@ const standardContextImportPath = "context"
 var (
 	_ func(context.Context) (State, error) = Observe
 	_ func(context.Context) (State, error) = ObserveAfterDone
+	_ func(error) (State, error)           = ObserveError
 	_ func(context.Context) error          = Validate
 )
 
@@ -60,6 +61,7 @@ func TestContextstatePublicSurfaceIsExactRatchet(t *testing.T) {
 		{kind: publicSymbolConstant, name: "StateNone"},
 		{kind: publicSymbolFunction, name: "Observe"},
 		{kind: publicSymbolFunction, name: "ObserveAfterDone"},
+		{kind: publicSymbolFunction, name: "ObserveError"},
 		{kind: publicSymbolFunction, name: "Validate"},
 		{kind: publicSymbolMethod, receiver: publicReceiverState, name: "IsValid"},
 		{kind: publicSymbolMethod, receiver: publicReceiverState, name: "OffWireEnum"},
@@ -82,10 +84,10 @@ func TestContextstateProductionImportsRemainExactRatchet(t *testing.T) {
 	if err != nil {
 		t.Fatalf("PackageCore.ImportPath() error = %v, want nil", err)
 	}
-	// context is the sole standard-library substrate and core is the sole
-	// Primitive dependency. Both sides are sorted so the ratchet holds the
-	// import set, not the order in which either list is written.
-	want := []string{standardContextImportPath, coreImportPath}
+	// context and errors are the sole standard-library substrates and core is
+	// the sole Primitive dependency. Both sides are sorted so the ratchet holds
+	// the import set, not the order in which either list is written.
+	want := []string{standardContextImportPath, "errors", coreImportPath}
 	got := contextstateProductionImports(t)
 	slices.Sort(want)
 	slices.Sort(got)

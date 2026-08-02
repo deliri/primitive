@@ -40,6 +40,7 @@ func TestPublicOperationsAreExactIntentEntryPoints(t *testing.T) {
 		"AssessDisk",
 		"AssessGoMemory",
 		"ClassifyGoOOMBanner",
+		"CurrentPlatform",
 		"MeasureTree",
 		"NewPercent",
 		"ObserveEffectiveWorkloadMemoryLimit",

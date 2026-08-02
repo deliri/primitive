@@ -2,9 +2,35 @@ package contextstate
 
 import (
 	"context"
+	"errors"
 
 	"github.com/deliri/primitive/v2026/core"
 )
+
+// ObserveError returns the standard terminal state carried by err. A nil
+// error returns StateNone. Wrapped standard terminal errors are admitted;
+// panicking or nonstandard error graphs are rejected with a typed observation
+// failure.
+func ObserveError(err error) (state State, observationErr error) {
+	state = stateUnknown
+	observationErr = core.ErrContextObservation
+	defer func() {
+		if recover() != nil {
+			state = stateUnknown
+			observationErr = core.ErrContextObservation
+		}
+	}()
+	switch {
+	case err == nil:
+		return StateNone, nil
+	case errors.Is(err, context.Canceled):
+		return StateCancelled, nil
+	case errors.Is(err, context.DeadlineExceeded):
+		return StateDeadlineExceeded, nil
+	default:
+		return stateUnknown, core.ErrContextObservation
+	}
+}
 
 // Validate admits ctx only when it is usable now. It returns the exact standard
 // terminal sentinel for a cancelled or expired context.
