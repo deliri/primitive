@@ -3,7 +3,6 @@ package exchange_test
 import (
 	"errors"
 	"io"
-	"math"
 	"strings"
 	"testing"
 
@@ -18,7 +17,7 @@ func TestRequestFamilyValidationLayerTriad(t *testing.T) {
 	status := mustHTTPStatus(t, 200)
 	oneByte := mustByteCount(t, 1)
 	single := exchange.RequestSemantics{
-		Method: core.HTTPMethodGet,
+		Method: exchange.MethodGet,
 		Replay: exchange.ReplaySingleAttempt,
 	}
 
@@ -70,7 +69,7 @@ func TestRequestFamilyValidationLayerTriad(t *testing.T) {
 					return (exchange.UploadRequest{
 						Target: target, Source: strings.NewReader("payload"),
 						Semantics: single,
-						ContentLength: core.NewByteLength(
+						ContentLength: mustByteLength(t,
 							uint64(len("payload")),
 						),
 						ContentType:    core.HTTPMediaTypeOctetStream(),
@@ -105,7 +104,7 @@ func TestRequestFamilyValidationLayerTriad(t *testing.T) {
 		t.Parallel()
 
 		replayable := exchange.RequestSemantics{
-			Method: core.HTTPMethodGet,
+			Method: exchange.MethodGet,
 			Replay: exchange.ReplaySafe,
 		}
 		cases := []struct {
@@ -159,22 +158,9 @@ func TestRequestFamilyValidationLayerTriad(t *testing.T) {
 					return (exchange.UploadRequest{
 						Target: target, Source: strings.NewReader("payload"),
 						Semantics: replayable,
-						ContentLength: core.NewByteLength(
+						ContentLength: mustByteLength(t,
 							uint64(len("payload")),
 						),
-						ContentType:    core.HTTPMediaTypeOctetStream(),
-						ExpectedStatus: status,
-					}).Validate()
-				},
-				wantErr: core.ErrExchangeRequest,
-			},
-			{
-				name: "upload refuses an extent outside net/http signed range",
-				validate: func() error {
-					return (exchange.UploadRequest{
-						Target: target, Source: strings.NewReader("payload"),
-						Semantics:      single,
-						ContentLength:  core.NewByteLength(math.MaxUint64),
 						ContentType:    core.HTTPMediaTypeOctetStream(),
 						ExpectedStatus: status,
 					}).Validate()
@@ -187,7 +173,7 @@ func TestRequestFamilyValidationLayerTriad(t *testing.T) {
 					return (exchange.UploadRequest{
 						Target: target, Source: strings.NewReader("payload"),
 						Semantics: single,
-						ContentLength: core.NewByteLength(
+						ContentLength: mustByteLength(t,
 							uint64(len("payload")),
 						),
 						ExpectedStatus: status,
@@ -252,7 +238,7 @@ func TestRequestFamilyValidationLayerTriad(t *testing.T) {
 		}).Validate()
 		uploadErr := (exchange.UploadRequest{
 			Target: target, Source: strings.NewReader(""),
-			Semantics: single, ContentLength: core.NewByteLength(0),
+			Semantics: single, ContentLength: mustByteLength(t, 0),
 			ContentType: core.HTTPMediaTypeOctetStream(), ExpectedStatus: status,
 		}).Validate()
 		if boundedErr != nil || uploadErr != nil {

@@ -9,6 +9,7 @@ import (
 	"slices"
 	"strings"
 	"sync"
+	"sync/atomic"
 	"unicode"
 	"unicode/utf8"
 )
@@ -37,14 +38,14 @@ type OffWireEnum interface {
 }
 
 const (
-	// JSONDocumentMaximumBytes is the one-mebibyte document cap.
-	JSONDocumentMaximumBytes = 1 << 20
+	// jsonDocumentMaximumBytes is the one-mebibyte document cap.
+	jsonDocumentMaximumBytes = 1 << 20
 	// JSONNestingDepthMaximum is the open-container cap.
 	JSONNestingDepthMaximum = 64
 	// JSONObjectFieldCountMaximum is the per-object field cap.
 	JSONObjectFieldCountMaximum = 256
-	// JSONArrayItemCountMaximum is the per-array item cap.
-	JSONArrayItemCountMaximum             = 1024
+	// jsonArrayItemCountMaximum is the per-array item cap.
+	jsonArrayItemCountMaximum             = 1024
 	jsonObjectOverheadBytes               = len(`{}`)
 	jsonArrayOverheadBytes                = len(`[]`)
 	jsonNullLiteralText                   = "null"
@@ -80,10 +81,10 @@ type StrictJSONLimits struct {
 // DefaultStrictJSONLimits returns the documented bounded JSON policy.
 func DefaultStrictJSONLimits() StrictJSONLimits {
 	return StrictJSONLimits{
-		DocumentMaximumBytes: ByteCount{value: JSONDocumentMaximumBytes},
+		DocumentMaximumBytes: ByteCount{value: jsonDocumentMaximumBytes},
 		NestingDepthMaximum:  JSONNestingDepthMaximum,
 		ObjectFieldMaximum:   JSONObjectFieldCountMaximum,
-		ArrayItemMaximum:     JSONArrayItemCountMaximum,
+		ArrayItemMaximum:     jsonArrayItemCountMaximum,
 	}
 }
 
@@ -92,7 +93,7 @@ func (l StrictJSONLimits) Validate() error {
 	if err := l.DocumentMaximumBytes.Validate(); err != nil {
 		return jsonContractError(jsonDocumentByteLimitInvalidErrorText, err)
 	}
-	if l.DocumentMaximumBytes.value > JSONDocumentMaximumBytes {
+	if l.DocumentMaximumBytes.value > jsonDocumentMaximumBytes {
 		return jsonContractError("json document byte limit exceeds the supported maximum", nil)
 	}
 	if l.NestingDepthMaximum == 0 || l.NestingDepthMaximum > JSONNestingDepthMaximum {
@@ -101,7 +102,7 @@ func (l StrictJSONLimits) Validate() error {
 	if l.ObjectFieldMaximum == 0 || l.ObjectFieldMaximum > JSONObjectFieldCountMaximum {
 		return jsonContractError("json object field limit is outside the supported range", nil)
 	}
-	if l.ArrayItemMaximum == 0 || l.ArrayItemMaximum > JSONArrayItemCountMaximum {
+	if l.ArrayItemMaximum == 0 || l.ArrayItemMaximum > jsonArrayItemCountMaximum {
 		return jsonContractError("json array item limit is outside the supported range", nil)
 	}
 	return nil
@@ -266,15 +267,50 @@ func validateStrictJSONTypedInput[T any](data []byte, limits StrictJSONLimits) e
 	)
 }
 
-var jsonFieldNamesByType sync.Map
+const (
+	jsonFieldNameCacheEntryMaximum         = 128
+	jsonFieldNameCacheFieldsPerTypeMaximum = 1024
+)
+
+// jsonFieldNameCache is a bounded, derived optimization over immutable Go type
+// metadata. It is not protocol state: when either bound is reached, decoding
+// remains correct and simply performs the reflective walk for that call.
+type jsonFieldNameCache struct {
+	values  sync.Map
+	entries atomic.Uint32
+}
+
+var strictJSONFieldNames jsonFieldNameCache
 
 func cachedJSONFieldNamesForType(root reflect.Type) []string {
-	if cached, ok := jsonFieldNamesByType.Load(root); ok {
+	return strictJSONFieldNames.lookup(root)
+}
+
+func (c *jsonFieldNameCache) lookup(root reflect.Type) []string {
+	if cached, ok := c.values.Load(root); ok {
 		return cached.([]string)
 	}
 	fields := jsonFieldNamesForType(root)
-	canonical, _ := jsonFieldNamesByType.LoadOrStore(root, fields)
+	if len(fields) > jsonFieldNameCacheFieldsPerTypeMaximum || !c.reserve() {
+		return fields
+	}
+	canonical, loaded := c.values.LoadOrStore(root, fields)
+	if loaded {
+		c.entries.Add(^uint32(0))
+	}
 	return canonical.([]string)
+}
+
+func (c *jsonFieldNameCache) reserve() bool {
+	for {
+		entries := c.entries.Load()
+		if entries >= jsonFieldNameCacheEntryMaximum {
+			return false
+		}
+		if c.entries.CompareAndSwap(entries, entries+1) {
+			return true
+		}
+	}
 }
 
 func validateStrictJSONInputWithFields(

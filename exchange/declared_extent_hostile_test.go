@@ -27,7 +27,7 @@ func TestDeclaredExtentNeverReplacesTheBodyLimit(t *testing.T) {
 	limit := mustByteCount(t, limitBytes)
 	policy := exchange.ServerBoundedPolicy{RequestBodyLimit: limit}
 	route := exchange.RouteSemantics{
-		Method: core.HTTPMethodPost,
+		Method: exchange.MethodPost,
 		Replay: exchange.ReplaySingleAttempt,
 	}
 	cases := []struct {

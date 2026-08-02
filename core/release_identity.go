@@ -9,32 +9,19 @@ import (
 )
 
 const (
-	offeringBugToken       = "bug"
-	offeringWitnessToken   = "witness"
-	offeringPeachfuzzToken = "peachfuzz"
-	// OfferingTokenMaximumBytes bounds the closed product identity domain.
-	OfferingTokenMaximumBytes = len(offeringPeachfuzzToken)
-	// ReleaseVersionMaximumBytes bounds three uint32 decimal components and
+	offeringBugToken     = "bug"
+	offeringWitnessToken = "witness"
+	// offeringTokenMaximumBytes bounds the closed product identity domain.
+	offeringTokenMaximumBytes = len(offeringWitnessToken)
+	// releaseVersionMaximumBytes bounds three uint32 decimal components and
 	// their two separators.
-	ReleaseVersionMaximumBytes = 3*10 + 2
-	// BuildCommitSHA1Bytes is the decoded width of a SHA-1 Git object name.
-	BuildCommitSHA1Bytes = 20
-	// BuildCommitSHA256Bytes is the decoded width of a SHA-256 Git object name.
-	BuildCommitSHA256Bytes = 32
-	// BuildCommitMaximumBytes bounds the canonical hexadecimal projection.
-	BuildCommitMaximumBytes = BuildCommitSHA256Bytes * 2
-	// EmbeddedBuildOfferingLinkSymbol is the exact linker symbol for the
-	// current binary's offering token.
-	EmbeddedBuildOfferingLinkSymbol = "github.com/deliri/primitive/v2026/core.embeddedBuildOffering"
-	// EmbeddedBuildVersionLinkSymbol is the exact linker symbol for the
-	// current binary's release version.
-	EmbeddedBuildVersionLinkSymbol = "github.com/deliri/primitive/v2026/core.embeddedBuildVersion"
-	// EmbeddedBuildCommitLinkSymbol is the exact linker symbol for the current
-	// binary's source commit.
-	EmbeddedBuildCommitLinkSymbol = "github.com/deliri/primitive/v2026/core.embeddedBuildCommit"
-	// EmbeddedBuildPlatformLinkSymbol is the exact linker symbol for the
-	// current binary's target platform.
-	EmbeddedBuildPlatformLinkSymbol = "github.com/deliri/primitive/v2026/core.embeddedBuildPlatform"
+	releaseVersionMaximumBytes = 3*10 + 2
+	// buildCommitSHA1Bytes is the decoded width of a SHA-1 Git object name.
+	buildCommitSHA1Bytes = 20
+	// buildCommitSHA256Bytes is the decoded width of a SHA-256 Git object name.
+	buildCommitSHA256Bytes = 32
+	// buildIdentityJSONMaximumBytes bounds one complete identity projection.
+	buildIdentityJSONMaximumBytes = 2 << 10
 )
 
 // Offering is the closed set of products sharing the release protocol.
@@ -47,63 +34,8 @@ const (
 	OfferingBug
 	// OfferingWitness identifies Witness.
 	OfferingWitness
-	// OfferingPeachfuzz identifies Peachfuzz.
-	OfferingPeachfuzz
 	offeringLimit
 )
-
-// ReleaseOfferingMismatchError carries the exact observed and expected
-// offering facts when authenticated Release input names the wrong stream.
-type ReleaseOfferingMismatchError struct {
-	observed Offering
-	expected Offering
-}
-
-// NewReleaseOfferingMismatchError constructs one typed offering mismatch.
-func NewReleaseOfferingMismatchError(
-	observed Offering,
-	expected Offering,
-) (ReleaseOfferingMismatchError, error) {
-	mismatch := ReleaseOfferingMismatchError{observed: observed, expected: expected}
-	if err := mismatch.Validate(); err != nil {
-		return ReleaseOfferingMismatchError{}, err
-	}
-	return mismatch, nil
-}
-
-// Validate proves both offerings and their contradiction.
-func (e ReleaseOfferingMismatchError) Validate() error {
-	if err := e.observed.Validate(); err != nil {
-		return releaseIdentityError("observed release offering is invalid", err)
-	}
-	if err := e.expected.Validate(); err != nil {
-		return releaseIdentityError("expected release offering is invalid", err)
-	}
-	if e.observed == e.expected {
-		return releaseIdentityError("release offering mismatch names equal offerings")
-	}
-	return nil
-}
-
-// Error returns the operator-facing offering contradiction.
-func (e ReleaseOfferingMismatchError) Error() string {
-	if e.Validate() != nil {
-		return "release offering mismatch is invalid"
-	}
-	return "release offering " + e.observed.String() +
-		" differs from expected " + e.expected.String()
-}
-
-// Unwrap preserves the stable Release verification identity.
-func (e ReleaseOfferingMismatchError) Unwrap() error {
-	return ErrReleaseVerification
-}
-
-// Observed returns the offering carried by the authenticated document.
-func (e ReleaseOfferingMismatchError) Observed() Offering { return e.observed }
-
-// Expected returns the caller-selected offering.
-func (e ReleaseOfferingMismatchError) Expected() Offering { return e.expected }
 
 // Validate rejects offerings outside the closed domain.
 func (o Offering) Validate() error {
@@ -123,22 +55,18 @@ func (o Offering) String() string {
 		return offeringBugToken
 	case OfferingWitness:
 		return offeringWitnessToken
-	case OfferingPeachfuzz:
-		return offeringPeachfuzzToken
 	default:
 		return ""
 	}
 }
 
-// ParseOffering accepts one canonical offering token.
-func ParseOffering(value string) (Offering, error) {
+// parseOffering accepts one canonical offering token.
+func parseOffering(value string) (Offering, error) {
 	switch value {
 	case offeringBugToken:
 		return OfferingBug, nil
 	case offeringWitnessToken:
 		return OfferingWitness, nil
-	case offeringPeachfuzzToken:
-		return OfferingPeachfuzz, nil
 	default:
 		return OfferingUnknown, releaseIdentityError("offering token is unsupported")
 	}
@@ -159,11 +87,27 @@ func (o *Offering) UnmarshalJSON(data []byte) error {
 	}
 	value, err := DecodeJSONStringToken(data)
 	if err != nil {
-		return err
+		return errors.Join(ErrPrimitiveContract, err)
 	}
-	parsed, err := ParseOffering(value)
+	parsed, err := parseOffering(value)
 	if err != nil {
 		return errors.Join(ErrJSONContract, err)
+	}
+	*o = parsed
+	return nil
+}
+
+// UnmarshalText accepts one canonical offering through encoding.TextUnmarshaler.
+func (o *Offering) UnmarshalText(text []byte) error {
+	if o == nil {
+		return releaseIdentityError("offering receiver is nil")
+	}
+	if len(text) == 0 || len(text) > offeringTokenMaximumBytes {
+		return releaseIdentityError("offering token has invalid length")
+	}
+	parsed, err := parseOffering(string(text))
+	if err != nil {
+		return err
 	}
 	*o = parsed
 	return nil
@@ -182,9 +126,9 @@ func NewReleaseVersion(major, minor, patch uint32) ReleaseVersion {
 	return ReleaseVersion{major: major, minor: minor, patch: patch, set: true}
 }
 
-// ParseReleaseVersion accepts one canonical three-component release version.
-func ParseReleaseVersion(value string) (ReleaseVersion, error) {
-	if len(value) == 0 || len(value) > ReleaseVersionMaximumBytes {
+// parseReleaseVersion accepts one canonical three-component release version.
+func parseReleaseVersion(value string) (ReleaseVersion, error) {
+	if len(value) == 0 || len(value) > releaseVersionMaximumBytes {
 		return ReleaseVersion{}, releaseIdentityError("release version has invalid length")
 	}
 	majorText, remainder, found := strings.Cut(value, ".")
@@ -226,7 +170,7 @@ func (v ReleaseVersion) Validate() error {
 	if !v.set {
 		return releaseIdentityError("release version is unset")
 	}
-	parsed, err := ParseReleaseVersion(v.String())
+	parsed, err := parseReleaseVersion(v.String())
 	if err != nil || parsed != v {
 		return releaseIdentityError("release version is invalid")
 	}
@@ -284,9 +228,9 @@ func (v *ReleaseVersion) UnmarshalJSON(data []byte) error {
 	}
 	value, err := DecodeJSONStringToken(data)
 	if err != nil {
-		return err
+		return errors.Join(ErrPrimitiveContract, err)
 	}
-	parsed, err := ParseReleaseVersion(value)
+	parsed, err := parseReleaseVersion(value)
 	if err != nil {
 		return errors.Join(ErrJSONContract, err)
 	}
@@ -294,9 +238,25 @@ func (v *ReleaseVersion) UnmarshalJSON(data []byte) error {
 	return nil
 }
 
+// UnmarshalText accepts canonical release-version text through encoding.TextUnmarshaler.
+func (v *ReleaseVersion) UnmarshalText(text []byte) error {
+	if v == nil {
+		return releaseIdentityError("release version receiver is nil")
+	}
+	if len(text) == 0 || len(text) > releaseVersionMaximumBytes {
+		return releaseIdentityError("release version has invalid length")
+	}
+	parsed, err := parseReleaseVersion(string(text))
+	if err != nil {
+		return err
+	}
+	*v = parsed
+	return nil
+}
+
 // BuildCommit is a canonical SHA-1 or SHA-256 Git object name.
 type BuildCommit struct {
-	value [BuildCommitSHA256Bytes]byte
+	value [buildCommitSHA256Bytes]byte
 	size  uint8
 }
 
@@ -306,7 +266,7 @@ const buildCommitWidthDiagnostic = "build commit has unsupported width"
 // object-name width.
 func ParseBuildCommit(value string) (BuildCommit, error) {
 	size := len(value) / 2
-	if len(value)%2 != 0 || size != BuildCommitSHA1Bytes && size != BuildCommitSHA256Bytes {
+	if len(value)%2 != 0 || size != buildCommitSHA1Bytes && size != buildCommitSHA256Bytes {
 		return BuildCommit{}, releaseIdentityError(buildCommitWidthDiagnostic)
 	}
 	decoded, err := hex.DecodeString(value)
@@ -315,17 +275,17 @@ func ParseBuildCommit(value string) (BuildCommit, error) {
 	}
 	var commit BuildCommit
 	copy(commit.value[:], decoded)
-	if size == BuildCommitSHA1Bytes {
-		commit.size = BuildCommitSHA1Bytes
+	if size == buildCommitSHA1Bytes {
+		commit.size = buildCommitSHA1Bytes
 	} else {
-		commit.size = BuildCommitSHA256Bytes
+		commit.size = buildCommitSHA256Bytes
 	}
 	return commit, nil
 }
 
 // Validate proves supported width and zero padding.
 func (c BuildCommit) Validate() error {
-	if c.size != BuildCommitSHA1Bytes && c.size != BuildCommitSHA256Bytes {
+	if c.size != buildCommitSHA1Bytes && c.size != buildCommitSHA256Bytes {
 		return releaseIdentityError(buildCommitWidthDiagnostic)
 	}
 	for _, value := range c.value[c.size:] {
@@ -359,11 +319,11 @@ func (c *BuildCommit) UnmarshalJSON(data []byte) error {
 	}
 	value, err := DecodeJSONStringToken(data)
 	if err != nil {
-		return err
+		return errors.Join(ErrPrimitiveContract, err)
 	}
 	parsed, err := ParseBuildCommit(value)
 	if err != nil {
-		return errors.Join(ErrJSONContract, err)
+		return errors.Join(ErrPrimitiveContract, ErrJSONContract, err)
 	}
 	*c = parsed
 	return nil
@@ -456,18 +416,14 @@ func (i *BuildIdentity) UnmarshalJSON(data []byte) error {
 	if i == nil {
 		return errors.Join(ErrJSONContract, releaseIdentityError("build identity receiver is nil"))
 	}
-	maximum, err := NewByteCount(2 << 10)
-	if err != nil {
-		return errors.Join(ErrJSONContract, err)
-	}
 	wire, err := DecodeStrictJSONStructure[buildIdentityWire](data, StrictJSONLimits{
-		DocumentMaximumBytes: maximum,
+		DocumentMaximumBytes: ByteCount{value: buildIdentityJSONMaximumBytes},
 		NestingDepthMaximum:  2,
 		ObjectFieldMaximum:   4,
 		ArrayItemMaximum:     1,
 	})
 	if err != nil {
-		return errors.Join(ErrJSONContract, err)
+		return errors.Join(ErrPrimitiveContract, ErrJSONContract, err)
 	}
 	if wire.Offering == nil || wire.Version == nil || wire.Commit == nil || wire.Platform == nil {
 		return errors.Join(ErrJSONContract, releaseIdentityError("build identity field is missing"))
@@ -483,45 +439,6 @@ func (i *BuildIdentity) UnmarshalJSON(data []byte) error {
 	return nil
 }
 
-var (
-	embeddedBuildOffering string
-	embeddedBuildVersion  string
-	embeddedBuildCommit   string
-	embeddedBuildPlatform string
-)
-
-// EmbeddedBuildIdentity reads the installation identity injected into the
-// current binary at link time. It never accepts caller-supplied identity facts.
-func EmbeddedBuildIdentity() (BuildIdentity, error) {
-	offering, err := ParseOffering(embeddedBuildOffering)
-	if err != nil {
-		return BuildIdentity{}, releaseIdentityError("embedded offering is invalid", err)
-	}
-	version, err := ParseReleaseVersion(embeddedBuildVersion)
-	if err != nil {
-		return BuildIdentity{}, releaseIdentityError("embedded version is invalid", err)
-	}
-	commit, err := ParseBuildCommit(embeddedBuildCommit)
-	if err != nil {
-		return BuildIdentity{}, releaseIdentityError("embedded commit is invalid", err)
-	}
-	platform, err := ParsePlatform(embeddedBuildPlatform)
-	if err != nil {
-		return BuildIdentity{}, releaseIdentityError("embedded platform is invalid", err)
-	}
-	return NewBuildIdentity(BuildIdentityRequest{
-		Offering: offering, Version: version, Commit: commit, Platform: platform,
-	})
-}
-
 func releaseIdentityError(message string, causes ...error) error {
 	return errors.Join(append([]error{ErrPrimitiveContract, errors.New(message)}, causes...)...)
 }
-
-var (
-	_ ValidatedJSONMarshaler = OfferingUnknown
-	_ ValidatedJSONMarshaler = ReleaseVersion{}
-	_ ValidatedJSONMarshaler = BuildCommit{}
-	_ ValidatedJSONMarshaler = BuildIdentity{}
-	_ error                  = ReleaseOfferingMismatchError{}
-)

@@ -126,14 +126,18 @@ func SendJSON[
 	if err != nil {
 		return zero, err
 	}
+	jsonType, err := jsonMediaType()
+	if err != nil {
+		return zero, err
+	}
 	raw, err := executeAggregate(aggregateCall{
 		context: call.Context,
 		client:  call.Client,
 		request: aggregateRequest{
 			target: target, body: body, semantics: call.Request.Semantics,
 			headers: call.Request.Headers, capture: call.Request.CaptureHeaders,
-			requestContentType:          core.HTTPMediaTypeJSON(),
-			expectedResponseContentType: core.HTTPMediaTypeJSON(),
+			requestContentType:          jsonType,
+			expectedResponseContentType: jsonType,
 			expectedStatus:              call.Request.ExpectedStatus,
 		},
 		policy: call.Policy.Operation,
@@ -158,13 +162,17 @@ func SendNoBodyJSON[
 	if err != nil {
 		return zero, err
 	}
+	jsonType, err := jsonMediaType()
+	if err != nil {
+		return zero, err
+	}
 	raw, err := executeAggregate(aggregateCall{
 		context: call.Context,
 		client:  call.Client,
 		request: aggregateRequest{
 			target: target, semantics: call.Request.Semantics,
 			headers: call.Request.Headers, capture: call.Request.CaptureHeaders,
-			expectedResponseContentType: core.HTTPMediaTypeJSON(),
+			expectedResponseContentType: jsonType,
 			expectedStatus:              call.Request.ExpectedStatus,
 		},
 		policy: call.Policy.Operation,
@@ -467,10 +475,14 @@ func observedAggregateResponse(
 	if err := response.status.Validate(); err != nil {
 		return aggregateResponse{}, responseError(err)
 	}
+	responseBytes, err := core.NewByteLength(uint64(len(response.body)))
+	if err != nil {
+		return aggregateResponse{}, responseError(err)
+	}
 	result := aggregateResponse{
 		metadata: ResponseMetadata{
 			Status: response.status, Headers: response.headers,
-			Bytes:    core.NewByteLength(uint64(len(response.body))),
+			Bytes:    responseBytes,
 			Attempts: attempts,
 		},
 		body: response.body,
@@ -556,7 +568,7 @@ func newAggregateHTTPRequest(
 	}
 	request.Header.Set(
 		core.HTTPHeaderAcceptEncoding().String(),
-		core.HTTPContentCodingIdentity().String(),
+		identityContentCoding().String(),
 	)
 	applyRequestHeaders(request, input.headers)
 	applyIdempotencyKey(request, input.semantics)
@@ -606,9 +618,7 @@ func readAggregateHTTPResponse(
 	}
 	result.status = status
 	result.headers = captureHeaders(input.response.Header, input.capture)
-	result.retryAfter = input.response.Header.Get(
-		core.HTTPHeaderRetryAfter().String(),
-	)
+	result.retryAfter = input.response.Header.Get(retryAfterHeaderName)
 	if err := validateAggregateResponseHeaders(input, status); err != nil {
 		return result, errors.Join(
 			err,
@@ -676,8 +686,8 @@ func validateIdentityContentCoding(headers http.Header) error {
 	if len(values) != 1 {
 		return responseError(core.ErrExchangeContentType)
 	}
-	coding, err := core.ParseHTTPContentCoding(values[0])
-	if err != nil || coding != core.HTTPContentCodingIdentity() {
+	coding, err := parseHTTPContentCoding(values[0])
+	if err != nil || coding != identityContentCoding() {
 		return responseError(core.ErrExchangeContentType)
 	}
 	return nil
@@ -723,7 +733,7 @@ func validateResponseContentType(
 type boundedBodyRead struct {
 	context  context.Context
 	source   io.Reader
-	declared core.DeclaredBodyLength
+	declared declaredBodyLength
 	limit    core.ByteCount
 }
 
@@ -750,7 +760,7 @@ func readBoundedBody(read boundedBodyRead) (data []byte, err error) {
 	if err := contextstate.Validate(read.context); err != nil {
 		return nil, cancelledError(err)
 	}
-	reserved, err := read.declared.ReservedExtent(read.limit)
+	reserved, err := read.declared.reservedExtent(read.limit)
 	if err != nil {
 		return nil, err
 	}
@@ -871,7 +881,7 @@ func retryableStatus(status core.HTTPStatusCode) bool {
 	return value == http.StatusRequestTimeout ||
 		value == http.StatusTooEarly ||
 		value == http.StatusTooManyRequests ||
-		value >= core.HTTPStatusServerErrorMinimum
+		status.IsServerError()
 }
 
 type retryWaitRequest struct {

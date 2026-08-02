@@ -25,32 +25,33 @@ const (
 	operationLimit
 )
 
-// Text names the operation for diagnostics. Failure renders it, so the name is
+func operationLabels() [operationLimit]string {
+	return [...]string{
+		OperationOpenRoot:         "open root",
+		OperationDiskCapacity:     "disk capacity",
+		OperationGoMemory:         "go memory",
+		OperationCgroupMembership: "cgroup membership",
+		OperationCgroupMount:      "cgroup mount",
+		OperationCgroupLimit:      "cgroup limit",
+		OperationTreeWalk:         "tree walk",
+		OperationGoOOMBanner:      "go OOM banner",
+	}
+}
+
+// String names the operation for diagnostics. Failure renders it, so the name is
 // part of the package's external output rather than decoration: without it a
 // diagnostic carries an opaque ordinal that a reader has to decode against this
 // file to learn which observation failed.
-func (o Operation) Text() string {
-	switch o {
-	case OperationOpenRoot:
-		return "open root"
-	case OperationDiskCapacity:
-		return "disk capacity"
-	case OperationGoMemory:
-		return "go memory"
-	case OperationCgroupMembership:
-		return "cgroup membership"
-	case OperationCgroupMount:
-		return "cgroup mount"
-	case OperationCgroupLimit:
-		return "cgroup limit"
-	case OperationTreeWalk:
-		return "tree walk"
-	case OperationGoOOMBanner:
-		return "go OOM banner"
-	default:
+func (o Operation) String() string {
+	if !o.IsValid() {
 		return unknownOperationText
 	}
+	return operationLabels()[o]
 }
+
+// OffWireEnum declares Operation as an in-process failure classification
+// rather than a wire encoding.
+func (Operation) OffWireEnum() {}
 
 // Validate rejects operations outside the closed domain.
 func (o Operation) Validate() error {
@@ -62,7 +63,7 @@ func (o Operation) Validate() error {
 
 // IsValid reports membership in the closed operation domain.
 func (o Operation) IsValid() bool {
-	return o > OperationUnknown && o < operationLimit
+	return o > OperationUnknown && o < operationLimit && operationLabels()[o] != ""
 }
 
 // Failure carries the typed operation while preserving stable and native
@@ -92,11 +93,14 @@ func (e Failure) Error() string {
 	} else if !errors.Is(detail, e.Identity) {
 		detail = errors.Join(e.Identity, detail)
 	}
-	return fmt.Sprintf("host facts %s: %v", e.Operation.Text(), detail)
+	return fmt.Sprintf("host facts %s: %v", e.Operation.String(), detail)
 }
 
 // Unwrap exposes both the stable identity and native cause.
 func (e Failure) Unwrap() []error {
+	if e.Cause == nil {
+		return []error{e.Identity}
+	}
 	return []error{e.Identity, e.Cause}
 }
 

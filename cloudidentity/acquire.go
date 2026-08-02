@@ -60,7 +60,7 @@ func acquire(call acquisitionCall) (exchange.BoundedResponse, error) {
 		Request: exchange.NoBodyBoundedRequest{
 			Target: call.target,
 			Semantics: exchange.RequestSemantics{
-				Method: core.HTTPMethodGet,
+				Method: exchange.MethodGet,
 				Replay: exchange.ReplaySingleAttempt,
 			},
 			Headers:        call.headers,

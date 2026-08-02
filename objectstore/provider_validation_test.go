@@ -141,7 +141,7 @@ func providerUploadRequest(t *testing.T, provider Provider) UploadRequest {
 		Source:      bytes.NewReader(payload),
 		ContentType: core.HTTPMediaTypeOctetStream(),
 		Target:      providerUploadTarget(t, provider),
-		Integrity:   providerIntegrity(payload),
+		Integrity:   providerIntegrity(t, payload),
 		Policy:      providerPolicy(t),
 	}
 }
@@ -157,7 +157,7 @@ func providerDownloadRequest(t *testing.T, provider Provider) DownloadRequest {
 			URL:       providerSignedURL(t, provider),
 			ExpiresAt: providerFutureInstant(t),
 		},
-		Integrity: providerIntegrity(payload),
+		Integrity: providerIntegrity(t, payload),
 		Policy:    providerPolicy(t),
 	}
 }
@@ -227,11 +227,12 @@ func providerPolicy(t *testing.T) Policy {
 	}
 }
 
-func providerIntegrity(payload []byte) Integrity {
+func providerIntegrity(t *testing.T, payload []byte) Integrity {
+	t.Helper()
 	sha := sha256.Sum256(payload)
 	return Integrity{
 		SHA256: core.NewSHA256Digest(sha),
-		Length: core.NewByteLength(uint64(len(payload))),
+		Length: mustByteLength(t, uint64(len(payload))),
 		CRC32C: core.NewCRC32C(
 			crc32.Checksum(payload, crc32.MakeTable(crc32.Castagnoli)),
 		),
@@ -263,8 +264,9 @@ func appendUploadQuery(suffix string) func(*UploadRequest) error {
 
 func setUploadLength(value uint64) func(*UploadRequest) error {
 	return func(request *UploadRequest) error {
-		request.Integrity.Length = core.NewByteLength(value)
-		return nil
+		length, err := core.NewByteLength(value)
+		request.Integrity.Length = length
+		return err
 	}
 }
 
@@ -293,8 +295,9 @@ func appendDownloadQuery(suffix string) func(*DownloadRequest) error {
 
 func setDownloadLength(value uint64) func(*DownloadRequest) error {
 	return func(request *DownloadRequest) error {
-		request.Integrity.Length = core.NewByteLength(value)
-		return nil
+		length, err := core.NewByteLength(value)
+		request.Integrity.Length = length
+		return err
 	}
 }
 

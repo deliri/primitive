@@ -70,7 +70,10 @@ func MeasureTree(ctx context.Context, request TreeUsageRequest) (TreeUsage, erro
 	}
 	root, err := openRoot(request.Root.String())
 	if errors.Is(err, fs.ErrNotExist) && request.MissingPolicy == MissingPathIsEmpty {
-		usage := treeAccumulator{}.close()
+		usage, closeErr := (treeAccumulator{}).close()
+		if closeErr != nil {
+			return TreeUsage{}, closeErr
+		}
 		return usage, usage.Validate()
 	}
 	if err != nil {

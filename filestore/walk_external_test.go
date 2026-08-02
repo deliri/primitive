@@ -4,6 +4,7 @@ import (
 	"context"
 	"errors"
 	"fmt"
+	"math"
 	"os"
 	"path/filepath"
 	"slices"
@@ -140,6 +141,36 @@ func TestWalkLexicalOrderRequiresAndEnforcesExactDirectoryCeiling(t *testing.T) 
 	})
 	if !errors.Is(err, core.ErrFilestoreContract) {
 		t.Fatalf("filestore.Walk(over ceiling) error = %v, want %v", err, core.ErrFilestoreContract)
+	}
+}
+
+func TestDirectoryEntryMaximumRejectsAllocationAndConversionOverflow(t *testing.T) {
+	t.Parallel()
+
+	cases := []struct {
+		name    string
+		value   uint32
+		wantErr error
+	}{
+		{name: "zero rejects", value: 0, wantErr: core.ErrFilestoreContract},
+		{name: "one admits", value: 1},
+		{name: "one below allocation ceiling admits", value: filestore.DirectoryEntryMaximumLimit - 1},
+		{name: "exact allocation ceiling admits", value: filestore.DirectoryEntryMaximumLimit},
+		{name: "one above allocation ceiling rejects", value: filestore.DirectoryEntryMaximumLimit + 1, wantErr: core.ErrFilestoreContract},
+		{name: "maximum uint32 rejects before int conversion", value: math.MaxUint32, wantErr: core.ErrFilestoreContract},
+	}
+	for _, tc := range cases {
+		t.Run(tc.name, func(t *testing.T) {
+			t.Parallel()
+
+			got, gotErr := filestore.NewDirectoryEntryMaximum(tc.value)
+			if !errors.Is(gotErr, tc.wantErr) {
+				t.Fatalf("filestore.NewDirectoryEntryMaximum(%d) error = %v, want %v", tc.value, gotErr, tc.wantErr)
+			}
+			if tc.wantErr != nil && got != (filestore.DirectoryEntryMaximum{}) {
+				t.Fatalf("filestore.NewDirectoryEntryMaximum(%d) = %v, want zero", tc.value, got)
+			}
+		})
 	}
 }
 

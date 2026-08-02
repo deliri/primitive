@@ -16,7 +16,7 @@ const (
 	// PrimitiveDirectImportCount is the number of admitted direct import edges.
 	PrimitiveDirectImportCount = 50
 	// PrimitiveDirectTestImportCount is the number of admitted test-only edges.
-	PrimitiveDirectTestImportCount = 2
+	PrimitiveDirectTestImportCount = 3
 	// PrimitiveMaximumDirectImports caps direct sibling imports per package.
 	PrimitiveMaximumDirectImports = 6
 )
@@ -110,12 +110,12 @@ type DirectImportContract struct {
 
 // DirectTestImportContract admits one test-only importer-to-imported edge.
 //
-// A test-only edge exists when a package's real ingress value cannot be
-// constructed without the substrate that produces it, so the package's own
-// tests must build that value through the real producing package. It grants no
-// production dependency: production sources that import the edge remain an
-// undeclared production edge, and a declared test edge that no test file uses
-// is a ceremonial import and equally rejected.
+// A test-only edge exists when a package's tests require either the real
+// substrate that produces an ingress value or the typed Testserial declaration
+// for a process-wide isolation fact. It grants no production dependency:
+// production sources that import the edge remain an undeclared production
+// edge, and a declared test edge that no test file uses is a ceremonial import
+// and equally rejected.
 type DirectTestImportContract struct {
 	// Importer is the package whose test sources own the import declaration.
 	Importer PackageIdentity
@@ -216,6 +216,7 @@ func PrimitiveArchitecture() ArchitectureCatalog {
 		testImports: [PrimitiveDirectTestImportCount]DirectTestImportContract{
 			{Importer: PackageGate, Imported: PackageAttest},
 			{Importer: PackageGate, Imported: PackageTemporal},
+			{Importer: PackageProcess, Imported: PackageTestSerial},
 		},
 	}
 }

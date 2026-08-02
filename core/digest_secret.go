@@ -19,10 +19,10 @@ const (
 	SecretMaterialMinimumBytes = 16
 	// SecretMaterialMaximumBytes is the maximum admitted material length.
 	SecretMaterialMaximumBytes = 64
-	// CRC32CBytes is the width of a CRC32C checksum.
-	CRC32CBytes = 4
-	// CRC32CBase64Bytes is the canonical padded Base64 width of CRC32C.
-	CRC32CBase64Bytes             = 8
+	// crc32CBytes is the width of a CRC32C checksum.
+	crc32CBytes = 4
+	// crc32CBase64Bytes is the canonical padded Base64 width of CRC32C.
+	crc32CBase64Bytes             = 8
 	secretMaterialLengthErrorText = "secret material has invalid length"
 	secretMaterialUnsetErrorText  = "secret material is unset"
 	secretMaterialJSONErrorText   = "secret material JSON serialization is prohibited"
@@ -39,8 +39,8 @@ func NewSHA256Digest(value [sha256.Size]byte) SHA256Digest {
 	return SHA256Digest{value: value, set: true}
 }
 
-// ParseSHA256Hex accepts exactly 64 canonical lowercase hexadecimal bytes.
-func ParseSHA256Hex(value string) (SHA256Digest, error) {
+// parseSHA256Hex accepts exactly 64 canonical lowercase hexadecimal bytes.
+func parseSHA256Hex(value string) (SHA256Digest, error) {
 	decoded, err := decodeCanonicalHex(value, sha256.Size)
 	if err != nil {
 		return SHA256Digest{}, errors.Join(ErrPrimitiveContract, err)
@@ -92,7 +92,7 @@ func (d *SHA256Digest) UnmarshalJSON(data []byte) error {
 	if err != nil {
 		return err
 	}
-	decoded, err := ParseSHA256Hex(value)
+	decoded, err := parseSHA256Hex(value)
 	if err != nil {
 		return errors.Join(ErrJSONContract, err)
 	}
@@ -111,16 +111,29 @@ func NewCRC32C(value uint32) CRC32C {
 	return CRC32C{value: value, set: true}
 }
 
-// ParseCRC32CBase64 accepts canonical padded standard Base64.
-func ParseCRC32CBase64(value string) (CRC32C, error) {
-	if len(value) != CRC32CBase64Bytes {
+func parseCRC32CBase64(value string) (CRC32C, error) {
+	if len(value) != crc32CBase64Bytes {
 		return CRC32C{}, errors.Join(ErrPrimitiveContract, errors.New("crc32c encoding has invalid length"))
 	}
 	raw, err := base64.StdEncoding.DecodeString(value)
-	if err != nil || len(raw) != CRC32CBytes || base64.StdEncoding.EncodeToString(raw) != value {
+	if err != nil || len(raw) != crc32CBytes || base64.StdEncoding.EncodeToString(raw) != value {
 		return CRC32C{}, errors.Join(ErrPrimitiveContract, errors.New("crc32c encoding is not canonical"))
 	}
 	return NewCRC32C(binary.BigEndian.Uint32(raw)), nil
+}
+
+// UnmarshalText accepts canonical padded standard Base64 without mutating the
+// receiver on failure.
+func (c *CRC32C) UnmarshalText(data []byte) error {
+	if c == nil {
+		return errors.Join(ErrPrimitiveContract, errors.New("nil CRC32C receiver"))
+	}
+	decoded, err := parseCRC32CBase64(string(data))
+	if err != nil {
+		return err
+	}
+	*c = decoded
+	return nil
 }
 
 // Uint32 returns the checksum after validating that it is set.
@@ -136,7 +149,7 @@ func (c CRC32C) Base64() (string, error) {
 	if err := c.Validate(); err != nil {
 		return "", err
 	}
-	var raw [CRC32CBytes]byte
+	var raw [crc32CBytes]byte
 	binary.BigEndian.PutUint32(raw[:], c.value)
 	return base64.StdEncoding.EncodeToString(raw[:]), nil
 }
@@ -167,7 +180,7 @@ func (c *CRC32C) UnmarshalJSON(data []byte) error {
 	if err != nil {
 		return err
 	}
-	decoded, err := ParseCRC32CBase64(value)
+	decoded, err := parseCRC32CBase64(value)
 	if err != nil {
 		return errors.Join(ErrJSONContract, err)
 	}
@@ -191,8 +204,8 @@ func NewEd25519PublicKey(value ed25519.PublicKey) (Ed25519PublicKey, error) {
 	return Ed25519PublicKey{value: key, set: true}, nil
 }
 
-// ParseEd25519PublicKeyHex accepts canonical lowercase hexadecimal.
-func ParseEd25519PublicKeyHex(value string) (Ed25519PublicKey, error) {
+// parseEd25519PublicKeyHex accepts canonical lowercase hexadecimal.
+func parseEd25519PublicKeyHex(value string) (Ed25519PublicKey, error) {
 	decoded, err := decodeCanonicalHex(value, ed25519.PublicKeySize)
 	if err != nil {
 		return Ed25519PublicKey{}, errors.Join(ErrPrimitiveContract, err)
@@ -244,7 +257,7 @@ func (k *Ed25519PublicKey) UnmarshalJSON(data []byte) error {
 	if err != nil {
 		return err
 	}
-	decoded, err := ParseEd25519PublicKeyHex(value)
+	decoded, err := parseEd25519PublicKeyHex(value)
 	if err != nil {
 		return errors.Join(ErrJSONContract, err)
 	}

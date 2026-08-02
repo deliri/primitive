@@ -13,6 +13,17 @@ const (
 	ClockRollbackToleranceNanoseconds int64 = 5 * int64(temporal.NanosecondsPerMinute)
 )
 
+func stateDiagnostics() [stateLimit]string {
+	return [...]string{
+		StateNotYetValid: "not-yet-valid",
+		StateCurrent:     "current",
+		StateContinuity:  "continuity",
+		StateExpired:     "expired",
+		StateRefused:     "refused",
+		StateRevoked:     "revoked",
+	}
+}
+
 // State is the complete local status of one authentic decision.
 type State uint8
 
@@ -29,36 +40,26 @@ const (
 
 // Validate rejects values outside the closed assessment-state domain.
 func (s State) Validate() error {
-	if s <= StateUnknown || s >= stateLimit {
+	if !s.IsValid() {
 		return contractError(errors.New("lease state is outside the closed domain"))
 	}
 	return nil
 }
 
 // IsValid reports membership in the assessment-state domain.
-func (s State) IsValid() bool { return s.Validate() == nil }
+func (s State) IsValid() bool {
+	return s > StateUnknown && s < stateLimit && stateDiagnostics()[s] != ""
+}
 
 // OffWireEnum declares State as a deliberate off-wire enum.
 func (State) OffWireEnum() {}
 
 // String returns one diagnostic label.
 func (s State) String() string {
-	switch s {
-	case StateNotYetValid:
-		return "not-yet-valid"
-	case StateCurrent:
-		return "current"
-	case StateContinuity:
-		return "continuity"
-	case StateExpired:
-		return "expired"
-	case StateRefused:
-		return "refused"
-	case StateRevoked:
-		return "revoked"
-	default:
+	if !s.IsValid() {
 		return unknownDiagnostic
 	}
+	return stateDiagnostics()[s]
 }
 
 // ContactState is the local earliest-contact classification.
@@ -72,32 +73,37 @@ const (
 	contactStateLimit
 )
 
+func contactStateDiagnostics() [contactStateLimit]string {
+	return [...]string{
+		ContactStateNotDue:     "not-due",
+		ContactStateDue:        "due",
+		ContactStateProhibited: "prohibited",
+	}
+}
+
 // Validate rejects values outside the closed contact-state domain.
 func (s ContactState) Validate() error {
-	if s <= ContactStateUnknown || s >= contactStateLimit {
+	if !s.IsValid() {
 		return contractError(errors.New("lease contact state is outside the closed domain"))
 	}
 	return nil
 }
 
 // IsValid reports membership in the contact-state domain.
-func (s ContactState) IsValid() bool { return s.Validate() == nil }
+func (s ContactState) IsValid() bool {
+	return s > ContactStateUnknown && s < contactStateLimit &&
+		contactStateDiagnostics()[s] != ""
+}
 
 // OffWireEnum declares ContactState as a deliberate off-wire enum.
 func (ContactState) OffWireEnum() {}
 
 // String returns one diagnostic label.
 func (s ContactState) String() string {
-	switch s {
-	case ContactStateNotDue:
-		return "not-due"
-	case ContactStateDue:
-		return "due"
-	case ContactStateProhibited:
-		return "prohibited"
-	default:
+	if !s.IsValid() {
 		return unknownDiagnostic
 	}
+	return contactStateDiagnostics()[s]
 }
 
 // EvaluateRequest supplies real Temporal observations and the consumer's
@@ -232,17 +238,7 @@ func rejectClockContradiction(observed, trusted temporal.Instant) error {
 			Observed: observed, Trusted: trusted,
 		}, err)
 	}
-	tolerance, err := temporal.DurationFromNanoseconds(
-		ClockRollbackToleranceNanoseconds,
-	)
-	if err != nil {
-		return contractError(err)
-	}
-	toleranceComparison, err := difference.Compare(tolerance)
-	if err != nil {
-		return contractError(err)
-	}
-	if toleranceComparison == core.ComparisonGreater {
+	if difference.Nanoseconds() > ClockRollbackToleranceNanoseconds {
 		return errors.Join(core.ErrLeaseClock, ClockContradiction{
 			Observed: observed, Trusted: trusted,
 		})

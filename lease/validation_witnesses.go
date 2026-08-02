@@ -35,9 +35,9 @@ var (
 	_ core.ValidatedJSONMarshaler = DeviceID{}
 	_ core.ValidatedJSONMarshaler = Subject{}
 	_ core.ValidatedJSONMarshaler = Generation{}
-	_ core.ValidatedJSONMarshaler = RevisionUnknown
-	_ core.ValidatedJSONMarshaler = OutcomeUnknown
-	_ core.ValidatedJSONMarshaler = RevocationReasonUnknown
+	_ core.ValidatedJSONMarshaler = Revision(0)
+	_ core.ValidatedJSONMarshaler = Outcome(0)
+	_ core.ValidatedJSONMarshaler = RevocationReason(0)
 	_ core.ValidatedJSONMarshaler = Grant{}
 	_ core.ValidatedJSONMarshaler = Refusal{}
 	_ core.ValidatedJSONMarshaler = Revocation{}

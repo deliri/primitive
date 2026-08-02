@@ -5,11 +5,47 @@ import (
 	"go/parser"
 	"go/token"
 	"os"
+	"reflect"
 	"slices"
 	"sort"
 	"strconv"
 	"strings"
 	"testing"
+)
+
+type (
+	shutdownProtocolFact[T any] struct{}
+	shutdownPolicy[T any]       struct{}
+	shutdownObservation[T any]  struct{}
+	shutdownCapability[T any]   struct{}
+	shutdownInternalFlow[T any] struct{}
+	shutdownTypedFailure[T any] struct{}
+)
+
+type shutdownContractInventory struct {
+	StepPanicError     shutdownTypedFailure[StepPanicError]
+	StepID             shutdownProtocolFact[StepID]
+	Step               shutdownProtocolFact[Step]
+	PlanPolicy         shutdownPolicy[PlanPolicy]
+	Plan               shutdownCapability[Plan]
+	StepResult         shutdownObservation[StepResult]
+	Report             shutdownObservation[Report]
+	actionResult       shutdownInternalFlow[actionResult]
+	stepClassification shutdownInternalFlow[stepClassification]
+	SignalPolicy       shutdownPolicy[SignalPolicy]
+	Escalation         shutdownObservation[Escalation]
+	SignalCause        shutdownObservation[SignalCause]
+	WatchRequest       shutdownProtocolFact[WatchRequest]
+	signalSource       shutdownCapability[signalSource]
+	Controller         shutdownCapability[Controller]
+	escalationWait     shutdownInternalFlow[escalationWait]
+}
+
+var (
+	_ = shutdownContractInventory{}.actionResult
+	_ = shutdownContractInventory{}.stepClassification
+	_ = shutdownContractInventory{}.signalSource
+	_ = shutdownContractInventory{}.escalationWait
 )
 
 func TestProductionArchitectureHasOneOwnedGoroutineAndExactImports(t *testing.T) {
@@ -85,6 +121,40 @@ func TestProductionRejectsProcessExitAndWorldBuildingRatchet(t *testing.T) {
 					name, forbidden)
 			}
 		}
+	}
+}
+
+func TestShutdownProductionStructsHaveCompilerVisibleDataFlowRoles(t *testing.T) {
+	t.Parallel()
+
+	var production []string
+	for _, file := range shutdownProductionFiles(t) {
+		for _, declaration := range file.Decls {
+			general, ok := declaration.(*ast.GenDecl)
+			if !ok || general.Tok != token.TYPE {
+				continue
+			}
+			for _, specification := range general.Specs {
+				named, ok := specification.(*ast.TypeSpec)
+				if !ok {
+					continue
+				}
+				if _, ok := named.Type.(*ast.StructType); ok {
+					production = append(production, named.Name.Name)
+				}
+			}
+		}
+	}
+	slices.Sort(production)
+
+	inventoryType := reflect.TypeFor[shutdownContractInventory]()
+	inventory := make([]string, 0, inventoryType.NumField())
+	for fieldIndex := range inventoryType.NumField() {
+		inventory = append(inventory, inventoryType.Field(fieldIndex).Name)
+	}
+	slices.Sort(inventory)
+	if !slices.Equal(production, inventory) {
+		t.Fatalf("shutdown production structs = %v, compiler inventory = %v", production, inventory)
 	}
 }
 

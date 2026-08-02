@@ -26,7 +26,7 @@ func TestContextBudgetLayerTriad(t *testing.T) {
 		) {
 			writer.Header().Set(
 				core.HTTPHeaderContentType().String(),
-				core.HTTPMediaTypeTextPlain().String(),
+				mustHTTPMediaType(t, "text/plain").String(),
 			)
 			writer.WriteHeader(http.StatusOK)
 			_, _ = writer.Write([]byte("inside budget"))
@@ -40,10 +40,10 @@ func TestContextBudgetLayerTriad(t *testing.T) {
 				Request: exchange.NoBodyBoundedRequest{
 					Target: mustEndpoint(t, server.URL),
 					Semantics: exchange.RequestSemantics{
-						Method: core.HTTPMethodGet,
+						Method: exchange.MethodGet,
 						Replay: exchange.ReplaySingleAttempt,
 					},
-					ExpectedResponseContentType: core.HTTPMediaTypeTextPlain(),
+					ExpectedResponseContentType: mustHTTPMediaType(t, "text/plain"),
 					ExpectedStatus:              ok,
 				},
 				Policy: exchange.NoBodyBoundedPolicy{
@@ -90,7 +90,7 @@ func TestContextBudgetLayerTriad(t *testing.T) {
 				Request: exchange.NoBodyBoundedRequest{
 					Target: mustEndpoint(t, server.URL),
 					Semantics: exchange.RequestSemantics{
-						Method: core.HTTPMethodGet,
+						Method: exchange.MethodGet,
 						Replay: exchange.ReplaySingleAttempt,
 					},
 					ExpectedStatus: ok,
@@ -149,7 +149,7 @@ func TestContextBudgetLayerTriad(t *testing.T) {
 				Request: exchange.NoBodyBoundedRequest{
 					Target: mustEndpoint(t, server.URL),
 					Semantics: exchange.RequestSemantics{
-						Method: core.HTTPMethodGet,
+						Method: exchange.MethodGet,
 						Replay: exchange.ReplaySingleAttempt,
 					},
 					ExpectedStatus: ok,

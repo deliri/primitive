@@ -479,15 +479,23 @@ func validateCapability(provider Provider, value url.URL) error {
 var objectstoreOwnedHeaderNames = sync.OnceValues(loadObjectstoreOwnedHeaderNames)
 
 func loadObjectstoreOwnedHeaderNames() ([]core.HTTPHeaderName, error) {
+	authorization, err := headerName(headerAuthorization)
+	if err != nil {
+		return nil, err
+	}
+	contentRange, err := headerName(headerContentRange)
+	if err != nil {
+		return nil, err
+	}
 	names := []core.HTTPHeaderName{
 		core.HTTPHeaderContentType(),
 		core.HTTPHeaderContentLength(),
 		core.HTTPHeaderAcceptEncoding(),
 		core.HTTPHeaderContentEncoding(),
 		core.HTTPHeaderAccept(),
-		core.HTTPHeaderAuthorization(),
+		authorization,
 		core.HTTPHeaderIdempotencyKey(),
-		core.HTTPHeaderContentRange(),
+		contentRange,
 	}
 	for _, value := range [...]string{
 		headerHost,
@@ -498,9 +506,9 @@ func loadObjectstoreOwnedHeaderNames() ([]core.HTTPHeaderName, error) {
 		headerGCSHash,
 		headerGCSGenerationMatch,
 	} {
-		name, err := headerName(value)
-		if err != nil {
-			return nil, err
+		name, parseErr := headerName(value)
+		if parseErr != nil {
+			return nil, parseErr
 		}
 		names = append(names, name)
 	}

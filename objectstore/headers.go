@@ -19,6 +19,7 @@ const (
 	headerGCSGenerationMatch   = "X-Goog-If-Generation-Match"
 	headerGCSGeneration        = "X-Goog-Generation"
 	headerContentRange         = "Content-Range"
+	headerAuthorization        = "Authorization"
 	headerCreateOnlyValue      = "*"
 	headerZeroValue            = "0"
 	headerS3ChecksumModeValue  = "ENABLED"
@@ -453,7 +454,8 @@ func googleCloudStorageHashComponent(value string) (string, bool, error) {
 }
 
 func parseProviderCRC32C(value string) (core.CRC32C, bool, error) {
-	checksum, err := core.ParseCRC32CBase64(value)
+	var checksum core.CRC32C
+	err := checksum.UnmarshalText([]byte(value))
 	if err != nil {
 		return core.CRC32C{}, false, errors.Join(
 			core.ErrObjectStoreIntegrity,

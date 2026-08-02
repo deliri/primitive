@@ -226,7 +226,7 @@ func TestPlanDuplicateAndCallbackReentryAreRejected(t *testing.T) {
 	}
 }
 
-func TestPlanTimeoutsAccountForStartedAndSkippedSteps(t *testing.T) {
+func TestShutdownRunAccountingLayerTriadAccountsForStartedAndSkippedSteps(t *testing.T) {
 	t.Parallel()
 
 	synctest.Test(t, func(t *testing.T) {

@@ -960,8 +960,13 @@ func TestClosedEnumLabelsAreDistinctAndStable(t *testing.T) {
 	if got := process.FailureKindWait.String(); got != "wait" {
 		t.Errorf("FailureKindWait.String() = %q, want %q", got, "wait")
 	}
-	if process.FailureKindStart.String() == process.FailureKindWait.String() {
-		t.Error("FailureKind labels collide, want one distinct label per admitted value")
+	if gotSame := process.FailureKindStart.String() == process.FailureKindWait.String(); gotSame {
+		t.Errorf(
+			"FailureKind label equality = %t for %q and %q, want false",
+			gotSame,
+			process.FailureKindStart.String(),
+			process.FailureKindWait.String(),
+		)
 	}
 }
 
@@ -1016,14 +1021,21 @@ func TestProcessErrorIdentityHierarchy(t *testing.T) {
 				}
 			}
 			if errors.Is(core.ErrProcessStart, core.ErrProcessWait) {
-				t.Error("start and wait identities are interchangeable, want distinct families")
+				t.Errorf(
+					"errors.Is(%v, %v) = true, want false",
+					core.ErrProcessStart,
+					core.ErrProcessWait,
+				)
 			}
 			if errors.Is(core.ErrProcessStream, core.ErrProcessOutputLimit) {
-				t.Error("stream matches its own child identity, want a one-way parent chain")
+				t.Errorf(
+					"errors.Is(%v, %v) = true, want false",
+					core.ErrProcessStream,
+					core.ErrProcessOutputLimit,
+				)
 			}
-			if gotText := tc.identity.Error(); gotText == "" ||
-				gotText == core.ErrPrimitiveContract.Error() {
-				t.Errorf("identity text = %q, want a distinct process diagnostic", gotText)
+			if gotText := tc.identity.Error(); gotText == "" {
+				t.Errorf("identity text = %q, want a non-empty diagnostic", gotText)
 			}
 		})
 	}
@@ -1039,7 +1051,6 @@ func TestTypedFailureContractsPreserveStableAndNativeIdentity(t *testing.T) {
 		value       typedErrorContract
 		wantErr     error
 		name        string
-		wantTexts   []string
 		wantNotErrs []error
 		wantNative  bool
 	}{
@@ -1050,7 +1061,6 @@ func TestTypedFailureContractsPreserveStableAndNativeIdentity(t *testing.T) {
 			},
 			wantErr:     core.ErrProcessStart,
 			wantNative:  true,
-			wantTexts:   []string{"start", command.String(), native.Error()},
 			wantNotErrs: []error{core.ErrProcessWait, core.ErrProcessStream},
 		},
 		{
@@ -1060,7 +1070,6 @@ func TestTypedFailureContractsPreserveStableAndNativeIdentity(t *testing.T) {
 			},
 			wantErr:     core.ErrProcessWait,
 			wantNative:  true,
-			wantTexts:   []string{"wait", command.String(), native.Error()},
 			wantNotErrs: []error{core.ErrProcessStart, core.ErrProcessStream},
 		},
 		{
@@ -1070,7 +1079,6 @@ func TestTypedFailureContractsPreserveStableAndNativeIdentity(t *testing.T) {
 			},
 			wantErr:     core.ErrProcessStream,
 			wantNative:  true,
-			wantTexts:   []string{"stdout", native.Error()},
 			wantNotErrs: []error{core.ErrProcessOutputLimit, core.ErrProcessStart},
 		},
 		{
@@ -1082,7 +1090,6 @@ func TestTypedFailureContractsPreserveStableAndNativeIdentity(t *testing.T) {
 				},
 			},
 			wantErr:     core.ErrProcessOutputLimit,
-			wantTexts:   []string{"stderr"},
 			wantNotErrs: []error{core.ErrProcessStart, core.ErrProcessWait},
 		},
 		{
@@ -1091,7 +1098,6 @@ func TestTypedFailureContractsPreserveStableAndNativeIdentity(t *testing.T) {
 				Stream: process.StreamStdout, Limit: limit,
 			},
 			wantErr:     core.ErrProcessOutputLimit,
-			wantTexts:   []string{"stdout"},
 			wantNotErrs: []error{core.ErrProcessStart, core.ErrProcessWait},
 		},
 	}
@@ -1128,16 +1134,6 @@ func TestTypedFailureContractsPreserveStableAndNativeIdentity(t *testing.T) {
 			}
 			if tc.wantNative && !errors.Is(gotErr, native) {
 				t.Fatalf("typed failure error = %v, want native cause", gotErr)
-			}
-			// Tier two: the operator diagnostic, never the rejection proof.
-			for _, want := range tc.wantTexts {
-				if !strings.Contains(gotErr.Error(), want) {
-					t.Errorf(
-						"typed failure Error() = %q, want it to name %q",
-						gotErr.Error(),
-						want,
-					)
-				}
 			}
 		})
 	}

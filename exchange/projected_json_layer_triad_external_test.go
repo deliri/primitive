@@ -38,18 +38,17 @@ func TestProjectedJSONReceiveLayerTriad(t *testing.T) {
 				gotRequest *http.Request,
 				body *projectedTransportDocument,
 			) error {
-				method, parseErr := core.ParseHTTPMethod(gotRequest.Method)
-				if parseErr != nil {
-					return parseErr
+				if gotRequest.Method != exchange.MethodPost.String() {
+					return core.ErrExchangeContract
 				}
-				body.Method = method
+				body.Method = exchange.MethodPost
 				return nil
 			},
 			Policy: exchange.ServerPolicy{
 				RequestBodyLimit: mustByteCount(t, 4*1024),
 			},
 			Route: exchange.RouteSemantics{
-				Method: core.HTTPMethodPost,
+				Method: exchange.MethodPost,
 				Replay: exchange.ReplaySingleAttempt,
 			},
 		})
@@ -58,11 +57,11 @@ func TestProjectedJSONReceiveLayerTriad(t *testing.T) {
 		}
 		if got.Body == nil ||
 			got.Body.Message != "candidate" ||
-			got.Body.Method != core.HTTPMethodPost {
+			got.Body.Method != exchange.MethodPost {
 			t.Fatalf(
 				"ReceiveProjectedJSON() body = %+v, want candidate with %v",
 				got.Body,
-				core.HTTPMethodPost,
+				exchange.MethodPost,
 			)
 		}
 	})
@@ -93,7 +92,7 @@ func TestProjectedJSONReceiveLayerTriad(t *testing.T) {
 				RequestBodyLimit: mustByteCount(t, 4*1024),
 			},
 			Route: exchange.RouteSemantics{
-				Method: core.HTTPMethodPost,
+				Method: exchange.MethodPost,
 				Replay: exchange.ReplaySingleAttempt,
 			},
 		})
@@ -132,7 +131,7 @@ func TestProjectedJSONReceiveLayerTriad(t *testing.T) {
 		target := mustEndpoint(t, "http://example.test/exchange")
 		request, gotErr := http.NewRequestWithContext(
 			context.Background(),
-			core.HTTPMethodPost.String(),
+			exchange.MethodPost.String(),
 			target.String(),
 			body,
 		)
@@ -141,7 +140,7 @@ func TestProjectedJSONReceiveLayerTriad(t *testing.T) {
 		}
 		request.Header.Set(
 			core.HTTPHeaderContentType().String(),
-			core.HTTPMediaTypeJSON().String(),
+			mustHTTPMediaType(t, "application/json").String(),
 		)
 
 		got, gotErr := exchange.ReceiveProjectedJSON[
@@ -156,7 +155,7 @@ func TestProjectedJSONReceiveLayerTriad(t *testing.T) {
 				RequestBodyLimit: mustByteCount(t, 4*1024),
 			},
 			Route: exchange.RouteSemantics{
-				Method: core.HTTPMethodPost,
+				Method: exchange.MethodPost,
 				Replay: exchange.ReplaySingleAttempt,
 			},
 		})
@@ -207,7 +206,7 @@ func TestProjectedJSONReceiveLayerTriad(t *testing.T) {
 				RequestBodyLimit: mustByteCount(t, 4*1024),
 			},
 			Route: exchange.RouteSemantics{
-				Method: core.HTTPMethodPost,
+				Method: exchange.MethodPost,
 				Replay: exchange.ReplaySingleAttempt,
 			},
 		})
@@ -244,7 +243,7 @@ func projectedJSONRequest(
 	target := mustEndpoint(t, "http://example.test/exchange")
 	request, gotErr := http.NewRequestWithContext(
 		context.Background(),
-		core.HTTPMethodPost.String(),
+		exchange.MethodPost.String(),
 		target.String(),
 		bytes.NewReader(body),
 	)
@@ -253,7 +252,7 @@ func projectedJSONRequest(
 	}
 	request.Header.Set(
 		core.HTTPHeaderContentType().String(),
-		core.HTTPMediaTypeJSON().String(),
+		mustHTTPMediaType(t, "application/json").String(),
 	)
 	return request
 }

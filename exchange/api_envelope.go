@@ -577,7 +577,7 @@ func apiContractError(cause error) error {
 var (
 	_ core.Validatable            = APIOutcomeUnknown
 	_ core.OffWireEnum            = APIOutcomeUnknown
-	_ core.ValidatedJSONMarshaler = APICodeUnknown
+	_ core.ValidatedJSONMarshaler = APICode(0)
 	_ json.Unmarshaler            = (*APICode)(nil)
 	_ core.ValidatedJSONMarshaler = APIRequestID{}
 	_ json.Unmarshaler            = (*APIRequestID)(nil)

@@ -11,6 +11,12 @@ const (
 	toolUnsupportedGoVersion = "go1.27"
 )
 
+func toolIdentityLabels() [toolIdentityLimit]string {
+	return [...]string{
+		ToolIdentityPrimitive2026: "primitive-2026",
+	}
+}
+
 // ToolIdentity is the closed set of reviewed Garble tool builds.
 type ToolIdentity uint8
 
@@ -29,10 +35,27 @@ func CurrentTool() ToolIdentity {
 
 // Validate rejects tools outside the reviewed closed domain.
 func (t ToolIdentity) Validate() error {
-	if t <= ToolIdentityUnknown || t >= toolIdentityLimit {
+	if !t.IsValid() {
 		return contractError(errors.New("garble tool identity is outside the admitted domain"))
 	}
 	return nil
+}
+
+// IsValid reports membership in the reviewed tool-identity domain.
+func (t ToolIdentity) IsValid() bool {
+	return t > ToolIdentityUnknown && t < toolIdentityLimit && toolIdentityLabels()[t] != ""
+}
+
+// OffWireEnum declares ToolIdentity as reviewed execution policy rather than a
+// wire encoding.
+func (ToolIdentity) OffWireEnum() {}
+
+// String returns the compiler-owned diagnostic label for t.
+func (t ToolIdentity) String() string {
+	if !t.IsValid() {
+		return unknownEnumLabel
+	}
+	return toolIdentityLabels()[t]
 }
 
 // ModulePath returns the exact reviewed Go module path.

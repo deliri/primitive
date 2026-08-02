@@ -37,22 +37,22 @@ func copyBounded(
 	emptyReads := 0
 	for {
 		if err := contextstate.Validate(ctx); err != nil {
-			return core.NewByteLength(total), err
+			return finishStream(total, err)
 		}
 		limit := nextReadSize(maximumBytes, total)
 		count, readErr, validationErr := readBoundedChunk(ctx, source, buffer, limit)
 		if validationErr != nil {
-			return core.NewByteLength(total), validationErr
+			return finishStream(total, validationErr)
 		}
 		if count > 0 {
 			emptyReads = 0
 			if total == maximumBytes {
-				return core.NewByteLength(total), sizeError(errors.New("filestore source exceeds its maximum byte count"))
+				return finishStream(total, sizeError(errors.New("filestore source exceeds its maximum byte count")))
 			}
 			written, writeErr := writeFull(destination, buffer[:count])
 			total, writeErr = accountWrite(total, written, writeErr)
 			if writeErr != nil {
-				return core.NewByteLength(total), classifyDestinationError(kind, writeErr)
+				return finishStream(total, classifyDestinationError(kind, writeErr))
 			}
 		} else {
 			emptyReads++
@@ -61,7 +61,7 @@ func copyBounded(
 			return finishRead(total, readErr)
 		}
 		if emptyReads >= streamMaximumConsecutiveEmpties {
-			return core.NewByteLength(total), sourceError(io.ErrNoProgress)
+			return finishStream(total, sourceError(io.ErrNoProgress))
 		}
 	}
 }
@@ -121,9 +121,14 @@ func writeFull(destination io.Writer, data []byte) (int, error) {
 
 func finishRead(total uint64, err error) (core.ByteLength, error) {
 	if errors.Is(err, io.EOF) {
-		return core.NewByteLength(total), nil
+		return finishStream(total, nil)
 	}
-	return core.NewByteLength(total), sourceError(err)
+	return finishStream(total, sourceError(err))
+}
+
+func finishStream(total uint64, cause error) (core.ByteLength, error) {
+	length, err := core.NewByteLength(total)
+	return length, errors.Join(cause, err)
 }
 
 func classifyDestinationError(kind streamDestination, err error) error {

@@ -1,6 +1,7 @@
 package fuzzfinder
 
 import (
+	"encoding/json"
 	"errors"
 	"math"
 	"testing"
@@ -82,6 +83,8 @@ func TestObservationSchemaLayerTriad(t *testing.T) {
 func TestObservationStateExhaustsClosedDomain(t *testing.T) {
 	t.Parallel()
 
+	unknownLabel := ObservationUnknown.String()
+	labels := make(map[string]ObservationState, int(observationStateLimit))
 	for raw := range 256 {
 		state := ObservationState(raw)
 		gotErr := state.Validate()
@@ -89,9 +92,29 @@ func TestObservationStateExhaustsClosedDomain(t *testing.T) {
 		if (gotErr == nil) != wantValid || state.IsValid() != wantValid {
 			t.Fatalf("ObservationState(%d) validity = Validate:%v IsValid:%t, want %t", raw, gotErr, state.IsValid(), wantValid)
 		}
-		if !wantValid && !errors.Is(gotErr, core.ErrFuzzFinderContract) {
-			t.Fatalf("ObservationState(%d).Validate() error = %v, want %v", raw, gotErr, core.ErrFuzzFinderContract)
+		if !wantValid {
+			if !errors.Is(gotErr, core.ErrFuzzFinderContract) {
+				t.Fatalf("ObservationState(%d).Validate() error = %v, want %v", raw, gotErr, core.ErrFuzzFinderContract)
+			}
+			if state.String() != unknownLabel {
+				t.Fatalf("ObservationState(%d).String() = %q, want unknown label %q", raw, state.String(), unknownLabel)
+			}
+			continue
 		}
+		if label := state.String(); label == "" || label == unknownLabel {
+			t.Fatalf("ObservationState(%d).String() = %q, want an admitted diagnostic", raw, label)
+		} else if prior, exists := labels[label]; exists {
+			t.Fatalf("ObservationState values %d and %d share label %q, want unique labels", prior, state, label)
+		} else {
+			labels[label] = state
+		}
+	}
+	if _, implemented := any(ObservationComplete).(json.Marshaler); implemented {
+		t.Fatalf("%T implements json.Marshaler, want an off-wire enum", ObservationComplete)
+	}
+	state := ObservationComplete
+	if _, implemented := any(&state).(json.Unmarshaler); implemented {
+		t.Fatalf("%T implements json.Unmarshaler, want an off-wire enum", &state)
 	}
 }
 

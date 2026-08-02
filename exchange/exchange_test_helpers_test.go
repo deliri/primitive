@@ -42,7 +42,7 @@ func (d transportDocument) MarshalJSON() ([]byte, error) {
 
 type projectedTransportDocument struct {
 	Message string          `json:"message"`
-	Method  core.HTTPMethod `json:"-"`
+	Method  exchange.Method `json:"-"`
 }
 
 func (d projectedTransportDocument) Validate() error {

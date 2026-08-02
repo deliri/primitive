@@ -197,15 +197,15 @@ func TestVendorSpecExhaustiveDomain(t *testing.T) {
 			Provider:          objectstore.ProviderAmazonS3,
 			API:               objectstore.VendorAPIAmazonS3Object,
 			Directions:        objectstore.DirectionCapabilityUploadDownload,
-			UploadMethod:      core.HTTPMethodPut,
-			DownloadMethod:    core.HTTPMethodGet,
+			UploadMethod:      exchange.MethodPut,
+			DownloadMethod:    exchange.MethodGet,
 			UploadEncoding:    objectstore.UploadEncodingRawObject,
 			ProviderIntegrity: objectstore.ProviderIntegrityCRC32C,
 			WritePreference:   objectstore.WritePreferenceCreateOnly,
-			UploadMaximum: core.NewByteLength(
+			UploadMaximum: mustByteLength(t,
 				objectstore.AmazonS3PutObjectMaximumBytes,
 			),
-			DownloadMaximum: core.NewByteLength(
+			DownloadMaximum: mustByteLength(t,
 				objectstore.AmazonS3ObjectMaximumBytes,
 			),
 		},
@@ -213,15 +213,15 @@ func TestVendorSpecExhaustiveDomain(t *testing.T) {
 			Provider:          objectstore.ProviderGoogleCloudStorage,
 			API:               objectstore.VendorAPIGoogleCloudStorageXML,
 			Directions:        objectstore.DirectionCapabilityUploadDownload,
-			UploadMethod:      core.HTTPMethodPut,
-			DownloadMethod:    core.HTTPMethodGet,
+			UploadMethod:      exchange.MethodPut,
+			DownloadMethod:    exchange.MethodGet,
 			UploadEncoding:    objectstore.UploadEncodingRawObject,
 			ProviderIntegrity: objectstore.ProviderIntegrityCRC32C,
 			WritePreference:   objectstore.WritePreferenceCreateOnly,
-			UploadMaximum: core.NewByteLength(
+			UploadMaximum: mustByteLength(t,
 				objectstore.GoogleCloudStorageObjectMaximumBytes,
 			),
-			DownloadMaximum: core.NewByteLength(
+			DownloadMaximum: mustByteLength(t,
 				objectstore.GoogleCloudStorageObjectMaximumBytes,
 			),
 		},
@@ -229,15 +229,15 @@ func TestVendorSpecExhaustiveDomain(t *testing.T) {
 			Provider:          objectstore.ProviderCloudflareImages,
 			API:               objectstore.VendorAPICloudflareImagesDirect,
 			Directions:        objectstore.DirectionCapabilityUploadOnly,
-			UploadMethod:      core.HTTPMethodPost,
-			DownloadMethod:    core.HTTPMethodUnknown,
+			UploadMethod:      exchange.MethodPost,
+			DownloadMethod:    exchange.MethodUnknown,
 			UploadEncoding:    objectstore.UploadEncodingMultipartFile,
 			ProviderIntegrity: objectstore.ProviderIntegrityLocalOnly,
 			WritePreference:   objectstore.WritePreferenceOneTimeCapability,
-			UploadMaximum: core.NewByteLength(
+			UploadMaximum: mustByteLength(t,
 				objectstore.CloudflareImagesUploadMaximumBytes,
 			),
-			DownloadMaximum: core.NewByteLength(0),
+			DownloadMaximum: mustByteLength(t, 0),
 		},
 	}
 
@@ -329,7 +329,7 @@ func TestUploadProviderLayerTriad(t *testing.T) {
 			if got.Provider() != tc.provider ||
 				got.Direction() != objectstore.DirectionUpload ||
 				got.Commitment() != objectstore.CommitmentConfirmed ||
-				got.Bytes() != core.NewByteLength(uint64(len(payload))) {
+				got.Bytes() != mustByteLength(t, uint64(len(payload))) {
 				t.Fatalf(
 					"Upload() result = provider %v direction %v commitment %v bytes %d, want provider %v upload confirmed bytes %d",
 					got.Provider(),
@@ -1106,8 +1106,6 @@ func TestUploadRequestHostileBoundaryTable(t *testing.T) {
 	unsetSHA.Integrity.SHA256 = core.SHA256Digest{}
 	unsetCRC := base
 	unsetCRC.Integrity.CRC32C = core.CRC32C{}
-	overflowLength := base
-	overflowLength.Integrity.Length = core.NewByteLength(^uint64(0))
 	unsetMediaType := base
 	unsetMediaType.ContentType = core.HTTPMediaType{}
 	zeroOperationTimeout := base
@@ -1130,7 +1128,6 @@ func TestUploadRequestHostileBoundaryTable(t *testing.T) {
 		{name: "unset expiry is rejected", request: unsetExpiry, wantErr: core.ErrObjectStoreContract},
 		{name: "unset SHA-256 is rejected", request: unsetSHA, wantErr: core.ErrObjectStoreContract},
 		{name: "unset CRC32C is rejected", request: unsetCRC, wantErr: core.ErrObjectStoreContract},
-		{name: "uint64 length outside net HTTP is rejected", request: overflowLength, wantErr: core.ErrObjectStoreSize},
 		{name: "unset media type is rejected", request: unsetMediaType, wantErr: core.ErrObjectStoreContract},
 		{name: "zero operation timeout is rejected", request: zeroOperationTimeout, wantErr: core.ErrObjectStoreContract},
 		{name: "zero attempt timeout is rejected", request: zeroAttemptTimeout, wantErr: core.ErrObjectStoreContract},
@@ -1781,7 +1778,7 @@ func uploadRequest(
 			Headers:   headers,
 			ExpiresAt: futureInstant(tb),
 		},
-		Integrity:   integrity(payload),
+		Integrity:   integrity(tb, payload),
 		ContentType: core.HTTPMediaTypeOctetStream(),
 		Policy:      operationPolicy(tb),
 	}
@@ -1810,7 +1807,7 @@ func downloadRequest(
 			Headers:   headers,
 			ExpiresAt: futureInstant(tb),
 		},
-		Integrity:   integrity(payload),
+		Integrity:   integrity(tb, payload),
 		ContentType: core.HTTPMediaTypeOctetStream(),
 		Policy:      operationPolicy(tb),
 	}
@@ -1875,11 +1872,12 @@ func durationSeconds(tb testing.TB, seconds uint64) temporal.Duration {
 	return value
 }
 
-func integrity(payload []byte) objectstore.Integrity {
+func integrity(testingContext testing.TB, payload []byte) objectstore.Integrity {
+	testingContext.Helper()
 	sha := sha256.Sum256(payload)
 	return objectstore.Integrity{
 		SHA256: core.NewSHA256Digest(sha),
-		Length: core.NewByteLength(uint64(len(payload))),
+		Length: mustByteLength(testingContext, uint64(len(payload))),
 		CRC32C: core.NewCRC32C(
 			crc32.Checksum(payload, crc32.MakeTable(crc32.Castagnoli)),
 		),
@@ -1985,9 +1983,9 @@ func objectstoreOwnedHeaderNames(tb testing.TB) []core.HTTPHeaderName {
 		core.HTTPHeaderAcceptEncoding(),
 		core.HTTPHeaderContentEncoding(),
 		core.HTTPHeaderAccept(),
-		core.HTTPHeaderAuthorization(),
+		parsedHeaderName(tb, "Authorization"),
 		core.HTTPHeaderIdempotencyKey(),
-		core.HTTPHeaderContentRange(),
+		parsedHeaderName(tb, "Content-Range"),
 		parsedHeaderName(tb, "Host"),
 		parsedHeaderName(tb, "Range"),
 		parsedHeaderName(tb, "If-None-Match"),

@@ -2,6 +2,7 @@ package fuzzfinder
 
 import (
 	"encoding/hex"
+	"encoding/json"
 	"errors"
 	"fmt"
 	"math"
@@ -20,6 +21,8 @@ func TestCacheFormatExhaustsClosedDomainAndPinsGeneratedNameStorage(t *testing.T
 	// second format whose names are not exactly this wide fails here instead of
 	// being silently truncated or zero-padded by ParseGeneratedName.
 	storageWidth := uint64(len(GeneratedName{}.value))
+	unknownLabel := CacheFormatUnknown.String()
+	labels := make(map[string]CacheFormat, 1)
 	for raw := range 256 {
 		format := CacheFormat(raw)
 		gotErr := format.Validate()
@@ -29,6 +32,9 @@ func TestCacheFormatExhaustsClosedDomainAndPinsGeneratedNameStorage(t *testing.T
 		}
 		gotWidth, widthErr := format.GeneratedNameBytes()
 		if !wantValid {
+			if format.String() != unknownLabel {
+				t.Fatalf("CacheFormat(%d).String() = %q, want unknown label %q", raw, format.String(), unknownLabel)
+			}
 			if !errors.Is(gotErr, core.ErrFuzzFinderFormat) {
 				t.Fatalf("CacheFormat(%d).Validate() error = %v, want %v", raw, gotErr, core.ErrFuzzFinderFormat)
 			}
@@ -37,10 +43,24 @@ func TestCacheFormatExhaustsClosedDomainAndPinsGeneratedNameStorage(t *testing.T
 			}
 			continue
 		}
+		if label := format.String(); label == "" || label == unknownLabel {
+			t.Fatalf("CacheFormat(%d).String() = %q, want an admitted diagnostic", raw, label)
+		} else if prior, exists := labels[label]; exists {
+			t.Fatalf("CacheFormat values %d and %d share label %q, want unique labels", prior, format, label)
+		} else {
+			labels[label] = format
+		}
 		gotWidthValue, gotWidthErr := gotWidth.Uint64()
 		if widthErr != nil || gotWidthErr != nil || gotWidthValue != storageWidth {
 			t.Fatalf("CacheFormat(%d).GeneratedNameBytes() = (%d, %v/%v), want (%d, nil)", raw, gotWidthValue, widthErr, gotWidthErr, storageWidth)
 		}
+	}
+	if _, implemented := any(CacheFormatGo1_26).(json.Marshaler); implemented {
+		t.Fatalf("%T implements json.Marshaler, want an off-wire enum", CacheFormatGo1_26)
+	}
+	format := CacheFormatGo1_26
+	if _, implemented := any(&format).(json.Unmarshaler); implemented {
+		t.Fatalf("%T implements json.Unmarshaler, want an off-wire enum", &format)
 	}
 }
 

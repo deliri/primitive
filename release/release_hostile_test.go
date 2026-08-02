@@ -38,7 +38,7 @@ func TestArtifactSetRejectsEveryBrokenSlotContract(t *testing.T) {
 				Platform: build.Platform(),
 			})
 			if err != nil {
-				t.Fatalf("NewBuildIdentity(divergent slot %d) error = %v", index, err)
+				t.Fatalf("core.NewBuildIdentity(divergent slot %d) error = %v", index, err)
 			}
 			sum := sha256.Sum256([]byte{byte(index + 50)})
 			divergent[index], err = NewArtifact(ArtifactRequest{
@@ -59,10 +59,7 @@ func TestArtifactSetRejectsEveryBrokenSlotContract(t *testing.T) {
 func TestManifestTotalExtentChecksOverflowAndSignedProjection(t *testing.T) {
 	t.Parallel()
 	fixture := newReleaseFixture(t, core.NewReleaseVersion(2026, 7, 30), 1)
-	got, err := fixture.verified.TotalExtent()
-	if err != nil {
-		t.Fatalf("VerifiedManifest.TotalExtent() error = %v", err)
-	}
+	got := fixture.verified.TotalExtent()
 	want, err := core.NewByteCount(1 + 2 + 3 + 4)
 	if err != nil {
 		t.Fatalf("NewByteCount(total) error = %v", err)
@@ -128,10 +125,7 @@ func TestSignedDocumentsRejectTamperingAndLooseJSON(t *testing.T) {
 func TestLatestLifetimeAndFreshnessBoundaries(t *testing.T) {
 	t.Parallel()
 	fixture := newReleaseFixture(t, core.NewReleaseVersion(2026, 7, 30), 1)
-	fact, err := fixture.verifiedLatest.Fact()
-	if err != nil {
-		t.Fatalf("VerifiedLatest.Fact() error = %v", err)
-	}
+	fact := fixture.verifiedLatest.Fact()
 
 	cases := []struct {
 		wantErr   error

@@ -3,9 +3,7 @@ package core
 import (
 	"encoding/json"
 	"errors"
-	"math"
 	"path/filepath"
-	"runtime"
 	"strings"
 	"testing"
 	"unicode/utf8"
@@ -15,14 +13,14 @@ func TestAbsoluteFilesystemPathHostileBoundaryTable(t *testing.T) {
 	t.Parallel()
 
 	maximumRunePath := strings.Repeat(
-		string(filepath.Separator)+strings.Repeat("a", FilesystemPathComponentMaximumBytes),
+		string(filepath.Separator)+strings.Repeat("a", filesystemPathComponentMaximumBytes),
 		16,
 	)
 	oneBelowMaximumRunePath := maximumRunePath[:len(maximumRunePath)-1]
 	overMaximumRunePath := strings.Repeat(
-		string(filepath.Separator)+strings.Repeat("a", FilesystemPathComponentMaximumBytes),
+		string(filepath.Separator)+strings.Repeat("a", filesystemPathComponentMaximumBytes),
 		15,
-	) + string(filepath.Separator) + strings.Repeat("a", FilesystemPathComponentMaximumBytes-1) +
+	) + string(filepath.Separator) + strings.Repeat("a", filesystemPathComponentMaximumBytes-1) +
 		string(filepath.Separator) + "a"
 	maximumComponents := "/" + strings.Repeat("a/", FilesystemPathMaximumComponents-1) + "a"
 	overMaximumComponents := maximumComponents + "/a"
@@ -62,8 +60,8 @@ func TestAbsoluteFilesystemPathHostileBoundaryTable(t *testing.T) {
 		{name: "invalid UTF8 byte is rejected", value: string([]byte{'/', 0xff})},
 		{name: "one above component maximum is rejected", value: overMaximumComponents},
 		{name: "one above complete-path rune maximum is rejected", value: overMaximumRunePath},
-		{name: "far above rune maximum is rejected", value: "/" + strings.Repeat("界", FilesystemPathMaximumRunes*2)},
-		{name: "one component one byte above filesystem maximum is rejected", value: "/" + strings.Repeat("a", FilesystemPathComponentMaximumBytes+1)},
+		{name: "far above rune maximum is rejected", value: "/" + strings.Repeat("界", filesystemPathMaximumRunes*2)},
+		{name: "one component one byte above filesystem maximum is rejected", value: "/" + strings.Repeat("a", filesystemPathComponentMaximumBytes+1)},
 		{name: "leading ASCII space prevents absolute path", value: " /a"},
 		{name: "leading newline prevents absolute path", value: "\n/a"},
 		{name: "backslash is not native absolute separator", value: `\a\b`},
@@ -122,11 +120,11 @@ func TestAbsoluteFilesystemPathHostileBoundaryTable(t *testing.T) {
 		})
 	}
 
-	if got := utf8.RuneCountInString(maximumRunePath); got != FilesystemPathMaximumRunes {
-		t.Fatalf("maximum-rune fixture count = %d, want %d", got, FilesystemPathMaximumRunes)
+	if got := utf8.RuneCountInString(maximumRunePath); got != filesystemPathMaximumRunes {
+		t.Fatalf("maximum-rune fixture count = %d, want %d", got, filesystemPathMaximumRunes)
 	}
-	if got := utf8.RuneCountInString(overMaximumRunePath); got != FilesystemPathMaximumRunes+1 {
-		t.Fatalf("over-maximum-rune fixture count = %d, want %d", got, FilesystemPathMaximumRunes+1)
+	if got := utf8.RuneCountInString(overMaximumRunePath); got != filesystemPathMaximumRunes+1 {
+		t.Fatalf("over-maximum-rune fixture count = %d, want %d", got, filesystemPathMaximumRunes+1)
 	}
 }
 
@@ -247,180 +245,6 @@ func TestAbsolutePathStrictJSONRejectsLossySurrogateRepair(t *testing.T) {
 	}
 }
 
-func TestPlatformClosedDomainAndJSONBoundary(t *testing.T) {
-	t.Parallel()
-
-	wantOperatingSystem, wantOperatingSystemErr := ParseOperatingSystem(runtime.GOOS)
-	wantArchitecture, wantArchitectureErr := ParseCPUArchitecture(runtime.GOARCH)
-	gotCurrent, gotCurrentErr := CurrentSupportedPlatform()
-	if wantOperatingSystemErr != nil || wantArchitectureErr != nil {
-		if !errors.Is(gotCurrentErr, ErrPrimitiveContract) {
-			t.Fatalf("CurrentSupportedPlatform() error = %v, want %v", gotCurrentErr, ErrPrimitiveContract)
-		}
-		if gotCurrent != (Platform{}) {
-			t.Fatalf("CurrentSupportedPlatform() value = %v, want zero on unsupported host", gotCurrent)
-		}
-	} else {
-		wantCurrent, wantCurrentErr := NewPlatform(wantOperatingSystem, wantArchitecture)
-		if wantCurrentErr != nil {
-			t.Fatalf("NewPlatform(runtime source facts) error = %v, want nil", wantCurrentErr)
-		}
-		if gotCurrentErr != nil || gotCurrent != wantCurrent {
-			t.Fatalf("CurrentSupportedPlatform() = (%v, %v), want (%v, nil)", gotCurrent, gotCurrentErr, wantCurrent)
-		}
-	}
-
-	valid := []struct {
-		name            string
-		wantWire        string
-		operatingSystem OperatingSystem
-		architecture    CPUArchitecture
-	}{
-		{name: "Darwin AMD64", operatingSystem: OperatingSystemDarwin, architecture: CPUArchitectureAMD64, wantWire: "darwin-amd64"},
-		{name: "Darwin ARM64", operatingSystem: OperatingSystemDarwin, architecture: CPUArchitectureARM64, wantWire: "darwin-arm64"},
-		{name: "Linux AMD64", operatingSystem: OperatingSystemLinux, architecture: CPUArchitectureAMD64, wantWire: "linux-amd64"},
-		{name: "Linux ARM64", operatingSystem: OperatingSystemLinux, architecture: CPUArchitectureARM64, wantWire: "linux-arm64"},
-		{name: "Windows AMD64", operatingSystem: OperatingSystemWindows, architecture: CPUArchitectureAMD64, wantWire: "windows-amd64"},
-		{name: "Windows ARM64", operatingSystem: OperatingSystemWindows, architecture: CPUArchitectureARM64, wantWire: "windows-arm64"},
-	}
-	for _, tc := range valid {
-		t.Run(tc.name, func(t *testing.T) {
-			t.Parallel()
-
-			got, gotErr := NewPlatform(tc.operatingSystem, tc.architecture)
-			if gotErr != nil || got.String() != tc.wantWire {
-				t.Fatalf("NewPlatform() = (%v, %v), want wire %q/nil", got, gotErr, tc.wantWire)
-			}
-			gotParsed, gotParseErr := ParsePlatform(tc.wantWire)
-			if gotParseErr != nil || gotParsed != got {
-				t.Fatalf("ParsePlatform(%q) = (%v, %v), want (%v, nil)", tc.wantWire, gotParsed, gotParseErr, got)
-			}
-			gotJSON, gotJSONErr := json.Marshal(got)
-			if gotJSONErr != nil {
-				t.Fatalf("json.Marshal(Platform) error = %v, want nil", gotJSONErr)
-			}
-			var gotRoundTrip Platform
-			gotRoundTripErr := json.Unmarshal(gotJSON, &gotRoundTrip)
-			if gotRoundTripErr != nil || gotRoundTrip != got {
-				t.Fatalf("Platform JSON round trip = (%v, %v), want (%v, nil)", gotRoundTrip, gotRoundTripErr, got)
-			}
-		})
-	}
-
-	invalid := []struct {
-		name string
-		wire string
-	}{
-		{name: "empty token", wire: ""},
-		{name: "missing architecture", wire: "linux"},
-		{name: "missing operating system", wire: "-amd64"},
-		{name: "empty architecture", wire: "linux-"},
-		{name: "extra separator", wire: "linux-amd64-extra"},
-		{name: "slash separator", wire: "linux/amd64"},
-		{name: "underscore separator", wire: "linux_amd64"},
-		{name: "uppercase operating system", wire: "Linux-amd64"},
-		{name: "uppercase architecture", wire: "linux-AMD64"},
-		{name: "unknown operating system", wire: "freebsd-amd64"},
-		{name: "unknown architecture", wire: "linux-386"},
-		{name: "space prefix", wire: " linux-amd64"},
-		{name: "space suffix", wire: "linux-amd64 "},
-		{name: "newline suffix", wire: "linux-amd64\n"},
-		{name: "NUL suffix", wire: "linux-amd64\x00"},
-		{name: "duplicate token", wire: "linux-amd64linux-amd64"},
-		{name: "JSON null spelling", wire: "null"},
-		{name: "JSON quoted spelling", wire: `"linux-amd64"`},
-		{name: "future architecture", wire: "linux-riscv64"},
-		{name: "far oversized token", wire: strings.Repeat("linux-amd64", 100)},
-	}
-	for _, tc := range invalid {
-		t.Run("reject "+tc.name, func(t *testing.T) {
-			t.Parallel()
-
-			got, gotErr := ParsePlatform(tc.wire)
-			if !errors.Is(gotErr, ErrPrimitiveContract) {
-				t.Fatalf("ParsePlatform(%q) error = %v, want %v", tc.wire, gotErr, ErrPrimitiveContract)
-			}
-			if got != (Platform{}) {
-				t.Fatalf("ParsePlatform(%q) value = %v, want zero", tc.wire, got)
-			}
-		})
-	}
-}
-
-func TestPlatformComponentEnumsExhaustClosedDomainsAndJSON(t *testing.T) {
-	t.Parallel()
-
-	for raw := 0; raw <= math.MaxUint8; raw++ {
-		operatingSystem := OperatingSystem(raw)
-		wantOperatingSystemValid := operatingSystem > OperatingSystemUnknown &&
-			operatingSystem < operatingSystemLimit
-		if gotValid := operatingSystem.IsValid(); gotValid != wantOperatingSystemValid {
-			t.Fatalf("OperatingSystem(%d).IsValid() = %t, want %t", raw, gotValid, wantOperatingSystemValid)
-		}
-		gotOperatingSystemWire, gotOperatingSystemErr := json.Marshal(operatingSystem)
-		if !wantOperatingSystemValid {
-			if !errors.Is(gotOperatingSystemErr, ErrJSONContract) || gotOperatingSystemWire != nil {
-				t.Fatalf(
-					"json.Marshal(OperatingSystem(%d)) = (%s, %v), want (nil, %v)",
-					raw,
-					gotOperatingSystemWire,
-					gotOperatingSystemErr,
-					ErrJSONContract,
-				)
-			}
-		} else {
-			if gotOperatingSystemErr != nil {
-				t.Fatalf("json.Marshal(OperatingSystem(%d)) error = %v, want nil", raw, gotOperatingSystemErr)
-			}
-			var gotOperatingSystem OperatingSystem
-			gotUnmarshalErr := json.Unmarshal(gotOperatingSystemWire, &gotOperatingSystem)
-			if gotUnmarshalErr != nil || gotOperatingSystem != operatingSystem {
-				t.Fatalf(
-					"OperatingSystem(%d) JSON round trip = (%v, %v), want (%v, nil)",
-					raw,
-					gotOperatingSystem,
-					gotUnmarshalErr,
-					operatingSystem,
-				)
-			}
-		}
-
-		architecture := CPUArchitecture(raw)
-		wantArchitectureValid := architecture > CPUArchitectureUnknown &&
-			architecture < cpuArchitectureLimit
-		if gotValid := architecture.IsValid(); gotValid != wantArchitectureValid {
-			t.Fatalf("CPUArchitecture(%d).IsValid() = %t, want %t", raw, gotValid, wantArchitectureValid)
-		}
-		gotArchitectureWire, gotArchitectureErr := json.Marshal(architecture)
-		if !wantArchitectureValid {
-			if !errors.Is(gotArchitectureErr, ErrJSONContract) || gotArchitectureWire != nil {
-				t.Fatalf(
-					"json.Marshal(CPUArchitecture(%d)) = (%s, %v), want (nil, %v)",
-					raw,
-					gotArchitectureWire,
-					gotArchitectureErr,
-					ErrJSONContract,
-				)
-			}
-			continue
-		}
-		if gotArchitectureErr != nil {
-			t.Fatalf("json.Marshal(CPUArchitecture(%d)) error = %v, want nil", raw, gotArchitectureErr)
-		}
-		var gotArchitecture CPUArchitecture
-		gotUnmarshalErr := json.Unmarshal(gotArchitectureWire, &gotArchitecture)
-		if gotUnmarshalErr != nil || gotArchitecture != architecture {
-			t.Fatalf(
-				"CPUArchitecture(%d) JSON round trip = (%v, %v), want (%v, nil)",
-				raw,
-				gotArchitecture,
-				gotUnmarshalErr,
-				architecture,
-			)
-		}
-	}
-}
-
 func TestTypedAbsolutePathCompositionPreservesLexicalContract(t *testing.T) {
 	t.Parallel()
 
@@ -531,8 +355,8 @@ func TestPathComponentHostileBoundaryTable(t *testing.T) {
 		{name: "four-byte Unicode rune is accepted", value: "🙂", disposition: boundaryAccept},
 		{name: "punctuation without native separator is accepted", value: "!@#$%^&()[]{}=+,;'", disposition: boundaryAccept},
 		{name: "less-than and greater-than are accepted", value: "a<b>c", disposition: boundaryAccept},
-		{name: "one byte below component maximum is accepted", value: strings.Repeat("a", FilesystemPathComponentMaximumBytes-1), disposition: boundaryAccept},
-		{name: "exact component byte maximum is accepted", value: strings.Repeat("a", FilesystemPathComponentMaximumBytes), disposition: boundaryAccept},
+		{name: "one byte below component maximum is accepted", value: strings.Repeat("a", filesystemPathComponentMaximumBytes-1), disposition: boundaryAccept},
+		{name: "exact component byte maximum is accepted", value: strings.Repeat("a", filesystemPathComponentMaximumBytes), disposition: boundaryAccept},
 		{name: "multibyte value one byte below maximum is accepted", value: strings.Repeat("é", 127), disposition: boundaryAccept},
 		{name: "multibyte value at exact maximum is accepted", value: strings.Repeat("é", 127) + "a", disposition: boundaryAccept},
 		{name: "empty component is rejected"},
@@ -550,10 +374,10 @@ func TestPathComponentHostileBoundaryTable(t *testing.T) {
 		{name: "invalid UTF8 first byte is rejected", value: string([]byte{0xff, 'a'})},
 		{name: "invalid UTF8 middle byte is rejected", value: string([]byte{'a', 0xff, 'b'})},
 		{name: "invalid UTF8 final byte is rejected", value: string([]byte{'a', 0xff})},
-		{name: "one byte above component maximum is rejected", value: strings.Repeat("a", FilesystemPathComponentMaximumBytes+1)},
+		{name: "one byte above component maximum is rejected", value: strings.Repeat("a", filesystemPathComponentMaximumBytes+1)},
 		{name: "multibyte value one byte above maximum is rejected", value: strings.Repeat("é", 128)},
-		{name: "far above component maximum is rejected", value: strings.Repeat("界", FilesystemPathComponentMaximumBytes*2)},
-		{name: "maximum bytes plus separator is rejected", value: strings.Repeat("a", FilesystemPathComponentMaximumBytes) + string(filepath.Separator)},
+		{name: "far above component maximum is rejected", value: strings.Repeat("界", filesystemPathComponentMaximumBytes*2)},
+		{name: "maximum bytes plus separator is rejected", value: strings.Repeat("a", filesystemPathComponentMaximumBytes) + string(filepath.Separator)},
 		{name: "dot identity with separator suffix is rejected", value: "." + string(filepath.Separator)},
 		{name: "parent identity with separator suffix is rejected", value: ".." + string(filepath.Separator)},
 	}
@@ -613,21 +437,5 @@ func TestPathComponentHostileBoundaryTable(t *testing.T) {
 				}
 			}
 		})
-	}
-}
-
-func TestPlatformTokenBoundCoversEveryAdmittedCombination(t *testing.T) {
-	t.Parallel()
-
-	for operatingSystem := OperatingSystemDarwin; operatingSystem < operatingSystemLimit; operatingSystem++ {
-		for architecture := CPUArchitectureAMD64; architecture < cpuArchitectureLimit; architecture++ {
-			platform, err := NewPlatform(operatingSystem, architecture)
-			if err != nil {
-				t.Fatalf("NewPlatform(%v, %v) error = %v, want nil", operatingSystem, architecture, err)
-			}
-			if len(platform.String()) > PlatformTokenMaximumBytes {
-				t.Fatalf("admitted platform %q length = %d, exceeds %d", platform, len(platform.String()), PlatformTokenMaximumBytes)
-			}
-		}
 	}
 }

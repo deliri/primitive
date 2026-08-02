@@ -18,8 +18,8 @@ func overflowError() error {
 	return errors.Join(core.ErrCurrencyOverflow, errors.New("currency arithmetic exceeded int64"))
 }
 
-func decimalError(message string) error {
-	return errors.Join(core.ErrCurrencyDecimal, errors.New(message))
+func decimalError(rejection decimalRejection) error {
+	return errors.Join(core.ErrCurrencyDecimal, rejection)
 }
 
 func jsonError(cause error) error {

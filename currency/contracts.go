@@ -1,7 +1,6 @@
 package currency
 
 import (
-	"encoding/json"
 	"errors"
 	"math"
 
@@ -101,23 +100,30 @@ const (
 
 type currencyDefinition struct {
 	token          string
+	code           Code
 	fractionDigits uint8
 }
 
+// The admitted subset and minor-unit exponents were reviewed against the ISO
+// 4217 Maintenance Agency list through amendment 180, effective 2026-01-01.
+// The unkeyed table is deliberately compiler-sized: adding a Code without its
+// complete row fails to build, while the row identity makes reordering fail
+// validation instead of silently attaching the wrong metadata.
 func currencyDefinitions() [codeLimit]currencyDefinition {
 	return [...]currencyDefinition{
-		CodeUSD: {token: CodeTokenUSD, fractionDigits: MinorUnitDigitsTwo},
-		CodeEUR: {token: CodeTokenEUR, fractionDigits: MinorUnitDigitsTwo},
-		CodeGBP: {token: CodeTokenGBP, fractionDigits: MinorUnitDigitsTwo},
-		CodeCAD: {token: CodeTokenCAD, fractionDigits: MinorUnitDigitsTwo},
-		CodeAUD: {token: CodeTokenAUD, fractionDigits: MinorUnitDigitsTwo},
-		CodeJPY: {token: CodeTokenJPY, fractionDigits: MinorUnitDigitsZero},
-		CodeCHF: {token: CodeTokenCHF, fractionDigits: MinorUnitDigitsTwo},
-		CodeNZD: {token: CodeTokenNZD, fractionDigits: MinorUnitDigitsTwo},
-		CodeSGD: {token: CodeTokenSGD, fractionDigits: MinorUnitDigitsTwo},
-		CodeHKD: {token: CodeTokenHKD, fractionDigits: MinorUnitDigitsTwo},
-		CodeBHD: {token: CodeTokenBHD, fractionDigits: MinorUnitDigitsThree},
-		CodeCLF: {token: CodeTokenCLF, fractionDigits: MinorUnitDigitsFour},
+		{code: CodeUnknown},
+		{token: CodeTokenUSD, code: CodeUSD, fractionDigits: MinorUnitDigitsTwo},
+		{token: CodeTokenEUR, code: CodeEUR, fractionDigits: MinorUnitDigitsTwo},
+		{token: CodeTokenGBP, code: CodeGBP, fractionDigits: MinorUnitDigitsTwo},
+		{token: CodeTokenCAD, code: CodeCAD, fractionDigits: MinorUnitDigitsTwo},
+		{token: CodeTokenAUD, code: CodeAUD, fractionDigits: MinorUnitDigitsTwo},
+		{token: CodeTokenJPY, code: CodeJPY, fractionDigits: MinorUnitDigitsZero},
+		{token: CodeTokenCHF, code: CodeCHF, fractionDigits: MinorUnitDigitsTwo},
+		{token: CodeTokenNZD, code: CodeNZD, fractionDigits: MinorUnitDigitsTwo},
+		{token: CodeTokenSGD, code: CodeSGD, fractionDigits: MinorUnitDigitsTwo},
+		{token: CodeTokenHKD, code: CodeHKD, fractionDigits: MinorUnitDigitsTwo},
+		{token: CodeTokenBHD, code: CodeBHD, fractionDigits: MinorUnitDigitsThree},
+		{token: CodeTokenCLF, code: CodeCLF, fractionDigits: MinorUnitDigitsFour},
 	}
 }
 
@@ -142,7 +148,22 @@ func ParseCode(token string) (Code, error) {
 
 // IsValid reports whether c belongs to the closed supported domain.
 func (c Code) IsValid() bool {
-	return c > CodeUnknown && c < codeLimit
+	if c <= CodeUnknown || c >= codeLimit {
+		return false
+	}
+	definition := currencyDefinitions()[c]
+	return definition.code == c && definition.token != "" &&
+		isAdmittedFractionDigits(definition.fractionDigits)
+}
+
+func isAdmittedFractionDigits(value uint8) bool {
+	switch value {
+	case MinorUnitDigitsZero, MinorUnitDigitsTwo, MinorUnitDigitsThree,
+		MinorUnitDigitsFour:
+		return true
+	default:
+		return false
+	}
 }
 
 // Validate rejects currencies outside the closed supported domain.
@@ -178,7 +199,7 @@ func (c Code) MarshalJSON() ([]byte, error) {
 	if err := c.Validate(); err != nil {
 		return nil, jsonError(err)
 	}
-	return json.Marshal(c.String())
+	return core.MarshalCanonicalJSONString(c.String())
 }
 
 // UnmarshalJSON accepts an admitted token and preserves the receiver on failure.
@@ -189,8 +210,8 @@ func (c *Code) UnmarshalJSON(data []byte) error {
 	if len(data) > CodeJSONMaximumBytes {
 		return jsonError(contractError("currency code JSON exceeds its byte limit"))
 	}
-	var token string
-	if err := json.Unmarshal(data, &token); err != nil {
+	token, err := core.DecodeJSONStringToken(data)
+	if err != nil {
 		return jsonError(errors.Join(contractError("currency code JSON is invalid"), err))
 	}
 	parsed, err := ParseCode(token)

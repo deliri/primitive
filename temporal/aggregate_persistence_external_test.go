@@ -218,6 +218,7 @@ func TestTemporalPersistenceRejectsMalformedInputWithoutMutation(t *testing.T) {
 		{name: "fraction is not nanoseconds", raw: `"7.0"`, wantInstantError: true, wantDurationError: true, wantAggregateError: true},
 		{name: "exponent is not canonical", raw: `"7e0"`, wantInstantError: true, wantDurationError: true, wantAggregateError: true},
 		{name: "embedded whitespace is rejected", raw: `" 7"`, wantInstantError: true, wantDurationError: true, wantAggregateError: true},
+		{name: "escaped canonical digit is a second spelling", raw: `"\u0037"`, wantInstantError: true, wantDurationError: true, wantAggregateError: true},
 		{name: "non ASCII digit is rejected", raw: `"７"`, wantInstantError: true, wantDurationError: true, wantAggregateError: true},
 		{name: "signed maximum plus one is only a valid aggregate", raw: `"9223372036854775808"`, wantInstantError: true, wantDurationError: true},
 		{name: "negative one is only a valid instant", raw: `"-1"`, wantDurationError: true, wantAggregateError: true},

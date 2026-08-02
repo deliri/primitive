@@ -16,56 +16,60 @@ type (
 	protocolFact[T any]      struct{}
 	internalFlow[T any]      struct{}
 	capabilityWrapper[T any] struct{}
+	failureDetail[T any]     struct{}
 )
 
 type releaseContractInventory struct {
-	AdvanceLatestRequest   protocolFact[AdvanceLatestRequest]
-	LatestAdvance          capabilityWrapper[LatestAdvance]
-	ArtifactIdentity       protocolFact[ArtifactIdentity]
-	BinaryFilename         protocolFact[BinaryFilename]
-	ArtifactIntegrity      protocolFact[ArtifactIntegrity]
-	artifactIntegrityWire  internalFlow[artifactIntegrityWire]
-	ArtifactRequest        protocolFact[ArtifactRequest]
-	Artifact               protocolFact[Artifact]
-	artifactWire           internalFlow[artifactWire]
-	TargetSet              protocolFact[TargetSet]
-	ArtifactSetRequest     protocolFact[ArtifactSetRequest]
-	ArtifactSet            protocolFact[ArtifactSet]
-	AssessLatestRequest    protocolFact[AssessLatestRequest]
-	LatestAssessment       capabilityWrapper[LatestAssessment]
-	Generation             protocolFact[Generation]
-	LatestIdentity         protocolFact[LatestIdentity]
-	LatestFact             protocolFact[LatestFact]
-	latestFactWire         internalFlow[latestFactWire]
-	LatestDocument         protocolFact[LatestDocument]
-	IssueLatestRequest     protocolFact[IssueLatestRequest]
-	VerifyLatestRequest    protocolFact[VerifyLatestRequest]
-	VerifiedLatest         capabilityWrapper[VerifiedLatest]
-	ManifestIdentity       protocolFact[ManifestIdentity]
-	ManifestDocumentDigest protocolFact[ManifestDocumentDigest]
-	ManifestFactRequest    protocolFact[ManifestFactRequest]
-	ManifestFact           protocolFact[ManifestFact]
-	manifestFactWire       internalFlow[manifestFactWire]
-	manifestIdentityWire   internalFlow[manifestIdentityWire]
-	ManifestDocument       protocolFact[ManifestDocument]
-	IssueManifestRequest   protocolFact[IssueManifestRequest]
-	VerifyManifestRequest  protocolFact[VerifyManifestRequest]
-	VerifiedManifest       capabilityWrapper[VerifiedManifest]
-	CachedLatest           capabilityWrapper[CachedLatest]
-	EvaluateRequest        protocolFact[EvaluateRequest]
-	CurrentRelease         capabilityWrapper[CurrentRelease]
-	CurrentSummary         protocolFact[CurrentSummary]
-	AvailableRelease       capabilityWrapper[AvailableRelease]
-	AvailableSummary       protocolFact[AvailableSummary]
-	RefreshDirective       protocolFact[RefreshDirective]
-	ReassessDirective      protocolFact[ReassessDirective]
-	Selection              capabilityWrapper[Selection]
-	PreparedRelease        capabilityWrapper[PreparedRelease]
-	Preparation            capabilityWrapper[Preparation]
+	embeddedBuildIdentityText internalFlow[embeddedBuildIdentityText]
+	AdvanceLatestRequest      protocolFact[AdvanceLatestRequest]
+	LatestAdvance             capabilityWrapper[LatestAdvance]
+	ArtifactIdentity          protocolFact[ArtifactIdentity]
+	BinaryFilename            protocolFact[BinaryFilename]
+	ArtifactIntegrity         protocolFact[ArtifactIntegrity]
+	artifactIntegrityWire     internalFlow[artifactIntegrityWire]
+	ArtifactRequest           protocolFact[ArtifactRequest]
+	Artifact                  protocolFact[Artifact]
+	artifactWire              internalFlow[artifactWire]
+	TargetSet                 protocolFact[TargetSet]
+	ArtifactSetRequest        protocolFact[ArtifactSetRequest]
+	ArtifactSet               protocolFact[ArtifactSet]
+	AssessLatestRequest       protocolFact[AssessLatestRequest]
+	LatestAssessment          capabilityWrapper[LatestAssessment]
+	Generation                protocolFact[Generation]
+	LatestIdentity            protocolFact[LatestIdentity]
+	LatestFact                protocolFact[LatestFact]
+	latestFactWire            internalFlow[latestFactWire]
+	LatestDocument            protocolFact[LatestDocument]
+	IssueLatestRequest        protocolFact[IssueLatestRequest]
+	VerifyLatestRequest       protocolFact[VerifyLatestRequest]
+	VerifiedLatest            capabilityWrapper[VerifiedLatest]
+	ManifestIdentity          protocolFact[ManifestIdentity]
+	ManifestDocumentDigest    protocolFact[ManifestDocumentDigest]
+	ManifestFactRequest       protocolFact[ManifestFactRequest]
+	ManifestFact              protocolFact[ManifestFact]
+	manifestFactWire          internalFlow[manifestFactWire]
+	manifestIdentityWire      internalFlow[manifestIdentityWire]
+	ManifestDocument          protocolFact[ManifestDocument]
+	IssueManifestRequest      protocolFact[IssueManifestRequest]
+	VerifyManifestRequest     protocolFact[VerifyManifestRequest]
+	VerifiedManifest          capabilityWrapper[VerifiedManifest]
+	CachedLatest              capabilityWrapper[CachedLatest]
+	EvaluateRequest           protocolFact[EvaluateRequest]
+	CurrentRelease            capabilityWrapper[CurrentRelease]
+	CurrentSummary            protocolFact[CurrentSummary]
+	AvailableRelease          capabilityWrapper[AvailableRelease]
+	AvailableSummary          protocolFact[AvailableSummary]
+	RefreshDirective          protocolFact[RefreshDirective]
+	ReassessDirective         protocolFact[ReassessDirective]
+	Selection                 capabilityWrapper[Selection]
+	PreparedRelease           capabilityWrapper[PreparedRelease]
+	Preparation               capabilityWrapper[Preparation]
+	OfferingMismatchError     failureDetail[OfferingMismatchError]
 }
 
 var (
 	_ releaseContractInventory
+	_ = releaseContractInventory{}.embeddedBuildIdentityText
 	_ = releaseContractInventory{}.artifactIntegrityWire
 	_ = releaseContractInventory{}.artifactWire
 	_ = releaseContractInventory{}.latestFactWire
@@ -106,6 +110,7 @@ func TestPublicOperationsAreExactReleaseIntent(t *testing.T) {
 	want := []string{
 		"AdvanceLatest",
 		"AssessLatest",
+		"EmbeddedBuildIdentity",
 		"Evaluate",
 		"IssueLatest",
 		"IssueManifest",
@@ -124,7 +129,7 @@ func TestPublicOperationsAreExactReleaseIntent(t *testing.T) {
 	}
 }
 
-func TestEvaluateObtainsInstalledIdentityOnlyFromCoreEmbedding(t *testing.T) {
+func TestEvaluateObtainsInstalledIdentityOnlyFromReleaseEmbedding(t *testing.T) {
 	t.Parallel()
 
 	set := token.NewFileSet()
@@ -158,12 +163,10 @@ func TestEvaluateObtainsInstalledIdentityOnlyFromCoreEmbedding(t *testing.T) {
 				if !ok {
 					return true
 				}
-				selector, ok := call.Fun.(*ast.SelectorExpr)
-				if !ok || selector.Sel.Name != "EmbeddedBuildIdentity" {
-					return true
+				function, ok := call.Fun.(*ast.Ident)
+				if ok && function.Name == "EmbeddedBuildIdentity" {
+					embeddedCall = true
 				}
-				owner, ok := selector.X.(*ast.Ident)
-				embeddedCall = ok && owner.Name == "core"
 				return true
 			})
 		}
@@ -173,7 +176,7 @@ func TestEvaluateObtainsInstalledIdentityOnlyFromCoreEmbedding(t *testing.T) {
 		t.Fatalf("EvaluateRequest fields = %v, want %v", requestFields, wantFields)
 	}
 	if !embeddedCall {
-		t.Fatalf("Evaluate does not call core.EmbeddedBuildIdentity")
+		t.Fatalf("Evaluate does not call EmbeddedBuildIdentity")
 	}
 }
 

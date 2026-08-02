@@ -75,9 +75,12 @@ func TestEvaluateSelectionUsesClosedInstalledIdentity(t *testing.T) {
 		t.Fatalf("Preparation.Ready() = (%v, %v), want valid proof", prepared, ok)
 	}
 
-	outsideTarget, err := core.NewPlatform(core.OperatingSystemDarwin, core.CPUArchitectureAMD64)
-	if err != nil {
-		t.Fatalf("NewPlatform(outside target set) error = %v", err)
+	outsideTarget := core.Platform{
+		OperatingSystem: core.OperatingSystemDarwin,
+		Architecture:    core.CPUArchitectureAMD64,
+	}
+	if err := outsideTarget.Validate(); err != nil {
+		t.Fatalf("outside core.Platform.Validate() error = %v", err)
 	}
 	differentInstallation, err := core.NewBuildIdentity(core.BuildIdentityRequest{
 		Offering: installed.builds[2].Offering(),
@@ -86,7 +89,7 @@ func TestEvaluateSelectionUsesClosedInstalledIdentity(t *testing.T) {
 		Platform: outsideTarget,
 	})
 	if err != nil {
-		t.Fatalf("NewBuildIdentity(outside target set) error = %v", err)
+		t.Fatalf("core.NewBuildIdentity(outside target set) error = %v", err)
 	}
 	_, err = evaluateWithInstalled(EvaluateRequest{
 		InstalledManifest: installed.verified,

@@ -107,7 +107,7 @@ func TestAdmittedBodyLengthExhaustsTransportBoundaries(t *testing.T) {
 						testCase.wantIdentity,
 					)
 				}
-				if got != (core.DeclaredBodyLength{}) {
+				if got != (declaredBodyLength{}) {
 					t.Fatalf(
 						"admittedBodyLength(%d) = %+v, want zero on refusal",
 						testCase.contentLength,
@@ -123,13 +123,13 @@ func TestAdmittedBodyLengthExhaustsTransportBoundaries(t *testing.T) {
 					gotErr,
 				)
 			}
-			if got.Present() != testCase.wantPresent ||
-				got.Length().Uint64() != testCase.wantLength {
+			if got.present != testCase.wantPresent ||
+				got.length.Uint64() != testCase.wantLength {
 				t.Fatalf(
 					"admittedBodyLength(%d) = (present %t, length %d), want (present %t, length %d)",
 					testCase.contentLength,
-					got.Present(),
-					got.Length().Uint64(),
+					got.present,
+					got.length.Uint64(),
 					testCase.wantPresent,
 					testCase.wantLength,
 				)
@@ -276,10 +276,10 @@ func TestDeclaredReservationDoesNotDoubleBeforeEOF(t *testing.T) {
 
 	const bodyBytes = 512 * 1024
 	body := bytes.Repeat([]byte{0x3c}, bodyBytes)
-	declared, err := core.ParseDeclaredBodyLength(bodyBytes)
+	declared, err := parseDeclaredBodyLength(bodyBytes)
 	if err != nil {
 		t.Fatalf(
-			"core.ParseDeclaredBodyLength(%d) error = %v, want nil",
+			"parseDeclaredBodyLength(%d) error = %v, want nil",
 			bodyBytes,
 			err,
 		)

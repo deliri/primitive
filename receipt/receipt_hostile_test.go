@@ -55,7 +55,7 @@ func newReceiptFixture(t testing.TB, marker byte) receiptFixture {
 	body := EvidenceBody{
 		Submission: submission,
 		Object:     object,
-		Extent:     core.NewByteLength(uint64(len(payload))),
+		Extent:     mustByteLength(t, uint64(len(payload))),
 		SHA256:     core.NewSHA256Digest(sha256.Sum256(payload)),
 		CRC32C:     core.NewCRC32C(crc32.Checksum(payload, crc32.MakeTable(crc32.Castagnoli))),
 	}
@@ -185,11 +185,11 @@ func TestEvidenceBodyHostileBoundaryMatrix(t *testing.T) {
 
 	fixture := newReceiptFixture(t, 20)
 	empty := fixture.body
-	empty.Extent = core.NewByteLength(0)
+	empty.Extent = mustByteLength(t, 0)
 	empty.SHA256 = core.NewSHA256Digest(sha256.Sum256(nil))
 	empty.CRC32C = core.NewCRC32C(crc32.Checksum(nil, crc32.MakeTable(crc32.Castagnoli)))
 	maximum := fixture.body
-	maximum.Extent = core.NewByteLength(math.MaxUint64)
+	maximum.Extent = mustByteLength(t, math.MaxInt64)
 	other := newReceiptFixture(t, 21)
 	body := func(mutate func(*EvidenceBody)) EvidenceBody {
 		got := fixture.body
@@ -205,7 +205,7 @@ func TestEvidenceBodyHostileBoundaryMatrix(t *testing.T) {
 	// nonempty stream. The body is internally consistent as far as Receipt can
 	// tell, so it must be admitted: Receipt authenticates statements, it does
 	// not recompute the object.
-	twoByteExtent := body(func(v *EvidenceBody) { v.Extent = core.NewByteLength(2) })
+	twoByteExtent := body(func(v *EvidenceBody) { v.Extent = mustByteLength(t, 2) })
 	cases := []struct {
 		wantErr error
 		name    string
@@ -221,7 +221,7 @@ func TestEvidenceBodyHostileBoundaryMatrix(t *testing.T) {
 		{name: "foreign CRC32C is admitted", body: body(func(v *EvidenceBody) { v.CRC32C = other.body.CRC32C })},
 		{name: "zero CRC32C over a nonempty extent is admitted", body: body(func(v *EvidenceBody) { v.CRC32C = core.NewCRC32C(0) })},
 		{name: "maximum CRC32C is admitted", body: body(func(v *EvidenceBody) { v.CRC32C = core.NewCRC32C(math.MaxUint32) })},
-		{name: "one below the maximum extent is admitted", body: body(func(v *EvidenceBody) { v.Extent = core.NewByteLength(math.MaxUint64 - 1) })},
+		{name: "one below the maximum extent is admitted", body: body(func(v *EvidenceBody) { v.Extent = mustByteLength(t, math.MaxInt64-1) })},
 
 		{name: "unset submission is refused", body: body(func(v *EvidenceBody) { v.Submission = SubmissionIdentity{} }), wantErr: core.ErrReceiptContract},
 		{name: "unset object is refused", body: body(func(v *EvidenceBody) { v.Object = ObjectIdentity{} }), wantErr: core.ErrReceiptContract},
@@ -235,8 +235,8 @@ func TestEvidenceBodyHostileBoundaryMatrix(t *testing.T) {
 		// accepted, carrying the integrity of zero bytes, is exactly as
 		// contradictory as the empty case above and was silently admitted
 		// before this table pressed the boundary from both sides.
-		{name: "one byte claiming empty-stream integrity is refused", body: fromEmpty(func(v *EvidenceBody) { v.Extent = core.NewByteLength(1) }), wantErr: core.ErrReceiptContract},
-		{name: "maximum extent claiming empty-stream integrity is refused", body: fromEmpty(func(v *EvidenceBody) { v.Extent = core.NewByteLength(math.MaxUint64) }), wantErr: core.ErrReceiptContract},
+		{name: "one byte claiming empty-stream integrity is refused", body: fromEmpty(func(v *EvidenceBody) { v.Extent = mustByteLength(t, 1) }), wantErr: core.ErrReceiptContract},
+		{name: "maximum extent claiming empty-stream integrity is refused", body: fromEmpty(func(v *EvidenceBody) { v.Extent = mustByteLength(t, math.MaxInt64) }), wantErr: core.ErrReceiptContract},
 	}
 	for _, tc := range cases {
 		t.Run(tc.name, func(t *testing.T) {
@@ -267,13 +267,13 @@ func TestEvidenceVerificationMutationMatrix(t *testing.T) {
 		{name: "untrusted signer is verification failure", trusted: other.trusted, wantExpectation: fixture.expectation, want: core.ErrReceiptVerification},
 		{name: "receipt identity mutation is verification failure", trusted: fixture.trusted, wantExpectation: fixture.expectation, want: core.ErrReceiptVerification, mutate: func(v *EvidenceDocument) { v.Payload.Header.Identity = other.receipt }},
 		{name: "occurrence mutation is verification failure", trusted: fixture.trusted, wantExpectation: fixture.expectation, want: core.ErrReceiptVerification, mutate: func(v *EvidenceDocument) { v.Payload.Header.OccurredAt = other.occurredAt }},
-		{name: "body extent mutation is verification failure", trusted: fixture.trusted, wantExpectation: fixture.expectation, want: core.ErrReceiptVerification, mutate: func(v *EvidenceDocument) { v.Payload.Body.Extent = core.NewByteLength(2) }},
+		{name: "body extent mutation is verification failure", trusted: fixture.trusted, wantExpectation: fixture.expectation, want: core.ErrReceiptVerification, mutate: func(v *EvidenceDocument) { v.Payload.Body.Extent = mustByteLength(t, 2) }},
 		{name: "signature mutation is verification failure", trusted: fixture.trusted, wantExpectation: fixture.expectation, want: core.ErrReceiptVerification, mutate: func(v *EvidenceDocument) { v.Attestation.Signature = attest.Signature{} }},
 		{name: "account mismatch is typed scope failure", trusted: fixture.trusted, wantExpectation: func() EvidenceExpectation { v := fixture.expectation; v.Account = other.account; return v }(), want: core.ErrReceiptScope, wantField: ScopeFieldAccount},
 		{name: "offering mismatch is typed scope failure", trusted: fixture.trusted, wantExpectation: func() EvidenceExpectation { v := fixture.expectation; v.Offering = other.offering; return v }(), want: core.ErrReceiptScope, wantField: ScopeFieldOffering},
 		{name: "submission mismatch is typed scope failure", trusted: fixture.trusted, wantExpectation: func() EvidenceExpectation { v := fixture.expectation; v.Body.Submission = other.submission; return v }(), want: core.ErrReceiptScope, wantField: ScopeFieldSubmission},
 		{name: "object mismatch is typed scope failure", trusted: fixture.trusted, wantExpectation: func() EvidenceExpectation { v := fixture.expectation; v.Body.Object = other.object; return v }(), want: core.ErrReceiptScope, wantField: ScopeFieldObject},
-		{name: "extent mismatch is typed scope failure", trusted: fixture.trusted, wantExpectation: func() EvidenceExpectation { v := fixture.expectation; v.Body.Extent = core.NewByteLength(2); return v }(), want: core.ErrReceiptScope, wantField: ScopeFieldExtent},
+		{name: "extent mismatch is typed scope failure", trusted: fixture.trusted, wantExpectation: func() EvidenceExpectation { v := fixture.expectation; v.Body.Extent = mustByteLength(t, 2); return v }(), want: core.ErrReceiptScope, wantField: ScopeFieldExtent},
 		{name: "SHA-256 mismatch is typed scope failure", trusted: fixture.trusted, wantExpectation: func() EvidenceExpectation { v := fixture.expectation; v.Body.SHA256 = other.body.SHA256; return v }(), want: core.ErrReceiptScope, wantField: ScopeFieldSHA256},
 		{name: "CRC32C mismatch is typed scope failure", trusted: fixture.trusted, wantExpectation: func() EvidenceExpectation { v := fixture.expectation; v.Body.CRC32C = core.NewCRC32C(0); return v }(), want: core.ErrReceiptScope, wantField: ScopeFieldCRC32C},
 	}

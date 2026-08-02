@@ -431,6 +431,14 @@ func signingCertificateV2Attribute(
 	t testing.TB,
 	signer *x509.Certificate,
 ) cmsAttribute {
+	return signingCertificateV2AttributeWithAlgorithm(t, signer, nil)
+}
+
+func signingCertificateV2AttributeWithAlgorithm(
+	t testing.TB,
+	signer *x509.Certificate,
+	algorithm []byte,
+) cmsAttribute {
 	t.Helper()
 
 	digest := sha256.Sum256(signer.Raw)
@@ -438,9 +446,10 @@ func signingCertificateV2Attribute(
 	if err != nil {
 		t.Fatalf("asn1.Marshal(ESSCertIDv2 hash) error = %v, want nil", err)
 	}
+	certificateFields := append(append([]byte(nil), algorithm...), hashDER...)
 	certificateID := derTagged(
 		byte(asn1.TagSequence)|derConstructed,
-		hashDER,
+		certificateFields,
 	)
 	certificates := derTagged(
 		byte(asn1.TagSequence)|derConstructed,
@@ -468,6 +477,15 @@ func TestSigningCertificateAttributeClosure(t *testing.T) {
 		t.Fatalf("authentic SigningCertificate count = %d, want 1", v1Count)
 	}
 	v2 := signingCertificateV2Attribute(t, token.Signer)
+	sha256OID, err := asn1.Marshal(oidSHA256)
+	if err != nil {
+		t.Fatalf("asn1.Marshal(SHA-256 OID) error = %v, want nil", err)
+	}
+	explicitDefaultV2 := signingCertificateV2AttributeWithAlgorithm(
+		t,
+		token.Signer,
+		derTagged(byte(asn1.TagSequence)|derConstructed, sha256OID),
+	)
 	invalidV2 := v2
 	invalidV2.Values = append([]asn1.RawValue(nil), v2.Values...)
 	invalidV2.Values[0].FullBytes = append(
@@ -484,6 +502,7 @@ func TestSigningCertificateAttributeClosure(t *testing.T) {
 		{name: "ESSCertID v1 alone binds the signer", attributes: []cmsAttribute{v1}, signer: token.Signer},
 		{name: "ESSCertID v2 alone binds the signer", attributes: []cmsAttribute{v2}, signer: token.Signer},
 		{name: "RFC 5816 permits both identifiers when both bind", attributes: []cmsAttribute{v1, v2}, signer: token.Signer},
+		{name: "ESSCertID v2 rejects explicit DER default SHA-256 algorithm", attributes: []cmsAttribute{explicitDefaultV2}, signer: token.Signer, wantErr: core.ErrTimeProofInvalid},
 		{name: "no certificate identifier", signer: token.Signer, wantErr: core.ErrTimeProofInvalid},
 		{name: "absent signer", attributes: []cmsAttribute{v1}, wantErr: core.ErrTimeProofInvalid},
 		{name: "duplicate v1 identifier", attributes: []cmsAttribute{v1, v1}, signer: token.Signer, wantErr: core.ErrTimeProofInvalid},

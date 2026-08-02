@@ -9,12 +9,12 @@ import (
 )
 
 const (
-	// FilesystemPathMaximumRunes bounds a complete lexical path.
-	FilesystemPathMaximumRunes = 4096
+	// filesystemPathMaximumRunes bounds a complete lexical path.
+	filesystemPathMaximumRunes = 4096
 	// FilesystemPathMaximumComponents bounds non-root lexical components.
 	FilesystemPathMaximumComponents = 256
-	// FilesystemPathComponentMaximumBytes is the portable component byte cap.
-	FilesystemPathComponentMaximumBytes = 255
+	// filesystemPathComponentMaximumBytes is the portable component byte cap.
+	filesystemPathComponentMaximumBytes = 255
 
 	filesystemPathEmptyDiagnostic              = "filesystem path is empty"
 	filesystemPathInvalidUTF8Diagnostic        = "filesystem path is not valid UTF-8"
@@ -38,7 +38,7 @@ func ParsePathComponent(value string) (PathComponent, error) {
 	if !utf8.ValidString(value) {
 		return PathComponent{}, filesystemPathError("path component is not valid UTF-8")
 	}
-	if len(value) > FilesystemPathComponentMaximumBytes {
+	if len(value) > filesystemPathComponentMaximumBytes {
 		return PathComponent{}, filesystemPathError("path component exceeds the byte limit")
 	}
 	if value == "." || value == ".." || containsPathSeparator(value) ||
@@ -206,20 +206,27 @@ func (p *AbsolutePath) UnmarshalJSON(data []byte) error {
 }
 
 func validateRelativeFilesystemPath(value string) error {
-	if value == "" {
-		return filesystemPathError(filesystemPathEmptyDiagnostic)
+	return validateFilesystemPath(value, filesystemPathRelative)
+}
+
+func validateAbsoluteFilesystemPath(value string) error {
+	return validateFilesystemPath(value, filesystemPathAbsolute)
+}
+
+type filesystemPathKind uint8
+
+const (
+	filesystemPathKindUnknown filesystemPathKind = iota
+	filesystemPathRelative
+	filesystemPathAbsolute
+)
+
+func validateFilesystemPath(value string, kind filesystemPathKind) error {
+	if err := validateFilesystemPathText(value); err != nil {
+		return err
 	}
-	if !utf8.ValidString(value) {
-		return filesystemPathError(filesystemPathInvalidUTF8Diagnostic)
-	}
-	if utf8.RuneCountInString(value) > FilesystemPathMaximumRunes {
-		return filesystemPathError(filesystemPathRuneLimitDiagnostic)
-	}
-	if strings.IndexByte(value, 0) >= 0 {
-		return filesystemPathError(filesystemPathNULDiagnostic)
-	}
-	if !filepath.IsLocal(value) {
-		return filesystemPathError("filesystem path is not local")
+	if err := validateFilesystemPathKind(value, kind); err != nil {
+		return err
 	}
 	if filepath.Clean(value) != value {
 		return filesystemPathError(filesystemPathNoncanonicalDiagnostic)
@@ -233,37 +240,41 @@ func validateRelativeFilesystemPath(value string) error {
 	return nil
 }
 
-func validateAbsoluteFilesystemPath(value string) error {
+func validateFilesystemPathText(value string) error {
 	if value == "" {
 		return filesystemPathError(filesystemPathEmptyDiagnostic)
 	}
 	if !utf8.ValidString(value) {
 		return filesystemPathError(filesystemPathInvalidUTF8Diagnostic)
 	}
-	if utf8.RuneCountInString(value) > FilesystemPathMaximumRunes {
+	if utf8.RuneCountInString(value) > filesystemPathMaximumRunes {
 		return filesystemPathError(filesystemPathRuneLimitDiagnostic)
 	}
 	if strings.IndexByte(value, 0) >= 0 {
 		return filesystemPathError(filesystemPathNULDiagnostic)
 	}
-	if !filepath.IsAbs(value) {
+	return nil
+}
+
+func validateFilesystemPathKind(value string, kind filesystemPathKind) error {
+	switch kind {
+	case filesystemPathRelative:
+		if !filepath.IsLocal(value) {
+			return filesystemPathError("filesystem path is not local")
+		}
+	case filesystemPathAbsolute:
+		if filepath.IsAbs(value) {
+			return nil
+		}
 		return filesystemPathError("filesystem path is not absolute")
-	}
-	if filepath.Clean(value) != value {
-		return filesystemPathError(filesystemPathNoncanonicalDiagnostic)
-	}
-	if filesystemPathComponentCount(value) > FilesystemPathMaximumComponents {
-		return filesystemPathError(filesystemPathComponentLimitDiagnostic)
-	}
-	if filesystemPathHasOversizedComponent(value) {
-		return filesystemPathError(filesystemPathOversizedComponentDiagnostic)
+	default:
+		return filesystemPathError("filesystem path kind is not admitted")
 	}
 	return nil
 }
 
 func filesystemPathComponentCount(value string) int {
-	volume := filepath.VolumeName(value)
-	remainder := strings.TrimPrefix(value, volume)
+	remainder := filesystemPathWithoutVolume(value)
 	remainder = strings.Trim(remainder, string(filepath.Separator))
 	if remainder == "" {
 		return 0
@@ -278,6 +289,7 @@ func filesystemPathComponentCount(value string) int {
 }
 
 func filesystemPathHasOversizedComponent(value string) bool {
+	value = filesystemPathWithoutVolume(value)
 	componentBytes := 0
 	for index := range len(value) {
 		if os.IsPathSeparator(value[index]) {
@@ -285,11 +297,15 @@ func filesystemPathHasOversizedComponent(value string) bool {
 			continue
 		}
 		componentBytes++
-		if componentBytes > FilesystemPathComponentMaximumBytes {
+		if componentBytes > filesystemPathComponentMaximumBytes {
 			return true
 		}
 	}
 	return false
+}
+
+func filesystemPathWithoutVolume(value string) string {
+	return strings.TrimPrefix(value, filepath.VolumeName(value))
 }
 
 func filesystemPathError(message string) error {

@@ -81,7 +81,7 @@ func TestAssessDiskRealHeldRootLayerTriad(t *testing.T) {
 		root := t.TempDir()
 		got, gotErr := AssessDisk(context.Background(), DiskAssessmentRequest{
 			Directory: mustAbsolutePathForHostfactsTest(t, root),
-			Policy:    DiskPressurePolicy{FreeSpaceFloor: core.NewByteLength(0)},
+			Policy:    DiskPressurePolicy{FreeSpaceFloor: mustByteLength(t, 0)},
 		})
 		if gotErr != nil || got.State() != DiskPressureDisabled ||
 			errors.Is(gotErr, core.ErrHostFactsPressure) {
@@ -96,7 +96,7 @@ func TestAssessDiskRealHeldRootLayerTriad(t *testing.T) {
 		got, gotErr := AssessDisk(context.Background(), DiskAssessmentRequest{
 			Directory: mustAbsolutePathForHostfactsTest(t, root),
 			Policy: DiskPressurePolicy{
-				FreeSpaceFloor: core.NewByteLength(math.MaxUint64),
+				FreeSpaceFloor: mustByteLength(t, math.MaxInt64),
 			},
 		})
 		if !errors.Is(gotErr, core.ErrDiskFloorReached) ||
@@ -222,6 +222,19 @@ func TestHostFactsErrorAxesAndTypedFailure(t *testing.T) {
 		failure.Validate() != nil {
 		t.Fatalf("typed observation failure = %v, want valid observation/native axes and no contract axis", got)
 	}
+	identityOnly := Failure{
+		Operation: OperationDiskCapacity,
+		Identity:  core.ErrHostFactsObservation,
+	}
+	unwrapped := identityOnly.Unwrap()
+	if identityOnly.Validate() != nil ||
+		!errors.Is(identityOnly, core.ErrHostFactsObservation) ||
+		len(unwrapped) != 1 || unwrapped[0] != core.ErrHostFactsObservation {
+		t.Fatalf(
+			"identity-only Failure unwrap = %v, want one non-nil stable identity",
+			unwrapped,
+		)
+	}
 	invalid := []Failure{
 		{},
 		{Operation: OperationUnknown, Identity: core.ErrHostFactsObservation},
@@ -235,7 +248,7 @@ func TestHostFactsErrorAxesAndTypedFailure(t *testing.T) {
 	}
 }
 
-func TestOperationDiagnosticTextExhaustsTheClosedDomain(t *testing.T) {
+func TestOperationDiagnosticStringExhaustsTheClosedDomain(t *testing.T) {
 	t.Parallel()
 
 	cases := []struct {
@@ -258,8 +271,8 @@ func TestOperationDiagnosticTextExhaustsTheClosedDomain(t *testing.T) {
 		t.Run(tc.name, func(t *testing.T) {
 			t.Parallel()
 
-			if got := tc.operation.Text(); got != tc.want {
-				t.Fatalf("Operation(%d).Text() = %q, want %q", tc.operation, got, tc.want)
+			if got := tc.operation.String(); got != tc.want {
+				t.Fatalf("Operation(%d).String() = %q, want %q", tc.operation, got, tc.want)
 			}
 		})
 	}

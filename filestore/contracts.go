@@ -13,6 +13,8 @@ import (
 const (
 	targetEqualsTemporaryDiagnostic = "filestore target equals its temporary path"
 	crossDirectoryDiagnostic        = "filestore target and temporary must share a directory"
+	unknownEnumDiagnostic           = "unknown"
+	createModeDiagnostic            = "create"
 )
 
 // Location names one path through one real OS root capability.
@@ -46,12 +48,36 @@ const (
 	installModeLimit
 )
 
+func installModeDiagnostics() [installModeLimit]string {
+	return [...]string{
+		InstallCreate:  createModeDiagnostic,
+		InstallReplace: "replace",
+	}
+}
+
 // Validate rejects values outside the closed install domain.
 func (m InstallMode) Validate() error {
-	if m <= InstallUnknown || m >= installModeLimit {
+	if !m.IsValid() {
 		return contractError(errors.New("filestore install mode is invalid"))
 	}
 	return nil
+}
+
+// IsValid reports membership in the closed install-mode domain.
+func (m InstallMode) IsValid() bool {
+	return m > InstallUnknown && m < installModeLimit && installModeDiagnostics()[m] != ""
+}
+
+// OffWireEnum declares InstallMode as filesystem execution policy rather than
+// a wire encoding.
+func (InstallMode) OffWireEnum() {}
+
+// String returns the compiler-owned diagnostic label for m.
+func (m InstallMode) String() string {
+	if !m.IsValid() {
+		return unknownEnumDiagnostic
+	}
+	return installModeDiagnostics()[m]
 }
 
 // DirectoryRequest prepares one rooted directory chain with an exact final
@@ -196,14 +222,39 @@ const (
 	appendModeLimit
 )
 
+func appendModeDiagnostics() [appendModeLimit]string {
+	return [...]string{
+		AppendCreate:       createModeDiagnostic,
+		AppendExisting:     "existing",
+		AppendCreateOrOpen: "create-or-open",
+	}
+}
+
 const appendModeInvalidReason = "filestore append mode is invalid"
 
 // Validate rejects values outside the closed append domain.
 func (m AppendMode) Validate() error {
-	if m <= AppendUnknown || m >= appendModeLimit {
+	if !m.IsValid() {
 		return contractError(errors.New(appendModeInvalidReason))
 	}
 	return nil
+}
+
+// IsValid reports membership in the closed append-mode domain.
+func (m AppendMode) IsValid() bool {
+	return m > AppendUnknown && m < appendModeLimit && appendModeDiagnostics()[m] != ""
+}
+
+// OffWireEnum declares AppendMode as filesystem execution policy rather than
+// a wire encoding.
+func (AppendMode) OffWireEnum() {}
+
+// String returns the compiler-owned diagnostic label for m.
+func (m AppendMode) String() string {
+	if !m.IsValid() {
+		return unknownEnumDiagnostic
+	}
+	return appendModeDiagnostics()[m]
 }
 
 // AppendRequest opens one real OS file for append below a rooted boundary.
@@ -287,12 +338,36 @@ const (
 	walkDirectiveLimit
 )
 
+func walkDirectiveDiagnostics() [walkDirectiveLimit]string {
+	return [...]string{
+		WalkContinue:      "continue",
+		WalkSkipDirectory: "skip-directory",
+	}
+}
+
 // Validate closes the walk-directive domain.
 func (d WalkDirective) Validate() error {
-	if d < WalkContinue || d >= walkDirectiveLimit {
+	if !d.IsValid() {
 		return contractError(errors.New("filestore walk directive is invalid"))
 	}
 	return nil
+}
+
+// IsValid reports membership in the closed walk-directive domain.
+func (d WalkDirective) IsValid() bool {
+	return d >= WalkContinue && d < walkDirectiveLimit && walkDirectiveDiagnostics()[d] != ""
+}
+
+// OffWireEnum declares WalkDirective as traversal control rather than a wire
+// encoding.
+func (WalkDirective) OffWireEnum() {}
+
+// String returns the compiler-owned diagnostic label for d.
+func (d WalkDirective) String() string {
+	if !d.IsValid() {
+		return unknownEnumDiagnostic
+	}
+	return walkDirectiveDiagnostics()[d]
 }
 
 // WalkOrder selects the bounded directory-entry observation strategy.
@@ -306,12 +381,36 @@ const (
 	walkOrderLimit
 )
 
+func walkOrderDiagnostics() [walkOrderLimit]string {
+	return [...]string{
+		WalkOrderNative:  "native",
+		WalkOrderLexical: "lexical",
+	}
+}
+
 // Validate closes the walk-order domain.
 func (o WalkOrder) Validate() error {
-	if o < WalkOrderNative || o >= walkOrderLimit {
+	if !o.IsValid() {
 		return contractError(errors.New("filestore walk order is invalid"))
 	}
 	return nil
+}
+
+// IsValid reports membership in the closed walk-order domain.
+func (o WalkOrder) IsValid() bool {
+	return o >= WalkOrderNative && o < walkOrderLimit && walkOrderDiagnostics()[o] != ""
+}
+
+// OffWireEnum declares WalkOrder as traversal execution policy rather than a
+// wire encoding.
+func (WalkOrder) OffWireEnum() {}
+
+// String returns the compiler-owned diagnostic label for o.
+func (o WalkOrder) String() string {
+	if !o.IsValid() {
+		return unknownEnumDiagnostic
+	}
+	return walkOrderDiagnostics()[o]
 }
 
 // DirectoryEntryMaximum is one positive fixed allocation ceiling for a
@@ -319,6 +418,11 @@ func (o WalkOrder) Validate() error {
 type DirectoryEntryMaximum struct {
 	value uint32
 }
+
+// DirectoryEntryMaximumLimit is the largest directory that lexical walking
+// will retain and sort. It bounds both allocation and the uint32-to-int
+// conversion on every supported Go architecture.
+const DirectoryEntryMaximumLimit uint32 = 1 << 16
 
 // NewDirectoryEntryMaximum constructs one lexical directory ceiling.
 func NewDirectoryEntryMaximum(value uint32) (DirectoryEntryMaximum, error) {
@@ -331,8 +435,8 @@ func NewDirectoryEntryMaximum(value uint32) (DirectoryEntryMaximum, error) {
 
 // Validate rejects a zero lexical directory ceiling.
 func (m DirectoryEntryMaximum) Validate() error {
-	if m.value == 0 {
-		return contractError(errors.New("filestore directory entry maximum is zero"))
+	if m.value == 0 || m.value > DirectoryEntryMaximumLimit {
+		return contractError(errors.New("filestore directory entry maximum is outside the admitted interval"))
 	}
 	return nil
 }

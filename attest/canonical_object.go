@@ -28,6 +28,9 @@ const (
 	canonicalFalseText      = "false"
 	canonicalMemberNullText = "null"
 	canonicalDecimalBase    = 10
+	// A base-10 uint64 uses at most 20 bytes; MinInt64 also uses 20 bytes
+	// including its sign.
+	canonicalDecimalMaximumBytes = 20
 )
 
 // canonicalNameSpan locates one already-encoded member name inside the object's
@@ -63,12 +66,14 @@ type CanonicalObject struct {
 }
 
 // BeginCanonicalObject starts one canonical object at the end of destination.
-// The caller keeps ownership of the backing array. Integer and boolean members
-// append directly into that buffer; string and nested-value owners may allocate
-// while producing their independently validated canonical encodings.
+// The caller keeps ownership of the backing array. Scalar members use fixed
+// stack storage; string and nested-value owners may allocate while producing
+// their independently validated canonical encodings. String input is admitted
+// against the remaining object extent before encoding, so that allocation is
+// bounded by CanonicalBodyMaximumBytes.
 func BeginCanonicalObject(destination []byte) CanonicalObject {
 	object := CanonicalObject{buffer: destination, opened: true}
-	if len(destination) > CanonicalBodyMaximumBytes {
+	if len(destination) >= CanonicalBodyMaximumBytes {
 		object.err = contractError(errors.New(canonicalObjectExtentErrorText))
 		return object
 	}
@@ -78,7 +83,14 @@ func BeginCanonicalObject(destination []byte) CanonicalObject {
 
 // String appends one canonical JSON string member.
 func (o *CanonicalObject) String(name string, value string) {
-	if !o.ready() {
+	span, ok := o.beginMember(name)
+	if !ok {
+		return
+	}
+	// Quotes are the smallest possible JSON string overhead. Escaping can only
+	// increase it, so an input that fails this check cannot fit in the object.
+	if len(value) > CanonicalBodyMaximumBytes-len(o.buffer)-2 {
+		o.fail(errors.New(canonicalObjectExtentErrorText))
 		return
 	}
 	encoded, err := core.MarshalCanonicalJSONString(value)
@@ -86,30 +98,29 @@ func (o *CanonicalObject) String(name string, value string) {
 		o.fail(err)
 		return
 	}
-	o.appendMember(name, encoded)
+	o.appendEncodedMember(span, encoded)
 }
 
-// Int64 appends one canonical signed integer member. The emitted text is
-// exactly what core.ParseCanonicalInt64JSON admits, so the member keeps one
-// accepted encoding in both directions.
+// Int64 appends the one signed decimal spelling emitted by strconv.AppendInt.
 func (o *CanonicalObject) Int64(name string, value int64) {
 	span, ok := o.beginMember(name)
 	if !ok {
 		return
 	}
-	o.buffer = strconv.AppendInt(o.buffer, value, canonicalDecimalBase)
-	o.recordMember(span)
+	var storage [canonicalDecimalMaximumBytes]byte
+	encoded := strconv.AppendInt(storage[:0], value, canonicalDecimalBase)
+	o.appendEncodedMember(span, encoded)
 }
 
-// Uint64 appends one canonical unsigned integer member under the grammar
-// core.ParseCanonicalUint64JSON admits.
+// Uint64 appends the one unsigned decimal spelling emitted by strconv.AppendUint.
 func (o *CanonicalObject) Uint64(name string, value uint64) {
 	span, ok := o.beginMember(name)
 	if !ok {
 		return
 	}
-	o.buffer = strconv.AppendUint(o.buffer, value, canonicalDecimalBase)
-	o.recordMember(span)
+	var storage [canonicalDecimalMaximumBytes]byte
+	encoded := strconv.AppendUint(storage[:0], value, canonicalDecimalBase)
+	o.appendEncodedMember(span, encoded)
 }
 
 // Bool appends one canonical JSON boolean member.
@@ -119,11 +130,10 @@ func (o *CanonicalObject) Bool(name string, value bool) {
 		return
 	}
 	if value {
-		o.buffer = append(o.buffer, canonicalTrueText...)
+		o.appendEncodedMember(span, []byte(canonicalTrueText))
 	} else {
-		o.buffer = append(o.buffer, canonicalFalseText...)
+		o.appendEncodedMember(span, []byte(canonicalFalseText))
 	}
-	o.recordMember(span)
 }
 
 // Value appends one nested member whose owner supplies both its invariant and
@@ -131,7 +141,8 @@ func (o *CanonicalObject) Bool(name string, value bool) {
 // must be non-null valid JSON, so a hostile or defective member cannot escape
 // as signed bytes or replace this package's error identities.
 func (o *CanonicalObject) Value(name string, value core.ValidatedJSONMarshaler) {
-	if !o.ready() {
+	span, ok := o.beginMember(name)
+	if !ok {
 		return
 	}
 	encoded, err := marshalCanonicalMember(value)
@@ -139,7 +150,7 @@ func (o *CanonicalObject) Value(name string, value core.ValidatedJSONMarshaler) 
 		o.fail(err)
 		return
 	}
-	o.appendMember(name, encoded)
+	o.appendEncodedMember(span, encoded)
 }
 
 // End closes the object and returns the complete buffer. It reports the first
@@ -159,10 +170,10 @@ func (o *CanonicalObject) End() ([]byte, error) {
 	if o.count == 0 {
 		return nil, contractError(errors.New(canonicalObjectEmptyErrorText))
 	}
-	o.buffer = append(o.buffer, canonicalObjectClose)
-	if len(o.buffer) > CanonicalBodyMaximumBytes {
+	if len(o.buffer) >= CanonicalBodyMaximumBytes {
 		return nil, contractError(errors.New(canonicalObjectExtentErrorText))
 	}
+	o.buffer = append(o.buffer, canonicalObjectClose)
 	return o.buffer, nil
 }
 
@@ -185,9 +196,9 @@ func (o *CanonicalObject) fail(err error) {
 	}
 }
 
-func (o *CanonicalObject) appendMember(name string, encoded []byte) {
-	span, ok := o.beginMember(name)
-	if !ok {
+func (o *CanonicalObject) appendEncodedMember(span canonicalNameSpan, encoded []byte) {
+	if len(encoded) > CanonicalBodyMaximumBytes-len(o.buffer) {
+		o.fail(errors.New(canonicalObjectExtentErrorText))
 		return
 	}
 	o.buffer = append(o.buffer, encoded...)
@@ -204,6 +215,14 @@ func (o *CanonicalObject) beginMember(name string) (canonicalNameSpan, bool) {
 	}
 	if err := validateCanonicalFieldName(name); err != nil {
 		o.fail(err)
+		return canonicalNameSpan{}, false
+	}
+	prefixLength := len(name) + 3 // two name quotes and one colon
+	if o.count > 0 {
+		prefixLength++ // member comma
+	}
+	if prefixLength > CanonicalBodyMaximumBytes-len(o.buffer) {
+		o.fail(errors.New(canonicalObjectExtentErrorText))
 		return canonicalNameSpan{}, false
 	}
 	if o.count > 0 {
@@ -238,10 +257,6 @@ func (o *CanonicalObject) appendName(name string) (canonicalNameSpan, error) {
 }
 
 func (o *CanonicalObject) recordMember(span canonicalNameSpan) {
-	if len(o.buffer) > CanonicalBodyMaximumBytes {
-		o.fail(errors.New(canonicalObjectExtentErrorText))
-		return
-	}
 	o.names[o.count] = span
 	o.count++
 }

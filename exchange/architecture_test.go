@@ -97,6 +97,8 @@ type exchangeContractInventory struct {
 	boundedBodyDestination  internalFlow[boundedBodyDestination]
 	downloadCopyRequest     internalFlow[downloadCopyRequest]
 	streamTransportFailure  internalFlow[streamTransportFailure]
+	declaredBodyLength      internalFlow[declaredBodyLength]
+	httpContentCoding       internalFlow[httpContentCoding]
 
 	RouteSemantics           protocolContract[RouteSemantics]
 	ServerPolicy             protocolContract[ServerPolicy]
@@ -226,6 +228,8 @@ var (
 	_                             = exchangeContractInventory{}.replayFact
 	_                             = exchangeContractInventory{}.redirectFact
 	_                             = exchangeContractInventory{}.requestMetadata
+	_                             = exchangeContractInventory{}.declaredBodyLength
+	_                             = exchangeContractInventory{}.httpContentCoding
 	_                             = exchangeContractInventory{}.aggregateRequest
 	_                             = exchangeContractInventory{}.aggregateCall
 	_                             = exchangeContractInventory{}.aggregateResponse

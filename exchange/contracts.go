@@ -1,6 +1,7 @@
 package exchange
 
 import (
+	"errors"
 	"io"
 	"net/url"
 
@@ -49,7 +50,7 @@ const (
 
 type replayFact struct {
 	diagnostic string
-	methods    [core.HTTPMethodCount]bool
+	methods    [methodLimit]bool
 }
 
 func replayFacts() [replayLimit]replayFact {
@@ -57,30 +58,30 @@ func replayFacts() [replayLimit]replayFact {
 		ReplayUnknown: {},
 		ReplaySingleAttempt: {
 			diagnostic: "single attempt",
-			methods: [core.HTTPMethodCount]bool{
-				core.HTTPMethodGet: true, core.HTTPMethodHead: true,
-				core.HTTPMethodPost: true, core.HTTPMethodPut: true,
-				core.HTTPMethodPatch: true, core.HTTPMethodDelete: true,
-				core.HTTPMethodOptions: true,
+			methods: [methodLimit]bool{
+				MethodGet: true, MethodHead: true,
+				MethodPost: true, MethodPut: true,
+				MethodPatch: true, MethodDelete: true,
+				MethodOptions: true,
 			},
 		},
 		ReplaySafe: {
 			diagnostic: "safe",
-			methods: [core.HTTPMethodCount]bool{
-				core.HTTPMethodGet: true, core.HTTPMethodHead: true,
-				core.HTTPMethodOptions: true,
+			methods: [methodLimit]bool{
+				MethodGet: true, MethodHead: true,
+				MethodOptions: true,
 			},
 		},
 		ReplayIdempotent: {
 			diagnostic: "idempotent",
-			methods: [core.HTTPMethodCount]bool{
-				core.HTTPMethodPut: true, core.HTTPMethodDelete: true,
+			methods: [methodLimit]bool{
+				MethodPut: true, MethodDelete: true,
 			},
 		},
 		ReplayIdempotencyKey: {
 			diagnostic: "idempotency key",
-			methods: [core.HTTPMethodCount]bool{
-				core.HTTPMethodPost: true, core.HTTPMethodPatch: true,
+			methods: [methodLimit]bool{
+				MethodPost: true, MethodPatch: true,
 			},
 		},
 	}
@@ -312,7 +313,7 @@ func (h CapturedHeaders) Validate() error {
 // RequestSemantics owns method, replay, and optional idempotency.
 type RequestSemantics struct {
 	IdempotencyKey IdempotencyKey
-	Method         core.HTTPMethod
+	Method         Method
 	Replay         ReplayMode
 }
 
@@ -336,7 +337,7 @@ func (s RequestSemantics) Validate() error {
 	return validateReplayMethod(s.Method, s.Replay)
 }
 
-func validateReplayMethod(method core.HTTPMethod, replay ReplayMode) error {
+func validateReplayMethod(method Method, replay ReplayMode) error {
 	if err := method.Validate(); err != nil {
 		return core.ErrExchangeContract
 	}
@@ -618,29 +619,32 @@ func validateTimeoutPair(operation, attempt temporal.Duration) error {
 
 func validateJSONLimit(limit core.ByteCount) error {
 	value, err := limit.Uint64()
-	if err != nil || value > core.JSONDocumentMaximumBytes {
+	defaults := core.DefaultStrictJSONLimits()
+	maximum, maximumErr := defaults.DocumentMaximumBytes.Uint64()
+	if errors.Join(err, maximumErr) != nil || value > maximum {
 		return core.ErrExchangeBodyLimit
 	}
 	return nil
 }
 
 var (
-	_ core.Validatable = ReplayUnknown
-	_ core.OffWireEnum = ReplayUnknown
-	_ core.Validatable = RedirectUnknown
-	_ core.OffWireEnum = RedirectUnknown
-	_ core.Validatable = RedirectPolicy{}
-	_ core.Validatable = IdempotencyKey{}
-	_ core.Validatable = Header{}
-	_ core.Validatable = Headers{}
-	_ core.Validatable = HeaderSelection{}
-	_ core.Validatable = CapturedHeaders{}
-	_ core.Validatable = RequestSemantics{}
-	_ core.Validatable = RetryPolicy{}
-	_ core.Validatable = OperationPolicy{}
-	_ core.Validatable = JSONPolicy{}
-	_ core.Validatable = NoBodyJSONPolicy{}
-	_ core.Validatable = NoBodyBoundedPolicy{}
-	_ core.Validatable = BoundedPolicy{}
-	_ core.Validatable = StreamPolicy{}
+	_ core.ValidatedJSONMarshaler = Method(0)
+	_ core.Validatable            = ReplayUnknown
+	_ core.OffWireEnum            = ReplayUnknown
+	_ core.Validatable            = RedirectUnknown
+	_ core.OffWireEnum            = RedirectUnknown
+	_ core.Validatable            = RedirectPolicy{}
+	_ core.Validatable            = IdempotencyKey{}
+	_ core.Validatable            = Header{}
+	_ core.Validatable            = Headers{}
+	_ core.Validatable            = HeaderSelection{}
+	_ core.Validatable            = CapturedHeaders{}
+	_ core.Validatable            = RequestSemantics{}
+	_ core.Validatable            = RetryPolicy{}
+	_ core.Validatable            = OperationPolicy{}
+	_ core.Validatable            = JSONPolicy{}
+	_ core.Validatable            = NoBodyJSONPolicy{}
+	_ core.Validatable            = NoBodyBoundedPolicy{}
+	_ core.Validatable            = BoundedPolicy{}
+	_ core.Validatable            = StreamPolicy{}
 )

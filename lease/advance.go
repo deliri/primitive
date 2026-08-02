@@ -16,30 +16,36 @@ const (
 	advanceStateLimit
 )
 
+func advanceStateDiagnostics() [advanceStateLimit]string {
+	return [...]string{
+		AdvanceStateUnchanged: "unchanged",
+		AdvanceStateAdvanced:  "advanced",
+	}
+}
+
 // Validate rejects values outside the closed advance-state domain.
 func (s AdvanceState) Validate() error {
-	if s <= AdvanceStateUnknown || s >= advanceStateLimit {
+	if !s.IsValid() {
 		return contractError(errors.New("lease advance state is outside the closed domain"))
 	}
 	return nil
 }
 
 // IsValid reports membership in the advance-state domain.
-func (s AdvanceState) IsValid() bool { return s.Validate() == nil }
+func (s AdvanceState) IsValid() bool {
+	return s > AdvanceStateUnknown && s < advanceStateLimit &&
+		advanceStateDiagnostics()[s] != ""
+}
 
 // OffWireEnum declares AdvanceState as a deliberate off-wire enum.
 func (AdvanceState) OffWireEnum() {}
 
 // String returns one diagnostic label.
 func (s AdvanceState) String() string {
-	switch s {
-	case AdvanceStateUnchanged:
-		return "unchanged"
-	case AdvanceStateAdvanced:
-		return "advanced"
-	default:
+	if !s.IsValid() {
 		return unknownDiagnostic
 	}
+	return advanceStateDiagnostics()[s]
 }
 
 // AdvanceRequest compares one current and one candidate authentic decision.

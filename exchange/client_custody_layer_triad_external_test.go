@@ -130,13 +130,13 @@ func TestCallerClientImmutabilityLayerTriad(t *testing.T) {
 				finalCalls.Add(1)
 				writer.Header().Set(
 					core.HTTPHeaderContentType().String(),
-					core.HTTPMediaTypeTextPlain().String(),
+					mustHTTPMediaType(t, "text/plain").String(),
 				)
 				writer.WriteHeader(http.StatusOK)
 				_, _ = writer.Write([]byte("arrived"))
 				return
 			}
-			writer.Header().Set(core.HTTPHeaderLocation().String(), "/final")
+			writer.Header().Set(locationHeaderName, "/final")
 			writer.WriteHeader(http.StatusTemporaryRedirect)
 		}))
 		defer server.Close()
@@ -150,10 +150,10 @@ func TestCallerClientImmutabilityLayerTriad(t *testing.T) {
 				Request: exchange.NoBodyBoundedRequest{
 					Target: mustEndpoint(t, server.URL),
 					Semantics: exchange.RequestSemantics{
-						Method: core.HTTPMethodGet,
+						Method: exchange.MethodGet,
 						Replay: exchange.ReplaySingleAttempt,
 					},
-					ExpectedResponseContentType: core.HTTPMediaTypeTextPlain(),
+					ExpectedResponseContentType: mustHTTPMediaType(t, "text/plain"),
 					ExpectedStatus:              ok,
 				},
 				Policy: exchange.NoBodyBoundedPolicy{
@@ -202,7 +202,7 @@ func TestCallerClientImmutabilityLayerTriad(t *testing.T) {
 			writer http.ResponseWriter,
 			_ *http.Request,
 		) {
-			writer.Header().Set(core.HTTPHeaderLocation().String(), target.URL)
+			writer.Header().Set(locationHeaderName, target.URL)
 			writer.WriteHeader(http.StatusTemporaryRedirect)
 		}))
 		defer origin.Close()
@@ -220,7 +220,7 @@ func TestCallerClientImmutabilityLayerTriad(t *testing.T) {
 				Request: exchange.NoBodyBoundedRequest{
 					Target: mustEndpoint(t, origin.URL),
 					Semantics: exchange.RequestSemantics{
-						Method: core.HTTPMethodGet,
+						Method: exchange.MethodGet,
 						Replay: exchange.ReplaySingleAttempt,
 					},
 					ExpectedStatus: ok,
@@ -260,7 +260,7 @@ func TestCallerClientImmutabilityLayerTriad(t *testing.T) {
 		) {
 			writer.Header().Set(
 				core.HTTPHeaderContentType().String(),
-				core.HTTPMediaTypeTextPlain().String(),
+				mustHTTPMediaType(t, "text/plain").String(),
 			)
 			writer.WriteHeader(http.StatusOK)
 			_, _ = writer.Write([]byte("direct"))
@@ -281,10 +281,10 @@ func TestCallerClientImmutabilityLayerTriad(t *testing.T) {
 					Request: exchange.NoBodyBoundedRequest{
 						Target: mustEndpoint(t, server.URL),
 						Semantics: exchange.RequestSemantics{
-							Method: core.HTTPMethodGet,
+							Method: exchange.MethodGet,
 							Replay: exchange.ReplaySingleAttempt,
 						},
-						ExpectedResponseContentType: core.HTTPMediaTypeTextPlain(),
+						ExpectedResponseContentType: mustHTTPMediaType(t, "text/plain"),
 						ExpectedStatus:              ok,
 					},
 					Policy: exchange.NoBodyBoundedPolicy{

@@ -9,6 +9,53 @@ import (
 
 const canonicalDestinationNilDiagnostic = "canonical destination is nil"
 
+// OfferingMismatchError carries the exact observed and expected offering facts
+// when authenticated Release input names the wrong stream.
+type OfferingMismatchError struct {
+	observed core.Offering
+	expected core.Offering
+}
+
+func newOfferingMismatchError(observed, expected core.Offering) (OfferingMismatchError, error) {
+	mismatch := OfferingMismatchError{observed: observed, expected: expected}
+	if err := mismatch.Validate(); err != nil {
+		return OfferingMismatchError{}, err
+	}
+	return mismatch, nil
+}
+
+// Validate proves both offerings and their contradiction.
+func (e OfferingMismatchError) Validate() error {
+	if err := e.observed.Validate(); err != nil {
+		return contractError(errors.New("observed release offering is invalid"), err)
+	}
+	if err := e.expected.Validate(); err != nil {
+		return contractError(errors.New("expected release offering is invalid"), err)
+	}
+	if e.observed == e.expected {
+		return contractError(errors.New("release offering mismatch names equal offerings"))
+	}
+	return nil
+}
+
+// Error returns the operator-facing offering contradiction.
+func (e OfferingMismatchError) Error() string {
+	if e.Validate() != nil {
+		return "release offering mismatch is invalid"
+	}
+	return "release offering " + e.observed.String() +
+		" differs from expected " + e.expected.String()
+}
+
+// Unwrap preserves the stable Release verification identity.
+func (OfferingMismatchError) Unwrap() error { return core.ErrReleaseVerification }
+
+// Observed returns the offering carried by the authenticated document.
+func (e OfferingMismatchError) Observed() core.Offering { return e.observed }
+
+// Expected returns the caller-selected offering.
+func (e OfferingMismatchError) Expected() core.Offering { return e.expected }
+
 func contractError(causes ...error) error {
 	return releaseError(core.ErrReleaseContract, causes...)
 }
@@ -22,7 +69,7 @@ func verificationError(causes ...error) error {
 }
 
 func offeringMismatchError(observed, expected core.Offering) error {
-	mismatch, err := core.NewReleaseOfferingMismatchError(observed, expected)
+	mismatch, err := newOfferingMismatchError(observed, expected)
 	if err != nil {
 		return verificationError(err)
 	}

@@ -51,7 +51,7 @@ func TestGoOOMBannerClassifierHostileBoundaryTable(t *testing.T) {
 			source := &chunkReader{data: []byte(tc.data), maximum: tc.chunk}
 			got, gotErr := ClassifyGoOOMBanner(context.Background(), GoOOMBannerRequest{
 				Source: source,
-				Length: core.NewByteLength(tc.length),
+				Length: mustByteLength(t, tc.length),
 			})
 			if tc.wantErr != nil {
 				if got != (GoOOMBannerEvidence{}) || !errors.Is(gotErr, tc.wantErr) {
@@ -89,7 +89,7 @@ func TestGoOOMBannerEverySplitPositionPreservesPresence(t *testing.T) {
 			)
 			got, gotErr := ClassifyGoOOMBanner(context.Background(), GoOOMBannerRequest{
 				Source: reader,
-				Length: core.NewByteLength(uint64(len(banner))),
+				Length: mustByteLength(t, uint64(len(banner))),
 			})
 			if gotErr != nil || got.State() != GoOOMBannerPresent {
 				t.Fatalf("ClassifyGoOOMBanner(split %d of %d) = (%v, %v), want present", split, len(banner), got, gotErr)
@@ -103,7 +103,7 @@ func TestGoOOMBannerRequestAndReaderFailureBoundaries(t *testing.T) {
 
 	overMaximum := GoOOMBannerRequest{
 		Source: bytes.NewReader(nil),
-		Length: core.NewByteLength(GoOOMMaximumEvidenceBytes + 1),
+		Length: mustByteLength(t, GoOOMMaximumEvidenceBytes+1),
 	}
 	if gotErr := overMaximum.Validate(); !errors.Is(gotErr, core.ErrHostFactsContract) {
 		t.Fatalf("GoOOMBannerRequest(over maximum).Validate() error = %v, want %v", gotErr, core.ErrHostFactsContract)
@@ -115,7 +115,7 @@ func TestGoOOMBannerRequestAndReaderFailureBoundaries(t *testing.T) {
 	native := errors.New("source failed")
 	got, gotErr := ClassifyGoOOMBanner(context.Background(), GoOOMBannerRequest{
 		Source: errorReader{err: native},
-		Length: core.NewByteLength(1),
+		Length: mustByteLength(t, 1),
 	})
 	if got != (GoOOMBannerEvidence{}) || !errors.Is(gotErr, core.ErrHostFactsObservation) || !errors.Is(gotErr, native) {
 		t.Fatalf("ClassifyGoOOMBanner(native failure) = (%v, %v), want zero and both observation/native identities", got, gotErr)
@@ -123,7 +123,7 @@ func TestGoOOMBannerRequestAndReaderFailureBoundaries(t *testing.T) {
 
 	got, gotErr = ClassifyGoOOMBanner(context.Background(), GoOOMBannerRequest{
 		Source: zeroReader{},
-		Length: core.NewByteLength(1),
+		Length: mustByteLength(t, 1),
 	})
 	if got != (GoOOMBannerEvidence{}) || !errors.Is(gotErr, io.ErrNoProgress) {
 		t.Fatalf("ClassifyGoOOMBanner(no progress) = (%v, %v), want (zero, %v)", got, gotErr, io.ErrNoProgress)
@@ -131,7 +131,7 @@ func TestGoOOMBannerRequestAndReaderFailureBoundaries(t *testing.T) {
 
 	got, gotErr = ClassifyGoOOMBanner(context.Background(), GoOOMBannerRequest{
 		Source: invalidCountReader{},
-		Length: core.NewByteLength(1),
+		Length: mustByteLength(t, 1),
 	})
 	var failure Failure
 	if got != (GoOOMBannerEvidence{}) ||
@@ -149,7 +149,7 @@ func TestGoOOMBannerEvidenceJSONHostileTable(t *testing.T) {
 	t.Parallel()
 
 	valid := GoOOMBannerEvidence{
-		examined: core.NewByteLength(GoOOMMaximumEvidenceBytes),
+		examined: mustByteLength(t, GoOOMMaximumEvidenceBytes),
 		state:    GoOOMBannerPresent,
 	}
 	wire, err := json.Marshal(valid)
@@ -236,7 +236,7 @@ func FuzzGoOOMBannerClassifier(f *testing.F) {
 		maximum := int(chunk%uint32(goOOMBufferBytes)) + 1
 		got, gotErr := ClassifyGoOOMBanner(context.Background(), GoOOMBannerRequest{
 			Source: &chunkReader{data: append([]byte(nil), data...), maximum: maximum},
-			Length: core.NewByteLength(uint64(len(data))),
+			Length: mustByteLength(t, uint64(len(data))),
 		})
 		if gotErr != nil {
 			t.Fatalf("ClassifyGoOOMBanner(%d bytes) error = %v, want nil", len(data), gotErr)
@@ -265,7 +265,7 @@ func BenchmarkClassifyGoOOMBanner1MiB(b *testing.B) {
 func benchmarkGoOOMBanner(b *testing.B, size int) {
 	b.Helper()
 	data := bytes.Repeat([]byte{'x'}, size)
-	length := core.NewByteLength(uint64(size))
+	length := mustByteLength(b, uint64(size))
 	b.ResetTimer()
 
 	for b.Loop() {

@@ -9,13 +9,6 @@ import (
 	"github.com/deliri/primitive/v2026/core"
 )
 
-const (
-	minimumInstantSeconds     = int64(math.MinInt64 / int64(NanosecondsPerSecond))
-	minimumInstantNanoseconds = int64(math.MinInt64 % int64(NanosecondsPerSecond))
-	maximumInstantSeconds     = int64(math.MaxInt64 / int64(NanosecondsPerSecond))
-	maximumInstantNanoseconds = int64(math.MaxInt64 % int64(NanosecondsPerSecond))
-)
-
 // Instant is a set signed Unix instant with nanosecond precision.
 type Instant struct {
 	nanoseconds int64
@@ -24,25 +17,11 @@ type Instant struct {
 
 // NewInstant projects a time.Time to exact Unix nanoseconds.
 func NewInstant(value time.Time) (Instant, error) {
-	seconds := value.Unix()
-	nanoseconds := int64(value.Nanosecond())
-	if !instantPartsRepresentable(seconds, nanoseconds) {
+	nanoseconds := value.UnixNano()
+	if !time.Unix(0, nanoseconds).Equal(value) {
 		return Instant{}, overflowError("time is outside signed Unix nanoseconds")
 	}
-	return InstantFromNanoseconds(seconds*int64(NanosecondsPerSecond) + nanoseconds), nil
-}
-
-func instantPartsRepresentable(seconds, nanoseconds int64) bool {
-	switch {
-	case seconds < minimumInstantSeconds-1, seconds > maximumInstantSeconds:
-		return false
-	case seconds == minimumInstantSeconds-1:
-		return nanoseconds >= int64(NanosecondsPerSecond)+minimumInstantNanoseconds
-	case seconds == maximumInstantSeconds:
-		return nanoseconds <= maximumInstantNanoseconds
-	default:
-		return true
-	}
+	return InstantFromNanoseconds(nanoseconds), nil
 }
 
 // InstantFromNanoseconds constructs an exact signed Unix instant.

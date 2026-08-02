@@ -5,6 +5,7 @@ The stricter rule wins between this file and the global Go instructions.
 ## Authorities
 
 - `core/architecture_catalog.go` owns the compiler-visible package graph.
+- `PLAN.md` owns implementation law and the exact human-readable graph projection.
 - `README.md` owns its public human-readable projection.
 - `LEDGER.md` owns current and completed state.
 - `_docs/testing_protocol.md` owns test doctrine.

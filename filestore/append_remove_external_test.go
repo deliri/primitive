@@ -258,7 +258,10 @@ func TestCreateOnlyWritersResolveRealNamespaceContentionWithoutPrimitiveLocks(t 
 			t.Errorf("os.Root.Close() error = %v, want nil", closeErr)
 		}
 	}()
-	const writers = 256
+	// Sixty-four simultaneous contenders are enough to force the real exclusive
+	// namespace race while leaving this test independent of the package's other
+	// parallel filesystem stress proofs.
+	const writers = 64
 	requests := make([]filestore.WriteRequest, writers)
 	payloads := make([][]byte, writers)
 	for index := range writers {

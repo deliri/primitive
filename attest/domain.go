@@ -1,8 +1,9 @@
 package attest
 
 import (
-	"encoding/json"
 	"errors"
+
+	"github.com/deliri/primitive/v2026/core"
 )
 
 type domainToken struct {
@@ -46,15 +47,15 @@ func (t domainToken) MarshalJSON() ([]byte, error) {
 	if err := t.Validate(); err != nil {
 		return nil, err
 	}
-	return json.Marshal(string(t.text[:t.length]))
+	return core.MarshalCanonicalJSONString(string(t.text[:t.length]))
 }
 
 func (t *domainToken) UnmarshalJSON(data []byte) error {
 	if t == nil {
 		return contractError(errors.New(domainCanonicalErrorText))
 	}
-	var text string
-	if err := json.Unmarshal(data, &text); err != nil {
+	text, err := core.DecodeJSONStringToken(data)
+	if err != nil {
 		return contractError(err)
 	}
 	candidate, err := newDomainToken([]byte(text))

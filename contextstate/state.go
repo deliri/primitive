@@ -13,8 +13,8 @@ const (
 type State uint8
 
 const (
-	// StateUnknown is the invalid zero state.
-	StateUnknown State = iota
+	// stateUnknown is the invalid zero state.
+	stateUnknown State = iota
 	// StateNone means no standard terminal state was observed.
 	StateNone
 	// StateCancelled means cancellation was observed.
@@ -26,7 +26,7 @@ const (
 
 // Validate rejects states outside the closed domain.
 func (s State) Validate() error {
-	if s <= StateUnknown || s >= stateLimit {
+	if s <= stateUnknown || s >= stateLimit {
 		return core.ErrContextStateContract
 	}
 	return nil
@@ -61,6 +61,6 @@ func (s State) String() string {
 }
 
 var (
-	_ core.Validatable = StateUnknown
-	_ core.OffWireEnum = StateUnknown
+	_ core.Validatable = stateUnknown
+	_ core.OffWireEnum = stateUnknown
 )

@@ -6,10 +6,12 @@ import (
 )
 
 const (
-	seedArgumentPrefix = "-seed="
-	literalsArgument   = "-literals"
-	tinyArgument       = "-tiny"
-	buildArgument      = "build"
+	seedArgumentPrefix  = "-seed="
+	literalsArgument    = "-literals"
+	tinyArgument        = "-tiny"
+	buildArgument       = "build"
+	unknownEnumLabel    = "unknown"
+	preservePolicyLabel = "preserve"
 )
 
 // LiteralPolicy selects the upstream opt-in literal obfuscation behavior.
@@ -25,12 +27,36 @@ const (
 	literalPolicyLimit
 )
 
+func literalPolicyLabels() [literalPolicyLimit]string {
+	return [...]string{
+		LiteralPolicyPreserve:  preservePolicyLabel,
+		LiteralPolicyObfuscate: "obfuscate",
+	}
+}
+
 // Validate rejects an incomplete or future literal policy.
 func (p LiteralPolicy) Validate() error {
-	if p <= LiteralPolicyUnknown || p >= literalPolicyLimit {
+	if !p.IsValid() {
 		return contractError(errors.New("garble literal policy is outside the admitted domain"))
 	}
 	return nil
+}
+
+// IsValid reports membership in the closed literal-policy domain.
+func (p LiteralPolicy) IsValid() bool {
+	return p > LiteralPolicyUnknown && p < literalPolicyLimit && literalPolicyLabels()[p] != ""
+}
+
+// OffWireEnum declares LiteralPolicy as build execution policy rather than a
+// wire encoding.
+func (LiteralPolicy) OffWireEnum() {}
+
+// String returns the compiler-owned diagnostic label for p.
+func (p LiteralPolicy) String() string {
+	if !p.IsValid() {
+		return unknownEnumLabel
+	}
+	return literalPolicyLabels()[p]
 }
 
 // DiagnosticPolicy selects whether Garble retains runtime diagnostic metadata.
@@ -46,12 +72,37 @@ const (
 	diagnosticPolicyLimit
 )
 
+func diagnosticPolicyLabels() [diagnosticPolicyLimit]string {
+	return [...]string{
+		DiagnosticPolicyPreserve: preservePolicyLabel,
+		DiagnosticPolicyStrip:    "strip",
+	}
+}
+
 // Validate rejects an incomplete or future diagnostic policy.
 func (p DiagnosticPolicy) Validate() error {
-	if p <= DiagnosticPolicyUnknown || p >= diagnosticPolicyLimit {
+	if !p.IsValid() {
 		return contractError(errors.New("garble diagnostic policy is outside the admitted domain"))
 	}
 	return nil
+}
+
+// IsValid reports membership in the closed diagnostic-policy domain.
+func (p DiagnosticPolicy) IsValid() bool {
+	return p > DiagnosticPolicyUnknown && p < diagnosticPolicyLimit &&
+		diagnosticPolicyLabels()[p] != ""
+}
+
+// OffWireEnum declares DiagnosticPolicy as build execution policy rather than
+// a wire encoding.
+func (DiagnosticPolicy) OffWireEnum() {}
+
+// String returns the compiler-owned diagnostic label for p.
+func (p DiagnosticPolicy) String() string {
+	if !p.IsValid() {
+		return unknownEnumLabel
+	}
+	return diagnosticPolicyLabels()[p]
 }
 
 // BuildRequest carries the complete Garble-owned build-intent prefix.
@@ -120,12 +171,38 @@ const (
 	argumentKindLimit
 )
 
+func argumentKindLabels() [argumentKindLimit]string {
+	return [...]string{
+		ArgumentKindSeed:     "seed",
+		ArgumentKindLiterals: "literals",
+		ArgumentKindTiny:     "tiny",
+		ArgumentKindBuild:    "build",
+	}
+}
+
 // Validate rejects kinds outside the closed Garble argument domain.
 func (k ArgumentKind) Validate() error {
-	if k <= ArgumentKindUnknown || k >= argumentKindLimit {
+	if !k.IsValid() {
 		return buildIntentError(errors.New(argumentKindDomainDetail))
 	}
 	return nil
+}
+
+// IsValid reports membership in the closed argument-kind domain.
+func (k ArgumentKind) IsValid() bool {
+	return k > ArgumentKindUnknown && k < argumentKindLimit && argumentKindLabels()[k] != ""
+}
+
+// OffWireEnum declares ArgumentKind as CLI lowering policy rather than a wire
+// encoding.
+func (ArgumentKind) OffWireEnum() {}
+
+// String returns the compiler-owned diagnostic label for k.
+func (k ArgumentKind) String() string {
+	if !k.IsValid() {
+		return unknownEnumLabel
+	}
+	return argumentKindLabels()[k]
 }
 
 // Argument is one typed Garble-owned CLI argument. Text lowering is explicit

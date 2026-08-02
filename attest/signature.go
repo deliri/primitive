@@ -3,8 +3,9 @@ package attest
 import (
 	"crypto/ed25519"
 	"encoding/hex"
-	"encoding/json"
 	"errors"
+
+	"github.com/deliri/primitive/v2026/core"
 )
 
 // Signature is an owned, set Ed25519 signature.
@@ -53,7 +54,7 @@ func (s Signature) MarshalJSON() ([]byte, error) {
 	if err != nil {
 		return nil, envelopeJSONError(err)
 	}
-	return json.Marshal(value)
+	return core.MarshalCanonicalJSONString(value)
 }
 
 // UnmarshalJSON accepts one exact lowercase hexadecimal signature.
@@ -61,8 +62,8 @@ func (s *Signature) UnmarshalJSON(data []byte) error {
 	if s == nil {
 		return envelopeJSONError(errors.New(signatureUnsetErrorText))
 	}
-	var value string
-	if err := json.Unmarshal(data, &value); err != nil {
+	value, err := core.DecodeJSONStringToken(data)
+	if err != nil {
 		return envelopeJSONError(err)
 	}
 	if len(value) != hex.EncodedLen(ed25519.SignatureSize) {

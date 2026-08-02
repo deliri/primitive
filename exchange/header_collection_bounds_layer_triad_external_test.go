@@ -331,21 +331,20 @@ func TestClosedModeDomainLayerTriad(t *testing.T) {
 	t.Run("neutral every admitted replay declaration reaches a method decision", func(t *testing.T) {
 		t.Parallel()
 
-		// The replay lattice indexes a fixed-width method array. Every method
-		// core admits must land inside that array rather than panicking, so a
-		// method added to core cannot silently escape the replay contract.
-		methods := [...]core.HTTPMethod{
-			core.HTTPMethodGet,
-			core.HTTPMethodHead,
-			core.HTTPMethodPost,
-			core.HTTPMethodPut,
-			core.HTTPMethodPatch,
-			core.HTTPMethodDelete,
-			core.HTTPMethodOptions,
+		// The replay lattice indexes Exchange's compiler-owned method domain.
+		// Every admitted method must land inside that array rather than panic.
+		methods := [...]exchange.Method{
+			exchange.MethodGet,
+			exchange.MethodHead,
+			exchange.MethodPost,
+			exchange.MethodPut,
+			exchange.MethodPatch,
+			exchange.MethodDelete,
+			exchange.MethodOptions,
 		}
 		for _, method := range methods {
 			if !method.IsValid() {
-				t.Fatalf("core.HTTPMethod(%d).IsValid() = false, want true", method)
+				t.Fatalf("exchange.Method(%d).IsValid() = false, want true", method)
 			}
 			semantics := exchange.RequestSemantics{
 				Method: method, Replay: exchange.ReplaySingleAttempt,
@@ -357,13 +356,6 @@ func TestClosedModeDomainLayerTriad(t *testing.T) {
 					gotErr,
 				)
 			}
-		}
-		if gotCount := uint8(len(methods) + 1); gotCount != core.HTTPMethodCount {
-			t.Fatalf(
-				"method table size = %d, want compiler-owned count %d",
-				gotCount,
-				core.HTTPMethodCount,
-			)
 		}
 	})
 }
@@ -411,7 +403,7 @@ func TestUploadStatusAndDrainCompositionLayerTriad(t *testing.T) {
 				_, _ = io.Copy(io.Discard, request.Body)
 				writer.Header().Set(
 					core.HTTPHeaderContentType().String(),
-					core.HTTPMediaTypeTextPlain().String(),
+					mustHTTPMediaType(t, "text/plain").String(),
 				)
 				writer.WriteHeader(http.StatusInternalServerError)
 				_, _ = writer.Write(
@@ -429,10 +421,10 @@ func TestUploadStatusAndDrainCompositionLayerTriad(t *testing.T) {
 						Target: mustEndpoint(t, server.URL),
 						Source: strings.NewReader(payload),
 						Semantics: exchange.RequestSemantics{
-							Method: core.HTTPMethodPut,
+							Method: exchange.MethodPut,
 							Replay: exchange.ReplaySingleAttempt,
 						},
-						ContentLength: core.NewByteLength(uint64(len(payload))),
+						ContentLength: mustByteLength(t, uint64(len(payload))),
 						ContentType:   core.HTTPMediaTypeOctetStream(),
 						ExpectedStatus: mustHTTPStatus(
 							t,

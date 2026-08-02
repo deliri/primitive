@@ -7,33 +7,51 @@ import (
 	"testing"
 )
 
-func TestValidatedJSONUsesRealPlatformContract(t *testing.T) {
+func TestCoreSchemaLayerTriad(t *testing.T) {
 	t.Parallel()
 
-	platform, err := NewPlatform(OperatingSystemLinux, CPUArchitectureARM64)
-	if err != nil {
-		t.Fatalf("NewPlatform() error = %v, want nil", err)
-	}
-	limits := DefaultStrictJSONLimits()
-	gotWire, gotEncodeErr := EncodeValidatedJSON(platform, limits)
-	if gotEncodeErr != nil {
-		t.Fatalf("EncodeValidatedJSON(Platform) error = %v, want nil", gotEncodeErr)
-	}
-	gotDecoded, gotDecodeErr := DecodeStrictJSON[Platform](gotWire, limits)
-	if gotDecodeErr != nil || gotDecoded != platform {
-		t.Fatalf("DecodeStrictJSON(Platform) = (%v, %v), want (%v, nil)", gotDecoded, gotDecodeErr, platform)
-	}
+	t.Run("positive: a complete status survives strict schema projection", func(t *testing.T) {
+		t.Parallel()
+		status, err := NewHTTPStatusCode(200)
+		if err != nil {
+			t.Fatalf("NewHTTPStatusCode() error = %v, want nil", err)
+		}
+		limits := DefaultStrictJSONLimits()
+		gotWire, gotEncodeErr := EncodeValidatedJSON(status, limits)
+		if gotEncodeErr != nil {
+			t.Fatalf("EncodeValidatedJSON(HTTPStatusCode) error = %v, want nil", gotEncodeErr)
+		}
+		gotDecoded, gotDecodeErr := DecodeStrictJSON[HTTPStatusCode](gotWire, limits)
+		if gotDecodeErr != nil || gotDecoded != status {
+			t.Fatalf("DecodeStrictJSON(HTTPStatusCode) = (%v, %v), want (%v, nil)", gotDecoded, gotDecodeErr, status)
+		}
+	})
 
-	_, gotZeroEncodeErr := EncodeValidatedJSON(Platform{}, limits)
-	if !errors.Is(gotZeroEncodeErr, ErrJSONContract) ||
-		!errors.Is(gotZeroEncodeErr, ErrPrimitiveContract) {
-		t.Fatalf("EncodeValidatedJSON(zero Platform) error = %v, want %v and %v", gotZeroEncodeErr, ErrJSONContract, ErrPrimitiveContract)
-	}
-	_, gotNullDecodeErr := DecodeStrictJSON[Platform]([]byte("null"), limits)
-	if !errors.Is(gotNullDecodeErr, ErrJSONContract) ||
-		!errors.Is(gotNullDecodeErr, ErrPrimitiveContract) {
-		t.Fatalf("DecodeStrictJSON(Platform null) error = %v, want %v and %v", gotNullDecodeErr, ErrJSONContract, ErrPrimitiveContract)
-	}
+	t.Run("negative: missing and null status facts remain typed failures", func(t *testing.T) {
+		t.Parallel()
+		limits := DefaultStrictJSONLimits()
+		_, gotZeroEncodeErr := EncodeValidatedJSON(HTTPStatusCode{}, limits)
+		if !errors.Is(gotZeroEncodeErr, ErrJSONContract) ||
+			!errors.Is(gotZeroEncodeErr, ErrPrimitiveContract) {
+			t.Fatalf("EncodeValidatedJSON(zero HTTPStatusCode) error = %v, want %v and %v", gotZeroEncodeErr, ErrJSONContract, ErrPrimitiveContract)
+		}
+		_, gotNullDecodeErr := DecodeStrictJSON[HTTPStatusCode]([]byte("null"), limits)
+		if !errors.Is(gotNullDecodeErr, ErrJSONContract) ||
+			!errors.Is(gotNullDecodeErr, ErrPrimitiveContract) {
+			t.Fatalf("DecodeStrictJSON(HTTPStatusCode null) error = %v, want %v and %v", gotNullDecodeErr, ErrJSONContract, ErrPrimitiveContract)
+		}
+	})
+
+	t.Run("neutral: a zero byte length remains a meaningful empty extent", func(t *testing.T) {
+		t.Parallel()
+		length, gotErr := NewByteLength(0)
+		if gotErr != nil {
+			t.Fatalf("NewByteLength(0) error = %v, want nil", gotErr)
+		}
+		if length.Uint64() != 0 || length.Validate() != nil {
+			t.Fatalf("NewByteLength(0) = %d validation %v, want 0/nil", length.Uint64(), length.Validate())
+		}
+	})
 }
 
 func TestJSONUnmarshalNilReceiversReturnTypedIdentity(t *testing.T) {
@@ -51,13 +69,9 @@ func TestJSONUnmarshalNilReceiversReturnTypedIdentity(t *testing.T) {
 		{name: "nil Ed25519PublicKey receiver", run: func() error { return (*Ed25519PublicKey)(nil).UnmarshalJSON(nil) }, wantErr: ErrJSONContract},
 		{name: "nil PathComponent receiver", run: func() error { return (*PathComponent)(nil).UnmarshalJSON(nil) }, wantErr: ErrJSONContract},
 		{name: "nil AbsolutePath receiver", run: func() error { return (*AbsolutePath)(nil).UnmarshalJSON(nil) }, wantErr: ErrJSONContract},
-		{name: "nil HTTPMethod receiver", run: func() error { return (*HTTPMethod)(nil).UnmarshalJSON(nil) }, wantErr: ErrJSONContract},
 		{name: "nil HTTPStatusCode receiver", run: func() error { return (*HTTPStatusCode)(nil).UnmarshalJSON(nil) }, wantErr: ErrJSONContract},
 		{name: "nil HTTPHeaderName receiver", run: func() error { return (*HTTPHeaderName)(nil).UnmarshalJSON(nil) }, wantErr: ErrJSONContract},
 		{name: "nil HTTPMediaType receiver", run: func() error { return (*HTTPMediaType)(nil).UnmarshalJSON(nil) }, wantErr: ErrJSONContract},
-		{name: "nil Platform receiver", run: func() error { return (*Platform)(nil).UnmarshalJSON(nil) }, wantErr: ErrJSONContract},
-		{name: "nil OperatingSystem receiver", run: func() error { return (*OperatingSystem)(nil).UnmarshalJSON(nil) }, wantErr: ErrJSONContract},
-		{name: "nil CPUArchitecture receiver", run: func() error { return (*CPUArchitecture)(nil).UnmarshalJSON(nil) }, wantErr: ErrJSONContract},
 		{name: "nil PackageIdentity receiver", run: func() error { return (*PackageIdentity)(nil).UnmarshalJSON(nil) }, wantErr: ErrJSONContract},
 		{name: "nil PackageKind receiver", run: func() error { return (*PackageKind)(nil).UnmarshalJSON(nil) }, wantErr: ErrJSONContract},
 		{name: "nil ErrorIdentity receiver", run: func() error { return (*ErrorIdentity)(nil).UnmarshalJSON(nil) }, wantErr: ErrJSONContract},
@@ -118,18 +132,6 @@ func TestRejectedJSONPreservesTypedReceivers(t *testing.T) {
 	}
 	if status != beforeStatus {
 		t.Fatalf("rejected HTTP status JSON mutated receiver: got %v, want %v", status, beforeStatus)
-	}
-
-	beforePlatform, err := NewPlatform(OperatingSystemLinux, CPUArchitectureAMD64)
-	if err != nil {
-		t.Fatalf("NewPlatform() error = %v, want nil", err)
-	}
-	gotPlatform := beforePlatform
-	if gotErr := json.Unmarshal([]byte(`"linux-386"`), &gotPlatform); !errors.Is(gotErr, ErrJSONContract) {
-		t.Fatalf("json.Unmarshal(Platform future architecture) error = %v, want %v", gotErr, ErrJSONContract)
-	}
-	if gotPlatform != beforePlatform {
-		t.Fatalf("rejected Platform JSON mutated receiver: got %v, want %v", gotPlatform, beforePlatform)
 	}
 }
 

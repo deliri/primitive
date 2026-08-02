@@ -443,7 +443,11 @@ func benchmarkCgroupMountInfoStreaming(b *testing.B, size int) {
 		lines := 0
 		err := (boundedLineScan{
 			reader: bytes.NewReader(data), maximum: uint64(size),
-			visit: func([]byte) error {
+			visit: func(line []byte) error {
+				_, matched, err := parseMountInfoLine(line, WorkloadMemoryLimitSourceCgroupV2)
+				if err != nil || matched {
+					return errors.Join(core.ErrHostFactsObservation, err)
+				}
 				lines++
 				return nil
 			},

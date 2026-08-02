@@ -72,7 +72,7 @@ func TestSHA256DigestHostileCanonicalBoundaryTable(t *testing.T) {
 			if gotHexErr != nil || gotHex != wantHex {
 				t.Fatalf("SHA256Digest.Hex() = (%q, %v), want (%q, nil)", gotHex, gotHexErr, wantHex)
 			}
-			gotParsed, gotParseErr := ParseSHA256Hex(gotHex)
+			gotParsed, gotParseErr := parseSHA256Hex(gotHex)
 			if gotParseErr != nil || gotParsed != value {
 				t.Fatalf("ParseSHA256Hex() = (%v, %v), want (%v, nil)", gotParsed, gotParseErr, value)
 			}
@@ -118,7 +118,7 @@ func TestSHA256DigestHostileCanonicalBoundaryTable(t *testing.T) {
 		t.Run(tc.name, func(t *testing.T) {
 			t.Parallel()
 
-			got, gotErr := ParseSHA256Hex(tc.wire)
+			got, gotErr := parseSHA256Hex(tc.wire)
 			if !errors.Is(gotErr, ErrPrimitiveContract) {
 				t.Fatalf("ParseSHA256Hex(%q) error = %v, want %v", tc.wire, gotErr, ErrPrimitiveContract)
 			}
@@ -132,8 +132,8 @@ func TestSHA256DigestHostileCanonicalBoundaryTable(t *testing.T) {
 func TestCRC32CCanonicalBoundaryTable(t *testing.T) {
 	t.Parallel()
 
-	if got := base64.StdEncoding.EncodedLen(CRC32CBytes); got != CRC32CBase64Bytes {
-		t.Fatalf("base64 encoded CRC32C bytes = %d, want %d", got, CRC32CBase64Bytes)
+	if got := base64.StdEncoding.EncodedLen(crc32CBytes); got != crc32CBase64Bytes {
+		t.Fatalf("base64 encoded CRC32C bytes = %d, want %d", got, crc32CBase64Bytes)
 	}
 
 	values := [...]uint32{
@@ -149,9 +149,10 @@ func TestCRC32CCanonicalBoundaryTable(t *testing.T) {
 			if gotWireErr != nil {
 				t.Fatalf("CRC32C.Base64() error = %v, want nil", gotWireErr)
 			}
-			gotParsed, gotParseErr := ParseCRC32CBase64(gotWire)
+			var gotParsed CRC32C
+			gotParseErr := gotParsed.UnmarshalText([]byte(gotWire))
 			if gotParseErr != nil || gotParsed != checksum {
-				t.Fatalf("ParseCRC32CBase64(%q) = (%v, %v), want (%v, nil)", gotWire, gotParsed, gotParseErr, checksum)
+				t.Fatalf("CRC32C.UnmarshalText(%q) = (%v, %v), want (%v, nil)", gotWire, gotParsed, gotParseErr, checksum)
 			}
 			gotUint32, gotUint32Err := gotParsed.Uint32()
 			if gotUint32Err != nil || gotUint32 != value {
@@ -204,12 +205,13 @@ func TestCRC32CCanonicalBoundaryTable(t *testing.T) {
 		t.Run(tc.name, func(t *testing.T) {
 			t.Parallel()
 
-			got, gotErr := ParseCRC32CBase64(tc.wire)
+			got := NewCRC32C(7)
+			gotErr := got.UnmarshalText([]byte(tc.wire))
 			if !errors.Is(gotErr, ErrPrimitiveContract) {
-				t.Fatalf("ParseCRC32CBase64(%q) error = %v, want %v", tc.wire, gotErr, ErrPrimitiveContract)
+				t.Fatalf("CRC32C.UnmarshalText(%q) error = %v, want %v", tc.wire, gotErr, ErrPrimitiveContract)
 			}
-			if got != (CRC32C{}) {
-				t.Fatalf("ParseCRC32CBase64(%q) value = %v, want zero", tc.wire, got)
+			if got != NewCRC32C(7) {
+				t.Fatalf("CRC32C.UnmarshalText(%q) value = %v, want unchanged", tc.wire, got)
 			}
 		})
 	}
@@ -243,7 +245,7 @@ func TestEd25519PublicKeyOwnershipAndLengthBoundaries(t *testing.T) {
 			if gotHexErr != nil || gotHex != wantHex {
 				t.Fatalf("Ed25519PublicKey.Hex() = (%q, %v), want (%q, nil)", gotHex, gotHexErr, wantHex)
 			}
-			gotParsed, gotParseErr := ParseEd25519PublicKeyHex(gotHex)
+			gotParsed, gotParseErr := parseEd25519PublicKeyHex(gotHex)
 			if gotParseErr != nil || gotParsed != got {
 				t.Fatalf(
 					"ParseEd25519PublicKeyHex(%q) = (%v, %v), want (%v, nil)",
@@ -274,7 +276,7 @@ func TestEd25519PublicKeyOwnershipAndLengthBoundaries(t *testing.T) {
 		0, 1, ed25519.PublicKeySize / 2, ed25519.PublicKeySize - 2,
 		ed25519.PublicKeySize - 1, ed25519.PublicKeySize + 1,
 		ed25519.PublicKeySize + 2, ed25519.PublicKeySize * 2,
-		1024, JSONDocumentMaximumBytes,
+		1024, jsonDocumentMaximumBytes,
 	}
 	for _, length := range invalidLengths {
 		t.Run(fmt.Sprintf("reject key length %d", length), func(t *testing.T) {
@@ -366,7 +368,7 @@ func TestSecretMaterialHostileBoundaryAndRedactionTable(t *testing.T) {
 		{name: "middle all-zero material is rejected", value: make([]byte, 32)},
 		{name: "maximum all-zero material is rejected", value: make([]byte, SecretMaterialMaximumBytes)},
 		{name: "maximum plus one is rejected", value: bytes.Repeat([]byte{1}, SecretMaterialMaximumBytes+1)},
-		{name: "far oversized material is rejected", value: bytes.Repeat([]byte{1}, JSONDocumentMaximumBytes)},
+		{name: "far oversized material is rejected", value: bytes.Repeat([]byte{1}, jsonDocumentMaximumBytes)},
 	}
 	for _, tc := range invalid {
 		t.Run(tc.name, func(t *testing.T) {

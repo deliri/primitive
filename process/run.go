@@ -148,12 +148,24 @@ func newResult(
 	if err != nil {
 		return Result{}, err
 	}
+	stdinBytes, err := core.NewByteLength(streams.stdin.count)
+	if err != nil {
+		return Result{}, err
+	}
+	stdoutBytes, err := core.NewByteLength(streams.stdout.count)
+	if err != nil {
+		return Result{}, err
+	}
+	stderrBytes, err := core.NewByteLength(streams.stderr.count)
+	if err != nil {
+		return Result{}, err
+	}
 	return Result{
 		exit:        exit,
 		cpu:         cpu,
-		stdinBytes:  core.NewByteLength(streams.stdin.count),
-		stdoutBytes: core.NewByteLength(streams.stdout.count),
-		stderrBytes: core.NewByteLength(streams.stderr.count),
+		stdinBytes:  stdinBytes,
+		stdoutBytes: stdoutBytes,
+		stderrBytes: stderrBytes,
 		set:         true,
 	}, nil
 }

@@ -22,15 +22,19 @@ const (
 	comparisonLimit
 )
 
-// comparisonDiagnostics is indexed by Comparison and sized by comparisonLimit.
-// A member added before comparisonLimit without its row fails to compile, so the
-// closed domain is enforced by the build rather than by a switch default that
-// would quietly project the new member as unknown.
-func comparisonDiagnostics() [comparisonLimit]string {
-	return [...]string{
-		ComparisonLess:    comparisonLessDiagnostic,
-		ComparisonEqual:   comparisonEqualDiagnostic,
-		ComparisonGreater: comparisonGreaterDiagnostic,
+type comparisonDiagnostic struct {
+	text       string
+	comparison Comparison
+}
+
+// comparisonDiagnostics is unkeyed and compiler-sized. Adding a member without
+// a row fails to compile; moving a member without its row fails validation.
+func comparisonDiagnostics() [comparisonLimit]comparisonDiagnostic {
+	return [...]comparisonDiagnostic{
+		{comparison: ComparisonUnknown, text: comparisonUnknownDiagnostic},
+		{comparison: ComparisonLess, text: comparisonLessDiagnostic},
+		{comparison: ComparisonEqual, text: comparisonEqualDiagnostic},
+		{comparison: ComparisonGreater, text: comparisonGreaterDiagnostic},
 	}
 }
 
@@ -38,7 +42,11 @@ func comparisonDiagnostics() [comparisonLimit]string {
 // zero row too, so a member that is added to the table with no diagnostic can
 // never be admitted by the range check alone.
 func (c Comparison) Validate() error {
-	if c <= ComparisonUnknown || c >= comparisonLimit || comparisonDiagnostics()[c] == "" {
+	if c <= ComparisonUnknown || c >= comparisonLimit {
+		return ErrPrimitiveContract
+	}
+	diagnostic := comparisonDiagnostics()[c]
+	if diagnostic.comparison != c || diagnostic.text == "" {
 		return ErrPrimitiveContract
 	}
 	return nil
@@ -59,5 +67,5 @@ func (c Comparison) String() string {
 	if err := c.Validate(); err != nil {
 		return comparisonUnknownDiagnostic
 	}
-	return comparisonDiagnostics()[c]
+	return comparisonDiagnostics()[c].text
 }

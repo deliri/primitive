@@ -51,7 +51,7 @@ func BenchmarkUpload10MiBFileOverLoopback(b *testing.B) {
 				Request:     request,
 				Destination: io.Discard,
 				Route: exchange.RouteSemantics{
-					Method: core.HTTPMethodPut,
+					Method: exchange.MethodPut,
 					Replay: exchange.ReplaySingleAttempt,
 				},
 				Policy:              serverPolicy,
@@ -98,10 +98,10 @@ func BenchmarkUpload10MiBFileOverLoopback(b *testing.B) {
 					Target: target,
 					Source: source,
 					Semantics: exchange.RequestSemantics{
-						Method: core.HTTPMethodPut,
+						Method: exchange.MethodPut,
 						Replay: exchange.ReplaySingleAttempt,
 					},
-					ContentLength:  core.NewByteLength(testLargeTransferBytes),
+					ContentLength:  mustByteLength(b, testLargeTransferBytes),
 					ContentType:    core.HTTPMediaTypeOctetStream(),
 					ExpectedStatus: created,
 				},
@@ -164,7 +164,7 @@ func BenchmarkDownload10MiBFileOverLoopback(b *testing.B) {
 				Writer:  writer,
 				Response: exchange.ServerStreamResponse{
 					Source:        section,
-					ContentLength: core.NewByteLength(testLargeTransferBytes),
+					ContentLength: mustByteLength(b, testLargeTransferBytes),
 					ContentType:   core.HTTPMediaTypeOctetStream(),
 					Status:        ok,
 				},
@@ -193,7 +193,7 @@ func BenchmarkDownload10MiBFileOverLoopback(b *testing.B) {
 					Target:      target,
 					Destination: io.Discard,
 					Semantics: exchange.RequestSemantics{
-						Method: core.HTTPMethodGet,
+						Method: exchange.MethodGet,
 						Replay: exchange.ReplaySingleAttempt,
 					},
 					ResponseBodyLimit:           responseLimit,

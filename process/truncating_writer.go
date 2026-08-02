@@ -108,7 +108,7 @@ func (w *TruncatingWriter) RetainedBytes() (core.ByteLength, error) {
 	}
 	w.mu.Lock()
 	defer w.mu.Unlock()
-	return core.NewByteLength(w.retained), nil
+	return core.NewByteLength(w.retained)
 }
 
 // DroppedBytes returns the exact source bytes consumed after the limit.
@@ -118,5 +118,5 @@ func (w *TruncatingWriter) DroppedBytes() (core.ByteLength, error) {
 	}
 	w.mu.Lock()
 	defer w.mu.Unlock()
-	return core.NewByteLength(w.dropped), nil
+	return core.NewByteLength(w.dropped)
 }

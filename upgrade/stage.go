@@ -46,7 +46,12 @@ type StagePolicy struct {
 	FreeSpaceReserve core.ByteLength
 }
 
-func (StagePolicy) Validate() error { return nil }
+func (p StagePolicy) Validate() error {
+	if err := p.FreeSpaceReserve.Validate(); err != nil {
+		return contractError(err)
+	}
+	return nil
+}
 
 // StageRequest binds one authenticated Release handoff to one exact download.
 type StageRequest struct {
@@ -269,10 +274,7 @@ func stageAuthority(
 	if err != nil {
 		return release.Artifact{}, selectionDocument{}, contractError(err)
 	}
-	artifacts, err := installed.Artifacts()
-	if err != nil {
-		return release.Artifact{}, selectionDocument{}, contractError(err)
-	}
+	artifacts := installed.Artifacts()
 	installedArtifact, ok := artifacts.ForPlatform(candidate.Target())
 	if !ok {
 		return release.Artifact{}, selectionDocument{}, contractError(
@@ -305,10 +307,14 @@ func admitStageCapacity(
 	if carry != 0 {
 		return core.ErrNumericOverflow
 	}
+	freeSpaceFloor, err := core.NewByteLength(floor)
+	if err != nil {
+		return err
+	}
 	_, err = hostfacts.AssessDisk(ctx, hostfacts.DiskAssessmentRequest{
 		Directory: request.Directory,
 		Policy: hostfacts.DiskPressurePolicy{
-			FreeSpaceFloor: core.NewByteLength(floor),
+			FreeSpaceFloor: freeSpaceFloor,
 		},
 	})
 	return err
@@ -354,13 +360,17 @@ func downloadCandidate(
 	if extentErr != nil {
 		return result, closeCandidate(file, extentErr)
 	}
+	length, lengthErr := core.NewByteLength(extent)
+	if lengthErr != nil {
+		return result, closeCandidate(file, lengthErr)
+	}
 	download := objectstore.DownloadRequest{
 		Destination: file,
 		ContentType: core.HTTPMediaTypeOctetStream(),
 		Target:      request.Source.Target,
 		Integrity: objectstore.Integrity{
 			SHA256: integrity.SHA256(),
-			Length: core.NewByteLength(extent),
+			Length: length,
 			CRC32C: integrity.CRC32C(),
 		},
 		Policy: request.Source.Policy,

@@ -8,8 +8,8 @@ import (
 )
 
 const (
-	// HTTPEndpointMaximumBytes bounds one absolute HTTP target.
-	HTTPEndpointMaximumBytes = 16 * 1024
+	// httpEndpointMaximumBytes bounds one absolute HTTP target.
+	httpEndpointMaximumBytes = 16 * 1024
 	httpSchemeText           = "http"
 	httpsSchemeText          = "https"
 	httpDefaultPortText      = "80"
@@ -26,7 +26,7 @@ type HTTPEndpoint struct {
 
 // ParseHTTPEndpoint parses and confines one absolute HTTP target.
 func ParseHTTPEndpoint(value string) (HTTPEndpoint, error) {
-	if len(value) == 0 || len(value) > HTTPEndpointMaximumBytes {
+	if len(value) == 0 || len(value) > httpEndpointMaximumBytes {
 		return HTTPEndpoint{}, httpContractError("HTTP endpoint has invalid length")
 	}
 	parsed, err := url.Parse(value)
@@ -161,8 +161,3 @@ func normalizedHTTPPort(value url.URL) string {
 	}
 	return httpsDefaultPortText
 }
-
-var (
-	_ Validatable            = HTTPEndpoint{}
-	_ ValidatedJSONMarshaler = HTTPEndpoint{}
-)

@@ -17,7 +17,7 @@ func TestOwnerValidatorsRejectImpossibleCrossingShapes(t *testing.T) {
 	contradictoryDisk := DiskAssessment{
 		capacity: capacity,
 		policy: DiskPressurePolicy{
-			FreeSpaceFloor: core.NewByteLength(1),
+			FreeSpaceFloor: mustByteLength(t, 1),
 		},
 		state: DiskPressureHealthy,
 	}
@@ -52,7 +52,7 @@ func TestOwnerValidatorsRejectImpossibleCrossingShapes(t *testing.T) {
 		t.Fatalf("core.ParseAbsolutePath(wrong interface) error = %v, want nil", err)
 	}
 	contradictoryWorkload := WorkloadMemoryLimit{
-		path: wrongInterface, limit: core.NewByteLength(1),
+		path: wrongInterface, limit: mustByteLength(t, 1),
 		state: WorkloadMemoryLimitLimited, source: WorkloadMemoryLimitSourceCgroupV2,
 	}
 	if gotErr := contradictoryWorkload.Validate(); !errors.Is(gotErr, core.ErrHostFactsContract) {
@@ -61,7 +61,7 @@ func TestOwnerValidatorsRejectImpossibleCrossingShapes(t *testing.T) {
 
 	for _, examined := range []uint64{0, uint64(len(GoOOMPlainBanner) - 1)} {
 		impossibleEvidence := GoOOMBannerEvidence{
-			examined: core.NewByteLength(examined),
+			examined: mustByteLength(t, examined),
 			state:    GoOOMBannerPresent,
 		}
 		if gotErr := impossibleEvidence.Validate(); !errors.Is(gotErr, core.ErrHostFactsEvidence) {

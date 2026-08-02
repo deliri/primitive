@@ -1,10 +1,12 @@
 package filestore_test
 
 import (
+	"bytes"
 	"errors"
 	"io"
 	"os"
 	"path/filepath"
+	"syscall"
 	"testing"
 
 	"github.com/deliri/primitive/v2026/core"
@@ -62,6 +64,19 @@ func (w hostileWriteBehavior) Write(buffer []byte) (int, error) {
 	default:
 		return 0, io.ErrUnexpectedEOF
 	}
+}
+
+type enospcPrefixWriter struct {
+	destination io.Writer
+	prefixBytes int
+}
+
+func (w enospcPrefixWriter) Write(data []byte) (int, error) {
+	count, err := w.destination.Write(data[:min(w.prefixBytes, len(data))])
+	if err != nil {
+		return count, err
+	}
+	return count, syscall.ENOSPC
 }
 
 func TestStageNoProgressThresholdBoundaryMatrix(t *testing.T) {
@@ -212,5 +227,52 @@ func TestReadRejectsImpossibleWriterCountsWithExactAccounting(t *testing.T) {
 				t.Fatalf("Read() count = %d, want %d", gotCount.Uint64(), tc.wantCount)
 			}
 		})
+	}
+}
+
+func TestReadPreservesExactDestinationPrefixAndENOSPCIdentity(t *testing.T) {
+	t.Parallel()
+
+	rootDirectory := t.TempDir()
+	payload := []byte("destination-pressure")
+	if err := os.WriteFile(filepath.Join(rootDirectory, "source"), payload, 0o600); err != nil {
+		t.Fatal(err)
+	}
+	root := requireTestRoot(t, rootDirectory)
+	var destination bytes.Buffer
+	const acceptedPrefixBytes = 7
+	gotCount, gotErr := filestore.Read(t.Context(), filestore.ReadRequest{
+		Destination: enospcPrefixWriter{
+			destination: &destination,
+			prefixBytes: acceptedPrefixBytes,
+		},
+		Location:     filestore.Location{Root: root, Path: mustRelativePath(t, "source")},
+		MaximumBytes: mustByteCount(t, uint64(len(payload))),
+	})
+	if !errors.Is(gotErr, core.ErrFilestoreDestination) ||
+		!errors.Is(gotErr, syscall.ENOSPC) {
+		t.Fatalf(
+			"Read(partial ENOSPC destination) error = %v, want %v and %v",
+			gotErr,
+			core.ErrFilestoreDestination,
+			syscall.ENOSPC,
+		)
+	}
+	if errors.Is(gotErr, io.ErrShortWrite) {
+		t.Fatalf(
+			"Read(partial ENOSPC destination) error = %v, want no synthetic %v overlay",
+			gotErr,
+			io.ErrShortWrite,
+		)
+	}
+	if gotCount.Uint64() != acceptedPrefixBytes {
+		t.Fatalf("Read(partial ENOSPC destination) count = %d, want %d", gotCount.Uint64(), acceptedPrefixBytes)
+	}
+	if !bytes.Equal(destination.Bytes(), payload[:acceptedPrefixBytes]) {
+		t.Fatalf(
+			"Read(partial ENOSPC destination) bytes = %q, want exact source prefix %q",
+			destination.Bytes(),
+			payload[:acceptedPrefixBytes],
+		)
 	}
 }

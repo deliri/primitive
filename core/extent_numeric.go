@@ -70,14 +70,20 @@ func (c *ByteCount) UnmarshalJSON(data []byte) error {
 	return nil
 }
 
-// ByteLength is a non-negative byte length; unlike ByteCount, zero is meaningful.
+// ByteLength is a non-negative byte length in Go's signed size domain; unlike
+// ByteCount, zero is meaningful. The upper bound matches the int64 quantities
+// exposed by the standard library for file, stream, and HTTP body sizes.
 type ByteLength struct {
 	value uint64
 }
 
 // NewByteLength constructs a non-negative byte length.
-func NewByteLength(value uint64) ByteLength {
-	return ByteLength{value: value}
+func NewByteLength(value uint64) (ByteLength, error) {
+	length := ByteLength{value: value}
+	if err := length.Validate(); err != nil {
+		return ByteLength{}, err
+	}
+	return length, nil
 }
 
 // Uint64 returns the length.
@@ -87,11 +93,25 @@ func (l ByteLength) Uint64() uint64 {
 
 // Int64 returns the length when it fits in int64.
 func (l ByteLength) Int64() (int64, error) {
-	return CheckedInt64FromUint64(l.value)
+	if err := l.Validate(); err != nil {
+		return 0, err
+	}
+	return int64(l.value), nil // #nosec G115 -- Validate proves the conversion is in range.
+}
+
+// Validate rejects lengths outside Go's signed size domain.
+func (l ByteLength) Validate() error {
+	if l.value > math.MaxInt64 {
+		return numericOverflow("byte length exceeds Go's signed size domain")
+	}
+	return nil
 }
 
 // MarshalJSON emits the length as a canonical JSON integer.
 func (l ByteLength) MarshalJSON() ([]byte, error) {
+	if err := l.Validate(); err != nil {
+		return nil, errors.Join(ErrJSONContract, err)
+	}
 	return strconv.AppendUint(nil, l.value, 10), nil
 }
 
@@ -104,7 +124,11 @@ func (l *ByteLength) UnmarshalJSON(data []byte) error {
 	if err != nil {
 		return err
 	}
-	*l = NewByteLength(value)
+	decoded, err := NewByteLength(value)
+	if err != nil {
+		return errors.Join(ErrJSONContract, err)
+	}
+	*l = decoded
 	return nil
 }
 
@@ -131,36 +155,6 @@ func CheckedUint64FromInt64(value int64) (uint64, error) {
 		return 0, numericOverflow("negative int64 does not fit uint64")
 	}
 	return uint64(value), nil
-}
-
-// ParseCanonicalUint64JSON admits exactly the unsigned decimal text strconv
-// emits. It is the single owner of the canonical-integer rule: parse, re-encode,
-// and require byte equality. That makes the accepted grammar the encoder's own
-// output rather than a second hand-written grammar that can drift from it, so a
-// quoted number, a plus sign, a leading zero, a fraction, an exponent, or
-// surrounding whitespace is rejected without enumerating those cases.
-//
-// A value therefore has exactly one accepted encoding, which is the property a
-// byte-signing protocol depends on.
-func ParseCanonicalUint64JSON(data []byte) (uint64, error) {
-	return parseCanonicalUint64JSON(data)
-}
-
-// ParseCanonicalInt64JSON admits exactly the signed decimal text strconv emits,
-// under the same round-trip rule as ParseCanonicalUint64JSON. Negative zero is
-// rejected because strconv never emits it.
-func ParseCanonicalInt64JSON(data []byte) (int64, error) {
-	if len(data) == 0 {
-		return 0, errors.Join(ErrJSONContract, errors.New("empty signed integer"))
-	}
-	value, err := strconv.ParseInt(string(data), 10, 64)
-	if err != nil {
-		return 0, errors.Join(ErrJSONContract, err)
-	}
-	if !bytes.Equal(data, strconv.AppendInt(nil, value, 10)) {
-		return 0, errors.Join(ErrJSONContract, errors.New("signed integer is not canonical"))
-	}
-	return value, nil
 }
 
 func parseCanonicalUint64JSON(data []byte) (uint64, error) {

@@ -71,6 +71,30 @@ func TestCodeDefinitionMatrixIsClosedAndCanonical(t *testing.T) {
 	}
 }
 
+func TestCurrencySchemaLayerTriad(t *testing.T) {
+	t.Parallel()
+
+	cases := []struct {
+		wantErr error
+		name    string
+		value   currency.Amount
+	}{
+		{name: "positive complete amount", value: mustAmount(t, currency.CodeCAD, 1)},
+		{name: "negative missing currency", value: currency.Amount{}, wantErr: core.ErrCurrencyContract},
+		{name: "neutral zero minor units", value: mustAmount(t, currency.CodeCAD, 0)},
+	}
+	for _, tc := range cases {
+		t.Run(tc.name, func(t *testing.T) {
+			t.Parallel()
+
+			gotErr := tc.value.Validate()
+			if !errors.Is(gotErr, tc.wantErr) {
+				t.Fatalf("Amount.Validate() error = %v, want %v", gotErr, tc.wantErr)
+			}
+		})
+	}
+}
+
 func TestCodeRejectsOutsideDomainAndNoncanonicalTokens(t *testing.T) {
 	t.Parallel()
 

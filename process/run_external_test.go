@@ -18,6 +18,7 @@ import (
 	"github.com/deliri/primitive/v2026/core"
 	"github.com/deliri/primitive/v2026/process"
 	"github.com/deliri/primitive/v2026/temporal"
+	"github.com/deliri/primitive/v2026/testserial"
 )
 
 // processTestBackstop is the deadlock backstop for every wait in this package.
@@ -640,8 +641,8 @@ func TestRunSerializesOneWriterSharedByBothOutputStreams(t *testing.T) {
 			2*perStream,
 		)
 	}
-	if shared.concurrent() {
-		t.Fatal("shared writer observed overlapping writes, want serialized forwarding")
+	if gotConcurrent := shared.concurrent(); gotConcurrent {
+		t.Errorf("shared writer concurrent observation = %t, want false", gotConcurrent)
 	}
 }
 
@@ -1088,7 +1089,7 @@ func TestRunWaitDelayBoundsALingeringDescendant(t *testing.T) {
 		Stdin: bytes.NewReader(nil), Stdout: io.Discard, Stderr: io.Discard,
 	})
 	request.WaitDelay = milliseconds(t, 300)
-	got, gotErr := runWithinBackstop(t, context.Background(), request)
+	got, gotErr := runWithinBackstop(context.Background(), t, request)
 	if !errors.Is(gotErr, core.ErrProcessWait) ||
 		!errors.Is(gotErr, exec.ErrWaitDelay) {
 		t.Fatalf(
@@ -1293,6 +1294,11 @@ func TestRunStartFailurePressure(t *testing.T) {
 // returns immediately and asserts nothing. In a child run it never returns: it
 // performs one behavior and calls os.Exit, which is why it cannot be parallel.
 func TestProcessHelper(t *testing.T) {
+	testserial.Declare(t, core.TestIsolationDeclaration{
+		Hazard: core.TestIsolationHazardProcessOutput,
+		Scope:  core.TestIsolationScopePackageProcess,
+	})
+
 	behavior, arguments, selected := helperBehavior()
 	if !selected {
 		return
@@ -1528,8 +1534,8 @@ type runOutcome struct {
 // runWithinBackstop proves a Run that is expected to terminate on its own does
 // so, instead of letting a wedged wait stall the package test binary.
 func runWithinBackstop(
-	tb testing.TB,
 	ctx context.Context,
+	tb testing.TB,
 	request process.Request,
 ) (process.Result, error) {
 	tb.Helper()

@@ -4,6 +4,8 @@ import (
 	"encoding/json"
 	"errors"
 	"math"
+	"strconv"
+	"strings"
 	"testing"
 
 	"github.com/deliri/primitive/v2026/core"
@@ -32,12 +34,13 @@ func TestReleaseVersionBoundaries(t *testing.T) {
 	for _, tc := range cases {
 		t.Run(tc.name, func(t *testing.T) {
 			t.Parallel()
-			got, err := core.ParseReleaseVersion(tc.text)
+			var got core.ReleaseVersion
+			err := json.Unmarshal([]byte(strconv.Quote(tc.text)), &got)
 			if !errors.Is(err, tc.wantErr) {
-				t.Fatalf("ParseReleaseVersion(%q) error = %v, want %v", tc.text, err, tc.wantErr)
+				t.Fatalf("json.Unmarshal(ReleaseVersion %q) error = %v, want %v", tc.text, err, tc.wantErr)
 			}
 			if err == nil && got != tc.want {
-				t.Fatalf("ParseReleaseVersion(%q) = %v, want %v", tc.text, got, tc.want)
+				t.Fatalf("json.Unmarshal(ReleaseVersion %q) = %v, want %v", tc.text, got, tc.want)
 			}
 		})
 	}
@@ -113,8 +116,7 @@ func TestOfferingExhaustsCompleteByteDomain(t *testing.T) {
 	for value := range 256 {
 		offering := core.Offering(value)
 		wantValid := offering == core.OfferingBug ||
-			offering == core.OfferingWitness ||
-			offering == core.OfferingPeachfuzz
+			offering == core.OfferingWitness
 		if offering.IsValid() != wantValid {
 			t.Fatalf("Offering(%d).IsValid() = %v, want %v", value, offering.IsValid(), wantValid)
 		}
@@ -123,10 +125,6 @@ func TestOfferingExhaustsCompleteByteDomain(t *testing.T) {
 		}
 		if !wantValid {
 			continue
-		}
-		parsed, err := core.ParseOffering(offering.String())
-		if err != nil || parsed != offering {
-			t.Fatalf("ParseOffering(%q) = (%v, %v), want (%v, nil)", offering.String(), parsed, err, offering)
 		}
 		encoded, err := json.Marshal(offering)
 		if err != nil {
@@ -138,8 +136,9 @@ func TestOfferingExhaustsCompleteByteDomain(t *testing.T) {
 		}
 	}
 
-	if _, err := core.ParseOffering("Witness"); !errors.Is(err, core.ErrPrimitiveContract) {
-		t.Fatalf("ParseOffering(alternate case) error = %v, want %v", err, core.ErrPrimitiveContract)
+	var alternateCase core.Offering
+	if err := json.Unmarshal([]byte(`"Witness"`), &alternateCase); !errors.Is(err, core.ErrPrimitiveContract) {
+		t.Fatalf("json.Unmarshal(Offering alternate case) error = %v, want %v", err, core.ErrPrimitiveContract)
 	}
 	var receiver *core.Offering
 	if err := receiver.UnmarshalJSON([]byte(`"witness"`)); !errors.Is(err, core.ErrJSONContract) {
@@ -147,78 +146,6 @@ func TestOfferingExhaustsCompleteByteDomain(t *testing.T) {
 	}
 	if _, err := json.Marshal(core.OfferingUnknown); !errors.Is(err, core.ErrJSONContract) {
 		t.Fatalf("json.Marshal(OfferingUnknown) error = %v, want %v", err, core.ErrJSONContract)
-	}
-}
-
-func TestReleaseOfferingMismatchErrorOwnsExactTypedFacts(t *testing.T) {
-	t.Parallel()
-
-	mismatch, err := core.NewReleaseOfferingMismatchError(
-		core.OfferingWitness,
-		core.OfferingBug,
-	)
-	if err != nil {
-		t.Fatalf("NewReleaseOfferingMismatchError() error = %v, want nil", err)
-	}
-	if err := mismatch.Validate(); err != nil {
-		t.Fatalf("ReleaseOfferingMismatchError.Validate() error = %v, want nil", err)
-	}
-	if mismatch.Observed() != core.OfferingWitness ||
-		mismatch.Expected() != core.OfferingBug {
-		t.Fatalf(
-			"ReleaseOfferingMismatchError facts = (%v, %v), want (%v, %v)",
-			mismatch.Observed(),
-			mismatch.Expected(),
-			core.OfferingWitness,
-			core.OfferingBug,
-		)
-	}
-	if !errors.Is(mismatch, core.ErrReleaseVerification) {
-		t.Fatalf(
-			"ReleaseOfferingMismatchError identity = %v, want %v",
-			mismatch,
-			core.ErrReleaseVerification,
-		)
-	}
-
-	cases := []struct {
-		name         string
-		observed     core.Offering
-		wantOffering core.Offering
-	}{
-		{name: "unknown observed offering is rejected", observed: core.OfferingUnknown, wantOffering: core.OfferingBug},
-		{name: "future observed offering is rejected", observed: core.Offering(255), wantOffering: core.OfferingBug},
-		{name: "unknown expected offering is rejected", observed: core.OfferingBug, wantOffering: core.OfferingUnknown},
-		{name: "future expected offering is rejected", observed: core.OfferingBug, wantOffering: core.Offering(255)},
-		{name: "equal bug offerings are not a mismatch", observed: core.OfferingBug, wantOffering: core.OfferingBug},
-		{name: "equal witness offerings are not a mismatch", observed: core.OfferingWitness, wantOffering: core.OfferingWitness},
-		{name: "equal peachfuzz offerings are not a mismatch", observed: core.OfferingPeachfuzz, wantOffering: core.OfferingPeachfuzz},
-	}
-	for _, tc := range cases {
-		t.Run(tc.name, func(t *testing.T) {
-			t.Parallel()
-			got, err := core.NewReleaseOfferingMismatchError(tc.observed, tc.wantOffering)
-			if !errors.Is(err, core.ErrPrimitiveContract) {
-				t.Fatalf(
-					"NewReleaseOfferingMismatchError(%v, %v) error = %v, want %v",
-					tc.observed,
-					tc.wantOffering,
-					err,
-					core.ErrPrimitiveContract,
-				)
-			}
-			if got != (core.ReleaseOfferingMismatchError{}) {
-				t.Fatalf(
-					"NewReleaseOfferingMismatchError(%v, %v) = %v, want zero",
-					tc.observed,
-					tc.wantOffering,
-					got,
-				)
-			}
-		})
-	}
-	if err := (core.ReleaseOfferingMismatchError{}).Validate(); !errors.Is(err, core.ErrPrimitiveContract) {
-		t.Fatalf("zero ReleaseOfferingMismatchError.Validate() error = %v, want %v", err, core.ErrPrimitiveContract)
 	}
 }
 
@@ -278,15 +205,37 @@ func TestBuildIdentityAccessorsAreExactCompilerOwnedFacts(t *testing.T) {
 	}
 }
 
+func TestReleaseIdentityTextDecodersBoundInputAndPreserveReceivers(t *testing.T) {
+	t.Parallel()
+
+	offering := core.OfferingWitness
+	if gotErr := offering.UnmarshalText([]byte(strings.Repeat("x", 1<<20))); !errors.Is(gotErr, core.ErrPrimitiveContract) || offering != core.OfferingWitness {
+		t.Fatalf("Offering.UnmarshalText(oversized) = (%v, %v), want preserved %v and %v", offering, gotErr, core.OfferingWitness, core.ErrPrimitiveContract)
+	}
+	version := core.NewReleaseVersion(2026, 8, 2)
+	if gotErr := version.UnmarshalText([]byte(strings.Repeat("9", 1<<20))); !errors.Is(gotErr, core.ErrPrimitiveContract) || version != core.NewReleaseVersion(2026, 8, 2) {
+		t.Fatalf("ReleaseVersion.UnmarshalText(oversized) = (%v, %v), want preserved receiver and %v", version, gotErr, core.ErrPrimitiveContract)
+	}
+	if gotErr := (*core.Offering)(nil).UnmarshalText(nil); !errors.Is(gotErr, core.ErrPrimitiveContract) {
+		t.Fatalf("nil Offering.UnmarshalText() error = %v, want %v", gotErr, core.ErrPrimitiveContract)
+	}
+	if gotErr := (*core.ReleaseVersion)(nil).UnmarshalText(nil); !errors.Is(gotErr, core.ErrPrimitiveContract) {
+		t.Fatalf("nil ReleaseVersion.UnmarshalText() error = %v, want %v", gotErr, core.ErrPrimitiveContract)
+	}
+}
+
 func releaseIdentityFixture(t *testing.T, offering core.Offering) core.BuildIdentity {
 	t.Helper()
 	commit, err := core.ParseBuildCommit("0123456789abcdef0123456789abcdef01234567")
 	if err != nil {
 		t.Fatalf("ParseBuildCommit() error = %v", err)
 	}
-	platform, err := core.NewPlatform(core.OperatingSystemLinux, core.CPUArchitectureAMD64)
-	if err != nil {
-		t.Fatalf("NewPlatform() error = %v", err)
+	platform := core.Platform{
+		OperatingSystem: core.OperatingSystemLinux,
+		Architecture:    core.CPUArchitectureAMD64,
+	}
+	if err := platform.Validate(); err != nil {
+		t.Fatalf("Platform.Validate() error = %v", err)
 	}
 	identity, err := core.NewBuildIdentity(core.BuildIdentityRequest{
 		Offering: offering,

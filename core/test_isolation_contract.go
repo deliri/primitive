@@ -21,6 +21,8 @@ const (
 	TestIsolationDeclarationScopeFieldName = "Scope"
 )
 
+const testIsolationUnknownDiagnostic = "unknown"
+
 // TestIsolationHazard identifies a generic shared-state hazard that prevents a
 // Go test from safely running in parallel.
 type TestIsolationHazard uint8
@@ -47,9 +49,35 @@ const (
 	testIsolationHazardLimit
 )
 
+func testIsolationHazardDiagnostics() [testIsolationHazardLimit]string {
+	return [...]string{
+		TestIsolationHazardProcessEnvironment:      "process-environment",
+		TestIsolationHazardProcessWorkingDirectory: "process-working-directory",
+		TestIsolationHazardProcessSignal:           "process-signal",
+		TestIsolationHazardProcessOutput:           "process-output",
+		TestIsolationHazardProcessLogger:           "process-logger",
+		TestIsolationHazardGlobalRegistry:          "global-registry",
+		TestIsolationHazardRuntimeAllocation:       "runtime-allocation",
+		TestIsolationHazardSiblingOrder:            "sibling-order",
+	}
+}
+
 // IsValid reports whether h belongs to the closed hazard domain.
 func (h TestIsolationHazard) IsValid() bool {
-	return h > TestIsolationHazardUnknown && h < testIsolationHazardLimit
+	return h > TestIsolationHazardUnknown && h < testIsolationHazardLimit &&
+		testIsolationHazardDiagnostics()[h] != ""
+}
+
+// OffWireEnum declares TestIsolationHazard as analyzer policy rather than a
+// wire encoding.
+func (TestIsolationHazard) OffWireEnum() {}
+
+// String returns the compiler-owned diagnostic label for h.
+func (h TestIsolationHazard) String() string {
+	if !h.IsValid() {
+		return testIsolationUnknownDiagnostic
+	}
+	return testIsolationHazardDiagnostics()[h]
 }
 
 // Validate rejects hazards outside the closed domain.
@@ -85,9 +113,9 @@ func (h TestIsolationHazard) GoIdentifier() string {
 	}
 }
 
-// ParseTestIsolationHazardGoIdentifier resolves only an exact Core-owned
+// parseTestIsolationHazardGoIdentifier resolves only an exact Core-owned
 // hazard constant identifier.
-func ParseTestIsolationHazardGoIdentifier(
+func parseTestIsolationHazardGoIdentifier(
 	identifier string,
 ) (TestIsolationHazard, error) {
 	// GoIdentifier answers the empty string for every value outside the closed
@@ -119,9 +147,29 @@ const (
 	testIsolationScopeLimit
 )
 
+func testIsolationScopeDiagnostics() [testIsolationScopeLimit]string {
+	return [...]string{
+		TestIsolationScopeSiblingTable:   "sibling-table",
+		TestIsolationScopePackageProcess: "package-process",
+	}
+}
+
 // IsValid reports whether s belongs to the closed scope domain.
 func (s TestIsolationScope) IsValid() bool {
-	return s > TestIsolationScopeUnknown && s < testIsolationScopeLimit
+	return s > TestIsolationScopeUnknown && s < testIsolationScopeLimit &&
+		testIsolationScopeDiagnostics()[s] != ""
+}
+
+// OffWireEnum declares TestIsolationScope as analyzer policy rather than a
+// wire encoding.
+func (TestIsolationScope) OffWireEnum() {}
+
+// String returns the compiler-owned diagnostic label for s.
+func (s TestIsolationScope) String() string {
+	if !s.IsValid() {
+		return testIsolationUnknownDiagnostic
+	}
+	return testIsolationScopeDiagnostics()[s]
 }
 
 // Validate rejects scopes outside the closed domain.
@@ -145,9 +193,9 @@ func (s TestIsolationScope) GoIdentifier() string {
 	}
 }
 
-// ParseTestIsolationScopeGoIdentifier resolves only an exact Core-owned scope
+// parseTestIsolationScopeGoIdentifier resolves only an exact Core-owned scope
 // constant identifier.
-func ParseTestIsolationScopeGoIdentifier(
+func parseTestIsolationScopeGoIdentifier(
 	identifier string,
 ) (TestIsolationScope, error) {
 	// The empty identifier is rejected for the same reason as the hazard

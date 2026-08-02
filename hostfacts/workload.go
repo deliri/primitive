@@ -18,6 +18,15 @@ const (
 	workloadMemoryLimitStateLimit
 )
 
+func workloadMemoryLimitStateLabels() [workloadMemoryLimitStateLimit]string {
+	return [...]string{
+		WorkloadMemoryLimitUnsupported: "unsupported",
+		WorkloadMemoryLimitUnavailable: "unavailable",
+		WorkloadMemoryLimitUnlimited:   "unlimited",
+		WorkloadMemoryLimitLimited:     "limited",
+	}
+}
+
 // Validate rejects states outside the closed domain.
 func (s WorkloadMemoryLimitState) Validate() error {
 	if !s.IsValid() {
@@ -28,7 +37,20 @@ func (s WorkloadMemoryLimitState) Validate() error {
 
 // IsValid reports membership in the closed state domain.
 func (s WorkloadMemoryLimitState) IsValid() bool {
-	return s > WorkloadMemoryLimitUnknown && s < workloadMemoryLimitStateLimit
+	return s > WorkloadMemoryLimitUnknown && s < workloadMemoryLimitStateLimit &&
+		workloadMemoryLimitStateLabels()[s] != ""
+}
+
+// OffWireEnum declares WorkloadMemoryLimitState as a runtime observation
+// rather than a wire encoding.
+func (WorkloadMemoryLimitState) OffWireEnum() {}
+
+// String returns the compiler-owned diagnostic label for s.
+func (s WorkloadMemoryLimitState) String() string {
+	if !s.IsValid() {
+		return unknownOperationText
+	}
+	return workloadMemoryLimitStateLabels()[s]
 }
 
 // WorkloadMemoryLimitSource identifies the kernel interface used.
@@ -42,6 +64,14 @@ const (
 	workloadMemoryLimitSourceLimit
 )
 
+func workloadMemoryLimitSourceLabels() [workloadMemoryLimitSourceLimit]string {
+	return [...]string{
+		WorkloadMemoryLimitSourceNone:     "none",
+		WorkloadMemoryLimitSourceCgroupV2: "cgroup-v2",
+		WorkloadMemoryLimitSourceCgroupV1: "cgroup-v1",
+	}
+}
+
 // Validate rejects sources outside the closed domain.
 func (s WorkloadMemoryLimitSource) Validate() error {
 	if !s.IsValid() {
@@ -52,7 +82,20 @@ func (s WorkloadMemoryLimitSource) Validate() error {
 
 // IsValid reports membership in the closed source domain.
 func (s WorkloadMemoryLimitSource) IsValid() bool {
-	return s > WorkloadMemoryLimitSourceUnknown && s < workloadMemoryLimitSourceLimit
+	return s > WorkloadMemoryLimitSourceUnknown && s < workloadMemoryLimitSourceLimit &&
+		workloadMemoryLimitSourceLabels()[s] != ""
+}
+
+// OffWireEnum declares WorkloadMemoryLimitSource as a runtime observation
+// rather than a wire encoding.
+func (WorkloadMemoryLimitSource) OffWireEnum() {}
+
+// String returns the compiler-owned diagnostic label for s.
+func (s WorkloadMemoryLimitSource) String() string {
+	if !s.IsValid() {
+		return unknownOperationText
+	}
+	return workloadMemoryLimitSourceLabels()[s]
 }
 
 // WorkloadMemoryLimit is the effective cgroup hard limit for the current

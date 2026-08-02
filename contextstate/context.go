@@ -6,14 +6,6 @@ import (
 	"github.com/deliri/primitive/v2026/core"
 )
 
-type contextErrorObservation uint8
-
-const (
-	contextErrorObservationUnknown contextErrorObservation = iota
-	contextErrorObservationSafe
-	contextErrorObservationUnsafe
-)
-
 // Validate admits ctx only when it is usable now. It returns the exact standard
 // terminal sentinel for a cancelled or expired context.
 //
@@ -44,48 +36,65 @@ func Validate(ctx context.Context) error {
 func ObserveAfterDone(ctx context.Context) (State, error) {
 	state, err := Observe(ctx)
 	if err != nil {
-		return StateUnknown, err
+		return stateUnknown, err
 	}
 	if state == StateNone {
-		return StateUnknown, core.ErrContextObservation
+		return stateUnknown, core.ErrContextObservation
 	}
 	return state, nil
 }
 
 // Observe returns the current standard terminal state. An active context
-// returns StateNone. A nil, panicking, or nonstandard context returns
-// StateUnknown with a typed error.
+// returns StateNone. A nil, panicking, or nonstandard context returns the zero
+// State with a typed error.
 func Observe(ctx context.Context) (State, error) {
 	if ctx == nil {
-		return StateUnknown, core.ErrNilContext
+		return stateUnknown, core.ErrNilContext
 	}
-	observation, terminal := readContextError(ctx)
-	if observation != contextErrorObservationSafe {
-		return StateUnknown, core.ErrContextObservation
+	terminal, err := readContextError(ctx)
+	if err != nil {
+		return stateUnknown, err
 	}
 	if terminal == nil {
 		return StateNone, nil
 	}
-	state, err := Classify(terminal)
-	if err != nil {
-		return StateUnknown, err
+	return classifyContextTerminal(terminal)
+}
+
+func classifyContextTerminal(terminal error) (
+	state State,
+	err error,
+) {
+	state = stateUnknown
+	err = core.ErrContextObservation
+	defer func() {
+		if recover() != nil {
+			state = stateUnknown
+			err = core.ErrContextObservation
+		}
+	}()
+	switch terminal {
+	case nil:
+		return StateNone, nil
+	case context.Canceled:
+		return StateCancelled, nil
+	case context.DeadlineExceeded:
+		return StateDeadlineExceeded, nil
+	default:
+		return stateUnknown, core.ErrContextObservation
 	}
-	if state == StateNone {
-		return StateUnknown, core.ErrContextObservation
-	}
-	return state, nil
 }
 
 func readContextError(ctx context.Context) (
-	observation contextErrorObservation,
 	terminal error,
+	err error,
 ) {
-	observation = contextErrorObservationUnsafe
+	err = core.ErrContextObservation
 	defer func() {
 		if recover() != nil {
 			terminal = nil
-			observation = contextErrorObservationUnsafe
+			err = core.ErrContextObservation
 		}
 	}()
-	return contextErrorObservationSafe, ctx.Err()
+	return ctx.Err(), nil
 }

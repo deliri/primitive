@@ -7,15 +7,13 @@ import (
 const unknownErrorIdentityText = "unknown primitive error identity"
 
 const (
-	// ErrorIdentityMaximumParents is the compile-time parent arity of an identity.
-	ErrorIdentityMaximumParents = 2
-	errorIdentityMaximumLevels  = 4
-	errorIdentityTraversalLimit = ErrorIdentityMaximumParents * errorIdentityMaximumLevels
+	// errorIdentityMaximumParents is the compile-time parent arity of an identity.
+	errorIdentityMaximumParents = 2
 	errorIdentityVisitWordBits  = 64
 )
 
 type errorIdentityParentSet struct {
-	values [ErrorIdentityMaximumParents]ErrorIdentity
+	values [errorIdentityMaximumParents]ErrorIdentity
 	count  uint8
 }
 
@@ -263,418 +261,140 @@ const (
 	// ErrReceiptConflict identifies incompatible watermark histories or scopes.
 	ErrReceiptConflict
 
-	// ErrGovernanceContract identifies a governance contract violation.
-	ErrGovernanceContract
-	// ErrGovernanceDocumentSource identifies a governance document that could
-	// not be read. Core owns this rejection so a caller distinguishes an
-	// unreadable document from one whose content violates the contract.
-	ErrGovernanceDocumentSource
-	// ErrGovernanceDocumentLength identifies a governance document whose byte
-	// length is not the exact canonical length.
-	ErrGovernanceDocumentLength
-	// ErrGovernanceDocumentDigest identifies a governance document whose digest
-	// is not the canonical digest.
-	ErrGovernanceDocumentDigest
-
 	errorIdentityLimit
 )
 
 var _ [2*errorIdentityVisitWordBits - int(errorIdentityLimit)]struct{}
 
+// errorIdentityDiagnostic binds one ordinal to its stable text. Keeping both
+// in one unkeyed table makes addition a compile error and makes reordering an
+// explicit row-identity failure instead of silently changing dispatch.
+type errorIdentityDiagnostic struct {
+	text     string
+	identity ErrorIdentity
+}
+
+func errorIdentityDiagnostics() [errorIdentityLimit]errorIdentityDiagnostic {
+	return [...]errorIdentityDiagnostic{
+		{identity: ErrUnknown, text: unknownErrorIdentityText},
+		{identity: ErrPrimitiveContract, text: "primitive contract violation"},
+		{identity: ErrJSONContract, text: "json contract violation"},
+		{identity: ErrNumericOverflow, text: "numeric overflow"},
+		{identity: ErrSecretMaterialAllZero, text: "secret material is all zero"},
+		{identity: ErrAttestContract, text: "attest contract violation"},
+		{identity: ErrAttestVerification, text: "attest verification failed"},
+		{identity: ErrContextStateContract, text: "context state contract violation"},
+		{identity: ErrNilContext, text: "nil context"},
+		{identity: ErrContextObservation, text: "context observation failed"},
+		{identity: ErrCurrencyContract, text: "currency contract violation"},
+		{identity: ErrCurrencyMismatch, text: "currency mismatch"},
+		{identity: ErrCurrencyOverflow, text: "currency overflow"},
+		{identity: ErrCurrencyDecimal, text: "currency decimal rejected"},
+		{identity: ErrGarbleContract, text: "garble contract violation"},
+		{identity: ErrGarbleDerivation, text: "garble derivation failed"},
+		{identity: ErrGarbleBuildIntent, text: "garble build intent rejected"},
+		{identity: ErrKeygenContract, text: "key generation contract violation"},
+		{identity: ErrKeygenEntropy, text: "key generation entropy failed"},
+		{identity: ErrTestIsolationContract, text: "test isolation contract violation"},
+		{identity: ErrFilestoreContract, text: "filestore contract violation"},
+		{identity: ErrFilestoreSize, text: "filestore size rejected"},
+		{identity: ErrFilestoreSource, text: "filestore source failed"},
+		{identity: ErrFilestoreDestination, text: "filestore destination failed"},
+		{identity: ErrFilestoreConflict, text: "filestore namespace conflict"},
+		{identity: ErrFilestoreActivation, text: "filestore activation failed"},
+		{identity: ErrFilestoreActivationIndeterminate, text: "filestore activation indeterminate"},
+		{identity: ErrFilestoreCleanup, text: "filestore cleanup failed"},
+		{identity: ErrHostFacts, text: "host facts failure"},
+		{identity: ErrHostFactsContract, text: "host facts contract violation"},
+		{identity: ErrHostFactsObservation, text: "host facts observation failed"},
+		{identity: ErrHostFactsUnsupported, text: "host facts observation unsupported"},
+		{identity: ErrHostFactsPressure, text: "host facts pressure reached"},
+		{identity: ErrHostFactsEvidence, text: "host facts evidence invalid"},
+		{identity: ErrDiskCapacityUnsupported, text: "disk capacity observation unsupported"},
+		{identity: ErrTreeMeasurementUnsupported, text: "tree measurement unsupported"},
+		{identity: ErrDiskFloorReached, text: "disk floor reached"},
+		{identity: ErrMemoryLimitReached, text: "memory limit reached"},
+		{identity: ErrTemporalContract, text: "temporal contract violation"},
+		{identity: ErrTemporalOverflow, text: "temporal arithmetic overflow"},
+		{identity: ErrExchangeContract, text: "exchange contract violation"},
+		{identity: ErrExchangeRequest, text: "exchange request rejected"},
+		{identity: ErrExchangeResponse, text: "exchange response rejected"},
+		{identity: ErrExchangeBodyLimit, text: "exchange body limit exceeded"},
+		{identity: ErrExchangeContentType, text: "exchange content type rejected"},
+		{identity: ErrExchangeCancelled, text: "exchange cancelled"},
+		{identity: ErrExchangeRedirect, text: "exchange redirect rejected"},
+		{identity: ErrExchangeTransport, text: "exchange transport failed"},
+		{identity: ErrExchangeRetryExhausted, text: "exchange retry budget exhausted"},
+		{identity: ErrExchangeWrite, text: "exchange write failed"},
+		{identity: ErrFuzzFinderContract, text: "fuzz finder contract violation"},
+		{identity: ErrFuzzFinderFormat, text: "Go fuzz artifact format unsupported"},
+		{identity: ErrFuzzFinderObservation, text: "fuzz artifact observation failed"},
+		{identity: ErrLeaseContract, text: "lease contract violation"},
+		{identity: ErrLeaseVerification, text: "lease verification failed"},
+		{identity: ErrLeaseRollback, text: "lease rollback rejected"},
+		{identity: ErrLeaseConflict, text: "lease identity conflict"},
+		{identity: ErrLeaseScope, text: "lease subject mismatch"},
+		{identity: ErrLeaseClock, text: "lease clock contradiction"},
+		{identity: ErrGateContract, text: "gate contract violation"},
+		{identity: ErrGateDenied, text: "gate denied new work"},
+		{identity: ErrProcessContract, text: "process contract violation"},
+		{identity: ErrProcessStart, text: "process start failed"},
+		{identity: ErrProcessStream, text: "process stream failed"},
+		{identity: ErrProcessOutputLimit, text: "process output limit exceeded"},
+		{identity: ErrProcessWait, text: "process wait failed"},
+		{identity: ErrReleaseContract, text: "release contract violation"},
+		{identity: ErrReleaseManifest, text: "release manifest rejected"},
+		{identity: ErrReleaseVerification, text: "release verification failed"},
+		{identity: ErrReleaseLatest, text: "release latest rejected"},
+		{identity: ErrReleaseRollback, text: "release rollback rejected"},
+		{identity: ErrReleaseConflict, text: "release identity conflict"},
+		{identity: ErrShutdownContract, text: "shutdown contract violation"},
+		{identity: ErrShutdownStepFailure, text: "shutdown step failed"},
+		{identity: ErrShutdownStepTimeout, text: "shutdown step timed out"},
+		{identity: ErrShutdownStepPanic, text: "shutdown step panicked"},
+		{identity: ErrShutdownTotalTimeout, text: "shutdown total budget expired"},
+		{identity: ErrShutdownSignalSource, text: "shutdown signal source failed"},
+		{identity: ErrShutdownSignalReceived, text: "shutdown signal received"},
+		{identity: ErrObjectStoreContract, text: "object store contract violation"},
+		{identity: ErrObjectStoreExpired, text: "object store target expired"},
+		{identity: ErrObjectStoreIntegrity, text: "object store integrity failed"},
+		{identity: ErrObjectStoreSource, text: "object store source failed"},
+		{identity: ErrObjectStoreDestination, text: "object store destination failed"},
+		{identity: ErrObjectStoreConflict, text: "object store write conflict"},
+		{identity: ErrObjectStoreSize, text: "object store size rejected"},
+		{identity: ErrObjectStoreAbsent, text: "object store object absent"},
+		{identity: ErrTimeProofContract, text: "time proof contract violation"},
+		{identity: ErrTimeProofRefused, text: "time proof authority refused"},
+		{identity: ErrTimeProofInvalid, text: "time proof evidence invalid"},
+		{identity: ErrCloudIdentityContract, text: "cloud identity contract violation"},
+		{identity: ErrUpgradeContract, text: "upgrade contract violation"},
+		{identity: ErrUpgradeDownload, text: "upgrade candidate download failed"},
+		{identity: ErrUpgradeCapacity, text: "upgrade candidate capacity rejected"},
+		{identity: ErrUpgradeVerification, text: "upgrade artifact verification failed"},
+		{identity: ErrUpgradeTrial, text: "upgrade candidate trial failed"},
+		{identity: ErrUpgradePromotion, text: "upgrade promotion failed"},
+		{identity: ErrUpgradePersistence, text: "upgrade persistence failed"},
+		{identity: ErrUpgradeCleanup, text: "upgrade obsolete slot cleanup failed"},
+		{identity: ErrUpgradeConflict, text: "upgrade authority conflict"},
+		{identity: ErrLifecycleIdentityContract, text: "lifecycle identity contract violation"},
+		{identity: ErrReceiptContract, text: "receipt contract violation"},
+		{identity: ErrReceiptVerification, text: "receipt verification failed"},
+		{identity: ErrReceiptScope, text: "receipt scope mismatch"},
+		{identity: ErrReceiptRollback, text: "receipt watermark rollback rejected"},
+		{identity: ErrReceiptConflict, text: "receipt watermark conflict"},
+	}
+}
+
 // Error returns the stable diagnostic text for i.
 func (i ErrorIdentity) Error() string {
-	switch {
-	case i <= ErrContextObservation:
-		return errorIdentityTextPrimitiveThroughContext(i)
-	case i <= ErrKeygenEntropy:
-		return errorIdentityTextCurrencyThroughKeygen(i)
-	case i <= ErrFilestoreCleanup:
-		return errorIdentityTextIsolationThroughFilestoreCleanup(i)
-	case i <= ErrMemoryLimitReached:
-		return errorIdentityTextHostFacts(i)
-	case i <= ErrExchangeRequest:
-		return errorIdentityTextTemporalThroughExchangeRequest(i)
-	case i <= ErrExchangeWrite:
-		return errorIdentityTextExchange(i)
-	case i <= ErrFuzzFinderFormat:
-		return errorIdentityTextFuzzFinderHead(i)
-	case i <= ErrGateDenied:
-		return errorIdentityTextFuzzFinderThroughGate(i)
-	case i <= ErrReleaseManifest:
-		return errorIdentityTextProcessThroughReleaseManifest(i)
-	default:
-		return errorIdentityTextObjectStoreThroughGovernance(i)
-	}
-}
-
-func errorIdentityTextObjectStoreThroughGovernance(i ErrorIdentity) string {
-	switch {
-	case i <= ErrReleaseConflict:
-		return errorIdentityTextReleaseTail(i)
-	case i <= ErrShutdownSignalReceived:
-		return errorIdentityTextShutdown(i)
-	case i <= ErrObjectStoreIntegrity:
-		return errorIdentityTextObjectStoreHead(i)
-	case i <= ErrTimeProofInvalid:
-		return errorIdentityTextObjectTailThroughTimeProof(i)
-	case i <= ErrUpgradeConflict:
-		return errorIdentityTextCloudIdentityThroughUpgrade(i)
-	case i <= ErrReceiptConflict:
-		return errorIdentityTextReceipt(i)
-	default:
-		return errorIdentityTextGovernance(i)
-	}
-}
-
-func errorIdentityTextReceipt(i ErrorIdentity) string {
-	switch i {
-	case ErrLifecycleIdentityContract:
-		return "lifecycle identity contract violation"
-	case ErrReceiptContract:
-		return "receipt contract violation"
-	case ErrReceiptVerification:
-		return "receipt verification failed"
-	case ErrReceiptScope:
-		return "receipt scope mismatch"
-	case ErrReceiptRollback:
-		return "receipt watermark rollback rejected"
-	case ErrReceiptConflict:
-		return "receipt watermark conflict"
-	default:
+	if !isAdmittedErrorIdentity(i) {
 		return unknownErrorIdentityText
 	}
-}
-
-func errorIdentityTextGovernance(i ErrorIdentity) string {
-	switch i {
-	case ErrGovernanceContract:
-		return "governance contract violation"
-	case ErrGovernanceDocumentSource:
-		return "governance document source failed"
-	case ErrGovernanceDocumentLength:
-		return "governance document length rejected"
-	case ErrGovernanceDocumentDigest:
-		return "governance document digest rejected"
-	default:
+	diagnostic := errorIdentityDiagnostics()[i]
+	if diagnostic.identity != i || diagnostic.text == "" {
 		return unknownErrorIdentityText
 	}
-}
-
-func errorIdentityTextPrimitiveThroughContext(i ErrorIdentity) string {
-	switch i {
-	case ErrPrimitiveContract:
-		return "primitive contract violation"
-	case ErrJSONContract:
-		return "json contract violation"
-	case ErrNumericOverflow:
-		return "numeric overflow"
-	case ErrSecretMaterialAllZero:
-		return "secret material is all zero"
-	case ErrAttestContract:
-		return "attest contract violation"
-	case ErrAttestVerification:
-		return "attest verification failed"
-	case ErrContextStateContract:
-		return "context state contract violation"
-	case ErrNilContext:
-		return "nil context"
-	case ErrContextObservation:
-		return "context observation failed"
-	default:
-		return unknownErrorIdentityText
-	}
-}
-
-func errorIdentityTextCurrencyThroughKeygen(i ErrorIdentity) string {
-	switch i {
-	case ErrCurrencyContract:
-		return "currency contract violation"
-	case ErrCurrencyMismatch:
-		return "currency mismatch"
-	case ErrCurrencyOverflow:
-		return "currency overflow"
-	case ErrCurrencyDecimal:
-		return "currency decimal rejected"
-	case ErrGarbleContract:
-		return "garble contract violation"
-	case ErrGarbleDerivation:
-		return "garble derivation failed"
-	case ErrGarbleBuildIntent:
-		return "garble build intent rejected"
-	case ErrKeygenContract:
-		return "key generation contract violation"
-	case ErrKeygenEntropy:
-		return "key generation entropy failed"
-	default:
-		return unknownErrorIdentityText
-	}
-}
-
-func errorIdentityTextIsolationThroughFilestoreCleanup(i ErrorIdentity) string {
-	switch i {
-	case ErrTestIsolationContract:
-		return "test isolation contract violation"
-	case ErrFilestoreContract:
-		return "filestore contract violation"
-	case ErrFilestoreSize:
-		return "filestore size rejected"
-	case ErrFilestoreSource:
-		return "filestore source failed"
-	case ErrFilestoreDestination:
-		return "filestore destination failed"
-	case ErrFilestoreConflict:
-		return "filestore namespace conflict"
-	case ErrFilestoreActivation:
-		return "filestore activation failed"
-	case ErrFilestoreActivationIndeterminate:
-		return "filestore activation indeterminate"
-	case ErrFilestoreCleanup:
-		return "filestore cleanup failed"
-	default:
-		return unknownErrorIdentityText
-	}
-}
-
-func errorIdentityTextHostFacts(i ErrorIdentity) string {
-	if i <= ErrHostFactsEvidence {
-		return errorIdentityTextHostFactsFamily(i)
-	}
-	return errorIdentityTextHostFactsSubject(i)
-}
-
-func errorIdentityTextHostFactsFamily(i ErrorIdentity) string {
-	switch i {
-	case ErrHostFacts:
-		return "host facts failure"
-	case ErrHostFactsContract:
-		return "host facts contract violation"
-	case ErrHostFactsObservation:
-		return "host facts observation failed"
-	case ErrHostFactsUnsupported:
-		return "host facts observation unsupported"
-	case ErrHostFactsPressure:
-		return "host facts pressure reached"
-	case ErrHostFactsEvidence:
-		return "host facts evidence invalid"
-	default:
-		return unknownErrorIdentityText
-	}
-}
-
-func errorIdentityTextHostFactsSubject(i ErrorIdentity) string {
-	switch i {
-	case ErrDiskCapacityUnsupported:
-		return "disk capacity observation unsupported"
-	case ErrTreeMeasurementUnsupported:
-		return "tree measurement unsupported"
-	case ErrDiskFloorReached:
-		return "disk floor reached"
-	case ErrMemoryLimitReached:
-		return "memory limit reached"
-	default:
-		return unknownErrorIdentityText
-	}
-}
-
-func errorIdentityTextTemporalThroughExchangeRequest(i ErrorIdentity) string {
-	switch i {
-	case ErrTemporalContract:
-		return "temporal contract violation"
-	case ErrTemporalOverflow:
-		return "temporal arithmetic overflow"
-	case ErrExchangeContract:
-		return "exchange contract violation"
-	case ErrExchangeRequest:
-		return "exchange request rejected"
-	default:
-		return unknownErrorIdentityText
-	}
-}
-
-func errorIdentityTextExchange(i ErrorIdentity) string {
-	switch i {
-	case ErrExchangeResponse:
-		return "exchange response rejected"
-	case ErrExchangeBodyLimit:
-		return "exchange body limit exceeded"
-	case ErrExchangeContentType:
-		return "exchange content type rejected"
-	case ErrExchangeCancelled:
-		return "exchange cancelled"
-	case ErrExchangeRedirect:
-		return "exchange redirect rejected"
-	case ErrExchangeTransport:
-		return "exchange transport failed"
-	case ErrExchangeRetryExhausted:
-		return "exchange retry budget exhausted"
-	case ErrExchangeWrite:
-		return "exchange write failed"
-	default:
-		return unknownErrorIdentityText
-	}
-}
-
-func errorIdentityTextFuzzFinderHead(i ErrorIdentity) string {
-	switch i {
-	case ErrFuzzFinderContract:
-		return "fuzz finder contract violation"
-	case ErrFuzzFinderFormat:
-		return "Go fuzz artifact format unsupported"
-	default:
-		return unknownErrorIdentityText
-	}
-}
-
-func errorIdentityTextFuzzFinderThroughGate(i ErrorIdentity) string {
-	switch i {
-	case ErrFuzzFinderObservation:
-		return "fuzz artifact observation failed"
-	case ErrLeaseContract:
-		return "lease contract violation"
-	case ErrLeaseVerification:
-		return "lease verification failed"
-	case ErrLeaseRollback:
-		return "lease rollback rejected"
-	case ErrLeaseConflict:
-		return "lease identity conflict"
-	case ErrLeaseScope:
-		return "lease subject mismatch"
-	case ErrLeaseClock:
-		return "lease clock contradiction"
-	case ErrGateContract:
-		return "gate contract violation"
-	case ErrGateDenied:
-		return "gate denied new work"
-	default:
-		return unknownErrorIdentityText
-	}
-}
-
-func errorIdentityTextProcessThroughReleaseManifest(i ErrorIdentity) string {
-	switch i {
-	case ErrProcessContract:
-		return "process contract violation"
-	case ErrProcessStart:
-		return "process start failed"
-	case ErrProcessStream:
-		return "process stream failed"
-	case ErrProcessOutputLimit:
-		return "process output limit exceeded"
-	case ErrProcessWait:
-		return "process wait failed"
-	case ErrReleaseContract:
-		return "release contract violation"
-	case ErrReleaseManifest:
-		return "release manifest rejected"
-	default:
-		return unknownErrorIdentityText
-	}
-}
-
-func errorIdentityTextReleaseTail(i ErrorIdentity) string {
-	switch i {
-	case ErrReleaseVerification:
-		return "release verification failed"
-	case ErrReleaseLatest:
-		return "release latest rejected"
-	case ErrReleaseRollback:
-		return "release rollback rejected"
-	case ErrReleaseConflict:
-		return "release identity conflict"
-	default:
-		return unknownErrorIdentityText
-	}
-}
-
-func errorIdentityTextShutdown(i ErrorIdentity) string {
-	switch i {
-	case ErrShutdownContract:
-		return "shutdown contract violation"
-	case ErrShutdownStepFailure:
-		return "shutdown step failed"
-	case ErrShutdownStepTimeout:
-		return "shutdown step timed out"
-	case ErrShutdownStepPanic:
-		return "shutdown step panicked"
-	case ErrShutdownTotalTimeout:
-		return "shutdown total budget expired"
-	case ErrShutdownSignalSource:
-		return "shutdown signal source failed"
-	case ErrShutdownSignalReceived:
-		return "shutdown signal received"
-	default:
-		return unknownErrorIdentityText
-	}
-}
-
-func errorIdentityTextObjectStoreHead(i ErrorIdentity) string {
-	switch i {
-	case ErrObjectStoreContract:
-		return "object store contract violation"
-	case ErrObjectStoreExpired:
-		return "object store target expired"
-	case ErrObjectStoreIntegrity:
-		return "object store integrity failed"
-	default:
-		return unknownErrorIdentityText
-	}
-}
-
-func errorIdentityTextObjectTailThroughTimeProof(i ErrorIdentity) string {
-	switch i {
-	case ErrObjectStoreSource:
-		return "object store source failed"
-	case ErrObjectStoreDestination:
-		return "object store destination failed"
-	case ErrObjectStoreConflict:
-		return "object store write conflict"
-	case ErrObjectStoreSize:
-		return "object store size rejected"
-	case ErrObjectStoreAbsent:
-		return "object store object absent"
-	case ErrTimeProofContract:
-		return "time proof contract violation"
-	case ErrTimeProofRefused:
-		return "time proof authority refused"
-	case ErrTimeProofInvalid:
-		return "time proof evidence invalid"
-	default:
-		return unknownErrorIdentityText
-	}
-}
-
-func errorIdentityTextCloudIdentityThroughUpgrade(
-	i ErrorIdentity,
-) string {
-	if i == ErrCloudIdentityContract {
-		return "cloud identity contract violation"
-	}
-	return errorIdentityTextUpgrade(i)
-}
-
-func errorIdentityTextUpgrade(i ErrorIdentity) string {
-	switch i {
-	case ErrUpgradeContract:
-		return "upgrade contract violation"
-	case ErrUpgradeDownload:
-		return "upgrade candidate download failed"
-	case ErrUpgradeCapacity:
-		return "upgrade candidate capacity rejected"
-	case ErrUpgradeVerification:
-		return "upgrade artifact verification failed"
-	case ErrUpgradeTrial:
-		return "upgrade candidate trial failed"
-	case ErrUpgradePromotion:
-		return "upgrade promotion failed"
-	case ErrUpgradePersistence:
-		return "upgrade persistence failed"
-	case ErrUpgradeCleanup:
-		return "upgrade obsolete slot cleanup failed"
-	case ErrUpgradeConflict:
-		return "upgrade authority conflict"
-	default:
-		return unknownErrorIdentityText
-	}
+	return diagnostic.text
 }
 
 // String returns the stable diagnostic text for i.
@@ -720,10 +440,14 @@ func (i ErrorIdentity) Matches(target ErrorIdentity) bool {
 	if !isAdmittedErrorIdentity(i) || !isAdmittedErrorIdentity(target) {
 		return false
 	}
-	var pending [errorIdentityTraversalLimit]ErrorIdentity
+	// At most errorIdentityLimit-1 admitted identities can be enqueued. Marking
+	// on admission prevents duplicate parents from consuming stack capacity, so
+	// the compiler-sized closed-domain stack cannot exhaust.
+	var pending [errorIdentityLimit]ErrorIdentity
 	var visitedLow uint64
 	var visitedHigh uint64
 	pending[0] = i
+	markErrorIdentityVisited(i, &visitedLow, &visitedHigh)
 	count := 1
 	for count > 0 {
 		count--
@@ -731,14 +455,14 @@ func (i ErrorIdentity) Matches(target ErrorIdentity) bool {
 		if current == target {
 			return true
 		}
-		if !markErrorIdentityVisited(current, &visitedLow, &visitedHigh) {
-			continue
-		}
 		parents := errorIdentityParents(current)
 		for index := 0; index < parents.countValues(); index++ {
 			parent, ok := parents.at(index)
-			if !ok || !isAdmittedErrorIdentity(parent) || count >= len(pending) {
+			if !ok || !isAdmittedErrorIdentity(parent) {
 				return false
+			}
+			if !markErrorIdentityVisited(parent, &visitedLow, &visitedHigh) {
+				continue
 			}
 			pending[count] = parent
 			count++
@@ -789,15 +513,12 @@ func errorIdentityParents(identity ErrorIdentity) errorIdentityParentSet {
 		ErrReleaseContract,
 		ErrShutdownContract, ErrObjectStoreContract, ErrTimeProofContract,
 		ErrCloudIdentityContract, ErrUpgradeContract,
-		ErrLifecycleIdentityContract, ErrReceiptContract, ErrGovernanceContract:
+		ErrLifecycleIdentityContract, ErrReceiptContract:
 		return oneErrorIdentityParent(ErrPrimitiveContract)
 	case ErrUpgradeDownload, ErrUpgradeCapacity, ErrUpgradeVerification, ErrUpgradeTrial,
 		ErrUpgradePromotion, ErrUpgradePersistence, ErrUpgradeCleanup,
 		ErrUpgradeConflict:
 		return oneErrorIdentityParent(ErrUpgradeContract)
-	case ErrGovernanceDocumentSource, ErrGovernanceDocumentLength,
-		ErrGovernanceDocumentDigest:
-		return oneErrorIdentityParent(ErrGovernanceContract)
 	case ErrAttestVerification, ErrNilContext, ErrContextObservation,
 		ErrCurrencyMismatch, ErrCurrencyDecimal, ErrCurrencyOverflow,
 		ErrGarbleDerivation, ErrGarbleBuildIntent, ErrKeygenEntropy:
@@ -903,15 +624,15 @@ func errorIdentityParentsFuzzFinderThroughObjectStore(identity ErrorIdentity) er
 
 func oneErrorIdentityParent(parent ErrorIdentity) errorIdentityParentSet {
 	return errorIdentityParentSet{
-		values: [ErrorIdentityMaximumParents]ErrorIdentity{parent},
+		values: [errorIdentityMaximumParents]ErrorIdentity{parent},
 		count:  1,
 	}
 }
 
 func twoErrorIdentityParents(first, second ErrorIdentity) errorIdentityParentSet {
 	return errorIdentityParentSet{
-		values: [ErrorIdentityMaximumParents]ErrorIdentity{first, second},
-		count:  ErrorIdentityMaximumParents,
+		values: [errorIdentityMaximumParents]ErrorIdentity{first, second},
+		count:  errorIdentityMaximumParents,
 	}
 }
 

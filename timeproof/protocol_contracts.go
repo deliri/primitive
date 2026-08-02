@@ -20,6 +20,9 @@ const (
 	// cmsSignerInfoVersion is required by RFC 5652 for the
 	// issuerAndSerialNumber signer identifier this parser accepts.
 	cmsSignerInfoVersion = 1
+	// generalNameDirectoryNameTag is the X.509 GeneralName CHOICE index for
+	// directoryName.
+	generalNameDirectoryNameTag = 4
 )
 
 // freeTSAPolicyOID is the single source of the reviewed FreeTSA policy

@@ -16,9 +16,18 @@ const (
 	observationStateLimit
 )
 
+func observationStateDiagnostics() [observationStateLimit]string {
+	return [...]string{
+		ObservationComplete:          "complete",
+		ObservationUnsupportedFormat: "unsupported-format",
+		ObservationPartial:           "partial",
+		ObservationFailed:            "observation-failed",
+	}
+}
+
 // Validate rejects values outside the closed observation domain.
 func (s ObservationState) Validate() error {
-	if s <= ObservationUnknown || s >= observationStateLimit {
+	if !s.IsValid() {
 		return contractError(errors.New("observation state is outside the closed domain"))
 	}
 	return nil
@@ -26,11 +35,20 @@ func (s ObservationState) Validate() error {
 
 // IsValid reports membership in the closed observation domain.
 func (s ObservationState) IsValid() bool {
-	return s > ObservationUnknown && s < observationStateLimit
+	return s > ObservationUnknown && s < observationStateLimit &&
+		observationStateDiagnostics()[s] != ""
 }
 
 // OffWireEnum declares ObservationState as a runtime result, not wire data.
 func (ObservationState) OffWireEnum() {}
+
+// String returns the compiler-owned diagnostic label for s.
+func (s ObservationState) String() string {
+	if !s.IsValid() {
+		return unknownEnumDiagnostic
+	}
+	return observationStateDiagnostics()[s]
+}
 
 // EntryCount is a saturating count of observed directory entries.
 type EntryCount struct {

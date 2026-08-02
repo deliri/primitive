@@ -2,7 +2,6 @@ package garble
 
 import (
 	"encoding/base64"
-	"encoding/json"
 	"errors"
 	"fmt"
 	"io"
@@ -26,7 +25,7 @@ const (
 const (
 	seedEncodingErrorText  = "garble seed is not canonical unpadded standard base64"
 	seedUnsetErrorText     = "garble seed is unset"
-	seedJSONLimitErrorText = "garble seed JSON limits are unavailable"
+	seedJSONLimitErrorText = "garble seed JSON exceeds its byte limit"
 )
 
 // Seed is one set, exact eight-byte Garble seed. The all-zero value produced
@@ -94,7 +93,7 @@ func (s Seed) MarshalJSON() ([]byte, error) {
 	if err != nil {
 		return nil, jsonError(err)
 	}
-	document, err := json.Marshal(encoded)
+	document, err := core.MarshalCanonicalJSONString(encoded)
 	if err != nil {
 		return nil, jsonError(err)
 	}
@@ -107,51 +106,17 @@ func (s *Seed) UnmarshalJSON(data []byte) error {
 	if s == nil {
 		return jsonError(errors.New(seedUnsetErrorText))
 	}
-	limits, err := seedJSONLimits()
+	if len(data) > SeedJSONMaximumBytes {
+		return jsonError(errors.New(seedJSONLimitErrorText))
+	}
+	encoded, err := core.DecodeJSONStringToken(data)
 	if err != nil {
 		return jsonError(err)
-	}
-	wire, err := core.DecodeStrictJSON[seedJSONWire](data, limits)
-	if err != nil {
-		return jsonError(err)
-	}
-	*s = wire.value
-	return nil
-}
-
-type seedJSONWire struct {
-	value Seed
-}
-
-func (w seedJSONWire) Validate() error {
-	return w.value.Validate()
-}
-
-func (w *seedJSONWire) UnmarshalJSON(data []byte) error {
-	if w == nil {
-		return contractError(errors.New(seedUnsetErrorText))
-	}
-	var encoded string
-	if err := json.Unmarshal(data, &encoded); err != nil {
-		return contractError(err)
 	}
 	seed, err := ParseSeed(encoded)
 	if err != nil {
-		return err
+		return jsonError(err)
 	}
-	*w = seedJSONWire{value: seed}
+	*s = seed
 	return nil
-}
-
-func seedJSONLimits() (core.StrictJSONLimits, error) {
-	maximum, err := core.NewByteCount(uint64(SeedJSONMaximumBytes))
-	if err != nil {
-		return core.StrictJSONLimits{}, errors.Join(errors.New(seedJSONLimitErrorText), err)
-	}
-	return core.StrictJSONLimits{
-		DocumentMaximumBytes: maximum,
-		NestingDepthMaximum:  1,
-		ObjectFieldMaximum:   1,
-		ArrayItemMaximum:     1,
-	}, nil
 }

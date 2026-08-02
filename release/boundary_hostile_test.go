@@ -285,7 +285,7 @@ func TestAdvanceLatestTreatsSignerRotationAsDocumentIdentity(t *testing.T) {
 	}
 }
 
-func TestReleaseVerificationSeparatesEveryAuthority(t *testing.T) {
+func TestReleaseVerifierLayerTriadSeparatesEveryAuthority(t *testing.T) {
 	t.Parallel()
 	fixture := newReleaseFixture(t, core.NewReleaseVersion(2026, 7, 30), 1)
 	untrusted := deterministicKey(91)
@@ -731,9 +731,9 @@ func TestCanonicalReleaseProjectionsRoundTripExactSignedFacts(t *testing.T) {
 		t.Fatalf("ArtifactSet round trip = (%v, %v), want exact set", set, err)
 	}
 
-	documentDigest, err := fixture.verified.DocumentDigest()
-	if err != nil || documentDigest.String() == "" {
-		t.Fatalf("VerifiedManifest.DocumentDigest() = (%q, %v), want canonical digest", documentDigest.String(), err)
+	documentDigest := fixture.verified.DocumentDigest()
+	if documentDigest.String() == "" {
+		t.Fatalf("VerifiedManifest.DocumentDigest() = %q, want canonical digest", documentDigest.String())
 	}
 }
 
@@ -835,9 +835,12 @@ func TestReleaseNominalJSONAndTargetBounds(t *testing.T) {
 	if _, ok := fixture.artifactSet.At(TargetCount); ok {
 		t.Fatalf("ArtifactSet.At(TargetCount) ok = true, want false")
 	}
-	outside, err := core.NewPlatform(core.OperatingSystemDarwin, core.CPUArchitectureAMD64)
-	if err != nil {
-		t.Fatalf("NewPlatform(outside) error = %v", err)
+	outside := core.Platform{
+		OperatingSystem: core.OperatingSystemDarwin,
+		Architecture:    core.CPUArchitectureAMD64,
+	}
+	if err := outside.Validate(); err != nil {
+		t.Fatalf("outside core.Platform.Validate() error = %v", err)
 	}
 	if _, ok := fixture.artifactSet.ForPlatform(outside); ok {
 		t.Fatalf("ArtifactSet.ForPlatform(outside) ok = true, want false")

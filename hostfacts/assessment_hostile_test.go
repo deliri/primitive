@@ -9,7 +9,7 @@ import (
 	"github.com/deliri/primitive/v2026/core"
 )
 
-func TestDiskCapacityAndPolicyPressureFullUnsignedDomain(t *testing.T) {
+func TestDiskCapacityAndPolicyPressureSignedSizeDomain(t *testing.T) {
 	t.Parallel()
 
 	cases := []struct {
@@ -28,15 +28,8 @@ func TestDiskCapacityAndPolicyPressureFullUnsignedDomain(t *testing.T) {
 		{name: "availability below floor is reached", available: 1, total: 3, floor: 2, wantState: DiskPressureReached, wantErr: core.ErrDiskFloorReached, wantFailure: true},
 		{name: "zero availability reaches positive floor", available: 0, total: 1, floor: 1, wantState: DiskPressureReached, wantErr: core.ErrDiskFloorReached, wantFailure: true},
 		{name: "maximum signed capacity remains healthy", available: math.MaxInt64, total: math.MaxInt64, floor: math.MaxInt64 - 1, wantState: DiskPressureHealthy},
-		{name: "first unsigned capacity remains healthy", available: math.MaxInt64 + 1, total: math.MaxInt64 + 1, floor: math.MaxInt64, wantState: DiskPressureHealthy},
-		{name: "maximum unsigned capacity remains healthy", available: math.MaxUint64, total: math.MaxUint64, floor: math.MaxUint64 - 1, wantState: DiskPressureHealthy},
-		{name: "maximum unsigned floor reaches maximum capacity", available: math.MaxUint64, total: math.MaxUint64, floor: math.MaxUint64, wantState: DiskPressureReached, wantErr: core.ErrDiskFloorReached, wantFailure: true},
-		{name: "maximum floor reaches first unsigned availability", available: math.MaxInt64 + 1, total: math.MaxUint64, floor: math.MaxUint64, wantState: DiskPressureReached, wantErr: core.ErrDiskFloorReached, wantFailure: true},
 		{name: "large total does not narrow small availability", available: 7, total: math.MaxUint64, floor: 6, wantState: DiskPressureHealthy},
 		{name: "large total preserves equality boundary", available: 7, total: math.MaxUint64, floor: 7, wantState: DiskPressureReached, wantErr: core.ErrDiskFloorReached, wantFailure: true},
-		{name: "one below total is valid", available: math.MaxUint64 - 1, total: math.MaxUint64, floor: 1, wantState: DiskPressureHealthy},
-		{name: "half range availability is valid", available: 1 << 63, total: math.MaxUint64, floor: 1<<63 - 1, wantState: DiskPressureHealthy},
-		{name: "half range equality reaches", available: 1 << 63, total: math.MaxUint64, floor: 1 << 63, wantState: DiskPressureReached, wantErr: core.ErrDiskFloorReached, wantFailure: true},
 		{name: "small exact healthy adjacency", available: 101, total: 1000, floor: 100, wantState: DiskPressureHealthy},
 		{name: "small exact reached adjacency", available: 100, total: 1000, floor: 100, wantState: DiskPressureReached, wantErr: core.ErrDiskFloorReached, wantFailure: true},
 		{name: "small below reached adjacency", available: 99, total: 1000, floor: 100, wantState: DiskPressureReached, wantErr: core.ErrDiskFloorReached, wantFailure: true},
@@ -52,7 +45,7 @@ func TestDiskCapacityAndPolicyPressureFullUnsignedDomain(t *testing.T) {
 			}
 			got, gotErr := assessDiskCapacity(
 				capacity,
-				DiskPressurePolicy{FreeSpaceFloor: core.NewByteLength(tc.floor)},
+				DiskPressurePolicy{FreeSpaceFloor: mustByteLength(t, tc.floor)},
 			)
 			if tc.wantFailure && !errors.Is(gotErr, tc.wantErr) {
 				t.Fatalf("assessDiskCapacity() error = %v, want %v", gotErr, tc.wantErr)
@@ -86,6 +79,8 @@ func TestDiskCapacityRejectsImpossibleShapesAndMultiplicationOverflow(t *testing
 		{name: "available exceeds total by one", available: 2, total: 1},
 		{name: "maximum available exceeds small total", available: math.MaxUint64, total: 1},
 		{name: "maximum available exceeds signed total", available: math.MaxUint64, total: math.MaxInt64},
+		{name: "first extent outside Go signed size domain", available: math.MaxInt64 + 1, total: math.MaxUint64},
+		{name: "maximum extent outside Go signed size domain", available: math.MaxUint64, total: math.MaxUint64},
 	}
 	for _, tc := range capacityCases {
 		t.Run(tc.name, func(t *testing.T) {

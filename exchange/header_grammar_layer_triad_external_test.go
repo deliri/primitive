@@ -163,7 +163,7 @@ func TestUntransmittableHeaderSpendsNoAttempt(t *testing.T) {
 		serverHits.Add(1)
 		writer.Header().Set(
 			core.HTTPHeaderContentType().String(),
-			core.HTTPMediaTypeTextPlain().String(),
+			mustHTTPMediaType(t, "text/plain").String(),
 		)
 		writer.WriteHeader(http.StatusOK)
 		_, _ = writer.Write([]byte("ready"))
@@ -179,7 +179,7 @@ func TestUntransmittableHeaderSpendsNoAttempt(t *testing.T) {
 			Request: exchange.NoBodyBoundedRequest{
 				Target: mustEndpoint(t, server.URL),
 				Semantics: exchange.RequestSemantics{
-					Method: core.HTTPMethodGet,
+					Method: exchange.MethodGet,
 					Replay: exchange.ReplaySafe,
 				},
 				Headers: exchange.Headers{
@@ -187,7 +187,7 @@ func TestUntransmittableHeaderSpendsNoAttempt(t *testing.T) {
 						Name: name, Values: []string{"a\x00b"},
 					}},
 				},
-				ExpectedResponseContentType: core.HTTPMediaTypeTextPlain(),
+				ExpectedResponseContentType: mustHTTPMediaType(t, "text/plain"),
 				ExpectedStatus:              ok,
 			},
 			Policy: exchange.NoBodyBoundedPolicy{
@@ -244,10 +244,10 @@ func TestAggregateTransportFailureDoesNotFabricateResponseIdentity(t *testing.T)
 			Request: exchange.NoBodyBoundedRequest{
 				Target: target,
 				Semantics: exchange.RequestSemantics{
-					Method: core.HTTPMethodGet,
+					Method: exchange.MethodGet,
 					Replay: exchange.ReplaySingleAttempt,
 				},
-				ExpectedResponseContentType: core.HTTPMediaTypeTextPlain(),
+				ExpectedResponseContentType: mustHTTPMediaType(t, "text/plain"),
 				ExpectedStatus:              ok,
 			},
 			Policy: exchange.NoBodyBoundedPolicy{

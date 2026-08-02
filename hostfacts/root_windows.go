@@ -59,7 +59,14 @@ func openRoot(path string) (*platformRoot, error) {
 }
 
 func windowsFinalPath(file *os.File) (string, error) {
-	var storage [2*core.FilesystemPathMaximumRunes + 16]uint16
+	var probe uint16
+	required, err := windows.GetFinalPathNameByHandle(
+		windows.Handle(file.Fd()), &probe, 1, 0,
+	)
+	if err != nil || required <= 1 {
+		return "", errors.Join(core.ErrHostFactsObservation, err)
+	}
+	storage := make([]uint16, required)
 	count, err := windows.GetFinalPathNameByHandle(
 		windows.Handle(file.Fd()), &storage[0], uint32(len(storage)), 0,
 	)

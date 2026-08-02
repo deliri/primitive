@@ -13,7 +13,14 @@ const (
 	MaximumRetainedEntries uint16 = 128
 
 	generatedNameBytesGo1_26 = 16
+	unknownEnumDiagnostic    = "unknown"
 )
+
+func cacheFormatDiagnostics() [cacheFormatLimit]string {
+	return [...]string{
+		CacheFormatGo1_26: "go1.26",
+	}
+}
 
 // CacheFormat identifies one exact Go-generated fuzz-artifact filename format.
 type CacheFormat uint8
@@ -28,7 +35,7 @@ const (
 
 // Validate rejects unsupported cache formats.
 func (f CacheFormat) Validate() error {
-	if f <= CacheFormatUnknown || f >= cacheFormatLimit {
+	if !f.IsValid() {
 		return formatError(errors.New("cache format is unsupported"))
 	}
 	return nil
@@ -36,11 +43,19 @@ func (f CacheFormat) Validate() error {
 
 // IsValid reports whether f is a supported cache format.
 func (f CacheFormat) IsValid() bool {
-	return f > CacheFormatUnknown && f < cacheFormatLimit
+	return f > CacheFormatUnknown && f < cacheFormatLimit && cacheFormatDiagnostics()[f] != ""
 }
 
 // OffWireEnum declares CacheFormat as execution policy rather than wire data.
 func (CacheFormat) OffWireEnum() {}
+
+// String returns the compiler-owned diagnostic label for f.
+func (f CacheFormat) String() string {
+	if !f.IsValid() {
+		return unknownEnumDiagnostic
+	}
+	return cacheFormatDiagnostics()[f]
+}
 
 // GeneratedNameBytes returns the exact generated filename width for f.
 func (f CacheFormat) GeneratedNameBytes() (core.ByteCount, error) {

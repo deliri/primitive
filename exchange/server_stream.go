@@ -159,11 +159,12 @@ func receiveStream(call StreamReceiveCall) (ReceivedStream, error) {
 			limit: call.Policy.RequestBodyLimit,
 		},
 	)
+	receivedBytes, lengthErr := core.NewByteLength(bytes)
 	received := ReceivedStream{
-		Bytes: core.NewByteLength(bytes), IdempotencyKey: key,
+		Bytes: receivedBytes, IdempotencyKey: key,
 	}
-	if copyErr != nil {
-		return received, asRequestReadError(copyErr)
+	if err := errors.Join(copyErr, lengthErr); err != nil {
+		return received, asRequestReadError(err)
 	}
 	return received, received.Validate()
 }

@@ -18,9 +18,9 @@ import (
 func TestValidateUpgradePairAdmitsOnlyAStrictlyNewerSameTargetBuild(t *testing.T) {
 	t.Parallel()
 
-	platform, err := core.CurrentSupportedPlatform()
-	if err != nil {
-		t.Fatalf("core.CurrentSupportedPlatform() error = %v, want nil", err)
+	platform := core.Platform{
+		OperatingSystem: core.OperatingSystemLinux,
+		Architecture:    core.CPUArchitectureAMD64,
 	}
 	other := core.Platform{
 		OperatingSystem: core.OperatingSystemWindows,

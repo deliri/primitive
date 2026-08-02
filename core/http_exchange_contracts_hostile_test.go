@@ -13,7 +13,7 @@ func TestHTTPEndpointHostileBoundaryTable(t *testing.T) {
 	exactPrefix := "https://example.test/"
 	exactEndpoint := exactPrefix + strings.Repeat(
 		"a",
-		HTTPEndpointMaximumBytes-len(exactPrefix),
+		httpEndpointMaximumBytes-len(exactPrefix),
 	)
 	cases := []struct {
 		wantErr    error
@@ -50,7 +50,7 @@ func TestHTTPEndpointHostileBoundaryTable(t *testing.T) {
 		{name: "authority CRLF injection is rejected", value: "https://example.test\r\nX-Test:value", wantErr: ErrPrimitiveContract},
 		{name: "unterminated IPv6 authority is rejected", value: "https://[::1", wantErr: ErrPrimitiveContract},
 		{name: "one byte above endpoint bound is rejected", value: exactEndpoint + "a", wantErr: ErrPrimitiveContract},
-		{name: "far above endpoint bound is rejected", value: exactEndpoint + strings.Repeat("a", HTTPEndpointMaximumBytes), wantErr: ErrPrimitiveContract},
+		{name: "far above endpoint bound is rejected", value: exactEndpoint + strings.Repeat("a", httpEndpointMaximumBytes), wantErr: ErrPrimitiveContract},
 	}
 	for _, tc := range cases {
 		t.Run(tc.name, func(t *testing.T) {
@@ -144,80 +144,5 @@ func TestHTTPEndpointSameOriginHostileBoundaryTable(t *testing.T) {
 	}
 	if (HTTPEndpoint{}).SameOrigin(valid) || valid.SameOrigin(HTTPEndpoint{}) {
 		t.Fatal("SameOrigin() with an unset endpoint = true, want false")
-	}
-}
-
-func TestHTTPContentCodingHostileBoundaryAndNonMutation(t *testing.T) {
-	t.Parallel()
-
-	cases := []struct {
-		wantErr    error
-		name       string
-		value      string
-		wantString string
-	}{
-		{name: "identity is accepted", value: "identity", wantString: "identity"},
-		{name: "uppercase identity canonicalizes", value: "IDENTITY", wantString: "identity"},
-		{name: "gzip is transportable", value: "gzip", wantString: "gzip"},
-		{name: "Brotli is transportable", value: "br", wantString: "br"},
-		{name: "extension token is transportable", value: "x-example", wantString: "x-example"},
-		{name: "every token punctuation byte is transportable", value: "!#$%&'*+-.^_`|~", wantString: "!#$%&'*+-.^_`|~"},
-		{name: "one byte below the token bound is transportable", value: strings.Repeat("a", HTTPContentCodingMaximumBytes-1), wantString: strings.Repeat("a", HTTPContentCodingMaximumBytes-1)},
-		{name: "the exact token bound is transportable", value: strings.Repeat("a", HTTPContentCodingMaximumBytes), wantString: strings.Repeat("a", HTTPContentCodingMaximumBytes)},
-		{name: "empty coding is rejected", value: "", wantErr: ErrPrimitiveContract},
-		{name: "one byte above the token bound is rejected", value: strings.Repeat("a", HTTPContentCodingMaximumBytes+1), wantErr: ErrPrimitiveContract},
-		{name: "far above the token bound is rejected", value: strings.Repeat("a", HTTPContentCodingMaximumBytes*4), wantErr: ErrPrimitiveContract},
-		{name: "space is rejected", value: "gzip br", wantErr: ErrPrimitiveContract},
-		{name: "comma list is rejected as more than one coding", value: "gzip,br", wantErr: ErrPrimitiveContract},
-		{name: "parameter separator is rejected", value: "gzip;q=1", wantErr: ErrPrimitiveContract},
-		{name: "slash is rejected", value: "application/gzip", wantErr: ErrPrimitiveContract},
-		{name: "equals is rejected", value: "gzip=1", wantErr: ErrPrimitiveContract},
-		{name: "CRLF injection is rejected", value: "gzip\r\nX-Test:value", wantErr: ErrPrimitiveContract},
-		{name: "NUL is rejected", value: "gzip\x00", wantErr: ErrPrimitiveContract},
-		{name: "non ASCII token is rejected", value: "gżip", wantErr: ErrPrimitiveContract},
-	}
-	for _, tc := range cases {
-		t.Run(tc.name, func(t *testing.T) {
-			t.Parallel()
-
-			got, gotErr := ParseHTTPContentCoding(tc.value)
-			if !errors.Is(gotErr, tc.wantErr) {
-				t.Fatalf("ParseHTTPContentCoding(%q) error = %v, want %v", tc.value, gotErr, tc.wantErr)
-			}
-			if tc.wantErr != nil {
-				if got != (HTTPContentCoding{}) {
-					t.Fatalf("ParseHTTPContentCoding(%q) value = %v, want zero", tc.value, got)
-				}
-				return
-			}
-			if got.String() != tc.wantString {
-				t.Fatalf("HTTPContentCoding.String() = %q, want %q", got.String(), tc.wantString)
-			}
-			gotWire, gotMarshalErr := got.MarshalJSON()
-			if gotMarshalErr != nil {
-				t.Fatalf("HTTPContentCoding.MarshalJSON() error = %v, want nil", gotMarshalErr)
-			}
-			original := HTTPContentCodingIdentity()
-			gotRoundTrip := original
-			gotUnmarshalErr := gotRoundTrip.UnmarshalJSON(gotWire)
-			if gotUnmarshalErr != nil || gotRoundTrip != got {
-				t.Fatalf(
-					"HTTPContentCoding JSON round trip = (%v, %v), want (%v, nil)",
-					gotRoundTrip,
-					gotUnmarshalErr,
-					got,
-				)
-			}
-			gotMutationErr := gotRoundTrip.UnmarshalJSON([]byte(`"gzip br"`))
-			if !errors.Is(gotMutationErr, ErrJSONContract) || gotRoundTrip != got {
-				t.Fatalf(
-					"HTTPContentCoding failed decode = (%v, %v), want (%v, %v)",
-					gotRoundTrip,
-					gotMutationErr,
-					got,
-					ErrJSONContract,
-				)
-			}
-		})
 	}
 }

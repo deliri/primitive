@@ -1398,11 +1398,10 @@ exists. Each row names the rule or sub-rule and the lint surface that owns
 enforcement so a reader can locate the implementation by grepping the
 implementer column.
 
-During the package-free design phase there is no Primitive production package
-for these analyzers to inspect. `scripts/gate.sh` therefore records the
-Primitive package gates as `NOT_APPLICABLE`; it does not claim package lint
-coverage. The automation map becomes package evidence when the first admitted
-Primitive package enters the tree.
+`scripts/gate.sh` discovers the landed production packages from the module and
+runs the pinned analyzers over that exact set. An empty set is reported as
+`NOT_APPLICABLE`; with landed packages, an analyzer result is package evidence
+and no design-phase exception exists.
 
 | rule or sub-rule | implemented by |
 | :--------------- | :------------- |

@@ -7,14 +7,23 @@ import (
 	"github.com/deliri/primitive/v2026/core"
 )
 
+const (
+	pressureDisabledLabel = "pressure-disabled"
+	pressureHealthyLabel  = "pressure-healthy"
+	pressureReachedLabel  = "pressure-reached"
+)
+
 // DiskPressurePolicy is the caller-owned available-space floor. A zero floor
 // disables pressure classification without disabling capacity observation.
 type DiskPressurePolicy struct {
 	FreeSpaceFloor core.ByteLength
 }
 
-// Validate accepts the complete unsigned byte-length domain.
-func (DiskPressurePolicy) Validate() error {
+// Validate rejects a floor outside Go's signed size domain.
+func (p DiskPressurePolicy) Validate() error {
+	if err := p.FreeSpaceFloor.Validate(); err != nil {
+		return errors.Join(core.ErrHostFactsContract, err)
+	}
 	return nil
 }
 
@@ -47,15 +56,20 @@ func newDiskCapacity(available, total uint64) (DiskCapacity, error) {
 			errors.New("disk capacity is internally contradictory"),
 		)
 	}
-	capacity := DiskCapacity{available: core.NewByteLength(available), total: totalBytes}
+	availableBytes, err := core.NewByteLength(available)
+	if err != nil {
+		return DiskCapacity{}, errors.Join(core.ErrHostFactsObservation, err)
+	}
+	capacity := DiskCapacity{available: availableBytes, total: totalBytes}
 	return capacity, capacity.Validate()
 }
 
 // Validate rejects an unset total or caller-available bytes above total.
 func (c DiskCapacity) Validate() error {
-	total, err := c.total.Uint64()
-	if err != nil || c.available.Uint64() > total {
-		return errors.Join(core.ErrHostFactsObservation, err)
+	total, totalErr := c.total.Uint64()
+	availableErr := c.available.Validate()
+	if errors.Join(totalErr, availableErr) != nil || c.available.Uint64() > total {
+		return errors.Join(core.ErrHostFactsObservation, totalErr, availableErr)
 	}
 	return nil
 }
@@ -81,6 +95,14 @@ const (
 	diskPressureLimit
 )
 
+func diskPressureStateLabels() [diskPressureLimit]string {
+	return [...]string{
+		DiskPressureDisabled: pressureDisabledLabel,
+		DiskPressureHealthy:  pressureHealthyLabel,
+		DiskPressureReached:  pressureReachedLabel,
+	}
+}
+
 // Validate rejects states outside the closed domain.
 func (s DiskPressureState) Validate() error {
 	if !s.IsValid() {
@@ -91,7 +113,19 @@ func (s DiskPressureState) Validate() error {
 
 // IsValid reports membership in the closed pressure domain.
 func (s DiskPressureState) IsValid() bool {
-	return s > DiskPressureUnknown && s < diskPressureLimit
+	return s > DiskPressureUnknown && s < diskPressureLimit && diskPressureStateLabels()[s] != ""
+}
+
+// OffWireEnum declares DiskPressureState as a runtime assessment rather than a
+// wire encoding.
+func (DiskPressureState) OffWireEnum() {}
+
+// String returns the compiler-owned diagnostic label for s.
+func (s DiskPressureState) String() string {
+	if !s.IsValid() {
+		return unknownOperationText
+	}
+	return diskPressureStateLabels()[s]
 }
 
 // DiskAssessment is the validated capacity, policy, and classification.

@@ -8,149 +8,39 @@ import (
 	"strings"
 )
 
-// HTTPMethod is a closed set of admitted HTTP request methods.
-type HTTPMethod uint8
-
 const (
-	// HTTPMethodUnknown is the invalid zero method.
-	HTTPMethodUnknown HTTPMethod = iota
-	// HTTPMethodGet is GET.
-	HTTPMethodGet
-	// HTTPMethodHead is HEAD.
-	HTTPMethodHead
-	// HTTPMethodPost is POST.
-	HTTPMethodPost
-	// HTTPMethodPut is PUT.
-	HTTPMethodPut
-	// HTTPMethodPatch is PATCH.
-	HTTPMethodPatch
-	// HTTPMethodDelete is DELETE.
-	HTTPMethodDelete
-	// HTTPMethodOptions is OPTIONS.
-	HTTPMethodOptions
-	httpMethodLimit
-	// HTTPMethodCount is the compiler-owned size of the complete method domain,
-	// including the invalid zero value.
-	HTTPMethodCount = uint8(httpMethodLimit)
+	httpMediaTypeJSONText        = "application/json"
+	httpMediaTypeOctetStreamText = "application/octet-stream"
+	httpMediaTypeTextPlainText   = "text/plain"
+	httpMediaTypeSyntaxErrorText = "HTTP media type syntax is invalid"
+	httpStatusRangeErrorText     = "HTTP status code is outside 100..599"
+	// httpHeaderNameMaximumBytes bounds a parsed field name.
+	httpHeaderNameMaximumBytes = 256
+	// httpMediaTypeMaximumBytes bounds a complete media type with parameters.
+	httpMediaTypeMaximumBytes = 4096
 )
 
 const (
-	httpMethodGetText               = "GET"
-	httpMethodHeadText              = "HEAD"
-	httpMethodPostText              = "POST"
-	httpMethodPutText               = "PUT"
-	httpMethodPatchText             = "PATCH"
-	httpMethodDeleteText            = "DELETE"
-	httpMethodOptionsText           = "OPTIONS"
-	httpMediaTypeJSONText           = "application/json"
-	httpMediaTypeOctetStreamText    = "application/octet-stream"
-	httpMediaTypeTextPlainText      = "text/plain"
-	httpMediaTypeTimestampQueryText = "application/timestamp-query"
-	httpMediaTypeTimestampReplyText = "application/timestamp-reply"
-	httpMediaTypePKIXCRLText        = "application/pkix-crl"
-	httpMediaTypeSyntaxErrorText    = "HTTP media type syntax is invalid"
-	httpStatusRangeErrorText        = "HTTP status code is outside 100..599"
-	// HTTPMethodTokenMaximumBytes bounds admitted method text.
-	HTTPMethodTokenMaximumBytes = len(httpMethodOptionsText)
-	// HTTPHeaderNameMaximumBytes bounds a parsed field name.
-	HTTPHeaderNameMaximumBytes = 256
-	// HTTPMediaTypeMaximumBytes bounds a complete media type with parameters.
-	HTTPMediaTypeMaximumBytes = 4096
-)
-
-// ParseHTTPMethod accepts one exact uppercase admitted method token.
-func ParseHTTPMethod(value string) (HTTPMethod, error) {
-	if len(value) == 0 || len(value) > HTTPMethodTokenMaximumBytes {
-		return HTTPMethodUnknown, httpContractError("HTTP method has invalid length")
-	}
-	for method := HTTPMethodGet; method < httpMethodLimit; method++ {
-		if method.String() == value {
-			return method, nil
-		}
-	}
-	return HTTPMethodUnknown, httpContractError("HTTP method is not admitted")
-}
-
-// String returns the standard method token, or empty text when invalid.
-func (m HTTPMethod) String() string {
-	if m >= httpMethodLimit {
-		return ""
-	}
-	return httpMethodFacts()[m]
-}
-
-// Validate rejects methods outside the closed domain.
-func (m HTTPMethod) Validate() error {
-	if m <= HTTPMethodUnknown ||
-		m >= httpMethodLimit ||
-		httpMethodFacts()[m] == "" {
-		return httpContractError("HTTP method is invalid")
-	}
-	return nil
-}
-
-// IsValid reports whether m belongs to the closed method domain.
-func (m HTTPMethod) IsValid() bool { return m.Validate() == nil }
-
-func httpMethodFacts() [httpMethodLimit]string {
-	return [...]string{
-		HTTPMethodUnknown: "",
-		HTTPMethodGet:     httpMethodGetText,
-		HTTPMethodHead:    httpMethodHeadText,
-		HTTPMethodPost:    httpMethodPostText,
-		HTTPMethodPut:     httpMethodPutText,
-		HTTPMethodPatch:   httpMethodPatchText,
-		HTTPMethodDelete:  httpMethodDeleteText,
-		HTTPMethodOptions: httpMethodOptionsText,
-	}
-}
-
-// MarshalJSON emits the canonical uppercase method token.
-func (m HTTPMethod) MarshalJSON() ([]byte, error) {
-	if err := m.Validate(); err != nil {
-		return nil, errors.Join(ErrJSONContract, err)
-	}
-	return MarshalCanonicalJSONString(m.String())
-}
-
-// UnmarshalJSON accepts one canonical uppercase admitted method token.
-func (m *HTTPMethod) UnmarshalJSON(data []byte) error {
-	if m == nil {
-		return errors.Join(ErrJSONContract, errors.New("nil HTTP method receiver"))
-	}
-	value, err := DecodeJSONStringToken(data)
-	if err != nil {
-		return err
-	}
-	decoded, err := ParseHTTPMethod(value)
-	if err != nil {
-		return errors.Join(ErrJSONContract, err)
-	}
-	*m = decoded
-	return nil
-}
-
-const (
-	// HTTPStatusCodeMinimum is the first syntactically valid status code.
-	HTTPStatusCodeMinimum = 100
-	// HTTPStatusInformationalMaximum is the last 1xx status code.
-	HTTPStatusInformationalMaximum = 199
-	// HTTPStatusSuccessMinimum is the first 2xx status code.
-	HTTPStatusSuccessMinimum = 200
-	// HTTPStatusSuccessMaximum is the last 2xx status code.
-	HTTPStatusSuccessMaximum = 299
-	// HTTPStatusRedirectMinimum is the first 3xx status code.
-	HTTPStatusRedirectMinimum = 300
-	// HTTPStatusRedirectMaximum is the last 3xx status code.
-	HTTPStatusRedirectMaximum = 399
-	// HTTPStatusClientErrorMinimum is the first 4xx status code.
-	HTTPStatusClientErrorMinimum = 400
-	// HTTPStatusClientErrorMaximum is the last 4xx status code.
-	HTTPStatusClientErrorMaximum = 499
-	// HTTPStatusServerErrorMinimum is the first 5xx status code.
-	HTTPStatusServerErrorMinimum = 500
-	// HTTPStatusCodeMaximum is the last syntactically valid status code.
-	HTTPStatusCodeMaximum = 599
+	// httpStatusCodeMinimum is the first syntactically valid status code.
+	httpStatusCodeMinimum = 100
+	// httpStatusInformationalMaximum is the last 1xx status code.
+	httpStatusInformationalMaximum = 199
+	// httpStatusSuccessMinimum is the first 2xx status code.
+	httpStatusSuccessMinimum = 200
+	// httpStatusSuccessMaximum is the last 2xx status code.
+	httpStatusSuccessMaximum = 299
+	// httpStatusRedirectMinimum is the first 3xx status code.
+	httpStatusRedirectMinimum = 300
+	// httpStatusRedirectMaximum is the last 3xx status code.
+	httpStatusRedirectMaximum = 399
+	// httpStatusClientErrorMinimum is the first 4xx status code.
+	httpStatusClientErrorMinimum = 400
+	// httpStatusClientErrorMaximum is the last 4xx status code.
+	httpStatusClientErrorMaximum = 499
+	// httpStatusServerErrorMinimum is the first 5xx status code.
+	httpStatusServerErrorMinimum = 500
+	// httpStatusCodeMaximum is the last syntactically valid status code.
+	httpStatusCodeMaximum = 599
 )
 
 // HTTPStatusCode is an integer in the inclusive range 100 through 599.
@@ -160,7 +50,7 @@ type HTTPStatusCode struct {
 
 // NewHTTPStatusCode validates and constructs a status code.
 func NewHTTPStatusCode(value int) (HTTPStatusCode, error) {
-	if value < HTTPStatusCodeMinimum || value > HTTPStatusCodeMaximum {
+	if value < httpStatusCodeMinimum || value > httpStatusCodeMaximum {
 		return HTTPStatusCode{}, httpContractError(httpStatusRangeErrorText)
 	}
 	return HTTPStatusCode{value: uint16(value)}, nil
@@ -176,7 +66,7 @@ func (s HTTPStatusCode) Int() (int, error) {
 
 // Validate rejects unset or out-of-range status codes.
 func (s HTTPStatusCode) Validate() error {
-	if s.value < HTTPStatusCodeMinimum || s.value > HTTPStatusCodeMaximum {
+	if s.value < httpStatusCodeMinimum || s.value > httpStatusCodeMaximum {
 		return httpContractError(httpStatusRangeErrorText)
 	}
 	return nil
@@ -184,27 +74,27 @@ func (s HTTPStatusCode) Validate() error {
 
 // IsInformational reports whether s is in the 1xx class.
 func (s HTTPStatusCode) IsInformational() bool {
-	return s.value >= HTTPStatusCodeMinimum && s.value <= HTTPStatusInformationalMaximum
+	return s.value >= httpStatusCodeMinimum && s.value <= httpStatusInformationalMaximum
 }
 
 // IsSuccess reports whether s is in the 2xx class.
 func (s HTTPStatusCode) IsSuccess() bool {
-	return s.value >= HTTPStatusSuccessMinimum && s.value <= HTTPStatusSuccessMaximum
+	return s.value >= httpStatusSuccessMinimum && s.value <= httpStatusSuccessMaximum
 }
 
 // IsRedirect reports whether s is in the 3xx class.
 func (s HTTPStatusCode) IsRedirect() bool {
-	return s.value >= HTTPStatusRedirectMinimum && s.value <= HTTPStatusRedirectMaximum
+	return s.value >= httpStatusRedirectMinimum && s.value <= httpStatusRedirectMaximum
 }
 
 // IsClientError reports whether s is in the 4xx class.
 func (s HTTPStatusCode) IsClientError() bool {
-	return s.value >= HTTPStatusClientErrorMinimum && s.value <= HTTPStatusClientErrorMaximum
+	return s.value >= httpStatusClientErrorMinimum && s.value <= httpStatusClientErrorMaximum
 }
 
 // IsServerError reports whether s is in the 5xx class.
 func (s HTTPStatusCode) IsServerError() bool {
-	return s.value >= HTTPStatusServerErrorMinimum && s.value <= HTTPStatusCodeMaximum
+	return s.value >= httpStatusServerErrorMinimum && s.value <= httpStatusCodeMaximum
 }
 
 // PermitsResponseBody reports whether the status alone permits a response body.
@@ -212,7 +102,7 @@ func (s HTTPStatusCode) IsServerError() bool {
 // such as HEAD suppressing a body that the status otherwise permits, remain the
 // HTTP operation owner's decision.
 func (s HTTPStatusCode) PermitsResponseBody() bool {
-	return s.value > HTTPStatusInformationalMaximum &&
+	return s.value > httpStatusInformationalMaximum &&
 		s.value != 204 &&
 		s.value != 304
 }
@@ -234,7 +124,7 @@ func (s *HTTPStatusCode) UnmarshalJSON(data []byte) error {
 	if err != nil {
 		return err
 	}
-	if value > uint64(HTTPStatusCodeMaximum) {
+	if value > uint64(httpStatusCodeMaximum) {
 		return errors.Join(ErrJSONContract, httpContractError(httpStatusRangeErrorText))
 	}
 	decoded, err := NewHTTPStatusCode(int(value))
@@ -252,7 +142,7 @@ type HTTPHeaderName struct {
 
 // ParseHTTPHeaderName validates HTTP token syntax and canonicalizes letter case.
 func ParseHTTPHeaderName(value string) (HTTPHeaderName, error) {
-	if value == "" || len(value) > HTTPHeaderNameMaximumBytes {
+	if value == "" || len(value) > httpHeaderNameMaximumBytes {
 		return HTTPHeaderName{}, httpContractError("HTTP header name has invalid length")
 	}
 	for index := range len(value) {
@@ -304,15 +194,10 @@ func (n *HTTPHeaderName) UnmarshalJSON(data []byte) error {
 const (
 	httpHeaderContentTypeText     = "Content-Type"
 	httpHeaderAcceptText          = "Accept"
-	httpHeaderAuthorizationText   = "Authorization"
-	httpHeaderRetryAfterText      = "Retry-After"
 	httpHeaderContentLengthText   = "Content-Length"
-	httpHeaderContentRangeText    = "Content-Range"
 	httpHeaderContentEncodingText = "Content-Encoding"
 	httpHeaderAcceptEncodingText  = "Accept-Encoding"
 	httpHeaderIdempotencyKeyText  = "Idempotency-Key"
-	httpHeaderLocationText        = "Location"
-	httpHeaderCacheControlText    = "Cache-Control"
 )
 
 // HTTPHeaderContentType returns the validated Content-Type field name.
@@ -325,24 +210,9 @@ func HTTPHeaderAccept() HTTPHeaderName {
 	return HTTPHeaderName{value: httpHeaderAcceptText}
 }
 
-// HTTPHeaderAuthorization returns the validated Authorization field name.
-func HTTPHeaderAuthorization() HTTPHeaderName {
-	return HTTPHeaderName{value: httpHeaderAuthorizationText}
-}
-
-// HTTPHeaderRetryAfter returns the validated Retry-After field name.
-func HTTPHeaderRetryAfter() HTTPHeaderName {
-	return HTTPHeaderName{value: httpHeaderRetryAfterText}
-}
-
 // HTTPHeaderContentLength returns the validated Content-Length field name.
 func HTTPHeaderContentLength() HTTPHeaderName {
 	return HTTPHeaderName{value: httpHeaderContentLengthText}
-}
-
-// HTTPHeaderContentRange returns the validated Content-Range field name.
-func HTTPHeaderContentRange() HTTPHeaderName {
-	return HTTPHeaderName{value: httpHeaderContentRangeText}
 }
 
 // HTTPHeaderContentEncoding returns the validated Content-Encoding field name.
@@ -360,16 +230,6 @@ func HTTPHeaderIdempotencyKey() HTTPHeaderName {
 	return HTTPHeaderName{value: httpHeaderIdempotencyKeyText}
 }
 
-// HTTPHeaderLocation returns the validated Location field name.
-func HTTPHeaderLocation() HTTPHeaderName {
-	return HTTPHeaderName{value: httpHeaderLocationText}
-}
-
-// HTTPHeaderCacheControl returns the validated Cache-Control field name.
-func HTTPHeaderCacheControl() HTTPHeaderName {
-	return HTTPHeaderName{value: httpHeaderCacheControlText}
-}
-
 // HTTPMediaType is one canonical standard-library-parsed media type, including
 // any parameters. Its zero value is unset. It is deliberately not a closed
 // enum: HTTP protocols and providers define legitimate vendor media types.
@@ -380,7 +240,7 @@ type HTTPMediaType struct {
 // ParseHTTPMediaType parses standard media-type syntax and stores the
 // canonical standard-library projection.
 func ParseHTTPMediaType(value string) (HTTPMediaType, error) {
-	if len(value) == 0 || len(value) > HTTPMediaTypeMaximumBytes {
+	if len(value) == 0 || len(value) > httpMediaTypeMaximumBytes {
 		return HTTPMediaType{}, httpContractError("HTTP media type has invalid length")
 	}
 	base, parameters, err := mime.ParseMediaType(value)
@@ -391,7 +251,7 @@ func ParseHTTPMediaType(value string) (HTTPMediaType, error) {
 		return HTTPMediaType{}, httpContractError("HTTP media type requires type and subtype")
 	}
 	canonical := mime.FormatMediaType(base, parameters)
-	if canonical == "" || len(canonical) > HTTPMediaTypeMaximumBytes {
+	if canonical == "" || len(canonical) > httpMediaTypeMaximumBytes {
 		return HTTPMediaType{}, httpContractError("HTTP media type cannot be represented canonically")
 	}
 	return HTTPMediaType{value: canonical}, nil
@@ -467,34 +327,9 @@ func (m *HTTPMediaType) UnmarshalJSON(data []byte) error {
 	return nil
 }
 
-// HTTPMediaTypeJSON returns canonical application/json.
-func HTTPMediaTypeJSON() HTTPMediaType {
-	return HTTPMediaType{value: httpMediaTypeJSONText}
-}
-
 // HTTPMediaTypeOctetStream returns canonical application/octet-stream.
 func HTTPMediaTypeOctetStream() HTTPMediaType {
 	return HTTPMediaType{value: httpMediaTypeOctetStreamText}
-}
-
-// HTTPMediaTypeTextPlain returns canonical text/plain.
-func HTTPMediaTypeTextPlain() HTTPMediaType {
-	return HTTPMediaType{value: httpMediaTypeTextPlainText}
-}
-
-// HTTPMediaTypeTimestampQuery returns canonical application/timestamp-query.
-func HTTPMediaTypeTimestampQuery() HTTPMediaType {
-	return HTTPMediaType{value: httpMediaTypeTimestampQueryText}
-}
-
-// HTTPMediaTypeTimestampReply returns canonical application/timestamp-reply.
-func HTTPMediaTypeTimestampReply() HTTPMediaType {
-	return HTTPMediaType{value: httpMediaTypeTimestampReplyText}
-}
-
-// HTTPMediaTypePKIXCRL returns canonical application/pkix-crl.
-func HTTPMediaTypePKIXCRL() HTTPMediaType {
-	return HTTPMediaType{value: httpMediaTypePKIXCRLText}
 }
 
 // ValidateHTTPFieldValue rejects field content that no HTTP message can carry.

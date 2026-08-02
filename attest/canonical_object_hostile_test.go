@@ -55,6 +55,22 @@ func (erroringMember) MarshalJSON() ([]byte, error) {
 	return nil, errors.New("member marshal refused")
 }
 
+// observedMember records whether CanonicalObject invoked a nested owner. It
+// proves object-owned admission happens before the external callback boundary.
+type observedMember struct {
+	calls *int
+}
+
+func (m observedMember) Validate() error {
+	*m.calls++
+	return nil
+}
+
+func (m observedMember) MarshalJSON() ([]byte, error) {
+	*m.calls++
+	return []byte(`1`), nil
+}
+
 // builtBody is a CanonicalBody whose canonical bytes come from the production
 // builder, so signing proof runs over the real emission path rather than a
 // second projection written for the test.
@@ -281,6 +297,9 @@ func TestCanonicalObjectRejectsHostileMemberOwnersWithoutPartialOutput(t *testin
 		{name: "string member carrying invalid utf-8 is refused", write: func(o *attest.CanonicalObject) {
 			o.String("v", "\xff")
 		}},
+		{name: "string member larger than the complete object ceiling is refused", write: func(o *attest.CanonicalObject) {
+			o.String("v", oversized)
+		}},
 	}
 
 	for _, tc := range cases {
@@ -410,6 +429,32 @@ func TestCanonicalObjectStateTransitionsRefuseReuseDuplicatesAndOverflow(t *test
 		got, gotErr := object.End()
 		if !errors.Is(gotErr, core.ErrAttestContract) || got != nil {
 			t.Fatalf("End() over an oversized destination = (%q, %v), want (nil, %v)", got, gotErr, core.ErrAttestContract)
+		}
+	})
+
+	t.Run("a destination exactly at the body ceiling is refused before any member", func(t *testing.T) {
+		t.Parallel()
+
+		object := attest.BeginCanonicalObject(make([]byte, attest.CanonicalBodyMaximumBytes))
+		object.Bool("v", true)
+		got, gotErr := object.End()
+		if !errors.Is(gotErr, core.ErrAttestContract) || got != nil {
+			t.Fatalf("End() at an exhausted destination = (%q, %v), want (nil, %v)", got, gotErr, core.ErrAttestContract)
+		}
+	})
+
+	t.Run("an invalid field name is rejected before its nested owner is invoked", func(t *testing.T) {
+		t.Parallel()
+
+		calls := 0
+		object := attest.BeginCanonicalObject(nil)
+		object.Value("INVALID", observedMember{calls: &calls})
+		got, gotErr := object.End()
+		if !errors.Is(gotErr, core.ErrAttestContract) || got != nil {
+			t.Fatalf("End() after invalid nested name = (%q, %v), want (nil, %v)", got, gotErr, core.ErrAttestContract)
+		}
+		if calls != 0 {
+			t.Fatalf("nested owner calls after invalid field name = %d, want 0", calls)
 		}
 	})
 }

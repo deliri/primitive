@@ -139,14 +139,11 @@ func (p Precision) nanoseconds() (int64, error) {
 }
 
 func durationFromMagnitude(value, magnitude uint64) (Duration, error) {
-	if magnitude == 0 || value > uint64(DurationMaximumNanoseconds)/magnitude {
+	if value > uint64(DurationMaximumNanoseconds)/magnitude {
 		return Duration{}, overflowError(durationUnitOverflowReason)
 	}
-	nanoseconds, err := core.CheckedInt64FromUint64(value * magnitude)
-	if err != nil {
-		return Duration{}, overflowError(durationUnitOverflowReason)
-	}
-	return Duration{nanoseconds: nanoseconds}, nil
+	// #nosec G115 -- the quotient guard proves the product fits int64.
+	return Duration{nanoseconds: int64(value * magnitude)}, nil
 }
 
 var (

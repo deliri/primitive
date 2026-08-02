@@ -201,7 +201,7 @@ func TestVerificationNamesOfferingMismatchDistinctlyFromInvalidDocument(t *testi
 	if !errors.Is(manifestErr, core.ErrReleaseVerification) {
 		t.Fatalf("VerifyManifest(wrong offering) error = %v, want %v", manifestErr, core.ErrReleaseVerification)
 	}
-	var manifestMismatch core.ReleaseOfferingMismatchError
+	var manifestMismatch OfferingMismatchError
 	if !errors.As(manifestErr, &manifestMismatch) ||
 		manifestMismatch.Observed() != core.OfferingWitness ||
 		manifestMismatch.Expected() != core.OfferingBug {
@@ -222,7 +222,7 @@ func TestVerificationNamesOfferingMismatchDistinctlyFromInvalidDocument(t *testi
 	if !errors.Is(latestErr, core.ErrReleaseVerification) {
 		t.Fatalf("VerifyLatest(wrong offering) error = %v, want %v", latestErr, core.ErrReleaseVerification)
 	}
-	var latestMismatch core.ReleaseOfferingMismatchError
+	var latestMismatch OfferingMismatchError
 	if !errors.As(latestErr, &latestMismatch) ||
 		latestMismatch.Observed() != core.OfferingWitness ||
 		latestMismatch.Expected() != core.OfferingBug {
@@ -246,9 +246,45 @@ func TestVerificationNamesOfferingMismatchDistinctlyFromInvalidDocument(t *testi
 	if !errors.Is(brokenErr, core.ErrReleaseVerification) {
 		t.Fatalf("VerifyManifest(unset fact) error = %v, want %v", brokenErr, core.ErrReleaseVerification)
 	}
-	var brokenMismatch core.ReleaseOfferingMismatchError
+	var brokenMismatch OfferingMismatchError
 	if errors.As(brokenErr, &brokenMismatch) {
 		t.Fatalf("VerifyManifest(unset fact) detail = %v, want no offering mismatch", brokenMismatch)
+	}
+}
+
+func TestOfferingMismatchErrorOwnsExactTypedFacts(t *testing.T) {
+	t.Parallel()
+
+	mismatch, err := newOfferingMismatchError(core.OfferingWitness, core.OfferingBug)
+	if err != nil || mismatch.Validate() != nil ||
+		mismatch.Observed() != core.OfferingWitness ||
+		mismatch.Expected() != core.OfferingBug ||
+		!errors.Is(mismatch, core.ErrReleaseVerification) {
+		t.Fatalf("newOfferingMismatchError() = (%v, %v), want validated exact verification detail", mismatch, err)
+	}
+	cases := []struct {
+		name     string
+		observed core.Offering
+		want     core.Offering
+	}{
+		{name: "unknown observed", observed: core.OfferingUnknown, want: core.OfferingBug},
+		{name: "future observed", observed: core.Offering(255), want: core.OfferingBug},
+		{name: "unknown expected", observed: core.OfferingBug, want: core.OfferingUnknown},
+		{name: "future expected", observed: core.OfferingBug, want: core.Offering(255)},
+		{name: "equal bug", observed: core.OfferingBug, want: core.OfferingBug},
+		{name: "equal witness", observed: core.OfferingWitness, want: core.OfferingWitness},
+	}
+	for _, tc := range cases {
+		t.Run(tc.name, func(t *testing.T) {
+			t.Parallel()
+			got, gotErr := newOfferingMismatchError(tc.observed, tc.want)
+			if got != (OfferingMismatchError{}) || !errors.Is(gotErr, core.ErrReleaseContract) {
+				t.Fatalf("newOfferingMismatchError(%v, %v) = (%v, %v), want (zero, %v)", tc.observed, tc.want, got, gotErr, core.ErrReleaseContract)
+			}
+		})
+	}
+	if err := (OfferingMismatchError{}).Validate(); !errors.Is(err, core.ErrReleaseContract) {
+		t.Fatalf("OfferingMismatchError{}.Validate() error = %v, want %v", err, core.ErrReleaseContract)
 	}
 }
 

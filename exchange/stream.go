@@ -250,7 +250,7 @@ func newUploadHTTPRequest(
 	)
 	request.Header.Set(
 		core.HTTPHeaderAcceptEncoding().String(),
-		core.HTTPContentCodingIdentity().String(),
+		identityContentCoding().String(),
 	)
 	applyRequestHeaders(request, input.request.Headers)
 	applyIdempotencyKey(request, input.request.Semantics)
@@ -283,7 +283,7 @@ func newDownloadHTTPRequest(
 	}
 	request.Header.Set(
 		core.HTTPHeaderAcceptEncoding().String(),
-		core.HTTPContentCodingIdentity().String(),
+		identityContentCoding().String(),
 	)
 	applyRequestHeaders(request, input.request.Headers)
 	applyIdempotencyKey(request, input.request.Semantics)
@@ -423,8 +423,9 @@ func transferDownloadResponse(
 		},
 	)
 	closeErr := closeResponseBody(input.response.Body)
-	response.Metadata.Bytes = core.NewByteLength(bytes)
-	if err := errors.Join(copyErr, closeErr); err != nil {
+	responseBytes, lengthErr := core.NewByteLength(bytes)
+	response.Metadata.Bytes = responseBytes
+	if err := errors.Join(copyErr, closeErr, lengthErr); err != nil {
 		return response, responseError(err)
 	}
 	if err := response.Validate(); err != nil {

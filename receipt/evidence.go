@@ -19,7 +19,7 @@ const (
 	) + ReceiptIDHexBytes + 2*LifecycleIdentityHexBytes + len("v1") + 20
 	evidenceBodyCanonicalJSONMaximumBytes = len(
 		`{"submission_identity":"","object_identity":"","extent_bytes":,"sha256":"","crc32c":""}`,
-	) + 2*LifecycleIdentityHexBytes + 20 + 64 + core.CRC32CBase64Bytes
+	) + 2*LifecycleIdentityHexBytes + len("9223372036854775807") + 64 + len("AAAAAA==")
 	// EvidencePayloadCanonicalJSONMaximumBytes is the exact maximum canonical payload extent.
 	EvidencePayloadCanonicalJSONMaximumBytes = len(`{"header":,"body":}`) +
 		evidenceHeaderCanonicalJSONMaximumBytes + evidenceBodyCanonicalJSONMaximumBytes

@@ -95,13 +95,13 @@ func sendRawRequest(
 	if !input.omitContentType {
 		contentType := input.contentType
 		if contentType == "" {
-			contentType = core.HTTPMediaTypeJSON().String()
+			contentType = mustHTTPMediaType(t, "application/json").String()
 		}
 		request.Header.Set(core.HTTPHeaderContentType().String(), contentType)
 		if input.duplicateType {
 			request.Header.Add(
 				core.HTTPHeaderContentType().String(),
-				core.HTTPMediaTypeJSON().String(),
+				mustHTTPMediaType(t, "application/json").String(),
 			)
 		}
 	}
@@ -190,7 +190,7 @@ func TestJSONIngressGuardHostileTable(t *testing.T) {
 			name: "admitted identity content coding is transparent",
 			request: jsonIngressRequest{
 				method:          http.MethodPost,
-				contentEncoding: core.HTTPContentCodingIdentity().String(),
+				contentEncoding: identityContentCoding,
 				body:            admitted,
 			},
 			wantMessage: "candidate",
@@ -214,7 +214,7 @@ func TestJSONIngressGuardHostileTable(t *testing.T) {
 			name: "foreign content type is refused",
 			request: jsonIngressRequest{
 				method:      http.MethodPost,
-				contentType: core.HTTPMediaTypeTextPlain().String(),
+				contentType: mustHTTPMediaType(t, "text/plain").String(),
 				body:        admitted,
 			},
 			wantErr: core.ErrExchangeContentType,
@@ -297,7 +297,7 @@ func TestJSONIngressGuardHostileTable(t *testing.T) {
 			server := startJSONIngressServer(
 				t,
 				exchange.RouteSemantics{
-					Method: core.HTTPMethodPost,
+					Method: exchange.MethodPost,
 					Replay: exchange.ReplaySingleAttempt,
 				},
 				observed,
@@ -333,7 +333,7 @@ func TestNoBodyIngressLayerTriad(t *testing.T) {
 	t.Parallel()
 
 	route := exchange.RouteSemantics{
-		Method: core.HTTPMethodGet,
+		Method: exchange.MethodGet,
 		Replay: exchange.ReplaySafe,
 	}
 	newServer := func(observed chan<- ingressObservation) *httptest.Server {
@@ -388,7 +388,7 @@ func TestNoBodyIngressLayerTriad(t *testing.T) {
 				request: jsonIngressRequest{
 					method:          http.MethodGet,
 					omitContentType: true,
-					contentEncoding: core.HTTPContentCodingIdentity().String(),
+					contentEncoding: identityContentCoding,
 				},
 			},
 		}
@@ -422,7 +422,7 @@ func TestNoBodyIngressLayerTriad(t *testing.T) {
 		t.Parallel()
 
 		keyRoute := exchange.RouteSemantics{
-			Method: core.HTTPMethodPost,
+			Method: exchange.MethodPost,
 			Replay: exchange.ReplayIdempotencyKey,
 		}
 		observed := make(chan ingressObservation, 1)
@@ -484,7 +484,7 @@ func TestStreamIngressBoundLayerTriad(t *testing.T) {
 				exchange.StreamReceiveCall{
 					Request:             request,
 					Destination:         destination,
-					Route:               exchange.RouteSemantics{Method: core.HTTPMethodPut, Replay: exchange.ReplaySingleAttempt},
+					Route:               exchange.RouteSemantics{Method: exchange.MethodPut, Replay: exchange.ReplaySingleAttempt},
 					Policy:              policy,
 					ExpectedContentType: core.HTTPMediaTypeOctetStream(),
 				},

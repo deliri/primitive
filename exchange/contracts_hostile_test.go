@@ -27,16 +27,16 @@ func TestRequestSemanticsLayerTriad(t *testing.T) {
 		cases := []struct {
 			name   string
 			key    exchange.IdempotencyKey
-			method core.HTTPMethod
+			method exchange.Method
 			replay exchange.ReplayMode
 		}{
-			{name: "safe GET can replay", method: core.HTTPMethodGet, replay: exchange.ReplaySafe},
-			{name: "safe HEAD can replay", method: core.HTTPMethodHead, replay: exchange.ReplaySafe},
-			{name: "safe OPTIONS can replay", method: core.HTTPMethodOptions, replay: exchange.ReplaySafe},
-			{name: "idempotent PUT can replay", method: core.HTTPMethodPut, replay: exchange.ReplayIdempotent},
-			{name: "idempotent DELETE can replay", method: core.HTTPMethodDelete, replay: exchange.ReplayIdempotent},
-			{name: "POST can replay under an explicit key", method: core.HTTPMethodPost, replay: exchange.ReplayIdempotencyKey, key: key},
-			{name: "PATCH can replay under an explicit key", method: core.HTTPMethodPatch, replay: exchange.ReplayIdempotencyKey, key: key},
+			{name: "safe GET can replay", method: exchange.MethodGet, replay: exchange.ReplaySafe},
+			{name: "safe HEAD can replay", method: exchange.MethodHead, replay: exchange.ReplaySafe},
+			{name: "safe OPTIONS can replay", method: exchange.MethodOptions, replay: exchange.ReplaySafe},
+			{name: "idempotent PUT can replay", method: exchange.MethodPut, replay: exchange.ReplayIdempotent},
+			{name: "idempotent DELETE can replay", method: exchange.MethodDelete, replay: exchange.ReplayIdempotent},
+			{name: "POST can replay under an explicit key", method: exchange.MethodPost, replay: exchange.ReplayIdempotencyKey, key: key},
+			{name: "PATCH can replay under an explicit key", method: exchange.MethodPatch, replay: exchange.ReplayIdempotencyKey, key: key},
 		}
 		for _, tc := range cases {
 			t.Run(tc.name, func(t *testing.T) {
@@ -75,21 +75,21 @@ func TestRequestSemanticsLayerTriad(t *testing.T) {
 			semantics exchange.RequestSemantics
 		}{
 			{name: "zero semantics is rejected", semantics: exchange.RequestSemantics{}},
-			{name: "unknown future method is rejected", semantics: exchange.RequestSemantics{Method: core.HTTPMethod(math.MaxUint8), Replay: exchange.ReplaySingleAttempt}},
-			{name: "unknown future replay mode is rejected", semantics: exchange.RequestSemantics{Method: core.HTTPMethodGet, Replay: exchange.ReplayMode(math.MaxUint8)}},
-			{name: "POST is not declared safe", semantics: exchange.RequestSemantics{Method: core.HTTPMethodPost, Replay: exchange.ReplaySafe}},
-			{name: "PATCH is not declared safe", semantics: exchange.RequestSemantics{Method: core.HTTPMethodPatch, Replay: exchange.ReplaySafe}},
-			{name: "DELETE is not declared safe", semantics: exchange.RequestSemantics{Method: core.HTTPMethodDelete, Replay: exchange.ReplaySafe}},
-			{name: "GET does not use the mutation idempotent declaration", semantics: exchange.RequestSemantics{Method: core.HTTPMethodGet, Replay: exchange.ReplayIdempotent}},
-			{name: "POST is not inherently idempotent", semantics: exchange.RequestSemantics{Method: core.HTTPMethodPost, Replay: exchange.ReplayIdempotent}},
-			{name: "PATCH is not inherently idempotent", semantics: exchange.RequestSemantics{Method: core.HTTPMethodPatch, Replay: exchange.ReplayIdempotent}},
-			{name: "POST key replay requires a key", semantics: exchange.RequestSemantics{Method: core.HTTPMethodPost, Replay: exchange.ReplayIdempotencyKey}},
-			{name: "PATCH key replay requires a key", semantics: exchange.RequestSemantics{Method: core.HTTPMethodPatch, Replay: exchange.ReplayIdempotencyKey}},
-			{name: "GET cannot use mutation key replay", semantics: exchange.RequestSemantics{Method: core.HTTPMethodGet, Replay: exchange.ReplayIdempotencyKey, IdempotencyKey: key}},
-			{name: "PUT cannot use mutation key replay", semantics: exchange.RequestSemantics{Method: core.HTTPMethodPut, Replay: exchange.ReplayIdempotencyKey, IdempotencyKey: key}},
-			{name: "single attempt rejects an irrelevant key", semantics: exchange.RequestSemantics{Method: core.HTTPMethodPost, Replay: exchange.ReplaySingleAttempt, IdempotencyKey: key}},
-			{name: "safe replay rejects an irrelevant key", semantics: exchange.RequestSemantics{Method: core.HTTPMethodGet, Replay: exchange.ReplaySafe, IdempotencyKey: key}},
-			{name: "idempotent replay rejects an irrelevant key", semantics: exchange.RequestSemantics{Method: core.HTTPMethodPut, Replay: exchange.ReplayIdempotent, IdempotencyKey: key}},
+			{name: "unknown future method is rejected", semantics: exchange.RequestSemantics{Method: exchange.Method(math.MaxUint8), Replay: exchange.ReplaySingleAttempt}},
+			{name: "unknown future replay mode is rejected", semantics: exchange.RequestSemantics{Method: exchange.MethodGet, Replay: exchange.ReplayMode(math.MaxUint8)}},
+			{name: "POST is not declared safe", semantics: exchange.RequestSemantics{Method: exchange.MethodPost, Replay: exchange.ReplaySafe}},
+			{name: "PATCH is not declared safe", semantics: exchange.RequestSemantics{Method: exchange.MethodPatch, Replay: exchange.ReplaySafe}},
+			{name: "DELETE is not declared safe", semantics: exchange.RequestSemantics{Method: exchange.MethodDelete, Replay: exchange.ReplaySafe}},
+			{name: "GET does not use the mutation idempotent declaration", semantics: exchange.RequestSemantics{Method: exchange.MethodGet, Replay: exchange.ReplayIdempotent}},
+			{name: "POST is not inherently idempotent", semantics: exchange.RequestSemantics{Method: exchange.MethodPost, Replay: exchange.ReplayIdempotent}},
+			{name: "PATCH is not inherently idempotent", semantics: exchange.RequestSemantics{Method: exchange.MethodPatch, Replay: exchange.ReplayIdempotent}},
+			{name: "POST key replay requires a key", semantics: exchange.RequestSemantics{Method: exchange.MethodPost, Replay: exchange.ReplayIdempotencyKey}},
+			{name: "PATCH key replay requires a key", semantics: exchange.RequestSemantics{Method: exchange.MethodPatch, Replay: exchange.ReplayIdempotencyKey}},
+			{name: "GET cannot use mutation key replay", semantics: exchange.RequestSemantics{Method: exchange.MethodGet, Replay: exchange.ReplayIdempotencyKey, IdempotencyKey: key}},
+			{name: "PUT cannot use mutation key replay", semantics: exchange.RequestSemantics{Method: exchange.MethodPut, Replay: exchange.ReplayIdempotencyKey, IdempotencyKey: key}},
+			{name: "single attempt rejects an irrelevant key", semantics: exchange.RequestSemantics{Method: exchange.MethodPost, Replay: exchange.ReplaySingleAttempt, IdempotencyKey: key}},
+			{name: "safe replay rejects an irrelevant key", semantics: exchange.RequestSemantics{Method: exchange.MethodGet, Replay: exchange.ReplaySafe, IdempotencyKey: key}},
+			{name: "idempotent replay rejects an irrelevant key", semantics: exchange.RequestSemantics{Method: exchange.MethodPut, Replay: exchange.ReplayIdempotent, IdempotencyKey: key}},
 		}
 		for _, tc := range cases {
 			t.Run(tc.name, func(t *testing.T) {
@@ -115,14 +115,14 @@ func TestRequestSemanticsLayerTriad(t *testing.T) {
 	t.Run("neutral single attempt admits every method without replay state", func(t *testing.T) {
 		t.Parallel()
 
-		methods := [...]core.HTTPMethod{
-			core.HTTPMethodGet,
-			core.HTTPMethodHead,
-			core.HTTPMethodPost,
-			core.HTTPMethodPut,
-			core.HTTPMethodPatch,
-			core.HTTPMethodDelete,
-			core.HTTPMethodOptions,
+		methods := [...]exchange.Method{
+			exchange.MethodGet,
+			exchange.MethodHead,
+			exchange.MethodPost,
+			exchange.MethodPut,
+			exchange.MethodPatch,
+			exchange.MethodDelete,
+			exchange.MethodOptions,
 		}
 		for _, method := range methods {
 			semantics := exchange.RequestSemantics{

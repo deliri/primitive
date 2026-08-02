@@ -91,9 +91,9 @@ func TestOwnedHeaderSetIsExactlyTheDeclaredFields(t *testing.T) {
 		core.HTTPHeaderAcceptEncoding().String(),
 		core.HTTPHeaderContentEncoding().String(),
 		core.HTTPHeaderAccept().String(),
-		core.HTTPHeaderAuthorization().String(),
+		headerAuthorization,
 		core.HTTPHeaderIdempotencyKey().String(),
-		core.HTTPHeaderContentRange().String(),
+		headerContentRange,
 		headerHost,
 		headerRange,
 		headerIfNoneMatch,
@@ -461,9 +461,10 @@ func TestProviderDownloadCRC32CProjectionTable(t *testing.T) {
 
 	// The base64 CRC32C of the four bytes "test" under Castagnoli.
 	const encoded = "SUYRpg=="
-	want, gotErr := core.ParseCRC32CBase64(encoded)
+	var want core.CRC32C
+	gotErr := want.UnmarshalText([]byte(encoded))
 	if gotErr != nil {
-		t.Fatalf("core.ParseCRC32CBase64() setup error = %v, want nil", gotErr)
+		t.Fatalf("core.CRC32C.UnmarshalText() setup error = %v, want nil", gotErr)
 	}
 	cases := []struct {
 		wantErr     error

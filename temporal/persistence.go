@@ -1,9 +1,9 @@
 package temporal
 
 import (
+	"bytes"
 	"encoding/json"
-
-	"github.com/deliri/primitive/v2026/core"
+	"strconv"
 )
 
 func decodeNanosecondJSON(data []byte, maximumBytes int) (string, error) {
@@ -13,6 +13,10 @@ func decodeNanosecondJSON(data []byte, maximumBytes int) (string, error) {
 	var decimal string
 	if err := json.Unmarshal(data, &decimal); err != nil {
 		return "", jsonContractError("temporal JSON is not one string", err)
+	}
+	canonical, err := json.Marshal(decimal)
+	if err != nil || !bytes.Equal(bytes.TrimSpace(data), canonical) {
+		return "", jsonContractError("temporal JSON string is not canonical", err)
 	}
 	return decimal, nil
 }
@@ -28,13 +32,12 @@ func decodeNumericNanoseconds(data []byte, maximumBytes int) (int64, error) {
 	return parseSignedNanoseconds(string(data))
 }
 
-// parseSignedNanoseconds projects Core's canonical-integer owner. Temporal
-// previously carried its own hand-written signed-decimal grammar beside Core's
-// round-trip rule; two grammars for one fact is the duplication this package
-// exists to remove, so the rule now has exactly one home.
+// parseSignedNanoseconds admits exactly the decimal spelling strconv emits for
+// one signed nanosecond value. Temporal is the sole owner of this persistence
+// grammar; the standard library remains the parser and canonical projector.
 func parseSignedNanoseconds(decimal string) (int64, error) {
-	value, err := core.ParseCanonicalInt64JSON([]byte(decimal))
-	if err != nil {
+	value, err := strconv.ParseInt(decimal, 10, 64)
+	if err != nil || strconv.FormatInt(value, 10) != decimal {
 		return 0, contractError("signed nanosecond decimal is not canonical", err)
 	}
 	return value, nil

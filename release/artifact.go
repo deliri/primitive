@@ -18,9 +18,7 @@ const (
 	binaryFilenameSeparator     = "-"
 	binaryFilenameWindowsSuffix = ".exe"
 	// BinaryFilenameMaximumBytes bounds the only derived artifact filename.
-	BinaryFilenameMaximumBytes = core.OfferingTokenMaximumBytes +
-		2*len(binaryFilenameSeparator) + core.ReleaseVersionMaximumBytes +
-		core.PlatformTokenMaximumBytes + len(binaryFilenameWindowsSuffix)
+	BinaryFilenameMaximumBytes = 64
 )
 
 // ArtifactIdentity is the nominal digest of immutable artifact facts.
@@ -171,6 +169,15 @@ type ArtifactRequest struct {
 	SHA256 core.SHA256Digest
 }
 
+// Validate proves every immutable artifact fact before identity derivation.
+func (r ArtifactRequest) Validate() error {
+	if err := r.Build.Validate(); err != nil {
+		return manifestError(err)
+	}
+	_, err := newArtifactIntegrity(r.Extent, r.SHA256, r.CRC32C)
+	return err
+}
+
 // Artifact is one immutable release object. Its filename is derived.
 type Artifact struct {
 	integrity ArtifactIntegrity
@@ -186,6 +193,9 @@ type artifactWire struct {
 }
 
 func NewArtifact(request ArtifactRequest) (Artifact, error) {
+	if err := request.Validate(); err != nil {
+		return Artifact{}, err
+	}
 	integrity, err := newArtifactIntegrity(request.Extent, request.SHA256, request.CRC32C)
 	if err != nil {
 		return Artifact{}, err
@@ -298,6 +308,12 @@ type ArtifactSetRequest struct {
 	Artifacts [TargetCount]Artifact
 }
 
+// Validate proves every fixed target slot and the one-release closure.
+func (r ArtifactSetRequest) Validate() error {
+	_, err := artifactSetTotalExtent(r.Artifacts)
+	return err
+}
+
 // ArtifactSet is fixed storage for exactly one artifact per release target.
 type ArtifactSet struct {
 	artifacts [TargetCount]Artifact
@@ -306,6 +322,9 @@ type ArtifactSet struct {
 }
 
 func NewArtifactSet(request ArtifactSetRequest) (ArtifactSet, error) {
+	if err := request.Validate(); err != nil {
+		return ArtifactSet{}, err
+	}
 	total, err := artifactSetTotalExtent(request.Artifacts)
 	if err != nil {
 		return ArtifactSet{}, err

@@ -31,7 +31,7 @@ func TestRetryTransportLayerTriad(t *testing.T) {
 			if current == 1 {
 				writer.Header().Set(
 					core.HTTPHeaderContentType().String(),
-					core.HTTPMediaTypeTextPlain().String(),
+					mustHTTPMediaType(t, "text/plain").String(),
 				)
 				writer.WriteHeader(http.StatusServiceUnavailable)
 				_, _ = writer.Write([]byte("proxy unavailable"))
@@ -39,7 +39,7 @@ func TestRetryTransportLayerTriad(t *testing.T) {
 			}
 			writer.Header().Set(
 				core.HTTPHeaderContentType().String(),
-				core.HTTPMediaTypeJSON().String(),
+				mustHTTPMediaType(t, "application/json").String(),
 			)
 			writer.WriteHeader(http.StatusOK)
 			_, _ = writer.Write([]byte(`{"ready":true}`))
@@ -53,10 +53,10 @@ func TestRetryTransportLayerTriad(t *testing.T) {
 				Request: exchange.NoBodyBoundedRequest{
 					Target: mustEndpoint(t, server.URL),
 					Semantics: exchange.RequestSemantics{
-						Method: core.HTTPMethodGet,
+						Method: exchange.MethodGet,
 						Replay: exchange.ReplaySafe,
 					},
-					ExpectedResponseContentType: core.HTTPMediaTypeJSON(),
+					ExpectedResponseContentType: mustHTTPMediaType(t, "application/json"),
 					ExpectedStatus:              ok,
 				},
 				Policy: exchange.NoBodyBoundedPolicy{
@@ -93,11 +93,11 @@ func TestRetryTransportLayerTriad(t *testing.T) {
 			current := attempts.Add(1)
 			writer.Header().Set(
 				core.HTTPHeaderContentType().String(),
-				core.HTTPMediaTypeTextPlain().String(),
+				mustHTTPMediaType(t, "text/plain").String(),
 			)
 			if current == 1 {
 				writer.Header().Set(
-					core.HTTPHeaderRetryAfter().String(),
+					retryAfterHeaderName,
 					"999999999",
 				)
 				writer.WriteHeader(http.StatusServiceUnavailable)
@@ -116,10 +116,10 @@ func TestRetryTransportLayerTriad(t *testing.T) {
 				Request: exchange.NoBodyBoundedRequest{
 					Target: mustEndpoint(t, server.URL),
 					Semantics: exchange.RequestSemantics{
-						Method: core.HTTPMethodGet,
+						Method: exchange.MethodGet,
 						Replay: exchange.ReplaySafe,
 					},
-					ExpectedResponseContentType: core.HTTPMediaTypeTextPlain(),
+					ExpectedResponseContentType: mustHTTPMediaType(t, "text/plain"),
 					ExpectedStatus:              ok,
 				},
 				Policy: exchange.NoBodyBoundedPolicy{
@@ -157,7 +157,7 @@ func TestRetryTransportLayerTriad(t *testing.T) {
 			attempts.Add(1)
 			writer.Header().Set(
 				core.HTTPHeaderContentType().String(),
-				core.HTTPMediaTypeTextPlain().String(),
+				mustHTTPMediaType(t, "text/plain").String(),
 			)
 			writer.WriteHeader(http.StatusServiceUnavailable)
 			_, _ = writer.Write([]byte("still busy"))
@@ -171,10 +171,10 @@ func TestRetryTransportLayerTriad(t *testing.T) {
 				Request: exchange.NoBodyBoundedRequest{
 					Target: mustEndpoint(t, server.URL),
 					Semantics: exchange.RequestSemantics{
-						Method: core.HTTPMethodGet,
+						Method: exchange.MethodGet,
 						Replay: exchange.ReplaySafe,
 					},
-					ExpectedResponseContentType: core.HTTPMediaTypeTextPlain(),
+					ExpectedResponseContentType: mustHTTPMediaType(t, "text/plain"),
 					ExpectedStatus:              ok,
 				},
 				Policy: exchange.NoBodyBoundedPolicy{
@@ -266,7 +266,7 @@ func TestRetryTransportLayerTriad(t *testing.T) {
 			attempts.Add(1)
 			writer.Header().Set(
 				core.HTTPHeaderContentType().String(),
-				core.HTTPMediaTypeTextPlain().String(),
+				mustHTTPMediaType(t, "text/plain").String(),
 			)
 			writer.WriteHeader(http.StatusServiceUnavailable)
 			_, _ = writer.Write([]byte("once"))
@@ -280,10 +280,10 @@ func TestRetryTransportLayerTriad(t *testing.T) {
 				Request: exchange.NoBodyBoundedRequest{
 					Target: mustEndpoint(t, server.URL),
 					Semantics: exchange.RequestSemantics{
-						Method: core.HTTPMethodGet,
+						Method: exchange.MethodGet,
 						Replay: exchange.ReplaySingleAttempt,
 					},
-					ExpectedResponseContentType: core.HTTPMediaTypeTextPlain(),
+					ExpectedResponseContentType: mustHTTPMediaType(t, "text/plain"),
 					ExpectedStatus:              ok,
 				},
 				Policy: exchange.NoBodyBoundedPolicy{
@@ -327,14 +327,14 @@ func TestRedirectTransportLayerTriad(t *testing.T) {
 				finalCalls.Add(1)
 				writer.Header().Set(
 					core.HTTPHeaderContentType().String(),
-					core.HTTPMediaTypeTextPlain().String(),
+					mustHTTPMediaType(t, "text/plain").String(),
 				)
 				writer.WriteHeader(http.StatusOK)
 				_, _ = writer.Write([]byte(request.Method))
 				return
 			}
 			writer.Header().Set(
-				core.HTTPHeaderLocation().String(),
+				locationHeaderName,
 				"/final",
 			)
 			writer.WriteHeader(http.StatusTemporaryRedirect)
@@ -356,10 +356,10 @@ func TestRedirectTransportLayerTriad(t *testing.T) {
 				Request: exchange.NoBodyBoundedRequest{
 					Target: mustEndpoint(t, server.URL),
 					Semantics: exchange.RequestSemantics{
-						Method: core.HTTPMethodGet,
+						Method: exchange.MethodGet,
 						Replay: exchange.ReplaySingleAttempt,
 					},
-					ExpectedResponseContentType: core.HTTPMediaTypeTextPlain(),
+					ExpectedResponseContentType: mustHTTPMediaType(t, "text/plain"),
 					ExpectedStatus:              ok,
 				},
 				Policy: exchange.NoBodyBoundedPolicy{
@@ -368,12 +368,12 @@ func TestRedirectTransportLayerTriad(t *testing.T) {
 				},
 			},
 		)
-		if gotErr != nil || string(got.Body) != core.HTTPMethodGet.String() {
+		if gotErr != nil || string(got.Body) != exchange.MethodGet.String() {
 			t.Fatalf(
 				"same-origin redirect result = (%q, %v), want (%q, nil)",
 				got.Body,
 				gotErr,
-				core.HTTPMethodGet,
+				exchange.MethodGet,
 			)
 		}
 		if finalCalls.Load() != 1 || originalRedirectCalls.Load() != 0 {
@@ -403,7 +403,7 @@ func TestRedirectTransportLayerTriad(t *testing.T) {
 			_ *http.Request,
 		) {
 			writer.Header().Set(
-				core.HTTPHeaderLocation().String(),
+				locationHeaderName,
 				target.URL,
 			)
 			writer.WriteHeader(http.StatusTemporaryRedirect)
@@ -417,7 +417,7 @@ func TestRedirectTransportLayerTriad(t *testing.T) {
 				Request: exchange.NoBodyBoundedRequest{
 					Target: mustEndpoint(t, origin.URL),
 					Semantics: exchange.RequestSemantics{
-						Method: core.HTTPMethodGet,
+						Method: exchange.MethodGet,
 						Replay: exchange.ReplaySingleAttempt,
 					},
 					ExpectedStatus: ok,
@@ -462,7 +462,7 @@ func TestRedirectTransportLayerTriad(t *testing.T) {
 			redirect.Path = "/final"
 			redirect.User = url.UserPassword("attacker", "secret")
 			writer.Header().Set(
-				core.HTTPHeaderLocation().String(),
+				locationHeaderName,
 				redirect.String(),
 			)
 			writer.WriteHeader(http.StatusTemporaryRedirect)
@@ -476,7 +476,7 @@ func TestRedirectTransportLayerTriad(t *testing.T) {
 				Request: exchange.NoBodyBoundedRequest{
 					Target: mustEndpoint(t, server.URL),
 					Semantics: exchange.RequestSemantics{
-						Method: core.HTTPMethodGet,
+						Method: exchange.MethodGet,
 						Replay: exchange.ReplaySingleAttempt,
 					},
 					ExpectedStatus: ok,
@@ -515,7 +515,7 @@ func TestRedirectTransportLayerTriad(t *testing.T) {
 		) {
 			writer.Header().Set(
 				core.HTTPHeaderContentType().String(),
-				core.HTTPMediaTypeTextPlain().String(),
+				mustHTTPMediaType(t, "text/plain").String(),
 			)
 			writer.WriteHeader(http.StatusOK)
 			_, _ = writer.Write([]byte("direct"))
@@ -529,10 +529,10 @@ func TestRedirectTransportLayerTriad(t *testing.T) {
 				Request: exchange.NoBodyBoundedRequest{
 					Target: mustEndpoint(t, server.URL),
 					Semantics: exchange.RequestSemantics{
-						Method: core.HTTPMethodGet,
+						Method: exchange.MethodGet,
 						Replay: exchange.ReplaySingleAttempt,
 					},
-					ExpectedResponseContentType: core.HTTPMediaTypeTextPlain(),
+					ExpectedResponseContentType: mustHTTPMediaType(t, "text/plain"),
 					ExpectedStatus:              ok,
 				},
 				Policy: exchange.NoBodyBoundedPolicy{

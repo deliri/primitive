@@ -48,10 +48,7 @@ func Bootstrap(
 	if err := request.Validate(); err != nil {
 		return Primary{}, err
 	}
-	artifacts, err := request.Manifest.Artifacts()
-	if err != nil {
-		return Primary{}, contractError(err)
-	}
+	artifacts := request.Manifest.Artifacts()
 	artifact, ok := artifacts.ForPlatform(request.Build.Platform())
 	if !ok || artifact.Build() != request.Build {
 		return Primary{}, contractError(errors.New("bootstrap build differs from manifest"))

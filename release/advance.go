@@ -14,6 +14,17 @@ type AdvanceLatestRequest struct {
 	Proposed VerifiedLatest
 }
 
+// Validate proves both authenticated stream observations at ingress.
+func (r AdvanceLatestRequest) Validate() error {
+	if err := r.Retained.Validate(); err != nil {
+		return verificationError(err)
+	}
+	if err := r.Proposed.Validate(); err != nil {
+		return verificationError(err)
+	}
+	return nil
+}
+
 type LatestAdvance struct {
 	state LatestAdvanceState
 	valid bool
@@ -29,14 +40,11 @@ func (a LatestAdvance) Validate() error {
 func (a LatestAdvance) State() LatestAdvanceState { return a.state }
 
 func AdvanceLatest(request AdvanceLatestRequest) (LatestAdvance, error) {
-	if err := request.Retained.Validate(); err != nil {
-		return LatestAdvance{}, verificationError(err)
+	if err := request.Validate(); err != nil {
+		return LatestAdvance{}, err
 	}
-	if err := request.Proposed.Validate(); err != nil {
-		return LatestAdvance{}, verificationError(err)
-	}
-	retained, _ := request.Retained.Fact()
-	proposed, _ := request.Proposed.Fact()
+	retained := request.Retained.Fact()
+	proposed := request.Proposed.Fact()
 	if retained.Identity() != proposed.Identity() ||
 		retained.Offering() != proposed.Offering() ||
 		retained.Revision() != proposed.Revision() {
@@ -67,8 +75,8 @@ func compareGeneration(left, right Generation) core.Comparison {
 }
 
 func compareReplay(request AdvanceLatestRequest) (LatestAdvance, error) {
-	retained, _ := request.Retained.Document()
-	proposed, _ := request.Proposed.Document()
+	retained := request.Retained.Document()
+	proposed := request.Proposed.Document()
 	if retained != proposed {
 		return LatestAdvance{}, conflictError(errors.New("equal generation carries a different signed document"))
 	}
@@ -83,10 +91,10 @@ func compareHigherGeneration(
 	if err := requireNondecreasingTimeline(retained, proposed); err != nil {
 		return LatestAdvance{}, err
 	}
-	retainedManifest, _ := request.Retained.Manifest()
-	proposedManifest, _ := request.Proposed.Manifest()
-	retainedVersion, _ := retainedManifest.Version()
-	proposedVersion, _ := proposedManifest.Version()
+	retainedManifest := request.Retained.Manifest()
+	proposedManifest := request.Proposed.Manifest()
+	retainedVersion := retainedManifest.Version()
+	proposedVersion := proposedManifest.Version()
 	order, err := retainedVersion.Compare(proposedVersion)
 	if err != nil {
 		return LatestAdvance{}, contractError(err)
@@ -122,8 +130,8 @@ func requireNondecreasingTimeline(retained, proposed LatestFact) error {
 }
 
 func compareEqualVersion(retained, proposed VerifiedManifest) (LatestAdvance, error) {
-	retainedDocument, _ := retained.Document()
-	proposedDocument, _ := proposed.Document()
+	retainedDocument := retained.Document()
+	proposedDocument := proposed.Document()
 	if retainedDocument != proposedDocument {
 		return LatestAdvance{}, conflictError(errors.New("equal version selects a different manifest document"))
 	}
@@ -131,8 +139,8 @@ func compareEqualVersion(retained, proposed VerifiedManifest) (LatestAdvance, er
 }
 
 func compareGreaterVersion(retained, proposed VerifiedManifest) (LatestAdvance, error) {
-	retainedIdentity, _ := retained.Identity()
-	proposedIdentity, _ := proposed.Identity()
+	retainedIdentity := retained.Identity()
+	proposedIdentity := proposed.Identity()
 	if retainedIdentity == proposedIdentity {
 		return LatestAdvance{}, conflictError(errors.New("greater version reuses manifest identity"))
 	}

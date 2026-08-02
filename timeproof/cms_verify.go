@@ -48,8 +48,8 @@ func verifyTimestampSigner(
 
 // verifyNoConflictingCertificates rejects a different certificate that reuses
 // one verified chain member's issuer-and-serial identity. RFC 5816 permits
-// unrelated extra certificates, but one CMS identity must not select two
-// different DER certificates.
+// unrelated extra certificates; this check closes ambiguity against the one
+// verified path. Signer selection separately rejects multiple embedded matches.
 func verifyNoConflictingCertificates(
 	embedded []*x509.Certificate,
 	chain []*x509.Certificate,
@@ -212,6 +212,12 @@ func consumeESSV2Hash(fields []byte) (asn1.ObjectIdentifier, asn1.RawValue, []by
 	if trailing, decodeErr := asn1.Unmarshal(first.FullBytes, &algorithm); decodeErr != nil || len(trailing) != 0 {
 		return nil, asn1.RawValue{}, nil, invalidError(nil)
 	}
+	// RFC 5035 defines SHA-256 as ESSCertIDv2's DEFAULT. DER requires a
+	// sequence component equal to its default to be omitted, so an explicit
+	// SHA-256 AlgorithmIdentifier is an alternate spelling of the omitted form.
+	if algorithm.Algorithm.Equal(oidSHA256) {
+		return nil, asn1.RawValue{}, nil, invalidError(nil)
+	}
 	hashRaw, remaining, err := consumeRaw(remaining)
 	if err != nil {
 		return nil, asn1.RawValue{}, nil, invalidError(nil)
@@ -301,7 +307,7 @@ func generalNamesContainIssuer(fields []byte, rawIssuer []byte) bool {
 		if err != nil {
 			return false
 		}
-		if name.Class == asn1.ClassContextSpecific && name.Tag == 4 &&
+		if name.Class == asn1.ClassContextSpecific && name.Tag == generalNameDirectoryNameTag &&
 			bytes.Equal(name.Bytes, rawIssuer) {
 			found = true
 		}

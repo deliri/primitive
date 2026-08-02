@@ -100,10 +100,15 @@ func newGoMemorySnapshot(system, heapReleased uint64, limit int64) (GoMemorySnap
 	if err := errors.Join(systemErr, limitErr); err != nil {
 		return GoMemorySnapshot{}, errors.Join(core.ErrHostFactsObservation, err)
 	}
+	releasedBytes, releasedErr := core.NewByteLength(heapReleased)
+	managedBytes, managedErr := core.NewByteLength(system - heapReleased)
+	if err := errors.Join(releasedErr, managedErr); err != nil {
+		return GoMemorySnapshot{}, errors.Join(core.ErrHostFactsObservation, err)
+	}
 	snapshot := GoMemorySnapshot{
 		system:       systemBytes,
-		heapReleased: core.NewByteLength(heapReleased),
-		managed:      core.NewByteLength(system - heapReleased),
+		heapReleased: releasedBytes,
+		managed:      managedBytes,
 		limit:        limitBytes,
 	}
 	return snapshot, snapshot.Validate()
@@ -113,7 +118,7 @@ func newGoMemorySnapshot(system, heapReleased uint64, limit int64) (GoMemorySnap
 func (s GoMemorySnapshot) Validate() error {
 	system, systemErr := s.system.Uint64()
 	limit, limitErr := s.limit.Uint64()
-	if errors.Join(systemErr, limitErr) != nil ||
+	if errors.Join(systemErr, limitErr, s.heapReleased.Validate(), s.managed.Validate()) != nil ||
 		s.heapReleased.Uint64() > system ||
 		s.managed.Uint64() != system-s.heapReleased.Uint64() ||
 		limit > math.MaxInt64 {
@@ -153,6 +158,14 @@ const (
 	memoryPressureLimit
 )
 
+func memoryPressureStateLabels() [memoryPressureLimit]string {
+	return [...]string{
+		MemoryPressureDisabled: pressureDisabledLabel,
+		MemoryPressureHealthy:  pressureHealthyLabel,
+		MemoryPressureReached:  pressureReachedLabel,
+	}
+}
+
 // Validate rejects states outside the closed domain.
 func (s MemoryPressureState) Validate() error {
 	if !s.IsValid() {
@@ -163,7 +176,20 @@ func (s MemoryPressureState) Validate() error {
 
 // IsValid reports membership in the closed pressure domain.
 func (s MemoryPressureState) IsValid() bool {
-	return s > MemoryPressureUnknown && s < memoryPressureLimit
+	return s > MemoryPressureUnknown && s < memoryPressureLimit &&
+		memoryPressureStateLabels()[s] != ""
+}
+
+// OffWireEnum declares MemoryPressureState as a runtime assessment rather than
+// a wire encoding.
+func (MemoryPressureState) OffWireEnum() {}
+
+// String returns the compiler-owned diagnostic label for s.
+func (s MemoryPressureState) String() string {
+	if !s.IsValid() {
+		return unknownOperationText
+	}
+	return memoryPressureStateLabels()[s]
 }
 
 // GoMemoryAssessment is a validated snapshot, trigger, policy, and state.

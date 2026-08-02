@@ -17,7 +17,6 @@ import (
 type (
 	protocolFact[T any]      struct{}
 	sealedProjection[T any]  struct{}
-	wireProjection[T any]    struct{}
 	operationRequest[T any]  struct{}
 	internalFlow[T any]      struct{}
 	capabilityWrapper[T any] struct{}
@@ -27,7 +26,6 @@ type (
 // data-flow role. It is a compiler-visible wiring ratchet, not behavior proof.
 type garbleContractInventory struct {
 	Seed               sealedProjection[Seed]
-	seedJSONWire       wireProjection[seedJSONWire]
 	Custody            capabilityWrapper[Custody]
 	DerivationIdentity protocolFact[DerivationIdentity]
 	DeriveRequest      operationRequest[DeriveRequest]
@@ -37,10 +35,7 @@ type garbleContractInventory struct {
 	Argument           sealedProjection[Argument]
 }
 
-var (
-	_ = garbleContractInventory{}.seedJSONWire
-	_ = garbleContractInventory{}.derivationFrame
-)
+var _ = garbleContractInventory{}.derivationFrame
 
 func TestGarbleProductionStructsHaveCompilerVisibleDataFlowRoles(t *testing.T) {
 	t.Parallel()
@@ -99,16 +94,28 @@ func TestGarbleExactPublicSurfaceAndNoTypeAliases(t *testing.T) {
 		"method Argument.Kind",
 		"method Argument.Text",
 		"method Argument.Validate",
+		"method ArgumentKind.IsValid",
+		"method ArgumentKind.OffWireEnum",
+		"method ArgumentKind.String",
 		"method ArgumentKind.Validate",
 		"method BuildIntent.Arguments",
 		"method BuildIntent.Validate",
 		"method BuildRequest.Validate",
 		"method Custody.Format",
 		"method Custody.Validate",
+		"method DerivationGeneration.IsValid",
+		"method DerivationGeneration.OffWireEnum",
+		"method DerivationGeneration.String",
 		"method DerivationGeneration.Validate",
 		"method DerivationIdentity.Validate",
 		"method DeriveRequest.Validate",
+		"method DiagnosticPolicy.IsValid",
+		"method DiagnosticPolicy.OffWireEnum",
+		"method DiagnosticPolicy.String",
 		"method DiagnosticPolicy.Validate",
+		"method LiteralPolicy.IsValid",
+		"method LiteralPolicy.OffWireEnum",
+		"method LiteralPolicy.String",
 		"method LiteralPolicy.Validate",
 		"method Seed.Bytes",
 		"method Seed.Encoded",
@@ -119,7 +126,10 @@ func TestGarbleExactPublicSurfaceAndNoTypeAliases(t *testing.T) {
 		"method ToolIdentity.MinimumGoVersion",
 		"method ToolIdentity.ModulePath",
 		"method ToolIdentity.ModuleSum",
+		"method ToolIdentity.OffWireEnum",
 		"method ToolIdentity.Revision",
+		"method ToolIdentity.IsValid",
+		"method ToolIdentity.String",
 		"method ToolIdentity.UnsupportedGoVersion",
 		"method ToolIdentity.Validate",
 		"method ToolIdentity.Version",
@@ -156,7 +166,6 @@ func TestGarbleProductionImportsStayOnStandardLibraryAndCoreSubstrate(t *testing
 		"crypto/hkdf",
 		"crypto/sha256",
 		"encoding/base64",
-		"encoding/json",
 		"errors",
 		"fmt",
 		"github.com/deliri/primitive/v2026/core",

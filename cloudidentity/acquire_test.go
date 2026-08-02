@@ -189,11 +189,11 @@ func proveProviderRequestShape(
 ) {
 	t.Helper()
 
-	if request.Method != core.HTTPMethodGet.String() {
+	if request.Method != exchange.MethodGet.String() {
 		t.Errorf(
 			"request method = %q, want %q",
 			request.Method,
-			core.HTTPMethodGet.String(),
+			exchange.MethodGet.String(),
 		)
 	}
 	query := request.URL.Query()

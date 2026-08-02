@@ -13,18 +13,24 @@ type architectureProjectionKind uint8
 const (
 	architectureProjectionUnknown architectureProjectionKind = iota
 	architectureProjectionReadme
+	architectureProjectionPlan
 )
 
 const (
-	architectureProjectionImportMaximum    = PrimitiveDirectImportCount + 1
-	architectureProjectionViolationMaximum = (PrimitivePackageCount + PrimitiveDirectImportCount) * 2
+	architectureProjectionImportMaximum     = PrimitiveDirectImportCount + 1
+	architectureProjectionTestImportMaximum = PrimitiveDirectTestImportCount + 1
+	architectureProjectionViolationMaximum  = (PrimitivePackageCount + PrimitiveDirectImportCount +
+		PrimitiveDirectTestImportCount) * 2
 )
 
 type architectureProjection struct {
-	packages     [PrimitivePackageCount]PackageIdentity
-	imports      [architectureProjectionImportMaximum]DirectImportContract
-	packageCount uint8
-	importCount  uint8
+	packages            [PrimitivePackageCount]PackageIdentity
+	imports             [architectureProjectionImportMaximum]DirectImportContract
+	testImports         [architectureProjectionTestImportMaximum]DirectTestImportContract
+	packageCount        uint8
+	importCount         uint8
+	testImportCount     uint8
+	declaresTestImports bool
 }
 
 type architectureProjectionViolationKind uint8
@@ -35,12 +41,15 @@ const (
 	architectureProjectionViolationPackageExtra
 	architectureProjectionViolationImportMissing
 	architectureProjectionViolationImportExtra
+	architectureProjectionViolationTestImportMissing
+	architectureProjectionViolationTestImportExtra
 )
 
 type architectureProjectionViolation struct {
-	importContract  DirectImportContract
-	packageIdentity PackageIdentity
-	kind            architectureProjectionViolationKind
+	importContract     DirectImportContract
+	testImportContract DirectTestImportContract
+	packageIdentity    PackageIdentity
+	kind               architectureProjectionViolationKind
 }
 
 type architectureProjectionViolations struct {
@@ -84,10 +93,34 @@ func TestArchitectureReadmeProjectionMatchesCompilerCatalog(t *testing.T) {
 	}
 }
 
+func TestArchitecturePlanProjectionMatchesCompilerCatalog(t *testing.T) {
+	t.Parallel()
+
+	const path = "../PLAN.md"
+	source, gotReadErr := os.ReadFile(path)
+	if gotReadErr != nil {
+		t.Fatalf("os.ReadFile(%q) error = %v, want nil", path, gotReadErr)
+	}
+	gotViolations, gotAuditErr := auditArchitectureProjection(
+		architectureProjectionPlan,
+		string(source),
+		PrimitiveArchitecture(),
+	)
+	if gotAuditErr != nil {
+		t.Fatalf("auditArchitectureProjection(plan) error = %v, want nil", gotAuditErr)
+	}
+	if gotViolations.count != 0 {
+		t.Fatalf("PLAN architecture projection violations = %+v, want none", gotViolations.Values())
+	}
+}
+
 func TestArchitectureProjectionMatcherSyntheticRedGreenRatchet(t *testing.T) {
 	t.Parallel()
 
 	readme := mustReadProjectionFixture(t, "../README.md")
+	plan := mustReadProjectionFixture(t, "../PLAN.md")
+	const attestPlanRow = "| 2 | `attest` | Canonical Ed25519 envelopes and proof-carrying verification | `core` | none |"
+	const gatePlanRow = "| 5 | `gate` | Pure CLI-side new-work authorization over one authentic Lease assessment | `core`, `lease` | `attest`, `temporal` |"
 	cases := []struct {
 		wantErr       error
 		name          string
@@ -96,6 +129,51 @@ func TestArchitectureProjectionMatcherSyntheticRedGreenRatchet(t *testing.T) {
 		wantViolation architectureProjectionViolationKind
 	}{
 		{name: "unchanged readme is green", source: readme, kind: architectureProjectionReadme},
+		{name: "unchanged plan is green", source: plan, kind: architectureProjectionPlan},
+		{
+			name: "plan missing attest core edge is red",
+			source: strings.Replace(
+				plan,
+				attestPlanRow,
+				"| 2 | `attest` | Canonical Ed25519 envelopes and proof-carrying verification | none | none |",
+				1,
+			),
+			kind:          architectureProjectionPlan,
+			wantViolation: architectureProjectionViolationImportMissing,
+		},
+		{
+			name: "plan extra attest contextstate edge is red",
+			source: strings.Replace(
+				plan,
+				attestPlanRow,
+				"| 2 | `attest` | Canonical Ed25519 envelopes and proof-carrying verification | `core`, `contextstate` | none |",
+				1,
+			),
+			kind:          architectureProjectionPlan,
+			wantViolation: architectureProjectionViolationImportExtra,
+		},
+		{
+			name: "plan missing gate temporal test edge is red",
+			source: strings.Replace(
+				plan,
+				gatePlanRow,
+				"| 5 | `gate` | Pure CLI-side new-work authorization over one authentic Lease assessment | `core`, `lease` | `attest` |",
+				1,
+			),
+			kind:          architectureProjectionPlan,
+			wantViolation: architectureProjectionViolationTestImportMissing,
+		},
+		{
+			name: "plan extra attest testserial test edge is red",
+			source: strings.Replace(
+				plan,
+				attestPlanRow,
+				"| 2 | `attest` | Canonical Ed25519 envelopes and proof-carrying verification | `core` | `testserial` |",
+				1,
+			),
+			kind:          architectureProjectionPlan,
+			wantViolation: architectureProjectionViolationTestImportExtra,
+		},
 		{
 			name:          "readme missing attest core edge is red",
 			source:        strings.Replace(readme, "    attest[attest] --> core\n", "    attest[attest]\n", 1),
@@ -213,6 +291,28 @@ func auditArchitectureProjection(
 			}
 		}
 	}
+	if projection.declaresTestImports {
+		for contract := range catalog.DirectTestImports() {
+			if !projection.ContainsTestImport(contract) {
+				if addErr := violations.Add(architectureProjectionViolation{
+					testImportContract: contract,
+					kind:               architectureProjectionViolationTestImportMissing,
+				}); addErr != nil {
+					return architectureProjectionViolations{}, addErr
+				}
+			}
+		}
+		for _, contract := range projection.TestImports() {
+			if !catalog.ContainsDirectTestImport(contract) {
+				if addErr := violations.Add(architectureProjectionViolation{
+					testImportContract: contract,
+					kind:               architectureProjectionViolationTestImportExtra,
+				}); addErr != nil {
+					return architectureProjectionViolations{}, addErr
+				}
+			}
+		}
+	}
 	return violations, nil
 }
 
@@ -223,9 +323,100 @@ func parseArchitectureProjection(
 	switch kind {
 	case architectureProjectionReadme:
 		return parseReadmeArchitectureProjection(source)
+	case architectureProjectionPlan:
+		return parsePlanArchitectureProjection(source)
 	default:
 		return architectureProjection{}, architectureContractError("architecture projection kind is unset")
 	}
+}
+
+func parsePlanArchitectureProjection(source string) (architectureProjection, error) {
+	var projection architectureProjection
+	projection.declaresTestImports = true
+	inGraphSection := false
+	inGraphTable := false
+	for rawLine := range strings.SplitSeq(source, "\n") {
+		line := strings.TrimSpace(rawLine)
+		if line == "## 3. Exact graph" {
+			inGraphSection = true
+			continue
+		}
+		if inGraphSection && strings.HasPrefix(line, "## ") {
+			break
+		}
+		if !inGraphSection {
+			continue
+		}
+		if !inGraphTable {
+			if !strings.HasPrefix(line, "| Order |") {
+				continue
+			}
+			inGraphTable = true
+		}
+		if !strings.HasPrefix(line, "|") {
+			break
+		}
+		cells := markdownTableCells(line)
+		if len(cells) != 5 {
+			return architectureProjection{}, architectureContractError("PLAN architecture row has the wrong column count")
+		}
+		if cells[0] == "Order" || strings.HasPrefix(cells[0], "---") {
+			continue
+		}
+		identity, err := ParsePackageIdentity(strings.Trim(cells[1], "`"))
+		if err != nil {
+			return architectureProjection{}, err
+		}
+		if err := projection.AddPackage(identity); err != nil {
+			return architectureProjection{}, err
+		}
+		if err := addPlanImportCell(&projection, identity, cells[3], false); err != nil {
+			return architectureProjection{}, err
+		}
+		if err := addPlanImportCell(&projection, identity, cells[4], true); err != nil {
+			return architectureProjection{}, err
+		}
+	}
+	if !inGraphSection || !inGraphTable || projection.packageCount == 0 {
+		return architectureProjection{}, architectureContractError("PLAN exact graph table is missing")
+	}
+	return projection, nil
+}
+
+func markdownTableCells(line string) []string {
+	trimmed := strings.Trim(line, "|")
+	parts := strings.Split(trimmed, "|")
+	for index := range parts {
+		parts[index] = strings.TrimSpace(parts[index])
+	}
+	return parts
+}
+
+func addPlanImportCell(
+	projection *architectureProjection,
+	importer PackageIdentity,
+	cell string,
+	testOnly bool,
+) error {
+	if cell == "none" {
+		return nil
+	}
+	for rawImported := range strings.SplitSeq(cell, ",") {
+		imported, err := ParsePackageIdentity(strings.Trim(strings.TrimSpace(rawImported), "`"))
+		if err != nil {
+			return err
+		}
+		if testOnly {
+			if err := projection.AddTestImport(DirectTestImportContract{Importer: importer, Imported: imported}); err != nil {
+				return err
+			}
+			continue
+		}
+		if err := projection.AddImport(DirectImportContract{Importer: importer, Imported: imported}); err != nil {
+			return err
+		}
+	}
+	return nil
 }
 
 func parseReadmeArchitectureProjection(source string) (architectureProjection, error) {
@@ -322,6 +513,21 @@ func (p *architectureProjection) AddImport(contract DirectImportContract) error 
 	return nil
 }
 
+func (p *architectureProjection) AddTestImport(contract DirectTestImportContract) error {
+	if err := contract.Validate(); err != nil {
+		return err
+	}
+	if p.ContainsTestImport(contract) {
+		return architectureContractError("architecture projection contains a duplicate test import")
+	}
+	if int(p.testImportCount) >= len(p.testImports) {
+		return architectureContractError("architecture projection exceeds test import capacity")
+	}
+	p.testImports[p.testImportCount] = contract
+	p.testImportCount++
+	return nil
+}
+
 func (p architectureProjection) ContainsPackage(identity PackageIdentity) bool {
 	return slices.Contains(p.Packages(), identity)
 }
@@ -330,12 +536,20 @@ func (p architectureProjection) ContainsImport(contract DirectImportContract) bo
 	return slices.Contains(p.Imports(), contract)
 }
 
+func (p architectureProjection) ContainsTestImport(contract DirectTestImportContract) bool {
+	return slices.Contains(p.TestImports(), contract)
+}
+
 func (p architectureProjection) Packages() []PackageIdentity {
 	return p.packages[:p.packageCount]
 }
 
 func (p architectureProjection) Imports() []DirectImportContract {
 	return p.imports[:p.importCount]
+}
+
+func (p architectureProjection) TestImports() []DirectTestImportContract {
+	return p.testImports[:p.testImportCount]
 }
 
 func (v *architectureProjectionViolations) Add(violation architectureProjectionViolation) error {

@@ -66,6 +66,20 @@ type ManifestFactRequest struct {
 	Artifacts ArtifactSet
 }
 
+// Validate proves every manifest fact and its artifact/build bindings before
+// identity derivation.
+func (r ManifestFactRequest) Validate() error {
+	total, err := r.Artifacts.TotalExtent()
+	if err != nil {
+		return manifestError(err)
+	}
+	return (ManifestFact{
+		revision: r.Revision, offering: r.Offering, version: r.Version,
+		commit: r.Commit, createdAt: r.CreatedAt, totalExtent: total,
+		artifacts: r.Artifacts,
+	}).validateWithoutIdentity()
+}
+
 // ManifestFact is the immutable canonical body authenticated by Attest.
 type ManifestFact struct {
 	artifacts   ArtifactSet
@@ -101,6 +115,9 @@ type manifestIdentityWire struct {
 }
 
 func NewManifestFact(request ManifestFactRequest) (ManifestFact, error) {
+	if err := request.Validate(); err != nil {
+		return ManifestFact{}, err
+	}
 	total, err := request.Artifacts.TotalExtent()
 	if err != nil {
 		return ManifestFact{}, manifestError(err)
@@ -320,9 +337,17 @@ type IssueManifestRequest struct {
 	Fact ManifestFact
 }
 
+// Validate delegates signing-key custody and body validation to Attest.
+func (r IssueManifestRequest) Validate() error {
+	if err := (attest.SignRequest[Domain]{Body: r.Fact, Key: r.Key}).Validate(); err != nil {
+		return manifestError(err)
+	}
+	return nil
+}
+
 func IssueManifest(request IssueManifestRequest) (ManifestDocument, error) {
-	if err := request.Fact.Validate(); err != nil {
-		return ManifestDocument{}, manifestError(err)
+	if err := request.Validate(); err != nil {
+		return ManifestDocument{}, err
 	}
 	envelope, err := attest.Sign(attest.SignRequest[Domain]{Body: request.Fact, Key: request.Key})
 	if err != nil {
@@ -341,6 +366,20 @@ type VerifyManifestRequest struct {
 	ExpectedOffering core.Offering
 }
 
+// Validate proves document structure, caller authority, and expected stream.
+func (r VerifyManifestRequest) Validate() error {
+	if err := r.ExpectedOffering.Validate(); err != nil {
+		return verificationError(err)
+	}
+	if err := r.Document.Validate(); err != nil {
+		return verificationError(err)
+	}
+	if err := r.TrustedKeys.Validate(); err != nil {
+		return verificationError(err)
+	}
+	return nil
+}
+
 // VerifiedManifest is a private-witness proof that one exact manifest
 // document authenticated against caller-selected authority.
 type VerifiedManifest struct {
@@ -351,11 +390,8 @@ type VerifiedManifest struct {
 }
 
 func VerifyManifest(request VerifyManifestRequest) (VerifiedManifest, error) {
-	if err := request.ExpectedOffering.Validate(); err != nil {
-		return VerifiedManifest{}, verificationError(err)
-	}
-	if err := request.Document.Validate(); err != nil {
-		return VerifiedManifest{}, verificationError(err)
+	if err := request.Validate(); err != nil {
+		return VerifiedManifest{}, err
 	}
 	if request.Document.Fact.Offering() != request.ExpectedOffering {
 		return VerifiedManifest{}, offeringMismatchError(
@@ -392,54 +428,15 @@ func (v VerifiedManifest) Validate() error {
 	return nil
 }
 
-func (v VerifiedManifest) Document() (ManifestDocument, error) {
-	if err := v.Validate(); err != nil {
-		return ManifestDocument{}, err
-	}
-	return v.document, nil
-}
-
-func (v VerifiedManifest) Identity() (ManifestIdentity, error) {
-	if err := v.Validate(); err != nil {
-		return ManifestIdentity{}, err
-	}
-	return v.document.Fact.Identity(), nil
-}
-
-func (v VerifiedManifest) DocumentDigest() (ManifestDocumentDigest, error) {
-	if err := v.Validate(); err != nil {
-		return ManifestDocumentDigest{}, err
-	}
-	return v.digest, nil
-}
-
-func (v VerifiedManifest) Offering() (core.Offering, error) {
-	if err := v.Validate(); err != nil {
-		return core.OfferingUnknown, err
-	}
-	return v.document.Fact.Offering(), nil
-}
-
-func (v VerifiedManifest) Version() (core.ReleaseVersion, error) {
-	if err := v.Validate(); err != nil {
-		return core.ReleaseVersion{}, err
-	}
-	return v.document.Fact.Version(), nil
-}
-
-func (v VerifiedManifest) Artifacts() (ArtifactSet, error) {
-	if err := v.Validate(); err != nil {
-		return ArtifactSet{}, err
-	}
-	return v.document.Fact.Artifacts(), nil
-}
-
-func (v VerifiedManifest) TotalExtent() (core.ByteCount, error) {
-	if err := v.Validate(); err != nil {
-		return core.ByteCount{}, err
-	}
-	return v.document.Fact.TotalExtent(), nil
-}
+// Accessors project the immutable authenticated value. Operations accepting a
+// VerifiedManifest validate its private seal once at ingress.
+func (v VerifiedManifest) Document() ManifestDocument             { return v.document }
+func (v VerifiedManifest) Identity() ManifestIdentity             { return v.document.Fact.Identity() }
+func (v VerifiedManifest) DocumentDigest() ManifestDocumentDigest { return v.digest }
+func (v VerifiedManifest) Offering() core.Offering                { return v.document.Fact.Offering() }
+func (v VerifiedManifest) Version() core.ReleaseVersion           { return v.document.Fact.Version() }
+func (v VerifiedManifest) Artifacts() ArtifactSet                 { return v.document.Fact.Artifacts() }
+func (v VerifiedManifest) TotalExtent() core.ByteCount            { return v.document.Fact.TotalExtent() }
 
 func digestManifestDocument(document ManifestDocument) (core.SHA256Digest, error) {
 	encoded, err := document.MarshalJSON()

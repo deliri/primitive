@@ -188,7 +188,7 @@ func TestIsolationAnalyzerIdentifiersExhaustClosedDomainsAndRejectLookalikes(t *
 		if identifier == "" {
 			t.Fatalf("TestIsolationHazard(%d).GoIdentifier() = empty, want exact identifier", hazard)
 		}
-		got, gotErr := ParseTestIsolationHazardGoIdentifier(identifier)
+		got, gotErr := parseTestIsolationHazardGoIdentifier(identifier)
 		if gotErr != nil || got != hazard {
 			t.Fatalf(
 				"ParseTestIsolationHazardGoIdentifier(%q) = (%d, %v), want (%d, nil)",
@@ -204,7 +204,7 @@ func TestIsolationAnalyzerIdentifiersExhaustClosedDomainsAndRejectLookalikes(t *
 		if identifier == "" {
 			t.Fatalf("TestIsolationScope(%d).GoIdentifier() = empty, want exact identifier", scope)
 		}
-		got, gotErr := ParseTestIsolationScopeGoIdentifier(identifier)
+		got, gotErr := parseTestIsolationScopeGoIdentifier(identifier)
 		if gotErr != nil || got != scope {
 			t.Fatalf(
 				"ParseTestIsolationScopeGoIdentifier(%q) = (%d, %v), want (%d, nil)",
@@ -276,7 +276,7 @@ func TestIsolationAnalyzerIdentifiersExhaustClosedDomainsAndRejectLookalikes(t *
 		t.Run(tc.name, func(t *testing.T) {
 			t.Parallel()
 
-			got, gotErr := ParseTestIsolationHazardGoIdentifier(tc.identifier)
+			got, gotErr := parseTestIsolationHazardGoIdentifier(tc.identifier)
 			if got != TestIsolationHazardUnknown ||
 				!errors.Is(gotErr, ErrTestIsolationContract) ||
 				!errors.Is(gotErr, ErrPrimitiveContract) {
@@ -306,7 +306,7 @@ func TestIsolationAnalyzerIdentifiersExhaustClosedDomainsAndRejectLookalikes(t *
 		t.Run(tc.name, func(t *testing.T) {
 			t.Parallel()
 
-			got, gotErr := ParseTestIsolationScopeGoIdentifier(tc.identifier)
+			got, gotErr := parseTestIsolationScopeGoIdentifier(tc.identifier)
 			if got != TestIsolationScopeUnknown ||
 				!errors.Is(gotErr, ErrTestIsolationContract) ||
 				!errors.Is(gotErr, ErrPrimitiveContract) {

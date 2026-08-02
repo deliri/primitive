@@ -345,7 +345,7 @@ func TestRejectedSignedCapabilityIsNeverDisclosed(t *testing.T) {
 		{name: "fragmented capability", signedURL: valid + "#fragment"},
 		{name: "wrong scheme capability", signedURL: strings.Replace(valid, "https://", "ftp://", 1)},
 		{name: "unrelated host capability", signedURL: strings.Replace(valid, amazonTestHost, "identity.example.com", 1)},
-		{name: "oversized capability", signedURL: valid + "&Action=" + strings.Repeat("a", core.HTTPEndpointMaximumBytes)},
+		{name: "oversized capability", signedURL: valid + "&Action=" + strings.Repeat("a", 1<<20)},
 	} {
 		t.Run(tc.name, func(t *testing.T) {
 			t.Parallel()

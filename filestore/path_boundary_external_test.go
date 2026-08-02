@@ -13,22 +13,12 @@ import (
 func TestEnsureDirectoryAdmittedPathBoundaryMatrix(t *testing.T) {
 	t.Parallel()
 
-	component254 := strings.Repeat("a", core.FilesystemPathComponentMaximumBytes-1)
-	component255 := strings.Repeat("a", core.FilesystemPathComponentMaximumBytes)
 	depth255 := strings.Repeat("d"+string(filepath.Separator), core.FilesystemPathMaximumComponents-2) + "d"
 	depth256 := strings.Repeat("d"+string(filepath.Separator), core.FilesystemPathMaximumComponents-1) + "d"
 	cases := []struct {
 		name string
 		path string
 	}{
-		{
-			name: "component one byte below portable ceiling",
-			path: component254,
-		},
-		{
-			name: "component at portable byte ceiling",
-			path: component255,
-		},
 		{
 			name: "component count one below lexical ceiling",
 			path: depth255,

@@ -13,46 +13,12 @@ import (
 	"testing"
 )
 
-func TestHTTPMethodExhaustsClosedDomain(t *testing.T) {
-	t.Parallel()
-
-	for raw := 0; raw <= math.MaxUint8; raw++ {
-		method := HTTPMethod(raw)
-		gotErr := method.Validate()
-		wantValid := method > HTTPMethodUnknown && method < httpMethodLimit
-		if gotValid := method.IsValid(); gotValid != wantValid {
-			t.Fatalf("HTTPMethod(%d).IsValid() = %t, want %t", raw, gotValid, wantValid)
-		}
-		if (gotErr == nil) != wantValid {
-			t.Fatalf("HTTPMethod(%d).Validate() error = %v, want valid %t", raw, gotErr, wantValid)
-		}
-		if wantValid {
-			gotParsed, gotParseErr := ParseHTTPMethod(method.String())
-			if gotParseErr != nil || gotParsed != method {
-				t.Fatalf("ParseHTTPMethod(%q) = (%v, %v), want (%v, nil)", method.String(), gotParsed, gotParseErr, method)
-			}
-			gotJSON, gotJSONErr := json.Marshal(method)
-			if gotJSONErr != nil {
-				t.Fatalf("json.Marshal(HTTPMethod(%d)) error = %v, want nil", raw, gotJSONErr)
-			}
-			var gotRoundTrip HTTPMethod
-			gotRoundTripErr := json.Unmarshal(gotJSON, &gotRoundTrip)
-			if gotRoundTripErr != nil || gotRoundTrip != method {
-				t.Fatalf("HTTPMethod(%d) JSON round trip = (%v, %v), want (%v, nil)", raw, gotRoundTrip, gotRoundTripErr, method)
-			}
-		} else if !errors.Is(gotErr, ErrPrimitiveContract) {
-			t.Fatalf("HTTPMethod(%d).Validate() error = %v, want %v", raw, gotErr, ErrPrimitiveContract)
-		}
-
-	}
-}
-
 func TestHTTPStatusCodeExhaustsProtocolDomain(t *testing.T) {
 	t.Parallel()
 
 	for raw := 0; raw <= math.MaxUint16; raw++ {
 		got, gotErr := NewHTTPStatusCode(raw)
-		wantValid := raw >= HTTPStatusCodeMinimum && raw <= HTTPStatusCodeMaximum
+		wantValid := raw >= httpStatusCodeMinimum && raw <= httpStatusCodeMaximum
 		if (gotErr == nil) != wantValid {
 			t.Fatalf("NewHTTPStatusCode(%d) error = %v, want valid %t", raw, gotErr, wantValid)
 		}
@@ -81,12 +47,12 @@ func TestHTTPStatusCodeExhaustsProtocolDomain(t *testing.T) {
 				got,
 			)
 		}
-		wantInformational := raw >= HTTPStatusCodeMinimum && raw <= HTTPStatusInformationalMaximum
-		wantSuccess := raw >= HTTPStatusSuccessMinimum && raw <= HTTPStatusSuccessMaximum
-		wantRedirect := raw >= HTTPStatusRedirectMinimum && raw <= HTTPStatusRedirectMaximum
-		wantClientError := raw >= HTTPStatusClientErrorMinimum && raw <= HTTPStatusClientErrorMaximum
-		wantServerError := raw >= HTTPStatusServerErrorMinimum && raw <= HTTPStatusCodeMaximum
-		wantBodyPermitted := raw > HTTPStatusInformationalMaximum &&
+		wantInformational := raw >= httpStatusCodeMinimum && raw <= httpStatusInformationalMaximum
+		wantSuccess := raw >= httpStatusSuccessMinimum && raw <= httpStatusSuccessMaximum
+		wantRedirect := raw >= httpStatusRedirectMinimum && raw <= httpStatusRedirectMaximum
+		wantClientError := raw >= httpStatusClientErrorMinimum && raw <= httpStatusClientErrorMaximum
+		wantServerError := raw >= httpStatusServerErrorMinimum && raw <= httpStatusCodeMaximum
+		wantBodyPermitted := raw > httpStatusInformationalMaximum &&
 			raw != 204 &&
 			raw != 304
 		if got.IsInformational() != wantInformational ||
@@ -124,11 +90,11 @@ func TestHTTPHeaderNameHostileBoundaryTable(t *testing.T) {
 		{name: "mixed case canonicalizes", value: "cOnTeNt-TyPe", want: "Content-Type", disposition: boundaryAccept},
 		{name: "all admitted punctuation tokens", value: "!#$%&'*+-.^_`|~", want: "!#$%&'*+-.^_`|~", disposition: boundaryAccept},
 		{name: "digits and letters", value: "X-Trace-123", want: "X-Trace-123", disposition: boundaryAccept},
-		{name: "one below maximum length", value: strings.Repeat("a", HTTPHeaderNameMaximumBytes-1), want: "A" + strings.Repeat("a", HTTPHeaderNameMaximumBytes-2), disposition: boundaryAccept},
-		{name: "exact maximum length", value: strings.Repeat("a", HTTPHeaderNameMaximumBytes), want: "A" + strings.Repeat("a", HTTPHeaderNameMaximumBytes-1), disposition: boundaryAccept},
+		{name: "one below maximum length", value: strings.Repeat("a", httpHeaderNameMaximumBytes-1), want: "A" + strings.Repeat("a", httpHeaderNameMaximumBytes-2), disposition: boundaryAccept},
+		{name: "exact maximum length", value: strings.Repeat("a", httpHeaderNameMaximumBytes), want: "A" + strings.Repeat("a", httpHeaderNameMaximumBytes-1), disposition: boundaryAccept},
 		{name: "empty name is rejected", value: ""},
-		{name: "one above maximum length is rejected", value: strings.Repeat("a", HTTPHeaderNameMaximumBytes+1)},
-		{name: "far above maximum length is rejected", value: strings.Repeat("a", HTTPHeaderNameMaximumBytes*4)},
+		{name: "one above maximum length is rejected", value: strings.Repeat("a", httpHeaderNameMaximumBytes+1)},
+		{name: "far above maximum length is rejected", value: strings.Repeat("a", httpHeaderNameMaximumBytes*4)},
 		{name: "ASCII space is rejected", value: "Content Type"},
 		{name: "leading space is rejected", value: " Content-Type"},
 		{name: "trailing space is rejected", value: "Content-Type "},
@@ -275,15 +241,10 @@ func TestCoreHTTPHeaderConstantsAreValidated(t *testing.T) {
 	headers := [...]HTTPHeaderName{
 		HTTPHeaderContentType(),
 		HTTPHeaderAccept(),
-		HTTPHeaderAuthorization(),
-		HTTPHeaderRetryAfter(),
 		HTTPHeaderContentLength(),
-		HTTPHeaderContentRange(),
 		HTTPHeaderContentEncoding(),
 		HTTPHeaderAcceptEncoding(),
 		HTTPHeaderIdempotencyKey(),
-		HTTPHeaderLocation(),
-		HTTPHeaderCacheControl(),
 	}
 	seen := make(map[string]int, len(headers))
 	for index, header := range headers {
@@ -360,7 +321,7 @@ func TestHTTPMediaTypeParsesRealHeaderValues(t *testing.T) {
 	longParameterSuffix := `"`
 	exactMaximumParameter := strings.Repeat(
 		"a",
-		HTTPMediaTypeMaximumBytes-len(longParameterPrefix)-len(longParameterSuffix),
+		httpMediaTypeMaximumBytes-len(longParameterPrefix)-len(longParameterSuffix),
 	)
 	cases := []struct {
 		name        string
@@ -368,38 +329,33 @@ func TestHTTPMediaTypeParsesRealHeaderValues(t *testing.T) {
 		wantBase    HTTPMediaType
 		disposition boundaryDisposition
 	}{
-		{name: "bare canonical json base is accepted", value: httpMediaTypeJSONText, wantBase: HTTPMediaTypeJSON(), disposition: boundaryAccept},
+		{name: "bare canonical json base is accepted", value: httpMediaTypeJSONText, wantBase: mustParseHTTPMediaTypeForTest(t, httpMediaTypeJSONText), disposition: boundaryAccept},
 		{name: "bare canonical octet-stream base is accepted", value: httpMediaTypeOctetStreamText, wantBase: HTTPMediaTypeOctetStream(), disposition: boundaryAccept},
-		{name: "bare canonical text base is accepted", value: httpMediaTypeTextPlainText, wantBase: HTTPMediaTypeTextPlain(), disposition: boundaryAccept},
-		{name: "bare canonical timestamp-query base is accepted", value: httpMediaTypeTimestampQueryText, wantBase: HTTPMediaTypeTimestampQuery(), disposition: boundaryAccept},
-		{name: "bare canonical timestamp-reply base is accepted", value: httpMediaTypeTimestampReplyText, wantBase: HTTPMediaTypeTimestampReply(), disposition: boundaryAccept},
-		{name: "bare canonical PKIX CRL base is accepted", value: httpMediaTypePKIXCRLText, wantBase: HTTPMediaTypePKIXCRL(), disposition: boundaryAccept},
-		{name: "uppercase type and subtype normalize to json", value: "APPLICATION/JSON", wantBase: HTTPMediaTypeJSON(), disposition: boundaryAccept},
+		{name: "bare canonical text base is accepted", value: httpMediaTypeTextPlainText, wantBase: mustParseHTTPMediaTypeForTest(t, httpMediaTypeTextPlainText), disposition: boundaryAccept},
+		{name: "uppercase type and subtype normalize to json", value: "APPLICATION/JSON", wantBase: mustParseHTTPMediaTypeForTest(t, httpMediaTypeJSONText), disposition: boundaryAccept},
 		{name: "mixed-case type and subtype normalize to octet stream", value: "Application/Octet-Stream", wantBase: HTTPMediaTypeOctetStream(), disposition: boundaryAccept},
-		{name: "json charset parameter with separator spacing is accepted", value: "application/json; charset=utf-8", wantBase: HTTPMediaTypeJSON(), disposition: boundaryAccept},
-		{name: "json compact uppercase parameter value is accepted", value: "application/json;charset=UTF-8", wantBase: HTTPMediaTypeJSON(), disposition: boundaryAccept},
-		{name: "quoted parameter containing semicolon is accepted", value: `text/plain; note="a;b"`, wantBase: HTTPMediaTypeTextPlain(), disposition: boundaryAccept},
-		{name: "empty quoted parameter value is accepted", value: `text/plain; note=""`, wantBase: HTTPMediaTypeTextPlain(), disposition: boundaryAccept},
-		{name: "two distinct parameters are accepted", value: "application/json; charset=utf-8; profile=v1", wantBase: HTTPMediaTypeJSON(), disposition: boundaryAccept},
-		{name: "reordered distinct parameters preserve the base", value: "application/json; profile=v1; charset=utf-8", wantBase: HTTPMediaTypeJSON(), disposition: boundaryAccept},
-		{name: "leading and trailing optional whitespace is accepted", value: " application/json ; charset=utf-8 ", wantBase: HTTPMediaTypeJSON(), disposition: boundaryAccept},
-		{name: "timestamp query with a parameter preserves its base", value: "application/timestamp-query; version=1", wantBase: HTTPMediaTypeTimestampQuery(), disposition: boundaryAccept},
-		{name: "PKIX CRL with a quoted parameter preserves its base", value: `application/pkix-crl; source="issuer"`, wantBase: HTTPMediaTypePKIXCRL(), disposition: boundaryAccept},
+		{name: "json charset parameter with separator spacing is accepted", value: "application/json; charset=utf-8", wantBase: mustParseHTTPMediaTypeForTest(t, httpMediaTypeJSONText), disposition: boundaryAccept},
+		{name: "json compact uppercase parameter value is accepted", value: "application/json;charset=UTF-8", wantBase: mustParseHTTPMediaTypeForTest(t, httpMediaTypeJSONText), disposition: boundaryAccept},
+		{name: "quoted parameter containing semicolon is accepted", value: `text/plain; note="a;b"`, wantBase: mustParseHTTPMediaTypeForTest(t, httpMediaTypeTextPlainText), disposition: boundaryAccept},
+		{name: "empty quoted parameter value is accepted", value: `text/plain; note=""`, wantBase: mustParseHTTPMediaTypeForTest(t, httpMediaTypeTextPlainText), disposition: boundaryAccept},
+		{name: "two distinct parameters are accepted", value: "application/json; charset=utf-8; profile=v1", wantBase: mustParseHTTPMediaTypeForTest(t, httpMediaTypeJSONText), disposition: boundaryAccept},
+		{name: "reordered distinct parameters preserve the base", value: "application/json; profile=v1; charset=utf-8", wantBase: mustParseHTTPMediaTypeForTest(t, httpMediaTypeJSONText), disposition: boundaryAccept},
+		{name: "leading and trailing optional whitespace is accepted", value: " application/json ; charset=utf-8 ", wantBase: mustParseHTTPMediaTypeForTest(t, httpMediaTypeJSONText), disposition: boundaryAccept},
 		{name: "unknown application vendor media type remains transportable", value: "application/vnd.example.exchange+json", wantBase: mustParseHTTPMediaTypeForTest(t, "application/vnd.example.exchange+json"), disposition: boundaryAccept},
 		{name: "unknown text media type remains transportable", value: "text/csv", wantBase: mustParseHTTPMediaTypeForTest(t, "text/csv"), disposition: boundaryAccept},
 		{
 			name:        "one byte below parser bound is accepted",
 			value:       longParameterPrefix + exactMaximumParameter[:len(exactMaximumParameter)-1] + longParameterSuffix,
-			wantBase:    HTTPMediaTypeJSON(),
+			wantBase:    mustParseHTTPMediaTypeForTest(t, httpMediaTypeJSONText),
 			disposition: boundaryAccept,
 		},
 		{
 			name:        "exact parser bound is accepted",
 			value:       longParameterPrefix + exactMaximumParameter + longParameterSuffix,
-			wantBase:    HTTPMediaTypeJSON(),
+			wantBase:    mustParseHTTPMediaTypeForTest(t, httpMediaTypeJSONText),
 			disposition: boundaryAccept,
 		},
-		{name: "minimum parameter name and value are accepted", value: "application/json;a=b", wantBase: HTTPMediaTypeJSON(), disposition: boundaryAccept},
+		{name: "minimum parameter name and value are accepted", value: "application/json;a=b", wantBase: mustParseHTTPMediaTypeForTest(t, httpMediaTypeJSONText), disposition: boundaryAccept},
 		{name: "empty value is rejected", value: ""},
 		{name: "ASCII whitespace only is rejected", value: " \t"},
 		{name: "missing slash and subtype is rejected", value: "application"},
@@ -414,15 +370,15 @@ func TestHTTPMediaTypeParsesRealHeaderValues(t *testing.T) {
 		{name: "unquoted parameter separator is rejected", value: "application/json; note=a;b"},
 		{name: "parameter missing equals and value is rejected", value: "application/json; charset"},
 		{name: "parameter missing name is rejected", value: "application/json; =utf-8"},
-		{name: "standard library tolerates a trailing parameter separator", value: "application/json;", wantBase: HTTPMediaTypeJSON(), disposition: boundaryAccept},
+		{name: "standard library tolerates a trailing parameter separator", value: "application/json;", wantBase: mustParseHTTPMediaTypeForTest(t, httpMediaTypeJSONText), disposition: boundaryAccept},
 		{name: "leading comma list syntax is rejected", value: ",application/json"},
 		{name: "comma-separated media type list is rejected", value: "application/json,text/plain"},
 		{name: "NUL in subtype is rejected", value: "application/j\x00son"},
 		{name: "CRLF suffix is rejected", value: "application/json\r\nX-Test: value"},
 		{name: "non-ASCII type token is rejected", value: "applicatiön/json"},
 		{name: "quote after unquoted value is rejected", value: `application/json; note=value"`},
-		{name: "one byte above parser bound is rejected", value: strings.Repeat("a", HTTPMediaTypeMaximumBytes+1)},
-		{name: "far above parser bound is rejected", value: strings.Repeat("a", HTTPMediaTypeMaximumBytes*4)},
+		{name: "one byte above parser bound is rejected", value: strings.Repeat("a", httpMediaTypeMaximumBytes+1)},
+		{name: "far above parser bound is rejected", value: strings.Repeat("a", httpMediaTypeMaximumBytes*4)},
 	}
 	for _, tc := range cases {
 		t.Run(tc.name, func(t *testing.T) {

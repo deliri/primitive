@@ -35,7 +35,7 @@ func BenchmarkBoundedReceiveByDeclaredExtent(b *testing.B) {
 	limit := mustBenchmarkByteCount(b, uint64(len(body)))
 	policy := exchange.ServerBoundedPolicy{RequestBodyLimit: limit}
 	route := exchange.RouteSemantics{
-		Method: core.HTTPMethodPost,
+		Method: exchange.MethodPost,
 		Replay: exchange.ReplaySingleAttempt,
 	}
 	cases := []struct {

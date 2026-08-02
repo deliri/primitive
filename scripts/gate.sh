@@ -201,11 +201,20 @@ run_gate fuzz-decode-strict-json-absolute-path \
 run_gate fuzz-marshal-json-string \
 	go test -run '^$' -fuzz '^FuzzMarshalJSONStringRoundTrip$' \
 	-fuzztime=100000x -parallel=1 ./core
+run_gate fuzz-parse-relative-path \
+	go test -run '^$' -fuzz '^FuzzParseRelativePathSemanticClosure$' \
+	-fuzztime=100000x -parallel=1 ./core
+run_gate fuzz-parse-declared-body-length \
+	go test -run '^$' -fuzz '^FuzzParseDeclaredBodyLength$' \
+	-fuzztime=100000x -parallel=1 ./exchange
 run_gate fuzz-attest-envelope-json \
 	go test -run '^$' -fuzz '^FuzzEnvelopeJSONSemanticClosure$' \
 	-fuzztime=100000x -parallel=1 ./attest
 run_gate fuzz-attest-signed-fields \
 	go test -run '^$' -fuzz '^FuzzVerifyRejectsEveryIndependentlyMutatedSignedField$' \
+	-fuzztime=100000x -parallel=1 ./attest
+run_gate fuzz-attest-canonical-object \
+	go test -run '^$' -fuzz '^FuzzCanonicalObjectEmitsStrictlyDecodableAndStableDocuments$' \
 	-fuzztime=100000x -parallel=1 ./attest
 run_gate fuzz-currency-decimal \
 	go test -run '^$' -fuzz '^FuzzDecimalParserAgainstStandardGrammarAndBigRationalOracle$' \

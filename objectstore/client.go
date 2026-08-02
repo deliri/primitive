@@ -176,7 +176,11 @@ func (c Client) upload(
 		Policy:  request.Policy.exchange(),
 	})
 	result = resultFromResponse(result, response)
-	result.bytes = core.NewByteLength(prepared.exact.delivered)
+	delivered, lengthErr := core.NewByteLength(prepared.exact.delivered)
+	result.bytes = delivered
+	if lengthErr != nil {
+		return result, projectFailure(lengthErr, DirectionUpload)
+	}
 	if transferErr != nil {
 		result.commitment = uploadFailureCommitment(transferErr, prepared.exact)
 		return result, projectFailure(transferErr, DirectionUpload)
@@ -273,7 +277,7 @@ func prepareDownload(
 		request: exchange.DownloadRequest{
 			Target:                      exchangeTarget{url: request.Target.URL.value},
 			Destination:                 io.MultiWriter(request.Destination, digests.writer()),
-			Semantics:                   singleAttempt(core.HTTPMethodGet),
+			Semantics:                   singleAttempt(exchange.MethodGet),
 			ExpectedResponseContentType: request.ContentType,
 			Headers:                     headers,
 			CaptureHeaders:              selection,
@@ -569,12 +573,16 @@ func multipartUpload(
 	if length.Uint64() > ^uint64(0)-overhead {
 		return requestBody{}, core.ErrObjectStoreSize
 	}
+	framedLength, err := core.NewByteLength(length.Uint64() + overhead)
+	if err != nil {
+		return requestBody{}, errors.Join(core.ErrObjectStoreSize, err)
+	}
 	return requestBody{
 		source: io.MultiReader(
 			bytes.NewReader(prefix), source, bytes.NewReader(suffix),
 		),
 		contentType: contentType,
-		length:      core.NewByteLength(length.Uint64() + overhead),
+		length:      framedLength,
 	}, nil
 }
 
@@ -714,7 +722,7 @@ func statusOK() core.HTTPStatusCode {
 	return value
 }
 
-func singleAttempt(method core.HTTPMethod) exchange.RequestSemantics {
+func singleAttempt(method exchange.Method) exchange.RequestSemantics {
 	return exchange.RequestSemantics{
 		Method: method, Replay: exchange.ReplaySingleAttempt,
 	}

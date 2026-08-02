@@ -45,7 +45,7 @@ func TestBoundedByteTransportLayerTriad(t *testing.T) {
 				exchange.BoundedReceiveCall{
 					Request: request,
 					Route: exchange.RouteSemantics{
-						Method: core.HTTPMethodPost,
+						Method: exchange.MethodPost,
 						Replay: exchange.ReplaySingleAttempt,
 					},
 					Policy:              serverPolicy,
@@ -86,7 +86,7 @@ func TestBoundedByteTransportLayerTriad(t *testing.T) {
 					Target: mustEndpoint(t, server.URL),
 					Body:   body,
 					Semantics: exchange.RequestSemantics{
-						Method: core.HTTPMethodPost,
+						Method: exchange.MethodPost,
 						Replay: exchange.ReplaySingleAttempt,
 					},
 					RequestContentType:          core.HTTPMediaTypeOctetStream(),
@@ -164,7 +164,7 @@ func TestBoundedByteTransportLayerTriad(t *testing.T) {
 					Target: mustEndpoint(t, server.URL),
 					Body:   body,
 					Semantics: exchange.RequestSemantics{
-						Method: core.HTTPMethodPost,
+						Method: exchange.MethodPost,
 						Replay: exchange.ReplaySingleAttempt,
 					},
 					RequestContentType:          core.HTTPMediaTypeOctetStream(),
@@ -211,7 +211,7 @@ func TestBoundedByteTransportLayerTriad(t *testing.T) {
 				exchange.BoundedReceiveCall{
 					Request: request,
 					Route: exchange.RouteSemantics{
-						Method: core.HTTPMethodPost,
+						Method: exchange.MethodPost,
 						Replay: exchange.ReplaySingleAttempt,
 					},
 					Policy:              serverPolicy,
@@ -247,7 +247,7 @@ func TestBoundedByteTransportLayerTriad(t *testing.T) {
 					Target: mustEndpoint(t, server.URL),
 					Body:   []byte{},
 					Semantics: exchange.RequestSemantics{
-						Method: core.HTTPMethodPost,
+						Method: exchange.MethodPost,
 						Replay: exchange.ReplaySingleAttempt,
 					},
 					RequestContentType:          core.HTTPMediaTypeOctetStream(),
@@ -314,7 +314,7 @@ func TestAggregateUnexpectedStatusStillRejectsTransformingContentCoding(t *testi
 		Client:  mustExchangeClient(t, server.Client()),
 		Request: exchange.NoBodyBoundedRequest{
 			Target:         mustEndpoint(t, server.URL),
-			Semantics:      exchange.RequestSemantics{Method: core.HTTPMethodGet, Replay: exchange.ReplaySingleAttempt},
+			Semantics:      exchange.RequestSemantics{Method: exchange.MethodGet, Replay: exchange.ReplaySingleAttempt},
 			ExpectedStatus: ok,
 		},
 		Policy: exchange.NoBodyBoundedPolicy{

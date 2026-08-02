@@ -18,7 +18,7 @@ import (
 	"github.com/deliri/primitive/v2026/temporal"
 )
 
-func TestSelectionDocumentCanonicalClosure(t *testing.T) {
+func TestUpgradeDurableWriterLayerTriadSelectionDocumentCanonicalClosure(t *testing.T) {
 	t.Parallel()
 
 	artifact := artifactForTest(t, []byte("old"), 1)
@@ -1261,9 +1261,9 @@ func TestAttemptErrorNamesCandidateWithoutRenderingItsNativeCause(t *testing.T) 
 
 func artifactForTest(t testing.TB, data []byte, version uint32) release.Artifact {
 	t.Helper()
-	platform, err := core.CurrentSupportedPlatform()
-	if err != nil {
-		t.Fatalf("core.CurrentSupportedPlatform() error = %v, want nil", err)
+	platform := core.Platform{
+		OperatingSystem: core.OperatingSystemLinux,
+		Architecture:    core.CPUArchitectureAMD64,
 	}
 	commit, err := core.ParseBuildCommit("0123456789abcdef0123456789abcdef01234567")
 	if err != nil {

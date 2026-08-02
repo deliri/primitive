@@ -32,10 +32,19 @@ var (
 	_ core.Validatable = RegularFileCount{}
 	_ core.Validatable = TreeUsage{}
 
-	_ core.Validatable = GoOOMBannerState(0)
-	_ core.Validatable = GoOOMBannerRequest{}
-	_ core.Validatable = GoOOMBannerEvidence{}
-	_ core.Validatable = goOOMBannerWire{}
+	_ core.Validatable            = GoOOMBannerState(0)
+	_ core.Validatable            = GoOOMBannerRequest{}
+	_ core.Validatable            = GoOOMBannerEvidence{}
+	_ core.Validatable            = goOOMBannerWire{}
+	_ core.ValidatedJSONMarshaler = GoOOMBannerState(0)
+	_ core.ValidatedJSONMarshaler = GoOOMBannerEvidence{}
+
+	_ core.OffWireEnum = OperationUnknown
+	_ core.OffWireEnum = DiskPressureUnknown
+	_ core.OffWireEnum = MemoryPressureUnknown
+	_ core.OffWireEnum = WorkloadMemoryLimitUnknown
+	_ core.OffWireEnum = WorkloadMemoryLimitSourceUnknown
+	_ core.OffWireEnum = MissingPathUnknown
 
 	_ json.Marshaler   = GoOOMBannerState(0)
 	_ json.Unmarshaler = (*GoOOMBannerState)(nil)

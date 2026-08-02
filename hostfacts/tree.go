@@ -25,6 +25,13 @@ const (
 	missingPathLimit
 )
 
+func missingPathPolicyLabels() [missingPathLimit]string {
+	return [...]string{
+		MissingPathReject:  "missing-path-reject",
+		MissingPathIsEmpty: "is-empty",
+	}
+}
+
 // Validate rejects policies outside the closed domain.
 func (p MissingPathPolicy) Validate() error {
 	if !p.IsValid() {
@@ -35,7 +42,19 @@ func (p MissingPathPolicy) Validate() error {
 
 // IsValid reports membership in the closed missing-path policy domain.
 func (p MissingPathPolicy) IsValid() bool {
-	return p > MissingPathUnknown && p < missingPathLimit
+	return p > MissingPathUnknown && p < missingPathLimit && missingPathPolicyLabels()[p] != ""
+}
+
+// OffWireEnum declares MissingPathPolicy as traversal execution policy rather
+// than a wire encoding.
+func (MissingPathPolicy) OffWireEnum() {}
+
+// String returns the compiler-owned diagnostic label for p.
+func (p MissingPathPolicy) String() string {
+	if !p.IsValid() {
+		return unknownOperationText
+	}
+	return missingPathPolicyLabels()[p]
 }
 
 // TreeUsageRequest binds one root to one missing-path policy.
@@ -83,7 +102,7 @@ func (u TreeUsage) Validate() error {
 	if !u.valid {
 		return errors.Join(core.ErrHostFactsContract, errors.New("tree usage is unset"))
 	}
-	return u.files.Validate()
+	return errors.Join(u.bytes.Validate(), u.files.Validate())
 }
 
 // RegularFileBytes returns logical regular-file bytes.
@@ -149,7 +168,7 @@ type treeAccumulator struct {
 }
 
 func (a *treeAccumulator) addRegular(size int64) error {
-	if size < 0 || uint64(size) > math.MaxUint64-a.bytes || a.files == math.MaxUint64 {
+	if size < 0 || uint64(size) > math.MaxInt64-a.bytes || a.files == math.MaxUint64 {
 		return core.ErrNumericOverflow
 	}
 	a.bytes += uint64(size)
@@ -157,12 +176,16 @@ func (a *treeAccumulator) addRegular(size int64) error {
 	return nil
 }
 
-func (a treeAccumulator) close() TreeUsage {
+func (a treeAccumulator) close() (TreeUsage, error) {
+	bytes, err := core.NewByteLength(a.bytes)
+	if err != nil {
+		return TreeUsage{}, err
+	}
 	return TreeUsage{
-		bytes: core.NewByteLength(a.bytes),
+		bytes: bytes,
 		files: newRegularFileCount(a.files),
 		valid: true,
-	}
+	}, nil
 }
 
 type treeWalk struct {
@@ -182,7 +205,10 @@ func walkTree(ctx context.Context, root *platformRoot) (TreeUsage, error) {
 			return TreeUsage{}, closeTreeStack(walk.stack, err)
 		}
 	}
-	usage := walk.accumulator.close()
+	usage, err := walk.accumulator.close()
+	if err != nil {
+		return TreeUsage{}, err
+	}
 	return usage, usage.Validate()
 }
 

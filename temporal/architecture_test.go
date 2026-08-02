@@ -369,6 +369,7 @@ func TestTemporalProductionStaysOnGoContextAndTimePrimitives(t *testing.T) {
 		t.Fatalf("scanTemporalArchitecture() error = %v, want nil", gotErr)
 	}
 	wantImports := []string{
+		"bytes",
 		"context",
 		"encoding/json",
 		"errors",

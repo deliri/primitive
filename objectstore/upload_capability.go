@@ -6,6 +6,7 @@ import (
 	"io"
 
 	"github.com/deliri/primitive/v2026/core"
+	"github.com/deliri/primitive/v2026/exchange"
 	"github.com/deliri/primitive/v2026/temporal"
 )
 
@@ -236,10 +237,10 @@ func validateUploadMethodToken(provider Provider, token string) error {
 
 func uploadMethodToken(spec VendorSpec) (string, error) {
 	switch {
-	case spec.UploadMethod == core.HTTPMethodPut &&
+	case spec.UploadMethod == exchange.MethodPut &&
 		spec.UploadEncoding == UploadEncodingRawObject:
 		return UploadMethodTokenSignedPut, nil
-	case spec.UploadMethod == core.HTTPMethodPost &&
+	case spec.UploadMethod == exchange.MethodPost &&
 		spec.UploadEncoding == UploadEncodingMultipartFile:
 		return UploadMethodTokenMultipartPost, nil
 	default:

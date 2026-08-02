@@ -33,9 +33,9 @@ func TestByteExtentJSONHostileTable(t *testing.T) {
 		{name: "uint32 one above", wire: "4294967296", wantValue: math.MaxUint32 + 1, wantLengthOK: true, wantCountOK: true},
 		{name: "int64 one below upper edge", wire: "9223372036854775806", wantValue: math.MaxInt64 - 1, wantLengthOK: true, wantCountOK: true},
 		{name: "int64 upper edge", wire: "9223372036854775807", wantValue: math.MaxInt64, wantLengthOK: true, wantCountOK: true},
-		{name: "int64 one above", wire: "9223372036854775808", wantValue: uint64(math.MaxInt64) + 1, wantLengthOK: true, wantCountOK: true},
-		{name: "uint64 one below upper edge", wire: "18446744073709551614", wantValue: math.MaxUint64 - 1, wantLengthOK: true, wantCountOK: true},
-		{name: "uint64 upper edge", wire: "18446744073709551615", wantValue: math.MaxUint64, wantLengthOK: true, wantCountOK: true},
+		{name: "int64 one above", wire: "9223372036854775808", wantValue: uint64(math.MaxInt64) + 1, wantCountOK: true},
+		{name: "uint64 one below upper edge", wire: "18446744073709551614", wantValue: math.MaxUint64 - 1, wantCountOK: true},
+		{name: "uint64 upper edge", wire: "18446744073709551615", wantValue: math.MaxUint64, wantCountOK: true},
 		{name: "empty document is rejected", wire: ""},
 		{name: "ASCII space prefix is rejected", wire: " 1"},
 		{name: "ASCII space suffix is rejected", wire: "1 "},
@@ -65,7 +65,7 @@ func TestByteExtentJSONHostileTable(t *testing.T) {
 		t.Run(tc.name, func(t *testing.T) {
 			t.Parallel()
 
-			beforeLength := NewByteLength(7)
+			beforeLength := mustByteLength(t, 7)
 			gotLength := beforeLength
 			gotLengthErr := gotLength.UnmarshalJSON([]byte(tc.wire))
 			if (gotLengthErr == nil) != tc.wantLengthOK {
@@ -135,9 +135,6 @@ func TestByteExtentJSONReencodesToTheAcceptedBytes(t *testing.T) {
 		{name: "uint32 one above", wire: "4294967296"},
 		{name: "int64 one below upper edge", wire: "9223372036854775806"},
 		{name: "int64 upper edge", wire: "9223372036854775807"},
-		{name: "int64 one above", wire: "9223372036854775808"},
-		{name: "uint64 one below upper edge", wire: "18446744073709551614"},
-		{name: "uint64 upper edge", wire: "18446744073709551615"},
 	}
 	for _, tc := range cases {
 		t.Run(tc.name, func(t *testing.T) {
@@ -200,7 +197,8 @@ func TestZeroByteCountRefusesToEmitAnInvalidCount(t *testing.T) {
 	// A zero length is a meaningful quantity, unlike a zero count, so it must
 	// still emit. Collapsing both types onto one rule is the failure this
 	// pairing pins.
-	gotLength, gotLengthErr := NewByteLength(0).MarshalJSON()
+	zeroLength := mustByteLength(t, 0)
+	gotLength, gotLengthErr := zeroLength.MarshalJSON()
 	if gotLengthErr != nil || string(gotLength) != "0" {
 		t.Fatalf("NewByteLength(0).MarshalJSON() = (%s, %v), want (0, nil)", gotLength, gotLengthErr)
 	}
@@ -235,7 +233,7 @@ func TestCheckedNumericConversionsPinBothSidesOfEveryBoundary(t *testing.T) {
 			t.Parallel()
 
 			got, gotErr := CheckedInt64FromUint64(tc.value)
-			gotLength, gotLengthErr := NewByteLength(tc.value).Int64()
+			length, lengthErr := NewByteLength(tc.value)
 			if tc.wantErr {
 				if !errors.Is(gotErr, ErrNumericOverflow) || got != 0 {
 					t.Fatalf(
@@ -248,20 +246,28 @@ func TestCheckedNumericConversionsPinBothSidesOfEveryBoundary(t *testing.T) {
 				}
 				// ByteLength delegates its signed projection to the same rule,
 				// so the two must agree at every boundary rather than drift.
-				if !errors.Is(gotLengthErr, ErrNumericOverflow) || gotLength != 0 {
+				if !errors.Is(lengthErr, ErrNumericOverflow) || length != (ByteLength{}) {
 					t.Fatalf(
-						"NewByteLength(%d).Int64() = (%d, %v), want (0, %v)",
+						"NewByteLength(%d) = (%v, %v), want (zero, %v)",
 						tc.value,
-						gotLength,
-						gotLengthErr,
+						length,
+						lengthErr,
 						ErrNumericOverflow,
 					)
+				}
+				forgedLength, forgedLengthErr := (ByteLength{value: tc.value}).Int64()
+				if !errors.Is(forgedLengthErr, ErrNumericOverflow) || forgedLength != 0 {
+					t.Fatalf("forged ByteLength.Int64() = (%d, %v), want (0, %v)", forgedLength, forgedLengthErr, ErrNumericOverflow)
 				}
 				return
 			}
 			if gotErr != nil || got != tc.want {
 				t.Fatalf("CheckedInt64FromUint64(%d) = (%d, %v), want (%d, nil)", tc.value, got, gotErr, tc.want)
 			}
+			if lengthErr != nil {
+				t.Fatalf("NewByteLength(%d) error = %v, want nil", tc.value, lengthErr)
+			}
+			gotLength, gotLengthErr := length.Int64()
 			if gotLengthErr != nil || gotLength != tc.want {
 				t.Fatalf(
 					"NewByteLength(%d).Int64() = (%d, %v), want (%d, nil)",
@@ -370,6 +376,15 @@ func TestCheckedNumericConversionsPinBothSidesOfEveryBoundary(t *testing.T) {
 			}
 		})
 	}
+}
+
+func mustByteLength(t *testing.T, value uint64) ByteLength {
+	t.Helper()
+	length, err := NewByteLength(value)
+	if err != nil {
+		t.Fatalf("NewByteLength(%d) error = %v, want nil", value, err)
+	}
+	return length
 }
 
 // TestByteCountInt64DelegatesTheSignedBoundAndRejectsTheZeroValue proves the

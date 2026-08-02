@@ -321,29 +321,41 @@ type IssueLatestRequest struct {
 	Generation Generation
 }
 
-func IssueLatest(request IssueLatestRequest) (LatestDocument, error) {
-	if err := request.Manifest.Validate(); err != nil {
-		return LatestDocument{}, latestError(err)
+// Validate proves the complete signed Latest request, delegating signing-key
+// custody to Attest after assembling the exact body Release owns.
+func (r IssueLatestRequest) Validate() error {
+	_, err := r.validatedFact()
+	return err
+}
+
+func (r IssueLatestRequest) validatedFact() (LatestFact, error) {
+	if err := r.Manifest.Validate(); err != nil {
+		return LatestFact{}, latestError(err)
 	}
-	manifest, err := request.Manifest.Document()
-	if err != nil {
-		return LatestDocument{}, latestError(err)
-	}
-	offering, err := request.Manifest.Offering()
-	if err != nil {
-		return LatestDocument{}, latestError(err)
-	}
+	manifest := r.Manifest.Document()
+	offering := r.Manifest.Offering()
 	identity, err := latestIdentity(Revision2026V1, offering)
 	if err != nil {
-		return LatestDocument{}, err
+		return LatestFact{}, err
 	}
 	fact := LatestFact{
 		identity: identity, revision: Revision2026V1,
-		generation: request.Generation, offering: offering, manifest: manifest,
-		issuedAt: request.IssuedAt, validFrom: request.ValidFrom,
-		validUntil: request.ValidUntil, valid: true,
+		generation: r.Generation, offering: offering, manifest: manifest,
+		issuedAt: r.IssuedAt, validFrom: r.ValidFrom,
+		validUntil: r.ValidUntil, valid: true,
 	}
 	if err := fact.Validate(); err != nil {
+		return LatestFact{}, err
+	}
+	if err := (attest.SignRequest[Domain]{Body: fact, Key: r.Key}).Validate(); err != nil {
+		return LatestFact{}, latestError(err)
+	}
+	return fact, nil
+}
+
+func IssueLatest(request IssueLatestRequest) (LatestDocument, error) {
+	fact, err := request.validatedFact()
+	if err != nil {
 		return LatestDocument{}, err
 	}
 	envelope, err := attest.Sign(attest.SignRequest[Domain]{Body: fact, Key: request.Key})
@@ -364,6 +376,24 @@ type VerifyLatestRequest struct {
 	ExpectedOffering core.Offering
 }
 
+// Validate proves both caller-selected authority sets, document structure,
+// and the expected selection stream before authentication.
+func (r VerifyLatestRequest) Validate() error {
+	if err := r.ExpectedOffering.Validate(); err != nil {
+		return verificationError(err)
+	}
+	if err := r.Document.Validate(); err != nil {
+		return verificationError(err)
+	}
+	if err := r.LatestKeys.Validate(); err != nil {
+		return verificationError(err)
+	}
+	if err := r.ManifestKeys.Validate(); err != nil {
+		return verificationError(err)
+	}
+	return nil
+}
+
 // VerifiedLatest proves both the outer selection and nested manifest.
 type VerifiedLatest struct {
 	document LatestDocument
@@ -373,11 +403,8 @@ type VerifiedLatest struct {
 }
 
 func VerifyLatest(request VerifyLatestRequest) (VerifiedLatest, error) {
-	if err := request.ExpectedOffering.Validate(); err != nil {
-		return VerifiedLatest{}, verificationError(err)
-	}
-	if err := request.Document.Validate(); err != nil {
-		return VerifiedLatest{}, verificationError(err)
+	if err := request.Validate(); err != nil {
+		return VerifiedLatest{}, err
 	}
 	if request.Document.Fact.Offering() != request.ExpectedOffering {
 		return VerifiedLatest{}, offeringMismatchError(
@@ -416,25 +443,10 @@ func (v VerifiedLatest) Validate() error {
 	return nil
 }
 
-func (v VerifiedLatest) Fact() (LatestFact, error) {
-	if err := v.Validate(); err != nil {
-		return LatestFact{}, err
-	}
-	return v.document.Fact, nil
-}
-
-func (v VerifiedLatest) Manifest() (VerifiedManifest, error) {
-	if err := v.Validate(); err != nil {
-		return VerifiedManifest{}, err
-	}
-	return v.manifest, nil
-}
-
-func (v VerifiedLatest) Document() (LatestDocument, error) {
-	if err := v.Validate(); err != nil {
-		return LatestDocument{}, err
-	}
-	return v.document, nil
-}
+// Accessors project the immutable authenticated value. Operations accepting a
+// VerifiedLatest validate its private seal once at ingress.
+func (v VerifiedLatest) Fact() LatestFact           { return v.document.Fact }
+func (v VerifiedLatest) Manifest() VerifiedManifest { return v.manifest }
+func (v VerifiedLatest) Document() LatestDocument   { return v.document }
 
 var _ attest.CanonicalBody[Domain] = LatestFact{}

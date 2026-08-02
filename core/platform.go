@@ -2,7 +2,6 @@ package core
 
 import (
 	"errors"
-	"runtime"
 	"strings"
 )
 
@@ -13,17 +12,17 @@ const (
 	architectureAMD64Text      = "amd64"
 	architectureARM64Text      = "arm64"
 	platformTokenSeparator     = "-"
-	// PlatformTokenMaximumBytes bounds every currently admitted platform token.
+	// platformTokenMaximumBytes bounds every currently admitted platform token.
 	// Exhaustive tests force this constant to grow with any longer enum member.
-	PlatformTokenMaximumBytes = len(operatingSystemWindowsText + platformTokenSeparator + architectureAMD64Text)
+	platformTokenMaximumBytes = len(operatingSystemWindowsText + platformTokenSeparator + architectureAMD64Text)
 )
 
 // OperatingSystem is a closed set of operating systems supported by Primitive.
 type OperatingSystem uint8
 
 const (
-	// OperatingSystemUnknown is the invalid zero operating system.
-	OperatingSystemUnknown OperatingSystem = iota
+	// operatingSystemUnknown is the invalid zero operating system.
+	operatingSystemUnknown OperatingSystem = iota
 	// OperatingSystemDarwin identifies Darwin.
 	OperatingSystemDarwin
 	// OperatingSystemLinux identifies Linux.
@@ -37,8 +36,8 @@ const (
 type CPUArchitecture uint8
 
 const (
-	// CPUArchitectureUnknown is the invalid zero architecture.
-	CPUArchitectureUnknown CPUArchitecture = iota
+	// cpuArchitectureUnknown is the invalid zero architecture.
+	cpuArchitectureUnknown CPUArchitecture = iota
 	// CPUArchitectureAMD64 identifies amd64.
 	CPUArchitectureAMD64
 	// CPUArchitectureARM64 identifies arm64.
@@ -54,8 +53,23 @@ type Platform struct {
 	Architecture CPUArchitecture
 }
 
-// NewPlatform validates and constructs a platform.
-func NewPlatform(operatingSystem OperatingSystem, architecture CPUArchitecture) (Platform, error) {
+// parsePlatform accepts canonical "operating-system-architecture" text.
+func parsePlatform(value string) (Platform, error) {
+	if len(value) == 0 || len(value) > platformTokenMaximumBytes {
+		return Platform{}, platformError("platform token has invalid length")
+	}
+	operatingSystemText, architectureText, found := strings.Cut(value, platformTokenSeparator)
+	if !found || operatingSystemText == "" || architectureText == "" || strings.Contains(architectureText, platformTokenSeparator) {
+		return Platform{}, platformError("platform token is not canonical")
+	}
+	operatingSystem, err := parseOperatingSystem(operatingSystemText)
+	if err != nil {
+		return Platform{}, err
+	}
+	architecture, err := parseCPUArchitecture(architectureText)
+	if err != nil {
+		return Platform{}, err
+	}
 	platform := Platform{OperatingSystem: operatingSystem, Architecture: architecture}
 	if err := platform.Validate(); err != nil {
 		return Platform{}, err
@@ -63,43 +77,8 @@ func NewPlatform(operatingSystem OperatingSystem, architecture CPUArchitecture) 
 	return platform, nil
 }
 
-// CurrentSupportedPlatform converts runtime.GOOS and runtime.GOARCH into the
-// closed Primitive platform domain. It returns ErrPrimitiveContract on hosts
-// not admitted by OperatingSystem or CPUArchitecture.
-func CurrentSupportedPlatform() (Platform, error) {
-	operatingSystem, err := ParseOperatingSystem(runtime.GOOS)
-	if err != nil {
-		return Platform{}, err
-	}
-	architecture, err := ParseCPUArchitecture(runtime.GOARCH)
-	if err != nil {
-		return Platform{}, err
-	}
-	return NewPlatform(operatingSystem, architecture)
-}
-
-// ParsePlatform accepts canonical "operating-system-architecture" text.
-func ParsePlatform(value string) (Platform, error) {
-	if len(value) == 0 || len(value) > PlatformTokenMaximumBytes {
-		return Platform{}, platformError("platform token has invalid length")
-	}
-	operatingSystemText, architectureText, found := strings.Cut(value, platformTokenSeparator)
-	if !found || operatingSystemText == "" || architectureText == "" || strings.Contains(architectureText, platformTokenSeparator) {
-		return Platform{}, platformError("platform token is not canonical")
-	}
-	operatingSystem, err := ParseOperatingSystem(operatingSystemText)
-	if err != nil {
-		return Platform{}, err
-	}
-	architecture, err := ParseCPUArchitecture(architectureText)
-	if err != nil {
-		return Platform{}, err
-	}
-	return NewPlatform(operatingSystem, architecture)
-}
-
-// ParseOperatingSystem accepts one canonical lowercase operating-system token.
-func ParseOperatingSystem(value string) (OperatingSystem, error) {
+// parseOperatingSystem accepts one canonical lowercase operating-system token.
+func parseOperatingSystem(value string) (OperatingSystem, error) {
 	switch value {
 	case operatingSystemDarwinText:
 		return OperatingSystemDarwin, nil
@@ -108,19 +87,19 @@ func ParseOperatingSystem(value string) (OperatingSystem, error) {
 	case operatingSystemWindowsText:
 		return OperatingSystemWindows, nil
 	default:
-		return OperatingSystemUnknown, platformError("operating system is not admitted")
+		return operatingSystemUnknown, platformError("operating system is not admitted")
 	}
 }
 
-// ParseCPUArchitecture accepts one canonical lowercase architecture token.
-func ParseCPUArchitecture(value string) (CPUArchitecture, error) {
+// parseCPUArchitecture accepts one canonical lowercase architecture token.
+func parseCPUArchitecture(value string) (CPUArchitecture, error) {
 	switch value {
 	case architectureAMD64Text:
 		return CPUArchitectureAMD64, nil
 	case architectureARM64Text:
 		return CPUArchitectureARM64, nil
 	default:
-		return CPUArchitectureUnknown, platformError("CPU architecture is not admitted")
+		return cpuArchitectureUnknown, platformError("CPU architecture is not admitted")
 	}
 }
 
@@ -158,11 +137,27 @@ func (p *Platform) UnmarshalJSON(data []byte) error {
 	}
 	value, err := DecodeJSONStringToken(data)
 	if err != nil {
-		return err
+		return errors.Join(ErrPrimitiveContract, err)
 	}
-	decoded, err := ParsePlatform(value)
+	decoded, err := parsePlatform(value)
 	if err != nil {
 		return errors.Join(ErrJSONContract, err)
+	}
+	*p = decoded
+	return nil
+}
+
+// UnmarshalText accepts canonical platform text through encoding.TextUnmarshaler.
+func (p *Platform) UnmarshalText(text []byte) error {
+	if p == nil {
+		return platformError("nil platform receiver")
+	}
+	if len(text) == 0 || len(text) > platformTokenMaximumBytes {
+		return platformError("platform token has invalid length")
+	}
+	decoded, err := parsePlatform(string(text))
+	if err != nil {
+		return err
 	}
 	*p = decoded
 	return nil
@@ -184,7 +179,7 @@ func (o OperatingSystem) String() string {
 
 // Validate rejects operating systems outside the closed domain.
 func (o OperatingSystem) Validate() error {
-	if o <= OperatingSystemUnknown || o >= operatingSystemLimit {
+	if o <= operatingSystemUnknown || o >= operatingSystemLimit {
 		return platformError("operating system is invalid")
 	}
 	return nil
@@ -208,9 +203,9 @@ func (o *OperatingSystem) UnmarshalJSON(data []byte) error {
 	}
 	value, err := DecodeJSONStringToken(data)
 	if err != nil {
-		return err
+		return errors.Join(ErrPrimitiveContract, err)
 	}
-	parsed, err := ParseOperatingSystem(value)
+	parsed, err := parseOperatingSystem(value)
 	if err != nil {
 		return errors.Join(ErrJSONContract, err)
 	}
@@ -232,7 +227,7 @@ func (a CPUArchitecture) String() string {
 
 // Validate rejects architectures outside the closed domain.
 func (a CPUArchitecture) Validate() error {
-	if a <= CPUArchitectureUnknown || a >= cpuArchitectureLimit {
+	if a <= cpuArchitectureUnknown || a >= cpuArchitectureLimit {
 		return platformError("CPU architecture is invalid")
 	}
 	return nil
@@ -256,9 +251,9 @@ func (a *CPUArchitecture) UnmarshalJSON(data []byte) error {
 	}
 	value, err := DecodeJSONStringToken(data)
 	if err != nil {
-		return err
+		return errors.Join(ErrPrimitiveContract, err)
 	}
-	parsed, err := ParseCPUArchitecture(value)
+	parsed, err := parseCPUArchitecture(value)
 	if err != nil {
 		return errors.Join(ErrJSONContract, err)
 	}

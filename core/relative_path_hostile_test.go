@@ -12,14 +12,14 @@ func TestParseRelativePathHostileBoundaryMatrix(t *testing.T) {
 	t.Parallel()
 
 	separator := string(filepath.Separator)
-	component254 := strings.Repeat("a", FilesystemPathComponentMaximumBytes-1)
-	component255 := strings.Repeat("a", FilesystemPathComponentMaximumBytes)
-	component256 := strings.Repeat("a", FilesystemPathComponentMaximumBytes+1)
+	component254 := strings.Repeat("a", filesystemPathComponentMaximumBytes-1)
+	component255 := strings.Repeat("a", filesystemPathComponentMaximumBytes)
+	component256 := strings.Repeat("a", filesystemPathComponentMaximumBytes+1)
 	components255 := strings.Repeat("a"+separator, FilesystemPathMaximumComponents-1) + "a"
 	components256 := strings.Repeat("a"+separator, FilesystemPathMaximumComponents)
-	runes4095 := relativePathWithRunes(t, FilesystemPathMaximumRunes-1)
-	runes4096 := relativePathWithRunes(t, FilesystemPathMaximumRunes)
-	runes4097 := relativePathWithRunes(t, FilesystemPathMaximumRunes+1)
+	runes4095 := relativePathWithRunes(t, filesystemPathMaximumRunes-1)
+	runes4096 := relativePathWithRunes(t, filesystemPathMaximumRunes)
+	runes4097 := relativePathWithRunes(t, filesystemPathMaximumRunes+1)
 
 	cases := []struct {
 		name      string
@@ -119,8 +119,8 @@ func TestRelativePathZeroValueRejectsEveryPublicOperation(t *testing.T) {
 func FuzzParseRelativePathSemanticClosure(f *testing.F) {
 	for _, seed := range []string{
 		".", "a", filepath.Join("a", "b"), "..", filepath.Join("..", "x"),
-		"a\x00b", string([]byte{0xff}), strings.Repeat("a", FilesystemPathComponentMaximumBytes),
-		strings.Repeat("a", FilesystemPathComponentMaximumBytes+1),
+		"a\x00b", string([]byte{0xff}), strings.Repeat("a", filesystemPathComponentMaximumBytes),
+		strings.Repeat("a", filesystemPathComponentMaximumBytes+1),
 	} {
 		f.Add(seed)
 	}
@@ -148,8 +148,8 @@ func relativePathWithRunes(t *testing.T, runes int) string {
 	if runes < 1 {
 		t.Fatalf("relativePathWithRunes(%d) requires positive runes", runes)
 	}
-	componentCount := (runes + FilesystemPathComponentMaximumBytes + 1) /
-		(FilesystemPathComponentMaximumBytes + 1)
+	componentCount := (runes + filesystemPathComponentMaximumBytes + 1) /
+		(filesystemPathComponentMaximumBytes + 1)
 	if componentCount > FilesystemPathMaximumComponents {
 		t.Fatalf("relativePathWithRunes(%d) needs %d components, maximum %d", runes, componentCount, FilesystemPathMaximumComponents)
 	}
@@ -159,7 +159,7 @@ func relativePathWithRunes(t *testing.T, runes int) string {
 		remainingComponents := componentCount - index
 		size := min(
 			componentRunes-(remainingComponents-1),
-			FilesystemPathComponentMaximumBytes,
+			filesystemPathComponentMaximumBytes,
 		)
 		components[index] = strings.Repeat("a", size)
 		componentRunes -= size

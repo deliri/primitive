@@ -12,6 +12,17 @@ type AssessLatestRequest struct {
 	Observation temporal.Instant
 }
 
+// Validate proves the authenticated Latest value and observation instant.
+func (r AssessLatestRequest) Validate() error {
+	if err := r.Latest.Validate(); err != nil {
+		return latestError(err)
+	}
+	if err := r.Observation.Validate(); err != nil {
+		return latestError(err)
+	}
+	return nil
+}
+
 // LatestAssessment is a closed, value-copy freshness projection.
 type LatestAssessment struct {
 	effective   temporal.Instant
@@ -25,16 +36,10 @@ type LatestAssessment struct {
 }
 
 func AssessLatest(request AssessLatestRequest) (LatestAssessment, error) {
-	if err := request.Latest.Validate(); err != nil {
-		return LatestAssessment{}, latestError(err)
+	if err := request.Validate(); err != nil {
+		return LatestAssessment{}, err
 	}
-	if err := request.Observation.Validate(); err != nil {
-		return LatestAssessment{}, latestError(err)
-	}
-	fact, err := request.Latest.Fact()
-	if err != nil {
-		return LatestAssessment{}, latestError(err)
-	}
+	fact := request.Latest.Fact()
 	effective, clock, err := effectiveObservation(request.Observation, fact.IssuedAt())
 	if err != nil {
 		return LatestAssessment{}, err

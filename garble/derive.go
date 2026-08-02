@@ -14,6 +14,12 @@ const (
 	derivationInfoBytes = 1 + sha256.Size
 )
 
+func derivationGenerationLabels() [derivationGenerationLimit]string {
+	return [...]string{
+		DerivationGenerationOne: "one",
+	}
+}
+
 // DerivationGeneration is the closed Garble derivation protocol generation.
 type DerivationGeneration uint8
 
@@ -32,10 +38,28 @@ func CurrentDerivationGeneration() DerivationGeneration {
 
 // Validate rejects generations outside the closed protocol domain.
 func (g DerivationGeneration) Validate() error {
-	if g <= DerivationGenerationUnknown || g >= derivationGenerationLimit {
+	if !g.IsValid() {
 		return contractError(errors.New("garble derivation generation is outside the admitted domain"))
 	}
 	return nil
+}
+
+// IsValid reports membership in the closed derivation-generation domain.
+func (g DerivationGeneration) IsValid() bool {
+	return g > DerivationGenerationUnknown && g < derivationGenerationLimit &&
+		derivationGenerationLabels()[g] != ""
+}
+
+// OffWireEnum declares DerivationGeneration as a local derivation parameter
+// rather than a wire encoding.
+func (DerivationGeneration) OffWireEnum() {}
+
+// String returns the compiler-owned diagnostic label for g.
+func (g DerivationGeneration) String() string {
+	if !g.IsValid() {
+		return unknownEnumLabel
+	}
+	return derivationGenerationLabels()[g]
 }
 
 // DerivationIdentity is a canonical release identity projected as a SHA-256

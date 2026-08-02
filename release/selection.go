@@ -125,6 +125,20 @@ type EvaluateRequest struct {
 	Observation       temporal.Instant
 }
 
+// Validate proves the complete installed-selection ingress.
+func (r EvaluateRequest) Validate() error {
+	if err := r.InstalledManifest.Validate(); err != nil {
+		return verificationError(err)
+	}
+	if err := r.Latest.Validate(); err != nil {
+		return err
+	}
+	if err := r.Observation.Validate(); err != nil {
+		return contractError(err)
+	}
+	return nil
+}
+
 // CurrentRelease proves the installed immutable release remains selected.
 type CurrentRelease struct {
 	validUntil temporal.Instant
@@ -232,11 +246,15 @@ func (s AvailableSummary) Validate() error {
 	if err != nil || filename != s.Filename {
 		return conflictError(errors.New("available summary filename differs"), err)
 	}
-	artifact := Artifact{
-		identity: s.Artifact, build: s.Candidate,
-		integrity: s.Integrity, valid: true,
-	}
-	if err := artifact.Validate(); err != nil {
+	return validateAvailableSummaryArtifact(s)
+}
+
+func validateAvailableSummaryArtifact(s AvailableSummary) error {
+	artifact, err := NewArtifact(ArtifactRequest{
+		Extent: s.Integrity.Extent(), Build: s.Candidate,
+		CRC32C: s.Integrity.CRC32C(), SHA256: s.Integrity.SHA256(),
+	})
+	if err != nil || artifact.Identity() != s.Artifact {
 		return conflictError(errors.New("available summary artifact differs"), err)
 	}
 	return nil
@@ -263,8 +281,8 @@ func (a AvailableRelease) Summary() (AvailableSummary, error) {
 	if err := a.Validate(); err != nil {
 		return AvailableSummary{}, err
 	}
-	manifestIdentity, _ := a.candidateManifest.Identity()
-	manifestDocument, _ := a.candidateManifest.DocumentDigest()
+	manifestIdentity := a.candidateManifest.Identity()
+	manifestDocument := a.candidateManifest.DocumentDigest()
 	filename, err := a.candidateArtifact.Filename()
 	if err != nil {
 		return AvailableSummary{}, err
@@ -295,10 +313,7 @@ func validateAvailableBindings(a AvailableRelease) error {
 }
 
 func validateAvailableInstalled(a AvailableRelease) error {
-	installedArtifacts, err := a.installedManifest.Artifacts()
-	if err != nil {
-		return verificationError(err)
-	}
+	installedArtifacts := a.installedManifest.Artifacts()
 	installedArtifact, ok := installedArtifacts.ForPlatform(a.installed.Platform())
 	if !ok || installedArtifact != a.installedArtifact {
 		return conflictError(errors.New("available installed artifact differs from its manifest"))
@@ -307,10 +322,7 @@ func validateAvailableInstalled(a AvailableRelease) error {
 }
 
 func validateAvailableCandidate(a AvailableRelease) error {
-	candidateArtifacts, err := a.candidateManifest.Artifacts()
-	if err != nil {
-		return verificationError(err)
-	}
+	candidateArtifacts := a.candidateManifest.Artifacts()
 	candidateArtifact, ok := candidateArtifacts.ForPlatform(a.installed.Platform())
 	if !ok || candidateArtifact != a.candidateArtifact {
 		return conflictError(errors.New("available candidate artifact differs from its manifest"))
@@ -319,12 +331,9 @@ func validateAvailableCandidate(a AvailableRelease) error {
 }
 
 func validateAvailableLatest(a AvailableRelease) error {
-	latestManifest, err := a.latest.Manifest()
-	if err != nil {
-		return verificationError(err)
-	}
-	latestIdentity, _ := latestManifest.Identity()
-	candidateIdentity, _ := a.candidateManifest.Identity()
+	latestManifest := a.latest.Manifest()
+	latestIdentity := latestManifest.Identity()
+	candidateIdentity := a.candidateManifest.Identity()
 	if latestIdentity != candidateIdentity {
 		return conflictError(errors.New("available candidate differs from latest"))
 	}
@@ -424,7 +433,7 @@ func (s Selection) Reassess() (ReassessDirective, bool) {
 // Evaluate reads the current binary's Core-owned embedded identity and makes
 // one pure installed-versus-latest selection.
 func Evaluate(request EvaluateRequest) (Selection, error) {
-	installed, err := core.EmbeddedBuildIdentity()
+	installed, err := EmbeddedBuildIdentity()
 	if err != nil {
 		return Selection{}, conflictError(err)
 	}
@@ -435,14 +444,8 @@ func evaluateWithInstalled(request EvaluateRequest, installed core.BuildIdentity
 	if err := installed.Validate(); err != nil {
 		return Selection{}, conflictError(err)
 	}
-	if err := request.InstalledManifest.Validate(); err != nil {
-		return Selection{}, verificationError(err)
-	}
-	if err := request.Latest.Validate(); err != nil {
+	if err := request.Validate(); err != nil {
 		return Selection{}, err
-	}
-	if err := request.Observation.Validate(); err != nil {
-		return Selection{}, contractError(err)
 	}
 	installedArtifact, err := closeInstalled(request.InstalledManifest, installed)
 	if err != nil {
@@ -457,18 +460,15 @@ func evaluateWithInstalled(request EvaluateRequest, installed core.BuildIdentity
 }
 
 func closeInstalled(manifest VerifiedManifest, installed core.BuildIdentity) (Artifact, error) {
-	offering, err := manifest.Offering()
-	if err != nil || offering != installed.Offering() {
-		return Artifact{}, conflictError(errors.New("installed offering differs from manifest"), err)
+	offering := manifest.Offering()
+	if offering != installed.Offering() {
+		return Artifact{}, conflictError(errors.New("installed offering differs from manifest"))
 	}
-	version, err := manifest.Version()
-	if err != nil || version != installed.Version() {
-		return Artifact{}, conflictError(errors.New("installed version differs from manifest"), err)
+	version := manifest.Version()
+	if version != installed.Version() {
+		return Artifact{}, conflictError(errors.New("installed version differs from manifest"))
 	}
-	artifacts, err := manifest.Artifacts()
-	if err != nil {
-		return Artifact{}, verificationError(err)
-	}
+	artifacts := manifest.Artifacts()
 	artifact, ok := artifacts.ForPlatform(installed.Platform())
 	if !ok || artifact.Build() != installed {
 		return Artifact{}, conflictError(errors.New("installed identity has no exact manifest artifact"))
@@ -481,7 +481,7 @@ func evaluatePresent(
 	installed core.BuildIdentity,
 	installedArtifact Artifact,
 ) (Selection, error) {
-	fact, _ := request.Latest.latest.Fact()
+	fact := request.Latest.latest.Fact()
 	if fact.Offering() != installed.Offering() {
 		return Selection{}, conflictError(errors.New("latest offering differs from installed offering"))
 	}
@@ -517,8 +517,8 @@ func compareSelected(
 	installedArtifact Artifact,
 	assessment LatestAssessment,
 ) (Selection, error) {
-	candidate, _ := request.Latest.latest.Manifest()
-	version, _ := candidate.Version()
+	candidate := request.Latest.latest.Manifest()
+	version := candidate.Version()
 	order, err := installed.Version().Compare(version)
 	if err != nil {
 		return Selection{}, contractError(err)
@@ -541,14 +541,14 @@ func selectCurrent(
 	candidate VerifiedManifest,
 	assessment LatestAssessment,
 ) (Selection, error) {
-	installedID, _ := installed.Identity()
-	candidateID, _ := candidate.Identity()
-	artifacts, _ := candidate.Artifacts()
+	installedID := installed.Identity()
+	candidateID := candidate.Identity()
+	artifacts := candidate.Artifacts()
 	artifact, ok := artifacts.ForPlatform(installedArtifact.Target())
 	if !ok || installedID != candidateID || artifact.Identity() != installedArtifact.Identity() {
 		return Selection{}, conflictError(errors.New("equal version differs immutably"))
 	}
-	version, _ := candidate.Version()
+	version := candidate.Version()
 	current := CurrentRelease{
 		manifest: installedID, artifact: artifact.Identity(), version: version,
 		validUntil: assessment.ValidUntil(), valid: true,
@@ -562,14 +562,8 @@ func selectAvailable(
 	installedArtifact Artifact,
 	assessment LatestAssessment,
 ) (Selection, error) {
-	candidate, err := request.Latest.latest.Manifest()
-	if err != nil {
-		return Selection{}, verificationError(err)
-	}
-	artifacts, err := candidate.Artifacts()
-	if err != nil {
-		return Selection{}, verificationError(err)
-	}
+	candidate := request.Latest.latest.Manifest()
+	artifacts := candidate.Artifacts()
 	artifact, ok := artifacts.ForPlatform(installed.Platform())
 	if !ok {
 		return Selection{}, verificationError(errors.New("candidate lacks installed platform"))
@@ -639,16 +633,10 @@ func (p PreparedRelease) validateFreshness() error {
 }
 
 func (p PreparedRelease) validateBinding() error {
-	latestManifest, err := p.latest.Manifest()
-	if err != nil {
-		return verificationError(err)
-	}
-	latestIdentity, _ := latestManifest.Identity()
-	candidateIdentity, _ := p.candidateManifest.Identity()
-	artifacts, err := p.candidateManifest.Artifacts()
-	if err != nil {
-		return verificationError(err)
-	}
+	latestManifest := p.latest.Manifest()
+	latestIdentity := latestManifest.Identity()
+	candidateIdentity := p.candidateManifest.Identity()
+	artifacts := p.candidateManifest.Artifacts()
 	candidateArtifact, ok := artifacts.ForPlatform(p.artifact.Target())
 	if latestIdentity != candidateIdentity || !ok || candidateArtifact != p.artifact {
 		return verificationError(errors.New("prepared release handoff differs from latest"))

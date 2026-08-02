@@ -25,9 +25,6 @@ Desktop.ini
 go.work
 go.work.sum
 
-# Local architecture governance
-/PLAN.md
-
 # Build outputs
 /.artifacts/
 /bin/

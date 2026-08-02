@@ -10,13 +10,43 @@ import (
 // decimal rejection carries core.ErrCurrencyDecimal, so these constants are the
 // only thing that tells an operator which rule fired. Each rule has exactly one
 // home here; production and its tests read the same constant.
+type decimalRejection uint8
+
 const (
-	decimalLengthReason       = "currency decimal has an invalid byte length"
-	decimalSignReason         = "currency decimal has an invalid sign"
-	decimalWholeReason        = "currency decimal whole units are invalid"
-	decimalFractionReason     = "currency decimal fraction is invalid"
-	decimalNegativeZeroReason = "currency decimal does not admit negative zero"
+	decimalRejectionUnknown decimalRejection = iota
+	decimalRejectionLength
+	decimalRejectionSign
+	decimalRejectionWhole
+	decimalRejectionFraction
+	decimalRejectionNegativeZero
+	decimalRejectionMinorUnitsUnset
+	decimalRejectionReceiverNil
+	decimalRejectionJSONString
+	decimalRejectionCanonicalInt64
+	decimalRejectionLimit
 )
+
+func decimalRejectionDiagnostics() [decimalRejectionLimit]string {
+	return [...]string{
+		"unknown currency decimal rejection",
+		"currency decimal has an invalid byte length",
+		"currency decimal has an invalid sign",
+		"currency decimal whole units are invalid",
+		"currency decimal fraction is invalid",
+		"currency decimal does not admit negative zero",
+		"currency minor units are unset",
+		"currency minor-unit receiver is nil",
+		"currency minor units must be a JSON string",
+		"currency minor units are not a canonical int64",
+	}
+}
+
+func (r decimalRejection) Error() string {
+	if r <= decimalRejectionUnknown || r >= decimalRejectionLimit {
+		return decimalRejectionDiagnostics()[decimalRejectionUnknown]
+	}
+	return decimalRejectionDiagnostics()[r]
+}
 
 // Parse constructs an exact amount from a bounded decimal representation.
 func Parse(code Code, decimal string) (Amount, error) {
@@ -40,14 +70,14 @@ func parseDecimal(code Code, raw string) (int64, error) {
 		return 0, err
 	}
 	if negative && magnitude == 0 {
-		return 0, decimalError(decimalNegativeZeroReason)
+		return 0, decimalError(decimalRejectionNegativeZero)
 	}
 	return signedValue(negative, magnitude)
 }
 
 func decimalDigits(code Code, raw string) (string, bool, error) {
 	if raw == "" || len(raw) > DecimalMaximumBytes {
-		return "", false, decimalError(decimalLengthReason)
+		return "", false, decimalError(decimalRejectionLength)
 	}
 	negative := raw[0] == '-'
 	unsigned := raw
@@ -55,7 +85,7 @@ func decimalDigits(code Code, raw string) (string, bool, error) {
 		unsigned = raw[1:]
 	}
 	if unsigned == "" || raw[0] == '+' {
-		return "", false, decimalError(decimalSignReason)
+		return "", false, decimalError(decimalRejectionSign)
 	}
 	// strings.Cut splits at the first separator only, so any surplus separator
 	// stays inside the fraction. validateFraction is the single owner of that
@@ -63,7 +93,7 @@ func decimalDigits(code Code, raw string) (string, bool, error) {
 	// check here would let one rule report the other rule's failure.
 	whole, fraction, hasFraction := strings.Cut(unsigned, ".")
 	if whole == "" || !asciiDigits(whole) {
-		return "", false, decimalError(decimalWholeReason)
+		return "", false, decimalError(decimalRejectionWhole)
 	}
 	exponent := code.fractionDigits()
 	if err := validateFraction(fraction, hasFraction, exponent); err != nil {
@@ -78,7 +108,7 @@ func validateFraction(fraction string, present bool, exponent uint8) error {
 	}
 	if exponent == MinorUnitDigitsZero || fraction == "" ||
 		len(fraction) > int(exponent) || !asciiDigits(fraction) {
-		return decimalError(decimalFractionReason)
+		return decimalError(decimalRejectionFraction)
 	}
 	return nil
 }

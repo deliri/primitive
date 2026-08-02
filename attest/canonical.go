@@ -71,7 +71,7 @@ func (w *canonicalDigestWriter) close(callbackErr error) (core.ByteCount, core.S
 		return core.ByteCount{}, core.SHA256Digest{}, contractError(err)
 	}
 	var digest [sha256.Size]byte
-	copy(digest[:], w.digest.Sum(nil))
+	w.digest.Sum(digest[:0])
 	return length, core.NewSHA256Digest(digest), nil
 }
 

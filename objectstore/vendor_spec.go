@@ -1,7 +1,10 @@
 package objectstore
 
 import (
+	"errors"
+
 	"github.com/deliri/primitive/v2026/core"
+	"github.com/deliri/primitive/v2026/exchange"
 )
 
 const (
@@ -106,8 +109,8 @@ type VendorSpec struct {
 	Provider          Provider
 	API               VendorAPI
 	Directions        DirectionCapability
-	UploadMethod      core.HTTPMethod
-	DownloadMethod    core.HTTPMethod
+	UploadMethod      exchange.Method
+	DownloadMethod    exchange.Method
 	UploadEncoding    UploadEncoding
 	ProviderIntegrity ProviderIntegrity
 	WritePreference   WritePreference
@@ -120,7 +123,11 @@ func Spec(provider Provider) (VendorSpec, error) {
 	if err := provider.Validate(); err != nil {
 		return VendorSpec{}, err
 	}
-	spec := vendorSpecs()[provider]
+	specs, err := vendorSpecs()
+	if err != nil {
+		return VendorSpec{}, err
+	}
+	spec := specs[provider]
 	if err := spec.Validate(); err != nil {
 		return VendorSpec{}, err
 	}
@@ -133,14 +140,14 @@ func (s VendorSpec) Validate() error {
 	if err := validateVendorSpecEnums(s); err != nil {
 		return core.ErrObjectStoreContract
 	}
-	if err := s.UploadMethod.Validate(); err != nil ||
+	if err := errors.Join(s.UploadMethod.Validate(), s.UploadMaximum.Validate()); err != nil ||
 		s.UploadMaximum.Uint64() == 0 {
 		return core.ErrObjectStoreContract
 	}
 	if s.Directions == DirectionCapabilityUploadOnly {
 		return validateUploadOnlySpec(s)
 	}
-	if err := s.DownloadMethod.Validate(); err != nil ||
+	if err := errors.Join(s.DownloadMethod.Validate(), s.DownloadMaximum.Validate()); err != nil ||
 		s.DownloadMaximum.Uint64() == 0 {
 		return core.ErrObjectStoreContract
 	}
@@ -164,7 +171,7 @@ func validateVendorSpecEnums(spec VendorSpec) error {
 }
 
 func validateUploadOnlySpec(spec VendorSpec) error {
-	if spec.DownloadMethod != core.HTTPMethodUnknown ||
+	if spec.DownloadMethod != exchange.MethodUnknown ||
 		spec.DownloadMaximum.Uint64() != 0 {
 		return core.ErrObjectStoreContract
 	}
@@ -172,7 +179,11 @@ func validateUploadOnlySpec(spec VendorSpec) error {
 }
 
 func validateVendorSpecIdentity(spec VendorSpec) error {
-	expected := vendorSpecs()[spec.Provider]
+	specs, err := vendorSpecs()
+	if err != nil {
+		return core.ErrObjectStoreContract
+	}
+	expected := specs[spec.Provider]
 	if spec != expected {
 		return core.ErrObjectStoreContract
 	}
@@ -337,41 +348,57 @@ func (p WritePreference) String() string {
 // OffWireEnum declares WritePreference as an execution enum.
 func (WritePreference) OffWireEnum() {}
 
-func vendorSpecs() [providerLimit]VendorSpec {
+func vendorSpecs() ([providerLimit]VendorSpec, error) {
+	amazonUpload, err := core.NewByteLength(AmazonS3PutObjectMaximumBytes)
+	if err != nil {
+		return [providerLimit]VendorSpec{}, err
+	}
+	amazonDownload, err := core.NewByteLength(AmazonS3ObjectMaximumBytes)
+	if err != nil {
+		return [providerLimit]VendorSpec{}, err
+	}
+	googleMaximum, err := core.NewByteLength(GoogleCloudStorageObjectMaximumBytes)
+	if err != nil {
+		return [providerLimit]VendorSpec{}, err
+	}
+	cloudflareUpload, err := core.NewByteLength(CloudflareImagesUploadMaximumBytes)
+	if err != nil {
+		return [providerLimit]VendorSpec{}, err
+	}
 	return [...]VendorSpec{
 		ProviderUnknown: {},
 		ProviderAmazonS3: {
 			Provider: ProviderAmazonS3, API: VendorAPIAmazonS3Object,
 			Directions:   DirectionCapabilityUploadDownload,
-			UploadMethod: core.HTTPMethodPut, DownloadMethod: core.HTTPMethodGet,
+			UploadMethod: exchange.MethodPut, DownloadMethod: exchange.MethodGet,
 			UploadEncoding:    UploadEncodingRawObject,
 			ProviderIntegrity: ProviderIntegrityCRC32C,
 			WritePreference:   WritePreferenceCreateOnly,
-			UploadMaximum:     core.NewByteLength(AmazonS3PutObjectMaximumBytes),
-			DownloadMaximum:   core.NewByteLength(AmazonS3ObjectMaximumBytes),
+			UploadMaximum:     amazonUpload,
+			DownloadMaximum:   amazonDownload,
 		},
 		ProviderGoogleCloudStorage: {
 			Provider:     ProviderGoogleCloudStorage,
 			API:          VendorAPIGoogleCloudStorageXML,
 			Directions:   DirectionCapabilityUploadDownload,
-			UploadMethod: core.HTTPMethodPut, DownloadMethod: core.HTTPMethodGet,
+			UploadMethod: exchange.MethodPut, DownloadMethod: exchange.MethodGet,
 			UploadEncoding:    UploadEncodingRawObject,
 			ProviderIntegrity: ProviderIntegrityCRC32C,
 			WritePreference:   WritePreferenceCreateOnly,
-			UploadMaximum:     core.NewByteLength(GoogleCloudStorageObjectMaximumBytes),
-			DownloadMaximum:   core.NewByteLength(GoogleCloudStorageObjectMaximumBytes),
+			UploadMaximum:     googleMaximum,
+			DownloadMaximum:   googleMaximum,
 		},
 		ProviderCloudflareImages: {
 			Provider:          ProviderCloudflareImages,
 			API:               VendorAPICloudflareImagesDirect,
 			Directions:        DirectionCapabilityUploadOnly,
-			UploadMethod:      core.HTTPMethodPost,
+			UploadMethod:      exchange.MethodPost,
 			UploadEncoding:    UploadEncodingMultipartFile,
 			ProviderIntegrity: ProviderIntegrityLocalOnly,
 			WritePreference:   WritePreferenceOneTimeCapability,
-			UploadMaximum:     core.NewByteLength(CloudflareImagesUploadMaximumBytes),
+			UploadMaximum:     cloudflareUpload,
 		},
-	}
+	}, nil
 }
 
 var (

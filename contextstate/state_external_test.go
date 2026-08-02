@@ -57,9 +57,9 @@ const admittedStateDiagnosticCount = 3
 func TestStateStringIsClosedOverTheAdmittedDomain(t *testing.T) {
 	t.Parallel()
 
-	unknown := contextstate.StateUnknown.String()
+	unknown := contextstate.State(0).String()
 	if unknown == "" {
-		t.Fatalf("StateUnknown.String() = %q, want non-empty", unknown)
+		t.Fatalf("zero State.String() = %q, want non-empty", unknown)
 	}
 	var admitted []string
 	for raw := uint16(0); raw <= math.MaxUint8; raw++ {

@@ -14,7 +14,7 @@ import (
 // route. An idempotency key is observed from the real request, not configured
 // in the route.
 type RouteSemantics struct {
-	Method core.HTTPMethod
+	Method Method
 	Replay ReplayMode
 }
 
@@ -358,7 +358,7 @@ func validateServerIngress(
 	if err := exchangeContextError(request.Context()); err != nil {
 		return requestError(err)
 	}
-	method, err := core.ParseHTTPMethod(request.Method)
+	method, err := parseMethod(request.Method)
 	if err != nil || method != route.Method {
 		return requestError(core.ErrExchangeContract)
 	}
@@ -380,7 +380,11 @@ func validateJSONRequestMetadata(request *http.Request) error {
 	if err != nil {
 		return requestError(core.ErrExchangeContentType)
 	}
-	matches, err := contentType.SameBase(core.HTTPMediaTypeJSON())
+	jsonType, err := jsonMediaType()
+	if err != nil {
+		return requestError(err)
+	}
+	matches, err := contentType.SameBase(jsonType)
 	if err != nil || !matches {
 		return requestError(core.ErrExchangeContentType)
 	}
@@ -395,8 +399,8 @@ func validateRequestContentCoding(headers http.Header) error {
 	if len(values) != 1 {
 		return requestError(core.ErrExchangeContentType)
 	}
-	coding, err := core.ParseHTTPContentCoding(values[0])
-	if err != nil || coding != core.HTTPContentCodingIdentity() {
+	coding, err := parseHTTPContentCoding(values[0])
+	if err != nil || coding != identityContentCoding() {
 		return requestError(core.ErrExchangeContentType)
 	}
 	return nil
@@ -607,10 +611,14 @@ type jsonWriteRequest struct {
 
 func writeJSONBytes(request jsonWriteRequest) error {
 	return executeResponseWriterOperation(func() error {
+		jsonType, err := jsonMediaType()
+		if err != nil {
+			return err
+		}
 		applyResponseHeaders(request.writer.Header(), request.headers)
 		request.writer.Header().Set(
 			core.HTTPHeaderContentType().String(),
-			core.HTTPMediaTypeJSON().String(),
+			jsonType.String(),
 		)
 		request.writer.Header().Set(
 			core.HTTPHeaderContentLength().String(),

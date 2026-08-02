@@ -121,7 +121,7 @@ func TestEvidenceCanonicalMaximaAreAttainable(t *testing.T) {
 		t.Fatalf("NewReceiptID(maximum) error = %v, want nil", err)
 	}
 	maximumBody := fixture.body
-	maximumBody.Extent = core.NewByteLength(math.MaxUint64)
+	maximumBody.Extent = mustByteLength(t, math.MaxInt64)
 	payload := EvidencePayload{
 		Header: Header{
 			Identity: identity, Account: fixture.account, Offering: fixture.offering,

@@ -79,11 +79,6 @@ func TestStrictJSONExternalTypedNilNeverPanics(t *testing.T) {
 	if _, gotErr := core.EncodeValidatedJSON(nilDigest, limits); !errors.Is(gotErr, core.ErrJSONContract) {
 		t.Fatalf("EncodeValidatedJSON(nil *SHA256Digest) error = %v, want %v", gotErr, core.ErrJSONContract)
 	}
-	var nilPlatform *core.Platform
-	if _, gotErr := core.EncodeValidatedJSON(nilPlatform, limits); !errors.Is(gotErr, core.ErrJSONContract) {
-		t.Fatalf("EncodeValidatedJSON(nil *Platform) error = %v, want %v", gotErr, core.ErrJSONContract)
-	}
-
 	nullCases := []struct {
 		name string
 		wire []byte

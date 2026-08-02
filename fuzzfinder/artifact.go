@@ -24,41 +24,52 @@ const (
 	artifactKindLimit
 )
 
+func artifactKindTokens() [artifactKindLimit]string {
+	return [...]string{
+		ArtifactCorpus:  artifactCorpusToken,
+		ArtifactCrasher: artifactCrasherToken,
+	}
+}
+
+func (k ArtifactKind) token() (string, error) {
+	if k <= ArtifactUnknown || k >= artifactKindLimit {
+		return "", contractError(errors.New("artifact kind is outside the closed domain"))
+	}
+	token := artifactKindTokens()[k]
+	if token == "" {
+		return "", contractError(errors.New("artifact kind has no contract"))
+	}
+	return token, nil
+}
+
 // Validate rejects values outside the corpus/crasher domain.
 func (k ArtifactKind) Validate() error {
-	if k <= ArtifactUnknown || k >= artifactKindLimit {
-		return contractError(errors.New("artifact kind is outside the closed domain"))
-	}
-	return nil
+	_, err := k.token()
+	return err
 }
 
 // IsValid reports membership in the corpus/crasher domain.
 func (k ArtifactKind) IsValid() bool {
-	return k > ArtifactUnknown && k < artifactKindLimit
+	return k.Validate() == nil
 }
 
 // String returns the exact wire token or a diagnostic unknown token.
 func (k ArtifactKind) String() string {
-	switch k {
-	case ArtifactCorpus:
-		return artifactCorpusToken
-	case ArtifactCrasher:
-		return artifactCrasherToken
-	default:
+	token, err := k.token()
+	if err != nil {
 		return artifactUnknownToken
 	}
+	return token
 }
 
 // ParseArtifactKind parses one exact wire token.
 func ParseArtifactKind(token string) (ArtifactKind, error) {
-	switch token {
-	case artifactCorpusToken:
-		return ArtifactCorpus, nil
-	case artifactCrasherToken:
-		return ArtifactCrasher, nil
-	default:
-		return ArtifactUnknown, formatError(errors.New("artifact kind token is unsupported"))
+	for kind := ArtifactUnknown + 1; kind < artifactKindLimit; kind++ {
+		if kind.String() == token {
+			return kind, nil
+		}
 	}
+	return ArtifactUnknown, formatError(errors.New("artifact kind token is unsupported"))
 }
 
 // MarshalJSON emits the exact artifact-kind token.

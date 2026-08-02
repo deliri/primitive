@@ -40,14 +40,15 @@ func jsonBenchmarkPayloads() [3]jsonBenchmarkPayload {
 
 func benchmarkJSONRoute() exchange.RouteSemantics {
 	return exchange.RouteSemantics{
-		Method: core.HTTPMethodPost,
+		Method: exchange.MethodPost,
 		Replay: exchange.ReplaySingleAttempt,
 	}
 }
 
 // newJSONBenchmarkRequest builds one POST carrying a strict JSON document.
 // The body is a fresh reader per call because ReceiveJSON closes what it reads.
-func newJSONBenchmarkRequest(body []byte) *http.Request {
+func newJSONBenchmarkRequest(b *testing.B, body []byte) *http.Request {
+	b.Helper()
 	request := httptest.NewRequest(
 		http.MethodPost,
 		"/",
@@ -55,7 +56,7 @@ func newJSONBenchmarkRequest(body []byte) *http.Request {
 	)
 	request.Header.Set(
 		core.HTTPHeaderContentType().String(),
-		core.HTTPMediaTypeJSON().String(),
+		mustHTTPMediaType(b, "application/json").String(),
 	)
 	return request
 }
@@ -173,7 +174,7 @@ func BenchmarkServerJSONBoundary(b *testing.B) {
 					transportDocument,
 					*transportDocument,
 				](exchange.JSONReceiveCall{
-					Request: newJSONBenchmarkRequest(encoded),
+					Request: newJSONBenchmarkRequest(b, encoded),
 					Route:   route,
 					Policy:  readPolicy,
 				})
@@ -215,7 +216,7 @@ func BenchmarkRequestConstructionControl(b *testing.B) {
 	b.ResetTimer()
 
 	for range b.N {
-		if request := newJSONBenchmarkRequest(encoded); request == nil {
+		if request := newJSONBenchmarkRequest(b, encoded); request == nil {
 			b.Fatal("newJSONBenchmarkRequest() = nil, want non-nil")
 		}
 	}
@@ -258,7 +259,7 @@ func BenchmarkServerJSONBoundaryByLimit(b *testing.B) {
 					transportDocument,
 					*transportDocument,
 				](exchange.JSONReceiveCall{
-					Request: newJSONBenchmarkRequest(encoded),
+					Request: newJSONBenchmarkRequest(b, encoded),
 					Route:   route,
 					Policy:  readPolicy,
 				})
@@ -315,7 +316,7 @@ func BenchmarkServerJSONBoundaryParallel(b *testing.B) {
 				transportDocument,
 				*transportDocument,
 			](exchange.JSONReceiveCall{
-				Request: newJSONBenchmarkRequest(encoded),
+				Request: newJSONBenchmarkRequest(b, encoded),
 				Route:   route,
 				Policy:  readPolicy,
 			})
@@ -401,7 +402,7 @@ func BenchmarkJSONRoundTripOverLoopbackParallel(b *testing.B) {
 		Target: target,
 		Body:   document,
 		Semantics: exchange.RequestSemantics{
-			Method: core.HTTPMethodPost,
+			Method: exchange.MethodPost,
 			Replay: exchange.ReplaySingleAttempt,
 		},
 		ExpectedStatus: ok,

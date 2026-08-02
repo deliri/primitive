@@ -181,9 +181,13 @@ func (f cgroupLimitFold) close(
 		return unavailableWorkloadMemoryLimit()
 	}
 	if f.path != (core.AbsolutePath{}) {
+		limit, err := core.NewByteLength(f.minimum)
+		if err != nil {
+			return WorkloadMemoryLimit{}, errors.Join(core.ErrHostFactsObservation, err)
+		}
 		return validateWorkloadMemoryLimit(WorkloadMemoryLimit{
 			state: WorkloadMemoryLimitLimited, source: source,
-			limit: core.NewByteLength(f.minimum), path: f.path,
+			limit: limit, path: f.path,
 		})
 	}
 	return validateWorkloadMemoryLimit(WorkloadMemoryLimit{
@@ -228,20 +232,18 @@ func parseCgroupMembershipLine(line []byte) (cgroupMembership, error) {
 }
 
 func parseMountInfoLine(line []byte, source WorkloadMemoryLimitSource) (cgroupMount, bool, error) {
-	fields := strings.Fields(string(line))
-	separator := mountInfoSeparator(fields)
-	if separator < 6 || separator+3 >= len(fields) {
+	rootField, mountPointField, filesystem, superOptions, err := projectMountInfoLine(line)
+	if err != nil {
 		return cgroupMount{}, false, core.ErrHostFactsObservation
 	}
-	filesystem := fields[separator+1]
-	if !mountFilesystemMatches(filesystem, fields[separator+3], source) {
+	if !mountFilesystemMatches(filesystem, superOptions, source) {
 		return cgroupMount{}, false, nil
 	}
-	root, err := decodeMountInfoPath(fields[3])
+	root, err := decodeMountInfoPath(string(rootField))
 	if err != nil || !validCgroupPath(root) {
 		return cgroupMount{}, false, errors.Join(core.ErrHostFactsObservation, err)
 	}
-	mountPointText, err := decodeMountInfoPath(fields[4])
+	mountPointText, err := decodeMountInfoPath(string(mountPointField))
 	if err != nil {
 		return cgroupMount{}, false, err
 	}
@@ -253,24 +255,64 @@ func parseMountInfoLine(line []byte, source WorkloadMemoryLimitSource) (cgroupMo
 	return mount, true, mount.Validate()
 }
 
-func mountInfoSeparator(fields []string) int {
-	for index, field := range fields {
-		if field == "-" {
-			return index
+func projectMountInfoLine(line []byte) ([]byte, []byte, []byte, []byte, error) {
+	const (
+		rootFieldIndex       = 3
+		mountPointFieldIndex = 4
+		separatorMinimum     = 6
+	)
+	var root, mountPoint, filesystem, superOptions []byte
+	fieldIndex, separatorIndex, postSeparator := 0, -1, 0
+	for field := range bytes.FieldsSeq(line) {
+		if separatorIndex >= 0 {
+			postSeparator++
+			switch postSeparator {
+			case 1:
+				filesystem = field
+			case 3:
+				superOptions = field
+			}
+			continue
 		}
+		switch fieldIndex {
+		case rootFieldIndex:
+			root = field
+		case mountPointFieldIndex:
+			mountPoint = field
+		}
+		if bytes.Equal(field, []byte("-")) {
+			separatorIndex = fieldIndex
+		}
+		fieldIndex++
 	}
-	return -1
+	if separatorIndex < separatorMinimum || postSeparator < 3 {
+		return nil, nil, nil, nil, core.ErrHostFactsObservation
+	}
+	return root, mountPoint, filesystem, superOptions, nil
 }
 
-func mountFilesystemMatches(filesystem, superOptions string, source WorkloadMemoryLimitSource) bool {
+func mountFilesystemMatches(filesystem, superOptions []byte, source WorkloadMemoryLimitSource) bool {
 	switch source {
 	case WorkloadMemoryLimitSourceCgroupV2:
-		return filesystem == "cgroup2"
+		return bytes.Equal(filesystem, []byte("cgroup2"))
 	case WorkloadMemoryLimitSourceCgroupV1:
-		return filesystem == "cgroup" && commaTokenContains(superOptions, cgroupMemoryController)
+		return bytes.Equal(filesystem, []byte("cgroup")) &&
+			commaByteTokenContains(superOptions, cgroupMemoryController)
 	default:
 		return false
 	}
+}
+
+func commaByteTokenContains(value []byte, token string) bool {
+	if token == "" {
+		return false
+	}
+	for item := range bytes.SplitSeq(value, []byte(",")) {
+		if string(item) == token {
+			return true
+		}
+	}
+	return false
 }
 
 func foldCgroupLimits(
@@ -604,14 +646,20 @@ func decodeMountInfoPath(value string) (string, error) {
 			return "", core.ErrHostFactsObservation
 		}
 		octal := value[index+1 : index+4]
-		if octal != "040" && octal != "011" && octal != "012" && octal != "134" {
+		var decodedByte byte
+		switch octal {
+		case "040":
+			decodedByte = ' '
+		case "011":
+			decodedByte = '\t'
+		case "012":
+			decodedByte = '\n'
+		case "134":
+			decodedByte = '\\'
+		default:
 			return "", core.ErrHostFactsObservation
 		}
-		parsed, err := strconv.ParseUint(octal, 8, 8)
-		if err != nil {
-			return "", errors.Join(core.ErrHostFactsObservation, err)
-		}
-		decoded = append(decoded, byte(parsed))
+		decoded = append(decoded, decodedByte)
 		index += 4
 	}
 	if !utf8.Valid(decoded) {

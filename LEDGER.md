@@ -1,15 +1,22 @@
 # Primitive 2026 Ledger
 
-Last updated: `2026-08-01`
+Last updated: `2026-08-02`
 
 ## Current
+
+- Checkpoint status, 2026-08-02: the user authorized committing the complete
+  in-progress doctrine sweep represented by this working tree. Review continues
+  package by package after the checkpoint; no push, tag, or release is implied.
+  Entries below that say `uncommitted` record the state when their proof was
+  captured, before this checkpoint authorization.
 
 - Repository transition: Primitive was copied from the complete Foundation
   worktree at `9ae5b28010b90a140cfaac0ee567034fd84a69b0` plus its local
   2026-07-28 substrate-pattern plan note. Its canonical module identity is now
   `github.com/deliri/primitive/v2026`. Historical evidence remains unchanged
-  and therefore retains its original Foundation module paths. `PLAN.md` is
-  local-only and excluded from the public repository.
+  and therefore retains its original Foundation module paths. `PLAN.md` is a
+  tracked architecture projection: Core parses its exact production and
+  test-only import table and fails on catalog drift.
 - Phase: all 21 admitted Primitive production packages are reviewed, accepted,
   and published. Receipt's admitted surface is one authenticated
   accepted-evidence fact plus one fixed-size monotonic watermark; it owns no
@@ -31,8 +38,196 @@ Last updated: `2026-08-01`
   Shutdown was reviewed, committed, and published at
   `adaa7b49eb950c289625c64824e8d10fcfd03662`.
   Hostfacts, Cloudidentity, Objectstore, `timeproof`, `exchange`, `temporal`,
-  and `filestore` are `DONE`; `testserial` consumer surgery is deferred until
-  all Primitive production packages are complete.
+  and `filestore` are `DONE`; the remaining Process consumer now uses the typed
+  Testserial declaration through a cataloged test-only edge.
+- Witness-lint polish, 2026-08-01 (awaiting review, uncommitted): the tool pin
+  is upgraded to `v0.0.0-20260802013301-1e3f30fb10c2`. Core, Filestore,
+  Fuzzfinder, Garble, and Hostfacts closed enums now carry the complete
+  `IsValid`, `String`, and `core.OffWireEnum` contract instead of acquiring
+  invented JSON protocols. Compiler-sized label tables make a newly added
+  member without a diagnostic fail closed. Exhaustive hostile ratchets walk
+  every `uint8` value, prove typed rejection identity, unique admitted labels,
+  one safe invalid label, and absence of JSON marshal/unmarshal methods.
+  Process and Testserial test-protocol findings were corrected through typed
+  assertions, context-first helper shape, actionable failure facts, and
+  `testserial.Declare`; no error string match or serial waiver remains.
+- Core doctrine re-review, 2026-08-01 through 2026-08-02 (awaiting review,
+  uncommitted): PLAN's
+  admission rule exposed two self-justifying contracts. The governance-document
+  subsystem had no non-Core consumer and shipped 160 lines of production policy,
+  four stable errors, and 434 lines of tests solely to verify its own testing
+  document. It is removed; the project-local testing protocol remains the test
+  doctrine, not a runtime Primitive capability. The attempted Process execution
+  capability was also removed because its sole typed witness was ceremonial and
+  the pinned analyzer did not recognize it. PLAN's exact graph is now a
+  tracked, parsed projection including admitted test-only imports; synthetic
+  missing and extra production/test edges prove the matcher red. Core's three
+  remaining fuzz targets have canonical gate budgets, and Core now names its schema
+  `LayerTriad`. Strict JSON's reflective field-name optimization is classified
+  and bounded to 128 retained types and 1,024 derived field names per type;
+  admission exhaustion falls back to the same standard-library reflection walk
+  and cannot change correctness. A live AST ownership ratchet counts direct
+  selectors and exactly one compiler-visible type-dependency hop from a directly
+  consumed declaration. Explicitly typed enum members inherit their named
+  domain's consumers because accepting the enum admits every member; a hostile
+  projection test proves untyped facts and arbitrary dependencies inherit none.
+  It rejects every new zero- or one-consumer non-error export, with no deferral
+  mechanism or allowlist remaining. Fixed-size admission inventories bind
+  PLAN's architecture catalog and the external test-isolation ABI to live Go
+  identifiers instead of source filenames. Stable-error admission is limited to
+  `ErrorIdentity` constants and requires both a named producer and an
+  `errors.Is` caller-decision path; the earlier `go/types` implements-error and
+  concrete-constructor exemptions are removed. Hard orphans are
+  removed or internalized: the unused IP network subsystem,
+  timestamp/CRL/cache-control helpers, unused HTTP/JSON and release bounds,
+  public internal parsers, linker-symbol strings, and the unconsumed Peachfuzz
+  offering. `ErrorIdentity.Matches` now uses a compiler-sized closed-domain
+  stack with enqueue-time deduplication, and an independent recursive hostile
+  oracle exhausts every identity pair. Stable error text is one
+  `[errorIdentityLimit]string` compiler projection; the hand-ranged dispatch
+  tree and its duplicate dead branch are gone. `ByteLength` explicitly owns the
+  non-negative range through `math.MaxInt64`, matching Go's signed file, stream,
+  and HTTP size domain. Construction and JSON ingress reject the first
+  unsigned-only value; every Process, Filestore, Exchange, Objectstore,
+  Hostfacts, Upgrade, and Receipt call site handles the fallible constructor
+  without a shim. `ByteLength.Int64` validates that bound once and then performs
+  the proved conversion directly; it no longer repeats the same range decision
+  through `CheckedInt64FromUint64`. Stage and disk pressure policies delegate to the real bound
+  instead of returning unconditional success, and stream completion preserves
+  both the operation failure and a length overflow. Its bidirectional
+  marshaler/validator witness inventory now proves a non-vacuous contract.
+  Relative and absolute path admission share one validator, and
+  component count and byte-size checks now strip the same standard-library
+  volume prefix. Core remains standard-library-only. Ordinary and race Core
+  tests pass at 87.7% statement coverage, with focused vet, staticcheck, errcheck,
+  nilaway, Witness, goconst, fieldalignment, gosec, and formatting clean. The
+  last one-consumer exports were removed during their owning package passes;
+  no fake consumer or copied helper was introduced to satisfy the ratchet.
+- Package-layer and Shutdown inventory closure, 2026-08-02 (awaiting review,
+  uncommitted): Release, Upgrade, Shutdown, Currency, Garble, Keygen, and
+  Contextstate now expose grep-visible `LayerTriad` proofs by naming existing
+  hostile tests that exercise their owned layer boundaries. Shutdown now has a
+  bidirectional compiler-typed inventory for all sixteen production structs;
+  adding an unclassified struct or retaining a deleted classification fails.
+  The testing protocol no longer describes the retired package-free design
+  phase, and `AGENTS.md` now names tracked `PLAN.md` as implementation law.
+- JSON witness closure, 2026-08-02 (awaiting review, uncommitted): witness
+  completeness is no longer a Core-only filename convention. One repository
+  ratchet scans every production file in all twenty-two catalog packages and
+  requires each `MarshalJSON` receiver to own `Validate` and a compiler
+  assertion to `core.ValidatedJSONMarshaler`; it also rejects a witness after
+  its marshaler disappears. The red pass found forty-six missing assertions in
+  Attest, Garble, Hostfacts, Fuzzfinder, Receipt, Release, Timeproof, and
+  Upgrade. All are now typed assertions, and the prior duplicate Currency
+  witness is removed.
+- Release error ownership, 2026-08-02 (awaiting review, uncommitted): the typed
+  offering mismatch detail and its constructor moved from Core to their sole
+  Release owner. `OfferingMismatchError` still exposes exact observed and
+  expected offerings, unwraps to `core.ErrReleaseVerification`, rejects invalid
+  or equal facts, and remains reachable through `errors.As`; Core no longer
+  carries either one-consumer export or the obsolete data-flow classification.
+- Release proof-projection correction, 2026-08-02 (awaiting review,
+  uncommitted): `VerifiedManifest` and `VerifiedLatest` validate their private
+  authentication seal once at operation ingress and expose immutable value
+  projections without a second unreachable error channel. All Release and
+  Upgrade call sites moved in the same clean cut; the prior mixture of ignored
+  and checked accessor errors is gone. `AvailableSummary.Validate` reconstructs
+  the claimed artifact through `NewArtifact` and compares the constructor-derived
+  identity instead of setting Artifact's private construction bit itself.
+- Release request-ownership correction, 2026-08-02 (awaiting review,
+  uncommitted): all ten exported Release request types now own `Validate` and
+  carry compiler assertions to `core.Validatable`. Evaluate, assessment,
+  advance, artifact, manifest, signing, and verification entry points funnel
+  through those receiver-owned checks instead of maintaining independent
+  field-validation prologues. Attest remains the sole owner of private-key and
+  trusted-key closure; Release delegates those fields through Attest's typed
+  request contracts. Release, Upgrade, race, vet, staticcheck, errcheck,
+  nilaway, gosec, field-alignment, and the 100,000-execution Latest-document
+  semantic fuzz budget pass. Focused Release statement coverage is 82.8%.
+- Fuzzfinder top-down recheck, 2026-08-02 (awaiting review, uncommitted): the
+  package remains one rooted, batched directory observation that retains a
+  fixed canonical prefix and never descends or claims custody. Go's `os.Root`
+  directory path resolves authoritative entry metadata through the standard
+  library, including filesystems whose native directory entries omit type
+  information. Artifact kind validation, diagnostics, and parsing now project
+  from one compiler-sized token table, so adding a member without its contract
+  fails closed rather than silently emitting `unknown`. Ordinary, race, static
+  analysis, and the 100,000-execution generated-name semantic fuzz budget pass
+  at 97.1% statement coverage. The real-directory benchmark measures 335,388
+  ns/op and 48,197 B/op for 128 entries; a one-iteration 8,192-entry pressure
+  run measures 24,515,000 ns/op and 2,982,480 B/op while retained storage stays
+  fixed at the caller's bounded prefix.
+- Timeproof canonical-CMS correction, 2026-08-02 (awaiting review,
+  uncommitted): a red-first hostile ESSCertIDv2 case proved that the verifier
+  accepted an explicitly encoded SHA-256 `hashAlgorithm` even though RFC 5035
+  declares SHA-256 as the field default and DER requires default-valued
+  sequence components to be omitted. The verifier now rejects that alternate
+  spelling. The certificate-conflict comment now states the verified-chain
+  scope the loop actually proves, while signer selection remains the separate
+  embedded-certificate ambiguity gate. The X.509 GeneralName directoryName
+  choice index is a named protocol constant rather than a bare `4`. Ordinary,
+  race, vet, staticcheck, errcheck, nilaway, gosec, field-alignment, production
+  cyclomatic, and the 100,000-execution authentic-response semantic fuzz budget
+  pass. Focused Timeproof statement coverage is 79.0%.
+- Lease top-down recheck, 2026-08-02 (awaiting review, uncommitted): the live
+  package already closes the reconstruction's two admission blockers. Verify
+  authenticates against caller-selected Attest keys and binds the exact
+  expected product, entitlement, and device subject; Evaluate merges the
+  consumer's durable high-water with the signed issuance floor and Go's real
+  monotonic elapsed observation before classifying work. No Lease clock,
+  persistence, transport, or product state machine was introduced. State,
+  contact, advance, and signing-domain diagnostics now project from
+  compiler-sized tables, so an added member without its contract fails closed.
+  Clock contradiction compares the already validated nonnegative Temporal
+  duration directly against the positive compiler constant; the prior
+  construction of that same constant through a fallible API and its
+  unreachable error branch are gone. Lease, Gate, race, vet, and staticcheck
+  pass; the remainder of the package sweep continues after this checkpoint.
+- Core ownership closure, 2026-08-02 (awaiting review, uncommitted): the
+  one-consumer deferral count is zero and the deferral machinery itself is
+  deleted. HTTP method parsing, its closed method/replay lattice, content
+  coding, declared body extent, JSON media type, and Exchange-only HTTP facts
+  now belong to Exchange. Objectstore owns its vendor-only header names;
+  Temporal owns signed instant persistence parsing. Core's CRC32C text decoder
+  is an `encoding.TextUnmarshaler` boundary rather than a second exported
+  parser. Core's path bounds are private; Filestore no longer restates Core's
+  component boundary, and Hostfacts sizes `GetFinalPathNameByHandle` storage
+  from the Windows API's returned requirement instead of coupling an OS buffer
+  to lexical path policy. Shared Platform, Offering, ReleaseVersion,
+  BuildCommit, and BuildIdentity contracts remain in Core for Release and
+  Upgrade. Only the one-consumer embedded link-time observation moved to
+  Release, where canonical strings enter through the owning Core types'
+  standard `encoding.TextUnmarshaler` boundaries.
+  Runtime-platform fixture API and the redundant Platform constructor were
+  deleted because neither had a production caller. Exchange's HTTP method now
+  owns exact JSON projection, hostile closed-domain proof, and the migrated
+  declared-body-length fuzz target. Ordinary and race repository tests, vet,
+  staticcheck, errcheck, and nilaway pass. Repository Witness analysis now
+  reports only Process's two previously recorded external-capability findings;
+  it no longer reports any enum, error-format, or shadowing finding from this
+  slice.
+- Attest top-down recheck, 2026-08-01 through 2026-08-02 (awaiting review,
+  uncommitted): the
+  package remains one bounded Ed25519 sealing/verification mechanic over a
+  consumer-owned streaming canonical body. Production has no mutable global,
+  map, reflection, whole-body read, goroutine, clock, filesystem, network, or
+  crypto implementation beside the direct standard-library Ed25519/SHA-256
+  leaves. Envelope, domain, and signature JSON now funnel through Core's single
+  standard-library canonical encoder/string-token contracts, making
+  `MarshalCanonicalJSONDocument` genuinely shared by Attest and Exchange and
+  removing its Core ownership deferral. `CanonicalObject` now admits the field
+  name and remaining object extent before invoking a nested owner or encoding a
+  string. Arbitrarily large string input therefore cannot allocate before the
+  one-mebibyte contract rejects it, and no encoded member can grow the retained
+  object beyond that ceiling. Signed and unsigned decimal members use fixed
+  20-byte stack storage and the reused-scalar benchmark remains zero-allocation.
+  SHA-256 finalization appends into fixed digest storage instead of allocating a
+  second sum, and envelope JSON-limit construction propagates its typed error
+  rather than silently substituting an invalid zero policy. The canonical-object
+  mutation fuzzer has a canonical 100,000-execution gate budget; a fresh
+  100,000-execution run passes. Ordinary and race tests pass at 90.4% statement coverage;
+  vet, staticcheck, errcheck, nilaway, Witness, goconst, fieldalignment, gosec,
+  formatting, and production `gocyclo <= 10` are clean.
 - Process implementation proof, 2026-07-30: the public contract is one typed
   command request over caller-owned `io.Reader` and `io.Writer` streams. It
   lowers exact argv and environment values only at the `os/exec` boundary,
@@ -101,34 +296,26 @@ Last updated: `2026-08-01`
   4,157,682 ns/op, 113,282 B/op, 80 allocs/op. Allocation is flat on both the
   output and the newly measured input path while streamed extent grows 16
   times.
-- Process known gap, not a defect: `TestProcessHelper` is the child-process
-  entry point and calls `os.Exit`, so it cannot call `t.Parallel`. The
-  protocol's canonical mechanism is `testserial.Declare`, but Core's graph
-  audit counts a test-only sibling import as a real extra coupling edge, so
-  importing Testserial here would move the coupling coefficient off zero. The
-  reason is documented at the call site instead. This closes when Testserial
-  consumer surgery lands, which the ledger already defers until all Primitive
-  production packages are complete.
-- Process deferred Witness upgrade: Process-scoped `witness-lint` has exactly
-  two findings at the single `exec.CommandContext` leaf. Witness recognizes
-  that effect only when the package imports Foundation Core and declares its
-  typed `DoctrinePackageCapabilityProcessExecution`. That would add an
-  undeclared dependency outside Process's exact `core`, `contextstate`, and
-  `temporal` frontier. Constructing `exec.Cmd` manually would merely evade the
-  compiler contract while duplicating standard-library behavior and is
-  rejected. No waiver, shim, copied capability, or hidden execution path has
-  been added. Repository-wide Witness retains its previously recorded enum and
-  Testserial baseline in addition to these two Process findings. The user
-  directed that Witness remain untouched until all Primitive packages are
-  complete, when Witness will receive the full compiler-owned contract
-  upgrade. Until then the findings are a named existing tool-contract gap, not
-  permission to weaken Process or add Foundation to its graph. The canonical
-  gate passes through full tests, full race, vet, staticcheck, errcheck, and
-  nilaway, then stops at this repository-wide Witness baseline as expected.
-- Release contract, 2026-07-30: Core now owns the closed Bug, Witness, and
-  Peachfuzz offering domain; exact three-`uint32` release ordering; canonical
+- Process serial-helper correction, 2026-08-01: `TestProcessHelper` remains the
+  child-process entry point and cannot call `t.Parallel` before its selected
+  `os.Exit` path. It now calls `testserial.Declare` as its first statement with
+  the Core-owned process-output/package-process declaration. Core's architecture
+  catalog admits `process -> testserial` only as a test-source edge; the
+  production frontier and coupling coefficient remain unchanged.
+- Process Witness boundary, 2026-08-01: the upgraded analyzer clears every
+  prior enum and Testserial finding but still reports its two execution rules
+  at the one
+  `exec.CommandContext` leaf because capability recognition is hardcoded to
+  `github.com/offGridSoft/witness/internal/core`, an internal package Primitive
+  cannot legally import. Constructing `exec.Cmd` manually would duplicate and
+  bypass the standard library; importing Foundation, adding a waiver, or
+  copying a ceremonial capability would violate the clean break. The remaining
+  pair is therefore one upstream analyzer contract defect, not a Primitive
+  execution defect. Witness remains outside this Primitive-only slice.
+- Release contract, 2026-07-30: Core now owns the currently consumed closed Bug
+  and Witness offering domain; exact three-`uint32` release ordering; canonical
   SHA-1/SHA-256 build commits; immutable offering/version/commit/platform build
-  identity; and compiler-visible linker symbol names. Release reads installed
+  identity. Release reads installed
   identity only from Core's link-injected binary facts. A Manifest signs
   exactly four ordered artifacts for Windows amd64, Darwin arm64, Linux amd64,
   and Linux arm64, including complete byte integrity and a checked signed total
@@ -563,8 +750,9 @@ Last updated: `2026-08-01`
   fixtures exercise missing, extra, undeclared, nested, duplicate, test-only,
   and aliased edges. PLAN's graph table and README's Mermaid graph are parsed
   through typed fixed inventories and match Core's compiler-owned catalog.
-  Export-to-consumer ownership remains honestly deferred until named consumers
-  land and become observable.
+  Export-to-consumer ownership is enforced with exact typed deferrals for the
+  existing one-consumer migration tier; new orphan or single-owner Core facts
+  fail immediately.
 - Attest architecture proof: every production struct has a compiler-visible
   data-flow role; the public surface, imports, import aliases, and raw
   cryptographic effect owners are exact AST ratchets with synthetic red/green
@@ -592,47 +780,32 @@ Last updated: `2026-08-01`
   `133471a26114024d1bb17e629408eb8bce96c584`, now spelled as its immutable Go
   pseudo-version so public-proxy installs do not require Git metadata
   resolution.
-- Contextstate backup reconciliation: the published package was compared
-  directly with
-  `/Users/d/code/foundation_back_up_july_27th_2026/contextstate` at archive
-  commit `d046f7b675fcb797398d7cdc87b5504f43978056`, including its production
-  files, specification, hostile tests, four relevant commits, archived
-  Core error-graph primitive, and real Primitive call sites. The upgrade
-  restores the archive's exact production import/effect ratchet, its active
-  future-deadline boundary, typed-nil terminal-error rejection, hostile custom
-  cancellation normalization, and the design rule that `Context.Err` is the
-  sole terminal truth and is called directly rather than behind a potentially
-  leaking defensive goroutine.
-- Contextstate is stronger than the archived implementation: archived public
-  `Classify` discarded its internal observability boolean and could report an
-  unsafe graph as `StateNone`; the 2026 API returns `(State, error)` and
-  preserves `ErrContextObservation`. Archived traversal lived in Core, used
-  reflection, and its package specification contradicted its own cycle proof;
-  the 2026 traversal is reflection-free, package-local until a second consumer
-  exists, and has exact 128-node depth and width ratchets. The new
-  `ObserveAfterDone` closes the repeated Temporal/Exchange post-event rule that
-  the archive lacked. State proof now exhausts all 256 underlying values, and
-  the synthetic-plus-live no-clone audit supersedes the archive's directory
-  absence check. The restored import ratchet now holds the smaller production
-  surface to exactly `context` and `core`; the archive also needed JSON,
-  formatting, and parsing imports.
+- Contextstate top-down recheck, 2026-08-01 (awaiting review, uncommitted): the
+  prior reconciliation correctly kept `Context.Err` as the sole terminal truth
+  and added `ObserveAfterDone`, but its private 128-node `Unwrap` graph engine
+  reimplemented `errors.Is`, its unused public `Classify(error)` had no landed
+  consumer, and its thousand-line repository AST policy forbade other packages
+  from using Go's error semantics directly. Those parallel inventions are
+  removed. Contextstate now reads `Err` exactly once and admits only the exact
+  `context.Canceled` and `context.DeadlineExceeded` sentinels promised by the
+  standard-library interface. Nil, panic, noncomparable, wrapped, joined,
+  cyclic, or otherwise nonstandard results become the zero State with
+  `ErrContextObservation`; no custom `Is`, `Unwrap`, graph, budget, goroutine,
+  reflection, or second precedence source exists. The invalid zero enum member
+  is internalized. Production remains exactly `context` plus Core, with no
+  mutable state or effects.
 - Contextstate archive exclusions remain deliberate: State JSON, `Parse`, and
   their fuzzer were not brought forward because no named consumer persists the
   state. Restoring them would add a second wire protocol rather than make
   `context.Context` easier to use. Doctrine plumbing, package-local error
-  labels, and the reflection-based shared traversal likewise remain rejected.
+  labels, and shared error traversal likewise remain rejected.
   This is a clean reconciliation, not an archive transplant.
 - Contextstate proof: the external State test exhausts all 256 values of the
-  enum's underlying domain. The 28-row public `Classify` matrix proves standard
-  identities, both precedence orders, wrapping, joining, non-comparable errors,
-  panicking methods, hostile ordering, and bounded cycles. A separate internal
-  seven-row mechanism ratchet holds depth and width at one below, exactly at,
-  and one above the private 128-node maximum without claiming public proof from
-  private access.
-- Context boundary proof: the 23-row `Validate` matrix and 18-row
-  `ObserveAfterDone` matrix use real standard contexts for normal behavior and
-  synthetic implementations only for malformed interface ingress. They prove
-  exact standard-sentinel normalization, hostile custom-match non-escape,
+  enum's underlying domain. Public `Validate` and `ObserveAfterDone` matrices
+  use real standard contexts for normal behavior and synthetic implementations
+  only for malformed interface ingress. They prove exact standard-sentinel
+  acceptance, rejection of custom/wrapped/joined/cyclic terminal errors,
+  noncomparable-error and panic containment,
   future-deadline admission based solely on `Err`, typed-nil terminal-error
   rejection, panic containment, active-after-Done rejection, exactly one
   `Context.Err` call, and an exact standard-interface seam whose `Deadline`
@@ -647,46 +820,32 @@ Last updated: `2026-08-01`
   needs reflection, which the package excludes, so `Validate` documents the
   limit instead of implying detection.
 - Contextstate architecture proof: the exact public surface rejects JSON,
-  parsers, aliases, and extra exports. One shared AST matcher is proved against
-  synthetic fixtures and then scans every landed catalog package for retired
-  `contextcheck` imports, copied direct terminal classification, repeated
-  context ingress logic, and pure compatibility aliases or forwarders. Direct
-  classification now covers `errors.Is` against a terminal sentinel, direct
-  `==` or `!=` identity comparison in either operand order, and terminal
-  sentinels named in switch case clauses, including dot-imported forms.
-  Identity comparisons and switch cases were previously invisible, and because
-  they need no `errors` import the audit also returned early before inspecting a
-  single node. Today
-  Core does not import `context` or `contextstate`, and Contextstate is the
-  exempt owner, so the live scan has no possible semantic violation; it is a
-  forward ratchet for later consumers. Its independently derived coverage
-  assertion is presently load-bearing and proves that every on-disk catalog
-  directory and at least one production file were actually scanned. A restored
-  package-local import ratchet separately proves that Contextstate production
-  imports exactly the standard `context` substrate and Core, so clock,
-  reflection, I/O, or sibling-package dependencies cannot enter silently.
+  parsers, aliases, `Classify`, an exported invalid sentinel, and extra exports.
+  The package-local import ratchet proves production imports exactly the
+  standard `context` substrate and Core. A focused AST ratchet proves production
+  does not call `Deadline`, `Done`, `Value`, or `Cause`; package owners remain
+  free to use standard-library error classification for their own results.
 - Contextstate focused reconciliation evidence: `go test -count=1`,
   `go test -race -count=1`, vet, staticcheck, witness-lint, errcheck, nilaway,
   fieldalignment, goconst, gosec, and production-plus-test `gocyclo -over 10`
   are clean for `./contextstate`. The fresh whole-repository gate also passed
   every phase in `evidence/contextstate-sixth-pass/`; the evidence remains
   local `darwin/arm64` proof and does not close N27.
-- Contextstate sixth-pass closure: the set-based production import ratchet, the
-  package-local `Deadline`/`Done`/`Value`/`Cause` AST ratchet, and direct
-  identity classification through `errors.Is`, equality, inequality, reversed
-  operands, dot imports, and switch case clauses are all included in the
-  sixth-pass bundle. The rejected `Value(any) any` runtime seam was removed
-  rather than waived after witness-lint correctly identified its interface
-  return. Two switch-case rows were observed red before the matcher arm landed,
-  while the non-terminal `context.TODO` switch row remained green.
+- Contextstate's historical sixth-pass evidence predates the top-down
+  simplification and is retained only as historical proof; its global AST
+  ownership matcher and private graph mechanism no longer describe production.
 - Contextstate fuzz, benchmark, native, and live proof are not applicable.
   State's complete byte-sized domain is exhaustively tested; `error` and
   `context.Context` interface graphs have no honest byte-mutation oracle; the
-  package has no I/O, platform branch, clock, goroutine, or effect leaf; and
-  traversal is held by the exact 128-node mechanism ratchet. The canonical gate
-  still reruns Core's benchmarks and two 100,000-execution fuzz targets.
-- Waiver state: `witness-lint` passes with zero waivers. The inherited Core
-  string-search waiver was removed without dropping N22's second-tier
+  package has no I/O, platform branch, clock, goroutine, or effect leaf. The canonical gate
+  still reruns Core's benchmarks and all four Core fuzz targets at 100,000
+  executions each.
+- Waiver state: direct Core and Contextstate `witness-lint` pass with zero
+  waivers. The repository-wide analyzer still stops on Process's two recorded
+  `exec.Command` capability findings because the pinned analyzer recognizes
+  only Witness's inaccessible internal capability path; Primitive adds no shim,
+  duplicate execution API, or waiver. The inherited Core string-search waiver
+  was removed without dropping N22's second-tier
   diagnostic proof: `jsonContractError` now carries a private typed diagnostic
   detail, and the existing hostile table uses `errors.As` before comparing its
   compiler-owned detail.
@@ -700,23 +859,40 @@ Last updated: `2026-08-01`
   signatures that no landed consumer has yet proved.
 - Commit and push authorization: granted by the user for the accepted combined
   depth-2 slice after completing their review.
-- Currency review state: the package is a typed exact-minor-unit layer over
-  integer arithmetic, `strconv`, `encoding/json`, and `math/big` test oracles.
+- Currency top-down recheck, 2026-08-02 (awaiting review, uncommitted): the
+  package is a typed exact-minor-unit layer over integer arithmetic, `strconv`,
+  Core's standard-library JSON boundary, and independent `math/big` test oracles.
   Its closed twelve-code domain owns fraction digits, exact decimal projection,
-  checked same-code arithmetic, ordering, and strict typed JSON. A
-  standard-library differential fuzz oracle exposed that `encoding/json`
-  otherwise admitted case-folded field names; the wire owner now decodes exact
-  compiler-owned field names through `json.Decoder`. The promoted hostile case
-  remains in the deterministic matrix.
-- Garble review state: the package is a typed layer over standard Base64,
-  HKDF-SHA256, and the pinned upstream Garble executable. It owns one exact
+  checked same-code arithmetic, ordering, and strict typed JSON. The prior wire
+  type duplicated the substrate by manually walking `json.Decoder` tokens and
+  assembling object punctuation. It now remains only a typed struct with its
+  owned `Validate`; Core's strict decoder rejects unknown, duplicate, and
+  case-folded field names before standard-library structure decoding, while
+  Core's canonical encoder owns the output bytes. Minor-unit string tokens use
+  those same shared JSON boundaries. The official ISO 4217 Maintenance Agency
+  amendment 180, dated 2025-09-22 and effective 2026-01-01, confirms the source
+  revision and the selected EUR minor-unit exponent. Ordinary and race tests,
+  vet, staticcheck, errcheck, nilaway, Witness, fieldalignment, formatting, and
+  production `gocyclo <= 10` pass. Fresh decimal and amount-JSON semantic fuzz
+  runs each pass 100,000 executions.
+- Garble top-down recheck, 2026-08-02 (awaiting review, uncommitted): the
+  package is a typed layer over standard Base64, HKDF-SHA256, and the pinned
+  upstream Garble executable. It owns one exact
   eight-byte Garble seed, Core-owned 64-byte custody, deterministic derivation,
   and a streaming typed build-argument intent. It does not own command
   execution, generic CLI parsing, persistence, environment policy, or a
   replacement Garble protocol. The complete preserved implementation was mined
   for upstream mechanics and rejected where it accepted lossy seed forms,
   exposed loose string arguments, or invented wider ownership.
-- Keygen review state: the package is only friendly typed convenience over
+  Seed JSON no longer carries a private wrapper type and second
+  `encoding/json` decode path: its bounded raw document enters through Core's
+  shared standard-library string-token contract and its canonical output uses
+  the matching encoder. The obsolete wire inventory and production JSON import
+  are deleted. Ordinary and race tests, vet, staticcheck, errcheck, nilaway,
+  Witness, fieldalignment, formatting, and the production cyclomatic bound pass;
+  a fresh semantic Seed JSON fuzz run passes 100,000 executions.
+- Keygen top-down recheck, 2026-08-02 (awaiting review, uncommitted): the package
+  remains only friendly typed convenience over
   `crypto/rand.Read`, `ed25519.GenerateKey`, and `ed25519.NewKeyFromSeed`.
   Generic secret sizes exhaust the complete Core-owned 16-through-64-byte
   interval in deterministic tests; Ed25519 keys are copied into owned
@@ -724,6 +900,13 @@ Last updated: `2026-08-01`
   projected through caller-owned copies, and destructible through Core secret
   ownership. Entropy providers, algorithms, derivation, signing policy,
   persistence, formats, KMS/HSM behavior, and command surfaces remain excluded.
+  Source reinspection found no second implementation to remove: production on
+  Go 1.26.5 uses the protected nil-source Ed25519 generation path and direct
+  `rand.Read`, while hostile source injection remains private test reachability.
+  The two public operations, exact imports/effects, zero maps, absence of local
+  secret-content predicates, shared destruction, and generic-format redaction
+  are ratcheted. Ordinary and race tests, vet, staticcheck, errcheck, nilaway,
+  Witness, fieldalignment, formatting, and the production cyclomatic bound pass.
 - Testserial review state: Primitive owns only a typed declaration
   `Declare(*testing.T, core.TestIsolationDeclaration)` plus the Core-owned
   hazard/scope/identifier contract. It owns no lock, scheduler, mutual
@@ -740,6 +923,17 @@ Last updated: `2026-08-01`
   nonrecursive single-entry removal. It owns no virtual filesystem, reader or
   writer wrapper, lock, scheduler, retry framework, transaction engine, or
   recursive walk.
+- Filestore top-down correction, 2026-08-02 (awaiting review, uncommitted):
+  lexical `Walk` previously admitted every positive `uint32` directory maximum,
+  converted it to `int`, and requested that many entries plus one from
+  `os.File.ReadDir`. A hostile maximum could therefore overflow on 32-bit or
+  demand a multi-billion-entry allocation on 64-bit, contradicting the fixed
+  bounded-memory claim. `DirectoryEntryMaximumLimit` now compiler-owns the
+  65,536-entry ceiling already required by real Witness scans; constructor and
+  validation reject the next value and `math.MaxUint32` before filesystem work.
+  Focused hostile/public-surface tests, the full Filestore race suite, vet,
+  staticcheck, errcheck, nilaway, Witness, formatting, and a Linux 386
+  cross-build pass.
 - Filestore consumer-review hardening: Witness recovery proved that the former
   implicit create-or-open append behavior could durably fabricate a zero-byte
   segment after a stat/open race. `AppendMode` now makes exclusive create,
@@ -768,6 +962,16 @@ Last updated: `2026-08-01`
   known stale off-wire enum JSON/String doctrine and retired Testserial
   convention. Primitive does not add compatibility or wire behavior to
   satisfy those findings.
+- Filestoretest retirement proof, 2026-08-01 (awaiting review, uncommitted):
+  the archived package is not admitted. Current Filestore delegates reader
+  pressure to `testing/iotest` and tests destination behavior at the real
+  `io.Writer` seam. One local production-path ratchet now proves a destination
+  returning an accepted prefix plus `syscall.ENOSPC`: Filestore reports the
+  exact accepted extent and bytes, retains `ErrFilestoreDestination` and the
+  native errno, and does not invent an `io.ErrShortWrite` identity when the
+  writer already supplied a real error. No capacity model, filesystem
+  simulator, shared writer wrapper, concurrency promise, or duplicate
+  observation state enters Primitive.
 - Filestore append-intent proof: fresh ordinary repository tests and
   race/shuffle tests with two repetitions pass. Vet, staticcheck, errcheck,
   nilaway, production `gocyclo <= 10`, gosec, govulncheck, actionlint, gofmt,
@@ -803,8 +1007,15 @@ Last updated: `2026-08-01`
   row fails compilation. Aggregate widening validates Duration rather than
   silently mapping an internally negative value to zero, and the checked error
   flows through `Duration.Aggregate` and `AddDuration`. The Instant difference
-  overflow guard checks sign before bounded arithmetic. Compile-time witnesses
-  now pin every Temporal function and method signature and all public request
+  overflow guard checks sign before bounded arithmetic. `NewInstant` now uses
+  the standard library's `UnixNano` projection and a `time.Unix` round trip to
+  reject out-of-domain values; the exact minimum no longer depends on two
+  wrapping signed arithmetic operations canceling each other. Unit constructors
+  project their guarded product directly rather than repeating the same bound
+  through a second conversion helper. String-form temporal JSON re-encodes with
+  `encoding/json` and rejects escaped alternate spellings such as `"\u0037"`
+  while preserving the explicitly bounded outer-whitespace policy.
+  Compile-time witnesses now pin every Temporal function and method signature and all public request
   layouts, plus the touched Contextstate and Currency signatures; the existing
   AST ratchets continue to reject added or removed public names.
 - Temporal hostile proof: signed instant construction and arithmetic exercise
@@ -823,8 +1034,9 @@ Last updated: `2026-08-01`
   ordinary and race/shuffle repository tests, vet, staticcheck, errcheck,
   nilaway, production `gocyclo <= 10`, Temporal goconst and fieldalignment,
   gosec, govulncheck, actionlint, formatting, module-tidiness, and diff checks
-  pass. Fresh Aggregate and signed Temporal fuzz runs each crossed 10,000
-  executions. Temporal statement coverage is 86.3% and is used only as a
+  pass. Fresh Aggregate, signed Temporal, numeric Instant, and numeric Duration
+  fuzz runs each passed 100,000 executions. Temporal statement coverage is
+  86.5% and is used only as a
   zero-function ratchet; `Precision.OffWireEnum` is intentionally an empty
   compiler marker with no executable statement. Direct Witness analysis of
   Temporal is clean. The canonical gate passes through nilaway and then stops
@@ -1342,22 +1554,17 @@ Last updated: `2026-08-01`
   exhausts its complete 49-value valid size interval plus hostile effect-result
   matrices. Testserial has a finite typed enum and AST domain. Neither package
   receives a ceremonial fuzz target.
-- Focused proof state: fresh repository tests, race tests with shuffle and two
-  repetitions, vet, staticcheck, errcheck, nilaway, production
-  `gocyclo <= 10`, goconst, fieldalignment, gosec, govulncheck, actionlint, and
-  the three package benchmark phases pass. The canonical evidence-writing gate
-  has not been run because the pinned Witness revision predictably rejects the
-  clean-break Testserial contract and over-applies JSON doctrine to off-wire
-  enums.
-- Witness publication dependency: the currently pinned analyzer recognizes
-  only the retired `testserial.Serial` convention and treats every enum as a
-  wire protocol. Primitive will not add a compatibility call, JSON methods,
-  or waivers to satisfy those stale assumptions. After explicit review and
-  publication of this Primitive slice, Witness must pin the new Core
-  contracts, require the exact first-statement `Declare` shape and reject
-  contradictory `t.Parallel`, narrow JSON doctrine to actual wire enums,
-  publish its revision, and then be repinned here before the canonical gate can
-  close Testserial.
+- Focused proof state for the accepted 2026-07-28 slice remains historical.
+  The 2026-08-01 Witness polish supersedes its analyzer baseline: the upgraded
+  pin recognizes `testserial.Declare` and off-wire enums. Fresh full proof for
+  the uncommitted polish slice is recorded separately after review.
+- Witness publication dependency: the upgraded analyzer now enforces the exact
+  first-statement `testserial.Declare` shape and distinguishes off-wire enums.
+  Its remaining publication gap is external capability ownership: process
+  execution recognizes only Witness's own `internal/core` capability path and
+  cannot yet recognize Primitive Core's typed equivalent. Primitive will not
+  add a compatibility import, duplicated capability, manual `exec.Cmd`
+  construction, or waiver to silence that upstream mismatch.
 - Gate portability correction: `file_sha256` now selects `sha256sum` or
   `shasum`, extracts the digest without positional-parameter mutation, and
   validates the exact 64-hex-character shape. This addresses the observed
@@ -1414,7 +1621,12 @@ Last updated: `2026-08-01`
   8,205 ns/op for 1 KiB and 4,395,141 ns/op for 1 MiB, with 41,008 B/op and
   two allocations at both extents. Cgroup mountinfo scanning is 4,939 ns/op
   for 1 KiB and 204,544 ns/op for 1 MiB, with 69,704 B/op and five
-  allocations at both extents. Tree traversal uses 64-entry read batches and a
+  allocations at both extents. The 2026-08-02 recheck extended that benchmark
+  through the actual mountinfo parser: 7,336 ns/op for 1 KiB and 2,324,590
+  ns/op for 1 MiB, with 69,704--69,715 B/op and exactly five allocations at
+  both extents. The parser now projects fields through `bytes.FieldsSeq`
+  without constructing a per-line token slice or string. Tree traversal uses
+  64-entry read batches and a
   path-component-bounded descriptor stack; its 1,000-file benchmark is
   14,060,135 ns/op, 166,585 B/op, and 4,152 allocations. Total traversal
   allocations necessarily reflect Go/OS directory entries and are not a
@@ -1433,8 +1645,13 @@ Last updated: `2026-08-01`
   results, saturate mount ambiguity instead of allowing count wraparound,
   reject unclassified tree entries, deterministically close refused
   directories, separate ingress-contract failures from observation failures,
-  and keep one public `Failure` owner per effect boundary. The public Go-memory
-  operation discloses the stop-the-world cost of `runtime.ReadMemStats`.
+  keep one public `Failure` owner per effect boundary, and keep nil out of the
+  multi-error unwrap result when a `Failure` carries only its stable identity,
+  as required by Go's `errors` contract. The public Go-memory operation
+  discloses the stop-the-world cost of `runtime.ReadMemStats`. Mountinfo escape
+  decoding projects its four admitted kernel spellings directly; the
+  unreachable `strconv.ParseUint` failure branch after that closed admission
+  check is gone.
 - Fuzzfinder scope: `Find` accepts one validated `filestore.Location`, one
   explicit Go cache format, and one caller-selected retention limit. It opens,
   streams, and closes the real rooted directory through Go's `os.Root` and
@@ -1932,19 +2149,16 @@ State vocabulary: `NEXT`, `BLOCKED_BY_DEPENDENCY`, `NOT_STARTED`, `RED`,
 Consumer state is recorded under the active package only. There is no separate
 all-consumer phase.
 
-`contextstate` is `DONE` after accepted reconciliation against the preserved
-backup. Bounded external-error traversal is package-local, the archive's
-dropped observability boolean is replaced with `(State, error)`, and State
-JSON, token parsing, and a standalone nil-check API remain rejected as unproved
-ceremony. `Validate` is the usable-now admission gate; `ObserveAfterDone`
-carries the post-event precondition in its name; and `String` remains
-diagnostic-only. The no-wire decision is proved by asserting that neither the
-value nor the pointer receiver implements any standard marshaling interface.
-`OffWireEnum` is a shared compiler-owned positive declaration; the
-interface-absence test, not the marker, is the negative proof. The
-synthetic-plus-live no-clone AST ratchet is active, and the live scan now
-asserts its own coverage against the catalog directories present on disk, so a
-drifted path derivation fails instead of silently auditing nothing.
+`contextstate` remains `DONE` after the 2026-08-01 top-down simplification.
+`Validate` is the usable-now admission gate, `ObserveAfterDone` carries the
+post-event precondition in its name, and `Observe` returns the current exact
+standard terminal state. State JSON, token parsing, arbitrary-error
+classification, graph traversal, a standalone nil-check API, and the global
+no-clone source policy are rejected as unproved ceremony or duplicate
+standard-library ownership. `String` remains diagnostic-only. The no-wire
+decision is proved by asserting that neither the value nor pointer receiver
+implements a standard marshaling interface; `OffWireEnum` is the positive
+compiler contract and the interface-absence test is the negative proof.
 
 ## Closed facts
 

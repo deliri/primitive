@@ -42,7 +42,7 @@ func newReleaseFixtureForOffering(
 	latestTrust := trustedKey(t, latestKey)
 	commit, err := core.ParseBuildCommit("0123456789abcdef0123456789abcdef01234567")
 	if err != nil {
-		t.Fatalf("ParseBuildCommit() error = %v", err)
+		t.Fatalf("core.ParseBuildCommit() error = %v", err)
 	}
 	targets := Targets()
 	var builds [TargetCount]core.BuildIdentity
@@ -59,7 +59,7 @@ func newReleaseFixtureForOffering(
 			Platform: target,
 		})
 		if err != nil {
-			t.Fatalf("NewBuildIdentity(%d) error = %v", index, err)
+			t.Fatalf("core.NewBuildIdentity(%d) error = %v", index, err)
 		}
 		sum := sha256.Sum256([]byte{byte(index + 1)})
 		artifacts[index], err = NewArtifact(ArtifactRequest{

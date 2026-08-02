@@ -86,7 +86,7 @@ func TestResponseHeaderFramingOwnershipLayerTriad(t *testing.T) {
 			headers: exchange.ResponseHeaders{Values: []exchange.Header{
 				{
 					Name:   core.HTTPHeaderContentType(),
-					Values: []string{core.HTTPMediaTypeTextPlain().String()},
+					Values: []string{mustHTTPMediaType(t, "text/plain").String()},
 				},
 			}},
 			wantErr: core.ErrExchangeContract,
@@ -210,13 +210,13 @@ func TestResponseStatusBodyOwnershipLayerTriad(t *testing.T) {
 			}
 			if recorder.Code != status ||
 				recorder.Header().Get(core.HTTPHeaderContentType().String()) !=
-					core.HTTPMediaTypeJSON().String() {
+					mustHTTPMediaType(t, "application/json").String() {
 				t.Fatalf(
 					"written status/content type = (%d, %q), want (%d, %q)",
 					recorder.Code,
 					recorder.Header().Get(core.HTTPHeaderContentType().String()),
 					status,
-					core.HTTPMediaTypeJSON(),
+					mustHTTPMediaType(t, "application/json"),
 				)
 			}
 		}
@@ -299,7 +299,7 @@ func TestResponseStatusBodyOwnershipLayerTriad(t *testing.T) {
 			Context: context.Background(),
 			Response: exchange.ServerStreamResponse{
 				Source:        bytes.NewReader(nil),
-				ContentLength: core.NewByteLength(0),
+				ContentLength: mustByteLength(t, 0),
 				ContentType:   core.HTTPMediaTypeOctetStream(),
 				Status:        mustHTTPStatus(t, http.StatusOK),
 			},
@@ -388,7 +388,7 @@ func TestStreamEgressExactExtentLayerTriad(t *testing.T) {
 					Writer:  writer,
 					Response: exchange.ServerStreamResponse{
 						Source:        bytes.NewReader(payload),
-						ContentLength: core.NewByteLength(tc.declaredLength),
+						ContentLength: mustByteLength(t, tc.declaredLength),
 						ContentType:   core.HTTPMediaTypeOctetStream(),
 						Status:        ok,
 					},

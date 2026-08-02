@@ -49,7 +49,7 @@ func TestJSONTransportLayerTriad(t *testing.T) {
 			](exchange.JSONReceiveCall{
 				Request: request,
 				Route: exchange.RouteSemantics{
-					Method: core.HTTPMethodPost,
+					Method: exchange.MethodPost,
 					Replay: exchange.ReplaySingleAttempt,
 				},
 				Policy: serverPolicy,
@@ -93,7 +93,7 @@ func TestJSONTransportLayerTriad(t *testing.T) {
 				Target: mustEndpoint(t, server.URL),
 				Body:   transportDocument{Message: "candidate"},
 				Semantics: exchange.RequestSemantics{
-					Method: core.HTTPMethodPost,
+					Method: exchange.MethodPost,
 					Replay: exchange.ReplaySingleAttempt,
 				},
 				CaptureHeaders: exchange.HeaderSelection{
@@ -144,11 +144,11 @@ func TestJSONTransportLayerTriad(t *testing.T) {
 			if serverGot.message != "candidate" {
 				t.Fatalf("server received message = %q, want %q", serverGot.message, "candidate")
 			}
-			if serverGot.acceptEncoding != core.HTTPContentCodingIdentity().String() {
+			if serverGot.acceptEncoding != identityContentCoding {
 				t.Fatalf(
 					"server Accept-Encoding = %q, want %q",
 					serverGot.acceptEncoding,
-					core.HTTPContentCodingIdentity(),
+					identityContentCoding,
 				)
 			}
 			if serverGot.contentLength <= 0 {
@@ -172,7 +172,7 @@ func TestJSONTransportLayerTriad(t *testing.T) {
 		) {
 			writer.Header().Set(
 				core.HTTPHeaderContentType().String(),
-				core.HTTPMediaTypeJSON().String(),
+				mustHTTPMediaType(t, "application/json").String(),
 			)
 			writer.WriteHeader(http.StatusOK)
 			if _, err := writer.Write(
@@ -190,7 +190,7 @@ func TestJSONTransportLayerTriad(t *testing.T) {
 				Request: exchange.NoBodyRequest{
 					Target: mustEndpoint(t, server.URL),
 					Semantics: exchange.RequestSemantics{
-						Method: core.HTTPMethodGet,
+						Method: exchange.MethodGet,
 						Replay: exchange.ReplaySingleAttempt,
 					},
 					ExpectedStatus: ok,
@@ -236,7 +236,7 @@ func TestJSONTransportLayerTriad(t *testing.T) {
 		) {
 			writer.Header().Set(
 				core.HTTPHeaderContentType().String(),
-				core.HTTPMediaTypeJSON().String(),
+				mustHTTPMediaType(t, "application/json").String(),
 			)
 			writer.Header().Set(
 				capturedName.String(),
@@ -254,7 +254,7 @@ func TestJSONTransportLayerTriad(t *testing.T) {
 				Request: exchange.NoBodyRequest{
 					Target: mustEndpoint(t, server.URL),
 					Semantics: exchange.RequestSemantics{
-						Method: core.HTTPMethodGet,
+						Method: exchange.MethodGet,
 						Replay: exchange.ReplaySingleAttempt,
 					},
 					CaptureHeaders: exchange.HeaderSelection{
@@ -303,7 +303,7 @@ func TestJSONTransportLayerTriad(t *testing.T) {
 				exchange.NoBodyReceiveCall{
 					Request: request,
 					Route: exchange.RouteSemantics{
-						Method: core.HTTPMethodGet,
+						Method: exchange.MethodGet,
 						Replay: exchange.ReplaySingleAttempt,
 					},
 				},
@@ -333,7 +333,7 @@ func TestJSONTransportLayerTriad(t *testing.T) {
 				Request: exchange.NoBodyRequest{
 					Target: mustEndpoint(t, server.URL),
 					Semantics: exchange.RequestSemantics{
-						Method: core.HTTPMethodGet,
+						Method: exchange.MethodGet,
 						Replay: exchange.ReplaySingleAttempt,
 					},
 					ExpectedStatus: ok,

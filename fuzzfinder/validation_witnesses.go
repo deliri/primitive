@@ -7,6 +7,8 @@ import (
 )
 
 var (
+	_ core.ValidatedJSONMarshaler = ArtifactKind(0)
+
 	_ core.Validatable = CacheFormatUnknown
 	_ core.OffWireEnum = CacheFormatUnknown
 	_ core.Validatable = RetentionLimit{}

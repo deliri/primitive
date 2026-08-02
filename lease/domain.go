@@ -18,24 +18,32 @@ const (
 	domainLimit
 )
 
+func domainDiagnostics() [domainLimit]string {
+	return [...]string{
+		DomainDecisionV1: decisionDomainToken,
+	}
+}
+
 func (d Domain) Validate() error {
-	if d != DomainDecisionV1 {
+	if !d.IsValid() {
 		return contractError(errors.New("lease signing domain is outside the closed domain"))
 	}
 	return nil
 }
 
-func (d Domain) IsValid() bool { return d.Validate() == nil }
+func (d Domain) IsValid() bool {
+	return d > DomainUnknown && d < domainLimit && domainDiagnostics()[d] != ""
+}
 
 // OffWireEnum declares that Attest owns Domain's canonical text projection;
 // Domain itself is never a direct JSON enum.
 func (Domain) OffWireEnum() {}
 
 func (d Domain) String() string {
-	if d == DomainDecisionV1 {
-		return decisionDomainToken
+	if !d.IsValid() {
+		return unknownDiagnostic
 	}
-	return unknownDiagnostic
+	return domainDiagnostics()[d]
 }
 
 // MarshalText emits the exact Attest domain.
@@ -43,7 +51,7 @@ func (d Domain) MarshalText() ([]byte, error) {
 	if err := d.Validate(); err != nil {
 		return nil, err
 	}
-	return []byte(decisionDomainToken), nil
+	return []byte(domainDiagnostics()[d]), nil
 }
 
 // ParseCanonicalText reconstructs one exact Attest domain.

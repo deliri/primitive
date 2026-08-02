@@ -312,7 +312,7 @@ func TestCustodyObservesCoreOwnedDestruction(t *testing.T) {
 	}
 }
 
-func TestDeriveMatchesIndependentHKDFOracleAndSeparatesInputs(t *testing.T) {
+func TestGarbleSourceCaptureLayerTriadMatchesIndependentHKDFOracleAndSeparatesInputs(t *testing.T) {
 	t.Parallel()
 
 	materialBytes := bytes.Repeat([]byte{0x42}, garble.CustodyBytes)

@@ -223,8 +223,8 @@ func TestErrorIdentityExhaustsClosedDomainAndParentDecisions(t *testing.T) {
 		}
 		if wantValid {
 			parents := errorIdentityParents(identity)
-			if parents.countValues() > ErrorIdentityMaximumParents {
-				t.Fatalf("errorIdentityParents(%d).countValues() = %d, want <= %d", raw, parents.countValues(), ErrorIdentityMaximumParents)
+			if parents.countValues() > errorIdentityMaximumParents {
+				t.Fatalf("errorIdentityParents(%d).countValues() = %d, want <= %d", raw, parents.countValues(), errorIdentityMaximumParents)
 			}
 			for index := 0; index < parents.countValues(); index++ {
 				parent, ok := parents.at(index)
@@ -292,6 +292,45 @@ func TestErrorIdentityExhaustsClosedDomainAndParentDecisions(t *testing.T) {
 			}
 		})
 	}
+}
+
+// TestErrorIdentityMatchesEveryClosedDomainPair makes traversal depth and every
+// caller decision observable. The reference walk is recursive over the closed
+// compiler-sized domain, independent of Matches' iterative stack mechanics.
+func TestErrorIdentityMatchesEveryClosedDomainPair(t *testing.T) {
+	t.Parallel()
+
+	for produced := ErrPrimitiveContract; produced < errorIdentityLimit; produced++ {
+		for target := ErrPrimitiveContract; target < errorIdentityLimit; target++ {
+			var visited [errorIdentityLimit]bool
+			want := referenceErrorIdentityMatch(produced, target, &visited)
+			if got := produced.Matches(target); got != want {
+				t.Fatalf("ErrorIdentity(%d).Matches(ErrorIdentity(%d)) = %t, want %t", produced, target, got, want)
+			}
+		}
+	}
+}
+
+func referenceErrorIdentityMatch(
+	produced ErrorIdentity,
+	target ErrorIdentity,
+	visited *[errorIdentityLimit]bool,
+) bool {
+	if produced == target {
+		return true
+	}
+	if visited[produced] {
+		return false
+	}
+	visited[produced] = true
+	parents := errorIdentityParents(produced)
+	for index := 0; index < parents.countValues(); index++ {
+		parent, ok := parents.at(index)
+		if ok && referenceErrorIdentityMatch(parent, target, visited) {
+			return true
+		}
+	}
+	return false
 }
 
 func TestErrorIdentityStableTextAndJSONExhaustClosedDomain(t *testing.T) {
