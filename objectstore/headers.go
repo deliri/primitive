@@ -19,7 +19,6 @@ const (
 	headerGCSGenerationMatch   = "X-Goog-If-Generation-Match"
 	headerGCSGeneration        = "X-Goog-Generation"
 	headerContentRange         = "Content-Range"
-	headerAuthorization        = "Authorization"
 	headerCreateOnlyValue      = "*"
 	headerZeroValue            = "0"
 	headerS3ChecksumModeValue  = "ENABLED"

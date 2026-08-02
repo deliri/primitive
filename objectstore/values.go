@@ -538,7 +538,7 @@ func amazonS3DataHost(host string) bool {
 // parser on every ingress; there is no process-global cache or mutable slice
 // whose contents can become a second runtime contract.
 func objectstoreOwnedHeaderNames() ([objectstoreOwnedHeaderCount]core.HTTPHeaderName, error) {
-	authorization, err := headerName(headerAuthorization)
+	authorization, err := exchange.StandardHeaderAuthorization.Name()
 	if err != nil {
 		return [objectstoreOwnedHeaderCount]core.HTTPHeaderName{}, err
 	}

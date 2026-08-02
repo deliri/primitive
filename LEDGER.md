@@ -4,6 +4,20 @@ Last updated: `2026-08-02`
 
 ## Current
 
+- Consumer-driven HTTP fact closure, 2026-08-02: OGS migration exposed copied
+  standard HTTP facts after Core's unused-export sweep. Exchange now owns
+  closed `StandardHeader` and `StandardMediaType` domains for Authorization,
+  Cache-Control, Retry-After, JSON, and plain text; Objectstore consumes the
+  Authorization projection instead of retaining its own string. Timeproof now
+  owns its RFC 3161 request and response `MediaType` domain so consumers can
+  compose Exchange without copying protocol media strings. Every new domain
+  exhausts the complete `uint8` space, returns its package's typed error and a
+  zero projection for every invalid or future value, rejects projection
+  collisions, proves `OffWireEnum`, and reaches the real `net/http.Header` or
+  `mime.ParseMediaType` handoff. The canonical gate records 74 passing gates;
+  only the already-recorded external Witness-lint Process boundary remains
+  nonzero. All 51 benchmarks and all 30 semantic fuzz targets passed, including
+  the two 10,000-execution real Filestore targets.
 - Proof-machine and substrate-error closure, 2026-08-02: the canonical gate no
   longer carries a hand-maintained target list that stopped after Garble. It
   discovers the compiler's complete landed

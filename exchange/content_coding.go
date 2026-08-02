@@ -9,7 +9,6 @@ import (
 
 const (
 	identityContentCodingText = "identity"
-	retryAfterHeaderName      = "Retry-After"
 )
 
 type httpContentCoding struct {

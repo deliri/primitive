@@ -126,7 +126,7 @@ func SendJSON[
 	if err != nil {
 		return zero, err
 	}
-	jsonType, err := jsonMediaType()
+	jsonType, err := StandardMediaTypeJSON.HTTPMediaType()
 	if err != nil {
 		return zero, err
 	}
@@ -162,7 +162,7 @@ func SendNoBodyJSON[
 	if err != nil {
 		return zero, err
 	}
-	jsonType, err := jsonMediaType()
+	jsonType, err := StandardMediaTypeJSON.HTTPMediaType()
 	if err != nil {
 		return zero, err
 	}
@@ -618,7 +618,14 @@ func readAggregateHTTPResponse(
 	}
 	result.status = status
 	result.headers = captureHeaders(input.response.Header, input.capture)
-	result.retryAfter = input.response.Header.Get(retryAfterHeaderName)
+	retryAfter, err := StandardHeaderRetryAfter.Name()
+	if err != nil {
+		return result, errors.Join(
+			responseError(err),
+			closeResponseBody(input.response.Body),
+		)
+	}
+	result.retryAfter = input.response.Header.Get(retryAfter.String())
 	if err := validateAggregateResponseHeaders(input, status); err != nil {
 		return result, errors.Join(
 			err,

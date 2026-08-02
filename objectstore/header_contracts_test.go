@@ -86,13 +86,17 @@ func TestOwnedHeaderSetIsExactlyTheDeclaredFields(t *testing.T) {
 	if gotErr != nil {
 		t.Fatalf("objectstoreOwnedHeaderNames() error = %v, want nil", gotErr)
 	}
+	authorization, gotAuthorizationErr := exchange.StandardHeaderAuthorization.Name()
+	if gotAuthorizationErr != nil {
+		t.Fatalf("exchange.StandardHeaderAuthorization.Name() error = %v, want nil", gotAuthorizationErr)
+	}
 	wantValues := []string{
 		core.HTTPHeaderContentType().String(),
 		core.HTTPHeaderContentLength().String(),
 		core.HTTPHeaderAcceptEncoding().String(),
 		core.HTTPHeaderContentEncoding().String(),
 		core.HTTPHeaderAccept().String(),
-		headerAuthorization,
+		authorization.String(),
 		core.HTTPHeaderIdempotencyKey().String(),
 		headerContentRange,
 		headerHost,

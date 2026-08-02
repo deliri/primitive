@@ -383,7 +383,7 @@ func validateJSONRequestMetadata(request *http.Request) error {
 	if err != nil {
 		return requestError(errors.Join(core.ErrExchangeContentType, err))
 	}
-	jsonType, err := jsonMediaType()
+	jsonType, err := StandardMediaTypeJSON.HTTPMediaType()
 	if err != nil {
 		return requestError(err)
 	}
@@ -622,7 +622,7 @@ type jsonWriteRequest struct {
 
 func writeJSONBytes(request jsonWriteRequest) error {
 	return executeResponseWriterOperation(func() error {
-		jsonType, err := jsonMediaType()
+		jsonType, err := StandardMediaTypeJSON.HTTPMediaType()
 		if err != nil {
 			return err
 		}
