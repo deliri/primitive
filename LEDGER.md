@@ -4,6 +4,21 @@ Last updated: `2026-08-03`
 
 ## Current
 
+- Canonical external-analyzer closure, 2026-08-03: Witness revision
+  `v0.0.0-20260803094918-1aa5221a4be7` recognizes Primitive Process as the
+  exact owner of the standard-library execution leaf and admits RFC 3161
+  ESSCertID-v1 SHA-1 only through Timeproof's exact receiverless certificate
+  identifier helper. The SHA-1 rule loses admission when the package, function
+  signature, input expression, body shape, receiver, or weak-call count drifts;
+  no waiver or consumer-owned capability lookalike exists. The published
+  analyzer, rather than a local worktree build, reports zero findings. The
+  complete canonical gate passes: ordinary and race suites, Vet, Staticcheck,
+  Errcheck, NilAway, Witness-lint, production complexity, constant ownership,
+  field alignment, security, vulnerability, enforced dead-code admissions,
+  all fifty-one discovered benchmarks, and all thirty discovered fuzz targets.
+  Process is therefore `DONE`; Upgrade remains dependency-blocked only on its
+  separately recorded live-provider proof.
+
 - Consumer text and linker-contract closure, 2026-08-03: Bug and Witness
   migration proved that Core's owned SHA-256 digest and Ed25519 public-key
   values need the standard `encoding.TextUnmarshaler` boundary, while release
@@ -2430,7 +2445,7 @@ State vocabulary: `NEXT`, `BLOCKED_BY_DEPENDENCY`, `NOT_STARTED`, `RED`,
 | `lease`            | `DONE`                  |
 | `gate`             | `DONE`                  |
 | `receipt`          | `DONE`                  |
-| `process`          | `BLOCKED_BY_DEPENDENCY` |
+| `process`          | `DONE`                  |
 | `release`          | `DONE`                  |
 | `shutdown`         | `DONE`                  |
 | `objectstore`      | `DONE`                  |

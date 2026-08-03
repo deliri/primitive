@@ -2,7 +2,7 @@
 
 set -eu
 
-witness_revision=v0.0.0-20260802013301-1e3f30fb10c2
+witness_revision=v0.0.0-20260803094918-1aa5221a4be7
 
 go install github.com/fzipp/gocyclo/cmd/gocyclo@v0.6.0
 go install honnef.co/go/tools/cmd/staticcheck@v0.7.0
