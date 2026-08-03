@@ -120,6 +120,7 @@ func TestPublicOperationsAreExactIntentEntryPoints(t *testing.T) {
 		"ParseProduct",
 		"ParseRevision",
 		"ParseRevocationReason",
+		"ProductForOffering",
 		"Verify",
 	}
 	if !slices.Equal(got, want) {
