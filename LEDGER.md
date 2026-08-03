@@ -5,7 +5,7 @@ Last updated: `2026-08-03`
 ## Current
 
 - Canonical external-analyzer closure, 2026-08-03: Witness revision
-  `v0.0.0-20260803094918-1aa5221a4be7` recognizes Primitive Process as the
+  `v0.0.0-20260803211814-57582de85018` recognizes Primitive Process as the
   exact owner of the standard-library execution leaf and admits RFC 3161
   ESSCertID-v1 SHA-1 only through Timeproof's exact receiverless certificate
   identifier helper. The SHA-1 rule loses admission when the package, function
