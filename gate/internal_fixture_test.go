@@ -38,7 +38,7 @@ func fixtureInternalAssessment(tb testing.TB, atNanoseconds int64) lease.Assessm
 	subject := fixtureInternalSubject(tb)
 	decision := fixtureInternalGrantDecision(tb, subject)
 	envelope, err := attest.Sign(attest.SignRequest[lease.Domain]{
-		Body: decision, Key: private,
+		Body: decision, Signer: private,
 	})
 	if err != nil {
 		tb.Fatalf("attest.Sign() error = %v, want nil", err)

@@ -14,7 +14,8 @@ const requestJSONMaximumBytes = 2048
 
 // PrepareRequest identifies the digest to timestamp.
 type PrepareRequest struct {
-	Digest core.SHA256Digest
+	Digest    core.SHA256Digest
+	Authority Authority
 }
 
 // Validate rejects an unset digest.
@@ -22,7 +23,7 @@ func (r PrepareRequest) Validate() error {
 	if err := r.Digest.Validate(); err != nil {
 		return contractError(err)
 	}
-	return nil
+	return r.Authority.Validate()
 }
 
 // Request is the exact bounded RFC 3161 request callers send to FreeTSA.
@@ -58,16 +59,20 @@ func Prepare(input PrepareRequest) (Request, error) {
 	if err != nil {
 		return Request{}, err
 	}
-	return newRequest(input.Digest, nonce)
+	return newRequest(input.Digest, nonce, input.Authority)
 }
 
-func newRequest(digest core.SHA256Digest, nonce Nonce) (Request, error) {
+func newRequest(
+	digest core.SHA256Digest,
+	nonce Nonce,
+	authority Authority,
+) (Request, error) {
 	body, err := buildRequest(digest, nonce)
 	if err != nil {
 		return Request{}, err
 	}
 	request := Request{
-		body: body, digest: digest, nonce: nonce, authority: AuthorityFreeTSA,
+		body: body, digest: digest, nonce: nonce, authority: authority,
 	}
 	if err := request.Validate(); err != nil {
 		return Request{}, err

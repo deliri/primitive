@@ -156,7 +156,7 @@ func TestSignedMaximumsAreExactlyAttained(t *testing.T) {
 
 	authority := fixtureAuthority(t, 181)
 	envelope, err := attest.Sign(attest.SignRequest[lease.Domain]{
-		Body: decision, Key: authority.private,
+		Body: decision, Signer: authority.private,
 	})
 	if err != nil {
 		t.Fatalf("attest.Sign() error = %v, want nil", err)

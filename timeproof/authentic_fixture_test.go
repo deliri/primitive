@@ -16,7 +16,7 @@ import (
 	"github.com/deliri/primitive/v2026/temporal"
 )
 
-//go:embed testdata/freetsa_2026_response.b64
+//go:embed testdata/freetsa_2026_response.b64 testdata/digicert_2026_response.b64
 var authenticFixtureFiles embed.FS
 
 type authenticFixture struct {
@@ -46,7 +46,7 @@ func loadAuthenticFixture(t testing.TB) authenticFixture {
 		t.Fatalf("parseNonce(authentic) error = %v, want nil", err)
 	}
 	digest := core.NewSHA256Digest(sha256.Sum256(nil))
-	request, err := newRequest(digest, nonce)
+	request, err := newRequest(digest, nonce, AuthorityFreeTSA)
 	if err != nil {
 		t.Fatalf("newRequest(authentic) error = %v, want nil", err)
 	}
@@ -310,7 +310,9 @@ func TestPrepareRequestLayerTriad(t *testing.T) {
 	t.Run("positive production entropy prepares a closed request", func(t *testing.T) {
 		t.Parallel()
 
-		got, gotErr := Prepare(PrepareRequest{Digest: fixture.digest})
+		got, gotErr := Prepare(PrepareRequest{
+			Digest: fixture.digest, Authority: AuthorityFreeTSA,
+		})
 		if gotErr != nil || got.Validate() != nil ||
 			got.Digest() != fixture.digest ||
 			got.Authority() != AuthorityFreeTSA ||
@@ -649,7 +651,7 @@ func TestAuthoritativeTimestampPersistenceLayerTriad(t *testing.T) {
 
 func BenchmarkPrepareRequest(b *testing.B) {
 	fixture := loadAuthenticFixture(b)
-	input := PrepareRequest{Digest: fixture.digest}
+	input := PrepareRequest{Digest: fixture.digest, Authority: AuthorityFreeTSA}
 	b.ReportAllocs()
 	b.ResetTimer()
 

@@ -2,6 +2,8 @@ package timeproof
 
 import (
 	"encoding/json"
+
+	"github.com/deliri/primitive/v2026/core"
 )
 
 const (
@@ -23,6 +25,8 @@ const (
 	AuthorityUnknown Authority = iota
 	// AuthorityFreeTSA identifies the reviewed FreeTSA contract.
 	AuthorityFreeTSA
+	// AuthorityDigiCert identifies the reviewed DigiCert RFC 3161 contract.
+	AuthorityDigiCert
 	authorityLimit
 )
 
@@ -47,7 +51,16 @@ func (a Authority) String() string {
 }
 
 func authorityTokens() [authorityLimit]string {
-	return [...]string{"", "freetsa"}
+	return [...]string{"", "freetsa", "digicert"}
+}
+
+// Endpoint returns the authority's reviewed RFC 3161 transport target.
+func (a Authority) Endpoint() (core.HTTPEndpoint, error) {
+	contract, err := authorityRegistry(a)
+	if err != nil {
+		return core.HTTPEndpoint{}, err
+	}
+	return contract.endpoint, nil
 }
 
 // WireEnum declares that Authority crosses persistence boundaries.
@@ -82,6 +95,8 @@ const (
 	TimestampPolicyUnknown TimestampPolicy = iota
 	// TimestampPolicyFreeTSA identifies FreeTSA's reviewed policy OID.
 	TimestampPolicyFreeTSA
+	// TimestampPolicyDigiCert identifies DigiCert's reviewed policy OID.
+	TimestampPolicyDigiCert
 	timestampPolicyLimit
 )
 
@@ -107,7 +122,7 @@ func (p TimestampPolicy) String() string {
 }
 
 func timestampPolicyTokens() [timestampPolicyLimit]string {
-	return [...]string{"", freeTSAPolicyOID.String()}
+	return [...]string{"", freeTSAPolicyOID.String(), digiCertPolicyOID.String()}
 }
 
 // WireEnum declares that TimestampPolicy crosses persistence boundaries.

@@ -347,7 +347,7 @@ func (r IssueLatestRequest) validatedFact() (LatestFact, error) {
 	if err := fact.Validate(); err != nil {
 		return LatestFact{}, err
 	}
-	if err := (attest.SignRequest[Domain]{Body: fact, Key: r.Key}).Validate(); err != nil {
+	if err := (attest.SignRequest[Domain]{Body: fact, Signer: r.Key}).Validate(); err != nil {
 		return LatestFact{}, latestError(err)
 	}
 	return fact, nil
@@ -361,7 +361,7 @@ func IssueLatest(request IssueLatestRequest) (LatestDocument, error) {
 	if err != nil {
 		return LatestDocument{}, err
 	}
-	envelope, err := attest.Sign(attest.SignRequest[Domain]{Body: fact, Key: request.Key})
+	envelope, err := attest.Sign(attest.SignRequest[Domain]{Body: fact, Signer: request.Key})
 	if err != nil {
 		return LatestDocument{}, latestError(err)
 	}

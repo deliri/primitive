@@ -22,11 +22,15 @@ const (
 	// crc32CBytes is the width of a CRC32C checksum.
 	crc32CBytes = 4
 	// crc32CBase64Bytes is the canonical padded Base64 width of CRC32C.
-	crc32CBase64Bytes             = 8
-	crc32CNilReceiverDiagnostic   = "nil CRC32C receiver"
-	secretMaterialLengthErrorText = "secret material has invalid length"
-	secretMaterialUnsetErrorText  = "secret material is unset"
-	secretMaterialJSONErrorText   = "secret material JSON serialization is prohibited"
+	crc32CBase64Bytes                     = 8
+	crc32CNilReceiverDiagnostic           = "nil CRC32C receiver"
+	crc32CInvalidLengthDiagnostic         = "crc32c encoding has invalid length"
+	sha256DigestNilReceiverDiagnostic     = "nil SHA-256 digest receiver"
+	ed25519PublicKeyNilReceiverDiagnostic = "nil Ed25519 public key receiver"
+	hexValueInvalidLengthDiagnostic       = "hex value has invalid length"
+	secretMaterialLengthErrorText         = "secret material has invalid length"
+	secretMaterialUnsetErrorText          = "secret material is unset"
+	secretMaterialJSONErrorText           = "secret material JSON serialization is prohibited"
 )
 
 // SHA256Digest is a set SHA-256 digest. Its zero value is invalid.
@@ -67,6 +71,23 @@ func (d SHA256Digest) Hex() (string, error) {
 	return hex.EncodeToString(d.value[:]), nil
 }
 
+// UnmarshalText accepts exactly one canonical lowercase hexadecimal digest
+// through encoding.TextUnmarshaler. The receiver is unchanged on rejection.
+func (d *SHA256Digest) UnmarshalText(text []byte) error {
+	if d == nil {
+		return errors.Join(ErrPrimitiveContract, errors.New(sha256DigestNilReceiverDiagnostic))
+	}
+	if len(text) != hex.EncodedLen(sha256.Size) {
+		return errors.Join(ErrPrimitiveContract, errors.New(hexValueInvalidLengthDiagnostic))
+	}
+	parsed, err := parseSHA256Hex(string(text))
+	if err != nil {
+		return err
+	}
+	*d = parsed
+	return nil
+}
+
 // Validate rejects an unset digest.
 func (d SHA256Digest) Validate() error {
 	if !d.set {
@@ -87,7 +108,7 @@ func (d SHA256Digest) MarshalJSON() ([]byte, error) {
 // UnmarshalJSON accepts only canonical lowercase hexadecimal.
 func (d *SHA256Digest) UnmarshalJSON(data []byte) error {
 	if d == nil {
-		return errors.Join(ErrJSONContract, errors.New("nil SHA-256 digest receiver"))
+		return errors.Join(ErrJSONContract, errors.New(sha256DigestNilReceiverDiagnostic))
 	}
 	value, err := DecodeJSONStringToken(data)
 	if err != nil {
@@ -114,7 +135,7 @@ func NewCRC32C(value uint32) CRC32C {
 
 func parseCRC32CBase64(value string) (CRC32C, error) {
 	if len(value) != crc32CBase64Bytes {
-		return CRC32C{}, errors.Join(ErrPrimitiveContract, errors.New("crc32c encoding has invalid length"))
+		return CRC32C{}, errors.Join(ErrPrimitiveContract, errors.New(crc32CInvalidLengthDiagnostic))
 	}
 	raw, err := base64.StdEncoding.DecodeString(value)
 	if err != nil || len(raw) != crc32CBytes || base64.StdEncoding.EncodeToString(raw) != value {
@@ -128,6 +149,9 @@ func parseCRC32CBase64(value string) (CRC32C, error) {
 func (c *CRC32C) UnmarshalText(data []byte) error {
 	if c == nil {
 		return errors.Join(ErrPrimitiveContract, errors.New(crc32CNilReceiverDiagnostic))
+	}
+	if len(data) != crc32CBase64Bytes {
+		return errors.Join(ErrPrimitiveContract, errors.New(crc32CInvalidLengthDiagnostic))
 	}
 	decoded, err := parseCRC32CBase64(string(data))
 	if err != nil {
@@ -232,6 +256,23 @@ func (k Ed25519PublicKey) Hex() (string, error) {
 	return hex.EncodeToString(k.value[:]), nil
 }
 
+// UnmarshalText accepts exactly one canonical lowercase hexadecimal public
+// key through encoding.TextUnmarshaler. The receiver is unchanged on rejection.
+func (k *Ed25519PublicKey) UnmarshalText(text []byte) error {
+	if k == nil {
+		return errors.Join(ErrPrimitiveContract, errors.New(ed25519PublicKeyNilReceiverDiagnostic))
+	}
+	if len(text) != hex.EncodedLen(ed25519.PublicKeySize) {
+		return errors.Join(ErrPrimitiveContract, errors.New(hexValueInvalidLengthDiagnostic))
+	}
+	parsed, err := parseEd25519PublicKeyHex(string(text))
+	if err != nil {
+		return err
+	}
+	*k = parsed
+	return nil
+}
+
 // Validate rejects an unset public key.
 func (k Ed25519PublicKey) Validate() error {
 	if !k.set {
@@ -252,7 +293,7 @@ func (k Ed25519PublicKey) MarshalJSON() ([]byte, error) {
 // UnmarshalJSON accepts only canonical lowercase hexadecimal.
 func (k *Ed25519PublicKey) UnmarshalJSON(data []byte) error {
 	if k == nil {
-		return errors.Join(ErrJSONContract, errors.New("nil Ed25519 public key receiver"))
+		return errors.Join(ErrJSONContract, errors.New(ed25519PublicKeyNilReceiverDiagnostic))
 	}
 	value, err := DecodeJSONStringToken(data)
 	if err != nil {
@@ -388,7 +429,7 @@ func (m SecretMaterial) Format(state fmt.State, _ rune) {
 
 func decodeCanonicalHex(value string, size int) ([]byte, error) {
 	if len(value) != hex.EncodedLen(size) {
-		return nil, errors.New("hex value has invalid length")
+		return nil, errors.New(hexValueInvalidLengthDiagnostic)
 	}
 	decoded, err := hex.DecodeString(value)
 	if err != nil || hex.EncodeToString(decoded) != value {

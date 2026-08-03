@@ -170,7 +170,7 @@ func TestEnvelopeJSONCanonicalFieldOrderAndMaximumBound(t *testing.T) {
 			domain: maximumDomain,
 			size:   attest.CanonicalBodyMaximumBytes,
 		},
-		Key: privateKey,
+		Signer: privateKey,
 	})
 	if gotSignErr != nil {
 		t.Fatalf("attest.Sign(maximum) error = %v, want nil", gotSignErr)
@@ -203,7 +203,7 @@ func TestEnvelopeJSONCanonicalFieldOrderAndMaximumBound(t *testing.T) {
 			domain: belowMaximumDomain,
 			size:   attest.CanonicalBodyMaximumBytes,
 		},
-		Key: privateKey,
+		Signer: privateKey,
 	})
 	if gotBelowSignErr != nil {
 		t.Fatalf("attest.Sign(maximum minus one JSON) error = %v, want nil", gotBelowSignErr)
@@ -324,7 +324,7 @@ func maximumExtentEnvelopeFixture(t testing.TB) attest.Envelope[textDomain] {
 			domain: textDomain{text: strings.Repeat("a", attest.SigningDomainMaximumBytes)},
 			size:   attest.CanonicalBodyMaximumBytes,
 		},
-		Key: deterministicPrivateKey(t, "maximum-extent-envelope"),
+		Signer: deterministicPrivateKey(t, "maximum-extent-envelope"),
 	})
 	if err != nil {
 		t.Fatalf("attest.Sign(maximum extent) error = %v, want nil", err)
@@ -506,8 +506,8 @@ func TestEnvelopeJSONDomainReconstructionFailureMatrix(t *testing.T) {
 
 			privateKey := deterministicPrivateKey(t, "domain-reconstruction")
 			envelope, gotSignErr := attest.Sign(attest.SignRequest[reconstructDomain]{
-				Body: reconstructDomainBody{domain: reconstructDomain{text: tc.domainText}},
-				Key:  privateKey,
+				Body:   reconstructDomainBody{domain: reconstructDomain{text: tc.domainText}},
+				Signer: privateKey,
 			})
 			if gotSignErr != nil {
 				t.Fatalf("attest.Sign() error = %v, want nil", gotSignErr)
@@ -517,8 +517,8 @@ func TestEnvelopeJSONDomainReconstructionFailureMatrix(t *testing.T) {
 				t.Fatalf("Envelope.MarshalJSON() error = %v, want nil", gotMarshalErr)
 			}
 			preservedEnvelope, gotPreservedErr := attest.Sign(attest.SignRequest[reconstructDomain]{
-				Body: reconstructDomainBody{domain: reconstructDomain{text: "preserved"}},
-				Key:  privateKey,
+				Body:   reconstructDomainBody{domain: reconstructDomain{text: "preserved"}},
+				Signer: privateKey,
 			})
 			if gotPreservedErr != nil {
 				t.Fatalf("attest.Sign(preserved) error = %v, want nil", gotPreservedErr)

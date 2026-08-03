@@ -1,7 +1,9 @@
 package attest
 
 import (
+	"crypto"
 	"crypto/ed25519"
+	"crypto/rand"
 	"errors"
 
 	"github.com/deliri/primitive/v2026/core"
@@ -9,26 +11,24 @@ import (
 
 // Sign seals one bounded typed canonical body.
 func Sign[D SigningDomain[D]](request SignRequest[D]) (Envelope[D], error) {
-	privateKey, signer, err := copyAndValidatePrivateKey(request.Key)
+	capability, err := newSigningCapability(request.Signer)
 	if err != nil {
 		return Envelope[D]{}, err
 	}
-	defer clear(privateKey[:])
+	defer capability.close()
 	facts, err := canonicalizeBody(request.Body)
 	if err != nil {
 		return Envelope[D]{}, err
 	}
-	frame, err := newAttestationFrame(facts, signer)
+	frame, err := newAttestationFrame(facts, capability.publicKey)
 	if err != nil {
 		return Envelope[D]{}, err
 	}
-	rawSignature := ed25519.Sign(ed25519.PrivateKey(privateKey[:]), frame.bytes())
-	signature, err := newSignature(rawSignature)
-	clear(rawSignature)
+	signature, err := signFrame(capability, frame)
 	if err != nil {
 		return Envelope[D]{}, err
 	}
-	publicKey, err := signer.Bytes()
+	publicKey, err := capability.publicKey.Bytes()
 	if err != nil {
 		return Envelope[D]{}, contractError(err)
 	}
@@ -41,7 +41,7 @@ func Sign[D SigningDomain[D]](request SignRequest[D]) (Envelope[D], error) {
 	}
 	envelope := Envelope[D]{
 		Domain:     facts.domain,
-		Signer:     signer,
+		Signer:     capability.publicKey,
 		BodyLength: facts.length,
 		BodySHA256: facts.digest,
 		Signature:  signature,
@@ -50,6 +50,22 @@ func Sign[D SigningDomain[D]](request SignRequest[D]) (Envelope[D], error) {
 		return Envelope[D]{}, err
 	}
 	return envelope, nil
+}
+
+func signFrame(capability *signingCapability, frame attestationFrame) (Signature, error) {
+	var input [attestationFrameMaximum]byte
+	count := copy(input[:], frame.bytes())
+	defer clear(input[:])
+	signer := capability.signer
+	rawSignature, err := guardedCall(func() ([]byte, error) {
+		return signer.Sign(rand.Reader, input[:count], crypto.Hash(0))
+	})
+	if err != nil {
+		return Signature{}, contractError(err)
+	}
+	signature, err := newSignature(rawSignature)
+	clear(rawSignature)
+	return signature, err
 }
 
 // Verify authenticates one bounded typed canonical body against trusted keys.

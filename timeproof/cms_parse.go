@@ -353,6 +353,9 @@ func signatureDigestMatches(signer cmsSignerInfo) bool {
 	signature := signer.SignatureAlgorithm.Algorithm
 	digest := signer.DigestAlgorithm.Algorithm
 	switch {
+	case signature.Equal(oidRSAEncryption):
+		return digest.Equal(oidSHA256) || digest.Equal(oidSHA384) ||
+			digest.Equal(oidSHA512)
 	case signature.Equal(oidECDSAWithSHA256), signature.Equal(oidSHA256WithRSA):
 		return digest.Equal(oidSHA256)
 	case signature.Equal(oidECDSAWithSHA384), signature.Equal(oidSHA384WithRSA):
@@ -730,7 +733,7 @@ func verifySignerSignature(signer cmsSignerInfo, certificate *x509.Certificate) 
 	if certificate == nil || len(signer.Signature) == 0 {
 		return invalidError(nil)
 	}
-	algorithm, err := signatureAlgorithmForOID(signer.SignatureAlgorithm.Algorithm)
+	algorithm, err := signatureAlgorithmForSigner(signer)
 	if err != nil {
 		return err
 	}
@@ -754,6 +757,24 @@ func digestForOID(oid asn1.ObjectIdentifier, content []byte) ([]byte, error) {
 		return sum[:], nil
 	default:
 		return nil, invalidError(nil)
+	}
+}
+
+func signatureAlgorithmForSigner(
+	signer cmsSignerInfo,
+) (x509.SignatureAlgorithm, error) {
+	if !signer.SignatureAlgorithm.Algorithm.Equal(oidRSAEncryption) {
+		return signatureAlgorithmForOID(signer.SignatureAlgorithm.Algorithm)
+	}
+	switch {
+	case signer.DigestAlgorithm.Algorithm.Equal(oidSHA256):
+		return x509.SHA256WithRSA, nil
+	case signer.DigestAlgorithm.Algorithm.Equal(oidSHA384):
+		return x509.SHA384WithRSA, nil
+	case signer.DigestAlgorithm.Algorithm.Equal(oidSHA512):
+		return x509.SHA512WithRSA, nil
+	default:
+		return x509.UnknownSignatureAlgorithm, invalidError(nil)
 	}
 }
 

@@ -1,14 +1,78 @@
 # Primitive 2026 Ledger
 
-Last updated: `2026-08-02`
+Last updated: `2026-08-03`
 
 ## Current
 
+- Consumer text and linker-contract closure, 2026-08-03: Bug and Witness
+  migration proved that Core's owned SHA-256 digest and Ed25519 public-key
+  values need the standard `encoding.TextUnmarshaler` boundary, while release
+  builders need compiler-owned linker symbols for Primitive's private embedded
+  build-identity variables. Both text receivers accept only exact canonical
+  lowercase hexadecimal, preserve the receiver on every rejection, refuse nil
+  receivers through `ErrPrimitiveContract`, and reject wrong extents before
+  converting caller input. CRC32C now applies the same pre-conversion extent
+  gate. Release owns the package path, private variable-name tokens, and four
+  exported `-X` symbols once; a structural ratchet fails when a new injected
+  variable lacks a symbol or any symbol drifts from the compiler package path.
+  Focused Core and Release tests, the complete ordinary suite, touched-package
+  race proof, Vet, Staticcheck, Fieldalignment, Errcheck, and production
+  complexity are green. The user approved this complete Primitive tree for
+  publication in the current checkpoint.
+
+- RFC 3161 authority-registry closure, 2026-08-03: Witness's product promise
+  to race independent timestamp authorities exposed that Timeproof admitted
+  only FreeTSA. Timeproof now owns a closed FreeTSA and DigiCert authority
+  registry, each binding one typed authority, exact endpoint, policy OID, and
+  embedded pinned root. The DigiCert root is verified against its reviewed
+  SHA-256 fingerprint, serial, validity interval, and self-signature before it
+  can enter verification. A live DigiCert response exposed the standards-valid
+  CMS form that declares `rsaEncryption` beside a separate SHA-256 digest;
+  Timeproof now maps only that explicit SHA-256/SHA-384/SHA-512 combination to
+  Go's `crypto/x509` algorithms and continues to refuse SHA-1 and unknown
+  combinations. The authentic captured response proves nonce, imprint, policy,
+  chain, canonical JSON, and hostile cross-authority refusal. Witness consumes
+  this registry rather than copying endpoints or trust facts and races the two
+  bounded calls, accepts only the first fully verified proof, cancels and joins
+  the loser, and retains both attempt records in deterministic authority order.
+  Focused ordinary and race tests, Vet, Staticcheck, Fieldalignment, Errcheck,
+  Gosec, Witness-lint without waivers, production complexity, and the complete
+  Primitive ordinary suite are green. The user approved this reopening for
+  publication in the current checkpoint.
+
+- Standard-library signing-capability closure, 2026-08-03: Witness's external
+  key-custody migration proved that Attest's raw `ed25519.PrivateKey` request
+  excluded KMS and HSM implementations even though Go already owns the exact
+  abstraction in `crypto.Signer`. `SignRequest` now accepts that standard
+  interface as a clean break; ordinary Ed25519 private keys still traverse the
+  same path and are defensively copied and cleared. One internal capability
+  owner validates an Ed25519 public identity, canonicalizes and frames the
+  body, gives the untrusted signer a fixed-extent copy of the frame, preserves
+  provider errors, contains provider panics, validates the returned signature,
+  and post-verifies against Primitive's original frame. Hostile proof rejects
+  wrong public-key types and extents, mismatched identities, nil/short/long or
+  corrupt signatures, callback panics, and a provider that mutates its input;
+  the successful external-signer case round-trips through the real verifier.
+  The compiler-owned crypto-effect and data-flow inventories include the new
+  owner. Attest ordinary and race tests, Vet, Staticcheck, Fieldalignment,
+  Errcheck, Gosec, production complexity, and the complete Primitive ordinary
+  suite are green. The user approved this reopening for publication in the
+  current checkpoint.
+
+- Filestore special-file read closure, 2026-08-02: Bug's migration from a
+  product-owned bounded reader to `filestore.Read` exposed that opening a FIFO
+  before inspecting its mode can block forever. Filestore now uses the real
+  rooted `os.Root.Stat` boundary to refuse an existing non-regular source
+  before `Open`, then retains the handle-level `File.Stat` check before any
+  bytes stream. A Darwin/Linux subprocess proof constructs a real FIFO and
+  requires `ErrFilestoreSource` plus `fs.ErrInvalid`; its deadline is only a
+  deadlock backstop for the previously wedged path. Focused race, vet,
+  staticcheck, errcheck, field alignment, gosec, production complexity,
+  Windows compilation, and strict current Witness-lint are clean.
 - Consumer-driven HTTP fact closure, 2026-08-02: OGS migration exposed copied
   standard HTTP facts after Core's unused-export sweep. Exchange now owns
-  closed `StandardHeader`, `StandardMediaType`, and `StandardContentCoding`
-  domains for Authorization, Cache-Control, Retry-After, JSON, plain text,
-  identity, gzip, Brotli, and Zstandard; Objectstore consumes the
+  closed `StandardHeader` and `StandardMediaType` domains for Authorization,
+  Cache-Control, Retry-After, JSON, and plain text; Objectstore consumes the
   Authorization projection instead of retaining its own string. Timeproof now
   owns its RFC 3161 request and response `MediaType` domain so consumers can
   compose Exchange without copying protocol media strings. Every new domain

@@ -15,6 +15,7 @@ const (
 	OperationOpenRoot
 	OperationDiskCapacity
 	OperationGoMemory
+	OperationPhysicalMemory
 	OperationCgroupMembership
 	OperationCgroupMount
 	OperationCgroupLimit
@@ -28,6 +29,7 @@ func operationLabels() [operationLimit]string {
 		OperationOpenRoot:         "open root",
 		OperationDiskCapacity:     "disk capacity",
 		OperationGoMemory:         "go memory",
+		OperationPhysicalMemory:   "physical memory",
 		OperationCgroupMembership: "cgroup membership",
 		OperationCgroupMount:      "cgroup mount",
 		OperationCgroupLimit:      "cgroup limit",

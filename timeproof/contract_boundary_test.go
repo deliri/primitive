@@ -607,6 +607,13 @@ func TestAuthorityRegistryClosure(t *testing.T) {
 				registry.root,
 			)
 		}
+		if err := registry.endpoint.Validate(); err != nil {
+			t.Fatalf(
+				"authorityRegistry(%v) endpoint validate error = %v, want nil",
+				authority,
+				err,
+			)
+		}
 		if err := registry.policy.Validate(); err != nil {
 			t.Fatalf(
 				"authorityRegistry(%v) policy validate error = %v, want nil",
@@ -899,10 +906,11 @@ func TestClosedEnumJSONIngressTable(t *testing.T) {
 			json    string
 		}{
 			{name: "canonical FreeTSA token is accepted", json: `"freetsa"`},
+			{name: "canonical DigiCert token is accepted", json: `"digicert"`},
 			{name: "capitalized token is noncanonical", json: `"FreeTSA"`, wantErr: core.ErrTimeProofContract},
 			{name: "uppercase token is noncanonical", json: `"FREETSA"`, wantErr: core.ErrTimeProofContract},
 			{name: "empty token is not an authority", json: `""`, wantErr: core.ErrTimeProofContract},
-			{name: "unknown authority token", json: `"digicert"`, wantErr: core.ErrTimeProofContract},
+			{name: "unknown authority token", json: `"sectigo"`, wantErr: core.ErrTimeProofContract},
 			{name: "policy OID is not an authority token", json: `"1.2.3.4.1"`, wantErr: core.ErrTimeProofContract},
 			{name: "whitespace padded token", json: `" freetsa"`, wantErr: core.ErrTimeProofContract},
 			{name: "JSON number instead of token", json: `1`, wantErr: core.ErrJSONContract},
@@ -952,6 +960,7 @@ func TestClosedEnumJSONIngressTable(t *testing.T) {
 			json    string
 		}{
 			{name: "canonical FreeTSA policy OID is accepted", json: `"1.2.3.4.1"`},
+			{name: "canonical DigiCert policy OID is accepted", json: `"2.16.840.1.114412.7.1"`},
 			{name: "sibling arc is not the reviewed policy", json: `"1.2.3.4.2"`, wantErr: core.ErrTimeProofContract},
 			{name: "parent arc is not the reviewed policy", json: `"1.2.3.4"`, wantErr: core.ErrTimeProofContract},
 			{name: "child arc is not the reviewed policy", json: `"1.2.3.4.1.1"`, wantErr: core.ErrTimeProofContract},

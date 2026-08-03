@@ -206,7 +206,7 @@ func (r IssueEvidenceRequest) Validate() error {
 	if err := payload.Validate(); err != nil {
 		return err
 	}
-	if err := (attest.SignRequest[Domain]{Body: payload, Key: r.Key}).Validate(); err != nil {
+	if err := (attest.SignRequest[Domain]{Body: payload, Signer: r.Key}).Validate(); err != nil {
 		return contractError(err)
 	}
 	return nil
@@ -219,8 +219,8 @@ func IssueEvidence(request IssueEvidenceRequest) (EvidenceDocument, error) {
 	}
 	payload := request.payload()
 	envelope, err := attest.Sign(attest.SignRequest[Domain]{
-		Body: payload,
-		Key:  request.Key,
+		Body:   payload,
+		Signer: request.Key,
 	})
 	if err != nil {
 		return EvidenceDocument{}, contractError(err)

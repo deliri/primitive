@@ -25,7 +25,7 @@ type (
 	productionStructName     string
 )
 
-const attestProductionStructMaximum = 16
+const attestProductionStructMaximum = 17
 
 type productionStructInventory struct {
 	names [attestProductionStructMaximum]productionStructName
@@ -48,6 +48,7 @@ type attestContractInventory struct {
 	attestationFrame      internalFlow[attestationFrame]
 	guardedResult         internalFlow[guardedResult[struct{}]]
 	Signature             sealedProjection[Signature]
+	signingCapability     capabilityWrapper[signingCapability]
 	TrustedKeys           capabilityWrapper[TrustedKeys]
 	Verified              proofCarrier[Verified[testArchitectureDomain]]
 }
@@ -60,6 +61,7 @@ var (
 	_ = attestContractInventory{}.envelopeWire
 	_ = attestContractInventory{}.attestationFrame
 	_ = attestContractInventory{}.guardedResult
+	_ = attestContractInventory{}.signingCapability
 )
 
 type testArchitectureDomain uint8
@@ -168,7 +170,9 @@ func TestAttestProductionImportsStayOnApprovedStandardLibraryAndCoreSubstrate(t 
 	}
 	wantImports := []string{
 		"bytes",
+		"crypto",
 		"crypto/ed25519",
+		"crypto/rand",
 		"crypto/sha256",
 		"crypto/subtle",
 		"encoding",
@@ -205,9 +209,9 @@ func TestAttestRawCryptographicEffectsHaveOneCompilerVisibleOwner(t *testing.T) 
 	}
 	wantCalls := []string{
 		"canonical.go:sha256.New",
-		"operations.go:ed25519.Sign",
 		"operations.go:ed25519.Verify",
 		"operations.go:ed25519.Verify",
+		"operations.go:signer.Sign",
 	}
 	slices.Sort(wantCalls)
 	if !slices.Equal(gotCalls, wantCalls) {
@@ -604,7 +608,7 @@ func productionSelectorCalls(root string) ([]string, error) {
 			}
 			qualified := owner.Name + "." + selector.Sel.Name
 			switch qualified {
-			case "ed25519.Sign", "ed25519.Verify", "sha256.New":
+			case "ed25519.Sign", "ed25519.Verify", "sha256.New", "signer.Sign":
 				calls = append(calls, name+":"+qualified)
 			}
 			return true

@@ -132,8 +132,8 @@ func TestAttestVerifierLayerTriad(t *testing.T) {
 
 		privateKey := deterministicPrivateKey(t, "layer-triad-neutral")
 		gotEnvelope, gotSignErr := attest.Sign(attest.SignRequest[testDomain]{
-			Body: nil,
-			Key:  privateKey,
+			Body:   nil,
+			Signer: privateKey,
 		})
 		if !errors.Is(gotSignErr, core.ErrAttestContract) {
 			t.Fatalf("attest.Sign() error = %v, want %v", gotSignErr, core.ErrAttestContract)

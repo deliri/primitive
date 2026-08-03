@@ -146,8 +146,8 @@ func jsonContractErrorFixture(testing.TB) error {
 func nativeCallbackErrorFixture(t testing.TB) error {
 	t.Helper()
 	_, err := attest.Sign(attest.SignRequest[testDomain]{
-		Body: hostileBody{mode: hostileBodyWriteError},
-		Key:  deterministicPrivateKey(t, "native-callback-error"),
+		Body:   hostileBody{mode: hostileBodyWriteError},
+		Signer: deterministicPrivateKey(t, "native-callback-error"),
 	})
 	return err
 }

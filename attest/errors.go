@@ -8,6 +8,8 @@ import (
 
 const (
 	panicAtConsumerBoundaryErrorText   = "attest consumer callback panicked"
+	signerMissingErrorText             = "ed25519 signer is missing"
+	signerPublicKeyTypeErrorText       = "signer public key is not ed25519"
 	privateKeyLengthErrorText          = "ed25519 private key has invalid length"
 	privateKeyPublicHalfErrorText      = "ed25519 private key public half is inconsistent"
 	bodyMissingErrorText               = "canonical body is missing"

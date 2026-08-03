@@ -28,6 +28,7 @@ func TestHostfactsOffWireEnumsExhaustClosedDomains(t *testing.T) {
 				OperationOpenRoot,
 				OperationDiskCapacity,
 				OperationGoMemory,
+				OperationPhysicalMemory,
 				OperationCgroupMembership,
 				OperationCgroupMount,
 				OperationCgroupLimit,

@@ -76,6 +76,11 @@ func TestSHA256DigestHostileCanonicalBoundaryTable(t *testing.T) {
 			if gotParseErr != nil || gotParsed != value {
 				t.Fatalf("ParseSHA256Hex() = (%v, %v), want (%v, nil)", gotParsed, gotParseErr, value)
 			}
+			var gotTextRoundTrip SHA256Digest
+			gotTextRoundTripErr := gotTextRoundTrip.UnmarshalText([]byte(gotHex))
+			if gotTextRoundTripErr != nil || gotTextRoundTrip != value {
+				t.Fatalf("SHA256Digest.UnmarshalText(%q) = (%v, %v), want (%v, nil)", gotHex, gotTextRoundTrip, gotTextRoundTripErr, value)
+			}
 			gotJSON, gotJSONErr := json.Marshal(value)
 			if gotJSONErr != nil {
 				t.Fatalf("json.Marshal(SHA256Digest) error = %v, want nil", gotJSONErr)
@@ -125,7 +130,19 @@ func TestSHA256DigestHostileCanonicalBoundaryTable(t *testing.T) {
 			if got != (SHA256Digest{}) {
 				t.Fatalf("ParseSHA256Hex(%q) value = %v, want zero", tc.wire, got)
 			}
+			preserved := NewSHA256Digest(sha256.Sum256([]byte("preserved")))
+			gotText := preserved
+			gotTextErr := gotText.UnmarshalText([]byte(tc.wire))
+			if !errors.Is(gotTextErr, ErrPrimitiveContract) {
+				t.Fatalf("SHA256Digest.UnmarshalText(%q) error = %v, want %v", tc.wire, gotTextErr, ErrPrimitiveContract)
+			}
+			if gotText != preserved {
+				t.Fatalf("SHA256Digest.UnmarshalText(%q) value = %v, want preserved", tc.wire, gotText)
+			}
 		})
+	}
+	if gotErr := (*SHA256Digest)(nil).UnmarshalText(nil); !errors.Is(gotErr, ErrPrimitiveContract) {
+		t.Fatalf("nil SHA256Digest.UnmarshalText() error = %v, want %v", gotErr, ErrPrimitiveContract)
 	}
 }
 
@@ -255,6 +272,17 @@ func TestEd25519PublicKeyOwnershipAndLengthBoundaries(t *testing.T) {
 					got,
 				)
 			}
+			var gotTextRoundTrip Ed25519PublicKey
+			gotTextRoundTripErr := gotTextRoundTrip.UnmarshalText([]byte(gotHex))
+			if gotTextRoundTripErr != nil || gotTextRoundTrip != got {
+				t.Fatalf(
+					"Ed25519PublicKey.UnmarshalText(%q) = (%v, %v), want (%v, nil)",
+					gotHex,
+					gotTextRoundTrip,
+					gotTextRoundTripErr,
+					got,
+				)
+			}
 			gotJSON, gotJSONErr := json.Marshal(got)
 			if gotJSONErr != nil {
 				t.Fatalf("json.Marshal(Ed25519PublicKey) error = %v, want nil", gotJSONErr)
@@ -290,6 +318,32 @@ func TestEd25519PublicKeyOwnershipAndLengthBoundaries(t *testing.T) {
 				t.Fatalf("NewEd25519PublicKey(length %d) value = %v, want zero", length, got)
 			}
 		})
+	}
+
+	preserved, err := NewEd25519PublicKey(ed25519.PublicKey(bytes.Repeat([]byte{1}, ed25519.PublicKeySize)))
+	if err != nil {
+		t.Fatalf("NewEd25519PublicKey() error = %v, want nil", err)
+	}
+	invalidText := [...]string{
+		"",
+		strings.Repeat("0", ed25519.PublicKeySize*2-1),
+		strings.Repeat("0", ed25519.PublicKeySize*2+1),
+		strings.Repeat("G", ed25519.PublicKeySize*2),
+		strings.Repeat("A", ed25519.PublicKeySize*2),
+		strings.Repeat("0", 1024),
+	}
+	for _, text := range invalidText {
+		got := preserved
+		gotErr := got.UnmarshalText([]byte(text))
+		if !errors.Is(gotErr, ErrPrimitiveContract) {
+			t.Fatalf("Ed25519PublicKey.UnmarshalText(%q) error = %v, want %v", text, gotErr, ErrPrimitiveContract)
+		}
+		if got != preserved {
+			t.Fatalf("Ed25519PublicKey.UnmarshalText(%q) value = %v, want preserved", text, got)
+		}
+	}
+	if gotErr := (*Ed25519PublicKey)(nil).UnmarshalText(nil); !errors.Is(gotErr, ErrPrimitiveContract) {
+		t.Fatalf("nil Ed25519PublicKey.UnmarshalText() error = %v, want %v", gotErr, ErrPrimitiveContract)
 	}
 }
 

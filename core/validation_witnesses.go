@@ -14,9 +14,11 @@ var (
 	_ Validatable              = ByteCount{}
 	_ Validatable              = ByteLength{}
 	_ Validatable              = SHA256Digest{}
+	_ encoding.TextUnmarshaler = (*SHA256Digest)(nil)
 	_ Validatable              = CRC32C{}
 	_ encoding.TextUnmarshaler = (*CRC32C)(nil)
 	_ Validatable              = Ed25519PublicKey{}
+	_ encoding.TextUnmarshaler = (*Ed25519PublicKey)(nil)
 	_ Validatable              = SecretMaterial{}
 	_ Validatable              = PathComponent{}
 	_ Validatable              = AbsolutePath{}

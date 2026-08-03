@@ -13,6 +13,11 @@ import (
 	"testing"
 )
 
+const (
+	httpMediaTypeJSONText      = "application/json"
+	httpMediaTypeTextPlainText = "text/plain"
+)
+
 func TestHTTPStatusCodeExhaustsProtocolDomain(t *testing.T) {
 	t.Parallel()
 

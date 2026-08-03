@@ -116,6 +116,7 @@ const (
 	fixtureErrorValidation fixtureError = iota + 1
 	fixtureErrorWrite
 	fixtureErrorMarshal
+	fixtureErrorSign
 )
 
 func (e fixtureError) Error() string {
@@ -239,8 +240,8 @@ func mustEnvelope(
 ) attest.Envelope[testDomain] {
 	t.Helper()
 	envelope, err := attest.Sign(attest.SignRequest[testDomain]{
-		Body: body,
-		Key:  append(ed25519.PrivateKey(nil), privateKey...),
+		Body:   body,
+		Signer: append(ed25519.PrivateKey(nil), privateKey...),
 	})
 	if err != nil {
 		t.Fatalf("attest.Sign() error = %v, want nil", err)

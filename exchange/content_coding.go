@@ -7,9 +7,7 @@ import (
 	"github.com/deliri/primitive/v2026/core"
 )
 
-const (
-	identityContentCodingText = "identity"
-)
+const identityContentCodingText = "identity"
 
 type httpContentCoding struct {
 	value string

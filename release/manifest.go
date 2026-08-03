@@ -339,7 +339,7 @@ type IssueManifestRequest struct {
 
 // Validate delegates signing-key custody and body validation to Attest.
 func (r IssueManifestRequest) Validate() error {
-	if err := (attest.SignRequest[Domain]{Body: r.Fact, Key: r.Key}).Validate(); err != nil {
+	if err := (attest.SignRequest[Domain]{Body: r.Fact, Signer: r.Key}).Validate(); err != nil {
 		return manifestError(err)
 	}
 	return nil
@@ -349,7 +349,7 @@ func IssueManifest(request IssueManifestRequest) (ManifestDocument, error) {
 	if err := request.Validate(); err != nil {
 		return ManifestDocument{}, err
 	}
-	envelope, err := attest.Sign(attest.SignRequest[Domain]{Body: request.Fact, Key: request.Key})
+	envelope, err := attest.Sign(attest.SignRequest[Domain]{Body: request.Fact, Signer: request.Key})
 	if err != nil {
 		return ManifestDocument{}, manifestError(err)
 	}

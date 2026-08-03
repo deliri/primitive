@@ -516,7 +516,7 @@ func TestCanonicalObjectBodySignsAndVerifiesThroughTheRealAttestPath(t *testing.
 	privateKey := deterministicPrivateKey(t, "canonical-object")
 	body := builtBody{commit: "abcdef", count: 42}
 
-	envelope, gotErr := attest.Sign(attest.SignRequest[testDomain]{Body: body, Key: privateKey})
+	envelope, gotErr := attest.Sign(attest.SignRequest[testDomain]{Body: body, Signer: privateKey})
 	if gotErr != nil {
 		t.Fatalf("Sign() error = %v, want nil", gotErr)
 	}

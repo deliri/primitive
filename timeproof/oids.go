@@ -22,5 +22,6 @@ var (
 	oidSHA256WithRSA        = asn1.ObjectIdentifier{1, 2, 840, 113549, 1, 1, 11}
 	oidSHA384WithRSA        = asn1.ObjectIdentifier{1, 2, 840, 113549, 1, 1, 12}
 	oidSHA512WithRSA        = asn1.ObjectIdentifier{1, 2, 840, 113549, 1, 1, 13}
+	oidRSAEncryption        = asn1.ObjectIdentifier{1, 2, 840, 113549, 1, 1, 1}
 	oidEd25519              = asn1.ObjectIdentifier{1, 3, 101, 112}
 )

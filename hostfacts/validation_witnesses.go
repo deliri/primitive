@@ -22,6 +22,7 @@ var (
 	_ core.Validatable = GoMemorySnapshot{}
 	_ core.Validatable = MemoryPressureState(0)
 	_ core.Validatable = GoMemoryAssessment{}
+	_ core.Validatable = PhysicalMemory{}
 
 	_ core.Validatable = WorkloadMemoryLimitState(0)
 	_ core.Validatable = WorkloadMemoryLimitSource(0)

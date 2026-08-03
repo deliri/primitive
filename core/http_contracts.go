@@ -10,9 +10,7 @@ import (
 )
 
 const (
-	httpMediaTypeJSONText        = "application/json"
 	httpMediaTypeOctetStreamText = "application/octet-stream"
-	httpMediaTypeTextPlainText   = "text/plain"
 	httpMediaTypeSyntaxErrorText = "HTTP media type syntax is invalid"
 	httpStatusRangeErrorText     = "HTTP status code is outside 100..599"
 	// httpHeaderNameMaximumBytes bounds a parsed field name.

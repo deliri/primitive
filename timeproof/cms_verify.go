@@ -2,7 +2,6 @@ package timeproof
 
 import (
 	"bytes"
-	// witness:waiver doctrine/security/weak_crypto -- RFC 3161 ESSCertID v1 mandates SHA-1 solely to identify a certificate inside an independently signature-authenticated CMS token.
 	"crypto/sha1" // #nosec G505 -- RFC 3161 ESSCertID uses SHA-1 only to identify the already signed certificate.
 	"crypto/sha256"
 	"crypto/sha512"
@@ -171,12 +170,18 @@ func verifySigningCertificateV1(attribute cmsAttribute, signer *x509.Certificate
 	if trailing, decodeErr := asn1.Unmarshal(hashRaw.FullBytes, &got); decodeErr != nil || len(trailing) != 0 {
 		return invalidError(decodeErr)
 	}
-	// witness:waiver doctrine/security/weak_crypto -- RFC 3161 ESSCertID v1 mandates SHA-1 solely to identify a certificate inside an independently signature-authenticated CMS token.
-	want := sha1.Sum(signer.Raw) // #nosec G401 -- RFC 3161 ESSCertID mandates SHA-1 certificate identification.
+	want := essCertIDV1CertificateHash(signer.Raw)
 	if subtle.ConstantTimeCompare(got, want[:]) != 1 {
 		return invalidError(nil)
 	}
 	return verifyOptionalIssuerSerial(fields, signer)
+}
+
+// essCertIDV1CertificateHash is the only SHA-1 owner in Primitive. RFC 2634's
+// ESSCertID v1 fixes this certificate identifier to SHA-1; CMS signature
+// authentication remains independently verified before this comparison.
+func essCertIDV1CertificateHash(certificateDER []byte) [sha1.Size]byte {
+	return sha1.Sum(certificateDER) // #nosec G401 -- the protocol fixes ESSCertID v1 to SHA-1.
 }
 
 func verifySigningCertificateV2(attribute cmsAttribute, signer *x509.Certificate) error {

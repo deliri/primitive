@@ -47,7 +47,7 @@ func benchmarkSignCanonicalBody(b *testing.B, size int) {
 		chunkSize: 8192,
 		domain:    testDomainPrimary,
 	}
-	request := attest.SignRequest[testDomain]{Body: body, Key: privateKey}
+	request := attest.SignRequest[testDomain]{Body: body, Signer: privateKey}
 	b.ResetTimer()
 
 	for b.Loop() {

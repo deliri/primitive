@@ -6,6 +6,31 @@ import (
 	"github.com/deliri/primitive/v2026/core"
 )
 
+const (
+	// embeddedBuildIdentityPackagePath owns the Go linker package path used by
+	// every build-identity variable. Consumer builders use the exported symbols
+	// below instead of copying this path or a private variable name.
+	embeddedBuildIdentityPackagePath = "github.com/deliri/primitive/v2026/release"
+	// embeddedBuildIdentityVariablePrefix names the complete family of
+	// linker-injected build-identity variables for the structural ratchet.
+	embeddedBuildIdentityVariablePrefix = "embeddedBuild"
+
+	embeddedBuildOfferingVariableName = "embeddedBuildOffering"
+	embeddedBuildVersionVariableName  = "embeddedBuildVersion"
+	embeddedBuildCommitVariableName   = "embeddedBuildCommit"
+	embeddedBuildPlatformVariableName = "embeddedBuildPlatform"
+)
+
+// Embedded build-identity linker symbols are owned beside the variables they
+// name. Consumer release builders use these constants with the Go linker's -X
+// flag instead of copying Primitive's package path or private variable names.
+const (
+	EmbeddedBuildOfferingLinkSymbol = embeddedBuildIdentityPackagePath + "." + embeddedBuildOfferingVariableName
+	EmbeddedBuildVersionLinkSymbol  = embeddedBuildIdentityPackagePath + "." + embeddedBuildVersionVariableName
+	EmbeddedBuildCommitLinkSymbol   = embeddedBuildIdentityPackagePath + "." + embeddedBuildCommitVariableName
+	EmbeddedBuildPlatformLinkSymbol = embeddedBuildIdentityPackagePath + "." + embeddedBuildPlatformVariableName
+)
+
 var (
 	embeddedBuildOffering string
 	embeddedBuildVersion  string

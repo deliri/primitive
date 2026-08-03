@@ -40,7 +40,7 @@ func TestAttestProducerLayerTriad(t *testing.T) {
 				chunkSize: 8192,
 				domain:    testDomainPrimary,
 			},
-			Key: deterministicPrivateKey(t, "producer-negative"),
+			Signer: deterministicPrivateKey(t, "producer-negative"),
 		})
 		if !errors.Is(gotErr, core.ErrAttestContract) {
 			t.Fatalf("attest.Sign() error = %v, want %v", gotErr, core.ErrAttestContract)
@@ -54,8 +54,8 @@ func TestAttestProducerLayerTriad(t *testing.T) {
 		t.Parallel()
 
 		gotEnvelope, gotErr := attest.Sign(attest.SignRequest[testDomain]{
-			Body: literalBody{domain: testDomainPrimary},
-			Key:  deterministicPrivateKey(t, "producer-neutral"),
+			Body:   literalBody{domain: testDomainPrimary},
+			Signer: deterministicPrivateKey(t, "producer-neutral"),
 		})
 		if !errors.Is(gotErr, core.ErrAttestContract) {
 			t.Fatalf("attest.Sign() error = %v, want %v", gotErr, core.ErrAttestContract)

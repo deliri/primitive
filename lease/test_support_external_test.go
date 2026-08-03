@@ -135,7 +135,7 @@ func fixtureVerified(
 	tb.Helper()
 
 	envelope, err := attest.Sign(attest.SignRequest[lease.Domain]{
-		Body: decision, Key: authority.private,
+		Body: decision, Signer: authority.private,
 	})
 	if err != nil {
 		tb.Fatalf("attest.Sign() error = %v, want nil", err)

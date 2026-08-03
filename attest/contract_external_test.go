@@ -52,8 +52,8 @@ func TestSignPublicCanonicalBodyProductionPathMatrix(t *testing.T) {
 			t.Parallel()
 
 			gotEnvelope, gotErr := attest.Sign(attest.SignRequest[testDomain]{
-				Body: tc.makeBody(),
-				Key:  deterministicPrivateKey(t, "canonical-body"),
+				Body:   tc.makeBody(),
+				Signer: deterministicPrivateKey(t, "canonical-body"),
 			})
 			if !errors.Is(gotErr, tc.wantErr) {
 				t.Fatalf("attest.Sign() error = %v, want %v", gotErr, tc.wantErr)
@@ -102,8 +102,8 @@ func TestSignPublicPrivateKeyBoundaryMatrix(t *testing.T) {
 			t.Parallel()
 
 			gotEnvelope, gotErr := attest.Sign(attest.SignRequest[testDomain]{
-				Body: literalBody{domain: testDomainPrimary, value: []byte("key-boundary")},
-				Key:  tc.makeKey(),
+				Body:   literalBody{domain: testDomainPrimary, value: []byte("key-boundary")},
+				Signer: tc.makeKey(),
 			})
 			if !errors.Is(gotErr, tc.wantErr) {
 				t.Fatalf("attest.Sign() error = %v, want %v", gotErr, tc.wantErr)
@@ -162,8 +162,8 @@ func TestSigningDomainPublicCanonicalTextBoundaryMatrix(t *testing.T) {
 			t.Parallel()
 
 			gotEnvelope, gotErr := attest.Sign(attest.SignRequest[textDomain]{
-				Body: textDomainBody{domain: textDomain{text: tc.text, mode: tc.mode}},
-				Key:  deterministicPrivateKey(t, "domain-text"),
+				Body:   textDomainBody{domain: textDomain{text: tc.text, mode: tc.mode}},
+				Signer: deterministicPrivateKey(t, "domain-text"),
 			})
 			if !errors.Is(gotErr, tc.wantErr) {
 				t.Fatalf("attest.Sign() error = %v, want %v", gotErr, tc.wantErr)
@@ -280,8 +280,8 @@ func TestSignCopiesPrivateKeyBeforeCallingConsumerBody(t *testing.T) {
 	wantSigner := mustPublicKey(t, privateKey)
 	body := keyMutatingBody{key: privateKey}
 	gotEnvelope, gotSignErr := attest.Sign(attest.SignRequest[testDomain]{
-		Body: body,
-		Key:  privateKey,
+		Body:   body,
+		Signer: privateKey,
 	})
 	if gotSignErr != nil {
 		t.Fatalf("attest.Sign() error = %v, want nil", gotSignErr)
@@ -307,8 +307,8 @@ func TestCanonicalWriterRetainedCapabilityIsClosed(t *testing.T) {
 
 	var retained io.Writer
 	gotEnvelope, gotErr := attest.Sign(attest.SignRequest[testDomain]{
-		Body: retainingBody{retained: &retained},
-		Key:  deterministicPrivateKey(t, "retained-writer"),
+		Body:   retainingBody{retained: &retained},
+		Signer: deterministicPrivateKey(t, "retained-writer"),
 	})
 	if gotErr != nil {
 		t.Fatalf("attest.Sign() error = %v, want nil", gotErr)
@@ -454,7 +454,7 @@ func signValidationRequestFixture(
 	makeKey func() ed25519.PrivateKey,
 ) func(testing.TB) attest.SignRequest[testDomain] {
 	return func(testing.TB) attest.SignRequest[testDomain] {
-		return attest.SignRequest[testDomain]{Body: makeBody(), Key: makeKey()}
+		return attest.SignRequest[testDomain]{Body: makeBody(), Signer: makeKey()}
 	}
 }
 

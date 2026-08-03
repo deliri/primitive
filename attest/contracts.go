@@ -1,7 +1,7 @@
 package attest
 
 import (
-	"crypto/ed25519"
+	"crypto"
 	"encoding"
 	"io"
 
@@ -52,10 +52,13 @@ type TrustedKeysRequest struct {
 	Keys []core.Ed25519PublicKey
 }
 
-// SignRequest carries one canonical body and a standard-library private key.
+// SignRequest carries one canonical body and one standard-library Ed25519
+// signing capability. An ed25519.PrivateKey satisfies crypto.Signer directly;
+// remote KMS and HSM implementations can supply the same interface without
+// exposing private key bytes.
 type SignRequest[D SigningDomain[D]] struct {
-	Body CanonicalBody[D]
-	Key  ed25519.PrivateKey
+	Body   CanonicalBody[D]
+	Signer crypto.Signer
 }
 
 // VerifyRequest carries one canonical body, envelope, and trust set.
@@ -73,11 +76,11 @@ func (r TrustedKeysRequest) Validate() error {
 // Validate checks the signing request shape without signing or writing the
 // canonical body.
 func (r SignRequest[D]) Validate() error {
-	key, _, err := copyAndValidatePrivateKey(r.Key)
-	clear(key[:])
+	capability, err := newSigningCapability(r.Signer)
 	if err != nil {
 		return err
 	}
+	capability.close()
 	return validateBodyShape(r.Body)
 }
 
