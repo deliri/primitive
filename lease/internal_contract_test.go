@@ -43,6 +43,7 @@ type leaseContractInventory struct {
 	Generation                protocolFact[Generation]
 	enumFact                  internalFlow[enumFact]
 	jsonStructureContract     internalFlow[jsonStructureContract]
+	productCatalogEntry       internalFlow[productCatalogEntry]
 	Subject                   protocolFact[Subject]
 	Header                    protocolFact[Header]
 	Grant                     protocolFact[Grant]
@@ -70,6 +71,7 @@ var (
 	_ = leaseContractInventory{}.identifier
 	_ = leaseContractInventory{}.enumFact
 	_ = leaseContractInventory{}.jsonStructureContract
+	_ = leaseContractInventory{}.productCatalogEntry
 	_ = leaseContractInventory{}.decisionWire
 )
 
@@ -105,6 +107,7 @@ func TestPublicOperationsAreExactIntentEntryPoints(t *testing.T) {
 	}
 	want := []string{
 		"Advance",
+		"DeviceIDForPublicKey",
 		"Evaluate",
 		"NewDeviceID",
 		"NewEntitlementID",
@@ -113,6 +116,7 @@ func TestPublicOperationsAreExactIntentEntryPoints(t *testing.T) {
 		"NewProduct",
 		"NewRefusalDecision",
 		"NewRevocationDecision",
+		"OfferingForProduct",
 		"ParseDeviceID",
 		"ParseEntitlementID",
 		"ParseGeneration",
@@ -125,6 +129,32 @@ func TestPublicOperationsAreExactIntentEntryPoints(t *testing.T) {
 	}
 	if !slices.Equal(got, want) {
 		t.Fatalf("exported top-level functions = %v, want %v", got, want)
+	}
+}
+
+// TestProductCatalogCanonicalVector pins the complete private product catalog
+// without exporting copyable token strings. The NUL separators keep adjacent
+// fixed-width entries independently framed.
+func TestProductCatalogCanonicalVector(t *testing.T) {
+	t.Parallel()
+
+	hash := sha256.New()
+	for index, entry := range productCatalog() {
+		if index > 0 {
+			_, _ = hash.Write([]byte{0})
+		}
+		_, _ = hash.Write([]byte(entry.token))
+	}
+	var got [sha256.Size]byte
+	copy(got[:], hash.Sum(nil))
+	want := [sha256.Size]byte{
+		0x0c, 0xf8, 0x83, 0xad, 0xcd, 0xe3, 0x58, 0xe2,
+		0x88, 0x1b, 0x75, 0xed, 0xee, 0x1d, 0x83, 0x72,
+		0x3d, 0xd6, 0xc3, 0xe7, 0x11, 0x0e, 0x8b, 0x4a,
+		0x1a, 0xca, 0x55, 0xb4, 0x98, 0xe6, 0x23, 0x79,
+	}
+	if got != want {
+		t.Fatalf("SHA-256(Lease product catalog) = %x, want %x", got, want)
 	}
 }
 
@@ -221,6 +251,17 @@ func TestDecisionTaggedUnionRejectsContradictoryWireBodies(t *testing.T) {
 		Revision: &revision, Subject: &subject,
 		Generation: &generation, IssuedAt: &issuedAt,
 		Outcome: &outcome, Body: &grantBody,
+	}
+	// The donor fields must reconstruct the exact accepted encoding. Without
+	// this, every case below could be rejected for an unrelated field defect
+	// while still reading as proof that the tagged union caught a body
+	// contradiction.
+	baseJSON, err := json.Marshal(base)
+	if err != nil {
+		t.Fatalf("json.Marshal(base wire) error = %v, want nil", err)
+	}
+	if !bytes.Equal(baseJSON, validJSON) {
+		t.Fatalf("base wire JSON = %s, want %s", baseJSON, validJSON)
 	}
 	refusalRaw := json.RawMessage(refusalJSON)
 	refusalBody, err := json.Marshal(decisionWire{
