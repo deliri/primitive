@@ -60,6 +60,8 @@ flowchart TD
     release[release] --> core
     release --> temporal
     release --> attest
+    release --> garble
+    release --> process
     shutdown[shutdown] --> core
     shutdown --> contextstate
     shutdown --> temporal
@@ -75,6 +77,10 @@ flowchart TD
     cloudidentity --> temporal
     cloudidentity --> exchange
 
+    deploy[deploy] --> core
+    deploy --> objectstore
+    deploy --> release
+
     upgrade[upgrade] --> core
     upgrade --> filestore
     upgrade --> hostfacts
@@ -87,9 +93,10 @@ The diagram is the production graph. A package may additionally declare
 test-only edges in the same compiler-owned catalog when its real ingress value
 cannot be constructed without the package that produces it. A declared test
 edge grants no production dependency, counts against the same per-package
-coupling ceiling, and is rejected when no test source uses it. Today `gate`
-declares the only test-only edges, to `attest` and `temporal`, so its proofs
-run against a real signed lease rather than a fabricated assessment.
+coupling ceiling, and is rejected when no test source uses it. `gate` uses
+`attest` and `temporal` to prove real signed leases, `process` uses
+`testserial` for process-wide isolation, and `deploy` uses `attest`, `exchange`,
+and `temporal` to prove a real authenticated manifest and transfer substrate.
 
 ## License
 

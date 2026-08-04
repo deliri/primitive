@@ -15,10 +15,36 @@ const (
 	toolUnsupportedGoVersion = "go1.27"
 )
 
+// ToolProvenance is the exact public identity recorded for one reviewed
+// Garble executable. It contains no seed or custody material.
+type ToolProvenance struct {
+	ModulePath string
+	Version    string
+	Revision   string
+	ModuleSum  string
+}
+
+func toolProvenances() [toolIdentityLimit]ToolProvenance {
+	return [...]ToolProvenance{
+		ToolIdentityPrimitive2026: {
+			ModulePath: toolModulePath, Version: toolVersion,
+			Revision: toolRevision, ModuleSum: toolModuleSum,
+		},
+	}
+}
+
 func toolIdentityLabels() [toolIdentityLimit]string {
 	return [...]string{
 		ToolIdentityPrimitive2026: "primitive-2026",
 	}
+}
+
+func toolMinimumGoVersions() [toolIdentityLimit]string {
+	return [...]string{ToolIdentityPrimitive2026: toolMinimumGoVersion}
+}
+
+func toolUnsupportedGoVersions() [toolIdentityLimit]string {
+	return [...]string{ToolIdentityPrimitive2026: toolUnsupportedGoVersion}
 }
 
 // ToolIdentity is the closed set of reviewed Garble tool builds.
@@ -64,37 +90,66 @@ func (t ToolIdentity) String() string {
 
 // ModulePath returns the exact reviewed Go module path.
 func (t ToolIdentity) ModulePath() (string, error) {
-	return t.fact(toolModulePath)
+	provenance, err := t.Provenance()
+	return provenance.ModulePath, err
 }
 
 // Version returns the exact reviewed Go module version.
 func (t ToolIdentity) Version() (string, error) {
-	return t.fact(toolVersion)
+	provenance, err := t.Provenance()
+	return provenance.Version, err
 }
 
 // Revision returns the exact reviewed source revision.
 func (t ToolIdentity) Revision() (string, error) {
-	return t.fact(toolRevision)
+	provenance, err := t.Provenance()
+	return provenance.Revision, err
 }
 
 // ModuleSum returns the exact reviewed Go module checksum.
 func (t ToolIdentity) ModuleSum() (string, error) {
-	return t.fact(toolModuleSum)
+	provenance, err := t.Provenance()
+	return provenance.ModuleSum, err
 }
 
 // MinimumGoVersion returns the upstream minimum supported Go version.
 func (t ToolIdentity) MinimumGoVersion() (string, error) {
-	return t.fact(toolMinimumGoVersion)
+	return t.fact(toolMinimumGoVersions())
 }
 
 // UnsupportedGoVersion returns the first upstream unsupported Go version.
 func (t ToolIdentity) UnsupportedGoVersion() (string, error) {
-	return t.fact(toolUnsupportedGoVersion)
+	return t.fact(toolUnsupportedGoVersions())
 }
 
-func (t ToolIdentity) fact(value string) (string, error) {
+// Provenance returns every public identity fact for the reviewed tool.
+func (t ToolIdentity) Provenance() (ToolProvenance, error) {
+	if err := t.Validate(); err != nil {
+		return ToolProvenance{}, err
+	}
+	return toolProvenances()[t], nil
+}
+
+// Validate resolves the provenance against the complete reviewed tool domain.
+func (p ToolProvenance) Validate() error {
+	_, err := ResolveTool(p)
+	return err
+}
+
+// ResolveTool returns the reviewed identity named by exact public provenance.
+func ResolveTool(provenance ToolProvenance) (ToolIdentity, error) {
+	for tool := ToolIdentityUnknown + 1; tool < toolIdentityLimit; tool++ {
+		if tool.IsValid() && toolProvenances()[tool] == provenance {
+			return tool, nil
+		}
+	}
+	return ToolIdentityUnknown, contractError(
+		errors.New("garble tool provenance is outside the admitted domain"))
+}
+
+func (t ToolIdentity) fact(values [toolIdentityLimit]string) (string, error) {
 	if err := t.Validate(); err != nil {
 		return "", err
 	}
-	return value, nil
+	return values[t], nil
 }

@@ -5,6 +5,7 @@ import (
 	"crypto/sha256"
 	"encoding/json"
 	"errors"
+	"hash/crc32"
 	"io"
 
 	"github.com/deliri/primitive/v2026/attest"
@@ -55,15 +56,20 @@ func (d ManifestDocumentDigest) String() string {
 	return value
 }
 
+// SHA256 returns the exact authenticated manifest-document digest.
+func (d ManifestDocumentDigest) SHA256() core.SHA256Digest { return d.digest }
+
 // ManifestFactRequest supplies the facts an artifact producer asks a manifest
 // authority to sign.
 type ManifestFactRequest struct {
-	Revision  Revision
-	Offering  core.Offering
-	Version   core.ReleaseVersion
-	Commit    core.BuildCommit
-	CreatedAt temporal.Instant
-	Artifacts ArtifactSet
+	Provenance BuildProvenance
+	Artifacts  ArtifactSet
+	Metadata   MetadataSet
+	CreatedAt  temporal.Instant
+	Version    core.ReleaseVersion
+	Commit     core.BuildCommit
+	Revision   Revision
+	Offering   core.Offering
 }
 
 // Validate proves every manifest fact and its artifact/build bindings before
@@ -76,13 +82,15 @@ func (r ManifestFactRequest) Validate() error {
 	return (ManifestFact{
 		revision: r.Revision, offering: r.Offering, version: r.Version,
 		commit: r.Commit, createdAt: r.CreatedAt, totalExtent: total,
-		artifacts: r.Artifacts,
+		artifacts: r.Artifacts, provenance: r.Provenance, metadata: r.Metadata,
 	}).validateWithoutIdentity()
 }
 
 // ManifestFact is the immutable canonical body authenticated by Attest.
 type ManifestFact struct {
+	provenance  BuildProvenance
 	artifacts   ArtifactSet
+	metadata    MetadataSet
 	createdAt   temporal.Instant
 	totalExtent core.ByteCount
 	version     core.ReleaseVersion
@@ -102,16 +110,20 @@ type manifestFactWire struct {
 	CreatedAt   *temporal.Instant    `json:"created_at"`
 	TotalExtent *core.ByteCount      `json:"total_extent_bytes"`
 	Artifacts   *ArtifactSet         `json:"artifacts"`
+	Provenance  *BuildProvenance     `json:"provenance"`
+	Metadata    *MetadataSet         `json:"metadata"`
 }
 
 type manifestIdentityWire struct {
-	Revision    Revision            `json:"revision"`
-	Offering    core.Offering       `json:"offering"`
-	Version     core.ReleaseVersion `json:"version"`
-	Commit      core.BuildCommit    `json:"commit"`
+	Provenance  BuildProvenance     `json:"provenance"`
+	Artifacts   ArtifactSet         `json:"artifacts"`
+	Metadata    MetadataSet         `json:"metadata"`
 	CreatedAt   temporal.Instant    `json:"created_at"`
 	TotalExtent core.ByteCount      `json:"total_extent_bytes"`
-	Artifacts   ArtifactSet         `json:"artifacts"`
+	Version     core.ReleaseVersion `json:"version"`
+	Commit      core.BuildCommit    `json:"commit"`
+	Revision    Revision            `json:"revision"`
+	Offering    core.Offering       `json:"offering"`
 }
 
 func NewManifestFact(request ManifestFactRequest) (ManifestFact, error) {
@@ -126,7 +138,8 @@ func NewManifestFact(request ManifestFactRequest) (ManifestFact, error) {
 		revision: request.Revision, offering: request.Offering,
 		version: request.Version, commit: request.Commit,
 		createdAt: request.CreatedAt, totalExtent: total,
-		artifacts: request.Artifacts,
+		artifacts: request.Artifacts, provenance: request.Provenance,
+		metadata: request.Metadata,
 	}
 	if err := candidate.validateWithoutIdentity(); err != nil {
 		return ManifestFact{}, err
@@ -147,7 +160,7 @@ func (f ManifestFact) validateWithoutIdentity() error {
 	for _, err := range []error{
 		f.revision.Validate(), f.offering.Validate(), f.version.Validate(),
 		f.commit.Validate(), f.createdAt.Validate(), f.totalExtent.Validate(),
-		f.artifacts.Validate(),
+		f.artifacts.Validate(), f.provenance.Validate(), f.metadata.Validate(),
 	} {
 		if err != nil {
 			return manifestError(err)
@@ -198,6 +211,8 @@ func (f ManifestFact) Commit() core.BuildCommit     { return f.commit }
 func (f ManifestFact) CreatedAt() temporal.Instant  { return f.createdAt }
 func (f ManifestFact) TotalExtent() core.ByteCount  { return f.totalExtent }
 func (f ManifestFact) Artifacts() ArtifactSet       { return f.artifacts }
+func (f ManifestFact) Provenance() BuildProvenance  { return f.provenance }
+func (f ManifestFact) Metadata() MetadataSet        { return f.metadata }
 func (ManifestFact) AttestationDomain() Domain      { return DomainManifestV1 }
 
 func (f ManifestFact) MarshalJSON() ([]byte, error) {
@@ -207,10 +222,12 @@ func (f ManifestFact) MarshalJSON() ([]byte, error) {
 	identity, revision := f.identity, f.revision
 	offering, version, commit := f.offering, f.version, f.commit
 	createdAt, total, artifacts := f.createdAt, f.totalExtent, f.artifacts
+	provenance, metadata := f.provenance, f.metadata
 	return json.Marshal(manifestFactWire{
 		Identity: &identity, Revision: &revision, Offering: &offering,
 		Version: &version, Commit: &commit, CreatedAt: &createdAt,
 		TotalExtent: &total, Artifacts: &artifacts,
+		Provenance: &provenance, Metadata: &metadata,
 	})
 }
 
@@ -229,7 +246,8 @@ func (f *ManifestFact) UnmarshalJSON(data []byte) error {
 		identity: *wire.Identity, revision: *wire.Revision,
 		offering: *wire.Offering, version: *wire.Version, commit: *wire.Commit,
 		createdAt: *wire.CreatedAt, totalExtent: *wire.TotalExtent,
-		artifacts: *wire.Artifacts, valid: true,
+		artifacts: *wire.Artifacts, provenance: *wire.Provenance,
+		metadata: *wire.Metadata, valid: true,
 	}
 	if err := candidate.Validate(); err != nil {
 		return jsonError(err)
@@ -241,7 +259,8 @@ func (f *ManifestFact) UnmarshalJSON(data []byte) error {
 func manifestWireMissing(w manifestFactWire) bool {
 	return w.Identity == nil || w.Revision == nil || w.Offering == nil ||
 		w.Version == nil || w.Commit == nil || w.CreatedAt == nil ||
-		w.TotalExtent == nil || w.Artifacts == nil
+		w.TotalExtent == nil || w.Artifacts == nil || w.Provenance == nil ||
+		w.Metadata == nil
 }
 
 func (f ManifestFact) WriteCanonical(destination io.Writer) error {
@@ -267,6 +286,7 @@ func manifestFactDigest(f ManifestFact) (core.SHA256Digest, error) {
 		Revision: f.revision, Offering: f.offering, Version: f.version,
 		Commit: f.commit, CreatedAt: f.createdAt,
 		TotalExtent: f.totalExtent, Artifacts: f.artifacts,
+		Provenance: f.provenance, Metadata: f.metadata,
 	})
 	if err != nil {
 		return core.SHA256Digest{}, manifestError(err)
@@ -383,10 +403,11 @@ func (r VerifyManifestRequest) Validate() error {
 // VerifiedManifest is a private-witness proof that one exact manifest
 // document authenticated against caller-selected authority.
 type VerifiedManifest struct {
-	document ManifestDocument
-	proof    attest.Verified[Domain]
-	digest   ManifestDocumentDigest
-	seal     verificationSeal
+	document  ManifestDocument
+	proof     attest.Verified[Domain]
+	integrity ArtifactIntegrity
+	digest    ManifestDocumentDigest
+	seal      verificationSeal
 }
 
 func VerifyManifest(request VerifyManifestRequest) (VerifiedManifest, error) {
@@ -406,13 +427,14 @@ func VerifyManifest(request VerifyManifestRequest) (VerifiedManifest, error) {
 	if err != nil {
 		return VerifiedManifest{}, verificationError(err)
 	}
-	digest, err := digestManifestDocument(request.Document)
+	integrity, err := integrityManifestDocument(request.Document)
 	if err != nil {
 		return VerifiedManifest{}, verificationError(err)
 	}
 	result := VerifiedManifest{
-		document: request.Document, digest: newManifestDocumentDigest(digest),
-		proof: proof,
+		document: request.Document, integrity: integrity,
+		digest: newManifestDocumentDigest(integrity.SHA256()),
+		proof:  proof,
 	}
 	result.seal = verificationSealAuthenticated
 	return result, nil
@@ -433,18 +455,29 @@ func (v VerifiedManifest) Validate() error {
 func (v VerifiedManifest) Document() ManifestDocument             { return v.document }
 func (v VerifiedManifest) Identity() ManifestIdentity             { return v.document.Fact.Identity() }
 func (v VerifiedManifest) DocumentDigest() ManifestDocumentDigest { return v.digest }
+func (v VerifiedManifest) DocumentIntegrity() ArtifactIntegrity   { return v.integrity }
 func (v VerifiedManifest) Offering() core.Offering                { return v.document.Fact.Offering() }
 func (v VerifiedManifest) Version() core.ReleaseVersion           { return v.document.Fact.Version() }
 func (v VerifiedManifest) Artifacts() ArtifactSet                 { return v.document.Fact.Artifacts() }
+func (v VerifiedManifest) Provenance() BuildProvenance            { return v.document.Fact.Provenance() }
+func (v VerifiedManifest) Metadata() MetadataSet                  { return v.document.Fact.Metadata() }
 func (v VerifiedManifest) TotalExtent() core.ByteCount            { return v.document.Fact.TotalExtent() }
 
-func digestManifestDocument(document ManifestDocument) (core.SHA256Digest, error) {
+func integrityManifestDocument(document ManifestDocument) (ArtifactIntegrity, error) {
 	encoded, err := document.MarshalJSON()
 	if err != nil {
-		return core.SHA256Digest{}, err
+		return ArtifactIntegrity{}, err
+	}
+	extent, err := core.NewByteCount(uint64(len(encoded)))
+	if err != nil {
+		return ArtifactIntegrity{}, err
 	}
 	sum := sha256.Sum256(encoded)
-	return core.NewSHA256Digest(sum), nil
+	return newArtifactIntegrity(
+		extent,
+		core.NewSHA256Digest(sum),
+		core.NewCRC32C(crc32.Checksum(encoded, crc32.MakeTable(crc32.Castagnoli))),
+	)
 }
 
 var _ attest.CanonicalBody[Domain] = ManifestFact{}

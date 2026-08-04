@@ -33,6 +33,7 @@ type garbleContractInventory struct {
 	BuildRequest       operationRequest[BuildRequest]
 	BuildIntent        sealedProjection[BuildIntent]
 	Argument           sealedProjection[Argument]
+	ToolProvenance     protocolFact[ToolProvenance]
 }
 
 var _ = garbleContractInventory{}.derivationFrame
@@ -89,8 +90,12 @@ func TestGarbleExactPublicSurfaceAndNoTypeAliases(t *testing.T) {
 		"func NewCustody",
 		"func NewDerivationIdentity",
 		"func NewSeed",
+		"func ParseDiagnosticPolicy",
+		"func ParseDerivationGeneration",
+		"func ParseLiteralPolicy",
 		"func ParseSeed",
 		"func PrepareBuild",
+		"func ResolveTool",
 		"method Argument.Kind",
 		"method Argument.Text",
 		"method Argument.Validate",
@@ -99,6 +104,9 @@ func TestGarbleExactPublicSurfaceAndNoTypeAliases(t *testing.T) {
 		"method ArgumentKind.String",
 		"method ArgumentKind.Validate",
 		"method BuildIntent.Arguments",
+		"method BuildIntent.DiagnosticPolicy",
+		"method BuildIntent.LiteralPolicy",
+		"method BuildIntent.Tool",
 		"method BuildIntent.Validate",
 		"method BuildRequest.Validate",
 		"method Custody.Format",
@@ -127,12 +135,14 @@ func TestGarbleExactPublicSurfaceAndNoTypeAliases(t *testing.T) {
 		"method ToolIdentity.ModulePath",
 		"method ToolIdentity.ModuleSum",
 		"method ToolIdentity.OffWireEnum",
+		"method ToolIdentity.Provenance",
 		"method ToolIdentity.Revision",
 		"method ToolIdentity.IsValid",
 		"method ToolIdentity.String",
 		"method ToolIdentity.UnsupportedGoVersion",
 		"method ToolIdentity.Validate",
 		"method ToolIdentity.Version",
+		"method ToolProvenance.Validate",
 		"type Argument",
 		"type ArgumentKind",
 		"type BuildIntent",
@@ -145,6 +155,7 @@ func TestGarbleExactPublicSurfaceAndNoTypeAliases(t *testing.T) {
 		"type LiteralPolicy",
 		"type Seed",
 		"type ToolIdentity",
+		"type ToolProvenance",
 	}
 	slices.Sort(wantSurface)
 	if !slices.Equal(gotScan.surface, wantSurface) {

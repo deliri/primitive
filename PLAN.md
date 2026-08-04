@@ -128,13 +128,14 @@ The order column is dependency depth, not a mandate to build an entire row.
 | 4 | `fuzzfinder` | Bounded classification and observation of Go-generated fuzz artifacts | `core`, `filestore` | none |
 | 4 | `lease` | Signed lease timeline, assessment, renewal, and monotonic advance | `core`, `temporal`, `attest` | none |
 | 4 | `process` | Argv, environment, containment, bounded output, exit, and reaping over `os/exec` | `core`, `contextstate`, `temporal` | `testserial` |
-| 4 | `release` | Embedded build identity, immutable artifacts, manifests, Latest, verification, and pure selection | `core`, `temporal`, `attest` | none |
+| 5 | `release` | Verified build tools, deterministic Garble build and process plans, executable inspection, signed tool and metadata provenance, immutable artifacts, manifests, Latest, and selection | `core`, `temporal`, `attest`, `garble`, `process` | none |
 | 4 | `shutdown` | Signal observation and phased bounded cleanup | `core`, `contextstate`, `temporal` | none |
 | 5 | `gate` | Pure CLI-side new-work authorization over one authentic Lease assessment | `core`, `lease` | `attest`, `temporal` |
 | 5 | `receipt` | Authenticated accepted-evidence facts and fixed-size monotonic watermarks | `core`, `attest`, `temporal` | none |
 | 5 | `objectstore` | One bounded vendor-specified S3, GCS, or Cloudflare Images transfer with integrity and commitment | `core`, `contextstate`, `temporal`, `exchange` | none |
 | 5 | `timeproof` | RFC 3161 request construction, response verification, and replay | `core`, `temporal`, `keygen` | none |
 | 5 | `cloudidentity` | Bounded Google Cloud or AWS outbound identity-token acquisition and redacted disclosure | `core`, `temporal`, `exchange` | none |
+| 6 | `deploy` | Exact create-only GCS publication of one authenticated release and its metadata | `core`, `objectstore`, `release` | `attest`, `exchange`, `temporal` |
 | 6 | `upgrade` | Crash-recoverable installation, activation, startup truth, rollback, and recovery | `core`, `filestore`, `hostfacts`, `objectstore`, `release`, `temporal` | none |
 
 Core imports no Primitive package. Production never imports test support.
@@ -166,8 +167,9 @@ operation.
 | Decision | Surfaces |
 | --- | --- |
 | Absorbed | `update` into `release` |
-| Added from consumer evidence | `process` |
-| Deferred | `callbudget`, `cmd/keygen`, `controlstate`, `filestoretest`, `rate`, `redactiontest`, `register`, `status`, `submission`, `unleash` |
+| Added from consumer evidence | `process`, `deploy` |
+| Deferred | `callbudget`, `cmd/keygen`, `controlstate`, `filestoretest`, `rate`, `redactiontest`, `register`, `status`, `submission` |
+| Retired by clean redesign | `unleash` |
 | Retired | `cmd/capabilityinventory`, `probe` |
 
 Deferred and retired surfaces get no placeholder, constant, error, adapter, or

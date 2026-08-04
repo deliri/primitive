@@ -62,6 +62,18 @@ func (g DerivationGeneration) String() string {
 	return derivationGenerationLabels()[g]
 }
 
+// ParseDerivationGeneration resolves one canonical historical derivation
+// label without assuming that the current generation produced it.
+func ParseDerivationGeneration(value string) (DerivationGeneration, error) {
+	for generation := DerivationGenerationUnknown + 1; generation < derivationGenerationLimit; generation++ {
+		if generation.IsValid() && generation.String() == value {
+			return generation, nil
+		}
+	}
+	return DerivationGenerationUnknown, contractError(
+		errors.New("garble derivation generation label is outside the admitted domain"))
+}
+
 // DerivationIdentity is a canonical release identity projected as a SHA-256
 // digest by its owning package.
 type DerivationIdentity struct {

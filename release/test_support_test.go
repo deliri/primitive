@@ -7,21 +7,22 @@ import (
 
 	"github.com/deliri/primitive/v2026/attest"
 	"github.com/deliri/primitive/v2026/core"
+	"github.com/deliri/primitive/v2026/garble"
 	"github.com/deliri/primitive/v2026/temporal"
 )
 
 type releaseFixture struct {
 	manifestKey    ed25519.PrivateKey
 	latestKey      ed25519.PrivateKey
-	manifestTrust  attest.TrustedKeys
-	latestTrust    attest.TrustedKeys
-	builds         [TargetCount]core.BuildIdentity
-	artifacts      [TargetCount]Artifact
-	artifactSet    ArtifactSet
 	manifest       ManifestDocument
 	verified       VerifiedManifest
 	latest         LatestDocument
 	verifiedLatest VerifiedLatest
+	artifactSet    ArtifactSet
+	artifacts      [TargetCount]Artifact
+	manifestTrust  attest.TrustedKeys
+	latestTrust    attest.TrustedKeys
+	builds         [TargetCount]core.BuildIdentity
 }
 
 func newReleaseFixture(t testing.TB, version core.ReleaseVersion, generation uint64) releaseFixture {
@@ -76,13 +77,17 @@ func newReleaseFixtureForOffering(
 	if err != nil {
 		t.Fatalf("NewArtifactSet() error = %v", err)
 	}
+	metadata := fixtureMetadataSet(t)
+	provenance := fixtureBuildProvenance(t)
 	fact, err := NewManifestFact(ManifestFactRequest{
-		Revision:  Revision2026V1,
-		Offering:  offering,
-		Version:   version,
-		Commit:    commit,
-		CreatedAt: temporal.InstantFromNanoseconds(1_000),
-		Artifacts: artifactSet,
+		Revision:   Revision2026V1,
+		Offering:   offering,
+		Version:    version,
+		Commit:     commit,
+		CreatedAt:  temporal.InstantFromNanoseconds(1_000),
+		Artifacts:  artifactSet,
+		Provenance: provenance,
+		Metadata:   metadata,
 	})
 	if err != nil {
 		t.Fatalf("NewManifestFact() error = %v", err)
@@ -121,6 +126,56 @@ func newReleaseFixtureForOffering(
 		builds: builds, artifacts: artifacts, artifactSet: artifactSet,
 		manifest: manifest, verified: verified, latest: latest, verifiedLatest: verifiedLatest,
 	}
+}
+
+func fixtureMetadataSet(t testing.TB) MetadataSet {
+	t.Helper()
+	var assets [MetadataAssetCount]MetadataAsset
+	for index := range MetadataAssetCount {
+		digest := sha256.Sum256([]byte{byte(index + 41)})
+		asset, err := NewMetadataAsset(MetadataAssetRequest{
+			Kind: MetadataKind(index + 1), Extent: mustByteCount(t, uint64(index+11)),
+			SHA256: core.NewSHA256Digest(digest), CRC32C: core.NewCRC32C(uint32(index + 31)),
+		})
+		if err != nil {
+			t.Fatalf("NewMetadataAsset(%d) error = %v", index, err)
+		}
+		assets[index] = asset
+	}
+	set, err := NewMetadataSet(MetadataSetRequest{Assets: assets})
+	if err != nil {
+		t.Fatalf("NewMetadataSet() error = %v", err)
+	}
+	return set
+}
+
+func fixtureBuildProvenance(t testing.TB) BuildProvenance {
+	t.Helper()
+	goDigest := sha256.Sum256([]byte("go tool"))
+	garbleDigest := sha256.Sum256([]byte("garble tool"))
+	mainPackage, err := ParseMainPackage("github.com/offGridSoft/witness/cmd/witness")
+	if err != nil {
+		t.Fatalf("ParseMainPackage() error = %v", err)
+	}
+	value := BuildProvenance{
+		linkerAssignments:      emptyLinkerAssignmentsForTest(),
+		mainPackage:            mainPackage,
+		goExecutableDigest:     core.NewSHA256Digest(goDigest),
+		garbleExecutableDigest: core.NewSHA256Digest(garbleDigest),
+		garbleTool:             garble.CurrentTool(), goToolchain: CurrentGoToolchain(),
+		moduleMode: BuildModuleReadonly, literals: garble.LiteralPolicyObfuscate,
+		diagnostics:          garble.DiagnosticPolicyPreserve,
+		derivationGeneration: garble.CurrentDerivationGeneration(), valid: true,
+	}
+	if err := value.Validate(); err != nil {
+		t.Fatalf("BuildProvenance.Validate() error = %v", err)
+	}
+	return value
+}
+
+func emptyLinkerAssignmentsForTest() LinkerAssignments {
+	value, _ := NewLinkerAssignments(nil)
+	return value
 }
 
 func deterministicKey(seedByte byte) ed25519.PrivateKey {

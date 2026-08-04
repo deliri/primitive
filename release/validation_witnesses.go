@@ -11,6 +11,11 @@ var (
 	_ core.Validatable = IssueLatestRequest{}
 	_ core.Validatable = IssueManifestRequest{}
 	_ core.Validatable = ManifestFactRequest{}
+	_ core.Validatable = MetadataAssetRequest{}
+	_ core.Validatable = MetadataInspectionRequest{}
+	_ core.Validatable = MetadataSetRequest{}
+	_ core.Validatable = BuildProvenanceRequest{}
+	_ core.Validatable = ArtifactInspectionRequest{}
 	_ core.Validatable = VerifyLatestRequest{}
 	_ core.Validatable = VerifyManifestRequest{}
 
@@ -26,4 +31,8 @@ var (
 	_ core.ValidatedJSONMarshaler = ManifestIdentity{}
 	_ core.ValidatedJSONMarshaler = ManifestFact{}
 	_ core.ValidatedJSONMarshaler = ManifestDocument{}
+	_ core.ValidatedJSONMarshaler = MetadataKind(0)
+	_ core.ValidatedJSONMarshaler = MetadataAsset{}
+	_ core.ValidatedJSONMarshaler = MetadataSet{}
+	_ core.ValidatedJSONMarshaler = BuildProvenance{}
 )

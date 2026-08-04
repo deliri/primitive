@@ -12,11 +12,11 @@ const (
 	// PrimitivePackagePathPrefix prefixes every Primitive package import path.
 	PrimitivePackagePathPrefix = PrimitiveModulePath + "/"
 	// PrimitivePackageCount is the number of packages in the complete catalog.
-	PrimitivePackageCount = 22
+	PrimitivePackageCount = 23
 	// PrimitiveDirectImportCount is the number of admitted direct import edges.
-	PrimitiveDirectImportCount = 50
+	PrimitiveDirectImportCount = 55
 	// PrimitiveDirectTestImportCount is the number of admitted test-only edges.
-	PrimitiveDirectTestImportCount = 3
+	PrimitiveDirectTestImportCount = 6
 	// PrimitiveMaximumDirectImports caps direct sibling imports per package.
 	PrimitiveMaximumDirectImports = 6
 )
@@ -69,6 +69,8 @@ const (
 	PackageTimeProof
 	// PackageCloudIdentity identifies the cloud-identity package.
 	PackageCloudIdentity
+	// PackageDeploy identifies exact release publication to GCS.
+	PackageDeploy
 	// PackageUpgrade identifies the upgrade package.
 	PackageUpgrade
 	packageIdentityLimit
@@ -155,6 +157,7 @@ func PrimitiveArchitecture() ArchitectureCatalog {
 			{Identity: PackageObjectStore, Kind: PackageKindProduction},
 			{Identity: PackageTimeProof, Kind: PackageKindProduction},
 			{Identity: PackageCloudIdentity, Kind: PackageKindProduction},
+			{Identity: PackageDeploy, Kind: PackageKindProduction},
 			{Identity: PackageUpgrade, Kind: PackageKindProduction},
 		},
 		imports: [PrimitiveDirectImportCount]DirectImportContract{
@@ -191,6 +194,8 @@ func PrimitiveArchitecture() ArchitectureCatalog {
 			{Importer: PackageRelease, Imported: PackageCore},
 			{Importer: PackageRelease, Imported: PackageTemporal},
 			{Importer: PackageRelease, Imported: PackageAttest},
+			{Importer: PackageRelease, Imported: PackageGarble},
+			{Importer: PackageRelease, Imported: PackageProcess},
 			{Importer: PackageShutdown, Imported: PackageCore},
 			{Importer: PackageShutdown, Imported: PackageContextState},
 			{Importer: PackageShutdown, Imported: PackageTemporal},
@@ -205,6 +210,9 @@ func PrimitiveArchitecture() ArchitectureCatalog {
 			{Importer: PackageCloudIdentity, Imported: PackageCore},
 			{Importer: PackageCloudIdentity, Imported: PackageTemporal},
 			{Importer: PackageCloudIdentity, Imported: PackageExchange},
+			{Importer: PackageDeploy, Imported: PackageCore},
+			{Importer: PackageDeploy, Imported: PackageObjectStore},
+			{Importer: PackageDeploy, Imported: PackageRelease},
 
 			{Importer: PackageUpgrade, Imported: PackageCore},
 			{Importer: PackageUpgrade, Imported: PackageFilestore},
@@ -217,6 +225,9 @@ func PrimitiveArchitecture() ArchitectureCatalog {
 			{Importer: PackageGate, Imported: PackageAttest},
 			{Importer: PackageGate, Imported: PackageTemporal},
 			{Importer: PackageProcess, Imported: PackageTestSerial},
+			{Importer: PackageDeploy, Imported: PackageAttest},
+			{Importer: PackageDeploy, Imported: PackageExchange},
+			{Importer: PackageDeploy, Imported: PackageTemporal},
 		},
 	}
 }
@@ -466,11 +477,12 @@ func packagePurposeTexts() [packageIdentityLimit]string {
 		PackageGate:          "Pure CLI-side new-work authorization over one authentic Lease assessment",
 		PackageReceipt:       "Authenticated accepted-evidence facts and fixed-size monotonic watermarks",
 		PackageProcess:       "Argv, environment, containment, bounded output, exit, and reaping over os/exec",
-		PackageRelease:       "Embedded build identity, immutable artifacts, manifests, Latest, verification, and pure selection",
+		PackageRelease:       "Verified build tools, deterministic Garble build and process plans, executable inspection, signed tool and metadata provenance, immutable artifacts, manifests, Latest, and selection",
 		PackageShutdown:      "Signal observation and phased bounded cleanup",
 		PackageObjectStore:   "One bounded vendor-specified S3, GCS, or Cloudflare Images transfer with integrity and commitment",
 		PackageTimeProof:     "RFC 3161 request construction, response verification, and replay",
 		PackageCloudIdentity: "Bounded Google Cloud or AWS outbound identity-token acquisition and redacted disclosure",
+		PackageDeploy:        "Exact create-only GCS publication of one authenticated release and its metadata",
 		PackageUpgrade:       "Crash-recoverable installation, activation, startup truth, rollback, and recovery",
 	}
 }
@@ -531,6 +543,7 @@ func packageIdentityTexts() [packageIdentityLimit]string {
 		"objectstore",
 		"timeproof",
 		"cloudidentity",
+		"deploy",
 		"upgrade",
 	}
 }

@@ -2,8 +2,10 @@ package release
 
 import (
 	"bytes"
+	"crypto/sha256"
 	"encoding/json"
 	"errors"
+	"hash/crc32"
 	"io"
 	"math"
 	"strconv"
@@ -753,6 +755,30 @@ func TestCanonicalReleaseProjectionsRoundTripExactSignedFacts(t *testing.T) {
 	documentDigest := fixture.verified.DocumentDigest()
 	if documentDigest.String() == "" {
 		t.Fatalf("VerifiedManifest.DocumentDigest() = %q, want canonical digest", documentDigest.String())
+	}
+	documentBytes, err := json.Marshal(fixture.verified.Document())
+	if err != nil {
+		t.Fatalf("json.Marshal(VerifiedManifest.Document()) error = %v, want nil", err)
+	}
+	documentExtent, err := core.NewByteCount(uint64(len(documentBytes)))
+	if err != nil {
+		t.Fatalf("core.NewByteCount(manifest document) error = %v, want nil", err)
+	}
+	documentSum := sha256.Sum256(documentBytes)
+	wantDocumentIntegrity, err := newArtifactIntegrity(
+		documentExtent,
+		core.NewSHA256Digest(documentSum),
+		core.NewCRC32C(crc32.Checksum(documentBytes, crc32.MakeTable(crc32.Castagnoli))),
+	)
+	if err != nil {
+		t.Fatalf("newArtifactIntegrity(manifest document) error = %v, want nil", err)
+	}
+	if got := fixture.verified.DocumentIntegrity(); got != wantDocumentIntegrity {
+		t.Fatalf("VerifiedManifest.DocumentIntegrity() = %v, want exact canonical integrity", got)
+	}
+	if documentDigest.SHA256() != wantDocumentIntegrity.SHA256() {
+		t.Fatalf("VerifiedManifest.DocumentDigest().SHA256() = %v, want %v",
+			documentDigest.SHA256(), wantDocumentIntegrity.SHA256())
 	}
 }
 

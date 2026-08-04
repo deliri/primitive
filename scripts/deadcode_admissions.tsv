@@ -9,6 +9,5 @@ exchange/architecture_test.go	inventoryDocument.Validate	Compiler constraint for
 exchange/architecture_test.go	inventoryDocument.MarshalJSON	Compiler constraint for generic Exchange contract inventory; it deliberately has no runtime call.
 filestore/directory_read.go	directoryPosition.OffWireEnum	Compile-time marker excludes an invented wire protocol; it deliberately has no runtime call.
 filestore/stream.go	streamDestination.OffWireEnum	Compile-time marker excludes an invented wire protocol; it deliberately has no runtime call.
-process/contracts.go	EnvironmentMode.OffWireEnum	Compile-time marker excludes an invented wire protocol; it deliberately has no runtime call.
 release/selection.go	CachedLatestState.OffWireEnum	Compile-time marker excludes an invented wire protocol; it deliberately has no runtime call.
 upgrade/enums.go	TrialOutcome.OffWireEnum	Compile-time marker excludes an invented wire protocol; it deliberately has no runtime call.

@@ -41,6 +41,10 @@ func newBinaryFilename(build core.BuildIdentity) (BinaryFilename, error) {
 	if build.Platform().OperatingSystem == core.OperatingSystemWindows {
 		value += binaryFilenameWindowsSuffix
 	}
+	return newBoundedFilename(value)
+}
+
+func newBoundedFilename(value string) (BinaryFilename, error) {
 	if len(value) == 0 || len(value) > BinaryFilenameMaximumBytes {
 		return BinaryFilename{}, manifestError(errors.New("derived binary filename exceeds its bound"))
 	}

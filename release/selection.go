@@ -203,9 +203,9 @@ func (c CurrentRelease) Summary() (CurrentSummary, error) {
 // AvailableRelease privately carries every authenticated fact needed to
 // prepare one Upgrade handoff without re-decoding caller data.
 type AvailableRelease struct {
-	latest            VerifiedLatest
 	installedManifest VerifiedManifest
 	candidateManifest VerifiedManifest
+	latest            VerifiedLatest
 	installedArtifact Artifact
 	candidateArtifact Artifact
 	assessment        LatestAssessment

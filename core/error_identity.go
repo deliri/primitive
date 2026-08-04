@@ -187,6 +187,8 @@ const (
 	ErrReleaseRollback
 	// ErrReleaseConflict identifies a release identity conflict.
 	ErrReleaseConflict
+	// ErrDeployContract identifies a release-deployment contract violation.
+	ErrDeployContract
 
 	// ErrShutdownContract identifies a shutdown contract violation.
 	ErrShutdownContract
@@ -352,6 +354,7 @@ func errorIdentityDiagnostics() [errorIdentityLimit]errorIdentityDiagnostic {
 		{identity: ErrReleaseLatest, text: "release latest rejected"},
 		{identity: ErrReleaseRollback, text: "release rollback rejected"},
 		{identity: ErrReleaseConflict, text: "release identity conflict"},
+		{identity: ErrDeployContract, text: "deploy contract violation"},
 		{identity: ErrShutdownContract, text: "shutdown contract violation"},
 		{identity: ErrShutdownStepFailure, text: "shutdown step failed"},
 		{identity: ErrShutdownStepTimeout, text: "shutdown step timed out"},
@@ -514,7 +517,7 @@ func errorIdentityParents(identity ErrorIdentity) errorIdentityParentSet {
 		ErrTemporalContract, ErrExchangeContract,
 		ErrFuzzFinderContract, ErrLeaseContract, ErrGateContract,
 		ErrProcessContract,
-		ErrReleaseContract,
+		ErrReleaseContract, ErrDeployContract,
 		ErrShutdownContract, ErrObjectStoreContract, ErrTimeProofContract,
 		ErrCloudIdentityContract, ErrUpgradeContract,
 		ErrLifecycleIdentityContract, ErrReceiptContract:

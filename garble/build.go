@@ -60,6 +60,18 @@ func (p LiteralPolicy) String() string {
 	return literalPolicyLabels()[p]
 }
 
+// ParseLiteralPolicy resolves one canonical literal-policy label. Garble owns
+// the label domain, so no consumer restates it.
+func ParseLiteralPolicy(value string) (LiteralPolicy, error) {
+	for policy := LiteralPolicyUnknown + 1; policy < literalPolicyLimit; policy++ {
+		if policy.IsValid() && policy.String() == value {
+			return policy, nil
+		}
+	}
+	return LiteralPolicyUnknown, contractError(
+		errors.New("garble literal policy label is outside the admitted domain"))
+}
+
 // DiagnosticPolicy selects whether Garble retains runtime diagnostic metadata.
 type DiagnosticPolicy uint8
 
@@ -104,6 +116,18 @@ func (p DiagnosticPolicy) String() string {
 		return core.UnknownEnumDiagnostic
 	}
 	return diagnosticPolicyLabels()[p]
+}
+
+// ParseDiagnosticPolicy resolves one canonical diagnostic-policy label. Garble
+// owns the label domain, so no consumer restates it.
+func ParseDiagnosticPolicy(value string) (DiagnosticPolicy, error) {
+	for policy := DiagnosticPolicyUnknown + 1; policy < diagnosticPolicyLimit; policy++ {
+		if policy.IsValid() && policy.String() == value {
+			return policy, nil
+		}
+	}
+	return DiagnosticPolicyUnknown, contractError(
+		errors.New("garble diagnostic policy label is outside the admitted domain"))
 }
 
 // BuildRequest carries the complete Garble-owned build-intent prefix.
@@ -151,6 +175,32 @@ func (i BuildIntent) Validate() error {
 		return buildIntentError(err)
 	}
 	return nil
+}
+
+// Tool returns the exact reviewed Garble identity bound into the intent.
+func (i BuildIntent) Tool() (ToolIdentity, error) {
+	if err := i.Validate(); err != nil {
+		return ToolIdentityUnknown, err
+	}
+	return i.request.Tool, nil
+}
+
+// LiteralPolicy returns the exact reviewed literal-obfuscation policy bound
+// into the intent without exposing the deterministic seed.
+func (i BuildIntent) LiteralPolicy() (LiteralPolicy, error) {
+	if err := i.Validate(); err != nil {
+		return LiteralPolicyUnknown, err
+	}
+	return i.request.Literals, nil
+}
+
+// DiagnosticPolicy returns the exact reviewed diagnostic policy bound into
+// the intent without exposing the deterministic seed.
+func (i BuildIntent) DiagnosticPolicy() (DiagnosticPolicy, error) {
+	if err := i.Validate(); err != nil {
+		return DiagnosticPolicyUnknown, err
+	}
+	return i.request.Diagnostics, nil
 }
 
 // ArgumentKind is the closed Garble-owned CLI argument domain.
