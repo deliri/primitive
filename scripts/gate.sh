@@ -25,7 +25,6 @@ workflow_run=${GITHUB_RUN_ID:-NOT_APPLICABLE}
 workflow_attempt=${GITHUB_RUN_ATTEMPT:-NOT_APPLICABLE}
 gate_failure_status=0
 goconst_admission_maximum=11
-deadcode_admission_maximum=14
 fuzz_budget_override_maximum=2
 fuzz_budget_override_minimum=10000
 fuzz_default_budget=100000x
@@ -250,42 +249,6 @@ validate_goconst_findings() {
 	fi
 }
 
-validate_deadcode_findings() {
-	admissions="scripts/deadcode_admissions.tsv"
-	admitted="$artifact_directory/deadcode-admitted.log"
-	observed="$artifact_directory/deadcode-observed.log"
-	if ! awk -F '\t' '
-		NF != 3 || $1 == "" || $2 == "" || $3 == "" { exit 1 }
-		END { if (NR > maximum) exit 1 }
-	' maximum="$deadcode_admission_maximum" "$admissions"; then
-		printf '%s\n' "deadcode admissions are malformed or exceed the ratcheted maximum" >&2
-		return 1
-	fi
-	awk -F '\t' '{ print $1 "\t" $2 }' "$admissions" | sort >"$admitted"
-	if ! deadcode_output=$(deadcode -test ./... 2>&1); then
-		printf '%s\n' "$deadcode_output" >&2
-		return 1
-	fi
-	printf '%s\n' "$deadcode_output"
-	printf '%s\n' "$deadcode_output" |
-		sed -n 's#^\(.*\):[0-9][0-9]*:[0-9][0-9]*: unreachable func: \(.*\)$#\1\t\2#p' |
-		awk -F '\t' -v root="$normalized_repository_root" '
-			{
-				path = $1
-				gsub(/\\/, "/", path)
-				prefix = root "/"
-				if (index(path, prefix) == 1) {
-					path = substr(path, length(prefix) + 1)
-				}
-				print path "\t" $2
-			}
-		' |
-		sort -u >"$observed"
-	if ! diff -u "$admitted" "$observed"; then
-		printf '%s\n' "deadcode findings differ from the reasoned exact admission set" >&2
-		return 1
-	fi
-}
 
 run_gate go-version go version
 run_gate go-environment go env GOOS GOARCH GOVERSION
@@ -340,7 +303,7 @@ run_gate constants validate_goconst_findings
 run_gate field-alignment fieldalignment ./...
 run_gate security gosec -quiet ./...
 run_gate vulnerabilities govulncheck ./...
-run_gate dead-code validate_deadcode_findings
+run_empty_output_gate dead-code deadcode -test ./...
 run_gate benchmark-inventory discover_go_targets Benchmark
 run_gate benchmark-inventory-ratchet validate_target_inventory \
 	"$artifact_directory/benchmark-inventory.log" 51 benchmark

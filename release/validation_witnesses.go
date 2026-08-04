@@ -18,6 +18,12 @@ var (
 	_ core.Validatable = ArtifactInspectionRequest{}
 	_ core.Validatable = VerifyLatestRequest{}
 	_ core.Validatable = VerifyManifestRequest{}
+	_ core.Validatable = BuildDependencyObservationRequest{}
+	_ core.Validatable = GoModulePath{}
+	_ core.Validatable = GoModuleVersion{}
+	_ core.Validatable = GoModuleSum{}
+	_ core.Validatable = BuildDependency{}
+	_ core.Validatable = BuildDependencies{}
 
 	_ core.ValidatedJSONMarshaler = ArtifactIdentity{}
 	_ core.ValidatedJSONMarshaler = ArtifactIntegrity{}
@@ -35,4 +41,5 @@ var (
 	_ core.ValidatedJSONMarshaler = MetadataAsset{}
 	_ core.ValidatedJSONMarshaler = MetadataSet{}
 	_ core.ValidatedJSONMarshaler = BuildProvenance{}
+	_ core.ValidatedJSONMarshaler = BuildDependencies{}
 )

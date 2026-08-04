@@ -9,7 +9,10 @@ import (
 	"github.com/deliri/primitive/v2026/temporal"
 )
 
-const goPathEnvironmentName = "PATH"
+const (
+	goPathEnvironmentName            = "PATH"
+	goToolDirectoryInvalidDiagnostic = "go tool directory is invalid"
+)
 
 // BuildProcessRequest supplies host execution facts around one exact build
 // command. HostEnvironment must be exact; ambient inheritance is never a
@@ -48,7 +51,7 @@ func prepareBuildProcess(request BuildProcessRequest) (process.Request, error) {
 	}
 	goToolDirectory, err := request.Tools.GoExecutable().Parent()
 	if err != nil {
-		return process.Request{}, contractError(errors.New("go tool directory is invalid"), err)
+		return process.Request{}, contractError(errors.New(goToolDirectoryInvalidDiagnostic), err)
 	}
 	environment, err := prepareBuildEnvironment(
 		request.HostEnvironment,

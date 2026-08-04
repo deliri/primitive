@@ -35,22 +35,22 @@ type productionStructInventory struct {
 // attestContractInventory classifies every production struct by its real role.
 // It is a compiler-visible wiring ratchet, not behavioral proof.
 type attestContractInventory struct {
-	canonicalFacts        internalFlow[canonicalFacts[testArchitectureDomain]]
+	canonicalFacts        internalFlow[canonicalFacts[internalTestDomain]]
 	canonicalDigestWriter capabilityWrapper[canonicalDigestWriter]
 	CanonicalObject       capabilityWrapper[CanonicalObject]
 	canonicalNameSpan     internalFlow[canonicalNameSpan]
 	TrustedKeysRequest    protocolFact[TrustedKeysRequest]
-	SignRequest           operationRequest[SignRequest[testArchitectureDomain]]
-	VerifyRequest         operationRequest[VerifyRequest[testArchitectureDomain]]
+	SignRequest           operationRequest[SignRequest[internalTestDomain]]
+	VerifyRequest         operationRequest[VerifyRequest[internalTestDomain]]
 	domainToken           internalFlow[domainToken]
-	Envelope              sealedProjection[Envelope[testArchitectureDomain]]
+	Envelope              sealedProjection[Envelope[internalTestDomain]]
 	envelopeWire          wireProjection[envelopeWire]
 	attestationFrame      internalFlow[attestationFrame]
 	guardedResult         internalFlow[guardedResult[struct{}]]
 	Signature             sealedProjection[Signature]
 	signingCapability     capabilityWrapper[signingCapability]
 	TrustedKeys           capabilityWrapper[TrustedKeys]
-	Verified              proofCarrier[Verified[testArchitectureDomain]]
+	Verified              proofCarrier[Verified[internalTestDomain]]
 }
 
 var (
@@ -63,20 +63,6 @@ var (
 	_ = attestContractInventory{}.guardedResult
 	_ = attestContractInventory{}.signingCapability
 )
-
-type testArchitectureDomain uint8
-
-func (testArchitectureDomain) Validate() error {
-	return nil
-}
-
-func (testArchitectureDomain) MarshalText() ([]byte, error) {
-	return []byte("architecture"), nil
-}
-
-func (testArchitectureDomain) ParseCanonicalText([]byte) (testArchitectureDomain, error) {
-	return 0, nil
-}
 
 func TestAttestProductionStructsHaveCompilerVisibleDataFlowRoles(t *testing.T) {
 	t.Parallel()

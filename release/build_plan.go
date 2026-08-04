@@ -15,32 +15,35 @@ import (
 )
 
 const (
-	mainPackageMaximumBytes       = 512
-	mainPackageInvalidDiagnostic  = "main package is invalid"
-	linkerSymbolMaximumBytes      = 512
-	linkerValueMaximumBytes       = 512
-	linkerAssignmentMaximumCount  = 16
-	buildTagMaximumBytes          = 64
-	buildTagMaximumCount          = 16
-	buildTagSeparator             = ","
-	goBuildTagArgumentPrefix      = "-tags="
-	goTrimpathArgument            = "-trimpath"
-	goDisableBuildVCSArgument     = "-buildvcs=false"
-	goDisablePGOArgument          = "-pgo=off"
-	goLinkerArgumentPrefix        = "-ldflags="
-	goOutputArgument              = "-o"
-	goLinkerStripArguments        = "-w -s"
-	goLinkerAssignmentArgument    = " -X "
-	goModuleArgumentPrefix        = "-mod="
-	goEnvironmentCGODisabled      = "CGO_ENABLED=0"
-	goEnvironmentToolchainLocal   = "GOTOOLCHAIN=local"
-	goEnvironmentAMD64Baseline    = "GOAMD64=v1"
-	goEnvironmentARM64Baseline    = "GOARM64=v8.0"
-	goEnvironmentConfigurationOff = "GOENV=off"
-	goEnvironmentFlagsEmpty       = "GOFLAGS="
-	goEnvironmentExperimentEmpty  = "GOEXPERIMENT="
-	goEnvironmentFIPSOff          = "GOFIPS140=off"
-	goEnvironmentWorkspaceOff     = "GOWORK=off"
+	mainPackageMaximumBytes             = 512
+	mainPackageInvalidDiagnostic        = "main package is invalid"
+	linkerSymbolMaximumBytes            = 512
+	linkerValueMaximumBytes             = 512
+	linkerAssignmentMaximumCount        = 16
+	buildTagMaximumBytes                = 64
+	buildTagMaximumCount                = 16
+	buildTagInvalidDiagnostic           = "build tag is invalid"
+	buildTagsOrderingDiagnostic         = "build tags are not unique and sorted"
+	buildTagSeparator                   = ","
+	goBuildTagArgumentPrefix            = "-tags="
+	goTrimpathArgument                  = "-trimpath"
+	goDisableBuildVCSArgument           = "-buildvcs=false"
+	goDisablePGOArgument                = "-pgo=off"
+	goLinkerArgumentPrefix              = "-ldflags="
+	goOutputArgument                    = "-o"
+	goLinkerStripArguments              = "-w -s"
+	goLinkerAssignmentArgument          = " -X "
+	goModuleArgumentPrefix              = "-mod="
+	goEnvironmentCGODisabled            = "CGO_ENABLED=0"
+	goEnvironmentToolchainLocal         = "GOTOOLCHAIN=local"
+	goEnvironmentAMD64Baseline          = "GOAMD64=v1"
+	goEnvironmentARM64Baseline          = "GOARM64=v8.0"
+	goEnvironmentConfigurationOff       = "GOENV=off"
+	goEnvironmentFlagsEmpty             = "GOFLAGS="
+	goEnvironmentExperimentEmpty        = "GOEXPERIMENT="
+	goEnvironmentFIPSOff                = "GOFIPS140=off"
+	goEnvironmentWorkspaceOff           = "GOWORK=off"
+	linkerAssignmentsOrderingDiagnostic = "linker assignments are not unique and sorted"
 )
 
 // BuildModuleMode selects the Go module graph used by one release build.
@@ -138,7 +141,7 @@ type BuildTag struct {
 // ParseBuildTag validates one Go build-constraint identifier.
 func ParseBuildTag(value string) (BuildTag, error) {
 	if err := validateBuildTag(value); err != nil {
-		return BuildTag{}, contractError(errors.New("build tag is invalid"), err)
+		return BuildTag{}, contractError(errors.New(buildTagInvalidDiagnostic), err)
 	}
 	return BuildTag{value: value}, nil
 }
@@ -147,7 +150,7 @@ func ParseBuildTag(value string) (BuildTag, error) {
 func (t BuildTag) Validate() error {
 	parsed, err := ParseBuildTag(t.value)
 	if err != nil || parsed != t {
-		return contractError(errors.New("build tag is invalid"), err)
+		return contractError(errors.New(buildTagInvalidDiagnostic), err)
 	}
 	return nil
 }
@@ -218,7 +221,7 @@ func (s BuildTags) Validate() error {
 			return err
 		}
 		if index > 0 && s.values[index-1].value >= tag.value {
-			return contractError(errors.New("build tags are not unique and sorted"))
+			return contractError(errors.New(buildTagsOrderingDiagnostic))
 		}
 	}
 	for _, padding := range s.values[s.count:] {
@@ -352,7 +355,7 @@ func (s LinkerAssignments) Validate() error {
 			return err
 		}
 		if index > 0 && s.values[index-1].symbol >= assignment.symbol {
-			return contractError(errors.New("linker assignments are not unique and sorted"))
+			return contractError(errors.New(linkerAssignmentsOrderingDiagnostic))
 		}
 	}
 	for _, padding := range s.values[s.count:] {

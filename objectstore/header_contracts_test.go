@@ -234,7 +234,6 @@ func TestSignedHeaderDeclarationIsCanonicalAndBounded(t *testing.T) {
 		"accept;accept-encoding;host;x-goog-meta-run",
 	}
 	for _, declaration := range valid {
-		declaration := declaration
 		t.Run("valid "+declaration, func(t *testing.T) {
 			t.Parallel()
 			got, err := parseSignedHeaderDeclaration(declaration)
@@ -255,7 +254,6 @@ func TestSignedHeaderDeclarationIsCanonicalAndBounded(t *testing.T) {
 		"host;x goog meta run",
 	}
 	for _, declaration := range invalid {
-		declaration := declaration
 		t.Run("invalid "+declaration, func(t *testing.T) {
 			t.Parallel()
 			if _, err := parseSignedHeaderDeclaration(declaration); !errors.Is(
@@ -315,7 +313,6 @@ func TestAmazonS3DataHostDomainBoundary(t *testing.T) {
 		{host: "attacker.example"},
 	}
 	for _, tc := range cases {
-		tc := tc
 		t.Run(tc.host, func(t *testing.T) {
 			t.Parallel()
 			if got := amazonS3DataHost(tc.host); got != tc.want {

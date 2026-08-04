@@ -69,6 +69,45 @@ func TestReleaseEnumsExhaustCompleteByteDomains(t *testing.T) {
 			t.Fatalf("SelectionState(%d) = (%v, %q), want validity %v", value, selection.IsValid(), selection.String(), wantSelection)
 		}
 	}
+
+	// Release publishes Revision and MetadataKind on the wire and keeps the
+	// assessment enums off it. Both kinds of enum live in this package and are
+	// swept by the same loop above, so the off-wire half is proved here rather
+	// than left to a reader to infer from the absence of a MarshalJSON method.
+	proveReleaseEnumStaysOffWire(t, DomainLatestV1)
+	proveReleaseEnumStaysOffWire(t, LatestFreshnessCurrent)
+	proveReleaseEnumStaysOffWire(t, LatestClockObserved)
+	proveReleaseEnumStaysOffWire(t, LatestAdvanceAdvanced)
+	proveReleaseEnumStaysOffWire(t, CachedLatestPresent)
+	proveReleaseEnumStaysOffWire(t, SelectionCurrent)
+}
+
+type releaseOffWireEnum interface {
+	comparable
+	core.OffWireEnum
+	IsValid() bool
+	String() string
+}
+
+// proveReleaseEnumStaysOffWire proves the claim a Release assessment enum's
+// off-wire marker makes. These enums carry local verdicts about a fetched
+// document: freshness, clock correction, advance outcome, cache presence, and
+// selection. Giving one a JSON encoding would let a served document assert its
+// own verdict instead of Release deriving it. Adding MarshalJSON or
+// UnmarshalJSON to any of them turns this red.
+func proveReleaseEnumStaysOffWire[T releaseOffWireEnum](t *testing.T, value T) {
+	t.Helper()
+
+	value.OffWireEnum()
+	if !value.IsValid() {
+		t.Fatalf("%T(%v) is not admitted, want a valid off-wire subject", value, value)
+	}
+	if _, encodes := any(value).(json.Marshaler); encodes {
+		t.Fatalf("%T(%v) implements json.Marshaler, want an off-wire enum", value, value)
+	}
+	if _, decodes := any(&value).(json.Unmarshaler); decodes {
+		t.Fatalf("*%T(%v) implements json.Unmarshaler, want an off-wire enum", value, value)
+	}
 }
 
 func TestGenerationJSONPressuresNumericBoundaries(t *testing.T) {

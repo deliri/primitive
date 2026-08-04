@@ -38,6 +38,42 @@ func TestClosedDomainsExhaustEveryBackingValue(t *testing.T) {
 				raw, phase.IsValid(), phase.Validate() == nil, wantPhase)
 		}
 	}
+
+	// Slot is deliberately on the wire and carries its own JSON contract, proved
+	// by TestSlotJSONRejectsUnknownAndPreservesReceiver below. TrialOutcome and
+	// FailurePhase are deliberately not. The three sit in one file and are swept
+	// by one loop, so copying Slot's JSON methods onto either of the others is
+	// the realistic mistake this proves against.
+	proveUpgradeEnumStaysOffWire(t, TrialPassed)
+	proveUpgradeEnumStaysOffWire(t, FailurePhaseDownload)
+}
+
+type upgradeOffWireEnum interface {
+	comparable
+	core.OffWireEnum
+	IsValid() bool
+	String() string
+}
+
+// proveUpgradeEnumStaysOffWire proves the claim an Upgrade enum's off-wire
+// marker makes. A trial outcome is this host's own verdict on running the
+// candidate, and a failure phase names which local Upgrade boundary failed.
+// Giving either a JSON encoding would let a served document assert that the
+// trial passed, or claim a different failing boundary than the one reached.
+// Adding MarshalJSON or UnmarshalJSON to either turns this red.
+func proveUpgradeEnumStaysOffWire[T upgradeOffWireEnum](t *testing.T, value T) {
+	t.Helper()
+
+	value.OffWireEnum()
+	if !value.IsValid() {
+		t.Fatalf("%T(%v) is not admitted, want a valid off-wire subject", value, value)
+	}
+	if _, encodes := any(value).(json.Marshaler); encodes {
+		t.Fatalf("%T(%v) implements json.Marshaler, want an off-wire enum", value, value)
+	}
+	if _, decodes := any(&value).(json.Unmarshaler); decodes {
+		t.Fatalf("*%T(%v) implements json.Unmarshaler, want an off-wire enum", value, value)
+	}
 }
 
 func TestSlotJSONRejectsUnknownAndPreservesReceiver(t *testing.T) {

@@ -644,7 +644,7 @@ func buildTagsFromWire(wire []string) (BuildTags, error) {
 			return BuildTags{}, err
 		}
 		if index > 0 && tags[index-1].value >= tag.value {
-			return BuildTags{}, manifestError(errors.New("build tags are not unique and sorted"))
+			return BuildTags{}, manifestError(errors.New(buildTagsOrderingDiagnostic))
 		}
 		tags[index] = tag
 	}
@@ -659,7 +659,7 @@ func linkerAssignmentsFromWire(wire []linkerAssignmentWire) (LinkerAssignments, 
 			return LinkerAssignments{}, err
 		}
 		if index > 0 && assignments[index-1].symbol >= assignment.symbol {
-			return LinkerAssignments{}, manifestError(errors.New("linker assignments are not unique and sorted"))
+			return LinkerAssignments{}, manifestError(errors.New(linkerAssignmentsOrderingDiagnostic))
 		}
 		assignments[index] = assignment
 	}

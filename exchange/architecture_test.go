@@ -2,13 +2,17 @@ package exchange
 
 import (
 	"encoding/json"
+	"errors"
 	"go/ast"
 	"go/parser"
 	"go/token"
+	"net/http"
+	"net/http/httptest"
 	"os"
 	"path/filepath"
 	"slices"
 	"sort"
+	"strconv"
 	"strings"
 	"testing"
 
@@ -22,12 +26,103 @@ type (
 	typedFailure[T any]      struct{}
 )
 
-type inventoryDocument struct{}
+// inventoryDocument is the caller-supplied document the generic server and
+// client contracts are instantiated with throughout the inventory below.
+// TestInventoryDocumentDrivesTheRealJSONWritePath proves it is a document the
+// real write path accepts rather than a shape that only satisfies the compiler.
+type inventoryDocument struct {
+	Name string `json:"name"`
+}
 
-func (inventoryDocument) Validate() error { return nil }
+func (d inventoryDocument) Validate() error {
+	if d.Name == "" {
+		return core.ErrExchangeContract
+	}
+	return nil
+}
 
-func (inventoryDocument) MarshalJSON() ([]byte, error) {
-	return json.Marshal(struct{}{})
+func (d inventoryDocument) MarshalJSON() ([]byte, error) {
+	if err := d.Validate(); err != nil {
+		return nil, err
+	}
+	return json.Marshal(struct {
+		Name string `json:"name"`
+	}{Name: d.Name})
+}
+
+// TestInventoryDocumentDrivesTheRealJSONWritePath runs the document the
+// inventory names through production WriteJSON instead of asserting its methods
+// in isolation, so the type the generic contracts are instantiated with is
+// proved against the real encoder and the real ResponseWriter framing.
+//
+// An invalid caller document is refused by two independent gates: the pre-write
+// JSONWriteCall.Validate gate and the encoder's own value validation. The
+// rejection case below asserts the pre-write gate directly and then asserts the
+// end-to-end effect, because removing either gate alone leaves the other
+// covering it and would otherwise pass unnoticed.
+func TestInventoryDocumentDrivesTheRealJSONWritePath(t *testing.T) {
+	t.Parallel()
+
+	limit, err := core.NewByteCount(1 << 10)
+	if err != nil {
+		t.Fatalf("core.NewByteCount() error = %v, want nil", err)
+	}
+	status, err := core.NewHTTPStatusCode(http.StatusOK)
+	if err != nil {
+		t.Fatalf("core.NewHTTPStatusCode() error = %v, want nil", err)
+	}
+	policy := JSONWritePolicy{ResponseBodyLimit: limit}
+
+	t.Run("valid document is encoded and framed", func(t *testing.T) {
+		t.Parallel()
+
+		recorder := httptest.NewRecorder()
+		writeErr := WriteJSON(JSONWriteCall[inventoryDocument]{
+			Writer: recorder,
+			Response: ServerJSONResponse[inventoryDocument]{
+				Body:   inventoryDocument{Name: "inventory"},
+				Status: status,
+			},
+			Policy: policy,
+		})
+		if writeErr != nil {
+			t.Fatalf("WriteJSON() error = %v, want nil", writeErr)
+		}
+		wantBody := `{"name":"inventory"}`
+		if got := recorder.Body.String(); got != wantBody {
+			t.Fatalf("WriteJSON() body = %q, want %q", got, wantBody)
+		}
+		if got := recorder.Code; got != 200 {
+			t.Fatalf("WriteJSON() status = %d, want 200", got)
+		}
+		if got := recorder.Header().Get("Content-Length"); got != strconv.Itoa(len(wantBody)) {
+			t.Fatalf("WriteJSON() Content-Length = %q, want %d", got, len(wantBody))
+		}
+	})
+
+	t.Run("invalid document writes no response", func(t *testing.T) {
+		t.Parallel()
+
+		recorder := httptest.NewRecorder()
+		call := JSONWriteCall[inventoryDocument]{
+			Writer: recorder,
+			Response: ServerJSONResponse[inventoryDocument]{
+				Body:   inventoryDocument{},
+				Status: status,
+			},
+			Policy: policy,
+		}
+		if gotErr := call.Validate(); !errors.Is(gotErr, core.ErrExchangeContract) {
+			t.Fatalf("JSONWriteCall.Validate() error = %v, want %v", gotErr, core.ErrExchangeContract)
+		}
+		writeErr := WriteJSON(call)
+		if !errors.Is(writeErr, core.ErrExchangeContract) {
+			t.Fatalf("WriteJSON(invalid document) error = %v, want %v", writeErr, core.ErrExchangeContract)
+		}
+		if got := recorder.Body.Len(); got != 0 {
+			t.Fatalf("WriteJSON(invalid document) wrote %d body bytes, want 0", got)
+		}
+	})
 }
 
 // exchangeContractInventory classifies every production struct by its real

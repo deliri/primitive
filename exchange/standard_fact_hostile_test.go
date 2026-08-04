@@ -116,7 +116,6 @@ func TestStandardHTTPFactsReachRealStandardLibraryHandoffs(t *testing.T) {
 		exchange.StandardHeaderRetryAfter,
 	}
 	for _, header := range headerCases {
-		header := header
 		t.Run(header.String(), func(t *testing.T) {
 			t.Parallel()
 
@@ -137,7 +136,6 @@ func TestStandardHTTPFactsReachRealStandardLibraryHandoffs(t *testing.T) {
 		exchange.StandardMediaTypePlainText,
 	}
 	for _, media := range mediaCases {
-		media := media
 		t.Run(media.String(), func(t *testing.T) {
 			t.Parallel()
 

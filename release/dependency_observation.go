@@ -193,7 +193,7 @@ func prepareBuildDependencyProcess(
 ) (process.Request, error) {
 	goDirectory, err := request.Tools.GoExecutable().Parent()
 	if err != nil {
-		return process.Request{}, contractError(errors.New("go tool directory is invalid"), err)
+		return process.Request{}, contractError(errors.New(goToolDirectoryInvalidDiagnostic), err)
 	}
 	environment, err := prepareBuildEnvironment(request.HostEnvironment, goDirectory, command)
 	if err != nil {
@@ -308,7 +308,7 @@ func (o *dependencyObservation) addModule(module BuildDependency) error {
 		return nil
 	}
 	if o.count >= len(o.modules) {
-		return contractError(errors.New("build dependency count exceeds its bound"))
+		return contractError(errors.New(buildDependencyCountDiagnostic))
 	}
 	copy(o.modules[index+1:o.count+1], o.modules[index:o.count])
 	o.modules[index] = module
@@ -330,5 +330,3 @@ func (o *dependencyObservation) merge(other *dependencyObservation) error {
 	}
 	return nil
 }
-
-var _ core.Validatable = BuildDependencyObservationRequest{}

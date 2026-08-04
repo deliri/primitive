@@ -176,7 +176,7 @@ func TestCoreTopLevelExportsHaveTwoNamedPrimitiveConsumers(t *testing.T) {
 		if err := admission.reason.Validate(); err != nil {
 			t.Errorf("Core special admission %s reason error = %v, want nil", admission.name, err)
 		}
-		for prior := 0; prior < index; prior++ {
+		for prior := range index {
 			if admissions[prior].name == admission.name {
 				t.Errorf("Core special admission %s is duplicated", admission.name)
 			}

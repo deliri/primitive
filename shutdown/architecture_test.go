@@ -149,8 +149,8 @@ func TestShutdownProductionStructsHaveCompilerVisibleDataFlowRoles(t *testing.T)
 
 	inventoryType := reflect.TypeFor[shutdownContractInventory]()
 	inventory := make([]string, 0, inventoryType.NumField())
-	for fieldIndex := range inventoryType.NumField() {
-		inventory = append(inventory, inventoryType.Field(fieldIndex).Name)
+	for field := range inventoryType.Fields() {
+		inventory = append(inventory, field.Name)
 	}
 	slices.Sort(inventory)
 	if !slices.Equal(production, inventory) {

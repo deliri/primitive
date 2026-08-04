@@ -45,14 +45,12 @@ func TestJSONFieldNameCacheHasFixedMemoryAdmissionBounds(t *testing.T) {
 		var workers sync.WaitGroup
 		for extent := 1; extent <= jsonFieldNameCacheEntryMaximum+32; extent++ {
 			root := reflect.ArrayOf(extent, rootElement)
-			workers.Add(1)
-			go func() {
-				defer workers.Done()
+			workers.Go(func() {
 				fields := cache.lookup(root)
 				if len(fields) != 1 || fields[0] != "name" {
 					t.Errorf("json field names for %v = %v, want [name]", root, fields)
 				}
-			}()
+			})
 		}
 		workers.Wait()
 		if got := cache.entries.Load(); got != jsonFieldNameCacheEntryMaximum {

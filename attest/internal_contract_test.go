@@ -176,6 +176,136 @@ func (internalTestDomain) ParseCanonicalText(text []byte) (internalTestDomain, e
 	return internalTestDomain{text: string(text)}, nil
 }
 
+// TestCanonicalDomainRoundTripEnforcesSelfReference drives the real generic
+// domain seam rather than assembling canonicalFacts by hand. canonicalDomain
+// projects a domain to its token through Validate and MarshalText, and
+// parseCanonicalDomain reconstructs it through ParseCanonicalText and then
+// re-projects it, refusing any domain whose reconstruction does not reproduce
+// the exact token. That re-projection is the whole point of the self-referential
+// SigningDomain constraint: without it a protocol owner could sign under one
+// domain text and verify under another. The table pressures both sides of the
+// admitted alphabet and both length boundaries.
+func TestCanonicalDomainRoundTripEnforcesSelfReference(t *testing.T) {
+	t.Parallel()
+
+	maximumText := strings.Repeat("a", SigningDomainMaximumBytes)
+	cases := []struct {
+		wantErr   error
+		name      string
+		text      string
+		wantCanon bool
+	}{
+		{name: "single admitted byte is the shortest canonical domain", text: "a", wantCanon: true},
+		{name: "single admitted digit is canonical", text: "0", wantCanon: true},
+		{name: "interior hyphen is canonical", text: "a-b", wantCanon: true},
+		{name: "multiple separated hyphens are canonical", text: "a-b-c-d", wantCanon: true},
+		{name: "digits and letters mix canonically", text: "sha256-v1", wantCanon: true},
+		{name: "exact maximum length is canonical", text: maximumText, wantCanon: true},
+		{
+			name:    "one byte above maximum length is refused",
+			text:    maximumText + "a",
+			wantErr: core.ErrAttestContract,
+		},
+		{name: "empty text is refused", text: "", wantErr: core.ErrAttestContract},
+		{name: "leading hyphen is refused", text: "-a", wantErr: core.ErrAttestContract},
+		{name: "trailing hyphen is refused", text: "a-", wantErr: core.ErrAttestContract},
+		{name: "consecutive hyphens are refused", text: "a--b", wantErr: core.ErrAttestContract},
+		{name: "lone hyphen is refused", text: "-", wantErr: core.ErrAttestContract},
+		{name: "uppercase byte is outside the admitted alphabet", text: "A", wantErr: core.ErrAttestContract},
+		{name: "underscore is outside the admitted alphabet", text: "a_b", wantErr: core.ErrAttestContract},
+		{name: "dot is outside the admitted alphabet", text: "a.b", wantErr: core.ErrAttestContract},
+		{name: "space is outside the admitted alphabet", text: "a b", wantErr: core.ErrAttestContract},
+		{name: "interior NUL is outside the admitted alphabet", text: "a\x00b", wantErr: core.ErrAttestContract},
+		{name: "non-ASCII byte is outside the admitted alphabet", text: "aéb", wantErr: core.ErrAttestContract},
+	}
+	for _, tc := range cases {
+		t.Run(tc.name, func(t *testing.T) {
+			t.Parallel()
+
+			domain := internalTestDomain{text: tc.text}
+			token, gotErr := canonicalDomain(domain)
+			if !tc.wantCanon {
+				if !errors.Is(gotErr, tc.wantErr) {
+					t.Fatalf("canonicalDomain(%q) error = %v, want %v", tc.text, gotErr, tc.wantErr)
+				}
+				if token != (domainToken{}) {
+					t.Fatalf("canonicalDomain(%q) token = %v, want the zero token", tc.text, token)
+				}
+				return
+			}
+			if gotErr != nil {
+				t.Fatalf("canonicalDomain(%q) error = %v, want nil", tc.text, gotErr)
+			}
+			if got := string(token.bytes()); got != tc.text {
+				t.Fatalf("canonicalDomain(%q) token bytes = %q, want %q", tc.text, got, tc.text)
+			}
+
+			got, err := parseCanonicalDomain[internalTestDomain](token)
+			if err != nil {
+				t.Fatalf("parseCanonicalDomain(%q) error = %v, want nil", tc.text, err)
+			}
+			if got != domain {
+				t.Fatalf("parseCanonicalDomain(%q) = %v, want %v", tc.text, got, domain)
+			}
+
+			// The reconstructed domain must re-project to the identical token,
+			// byte for byte and padding included, or a verifier could accept a
+			// domain the signer never committed to.
+			reprojected, err := canonicalDomain(got)
+			if err != nil {
+				t.Fatalf("canonicalDomain(reconstructed %q) error = %v, want nil", tc.text, err)
+			}
+			if reprojected != token {
+				t.Fatalf("re-projected token for %q = %v, want %v", tc.text, reprojected, token)
+			}
+		})
+	}
+}
+
+// TestParseCanonicalDomainRefusesUnfaithfulReconstruction proves the
+// re-projection guard is load-bearing rather than decorative. This domain's
+// ParseCanonicalText deliberately reconstructs a different value than the token
+// names, which is exactly the mistake the self-referential constraint exists to
+// catch. Deleting the projected-token comparison in parseCanonicalDomain turns
+// this red.
+func TestParseCanonicalDomainRefusesUnfaithfulReconstruction(t *testing.T) {
+	t.Parallel()
+
+	token, err := canonicalDomain(unfaithfulTestDomain{text: "signed"})
+	if err != nil {
+		t.Fatalf("canonicalDomain() error = %v, want nil", err)
+	}
+
+	got, gotErr := parseCanonicalDomain[unfaithfulTestDomain](token)
+	if !errors.Is(gotErr, core.ErrAttestContract) {
+		t.Fatalf("parseCanonicalDomain(unfaithful) error = %v, want %v", gotErr, core.ErrAttestContract)
+	}
+	if got != (unfaithfulTestDomain{}) {
+		t.Fatalf("parseCanonicalDomain(unfaithful) = %v, want the zero domain", got)
+	}
+}
+
+// unfaithfulTestDomain reconstructs a domain that is individually valid but is
+// not the one the canonical text names.
+type unfaithfulTestDomain struct {
+	text string
+}
+
+func (d unfaithfulTestDomain) Validate() error {
+	if !validDomainText([]byte(d.text)) {
+		return contractError(errors.New(domainCanonicalErrorText))
+	}
+	return nil
+}
+
+func (d unfaithfulTestDomain) MarshalText() ([]byte, error) {
+	return []byte(d.text), nil
+}
+
+func (unfaithfulTestDomain) ParseCanonicalText([]byte) (unfaithfulTestDomain, error) {
+	return unfaithfulTestDomain{text: "substituted"}, nil
+}
+
 func internalCanonicalFactsFixture(text string) func(testing.TB) canonicalFacts[internalTestDomain] {
 	return func(t testing.TB) canonicalFacts[internalTestDomain] {
 		t.Helper()

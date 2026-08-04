@@ -7,8 +7,6 @@ import (
 	"sort"
 	"strings"
 	"unicode/utf8"
-
-	"github.com/deliri/primitive/v2026/core"
 )
 
 const (
@@ -40,6 +38,17 @@ const (
 		mainPackageMaximumBytes + len(goToolchainVersionPrimitive2026)
 )
 
+// Each dependency fact is rejected from more than one admission site, so its
+// operator-facing diagnostic is named once here rather than respelled at every
+// site. One spelling per fact keeps the rejection reason attributable to the
+// contract instead of to whichever branch happened to catch it.
+const (
+	goModulePathInvalidDiagnostic    = "go module path is invalid"
+	goModuleVersionInvalidDiagnostic = "go module version is invalid"
+	goModuleSumInvalidDiagnostic     = "go module sum is invalid"
+	buildDependencyCountDiagnostic   = "build dependency count exceeds its bound"
+)
+
 // dependencyDocumentHeadroom is the compiler's proof that the largest
 // admissible module closure still projects into a document the decoder accepts.
 // A module ceiling raised past its document ceiling makes this constant
@@ -55,7 +64,7 @@ type GoModulePath struct {
 
 func parseGoModulePath(value string) (GoModulePath, error) {
 	if err := validateGoPackagePath(value, mainPackageMaximumBytes); err != nil {
-		return GoModulePath{}, contractError(errors.New("go module path is invalid"), err)
+		return GoModulePath{}, contractError(errors.New(goModulePathInvalidDiagnostic), err)
 	}
 	return GoModulePath{value: value}, nil
 }
@@ -63,7 +72,7 @@ func parseGoModulePath(value string) (GoModulePath, error) {
 func (p GoModulePath) Validate() error {
 	parsed, err := parseGoModulePath(p.value)
 	if err != nil || parsed != p {
-		return contractError(errors.New("go module path is invalid"), err)
+		return contractError(errors.New(goModulePathInvalidDiagnostic), err)
 	}
 	return nil
 }
@@ -88,11 +97,11 @@ type GoModuleVersion struct {
 // than hopeful, and every character that is hostile in argv.
 func parseGoModuleVersion(value string) (GoModuleVersion, error) {
 	if len(value) < 2 || len(value) > goModuleVersionMaximumBytes || value[0] != 'v' || !utf8.ValidString(value) {
-		return GoModuleVersion{}, contractError(errors.New("go module version is invalid"))
+		return GoModuleVersion{}, contractError(errors.New(goModuleVersionInvalidDiagnostic))
 	}
 	for _, character := range value {
 		if !goModuleVersionRune(character) {
-			return GoModuleVersion{}, contractError(errors.New("go module version is invalid"))
+			return GoModuleVersion{}, contractError(errors.New(goModuleVersionInvalidDiagnostic))
 		}
 	}
 	return GoModuleVersion{value: value}, nil
@@ -108,7 +117,7 @@ func goModuleVersionRune(character rune) bool {
 func (v GoModuleVersion) Validate() error {
 	parsed, err := parseGoModuleVersion(v.value)
 	if err != nil || parsed != v {
-		return contractError(errors.New("go module version is invalid"), err)
+		return contractError(errors.New(goModuleVersionInvalidDiagnostic), err)
 	}
 	return nil
 }
@@ -129,11 +138,11 @@ type GoModuleSum struct {
 func parseGoModuleSum(value string) (GoModuleSum, error) {
 	encoded, found := strings.CutPrefix(value, goModuleSumPrefix)
 	if !found {
-		return GoModuleSum{}, contractError(errors.New("go module sum is invalid"))
+		return GoModuleSum{}, contractError(errors.New(goModuleSumInvalidDiagnostic))
 	}
 	decoded, err := base64.StdEncoding.DecodeString(encoded)
 	if err != nil || len(decoded) != goModuleSumDigestBytes {
-		return GoModuleSum{}, contractError(errors.New("go module sum is invalid"), err)
+		return GoModuleSum{}, contractError(errors.New(goModuleSumInvalidDiagnostic), err)
 	}
 	var digest [goModuleSumDigestBytes]byte
 	copy(digest[:], decoded)
@@ -142,7 +151,7 @@ func parseGoModuleSum(value string) (GoModuleSum, error) {
 
 func (s GoModuleSum) Validate() error {
 	if !s.valid {
-		return contractError(errors.New("go module sum is invalid"))
+		return contractError(errors.New(goModuleSumInvalidDiagnostic))
 	}
 	return nil
 }
@@ -202,7 +211,7 @@ type BuildDependencies struct {
 
 type buildDependencyStorage struct {
 	modules [BuildDependencyMaximumCount]BuildDependency
-	count   uint16
+	count   int
 }
 
 func newBuildDependencies(
@@ -211,13 +220,13 @@ func newBuildDependencies(
 	modules []BuildDependency,
 ) (BuildDependencies, error) {
 	if len(modules) > BuildDependencyMaximumCount {
-		return BuildDependencies{}, contractError(errors.New("build dependency count exceeds its bound"))
+		return BuildDependencies{}, contractError(errors.New(buildDependencyCountDiagnostic))
 	}
 	ordered := append([]BuildDependency(nil), modules...)
 	sort.Slice(ordered, func(left, right int) bool {
 		return ordered[left].path.value < ordered[right].path.value
 	})
-	storage := &buildDependencyStorage{count: uint16(len(ordered))}
+	storage := &buildDependencyStorage{count: len(ordered)}
 	copy(storage.modules[:], ordered)
 	value := BuildDependencies{storage: storage, main: main, goToolchain: toolchain, valid: true}
 	if err := value.Validate(); err != nil {
@@ -227,7 +236,8 @@ func newBuildDependencies(
 }
 
 func (d BuildDependencies) Validate() error {
-	if !d.valid || d.storage == nil || int(d.storage.count) > len(d.storage.modules) {
+	if !d.valid || d.storage == nil ||
+		d.storage.count < 0 || d.storage.count > len(d.storage.modules) {
 		return contractError(errors.New("build dependencies are unset or outside storage bounds"))
 	}
 	for _, err := range [...]error{d.main.Validate(), d.goToolchain.Validate()} {
@@ -317,7 +327,7 @@ func buildDependenciesFromWire(w buildDependenciesWire) (BuildDependencies, erro
 		return BuildDependencies{}, err
 	}
 	if len(w.Modules) > BuildDependencyMaximumCount {
-		return BuildDependencies{}, contractError(errors.New("build dependency count exceeds its bound"))
+		return BuildDependencies{}, contractError(errors.New(buildDependencyCountDiagnostic))
 	}
 	modules := make([]BuildDependency, len(w.Modules))
 	for index, module := range w.Modules {
@@ -342,17 +352,11 @@ func (d BuildDependencies) Count() int {
 	if d.Validate() != nil {
 		return 0
 	}
-	return int(d.storage.count)
+	return d.storage.count
 }
 func (d BuildDependencies) At(index int) (BuildDependency, bool) {
-	if d.Validate() != nil || index < 0 || index >= int(d.storage.count) {
+	if d.Validate() != nil || index < 0 || index >= d.storage.count {
 		return BuildDependency{}, false
 	}
 	return d.storage.modules[index], true
 }
-
-var _ core.Validatable = GoModulePath{}
-var _ core.Validatable = GoModuleVersion{}
-var _ core.Validatable = GoModuleSum{}
-var _ core.Validatable = BuildDependency{}
-var _ core.Validatable = BuildDependencies{}

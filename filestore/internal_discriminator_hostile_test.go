@@ -1,6 +1,7 @@
 package filestore
 
 import (
+	"encoding/json"
 	"errors"
 	"io/fs"
 	"math"
@@ -66,5 +67,52 @@ func TestInternalDiscriminatorDomainsExhaustBackingType(t *testing.T) {
 			t.Fatalf("directoryPosition(%d) validity/text = (%t, %q), want admitted=%t",
 				raw, position.IsValid(), position.String(), wantPosition)
 		}
+		if destination.IsValid() && (destination.Validate() != nil) {
+			t.Fatalf("streamDestination(%d).Validate() error = %v, want nil",
+				raw, destination.Validate())
+		}
+		if !destination.IsValid() && !errors.Is(destination.Validate(), core.ErrFilestoreContract) {
+			t.Fatalf("streamDestination(%d).Validate() error = %v, want %v",
+				raw, destination.Validate(), core.ErrFilestoreContract)
+		}
+		if position.IsValid() && (position.Validate() != nil) {
+			t.Fatalf("directoryPosition(%d).Validate() error = %v, want nil",
+				raw, position.Validate())
+		}
+		if !position.IsValid() && !errors.Is(position.Validate(), core.ErrFilestoreContract) {
+			t.Fatalf("directoryPosition(%d).Validate() error = %v, want %v",
+				raw, position.Validate(), core.ErrFilestoreContract)
+		}
+	}
+	proveInternalDiscriminatorsStayOffWire(t, streamDestinationFile, directoryFinal)
+}
+
+// proveInternalDiscriminatorsStayOffWire proves the claim each internal
+// discriminator's off-wire marker makes. Both select filesystem behavior:
+// streamDestination picks which failure identity a bounded copy reports, and
+// directoryPosition picks whether a chain element may already exist. Giving
+// either a JSON encoding would let a decoded document choose that behavior. The
+// package's external off-wire sweep cannot name these two, so the same proof is
+// extended to them here. Adding MarshalJSON or UnmarshalJSON turns this red.
+func proveInternalDiscriminatorsStayOffWire(
+	t *testing.T,
+	destination streamDestination,
+	position directoryPosition,
+) {
+	t.Helper()
+
+	destination.OffWireEnum()
+	position.OffWireEnum()
+	if _, encodes := any(destination).(json.Marshaler); encodes {
+		t.Fatalf("streamDestination(%d) implements json.Marshaler, want an off-wire enum", destination)
+	}
+	if _, decodes := any(&destination).(json.Unmarshaler); decodes {
+		t.Fatalf("*streamDestination(%d) implements json.Unmarshaler, want an off-wire enum", destination)
+	}
+	if _, encodes := any(position).(json.Marshaler); encodes {
+		t.Fatalf("directoryPosition(%d) implements json.Marshaler, want an off-wire enum", position)
+	}
+	if _, decodes := any(&position).(json.Unmarshaler); decodes {
+		t.Fatalf("*directoryPosition(%d) implements json.Unmarshaler, want an off-wire enum", position)
 	}
 }

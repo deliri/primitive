@@ -64,7 +64,6 @@ func TestRFC3161MediaTypesReachRealMIMEHandoff(t *testing.T) {
 		timeproof.MediaTypeResponse,
 	}
 	for _, media := range cases {
-		media := media
 		t.Run(media.String(), func(t *testing.T) {
 			t.Parallel()
 
