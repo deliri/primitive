@@ -253,7 +253,7 @@ func fixtureVerifiedManifest(t *testing.T) release.VerifiedManifest {
 		t.Fatalf("release.NewManifestFact() error = %v", err)
 	}
 	key := fixtureSigningKey()
-	document, err := release.IssueManifest(release.IssueManifestRequest{Key: key, Fact: fact})
+	document, err := release.IssueManifest(release.IssueManifestRequest{Signer: key, Fact: fact})
 	if err != nil {
 		t.Fatalf("release.IssueManifest() error = %v", err)
 	}

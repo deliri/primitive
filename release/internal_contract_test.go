@@ -20,73 +20,89 @@ type (
 )
 
 type releaseContractInventory struct {
-	embeddedBuildIdentityText    internalFlow[embeddedBuildIdentityText]
-	MainPackage                  protocolFact[MainPackage]
-	LinkerAssignment             protocolFact[LinkerAssignment]
-	LinkerAssignments            protocolFact[LinkerAssignments]
-	BuildPlanRequest             protocolFact[BuildPlanRequest]
-	BuildCommand                 capabilityWrapper[BuildCommand]
-	BuildPlan                    capabilityWrapper[BuildPlan]
-	BuildProcessRequest          protocolFact[BuildProcessRequest]
-	BuildToolVerificationRequest protocolFact[BuildToolVerificationRequest]
-	VerifiedBuildTools           capabilityWrapper[VerifiedBuildTools]
-	ArtifactInspectionRequest    protocolFact[ArtifactInspectionRequest]
-	artifactByteInspection       internalFlow[artifactByteInspection]
-	artifactPatternFinder        internalFlow[artifactPatternFinder]
-	AdvanceLatestRequest         protocolFact[AdvanceLatestRequest]
-	LatestAdvance                capabilityWrapper[LatestAdvance]
-	ArtifactIdentity             protocolFact[ArtifactIdentity]
-	BinaryFilename               protocolFact[BinaryFilename]
-	ArtifactIntegrity            protocolFact[ArtifactIntegrity]
-	artifactIntegrityWire        internalFlow[artifactIntegrityWire]
-	ArtifactRequest              protocolFact[ArtifactRequest]
-	Artifact                     protocolFact[Artifact]
-	artifactWire                 internalFlow[artifactWire]
-	TargetSet                    protocolFact[TargetSet]
-	ArtifactSetRequest           protocolFact[ArtifactSetRequest]
-	ArtifactSet                  protocolFact[ArtifactSet]
-	MetadataAssetRequest         protocolFact[MetadataAssetRequest]
-	MetadataInspectionRequest    protocolFact[MetadataInspectionRequest]
-	MetadataAsset                protocolFact[MetadataAsset]
-	metadataAssetWire            internalFlow[metadataAssetWire]
-	MetadataSetRequest           protocolFact[MetadataSetRequest]
-	MetadataSet                  protocolFact[MetadataSet]
-	BuildProvenanceRequest       protocolFact[BuildProvenanceRequest]
-	BuildProvenance              protocolFact[BuildProvenance]
-	linkerAssignmentWire         internalFlow[linkerAssignmentWire]
-	buildProvenanceWire          internalFlow[buildProvenanceWire]
-	AssessLatestRequest          protocolFact[AssessLatestRequest]
-	LatestAssessment             capabilityWrapper[LatestAssessment]
-	Generation                   protocolFact[Generation]
-	LatestIdentity               protocolFact[LatestIdentity]
-	LatestFact                   protocolFact[LatestFact]
-	latestFactWire               internalFlow[latestFactWire]
-	LatestDocument               protocolFact[LatestDocument]
-	IssueLatestRequest           protocolFact[IssueLatestRequest]
-	VerifyLatestRequest          protocolFact[VerifyLatestRequest]
-	VerifiedLatest               capabilityWrapper[VerifiedLatest]
-	ManifestIdentity             protocolFact[ManifestIdentity]
-	ManifestDocumentDigest       protocolFact[ManifestDocumentDigest]
-	ManifestFactRequest          protocolFact[ManifestFactRequest]
-	ManifestFact                 protocolFact[ManifestFact]
-	manifestFactWire             internalFlow[manifestFactWire]
-	manifestIdentityWire         internalFlow[manifestIdentityWire]
-	ManifestDocument             protocolFact[ManifestDocument]
-	IssueManifestRequest         protocolFact[IssueManifestRequest]
-	VerifyManifestRequest        protocolFact[VerifyManifestRequest]
-	VerifiedManifest             capabilityWrapper[VerifiedManifest]
-	CachedLatest                 capabilityWrapper[CachedLatest]
-	EvaluateRequest              protocolFact[EvaluateRequest]
-	CurrentRelease               capabilityWrapper[CurrentRelease]
-	CurrentSummary               protocolFact[CurrentSummary]
-	AvailableRelease             capabilityWrapper[AvailableRelease]
-	AvailableSummary             protocolFact[AvailableSummary]
-	RefreshDirective             protocolFact[RefreshDirective]
-	ReassessDirective            protocolFact[ReassessDirective]
-	Selection                    capabilityWrapper[Selection]
-	PreparedRelease              capabilityWrapper[PreparedRelease]
-	Preparation                  capabilityWrapper[Preparation]
-	OfferingMismatchError        failureDetail[OfferingMismatchError]
+	embeddedBuildIdentityText         internalFlow[embeddedBuildIdentityText]
+	MainPackage                       protocolFact[MainPackage]
+	LinkerAssignment                  protocolFact[LinkerAssignment]
+	LinkerAssignments                 protocolFact[LinkerAssignments]
+	BuildTag                          protocolFact[BuildTag]
+	BuildTags                         protocolFact[BuildTags]
+	BuildPlanRequest                  protocolFact[BuildPlanRequest]
+	BuildCommand                      capabilityWrapper[BuildCommand]
+	BuildPlan                         capabilityWrapper[BuildPlan]
+	BuildProcessRequest               protocolFact[BuildProcessRequest]
+	BuildToolVerificationRequest      protocolFact[BuildToolVerificationRequest]
+	VerifiedBuildTools                capabilityWrapper[VerifiedBuildTools]
+	GoModulePath                      protocolFact[GoModulePath]
+	GoModuleVersion                   protocolFact[GoModuleVersion]
+	GoModuleSum                       protocolFact[GoModuleSum]
+	BuildDependency                   protocolFact[BuildDependency]
+	BuildDependencies                 protocolFact[BuildDependencies]
+	buildDependencyStorage            internalFlow[buildDependencyStorage]
+	buildDependencyWire               internalFlow[buildDependencyWire]
+	buildDependenciesWire             internalFlow[buildDependenciesWire]
+	BuildDependencyObservationRequest protocolFact[BuildDependencyObservationRequest]
+	goListModuleWire                  internalFlow[goListModuleWire]
+	goListErrorWire                   failureDetail[goListErrorWire]
+	goListPackageWire                 internalFlow[goListPackageWire]
+	dependencyObservation             internalFlow[dependencyObservation]
+	dependencyProcessOutcome          internalFlow[dependencyProcessOutcome]
+	ArtifactInspectionRequest         protocolFact[ArtifactInspectionRequest]
+	artifactByteInspection            internalFlow[artifactByteInspection]
+	artifactPatternFinder             internalFlow[artifactPatternFinder]
+	AdvanceLatestRequest              protocolFact[AdvanceLatestRequest]
+	LatestAdvance                     capabilityWrapper[LatestAdvance]
+	ArtifactIdentity                  protocolFact[ArtifactIdentity]
+	BinaryFilename                    protocolFact[BinaryFilename]
+	ArtifactIntegrity                 protocolFact[ArtifactIntegrity]
+	artifactIntegrityWire             internalFlow[artifactIntegrityWire]
+	ArtifactRequest                   protocolFact[ArtifactRequest]
+	Artifact                          protocolFact[Artifact]
+	artifactWire                      internalFlow[artifactWire]
+	TargetSet                         protocolFact[TargetSet]
+	ArtifactSetRequest                protocolFact[ArtifactSetRequest]
+	ArtifactSet                       protocolFact[ArtifactSet]
+	MetadataAssetRequest              protocolFact[MetadataAssetRequest]
+	MetadataInspectionRequest         protocolFact[MetadataInspectionRequest]
+	MetadataAsset                     protocolFact[MetadataAsset]
+	metadataAssetWire                 internalFlow[metadataAssetWire]
+	MetadataSetRequest                protocolFact[MetadataSetRequest]
+	MetadataSet                       protocolFact[MetadataSet]
+	BuildProvenanceRequest            protocolFact[BuildProvenanceRequest]
+	BuildProvenance                   protocolFact[BuildProvenance]
+	linkerAssignmentWire              internalFlow[linkerAssignmentWire]
+	buildProvenanceWire               internalFlow[buildProvenanceWire]
+	AssessLatestRequest               protocolFact[AssessLatestRequest]
+	LatestAssessment                  capabilityWrapper[LatestAssessment]
+	Generation                        protocolFact[Generation]
+	LatestIdentity                    protocolFact[LatestIdentity]
+	LatestFact                        protocolFact[LatestFact]
+	latestFactWire                    internalFlow[latestFactWire]
+	LatestDocument                    protocolFact[LatestDocument]
+	IssueLatestRequest                protocolFact[IssueLatestRequest]
+	VerifyLatestRequest               protocolFact[VerifyLatestRequest]
+	VerifiedLatest                    capabilityWrapper[VerifiedLatest]
+	ManifestIdentity                  protocolFact[ManifestIdentity]
+	ManifestDocumentDigest            protocolFact[ManifestDocumentDigest]
+	ManifestFactRequest               protocolFact[ManifestFactRequest]
+	ManifestFact                      protocolFact[ManifestFact]
+	manifestFactWire                  internalFlow[manifestFactWire]
+	manifestIdentityWire              internalFlow[manifestIdentityWire]
+	ManifestDocument                  protocolFact[ManifestDocument]
+	IssueManifestRequest              protocolFact[IssueManifestRequest]
+	VerifyManifestRequest             protocolFact[VerifyManifestRequest]
+	VerifiedManifest                  capabilityWrapper[VerifiedManifest]
+	CachedLatest                      capabilityWrapper[CachedLatest]
+	EvaluateRequest                   protocolFact[EvaluateRequest]
+	CurrentRelease                    capabilityWrapper[CurrentRelease]
+	CurrentSummary                    protocolFact[CurrentSummary]
+	AvailableRelease                  capabilityWrapper[AvailableRelease]
+	AvailableSummary                  protocolFact[AvailableSummary]
+	RefreshDirective                  protocolFact[RefreshDirective]
+	ReassessDirective                 protocolFact[ReassessDirective]
+	Selection                         capabilityWrapper[Selection]
+	PreparedRelease                   capabilityWrapper[PreparedRelease]
+	Preparation                       capabilityWrapper[Preparation]
+	OfferingMismatchError             failureDetail[OfferingMismatchError]
 }
 
 var (
@@ -102,6 +118,14 @@ var (
 	_ = releaseContractInventory{}.metadataAssetWire
 	_ = releaseContractInventory{}.linkerAssignmentWire
 	_ = releaseContractInventory{}.buildProvenanceWire
+	_ = releaseContractInventory{}.goListModuleWire
+	_ = releaseContractInventory{}.goListErrorWire
+	_ = releaseContractInventory{}.goListPackageWire
+	_ = releaseContractInventory{}.dependencyObservation
+	_ = releaseContractInventory{}.dependencyProcessOutcome
+	_ = releaseContractInventory{}.buildDependencyStorage
+	_ = releaseContractInventory{}.buildDependencyWire
+	_ = releaseContractInventory{}.buildDependenciesWire
 )
 
 func TestProductionStructsHaveCompilerVisibleDataFlowRoles(t *testing.T) {
@@ -148,6 +172,7 @@ func TestPublicOperationsAreExactReleaseIntent(t *testing.T) {
 		"NewArtifact",
 		"NewArtifactSet",
 		"NewBuildProvenance",
+		"NewBuildTags",
 		"NewCachedLatest",
 		"NewGeneration",
 		"NewLinkerAssignment",
@@ -155,6 +180,8 @@ func TestPublicOperationsAreExactReleaseIntent(t *testing.T) {
 		"NewManifestFact",
 		"NewMetadataAsset",
 		"NewMetadataSet",
+		"ObserveBuildDependencies",
+		"ParseBuildTag",
 		"ParseMainPackage",
 		"PrepareBuildPlan",
 		"PrepareBuildProcess",

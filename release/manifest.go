@@ -1,7 +1,7 @@
 package release
 
 import (
-	"crypto/ed25519"
+	"crypto"
 	"crypto/sha256"
 	"encoding/json"
 	"errors"
@@ -353,13 +353,13 @@ func (d *ManifestDocument) UnmarshalJSON(data []byte) error {
 }
 
 type IssueManifestRequest struct {
-	Key  ed25519.PrivateKey
-	Fact ManifestFact
+	Signer crypto.Signer
+	Fact   ManifestFact
 }
 
 // Validate delegates signing-key custody and body validation to Attest.
 func (r IssueManifestRequest) Validate() error {
-	if err := (attest.SignRequest[Domain]{Body: r.Fact, Signer: r.Key}).Validate(); err != nil {
+	if err := (attest.SignRequest[Domain]{Body: r.Fact, Signer: r.Signer}).Validate(); err != nil {
 		return manifestError(err)
 	}
 	return nil
@@ -369,7 +369,7 @@ func IssueManifest(request IssueManifestRequest) (ManifestDocument, error) {
 	if err := request.Validate(); err != nil {
 		return ManifestDocument{}, err
 	}
-	envelope, err := attest.Sign(attest.SignRequest[Domain]{Body: request.Fact, Signer: request.Key})
+	envelope, err := attest.Sign(attest.SignRequest[Domain]{Body: request.Fact, Signer: request.Signer})
 	if err != nil {
 		return ManifestDocument{}, manifestError(err)
 	}

@@ -23,3 +23,26 @@ func decodeStructure[T any](data []byte) (T, error) {
 	}
 	return value, nil
 }
+
+// decodeDependencyStructure applies the dependency document's own admission
+// contract. The customer-visible dependency document is the one Release wire
+// structure whose array cardinality is the module ceiling rather than the
+// linker-assignment ceiling, so it declares both bounds separately instead of
+// widening every other Release document.
+func decodeDependencyStructure[T any](data []byte) (T, error) {
+	var zero T
+	maximum, err := core.NewByteCount(dependencyDocumentExtentMaximum)
+	if err != nil {
+		return zero, jsonError(err)
+	}
+	value, err := core.DecodeStrictJSONStructure[T](data, core.StrictJSONLimits{
+		DocumentMaximumBytes: maximum,
+		NestingDepthMaximum:  core.JSONNestingDepthMaximum,
+		ObjectFieldMaximum:   core.JSONObjectFieldCountMaximum,
+		ArrayItemMaximum:     BuildDependencyMaximumCount,
+	})
+	if err != nil {
+		return zero, jsonError(err)
+	}
+	return value, nil
+}

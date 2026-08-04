@@ -250,7 +250,7 @@ func TestAdvanceLatestTreatsSignerRotationAsDocumentIdentity(t *testing.T) {
 	rotatedManifestKey := deterministicKey(73)
 	manifestTrust := trustedKeys(t, fixture.manifestKey, rotatedManifestKey)
 	rotatedManifestDocument, err := IssueManifest(IssueManifestRequest{
-		Fact: fixture.manifest.Fact, Key: rotatedManifestKey,
+		Fact: fixture.manifest.Fact, Signer: rotatedManifestKey,
 	})
 	if err != nil {
 		t.Fatalf("IssueManifest(rotated signer) error = %v", err)

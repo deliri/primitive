@@ -92,7 +92,7 @@ func newReleaseFixtureForOffering(
 	if err != nil {
 		t.Fatalf("NewManifestFact() error = %v", err)
 	}
-	manifest, err := IssueManifest(IssueManifestRequest{Fact: fact, Key: manifestKey})
+	manifest, err := IssueManifest(IssueManifestRequest{Fact: fact, Signer: manifestKey})
 	if err != nil {
 		t.Fatalf("IssueManifest() error = %v", err)
 	}

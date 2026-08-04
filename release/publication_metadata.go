@@ -373,6 +373,7 @@ type BuildProvenanceRequest struct {
 type BuildProvenance struct {
 	mainPackage            MainPackage
 	linkerAssignments      LinkerAssignments
+	buildTags              BuildTags
 	goExecutableDigest     core.SHA256Digest
 	garbleExecutableDigest core.SHA256Digest
 	garbleTool             garble.ToolIdentity
@@ -400,6 +401,7 @@ type buildProvenanceWire struct {
 	GoToolchain            string                 `json:"go_toolchain"`
 	MainPackage            string                 `json:"main_package"`
 	ModuleMode             string                 `json:"module_mode"`
+	BuildTags              []string               `json:"build_tags"`
 	LinkerAssignments      []linkerAssignmentWire `json:"linker_assignments"`
 	GoExecutableSHA256     core.SHA256Digest      `json:"go_executable_sha256"`
 	GarbleExecutableSHA256 core.SHA256Digest      `json:"garble_executable_sha256"`
@@ -440,7 +442,8 @@ func buildProvenance(request BuildProvenanceRequest) (BuildProvenance, error) {
 		return BuildProvenance{}, manifestError(err)
 	}
 	value := BuildProvenance{
-		linkerAssignments: plan.LinkerAssignments, mainPackage: plan.MainPackage,
+		linkerAssignments: plan.LinkerAssignments, buildTags: plan.BuildTags,
+		mainPackage:            plan.MainPackage,
 		goExecutableDigest:     request.Tools.GoExecutableDigest(),
 		garbleExecutableDigest: request.Tools.GarbleExecutableDigest(),
 		garbleTool:             request.Tools.GarbleTool(), goToolchain: request.Tools.GoToolchain(),
@@ -461,7 +464,7 @@ func (p BuildProvenance) Validate() error {
 		return manifestError(errors.New("build provenance is unset"))
 	}
 	for _, err := range []error{
-		p.linkerAssignments.Validate(), p.mainPackage.Validate(),
+		p.linkerAssignments.Validate(), p.buildTags.Validate(), p.mainPackage.Validate(),
 		p.goExecutableDigest.Validate(), p.garbleExecutableDigest.Validate(),
 		p.garbleTool.Validate(), p.goToolchain.Validate(), p.moduleMode.Validate(),
 		p.literals.Validate(), p.diagnostics.Validate(), p.derivationGeneration.Validate(),
@@ -525,7 +528,12 @@ func (p BuildProvenance) wire() (buildProvenanceWire, error) {
 		value := p.linkerAssignments.values[index]
 		assignments[index] = linkerAssignmentWire{Symbol: value.symbol, Value: value.value}
 	}
+	tags := make([]string, p.buildTags.count)
+	for index := range p.buildTags.count {
+		tags[index] = p.buildTags.values[index].value
+	}
 	return buildProvenanceWire{
+		BuildTags:   tags,
 		GoToolchain: goVersion, GoExecutableSHA256: p.goExecutableDigest,
 		GarbleModule: module, GarbleVersion: version, GarbleRevision: revision,
 		GarbleModuleSum: sum, GarbleExecutableSHA256: p.garbleExecutableDigest,
@@ -560,7 +568,7 @@ func buildProvenanceFromWire(w buildProvenanceWire) (BuildProvenance, error) {
 	if err != nil {
 		return BuildProvenance{}, err
 	}
-	linkers, err := linkerAssignmentsFromWire(w.LinkerAssignments)
+	linkers, tags, err := buildSelectorsFromWire(w)
 	if err != nil {
 		return BuildProvenance{}, err
 	}
@@ -577,7 +585,7 @@ func buildProvenanceFromWire(w buildProvenanceWire) (BuildProvenance, error) {
 		return BuildProvenance{}, manifestError(err)
 	}
 	candidate := BuildProvenance{
-		linkerAssignments: linkers, mainPackage: mainPackage,
+		linkerAssignments: linkers, buildTags: tags, mainPackage: mainPackage,
 		goExecutableDigest: w.GoExecutableSHA256, garbleExecutableDigest: w.GarbleExecutableSHA256,
 		garbleTool: garbleTool, goToolchain: goToolchain,
 		moduleMode: moduleMode, literals: literals, diagnostics: diagnostics,
@@ -612,12 +620,46 @@ func parseBuildProvenanceTools(
 	return goToolchain, garbleTool, derivation, nil
 }
 
+// buildSelectorsFromWire reconstructs the two compiler-owned selector sets that
+// decide what the release build compiled. A published provenance document is
+// already canonical, so a reordered or duplicated set is rejected by the owning
+// constructor rather than silently canonicalized.
+func buildSelectorsFromWire(w buildProvenanceWire) (LinkerAssignments, BuildTags, error) {
+	linkers, err := linkerAssignmentsFromWire(w.LinkerAssignments)
+	if err != nil {
+		return LinkerAssignments{}, BuildTags{}, err
+	}
+	tags, err := buildTagsFromWire(w.BuildTags)
+	if err != nil {
+		return LinkerAssignments{}, BuildTags{}, err
+	}
+	return linkers, tags, nil
+}
+
+func buildTagsFromWire(wire []string) (BuildTags, error) {
+	tags := make([]BuildTag, len(wire))
+	for index, value := range wire {
+		tag, err := ParseBuildTag(value)
+		if err != nil {
+			return BuildTags{}, err
+		}
+		if index > 0 && tags[index-1].value >= tag.value {
+			return BuildTags{}, manifestError(errors.New("build tags are not unique and sorted"))
+		}
+		tags[index] = tag
+	}
+	return NewBuildTags(tags)
+}
+
 func linkerAssignmentsFromWire(wire []linkerAssignmentWire) (LinkerAssignments, error) {
 	assignments := make([]LinkerAssignment, len(wire))
 	for index, value := range wire {
 		assignment, err := NewLinkerAssignment(value.Symbol, value.Value)
 		if err != nil {
 			return LinkerAssignments{}, err
+		}
+		if index > 0 && assignments[index-1].symbol >= assignment.symbol {
+			return LinkerAssignments{}, manifestError(errors.New("linker assignments are not unique and sorted"))
 		}
 		assignments[index] = assignment
 	}

@@ -20,6 +20,10 @@ const (
 	linkerSymbolMaximumBytes      = 512
 	linkerValueMaximumBytes       = 512
 	linkerAssignmentMaximumCount  = 16
+	buildTagMaximumBytes          = 64
+	buildTagMaximumCount          = 16
+	buildTagSeparator             = ","
+	goBuildTagArgumentPrefix      = "-tags="
 	goTrimpathArgument            = "-trimpath"
 	goDisableBuildVCSArgument     = "-buildvcs=false"
 	goDisablePGOArgument          = "-pgo=off"
@@ -70,6 +74,21 @@ func (m BuildModuleMode) Validate() error {
 // IsValid reports membership in the closed module-mode domain.
 func (m BuildModuleMode) IsValid() bool { return m.Validate() == nil }
 
+// validateChecksumObservable rejects a module mode whose package closure cmd/go
+// reports without go.sum content digests. A vendored closure resolves every
+// module from the vendor tree, which carries no checksum, so a vendored build
+// cannot produce checksum-backed dependency provenance and must not silently
+// publish version-only dependency facts as if they were pinned.
+func (m BuildModuleMode) validateChecksumObservable() error {
+	if err := m.Validate(); err != nil {
+		return err
+	}
+	if m != BuildModuleReadonly {
+		return contractError(errors.New("module mode reports no module checksums: " + m.String()))
+	}
+	return nil
+}
+
 // OffWireEnum declares BuildModuleMode as local build execution policy.
 func (BuildModuleMode) OffWireEnum() {}
 
@@ -109,6 +128,142 @@ func (p MainPackage) String() string {
 		return ""
 	}
 	return p.value
+}
+
+// BuildTag is one bounded Go build constraint admitted into a release build.
+type BuildTag struct {
+	value string
+}
+
+// ParseBuildTag validates one Go build-constraint identifier.
+func ParseBuildTag(value string) (BuildTag, error) {
+	if err := validateBuildTag(value); err != nil {
+		return BuildTag{}, contractError(errors.New("build tag is invalid"), err)
+	}
+	return BuildTag{value: value}, nil
+}
+
+// Validate rejects an unset or noncanonical build tag.
+func (t BuildTag) Validate() error {
+	parsed, err := ParseBuildTag(t.value)
+	if err != nil || parsed != t {
+		return contractError(errors.New("build tag is invalid"), err)
+	}
+	return nil
+}
+
+// String returns the canonical constraint word, or empty text when invalid.
+func (t BuildTag) String() string {
+	if t.Validate() != nil {
+		return ""
+	}
+	return t.value
+}
+
+// validateBuildTag admits the exact go/build constraint word grammar. Every tag
+// reaches cmd/go and Garble inside one comma-separated argument element, so a
+// separator, a flag prefix, a negation, or a space is rejected here instead of
+// silently splitting one tag into two or reaching argv as a flag.
+func validateBuildTag(value string) error {
+	if value == "" || len(value) > buildTagMaximumBytes || !utf8.ValidString(value) {
+		return errors.New("build tag has invalid length or encoding")
+	}
+	for _, character := range value {
+		if !unicode.IsLetter(character) && !unicode.IsDigit(character) &&
+			character != '_' && character != '.' {
+			return errors.New("build tag contains an unsupported character")
+		}
+	}
+	return nil
+}
+
+// BuildTags is a bounded, tag-sorted, distinct set of build constraints.
+type BuildTags struct {
+	values [buildTagMaximumCount]BuildTag
+	count  int
+}
+
+// NewBuildTags validates, sorts, and rejects duplicate build tags.
+func NewBuildTags(values []BuildTag) (BuildTags, error) {
+	if len(values) > buildTagMaximumCount {
+		return BuildTags{}, contractError(errors.New("build tag count exceeds its bound"))
+	}
+	ordered := append([]BuildTag(nil), values...)
+	for _, tag := range ordered {
+		if err := tag.Validate(); err != nil {
+			return BuildTags{}, err
+		}
+	}
+	sort.Slice(ordered, func(left, right int) bool {
+		return ordered[left].value < ordered[right].value
+	})
+	var set BuildTags
+	for index, tag := range ordered {
+		if index > 0 && ordered[index-1].value == tag.value {
+			return BuildTags{}, contractError(errors.New("build tag is duplicated"))
+		}
+		set.values[index] = tag
+	}
+	set.count = len(ordered)
+	return set, nil
+}
+
+// Validate proves canonical ordering, uniqueness, count, and zero padding.
+func (s BuildTags) Validate() error {
+	if s.count < 0 || s.count > len(s.values) {
+		return contractError(errors.New("build tag count is outside its storage bounds"))
+	}
+	for index, tag := range s.values[:s.count] {
+		if err := tag.Validate(); err != nil {
+			return err
+		}
+		if index > 0 && s.values[index-1].value >= tag.value {
+			return contractError(errors.New("build tags are not unique and sorted"))
+		}
+	}
+	for _, padding := range s.values[s.count:] {
+		if padding != (BuildTag{}) {
+			return contractError(errors.New("build tag padding is nonzero"))
+		}
+	}
+	return nil
+}
+
+// Count returns the number of admitted build tags.
+func (s BuildTags) Count() int {
+	if s.Validate() != nil {
+		return 0
+	}
+	return s.count
+}
+
+// At returns one validated build tag in ascending order.
+func (s BuildTags) At(index int) (BuildTag, bool) {
+	if s.Validate() != nil || index < 0 || index >= s.count {
+		return BuildTag{}, false
+	}
+	return s.values[index], true
+}
+
+// Argument returns the exact -tags argument for a nonempty set and empty text
+// for the empty set. The empty set is cmd/go's own default constraint state,
+// which is not the same request as an empty -tags list.
+func (s BuildTags) Argument() (string, error) {
+	if err := s.Validate(); err != nil {
+		return "", err
+	}
+	if s.count == 0 {
+		return "", nil
+	}
+	var argument strings.Builder
+	argument.WriteString(goBuildTagArgumentPrefix)
+	for index, tag := range s.values[:s.count] {
+		if index > 0 {
+			argument.WriteString(buildTagSeparator)
+		}
+		argument.WriteString(tag.value)
+	}
+	return argument.String(), nil
 }
 
 // LinkerAssignment is one bounded Go linker -X symbol/value pair.
@@ -221,6 +376,7 @@ type BuildPlanRequest struct {
 	MainPackage       MainPackage
 	OutputDirectory   core.RelativePath
 	LinkerAssignments LinkerAssignments
+	BuildTags         BuildTags
 	Version           core.ReleaseVersion
 	Commit            core.BuildCommit
 	Garble            garble.BuildIntent
@@ -235,6 +391,7 @@ func (r BuildPlanRequest) Validate() error {
 		r.Offering.Validate(), r.Version.Validate(), r.Commit.Validate(),
 		r.MainPackage.Validate(), r.OutputDirectory.Validate(),
 		r.GoToolchain.Validate(), r.ModuleMode.Validate(), r.LinkerAssignments.Validate(),
+		r.BuildTags.Validate(),
 	} {
 		if err != nil {
 			return contractError(errors.New("build plan request is invalid"), err)
@@ -259,6 +416,7 @@ type BuildCommand struct {
 	outputDirectory   core.RelativePath
 	output            core.RelativePath
 	linkerAssignments LinkerAssignments
+	buildTags         BuildTags
 	build             core.BuildIdentity
 	garble            garble.BuildIntent
 	goToolchain       GoToolchainIdentity
@@ -274,7 +432,7 @@ func (c BuildCommand) Validate() error {
 	for _, err := range []error{
 		c.build.Validate(), c.mainPackage.Validate(), c.outputDirectory.Validate(),
 		c.output.Validate(), c.goToolchain.Validate(), c.moduleMode.Validate(),
-		c.linkerAssignments.Validate(),
+		c.linkerAssignments.Validate(), c.buildTags.Validate(),
 	} {
 		if err != nil {
 			return contractError(errors.New("build command is invalid"), err)
@@ -339,7 +497,11 @@ func (c BuildCommand) ArgumentValues() ([]string, error) {
 	if err != nil {
 		return nil, err
 	}
-	arguments := make([]string, 0, 12)
+	selectors, err := c.closureSelectorArguments()
+	if err != nil {
+		return nil, err
+	}
+	arguments := make([]string, 0, 14)
 	for argument := range garbleArguments {
 		value, textErr := argument.Text()
 		if textErr != nil {
@@ -351,13 +513,31 @@ func (c BuildCommand) ArgumentValues() ([]string, error) {
 		goTrimpathArgument,
 		goDisableBuildVCSArgument,
 		goDisablePGOArgument,
-		goModuleArgumentPrefix+c.moduleMode.String(),
+	)
+	arguments = append(arguments, selectors...)
+	arguments = append(arguments,
 		goLinkerArgumentPrefix+c.linkerFlags(),
 		goOutputArgument,
 		c.output.String(),
 		c.mainPackage.String(),
 	)
 	return arguments, nil
+}
+
+// closureSelectorArguments returns the exact arguments that decide which Go
+// files enter this command's package closure. The Garble build and the
+// pre-Garble dependency observation both lower through this one projection, so
+// the observed module closure cannot drift from the compiled closure.
+func (c BuildCommand) closureSelectorArguments() ([]string, error) {
+	tags, err := c.buildTags.Argument()
+	if err != nil {
+		return nil, err
+	}
+	selectors := make([]string, 0, 2)
+	if tags != "" {
+		selectors = append(selectors, tags)
+	}
+	return append(selectors, goModuleArgumentPrefix+c.moduleMode.String()), nil
 }
 
 func (c BuildCommand) linkerFlags() string {
@@ -419,7 +599,8 @@ func prepareBuildPlan(request BuildPlanRequest) (BuildPlan, error) {
 			outputDirectory: request.OutputDirectory, output: output,
 			garble: request.Garble, goToolchain: request.GoToolchain,
 			moduleMode:        request.ModuleMode,
-			linkerAssignments: request.LinkerAssignments, valid: true,
+			linkerAssignments: request.LinkerAssignments,
+			buildTags:         request.BuildTags, valid: true,
 		}
 	}
 	return BuildPlan{request: request, commands: commands, valid: true}, nil
