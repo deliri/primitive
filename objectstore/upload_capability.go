@@ -1,6 +1,8 @@
 package objectstore
 
 import (
+	"crypto/sha256"
+	"encoding/json"
 	"errors"
 	"fmt"
 	"io"
@@ -37,6 +39,13 @@ const (
 	// UploadMethodTokenMultipartPost is the wire token for a one-time multipart
 	// POST, which Cloudflare Images publishes.
 	UploadMethodTokenMultipartPost = "multipart_post"
+	// UploadCapabilityCommitmentDomain separates a capability commitment from
+	// every other SHA-256 use. The zero separator closes the domain before the
+	// exact canonical capability document begins.
+	UploadCapabilityCommitmentDomain = "primitive/objectstore/upload-capability-commitment/v1"
+	// UploadCapabilityCommitmentFrameSeparator terminates the commitment domain
+	// before the canonical capability document.
+	UploadCapabilityCommitmentFrameSeparator byte = 0
 
 	// uploadCapabilityHeaderSyntaxBytes is the exact JSON punctuation and member
 	// names one header object adds beyond the name and value already counted by
@@ -51,15 +60,17 @@ const (
 			`"url":"","expires_at":-9223372036854775808,"headers":[]}`,
 	)
 
-	uploadCapabilityReceiverErrorText   = "nil upload capability receiver"
-	uploadCapabilityMemberErrorText     = "upload capability member is absent"
-	uploadCapabilityURLExtentErrorText  = "upload capability url extent is outside the supported range"
-	uploadCapabilityDocumentErrorText   = "upload capability document extent is outside the supported range"
-	uploadCapabilityProviderErrorText   = "upload capability provider token is unknown"
-	uploadCapabilityMethodErrorText     = "upload capability method is not published by the named vendor"
-	uploadCapabilityUnsetErrorText      = "upload capability is unset"
-	uploadCapabilityProjectionErrorText = "upload capability projection is unset"
-	uploadCapabilityUTF8ErrorText       = "upload capability member is not valid utf-8"
+	uploadCapabilityReceiverErrorText           = "nil upload capability receiver"
+	uploadCapabilityMemberErrorText             = "upload capability member is absent"
+	uploadCapabilityURLExtentErrorText          = "upload capability url extent is outside the supported range"
+	uploadCapabilityDocumentErrorText           = "upload capability document extent is outside the supported range"
+	uploadCapabilityProviderErrorText           = "upload capability provider token is unknown"
+	uploadCapabilityMethodErrorText             = "upload capability method is not published by the named vendor"
+	uploadCapabilityUnsetErrorText              = "upload capability is unset"
+	uploadCapabilityProjectionErrorText         = "upload capability projection is unset"
+	uploadCapabilityCommitmentErrorText         = "upload capability commitment is unset"
+	uploadCapabilityCommitmentReceiverErrorText = "nil upload capability commitment receiver"
+	uploadCapabilityUTF8ErrorText               = "upload capability member is not valid utf-8"
 )
 
 // UploadCapability is one already-issued upload capability as it arrives over
@@ -70,10 +81,11 @@ const (
 // that package.
 //
 // It decodes only. The type therefore implements json.Unmarshaler and not
-// json.Marshaler, and it never retains the received URL text: the bytes are
-// parsed into an opaque SignedURL and dropped, so re-serializing the received
-// bearer is structurally impossible. An issuer that already owns a signed
-// UploadTarget uses the nominal UploadCapabilityProjection instead.
+// json.Marshaler, and it never retains the received wire text: the URL is
+// parsed into an opaque SignedURL and the source document is dropped. No public
+// operation can emit the received bearer. Commitment derives only an opaque
+// digest from the package-owned canonical projection. An issuer that already
+// owns a signed UploadTarget uses the nominal UploadCapabilityProjection.
 //
 // It is not a grant. A grant binds a capability to an authorization, an object
 // identity, a declaration, and a receipt; that binding stays with the issuing
@@ -103,6 +115,64 @@ type UploadCapabilityProjection struct {
 	target   UploadTarget
 	provider Provider
 	set      bool
+}
+
+// UploadCapabilityCommitment is the domain-separated SHA-256 closure of one
+// exact canonical upload capability document. It carries no bearer material
+// and is safe for a higher protocol to sign beside the separately transported
+// capability. The zero value is invalid.
+type UploadCapabilityCommitment struct {
+	digest core.SHA256Digest
+}
+
+func newUploadCapabilityCommitment(
+	digest core.SHA256Digest,
+) (UploadCapabilityCommitment, error) {
+	candidate := UploadCapabilityCommitment{digest: digest}
+	if err := candidate.Validate(); err != nil {
+		return UploadCapabilityCommitment{}, err
+	}
+	return candidate, nil
+}
+
+// Validate rejects an unset digest.
+func (c UploadCapabilityCommitment) Validate() error {
+	if err := c.digest.Validate(); err != nil {
+		return errors.Join(core.ErrObjectStoreContract,
+			errors.New(uploadCapabilityCommitmentErrorText), err)
+	}
+	return nil
+}
+
+// MarshalJSON emits the non-secret digest as canonical lowercase hexadecimal.
+func (c UploadCapabilityCommitment) MarshalJSON() ([]byte, error) {
+	if err := c.Validate(); err != nil {
+		return nil, err
+	}
+	encoded, err := core.MarshalCanonicalJSONDocument(c.digest)
+	if err != nil {
+		return nil, errors.Join(core.ErrObjectStoreContract, err)
+	}
+	return encoded, nil
+}
+
+// UnmarshalJSON accepts one canonical SHA-256 commitment and preserves the
+// receiver on every rejection.
+func (c *UploadCapabilityCommitment) UnmarshalJSON(data []byte) error {
+	if c == nil {
+		return errors.Join(core.ErrObjectStoreContract,
+			errors.New(uploadCapabilityCommitmentReceiverErrorText))
+	}
+	var digest core.SHA256Digest
+	if err := json.Unmarshal(data, &digest); err != nil {
+		return errors.Join(core.ErrObjectStoreContract, err)
+	}
+	candidate, err := newUploadCapabilityCommitment(digest)
+	if err != nil {
+		return err
+	}
+	*c = candidate
+	return nil
 }
 
 // NewUploadCapabilityProjection validates and owns the projection of one
@@ -364,6 +434,15 @@ func (c UploadCapability) Target() (UploadTarget, error) {
 	return c.target, nil
 }
 
+// Commitment returns the non-secret closure of the exact canonical capability
+// this receiver admitted. It does not expose or return the bearer document.
+func (c UploadCapability) Commitment() (UploadCapabilityCommitment, error) {
+	if err := c.Validate(); err != nil {
+		return UploadCapabilityCommitment{}, err
+	}
+	return deriveUploadCapabilityCommitment(c.provider, c.target)
+}
+
 // Format redacts under every formatting verb, including %v and %#v, because the
 // capability carries a bearer credential.
 func (UploadCapability) Format(state fmt.State, _ rune) {
@@ -383,13 +462,29 @@ func (p UploadCapabilityProjection) Validate() error {
 // IsZero reports whether no already-issued target has crossed the constructor.
 func (p UploadCapabilityProjection) IsZero() bool { return !p.set }
 
+// Commitment returns the non-secret closure of the exact canonical capability
+// emitted by this issuer projection.
+func (p UploadCapabilityProjection) Commitment() (UploadCapabilityCommitment, error) {
+	if err := p.Validate(); err != nil {
+		return UploadCapabilityCommitment{}, err
+	}
+	return deriveUploadCapabilityCommitment(p.provider, p.target)
+}
+
 // MarshalJSON emits the exact bounded capability document accepted by
 // UploadCapability. This is the only operation that exposes the bearer.
 func (p UploadCapabilityProjection) MarshalJSON() ([]byte, error) {
 	if err := p.Validate(); err != nil {
 		return nil, err
 	}
-	wire, err := projectUploadCapabilityWire(p.provider, p.target)
+	return marshalUploadCapability(p.provider, p.target)
+}
+
+func marshalUploadCapability(
+	provider Provider,
+	target UploadTarget,
+) ([]byte, error) {
+	wire, err := projectUploadCapabilityWire(provider, target)
 	if err != nil {
 		return nil, err
 	}
@@ -402,6 +497,23 @@ func (p UploadCapabilityProjection) MarshalJSON() ([]byte, error) {
 			errors.New(uploadCapabilityDocumentErrorText))
 	}
 	return encoded, nil
+}
+
+func deriveUploadCapabilityCommitment(
+	provider Provider,
+	target UploadTarget,
+) (UploadCapabilityCommitment, error) {
+	encoded, err := marshalUploadCapability(provider, target)
+	if err != nil {
+		return UploadCapabilityCommitment{}, err
+	}
+	hash := sha256.New()
+	_, _ = io.WriteString(hash, UploadCapabilityCommitmentDomain)
+	_, _ = hash.Write([]byte{UploadCapabilityCommitmentFrameSeparator})
+	_, _ = hash.Write(encoded)
+	var sum [sha256.Size]byte
+	copy(sum[:], hash.Sum(nil))
+	return newUploadCapabilityCommitment(core.NewSHA256Digest(sum))
 }
 
 func projectUploadCapabilityWire(
@@ -454,4 +566,5 @@ var (
 	_ fmt.Formatter               = UploadCapability{}
 	_ core.ValidatedJSONMarshaler = UploadCapabilityProjection{}
 	_ fmt.Formatter               = UploadCapabilityProjection{}
+	_ core.ValidatedJSONMarshaler = UploadCapabilityCommitment{}
 )

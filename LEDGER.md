@@ -2602,3 +2602,20 @@ compiler contract and the interface-absence test is the negative proof.
   The user required a fully
   clean Primitive worktree and authorized publication as `v2026.0.9` after the
   repository-wide gates and exact diff review.
+- `2026-08-03`: Objectstore now derives one domain-separated
+  `UploadCapabilityCommitment` from the exact bounded canonical capability
+  document on both the encode-only issuer projection and the decode-only
+  receiver. Higher protocols can sign the non-secret commitment beside an
+  opaque bearer without acquiring a URL accessor or a second capability wire
+  grammar. Hostile proof covers the real enclosing JSON shape, an independent
+  digest oracle, URL, expiry, signed-header, and provider substitution,
+  malformed commitment input, zero values, and non-mutating rejection. The
+  ratchet failed when canonical capability bytes were removed from the digest.
+  Objectstore tests, race/shuffle, Vet, Staticcheck, Errcheck, Nilaway,
+  Witness-lint, Gosec, field alignment, and changed-file production complexity
+  pass. The repository-wide canonical gate passed through Govulncheck; its
+  PTY-bound Deadcode process became idle, while the same exact command passed
+  immediately without a PTY. A clean non-PTY gate rerun was invalidated by
+  concurrent uncommitted Release work introducing a new `release -> garble`
+  architecture edge; no Objectstore failure was observed and the Release files
+  were preserved outside this slice.

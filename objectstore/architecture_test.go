@@ -124,6 +124,8 @@ func productionStructRole(name string) (string, bool) {
 		return "received wire projection of a capability value", true
 	case "UploadCapabilityProjection":
 		return "external output projection of an already-issued capability value", true
+	case "UploadCapabilityCommitment":
+		return "sealed non-secret capability binding", true
 	case "uploadCapabilityWire", "uploadCapabilityHeaderWire":
 		return "internal exact wire temporary", true
 	default:
