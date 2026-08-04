@@ -8,16 +8,14 @@ import (
 )
 
 const (
-	jsonEncoderTerminatorByte      = '\n'
-	jsonEncoderTerminatorErrorText = "json encoder omitted its terminator"
 	jsonStringInvalidUTF8ErrorText = "json string value is not valid utf-8"
 )
 
 // MarshalCanonicalJSONDocument encodes one Go value as the repository's single
-// canonical JSON document. HTML escaping is off, so a value has exactly one
-// accepted spelling rather than one spelling per encoder setting, and the
-// encoder's trailing terminator is removed so the result is exactly the
-// document and nothing else.
+// canonical JSON document. It uses encoding/json's compact default projection,
+// including HTML escaping, so its output is a fixed point when encoding/json
+// processes the bytes returned by a nested json.Marshaler. Direct and embedded
+// values therefore have one spelling and one byte extent.
 //
 // The caller owns the document invariant. This helper owns only the shared
 // encoder configuration; typed protocol values still validate before calling
@@ -28,17 +26,11 @@ const (
 // which is why MarshalCanonicalJSONString projects from it instead of
 // repeating it.
 func MarshalCanonicalJSONDocument[Document any](document Document) ([]byte, error) {
-	var buffer bytes.Buffer
-	encoder := json.NewEncoder(&buffer)
-	encoder.SetEscapeHTML(false)
-	if err := encoder.Encode(document); err != nil {
+	encoded, err := json.Marshal(document)
+	if err != nil {
 		return nil, errors.Join(ErrJSONContract, err)
 	}
-	encoded := buffer.Bytes()
-	if len(encoded) == 0 || encoded[len(encoded)-1] != jsonEncoderTerminatorByte {
-		return nil, errors.Join(ErrJSONContract, errors.New(jsonEncoderTerminatorErrorText))
-	}
-	return encoded[:len(encoded)-1], nil
+	return encoded, nil
 }
 
 // MarshalCanonicalJSONString encodes one Go string as the repository's single

@@ -2570,3 +2570,17 @@ compiler contract and the interface-absence test is the negative proof.
   canonical gate stops only at the recorded repository-wide enum and
   Testserial analyzer baseline. No live Google metadata or AWS STS call is
   claimed. User review and publication authorization remain pending.
+- `2026-08-03`: The accepted Objectstore upload-capability projection exposes
+  the receiver's exact bounded wire contract without exposing its private wire
+  type. The projection is encode-only, validates the closed provider and
+  method domains, preserves signed headers, and redacts capability material.
+  Core canonical JSON now uses the standard library's compact HTML-escaped
+  spelling, making direct custom-marshaler output a fixed point when embedded
+  through `encoding/json`; Objectstore, Attest, Currency, and HTTP endpoint
+  proofs cover that boundary. Focused and repository-wide tests, race tests,
+  vet, Staticcheck, Errcheck, Nilaway, Witness-lint, Gosec, Govulncheck,
+  field-alignment, and production complexity gates passed. The canonical gate
+  reached its final Deadcode step, where the analyzer remained idle without a
+  child process and was interrupted; no Deadcode result is claimed. The user
+  reviewed the findings and explicitly authorized commit, push, and the next
+  Primitive tag.

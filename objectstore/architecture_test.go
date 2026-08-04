@@ -122,8 +122,10 @@ func productionStructRole(name string) (string, bool) {
 		return "bounded internal protocol name set", true
 	case "UploadCapability":
 		return "received wire projection of a capability value", true
+	case "UploadCapabilityProjection":
+		return "external output projection of an already-issued capability value", true
 	case "uploadCapabilityWire", "uploadCapabilityHeaderWire":
-		return "internal decode temporary", true
+		return "internal exact wire temporary", true
 	default:
 		return "", false
 	}

@@ -186,6 +186,15 @@ func TestEnvelopeJSONCanonicalFieldOrderAndMaximumBound(t *testing.T) {
 			attest.EnvelopeCanonicalJSONMaximumBytes,
 		)
 	}
+	gotMaximumThroughMarshaler, gotMaximumThroughMarshalerErr := json.Marshal(maximumEnvelope)
+	if gotMaximumThroughMarshalerErr != nil {
+		t.Fatalf("json.Marshal(maximum Envelope) error = %v, want nil",
+			gotMaximumThroughMarshalerErr)
+	}
+	if !bytes.Equal(gotMaximumThroughMarshaler, gotMaximum) {
+		t.Fatalf("json.Marshal(maximum Envelope) = %q, want direct fixed point %q",
+			gotMaximumThroughMarshaler, gotMaximum)
+	}
 	var gotMaximumEnvelope attest.Envelope[textDomain]
 	gotMaximumDecodeErr := gotMaximumEnvelope.UnmarshalJSON(gotMaximum)
 	if gotMaximumDecodeErr != nil || gotMaximumEnvelope != maximumEnvelope {

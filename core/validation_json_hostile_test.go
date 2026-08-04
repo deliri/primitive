@@ -481,9 +481,21 @@ func TestMarshalCanonicalJSONDocumentOwnsSharedEncoderConfiguration(t *testing.T
 	if gotErr != nil {
 		t.Fatalf("MarshalCanonicalJSONDocument() error = %v, want nil", gotErr)
 	}
-	want := `{"message":"a<b>c&d","values":[1,2,3]}`
+	want := `{"message":"a\u003cb\u003ec\u0026d","values":[1,2,3]}`
 	if !bytes.Equal(got, []byte(want)) {
 		t.Fatalf("MarshalCanonicalJSONDocument() = %q, want %q", got, want)
+	}
+
+	embedded, embeddedErr := json.Marshal(struct {
+		Document json.RawMessage `json:"document"`
+	}{Document: got})
+	if embeddedErr != nil {
+		t.Fatalf("json.Marshal(embedded canonical document) error = %v, want nil", embeddedErr)
+	}
+	wantEmbedded := `{"document":` + want + `}`
+	if !bytes.Equal(embedded, []byte(wantEmbedded)) {
+		t.Fatalf("json.Marshal(embedded canonical document) = %q, want fixed point %q",
+			embedded, wantEmbedded)
 	}
 
 	refused, refusedErr := MarshalCanonicalJSONDocument(math.NaN())
@@ -546,8 +558,9 @@ func TestDecodeJSONStringTokenHostileBoundaryTable(t *testing.T) {
 
 // TestMarshalJSONStringEscapingHostileBoundaryTable directly ratchets the
 // shared string primitive used by every Core JSON string producer. Exact wire
-// assertions are intentional: HTML characters must remain literal while
-// backslashes, controls, and literal Unicode-escape text remain unambiguous.
+// assertions are intentional: HTML characters use encoding/json's fixed-point
+// escapes, while backslashes, controls, and literal Unicode-escape text remain
+// unambiguous.
 func TestMarshalJSONStringEscapingHostileBoundaryTable(t *testing.T) {
 	t.Parallel()
 
@@ -556,10 +569,10 @@ func TestMarshalJSONStringEscapingHostileBoundaryTable(t *testing.T) {
 		value string
 		want  string
 	}{
-		{name: "ampersand remains literal", value: "&", want: `"&"`},
-		{name: "less-than remains literal", value: "<", want: `"<"`},
-		{name: "greater-than remains literal", value: ">", want: `">"`},
-		{name: "HTML-sensitive trio remains literal", value: "&<>", want: `"&<>"`},
+		{name: "ampersand uses the stdlib fixed-point escape", value: "&", want: `"\u0026"`},
+		{name: "less-than uses the stdlib fixed-point escape", value: "<", want: `"\u003c"`},
+		{name: "greater-than uses the stdlib fixed-point escape", value: ">", want: `"\u003e"`},
+		{name: "HTML-sensitive trio uses exact stdlib escapes", value: "&<>", want: `"\u0026\u003c\u003e"`},
 		{name: "quote remains escaped", value: `"`, want: `"\""`},
 		{name: "backslash remains escaped", value: `\`, want: `"\\"`},
 		{name: "literal ampersand escape text remains literal", value: `\u0026`, want: `"\\u0026"`},

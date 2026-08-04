@@ -204,6 +204,13 @@ func TestAmountJSONUsesClosedExactProjection(t *testing.T) {
 	if gotMarshalErr != nil {
 		t.Fatalf("json.Marshal(Amount) error = %v, want nil", gotMarshalErr)
 	}
+	direct, gotDirectErr := value.MarshalJSON()
+	if gotDirectErr != nil {
+		t.Fatalf("Amount.MarshalJSON() error = %v, want nil", gotDirectErr)
+	}
+	if string(wire) != string(direct) {
+		t.Fatalf("json.Marshal(Amount) = %q, want direct fixed point %q", wire, direct)
+	}
 
 	wantWire := fmt.Appendf(nil,
 		`{"%s":%q,"%s":%q}`,

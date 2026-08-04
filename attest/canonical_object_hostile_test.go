@@ -198,7 +198,7 @@ func TestCanonicalObjectTypedMembersEmitExactlyOneAcceptedEncoding(t *testing.T)
 	}{
 		{name: "empty string member keeps its quotes", write: func(o *attest.CanonicalObject) { o.String("v", "") }, want: `{"v":""}`},
 		{name: "plain string member is unescaped", write: func(o *attest.CanonicalObject) { o.String("v", "abc") }, want: `{"v":"abc"}`},
-		{name: "html metacharacters are not escaped because escaping is off", write: func(o *attest.CanonicalObject) { o.String("v", "a<b>c&d") }, want: `{"v":"a<b>c&d"}`},
+		{name: "html metacharacters use the stdlib fixed-point escapes", write: func(o *attest.CanonicalObject) { o.String("v", "a<b>c&d") }, want: `{"v":"a\u003cb\u003ec\u0026d"}`},
 		{name: "quote inside a string value is escaped exactly once", write: func(o *attest.CanonicalObject) { o.String("v", `a"b`) }, want: `{"v":"a\"b"}`},
 		{name: "backslash inside a string value is escaped", write: func(o *attest.CanonicalObject) { o.String("v", `a\b`) }, want: `{"v":"a\\b"}`},
 		{name: "control byte inside a string value uses the short escape", write: func(o *attest.CanonicalObject) { o.String("v", "a\nb") }, want: `{"v":"a\nb"}`},

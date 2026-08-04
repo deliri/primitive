@@ -1,6 +1,7 @@
 package core
 
 import (
+	"bytes"
 	"encoding/json"
 	"errors"
 	"strings"
@@ -29,6 +30,7 @@ func TestHTTPEndpointHostileBoundaryTable(t *testing.T) {
 		{name: "maximum numeric port is accepted", value: "http://example.test:65535", wantString: "http://example.test:65535"},
 		{name: "escaped path remains standard library owned", value: "https://example.test/a%2Fb", wantString: "https://example.test/a%2Fb"},
 		{name: "query remains part of the target", value: "https://example.test/search?q=a%20b", wantString: "https://example.test/search?q=a%20b"},
+		{name: "query separator has one embedded JSON spelling", value: "https://example.test/search?a=1&b=2", wantString: "https://example.test/search?a=1&b=2"},
 		{name: "empty query marker remains representable", value: "https://example.test/path?", wantString: "https://example.test/path?"},
 		{name: "one byte below endpoint bound is accepted", value: exactEndpoint[:len(exactEndpoint)-1], wantString: exactEndpoint[:len(exactEndpoint)-1]},
 		{name: "exact endpoint bound is accepted", value: exactEndpoint, wantString: exactEndpoint},
@@ -76,6 +78,14 @@ func TestHTTPEndpointHostileBoundaryTable(t *testing.T) {
 			gotWire, gotMarshalErr := json.Marshal(got)
 			if gotMarshalErr != nil {
 				t.Fatalf("json.Marshal(HTTPEndpoint) error = %v, want nil", gotMarshalErr)
+			}
+			gotDirect, gotDirectErr := got.MarshalJSON()
+			if gotDirectErr != nil {
+				t.Fatalf("HTTPEndpoint.MarshalJSON() error = %v, want nil", gotDirectErr)
+			}
+			if !bytes.Equal(gotWire, gotDirect) {
+				t.Fatalf("json.Marshal(HTTPEndpoint) = %q, want direct fixed point %q",
+					gotWire, gotDirect)
 			}
 			var gotRoundTrip HTTPEndpoint
 			gotUnmarshalErr := json.Unmarshal(gotWire, &gotRoundTrip)

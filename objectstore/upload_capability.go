@@ -4,6 +4,7 @@ import (
 	"errors"
 	"fmt"
 	"io"
+	"unicode/utf8"
 
 	"github.com/deliri/primitive/v2026/core"
 	"github.com/deliri/primitive/v2026/exchange"
@@ -20,10 +21,15 @@ const (
 	// signed-header aggregate this package already owns, the JSON punctuation
 	// each header object adds beyond its name and value, and the punctuation and
 	// member names of the widest possible document.
-	UploadCapabilityJSONMaximumBytes = UploadCapabilityURLMaximumBytes +
-		SignedHeaderMaximumBytes +
+	UploadCapabilityJSONMaximumBytes = uploadCapabilityJSONStringMaximumExpansion*UploadCapabilityURLMaximumBytes +
+		uploadCapabilityJSONStringMaximumExpansion*SignedHeaderMaximumBytes +
 		SignedHeaderMaximumCount*uploadCapabilityHeaderSyntaxBytes +
 		uploadCapabilityDocumentSyntaxBytes
+	// uploadCapabilityJSONStringMaximumExpansion is the widest canonical JSON
+	// expansion of one admitted source byte. encoding/json emits HTML-sensitive
+	// ASCII and control bytes as six-byte Unicode escapes. Receiver and issuer
+	// therefore share a bound over the bytes actually carried on the wire.
+	uploadCapabilityJSONStringMaximumExpansion = 6
 
 	// UploadMethodTokenSignedPut is the wire token for a whole-object signed
 	// PUT, which Amazon S3 and Google Cloud Storage publish.
@@ -45,12 +51,15 @@ const (
 			`"url":"","expires_at":-9223372036854775808,"headers":[]}`,
 	)
 
-	uploadCapabilityReceiverErrorText  = "nil upload capability receiver"
-	uploadCapabilityMemberErrorText    = "upload capability member is absent"
-	uploadCapabilityURLExtentErrorText = "upload capability url extent is outside the supported range"
-	uploadCapabilityProviderErrorText  = "upload capability provider token is unknown"
-	uploadCapabilityMethodErrorText    = "upload capability method is not published by the named vendor"
-	uploadCapabilityUnsetErrorText     = "upload capability is unset"
+	uploadCapabilityReceiverErrorText   = "nil upload capability receiver"
+	uploadCapabilityMemberErrorText     = "upload capability member is absent"
+	uploadCapabilityURLExtentErrorText  = "upload capability url extent is outside the supported range"
+	uploadCapabilityDocumentErrorText   = "upload capability document extent is outside the supported range"
+	uploadCapabilityProviderErrorText   = "upload capability provider token is unknown"
+	uploadCapabilityMethodErrorText     = "upload capability method is not published by the named vendor"
+	uploadCapabilityUnsetErrorText      = "upload capability is unset"
+	uploadCapabilityProjectionErrorText = "upload capability projection is unset"
+	uploadCapabilityUTF8ErrorText       = "upload capability member is not valid utf-8"
 )
 
 // UploadCapability is one already-issued upload capability as it arrives over
@@ -60,12 +69,11 @@ const (
 // transfer by any package that cannot validate a signed URL. Objectstore is
 // that package.
 //
-// It decodes only. Emitting a capability is issuing one, which this package's
-// documented boundary excludes along with buckets, credentials, and signed-URL
-// creation. The type therefore implements json.Unmarshaler and not
+// It decodes only. The type therefore implements json.Unmarshaler and not
 // json.Marshaler, and it never retains the received URL text: the bytes are
-// parsed into an opaque SignedURL and dropped, so re-serializing the bearer is
-// not merely discouraged but structurally impossible.
+// parsed into an opaque SignedURL and dropped, so re-serializing the received
+// bearer is structurally impossible. An issuer that already owns a signed
+// UploadTarget uses the nominal UploadCapabilityProjection instead.
 //
 // It is not a grant. A grant binds a capability to an authorization, an object
 // identity, a declaration, and a receipt; that binding stays with the issuing
@@ -78,10 +86,47 @@ type UploadCapability struct {
 	set      bool
 }
 
-// uploadCapabilityWire is the private decode temporary. Every required member
-// is a pointer so absence is refused explicitly rather than arriving as a zero
-// value that a later check would have to guess about. Headers is optional;
-// absence and an empty array both project to the one empty SignedHeaders value.
+// UploadCapabilityProjection is the encode-only projection of one
+// already-issued UploadTarget. It does not create a bucket, credential,
+// signature, grant, or signed URL. The caller owns those authorization facts;
+// Objectstore owns only the exact vendor capability document its receiver and
+// streaming transfer consume.
+//
+// The type implements json.Marshaler and deliberately does not implement
+// json.Unmarshaler. Its signed URL has no accessor and every formatting verb is
+// redacted. The only operation that emits the bearer is an explicit JSON
+// marshal at the issuing boundary.
+//
+// The zero value is unset. Construct a value with
+// NewUploadCapabilityProjection.
+type UploadCapabilityProjection struct {
+	target   UploadTarget
+	provider Provider
+	set      bool
+}
+
+// NewUploadCapabilityProjection validates and owns the projection of one
+// already-issued provider target.
+func NewUploadCapabilityProjection(
+	provider Provider,
+	target UploadTarget,
+) (UploadCapabilityProjection, error) {
+	candidate := UploadCapabilityProjection{
+		target:   target,
+		provider: provider,
+		set:      true,
+	}
+	if err := candidate.Validate(); err != nil {
+		return UploadCapabilityProjection{}, err
+	}
+	return candidate, nil
+}
+
+// uploadCapabilityWire is the private exact wire temporary shared by the
+// nominal issuer projection and receiver. Every required member is a pointer
+// so receiver-side absence is refused explicitly rather than arriving as a
+// zero value that a later check would have to guess about. Headers is optional
+// on receipt; the issuer emits the canonical empty array.
 type uploadCapabilityWire struct {
 	Provider  *string                      `json:"provider"`
 	Method    *string                      `json:"method"`
@@ -160,9 +205,8 @@ func projectUploadCapabilityTarget(
 	wire uploadCapabilityWire,
 	rawURL string,
 ) (UploadTarget, error) {
-	if len(rawURL) == 0 || len(rawURL) > UploadCapabilityURLMaximumBytes {
-		return UploadTarget{}, errors.Join(core.ErrObjectStoreContract,
-			errors.New(uploadCapabilityURLExtentErrorText))
+	if err := validateUploadCapabilityURLExtent(rawURL); err != nil {
+		return UploadTarget{}, err
 	}
 	signed, err := ParseSignedURL(rawURL)
 	if err != nil {
@@ -249,6 +293,44 @@ func uploadMethodToken(spec VendorSpec) (string, error) {
 	}
 }
 
+func validateUploadCapabilityURLExtent(rawURL string) error {
+	if len(rawURL) == 0 || len(rawURL) > UploadCapabilityURLMaximumBytes {
+		return errors.Join(core.ErrObjectStoreContract,
+			errors.New(uploadCapabilityURLExtentErrorText))
+	}
+	return nil
+}
+
+func validateUploadCapabilityTarget(provider Provider, target UploadTarget) error {
+	if err := provider.Validate(); err != nil {
+		return err
+	}
+	if err := validateUploadCapabilityURLExtent(target.URL.value.String()); err != nil {
+		return err
+	}
+	if err := validateUploadCapabilityUTF8(target); err != nil {
+		return err
+	}
+	if err := target.validateFor(provider); err != nil {
+		return err
+	}
+	return validateProviderSignedHeaders(provider, target)
+}
+
+func validateUploadCapabilityUTF8(target UploadTarget) error {
+	if !utf8.ValidString(target.URL.value.String()) {
+		return errors.Join(core.ErrObjectStoreContract,
+			errors.New(uploadCapabilityUTF8ErrorText))
+	}
+	for _, header := range target.Headers.values {
+		if !utf8.ValidString(header.name.String()) || !utf8.ValidString(header.value) {
+			return errors.Join(core.ErrObjectStoreContract,
+				errors.New(uploadCapabilityUTF8ErrorText))
+		}
+	}
+	return nil
+}
+
 // Validate rejects an unset capability and rechecks the projected target under
 // the provider it names, which is the same gate the transfer entry point
 // applies.
@@ -257,13 +339,7 @@ func (c UploadCapability) Validate() error {
 		return errors.Join(core.ErrObjectStoreContract,
 			errors.New(uploadCapabilityUnsetErrorText))
 	}
-	if err := c.provider.Validate(); err != nil {
-		return err
-	}
-	if err := c.target.validateFor(c.provider); err != nil {
-		return err
-	}
-	return validateProviderSignedHeaders(c.provider, c.target)
+	return validateUploadCapabilityTarget(c.provider, c.target)
 }
 
 // IsZero reports whether no capability has been decoded.
@@ -294,7 +370,88 @@ func (UploadCapability) Format(state fmt.State, _ rune) {
 	_, _ = io.WriteString(state, core.RedactedValueText)
 }
 
+// Validate rejects an unset projection and rechecks the exact provider target
+// that will cross the external output boundary.
+func (p UploadCapabilityProjection) Validate() error {
+	if !p.set {
+		return errors.Join(core.ErrObjectStoreContract,
+			errors.New(uploadCapabilityProjectionErrorText))
+	}
+	return validateUploadCapabilityTarget(p.provider, p.target)
+}
+
+// IsZero reports whether no already-issued target has crossed the constructor.
+func (p UploadCapabilityProjection) IsZero() bool { return !p.set }
+
+// MarshalJSON emits the exact bounded capability document accepted by
+// UploadCapability. This is the only operation that exposes the bearer.
+func (p UploadCapabilityProjection) MarshalJSON() ([]byte, error) {
+	if err := p.Validate(); err != nil {
+		return nil, err
+	}
+	wire, err := projectUploadCapabilityWire(p.provider, p.target)
+	if err != nil {
+		return nil, err
+	}
+	encoded, err := core.MarshalCanonicalJSONDocument(wire)
+	if err != nil {
+		return nil, errors.Join(core.ErrObjectStoreContract, err)
+	}
+	if len(encoded) > UploadCapabilityJSONMaximumBytes {
+		return nil, errors.Join(core.ErrObjectStoreContract,
+			errors.New(uploadCapabilityDocumentErrorText))
+	}
+	return encoded, nil
+}
+
+func projectUploadCapabilityWire(
+	provider Provider,
+	target UploadTarget,
+) (uploadCapabilityWire, error) {
+	spec, err := Spec(provider)
+	if err != nil {
+		return uploadCapabilityWire{}, err
+	}
+	method, err := uploadMethodToken(spec)
+	if err != nil {
+		return uploadCapabilityWire{}, err
+	}
+	expiresAt, err := temporal.NewNumericInstant(target.ExpiresAt)
+	if err != nil {
+		return uploadCapabilityWire{}, errors.Join(core.ErrObjectStoreContract, err)
+	}
+	providerToken := provider.String()
+	rawURL := target.URL.value.String()
+	return uploadCapabilityWire{
+		Provider:  &providerToken,
+		Method:    &method,
+		URL:       &rawURL,
+		ExpiresAt: &expiresAt,
+		Headers:   projectUploadCapabilityHeaderWire(target.Headers),
+	}, nil
+}
+
+func projectUploadCapabilityHeaderWire(
+	headers SignedHeaders,
+) []uploadCapabilityHeaderWire {
+	wire := make([]uploadCapabilityHeaderWire, len(headers.values))
+	for index, header := range headers.values {
+		name := header.name.String()
+		value := header.value
+		wire[index] = uploadCapabilityHeaderWire{Name: &name, Value: &value}
+	}
+	return wire
+}
+
+// Format redacts under every formatting verb, including %v and %#v, because
+// the projection carries a bearer credential.
+func (UploadCapabilityProjection) Format(state fmt.State, _ rune) {
+	_, _ = io.WriteString(state, core.RedactedValueText)
+}
+
 var (
-	_ core.Validatable = UploadCapability{}
-	_ fmt.Formatter    = UploadCapability{}
+	_ core.Validatable            = UploadCapability{}
+	_ fmt.Formatter               = UploadCapability{}
+	_ core.ValidatedJSONMarshaler = UploadCapabilityProjection{}
+	_ fmt.Formatter               = UploadCapabilityProjection{}
 )
