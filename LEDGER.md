@@ -2584,3 +2584,21 @@ compiler contract and the interface-absence test is the negative proof.
   child process and was interrupted; no Deadcode result is claimed. The user
   reviewed the findings and explicitly authorized commit, push, and the next
   Primitive tag.
+- `2026-08-03`: Filestore read acquisition now opens a rooted Unix descriptor
+  with `O_NONBLOCK`, proves regular-file identity on that acquired handle, and
+  restores ordinary blocking reads through `SyscallConn`; this removes the
+  stat-then-open FIFO race without adding coordination or a filesystem model.
+  The write/read fuzzer independently checks the OS-visible committed bytes.
+  Linux physical-memory scaling now rejects a zero kernel unit before its
+  overflow division while preserving the Core-owned host-observation identity;
+  zero-unit and overflow details remain diagnostics, not new caller decisions.
+  A five-second subprocess startup assertion failed under the full
+  race suite while 20 focused race repetitions completed correctly, so both
+  FIFO subprocess tests now use a 30-second deadlock backstop. Focused package
+  tests and race tests, Vet, Staticcheck, Errcheck, Nilaway, Witness-lint,
+  Gosec, Govulncheck, field alignment, production complexity, and Linux,
+  FreeBSD, AIX, and Windows cross-compilation pass; the Linux physical-memory
+  boundary table also passed 20 executions on a real Linux/arm64 Go runtime.
+  The user required a fully
+  clean Primitive worktree and authorized publication as `v2026.0.9` after the
+  repository-wide gates and exact diff review.

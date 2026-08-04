@@ -20,7 +20,7 @@ import (
 
 const (
 	namedPipeReadHelperEnvironment = "PRIMITIVE_FILESTORE_NAMED_PIPE_READ_HELPER"
-	namedPipeReadBackstop          = 5 * time.Second
+	namedPipeReadBackstop          = 30 * time.Second
 )
 
 func TestReadRejectsNamedPipeBeforeBlockingOpen(t *testing.T) {

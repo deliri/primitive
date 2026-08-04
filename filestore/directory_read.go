@@ -205,26 +205,19 @@ func Read(ctx context.Context, request ReadRequest) (core.ByteLength, error) {
 }
 
 func openRegularReadFile(root *os.Root, path string) (*os.File, error) {
-	// Callers own path coordination. The rooted preflight keeps an already
-	// present FIFO or device from entering a blocking Open, while the File.Stat
-	// below still refuses an identity changed before the handle was acquired.
-	info, err := root.Stat(path)
+	file, err := openReadFile(root, path)
 	if err != nil {
 		return nil, sourceError(err)
 	}
-	if !info.Mode().IsRegular() {
-		return nil, sourceError(fs.ErrInvalid)
-	}
-	file, err := root.Open(path)
-	if err != nil {
-		return nil, sourceError(err)
-	}
-	info, err = file.Stat()
+	info, err := file.Stat()
 	if err != nil {
 		return nil, closeReadFile(file, sourceError(err))
 	}
 	if !info.Mode().IsRegular() {
 		return nil, closeReadFile(file, sourceError(fs.ErrInvalid))
+	}
+	if err := prepareRegularReadFile(file); err != nil {
+		return nil, closeReadFile(file, sourceError(err))
 	}
 	return file, nil
 }

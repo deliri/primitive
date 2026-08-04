@@ -319,7 +319,7 @@ fi
 if ! test -s "$package_list"; then
 	not_applicable_log="$artifact_directory/package-gates.log"
 	printf '%s\n' \
-		"NOT_APPLICABLE package gates: the package-free design phase contains no Go packages" \
+		"NOT_APPLICABLE package gates: the module discovered no Go packages to inspect" \
 		>"$not_applicable_log"
 	append_result \
 		"package-gates" "NOT_APPLICABLE" 0 0 "$not_applicable_log"

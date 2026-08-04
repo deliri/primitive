@@ -53,6 +53,13 @@ func FuzzWriteReadRoundTrip(f *testing.F) {
 		if gotErr != nil {
 			t.Fatalf("Write(%d fuzz bytes) error = %v, want nil", len(payload), gotErr)
 		}
+		stored, err := os.ReadFile(filepath.Join(rootDirectory, "target"))
+		if err != nil {
+			t.Fatalf("os.ReadFile(target) error = %v, want nil", err)
+		}
+		if !bytes.Equal(stored, payload) {
+			t.Fatalf("OS-visible target bytes = %d, want %d exact fuzz bytes", len(stored), len(payload))
+		}
 		var destination bytes.Buffer
 		gotCount, gotErr := filestore.Read(t.Context(), filestore.ReadRequest{
 			Destination:  &destination,
