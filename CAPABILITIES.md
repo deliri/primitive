@@ -60,6 +60,7 @@ transaction run this same stack, so a wire type has exactly one home.
 | deciding whether work is paid for | `gate` + `lease` |
 | running a subprocess | `process` |
 | hashing a stream you are already moving | `core.DigestWriter` — never a private `sha256.New()` accumulator |
+| a path relative to a root you hold | `AbsolutePath.RelativeTo` — never `filepath.Rel` then re-parse |
 | building a nested path | `AbsolutePath.Resolve(names...)`, or `Join` / `JoinRelative` for typed parts — never `filepath.Join` then re-parse |
 | an error identity | `core/error_identity.go` |
 

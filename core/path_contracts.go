@@ -169,6 +169,31 @@ func (p AbsolutePath) Base() (PathComponent, error) {
 	return ParsePathComponent(filepath.Base(p.value))
 }
 
+// RelativeTo expresses p as a path relative to base.
+//
+// It is the inverse of JoinRelative and exists for the same reason: products
+// hold a rooted capability plus an absolute path and need the relative path
+// between them, which they otherwise compute with filepath.Rel on two strings
+// and re-parse.
+//
+// A result that climbs out of base is refused, and refused by RelativePath's
+// own admission rule rather than by a second check here. That keeps one place
+// deciding what a relative path may be; a local guard would be a branch no
+// test could ever fail, since nothing that escapes can be parsed at all.
+func (p AbsolutePath) RelativeTo(base AbsolutePath) (RelativePath, error) {
+	if err := p.Validate(); err != nil {
+		return RelativePath{}, err
+	}
+	if err := base.Validate(); err != nil {
+		return RelativePath{}, err
+	}
+	relative, err := filepath.Rel(base.value, p.value)
+	if err != nil {
+		return RelativePath{}, filesystemPathError("path is not expressible relative to the base")
+	}
+	return ParseRelativePath(relative)
+}
+
 // Resolve joins names below an absolute path, admitting each as its own
 // component.
 //
