@@ -22,6 +22,11 @@ func tokenError(causes ...error) error {
 	return scalarError(core.ErrControlWireToken, causes...)
 }
 
+// policyCursorError reports a rejected policy revision, activation, or cursor.
+func policyCursorError(causes ...error) error {
+	return scalarError(core.ErrControlWirePolicyCursor, causes...)
+}
+
 // scalarError joins the package identity, the scalar identity, and every
 // non-nil cause. A nil cause is dropped so a rejection never widens into an
 // unrelated identity a caller could match on.
@@ -39,4 +44,9 @@ func scalarError(scalar core.ErrorIdentity, causes ...error) error {
 // jsonError marks a rejection that happened at the JSON boundary.
 func jsonError(cause error) error {
 	return errors.Join(core.ErrJSONContract, cause)
+}
+
+// routeError reports a rejected control-plane route contract.
+func routeError(causes ...error) error {
+	return scalarError(core.ErrControlWireRoute, causes...)
 }

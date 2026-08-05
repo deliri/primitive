@@ -125,7 +125,7 @@ func FuzzParseRegistrationToken(f *testing.F) {
 				t.Fatalf("ParseRegistrationToken(%q) error = %v, want %v", data, err, core.ErrControlWireToken)
 			}
 			if validateErr := got.Validate(); validateErr == nil {
-				t.Fatal("rejected token returned a usable value")
+				t.Fatalf("rejected token %q Validate() = nil, want a refusal", got)
 			}
 			return
 		}
@@ -137,7 +137,7 @@ func FuzzParseRegistrationToken(f *testing.F) {
 			t.Fatalf("Verifier() error = %v, want nil", err)
 		}
 		if verifier.String() == string(data) {
-			t.Fatal("verifier disclosed the token")
+			t.Fatalf("verifier rendering = %q, want it to differ from the token", verifier)
 		}
 		encoded, err := json.Marshal(got)
 		if err != nil {
@@ -198,7 +198,7 @@ func FuzzParseRegistrationTokenVerifier(f *testing.F) {
 			t.Fatalf("accepted verifier failed Validate(): %v", err)
 		}
 		if text == verifierHexAllZero {
-			t.Fatal("accepted the all-zero digest, which no token can derive")
+			t.Fatalf("accepted verifier = %q, want anything but the all-zero digest no token derives", text)
 		}
 		if got.String() != text {
 			t.Fatalf("ParseRegistrationTokenVerifier(%q).String() = %q, want the exact input", text, got.String())
@@ -216,6 +216,98 @@ func FuzzParseRegistrationTokenVerifier(f *testing.F) {
 		}
 		if !round.Equal(got) {
 			t.Fatalf("round trip verifier = %q, want %q", round.String(), got.String())
+		}
+	})
+}
+
+// FuzzParsePolicyRevisionID checks the codec against a real oracle rather than
+// against itself: any text the parser accepts must render back to that exact
+// text, and the resulting bytes must render to the same text again.
+//
+// That is the property the wire depends on, because an installation echoes the
+// identifier it was given on every later exchange. A parser that quietly
+// normalised an alias would pass a weaker "it decoded without error" check and
+// fail here on the first non-canonical input the fuzzer finds.
+func FuzzParsePolicyRevisionID(f *testing.F) {
+	for _, seed := range []string{
+		policyRevisionRealWorld, policyRevisionAllZero, policyRevisionMinimum,
+		policyRevisionMaximum, policyRevisionFirstOverflow, "",
+		strings.ToLower(policyRevisionRealWorld), policyRevisionRealWorld[:25],
+		policyRevisionRealWorld + "0", "0IARZ3NDEKTSV4RRFFQ69G5FAV",
+		strings.Repeat(" ", 26), "0123456789ABCDEFGHJKMNPQRS",
+	} {
+		f.Add(seed)
+	}
+
+	f.Fuzz(func(t *testing.T, text string) {
+		got, err := controlwire.ParsePolicyRevisionID(text)
+		if err != nil {
+			if !errors.Is(err, core.ErrControlWirePolicyCursor) {
+				t.Fatalf("ParsePolicyRevisionID(%q) error = %v, want %v",
+					text, err, core.ErrControlWirePolicyCursor)
+			}
+			if got != (controlwire.PolicyRevisionID{}) {
+				t.Fatalf("rejected identifier = %v, want the zero value", got)
+			}
+			return
+		}
+		if err := got.Validate(); err != nil {
+			t.Fatalf("accepted identifier failed Validate(): %v", err)
+		}
+		if text == policyRevisionAllZero {
+			t.Fatalf("accepted identifier = %q, want anything but the reserved absent identity", text)
+		}
+		if rendered := got.String(); rendered != text {
+			t.Fatalf("ParsePolicyRevisionID(%q).String() = %q, want the exact input", text, rendered)
+		}
+		// Re-parsing the rendering must land on the same bytes, so the codec
+		// cannot be a one-way normaliser that happens to be stable on its own
+		// output only for the values a seed corpus contains.
+		again, err := controlwire.ParsePolicyRevisionID(got.String())
+		if err != nil || again != got {
+			t.Fatalf("re-parsing %q = (%v, %v), want (%v, nil)", got.String(), again, err, got)
+		}
+	})
+}
+
+// FuzzPolicyCursorUnmarshalJSON drives the whole cursor at the JSON boundary.
+// The oracle is that an accepted document must re-encode to the bytes that
+// arrived, because the cursor is echoed verbatim on every later exchange.
+func FuzzPolicyCursorUnmarshalJSON(f *testing.F) {
+	valid := `{"revision":"` + policyRevisionRealWorld + `","activation":1}`
+	for _, seed := range []string{
+		valid, `{}`, `null`, `[]`, ``,
+		`{"revision":"` + policyRevisionAllZero + `","activation":1}`,
+		`{"revision":"` + policyRevisionRealWorld + `","activation":0}`,
+		`{"revision":"` + policyRevisionRealWorld + `","activation":"1"}`,
+		`{"revision":"` + policyRevisionRealWorld + `","activation":1,"mode":"open"}`,
+		`{"activation":1}`,
+	} {
+		f.Add(seed)
+	}
+
+	f.Fuzz(func(t *testing.T, document string) {
+		existing := controlwire.PolicyCursor{}
+		got := existing
+		if err := got.UnmarshalJSON([]byte(document)); err != nil {
+			if !errors.Is(err, core.ErrControlWirePolicyCursor) &&
+				!errors.Is(err, core.ErrJSONContract) {
+				t.Fatalf("UnmarshalJSON(%q) error = %v, want a typed rejection", document, err)
+			}
+			if got != existing {
+				t.Fatalf("rejected document %q mutated the receiver to %v", document, got)
+			}
+			return
+		}
+		if err := got.Validate(); err != nil {
+			t.Fatalf("accepted cursor failed Validate(): %v", err)
+		}
+		encoded, err := json.Marshal(got)
+		if err != nil {
+			t.Fatalf("json.Marshal() error = %v, want nil", err)
+		}
+		if string(encoded) != document {
+			t.Fatalf("re-encoded = %s, want the accepted bytes %s", encoded, document)
 		}
 	})
 }

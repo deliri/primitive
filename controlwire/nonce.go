@@ -9,9 +9,6 @@ import (
 // RequestNonceBytes is the exact width of a control wire request nonce.
 const RequestNonceBytes = 32
 
-// requestNonceHexSize is that nonce's canonical text width.
-const requestNonceHexSize = RequestNonceBytes * 2
-
 // RequestNonce is one public, unpredictable request identity.
 //
 // It is deliberately a distinct type from an installation identity even though

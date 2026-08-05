@@ -62,8 +62,8 @@ func TestRegistrationTokenVerifierRefusesTheImpossibleDigest(t *testing.T) {
 		document := []byte(`"` + verifierHexAllZero + `"`)
 		_ = json.Unmarshal(document, &first)
 		_ = json.Unmarshal(document, &second)
-		if first.Equal(second) {
-			t.Fatal("two all-zero verifiers compared Equal, want false")
+		if got := first.Equal(second); got {
+			t.Fatalf("all-zero verifiers %v.Equal(%v) = %t, want false", first, second, got)
 		}
 		if err := first.Validate(); !errors.Is(err, core.ErrControlWireToken) {
 			t.Fatalf("all-zero verifier Validate() error = %v, want %v", err, core.ErrControlWireToken)

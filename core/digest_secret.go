@@ -274,6 +274,12 @@ func (k *Ed25519PublicKey) UnmarshalText(text []byte) error {
 }
 
 // Validate rejects an unset public key.
+//
+// The all-zero key is deliberately admitted here. This type is a container for
+// thirty-two bytes and a derivation over it is total, so refusing the value
+// would break identity derivations that legitimately span every byte string.
+// Whether a key may be *trusted* is a different question with a different
+// owner: Attest refuses the all-zero small-order point at the trust boundary.
 func (k Ed25519PublicKey) Validate() error {
 	if !k.set {
 		return errors.Join(ErrPrimitiveContract, errors.New("ed25519 public key is unset"))

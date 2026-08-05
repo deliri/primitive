@@ -90,8 +90,8 @@ func revisionDiagnostics() [revisionLimit]string {
 func scopeFieldDiagnostics() [scopeFieldLimit]string {
 	return [...]string{
 		unknownText,
-		"account",
-		"offering",
+		core.ProtocolMemberAccount,
+		core.ProtocolMemberOffering,
 		"submission",
 		"object",
 		"extent",

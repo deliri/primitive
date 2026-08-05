@@ -2619,6 +2619,26 @@ compiler contract and the interface-absence test is the negative proof.
   concurrent uncommitted Release work introducing a new `release -> garble`
   architecture edge; no Objectstore failure was observed and the Release files
   were preserved outside this slice.
+- `2026-08-04`: Witness migration proved that repository release admission was
+  independently reimplemented by Witness, Bug, and Peachfuzz. Release now owns
+  one product-neutral `VerifyRepository` boundary over the real Git executable
+  and Primitive Process: it binds canonical HEAD to the requested build commit,
+  rejects tracked, staged, deleted, and untracked worktree state, refuses
+  ambient or `GIT_`-controlled environments, and returns proof-carrying clean
+  repository facts. Refusing `GIT_` variables is not by itself sufficient: the
+  configuration those variables would steer is also reachable through `HOME`,
+  so every Git invocation now carries its own policy on the command line and
+  neutralizes `core.excludesFile`, `core.attributesFile`, `core.fsmonitor`, and
+  optional index locks. Without it a machine-wide ignore rule reports a dirty
+  worktree as clean, which the hostile suite proves as a red state.
+  Cleanliness is detected by a first-byte refusing writer,
+  so arbitrarily large status output is neither retained nor world-built.
+  Typed mismatch and dirty errors preserve `ErrReleaseContract`, while native
+  process failures remain reachable. Real-repository hostile tests, including
+  status beyond the process capture ceiling, targeted race, Vet, Staticcheck,
+  Witness-lint, production complexity, and diff checks pass. Full canonical
+  gate, consumer migrations, user review, commit, and publication remain
+  pending.
 - `2026-08-05`: Registration migration proved that the control-wire scalars were
   independently reimplemented by OGS and Peachfuzz. The revision, the request
   nonce, and the one-time registration token are the three values the server and
@@ -2642,3 +2662,34 @@ compiler contract and the interface-absence test is the negative proof.
   gofmt, and fieldalignment. Consumer migration in OGS and Peachfuzz, which
   delete their copies and vendor the golden fixtures that prove no wire byte
   moved, remains pending.
+- `2026-08-05`: The control-plane documents joined the scalars. The wire test is
+  that both ends of the exchange run this same stack, so anything crossing the
+  wire has exactly one owner and that owner is Primitive; a type the authority
+  publishes and each product mirrors is duplication that goldens can only
+  observe, never prevent. The registration request, the installation
+  certificate, the signed registration payload and document, the response header
+  with its binding to one exact request, the commercial product status, the
+  per-installation usage watermark, and the closed signing-domain set were all
+  held privately by OGS and re-implemented in Peachfuzz. They could not join
+  Controlwire: the response header alone needs Temporal, Receipt, and Lease,
+  which would put Controlwire at seven direct imports against a ceiling of six.
+  Placement is a new order-6 `controlplane` package over Core, Controlwire,
+  Attest, Lease, Temporal, and Receipt, exactly at the ceiling. Controlwire
+  keeps the scalars and stays at three. Controlwire also gained PolicyCursor,
+  whose Crockford base32 revision identifier refuses lowercase and the I, L, and
+  O aliases: an installation echoes the identifier back on every later exchange,
+  so a leniently parsed value would re-encode to different bytes than arrived
+  and break the echo rather than tolerate a variant. Product status admits a
+  grant only under active and payment-retry, payment retry included because a
+  failed charge inside grace is still a paying customer. RegistrationRequest
+  splits its machine layout from the protocol's field order and converts with
+  unkeyed literals, so drift on either side stops compiling; the residual
+  fieldalignment finding sits on the wire struct, whose order the authority owns
+  and which must not be optimised. Both real OGS fixtures round-trip byte exact,
+  including the 2727-byte signed response with its nested certificate, lease,
+  watermark, header, and two attestation envelopes. Full Primitive suite,
+  gocyclo, and Vet pass. The receipt Watermark overlap is recorded rather than
+  resolved: it is the same mechanic scoped to an account and offering instead of
+  an installation, and unifying them would redesign durable bytes. Consumer
+  migration in OGS, Peachfuzz, Bug, and Witness, plus package hostile tables and
+  fuzz targets for the new documents, remain pending.

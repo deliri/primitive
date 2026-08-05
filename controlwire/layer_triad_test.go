@@ -43,6 +43,10 @@ func TestControlWireScalarLayerTriad(t *testing.T) {
 			{name: "revision", value: revision, want: `"` + controlwire.Revision2026V1Token + `"`},
 			{name: "nonce", value: nonce, want: `"` + nonceHexWithLetters + `"`},
 			{name: "token", value: token, want: `"` + tokenHexWithLetters + `"`},
+			{
+				name: "policy cursor", value: mustPolicyCursor(t),
+				want: `{"revision":"` + policyRevisionRealWorld + `","activation":1}`,
+			},
 		} {
 			encoded, err := json.Marshal(subject.value)
 			if err != nil {
@@ -95,6 +99,15 @@ func TestControlWireScalarLayerTriad(t *testing.T) {
 					return value.UnmarshalJSON(data)
 				},
 			},
+			{
+				name:     "policy cursor refuses the reserved absent revision",
+				document: `{"revision":"` + policyRevisionAllZero + `","activation":1}`,
+				want:     core.ErrControlWirePolicyCursor,
+				decode: func(data []byte) error {
+					var value controlwire.PolicyCursor
+					return value.UnmarshalJSON(data)
+				},
+			},
 		} {
 			err := subject.decode([]byte(subject.document))
 			if !errors.Is(err, subject.want) {
@@ -137,6 +150,15 @@ func TestControlWireScalarLayerTriad(t *testing.T) {
 		if got := fmt.Sprintf("%v", token); got != core.RedactedValueText {
 			t.Errorf("unset RegistrationToken rendering = %q, want %q", got, core.RedactedValueText)
 		}
+		// The policy revision is the one scalar here that cannot render as
+		// empty: it is sixteen raw bytes with no set flag, so its unset value
+		// renders as a well-formed identifier. Refusing it is therefore a
+		// Validate() obligation rather than a rendering one, which is why the
+		// marshal refusal below is the property that actually protects the wire.
+		var cursor controlwire.PolicyCursor
+		if got := cursor.Revision.String(); got == "" {
+			t.Errorf("unset PolicyRevisionID.String() = %q, want a well-formed identifier", got)
+		}
 
 		for _, subject := range []struct {
 			value any
@@ -146,6 +168,8 @@ func TestControlWireScalarLayerTriad(t *testing.T) {
 			{name: "nonce", value: nonce},
 			{name: "token", value: token},
 			{name: "verifier", value: verifier},
+			{name: "policy cursor", value: cursor},
+			{name: "policy revision", value: cursor.Revision},
 		} {
 			encoded, err := json.Marshal(subject.value)
 			if err == nil {

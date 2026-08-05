@@ -12,6 +12,14 @@ var (
 	_ core.Validatable = RequestNonce{}
 	_ core.Validatable = RegistrationToken{}
 	_ core.Validatable = RegistrationTokenVerifier{}
+	_ core.Validatable = PolicyCursor{}
+	_ core.Validatable = PolicyRevisionID{}
+	_ core.Validatable = PolicyActivation(0)
+
+	_ core.ValidatedJSONMarshaler = PolicyCursor{}
+	_ core.ValidatedJSONMarshaler = PolicyRevisionID{}
+	_ json.Unmarshaler            = (*PolicyCursor)(nil)
+	_ json.Unmarshaler            = (*PolicyRevisionID)(nil)
 
 	_ core.ValidatedJSONMarshaler = Revision(0)
 	_ core.ValidatedJSONMarshaler = RequestNonce{}

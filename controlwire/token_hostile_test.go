@@ -148,7 +148,7 @@ func TestRegistrationTokenFormatRedactsEveryVerb(t *testing.T) {
 	// A token nested inside a wrapped error must not disclose either.
 	wrapped := fmt.Errorf("registration failed for %v: %w", token, core.ErrControlWireToken)
 	if strings.Contains(wrapped.Error(), tokenHexWithLetters) {
-		t.Fatalf("wrapped error disclosed the token: %q", wrapped.Error())
+		t.Fatalf("wrapped error = %q, want it to omit the token text", wrapped.Error())
 	}
 }
 

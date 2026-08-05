@@ -57,6 +57,12 @@ flowchart TD
     controlwire[controlwire] --> core
     controlwire --> keygen
     controlwire --> exchange
+    controlplane[controlplane] --> core
+    controlplane --> controlwire
+    controlplane --> attest
+    controlplane --> lease
+    controlplane --> temporal
+    controlplane --> receipt
     process[process] --> core
     process --> contextstate
     process --> temporal

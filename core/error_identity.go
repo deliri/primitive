@@ -274,6 +274,40 @@ const (
 	ErrControlWireNonce
 	// ErrControlWireToken identifies a rejected control-wire registration token.
 	ErrControlWireToken
+	// ErrControlWirePolicyCursor identifies a rejected control-wire policy cursor.
+	ErrControlWirePolicyCursor
+	// ErrControlWireRoute identifies a rejected control-plane route contract.
+	ErrControlWireRoute
+	// ErrControlPlaneContract identifies a control-plane document contract violation.
+	ErrControlPlaneContract
+	// ErrControlPlaneSigningDomain identifies a rejected control-plane signing domain.
+	ErrControlPlaneSigningDomain
+	// ErrControlPlaneProductStatus identifies a rejected commercial product status.
+	ErrControlPlaneProductStatus
+	// ErrControlPlaneUsageWatermark identifies a rejected usage watermark.
+	ErrControlPlaneUsageWatermark
+	// ErrControlPlaneResponseHeader identifies a rejected response header.
+	ErrControlPlaneResponseHeader
+	// ErrControlPlaneResponseBinding identifies a response that does not bind to
+	// the exact request that produced it.
+	ErrControlPlaneResponseBinding
+	// ErrControlPlaneProviderTimeRollback identifies an authority instant that
+	// moved backward from a previously trusted one.
+	ErrControlPlaneProviderTimeRollback
+	// ErrControlPlaneRegistration identifies a rejected registration document.
+	ErrControlPlaneRegistration
+	// ErrControlPlaneInstallationBinding identifies an installation identity that
+	// its own device key does not derive.
+	ErrControlPlaneInstallationBinding
+	// ErrControlPlaneDecisionConsistency identifies signed facts that disagree
+	// with each other inside one authenticated document.
+	ErrControlPlaneDecisionConsistency
+	// ErrControlPlaneCheckIn identifies a rejected check-in request document.
+	ErrControlPlaneCheckIn
+	// ErrControlPlaneCheckInResponse identifies a rejected check-in response.
+	ErrControlPlaneCheckInResponse
+	// ErrControlPlaneUsageWindow identifies a rejected reported usage window.
+	ErrControlPlaneUsageWindow
 
 	errorIdentityLimit
 )
@@ -402,6 +436,21 @@ func errorIdentityDiagnostics() [errorIdentityLimit]errorIdentityDiagnostic {
 		{identity: ErrControlWireRevision, text: "control-wire revision unsupported"},
 		{identity: ErrControlWireNonce, text: "control-wire request nonce invalid"},
 		{identity: ErrControlWireToken, text: "control-wire registration token invalid"},
+		{identity: ErrControlWirePolicyCursor, text: "control-wire policy cursor invalid"},
+		{identity: ErrControlWireRoute, text: "control-wire route contract invalid"},
+		{identity: ErrControlPlaneContract, text: "control-plane contract violation"},
+		{identity: ErrControlPlaneSigningDomain, text: "control-plane signing domain invalid"},
+		{identity: ErrControlPlaneProductStatus, text: "control-plane product status invalid"},
+		{identity: ErrControlPlaneUsageWatermark, text: "control-plane usage watermark invalid"},
+		{identity: ErrControlPlaneResponseHeader, text: "control-plane response header invalid"},
+		{identity: ErrControlPlaneResponseBinding, text: "control-plane response does not bind to its request"},
+		{identity: ErrControlPlaneProviderTimeRollback, text: "control-plane provider time moved backward"},
+		{identity: ErrControlPlaneRegistration, text: "control-plane registration document invalid"},
+		{identity: ErrControlPlaneInstallationBinding, text: "control-plane installation binding invalid"},
+		{identity: ErrControlPlaneDecisionConsistency, text: "control-plane decision facts disagree"},
+		{identity: ErrControlPlaneCheckIn, text: "control-plane check-in request invalid"},
+		{identity: ErrControlPlaneCheckInResponse, text: "control-plane check-in response invalid"},
+		{identity: ErrControlPlaneUsageWindow, text: "control-plane usage window invalid"},
 	}
 }
 
@@ -533,10 +582,18 @@ func errorIdentityParents(identity ErrorIdentity) errorIdentityParentSet {
 		ErrReleaseContract, ErrDeployContract,
 		ErrShutdownContract, ErrObjectStoreContract, ErrTimeProofContract,
 		ErrCloudIdentityContract, ErrUpgradeContract,
-		ErrLifecycleIdentityContract, ErrReceiptContract, ErrControlWireContract:
+		ErrLifecycleIdentityContract, ErrReceiptContract, ErrControlWireContract,
+		ErrControlPlaneContract:
 		return oneErrorIdentityParent(ErrPrimitiveContract)
-	case ErrControlWireRevision, ErrControlWireNonce, ErrControlWireToken:
-		return oneErrorIdentityParent(ErrControlWireContract)
+	case ErrControlWireRevision, ErrControlWireNonce, ErrControlWireToken,
+		ErrControlWirePolicyCursor, ErrControlWireRoute,
+		ErrControlPlaneSigningDomain, ErrControlPlaneProductStatus,
+		ErrControlPlaneUsageWatermark, ErrControlPlaneResponseHeader,
+		ErrControlPlaneResponseBinding, ErrControlPlaneProviderTimeRollback,
+		ErrControlPlaneRegistration, ErrControlPlaneInstallationBinding,
+		ErrControlPlaneDecisionConsistency, ErrControlPlaneCheckIn,
+		ErrControlPlaneCheckInResponse, ErrControlPlaneUsageWindow:
+		return errorIdentityParentsControlExchange(identity)
 	case ErrUpgradeDownload, ErrUpgradeCapacity, ErrUpgradeVerification, ErrUpgradeTrial,
 		ErrUpgradePromotion, ErrUpgradePersistence, ErrUpgradeCleanup,
 		ErrUpgradeConflict:
@@ -608,6 +665,28 @@ func errorIdentityParentsAttestThroughKeygen(identity ErrorIdentity) errorIdenti
 		return oneErrorIdentityParent(ErrGarbleContract)
 	case ErrKeygenEntropy:
 		return oneErrorIdentityParent(ErrKeygenContract)
+	default:
+		return errorIdentityParentSet{}
+	}
+}
+
+// errorIdentityParentsControlExchange owns the parents of both halves of the
+// control exchange: the scalars Controlwire carries and the documents
+// Controlplane assembles from them. They are one function because they are one
+// exchange, and separating them here would say two ends of the same protocol
+// are unrelated.
+func errorIdentityParentsControlExchange(identity ErrorIdentity) errorIdentityParentSet {
+	switch identity {
+	case ErrControlWireRevision, ErrControlWireNonce, ErrControlWireToken,
+		ErrControlWirePolicyCursor, ErrControlWireRoute:
+		return oneErrorIdentityParent(ErrControlWireContract)
+	case ErrControlPlaneSigningDomain, ErrControlPlaneProductStatus,
+		ErrControlPlaneUsageWatermark, ErrControlPlaneResponseHeader,
+		ErrControlPlaneResponseBinding, ErrControlPlaneProviderTimeRollback,
+		ErrControlPlaneRegistration, ErrControlPlaneInstallationBinding,
+		ErrControlPlaneDecisionConsistency, ErrControlPlaneCheckIn,
+		ErrControlPlaneCheckInResponse, ErrControlPlaneUsageWindow:
+		return oneErrorIdentityParent(ErrControlPlaneContract)
 	default:
 		return errorIdentityParentSet{}
 	}

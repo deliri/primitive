@@ -105,7 +105,7 @@ unjustified abstraction.
 
 ## 3. Exact graph
 
-The catalog is 23 production packages plus test-only `testserial`.
+The catalog is 24 production packages plus test-only `testserial`.
 Every listed import is required and must be used semantically. Every unlisted
 Primitive sibling import is forbidden.
 
@@ -132,10 +132,11 @@ The order column is dependency depth, not a mandate to build an entire row.
 | 4 | `shutdown` | Signal observation and phased bounded cleanup | `core`, `contextstate`, `temporal` | none |
 | 5 | `gate` | Pure CLI-side new-work authorization over one authentic Lease assessment | `core`, `lease` | `attest`, `temporal` |
 | 5 | `receipt` | Authenticated accepted-evidence facts and fixed-size monotonic watermarks | `core`, `attest`, `temporal` | none |
-| 5 | `controlwire` | Shared control-wire revision, request nonce, and one-time registration token | `core`, `keygen`, `exchange` | none |
+| 5 | `controlwire` | Shared control-wire revision, request nonce, one-time registration token, and policy cursor | `core`, `keygen`, `exchange` | none |
 | 5 | `objectstore` | One bounded vendor-specified S3, GCS, or Cloudflare Images transfer with integrity and commitment | `core`, `contextstate`, `temporal`, `exchange` | none |
 | 5 | `timeproof` | RFC 3161 request construction, response verification, and replay | `core`, `temporal`, `keygen` | none |
 | 5 | `cloudidentity` | Bounded Google Cloud or AWS outbound identity-token acquisition and redacted disclosure | `core`, `temporal`, `exchange` | none |
+| 6 | `controlplane` | Signed control-plane request and response documents, their binding to one exact request, product status, and usage watermark | `core`, `controlwire`, `attest`, `lease`, `temporal`, `receipt` | none |
 | 6 | `deploy` | Exact create-only GCS publication of one authenticated release and its metadata | `core`, `objectstore`, `release` | `attest`, `exchange`, `temporal` |
 | 6 | `upgrade` | Crash-recoverable installation, activation, startup truth, rollback, and recovery | `core`, `filestore`, `hostfacts`, `objectstore`, `release`, `temporal` | none |
 

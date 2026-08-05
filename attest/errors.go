@@ -23,6 +23,7 @@ const (
 	frameExtentErrorText               = "attestation frame extent is outside the supported range"
 	trustedKeyCountErrorText           = "trusted key count is outside the supported range"
 	trustedKeyDuplicateErrorText       = "trusted keys contain a duplicate"
+	trustedKeySmallOrderErrorText      = "trusted key is the all-zero small-order point"
 	trustedKeyStorageErrorText         = "trusted key storage is not closed"
 	canonicalObjectUnopenedErrorText   = "canonical object was never opened"
 	canonicalObjectClosedErrorText     = "canonical object is closed"

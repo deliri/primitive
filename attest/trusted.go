@@ -29,12 +29,40 @@ func validateTrustedKeyInput(keys []core.Ed25519PublicKey) error {
 		return contractError(errors.New(trustedKeyCountErrorText))
 	}
 	for index, key := range keys {
-		if err := key.Validate(); err != nil {
-			return contractError(err)
+		if err := validateTrustAnchor(key); err != nil {
+			return err
 		}
 		if slices.Contains(keys[:index], key) {
 			return contractError(errors.New(trustedKeyDuplicateErrorText))
 		}
+	}
+	return nil
+}
+
+// validateTrustAnchor refuses a key that may be well-formed but must never be
+// trusted.
+//
+// The all-zero key is the case that matters. It passes every length and
+// encoding check, so it reaches verification looking like a configured
+// authority, and it is exactly what a blank, truncated, or default-initialised
+// configuration decodes to. It is also a small-order Ed25519 point that no
+// keypair generates. A build that trusted it would report that it verifies
+// responses while trusting an anchor nobody holds the private half of, which is
+// worse than having no anchor at all: the failure is silent.
+//
+// Core admits this value deliberately, because a public key is thirty-two bytes
+// and derivations over it are total. Trust is the narrower question, and it is
+// this package's to answer.
+func validateTrustAnchor(key core.Ed25519PublicKey) error {
+	if err := key.Validate(); err != nil {
+		return contractError(err)
+	}
+	raw, err := key.Bytes()
+	if err != nil {
+		return contractError(err)
+	}
+	if slices.Max(raw) == 0 {
+		return contractError(errors.New(trustedKeySmallOrderErrorText))
 	}
 	return nil
 }

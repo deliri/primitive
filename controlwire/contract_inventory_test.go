@@ -29,6 +29,8 @@ type controlwireContractInventory struct {
 	RequestNonce              controlwireProtocolFact[RequestNonce]
 	RegistrationToken         controlwireSecretCarrier[RegistrationToken]
 	RegistrationTokenVerifier controlwireDerivedFact[RegistrationTokenVerifier]
+	PolicyCursor              controlwireProtocolFact[PolicyCursor]
+	RouteContract             controlwireProtocolFact[RouteContract]
 }
 
 func TestControlWireProductionStructsHaveCompilerVisibleDataFlowRoles(t *testing.T) {
@@ -126,7 +128,7 @@ func controlwireClassifiedStructNames(t *testing.T) []controlwireProductionStruc
 		}
 	}
 	if len(names) == 0 {
-		t.Fatal("controlwireContractInventory declared no classified structs, want at least one")
+		t.Fatalf("controlwireContractInventory classified structs = %d, want at least one", len(names))
 	}
 	return names
 }

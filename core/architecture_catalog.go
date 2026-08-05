@@ -12,9 +12,9 @@ const (
 	// PrimitivePackagePathPrefix prefixes every Primitive package import path.
 	PrimitivePackagePathPrefix = PrimitiveModulePath + "/"
 	// PrimitivePackageCount is the number of packages in the complete catalog.
-	PrimitivePackageCount = 24
+	PrimitivePackageCount = 25
 	// PrimitiveDirectImportCount is the number of admitted direct import edges.
-	PrimitiveDirectImportCount = 58
+	PrimitiveDirectImportCount = 64
 	// PrimitiveDirectTestImportCount is the number of admitted test-only edges.
 	PrimitiveDirectTestImportCount = 6
 	// PrimitiveMaximumDirectImports caps direct sibling imports per package.
@@ -59,6 +59,8 @@ const (
 	PackageReceipt
 	// PackageControlWire identifies the shared control-wire scalar package.
 	PackageControlWire
+	// PackageControlPlane identifies the signed control-plane document package.
+	PackageControlPlane
 	// PackageProcess identifies the process package.
 	PackageProcess
 	// PackageRelease identifies the release package.
@@ -154,6 +156,7 @@ func PrimitiveArchitecture() ArchitectureCatalog {
 			{Identity: PackageGate, Kind: PackageKindProduction},
 			{Identity: PackageReceipt, Kind: PackageKindProduction},
 			{Identity: PackageControlWire, Kind: PackageKindProduction},
+			{Identity: PackageControlPlane, Kind: PackageKindProduction},
 			{Identity: PackageProcess, Kind: PackageKindProduction},
 			{Identity: PackageRelease, Kind: PackageKindProduction},
 			{Identity: PackageShutdown, Kind: PackageKindProduction},
@@ -194,6 +197,12 @@ func PrimitiveArchitecture() ArchitectureCatalog {
 			{Importer: PackageControlWire, Imported: PackageCore},
 			{Importer: PackageControlWire, Imported: PackageKeygen},
 			{Importer: PackageControlWire, Imported: PackageExchange},
+			{Importer: PackageControlPlane, Imported: PackageCore},
+			{Importer: PackageControlPlane, Imported: PackageControlWire},
+			{Importer: PackageControlPlane, Imported: PackageAttest},
+			{Importer: PackageControlPlane, Imported: PackageLease},
+			{Importer: PackageControlPlane, Imported: PackageTemporal},
+			{Importer: PackageControlPlane, Imported: PackageReceipt},
 			{Importer: PackageProcess, Imported: PackageCore},
 			{Importer: PackageProcess, Imported: PackageContextState},
 			{Importer: PackageProcess, Imported: PackageTemporal},
@@ -482,7 +491,8 @@ func packagePurposeTexts() [packageIdentityLimit]string {
 		PackageLease:         "Signed lease timeline, assessment, renewal, and monotonic advance",
 		PackageGate:          "Pure CLI-side new-work authorization over one authentic Lease assessment",
 		PackageReceipt:       "Authenticated accepted-evidence facts and fixed-size monotonic watermarks",
-		PackageControlWire:   "Shared control-wire revision, request nonce, and one-time registration token",
+		PackageControlWire:   "Shared control-wire revision, request nonce, one-time registration token, and policy cursor",
+		PackageControlPlane:  "Signed control-plane request and response documents, their binding to one exact request, product status, and usage watermark",
 		PackageProcess:       "Argv, environment, containment, bounded output, exit, and reaping over os/exec",
 		PackageRelease:       "Verified build tools, deterministic Garble build and process plans, executable inspection, signed tool and metadata provenance, immutable artifacts, manifests, Latest, and selection",
 		PackageShutdown:      "Signal observation and phased bounded cleanup",
@@ -545,6 +555,7 @@ func packageIdentityTexts() [packageIdentityLimit]string {
 		"gate",
 		"receipt",
 		"controlwire",
+		"controlplane",
 		"process",
 		"release",
 		"shutdown",
