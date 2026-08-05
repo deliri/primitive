@@ -36,6 +36,7 @@ flowchart TD
 
     filestore[filestore] --> core
     filestore --> contextstate
+    filestore --> temporal
     hostfacts[hostfacts] --> core
     hostfacts --> contextstate
     temporal[temporal] --> core

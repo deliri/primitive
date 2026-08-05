@@ -118,6 +118,42 @@ func (r ReadRequest) Validate() error {
 	return nil
 }
 
+// ReadHandleRequest names one existing regular file to open for reading.
+type ReadHandleRequest struct {
+	Location Location
+}
+
+// Validate rejects an invalid location.
+func (r ReadHandleRequest) Validate() error {
+	return r.Location.Validate()
+}
+
+// RenameRequest moves the entry at Location to Target under the same rooted
+// capability. Target and source may occupy different directories within that
+// capability.
+type RenameRequest struct {
+	Location Location
+	Target   core.RelativePath
+}
+
+// Validate rejects an invalid location, a root-naming source or target, or a
+// rename onto itself.
+func (r RenameRequest) Validate() error {
+	if err := r.Location.Validate(); err != nil {
+		return err
+	}
+	if err := validateMutablePath(r.Location.Path); err != nil {
+		return err
+	}
+	if err := validateMutablePath(r.Target); err != nil {
+		return err
+	}
+	if r.Location.Path == r.Target {
+		return contractError(errors.New("filestore rename target equals its source"))
+	}
+	return nil
+}
+
 // WriteRequest streams Source into one caller-named same-directory temporary
 // before atomic activation.
 type WriteRequest struct {
@@ -527,6 +563,8 @@ var (
 	_ core.Validatable = InstallMode(0)
 	_ core.Validatable = DirectoryRequest{}
 	_ core.Validatable = ReadRequest{}
+	_ core.Validatable = ReadHandleRequest{}
+	_ core.Validatable = RenameRequest{}
 	_ core.Validatable = WriteRequest{}
 	_ core.Validatable = StageRequest{}
 	_ core.Validatable = CommitRequest{}

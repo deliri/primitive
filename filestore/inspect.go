@@ -8,6 +8,7 @@ import (
 
 	"github.com/deliri/primitive/v2026/contextstate"
 	"github.com/deliri/primitive/v2026/core"
+	"github.com/deliri/primitive/v2026/temporal"
 )
 
 // PathKind is the closed set of things one configured path can turn out to be.
@@ -76,11 +77,13 @@ func (k PathKind) String() string {
 // what a caller found on this machine and is never serialized.
 func (PathKind) OffWireEnum() {}
 
-// Inspection is one observed path. Its field is unexported and reachable only
-// through an accessor that revalidates, so a caller cannot assemble an
+// Inspection is one observed path. Its fields are unexported and reachable
+// only through accessors that revalidate, so a caller cannot assemble an
 // observation it never made.
 type Inspection struct {
-	kind PathKind
+	modified temporal.Instant
+	size     core.ByteLength
+	kind     PathKind
 }
 
 // Validate rejects an observation that names no kind.
@@ -92,6 +95,47 @@ func (i Inspection) Kind() (PathKind, error) {
 		return PathKindUnknown, err
 	}
 	return i.kind, nil
+}
+
+// SizeBytes returns how many bytes the observed regular file holds.
+//
+// Only a regular file has a size that means anything. A directory's reported
+// size is an implementation detail of the filesystem, and a symbolic link's is
+// the length of its target text, so answering for either would hand back a
+// number that looks like a byte count and is not one.
+func (i Inspection) SizeBytes() (core.ByteLength, error) {
+	kind, err := i.Kind()
+	if err != nil {
+		return core.ByteLength{}, err
+	}
+	if kind != PathKindRegularFile {
+		return core.ByteLength{}, contractError(errors.New("only a regular file has a byte count"))
+	}
+	return i.size, nil
+}
+
+// ModifiedAt returns when the observed entry last changed.
+//
+// The observation already holds this fact, and a caller that had to ask again
+// would be asking about a different moment. Staleness decisions — reaping an
+// abandoned lock, expiring cached custody — are the reason products otherwise
+// keep a raw stat call after adopting Inspect.
+//
+// Only an entry that exists has a modification time. An absent or unreachable
+// path has nothing to report and is refused rather than answered with a zero
+// instant that reads as 1970.
+func (i Inspection) ModifiedAt() (temporal.Instant, error) {
+	kind, err := i.Kind()
+	if err != nil {
+		return temporal.Instant{}, err
+	}
+	if kind == PathKindAbsent || kind == PathKindUnreachable {
+		return temporal.Instant{}, contractError(errors.New("an absent path has no modification time"))
+	}
+	if err := i.modified.Validate(); err != nil {
+		return temporal.Instant{}, contractError(err)
+	}
+	return i.modified, nil
 }
 
 // Inspect reports what occupies one absolute path without creating, opening,
@@ -127,9 +171,16 @@ func Inspect(ctx context.Context, path core.AbsolutePath) (Inspection, error) {
 	if err != nil {
 		return Inspection{}, contractError(err)
 	}
+	holdsEntries, err := parentHoldsEntries(parent)
+	if err != nil {
+		return Inspection{}, err
+	}
+	if !holdsEntries {
+		return newInspection(PathKindUnreachable)
+	}
 	root, err := os.OpenRoot(parent.String())
 	if err != nil {
-		return inspectionForParentFailure(ctx, parent, err)
+		return Inspection{}, sourceError(err)
 	}
 	info, statErr := root.Lstat(base.String())
 	closeErr := root.Close()
@@ -139,32 +190,35 @@ func Inspect(ctx context.Context, path core.AbsolutePath) (Inspection, error) {
 	return inspectionForEntry(info, statErr)
 }
 
-// inspectionForParentFailure separates "there is nothing here" from "I was not
-// allowed to look".
+// parentHoldsEntries reports whether the parent is a directory that could hold
+// the named entry, established without opening it.
+//
+// Opening is what makes a hostile parent dangerous. os.OpenRoot performs an
+// ordinary open, and opening a named pipe blocks until a writer arrives, so a
+// FIFO anywhere in a path used to park the caller forever with the context
+// never consulted. Nothing in the rooted-open API accepts a directories-only
+// flag, so the kind is settled first by a call that opens nothing.
 //
 // A missing parent and a parent that is not a directory are the same fact to a
-// caller: nothing is there and nothing can be put there. Only the first is
-// reported as a typed error. The standard library detects the second itself
-// and returns an untyped error whose sole distinguishing feature is its text,
-// so the parent is asked what it is rather than having its error matched on
-// prose. Recursion moves one component toward the filesystem root each time
-// and terminates there, within the bound AbsolutePath already places on depth.
-func inspectionForParentFailure(ctx context.Context, parent core.AbsolutePath, err error) (Inspection, error) {
+// caller: nothing is there and nothing can be put there. Permission trouble is
+// not that fact and stays an error, so an observation is never recorded that
+// the caller was not allowed to make.
+//
+// Stat, not Lstat: intermediate components are conventionally followed, and it
+// is only the final component that Inspect leaves unfollowed. Between this
+// answer and the open below the parent could in principle be replaced by a
+// pipe, which is a far narrower window than the unconditional block it
+// replaces, and closing it entirely needs a rooted open the standard library
+// does not expose.
+func parentHoldsEntries(parent core.AbsolutePath) (bool, error) {
+	info, err := os.Stat(parent.String())
 	if errors.Is(err, fs.ErrNotExist) {
-		return newInspection(PathKindUnreachable)
+		return false, nil
 	}
-	parentInspection, parentErr := Inspect(ctx, parent)
-	if parentErr != nil {
-		return Inspection{}, sourceError(err)
+	if err != nil {
+		return false, sourceError(err)
 	}
-	kind, kindErr := parentInspection.Kind()
-	if kindErr != nil {
-		return Inspection{}, sourceError(err)
-	}
-	if kind != PathKindDirectory {
-		return newInspection(PathKindUnreachable)
-	}
-	return Inspection{}, sourceError(err)
+	return info.IsDir(), nil
 }
 
 func inspectionForEntry(info fs.FileInfo, err error) (Inspection, error) {
@@ -174,7 +228,34 @@ func inspectionForEntry(info fs.FileInfo, err error) (Inspection, error) {
 	if err != nil {
 		return Inspection{}, sourceError(err)
 	}
-	return newInspection(kindForMode(info.Mode()))
+	modified, err := temporal.NewInstant(info.ModTime())
+	if err != nil {
+		return Inspection{}, contractError(err)
+	}
+	size, err := observedSize(info)
+	if err != nil {
+		return Inspection{}, err
+	}
+	inspection := Inspection{kind: kindForMode(info.Mode()), modified: modified, size: size}
+	return inspection, inspection.Validate()
+}
+
+// observedSize keeps a nonsensical size out of the observation entirely. Only
+// a regular file carries one, and a negative count from the filesystem is a
+// refusal rather than a value to widen a typed byte length around.
+func observedSize(info fs.FileInfo) (core.ByteLength, error) {
+	if !info.Mode().IsRegular() {
+		return core.ByteLength{}, nil
+	}
+	size := info.Size()
+	if size < 0 {
+		return core.ByteLength{}, sourceError(errors.New("filesystem reported a negative byte count"))
+	}
+	length, err := core.NewByteLength(uint64(size))
+	if err != nil {
+		return core.ByteLength{}, contractError(err)
+	}
+	return length, nil
 }
 
 func kindForMode(mode fs.FileMode) PathKind {

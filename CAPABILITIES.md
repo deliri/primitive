@@ -19,7 +19,7 @@ transaction run this same stack, so a wire type has exactly one home.
 | `currency` | Exact signed minor-unit values, checked same-currency arithmetic, ordering, bounded decimal and JSON projection. |
 | `deploy` | Binding one authenticated release manifest to exact create-only GCS upload capabilities, returning confirmed provider facts. |
 | `exchange` | Typed bounded operation policy over real `net/http` client and server boundaries: retry classification, exponential backoff, jitter, server hints, redirect confinement, idempotency and replay semantics, bounded JSON calls. |
-| `filestore` | Rooted, bounded, streaming durability over real `os.Root`/`os.File`: staged writes, commit, file and directory fsync, crash recovery, and path inspection (`Inspect` reports absent / directory / file / symlink / unreachable without following the final component). |
+| `filestore` | Rooted, bounded, streaming durability over real `os.Root`/`os.File`: staged writes, commit, durable rename of an existing entry, read handles (`OpenRead`, for when a reader must be handed to something else), file and directory fsync, crash recovery, and path inspection (`Inspect` reports absent / directory / file / symlink / unreachable without following the final component, and carries the entry's modification time and byte count). |
 | `fuzzfinder` | Finding Go fuzz corpus and crasher artifacts in a rooted directory with bounded memory and explicit partial accounting. |
 | `garble` | Garble tool identity, deterministic seed derivation, and the Garble-owned prefix of a typed build intent. |
 | `gate` | Turning one authentic lease assessment into permission to begin new paid work. |
@@ -47,6 +47,11 @@ transaction run this same stack, so a wire type has exactly one home.
 | a nonce, token, revision, or route path | `controlwire` |
 | writing a file that must survive power loss | `filestore` |
 | asking what occupies a configured path | `filestore.Inspect` — never `os.Stat` from a product |
+| how old an entry is, for staleness or reaping | `filestore.Inspection.ModifiedAt` — the observation already holds it |
+| how many bytes a file holds | `filestore.Inspection.SizeBytes` — regular files only, because nothing else has a meaningful one |
+| handing a file's bytes to something that wants a reader | `filestore.OpenRead` — never `os.Open` from a product |
+| moving an entry that already exists on disk | `filestore.Rename` — `Commit` only activates a stage |
+| making a directory durable on its own | nothing: durability belongs to the activation that changed it, and a bare public directory sync is banned by the `filestore` architecture ratchet |
 | uploading to S3/GCS/Cloudflare | `objectstore` — capabilities and commitments already exist |
 | a timestamp, duration, or deadline | `temporal` |
 | third-party proof of *when* | `timeproof` |

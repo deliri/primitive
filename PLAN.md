@@ -121,7 +121,7 @@ The order column is dependency depth, not a mandate to build an entire row.
 | 2 | `garble` | Tool identity, seed custody and derivation, and typed build intent | `core` | none |
 | 2 | `keygen` | Exact secret and Ed25519 key generation | `core` | none |
 | 2 | `testserial` | Test-only isolation declaration and analyzer contract | `core` | none |
-| 3 | `filestore` | Rooted OS handles, confinement, inspection, durability, activation, append rotation, and recovery | `core`, `contextstate` | none |
+| 3 | `filestore` | Rooted OS handles, confinement, inspection, durability, activation, append rotation, rename, and recovery | `core`, `contextstate`, `temporal` | none |
 | 3 | `hostfacts` | Host disk, memory, cgroup, tree, and OOM observations | `core`, `contextstate` | none |
 | 3 | `temporal` | Time, duration, arithmetic, persistence, waits, and tickers | `core`, `contextstate` | none |
 | 4 | `exchange` | Bounded client and server boundary policy over `net/http` | `core`, `contextstate`, `temporal` | none |

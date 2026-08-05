@@ -14,7 +14,7 @@ const (
 	// PrimitivePackageCount is the number of packages in the complete catalog.
 	PrimitivePackageCount = 25
 	// PrimitiveDirectImportCount is the number of admitted direct import edges.
-	PrimitiveDirectImportCount = 65
+	PrimitiveDirectImportCount = 66
 	// PrimitiveDirectTestImportCount is the number of admitted test-only edges.
 	PrimitiveDirectTestImportCount = 6
 	// PrimitiveMaximumDirectImports caps direct sibling imports per package.
@@ -176,6 +176,7 @@ func PrimitiveArchitecture() ArchitectureCatalog {
 
 			{Importer: PackageFilestore, Imported: PackageCore},
 			{Importer: PackageFilestore, Imported: PackageContextState},
+			{Importer: PackageFilestore, Imported: PackageTemporal},
 			{Importer: PackageHostFacts, Imported: PackageCore},
 			{Importer: PackageHostFacts, Imported: PackageContextState},
 			{Importer: PackageTemporal, Imported: PackageCore},
@@ -484,7 +485,7 @@ func packagePurposeTexts() [packageIdentityLimit]string {
 		PackageGarble:        "Tool identity, seed custody and derivation, and typed build intent",
 		PackageKeygen:        "Exact secret and Ed25519 key generation",
 		PackageTestSerial:    "Test-only isolation declaration and analyzer contract",
-		PackageFilestore:     "Rooted OS handles, confinement, inspection, durability, activation, append rotation, and recovery",
+		PackageFilestore:     "Rooted OS handles, confinement, inspection, durability, activation, append rotation, rename, and recovery",
 		PackageHostFacts:     "Host disk, memory, cgroup, tree, and OOM observations",
 		PackageTemporal:      "Time, duration, arithmetic, persistence, waits, and tickers",
 		PackageExchange:      "Bounded client and server boundary policy over net/http",

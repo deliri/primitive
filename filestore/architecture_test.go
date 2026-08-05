@@ -31,6 +31,8 @@ type filestoreContractInventory struct {
 	Location           capabilityWrapper[Location]
 	DirectoryRequest   validatedRequest[DirectoryRequest]
 	ReadRequest        validatedRequest[ReadRequest]
+	ReadHandleRequest  validatedRequest[ReadHandleRequest]
+	RenameRequest      validatedRequest[RenameRequest]
 	WriteRequest       validatedRequest[WriteRequest]
 	StageRequest       validatedRequest[StageRequest]
 	CommitRequest      validatedRequest[CommitRequest]
@@ -104,7 +106,9 @@ func TestFilestorePublicSurfaceIsExactRatchet(t *testing.T) {
 		"Inspection",
 		"Location",
 		"PathKind",
+		"ReadHandleRequest",
 		"ReadRequest",
+		"RenameRequest",
 		"RemovalRequest",
 		"RotationRequest",
 		"StageRequest",
@@ -123,10 +127,12 @@ func TestFilestorePublicSurfaceIsExactRatchet(t *testing.T) {
 		"Inspect",
 		"NewDirectoryEntryMaximum",
 		"OpenAppend",
+		"OpenRead",
 		"Read",
 		"Recover",
 		"Remove",
 		"RemoveTree",
+		"Rename",
 		"RotateAppend",
 		"Stage",
 		"Walk",
@@ -165,6 +171,8 @@ func TestFilestorePublicSurfaceIsExactRatchet(t *testing.T) {
 		"DirectoryRequest.Validate",
 		"DirectoryEntryMaximum.Validate",
 		"Inspection.Kind",
+		"Inspection.ModifiedAt",
+		"Inspection.SizeBytes",
 		"Inspection.Validate",
 		"InstallMode.IsValid",
 		"InstallMode.OffWireEnum",
@@ -175,8 +183,10 @@ func TestFilestorePublicSurfaceIsExactRatchet(t *testing.T) {
 		"PathKind.OffWireEnum",
 		"PathKind.String",
 		"PathKind.Validate",
+		"ReadHandleRequest.Validate",
 		"ReadRequest.Validate",
 		"RemovalRequest.Validate",
+		"RenameRequest.Validate",
 		"RotationRequest.Validate",
 		"StageRequest.Validate",
 		"StagedFile.BytesWritten",
@@ -267,6 +277,7 @@ func TestFilestoreProductionUsesGoAndOSPrimitivesWithoutCoordinationMachineryRat
 	requireExactNames(t, "Primitive production imports", got.primitiveImports, []string{
 		"github.com/deliri/primitive/v2026/contextstate",
 		"github.com/deliri/primitive/v2026/core",
+		"github.com/deliri/primitive/v2026/temporal",
 	})
 }
 
