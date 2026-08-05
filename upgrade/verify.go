@@ -2,7 +2,6 @@ package upgrade
 
 import (
 	"context"
-	"crypto/sha256"
 	"hash/crc32"
 	"io"
 	"os"
@@ -30,7 +29,7 @@ func verifyArtifact(
 	if err != nil {
 		return verificationError(diagnosticCandidateBytes, err)
 	}
-	sha := sha256.New()
+	sha := core.NewDigestWriter()
 	crc := crc32.New(crc32.MakeTable(crc32.Castagnoli))
 	count, err := filestore.Read(ctx, filestore.ReadRequest{
 		Destination:  io.MultiWriter(sha, crc),
@@ -40,9 +39,17 @@ func verifyArtifact(
 	if err != nil {
 		return verificationError(diagnosticCandidateBytes, err)
 	}
-	if count.Uint64() != extent ||
-		core.NewSHA256Digest([sha256.Size]byte(sha.Sum(nil))) != integrity.SHA256() ||
-		core.NewCRC32C(crc.Sum32()) != integrity.CRC32C() {
+	digest, hashed, err := sha.Seal()
+	if err != nil {
+		return verificationError(diagnosticCandidateBytes, err)
+	}
+	// The sealed count is checked alongside the streamed count: they describe
+	// the same bytes from two independent owners, so a disagreement means the
+	// artifact was not read the way verification believes it was.
+	if count.Uint64() != extent || hashed.Uint64() != extent {
+		return verificationError(diagnosticCandidateBytes)
+	}
+	if digest != integrity.SHA256() || core.NewCRC32C(crc.Sum32()) != integrity.CRC32C() {
 		return verificationError(diagnosticCandidateBytes)
 	}
 	return nil

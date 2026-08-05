@@ -167,7 +167,6 @@ func TestAttestProductionImportsStayOnApprovedStandardLibraryAndCoreSubstrate(t 
 		"encoding/json",
 		"errors",
 		"github.com/deliri/primitive/v2026/core",
-		"hash",
 		"io",
 		"math",
 		"slices",
@@ -194,7 +193,6 @@ func TestAttestRawCryptographicEffectsHaveOneCompilerVisibleOwner(t *testing.T) 
 		t.Fatalf("productionSelectorCalls() error = %v, want nil", gotErr)
 	}
 	wantCalls := []string{
-		"canonical.go:sha256.New",
 		"operations.go:ed25519.Verify",
 		"operations.go:ed25519.Verify",
 		"operations.go:signer.Sign",

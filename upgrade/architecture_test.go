@@ -31,7 +31,6 @@ func TestProductionImportsAreExactAndNoWorldModelExists(t *testing.T) {
 	want := []string{
 		"bytes",
 		"context",
-		"crypto/sha256",
 		"encoding/json",
 		"errors",
 		"fmt",

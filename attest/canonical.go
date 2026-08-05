@@ -1,10 +1,7 @@
 package attest
 
 import (
-	"crypto/sha256"
 	"errors"
-	"hash"
-	"io"
 
 	"github.com/deliri/primitive/v2026/core"
 )
@@ -16,15 +13,19 @@ type canonicalFacts[D SigningDomain[D]] struct {
 	digest core.SHA256Digest
 }
 
+// canonicalDigestWriter adds attest's policy to Core's streaming digest: a
+// canonical body has a maximum size, may not be empty, and is written exactly
+// once. The hashing itself, and the refusal to hash a short write, belong to
+// Core and are not repeated here.
 type canonicalDigestWriter struct {
-	digest hash.Hash
+	digest *core.DigestWriter
 	err    error
 	count  int
 	closed bool
 }
 
 func newCanonicalDigestWriter() *canonicalDigestWriter {
-	return &canonicalDigestWriter{digest: sha256.New()}
+	return &canonicalDigestWriter{digest: core.NewDigestWriter()}
 }
 
 func (w *canonicalDigestWriter) Write(data []byte) (int, error) {
@@ -41,10 +42,6 @@ func (w *canonicalDigestWriter) Write(data []byte) (int, error) {
 	written, err := w.digest.Write(data)
 	if err != nil {
 		w.err = contractError(err)
-		return written, w.err
-	}
-	if written != len(data) {
-		w.err = contractError(io.ErrShortWrite)
 		return written, w.err
 	}
 	w.count += written
@@ -70,9 +67,14 @@ func (w *canonicalDigestWriter) close(callbackErr error) (core.ByteCount, core.S
 	if err != nil {
 		return core.ByteCount{}, core.SHA256Digest{}, contractError(err)
 	}
-	var digest [sha256.Size]byte
-	w.digest.Sum(digest[:0])
-	return length, core.NewSHA256Digest(digest), nil
+	digest, _, err := w.digest.Seal()
+	if err != nil {
+		return core.ByteCount{}, core.SHA256Digest{}, contractError(err)
+	}
+	// Core's byte length is discarded on purpose: attest's canonical count is a
+	// ByteCount bounded by CanonicalBodyMaximumBytes, which is a narrower fact
+	// about the same bytes and is checked above.
+	return length, digest, nil
 }
 
 func validateBodyShape[D SigningDomain[D]](body CanonicalBody[D]) error {

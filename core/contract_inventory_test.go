@@ -42,6 +42,7 @@ type coreContractInventory struct {
 	ByteCount                protocolFact[ByteCount]
 	ByteLength               protocolFact[ByteLength]
 	SHA256Digest             protocolFact[SHA256Digest]
+	DigestWriter             capabilityWrapper[DigestWriter]
 	CRC32C                   protocolFact[CRC32C]
 	Ed25519PublicKey         protocolFact[Ed25519PublicKey]
 	SecretMaterial           capabilityWrapper[SecretMaterial]

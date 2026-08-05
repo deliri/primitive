@@ -15,7 +15,7 @@ transaction run this same stack, so a wire type has exactly one home.
 | `contextstate` | Bounded observation of context terminal state. |
 | `controlplane` | The signed documents a product control plane and its installed clients exchange: registration, installation certificates, check-ins, response headers, product status, verification results. |
 | `controlwire` | The scalar values both ends must agree on byte for byte before anything else: request nonces, registration tokens and verifiers, revisions, policy cursors, route contracts, and the control exchange policy (timeouts, retry, redirect). |
-| `core` | The typed bounded contracts shared by all of Primitive: error identities, byte counts, digests, keys, offerings, build identity, paths, HTTP endpoints and status codes, strict JSON. |
+| `core` | The typed bounded contracts shared by all of Primitive: error identities, byte counts, digests, streaming SHA-256 (`DigestWriter`, an ordinary `io.Writer` yielding one digest and the exact count of the bytes behind it), keys, offerings, build identity, paths, HTTP endpoints and status codes, strict JSON. |
 | `currency` | Exact signed minor-unit values, checked same-currency arithmetic, ordering, bounded decimal and JSON projection. |
 | `deploy` | Binding one authenticated release manifest to exact create-only GCS upload capabilities, returning confirmed provider facts. |
 | `exchange` | Typed bounded operation policy over real `net/http` client and server boundaries: retry classification, exponential backoff, jitter, server hints, redirect confinement, idempotency and replay semantics, bounded JSON calls. |
@@ -57,6 +57,7 @@ transaction run this same stack, so a wire type has exactly one home.
 | third-party proof of *when* | `timeproof` |
 | deciding whether work is paid for | `gate` + `lease` |
 | running a subprocess | `process` |
+| hashing a stream you are already moving | `core.DigestWriter` — never a private `sha256.New()` accumulator |
 | an error identity | `core/error_identity.go` |
 
 ## Keeping this honest
