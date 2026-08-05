@@ -89,14 +89,33 @@ func TestAssessDiskRealHeldRootLayerTriad(t *testing.T) {
 		}
 	})
 
+	// The floor is derived from the device rather than saturated, because a
+	// floor at or above total capacity is now refused as a contradiction: it
+	// could never be satisfied on this device, so it proves nothing about the
+	// reached path. One byte below total is the largest admissible floor and is
+	// necessarily above whatever is available on a disk holding this checkout.
 	t.Run("reached floor returns the complete validated assessment", func(t *testing.T) {
 		t.Parallel()
 
 		root := t.TempDir()
+		observed, observeErr := AssessDisk(context.Background(), DiskAssessmentRequest{
+			Directory: mustAbsolutePathForHostfactsTest(t, root),
+			Policy:    DiskPressurePolicy{},
+		})
+		if observeErr != nil {
+			t.Fatalf("AssessDisk(zero floor) error = %v, want nil", observeErr)
+		}
+		total, totalErr := observed.Capacity().TotalBytes().Uint64()
+		if totalErr != nil {
+			t.Fatalf("TotalBytes().Uint64() error = %v, want nil", totalErr)
+		}
+		if total == 0 {
+			t.Fatalf("observed total capacity = 0, want a real device")
+		}
 		got, gotErr := AssessDisk(context.Background(), DiskAssessmentRequest{
 			Directory: mustAbsolutePathForHostfactsTest(t, root),
 			Policy: DiskPressurePolicy{
-				FreeSpaceFloor: mustByteLength(t, math.MaxInt64),
+				FreeSpaceFloor: mustByteLength(t, total-1),
 			},
 		})
 		if !errors.Is(gotErr, core.ErrDiskFloorReached) ||

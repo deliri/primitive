@@ -484,7 +484,7 @@ func packagePurposeTexts() [packageIdentityLimit]string {
 		PackageGarble:        "Tool identity, seed custody and derivation, and typed build intent",
 		PackageKeygen:        "Exact secret and Ed25519 key generation",
 		PackageTestSerial:    "Test-only isolation declaration and analyzer contract",
-		PackageFilestore:     "Rooted OS handles, confinement, durability, activation, append rotation, and recovery",
+		PackageFilestore:     "Rooted OS handles, confinement, inspection, durability, activation, append rotation, and recovery",
 		PackageHostFacts:     "Host disk, memory, cgroup, tree, and OOM observations",
 		PackageTemporal:      "Time, duration, arithmetic, persistence, waits, and tickers",
 		PackageExchange:      "Bounded client and server boundary policy over net/http",

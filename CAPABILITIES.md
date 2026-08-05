@@ -19,11 +19,11 @@ transaction run this same stack, so a wire type has exactly one home.
 | `currency` | Exact signed minor-unit values, checked same-currency arithmetic, ordering, bounded decimal and JSON projection. |
 | `deploy` | Binding one authenticated release manifest to exact create-only GCS upload capabilities, returning confirmed provider facts. |
 | `exchange` | Typed bounded operation policy over real `net/http` client and server boundaries: retry classification, exponential backoff, jitter, server hints, redirect confinement, idempotency and replay semantics, bounded JSON calls. |
-| `filestore` | Rooted, bounded, streaming durability over real `os.Root`/`os.File`: staged writes, commit, file and directory fsync, crash recovery. |
+| `filestore` | Rooted, bounded, streaming durability over real `os.Root`/`os.File`: staged writes, commit, file and directory fsync, crash recovery, and path inspection (`Inspect` reports absent / directory / file / symlink / unreachable without following the final component). |
 | `fuzzfinder` | Finding Go fuzz corpus and crasher artifacts in a rooted directory with bounded memory and explicit partial accounting. |
 | `garble` | Garble tool identity, deterministic seed derivation, and the Garble-owned prefix of a typed build intent. |
 | `gate` | Turning one authentic lease assessment into permission to begin new paid work. |
-| `hostfacts` | Bounded read-only facts about the current host: disk assessment, OOM banner classification. |
+| `hostfacts` | Bounded read-only facts about the current host: disk capacity and pressure assessment (a free-space floor at or above device capacity is refused as unsatisfiable), OOM banner classification. |
 | `keygen` | Exact Ed25519 signing keys and bounded generic secret material from Go's production CSPRNG. **The entropy boundary.** |
 | `lease` | Verifying and assessing one fixed-size OGS-signed commercial decision. Device identity, subjects, entitlements, grants, refusals, revocations. |
 | `objectstore` | One exact bounded transfer through an already-issued S3, GCS, or Cloudflare Images HTTPS capability. Signed URLs, signed headers, upload targets, upload capabilities and their commitments. |
@@ -46,6 +46,7 @@ transaction run this same stack, so a wire type has exactly one home.
 | a control-plane request or response | `controlplane` — registration and check-in are the two shapes |
 | a nonce, token, revision, or route path | `controlwire` |
 | writing a file that must survive power loss | `filestore` |
+| asking what occupies a configured path | `filestore.Inspect` — never `os.Stat` from a product |
 | uploading to S3/GCS/Cloudflare | `objectstore` — capabilities and commitments already exist |
 | a timestamp, duration, or deadline | `temporal` |
 | third-party proof of *when* | `timeproof` |

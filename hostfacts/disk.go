@@ -2,6 +2,7 @@ package hostfacts
 
 import (
 	"errors"
+	"fmt"
 	"math/bits"
 
 	"github.com/deliri/primitive/v2026/core"
@@ -165,6 +166,9 @@ func assessDiskCapacity(capacity DiskCapacity, policy DiskPressurePolicy) (DiskA
 	if err := errors.Join(capacity.Validate(), policy.Validate()); err != nil {
 		return DiskAssessment{}, err
 	}
+	if err := validateFloorAgainstCapacity(capacity, policy); err != nil {
+		return DiskAssessment{}, err
+	}
 	state := classifyDiskPressure(capacity, policy)
 	assessment := DiskAssessment{capacity: capacity, policy: policy, state: state}
 	if err := assessment.Validate(); err != nil {
@@ -174,6 +178,34 @@ func assessDiskCapacity(capacity DiskCapacity, policy DiskPressurePolicy) (DiskA
 		return assessment, core.ErrDiskFloorReached
 	}
 	return assessment, nil
+}
+
+// validateFloorAgainstCapacity refuses a floor no observation of this device
+// could ever satisfy.
+//
+// DiskPressurePolicy alone can only bound the floor to the signed size domain;
+// whether a given floor is meaningful depends on the device it is applied to,
+// and this is the only place holding both numbers. A floor at or above total
+// capacity classifies every healthy disk as under pressure, so a caller that
+// pauses on pressure pauses forever and reports a full disk that is empty.
+// That is a configuration mistake, and it is cheaper to name it than to let it
+// present as an outage.
+func validateFloorAgainstCapacity(capacity DiskCapacity, policy DiskPressurePolicy) error {
+	floor := policy.FreeSpaceFloor.Uint64()
+	if floor == 0 {
+		return nil
+	}
+	total, err := capacity.total.Uint64()
+	if err != nil {
+		return errors.Join(core.ErrHostFactsObservation, err)
+	}
+	if floor >= total {
+		return errors.Join(
+			core.ErrHostFactsContract,
+			fmt.Errorf("free space floor %d is not below the device capacity %d", floor, total),
+		)
+	}
+	return nil
 }
 
 func classifyDiskPressure(
