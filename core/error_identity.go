@@ -266,6 +266,15 @@ const (
 	// ErrReceiptConflict identifies incompatible watermark histories or scopes.
 	ErrReceiptConflict
 
+	// ErrControlWireContract identifies a control-wire scalar contract violation.
+	ErrControlWireContract
+	// ErrControlWireRevision identifies an unsupported control-wire revision.
+	ErrControlWireRevision
+	// ErrControlWireNonce identifies a rejected control-wire request nonce.
+	ErrControlWireNonce
+	// ErrControlWireToken identifies a rejected control-wire registration token.
+	ErrControlWireToken
+
 	errorIdentityLimit
 )
 
@@ -389,6 +398,10 @@ func errorIdentityDiagnostics() [errorIdentityLimit]errorIdentityDiagnostic {
 		{identity: ErrReceiptScope, text: "receipt scope mismatch"},
 		{identity: ErrReceiptRollback, text: "receipt watermark rollback rejected"},
 		{identity: ErrReceiptConflict, text: "receipt watermark conflict"},
+		{identity: ErrControlWireContract, text: "control-wire contract violation"},
+		{identity: ErrControlWireRevision, text: "control-wire revision unsupported"},
+		{identity: ErrControlWireNonce, text: "control-wire request nonce invalid"},
+		{identity: ErrControlWireToken, text: "control-wire registration token invalid"},
 	}
 }
 
@@ -520,8 +533,10 @@ func errorIdentityParents(identity ErrorIdentity) errorIdentityParentSet {
 		ErrReleaseContract, ErrDeployContract,
 		ErrShutdownContract, ErrObjectStoreContract, ErrTimeProofContract,
 		ErrCloudIdentityContract, ErrUpgradeContract,
-		ErrLifecycleIdentityContract, ErrReceiptContract:
+		ErrLifecycleIdentityContract, ErrReceiptContract, ErrControlWireContract:
 		return oneErrorIdentityParent(ErrPrimitiveContract)
+	case ErrControlWireRevision, ErrControlWireNonce, ErrControlWireToken:
+		return oneErrorIdentityParent(ErrControlWireContract)
 	case ErrUpgradeDownload, ErrUpgradeCapacity, ErrUpgradeVerification, ErrUpgradeTrial,
 		ErrUpgradePromotion, ErrUpgradePersistence, ErrUpgradeCleanup,
 		ErrUpgradeConflict:

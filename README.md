@@ -54,6 +54,9 @@ flowchart TD
     receipt[receipt] --> core
     receipt --> attest
     receipt --> temporal
+    controlwire[controlwire] --> core
+    controlwire --> keygen
+    controlwire --> exchange
     process[process] --> core
     process --> contextstate
     process --> temporal

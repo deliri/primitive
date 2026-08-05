@@ -12,9 +12,9 @@ const (
 	// PrimitivePackagePathPrefix prefixes every Primitive package import path.
 	PrimitivePackagePathPrefix = PrimitiveModulePath + "/"
 	// PrimitivePackageCount is the number of packages in the complete catalog.
-	PrimitivePackageCount = 23
+	PrimitivePackageCount = 24
 	// PrimitiveDirectImportCount is the number of admitted direct import edges.
-	PrimitiveDirectImportCount = 55
+	PrimitiveDirectImportCount = 58
 	// PrimitiveDirectTestImportCount is the number of admitted test-only edges.
 	PrimitiveDirectTestImportCount = 6
 	// PrimitiveMaximumDirectImports caps direct sibling imports per package.
@@ -57,6 +57,8 @@ const (
 	PackageGate
 	// PackageReceipt identifies authenticated accepted-evidence facts and watermarks.
 	PackageReceipt
+	// PackageControlWire identifies the shared control-wire scalar package.
+	PackageControlWire
 	// PackageProcess identifies the process package.
 	PackageProcess
 	// PackageRelease identifies the release package.
@@ -151,6 +153,7 @@ func PrimitiveArchitecture() ArchitectureCatalog {
 			{Identity: PackageLease, Kind: PackageKindProduction},
 			{Identity: PackageGate, Kind: PackageKindProduction},
 			{Identity: PackageReceipt, Kind: PackageKindProduction},
+			{Identity: PackageControlWire, Kind: PackageKindProduction},
 			{Identity: PackageProcess, Kind: PackageKindProduction},
 			{Identity: PackageRelease, Kind: PackageKindProduction},
 			{Identity: PackageShutdown, Kind: PackageKindProduction},
@@ -188,6 +191,9 @@ func PrimitiveArchitecture() ArchitectureCatalog {
 			{Importer: PackageReceipt, Imported: PackageCore},
 			{Importer: PackageReceipt, Imported: PackageAttest},
 			{Importer: PackageReceipt, Imported: PackageTemporal},
+			{Importer: PackageControlWire, Imported: PackageCore},
+			{Importer: PackageControlWire, Imported: PackageKeygen},
+			{Importer: PackageControlWire, Imported: PackageExchange},
 			{Importer: PackageProcess, Imported: PackageCore},
 			{Importer: PackageProcess, Imported: PackageContextState},
 			{Importer: PackageProcess, Imported: PackageTemporal},
@@ -476,6 +482,7 @@ func packagePurposeTexts() [packageIdentityLimit]string {
 		PackageLease:         "Signed lease timeline, assessment, renewal, and monotonic advance",
 		PackageGate:          "Pure CLI-side new-work authorization over one authentic Lease assessment",
 		PackageReceipt:       "Authenticated accepted-evidence facts and fixed-size monotonic watermarks",
+		PackageControlWire:   "Shared control-wire revision, request nonce, and one-time registration token",
 		PackageProcess:       "Argv, environment, containment, bounded output, exit, and reaping over os/exec",
 		PackageRelease:       "Verified build tools, deterministic Garble build and process plans, executable inspection, signed tool and metadata provenance, immutable artifacts, manifests, Latest, and selection",
 		PackageShutdown:      "Signal observation and phased bounded cleanup",
@@ -537,6 +544,7 @@ func packageIdentityTexts() [packageIdentityLimit]string {
 		"lease",
 		"gate",
 		"receipt",
+		"controlwire",
 		"process",
 		"release",
 		"shutdown",

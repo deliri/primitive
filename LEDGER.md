@@ -2619,3 +2619,26 @@ compiler contract and the interface-absence test is the negative proof.
   concurrent uncommitted Release work introducing a new `release -> garble`
   architecture edge; no Objectstore failure was observed and the Release files
   were preserved outside this slice.
+- `2026-08-05`: Registration migration proved that the control-wire scalars were
+  independently reimplemented by OGS and Peachfuzz. The revision, the request
+  nonce, and the one-time registration token are the three values the server and
+  the customer binary must agree on byte for byte before either can say anything
+  else, and each end held a private copy. Nothing broke the build when one
+  drifted; the drift surfaced as a refused request in the field. Controlwire now
+  owns all three plus the one-way verifier a control plane persists. Core
+  rejected them first, correctly: its two-named-Primitive-consumers rule found
+  zero, because both consumers are outside the module. Placement is a new
+  order-5 package over Core, Keygen, and Exchange. Revision refuses an
+  unrecognised token rather than assuming forward compatibility; RequestNonce
+  and the verifier both refuse their impossible all-zero value, the verifier
+  because a blank or truncated persisted record decodes to exactly that and two
+  such records compared Equal before the floor was added; RegistrationToken
+  keeps its secret in Core SecretMaterial, redacts every formatting verb fmt
+  will route, and decides canonicality on encoded bytes so no unwipeable string
+  copy of an unspent secret is ever built. Core owns the hexadecimal grammar for
+  both public scalars; a second decoder is how two owners come to disagree about
+  the same bytes. Hostile tables, layer triads, a data-flow inventory, and four
+  fuzz targets with real oracles pass, along with targeted race, shuffle, Vet,
+  gofmt, and fieldalignment. Consumer migration in OGS and Peachfuzz, which
+  delete their copies and vendor the golden fixtures that prove no wire byte
+  moved, remains pending.
