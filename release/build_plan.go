@@ -4,7 +4,6 @@ import (
 	"errors"
 	"go/token"
 	"path"
-	"path/filepath"
 	"sort"
 	"strings"
 	"unicode"
@@ -642,7 +641,11 @@ func buildOutputPath(directory core.RelativePath, build core.BuildIdentity) (cor
 	if err != nil {
 		return core.RelativePath{}, err
 	}
-	output, err := core.ParseRelativePath(filepath.Join(directory.String(), filename.String()))
+	component, err := core.ParsePathComponent(filename.String())
+	if err != nil {
+		return core.RelativePath{}, contractError(errors.New("build output filename is invalid"), err)
+	}
+	output, err := directory.Join(component)
 	if err != nil {
 		return core.RelativePath{}, contractError(errors.New("build output path is invalid"), err)
 	}

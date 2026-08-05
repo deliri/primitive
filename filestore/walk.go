@@ -6,7 +6,6 @@ import (
 	"io"
 	"io/fs"
 	"os"
-	"path/filepath"
 	"slices"
 	"strings"
 
@@ -111,7 +110,11 @@ func visitWalkEntry(
 	directoryPath core.RelativePath,
 	entry fs.DirEntry,
 ) error {
-	path, err := core.ParseRelativePath(filepath.Join(directoryPath.String(), entry.Name()))
+	name, err := core.ParsePathComponent(entry.Name())
+	if err != nil {
+		return contractError(err)
+	}
+	path, err := directoryPath.Join(name)
 	if err != nil {
 		return contractError(err)
 	}

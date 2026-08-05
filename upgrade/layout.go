@@ -52,7 +52,11 @@ func binaryPath(slot Slot, build core.BuildIdentity) (core.RelativePath, error) 
 	if err != nil {
 		return core.RelativePath{}, err
 	}
-	return core.ParseRelativePath(filepath.Join(slot.String(), component.String()))
+	directory, err := core.ParseRelativePath(slot.String())
+	if err != nil {
+		return core.RelativePath{}, contractError(err)
+	}
+	return directory.Join(component)
 }
 
 func binaryComponent(build core.BuildIdentity) (core.PathComponent, error) {

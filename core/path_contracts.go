@@ -169,6 +169,40 @@ func (p AbsolutePath) Base() (PathComponent, error) {
 	return ParsePathComponent(filepath.Base(p.value))
 }
 
+// Join appends one validated component to a relative path.
+//
+// Building a nested path out of filepath.Join and re-parsing the result is the
+// shape this replaces. That round trip validates only the finished string, so
+// a component that was never a legal component on its own could still produce
+// a legal-looking path; here each part is admitted by the type that owns it
+// before it is joined.
+func (p RelativePath) Join(component PathComponent) (RelativePath, error) {
+	if err := p.Validate(); err != nil {
+		return RelativePath{}, err
+	}
+	if err := component.Validate(); err != nil {
+		return RelativePath{}, err
+	}
+	return ParseRelativePath(filepath.Join(p.value, component.value))
+}
+
+// JoinRelative resolves a relative path against an absolute one.
+//
+// An absolute root plus a nested relative path is how every rooted filesystem
+// request is expressed, so products otherwise reach for filepath.Join on two
+// strings and re-parse. Both sides are already validated by their own types,
+// and the result is validated again as an absolute path, so no unchecked text
+// exists at any point.
+func (p AbsolutePath) JoinRelative(relative RelativePath) (AbsolutePath, error) {
+	if err := p.Validate(); err != nil {
+		return AbsolutePath{}, err
+	}
+	if err := relative.Validate(); err != nil {
+		return AbsolutePath{}, err
+	}
+	return ParseAbsolutePath(filepath.Join(p.value, relative.value))
+}
+
 // Join appends one validated component without introducing path-kind claims.
 func (p AbsolutePath) Join(component PathComponent) (AbsolutePath, error) {
 	if err := p.Validate(); err != nil {
