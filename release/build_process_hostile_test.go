@@ -17,7 +17,10 @@ import (
 func TestPrepareBuildProcessReplacesEveryTargetControlledEnvironmentFact(t *testing.T) {
 	t.Parallel()
 
-	plan, err := release.PrepareBuildPlan(buildPlanRequestForHostileTest(t))
+	fixture, repository := verifiedRepositoryForBuildProcessTest(t)
+	planRequest := buildPlanRequestForHostileTest(t)
+	planRequest.Commit = fixture.commit
+	plan, err := release.PrepareBuildPlan(planRequest)
 	if err != nil {
 		t.Fatalf("release.PrepareBuildPlan() error = %v, want nil", err)
 	}
@@ -44,10 +47,7 @@ func TestPrepareBuildProcessReplacesEveryTargetControlledEnvironmentFact(t *test
 	if err != nil {
 		t.Fatalf("verified Go executable parent error = %v, want nil", err)
 	}
-	workingDirectory, err := core.ParseAbsolutePath(t.TempDir())
-	if err != nil {
-		t.Fatalf("core.ParseAbsolutePath(worktree) error = %v, want nil", err)
-	}
+	workingDirectory := fixture.root
 	outputLimit, err := core.NewByteCount(64 << 10)
 	if err != nil {
 		t.Fatalf("core.NewByteCount(output limit) error = %v, want nil", err)
@@ -58,7 +58,7 @@ func TestPrepareBuildProcessReplacesEveryTargetControlledEnvironmentFact(t *test
 	}
 
 	got, err := release.PrepareBuildProcess(release.BuildProcessRequest{
-		Command: command, Tools: tools, WorkingDirectory: workingDirectory,
+		Command: command, Repository: repository, Tools: tools, WorkingDirectory: workingDirectory,
 		HostEnvironment: hostEnvironment,
 		Streams:         process.Streams{Stdin: strings.NewReader(""), Stdout: io.Discard, Stderr: io.Discard},
 		OutputLimit:     outputLimit, WaitDelay: waitDelay,
@@ -113,14 +113,37 @@ func TestPrepareBuildProcessRejectsAmbientOrUnusableHostExecutionInputs(t *testi
 	t.Parallel()
 
 	valid := buildProcessRequestForHostileTest(t)
+	foreignPlanRequest := buildPlanRequestForHostileTest(t)
+	foreignCommit, err := core.ParseBuildCommit(strings.Repeat("b", 40))
+	if err != nil {
+		t.Fatalf("core.ParseBuildCommit(foreign) error = %v, want nil", err)
+	}
+	foreignPlanRequest.Commit = foreignCommit
+	foreignPlan, err := release.PrepareBuildPlan(foreignPlanRequest)
+	if err != nil {
+		t.Fatalf("release.PrepareBuildPlan(foreign) error = %v, want nil", err)
+	}
+	foreignCommand, ok := foreignPlan.At(0)
+	if !ok {
+		t.Fatal("release.BuildPlan.At(0) for foreign commit ok = false, want true")
+	}
+	foreignWorkingDirectory, err := core.ParseAbsolutePath(t.TempDir())
+	if err != nil {
+		t.Fatalf("core.ParseAbsolutePath(foreign worktree) error = %v, want nil", err)
+	}
 	cases := []struct {
 		wantErr error
 		mutate  func(*release.BuildProcessRequest)
 		name    string
 	}{
 		{name: "zero command", mutate: func(r *release.BuildProcessRequest) { r.Command = release.BuildCommand{} }, wantErr: core.ErrReleaseContract},
+		{name: "zero verified repository", mutate: func(r *release.BuildProcessRequest) { r.Repository = release.VerifiedRepository{} }, wantErr: core.ErrReleaseContract},
+		{name: "command commit differs from verified repository", mutate: func(r *release.BuildProcessRequest) { r.Command = foreignCommand }, wantErr: core.ErrReleaseContract},
 		{name: "zero verified tools", mutate: func(r *release.BuildProcessRequest) { r.Tools = release.VerifiedBuildTools{} }, wantErr: core.ErrReleaseContract},
 		{name: "zero working directory", mutate: func(r *release.BuildProcessRequest) { r.WorkingDirectory = core.AbsolutePath{} }, wantErr: core.ErrReleaseContract},
+		{name: "working directory differs from verified repository", mutate: func(r *release.BuildProcessRequest) {
+			r.WorkingDirectory = foreignWorkingDirectory
+		}, wantErr: core.ErrReleaseContract},
 		{name: "ambient inheritance", mutate: func(r *release.BuildProcessRequest) {
 			r.HostEnvironment = process.Environment{Mode: process.EnvironmentModeInherit}
 		}, wantErr: core.ErrReleaseContract},
@@ -156,7 +179,10 @@ func zeroProcessRequest(request process.Request) bool {
 func buildProcessRequestForHostileTest(t *testing.T) release.BuildProcessRequest {
 	t.Helper()
 
-	plan, err := release.PrepareBuildPlan(buildPlanRequestForHostileTest(t))
+	fixture, repository := verifiedRepositoryForBuildProcessTest(t)
+	planRequest := buildPlanRequestForHostileTest(t)
+	planRequest.Commit = fixture.commit
+	plan, err := release.PrepareBuildPlan(planRequest)
 	if err != nil {
 		t.Fatalf("release.PrepareBuildPlan() error = %v, want nil", err)
 	}
@@ -165,10 +191,7 @@ func buildProcessRequestForHostileTest(t *testing.T) release.BuildProcessRequest
 		t.Fatal("release.BuildPlan.At(0) ok = false, want true")
 	}
 	tools := verifiedBuildToolsForLiveTest(t)
-	workingDirectory, err := core.ParseAbsolutePath(t.TempDir())
-	if err != nil {
-		t.Fatalf("core.ParseAbsolutePath(worktree) error = %v, want nil", err)
-	}
+	workingDirectory := fixture.root
 	environment, err := process.ParseExactEnvironment([]string{"PATH=/opt/pinned-go/bin"})
 	if err != nil {
 		t.Fatalf("process.ParseExactEnvironment() error = %v, want nil", err)
@@ -182,9 +205,19 @@ func buildProcessRequestForHostileTest(t *testing.T) release.BuildProcessRequest
 		t.Fatalf("temporal.NewDuration() error = %v, want nil", err)
 	}
 	return release.BuildProcessRequest{
-		Command: command, Tools: tools, WorkingDirectory: workingDirectory,
+		Command: command, Repository: repository, Tools: tools, WorkingDirectory: workingDirectory,
 		HostEnvironment: environment,
 		Streams:         process.Streams{Stdin: strings.NewReader(""), Stdout: io.Discard, Stderr: io.Discard},
 		OutputLimit:     outputLimit, WaitDelay: waitDelay,
 	}
+}
+
+func verifiedRepositoryForBuildProcessTest(t *testing.T) (repositoryFixture, release.VerifiedRepository) {
+	t.Helper()
+	fixture := newRepositoryFixture(t)
+	verified, err := release.VerifyRepository(t.Context(), repositoryRequestForTest(t, fixture))
+	if err != nil {
+		t.Fatalf("release.VerifyRepository(build worktree) error = %v, want nil", err)
+	}
+	return fixture, verified
 }

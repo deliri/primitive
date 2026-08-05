@@ -24,6 +24,10 @@ var (
 	_ core.Validatable = GoModuleSum{}
 	_ core.Validatable = BuildDependency{}
 	_ core.Validatable = BuildDependencies{}
+	_ core.Validatable = RepositoryVerificationRequest{}
+	_ core.Validatable = VerifiedRepository{}
+	_ core.Validatable = RepositoryCommitMismatchError{}
+	_ core.Validatable = RepositoryDirtyError{}
 
 	_ core.ValidatedJSONMarshaler = ArtifactIdentity{}
 	_ core.ValidatedJSONMarshaler = ArtifactIntegrity{}

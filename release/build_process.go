@@ -21,6 +21,7 @@ type BuildProcessRequest struct {
 	Streams          process.Streams
 	WorkingDirectory core.AbsolutePath
 	HostEnvironment  process.Environment
+	Repository       VerifiedRepository
 	Tools            VerifiedBuildTools
 	Command          BuildCommand
 	OutputLimit      core.ByteCount
@@ -43,11 +44,14 @@ func PrepareBuildProcess(request BuildProcessRequest) (process.Request, error) {
 }
 
 func prepareBuildProcess(request BuildProcessRequest) (process.Request, error) {
-	if err := validateBuildProcessToolBinding(request); err != nil {
+	if err := validateBuildProcessCapabilityBinding(request); err != nil {
 		return process.Request{}, err
 	}
 	if err := request.WorkingDirectory.Validate(); err != nil {
 		return process.Request{}, contractError(errors.New("build working directory is invalid"), err)
+	}
+	if request.WorkingDirectory != request.Repository.Root() {
+		return process.Request{}, contractError(errors.New("build working directory differs from the verified repository"))
 	}
 	goToolDirectory, err := request.Tools.GoExecutable().Parent()
 	if err != nil {
@@ -81,9 +85,15 @@ func prepareBuildProcess(request BuildProcessRequest) (process.Request, error) {
 	return prepared, nil
 }
 
-func validateBuildProcessToolBinding(request BuildProcessRequest) error {
+func validateBuildProcessCapabilityBinding(request BuildProcessRequest) error {
 	if err := request.Command.Validate(); err != nil {
 		return contractError(errors.New("build process command is invalid"), err)
+	}
+	if err := request.Repository.Validate(); err != nil {
+		return contractError(errors.New("build repository is not verified"), err)
+	}
+	if request.Command.Build().Commit() != request.Repository.Commit() {
+		return contractError(errors.New("build command commit differs from the verified repository"))
 	}
 	if err := request.Tools.Validate(); err != nil {
 		return contractError(errors.New("build tools are not verified"), err)

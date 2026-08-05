@@ -494,7 +494,7 @@ func packagePurposeTexts() [packageIdentityLimit]string {
 		PackageControlWire:   "Shared control-wire revision, request nonce, one-time registration token, and policy cursor",
 		PackageControlPlane:  "Signed control-plane request and response documents, their binding to one exact request, product status, and usage watermark",
 		PackageProcess:       "Argv, environment, containment, bounded output, exit, and reaping over os/exec",
-		PackageRelease:       "Verified build tools, deterministic Garble build and process plans, executable inspection, signed tool and metadata provenance, immutable artifacts, manifests, Latest, and selection",
+		PackageRelease:       "Clean repository binding, verified build tools, deterministic Garble build and process plans, executable inspection, signed tool and metadata provenance, immutable artifacts, manifests, Latest, and selection",
 		PackageShutdown:      "Signal observation and phased bounded cleanup",
 		PackageObjectStore:   "One bounded vendor-specified S3, GCS, or Cloudflare Images transfer with integrity and commitment",
 		PackageTimeProof:     "RFC 3161 request construction, response verification, and replay",

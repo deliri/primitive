@@ -32,6 +32,13 @@ type releaseContractInventory struct {
 	BuildProcessRequest               protocolFact[BuildProcessRequest]
 	BuildToolVerificationRequest      protocolFact[BuildToolVerificationRequest]
 	VerifiedBuildTools                capabilityWrapper[VerifiedBuildTools]
+	RepositoryVerificationRequest     protocolFact[RepositoryVerificationRequest]
+	VerifiedRepository                capabilityWrapper[VerifiedRepository]
+	RepositoryCommitMismatchError     failureDetail[RepositoryCommitMismatchError]
+	RepositoryDirtyError              failureDetail[RepositoryDirtyError]
+	repositoryGitRequest              internalFlow[repositoryGitRequest]
+	repositoryStatusWriter            internalFlow[repositoryStatusWriter]
+	repositoryIndexWriter             internalFlow[repositoryIndexWriter]
 	GoModulePath                      protocolFact[GoModulePath]
 	GoModuleVersion                   protocolFact[GoModuleVersion]
 	GoModuleSum                       protocolFact[GoModuleSum]
@@ -126,6 +133,9 @@ var (
 	_ = releaseContractInventory{}.buildDependencyStorage
 	_ = releaseContractInventory{}.buildDependencyWire
 	_ = releaseContractInventory{}.buildDependenciesWire
+	_ = releaseContractInventory{}.repositoryGitRequest
+	_ = releaseContractInventory{}.repositoryStatusWriter
+	_ = releaseContractInventory{}.repositoryIndexWriter
 )
 
 func TestProductionStructsHaveCompilerVisibleDataFlowRoles(t *testing.T) {
@@ -189,6 +199,7 @@ func TestPublicOperationsAreExactReleaseIntent(t *testing.T) {
 		"VerifyBuildTools",
 		"VerifyLatest",
 		"VerifyManifest",
+		"VerifyRepository",
 	}
 	if !slices.Equal(got, want) {
 		t.Fatalf("exported top-level functions = %v, want %v", got, want)
