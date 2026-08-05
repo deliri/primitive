@@ -81,23 +81,23 @@ func validateCheckInDocument(
 // verifyCheckInCertificate authenticates the authority-issued credential and
 // returns the device key it names as the only key admitted for the request.
 //
-// The order is the security property. The certificate is verified against the
-// authority's trusted keys first, and only then does the device key inside it
-// become an authority for anything. Verifying the request first would let a
-// self-signed request nominate the key that validates it.
+// The rule itself lives in VerifyInstallationCertificate, because an
+// installation loading a stored credential must apply exactly the same one with
+// no request in hand. Restating it here would let the two drift, and the half
+// that drifts is the half nobody is looking at.
 func verifyCheckInCertificate(
 	certificate InstallationCertificateDocument,
 	trusted attest.TrustedKeys,
 ) (attest.Verified[SigningDomain], attest.TrustedKeys, error) {
-	certificateProof, err := attest.Verify(attest.VerifyRequest[SigningDomain]{
-		Body: certificate.Body, Envelope: certificate.Attestation, TrustedKeys: trusted,
-	})
+	verified, err := VerifyInstallationCertificate(certificate, trusted)
 	if err != nil {
 		return attest.Verified[SigningDomain]{}, attest.TrustedKeys{}, checkInError(err)
 	}
-	deviceKeys, err := attest.NewTrustedKeys(attest.TrustedKeysRequest{
-		Keys: []core.Ed25519PublicKey{certificate.Body.DeviceKey},
-	})
+	certificateProof, err := verified.Proof()
+	if err != nil {
+		return attest.Verified[SigningDomain]{}, attest.TrustedKeys{}, checkInError(err)
+	}
+	deviceKeys, err := verified.DeviceKeys()
 	if err != nil {
 		return attest.Verified[SigningDomain]{}, attest.TrustedKeys{}, checkInError(err)
 	}
