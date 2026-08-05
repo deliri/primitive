@@ -28,18 +28,21 @@ type architectureScan struct {
 // filestoreContractInventory classifies every production struct by its real
 // role. The generic arguments make every inventory entry compiler-visible.
 type filestoreContractInventory struct {
-	Location              capabilityWrapper[Location]
-	DirectoryRequest      validatedRequest[DirectoryRequest]
-	ReadRequest           validatedRequest[ReadRequest]
-	WriteRequest          validatedRequest[WriteRequest]
-	StageRequest          validatedRequest[StageRequest]
-	CommitRequest         validatedRequest[CommitRequest]
-	AppendRequest         validatedRequest[AppendRequest]
-	RotationRequest       validatedRequest[RotationRequest]
-	RemovalRequest        validatedRequest[RemovalRequest]
-	TreeRemovalRequest    validatedRequest[TreeRemovalRequest]
-	WalkRequest           validatedRequest[WalkRequest]
-	WalkEntry             streamedObservation[WalkEntry]
+	Location           capabilityWrapper[Location]
+	DirectoryRequest   validatedRequest[DirectoryRequest]
+	ReadRequest        validatedRequest[ReadRequest]
+	WriteRequest       validatedRequest[WriteRequest]
+	StageRequest       validatedRequest[StageRequest]
+	CommitRequest      validatedRequest[CommitRequest]
+	AppendRequest      validatedRequest[AppendRequest]
+	RotationRequest    validatedRequest[RotationRequest]
+	RemovalRequest     validatedRequest[RemovalRequest]
+	TreeRemovalRequest validatedRequest[TreeRemovalRequest]
+	WalkRequest        validatedRequest[WalkRequest]
+	WalkEntry          streamedObservation[WalkEntry]
+	// One observation of a path, made before any effect and carrying no
+	// capability over it.
+	Inspection            streamedObservation[Inspection]
 	DirectoryEntryMaximum boundedFact[DirectoryEntryMaximum]
 	StagedFile            ownershipReceipt[StagedFile]
 }
@@ -98,7 +101,9 @@ func TestFilestorePublicSurfaceIsExactRatchet(t *testing.T) {
 		"DirectoryRequest",
 		"DirectoryEntryMaximum",
 		"InstallMode",
+		"Inspection",
 		"Location",
+		"PathKind",
 		"ReadRequest",
 		"RemovalRequest",
 		"RotationRequest",
@@ -115,6 +120,7 @@ func TestFilestorePublicSurfaceIsExactRatchet(t *testing.T) {
 		"Commit",
 		"Discard",
 		"EnsureDirectory",
+		"Inspect",
 		"NewDirectoryEntryMaximum",
 		"OpenAppend",
 		"Read",
@@ -135,6 +141,13 @@ func TestFilestorePublicSurfaceIsExactRatchet(t *testing.T) {
 		"InstallCreate",
 		"InstallReplace",
 		"InstallUnknown",
+		"PathKindAbsent",
+		"PathKindDirectory",
+		"PathKindOther",
+		"PathKindRegularFile",
+		"PathKindSymbolicLink",
+		"PathKindUnknown",
+		"PathKindUnreachable",
 		"WalkContinue",
 		"WalkDirectiveUnknown",
 		"WalkOrderLexical",
@@ -151,11 +164,17 @@ func TestFilestorePublicSurfaceIsExactRatchet(t *testing.T) {
 		"CommitRequest.Validate",
 		"DirectoryRequest.Validate",
 		"DirectoryEntryMaximum.Validate",
+		"Inspection.Kind",
+		"Inspection.Validate",
 		"InstallMode.IsValid",
 		"InstallMode.OffWireEnum",
 		"InstallMode.String",
 		"InstallMode.Validate",
 		"Location.Validate",
+		"PathKind.IsValid",
+		"PathKind.OffWireEnum",
+		"PathKind.String",
+		"PathKind.Validate",
 		"ReadRequest.Validate",
 		"RemovalRequest.Validate",
 		"RotationRequest.Validate",
