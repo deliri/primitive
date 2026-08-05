@@ -31,6 +31,10 @@ type controlwireContractInventory struct {
 	RegistrationTokenVerifier controlwireDerivedFact[RegistrationTokenVerifier]
 	PolicyCursor              controlwireProtocolFact[PolicyCursor]
 	RouteContract             controlwireProtocolFact[RouteContract]
+	// The document ceilings are a wire fact, not a local preference: both ends
+	// enforce the same numbers, so a client that exceeded them would be refused
+	// by a byte count rather than by a decision.
+	ControlExchangeLimits controlwireProtocolFact[ControlExchangeLimits]
 }
 
 func TestControlWireProductionStructsHaveCompilerVisibleDataFlowRoles(t *testing.T) {
