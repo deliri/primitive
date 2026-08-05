@@ -10,7 +10,34 @@ const (
 	// errorIdentityMaximumParents is the compile-time parent arity of an identity.
 	errorIdentityMaximumParents = 2
 	errorIdentityVisitWordBits  = 64
+	// errorIdentityVisitWords sizes the traversal's visited set from the closed
+	// domain instead of fixing it. A hand-written word count is a ceiling
+	// somebody eventually reaches, and reaching it is a compile error in a file
+	// nobody was editing; deriving it means adding an identity can never
+	// outgrow the set that has to track it.
+	errorIdentityVisitWords = (int(errorIdentityLimit) + errorIdentityVisitWordBits - 1) /
+		errorIdentityVisitWordBits
 )
+
+// errorIdentityVisitSet marks which identities a single Matches traversal has
+// already enqueued. It is a value on the stack, sized by the compiler, so the
+// traversal allocates nothing and cannot outlive the call.
+type errorIdentityVisitSet [errorIdentityVisitWords]uint64
+
+// mark records identity and reports whether this call was the one that first
+// visited it. Returning that fact is what keeps a duplicate parent from
+// consuming stack capacity in the traversal below.
+func (v *errorIdentityVisitSet) mark(identity ErrorIdentity) bool {
+	index := uint(identity)
+	word := index / errorIdentityVisitWordBits
+	if word >= uint(len(v)) {
+		return false
+	}
+	mask := uint64(1) << (index % errorIdentityVisitWordBits)
+	wasUnvisited := v[word]&mask == 0
+	v[word] |= mask
+	return wasUnvisited
+}
 
 type errorIdentityParentSet struct {
 	values [errorIdentityMaximumParents]ErrorIdentity
@@ -321,7 +348,11 @@ const (
 	errorIdentityLimit
 )
 
-var _ [2*errorIdentityVisitWordBits - int(errorIdentityLimit)]struct{}
+// The visited set covers the whole closed domain by construction of the
+// ceiling division above. This witness says so to the compiler anyway, so that
+// changing the derivation to something that does not cover it is a build
+// failure rather than a traversal that silently stops marking.
+var _ [errorIdentityVisitWords*errorIdentityVisitWordBits - int(errorIdentityLimit)]struct{}
 
 // errorIdentityDiagnostic binds one ordinal to its stable text. Keeping both
 // in one unkeyed table makes addition a compile error and makes reordering an
@@ -523,10 +554,9 @@ func (i ErrorIdentity) Matches(target ErrorIdentity) bool {
 	// on admission prevents duplicate parents from consuming stack capacity, so
 	// the compiler-sized closed-domain stack cannot exhaust.
 	var pending [errorIdentityLimit]ErrorIdentity
-	var visitedLow uint64
-	var visitedHigh uint64
+	var visited errorIdentityVisitSet
 	pending[0] = i
-	markErrorIdentityVisited(i, &visitedLow, &visitedHigh)
+	visited.mark(i)
 	count := 1
 	for count > 0 {
 		count--
@@ -540,7 +570,7 @@ func (i ErrorIdentity) Matches(target ErrorIdentity) bool {
 			if !ok || !isAdmittedErrorIdentity(parent) {
 				return false
 			}
-			if !markErrorIdentityVisited(parent, &visitedLow, &visitedHigh) {
+			if !visited.mark(parent) {
 				continue
 			}
 			pending[count] = parent
@@ -548,24 +578,6 @@ func (i ErrorIdentity) Matches(target ErrorIdentity) bool {
 		}
 	}
 	return false
-}
-
-func markErrorIdentityVisited(identity ErrorIdentity, low, high *uint64) bool {
-	index := uint(identity)
-	if index < errorIdentityVisitWordBits {
-		mask := uint64(1) << index
-		wasUnvisited := *low&mask == 0
-		*low |= mask
-		return wasUnvisited
-	}
-	highIndex := index - errorIdentityVisitWordBits
-	if highIndex >= errorIdentityVisitWordBits {
-		return false
-	}
-	mask := uint64(1) << highIndex
-	wasUnvisited := *high&mask == 0
-	*high |= mask
-	return wasUnvisited
 }
 
 // Validate rejects identities outside the closed error domain.
