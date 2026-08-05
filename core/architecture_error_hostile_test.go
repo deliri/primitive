@@ -252,7 +252,10 @@ func TestErrorIdentityExhaustsClosedDomainAndParentDecisions(t *testing.T) {
 			case ErrHostFacts, ErrHostFactsObservation, ErrHostFactsUnsupported,
 				ErrHostFactsPressure, ErrHostFactsEvidence,
 				ErrDiskCapacityUnsupported, ErrTreeMeasurementUnsupported,
-				ErrDiskFloorReached, ErrMemoryLimitReached:
+				ErrDiskFloorReached, ErrMemoryLimitReached,
+				ErrFileLockUnavailable:
+				// An unlockable filesystem is an environmental fact like an
+				// unsupported disk query, not a caller mistake.
 				wantPrimitiveContract = false
 			}
 			if gotPrimitiveContract := errors.Is(identity, ErrPrimitiveContract); gotPrimitiveContract != wantPrimitiveContract {

@@ -309,6 +309,15 @@ const (
 	// ErrControlPlaneUsageWindow identifies a rejected reported usage window.
 	ErrControlPlaneUsageWindow
 
+	// ErrFileLockUnavailable identifies a file-lock effect the operating system
+	// refused for a reason other than contention. Contention is a typed outcome
+	// rather than an error, so this is how a caller tells a filesystem that
+	// cannot lock at all apart from another process that is simply running.
+	// Contract violations in that package use ErrPrimitiveContract, because the
+	// identity space is one slot from its compiler-witnessed ceiling and this is
+	// the distinction a caller acts on at run time.
+	ErrFileLockUnavailable
+
 	errorIdentityLimit
 )
 
@@ -451,6 +460,7 @@ func errorIdentityDiagnostics() [errorIdentityLimit]errorIdentityDiagnostic {
 		{identity: ErrControlPlaneCheckIn, text: "control-plane check-in request invalid"},
 		{identity: ErrControlPlaneCheckInResponse, text: "control-plane check-in response invalid"},
 		{identity: ErrControlPlaneUsageWindow, text: "control-plane usage window invalid"},
+		{identity: ErrFileLockUnavailable, text: "filelock unavailable"},
 	}
 }
 

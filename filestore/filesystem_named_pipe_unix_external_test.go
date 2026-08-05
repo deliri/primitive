@@ -21,7 +21,13 @@ import (
 const (
 	namedPipeReadHelperEnvironment    = "PRIMITIVE_FILESTORE_NAMED_PIPE_READ_HELPER"
 	namedPipeInspectHelperEnvironment = "PRIMITIVE_FILESTORE_NAMED_PIPE_INSPECT_HELPER"
-	namedPipeReadBackstop             = 30 * time.Second
+	// namedPipeReadBackstop only separates "returned" from "wedged forever".
+	// Both cases below spawn a helper process, and under a full-repository run
+	// that helper competes with every other package's tests for the disk, so a
+	// tight bound here would be asserting scheduling rather than behaviour. The
+	// failure it guards against is an unbounded block, which no amount of load
+	// turns into a pass.
+	namedPipeReadBackstop = 120 * time.Second
 )
 
 // TestInspectReportsUnreachableThroughANamedPipeParentWithoutBlocking is the

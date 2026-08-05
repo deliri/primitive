@@ -34,6 +34,8 @@ flowchart TD
     keygen[keygen] --> core
     testserial[testserial] --> core
 
+    filelock[filelock] --> core
+    filelock --> contextstate
     filestore[filestore] --> core
     filestore --> contextstate
     filestore --> temporal

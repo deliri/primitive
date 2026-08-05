@@ -12,9 +12,9 @@ const (
 	// PrimitivePackagePathPrefix prefixes every Primitive package import path.
 	PrimitivePackagePathPrefix = PrimitiveModulePath + "/"
 	// PrimitivePackageCount is the number of packages in the complete catalog.
-	PrimitivePackageCount = 25
+	PrimitivePackageCount = 26
 	// PrimitiveDirectImportCount is the number of admitted direct import edges.
-	PrimitiveDirectImportCount = 66
+	PrimitiveDirectImportCount = 68
 	// PrimitiveDirectTestImportCount is the number of admitted test-only edges.
 	PrimitiveDirectTestImportCount = 6
 	// PrimitiveMaximumDirectImports caps direct sibling imports per package.
@@ -41,6 +41,8 @@ const (
 	PackageKeygen
 	// PackageTestSerial identifies the serial test-support package.
 	PackageTestSerial
+	// PackageFileLock identifies the advisory file-lock package.
+	PackageFileLock
 	// PackageFilestore identifies the file-store package.
 	PackageFilestore
 	// PackageHostFacts identifies the host-facts package.
@@ -147,6 +149,7 @@ func PrimitiveArchitecture() ArchitectureCatalog {
 			{Identity: PackageGarble, Kind: PackageKindProduction},
 			{Identity: PackageKeygen, Kind: PackageKindProduction},
 			{Identity: PackageTestSerial, Kind: PackageKindTestSupport},
+			{Identity: PackageFileLock, Kind: PackageKindProduction},
 			{Identity: PackageFilestore, Kind: PackageKindProduction},
 			{Identity: PackageHostFacts, Kind: PackageKindProduction},
 			{Identity: PackageTemporal, Kind: PackageKindProduction},
@@ -174,6 +177,8 @@ func PrimitiveArchitecture() ArchitectureCatalog {
 			{Importer: PackageKeygen, Imported: PackageCore},
 			{Importer: PackageTestSerial, Imported: PackageCore},
 
+			{Importer: PackageFileLock, Imported: PackageCore},
+			{Importer: PackageFileLock, Imported: PackageContextState},
 			{Importer: PackageFilestore, Imported: PackageCore},
 			{Importer: PackageFilestore, Imported: PackageContextState},
 			{Importer: PackageFilestore, Imported: PackageTemporal},
@@ -485,6 +490,7 @@ func packagePurposeTexts() [packageIdentityLimit]string {
 		PackageGarble:        "Tool identity, seed custody and derivation, and typed build intent",
 		PackageKeygen:        "Exact secret and Ed25519 key generation",
 		PackageTestSerial:    "Test-only isolation declaration and analyzer contract",
+		PackageFileLock:      "One advisory whole-file lock on one already-open file",
 		PackageFilestore:     "Rooted OS handles, confinement, inspection, durability, activation, append rotation, rename, and recovery",
 		PackageHostFacts:     "Host disk, memory, cgroup, tree, and OOM observations",
 		PackageTemporal:      "Time, duration, arithmetic, persistence, waits, and tickers",
@@ -548,6 +554,7 @@ func packageIdentityTexts() [packageIdentityLimit]string {
 		"garble",
 		"keygen",
 		"testserial",
+		"filelock",
 		"filestore",
 		"hostfacts",
 		"temporal",

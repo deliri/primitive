@@ -105,7 +105,7 @@ unjustified abstraction.
 
 ## 3. Exact graph
 
-The catalog is 24 production packages plus test-only `testserial`.
+The catalog is 25 production packages plus test-only `testserial`.
 Every listed import is required and must be used semantically. Every unlisted
 Primitive sibling import is forbidden.
 
@@ -121,6 +121,7 @@ The order column is dependency depth, not a mandate to build an entire row.
 | 2 | `garble` | Tool identity, seed custody and derivation, and typed build intent | `core` | none |
 | 2 | `keygen` | Exact secret and Ed25519 key generation | `core` | none |
 | 2 | `testserial` | Test-only isolation declaration and analyzer contract | `core` | none |
+| 3 | `filelock` | One advisory whole-file lock on one already-open file | `core`, `contextstate` | none |
 | 3 | `filestore` | Rooted OS handles, confinement, inspection, durability, activation, append rotation, rename, and recovery | `core`, `contextstate`, `temporal` | none |
 | 3 | `hostfacts` | Host disk, memory, cgroup, tree, and OOM observations | `core`, `contextstate` | none |
 | 3 | `temporal` | Time, duration, arithmetic, persistence, waits, and tickers | `core`, `contextstate` | none |
