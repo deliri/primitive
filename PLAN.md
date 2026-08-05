@@ -132,7 +132,7 @@ The order column is dependency depth, not a mandate to build an entire row.
 | 4 | `shutdown` | Signal observation and phased bounded cleanup | `core`, `contextstate`, `temporal` | none |
 | 5 | `gate` | Pure CLI-side new-work authorization over one authentic Lease assessment | `core`, `lease` | `attest`, `temporal` |
 | 5 | `receipt` | Authenticated accepted-evidence facts and fixed-size monotonic watermarks | `core`, `attest`, `temporal` | none |
-| 5 | `controlwire` | Shared control-wire revision, request nonce, one-time registration token, and policy cursor | `core`, `keygen`, `exchange` | none |
+| 5 | `controlwire` | Shared control-wire revision, request nonce, one-time registration token, policy cursor, and the control exchange policy | `core`, `keygen`, `exchange`, `temporal` | none |
 | 5 | `objectstore` | One bounded vendor-specified S3, GCS, or Cloudflare Images transfer with integrity and commitment | `core`, `contextstate`, `temporal`, `exchange` | none |
 | 5 | `timeproof` | RFC 3161 request construction, response verification, and replay | `core`, `temporal`, `keygen` | none |
 | 5 | `cloudidentity` | Bounded Google Cloud or AWS outbound identity-token acquisition and redacted disclosure | `core`, `temporal`, `exchange` | none |

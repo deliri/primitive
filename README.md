@@ -57,6 +57,7 @@ flowchart TD
     controlwire[controlwire] --> core
     controlwire --> keygen
     controlwire --> exchange
+    controlwire --> temporal
     controlplane[controlplane] --> core
     controlplane --> controlwire
     controlplane --> attest
