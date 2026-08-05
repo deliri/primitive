@@ -5,6 +5,7 @@ import (
 	"os"
 
 	"github.com/deliri/primitive/v2026/contextstate"
+	"github.com/deliri/primitive/v2026/core"
 )
 
 // OpenRead opens one existing regular file for reading below a rooted
@@ -34,4 +35,42 @@ func OpenRead(ctx context.Context, request ReadHandleRequest) (*os.File, error) 
 		request.Location.Root,
 		request.Location.Path.String(),
 	)
+}
+
+// OpenParent opens the parent of one absolute path as a rooted capability and
+// names the entry inside it.
+//
+// Every product that holds an absolute path and wants a filestore operation
+// performs this same split: take the parent, open it as a root, re-parse the
+// base as a relative path. Written by hand it is a dozen lines of string
+// surgery per call site, and each copy decides for itself whether to clean the
+// path first and what to do when the base is the filesystem root.
+//
+// The caller owns the returned Location's Root and must close it. That is the
+// same ownership OpenAppend and OpenRead already hand out, so the rule does not
+// change: whoever received the handle closes it.
+func OpenParent(ctx context.Context, path core.AbsolutePath) (Location, error) {
+	if err := contextstate.Validate(ctx); err != nil {
+		return Location{}, err
+	}
+	if err := path.Validate(); err != nil {
+		return Location{}, contractError(err)
+	}
+	parent, err := path.Parent()
+	if err != nil {
+		return Location{}, contractError(err)
+	}
+	base, err := path.Base()
+	if err != nil {
+		return Location{}, contractError(err)
+	}
+	target, err := core.ParseRelativePath(base.String())
+	if err != nil {
+		return Location{}, contractError(err)
+	}
+	root, err := os.OpenRoot(parent.String())
+	if err != nil {
+		return Location{}, sourceError(err)
+	}
+	return Location{Root: root, Path: target}, nil
 }

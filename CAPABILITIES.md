@@ -51,6 +51,7 @@ transaction run this same stack, so a wire type has exactly one home.
 | asking what occupies a configured path | `filestore.Inspect` — never `os.Stat` from a product |
 | how old an entry is, for staleness or reaping | `filestore.Inspection.ModifiedAt` — the observation already holds it |
 | how many bytes a file holds | `filestore.Inspection.SizeBytes` — regular files only, because nothing else has a meaningful one |
+| turning an absolute path into a rooted request | `filestore.OpenParent` — opens the parent, names the entry, hands back a `Location` |
 | handing a file's bytes to something that wants a reader | `filestore.OpenRead` — never `os.Open` from a product |
 | moving an entry that already exists on disk | `filestore.Rename` — `Commit` only activates a stage |
 | making a directory durable on its own | nothing: durability belongs to the activation that changed it, and a bare public directory sync is banned by the `filestore` architecture ratchet |
