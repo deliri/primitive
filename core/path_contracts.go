@@ -169,6 +169,32 @@ func (p AbsolutePath) Base() (PathComponent, error) {
 	return ParsePathComponent(filepath.Base(p.value))
 }
 
+// WithSuffix names the sibling whose final component carries suffix.
+//
+// Products mark related state beside a directory: a lease marker, a custody
+// sidecar, a quarantined generation. Written as string concatenation the
+// result is never revalidated, so a suffix carrying a separator silently
+// produces a path in another directory. Here the joined name is admitted as a
+// component before it becomes a path, so it can only ever name a sibling.
+func (p AbsolutePath) WithSuffix(suffix string) (AbsolutePath, error) {
+	if err := p.Validate(); err != nil {
+		return AbsolutePath{}, err
+	}
+	base, err := p.Base()
+	if err != nil {
+		return AbsolutePath{}, err
+	}
+	parent, err := p.Parent()
+	if err != nil {
+		return AbsolutePath{}, err
+	}
+	component, err := ParsePathComponent(base.String() + suffix)
+	if err != nil {
+		return AbsolutePath{}, err
+	}
+	return parent.Join(component)
+}
+
 // RelativeTo expresses p as a path relative to base.
 //
 // It is the inverse of JoinRelative and exists for the same reason: products
