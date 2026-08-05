@@ -169,6 +169,53 @@ func (p AbsolutePath) Base() (PathComponent, error) {
 	return ParsePathComponent(filepath.Base(p.value))
 }
 
+// Resolve joins names below an absolute path, admitting each as its own
+// component.
+//
+// This is the shape every product actually needs: a root plus a handful of
+// compiler-owned name constants. Written with filepath.Join it produces one
+// string that is validated only at the end, so a name that was never a legal
+// component can still yield a legal-looking path. Here each name is refused
+// where it is introduced, and the caller gets one error instead of one per
+// segment.
+func (p AbsolutePath) Resolve(names ...string) (AbsolutePath, error) {
+	if err := p.Validate(); err != nil {
+		return AbsolutePath{}, err
+	}
+	resolved := p
+	for _, name := range names {
+		component, err := ParsePathComponent(name)
+		if err != nil {
+			return AbsolutePath{}, err
+		}
+		resolved, err = resolved.Join(component)
+		if err != nil {
+			return AbsolutePath{}, err
+		}
+	}
+	return resolved, nil
+}
+
+// Resolve joins names below a relative path, admitting each as its own
+// component. It is Resolve's counterpart for paths already confined to a root.
+func (p RelativePath) Resolve(names ...string) (RelativePath, error) {
+	if err := p.Validate(); err != nil {
+		return RelativePath{}, err
+	}
+	resolved := p
+	for _, name := range names {
+		component, err := ParsePathComponent(name)
+		if err != nil {
+			return RelativePath{}, err
+		}
+		resolved, err = resolved.Join(component)
+		if err != nil {
+			return RelativePath{}, err
+		}
+	}
+	return resolved, nil
+}
+
 // Join appends one validated component to a relative path.
 //
 // Building a nested path out of filepath.Join and re-parsing the result is the

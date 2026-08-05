@@ -45,7 +45,6 @@ func TestProductionImportsAreExactAndNoWorldModelExists(t *testing.T) {
 		"io/fs",
 		"math/bits",
 		"os",
-		"path/filepath",
 	}
 	if !slices.Equal(imports, want) {
 		t.Fatalf("production imports = %v, want %v", imports, want)

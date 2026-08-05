@@ -4,7 +4,6 @@ import (
 	"context"
 	"io/fs"
 	"os"
-	"path/filepath"
 
 	"github.com/deliri/primitive/v2026/core"
 )
@@ -128,9 +127,11 @@ func trialPath(slot Slot) (core.RelativePath, error) {
 	if err := slot.Validate(); err != nil {
 		return core.RelativePath{}, err
 	}
-	path, err := core.ParseRelativePath(
-		filepath.Join(slot.String(), trialFilename),
-	)
+	base, err := core.ParseRelativePath(slot.String())
+	if err != nil {
+		return core.RelativePath{}, contractError(err)
+	}
+	path, err := base.Resolve(trialFilename)
 	if err != nil {
 		return core.RelativePath{}, contractError(err)
 	}
@@ -141,9 +142,11 @@ func trialTemporaryPath(slot Slot) (core.RelativePath, error) {
 	if err := slot.Validate(); err != nil {
 		return core.RelativePath{}, err
 	}
-	path, err := core.ParseRelativePath(
-		filepath.Join(slot.String(), trialTemporaryFilename),
-	)
+	base, err := core.ParseRelativePath(slot.String())
+	if err != nil {
+		return core.RelativePath{}, contractError(err)
+	}
+	path, err := base.Resolve(trialTemporaryFilename)
 	if err != nil {
 		return core.RelativePath{}, contractError(err)
 	}
