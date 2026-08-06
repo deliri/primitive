@@ -129,6 +129,7 @@ func TestFilestorePublicSurfaceIsExactRatchet(t *testing.T) {
 		"OpenAppend",
 		"OpenParent",
 		"OpenRead",
+		"OpenRoot",
 		"Read",
 		"Recover",
 		"Remove",

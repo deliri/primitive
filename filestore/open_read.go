@@ -74,3 +74,34 @@ func OpenParent(ctx context.Context, path core.AbsolutePath) (Location, error) {
 	}
 	return Location{Root: root, Path: target}, nil
 }
+
+// OpenRoot opens one absolute directory as a rooted capability.
+//
+// Location.Root is an *os.Root, so every filestore operation needs one, but
+// until now filestore would only ever hand a root back attached to a parent
+// split (OpenParent) or an opened file. A product that keeps a long-lived store
+// directory and performs many operations under it had no contract to ask for
+// that directory as a root, so it reached past filestore into os.OpenRoot and
+// paid for it twice: the typed AbsolutePath went back out as a string, and the
+// failure arrived as a bare OS error at each call site instead of one filestore
+// identity.
+//
+// The directory check is left to the OS. Inspecting first and opening second
+// would decide against a path that another process can replace in between, and
+// os.OpenRoot already refuses a non-directory.
+//
+// The caller owns the returned root and must close it, the same ownership rule
+// OpenParent, OpenAppend, and OpenRead already hand out.
+func OpenRoot(ctx context.Context, path core.AbsolutePath) (*os.Root, error) {
+	if err := contextstate.Validate(ctx); err != nil {
+		return nil, err
+	}
+	if err := path.Validate(); err != nil {
+		return nil, contractError(err)
+	}
+	root, err := os.OpenRoot(path.String())
+	if err != nil {
+		return nil, sourceError(err)
+	}
+	return root, nil
+}
