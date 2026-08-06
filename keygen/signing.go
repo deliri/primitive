@@ -25,6 +25,23 @@ func GenerateSigningKey() (SigningKey, error) {
 	return adoptGeneratedSigningKey(public, private, err)
 }
 
+// AdoptSigningKey takes custody of one RFC 8032 seed a product already holds,
+// so a key read back from storage reaches the same seed custody, redacted
+// formatting, and destruction rules as a generated one.
+//
+// Without this door a product that persists a signing key has no way to
+// produce a SigningKey at all, and is forced to carry a raw
+// ed25519.PrivateKey with none of those properties. The seed is the whole key:
+// the 64-byte standard-library private key is that seed followed by the public
+// half it already determines, so nothing is lost by admitting only the seed and
+// a caller cannot supply a pair that disagrees with itself.
+func AdoptSigningKey(seed [ed25519.SeedSize]byte) (SigningKey, error) {
+	private := ed25519.NewKeyFromSeed(seed[:])
+	public := make(ed25519.PublicKey, ed25519.PublicKeySize)
+	copy(public, private[ed25519.SeedSize:])
+	return adoptGeneratedSigningKey(public, private, nil)
+}
+
 func adoptGeneratedSigningKey(
 	public ed25519.PublicKey,
 	private ed25519.PrivateKey,

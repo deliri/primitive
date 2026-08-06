@@ -52,6 +52,7 @@ func TestKeygenExactPublicSurfaceFieldsAndNoAliases(t *testing.T) {
 		t.Fatalf("scanKeygenArchitecture() error = %v, want nil", gotErr)
 	}
 	wantSurface := []string{
+		"func AdoptSigningKey",
 		"func GenerateSecret",
 		"func GenerateSigningKey",
 		"method SecretRequest.Validate",
@@ -109,6 +110,7 @@ func TestKeygenUsesOnlyGo126ProtectedProductionEntropyEffects(t *testing.T) {
 	wantSelectors := []string{
 		"secret.go:rand.Read",
 		"signing.go:ed25519.GenerateKey",
+		"signing.go:ed25519.NewKeyFromSeed",
 		"signing.go:ed25519.NewKeyFromSeed",
 		"signing.go:ed25519.NewKeyFromSeed",
 		"signing.go:subtle.ConstantTimeCompare",
