@@ -20,7 +20,7 @@ transaction run this same stack, so a wire type has exactly one home.
 | `deploy` | Binding one authenticated release manifest to exact create-only GCS upload capabilities, returning confirmed provider facts. |
 | `exchange` | Typed bounded operation policy over real `net/http` client and server boundaries: retry classification, exponential backoff, jitter, server hints, redirect confinement, idempotency and replay semantics, bounded JSON calls. |
 | `filelock` | One advisory whole-file lock on one already-open file. Exclusive or shared, blocking or immediate; contention is a typed outcome rather than an error, and EINTR retries are handled here instead of in every caller. |
-| `filestore` | Rooted, bounded, streaming durability over real `os.Root`/`os.File`: staged writes, commit, durable rename of an existing entry, read handles (`OpenRead`, for when a reader must be handed to something else), opening a directory as a confined root (`OpenRoot`, for a store a product holds open across many operations), file and directory fsync, crash recovery, and path inspection (`Inspect` reports absent / directory / file / symlink / unreachable without following the final component, and carries the entry's modification time and byte count). |
+| `filestore` | Rooted, bounded, streaming durability over real `os.Root`/`os.File`: staged writes, commit, durable rename of an existing entry, read handles (`OpenRead`, for when a reader must be handed to something else), opening a directory as a confined root (`OpenRoot`, for a store a product holds open across many operations), file and directory fsync, crash recovery, and path inspection (`Inspect` reports absent / directory / file / symlink / unreachable without following the final component, and carries the entry's modification time and byte count). It also writes the custody stamp `Inspect` reads (`Touch`), proves an already-written name durable after a restart nobody's activation covers (`ConfirmDurable`), and opens the read-write lock carrier `filelock` requires (`OpenLockFile`). |
 | `fuzzfinder` | Finding Go fuzz corpus and crasher artifacts in a rooted directory with bounded memory and explicit partial accounting. |
 | `garble` | Garble tool identity, deterministic seed derivation, and the Garble-owned prefix of a typed build intent. |
 | `gate` | Turning one authentic lease assessment into permission to begin new paid work. |
@@ -55,6 +55,9 @@ transaction run this same stack, so a wire type has exactly one home.
 | handing a file's bytes to something that wants a reader | `filestore.OpenRead` — never `os.Open` from a product |
 | moving an entry that already exists on disk | `filestore.Rename` — `Commit` only activates a stage |
 | making a directory durable on its own | nothing: durability belongs to the activation that changed it, and a bare public directory sync is banned by the `filestore` architecture ratchet |
+| proving a name written before this process started is durable | `filestore.ConfirmDurable` — the one durability question no activation of yours can answer, most often asked after a restart |
+| recording that a stored object was wanted again | `filestore.Touch` — never `os.Chtimes` from a product; it stamps and makes the stamp durable in one operation |
+| the `*os.File` that `filelock.Request` demands | `filestore.OpenLockFile` — never `os.OpenFile` from a product; `OpenRead` refuses an absent file and `OpenAppend` hands back a handle a holder cannot rewrite its diagnostics through |
 | uploading to S3/GCS/Cloudflare | `objectstore` — capabilities and commitments already exist |
 | a timestamp, duration, or deadline | `temporal` |
 | third-party proof of *when* | `timeproof` |

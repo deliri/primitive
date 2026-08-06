@@ -36,6 +36,9 @@ type filestoreContractInventory struct {
 	WriteRequest       validatedRequest[WriteRequest]
 	StageRequest       validatedRequest[StageRequest]
 	CommitRequest      validatedRequest[CommitRequest]
+	TouchRequest       validatedRequest[TouchRequest]
+	DurabilityRequest  validatedRequest[DurabilityRequest]
+	LockFileRequest    validatedRequest[LockFileRequest]
 	AppendRequest      validatedRequest[AppendRequest]
 	RotationRequest    validatedRequest[RotationRequest]
 	RemovalRequest     validatedRequest[RemovalRequest]
@@ -102,6 +105,9 @@ func TestFilestorePublicSurfaceIsExactRatchet(t *testing.T) {
 		"CommitRequest",
 		"DirectoryRequest",
 		"DirectoryEntryMaximum",
+		"DurabilityRequest",
+		"LockFileRequest",
+		"TouchRequest",
 		"InstallMode",
 		"Inspection",
 		"Location",
@@ -122,11 +128,13 @@ func TestFilestorePublicSurfaceIsExactRatchet(t *testing.T) {
 	})
 	requireExactNames(t, "exported functions", gotFunctions, []string{
 		"Commit",
+		"ConfirmDurable",
 		"Discard",
 		"EnsureDirectory",
 		"Inspect",
 		"NewDirectoryEntryMaximum",
 		"OpenAppend",
+		"OpenLockFile",
 		"OpenParent",
 		"OpenRead",
 		"OpenRoot",
@@ -137,6 +145,7 @@ func TestFilestorePublicSurfaceIsExactRatchet(t *testing.T) {
 		"Rename",
 		"RotateAppend",
 		"Stage",
+		"Touch",
 		"Walk",
 		"Write",
 	})
@@ -172,6 +181,9 @@ func TestFilestorePublicSurfaceIsExactRatchet(t *testing.T) {
 		"CommitRequest.Validate",
 		"DirectoryRequest.Validate",
 		"DirectoryEntryMaximum.Validate",
+		"DurabilityRequest.Validate",
+		"LockFileRequest.Validate",
+		"TouchRequest.Validate",
 		"Inspection.Kind",
 		"Inspection.ModifiedAt",
 		"Inspection.SizeBytes",

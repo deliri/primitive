@@ -8,6 +8,7 @@ import (
 	"path/filepath"
 
 	"github.com/deliri/primitive/v2026/core"
+	"github.com/deliri/primitive/v2026/temporal"
 )
 
 const (
@@ -126,6 +127,62 @@ type ReadHandleRequest struct {
 // Validate rejects an invalid location.
 func (r ReadHandleRequest) Validate() error {
 	return r.Location.Validate()
+}
+
+// TouchRequest stamps one existing regular file with a custody instant.
+type TouchRequest struct {
+	Location   Location
+	ModifiedAt temporal.Instant
+}
+
+// Validate rejects an invalid location or an unset custody instant. The Go
+// zero instant is refused rather than read as "now", because a custody record
+// nobody chose the time for is not a custody record. The Unix epoch is a
+// chosen instant and is accepted: temporal.Instant already separates "unset"
+// from "zero", so this gate delegates instead of restating the rule.
+func (r TouchRequest) Validate() error {
+	if err := r.Location.Validate(); err != nil {
+		return err
+	}
+	if err := validateMutablePath(r.Location.Path); err != nil {
+		return err
+	}
+	if err := r.ModifiedAt.Validate(); err != nil {
+		return contractError(err)
+	}
+	return nil
+}
+
+// DurabilityRequest names one already-written regular file whose name must be
+// proven durable.
+type DurabilityRequest struct {
+	Location Location
+}
+
+// Validate rejects an invalid location or one naming the rooted entry itself,
+// which has no parent inside the capability to prove anything about.
+func (r DurabilityRequest) Validate() error {
+	if err := r.Location.Validate(); err != nil {
+		return err
+	}
+	return validateMutablePath(r.Location.Path)
+}
+
+// LockFileRequest names one rooted file to open or create as a lock carrier.
+type LockFileRequest struct {
+	Location Location
+	Mode     fs.FileMode
+}
+
+// Validate rejects an invalid location or permission mode.
+func (r LockFileRequest) Validate() error {
+	if err := r.Location.Validate(); err != nil {
+		return err
+	}
+	if err := validateMutablePath(r.Location.Path); err != nil {
+		return err
+	}
+	return validatePermissionMode(r.Mode)
 }
 
 // RenameRequest moves the entry at Location to Target under the same rooted

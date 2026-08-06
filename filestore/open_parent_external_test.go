@@ -74,9 +74,9 @@ func TestOpenParentRefusesWhatItCannotOpen(t *testing.T) {
 	renameWriteFile("occupied")(t, directory)
 
 	cases := []struct {
-		name    string
-		build   func(*testing.T) core.AbsolutePath
 		wantErr error
+		build   func(*testing.T) core.AbsolutePath
+		name    string
 	}{
 		{
 			name:    "unvalidated path",

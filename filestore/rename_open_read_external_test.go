@@ -54,11 +54,11 @@ func TestRenameMovesOneExistingEntryOrRefusesTheRequest(t *testing.T) {
 	t.Parallel()
 
 	cases := []struct {
+		wantErr           error
 		build             renameFixture
 		name              string
 		source            string
 		target            string
-		wantErr           error
 		wantMove          bool
 		wantSourceRemains bool
 	}{
@@ -228,9 +228,9 @@ func TestRenameRefusesAnUnusableRequestBeforeAnyEffect(t *testing.T) {
 	t.Parallel()
 
 	cases := []struct {
+		wantErr error
 		build   func(*testing.T, string) filestore.RenameRequest
 		name    string
-		wantErr error
 	}{
 		{
 			name: "missing root capability",
@@ -328,11 +328,11 @@ func TestOpenReadAcquiresOnlyARegularFile(t *testing.T) {
 	t.Parallel()
 
 	cases := []struct {
+		wantErr     error
 		build       renameFixture
 		name        string
 		path        string
 		wantContent string
-		wantErr     error
 	}{
 		{
 			name:        "regular file hands back its exact bytes",
