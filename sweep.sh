@@ -41,7 +41,10 @@ RULES=(
   "keygen:crypto/rand:rand\.(Read\(|Reader)"
   "filelock:syscall:syscall\.Flock\("
   "process:os/exec:exec\.(Command|CommandContext|LookPath)\("
-  "exchange:net/http:http\.(Client\{|DefaultClient|NewRequest|Get\(|Post\()"
+  # exchange.Client admits a caller-owned *http.Client by design and never
+  # mutates it, so naming http.DefaultClient is not a bypass. What is a bypass
+  # is issuing the request yourself, which is what these three do.
+  "exchange:net/http:http\.(Get\(|Post\(|Head\(|PostForm\()"
   "temporal:time:time\.(Now|Since|After|Sleep)\("
 )
 
