@@ -210,7 +210,7 @@ Last updated: `2026-08-03`
   worktree at `9ae5b28010b90a140cfaac0ee567034fd84a69b0` plus its local
   2026-07-28 substrate-pattern plan note. Its canonical module identity is now
   `github.com/deliri/primitive/v2026`. Historical evidence remains unchanged
-  and therefore retains its original Foundation module paths. `PLAN.md` is a
+  and therefore retains its original Foundation module paths. `_docs/primitive_policy.md` is a
   tracked architecture projection: Core parses its exact production and
   test-only import table and fails on catalog drift.
 - Phase: all 21 admitted Primitive production packages are reviewed, accepted,
@@ -306,7 +306,7 @@ Last updated: `2026-08-03`
   bidirectional compiler-typed inventory for all sixteen production structs;
   adding an unclassified struct or retaining a deleted classification fails.
   The testing protocol no longer describes the retired package-free design
-  phase, and `AGENTS.md` now names tracked `PLAN.md` as implementation law.
+  phase, and `AGENTS.md` now names tracked `_docs/primitive_policy.md` as implementation law.
 - JSON witness closure, 2026-08-02 (awaiting review, uncommitted): witness
   completeness is no longer a Core-only filename convention. One repository
   ratchet scans every production file in all twenty-two catalog packages and
@@ -1775,7 +1775,7 @@ Last updated: `2026-08-03`
   `protocol/api_envelope.go`, and the absorbed part of
   `protocol/upload_capability.go`, moving `MachineEvidenceIdentity` out of the
   wire package under `internal/professor`, the door-to-door call-site rewire
-  that `peach_fuzz_policy.md:198-200` forbids doing mechanically, hostile tables
+  that `_docs/peachfuzz_policy.md:198-200` forbids doing mechanically, hostile tables
   for `protocol/` at the testing-protocol floor, and complete Foundation removal
   from all 80 importing files.
 - Exchange review state: the package is a typed policy layer over the caller's
@@ -2201,7 +2201,7 @@ Last updated: `2026-08-03`
   imports only Core and Lease and creates no signing domain, action vocabulary,
   policy document, clock, persistence, transport, scheduler, callback, worker,
   or state machine.
-- Core reopening for declared test edges: `PLAN.md` section 5 names an
+- Core reopening for declared test edges: `_docs/primitive_policy.md` section 5 names an
   undeclared test edge as a Sentinel failure and a term of the coupling
   coefficient, but the catalog modelled only production edges and the landed
   scan audited production and test sources against one conflated allowlist.

@@ -1372,12 +1372,16 @@ Bad:
 // TODO
 ```
 
-Waivers are not permission slips. Primitive consumers do not use serial
-waiver comments: they call `testserial.Declare` with a Primitive-owned
-`core.TestIsolationDeclaration`. That typed call is the compiler-visible
-reason the test cannot call `t.Parallel`, and invalid or zero declarations
-fail at execution. Witness-lint verifies the exact imported package, function,
-hazard identifier, and scope identifier contract.
+Waivers are not permission slips. Where the typed helper is available, tests do
+not use serial waiver comments at all: they call `testserial.Declare` with a
+Primitive-owned `core.TestIsolationDeclaration`. That typed call is the
+compiler-visible reason the test cannot call `t.Parallel`, and invalid or zero
+declarations fail at execution. The doctrine linter verifies the exact imported
+package, function, hazard identifier, and scope identifier contract.
+
+A typed declaration beats a comment for the reason this whole protocol exists:
+a comment cannot be validated, cannot fail at execution, and cannot break the
+build when the hazard it names stops being true.
 
 Canonical grammar:
 
@@ -1387,19 +1391,18 @@ Canonical grammar:
 
 The reason must name why this case is structurally different, not why fixing it
 is inconvenient. Legacy local comments such as `serial:` are rejected. The
-comment grammar remains available to external repositories only where the
-typed helper has not yet been installed; Kernel's ratchet rejects both forms.
+comment grammar remains available only where the typed helper has not yet been
+installed; once a repository has it, the ratchet rejects both forms.
 
 ## Automation Map
 
-The canonical Primitive gate installs and runs the pinned Witness-lint version
-recorded in `scripts/install-package-tools.sh` once a production package
-exists. Each row names the rule or sub-rule and the lint surface that owns
-enforcement so a reader can locate the implementation by grepping the
-implementer column.
+Each repository's canonical gate installs and runs its pinned doctrine-linter
+version once a production package exists. Each row names the rule or sub-rule
+and the lint surface that owns enforcement so a reader can locate the
+implementation by grepping the implementer column.
 
-`scripts/gate.sh` discovers the landed production packages from the module and
-runs the pinned analyzers over that exact set. An empty set is reported as
+The gate discovers the landed production packages from the module and runs the
+pinned analyzers over that exact set. An empty set is reported as
 `NOT_APPLICABLE`; with landed packages, an analyzer result is package evidence
 and no design-phase exception exists.
 

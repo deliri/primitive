@@ -99,7 +99,7 @@ func TestArchitectureReadmeProjectionMatchesCompilerCatalog(t *testing.T) {
 func TestArchitecturePlanProjectionMatchesCompilerCatalog(t *testing.T) {
 	t.Parallel()
 
-	const path = "../PLAN.md"
+	const path = "../_docs/primitive_policy.md"
 	source, gotReadErr := os.ReadFile(path)
 	if gotReadErr != nil {
 		t.Fatalf("os.ReadFile(%q) error = %v, want nil", path, gotReadErr)
@@ -121,7 +121,7 @@ func TestArchitectureProjectionMatcherSyntheticRedGreenRatchet(t *testing.T) {
 	t.Parallel()
 
 	readme := mustReadProjectionFixture(t, "../README.md")
-	plan := mustReadProjectionFixture(t, "../PLAN.md")
+	plan := mustReadProjectionFixture(t, "../_docs/primitive_policy.md")
 	const attestPlanRow = "| 2 | `attest` | Canonical Ed25519 envelopes and proof-carrying verification | `core` | none |"
 	const gatePlanRow = "| 5 | `gate` | Pure CLI-side new-work authorization over one authentic Lease assessment | `core`, `lease` | `attest`, `temporal` |"
 	cases := []struct {
@@ -365,7 +365,11 @@ func parsePlanArchitectureProjection(source string) (architectureProjection, err
 	inGraphTable := false
 	for rawLine := range strings.SplitSeq(source, "\n") {
 		line := strings.TrimSpace(rawLine)
-		if line == "## 3. Exact graph" {
+		// The heading the policy actually uses. Pinning the literal here is
+		// deliberate: renaming the section in _docs/primitive_policy.md must
+		// break this parse rather than silently yield an empty projection that
+		// audits clean against a catalog it never read.
+		if line == "## 15. Exact package graph" {
 			inGraphSection = true
 			continue
 		}

@@ -758,7 +758,7 @@ No archived Primitive installer or release path publishes this binary, and no
 located ingress consumes its output.
 
 This is not automatic retirement:
-`foundation@working-tree:PLAN.md:152-161` defers `cmd/keygen` and permits
+`foundation@working-tree:_docs/primitive_policy.md:152-161` defers `cmd/keygen` and permits
 re-entry with current demand, one product-neutral owner, its complete
 dependency frontier, and explicit user approval. A human-facing command,
 however, needs more than import demand. It needs a named operator journey and
