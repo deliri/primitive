@@ -38,6 +38,8 @@ type filestoreContractInventory struct {
 	CommitRequest      validatedRequest[CommitRequest]
 	TouchRequest       validatedRequest[TouchRequest]
 	DurabilityRequest  validatedRequest[DurabilityRequest]
+	Permissions        boundedFact[Permissions]
+	Ownership          boundedFact[Ownership]
 	LockFileRequest    validatedRequest[LockFileRequest]
 	AppendRequest      validatedRequest[AppendRequest]
 	RotationRequest    validatedRequest[RotationRequest]
@@ -57,13 +59,13 @@ var _ = filestoreContractInventory{}
 func TestFilestorePublicSurfaceIsExactRatchet(t *testing.T) {
 	t.Parallel()
 
-	files := parseProductionFiles(t)
+	productions := parseProductionFiles(t)
 	gotTypes := make([]string, 0)
 	gotFunctions := make([]string, 0)
 	gotConstants := make([]string, 0)
 	gotMethods := make([]string, 0)
-	for _, file := range files {
-		for _, declaration := range file.Decls {
+	for _, production := range productions {
+		for _, declaration := range production.file.Decls {
 			switch value := declaration.(type) {
 			case *ast.GenDecl:
 				for _, specification := range value.Specs {
@@ -106,6 +108,8 @@ func TestFilestorePublicSurfaceIsExactRatchet(t *testing.T) {
 		"DirectoryRequest",
 		"DirectoryEntryMaximum",
 		"DurabilityRequest",
+		"Ownership",
+		"Permissions",
 		"LockFileRequest",
 		"TouchRequest",
 		"InstallMode",
@@ -185,6 +189,17 @@ func TestFilestorePublicSurfaceIsExactRatchet(t *testing.T) {
 		"LockFileRequest.Validate",
 		"TouchRequest.Validate",
 		"Inspection.Kind",
+		"Inspection.Ownership",
+		"Inspection.Permissions",
+		"Ownership.GID",
+		"Ownership.IsSet",
+		"Ownership.UID",
+		"Ownership.Validate",
+		"Permissions.Bits",
+		"Permissions.FileMode",
+		"Permissions.IsSet",
+		"Permissions.String",
+		"Permissions.Validate",
 		"Inspection.ModifiedAt",
 		"Inspection.SizeBytes",
 		"Inspection.Validate",
@@ -221,12 +236,68 @@ func TestFilestorePublicSurfaceIsExactRatchet(t *testing.T) {
 	})
 }
 
+// TestOnlyTheOwnerIdentityLeafNamesThePlatformStatusStructure proves the
+// scoped import is exactly one file wide. A second file naming syscall would
+// mean a platform detail had started spreading through the package, which is
+// the reason the blanket ban existed before owner identity needed the one
+// assertion the standard library offers no other route to.
+func TestOnlyTheOwnerIdentityLeafNamesThePlatformStatusStructure(t *testing.T) {
+	t.Parallel()
+
+	naming := make([]string, 0)
+	for _, production := range parseProductionFiles(t) {
+		for _, specification := range production.file.Imports {
+			path, err := strconv.Unquote(specification.Path.Value)
+			if err != nil {
+				t.Fatalf("Unquote(%s) error = %v, want nil", specification.Path.Value, err)
+			}
+			if path == "syscall" && !slices.Contains(naming, production.name) {
+				naming = append(naming, production.name)
+			}
+		}
+	}
+	requireExactNames(t, "production files naming syscall", naming, []string{ownerIdentityLeafFile})
+}
+
+// TestNoProductionFileInvokesASyscall is the rule the scoped import rests on,
+// and it is stricter than the ban it replaced. Importing syscall to read a
+// structure this package was handed is not the hazard; calling into the kernel
+// is, because every such call is either an unrooted path access or a second
+// observation of an entry that may no longer be the one already described.
+// This holds for the owner-identity leaf too, so the exemption buys a type
+// assertion and nothing else.
+func TestNoProductionFileInvokesASyscall(t *testing.T) {
+	t.Parallel()
+
+	for _, production := range parseProductionFiles(t) {
+		ast.Inspect(production.file, func(node ast.Node) bool {
+			call, ok := node.(*ast.CallExpr)
+			if !ok {
+				return true
+			}
+			selector, ok := call.Fun.(*ast.SelectorExpr)
+			if !ok {
+				return true
+			}
+			qualifier, ok := selector.X.(*ast.Ident)
+			if ok && qualifier.Name == "syscall" {
+				t.Errorf(
+					"production call syscall.%s in %s, want a value this package was already handed",
+					selector.Sel.Name,
+					production.name,
+				)
+			}
+			return true
+		})
+	}
+}
+
 func TestFilestoreDataFlowStructInventoryRatchet(t *testing.T) {
 	t.Parallel()
 
 	got := make([]string, 0)
-	for _, file := range parseProductionFiles(t) {
-		ast.Inspect(file, func(node ast.Node) bool {
+	for _, production := range parseProductionFiles(t) {
+		ast.Inspect(production.file, func(node ast.Node) bool {
 			specification, ok := node.(*ast.TypeSpec)
 			if !ok {
 				return true
@@ -330,7 +401,7 @@ func violate() {
 	if err != nil {
 		t.Fatalf("ParseFile(synthetic_forbidden.go) error = %v, want nil", err)
 	}
-	got, err := scanProductionArchitecture([]*ast.File{file})
+	got, err := scanProductionArchitecture([]productionFile{{file: file, name: "synthetic_forbidden.go"}})
 	if err != nil {
 		t.Fatalf("scanProductionArchitecture(synthetic) error = %v, want nil", err)
 	}
@@ -349,13 +420,21 @@ func violate() {
 	})
 }
 
-func scanProductionArchitecture(files []*ast.File) (architectureScan, error) {
+// ownerIdentityLeafFile is the one production file permitted to name the
+// platform status structure. Owner identifiers exist nowhere else in the
+// standard library: fs.FileInfo.Sys returns an `any`, and reading it is a type
+// assertion on a value Lstat already returned, not a call. What must never
+// exist is a syscall invocation, which would be an unrooted path access or a
+// second observation of an entry that may have changed; scanProductionArchitecture
+// rejects one in every file including this leaf.
+const ownerIdentityLeafFile = "attributes_unix.go"
+
+func scanProductionArchitecture(files []productionFile) (architectureScan, error) {
 	primitiveImports := make(map[string]struct{})
 	forbiddenImports := map[string]struct{}{
 		"encoding/json": {},
 		"sync":          {},
 		"sync/atomic":   {},
-		"syscall":       {},
 		"unsafe":        {},
 	}
 	forbiddenCalls := map[string]struct{}{
@@ -369,8 +448,14 @@ func scanProductionArchitecture(files []*ast.File) (architectureScan, error) {
 		"filepath.WalkDir": {},
 	}
 	violations := make([]string, 0)
-	for _, file := range files {
+	for _, production := range files {
+		file := production.file
 		importNames := make(map[string]string)
+		if production.name != ownerIdentityLeafFile {
+			forbiddenImports["syscall"] = struct{}{}
+		} else {
+			delete(forbiddenImports, "syscall")
+		}
 		for _, specification := range file.Imports {
 			path, err := strconv.Unquote(specification.Path.Value)
 			if err != nil {
@@ -474,7 +559,15 @@ func declarationName(declaration ast.Decl) string {
 	return "declaration"
 }
 
-func parseProductionFiles(t *testing.T) []*ast.File {
+// productionFile pairs one parsed production file with its name, so a rule can
+// name the single leaf that owns an effect instead of banning the effect from
+// the package that exists to own it.
+type productionFile struct {
+	file *ast.File
+	name string
+}
+
+func parseProductionFiles(t *testing.T) []productionFile {
 	t.Helper()
 
 	entries, err := os.ReadDir(".")
@@ -482,7 +575,7 @@ func parseProductionFiles(t *testing.T) []*ast.File {
 		t.Fatal(err)
 	}
 	fileSet := token.NewFileSet()
-	files := make([]*ast.File, 0)
+	files := make([]productionFile, 0)
 	for _, entry := range entries {
 		if entry.IsDir() || !strings.HasSuffix(entry.Name(), ".go") ||
 			strings.HasSuffix(entry.Name(), "_test.go") {
@@ -492,7 +585,7 @@ func parseProductionFiles(t *testing.T) []*ast.File {
 		if parseErr != nil {
 			t.Fatalf("ParseFile(%s) error = %v, want nil", entry.Name(), parseErr)
 		}
-		files = append(files, file)
+		files = append(files, productionFile{file: file, name: entry.Name()})
 	}
 	return files
 }

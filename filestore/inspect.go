@@ -81,9 +81,11 @@ func (PathKind) OffWireEnum() {}
 // only through accessors that revalidate, so a caller cannot assemble an
 // observation it never made.
 type Inspection struct {
-	modified temporal.Instant
-	size     core.ByteLength
-	kind     PathKind
+	modified    temporal.Instant
+	size        core.ByteLength
+	permissions Permissions
+	ownership   Ownership
+	kind        PathKind
 }
 
 // Validate rejects an observation that names no kind.
@@ -236,7 +238,13 @@ func inspectionForEntry(info fs.FileInfo, err error) (Inspection, error) {
 	if err != nil {
 		return Inspection{}, err
 	}
-	inspection := Inspection{kind: kindForMode(info.Mode()), modified: modified, size: size}
+	inspection := Inspection{
+		kind:        kindForMode(info.Mode()),
+		modified:    modified,
+		size:        size,
+		permissions: observedPermissions(info),
+		ownership:   observedOwnership(info),
+	}
 	return inspection, inspection.Validate()
 }
 
