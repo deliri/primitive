@@ -28,7 +28,7 @@ transaction run this same stack, so a wire type has exactly one home.
 | `keygen` | Exact Ed25519 signing keys and bounded generic secret material from Go's production CSPRNG. **The entropy boundary.** |
 | `lease` | Verifying and assessing one fixed-size OGS-signed commercial decision. Device identity, subjects, entitlements, grants, refusals, revocations. |
 | `objectstore` | One exact bounded transfer through an already-issued S3, GCS, or Cloudflare Images HTTPS capability. Signed URLs, signed headers, upload targets, upload capabilities and their commitments. |
-| `process` | Running one typed command over `os/exec`. |
+| `process` | Running one typed command over `os/exec`, and resolving a bare command name to the absolute path `Request.Command` requires (`Resolve`). A name found through a relative PATH entry is refused, not corrected. |
 | `receipt` | Authenticated accepted-evidence facts and one fixed-size monotonic watermark for later controlstate composition. Account identity. |
 | `release` | Verifying a clean repository at an exact commit with exact build tools; deterministic fixed-target Garble build and process plans; artifacts, integrity, embedded build identity. |
 | `shutdown` | Typed bounded cleanup and signal observation over context, time, and `os/signal`. |
@@ -48,6 +48,7 @@ transaction run this same stack, so a wire type has exactly one home.
 | a nonce, token, revision, or route path | `controlwire` |
 | writing a file that must survive power loss | `filestore` |
 | stopping a second process from running | `filelock` — never a hand-rolled `syscall.Flock` |
+| turning a command name into something you can run | `process.Resolve` — never `exec.LookPath` from a product; the `filepath.Abs` every consumer wrote after it was unreachable, because Go returns `exec.ErrDot` instead of a relative answer |
 | asking what occupies a configured path | `filestore.Inspect` — never `os.Stat` from a product |
 | how old an entry is, for staleness or reaping | `filestore.Inspection.ModifiedAt` — the observation already holds it |
 | how many bytes a file holds | `filestore.Inspection.SizeBytes` — regular files only, because nothing else has a meaningful one |

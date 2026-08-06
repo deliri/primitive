@@ -59,15 +59,23 @@ func productionImportAllowlist() []string {
 	}
 }
 
+// resolutionLeafFile is the one production file permitted to consult PATH.
+// Resolution is not banned from this package: Request.Command is an absolute
+// path precisely so the PATH decision is made once, visibly, and Resolve is
+// where that happens. What must never exist is a second, hidden resolution
+// inside the execution path, which is what a caller would get if Run ever
+// looked a name up on its own.
+const resolutionLeafFile = "resolve.go"
+
 // forbiddenPackageSelectors are package-qualified substrate calls that would
-// move ownership out of this package: an unsupervised command, path resolution
-// outside the typed command, a raw process path, or ambient environment reads
-// that bypass the typed Environment contract. These must stay qualified, because
-// bare names such as Command also name legitimate typed struct fields.
+// move ownership out of this package: an unsupervised command, a raw process
+// path, or ambient environment reads that bypass the typed Environment
+// contract. These must stay qualified, because bare names such as Command also
+// name legitimate typed struct fields. Path resolution is scoped by file rather
+// than listed here; see resolutionLeafFile.
 func forbiddenPackageSelectors() []string {
 	return []string{
 		"exec.Command",
-		"exec.LookPath",
 		"os.Clearenv",
 		"os.Environ",
 		"os.FindProcess",
@@ -147,6 +155,7 @@ func TestPublicOperationsAreOnlyTypedConstructionAndExecution(t *testing.T) {
 		"ParseArguments",
 		"ParseEffectiveEnvironment",
 		"ParseExactEnvironment",
+		"Resolve",
 		"Run",
 	}
 	if !slices.Equal(got, want) {
@@ -162,7 +171,8 @@ func TestProductionImportsMatchTheExactDeclaredFrontier(t *testing.T) {
 
 	allowed := productionImportAllowlist()
 	var got []string
-	for _, file := range productionFiles(t) {
+	for _, production := range productionFiles(t) {
+		file := production.file
 		for _, imported := range file.Imports {
 			path, err := strconv.Unquote(imported.Path.Value)
 			if err != nil {
@@ -195,10 +205,106 @@ func TestProductionImportsMatchTheExactDeclaredFrontier(t *testing.T) {
 	}
 }
 
+// isPathResolutionSelector matches the ambient-PATH lookup. It stays qualified
+// for the same reason the forbidden list does: a bare Sel name would also match
+// an unrelated typed method some future contract introduces.
+func isPathResolutionSelector(selector *ast.SelectorExpr) bool {
+	qualifier, ok := selector.X.(*ast.Ident)
+	if !ok {
+		return false
+	}
+	return qualifier.Name == "exec" && selector.Sel.Name == "LookPath"
+}
+
+// TestPathResolutionMatcherHasARedState proves the file-scoped rule can fail.
+// Moving PATH resolution out of the shared forbidden list would be a quiet
+// weakening if the new matcher were never shown rejecting anything, so it is
+// exercised against synthetic source the same way the shared list is.
+func TestPathResolutionMatcherHasARedState(t *testing.T) {
+	t.Parallel()
+
+	cases := []struct {
+		name       string
+		source     string
+		wantReject bool
+	}{
+		{
+			name:       "an ambient PATH lookup is matched",
+			source:     "package process\nfunc run() { exec.LookPath(name) }\n",
+			wantReject: true,
+		},
+		{
+			name:   "the context-bound execution leaf is not a resolution",
+			source: "package process\nfunc run() { exec.CommandContext(ctx, path) }\n",
+		},
+		{
+			name:   "a same-named method on a typed value is not a resolution",
+			source: "package process\nfunc run() { _ = catalog.LookPath(name) }\n",
+		},
+		{
+			name:   "the typed parse that gates the result is not a resolution",
+			source: "package process\nfunc run() { _, _ = core.ParseAbsolutePath(found) }\n",
+		},
+	}
+
+	for _, tc := range cases {
+		t.Run(tc.name, func(t *testing.T) {
+			t.Parallel()
+
+			file, err := parser.ParseFile(
+				token.NewFileSet(),
+				"synthetic_resolution.go",
+				tc.source,
+				parser.SkipObjectResolution,
+			)
+			if err != nil {
+				t.Fatalf("parser.ParseFile(synthetic) error = %v, want nil", err)
+			}
+			matched := false
+			ast.Inspect(file, func(node ast.Node) bool {
+				selector, ok := node.(*ast.SelectorExpr)
+				if ok && isPathResolutionSelector(selector) {
+					matched = true
+				}
+				return true
+			})
+			if matched != tc.wantReject {
+				t.Fatalf("path resolution match = %t, want %t for %q", matched, tc.wantReject, tc.source)
+			}
+		})
+	}
+}
+
+// TestOnlyTheResolutionLeafConsultsPath is the ratchet the file-scoped rule
+// exists for, stated as its own proof rather than hidden inside a broader
+// structural scan. Exactly one production file may consult PATH, and it is not
+// the one that executes.
+func TestOnlyTheResolutionLeafConsultsPath(t *testing.T) {
+	t.Parallel()
+
+	var consulting []string
+	for _, production := range productionFiles(t) {
+		ast.Inspect(production.file, func(node ast.Node) bool {
+			selector, ok := node.(*ast.SelectorExpr)
+			if ok && isPathResolutionSelector(selector) &&
+				!slices.Contains(consulting, production.name) {
+				consulting = append(consulting, production.name)
+			}
+			return true
+		})
+	}
+	slices.Sort(consulting)
+	want := []string{resolutionLeafFile}
+	if !slices.Equal(consulting, want) {
+		t.Fatalf("production files consulting PATH = %q, want exactly %q", consulting, want)
+	}
+}
+
 func TestProductionStructureForbidsWorldModelsAndWholeOutputPaths(t *testing.T) {
 	t.Parallel()
 
-	for _, file := range productionFiles(t) {
+	for _, production := range productionFiles(t) {
+		file := production.file
 		ast.Inspect(file, func(node ast.Node) bool {
 			switch typed := node.(type) {
 			case *ast.GoStmt:
@@ -217,6 +323,15 @@ func TestProductionStructureForbidsWorldModelsAndWholeOutputPaths(t *testing.T) 
 						"production selector %s at token position %d, want streamed caller-owned output",
 						typed.Sel.Name,
 						typed.Sel.NamePos,
+					)
+				}
+				if production.name != resolutionLeafFile && isPathResolutionSelector(typed) {
+					t.Errorf(
+						"production selector %s in %s at token position %d, want PATH resolution only in %s",
+						typed.Sel.Name,
+						production.name,
+						typed.Sel.NamePos,
+						resolutionLeafFile,
 					)
 				}
 			case *ast.FuncDecl:
@@ -282,11 +397,6 @@ func TestForbiddenSelectorMatcherHasARedState(t *testing.T) {
 		{
 			name:       "a raw signal path is rejected",
 			source:     "package process\nfunc run() { command.Process.Signal(sig) }\n",
-			wantReject: true,
-		},
-		{
-			name:       "path resolution outside the typed command is rejected",
-			source:     "package process\nfunc run() { exec.LookPath(name) }\n",
 			wantReject: true,
 		},
 	}
@@ -365,7 +475,8 @@ func productionFunctionNames(t *testing.T) []string {
 	t.Helper()
 
 	var names []string
-	for _, file := range productionFiles(t) {
+	for _, production := range productionFiles(t) {
+		file := production.file
 		for _, declaration := range file.Decls {
 			function, ok := declaration.(*ast.FuncDecl)
 			if !ok || function.Recv != nil || !ast.IsExported(function.Name.Name) {
@@ -414,7 +525,8 @@ func productionStructNames(t *testing.T) []string {
 	t.Helper()
 
 	var names []string
-	for _, file := range productionFiles(t) {
+	for _, production := range productionFiles(t) {
+		file := production.file
 		for _, structure := range productionStructTypes(t, file) {
 			names = append(names, structure.name)
 		}
@@ -423,7 +535,15 @@ func productionStructNames(t *testing.T) []string {
 	return names
 }
 
-func productionFiles(t *testing.T) []*ast.File {
+// productionFile pairs one parsed production file with its name so a rule can
+// name the single inventoried leaf that owns an effect instead of banning the
+// effect from the package that exists to own it.
+type productionFile struct {
+	file *ast.File
+	name string
+}
+
+func productionFiles(t *testing.T) []productionFile {
 	t.Helper()
 
 	entries, err := os.ReadDir(".")
@@ -431,7 +551,7 @@ func productionFiles(t *testing.T) []*ast.File {
 		t.Fatalf("os.ReadDir(package directory) error = %v, want nil", err)
 	}
 	fileSet := token.NewFileSet()
-	var files []*ast.File
+	var files []productionFile
 	for _, entry := range entries {
 		if entry.IsDir() ||
 			!strings.HasSuffix(entry.Name(), ".go") ||
@@ -451,7 +571,7 @@ func productionFiles(t *testing.T) []*ast.File {
 				parseErr,
 			)
 		}
-		files = append(files, file)
+		files = append(files, productionFile{file: file, name: entry.Name()})
 	}
 	if len(files) == 0 {
 		t.Fatal("production file count = 0, want > 0")
