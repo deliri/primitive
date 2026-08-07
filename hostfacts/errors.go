@@ -21,6 +21,7 @@ const (
 	OperationCgroupLimit
 	OperationTreeWalk
 	OperationGoOOMBanner
+	OperationTerminalGeometry
 	operationLimit
 )
 
@@ -35,6 +36,7 @@ func operationLabels() [operationLimit]string {
 		OperationCgroupLimit:      "cgroup limit",
 		OperationTreeWalk:         "tree walk",
 		OperationGoOOMBanner:      "go OOM banner",
+		OperationTerminalGeometry: "terminal geometry",
 	}
 }
 

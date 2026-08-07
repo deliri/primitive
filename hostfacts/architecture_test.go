@@ -45,6 +45,7 @@ func TestPublicOperationsAreExactIntentEntryPoints(t *testing.T) {
 		"NewPercent",
 		"ObserveEffectiveWorkloadMemoryLimit",
 		"ObservePhysicalMemory",
+		"ObserveTerminalGeometry",
 	}
 	if !slices.Equal(got, want) {
 		t.Fatalf("exported Hostfacts operations = %q, want exactly %q", got, want)
@@ -96,11 +97,12 @@ func productionStructRole(name string) (string, bool) {
 	case "Failure":
 		return "typed error context", true
 	case "DiskPressurePolicy", "DiskAssessmentRequest", "GoMemoryPressurePolicy",
-		"GoMemoryAssessmentRequest", "TreeUsageRequest", "GoOOMBannerRequest":
+		"GoMemoryAssessmentRequest", "TreeUsageRequest", "GoOOMBannerRequest",
+		"TerminalGeometryRequest":
 		return "public execution ingress", true
 	case "DiskCapacity", "DiskAssessment", "GoMemorySnapshot",
 		"GoMemoryAssessment", "PhysicalMemory", "WorkloadMemoryLimit", "TreeUsage",
-		"GoOOMBannerEvidence", "Percent", "RegularFileCount":
+		"GoOOMBannerEvidence", "Percent", "RegularFileCount", "TerminalGeometry":
 		return "validated immutable observation or policy fact", true
 	case "goOOMBannerWire":
 		return "bounded persistence projection", true

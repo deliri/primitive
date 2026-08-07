@@ -34,6 +34,13 @@ func TestHostfactsOffWireEnumsExhaustClosedDomains(t *testing.T) {
 				OperationCgroupLimit,
 				OperationTreeWalk,
 				OperationGoOOMBanner,
+				OperationTerminalGeometry,
+			})
+		}},
+		{name: "terminal attachments reject every unadmitted uint8 value", run: func(t *testing.T) {
+			proveHostfactsOffWireEnum(t, func(raw uint8) TerminalAttachment { return TerminalAttachment(raw) }, []TerminalAttachment{
+				TerminalAttachmentTerminal,
+				TerminalAttachmentNotTerminal,
 			})
 		}},
 		{name: "disk pressure states reject every unadmitted uint8 value", run: func(t *testing.T) {

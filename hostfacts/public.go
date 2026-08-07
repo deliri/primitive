@@ -36,6 +36,20 @@ func AssessDisk(ctx context.Context, request DiskAssessmentRequest) (DiskAssessm
 	return assessDiskCapacity(capacity, request.Policy)
 }
 
+// ObserveTerminalGeometry reports whether one open descriptor is attached to
+// a terminal, and the terminal's column count when it is.
+//
+// Detachment is an observation rather than a failure: a renderer deciding how
+// wide to draw needs "you are piped" as an answer, not an error to swallow.
+// The request is refused when the descriptor cannot be interrogated at all,
+// because the caller must not record a detachment nobody observed.
+func ObserveTerminalGeometry(request TerminalGeometryRequest) (TerminalGeometry, error) {
+	if err := request.Validate(); err != nil {
+		return TerminalGeometry{}, err
+	}
+	return observedTerminalGeometry(request.File)
+}
+
 // AssessGoMemory observes the exact Go soft-limit accounting metric and
 // classifies it against caller policy. Its runtime.ReadMemStats call briefly
 // stops all application goroutines to obtain an up-to-date snapshot.

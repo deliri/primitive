@@ -33,6 +33,11 @@ var (
 	_ core.Validatable = RegularFileCount{}
 	_ core.Validatable = TreeUsage{}
 
+	_ core.Validatable = TerminalColumns(0)
+	_ core.Validatable = TerminalAttachment(0)
+	_ core.Validatable = TerminalGeometryRequest{}
+	_ core.Validatable = TerminalGeometry{}
+
 	_ core.Validatable            = GoOOMBannerState(0)
 	_ core.Validatable            = GoOOMBannerRequest{}
 	_ core.Validatable            = GoOOMBannerEvidence{}
@@ -46,6 +51,7 @@ var (
 	_ core.OffWireEnum = WorkloadMemoryLimitUnknown
 	_ core.OffWireEnum = WorkloadMemoryLimitSourceUnknown
 	_ core.OffWireEnum = MissingPathUnknown
+	_ core.OffWireEnum = TerminalAttachmentUnknown
 
 	_ json.Marshaler   = GoOOMBannerState(0)
 	_ json.Unmarshaler = (*GoOOMBannerState)(nil)
