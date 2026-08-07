@@ -391,6 +391,78 @@ func TestUsageWindowValidateAtEveryBoundary(t *testing.T) {
 	}
 }
 
+// TestTheClassLadderIsTheOnlyBoundOnAnAcceptedUnitList proves the contract that
+// replaced the length guard.
+//
+// There used to be a check refusing a list longer than the ceiling. It could
+// never fire: classes are closed and must strictly increase, so a list cannot
+// grow past the ladder without repeating, descending, or naming a class above
+// the ceiling, all of which are refused first. Disabling it turned no test red,
+// which is how it was found.
+//
+// Deleting it made that reasoning load bearing, because it is now the only thing
+// bounding the walk, so it is proved here instead of asserted in a comment. The
+// bound is discovered rather than restated: the loop appends the next legal
+// class until Validate refuses, and the length it reaches is the answer. Raising
+// the ceiling moves the answer with it, which is correct.
+//
+// The bound stands on two legs and this test carries one. Opening the ceiling
+// lets this loop run past the ladder and turns it red. Relaxing the ordering
+// rule from strictly ascending to non-decreasing does not, because this loop
+// only ever uses distinct classes: the repeated-class rows in
+// TestUsageWindowValidateAtEveryBoundary are what refuse that, and both mutations
+// were run to confirm each leg is actually held by something.
+func TestTheClassLadderIsTheOnlyBoundOnAnAcceptedUnitList(t *testing.T) {
+	t.Parallel()
+
+	// Far above the ceiling, so a relaxed ordering rule ends this test with a
+	// failure rather than with a hang.
+	const runaway = 4 * controlplane.WorkUnitClassMaximum
+
+	units := make([]controlplane.WorkUnitCount, 0, runaway)
+	for len(units) < runaway {
+		candidate := make([]controlplane.WorkUnitCount, len(units), len(units)+1)
+		copy(candidate, units)
+		candidate = append(candidate, controlplane.WorkUnitCount{
+			Class: controlplane.WorkUnitClass(len(units) + 1), Count: 1,
+		})
+		window := testWindow(candidate, outcomesOf(1, uint64(len(candidate))))
+		if window.Validate() != nil {
+			break
+		}
+		units = candidate
+	}
+	if got, want := len(units), controlplane.WorkUnitClassMaximum; got != want {
+		t.Fatalf("longest accepted unit list = %d entries, want the class ladder %d", got, want)
+	}
+}
+
+// TestTheClassLadderIsTheOnlyBoundOnAnAcceptedOutcomeList is the same proof for
+// the result classes, which are bounded by the same reasoning and by no length
+// check either.
+func TestTheClassLadderIsTheOnlyBoundOnAnAcceptedOutcomeList(t *testing.T) {
+	t.Parallel()
+
+	const runaway = 4 * controlplane.OutcomeClassMaximum
+
+	outcomes := make([]controlplane.OutcomeCount, 0, runaway)
+	for len(outcomes) < runaway {
+		candidate := make([]controlplane.OutcomeCount, len(outcomes), len(outcomes)+1)
+		copy(candidate, outcomes)
+		candidate = append(candidate, controlplane.OutcomeCount{
+			Class: controlplane.OutcomeClass(len(outcomes) + 1), Count: 1,
+		})
+		window := testWindow(unitsOf(1, uint64(len(candidate))), candidate)
+		if window.Validate() != nil {
+			break
+		}
+		outcomes = candidate
+	}
+	if got, want := len(outcomes), controlplane.OutcomeClassMaximum; got != want {
+		t.Fatalf("longest accepted outcome list = %d entries, want the class ladder %d", got, want)
+	}
+}
+
 // TestUsageWindowMarshalRefusesEveryValueValidateRefuses proves the two gates
 // agree.
 //

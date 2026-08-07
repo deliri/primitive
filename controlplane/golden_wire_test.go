@@ -7,7 +7,9 @@ import (
 	"testing"
 
 	"github.com/deliri/primitive/v2026/controlplane"
+	"github.com/deliri/primitive/v2026/controlwire"
 	"github.com/deliri/primitive/v2026/core"
+	"github.com/deliri/primitive/v2026/lease"
 )
 
 // TestGoldenDocumentsRoundTripByteExact is the proof that both ends of the
@@ -132,6 +134,86 @@ func TestGoldenRegistrationResponseCarriesTheFactsItClaims(t *testing.T) {
 	}
 	if got, want := payload.Watermark.Subject, payload.Certificate.Body.Subject; got != want {
 		t.Errorf("watermark subject = %v, want the certificate subject %v", got, want)
+	}
+}
+
+// TestGoldenRegistrationRequestCarriesTheFactsItClaims pins what this fixture
+// chose to be, which a round trip cannot.
+//
+// A golden has invariants and it has choices. Validate already enforces the
+// invariants, so restating them here would prove nothing. The choices are the
+// coverage: which product this request enrols, and which protocol revision it
+// speaks. Regenerated against another offering or another revision, the byte
+// comparison would still pass while the fixture quietly stopped covering the
+// path it was built for.
+//
+// Those are the only two, and this asserts both. Everything else a registration
+// request carries is an invariant: the token has to be well formed and the
+// installation has to be the identity its own device key derives, or
+// UnmarshalJSON would have refused the bytes above. Re-checking either one here
+// would be an assertion that cannot fail, which is worse than no assertion,
+// because it reads as coverage.
+func TestGoldenRegistrationRequestCarriesTheFactsItClaims(t *testing.T) {
+	t.Parallel()
+
+	var request controlplane.RegistrationRequest
+	if err := request.UnmarshalJSON(readGolden(t, "registration_request.json")); err != nil {
+		t.Fatalf("UnmarshalJSON() error = %v, want nil", err)
+	}
+	if got := request.Build.Offering(); got != core.OfferingPeachfuzz {
+		t.Errorf("golden offering = %v, want %v", got, core.OfferingPeachfuzz)
+	}
+	revision, err := controlwire.ParseRevision(checkInRevisionText)
+	if err != nil {
+		t.Fatalf("ParseRevision(%s) error = %v, want nil", checkInRevisionText, err)
+	}
+	if got := request.Revision; got != revision {
+		t.Errorf("golden protocol revision = %v, want %v", got, revision)
+	}
+}
+
+// TestGoldenCheckInResponseCarriesTheFactsItClaims pins this fixture's choices
+// the same way.
+//
+// It is an acceptance of a first window under an active product, so it covers
+// the path where a watermark advances. A refusal, a stopped status, or a later
+// generation would all round trip byte exact and none of them would exercise
+// what this fixture exists for.
+//
+// It does not pair with check_in_request.json. That one is signed by keys this
+// repository holds so its signatures can be verified; this one is bytes a real
+// authority produced. They are independent fixtures, and nothing here should
+// read as one exchange.
+func TestGoldenCheckInResponseCarriesTheFactsItClaims(t *testing.T) {
+	t.Parallel()
+
+	var document controlplane.CheckInResponseDocument
+	if err := document.UnmarshalJSON(readGolden(t, "check_in_response.json")); err != nil {
+		t.Fatalf("UnmarshalJSON() error = %v, want nil", err)
+	}
+	payload := document.Payload
+	if got := payload.Disposition; got != controlplane.UsageDispositionAccepted {
+		t.Errorf("golden disposition = %v, want %v", got, controlplane.UsageDispositionAccepted)
+	}
+	if got := payload.Disposition.AdvancesWatermark(); !got {
+		t.Errorf("golden disposition %v AdvancesWatermark() = %t, want true: the golden accepts",
+			payload.Disposition, got)
+	}
+	if got := payload.Header.Status; got != controlplane.ProductStatusActive {
+		t.Errorf("golden status = %v, want %v", got, controlplane.ProductStatusActive)
+	}
+	if got := payload.Lease.Decision.Outcome(); got != lease.OutcomeGrant {
+		t.Errorf("golden lease outcome = %v, want %v: the golden covers the grant path", got, lease.OutcomeGrant)
+	}
+	initial, err := lease.NewGeneration(controlplane.UsageWatermarkInitialGeneration)
+	if err != nil {
+		t.Fatalf("NewGeneration() error = %v, want nil", err)
+	}
+	if got := payload.Watermark.Generation; got != initial {
+		t.Errorf("golden watermark generation = %v, want the first accepted window %v", got, initial)
+	}
+	if got := document.Attestation.Domain; got != controlplane.SigningDomainCheckInResponseV1 {
+		t.Errorf("response signing domain = %v, want %v", got, controlplane.SigningDomainCheckInResponseV1)
 	}
 }
 
