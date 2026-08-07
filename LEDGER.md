@@ -2693,3 +2693,38 @@ compiler contract and the interface-absence test is the negative proof.
   an installation, and unifying them would redesign durable bytes. Consumer
   migration in OGS, Peachfuzz, Bug, and Witness, plus package hostile tables and
   fuzz targets for the new documents, remain pending.
+- `2026-08-06`: The check-in became one document. It was the only shape in
+  `controlplane` that named a product: `PeachfuzzCheckInPayload`,
+  `PeachfuzzUsageWindow`, and the closed command and outcome enums, with a
+  validator comparing the offering against a constant, so an authority had to
+  know which tool was asking before it could read the request. Registration was
+  already the passport shape; the check-in now is too, and the offering is read
+  off the build identity the payload already carried. The coupling was
+  concentrated in the window, which carried ten fields of one product's
+  vocabulary. An authority cannot validate "candidates at most sightings"
+  without learning what a candidate is, so counts now travel over opaque class
+  ordinals it validates for range, ordering, and arithmetic and never
+  interprets. That also replaced a weaker rule with a stronger one: outcomes
+  used to have to account for a separate slice count while the command counts
+  were tied to nothing, and now the two totals must agree, which is what caught
+  that counting CLI invocations as work units was never implementable, since a
+  report produces no outcome to balance against. Two defects surfaced. The
+  list-length guard could never fire, because classes are closed and must
+  strictly ascend, so entry thirty three cannot hold an admissible class; it was
+  deleted and the real bound is now discovered by a test rather than asserted in
+  a comment. The whole surface had no test at all, and both check-in goldens
+  were committed and read by nothing. There is now a hostile table over every
+  window rule, exhaustive proofs of both class constructors, a decoder fuzz
+  target, tampering tables over the facts each signature binds, the authority
+  half of the exchange end to end, the exhaustive status and outcome matrix, and
+  a proof that Bug, Witness, and Peachfuzz travel through identical types.
+  Statement coverage moved from 70.7 to 79.5 percent; what remains uncovered is
+  the interface-sealing marker, an error message, and a generic witness.
+  Peachfuzz pulled `v2026.0.31` in and now owns the projection from its own
+  closed vocabulary into the wire ordinals. One bound fact is deliberately
+  untested: Controlwire publishes exactly one revision, so the revision arm of
+  the response binding cannot disagree until a second one exists. Every new rule
+  was checked by reverting it and watching the proof go red. OGS still imports
+  this package in zero files, which is the alarm the both-ends test exists to
+  raise, and the window builder and payload assembly remain pending before a
+  check-in can be produced end to end.
