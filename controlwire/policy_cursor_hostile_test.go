@@ -166,7 +166,7 @@ func TestPolicyRevisionIDDistinctBytesRenderDistinctText(t *testing.T) {
 	t.Parallel()
 
 	seen := make(map[string][16]byte)
-	for bit := 0; bit < 128; bit++ {
+	for bit := range 128 {
 		var pattern [16]byte
 		pattern[bit/8] = 1 << (bit % 8)
 		rendered := controlwire.PolicyRevisionID(pattern).String()

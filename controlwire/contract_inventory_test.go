@@ -5,6 +5,7 @@ import (
 	"go/parser"
 	"go/token"
 	"os"
+	"slices"
 	"strings"
 	"testing"
 )
@@ -138,10 +139,5 @@ func controlwireClassifiedStructNames(t *testing.T) []controlwireProductionStruc
 }
 
 func controlwireContains(names []controlwireProductionStructName, want controlwireProductionStructName) bool {
-	for _, name := range names {
-		if name == want {
-			return true
-		}
-	}
-	return false
+	return slices.Contains(names, want)
 }

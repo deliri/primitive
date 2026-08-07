@@ -147,7 +147,7 @@ func ParsePolicyRevisionID(value string) (PolicyRevisionID, error) {
 		return PolicyRevisionID{}, policyCursorError()
 	}
 	var high, low uint64
-	for position := 0; position < PolicyRevisionTextLength; position++ {
+	for position := range PolicyRevisionTextLength {
 		symbol := strings.IndexByte(policyRevisionAlphabet, value[position])
 		if symbol < 0 {
 			return PolicyRevisionID{}, policyCursorError()

@@ -296,8 +296,8 @@ func (s *producerScan) obtainable(name string) bool {
 		return true
 	}
 	bare := name
-	if index := strings.Index(name, "."); index >= 0 {
-		bare = name[index+1:]
+	if _, after, ok := strings.Cut(name, "."); ok {
+		bare = after
 	}
 	if producerPredeclared[bare] {
 		return true
@@ -321,8 +321,8 @@ func (s *producerScan) gaps() []producerGap {
 			continue
 		}
 		qualifier := ""
-		if index := strings.Index(name, "."); index >= 0 {
-			qualifier = name[:index]
+		if before, _, ok := strings.Cut(name, "."); ok {
+			qualifier = before
 		}
 		switch {
 		case s.pkgs[qualifier]:
