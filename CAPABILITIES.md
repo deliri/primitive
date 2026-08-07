@@ -20,11 +20,11 @@ transaction run this same stack, so a wire type has exactly one home.
 | `deploy` | Binding one authenticated release manifest to exact create-only GCS upload capabilities, returning confirmed provider facts. |
 | `exchange` | Typed bounded operation policy over real `net/http` client and server boundaries: retry classification, exponential backoff, jitter, server hints, redirect confinement, idempotency and replay semantics, bounded JSON calls. |
 | `filelock` | One advisory whole-file lock on one already-open file. Exclusive or shared, blocking or immediate; contention is a typed outcome rather than an error, and EINTR retries are handled here instead of in every caller. |
-| `filestore` | Rooted, bounded, streaming durability over real `os.Root`/`os.File`: staged writes, commit, durable rename of an existing entry, read handles (`OpenRead`, for when a reader must be handed to something else), opening a directory as a confined root (`OpenRoot`, for a store a product holds open across many operations), file and directory fsync, crash recovery, and path inspection (`Inspect` reports absent / directory / file / symlink / unreachable without following the final component, and carries the entry's modification time, byte count, permission bits, and numeric owner). It also writes the custody stamp `Inspect` reads (`Touch`), proves an already-written name durable after a restart nobody's activation covers (`ConfirmDurable`), and opens the read-write lock carrier `filelock` requires (`OpenLockFile`). |
+| `filestore` | Rooted, bounded, streaming durability over real `os.Root`/`os.File`: staged writes, commit, durable rename of an existing entry, read handles (`OpenRead`, for when a reader must be handed to something else), opening a directory as a confined root (`OpenRoot`, for a store a product holds open across many operations), file and directory fsync, crash recovery, and path inspection (`Inspect` reports absent / directory / file / symlink / unreachable without following the final component, and carries the entry's modification time, byte count, allocated storage, permission bits, and numeric owner). It also writes the custody stamp `Inspect` reads (`Touch`), proves an already-written name durable after a restart nobody's activation covers (`ConfirmDurable`), and opens the read-write lock carrier `filelock` requires (`OpenLockFile`). |
 | `fuzzfinder` | Finding Go fuzz corpus and crasher artifacts in a rooted directory with bounded memory and explicit partial accounting. |
 | `garble` | Garble tool identity, deterministic seed derivation, and the Garble-owned prefix of a typed build intent. |
 | `gate` | Turning one authentic lease assessment into permission to begin new paid work. |
-| `hostfacts` | Bounded read-only facts about the current host: disk capacity and pressure assessment (a free-space floor at or above device capacity is refused as unsatisfiable), OOM banner classification. |
+| `hostfacts` | Bounded read-only facts about the current host: disk capacity and pressure assessment (a free-space floor at or above device capacity is refused as unsatisfiable), OOM banner classification, terminal attachment and column geometry of an open descriptor. |
 | `keygen` | Exact Ed25519 signing keys and bounded generic secret material from Go's production CSPRNG. **The entropy boundary.** |
 | `lease` | Verifying and assessing one fixed-size OGS-signed commercial decision. Device identity, subjects, entitlements, grants, refusals, revocations. |
 | `objectstore` | One exact bounded transfer through an already-issued S3, GCS, or Cloudflare Images HTTPS capability. Signed URLs, signed headers, upload targets, upload capabilities and their commitments. |
@@ -52,6 +52,7 @@ transaction run this same stack, so a wire type has exactly one home.
 | asking what occupies a configured path | `filestore.Inspect` — never `os.Stat` from a product |
 | how old an entry is, for staleness or reaping | `filestore.Inspection.ModifiedAt` — the observation already holds it |
 | how many bytes a file holds | `filestore.Inspection.SizeBytes` — regular files only, because nothing else has a meaningful one |
+| whether a file's bytes are really allocated, for reserve and sparse checks | `filestore.Inspection.Allocation` — never `info.Sys().(*syscall.Stat_t)` from a product; unreported is a vacuously satisfied answer |
 | what a file's mode is, for a durable record | `filestore.Inspection.Permissions` — a typed permission field, never an `fs.FileMode` whose high bits say "directory" |
 | who owns a file | `filestore.Inspection.Ownership` — never `info.Sys().(*syscall.Stat_t)` from a product; that assertion lives in one platform leaf |
 | turning an absolute path into a rooted request | `filestore.OpenParent` — opens the parent, names the entry, hands back a `Location` |
@@ -64,6 +65,7 @@ transaction run this same stack, so a wire type has exactly one home.
 | uploading to S3/GCS/Cloudflare | `objectstore` — capabilities and commitments already exist |
 | a timestamp, duration, or deadline | `temporal` |
 | third-party proof of *when* | `timeproof` |
+| how wide the terminal is, for rendering | `hostfacts.ObserveTerminalGeometry` — never an ioctl or `golang.org/x/sys` from a product |
 | deciding whether work is paid for | `gate` + `lease` |
 | running a subprocess | `process` |
 | hashing a stream you are already moving | `core.DigestWriter` — never a private `sha256.New()` accumulator |

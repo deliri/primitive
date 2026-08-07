@@ -83,6 +83,7 @@ func (PathKind) OffWireEnum() {}
 type Inspection struct {
 	modified    temporal.Instant
 	size        core.ByteLength
+	allocation  Allocation
 	permissions Permissions
 	ownership   Ownership
 	kind        PathKind
@@ -242,6 +243,7 @@ func inspectionForEntry(info fs.FileInfo, err error) (Inspection, error) {
 		kind:        kindForMode(info.Mode()),
 		modified:    modified,
 		size:        size,
+		allocation:  observedAllocation(info),
 		permissions: observedPermissions(info),
 		ownership:   observedOwnership(info),
 	}
@@ -287,4 +289,5 @@ func newInspection(kind PathKind) (Inspection, error) {
 var (
 	_ core.Validatable = PathKindUnknown
 	_ core.Validatable = Inspection{}
+	_ core.Validatable = Allocation{}
 )

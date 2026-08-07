@@ -4,7 +4,10 @@ package filestore
 
 import (
 	"io/fs"
+	"math"
 	"syscall"
+
+	"github.com/deliri/primitive/v2026/core"
 )
 
 // observedOwnership reads the numeric owner out of the observation this
@@ -31,4 +34,26 @@ func observedOwnership(info fs.FileInfo) Ownership {
 		return Ownership{}
 	}
 	return Ownership{uid: uint32(status.Uid), gid: uint32(status.Gid), set: true}
+}
+
+// observedAllocation reads the allocated block count out of the same
+// already-returned structure, under the same admissibility argument.
+//
+// POSIX fixes st_blocks in 512-byte units regardless of the filesystem's
+// preferred block size, so the projection to bytes is a constant, not a
+// second observation. A negative count, or one too large to express as a
+// byte length, is answered as unreported rather than as a fabricated value.
+func observedAllocation(info fs.FileInfo) Allocation {
+	status, ok := info.Sys().(*syscall.Stat_t)
+	if !ok {
+		return Allocation{}
+	}
+	if status.Blocks < 0 || uint64(status.Blocks) > math.MaxUint64/512 {
+		return Allocation{}
+	}
+	bytes, err := core.NewByteLength(uint64(status.Blocks) * 512)
+	if err != nil {
+		return Allocation{}
+	}
+	return Allocation{bytes: bytes, reported: true}
 }

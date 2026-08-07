@@ -40,6 +40,7 @@ type filestoreContractInventory struct {
 	DurabilityRequest  validatedRequest[DurabilityRequest]
 	Permissions        boundedFact[Permissions]
 	Ownership          boundedFact[Ownership]
+	Allocation         boundedFact[Allocation]
 	LockFileRequest    validatedRequest[LockFileRequest]
 	AppendRequest      validatedRequest[AppendRequest]
 	RotationRequest    validatedRequest[RotationRequest]
@@ -109,6 +110,7 @@ func TestFilestorePublicSurfaceIsExactRatchet(t *testing.T) {
 		"DirectoryEntryMaximum",
 		"DurabilityRequest",
 		"Ownership",
+		"Allocation",
 		"Permissions",
 		"LockFileRequest",
 		"TouchRequest",
@@ -177,6 +179,9 @@ func TestFilestorePublicSurfaceIsExactRatchet(t *testing.T) {
 		"WalkSkipDirectory",
 	})
 	requireExactNames(t, "exported methods", gotMethods, []string{
+		"Allocation.Bytes",
+		"Allocation.Reported",
+		"Allocation.Validate",
 		"AppendMode.IsValid",
 		"AppendMode.OffWireEnum",
 		"AppendMode.String",
@@ -188,6 +193,7 @@ func TestFilestorePublicSurfaceIsExactRatchet(t *testing.T) {
 		"DurabilityRequest.Validate",
 		"LockFileRequest.Validate",
 		"TouchRequest.Validate",
+		"Inspection.Allocation",
 		"Inspection.Kind",
 		"Inspection.Ownership",
 		"Inspection.Permissions",

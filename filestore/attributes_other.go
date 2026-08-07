@@ -11,3 +11,10 @@ import "io/fs"
 func observedOwnership(_ fs.FileInfo) Ownership {
 	return Ownership{}
 }
+
+// observedAllocation reports no allocation where the filesystem states none.
+// The unreported value is the honest answer: a reservation check against it
+// is vacuously satisfied, and no file is fabricated into a hole.
+func observedAllocation(_ fs.FileInfo) Allocation {
+	return Allocation{}
+}
