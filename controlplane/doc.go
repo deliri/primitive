@@ -9,9 +9,16 @@
 // The package owns the documents and the rules that make one document belong to
 // one exact request: the response header and its binding to the request that
 // produced it, the registration request an installation sends, the signed
-// registration response it receives, the commercial status that response
-// carries, and the usage watermark that orders one installation's accepted
-// windows.
+// registration response it receives, the check-in an installation sends
+// afterwards and the signed decision it receives, the commercial status those
+// responses carry, and the usage watermark that orders one installation's
+// accepted windows.
+//
+// There is one shape of each document, and the product is a field on it rather
+// than a type, a function, or a file. An authority cannot tell which tool is
+// asking until it reads that field, and it never learns what a reported
+// work-unit class means: it validates the ordinals, the window, and the
+// arithmetic, and meaning stays with the product that owns it.
 //
 // It does not own the decisions. Which installations are entitled, what a
 // policy revision permits, how an account is billed, and which key signs are
