@@ -216,6 +216,10 @@ func prepareBuildDependencyProcess(
 		Streams: process.Streams{Stdin: bytes.NewReader(nil), Stdout: stdout, Stderr: request.Stderr},
 		Command: request.Tools.GoExecutable(), WorkingDirectory: request.WorkingDirectory,
 		Arguments: arguments, Environment: environment, OutputLimit: maximum, WaitDelay: request.WaitDelay,
+		Containment: process.Containment{
+			Isolation:    process.IsolationDirect,
+			CancelSignal: process.CancelSignalKill,
+		},
 	}
 	if err := prepared.Validate(); err != nil {
 		return process.Request{}, contractError(errors.New("build dependency process is invalid"), err)

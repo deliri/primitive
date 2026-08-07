@@ -1439,6 +1439,10 @@ func processRequest(
 		Streams:          streams,
 		OutputLimit:      byteCount(tb, 1<<20),
 		WaitDelay:        waitDelay,
+		Containment: process.Containment{
+			Isolation:    process.IsolationDirect,
+			CancelSignal: process.CancelSignalKill,
+		},
 	}
 }
 

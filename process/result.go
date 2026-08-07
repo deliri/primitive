@@ -55,14 +55,37 @@ func (c ExitCode) Signaled() (bool, error) {
 	return c.value == -1, nil
 }
 
+// SignalNumber is the exact platform signal that ended one signaled child,
+// held for durable execution records. It is an observation of what happened
+// to the child, distinct from the CancelSignal a caller intended.
+type SignalNumber int32
+
+// Validate rejects the zero and negative values no delivered signal carries.
+func (n SignalNumber) Validate() error {
+	if n <= 0 {
+		return contractError("signal number is outside the admitted domain")
+	}
+	return nil
+}
+
+// Int returns the signal number for a durable record or diagnostic.
+func (n SignalNumber) Int() (int, error) {
+	if err := n.Validate(); err != nil {
+		return 0, err
+	}
+	return int(n), nil
+}
+
 // Result contains fixed-size observations from one started and reaped child.
 type Result struct {
-	exit        ExitCode
-	cpu         temporal.Duration
-	stdinBytes  core.ByteLength
-	stdoutBytes core.ByteLength
-	stderrBytes core.ByteLength
-	set         bool
+	exit           ExitCode
+	cpu            temporal.Duration
+	stdinBytes     core.ByteLength
+	stdoutBytes    core.ByteLength
+	stderrBytes    core.ByteLength
+	signal         SignalNumber
+	signalReported bool
+	set            bool
 }
 
 // Validate rejects the unset zero result.
@@ -114,4 +137,26 @@ func (r Result) StderrBytes() (core.ByteLength, error) {
 		return core.ByteLength{}, err
 	}
 	return r.stderrBytes, nil
+}
+
+// TerminationSignal returns the exact signal that ended a signaled child.
+//
+// Only a signaled child has one, and only a platform that names it reports
+// one. A normally exited child is refused rather than answered with zero,
+// which a durable record would store as a real signal.
+func (r Result) TerminationSignal() (SignalNumber, error) {
+	signaled, err := r.exit.Signaled()
+	if err != nil {
+		return 0, err
+	}
+	if !signaled {
+		return 0, contractError("a normally exited child has no termination signal")
+	}
+	if !r.signalReported {
+		return 0, contractError("this platform reports no termination signal")
+	}
+	if err := r.signal.Validate(); err != nil {
+		return 0, err
+	}
+	return r.signal, nil
 }

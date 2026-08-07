@@ -201,6 +201,10 @@ const (
 	ErrProcessOutputLimit
 	// ErrProcessWait identifies failure while waiting for a process.
 	ErrProcessWait
+	// ErrProcessObservation identifies a failed process observation.
+	ErrProcessObservation
+	// ErrProcessUnsupported identifies an unsupported process operation.
+	ErrProcessUnsupported
 
 	// ErrReleaseContract identifies a release contract violation.
 	ErrReleaseContract
@@ -431,6 +435,8 @@ func errorIdentityDiagnostics() [errorIdentityLimit]errorIdentityDiagnostic {
 		{identity: ErrProcessStream, text: "process stream failed"},
 		{identity: ErrProcessOutputLimit, text: "process output limit exceeded"},
 		{identity: ErrProcessWait, text: "process wait failed"},
+		{identity: ErrProcessObservation, text: "process observation failed"},
+		{identity: ErrProcessUnsupported, text: "process operation unsupported on this host"},
 		{identity: ErrReleaseContract, text: "release contract violation"},
 		{identity: ErrReleaseManifest, text: "release manifest rejected"},
 		{identity: ErrReleaseVerification, text: "release verification failed"},
@@ -723,7 +729,8 @@ func errorIdentityParentsFuzzFinderThroughObjectStore(identity ErrorIdentity) er
 		return oneErrorIdentityParent(ErrLeaseContract)
 	case ErrGateDenied:
 		return oneErrorIdentityParent(ErrGateContract)
-	case ErrProcessStart, ErrProcessStream, ErrProcessWait:
+	case ErrProcessStart, ErrProcessStream, ErrProcessWait,
+		ErrProcessObservation, ErrProcessUnsupported:
 		return oneErrorIdentityParent(ErrProcessContract)
 	case ErrProcessOutputLimit:
 		return oneErrorIdentityParent(ErrProcessStream)

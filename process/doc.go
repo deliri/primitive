@@ -5,9 +5,14 @@
 // stderr, and reports the direct child's exit and resource observations.
 //
 // Process does not interpret a shell language, construct pipelines, schedule
-// work, retain a process registry, or supervise a process tree. Callers that
-// require process-group, job-object, second-signal, or descendant policy own
-// that composition above this package.
+// work, or retain a process registry. It does own the isolation and signal a
+// caller declares in Request.Containment: a child may lead its own process
+// group so a cancellation addresses the whole tree, and the cancel signal is
+// a closed choice rather than a hidden default. Begin hands back a running
+// Execution a supervisor holds to signal, terminate, or interrogate the child
+// while the reaping wait is in flight; Alive answers whether one identity
+// still names a process. Registry and force-drain policy above one child stay
+// with the caller.
 //
 // Two boundaries belong to the caller and are not defects in this package.
 //

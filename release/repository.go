@@ -454,6 +454,10 @@ func runRepositoryGit(ctx context.Context, request repositoryGitRequest) (proces
 		Environment:      environment,
 		OutputLimit:      maximum,
 		WaitDelay:        request.verification.WaitDelay,
+		Containment: process.Containment{
+			Isolation:    process.IsolationDirect,
+			CancelSignal: process.CancelSignalKill,
+		},
 	})
 	if err != nil {
 		return result, releaseError(core.ErrReleaseContract, err)

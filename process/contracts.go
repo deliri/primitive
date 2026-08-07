@@ -328,6 +328,7 @@ type Request struct {
 	Environment      Environment
 	OutputLimit      core.ByteCount
 	WaitDelay        temporal.Duration
+	Containment      Containment
 }
 
 // Validate closes every owned request contract before execution.
@@ -347,7 +348,7 @@ func (r Request) Validate() error {
 	if r.WaitDelay.IsZero() {
 		return contractError("wait delay is zero")
 	}
-	return nil
+	return r.Containment.Validate()
 }
 
 func validateOutputLimit(limit core.ByteCount) error {

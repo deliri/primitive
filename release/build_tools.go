@@ -230,6 +230,10 @@ func probeGoVersion(
 		Command: request.GoExecutable, WorkingDirectory: request.WorkingDirectory,
 		Arguments: arguments, Environment: request.HostEnvironment,
 		OutputLimit: limit, WaitDelay: request.WaitDelay,
+		Containment: process.Containment{
+			Isolation:    process.IsolationDirect,
+			CancelSignal: process.CancelSignalKill,
+		},
 	})
 	if err != nil {
 		return core.Platform{}, contractError(errors.New("execute go version probe"), err)

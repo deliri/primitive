@@ -16,10 +16,23 @@ import (
 // child exit is a successful observation in Result, not an infrastructure
 // error.
 func Run(ctx context.Context, request Request) (Result, error) {
-	if err := validateRun(ctx, request); err != nil {
+	execution, err := Begin(ctx, request)
+	if err != nil {
 		return Result{}, err
 	}
-	return runValidated(ctx, request)
+	return execution.Wait()
+}
+
+// Begin starts one contained direct child and hands back the running
+// execution. The caller owns exactly one obligation from that moment: call
+// Wait, on every path, so the child is reaped. Signaling and termination
+// remain available while the wait is in flight, which is the entire reason
+// Begin exists apart from Run.
+func Begin(ctx context.Context, request Request) (*Execution, error) {
+	if err := validateRun(ctx, request); err != nil {
+		return nil, err
+	}
+	return beginValidated(ctx, request)
 }
 
 func validateRun(ctx context.Context, request Request) error {
@@ -29,22 +42,30 @@ func validateRun(ctx context.Context, request Request) error {
 	return request.Validate()
 }
 
-func runValidated(ctx context.Context, request Request) (Result, error) {
+func beginValidated(ctx context.Context, request Request) (*Execution, error) {
 	runContext, cancel := context.WithCancelCause(ctx)
-	defer cancel(nil)
 	failures := &streamFailures{cancel: cancel}
 	streams := newCommandStreams(request, failures)
 	prepared, err := prepareCommand(runContext, request, streams)
 	if err != nil {
-		return Result{}, err
+		cancel(nil)
+		return nil, err
 	}
-	return waitCommand(waitRequest{
-		parent:      ctx,
-		commandPath: request.Command,
+	identity := ProcessIdentity(prepared.command.Process.Pid) // #nosec G115 -- a started child's identifier fits the platform pid domain.
+	if err := identity.Validate(); err != nil {
+		cancel(nil)
+		return nil, err
+	}
+	return &Execution{
 		prepared:    prepared,
 		streams:     streams,
 		failures:    failures,
-	})
+		cancel:      cancel,
+		parent:      ctx,
+		commandPath: request.Command,
+		containment: request.Containment,
+		identity:    identity,
+	}, nil
 }
 
 type preparedCommand struct {
@@ -67,9 +88,20 @@ func prepareCommand(
 	command.Stdin = streams.stdin
 	command.Stdout = streams.stdout
 	command.Stderr = streams.stderr
+	if err := applyContainment(command, request.Containment); err != nil {
+		return preparedCommand{}, err
+	}
 	cancellation := &atomic.Bool{}
 	command.Cancel = func() error {
-		err := command.Process.Kill()
+		if command.Process == nil {
+			return os.ErrProcessDone
+		}
+		err := deliverSignal(signalDelivery{
+			process:     command.Process,
+			identity:    ProcessIdentity(command.Process.Pid), // #nosec G115 -- a started child's identifier fits the platform pid domain.
+			containment: request.Containment,
+			signal:      request.Containment.CancelSignal,
+		})
 		if err == nil {
 			cancellation.Store(true)
 		}
@@ -154,12 +186,15 @@ func newResult(
 	if err != nil {
 		return Result{}, err
 	}
+	signal, signalReported := observedTerminationSignal(state)
 	return Result{
-		exit:        exit,
-		cpu:         cpu,
-		stdinBytes:  stdinBytes,
-		stdoutBytes: stdoutBytes,
-		stderrBytes: stderrBytes,
-		set:         true,
+		exit:           exit,
+		cpu:            cpu,
+		stdinBytes:     stdinBytes,
+		stdoutBytes:    stdoutBytes,
+		stderrBytes:    stderrBytes,
+		signal:         signal,
+		signalReported: signalReported,
+		set:            true,
 	}, nil
 }

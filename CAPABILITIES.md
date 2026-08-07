@@ -28,7 +28,7 @@ transaction run this same stack, so a wire type has exactly one home.
 | `keygen` | Exact Ed25519 signing keys and bounded generic secret material from Go's production CSPRNG. **The entropy boundary.** |
 | `lease` | Verifying and assessing one fixed-size OGS-signed commercial decision. Device identity, subjects, entitlements, grants, refusals, revocations. |
 | `objectstore` | One exact bounded transfer through an already-issued S3, GCS, or Cloudflare Images HTTPS capability. Signed URLs, signed headers, upload targets, upload capabilities and their commitments. |
-| `process` | Running one typed command over `os/exec`, and resolving a bare command name to the absolute path `Request.Command` requires (`Resolve`). A name found through a relative PATH entry is refused, not corrected. |
+| `process` | Running one typed command over `os/exec`, and resolving a bare command name to the absolute path `Request.Command` requires (`Resolve`). A name found through a relative PATH entry is refused, not corrected. Owns the child's containment (process-group isolation and a closed cancel-signal choice), the running-child handle `Begin` returns for signaling and termination while the wait is in flight, the calling process's working directory (`WorkingDirectory`), and whether one process identity is still alive (`Alive`). |
 | `receipt` | Authenticated accepted-evidence facts and one fixed-size monotonic watermark for later controlstate composition. Account identity. |
 | `release` | Verifying a clean repository at an exact commit with exact build tools; deterministic fixed-target Garble build and process plans; artifacts, integrity, embedded build identity. |
 | `shutdown` | Typed bounded cleanup and signal observation over context, time, and `os/signal`. |
@@ -68,6 +68,10 @@ transaction run this same stack, so a wire type has exactly one home.
 | how wide the terminal is, for rendering | `hostfacts.ObserveTerminalGeometry` — never an ioctl or `golang.org/x/sys` from a product |
 | deciding whether work is paid for | `gate` + `lease` |
 | running a subprocess | `process` |
+| isolating a tool tree so cancellation reaches all of it | `process.Containment` with `IsolationGroup` — never a hand-rolled `SysProcAttr{Setpgid}` |
+| supervising a running child (signal, force-kill, hold it) | `process.Begin` and the `Execution` it returns — never `cmd.Process` from a product |
+| whether a pid is still running | `process.Alive` — never `syscall.Kill(pid, 0)` from a product |
+| the current working directory as a typed path | `process.WorkingDirectory` — never `os.Getwd` then re-parse |
 | hashing a stream you are already moving | `core.DigestWriter` — never a private `sha256.New()` accumulator |
 | naming a sibling by suffix (`.lease`, `-quarantine`) | `AbsolutePath.WithSuffix` — never string concatenation, which can leave the directory |
 | a path relative to a root you hold | `AbsolutePath.RelativeTo` — never `filepath.Rel` then re-parse |

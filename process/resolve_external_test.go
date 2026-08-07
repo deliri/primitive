@@ -377,6 +377,10 @@ func TestResolveProducesACommandRunCanActuallyExecute(t *testing.T) {
 		},
 		OutputLimit: byteCount(t, 1<<16),
 		WaitDelay:   delay,
+		Containment: process.Containment{
+			Isolation:    process.IsolationDirect,
+			CancelSignal: process.CancelSignalKill,
+		},
 	}
 	result, err := process.Run(t.Context(), request)
 	if err != nil {

@@ -16,6 +16,9 @@ import (
 func productionStructRoles() map[string]string {
 	return map[string]string{
 		"Argument":            "validated argv fact",
+		"Containment":         "validated isolation and cancel policy",
+		"Execution":           "supervised running-child capability",
+		"signalDelivery":      "typed signal-delivery handoff",
 		"Environment":         "validated environment projection",
 		"EnvironmentName":     "validated environment name fact",
 		"EnvironmentValue":    "validated environment value fact",
@@ -49,6 +52,8 @@ func productionImportAllowlist() []string {
 		"github.com/deliri/primitive/v2026/contextstate",
 		"github.com/deliri/primitive/v2026/core",
 		"github.com/deliri/primitive/v2026/temporal",
+		"golang.org/x/sys/unix",
+		"golang.org/x/sys/windows",
 		"io",
 		"math",
 		"os",
@@ -56,6 +61,22 @@ func productionImportAllowlist() []string {
 		"strings",
 		"sync",
 		"sync/atomic",
+		"syscall",
+	}
+}
+
+// signalLeafFiles are the platform leaves permitted to speak a signal: the
+// containment leaves that deliver one, and the termination leaf that reads
+// one back out of a reaped wait status. Signals are not banned from this
+// package; containment gives every cancellation and force stop exactly one
+// owned address. What must never exist is a second, hidden signal path
+// inside the execution flow.
+func signalLeafFiles() []string {
+	return []string{
+		"containment_unix.go",
+		"containment_windows.go",
+		"containment_other.go",
+		"termination_unix.go",
 	}
 }
 
@@ -148,6 +169,8 @@ func TestPublicOperationsAreOnlyTypedConstructionAndExecution(t *testing.T) {
 
 	got := productionFunctionNames(t)
 	want := []string{
+		"Alive",
+		"Begin",
 		"NewArgument",
 		"NewEnvironmentName",
 		"NewEnvironmentValue",
@@ -157,6 +180,7 @@ func TestPublicOperationsAreOnlyTypedConstructionAndExecution(t *testing.T) {
 		"ParseExactEnvironment",
 		"Resolve",
 		"Run",
+		"WorkingDirectory",
 	}
 	if !slices.Equal(got, want) {
 		t.Fatalf("exported Process operations = %q, want exactly %q", got, want)
@@ -318,10 +342,12 @@ func TestProductionStructureForbidsWorldModelsAndWholeOutputPaths(t *testing.T) 
 					typed.Map,
 				)
 			case *ast.SelectorExpr:
-				if forbiddenSelector(typed) {
+				if forbiddenSelector(typed) &&
+					!(typed.Sel.Name == "Signal" && slices.Contains(signalLeafFiles(), production.name)) {
 					t.Errorf(
-						"production selector %s at token position %d, want streamed caller-owned output",
+						"production selector %s in %s at token position %d, want streamed caller-owned output",
 						typed.Sel.Name,
+						production.name,
 						typed.Sel.NamePos,
 					)
 				}
