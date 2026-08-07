@@ -22,8 +22,9 @@ type (
 // keygenContractInventory classifies every production struct by its actual
 // data-flow role. Keygen deliberately owns no wire or persistence carrier.
 type keygenContractInventory struct {
-	SecretRequest operationRequest[SecretRequest]
-	SigningKey    capabilityWrapper[SigningKey]
+	SecretRequest      operationRequest[SecretRequest]
+	RandomTokenRequest operationRequest[RandomTokenRequest]
+	SigningKey         capabilityWrapper[SigningKey]
 }
 
 var _ = keygenContractInventory{}
@@ -52,19 +53,24 @@ func TestKeygenExactPublicSurfaceFieldsAndNoAliases(t *testing.T) {
 		t.Fatalf("scanKeygenArchitecture() error = %v, want nil", gotErr)
 	}
 	wantSurface := []string{
+		"const RandomTokenMaximumBytes",
 		"func AdoptSigningKey",
 		"func GenerateSecret",
 		"func GenerateSigningKey",
+		"func RandomToken",
+		"func RandomUint64",
+		"method RandomTokenRequest.Validate",
 		"method SecretRequest.Validate",
 		"method SigningKey.Destroy",
 		"method SigningKey.Format",
 		"method SigningKey.PrivateKey",
 		"method SigningKey.PublicKey",
 		"method SigningKey.Validate",
+		"type RandomTokenRequest",
 		"type SecretRequest",
 		"type SigningKey",
 	}
-	wantFields := []string{"SecretRequest.Size"}
+	wantFields := []string{"RandomTokenRequest.Size", "SecretRequest.Size"}
 	if !slices.Equal(gotScan.surface, wantSurface) {
 		t.Fatalf("Keygen public surface = %q, want %q", gotScan.surface, wantSurface)
 	}
@@ -87,6 +93,7 @@ func TestKeygenProductionImportsStayOnExactStandardLibraryAndCoreSubstrate(t *te
 		"crypto/ed25519",
 		"crypto/rand",
 		"crypto/subtle",
+		"encoding/binary",
 		"errors",
 		"fmt",
 		"github.com/deliri/primitive/v2026/core",
@@ -108,6 +115,8 @@ func TestKeygenUsesOnlyGo126ProtectedProductionEntropyEffects(t *testing.T) {
 		t.Fatalf("scanKeygenArchitecture() error = %v, want nil", gotErr)
 	}
 	wantSelectors := []string{
+		"random.go:rand.Read",
+		"random.go:rand.Read",
 		"secret.go:rand.Read",
 		"signing.go:ed25519.GenerateKey",
 		"signing.go:ed25519.NewKeyFromSeed",

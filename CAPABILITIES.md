@@ -25,7 +25,7 @@ transaction run this same stack, so a wire type has exactly one home.
 | `garble` | Garble tool identity, deterministic seed derivation, and the Garble-owned prefix of a typed build intent. |
 | `gate` | Turning one authentic lease assessment into permission to begin new paid work. |
 | `hostfacts` | Bounded read-only facts about the current host: disk capacity and pressure assessment (a free-space floor at or above device capacity is refused as unsatisfiable), OOM banner classification, terminal attachment and column geometry of an open descriptor. |
-| `keygen` | Exact Ed25519 signing keys and bounded generic secret material from Go's production CSPRNG. **The entropy boundary.** |
+| `keygen` | Exact Ed25519 signing keys, bounded generic secret material, one uniform `RandomUint64`, and bounded public random tokens (`RandomToken`) from Go's production CSPRNG. **The entropy boundary.** |
 | `lease` | Verifying and assessing one fixed-size OGS-signed commercial decision. Device identity, subjects, entitlements, grants, refusals, revocations. |
 | `objectstore` | One exact bounded transfer through an already-issued S3, GCS, or Cloudflare Images HTTPS capability. Signed URLs, signed headers, upload targets, upload capabilities and their commitments. |
 | `process` | Running one typed command over `os/exec`, and resolving a bare command name to the absolute path `Request.Command` requires (`Resolve`). A name found through a relative PATH entry is refused, not corrected. Owns the child's containment (process-group isolation and a closed cancel-signal choice), the running-child handle `Begin` returns for signaling and termination while the wait is in flight, the calling process's working directory (`WorkingDirectory`), and whether one process identity is still alive (`Alive`). |
@@ -43,6 +43,8 @@ transaction run this same stack, so a wire type has exactly one home.
 | --- | --- |
 | signing, verifying, envelopes, trust sets | `attest` |
 | random bytes, keys, secrets | `keygen` — never `crypto/rand` directly |
+| a random nonce or device label | `keygen.RandomToken` — a bounded public draw, all-zero allowed |
+| a random seed or salt integer | `keygen.RandomUint64` — never `rand.Int` from a product |
 | an HTTP call with timeouts or retries | `exchange`, and `controlwire.ControlExchangePolicy` for control routes |
 | a control-plane request or response | `controlplane` — registration and check-in are the two shapes |
 | a nonce, token, revision, or route path | `controlwire` |
