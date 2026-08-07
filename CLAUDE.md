@@ -53,14 +53,34 @@ B2 Value   B3 Mechanism   B4 Capability   B5 Agreement   B6 Decision   B7 Policy
 ```
 
 Layers are fixed by the question each answers. **Import sideways or down, never
-up.** Peer visibility is orthogonal to layer: a contract both ends import lives
-in Primitive at whatever layer it sits.
+up.**
+
+**Primitive has no peers.** It is the floor both ends stand on.
+
+**Neither end knows of the other.** One shape per document, and the product is a
+**field** on it (`core.Offering`), never a type, function, or package name. The
+control plane must not be able to tell which tool is asking before it reads that
+field. Counters are typed work-unit classes it validates without knowing what
+they mean. Because the contract carries no product in its shape, it is product
+neutral by construction and lives in Primitive.
+
+The documents, each one shape: **passport** = installation certificate,
+**visa** = `lease`, **boarding pass** = issued capability, **gate agent** =
+`gate`, **stamp** = `receipt`.
+
+**Obliviousness is what removes coupling.** The internet does not know whether
+it carries a video call or a payment. `exchange` does not know it carries a
+check-in; `attest` does not know what it signs; `objectstore` does not know what
+the bytes prove. **Every step is a struct or an enum** written, sent, read, and
+answered with another. Get that right and coupling has nowhere to attach.
 
 ## What this repository is for
 
 **Primitive is the product-neutral Go primitive layer** used to build reliable command-line tools and services. It makes Go's standard library, OS primitives, documented protocols, and official SDKs typed, validated, bounded, streaming, and composable.
 
-It owns every mechanism by which a consumer touches the real world, and every contract that crosses a wire. It owns the obligation to be reachable: a door that exists but a caller cannot reach is a defect equal to a missing one, and a type Primitive demands but will not produce is the same defect.
+It owns every mechanism by which a consumer touches the real world, and the product-neutral contracts a protocol composes: signing, transport, lease, receipt, storage. It owns the obligation to be reachable: a door that exists but a caller cannot reach is a defect equal to a missing one, and a type Primitive demands but will not produce is the same defect.
+
+It does **not** own a wire contract that names a product. That belongs to `offGridSoft/controlplane`, above Primitive and below both ends.
 
 It never owns product policy, and never imports Kernel, Witness, Bug, or Peachfuzz.
 

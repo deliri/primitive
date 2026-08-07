@@ -188,20 +188,83 @@ upward.
 speaks `net/http` directly has skipped a layer and duplicated the retry,
 backoff, redirect confinement, and bounded-body policy `exchange` already owns.
 
-#### Peer visibility is orthogonal to layer
+#### Primitive has no peers, and the contract has one shape
 
-A package is **peer-visible** when its types appear on both ends of a wire.
-That is a property of the contract, not its height: `attest` is peer-visible at
-B3 because its envelope bytes cross, and `objectstore` at B4 because an issued
-capability is minted by one end and consumed by the other.
+Primitive is the floor both ends stand on, not a participant standing beside
+one. The installed tool and the control plane are peers; Primitive is underneath
+both.
 
-Peer visibility is the strongest reason a contract belongs in Primitive rather
-than in a consumer. Both ends run this identical stack, so a wire type has
-exactly one home, and Primitive is obliged to be that home: **a peer-visible
-contract Primitive does not own is a contract that will exist twice.**
+**Neither end may know of the other.** A government issues a passport. The agent
+at the border reads it and decides. The agent does not know the traveller's
+name, their dog, or where they are going, and does not keep one reader per
+country: there is one passport shape, and nationality is a field written on it.
 
-The two ends are the installed CLI tool and the control plane that serves it. A
-consumer that serves no CLI tool is not an end of any peer contract.
+Applied here:
+
+- There is **one** shape of each document. The product is a **field** --
+  `core.Offering` -- never a type name, never a function name, never a package.
+- The control plane must not be able to tell which tool is asking except by
+  reading that field. A per-product request type, or a handler that switches on
+  the product before validating the document, is the coupling this rule exists
+  to forbid.
+- Counters follow the same rule. One bounded set of typed work-unit classes and
+  counts over one exact window. The control plane validates bounds and window
+  and applies volume and abuse policy; it never learns what a class *means*.
+  Meaning stays with the product that owns it.
+
+Because the contract carries no product in its shape, it is product neutral by
+construction, and belongs in Primitive with every other product-neutral
+mechanic. A contract that needs per-product types is not a contract yet; it is a
+coupled design, and moving it to another module relocates the coupling rather
+than removing it.
+
+`core.Offering` naming each product is therefore correct. It is the nationality
+field. A per-product payload type is not.
+
+#### The documents
+
+Travel uses several documents because they carry genuinely different facts, and
+each one has exactly one shape:
+
+| travel | here | what it establishes |
+| --- | --- | --- |
+| passport | installation certificate | who this installation is, bound to a device key it never transmits |
+| visa | `lease` | permission for a period: not before, not after, contact after, good until |
+| boarding pass | issued capability | one transfer, one scope, expiring, create only |
+| gate agent | `gate` | reads the assessed visa and decides whether new work may begin |
+| stamp | `receipt` | authenticated proof that the accepted thing happened |
+
+Collapsing these into one document with a mode field would be the naive
+simplification: every field becomes optional, every validation becomes
+conditional, and the result is the bool protocol section 4.2 forbids. Separate
+documents, one shape each.
+
+#### Obliviousness
+
+Each layer carries what it is handed without understanding it.
+
+The internet does not know whether it is moving a video call, a payment, or a
+model's instructions. That is not a limitation of the internet; it is the
+property that let it scale to carry things its designers never imagined.
+
+The same rule holds at every layer here:
+
+- `exchange` moves a bounded body and does not know it is a check-in.
+- `attest` signs and verifies bytes and does not know what they assert.
+- `objectstore` moves one stream under an issued capability and does not know
+  what the bytes are evidence of.
+- the control plane reads a document, validates it, and applies its own policy
+  without knowing which tool produced it.
+- the tool obeys an authentic decision without knowing how the policy that
+  produced it was reached.
+
+**Every step is a struct or an enum.** A typed document is written, travels,
+is read, and a typed document is written back. No prose, no map, no string
+blob, no shape that names a product, at any step in that chain.
+
+This is why the design is worth getting right before the code: **when each
+layer is oblivious to what it carries, coupling does not have to be policed,
+because there is nowhere for it to attach.**
 
 ### 0.3 What this obliges Primitive to do
 
@@ -988,7 +1051,7 @@ The order is dependency depth, not a command to build every package in a row.
 | 2 | `keygen` | Exact secret and Ed25519 key generation | `core` | none |
 | 2 | `testserial` | Test-only isolation declaration and analyzer contract | `core` | none |
 | 3 | `filelock` | One advisory whole-file lock on one already-open file | `core`, `contextstate` | none |
-| 3 | `filestore` | Rooted OS handles, confinement, inspection, durability, activation, append rotation, rename, and recovery | `core`, `contextstate`, `temporal` | none |
+| 3 | `filestore` | Rooted OS handles, confinement, inspection, durability, activation, append rotation, rename, and recovery | `core`, `contextstate`, `temporal` | `filelock` |
 | 3 | `hostfacts` | Host disk, memory, cgroup, tree, and OOM observations | `core`, `contextstate` | none |
 | 3 | `temporal` | Time, duration, arithmetic, persistence, waits, and tickers | `core`, `contextstate` | none |
 | 4 | `exchange` | Bounded client and server boundary policy over `net/http` | `core`, `contextstate`, `temporal` | none |

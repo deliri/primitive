@@ -112,6 +112,7 @@ func TestArchitectureImportMatcherSyntheticRedGreenRatchet(t *testing.T) {
 	unknownPath := PrimitivePackagePathPrefix + "notadmitted"
 	nestedCorePath := corePath + "/internal"
 
+	fileLockPath := mustPackageImportPathForTest(t, PackageFileLock)
 	gatePath := mustPackageImportPathForTest(t, PackageGate)
 	leasePath := mustPackageImportPathForTest(t, PackageLease)
 	temporalPath := mustPackageImportPathForTest(t, PackageTemporal)
@@ -168,22 +169,40 @@ func TestArchitectureImportMatcherSyntheticRedGreenRatchet(t *testing.T) {
 			wantExtra:  1,
 		},
 		{
-			name:       "filestore exact three-edge frontier is accepted",
-			identity:   PackageFilestore,
-			files:      oneSyntheticGoFile("filestore.go", goSourceWithImports(corePath, contextStatePath, temporalPath)),
+			name:     "filestore exact frontier with its required test edge is accepted",
+			identity: PackageFilestore,
+			files: syntheticGoFileSet{
+				values: [3]syntheticGoFile{
+					{name: "filestore.go", source: goSourceWithImports(corePath, contextStatePath, temporalPath)},
+					{name: "filestore_test.go", source: goSourceWithImports(fileLockPath)},
+				},
+				count: 2,
+			},
 			wantExists: true,
 		},
 		{
-			name:        "filestore missing contextstate reports the exact omission",
-			identity:    PackageFilestore,
-			files:       oneSyntheticGoFile("filestore.go", goSourceWithImports(corePath, temporalPath)),
+			name:     "filestore missing contextstate reports the exact omission",
+			identity: PackageFilestore,
+			files: syntheticGoFileSet{
+				values: [3]syntheticGoFile{
+					{name: "filestore.go", source: goSourceWithImports(corePath, temporalPath)},
+					{name: "filestore_test.go", source: goSourceWithImports(fileLockPath)},
+				},
+				count: 2,
+			},
 			wantExists:  true,
 			wantMissing: 1,
 		},
 		{
-			name:       "filestore importing attest reports one extra edge",
-			identity:   PackageFilestore,
-			files:      oneSyntheticGoFile("filestore.go", goSourceWithImports(corePath, contextStatePath, temporalPath, attestPath)),
+			name:     "filestore importing attest reports one extra edge",
+			identity: PackageFilestore,
+			files: syntheticGoFileSet{
+				values: [3]syntheticGoFile{
+					{name: "filestore.go", source: goSourceWithImports(corePath, contextStatePath, temporalPath, attestPath)},
+					{name: "filestore_test.go", source: goSourceWithImports(fileLockPath)},
+				},
+				count: 2,
+			},
 			wantExists: true,
 			wantExtra:  1,
 		},
@@ -315,11 +334,12 @@ func TestArchitectureImportMatcherSyntheticRedGreenRatchet(t *testing.T) {
 			wantErr:    ErrPrimitiveContract,
 		},
 		{
-			name:        "empty landed filestore reports every required edge missing",
-			identity:    PackageFilestore,
-			files:       oneSyntheticGoFile("notes.txt", "not Go source"),
-			wantExists:  true,
-			wantMissing: 3,
+			name:            "empty landed filestore reports every required edge missing",
+			identity:        PackageFilestore,
+			files:           oneSyntheticGoFile("notes.txt", "not Go source"),
+			wantExists:      true,
+			wantMissing:     3,
+			wantTestMissing: 1,
 		},
 		{
 			name:       "malformed production source fails with typed identity",

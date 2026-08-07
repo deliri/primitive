@@ -92,6 +92,22 @@ func (a PolicyActivation) Validate() error {
 	return nil
 }
 
+// NewPolicyActivation admits one activation counter.
+//
+// The type already refuses zero in Validate, but until this door existed the
+// only way to obtain a value was the bare conversion PolicyActivation(n),
+// which skips it. A control plane numbering its own activations is the
+// producer here, and a producer able to hand out a value its own type rejects
+// is not a producer. Decoding is unaffected: the wire form stays a bare JSON
+// number that the standard decoder admits and PolicyCursor validates.
+func NewPolicyActivation(value uint64) (PolicyActivation, error) {
+	activation := PolicyActivation(value)
+	if err := activation.Validate(); err != nil {
+		return 0, err
+	}
+	return activation, nil
+}
+
 // Uint64 returns the activation as a plain counter.
 func (a PolicyActivation) Uint64() uint64 { return uint64(a) }
 

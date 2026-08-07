@@ -197,6 +197,53 @@ func TestPolicyActivationRefusesTheUnsetCounter(t *testing.T) {
 	}
 }
 
+// TestNewPolicyActivationIsTheOnlyValidatedAdmission proves the door refuses
+// exactly what the type refuses, at both ends of the counter's range.
+//
+// Before this door existed the only route to a value was the bare conversion
+// PolicyActivation(n), which skips the Validate the type declares for itself.
+// The activation is peer visible through PolicyCursor, so an unvalidated one
+// minted on the producing end travels to the consuming end as a fact.
+func TestNewPolicyActivationIsTheOnlyValidatedAdmission(t *testing.T) {
+	t.Parallel()
+
+	cases := [...]struct {
+		wantErr error
+		name    string
+		value   uint64
+	}{
+		{name: "zero is the unset counter", value: 0, wantErr: core.ErrControlWirePolicyCursor},
+		{name: "one is the first activation", value: 1},
+		{name: "mid range", value: 1 << 32},
+		{name: "maximum counter", value: 1<<64 - 1},
+	}
+	for _, testCase := range cases {
+		t.Run(testCase.name, func(t *testing.T) {
+			t.Parallel()
+
+			got, err := controlwire.NewPolicyActivation(testCase.value)
+			if testCase.wantErr != nil {
+				if !errors.Is(err, testCase.wantErr) {
+					t.Fatalf("NewPolicyActivation(%d) error = %v, want %v", testCase.value, err, testCase.wantErr)
+				}
+				if got != 0 {
+					t.Fatalf("NewPolicyActivation(%d) = %d on refusal, want the zero value", testCase.value, got)
+				}
+				return
+			}
+			if err != nil {
+				t.Fatalf("NewPolicyActivation(%d) error = %v, want nil", testCase.value, err)
+			}
+			if got.Uint64() != testCase.value {
+				t.Fatalf("NewPolicyActivation(%d).Uint64() = %d, want %d", testCase.value, got.Uint64(), testCase.value)
+			}
+			if err := got.Validate(); err != nil {
+				t.Fatalf("NewPolicyActivation(%d).Validate() error = %v, want nil", testCase.value, err)
+			}
+		})
+	}
+}
+
 // TestPolicyActivationOrdersOneRevisionHistory covers the comparison a caller
 // uses to decide whether a cursor moved forward, including the ties and the
 // saturating ends.
