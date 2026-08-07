@@ -271,13 +271,23 @@ func (b *InstallationCertificateBody) UnmarshalJSON(data []byte) error {
 	return nil
 }
 
-// Validate closes the signed certificate.
+// Validate closes the signed certificate and binds its envelope to the
+// namespace the body declares.
+//
+// Verification recomputes the domain from the body, so a mismatch cannot
+// survive attest.Verify. It can survive decoding, and a document held, logged,
+// or passed on before anyone verifies it would carry an envelope claiming one
+// namespace over a body declaring another. A shape check that admits a document
+// its own verifier will refuse has not closed.
 func (d InstallationCertificateDocument) Validate() error {
 	if err := d.Body.Validate(); err != nil {
 		return err
 	}
 	if err := d.Attestation.Validate(); err != nil {
 		return registrationError(err)
+	}
+	if d.Attestation.Domain != d.Body.AttestationDomain() {
+		return signingDomainError()
 	}
 	return nil
 }
@@ -422,10 +432,24 @@ func (p RegistrationPayload) validateCertificate(subject lease.Subject) error {
 
 // validateOutcome refuses a decision whose commercial status contradicts the
 // Lease outcome it arrived with.
+//
+// The rule has two halves with different owners. Which status may travel beside
+// an outcome is ProductStatus's, and ValidateOutcome states it for one offering,
+// so the offering this header names is the one that decides the read-only case.
+// This document restates none of it. What stays here is the half only a document
+// knows: a grant hands over a credential and a revocation must not, which is a
+// fact about this shape rather than about any status.
+//
+// AdmitsOutcome stood here and was too weak for a signed document. It is
+// offering blind and admits a refusal under any valid status, so a signed
+// refusal could name an active installation, which is a contradiction the
+// authority would have put its own signature on. ValidateOutcome's own contract
+// says it is the rule an authenticated document is held to, and the check-in
+// response already held itself to it.
 func (p RegistrationPayload) validateOutcome() error {
 	outcome := p.Lease.Decision.Outcome()
-	if !p.Header.Status.AdmitsOutcome(outcome) {
-		return consistencyError()
+	if err := p.Header.Status.ValidateOutcome(p.Header.Offering, outcome); err != nil {
+		return err
 	}
 	switch outcome {
 	case lease.OutcomeGrant:
@@ -436,7 +460,7 @@ func (p RegistrationPayload) validateOutcome() error {
 	case lease.OutcomeRefusal:
 		return nil
 	case lease.OutcomeRevocation:
-		if p.Certificate != nil || p.Header.Status != ProductStatusRevoked {
+		if p.Certificate != nil {
 			return consistencyError()
 		}
 		return nil
@@ -491,13 +515,17 @@ func (p *RegistrationPayload) UnmarshalJSON(data []byte) error {
 	return nil
 }
 
-// Validate closes the signed response.
+// Validate closes the signed response and binds its envelope to the namespace
+// the payload declares, for the reason the certificate above states.
 func (d RegistrationDocument) Validate() error {
 	if err := d.Payload.Validate(); err != nil {
 		return err
 	}
 	if err := d.Attestation.Validate(); err != nil {
 		return registrationError(err)
+	}
+	if d.Attestation.Domain != d.Payload.AttestationDomain() {
+		return signingDomainError()
 	}
 	return nil
 }
