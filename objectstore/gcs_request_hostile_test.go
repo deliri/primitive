@@ -14,7 +14,7 @@ import (
 func TestAuthenticatedGCSRequestValidationExhaustsCompositionFailures(t *testing.T) {
 	t.Parallel()
 
-	write, read, deleteRequest := authenticatedGCSRequestFixtures(t)
+	write, read, deleteRequest, deleteObjectRequest := authenticatedGCSRequestFixtures(t)
 	tests := []struct {
 		wantErr error
 		run     func() error
@@ -23,14 +23,15 @@ func TestAuthenticatedGCSRequestValidationExhaustsCompositionFailures(t *testing
 		{name: "complete create-only request crosses ingress", run: write.Validate},
 		{name: "complete exact-read request crosses ingress", run: read.Validate},
 		{name: "complete destructive-prefix request crosses ingress", run: deleteRequest.Validate},
+		{name: "complete exact-object delete request crosses ingress", run: deleteObjectRequest.Validate},
 		{name: "zero-byte create remains a real object operation", run: func() error {
 			value := write
 			value.Integrity = authenticatedGCSIntegrityAtLength(t, 0)
 			return value.Validate()
 		}},
-		{name: "zero-byte read remains a real object operation", run: func() error {
+		{name: "one-byte read ceiling remains admitted", run: func() error {
 			value := read
-			value.Integrity = authenticatedGCSIntegrityAtLength(t, 0)
+			value.Maximum = authenticatedGCSMaximum(t, 1)
 			return value.Validate()
 		}},
 		{name: "one-object destructive bound remains admitted", run: func() error {
@@ -48,9 +49,9 @@ func TestAuthenticatedGCSRequestValidationExhaustsCompositionFailures(t *testing
 			value.Integrity = authenticatedGCSIntegrityAtLength(t, objectstore.GoogleCloudStorageObjectMaximumBytes)
 			return value.Validate()
 		}},
-		{name: "maximum GCS read extent remains admitted", run: func() error {
+		{name: "maximum GCS read ceiling remains admitted", run: func() error {
 			value := read
-			value.Integrity = authenticatedGCSIntegrityAtLength(t, objectstore.GoogleCloudStorageObjectMaximumBytes)
+			value.Maximum = authenticatedGCSMaximum(t, objectstore.GoogleCloudStorageObjectMaximumBytes)
 			return value.Validate()
 		}},
 		{name: "application media metadata composes with binary source", run: write.Validate},
@@ -68,7 +69,8 @@ func TestAuthenticatedGCSRequestValidationExhaustsCompositionFailures(t *testing
 		{name: "read request refuses an unset bucket", run: func() error { value := read; value.Bucket = objectstore.GCSBucket{}; return value.Validate() }, wantErr: core.ErrObjectStoreContract},
 		{name: "read request refuses an unset object name", run: func() error { value := read; value.Name = objectstore.GCSObjectName{}; return value.Validate() }, wantErr: core.ErrObjectStoreContract},
 		{name: "read request refuses a nil destination", run: func() error { value := read; value.Destination = nil; return value.Validate() }, wantErr: core.ErrObjectStoreDestination},
-		{name: "read request refuses unset integrity", run: func() error { value := read; value.Integrity = objectstore.Integrity{}; return value.Validate() }, wantErr: core.ErrObjectStoreContract},
+		{name: "read request refuses unset expected digest", run: func() error { value := read; value.SHA256 = core.SHA256Digest{}; return value.Validate() }, wantErr: core.ErrObjectStoreContract},
+		{name: "read request refuses unset byte ceiling", run: func() error { value := read; value.Maximum = core.ByteCount{}; return value.Validate() }, wantErr: core.ErrObjectStoreContract},
 		{name: "delete request refuses an unset bucket", run: func() error { value := deleteRequest; value.Bucket = objectstore.GCSBucket{}; return value.Validate() }, wantErr: core.ErrObjectStoreContract},
 		{name: "delete request refuses an unset prefix", run: func() error {
 			value := deleteRequest
@@ -76,6 +78,16 @@ func TestAuthenticatedGCSRequestValidationExhaustsCompositionFailures(t *testing
 			return value.Validate()
 		}, wantErr: core.ErrObjectStoreContract},
 		{name: "delete request refuses an unset bound", run: func() error { value := deleteRequest; value.MaxObjects = core.ByteCount{}; return value.Validate() }, wantErr: core.ErrObjectStoreContract},
+		{name: "exact delete request refuses an unset bucket", run: func() error {
+			value := deleteObjectRequest
+			value.Bucket = objectstore.GCSBucket{}
+			return value.Validate()
+		}, wantErr: core.ErrObjectStoreContract},
+		{name: "exact delete request refuses an unset object name", run: func() error {
+			value := deleteObjectRequest
+			value.Name = objectstore.GCSObjectName{}
+			return value.Validate()
+		}, wantErr: core.ErrObjectStoreContract},
 		{name: "destructive bound one above ceiling is rejected", run: func() error {
 			value := deleteRequest
 			value.MaxObjects, _ = core.NewByteCount(objectstore.GCSDeleteMaximumObjects + 1)
@@ -86,9 +98,9 @@ func TestAuthenticatedGCSRequestValidationExhaustsCompositionFailures(t *testing
 			value.Integrity = authenticatedGCSIntegrityAtLength(t, objectstore.GoogleCloudStorageObjectMaximumBytes+1)
 			return value.Validate()
 		}, wantErr: core.ErrObjectStoreSize},
-		{name: "read extent one above GCS ceiling is rejected", run: func() error {
+		{name: "read ceiling one above GCS maximum is rejected", run: func() error {
 			value := read
-			value.Integrity = authenticatedGCSIntegrityAtLength(t, objectstore.GoogleCloudStorageObjectMaximumBytes+1)
+			value.Maximum = authenticatedGCSMaximum(t, objectstore.GoogleCloudStorageObjectMaximumBytes+1)
 			return value.Validate()
 		}, wantErr: core.ErrObjectStoreSize},
 		{name: "create extent one below GCS ceiling remains admitted", run: func() error {
@@ -96,9 +108,9 @@ func TestAuthenticatedGCSRequestValidationExhaustsCompositionFailures(t *testing
 			value.Integrity = authenticatedGCSIntegrityAtLength(t, objectstore.GoogleCloudStorageObjectMaximumBytes-1)
 			return value.Validate()
 		}},
-		{name: "read extent one below GCS ceiling remains admitted", run: func() error {
+		{name: "read ceiling one below GCS maximum remains admitted", run: func() error {
 			value := read
-			value.Integrity = authenticatedGCSIntegrityAtLength(t, objectstore.GoogleCloudStorageObjectMaximumBytes-1)
+			value.Maximum = authenticatedGCSMaximum(t, objectstore.GoogleCloudStorageObjectMaximumBytes-1)
 			return value.Validate()
 		}},
 		{name: "destructive bound one below ceiling remains admitted", run: func() error {
@@ -119,7 +131,7 @@ func TestAuthenticatedGCSRequestValidationExhaustsCompositionFailures(t *testing
 	}
 }
 
-func authenticatedGCSRequestFixtures(t *testing.T) (objectstore.GCSWriteRequest, objectstore.GCSReadRequest, objectstore.GCSDeleteRequest) {
+func authenticatedGCSRequestFixtures(t *testing.T) (objectstore.GCSWriteRequest, objectstore.GCSReadRequest, objectstore.GCSDeleteRequest, objectstore.GCSDeleteObjectRequest) {
 	t.Helper()
 	bucket, gotBucketErr := objectstore.ParseGCSBucket("primitive-object-tests")
 	if gotBucketErr != nil {
@@ -151,9 +163,22 @@ func authenticatedGCSRequestFixtures(t *testing.T) (objectstore.GCSWriteRequest,
 		Integrity: integrity, ContentType: mediaType, CacheControl: cacheControl,
 		CustomTime: temporal.InstantFromNanoseconds(1_786_183_200_000_000_000),
 	}
-	read := objectstore.GCSReadRequest{Bucket: bucket, Name: name, Destination: &bytes.Buffer{}, Integrity: integrity}
+	read := objectstore.GCSReadRequest{
+		Bucket: bucket, Name: name, Destination: &bytes.Buffer{},
+		SHA256: integrity.SHA256, Maximum: authenticatedGCSMaximum(t, 7),
+	}
 	deleteRequest := objectstore.GCSDeleteRequest{Bucket: bucket, Prefix: prefix, MaxObjects: maximum}
-	return write, read, deleteRequest
+	deleteObjectRequest := objectstore.GCSDeleteObjectRequest{Bucket: bucket, Name: name}
+	return write, read, deleteRequest, deleteObjectRequest
+}
+
+func authenticatedGCSMaximum(t *testing.T, value uint64) core.ByteCount {
+	t.Helper()
+	maximum, gotMaximumErr := core.NewByteCount(value)
+	if gotMaximumErr != nil {
+		t.Fatalf("NewByteCount(%d) error = %v, want nil", value, gotMaximumErr)
+	}
+	return maximum
 }
 
 func authenticatedGCSIntegrityAtLength(t *testing.T, lengthValue uint64) objectstore.Integrity {

@@ -13,10 +13,10 @@ The fourth door owns the official GCS SDK client and exactly these operations:
 
 - Application Default Credentials or one typed service-account file;
 - create-only exact whole-object streaming with SHA-256 and CRC32C;
-- exact whole-object streaming read;
+- SHA-256-bound whole-object streaming read under a caller byte ceiling;
 - structured content type, cache policy, and custom-time metadata; and
-- bounded prefix listing, generation-matched deletion, and post-delete absence
-  proof, with refusal when bucket soft-delete retention is enabled.
+- exact-object or bounded-prefix generation-matched deletion and post-delete
+  absence proof, with refusal when bucket soft-delete retention is enabled.
 
 Products still own bucket selection, object namespaces, retention intent,
 reconciliation, and retry policy. Primitive still does not create buckets,

@@ -15,8 +15,9 @@
 // call each required operation in sequence.
 //
 // NewGCSClient keeps authenticated SDK construction inside Primitive.
-// CreateGCSObject is create-only and exact. ReadGCSObject verifies the complete
-// stream. DeleteGCSObjects requires a confined bounded prefix, deletes exact
-// listed generations, proves the prefix absent, and refuses buckets whose
-// soft-delete policy would make "deleted" mean retained.
+// CreateGCSObject is create-only and exact. ReadGCSObject binds provider extent
+// and CRC32C metadata to the caller's SHA-256 and byte ceiling, then verifies
+// the complete stream. DeleteGCSObject and DeleteGCSObjects delete exact
+// observed generations, prove the name or confined prefix absent, and refuse
+// buckets whose soft-delete policy would make "deleted" mean retained.
 package objectstore

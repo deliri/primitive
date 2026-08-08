@@ -506,7 +506,7 @@ func packagePurposeTexts() [packageIdentityLimit]string {
 		PackageProcess:       "Argv, environment, containment, bounded output, exit, and reaping over os/exec",
 		PackageRelease:       "Clean repository binding, verified build tools, deterministic Garble build and process plans, executable inspection, signed tool and metadata provenance, immutable artifacts, manifests, Latest, and selection",
 		PackageShutdown:      "Signal observation and phased bounded cleanup",
-		PackageObjectStore:   "Bounded vendor-specified S3, GCS, or Cloudflare Images transfers, plus authenticated GCS create/read/permanent prefix deletion, with integrity and provider evidence",
+		PackageObjectStore:   "Bounded vendor-specified S3, GCS, or Cloudflare Images transfers, plus authenticated GCS create/read/permanent exact or prefix deletion, with integrity and provider evidence",
 		PackageTimeProof:     "RFC 3161 request construction, response verification, and replay",
 		PackageCloudIdentity: "Bounded Google Cloud or AWS outbound identity-token acquisition and redacted disclosure",
 		PackageDeploy:        "Exact create-only GCS publication of one authenticated release and its metadata",

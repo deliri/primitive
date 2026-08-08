@@ -96,7 +96,8 @@ type GCSReadRequest struct {
 	Destination io.Writer
 	Bucket      GCSBucket
 	Name        GCSObjectName
-	Integrity   Integrity
+	SHA256      core.SHA256Digest
+	Maximum     core.ByteCount
 }
 
 // Validate rejects incomplete or contradictory read ingress.
@@ -104,10 +105,14 @@ func (r GCSReadRequest) Validate() error {
 	if r.Destination == nil {
 		return errors.Join(core.ErrObjectStoreContract, core.ErrObjectStoreDestination)
 	}
-	for _, err := range []error{r.Bucket.Validate(), r.Name.Validate(), validateAuthenticatedGCSIntegrity(r.Integrity)} {
+	for _, err := range []error{r.Bucket.Validate(), r.Name.Validate(), r.SHA256.Validate()} {
 		if err != nil {
 			return errors.Join(core.ErrObjectStoreContract, err)
 		}
+	}
+	maximum, err := r.Maximum.Uint64()
+	if err != nil || maximum > GoogleCloudStorageObjectMaximumBytes {
+		return errors.Join(core.ErrObjectStoreContract, core.ErrObjectStoreSize, err)
 	}
 	return nil
 }
@@ -127,6 +132,17 @@ type GCSDeleteRequest struct {
 	Bucket     GCSBucket
 	Prefix     GCSObjectPrefix
 	MaxObjects core.ByteCount
+}
+
+// GCSDeleteObjectRequest is one exact generation-safe object deletion.
+type GCSDeleteObjectRequest struct {
+	Bucket GCSBucket
+	Name   GCSObjectName
+}
+
+// Validate rejects an unset bucket or exact object name.
+func (r GCSDeleteObjectRequest) Validate() error {
+	return errors.Join(r.Bucket.Validate(), r.Name.Validate())
 }
 
 // Validate rejects unbounded or whole-bucket destructive ingress.
@@ -228,7 +244,12 @@ func ReadGCSObject(ctx context.Context, client *GCSClient, request GCSReadReques
 		_ = reader.Close()
 		return GCSObjectMetadata{}, err
 	}
-	if err := streamGCSRead(reader, request); err != nil {
+	integrity, err := readIntegrityFromMetadata(request, metadata)
+	if err != nil {
+		_ = reader.Close()
+		return GCSObjectMetadata{}, err
+	}
+	if err := streamGCSRead(reader, request.Destination, integrity); err != nil {
 		return GCSObjectMetadata{}, errors.Join(err, reader.Close())
 	}
 	if err := reader.Close(); err != nil {
@@ -245,15 +266,26 @@ func metadataFromReader(ctx context.Context, object *storage.ObjectHandle, reade
 	return metadataFromGCSAttrs(attrs)
 }
 
-func streamGCSRead(reader *storage.Reader, request GCSReadRequest) error {
-	length, err := request.Integrity.Length.Int64()
+func readIntegrityFromMetadata(request GCSReadRequest, metadata GCSObjectMetadata) (Integrity, error) {
+	maximum, err := request.Maximum.Uint64()
+	if err != nil {
+		return Integrity{}, errors.Join(core.ErrObjectStoreContract, err)
+	}
+	if metadata.Length().Uint64() > maximum {
+		return Integrity{}, core.ErrObjectStoreSize
+	}
+	return Integrity{SHA256: request.SHA256, Length: metadata.Length(), CRC32C: metadata.CRC32C()}, nil
+}
+
+func streamGCSRead(reader *storage.Reader, destinationWriter io.Writer, integrity Integrity) error {
+	length, err := integrity.Length.Int64()
 	if err != nil {
 		return errors.Join(core.ErrObjectStoreSize, err)
 	}
 	exact := newExactReader(reader, length)
 	digest := core.NewDigestWriter()
 	checksum := crc32.New(crc32.MakeTable(crc32.Castagnoli))
-	destination := io.MultiWriter(request.Destination, digest, checksum)
+	destination := io.MultiWriter(destinationWriter, digest, checksum)
 	if length == 0 {
 		err = exact.proveEmpty()
 	} else {
@@ -266,12 +298,59 @@ func streamGCSRead(reader *storage.Reader, request GCSReadRequest) error {
 		return errors.Join(core.ErrObjectStoreDestination, err)
 	}
 	actualDigest, actualLength, err := digest.Seal()
-	if err != nil || actualDigest != request.Integrity.SHA256 ||
-		actualLength != request.Integrity.Length ||
-		core.NewCRC32C(checksum.Sum32()) != request.Integrity.CRC32C {
+	if err != nil || actualDigest != integrity.SHA256 ||
+		actualLength != integrity.Length ||
+		core.NewCRC32C(checksum.Sum32()) != integrity.CRC32C {
 		return errors.Join(core.ErrObjectStoreIntegrity, err)
 	}
 	return nil
+}
+
+// DeleteGCSObject permanently deletes one exact current generation and proves
+// that no current object remains at the name. Soft-delete buckets are refused.
+func DeleteGCSObject(ctx context.Context, client *GCSClient, request GCSDeleteObjectRequest) (GCSDeleteObjectResult, error) {
+	if err := validateGCSCall(ctx, client); err != nil {
+		return GCSDeleteObjectResult{}, err
+	}
+	if err := request.Validate(); err != nil {
+		return GCSDeleteObjectResult{}, errors.Join(core.ErrObjectStoreContract, err)
+	}
+	bucket := client.client.Bucket(request.Bucket.String())
+	if err := requirePermanentGCSDeletion(ctx, bucket); err != nil {
+		return GCSDeleteObjectResult{}, err
+	}
+	object := bucket.Object(request.Name.String())
+	attrs, err := object.Attrs(ctx)
+	if err != nil {
+		return GCSDeleteObjectResult{}, projectGCSError(err, core.ErrObjectStoreDestination)
+	}
+	generation, err := NewGCSGeneration(attrs.Generation)
+	if err != nil {
+		return GCSDeleteObjectResult{}, err
+	}
+	value, err := generation.Int64()
+	if err != nil {
+		return GCSDeleteObjectResult{}, err
+	}
+	if err := object.Generation(value).If(storage.Conditions{GenerationMatch: value}).Delete(ctx); err != nil &&
+		!errors.Is(err, storage.ErrObjectNotExist) {
+		return GCSDeleteObjectResult{}, projectGCSError(err, core.ErrObjectStoreDestination)
+	}
+	if err := confirmGCSObjectAbsent(ctx, object); err != nil {
+		return GCSDeleteObjectResult{}, err
+	}
+	return GCSDeleteObjectResult{name: request.Name, generation: generation}, nil
+}
+
+func confirmGCSObjectAbsent(ctx context.Context, object *storage.ObjectHandle) error {
+	_, err := object.Attrs(ctx)
+	if errors.Is(err, storage.ErrObjectNotExist) {
+		return nil
+	}
+	if err != nil {
+		return projectGCSError(err, core.ErrObjectStoreDestination)
+	}
+	return errors.Join(core.ErrObjectStoreContract, core.ErrObjectStoreConflict)
 }
 
 // DeleteGCSObjects permanently deletes every live object under one bounded

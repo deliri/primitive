@@ -1063,7 +1063,7 @@ The order is dependency depth, not a command to build every package in a row.
 | 5 | `gate` | Pure CLI-side new-work authorization over one authentic Lease assessment | `core`, `lease` | `attest`, `temporal` |
 | 5 | `receipt` | Authenticated accepted-evidence facts and fixed-size monotonic watermarks | `core`, `attest`, `temporal` | none |
 | 5 | `controlwire` | Shared control-wire revision, request nonce, one-time registration token, policy cursor, and the control exchange policy | `core`, `keygen`, `exchange`, `temporal` | none |
-| 5 | `objectstore` | Bounded vendor-specified S3, GCS, or Cloudflare Images transfers, plus authenticated GCS create/read/permanent prefix deletion, with integrity and provider evidence | `core`, `contextstate`, `temporal`, `exchange` | none |
+| 5 | `objectstore` | Bounded vendor-specified S3, GCS, or Cloudflare Images transfers, plus authenticated GCS create/read/permanent exact or prefix deletion, with integrity and provider evidence | `core`, `contextstate`, `temporal`, `exchange` | none |
 | 5 | `timeproof` | RFC 3161 request construction, response verification, and replay | `core`, `temporal`, `keygen` | none |
 | 5 | `cloudidentity` | Bounded Google Cloud or AWS outbound identity-token acquisition and redacted disclosure | `core`, `temporal`, `exchange` | none |
 | 6 | `controlplane` | Signed control-plane request and response documents, their binding to one exact request, product status, and usage watermark | `core`, `controlwire`, `attest`, `lease`, `temporal`, `receipt` | none |
@@ -1089,8 +1089,9 @@ Graph-wide rules:
 1. Amazon S3 whole-object PUT/GET;
 2. Google Cloud Storage XML API whole-object PUT/GET; and
 3. Cloudflare Images one-time direct upload; and
-4. authenticated Google Cloud Storage create-only whole-object write, exact
-   read, and bounded generation-matched prefix deletion.
+4. authenticated Google Cloud Storage create-only whole-object write,
+   digest-bound bounded read, exact generation-matched object deletion, and
+   bounded generation-matched prefix deletion.
 
 It composes `exchange` against caller-supplied, expiring HTTPS capabilities
 without duplicating transport, retry, buffering, or provider behavior.
@@ -1119,10 +1120,11 @@ reopenable sources. It is never a hidden fan-out engine.
 - duplicate SDK, provider, or `exchange` retry behavior.
 
 Authenticated deletion is deliberately narrower than general object
-administration: the prefix is nonempty and slash-terminated, the object count
-is bounded, every delete is pinned to the listed generation, the prefix is
-listed again to prove absence, and a bucket with soft-delete retention enabled
-is refused because success would not mean permanent deletion. Bucket creation,
+administration: an exact name or a nonempty slash-terminated prefix is
+required, prefix object count is bounded, every delete is pinned to the
+observed generation, the name or prefix is observed again to prove absence,
+and a bucket with soft-delete retention enabled is refused because success
+would not mean permanent deletion. Bucket creation,
 lifecycle mutation, copy, compose, arbitrary metadata mutation, and product
 namespace or retention policy remain downstream.
 

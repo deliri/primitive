@@ -9,9 +9,10 @@ Last updated: `2026-08-08`
   object-storage mechanism products need. `objectstore` now owns official-SDK
   client construction through a closed ADC/service-account selection, typed
   bucket, object, destructive-prefix, cache, and generation values,
-  generation-zero create-only writes, exact streaming reads, structured
-  provider time metadata, and bounded generation-matched prefix deletion with
-  a second listing as absence proof. Permanent deletion refuses any bucket
+  generation-zero create-only writes, SHA-256-bound bounded streaming reads,
+  structured provider time metadata, exact-object deletion, and bounded
+  generation-matched prefix deletion with a second observation as absence
+  proof. Permanent deletion refuses any bucket
   whose soft-delete retention is active; product namespace, retention intent,
   retry, and reconciliation remain downstream. The serious admission surfaces
   have hostile tables over valid, rejected, and exact boundary values. A real

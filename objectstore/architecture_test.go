@@ -118,9 +118,9 @@ func productionStructRole(name string) (string, bool) {
 	case "GCSBucket", "GCSObjectName", "GCSObjectPrefix", "GCSCacheControl",
 		"GCSGeneration":
 		return "opaque validated provider value", true
-	case "GCSWriteRequest", "GCSReadRequest", "GCSDeleteRequest":
+	case "GCSWriteRequest", "GCSReadRequest", "GCSDeleteRequest", "GCSDeleteObjectRequest":
 		return "authenticated provider execution ingress", true
-	case "GCSObjectMetadata", "GCSDeleteResult":
+	case "GCSObjectMetadata", "GCSDeleteResult", "GCSDeleteObjectResult":
 		return "sealed authenticated provider evidence", true
 	case "gcsObjectIdentity", "gcsObjectProperties", "gcsObjectTimes":
 		return "internal authenticated provider metadata projection", true

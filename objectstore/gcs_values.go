@@ -321,6 +321,21 @@ type GCSDeleteResult struct {
 	deleted core.ByteLength
 }
 
+// GCSDeleteObjectResult is sealed evidence that one exact generation was
+// removed and its current name was proved absent.
+type GCSDeleteObjectResult struct {
+	name       GCSObjectName
+	generation GCSGeneration
+}
+
+func (r GCSDeleteObjectResult) Name() GCSObjectName       { return r.name }
+func (r GCSDeleteObjectResult) Generation() GCSGeneration { return r.generation }
+
+// Validate rejects incomplete exact-object deletion evidence.
+func (r GCSDeleteObjectResult) Validate() error {
+	return errors.Join(r.name.Validate(), r.generation.Validate())
+}
+
 func (r GCSDeleteResult) Prefix() GCSObjectPrefix  { return r.prefix }
 func (r GCSDeleteResult) Deleted() core.ByteLength { return r.deleted }
 
