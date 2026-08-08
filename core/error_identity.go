@@ -622,24 +622,35 @@ func errorIdentityParents(identity ErrorIdentity) errorIdentityParentSet {
 		ErrControlPlaneDecisionConsistency, ErrControlPlaneCheckIn,
 		ErrControlPlaneCheckInResponse, ErrControlPlaneUsageWindow:
 		return errorIdentityParentsControlExchange(identity)
-	case ErrUpgradeDownload, ErrUpgradeCapacity, ErrUpgradeVerification, ErrUpgradeTrial,
-		ErrUpgradePromotion, ErrUpgradePersistence, ErrUpgradeCleanup,
-		ErrUpgradeConflict:
-		return oneErrorIdentityParent(ErrUpgradeContract)
 	case ErrAttestVerification, ErrNilContext, ErrContextObservation,
 		ErrCurrencyMismatch, ErrCurrencyDecimal, ErrCurrencyOverflow,
 		ErrGarbleDerivation, ErrGarbleBuildIntent, ErrKeygenEntropy:
 		return errorIdentityParentsAttestThroughKeygen(identity)
-	case ErrFilestoreSize, ErrFilestoreSource, ErrFilestoreDestination,
-		ErrFilestoreConflict, ErrFilestoreActivation, ErrFilestoreCleanup:
-		return oneErrorIdentityParent(ErrFilestoreContract)
-	case ErrFilestoreActivationIndeterminate:
-		return oneErrorIdentityParent(ErrFilestoreActivation)
 	case ErrHostFacts, ErrHostFactsContract, ErrHostFactsObservation,
 		ErrHostFactsUnsupported, ErrHostFactsPressure, ErrHostFactsEvidence,
 		ErrDiskCapacityUnsupported, ErrTreeMeasurementUnsupported,
 		ErrDiskFloorReached, ErrMemoryLimitReached:
 		return errorIdentityParentsHostFacts(identity)
+	default:
+		return errorIdentityParentsFilestoreThroughUpgrade(identity)
+	}
+}
+
+// errorIdentityParentsFilestoreThroughUpgrade continues the family chain. The
+// dispatch is split by family so no single switch structurally grows toward
+// the complexity ceiling as new identities join; the next family lands in the
+// helper with headroom, not in a function already at the line.
+func errorIdentityParentsFilestoreThroughUpgrade(identity ErrorIdentity) errorIdentityParentSet {
+	switch identity {
+	case ErrUpgradeDownload, ErrUpgradeCapacity, ErrUpgradeVerification, ErrUpgradeTrial,
+		ErrUpgradePromotion, ErrUpgradePersistence, ErrUpgradeCleanup,
+		ErrUpgradeConflict:
+		return oneErrorIdentityParent(ErrUpgradeContract)
+	case ErrFilestoreSize, ErrFilestoreSource, ErrFilestoreDestination,
+		ErrFilestoreConflict, ErrFilestoreActivation, ErrFilestoreCleanup:
+		return oneErrorIdentityParent(ErrFilestoreContract)
+	case ErrFilestoreActivationIndeterminate:
+		return oneErrorIdentityParent(ErrFilestoreActivation)
 	case ErrTemporalOverflow:
 		return twoErrorIdentityParents(ErrTemporalContract, ErrNumericOverflow)
 	case ErrExchangeRequest, ErrExchangeResponse, ErrExchangeBodyLimit,

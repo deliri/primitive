@@ -47,6 +47,35 @@ func (r RandomTokenRequest) Validate() error {
 	return nil
 }
 
+// Token is one bounded public random token, sealed at the draw.
+//
+// A token is an identifier, not a byte soup: the bytes are unexported so a
+// holder cannot grow, shrink, or alias the draw after the fact, and the zero
+// Token refuses, so a token that skipped the draw cannot circulate as one
+// that happened. Bytes hands back a copy for the caller to adopt into its own
+// nominal form.
+type Token struct {
+	bytes []byte
+}
+
+// Validate admits only a drawn token: present and inside the public-token
+// extent interval. Content is deliberately not judged, because an all-zero
+// draw is a legitimate public token.
+func (t Token) Validate() error {
+	if len(t.bytes) == 0 || len(t.bytes) > RandomTokenMaximumBytes {
+		return contractError(errors.New("keygen token was not drawn"))
+	}
+	return nil
+}
+
+// Bytes returns a copy of the drawn token bytes.
+func (t Token) Bytes() ([]byte, error) {
+	if err := t.Validate(); err != nil {
+		return nil, err
+	}
+	return append([]byte(nil), t.bytes...), nil
+}
+
 // RandomToken fills one caller-sized public random token from Go's production
 // CSPRNG.
 //
@@ -54,17 +83,18 @@ func (r RandomTokenRequest) Validate() error {
 // rejection, because an all-zero draw is a legitimate nonce that a caller must
 // not have to retry. It is a bounded one-shot value, not an entropy provider:
 // the size is fixed and validated before the draw, so nothing here streams.
-func RandomToken(request RandomTokenRequest) ([]byte, error) {
+func RandomToken(request RandomTokenRequest) (Token, error) {
 	if err := request.Validate(); err != nil {
-		return nil, err
+		return Token{}, err
 	}
 	size, err := request.Size.Uint64()
 	if err != nil {
-		return nil, contractError(err)
+		return Token{}, contractError(err)
 	}
-	token := make([]byte, size)
-	if _, err := rand.Read(token); err != nil {
-		return nil, entropyError(err)
+	drawn := make([]byte, size)
+	if _, err := rand.Read(drawn); err != nil {
+		return Token{}, entropyError(err)
 	}
-	return token, nil
+	token := Token{bytes: drawn}
+	return token, token.Validate()
 }

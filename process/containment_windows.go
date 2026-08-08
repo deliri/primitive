@@ -5,7 +5,6 @@ package process
 import (
 	"errors"
 	"os/exec"
-	"syscall"
 
 	"github.com/deliri/primitive/v2026/core"
 )
@@ -15,19 +14,32 @@ import (
 // only the silent hard stop is deliverable here; a request naming any other
 // cancel signal is refused before the child exists rather than silently
 // downgraded after it does.
-func applyContainment(command *exec.Cmd, containment Containment) error {
+func applyContainment(_ *exec.Cmd, containment Containment) error {
 	if containment.CancelSignal != CancelSignalKill {
 		return errors.Join(
 			core.ErrProcessUnsupported,
 			errors.New("windows delivers no cancel signal other than kill"),
 		)
 	}
-	if containment.Isolation == IsolationGroup {
-		command.SysProcAttr = &syscall.SysProcAttr{
-			CreationFlags: syscall.CREATE_NEW_PROCESS_GROUP,
-		}
+	switch containment.Isolation {
+	case IsolationDirect:
+		return nil
+	case IsolationGroup:
+		// A new process group can be created here, but nothing in this
+		// package can deliver a cancellation to it: deliverSignal below only
+		// ever kills the direct child, because Windows has no group signal.
+		// Accepting the request would tell a supervisor that cancellation
+		// reaches the whole tree when it reaches one process, so the request
+		// is refused before the child exists rather than silently downgraded
+		// after it does. Whole-tree containment on Windows is a job object
+		// and a separate decision.
+		return errors.Join(
+			core.ErrProcessUnsupported,
+			errors.New("windows delivers no group cancellation"),
+		)
+	default:
+		return contractError(isolationOutsideDomainDiagnostic)
 	}
-	return nil
 }
 
 // deliverSignal addresses the one admitted stop to the direct child through

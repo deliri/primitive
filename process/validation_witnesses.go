@@ -19,10 +19,19 @@ var (
 	_ core.Validatable = ExitCode{}
 	_ core.Validatable = Result{}
 	_ core.Validatable = (*TruncatingWriter)(nil)
+	_ core.Validatable = Containment{}
+	_ core.Validatable = IsolationUnknown
+	_ core.Validatable = CancelSignalUnknown
+	_ core.Validatable = LivenessUnknown
+	_ core.Validatable = ProcessIdentity(0)
+	_ core.Validatable = SignalNumber(0)
 )
 
 var (
 	_ core.OffWireEnum = EnvironmentModeUnknown
 	_ core.OffWireEnum = StreamUnknown
 	_ core.OffWireEnum = FailureKindUnknown
+	_ core.OffWireEnum = IsolationUnknown
+	_ core.OffWireEnum = CancelSignalUnknown
+	_ core.OffWireEnum = LivenessUnknown
 )

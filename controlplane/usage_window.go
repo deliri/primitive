@@ -4,6 +4,7 @@ import (
 	"encoding/json"
 	"errors"
 	"math"
+	"strconv"
 
 	"github.com/deliri/primitive/v2026/core"
 	"github.com/deliri/primitive/v2026/temporal"
@@ -55,6 +56,43 @@ func (c WorkUnitClass) Validate() error {
 // IsValid reports whether c is an admitted class ordinal.
 func (c WorkUnitClass) IsValid() bool { return c.Validate() == nil }
 
+// String renders the opaque ordinal for diagnostics. A number is all either
+// end knows about a class, so a number is all either end may print.
+func (c WorkUnitClass) String() string {
+	if !c.IsValid() {
+		return core.UnknownEnumDiagnostic
+	}
+	return strconv.FormatUint(uint64(c), 10)
+}
+
+// MarshalJSON emits the canonical decimal ordinal and refuses an inadmissible
+// class, the same bytes the bare integer produced before the contract was
+// explicit.
+func (c WorkUnitClass) MarshalJSON() ([]byte, error) {
+	if err := c.Validate(); err != nil {
+		return nil, jsonError(err)
+	}
+	return []byte(strconv.FormatUint(uint64(c), 10)), nil
+}
+
+// UnmarshalJSON accepts only the canonical decimal spelling of an admitted
+// ordinal and leaves c unchanged on every rejection.
+func (c *WorkUnitClass) UnmarshalJSON(data []byte) error {
+	if c == nil {
+		return jsonError(usageWindowError())
+	}
+	value, err := strconv.ParseUint(string(data), 10, 8)
+	if err != nil || strconv.FormatUint(value, 10) != string(data) {
+		return jsonError(usageWindowError(err))
+	}
+	candidate := WorkUnitClass(value)
+	if err := candidate.Validate(); err != nil {
+		return jsonError(err)
+	}
+	*c = candidate
+	return nil
+}
+
 // OutcomeClass names one way a unit of work ended, as an ordinal this package
 // deliberately cannot interpret. It carries a kind, never a finding.
 type OutcomeClass uint8
@@ -78,6 +116,42 @@ func (c OutcomeClass) Validate() error {
 
 // IsValid reports whether c is an admitted class ordinal.
 func (c OutcomeClass) IsValid() bool { return c.Validate() == nil }
+
+// String renders the opaque ordinal for diagnostics, exactly as WorkUnitClass
+// does and for the same reason.
+func (c OutcomeClass) String() string {
+	if !c.IsValid() {
+		return core.UnknownEnumDiagnostic
+	}
+	return strconv.FormatUint(uint64(c), 10)
+}
+
+// MarshalJSON emits the canonical decimal ordinal and refuses an inadmissible
+// class.
+func (c OutcomeClass) MarshalJSON() ([]byte, error) {
+	if err := c.Validate(); err != nil {
+		return nil, jsonError(err)
+	}
+	return []byte(strconv.FormatUint(uint64(c), 10)), nil
+}
+
+// UnmarshalJSON accepts only the canonical decimal spelling of an admitted
+// ordinal and leaves c unchanged on every rejection.
+func (c *OutcomeClass) UnmarshalJSON(data []byte) error {
+	if c == nil {
+		return jsonError(usageWindowError())
+	}
+	value, err := strconv.ParseUint(string(data), 10, 8)
+	if err != nil || strconv.FormatUint(value, 10) != string(data) {
+		return jsonError(usageWindowError(err))
+	}
+	candidate := OutcomeClass(value)
+	if err := candidate.Validate(); err != nil {
+		return jsonError(err)
+	}
+	*c = candidate
+	return nil
+}
 
 // WorkUnitCount is one class of work and how many units of it ran.
 type WorkUnitCount struct {
@@ -133,7 +207,43 @@ type UsageWindow struct {
 	Freshness temporal.Instant        `json:"freshness"`
 }
 
-type usageWindowWire UsageWindow
+// usageWindowBoundsWire is the wire spelling of the reporting interval.
+//
+// The member names of a signed document belong to the document's owner, and
+// temporal owns a mechanism, not a wire: leaving the interval to marshal
+// through temporal's own untagged identifiers put two protocol member names
+// under a package that does not know it is on a wire, where a routine rename
+// would silently change signed bytes. The projection here pins them in the
+// same snake_case vocabulary as every other member the signature covers.
+type usageWindowBoundsWire struct {
+	Start temporal.Instant `json:"start"`
+	End   temporal.Instant `json:"end"`
+}
+
+type usageWindowWire struct {
+	Units     []WorkUnitCount       `json:"units"`
+	Outcomes  []OutcomeCount        `json:"outcomes"`
+	Bounds    usageWindowBoundsWire `json:"bounds"`
+	Freshness temporal.Instant      `json:"freshness"`
+}
+
+func (w UsageWindow) wire() usageWindowWire {
+	return usageWindowWire{
+		Units:     w.Units,
+		Outcomes:  w.Outcomes,
+		Bounds:    usageWindowBoundsWire{Start: w.Bounds.Start, End: w.Bounds.End},
+		Freshness: w.Freshness,
+	}
+}
+
+func (w usageWindowWire) window() UsageWindow {
+	return UsageWindow{
+		Units:     w.Units,
+		Outcomes:  w.Outcomes,
+		Bounds:    temporal.IntervalBounds{Start: w.Bounds.Start, End: w.Bounds.End},
+		Freshness: w.Freshness,
+	}
+}
 
 // Validate closes every reported fact and every relationship between them.
 func (w UsageWindow) Validate() error {
@@ -218,7 +328,7 @@ func (w UsageWindow) MarshalJSON() ([]byte, error) {
 	if err := w.Validate(); err != nil {
 		return nil, jsonError(err)
 	}
-	encoded, err := core.MarshalCanonicalJSONDocument(usageWindowWire(w))
+	encoded, err := core.MarshalCanonicalJSONDocument(w.wire())
 	if err != nil || len(encoded) > UsageWindowJSONMaximumBytes {
 		return nil, jsonError(usageWindowError(err))
 	}
@@ -238,7 +348,7 @@ func (w *UsageWindow) UnmarshalJSON(data []byte) error {
 	if err != nil {
 		return jsonError(usageWindowError(err))
 	}
-	candidate := UsageWindow(wire)
+	candidate := wire.window()
 	if err := candidate.Validate(); err != nil {
 		return jsonError(err)
 	}
@@ -254,6 +364,10 @@ var (
 	_ core.Validatable = UsageWindow{}
 
 	_ core.ValidatedJSONMarshaler = UsageWindow{}
+	_ core.ValidatedJSONMarshaler = WorkUnitClass(0)
+	_ core.ValidatedJSONMarshaler = OutcomeClass(0)
 
 	_ json.Unmarshaler = (*UsageWindow)(nil)
+	_ json.Unmarshaler = (*WorkUnitClass)(nil)
+	_ json.Unmarshaler = (*OutcomeClass)(nil)
 )

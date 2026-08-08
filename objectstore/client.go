@@ -3,7 +3,6 @@ package objectstore
 import (
 	"bytes"
 	"context"
-	"crypto/sha256"
 	"errors"
 	"fmt"
 	"hash"
@@ -406,7 +405,11 @@ func confirmDownload(
 	digests streamDigests,
 	headers exchange.CapturedHeaders,
 ) (Transfer, error) {
-	_, local := digests.values()
+	_, local, err := digests.values()
+	if err != nil {
+		result.commitment = CommitmentRejected
+		return result, err
+	}
 	remote, present, err := providerDownloadCRC32C(headers, result.provider)
 	if err != nil {
 		result.commitment = CommitmentRejected
@@ -425,7 +428,11 @@ func confirmTransfer(
 	digests streamDigests,
 	headers exchange.CapturedHeaders,
 ) (Transfer, error) {
-	shaValue, crcValue := digests.values()
+	shaValue, crcValue, err := digests.values()
+	if err != nil {
+		result.commitment = CommitmentRejected
+		return result, err
+	}
 	if result.bytes != expected.Length ||
 		shaValue != expected.SHA256 ||
 		crcValue != expected.CRC32C {
@@ -515,13 +522,13 @@ func (exchangeTarget) Format(state fmt.State, _ rune) {
 }
 
 type streamDigests struct {
-	sha256 hash.Hash
+	sha256 *core.DigestWriter
 	crc32c hash.Hash32
 }
 
 func newDigests() streamDigests {
 	return streamDigests{
-		sha256: sha256.New(),
+		sha256: core.NewDigestWriter(),
 		crc32c: crc32.New(crc32.MakeTable(crc32.Castagnoli)),
 	}
 }
@@ -530,10 +537,18 @@ func (d streamDigests) writer() io.Writer {
 	return io.MultiWriter(d.sha256, d.crc32c)
 }
 
-func (d streamDigests) values() (core.SHA256Digest, core.CRC32C) {
-	var digest [sha256.Size]byte
-	d.sha256.Sum(digest[:0])
-	return core.NewSHA256Digest(digest), core.NewCRC32C(d.crc32c.Sum32())
+// values peeks the running digests without ending the stream, because the
+// download path reads them once for the provider comparison and again for the
+// caller's expected integrity. The refusal branch guards a writer this
+// package never constructs: transfers are bounded far below the count domain
+// and nothing here seals, so a failure is a contract breach to surface, not a
+// state to explain away.
+func (d streamDigests) values() (core.SHA256Digest, core.CRC32C, error) {
+	digest, _, err := d.sha256.Digest()
+	if err != nil {
+		return core.SHA256Digest{}, core.CRC32C{}, errors.Join(core.ErrObjectStoreContract, err)
+	}
+	return digest, core.NewCRC32C(d.crc32c.Sum32()), nil
 }
 
 // multipartUpload frames the object stream as one multipart file field without

@@ -5,7 +5,6 @@ import (
 	"errors"
 	"os"
 	"path/filepath"
-	"syscall"
 	"testing"
 
 	"github.com/deliri/primitive/v2026/core"
@@ -269,6 +268,21 @@ func TestInspectNamesWhatOccupiesAPath(t *testing.T) {
 			},
 		},
 		{
+			// The same operator mistake one level shallower is already the
+			// unreachable observation; two levels below a regular file the
+			// kernel answers ENOTDIR instead of ENOENT, and both spell the
+			// same fact: nothing is there and nothing can be put there.
+			name: "a path two levels below a regular file is unreachable",
+			want: filestore.PathKindUnreachable,
+			build: func(t *testing.T, root string) string {
+				occupant := filepath.Join(root, "occupant")
+				if err := os.WriteFile(occupant, []byte("x"), 0o600); err != nil {
+					t.Fatalf("WriteFile() error = %v, want nil", err)
+				}
+				return filepath.Join(occupant, "deeper", "child")
+			},
+		},
+		{
 			name: "a path below a symbolic link parent is unreachable",
 			want: filestore.PathKindUnreachable,
 			build: func(t *testing.T, root string) string {
@@ -367,13 +381,6 @@ func TestPathKindAdmitsOnlyObservedKinds(t *testing.T) {
 	if _, err := (filestore.Inspection{}).Kind(); !errors.Is(err, core.ErrFilestoreContract) {
 		t.Fatalf("zero Inspection Kind() error = %v, want errors.Is %v", err, core.ErrFilestoreContract)
 	}
-}
-
-// syscallMkfifo creates a named pipe so the "neither a file nor a directory"
-// kind is proved against a real entry rather than asserted. It is a test-only
-// use of the substrate: production never creates one.
-func syscallMkfifo(path string) error {
-	return syscall.Mkfifo(path, 0o600)
 }
 
 // TestInspectRefusesAnObservationItWasNotAllowedToMake is the negative that

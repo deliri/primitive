@@ -277,8 +277,8 @@ func ParseBuildCommit(value string) (BuildCommit, error) {
 	if len(value)%2 != 0 || size != buildCommitSHA1Bytes && size != buildCommitSHA256Bytes {
 		return BuildCommit{}, releaseIdentityError(buildCommitWidthDiagnostic)
 	}
-	decoded, err := hex.DecodeString(value)
-	if err != nil || hex.EncodeToString(decoded) != value {
+	decoded := make([]byte, size)
+	if err := DecodeCanonicalHex(decoded, value); err != nil {
 		return BuildCommit{}, releaseIdentityError("build commit is not canonical lowercase hexadecimal")
 	}
 	var commit BuildCommit

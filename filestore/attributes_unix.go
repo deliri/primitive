@@ -3,6 +3,7 @@
 package filestore
 
 import (
+	"errors"
 	"io/fs"
 	"math"
 	"syscall"
@@ -36,24 +37,41 @@ func observedOwnership(info fs.FileInfo) Ownership {
 	return Ownership{uid: uint32(status.Uid), gid: uint32(status.Gid), set: true}
 }
 
+// errnoSaysNotADirectory names the errno POSIX kernels answer when an
+// intermediate path component is occupied by something that is not a
+// directory. It is a constant comparison against an error the standard
+// library already returned, not a call, which is why it may live beside the
+// other reads in this one syscall-naming leaf.
+func errnoSaysNotADirectory(err error) bool {
+	return errors.Is(err, syscall.ENOTDIR)
+}
+
 // observedAllocation reads the allocated block count out of the same
 // already-returned structure, under the same admissibility argument.
 //
-// POSIX fixes st_blocks in 512-byte units regardless of the filesystem's
-// preferred block size, so the projection to bytes is a constant, not a
-// second observation. A negative count, or one too large to express as a
-// byte length, is answered as unreported rather than as a fabricated value.
-func observedAllocation(info fs.FileInfo) Allocation {
+// Every platform in this leaf's build tag defines st_blocks in 512-byte units
+// (the historical DEV_BSIZE convention; POSIX itself leaves the unit
+// implementation-defined), so the projection to bytes is a constant, not a
+// second observation. Unreported stays honest only for a host whose FileInfo
+// carries no Stat_t at all. A filesystem that did report and reported garbage,
+// a negative count or one too large to express as a byte length, is a refusal
+// like the sibling size fact: unreported is the vacuously satisfied answer on
+// the reserve question this door exists to decide, and garbage must not flow
+// toward acceptance.
+func observedAllocation(info fs.FileInfo) (Allocation, error) {
 	status, ok := info.Sys().(*syscall.Stat_t)
 	if !ok {
-		return Allocation{}
+		return Allocation{}, nil
 	}
-	if status.Blocks < 0 || uint64(status.Blocks) > math.MaxUint64/512 {
-		return Allocation{}
+	if status.Blocks < 0 {
+		return Allocation{}, sourceError(errors.New("filesystem reported a negative allocated block count"))
+	}
+	if uint64(status.Blocks) > math.MaxUint64/512 {
+		return Allocation{}, sourceError(errors.New("filesystem reported an unrepresentable allocated block count"))
 	}
 	bytes, err := core.NewByteLength(uint64(status.Blocks) * 512)
 	if err != nil {
-		return Allocation{}
+		return Allocation{}, contractError(err)
 	}
-	return Allocation{bytes: bytes, reported: true}
+	return Allocation{bytes: bytes, reported: true}, nil
 }

@@ -3,7 +3,6 @@
 package filestore_test
 
 import (
-	"bytes"
 	"context"
 	"errors"
 	"os"
@@ -34,7 +33,16 @@ func TestInspectReportsRealStorageBehindARegularFile(t *testing.T) {
 		t.Parallel()
 		dir := t.TempDir()
 		path := filepath.Join(dir, "dense")
-		payload := bytes.Repeat([]byte("witness rides primitive\n"), 4096)
+		// The payload is deterministic but high-entropy, because a repeated
+		// phrase is maximally compressible and a filesystem with transparent
+		// compression would then back the file with fewer bytes than it
+		// claims, failing this assertion on correct production code.
+		payload := make([]byte, 96<<10)
+		state := uint64(0x9e3779b97f4a7c15)
+		for index := range payload {
+			state = state*6364136223846793005 + 1442695040888963407
+			payload[index] = byte(state >> 56)
+		}
 		if err := os.WriteFile(path, payload, 0o600); err != nil {
 			t.Fatalf("write dense file: %v", err)
 		}

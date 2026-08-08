@@ -2,7 +2,6 @@ package release
 
 import (
 	"crypto"
-	"crypto/sha256"
 	"encoding/json"
 	"errors"
 	"hash/crc32"
@@ -291,11 +290,7 @@ func manifestFactDigest(f ManifestFact) (core.SHA256Digest, error) {
 	if err != nil {
 		return core.SHA256Digest{}, manifestError(err)
 	}
-	sum := sha256.New()
-	writeDigestFrame(sum, manifestIdentityDomain, body)
-	var value [sha256.Size]byte
-	copy(value[:], sum.Sum(nil))
-	return core.NewSHA256Digest(value), nil
+	return framedDigest(manifestIdentityDomain, body), nil
 }
 
 // ManifestDocument is an untrusted fact and structural Attest envelope.
@@ -472,10 +467,9 @@ func integrityManifestDocument(document ManifestDocument) (ArtifactIntegrity, er
 	if err != nil {
 		return ArtifactIntegrity{}, err
 	}
-	sum := sha256.Sum256(encoded)
 	return newArtifactIntegrity(
 		extent,
-		core.NewSHA256Digest(sum),
+		core.SHA256Of(encoded),
 		core.NewCRC32C(crc32.Checksum(encoded, crc32.MakeTable(crc32.Castagnoli))),
 	)
 }

@@ -14,7 +14,7 @@ const (
 	// PrimitivePackageCount is the number of packages in the complete catalog.
 	PrimitivePackageCount = 26
 	// PrimitiveDirectImportCount is the number of admitted direct import edges.
-	PrimitiveDirectImportCount = 68
+	PrimitiveDirectImportCount = 69
 	// PrimitiveDirectTestImportCount is the number of admitted test-only edges.
 	PrimitiveDirectTestImportCount = 7
 	// PrimitiveMaximumDirectImports caps direct sibling imports per package.
@@ -189,6 +189,7 @@ func PrimitiveArchitecture() ArchitectureCatalog {
 
 			{Importer: PackageExchange, Imported: PackageCore},
 			{Importer: PackageExchange, Imported: PackageContextState},
+			{Importer: PackageExchange, Imported: PackageKeygen},
 			{Importer: PackageExchange, Imported: PackageTemporal},
 			{Importer: PackageFuzzFinder, Imported: PackageCore},
 			{Importer: PackageFuzzFinder, Imported: PackageFilestore},

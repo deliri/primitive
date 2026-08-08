@@ -395,7 +395,7 @@ func TestOwnershipSeparatesUnobservedFromOwnedByRoot(t *testing.T) {
 		t.Fatalf("UID() error = %v, want nil", err)
 	}
 	if uid == 0 && !observed.IsSet() {
-		t.Fatal("a root-owned entry reported itself unobserved, want the set flag to be independent of the value")
+		t.Fatalf("root-owned entry UID = %d with IsSet() = %t, want the set flag independent of the value", uid, observed.IsSet())
 	}
 }
 

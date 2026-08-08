@@ -43,6 +43,11 @@ func validateRun(ctx context.Context, request Request) error {
 }
 
 func beginValidated(ctx context.Context, request Request) (*Execution, error) {
+	// The zero-containment default is resolved exactly once, at this ingress,
+	// so every downstream read of request.Containment sees the containment
+	// that will actually be applied. Request.Validate holds the same
+	// projection to the same rule, so acceptance and execution cannot drift.
+	request.Containment = request.Containment.orDefault()
 	runContext, cancel := context.WithCancelCause(ctx)
 	failures := &streamFailures{cancel: cancel}
 	streams := newCommandStreams(request, failures)
@@ -53,7 +58,11 @@ func beginValidated(ctx context.Context, request Request) (*Execution, error) {
 	}
 	identity := ProcessIdentity(prepared.command.Process.Pid) // #nosec G115 -- a started child's identifier fits the platform pid domain.
 	if err := identity.Validate(); err != nil {
+		// The child is already running on this path, so refusing the handle
+		// must not orphan it: the cancel delivers the kill and the wait reaps
+		// the corpse, because no Execution will exist to do either later.
 		cancel(nil)
+		_ = prepared.command.Wait()
 		return nil, err
 	}
 	return &Execution{
@@ -63,7 +72,7 @@ func beginValidated(ctx context.Context, request Request) (*Execution, error) {
 		cancel:      cancel,
 		parent:      ctx,
 		commandPath: request.Command,
-		containment: request.Containment.orDefault(),
+		containment: request.Containment,
 		identity:    identity,
 	}, nil
 }
@@ -88,7 +97,7 @@ func prepareCommand(
 	command.Stdin = streams.stdin
 	command.Stdout = streams.stdout
 	command.Stderr = streams.stderr
-	containment := request.Containment.orDefault()
+	containment := request.Containment
 	if err := applyContainment(command, containment); err != nil {
 		return preparedCommand{}, err
 	}

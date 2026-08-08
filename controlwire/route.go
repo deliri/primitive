@@ -55,6 +55,11 @@ func (f RouteFamily) String() string {
 	return routeSuffixes()[f]
 }
 
+// OffWireEnum declares RouteFamily as in-process route selection. The enum
+// itself never serializes: what crosses the wire is the URL path RouteContract
+// projects from it, and both ends hold this same closed set.
+func (RouteFamily) OffWireEnum() {}
+
 // RouteContract owns the two facts that decide one control-plane route.
 //
 // The path, method, and replay semantics are projections of those two facts and
@@ -112,5 +117,6 @@ func (c RouteContract) Family() RouteFamily { return c.family }
 
 var (
 	_ core.Validatable = RouteFamily(RouteFamilyUnknown)
+	_ core.OffWireEnum = RouteFamily(RouteFamilyUnknown)
 	_ core.Validatable = RouteContract{}
 )

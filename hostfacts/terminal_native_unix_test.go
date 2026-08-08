@@ -47,7 +47,7 @@ func TestObserveTerminalGeometryNamesEveryRealDescriptorKind(t *testing.T) {
 
 	t.Run("the null device has no terminal geometry", func(t *testing.T) {
 		t.Parallel()
-		null, err := os.OpenFile(os.DevNull, os.O_RDWR, 0)
+		null, err := os.Open(os.DevNull)
 		if err != nil {
 			t.Fatalf("open %s: %v", os.DevNull, err)
 		}
@@ -99,6 +99,11 @@ func TestObserveTerminalGeometryNamesEveryRealDescriptorKind(t *testing.T) {
 		if !ok || failure.Operation != OperationTerminalGeometry {
 			t.Fatalf("ObserveTerminalGeometry(closed) failure = (%+v, %t), want operation %v", failure, ok, OperationTerminalGeometry)
 		}
+		// The strongest assertable contract here is cause presence. The real
+		// substrate answers this path with internal/poll's unexported
+		// file-closing sentinel, returned untranslated by SyscallConn.Control,
+		// so os.ErrClosed is genuinely unreachable and asserting it fails
+		// against correct production code.
 		if failure.Cause == nil {
 			t.Fatalf("ObserveTerminalGeometry(closed) failure carries no native cause; the platform refusal must stay reachable")
 		}

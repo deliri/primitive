@@ -13,7 +13,7 @@ import (
 // with no process-group or signal vocabulary, so a caller is never told a
 // containment exists that nobody can enforce.
 func applyContainment(_ *exec.Cmd, containment Containment) error {
-	if containment.Isolation == IsolationGroup || containment.CancelSignal != CancelSignalKill {
+	if containment.Isolation != IsolationDirect || containment.CancelSignal != CancelSignalKill {
 		return errors.Join(
 			core.ErrProcessUnsupported,
 			errors.New("this host delivers no containment beyond killing the direct child"),

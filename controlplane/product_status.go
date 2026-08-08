@@ -106,33 +106,24 @@ func (s ProductStatus) AdmitsGrant() bool {
 	return s == ProductStatusActive || s == ProductStatusPaymentRetry
 }
 
-// AdmitsOutcome reports whether s may accompany the given Lease outcome.
-//
-// A refusal or a revocation may arrive under any valid status, because an
-// authority refuses for reasons this package does not model. A grant is the
-// constrained case, and it is constrained in one direction only: the statuses
-// that stop work must never arrive carrying permission to continue it.
-func (s ProductStatus) AdmitsOutcome(outcome lease.Outcome) bool {
-	if s.Validate() != nil || outcome.Validate() != nil {
-		return false
-	}
-	if outcome == lease.OutcomeGrant {
-		return s.AdmitsGrant()
-	}
-	return true
-}
-
 // ValidateOutcome closes the exact status a decision may travel beside, for one
 // offering.
 //
-// This is stricter than AdmitsOutcome and is the rule an authenticated document
-// is held to. Every outcome pins its admissible statuses: a grant needs a
-// paying status, a revocation must say revoked, and a refusal must name why.
-// Read-only is the offering-dependent case: it means "your evidence is still
-// readable, you just cannot make more", which is a real product state for Bug
-// and Witness and meaningless for an offering that only produces new work.
-func (s ProductStatus) ValidateOutcome(offering core.Offering, outcome lease.Outcome) error {
-	if err := errors.Join(s.Validate(), offering.Validate(), outcome.Validate()); err != nil {
+// This is the one rule an authenticated document is held to; a weaker
+// outcome-blind sibling predicate was deleted so nothing softer can be reached
+// for. Every outcome pins its admissible statuses: a grant needs a
+// paying status, a revocation must say revoked, and a refusal must name a
+// reason a customer can act on: stopped, upgrade-required, or read-only.
+//
+// The rule is deliberately offering blind. What read-only means to a given
+// product, whether anything remains readable once new work stops, is product
+// meaning, and meaning stays with the product that owns it: the authority
+// names the status without knowing what it describes, exactly as it validates
+// work-unit classes without knowing what they count. A product for which
+// read-only describes nothing simply never issues it, and that policy lives
+// with the issuer and the product, never in this shared validator.
+func (s ProductStatus) ValidateOutcome(outcome lease.Outcome) error {
+	if err := errors.Join(s.Validate(), outcome.Validate()); err != nil {
 		return productStatusError(err)
 	}
 	switch outcome {
@@ -141,22 +132,15 @@ func (s ProductStatus) ValidateOutcome(offering core.Offering, outcome lease.Out
 	case lease.OutcomeRevocation:
 		return admitted(s == ProductStatusRevoked)
 	case lease.OutcomeRefusal:
-		return admitted(s.admitsRefusal(offering))
+		return admitted(s.admitsRefusal())
 	}
 	return consistencyError()
 }
 
-func (s ProductStatus) admitsRefusal(offering core.Offering) bool {
-	if s == ProductStatusStopped || s == ProductStatusUpgradeRequired {
-		return true
-	}
-	return s == ProductStatusReadOnly && offeringAdmitsReadOnly(offering)
-}
-
-// offeringAdmitsReadOnly names the offerings for which read-only is a state a
-// customer can actually be in.
-func offeringAdmitsReadOnly(offering core.Offering) bool {
-	return offering == core.OfferingBug || offering == core.OfferingWitness
+func (s ProductStatus) admitsRefusal() bool {
+	return s == ProductStatusStopped ||
+		s == ProductStatusUpgradeRequired ||
+		s == ProductStatusReadOnly
 }
 
 func admitted(ok bool) error {

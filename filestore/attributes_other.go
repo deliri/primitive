@@ -15,6 +15,12 @@ func observedOwnership(_ fs.FileInfo) Ownership {
 // observedAllocation reports no allocation where the filesystem states none.
 // The unreported value is the honest answer: a reservation check against it
 // is vacuously satisfied, and no file is fabricated into a hole.
-func observedAllocation(_ fs.FileInfo) Allocation {
-	return Allocation{}
+func observedAllocation(_ fs.FileInfo) (Allocation, error) {
+	return Allocation{}, nil
 }
+
+// errnoSaysNotADirectory reports false where no POSIX errno vocabulary
+// exists. Windows answers the same operator mistake with a path-not-found
+// class the standard library already maps to fs.ErrNotExist, so the caller's
+// missing-parent arm covers it without this leaf's help.
+func errnoSaysNotADirectory(error) bool { return false }

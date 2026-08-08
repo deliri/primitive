@@ -44,7 +44,9 @@ func observedTerminalGeometry(file *os.File) (TerminalGeometry, error) {
 	}
 	columns := int32(info.Window.Right) - int32(info.Window.Left) + 1
 	if columns <= 0 || columns > int32(^TerminalColumns(0)) {
-		return newDetachedTerminalGeometry()
+		// The console answered, so attachment was positively observed; only
+		// the reported window is unusable as a width.
+		return newTerminalWithoutGeometry()
 	}
 	return newAttachedTerminalGeometry(TerminalColumns(columns))
 }

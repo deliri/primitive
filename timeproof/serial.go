@@ -5,6 +5,8 @@ import (
 	"encoding/hex"
 	"math/big"
 	"strconv"
+
+	"github.com/deliri/primitive/v2026/core"
 )
 
 const (
@@ -39,8 +41,8 @@ func parseSerialNumber(token string) (SerialNumber, error) {
 		len(token)%2 != 0 {
 		return SerialNumber{}, contractError(nil)
 	}
-	raw, err := hex.DecodeString(token)
-	if err != nil || hex.EncodeToString(raw) != token || raw[0] == 0 {
+	raw := make([]byte, len(token)/2)
+	if err := core.DecodeCanonicalHex(raw, token); err != nil || raw[0] == 0 {
 		return SerialNumber{}, contractError(nil)
 	}
 	return newSerialNumber(new(big.Int).SetBytes(raw))

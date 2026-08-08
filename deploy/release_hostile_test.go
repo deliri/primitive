@@ -9,9 +9,13 @@ import (
 	"errors"
 	"hash/crc32"
 	"io"
+	"net"
 	"net/http"
+	"net/http/httptest"
 	"net/url"
 	"strconv"
+	"strings"
+	"sync"
 	"testing"
 	"time"
 
@@ -27,6 +31,54 @@ import (
 type deployFixture struct {
 	payloads [deploy.ReleaseObjectCount][]byte
 	plan     deploy.ReleasePlan
+}
+
+// loopbackProvider is the real half of the provider proof: an actual TLS
+// server the publication reaches over a real client and server HTTP exchange.
+// Transport dialing is redirected so the signed capabilities keep their
+// vendor-controlled production hosts, the same boundary rule the objectstore
+// suite established. The recordingTransport injector below survives only for
+// narrow failure and rejection shaping, where fabricating a transport loss or
+// proving zero requests is the point; the claimed capability itself must
+// cross a real exchange.
+type loopbackProvider struct {
+	contentTypes []string
+	mu           sync.Mutex
+}
+
+func (p *loopbackProvider) ServeHTTP(writer http.ResponseWriter, request *http.Request) {
+	if _, err := io.Copy(io.Discard, request.Body); err != nil {
+		http.Error(writer, err.Error(), http.StatusInternalServerError)
+		return
+	}
+	p.mu.Lock()
+	p.contentTypes = append(p.contentTypes, request.Header.Get("Content-Type"))
+	generation := len(p.contentTypes)
+	p.mu.Unlock()
+	writer.Header().Set("x-goog-generation", strconv.Itoa(generation))
+	writer.WriteHeader(http.StatusOK)
+}
+
+func (p *loopbackProvider) recorded() []string {
+	p.mu.Lock()
+	defer p.mu.Unlock()
+	return append([]string(nil), p.contentTypes...)
+}
+
+func deployLoopbackClient(t *testing.T, handler http.Handler) objectstore.Client {
+	t.Helper()
+	server := httptest.NewTLSServer(handler)
+	t.Cleanup(server.Close)
+	serverAddress := strings.TrimPrefix(server.URL, "https://")
+	transport := server.Client().Transport.(*http.Transport).Clone()
+	transport.TLSClientConfig = transport.TLSClientConfig.Clone()
+	transport.TLSClientConfig.ServerName = "example.com"
+	dialer := &net.Dialer{}
+	transport.DialContext = func(ctx context.Context, network string, _ string) (net.Conn, error) {
+		return dialer.DialContext(ctx, network, serverAddress)
+	}
+	t.Cleanup(transport.CloseIdleConnections)
+	return deployObjectstoreClient(t, transport)
 }
 
 type recordingTransport struct {
@@ -63,14 +115,15 @@ func TestReleaseGCSUploadsExactManifestOrderAndReturnsReceipts(t *testing.T) {
 	t.Parallel()
 
 	fixture := newDeployFixture(t)
-	transport := &recordingTransport{failAt: -1}
-	client := deployObjectstoreClient(t, transport)
+	provider := &loopbackProvider{}
+	client := deployLoopbackClient(t, provider)
 	receipts, err := deploy.ReleaseGCS(context.Background(), client, fixture.plan)
 	if err != nil {
 		t.Fatalf("deploy.ReleaseGCS() error = %v", err)
 	}
-	if receipts.Count() != deploy.ReleaseObjectCount || transport.requests != deploy.ReleaseObjectCount {
-		t.Fatalf("deployed counts = receipts %d requests %d, want %d", receipts.Count(), transport.requests, deploy.ReleaseObjectCount)
+	served := provider.recorded()
+	if receipts.Count() != deploy.ReleaseObjectCount || len(served) != deploy.ReleaseObjectCount {
+		t.Fatalf("deployed counts = receipts %d requests %d, want %d", receipts.Count(), len(served), deploy.ReleaseObjectCount)
 	}
 	wantContentTypes := [...]string{
 		"application/octet-stream", "application/octet-stream", "application/octet-stream", "application/octet-stream",
@@ -91,8 +144,8 @@ func TestReleaseGCSUploadsExactManifestOrderAndReturnsReceipts(t *testing.T) {
 		if !ok || version.String() != strconv.Itoa(index+1) {
 			t.Fatalf("Receipts.At(%d) version = (%q, %t)", index, version.String(), ok)
 		}
-		if transport.contentTypes[index] != wantContentTypes[index] {
-			t.Fatalf("request %d content type = %q, want %q", index, transport.contentTypes[index], wantContentTypes[index])
+		if served[index] != wantContentTypes[index] {
+			t.Fatalf("request %d content type = %q, want %q", index, served[index], wantContentTypes[index])
 		}
 	}
 }

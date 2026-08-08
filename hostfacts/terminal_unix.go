@@ -45,8 +45,12 @@ func observedTerminalGeometry(file *os.File) (TerminalGeometry, error) {
 		}
 		return TerminalGeometry{}, fail(OperationTerminalGeometry, core.ErrHostFactsObservation, ioctlErr)
 	}
+	if window == nil {
+		return TerminalGeometry{}, fail(OperationTerminalGeometry, core.ErrHostFactsObservation,
+			errors.New("winsize ioctl answered without a window"))
+	}
 	if window.Col == 0 {
-		return newDetachedTerminalGeometry()
+		return newTerminalWithoutGeometry()
 	}
 	return newAttachedTerminalGeometry(TerminalColumns(window.Col))
 }

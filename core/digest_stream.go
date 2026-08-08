@@ -8,8 +8,9 @@ import (
 )
 
 const (
-	digestWriterNilReceiverDiagnostic = "nil digest writer receiver"
-	digestWriterSealedDiagnostic      = "digest writer is sealed"
+	digestWriterNilReceiverDiagnostic   = "nil digest writer receiver"
+	digestWriterUnconstructedDiagnostic = "digest writer was not constructed by NewDigestWriter"
+	digestWriterSealedDiagnostic        = "digest writer is sealed"
 )
 
 // DigestWriter accumulates streamed bytes into one SHA-256 digest and the exact
@@ -38,9 +39,20 @@ type DigestWriter struct {
 // NewDigestWriter returns a writer positioned over an empty stream. The digest
 // of no bytes is a real answer, so an empty stream seals rather than failing;
 // whether emptiness is acceptable is the caller's rule, not this one's.
+//
+// It is the one constructor. A zero DigestWriter holds no sha256 state, so
+// every method refuses it the same way it refuses a nil receiver, rather than
+// dereferencing the missing hash and taking the process down for a caller
+// defect the writer can report.
 func NewDigestWriter() *DigestWriter {
 	return &DigestWriter{digest: sha256.New()}
 }
+
+// Every door repeats the same two refusals inline rather than sharing a
+// helper: a receiver that is nil or skipped NewDigestWriter cannot hold a
+// stream, and both are caller defects to report loudly, never a nil
+// dereference. Inline, the nil guard is visible to nil-flow analysis at each
+// dereference site instead of hiding behind a call.
 
 // Write accumulates data into the running digest.
 //
@@ -54,6 +66,9 @@ func (w *DigestWriter) Write(data []byte) (int, error) {
 	if w == nil {
 		return 0, digestWriterError(digestWriterNilReceiverDiagnostic)
 	}
+	if w.digest == nil {
+		return 0, digestWriterError(digestWriterUnconstructedDiagnostic)
+	}
 	if w.err != nil {
 		return 0, w.err
 	}
@@ -62,7 +77,7 @@ func (w *DigestWriter) Write(data []byte) (int, error) {
 		return 0, w.err
 	}
 	written, _ := w.digest.Write(data)
-	w.count += uint64(written)
+	w.count += uint64(written) // #nosec G115 -- hash.Hash.Write returns the nonnegative count of bytes it consumed.
 	return written, nil
 }
 
@@ -78,6 +93,9 @@ func (w *DigestWriter) Write(data []byte) (int, error) {
 func (w *DigestWriter) Digest() (SHA256Digest, ByteLength, error) {
 	if w == nil {
 		return SHA256Digest{}, ByteLength{}, digestWriterError(digestWriterNilReceiverDiagnostic)
+	}
+	if w.digest == nil {
+		return SHA256Digest{}, ByteLength{}, digestWriterError(digestWriterUnconstructedDiagnostic)
 	}
 	if w.err != nil {
 		return SHA256Digest{}, ByteLength{}, w.err
@@ -101,6 +119,9 @@ func (w *DigestWriter) Digest() (SHA256Digest, ByteLength, error) {
 // mutation. The digest is exactly what Digest would report at this instant;
 // Seal only adds the latch that no further byte may change it.
 func (w *DigestWriter) Seal() (SHA256Digest, ByteLength, error) {
+	if w == nil {
+		return SHA256Digest{}, ByteLength{}, digestWriterError(digestWriterNilReceiverDiagnostic)
+	}
 	digest, length, err := w.Digest()
 	if err != nil {
 		return SHA256Digest{}, ByteLength{}, err
@@ -118,6 +139,9 @@ func (w *DigestWriter) Seal() (SHA256Digest, ByteLength, error) {
 func (w *DigestWriter) Reset() error {
 	if w == nil {
 		return digestWriterError(digestWriterNilReceiverDiagnostic)
+	}
+	if w.digest == nil {
+		return digestWriterError(digestWriterUnconstructedDiagnostic)
 	}
 	w.digest.Reset()
 	w.count = 0

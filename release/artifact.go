@@ -1,10 +1,8 @@
 package release
 
 import (
-	"crypto/sha256"
 	"encoding/json"
 	"errors"
-	"hash"
 	"math"
 	"strings"
 
@@ -461,18 +459,18 @@ func artifactDigest(artifact Artifact) (core.SHA256Digest, error) {
 	if err != nil {
 		return core.SHA256Digest{}, manifestError(err)
 	}
-	sum := sha256.New()
-	writeDigestFrame(sum, artifactIdentityDomain, body)
-	var value [sha256.Size]byte
-	copy(value[:], sum.Sum(nil))
-	return core.NewSHA256Digest(value), nil
+	return framedDigest(artifactIdentityDomain, body), nil
 }
 
-func writeDigestFrame(destination hash.Hash, domain string, body []byte) {
-	// hash.Hash.Write must never return an error. The framing is injective
-	// because each compiler-owned domain is NUL-free and the body begins after
-	// the one NUL separator.
-	_, _ = destination.Write([]byte(domain))
-	_, _ = destination.Write([]byte{0})
-	_, _ = destination.Write(body)
+// framedDigest binds a digest to one compiler-owned domain. The framing is
+// injective because each domain is NUL-free and the body begins after the one
+// NUL separator. The bounded input is assembled once and hashed through
+// Core's one whole-buffer door; every body here is already held complete
+// under this package's document ceilings, so nothing streams.
+func framedDigest(domain string, body []byte) core.SHA256Digest {
+	input := make([]byte, 0, len(domain)+1+len(body))
+	input = append(input, domain...)
+	input = append(input, 0)
+	input = append(input, body...)
+	return core.SHA256Of(input)
 }

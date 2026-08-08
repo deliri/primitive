@@ -56,5 +56,20 @@ func openPseudoTerminalSlave(t *testing.T) *os.File {
 			t.Fatalf("close pty slave: %v", err)
 		}
 	})
+	// The name above is derived from an undocumented xnu convention, so the
+	// convention is proven per run rather than assumed: the opened device must
+	// carry the same minor the master's Rdev names, or the test would be
+	// perturbing some other tty-class descriptor it does not own.
+	slaveInfo, err := slave.Stat()
+	if err != nil {
+		t.Fatalf("stat pty slave: %v", err)
+	}
+	slaveStat, ok := slaveInfo.Sys().(*syscall.Stat_t)
+	if !ok {
+		t.Fatalf("pty slave Stat_t = %T, want *syscall.Stat_t", slaveInfo.Sys())
+	}
+	if got, want := slaveStat.Rdev&0xffffff, stat.Rdev&0xffffff; got != want {
+		t.Fatalf("opened slave minor = %d, want the master's slave minor %d: the name convention drifted", got, want)
+	}
 	return slave
 }

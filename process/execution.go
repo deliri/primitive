@@ -24,21 +24,45 @@ type Execution struct {
 	commandPath core.AbsolutePath
 	identity    ProcessIdentity
 	waited      atomic.Bool
+	reaped      atomic.Bool
 	containment Containment
 }
 
 // Identity returns the platform identifier of the started child, for durable
 // execution records and diagnostics.
 func (e *Execution) Identity() (ProcessIdentity, error) {
+	if err := e.usable(); err != nil {
+		return 0, err
+	}
 	if err := e.identity.Validate(); err != nil {
 		return 0, err
 	}
 	return e.identity, nil
 }
 
+// usable reports the refusal every supervision door shares: an Execution that
+// is nil or was not started by Begin holds no child, and both are caller
+// defects to report loudly rather than a nil dereference into os/exec.
+func (e *Execution) usable() error {
+	if e == nil || e.prepared.command == nil || e.cancel == nil {
+		return contractError("execution was not started by Begin")
+	}
+	return nil
+}
+
 // Deliver addresses one admitted signal to the child, or to the whole group
 // the child leads under group isolation.
 func (e *Execution) Deliver(signal CancelSignal) error {
+	if err := e.usable(); err != nil {
+		return err
+	}
+	// Supervision is scoped to the wait being in flight. Once Wait has
+	// returned, the identity is a stored number the kernel may have handed to
+	// an unrelated process or group, and signaling it would be exactly the
+	// stored-number-later delivery the ProcessIdentity contract forbids.
+	if e.reaped.Load() {
+		return contractError("execution was already reaped")
+	}
 	if err := signal.Validate(); err != nil {
 		return err
 	}
@@ -62,10 +86,14 @@ func (e *Execution) Terminate() error {
 // contract violation, not a cached answer, because the first caller may
 // still be acting on the result.
 func (e *Execution) Wait() (Result, error) {
+	if err := e.usable(); err != nil {
+		return Result{}, err
+	}
 	if !e.waited.CompareAndSwap(false, true) {
 		return Result{}, contractError("execution was already reaped")
 	}
 	defer e.cancel(nil)
+	defer e.reaped.Store(true)
 	return waitCommand(waitRequest{
 		parent:      e.parent,
 		commandPath: e.commandPath,

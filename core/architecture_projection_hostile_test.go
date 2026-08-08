@@ -137,8 +137,8 @@ func TestArchitectureProjectionMatcherSyntheticRedGreenRatchet(t *testing.T) {
 			name: "plan exchange purpose drift is red",
 			source: strings.Replace(
 				plan,
-				"| 4 | `exchange` | Bounded client and server boundary policy over `net/http` | `core`, `contextstate`, `temporal` | none |",
-				"| 4 | `exchange` | Unratcheted HTTP behavior | `core`, `contextstate`, `temporal` | none |",
+				"| 4 | `exchange` | Bounded client and server boundary policy over `net/http` | `core`, `contextstate`, `keygen`, `temporal` | none |",
+				"| 4 | `exchange` | Unratcheted HTTP behavior | `core`, `contextstate`, `keygen`, `temporal` | none |",
 				1,
 			),
 			kind:          architectureProjectionPlan,

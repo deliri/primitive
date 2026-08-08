@@ -65,7 +65,6 @@ func TestCloudidentityProductionStructsHaveCompilerVisibleDataFlowRoles(
 	wantImports := []string{
 		"bytes",
 		"context",
-		"encoding/hex",
 		"encoding/xml",
 		"errors",
 		"fmt",

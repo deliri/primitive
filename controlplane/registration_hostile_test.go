@@ -16,8 +16,8 @@ import (
 // decides whether a signed decision is self-consistent.
 //
 // The rule has two halves and they belong to different owners. Which status may
-// travel beside an outcome is ProductStatus's, and ValidateOutcome states it for
-// one offering. Whether a credential accompanies the decision is this document's,
+// travel beside an outcome is ProductStatus's, and ValidateOutcome states it
+// offering blind. Whether a credential accompanies the decision is this document's,
 // because only the document knows a grant hands one over and a revocation must
 // not. The table below is the product of the two, computed from the delegated
 // rule rather than restated, so a change to either owner has to move this test
@@ -25,15 +25,12 @@ import (
 //
 // The refusal arm is what this exists for. A refusal that names an active status
 // is a signed contradiction: the authority is simultaneously saying the
-// installation may not proceed and that nothing is wrong. Read-only is the case
-// that cannot be decided without the offering, which is why the offering the
-// header names is the one that must reach the rule.
+// installation may not proceed and that nothing is wrong.
 func TestRegistrationPayloadHoldsEveryOutcomeToTheStatusRule(t *testing.T) {
 	t.Parallel()
 
 	base := issueTestRegistration(t).document.Payload
 	_, signer := testSigningKey(t, 1)
-	offering := base.Header.Offering
 	outcomes := [...]lease.Outcome{lease.OutcomeGrant, lease.OutcomeRefusal, lease.OutcomeRevocation}
 
 	statuses := validProductStatuses(t)
@@ -47,10 +44,10 @@ func TestRegistrationPayloadHoldsEveryOutcomeToTheStatusRule(t *testing.T) {
 
 				payload := registrationPayloadFor(t, base, signer, status, outcome)
 				// want is derived, never spelled. ValidateOutcome owns which
-				// status may accompany the outcome for this offering; the
+				// status may accompany the outcome, offering blind; the
 				// credential half is this document's and is stated here because
 				// it is stated nowhere else.
-				wantAdmitted := status.ValidateOutcome(offering, outcome) == nil
+				wantAdmitted := status.ValidateOutcome(outcome) == nil
 				gotErr := payload.Validate()
 				if wantAdmitted && gotErr != nil {
 					t.Fatalf("RegistrationPayload.Validate() error = %v, want nil for %v beside a %v", gotErr, status, outcome)
@@ -102,13 +99,12 @@ func TestRegistrationPayloadRefusalNamesWhyAcrossTheWholeStatusDomain(t *testing
 		})
 	}
 
-	// Read-only is the one status whose verdict the offering decides, so it is
-	// asserted against the offering this payload actually carries rather than
-	// against a remembered answer.
+	// Read-only refusals are offering blind, so the payload must be admitted
+	// regardless of the offering it happens to carry; what read-only means to
+	// that product is the product's business, not this document's.
 	payload := registrationPayloadFor(t, base, signer, controlplane.ProductStatusReadOnly, lease.OutcomeRefusal)
-	wantReadOnly := controlplane.ProductStatusReadOnly.ValidateOutcome(payload.Header.Offering, lease.OutcomeRefusal) == nil
-	if gotErr := payload.Validate(); wantReadOnly != (gotErr == nil) {
-		t.Fatalf("read-only refusal for %v: RegistrationPayload.Validate() error = %v, want admitted %t", payload.Header.Offering, gotErr, wantReadOnly)
+	if gotErr := payload.Validate(); gotErr != nil {
+		t.Fatalf("read-only refusal for %v: RegistrationPayload.Validate() error = %v, want nil for every offering alike", payload.Header.Offering, gotErr)
 	}
 }
 

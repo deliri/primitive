@@ -434,21 +434,21 @@ func (p RegistrationPayload) validateCertificate(subject lease.Subject) error {
 // Lease outcome it arrived with.
 //
 // The rule has two halves with different owners. Which status may travel beside
-// an outcome is ProductStatus's, and ValidateOutcome states it for one offering,
-// so the offering this header names is the one that decides the read-only case.
+// an outcome is ProductStatus's, and ValidateOutcome states it offering blind:
+// what a status means to a given product stays with the product, never here.
 // This document restates none of it. What stays here is the half only a document
 // knows: a grant hands over a credential and a revocation must not, which is a
 // fact about this shape rather than about any status.
 //
-// AdmitsOutcome stood here and was too weak for a signed document. It is
-// offering blind and admits a refusal under any valid status, so a signed
-// refusal could name an active installation, which is a contradiction the
-// authority would have put its own signature on. ValidateOutcome's own contract
-// says it is the rule an authenticated document is held to, and the check-in
-// response already held itself to it.
+// A weaker predicate stood here and was too weak for a signed document. It
+// admitted a refusal under any valid status, so a signed refusal could name an
+// active installation, which is a contradiction the authority would have put
+// its own signature on. ValidateOutcome's own contract says it is the rule an
+// authenticated document is held to, and the check-in response already held
+// itself to it.
 func (p RegistrationPayload) validateOutcome() error {
 	outcome := p.Lease.Decision.Outcome()
-	if err := p.Header.Status.ValidateOutcome(p.Header.Offering, outcome); err != nil {
+	if err := p.Header.Status.ValidateOutcome(outcome); err != nil {
 		return err
 	}
 	switch outcome {

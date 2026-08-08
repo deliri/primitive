@@ -215,7 +215,7 @@ func Inspect(ctx context.Context, path core.AbsolutePath) (Inspection, error) {
 // does not expose.
 func parentHoldsEntries(parent core.AbsolutePath) (bool, error) {
 	info, err := os.Stat(parent.String())
-	if errors.Is(err, fs.ErrNotExist) {
+	if errors.Is(err, fs.ErrNotExist) || errnoSaysNotADirectory(err) {
 		return false, nil
 	}
 	if err != nil {
@@ -231,6 +231,12 @@ func inspectionForEntry(info fs.FileInfo, err error) (Inspection, error) {
 	if err != nil {
 		return Inspection{}, sourceError(err)
 	}
+	// Lstat's contract makes info non-nil exactly when err is nil; this guard
+	// makes that contract compiler-visible and fails closed if a filesystem
+	// ever breaks it, instead of dereferencing nil three readers later.
+	if info == nil {
+		return Inspection{}, sourceError(fs.ErrInvalid)
+	}
 	modified, err := temporal.NewInstant(info.ModTime())
 	if err != nil {
 		return Inspection{}, contractError(err)
@@ -239,11 +245,15 @@ func inspectionForEntry(info fs.FileInfo, err error) (Inspection, error) {
 	if err != nil {
 		return Inspection{}, err
 	}
+	allocation, err := observedAllocation(info)
+	if err != nil {
+		return Inspection{}, err
+	}
 	inspection := Inspection{
 		kind:        kindForMode(info.Mode()),
 		modified:    modified,
 		size:        size,
-		allocation:  observedAllocation(info),
+		allocation:  allocation,
 		permissions: observedPermissions(info),
 		ownership:   observedOwnership(info),
 	}

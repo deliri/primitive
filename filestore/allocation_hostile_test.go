@@ -23,9 +23,9 @@ func TestAllocationSeparatesReportedFactsFromFabrication(t *testing.T) {
 	cases := []struct {
 		name         string
 		allocation   Allocation
+		wantBytes    uint64
 		wantErr      bool
 		wantReported bool
-		wantBytes    uint64
 		wantBytesErr bool
 	}{
 		{

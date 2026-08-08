@@ -1,8 +1,6 @@
 package lease
 
 import (
-	"crypto/sha256"
-
 	"github.com/deliri/primitive/v2026/core"
 )
 
@@ -27,7 +25,10 @@ func DeviceIDForPublicKey(key core.Ed25519PublicKey) (DeviceID, error) {
 	if err != nil {
 		return DeviceID{}, contractError(err)
 	}
-	digest := sha256.Sum256(encoded)
+	digest, err := core.SHA256Of(encoded[:]).Bytes()
+	if err != nil {
+		return DeviceID{}, contractError(err)
+	}
 	var value [IdentifierBytes]byte
 	copy(value[:], digest[:IdentifierBytes])
 	device, err := NewDeviceID(value)

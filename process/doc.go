@@ -6,9 +6,11 @@
 //
 // Process does not interpret a shell language, construct pipelines, schedule
 // work, or retain a process registry. It does own the isolation and signal a
-// caller declares in Request.Containment: a child may lead its own process
-// group so a cancellation addresses the whole tree, and the cancel signal is
-// a closed choice rather than a hidden default. Begin hands back a running
+// caller declares in Request.Containment: on POSIX hosts a child may lead its
+// own process group so a cancellation addresses the whole tree (Windows has
+// no group signal and refuses that request rather than delivering it to one
+// process), and the cancel signal is a closed choice. A fully zero
+// Containment names the documented direct-kill default. Begin hands back a running
 // Execution a supervisor holds to signal, terminate, or interrogate the child
 // while the reaping wait is in flight; Alive answers whether one identity
 // still names a process. Registry and force-drain policy above one child stay

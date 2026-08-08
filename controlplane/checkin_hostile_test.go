@@ -201,7 +201,18 @@ func testCheckInWindow() controlplane.UsageWindow {
 func TestCheckInCarriesEveryOfferingThroughOneShape(t *testing.T) {
 	t.Parallel()
 
-	offerings := []core.Offering{core.OfferingBug, core.OfferingWitness, core.OfferingPeachfuzz}
+	// The offering list is derived by walking the closed byte domain, never
+	// spelled, so a product added to core.Offering joins this obliviousness
+	// proof without anyone remembering to add it here.
+	var offerings []core.Offering
+	for value := 0; value <= 255; value++ {
+		if offering := core.Offering(value); offering.IsValid() {
+			offerings = append(offerings, offering)
+		}
+	}
+	if len(offerings) < 3 {
+		t.Fatalf("admitted offerings = %d, want at least the three shipped products", len(offerings))
+	}
 	for _, offering := range offerings {
 		t.Run(offering.String(), func(t *testing.T) {
 			t.Parallel()

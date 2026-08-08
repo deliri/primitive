@@ -116,7 +116,6 @@ func TestOpenRootConfinesEveryPathToTheDirectoryItOpened(t *testing.T) {
 func TestOpenRootAcceptsTheDirectoriesProductsKeep(t *testing.T) {
 	t.Parallel()
 
-	base := t.TempDir()
 	cases := []struct {
 		name    string
 		suffix  string
@@ -140,7 +139,7 @@ func TestOpenRootAcceptsTheDirectoriesProductsKeep(t *testing.T) {
 		t.Run(tc.name, func(t *testing.T) {
 			t.Parallel()
 
-			path := filepath.Join(base, tc.suffix)
+			path := filepath.Join(t.TempDir(), tc.suffix)
 			if err := os.MkdirAll(path, openRootDirectoryPermissions); err != nil {
 				t.Fatalf("MkdirAll(%s) error = %v, want nil", tc.suffix, err)
 			}

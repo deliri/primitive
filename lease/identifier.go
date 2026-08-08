@@ -35,9 +35,7 @@ func parseIdentifier(text string) (identifier, error) {
 		return identifier{}, contractError(errors.New("lease identifier extent is invalid"))
 	}
 	var value [IdentifierBytes]byte
-	written, err := hex.Decode(value[:], []byte(text))
-	if err != nil || written != len(value) ||
-		hex.EncodeToString(value[:]) != text {
+	if err := core.DecodeCanonicalHex(value[:], text); err != nil {
 		return identifier{}, contractError(errors.New("lease identifier encoding is invalid"), err)
 	}
 	return newIdentifier(value)

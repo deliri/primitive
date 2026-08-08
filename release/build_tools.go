@@ -3,7 +3,6 @@ package release
 import (
 	"bytes"
 	"context"
-	"crypto/sha256"
 	"debug/buildinfo"
 	"errors"
 	"io"
@@ -201,14 +200,16 @@ func inspectBuildTool(path core.AbsolutePath) (_ *buildinfo.BuildInfo, digest co
 	if _, err := file.Seek(0, io.SeekStart); err != nil {
 		return nil, core.SHA256Digest{}, contractError(errors.New("rewind build tool executable"), err)
 	}
-	hash := sha256.New()
+	writer := core.NewDigestWriter()
 	buffer := make([]byte, 64<<10)
-	if _, err := io.CopyBuffer(hash, file, buffer); err != nil {
+	if _, err := io.CopyBuffer(writer, file, buffer); err != nil {
 		return nil, core.SHA256Digest{}, contractError(errors.New("digest build tool executable"), err)
 	}
-	var value [sha256.Size]byte
-	copy(value[:], hash.Sum(nil))
-	return build, core.NewSHA256Digest(value), nil
+	toolDigest, _, err := writer.Seal()
+	if err != nil {
+		return nil, core.SHA256Digest{}, contractError(errors.New("digest build tool executable"), err)
+	}
+	return build, toolDigest, nil
 }
 
 func probeGoVersion(

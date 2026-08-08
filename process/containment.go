@@ -34,10 +34,15 @@ func isolationDiagnostics() [isolationLimit]string {
 	}
 }
 
+// isolationOutsideDomainDiagnostic is the one spelling of the isolation
+// refusal, shared by the enum's own gate and every platform leaf's
+// fail-closed default arm.
+const isolationOutsideDomainDiagnostic = "isolation is outside the admitted domain"
+
 // Validate rejects values outside the closed isolation domain.
 func (i Isolation) Validate() error {
 	if !i.IsValid() {
-		return contractError("isolation is outside the admitted domain")
+		return contractError(isolationOutsideDomainDiagnostic)
 	}
 	return nil
 }
@@ -120,9 +125,13 @@ func (s CancelSignal) String() string {
 }
 
 // Containment states how the direct child is isolated and how a cancellation
-// reaches it. Every request states both: the two facts decide who receives
-// which signal, and a request that left them implicit would be relying on a
-// hidden default this package refuses to own.
+// reaches it. The two facts decide who receives which signal, and they are
+// stated together or not at all: a fully zero Containment names the one
+// documented conservative shape, a direct child killed on cancellation,
+// because running one command and reading its output is the common case and
+// spelling the same two members in every such request is ceremony. Naming one
+// member and leaving the other zero is a real mistake and stays invalid, so a
+// half-stated intent surfaces instead of being papered over.
 type Containment struct {
 	Isolation    Isolation
 	CancelSignal CancelSignal

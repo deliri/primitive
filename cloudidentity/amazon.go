@@ -2,7 +2,6 @@ package cloudidentity
 
 import (
 	"context"
-	"encoding/hex"
 	"encoding/xml"
 	"net/url"
 	"strconv"
@@ -372,13 +371,8 @@ func validAmazonExpiry(value string) bool {
 
 func validAmazonSignature(value string) bool {
 	const signatureBytes = 32
-	if len(value) != hex.EncodedLen(signatureBytes) {
-		return false
-	}
-	decoded, err := hex.DecodeString(value)
-	return err == nil &&
-		len(decoded) == signatureBytes &&
-		hex.EncodeToString(decoded) == value
+	decoded := make([]byte, signatureBytes)
+	return core.DecodeCanonicalHex(decoded, value) == nil
 }
 
 // exactAmazonQueryDomain admits only fields of the closed query domain. Every

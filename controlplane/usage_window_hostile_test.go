@@ -508,17 +508,17 @@ func TestUsageWindowRoundTripPreservesAbsentAndEmptyLists(t *testing.T) {
 		{
 			name:   "absent lists render as null",
 			window: testWindow(nil, nil),
-			want:   `{"units":null,"outcomes":null,"bounds":{"Start":"10","End":"20"},"freshness":"20"}`,
+			want:   `{"units":null,"outcomes":null,"bounds":{"start":"10","end":"20"},"freshness":"20"}`,
 		},
 		{
 			name:   "empty lists render as empty arrays",
 			window: testWindow([]controlplane.WorkUnitCount{}, []controlplane.OutcomeCount{}),
-			want:   `{"units":[],"outcomes":[],"bounds":{"Start":"10","End":"20"},"freshness":"20"}`,
+			want:   `{"units":[],"outcomes":[],"bounds":{"start":"10","end":"20"},"freshness":"20"}`,
 		},
 		{
 			name:   "a reported class renders as an ordinal and a count",
 			window: testWindow(unitsOf(7, 2), outcomesOf(4, 2)),
-			want:   `{"units":[{"class":7,"count":2}],"outcomes":[{"class":4,"count":2}],"bounds":{"Start":"10","End":"20"},"freshness":"20"}`,
+			want:   `{"units":[{"class":7,"count":2}],"outcomes":[{"class":4,"count":2}],"bounds":{"start":"10","end":"20"},"freshness":"20"}`,
 		},
 	}
 
@@ -613,9 +613,9 @@ func TestNewOutcomeClassAdmitsExactlyTheOrdinalsValidateAdmits(t *testing.T) {
 // and an acceptance produces a value that validates and re-encodes to bytes that
 // decode to the same value.
 func FuzzUsageWindowDecode(f *testing.F) {
-	f.Add([]byte(`{"units":null,"outcomes":null,"bounds":{"Start":"10","End":"20"},"freshness":"20"}`))
-	f.Add([]byte(`{"units":[{"class":1,"count":1}],"outcomes":[{"class":1,"count":1}],"bounds":{"Start":"10","End":"20"},"freshness":"20"}`))
-	f.Add([]byte(`{"units":[{"class":0,"count":1}],"outcomes":[],"bounds":{"Start":"10","End":"20"},"freshness":"20"}`))
+	f.Add([]byte(`{"units":null,"outcomes":null,"bounds":{"start":"10","end":"20"},"freshness":"20"}`))
+	f.Add([]byte(`{"units":[{"class":1,"count":1}],"outcomes":[{"class":1,"count":1}],"bounds":{"start":"10","end":"20"},"freshness":"20"}`))
+	f.Add([]byte(`{"units":[{"class":0,"count":1}],"outcomes":[],"bounds":{"start":"10","end":"20"},"freshness":"20"}`))
 	f.Add([]byte(`{}`))
 	f.Add([]byte(``))
 

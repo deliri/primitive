@@ -1,6 +1,6 @@
 # Primitive 2026 Ledger
 
-Last updated: `2026-08-03`
+Last updated: `2026-08-07`
 
 ## Current
 
@@ -2728,3 +2728,151 @@ compiler contract and the interface-absence test is the negative proof.
   this package in zero files, which is the alarm the both-ends test exists to
   raise, and the window builder and payload assembly remain pending before a
   check-in can be produced end to end.
+- `2026-08-07`: A day of Witness-migration doors landed without their ledger
+  records; this entry closes the gap. Registration now holds its signed
+  document to the same `ValidateOutcome` rule the check-in response obeys, with
+  hostile tables over the outcome and status cross product. Hostfacts observes
+  terminal attachment and column geometry through one `TIOCGWINSZ` leaf on
+  POSIX and `GetConsoleScreenBufferInfo` on Windows, proved against real
+  pseudo terminals on Darwin and Linux. Filestore's `Inspect` reports allocated
+  storage from the `Stat_t` blocks the standard library already returned, with
+  a sparse-file native proof. Process owns child containment, the running
+  `Execution` handle, liveness, and the working directory, and a fully zero
+  `Containment` fills to the direct-kill default. Keygen owns `RandomUint64`
+  and the bounded public `RandomToken` at the entropy boundary. Core gained
+  `SHA256Of` for whole buffers and `DigestWriter.Digest` and `Reset` for
+  mid-stream peeks and pooled reuse.
+- `2026-08-07`: A whole-repository review against `_docs/primitive_policy.md`
+  swept the week's doors and the standing packages; five independent reviewers
+  reported and every fix below was landed red first with focused, race, vet,
+  formatting, field-alignment, and cross-compilation proof on the touched
+  packages. The user reviewed the reported slices and authorized this commit
+  and push with a version bump.
+  - Degenerate receivers no longer crash: `core.DigestWriter`,
+    `process.Execution`, and `shutdown.Controller` all refused only the nil
+    pointer while `new(T)` held nil internals and panicked in `Write`, `Digest`,
+    `Reset`, `Deliver`, `Wait`, and `Close`; every door now refuses an
+    unconstructed receiver with its package contract identity, and the one
+    constructor is named in each refusal.
+  - The process platform leaves read the three-state `Isolation` enum as a
+    boolean, so an unknown isolation silently rode the direct arm;
+    `applyContainment` and `deliverSignal` now switch explicitly and refuse
+    outside the admitted domain, the same fail-closed discriminator contract
+    the 2026-08-02 sweep installed elsewhere.
+  - Windows accepted `IsolationGroup` while `deliverSignal` could only ever
+    kill the direct child, a containment nobody could enforce; the request is
+    now refused before the child exists, and `CAPABILITIES.md` plus `doc.go`
+    scope whole-tree cancellation to POSIX hosts.
+  - The zero-`Containment` default had three independent derivation sites and
+    public prose that still promised the package owned no hidden default; the
+    default now resolves once at `beginValidated` ingress and the `Containment`
+    and package documentation state the deliberate zero contract.
+  - A live pseudo terminal reporting zero width was recorded as "not a
+    terminal", a detachment nobody observed; the attachment domain gained
+    `TerminalAttachmentTerminalWithoutGeometry`, both platform leaves return
+    it, `Columns` still refuses, and the pty proof pins the new member plus
+    the 65535 ceiling on a real terminal.
+  - Filestore's Unix allocation leaf converted garbage `st_blocks` (negative
+    or unrepresentable) into the vacuously satisfied "unreported" answer on
+    the exact reserve question the door decides; it now refuses through
+    `sourceError` like the sibling size fact, and the `Inspect` assembly
+    propagates the refusal.
+  - The filestore Windows test binary no longer compiled (`syscall.Mkfifo` in
+    an untagged test file), breaking the canonical gate's cross-compile
+    ratchet; the FIFO helper moved to a unix leaf with an `errors.ErrUnsupported`
+    twin, and Windows and Linux test binaries cross-compile again.
+  - `process/execution_native_test.go` encoded unix signal facts with no build
+    tag and was red on Windows; it is now unix-tagged, and the Windows
+    counterpart proofs are named below as an open surface.
+  - Controlplane's `AdmitsOutcome` survived c8a7e98 as a second, weaker,
+    exported authority for the outcome question with zero production callers;
+    it is deleted, `ValidateOutcome` is the one rule, and the two incidental
+    test uses moved to the surviving contracts.
+  - `CAPABILITIES.md` rows were trued: hostfacts names all nine doors, the
+    two nonce rows no longer contradict each other on zero semantics,
+    `RandomUint64` is scoped to full-width draws, and the group-isolation row
+    carries the Windows refusal.
+  Three findings were then ruled on and executed the same day.
+  `ProductStatus.ValidateOutcome` is offering blind: the read-only refusal is
+  admitted for every product alike, `offeringAdmitsReadOnly` and the offering
+  parameter are deleted, and what read-only means to a product moves to the
+  issuer and the product during OGS consumer surgery. The usage watermark
+  gained its third domain constant, so genesis, window, and chain digests can
+  never be presented as one another, and `AdvanceUsageWatermark` now takes the
+  typed `UsageWindow` and derives the one canonical form itself instead of
+  accepting raw bytes. Exchange gained the `keygen` production edge in the
+  catalog, the policy table, and the README projection together;
+  `randomJitter` draws through `keygen.RandomUint64` and an entropy failure
+  keeps keygen's identity instead of masquerading as transport.
+  The sweep continued past the rulings: `core.DecodeCanonicalHex` is now the
+  one exported hex admission rule, with the native `hex` cause preserved and a
+  hostile spelling table, and the seven restatements in attest, timeproof
+  (nonce and serial), cloudidentity, lease, receipt, and core's build commit
+  all delegate to it. Four of the nine hand-rolled sha256 sites moved to the
+  core doors (`SHA256Of` for lease device identity and release artifact
+  integrity, `DigestWriter` as the copy destination for release build-tool and
+  metadata-asset streaming). Execution supervision now refuses `Deliver` and
+  `Terminate` once `Wait` has returned, proved against a real reaped child, so
+  a stored number can never address a recycled process or group. The begin
+  path that refuses an invalid child identity now reaps the started child
+  instead of orphaning it. The six new process types joined the witness block
+  with `Validatable` and `OffWireEnum` declarations, and the unix liveness
+  leaf states why the x/sys null-signal probe is taken over `os.FindProcess`.
+  A second pass the same evening closed the rest of the reviewers' surfaces.
+  `filestore.Inspect` now answers `<file>/deeper/child` as unreachable through
+  an `errnoSaysNotADirectory` read in the one syscall-naming leaf, with the
+  two-below-file boundary row proved red first. The sha256 unification is
+  complete: the three domain-framed release identity digests collapsed into
+  one `framedDigest` over `core.SHA256Of` with identical bytes (the signed
+  golden vectors are the proof), objectstore's dual-digest stream peeks
+  through `DigestWriter.Digest` and its upload-capability commitment frames
+  through `SHA256Of`, and release's artifact inspection streams into a
+  `DigestWriter`; timeproof's five remaining `sha256.Sum256` calls are raw
+  protocol-byte comparisons inside its CMS verifier leaf and stay direct
+  substrate use by design. `RandomToken` returns a sealed `Token` whose zero
+  value refuses, with the surface and inventory ratchets extended. The usage
+  window's interval now marshals through a controlplane-owned bounds wire
+  projection with snake_case members, the check-in golden was regenerated from
+  the producer, and the fuzz seeds moved with it. `UsageDisposition` has an
+  exhaustive byte-domain walk including the watermark answer per member, all
+  twelve document ceilings refuse an oversized input in one table, and the
+  check-in one-shape proof derives its offerings by walking the closed byte
+  domain instead of pinning three names. Hostfacts and process gained
+  x/sys-confinement ratchets that name their exact platform leaf files and go
+  red when a leaf rots vacuous. The group-reap proof now watches the announced
+  descendant die through `process.Alive`, the reaped-child liveness proof
+  polls to gone instead of accepting either answer, a lingering child under a
+  fully zero containment is proved killed on cancellation, `observedAllocation`
+  has a direct boundary table over a real `Stat_t` carrier including both
+  refusal identities and the exact x512 constant, the dense-file native proof
+  writes an incompressible payload, the token table covers the maximum
+  representable count, and the darwin pty helper verifies the opened slave's
+  minor against the master per run. `errorIdentityParents` split by family
+  before its next member could cross the complexity line. Deploy's happy-path
+  publication now crosses a real TLS client and server exchange through
+  redirected dialing, with the fabricated transport retained only for failure
+  and zero-request shaping.
+  The Windows counterpart proofs now exist as windows-tagged native tests in
+  process and hostfacts covering exactly those facts: containment Windows
+  cannot deliver is refused before the child exists, a killed child reports an
+  exit and no signal with its identity polling to gone, and pipes, files, and
+  closed handles classify honestly. The Darwin host cross-compiles both test
+  binaries; executing them on a real Windows kernel is the one remaining
+  proof, and it needs a Windows runner.
+  The full battery then ran clean end to end: all fifty-one benchmarks with
+  allocation flat across input extents (attest 64KiB to 1MiB at nineteen
+  allocations, process and objectstore streams flat to 10MiB, hostfacts
+  parsers byte-identical from 1KiB to 1MiB, exchange allocating by content
+  rather than by limit, three zero-allocation ratchets holding), then go fix,
+  vet, fieldalignment, production gocyclo, goconst, nilaway, errcheck,
+  staticcheck, both deadcode passes, govulncheck, gosec, witness-lint, the
+  ordinary suite, and the doubled shuffled race suite, every one at zero
+  findings. Closing that battery surfaced and fixed its own tail: the
+  isolation refusal diagnostic became one shared constant, nilaway-visible
+  inline guards replaced the helper-hidden ones with a real winsize nil guard
+  gained in the unix terminal leaf, the opaque usage classes own canonical
+  decimal JSON and diagnostics, RouteFamily and TerminalColumns declared
+  off-wire, route and patience domains gained the walks that reach every
+  door deadcode found unreached, two err shadows were renamed, two G115
+  conversions carry their bounds justification, and the token redaction proof
+  searches the rendering rather than the error contract.

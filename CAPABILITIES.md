@@ -24,7 +24,7 @@ transaction run this same stack, so a wire type has exactly one home.
 | `fuzzfinder` | Finding Go fuzz corpus and crasher artifacts in a rooted directory with bounded memory and explicit partial accounting. |
 | `garble` | Garble tool identity, deterministic seed derivation, and the Garble-owned prefix of a typed build intent. |
 | `gate` | Turning one authentic lease assessment into permission to begin new paid work. |
-| `hostfacts` | Bounded read-only facts about the current host: disk capacity and pressure assessment (a free-space floor at or above device capacity is refused as unsatisfiable), OOM banner classification, terminal attachment and column geometry of an open descriptor. |
+| `hostfacts` | Bounded read-only facts about the current host: disk capacity and pressure assessment (a free-space floor at or above device capacity is refused as unsatisfiable), Go runtime memory (`AssessGoMemory`), physical memory (`ObservePhysicalMemory`), the effective workload memory limit under cgroups (`ObserveEffectiveWorkloadMemoryLimit`), directory tree measurement (`MeasureTree`), the running platform (`CurrentPlatform`), OOM banner classification, and terminal attachment and column geometry of an open descriptor (a terminal that reports zero width is a terminal without geometry, never a fabricated detachment). |
 | `keygen` | Exact Ed25519 signing keys, bounded generic secret material, one uniform `RandomUint64`, and bounded public random tokens (`RandomToken`) from Go's production CSPRNG. **The entropy boundary.** |
 | `lease` | Verifying and assessing one fixed-size OGS-signed commercial decision. Device identity, subjects, entitlements, grants, refusals, revocations. |
 | `objectstore` | One exact bounded transfer through an already-issued S3, GCS, or Cloudflare Images HTTPS capability. Signed URLs, signed headers, upload targets, upload capabilities and their commitments. |
@@ -43,8 +43,8 @@ transaction run this same stack, so a wire type has exactly one home.
 | --- | --- |
 | signing, verifying, envelopes, trust sets | `attest` |
 | random bytes, keys, secrets | `keygen` — never `crypto/rand` directly |
-| a random nonce or device label | `keygen.RandomToken` — a bounded public draw, all-zero allowed |
-| a random seed or salt integer | `keygen.RandomUint64` — never `rand.Int` from a product |
+| a local random identifier or device label that is not a control-wire nonce | `keygen.RandomToken` — a bounded public draw, all-zero allowed; control-wire nonces have the opposite zero rule and live in `controlwire` |
+| a full-width random seed or salt integer | `keygen.RandomUint64` — never `rand.Int` from a product; a range-bounded uniform draw has no door yet, so bring that need to keygen rather than writing a modulo |
 | an HTTP call with timeouts or retries | `exchange`, and `controlwire.ControlExchangePolicy` for control routes |
 | a control-plane request or response | `controlplane` — registration and check-in are the two shapes |
 | a nonce, token, revision, or route path | `controlwire` |
@@ -70,7 +70,7 @@ transaction run this same stack, so a wire type has exactly one home.
 | how wide the terminal is, for rendering | `hostfacts.ObserveTerminalGeometry` — never an ioctl or `golang.org/x/sys` from a product |
 | deciding whether work is paid for | `gate` + `lease` |
 | running a subprocess | `process` |
-| isolating a tool tree so cancellation reaches all of it | `process.Containment` with `IsolationGroup` — never a hand-rolled `SysProcAttr{Setpgid}` |
+| isolating a tool tree so cancellation reaches all of it (POSIX hosts) | `process.Containment` with `IsolationGroup` — never a hand-rolled `SysProcAttr{Setpgid}`; Windows has no group signal and refuses the request rather than delivering it to one process |
 | supervising a running child (signal, force-kill, hold it) | `process.Begin` and the `Execution` it returns — never `cmd.Process` from a product |
 | whether a pid is still running | `process.Alive` — never `syscall.Kill(pid, 0)` from a product |
 | the current working directory as a typed path | `process.WorkingDirectory` — never `os.Getwd` then re-parse |

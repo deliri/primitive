@@ -26,6 +26,11 @@ import (
 // distinguishable from a child that simply finished first.
 const processTestBackstop = 20 * time.Second
 
+// processTestProbeInterval paces bounded fact polling, such as waiting for a
+// reaped descendant's identity to answer gone. It is a poll pace, never proof
+// that work happened; the bounded retry count and the asserted fact are.
+const processTestProbeInterval = 10 * time.Millisecond
+
 // processTestBlock is how long a deliberately blocking child stays alive. It is
 // far beyond processTestBackstop so timing never decides a test outcome.
 const processTestBlock = 5 * time.Minute
@@ -1343,6 +1348,10 @@ func runHelperBehavior(behavior string, arguments []string) {
 		helperSpawnLingeringDescendant()
 		_, _ = io.WriteString(os.Stdout, "ready")
 		<-time.After(processTestBlock)
+	case behavior == "linger-wait-pid":
+		descendant := helperSpawnLingeringDescendant()
+		_, _ = io.WriteString(os.Stdout, "ready:"+strconv.Itoa(descendant.Process.Pid))
+		<-time.After(processTestBlock)
 	case behavior == "hold-descriptor":
 		<-time.After(processTestLingerLifetime)
 	case behavior == "working-directory":
@@ -1371,7 +1380,7 @@ func runHelperBehavior(behavior string, arguments []string) {
 // helperSpawnLingeringDescendant leaves one grandchild holding this process's
 // inherited stdout after this process exits. That is the only way to reach the
 // os/exec WaitDelay path without an unresponsive caller-owned stream.
-func helperSpawnLingeringDescendant() {
+func helperSpawnLingeringDescendant() *exec.Cmd {
 	descendant := exec.Command(
 		os.Args[0],
 		"-test.run=^TestProcessHelper$",
@@ -1383,6 +1392,7 @@ func helperSpawnLingeringDescendant() {
 	if err := descendant.Start(); err != nil {
 		os.Exit(94)
 	}
+	return descendant
 }
 
 func helperExit(text string) {

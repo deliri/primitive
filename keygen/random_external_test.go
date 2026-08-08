@@ -3,6 +3,7 @@ package keygen_test
 import (
 	"bytes"
 	"errors"
+	"math"
 	"testing"
 
 	"github.com/deliri/primitive/v2026/core"
@@ -33,6 +34,7 @@ func TestRandomTokenRequestAdmitsOnlyBoundedSizes(t *testing.T) {
 		{name: "one below the ceiling is admitted", size: keygen.RandomTokenMaximumBytes - 1},
 		{name: "one above the ceiling is rejected", size: keygen.RandomTokenMaximumBytes + 1, wantErr: true},
 		{name: "far above the ceiling is rejected", size: 4096, wantErr: true},
+		{name: "the maximum representable count is rejected", size: math.MaxUint64, wantErr: true},
 	}
 	for _, tc := range cases {
 		t.Run(tc.name, func(t *testing.T) {
@@ -68,18 +70,42 @@ func TestRandomTokenFillsTheExactRequestedExtent(t *testing.T) {
 		if err != nil {
 			t.Fatalf("RandomToken(%d) error = %v, want nil", size, err)
 		}
-		if uint64(len(token)) != size {
-			t.Fatalf("RandomToken(%d) length = %d, want %d", size, len(token), size)
+		if err := token.Validate(); err != nil {
+			t.Fatalf("RandomToken(%d).Validate() error = %v, want a drawn token", size, err)
 		}
+		drawn, err := token.Bytes()
+		if err != nil {
+			t.Fatalf("RandomToken(%d).Bytes() error = %v, want nil", size, err)
+		}
+		if uint64(len(drawn)) != size {
+			t.Fatalf("RandomToken(%d) length = %d, want %d", size, len(drawn), size)
+		}
+	}
+}
+
+// TestTokenRefusesTheUndrawnZeroValue keeps a token that skipped the draw from
+// circulating as one that happened: the zero value fails validation and hands
+// back no bytes.
+func TestTokenRefusesTheUndrawnZeroValue(t *testing.T) {
+	t.Parallel()
+
+	if err := (keygen.Token{}).Validate(); !errors.Is(err, core.ErrKeygenContract) {
+		t.Fatalf("Token{}.Validate() error = %v, want %v", err, core.ErrKeygenContract)
+	}
+	if drawn, err := (keygen.Token{}).Bytes(); !errors.Is(err, core.ErrKeygenContract) || drawn != nil {
+		t.Fatalf("Token{}.Bytes() = (%v, %v), want (nil, %v)", drawn, err, core.ErrKeygenContract)
 	}
 }
 
 func TestRandomTokenRefusesAnUnboundedRequest(t *testing.T) {
 	t.Parallel()
 
-	_, err := keygen.RandomToken(keygen.RandomTokenRequest{Size: requireByteCount(t, keygen.RandomTokenMaximumBytes+1)})
+	refused, err := keygen.RandomToken(keygen.RandomTokenRequest{Size: requireByteCount(t, keygen.RandomTokenMaximumBytes+1)})
 	if !errors.Is(err, core.ErrKeygenContract) {
 		t.Fatalf("RandomToken(over ceiling) error = %v, want %v", err, core.ErrKeygenContract)
+	}
+	if refused.Validate() == nil {
+		t.Fatalf("RandomToken(over ceiling) token validates alongside the refusal, want the undrawn zero")
 	}
 	if _, err := keygen.RandomToken(keygen.RandomTokenRequest{}); !errors.Is(err, core.ErrKeygenContract) {
 		t.Fatalf("RandomToken(zero) error = %v, want %v", err, core.ErrKeygenContract)
@@ -96,12 +122,16 @@ func TestRandomTokenDrawsAreDistinct(t *testing.T) {
 		if err != nil {
 			t.Fatalf("RandomToken(32) error = %v, want nil", err)
 		}
+		drawn, err := token.Bytes()
+		if err != nil {
+			t.Fatalf("RandomToken(32).Bytes() error = %v, want nil", err)
+		}
 		for _, prior := range seen {
-			if bytes.Equal(prior, token) {
+			if bytes.Equal(prior, drawn) {
 				t.Fatalf("RandomToken(32) repeated a draw; the production CSPRNG must not collide across %d draws", draws)
 			}
 		}
-		seen = append(seen, token)
+		seen = append(seen, drawn)
 	}
 }
 

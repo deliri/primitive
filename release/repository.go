@@ -264,10 +264,10 @@ func verifyRepositoryPrivateAttributes(ctx context.Context, request RepositoryVe
 		return err
 	}
 	file, err := os.Open(path.String()) // #nosec G304 -- Git resolved its own private metadata path.
-	if errors.Is(err, os.ErrNotExist) {
-		return nil
-	}
 	if err != nil {
+		if errors.Is(err, os.ErrNotExist) {
+			return nil
+		}
 		return releaseError(core.ErrReleaseContract, err)
 	}
 	defer func() {

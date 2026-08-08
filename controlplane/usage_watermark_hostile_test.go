@@ -108,7 +108,11 @@ func TestAdvanceUsageWatermarkOrdersAndChainsAcceptedWindows(t *testing.T) {
 	if err != nil {
 		t.Fatalf("NewInitialUsageWatermark() error = %v, want nil", err)
 	}
-	windows := [][]byte{[]byte(`{"commands":1}`), []byte(`{"commands":2}`), []byte(`{"commands":3}`)}
+	windows := []controlplane.UsageWindow{
+		testWindow(unitsOf(1, 1), outcomesOf(1, 1)),
+		testWindow(unitsOf(1, 2), outcomesOf(1, 2)),
+		testWindow(unitsOf(1, 3), outcomesOf(1, 3)),
+	}
 	seenChains := map[core.SHA256Digest]int{current.ChainDigest: 0}
 
 	for index, window := range windows {
@@ -152,7 +156,8 @@ func TestAdvanceUsageWatermarkIsOrderDependent(t *testing.T) {
 	if err != nil {
 		t.Fatalf("NewInitialUsageWatermark() error = %v, want nil", err)
 	}
-	first, second := []byte(`{"commands":1}`), []byte(`{"commands":2}`)
+	first := testWindow(unitsOf(1, 1), outcomesOf(1, 1))
+	second := testWindow(unitsOf(1, 2), outcomesOf(1, 2))
 
 	forward := advanceThrough(t, genesis, first, second)
 	reverse := advanceThrough(t, genesis, second, first)
@@ -162,7 +167,7 @@ func TestAdvanceUsageWatermarkIsOrderDependent(t *testing.T) {
 	}
 }
 
-func advanceThrough(t *testing.T, from controlplane.UsageWatermark, windows ...[]byte) controlplane.UsageWatermark {
+func advanceThrough(t *testing.T, from controlplane.UsageWatermark, windows ...controlplane.UsageWindow) controlplane.UsageWatermark {
 	t.Helper()
 
 	current := from
@@ -195,17 +200,17 @@ func TestAdvanceUsageWatermarkRefusesHostileInputs(t *testing.T) {
 	unsetChain := genesis
 	unsetChain.ChainDigest = core.SHA256Digest{}
 
+	acceptedWindow := testWindow(unitsOf(1, 1), outcomesOf(1, 1))
 	cases := []struct {
 		name    string
-		window  []byte
+		window  controlplane.UsageWindow
 		current controlplane.UsageWatermark
 	}{
-		{name: "an empty window advances nothing", current: genesis, window: nil},
-		{name: "a zero-length window advances nothing", current: genesis, window: []byte{}},
-		{name: "a saturated generation refuses to wrap to one", current: saturated, window: []byte(`{"commands":1}`)},
-		{name: "an unset subject cannot anchor a chain", current: unsetSubject, window: []byte(`{"commands":1}`)},
-		{name: "an unset chain digest is not a chain", current: unsetChain, window: []byte(`{"commands":1}`)},
-		{name: "the zero watermark is not a starting point", current: controlplane.UsageWatermark{}, window: []byte(`{"commands":1}`)},
+		{name: "the zero window is not an accepted window", current: genesis, window: controlplane.UsageWindow{}},
+		{name: "a saturated generation refuses to wrap to one", current: saturated, window: acceptedWindow},
+		{name: "an unset subject cannot anchor a chain", current: unsetSubject, window: acceptedWindow},
+		{name: "an unset chain digest is not a chain", current: unsetChain, window: acceptedWindow},
+		{name: "the zero watermark is not a starting point", current: controlplane.UsageWatermark{}, window: acceptedWindow},
 	}
 
 	for _, testCase := range cases {
@@ -234,7 +239,7 @@ func TestUsageWatermarkSurvivesDecodeAndReEncode(t *testing.T) {
 	if err != nil {
 		t.Fatalf("NewInitialUsageWatermark() error = %v, want nil", err)
 	}
-	advanced, err := controlplane.AdvanceUsageWatermark(genesis, []byte(`{"commands":7}`))
+	advanced, err := controlplane.AdvanceUsageWatermark(genesis, testWindow(unitsOf(1, 7), outcomesOf(1, 7)))
 	if err != nil {
 		t.Fatalf("AdvanceUsageWatermark() error = %v, want nil", err)
 	}

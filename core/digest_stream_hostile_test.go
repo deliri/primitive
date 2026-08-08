@@ -562,3 +562,67 @@ func TestDigestWriterResetRefusesANilReceiver(t *testing.T) {
 		t.Fatalf("Reset(nil receiver) error = %v, want errors.Is %v", err, core.ErrPrimitiveContract)
 	}
 }
+
+// TestDigestWriterRefusesAWriterThatSkippedTheConstructor closes the gap the
+// nil-receiver refusals left open: new(core.DigestWriter) compiles, is not nil,
+// and holds no sha256 state, so before this contract every method dereferenced
+// a nil hash.Hash and panicked. A degenerate receiver must be a loud typed
+// refusal on every door, the same answer the nil pointer already gets, because
+// NewDigestWriter is the one constructor and skipping it is a caller defect to
+// report, not a crash to take down the process with. Each subtest owns a fresh
+// zero writer so one method's refusal cannot mask another's panic.
+func TestDigestWriterRefusesAWriterThatSkippedTheConstructor(t *testing.T) {
+	t.Parallel()
+
+	operations := []struct {
+		operate func(*core.DigestWriter) error
+		name    string
+	}{
+		{
+			name: "Write refuses instead of panicking",
+			operate: func(writer *core.DigestWriter) error {
+				written, err := writer.Write([]byte("bytes"))
+				if written != 0 {
+					t.Fatalf("Write(unconstructed) = %d bytes written, want 0 alongside the refusal", written)
+				}
+				return err
+			},
+		},
+		{
+			name: "Digest refuses instead of panicking",
+			operate: func(writer *core.DigestWriter) error {
+				digest, length, err := writer.Digest()
+				if digest != (core.SHA256Digest{}) || length != (core.ByteLength{}) {
+					t.Fatalf("Digest(unconstructed) = (%v, %v), want zero values alongside the refusal", digest, length)
+				}
+				return err
+			},
+		},
+		{
+			name: "Seal refuses instead of panicking",
+			operate: func(writer *core.DigestWriter) error {
+				digest, length, err := writer.Seal()
+				if digest != (core.SHA256Digest{}) || length != (core.ByteLength{}) {
+					t.Fatalf("Seal(unconstructed) = (%v, %v), want zero values alongside the refusal", digest, length)
+				}
+				return err
+			},
+		},
+		{
+			name: "Reset refuses instead of repairing",
+			operate: func(writer *core.DigestWriter) error {
+				return writer.Reset()
+			},
+		},
+	}
+
+	for _, operation := range operations {
+		t.Run(operation.name, func(t *testing.T) {
+			t.Parallel()
+
+			if err := operation.operate(new(core.DigestWriter)); !errors.Is(err, core.ErrPrimitiveContract) {
+				t.Fatalf("operation on an unconstructed writer error = %v, want errors.Is %v", err, core.ErrPrimitiveContract)
+			}
+		})
+	}
+}

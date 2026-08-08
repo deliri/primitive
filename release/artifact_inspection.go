@@ -2,7 +2,6 @@ package release
 
 import (
 	"bytes"
-	"crypto/sha256"
 	"debug/elf"
 	"debug/macho"
 	"debug/pe"
@@ -192,7 +191,7 @@ func inspectArtifactBytes(
 	}
 	patterns := artifactInspectionPatterns(request)
 	finder := newArtifactPatternFinder(patterns)
-	sha := sha256.New()
+	sha := core.NewDigestWriter()
 	crc := crc32.New(crc32.MakeTable(crc32.Castagnoli))
 	written, err := io.CopyBuffer(io.MultiWriter(sha, crc, finder), bounded,
 		make([]byte, artifactInspectionBufferBytes))
@@ -207,10 +206,12 @@ func inspectArtifactBytes(
 	if err := finder.Validate(); err != nil {
 		return artifactByteInspection{}, err
 	}
-	var digest [sha256.Size]byte
-	copy(digest[:], sha.Sum(nil))
+	shaDigest, _, err := sha.Seal()
+	if err != nil {
+		return artifactByteInspection{}, contractError(errors.New("stream artifact bytes"), err)
+	}
 	return artifactByteInspection{
-		sha256: core.NewSHA256Digest(digest), crc32c: core.NewCRC32C(crc.Sum32()),
+		sha256: shaDigest, crc32c: core.NewCRC32C(crc.Sum32()),
 	}, nil
 }
 

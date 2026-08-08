@@ -15,7 +15,7 @@ func observedTerminationSignal(state *os.ProcessState) (SignalNumber, bool) {
 	if !ok || !status.Signaled() {
 		return 0, false
 	}
-	signal := SignalNumber(status.Signal())
+	signal := SignalNumber(status.Signal()) // #nosec G115 -- a reaped wait status carries a kernel signal number that fits the platform signal domain.
 	if signal.Validate() != nil {
 		return 0, false
 	}

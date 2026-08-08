@@ -25,6 +25,7 @@ type keygenContractInventory struct {
 	SecretRequest      operationRequest[SecretRequest]
 	RandomTokenRequest operationRequest[RandomTokenRequest]
 	SigningKey         capabilityWrapper[SigningKey]
+	Token              capabilityWrapper[Token]
 }
 
 var _ = keygenContractInventory{}
@@ -66,9 +67,12 @@ func TestKeygenExactPublicSurfaceFieldsAndNoAliases(t *testing.T) {
 		"method SigningKey.PrivateKey",
 		"method SigningKey.PublicKey",
 		"method SigningKey.Validate",
+		"method Token.Bytes",
+		"method Token.Validate",
 		"type RandomTokenRequest",
 		"type SecretRequest",
 		"type SigningKey",
+		"type Token",
 	}
 	wantFields := []string{"RandomTokenRequest.Size", "SecretRequest.Size"}
 	if !slices.Equal(gotScan.surface, wantSurface) {

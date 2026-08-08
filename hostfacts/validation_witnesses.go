@@ -52,6 +52,7 @@ var (
 	_ core.OffWireEnum = WorkloadMemoryLimitSourceUnknown
 	_ core.OffWireEnum = MissingPathUnknown
 	_ core.OffWireEnum = TerminalAttachmentUnknown
+	_ core.OffWireEnum = TerminalColumns(0)
 
 	_ json.Marshaler   = GoOOMBannerState(0)
 	_ json.Unmarshaler = (*GoOOMBannerState)(nil)

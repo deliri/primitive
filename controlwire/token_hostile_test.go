@@ -145,10 +145,13 @@ func TestRegistrationTokenFormatRedactsEveryVerb(t *testing.T) {
 			t.Errorf("fmt.Sprintf(%%p, token) = %q, leaked token fragment %q", got, digit)
 		}
 	}
-	// A token nested inside a wrapped error must not disclose either.
+	// A token nested inside a wrapped error must not disclose either. The
+	// rendered text is searched for the secret, never for an error contract:
+	// this is a redaction proof over the operator-facing rendering, and the
+	// rejection contract stays with the typed identities above.
 	wrapped := fmt.Errorf("registration failed for %v: %w", token, core.ErrControlWireToken)
-	if strings.Contains(wrapped.Error(), tokenHexWithLetters) {
-		t.Fatalf("wrapped error = %q, want it to omit the token text", wrapped.Error())
+	if rendered := fmt.Sprint(wrapped); strings.Contains(rendered, tokenHexWithLetters) {
+		t.Fatalf("wrapped error rendering = %q, want it to omit the token text", rendered)
 	}
 }
 

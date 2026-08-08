@@ -30,22 +30,28 @@ import (
 
 // producerForbiddenStdlib names standard-library types a consumer may not
 // construct, because CAPABILITIES.md gives the operation to a Primitive door.
-// A Primitive door demanding one of these must hand one over.
-var producerForbiddenStdlib = map[string]string{
-	"os.File":            "filestore owns opening; never os.Open or os.OpenFile from a product",
-	"os.Root":            "filestore owns confinement; never os.OpenRoot from a product",
-	"ed25519.PrivateKey": "keygen is the entropy boundary; never crypto/rand directly",
-	"ed25519.PublicKey":  "keygen and attest own key material",
-	"hash.Hash":          "core.DigestWriter owns streaming digests",
-	"exec.Cmd":           "process owns subprocess execution",
+// A Primitive door demanding one of these must hand one over. A function
+// rather than a package variable, so no parallel test can mutate the fixture
+// another is reading.
+func producerForbiddenStdlib() map[string]string {
+	return map[string]string{
+		"os.File":            "filestore owns opening; never os.Open or os.OpenFile from a product",
+		"os.Root":            "filestore owns confinement; never os.OpenRoot from a product",
+		"ed25519.PrivateKey": "keygen is the entropy boundary; never crypto/rand directly",
+		"ed25519.PublicKey":  "keygen and attest own key material",
+		"hash.Hash":          "core.DigestWriter owns streaming digests",
+		"exec.Cmd":           "process owns subprocess execution",
+	}
 }
 
-var producerPredeclared = map[string]bool{
-	"bool": true, "string": true, "int": true, "int8": true, "int16": true,
-	"int32": true, "int64": true, "uint": true, "uint8": true, "uint16": true,
-	"uint32": true, "uint64": true, "uintptr": true, "byte": true, "rune": true,
-	"float32": true, "float64": true, "complex64": true, "complex128": true,
-	"error": true, "any": true,
+func producerPredeclared() map[string]bool {
+	return map[string]bool{
+		"bool": true, "string": true, "int": true, "int8": true, "int16": true,
+		"int32": true, "int64": true, "uint": true, "uint8": true, "uint16": true,
+		"uint32": true, "uint64": true, "uintptr": true, "byte": true, "rune": true,
+		"float32": true, "float64": true, "complex64": true, "complex128": true,
+		"error": true, "any": true,
+	}
 }
 
 type producerSite struct {
@@ -299,7 +305,7 @@ func (s *producerScan) obtainable(name string) bool {
 	if _, after, ok := strings.Cut(name, "."); ok {
 		bare = after
 	}
-	if producerPredeclared[bare] {
+	if producerPredeclared()[bare] {
 		return true
 	}
 	shape := s.shapes[name]
@@ -327,8 +333,8 @@ func (s *producerScan) gaps() []producerGap {
 		switch {
 		case s.pkgs[qualifier]:
 			found = append(found, producerGap{name: name, sites: sites})
-		case producerForbiddenStdlib[name] != "":
-			found = append(found, producerGap{name: name, why: producerForbiddenStdlib[name], sites: sites})
+		case producerForbiddenStdlib()[name] != "":
+			found = append(found, producerGap{name: name, why: producerForbiddenStdlib()[name], sites: sites})
 		default:
 			// A standard-library type the caller legitimately holds already:
 			// an io.Reader over their own bytes, an http.ResponseWriter handed

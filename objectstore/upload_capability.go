@@ -1,7 +1,6 @@
 package objectstore
 
 import (
-	"crypto/sha256"
 	"encoding/json"
 	"errors"
 	"fmt"
@@ -507,13 +506,11 @@ func deriveUploadCapabilityCommitment(
 	if err != nil {
 		return UploadCapabilityCommitment{}, err
 	}
-	hash := sha256.New()
-	_, _ = io.WriteString(hash, UploadCapabilityCommitmentDomain)
-	_, _ = hash.Write([]byte{UploadCapabilityCommitmentFrameSeparator})
-	_, _ = hash.Write(encoded)
-	var sum [sha256.Size]byte
-	copy(sum[:], hash.Sum(nil))
-	return newUploadCapabilityCommitment(core.NewSHA256Digest(sum))
+	input := make([]byte, 0, len(UploadCapabilityCommitmentDomain)+1+len(encoded))
+	input = append(input, UploadCapabilityCommitmentDomain...)
+	input = append(input, UploadCapabilityCommitmentFrameSeparator)
+	input = append(input, encoded...)
+	return newUploadCapabilityCommitment(core.SHA256Of(input))
 }
 
 func projectUploadCapabilityWire(

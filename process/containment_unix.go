@@ -13,10 +13,15 @@ import (
 // this package is about to start. Group isolation is a configuration os/exec
 // carries to the kernel at fork time; nothing here calls the kernel.
 func applyContainment(command *exec.Cmd, containment Containment) error {
-	if containment.Isolation == IsolationGroup {
+	switch containment.Isolation {
+	case IsolationDirect:
+		return nil
+	case IsolationGroup:
 		command.SysProcAttr = &syscall.SysProcAttr{Setpgid: true}
+		return nil
+	default:
+		return contractError(isolationOutsideDomainDiagnostic)
 	}
-	return nil
 }
 
 // cancelSignalValue names the exact kernel signal each admitted cancel
@@ -48,12 +53,16 @@ func deliverSignal(delivery signalDelivery) error {
 	if err != nil {
 		return err
 	}
-	if delivery.containment.Isolation != IsolationGroup {
+	switch delivery.containment.Isolation {
+	case IsolationDirect:
 		return delivery.process.Signal(value)
+	case IsolationGroup:
+		pid, pidErr := delivery.identity.Int()
+		if pidErr != nil {
+			return pidErr
+		}
+		return unix.Kill(-pid, value)
+	default:
+		return contractError(isolationOutsideDomainDiagnostic)
 	}
-	pid, err := delivery.identity.Int()
-	if err != nil {
-		return err
-	}
-	return unix.Kill(-pid, value)
 }

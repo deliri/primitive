@@ -3,8 +3,6 @@ package exchange
 import (
 	"bytes"
 	"context"
-	"crypto/rand"
-	"encoding/binary"
 	"errors"
 	"io"
 	"net/http"
@@ -13,6 +11,7 @@ import (
 
 	"github.com/deliri/primitive/v2026/contextstate"
 	"github.com/deliri/primitive/v2026/core"
+	"github.com/deliri/primitive/v2026/keygen"
 	"github.com/deliri/primitive/v2026/temporal"
 )
 
@@ -950,16 +949,24 @@ func retryDelay(request retryWaitRequest) (temporal.Duration, error) {
 	return delay, nil
 }
 
+// randomJitter spreads retries across the closed interval [0, maximum].
+//
+// The draw comes from keygen, the entropy boundary, and an entropy failure
+// keeps keygen's identity: it is a local substrate refusal, not a transport
+// outcome, and classifying it as transport once sent callers down a network
+// diagnosis for a machine problem. The modulo keeps the full closed interval;
+// jitter carries no uniformity contract, and the bias it introduces is far
+// below anything a backoff spread could observe.
 func randomJitter(maximum temporal.Duration) (temporal.Duration, error) {
 	nanoseconds := maximum.Nanoseconds()
 	if nanoseconds <= 0 {
 		return temporal.Duration{}, core.ErrExchangeContract
 	}
-	var entropy [8]byte
-	if _, err := rand.Read(entropy[:]); err != nil {
-		return temporal.Duration{}, transportError(err)
+	draw, err := keygen.RandomUint64()
+	if err != nil {
+		return temporal.Duration{}, err
 	}
-	value := binary.BigEndian.Uint64(entropy[:]) % (uint64(nanoseconds) + 1)
+	value := draw % (uint64(nanoseconds) + 1)
 	converted, err := core.CheckedInt64FromUint64(value)
 	if err != nil {
 		return temporal.Duration{}, err

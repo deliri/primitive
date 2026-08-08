@@ -2,7 +2,6 @@ package release
 
 import (
 	"crypto/ed25519"
-	"crypto/sha256"
 	"encoding/json"
 	"errors"
 	"io"
@@ -251,11 +250,7 @@ func latestIdentity(revision Revision, offering core.Offering) (LatestIdentity, 
 	if err != nil {
 		return LatestIdentity{}, latestError(err)
 	}
-	sum := sha256.New()
-	writeDigestFrame(sum, latestIdentityDomain, body)
-	var value [sha256.Size]byte
-	copy(value[:], sum.Sum(nil))
-	return newLatestIdentity(core.NewSHA256Digest(value)), nil
+	return newLatestIdentity(framedDigest(latestIdentityDomain, body)), nil
 }
 
 // LatestDocument is one untrusted Latest fact and structural Attest envelope.

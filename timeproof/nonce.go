@@ -44,8 +44,8 @@ func parseNonce(value string) (Nonce, error) {
 	if len(value) != 2*NonceBytes {
 		return Nonce{}, contractError(nil)
 	}
-	raw, err := hex.DecodeString(value)
-	if err != nil || hex.EncodeToString(raw) != value {
+	raw := make([]byte, NonceBytes)
+	if err := core.DecodeCanonicalHex(raw, value); err != nil {
 		return Nonce{}, contractError(err)
 	}
 	defer clear(raw)

@@ -1,7 +1,6 @@
 package controlplane
 
 import (
-	"crypto/sha256"
 	"encoding/json"
 	"math"
 
@@ -18,7 +17,13 @@ const (
 	// usageWatermarkGenesisDomain separates the genesis digest from every other
 	// digest this package computes.
 	usageWatermarkGenesisDomain = "ogs-control-usage-genesis-2026-1"
-	// usageWatermarkChainDomain separates chain digests likewise.
+	// usageWatermarkWindowDomain binds a digest to one accepted window's
+	// canonical bytes, and to nothing else.
+	usageWatermarkWindowDomain = "ogs-control-usage-window-2026-1"
+	// usageWatermarkChainDomain binds a digest to one chain link. Three
+	// distinct domains are the whole point: a genesis, a window, and a chain
+	// digest can never be presented as one another, no matter what bytes they
+	// were computed over.
 	usageWatermarkChainDomain = "ogs-control-usage-chain-2026-1"
 	// usageDigestDomainSeparator terminates the domain text so no domain can be
 	// a prefix of another domain followed by body bytes.
@@ -76,25 +81,29 @@ func NewInitialUsageWatermark(subject lease.Subject) (UsageWatermark, error) {
 	digest := usageDomainDigest(usageWatermarkGenesisDomain, encoded)
 	watermark := UsageWatermark{
 		Subject: subject, Generation: generation,
-		WindowDigest: core.NewSHA256Digest(digest),
-		ChainDigest:  core.NewSHA256Digest(digest),
+		WindowDigest: digest,
+		ChainDigest:  digest,
 	}
 	return watermark, watermark.Validate()
 }
 
-// AdvanceUsageWatermark accepts one exact canonical usage window and returns
-// the next watermark in the chain.
+// AdvanceUsageWatermark accepts one typed usage window and returns the next
+// watermark in the chain.
 //
-// The caller owns validating the window itself. What this owns is that the
-// sequence cannot go backward, cannot skip, and cannot wrap: a saturated
-// generation is refused rather than rolled over to one, which would make an
-// installation's oldest accepted window indistinguishable from its newest.
-func AdvanceUsageWatermark(current UsageWatermark, canonicalWindow []byte) (UsageWatermark, error) {
+// The window arrives as the type that owns it, not as bytes: this door derives
+// the one canonical form itself, so a caller can neither hand it a document
+// that never validated nor smuggle arbitrary bytes into the chain. What this
+// owns beyond that is that the sequence cannot go backward, cannot skip, and
+// cannot wrap: a saturated generation is refused rather than rolled over to
+// one, which would make an installation's oldest accepted window
+// indistinguishable from its newest.
+func AdvanceUsageWatermark(current UsageWatermark, window UsageWindow) (UsageWatermark, error) {
 	if err := current.Validate(); err != nil {
 		return UsageWatermark{}, usageWatermarkError(err)
 	}
-	if len(canonicalWindow) == 0 {
-		return UsageWatermark{}, usageWatermarkError()
+	canonicalWindow, err := window.MarshalJSON()
+	if err != nil {
+		return UsageWatermark{}, usageWatermarkError(err)
 	}
 	generation, err := nextUsageGeneration(current.Generation)
 	if err != nil {
@@ -104,14 +113,18 @@ func AdvanceUsageWatermark(current UsageWatermark, canonicalWindow []byte) (Usag
 	if err != nil {
 		return UsageWatermark{}, usageWatermarkError(err)
 	}
-	windowDigest := usageDomainDigest(usageWatermarkChainDomain, canonicalWindow)
-	chainInput := make([]byte, 0, len(previousChain)+len(windowDigest))
+	windowDigest := usageDomainDigest(usageWatermarkWindowDomain, canonicalWindow)
+	windowBytes, err := windowDigest.Bytes()
+	if err != nil {
+		return UsageWatermark{}, usageWatermarkError(err)
+	}
+	chainInput := make([]byte, 0, len(previousChain)+len(windowBytes))
 	chainInput = append(chainInput, previousChain[:]...)
-	chainInput = append(chainInput, windowDigest[:]...)
+	chainInput = append(chainInput, windowBytes[:]...)
 	next := UsageWatermark{
 		Subject: current.Subject, Generation: generation,
-		WindowDigest: core.NewSHA256Digest(windowDigest),
-		ChainDigest:  core.NewSHA256Digest(usageDomainDigest(usageWatermarkChainDomain, chainInput)),
+		WindowDigest: windowDigest,
+		ChainDigest:  usageDomainDigest(usageWatermarkChainDomain, chainInput),
 	}
 	return next, next.Validate()
 }
@@ -132,16 +145,15 @@ func nextUsageGeneration(current lease.Generation) (lease.Generation, error) {
 	return generation, nil
 }
 
-// usageDomainDigest binds a digest to one exact domain, so a window digest can
-// never be presented as a chain digest.
-func usageDomainDigest(domain string, body []byte) [sha256.Size]byte {
-	hash := sha256.New()
-	_, _ = hash.Write([]byte(domain))
-	_, _ = hash.Write([]byte{usageDigestDomainSeparator})
-	_, _ = hash.Write(body)
-	var digest [sha256.Size]byte
-	copy(digest[:], hash.Sum(nil))
-	return digest
+// usageDomainDigest binds a digest to one exact domain, so a genesis, window,
+// or chain digest can never be presented as one of the others. The bounded
+// input is assembled once and hashed through Core's one whole-buffer door.
+func usageDomainDigest(domain string, body []byte) core.SHA256Digest {
+	input := make([]byte, 0, len(domain)+1+len(body))
+	input = append(input, domain...)
+	input = append(input, usageDigestDomainSeparator)
+	input = append(input, body...)
+	return core.SHA256Of(input)
 }
 
 // MarshalJSON emits the complete validated watermark.

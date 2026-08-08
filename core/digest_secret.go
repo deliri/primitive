@@ -433,13 +433,33 @@ func (m SecretMaterial) Format(state fmt.State, _ rune) {
 	_, _ = io.WriteString(state, RedactedValueText)
 }
 
-func decodeCanonicalHex(value string, size int) ([]byte, error) {
-	if len(value) != hex.EncodedLen(size) {
-		return nil, errors.New(hexValueInvalidLengthDiagnostic)
+// DecodeCanonicalHex fills destination from text that must be exact canonical
+// lowercase hexadecimal for exactly len(destination) bytes: the decode must
+// succeed and re-encoding must reproduce the input byte for byte, so
+// uppercase, mixed case, odd extents, prefixes, and stray bytes are all
+// refused. The destination carries the extent, so a fixed-size identity
+// decodes into its own storage without an allocation and a variable one sizes
+// its buffer first; on refusal the destination may hold partial bytes, and a
+// refused decode has no value a caller may keep. This is the one admission
+// rule for canonical hex in the repository: identities in every package
+// delegate here rather than restating the decode-and-re-encode comparison.
+func DecodeCanonicalHex(destination []byte, value string) error {
+	if len(value) != hex.EncodedLen(len(destination)) {
+		return errors.Join(ErrPrimitiveContract, errors.New(hexValueInvalidLengthDiagnostic))
 	}
-	decoded, err := hex.DecodeString(value)
-	if err != nil || hex.EncodeToString(decoded) != value {
-		return nil, errors.New("hex value is not canonical lowercase")
+	if _, err := hex.Decode(destination, []byte(value)); err != nil {
+		return errors.Join(ErrPrimitiveContract, errors.New("value is not canonical lowercase hexadecimal"), err)
+	}
+	if hex.EncodeToString(destination) != value {
+		return errors.Join(ErrPrimitiveContract, errors.New("value is not canonical lowercase hexadecimal"))
+	}
+	return nil
+}
+
+func decodeCanonicalHex(value string, size int) ([]byte, error) {
+	decoded := make([]byte, size)
+	if err := DecodeCanonicalHex(decoded, value); err != nil {
+		return nil, err
 	}
 	return decoded, nil
 }

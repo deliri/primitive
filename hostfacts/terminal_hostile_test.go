@@ -58,6 +58,9 @@ func TestTerminalGeometryValidatesAttachmentAgainstColumns(t *testing.T) {
 		{name: "a detached descriptor with no columns is the detached observation", geometry: TerminalGeometry{attachment: TerminalAttachmentNotTerminal}},
 		{name: "a detached descriptor claiming one column is a contradiction", geometry: TerminalGeometry{attachment: TerminalAttachmentNotTerminal, columns: 1}, wantErr: true},
 		{name: "a detached descriptor claiming the ceiling is a contradiction", geometry: TerminalGeometry{attachment: TerminalAttachmentNotTerminal, columns: math.MaxUint16}, wantErr: true},
+		{name: "a terminal without geometry carrying no columns is the geometryless observation", geometry: TerminalGeometry{attachment: TerminalAttachmentTerminalWithoutGeometry}},
+		{name: "a terminal without geometry claiming one column is a contradiction", geometry: TerminalGeometry{attachment: TerminalAttachmentTerminalWithoutGeometry, columns: 1}, wantErr: true},
+		{name: "a terminal without geometry claiming the ceiling is a contradiction", geometry: TerminalGeometry{attachment: TerminalAttachmentTerminalWithoutGeometry, columns: math.MaxUint16}, wantErr: true},
 	}
 	for _, tc := range cases {
 		t.Run(tc.name, func(t *testing.T) {
@@ -82,7 +85,7 @@ func TestTerminalGeometryValidatesAttachmentAgainstColumns(t *testing.T) {
 	}
 }
 
-func TestTerminalGeometryConstructorsSealTheOnlyTwoObservations(t *testing.T) {
+func TestTerminalGeometryConstructorsSealEveryObservation(t *testing.T) {
 	t.Parallel()
 
 	attached, err := newAttachedTerminalGeometry(121)
@@ -109,6 +112,18 @@ func TestTerminalGeometryConstructorsSealTheOnlyTwoObservations(t *testing.T) {
 	}
 	if columns, err := detached.Columns(); !errors.Is(err, core.ErrHostFactsContract) || columns != 0 {
 		t.Fatalf("detached.Columns() = (%v, %v), want (0, %v)", columns, err, core.ErrHostFactsContract)
+	}
+
+	geometryless, err := newTerminalWithoutGeometry()
+	if err != nil {
+		t.Fatalf("newTerminalWithoutGeometry() error = %v, want nil", err)
+	}
+	if attachment, err := geometryless.Attachment(); err != nil || attachment != TerminalAttachmentTerminalWithoutGeometry {
+		t.Fatalf("geometryless.Attachment() = (%v, %v), want (%v, nil)",
+			attachment, err, TerminalAttachmentTerminalWithoutGeometry)
+	}
+	if columns, err := geometryless.Columns(); !errors.Is(err, core.ErrHostFactsContract) || columns != 0 {
+		t.Fatalf("geometryless.Columns() = (%v, %v), want (0, %v)", columns, err, core.ErrHostFactsContract)
 	}
 }
 

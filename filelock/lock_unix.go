@@ -26,11 +26,11 @@ func acquire(file *os.File, exclusivity Exclusivity, patience Patience) (bool, e
 		return false, err
 	}
 	for {
-		err := unix.Flock(int(file.Fd()), flags)
-		if err == nil {
+		flockErr := unix.Flock(int(file.Fd()), flags)
+		if flockErr == nil {
 			return true, nil
 		}
-		if errors.Is(err, unix.EINTR) {
+		if errors.Is(flockErr, unix.EINTR) {
 			continue
 		}
 		if patience == Immediate &&

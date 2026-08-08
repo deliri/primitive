@@ -213,6 +213,12 @@ func (c *Controller) Close() error {
 	if c == nil {
 		return contractError(diagnosticControllerNil)
 	}
+	// A zero Controller holds no channels and no cancel: closing it would
+	// close a nil channel and then wait on one forever. Watch is the one
+	// constructor, and skipping it is a caller defect to report loudly.
+	if c.stop == nil || c.done == nil || c.cancel == nil {
+		return contractError(diagnosticControllerUnconstructed)
+	}
 	c.closeOnce.Do(func() {
 		close(c.stop)
 		c.release()

@@ -3,6 +3,7 @@ package hostfacts
 import (
 	"errors"
 	"os"
+	"strconv"
 
 	"github.com/deliri/primitive/v2026/core"
 )
@@ -13,7 +14,7 @@ import (
 // columns as an unsigned 16-bit integer on every supported platform, so the
 // type carries exactly the domain the observation can produce. Zero is not a
 // column count: a terminal reporting zero columns has no usable geometry and
-// is reported as detached rather than as a zero-width terminal a renderer
+// is reported as exactly that rather than as a zero-width terminal a renderer
 // would divide by.
 type TerminalColumns uint16
 
@@ -27,6 +28,19 @@ func (c TerminalColumns) Validate() error {
 
 // IsValid reports whether c is a usable column count.
 func (c TerminalColumns) IsValid() bool { return c.Validate() == nil }
+
+// String renders the column count for diagnostics.
+func (c TerminalColumns) String() string {
+	if !c.IsValid() {
+		return core.UnknownEnumDiagnostic
+	}
+	return strconv.FormatUint(uint64(c), 10)
+}
+
+// OffWireEnum declares TerminalColumns as an in-process observation that is
+// never serialized: a renderer reads the width and draws, and nothing durable
+// or wire-bound carries it.
+func (TerminalColumns) OffWireEnum() {}
 
 // TerminalAttachment is the closed set of things one interrogated descriptor
 // can turn out to be.
@@ -43,17 +57,27 @@ const (
 	// TerminalAttachmentTerminal means the descriptor answered the geometry
 	// question: it is attached to a terminal with a usable column count.
 	TerminalAttachmentTerminal
-	// TerminalAttachmentNotTerminal means the descriptor has no usable
-	// terminal geometry: it is a pipe, a regular file, a device that is not a
-	// terminal, or a terminal whose reported width is zero.
+	// TerminalAttachmentNotTerminal means the descriptor is not attached to a
+	// terminal at all: it is a pipe, a regular file, or a device that is not a
+	// terminal. The kernel named that case itself, so nobody who asked for a
+	// width should also be told a terminal was there.
 	TerminalAttachmentNotTerminal
+	// TerminalAttachmentTerminalWithoutGeometry means the descriptor answered
+	// as a terminal but reported no usable width. Attachment was positively
+	// observed; geometry was not. A fresh pseudo terminal reports zero columns
+	// until someone sets its window size, and recording that as "not a
+	// terminal" would be a detachment nobody observed: a caller deciding
+	// whether it may draw interactively must see the terminal, and only the
+	// width question stays unanswered.
+	TerminalAttachmentTerminalWithoutGeometry
 	terminalAttachmentLimit
 )
 
 func terminalAttachmentLabels() [terminalAttachmentLimit]string {
 	return [...]string{
-		TerminalAttachmentTerminal:    "terminal",
-		TerminalAttachmentNotTerminal: "not a terminal",
+		TerminalAttachmentTerminal:                "terminal",
+		TerminalAttachmentNotTerminal:             "not a terminal",
+		TerminalAttachmentTerminalWithoutGeometry: "terminal without geometry",
 	}
 }
 
@@ -114,7 +138,7 @@ func (g TerminalGeometry) Validate() error {
 		return g.columns.Validate()
 	}
 	if g.columns != 0 {
-		return errors.Join(core.ErrHostFactsContract, errors.New("a detached descriptor has no columns"))
+		return errors.Join(core.ErrHostFactsContract, errors.New("only an attached terminal with geometry carries columns"))
 	}
 	return nil
 }
@@ -129,15 +153,16 @@ func (g TerminalGeometry) Attachment() (TerminalAttachment, error) {
 
 // Columns returns the attached terminal's column count.
 //
-// Only an attached terminal has one. A detached descriptor is refused rather
-// than answered with zero, which a renderer would treat as a real width.
+// Only an attached terminal with geometry has one. A detached descriptor and a
+// terminal that reported no usable width are both refused rather than answered
+// with zero, which a renderer would treat as a real width.
 func (g TerminalGeometry) Columns() (TerminalColumns, error) {
 	attachment, err := g.Attachment()
 	if err != nil {
 		return 0, err
 	}
 	if attachment != TerminalAttachmentTerminal {
-		return 0, errors.Join(core.ErrHostFactsContract, errors.New("a detached descriptor has no columns"))
+		return 0, errors.Join(core.ErrHostFactsContract, errors.New("only an attached terminal with geometry carries columns"))
 	}
 	return g.columns, nil
 }
@@ -149,5 +174,10 @@ func newAttachedTerminalGeometry(columns TerminalColumns) (TerminalGeometry, err
 
 func newDetachedTerminalGeometry() (TerminalGeometry, error) {
 	geometry := TerminalGeometry{attachment: TerminalAttachmentNotTerminal}
+	return geometry, geometry.Validate()
+}
+
+func newTerminalWithoutGeometry() (TerminalGeometry, error) {
+	geometry := TerminalGeometry{attachment: TerminalAttachmentTerminalWithoutGeometry}
 	return geometry, geometry.Validate()
 }

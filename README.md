@@ -46,6 +46,7 @@ flowchart TD
 
     exchange[exchange] --> core
     exchange --> contextstate
+    exchange --> keygen
     exchange --> temporal
     fuzzfinder[fuzzfinder] --> core
     fuzzfinder --> filestore

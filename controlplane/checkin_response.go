@@ -178,7 +178,7 @@ func (p CheckInResponsePayload) Validate() error {
 	if err := p.validateDecisionAgreement(); err != nil {
 		return err
 	}
-	return p.Header.Status.ValidateOutcome(p.Header.Offering, p.Lease.Decision.Outcome())
+	return p.Header.Status.ValidateOutcome(p.Lease.Decision.Outcome())
 }
 
 func (p CheckInResponsePayload) validateDecisionAgreement() error {

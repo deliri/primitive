@@ -425,3 +425,70 @@ func requireCheckInResponseRefusal(t *testing.T, request controlplane.CheckInRes
 		t.Fatalf("VerifyCheckInResponse() error = %v, want the control-plane contract identity", err)
 	}
 }
+
+// TestUsageDispositionClosesItsEntireByteDomain walks every backing value the
+// way the product-status walk does, so a disposition added to the enum joins
+// the proof without anyone remembering to add a row. The three published
+// members must validate, carry unique canonical tokens, round-trip through
+// parse and JSON, and answer the watermark question exactly; all two hundred
+// fifty three others must refuse everything, and above all must never claim
+// to advance a watermark nobody issued.
+func TestUsageDispositionClosesItsEntireByteDomain(t *testing.T) {
+	t.Parallel()
+
+	wantAdvances := map[controlplane.UsageDisposition]bool{
+		controlplane.UsageDispositionAccepted: true,
+		controlplane.UsageDispositionReplay:   false,
+		controlplane.UsageDispositionConflict: false,
+	}
+	seenTokens := map[string]controlplane.UsageDisposition{}
+	for value := 0; value <= 255; value++ {
+		disposition := controlplane.UsageDisposition(value)
+		wantAdvance, member := wantAdvances[disposition]
+		if !member {
+			if err := disposition.Validate(); !errors.Is(err, core.ErrControlPlaneCheckInResponse) {
+				t.Fatalf("UsageDisposition(%d).Validate() error = %v, want %v",
+					value, err, core.ErrControlPlaneCheckInResponse)
+			}
+			if disposition.AdvancesWatermark() {
+				t.Fatalf("UsageDisposition(%d).AdvancesWatermark() = true, want false for an unpublished result", value)
+			}
+			if _, err := disposition.MarshalJSON(); err == nil {
+				t.Fatalf("UsageDisposition(%d).MarshalJSON() error = nil, want a refusal", value)
+			}
+			continue
+		}
+		if err := disposition.Validate(); err != nil {
+			t.Fatalf("UsageDisposition(%d).Validate() error = %v, want nil", value, err)
+		}
+		token := disposition.String()
+		if token == "" {
+			t.Fatalf("UsageDisposition(%d).String() is empty, want the canonical token", value)
+		}
+		if prior, duplicate := seenTokens[token]; duplicate {
+			t.Fatalf("UsageDisposition(%d) and UsageDisposition(%d) share the token %q", value, prior, token)
+		}
+		seenTokens[token] = disposition
+		if got := disposition.AdvancesWatermark(); got != wantAdvance {
+			t.Fatalf("UsageDisposition(%d).AdvancesWatermark() = %t, want %t", value, got, wantAdvance)
+		}
+		parsed, err := controlplane.ParseUsageDisposition(token)
+		if err != nil || parsed != disposition {
+			t.Fatalf("ParseUsageDisposition(%q) = (%v, %v), want (%v, nil)", token, parsed, err, disposition)
+		}
+		encoded, err := disposition.MarshalJSON()
+		if err != nil {
+			t.Fatalf("UsageDisposition(%d).MarshalJSON() error = %v, want nil", value, err)
+		}
+		var decoded controlplane.UsageDisposition
+		if err := decoded.UnmarshalJSON(encoded); err != nil || decoded != disposition {
+			t.Fatalf("UnmarshalJSON(%s) = (%v, %v), want (%v, nil)", encoded, decoded, err, disposition)
+		}
+	}
+
+	for _, raw := range []string{"", "ACCEPTED", " accepted", "accepted ", "acceptedx", "unknown"} {
+		if _, err := controlplane.ParseUsageDisposition(raw); !errors.Is(err, core.ErrControlPlaneCheckInResponse) {
+			t.Fatalf("ParseUsageDisposition(%q) error = %v, want %v", raw, err, core.ErrControlPlaneCheckInResponse)
+		}
+	}
+}

@@ -1,3 +1,9 @@
+// These proofs encode unix signal facts: quit is deliverable, a killed child
+// reports its termination signal, and group cancellation reaps a tree. On
+// Windows the same requests are refused before the child exists, so the
+// windows counterparts are a separately tagged proof surface.
+//go:build unix
+
 package process_test
 
 import (
@@ -5,6 +11,8 @@ import (
 	"context"
 	"errors"
 	"io"
+	"strconv"
+	"strings"
 	"testing"
 	"time"
 
@@ -140,15 +148,24 @@ func TestAliveReportsAGoneIdentity(t *testing.T) {
 	if _, err := execution.Wait(); err != nil {
 		t.Fatalf("Execution.Wait() error = %v, want nil", err)
 	}
-	// After the child is reaped its identity names no process. A reused pid is
-	// a real possibility on a busy host, so this asserts the two admitted
-	// answers rather than gone alone: what must never happen is an error.
-	liveness, err := process.Alive(identity)
-	if err != nil {
-		t.Fatalf("process.Alive(reaped child) error = %v, want nil", err)
-	}
-	if !liveness.IsValid() {
-		t.Fatalf("process.Alive(reaped child) = %v, want a valid liveness", liveness)
+	// After the child is reaped its identity names no process, so the honest
+	// expectation is gone. A reused pid is possible on a busy host, so gone is
+	// polled a bounded number of times rather than asserted once; a probe that
+	// still answers alive after every retry means the gone branch regressed,
+	// because the kernel reusing this exact pid across every probe is not a
+	// real event. An error is never admissible.
+	for attempt := 1; ; attempt++ {
+		liveness, err := process.Alive(identity)
+		if err != nil {
+			t.Fatalf("process.Alive(reaped child) error = %v, want nil", err)
+		}
+		if liveness == process.LivenessGone {
+			break
+		}
+		if attempt == 5 {
+			t.Fatalf("process.Alive(reaped child) = %v after %d probes, want %v",
+				liveness, attempt, process.LivenessGone)
+		}
 	}
 }
 
@@ -166,8 +183,11 @@ func TestGroupCancellationReapsTheWholeTree(t *testing.T) {
 	ctx, cancel := context.WithCancel(context.Background())
 	defer cancel()
 	ready := make(chan struct{})
-	request := processRequest(t, "linger-wait", process.Streams{
-		Stdin: bytes.NewReader(nil), Stdout: &readyWriter{ready: ready}, Stderr: io.Discard,
+	var announced bytes.Buffer
+	request := processRequest(t, "linger-wait-pid", process.Streams{
+		Stdin:  bytes.NewReader(nil),
+		Stdout: io.MultiWriter(&announced, &readyWriter{ready: ready}),
+		Stderr: io.Discard,
 	})
 	request.Containment = process.Containment{
 		Isolation:    process.IsolationGroup,
@@ -193,5 +213,68 @@ func TestGroupCancellationReapsTheWholeTree(t *testing.T) {
 		}
 	case <-time.After(processTestBackstop):
 		t.Fatalf("group-cancelled Run reached %s, want a reaped tree; a leaked group would wedge here", processTestBackstop)
+	}
+
+	// The wedge above proves the run returned; this proves the tree died. The
+	// leader announced the descendant it spawned, so the group address is held
+	// to its whole claim: if the minus sign in the group delivery regressed to
+	// a direct signal, the leader would die, the run would still return inside
+	// the backstop once WaitDelay closed the held pipe, and only this
+	// observation would go red.
+	descendant, err := strconv.Atoi(strings.TrimPrefix(announced.String(), "ready:"))
+	if err != nil {
+		t.Fatalf("descendant announcement = %q, want ready:<pid> (%v)", announced.String(), err)
+	}
+	identity := process.ProcessIdentity(descendant) // #nosec G115 -- an announced child's identifier fits the platform pid domain.
+	for attempt := 1; ; attempt++ {
+		liveness, err := process.Alive(identity)
+		if err != nil {
+			t.Fatalf("process.Alive(descendant) error = %v, want nil", err)
+		}
+		if liveness == process.LivenessGone {
+			break
+		}
+		if attempt == 50 {
+			t.Fatalf("descendant %d still %v after %d probes, want %v: the group cancellation did not reach it",
+				descendant, liveness, attempt, process.LivenessGone)
+		}
+		<-time.After(processTestProbeInterval)
+	}
+}
+
+// TestSupervisionRefusesADeliveryAfterTheChildIsReaped pins the lifetime edge
+// of the handle. Once Wait has returned, the stored number may already name a
+// recycled process or, under group isolation, a recycled group, and signaling
+// it would be exactly the stored-number-later delivery the ProcessIdentity
+// contract forbids. Deliver and Terminate must refuse rather than address
+// whoever holds the number now.
+func TestSupervisionRefusesADeliveryAfterTheChildIsReaped(t *testing.T) {
+	t.Parallel()
+
+	ready := make(chan struct{})
+	request := processRequest(t, "wait", process.Streams{
+		Stdin: bytes.NewReader(nil), Stdout: &readyWriter{ready: ready}, Stderr: io.Discard,
+	})
+	execution, err := process.Begin(t.Context(), request)
+	if err != nil {
+		t.Fatalf("process.Begin(wait) error = %v, want nil", err)
+	}
+	select {
+	case <-ready:
+	case <-time.After(processTestBackstop):
+		t.Fatalf("child readiness wait reached %s, want readiness first", processTestBackstop)
+	}
+	if err := execution.Terminate(); err != nil {
+		t.Fatalf("Execution.Terminate() error = %v, want nil", err)
+	}
+	if _, err := execution.Wait(); err != nil {
+		t.Fatalf("Execution.Wait(terminated) error = %v, want nil", err)
+	}
+
+	if err := execution.Deliver(process.CancelSignalKill); !errors.Is(err, core.ErrProcessContract) {
+		t.Fatalf("Deliver(after reap) error = %v, want errors.Is %v", err, core.ErrProcessContract)
+	}
+	if err := execution.Terminate(); !errors.Is(err, core.ErrProcessContract) {
+		t.Fatalf("Terminate(after reap) error = %v, want errors.Is %v", err, core.ErrProcessContract)
 	}
 }

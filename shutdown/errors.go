@@ -55,6 +55,7 @@ const (
 	diagnosticControllerNil
 	diagnosticSignalSourceClosed
 	diagnosticPanicErrorInvalid
+	diagnosticControllerUnconstructed
 	diagnosticLimit
 )
 
@@ -97,6 +98,7 @@ func diagnosticLabels() [diagnosticLimit]string {
 		diagnosticControllerNil:               "controller is nil",
 		diagnosticSignalSourceClosed:          "signal source closed before any supported signal",
 		diagnosticPanicErrorInvalid:           "step panic error is invalid",
+		diagnosticControllerUnconstructed:     "controller was not constructed by Watch",
 	}
 }
 

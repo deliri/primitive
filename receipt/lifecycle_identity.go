@@ -68,9 +68,7 @@ func decodeCanonicalIdentity(value string, destination []byte) error {
 	if len(value) != hex.EncodedLen(len(destination)) {
 		return errors.New("identity has invalid text length")
 	}
-	count, err := hex.Decode(destination, []byte(value))
-	if err != nil || count != len(destination) ||
-		hex.EncodeToString(destination) != value {
+	if err := core.DecodeCanonicalHex(destination, value); err != nil {
 		return errors.Join(errors.New("identity text is not canonical"), err)
 	}
 	return nil

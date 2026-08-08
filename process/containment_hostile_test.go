@@ -2,10 +2,12 @@ package process_test
 
 import (
 	"bytes"
+	"context"
 	"errors"
 	"io"
 	"math"
 	"testing"
+	"time"
 
 	"github.com/deliri/primitive/v2026/core"
 	"github.com/deliri/primitive/v2026/process"
@@ -199,6 +201,45 @@ func TestRunDefaultsAZeroContainmentToDirectKill(t *testing.T) {
 	}
 	if success, err := exit.Success(); err != nil || !success {
 		t.Fatalf("zero-containment child success = %t (err %v), want true", success, err)
+	}
+}
+
+// TestZeroContainmentCancellationActuallyKillsTheChild proves the default
+// behaves as the direct-kill it names, not merely that it is accepted: a
+// lingering child under a fully zero containment must die on cancellation and
+// the run must report the cancellation, inside the backstop. It goes red if
+// the default resolves to a containment whose cancel delivers nothing.
+func TestZeroContainmentCancellationActuallyKillsTheChild(t *testing.T) {
+	t.Parallel()
+
+	ctx, cancel := context.WithCancel(context.Background())
+	defer cancel()
+	ready := make(chan struct{})
+	request := processRequest(t, "wait", process.Streams{
+		Stdin: bytes.NewReader(nil), Stdout: &readyWriter{ready: ready}, Stderr: io.Discard,
+	})
+	request.Containment = process.Containment{}
+	done := make(chan runOutcome, 1)
+	go func() {
+		result, err := process.Run(ctx, request)
+		done <- runOutcome{result: result, err: err}
+	}()
+
+	select {
+	case <-ready:
+		cancel()
+	case <-time.After(processTestBackstop):
+		t.Fatalf("child readiness wait reached %s, want readiness first", processTestBackstop)
+	}
+
+	select {
+	case got := <-done:
+		if !errors.Is(got.err, context.Canceled) || !errors.Is(got.err, core.ErrProcessWait) {
+			t.Fatalf("zero-containment cancelled Run error = %v, want %v and %v",
+				got.err, context.Canceled, core.ErrProcessWait)
+		}
+	case <-time.After(processTestBackstop):
+		t.Fatalf("zero-containment cancelled Run reached %s, want the defaulted kill to reap the child", processTestBackstop)
 	}
 }
 

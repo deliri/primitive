@@ -75,8 +75,8 @@ func TestAdoptSigningKeyRefusesASeedWithNoEntropy(t *testing.T) {
 	if !errors.Is(err, core.ErrSecretMaterialAllZero) {
 		t.Fatalf("AdoptSigningKey(all-zero seed) error = %v, want %v", err, core.ErrSecretMaterialAllZero)
 	}
-	if err := key.Validate(); err == nil {
-		t.Fatal("refused adoption returned a key that validates, want the zero value")
+	if verr := key.Validate(); verr == nil {
+		t.Fatalf("refused adoption key.Validate() error = %v, want a refusal on the zero value", verr)
 	}
 }
 
@@ -102,10 +102,10 @@ func TestAdoptedKeyCarriesCoreOwnedDestructionAndRedaction(t *testing.T) {
 	if err := key.Destroy(); err != nil {
 		t.Fatalf("Destroy() error = %v, want nil", err)
 	}
-	if err := copied.Validate(); err == nil {
-		t.Fatal("copy of a destroyed adopted key still validates, want shared destruction")
+	if verr := copied.Validate(); verr == nil {
+		t.Fatalf("destroyed-copy Validate() error = %v, want shared destruction to refuse", verr)
 	}
-	if _, err := copied.PrivateKey(); err == nil {
-		t.Fatal("copy of a destroyed adopted key still projects a private key, want refusal")
+	if private, perr := copied.PrivateKey(); perr == nil {
+		t.Fatalf("destroyed-copy PrivateKey() = (%v, %v), want a refusal", private, perr)
 	}
 }

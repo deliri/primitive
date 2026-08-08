@@ -1,7 +1,6 @@
 package release
 
 import (
-	"crypto/sha256"
 	"encoding/json"
 	"errors"
 	"hash/crc32"
@@ -124,7 +123,7 @@ func InspectMetadataAsset(request MetadataInspectionRequest) (MetadataAsset, err
 	}
 	extent, _ := request.Extent.Int64()
 	bounded := io.NewSectionReader(request.Source, 0, extent)
-	sha := sha256.New()
+	sha := core.NewDigestWriter()
 	crc := crc32.New(crc32.MakeTable(crc32.Castagnoli))
 	written, err := io.CopyBuffer(io.MultiWriter(sha, crc), bounded,
 		make([]byte, metadataInspectionBufferBytes))
@@ -136,11 +135,13 @@ func InspectMetadataAsset(request MetadataInspectionRequest) (MetadataAsset, err
 	if read != 0 || !errors.Is(readErr, io.EOF) {
 		return MetadataAsset{}, manifestError(errors.New("metadata asset exceeds its declared extent"), readErr)
 	}
-	var digest [sha256.Size]byte
-	copy(digest[:], sha.Sum(nil))
+	shaDigest, _, err := sha.Seal()
+	if err != nil {
+		return MetadataAsset{}, manifestError(errors.New("stream metadata asset"), err)
+	}
 	return NewMetadataAsset(MetadataAssetRequest{
 		Kind: request.Kind, Extent: request.Extent,
-		SHA256: core.NewSHA256Digest(digest), CRC32C: core.NewCRC32C(crc.Sum32()),
+		SHA256: shaDigest, CRC32C: core.NewCRC32C(crc.Sum32()),
 	})
 }
 

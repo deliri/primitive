@@ -140,8 +140,8 @@ func TestBlockingAcquisitionWaitsForTheHolderRatherThanRefusing(t *testing.T) {
 	requireHeld(t, acquireImmediate(t, holder, filelock.Exclusive), true, "holder")
 
 	type outcome struct {
-		acquisition filelock.Acquisition
 		err         error
+		acquisition filelock.Acquisition
 	}
 	done := make(chan outcome, 1)
 	go func() {
