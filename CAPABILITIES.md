@@ -75,6 +75,7 @@ transaction run this same stack, so a wire type has exactly one home.
 | whether a pid is still running | `process.Alive` — never `syscall.Kill(pid, 0)` from a product |
 | the current working directory as a typed path | `process.WorkingDirectory` — never `os.Getwd` then re-parse |
 | hashing a stream you are already moving | `core.DigestWriter` — never a private `sha256.New()` accumulator |
+| hashing one whole in-memory buffer | `core.SHA256Of` — never `sha256.Sum256` from a product |
 | naming a sibling by suffix (`.lease`, `-quarantine`) | `AbsolutePath.WithSuffix` — never string concatenation, which can leave the directory |
 | a path relative to a root you hold | `AbsolutePath.RelativeTo` — never `filepath.Rel` then re-parse |
 | building a nested path | `AbsolutePath.Resolve(names...)`, or `Join` / `JoinRelative` for typed parts — never `filepath.Join` then re-parse |

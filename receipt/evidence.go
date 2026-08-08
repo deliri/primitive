@@ -2,7 +2,6 @@ package receipt
 
 import (
 	"crypto/ed25519"
-	"crypto/sha256"
 	"encoding/json"
 	"errors"
 	"hash/crc32"
@@ -129,7 +128,7 @@ func (b EvidenceBody) Validate() error {
 // carrying any other digest, and a nonempty extent claiming the empty digest,
 // are equally contradictory statements about the same object.
 func isCanonicalEmptyEvidence(body EvidenceBody) bool {
-	emptySHA := core.NewSHA256Digest(sha256.Sum256(nil))
+	emptySHA := core.SHA256Of(nil)
 	emptyCRC := core.NewCRC32C(crc32.Checksum(nil, crc32.MakeTable(crc32.Castagnoli)))
 	return body.SHA256 == emptySHA && body.CRC32C == emptyCRC
 }

@@ -91,6 +91,18 @@ func (w *DigestWriter) Seal() (SHA256Digest, ByteLength, error) {
 	return NewSHA256Digest(sum), length, nil
 }
 
+// SHA256Of returns the digest of one complete in-memory buffer.
+//
+// It is the whole-buffer companion to DigestWriter. A caller that already
+// holds every byte does not need a streaming writer to hash them, and threading
+// one buffer through io.Writer plumbing to reach the same answer is ceremony,
+// not safety. The streaming path stays for bytes that arrive over time or must
+// be teed; this is for bytes that are already here. A whole-buffer hash cannot
+// fail: len(data) is an int, so the byte count is always a legal length.
+func SHA256Of(data []byte) SHA256Digest {
+	return NewSHA256Digest(sha256.Sum256(data))
+}
+
 func digestWriterError(message string) error {
 	return errors.Join(ErrPrimitiveContract, errors.New(message))
 }

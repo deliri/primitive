@@ -105,7 +105,7 @@ func (t RegistrationToken) Verifier() (RegistrationTokenVerifier, error) {
 		return RegistrationTokenVerifier{}, err
 	}
 	defer clear(raw)
-	verifier := RegistrationTokenVerifier{value: core.NewSHA256Digest(sha256.Sum256(raw))}
+	verifier := RegistrationTokenVerifier{value: core.SHA256Of(raw)}
 	if err := verifier.Validate(); err != nil {
 		return RegistrationTokenVerifier{}, err
 	}
