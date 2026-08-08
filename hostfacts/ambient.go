@@ -34,6 +34,32 @@ func (h Hostname) String() string {
 	return h.value
 }
 
+// admitHostname admits one platform-reported host name, or reports that the
+// answer is outside the form a device record can carry. An empty, oversized,
+// non-UTF-8, or control-carrying answer is a failed observation of the host,
+// never a value, because a label built from it would carry bytes no admission
+// downstream should ever meet.
+func admitHostname(value string) (Hostname, error) {
+	if value == "" || len(value) > hostnameMaximumBytes || !utf8.ValidString(value) ||
+		strings.ContainsFunc(value, func(r rune) bool { return r < 0x20 || r == 0x7f }) {
+		return Hostname{}, errors.Join(core.ErrHostFactsObservation, errors.New("platform hostname is outside the admitted form"))
+	}
+	return Hostname{value: value}, nil
+}
+
+// admitObservedPath admits one platform-reported base path. A host answer that
+// is not an absolute path is a failed observation of the host, not a contract
+// breach: nothing the caller controls produced it, so it carries the same
+// observation identity an unusable hostname does rather than an ingress
+// rejection the caller could have avoided.
+func admitObservedPath(value string) (core.AbsolutePath, error) {
+	path, err := core.ParseAbsolutePath(value)
+	if err != nil {
+		return core.AbsolutePath{}, errors.Join(core.ErrHostFactsObservation, err)
+	}
+	return path, nil
+}
+
 // ObserveHostname reports the platform's name for this host. An empty,
 // oversized, or control-carrying answer is a failed observation rather than
 // a value, because a device record built from it would carry bytes no label
@@ -43,11 +69,7 @@ func ObserveHostname() (Hostname, error) {
 	if err != nil {
 		return Hostname{}, errors.Join(core.ErrHostFactsObservation, err)
 	}
-	if value == "" || len(value) > hostnameMaximumBytes || !utf8.ValidString(value) ||
-		strings.ContainsFunc(value, func(r rune) bool { return r < 0x20 || r == 0x7f }) {
-		return Hostname{}, errors.Join(core.ErrHostFactsObservation, errors.New("platform hostname is outside the admitted form"))
-	}
-	return Hostname{value: value}, nil
+	return admitHostname(value)
 }
 
 // UserConfigDirectory reports the platform's per-user configuration base:
@@ -59,11 +81,7 @@ func UserConfigDirectory() (core.AbsolutePath, error) {
 	if err != nil {
 		return core.AbsolutePath{}, errors.Join(core.ErrHostFactsObservation, err)
 	}
-	path, err := core.ParseAbsolutePath(value)
-	if err != nil {
-		return core.AbsolutePath{}, errors.Join(core.ErrHostFactsContract, err)
-	}
-	return path, nil
+	return admitObservedPath(value)
 }
 
 // TemporaryDirectory reports the platform's temporary-file base for this
@@ -72,9 +90,5 @@ func UserConfigDirectory() (core.AbsolutePath, error) {
 // from keygen, because a name this door invented would be a hidden entropy
 // source.
 func TemporaryDirectory() (core.AbsolutePath, error) {
-	path, err := core.ParseAbsolutePath(filepath.Clean(os.TempDir()))
-	if err != nil {
-		return core.AbsolutePath{}, errors.Join(core.ErrHostFactsContract, err)
-	}
-	return path, nil
+	return admitObservedPath(filepath.Clean(os.TempDir()))
 }

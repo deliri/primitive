@@ -47,15 +47,11 @@ func observeProcesses(ctx context.Context, visit ProcessVisit) (resultErr error)
 }
 
 func visitSnapshotEntry(entry windows.ProcessEntry32, visit ProcessVisit) error {
-	image, err := core.ParsePathComponent(windows.UTF16ToString(entry.ExeFile[:]))
-	if err != nil {
-		return nil
-	}
-	sighting := ProcessSighting{
-		Identity: ProcessIdentity(entry.ProcessID), // #nosec G115 -- the kernel snapshot reports identifiers inside the platform pid domain.
-		Image:    image,
-	}
-	if sighting.Validate() != nil {
+	sighting, ok := snapshotSighting(
+		ProcessIdentity(entry.ProcessID), // #nosec G115 -- the kernel snapshot reports identifiers inside the platform pid domain.
+		windows.UTF16ToString(entry.ExeFile[:]),
+	)
+	if !ok {
 		return nil
 	}
 	return visit(sighting)
