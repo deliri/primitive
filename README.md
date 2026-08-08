@@ -101,6 +101,11 @@ flowchart TD
     upgrade --> objectstore
     upgrade --> release
     upgrade --> temporal
+
+    gcsobjects[gcsobjects] --> core
+    gcsobjects --> contextstate
+    gcsobjects --> temporal
+    gcsobjects --> objectstore
 ```
 
 The diagram is the production graph. A package may additionally declare

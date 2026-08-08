@@ -1,4 +1,4 @@
-package objectstore
+package gcsobjects
 
 import (
 	"go/ast"
@@ -9,7 +9,12 @@ import (
 	"testing"
 )
 
-func TestProviderOperationsAreCompilerSelectedEntryPoints(t *testing.T) {
+// TestAuthenticatedGCSOperationsAreCompilerSelectedEntryPoints pins the exact
+// exported operation set. UploadMedia and UploadFile are two compiler-selected
+// entry points, not one call behind a served-or-stored mode flag: the caller
+// makes the served-versus-stored decision by naming the function, so a single
+// Upload with a boolean would be exactly the coupling this ratchet forbids.
+func TestAuthenticatedGCSOperationsAreCompilerSelectedEntryPoints(t *testing.T) {
 	t.Parallel()
 
 	set := token.NewFileSet()
@@ -30,16 +35,16 @@ func TestProviderOperationsAreCompilerSelectedEntryPoints(t *testing.T) {
 	}
 	slices.Sort(got)
 	want := []string{
-		"DownloadGCS",
-		"DownloadS3",
-		"NewClient",
-		"UploadCloudflareImages",
-		"UploadGCS",
-		"UploadS3",
+		"DeleteGCSObject",
+		"DeleteGCSObjects",
+		"NewGCSClient",
+		"ReadGCSObject",
+		"UploadFile",
+		"UploadMedia",
 	}
 	if !slices.Equal(got, want) {
 		t.Fatalf(
-			"exported client operations = %q, want exactly %q with no generic provider dispatcher",
+			"exported gcsobjects operations = %q, want exactly %q with served and stored as distinct entry points",
 			got,
 			want,
 		)
@@ -101,33 +106,22 @@ func TestProductionStructDataFlowInventory(t *testing.T) {
 
 func productionStructRole(name string) (string, bool) {
 	switch name {
-	case "VendorSpec":
-		return "published compiler-owned vendor contract", true
-	case "ProviderVersion", "SignedURL", "SignedHeader", "SignedHeaders":
-		return "opaque validated capability value", true
-	case "UploadTarget", "DownloadTarget", "Integrity", "Policy":
-		return "public protocol fact", true
-	case "UploadRequest", "DownloadRequest":
-		return "public execution ingress", true
-	case "Client":
-		return "capability wrapper", true
-	case "Transfer":
-		return "sealed transfer evidence", true
-	case "ExactReader", "preparedUpload", "preparedDownload",
-		"exchangeTarget", "streamDigests", "requestBody":
-		return "internal streaming flow", true
-	case "providerHeader":
-		return "internal protocol field projection", true
-	case "signedHeaderDeclaration", "sentHeaderNames":
-		return "bounded internal protocol name set", true
-	case "UploadCapability":
-		return "received wire projection of a capability value", true
-	case "UploadCapabilityProjection":
-		return "external output projection of an already-issued capability value", true
-	case "UploadCapabilityCommitment":
-		return "sealed non-secret capability binding", true
-	case "uploadCapabilityWire", "uploadCapabilityHeaderWire":
-		return "internal exact wire temporary", true
+	case "GCSClient":
+		return "authenticated provider capability wrapper", true
+	case "GCSClientConfig":
+		return "authenticated provider construction ingress", true
+	case "GCSBucket", "GCSObjectName", "GCSObjectPrefix", "GCSCacheControl",
+		"GCSGeneration":
+		return "opaque validated provider value", true
+	case "GCSMediaUpload", "GCSFileUpload", "GCSReadRequest",
+		"GCSDeleteRequest", "GCSDeleteObjectRequest":
+		return "authenticated provider execution ingress", true
+	case "gcsWrite":
+		return "internal owner-only write projection", true
+	case "GCSObjectMetadata", "GCSDeleteResult", "GCSDeleteObjectResult":
+		return "sealed authenticated provider evidence", true
+	case "gcsObjectIdentity", "gcsObjectProperties", "gcsObjectTimes":
+		return "internal authenticated provider metadata projection", true
 	default:
 		return "", false
 	}

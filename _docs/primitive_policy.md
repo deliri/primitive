@@ -167,7 +167,7 @@ layer is defined by a **question** rather than by whatever currently occupies it
 ```text
 B2  core currency contextstate testserial
 B3  temporal keygen attest garble filestore filelock process exchange shutdown hostfacts
-B4  objectstore cloudidentity timeproof fuzzfinder release deploy upgrade
+B4  objectstore gcsobjects cloudidentity timeproof fuzzfinder release deploy upgrade
 B5  controlwire lease receipt controlplane
 B6  gate
 ```
@@ -1034,7 +1034,7 @@ starts.
 
 ## 15. Exact package graph
 
-The catalog contains **25 production packages** plus test-only `testserial`.
+The catalog contains **26 production packages** plus test-only `testserial`.
 Every listed production import is required and MUST be used semantically. Every
 unlisted Primitive sibling import is forbidden.
 
@@ -1063,12 +1063,13 @@ The order is dependency depth, not a command to build every package in a row.
 | 5 | `gate` | Pure CLI-side new-work authorization over one authentic Lease assessment | `core`, `lease` | `attest`, `temporal` |
 | 5 | `receipt` | Authenticated accepted-evidence facts and fixed-size monotonic watermarks | `core`, `attest`, `temporal` | none |
 | 5 | `controlwire` | Shared control-wire revision, request nonce, one-time registration token, policy cursor, and the control exchange policy | `core`, `keygen`, `exchange`, `temporal` | none |
-| 5 | `objectstore` | Bounded vendor-specified S3, GCS, or Cloudflare Images transfers, plus authenticated GCS create/read/permanent exact or prefix deletion, with integrity and provider evidence | `core`, `contextstate`, `temporal`, `exchange` | none |
+| 5 | `objectstore` | Bounded vendor-specified S3, GCS, or Cloudflare Images transfers through issued HTTPS capabilities, with integrity and provider evidence | `core`, `contextstate`, `temporal`, `exchange` | none |
 | 5 | `timeproof` | RFC 3161 request construction, response verification, and replay | `core`, `temporal`, `keygen` | none |
 | 5 | `cloudidentity` | Bounded Google Cloud or AWS outbound identity-token acquisition and redacted disclosure | `core`, `temporal`, `exchange` | none |
 | 6 | `controlplane` | Signed control-plane request and response documents, their binding to one exact request, product status, and usage watermark | `core`, `controlwire`, `attest`, `lease`, `temporal`, `receipt` | none |
 | 6 | `deploy` | Exact create-only GCS publication of one authenticated release and its metadata | `core`, `objectstore`, `release` | `attest`, `exchange`, `temporal` |
 | 6 | `upgrade` | Crash-recoverable installation, activation, startup truth, rollback, and recovery | `core`, `filestore`, `hostfacts`, `objectstore`, `release`, `temporal` | none |
+| 6 | `gcsobjects` | Authenticated Google Cloud Storage create-only served-media and stored-file writes, digest-bound bounded reads, and generation-matched permanent exact or prefix deletion through the official SDK | `core`, `contextstate`, `temporal`, `objectstore` | none |
 
 Graph-wide rules:
 
@@ -1084,21 +1085,17 @@ Graph-wide rules:
 
 ### 16.1 `objectstore`
 
-`objectstore` owns four closed provider contracts:
+`objectstore` owns three closed provider contracts:
 
 1. Amazon S3 whole-object PUT/GET;
 2. Google Cloud Storage XML API whole-object PUT/GET; and
-3. Cloudflare Images one-time direct upload; and
-4. authenticated Google Cloud Storage create-only whole-object write,
-   digest-bound bounded read, exact generation-matched object deletion, and
-   bounded generation-matched prefix deletion.
+3. Cloudflare Images one-time direct upload.
 
 It composes `exchange` against caller-supplied, expiring HTTPS capabilities
-without duplicating transport, retry, buffering, or provider behavior.
-The authenticated GCS door composes the official provider SDK behind a
-Primitive-owned client. Products select Application Default Credentials or an
-explicit service-account file through a closed typed configuration; the SDK
-type and credential-discovery mechanics never escape the package.
+without duplicating transport, retry, buffering, or provider behavior. It owns
+the exact-extent streaming reader and the dual SHA-256 and CRC32C integrity
+proof that the authenticated `gcsobjects` package reuses; the official Cloud
+Storage SDK is not imported here.
 
 Each transfer call owns:
 
@@ -1116,17 +1113,15 @@ reopenable sources. It is never a hidden fan-out engine.
 - create Cloudflare draft records;
 - implement resumable sessions;
 - implement multipart object-upload protocols;
+- perform authenticated provider operations, which belong to `gcsobjects`;
 - hide multi-provider replication; or
 - duplicate SDK, provider, or `exchange` retry behavior.
 
-Authenticated deletion is deliberately narrower than general object
-administration: an exact name or a nonempty slash-terminated prefix is
-required, prefix object count is bounded, every delete is pinned to the
-observed generation, the name or prefix is observed again to prove absence,
-and a bucket with soft-delete retention enabled is refused because success
-would not mean permanent deletion. Bucket creation,
-lifecycle mutation, copy, compose, arbitrary metadata mutation, and product
-namespace or retention policy remain downstream.
+The authenticated Google Cloud Storage lifecycle is `gcsobjects`, a separate
+B4 package that composes the official provider SDK behind a Primitive-owned
+client and reuses this package's `Integrity` and `ExactReader`. Its closed
+scope is declared in its own objectives policy, `gcsobjects/gcsobjects.md`, per
+section 16.3.
 
 ### 16.2 `cloudidentity`
 

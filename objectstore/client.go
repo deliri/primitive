@@ -293,7 +293,7 @@ func rejectPartialContent(headers exchange.CapturedHeaders) error {
 
 type preparedUpload struct {
 	digests streamDigests
-	exact   *exactReader
+	exact   *ExactReader
 	request exchange.UploadRequest
 }
 
@@ -305,9 +305,9 @@ func prepareUpload(
 	if err != nil {
 		return preparedUpload{}, errors.Join(core.ErrObjectStoreSize, err)
 	}
-	exact := newExactReader(request.Source, length)
+	exact := NewExactReader(request.Source, length)
 	if length == 0 {
-		if proveErr := exact.proveEmpty(); proveErr != nil {
+		if proveErr := exact.ProveEmpty(); proveErr != nil {
 			return preparedUpload{}, proveErr
 		}
 	}
@@ -631,10 +631,10 @@ func invalidResponseCommitment(direction Direction) Commitment {
 	return CommitmentRejected
 }
 
-func uploadFailureCommitment(err error, exact *exactReader) Commitment {
+func uploadFailureCommitment(err error, exact *ExactReader) Commitment {
 	_, hasStatus := errors.AsType[exchange.StatusError](err)
 	if hasStatus || errors.Is(err, core.ErrObjectStoreSource) ||
-		(exact != nil && exact.failure != nil) {
+		(exact != nil && exact.Failure() != nil) {
 		return CommitmentRejected
 	}
 	return CommitmentIndeterminate

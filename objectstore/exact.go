@@ -10,7 +10,13 @@ import (
 
 const exactExtentBufferBytes = 32 * 1024
 
-type exactReader struct {
+// ExactReader delivers exactly the declared extent from a source and proves
+// the source held precisely that many bytes, no more and no fewer. It is the
+// integrity-bound streaming reader an exact object transfer wraps its source
+// in, shared by objectstore's capability transfers and the authenticated GCS
+// transfer in gcsobjects. A short or overlong source is a source-integrity
+// failure, reachable through Failure after the stream ends.
+type ExactReader struct {
 	source    *bufio.Reader
 	failure   error
 	remaining int64
@@ -18,14 +24,25 @@ type exactReader struct {
 	verified  bool
 }
 
-func newExactReader(source io.Reader, length int64) *exactReader {
-	return &exactReader{
+// NewExactReader wraps source to deliver exactly length bytes. length is the
+// caller's already-validated integrity extent; the reader never trusts the
+// source to stop on its own.
+func NewExactReader(source io.Reader, length int64) *ExactReader {
+	return &ExactReader{
 		source:    bufio.NewReaderSize(source, exactExtentBufferBytes),
 		remaining: length,
 	}
 }
 
-func (r *exactReader) Read(destination []byte) (int, error) {
+// Failure reports the source-integrity error that ended the stream, or nil
+// when the source delivered its exact extent. Callers read it after a copy so
+// a wrapped tee reader's error can be distinguished from a destination error.
+func (r *ExactReader) Failure() error {
+	return r.failure
+}
+
+// Read delivers the next bytes, never more than the declared extent remains.
+func (r *ExactReader) Read(destination []byte) (int, error) {
 	if r.failure != nil {
 		return 0, r.failure
 	}
@@ -52,7 +69,7 @@ func (r *exactReader) Read(destination []byte) (int, error) {
 	return r.finish(count, err)
 }
 
-func (r *exactReader) finish(count int, readErr error) (int, error) {
+func (r *ExactReader) finish(count int, readErr error) (int, error) {
 	if readErr != nil && !errors.Is(readErr, io.EOF) {
 		return r.fail(count, readErr)
 	}
@@ -68,7 +85,7 @@ func (r *exactReader) finish(count int, readErr error) (int, error) {
 	return count, readErr
 }
 
-func (r *exactReader) addDelivered(count int) error {
+func (r *ExactReader) addDelivered(count int) error {
 	value, err := core.CheckedUint64FromInt64(int64(count))
 	if err != nil {
 		return err
@@ -77,7 +94,10 @@ func (r *exactReader) addDelivered(count int) error {
 	return nil
 }
 
-func (r *exactReader) proveEmpty() error {
+// ProveEmpty verifies the source is empty when the declared extent is zero:
+// a zero-length object still has to prove the source delivered nothing rather
+// than being assumed empty without a read.
+func (r *ExactReader) ProveEmpty() error {
 	if r.remaining != 0 {
 		return coreSourceIntegrity()
 	}
@@ -90,7 +110,7 @@ func (r *exactReader) proveEmpty() error {
 	return nil
 }
 
-func (r *exactReader) fail(count int, cause error) (int, error) {
+func (r *ExactReader) fail(count int, cause error) (int, error) {
 	r.failure = errors.Join(coreSourceIntegrity(), cause)
 	return count, r.failure
 }

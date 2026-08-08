@@ -1,4 +1,4 @@
-package objectstore
+package gcsobjects
 
 import (
 	"errors"
@@ -206,8 +206,8 @@ func (p GCSObjectPrefix) Validate() error {
 		strings.HasPrefix(p.value, "/") || strings.Contains(p.value, "//") {
 		return core.ErrObjectStoreContract
 	}
-	segments := strings.Split(strings.TrimSuffix(p.value, "/"), "/")
-	for _, segment := range segments {
+	segments := strings.SplitSeq(strings.TrimSuffix(p.value, "/"), "/")
+	for segment := range segments {
 		if segment == "" || segment == "." || segment == ".." {
 			return core.ErrObjectStoreContract
 		}
@@ -299,15 +299,21 @@ func (m GCSObjectMetadata) CreatedAt() temporal.Instant     { return m.createdAt
 func (m GCSObjectMetadata) UpdatedAt() temporal.Instant     { return m.updatedAt }
 func (m GCSObjectMetadata) CustomTime() temporal.Instant    { return m.customTime }
 
-// Validate proves the provider evidence is complete and internally usable.
+// Validate proves the provider evidence is complete and internally usable. A
+// stored file carries no cache directive, so an absent cache-control is valid
+// provider evidence; a present one must be a legal field value.
 func (m GCSObjectMetadata) Validate() error {
 	for _, err := range []error{
 		m.bucket.Validate(), m.name.Validate(), m.generation.Validate(),
 		m.length.Validate(), m.crc32c.Validate(), m.contentType.Validate(),
-		m.cacheControl.Validate(), m.createdAt.Validate(), m.updatedAt.Validate(),
-		m.customTime.Validate(),
+		m.createdAt.Validate(), m.updatedAt.Validate(), m.customTime.Validate(),
 	} {
 		if err != nil {
+			return errors.Join(core.ErrObjectStoreContract, err)
+		}
+	}
+	if m.cacheControl.String() != "" {
+		if err := m.cacheControl.Validate(); err != nil {
 			return errors.Join(core.ErrObjectStoreContract, err)
 		}
 	}

@@ -1,4 +1,4 @@
-package objectstore_test
+package gcsobjects_test
 
 import (
 	"bytes"
@@ -9,6 +9,7 @@ import (
 	"testing"
 
 	"github.com/deliri/primitive/v2026/core"
+	"github.com/deliri/primitive/v2026/gcsobjects"
 	"github.com/deliri/primitive/v2026/objectstore"
 	"github.com/deliri/primitive/v2026/temporal"
 )
@@ -21,8 +22,9 @@ const (
 	gcsLiveEmptyObjectLeaf               = "empty.bin"
 	gcsLiveShortSourceObjectLeaf         = "short-source.bin"
 	gcsLiveWrongDigestObjectLeaf         = "wrong-digest.bin"
-	gcsLiveContentType                   = "application/octet-stream"
-	gcsLiveCacheControl                  = "private, no-store"
+	gcsLiveMediaContentType              = "image/webp"
+	gcsLiveFileContentType               = "application/octet-stream"
+	gcsLiveMediaCacheControl             = "private, no-store"
 	gcsLiveExpectedObjects               = 2
 	gcsLiveDestructiveObjectBound        = 16
 	gcsLiveCustomTimeNanoseconds   int64 = 1_786_183_200_000_000_000
@@ -38,11 +40,11 @@ func TestAuthenticatedGCSLifecycleUsesTheRealProviderAndProvesDeletion(t *testin
 	if !bucketSet || !prefixSet {
 		t.Skipf("real provider proof requires %s and %s", gcsLiveBucketEnvironment, gcsLivePrefixEnvironment)
 	}
-	bucket, gotBucketErr := objectstore.ParseGCSBucket(bucketText)
+	bucket, gotBucketErr := gcsobjects.ParseGCSBucket(bucketText)
 	if gotBucketErr != nil {
 		t.Fatalf("ParseGCSBucket(%q) error = %v, want nil", bucketText, gotBucketErr)
 	}
-	prefix, gotPrefixErr := objectstore.ParseGCSObjectPrefix(prefixText)
+	prefix, gotPrefixErr := gcsobjects.ParseGCSObjectPrefix(prefixText)
 	if gotPrefixErr != nil {
 		t.Fatalf("ParseGCSObjectPrefix(%q) error = %v, want nil", prefixText, gotPrefixErr)
 	}
@@ -50,14 +52,14 @@ func TestAuthenticatedGCSLifecycleUsesTheRealProviderAndProvesDeletion(t *testin
 	if gotMaximumErr != nil {
 		t.Fatalf("NewByteCount(%d) error = %v, want nil", gcsLiveDestructiveObjectBound, gotMaximumErr)
 	}
-	client, gotClientErr := objectstore.NewGCSClient(context.Background(), objectstore.GCSClientConfig{
-		Authentication: objectstore.GCSAuthenticationApplicationDefault,
+	client, gotClientErr := gcsobjects.NewGCSClient(context.Background(), gcsobjects.GCSClientConfig{
+		Authentication: gcsobjects.GCSAuthenticationApplicationDefault,
 	})
 	if gotClientErr != nil {
 		t.Fatalf("NewGCSClient() error = %v, want nil", gotClientErr)
 	}
 	t.Cleanup(func() {
-		_, gotDeleteErr := objectstore.DeleteGCSObjects(context.Background(), client, objectstore.GCSDeleteRequest{
+		_, gotDeleteErr := gcsobjects.DeleteGCSObjects(context.Background(), client, gcsobjects.GCSDeleteRequest{
 			Bucket: bucket, Prefix: prefix, MaxObjects: maximum,
 		})
 		if gotDeleteErr != nil {
@@ -68,7 +70,7 @@ func TestAuthenticatedGCSLifecycleUsesTheRealProviderAndProvesDeletion(t *testin
 		}
 	})
 
-	initial, gotInitialDeleteErr := objectstore.DeleteGCSObjects(context.Background(), client, objectstore.GCSDeleteRequest{
+	initial, gotInitialDeleteErr := gcsobjects.DeleteGCSObjects(context.Background(), client, gcsobjects.GCSDeleteRequest{
 		Bucket: bucket, Prefix: prefix, MaxObjects: maximum,
 	})
 	if gotInitialDeleteErr != nil {
@@ -82,27 +84,24 @@ func TestAuthenticatedGCSLifecycleUsesTheRealProviderAndProvesDeletion(t *testin
 	}
 
 	primaryName := liveGCSObjectName(t, prefix, gcsLivePrimaryObjectLeaf)
-	primaryRequest := liveGCSWriteRequest(t, bucket, primaryName, gcsLivePayload, gcsLivePayload)
-	created, gotCreateErr := objectstore.CreateGCSObject(context.Background(), client, primaryRequest)
+	created, gotCreateErr := gcsobjects.UploadMedia(context.Background(), client, liveGCSMediaUpload(t, bucket, primaryName, gcsLivePayload, gcsLivePayload))
 	if gotCreateErr != nil {
-		t.Fatalf("CreateGCSObject(%q) error = %v, want nil", primaryName.String(), gotCreateErr)
+		t.Fatalf("UploadMedia(%q) error = %v, want nil", primaryName.String(), gotCreateErr)
 	}
-	verifyLiveGCSMetadata(t, created, bucket, primaryName, gcsLivePayload)
+	verifyLiveGCSMetadata(t, created, bucket, primaryName, gcsLivePayload, gcsLiveMediaContentType, gcsLiveMediaCacheControl)
 
-	duplicateRequest := liveGCSWriteRequest(t, bucket, primaryName, gcsLivePayload, gcsLivePayload)
-	_, gotConflictErr := objectstore.CreateGCSObject(context.Background(), client, duplicateRequest)
+	_, gotConflictErr := gcsobjects.UploadMedia(context.Background(), client, liveGCSMediaUpload(t, bucket, primaryName, gcsLivePayload, gcsLivePayload))
 	if !errors.Is(gotConflictErr, core.ErrObjectStoreConflict) {
-		t.Fatalf("duplicate CreateGCSObject(%q) error = %v, want errors.Is(..., %v)", primaryName.String(), gotConflictErr, core.ErrObjectStoreConflict)
+		t.Fatalf("duplicate UploadMedia(%q) error = %v, want errors.Is(..., %v)", primaryName.String(), gotConflictErr, core.ErrObjectStoreConflict)
 	}
 
 	emptyName := liveGCSObjectName(t, prefix, gcsLiveEmptyObjectLeaf)
-	emptyRequest := liveGCSWriteRequest(t, bucket, emptyName, nil, nil)
-	emptyMetadata, gotEmptyCreateErr := objectstore.CreateGCSObject(context.Background(), client, emptyRequest)
+	emptyMetadata, gotEmptyCreateErr := gcsobjects.UploadFile(context.Background(), client, liveGCSFileUpload(t, bucket, emptyName, nil, nil))
 	if gotEmptyCreateErr != nil {
-		t.Fatalf("CreateGCSObject(%q empty stream) error = %v, want nil", emptyName.String(), gotEmptyCreateErr)
+		t.Fatalf("UploadFile(%q empty stream) error = %v, want nil", emptyName.String(), gotEmptyCreateErr)
 	}
-	verifyLiveGCSMetadata(t, emptyMetadata, bucket, emptyName, nil)
-	exactDeleted, gotExactDeleteErr := objectstore.DeleteGCSObject(context.Background(), client, objectstore.GCSDeleteObjectRequest{
+	verifyLiveGCSMetadata(t, emptyMetadata, bucket, emptyName, nil, gcsLiveFileContentType, "")
+	exactDeleted, gotExactDeleteErr := gcsobjects.DeleteGCSObject(context.Background(), client, gcsobjects.GCSDeleteObjectRequest{
 		Bucket: bucket, Name: emptyName,
 	})
 	if gotExactDeleteErr != nil {
@@ -111,32 +110,36 @@ func TestAuthenticatedGCSLifecycleUsesTheRealProviderAndProvesDeletion(t *testin
 	if gotExactValidateErr := exactDeleted.Validate(); gotExactValidateErr != nil || exactDeleted.Name() != emptyName {
 		t.Fatalf("exact delete evidence = (%q, %v), want (%q, nil)", exactDeleted.Name().String(), gotExactValidateErr, emptyName.String())
 	}
-	verifyLiveGCSObjectAbsent(t, client, bucket, emptyName, core.SHA256Of(nil))
-	emptyMetadata, gotEmptyCreateErr = objectstore.CreateGCSObject(context.Background(), client, liveGCSWriteRequest(t, bucket, emptyName, nil, nil))
-	if gotEmptyCreateErr != nil {
-		t.Fatalf("replacement CreateGCSObject(%q empty stream) error = %v, want nil", emptyName.String(), gotEmptyCreateErr)
+	if exactDeleted.Generation() != emptyMetadata.Generation() {
+		gotGen, _ := exactDeleted.Generation().Int64()
+		wantGen, _ := emptyMetadata.Generation().Int64()
+		t.Fatalf("exact delete generation = %d, want the created generation %d", gotGen, wantGen)
 	}
-	verifyLiveGCSMetadata(t, emptyMetadata, bucket, emptyName, nil)
+	verifyLiveGCSObjectAbsent(t, client, bucket, emptyName, core.SHA256Of(nil))
+	emptyMetadata, gotEmptyCreateErr = gcsobjects.UploadFile(context.Background(), client, liveGCSFileUpload(t, bucket, emptyName, nil, nil))
+	if gotEmptyCreateErr != nil {
+		t.Fatalf("replacement UploadFile(%q empty stream) error = %v, want nil", emptyName.String(), gotEmptyCreateErr)
+	}
+	verifyLiveGCSMetadata(t, emptyMetadata, bucket, emptyName, nil, gcsLiveFileContentType, "")
 
 	shortName := liveGCSObjectName(t, prefix, gcsLiveShortSourceObjectLeaf)
-	shortRequest := liveGCSWriteRequest(t, bucket, shortName, gcsLivePayload[:len(gcsLivePayload)-1], gcsLivePayload)
-	_, gotShortErr := objectstore.CreateGCSObject(context.Background(), client, shortRequest)
+	_, gotShortErr := gcsobjects.UploadFile(context.Background(), client, liveGCSFileUpload(t, bucket, shortName, gcsLivePayload[:len(gcsLivePayload)-1], gcsLivePayload))
 	if !errors.Is(gotShortErr, core.ErrObjectStoreSource) || !errors.Is(gotShortErr, core.ErrObjectStoreIntegrity) {
-		t.Fatalf("short source CreateGCSObject(%q) error = %v, want source and integrity identities", shortName.String(), gotShortErr)
+		t.Fatalf("short source UploadFile(%q) error = %v, want source and integrity identities", shortName.String(), gotShortErr)
 	}
 	verifyLiveGCSObjectAbsent(t, client, bucket, shortName, core.SHA256Of(gcsLivePayload))
 
 	wrongDigestName := liveGCSObjectName(t, prefix, gcsLiveWrongDigestObjectLeaf)
-	wrongDigestRequest := liveGCSWriteRequest(t, bucket, wrongDigestName, gcsLivePayload, gcsLivePayload)
+	wrongDigestRequest := liveGCSFileUpload(t, bucket, wrongDigestName, gcsLivePayload, gcsLivePayload)
 	wrongDigestRequest.Integrity.SHA256 = core.SHA256Of([]byte("different bytes"))
-	_, gotWrongDigestErr := objectstore.CreateGCSObject(context.Background(), client, wrongDigestRequest)
+	_, gotWrongDigestErr := gcsobjects.UploadFile(context.Background(), client, wrongDigestRequest)
 	if !errors.Is(gotWrongDigestErr, core.ErrObjectStoreSource) || !errors.Is(gotWrongDigestErr, core.ErrObjectStoreIntegrity) {
-		t.Fatalf("wrong digest CreateGCSObject(%q) error = %v, want source and integrity identities", wrongDigestName.String(), gotWrongDigestErr)
+		t.Fatalf("wrong digest UploadFile(%q) error = %v, want source and integrity identities", wrongDigestName.String(), gotWrongDigestErr)
 	}
 	verifyLiveGCSObjectAbsent(t, client, bucket, wrongDigestName, core.SHA256Of(gcsLivePayload))
 
 	var downloaded bytes.Buffer
-	readMetadata, gotReadErr := objectstore.ReadGCSObject(context.Background(), client, objectstore.GCSReadRequest{
+	readMetadata, gotReadErr := gcsobjects.ReadGCSObject(context.Background(), client, gcsobjects.GCSReadRequest{
 		Bucket: bucket, Name: primaryName, Destination: &downloaded,
 		SHA256: core.SHA256Of(gcsLivePayload), Maximum: liveGCSMaximum(t, len(gcsLivePayload)),
 	})
@@ -146,10 +149,10 @@ func TestAuthenticatedGCSLifecycleUsesTheRealProviderAndProvesDeletion(t *testin
 	if !bytes.Equal(downloaded.Bytes(), gcsLivePayload) {
 		t.Fatalf("ReadGCSObject(%q) bytes = %q, want %q", primaryName.String(), downloaded.Bytes(), gcsLivePayload)
 	}
-	verifyLiveGCSMetadata(t, readMetadata, bucket, primaryName, gcsLivePayload)
+	verifyLiveGCSMetadata(t, readMetadata, bucket, primaryName, gcsLivePayload, gcsLiveMediaContentType, gcsLiveMediaCacheControl)
 
 	var rejected bytes.Buffer
-	_, gotWrongReadErr := objectstore.ReadGCSObject(context.Background(), client, objectstore.GCSReadRequest{
+	_, gotWrongReadErr := gcsobjects.ReadGCSObject(context.Background(), client, gcsobjects.GCSReadRequest{
 		Bucket: bucket, Name: primaryName, Destination: &rejected,
 		SHA256: core.SHA256Of([]byte("wrong read digest")), Maximum: liveGCSMaximum(t, len(gcsLivePayload)),
 	})
@@ -160,7 +163,7 @@ func TestAuthenticatedGCSLifecycleUsesTheRealProviderAndProvesDeletion(t *testin
 		t.Fatalf("wrong-checksum read streamed bytes = %q, want %q before independent refusal", rejected.Bytes(), gcsLivePayload)
 	}
 
-	deleted, gotDeleteErr := objectstore.DeleteGCSObjects(context.Background(), client, objectstore.GCSDeleteRequest{
+	deleted, gotDeleteErr := gcsobjects.DeleteGCSObjects(context.Background(), client, gcsobjects.GCSDeleteRequest{
 		Bucket: bucket, Prefix: prefix, MaxObjects: maximum,
 	})
 	if gotDeleteErr != nil {
@@ -184,11 +187,11 @@ func TestAuthenticatedGCSDeletionRefusesSoftDeleteRetention(t *testing.T) {
 	if !bucketSet || !prefixSet {
 		t.Skipf("soft-delete provider proof requires %s and %s", gcsSoftDeleteBucketEnvironment, gcsLivePrefixEnvironment)
 	}
-	bucket, gotBucketErr := objectstore.ParseGCSBucket(bucketText)
+	bucket, gotBucketErr := gcsobjects.ParseGCSBucket(bucketText)
 	if gotBucketErr != nil {
 		t.Fatalf("ParseGCSBucket(%q) error = %v, want nil", bucketText, gotBucketErr)
 	}
-	prefix, gotPrefixErr := objectstore.ParseGCSObjectPrefix(prefixText)
+	prefix, gotPrefixErr := gcsobjects.ParseGCSObjectPrefix(prefixText)
 	if gotPrefixErr != nil {
 		t.Fatalf("ParseGCSObjectPrefix(%q) error = %v, want nil", prefixText, gotPrefixErr)
 	}
@@ -196,8 +199,8 @@ func TestAuthenticatedGCSDeletionRefusesSoftDeleteRetention(t *testing.T) {
 	if gotMaximumErr != nil {
 		t.Fatalf("NewByteCount(1) error = %v, want nil", gotMaximumErr)
 	}
-	client, gotClientErr := objectstore.NewGCSClient(context.Background(), objectstore.GCSClientConfig{
-		Authentication: objectstore.GCSAuthenticationApplicationDefault,
+	client, gotClientErr := gcsobjects.NewGCSClient(context.Background(), gcsobjects.GCSClientConfig{
+		Authentication: gcsobjects.GCSAuthenticationApplicationDefault,
 	})
 	if gotClientErr != nil {
 		t.Fatalf("NewGCSClient() error = %v, want nil", gotClientErr)
@@ -208,7 +211,7 @@ func TestAuthenticatedGCSDeletionRefusesSoftDeleteRetention(t *testing.T) {
 		}
 	})
 
-	_, gotDeleteErr := objectstore.DeleteGCSObjects(context.Background(), client, objectstore.GCSDeleteRequest{
+	_, gotDeleteErr := gcsobjects.DeleteGCSObjects(context.Background(), client, gcsobjects.GCSDeleteRequest{
 		Bucket: bucket, Prefix: prefix, MaxObjects: maximum,
 	})
 	if !errors.Is(gotDeleteErr, core.ErrObjectStoreConflict) {
@@ -216,21 +219,30 @@ func TestAuthenticatedGCSDeletionRefusesSoftDeleteRetention(t *testing.T) {
 	}
 }
 
-func liveGCSWriteRequest(t *testing.T, bucket objectstore.GCSBucket, name objectstore.GCSObjectName, source, expected []byte) objectstore.GCSWriteRequest {
+func liveGCSMediaUpload(t *testing.T, bucket gcsobjects.GCSBucket, name gcsobjects.GCSObjectName, source, expected []byte) gcsobjects.GCSMediaUpload {
 	t.Helper()
-	mediaType, gotMediaTypeErr := core.ParseHTTPMediaType(gcsLiveContentType)
+	mediaType, gotMediaTypeErr := core.ParseHTTPMediaType(gcsLiveMediaContentType)
 	if gotMediaTypeErr != nil {
-		t.Fatalf("ParseHTTPMediaType(%q) error = %v, want nil", gcsLiveContentType, gotMediaTypeErr)
+		t.Fatalf("ParseHTTPMediaType(%q) error = %v, want nil", gcsLiveMediaContentType, gotMediaTypeErr)
 	}
-	cacheControl, gotCacheErr := objectstore.ParseGCSCacheControl(gcsLiveCacheControl)
+	cacheControl, gotCacheErr := gcsobjects.ParseGCSCacheControl(gcsLiveMediaCacheControl)
 	if gotCacheErr != nil {
-		t.Fatalf("ParseGCSCacheControl(%q) error = %v, want nil", gcsLiveCacheControl, gotCacheErr)
+		t.Fatalf("ParseGCSCacheControl(%q) error = %v, want nil", gcsLiveMediaCacheControl, gotCacheErr)
 	}
-	return objectstore.GCSWriteRequest{
+	return gcsobjects.GCSMediaUpload{
 		Bucket: bucket, Name: name, Source: bytes.NewReader(source),
 		Integrity: liveGCSIntegrity(t, expected), ContentType: mediaType,
 		CacheControl: cacheControl,
 		CustomTime:   temporal.InstantFromNanoseconds(gcsLiveCustomTimeNanoseconds),
+	}
+}
+
+func liveGCSFileUpload(t *testing.T, bucket gcsobjects.GCSBucket, name gcsobjects.GCSObjectName, source, expected []byte) gcsobjects.GCSFileUpload {
+	t.Helper()
+	return gcsobjects.GCSFileUpload{
+		Bucket: bucket, Name: name, Source: bytes.NewReader(source),
+		Integrity:  liveGCSIntegrity(t, expected),
+		CustomTime: temporal.InstantFromNanoseconds(gcsLiveCustomTimeNanoseconds),
 	}
 }
 
@@ -246,16 +258,24 @@ func liveGCSIntegrity(t *testing.T, data []byte) objectstore.Integrity {
 	}
 }
 
-func liveGCSObjectName(t *testing.T, prefix objectstore.GCSObjectPrefix, leaf string) objectstore.GCSObjectName {
+func liveGCSObjectName(t *testing.T, prefix gcsobjects.GCSObjectPrefix, leaf string) gcsobjects.GCSObjectName {
 	t.Helper()
-	name, gotNameErr := objectstore.ParseGCSObjectName(prefix.String() + leaf)
+	name, gotNameErr := gcsobjects.ParseGCSObjectName(prefix.String() + leaf)
 	if gotNameErr != nil {
 		t.Fatalf("ParseGCSObjectName(%q) error = %v, want nil", prefix.String()+leaf, gotNameErr)
 	}
 	return name
 }
 
-func verifyLiveGCSMetadata(t *testing.T, got objectstore.GCSObjectMetadata, wantBucket objectstore.GCSBucket, wantName objectstore.GCSObjectName, wantData []byte) {
+func verifyLiveGCSMetadata(
+	t *testing.T,
+	got gcsobjects.GCSObjectMetadata,
+	wantBucket gcsobjects.GCSBucket,
+	wantName gcsobjects.GCSObjectName,
+	wantData []byte,
+	wantContentType string,
+	wantCacheControl string,
+) {
 	t.Helper()
 	if gotErr := got.Validate(); gotErr != nil {
 		t.Fatalf("GCSObjectMetadata.Validate() error = %v, want nil", gotErr)
@@ -271,8 +291,8 @@ func verifyLiveGCSMetadata(t *testing.T, got objectstore.GCSObjectMetadata, want
 	if gotChecksumErr != nil || gotChecksum != wantChecksum {
 		t.Fatalf("GCSObjectMetadata.CRC32C() = (%d, %v), want (%d, nil)", gotChecksum, gotChecksumErr, wantChecksum)
 	}
-	if got.ContentType().String() != gcsLiveContentType || got.CacheControl().String() != gcsLiveCacheControl {
-		t.Fatalf("GCSObjectMetadata content facts = (%q, %q), want (%q, %q)", got.ContentType().String(), got.CacheControl().String(), gcsLiveContentType, gcsLiveCacheControl)
+	if got.ContentType().String() != wantContentType || got.CacheControl().String() != wantCacheControl {
+		t.Fatalf("GCSObjectMetadata content facts = (%q, %q), want (%q, %q)", got.ContentType().String(), got.CacheControl().String(), wantContentType, wantCacheControl)
 	}
 	wantCustomTime := temporal.InstantFromNanoseconds(gcsLiveCustomTimeNanoseconds)
 	if comparison, gotCompareErr := got.CustomTime().Compare(wantCustomTime); gotCompareErr != nil || comparison != core.ComparisonEqual {
@@ -286,10 +306,10 @@ func verifyLiveGCSMetadata(t *testing.T, got objectstore.GCSObjectMetadata, want
 	}
 }
 
-func verifyLiveGCSObjectAbsent(t *testing.T, client *objectstore.GCSClient, bucket objectstore.GCSBucket, name objectstore.GCSObjectName, sha256 core.SHA256Digest) {
+func verifyLiveGCSObjectAbsent(t *testing.T, client *gcsobjects.GCSClient, bucket gcsobjects.GCSBucket, name gcsobjects.GCSObjectName, sha256 core.SHA256Digest) {
 	t.Helper()
 	var destination bytes.Buffer
-	_, gotReadErr := objectstore.ReadGCSObject(context.Background(), client, objectstore.GCSReadRequest{
+	_, gotReadErr := gcsobjects.ReadGCSObject(context.Background(), client, gcsobjects.GCSReadRequest{
 		Bucket: bucket, Name: name, Destination: &destination, SHA256: sha256,
 		Maximum: liveGCSMaximum(t, len(gcsLivePayload)),
 	})

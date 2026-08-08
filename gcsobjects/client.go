@@ -1,4 +1,4 @@
-package objectstore
+package gcsobjects
 
 import (
 	"context"
@@ -9,6 +9,7 @@ import (
 	"cloud.google.com/go/storage"
 	"github.com/deliri/primitive/v2026/contextstate"
 	"github.com/deliri/primitive/v2026/core"
+	"github.com/deliri/primitive/v2026/objectstore"
 	"github.com/deliri/primitive/v2026/temporal"
 	"google.golang.org/api/googleapi"
 	"google.golang.org/api/iterator"
@@ -64,31 +65,80 @@ func (c *GCSClient) Close() error {
 	return nil
 }
 
-// GCSWriteRequest is exact create-only authenticated object ingress.
-type GCSWriteRequest struct {
+// GCSMediaUpload is create-only ingress for an object a browser or CDN will
+// fetch: it carries the content type that makes the bytes render and an
+// optional cache-control the edge may honor.
+type GCSMediaUpload struct {
 	Source       io.Reader
 	Bucket       GCSBucket
 	Name         GCSObjectName
 	ContentType  core.HTTPMediaType
 	CacheControl GCSCacheControl
-	Integrity    Integrity
+	Integrity    objectstore.Integrity
 	CustomTime   temporal.Instant
 }
 
-// Validate rejects incomplete or contradictory write ingress.
-func (r GCSWriteRequest) Validate() error {
+// Validate rejects incomplete or contradictory media ingress. The cache
+// directive is optional: a served asset without one lets the edge apply its own
+// default, so an absent cache-control is admitted and a present one must be a
+// legal field value.
+func (r GCSMediaUpload) Validate() error {
 	if r.Source == nil {
 		return errors.Join(core.ErrObjectStoreContract, core.ErrObjectStoreSource)
 	}
 	for _, err := range []error{
 		r.Bucket.Validate(), r.Name.Validate(), validateAuthenticatedGCSIntegrity(r.Integrity),
-		r.ContentType.Validate(), r.CacheControl.Validate(), r.CustomTime.Validate(),
+		r.ContentType.Validate(), r.CustomTime.Validate(),
+	} {
+		if err != nil {
+			return errors.Join(core.ErrObjectStoreContract, err)
+		}
+	}
+	if r.CacheControl.String() != "" {
+		if err := r.CacheControl.Validate(); err != nil {
+			return errors.Join(core.ErrObjectStoreContract, err)
+		}
+	}
+	return nil
+}
+
+// GCSFileUpload is create-only ingress for a stored integrity-bound blob the
+// system retrieves and verifies. It carries no content type or cache-control:
+// the object is written as application/octet-stream with no cache directive,
+// because nothing serves it to a browser.
+type GCSFileUpload struct {
+	Source     io.Reader
+	Bucket     GCSBucket
+	Name       GCSObjectName
+	Integrity  objectstore.Integrity
+	CustomTime temporal.Instant
+}
+
+// Validate rejects incomplete or contradictory file ingress.
+func (r GCSFileUpload) Validate() error {
+	if r.Source == nil {
+		return errors.Join(core.ErrObjectStoreContract, core.ErrObjectStoreSource)
+	}
+	for _, err := range []error{
+		r.Bucket.Validate(), r.Name.Validate(), validateAuthenticatedGCSIntegrity(r.Integrity),
+		r.CustomTime.Validate(),
 	} {
 		if err != nil {
 			return errors.Join(core.ErrObjectStoreContract, err)
 		}
 	}
 	return nil
+}
+
+// gcsWrite is the owner-only projection both uploads share at the effect leaf.
+type gcsWrite struct {
+	Source       io.Reader
+	Bucket       GCSBucket
+	Name         GCSObjectName
+	ContentType  core.HTTPMediaType
+	CacheControl GCSCacheControl
+	Integrity    objectstore.Integrity
+	CustomTime   temporal.Instant
 }
 
 // GCSReadRequest is exact authenticated object egress.
@@ -111,17 +161,17 @@ func (r GCSReadRequest) Validate() error {
 		}
 	}
 	maximum, err := r.Maximum.Uint64()
-	if err != nil || maximum > GoogleCloudStorageObjectMaximumBytes {
+	if err != nil || maximum > objectstore.GoogleCloudStorageObjectMaximumBytes {
 		return errors.Join(core.ErrObjectStoreContract, core.ErrObjectStoreSize, err)
 	}
 	return nil
 }
 
-func validateAuthenticatedGCSIntegrity(integrity Integrity) error {
+func validateAuthenticatedGCSIntegrity(integrity objectstore.Integrity) error {
 	if err := integrity.Validate(); err != nil {
 		return err
 	}
-	if integrity.Length.Uint64() > GoogleCloudStorageObjectMaximumBytes {
+	if integrity.Length.Uint64() > objectstore.GoogleCloudStorageObjectMaximumBytes {
 		return core.ErrObjectStoreSize
 	}
 	return nil
@@ -160,13 +210,37 @@ func (r GCSDeleteRequest) Validate() error {
 	return nil
 }
 
-// CreateGCSObject streams one exact object through the official SDK under a
-// generation-zero precondition. Existing objects are conflicts, never writes.
-func CreateGCSObject(ctx context.Context, client *GCSClient, request GCSWriteRequest) (GCSObjectMetadata, error) {
-	if err := validateGCSCall(ctx, client); err != nil {
+// UploadMedia streams one create-only object a browser or CDN will fetch,
+// stamping the content type that makes it render and any cache-control the
+// caller declared.
+func UploadMedia(ctx context.Context, client *GCSClient, request GCSMediaUpload) (GCSObjectMetadata, error) {
+	if err := request.Validate(); err != nil {
 		return GCSObjectMetadata{}, err
 	}
+	return createGCSObject(ctx, client, gcsWrite(request))
+}
+
+// UploadFile streams one create-only integrity-bound blob the system stores
+// and later retrieves, written as application/octet-stream with no cache
+// directive because nothing serves it to a browser.
+func UploadFile(ctx context.Context, client *GCSClient, request GCSFileUpload) (GCSObjectMetadata, error) {
 	if err := request.Validate(); err != nil {
+		return GCSObjectMetadata{}, err
+	}
+	return createGCSObject(ctx, client, gcsWrite{
+		Source:      request.Source,
+		Bucket:      request.Bucket,
+		Name:        request.Name,
+		ContentType: core.HTTPMediaTypeOctetStream(),
+		Integrity:   request.Integrity,
+		CustomTime:  request.CustomTime,
+	})
+}
+
+// createGCSObject streams one exact object through the official SDK under a
+// generation-zero precondition. Existing objects are conflicts, never writes.
+func createGCSObject(ctx context.Context, client *GCSClient, request gcsWrite) (GCSObjectMetadata, error) {
+	if err := validateGCSCall(ctx, client); err != nil {
 		return GCSObjectMetadata{}, err
 	}
 	object := client.client.Bucket(request.Bucket.String()).Object(request.Name.String()).If(
@@ -197,23 +271,23 @@ func CreateGCSObject(ctx context.Context, client *GCSClient, request GCSWriteReq
 	return metadataFromGCSAttrs(writer.Attrs())
 }
 
-func streamGCSWrite(writer *storage.Writer, cancel context.CancelFunc, request GCSWriteRequest) error {
+func streamGCSWrite(writer *storage.Writer, cancel context.CancelFunc, request gcsWrite) error {
 	length, err := request.Integrity.Length.Int64()
 	if err != nil {
 		return errors.Join(core.ErrObjectStoreSize, err)
 	}
-	exact := newExactReader(request.Source, length)
+	exact := objectstore.NewExactReader(request.Source, length)
 	digest := core.NewDigestWriter()
 	if length == 0 {
-		err = exact.proveEmpty()
+		err = exact.ProveEmpty()
 	} else {
 		_, err = io.Copy(writer, io.TeeReader(exact, digest))
 	}
 	if err != nil {
 		cancel()
 		_ = writer.Close()
-		if exact.failure != nil {
-			return exact.failure
+		if exact.Failure() != nil {
+			return exact.Failure()
 		}
 		return projectGCSError(err, core.ErrObjectStoreDestination)
 	}
@@ -266,34 +340,34 @@ func metadataFromReader(ctx context.Context, object *storage.ObjectHandle, reade
 	return metadataFromGCSAttrs(attrs)
 }
 
-func readIntegrityFromMetadata(request GCSReadRequest, metadata GCSObjectMetadata) (Integrity, error) {
+func readIntegrityFromMetadata(request GCSReadRequest, metadata GCSObjectMetadata) (objectstore.Integrity, error) {
 	maximum, err := request.Maximum.Uint64()
 	if err != nil {
-		return Integrity{}, errors.Join(core.ErrObjectStoreContract, err)
+		return objectstore.Integrity{}, errors.Join(core.ErrObjectStoreContract, err)
 	}
 	if metadata.Length().Uint64() > maximum {
-		return Integrity{}, core.ErrObjectStoreSize
+		return objectstore.Integrity{}, core.ErrObjectStoreSize
 	}
-	return Integrity{SHA256: request.SHA256, Length: metadata.Length(), CRC32C: metadata.CRC32C()}, nil
+	return objectstore.Integrity{SHA256: request.SHA256, Length: metadata.Length(), CRC32C: metadata.CRC32C()}, nil
 }
 
-func streamGCSRead(reader *storage.Reader, destinationWriter io.Writer, integrity Integrity) error {
+func streamGCSRead(reader *storage.Reader, destinationWriter io.Writer, integrity objectstore.Integrity) error {
 	length, err := integrity.Length.Int64()
 	if err != nil {
 		return errors.Join(core.ErrObjectStoreSize, err)
 	}
-	exact := newExactReader(reader, length)
+	exact := objectstore.NewExactReader(reader, length)
 	digest := core.NewDigestWriter()
 	checksum := crc32.New(crc32.MakeTable(crc32.Castagnoli))
 	destination := io.MultiWriter(destinationWriter, digest, checksum)
 	if length == 0 {
-		err = exact.proveEmpty()
+		err = exact.ProveEmpty()
 	} else {
 		_, err = io.Copy(destination, exact)
 	}
 	if err != nil {
-		if exact.failure != nil {
-			return exact.failure
+		if exact.Failure() != nil {
+			return exact.Failure()
 		}
 		return errors.Join(core.ErrObjectStoreDestination, err)
 	}
@@ -323,6 +397,9 @@ func DeleteGCSObject(ctx context.Context, client *GCSClient, request GCSDeleteOb
 	attrs, err := object.Attrs(ctx)
 	if err != nil {
 		return GCSDeleteObjectResult{}, projectGCSError(err, core.ErrObjectStoreDestination)
+	}
+	if attrs == nil {
+		return GCSDeleteObjectResult{}, errors.Join(core.ErrObjectStoreContract, core.ErrObjectStoreDestination)
 	}
 	generation, err := NewGCSGeneration(attrs.Generation)
 	if err != nil {
@@ -505,11 +582,22 @@ func gcsPropertiesFromAttrs(attrs *storage.ObjectAttrs) (gcsObjectProperties, er
 	if err != nil {
 		return gcsObjectProperties{}, errors.Join(core.ErrObjectStoreContract, err)
 	}
-	cacheControl, err := ParseGCSCacheControl(attrs.CacheControl)
+	cacheControl, err := optionalGCSCacheControl(attrs.CacheControl)
 	if err != nil {
 		return gcsObjectProperties{}, err
 	}
 	return gcsObjectProperties{length: length, contentType: contentType, cacheControl: cacheControl}, nil
+}
+
+// optionalGCSCacheControl reads a possibly-absent provider cache directive. A
+// stored file is written with no Cache-Control, so an empty field is the absent
+// value rather than a malformed one; a present value must still be a legal HTTP
+// field value.
+func optionalGCSCacheControl(value string) (GCSCacheControl, error) {
+	if value == "" {
+		return GCSCacheControl{}, nil
+	}
+	return ParseGCSCacheControl(value)
 }
 
 type gcsObjectTimes struct {

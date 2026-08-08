@@ -12,9 +12,9 @@ const (
 	// PrimitivePackagePathPrefix prefixes every Primitive package import path.
 	PrimitivePackagePathPrefix = PrimitiveModulePath + "/"
 	// PrimitivePackageCount is the number of packages in the complete catalog.
-	PrimitivePackageCount = 26
+	PrimitivePackageCount = 27
 	// PrimitiveDirectImportCount is the number of admitted direct import edges.
-	PrimitiveDirectImportCount = 69
+	PrimitiveDirectImportCount = 73
 	// PrimitiveDirectTestImportCount is the number of admitted test-only edges.
 	PrimitiveDirectTestImportCount = 7
 	// PrimitiveMaximumDirectImports caps direct sibling imports per package.
@@ -79,6 +79,8 @@ const (
 	PackageDeploy
 	// PackageUpgrade identifies the upgrade package.
 	PackageUpgrade
+	// PackageGCSObjects identifies the authenticated Cloud Storage package.
+	PackageGCSObjects
 	packageIdentityLimit
 )
 
@@ -168,6 +170,7 @@ func PrimitiveArchitecture() ArchitectureCatalog {
 			{Identity: PackageCloudIdentity, Kind: PackageKindProduction},
 			{Identity: PackageDeploy, Kind: PackageKindProduction},
 			{Identity: PackageUpgrade, Kind: PackageKindProduction},
+			{Identity: PackageGCSObjects, Kind: PackageKindProduction},
 		},
 		imports: [PrimitiveDirectImportCount]DirectImportContract{
 			{Importer: PackageAttest, Imported: PackageCore},
@@ -243,6 +246,11 @@ func PrimitiveArchitecture() ArchitectureCatalog {
 			{Importer: PackageUpgrade, Imported: PackageObjectStore},
 			{Importer: PackageUpgrade, Imported: PackageRelease},
 			{Importer: PackageUpgrade, Imported: PackageTemporal},
+
+			{Importer: PackageGCSObjects, Imported: PackageCore},
+			{Importer: PackageGCSObjects, Imported: PackageContextState},
+			{Importer: PackageGCSObjects, Imported: PackageTemporal},
+			{Importer: PackageGCSObjects, Imported: PackageObjectStore},
 		},
 		testImports: [PrimitiveDirectTestImportCount]DirectTestImportContract{
 			{Importer: PackageGate, Imported: PackageAttest},
@@ -506,11 +514,12 @@ func packagePurposeTexts() [packageIdentityLimit]string {
 		PackageProcess:       "Argv, environment, containment, bounded output, exit, and reaping over os/exec",
 		PackageRelease:       "Clean repository binding, verified build tools, deterministic Garble build and process plans, executable inspection, signed tool and metadata provenance, immutable artifacts, manifests, Latest, and selection",
 		PackageShutdown:      "Signal observation and phased bounded cleanup",
-		PackageObjectStore:   "Bounded vendor-specified S3, GCS, or Cloudflare Images transfers, plus authenticated GCS create/read/permanent exact or prefix deletion, with integrity and provider evidence",
+		PackageObjectStore:   "Bounded vendor-specified S3, GCS, or Cloudflare Images transfers through issued HTTPS capabilities, with integrity and provider evidence",
 		PackageTimeProof:     "RFC 3161 request construction, response verification, and replay",
 		PackageCloudIdentity: "Bounded Google Cloud or AWS outbound identity-token acquisition and redacted disclosure",
 		PackageDeploy:        "Exact create-only GCS publication of one authenticated release and its metadata",
 		PackageUpgrade:       "Crash-recoverable installation, activation, startup truth, rollback, and recovery",
+		PackageGCSObjects:    "Authenticated Google Cloud Storage create-only served-media and stored-file writes, digest-bound bounded reads, and generation-matched permanent exact or prefix deletion through the official SDK",
 	}
 }
 
@@ -575,6 +584,7 @@ func packageIdentityTexts() [packageIdentityLimit]string {
 		"cloudidentity",
 		"deploy",
 		"upgrade",
+		"gcsobjects",
 	}
 }
 

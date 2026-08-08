@@ -4,6 +4,24 @@ Last updated: `2026-08-08`
 
 ## Current
 
+- objectstore to gcsobjects split, 2026-08-08: the authenticated GCS client
+  from the entry below pulled the full `cloud.google.com/go/storage` SDK into
+  every `objectstore` consumer, including local tools that only use the
+  signed-capability surface. The authenticated lifecycle now lives in a new B4
+  package, `gcsobjects`, so the SDK is confined to it and base `objectstore` is
+  SDK-free again. `Integrity` and the exact-extent `ExactReader` are exported
+  from `objectstore` and reused, not reimplemented. The single create-only
+  write is replaced by two compiler-selected entry points on a
+  served-versus-stored axis: `UploadMedia` (caller content type, optional cache
+  directive) and `UploadFile` (application/octet-stream, no cache). Reworking
+  the tests surfaced a real defect the single-write API had hidden: a stored
+  file carries no cache directive, but the metadata read-back required one, so
+  `UploadFile` could never succeed. Absent cache-control is now valid provider
+  evidence on both the request and the metadata, proved red-then-green by an
+  offline projection test over real provider attributes and error types. Base
+  objectstore, gcsobjects, and core are battery-green; pending review and the
+  next published revision.
+
 - Hostfacts ambient trio, 2026-08-08: Bug's sweep surfaced the last three
   ambient host asks living in a consumer. `ObserveHostname` reports the
   platform's name bounded and control-free, `UserConfigDirectory` and

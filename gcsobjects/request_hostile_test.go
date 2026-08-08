@@ -1,4 +1,4 @@
-package objectstore_test
+package gcsobjects_test
 
 import (
 	"bytes"
@@ -7,6 +7,7 @@ import (
 	"testing"
 
 	"github.com/deliri/primitive/v2026/core"
+	"github.com/deliri/primitive/v2026/gcsobjects"
 	"github.com/deliri/primitive/v2026/objectstore"
 	"github.com/deliri/primitive/v2026/temporal"
 )
@@ -14,18 +15,24 @@ import (
 func TestAuthenticatedGCSRequestValidationExhaustsCompositionFailures(t *testing.T) {
 	t.Parallel()
 
-	write, read, deleteRequest, deleteObjectRequest := authenticatedGCSRequestFixtures(t)
+	media, file, read, deleteRequest, deleteObjectRequest := authenticatedGCSRequestFixtures(t)
 	tests := []struct {
 		wantErr error
 		run     func() error
 		name    string
 	}{
-		{name: "complete create-only request crosses ingress", run: write.Validate},
+		{name: "complete served-media create crosses ingress", run: media.Validate},
+		{name: "complete stored-file create crosses ingress", run: file.Validate},
 		{name: "complete exact-read request crosses ingress", run: read.Validate},
 		{name: "complete destructive-prefix request crosses ingress", run: deleteRequest.Validate},
 		{name: "complete exact-object delete request crosses ingress", run: deleteObjectRequest.Validate},
-		{name: "zero-byte create remains a real object operation", run: func() error {
-			value := write
+		{name: "zero-byte served media remains a real object operation", run: func() error {
+			value := media
+			value.Integrity = authenticatedGCSIntegrityAtLength(t, 0)
+			return value.Validate()
+		}},
+		{name: "zero-byte stored file remains a real object operation", run: func() error {
+			value := file
 			value.Integrity = authenticatedGCSIntegrityAtLength(t, 0)
 			return value.Validate()
 		}},
@@ -41,11 +48,16 @@ func TestAuthenticatedGCSRequestValidationExhaustsCompositionFailures(t *testing
 		}},
 		{name: "maximum destructive bound remains admitted", run: func() error {
 			value := deleteRequest
-			value.MaxObjects, _ = core.NewByteCount(objectstore.GCSDeleteMaximumObjects)
+			value.MaxObjects, _ = core.NewByteCount(gcsobjects.GCSDeleteMaximumObjects)
 			return value.Validate()
 		}},
-		{name: "maximum GCS create extent remains admitted", run: func() error {
-			value := write
+		{name: "maximum GCS media extent remains admitted", run: func() error {
+			value := media
+			value.Integrity = authenticatedGCSIntegrityAtLength(t, objectstore.GoogleCloudStorageObjectMaximumBytes)
+			return value.Validate()
+		}},
+		{name: "maximum GCS file extent remains admitted", run: func() error {
+			value := file
 			value.Integrity = authenticatedGCSIntegrityAtLength(t, objectstore.GoogleCloudStorageObjectMaximumBytes)
 			return value.Validate()
 		}},
@@ -54,47 +66,56 @@ func TestAuthenticatedGCSRequestValidationExhaustsCompositionFailures(t *testing
 			value.Maximum = authenticatedGCSMaximum(t, objectstore.GoogleCloudStorageObjectMaximumBytes)
 			return value.Validate()
 		}},
-		{name: "application media metadata composes with binary source", run: write.Validate},
-		{name: "create request refuses an unset bucket", run: func() error { value := write; value.Bucket = objectstore.GCSBucket{}; return value.Validate() }, wantErr: core.ErrObjectStoreContract},
-		{name: "create request refuses an unset object name", run: func() error { value := write; value.Name = objectstore.GCSObjectName{}; return value.Validate() }, wantErr: core.ErrObjectStoreContract},
-		{name: "create request refuses a nil source", run: func() error { value := write; value.Source = nil; return value.Validate() }, wantErr: core.ErrObjectStoreSource},
-		{name: "create request refuses unset integrity", run: func() error { value := write; value.Integrity = objectstore.Integrity{}; return value.Validate() }, wantErr: core.ErrObjectStoreContract},
-		{name: "create request refuses unset content type", run: func() error { value := write; value.ContentType = core.HTTPMediaType{}; return value.Validate() }, wantErr: core.ErrObjectStoreContract},
-		{name: "create request refuses unset cache policy", run: func() error {
-			value := write
-			value.CacheControl = objectstore.GCSCacheControl{}
+		{name: "media create refuses an unset bucket", run: func() error { value := media; value.Bucket = gcsobjects.GCSBucket{}; return value.Validate() }, wantErr: core.ErrObjectStoreContract},
+		{name: "media create refuses an unset object name", run: func() error { value := media; value.Name = gcsobjects.GCSObjectName{}; return value.Validate() }, wantErr: core.ErrObjectStoreContract},
+		{name: "media create refuses a nil source", run: func() error { value := media; value.Source = nil; return value.Validate() }, wantErr: core.ErrObjectStoreSource},
+		{name: "media create refuses unset integrity", run: func() error { value := media; value.Integrity = objectstore.Integrity{}; return value.Validate() }, wantErr: core.ErrObjectStoreContract},
+		{name: "media create refuses unset content type", run: func() error { value := media; value.ContentType = core.HTTPMediaType{}; return value.Validate() }, wantErr: core.ErrObjectStoreContract},
+		{name: "media create admits an absent cache policy", run: func() error {
+			value := media
+			value.CacheControl = gcsobjects.GCSCacheControl{}
 			return value.Validate()
-		}, wantErr: core.ErrObjectStoreContract},
-		{name: "create request refuses unset custom time", run: func() error { value := write; value.CustomTime = temporal.Instant{}; return value.Validate() }, wantErr: core.ErrObjectStoreContract},
-		{name: "read request refuses an unset bucket", run: func() error { value := read; value.Bucket = objectstore.GCSBucket{}; return value.Validate() }, wantErr: core.ErrObjectStoreContract},
-		{name: "read request refuses an unset object name", run: func() error { value := read; value.Name = objectstore.GCSObjectName{}; return value.Validate() }, wantErr: core.ErrObjectStoreContract},
+		}},
+		{name: "media create refuses unset custom time", run: func() error { value := media; value.CustomTime = temporal.Instant{}; return value.Validate() }, wantErr: core.ErrObjectStoreContract},
+		{name: "file create refuses an unset bucket", run: func() error { value := file; value.Bucket = gcsobjects.GCSBucket{}; return value.Validate() }, wantErr: core.ErrObjectStoreContract},
+		{name: "file create refuses an unset object name", run: func() error { value := file; value.Name = gcsobjects.GCSObjectName{}; return value.Validate() }, wantErr: core.ErrObjectStoreContract},
+		{name: "file create refuses a nil source", run: func() error { value := file; value.Source = nil; return value.Validate() }, wantErr: core.ErrObjectStoreSource},
+		{name: "file create refuses unset integrity", run: func() error { value := file; value.Integrity = objectstore.Integrity{}; return value.Validate() }, wantErr: core.ErrObjectStoreContract},
+		{name: "file create refuses unset custom time", run: func() error { value := file; value.CustomTime = temporal.Instant{}; return value.Validate() }, wantErr: core.ErrObjectStoreContract},
+		{name: "read request refuses an unset bucket", run: func() error { value := read; value.Bucket = gcsobjects.GCSBucket{}; return value.Validate() }, wantErr: core.ErrObjectStoreContract},
+		{name: "read request refuses an unset object name", run: func() error { value := read; value.Name = gcsobjects.GCSObjectName{}; return value.Validate() }, wantErr: core.ErrObjectStoreContract},
 		{name: "read request refuses a nil destination", run: func() error { value := read; value.Destination = nil; return value.Validate() }, wantErr: core.ErrObjectStoreDestination},
 		{name: "read request refuses unset expected digest", run: func() error { value := read; value.SHA256 = core.SHA256Digest{}; return value.Validate() }, wantErr: core.ErrObjectStoreContract},
 		{name: "read request refuses unset byte ceiling", run: func() error { value := read; value.Maximum = core.ByteCount{}; return value.Validate() }, wantErr: core.ErrObjectStoreContract},
-		{name: "delete request refuses an unset bucket", run: func() error { value := deleteRequest; value.Bucket = objectstore.GCSBucket{}; return value.Validate() }, wantErr: core.ErrObjectStoreContract},
+		{name: "delete request refuses an unset bucket", run: func() error { value := deleteRequest; value.Bucket = gcsobjects.GCSBucket{}; return value.Validate() }, wantErr: core.ErrObjectStoreContract},
 		{name: "delete request refuses an unset prefix", run: func() error {
 			value := deleteRequest
-			value.Prefix = objectstore.GCSObjectPrefix{}
+			value.Prefix = gcsobjects.GCSObjectPrefix{}
 			return value.Validate()
 		}, wantErr: core.ErrObjectStoreContract},
 		{name: "delete request refuses an unset bound", run: func() error { value := deleteRequest; value.MaxObjects = core.ByteCount{}; return value.Validate() }, wantErr: core.ErrObjectStoreContract},
 		{name: "exact delete request refuses an unset bucket", run: func() error {
 			value := deleteObjectRequest
-			value.Bucket = objectstore.GCSBucket{}
+			value.Bucket = gcsobjects.GCSBucket{}
 			return value.Validate()
 		}, wantErr: core.ErrObjectStoreContract},
 		{name: "exact delete request refuses an unset object name", run: func() error {
 			value := deleteObjectRequest
-			value.Name = objectstore.GCSObjectName{}
+			value.Name = gcsobjects.GCSObjectName{}
 			return value.Validate()
 		}, wantErr: core.ErrObjectStoreContract},
 		{name: "destructive bound one above ceiling is rejected", run: func() error {
 			value := deleteRequest
-			value.MaxObjects, _ = core.NewByteCount(objectstore.GCSDeleteMaximumObjects + 1)
+			value.MaxObjects, _ = core.NewByteCount(gcsobjects.GCSDeleteMaximumObjects + 1)
 			return value.Validate()
 		}, wantErr: core.ErrObjectStoreContract},
-		{name: "create extent one above GCS ceiling is rejected", run: func() error {
-			value := write
+		{name: "media extent one above GCS ceiling is rejected", run: func() error {
+			value := media
+			value.Integrity = authenticatedGCSIntegrityAtLength(t, objectstore.GoogleCloudStorageObjectMaximumBytes+1)
+			return value.Validate()
+		}, wantErr: core.ErrObjectStoreSize},
+		{name: "file extent one above GCS ceiling is rejected", run: func() error {
+			value := file
 			value.Integrity = authenticatedGCSIntegrityAtLength(t, objectstore.GoogleCloudStorageObjectMaximumBytes+1)
 			return value.Validate()
 		}, wantErr: core.ErrObjectStoreSize},
@@ -103,8 +124,8 @@ func TestAuthenticatedGCSRequestValidationExhaustsCompositionFailures(t *testing
 			value.Maximum = authenticatedGCSMaximum(t, objectstore.GoogleCloudStorageObjectMaximumBytes+1)
 			return value.Validate()
 		}, wantErr: core.ErrObjectStoreSize},
-		{name: "create extent one below GCS ceiling remains admitted", run: func() error {
-			value := write
+		{name: "media extent one below GCS ceiling remains admitted", run: func() error {
+			value := media
 			value.Integrity = authenticatedGCSIntegrityAtLength(t, objectstore.GoogleCloudStorageObjectMaximumBytes-1)
 			return value.Validate()
 		}},
@@ -115,7 +136,7 @@ func TestAuthenticatedGCSRequestValidationExhaustsCompositionFailures(t *testing
 		}},
 		{name: "destructive bound one below ceiling remains admitted", run: func() error {
 			value := deleteRequest
-			value.MaxObjects, _ = core.NewByteCount(objectstore.GCSDeleteMaximumObjects - 1)
+			value.MaxObjects, _ = core.NewByteCount(gcsobjects.GCSDeleteMaximumObjects - 1)
 			return value.Validate()
 		}},
 	}
@@ -131,17 +152,23 @@ func TestAuthenticatedGCSRequestValidationExhaustsCompositionFailures(t *testing
 	}
 }
 
-func authenticatedGCSRequestFixtures(t *testing.T) (objectstore.GCSWriteRequest, objectstore.GCSReadRequest, objectstore.GCSDeleteRequest, objectstore.GCSDeleteObjectRequest) {
+func authenticatedGCSRequestFixtures(t *testing.T) (
+	gcsobjects.GCSMediaUpload,
+	gcsobjects.GCSFileUpload,
+	gcsobjects.GCSReadRequest,
+	gcsobjects.GCSDeleteRequest,
+	gcsobjects.GCSDeleteObjectRequest,
+) {
 	t.Helper()
-	bucket, gotBucketErr := objectstore.ParseGCSBucket("primitive-object-tests")
+	bucket, gotBucketErr := gcsobjects.ParseGCSBucket("primitive-object-tests")
 	if gotBucketErr != nil {
 		t.Fatalf("ParseGCSBucket() error = %v, want nil", gotBucketErr)
 	}
-	name, gotNameErr := objectstore.ParseGCSObjectName("users/01/profile/photo.webp")
+	name, gotNameErr := gcsobjects.ParseGCSObjectName("users/01/profile/photo.webp")
 	if gotNameErr != nil {
 		t.Fatalf("ParseGCSObjectName() error = %v, want nil", gotNameErr)
 	}
-	prefix, gotPrefixErr := objectstore.ParseGCSObjectPrefix("users/01/profile/")
+	prefix, gotPrefixErr := gcsobjects.ParseGCSObjectPrefix("users/01/profile/")
 	if gotPrefixErr != nil {
 		t.Fatalf("ParseGCSObjectPrefix() error = %v, want nil", gotPrefixErr)
 	}
@@ -149,7 +176,7 @@ func authenticatedGCSRequestFixtures(t *testing.T) (objectstore.GCSWriteRequest,
 	if gotMediaErr != nil {
 		t.Fatalf("ParseHTTPMediaType() error = %v, want nil", gotMediaErr)
 	}
-	cacheControl, gotCacheErr := objectstore.ParseGCSCacheControl("private, no-store")
+	cacheControl, gotCacheErr := gcsobjects.ParseGCSCacheControl("private, no-store")
 	if gotCacheErr != nil {
 		t.Fatalf("ParseGCSCacheControl() error = %v, want nil", gotCacheErr)
 	}
@@ -158,18 +185,23 @@ func authenticatedGCSRequestFixtures(t *testing.T) (objectstore.GCSWriteRequest,
 		t.Fatalf("NewByteCount() error = %v, want nil", gotMaximumErr)
 	}
 	integrity := authenticatedGCSIntegrityAtLength(t, 7)
-	write := objectstore.GCSWriteRequest{
+	customTime := temporal.InstantFromNanoseconds(1_786_183_200_000_000_000)
+	media := gcsobjects.GCSMediaUpload{
 		Bucket: bucket, Name: name, Source: bytes.NewReader([]byte("payload")),
 		Integrity: integrity, ContentType: mediaType, CacheControl: cacheControl,
-		CustomTime: temporal.InstantFromNanoseconds(1_786_183_200_000_000_000),
+		CustomTime: customTime,
 	}
-	read := objectstore.GCSReadRequest{
+	file := gcsobjects.GCSFileUpload{
+		Bucket: bucket, Name: name, Source: bytes.NewReader([]byte("payload")),
+		Integrity: integrity, CustomTime: customTime,
+	}
+	read := gcsobjects.GCSReadRequest{
 		Bucket: bucket, Name: name, Destination: &bytes.Buffer{},
 		SHA256: integrity.SHA256, Maximum: authenticatedGCSMaximum(t, 7),
 	}
-	deleteRequest := objectstore.GCSDeleteRequest{Bucket: bucket, Prefix: prefix, MaxObjects: maximum}
-	deleteObjectRequest := objectstore.GCSDeleteObjectRequest{Bucket: bucket, Name: name}
-	return write, read, deleteRequest, deleteObjectRequest
+	deleteRequest := gcsobjects.GCSDeleteRequest{Bucket: bucket, Prefix: prefix, MaxObjects: maximum}
+	deleteObjectRequest := gcsobjects.GCSDeleteObjectRequest{Bucket: bucket, Name: name}
+	return media, file, read, deleteRequest, deleteObjectRequest
 }
 
 func authenticatedGCSMaximum(t *testing.T, value uint64) core.ByteCount {

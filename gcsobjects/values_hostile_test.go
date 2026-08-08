@@ -1,4 +1,4 @@
-package objectstore_test
+package gcsobjects_test
 
 import (
 	"errors"
@@ -7,13 +7,13 @@ import (
 	"testing"
 
 	"github.com/deliri/primitive/v2026/core"
-	"github.com/deliri/primitive/v2026/objectstore"
+	"github.com/deliri/primitive/v2026/gcsobjects"
 )
 
 func TestParseGCSBucketPressuresEveryProviderNamingBoundary(t *testing.T) {
 	t.Parallel()
 
-	component63 := strings.Repeat("a", objectstore.GCSBucketComponentMaximumBytes)
+	component63 := strings.Repeat("a", gcsobjects.GCSBucketComponentMaximumBytes)
 	dotted222 := component63 + "." + component63 + "." + component63 + "." + strings.Repeat("a", 30)
 	tests := []struct {
 		wantErr error
@@ -66,7 +66,7 @@ func TestParseGCSBucketPressuresEveryProviderNamingBoundary(t *testing.T) {
 	for _, test := range tests {
 		t.Run(test.name, func(t *testing.T) {
 			t.Parallel()
-			got, gotErr := objectstore.ParseGCSBucket(test.input)
+			got, gotErr := gcsobjects.ParseGCSBucket(test.input)
 			if !errors.Is(gotErr, test.wantErr) {
 				t.Fatalf("ParseGCSBucket(%q) error = %v, want errors.Is(..., %v)", test.input, gotErr, test.wantErr)
 			}
@@ -83,7 +83,7 @@ func TestParseGCSBucketPressuresEveryProviderNamingBoundary(t *testing.T) {
 func TestParseGCSObjectNamePressuresExtentEncodingAndReservedNames(t *testing.T) {
 	t.Parallel()
 
-	maximum := strings.Repeat("x", objectstore.GCSObjectNameMaximumBytes)
+	maximum := strings.Repeat("x", gcsobjects.GCSObjectNameMaximumBytes)
 	tests := []struct {
 		wantErr error
 		name    string
@@ -117,7 +117,7 @@ func TestParseGCSObjectNamePressuresExtentEncodingAndReservedNames(t *testing.T)
 		{name: "acme namespace without trailing slash is not reserved", input: ".well-known/acme-challenge", want: ".well-known/acme-challenge"},
 		{name: "acme namespace exact trailing slash is reserved", input: ".well-known/acme-challenge/", wantErr: core.ErrObjectStoreContract},
 		{name: "acme namespace after a leading byte is not reserved", input: "x.well-known/acme-challenge/token", want: "x.well-known/acme-challenge/token"},
-		{name: "one byte below extent ceiling remains admitted", input: maximum[:objectstore.GCSObjectNameMaximumBytes-1], want: maximum[:objectstore.GCSObjectNameMaximumBytes-1]},
+		{name: "one byte below extent ceiling remains admitted", input: maximum[:gcsobjects.GCSObjectNameMaximumBytes-1], want: maximum[:gcsobjects.GCSObjectNameMaximumBytes-1]},
 		{name: "extent ceiling remains admitted", input: maximum, want: maximum},
 		{name: "extent ceiling plus one remains rejected", input: maximum + "y", wantErr: core.ErrObjectStoreContract},
 		{name: "carriage return at first byte is rejected", input: "\ra", wantErr: core.ErrObjectStoreContract},
@@ -129,13 +129,13 @@ func TestParseGCSObjectNamePressuresExtentEncodingAndReservedNames(t *testing.T)
 		{name: "two byte utf8 scalar is admitted", input: "¢", want: "¢"},
 		{name: "three byte utf8 scalar is admitted", input: "€", want: "€"},
 		{name: "four byte utf8 scalar is admitted", input: "U0001f3cb", want: "U0001f3cb"},
-		{name: "multibyte text at exact byte ceiling is admitted", input: strings.Repeat("¢", objectstore.GCSObjectNameMaximumBytes/2), want: strings.Repeat("¢", objectstore.GCSObjectNameMaximumBytes/2)},
+		{name: "multibyte text at exact byte ceiling is admitted", input: strings.Repeat("¢", gcsobjects.GCSObjectNameMaximumBytes/2), want: strings.Repeat("¢", gcsobjects.GCSObjectNameMaximumBytes/2)},
 	}
 
 	for _, test := range tests {
 		t.Run(test.name, func(t *testing.T) {
 			t.Parallel()
-			got, gotErr := objectstore.ParseGCSObjectName(test.input)
+			got, gotErr := gcsobjects.ParseGCSObjectName(test.input)
 			if !errors.Is(gotErr, test.wantErr) {
 				t.Fatalf("ParseGCSObjectName(%q) error = %v, want errors.Is(..., %v)", test.input, gotErr, test.wantErr)
 			}
@@ -149,7 +149,7 @@ func TestParseGCSObjectNamePressuresExtentEncodingAndReservedNames(t *testing.T)
 func TestParseGCSObjectPrefixRefusesAmbiguousDestructiveScopes(t *testing.T) {
 	t.Parallel()
 
-	maximum := strings.Repeat("a", objectstore.GCSObjectNameMaximumBytes-1) + "/"
+	maximum := strings.Repeat("a", gcsobjects.GCSObjectNameMaximumBytes-1) + "/"
 	tests := []struct {
 		wantErr error
 		name    string
@@ -184,7 +184,7 @@ func TestParseGCSObjectPrefixRefusesAmbiguousDestructiveScopes(t *testing.T) {
 		{name: "current directory at middle segment is rejected", input: "a/./b/", wantErr: core.ErrObjectStoreContract},
 		{name: "parent directory at middle segment is rejected", input: "a/../b/", wantErr: core.ErrObjectStoreContract},
 		{name: "three dots are ordinary segment text", input: "a/.../", want: "a/.../"},
-		{name: "one byte below prefix ceiling is admitted", input: strings.Repeat("a", objectstore.GCSObjectNameMaximumBytes-2) + "/", want: strings.Repeat("a", objectstore.GCSObjectNameMaximumBytes-2) + "/"},
+		{name: "one byte below prefix ceiling is admitted", input: strings.Repeat("a", gcsobjects.GCSObjectNameMaximumBytes-2) + "/", want: strings.Repeat("a", gcsobjects.GCSObjectNameMaximumBytes-2) + "/"},
 		{name: "prefix ceiling is admitted", input: maximum, want: maximum},
 		{name: "prefix ceiling plus one is rejected", input: maximum + "a", wantErr: core.ErrObjectStoreContract},
 		{name: "carriage return before trailing slash is rejected", input: "a\r/", wantErr: core.ErrObjectStoreContract},
@@ -201,7 +201,7 @@ func TestParseGCSObjectPrefixRefusesAmbiguousDestructiveScopes(t *testing.T) {
 	for _, test := range tests {
 		t.Run(test.name, func(t *testing.T) {
 			t.Parallel()
-			got, gotErr := objectstore.ParseGCSObjectPrefix(test.input)
+			got, gotErr := gcsobjects.ParseGCSObjectPrefix(test.input)
 			if !errors.Is(gotErr, test.wantErr) {
 				t.Fatalf("ParseGCSObjectPrefix(%q) error = %v, want errors.Is(..., %v)", test.input, gotErr, test.wantErr)
 			}
@@ -222,14 +222,14 @@ func TestGCSAuthenticationExhaustsTheClosedCompilerDomain(t *testing.T) {
 	tests := []struct {
 		wantErr error
 		name    string
-		config  objectstore.GCSClientConfig
+		config  gcsobjects.GCSClientConfig
 	}{
-		{name: "application default mode needs no path", config: objectstore.GCSClientConfig{Authentication: objectstore.GCSAuthenticationApplicationDefault}},
-		{name: "service account mode requires one absolute path", config: objectstore.GCSClientConfig{Authentication: objectstore.GCSAuthenticationServiceAccountFile, CredentialFile: credentialFile}},
-		{name: "zero authentication mode is rejected", config: objectstore.GCSClientConfig{}, wantErr: core.ErrObjectStoreContract},
-		{name: "future authentication mode is rejected", config: objectstore.GCSClientConfig{Authentication: objectstore.GCSAuthentication(math.MaxUint8)}, wantErr: core.ErrObjectStoreContract},
-		{name: "application default mode refuses a contradictory file", config: objectstore.GCSClientConfig{Authentication: objectstore.GCSAuthenticationApplicationDefault, CredentialFile: credentialFile}, wantErr: core.ErrObjectStoreContract},
-		{name: "service account mode refuses an unset file", config: objectstore.GCSClientConfig{Authentication: objectstore.GCSAuthenticationServiceAccountFile}, wantErr: core.ErrObjectStoreContract},
+		{name: "application default mode needs no path", config: gcsobjects.GCSClientConfig{Authentication: gcsobjects.GCSAuthenticationApplicationDefault}},
+		{name: "service account mode requires one absolute path", config: gcsobjects.GCSClientConfig{Authentication: gcsobjects.GCSAuthenticationServiceAccountFile, CredentialFile: credentialFile}},
+		{name: "zero authentication mode is rejected", config: gcsobjects.GCSClientConfig{}, wantErr: core.ErrObjectStoreContract},
+		{name: "future authentication mode is rejected", config: gcsobjects.GCSClientConfig{Authentication: gcsobjects.GCSAuthentication(math.MaxUint8)}, wantErr: core.ErrObjectStoreContract},
+		{name: "application default mode refuses a contradictory file", config: gcsobjects.GCSClientConfig{Authentication: gcsobjects.GCSAuthenticationApplicationDefault, CredentialFile: credentialFile}, wantErr: core.ErrObjectStoreContract},
+		{name: "service account mode refuses an unset file", config: gcsobjects.GCSClientConfig{Authentication: gcsobjects.GCSAuthenticationServiceAccountFile}, wantErr: core.ErrObjectStoreContract},
 	}
 
 	for _, test := range tests {
@@ -240,5 +240,37 @@ func TestGCSAuthenticationExhaustsTheClosedCompilerDomain(t *testing.T) {
 				t.Fatalf("GCSClientConfig.Validate() error = %v, want errors.Is(..., %v)", gotErr, test.wantErr)
 			}
 		})
+	}
+}
+
+// TestGCSAuthenticationOffWireEnumExhaustsEveryByte proves the closed
+// credential-discovery domain across the whole uint8 range: exactly the two
+// admitted modes validate and carry diagnostic text, every other byte is
+// rejected with the stable contract identity, and the off-wire marker holds.
+func TestGCSAuthenticationOffWireEnumExhaustsEveryByte(t *testing.T) {
+	t.Parallel()
+
+	admitted := map[gcsobjects.GCSAuthentication]string{
+		gcsobjects.GCSAuthenticationApplicationDefault: "application_default",
+		gcsobjects.GCSAuthenticationServiceAccountFile: "service_account_file",
+	}
+	var _ core.OffWireEnum = gcsobjects.GCSAuthenticationApplicationDefault
+	for raw := range 256 {
+		value := gcsobjects.GCSAuthentication(raw)
+		wantText, wantValid := admitted[value]
+		gotErr := value.Validate()
+		if wantValid && gotErr != nil {
+			t.Fatalf("GCSAuthentication(%d).Validate() error = %v, want nil", raw, gotErr)
+		}
+		if !wantValid && !errors.Is(gotErr, core.ErrObjectStoreContract) {
+			t.Fatalf("GCSAuthentication(%d).Validate() error = %v, want %v", raw, gotErr, core.ErrObjectStoreContract)
+		}
+		if gotValid := value.IsValid(); gotValid != wantValid {
+			t.Fatalf("GCSAuthentication(%d).IsValid() = %t, want %t", raw, gotValid, wantValid)
+		}
+		if gotText := value.String(); gotText != wantText {
+			t.Fatalf("GCSAuthentication(%d).String() = %q, want %q", raw, gotText, wantText)
+		}
+		value.OffWireEnum()
 	}
 }
