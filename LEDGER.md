@@ -4,6 +4,22 @@ Last updated: `2026-08-08`
 
 ## Current
 
+- Authenticated GCS object lifecycle, 2026-08-08: Kernel's private profile
+  photo path proved that signed upload capabilities are not the only neutral
+  object-storage mechanism products need. `objectstore` now owns official-SDK
+  client construction through a closed ADC/service-account selection, typed
+  bucket, object, destructive-prefix, cache, and generation values,
+  generation-zero create-only writes, exact streaming reads, structured
+  provider time metadata, and bounded generation-matched prefix deletion with
+  a second listing as absence proof. Permanent deletion refuses any bucket
+  whose soft-delete retention is active; product namespace, retention intent,
+  retry, and reconciliation remain downstream. The serious admission surfaces
+  have hostile tables over valid, rejected, and exact boundary values. A real
+  GCS proof created and read both nonempty and zero-byte objects, observed a
+  provider conflict, rejected short-source and wrong-digest writes without
+  leaving objects, deleted two exact generations, proved both absent, and
+  independently refused a bucket retaining soft-deleted objects.
+
 - Process group-survivor sweep, 2026-08-08: Peachfuzz's migration onto
   Process proved the one supervision moment the doors could not reach: a
   group-contained tree whose reaped leader leaves survivors, either because

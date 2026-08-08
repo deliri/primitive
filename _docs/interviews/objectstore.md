@@ -2,6 +2,30 @@
 
 Status: `COMPLETE` | Decision: `REDESIGN`
 
+## 2026-08-08 authenticated GCS scope amendment
+
+The signed-capability reconstruction below remains the evidence for the first
+three doors. Its exclusion of provider authentication, bucket clients, listing,
+deletion, metadata, and cloud SDKs is superseded by the product-neutral fourth
+door admitted on 2026-08-08.
+
+The fourth door owns the official GCS SDK client and exactly these operations:
+
+- Application Default Credentials or one typed service-account file;
+- create-only exact whole-object streaming with SHA-256 and CRC32C;
+- exact whole-object streaming read;
+- structured content type, cache policy, and custom-time metadata; and
+- bounded prefix listing, generation-matched deletion, and post-delete absence
+  proof, with refusal when bucket soft-delete retention is enabled.
+
+Products still own bucket selection, object namespaces, retention intent,
+reconciliation, and retry policy. Primitive still does not create buckets,
+mint or persist credentials, change lifecycle policy, copy, compose, expose SDK
+types, or build product workflows. The provider proof uses real GCS: exact
+create/read/delete and integrity-refusal paths run against a soft-delete-disabled
+bucket, while a second real bucket proves that permanent deletion refuses a
+seven-day soft-delete policy.
+
 This is the sole reconstruction record for the proposed Primitive
 `objectstore` package. The archive is evidence, not authority. No archived
 source was copied.

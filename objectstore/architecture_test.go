@@ -111,6 +111,19 @@ func productionStructRole(name string) (string, bool) {
 		return "public execution ingress", true
 	case "Client":
 		return "capability wrapper", true
+	case "GCSClient":
+		return "authenticated provider capability wrapper", true
+	case "GCSClientConfig":
+		return "authenticated provider construction ingress", true
+	case "GCSBucket", "GCSObjectName", "GCSObjectPrefix", "GCSCacheControl",
+		"GCSGeneration":
+		return "opaque validated provider value", true
+	case "GCSWriteRequest", "GCSReadRequest", "GCSDeleteRequest":
+		return "authenticated provider execution ingress", true
+	case "GCSObjectMetadata", "GCSDeleteResult":
+		return "sealed authenticated provider evidence", true
+	case "gcsObjectIdentity", "gcsObjectProperties", "gcsObjectTimes":
+		return "internal authenticated provider metadata projection", true
 	case "Transfer":
 		return "sealed transfer evidence", true
 	case "exactReader", "preparedUpload", "preparedDownload",

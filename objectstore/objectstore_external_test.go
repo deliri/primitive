@@ -96,6 +96,11 @@ func downloadOperationFor(provider objectstore.Provider) downloadOperation {
 func TestOffWireEnumExhaustiveDomains(t *testing.T) {
 	t.Parallel()
 
+	exerciseEnumDomain(t, []enumExpectation[objectstore.GCSAuthentication]{
+		{value: objectstore.GCSAuthenticationApplicationDefault, wantText: "application_default"},
+		{value: objectstore.GCSAuthenticationServiceAccountFile, wantText: "service_account_file"},
+	})
+
 	exerciseEnumDomain(t, []enumExpectation[objectstore.Provider]{
 		{value: objectstore.ProviderAmazonS3, wantText: "amazon_s3"},
 		{value: objectstore.ProviderGoogleCloudStorage, wantText: "google_cloud_storage"},

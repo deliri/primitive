@@ -251,8 +251,8 @@ The same rule holds at every layer here:
 
 - `exchange` moves a bounded body and does not know it is a check-in.
 - `attest` signs and verifies bytes and does not know what they assert.
-- `objectstore` moves one stream under an issued capability and does not know
-  what the bytes are evidence of.
+- `objectstore` moves one stream under an issued or authenticated provider
+  capability and does not know what the bytes are evidence of.
 - the control plane reads a document, validates it, and applies its own policy
   without knowing which tool produced it.
 - the tool obeys an authentic decision without knowing how the policy that
@@ -1063,7 +1063,7 @@ The order is dependency depth, not a command to build every package in a row.
 | 5 | `gate` | Pure CLI-side new-work authorization over one authentic Lease assessment | `core`, `lease` | `attest`, `temporal` |
 | 5 | `receipt` | Authenticated accepted-evidence facts and fixed-size monotonic watermarks | `core`, `attest`, `temporal` | none |
 | 5 | `controlwire` | Shared control-wire revision, request nonce, one-time registration token, policy cursor, and the control exchange policy | `core`, `keygen`, `exchange`, `temporal` | none |
-| 5 | `objectstore` | One bounded vendor-specified S3, GCS, or Cloudflare Images transfer with integrity and commitment | `core`, `contextstate`, `temporal`, `exchange` | none |
+| 5 | `objectstore` | Bounded vendor-specified S3, GCS, or Cloudflare Images transfers, plus authenticated GCS create/read/permanent prefix deletion, with integrity and provider evidence | `core`, `contextstate`, `temporal`, `exchange` | none |
 | 5 | `timeproof` | RFC 3161 request construction, response verification, and replay | `core`, `temporal`, `keygen` | none |
 | 5 | `cloudidentity` | Bounded Google Cloud or AWS outbound identity-token acquisition and redacted disclosure | `core`, `temporal`, `exchange` | none |
 | 6 | `controlplane` | Signed control-plane request and response documents, their binding to one exact request, product status, and usage watermark | `core`, `controlwire`, `attest`, `lease`, `temporal`, `receipt` | none |
@@ -1084,16 +1084,22 @@ Graph-wide rules:
 
 ### 16.1 `objectstore`
 
-`objectstore` starts with exactly three closed vendor contracts:
+`objectstore` owns four closed provider contracts:
 
 1. Amazon S3 whole-object PUT/GET;
 2. Google Cloud Storage XML API whole-object PUT/GET; and
-3. Cloudflare Images one-time direct upload.
+3. Cloudflare Images one-time direct upload; and
+4. authenticated Google Cloud Storage create-only whole-object write, exact
+   read, and bounded generation-matched prefix deletion.
 
 It composes `exchange` against caller-supplied, expiring HTTPS capabilities
 without duplicating transport, retry, buffering, or provider behavior.
+The authenticated GCS door composes the official provider SDK behind a
+Primitive-owned client. Products select Application Default Credentials or an
+explicit service-account file through a closed typed configuration; the SDK
+type and credential-discovery mechanics never escape the package.
 
-Each call owns:
+Each transfer call owns:
 
 - one provider target; and
 - one stream.
@@ -1104,13 +1110,21 @@ reopenable sources. It is never a hidden fan-out engine.
 `objectstore` does not:
 
 - create buckets;
-- discover or create credentials;
+- mint or persist credentials;
 - create signed URLs;
 - create Cloudflare draft records;
 - implement resumable sessions;
 - implement multipart object-upload protocols;
 - hide multi-provider replication; or
 - duplicate SDK, provider, or `exchange` retry behavior.
+
+Authenticated deletion is deliberately narrower than general object
+administration: the prefix is nonempty and slash-terminated, the object count
+is bounded, every delete is pinned to the listed generation, the prefix is
+listed again to prove absence, and a bucket with soft-delete retention enabled
+is refused because success would not mean permanent deletion. Bucket creation,
+lifecycle mutation, copy, compose, arbitrary metadata mutation, and product
+namespace or retention policy remain downstream.
 
 ### 16.2 `cloudidentity`
 
