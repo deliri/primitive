@@ -56,6 +56,7 @@ func TestKeygenExactPublicSurfaceFieldsAndNoAliases(t *testing.T) {
 	wantSurface := []string{
 		"const RandomTokenMaximumBytes",
 		"const SeedSize",
+		"func AdoptPrivateKey",
 		"func AdoptSigningKey",
 		"func GenerateSecret",
 		"func GenerateSigningKey",

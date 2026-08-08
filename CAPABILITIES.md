@@ -44,6 +44,7 @@ transaction run this same stack, so a wire type has exactly one home.
 | signing, verifying, envelopes, trust sets | `attest` |
 | random bytes, keys, secrets | `keygen` — never `crypto/rand` directly |
 | persisting a signing key and reading it back | `keygen.SigningKey.Seed` + `keygen.AdoptSigningKey` — store the seed, the minimal secret; never slice a 64-byte private key with `crypto/ed25519` size arithmetic |
+| admitting a 64-byte private key another party already speaks | `keygen.AdoptPrivateKey` — the trailing half is re-derived from the seed, never trusted |
 | a local random identifier or device label that is not a control-wire nonce | `keygen.RandomToken` — a bounded public draw, all-zero allowed; control-wire nonces have the opposite zero rule and live in `controlwire` |
 | a full-width random seed or salt integer | `keygen.RandomUint64` — never `rand.Int` from a product; a range-bounded uniform draw has no door yet, so bring that need to keygen rather than writing a modulo |
 | an HTTP call with timeouts or retries | `exchange`, and `controlwire.ControlExchangePolicy` for control routes |
@@ -73,12 +74,17 @@ transaction run this same stack, so a wire type has exactly one home.
 | a timestamp, duration, or deadline | `temporal` |
 | third-party proof of *when* | `timeproof` |
 | how wide the terminal is, for rendering | `hostfacts.ObserveTerminalGeometry` — never an ioctl or `golang.org/x/sys` from a product |
+| the host's own name, for a device record | `hostfacts.ObserveHostname` — never `os.Hostname` from a product |
+| the per-user configuration base | `hostfacts.UserConfigDirectory` — never `os.UserConfigDir` from a product |
+| the scratch base for uniquely named temporary entries | `hostfacts.TemporaryDirectory` plus a keygen token for the name — never `os.MkdirTemp` from a product |
 | deciding whether work is paid for | `gate` + `lease` |
 | running a subprocess | `process` |
 | isolating a tool tree so cancellation reaches all of it (POSIX hosts) | `process.Containment` with `IsolationGroup` — never a hand-rolled `SysProcAttr{Setpgid}`; Windows has no group signal and refuses the request rather than delivering it to one process |
 | supervising a running child (signal, force-kill, hold it) | `process.Begin` and the `Execution` it returns — never `cmd.Process` from a product |
 | whether a pid is still running | `process.Alive` — never `syscall.Kill(pid, 0)` from a product |
 | the calling process's own pid, for a diagnostic record | `process.Self` — never `os.Getpid` from a product |
+| walking the host's process table where the kernel offers a snapshot (Windows) | `process.ObserveProcesses` — never Toolhelp through `golang.org/x/sys` from a product; POSIX composes ps through `Run` |
+| whether another process holds a file against opening (Windows share modes) | `filestore.ObserveSharing` — never a `CreateFile` probe from a product; POSIX composes lsof through Process |
 | the path of the binary running right now, for a supervisor unit | `process.Executable` — never `os.Executable` from a product |
 | this process's inherited environment, to filter before handing to a child | `process.AmbientEnvironment` — never `os.Environ` from a product |
 | ending a contained tree's survivors, even after the leader was reaped | `process.Execution.Sweep` — never `syscall.Kill(-pid, ...)` from a product; a group already gone is success, and a direct child is refused |

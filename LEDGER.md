@@ -4,6 +4,37 @@ Last updated: `2026-08-08`
 
 ## Current
 
+- Hostfacts ambient trio, 2026-08-08: Bug's sweep surfaced the last three
+  ambient host asks living in a consumer. `ObserveHostname` reports the
+  platform's name bounded and control-free, `UserConfigDirectory` and
+  `TemporaryDirectory` admit the standard library's per-user and scratch
+  bases as absolute paths, with uniqueness for scratch names deliberately
+  left to keygen so no door becomes a hidden entropy source. Oracle-pinned
+  proofs and the surface ratchet extended. Same pending revision as the
+  Windows observation doors.
+
+- Windows observation doors, 2026-08-08: Bug's migration surfaced the two
+  remaining direct `golang.org/x/sys` reaches in a consumer, both Windows
+  observations with no POSIX kernel counterpart. `process.ObserveProcesses`
+  walks the Toolhelp snapshot as typed sightings, and
+  `filestore.ObserveSharing` answers whether another process holds a path
+  against opening through a zero-share probing open, with the contention
+  refusals as the held answer. POSIX hosts refuse both loudly, because the
+  supported spelling there is composing ps or lsof through Process, and a
+  lookalike would hide that composition. Windows leaves are cross-compiled
+  and shape-ratcheted; executing them on a real Windows kernel joins the
+  existing Windows-runner proof debt. Same pending revision as the keygen
+  wire-form adoption.
+
+- Keygen wire-form adoption, 2026-08-08: Bug's release material arrives as
+  the 64-byte standard-library private key a server contract already speaks,
+  and admitting it locally meant crypto/ed25519 size arithmetic in a
+  consumer. `AdoptPrivateKey` now owns that admission: exact extent refusal,
+  seed-half custody, trailing half re-derived rather than trusted, proven by
+  a projection round trip, a forged-trailing-half derivation proof, and an
+  extent refusal walk. Products with their own persisted form keep the seed
+  and AdoptSigningKey. Pending the next published revision for Bug to pin.
+
 - Authenticated GCS object lifecycle, 2026-08-08: Kernel's private profile
   photo path proved that signed upload capabilities are not the only neutral
   object-storage mechanism products need. `objectstore` now owns official-SDK

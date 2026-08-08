@@ -46,6 +46,24 @@ func (k SigningKey) Seed() ([SeedSize]byte, error) {
 	return k.validatedSeed()
 }
 
+// AdoptPrivateKey takes custody of one 64-byte standard-library private key a
+// wire contract or store already carries, admitting exactly the value
+// PrivateKey projects. Only the seed half is kept: the trailing public half
+// is determined by the seed, so keygen re-derives it rather than trusting
+// what arrived, and a delivered pair that disagrees with itself can never
+// sign. A product whose persisted form is its own chooses the seed and
+// AdoptSigningKey instead; this door exists for the forms other parties
+// already speak.
+func AdoptPrivateKey(private ed25519.PrivateKey) (SigningKey, error) {
+	if len(private) != ed25519.PrivateKeySize {
+		return SigningKey{}, contractError(errors.New("keygen private key has invalid extent"))
+	}
+	var seed [SeedSize]byte
+	copy(seed[:], private[:SeedSize])
+	defer clear(seed[:])
+	return AdoptSigningKey(seed)
+}
+
 // AdoptSigningKey takes custody of one RFC 8032 seed a product already holds,
 // so a key read back from storage reaches the same seed custody, redacted
 // formatting, and destruction rules as a generated one.

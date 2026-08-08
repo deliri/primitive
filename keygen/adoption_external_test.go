@@ -61,6 +61,62 @@ func TestAdoptedKeyIsIndistinguishableFromAGeneratedOne(t *testing.T) {
 	}
 }
 
+// TestAdoptPrivateKeyAdmitsExactlyWhatPrivateKeyProjects proves the wire
+// door's whole claim: the 64-byte projection a key hands out is adoptable
+// back to the same public identity, the trailing half is re-derived rather
+// than trusted, and every wrong extent is refused.
+func TestAdoptPrivateKeyAdmitsExactlyWhatPrivateKeyProjects(t *testing.T) {
+	t.Parallel()
+
+	generated, err := keygen.GenerateSigningKey()
+	if err != nil {
+		t.Fatalf("GenerateSigningKey() error = %v, want nil", err)
+	}
+	wantPublic, err := generated.PublicKey()
+	if err != nil {
+		t.Fatalf("PublicKey() error = %v, want nil", err)
+	}
+	private, err := generated.PrivateKey()
+	if err != nil {
+		t.Fatalf("PrivateKey() error = %v, want nil", err)
+	}
+	adopted, err := keygen.AdoptPrivateKey(private)
+	if err != nil {
+		t.Fatalf("AdoptPrivateKey(PrivateKey()) error = %v, want nil", err)
+	}
+	gotPublic, err := adopted.PublicKey()
+	if err != nil {
+		t.Fatalf("adopted PublicKey() error = %v, want nil", err)
+	}
+	if gotPublic != wantPublic {
+		t.Fatalf("adopted PublicKey() = %v, want the projecting identity %v", gotPublic, wantPublic)
+	}
+
+	// A tampered trailing half signs as the seed says, never as the tamper
+	// says: adoption re-derives, so the forged public half simply vanishes.
+	forged := append(ed25519.PrivateKey(nil), private...)
+	for i := ed25519.SeedSize; i < len(forged); i++ {
+		forged[i] ^= 0xff
+	}
+	readopted, err := keygen.AdoptPrivateKey(forged)
+	if err != nil {
+		t.Fatalf("AdoptPrivateKey(forged trailing half) error = %v, want adoption from the seed", err)
+	}
+	forgedPublic, err := readopted.PublicKey()
+	if err != nil {
+		t.Fatalf("readopted PublicKey() error = %v, want nil", err)
+	}
+	if forgedPublic != wantPublic {
+		t.Fatalf("forged-half PublicKey() = %v, want the seed-derived %v", forgedPublic, wantPublic)
+	}
+
+	for _, extent := range []int{0, 1, ed25519.SeedSize, ed25519.PrivateKeySize - 1, ed25519.PrivateKeySize + 1} {
+		if _, err := keygen.AdoptPrivateKey(make(ed25519.PrivateKey, extent)); err == nil {
+			t.Fatalf("AdoptPrivateKey(%d bytes) error = nil, want the extent refusal", extent)
+		}
+	}
+}
+
 // TestSeedRoundTripsThroughAdoption proves the persistence story the door
 // exists for: the seed a key hands out is exactly the seed adoption accepts
 // back, and the readopted key derives the same public identity.

@@ -15,10 +15,11 @@ import (
 // a red test rather than a green build.
 func substrateEscapeLeafFiles() map[string]bool {
 	return map[string]bool{
-		"alive_unix.go":       true,
-		"alive_windows.go":    true,
-		"containment_unix.go": true,
-		"termination_unix.go": true,
+		"alive_unix.go":        true,
+		"alive_windows.go":     true,
+		"containment_unix.go":  true,
+		"sightings_windows.go": true,
+		"termination_unix.go":  true,
 	}
 }
 
