@@ -136,6 +136,20 @@ func (c Containment) Validate() error {
 	return c.CancelSignal.Validate()
 }
 
+// orDefault supplies the conservative containment a caller that named none
+// wants: a direct child, killed on cancellation. Running one command and
+// reading its output is the common case, and forcing every such caller to
+// spell out the same two members would be ceremony, so the fully zero value
+// is filled here. A partially named containment is not defaulted: naming one
+// member and not the other is a mistake the caller must complete, and it stays
+// invalid so the mistake surfaces rather than being papered over.
+func (c Containment) orDefault() Containment {
+	if c.Isolation == IsolationUnknown && c.CancelSignal == CancelSignalUnknown {
+		return Containment{Isolation: IsolationDirect, CancelSignal: CancelSignalKill}
+	}
+	return c
+}
+
 // signalDelivery is the typed handoff one signal delivery rides from the
 // execution that owns the child to the platform leaf that addresses it.
 type signalDelivery struct {

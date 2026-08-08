@@ -175,15 +175,59 @@ func TestProcessIdentityRejectsNonPositiveValues(t *testing.T) {
 	}
 }
 
-func TestRunRefusesAnIncompleteContainment(t *testing.T) {
+func TestRunDefaultsAZeroContainmentToDirectKill(t *testing.T) {
 	t.Parallel()
 
+	// A caller that names no containment is the common probe case: run one
+	// command, read its output. The zero value must be accepted and run as a
+	// direct child, not rejected, so existing callers are never forced to spell
+	// out the conservative default.
 	request := processRequest(t, "silent", process.Streams{
 		Stdin: bytes.NewReader(nil), Stdout: io.Discard, Stderr: io.Discard,
 	})
 	request.Containment = process.Containment{}
-	_, err := process.Run(t.Context(), request)
-	if !errors.Is(err, core.ErrProcessContract) {
-		t.Fatalf("process.Run(incomplete containment) error = %v, want %v", err, core.ErrProcessContract)
+	if err := request.Validate(); err != nil {
+		t.Fatalf("Request.Validate(zero containment) error = %v, want nil", err)
+	}
+	result, err := process.Run(t.Context(), request)
+	if err != nil {
+		t.Fatalf("process.Run(zero containment) error = %v, want nil", err)
+	}
+	exit, err := result.ExitCode()
+	if err != nil {
+		t.Fatalf("ExitCode() error = %v, want nil", err)
+	}
+	if success, err := exit.Success(); err != nil || !success {
+		t.Fatalf("zero-containment child success = %t (err %v), want true", success, err)
+	}
+}
+
+func TestRunRefusesAHalfNamedContainment(t *testing.T) {
+	t.Parallel()
+
+	cases := []struct {
+		name        string
+		containment process.Containment
+	}{
+		{
+			name:        "isolation without a cancel signal",
+			containment: process.Containment{Isolation: process.IsolationGroup},
+		},
+		{
+			name:        "cancel signal without isolation",
+			containment: process.Containment{CancelSignal: process.CancelSignalQuit},
+		},
+	}
+	for _, tc := range cases {
+		t.Run(tc.name, func(t *testing.T) {
+			t.Parallel()
+			request := processRequest(t, "silent", process.Streams{
+				Stdin: bytes.NewReader(nil), Stdout: io.Discard, Stderr: io.Discard,
+			})
+			request.Containment = tc.containment
+			if _, err := process.Run(t.Context(), request); !errors.Is(err, core.ErrProcessContract) {
+				t.Fatalf("process.Run(half containment) error = %v, want %v", err, core.ErrProcessContract)
+			}
+		})
 	}
 }

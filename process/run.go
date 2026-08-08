@@ -63,7 +63,7 @@ func beginValidated(ctx context.Context, request Request) (*Execution, error) {
 		cancel:      cancel,
 		parent:      ctx,
 		commandPath: request.Command,
-		containment: request.Containment,
+		containment: request.Containment.orDefault(),
 		identity:    identity,
 	}, nil
 }
@@ -88,7 +88,8 @@ func prepareCommand(
 	command.Stdin = streams.stdin
 	command.Stdout = streams.stdout
 	command.Stderr = streams.stderr
-	if err := applyContainment(command, request.Containment); err != nil {
+	containment := request.Containment.orDefault()
+	if err := applyContainment(command, containment); err != nil {
 		return preparedCommand{}, err
 	}
 	cancellation := &atomic.Bool{}
@@ -99,8 +100,8 @@ func prepareCommand(
 		err := deliverSignal(signalDelivery{
 			process:     command.Process,
 			identity:    ProcessIdentity(command.Process.Pid), // #nosec G115 -- a started child's identifier fits the platform pid domain.
-			containment: request.Containment,
-			signal:      request.Containment.CancelSignal,
+			containment: containment,
+			signal:      containment.CancelSignal,
 		})
 		if err == nil {
 			cancellation.Store(true)

@@ -348,7 +348,7 @@ func (r Request) Validate() error {
 	if r.WaitDelay.IsZero() {
 		return contractError("wait delay is zero")
 	}
-	return r.Containment.Validate()
+	return r.Containment.orDefault().Validate()
 }
 
 func validateOutputLimit(limit core.ByteCount) error {
