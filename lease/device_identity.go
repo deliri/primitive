@@ -25,10 +25,7 @@ func DeviceIDForPublicKey(key core.Ed25519PublicKey) (DeviceID, error) {
 	if err != nil {
 		return DeviceID{}, contractError(err)
 	}
-	digest, err := core.SHA256Of(encoded[:]).Bytes()
-	if err != nil {
-		return DeviceID{}, contractError(err)
-	}
+	digest := core.SHA256BytesOf(encoded[:])
 	var value [IdentifierBytes]byte
 	copy(value[:], digest[:IdentifierBytes])
 	device, err := NewDeviceID(value)

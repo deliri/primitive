@@ -83,7 +83,7 @@ transaction run this same stack, so a wire type has exactly one home.
 | ending a contained tree's survivors, even after the leader was reaped | `process.Execution.Sweep` — never `syscall.Kill(-pid, ...)` from a product; a group already gone is success, and a direct child is refused |
 | the current working directory as a typed path | `process.WorkingDirectory` — never `os.Getwd` then re-parse |
 | hashing a stream you are already moving | `core.DigestWriter` — an `io.Writer` that also peeks its running total mid-stream (`Digest`) and clears for pooled reuse across streams (`Reset`); never a private `sha256.New()` accumulator |
-| hashing one whole in-memory buffer | `core.SHA256Of` — never `sha256.Sum256` from a product |
+| hashing one whole in-memory buffer | `core.SHA256Of` for a typed digest, `core.SHA256BytesOf` for the raw thirty two bytes — never `sha256.Sum256` from a product, and never a fallible `Bytes` on a freshly hashed buffer, which is a branch no caller can exercise |
 | naming a sibling by suffix (`.lease`, `-quarantine`) | `AbsolutePath.WithSuffix` — never string concatenation, which can leave the directory |
 | a path relative to a root you hold | `AbsolutePath.RelativeTo` — never `filepath.Rel` then re-parse |
 | building a nested path | `AbsolutePath.Resolve(names...)`, or `Join` / `JoinRelative` for typed parts — never `filepath.Join` then re-parse |

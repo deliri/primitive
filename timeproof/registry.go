@@ -129,7 +129,7 @@ func verifyFreeTSARoot(root *x509.Certificate) error {
 	)
 	wantBefore := time.Date(2016, time.March, 13, 1, 52, 13, 0, time.UTC)
 	wantAfter := time.Date(2041, time.March, 7, 1, 52, 13, 0, time.UTC)
-	if sha256.Sum256(root.Raw) != wantDigest ||
+	if core.SHA256BytesOf(root.Raw) != wantDigest ||
 		root.SerialNumber.Cmp(wantSerial) != 0 ||
 		!root.NotBefore.Equal(wantBefore) ||
 		!root.NotAfter.Equal(wantAfter) {
@@ -159,7 +159,7 @@ func verifyDigiCertRoot(root *x509.Certificate) error {
 	)
 	wantBefore := time.Date(2013, time.August, 1, 12, 0, 0, 0, time.UTC)
 	wantAfter := time.Date(2038, time.January, 15, 12, 0, 0, 0, time.UTC)
-	if sha256.Sum256(root.Raw) != wantDigest ||
+	if core.SHA256BytesOf(root.Raw) != wantDigest ||
 		root.SerialNumber.Cmp(wantSerial) != 0 ||
 		!root.NotBefore.Equal(wantBefore) ||
 		!root.NotAfter.Equal(wantAfter) {

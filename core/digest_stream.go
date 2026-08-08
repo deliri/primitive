@@ -162,6 +162,18 @@ func SHA256Of(data []byte) SHA256Digest {
 	return NewSHA256Digest(sha256.Sum256(data))
 }
 
+// SHA256BytesOf returns the raw thirty two byte SHA-256 of one complete
+// in-memory buffer.
+//
+// It is the fixed-array companion to SHA256Of, for the callers that key or
+// fingerprint on the raw bytes rather than keep a typed digest. Like SHA256Of
+// it cannot fail, so it returns the array directly; a caller is spared an
+// unreachable error check that would otherwise tempt a zero fingerprint on a
+// branch that never runs, aliasing distinct inputs to the same key.
+func SHA256BytesOf(data []byte) [sha256.Size]byte {
+	return sha256.Sum256(data)
+}
+
 func digestWriterError(message string) error {
 	return errors.Join(ErrPrimitiveContract, errors.New(message))
 }
