@@ -66,15 +66,16 @@ func (w *DigestWriter) Write(data []byte) (int, error) {
 	return written, nil
 }
 
-// Seal ends the stream and returns the digest and byte count of exactly the
-// bytes written.
+// Digest reports the digest and byte count of the bytes written so far without
+// ending the stream.
 //
-// Sealing is one-way. A later write is refused rather than producing a second
-// digest that disagrees with the first about the same writer, so a caller
-// holding the pair can be certain no byte arrived after the answer was taken.
-// Sealing twice returns the same answer, because asking again is not a
-// mutation.
-func (w *DigestWriter) Seal() (SHA256Digest, ByteLength, error) {
+// It is the running-total companion to Seal, the way hash.Hash.Sum reads the
+// current digest without closing the hash. A writer that must expose its
+// content hash while still open, such as a file whose SHA-256 is read before it
+// is closed, peeks with Digest and keeps writing; the answer moves as more
+// bytes arrive. Reading is not a mutation, so a peek never latches, and a peek
+// after Seal returns the same sealed answer.
+func (w *DigestWriter) Digest() (SHA256Digest, ByteLength, error) {
 	if w == nil {
 		return SHA256Digest{}, ByteLength{}, digestWriterError(digestWriterNilReceiverDiagnostic)
 	}
@@ -87,8 +88,42 @@ func (w *DigestWriter) Seal() (SHA256Digest, ByteLength, error) {
 	}
 	var sum [sha256.Size]byte
 	w.digest.Sum(sum[:0])
-	w.sealed = true
 	return NewSHA256Digest(sum), length, nil
+}
+
+// Seal ends the stream and returns the digest and byte count of exactly the
+// bytes written.
+//
+// Sealing is one-way. A later write is refused rather than producing a second
+// digest that disagrees with the first about the same writer, so a caller
+// holding the pair can be certain no byte arrived after the answer was taken.
+// Sealing twice returns the same answer, because asking again is not a
+// mutation. The digest is exactly what Digest would report at this instant;
+// Seal only adds the latch that no further byte may change it.
+func (w *DigestWriter) Seal() (SHA256Digest, ByteLength, error) {
+	digest, length, err := w.Digest()
+	if err != nil {
+		return SHA256Digest{}, ByteLength{}, err
+	}
+	w.sealed = true
+	return digest, length, nil
+}
+
+// Reset returns the writer to the empty-stream state so one writer can hash a
+// succession of independent streams instead of allocating a fresh sha256 state
+// for each. It discards the bytes written, clears the seal, and clears a
+// latched refusal, so the next stream starts from the digest of no bytes and is
+// unrelated to the last. This is the reuse hash.Hash.Reset exists for; it is not
+// a way to resume a sealed stream, because the discarded bytes are gone.
+func (w *DigestWriter) Reset() error {
+	if w == nil {
+		return digestWriterError(digestWriterNilReceiverDiagnostic)
+	}
+	w.digest.Reset()
+	w.count = 0
+	w.sealed = false
+	w.err = nil
+	return nil
 }
 
 // SHA256Of returns the digest of one complete in-memory buffer.

@@ -4,6 +4,7 @@ import (
 	"crypto/sha256"
 	"errors"
 	"io"
+	"sort"
 	"testing"
 
 	"github.com/deliri/primitive/v2026/core"
@@ -275,4 +276,289 @@ func (r *slowReader) Read(destination []byte) (int, error) {
 	written := copy(destination[:1], r.content[r.offset:])
 	r.offset += written
 	return written, nil
+}
+
+// digestBoundaryOffsets returns the peek points a running-total digest is most
+// likely to get wrong for a stream of the given length: zero bytes, the bytes
+// on either side of the sha256 block and digest boundaries, the midpoint, and
+// the final byte. Offsets past the length are dropped so one table drives every
+// size, and the set is sorted so a chunked write advances monotonically.
+func digestBoundaryOffsets(length int) []int {
+	candidates := append([]int{0, length / 2, length}, digestStreamSizes()...)
+	seen := make(map[int]bool, len(candidates))
+	offsets := make([]int, 0, len(candidates))
+	for _, candidate := range candidates {
+		if candidate < 0 || candidate > length || seen[candidate] {
+			continue
+		}
+		seen[candidate] = true
+		offsets = append(offsets, candidate)
+	}
+	sort.Ints(offsets)
+	return offsets
+}
+
+// TestDigestWriterDigestTracksTheRunningTotalAtEveryBoundary is the peek
+// contract a file writer needs: expose the content hash while the file is still
+// open, then keep writing. For every stream size the bytes are written in chunks
+// that stop on both sides of every sha256 block boundary, and after each chunk
+// the peek must equal crypto/sha256 over exactly the bytes written so far. The
+// oracle is the standard library over the prefix, so the table cannot pass by
+// restating the writer. It goes red if a peek latches the stream (a later chunk
+// would be refused), discards it (a later peek would omit the prefix), or
+// reports the wrong running length.
+func TestDigestWriterDigestTracksTheRunningTotalAtEveryBoundary(t *testing.T) {
+	t.Parallel()
+
+	for _, length := range digestStreamSizes() {
+		content := digestStreamContent(length)
+		writer := core.NewDigestWriter()
+
+		previous := 0
+		for _, offset := range digestBoundaryOffsets(length) {
+			requireDigestWrite(t, writer, content[previous:offset])
+			previous = offset
+
+			gotDigest, gotLength, err := writer.Digest()
+			if err != nil {
+				t.Fatalf("Digest(%d of %d bytes) error = %v, want nil", offset, length, err)
+			}
+			if want := core.NewSHA256Digest(sha256.Sum256(content[:offset])); gotDigest != want {
+				t.Fatalf("Digest(%d of %d bytes) = %v, want the digest of exactly the prefix %v",
+					offset, length, gotDigest, want)
+			}
+			if gotLength.Uint64() != uint64(offset) {
+				t.Fatalf("Digest(%d of %d bytes) length = %d, want %d", offset, length, gotLength.Uint64(), offset)
+			}
+		}
+
+		gotDigest, gotLength, err := writer.Seal()
+		if err != nil {
+			t.Fatalf("Seal(%d bytes) error = %v, want nil", length, err)
+		}
+		if want := core.NewSHA256Digest(sha256.Sum256(content)); gotDigest != want {
+			t.Fatalf("Seal(%d bytes) after peeking every boundary = %v, want %v", length, gotDigest, want)
+		}
+		if gotLength.Uint64() != uint64(length) {
+			t.Fatalf("Seal(%d bytes) length = %d, want %d", length, gotLength.Uint64(), length)
+		}
+	}
+}
+
+// TestDigestWriterDigestRepeatsBetweenWritesWithoutMutating proves a peek does
+// not disturb the running hash: reading the current digest many times is not
+// many streams. Across sizes on both sides of the block boundary it peeks
+// repeatedly mid-stream, requires every repeat to match, then writes the rest
+// and requires the seal to equal crypto/sha256 over the whole. It goes red if
+// driving hash.Hash.Sum finalized or advanced the state, so a later write
+// disagreed with the standard library.
+func TestDigestWriterDigestRepeatsBetweenWritesWithoutMutating(t *testing.T) {
+	t.Parallel()
+
+	for _, length := range []int{0, 1, 32, 63, 64, 65, 4097} {
+		content := digestStreamContent(length)
+		middle := length / 2
+		writer := core.NewDigestWriter()
+		requireDigestWrite(t, writer, content[:middle])
+
+		first, firstLength, err := writer.Digest()
+		if err != nil {
+			t.Fatalf("first Digest(%d of %d bytes) error = %v, want nil", middle, length, err)
+		}
+		for repeat := range 3 {
+			again, againLength, err := writer.Digest()
+			if err != nil {
+				t.Fatalf("Digest(%d bytes) repeat %d error = %v, want nil", middle, repeat, err)
+			}
+			if again != first || againLength != firstLength {
+				t.Fatalf("Digest(%d bytes) repeat %d = (%v, %v), want the unchanged running total (%v, %v)",
+					middle, repeat, again, againLength, first, firstLength)
+			}
+		}
+
+		requireDigestWrite(t, writer, content[middle:])
+		got, gotLength, err := writer.Seal()
+		if err != nil {
+			t.Fatalf("Seal(%d bytes) error = %v, want nil", length, err)
+		}
+		if want := core.NewSHA256Digest(sha256.Sum256(content)); got != want {
+			t.Fatalf("Seal(%d bytes) after repeated peeks = %v, want %v", length, got, want)
+		}
+		if gotLength.Uint64() != uint64(length) {
+			t.Fatalf("Seal(%d bytes) length = %d, want %d", length, gotLength.Uint64(), length)
+		}
+	}
+}
+
+// TestDigestWriterDigestAfterSealReturnsTheSealedAnswerAtEverySize proves
+// reading after the stream is closed is still allowed and still true at every
+// boundary: a peek is never a mutation, so it does not trip the sealed latch
+// that only refuses further writes.
+func TestDigestWriterDigestAfterSealReturnsTheSealedAnswerAtEverySize(t *testing.T) {
+	t.Parallel()
+
+	for _, length := range digestStreamSizes() {
+		content := digestStreamContent(length)
+		writer := core.NewDigestWriter()
+		requireDigestWrite(t, writer, content)
+
+		sealDigest, sealLength, err := writer.Seal()
+		if err != nil {
+			t.Fatalf("Seal(%d bytes) error = %v, want nil", length, err)
+		}
+		peekDigest, peekLength, err := writer.Digest()
+		if err != nil {
+			t.Fatalf("Digest(after seal, %d bytes) error = %v, want nil because reading is not a mutation", length, err)
+		}
+		if peekDigest != sealDigest || peekLength != sealLength {
+			t.Fatalf("Digest(after seal, %d bytes) = (%v, %v), want the sealed answer (%v, %v)",
+				length, peekDigest, peekLength, sealDigest, sealLength)
+		}
+	}
+}
+
+// TestDigestWriterDigestRefusesANilReceiverAndALatchedError proves the peek
+// carries the same refusals as Seal: a zero-usable receiver and a writer whose
+// answer was already invalidated by a refused write both fail loudly with zero
+// values, never a silent partial digest.
+func TestDigestWriterDigestRefusesANilReceiverAndALatchedError(t *testing.T) {
+	t.Parallel()
+
+	var nilWriter *core.DigestWriter
+	digest, length, err := nilWriter.Digest()
+	if !errors.Is(err, core.ErrPrimitiveContract) {
+		t.Fatalf("Digest(nil receiver) error = %v, want errors.Is %v", err, core.ErrPrimitiveContract)
+	}
+	if digest != (core.SHA256Digest{}) || length != (core.ByteLength{}) {
+		t.Fatalf("Digest(nil receiver) = (%v, %v), want zero values", digest, length)
+	}
+
+	writer := core.NewDigestWriter()
+	requireDigestWrite(t, writer, []byte("x"))
+	if _, _, err := writer.Seal(); err != nil {
+		t.Fatalf("Seal() error = %v, want nil", err)
+	}
+	if _, err := writer.Write([]byte("more")); !errors.Is(err, core.ErrPrimitiveContract) {
+		t.Fatalf("Write(after seal) error = %v, want errors.Is %v", err, core.ErrPrimitiveContract)
+	}
+	latchedDigest, latchedLength, err := writer.Digest()
+	if !errors.Is(err, core.ErrPrimitiveContract) {
+		t.Fatalf("Digest(after a refused write) error = %v, want errors.Is %v", err, core.ErrPrimitiveContract)
+	}
+	if latchedDigest != (core.SHA256Digest{}) || latchedLength != (core.ByteLength{}) {
+		t.Fatalf("Digest(after a refused write) = (%v, %v), want zero values alongside the refusal",
+			latchedDigest, latchedLength)
+	}
+}
+
+// TestDigestWriterResetErasesEveryPriorStreamAcrossSizeTransitions is the
+// pooling contract under pressure: after Reset the writer is the digest of no
+// bytes regardless of the stream it just sealed. The matrix pairs every stream
+// size with every other, in both directions, so a residue bug that only shows
+// when a large stream precedes a small one, or the reverse, cannot hide. The
+// oracle is crypto/sha256 over the second stream alone; it goes red if Reset
+// left prior bytes behind or failed to clear the seal that would refuse the
+// second write.
+func TestDigestWriterResetErasesEveryPriorStreamAcrossSizeTransitions(t *testing.T) {
+	t.Parallel()
+
+	sizes := []int{0, 1, 32, 63, 64, 65, 128, 4096, 4097}
+	for _, firstLength := range sizes {
+		for _, secondLength := range sizes {
+			first := digestStreamContent(firstLength)
+			second := digestStreamContent(secondLength)
+
+			writer := core.NewDigestWriter()
+			requireDigestWrite(t, writer, first)
+			if _, _, err := writer.Seal(); err != nil {
+				t.Fatalf("Seal(first %d bytes) error = %v, want nil", firstLength, err)
+			}
+			if err := writer.Reset(); err != nil {
+				t.Fatalf("Reset(after %d bytes) error = %v, want nil", firstLength, err)
+			}
+
+			requireDigestWrite(t, writer, second)
+			got, gotLength, err := writer.Seal()
+			if err != nil {
+				t.Fatalf("Seal(second %d bytes) error = %v, want nil", secondLength, err)
+			}
+			if want := core.NewSHA256Digest(sha256.Sum256(second)); got != want {
+				t.Fatalf("Seal after Reset(%d bytes -> %d bytes) = %v, want the digest of only the second stream %v",
+					firstLength, secondLength, got, want)
+			}
+			if gotLength.Uint64() != uint64(secondLength) {
+				t.Fatalf("Seal after Reset(%d -> %d) length = %d, want %d",
+					firstLength, secondLength, gotLength.Uint64(), secondLength)
+			}
+		}
+	}
+}
+
+// TestDigestWriterResetFromAnOpenStreamDiscardsThePartialBytes proves Reset
+// works from the open state too, not only after a seal: bytes written but never
+// sealed are abandoned, and the next stream starts from empty. It goes red if
+// Reset only cleared the sealed latch and left the accumulated bytes in place.
+func TestDigestWriterResetFromAnOpenStreamDiscardsThePartialBytes(t *testing.T) {
+	t.Parallel()
+
+	for _, length := range []int{1, 32, 64, 65, 4097} {
+		partial := digestStreamContent(length)
+		writer := core.NewDigestWriter()
+		requireDigestWrite(t, writer, partial)
+
+		if err := writer.Reset(); err != nil {
+			t.Fatalf("Reset(open stream, %d bytes) error = %v, want nil", length, err)
+		}
+
+		requireDigestWrite(t, writer, []byte("fresh"))
+		got, _, err := writer.Seal()
+		if err != nil {
+			t.Fatalf("Seal(after open Reset) error = %v, want nil", err)
+		}
+		if want := core.NewSHA256Digest(sha256.Sum256([]byte("fresh"))); got != want {
+			t.Fatalf("Seal(after open Reset over %d discarded bytes) = %v, want the digest of only the fresh bytes %v",
+				length, got, want)
+		}
+	}
+}
+
+// TestDigestWriterResetClearsALatchedRefusal proves Reset makes a writer whose
+// answer was taken usable again from empty, which is what a pool needs: the
+// writer it hands back must not carry a sealed latch or a stale refusal from the
+// previous stream.
+func TestDigestWriterResetClearsALatchedRefusal(t *testing.T) {
+	t.Parallel()
+
+	writer := core.NewDigestWriter()
+	requireDigestWrite(t, writer, []byte("first"))
+	if _, _, err := writer.Seal(); err != nil {
+		t.Fatalf("Seal() error = %v, want nil", err)
+	}
+	if _, err := writer.Write([]byte("rejected")); !errors.Is(err, core.ErrPrimitiveContract) {
+		t.Fatalf("Write(after seal) error = %v, want errors.Is %v", err, core.ErrPrimitiveContract)
+	}
+
+	if err := writer.Reset(); err != nil {
+		t.Fatalf("Reset(after a latched refusal) error = %v, want nil", err)
+	}
+
+	requireDigestWrite(t, writer, []byte("second"))
+	got, _, err := writer.Seal()
+	if err != nil {
+		t.Fatalf("Seal(after Reset) error = %v, want nil", err)
+	}
+	if want := core.NewSHA256Digest(sha256.Sum256([]byte("second"))); got != want {
+		t.Fatalf("Seal(after Reset) = %v, want the digest of only the post-Reset bytes %v", got, want)
+	}
+}
+
+// TestDigestWriterResetRefusesANilReceiver keeps the zero-usable state a loud
+// refusal rather than a panic into a caller reaching for a pooled writer.
+func TestDigestWriterResetRefusesANilReceiver(t *testing.T) {
+	t.Parallel()
+
+	var writer *core.DigestWriter
+	if err := writer.Reset(); !errors.Is(err, core.ErrPrimitiveContract) {
+		t.Fatalf("Reset(nil receiver) error = %v, want errors.Is %v", err, core.ErrPrimitiveContract)
+	}
 }
