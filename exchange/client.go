@@ -30,6 +30,17 @@ func NewClient(client *http.Client) (Client, error) {
 	return candidate, nil
 }
 
+// NewStandardClient produces the client shape NewClient otherwise only
+// demands: the standard library's default transport with no caller
+// customization and no client-wide timeout, because exchange owns every
+// timing policy per operation. Without this door every consumer that wants
+// exactly the standard transport imports net/http to write an empty literal.
+// A caller with a genuinely customized transport still builds its own client
+// and admits it through NewClient.
+func NewStandardClient() (Client, error) {
+	return NewClient(&http.Client{})
+}
+
 // Validate rejects an unset client or a competing client-wide timeout.
 func (c Client) Validate() error {
 	if c.http == nil || c.http.Timeout != 0 {

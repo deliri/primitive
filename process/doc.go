@@ -13,8 +13,10 @@
 // Containment names the documented direct-kill default. Begin hands back a running
 // Execution a supervisor holds to signal, terminate, or interrogate the child
 // while the reaping wait is in flight; Alive answers whether one identity
-// still names a process. Registry and force-drain policy above one child stay
-// with the caller.
+// still names a process; Sweep hard-stops every survivor in a group-contained
+// tree, before or after the leader is reaped, treating a group already gone
+// as success. Registry and force-drain policy above one child stay with the
+// caller.
 //
 // Two boundaries belong to the caller and are not defects in this package.
 //

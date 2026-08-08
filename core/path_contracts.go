@@ -301,6 +301,32 @@ func (p AbsolutePath) JoinRelative(relative RelativePath) (AbsolutePath, error) 
 	return ParseAbsolutePath(filepath.Join(p.value, relative.value))
 }
 
+// ResolveText resolves operator-supplied path text against this base.
+//
+// Command lines and environment variables hand a product text that may be
+// absolute, relative, dotted, or climbing, and the product needs the one
+// absolute path that text names. Written directly that is filepath.Abs and a
+// re-parse, and filepath.Abs asks the kernel for a working directory, so an
+// ingress that should be pure text arithmetic becomes a hidden real-world
+// touch. Here the caller supplies the base, usually
+// process.WorkingDirectory, and resolution is exactly lexical: absolute text
+// is cleaned and admitted as itself, everything else is cleaned and admitted
+// against the base, with climbs clamped at the filesystem root by the same
+// rule the kernel uses. Empty text is refused rather than silently meaning
+// the base itself.
+func (p AbsolutePath) ResolveText(value string) (AbsolutePath, error) {
+	if err := p.Validate(); err != nil {
+		return AbsolutePath{}, err
+	}
+	if value == "" {
+		return AbsolutePath{}, filesystemPathError("path text is empty")
+	}
+	if filepath.IsAbs(value) {
+		return ParseAbsolutePath(filepath.Clean(value))
+	}
+	return ParseAbsolutePath(filepath.Join(p.value, value))
+}
+
 // Join appends one validated component without introducing path-kind claims.
 func (p AbsolutePath) Join(component PathComponent) (AbsolutePath, error) {
 	if err := p.Validate(); err != nil {

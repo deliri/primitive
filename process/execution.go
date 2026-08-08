@@ -81,6 +81,36 @@ func (e *Execution) Terminate() error {
 	return e.Deliver(CancelSignalKill)
 }
 
+// Sweep hard-stops every process still running in the group the child leads
+// or led. It exists because a tree can outlive its reaped leader: a run
+// cancelled mid-tree, or a wait released by WaitDelay while a descendant held
+// an inherited pipe, leaves survivors that Deliver and Terminate can no
+// longer address once Wait has returned.
+//
+// The group address is not the stored-number hazard the direct pid is. The
+// kernel keeps the leader's number bound to the group while any member still
+// runs, so a sweep reaches only the created group or learns that it is gone.
+// A group already gone, or one this process may no longer address, is a
+// successful sweep rather than a failure, because neither can be repaired by
+// retrying. The residual window is named rather than hidden: once the last
+// member exits, the number may be recycled into an unrelated new group, so a
+// supervisor sweeps on evidence of survivors, never as routine hygiene after
+// every reaped run.
+//
+// A directly contained child is refused: it has no group address, and its
+// stored number after reap is exactly the recycled-identity delivery the
+// ProcessIdentity contract forbids. Sweep is legal while the wait is still
+// in flight, where it is the absence-tolerant force stop a drain path wants.
+func (e *Execution) Sweep() error {
+	if err := e.usable(); err != nil {
+		return err
+	}
+	if e.containment.Isolation != IsolationGroup {
+		return contractError("sweep addresses a whole group; this containment is direct")
+	}
+	return sweepGroup(e.identity)
+}
+
 // Wait streams to completion, reaps the direct child, and seals the
 // observation. Exactly one wait exists per execution: a second call is a
 // contract violation, not a cached answer, because the first caller may

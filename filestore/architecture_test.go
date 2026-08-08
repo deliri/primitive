@@ -133,6 +133,7 @@ func TestFilestorePublicSurfaceIsExactRatchet(t *testing.T) {
 		"WriteRequest",
 	})
 	requireExactNames(t, "exported functions", gotFunctions, []string{
+		"Canonicalize",
 		"Commit",
 		"ConfirmDurable",
 		"Discard",

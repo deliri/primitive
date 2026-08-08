@@ -88,6 +88,12 @@ func signalLeafFiles() []string {
 // looked a name up on its own.
 const resolutionLeafFile = "resolve.go"
 
+// ambientLeafFile is the one production file permitted the whole-environment
+// read: AmbientEnvironment owns the calling process's inherited set so no
+// consumer reads os.Environ itself, and the selector stays banned everywhere
+// else in this package exactly as before.
+const ambientLeafFile = "ambient.go"
+
 // forbiddenPackageSelectors are package-qualified substrate calls that would
 // move ownership out of this package: an unsupervised command, a raw process
 // path, or ambient environment reads that bypass the typed Environment
@@ -170,7 +176,9 @@ func TestPublicOperationsAreOnlyTypedConstructionAndExecution(t *testing.T) {
 	got := productionFunctionNames(t)
 	want := []string{
 		"Alive",
+		"AmbientEnvironment",
 		"Begin",
+		"Executable",
 		"NewArgument",
 		"NewEnvironmentName",
 		"NewEnvironmentValue",
@@ -180,6 +188,7 @@ func TestPublicOperationsAreOnlyTypedConstructionAndExecution(t *testing.T) {
 		"ParseExactEnvironment",
 		"Resolve",
 		"Run",
+		"Self",
 		"WorkingDirectory",
 	}
 	if !slices.Equal(got, want) {
@@ -343,7 +352,8 @@ func TestProductionStructureForbidsWorldModelsAndWholeOutputPaths(t *testing.T) 
 				)
 			case *ast.SelectorExpr:
 				if forbiddenSelector(typed) &&
-					!(typed.Sel.Name == "Signal" && slices.Contains(signalLeafFiles(), production.name)) {
+					!(typed.Sel.Name == "Signal" && slices.Contains(signalLeafFiles(), production.name)) &&
+					!(typed.Sel.Name == "Environ" && production.name == ambientLeafFile) {
 					t.Errorf(
 						"production selector %s in %s at token position %d, want streamed caller-owned output",
 						typed.Sel.Name,

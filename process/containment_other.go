@@ -29,3 +29,11 @@ func deliverSignal(_ signalDelivery) error {
 		errors.New("this host delivers no signals"),
 	)
 }
+
+// sweepGroup refuses on hosts with no group or signal vocabulary.
+func sweepGroup(_ ProcessIdentity) error {
+	return errors.Join(
+		core.ErrProcessUnsupported,
+		errors.New("this host delivers no group sweep"),
+	)
+}

@@ -25,10 +25,10 @@ transaction run this same stack, so a wire type has exactly one home.
 | `garble` | Garble tool identity, deterministic seed derivation, and the Garble-owned prefix of a typed build intent. |
 | `gate` | Turning one authentic lease assessment into permission to begin new paid work. |
 | `hostfacts` | Bounded read-only facts about the current host: disk capacity and pressure assessment (a free-space floor at or above device capacity is refused as unsatisfiable), Go runtime memory (`AssessGoMemory`), physical memory (`ObservePhysicalMemory`), the effective workload memory limit under cgroups (`ObserveEffectiveWorkloadMemoryLimit`), directory tree measurement (`MeasureTree`), the running platform (`CurrentPlatform`), OOM banner classification, and terminal attachment and column geometry of an open descriptor (a terminal that reports zero width is a terminal without geometry, never a fabricated detachment). |
-| `keygen` | Exact Ed25519 signing keys, bounded generic secret material, one uniform `RandomUint64`, and bounded public random tokens (`RandomToken`) from Go's production CSPRNG. **The entropy boundary.** |
+| `keygen` | Exact Ed25519 signing keys with a complete seed-custody round trip (`Seed` out, `AdoptSigningKey` back, `SeedSize` named), bounded generic secret material, one uniform `RandomUint64`, and bounded public random tokens (`RandomToken`) from Go's production CSPRNG. **The entropy boundary.** |
 | `lease` | Verifying and assessing one fixed-size OGS-signed commercial decision. Device identity, subjects, entitlements, grants, refusals, revocations. |
 | `objectstore` | One exact bounded transfer through an already-issued S3, GCS, or Cloudflare Images HTTPS capability. Signed URLs, signed headers, upload targets, upload capabilities and their commitments. |
-| `process` | Running one typed command over `os/exec`, and resolving a bare command name to the absolute path `Request.Command` requires (`Resolve`). A name found through a relative PATH entry is refused, not corrected. Owns the child's containment (process-group isolation and a closed cancel-signal choice), the running-child handle `Begin` returns for signaling and termination while the wait is in flight, the calling process's working directory (`WorkingDirectory`), and whether one process identity is still alive (`Alive`). |
+| `process` | Running one typed command over `os/exec`, and resolving a bare command name to the absolute path `Request.Command` requires (`Resolve`). A name found through a relative PATH entry is refused, not corrected. Owns the child's containment (process-group isolation and a closed cancel-signal choice), the running-child handle `Begin` returns for signaling and termination while the wait is in flight, the group-survivor sweep that outlives the reaped leader (`Execution.Sweep`), the calling process's working directory (`WorkingDirectory`) and own identity (`Self`), and whether one process identity is still alive (`Alive`). |
 | `receipt` | Authenticated accepted-evidence facts and one fixed-size monotonic watermark for later controlstate composition. Account identity. |
 | `release` | Verifying a clean repository at an exact commit with exact build tools; deterministic fixed-target Garble build and process plans; artifacts, integrity, embedded build identity. |
 | `shutdown` | Typed bounded cleanup and signal observation over context, time, and `os/signal`. |
@@ -43,9 +43,11 @@ transaction run this same stack, so a wire type has exactly one home.
 | --- | --- |
 | signing, verifying, envelopes, trust sets | `attest` |
 | random bytes, keys, secrets | `keygen` — never `crypto/rand` directly |
+| persisting a signing key and reading it back | `keygen.SigningKey.Seed` + `keygen.AdoptSigningKey` — store the seed, the minimal secret; never slice a 64-byte private key with `crypto/ed25519` size arithmetic |
 | a local random identifier or device label that is not a control-wire nonce | `keygen.RandomToken` — a bounded public draw, all-zero allowed; control-wire nonces have the opposite zero rule and live in `controlwire` |
 | a full-width random seed or salt integer | `keygen.RandomUint64` — never `rand.Int` from a product; a range-bounded uniform draw has no door yet, so bring that need to keygen rather than writing a modulo |
 | an HTTP call with timeouts or retries | `exchange`, and `controlwire.ControlExchangePolicy` for control routes |
+| the client `exchange.NewClient` demands, when the standard transport is all you need | `exchange.NewStandardClient` — never an `&http.Client{}` literal from a product |
 | a control-plane request or response | `controlplane` — registration and check-in are the two shapes |
 | a nonce, token, revision, or route path | `controlwire` |
 | writing a file that must survive power loss | `filestore` |
@@ -58,6 +60,8 @@ transaction run this same stack, so a wire type has exactly one home.
 | what a file's mode is, for a durable record | `filestore.Inspection.Permissions` — a typed permission field, never an `fs.FileMode` whose high bits say "directory" |
 | who owns a file | `filestore.Inspection.Ownership` — never `info.Sys().(*syscall.Stat_t)` from a product; that assertion lives in one platform leaf |
 | turning an absolute path into a rooted request | `filestore.OpenParent` — opens the parent, names the entry, hands back a `Location` |
+| turning operator-supplied path text into an absolute path | `AbsolutePath.ResolveText` against `process.WorkingDirectory` — never `filepath.Abs` then re-parse, which hides the kernel's working-directory ask inside a string helper |
+| where a name really leads, links resolved, for an integrity comparison | `filestore.Canonicalize` — never `filepath.EvalSymlinks` from a product |
 | handing a file's bytes to something that wants a reader | `filestore.OpenRead` — never `os.Open` from a product |
 | moving an entry that already exists on disk | `filestore.Rename` — `Commit` only activates a stage |
 | making a directory durable on its own | nothing: durability belongs to the activation that changed it, and a bare public directory sync is banned by the `filestore` architecture ratchet |
@@ -73,6 +77,10 @@ transaction run this same stack, so a wire type has exactly one home.
 | isolating a tool tree so cancellation reaches all of it (POSIX hosts) | `process.Containment` with `IsolationGroup` — never a hand-rolled `SysProcAttr{Setpgid}`; Windows has no group signal and refuses the request rather than delivering it to one process |
 | supervising a running child (signal, force-kill, hold it) | `process.Begin` and the `Execution` it returns — never `cmd.Process` from a product |
 | whether a pid is still running | `process.Alive` — never `syscall.Kill(pid, 0)` from a product |
+| the calling process's own pid, for a diagnostic record | `process.Self` — never `os.Getpid` from a product |
+| the path of the binary running right now, for a supervisor unit | `process.Executable` — never `os.Executable` from a product |
+| this process's inherited environment, to filter before handing to a child | `process.AmbientEnvironment` — never `os.Environ` from a product |
+| ending a contained tree's survivors, even after the leader was reaped | `process.Execution.Sweep` — never `syscall.Kill(-pid, ...)` from a product; a group already gone is success, and a direct child is refused |
 | the current working directory as a typed path | `process.WorkingDirectory` — never `os.Getwd` then re-parse |
 | hashing a stream you are already moving | `core.DigestWriter` — an `io.Writer` that also peeks its running total mid-stream (`Digest`) and clears for pooled reuse across streams (`Reset`); never a private `sha256.New()` accumulator |
 | hashing one whole in-memory buffer | `core.SHA256Of` — never `sha256.Sum256` from a product |

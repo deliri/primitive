@@ -61,6 +61,87 @@ func TestAdoptedKeyIsIndistinguishableFromAGeneratedOne(t *testing.T) {
 	}
 }
 
+// TestSeedRoundTripsThroughAdoption proves the persistence story the door
+// exists for: the seed a key hands out is exactly the seed adoption accepts
+// back, and the readopted key derives the same public identity.
+func TestSeedRoundTripsThroughAdoption(t *testing.T) {
+	t.Parallel()
+
+	generated, err := keygen.GenerateSigningKey()
+	if err != nil {
+		t.Fatalf("GenerateSigningKey() error = %v, want nil", err)
+	}
+	seed, err := generated.Seed()
+	if err != nil {
+		t.Fatalf("Seed() error = %v, want nil", err)
+	}
+	wantPublic, err := generated.PublicKey()
+	if err != nil {
+		t.Fatalf("PublicKey() error = %v, want nil", err)
+	}
+	readopted, err := keygen.AdoptSigningKey(seed)
+	if err != nil {
+		t.Fatalf("AdoptSigningKey(Seed()) error = %v, want nil", err)
+	}
+	gotPublic, err := readopted.PublicKey()
+	if err != nil {
+		t.Fatalf("readopted PublicKey() error = %v, want nil", err)
+	}
+	if gotPublic != wantPublic {
+		t.Fatalf("readopted PublicKey() = %v, want the generated identity %v", gotPublic, wantPublic)
+	}
+	roundTrip, err := readopted.Seed()
+	if err != nil {
+		t.Fatalf("readopted Seed() error = %v, want nil", err)
+	}
+	if roundTrip != seed {
+		t.Fatalf("readopted Seed() = %x, want the persisted seed %x", roundTrip, seed)
+	}
+}
+
+// TestSeedSizeNamesTheExactContractExtent pins the exported size to the one
+// extent AdoptSigningKey admits, so a consumer-declared [keygen.SeedSize]byte
+// can never drift from the parameter type.
+func TestSeedSizeNamesTheExactContractExtent(t *testing.T) {
+	t.Parallel()
+
+	var seed [keygen.SeedSize]byte
+	if got, want := len(seed), ed25519.SeedSize; got != want {
+		t.Fatalf("len([keygen.SeedSize]byte{}) = %d, want %d", got, want)
+	}
+	if _, err := keygen.AdoptSigningKey(seed); err == nil {
+		t.Fatalf("AdoptSigningKey(zero seed) error = nil, want the no-entropy refusal")
+	}
+}
+
+// TestSeedRefusesAnUnsetKey holds the custody door: the zero value never
+// discloses a seed-shaped answer.
+func TestSeedRefusesAnUnsetKey(t *testing.T) {
+	t.Parallel()
+
+	var zero keygen.SigningKey
+	if _, err := zero.Seed(); !errors.Is(err, core.ErrKeygenContract) {
+		t.Fatalf("zero SigningKey Seed() error = %v, want errors.Is %v", err, core.ErrKeygenContract)
+	}
+}
+
+// TestSeedRefusesADestroyedKey proves destruction reaches the projection: a
+// destroyed key must not keep answering with the secret it promised to clear.
+func TestSeedRefusesADestroyedKey(t *testing.T) {
+	t.Parallel()
+
+	generated, err := keygen.GenerateSigningKey()
+	if err != nil {
+		t.Fatalf("GenerateSigningKey() error = %v, want nil", err)
+	}
+	if err := generated.Destroy(); err != nil {
+		t.Fatalf("Destroy() error = %v, want nil", err)
+	}
+	if _, err := generated.Seed(); err == nil {
+		t.Fatalf("destroyed SigningKey Seed() error = nil, want a custody refusal")
+	}
+}
+
 func TestAdoptSigningKeyRefusesASeedWithNoEntropy(t *testing.T) {
 	t.Parallel()
 

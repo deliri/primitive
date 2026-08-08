@@ -35,6 +35,28 @@ func observeClientCustody(client *http.Client) clientCustody {
 	return custody
 }
 
+// TestNewStandardClientProducesTheShapeNewClientDemands proves the produced
+// default is exactly an admitted standard client: valid, timeout-free, and
+// indistinguishable from admitting an empty net/http literal by hand.
+func TestNewStandardClientProducesTheShapeNewClientDemands(t *testing.T) {
+	t.Parallel()
+
+	got, gotErr := exchange.NewStandardClient()
+	if gotErr != nil {
+		t.Fatalf("exchange.NewStandardClient() error = %v, want nil", gotErr)
+	}
+	if err := got.Validate(); err != nil {
+		t.Fatalf("NewStandardClient().Validate() = %v, want nil", err)
+	}
+	want, wantErr := exchange.NewClient(&http.Client{})
+	if wantErr != nil {
+		t.Fatalf("exchange.NewClient(empty literal) error = %v, want nil", wantErr)
+	}
+	if err := want.Validate(); err != nil {
+		t.Fatalf("hand-admitted client Validate() = %v, want nil", err)
+	}
+}
+
 func TestClientTimeoutOwnershipLayerTriad(t *testing.T) {
 	t.Parallel()
 

@@ -42,6 +42,16 @@ func applyContainment(_ *exec.Cmd, containment Containment) error {
 	}
 }
 
+// sweepGroup refuses: windows admits no group containment, so no execution
+// holding a group to sweep can exist here, and the refusal keeps the door's
+// shape identical across hosts.
+func sweepGroup(_ ProcessIdentity) error {
+	return errors.Join(
+		core.ErrProcessUnsupported,
+		errors.New("windows delivers no group sweep"),
+	)
+}
+
 // deliverSignal addresses the one admitted stop to the direct child through
 // its held handle. Windows offers no group signal; descendant policy stays
 // with the caller, who can run the documented taskkill tool through this

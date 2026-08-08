@@ -25,6 +25,27 @@ func GenerateSigningKey() (SigningKey, error) {
 	return adoptGeneratedSigningKey(public, private, err)
 }
 
+// SeedSize is the exact RFC 8032 seed extent AdoptSigningKey admits and Seed
+// returns, named so a consumer holding a persisted seed can state the size of
+// keygen's own contract without reaching past keygen for it. The literal is
+// held to the standard library's own constant by the compile-time witness
+// below, so the two can never drift.
+const SeedSize = 32
+
+var _ [SeedSize]byte = [ed25519.SeedSize]byte{}
+
+// Seed projects a caller-owned copy of the live seed, so a product that must
+// persist a signing key can store the minimal secret and adopt it back later
+// through AdoptSigningKey. Custody rules are unchanged: the copy is the
+// caller's to clear, and an unset or destroyed key refuses. Without this door
+// the adopt-back path exists but cannot be fed: keygen would hand out only
+// the 64-byte standard-library private key while accepting back only the
+// seed, and every consumer would bridge that asymmetry with crypto/ed25519
+// size arithmetic of its own.
+func (k SigningKey) Seed() ([SeedSize]byte, error) {
+	return k.validatedSeed()
+}
+
 // AdoptSigningKey takes custody of one RFC 8032 seed a product already holds,
 // so a key read back from storage reaches the same seed custody, redacted
 // formatting, and destruction rules as a generated one.

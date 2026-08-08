@@ -1352,8 +1352,13 @@ func runHelperBehavior(behavior string, arguments []string) {
 		descendant := helperSpawnLingeringDescendant()
 		_, _ = io.WriteString(os.Stdout, "ready:"+strconv.Itoa(descendant.Process.Pid))
 		<-time.After(processTestBlock)
+	case behavior == "linger-block-pid":
+		descendant := helperSpawnBlockingDescendant()
+		_, _ = io.WriteString(os.Stdout, "ready:"+strconv.Itoa(descendant.Process.Pid))
 	case behavior == "hold-descriptor":
 		<-time.After(processTestLingerLifetime)
+	case behavior == "hold-descriptor-block":
+		<-time.After(processTestBlock)
 	case behavior == "working-directory":
 		directory, err := os.Getwd()
 		if err != nil {
@@ -1386,6 +1391,25 @@ func helperSpawnLingeringDescendant() *exec.Cmd {
 		"-test.run=^TestProcessHelper$",
 		"--",
 		"hold-descriptor",
+	)
+	descendant.Stdout = os.Stdout
+	descendant.Stderr = os.Stderr
+	if err := descendant.Start(); err != nil {
+		os.Exit(94)
+	}
+	return descendant
+}
+
+// helperSpawnBlockingDescendant leaves one grandchild holding this process's
+// inherited stdout for processTestBlock after this process exits. Unlike the
+// lingering descendant it never exits inside a test's lifetime, so only a
+// group sweep can end it.
+func helperSpawnBlockingDescendant() *exec.Cmd {
+	descendant := exec.Command(
+		os.Args[0],
+		"-test.run=^TestProcessHelper$",
+		"--",
+		"hold-descriptor-block",
 	)
 	descendant.Stdout = os.Stdout
 	descendant.Stderr = os.Stderr

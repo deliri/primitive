@@ -11,6 +11,8 @@ import (
 	"context"
 	"errors"
 	"io"
+	"os"
+	"os/exec"
 	"strconv"
 	"strings"
 	"testing"
@@ -276,5 +278,166 @@ func TestSupervisionRefusesADeliveryAfterTheChildIsReaped(t *testing.T) {
 	}
 	if err := execution.Terminate(); !errors.Is(err, core.ErrProcessContract) {
 		t.Fatalf("Terminate(after reap) error = %v, want errors.Is %v", err, core.ErrProcessContract)
+	}
+}
+
+// TestSweepEndsAReapedGroupsSurvivors proves the one moment Sweep exists for:
+// the leader exited, WaitDelay released the wait while a descendant held the
+// inherited pipe, and the survivor must die by the group address because
+// Deliver and Terminate are already refused.
+func TestSweepEndsAReapedGroupsSurvivors(t *testing.T) {
+	t.Parallel()
+
+	var announced bytes.Buffer
+	request := processRequest(t, "linger-block-pid", process.Streams{
+		Stdin: bytes.NewReader(nil), Stdout: &announced, Stderr: io.Discard,
+	})
+	request.Containment = process.Containment{
+		Isolation:    process.IsolationGroup,
+		CancelSignal: process.CancelSignalKill,
+	}
+	execution, err := process.Begin(t.Context(), request)
+	if err != nil {
+		t.Fatalf("process.Begin(linger-block-pid) error = %v, want nil", err)
+	}
+	_, waitErr := execution.Wait()
+	if !errors.Is(waitErr, exec.ErrWaitDelay) {
+		t.Fatalf("Execution.Wait() error = %v, want errors.Is exec.ErrWaitDelay: the fixture lost its pipe holder", waitErr)
+	}
+	descendant, err := strconv.Atoi(strings.TrimPrefix(announced.String(), "ready:"))
+	if err != nil {
+		t.Fatalf("descendant announcement = %q, want ready:<pid> (%v)", announced.String(), err)
+	}
+	identity := process.ProcessIdentity(descendant) // #nosec G115 -- an announced child's identifier fits the platform pid domain.
+	liveness, err := process.Alive(identity)
+	if err != nil {
+		t.Fatalf("process.Alive(survivor) error = %v, want nil", err)
+	}
+	if liveness != process.LivenessAlive {
+		t.Fatalf("process.Alive(survivor) = %v, want %v: the fixture lost its survivor", liveness, process.LivenessAlive)
+	}
+	if err := execution.Terminate(); !errors.Is(err, core.ErrProcessContract) {
+		t.Fatalf("Terminate(after reap) error = %v, want errors.Is %v", err, core.ErrProcessContract)
+	}
+	if err := execution.Sweep(); err != nil {
+		t.Fatalf("Execution.Sweep() error = %v, want nil", err)
+	}
+	for attempt := 1; ; attempt++ {
+		liveness, err := process.Alive(identity)
+		if err != nil {
+			t.Fatalf("process.Alive(swept survivor) error = %v, want nil", err)
+		}
+		if liveness == process.LivenessGone {
+			break
+		}
+		if attempt == 50 {
+			t.Fatalf("survivor %d still %v after %d probes, want %v: the sweep did not reach the group",
+				descendant, liveness, attempt, process.LivenessGone)
+		}
+		<-time.After(processTestProbeInterval)
+	}
+}
+
+// TestSweepStopsARunningGroupAndToleratesRepetition proves Sweep is legal
+// while the wait is in flight, where it is the absence-tolerant force stop a
+// drain path wants, and that sweeping the same group again once it is gone is
+// a successful no-op rather than an error.
+func TestSweepStopsARunningGroupAndToleratesRepetition(t *testing.T) {
+	t.Parallel()
+
+	ready := make(chan struct{})
+	request := processRequest(t, "wait", process.Streams{
+		Stdin: bytes.NewReader(nil), Stdout: &readyWriter{ready: ready}, Stderr: io.Discard,
+	})
+	request.Containment = process.Containment{
+		Isolation:    process.IsolationGroup,
+		CancelSignal: process.CancelSignalKill,
+	}
+	execution, err := process.Begin(t.Context(), request)
+	if err != nil {
+		t.Fatalf("process.Begin(wait) error = %v, want nil", err)
+	}
+	select {
+	case <-ready:
+	case <-time.After(processTestBackstop):
+		t.Fatalf("child readiness wait reached %s, want readiness first", processTestBackstop)
+	}
+	if err := execution.Sweep(); err != nil {
+		t.Fatalf("Execution.Sweep(running group) error = %v, want nil", err)
+	}
+	result, waitErr := execution.Wait()
+	if waitErr != nil {
+		t.Fatalf("Execution.Wait(swept) error = %v, want nil", waitErr)
+	}
+	exit, err := result.ExitCode()
+	if err != nil {
+		t.Fatalf("swept ExitCode() error = %v, want nil", err)
+	}
+	signaled, err := exit.Signaled()
+	if err != nil {
+		t.Fatalf("swept ExitCode().Signaled() error = %v, want nil", err)
+	}
+	if !signaled {
+		t.Fatalf("swept child Signaled() = false, want true")
+	}
+	if err := execution.Sweep(); err != nil {
+		t.Fatalf("Execution.Sweep(group already gone) error = %v, want nil", err)
+	}
+}
+
+// TestSweepRefusesADirectChild pins the group-only contract: a directly
+// contained child has no group address, and its stored number after reap is
+// exactly the recycled-identity delivery ProcessIdentity forbids.
+func TestSweepRefusesADirectChild(t *testing.T) {
+	t.Parallel()
+
+	request := processRequest(t, "silent", process.Streams{
+		Stdin: bytes.NewReader(nil), Stdout: io.Discard, Stderr: io.Discard,
+	})
+	execution, err := process.Begin(t.Context(), request)
+	if err != nil {
+		t.Fatalf("process.Begin(silent) error = %v, want nil", err)
+	}
+	if _, err := execution.Wait(); err != nil {
+		t.Fatalf("Execution.Wait() error = %v, want nil", err)
+	}
+	if err := execution.Sweep(); !errors.Is(err, core.ErrProcessContract) {
+		t.Fatalf("Sweep(direct child) error = %v, want errors.Is %v", err, core.ErrProcessContract)
+	}
+}
+
+// TestSweepRefusesAnExecutionNotStartedByBegin holds the door to the same
+// unstarted-handle refusal every other supervision door shares.
+func TestSweepRefusesAnExecutionNotStartedByBegin(t *testing.T) {
+	t.Parallel()
+
+	if err := new(process.Execution).Sweep(); !errors.Is(err, core.ErrProcessContract) {
+		t.Fatalf("Sweep(zero execution) error = %v, want errors.Is %v", err, core.ErrProcessContract)
+	}
+}
+
+// TestSelfNamesTheCallingProcess proves Self answers with this exact
+// process: the platform's own report is the oracle, the identity validates,
+// and the liveness door agrees the identity names a running process.
+func TestSelfNamesTheCallingProcess(t *testing.T) {
+	t.Parallel()
+
+	identity, err := process.Self()
+	if err != nil {
+		t.Fatalf("process.Self() error = %v, want nil", err)
+	}
+	pid, err := identity.Int()
+	if err != nil {
+		t.Fatalf("Self().Int() error = %v, want nil", err)
+	}
+	if want := os.Getpid(); pid != want {
+		t.Fatalf("process.Self() = %d, want the platform's own %d", pid, want)
+	}
+	liveness, err := process.Alive(identity)
+	if err != nil {
+		t.Fatalf("process.Alive(Self()) error = %v, want nil", err)
+	}
+	if liveness != process.LivenessAlive {
+		t.Fatalf("process.Alive(Self()) = %v, want %v", liveness, process.LivenessAlive)
 	}
 }

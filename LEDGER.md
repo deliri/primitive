@@ -1,8 +1,78 @@
 # Primitive 2026 Ledger
 
-Last updated: `2026-08-07`
+Last updated: `2026-08-08`
 
 ## Current
+
+- Process group-survivor sweep, 2026-08-08: Peachfuzz's migration onto
+  Process proved the one supervision moment the doors could not reach: a
+  group-contained tree whose reaped leader leaves survivors, either because
+  cancellation raced member exits or because WaitDelay released the wait
+  while a descendant held an inherited pipe. `Execution.Sweep` now owns that
+  moment: group containment only, one hard stop to the group address, legal
+  before or after reap, with ESRCH and EPERM as successful terminal outcomes
+  because neither can be repaired by retrying. The direct child stays
+  refused, because its stored number after reap is the recycled-identity
+  delivery ProcessIdentity forbids, and the residual recycled-group window is
+  documented as the reason a supervisor sweeps on evidence of survivors
+  rather than as routine hygiene. Proof drives a real blocked descendant
+  through the WaitDelay path, watches the sweep end it, holds the door shut
+  for direct children and unstarted executions, and tolerates sweeping a
+  group that is already gone. Published in v2026.0.38 so Peachfuzz can pin
+  it.
+
+- Keygen seed-custody round trip, 2026-08-08: the same migration proved the
+  adopt-back door could not be fed. Keygen handed out only the 64-byte
+  standard-library private key while accepting back only the RFC 8032 seed,
+  so a product persisting a key bridged the asymmetry with crypto/ed25519
+  size arithmetic of its own, exactly the reach-past the layering law
+  forbids. `SigningKey.Seed` now projects a caller-owned copy of the live
+  seed and `SeedSize` names the extent, completing the round trip: generate,
+  persist the minimal secret, adopt it back. Custody rules unchanged; unset
+  and destroyed keys refuse. Proof: full round trip preserves the public
+  identity and the seed bytes, the size constant is pinned to the contract
+  extent, and both refusal edges are held. Published in v2026.0.38 beside
+  the Process sweep.
+
+- Path ingress and canonical location, 2026-08-08: the Peachfuzz sweep found
+  the last two path-shaped reach-pasts every consumer repeats.
+  `AbsolutePath.ResolveText` admits operator-supplied text against a caller
+  base with exactly lexical resolution, replacing the filepath.Abs-and-reparse
+  shape whose hidden working-directory ask belongs to `process`; climbs clamp
+  at the root, empty text refuses, and the hostile table walks both sides of
+  the component-size and component-count boundaries. `filestore.Canonicalize`
+  reports where an existing name really leads with every link resolved, the
+  one answer an integrity comparison over two spellings needs, refusing
+  absent paths and link loops with the native cause preserved. Surface
+  ratchet extended; both proofs green. Published in v2026.0.38 beside the Process
+  sweep and the Keygen seed round trip.
+
+- Process self identity, 2026-08-08: lock-file diagnostics name their writer,
+  and the only spelling of "who am I" was os.Getpid from a product.
+  `process.Self` now answers with a validated ProcessIdentity, an observation
+  of this process that grants no capability over it; ownership stays with the
+  advisory mechanism guarding the record, because identifiers are reused.
+  Proof pins the platform's own report as oracle and composes with `Alive`.
+  Surface ratchet extended. Published in v2026.0.38 with the rest of today's
+  doors.
+
+- Ambient process facts, 2026-08-08: the last two calling-process asks left
+  in a consumer were the binary's own path (for the supervisor unit an
+  operator installs) and the inherited environment (filtered before a child
+  request). `process.Executable` and `process.AmbientEnvironment` now own
+  them; the whole-environment selector stays banned everywhere except the
+  one named ambient leaf, following the signal-leaf pattern. Proofs pin the
+  platform oracles, the typed admission, and the exact Strings round trip a
+  filtering consumer performs. Published in v2026.0.38 with the rest of today's
+  doors.
+
+- Exchange standard client, 2026-08-08: NewClient demanded a *http.Client
+  the package never produced, so every consumer wanting exactly the standard
+  transport imported net/http to write an empty literal. `NewStandardClient`
+  now produces that admitted shape; customized transports still enter
+  through NewClient. Proof: the produced client validates and matches the
+  hand-admitted literal's contract. Published in v2026.0.38 with the rest
+  of today's doors.
 
 - Canonical external-analyzer closure, 2026-08-03: Witness revision
   `v0.0.0-20260803211814-57582de85018` recognizes Primitive Process as the

@@ -3,6 +3,7 @@
 package process
 
 import (
+	"errors"
 	"os/exec"
 	"syscall"
 
@@ -39,6 +40,22 @@ func cancelSignalValue(signal CancelSignal) (unix.Signal, error) {
 	default:
 		return 0, contractError("cancel signal is outside the admitted domain")
 	}
+}
+
+// sweepGroup delivers one final hard stop to the whole group the child led.
+// ESRCH proves the group is already gone and EPERM proves this process may no
+// longer address it; neither can be repaired by retrying, so both are
+// successful terminal outcomes rather than failures.
+func sweepGroup(identity ProcessIdentity) error {
+	pid, err := identity.Int()
+	if err != nil {
+		return err
+	}
+	killErr := unix.Kill(-pid, unix.SIGKILL)
+	if killErr == nil || errors.Is(killErr, unix.ESRCH) || errors.Is(killErr, unix.EPERM) {
+		return nil
+	}
+	return killErr
 }
 
 // deliverSignal addresses one admitted signal to the direct child or, under
