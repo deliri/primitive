@@ -190,6 +190,7 @@ func TestPublicOperationsAreOnlyTypedConstructionAndExecution(t *testing.T) {
 		"ParseEffectiveEnvironment",
 		"ParseExactEnvironment",
 		"Resolve",
+		"ResolveExecutable",
 		"Run",
 		"Self",
 		"WorkingDirectory",
