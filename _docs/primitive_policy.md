@@ -1055,8 +1055,8 @@ The order is dependency depth, not a command to build every package in a row.
 | 3 | `hostfacts` | Host disk, memory, cgroup, tree, and OOM observations | `core`, `contextstate` | none |
 | 3 | `temporal` | Time, duration, arithmetic, persistence, waits, and tickers | `core`, `contextstate` | none |
 | 4 | `exchange` | Bounded client and server boundary policy over `net/http` | `core`, `contextstate`, `keygen`, `temporal` | none |
-| 4 | `id` | Canonical UUIDv7 and ULID time-ordered identifiers from one observed instant and caller-supplied entropy | `core`, `temporal` | none |
 | 4 | `fuzzfinder` | Bounded classification and observation of Go-generated fuzz artifacts | `core`, `filestore` | none |
+| 4 | `id` | Canonical UUIDv7 and ULID time-ordered identifiers from one observed instant and caller-supplied entropy | `core`, `temporal` | none |
 | 4 | `lease` | Signed lease timeline, assessment, renewal, and monotonic advance | `core`, `temporal`, `attest` | none |
 | 4 | `process` | Argv, environment, containment, bounded output, exit, and reaping over `os/exec` | `core`, `contextstate`, `temporal` | `testserial` |
 | 5 | `release` | Clean repository binding, verified build tools, deterministic Garble build and process plans, executable inspection, signed tool and metadata provenance, immutable artifacts, manifests, Latest, and selection | `core`, `temporal`, `attest`, `garble`, `process` | none |

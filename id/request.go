@@ -33,6 +33,8 @@ var _ [timestampMaximumMilliseconds - math.MaxInt64/temporal.NanosecondsPerMilli
 // the one authoritative wall reading and the caller-drawn entropy.
 // Observation is the clock fact temporal already observed; Entropy remains
 // owned by the caller and is copied only for one bounded construction.
+// Both identities consume exactly the first ten entropy bytes; the
+// remaining six of the minimum draw are never read.
 type Request struct {
 	Entropy     core.SecretMaterial
 	Observation temporal.Observation

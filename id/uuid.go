@@ -43,6 +43,9 @@ func NewUUIDv7(request Request) (UUIDv7, error) {
 	copy(value.value[timestampBytes:], entropy[:entropyBytes])
 	value.value[6] = value.value[6]&0x0f | 0x70
 	value.value[8] = value.value[8]&0x3f | 0x80
+	// The marks above force a nonzero value, so this check cannot fire; it
+	// stays to catch layout drift, the one shape no compile-time witness
+	// covers.
 	if err := value.Validate(); err != nil {
 		return UUIDv7{}, err
 	}

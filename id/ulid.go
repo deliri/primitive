@@ -52,6 +52,8 @@ func NewULID(request Request) (ULID, error) {
 	var value ULID
 	putTimestamp(value.value[:], milliseconds)
 	copy(value.value[timestampBytes:], entropy[:entropyBytes])
+	// Nothing here forces a bit: the epoch stamp beside an all zero entropy
+	// head builds the unset value, and this check is what refuses it.
 	if err := value.Validate(); err != nil {
 		return ULID{}, err
 	}

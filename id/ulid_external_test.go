@@ -117,6 +117,15 @@ func TestNewULIDRefusesHostileRequests(t *testing.T) {
 			},
 		},
 		{
+			name: "epoch stamp beside an all zero entropy head builds the unset value",
+			setup: func(t *testing.T) id.Request {
+				t.Helper()
+				zeroHead := make([]byte, 16)
+				zeroHead[15] = 1
+				return testRequest(t, 0, zeroHead)
+			},
+		},
+		{
 			name: "zero request carries no observation",
 			setup: func(t *testing.T) id.Request {
 				t.Helper()
