@@ -394,18 +394,7 @@ func DeleteGCSObject(ctx context.Context, client *GCSClient, request GCSDeleteOb
 		return GCSDeleteObjectResult{}, err
 	}
 	object := bucket.Object(request.Name.String())
-	attrs, err := object.Attrs(ctx)
-	if err != nil {
-		return GCSDeleteObjectResult{}, projectGCSError(err, core.ErrObjectStoreDestination)
-	}
-	if attrs == nil {
-		return GCSDeleteObjectResult{}, errors.Join(core.ErrObjectStoreContract, core.ErrObjectStoreDestination)
-	}
-	generation, err := NewGCSGeneration(attrs.Generation)
-	if err != nil {
-		return GCSDeleteObjectResult{}, err
-	}
-	value, err := generation.Int64()
+	generation, value, err := currentGCSGeneration(ctx, object)
 	if err != nil {
 		return GCSDeleteObjectResult{}, err
 	}
@@ -417,6 +406,29 @@ func DeleteGCSObject(ctx context.Context, client *GCSClient, request GCSDeleteOb
 		return GCSDeleteObjectResult{}, err
 	}
 	return GCSDeleteObjectResult{name: request.Name, generation: generation}, nil
+}
+
+// currentGCSGeneration observes the exact live generation a delete
+// precondition binds to. Absence surfaces from the attribute read itself;
+// attributes carrying no object is a contract violation rather than an
+// absence.
+func currentGCSGeneration(ctx context.Context, object *storage.ObjectHandle) (GCSGeneration, int64, error) {
+	attrs, err := object.Attrs(ctx)
+	if err != nil {
+		return GCSGeneration{}, 0, projectGCSError(err, core.ErrObjectStoreDestination)
+	}
+	if attrs == nil {
+		return GCSGeneration{}, 0, errors.Join(core.ErrObjectStoreContract, core.ErrObjectStoreDestination)
+	}
+	generation, err := NewGCSGeneration(attrs.Generation)
+	if err != nil {
+		return GCSGeneration{}, 0, err
+	}
+	value, err := generation.Int64()
+	if err != nil {
+		return GCSGeneration{}, 0, err
+	}
+	return generation, value, nil
 }
 
 func confirmGCSObjectAbsent(ctx context.Context, object *storage.ObjectHandle) error {
