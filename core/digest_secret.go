@@ -448,13 +448,17 @@ func DecodeCanonicalHex(destination []byte, value string) error {
 		return errors.Join(ErrPrimitiveContract, errors.New(hexValueInvalidLengthDiagnostic))
 	}
 	if _, err := hex.Decode(destination, []byte(value)); err != nil {
-		return errors.Join(ErrPrimitiveContract, errors.New("value is not canonical lowercase hexadecimal"), err)
+		return errors.Join(ErrPrimitiveContract, errors.New(hexNotCanonicalDiagnostic), err)
 	}
 	if hex.EncodeToString(destination) != value {
-		return errors.Join(ErrPrimitiveContract, errors.New("value is not canonical lowercase hexadecimal"))
+		return errors.Join(ErrPrimitiveContract, errors.New(hexNotCanonicalDiagnostic))
 	}
 	return nil
 }
+
+// hexNotCanonicalDiagnostic is the one spelling of the canonical lowercase
+// hexadecimal refusal, answered with and without an underlying decode cause.
+const hexNotCanonicalDiagnostic = "value is not canonical lowercase hexadecimal"
 
 func decodeCanonicalHex(value string, size int) ([]byte, error) {
 	decoded := make([]byte, size)

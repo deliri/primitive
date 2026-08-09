@@ -128,7 +128,7 @@ func InspectMetadataAsset(request MetadataInspectionRequest) (MetadataAsset, err
 	written, err := io.CopyBuffer(io.MultiWriter(sha, crc), bounded,
 		make([]byte, metadataInspectionBufferBytes))
 	if err != nil || written != extent {
-		return MetadataAsset{}, manifestError(errors.New("stream metadata asset"), err)
+		return MetadataAsset{}, manifestError(errors.New(streamMetadataAssetDiagnostic), err)
 	}
 	var extra [1]byte
 	read, readErr := request.Source.ReadAt(extra[:], extent)
@@ -137,13 +137,17 @@ func InspectMetadataAsset(request MetadataInspectionRequest) (MetadataAsset, err
 	}
 	shaDigest, _, err := sha.Seal()
 	if err != nil {
-		return MetadataAsset{}, manifestError(errors.New("stream metadata asset"), err)
+		return MetadataAsset{}, manifestError(errors.New(streamMetadataAssetDiagnostic), err)
 	}
 	return NewMetadataAsset(MetadataAssetRequest{
 		Kind: request.Kind, Extent: request.Extent,
 		SHA256: shaDigest, CRC32C: core.NewCRC32C(crc.Sum32()),
 	})
 }
+
+// streamMetadataAssetDiagnostic is the one spelling of the metadata stream
+// refusal, shared by the copy and the digest seal.
+const streamMetadataAssetDiagnostic = "stream metadata asset"
 
 func (r MetadataAssetRequest) Validate() error {
 	if err := r.Kind.Validate(); err != nil {

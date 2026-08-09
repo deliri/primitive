@@ -203,14 +203,18 @@ func inspectBuildTool(path core.AbsolutePath) (_ *buildinfo.BuildInfo, digest co
 	writer := core.NewDigestWriter()
 	buffer := make([]byte, 64<<10)
 	if _, err := io.CopyBuffer(writer, file, buffer); err != nil {
-		return nil, core.SHA256Digest{}, contractError(errors.New("digest build tool executable"), err)
+		return nil, core.SHA256Digest{}, contractError(errors.New(digestBuildToolDiagnostic), err)
 	}
 	toolDigest, _, err := writer.Seal()
 	if err != nil {
-		return nil, core.SHA256Digest{}, contractError(errors.New("digest build tool executable"), err)
+		return nil, core.SHA256Digest{}, contractError(errors.New(digestBuildToolDiagnostic), err)
 	}
 	return build, toolDigest, nil
 }
+
+// digestBuildToolDiagnostic is the one spelling of the build tool digest
+// refusal, shared by the copy and the digest seal.
+const digestBuildToolDiagnostic = "digest build tool executable"
 
 func probeGoVersion(
 	ctx context.Context,

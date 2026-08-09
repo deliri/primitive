@@ -129,6 +129,10 @@ type TerminalGeometry struct {
 	attachment TerminalAttachment
 }
 
+// terminalWithoutGeometryDiagnostic is the one spelling of the columns
+// refusal, shared by the geometry gate and the column read.
+const terminalWithoutGeometryDiagnostic = "only an attached terminal with geometry carries columns"
+
 // Validate rejects a geometry whose attachment and column count disagree.
 func (g TerminalGeometry) Validate() error {
 	if err := g.attachment.Validate(); err != nil {
@@ -138,7 +142,7 @@ func (g TerminalGeometry) Validate() error {
 		return g.columns.Validate()
 	}
 	if g.columns != 0 {
-		return errors.Join(core.ErrHostFactsContract, errors.New("only an attached terminal with geometry carries columns"))
+		return errors.Join(core.ErrHostFactsContract, errors.New(terminalWithoutGeometryDiagnostic))
 	}
 	return nil
 }
@@ -162,7 +166,7 @@ func (g TerminalGeometry) Columns() (TerminalColumns, error) {
 		return 0, err
 	}
 	if attachment != TerminalAttachmentTerminal {
-		return 0, errors.Join(core.ErrHostFactsContract, errors.New("only an attached terminal with geometry carries columns"))
+		return 0, errors.Join(core.ErrHostFactsContract, errors.New(terminalWithoutGeometryDiagnostic))
 	}
 	return g.columns, nil
 }

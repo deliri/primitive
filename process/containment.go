@@ -39,6 +39,11 @@ func isolationDiagnostics() [isolationLimit]string {
 // fail-closed default arm.
 const isolationOutsideDomainDiagnostic = "isolation is outside the admitted domain"
 
+// cancelSignalOutsideDomainDiagnostic is the one spelling of the cancel
+// signal refusal, shared by the enum's own gate and the platform leaf's
+// fail-closed default arm.
+const cancelSignalOutsideDomainDiagnostic = "cancel signal is outside the admitted domain"
+
 // Validate rejects values outside the closed isolation domain.
 func (i Isolation) Validate() error {
 	if !i.IsValid() {
@@ -101,7 +106,7 @@ func cancelSignalDiagnostics() [cancelSignalLimit]string {
 // Validate rejects values outside the closed cancel-signal domain.
 func (s CancelSignal) Validate() error {
 	if !s.IsValid() {
-		return contractError("cancel signal is outside the admitted domain")
+		return contractError(cancelSignalOutsideDomainDiagnostic)
 	}
 	return nil
 }

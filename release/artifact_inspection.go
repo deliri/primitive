@@ -196,7 +196,7 @@ func inspectArtifactBytes(
 	written, err := io.CopyBuffer(io.MultiWriter(sha, crc, finder), bounded,
 		make([]byte, artifactInspectionBufferBytes))
 	if err != nil || written != extent {
-		return artifactByteInspection{}, contractError(errors.New("stream artifact bytes"), err)
+		return artifactByteInspection{}, contractError(errors.New(streamArtifactBytesDiagnostic), err)
 	}
 	var extra [1]byte
 	read, readErr := request.Source.ReadAt(extra[:], extent)
@@ -208,12 +208,16 @@ func inspectArtifactBytes(
 	}
 	shaDigest, _, err := sha.Seal()
 	if err != nil {
-		return artifactByteInspection{}, contractError(errors.New("stream artifact bytes"), err)
+		return artifactByteInspection{}, contractError(errors.New(streamArtifactBytesDiagnostic), err)
 	}
 	return artifactByteInspection{
 		sha256: shaDigest, crc32c: core.NewCRC32C(crc.Sum32()),
 	}, nil
 }
+
+// streamArtifactBytesDiagnostic is the one spelling of the artifact stream
+// refusal, shared by the copy and the digest seal.
+const streamArtifactBytesDiagnostic = "stream artifact bytes"
 
 func artifactInspectionPatterns(request ArtifactInspectionRequest) [artifactInspectionPatternCount]string {
 	build := request.Build

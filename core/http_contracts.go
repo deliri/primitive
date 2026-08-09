@@ -47,13 +47,17 @@ type HTTPStatusCode struct {
 	value uint16
 }
 
+// nilHTTPStatusReceiverDiagnostic is the one spelling of the nil receiver
+// refusal, shared by the admission door and the JSON boundary.
+const nilHTTPStatusReceiverDiagnostic = "nil HTTP status receiver"
+
 // AdmitInt validates value as a status code and stores it on the receiver.
 // It is the one admission door for a numeric code arriving from outside,
 // such as a transport response; a code a caller expects by contract is a
 // named constructor instead. The receiver is unchanged on rejection.
 func (s *HTTPStatusCode) AdmitInt(value int) error {
 	if s == nil {
-		return httpContractError("nil HTTP status receiver")
+		return httpContractError(nilHTTPStatusReceiverDiagnostic)
 	}
 	if value < httpStatusCodeMinimum || value > httpStatusCodeMaximum {
 		return httpContractError(httpStatusRangeErrorText)
@@ -124,7 +128,7 @@ func (s HTTPStatusCode) MarshalJSON() ([]byte, error) {
 // UnmarshalJSON accepts a canonical JSON integer from 100 through 599.
 func (s *HTTPStatusCode) UnmarshalJSON(data []byte) error {
 	if s == nil {
-		return errors.Join(ErrJSONContract, errors.New("nil HTTP status receiver"))
+		return errors.Join(ErrJSONContract, errors.New(nilHTTPStatusReceiverDiagnostic))
 	}
 	value, err := parseCanonicalUint64JSON(data)
 	if err != nil {

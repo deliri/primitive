@@ -9,6 +9,11 @@ import (
 	"github.com/deliri/primitive/v2026/core"
 )
 
+// windowsCancelKillOnlyDiagnostic is the one spelling of the refusal Windows
+// answers for every cancel signal it cannot deliver, shared by the
+// containment gate and the delivery leaf.
+const windowsCancelKillOnlyDiagnostic = "windows delivers no cancel signal other than kill"
+
 // applyContainment projects the validated containment onto the one command
 // this package is about to start. Windows has no POSIX signal vocabulary, so
 // only the silent hard stop is deliverable here; a request naming any other
@@ -18,7 +23,7 @@ func applyContainment(_ *exec.Cmd, containment Containment) error {
 	if containment.CancelSignal != CancelSignalKill {
 		return errors.Join(
 			core.ErrProcessUnsupported,
-			errors.New("windows delivers no cancel signal other than kill"),
+			errors.New(windowsCancelKillOnlyDiagnostic),
 		)
 	}
 	switch containment.Isolation {
@@ -60,7 +65,7 @@ func deliverSignal(delivery signalDelivery) error {
 	if delivery.signal != CancelSignalKill {
 		return errors.Join(
 			core.ErrProcessUnsupported,
-			errors.New("windows delivers no cancel signal other than kill"),
+			errors.New(windowsCancelKillOnlyDiagnostic),
 		)
 	}
 	return delivery.process.Kill()

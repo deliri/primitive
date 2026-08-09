@@ -103,6 +103,10 @@ func (p Patience) String() string {
 	return patienceDiagnostics()[p]
 }
 
+// fileMissingDiagnostic is the one spelling of the missing file refusal,
+// shared by the request gate and the release door.
+const fileMissingDiagnostic = "filelock file is missing"
+
 // Request names one advisory lock attempt on one open file.
 type Request struct {
 	File        *os.File
@@ -113,7 +117,7 @@ type Request struct {
 // Validate rejects a missing file or an unset locking intent.
 func (r Request) Validate() error {
 	if r.File == nil {
-		return contractError(errors.New("filelock file is missing"))
+		return contractError(errors.New(fileMissingDiagnostic))
 	}
 	if err := r.Exclusivity.Validate(); err != nil {
 		return err

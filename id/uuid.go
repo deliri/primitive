@@ -35,7 +35,7 @@ func NewUUIDv7(request Request) (UUIDv7, error) {
 	}
 	entropy, err := request.Entropy.CopyBytes()
 	if err != nil {
-		return UUIDv7{}, contractCause("request entropy is unreadable", err)
+		return UUIDv7{}, contractCause(entropyUnreadableDiagnostic, err)
 	}
 	defer clear(entropy)
 	var value UUIDv7
@@ -52,6 +52,10 @@ func NewUUIDv7(request Request) (UUIDv7, error) {
 	return value, nil
 }
 
+// uuidOutsideCanonicalFormDiagnostic is the one spelling of the canonical
+// form refusal, answered with and without an underlying decode cause.
+const uuidOutsideCanonicalFormDiagnostic = "uuid text is outside the canonical form"
+
 // ParseUUIDv7 admits exactly one canonical spelling: thirty-six lowercase
 // hexadecimal and dash bytes in 8-4-4-4-12 groups carrying the version 7 and
 // RFC 9562 variant marks. Uppercase, braced, urn-prefixed, hyphenless, and
@@ -60,11 +64,11 @@ func NewUUIDv7(request Request) (UUIDv7, error) {
 func ParseUUIDv7(value string) (UUIDv7, error) {
 	compact, ok := compactCanonicalUUIDText(value)
 	if !ok {
-		return UUIDv7{}, contractError("uuid text is outside the canonical form")
+		return UUIDv7{}, contractError(uuidOutsideCanonicalFormDiagnostic)
 	}
 	var parsed UUIDv7
 	if _, err := hex.Decode(parsed.value[:], compact[:]); err != nil {
-		return UUIDv7{}, contractCause("uuid text is outside the canonical form", err)
+		return UUIDv7{}, contractCause(uuidOutsideCanonicalFormDiagnostic, err)
 	}
 	if err := parsed.Validate(); err != nil {
 		return UUIDv7{}, err

@@ -38,7 +38,7 @@ func cancelSignalValue(signal CancelSignal) (unix.Signal, error) {
 	case CancelSignalTerminate:
 		return unix.SIGTERM, nil
 	default:
-		return 0, contractError("cancel signal is outside the admitted domain")
+		return 0, contractError(cancelSignalOutsideDomainDiagnostic)
 	}
 }
 

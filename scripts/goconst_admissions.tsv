@@ -1,11 +1,15 @@
+absent	Filestore path kind, filestore held standing, and hostfacts cgroup observations are distinct closed domains.
 advanced	Release advance state and Lease decision state are distinct closed domains.
+available	Filestore sharing observation and Release selection state are distinct closed domains.
 crc32c	Receipt checksum evidence and Objectstore vendor checksum policy are distinct protocol facts.
 download	Objectstore transfer direction and Upgrade failure phase are distinct closed domains.
 expired	Release availability and Lease assessment are distinct closed domains.
 failed	Shutdown step outcome and Upgrade trial outcome are distinct closed domains.
 generation receiver is nil	Lease generation and Release latest generation own distinct receiver contracts.
+interrupt	Process cancel signal and Shutdown signal kind are distinct closed domains.
 not-yet-valid	Release availability and Lease assessment are distinct closed domains.
 object	Core JSON container syntax and Receipt subject kind are distinct protocol facts.
 replay	Receipt evidence kind and Release availability state are distinct closed domains.
 revision receiver is nil	Lease and Release revisions own distinct receiver contracts.
+terminate	Process cancel signal and Shutdown signal kind are distinct closed domains.
 unlimited	Host workload capacity and cgroup limit observations are distinct closed domains.

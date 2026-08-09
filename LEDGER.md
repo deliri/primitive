@@ -1,8 +1,38 @@
 # Primitive 2026 Ledger
 
-Last updated: `2026-08-08`
+Last updated: `2026-08-09`
 
 ## Current
+
+- runnable-path door and gate debt, 2026-08-09, published `v2026.0.48` in
+  three commits. Process gains `ResolveExecutable(ctx, path)`, the
+  path-shaped twin of `Resolve` for the consumer holding a configured
+  override, a sibling binary, or a derived build artifact: one
+  `exec.LookPath` leaf carries the host's own runnability answer for this
+  process's effective identity, the native nonexistence and permission
+  identities stay reachable, and the answer is parsed rather than echoed
+  because Windows may resolve an executable extension the caller did not
+  spell. Proof: a twenty-five row portable table sweeping the mode spectrum
+  on both sides of the execute boundary and every link state, each accepted
+  row pinning the exact returned path; a unix leaf pinning EISDIR, ELOOP,
+  and ENOTDIR; a windows leaf proving both extension spellings, checked
+  under a windows vet; a gate-order row; a real Run round trip; and one
+  compiled mutant killing exactly the thirty-two rows it must while the
+  three pre-substrate gates survive. The standing gocyclo note closed:
+  `DeleteGCSObject` delegates its generation observation to
+  `currentGCSGeneration` and reads 8. The constants gate drifted red under
+  the newer goconst, whose detection is complete where the admission set
+  was written against less; twelve same-fact diagnostics now have one
+  named spelling each across process, hostfacts, core, id, filelock, and
+  release, and the four remaining findings are coincidental label
+  collisions between distinct closed domains, admitted with reasons under
+  a maximum ratcheted to exactly fifteen. The capabilities index also
+  gains the filestore rows for `Remove`, `RemoveTree`, and `Walk` that
+  shipped with their doors. Canonical gate all zero across eighty-four
+  rows. Consumer surgery recorded, not performed: witness processprobe's
+  path branch drops its Canonicalize plus Inspect existence gate for
+  `ResolveExecutable`, restoring the resolve-time runnability deadcode's
+  selection chain pins.
 
 - the three remaining witness gaps, 2026-08-08, published `v2026.0.47` in
   one commit. Hostfacts gains `UserHomeDirectory` and `UserCacheDirectory`

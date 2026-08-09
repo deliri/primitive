@@ -7,6 +7,10 @@ import (
 	"github.com/deliri/primitive/v2026/core"
 )
 
+// alreadyReapedDiagnostic is the one spelling of the after-reap refusal,
+// shared by the signal door and the single-wait gate.
+const alreadyReapedDiagnostic = "execution was already reaped"
+
 // Execution is one started direct child between Begin and Wait.
 //
 // It exists so a supervisor can hold the running child as a typed value:
@@ -61,7 +65,7 @@ func (e *Execution) Deliver(signal CancelSignal) error {
 	// an unrelated process or group, and signaling it would be exactly the
 	// stored-number-later delivery the ProcessIdentity contract forbids.
 	if e.reaped.Load() {
-		return contractError("execution was already reaped")
+		return contractError(alreadyReapedDiagnostic)
 	}
 	if err := signal.Validate(); err != nil {
 		return err
@@ -120,7 +124,7 @@ func (e *Execution) Wait() (Result, error) {
 		return Result{}, err
 	}
 	if !e.waited.CompareAndSwap(false, true) {
-		return Result{}, contractError("execution was already reaped")
+		return Result{}, contractError(alreadyReapedDiagnostic)
 	}
 	defer e.cancel(nil)
 	defer e.reaped.Store(true)

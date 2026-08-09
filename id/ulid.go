@@ -46,7 +46,7 @@ func NewULID(request Request) (ULID, error) {
 	}
 	entropy, err := request.Entropy.CopyBytes()
 	if err != nil {
-		return ULID{}, contractCause("request entropy is unreadable", err)
+		return ULID{}, contractCause(entropyUnreadableDiagnostic, err)
 	}
 	defer clear(entropy)
 	var value ULID

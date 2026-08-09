@@ -45,7 +45,7 @@ func Release(ctx context.Context, file *os.File) error {
 		return err
 	}
 	if file == nil {
-		return contractError(errors.New("filelock file is missing"))
+		return contractError(errors.New(fileMissingDiagnostic))
 	}
 	if err := release(file); err != nil {
 		return lockError(err)
