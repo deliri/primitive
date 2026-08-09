@@ -127,9 +127,5 @@ func replayDuration(t testing.TB, nanoseconds int64) temporal.Duration {
 
 func validReplayStreamResponse(t testing.TB) StreamResponse {
 	t.Helper()
-	status, err := core.NewHTTPStatusCode(200)
-	if err != nil {
-		t.Fatal(err)
-	}
-	return StreamResponse{Metadata: ResponseMetadata{Status: status, Attempts: 1}}
+	return StreamResponse{Metadata: ResponseMetadata{Status: core.HTTPStatusOK(), Attempts: 1}}
 }

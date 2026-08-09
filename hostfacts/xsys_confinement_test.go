@@ -24,6 +24,7 @@ func platformEscapeLeafFiles() map[string]bool {
 		"physical_memory_linux.go":  true,
 		"root_unix.go":              true,
 		"root_windows.go":           true,
+		"storage_linux.go":          true,
 		"terminal_unix.go":          true,
 		"terminal_windows.go":       true,
 	}

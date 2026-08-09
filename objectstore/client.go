@@ -275,7 +275,7 @@ func prepareDownload(
 			Headers:                     headers,
 			CaptureHeaders:              selection,
 			ResponseBodyLimit:           downloadLimit(request.Integrity.Length),
-			ExpectedStatus:              statusOK(),
+			ExpectedStatus:              core.HTTPStatusOK(),
 		},
 	}, nil
 }
@@ -342,7 +342,7 @@ func prepareUpload(
 			Headers:        headers,
 			CaptureHeaders: selection,
 			ContentLength:  body.length,
-			ExpectedStatus: statusOK(),
+			ExpectedStatus: core.HTTPStatusOK(),
 		},
 	}, nil
 }
@@ -723,11 +723,6 @@ func coreSourceIntegrity() error {
 
 func statusCode(status exchange.StatusError) int {
 	value, _ := status.Status().Int()
-	return value
-}
-
-func statusOK() core.HTTPStatusCode {
-	value, _ := core.NewHTTPStatusCode(http.StatusOK)
 	return value
 }
 

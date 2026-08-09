@@ -55,9 +55,9 @@ func (d projectedTransportDocument) Validate() error {
 func mustHTTPStatus(t testing.TB, value int) core.HTTPStatusCode {
 	t.Helper()
 
-	got, gotErr := core.NewHTTPStatusCode(value)
-	if gotErr != nil {
-		t.Fatalf("NewHTTPStatusCode(%d) setup error = %v, want nil", value, gotErr)
+	var got core.HTTPStatusCode
+	if gotErr := got.AdmitInt(value); gotErr != nil {
+		t.Fatalf("AdmitInt(%d) setup error = %v, want nil", value, gotErr)
 	}
 	return got
 }

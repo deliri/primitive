@@ -471,7 +471,7 @@ func readCgroupLimit(
 	if err != nil {
 		return 0, false, err
 	}
-	token, err := canonicalLimitToken(data)
+	token, err := canonicalVirtualValueToken(data)
 	if err != nil {
 		return 0, false, err
 	}
@@ -488,7 +488,11 @@ func readCgroupLimit(
 	return value, false, nil
 }
 
-func canonicalLimitToken(data []byte) (string, error) {
+// canonicalVirtualValueToken admits one single-token virtual-file value:
+// the whole content, one optional trailing newline removed, with no other
+// whitespace anywhere. Cgroup limit interfaces and block-device queue
+// interfaces both publish exactly this shape.
+func canonicalVirtualValueToken(data []byte) (string, error) {
 	token := strings.TrimSuffix(string(data), "\n")
 	if token == "" || strings.ContainsAny(token, " \t\r\n") {
 		return "", core.ErrHostFactsObservation

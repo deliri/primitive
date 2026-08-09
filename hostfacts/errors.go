@@ -22,6 +22,7 @@ const (
 	OperationTreeWalk
 	OperationGoOOMBanner
 	OperationTerminalGeometry
+	OperationDiskRotation
 	operationLimit
 )
 
@@ -37,6 +38,7 @@ func operationLabels() [operationLimit]string {
 		OperationTreeWalk:         "tree walk",
 		OperationGoOOMBanner:      "go OOM banner",
 		OperationTerminalGeometry: "terminal geometry",
+		OperationDiskRotation:     "disk rotation",
 	}
 }
 

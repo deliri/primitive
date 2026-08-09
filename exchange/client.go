@@ -619,8 +619,8 @@ func readAggregateHTTPResponse(
 	if input.response == nil || input.response.Body == nil {
 		return result, responseError(core.ErrExchangeContract)
 	}
-	status, err := core.NewHTTPStatusCode(input.response.StatusCode)
-	if err != nil {
+	var status core.HTTPStatusCode
+	if err := status.AdmitInt(input.response.StatusCode); err != nil {
 		return result, errors.Join(
 			responseError(err),
 			closeResponseBody(input.response.Body),

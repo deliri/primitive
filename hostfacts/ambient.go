@@ -84,6 +84,34 @@ func UserConfigDirectory() (core.AbsolutePath, error) {
 	return admitObservedPath(value)
 }
 
+// UserHomeDirectory reports the platform's home directory for the current
+// user: the HOME, USERPROFILE, or account-database rules the standard
+// library already encodes, admitted as an absolute path. It is a base for
+// platform-conventional entries a product must resolve, such as a tool
+// cache a host tool already keeps there; a product's own data belongs
+// under the configuration or cache base, not loose in the home.
+func UserHomeDirectory() (core.AbsolutePath, error) {
+	value, err := os.UserHomeDir()
+	if err != nil {
+		return core.AbsolutePath{}, errors.Join(core.ErrHostFactsObservation, err)
+	}
+	return admitObservedPath(value)
+}
+
+// UserCacheDirectory reports the platform's per-user cache base: the XDG,
+// Library, or AppData rules the standard library already encodes, admitted
+// as an absolute path. Products place their own named subdirectory below
+// it; this door owns only where the base is. Entries below it are
+// disposable by the platform's own convention, so nothing load-bearing
+// belongs there.
+func UserCacheDirectory() (core.AbsolutePath, error) {
+	value, err := os.UserCacheDir()
+	if err != nil {
+		return core.AbsolutePath{}, errors.Join(core.ErrHostFactsObservation, err)
+	}
+	return admitObservedPath(value)
+}
+
 // TemporaryDirectory reports the platform's temporary-file base for this
 // process, admitted as an absolute path. It is where a product builds its
 // own uniquely named scratch entries; uniqueness is the caller's to supply

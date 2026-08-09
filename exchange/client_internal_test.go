@@ -393,10 +393,7 @@ func TestRetryAfterParserHostileBoundaryTable(t *testing.T) {
 func TestObservedAggregateResponseLayerTriad(t *testing.T) {
 	t.Parallel()
 
-	status, gotStatusErr := core.NewHTTPStatusCode(http.StatusOK)
-	if gotStatusErr != nil {
-		t.Fatalf("NewHTTPStatusCode(200) setup error = %v, want nil", gotStatusErr)
-	}
+	status := core.HTTPStatusOK()
 
 	t.Run("positive valid observation returns complete metadata and bytes", func(t *testing.T) {
 		t.Parallel()

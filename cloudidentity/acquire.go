@@ -3,21 +3,10 @@ package cloudidentity
 import (
 	"context"
 	"errors"
-	"net/http"
 
 	"github.com/deliri/primitive/v2026/core"
 	"github.com/deliri/primitive/v2026/exchange"
 )
-
-// successStatus admits the one status either authority may answer one
-// acquisition with. Every other status is refused by Exchange.
-func successStatus() (core.HTTPStatusCode, error) {
-	status, err := core.NewHTTPStatusCode(http.StatusOK)
-	if err != nil {
-		return core.HTTPStatusCode{}, contractError(err)
-	}
-	return status, nil
-}
 
 // acquisitionCall is one bounded provider acquisition. Each entry point states
 // its own target, headers, and response bound, so nothing here selects a
@@ -47,10 +36,9 @@ func acquire(call acquisitionCall) (exchange.BoundedResponse, error) {
 	if err := call.Validate(); err != nil {
 		return exchange.BoundedResponse{}, contractError(err)
 	}
-	status, err := successStatus()
-	if err != nil {
-		return exchange.BoundedResponse{}, err
-	}
+	// Either authority answers one acquisition with exactly 200 OK; every
+	// other status is refused by Exchange.
+	status := core.HTTPStatusOK()
 	response, err := exchange.SendNoBodyBounded(exchange.NoBodyBoundedCall{
 		Context: call.context,
 		Client:  call.client.exchange,

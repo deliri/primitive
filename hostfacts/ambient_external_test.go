@@ -54,6 +54,42 @@ func TestUserConfigDirectoryIsTheAdmittedPlatformBase(t *testing.T) {
 	}
 }
 
+// TestUserHomeDirectoryIsTheAdmittedPlatformBase pins the home base to the
+// platform oracle through the path admission.
+func TestUserHomeDirectoryIsTheAdmittedPlatformBase(t *testing.T) {
+	t.Parallel()
+
+	got, err := hostfacts.UserHomeDirectory()
+	if err != nil {
+		t.Fatalf("hostfacts.UserHomeDirectory() error = %v, want nil", err)
+	}
+	want, err := os.UserHomeDir()
+	if err != nil {
+		t.Fatalf("os.UserHomeDir() oracle error = %v, want nil", err)
+	}
+	if got.String() != want {
+		t.Fatalf("UserHomeDirectory() = %q, want the platform's own %q", got.String(), want)
+	}
+}
+
+// TestUserCacheDirectoryIsTheAdmittedPlatformBase pins the cache base to the
+// platform oracle through the path admission.
+func TestUserCacheDirectoryIsTheAdmittedPlatformBase(t *testing.T) {
+	t.Parallel()
+
+	got, err := hostfacts.UserCacheDirectory()
+	if err != nil {
+		t.Fatalf("hostfacts.UserCacheDirectory() error = %v, want nil", err)
+	}
+	want, err := os.UserCacheDir()
+	if err != nil {
+		t.Fatalf("os.UserCacheDir() oracle error = %v, want nil", err)
+	}
+	if got.String() != want {
+		t.Fatalf("UserCacheDirectory() = %q, want the platform's own %q", got.String(), want)
+	}
+}
+
 // TestTemporaryDirectoryIsTheAdmittedPlatformBase pins the scratch base to
 // the platform oracle through the path admission, tolerating exactly the one
 // trailing-separator respelling the admission performs.

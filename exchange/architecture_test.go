@@ -6,7 +6,6 @@ import (
 	"go/ast"
 	"go/parser"
 	"go/token"
-	"net/http"
 	"net/http/httptest"
 	"os"
 	"path/filepath"
@@ -67,10 +66,7 @@ func TestInventoryDocumentDrivesTheRealJSONWritePath(t *testing.T) {
 	if err != nil {
 		t.Fatalf("core.NewByteCount() error = %v, want nil", err)
 	}
-	status, err := core.NewHTTPStatusCode(http.StatusOK)
-	if err != nil {
-		t.Fatalf("core.NewHTTPStatusCode() error = %v, want nil", err)
-	}
+	status := core.HTTPStatusOK()
 	policy := JSONWritePolicy{ResponseBodyLimit: limit}
 
 	t.Run("valid document is encoded and framed", func(t *testing.T) {

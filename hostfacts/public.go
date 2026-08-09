@@ -36,6 +36,31 @@ func AssessDisk(ctx context.Context, request DiskAssessmentRequest) (DiskAssessm
 	return assessDiskCapacity(capacity, request.Policy)
 }
 
+// ObserveDiskRotation reports whether the block device backing one held
+// directory is rotational.
+//
+// The backing device's identity comes from the same held capability every
+// other disk observation opens, and on Linux the answer comes from the
+// kernel's own block-device index, so no mount-table text or device-name
+// heuristic ever decides which disk a directory lives on. A directory no
+// single block device backs answers unavailable; an operating system with
+// no portable rotation interface answers unsupported after validating the
+// directory the same way. Both are observations a caller records, never
+// errors to swallow.
+func ObserveDiskRotation(ctx context.Context, request DiskRotationRequest) (DiskRotation, error) {
+	if err := contextstate.Validate(ctx); err != nil {
+		return DiskRotationUnknown, err
+	}
+	if err := request.Validate(); err != nil {
+		return DiskRotationUnknown, err
+	}
+	rotation, err := observeDiskRotation(ctx, request.Directory)
+	if err != nil {
+		return DiskRotationUnknown, err
+	}
+	return rotation, rotation.Validate()
+}
+
 // ObserveTerminalGeometry reports whether one open descriptor is attached to
 // a terminal, and the terminal's column count when it is.
 //

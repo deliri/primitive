@@ -15,6 +15,8 @@ var (
 	_ core.Validatable = DiskCapacity{}
 	_ core.Validatable = DiskPressureState(0)
 	_ core.Validatable = DiskAssessment{}
+	_ core.Validatable = DiskRotation(0)
+	_ core.Validatable = DiskRotationRequest{}
 
 	_ core.Validatable = Percent{}
 	_ core.Validatable = GoMemoryPressurePolicy{}
@@ -47,6 +49,7 @@ var (
 
 	_ core.OffWireEnum = OperationUnknown
 	_ core.OffWireEnum = DiskPressureUnknown
+	_ core.OffWireEnum = DiskRotationUnknown
 	_ core.OffWireEnum = MemoryPressureUnknown
 	_ core.OffWireEnum = WorkloadMemoryLimitUnknown
 	_ core.OffWireEnum = WorkloadMemoryLimitSourceUnknown

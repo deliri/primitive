@@ -4,6 +4,40 @@ Last updated: `2026-08-08`
 
 ## Current
 
+- the three remaining witness gaps, 2026-08-08, published `v2026.0.47` in
+  one commit. Hostfacts gains `UserHomeDirectory` and `UserCacheDirectory`
+  beside the existing config and temporary bases, same admission and same
+  observation identity, and `ObserveDiskRotation(ctx, DiskRotationRequest)`
+  answering the closed `DiskRotation` domain: rotational, non-rotational,
+  unavailable when no single block device backs the directory, unsupported
+  where no portable interface exists off Linux. The Linux probe takes the
+  device identity from the same held root capability `AssessDisk` opens and
+  resolves it through the kernel's own `/sys/dev/block` index, disk first
+  and then the partition's parent, so no mount-table text and no
+  device-name heuristic ever decides which disk a path lives on. Core gains
+  `HTTPStatusOK()` beside the octet-stream constructor, dogfooded at
+  objectstore's upload and download expectations and at cloudidentity's
+  acquisition, whose dead error branch and lone `net/http` import die with
+  it. That left the numeric constructor `NewHTTPStatusCode` with one named
+  primitive consumer, so the admission moved onto the type as
+  `HTTPStatusCode.AdmitInt`, the receiver unchanged on rejection; exchange
+  admits response codes through it and the export-ownership gate holds two
+  named consumers for every core export. Proof: full module suite bare;
+  fix, vet, gofmt, fieldalignment, gocyclo, staticcheck, deadcode, and
+  nilaway silent; Linux and Windows cross-builds; mutation reds for the
+  wrong cache base, the lying 201 constructor, the swapped rotational
+  tokens, and the lying off-Linux answer, each restored byte-identical.
+  Consumer surgery recorded, not performed: witness exec/checks.go:2365,
+  run/run.go:1700, testimony.go:51, cmd/witness/tools.go:247,431,839, and
+  cmd/build-tools/build.go:359 ride the new bases; witness
+  plan/machine_linux.go deletes its mountinfo walk and partition-suffix
+  trimming for one `ObserveDiskRotation` call; witness notary, license
+  source, updatecmd source, and cmd tools name `core.HTTPStatusOK()` where
+  they currently spell `NewHTTPStatusCode(http.StatusOK)`, which the repin
+  makes a compile break to fix in the same slice. Standing note: gocyclo
+  reports `gcsobjects.DeleteGCSObject` at 11 on committed history from the
+  `.42` split, outside this release's scope, left for its own slice.
+
 - filestore held-standing door, 2026-08-08: the file-identity gap witness
   names at both of its TOCTOU custody checks closed as one portable
   observation inside filestore's inspection surface.

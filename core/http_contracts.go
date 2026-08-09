@@ -47,12 +47,19 @@ type HTTPStatusCode struct {
 	value uint16
 }
 
-// NewHTTPStatusCode validates and constructs a status code.
-func NewHTTPStatusCode(value int) (HTTPStatusCode, error) {
-	if value < httpStatusCodeMinimum || value > httpStatusCodeMaximum {
-		return HTTPStatusCode{}, httpContractError(httpStatusRangeErrorText)
+// AdmitInt validates value as a status code and stores it on the receiver.
+// It is the one admission door for a numeric code arriving from outside,
+// such as a transport response; a code a caller expects by contract is a
+// named constructor instead. The receiver is unchanged on rejection.
+func (s *HTTPStatusCode) AdmitInt(value int) error {
+	if s == nil {
+		return httpContractError("nil HTTP status receiver")
 	}
-	return HTTPStatusCode{value: uint16(value)}, nil
+	if value < httpStatusCodeMinimum || value > httpStatusCodeMaximum {
+		return httpContractError(httpStatusRangeErrorText)
+	}
+	s.value = uint16(value)
+	return nil
 }
 
 // Int returns the validated status code as int.
@@ -126,12 +133,17 @@ func (s *HTTPStatusCode) UnmarshalJSON(data []byte) error {
 	if value > uint64(httpStatusCodeMaximum) {
 		return errors.Join(ErrJSONContract, httpContractError(httpStatusRangeErrorText))
 	}
-	decoded, err := NewHTTPStatusCode(int(value))
-	if err != nil {
+	if err := s.AdmitInt(int(value)); err != nil {
 		return errors.Join(ErrJSONContract, err)
 	}
-	*s = decoded
 	return nil
+}
+
+// HTTPStatusOK returns the validated 200 OK success status: the one code a
+// caller that accepts exactly one response shape names as its expected
+// status.
+func HTTPStatusOK() HTTPStatusCode {
+	return HTTPStatusCode{value: http.StatusOK}
 }
 
 // HTTPHeaderName is a canonical MIME-style HTTP field name.

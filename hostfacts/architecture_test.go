@@ -43,12 +43,15 @@ func TestPublicOperationsAreExactIntentEntryPoints(t *testing.T) {
 		"CurrentPlatform",
 		"MeasureTree",
 		"NewPercent",
+		"ObserveDiskRotation",
 		"ObserveEffectiveWorkloadMemoryLimit",
 		"ObserveHostname",
 		"ObservePhysicalMemory",
 		"ObserveTerminalGeometry",
 		"TemporaryDirectory",
+		"UserCacheDirectory",
 		"UserConfigDirectory",
+		"UserHomeDirectory",
 	}
 	if !slices.Equal(got, want) {
 		t.Fatalf("exported Hostfacts operations = %q, want exactly %q", got, want)
@@ -99,9 +102,9 @@ func productionStructRole(name string) (string, bool) {
 	switch name {
 	case "Failure":
 		return "typed error context", true
-	case "DiskPressurePolicy", "DiskAssessmentRequest", "GoMemoryPressurePolicy",
-		"GoMemoryAssessmentRequest", "TreeUsageRequest", "GoOOMBannerRequest",
-		"TerminalGeometryRequest":
+	case "DiskPressurePolicy", "DiskAssessmentRequest", "DiskRotationRequest",
+		"GoMemoryPressurePolicy", "GoMemoryAssessmentRequest", "TreeUsageRequest",
+		"GoOOMBannerRequest", "TerminalGeometryRequest":
 		return "public execution ingress", true
 	case "DiskCapacity", "DiskAssessment", "GoMemorySnapshot",
 		"GoMemoryAssessment", "Hostname", "PhysicalMemory", "WorkloadMemoryLimit", "TreeUsage",

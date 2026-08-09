@@ -72,7 +72,6 @@ func TestCloudidentityProductionStructsHaveCompilerVisibleDataFlowRoles(
 		"github.com/deliri/primitive/v2026/exchange",
 		"github.com/deliri/primitive/v2026/temporal",
 		"io",
-		"net/http",
 		"net/url",
 		"strconv",
 		"strings",

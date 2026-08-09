@@ -35,6 +35,15 @@ func TestHostfactsOffWireEnumsExhaustClosedDomains(t *testing.T) {
 				OperationTreeWalk,
 				OperationGoOOMBanner,
 				OperationTerminalGeometry,
+				OperationDiskRotation,
+			})
+		}},
+		{name: "disk rotations reject every unadmitted uint8 value", run: func(t *testing.T) {
+			proveHostfactsOffWireEnum(t, func(raw uint8) DiskRotation { return DiskRotation(raw) }, []DiskRotation{
+				DiskRotationUnsupported,
+				DiskRotationUnavailable,
+				DiskRotationRotational,
+				DiskRotationNonRotational,
 			})
 		}},
 		{name: "terminal attachments reject every unadmitted uint8 value", run: func(t *testing.T) {

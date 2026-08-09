@@ -12,10 +12,7 @@ func TestCoreSchemaLayerTriad(t *testing.T) {
 
 	t.Run("positive: a complete status survives strict schema projection", func(t *testing.T) {
 		t.Parallel()
-		status, err := NewHTTPStatusCode(200)
-		if err != nil {
-			t.Fatalf("NewHTTPStatusCode() error = %v, want nil", err)
-		}
+		status := HTTPStatusOK()
 		limits := DefaultStrictJSONLimits()
 		gotWire, gotEncodeErr := EncodeValidatedJSON(status, limits)
 		if gotEncodeErr != nil {
@@ -122,10 +119,7 @@ func TestNumericConversionAndSaturationBoundaries(t *testing.T) {
 func TestRejectedJSONPreservesTypedReceivers(t *testing.T) {
 	t.Parallel()
 
-	status, err := NewHTTPStatusCode(200)
-	if err != nil {
-		t.Fatalf("NewHTTPStatusCode(200) error = %v, want nil", err)
-	}
+	status := HTTPStatusOK()
 	beforeStatus := status
 	if gotErr := json.Unmarshal([]byte("99"), &status); !errors.Is(gotErr, ErrJSONContract) {
 		t.Fatalf("json.Unmarshal(HTTPStatusCode 99) error = %v, want %v", gotErr, ErrJSONContract)

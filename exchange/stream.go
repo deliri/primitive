@@ -304,8 +304,8 @@ func finishUploadResponse(
 	if input.response == nil || input.response.Body == nil {
 		return zero, responseError(core.ErrExchangeContract)
 	}
-	status, err := core.NewHTTPStatusCode(input.response.StatusCode)
-	if err != nil {
+	var status core.HTTPStatusCode
+	if err := status.AdmitInt(input.response.StatusCode); err != nil {
 		return zero, errors.Join(
 			responseError(err),
 			closeHTTPResponse(input.response),
@@ -356,8 +356,8 @@ func finishDownloadResponse(
 	if input.response == nil || input.response.Body == nil {
 		return zero, responseError(core.ErrExchangeContract)
 	}
-	status, err := core.NewHTTPStatusCode(input.response.StatusCode)
-	if err != nil {
+	var status core.HTTPStatusCode
+	if err := status.AdmitInt(input.response.StatusCode); err != nil {
 		return zero, errors.Join(
 			responseError(err),
 			closeHTTPResponse(input.response),

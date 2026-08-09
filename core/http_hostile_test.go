@@ -7,6 +7,7 @@ import (
 	"go/parser"
 	"go/token"
 	"math"
+	"net/http"
 	"os"
 	"strconv"
 	"strings"
@@ -18,18 +19,58 @@ const (
 	httpMediaTypeTextPlainText = "text/plain"
 )
 
+// TestHTTPStatusOKIsTheValidatedSuccessConstant pins the named constructor to
+// the standard library oracle, the admitted constructor, and the one status
+// class the name promises.
+func TestHTTPStatusOKIsTheValidatedSuccessConstant(t *testing.T) {
+	t.Parallel()
+
+	got := HTTPStatusOK()
+	if err := got.Validate(); err != nil {
+		t.Fatalf("HTTPStatusOK().Validate() error = %v, want nil", err)
+	}
+	var want HTTPStatusCode
+	if err := want.AdmitInt(http.StatusOK); err != nil {
+		t.Fatalf("AdmitInt(http.StatusOK) oracle error = %v, want nil", err)
+	}
+	if got != want {
+		t.Fatalf("HTTPStatusOK() = %v, want the admitted %v", got, want)
+	}
+	var absent *HTTPStatusCode
+	if err := absent.AdmitInt(http.StatusOK); !errors.Is(err, ErrPrimitiveContract) {
+		t.Fatalf("nil receiver AdmitInt() error = %v, want errors.Is %v", err, ErrPrimitiveContract)
+	}
+	gotInt, gotIntErr := got.Int()
+	if gotIntErr != nil || gotInt != http.StatusOK {
+		t.Fatalf("HTTPStatusOK().Int() = (%d, %v), want (%d, nil)", gotInt, gotIntErr, http.StatusOK)
+	}
+	if !got.IsSuccess() || got.IsInformational() || got.IsRedirect() || got.IsClientError() || got.IsServerError() {
+		t.Fatalf(
+			"HTTPStatusOK() classes = (success %t, informational %t, redirect %t, client %t, server %t), want success alone",
+			got.IsSuccess(), got.IsInformational(), got.IsRedirect(), got.IsClientError(), got.IsServerError(),
+		)
+	}
+	if !got.PermitsResponseBody() {
+		t.Fatalf("HTTPStatusOK().PermitsResponseBody() = false, want true")
+	}
+}
+
 func TestHTTPStatusCodeExhaustsProtocolDomain(t *testing.T) {
 	t.Parallel()
 
 	for raw := 0; raw <= math.MaxUint16; raw++ {
-		got, gotErr := NewHTTPStatusCode(raw)
+		got := HTTPStatusOK()
+		gotErr := got.AdmitInt(raw)
 		wantValid := raw >= httpStatusCodeMinimum && raw <= httpStatusCodeMaximum
 		if (gotErr == nil) != wantValid {
-			t.Fatalf("NewHTTPStatusCode(%d) error = %v, want valid %t", raw, gotErr, wantValid)
+			t.Fatalf("AdmitInt(%d) error = %v, want valid %t", raw, gotErr, wantValid)
 		}
 		if !wantValid {
 			if !errors.Is(gotErr, ErrPrimitiveContract) {
-				t.Fatalf("NewHTTPStatusCode(%d) error = %v, want %v", raw, gotErr, ErrPrimitiveContract)
+				t.Fatalf("AdmitInt(%d) error = %v, want %v", raw, gotErr, ErrPrimitiveContract)
+			}
+			if got != HTTPStatusOK() {
+				t.Fatalf("AdmitInt(%d) mutated the rejecting receiver to %v, want unchanged %v", raw, got, HTTPStatusOK())
 			}
 			continue
 		}
