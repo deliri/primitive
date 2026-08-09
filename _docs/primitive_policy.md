@@ -166,7 +166,7 @@ layer is defined by a **question** rather than by whatever currently occupies it
 
 ```text
 B2  core currency contextstate testserial
-B3  temporal keygen attest garble filestore filelock process exchange shutdown hostfacts
+B3  temporal keygen attest garble filestore filelock process exchange shutdown hostfacts id
 B4  objectstore gcsobjects cloudidentity timeproof fuzzfinder release deploy upgrade
 B5  controlwire lease receipt controlplane
 B6  gate
@@ -1034,7 +1034,7 @@ starts.
 
 ## 15. Exact package graph
 
-The catalog contains **26 production packages** plus test-only `testserial`.
+The catalog contains **27 production packages** plus test-only `testserial`.
 Every listed production import is required and MUST be used semantically. Every
 unlisted Primitive sibling import is forbidden.
 
@@ -1055,6 +1055,7 @@ The order is dependency depth, not a command to build every package in a row.
 | 3 | `hostfacts` | Host disk, memory, cgroup, tree, and OOM observations | `core`, `contextstate` | none |
 | 3 | `temporal` | Time, duration, arithmetic, persistence, waits, and tickers | `core`, `contextstate` | none |
 | 4 | `exchange` | Bounded client and server boundary policy over `net/http` | `core`, `contextstate`, `keygen`, `temporal` | none |
+| 4 | `id` | Canonical UUIDv7 and ULID time-ordered identifiers from one observed instant and caller-supplied entropy | `core`, `temporal` | none |
 | 4 | `fuzzfinder` | Bounded classification and observation of Go-generated fuzz artifacts | `core`, `filestore` | none |
 | 4 | `lease` | Signed lease timeline, assessment, renewal, and monotonic advance | `core`, `temporal`, `attest` | none |
 | 4 | `process` | Argv, environment, containment, bounded output, exit, and reaping over `os/exec` | `core`, `contextstate`, `temporal` | `testserial` |

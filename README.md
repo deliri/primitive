@@ -48,6 +48,8 @@ flowchart TD
     exchange --> contextstate
     exchange --> keygen
     exchange --> temporal
+    id[id] --> core
+    id --> temporal
     fuzzfinder[fuzzfinder] --> core
     fuzzfinder --> filestore
     lease[lease] --> core

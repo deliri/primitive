@@ -12,9 +12,9 @@ const (
 	// PrimitivePackagePathPrefix prefixes every Primitive package import path.
 	PrimitivePackagePathPrefix = PrimitiveModulePath + "/"
 	// PrimitivePackageCount is the number of packages in the complete catalog.
-	PrimitivePackageCount = 27
+	PrimitivePackageCount = 28
 	// PrimitiveDirectImportCount is the number of admitted direct import edges.
-	PrimitiveDirectImportCount = 73
+	PrimitiveDirectImportCount = 75
 	// PrimitiveDirectTestImportCount is the number of admitted test-only edges.
 	PrimitiveDirectTestImportCount = 7
 	// PrimitiveMaximumDirectImports caps direct sibling imports per package.
@@ -81,6 +81,8 @@ const (
 	PackageUpgrade
 	// PackageGCSObjects identifies the authenticated Cloud Storage package.
 	PackageGCSObjects
+	// PackageID identifies the time-ordered identifier package.
+	PackageID
 	packageIdentityLimit
 )
 
@@ -171,6 +173,7 @@ func PrimitiveArchitecture() ArchitectureCatalog {
 			{Identity: PackageDeploy, Kind: PackageKindProduction},
 			{Identity: PackageUpgrade, Kind: PackageKindProduction},
 			{Identity: PackageGCSObjects, Kind: PackageKindProduction},
+			{Identity: PackageID, Kind: PackageKindProduction},
 		},
 		imports: [PrimitiveDirectImportCount]DirectImportContract{
 			{Importer: PackageAttest, Imported: PackageCore},
@@ -251,6 +254,9 @@ func PrimitiveArchitecture() ArchitectureCatalog {
 			{Importer: PackageGCSObjects, Imported: PackageContextState},
 			{Importer: PackageGCSObjects, Imported: PackageTemporal},
 			{Importer: PackageGCSObjects, Imported: PackageObjectStore},
+
+			{Importer: PackageID, Imported: PackageCore},
+			{Importer: PackageID, Imported: PackageTemporal},
 		},
 		testImports: [PrimitiveDirectTestImportCount]DirectTestImportContract{
 			{Importer: PackageGate, Imported: PackageAttest},
@@ -520,6 +526,7 @@ func packagePurposeTexts() [packageIdentityLimit]string {
 		PackageDeploy:        "Exact create-only GCS publication of one authenticated release and its metadata",
 		PackageUpgrade:       "Crash-recoverable installation, activation, startup truth, rollback, and recovery",
 		PackageGCSObjects:    "Authenticated Google Cloud Storage create-only served-media and stored-file writes, digest-bound bounded reads, and generation-matched permanent exact or prefix deletion through the official SDK",
+		PackageID:            "Canonical UUIDv7 and ULID time-ordered identifiers from one observed instant and caller-supplied entropy",
 	}
 }
 
@@ -585,6 +592,7 @@ func packageIdentityTexts() [packageIdentityLimit]string {
 		"deploy",
 		"upgrade",
 		"gcsobjects",
+		"id",
 	}
 }
 

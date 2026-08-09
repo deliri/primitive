@@ -4,6 +4,22 @@ Last updated: `2026-08-08`
 
 ## Current
 
+- id package, 2026-08-08: the time-ordered identifier gap named by three
+  consumers at once closed as one new B3 value package. Bug carried a local
+  UUIDv7 in its core, Witness mints `uuid.NewV7` for RunID with a dependency
+  that draws entropy past keygen, and the Peachfuzz custody key is a ULID
+  that crosses the control plane wire, which makes the mechanic Primitive's
+  by the ownership law. `id` owns `Request{Observation, Entropy}`,
+  `NewUUIDv7`, `ParseUUIDv7`, `NewULID`, and `ParseULID`: pure construction
+  from one `temporal.Observation` and exactly-minimum `core.SecretMaterial`,
+  canonical-text-only admission (lowercase dashed hex; uppercase Crockford
+  with the leading ceiling), strict JSON round trip, and no effect leaf, so
+  the clock and entropy effects stay with temporal and keygen. Core grew
+  `PackageID` with `core` and `temporal` edges and the `ErrIDContract`
+  identity under `ErrPrimitiveContract`. Consumer surgery recorded, not
+  performed: bug deletes `internal/core/uuid_value.go` and retargets BugID
+  and InvocationID, witness drops `google/uuid` at cli.go RunID minting,
+  peachfuzz adopts `id.ULID` when the custody flow lands.
 - objectstore to gcsobjects split, 2026-08-08: the authenticated GCS client
   from the entry below pulled the full `cloud.google.com/go/storage` SDK into
   every `objectstore` consumer, including local tools that only use the

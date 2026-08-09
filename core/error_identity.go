@@ -349,6 +349,9 @@ const (
 	// the distinction a caller acts on at run time.
 	ErrFileLockUnavailable
 
+	// ErrIDContract identifies a time-ordered identifier contract violation.
+	ErrIDContract
+
 	errorIdentityLimit
 )
 
@@ -498,6 +501,7 @@ func errorIdentityDiagnostics() [errorIdentityLimit]errorIdentityDiagnostic {
 		{identity: ErrControlPlaneCheckInResponse, text: "control-plane check-in response invalid"},
 		{identity: ErrControlPlaneUsageWindow, text: "control-plane usage window invalid"},
 		{identity: ErrFileLockUnavailable, text: "filelock unavailable"},
+		{identity: ErrIDContract, text: "id contract violation"},
 	}
 }
 
@@ -611,7 +615,7 @@ func errorIdentityParents(identity ErrorIdentity) errorIdentityParentSet {
 		ErrShutdownContract, ErrObjectStoreContract, ErrTimeProofContract,
 		ErrCloudIdentityContract, ErrUpgradeContract,
 		ErrLifecycleIdentityContract, ErrReceiptContract, ErrControlWireContract,
-		ErrControlPlaneContract:
+		ErrControlPlaneContract, ErrIDContract:
 		return oneErrorIdentityParent(ErrPrimitiveContract)
 	case ErrControlWireRevision, ErrControlWireNonce, ErrControlWireToken,
 		ErrControlWirePolicyCursor, ErrControlWireRoute,
