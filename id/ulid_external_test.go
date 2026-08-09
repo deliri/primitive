@@ -397,3 +397,69 @@ func TestULIDAppendTextRefusesTheUnsetValue(t *testing.T) {
 		t.Fatalf("zero ULID AppendText() = %q, want nil", got)
 	}
 }
+
+func TestULIDBytesReturnsTheIdentityAndRefusesTheUnsetValue(t *testing.T) {
+	t.Parallel()
+
+	value, err := id.NewULID(testRequest(t, 1, testEntropy()))
+	if err != nil {
+		t.Fatalf("NewULID(1 ms) error = %v, want nil", err)
+	}
+	got, err := value.Bytes()
+	if err != nil {
+		t.Fatalf("ULID.Bytes() error = %v, want nil", err)
+	}
+	// The bytes are the value the canonical spelling renders, so parsing that
+	// spelling back must reproduce them exactly.
+	reparsed, err := id.ParseULID(value.String())
+	if err != nil {
+		t.Fatalf("ParseULID(%q) error = %v, want nil", value.String(), err)
+	}
+	same, err := reparsed.Bytes()
+	if err != nil {
+		t.Fatalf("reparsed ULID.Bytes() error = %v, want nil", err)
+	}
+	if got != same {
+		t.Fatalf("ULID.Bytes() = %x, want %x after a spelling round trip", got, same)
+	}
+	// The leading six bytes are the big-endian millisecond stamp, so byte
+	// order is time order in the bytes exactly as it is in the spelling.
+	wantStamp := [6]byte{0, 0, 0, 0, 0, 1}
+	if [6]byte(got[:6]) != wantStamp {
+		t.Fatalf("ULID.Bytes() stamp = %x, want %x", got[:6], wantStamp)
+	}
+
+	var zero id.ULID
+	empty, err := zero.Bytes()
+	requireIDContract(t, "zero ULID Bytes()", err)
+	if empty != [16]byte{} {
+		t.Fatalf("zero ULID Bytes() = %x, want the zero array", empty)
+	}
+}
+
+func TestULIDBytesHandsBackACopyTheCallerCannotWriteThrough(t *testing.T) {
+	t.Parallel()
+
+	value, err := id.NewULID(testRequest(t, 7, testEntropy()))
+	if err != nil {
+		t.Fatalf("NewULID(7 ms) error = %v, want nil", err)
+	}
+	first, err := value.Bytes()
+	if err != nil {
+		t.Fatalf("ULID.Bytes() error = %v, want nil", err)
+	}
+	spelling := value.String()
+	for i := range first {
+		first[i] ^= 0xff
+	}
+	second, err := value.Bytes()
+	if err != nil {
+		t.Fatalf("ULID.Bytes() error = %v, want nil", err)
+	}
+	if first == second {
+		t.Fatalf("ULID.Bytes() handed back the same array the caller mutated")
+	}
+	if value.String() != spelling {
+		t.Fatalf("ULID spelling = %q after caller mutation, want %q", value.String(), spelling)
+	}
+}

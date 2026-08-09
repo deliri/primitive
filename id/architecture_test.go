@@ -60,6 +60,7 @@ func TestIDExactPublicSurfaceFieldsAndNoAliases(t *testing.T) {
 		"func ParseUUIDv7",
 		"method Request.Validate",
 		"method ULID.AppendText",
+		"method ULID.Bytes",
 		"method ULID.IsValid",
 		"method ULID.IsZero",
 		"method ULID.MarshalJSON",

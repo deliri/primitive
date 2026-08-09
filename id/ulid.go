@@ -150,6 +150,18 @@ func crockfordGroup(high, low uint64, shift uint) byte {
 	}
 }
 
+// Bytes returns the value's sixteen bytes, for a caller that must key or
+// digest on the identity itself rather than on its spelling. The array is a
+// copy, so a caller cannot reach back through it into the value. The unset
+// value is refused: an absent identity must not silently digest as sixteen
+// zeros, which is the one input that would collide across every caller.
+func (u ULID) Bytes() ([identityBytes]byte, error) {
+	if err := u.Validate(); err != nil {
+		return [identityBytes]byte{}, err
+	}
+	return u.value, nil
+}
+
 // IsZero reports the unset value.
 func (u ULID) IsZero() bool {
 	return u.value == [identityBytes]byte{}
