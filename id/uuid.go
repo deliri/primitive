@@ -1,6 +1,7 @@
 package id
 
 import (
+	"encoding"
 	"encoding/hex"
 	"errors"
 
@@ -108,12 +109,9 @@ func uuidDashPosition(position int) bool {
 	return position == 8 || position == 13 || position == 18 || position == 23
 }
 
-// String returns the canonical lowercase spelling, or the empty string for a
-// value that fails its own contract.
-func (u UUIDv7) String() string {
-	if !u.IsValid() {
-		return ""
-	}
+// canonicalText spells the value into one stack-owned canonical form shared
+// by String and AppendText, so the spelling has exactly one implementation.
+func (u UUIDv7) canonicalText() [uuidTextBytes]byte {
 	var text [uuidTextBytes]byte
 	hex.Encode(text[0:8], u.value[0:4])
 	text[8] = '-'
@@ -124,7 +122,30 @@ func (u UUIDv7) String() string {
 	hex.Encode(text[19:23], u.value[8:10])
 	text[23] = '-'
 	hex.Encode(text[24:36], u.value[10:16])
+	return text
+}
+
+// String returns the canonical lowercase spelling, or the empty string for a
+// value that fails its own contract.
+func (u UUIDv7) String() string {
+	if !u.IsValid() {
+		return ""
+	}
+	text := u.canonicalText()
 	return string(text[:])
+}
+
+// AppendText appends the canonical lowercase spelling to destination and
+// returns the extended slice. It is the streaming spelling for canonical
+// writers that spell many identities into one caller-owned buffer: the append
+// allocates only when destination lacks capacity, and the unset value is
+// refused instead of spelled.
+func (u UUIDv7) AppendText(destination []byte) ([]byte, error) {
+	if err := u.Validate(); err != nil {
+		return nil, err
+	}
+	text := u.canonicalText()
+	return append(destination, text[:]...), nil
 }
 
 // IsZero reports the unset value.
@@ -175,4 +196,5 @@ func (u *UUIDv7) UnmarshalJSON(data []byte) error {
 var (
 	_ core.Validatable            = UUIDv7{}
 	_ core.ValidatedJSONMarshaler = UUIDv7{}
+	_ encoding.TextAppender       = UUIDv7{}
 )

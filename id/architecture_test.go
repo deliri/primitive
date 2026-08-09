@@ -59,12 +59,14 @@ func TestIDExactPublicSurfaceFieldsAndNoAliases(t *testing.T) {
 		"func ParseULID",
 		"func ParseUUIDv7",
 		"method Request.Validate",
+		"method ULID.AppendText",
 		"method ULID.IsValid",
 		"method ULID.IsZero",
 		"method ULID.MarshalJSON",
 		"method ULID.String",
 		"method ULID.UnmarshalJSON",
 		"method ULID.Validate",
+		"method UUIDv7.AppendText",
 		"method UUIDv7.IsValid",
 		"method UUIDv7.IsZero",
 		"method UUIDv7.MarshalJSON",
@@ -99,6 +101,7 @@ func TestIDProductionImportsProvePureValueConstruction(t *testing.T) {
 		t.Fatalf("scanIDArchitecture() error = %v, want nil", gotErr)
 	}
 	wantImports := []string{
+		"encoding",
 		"encoding/binary",
 		"encoding/hex",
 		"errors",

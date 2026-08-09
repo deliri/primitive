@@ -351,3 +351,73 @@ func TestUUIDv7JSONRefusesHostileTokensAndReceivers(t *testing.T) {
 		t.Fatalf("nil UUIDv7 receiver UnmarshalJSON() error = %v, want errors.Is %v", err, core.ErrJSONContract)
 	}
 }
+
+func TestUUIDv7AppendTextSpellsTheOneCanonicalForm(t *testing.T) {
+	t.Parallel()
+
+	value, err := id.NewUUIDv7(testRequest(t, 1, testEntropy()))
+	if err != nil {
+		t.Fatalf("NewUUIDv7(1 ms) error = %v, want nil", err)
+	}
+	cases := []struct {
+		name        string
+		destination func() []byte
+		wantPrefix  string
+	}{
+		{name: "nil destination receives exactly the spelling", destination: func() []byte { return nil }},
+		{name: "empty destination with capacity receives exactly the spelling", destination: func() []byte { return make([]byte, 0, 64) }},
+		{name: "existing prefix survives in front of the spelling", destination: func() []byte { return []byte(`"id":"`) }, wantPrefix: `"id":"`},
+		{name: "full destination grows past its capacity", destination: func() []byte { return append(make([]byte, 0, 2), 'x', 'y') }, wantPrefix: "xy"},
+	}
+	for _, tc := range cases {
+		t.Run(tc.name, func(t *testing.T) {
+			t.Parallel()
+
+			got, err := value.AppendText(tc.destination())
+			if err != nil {
+				t.Fatalf("UUIDv7.AppendText() error = %v, want nil", err)
+			}
+			want := tc.wantPrefix + value.String()
+			if string(got) != want {
+				t.Fatalf("UUIDv7.AppendText() = %q, want %q", got, want)
+			}
+			parsed, err := id.ParseUUIDv7(string(got[len(tc.wantPrefix):]))
+			if err != nil || parsed != value {
+				t.Fatalf("ParseUUIDv7(appended spelling) = (%v, %v), want (%v, nil)", parsed, err, value)
+			}
+		})
+	}
+}
+
+func TestUUIDv7AppendTextIntoSufficientCapacityDoesNotAllocate(t *testing.T) {
+	t.Parallel()
+
+	value, err := id.NewUUIDv7(testRequest(t, 1, testEntropy()))
+	if err != nil {
+		t.Fatalf("NewUUIDv7(1 ms) error = %v, want nil", err)
+	}
+	destination := make([]byte, 0, 64)
+	result := testing.Benchmark(func(b *testing.B) {
+		b.ReportAllocs()
+		for range b.N {
+			appended, appendErr := value.AppendText(destination[:0])
+			if appendErr != nil || len(appended) == 0 {
+				b.Fatalf("UUIDv7.AppendText() = (%d bytes, %v), want the spelling and nil", len(appended), appendErr)
+			}
+		}
+	})
+	if got := result.AllocsPerOp(); got != 0 {
+		t.Fatalf("UUIDv7.AppendText() into sufficient capacity allocs/op = %d, want 0", got)
+	}
+}
+
+func TestUUIDv7AppendTextRefusesTheUnsetValue(t *testing.T) {
+	t.Parallel()
+
+	var zero id.UUIDv7
+	got, err := zero.AppendText([]byte("prefix"))
+	requireIDContract(t, "zero UUIDv7 AppendText()", err)
+	if got != nil {
+		t.Fatalf("zero UUIDv7 AppendText() = %q, want nil", got)
+	}
+}

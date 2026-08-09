@@ -1,6 +1,7 @@
 package id
 
 import (
+	"encoding"
 	"encoding/binary"
 	"errors"
 	"strings"
@@ -100,12 +101,9 @@ func decodeCanonicalULIDText(value string) (ULID, bool) {
 	return parsed, true
 }
 
-// String returns the canonical uppercase spelling, or the empty string for a
-// value that fails its own contract.
-func (u ULID) String() string {
-	if !u.IsValid() {
-		return ""
-	}
+// canonicalText spells the value into one stack-owned canonical form shared
+// by String and AppendText, so the spelling has exactly one implementation.
+func (u ULID) canonicalText() [ulidTextBytes]byte {
 	high := binary.BigEndian.Uint64(u.value[0:8])
 	low := binary.BigEndian.Uint64(u.value[8:16])
 	var text [ulidTextBytes]byte
@@ -113,7 +111,30 @@ func (u ULID) String() string {
 		shift := uint(125 - 5*position)
 		text[position] = crockfordAlphabet[crockfordGroup(high, low, shift)]
 	}
+	return text
+}
+
+// String returns the canonical uppercase spelling, or the empty string for a
+// value that fails its own contract.
+func (u ULID) String() string {
+	if !u.IsValid() {
+		return ""
+	}
+	text := u.canonicalText()
 	return string(text[:])
+}
+
+// AppendText appends the canonical uppercase spelling to destination and
+// returns the extended slice. It is the streaming spelling for canonical
+// writers that spell many identities into one caller-owned buffer: the append
+// allocates only when destination lacks capacity, and the unset value is
+// refused instead of spelled.
+func (u ULID) AppendText(destination []byte) ([]byte, error) {
+	if err := u.Validate(); err != nil {
+		return nil, err
+	}
+	text := u.canonicalText()
+	return append(destination, text[:]...), nil
 }
 
 // crockfordGroup extracts the five-bit group whose lowest bit sits at shift
@@ -177,4 +198,5 @@ func (u *ULID) UnmarshalJSON(data []byte) error {
 var (
 	_ core.Validatable            = ULID{}
 	_ core.ValidatedJSONMarshaler = ULID{}
+	_ encoding.TextAppender       = ULID{}
 )
