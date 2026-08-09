@@ -150,6 +150,19 @@ func crockfordGroup(high, low uint64, shift uint) byte {
 	}
 }
 
+// NewULIDFromBytes admits one identity from the sixteen bytes another door
+// handed out, so a value that crossed a byte-shaped boundary can be rebuilt
+// without a detour through its text. The all zero array is refused: it is the
+// unset value, not an identity, and admitting it here would let an absent
+// identity re-enter as a real one.
+func NewULIDFromBytes(value [identityBytes]byte) (ULID, error) {
+	parsed := ULID{value: value}
+	if err := parsed.Validate(); err != nil {
+		return ULID{}, err
+	}
+	return parsed, nil
+}
+
 // Bytes returns the value's sixteen bytes, for a caller that must key or
 // digest on the identity itself rather than on its spelling. The array is a
 // copy, so a caller cannot reach back through it into the value. The unset

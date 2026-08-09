@@ -55,6 +55,7 @@ func TestIDExactPublicSurfaceFieldsAndNoAliases(t *testing.T) {
 	}
 	wantSurface := []string{
 		"func NewULID",
+		"func NewULIDFromBytes",
 		"func NewUUIDv7",
 		"func ParseULID",
 		"func ParseUUIDv7",

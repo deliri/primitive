@@ -463,3 +463,48 @@ func TestULIDBytesHandsBackACopyTheCallerCannotWriteThrough(t *testing.T) {
 		t.Fatalf("ULID spelling = %q after caller mutation, want %q", value.String(), spelling)
 	}
 }
+
+func TestNewULIDFromBytesRoundTripsAndRefusesTheUnsetArray(t *testing.T) {
+	t.Parallel()
+
+	minted, err := id.NewULID(testRequest(t, 3, testEntropy()))
+	if err != nil {
+		t.Fatalf("NewULID(3 ms) error = %v, want nil", err)
+	}
+	raw, err := minted.Bytes()
+	if err != nil {
+		t.Fatalf("ULID.Bytes() error = %v, want nil", err)
+	}
+	rebuilt, err := id.NewULIDFromBytes(raw)
+	if err != nil {
+		t.Fatalf("NewULIDFromBytes() error = %v, want nil", err)
+	}
+	if rebuilt != minted {
+		t.Fatalf("NewULIDFromBytes(Bytes()) = %v, want %v", rebuilt, minted)
+	}
+	if rebuilt.String() != minted.String() {
+		t.Fatalf("rebuilt spelling = %q, want %q", rebuilt.String(), minted.String())
+	}
+
+	// The unset array is the absent value, not an identity, so it must not be
+	// admittable as one.
+	absent, err := id.NewULIDFromBytes([16]byte{})
+	requireIDContract(t, "NewULIDFromBytes(zero array)", err)
+	if !absent.IsZero() {
+		t.Fatalf("NewULIDFromBytes(zero array) = %v, want the unset value", absent)
+	}
+
+	// A single set bit anywhere is a legal identity: only all zero is absent.
+	for _, position := range []int{0, 5, 6, 15} {
+		var single [16]byte
+		single[position] = 0x01
+		value, err := id.NewULIDFromBytes(single)
+		if err != nil {
+			t.Fatalf("NewULIDFromBytes(bit at %d) error = %v, want nil", position, err)
+		}
+		back, err := value.Bytes()
+		if err != nil || back != single {
+			t.Fatalf("NewULIDFromBytes(bit at %d).Bytes() = (%x, %v), want %x", position, back, err, single)
+		}
+	}
+}
