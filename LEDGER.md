@@ -4,6 +4,22 @@ Last updated: `2026-08-08`
 
 ## Current
 
+- filestore held-standing door, 2026-08-08: the file-identity gap witness
+  names at both of its TOCTOU custody checks closed as one portable
+  observation inside filestore's inspection surface.
+  `ObserveHeldStanding(ctx, held, path)` answers whether one absolute path
+  still names the exact entry a held handle is open to, as the closed
+  standing `HeldStandingSame`, `HeldStandingReplaced`, or
+  `HeldStandingAbsent`. Identity rides `os.SameFile` over values the
+  standard library already returned; the final component is never followed,
+  a hard link to the held entry is the held entry, and a missing entry, a
+  missing parent, and a non-directory parent are all the absent observation
+  rather than errors, while a permission refusal stays an error. No new
+  package, no new edges, no new error identity, and no request struct: the
+  door is positional beside `Inspect` and `ObserveSharing`. Consumer
+  surgery recorded, not performed: witness testimony
+  `pidLockPathNamesFile` and ledgerfile `verifyRecoveryAppendIdentity`
+  drop their raw stat plus `os.SameFile` pairs and act on the standing.
 - id package, 2026-08-08: the time-ordered identifier gap named by three
   consumers at once closed as one new B3 value package. Bug carried a local
   UUIDv7 in its core, Witness mints `uuid.NewV7` for RunID with a dependency
