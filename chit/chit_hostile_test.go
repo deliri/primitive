@@ -230,63 +230,76 @@ func TestManifestDigestChangesWhenAuthenticatedOrderChanges(t *testing.T) {
 	}
 }
 
-func TestChitVerificationRefusesEveryIdentityScopeKeyAndPayloadSubstitution(t *testing.T) {
+func TestChitVerificationLayerTriad(t *testing.T) {
 	t.Parallel()
 
-	fixture := newChitFixture(t, 0x23, 1)
-	verified, err := Verify(Verification{
-		Document:    fixture.document,
-		Expected:    Expectation{Identity: fixture.identity, Scope: fixture.scope},
-		TrustedKeys: fixture.trusted,
+	t.Run("positive independent authentic versions return exact signed chits", func(t *testing.T) {
+		t.Parallel()
+
+		versions := []uint64{1, 2, 3, 4, 5, 99, 100, 101, math.MaxUint32, math.MaxUint64}
+		for index, version := range versions {
+			fixture := newChitFixture(t, byte(0x23+index), version)
+			verified, gotErr := Verify(Verification{
+				Document: fixture.document, Expected: Expectation{Identity: fixture.identity, Scope: fixture.scope},
+				TrustedKeys: fixture.trusted,
+			})
+			got, documentErr := verified.Document()
+			if gotErr != nil || documentErr != nil || got != fixture.document {
+				t.Fatalf("Verify(version %d)/Document() = (%v, %v, %v), want exact document and nil", version, got, gotErr, documentErr)
+			}
+		}
 	})
-	if err != nil {
-		t.Fatalf("Verify(authentic chit) error = %v, want nil", err)
-	}
-	gotDocument, err := verified.Document()
-	if err != nil || gotDocument != fixture.document {
-		t.Fatalf("Verified.Document() = (%v, %v), want exact document and nil", gotDocument, err)
-	}
 
-	otherIdentity := mustChitID(t, 0x24, 2)
-	if got, gotErr := Verify(Verification{
-		Document:    fixture.document,
-		Expected:    Expectation{Identity: otherIdentity, Scope: fixture.scope},
-		TrustedKeys: fixture.trusted,
-	}); !errors.Is(gotErr, core.ErrChitConflict) || got != (Verified{}) {
-		t.Fatalf("Verify(wrong chit identity) = (%v, %v), want zero and errors.Is %v",
-			got, gotErr, core.ErrChitConflict)
-	}
+	t.Run("negative expectation authority envelope and every signed payload fact reject", func(t *testing.T) {
+		t.Parallel()
 
-	otherScope := chitScopeFixture(t, 0x61)
-	if got, gotErr := Verify(Verification{
-		Document:    fixture.document,
-		Expected:    Expectation{Identity: fixture.identity, Scope: otherScope},
-		TrustedKeys: fixture.trusted,
-	}); !errors.Is(gotErr, core.ErrChitConflict) || got != (Verified{}) {
-		t.Fatalf("Verify(wrong scope) = (%v, %v), want zero and errors.Is %v",
-			got, gotErr, core.ErrChitConflict)
-	}
+		fixture := newChitFixture(t, 0x43, 1)
+		other := newChitFixture(t, 0x53, 2)
+		cases := []struct {
+			mutate  func(*Verification)
+			name    string
+			wantErr error
+		}{
+			{name: "zero verification", mutate: func(value *Verification) { *value = Verification{} }, wantErr: core.ErrChitContract},
+			{name: "expected identity substituted", mutate: func(value *Verification) { value.Expected.Identity = other.identity }, wantErr: core.ErrChitConflict},
+			{name: "expected scope substituted", mutate: func(value *Verification) { value.Expected.Scope = other.scope }, wantErr: core.ErrChitConflict},
+			{name: "authority trust set substituted", mutate: func(value *Verification) { value.TrustedKeys = other.trusted }, wantErr: core.ErrChitVerification},
+			{name: "signed identity substituted", mutate: func(value *Verification) { value.Document.Payload.Identity = other.document.Payload.Identity }, wantErr: core.ErrChitVerification},
+			{name: "signed collection substituted", mutate: func(value *Verification) { value.Document.Payload.Collection = other.document.Payload.Collection }, wantErr: core.ErrChitVerification},
+			{name: "signed scope substituted", mutate: func(value *Verification) { value.Document.Payload.Scope = other.document.Payload.Scope }, wantErr: core.ErrChitVerification},
+			{name: "signed manifest substituted", mutate: func(value *Verification) { value.Document.Payload.Manifest = other.document.Payload.Manifest }, wantErr: core.ErrChitVerification},
+			{name: "signed acceptance instant substituted", mutate: func(value *Verification) { value.Document.Payload.AcceptedAt = temporal.InstantFromNanoseconds(1) }, wantErr: core.ErrChitVerification},
+			{name: "signed retention instant substituted", mutate: func(value *Verification) { value.Document.Payload.RetainUntil = temporal.InstantFromNanoseconds(1_000) }, wantErr: core.ErrChitVerification},
+			{name: "signed version substituted", mutate: func(value *Verification) { value.Document.Payload.Version = other.document.Payload.Version }, wantErr: core.ErrChitVerification},
+			{name: "signing domain substituted", mutate: func(value *Verification) { value.Document.Attestation.Domain = SigningDomainCatalogV1 }, wantErr: core.ErrChitVerification},
+			{name: "signer substituted", mutate: func(value *Verification) { value.Document.Attestation.Signer = other.document.Attestation.Signer }, wantErr: core.ErrChitVerification},
+			{name: "signature substituted", mutate: func(value *Verification) { value.Document.Attestation.Signature = other.document.Attestation.Signature }, wantErr: core.ErrChitVerification},
+		}
+		for _, tc := range cases {
+			t.Run(tc.name, func(t *testing.T) {
+				t.Parallel()
 
-	_, otherTrust := chitSigningFixture(t, 0x71)
-	if got, gotErr := Verify(Verification{
-		Document:    fixture.document,
-		Expected:    Expectation{Identity: fixture.identity, Scope: fixture.scope},
-		TrustedKeys: otherTrust,
-	}); !errors.Is(gotErr, core.ErrChitVerification) || got != (Verified{}) {
-		t.Fatalf("Verify(wrong authority) = (%v, %v), want zero and errors.Is %v",
-			got, gotErr, core.ErrChitVerification)
-	}
+				input := Verification{
+					Document: fixture.document, Expected: Expectation{Identity: fixture.identity, Scope: fixture.scope},
+					TrustedKeys: fixture.trusted,
+				}
+				tc.mutate(&input)
+				got, gotErr := Verify(input)
+				if !errors.Is(gotErr, tc.wantErr) || got != (Verified{}) {
+					t.Fatalf("Verify() = (%v, %v), want zero and errors.Is %v", got, gotErr, tc.wantErr)
+				}
+			})
+		}
+	})
 
-	tampered := fixture.document
-	tampered.Payload.Version = mustVersion(t, fixture.document.Payload.Version.Uint64()+1)
-	if got, gotErr := Verify(Verification{
-		Document:    tampered,
-		Expected:    Expectation{Identity: fixture.identity, Scope: fixture.scope},
-		TrustedKeys: fixture.trusted,
-	}); !errors.Is(gotErr, core.ErrChitVerification) || got != (Verified{}) {
-		t.Fatalf("Verify(tampered signed payload) = (%v, %v), want zero and errors.Is %v",
-			got, gotErr, core.ErrChitVerification)
-	}
+	t.Run("neutral zero verified value discloses no chit", func(t *testing.T) {
+		t.Parallel()
+
+		got, gotErr := (Verified{}).Document()
+		if !errors.Is(gotErr, core.ErrChitVerification) || got != (Document{}) {
+			t.Fatalf("zero Verified.Document() = (%v, %v), want zero and errors.Is %v", got, gotErr, core.ErrChitVerification)
+		}
+	})
 }
 
 func TestChitRetentionAndCatalogHostileTemporalEdges(t *testing.T) {

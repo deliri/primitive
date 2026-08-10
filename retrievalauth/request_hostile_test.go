@@ -31,132 +31,285 @@ type retrievalAuthFixture struct {
 	certificate controlplane.InstallationCertificateDocument
 }
 
-func TestCredentialedRetrievalAuthenticatesEveryOfferingThroughOneBlindPath(t *testing.T) {
+type retrievalAuthJSONCase struct {
+	name string
+	data []byte
+}
+
+func TestRetrievalAuthAssemblyLayerTriad(t *testing.T) {
 	t.Parallel()
 
-	admitted := 0
-	for raw := 0; raw <= 255; raw++ {
-		offering := core.Offering(raw)
-		if !offering.IsValid() {
-			continue
+	t.Run("positive every offering and distinct installation facts assemble unchanged", func(t *testing.T) {
+		t.Parallel()
+
+		cases := []retrievalAuthFixtureRequest{
+			{Offering: core.OfferingBug, AuthorityByte: 0x11, DeviceByte: 0x21, NonceByte: 0x31},
+			{Offering: core.OfferingWitness, AuthorityByte: 0x12, DeviceByte: 0x22, NonceByte: 0x32},
+			{Offering: core.OfferingPeachfuzz, AuthorityByte: 0x13, DeviceByte: 0x23, NonceByte: 0x33},
+			{Offering: core.OfferingBug, AuthorityByte: 0x14, DeviceByte: 0x24, NonceByte: 0x34},
+			{Offering: core.OfferingWitness, AuthorityByte: 0x15, DeviceByte: 0x25, NonceByte: 0x35},
+			{Offering: core.OfferingPeachfuzz, AuthorityByte: 0x16, DeviceByte: 0x26, NonceByte: 0x36},
+			{Offering: core.OfferingBug, AuthorityByte: 0x17, DeviceByte: 0x27, NonceByte: 0x37},
+			{Offering: core.OfferingWitness, AuthorityByte: 0x18, DeviceByte: 0x28, NonceByte: 0x38},
+			{Offering: core.OfferingPeachfuzz, AuthorityByte: 0x19, DeviceByte: 0x29, NonceByte: 0x39},
+			{Offering: core.OfferingWitness, AuthorityByte: 0x1a, DeviceByte: 0x2a, NonceByte: 0x3a},
 		}
-		admitted++
-		t.Run(offering.String(), func(t *testing.T) {
-			t.Parallel()
+		for _, tc := range cases {
+			fixture := newRetrievalAuthFixture(t, tc)
+			got, gotErr := Assemble(RequestAssembly{Request: fixture.request, Certificate: fixture.certificate})
+			if gotErr != nil || got != fixture.document {
+				t.Fatalf("Assemble(%v) = (%v, %v), want exact document and nil", tc.Offering, got, gotErr)
+			}
+		}
+	})
 
-			fixture := newRetrievalAuthFixture(t, retrievalAuthFixtureRequest{
-				Offering: offering, AuthorityByte: byte(raw) + 0x20,
-				DeviceByte: byte(raw) + 0x40, NonceByte: byte(raw) + 1,
-			})
-			verified, err := Verify(Verification{
-				Document: fixture.document, TrustedKeys: fixture.trusted,
-			})
-			if err != nil {
-				t.Fatalf("retrievalauth.Verify(%v) error = %v, want nil", offering, err)
-			}
-			got, err := verified.Document()
-			if err != nil || got != fixture.document {
-				t.Fatalf("Verified.Document(%v) = (%v, %v), want exact document and nil",
-					offering, got, err)
-			}
+	t.Run("negative missing malformed and cross-build structures assemble nothing", func(t *testing.T) {
+		t.Parallel()
+
+		fixture := newRetrievalAuthFixture(t, retrievalAuthFixtureRequest{})
+		other := newRetrievalAuthFixture(t, retrievalAuthFixtureRequest{
+			Offering: core.OfferingBug, AuthorityByte: 0x51, DeviceByte: 0x52, NonceByte: 0x53,
 		})
-	}
-	if admitted < 3 {
-		t.Fatalf("admitted offerings = %d, want at least the shipped set", admitted)
-	}
+		cases := []struct {
+			mutate  func(*RequestAssembly)
+			name    string
+			wantErr error
+		}{
+			{name: "zero assembly", mutate: func(value *RequestAssembly) { *value = RequestAssembly{} }, wantErr: core.ErrRetrievalContract},
+			{name: "request absent", mutate: func(value *RequestAssembly) { value.Request = retrieval.RequestDocument{} }, wantErr: core.ErrRetrievalContract},
+			{name: "certificate absent", mutate: func(value *RequestAssembly) { value.Certificate = controlplane.InstallationCertificateDocument{} }, wantErr: core.ErrRetrievalContract},
+			{name: "request payload absent", mutate: func(value *RequestAssembly) { value.Request.Payload = retrieval.RequestPayload{} }, wantErr: core.ErrRetrievalContract},
+			{name: "request attestation absent", mutate: func(value *RequestAssembly) { value.Request.Attestation = attest.Envelope[retrieval.SigningDomain]{} }, wantErr: core.ErrRetrievalContract},
+			{name: "certificate body absent", mutate: func(value *RequestAssembly) { value.Certificate.Body = controlplane.InstallationCertificateBody{} }, wantErr: core.ErrRetrievalContract},
+			{name: "certificate attestation absent", mutate: func(value *RequestAssembly) {
+				value.Certificate.Attestation = attest.Envelope[controlplane.SigningDomain]{}
+			}, wantErr: core.ErrRetrievalContract},
+			{name: "request build belongs to another offering", mutate: func(value *RequestAssembly) { value.Request = other.request }, wantErr: core.ErrRetrievalBinding},
+			{name: "certificate build belongs to another offering", mutate: func(value *RequestAssembly) { value.Certificate = other.certificate }, wantErr: core.ErrRetrievalBinding},
+			{name: "request build absent", mutate: func(value *RequestAssembly) { value.Request.Payload.Build = core.BuildIdentity{} }, wantErr: core.ErrRetrievalContract},
+			{name: "certificate build absent", mutate: func(value *RequestAssembly) { value.Certificate.Body.Build = core.BuildIdentity{} }, wantErr: core.ErrRetrievalContract},
+		}
+		for _, tc := range cases {
+			t.Run(tc.name, func(t *testing.T) {
+				t.Parallel()
+
+				input := RequestAssembly{Request: fixture.request, Certificate: fixture.certificate}
+				tc.mutate(&input)
+				got, gotErr := Assemble(input)
+				if !errors.Is(gotErr, tc.wantErr) || got != (RequestDocument{}) {
+					t.Fatalf("Assemble() = (%v, %v), want zero and errors.Is %v", got, gotErr, tc.wantErr)
+				}
+			})
+		}
+	})
+
+	t.Run("neutral zero assembly emits no credentialed request", func(t *testing.T) {
+		t.Parallel()
+
+		got, gotErr := Assemble(RequestAssembly{})
+		if !errors.Is(gotErr, core.ErrRetrievalContract) || got != (RequestDocument{}) {
+			t.Fatalf("Assemble(zero) = (%v, %v), want zero and errors.Is %v", got, gotErr, core.ErrRetrievalContract)
+		}
+	})
 }
 
-func TestCredentialedRetrievalRefusesAuthorityDeviceAndBuildSubstitution(t *testing.T) {
+func TestRetrievalAuthVerificationLayerTriad(t *testing.T) {
+	t.Parallel()
+
+	t.Run("positive independent authority and device pairs authenticate exact documents", func(t *testing.T) {
+		t.Parallel()
+
+		cases := []retrievalAuthFixtureRequest{
+			{Offering: core.OfferingBug, AuthorityByte: 0x41, DeviceByte: 0x51, NonceByte: 0x61},
+			{Offering: core.OfferingWitness, AuthorityByte: 0x42, DeviceByte: 0x52, NonceByte: 0x62},
+			{Offering: core.OfferingPeachfuzz, AuthorityByte: 0x43, DeviceByte: 0x53, NonceByte: 0x63},
+			{Offering: core.OfferingBug, AuthorityByte: 0x44, DeviceByte: 0x54, NonceByte: 0x64},
+			{Offering: core.OfferingPeachfuzz, AuthorityByte: 0x46, DeviceByte: 0x56, NonceByte: 0x66},
+			{Offering: core.OfferingBug, AuthorityByte: 0x47, DeviceByte: 0x57, NonceByte: 0x67},
+			{Offering: core.OfferingWitness, AuthorityByte: 0x48, DeviceByte: 0x58, NonceByte: 0x68},
+			{Offering: core.OfferingPeachfuzz, AuthorityByte: 0x49, DeviceByte: 0x59, NonceByte: 0x69},
+			{Offering: core.OfferingWitness, AuthorityByte: 0x4a, DeviceByte: 0x5a, NonceByte: 0x6a},
+		}
+		for _, tc := range cases {
+			fixture := newRetrievalAuthFixture(t, tc)
+			verified, gotErr := Verify(Verification{Document: fixture.document, TrustedKeys: fixture.trusted})
+			got, documentErr := verified.Document()
+			if gotErr != nil || documentErr != nil || got != fixture.document {
+				t.Fatalf("Verify()/Verified.Document(%v) = (%v, %v, %v), want exact document and nil", tc.Offering, got, gotErr, documentErr)
+			}
+		}
+	})
+
+	t.Run("negative authority device envelope and signed fact substitutions authenticate nothing", func(t *testing.T) {
+		t.Parallel()
+
+		fixture := newRetrievalAuthFixture(t, retrievalAuthFixtureRequest{AuthorityByte: 0x71, DeviceByte: 0x72, NonceByte: 0x73})
+		otherAuthority := newRetrievalAuthFixture(t, retrievalAuthFixtureRequest{AuthorityByte: 0x74, DeviceByte: 0x75, NonceByte: 0x76})
+		otherNonce := newRetrievalAuthFixture(t, retrievalAuthFixtureRequest{AuthorityByte: 0x71, DeviceByte: 0x72, NonceByte: 0x77})
+		otherDevice := newRetrievalAuthFixture(t, retrievalAuthFixtureRequest{AuthorityByte: 0x71, DeviceByte: 0x78, NonceByte: 0x73})
+		cases := []struct {
+			mutate  func(*Verification)
+			name    string
+			wantErr error
+		}{
+			{name: "zero verification", mutate: func(value *Verification) { *value = Verification{} }, wantErr: core.ErrRetrievalContract},
+			{name: "document absent", mutate: func(value *Verification) { value.Document = RequestDocument{} }, wantErr: core.ErrRetrievalContract},
+			{name: "trusted authority absent", mutate: func(value *Verification) { value.TrustedKeys = attest.TrustedKeys{} }, wantErr: core.ErrRetrievalContract},
+			{name: "different authority trust set", mutate: func(value *Verification) { value.TrustedKeys = otherAuthority.trusted }, wantErr: core.ErrAttestVerification},
+			{name: "authentic certificate names another device", mutate: func(value *Verification) { value.Document.Certificate = otherDevice.certificate }, wantErr: core.ErrAttestVerification},
+			{name: "request nonce substituted after signing", mutate: func(value *Verification) { value.Document.Request.Payload.Nonce = otherNonce.request.Payload.Nonce }, wantErr: core.ErrAttestVerification},
+			{name: "request signer substituted", mutate: func(value *Verification) {
+				value.Document.Request.Attestation.Signer = otherDevice.request.Attestation.Signer
+			}, wantErr: core.ErrAttestVerification},
+			{name: "request signature substituted", mutate: func(value *Verification) {
+				value.Document.Request.Attestation.Signature = otherDevice.request.Attestation.Signature
+			}, wantErr: core.ErrAttestVerification},
+			{name: "request body digest substituted", mutate: func(value *Verification) {
+				value.Document.Request.Attestation.BodySHA256 = otherNonce.request.Attestation.BodySHA256
+			}, wantErr: core.ErrAttestVerification},
+			{name: "certificate device binding substituted after signing", mutate: func(value *Verification) {
+				value.Document.Certificate.Body.DeviceKey = otherDevice.certificate.Body.DeviceKey
+				value.Document.Certificate.Body.Subject.DeviceID = otherDevice.certificate.Body.Subject.DeviceID
+			}, wantErr: core.ErrAttestVerification},
+			{name: "certificate signer substituted", mutate: func(value *Verification) {
+				value.Document.Certificate.Attestation.Signer = otherAuthority.certificate.Attestation.Signer
+			}, wantErr: core.ErrAttestVerification},
+			{name: "certificate signature substituted", mutate: func(value *Verification) {
+				value.Document.Certificate.Attestation.Signature = otherAuthority.certificate.Attestation.Signature
+			}, wantErr: core.ErrAttestVerification},
+		}
+		for _, tc := range cases {
+			t.Run(tc.name, func(t *testing.T) {
+				t.Parallel()
+
+				input := Verification{Document: fixture.document, TrustedKeys: fixture.trusted}
+				tc.mutate(&input)
+				got, gotErr := Verify(input)
+				if !errors.Is(gotErr, tc.wantErr) || got != (Verified{}) {
+					t.Fatalf("Verify() = (%v, %v), want zero and errors.Is %v", got, gotErr, tc.wantErr)
+				}
+			})
+		}
+	})
+
+	t.Run("neutral zero verified value discloses no request", func(t *testing.T) {
+		t.Parallel()
+
+		got, gotErr := (Verified{}).Document()
+		if !errors.Is(gotErr, core.ErrRetrievalContract) || got != (RequestDocument{}) {
+			t.Fatalf("zero Verified.Document() = (%v, %v), want zero and errors.Is %v", got, gotErr, core.ErrRetrievalContract)
+		}
+	})
+}
+
+func TestRetrievalAuthDocumentJSONLayerTriad(t *testing.T) {
 	t.Parallel()
 
 	fixture := newRetrievalAuthFixture(t, retrievalAuthFixtureRequest{})
-	otherAuthority := newRetrievalAuthFixture(t, retrievalAuthFixtureRequest{
-		AuthorityByte: 0x61, DeviceByte: 0x62, NonceByte: 0x63,
-	})
-	if got, gotErr := Verify(Verification{
-		Document: fixture.document, TrustedKeys: otherAuthority.trusted,
-	}); !errors.Is(gotErr, core.ErrAttestVerification) || got != (Verified{}) {
-		t.Fatalf("Verify(other authority) = (%v, %v), want zero and errors.Is %v",
-			got, gotErr, core.ErrAttestVerification)
+	canonical, gotErr := fixture.document.MarshalJSON()
+	if gotErr != nil {
+		t.Fatalf("RequestDocument.MarshalJSON() error = %v, want nil", gotErr)
 	}
 
-	otherDevice := ed25519.NewKeyFromSeed(bytes.Repeat([]byte{0x71}, ed25519.SeedSize))
-	otherRequest, err := retrieval.IssueRequest(retrieval.RequestIssuance{
-		Payload: fixture.request.Payload, Signer: otherDevice,
-	})
-	if err != nil {
-		t.Fatalf("retrieval.IssueRequest(other device) error = %v, want nil", err)
-	}
-	otherDeviceDocument, err := Assemble(RequestAssembly{
-		Request: otherRequest, Certificate: fixture.certificate,
-	})
-	if err != nil {
-		t.Fatalf("Assemble(other device) error = %v, want nil", err)
-	}
-	if got, gotErr := Verify(Verification{
-		Document: otherDeviceDocument, TrustedKeys: fixture.trusted,
-	}); !errors.Is(gotErr, core.ErrAttestVerification) || got != (Verified{}) {
-		t.Fatalf("Verify(other device) = (%v, %v), want zero and errors.Is %v",
-			got, gotErr, core.ErrAttestVerification)
-	}
+	t.Run("positive canonical reordered and exact extent documents preserve every fact", func(t *testing.T) {
+		t.Parallel()
 
-	bugInstallation, err := controlplanetest.IssueInstallation(controlplanetest.InstallationRequest{
-		AuthoritySeed: retrievalAuthSeed(0x72), DeviceSeed: retrievalAuthSeed(0x73),
-		Offering: core.OfferingBug,
+		cases := []retrievalAuthJSONCase{
+			{name: "canonical credentialed request", data: canonical},
+			{name: "leading whitespace", data: append([]byte(" \n\t"), canonical...)},
+			{name: "trailing whitespace", data: append(append([]byte(nil), canonical...), ' ', '\n', '\t')},
+			{name: "both-side whitespace", data: append(append([]byte(" \n"), canonical...), '\n', ' ')},
+			{name: "top-level members reordered", data: marshalReorderedRetrievalAuthDocument(t, fixture.document)},
+			{name: "one below document ceiling", data: retrievalAuthPadJSON(canonical, RequestDocumentJSONMaximumBytes-1)},
+			{name: "at document ceiling", data: retrievalAuthPadJSON(canonical, RequestDocumentJSONMaximumBytes)},
+			{name: "one trailing carriage return", data: append(append([]byte(nil), canonical...), '\r')},
+			{name: "four leading whitespace forms", data: append([]byte("\t\r\n "), canonical...)},
+			{name: "four trailing whitespace forms", data: append(append([]byte(nil), canonical...), " \n\r\t"...)},
+		}
+		for _, tc := range cases {
+			t.Run(tc.name, func(t *testing.T) {
+				t.Parallel()
+
+				var got RequestDocument
+				decodeErr := got.UnmarshalJSON(tc.data)
+				if decodeErr != nil || got != fixture.document {
+					t.Fatalf("RequestDocument.UnmarshalJSON() = (%v, %v), want exact document and nil", got, decodeErr)
+				}
+			})
+		}
 	})
-	if err != nil {
-		t.Fatalf("controlplanetest.IssueInstallation(Bug) error = %v, want nil", err)
-	}
-	wrongBuildPayload := retrievalAuthPayload(t, bugInstallation.Build, 0x74)
-	wrongBuildRequest, err := retrieval.IssueRequest(retrieval.RequestIssuance{
-		Payload: wrongBuildPayload, Signer: fixture.device,
+
+	t.Run("negative malformed missing duplicate type-wrong and oversized documents reject", func(t *testing.T) {
+		t.Parallel()
+
+		cases := retrievalAuthHostileJSONCases(canonical)
+		for _, tc := range cases {
+			t.Run(tc.name, func(t *testing.T) {
+				t.Parallel()
+
+				got := fixture.document
+				decodeErr := got.UnmarshalJSON(tc.data)
+				if !errors.Is(decodeErr, core.ErrJSONContract) || got != fixture.document {
+					t.Fatalf("RequestDocument.UnmarshalJSON() = (%v, %v), want preserved receiver and errors.Is %v", got, decodeErr, core.ErrJSONContract)
+				}
+			})
+		}
 	})
-	if err != nil {
-		t.Fatalf("retrieval.IssueRequest(wrong build) error = %v, want nil", err)
-	}
-	if got, gotErr := Assemble(RequestAssembly{
-		Request: wrongBuildRequest, Certificate: fixture.certificate,
-	}); !errors.Is(gotErr, core.ErrRetrievalBinding) || got != (RequestDocument{}) {
-		t.Fatalf("Assemble(wrong build) = (%v, %v), want zero and errors.Is %v",
-			got, gotErr, core.ErrRetrievalBinding)
-	}
+
+	t.Run("neutral rejected input discloses no credentialed request", func(t *testing.T) {
+		t.Parallel()
+
+		var got RequestDocument
+		decodeErr := got.UnmarshalJSON(nil)
+		if !errors.Is(decodeErr, core.ErrJSONContract) || got != (RequestDocument{}) {
+			t.Fatalf("zero RequestDocument.UnmarshalJSON(nil) = (%v, %v), want zero and errors.Is %v", got, decodeErr, core.ErrJSONContract)
+		}
+	})
 }
 
-func TestCredentialedRetrievalStrictJSONIsBoundedAndTransactional(t *testing.T) {
-	t.Parallel()
+func marshalReorderedRetrievalAuthDocument(t *testing.T, document RequestDocument) []byte {
+	t.Helper()
 
-	fixture := newRetrievalAuthFixture(t, retrievalAuthFixtureRequest{})
-	encoded, err := fixture.document.MarshalJSON()
-	if err != nil {
-		t.Fatalf("RequestDocument.MarshalJSON() error = %v, want nil", err)
+	encoded, gotErr := core.MarshalCanonicalJSONDocument(struct {
+		Certificate controlplane.InstallationCertificateDocument `json:"certificate"`
+		Request     retrieval.RequestDocument                    `json:"request"`
+	}{Certificate: document.Certificate, Request: document.Request})
+	if gotErr != nil {
+		t.Fatalf("core.MarshalCanonicalJSONDocument(reordered retrieval auth) error = %v, want nil", gotErr)
 	}
-	cases := []struct {
-		name string
-		data []byte
-	}{
-		{name: "empty document", data: []byte{}},
+	return encoded
+}
+
+func retrievalAuthPadJSON(document []byte, wantBytes int) []byte {
+	if len(document) >= wantBytes {
+		return append([]byte(nil), document...)
+	}
+	return append(append([]byte(nil), document...), bytes.Repeat([]byte{' '}, wantBytes-len(document))...)
+}
+
+func retrievalAuthHostileJSONCases(canonical []byte) []retrievalAuthJSONCase {
+	return []retrievalAuthJSONCase{
+		{name: "empty document", data: nil},
+		{name: "whitespace-only document", data: []byte(" \n\t")},
 		{name: "null document", data: []byte("null")},
-		{name: "array instead of structure", data: []byte{'[', ']'}},
-		{name: "trailing object", data: append(append([]byte(nil), encoded...), '{', '}')},
-		{name: "over owned bound", data: bytes.Repeat([]byte{' '}, RequestDocumentJSONMaximumBytes+1)},
-	}
-	for _, testCase := range cases {
-		t.Run(testCase.name, func(t *testing.T) {
-			t.Parallel()
-
-			got := fixture.document
-			gotErr := got.UnmarshalJSON(testCase.data)
-			if !errors.Is(gotErr, core.ErrJSONContract) || got != fixture.document {
-				t.Fatalf("RequestDocument.UnmarshalJSON(%q) = (%v, %v), want preserved document and errors.Is %v",
-					testCase.data, got, gotErr, core.ErrJSONContract)
-			}
-		})
-	}
-
-	missingCertificate := RequestDocument{Request: fixture.request}
-	if gotErr := missingCertificate.Validate(); !errors.Is(gotErr, core.ErrRetrievalContract) {
-		t.Fatalf("RequestDocument.Validate(missing certificate) error = %v, want errors.Is %v",
-			gotErr, core.ErrRetrievalContract)
+		{name: "array instead of structure", data: []byte("[]")},
+		{name: "string instead of structure", data: []byte(`"retrieval"`)},
+		{name: "number instead of structure", data: []byte("1")},
+		{name: "boolean instead of structure", data: []byte("true")},
+		{name: "truncated opening brace", data: []byte("{")},
+		{name: "truncated inside request", data: canonical[:len(canonical)/2]},
+		{name: "truncated before final brace", data: canonical[:len(canonical)-1]},
+		{name: "trailing object", data: append(append([]byte(nil), canonical...), '{', '}')},
+		{name: "two concatenated documents", data: append(append([]byte(nil), canonical...), canonical...)},
+		{name: "unknown top-level member", data: bytes.Replace(canonical, []byte(`{"request"`), []byte(`{"unknown":1,"request"`), 1)},
+		{name: "duplicate request member", data: bytes.Replace(canonical, []byte(`{"request":`), []byte(`{"request":null,"request":`), 1)},
+		{name: "duplicate certificate member", data: bytes.Replace(canonical, []byte(`,"certificate":`), []byte(`,"certificate":null,"certificate":`), 1)},
+		{name: "missing every member", data: []byte("{}")},
+		{name: "missing request", data: []byte(`{"certificate":null}`)},
+		{name: "missing certificate", data: []byte(`{"request":null}`)},
+		{name: "request has wrong scalar type", data: []byte(`{"request":1,"certificate":null}`)},
+		{name: "certificate has wrong scalar type", data: []byte(`{"request":null,"certificate":1}`)},
+		{name: "one above document ceiling", data: retrievalAuthPadJSON(canonical, RequestDocumentJSONMaximumBytes+1)},
 	}
 }
 
