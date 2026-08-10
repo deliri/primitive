@@ -89,6 +89,14 @@ func (n EnvironmentName) text() string {
 	return n.value
 }
 
+// Value returns the exact admitted environment variable name.
+func (n EnvironmentName) Value() (string, error) {
+	if err := n.Validate(); err != nil {
+		return "", err
+	}
+	return n.value, nil
+}
+
 // EnvironmentValue is one exact non-NUL environment value. Its zero value is
 // invalid even though a constructed empty value is valid.
 type EnvironmentValue struct {
@@ -118,6 +126,77 @@ func (v EnvironmentValue) Validate() error {
 
 func (v EnvironmentValue) text() string {
 	return v.value
+}
+
+// Value returns the exact admitted environment value. Callers distinguish an
+// admitted empty value from absence through EnvironmentLookup.Presence.
+func (v EnvironmentValue) Value() (string, error) {
+	if err := v.Validate(); err != nil {
+		return "", err
+	}
+	return v.value, nil
+}
+
+// EnvironmentPresence distinguishes an absent variable from one whose exact
+// admitted value is empty.
+type EnvironmentPresence uint8
+
+const (
+	EnvironmentPresenceUnknown EnvironmentPresence = iota
+	EnvironmentPresenceAbsent
+	EnvironmentPresencePresent
+	environmentPresenceLimit
+)
+
+func environmentPresenceDiagnostics() [environmentPresenceLimit]string {
+	return [...]string{
+		EnvironmentPresenceAbsent:  "absent",
+		EnvironmentPresencePresent: "present",
+	}
+}
+
+func (p EnvironmentPresence) Validate() error {
+	if !p.IsValid() {
+		return contractError("environment presence is outside the admitted domain")
+	}
+	return nil
+}
+
+func (p EnvironmentPresence) IsValid() bool {
+	diagnostics := environmentPresenceDiagnostics()
+	return p > EnvironmentPresenceUnknown &&
+		p < environmentPresenceLimit &&
+		diagnostics[p] != ""
+}
+
+func (EnvironmentPresence) OffWireEnum() {}
+
+// String returns the compiler-owned label for p.
+func (p EnvironmentPresence) String() string {
+	diagnostics := environmentPresenceDiagnostics()
+	if p < environmentPresenceLimit && diagnostics[p] != "" {
+		return diagnostics[p]
+	}
+	return core.UnknownEnumDiagnostic
+}
+
+// EnvironmentLookup is one typed observation of one ambient variable.
+type EnvironmentLookup struct {
+	Value    EnvironmentValue
+	Presence EnvironmentPresence
+}
+
+func (l EnvironmentLookup) Validate() error {
+	if err := l.Presence.Validate(); err != nil {
+		return err
+	}
+	if l.Presence == EnvironmentPresenceAbsent {
+		if l.Value != (EnvironmentValue{}) {
+			return contractError("absent environment lookup contains a value")
+		}
+		return nil
+	}
+	return l.Value.Validate()
 }
 
 // EnvironmentVariable is one exact name/value pair.

@@ -6,6 +6,8 @@ var (
 	_ core.Validatable = Argument{}
 	_ core.Validatable = EnvironmentName{}
 	_ core.Validatable = EnvironmentValue{}
+	_ core.Validatable = EnvironmentPresenceUnknown
+	_ core.Validatable = EnvironmentLookup{}
 	_ core.Validatable = EnvironmentVariable{}
 	_ core.Validatable = EnvironmentModeUnknown
 	_ core.Validatable = Environment{}
@@ -29,6 +31,7 @@ var (
 
 var (
 	_ core.OffWireEnum = EnvironmentModeUnknown
+	_ core.OffWireEnum = EnvironmentPresenceUnknown
 	_ core.OffWireEnum = StreamUnknown
 	_ core.OffWireEnum = FailureKindUnknown
 	_ core.OffWireEnum = IsolationUnknown

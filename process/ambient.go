@@ -36,3 +36,26 @@ func Executable() (core.AbsolutePath, error) {
 func AmbientEnvironment() (Environment, error) {
 	return ParseEffectiveEnvironment(os.Environ())
 }
+
+// LookupAmbientEnvironment observes one exact variable without materializing
+// the process's complete environment. The name is validated before the
+// substrate is consulted and absence remains distinct from a present empty
+// value.
+func LookupAmbientEnvironment(name EnvironmentName) (EnvironmentLookup, error) {
+	if err := name.Validate(); err != nil {
+		return EnvironmentLookup{}, errors.Join(core.ErrProcessContract, err)
+	}
+	value, present := os.LookupEnv(name.text())
+	lookup := EnvironmentLookup{Presence: EnvironmentPresenceAbsent}
+	if present {
+		typedValue, err := NewEnvironmentValue(value)
+		if err != nil {
+			return EnvironmentLookup{}, err
+		}
+		lookup = EnvironmentLookup{Value: typedValue, Presence: EnvironmentPresencePresent}
+	}
+	if err := lookup.Validate(); err != nil {
+		return EnvironmentLookup{}, err
+	}
+	return lookup, nil
+}

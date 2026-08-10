@@ -18,6 +18,11 @@
 // as success. Registry and force-drain policy above one child stay with the
 // caller.
 //
+// AmbientEnvironment admits the complete inherited environment when a caller
+// must filter it for a child. LookupAmbientEnvironment observes one exact
+// variable in O(1) memory and preserves the difference between absence and a
+// present empty value.
+//
 // Two boundaries belong to the caller and are not defects in this package.
 //
 // Request.WaitDelay bounds only the descriptors os/exec owns. When a child

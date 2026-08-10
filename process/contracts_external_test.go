@@ -212,6 +212,112 @@ func TestEnvironmentNameRejectsEveryAmbiguousForm(t *testing.T) {
 	}
 }
 
+func TestEnvironmentNameAccessRejectsUnsetAndPreservesExactAdmittedBytes(t *testing.T) {
+	t.Parallel()
+
+	if got, err := (process.EnvironmentName{}).Value(); got != "" || !errors.Is(err, core.ErrProcessContract) {
+		t.Fatalf("zero EnvironmentName.Value() = %q, %v; want empty and errors.Is(..., ErrProcessContract)", got, err)
+	}
+	const exact = "EXACT_ENVIRONMENT_NAME"
+	name, err := process.NewEnvironmentName(exact)
+	if err != nil {
+		t.Fatalf("NewEnvironmentName(%q) error = %v, want nil", exact, err)
+	}
+	got, err := name.Value()
+	if err != nil || got != exact {
+		t.Fatalf("EnvironmentName.Value() = %q, %v; want %q, nil", got, err, exact)
+	}
+}
+
+func TestEnvironmentPresenceExhaustsUint8Domain(t *testing.T) {
+	t.Parallel()
+
+	for raw := range 256 {
+		presence := process.EnvironmentPresence(raw)
+		wantValid := presence == process.EnvironmentPresenceAbsent || presence == process.EnvironmentPresencePresent
+		if got := presence.IsValid(); got != wantValid {
+			t.Fatalf("EnvironmentPresence(%d).IsValid() = %t, want %t", raw, got, wantValid)
+		}
+		if err := presence.Validate(); (err == nil) != wantValid {
+			t.Fatalf("EnvironmentPresence(%d).Validate() error = %v, want valid %t", raw, err, wantValid)
+		}
+		if gotUnknown := presence.String() == core.UnknownEnumDiagnostic; gotUnknown == wantValid {
+			t.Fatalf("EnvironmentPresence(%d).String() unknown = %t, want %t", raw, gotUnknown, !wantValid)
+		}
+	}
+}
+
+func TestEnvironmentPresenceCompilerOwnedLabels(t *testing.T) {
+	t.Parallel()
+
+	if got := process.EnvironmentPresenceAbsent.String(); got != "absent" {
+		t.Fatalf("EnvironmentPresenceAbsent.String() = %q, want %q", got, "absent")
+	}
+	if got := process.EnvironmentPresencePresent.String(); got != "present" {
+		t.Fatalf("EnvironmentPresencePresent.String() = %q, want %q", got, "present")
+	}
+}
+
+func TestEnvironmentLookupRejectsContradictoryPresenceAndValue(t *testing.T) {
+	t.Parallel()
+
+	empty, err := process.NewEnvironmentValue("")
+	if err != nil {
+		t.Fatalf("NewEnvironmentValue(empty) error = %v, want nil", err)
+	}
+	value, err := process.NewEnvironmentValue("value")
+	if err != nil {
+		t.Fatalf("NewEnvironmentValue(value) error = %v, want nil", err)
+	}
+	cases := []struct {
+		name    string
+		lookup  process.EnvironmentLookup
+		wantErr bool
+	}{
+		{name: "absent owns zero value", lookup: process.EnvironmentLookup{Presence: process.EnvironmentPresenceAbsent}},
+		{name: "present owns empty exact value", lookup: process.EnvironmentLookup{Presence: process.EnvironmentPresencePresent, Value: empty}},
+		{name: "present owns nonempty exact value", lookup: process.EnvironmentLookup{Presence: process.EnvironmentPresencePresent, Value: value}},
+		{name: "zero lookup rejects unknown presence", lookup: process.EnvironmentLookup{}, wantErr: true},
+		{name: "future presence rejects zero value", lookup: process.EnvironmentLookup{Presence: process.EnvironmentPresence(255)}, wantErr: true},
+		{name: "absent rejects admitted empty value", lookup: process.EnvironmentLookup{Presence: process.EnvironmentPresenceAbsent, Value: empty}, wantErr: true},
+		{name: "absent rejects admitted nonempty value", lookup: process.EnvironmentLookup{Presence: process.EnvironmentPresenceAbsent, Value: value}, wantErr: true},
+		{name: "present rejects unset value", lookup: process.EnvironmentLookup{Presence: process.EnvironmentPresencePresent}, wantErr: true},
+	}
+	for _, tc := range cases {
+		t.Run(tc.name, func(t *testing.T) {
+			t.Parallel()
+
+			err := tc.lookup.Validate()
+			if tc.wantErr {
+				if !errors.Is(err, core.ErrProcessContract) {
+					t.Fatalf("EnvironmentLookup.Validate() error = %v, want errors.Is(..., ErrProcessContract)", err)
+				}
+				return
+			}
+			if err != nil {
+				t.Fatalf("EnvironmentLookup.Validate() error = %v, want nil", err)
+			}
+		})
+	}
+}
+
+func TestEnvironmentValueAccessRejectsUnsetAndPreservesExactAdmittedBytes(t *testing.T) {
+	t.Parallel()
+
+	if got, err := (process.EnvironmentValue{}).Value(); got != "" || !errors.Is(err, core.ErrProcessContract) {
+		t.Fatalf("zero EnvironmentValue.Value() = %q, %v; want empty and errors.Is(..., ErrProcessContract)", got, err)
+	}
+	const exact = " exact value "
+	value, err := process.NewEnvironmentValue(exact)
+	if err != nil {
+		t.Fatalf("NewEnvironmentValue(%q) error = %v, want nil", exact, err)
+	}
+	got, err := value.Value()
+	if err != nil || got != exact {
+		t.Fatalf("EnvironmentValue.Value() = %q, %v; want %q, nil", got, err, exact)
+	}
+}
+
 func TestEnvironmentValueAdmitsExactBytesAndRejectsNUL(t *testing.T) {
 	t.Parallel()
 

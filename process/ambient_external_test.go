@@ -1,6 +1,7 @@
 package process_test
 
 import (
+	"errors"
 	"os"
 	"slices"
 	"testing"
@@ -29,6 +30,77 @@ func TestExecutableNamesTheRunningBinary(t *testing.T) {
 	}
 	if got.String() != want {
 		t.Fatalf("process.Executable() = %q, want the platform's own %q", got.String(), want)
+	}
+}
+
+func TestLookupAmbientEnvironmentDistinguishesAbsentEmptyAndValue(t *testing.T) {
+	testserial.Declare(t, core.TestIsolationDeclaration{
+		Hazard: core.TestIsolationHazardProcessEnvironment,
+		Scope:  core.TestIsolationScopePackageProcess,
+	})
+
+	const probeName = "PRIMITIVE_PROCESS_LOOKUP_PROBE"
+	name, err := process.NewEnvironmentName(probeName)
+	if err != nil {
+		t.Fatalf("process.NewEnvironmentName() error = %v, want nil", err)
+	}
+
+	t.Setenv(probeName, "")
+	empty, err := process.LookupAmbientEnvironment(name)
+	if err != nil {
+		t.Fatalf("LookupAmbientEnvironment(present empty) error = %v, want nil", err)
+	}
+	emptyValue, valueErr := empty.Value.Value()
+	if valueErr != nil {
+		t.Fatalf("present-empty EnvironmentValue.Value() error = %v, want nil", valueErr)
+	}
+	if empty.Presence != process.EnvironmentPresencePresent || emptyValue != "" {
+		t.Fatalf("LookupAmbientEnvironment(present empty) = %+v, want present with exact empty value", empty)
+	}
+	if err := empty.Validate(); err != nil {
+		t.Fatalf("present-empty EnvironmentLookup.Validate() error = %v, want nil", err)
+	}
+
+	t.Setenv(probeName, "ambient-value")
+	present, err := process.LookupAmbientEnvironment(name)
+	if err != nil {
+		t.Fatalf("LookupAmbientEnvironment(present value) error = %v, want nil", err)
+	}
+	presentValue, valueErr := present.Value.Value()
+	if valueErr != nil {
+		t.Fatalf("present-value EnvironmentValue.Value() error = %v, want nil", valueErr)
+	}
+	if present.Presence != process.EnvironmentPresencePresent || presentValue != "ambient-value" {
+		t.Fatalf("LookupAmbientEnvironment(present value) = %+v/%q, want present/ambient-value", present, presentValue)
+	}
+	if err := present.Validate(); err != nil {
+		t.Fatalf("present-value EnvironmentLookup.Validate() error = %v, want nil", err)
+	}
+
+	if err := os.Unsetenv(probeName); err != nil {
+		t.Fatalf("os.Unsetenv(probe) error = %v, want nil", err)
+	}
+	absent, err := process.LookupAmbientEnvironment(name)
+	if err != nil {
+		t.Fatalf("LookupAmbientEnvironment(absent) error = %v, want nil", err)
+	}
+	if absent.Presence != process.EnvironmentPresenceAbsent || absent.Value != (process.EnvironmentValue{}) {
+		t.Fatalf("LookupAmbientEnvironment(absent) = %+v, want absent with zero value", absent)
+	}
+	if err := absent.Validate(); err != nil {
+		t.Fatalf("absent EnvironmentLookup.Validate() error = %v, want nil", err)
+	}
+}
+
+func TestLookupAmbientEnvironmentRejectsZeroNameBeforeObservation(t *testing.T) {
+	t.Parallel()
+
+	got, err := process.LookupAmbientEnvironment(process.EnvironmentName{})
+	if !errors.Is(err, core.ErrProcessContract) {
+		t.Fatalf("LookupAmbientEnvironment(zero name) error = %v, want errors.Is(..., ErrProcessContract)", err)
+	}
+	if got != (process.EnvironmentLookup{}) {
+		t.Fatalf("LookupAmbientEnvironment(zero name) = %+v, want zero result", got)
 	}
 }
 
