@@ -1,0 +1,551 @@
+package submission
+
+import (
+	"bytes"
+	"encoding/json"
+	"errors"
+	"strings"
+	"testing"
+
+	"github.com/deliri/primitive/v2026/attest"
+	"github.com/deliri/primitive/v2026/core"
+)
+
+// TestRequestAuthenticationLayerTriadAuthenticatesEveryOfferingThroughOneShape proves the blind request
+// protocol has no product arm: every compiler-owned offering crosses the same
+// payload, signature, document, and verification path.
+func TestRequestAuthenticationLayerTriadAuthenticatesEveryOfferingThroughOneShape(t *testing.T) {
+	t.Parallel()
+
+	for value := 0; value <= 255; value++ {
+		offering := core.Offering(value)
+		if !offering.IsValid() {
+			continue
+		}
+		t.Run(offering.String(), func(t *testing.T) {
+			t.Parallel()
+
+			public, signer := testSigningKey(t, byte(value)+0x60)
+			payload := testRequestPayload(t, grantFixtureRequest{
+				offering: offering, requestNonceByte: byte(value) + 1,
+			})
+			document, err := IssueRequest(RequestIssuance{Payload: payload, Signer: signer})
+			if err != nil {
+				t.Fatalf("IssueRequest(%v) error = %v, want nil", offering, err)
+			}
+			trusted, err := attest.NewTrustedKeys(attest.TrustedKeysRequest{
+				Keys: []core.Ed25519PublicKey{public},
+			})
+			if err != nil {
+				t.Fatalf("attest.NewTrustedKeys(%v) error = %v, want nil", offering, err)
+			}
+			verified, err := VerifyRequest(RequestVerification{
+				Document: document, TrustedKeys: trusted,
+			})
+			if err != nil {
+				t.Fatalf("VerifyRequest(%v) error = %v, want nil", offering, err)
+			}
+			got, err := verified.Document()
+			if err != nil || got != document {
+				t.Fatalf("VerifiedRequest.Document(%v) = (%+v, %v), want exact document and nil",
+					offering, got, err)
+			}
+		})
+	}
+}
+
+// TestRequestAuthenticationLayerTriadRefusesEveryValidFactSubstitution changes one valid
+// signed fact at a time while preserving an otherwise valid document. The
+// structural gate stays green and signature authentication must go red.
+func TestRequestAuthenticationLayerTriadRefusesEveryValidFactSubstitution(t *testing.T) {
+	t.Parallel()
+
+	public, signer := testSigningKey(t, 0x71)
+	original := testRequestPayload(t, grantFixtureRequest{})
+	document, err := IssueRequest(RequestIssuance{Payload: original, Signer: signer})
+	if err != nil {
+		t.Fatalf("IssueRequest() error = %v, want nil", err)
+	}
+	trusted, err := attest.NewTrustedKeys(attest.TrustedKeysRequest{
+		Keys: []core.Ed25519PublicKey{public},
+	})
+	if err != nil {
+		t.Fatalf("attest.NewTrustedKeys() error = %v, want nil", err)
+	}
+
+	differentMediaType, err := core.ParseHTTPMediaType("application/cbor")
+	if err != nil {
+		t.Fatalf("core.ParseHTTPMediaType() error = %v, want nil", err)
+	}
+	mediaTypeMutation := original
+	mediaTypeMutation.Declaration.ContentType = differentMediaType
+	cases := []struct {
+		name    string
+		payload RequestPayload
+	}{
+		{
+			name: "different object integrity and extent",
+			payload: testRequestPayload(t, grantFixtureRequest{
+				content: []byte("different proof"), offering: core.OfferingWitness,
+				requestNonceByte: 0x31,
+			}),
+		},
+		{name: "different media type", payload: mediaTypeMutation},
+		{
+			name: "different build offering",
+			payload: testRequestPayload(t, grantFixtureRequest{
+				offering: core.OfferingBug, requestNonceByte: 0x31,
+			}),
+		},
+		{
+			name: "different request nonce",
+			payload: testRequestPayload(t, grantFixtureRequest{
+				offering: core.OfferingWitness, requestNonceByte: 0x32,
+			}),
+		},
+	}
+	for _, tc := range cases {
+		t.Run(tc.name, func(t *testing.T) {
+			t.Parallel()
+
+			mutated := document
+			mutated.Payload = tc.payload
+			if err := mutated.Validate(); err != nil {
+				t.Fatalf("mutated RequestDocument.Validate() error = %v, want nil", err)
+			}
+			verified, err := VerifyRequest(RequestVerification{
+				Document: mutated, TrustedKeys: trusted,
+			})
+			if !errors.Is(err, core.ErrAttestVerification) {
+				t.Fatalf("VerifyRequest(valid substitution) = (%v, %v), want zero and errors.Is %v",
+					verified, err, core.ErrAttestVerification)
+			}
+		})
+	}
+}
+
+// TestRequestRefusesAnAuthenticSignatureFromEveryOtherKey proves caller trust,
+// not signature validity alone, decides which device may request custody.
+func TestRequestRefusesAnAuthenticSignatureFromEveryOtherKey(t *testing.T) {
+	t.Parallel()
+
+	_, signer := testSigningKey(t, 0x72)
+	otherPublic, _ := testSigningKey(t, 0x73)
+	document, err := IssueRequest(RequestIssuance{
+		Payload: testRequestPayload(t, grantFixtureRequest{}), Signer: signer,
+	})
+	if err != nil {
+		t.Fatalf("IssueRequest() error = %v, want nil", err)
+	}
+	trusted, err := attest.NewTrustedKeys(attest.TrustedKeysRequest{
+		Keys: []core.Ed25519PublicKey{otherPublic},
+	})
+	if err != nil {
+		t.Fatalf("attest.NewTrustedKeys(other) error = %v, want nil", err)
+	}
+	verified, err := VerifyRequest(RequestVerification{Document: document, TrustedKeys: trusted})
+	if !errors.Is(err, core.ErrAttestVerification) {
+		t.Fatalf("VerifyRequest(other key) = (%v, %v), want zero and errors.Is %v",
+			verified, err, core.ErrAttestVerification)
+	}
+}
+
+// TestRequestCommitmentChangesForEveryAuthorizationFact proves the grant's one
+// digest closes every field the device signed, rather than a hand-selected
+// subset that could drift from RequestPayload.
+func TestRequestCommitmentChangesForEveryAuthorizationFact(t *testing.T) {
+	t.Parallel()
+
+	original := testRequestPayload(t, grantFixtureRequest{})
+	want, err := CommitRequest(original)
+	if err != nil {
+		t.Fatalf("CommitRequest(original) error = %v, want nil", err)
+	}
+	differentMediaType, err := core.ParseHTTPMediaType("application/cbor")
+	if err != nil {
+		t.Fatalf("core.ParseHTTPMediaType() error = %v, want nil", err)
+	}
+	mediaTypeMutation := original
+	mediaTypeMutation.Declaration.ContentType = differentMediaType
+	mutations := []RequestPayload{
+		testRequestPayload(t, grantFixtureRequest{
+			content: []byte("different proof"), offering: core.OfferingWitness,
+			requestNonceByte: 0x31,
+		}),
+		mediaTypeMutation,
+		testRequestPayload(t, grantFixtureRequest{
+			offering: core.OfferingBug, requestNonceByte: 0x31,
+		}),
+		testRequestPayload(t, grantFixtureRequest{
+			offering: core.OfferingWitness, requestNonceByte: 0x32,
+		}),
+	}
+	for index, mutation := range mutations {
+		got, err := CommitRequest(mutation)
+		if err != nil {
+			t.Fatalf("CommitRequest(mutation %d) error = %v, want nil", index, err)
+		}
+		if got == want {
+			t.Fatalf("CommitRequest(mutation %d) = original commitment, want distinct", index)
+		}
+	}
+}
+
+// TestRequestCommitmentJSONRejectsEveryNonCanonicalDigestForm proves the
+// authority-facing commitment cannot be zero, widened, shortened, recased, or
+// partially decoded, and every refusal preserves the prior exact request.
+func TestRequestCommitmentJSONRejectsEveryNonCanonicalDigestForm(t *testing.T) {
+	t.Parallel()
+
+	preserved, err := CommitRequest(testRequestPayload(t, grantFixtureRequest{}))
+	if err != nil {
+		t.Fatalf("CommitRequest() error = %v, want nil", err)
+	}
+	encoded, err := preserved.MarshalJSON()
+	if err != nil {
+		t.Fatalf("RequestCommitment.MarshalJSON() error = %v, want nil", err)
+	}
+	var roundTrip RequestCommitment
+	if err := roundTrip.UnmarshalJSON(encoded); err != nil || roundTrip != preserved {
+		t.Fatalf("RequestCommitment.UnmarshalJSON(canonical) = (%v, %v), want (%v, nil)",
+			roundTrip, err, preserved)
+	}
+	canonical := string(encoded[1 : len(encoded)-1])
+	cases := []struct {
+		name string
+		data []byte
+	}{
+		{name: "empty input", data: nil},
+		{name: "null value", data: []byte(`null`)},
+		{name: "numeric value", data: []byte(`1`)},
+		{name: "boolean value", data: []byte(`true`)},
+		{name: "array value", data: []byte(`[]`)},
+		{name: "object value", data: []byte(`{}`)},
+		{name: "empty text", data: []byte(`""`)},
+		{name: "one hex digit", data: []byte(`"0"`)},
+		{name: "one byte below exact extent", data: []byte(`"` + canonical[:len(canonical)-1] + `"`)},
+		{name: "one byte above exact extent", data: []byte(`"` + canonical + `0"`)},
+		{name: "all-zero digest", data: []byte(`"` + strings.Repeat("0", 64) + `"`)},
+		{name: "uppercase hex", data: []byte(`"` + strings.ToUpper(canonical) + `"`)},
+		{name: "non-hex character", data: []byte(`"` + canonical[:63] + `g"`)},
+		{name: "hex prefix", data: []byte(`"0x` + canonical[:62] + `"`)},
+		{name: "leading space inside digest", data: []byte(`" ` + canonical[:63] + `"`)},
+		{name: "trailing second JSON value", data: append(bytes.Clone(encoded), []byte(` null`)...)},
+	}
+	for _, tc := range cases {
+		t.Run(tc.name, func(t *testing.T) {
+			t.Parallel()
+
+			receiver := preserved
+			if err := receiver.UnmarshalJSON(tc.data); !errors.Is(err, core.ErrJSONContract) {
+				t.Fatalf("RequestCommitment.UnmarshalJSON(%s) error = %v, want errors.Is %v",
+					tc.name, err, core.ErrJSONContract)
+			}
+			if receiver != preserved {
+				t.Fatalf("RequestCommitment.UnmarshalJSON(%s) receiver = %v, want preserved %v",
+					tc.name, receiver, preserved)
+			}
+		})
+	}
+	if encoded, err := (RequestCommitment{}).MarshalJSON(); !errors.Is(err, core.ErrJSONContract) || encoded != nil {
+		t.Fatalf("zero RequestCommitment.MarshalJSON() = (%v, %v), want nil and errors.Is %v",
+			encoded, err, core.ErrJSONContract)
+	}
+}
+
+// TestRequestJSONBoundaryIsStrictBoundedAndPreserving attacks document framing
+// rather than implementation fields: unknown, duplicate, missing, oversized,
+// and malformed inputs all refuse without changing an already-valid receiver.
+func TestRequestJSONBoundaryIsStrictBoundedAndPreserving(t *testing.T) {
+	t.Parallel()
+
+	_, signer := testSigningKey(t, 0x74)
+	document, err := IssueRequest(RequestIssuance{
+		Payload: testRequestPayload(t, grantFixtureRequest{}), Signer: signer,
+	})
+	if err != nil {
+		t.Fatalf("IssueRequest() error = %v, want nil", err)
+	}
+	encoded, err := document.MarshalJSON()
+	if err != nil {
+		t.Fatalf("RequestDocument.MarshalJSON() error = %v, want nil", err)
+	}
+	withoutAttestation, err := json.Marshal(struct {
+		Payload RequestPayload `json:"payload"`
+	}{Payload: document.Payload})
+	if err != nil {
+		t.Fatalf("json.Marshal(missing attestation fixture) error = %v, want nil", err)
+	}
+	withoutPayload, err := json.Marshal(struct {
+		Attestation attest.Envelope[SigningDomain] `json:"attestation"`
+	}{Attestation: document.Attestation})
+	if err != nil {
+		t.Fatalf("json.Marshal(missing payload fixture) error = %v, want nil", err)
+	}
+	reordered, err := json.Marshal(struct {
+		Payload     RequestPayload                 `json:"payload"`
+		Attestation attest.Envelope[SigningDomain] `json:"attestation"`
+	}{Attestation: document.Attestation, Payload: document.Payload})
+	if err != nil {
+		t.Fatalf("json.Marshal(reordered fixture) error = %v, want nil", err)
+	}
+	nullPayload, err := json.Marshal(struct {
+		Payload     *RequestPayload                `json:"payload"`
+		Attestation attest.Envelope[SigningDomain] `json:"attestation"`
+	}{Attestation: document.Attestation})
+	if err != nil {
+		t.Fatalf("json.Marshal(null payload fixture) error = %v, want nil", err)
+	}
+	wrongPayloadType, err := json.Marshal(struct {
+		Payload     int                            `json:"payload"`
+		Attestation attest.Envelope[SigningDomain] `json:"attestation"`
+	}{Payload: 1, Attestation: document.Attestation})
+	if err != nil {
+		t.Fatalf("json.Marshal(wrong payload type fixture) error = %v, want nil", err)
+	}
+	wrongAttestationType, err := json.Marshal(struct {
+		Payload     RequestPayload `json:"payload"`
+		Attestation int            `json:"attestation"`
+	}{Payload: document.Payload, Attestation: 1})
+	if err != nil {
+		t.Fatalf("json.Marshal(wrong attestation type fixture) error = %v, want nil", err)
+	}
+	var indented bytes.Buffer
+	if err := json.Indent(&indented, encoded, "", "  "); err != nil {
+		t.Fatalf("json.Indent() error = %v, want nil", err)
+	}
+	validCases := []struct {
+		name string
+		data []byte
+	}{
+		{name: "canonical document", data: encoded},
+		{name: "one leading space", data: append([]byte(" "), encoded...)},
+		{name: "one trailing space", data: append(bytes.Clone(encoded), ' ')},
+		{name: "leading and trailing newlines", data: append(append([]byte("\n"), encoded...), '\n')},
+		{name: "mixed legal outer whitespace", data: append(append([]byte("\t\r\n"), encoded...), ' ', '\t')},
+		{name: "members in reverse order", data: reordered},
+		{name: "indented object", data: indented.Bytes()},
+		{name: "one byte below document ceiling", data: leftPadJSON(encoded, RequestDocumentJSONMaximumBytes-1)},
+		{name: "exactly at document ceiling", data: leftPadJSON(encoded, RequestDocumentJSONMaximumBytes)},
+		{name: "canonical second decode", data: bytes.Clone(encoded)},
+	}
+	for _, tc := range validCases {
+		t.Run(tc.name, func(t *testing.T) {
+			t.Parallel()
+
+			receiver := RequestDocument{}
+			if err := receiver.UnmarshalJSON(tc.data); err != nil {
+				t.Fatalf("RequestDocument.UnmarshalJSON(%s) error = %v, want nil", tc.name, err)
+			}
+			if receiver != document {
+				t.Fatalf("RequestDocument.UnmarshalJSON(%s) = %+v, want %+v", tc.name, receiver, document)
+			}
+		})
+	}
+	unknown := append(bytes.Clone(encoded[:len(encoded)-1]), []byte(`,"future":true}`)...)
+	duplicatePayload := append(bytes.Clone(encoded[:len(encoded)-1]), []byte(`,"payload":null}`)...)
+	duplicateAttestation := append(bytes.Clone(encoded[:len(encoded)-1]), []byte(`,"attestation":null}`)...)
+	cases := []struct {
+		name string
+		data []byte
+	}{
+		{name: "empty input", data: nil},
+		{name: "whitespace without a value", data: []byte(" \t\r\n")},
+		{name: "null root", data: []byte(`null`)},
+		{name: "string root", data: []byte(`"document"`)},
+		{name: "number root", data: []byte(`1`)},
+		{name: "boolean root", data: []byte(`true`)},
+		{name: "array root", data: []byte(`[]`)},
+		{name: "empty object", data: []byte(`{}`)},
+		{name: "unknown member", data: unknown},
+		{name: "duplicate payload", data: duplicatePayload},
+		{name: "duplicate attestation", data: duplicateAttestation},
+		{name: "missing payload", data: withoutPayload},
+		{name: "missing attestation", data: withoutAttestation},
+		{name: "null payload", data: nullPayload},
+		{name: "null attestation", data: append(bytes.Clone(withoutAttestation[:len(withoutAttestation)-1]), []byte(`,"attestation":null}`)...)},
+		{name: "payload has scalar type", data: wrongPayloadType},
+		{name: "attestation has scalar type", data: wrongAttestationType},
+		{name: "truncated after opening brace", data: []byte(`{`)},
+		{name: "truncated after payload name", data: []byte(`{"payload":`)},
+		{name: "truncated canonical document", data: encoded[:len(encoded)-1]},
+		{name: "second document trails canonical value", data: append(bytes.Clone(encoded), encoded...)},
+		{name: "one byte above document ceiling", data: leftPadJSON(encoded, RequestDocumentJSONMaximumBytes+1)},
+	}
+	for _, tc := range cases {
+		t.Run(tc.name, func(t *testing.T) {
+			t.Parallel()
+
+			receiver := document
+			if err := receiver.UnmarshalJSON(tc.data); !errors.Is(err, core.ErrJSONContract) {
+				t.Fatalf("json.Unmarshal(%s) error = %v, want errors.Is %v",
+					tc.name, err, core.ErrJSONContract)
+			}
+			if receiver != document {
+				t.Fatalf("json.Unmarshal(%s) mutated receiver = %+v, want preserved %+v",
+					tc.name, receiver, document)
+			}
+		})
+	}
+}
+
+func leftPadJSON(encoded []byte, length int) []byte {
+	if length < len(encoded) {
+		return nil
+	}
+	padded := make([]byte, length)
+	for index := 0; index < length-len(encoded); index++ {
+		padded[index] = ' '
+	}
+	copy(padded[length-len(encoded):], encoded)
+	return padded
+}
+
+// TestSigningDomainClosesItsEntireByteDomain proves only the request and grant
+// namespaces can enter an attestation envelope and that their texts are
+// distinct fixed points of their own parser.
+func TestSigningDomainClosesItsEntireByteDomain(t *testing.T) {
+	t.Parallel()
+	signingDomainWitness[SigningDomain]()
+
+	admitted := 0
+	seen := make(map[string]SigningDomain)
+	for value := 0; value <= 255; value++ {
+		domain := SigningDomain(value)
+		if !domain.IsValid() {
+			if err := domain.Validate(); !errors.Is(err, core.ErrControlPlaneSigningDomain) {
+				t.Fatalf("SigningDomain(%d).Validate() error = %v, want errors.Is %v",
+					value, err, core.ErrControlPlaneSigningDomain)
+			}
+			if domain.String() != "" {
+				t.Fatalf("SigningDomain(%d).String() = %q, want empty", value, domain.String())
+			}
+			continue
+		}
+		admitted++
+		text, err := domain.MarshalText()
+		if err != nil {
+			t.Fatalf("SigningDomain(%d).MarshalText() error = %v, want nil", value, err)
+		}
+		parsed, err := (SigningDomainUnknown).ParseCanonicalText(text)
+		if err != nil || parsed != domain {
+			t.Fatalf("ParseCanonicalText(SigningDomain(%d)) = (%v, %v), want (%v, nil)",
+				value, parsed, err, domain)
+		}
+		encoded, err := domain.MarshalJSON()
+		if err != nil {
+			t.Fatalf("SigningDomain(%d).MarshalJSON() error = %v, want nil", value, err)
+		}
+		var decoded SigningDomain
+		if err := decoded.UnmarshalJSON(encoded); err != nil || decoded != domain {
+			t.Fatalf("SigningDomain.UnmarshalJSON(%d) = (%v, %v), want (%v, nil)",
+				value, decoded, err, domain)
+		}
+		if prior, duplicate := seen[string(text)]; duplicate {
+			t.Fatalf("SigningDomain(%d) and %d share %q", value, prior, text)
+		}
+		seen[string(text)] = domain
+	}
+	if admitted != 2 {
+		t.Fatalf("admitted signing domains = %d, want request and grant", admitted)
+	}
+
+	preserved := SigningDomainGrantV1
+	cases := []struct {
+		name string
+		data []byte
+	}{
+		{name: "empty input", data: nil},
+		{name: "empty namespace", data: []byte(`""`)},
+		{name: "unknown namespace", data: []byte(`"primitive-submission-future"`)},
+		{name: "request namespace with wrong case", data: []byte(`"Primitive-submission-request-2026-1"`)},
+		{name: "request namespace with leading space", data: []byte(`" primitive-submission-request-2026-1"`)},
+		{name: "grant namespace with trailing space", data: []byte(`"primitive-submission-grant-2026-1 "`)},
+		{name: "null value", data: []byte(`null`)},
+		{name: "numeric value", data: []byte(`1`)},
+		{name: "boolean value", data: []byte(`true`)},
+		{name: "array value", data: []byte(`[]`)},
+		{name: "object value", data: []byte(`{}`)},
+		{name: "second value after namespace", data: []byte(`"primitive-submission-request-2026-1" null`)},
+		{name: "namespace exceeds attestation ceiling", data: []byte(`"` + strings.Repeat("x", attest.SigningDomainMaximumBytes+1) + `"`)},
+	}
+	for _, tc := range cases {
+		t.Run(tc.name, func(t *testing.T) {
+			t.Parallel()
+
+			receiver := preserved
+			if err := receiver.UnmarshalJSON(tc.data); !errors.Is(err, core.ErrJSONContract) {
+				t.Fatalf("SigningDomain.UnmarshalJSON(%s) error = %v, want errors.Is %v",
+					tc.name, err, core.ErrJSONContract)
+			}
+			if receiver != preserved {
+				t.Fatalf("SigningDomain.UnmarshalJSON(%s) receiver = %v, want preserved %v",
+					tc.name, receiver, preserved)
+			}
+		})
+	}
+	var nilReceiver *SigningDomain
+	if err := nilReceiver.UnmarshalJSON([]byte(`"primitive-submission-request-2026-1"`)); !errors.Is(err, core.ErrJSONContract) {
+		t.Fatalf("nil SigningDomain.UnmarshalJSON() error = %v, want errors.Is %v",
+			err, core.ErrJSONContract)
+	}
+}
+
+// TestIssueRequestReturnsNeutralOnEveryInvalidIngress proves no signer or
+// invalid payload can leave behind a partially authoritative document.
+func TestIssueRequestReturnsNeutralOnEveryInvalidIngress(t *testing.T) {
+	t.Parallel()
+
+	_, signer := testSigningKey(t, 0x75)
+	valid := testRequestPayload(t, grantFixtureRequest{})
+	cases := []struct {
+		name     string
+		issuance RequestIssuance
+	}{
+		{name: "zero payload", issuance: RequestIssuance{Signer: signer}},
+		{name: "nil signer", issuance: RequestIssuance{Payload: valid}},
+	}
+	for _, tc := range cases {
+		t.Run(tc.name, func(t *testing.T) {
+			t.Parallel()
+
+			document, err := IssueRequest(tc.issuance)
+			if !errors.Is(err, core.ErrControlPlaneContract) || document != (RequestDocument{}) {
+				t.Fatalf("IssueRequest(%s) = (%+v, %v), want zero and errors.Is %v",
+					tc.name, document, err, core.ErrControlPlaneContract)
+			}
+		})
+	}
+}
+
+func TestRequestNilJSONReceiversRefuseWithoutAuthority(t *testing.T) {
+	t.Parallel()
+
+	cases := []struct {
+		run  func() error
+		name string
+	}{
+		{name: "request payload", run: func() error {
+			var receiver *RequestPayload
+			return receiver.UnmarshalJSON([]byte(`{}`))
+		}},
+		{name: "request document", run: func() error {
+			var receiver *RequestDocument
+			return receiver.UnmarshalJSON([]byte(`{}`))
+		}},
+		{name: "request commitment", run: func() error {
+			var receiver *RequestCommitment
+			return receiver.UnmarshalJSON([]byte(`"` + strings.Repeat("1", 64) + `"`))
+		}},
+	}
+	for _, tc := range cases {
+		t.Run(tc.name, func(t *testing.T) {
+			t.Parallel()
+
+			if err := tc.run(); !errors.Is(err, core.ErrJSONContract) {
+				t.Fatalf("nil %s JSON receiver error = %v, want errors.Is %v",
+					tc.name, err, core.ErrJSONContract)
+			}
+		})
+	}
+}

@@ -1034,7 +1034,8 @@ starts.
 
 ## 15. Exact package graph
 
-The catalog contains **27 production packages** plus test-only `testserial`.
+The catalog contains **29 production packages** plus test-only `testserial` and
+`controlplanetest`.
 Every listed production import is required and MUST be used semantically. Every
 unlisted Primitive sibling import is forbidden.
 
@@ -1068,6 +1069,9 @@ The order is dependency depth, not a command to build every package in a row.
 | 5 | `timeproof` | RFC 3161 request construction, response verification, and replay | `core`, `temporal`, `keygen` | none |
 | 5 | `cloudidentity` | Bounded Google Cloud or AWS outbound identity-token acquisition and redacted disclosure | `core`, `temporal`, `exchange` | none |
 | 6 | `controlplane` | Signed control-plane request and response documents, their binding to one exact request, product status, and usage watermark | `core`, `controlwire`, `attest`, `lease`, `temporal`, `receipt` | none |
+| 6 | `submission` | Authenticated evidence declarations and authority grants binding one exact request, upload capability, lifetime, and retention promise | `core`, `attest`, `controlwire`, `objectstore`, `temporal` | none |
+| 7 | `submissionauth` | Installation-certificate binding and device authentication for one evidence-submission request | `core`, `attest`, `controlplane`, `submission` | `controlplanetest`, `controlwire` |
+| 7 | `controlplanetest` | Real authority-signed installation certificate fixtures for hostile control-plane tests | `core`, `controlplane`, `controlwire`, `lease`, `receipt`, `temporal` | none |
 | 6 | `deploy` | Exact create-only GCS publication of one authenticated release and its metadata | `core`, `objectstore`, `release` | `attest`, `exchange`, `temporal` |
 | 6 | `upgrade` | Crash-recoverable installation, activation, startup truth, rollback, and recovery | `core`, `filestore`, `hostfacts`, `objectstore`, `release`, `temporal` | none |
 | 6 | `gcsobjects` | Authenticated Google Cloud Storage create-only served-media and stored-file writes, digest-bound bounded reads, and generation-matched permanent exact or prefix deletion through the official SDK | `core`, `contextstate`, `temporal`, `objectstore` | none |
@@ -1182,7 +1186,7 @@ and every real-world touch routes through Primitive.
 | --- | --- |
 | Absorbed | `update` into `release` |
 | Added from consumer evidence | `process`, `deploy` |
-| Deferred | `callbudget`, `cmd/keygen`, `controlstate`, `filestoretest`, `rate`, `redactiontest`, `register`, `status`, `submission` |
+| Deferred | `callbudget`, `cmd/keygen`, `controlstate`, `filestoretest`, `rate`, `redactiontest`, `register`, `status` |
 | Retired by clean redesign | `unleash` |
 | Retired | `cmd/capabilityinventory`, `probe` |
 

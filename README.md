@@ -70,6 +70,21 @@ flowchart TD
     controlplane --> lease
     controlplane --> temporal
     controlplane --> receipt
+    submission[submission] --> core
+    submission --> attest
+    submission --> controlwire
+    submission --> objectstore
+    submission --> temporal
+    submissionauth[submissionauth] --> core
+    submissionauth --> attest
+    submissionauth --> controlplane
+    submissionauth --> submission
+    controlplanetest[controlplanetest] --> core
+    controlplanetest --> controlplane
+    controlplanetest --> controlwire
+    controlplanetest --> lease
+    controlplanetest --> receipt
+    controlplanetest --> temporal
     process[process] --> core
     process --> contextstate
     process --> temporal
@@ -115,7 +130,9 @@ test-only edges in the same compiler-owned catalog when its real ingress value
 cannot be constructed without the package that produces it. A declared test
 edge grants no production dependency, counts against the same per-package
 coupling ceiling, and is rejected when no test source uses it. `gate` uses
-`attest` and `temporal` to prove real signed leases, `process` uses
+`attest` and `temporal` to prove real signed leases, `submissionauth` uses
+`controlplanetest` and `controlwire` to prove real credentialed requests,
+`process` uses
 `testserial` for process-wide isolation, and `deploy` uses `attest`, `exchange`,
 and `temporal` to prove a real authenticated manifest and transfer substrate.
 

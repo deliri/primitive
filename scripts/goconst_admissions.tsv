@@ -6,10 +6,10 @@ download	Objectstore transfer direction and Upgrade failure phase are distinct c
 expired	Release availability and Lease assessment are distinct closed domains.
 failed	Shutdown step outcome and Upgrade trial outcome are distinct closed domains.
 generation receiver is nil	Lease generation and Release latest generation own distinct receiver contracts.
-interrupt	Process cancel signal and Shutdown signal kind are distinct closed domains.
 not-yet-valid	Release availability and Lease assessment are distinct closed domains.
 object	Core JSON container syntax and Receipt subject kind are distinct protocol facts.
+present	Process path presence and Release selection are distinct closed domains.
 replay	Receipt evidence kind and Release availability state are distinct closed domains.
 revision receiver is nil	Lease and Release revisions own distinct receiver contracts.
-terminate	Process cancel signal and Shutdown signal kind are distinct closed domains.
+submission	Core package identity and Receipt evidence kind are distinct compiler-owned domains.
 unlimited	Host workload capacity and cgroup limit observations are distinct closed domains.

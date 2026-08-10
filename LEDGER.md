@@ -1,8 +1,50 @@
 # Primitive 2026 Ledger
 
-Last updated: `2026-08-09`
+Last updated: `2026-08-10`
 
 ## Current
+
+- published blind evidence-submission agreement, 2026-08-10, published
+  `v2026.0.54` in one commit. `submission` now owns the one product-blind
+  agreement shared by Bug, Witness, Peachfuzz, and their control-plane
+  authority: a device signs an exact content type, nonzero byte length,
+  SHA-256, CRC32C, build identity, revision, and request nonce; an authority
+  signs the exact request commitment, a distinct nonzero authorization nonce,
+  the upload-capability commitment, issued-at and expiry instants, and a
+  retain-until promise. The separately transported bearer must match both the
+  signed commitment and exact expiry, and a grant is admitted only from
+  issuance through the nanosecond before expiry. `submissionauth` authenticates
+  the authority-issued installation certificate before its nominated device
+  key can authenticate the request. Neither package knows product evidence,
+  plan policy, server implementation, or transfer mechanics; Objectstore
+  remains the transfer owner and OGS remains the commercial decision owner.
+  Controlwire gained the shared `/submissions` route family. The new
+  `controlplanetest` test-support package constructs genuine authority-signed
+  installation certificates through the real nested owners without granting a
+  production dependency. The architecture catalog now records 29 production
+  packages, two test-support packages, 90 production edges, and nine test-only
+  edges. Process and Shutdown also consume Core-owned interrupt and terminate
+  labels, retiring two duplicated literals without raising the constants
+  admission ceiling.
+  Proof includes every offering through the same request and credential path;
+  wrong authority and device keys; independent signed-field, request,
+  capability, and expiry substitutions; every lifetime member and both strict
+  one-nanosecond boundaries; all 32 nonce byte positions; canonical digest and
+  nonce attacks; ten accepted and more than twenty rejected framing cases at
+  each document boundary; exact maximum-minus-one, maximum, and
+  maximum-plus-one byte limits; nil and zero receivers; neutral issuance
+  failures; receiver preservation; and compiler-visible data-flow inventories.
+  Release proof: `go fix ./...`, `go vet ./...`, `staticcheck ./...`,
+  `deadcode -test ./...`, `witness-lint ./...`, `nilaway ./...`, and
+  `go test ./...` all completed cleanly. Additional preflight checks for
+  formatting, field alignment, production complexity, constants, security,
+  and vulnerabilities were clean. Consumer surgery remains deliberately
+  outside Primitive: Witness gets an explicit source-free custody-proof upload
+  command, Bug gets an explicit red/green process-testimony upload command,
+  Peachfuzz invokes the same agreement automatically for its selected capture,
+  and OGS mounts the authority handler that applies its existing plan and gate
+  booleans before issuing a grant. Those four direct adapters are the next
+  eligible frontier.
 
 - published object address, 2026-08-09, published `v2026.0.53` in one commit.
   `gcsobjects` would publish an object and then decline to say where it had

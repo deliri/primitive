@@ -12,11 +12,11 @@ const (
 	// PrimitivePackagePathPrefix prefixes every Primitive package import path.
 	PrimitivePackagePathPrefix = PrimitiveModulePath + "/"
 	// PrimitivePackageCount is the number of packages in the complete catalog.
-	PrimitivePackageCount = 28
+	PrimitivePackageCount = 31
 	// PrimitiveDirectImportCount is the number of admitted direct import edges.
-	PrimitiveDirectImportCount = 75
+	PrimitiveDirectImportCount = 90
 	// PrimitiveDirectTestImportCount is the number of admitted test-only edges.
-	PrimitiveDirectTestImportCount = 7
+	PrimitiveDirectTestImportCount = 9
 	// PrimitiveMaximumDirectImports caps direct sibling imports per package.
 	PrimitiveMaximumDirectImports = 6
 )
@@ -63,6 +63,13 @@ const (
 	PackageControlWire
 	// PackageControlPlane identifies the signed control-plane document package.
 	PackageControlPlane
+	// PackageSubmission identifies evidence-submission authorization documents.
+	PackageSubmission
+	// PackageSubmissionAuth identifies installation-credential binding for one
+	// evidence-submission request.
+	PackageSubmissionAuth
+	// PackageControlPlaneTest identifies real control-plane test fixtures.
+	PackageControlPlaneTest
 	// PackageProcess identifies the process package.
 	PackageProcess
 	// PackageRelease identifies the release package.
@@ -164,6 +171,9 @@ func PrimitiveArchitecture() ArchitectureCatalog {
 			{Identity: PackageReceipt, Kind: PackageKindProduction},
 			{Identity: PackageControlWire, Kind: PackageKindProduction},
 			{Identity: PackageControlPlane, Kind: PackageKindProduction},
+			{Identity: PackageSubmission, Kind: PackageKindProduction},
+			{Identity: PackageSubmissionAuth, Kind: PackageKindProduction},
+			{Identity: PackageControlPlaneTest, Kind: PackageKindTestSupport},
 			{Identity: PackageProcess, Kind: PackageKindProduction},
 			{Identity: PackageRelease, Kind: PackageKindProduction},
 			{Identity: PackageShutdown, Kind: PackageKindProduction},
@@ -217,6 +227,21 @@ func PrimitiveArchitecture() ArchitectureCatalog {
 			{Importer: PackageControlPlane, Imported: PackageLease},
 			{Importer: PackageControlPlane, Imported: PackageTemporal},
 			{Importer: PackageControlPlane, Imported: PackageReceipt},
+			{Importer: PackageSubmission, Imported: PackageCore},
+			{Importer: PackageSubmission, Imported: PackageAttest},
+			{Importer: PackageSubmission, Imported: PackageControlWire},
+			{Importer: PackageSubmission, Imported: PackageObjectStore},
+			{Importer: PackageSubmission, Imported: PackageTemporal},
+			{Importer: PackageSubmissionAuth, Imported: PackageCore},
+			{Importer: PackageSubmissionAuth, Imported: PackageAttest},
+			{Importer: PackageSubmissionAuth, Imported: PackageControlPlane},
+			{Importer: PackageSubmissionAuth, Imported: PackageSubmission},
+			{Importer: PackageControlPlaneTest, Imported: PackageCore},
+			{Importer: PackageControlPlaneTest, Imported: PackageControlPlane},
+			{Importer: PackageControlPlaneTest, Imported: PackageControlWire},
+			{Importer: PackageControlPlaneTest, Imported: PackageLease},
+			{Importer: PackageControlPlaneTest, Imported: PackageReceipt},
+			{Importer: PackageControlPlaneTest, Imported: PackageTemporal},
 			{Importer: PackageProcess, Imported: PackageCore},
 			{Importer: PackageProcess, Imported: PackageContextState},
 			{Importer: PackageProcess, Imported: PackageTemporal},
@@ -266,6 +291,8 @@ func PrimitiveArchitecture() ArchitectureCatalog {
 			{Importer: PackageDeploy, Imported: PackageAttest},
 			{Importer: PackageDeploy, Imported: PackageExchange},
 			{Importer: PackageDeploy, Imported: PackageTemporal},
+			{Importer: PackageSubmissionAuth, Imported: PackageControlPlaneTest},
+			{Importer: PackageSubmissionAuth, Imported: PackageControlWire},
 		},
 	}
 }
@@ -478,9 +505,9 @@ func (c PackageContract) Validate() error {
 	if err := c.Kind.Validate(); err != nil {
 		return err
 	}
-	if c.Identity == PackageTestSerial {
+	if c.Identity == PackageTestSerial || c.Identity == PackageControlPlaneTest {
 		if c.Kind != PackageKindTestSupport {
-			return architectureContractError("testserial must be classified as test support")
+			return architectureContractError("test-support package must be classified as test support")
 		}
 		return nil
 	}
@@ -499,34 +526,37 @@ func packagePurposeText(identity PackageIdentity) string {
 
 func packagePurposeTexts() [packageIdentityLimit]string {
 	return [...]string{
-		PackageCore:          "Shared nominal values, errors, paths, protocol facts, numeric and encoding contracts",
-		PackageAttest:        "Canonical Ed25519 envelopes and proof-carrying verification",
-		PackageContextState:  "Nil-safe context ingress and terminal observation",
-		PackageCurrency:      "Exact minor-unit values, arithmetic, ordering, and decimal projection",
-		PackageGarble:        "Tool identity, seed custody and derivation, and typed build intent",
-		PackageKeygen:        "Exact secret and Ed25519 key generation",
-		PackageTestSerial:    "Test-only isolation declaration and analyzer contract",
-		PackageFileLock:      "One advisory whole-file lock on one already-open file",
-		PackageFilestore:     "Rooted OS handles, confinement, inspection, durability, activation, append rotation, rename, and recovery",
-		PackageHostFacts:     "Host disk, memory, cgroup, tree, and OOM observations",
-		PackageTemporal:      "Time, duration, arithmetic, persistence, waits, and tickers",
-		PackageExchange:      "Bounded client and server boundary policy over net/http",
-		PackageFuzzFinder:    "Bounded classification and observation of Go-generated fuzz artifacts",
-		PackageLease:         "Signed lease timeline, assessment, renewal, and monotonic advance",
-		PackageGate:          "Pure CLI-side new-work authorization over one authentic Lease assessment",
-		PackageReceipt:       "Authenticated accepted-evidence facts and fixed-size monotonic watermarks",
-		PackageControlWire:   "Shared control-wire revision, request nonce, one-time registration token, policy cursor, and the control exchange policy",
-		PackageControlPlane:  "Signed control-plane request and response documents, their binding to one exact request, product status, and usage watermark",
-		PackageProcess:       "Argv, environment, containment, bounded output, exit, and reaping over os/exec",
-		PackageRelease:       "Clean repository binding, verified build tools, deterministic Garble build and process plans, executable inspection, signed tool and metadata provenance, immutable artifacts, manifests, Latest, and selection",
-		PackageShutdown:      "Signal observation and phased bounded cleanup",
-		PackageObjectStore:   "Bounded vendor-specified S3, GCS, or Cloudflare Images transfers through issued HTTPS capabilities, with integrity and provider evidence",
-		PackageTimeProof:     "RFC 3161 request construction, response verification, and replay",
-		PackageCloudIdentity: "Bounded Google Cloud or AWS outbound identity-token acquisition and redacted disclosure",
-		PackageDeploy:        "Exact create-only GCS publication of one authenticated release and its metadata",
-		PackageUpgrade:       "Crash-recoverable installation, activation, startup truth, rollback, and recovery",
-		PackageGCSObjects:    "Authenticated Google Cloud Storage create-only served-media and stored-file writes, digest-bound bounded reads, and generation-matched permanent exact or prefix deletion through the official SDK",
-		PackageID:            "Canonical UUIDv7 and ULID time-ordered identifiers from one observed instant and caller-supplied entropy",
+		PackageCore:             "Shared nominal values, errors, paths, protocol facts, numeric and encoding contracts",
+		PackageAttest:           "Canonical Ed25519 envelopes and proof-carrying verification",
+		PackageContextState:     "Nil-safe context ingress and terminal observation",
+		PackageCurrency:         "Exact minor-unit values, arithmetic, ordering, and decimal projection",
+		PackageGarble:           "Tool identity, seed custody and derivation, and typed build intent",
+		PackageKeygen:           "Exact secret and Ed25519 key generation",
+		PackageTestSerial:       "Test-only isolation declaration and analyzer contract",
+		PackageFileLock:         "One advisory whole-file lock on one already-open file",
+		PackageFilestore:        "Rooted OS handles, confinement, inspection, durability, activation, append rotation, rename, and recovery",
+		PackageHostFacts:        "Host disk, memory, cgroup, tree, and OOM observations",
+		PackageTemporal:         "Time, duration, arithmetic, persistence, waits, and tickers",
+		PackageExchange:         "Bounded client and server boundary policy over net/http",
+		PackageFuzzFinder:       "Bounded classification and observation of Go-generated fuzz artifacts",
+		PackageLease:            "Signed lease timeline, assessment, renewal, and monotonic advance",
+		PackageGate:             "Pure CLI-side new-work authorization over one authentic Lease assessment",
+		PackageReceipt:          "Authenticated accepted-evidence facts and fixed-size monotonic watermarks",
+		PackageControlWire:      "Shared control-wire revision, request nonce, one-time registration token, policy cursor, and the control exchange policy",
+		PackageControlPlane:     "Signed control-plane request and response documents, their binding to one exact request, product status, and usage watermark",
+		PackageSubmission:       "Authenticated evidence declarations and authority grants binding one exact request, upload capability, lifetime, and retention promise",
+		PackageSubmissionAuth:   "Installation-certificate binding and device authentication for one evidence-submission request",
+		PackageControlPlaneTest: "Real authority-signed installation certificate fixtures for hostile control-plane tests",
+		PackageProcess:          "Argv, environment, containment, bounded output, exit, and reaping over os/exec",
+		PackageRelease:          "Clean repository binding, verified build tools, deterministic Garble build and process plans, executable inspection, signed tool and metadata provenance, immutable artifacts, manifests, Latest, and selection",
+		PackageShutdown:         "Signal observation and phased bounded cleanup",
+		PackageObjectStore:      "Bounded vendor-specified S3, GCS, or Cloudflare Images transfers through issued HTTPS capabilities, with integrity and provider evidence",
+		PackageTimeProof:        "RFC 3161 request construction, response verification, and replay",
+		PackageCloudIdentity:    "Bounded Google Cloud or AWS outbound identity-token acquisition and redacted disclosure",
+		PackageDeploy:           "Exact create-only GCS publication of one authenticated release and its metadata",
+		PackageUpgrade:          "Crash-recoverable installation, activation, startup truth, rollback, and recovery",
+		PackageGCSObjects:       "Authenticated Google Cloud Storage create-only served-media and stored-file writes, digest-bound bounded reads, and generation-matched permanent exact or prefix deletion through the official SDK",
+		PackageID:               "Canonical UUIDv7 and ULID time-ordered identifiers from one observed instant and caller-supplied entropy",
 	}
 }
 
@@ -583,6 +613,9 @@ func packageIdentityTexts() [packageIdentityLimit]string {
 		"receipt",
 		"controlwire",
 		"controlplane",
+		"submission",
+		"submissionauth",
+		"controlplanetest",
 		"process",
 		"release",
 		"shutdown",

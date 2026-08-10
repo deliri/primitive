@@ -14,6 +14,7 @@ transaction run this same stack, so a wire type has exactly one home.
 | `cloudidentity` | Acquiring one bounded outbound identity-token bearer from GCP metadata or regional AWS STS. |
 | `contextstate` | Bounded observation of context terminal state. |
 | `controlplane` | The signed documents a product control plane and its installed clients exchange: registration, installation certificates, check-ins, response headers, product status, verification results. |
+| `controlplanetest` | Test-only issuance of genuine authority-signed installation certificate fixtures through the real Controlplane, Controlwire, Lease, Receipt, and Temporal contracts. Production cannot import it. |
 | `controlwire` | The scalar values both ends must agree on byte for byte before anything else: request nonces, registration tokens and verifiers, revisions, policy cursors, route contracts, and the control exchange policy (timeouts, retry, redirect). |
 | `core` | The typed bounded contracts shared by all of Primitive: error identities, byte counts, digests, streaming SHA-256 (`DigestWriter`, an ordinary `io.Writer` yielding one digest and the exact count of the bytes behind it), keys, offerings, build identity, paths, HTTP endpoints and status codes, strict JSON. |
 | `currency` | Exact signed minor-unit values, checked same-currency arithmetic, ordering, bounded decimal and JSON projection. |
@@ -34,6 +35,8 @@ transaction run this same stack, so a wire type has exactly one home.
 | `receipt` | Authenticated accepted-evidence facts and one fixed-size monotonic watermark for later controlstate composition. Account identity. |
 | `release` | Verifying a clean repository at an exact commit with exact build tools; deterministic fixed-target Garble build and process plans; artifacts, integrity, embedded build identity. |
 | `shutdown` | Typed bounded cleanup and signal observation over context, time, and `os/signal`. |
+| `submission` | Device-authenticated evidence declarations and authority-signed grants that bind one exact request, upload-capability commitment, short-lived authorization nonce and expiry, and retention promise. It decides no product plan and performs no transfer. |
+| `submissionauth` | Binding a signed Submission request to an authority-authenticated installation certificate, then admitting only the device key that certificate names. It owns no evidence or commercial decision. |
 | `temporal` | Exact typed nanosecond values and validated effects over real context and time. Instants, durations, observation. |
 | `testserial` | Declaring why a Go test must remain non-parallel. |
 | `timeproof` | Preparing and verifying bounded RFC 3161 timestamp evidence. FreeTSA and DigiCert authorities, policy OIDs, CMS parsing, nonces, refusals. |
@@ -51,7 +54,8 @@ transaction run this same stack, so a wire type has exactly one home.
 | a full-width random seed or salt integer | `keygen.RandomUint64` — never `rand.Int` from a product; a range-bounded uniform draw has no door yet, so bring that need to keygen rather than writing a modulo |
 | an HTTP call with timeouts or retries | `exchange`, and `controlwire.ControlExchangePolicy` for control routes |
 | the client `exchange.NewClient` demands, when the standard transport is all you need | `exchange.NewStandardClient` — never an `&http.Client{}` literal from a product |
-| a control-plane request or response | `controlplane` — registration and check-in are the two shapes |
+| a registration or usage check-in | `controlplane` |
+| permission to submit one declared evidence object | `submissionauth` authenticates the credentialed device request; `submission` binds the authority grant before `objectstore` transfers it |
 | a nonce, token, revision, or route path | `controlwire` |
 | writing a file that must survive power loss | `filestore` |
 | stopping a second process from running | `filelock` — never a hand-rolled `syscall.Flock` |

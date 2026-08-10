@@ -8,7 +8,7 @@ import (
 	"github.com/deliri/primitive/v2026/exchange"
 )
 
-// TestRouteFamilyClosesItsEntireByteDomain walks every backing value: the two
+// TestRouteFamilyClosesItsEntireByteDomain walks every backing value: the three
 // published families must validate, agree with IsValid, and carry unique
 // nonempty path suffixes, while all two hundred fifty four others refuse and
 // render no suffix a request could be built from.
@@ -41,8 +41,8 @@ func TestRouteFamilyClosesItsEntireByteDomain(t *testing.T) {
 		}
 		seen[suffix] = family
 	}
-	if admitted != 2 {
-		t.Fatalf("admitted route families = %d, want exactly registrations and check-ins", admitted)
+	if admitted != 3 {
+		t.Fatalf("admitted route families = %d, want registrations, check-ins, and submissions", admitted)
 	}
 }
 
@@ -55,7 +55,9 @@ func TestRouteFamilyClosesItsEntireByteDomain(t *testing.T) {
 func TestRouteContractProjectsExactlyItsTwoFacts(t *testing.T) {
 	t.Parallel()
 
-	families := []RouteFamily{RouteFamilyRegistrations, RouteFamilyCheckIns}
+	families := []RouteFamily{
+		RouteFamilyRegistrations, RouteFamilyCheckIns, RouteFamilySubmissions,
+	}
 	for value := 0; value <= 255; value++ {
 		offering := core.Offering(value)
 		if !offering.IsValid() {

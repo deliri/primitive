@@ -13,6 +13,7 @@ const (
 
 	routeRegistrationsSuffix = "/registrations"
 	routeCheckInsSuffix      = "/check-ins"
+	routeSubmissionsSuffix   = "/submissions"
 )
 
 // RouteFamily is the closed set of control-plane route families.
@@ -25,6 +26,8 @@ const (
 	RouteFamilyRegistrations
 	// RouteFamilyCheckIns is every later exchange, all of which present one.
 	RouteFamilyCheckIns
+	// RouteFamilySubmissions requests authority for one declared evidence object.
+	RouteFamilySubmissions
 	routeFamilyLimit
 )
 
@@ -33,6 +36,7 @@ func routeSuffixes() [routeFamilyLimit]string {
 		RouteFamilyUnknown:       "",
 		RouteFamilyRegistrations: routeRegistrationsSuffix,
 		RouteFamilyCheckIns:      routeCheckInsSuffix,
+		RouteFamilySubmissions:   routeSubmissionsSuffix,
 	}
 }
 

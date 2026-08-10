@@ -110,8 +110,8 @@ const (
 
 func signalKindLabels() [signalKindLimit]string {
 	return [...]string{
-		SignalKindInterrupt: "interrupt",
-		SignalKindTerminate: "terminate",
+		SignalKindInterrupt: core.SignalInterruptLabel,
+		SignalKindTerminate: core.SignalTerminateLabel,
 		SignalKindHangup:    "hangup",
 	}
 }

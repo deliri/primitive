@@ -98,8 +98,8 @@ func cancelSignalDiagnostics() [cancelSignalLimit]string {
 	return [...]string{
 		CancelSignalKill:      "kill",
 		CancelSignalQuit:      "quit",
-		CancelSignalInterrupt: "interrupt",
-		CancelSignalTerminate: "terminate",
+		CancelSignalInterrupt: core.SignalInterruptLabel,
+		CancelSignalTerminate: core.SignalTerminateLabel,
 	}
 }
 
