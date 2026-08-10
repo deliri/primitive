@@ -12,13 +12,13 @@ const (
 	// PrimitivePackagePathPrefix prefixes every Primitive package import path.
 	PrimitivePackagePathPrefix = PrimitiveModulePath + "/"
 	// PrimitivePackageCount is the number of packages in the complete catalog.
-	PrimitivePackageCount = 31
+	PrimitivePackageCount = 35
 	// PrimitiveDirectImportCount is the number of admitted direct import edges.
-	PrimitiveDirectImportCount = 90
+	PrimitiveDirectImportCount = 115
 	// PrimitiveDirectTestImportCount is the number of admitted test-only edges.
-	PrimitiveDirectTestImportCount = 9
+	PrimitiveDirectTestImportCount = 14
 	// PrimitiveMaximumDirectImports caps direct sibling imports per package.
-	PrimitiveMaximumDirectImports = 6
+	PrimitiveMaximumDirectImports = 9
 )
 
 // PackageIdentity is a closed identity for a package in Primitive's catalog.
@@ -90,6 +90,14 @@ const (
 	PackageGCSObjects
 	// PackageID identifies the time-ordered identifier package.
 	PackageID
+	// PackageChit identifies immutable custody tickets and bounded catalogs.
+	PackageChit
+	// PackageRetrieval identifies authenticated exact-object retrieval grants.
+	PackageRetrieval
+	// PackageRetrievalAuth identifies installation binding for retrieval requests.
+	PackageRetrievalAuth
+	// PackagePayment identifies signed payment receipts and bounded catalogs.
+	PackagePayment
 	packageIdentityLimit
 )
 
@@ -184,6 +192,10 @@ func PrimitiveArchitecture() ArchitectureCatalog {
 			{Identity: PackageUpgrade, Kind: PackageKindProduction},
 			{Identity: PackageGCSObjects, Kind: PackageKindProduction},
 			{Identity: PackageID, Kind: PackageKindProduction},
+			{Identity: PackageChit, Kind: PackageKindProduction},
+			{Identity: PackageRetrieval, Kind: PackageKindProduction},
+			{Identity: PackageRetrievalAuth, Kind: PackageKindProduction},
+			{Identity: PackagePayment, Kind: PackageKindProduction},
 		},
 		imports: [PrimitiveDirectImportCount]DirectImportContract{
 			{Importer: PackageAttest, Imported: PackageCore},
@@ -229,9 +241,12 @@ func PrimitiveArchitecture() ArchitectureCatalog {
 			{Importer: PackageControlPlane, Imported: PackageReceipt},
 			{Importer: PackageSubmission, Imported: PackageCore},
 			{Importer: PackageSubmission, Imported: PackageAttest},
+			{Importer: PackageSubmission, Imported: PackageChit},
 			{Importer: PackageSubmission, Imported: PackageControlWire},
+			{Importer: PackageSubmission, Imported: PackageID},
 			{Importer: PackageSubmission, Imported: PackageObjectStore},
 			{Importer: PackageSubmission, Imported: PackageTemporal},
+			{Importer: PackageSubmission, Imported: PackageReceipt},
 			{Importer: PackageSubmissionAuth, Imported: PackageCore},
 			{Importer: PackageSubmissionAuth, Imported: PackageAttest},
 			{Importer: PackageSubmissionAuth, Imported: PackageControlPlane},
@@ -282,6 +297,32 @@ func PrimitiveArchitecture() ArchitectureCatalog {
 
 			{Importer: PackageID, Imported: PackageCore},
 			{Importer: PackageID, Imported: PackageTemporal},
+
+			{Importer: PackageChit, Imported: PackageAttest},
+			{Importer: PackageChit, Imported: PackageCore},
+			{Importer: PackageChit, Imported: PackageID},
+			{Importer: PackageChit, Imported: PackageReceipt},
+			{Importer: PackageChit, Imported: PackageTemporal},
+
+			{Importer: PackageRetrieval, Imported: PackageAttest},
+			{Importer: PackageRetrieval, Imported: PackageChit},
+			{Importer: PackageRetrieval, Imported: PackageControlWire},
+			{Importer: PackageRetrieval, Imported: PackageCore},
+			{Importer: PackageRetrieval, Imported: PackageFilestore},
+			{Importer: PackageRetrieval, Imported: PackageObjectStore},
+			{Importer: PackageRetrieval, Imported: PackageTemporal},
+
+			{Importer: PackageRetrievalAuth, Imported: PackageAttest},
+			{Importer: PackageRetrievalAuth, Imported: PackageControlPlane},
+			{Importer: PackageRetrievalAuth, Imported: PackageCore},
+			{Importer: PackageRetrievalAuth, Imported: PackageRetrieval},
+
+			{Importer: PackagePayment, Imported: PackageAttest},
+			{Importer: PackagePayment, Imported: PackageCore},
+			{Importer: PackagePayment, Imported: PackageCurrency},
+			{Importer: PackagePayment, Imported: PackageID},
+			{Importer: PackagePayment, Imported: PackageReceipt},
+			{Importer: PackagePayment, Imported: PackageTemporal},
 		},
 		testImports: [PrimitiveDirectTestImportCount]DirectTestImportContract{
 			{Importer: PackageGate, Imported: PackageAttest},
@@ -293,6 +334,11 @@ func PrimitiveArchitecture() ArchitectureCatalog {
 			{Importer: PackageDeploy, Imported: PackageTemporal},
 			{Importer: PackageSubmissionAuth, Imported: PackageControlPlaneTest},
 			{Importer: PackageSubmissionAuth, Imported: PackageControlWire},
+			{Importer: PackageSubmissionAuth, Imported: PackageChit},
+			{Importer: PackageRetrievalAuth, Imported: PackageControlPlaneTest},
+			{Importer: PackageRetrievalAuth, Imported: PackageControlWire},
+			{Importer: PackageRetrieval, Imported: PackageExchange},
+			{Importer: PackageRetrieval, Imported: PackageReceipt},
 		},
 	}
 }
@@ -544,7 +590,7 @@ func packagePurposeTexts() [packageIdentityLimit]string {
 		PackageReceipt:          "Authenticated accepted-evidence facts and fixed-size monotonic watermarks",
 		PackageControlWire:      "Shared control-wire revision, request nonce, one-time registration token, policy cursor, and the control exchange policy",
 		PackageControlPlane:     "Signed control-plane request and response documents, their binding to one exact request, product status, and usage watermark",
-		PackageSubmission:       "Authenticated evidence declarations and authority grants binding one exact request, upload capability, lifetime, and retention promise",
+		PackageSubmission:       "Authenticated evidence declarations and portable manifest intent, with authority grants binding one exact request, upload capability, lifetime, and retention promise",
 		PackageSubmissionAuth:   "Installation-certificate binding and device authentication for one evidence-submission request",
 		PackageControlPlaneTest: "Real authority-signed installation certificate fixtures for hostile control-plane tests",
 		PackageProcess:          "Argv, environment, containment, bounded output, exit, and reaping over os/exec",
@@ -557,6 +603,10 @@ func packagePurposeTexts() [packageIdentityLimit]string {
 		PackageUpgrade:          "Crash-recoverable installation, activation, startup truth, rollback, and recovery",
 		PackageGCSObjects:       "Authenticated Google Cloud Storage create-only served-media and stored-file writes, digest-bound bounded reads, and generation-matched permanent exact or prefix deletion through the official SDK",
 		PackageID:               "Canonical UUIDv7 and ULID time-ordered identifiers from one observed instant and caller-supplied entropy",
+		PackageChit:             "Authority-signed immutable custody tickets, streaming manifest closure, retention state, and bounded customer catalogs",
+		PackageRetrieval:        "Device-signed exact-object requests, authority-signed expiring download capabilities bound to authenticated chit manifests, and atomic exact-file retrieval execution",
+		PackageRetrievalAuth:    "Installation-certificate binding and device authentication for one evidence-retrieval request",
+		PackagePayment:          "Authority-signed exact payment receipts and bounded newest-first customer receipt catalogs",
 	}
 }
 
@@ -626,6 +676,10 @@ func packageIdentityTexts() [packageIdentityLimit]string {
 		"upgrade",
 		"gcsobjects",
 		"id",
+		"chit",
+		"retrieval",
+		"retrievalauth",
+		"payment",
 	}
 }
 

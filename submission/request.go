@@ -22,10 +22,11 @@ const (
 
 // RequestPayload is the exact declaration one installed build signs.
 type RequestPayload struct {
+	Manifest    ManifestIntent           `json:"manifest"`
 	Declaration Declaration              `json:"declaration"`
 	Build       core.BuildIdentity       `json:"build"`
-	Revision    controlwire.Revision     `json:"revision"`
 	Nonce       controlwire.RequestNonce `json:"request_nonce"`
+	Revision    controlwire.Revision     `json:"revision"`
 }
 
 // RequestDocument carries one device-signed declaration. Which device key is
@@ -72,7 +73,8 @@ type (
 // Validate closes every signed request fact.
 func (p RequestPayload) Validate() error {
 	if err := errors.Join(
-		p.Declaration.Validate(), p.Build.Validate(), p.Revision.Validate(), p.Nonce.Validate(),
+		p.Declaration.Validate(), p.Manifest.Validate(), p.Build.Validate(),
+		p.Revision.Validate(), p.Nonce.Validate(),
 	); err != nil {
 		return contractError(err)
 	}

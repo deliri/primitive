@@ -63,6 +63,10 @@ var (
 	_ ValidatedJSONMarshaler = ReleaseVersion{}
 	_ ValidatedJSONMarshaler = BuildCommit{}
 	_ ValidatedJSONMarshaler = BuildIdentity{}
+	_ ValidatedJSONMarshaler = CatalogPageLimit{}
+	_ ValidatedJSONMarshaler = CatalogSelectionKind(0)
+	_ ValidatedJSONMarshaler = CatalogPositionKind(0)
+	_ ValidatedJSONMarshaler = CatalogContinuationState(0)
 )
 
 // Off-wire enums are bound to the shared interface here so that the marker is a

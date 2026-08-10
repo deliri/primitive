@@ -296,6 +296,25 @@ const (
 	ErrReceiptRollback
 	// ErrReceiptConflict identifies incompatible watermark histories or scopes.
 	ErrReceiptConflict
+	// ErrChitContract identifies an invalid customer custody ticket, manifest,
+	// catalog snapshot, or selection.
+	ErrChitContract
+	// ErrChitVerification identifies a chit or catalog fact that failed
+	// authority authentication.
+	ErrChitVerification
+	// ErrChitConflict identifies contradictory collection versions, manifest
+	// ordering, catalog pagination, or custody state.
+	ErrChitConflict
+	// ErrRetrievalContract identifies a download authorization contract failure.
+	ErrRetrievalContract
+	// ErrRetrievalBinding identifies a signed retrieval grant that does not bind
+	// its exact request, object, capability, or lifetime.
+	ErrRetrievalBinding
+	// ErrPaymentContract identifies an invalid payment-history fact or catalog.
+	ErrPaymentContract
+	// ErrPaymentVerification identifies payment history that failed authority
+	// authentication.
+	ErrPaymentVerification
 
 	// ErrControlWireContract identifies a control-wire scalar contract violation.
 	ErrControlWireContract
@@ -481,6 +500,13 @@ func errorIdentityDiagnostics() [errorIdentityLimit]errorIdentityDiagnostic {
 		{identity: ErrReceiptScope, text: "receipt scope mismatch"},
 		{identity: ErrReceiptRollback, text: "receipt watermark rollback rejected"},
 		{identity: ErrReceiptConflict, text: "receipt watermark conflict"},
+		{identity: ErrChitContract, text: "chit contract violation"},
+		{identity: ErrChitVerification, text: "chit verification failed"},
+		{identity: ErrChitConflict, text: "chit conflict"},
+		{identity: ErrRetrievalContract, text: "retrieval contract violation"},
+		{identity: ErrRetrievalBinding, text: "retrieval grant binding failed"},
+		{identity: ErrPaymentContract, text: "payment contract violation"},
+		{identity: ErrPaymentVerification, text: "payment verification failed"},
 		{identity: ErrControlWireContract, text: "control-wire contract violation"},
 		{identity: ErrControlWireRevision, text: "control-wire revision unsupported"},
 		{identity: ErrControlWireNonce, text: "control-wire request nonce invalid"},
@@ -614,7 +640,8 @@ func errorIdentityParents(identity ErrorIdentity) errorIdentityParentSet {
 		ErrReleaseContract, ErrDeployContract,
 		ErrShutdownContract, ErrObjectStoreContract, ErrTimeProofContract,
 		ErrCloudIdentityContract, ErrUpgradeContract,
-		ErrLifecycleIdentityContract, ErrReceiptContract, ErrControlWireContract,
+		ErrLifecycleIdentityContract, ErrReceiptContract, ErrChitContract,
+		ErrRetrievalContract, ErrPaymentContract, ErrControlWireContract,
 		ErrControlPlaneContract, ErrIDContract:
 		return oneErrorIdentityParent(ErrPrimitiveContract)
 	case ErrControlWireRevision, ErrControlWireNonce, ErrControlWireToken,
@@ -671,6 +698,12 @@ func errorIdentityParentsReceipt(identity ErrorIdentity) errorIdentityParentSet 
 	case ErrReceiptVerification, ErrReceiptScope, ErrReceiptRollback,
 		ErrReceiptConflict:
 		return oneErrorIdentityParent(ErrReceiptContract)
+	case ErrChitVerification, ErrChitConflict:
+		return oneErrorIdentityParent(ErrChitContract)
+	case ErrRetrievalBinding:
+		return oneErrorIdentityParent(ErrRetrievalContract)
+	case ErrPaymentVerification:
+		return oneErrorIdentityParent(ErrPaymentContract)
 	default:
 		return errorIdentityParentsFuzzFinderThroughObjectStore(identity)
 	}

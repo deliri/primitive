@@ -72,9 +72,9 @@ func TestUploadCapabilityProjectionRoundTripsEveryPublishedProvider(t *testing.T
 			if gotMarshalErr != nil {
 				t.Fatalf("UploadCapabilityProjection.MarshalJSON() error = %v, want nil", gotMarshalErr)
 			}
-			if len(encoded) > UploadCapabilityJSONMaximumBytes {
+			if len(encoded) > CapabilityJSONMaximumBytes {
 				t.Fatalf("encoded extent = %d, want at most %d",
-					len(encoded), UploadCapabilityJSONMaximumBytes)
+					len(encoded), CapabilityJSONMaximumBytes)
 			}
 			encodedURL, gotURLMarshalErr := core.MarshalCanonicalJSONString(tc.rawURL)
 			if gotURLMarshalErr != nil {
@@ -288,12 +288,12 @@ func TestUploadCapabilityProjectionBoundsItsEmittedURL(t *testing.T) {
 	}{
 		{
 			name:   "url one byte below the bound is admitted",
-			extent: UploadCapabilityURLMaximumBytes - 1,
+			extent: CapabilityURLMaximumBytes - 1,
 		},
-		{name: "url exactly at the bound is admitted", extent: UploadCapabilityURLMaximumBytes},
+		{name: "url exactly at the bound is admitted", extent: CapabilityURLMaximumBytes},
 		{
 			name:       "url one byte above the bound is rejected",
-			extent:     UploadCapabilityURLMaximumBytes + 1,
+			extent:     CapabilityURLMaximumBytes + 1,
 			wantReject: true,
 		},
 	}
@@ -333,9 +333,9 @@ func TestUploadCapabilityProjectionBoundsItsEmittedURL(t *testing.T) {
 				t.Fatalf("UploadCapabilityProjection.MarshalJSON() error = %v, want nil",
 					gotMarshalErr)
 			}
-			if len(encoded) > UploadCapabilityJSONMaximumBytes {
+			if len(encoded) > CapabilityJSONMaximumBytes {
 				t.Fatalf("encoded extent = %d, want at most %d",
-					len(encoded), UploadCapabilityJSONMaximumBytes)
+					len(encoded), CapabilityJSONMaximumBytes)
 			}
 		})
 	}
@@ -350,7 +350,7 @@ func TestUploadCapabilityProjectionIsAnEmbeddedJSONFixedPoint(t *testing.T) {
 	t.Parallel()
 
 	base := capabilityGCSMetadataRunURL
-	rawURL := base + strings.Repeat("&", UploadCapabilityURLMaximumBytes-len(base))
+	rawURL := base + strings.Repeat("&", CapabilityURLMaximumBytes-len(base))
 	signedURL, gotURLErr := ParseSignedURL(rawURL)
 	if gotURLErr != nil {
 		t.Fatalf("ParseSignedURL() error = %v, want nil", gotURLErr)
@@ -384,9 +384,9 @@ func TestUploadCapabilityProjectionIsAnEmbeddedJSONFixedPoint(t *testing.T) {
 	if gotDirectErr != nil {
 		t.Fatalf("UploadCapabilityProjection.MarshalJSON() error = %v, want nil", gotDirectErr)
 	}
-	if len(direct) > UploadCapabilityJSONMaximumBytes {
+	if len(direct) > CapabilityJSONMaximumBytes {
 		t.Fatalf("UploadCapabilityProjection.MarshalJSON() extent = %d, want at most %d",
-			len(direct), UploadCapabilityJSONMaximumBytes)
+			len(direct), CapabilityJSONMaximumBytes)
 	}
 	if !strings.Contains(string(direct), `\u0026`) {
 		t.Fatalf("UploadCapabilityProjection.MarshalJSON() did not exercise canonical HTML escaping")
@@ -396,9 +396,9 @@ func TestUploadCapabilityProjectionIsAnEmbeddedJSONFixedPoint(t *testing.T) {
 	if gotMarshalErr != nil {
 		t.Fatalf("json.Marshal(UploadCapabilityProjection) error = %v, want nil", gotMarshalErr)
 	}
-	if len(throughMarshaler) > UploadCapabilityJSONMaximumBytes {
+	if len(throughMarshaler) > CapabilityJSONMaximumBytes {
 		t.Fatalf("json.Marshal(UploadCapabilityProjection) extent = %d, want at most %d",
-			len(throughMarshaler), UploadCapabilityJSONMaximumBytes)
+			len(throughMarshaler), CapabilityJSONMaximumBytes)
 	}
 	if string(throughMarshaler) != string(direct) {
 		t.Fatalf("json.Marshal(UploadCapabilityProjection) extent = %d, want direct fixed-point extent %d",

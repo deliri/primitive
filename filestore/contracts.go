@@ -276,6 +276,80 @@ func (r StageRequest) Validate() error {
 	return nil
 }
 
+// StageDestinationRequest exclusively creates one temporary that an external
+// standard-library writer will fill to an exact final byte length.
+type StageDestinationRequest struct {
+	Temporary     Location
+	ExpectedBytes core.ByteLength
+	Mode          fs.FileMode
+}
+
+// ActivationRequest is one completely prevalidated external-stage and atomic
+// activation plan. It lets a cross-package streaming producer validate every
+// local filesystem effect before the temporary is created.
+type ActivationRequest struct {
+	Temporary     Location
+	Target        core.RelativePath
+	ExpectedBytes core.ByteLength
+	Mode          fs.FileMode
+	Install       InstallMode
+}
+
+// Validate closes the temporary, target, exact extent, permissions, and
+// activation intent at the pre-effect boundary owned by Filestore.
+func (r ActivationRequest) Validate() error {
+	stage := r.StageDestination()
+	if err := stage.Validate(); err != nil {
+		return err
+	}
+	if err := validateMutablePath(r.Target); err != nil {
+		return err
+	}
+	if r.Target == r.Temporary.Path {
+		return contractError(errors.New(targetEqualsTemporaryDiagnostic))
+	}
+	return r.Install.Validate()
+}
+
+// StageDestination projects the exact external-stage ingress.
+func (r ActivationRequest) StageDestination() StageDestinationRequest {
+	return StageDestinationRequest{
+		Temporary: r.Temporary, ExpectedBytes: r.ExpectedBytes, Mode: r.Mode,
+	}
+}
+
+// CommitRequest binds one completed stage to this prevalidated activation.
+func (r ActivationRequest) CommitRequest(staged StagedFile) (CommitRequest, error) {
+	if err := r.Validate(); err != nil {
+		return CommitRequest{}, err
+	}
+	request := CommitRequest{Target: r.Target, Staged: staged, Install: r.Install}
+	if err := request.Validate(); err != nil {
+		return CommitRequest{}, err
+	}
+	if staged.Path() != r.Temporary.Path || staged.BytesWritten() != r.ExpectedBytes {
+		return CommitRequest{}, contractError(errors.New("filestore completed stage differs from activation plan"))
+	}
+	return request, nil
+}
+
+// Validate rejects every unset external-stage boundary.
+func (r StageDestinationRequest) Validate() error {
+	if err := r.Temporary.Validate(); err != nil {
+		return err
+	}
+	if err := validateMutablePath(r.Temporary.Path); err != nil {
+		return err
+	}
+	if err := validatePermissionMode(r.Mode); err != nil {
+		return err
+	}
+	if err := r.ExpectedBytes.Validate(); err != nil {
+		return contractError(err)
+	}
+	return nil
+}
+
 // CommitRequest names the target selected for one completed stage. Target and
 // stage may occupy different directories within the same rooted capability.
 type CommitRequest struct {
@@ -624,6 +698,8 @@ var (
 	_ core.Validatable = RenameRequest{}
 	_ core.Validatable = WriteRequest{}
 	_ core.Validatable = StageRequest{}
+	_ core.Validatable = StageDestinationRequest{}
+	_ core.Validatable = ActivationRequest{}
 	_ core.Validatable = CommitRequest{}
 	_ core.Validatable = AppendMode(0)
 	_ core.Validatable = AppendRequest{}

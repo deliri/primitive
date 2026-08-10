@@ -304,7 +304,7 @@ func TestEd25519PublicKeyOwnershipAndLengthBoundaries(t *testing.T) {
 		0, 1, ed25519.PublicKeySize / 2, ed25519.PublicKeySize - 2,
 		ed25519.PublicKeySize - 1, ed25519.PublicKeySize + 1,
 		ed25519.PublicKeySize + 2, ed25519.PublicKeySize * 2,
-		1024, jsonDocumentMaximumBytes,
+		1024, JSONDocumentMaximumBytes,
 	}
 	for _, length := range invalidLengths {
 		t.Run(fmt.Sprintf("reject key length %d", length), func(t *testing.T) {
@@ -422,7 +422,7 @@ func TestSecretMaterialHostileBoundaryAndRedactionTable(t *testing.T) {
 		{name: "middle all-zero material is rejected", value: make([]byte, 32)},
 		{name: "maximum all-zero material is rejected", value: make([]byte, SecretMaterialMaximumBytes)},
 		{name: "maximum plus one is rejected", value: bytes.Repeat([]byte{1}, SecretMaterialMaximumBytes+1)},
-		{name: "far oversized material is rejected", value: bytes.Repeat([]byte{1}, jsonDocumentMaximumBytes)},
+		{name: "far oversized material is rejected", value: bytes.Repeat([]byte{1}, JSONDocumentMaximumBytes)},
 	}
 	for _, tc := range invalid {
 		t.Run(tc.name, func(t *testing.T) {

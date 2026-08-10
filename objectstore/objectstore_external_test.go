@@ -1128,8 +1128,8 @@ func TestUploadRequestHostileBoundaryTable(t *testing.T) {
 	zeroErrorLimit := base
 	zeroErrorLimit.Policy.ErrorBodyLimit = core.ByteCount{}
 	cases := []struct {
-		wantErr error
 		name    string
+		wantErr error
 		request objectstore.UploadRequest
 	}{
 		{name: "complete S3 request is accepted", request: base},
@@ -1201,8 +1201,8 @@ func TestDownloadRequestHostileBoundaryTable(t *testing.T) {
 	unsetPolicy := base
 	unsetPolicy.Policy = objectstore.Policy{}
 	cases := []struct {
-		wantErr error
 		name    string
+		wantErr error
 		request objectstore.DownloadRequest
 	}{
 		{name: "complete GCS request is accepted", request: base},

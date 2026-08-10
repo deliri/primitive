@@ -118,9 +118,9 @@ func FuzzUploadCapabilityAdmitsOnlyTransferableCapabilities(f *testing.F) {
 			t.Fatalf("json.Marshal(UploadCapabilityProjection) = %q, want direct fixed point %q for accepted %q",
 				canonical, direct, document)
 		}
-		if len(canonical) > UploadCapabilityJSONMaximumBytes {
+		if len(canonical) > CapabilityJSONMaximumBytes {
 			t.Fatalf("canonical extent = %d, want at most %d for accepted %q",
-				len(canonical), UploadCapabilityJSONMaximumBytes, document)
+				len(canonical), CapabilityJSONMaximumBytes, document)
 		}
 
 		var roundTrip UploadCapability

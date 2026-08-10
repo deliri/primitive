@@ -6,8 +6,9 @@ import (
 	"github.com/deliri/primitive/v2026/keygen"
 )
 
-// RequestNonceBytes is the exact width of a control wire request nonce.
-const RequestNonceBytes = 32
+// NonceBytes is the exact shared width of request and authority-decision
+// nonces on the control wire.
+const NonceBytes = 32
 
 // RequestNonce is one public, unpredictable request identity.
 //
@@ -19,7 +20,7 @@ type RequestNonce struct {
 }
 
 // NewRequestNonce owns one exact nonzero nonce.
-func NewRequestNonce(value [RequestNonceBytes]byte) (RequestNonce, error) {
+func NewRequestNonce(value [NonceBytes]byte) (RequestNonce, error) {
 	nonce := RequestNonce{value: core.NewSHA256Digest(value)}
 	if err := nonce.Validate(); err != nil {
 		return RequestNonce{}, err
@@ -34,7 +35,7 @@ func NewRequestNonce(value [RequestNonceBytes]byte) (RequestNonce, error) {
 // every path, and it keeps the width agreed with the parser instead of restated
 // at each call site.
 func GenerateRequestNonce() (RequestNonce, error) {
-	size, err := core.NewByteCount(RequestNonceBytes)
+	size, err := core.NewByteCount(NonceBytes)
 	if err != nil {
 		return RequestNonce{}, nonceError(err)
 	}
@@ -48,7 +49,7 @@ func GenerateRequestNonce() (RequestNonce, error) {
 		return RequestNonce{}, nonceError(err)
 	}
 	defer clear(raw)
-	var value [RequestNonceBytes]byte
+	var value [NonceBytes]byte
 	copy(value[:], raw)
 	return NewRequestNonce(value)
 }
@@ -79,7 +80,7 @@ func (n RequestNonce) Validate() error {
 	if err != nil {
 		return nonceError(err)
 	}
-	if raw == ([RequestNonceBytes]byte{}) {
+	if raw == ([NonceBytes]byte{}) {
 		return nonceError()
 	}
 	return nil

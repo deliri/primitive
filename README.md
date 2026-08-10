@@ -72,9 +72,12 @@ flowchart TD
     controlplane --> receipt
     submission[submission] --> core
     submission --> attest
+    submission --> chit
     submission --> controlwire
+    submission --> id
     submission --> objectstore
     submission --> temporal
+    submission --> receipt
     submissionauth[submissionauth] --> core
     submissionauth --> attest
     submissionauth --> controlplane
@@ -123,6 +126,32 @@ flowchart TD
     gcsobjects --> contextstate
     gcsobjects --> temporal
     gcsobjects --> objectstore
+
+    chit[chit] --> attest
+    chit --> core
+    chit --> id
+    chit --> receipt
+    chit --> temporal
+
+    retrieval[retrieval] --> attest
+    retrieval --> chit
+    retrieval --> controlwire
+    retrieval --> core
+    retrieval --> filestore
+    retrieval --> objectstore
+    retrieval --> temporal
+
+    retrievalauth[retrievalauth] --> attest
+    retrievalauth --> controlplane
+    retrievalauth --> core
+    retrievalauth --> retrieval
+
+    payment[payment] --> attest
+    payment --> core
+    payment --> currency
+    payment --> id
+    payment --> receipt
+    payment --> temporal
 ```
 
 The diagram is the production graph. A package may additionally declare
@@ -131,7 +160,10 @@ cannot be constructed without the package that produces it. A declared test
 edge grants no production dependency, counts against the same per-package
 coupling ceiling, and is rejected when no test source uses it. `gate` uses
 `attest` and `temporal` to prove real signed leases, `submissionauth` uses
-`controlplanetest` and `controlwire` to prove real credentialed requests,
+`chit`, `controlplanetest`, and `controlwire` to prove real credentialed requests,
+`retrievalauth` uses `controlplanetest` and `controlwire` to prove real
+credentialed retrieval requests, `retrieval` uses `exchange` and `receipt` to
+prove real streaming transport and authenticated stored evidence,
 `process` uses
 `testserial` for process-wide isolation, and `deploy` uses `attest`, `exchange`,
 and `temporal` to prove a real authenticated manifest and transfer substrate.

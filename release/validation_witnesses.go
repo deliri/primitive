@@ -3,6 +3,7 @@ package release
 import "github.com/deliri/primitive/v2026/core"
 
 var (
+	_ core.Validatable = PrimitiveVersion
 	_ core.Validatable = AdvanceLatestRequest{}
 	_ core.Validatable = ArtifactRequest{}
 	_ core.Validatable = ArtifactSetRequest{}

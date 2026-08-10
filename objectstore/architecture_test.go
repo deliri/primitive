@@ -13,33 +13,34 @@ func TestProviderOperationsAreCompilerSelectedEntryPoints(t *testing.T) {
 	t.Parallel()
 
 	set := token.NewFileSet()
-	file, gotParseErr := parser.ParseFile(set, "client.go", nil, 0)
-	if gotParseErr != nil {
-		t.Fatalf(
-			"parser.ParseFile(client.go) error = %v, want nil",
-			gotParseErr,
-		)
-	}
 	var got []string
-	for _, declaration := range file.Decls {
-		function, ok := declaration.(*ast.FuncDecl)
-		if !ok || function.Recv != nil || !ast.IsExported(function.Name.Name) {
-			continue
+	for _, path := range []string{"client.go", "capability_execution.go"} {
+		file, gotParseErr := parser.ParseFile(set, path, nil, 0)
+		if gotParseErr != nil {
+			t.Fatalf("parser.ParseFile(%s) error = %v, want nil", path, gotParseErr)
 		}
-		got = append(got, function.Name.Name)
+		for _, declaration := range file.Decls {
+			function, ok := declaration.(*ast.FuncDecl)
+			if !ok || function.Recv != nil || !ast.IsExported(function.Name.Name) {
+				continue
+			}
+			got = append(got, function.Name.Name)
+		}
 	}
 	slices.Sort(got)
 	want := []string{
+		"Download",
 		"DownloadGCS",
 		"DownloadS3",
 		"NewClient",
+		"Upload",
 		"UploadCloudflareImages",
 		"UploadGCS",
 		"UploadS3",
 	}
 	if !slices.Equal(got, want) {
 		t.Fatalf(
-			"exported client operations = %q, want exactly %q with no generic provider dispatcher",
+			"exported client operations = %q, want exactly %q with generic dispatch confined to received capabilities",
 			got,
 			want,
 		)
@@ -105,15 +106,19 @@ func productionStructRole(name string) (string, bool) {
 		return "published compiler-owned vendor contract", true
 	case "ProviderVersion", "SignedURL", "SignedHeader", "SignedHeaders":
 		return "opaque validated capability value", true
-	case "UploadTarget", "DownloadTarget", "Integrity", "Policy":
+	case "UploadTarget", "DownloadTarget", "Integrity", "Policy", "TransferProgress":
 		return "public protocol fact", true
-	case "UploadRequest", "DownloadRequest":
+	case "UploadRequest", "DownloadRequest", "UploadCapabilityRequest", "DownloadCapabilityRequest":
 		return "public execution ingress", true
 	case "Client":
 		return "capability wrapper", true
 	case "Transfer":
 		return "sealed transfer evidence", true
-	case "ExactReader", "preparedUpload", "preparedDownload",
+	case "TransferEvidence":
+		return "received wire projection of confirmed transfer evidence", true
+	case "TransferEvidenceProjection":
+		return "issue-only projection of confirmed transfer evidence", true
+	case "ExactReader", "preparedUpload", "preparedDownload", "progressWriter",
 		"exchangeTarget", "streamDigests", "requestBody":
 		return "internal streaming flow", true
 	case "providerHeader":
@@ -126,7 +131,15 @@ func productionStructRole(name string) (string, bool) {
 		return "external output projection of an already-issued capability value", true
 	case "UploadCapabilityCommitment":
 		return "sealed non-secret capability binding", true
+	case "DownloadCapability":
+		return "received wire projection of a retrieval capability value", true
+	case "DownloadCapabilityProjection":
+		return "external output projection of an already-issued retrieval capability value", true
+	case "DownloadCapabilityCommitment":
+		return "sealed non-secret retrieval capability binding", true
 	case "uploadCapabilityWire", "uploadCapabilityHeaderWire":
+		return "internal exact wire temporary", true
+	case "transferEvidenceWire":
 		return "internal exact wire temporary", true
 	default:
 		return "", false

@@ -8,6 +8,7 @@ import (
 	"testing"
 
 	"github.com/deliri/primitive/v2026/attest"
+	"github.com/deliri/primitive/v2026/chit"
 	"github.com/deliri/primitive/v2026/core"
 )
 
@@ -167,12 +168,31 @@ func TestRequestCommitmentChangesForEveryAuthorizationFact(t *testing.T) {
 	}
 	mediaTypeMutation := original
 	mediaTypeMutation.Declaration.ContentType = differentMediaType
+	differentUpload := original
+	differentUpload.Manifest.Upload, err = ParseUploadID("00000000-0008-7000-8000-000000000008")
+	if err != nil {
+		t.Fatalf("ParseUploadID(different) error = %v, want nil", err)
+	}
+	differentName := original
+	differentName.Manifest.Name, err = chit.ParseEntryName("different.json")
+	if err != nil {
+		t.Fatalf("chit.ParseEntryName(different) error = %v, want nil", err)
+	}
+	differentPosition := original
+	differentPosition.Manifest.Sequence = manifestSequence(t, 2)
+	differentPosition.Manifest.Objects = manifestObjects(t, 2)
+	differentCount := original
+	differentCount.Manifest.Objects = manifestObjects(t, 2)
 	mutations := []RequestPayload{
 		testRequestPayload(t, grantFixtureRequest{
 			content: []byte("different proof"), offering: core.OfferingWitness,
 			requestNonceByte: 0x31,
 		}),
 		mediaTypeMutation,
+		differentUpload,
+		differentName,
+		differentPosition,
+		differentCount,
 		testRequestPayload(t, grantFixtureRequest{
 			offering: core.OfferingBug, requestNonceByte: 0x31,
 		}),

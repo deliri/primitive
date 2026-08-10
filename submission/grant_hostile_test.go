@@ -11,6 +11,7 @@ import (
 	"testing"
 
 	"github.com/deliri/primitive/v2026/attest"
+	"github.com/deliri/primitive/v2026/chit"
 	"github.com/deliri/primitive/v2026/controlwire"
 	"github.com/deliri/primitive/v2026/core"
 	"github.com/deliri/primitive/v2026/objectstore"
@@ -140,7 +141,7 @@ func testRequestPayload(t *testing.T, request grantFixtureRequest) RequestPayloa
 	if err != nil {
 		t.Fatalf("core.NewBuildIdentity() error = %v, want nil", err)
 	}
-	rawNonce := [controlwire.RequestNonceBytes]byte{}
+	rawNonce := [controlwire.NonceBytes]byte{}
 	for index := range rawNonce {
 		rawNonce[index] = request.requestNonceByte
 	}
@@ -149,8 +150,35 @@ func testRequestPayload(t *testing.T, request grantFixtureRequest) RequestPayloa
 		t.Fatalf("controlwire.NewRequestNonce() error = %v, want nil", err)
 	}
 	return RequestPayload{
-		Declaration: testDeclaration(t, request.content), Build: build,
+		Declaration: testDeclaration(t, request.content), Manifest: testManifestIntent(t), Build: build,
 		Revision: controlwire.Revision2026V1, Nonce: nonce,
+	}
+}
+
+func testManifestIntent(t *testing.T) ManifestIntent {
+	t.Helper()
+	upload, err := ParseUploadID("00000000-0004-7000-8000-000000000004")
+	if err != nil {
+		t.Fatalf("ParseUploadID() error = %v, want nil", err)
+	}
+	collection, err := chit.ParseCollectionID("00000000-0005-7000-8000-000000000005")
+	if err != nil {
+		t.Fatalf("chit.ParseCollectionID() error = %v, want nil", err)
+	}
+	name, err := chit.ParseEntryName("proof.json")
+	if err != nil {
+		t.Fatalf("chit.ParseEntryName() error = %v, want nil", err)
+	}
+	sequence, err := chit.NewEntrySequence(1)
+	if err != nil {
+		t.Fatalf("chit.NewEntrySequence() error = %v, want nil", err)
+	}
+	objects, err := chit.NewObjectCount(1)
+	if err != nil {
+		t.Fatalf("chit.NewObjectCount() error = %v, want nil", err)
+	}
+	return ManifestIntent{
+		Upload: upload, Collection: collection, Name: name, Sequence: sequence, Objects: objects,
 	}
 }
 
@@ -201,14 +229,14 @@ func testCapabilityProjection(
 	return projection
 }
 
-func testAuthorizationNonce(t *testing.T, value byte) AuthorizationNonce {
+func testAuthorizationNonce(t *testing.T, value byte) controlwire.AuthorityNonce {
 	t.Helper()
 
-	raw := [AuthorizationNonceBytes]byte{}
+	raw := [controlwire.NonceBytes]byte{}
 	for index := range raw {
 		raw[index] = value
 	}
-	nonce, err := NewAuthorizationNonce(raw)
+	nonce, err := controlwire.NewAuthorityNonce(raw)
 	if err != nil {
 		t.Fatalf("NewAuthorizationNonce() error = %v, want nil", err)
 	}
@@ -403,7 +431,7 @@ func TestGrantPayloadRefusesEveryInvalidLifetimeMember(t *testing.T) {
 		}()},
 		{name: "unset authorization nonce", payload: func() GrantPayload {
 			value := fixture.payload
-			value.Authorization = AuthorizationNonce{}
+			value.Authorization = controlwire.AuthorityNonce{}
 			return value
 		}()},
 		{name: "unset capability commitment", payload: func() GrantPayload {
@@ -465,17 +493,17 @@ func TestGrantPayloadRefusesEveryInvalidLifetimeMember(t *testing.T) {
 func TestAuthorizationNonceClosesEveryByteAndCanonicalTextEdge(t *testing.T) {
 	t.Parallel()
 
-	for position := range AuthorizationNonceBytes {
+	for position := range controlwire.NonceBytes {
 		t.Run("single nonzero byte at position "+strconv.Itoa(position), func(t *testing.T) {
 			t.Parallel()
 
-			raw := [AuthorizationNonceBytes]byte{}
+			raw := [controlwire.NonceBytes]byte{}
 			raw[position] = 1
-			nonce, err := NewAuthorizationNonce(raw)
+			nonce, err := controlwire.NewAuthorityNonce(raw)
 			if err != nil {
 				t.Fatalf("NewAuthorizationNonce(position %d) error = %v, want nil", position, err)
 			}
-			parsed, err := ParseAuthorizationNonce(nonce.String())
+			parsed, err := controlwire.ParseAuthorityNonce(nonce.String())
 			if err != nil || parsed != nonce {
 				t.Fatalf("ParseAuthorizationNonce(position %d) = (%v, %v), want (%v, nil)",
 					position, parsed, err, nonce)
@@ -483,8 +511,8 @@ func TestAuthorizationNonceClosesEveryByteAndCanonicalTextEdge(t *testing.T) {
 		})
 	}
 
-	zero, err := NewAuthorizationNonce([AuthorizationNonceBytes]byte{})
-	if !errors.Is(err, core.ErrControlPlaneContract) || zero != (AuthorizationNonce{}) {
+	zero, err := controlwire.NewAuthorityNonce([controlwire.NonceBytes]byte{})
+	if !errors.Is(err, core.ErrControlWireNonce) || zero != (controlwire.AuthorityNonce{}) {
 		t.Fatalf("NewAuthorizationNonce(zero) = (%v, %v), want zero and errors.Is %v",
 			zero, err, core.ErrControlPlaneContract)
 	}
@@ -493,7 +521,7 @@ func TestAuthorizationNonceClosesEveryByteAndCanonicalTextEdge(t *testing.T) {
 	if err != nil {
 		t.Fatalf("AuthorizationNonce.MarshalJSON() error = %v, want nil", err)
 	}
-	var roundTrip AuthorizationNonce
+	var roundTrip controlwire.AuthorityNonce
 	if err := roundTrip.UnmarshalJSON(encoded); err != nil || roundTrip != preserved {
 		t.Fatalf("AuthorizationNonce.UnmarshalJSON(canonical) = (%v, %v), want (%v, nil)",
 			roundTrip, err, preserved)
@@ -810,36 +838,37 @@ func TestSubmissionSchemaLayerTriadZeroValuesRefuseEveryBoundary(t *testing.T) {
 	t.Parallel()
 
 	cases := []struct {
-		run  func() error
-		name string
+		run     func() error
+		wantErr error
+		name    string
 	}{
-		{name: "declaration", run: func() error { return (Declaration{}).Validate() }},
-		{name: "request payload", run: func() error { return (RequestPayload{}).Validate() }},
-		{name: "request commitment", run: func() error { return (RequestCommitment{}).Validate() }},
-		{name: "authorization nonce", run: func() error { return (AuthorizationNonce{}).Validate() }},
-		{name: "grant payload", run: func() error { return (GrantPayload{}).Validate() }},
-		{name: "grant document", run: func() error { return (GrantDocument{}).Validate() }},
-		{name: "grant projection", run: func() error { return (GrantProjection{}).Validate() }},
-		{name: "verified grant", run: func() error { return (VerifiedGrant{}).Validate() }},
+		{name: "declaration", wantErr: core.ErrControlPlaneContract, run: func() error { return (Declaration{}).Validate() }},
+		{name: "request payload", wantErr: core.ErrControlPlaneContract, run: func() error { return (RequestPayload{}).Validate() }},
+		{name: "request commitment", wantErr: core.ErrControlPlaneContract, run: func() error { return (RequestCommitment{}).Validate() }},
+		{name: "authorization nonce", wantErr: core.ErrControlWireNonce, run: func() error { return (controlwire.AuthorityNonce{}).Validate() }},
+		{name: "grant payload", wantErr: core.ErrControlPlaneContract, run: func() error { return (GrantPayload{}).Validate() }},
+		{name: "grant document", wantErr: core.ErrControlPlaneContract, run: func() error { return (GrantDocument{}).Validate() }},
+		{name: "grant projection", wantErr: core.ErrControlPlaneContract, run: func() error { return (GrantProjection{}).Validate() }},
+		{name: "verified grant", wantErr: core.ErrControlPlaneContract, run: func() error { return (VerifiedGrant{}).Validate() }},
 		{name: "nil authorization nonce JSON receiver", run: func() error {
-			var receiver *AuthorizationNonce
+			var receiver *controlwire.AuthorityNonce
 			return receiver.UnmarshalJSON([]byte(`"` + strings.Repeat("1", 64) + `"`))
-		}},
+		}, wantErr: core.ErrControlWireNonce},
 		{name: "nil grant payload JSON receiver", run: func() error {
 			var receiver *GrantPayload
 			return receiver.UnmarshalJSON([]byte(`{}`))
-		}},
+		}, wantErr: core.ErrControlPlaneContract},
 		{name: "nil grant document JSON receiver", run: func() error {
 			var receiver *GrantDocument
 			return receiver.UnmarshalJSON([]byte(`{}`))
-		}},
+		}, wantErr: core.ErrControlPlaneContract},
 	}
 	for _, tc := range cases {
 		t.Run(tc.name, func(t *testing.T) {
 			t.Parallel()
 
-			if err := tc.run(); !errors.Is(err, core.ErrControlPlaneContract) {
-				t.Fatalf("zero %s error = %v, want errors.Is %v", tc.name, err, core.ErrControlPlaneContract)
+			if err := tc.run(); !errors.Is(err, tc.wantErr) {
+				t.Fatalf("zero %s error = %v, want errors.Is %v", tc.name, err, tc.wantErr)
 			}
 		})
 	}
@@ -850,9 +879,9 @@ func TestSubmissionSchemaLayerTriadZeroValuesRefuseEveryBoundary(t *testing.T) {
 		t.Fatalf("json.Unmarshal(all-zero RequestCommitment) error = %v, want errors.Is %v",
 			err, core.ErrControlPlaneContract)
 	}
-	var authorization AuthorizationNonce
-	if err := json.Unmarshal(zeroDigestJSON, &authorization); !errors.Is(err, core.ErrControlPlaneContract) {
+	var authorization controlwire.AuthorityNonce
+	if err := json.Unmarshal(zeroDigestJSON, &authorization); !errors.Is(err, core.ErrControlWireNonce) {
 		t.Fatalf("json.Unmarshal(all-zero AuthorizationNonce) error = %v, want errors.Is %v",
-			err, core.ErrControlPlaneContract)
+			err, core.ErrControlWireNonce)
 	}
 }

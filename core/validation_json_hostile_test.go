@@ -132,7 +132,7 @@ func TestDecodeStrictJSONStructureHostileBoundaryTable(t *testing.T) {
 		{name: "exact maximum nesting depth is accepted", wire: func() []byte { return strictJSONNestedArrays(JSONNestingDepthMaximum) }, disposition: boundaryAccept},
 		{name: "empty document is rejected", wire: func() []byte { return nil }},
 		{name: "invalid UTF8 prefix is rejected", wire: func() []byte { return []byte{0xff, '{', '}'} }},
-		{name: "one byte above document maximum is rejected", wire: func() []byte { return bytes.Repeat([]byte{' '}, jsonDocumentMaximumBytes+1) }},
+		{name: "one byte above document maximum is rejected", wire: func() []byte { return bytes.Repeat([]byte{' '}, JSONDocumentMaximumBytes+1) }},
 		{name: "truncated object is rejected", wire: func() []byte { return []byte(`{"a":1`) }},
 		{name: "truncated array is rejected", wire: func() []byte { return []byte(`[1`) }},
 		{name: "truncated string is rejected", wire: func() []byte { return []byte(`"value`) }},
@@ -659,7 +659,7 @@ func TestStrictJSONPublicDiagnosticRatchet(t *testing.T) {
 		{
 			name: "document byte limit identifies the exceeded resource",
 			run: func() error {
-				wire := bytes.Repeat([]byte{' '}, jsonDocumentMaximumBytes+1)
+				wire := bytes.Repeat([]byte{' '}, JSONDocumentMaximumBytes+1)
 				_, err := DecodeStrictJSON[strictJSONTextRecord](wire, defaultLimits)
 				return err
 			},
@@ -781,7 +781,7 @@ func TestStrictJSONStructuralLimitsDirectHelperHostileBoundaryTable(t *testing.T
 	t.Parallel()
 
 	custom := StrictJSONLimits{
-		DocumentMaximumBytes: mustByteCountForTest(t, jsonDocumentMaximumBytes),
+		DocumentMaximumBytes: mustByteCountForTest(t, JSONDocumentMaximumBytes),
 		NestingDepthMaximum:  2,
 		ObjectFieldMaximum:   2,
 		ArrayItemMaximum:     2,
@@ -790,7 +790,7 @@ func TestStrictJSONStructuralLimitsDirectHelperHostileBoundaryTable(t *testing.T
 		t.Fatalf("custom StrictJSONLimits.Validate() error = %v, want nil", gotErr)
 	}
 
-	largeDocument := bytes.Repeat([]byte{' '}, jsonDocumentMaximumBytes-jsonArrayOverheadBytes)
+	largeDocument := bytes.Repeat([]byte{' '}, JSONDocumentMaximumBytes-jsonArrayOverheadBytes)
 	largeDocument = append(largeDocument, '[', ']')
 	if _, gotErr := decodeStrictJSONStructure[json.RawMessage](largeDocument, custom); gotErr != nil {
 		t.Fatalf("custom document limit decode error = %v, want nil", gotErr)
@@ -835,7 +835,7 @@ func TestStrictJSONLimitsHostileBoundaryTable(t *testing.T) {
 	t.Parallel()
 
 	minimumDocument := mustByteCountForTest(t, 1)
-	maximumDocument := mustByteCountForTest(t, jsonDocumentMaximumBytes)
+	maximumDocument := mustByteCountForTest(t, JSONDocumentMaximumBytes)
 	cases := []struct {
 		wantErr error
 		name    string
@@ -848,7 +848,7 @@ func TestStrictJSONLimitsHostileBoundaryTable(t *testing.T) {
 			ArrayItemMaximum:     1,
 		}},
 		{name: "document one byte below maximum is accepted", limits: StrictJSONLimits{
-			DocumentMaximumBytes: mustByteCountForTest(t, jsonDocumentMaximumBytes-1),
+			DocumentMaximumBytes: mustByteCountForTest(t, JSONDocumentMaximumBytes-1),
 			NestingDepthMaximum:  JSONNestingDepthMaximum,
 			ObjectFieldMaximum:   JSONObjectFieldCountMaximum,
 			ArrayItemMaximum:     jsonArrayItemCountMaximum,
@@ -860,7 +860,7 @@ func TestStrictJSONLimitsHostileBoundaryTable(t *testing.T) {
 			ArrayItemMaximum:     jsonArrayItemCountMaximum,
 		}},
 		{name: "document one byte above maximum is rejected", limits: StrictJSONLimits{
-			DocumentMaximumBytes: mustByteCountForTest(t, jsonDocumentMaximumBytes+1),
+			DocumentMaximumBytes: mustByteCountForTest(t, JSONDocumentMaximumBytes+1),
 			NestingDepthMaximum:  JSONNestingDepthMaximum,
 			ObjectFieldMaximum:   JSONObjectFieldCountMaximum,
 			ArrayItemMaximum:     jsonArrayItemCountMaximum,
@@ -898,7 +898,7 @@ func TestStrictJSONLimitsHostileBoundaryTable(t *testing.T) {
 func TestStrictJSONPublicDocumentLimitBoundary(t *testing.T) {
 	t.Parallel()
 
-	record := strictJSONTextRecord{Text: strings.Repeat("x", jsonDocumentMaximumBytes-128)}
+	record := strictJSONTextRecord{Text: strings.Repeat("x", JSONDocumentMaximumBytes-128)}
 	stdlibWire, stdlibErr := json.Marshal(record)
 	if stdlibErr != nil {
 		t.Fatalf("json.Marshal(strictJSONTextRecord) error = %v, want nil", stdlibErr)
@@ -912,7 +912,7 @@ func TestStrictJSONPublicDocumentLimitBoundary(t *testing.T) {
 		{name: "one byte below encoded length rejects the typed document", limitBytes: exactDocumentBytes - 1},
 		{name: "exact encoded length accepts the typed document", limitBytes: exactDocumentBytes, disposition: boundaryAccept},
 		{name: "one byte above encoded length accepts the typed document", limitBytes: exactDocumentBytes + 1, disposition: boundaryAccept},
-		{name: "global maximum accepts the typed document", limitBytes: jsonDocumentMaximumBytes, disposition: boundaryAccept},
+		{name: "global maximum accepts the typed document", limitBytes: JSONDocumentMaximumBytes, disposition: boundaryAccept},
 	}
 	for _, tc := range cases {
 		t.Run(tc.name, func(t *testing.T) {
@@ -1012,19 +1012,19 @@ func BenchmarkRejectDuplicateJSONFieldsGlobalMaximumLongSharedPrefix(b *testing.
 		JSONObjectFieldCountMaximum,
 		strictJSONHostileSharedPrefixBytes,
 	)
-	if len(document) < jsonDocumentMaximumBytes-strictJSONHostileMaximumSlackBytes ||
-		len(document) > jsonDocumentMaximumBytes {
+	if len(document) < JSONDocumentMaximumBytes-strictJSONHostileMaximumSlackBytes ||
+		len(document) > JSONDocumentMaximumBytes {
 		b.Fatalf(
 			"hostile shared-prefix document bytes = %d, want [%d, %d]",
 			len(document),
-			jsonDocumentMaximumBytes-strictJSONHostileMaximumSlackBytes,
-			jsonDocumentMaximumBytes,
+			JSONDocumentMaximumBytes-strictJSONHostileMaximumSlackBytes,
+			JSONDocumentMaximumBytes,
 		)
 	}
-	documentMaximum, gotLimitErr := NewByteCount(jsonDocumentMaximumBytes)
+	documentMaximum, gotLimitErr := NewByteCount(JSONDocumentMaximumBytes)
 	if gotLimitErr != nil {
 		b.Fatalf(
-			"NewByteCount(jsonDocumentMaximumBytes) error = %v, want nil",
+			"NewByteCount(JSONDocumentMaximumBytes) error = %v, want nil",
 			gotLimitErr,
 		)
 	}
@@ -1050,25 +1050,25 @@ func BenchmarkDecodeStrictJSONAdvertisedMaximumComposition(b *testing.B) {
 		JSONObjectFieldCountMaximum,
 		strictJSONHostileComposedPrefixBytes,
 	)
-	objectCount := (jsonDocumentMaximumBytes - jsonArrayOverheadBytes + 1) /
+	objectCount := (JSONDocumentMaximumBytes - jsonArrayOverheadBytes + 1) /
 		(len(object) + 1)
 	document := strictJSONArrayOfRepeatedValue(
 		object,
 		objectCount,
 	)
-	if len(document) < jsonDocumentMaximumBytes-strictJSONHostileMaximumSlackBytes ||
-		len(document) > jsonDocumentMaximumBytes {
+	if len(document) < JSONDocumentMaximumBytes-strictJSONHostileMaximumSlackBytes ||
+		len(document) > JSONDocumentMaximumBytes {
 		b.Fatalf(
 			"hostile composed document bytes = %d, want [%d, %d]",
 			len(document),
-			jsonDocumentMaximumBytes-strictJSONHostileMaximumSlackBytes,
-			jsonDocumentMaximumBytes,
+			JSONDocumentMaximumBytes-strictJSONHostileMaximumSlackBytes,
+			JSONDocumentMaximumBytes,
 		)
 	}
-	documentMaximum, gotLimitErr := NewByteCount(jsonDocumentMaximumBytes)
+	documentMaximum, gotLimitErr := NewByteCount(JSONDocumentMaximumBytes)
 	if gotLimitErr != nil {
 		b.Fatalf(
-			"NewByteCount(jsonDocumentMaximumBytes) error = %v, want nil",
+			"NewByteCount(JSONDocumentMaximumBytes) error = %v, want nil",
 			gotLimitErr,
 		)
 	}

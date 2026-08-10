@@ -38,8 +38,8 @@ type OffWireEnum interface {
 }
 
 const (
-	// jsonDocumentMaximumBytes is the one-mebibyte document cap.
-	jsonDocumentMaximumBytes = 1 << 20
+	// JSONDocumentMaximumBytes is the shared one-mebibyte document cap.
+	JSONDocumentMaximumBytes = 1 << 20
 	// JSONNestingDepthMaximum is the open-container cap.
 	JSONNestingDepthMaximum = 64
 	// JSONObjectFieldCountMaximum is the per-object field cap.
@@ -82,7 +82,7 @@ type StrictJSONLimits struct {
 // DefaultStrictJSONLimits returns the documented bounded JSON policy.
 func DefaultStrictJSONLimits() StrictJSONLimits {
 	return StrictJSONLimits{
-		DocumentMaximumBytes: ByteCount{value: jsonDocumentMaximumBytes},
+		DocumentMaximumBytes: ByteCount{value: JSONDocumentMaximumBytes},
 		NestingDepthMaximum:  JSONNestingDepthMaximum,
 		ObjectFieldMaximum:   JSONObjectFieldCountMaximum,
 		ArrayItemMaximum:     jsonArrayItemCountMaximum,
@@ -94,7 +94,7 @@ func (l StrictJSONLimits) Validate() error {
 	if err := l.DocumentMaximumBytes.Validate(); err != nil {
 		return jsonContractError(jsonDocumentByteLimitInvalidErrorText, err)
 	}
-	if l.DocumentMaximumBytes.value > jsonDocumentMaximumBytes {
+	if l.DocumentMaximumBytes.value > JSONDocumentMaximumBytes {
 		return jsonContractError("json document byte limit exceeds the supported maximum", nil)
 	}
 	if l.NestingDepthMaximum == 0 || l.NestingDepthMaximum > JSONNestingDepthMaximum {

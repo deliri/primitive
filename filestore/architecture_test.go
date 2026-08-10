@@ -28,31 +28,34 @@ type architectureScan struct {
 // filestoreContractInventory classifies every production struct by its real
 // role. The generic arguments make every inventory entry compiler-visible.
 type filestoreContractInventory struct {
-	Location           capabilityWrapper[Location]
-	DirectoryRequest   validatedRequest[DirectoryRequest]
-	ReadRequest        validatedRequest[ReadRequest]
-	ReadHandleRequest  validatedRequest[ReadHandleRequest]
-	RenameRequest      validatedRequest[RenameRequest]
-	WriteRequest       validatedRequest[WriteRequest]
-	StageRequest       validatedRequest[StageRequest]
-	CommitRequest      validatedRequest[CommitRequest]
-	TouchRequest       validatedRequest[TouchRequest]
-	DurabilityRequest  validatedRequest[DurabilityRequest]
-	Permissions        boundedFact[Permissions]
-	Ownership          boundedFact[Ownership]
-	Allocation         boundedFact[Allocation]
-	LockFileRequest    validatedRequest[LockFileRequest]
-	AppendRequest      validatedRequest[AppendRequest]
-	RotationRequest    validatedRequest[RotationRequest]
-	RemovalRequest     validatedRequest[RemovalRequest]
-	TreeRemovalRequest validatedRequest[TreeRemovalRequest]
-	WalkRequest        validatedRequest[WalkRequest]
-	WalkEntry          streamedObservation[WalkEntry]
+	Location                capabilityWrapper[Location]
+	DirectoryRequest        validatedRequest[DirectoryRequest]
+	ReadRequest             validatedRequest[ReadRequest]
+	ReadHandleRequest       validatedRequest[ReadHandleRequest]
+	RenameRequest           validatedRequest[RenameRequest]
+	WriteRequest            validatedRequest[WriteRequest]
+	StageRequest            validatedRequest[StageRequest]
+	StageDestinationRequest validatedRequest[StageDestinationRequest]
+	ActivationRequest       validatedRequest[ActivationRequest]
+	CommitRequest           validatedRequest[CommitRequest]
+	TouchRequest            validatedRequest[TouchRequest]
+	DurabilityRequest       validatedRequest[DurabilityRequest]
+	Permissions             boundedFact[Permissions]
+	Ownership               boundedFact[Ownership]
+	Allocation              boundedFact[Allocation]
+	LockFileRequest         validatedRequest[LockFileRequest]
+	AppendRequest           validatedRequest[AppendRequest]
+	RotationRequest         validatedRequest[RotationRequest]
+	RemovalRequest          validatedRequest[RemovalRequest]
+	TreeRemovalRequest      validatedRequest[TreeRemovalRequest]
+	WalkRequest             validatedRequest[WalkRequest]
+	WalkEntry               streamedObservation[WalkEntry]
 	// One observation of a path, made before any effect and carrying no
 	// capability over it.
 	Inspection            streamedObservation[Inspection]
 	DirectoryEntryMaximum boundedFact[DirectoryEntryMaximum]
 	StagedFile            ownershipReceipt[StagedFile]
+	StageDestination      capabilityWrapper[StageDestination]
 }
 
 var _ = filestoreContractInventory{}
@@ -105,6 +108,7 @@ func TestFilestorePublicSurfaceIsExactRatchet(t *testing.T) {
 	requireExactNames(t, "exported types", gotTypes, []string{
 		"AppendMode",
 		"AppendRequest",
+		"ActivationRequest",
 		"CommitRequest",
 		"DirectoryRequest",
 		"DirectoryEntryMaximum",
@@ -126,6 +130,8 @@ func TestFilestorePublicSurfaceIsExactRatchet(t *testing.T) {
 		"RotationRequest",
 		"Sharing",
 		"StageRequest",
+		"StageDestination",
+		"StageDestinationRequest",
 		"StagedFile",
 		"TreeRemovalRequest",
 		"WalkDirective",
@@ -136,6 +142,8 @@ func TestFilestorePublicSurfaceIsExactRatchet(t *testing.T) {
 	})
 	requireExactNames(t, "exported functions", gotFunctions, []string{
 		"Canonicalize",
+		"AbandonStageDestination",
+		"FinishStageDestination",
 		"Commit",
 		"ConfirmDurable",
 		"Discard",
@@ -149,6 +157,8 @@ func TestFilestorePublicSurfaceIsExactRatchet(t *testing.T) {
 		"OpenParent",
 		"OpenRead",
 		"OpenRoot",
+		"OpenStagedRead",
+		"OpenStageDestination",
 		"Read",
 		"Recover",
 		"Remove",
@@ -198,6 +208,9 @@ func TestFilestorePublicSurfaceIsExactRatchet(t *testing.T) {
 		"AppendMode.OffWireEnum",
 		"AppendMode.String",
 		"AppendMode.Validate",
+		"ActivationRequest.CommitRequest",
+		"ActivationRequest.StageDestination",
+		"ActivationRequest.Validate",
 		"AppendRequest.Validate",
 		"CommitRequest.Validate",
 		"DirectoryRequest.Validate",
@@ -244,6 +257,9 @@ func TestFilestorePublicSurfaceIsExactRatchet(t *testing.T) {
 		"Sharing.String",
 		"Sharing.Validate",
 		"StageRequest.Validate",
+		"StageDestination.File",
+		"StageDestination.Validate",
+		"StageDestinationRequest.Validate",
 		"StagedFile.BytesWritten",
 		"StagedFile.Path",
 		"StagedFile.Validate",

@@ -9,6 +9,7 @@ import (
 	"testing"
 
 	"github.com/deliri/primitive/v2026/attest"
+	"github.com/deliri/primitive/v2026/chit"
 	"github.com/deliri/primitive/v2026/controlplane"
 	"github.com/deliri/primitive/v2026/controlplanetest"
 	"github.com/deliri/primitive/v2026/controlwire"
@@ -120,7 +121,7 @@ func authRequestPayload(
 	if err != nil {
 		t.Fatalf("core.NewByteLength() error = %v, want nil", err)
 	}
-	rawNonce := [controlwire.RequestNonceBytes]byte{}
+	rawNonce := [controlwire.NonceBytes]byte{}
 	for index := range rawNonce {
 		rawNonce[index] = nonceByte
 	}
@@ -133,7 +134,36 @@ func authRequestPayload(
 			ContentType: contentType, Extent: extent, SHA256: core.SHA256Of(content),
 			CRC32C: core.NewCRC32C(crc32.Checksum(content, crc32.MakeTable(crc32.Castagnoli))),
 		},
-		Build: build, Revision: controlwire.Revision2026V1, Nonce: nonce,
+		Manifest: submissionManifestIntent(t),
+		Build:    build, Revision: controlwire.Revision2026V1, Nonce: nonce,
+	}
+}
+
+func submissionManifestIntent(t *testing.T) submission.ManifestIntent {
+	t.Helper()
+	upload, err := submission.ParseUploadID("00000000-0006-7000-8000-000000000006")
+	if err != nil {
+		t.Fatalf("submission.ParseUploadID() error = %v, want nil", err)
+	}
+	collection, err := chit.ParseCollectionID("00000000-0007-7000-8000-000000000007")
+	if err != nil {
+		t.Fatalf("chit.ParseCollectionID() error = %v, want nil", err)
+	}
+	name, err := chit.ParseEntryName("proof.json")
+	if err != nil {
+		t.Fatalf("chit.ParseEntryName() error = %v, want nil", err)
+	}
+	sequence, err := chit.NewEntrySequence(1)
+	if err != nil {
+		t.Fatalf("chit.NewEntrySequence() error = %v, want nil", err)
+	}
+	objects, err := chit.NewObjectCount(1)
+	if err != nil {
+		t.Fatalf("chit.NewObjectCount() error = %v, want nil", err)
+	}
+	return submission.ManifestIntent{
+		Upload: upload, Collection: collection, Name: name,
+		Sequence: sequence, Objects: objects,
 	}
 }
 

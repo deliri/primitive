@@ -11,9 +11,13 @@ const (
 	// a route the authority does not mount.
 	routeControlPrefix = "/v2026/control/"
 
-	routeRegistrationsSuffix = "/registrations"
-	routeCheckInsSuffix      = "/check-ins"
-	routeSubmissionsSuffix   = "/submissions"
+	routeRegistrationsSuffix         = "/registrations"
+	routeCheckInsSuffix              = "/check-ins"
+	routeSubmissionsSuffix           = "/submissions"
+	routeSubmissionCompletionsSuffix = "/submission-completions"
+	routeChitsSuffix                 = "/chits"
+	routeRetrievalsSuffix            = "/retrievals"
+	routePaymentsSuffix              = "/payments"
 )
 
 // RouteFamily is the closed set of control-plane route families.
@@ -28,15 +32,27 @@ const (
 	RouteFamilyCheckIns
 	// RouteFamilySubmissions requests authority for one declared evidence object.
 	RouteFamilySubmissions
+	// RouteFamilySubmissionCompletions reports one attempted granted upload.
+	RouteFamilySubmissionCompletions
+	// RouteFamilyChits lists or selects customer custody tickets.
+	RouteFamilyChits
+	// RouteFamilyRetrievals requests exact-object download capabilities.
+	RouteFamilyRetrievals
+	// RouteFamilyPayments lists or selects customer payment receipts.
+	RouteFamilyPayments
 	routeFamilyLimit
 )
 
 func routeSuffixes() [routeFamilyLimit]string {
 	return [...]string{
-		RouteFamilyUnknown:       "",
-		RouteFamilyRegistrations: routeRegistrationsSuffix,
-		RouteFamilyCheckIns:      routeCheckInsSuffix,
-		RouteFamilySubmissions:   routeSubmissionsSuffix,
+		RouteFamilyUnknown:               "",
+		RouteFamilyRegistrations:         routeRegistrationsSuffix,
+		RouteFamilyCheckIns:              routeCheckInsSuffix,
+		RouteFamilySubmissions:           routeSubmissionsSuffix,
+		RouteFamilySubmissionCompletions: routeSubmissionCompletionsSuffix,
+		RouteFamilyChits:                 routeChitsSuffix,
+		RouteFamilyRetrievals:            routeRetrievalsSuffix,
+		RouteFamilyPayments:              routePaymentsSuffix,
 	}
 }
 

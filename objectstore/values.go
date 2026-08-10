@@ -354,6 +354,7 @@ func (p Policy) exchange() exchange.StreamPolicy {
 // UploadRequest supplies one exact caller-owned source.
 type UploadRequest struct {
 	Source      io.Reader
+	Observer    ProgressObserver
 	ContentType core.HTTPMediaType
 	Target      UploadTarget
 	Integrity   Integrity
@@ -379,6 +380,11 @@ func (r UploadRequest) Validate() error {
 	if err := r.Policy.Validate(); err != nil {
 		return errors.Join(core.ErrObjectStoreContract, err)
 	}
+	if r.Observer != nil {
+		if err := r.Observer.Validate(); err != nil {
+			return errors.Join(core.ErrObjectStoreContract, err)
+		}
+	}
 	return nil
 }
 
@@ -402,6 +408,7 @@ func (r UploadRequest) validateFor(provider Provider) error {
 // DownloadRequest supplies one exact caller-owned destination.
 type DownloadRequest struct {
 	Destination io.Writer
+	Observer    ProgressObserver
 	ContentType core.HTTPMediaType
 	Target      DownloadTarget
 	Integrity   Integrity
@@ -429,6 +436,11 @@ func (r DownloadRequest) Validate() error {
 	}
 	if err := r.Policy.Validate(); err != nil {
 		return errors.Join(core.ErrObjectStoreContract, err)
+	}
+	if r.Observer != nil {
+		if err := r.Observer.Validate(); err != nil {
+			return errors.Join(core.ErrObjectStoreContract, err)
+		}
 	}
 	return nil
 }

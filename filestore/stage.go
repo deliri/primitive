@@ -378,6 +378,12 @@ func validateCurrentStage(staged StagedFile) error {
 	if !os.SameFile(staged.info, info) {
 		return indeterminateActivationError(errors.New(temporaryIdentityDiagnostic))
 	}
+	if !info.Mode().IsRegular() || info.Mode().Perm() != staged.info.Mode().Perm() {
+		return activationError(errors.New("filestore staged file permissions or type changed"))
+	}
+	if info.Size() < 0 || uint64(info.Size()) != staged.bytes.Uint64() {
+		return sizeError(errors.New("filestore staged file extent changed"))
+	}
 	return nil
 }
 

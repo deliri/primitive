@@ -2,6 +2,8 @@ package filestore
 
 import (
 	"context"
+	"errors"
+	"io/fs"
 	"os"
 
 	"github.com/deliri/primitive/v2026/contextstate"
@@ -35,6 +37,46 @@ func OpenRead(ctx context.Context, request ReadHandleRequest) (*os.File, error) 
 		request.Location.Root,
 		request.Location.Path.String(),
 	)
+}
+
+// OpenStagedRead reopens the exact inode named by one StagedFile receipt. It
+// returns the real Go file only after rechecking the receipt before and after
+// open, closing the namespace race without introducing a reader wrapper.
+func OpenStagedRead(ctx context.Context, staged StagedFile) (*os.File, error) {
+	if err := contextstate.Validate(ctx); err != nil {
+		return nil, err
+	}
+	if err := staged.Validate(); err != nil {
+		return nil, err
+	}
+	if err := validateCurrentStage(staged); err != nil {
+		return nil, err
+	}
+	file, err := openRegularReadFile(staged.root, staged.path.String())
+	if err != nil {
+		return nil, err
+	}
+	observed, err := file.Stat()
+	if err != nil {
+		return nil, closeReadFile(file, sourceError(err))
+	}
+	if err := validateOpenedStage(staged, observed); err != nil {
+		return nil, closeReadFile(file, err)
+	}
+	return file, nil
+}
+
+func validateOpenedStage(staged StagedFile, observed fs.FileInfo) error {
+	if observed == nil || !os.SameFile(staged.info, observed) {
+		return indeterminateActivationError(errors.New("filestore opened stage identity changed"))
+	}
+	if !observed.Mode().IsRegular() || observed.Mode().Perm() != staged.info.Mode().Perm() {
+		return activationError(errors.New("filestore opened stage permissions or type changed"))
+	}
+	if observed.Size() < 0 || uint64(observed.Size()) != staged.bytes.Uint64() {
+		return sizeError(errors.New("filestore opened stage extent changed"))
+	}
+	return nil
 }
 
 // OpenParent opens the parent of one absolute path as a rooted capability and

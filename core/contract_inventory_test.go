@@ -32,6 +32,7 @@ type coreContractInventory struct {
 	DirectImportContract     architectureFact[DirectImportContract]
 	DirectTestImportContract architectureFact[DirectTestImportContract]
 	ArchitectureCatalog      architectureFact[ArchitectureCatalog]
+	CatalogPageLimit         protocolFact[CatalogPageLimit]
 	StrictJSONLimits         protocolFact[StrictJSONLimits]
 	strictJSONContainer      internalFlow[strictJSONContainer]
 	jsonContractDiagnostic   internalFlow[jsonContractDiagnostic]

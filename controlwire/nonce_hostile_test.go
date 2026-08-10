@@ -24,28 +24,28 @@ func TestNewRequestNonceRefusesTheUnpredictableFloor(t *testing.T) {
 	t.Parallel()
 
 	cases := []struct {
-		build    func() [controlwire.RequestNonceBytes]byte
+		build    func() [controlwire.NonceBytes]byte
 		name     string
 		wantOkay bool
 	}{
 		{
 			name:     "all-zero nonce is refused because it is not unpredictable",
-			build:    func() [controlwire.RequestNonceBytes]byte { return [controlwire.RequestNonceBytes]byte{} },
+			build:    func() [controlwire.NonceBytes]byte { return [controlwire.NonceBytes]byte{} },
 			wantOkay: false,
 		},
 		{
 			name: "single set bit in the last byte is accepted",
-			build: func() [controlwire.RequestNonceBytes]byte {
-				var value [controlwire.RequestNonceBytes]byte
-				value[controlwire.RequestNonceBytes-1] = 1
+			build: func() [controlwire.NonceBytes]byte {
+				var value [controlwire.NonceBytes]byte
+				value[controlwire.NonceBytes-1] = 1
 				return value
 			},
 			wantOkay: true,
 		},
 		{
 			name: "single set bit in the first byte is accepted",
-			build: func() [controlwire.RequestNonceBytes]byte {
-				var value [controlwire.RequestNonceBytes]byte
+			build: func() [controlwire.NonceBytes]byte {
+				var value [controlwire.NonceBytes]byte
 				value[0] = 1
 				return value
 			},
@@ -53,8 +53,8 @@ func TestNewRequestNonceRefusesTheUnpredictableFloor(t *testing.T) {
 		},
 		{
 			name: "every byte set is accepted",
-			build: func() [controlwire.RequestNonceBytes]byte {
-				var value [controlwire.RequestNonceBytes]byte
+			build: func() [controlwire.NonceBytes]byte {
+				var value [controlwire.NonceBytes]byte
 				for index := range value {
 					value[index] = 0xff
 				}
@@ -64,9 +64,9 @@ func TestNewRequestNonceRefusesTheUnpredictableFloor(t *testing.T) {
 		},
 		{
 			name: "all bytes zero except a middle byte is accepted",
-			build: func() [controlwire.RequestNonceBytes]byte {
-				var value [controlwire.RequestNonceBytes]byte
-				value[controlwire.RequestNonceBytes/2] = 0x80
+			build: func() [controlwire.NonceBytes]byte {
+				var value [controlwire.NonceBytes]byte
+				value[controlwire.NonceBytes/2] = 0x80
 				return value
 			},
 			wantOkay: true,
@@ -196,8 +196,8 @@ func TestGenerateRequestNonceProducesDistinctValidNonces(t *testing.T) {
 			t.Fatalf("GenerateRequestNonce() draw %d produced an invalid nonce: %v", draw, err)
 		}
 		text := nonce.String()
-		if len(text) != 2*controlwire.RequestNonceBytes {
-			t.Fatalf("GenerateRequestNonce() draw %d text width = %d, want %d", draw, len(text), 2*controlwire.RequestNonceBytes)
+		if len(text) != 2*controlwire.NonceBytes {
+			t.Fatalf("GenerateRequestNonce() draw %d text width = %d, want %d", draw, len(text), 2*controlwire.NonceBytes)
 		}
 		if _, repeated := seen[text]; repeated {
 			t.Fatalf("GenerateRequestNonce() draw %d repeated a prior nonce", draw)
@@ -227,6 +227,102 @@ func TestRequestNonceIdempotencyKeyCarriesTheExactNonceText(t *testing.T) {
 	}
 	if err := key.Validate(); err != nil {
 		t.Fatalf("IdempotencyKey().Validate() error = %v, want nil", err)
+	}
+}
+
+func TestAuthorityNonceHostileNominalAndCanonicalBoundaries(t *testing.T) {
+	t.Parallel()
+
+	raw := [controlwire.NonceBytes]byte{}
+	for index := range raw {
+		raw[index] = 0x5a
+	}
+	authority, err := controlwire.NewAuthorityNonce(raw)
+	if err != nil {
+		t.Fatalf("NewAuthorityNonce() error = %v, want nil", err)
+	}
+	request, err := controlwire.NewRequestNonce(raw)
+	if err != nil {
+		t.Fatalf("NewRequestNonce() error = %v, want nil", err)
+	}
+	if authority.String() != request.String() {
+		t.Fatalf("same bytes project as authority %q and request %q, want identical text under distinct Go types",
+			authority.String(), request.String())
+	}
+	parsed, err := controlwire.ParseAuthorityNonce(authority.String())
+	if err != nil || parsed != authority {
+		t.Fatalf("ParseAuthorityNonce() = (%v, %v), want exact nonce and nil", parsed, err)
+	}
+	encoded, err := json.Marshal(authority)
+	if err != nil {
+		t.Fatalf("json.Marshal(AuthorityNonce) error = %v, want nil", err)
+	}
+	var decoded controlwire.AuthorityNonce
+	if err := json.Unmarshal(encoded, &decoded); err != nil || decoded != authority {
+		t.Fatalf("json.Unmarshal(AuthorityNonce) = (%v, %v), want exact nonce and nil", decoded, err)
+	}
+}
+
+func TestAuthorityNonceRefusesZeroAndEveryNonCanonicalTextWithoutMutation(t *testing.T) {
+	t.Parallel()
+
+	before, err := controlwire.ParseAuthorityNonce(nonceHexWithLetters)
+	if err != nil {
+		t.Fatalf("ParseAuthorityNonce(valid) error = %v, want nil", err)
+	}
+	cases := []struct {
+		name  string
+		token string
+	}{
+		{name: "all zero", token: nonceHexAllZero},
+		{name: "empty", token: ""},
+		{name: "one short", token: nonceHexWithLetters[:63]},
+		{name: "one long", token: nonceHexWithLetters + "0"},
+		{name: "uppercase", token: strings.ToUpper(nonceHexWithLetters)},
+		{name: "non hexadecimal", token: strings.Repeat("g", 64)},
+		{name: "leading space", token: " " + nonceHexWithLetters[:63]},
+		{name: "trailing newline", token: nonceHexWithLetters[:63] + "\n"},
+	}
+	for _, testCase := range cases {
+		t.Run(testCase.name, func(t *testing.T) {
+			t.Parallel()
+
+			if got, gotErr := controlwire.ParseAuthorityNonce(testCase.token); !errors.Is(gotErr, core.ErrControlWireNonce) || got != (controlwire.AuthorityNonce{}) {
+				t.Fatalf("ParseAuthorityNonce(%q) = (%v, %v), want zero and errors.Is %v",
+					testCase.token, got, gotErr, core.ErrControlWireNonce)
+			}
+			encoded, marshalErr := core.MarshalCanonicalJSONString(testCase.token)
+			if marshalErr != nil {
+				t.Fatalf("core.MarshalCanonicalJSONString(%q) error = %v, want nil", testCase.token, marshalErr)
+			}
+			got := before
+			gotErr := got.UnmarshalJSON(encoded)
+			if !errors.Is(gotErr, core.ErrJSONContract) || got != before {
+				t.Fatalf("AuthorityNonce.UnmarshalJSON(%q) = (%v, %v), want preserved %v and errors.Is %v",
+					encoded, got, gotErr, before, core.ErrJSONContract)
+			}
+		})
+	}
+	if got, gotErr := controlwire.NewAuthorityNonce([controlwire.NonceBytes]byte{}); !errors.Is(gotErr, core.ErrControlWireNonce) || got != (controlwire.AuthorityNonce{}) {
+		t.Fatalf("NewAuthorityNonce(zero) = (%v, %v), want zero and errors.Is %v",
+			got, gotErr, core.ErrControlWireNonce)
+	}
+}
+
+func TestGenerateAuthorityNonceProducesDistinctValidatedValues(t *testing.T) {
+	t.Parallel()
+
+	const draws = 64
+	seen := make(map[string]struct{}, draws)
+	for draw := 0; draw < draws; draw++ {
+		nonce, err := controlwire.GenerateAuthorityNonce()
+		if err != nil || nonce.Validate() != nil {
+			t.Fatalf("GenerateAuthorityNonce() draw %d = (%v, %v), want valid and nil", draw, nonce, err)
+		}
+		if _, exists := seen[nonce.String()]; exists {
+			t.Fatalf("GenerateAuthorityNonce() draw %d repeated a prior value", draw)
+		}
+		seen[nonce.String()] = struct{}{}
 	}
 }
 

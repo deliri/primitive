@@ -1,16 +1,18 @@
 package submission
 
 import (
+	"embed"
 	"go/ast"
 	"go/parser"
 	"go/token"
-	"os"
-	"path/filepath"
 	"slices"
 	"sort"
 	"strings"
 	"testing"
 )
+
+//go:embed *.go
+var submissionContractSources embed.FS
 
 type (
 	protocolFact[T any]         struct{}
@@ -22,22 +24,30 @@ type (
 // role at the evidence-agreement boundary. Field names deliberately equal the
 // compiler-owned type names so an added carrier cannot evade review.
 type submissionContractInventory struct {
-	Declaration         protocolFact[Declaration]
-	RequestPayload      protocolFact[RequestPayload]
-	RequestDocument     protocolFact[RequestDocument]
-	RequestIssuance     protocolFact[RequestIssuance]
-	RequestVerification protocolFact[RequestVerification]
-	RequestCommitment   protocolFact[RequestCommitment]
-	AuthorizationNonce  protocolFact[AuthorizationNonce]
-	GrantPayload        protocolFact[GrantPayload]
-	GrantDocument       protocolFact[GrantDocument]
-	GrantProjection     protocolFact[GrantProjection]
-	GrantIssuance       protocolFact[GrantIssuance]
-	GrantExpectation    protocolFact[GrantExpectation]
-	VerifiedRequest     capabilityWrapper[VerifiedRequest]
-	VerifiedGrant       capabilityWrapper[VerifiedGrant]
-	grantDocumentWire   sealedWireProjection[grantDocumentWire]
-	grantProjectionWire sealedWireProjection[grantProjectionWire]
+	Declaration                  protocolFact[Declaration]
+	UploadID                     protocolFact[UploadID]
+	ManifestIntent               protocolFact[ManifestIntent]
+	RequestPayload               protocolFact[RequestPayload]
+	RequestDocument              protocolFact[RequestDocument]
+	RequestIssuance              protocolFact[RequestIssuance]
+	RequestVerification          protocolFact[RequestVerification]
+	RequestCommitment            protocolFact[RequestCommitment]
+	GrantPayload                 protocolFact[GrantPayload]
+	GrantDocument                protocolFact[GrantDocument]
+	GrantProjection              protocolFact[GrantProjection]
+	GrantIssuance                protocolFact[GrantIssuance]
+	GrantExpectation             protocolFact[GrantExpectation]
+	DecisionDocument             protocolFact[DecisionDocument]
+	DecisionProjection           protocolFact[DecisionProjection]
+	DecisionExpectation          protocolFact[DecisionExpectation]
+	UploadCallRequest            protocolFact[UploadCallRequest]
+	VerifiedRequest              capabilityWrapper[VerifiedRequest]
+	VerifiedGrant                capabilityWrapper[VerifiedGrant]
+	VerifiedDecision             capabilityWrapper[VerifiedDecision]
+	grantDocumentWire            sealedWireProjection[grantDocumentWire]
+	grantProjectionWire          sealedWireProjection[grantProjectionWire]
+	uploadDecisionProjectionWire sealedWireProjection[uploadDecisionProjectionWire]
+	reuseDecisionProjectionWire  sealedWireProjection[reuseDecisionProjectionWire]
 }
 
 func TestSubmissionDataFlowStructInventoryRatchet(t *testing.T) {
@@ -53,9 +63,9 @@ func TestSubmissionDataFlowStructInventoryRatchet(t *testing.T) {
 func submissionProductionStructNames(t *testing.T) []string {
 	t.Helper()
 
-	entries, err := os.ReadDir(".")
+	entries, err := submissionContractSources.ReadDir(".")
 	if err != nil {
-		t.Fatalf("os.ReadDir(.) error = %v, want nil", err)
+		t.Fatalf("submissionContractSources.ReadDir(.) error = %v, want nil", err)
 	}
 	names := make([]string, 0)
 	fileSet := token.NewFileSet()
@@ -64,9 +74,11 @@ func submissionProductionStructNames(t *testing.T) []string {
 			strings.HasSuffix(entry.Name(), "_test.go") {
 			continue
 		}
-		file, parseErr := parser.ParseFile(
-			fileSet, filepath.Clean(entry.Name()), nil, parser.SkipObjectResolution,
-		)
+		source, readErr := submissionContractSources.ReadFile(entry.Name())
+		if readErr != nil {
+			t.Fatalf("submissionContractSources.ReadFile(%q) error = %v, want nil", entry.Name(), readErr)
+		}
+		file, parseErr := parser.ParseFile(fileSet, entry.Name(), source, parser.SkipObjectResolution)
 		if parseErr != nil {
 			t.Fatalf("parser.ParseFile(%q) error = %v, want nil", entry.Name(), parseErr)
 		}
@@ -88,8 +100,12 @@ func submissionProductionStructNames(t *testing.T) []string {
 func submissionClassifiedStructNames(t *testing.T) []string {
 	t.Helper()
 
+	source, err := submissionContractSources.ReadFile("architecture_test.go")
+	if err != nil {
+		t.Fatalf("submissionContractSources.ReadFile(architecture_test.go) error = %v, want nil", err)
+	}
 	file, err := parser.ParseFile(
-		token.NewFileSet(), "architecture_test.go", nil, parser.SkipObjectResolution,
+		token.NewFileSet(), "architecture_test.go", source, parser.SkipObjectResolution,
 	)
 	if err != nil {
 		t.Fatalf("parser.ParseFile(architecture_test.go) error = %v, want nil", err)
@@ -123,4 +139,6 @@ var (
 	_ = submissionContractInventory{}
 	_ = submissionContractInventory{}.grantDocumentWire
 	_ = submissionContractInventory{}.grantProjectionWire
+	_ = submissionContractInventory{}.uploadDecisionProjectionWire
+	_ = submissionContractInventory{}.reuseDecisionProjectionWire
 )

@@ -1,0 +1,188 @@
+package objectstore
+
+import (
+	"encoding/json"
+	"errors"
+
+	"github.com/deliri/primitive/v2026/core"
+)
+
+const (
+	// TransferEvidenceJSONMaximumBytes is the derived wire ceiling for every
+	// admitted provider version plus the widest fixed evidence document.
+	TransferEvidenceJSONMaximumBytes = canonicalJSONStringMaximumExpansion*AmazonS3VersionIDMaximumBytes +
+		transferEvidenceDocumentSyntaxMaximumBytes
+	transferEvidenceDocumentSyntaxMaximumBytes = len(
+		`{"provider":"google_cloud_storage","direction":"download",` +
+			`"version":"","bytes":9223372036854775807,` +
+			`"sha256":"0000000000000000000000000000000000000000000000000000000000000000",` +
+			`"crc32c":"AAAAAAAA"}`,
+	)
+	transferEvidenceRequiredMemberErrorText = "transfer evidence required member is absent"
+)
+
+type transferEvidenceWire struct {
+	Provider  *string            `json:"provider"`
+	Direction *string            `json:"direction"`
+	Version   *string            `json:"version,omitempty"`
+	Bytes     *core.ByteLength   `json:"bytes"`
+	SHA256    *core.SHA256Digest `json:"sha256"`
+	CRC32C    *core.CRC32C       `json:"crc32c"`
+}
+
+// TransferEvidence is the receive-only exact fact that one provider transfer
+// completed and passed Objectstore integrity verification.
+type TransferEvidence struct {
+	version   ProviderVersion
+	bytes     core.ByteLength
+	sha256    core.SHA256Digest
+	crc32c    core.CRC32C
+	provider  Provider
+	direction Direction
+	set       bool
+}
+
+// TransferEvidenceProjection is the issue-only form created solely from a
+// confirmed Transfer. It contains no URL, bearer, header, path, or content.
+type TransferEvidenceProjection struct{ evidence TransferEvidence }
+
+// Evidence projects confirmed transfer proof for a higher signed protocol.
+func (t Transfer) Evidence() (TransferEvidenceProjection, error) {
+	if err := t.Validate(); err != nil {
+		return TransferEvidenceProjection{}, err
+	}
+	evidence := TransferEvidence{
+		version: t.version, bytes: t.bytes, sha256: t.sha256, crc32c: t.crc32c,
+		provider: t.provider, direction: t.direction, set: true,
+	}
+	projection := TransferEvidenceProjection{evidence: evidence}
+	return projection, projection.Validate()
+}
+
+func (e TransferEvidence) Validate() error {
+	if !e.set {
+		return core.ErrObjectStoreContract
+	}
+	if err := errors.Join(
+		e.provider.Validate(), e.direction.Validate(), e.bytes.Validate(),
+		e.sha256.Validate(), e.crc32c.Validate(),
+	); err != nil {
+		return errors.Join(core.ErrObjectStoreContract, err)
+	}
+	if err := validateProviderDirection(e.provider, e.direction); err != nil {
+		return errors.Join(core.ErrObjectStoreContract, err)
+	}
+	if !e.version.IsZero() {
+		if err := e.version.Validate(); err != nil || e.version.Provider() != e.provider {
+			return errors.Join(core.ErrObjectStoreContract, err)
+		}
+	}
+	return nil
+}
+
+func (p TransferEvidenceProjection) Validate() error { return p.evidence.Validate() }
+
+func (e TransferEvidence) Provider() Provider        { return e.provider }
+func (e TransferEvidence) Direction() Direction      { return e.direction }
+func (e TransferEvidence) Bytes() core.ByteLength    { return e.bytes }
+func (e TransferEvidence) SHA256() core.SHA256Digest { return e.sha256 }
+func (e TransferEvidence) CRC32C() core.CRC32C       { return e.crc32c }
+func (e TransferEvidence) Version() (ProviderVersion, bool) {
+	return e.version, !e.version.IsZero()
+}
+
+func (p TransferEvidenceProjection) MarshalJSON() ([]byte, error) {
+	if err := p.Validate(); err != nil {
+		return nil, errors.Join(core.ErrJSONContract, err)
+	}
+	encoded, err := core.MarshalCanonicalJSONDocument(transferEvidenceWireFrom(p.evidence))
+	if err != nil || len(encoded) > TransferEvidenceJSONMaximumBytes {
+		return nil, errors.Join(core.ErrJSONContract, core.ErrObjectStoreContract, err)
+	}
+	return encoded, nil
+}
+
+func (e *TransferEvidence) UnmarshalJSON(data []byte) error {
+	if e == nil {
+		return errors.Join(core.ErrJSONContract, core.ErrObjectStoreContract)
+	}
+	limit, err := core.NewByteCount(uint64(TransferEvidenceJSONMaximumBytes))
+	if err != nil {
+		return errors.Join(core.ErrJSONContract, core.ErrObjectStoreContract, err)
+	}
+	limits := core.DefaultStrictJSONLimits()
+	limits.DocumentMaximumBytes = limit
+	wire, err := core.DecodeStrictJSONStructure[transferEvidenceWire](data, limits)
+	if err != nil {
+		return errors.Join(core.ErrJSONContract, core.ErrObjectStoreContract, err)
+	}
+	candidate, err := transferEvidenceFromWire(wire)
+	if err != nil {
+		return errors.Join(core.ErrJSONContract, err)
+	}
+	*e = candidate
+	return nil
+}
+
+func transferEvidenceWireFrom(evidence TransferEvidence) transferEvidenceWire {
+	provider := evidence.provider.String()
+	direction := evidence.direction.String()
+	bytes := evidence.bytes
+	sha256 := evidence.sha256
+	crc32c := evidence.crc32c
+	wire := transferEvidenceWire{
+		Provider: &provider, Direction: &direction,
+		Bytes: &bytes, SHA256: &sha256, CRC32C: &crc32c,
+	}
+	if !evidence.version.IsZero() {
+		value := evidence.version.String()
+		wire.Version = &value
+	}
+	return wire
+}
+
+func transferEvidenceFromWire(wire transferEvidenceWire) (TransferEvidence, error) {
+	if wire.Provider == nil || wire.Direction == nil || wire.Bytes == nil ||
+		wire.SHA256 == nil || wire.CRC32C == nil {
+		return TransferEvidence{}, errors.Join(core.ErrObjectStoreContract,
+			errors.New(transferEvidenceRequiredMemberErrorText))
+	}
+	provider, err := parseProviderToken(*wire.Provider)
+	if err != nil {
+		return TransferEvidence{}, err
+	}
+	direction, err := parseDirectionToken(*wire.Direction)
+	if err != nil {
+		return TransferEvidence{}, err
+	}
+	evidence := TransferEvidence{
+		provider: provider, direction: direction, bytes: *wire.Bytes,
+		sha256: *wire.SHA256, crc32c: *wire.CRC32C, set: true,
+	}
+	if wire.Version != nil {
+		evidence.version, err = newProviderVersion(provider, *wire.Version)
+		if err != nil {
+			return TransferEvidence{}, err
+		}
+	}
+	if err := evidence.Validate(); err != nil {
+		return TransferEvidence{}, err
+	}
+	return evidence, nil
+}
+
+func parseDirectionToken(value string) (Direction, error) {
+	for direction := DirectionUnknown + 1; direction < directionLimit; direction++ {
+		if direction.String() == value {
+			return direction, nil
+		}
+	}
+	return DirectionUnknown, core.ErrObjectStoreContract
+}
+
+var (
+	_ core.Validatable            = TransferEvidence{}
+	_ core.Validatable            = TransferEvidenceProjection{}
+	_ core.ValidatedJSONMarshaler = TransferEvidenceProjection{}
+	_ json.Unmarshaler            = (*TransferEvidence)(nil)
+)

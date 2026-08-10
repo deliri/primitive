@@ -109,13 +109,16 @@ func TestArchitectureCatalogRejectsEveryStructuralFailureMode(t *testing.T) {
 		{name: "cycle from core to upgrade is rejected", mutate: func(c *ArchitectureCatalog) {
 			c.imports[0] = DirectImportContract{Importer: PackageCore, Imported: PackageUpgrade}
 		}, wantErr: ErrPrimitiveContract},
-		{name: "seventh direct import exceeds graph maximum", mutate: func(c *ArchitectureCatalog) {
-			c.imports[0] = DirectImportContract{Importer: PackageUpgrade, Imported: PackageContextState}
+		{name: "tenth direct import exceeds graph maximum", mutate: func(c *ArchitectureCatalog) {
+			replaceArchitectureImportForTest(c,
+				DirectImportContract{Importer: PackageControlPlane, Imported: PackageReceipt},
+				DirectImportContract{Importer: PackageRetrieval, Imported: PackageCurrency},
+			)
 		}, wantErr: ErrPrimitiveContract},
-		{name: "seventh combined production and test import exceeds graph maximum", mutate: func(c *ArchitectureCatalog) {
+		{name: "tenth combined production and test import exceeds graph maximum", mutate: func(c *ArchitectureCatalog) {
 			c.testImports[0] = DirectTestImportContract{
-				Importer: PackageUpgrade,
-				Imported: PackageAttest,
+				Importer: PackageRetrieval,
+				Imported: PackageCurrency,
 			}
 		}, wantErr: ErrPrimitiveContract},
 	}
@@ -130,6 +133,19 @@ func TestArchitectureCatalogRejectsEveryStructuralFailureMode(t *testing.T) {
 				t.Fatalf("mutated ArchitectureCatalog.Validate() error = %v, want %v", gotErr, tc.wantErr)
 			}
 		})
+	}
+}
+
+func replaceArchitectureImportForTest(
+	catalog *ArchitectureCatalog,
+	target DirectImportContract,
+	replacement DirectImportContract,
+) {
+	for index, contract := range catalog.imports {
+		if contract == target {
+			catalog.imports[index] = replacement
+			return
+		}
 	}
 }
 

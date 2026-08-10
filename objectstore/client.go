@@ -91,6 +91,9 @@ func (t Transfer) Validate() error {
 	if err := t.direction.Validate(); err != nil {
 		return err
 	}
+	if err := validateProviderDirection(t.provider, t.direction); err != nil {
+		return err
+	}
 	if t.commitment != CommitmentConfirmed {
 		return core.ErrObjectStoreContract
 	}
@@ -107,6 +110,25 @@ func (t Transfer) Validate() error {
 		return err
 	}
 	return nil
+}
+
+func validateProviderDirection(provider Provider, direction Direction) error {
+	spec, err := Spec(provider)
+	if err != nil {
+		return err
+	}
+	switch direction {
+	case DirectionUpload:
+		return nil
+	case DirectionDownload:
+		if spec.Directions != DirectionCapabilityUploadDownload {
+			return core.ErrObjectStoreContract
+		}
+		return nil
+	case DirectionUnknown, directionLimit:
+		return core.ErrObjectStoreContract
+	}
+	return core.ErrObjectStoreContract
 }
 
 func (t Transfer) validateVersion() error {
@@ -268,8 +290,12 @@ func prepareDownload(
 	return preparedDownload{
 		digests: digests,
 		request: exchange.DownloadRequest{
-			Target:                      exchangeTarget{url: request.Target.URL.value},
-			Destination:                 io.MultiWriter(request.Destination, digests.writer()),
+			Target: exchangeTarget{url: request.Target.URL.value},
+			Destination: io.MultiWriter(
+				request.Destination,
+				digests.writer(),
+				progressDestination(request.Observer, DirectionDownload, request.Integrity.Length),
+			),
 			Semantics:                   singleAttempt(exchange.MethodGet),
 			ExpectedResponseContentType: request.ContentType,
 			Headers:                     headers,
@@ -312,7 +338,10 @@ func prepareUpload(
 		}
 	}
 	digests := newDigests()
-	source := io.TeeReader(exact, digests.writer())
+	source := io.TeeReader(exact, io.MultiWriter(
+		digests.writer(),
+		progressDestination(request.Observer, DirectionUpload, request.Integrity.Length),
+	))
 	spec, err := Spec(provider)
 	if err != nil {
 		return preparedUpload{}, err

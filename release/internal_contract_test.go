@@ -20,6 +20,7 @@ type (
 )
 
 type releaseContractInventory struct {
+	ProjectVersion                    protocolFact[ProjectVersion]
 	embeddedBuildIdentityText         internalFlow[embeddedBuildIdentityText]
 	MainPackage                       protocolFact[MainPackage]
 	LinkerAssignment                  protocolFact[LinkerAssignment]

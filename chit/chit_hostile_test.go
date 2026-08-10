@@ -1,0 +1,601 @@
+package chit
+
+import (
+	"bytes"
+	"crypto/ed25519"
+	"errors"
+	"hash/crc32"
+	"math"
+	"testing"
+	"time"
+
+	"github.com/deliri/primitive/v2026/attest"
+	"github.com/deliri/primitive/v2026/core"
+	"github.com/deliri/primitive/v2026/id"
+	"github.com/deliri/primitive/v2026/receipt"
+	"github.com/deliri/primitive/v2026/temporal"
+)
+
+const (
+	chitFixtureNameA = "evidence-a.json"
+	chitFixtureNameB = "evidence-b.json"
+)
+
+type chitFixture struct {
+	private  ed25519.PrivateKey
+	addition ManifestAddition
+	trusted  attest.TrustedKeys
+	document Document
+	summary  ManifestSummary
+	scope    receipt.Scope
+	identity ChitID
+}
+
+type chitEntryFixtureRequest struct {
+	Name     string
+	Private  ed25519.PrivateKey
+	Trusted  attest.TrustedKeys
+	Extent   *core.ByteLength
+	Sequence uint64
+	Scope    receipt.Scope
+	Marker   byte
+}
+
+type chitDerivedEntryFixtureRequest struct {
+	Name     string
+	Fixture  chitFixture
+	Sequence uint64
+	Marker   byte
+}
+
+func TestManifestAccumulatorLayerTriad(t *testing.T) {
+	t.Parallel()
+
+	t.Run("positive contiguous authenticated streams seal exact summaries", func(t *testing.T) {
+		t.Parallel()
+
+		cases := []struct {
+			name    string
+			objects uint64
+		}{
+			{name: "one object minimum stream", objects: 1},
+			{name: "two object stream", objects: 2},
+			{name: "three object stream", objects: 3},
+			{name: "four object stream", objects: 4},
+			{name: "five object stream", objects: 5},
+			{name: "seven object stream", objects: 7},
+			{name: "eight object stream", objects: 8},
+			{name: "ten object stream", objects: 10},
+			{name: "sixteen object stream", objects: 16},
+			{name: "thirty-two object stream", objects: 32},
+		}
+		for _, tc := range cases {
+			t.Run(tc.name, func(t *testing.T) {
+				t.Parallel()
+
+				fixture := newChitFixture(t, byte(tc.objects)+0x20, 1)
+				accumulator := NewManifestAccumulator()
+				if gotErr := accumulator.Add(fixture.addition); gotErr != nil {
+					t.Fatalf("ManifestAccumulator.Add(sequence 1) error = %v, want nil", gotErr)
+				}
+				for sequence := uint64(2); sequence <= tc.objects; sequence++ {
+					addition := chitManifestEntryFixture(t, chitDerivedEntryFixtureRequest{
+						Fixture: fixture, Marker: byte(sequence) + 0x40,
+						Sequence: sequence, Name: chitFixtureNameB,
+					})
+					if gotErr := accumulator.Add(addition); gotErr != nil {
+						t.Fatalf("ManifestAccumulator.Add(sequence %d) error = %v, want nil", sequence, gotErr)
+					}
+				}
+				got, gotErr := accumulator.Seal()
+				if gotErr != nil || got.Validate() != nil || got.Objects.Uint64() != tc.objects ||
+					got.TotalBytes.Uint64() != tc.objects {
+					t.Fatalf("ManifestAccumulator.Seal(%d objects) = (%v, %v), want exact %d-object/%d-byte summary",
+						tc.objects, got, gotErr, tc.objects, tc.objects)
+				}
+			})
+		}
+	})
+
+	t.Run("negative gaps substitutions overflow and terminal reuse fail loudly", func(t *testing.T) {
+		t.Parallel()
+
+		fixture := newChitFixture(t, 0x21, 1)
+		second := chitManifestEntryFixture(t, chitDerivedEntryFixtureRequest{
+			Fixture: fixture, Marker: 0x31, Sequence: 2, Name: chitFixtureNameB,
+		})
+		other := newChitFixture(t, 0x36, 1)
+		cases := []struct {
+			build   func() (*ManifestAccumulator, ManifestAddition)
+			name    string
+			wantErr error
+		}{
+			{name: "nil accumulator add", build: func() (*ManifestAccumulator, ManifestAddition) { return nil, fixture.addition }, wantErr: core.ErrChitContract},
+			{name: "zero accumulator add", build: func() (*ManifestAccumulator, ManifestAddition) { return &ManifestAccumulator{}, fixture.addition }, wantErr: core.ErrChitContract},
+			{name: "zero addition", build: func() (*ManifestAccumulator, ManifestAddition) { return NewManifestAccumulator(), ManifestAddition{} }, wantErr: core.ErrChitContract},
+			{name: "first sequence starts one above one", build: func() (*ManifestAccumulator, ManifestAddition) {
+				value := second
+				return NewManifestAccumulator(), value
+			}, wantErr: core.ErrChitConflict},
+			{name: "first sequence starts far above one", build: func() (*ManifestAccumulator, ManifestAddition) {
+				value := second
+				value.Entry.Sequence = mustEntrySequence(t, 255)
+				return NewManifestAccumulator(), value
+			}, wantErr: core.ErrChitConflict},
+			{name: "duplicate sequence repeats one", build: func() (*ManifestAccumulator, ManifestAddition) {
+				accumulator := NewManifestAccumulator()
+				if gotErr := accumulator.Add(fixture.addition); gotErr != nil {
+					t.Fatalf("ManifestAccumulator.Add(setup) error = %v, want nil", gotErr)
+				}
+				return accumulator, fixture.addition
+			}, wantErr: core.ErrChitConflict},
+			{name: "gap skips sequence two", build: func() (*ManifestAccumulator, ManifestAddition) {
+				accumulator := NewManifestAccumulator()
+				if gotErr := accumulator.Add(fixture.addition); gotErr != nil {
+					t.Fatalf("ManifestAccumulator.Add(setup) error = %v, want nil", gotErr)
+				}
+				value := second
+				value.Entry.Sequence = mustEntrySequence(t, 3)
+				return accumulator, value
+			}, wantErr: core.ErrChitConflict},
+			{name: "verified evidence belongs to another entry", build: func() (*ManifestAccumulator, ManifestAddition) {
+				value := fixture.addition
+				value.Evidence = other.addition.Evidence
+				return NewManifestAccumulator(), value
+			}, wantErr: core.ErrChitConflict},
+			{name: "unsigned receipt body mutation", build: func() (*ManifestAccumulator, ManifestAddition) {
+				value := fixture.addition
+				value.Entry.Evidence.Payload.Body = other.addition.Entry.Evidence.Payload.Body
+				return NewManifestAccumulator(), value
+			}, wantErr: core.ErrChitConflict},
+			{name: "add after successful seal", build: func() (*ManifestAccumulator, ManifestAddition) {
+				accumulator := NewManifestAccumulator()
+				if gotErr := accumulator.Add(fixture.addition); gotErr != nil {
+					t.Fatalf("ManifestAccumulator.Add(setup) error = %v, want nil", gotErr)
+				}
+				if _, gotErr := accumulator.Seal(); gotErr != nil {
+					t.Fatalf("ManifestAccumulator.Seal(setup) error = %v, want nil", gotErr)
+				}
+				return accumulator, second
+			}, wantErr: core.ErrChitContract},
+		}
+		for _, tc := range cases {
+			t.Run(tc.name, func(t *testing.T) {
+				t.Parallel()
+
+				accumulator, addition := tc.build()
+				gotErr := accumulator.Add(addition)
+				if !errors.Is(gotErr, tc.wantErr) {
+					t.Fatalf("ManifestAccumulator.Add() error = %v, want errors.Is %v", gotErr, tc.wantErr)
+				}
+			})
+		}
+
+		t.Run("total extent overflow leaves prior fold sealable", func(t *testing.T) {
+			t.Parallel()
+
+			maximum := mustChitByteLength(t, math.MaxInt64)
+			large := chitEvidenceEntryFixture(t, chitEntryFixtureRequest{
+				Private: fixture.private, Trusted: fixture.trusted, Scope: fixture.scope,
+				Marker: 0x51, Sequence: 1, Name: chitFixtureNameA, Extent: &maximum,
+			})
+			one := chitManifestEntryFixture(t, chitDerivedEntryFixtureRequest{
+				Fixture: fixture, Marker: 0x52, Sequence: 2, Name: chitFixtureNameB,
+			})
+			accumulator := NewManifestAccumulator()
+			if gotErr := accumulator.Add(large); gotErr != nil {
+				t.Fatalf("ManifestAccumulator.Add(maximum setup) error = %v, want nil", gotErr)
+			}
+			if gotErr := accumulator.Add(one); !errors.Is(gotErr, core.ErrNumericOverflow) {
+				t.Fatalf("ManifestAccumulator.Add(one above total maximum) error = %v, want errors.Is %v", gotErr, core.ErrNumericOverflow)
+			}
+			got, gotErr := accumulator.Seal()
+			if gotErr != nil || got.Objects.Uint64() != 1 || got.TotalBytes.Uint64() != math.MaxInt64 {
+				t.Fatalf("ManifestAccumulator.Seal(after refused overflow) = (%v, %v), want one-object maximum summary", got, gotErr)
+			}
+		})
+	})
+
+	t.Run("neutral empty and repeated seals emit no plausible summary", func(t *testing.T) {
+		t.Parallel()
+
+		accumulator := NewManifestAccumulator()
+		got, gotErr := accumulator.Seal()
+		if !errors.Is(gotErr, core.ErrChitContract) || got != (ManifestSummary{}) {
+			t.Fatalf("empty ManifestAccumulator.Seal() = (%v, %v), want zero and errors.Is %v", got, gotErr, core.ErrChitContract)
+		}
+		got, gotErr = accumulator.Seal()
+		if !errors.Is(gotErr, core.ErrChitContract) || got != (ManifestSummary{}) {
+			t.Fatalf("repeated empty ManifestAccumulator.Seal() = (%v, %v), want zero and errors.Is %v", got, gotErr, core.ErrChitContract)
+		}
+	})
+}
+
+func TestManifestDigestChangesWhenAuthenticatedOrderChanges(t *testing.T) {
+	t.Parallel()
+
+	fixture := newChitFixture(t, 0x22, 1)
+	second := chitManifestEntryFixture(t, chitDerivedEntryFixtureRequest{
+		Fixture: fixture, Marker: 0x32, Sequence: 2, Name: chitFixtureNameB,
+	})
+	firstOrder := manifestSummaryFixture(t, fixture.addition, second)
+
+	secondFirst := second
+	secondFirst.Entry.Sequence = mustEntrySequence(t, 1)
+	firstSecond := fixture.addition
+	firstSecond.Entry.Sequence = mustEntrySequence(t, 2)
+	secondOrder := manifestSummaryFixture(t, secondFirst, firstSecond)
+	if firstOrder.Digest == secondOrder.Digest {
+		t.Fatalf("manifest digests are equal after authenticated order reversal, want distinct")
+	}
+}
+
+func TestChitVerificationRefusesEveryIdentityScopeKeyAndPayloadSubstitution(t *testing.T) {
+	t.Parallel()
+
+	fixture := newChitFixture(t, 0x23, 1)
+	verified, err := Verify(Verification{
+		Document:    fixture.document,
+		Expected:    Expectation{Identity: fixture.identity, Scope: fixture.scope},
+		TrustedKeys: fixture.trusted,
+	})
+	if err != nil {
+		t.Fatalf("Verify(authentic chit) error = %v, want nil", err)
+	}
+	gotDocument, err := verified.Document()
+	if err != nil || gotDocument != fixture.document {
+		t.Fatalf("Verified.Document() = (%v, %v), want exact document and nil", gotDocument, err)
+	}
+
+	otherIdentity := mustChitID(t, 0x24, 2)
+	if got, gotErr := Verify(Verification{
+		Document:    fixture.document,
+		Expected:    Expectation{Identity: otherIdentity, Scope: fixture.scope},
+		TrustedKeys: fixture.trusted,
+	}); !errors.Is(gotErr, core.ErrChitConflict) || got != (Verified{}) {
+		t.Fatalf("Verify(wrong chit identity) = (%v, %v), want zero and errors.Is %v",
+			got, gotErr, core.ErrChitConflict)
+	}
+
+	otherScope := chitScopeFixture(t, 0x61)
+	if got, gotErr := Verify(Verification{
+		Document:    fixture.document,
+		Expected:    Expectation{Identity: fixture.identity, Scope: otherScope},
+		TrustedKeys: fixture.trusted,
+	}); !errors.Is(gotErr, core.ErrChitConflict) || got != (Verified{}) {
+		t.Fatalf("Verify(wrong scope) = (%v, %v), want zero and errors.Is %v",
+			got, gotErr, core.ErrChitConflict)
+	}
+
+	_, otherTrust := chitSigningFixture(t, 0x71)
+	if got, gotErr := Verify(Verification{
+		Document:    fixture.document,
+		Expected:    Expectation{Identity: fixture.identity, Scope: fixture.scope},
+		TrustedKeys: otherTrust,
+	}); !errors.Is(gotErr, core.ErrChitVerification) || got != (Verified{}) {
+		t.Fatalf("Verify(wrong authority) = (%v, %v), want zero and errors.Is %v",
+			got, gotErr, core.ErrChitVerification)
+	}
+
+	tampered := fixture.document
+	tampered.Payload.Version = mustVersion(t, fixture.document.Payload.Version.Uint64()+1)
+	if got, gotErr := Verify(Verification{
+		Document:    tampered,
+		Expected:    Expectation{Identity: fixture.identity, Scope: fixture.scope},
+		TrustedKeys: fixture.trusted,
+	}); !errors.Is(gotErr, core.ErrChitVerification) || got != (Verified{}) {
+		t.Fatalf("Verify(tampered signed payload) = (%v, %v), want zero and errors.Is %v",
+			got, gotErr, core.ErrChitVerification)
+	}
+}
+
+func TestChitRetentionAndCatalogHostileTemporalEdges(t *testing.T) {
+	t.Parallel()
+
+	fixture := newChitFixture(t, 0x25, 1)
+	retention := fixture.document.Payload.RetainUntil
+	unavailable := CatalogEntry{Chit: fixture.document, State: CustodyStateRetrievalUnavailable}
+	retentionNanoseconds, err := retention.Nanoseconds()
+	if err != nil {
+		t.Fatalf("RetainUntil.Nanoseconds() error = %v, want nil", err)
+	}
+	before := temporal.InstantFromNanoseconds(retentionNanoseconds - 1)
+	if gotErr := unavailable.ValidateAt(before); !errors.Is(gotErr, core.ErrChitConflict) {
+		t.Fatalf("CatalogEntry.ValidateAt(before retention) error = %v, want errors.Is %v",
+			gotErr, core.ErrChitConflict)
+	}
+	if gotErr := unavailable.ValidateAt(retention); gotErr != nil {
+		t.Fatalf("CatalogEntry.ValidateAt(exact retention) error = %v, want nil", gotErr)
+	}
+
+	stored := CatalogEntry{Chit: fixture.document, State: CustodyStateStored}
+	if gotErr := stored.ValidateAt(before); gotErr != nil {
+		t.Fatalf("stored CatalogEntry.ValidateAt(before retention) error = %v, want nil", gotErr)
+	}
+
+	payload := CatalogPayload{
+		Entries: []CatalogEntry{}, Scope: fixture.scope,
+		Watermark: chitWatermarkFixture(t, fixture.scope), ObservedAt: before,
+		Continuation: End(),
+	}
+	if gotErr := payload.Validate(); gotErr != nil {
+		t.Fatalf("empty terminal CatalogPayload.Validate() error = %v, want nil", gotErr)
+	}
+	payload.Entries = nil
+	if gotErr := payload.Validate(); !errors.Is(gotErr, core.ErrChitContract) {
+		t.Fatalf("nil CatalogPayload entries error = %v, want errors.Is %v", gotErr, core.ErrChitContract)
+	}
+
+	payload.Entries = make([]CatalogEntry, core.CatalogPageMaximumEntries+1)
+	if gotErr := payload.Validate(); !errors.Is(gotErr, core.ErrChitContract) {
+		t.Fatalf("oversize CatalogPayload entries error = %v, want errors.Is %v", gotErr, core.ErrChitContract)
+	}
+}
+
+func TestChitNumericJSONBoundariesAreCanonicalAndTransactional(t *testing.T) {
+	t.Parallel()
+
+	before := mustVersion(t, math.MaxUint64)
+	cases := []struct {
+		name string
+		data []byte
+	}{
+		{name: "zero", data: []byte{'0'}},
+		{name: "leading zero", data: []byte{'0', '1'}},
+		{name: "leading whitespace", data: []byte{' ', '1'}},
+		{name: "negative", data: []byte{'-', '1'}},
+		{name: "fraction", data: []byte{'1', '.', '0'}},
+		{name: "uint64 overflow", data: []byte("18446744073709551616")},
+	}
+	for _, testCase := range cases {
+		t.Run(testCase.name, func(t *testing.T) {
+			t.Parallel()
+
+			got := before
+			gotErr := got.UnmarshalJSON(testCase.data)
+			if !errors.Is(gotErr, core.ErrJSONContract) || got != before {
+				t.Fatalf("Version.UnmarshalJSON(%q) = (%v, %v), want preserved %v and errors.Is %v",
+					testCase.data, got, gotErr, before, core.ErrJSONContract)
+			}
+		})
+	}
+}
+
+func newChitFixture(t *testing.T, marker byte, versionValue uint64) chitFixture {
+	t.Helper()
+
+	private, trusted := chitSigningFixture(t, marker)
+	scope := chitScopeFixture(t, marker+1)
+	addition := chitEvidenceEntryFixture(t, chitEntryFixtureRequest{
+		Private: private, Trusted: trusted, Scope: scope,
+		Marker: marker + 2, Sequence: 1, Name: chitFixtureNameA,
+	})
+	summary := manifestSummaryFixture(t, addition)
+	identity := mustChitID(t, marker+3, int64(marker)+1)
+	collection, err := NewCollectionID(mustUUIDv7(t, marker+4, int64(marker)+2))
+	if err != nil {
+		t.Fatalf("NewCollectionID() error = %v, want nil", err)
+	}
+	accepted := temporal.InstantFromNanoseconds(int64(marker) + 1)
+	retained := temporal.InstantFromNanoseconds(int64(marker) + 100)
+	payload := Payload{
+		Identity: identity, Collection: collection, Scope: scope, Manifest: summary,
+		AcceptedAt: accepted, RetainUntil: retained, Version: mustVersion(t, versionValue),
+	}
+	document, err := Issue(Issuance{Signer: private, Payload: payload})
+	if err != nil {
+		t.Fatalf("chit.Issue() error = %v, want nil", err)
+	}
+	return chitFixture{
+		private: private, trusted: trusted, scope: scope, identity: identity,
+		document: document, summary: summary, addition: addition,
+	}
+}
+
+func chitManifestEntryFixture(
+	t *testing.T,
+	request chitDerivedEntryFixtureRequest,
+) ManifestAddition {
+	t.Helper()
+	return chitEvidenceEntryFixture(t, chitEntryFixtureRequest{
+		Private: request.Fixture.private, Trusted: request.Fixture.trusted,
+		Scope: request.Fixture.scope, Marker: request.Marker,
+		Sequence: request.Sequence, Name: request.Name,
+	})
+}
+
+func chitEvidenceEntryFixture(
+	t *testing.T,
+	request chitEntryFixtureRequest,
+) ManifestAddition {
+	t.Helper()
+
+	payload := []byte{request.Marker}
+	extent, err := core.NewByteLength(uint64(len(payload)))
+	if err != nil {
+		t.Fatalf("core.NewByteLength() error = %v, want nil", err)
+	}
+	if request.Extent != nil {
+		extent = *request.Extent
+		if err := extent.Validate(); err != nil {
+			t.Fatalf("requested evidence extent Validate() error = %v, want nil", err)
+		}
+	}
+	submission := mustLifecycleIdentity(t, request.Marker+1, receipt.NewSubmissionIdentity)
+	object := mustLifecycleIdentity(t, request.Marker+2, receipt.NewObjectIdentity)
+	receiptIDBytes := [receipt.ReceiptIDBytes]byte{}
+	receiptIDBytes[0] = request.Marker + 3
+	receiptID, err := receipt.NewReceiptID(receiptIDBytes)
+	if err != nil {
+		t.Fatalf("receipt.NewReceiptID() error = %v, want nil", err)
+	}
+	evidence, err := receipt.IssueEvidence(receipt.IssueEvidenceRequest{
+		Key: request.Private, Identity: receiptID,
+		Account: request.Scope.Account, Offering: request.Scope.Offering,
+		OccurredAt: temporal.InstantFromNanoseconds(int64(request.Marker)),
+		Body: receipt.EvidenceBody{
+			Extent: extent, SHA256: core.SHA256Of(payload),
+			CRC32C:     core.NewCRC32C(crc32.Checksum(payload, crc32.MakeTable(crc32.Castagnoli))),
+			Submission: submission, Object: object,
+		},
+	})
+	if err != nil {
+		t.Fatalf("receipt.IssueEvidence() error = %v, want nil", err)
+	}
+	verified, err := receipt.VerifyEvidence(receipt.VerifyEvidenceRequest{
+		Document: evidence, TrustedKeys: request.Trusted,
+		Expected: receipt.EvidenceExpectation{
+			Account: request.Scope.Account, Offering: request.Scope.Offering,
+			Body: evidence.Payload.Body,
+		},
+	})
+	if err != nil {
+		t.Fatalf("receipt.VerifyEvidence() error = %v, want nil", err)
+	}
+	path, err := ParseEntryName(request.Name)
+	if err != nil {
+		t.Fatalf("ParseEntryName(%q) error = %v, want nil", request.Name, err)
+	}
+	return ManifestAddition{
+		Evidence: verified,
+		Entry: ManifestEntry{
+			Evidence: evidence, Name: path, ContentType: core.HTTPMediaTypeOctetStream(),
+			Sequence: mustEntrySequence(t, request.Sequence),
+		},
+	}
+}
+
+func manifestSummaryFixture(t *testing.T, additions ...ManifestAddition) ManifestSummary {
+	t.Helper()
+
+	accumulator := NewManifestAccumulator()
+	for _, addition := range additions {
+		if err := accumulator.Add(addition); err != nil {
+			t.Fatalf("ManifestAccumulator.Add() error = %v, want nil", err)
+		}
+	}
+	summary, err := accumulator.Seal()
+	if err != nil {
+		t.Fatalf("ManifestAccumulator.Seal() error = %v, want nil", err)
+	}
+	return summary
+}
+
+func chitSigningFixture(t *testing.T, marker byte) (ed25519.PrivateKey, attest.TrustedKeys) {
+	t.Helper()
+
+	private := ed25519.NewKeyFromSeed(bytes.Repeat([]byte{marker}, ed25519.SeedSize))
+	public, err := core.NewEd25519PublicKey(private.Public().(ed25519.PublicKey))
+	if err != nil {
+		t.Fatalf("core.NewEd25519PublicKey() error = %v, want nil", err)
+	}
+	trusted, err := attest.NewTrustedKeys(attest.TrustedKeysRequest{Keys: []core.Ed25519PublicKey{public}})
+	if err != nil {
+		t.Fatalf("attest.NewTrustedKeys() error = %v, want nil", err)
+	}
+	return private, trusted
+}
+
+func chitScopeFixture(t *testing.T, marker byte) receipt.Scope {
+	t.Helper()
+	return receipt.Scope{
+		Account:  mustLifecycleIdentity(t, marker, receipt.NewAccountIdentity),
+		Offering: mustLifecycleIdentity(t, marker+1, receipt.NewOfferingIdentity),
+	}
+}
+
+func mustLifecycleIdentity[T core.Validatable](
+	t *testing.T,
+	marker byte,
+	constructor func([receipt.LifecycleIdentityBytes]byte) (T, error),
+) T {
+	t.Helper()
+
+	value := [receipt.LifecycleIdentityBytes]byte{}
+	value[0] = marker
+	identity, err := constructor(value)
+	if err != nil {
+		t.Fatalf("lifecycle identity constructor error = %v, want nil", err)
+	}
+	return identity
+}
+
+func mustUUIDv7(t *testing.T, marker byte, milliseconds int64) id.UUIDv7 {
+	t.Helper()
+
+	material, err := core.NewSecretMaterial(bytes.Repeat([]byte{marker}, core.SecretMaterialMinimumBytes))
+	if err != nil {
+		t.Fatalf("core.NewSecretMaterial() error = %v, want nil", err)
+	}
+	observation, err := temporal.NewObservation(time.UnixMilli(milliseconds))
+	if err != nil {
+		t.Fatalf("temporal.NewObservation() error = %v, want nil", err)
+	}
+	identity, err := id.NewUUIDv7(id.Request{Entropy: material, Observation: observation})
+	destroyErr := material.Destroy()
+	if err != nil || destroyErr != nil {
+		t.Fatalf("id.NewUUIDv7()/SecretMaterial.Destroy() errors = (%v, %v), want nil", err, destroyErr)
+	}
+	return identity
+}
+
+func mustChitID(t *testing.T, marker byte, milliseconds int64) ChitID {
+	t.Helper()
+	identity, err := NewChitID(mustUUIDv7(t, marker, milliseconds))
+	if err != nil {
+		t.Fatalf("NewChitID() error = %v, want nil", err)
+	}
+	return identity
+}
+
+func mustVersion(t *testing.T, value uint64) Version {
+	t.Helper()
+	version, err := NewVersion(value)
+	if err != nil {
+		t.Fatalf("NewVersion(%d) error = %v, want nil", value, err)
+	}
+	return version
+}
+
+func mustEntrySequence(t *testing.T, value uint64) EntrySequence {
+	t.Helper()
+	sequence, err := NewEntrySequence(value)
+	if err != nil {
+		t.Fatalf("NewEntrySequence(%d) error = %v, want nil", value, err)
+	}
+	return sequence
+}
+
+func mustChitByteLength(t *testing.T, value uint64) core.ByteLength {
+	t.Helper()
+
+	length, err := core.NewByteLength(value)
+	if err != nil {
+		t.Fatalf("core.NewByteLength(%d) error = %v, want nil", value, err)
+	}
+	return length
+}
+
+func chitWatermarkFixture(t *testing.T, scope receipt.Scope) receipt.Watermark {
+	t.Helper()
+
+	generation, err := receipt.NewGeneration(1)
+	if err != nil {
+		t.Fatalf("receipt.NewGeneration() error = %v, want nil", err)
+	}
+	cursor, err := receipt.NewCursorDigest(core.SHA256Of([]byte{1}))
+	if err != nil {
+		t.Fatalf("receipt.NewCursorDigest() error = %v, want nil", err)
+	}
+	chain, err := receipt.NewChainHash(core.SHA256Of([]byte{2}))
+	if err != nil {
+		t.Fatalf("receipt.NewChainHash() error = %v, want nil", err)
+	}
+	watermark, err := receipt.NewWatermark(receipt.WatermarkRequest{
+		Generation: generation, Scope: scope, CursorDigest: cursor, ChainHash: chain,
+	})
+	if err != nil {
+		t.Fatalf("receipt.NewWatermark() error = %v, want nil", err)
+	}
+	return watermark
+}

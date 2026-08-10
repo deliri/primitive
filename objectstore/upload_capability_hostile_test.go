@@ -630,20 +630,20 @@ func TestUploadCapabilityBoundsItsReceivedExtents(t *testing.T) {
 		{name: "a url far below the bound is admitted", signature: 64},
 		{
 			name:      "a url one byte below the bound is admitted",
-			signature: UploadCapabilityURLMaximumBytes - len(base) - 1,
+			signature: CapabilityURLMaximumBytes - len(base) - 1,
 		},
 		{
 			name:      "a url exactly at the bound is admitted",
-			signature: UploadCapabilityURLMaximumBytes - len(base),
+			signature: CapabilityURLMaximumBytes - len(base),
 		},
 		{
 			name:       "a url one byte above the bound is rejected",
-			signature:  UploadCapabilityURLMaximumBytes - len(base) + 1,
+			signature:  CapabilityURLMaximumBytes - len(base) + 1,
 			wantReject: true,
 		},
 		{
 			name:       "a url far above the bound is rejected",
-			signature:  UploadCapabilityURLMaximumBytes,
+			signature:  CapabilityURLMaximumBytes,
 			wantReject: true,
 		},
 	}
@@ -700,7 +700,7 @@ func TestUploadCapabilityBoundsItsReceivedExtents(t *testing.T) {
 		// This case isolates the document bound from every sub-bound. The URL
 		// and the header set both stay well inside their own limits, so only
 		// the complete received extent can reject it.
-		padding := strings.Repeat(" ", UploadCapabilityJSONMaximumBytes)
+		padding := strings.Repeat(" ", CapabilityJSONMaximumBytes)
 		document := `{` + padding + `"provider":"google_cloud_storage","method":"signed_put",` +
 			`"url":"` + capabilityGCSURL + `","expires_at":1893456000000000000}`
 		got, gotErr := capabilityDocument(t, document)
@@ -717,7 +717,7 @@ func TestUploadCapabilityBoundsItsReceivedExtents(t *testing.T) {
 
 		base := `{"provider":"google_cloud_storage","method":"signed_put",` +
 			`"url":"` + capabilityGCSURL + `","expires_at":1893456000000000000}`
-		padding := strings.Repeat(" ", UploadCapabilityJSONMaximumBytes-len(base))
+		padding := strings.Repeat(" ", CapabilityJSONMaximumBytes-len(base))
 		if _, err := capabilityDocument(t, `{`+padding+base[1:]); err != nil {
 			t.Fatalf("decode of a document exactly at the bound error = %v, want nil", err)
 		}
@@ -728,7 +728,7 @@ func TestUploadCapabilityBoundsItsReceivedExtents(t *testing.T) {
 
 		document := `{"provider":"google_cloud_storage","method":"signed_put","url":"` +
 			capabilityGCSMetadataRunURL + `","expires_at":1893456000000000000,"headers":[{"name":"X-Goog-Meta-Run",` +
-			`"value":"` + strings.Repeat("v", UploadCapabilityJSONMaximumBytes) + `"}]}`
+			`"value":"` + strings.Repeat("v", CapabilityJSONMaximumBytes) + `"}]}`
 		got, gotErr := capabilityDocument(t, document)
 		if !errors.Is(gotErr, core.ErrObjectStoreContract) {
 			t.Fatalf("decode error = %v, want %v", gotErr, core.ErrObjectStoreContract)

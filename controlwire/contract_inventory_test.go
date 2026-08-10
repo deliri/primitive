@@ -28,6 +28,7 @@ type (
 // A new carrier cannot enter this package without being named here.
 type controlwireContractInventory struct {
 	RequestNonce              controlwireProtocolFact[RequestNonce]
+	AuthorityNonce            controlwireProtocolFact[AuthorityNonce]
 	RegistrationToken         controlwireSecretCarrier[RegistrationToken]
 	RegistrationTokenVerifier controlwireDerivedFact[RegistrationTokenVerifier]
 	PolicyCursor              controlwireProtocolFact[PolicyCursor]
@@ -42,6 +43,7 @@ func TestControlWireProductionStructsHaveCompilerVisibleDataFlowRoles(t *testing
 	t.Parallel()
 
 	_ = controlwireContractInventory{}.RequestNonce
+	_ = controlwireContractInventory{}.AuthorityNonce
 	_ = controlwireContractInventory{}.RegistrationToken
 	_ = controlwireContractInventory{}.RegistrationTokenVerifier
 

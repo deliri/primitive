@@ -13,24 +13,26 @@ import (
 )
 
 const (
-	// UploadCapabilityURLMaximumBytes bounds one received capability URL.
+	// CapabilityURLMaximumBytes bounds one received upload or download bearer.
 	// Vendor V4 signed URLs carry their whole credential in the query string,
 	// so the bound is deliberately generous rather than tight.
-	UploadCapabilityURLMaximumBytes = 8 * 1024
-	// UploadCapabilityJSONMaximumBytes bounds one received capability document.
+	CapabilityURLMaximumBytes = 8 * 1024
+	// CapabilityJSONMaximumBytes bounds one received bearer document in either
+	// direction. Both shapes carry the same bounded provider, method, URL,
+	// expiry, and signed-header fields.
 	// Every term is derived rather than chosen: the URL bound, the
 	// signed-header aggregate this package already owns, the JSON punctuation
 	// each header object adds beyond its name and value, and the punctuation and
 	// member names of the widest possible document.
-	UploadCapabilityJSONMaximumBytes = uploadCapabilityJSONStringMaximumExpansion*UploadCapabilityURLMaximumBytes +
-		uploadCapabilityJSONStringMaximumExpansion*SignedHeaderMaximumBytes +
+	CapabilityJSONMaximumBytes = canonicalJSONStringMaximumExpansion*CapabilityURLMaximumBytes +
+		canonicalJSONStringMaximumExpansion*SignedHeaderMaximumBytes +
 		SignedHeaderMaximumCount*uploadCapabilityHeaderSyntaxBytes +
 		uploadCapabilityDocumentSyntaxBytes
-	// uploadCapabilityJSONStringMaximumExpansion is the widest canonical JSON
+	// canonicalJSONStringMaximumExpansion is the widest canonical JSON
 	// expansion of one admitted source byte. encoding/json emits HTML-sensitive
 	// ASCII and control bytes as six-byte Unicode escapes. Receiver and issuer
 	// therefore share a bound over the bytes actually carried on the wire.
-	uploadCapabilityJSONStringMaximumExpansion = 6
+	canonicalJSONStringMaximumExpansion = 6
 
 	// UploadMethodTokenSignedPut is the wire token for a whole-object signed
 	// PUT, which Amazon S3 and Google Cloud Storage publish.
@@ -233,7 +235,7 @@ func (c *UploadCapability) UnmarshalJSON(data []byte) error {
 }
 
 func decodeUploadCapabilityWire(data []byte) (uploadCapabilityWire, error) {
-	limit, err := core.NewByteCount(uint64(UploadCapabilityJSONMaximumBytes))
+	limit, err := core.NewByteCount(uint64(CapabilityJSONMaximumBytes))
 	if err != nil {
 		return uploadCapabilityWire{}, errors.Join(core.ErrObjectStoreContract, err)
 	}
@@ -363,7 +365,7 @@ func uploadMethodToken(spec VendorSpec) (string, error) {
 }
 
 func validateUploadCapabilityURLExtent(rawURL string) error {
-	if len(rawURL) == 0 || len(rawURL) > UploadCapabilityURLMaximumBytes {
+	if len(rawURL) == 0 || len(rawURL) > CapabilityURLMaximumBytes {
 		return errors.Join(core.ErrObjectStoreContract,
 			errors.New(uploadCapabilityURLExtentErrorText))
 	}
@@ -491,7 +493,7 @@ func marshalUploadCapability(
 	if err != nil {
 		return nil, errors.Join(core.ErrObjectStoreContract, err)
 	}
-	if len(encoded) > UploadCapabilityJSONMaximumBytes {
+	if len(encoded) > CapabilityJSONMaximumBytes {
 		return nil, errors.Join(core.ErrObjectStoreContract,
 			errors.New(uploadCapabilityDocumentErrorText))
 	}
