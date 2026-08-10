@@ -1,9 +1,10 @@
 // Package gcsobjects performs the authenticated Google Cloud Storage object
 // lifecycle over the official provider SDK.
 //
-// Gcsobjects owns authenticated SDK client construction, create-only object
-// writes, digest-bound bounded reads, and generation-matched permanent
-// deletion. It reuses Integrity and ExactReader from objectstore, so exact
+// Gcsobjects owns authenticated SDK client construction, create-only bucket
+// provisioning, typed logical namespace composition, create-only object writes,
+// digest-bound bounded reads, and generation-matched permanent deletion. It
+// reuses Integrity and ExactReader from objectstore, so exact
 // extent and streaming SHA-256 and CRC32C proof are shared with the
 // issued-capability transfers rather than reimplemented. The official Cloud
 // Storage SDK is confined here: no consumer imports it, and the base

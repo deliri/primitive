@@ -45,7 +45,7 @@ type grantFixture struct {
 	payload    GrantPayload
 }
 
-func newGrantFixture(t *testing.T, request grantFixtureRequest) grantFixture {
+func newGrantFixture(t testing.TB, request grantFixtureRequest) grantFixture {
 	t.Helper()
 
 	if request.content == nil {
@@ -114,7 +114,7 @@ func newGrantFixture(t *testing.T, request grantFixtureRequest) grantFixture {
 	}
 }
 
-func testRequestPayload(t *testing.T, request grantFixtureRequest) RequestPayload {
+func testRequestPayload(t testing.TB, request grantFixtureRequest) RequestPayload {
 	t.Helper()
 	if request.content == nil {
 		request.content = []byte(`{"proof":"source-free"}`)
@@ -155,7 +155,7 @@ func testRequestPayload(t *testing.T, request grantFixtureRequest) RequestPayloa
 	}
 }
 
-func testManifestIntent(t *testing.T) ManifestIntent {
+func testManifestIntent(t testing.TB) ManifestIntent {
 	t.Helper()
 	upload, err := ParseUploadID("00000000-0004-7000-8000-000000000004")
 	if err != nil {
@@ -182,7 +182,7 @@ func testManifestIntent(t *testing.T) ManifestIntent {
 	}
 }
 
-func testDeclaration(t *testing.T, content []byte) Declaration {
+func testDeclaration(t testing.TB, content []byte) Declaration {
 	t.Helper()
 
 	contentType, err := core.ParseHTTPMediaType("application/json")
@@ -200,7 +200,7 @@ func testDeclaration(t *testing.T, content []byte) Declaration {
 }
 
 func testCapabilityProjection(
-	t *testing.T,
+	t testing.TB,
 	objectName string,
 	expiresAt int64,
 ) objectstore.UploadCapabilityProjection {
@@ -229,7 +229,7 @@ func testCapabilityProjection(
 	return projection
 }
 
-func testAuthorizationNonce(t *testing.T, value byte) controlwire.AuthorityNonce {
+func testAuthorizationNonce(t testing.TB, value byte) controlwire.AuthorityNonce {
 	t.Helper()
 
 	raw := [controlwire.NonceBytes]byte{}
@@ -243,7 +243,7 @@ func testAuthorizationNonce(t *testing.T, value byte) controlwire.AuthorityNonce
 	return nonce
 }
 
-func testSigningKey(t *testing.T, value byte) (core.Ed25519PublicKey, ed25519.PrivateKey) {
+func testSigningKey(t testing.TB, value byte) (core.Ed25519PublicKey, ed25519.PrivateKey) {
 	t.Helper()
 
 	seed := make([]byte, ed25519.SeedSize)

@@ -1,0 +1,487 @@
+package submissionauth
+
+import (
+	"bytes"
+	"context"
+	"encoding/json"
+	"errors"
+	"io"
+	"net"
+	"net/http"
+	"net/http/httptest"
+	"testing"
+
+	"github.com/deliri/primitive/v2026/attest"
+	"github.com/deliri/primitive/v2026/controlplane"
+	"github.com/deliri/primitive/v2026/controlwire"
+	"github.com/deliri/primitive/v2026/core"
+	"github.com/deliri/primitive/v2026/exchange"
+	"github.com/deliri/primitive/v2026/objectstore"
+	"github.com/deliri/primitive/v2026/submission"
+)
+
+const (
+	authCompletionObjectPath = "/custody/proof.json"
+	authCompletionQuery      = "?X-Goog-Signature=fixture&X-Goog-SignedHeaders=" +
+		"host%3Bx-goog-hash%3Bx-goog-if-generation-match"
+	authCompletionFutureHorizonSeconds = 10 * 365 * 24 * 60 * 60
+)
+
+var authCompletionContent = []byte(`{"proof":"source-free"}`)
+
+type authCompletionFixtureRequest struct {
+	offering      core.Offering
+	authorityByte byte
+	deviceByte    byte
+	nonceByte     byte
+}
+
+type authCompletionFixture struct {
+	completionDocument submission.CompletionDocument
+	grant              submission.GrantDocument
+	credentialed       CompletionDocument
+	request            authFixture
+	verifiedRequest    Verified
+}
+
+// TestCredentialedCompletionLayerTriadClosesEveryOffering proves that the
+// authority certificate, original request, authority grant, real provider
+// transfer, and device completion all survive the complete authentication
+// path for every admitted product without a product-specific branch.
+func TestCredentialedCompletionLayerTriadClosesEveryOffering(t *testing.T) {
+	t.Parallel()
+
+	admitted := 0
+	for value := 0; value <= 255; value++ {
+		offering := core.Offering(value)
+		if !offering.IsValid() {
+			continue
+		}
+		admitted++
+		t.Run(offering.String(), func(t *testing.T) {
+			t.Parallel()
+
+			fixture := newAuthCompletionFixture(t, authCompletionFixtureRequest{
+				offering: offering, authorityByte: byte(value) + 0x20,
+				deviceByte: byte(value) + 0x40, nonceByte: byte(value) + 1,
+			})
+			verified, err := VerifyCompletion(CompletionVerification{
+				Document: fixture.credentialed, Request: fixture.verifiedRequest,
+				Grant: fixture.grant, TrustedKeys: fixture.request.trusted,
+			})
+			if err != nil {
+				t.Fatalf("submissionauth.VerifyCompletion(%v) error = %v, want nil", offering, err)
+			}
+			payload, err := verified.Payload()
+			if err != nil {
+				t.Fatalf("VerifiedCompletion.Payload(%v) error = %v, want nil", offering, err)
+			}
+			if payload != fixture.completionDocument.Payload {
+				t.Fatalf("VerifiedCompletion.Payload(%v) = %+v, want exact %+v",
+					offering, payload, fixture.completionDocument.Payload)
+			}
+		})
+	}
+	if admitted < 3 {
+		t.Fatalf("admitted offerings = %d, want at least the shipped set", admitted)
+	}
+}
+
+// TestCredentialedCompletionRefusesCrossInstallationAndAgreementSubstitution
+// attacks every independently valid seam. In particular, equal build
+// identities do not permit one installation's request to be completed under
+// another installation's certificate.
+func TestCredentialedCompletionLayerTriadRefusesCrossInstallationAndAgreementSubstitution(t *testing.T) {
+	t.Parallel()
+
+	base := newAuthCompletionFixture(t, authCompletionFixtureRequest{})
+	other := newAuthCompletionFixture(t, authCompletionFixtureRequest{
+		authorityByte: 0x61, deviceByte: 0x62, nonceByte: 0x63,
+	})
+	otherCompletionSigner := base.credentialed
+	otherCompletionSigner.Completion.Attestation.Signer = other.request.certificate.Body.DeviceKey
+	cases := []struct {
+		want   error
+		mutate func(*CompletionVerification)
+		name   string
+	}{
+		{name: "completion absent", mutate: func(value *CompletionVerification) {
+			value.Document = CompletionDocument{}
+		}, want: core.ErrControlPlaneContract},
+		{name: "original verified request absent", mutate: func(value *CompletionVerification) {
+			value.Request = Verified{}
+		}, want: core.ErrControlPlaneContract},
+		{name: "grant absent", mutate: func(value *CompletionVerification) {
+			value.Grant = submission.GrantDocument{}
+		}, want: core.ErrControlPlaneContract},
+		{name: "authority trust absent", mutate: func(value *CompletionVerification) {
+			value.TrustedKeys = attest.TrustedKeys{}
+		}, want: core.ErrControlPlaneContract},
+		{name: "other installation certificate", mutate: func(value *CompletionVerification) {
+			value.Document.Certificate = other.request.certificate
+		}, want: core.ErrControlPlaneResponseBinding},
+		{name: "other installation request", mutate: func(value *CompletionVerification) {
+			value.Request = other.verifiedRequest
+		}, want: core.ErrControlPlaneResponseBinding},
+		{name: "other request grant", mutate: func(value *CompletionVerification) {
+			value.Grant = other.grant
+		}, want: core.ErrControlPlaneResponseBinding},
+		{name: "other device completion with current certificate", mutate: func(value *CompletionVerification) {
+			value.Document.Completion = other.completionDocument
+		}, want: core.ErrControlPlaneResponseBinding},
+		{name: "other authority trust", mutate: func(value *CompletionVerification) {
+			value.TrustedKeys = other.request.trusted
+		}, want: core.ErrAttestVerification},
+		{name: "other device named by completion envelope", mutate: func(value *CompletionVerification) {
+			value.Document = otherCompletionSigner
+		}, want: core.ErrAttestVerification},
+	}
+	for _, tc := range cases {
+		t.Run(tc.name, func(t *testing.T) {
+			t.Parallel()
+
+			verification := CompletionVerification{
+				Document: base.credentialed, Request: base.verifiedRequest,
+				Grant: base.grant, TrustedKeys: base.request.trusted,
+			}
+			tc.mutate(&verification)
+			got, err := VerifyCompletion(verification)
+			if !errors.Is(err, tc.want) || got != (VerifiedCompletion{}) {
+				t.Fatalf("VerifyCompletion(%s) = (%v, %v), want zero and errors.Is %v",
+					tc.name, got, err, tc.want)
+			}
+		})
+	}
+}
+
+func TestCredentialedCompletionLayerTriadZeroValuesNeverAcquireCustodyProof(t *testing.T) {
+	t.Parallel()
+
+	verified, err := VerifyCompletion(CompletionVerification{})
+	if !errors.Is(err, core.ErrControlPlaneContract) || verified != (VerifiedCompletion{}) {
+		t.Fatalf("VerifyCompletion(zero) = (%v, %v), want zero and errors.Is %v",
+			verified, err, core.ErrControlPlaneContract)
+	}
+	payload, err := (VerifiedCompletion{}).Payload()
+	if !errors.Is(err, core.ErrControlPlaneContract) || payload != (submission.CompletionPayload{}) {
+		t.Fatalf("VerifiedCompletion{}.Payload() = (%v, %v), want zero and errors.Is %v",
+			payload, err, core.ErrControlPlaneContract)
+	}
+}
+
+// TestCredentialedCompletionJSONIsStrictBoundedAndPreserving attacks the
+// public receiver at framing, shape, duplication, truncation, and exact byte
+// ceilings while proving every refusal preserves the previous valid value.
+func TestCredentialedCompletionJSONLayerTriadIsStrictBoundedAndPreserving(t *testing.T) {
+	t.Parallel()
+
+	fixture := newAuthCompletionFixture(t, authCompletionFixtureRequest{})
+	encoded, err := fixture.credentialed.MarshalJSON()
+	if err != nil {
+		t.Fatalf("CompletionDocument.MarshalJSON() error = %v, want nil", err)
+	}
+	reordered, err := json.Marshal(struct {
+		Completion  submission.CompletionDocument                `json:"completion"`
+		Certificate controlplane.InstallationCertificateDocument `json:"certificate"`
+	}{Certificate: fixture.request.certificate, Completion: fixture.completionDocument})
+	if err != nil {
+		t.Fatalf("json.Marshal(reordered completion) error = %v, want nil", err)
+	}
+	var indented bytes.Buffer
+	if err := json.Indent(&indented, encoded, "", "  "); err != nil {
+		t.Fatalf("json.Indent(credentialed completion) error = %v, want nil", err)
+	}
+	unknown := append(bytes.Clone(encoded[:len(encoded)-1]), []byte(`,"future":true}`)...)
+	duplicateCompletion := append(bytes.Clone(encoded[:len(encoded)-1]), []byte(`,"completion":null}`)...)
+	duplicateCertificate := append(bytes.Clone(encoded[:len(encoded)-1]), []byte(`,"certificate":null}`)...)
+	valid := []struct {
+		name string
+		data []byte
+	}{
+		{name: "canonical", data: encoded},
+		{name: "reordered members", data: reordered},
+		{name: "indented", data: indented.Bytes()},
+		{name: "leading space", data: append([]byte(" "), encoded...)},
+		{name: "trailing newline", data: append(bytes.Clone(encoded), '\n')},
+		{name: "carriage return framing", data: append(append([]byte("\r"), encoded...), '\r')},
+		{name: "mixed outer whitespace", data: append(append([]byte("\t\r\n"), encoded...), ' ', '\t')},
+		{name: "half ceiling", data: authLeftPadJSON(encoded, CompletionDocumentJSONMaximumBytes/2)},
+		{name: "one below ceiling", data: authLeftPadJSON(encoded, CompletionDocumentJSONMaximumBytes-1)},
+		{name: "exact ceiling", data: authLeftPadJSON(encoded, CompletionDocumentJSONMaximumBytes)},
+	}
+	for _, tc := range valid {
+		t.Run(tc.name, func(t *testing.T) {
+			t.Parallel()
+
+			var receiver CompletionDocument
+			if err := receiver.UnmarshalJSON(tc.data); err != nil {
+				t.Fatalf("CompletionDocument.UnmarshalJSON(%s) error = %v, want nil", tc.name, err)
+			}
+			if receiver != fixture.credentialed {
+				t.Fatalf("CompletionDocument.UnmarshalJSON(%s) = %+v, want exact %+v",
+					tc.name, receiver, fixture.credentialed)
+			}
+		})
+	}
+	invalid := []struct {
+		name string
+		data []byte
+	}{
+		{name: "empty input"},
+		{name: "whitespace only", data: []byte(" \t\r\n")},
+		{name: "null root", data: []byte(`null`)},
+		{name: "boolean root", data: []byte(`true`)},
+		{name: "scalar root", data: []byte(`1`)},
+		{name: "string root", data: []byte(`"completion"`)},
+		{name: "array root", data: []byte(`[]`)},
+		{name: "empty object", data: []byte(`{}`)},
+		{name: "unknown member", data: unknown},
+		{name: "duplicate completion", data: duplicateCompletion},
+		{name: "duplicate certificate", data: duplicateCertificate},
+		{name: "missing completion", data: []byte(`{"certificate":null}`)},
+		{name: "missing certificate", data: []byte(`{"completion":null}`)},
+		{name: "completion wrong type", data: []byte(`{"completion":true,"certificate":null}`)},
+		{name: "certificate wrong type", data: []byte(`{"completion":null,"certificate":true}`)},
+		{name: "truncated opening", data: []byte(`{`)},
+		{name: "truncated array", data: []byte(`[`)},
+		{name: "truncated canonical", data: encoded[:len(encoded)-1]},
+		{name: "half truncated canonical", data: encoded[:len(encoded)/2]},
+		{name: "two documents", data: append(bytes.Clone(encoded), encoded...)},
+		{name: "trailing scalar", data: append(bytes.Clone(encoded), []byte(` 0`)...)},
+		{name: "one above ceiling", data: authLeftPadJSON(encoded, CompletionDocumentJSONMaximumBytes+1)},
+	}
+	for _, tc := range invalid {
+		t.Run(tc.name, func(t *testing.T) {
+			t.Parallel()
+
+			receiver := fixture.credentialed
+			if err := receiver.UnmarshalJSON(tc.data); !errors.Is(err, core.ErrJSONContract) {
+				t.Fatalf("CompletionDocument.UnmarshalJSON(%s) error = %v, want errors.Is %v",
+					tc.name, err, core.ErrJSONContract)
+			}
+			if receiver != fixture.credentialed {
+				t.Fatalf("CompletionDocument.UnmarshalJSON(%s) mutated receiver = %+v, want preserved %+v",
+					tc.name, receiver, fixture.credentialed)
+			}
+		})
+	}
+	var receiver *CompletionDocument
+	if err := receiver.UnmarshalJSON(encoded); !errors.Is(err, core.ErrJSONContract) {
+		t.Fatalf("nil CompletionDocument.UnmarshalJSON() error = %v, want errors.Is %v", err, core.ErrJSONContract)
+	}
+}
+
+func newAuthCompletionFixture(t testing.TB, request authCompletionFixtureRequest) authCompletionFixture {
+	t.Helper()
+
+	base := newAuthFixture(t, authFixtureRequest(request))
+	verifiedRequest, err := Verify(Verification{Document: base.document, TrustedKeys: base.trusted})
+	if err != nil {
+		t.Fatalf("submissionauth.Verify() error = %v, want nil", err)
+	}
+	operationPolicy, err := controlwire.ControlExchangeOperationPolicy()
+	if err != nil {
+		t.Fatalf("controlwire.ControlExchangeOperationPolicy() error = %v, want nil", err)
+	}
+	advance, err := operationPolicy.OperationTimeout.Multiply(
+		authCompletionFutureHorizonSeconds / controlwire.ExchangeOperationTimeoutSeconds,
+	)
+	if err != nil {
+		t.Fatalf("control exchange timeout horizon multiplication error = %v, want nil", err)
+	}
+	issuedAt, err := base.certificate.Body.IssuedAt.Add(advance)
+	if err != nil {
+		t.Fatalf("certificate issued-at plus fixture horizon error = %v, want nil", err)
+	}
+	expiresAt, err := issuedAt.Add(operationPolicy.OperationTimeout)
+	if err != nil {
+		t.Fatalf("certificate issued-at plus operation timeout error = %v, want nil", err)
+	}
+	retainUntil, err := expiresAt.Add(operationPolicy.OperationTimeout)
+	if err != nil {
+		t.Fatalf("grant expiry plus retention interval error = %v, want nil", err)
+	}
+	address := core.SchemeHTTPS + "://" + core.GoogleCloudStorageHost +
+		authCompletionObjectPath + authCompletionQuery
+	signedURL, err := objectstore.ParseSignedURL(address)
+	if err != nil {
+		t.Fatalf("objectstore.ParseSignedURL() error = %v, want nil", err)
+	}
+	headers, err := objectstore.NewSignedHeaders(nil)
+	if err != nil {
+		t.Fatalf("objectstore.NewSignedHeaders() error = %v, want nil", err)
+	}
+	capability, err := objectstore.NewUploadCapabilityProjection(
+		objectstore.ProviderGoogleCloudStorage,
+		objectstore.UploadTarget{URL: signedURL, Headers: headers, ExpiresAt: expiresAt},
+	)
+	if err != nil {
+		t.Fatalf("objectstore.NewUploadCapabilityProjection() error = %v, want nil", err)
+	}
+	commitment, err := capability.Commitment()
+	if err != nil {
+		t.Fatalf("UploadCapabilityProjection.Commitment() error = %v, want nil", err)
+	}
+	requestCommitment, err := submission.CommitRequest(base.request.Payload)
+	if err != nil {
+		t.Fatalf("submission.CommitRequest() error = %v, want nil", err)
+	}
+	grantPayload := submission.GrantPayload{
+		Request: requestCommitment, Authorization: authAuthorityNonce(t, 0x71),
+		Capability: commitment, IssuedAt: issuedAt,
+		ExpiresAt: expiresAt, RetainUntil: retainUntil,
+	}
+	grantProjection, err := submission.IssueGrant(submission.GrantIssuance{
+		Signer: base.authority, Capability: capability, Payload: grantPayload,
+	})
+	if err != nil {
+		t.Fatalf("submission.IssueGrant() error = %v, want nil", err)
+	}
+	grant := receiveAuthGrant(t, grantProjection)
+	verifiedGrant, err := submission.VerifyGrant(submission.GrantExpectation{
+		Request: base.request.Payload, Document: grant, TrustedKeys: base.trusted,
+		ObservedAt: issuedAt,
+	})
+	if err != nil {
+		t.Fatalf("submission.VerifyGrant() error = %v, want nil", err)
+	}
+	transfer := authCompletionUpload(t, verifiedGrant, base.request.Payload)
+	projection, err := submission.IssueCompletion(submission.CompletionIssuance{
+		Signer: base.device, Request: base.request.Payload, Grant: verifiedGrant, Transfer: transfer,
+	})
+	if err != nil {
+		t.Fatalf("submission.IssueCompletion() error = %v, want nil", err)
+	}
+	completion := receiveAuthCompletion(t, projection)
+	credentialed, err := AssembleCompletion(CompletionAssembly{
+		Completion: completion, Certificate: base.certificate,
+	})
+	if err != nil {
+		t.Fatalf("submissionauth.AssembleCompletion() error = %v, want nil", err)
+	}
+	return authCompletionFixture{
+		request: base, verifiedRequest: verifiedRequest, grant: grant,
+		credentialed: credentialed, completionDocument: completion,
+	}
+}
+
+func authAuthorityNonce(t testing.TB, marker byte) controlwire.AuthorityNonce {
+	t.Helper()
+
+	raw := [controlwire.NonceBytes]byte{}
+	for index := range raw {
+		raw[index] = marker
+	}
+	nonce, err := controlwire.NewAuthorityNonce(raw)
+	if err != nil {
+		t.Fatalf("controlwire.NewAuthorityNonce() error = %v, want nil", err)
+	}
+	return nonce
+}
+
+func receiveAuthGrant(t testing.TB, projection submission.GrantProjection) submission.GrantDocument {
+	t.Helper()
+
+	encoded, err := projection.MarshalJSON()
+	if err != nil {
+		t.Fatalf("GrantProjection.MarshalJSON() error = %v, want nil", err)
+	}
+	var document submission.GrantDocument
+	if err := json.Unmarshal(encoded, &document); err != nil {
+		t.Fatalf("json.Unmarshal(GrantDocument) error = %v, want nil", err)
+	}
+	return document
+}
+
+func receiveAuthCompletion(
+	t testing.TB,
+	projection submission.CompletionProjection,
+) submission.CompletionDocument {
+	t.Helper()
+
+	encoded, err := projection.MarshalJSON()
+	if err != nil {
+		t.Fatalf("CompletionProjection.MarshalJSON() error = %v, want nil", err)
+	}
+	var document submission.CompletionDocument
+	if err := json.Unmarshal(encoded, &document); err != nil {
+		t.Fatalf("json.Unmarshal(CompletionDocument) error = %v, want nil", err)
+	}
+	return document
+}
+
+func authCompletionUpload(
+	t testing.TB,
+	grant submission.VerifiedGrant,
+	request submission.RequestPayload,
+) objectstore.Transfer {
+	t.Helper()
+
+	server := httptest.NewTLSServer(http.HandlerFunc(func(writer http.ResponseWriter, incoming *http.Request) {
+		got, err := io.ReadAll(io.LimitReader(incoming.Body, int64(len(authCompletionContent))+1))
+		if err != nil {
+			t.Errorf("provider body read error = %v, want nil", err)
+			writer.WriteHeader(http.StatusInternalServerError)
+			return
+		}
+		if !bytes.Equal(got, authCompletionContent) {
+			t.Errorf("provider body = %q, want exact fixture", got)
+			writer.WriteHeader(http.StatusBadRequest)
+			return
+		}
+		writer.Header().Set("x-goog-generation", "7")
+		writer.WriteHeader(http.StatusOK)
+	}))
+	t.Cleanup(server.Close)
+	transport := server.Client().Transport.(*http.Transport).Clone()
+	transport.TLSClientConfig = transport.TLSClientConfig.Clone()
+	transport.TLSClientConfig.ServerName = "example.com"
+	serverAddress := server.Listener.Addr().String()
+	dialer := &net.Dialer{}
+	transport.DialContext = func(ctx context.Context, network string, _ string) (net.Conn, error) {
+		return dialer.DialContext(ctx, network, serverAddress)
+	}
+	t.Cleanup(transport.CloseIdleConnections)
+	client, err := exchange.NewClient(&http.Client{Transport: transport})
+	if err != nil {
+		t.Fatalf("exchange.NewClient() error = %v, want nil", err)
+	}
+	store, err := objectstore.NewClient(client)
+	if err != nil {
+		t.Fatalf("objectstore.NewClient() error = %v, want nil", err)
+	}
+	capability, err := grant.Capability()
+	if err != nil {
+		t.Fatalf("VerifiedGrant.Capability() error = %v, want nil", err)
+	}
+	transfer, err := objectstore.Upload(context.Background(), store, objectstore.UploadCapabilityRequest{
+		Source: bytes.NewReader(authCompletionContent), ContentType: request.Declaration.ContentType,
+		Capability: capability, Integrity: request.Declaration.Integrity(),
+		Policy: authCompletionPolicy(t),
+	})
+	if err != nil {
+		t.Fatalf("objectstore.Upload() error = %v, want nil", err)
+	}
+	return transfer
+}
+
+func authCompletionPolicy(t testing.TB) objectstore.Policy {
+	t.Helper()
+
+	operation, err := controlwire.ControlExchangeOperationPolicy()
+	if err != nil {
+		t.Fatalf("controlwire.ControlExchangeOperationPolicy() error = %v, want nil", err)
+	}
+	errorLimit, err := core.NewByteCount(4 << 10)
+	if err != nil {
+		t.Fatalf("core.NewByteCount(error limit) error = %v, want nil", err)
+	}
+	policy := objectstore.Policy{
+		OperationTimeout: operation.OperationTimeout,
+		AttemptTimeout:   operation.AttemptTimeout, ErrorBodyLimit: errorLimit,
+	}
+	if err := policy.Validate(); err != nil {
+		t.Fatalf("objectstore.Policy.Validate() error = %v, want nil", err)
+	}
+	return policy
+}

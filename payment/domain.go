@@ -14,6 +14,8 @@ const (
 	SigningDomainReceiptV1Token = "primitive-payment-receipt-2026-1"
 	// SigningDomainCatalogV1Token separates an observed payment catalog.
 	SigningDomainCatalogV1Token = "primitive-payment-catalog-2026-1"
+	// SigningDomainQueryV1Token separates an installed device's catalog request.
+	SigningDomainQueryV1Token = "primitive-payment-query-2026-1"
 )
 
 // SigningDomain closes the two payment authority statement namespaces.
@@ -26,11 +28,13 @@ const (
 	SigningDomainReceiptV1
 	// SigningDomainCatalogV1 authenticates one bounded payment catalog page.
 	SigningDomainCatalogV1
+	// SigningDomainQueryV1 authenticates one installed device's catalog request.
+	SigningDomainQueryV1
 	signingDomainLimit
 )
 
 func signingDomainTokens() [signingDomainLimit]string {
-	return [...]string{"", SigningDomainReceiptV1Token, SigningDomainCatalogV1Token}
+	return [...]string{"", SigningDomainReceiptV1Token, SigningDomainCatalogV1Token, SigningDomainQueryV1Token}
 }
 
 // Validate rejects signing domains outside the closed domain.
@@ -100,7 +104,7 @@ func (d *SigningDomain) UnmarshalJSON(data []byte) error {
 	return nil
 }
 
-func signingDomainWitness[D attest.SigningDomain[D]]() {}
+type signingDomainWitness[D attest.SigningDomain[D]] [0]D
 
 var (
 	_ core.Validatable            = SigningDomainUnknown
@@ -108,5 +112,5 @@ var (
 	_ encoding.TextMarshaler      = SigningDomainUnknown
 	_ json.Marshaler              = SigningDomainUnknown
 	_ json.Unmarshaler            = (*SigningDomain)(nil)
-	_                             = signingDomainWitness[SigningDomain]
+	_                             = signingDomainWitness[SigningDomain]{}
 )

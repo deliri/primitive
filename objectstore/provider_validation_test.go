@@ -170,7 +170,7 @@ func providerDownloadRequest(t *testing.T, provider Provider) DownloadRequest {
 	}
 }
 
-func providerUploadTarget(t *testing.T, provider Provider) UploadTarget {
+func providerUploadTarget(t testing.TB, provider Provider) UploadTarget {
 	t.Helper()
 
 	return UploadTarget{
@@ -180,7 +180,7 @@ func providerUploadTarget(t *testing.T, provider Provider) UploadTarget {
 }
 
 func providerSignedURL(
-	t *testing.T,
+	t testing.TB,
 	provider Provider,
 	direction Direction,
 ) SignedURL {
@@ -213,7 +213,7 @@ func providerSignedURL(
 	return parsed
 }
 
-func providerFutureInstant(t *testing.T) temporal.Instant {
+func providerFutureInstant(t testing.TB) temporal.Instant {
 	t.Helper()
 
 	value, err := temporal.NewInstant(

@@ -15,6 +15,9 @@ const (
 	// SigningDomainGrantV1Token is the exact namespace for an authority's
 	// evidence-submission grant.
 	SigningDomainGrantV1Token = "primitive-submission-grant-2026-1"
+	// SigningDomainCompletionV1Token is the exact namespace for a device's
+	// provider-confirmed upload completion.
+	SigningDomainCompletionV1Token = "primitive-submission-completion-2026-1"
 )
 
 // SigningDomain is the closed set of evidence-submission signature namespaces.
@@ -24,14 +27,16 @@ const (
 	SigningDomainUnknown SigningDomain = iota
 	SigningDomainRequestV1
 	SigningDomainGrantV1
+	SigningDomainCompletionV1
 	signingDomainLimit
 )
 
 func signingDomainTokens() [signingDomainLimit]string {
 	return [...]string{
-		SigningDomainUnknown:   "",
-		SigningDomainRequestV1: SigningDomainRequestV1Token,
-		SigningDomainGrantV1:   SigningDomainGrantV1Token,
+		SigningDomainUnknown:      "",
+		SigningDomainRequestV1:    SigningDomainRequestV1Token,
+		SigningDomainGrantV1:      SigningDomainGrantV1Token,
+		SigningDomainCompletionV1: SigningDomainCompletionV1Token,
 	}
 }
 
@@ -110,7 +115,7 @@ func (d *SigningDomain) UnmarshalJSON(data []byte) error {
 	return nil
 }
 
-func signingDomainWitness[D attest.SigningDomain[D]]() {}
+type signingDomainWitness[D attest.SigningDomain[D]] [0]D
 
 var (
 	_ core.Validatable            = SigningDomainUnknown
@@ -118,5 +123,5 @@ var (
 	_ encoding.TextMarshaler      = SigningDomainUnknown
 	_ json.Marshaler              = SigningDomainUnknown
 	_ json.Unmarshaler            = (*SigningDomain)(nil)
-	_                             = signingDomainWitness[SigningDomain]
+	_                             = signingDomainWitness[SigningDomain]{}
 )

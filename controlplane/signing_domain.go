@@ -145,12 +145,12 @@ func (d *SigningDomain) UnmarshalJSON(data []byte) error {
 
 // signingDomainWitness makes the Attest contract a compile-time obligation.
 // The constraint embeds comparable, so it cannot be asserted as an interface
-// value; instantiating this function is the assertion.
-func signingDomainWitness[D attest.SigningDomain[D]]() {}
+// value; instantiating this type is the assertion.
+type signingDomainWitness[D attest.SigningDomain[D]] [0]D
 
 var (
 	_ core.Validatable       = SigningDomainUnknown
 	_ encoding.TextMarshaler = SigningDomainUnknown
 
-	_ = signingDomainWitness[SigningDomain]
+	_ = signingDomainWitness[SigningDomain]{}
 )

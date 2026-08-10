@@ -11,13 +11,17 @@ const (
 	// a route the authority does not mount.
 	routeControlPrefix = "/v2026/control/"
 
-	routeRegistrationsSuffix         = "/registrations"
-	routeCheckInsSuffix              = "/check-ins"
-	routeSubmissionsSuffix           = "/submissions"
-	routeSubmissionCompletionsSuffix = "/submission-completions"
-	routeChitsSuffix                 = "/chits"
-	routeRetrievalsSuffix            = "/retrievals"
-	routePaymentsSuffix              = "/payments"
+	routeRegistrationsSuffix                 = "/registrations"
+	routeCheckInsSuffix                      = "/check-ins"
+	routeSubmissionsSuffix                   = "/submissions"
+	routeSubmissionCompletionsSuffix         = "/submission-completions"
+	routeChitsSuffix                         = "/chits"
+	routeRetrievalsSuffix                    = "/retrievals"
+	routePaymentsSuffix                      = "/payments"
+	routeReleasePublicationsSuffix           = "/release-publications"
+	routeReleasePublicationCompletionsSuffix = "/release-publication-completions"
+	routeUpdateChecksSuffix                  = "/update-checks"
+	routeUpgradesSuffix                      = "/upgrades"
 )
 
 // RouteFamily is the closed set of control-plane route families.
@@ -40,19 +44,31 @@ const (
 	RouteFamilyRetrievals
 	// RouteFamilyPayments lists or selects customer payment receipts.
 	RouteFamilyPayments
+	// RouteFamilyReleasePublications requests authority for one exact release publication.
+	RouteFamilyReleasePublications
+	// RouteFamilyReleasePublicationCompletions reports one complete release publication.
+	RouteFamilyReleasePublicationCompletions
+	// RouteFamilyUpdateChecks requests the authenticated current release selection.
+	RouteFamilyUpdateChecks
+	// RouteFamilyUpgrades requests one exact candidate download capability.
+	RouteFamilyUpgrades
 	routeFamilyLimit
 )
 
 func routeSuffixes() [routeFamilyLimit]string {
 	return [...]string{
-		RouteFamilyUnknown:               "",
-		RouteFamilyRegistrations:         routeRegistrationsSuffix,
-		RouteFamilyCheckIns:              routeCheckInsSuffix,
-		RouteFamilySubmissions:           routeSubmissionsSuffix,
-		RouteFamilySubmissionCompletions: routeSubmissionCompletionsSuffix,
-		RouteFamilyChits:                 routeChitsSuffix,
-		RouteFamilyRetrievals:            routeRetrievalsSuffix,
-		RouteFamilyPayments:              routePaymentsSuffix,
+		RouteFamilyUnknown:                       "",
+		RouteFamilyRegistrations:                 routeRegistrationsSuffix,
+		RouteFamilyCheckIns:                      routeCheckInsSuffix,
+		RouteFamilySubmissions:                   routeSubmissionsSuffix,
+		RouteFamilySubmissionCompletions:         routeSubmissionCompletionsSuffix,
+		RouteFamilyChits:                         routeChitsSuffix,
+		RouteFamilyRetrievals:                    routeRetrievalsSuffix,
+		RouteFamilyPayments:                      routePaymentsSuffix,
+		RouteFamilyReleasePublications:           routeReleasePublicationsSuffix,
+		RouteFamilyReleasePublicationCompletions: routeReleasePublicationCompletionsSuffix,
+		RouteFamilyUpdateChecks:                  routeUpdateChecksSuffix,
+		RouteFamilyUpgrades:                      routeUpgradesSuffix,
 	}
 }
 

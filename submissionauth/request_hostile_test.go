@@ -25,6 +25,7 @@ type authFixtureRequest struct {
 }
 
 type authFixture struct {
+	authority   ed25519.PrivateKey
 	device      ed25519.PrivateKey
 	request     submission.RequestDocument
 	document    RequestDocument
@@ -32,7 +33,7 @@ type authFixture struct {
 	certificate controlplane.InstallationCertificateDocument
 }
 
-func newAuthFixture(t *testing.T, request authFixtureRequest) authFixture {
+func newAuthFixture(t testing.TB, request authFixtureRequest) authFixture {
 	t.Helper()
 
 	if request.offering == core.OfferingUnknown {
@@ -77,7 +78,8 @@ func newAuthFixture(t *testing.T, request authFixtureRequest) authFixture {
 		t.Fatalf("attest.NewTrustedKeys() error = %v, want nil", err)
 	}
 	return authFixture{
-		document: document, request: signedRequest, certificate: installation.Certificate,
+		authority: installation.AuthorityPrivate,
+		document:  document, request: signedRequest, certificate: installation.Certificate,
 		device: installation.DevicePrivate, trusted: trusted,
 	}
 }
@@ -106,7 +108,7 @@ func authSigningKey(t *testing.T, value byte) (core.Ed25519PublicKey, ed25519.Pr
 }
 
 func authRequestPayload(
-	t *testing.T,
+	t testing.TB,
 	build core.BuildIdentity,
 	nonceByte byte,
 ) submission.RequestPayload {
@@ -139,7 +141,7 @@ func authRequestPayload(
 	}
 }
 
-func submissionManifestIntent(t *testing.T) submission.ManifestIntent {
+func submissionManifestIntent(t testing.TB) submission.ManifestIntent {
 	t.Helper()
 	upload, err := submission.ParseUploadID("00000000-0006-7000-8000-000000000006")
 	if err != nil {

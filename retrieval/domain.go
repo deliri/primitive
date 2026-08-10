@@ -92,7 +92,7 @@ func (d *SigningDomain) UnmarshalJSON(data []byte) error {
 	return nil
 }
 
-func signingDomainWitness[D attest.SigningDomain[D]]() {}
+type signingDomainWitness[D attest.SigningDomain[D]] [0]D
 
 var (
 	_ core.Validatable            = SigningDomainUnknown
@@ -100,5 +100,5 @@ var (
 	_ encoding.TextMarshaler      = SigningDomainUnknown
 	_ json.Marshaler              = SigningDomainUnknown
 	_ json.Unmarshaler            = (*SigningDomain)(nil)
-	_                             = signingDomainWitness[SigningDomain]
+	_                             = signingDomainWitness[SigningDomain]{}
 )

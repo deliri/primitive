@@ -4,6 +4,59 @@ Last updated: `2026-08-10`
 
 ## Current
 
+- blind customer-custody, completed-upload, authenticated distribution, and
+  provider namespace contracts, 2026-08-10, prepared as `v2026.0.56`.
+  `chit` and `payment` now own device-signed all-or-specific catalog queries;
+  `chitauth` and `paymentauth` bind those queries to the exact authenticated
+  installation, device key, account, build, nonce, revision, and bounded page
+  selection. `distributionauth` applies the same certificate-first binding to
+  the product-neutral update and exact-candidate upgrade requests already
+  owned by `distribution`. Controlwire owns the eleven exact product route
+  families, including Chits, Payments, release publication and completion,
+  update checks, and upgrades, so tools and OGS project the same paths without
+  knowing one another.
+
+  Submission gained the missing second half of an evidence upload. A device
+  signs URL-free, bearer-free, path-free provider completion evidence against
+  the exact original declaration, request commitment, upload-capability
+  commitment, authority nonce, build, extent, SHA-256, CRC32C, and provider.
+  `submissionauth` authenticates the same installation certificate and
+  original request before its nominated device key may authenticate that
+  completion. The verified result exposes only transfer facts appropriate for
+  authority reconciliation; source content never enters the agreement.
+
+  `gcsobjects` now provisions create-only buckets through the official Google
+  Cloud Storage SDK from one typed request carrying a validated project,
+  bucket, open provider location, and closed flat-or-hierarchical namespace.
+  Existing buckets are typed conflicts and failures return zero evidence.
+  Compiler-owned segment and prefix requests compose root prefixes, nested
+  prefixes, and exact object names without copied slash conventions or fake
+  directory objects. The flat namespace remains logical; hierarchical mode is
+  selected explicitly at bucket creation.
+
+  The testing protocol now makes semantic fuzzing mandatory at every external
+  ingress and specifies compiler-produced valid seeds, typed rejection
+  identities, receiver preservation, canonical fixed points, real signature
+  verification, load-bearing mutations, exact resource ceilings, bounded
+  oracle work, and retained red/green regressions. No-panic is explicitly not
+  evidence. The identical protocol was copied to Kernel, Witness, Bug,
+  Peachfuzz, Offgridsoftware, and Cleanlift. New fuzz targets exercise every
+  new JSON/signature/certificate boundary plus the touched Objectstore
+  transfer, capability and commitment decoders and every GCS project,
+  location, bucket, object, prefix, cache, and segment parser. Hostile suites
+  separately pin valid, rejected, and exact-boundary matrices, independent
+  signed recombinations, zero-value neutrality, provider conflict,
+  cancellation, and real local TLS/official-SDK paths.
+
+  The release battery completed with clean Fix, Vet, Fieldalignment,
+  production Gocyclo at 10, Goconst, NilAway, Errcheck, Staticcheck,
+  test-root Deadcode, Govulncheck, Gosec, Witness-lint, the complete ordinary
+  suite, and the doubled shuffled race suite. The production-only Deadcode
+  invocation correctly reported that Primitive has no main packages; it
+  reported no unreachable production symbol, and no fake executable was added
+  to manufacture a zero exit. Every new semantic fuzz target was also run as
+  a live campaign with its typed oracle and completed cleanly.
+
 - published blind evidence-submission agreement, 2026-08-10, published
   `v2026.0.54` in one commit. `submission` now owns the one product-blind
   agreement shared by Bug, Witness, Peachfuzz, and their control-plane

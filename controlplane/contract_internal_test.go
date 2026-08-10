@@ -16,7 +16,6 @@ import (
 func TestSigningDomainSatisfiesTheAttestSigningDomainContract(t *testing.T) {
 	t.Parallel()
 
-	signingDomainWitness[SigningDomain]()
 }
 
 // TestSigningDomainParsesEveryTextItRenders is the self-referential half of the

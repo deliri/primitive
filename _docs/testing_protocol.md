@@ -66,7 +66,7 @@ at the call site and state the exact failure class being accepted.
 | `test/repeat-policy` | must | review | `RepeatCount` is tests-only; tools/benchmarks/fuzz run once per phase |
 | `test/budget-divergence` | must | review | Effective/configured budget ratio is a contract, not a side effect |
 | `test/benchmarks` | must | review | Measure one thing, report allocs, run serial+last, manifest covers evidence |
-| `test/fuzz-boundary` | should | review | Fuzz at trust boundaries; evidence covered by manifest |
+| `test/fuzz-boundary` | must | review | Every external ingress has semantic fuzz proof; evidence covered by manifest |
 | `test/ledger-chain` | must | review | Ledger tests prove the real chain |
 | `protocol/typed-boundary` | must | lint | Protocol payloads are typed structs and enums |
 | `test/waivers` | must | review | Waivers name why the rule is wrong for this case |
@@ -1216,25 +1216,219 @@ func BenchmarkEncodeEnvelope(b *testing.B) {
 
 `id: test/fuzz-boundary`
 
-`level: should`
+`level: must`
 
 `enforcement: review`
 
-Fuzz tests belong at trust boundaries.
+Every external ingress must have a fuzz target with a semantic oracle. This is
+not optional coverage reserved for complicated parsers. If bytes, text, typed
+wire documents, provider facts, filesystem content, process input, or remote
+responses cross from an untrusted external owner into a package, fuzz the
+public boundary that admits them.
 
-Good fuzz targets:
+External ingress includes:
 
-- JSON/JSONL parsing
-- CLI argument parsing
-- ledger replay
-- profile parsing
-- enum unmarshalling
-- externally supplied sidecar content
+- JSON, JSONL, text, binary, archive, manifest, sidecar, profile, and ledger
+  decoding
+- HTTP bodies, headers, query values, path parameters, status metadata, and
+  provider responses
+- CLI arguments, flags, environment values, stdin, and subprocess output
+- files, directories, symlinks, object-store metadata, database records, and
+  persisted state read back from disk or a service
+- IPC, queues, webhooks, callbacks, certificates, signatures, tokens, update
+  metadata, and downloaded artifacts
+- enum, identifier, path, URL, media type, checksum, size, timestamp, and
+  numeric values reconstructed from an external representation
 
-Poor fuzz targets:
+A tiny closed enum still needs a fuzz target when its decoder accepts external
+bytes. Exhausting the typed enum values proves the domain; fuzzing the decoder
+proves the hostile representation boundary. Pure functions whose inputs are
+already validated internal structs are not external ingress and should normally
+remain exhaustive table tests instead.
 
-- pure functions over already-validated structs
-- code whose valid input space is tiny and better covered by a table
+### Fuzz Target Inventory
+
+The package sweep must inventory every public external door: `Parse`, `Decode`,
+`Read`, `Load`, `Replay`, `UnmarshalJSON`, `UnmarshalText`, CLI parsing, HTTP
+decoding, provider-response projection, and equivalent constructors that admit
+external material. Each door must name its fuzz target. When several public
+doors deliberately share one exact decoder, one fuzz target may cover them only
+if its name, seeds, and oracle visibly exercise every public door.
+
+Adding an external decoder without its fuzz target is an incomplete production
+change. Structural or AST ratchets should compare the external-ingress
+inventory with the fuzz-target inventory where a package has enough doors for
+manual drift to be likely.
+
+Hostile tables and fuzzing are complementary:
+
+- hostile tables pin named boundaries, exact thresholds, and known regressions
+- fuzzing searches representation combinations the table author did not think
+  to name
+- a fuzz target never waives the 10 valid / 10 reject / 20 boundary pressure
+  required for a serious parser
+- a table never waives semantic fuzzing at an external ingress
+
+### Compiler-Owned Seed Corpus
+
+Every fuzz target starts from at least one canonical valid seed produced by the
+real typed production path:
+
+1. construct validated nominal values with their owning constructors
+2. assemble the real typed request, record, envelope, or projection
+3. call `Validate()` at the production boundary
+4. encode with the real production marshaler or writer
+5. add those emitted bytes to the fuzz corpus
+
+Do not handwrite a valid JSON blob, duplicate a protocol token, build a loose
+map, or copy a wire spelling when a typed production fixture can emit it. Raw
+byte or string seeds are allowed only when their purpose is to be malformed or
+hostile external input. Shared protocol values used by both production and
+tests remain compiler-owned constants or typed enums.
+
+The seed corpus should include the meaningful representations the boundary
+claims to support:
+
+- canonical valid minimum, ordinary, and maximum typed documents
+- one below, exactly at, and one above every byte/count/depth threshold
+- harmless accepted reordering or whitespace when the contract permits it
+- empty, whitespace-only, null, truncated, trailing-data, and oversized input
+- missing, duplicate, unknown, conflicting, and wrong-type members
+- every published enum arm and at least one unknown/future representation
+- independently valid but foreign signatures, identities, accounts, builds,
+  capabilities, hashes, or sequence facts when binding matters
+
+The seed corpus is a launch point, not the oracle. The mutated input inside the
+fuzz callback must reach the production boundary and every assertion must be
+derived from what that call accepted or rejected.
+
+### Semantic Oracle Requirements
+
+"Did not panic" is only a runtime safety property. It does not count as fuzz
+evidence. Every fuzz callback owns a semantic oracle strong enough to reject an
+incorrect accepted value and an incorrectly classified refusal.
+
+For an accepted parser or decoder result, prove all applicable facts:
+
+- `Validate()` succeeds on the admitted nominal value
+- the result contains the exact typed facts implied by the accepted input
+- canonical marshal/write succeeds within the compiler-owned byte ceiling
+- parsing the canonical output yields the exact same nominal value
+- a second canonical marshal/write is byte-identical to the first
+- any signature, certificate, account, build, nonce, digest, extent, provider,
+  route, entitlement, or capability binding verifies through the independent
+  production verifier
+- successful verification of mutated signed input is allowed only when the
+  resulting signed document is exactly one of the genuinely signed typed seeds
+- output contains no secret, bearer, source content, unowned path, or extra
+  field the projection contract excludes
+
+For a rejected parser or decoder result, prove all applicable facts:
+
+- `errors.Is` or `errors.As` reaches the strongest stable core-owned identity
+- the package's typed boundary identity is retained when it wraps a lower error
+- a populated receiver is unchanged, or a fresh receiver remains exactly zero
+- no durable file, index, ledger fact, network request, provider mutation, or
+  output artifact was produced
+- no partial proof, capability, verified wrapper, count, or terminal state
+  escaped beside the error
+
+An accepted structural document may still fail authentication. In that case
+the oracle must run the real verifier and require the typed verification or
+binding error plus a zero proof. Merely calling `Validate()` on a signed
+envelope is not an authentication oracle.
+
+For classifiers, planners, folds, and replay boundaries, use an independent
+invariant rather than restating production branches. Examples include count
+conservation, sequence monotonicity, chain linkage, final-state precedence,
+mutual exclusion, checksum agreement, or differential agreement with a
+standard-library parser.
+
+### Mutation Must Be Real
+
+A mutation case must prove it changed a load-bearing fact. Fixtures must not
+silently default a requested mutation back to the original value. When a
+mutation could be vacuous, compare the before and after typed values before
+calling production and fail the fuzz callback if they are equal.
+
+For signed input, mutate one independently pinned field at a time where
+possible: body bytes, domain, signer, signature, body length, body digest,
+nonce, account, build, capability commitment, provider evidence, or authority
+certificate. The verifier must reject every authentic-looking recombination
+unless the complete signed agreement still matches.
+
+Do not mutate only an outer framing byte and claim cryptographic coverage. The
+fuzzer must reach structurally valid but unauthenticated states often enough to
+exercise the independent verifier oracle; typed signed seeds and targeted
+mutation selectors are the preferred way to guarantee that reachability.
+
+### Bounds, Streaming, And Resource Safety
+
+Fuzzing an external boundary must pressure its resource contract as well as its
+grammar:
+
+- the production decoder enforces its compiler-owned byte, depth, item, and
+  field ceilings before unbounded allocation or recursion
+- exact below/at/above limit seeds reach the real boundary
+- streaming readers use bounded buffers and do not read the world before
+  deciding an input is oversized
+- secondary oracle work is bounded; do not duplicate an arbitrary fuzz input
+  into an unbounded in-memory model
+- large projects, object listings, ledgers, archives, and upload/download
+  streams remain O(1) memory unless their typed contract explicitly requires a
+  bounded aggregate
+- temporary filesystem mutations belong to the callback's `t.TempDir()` and
+  no callback shares mutable state with another callback
+
+Use standard-library readers, writers, decoders, HTTP test servers, and
+filesystem behavior to drive the real path. Do not contact live external
+services from a fuzz callback. A local provider test server is appropriate
+when the semantic boundary includes HTTP framing or streaming behavior.
+
+### Canonical Parser Pattern
+
+```go
+func FuzzDocumentJSONSemanticClosure(f *testing.F) {
+	document := typedSignedFixture(f)
+	canonical, err := document.MarshalJSON()
+	if err != nil {
+		f.Fatalf("Document.MarshalJSON(seed) error = %v, want nil", err)
+	}
+	f.Add(canonical)
+	f.Add([]byte{})
+	f.Add([]byte(`{}`))
+
+	f.Fuzz(func(t *testing.T, data []byte) {
+		got := document
+		gotErr := got.UnmarshalJSON(data)
+		if gotErr != nil {
+			if !errors.Is(gotErr, core.ErrJSONContract) || got != document {
+				t.Fatalf("Document.UnmarshalJSON(rejected) = (%v, %v), want preserved and typed rejection", got, gotErr)
+			}
+			return
+		}
+
+		if err := got.Validate(); err != nil {
+			t.Fatalf("Document.UnmarshalJSON(accepted).Validate() error = %v, want nil", err)
+		}
+		encoded, err := got.MarshalJSON()
+		if err != nil || len(encoded) > DocumentJSONMaximumBytes {
+			t.Fatalf("Document.MarshalJSON(accepted) = (%d bytes, %v), want bounded and nil", len(encoded), err)
+		}
+		var roundTrip Document
+		if err := roundTrip.UnmarshalJSON(encoded); err != nil || roundTrip != got {
+			t.Fatalf("canonical round trip = (%v, %v), want (%v, nil)", roundTrip, err, got)
+		}
+		second, err := roundTrip.MarshalJSON()
+		if err != nil || !bytes.Equal(second, encoded) {
+			t.Fatalf("second canonical projection = (%q, %v), want (%q, nil)", second, err, encoded)
+		}
+	})
+}
+```
+
+The pattern is a floor. Signed, stateful, durable, streaming, and
+provider-facing boundaries require their additional independent oracles.
 
 Fuzz phase policy:
 
@@ -1289,8 +1483,15 @@ f.Fuzz(func(t *testing.T, data []byte) {
 })
 ```
 
-Delete fuzz targets for tiny closed input spaces already exhausted by hostile
-tables. They consume continuous-fuzz budget without creating new evidence.
+Fuzz targets are production ratchets. A discovered crasher or semantic failure
+must be minimized, classified, and promoted as a named hostile regression seed
+when stable. Do not delete an external-ingress fuzz target merely because its
+current corpus is green or its typed value domain is small.
+
+Every behavioral fuzz slice follows red/green discipline: preserve the input
+that exposed the failure, prove the typed red state, fix production, and retain
+the minimized reproducer. A new fuzz target over already-correct production is
+a contract ratchet and must name the previously unpinned invariant in review.
 
 ## Streaming And Ledger Proofs
 

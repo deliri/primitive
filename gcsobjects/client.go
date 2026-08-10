@@ -65,6 +65,32 @@ func (c *GCSClient) Close() error {
 	return nil
 }
 
+// CreateBucket creates one new bucket through the official Cloud Storage SDK.
+// Provider conflict is preserved as a typed object-store conflict.
+func CreateBucket(
+	ctx context.Context,
+	client *GCSClient,
+	request GCSBucketCreateRequest,
+) (GCSBucketProvisioning, error) {
+	if err := request.Validate(); err != nil {
+		return GCSBucketProvisioning{}, err
+	}
+	if err := validateGCSCall(ctx, client); err != nil {
+		return GCSBucketProvisioning{}, err
+	}
+	attrs := &storage.BucketAttrs{Location: request.Location.String()}
+	if request.Namespace == GCSNamespaceHierarchical {
+		attrs.HierarchicalNamespace = &storage.HierarchicalNamespace{Enabled: true}
+	}
+	if err := client.client.Bucket(request.Bucket.String()).Create(
+		ctx, request.Project.String(), attrs,
+	); err != nil {
+		return GCSBucketProvisioning{}, projectGCSError(err, core.ErrObjectStoreDestination)
+	}
+	result := GCSBucketProvisioning{request: request, set: true}
+	return result, result.Validate()
+}
+
 // GCSMediaUpload is create-only ingress for an object a browser or CDN will
 // fetch: it carries the content type that makes the bytes render and an
 // optional cache-control the edge may honor.

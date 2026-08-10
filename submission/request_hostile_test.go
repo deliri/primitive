@@ -426,7 +426,6 @@ func leftPadJSON(encoded []byte, length int) []byte {
 // distinct fixed points of their own parser.
 func TestSigningDomainClosesItsEntireByteDomain(t *testing.T) {
 	t.Parallel()
-	signingDomainWitness[SigningDomain]()
 
 	admitted := 0
 	seen := make(map[string]SigningDomain)
@@ -466,8 +465,8 @@ func TestSigningDomainClosesItsEntireByteDomain(t *testing.T) {
 		}
 		seen[string(text)] = domain
 	}
-	if admitted != 2 {
-		t.Fatalf("admitted signing domains = %d, want request and grant", admitted)
+	if admitted != 3 {
+		t.Fatalf("admitted signing domains = %d, want request, grant, and completion", admitted)
 	}
 
 	preserved := SigningDomainGrantV1

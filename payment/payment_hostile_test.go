@@ -810,7 +810,7 @@ func newPaymentFixture(t *testing.T, request paymentFixtureRequest) paymentFixtu
 	}
 }
 
-func paymentSigningFixture(t *testing.T, marker byte) (ed25519.PrivateKey, attest.TrustedKeys) {
+func paymentSigningFixture(t testing.TB, marker byte) (ed25519.PrivateKey, attest.TrustedKeys) {
 	t.Helper()
 
 	private := ed25519.NewKeyFromSeed(bytes.Repeat([]byte{marker}, ed25519.SeedSize))
@@ -825,7 +825,7 @@ func paymentSigningFixture(t *testing.T, marker byte) (ed25519.PrivateKey, attes
 	return private, trusted
 }
 
-func paymentScopeFixture(t *testing.T, marker byte) receipt.Scope {
+func paymentScopeFixture(t testing.TB, marker byte) receipt.Scope {
 	t.Helper()
 	return receipt.Scope{
 		Account:  mustPaymentLifecycleIdentity(t, marker, receipt.NewAccountIdentity),
@@ -834,7 +834,7 @@ func paymentScopeFixture(t *testing.T, marker byte) receipt.Scope {
 }
 
 func mustPaymentLifecycleIdentity[T core.Validatable](
-	t *testing.T,
+	t testing.TB,
 	marker byte,
 	constructor func([receipt.LifecycleIdentityBytes]byte) (T, error),
 ) T {
@@ -848,7 +848,7 @@ func mustPaymentLifecycleIdentity[T core.Validatable](
 	return identity
 }
 
-func mustPaymentID(t *testing.T, marker byte, milliseconds int64) PaymentID {
+func mustPaymentID(t testing.TB, marker byte, milliseconds int64) PaymentID {
 	t.Helper()
 
 	material, err := core.NewSecretMaterial(bytes.Repeat([]byte{marker}, core.SecretMaterialMinimumBytes))

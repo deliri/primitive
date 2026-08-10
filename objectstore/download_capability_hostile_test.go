@@ -213,13 +213,13 @@ func TestDownloadCapabilityAndProjectionRedactEveryFormattingPath(t *testing.T) 
 	}
 }
 
-func downloadCapabilityProjectionFixture(t *testing.T, provider Provider) DownloadCapabilityProjection {
+func downloadCapabilityProjectionFixture(t testing.TB, provider Provider) DownloadCapabilityProjection {
 	t.Helper()
 	return downloadCapabilityProjectionRequestFixture(t, downloadCapabilityFixtureRequest{Provider: provider})
 }
 
 func downloadCapabilityProjectionRequestFixture(
-	t *testing.T,
+	t testing.TB,
 	request downloadCapabilityFixtureRequest,
 ) DownloadCapabilityProjection {
 	t.Helper()
@@ -232,7 +232,7 @@ func downloadCapabilityProjectionRequestFixture(
 	return projection
 }
 
-func downloadTargetFixture(t *testing.T, request downloadCapabilityFixtureRequest) DownloadTarget {
+func downloadTargetFixture(t testing.TB, request downloadCapabilityFixtureRequest) DownloadTarget {
 	t.Helper()
 
 	if request.Provider == ProviderUnknown {

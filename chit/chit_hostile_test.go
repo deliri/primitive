@@ -374,7 +374,7 @@ func TestChitNumericJSONBoundariesAreCanonicalAndTransactional(t *testing.T) {
 	}
 }
 
-func newChitFixture(t *testing.T, marker byte, versionValue uint64) chitFixture {
+func newChitFixture(t testing.TB, marker byte, versionValue uint64) chitFixture {
 	t.Helper()
 
 	private, trusted := chitSigningFixture(t, marker)
@@ -406,7 +406,7 @@ func newChitFixture(t *testing.T, marker byte, versionValue uint64) chitFixture 
 }
 
 func chitManifestEntryFixture(
-	t *testing.T,
+	t testing.TB,
 	request chitDerivedEntryFixtureRequest,
 ) ManifestAddition {
 	t.Helper()
@@ -418,7 +418,7 @@ func chitManifestEntryFixture(
 }
 
 func chitEvidenceEntryFixture(
-	t *testing.T,
+	t testing.TB,
 	request chitEntryFixtureRequest,
 ) ManifestAddition {
 	t.Helper()
@@ -478,7 +478,7 @@ func chitEvidenceEntryFixture(
 	}
 }
 
-func manifestSummaryFixture(t *testing.T, additions ...ManifestAddition) ManifestSummary {
+func manifestSummaryFixture(t testing.TB, additions ...ManifestAddition) ManifestSummary {
 	t.Helper()
 
 	accumulator := NewManifestAccumulator()
@@ -494,7 +494,7 @@ func manifestSummaryFixture(t *testing.T, additions ...ManifestAddition) Manifes
 	return summary
 }
 
-func chitSigningFixture(t *testing.T, marker byte) (ed25519.PrivateKey, attest.TrustedKeys) {
+func chitSigningFixture(t testing.TB, marker byte) (ed25519.PrivateKey, attest.TrustedKeys) {
 	t.Helper()
 
 	private := ed25519.NewKeyFromSeed(bytes.Repeat([]byte{marker}, ed25519.SeedSize))
@@ -509,7 +509,7 @@ func chitSigningFixture(t *testing.T, marker byte) (ed25519.PrivateKey, attest.T
 	return private, trusted
 }
 
-func chitScopeFixture(t *testing.T, marker byte) receipt.Scope {
+func chitScopeFixture(t testing.TB, marker byte) receipt.Scope {
 	t.Helper()
 	return receipt.Scope{
 		Account:  mustLifecycleIdentity(t, marker, receipt.NewAccountIdentity),
@@ -518,7 +518,7 @@ func chitScopeFixture(t *testing.T, marker byte) receipt.Scope {
 }
 
 func mustLifecycleIdentity[T core.Validatable](
-	t *testing.T,
+	t testing.TB,
 	marker byte,
 	constructor func([receipt.LifecycleIdentityBytes]byte) (T, error),
 ) T {
@@ -533,7 +533,7 @@ func mustLifecycleIdentity[T core.Validatable](
 	return identity
 }
 
-func mustUUIDv7(t *testing.T, marker byte, milliseconds int64) id.UUIDv7 {
+func mustUUIDv7(t testing.TB, marker byte, milliseconds int64) id.UUIDv7 {
 	t.Helper()
 
 	material, err := core.NewSecretMaterial(bytes.Repeat([]byte{marker}, core.SecretMaterialMinimumBytes))
@@ -552,7 +552,7 @@ func mustUUIDv7(t *testing.T, marker byte, milliseconds int64) id.UUIDv7 {
 	return identity
 }
 
-func mustChitID(t *testing.T, marker byte, milliseconds int64) ChitID {
+func mustChitID(t testing.TB, marker byte, milliseconds int64) ChitID {
 	t.Helper()
 	identity, err := NewChitID(mustUUIDv7(t, marker, milliseconds))
 	if err != nil {
@@ -561,7 +561,7 @@ func mustChitID(t *testing.T, marker byte, milliseconds int64) ChitID {
 	return identity
 }
 
-func mustVersion(t *testing.T, value uint64) Version {
+func mustVersion(t testing.TB, value uint64) Version {
 	t.Helper()
 	version, err := NewVersion(value)
 	if err != nil {
@@ -570,7 +570,7 @@ func mustVersion(t *testing.T, value uint64) Version {
 	return version
 }
 
-func mustEntrySequence(t *testing.T, value uint64) EntrySequence {
+func mustEntrySequence(t testing.TB, value uint64) EntrySequence {
 	t.Helper()
 	sequence, err := NewEntrySequence(value)
 	if err != nil {
@@ -579,7 +579,7 @@ func mustEntrySequence(t *testing.T, value uint64) EntrySequence {
 	return sequence
 }
 
-func mustChitByteLength(t *testing.T, value uint64) core.ByteLength {
+func mustChitByteLength(t testing.TB, value uint64) core.ByteLength {
 	t.Helper()
 
 	length, err := core.NewByteLength(value)
@@ -589,7 +589,7 @@ func mustChitByteLength(t *testing.T, value uint64) core.ByteLength {
 	return length
 }
 
-func chitWatermarkFixture(t *testing.T, scope receipt.Scope) receipt.Watermark {
+func chitWatermarkFixture(t testing.TB, scope receipt.Scope) receipt.Watermark {
 	t.Helper()
 
 	generation, err := receipt.NewGeneration(1)

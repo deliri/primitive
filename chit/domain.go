@@ -12,6 +12,7 @@ import (
 const (
 	SigningDomainChitV1Token    = "primitive-chit-2026-1"
 	SigningDomainCatalogV1Token = "primitive-chit-catalog-2026-1"
+	SigningDomainQueryV1Token   = "primitive-chit-query-2026-1"
 )
 
 // SigningDomain separates one immutable chit from a catalog observation.
@@ -21,11 +22,12 @@ const (
 	SigningDomainUnknown SigningDomain = iota
 	SigningDomainChitV1
 	SigningDomainCatalogV1
+	SigningDomainQueryV1
 	signingDomainLimit
 )
 
 func signingDomainTokens() [signingDomainLimit]string {
-	return [...]string{"", SigningDomainChitV1Token, SigningDomainCatalogV1Token}
+	return [...]string{"", SigningDomainChitV1Token, SigningDomainCatalogV1Token, SigningDomainQueryV1Token}
 }
 
 func (d SigningDomain) Validate() error {
@@ -91,7 +93,7 @@ func (d *SigningDomain) UnmarshalJSON(data []byte) error {
 	return nil
 }
 
-func signingDomainWitness[D attest.SigningDomain[D]]() {}
+type signingDomainWitness[D attest.SigningDomain[D]] [0]D
 
 var (
 	_ core.Validatable            = SigningDomainUnknown
@@ -99,5 +101,5 @@ var (
 	_ encoding.TextMarshaler      = SigningDomainUnknown
 	_ json.Marshaler              = SigningDomainUnknown
 	_ json.Unmarshaler            = (*SigningDomain)(nil)
-	_                             = signingDomainWitness[SigningDomain]
+	_                             = signingDomainWitness[SigningDomain]{}
 )

@@ -13,6 +13,10 @@ the signed-capability surface.
 It owns exactly:
 
 - authenticated SDK client construction from a closed typed configuration;
+- create-only bucket provisioning in one typed provider location with a closed
+  flat or hierarchical namespace choice;
+- logical directory and object-name composition from validated segments,
+  without fake placeholder objects or caller-owned slash conventions;
 - two create-only object writes, served-media and stored-file;
 - one digest-bound bounded read;
 - the canonical public address of one object; and
@@ -52,9 +56,26 @@ Both are create-only under a generation-zero precondition, so an existing object
 is a conflict rather than an overwrite, and both bind the stream to a declared
 SHA-256 and CRC32C over an exact extent.
 
+## Buckets and logical directories
+
+`CreateBucket` accepts one `GCSBucketCreateRequest` containing a nominal Google
+project ID, validated bucket name, provider location, and closed namespace
+choice. It calls the official SDK once and returns sealed provisioning evidence
+only after the provider accepts creation. Existing buckets are conflicts; this
+surface never updates bucket policy in place.
+
+Flat object storage has no directory resource to create. `ComposeGCSRootPrefix`,
+`ComposeGCSChildPrefix`, and `ComposeGCSObjectName` therefore build validated
+logical prefixes and exact names without uploading zero-byte slash objects that
+pretend to be directories. A hierarchical bucket enables the provider's real
+hierarchical namespace at bucket creation; managed-folder IAM administration
+remains outside this object lifecycle.
+
 ## What it deliberately does not do
 
-- create buckets, mint or persist credentials, or create signed URLs;
+- mutate existing buckets, mint or persist credentials, or create signed URLs;
+- create placeholder objects to imitate directories;
+- administer managed-folder IAM policy;
 - overwrite, copy, compose, or mutate arbitrary object metadata;
 - mutate bucket lifecycle, retention, or namespace policy;
 - implement resumable or multipart upload protocols;

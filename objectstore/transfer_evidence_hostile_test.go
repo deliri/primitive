@@ -281,7 +281,7 @@ func requireTransferEvidenceFacts(t *testing.T, check transferEvidenceFactsCheck
 	}
 }
 
-func sealedTransferEvidenceFixture(t *testing.T, request transferEvidenceFixtureRequest) Transfer {
+func sealedTransferEvidenceFixture(t testing.TB, request transferEvidenceFixtureRequest) Transfer {
 	t.Helper()
 
 	length, gotErr := core.NewByteLength(request.Bytes)

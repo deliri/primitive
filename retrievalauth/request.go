@@ -11,11 +11,9 @@ import (
 )
 
 const (
-	requestDocumentSyntaxBytes      = len(`{"request":,"certificate":}`)
-	requestDocumentWhitespaceBytes  = 8 << 10
 	RequestDocumentJSONMaximumBytes = retrieval.RequestDocumentJSONMaximumBytes +
 		controlplane.InstallationCertificateDocumentJSONMaximumBytes +
-		requestDocumentSyntaxBytes + requestDocumentWhitespaceBytes
+		core.CredentialedRequestDocumentSyntaxBytes + core.CredentialedDocumentWhitespaceMaximumBytes
 )
 
 type RequestDocument struct {

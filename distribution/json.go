@@ -9,8 +9,9 @@ import (
 )
 
 const (
-	requestPayloadJSONMaximumBytes         = 96 << 10
-	requestDocumentJSONMaximumBytes        = 128 << 10
+	requestPayloadJSONMaximumBytes = 96 << 10
+	// RequestDocumentJSONMaximumBytes bounds every signed Distribution request.
+	RequestDocumentJSONMaximumBytes        = 128 << 10
 	responsePayloadJSONMaximumBytes        = 128 << 10
 	responseDocumentJSONMaximumBytes       = 256 << 10
 	publicationGrantJSONMaximumBytes       = 256 << 10

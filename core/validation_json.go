@@ -40,6 +40,12 @@ type OffWireEnum interface {
 const (
 	// JSONDocumentMaximumBytes is the shared one-mebibyte document cap.
 	JSONDocumentMaximumBytes = 1 << 20
+	// CredentialedRequestDocumentSyntaxBytes is the exact outer punctuation
+	// shared by request-plus-installation-certificate documents.
+	CredentialedRequestDocumentSyntaxBytes = len(`{"request":,"certificate":}`)
+	// CredentialedDocumentWhitespaceMaximumBytes is the shared allowance for
+	// insignificant outer whitespace around one credentialed document.
+	CredentialedDocumentWhitespaceMaximumBytes = 8 << 10
 	// JSONNestingDepthMaximum is the open-container cap.
 	JSONNestingDepthMaximum = 64
 	// JSONObjectFieldCountMaximum is the per-object field cap.

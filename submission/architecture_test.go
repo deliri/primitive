@@ -24,30 +24,39 @@ type (
 // role at the evidence-agreement boundary. Field names deliberately equal the
 // compiler-owned type names so an added carrier cannot evade review.
 type submissionContractInventory struct {
-	Declaration                  protocolFact[Declaration]
-	UploadID                     protocolFact[UploadID]
-	ManifestIntent               protocolFact[ManifestIntent]
-	RequestPayload               protocolFact[RequestPayload]
-	RequestDocument              protocolFact[RequestDocument]
-	RequestIssuance              protocolFact[RequestIssuance]
-	RequestVerification          protocolFact[RequestVerification]
-	RequestCommitment            protocolFact[RequestCommitment]
-	GrantPayload                 protocolFact[GrantPayload]
-	GrantDocument                protocolFact[GrantDocument]
-	GrantProjection              protocolFact[GrantProjection]
-	GrantIssuance                protocolFact[GrantIssuance]
-	GrantExpectation             protocolFact[GrantExpectation]
-	DecisionDocument             protocolFact[DecisionDocument]
-	DecisionProjection           protocolFact[DecisionProjection]
-	DecisionExpectation          protocolFact[DecisionExpectation]
-	UploadCallRequest            protocolFact[UploadCallRequest]
-	VerifiedRequest              capabilityWrapper[VerifiedRequest]
-	VerifiedGrant                capabilityWrapper[VerifiedGrant]
-	VerifiedDecision             capabilityWrapper[VerifiedDecision]
-	grantDocumentWire            sealedWireProjection[grantDocumentWire]
-	grantProjectionWire          sealedWireProjection[grantProjectionWire]
-	uploadDecisionProjectionWire sealedWireProjection[uploadDecisionProjectionWire]
-	reuseDecisionProjectionWire  sealedWireProjection[reuseDecisionProjectionWire]
+	Declaration                     protocolFact[Declaration]
+	UploadID                        protocolFact[UploadID]
+	ManifestIntent                  protocolFact[ManifestIntent]
+	RequestPayload                  protocolFact[RequestPayload]
+	RequestDocument                 protocolFact[RequestDocument]
+	RequestIssuance                 protocolFact[RequestIssuance]
+	RequestVerification             protocolFact[RequestVerification]
+	RequestCommitment               protocolFact[RequestCommitment]
+	CompletionPayload               protocolFact[CompletionPayload]
+	CompletionDocument              protocolFact[CompletionDocument]
+	CompletionProjection            protocolFact[CompletionProjection]
+	CompletionIssuance              protocolFact[CompletionIssuance]
+	CompletionExpectation           protocolFact[CompletionExpectation]
+	GrantPayload                    protocolFact[GrantPayload]
+	GrantDocument                   protocolFact[GrantDocument]
+	GrantProjection                 protocolFact[GrantProjection]
+	GrantIssuance                   protocolFact[GrantIssuance]
+	GrantExpectation                protocolFact[GrantExpectation]
+	DecisionDocument                protocolFact[DecisionDocument]
+	DecisionProjection              protocolFact[DecisionProjection]
+	DecisionExpectation             protocolFact[DecisionExpectation]
+	UploadCallRequest               protocolFact[UploadCallRequest]
+	VerifiedRequest                 capabilityWrapper[VerifiedRequest]
+	VerifiedCompletion              capabilityWrapper[VerifiedCompletion]
+	VerifiedGrant                   capabilityWrapper[VerifiedGrant]
+	VerifiedDecision                capabilityWrapper[VerifiedDecision]
+	grantDocumentWire               sealedWireProjection[grantDocumentWire]
+	grantProjectionWire             sealedWireProjection[grantProjectionWire]
+	uploadDecisionProjectionWire    sealedWireProjection[uploadDecisionProjectionWire]
+	reuseDecisionProjectionWire     sealedWireProjection[reuseDecisionProjectionWire]
+	completionProjectionPayload     sealedWireProjection[completionProjectionPayload]
+	completionProjectionPayloadWire sealedWireProjection[completionProjectionPayloadWire]
+	completionProjectionWire        sealedWireProjection[completionProjectionWire]
 }
 
 func TestSubmissionDataFlowStructInventoryRatchet(t *testing.T) {
@@ -141,4 +150,7 @@ var (
 	_ = submissionContractInventory{}.grantProjectionWire
 	_ = submissionContractInventory{}.uploadDecisionProjectionWire
 	_ = submissionContractInventory{}.reuseDecisionProjectionWire
+	_ = submissionContractInventory{}.completionProjectionPayload
+	_ = submissionContractInventory{}.completionProjectionPayloadWire
+	_ = submissionContractInventory{}.completionProjectionWire
 )

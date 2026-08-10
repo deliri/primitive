@@ -20,10 +20,14 @@ type (
 // submissionAuthContractInventory classifies every production struct by its
 // exact role at the installation-authentication boundary.
 type submissionAuthContractInventory struct {
-	RequestDocument authProtocolFact[RequestDocument]
-	RequestAssembly authProtocolFact[RequestAssembly]
-	Verification    authProtocolFact[Verification]
-	Verified        authCapabilityWrapper[Verified]
+	RequestDocument        authProtocolFact[RequestDocument]
+	RequestAssembly        authProtocolFact[RequestAssembly]
+	Verification           authProtocolFact[Verification]
+	Verified               authCapabilityWrapper[Verified]
+	CompletionDocument     authProtocolFact[CompletionDocument]
+	CompletionAssembly     authProtocolFact[CompletionAssembly]
+	CompletionVerification authProtocolFact[CompletionVerification]
+	VerifiedCompletion     authCapabilityWrapper[VerifiedCompletion]
 }
 
 func TestSubmissionAuthDataFlowStructInventoryRatchet(t *testing.T) {

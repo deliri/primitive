@@ -11,13 +11,11 @@ import (
 )
 
 const (
-	requestDocumentSyntaxBytes     = len(`{"request":,"certificate":}`)
-	requestDocumentWhitespaceBytes = 8 << 10
 	// RequestDocumentJSONMaximumBytes bounds one credentialed submission
 	// request, including bounded insignificant outer whitespace.
 	RequestDocumentJSONMaximumBytes = submission.RequestDocumentJSONMaximumBytes +
 		controlplane.InstallationCertificateDocumentJSONMaximumBytes +
-		requestDocumentSyntaxBytes + requestDocumentWhitespaceBytes
+		core.CredentialedRequestDocumentSyntaxBytes + core.CredentialedDocumentWhitespaceMaximumBytes
 )
 
 // RequestDocument carries the signed evidence declaration and the

@@ -49,6 +49,11 @@ type chitContractInventory struct {
 	Position            protocolFact[Position]
 	Query               protocolFact[Query]
 	QueryRequest        protocolFact[QueryRequest]
+	QueryPayload        protocolFact[QueryPayload]
+	QueryDocument       protocolFact[QueryDocument]
+	QueryIssuance       protocolFact[QueryIssuance]
+	QueryVerification   protocolFact[QueryVerification]
+	VerifiedQuery       capabilityWrapper[VerifiedQuery]
 }
 
 func TestChitDataFlowStructInventoryRatchet(t *testing.T) {

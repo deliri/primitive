@@ -131,6 +131,11 @@ flowchart TD
     distribution --> temporal
     distribution --> upgrade
 
+    distributionauth[distributionauth] --> attest
+    distributionauth --> controlplane
+    distributionauth --> core
+    distributionauth --> distribution
+
     gcsobjects[gcsobjects] --> core
     gcsobjects --> contextstate
     gcsobjects --> temporal
@@ -138,9 +143,15 @@ flowchart TD
 
     chit[chit] --> attest
     chit --> core
+    chit --> controlwire
     chit --> id
     chit --> receipt
     chit --> temporal
+
+    chitauth[chitauth] --> attest
+    chitauth --> chit
+    chitauth --> controlplane
+    chitauth --> core
 
     retrieval[retrieval] --> attest
     retrieval --> chit
@@ -157,10 +168,16 @@ flowchart TD
 
     payment[payment] --> attest
     payment --> core
+    payment --> controlwire
     payment --> currency
     payment --> id
     payment --> receipt
     payment --> temporal
+
+    paymentauth[paymentauth] --> attest
+    paymentauth --> controlplane
+    paymentauth --> core
+    paymentauth --> payment
 ```
 
 The diagram is the production graph. A package may additionally declare
@@ -168,8 +185,14 @@ test-only edges in the same compiler-owned catalog when its real ingress value
 cannot be constructed without the package that produces it. A declared test
 edge grants no production dependency, counts against the same per-package
 coupling ceiling, and is rejected when no test source uses it. `gate` uses
-`attest` and `temporal` to prove real signed leases, `submissionauth` uses
-`chit`, `controlplanetest`, and `controlwire` to prove real credentialed requests,
+`attest` and `temporal` to prove real signed leases, `submission` uses `exchange`
+to prove real provider completions, `submissionauth` uses `chit`,
+`controlplanetest`, `controlwire`, `exchange`, and `objectstore` to
+prove real credentialed requests and completions, `chitauth` and `paymentauth`
+use `controlplanetest`, `controlwire`, and `receipt` to prove real credentialed
+catalog queries, `distributionauth` uses `controlplanetest`, `controlwire`,
+`release`, and `temporal` to prove real credentialed update and upgrade
+requests,
 `retrievalauth` uses `controlplanetest` and `controlwire` to prove real
 credentialed retrieval requests, `retrieval` uses `exchange` and `receipt` to
 prove real streaming transport and authenticated stored evidence,
