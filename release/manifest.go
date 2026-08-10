@@ -55,6 +55,33 @@ func (d ManifestDocumentDigest) String() string {
 	return value
 }
 
+func (d ManifestDocumentDigest) MarshalJSON() ([]byte, error) {
+	if err := d.Validate(); err != nil {
+		return nil, jsonError(err)
+	}
+	encoded, err := d.digest.MarshalJSON()
+	if err != nil {
+		return nil, jsonError(err)
+	}
+	return encoded, nil
+}
+
+func (d *ManifestDocumentDigest) UnmarshalJSON(data []byte) error {
+	if d == nil {
+		return jsonError(errors.New("manifest document digest receiver is nil"))
+	}
+	var digest core.SHA256Digest
+	if err := json.Unmarshal(data, &digest); err != nil {
+		return jsonError(err)
+	}
+	candidate := newManifestDocumentDigest(digest)
+	if err := candidate.Validate(); err != nil {
+		return jsonError(err)
+	}
+	*d = candidate
+	return nil
+}
+
 // SHA256 returns the exact authenticated manifest-document digest.
 func (d ManifestDocumentDigest) SHA256() core.SHA256Digest { return d.digest }
 
@@ -457,6 +484,38 @@ func (v VerifiedManifest) Artifacts() ArtifactSet                 { return v.doc
 func (v VerifiedManifest) Provenance() BuildProvenance            { return v.document.Fact.Provenance() }
 func (v VerifiedManifest) Metadata() MetadataSet                  { return v.document.Fact.Metadata() }
 func (v VerifiedManifest) TotalExtent() core.ByteCount            { return v.document.Fact.TotalExtent() }
+
+// PublicationIntegrity returns the exact integrity occupying one release
+// publication role. Release owns this projection so every publisher and
+// authority shares the manifest's compiler-visible slot order.
+func (v VerifiedManifest) PublicationIntegrity(role PublicationRole) (ArtifactIntegrity, error) {
+	if err := v.Validate(); err != nil {
+		return ArtifactIntegrity{}, verificationError(err)
+	}
+	index, err := role.Index()
+	if err != nil {
+		return ArtifactIntegrity{}, manifestError(err)
+	}
+	switch {
+	case role >= PublicationRoleWindowsAMD64 && role <= PublicationRoleLinuxARM64:
+		artifact, ok := v.Artifacts().At(index)
+		if !ok {
+			return ArtifactIntegrity{}, manifestError(errors.New("publication artifact role is absent"))
+		}
+		return artifact.Integrity(), nil
+	case role == PublicationRoleManifest:
+		return v.DocumentIntegrity(), nil
+	case role >= PublicationRoleDependencies && role <= PublicationRoleReleaseNotes:
+		metadataIndex := index - int(PublicationRoleDependencies-1)
+		asset, ok := v.Metadata().At(metadataIndex)
+		if !ok {
+			return ArtifactIntegrity{}, manifestError(errors.New("publication metadata role is absent"))
+		}
+		return asset.Integrity(), nil
+	default:
+		return ArtifactIntegrity{}, manifestError(errors.New("publication role escaped its domain"))
+	}
+}
 
 func integrityManifestDocument(document ManifestDocument) (ArtifactIntegrity, error) {
 	encoded, err := document.MarshalJSON()

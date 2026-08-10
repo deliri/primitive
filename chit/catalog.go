@@ -14,11 +14,6 @@ import (
 )
 
 const (
-	CatalogPayloadJSONMaximumBytes  = core.JSONDocumentMaximumBytes
-	CatalogDocumentJSONMaximumBytes = core.JSONDocumentMaximumBytes
-)
-
-const (
 	custodyStateTokenStored               = "stored"
 	custodyStateTokenRetrievalUnavailable = "retrieval-unavailable"
 	custodyStateTokenDeleted              = "deleted"
@@ -157,7 +152,7 @@ func (c *Cursor) UnmarshalJSON(data []byte) error {
 
 // Continuation is a tagged union: End carries no cursor; More requires one.
 type Continuation struct {
-	Cursor Cursor                        `json:"cursor,omitempty"`
+	Cursor Cursor                        `json:"cursor"`
 	State  core.CatalogContinuationState `json:"state"`
 }
 
@@ -273,7 +268,7 @@ func (p CatalogPayload) MarshalJSON() ([]byte, error) {
 	}
 	type wire CatalogPayload
 	encoded, err := core.MarshalCanonicalJSONDocument(wire(p))
-	if err != nil || len(encoded) > CatalogPayloadJSONMaximumBytes {
+	if err != nil || len(encoded) > core.JSONDocumentMaximumBytes {
 		return nil, jsonError(err)
 	}
 	return encoded, nil
@@ -284,7 +279,7 @@ func (p *CatalogPayload) UnmarshalJSON(data []byte) error {
 		return jsonError(errors.New("nil catalog payload receiver"))
 	}
 	type wire CatalogPayload
-	decoded, err := decodeStrict[wire](data, CatalogPayloadJSONMaximumBytes)
+	decoded, err := decodeStrict[wire](data, core.JSONDocumentMaximumBytes)
 	if err != nil {
 		return err
 	}
@@ -341,7 +336,7 @@ func (d CatalogDocument) MarshalJSON() ([]byte, error) {
 	}
 	type wire CatalogDocument
 	encoded, err := core.MarshalCanonicalJSONDocument(wire(d))
-	if err != nil || len(encoded) > CatalogDocumentJSONMaximumBytes {
+	if err != nil || len(encoded) > core.JSONDocumentMaximumBytes {
 		return nil, jsonError(err)
 	}
 	return encoded, nil
@@ -352,7 +347,7 @@ func (d *CatalogDocument) UnmarshalJSON(data []byte) error {
 		return jsonError(errors.New("nil catalog document receiver"))
 	}
 	type wire CatalogDocument
-	decoded, err := decodeStrict[wire](data, CatalogDocumentJSONMaximumBytes)
+	decoded, err := decodeStrict[wire](data, core.JSONDocumentMaximumBytes)
 	if err != nil {
 		return err
 	}

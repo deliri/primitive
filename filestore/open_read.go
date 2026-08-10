@@ -73,8 +73,9 @@ func validateOpenedStage(staged StagedFile, observed fs.FileInfo) error {
 	if !observed.Mode().IsRegular() || observed.Mode().Perm() != staged.info.Mode().Perm() {
 		return activationError(errors.New("filestore opened stage permissions or type changed"))
 	}
-	if observed.Size() < 0 || uint64(observed.Size()) != staged.bytes.Uint64() {
-		return sizeError(errors.New("filestore opened stage extent changed"))
+	observedBytes, err := core.CheckedUint64FromInt64(observed.Size())
+	if err != nil || observedBytes != staged.bytes.Uint64() {
+		return sizeError(errors.Join(errors.New("filestore opened stage extent changed"), err))
 	}
 	return nil
 }

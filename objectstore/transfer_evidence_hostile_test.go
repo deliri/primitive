@@ -80,9 +80,9 @@ func TestTransferEvidenceProjectionLayerTriad(t *testing.T) {
 			t.Fatalf("HTTPStatusCode.AdmitInt(%d) setup error = %v, want nil", http.StatusInternalServerError, gotErr)
 		}
 		cases := []struct {
+			wantErr error
 			mutate  func(Transfer) Transfer
 			name    string
-			wantErr error
 		}{
 			{name: "zero transfer has no confirmed source", mutate: func(Transfer) Transfer { return Transfer{} }, wantErr: core.ErrObjectStoreContract},
 			{name: "unknown provider has no execution owner", mutate: func(value Transfer) Transfer { value.provider = ProviderUnknown; return value }, wantErr: core.ErrObjectStoreContract},
@@ -142,9 +142,9 @@ func TestTransferEvidenceProjectionLayerTriad(t *testing.T) {
 }
 
 type transferEvidenceDocumentCase struct {
+	wantErr error
 	build   func([]byte) []byte
 	name    string
-	wantErr error
 }
 
 func TestTransferEvidenceDecodeLayerTriad(t *testing.T) {
@@ -310,13 +310,26 @@ func sealedTransferEvidenceFixture(t *testing.T, request transferEvidenceFixture
 func transferEvidenceRoundTrip(t *testing.T, projection TransferEvidenceProjection) (TransferEvidence, error) {
 	t.Helper()
 
-	encoded, gotErr := projection.MarshalJSON()
+	issued, gotErr := projection.MarshalJSON()
 	if gotErr != nil {
 		return TransferEvidence{}, gotErr
 	}
-	var got TransferEvidence
-	gotErr = json.Unmarshal(encoded, &got)
-	return got, gotErr
+	var received TransferEvidence
+	if gotErr = json.Unmarshal(issued, &received); gotErr != nil {
+		return TransferEvidence{}, gotErr
+	}
+	reemitted, gotErr := json.Marshal(received)
+	if gotErr != nil {
+		return TransferEvidence{}, gotErr
+	}
+	if !bytes.Equal(reemitted, issued) {
+		t.Fatalf("TransferEvidence receive-side canonical bytes = %q, want issuer bytes %q", reemitted, issued)
+	}
+	var verified TransferEvidence
+	if gotErr = json.Unmarshal(reemitted, &verified); gotErr != nil {
+		return TransferEvidence{}, gotErr
+	}
+	return verified, nil
 }
 
 func unchangedTransferEvidenceDocument(value []byte) []byte { return append([]byte(nil), value...) }

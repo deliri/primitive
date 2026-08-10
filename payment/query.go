@@ -8,6 +8,8 @@ import (
 	"github.com/deliri/primitive/v2026/receipt"
 )
 
+const specificSelectionPaginationDiagnostic = "specific payment selection cannot be paginated"
+
 // Cursor is Payment's nominal opaque closure of one catalog position.
 type Cursor struct{ value core.SHA256Digest }
 
@@ -55,7 +57,7 @@ func (c *Cursor) UnmarshalJSON(data []byte) error {
 
 // Selection is the exact all-or-one payment receipt selection.
 type Selection struct {
-	Payment PaymentID                 `json:"payment_id,omitempty"`
+	Payment PaymentID                 `json:"payment_id"`
 	Kind    core.CatalogSelectionKind `json:"kind"`
 }
 
@@ -106,7 +108,7 @@ func (s Selection) MarshalJSON() ([]byte, error) {
 
 // Position is the explicit first-page or after-cursor request arm.
 type Position struct {
-	Cursor Cursor                   `json:"cursor,omitempty"`
+	Cursor Cursor                   `json:"cursor"`
 	Kind   core.CatalogPositionKind `json:"kind"`
 }
 
@@ -179,7 +181,7 @@ func (r QueryRequest) Validate() error {
 		return contractError(err)
 	}
 	if r.Selection.Kind == core.CatalogSelectionSpecific && r.Position.Kind != core.CatalogPositionStart {
-		return verificationError(errors.New("specific payment selection cannot be paginated"))
+		return verificationError(errors.New(specificSelectionPaginationDiagnostic))
 	}
 	return nil
 }
@@ -206,7 +208,7 @@ func (q Query) Validate() error {
 		return contractError(err)
 	}
 	if q.Selection.Kind == core.CatalogSelectionSpecific && q.Position.Kind != core.CatalogPositionStart {
-		return verificationError(errors.New("specific payment selection cannot be paginated"))
+		return verificationError(errors.New(specificSelectionPaginationDiagnostic))
 	}
 	return nil
 }

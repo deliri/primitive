@@ -39,10 +39,10 @@ type paymentCatalogFixtureRequest struct {
 
 type paymentCatalogFixture struct {
 	private  ed25519.PrivateKey
-	trusted  attest.TrustedKeys
-	scope    receipt.Scope
 	payload  CatalogPayload
 	document CatalogDocument
+	trusted  attest.TrustedKeys
+	scope    receipt.Scope
 }
 
 type paymentJSONCase struct {
@@ -192,9 +192,9 @@ func TestPaymentReceiptVerificationLayerTriad(t *testing.T) {
 		fixture := newPaymentFixture(t, paymentFixtureRequest{Marker: 0x52, Millisecond: 20, MinorUnits: 1250})
 		other := newPaymentFixture(t, paymentFixtureRequest{Scope: fixture.scope, Marker: 0x62, Millisecond: 21, MinorUnits: 1251})
 		cases := []struct {
+			wantErr error
 			mutate  func(*Verification)
 			name    string
-			wantErr error
 		}{
 			{name: "zero verification", mutate: func(value *Verification) { *value = Verification{} }, wantErr: core.ErrPaymentContract},
 			{name: "different expected payment identity", mutate: func(value *Verification) { value.Expected.Identity = other.identity }, wantErr: core.ErrPaymentVerification},
@@ -346,9 +346,9 @@ func TestPaymentCatalogIssuanceLayerTriad(t *testing.T) {
 			t.Fatalf("More() setup error = %v, want nil", gotErr)
 		}
 		cases := []struct {
+			wantErr error
 			mutate  func(*CatalogPayload)
 			name    string
-			wantErr error
 		}{
 			{name: "zero payload", mutate: func(value *CatalogPayload) { *value = CatalogPayload{} }, wantErr: core.ErrPaymentContract},
 			{name: "nil entries", mutate: func(value *CatalogPayload) { value.Entries = nil }, wantErr: core.ErrPaymentContract},
@@ -425,9 +425,9 @@ func TestPaymentCatalogVerificationLayerTriad(t *testing.T) {
 			t.Fatalf("More() setup error = %v, want nil", gotErr)
 		}
 		cases := []struct {
+			wantErr error
 			mutate  func(*CatalogVerification)
 			name    string
-			wantErr error
 		}{
 			{name: "zero verification", mutate: func(value *CatalogVerification) { *value = CatalogVerification{} }, wantErr: core.ErrPaymentContract},
 			{name: "document absent", mutate: func(value *CatalogVerification) { value.Document = CatalogDocument{} }, wantErr: core.ErrPaymentContract},
@@ -497,8 +497,8 @@ func TestPaymentCatalogDocumentJSONLayerTriad(t *testing.T) {
 			{name: "trailing whitespace", data: append(append([]byte(nil), canonical...), ' ', '\n', '\t')},
 			{name: "both-side whitespace", data: append(append([]byte(" \n"), canonical...), '\n', ' ')},
 			{name: "top-level members reordered", data: marshalReorderedPaymentCatalog(t, fixture.document)},
-			{name: "one below document ceiling", data: paymentPadJSON(canonical, CatalogDocumentJSONMaximumBytes-1)},
-			{name: "at document ceiling", data: paymentPadJSON(canonical, CatalogDocumentJSONMaximumBytes)},
+			{name: "one below document ceiling", data: paymentPadJSON(canonical, core.JSONDocumentMaximumBytes-1)},
+			{name: "at document ceiling", data: paymentPadJSON(canonical, core.JSONDocumentMaximumBytes)},
 			{name: "one trailing carriage return", data: append(append([]byte(nil), canonical...), '\r')},
 			{name: "four leading whitespace forms", data: append([]byte("\t\r\n "), canonical...)},
 			{name: "four trailing whitespace forms", data: append(append([]byte(nil), canonical...), " \n\r\t"...)},
@@ -519,7 +519,7 @@ func TestPaymentCatalogDocumentJSONLayerTriad(t *testing.T) {
 	t.Run("negative malformed missing duplicate type-wrong and oversized documents reject", func(t *testing.T) {
 		t.Parallel()
 
-		cases := paymentDocumentHostileJSONCases(canonical, CatalogDocumentJSONMaximumBytes)
+		cases := paymentDocumentHostileJSONCases(canonical, core.JSONDocumentMaximumBytes)
 		for _, tc := range cases {
 			t.Run(tc.name, func(t *testing.T) {
 				t.Parallel()
@@ -629,8 +629,8 @@ func marshalReorderedPaymentCatalog(t *testing.T, document CatalogDocument) []by
 	t.Helper()
 
 	encoded, gotErr := core.MarshalCanonicalJSONDocument(struct {
-		Attestation attest.Envelope[SigningDomain] `json:"attestation"`
 		Payload     CatalogPayload                 `json:"payload"`
+		Attestation attest.Envelope[SigningDomain] `json:"attestation"`
 	}{Attestation: document.Attestation, Payload: document.Payload})
 	if gotErr != nil {
 		t.Fatalf("core.MarshalCanonicalJSONDocument(reordered catalog) error = %v, want nil", gotErr)
@@ -730,9 +730,9 @@ func TestPaymentQueryPlannerLayerTriad(t *testing.T) {
 		t.Parallel()
 
 		cases := []struct {
+			wantErr error
 			mutate  func(*QueryRequest)
 			name    string
-			wantErr error
 		}{
 			{name: "zero request", mutate: func(value *QueryRequest) { *value = QueryRequest{} }, wantErr: core.ErrPaymentContract},
 			{name: "tenant scope absent", mutate: func(value *QueryRequest) { value.Scope = receipt.Scope{} }, wantErr: core.ErrPaymentContract},

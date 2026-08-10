@@ -217,15 +217,17 @@ type AvailableRelease struct {
 // release. Its fields are sufficient to render and preflight the exact
 // candidate without granting installation authority.
 type AvailableSummary struct {
-	Installed        core.BuildIdentity
-	Candidate        core.BuildIdentity
-	Manifest         ManifestIdentity
-	ManifestDocument ManifestDocumentDigest
-	Artifact         ArtifactIdentity
-	Filename         BinaryFilename
-	Integrity        ArtifactIntegrity
-	ValidUntil       temporal.Instant
+	Installed        core.BuildIdentity     `json:"installed"`
+	Candidate        core.BuildIdentity     `json:"candidate"`
+	Manifest         ManifestIdentity       `json:"manifest"`
+	ManifestDocument ManifestDocumentDigest `json:"manifest_document"`
+	Artifact         ArtifactIdentity       `json:"artifact"`
+	Filename         BinaryFilename         `json:"filename"`
+	Integrity        ArtifactIntegrity      `json:"integrity"`
+	ValidUntil       temporal.Instant       `json:"valid_until"`
 }
+
+type availableSummaryWire AvailableSummary
 
 // Validate proves the summary's complete candidate-artifact closure.
 func (s AvailableSummary) Validate() error {
@@ -251,6 +253,33 @@ func (s AvailableSummary) Validate() error {
 		return conflictError(errors.New("available summary filename differs"), err)
 	}
 	return validateAvailableSummaryArtifact(s)
+}
+
+func (s AvailableSummary) MarshalJSON() ([]byte, error) {
+	if err := s.Validate(); err != nil {
+		return nil, jsonError(err)
+	}
+	encoded, err := core.MarshalCanonicalJSONDocument(availableSummaryWire(s))
+	if err != nil {
+		return nil, jsonError(err)
+	}
+	return encoded, nil
+}
+
+func (s *AvailableSummary) UnmarshalJSON(data []byte) error {
+	if s == nil {
+		return jsonError(errors.New("available summary receiver is nil"))
+	}
+	wire, err := decodeStructure[availableSummaryWire](data)
+	if err != nil {
+		return err
+	}
+	candidate := AvailableSummary(wire)
+	if err := candidate.Validate(); err != nil {
+		return jsonError(err)
+	}
+	*s = candidate
+	return nil
 }
 
 func validateAvailableSummaryArtifact(s AvailableSummary) error {
@@ -692,6 +721,31 @@ func (p PreparedRelease) Assessment() (LatestAssessment, error) {
 		return LatestAssessment{}, err
 	}
 	return p.assessment, nil
+}
+
+// Summary returns the same non-authoritative candidate projection exposed by
+// selection, derived from the authenticated handoff consumed by Upgrade.
+func (p PreparedRelease) Summary() (AvailableSummary, error) {
+	if err := p.Validate(); err != nil {
+		return AvailableSummary{}, err
+	}
+	installedArtifacts := p.installedManifest.Artifacts()
+	installedArtifact, ok := installedArtifacts.ForPlatform(p.artifact.Target())
+	if !ok {
+		return AvailableSummary{}, verificationError(errors.New("prepared release lacks installed platform"))
+	}
+	filename, err := p.artifact.Filename()
+	if err != nil {
+		return AvailableSummary{}, err
+	}
+	summary := AvailableSummary{
+		Installed: installedArtifact.Build(), Candidate: p.artifact.Build(),
+		Manifest:         p.candidateManifest.Identity(),
+		ManifestDocument: p.candidateManifest.DocumentDigest(),
+		Artifact:         p.artifact.Identity(), Filename: filename,
+		Integrity: p.artifact.Integrity(), ValidUntil: p.assessment.ValidUntil(),
+	}
+	return summary, summary.Validate()
 }
 
 // Preparation is a validated ready/refresh/reassess union.

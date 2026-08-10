@@ -32,6 +32,8 @@ var (
 
 	_ core.ValidatedJSONMarshaler = ArtifactIdentity{}
 	_ core.ValidatedJSONMarshaler = ArtifactIntegrity{}
+	_ core.ValidatedJSONMarshaler = AvailableSummary{}
+	_ core.ValidatedJSONMarshaler = BinaryFilename{}
 	_ core.ValidatedJSONMarshaler = Artifact{}
 	_ core.ValidatedJSONMarshaler = ArtifactSet{}
 	_ core.ValidatedJSONMarshaler = Revision(0)
@@ -40,6 +42,7 @@ var (
 	_ core.ValidatedJSONMarshaler = LatestFact{}
 	_ core.ValidatedJSONMarshaler = LatestDocument{}
 	_ core.ValidatedJSONMarshaler = ManifestIdentity{}
+	_ core.ValidatedJSONMarshaler = ManifestDocumentDigest{}
 	_ core.ValidatedJSONMarshaler = ManifestFact{}
 	_ core.ValidatedJSONMarshaler = ManifestDocument{}
 	_ core.ValidatedJSONMarshaler = MetadataKind(0)

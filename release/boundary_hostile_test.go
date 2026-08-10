@@ -565,6 +565,14 @@ func TestPreparedReleaseExposesOnlyValidatedExactHandoffFacts(t *testing.T) {
 		assessment.EffectiveAt() != observation {
 		t.Fatalf("PreparedRelease.Assessment() = (%v, %v), want current at observation", assessment, err)
 	}
+	wantSummary, err := available.Summary()
+	if err != nil {
+		t.Fatalf("AvailableRelease.Summary() error = %v, want nil", err)
+	}
+	gotSummary, err := prepared.Summary()
+	if err != nil || gotSummary != wantSummary {
+		t.Fatalf("PreparedRelease.Summary() = (%v, %v), want exact selection summary %v", gotSummary, err, wantSummary)
+	}
 
 	spliced := prepared
 	spliced.candidateManifest = installed.verified
@@ -623,6 +631,9 @@ func TestZeroValueCapabilitiesRefuseEveryAccessor(t *testing.T) {
 	}
 	if _, err := (PreparedRelease{}).Assessment(); !errors.Is(err, core.ErrReleaseVerification) {
 		t.Fatalf("PreparedRelease{}.Assessment() error = %v, want %v", err, core.ErrReleaseVerification)
+	}
+	if _, err := (PreparedRelease{}).Summary(); !errors.Is(err, core.ErrReleaseVerification) {
+		t.Fatalf("PreparedRelease{}.Summary() error = %v, want %v", err, core.ErrReleaseVerification)
 	}
 	if err := (Preparation{}).Validate(); !errors.Is(err, core.ErrReleaseContract) {
 		t.Fatalf("Preparation{}.Validate() error = %v, want %v", err, core.ErrReleaseContract)

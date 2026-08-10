@@ -21,7 +21,7 @@ const (
 
 // Selection is the exact all-or-one manifest object selection.
 type Selection struct {
-	Sequence chit.EntrySequence        `json:"sequence,omitempty"`
+	Sequence chit.EntrySequence        `json:"sequence"`
 	Kind     core.CatalogSelectionKind `json:"kind"`
 }
 

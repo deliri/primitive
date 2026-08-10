@@ -27,15 +27,15 @@ const (
 type downloadCallFixture struct {
 	private      ed25519.PrivateKey
 	payload      []byte
-	grant        VerifiedGrant
-	policy       objectstore.Policy
-	document     GrantDocument
-	request      RequestPayload
-	chit         chit.Verified
-	trusted      attest.TrustedKeys
 	capability   objectstore.DownloadCapabilityProjection
-	addition     chit.ManifestAddition
 	grantPayload GrantPayload
+	addition     chit.ManifestAddition
+	document     GrantDocument
+	grant        VerifiedGrant
+	trusted      attest.TrustedKeys
+	chit         chit.Verified
+	request      RequestPayload
+	policy       objectstore.Policy
 }
 
 func TestVerifiedGrantDownloadCallLayerTriad(t *testing.T) {

@@ -12,11 +12,11 @@ const (
 	// PrimitivePackagePathPrefix prefixes every Primitive package import path.
 	PrimitivePackagePathPrefix = PrimitiveModulePath + "/"
 	// PrimitivePackageCount is the number of packages in the complete catalog.
-	PrimitivePackageCount = 35
+	PrimitivePackageCount = 36
 	// PrimitiveDirectImportCount is the number of admitted direct import edges.
-	PrimitiveDirectImportCount = 115
+	PrimitiveDirectImportCount = 123
 	// PrimitiveDirectTestImportCount is the number of admitted test-only edges.
-	PrimitiveDirectTestImportCount = 14
+	PrimitiveDirectTestImportCount = 15
 	// PrimitiveMaximumDirectImports caps direct sibling imports per package.
 	PrimitiveMaximumDirectImports = 9
 )
@@ -98,6 +98,9 @@ const (
 	PackageRetrievalAuth
 	// PackagePayment identifies signed payment receipts and bounded catalogs.
 	PackagePayment
+	// PackageDistribution identifies signed software publication, update, and
+	// upgrade agreements shared by release authorities and installed tools.
+	PackageDistribution
 	packageIdentityLimit
 )
 
@@ -196,6 +199,7 @@ func PrimitiveArchitecture() ArchitectureCatalog {
 			{Identity: PackageRetrieval, Kind: PackageKindProduction},
 			{Identity: PackageRetrievalAuth, Kind: PackageKindProduction},
 			{Identity: PackagePayment, Kind: PackageKindProduction},
+			{Identity: PackageDistribution, Kind: PackageKindProduction},
 		},
 		imports: [PrimitiveDirectImportCount]DirectImportContract{
 			{Importer: PackageAttest, Imported: PackageCore},
@@ -323,6 +327,15 @@ func PrimitiveArchitecture() ArchitectureCatalog {
 			{Importer: PackagePayment, Imported: PackageID},
 			{Importer: PackagePayment, Imported: PackageReceipt},
 			{Importer: PackagePayment, Imported: PackageTemporal},
+
+			{Importer: PackageDistribution, Imported: PackageAttest},
+			{Importer: PackageDistribution, Imported: PackageControlWire},
+			{Importer: PackageDistribution, Imported: PackageCore},
+			{Importer: PackageDistribution, Imported: PackageDeploy},
+			{Importer: PackageDistribution, Imported: PackageObjectStore},
+			{Importer: PackageDistribution, Imported: PackageRelease},
+			{Importer: PackageDistribution, Imported: PackageTemporal},
+			{Importer: PackageDistribution, Imported: PackageUpgrade},
 		},
 		testImports: [PrimitiveDirectTestImportCount]DirectTestImportContract{
 			{Importer: PackageGate, Imported: PackageAttest},
@@ -339,6 +352,7 @@ func PrimitiveArchitecture() ArchitectureCatalog {
 			{Importer: PackageRetrievalAuth, Imported: PackageControlWire},
 			{Importer: PackageRetrieval, Imported: PackageExchange},
 			{Importer: PackageRetrieval, Imported: PackageReceipt},
+			{Importer: PackageDistribution, Imported: PackageExchange},
 		},
 	}
 }
@@ -607,6 +621,7 @@ func packagePurposeTexts() [packageIdentityLimit]string {
 		PackageRetrieval:        "Device-signed exact-object requests, authority-signed expiring download capabilities bound to authenticated chit manifests, and atomic exact-file retrieval execution",
 		PackageRetrievalAuth:    "Installation-certificate binding and device authentication for one evidence-retrieval request",
 		PackagePayment:          "Authority-signed exact payment receipts and bounded newest-first customer receipt catalogs",
+		PackageDistribution:     "Signed product-neutral release publication, update discovery, and exact upgrade-download agreements",
 	}
 }
 
@@ -680,6 +695,7 @@ func packageIdentityTexts() [packageIdentityLimit]string {
 		"retrieval",
 		"retrievalauth",
 		"payment",
+		"distribution",
 	}
 }
 

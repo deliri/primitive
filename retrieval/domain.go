@@ -9,6 +9,8 @@ import (
 	"github.com/deliri/primitive/v2026/core"
 )
 
+// #nosec G101 -- these are public signature-domain namespace labels emitted in
+// every request and grant, not credentials or bearer material.
 const (
 	SigningDomainRequestV1Token = "primitive-retrieval-request-2026-1"
 	SigningDomainGrantV1Token   = "primitive-retrieval-grant-2026-1"

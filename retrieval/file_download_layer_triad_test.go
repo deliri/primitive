@@ -149,9 +149,9 @@ func TestVerifiedGrantDownloadFileLayerTriadIngressRefusesBeforeFilesystemEffect
 	t.Parallel()
 
 	cases := []struct {
+		wantErr  error
 		name     string
 		mutation fileDownloadMutation
-		wantErr  error
 	}{
 		{name: "zero request", mutation: fileDownloadZeroRequest, wantErr: core.ErrRetrievalContract},
 		{name: "zero objectstore client", mutation: fileDownloadZeroClient, wantErr: core.ErrRetrievalContract},

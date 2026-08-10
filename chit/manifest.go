@@ -224,6 +224,11 @@ type ManifestAccumulator struct {
 	sealed     bool
 }
 
+const (
+	manifestAccumulatorUnsetDiagnostic  = "manifest accumulator is unset"
+	manifestAccumulatorSealedDiagnostic = "manifest accumulator is sealed"
+)
+
 func NewManifestAccumulator() *ManifestAccumulator {
 	digest := core.NewDigestWriter()
 	_, _ = digest.Write([]byte(manifestFrameDomain))
@@ -235,10 +240,10 @@ func NewManifestAccumulator() *ManifestAccumulator {
 // the entry's canonical wire bytes.
 func (a *ManifestAccumulator) Add(addition ManifestAddition) error {
 	if a == nil || a.digest == nil {
-		return contractError(errors.New("manifest accumulator is unset"))
+		return contractError(errors.New(manifestAccumulatorUnsetDiagnostic))
 	}
 	if a.sealed {
-		return contractError(errors.New("manifest accumulator is sealed"))
+		return contractError(errors.New(manifestAccumulatorSealedDiagnostic))
 	}
 	if err := addition.Validate(); err != nil {
 		return err
@@ -271,10 +276,10 @@ func (a *ManifestAccumulator) Add(addition ManifestAddition) error {
 // the accumulator represents one construction boundary, not a reusable cache.
 func (a *ManifestAccumulator) Seal() (ManifestSummary, error) {
 	if a == nil || a.digest == nil {
-		return ManifestSummary{}, contractError(errors.New("manifest accumulator is unset"))
+		return ManifestSummary{}, contractError(errors.New(manifestAccumulatorUnsetDiagnostic))
 	}
 	if a.sealed {
-		return ManifestSummary{}, contractError(errors.New("manifest accumulator is sealed"))
+		return ManifestSummary{}, contractError(errors.New(manifestAccumulatorSealedDiagnostic))
 	}
 	a.sealed = true
 	if a.objects == 0 {

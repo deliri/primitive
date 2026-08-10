@@ -78,8 +78,8 @@ func TestDownloadCapabilityProjectionLayerTriad(t *testing.T) {
 		invalidHeaders.Headers = SignedHeaders{values: []SignedHeader{{}}}
 		cases := []struct {
 			name     string
-			provider Provider
 			target   DownloadTarget
+			provider Provider
 		}{
 			{name: "zero provider", provider: ProviderUnknown, target: google},
 			{name: "future provider", provider: providerLimit, target: google},
@@ -278,11 +278,11 @@ func marshalReorderedDownloadCapability(t *testing.T, canonical []byte) []byte {
 		t.Fatalf("json.Unmarshal(download wire) error = %v, want nil", gotErr)
 	}
 	encoded, gotErr := core.MarshalCanonicalJSONDocument(struct {
-		Headers   []uploadCapabilityHeaderWire `json:"headers"`
 		ExpiresAt *temporal.NumericInstant     `json:"expires_at"`
 		URL       *string                      `json:"url"`
 		Method    *string                      `json:"method"`
 		Provider  *string                      `json:"provider"`
+		Headers   []uploadCapabilityHeaderWire `json:"headers"`
 	}{Headers: wire.Headers, ExpiresAt: wire.ExpiresAt, URL: wire.URL, Method: wire.Method, Provider: wire.Provider})
 	if gotErr != nil {
 		t.Fatalf("core.MarshalCanonicalJSONDocument(reordered download) error = %v, want nil", gotErr)

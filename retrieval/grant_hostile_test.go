@@ -173,9 +173,9 @@ func TestGrantIssuanceLayerTriad(t *testing.T) {
 		fixture := newDownloadCallFixture(t, []byte{0x01})
 		other := newDownloadCallFixture(t, []byte{0x02, 0x03})
 		cases := []struct {
+			wantErr error
 			mutate  func(*GrantIssuance)
 			name    string
-			wantErr error
 		}{
 			{name: "zero issuance", mutate: func(value *GrantIssuance) { *value = GrantIssuance{} }, wantErr: core.ErrRetrievalContract},
 			{name: "nil signer", mutate: func(value *GrantIssuance) { value.Signer = nil }, wantErr: core.ErrRetrievalContract},
@@ -272,9 +272,9 @@ func TestGrantVerificationLayerTriad(t *testing.T) {
 		}
 		otherAuthorization := grantAuthorityNonce(t, 0x73)
 		cases := []struct {
+			wantErr error
 			mutate  func(*GrantExpectation)
 			name    string
-			wantErr error
 		}{
 			{name: "zero expectation", mutate: func(value *GrantExpectation) { *value = GrantExpectation{} }, wantErr: core.ErrRetrievalContract},
 			{name: "different authority trust set", mutate: func(value *GrantExpectation) { value.TrustedKeys = otherTrusted }, wantErr: core.ErrRetrievalBinding},
@@ -342,9 +342,9 @@ func marshalReorderedGrantProjection(t *testing.T, projection GrantProjection) [
 	t.Helper()
 
 	encoded, gotErr := core.MarshalCanonicalJSONDocument(struct {
+		Capability  objectstore.DownloadCapabilityProjection `json:"capability"`
 		Payload     GrantPayload                             `json:"payload"`
 		Attestation attest.Envelope[SigningDomain]           `json:"attestation"`
-		Capability  objectstore.DownloadCapabilityProjection `json:"capability"`
 	}{Payload: projection.Payload, Attestation: projection.Attestation, Capability: projection.Capability})
 	if gotErr != nil {
 		t.Fatalf("core.MarshalCanonicalJSONDocument(reordered grant) error = %v, want nil", gotErr)

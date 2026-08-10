@@ -81,6 +81,33 @@ func (f BinaryFilename) String() string {
 	return string(f.value[:f.length])
 }
 
+func (f BinaryFilename) MarshalJSON() ([]byte, error) {
+	if err := f.Validate(); err != nil {
+		return nil, jsonError(err)
+	}
+	encoded, err := core.MarshalCanonicalJSONString(f.String())
+	if err != nil {
+		return nil, jsonError(err)
+	}
+	return encoded, nil
+}
+
+func (f *BinaryFilename) UnmarshalJSON(data []byte) error {
+	if f == nil {
+		return jsonError(errors.New("binary filename receiver is nil"))
+	}
+	value, err := core.DecodeJSONStringToken(data)
+	if err != nil {
+		return jsonError(err)
+	}
+	candidate, err := newBoundedFilename(value)
+	if err != nil {
+		return jsonError(err)
+	}
+	*f = candidate
+	return nil
+}
+
 func newArtifactIdentity(digest core.SHA256Digest) ArtifactIdentity {
 	return ArtifactIdentity{digest: digest}
 }

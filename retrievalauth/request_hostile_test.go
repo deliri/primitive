@@ -71,9 +71,9 @@ func TestRetrievalAuthAssemblyLayerTriad(t *testing.T) {
 			Offering: core.OfferingBug, AuthorityByte: 0x51, DeviceByte: 0x52, NonceByte: 0x53,
 		})
 		cases := []struct {
+			wantErr error
 			mutate  func(*RequestAssembly)
 			name    string
-			wantErr error
 		}{
 			{name: "zero assembly", mutate: func(value *RequestAssembly) { *value = RequestAssembly{} }, wantErr: core.ErrRetrievalContract},
 			{name: "request absent", mutate: func(value *RequestAssembly) { value.Request = retrieval.RequestDocument{} }, wantErr: core.ErrRetrievalContract},
@@ -148,9 +148,9 @@ func TestRetrievalAuthVerificationLayerTriad(t *testing.T) {
 		otherNonce := newRetrievalAuthFixture(t, retrievalAuthFixtureRequest{AuthorityByte: 0x71, DeviceByte: 0x72, NonceByte: 0x77})
 		otherDevice := newRetrievalAuthFixture(t, retrievalAuthFixtureRequest{AuthorityByte: 0x71, DeviceByte: 0x78, NonceByte: 0x73})
 		cases := []struct {
+			wantErr error
 			mutate  func(*Verification)
 			name    string
-			wantErr error
 		}{
 			{name: "zero verification", mutate: func(value *Verification) { *value = Verification{} }, wantErr: core.ErrRetrievalContract},
 			{name: "document absent", mutate: func(value *Verification) { value.Document = RequestDocument{} }, wantErr: core.ErrRetrievalContract},

@@ -17,22 +17,31 @@ const downloadProviderDiagnostic = "upgrade provider cannot download whole objec
 
 // DownloadSource is one already-issued Objectstore download capability.
 type DownloadSource struct {
-	Client   objectstore.Client
-	Target   objectstore.DownloadTarget
-	Policy   objectstore.Policy
-	Provider objectstore.Provider
+	Client     objectstore.Client
+	Observer   objectstore.ProgressObserver
+	Capability objectstore.DownloadCapability
+	Commitment objectstore.DownloadCapabilityCommitment
+	Policy     objectstore.Policy
 }
 
 func (s DownloadSource) Validate() error {
 	if err := s.Client.Validate(); err != nil {
 		return contractError(err)
 	}
-	if s.Provider != objectstore.ProviderAmazonS3 &&
-		s.Provider != objectstore.ProviderGoogleCloudStorage {
-		return contractError(errors.New(downloadProviderDiagnostic))
-	}
-	if err := s.Target.ValidateFor(s.Provider); err != nil {
+	if err := s.Capability.Validate(); err != nil {
 		return contractError(err)
+	}
+	if err := s.Commitment.Validate(); err != nil {
+		return contractError(err)
+	}
+	commitment, err := s.Capability.Commitment()
+	if err != nil || commitment != s.Commitment {
+		return contractError(errors.New("upgrade download capability differs from its authenticated commitment"), err)
+	}
+	provider, err := s.Capability.Provider()
+	if err != nil || provider != objectstore.ProviderAmazonS3 &&
+		provider != objectstore.ProviderGoogleCloudStorage {
+		return contractError(errors.New(downloadProviderDiagnostic))
 	}
 	if err := s.Policy.Validate(); err != nil {
 		return contractError(err)
@@ -364,10 +373,11 @@ func downloadCandidate(
 	if lengthErr != nil {
 		return result, closeCandidate(file, lengthErr)
 	}
-	download := objectstore.DownloadRequest{
+	download := objectstore.DownloadCapabilityRequest{
 		Destination: file,
+		Observer:    request.Source.Observer,
 		ContentType: core.HTTPMediaTypeOctetStream(),
-		Target:      request.Source.Target,
+		Capability:  request.Source.Capability,
 		Integrity: objectstore.Integrity{
 			SHA256: integrity.SHA256(),
 			Length: length,
@@ -375,31 +385,11 @@ func downloadCandidate(
 		},
 		Policy: request.Source.Policy,
 	}
-	transfer, downloadErr := executeDownload(
-		ctx, request.Source.Provider, request.Source.Client, download,
-	)
+	transfer, downloadErr := objectstore.Download(ctx, request.Source.Client, download)
 	if downloadErr == nil {
 		downloadErr = transfer.Validate()
 	}
 	return result, closeCandidate(file, downloadErr)
-}
-
-func executeDownload(
-	ctx context.Context,
-	provider objectstore.Provider,
-	client objectstore.Client,
-	request objectstore.DownloadRequest,
-) (objectstore.Transfer, error) {
-	switch provider {
-	case objectstore.ProviderAmazonS3:
-		return objectstore.DownloadS3(ctx, client, request)
-	case objectstore.ProviderGoogleCloudStorage:
-		return objectstore.DownloadGCS(ctx, client, request)
-	default:
-		return objectstore.Transfer{}, contractError(
-			errors.New(downloadProviderDiagnostic),
-		)
-	}
 }
 
 func closeCandidate(file *os.File, primary error) error {

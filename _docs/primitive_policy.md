@@ -168,7 +168,7 @@ layer is defined by a **question** rather than by whatever currently occupies it
 B2  core currency contextstate testserial
 B3  temporal keygen attest garble filestore filelock process exchange shutdown hostfacts id
 B4  objectstore gcsobjects cloudidentity timeproof fuzzfinder release deploy upgrade
-B5  controlwire lease receipt controlplane
+B5  controlwire lease receipt controlplane distribution
 B6  gate
 ```
 
@@ -1034,7 +1034,7 @@ starts.
 
 ## 15. Exact package graph
 
-The catalog contains **29 production packages** plus test-only `testserial` and
+The catalog contains **34 production packages** plus test-only `testserial` and
 `controlplanetest`.
 Every listed production import is required and MUST be used semantically. Every
 unlisted Primitive sibling import is forbidden.
@@ -1074,6 +1074,7 @@ The order is dependency depth, not a command to build every package in a row.
 | 7 | `controlplanetest` | Real authority-signed installation certificate fixtures for hostile control-plane tests | `core`, `controlplane`, `controlwire`, `lease`, `receipt`, `temporal` | none |
 | 6 | `deploy` | Exact create-only GCS publication of one authenticated release and its metadata | `core`, `objectstore`, `release` | `attest`, `exchange`, `temporal` |
 | 6 | `upgrade` | Crash-recoverable installation, activation, startup truth, rollback, and recovery | `core`, `filestore`, `hostfacts`, `objectstore`, `release`, `temporal` | none |
+| 7 | `distribution` | Signed product-neutral release publication, update discovery, and exact upgrade-download agreements | `attest`, `controlwire`, `core`, `deploy`, `objectstore`, `release`, `temporal`, `upgrade` | `exchange` |
 | 6 | `gcsobjects` | Authenticated Google Cloud Storage create-only served-media and stored-file writes, digest-bound bounded reads, and generation-matched permanent exact or prefix deletion through the official SDK | `core`, `contextstate`, `temporal`, `objectstore` | none |
 | 5 | `chit` | Authority-signed immutable custody tickets, streaming manifest closure, retention state, and bounded customer catalogs | `attest`, `core`, `id`, `receipt`, `temporal` | none |
 | 6 | `retrieval` | Device-signed exact-object requests, authority-signed expiring download capabilities bound to authenticated chit manifests, and atomic exact-file retrieval execution | `attest`, `chit`, `controlwire`, `core`, `filestore`, `objectstore`, `temporal` | `exchange`, `receipt` |

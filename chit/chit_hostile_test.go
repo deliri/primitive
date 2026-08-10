@@ -32,10 +32,10 @@ type chitFixture struct {
 }
 
 type chitEntryFixtureRequest struct {
+	Extent   *core.ByteLength
 	Name     string
 	Private  ed25519.PrivateKey
 	Trusted  attest.TrustedKeys
-	Extent   *core.ByteLength
 	Sequence uint64
 	Scope    receipt.Scope
 	Marker   byte
@@ -106,9 +106,9 @@ func TestManifestAccumulatorLayerTriad(t *testing.T) {
 		})
 		other := newChitFixture(t, 0x36, 1)
 		cases := []struct {
+			wantErr error
 			build   func() (*ManifestAccumulator, ManifestAddition)
 			name    string
-			wantErr error
 		}{
 			{name: "nil accumulator add", build: func() (*ManifestAccumulator, ManifestAddition) { return nil, fixture.addition }, wantErr: core.ErrChitContract},
 			{name: "zero accumulator add", build: func() (*ManifestAccumulator, ManifestAddition) { return &ManifestAccumulator{}, fixture.addition }, wantErr: core.ErrChitContract},
@@ -256,9 +256,9 @@ func TestChitVerificationLayerTriad(t *testing.T) {
 		fixture := newChitFixture(t, 0x43, 1)
 		other := newChitFixture(t, 0x53, 2)
 		cases := []struct {
+			wantErr error
 			mutate  func(*Verification)
 			name    string
-			wantErr error
 		}{
 			{name: "zero verification", mutate: func(value *Verification) { *value = Verification{} }, wantErr: core.ErrChitContract},
 			{name: "expected identity substituted", mutate: func(value *Verification) { value.Expected.Identity = other.identity }, wantErr: core.ErrChitConflict},

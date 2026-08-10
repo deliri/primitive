@@ -139,7 +139,7 @@ func TestPrepareReleaseRejectsEveryRoleSlotThatDoesNotMatchItsManifestEntry(t *t
 		{
 			name: "reversed publication order is rejected",
 			mutate: func(r *deploy.ReleasePlanRequest) {
-				for low, high := 0, deploy.ReleaseObjectCount-1; low < high; low, high = low+1, high-1 {
+				for low, high := 0, release.PublicationObjectCount-1; low < high; low, high = low+1, high-1 {
 					r.Items[low], r.Items[high] = r.Items[high], r.Items[low]
 				}
 			},
@@ -191,17 +191,17 @@ func TestPrepareReleaseRejectsEveryManifestIntegritySubstitution(t *testing.T) {
 
 	cases := []struct {
 		name      string
-		integrity objectstore.Integrity
+		integrity release.ArtifactIntegrity
 	}{
-		{name: "length substitution is rejected", integrity: objectstore.Integrity{
+		{name: "length substitution is rejected", integrity: fixtureReleaseIntegrityFromObjectstore(t, objectstore.Integrity{
 			Length: otherLength, SHA256: want.SHA256, CRC32C: want.CRC32C,
-		}},
-		{name: "sha256 substitution is rejected", integrity: objectstore.Integrity{
+		})},
+		{name: "sha256 substitution is rejected", integrity: fixtureReleaseIntegrityFromObjectstore(t, objectstore.Integrity{
 			Length: want.Length, SHA256: core.NewSHA256Digest(otherDigest), CRC32C: want.CRC32C,
-		}},
-		{name: "crc32c substitution is rejected", integrity: objectstore.Integrity{
+		})},
+		{name: "crc32c substitution is rejected", integrity: fixtureReleaseIntegrityFromObjectstore(t, objectstore.Integrity{
 			Length: want.Length, SHA256: want.SHA256, CRC32C: otherCRC,
-		}},
+		})},
 	}
 	for _, tc := range cases {
 		t.Run(tc.name, func(t *testing.T) {
@@ -212,7 +212,7 @@ func TestPrepareReleaseRejectsEveryManifestIntegritySubstitution(t *testing.T) {
 			item, itemErr := deploy.NewUploadItem(deploy.UploadItemRequest{
 				Source: bytes.NewReader(manifestBytes), Capability: capability,
 				Commitment: fixtureCommitment(t, capability), Integrity: tc.integrity,
-				Role: deploy.ObjectRoleManifest,
+				Role: release.PublicationRoleManifest,
 			})
 			if itemErr != nil {
 				t.Fatalf("deploy.NewUploadItem(mutated manifest) error = %v, want nil", itemErr)
@@ -242,35 +242,35 @@ func TestUploadItemRejectsEveryUnboundCapabilityOrSource(t *testing.T) {
 			name: "nil source is rejected",
 			request: deploy.UploadItemRequest{
 				Capability: capability, Commitment: fixtureCommitment(t, capability),
-				Integrity: fixtureIntegrity(t, fixturePayload(0)), Role: deploy.ObjectRoleWindowsAMD64,
+				Integrity: fixtureReleaseIntegrity(t, fixturePayload(0)), Role: release.PublicationRoleWindowsAMD64,
 			},
 		},
 		{
 			name: "unset capability is rejected",
 			request: deploy.UploadItemRequest{
 				Source: sourceForTest(0), Commitment: fixtureCommitment(t, capability),
-				Integrity: fixtureIntegrity(t, fixturePayload(0)), Role: deploy.ObjectRoleWindowsAMD64,
+				Integrity: fixtureReleaseIntegrity(t, fixturePayload(0)), Role: release.PublicationRoleWindowsAMD64,
 			},
 		},
 		{
 			name: "unset commitment is rejected",
 			request: deploy.UploadItemRequest{
 				Source: sourceForTest(0), Capability: capability,
-				Integrity: fixtureIntegrity(t, fixturePayload(0)), Role: deploy.ObjectRoleWindowsAMD64,
+				Integrity: fixtureReleaseIntegrity(t, fixturePayload(0)), Role: release.PublicationRoleWindowsAMD64,
 			},
 		},
 		{
 			name: "commitment from another capability is rejected",
 			request: deploy.UploadItemRequest{
 				Source: sourceForTest(0), Capability: capability, Commitment: fixtureCommitment(t, other),
-				Integrity: fixtureIntegrity(t, fixturePayload(0)), Role: deploy.ObjectRoleWindowsAMD64,
+				Integrity: fixtureReleaseIntegrity(t, fixturePayload(0)), Role: release.PublicationRoleWindowsAMD64,
 			},
 		},
 		{
 			name: "unset integrity is rejected",
 			request: deploy.UploadItemRequest{
 				Source: sourceForTest(0), Capability: capability,
-				Commitment: fixtureCommitment(t, capability), Role: deploy.ObjectRoleWindowsAMD64,
+				Commitment: fixtureCommitment(t, capability), Role: release.PublicationRoleWindowsAMD64,
 			},
 		},
 		{
@@ -278,7 +278,7 @@ func TestUploadItemRejectsEveryUnboundCapabilityOrSource(t *testing.T) {
 			request: deploy.UploadItemRequest{
 				Source: sourceForTest(0), Capability: capability,
 				Commitment: fixtureCommitment(t, capability),
-				Integrity:  fixtureIntegrity(t, fixturePayload(0)), Role: deploy.ObjectRoleUnknown,
+				Integrity:  fixtureReleaseIntegrity(t, fixturePayload(0)), Role: release.PublicationRoleUnknown,
 			},
 		},
 		{
@@ -286,8 +286,8 @@ func TestUploadItemRejectsEveryUnboundCapabilityOrSource(t *testing.T) {
 			request: deploy.UploadItemRequest{
 				Source: sourceForTest(0), Capability: capability,
 				Commitment: fixtureCommitment(t, capability),
-				Integrity:  fixtureIntegrity(t, fixturePayload(0)),
-				Role:       deploy.ObjectRoleReleaseNotes + 1,
+				Integrity:  fixtureReleaseIntegrity(t, fixturePayload(0)),
+				Role:       release.PublicationRoleReleaseNotes + 1,
 			},
 		},
 	}
@@ -317,7 +317,7 @@ func TestUploadErrorKeepsEveryTypedFailureFactReachable(t *testing.T) {
 	t.Parallel()
 
 	cause := errors.New("provider refused the create-only precondition")
-	failure := &deploy.UploadError{Role: deploy.ObjectRoleDocumentation, Cause: cause}
+	failure := &deploy.UploadError{Role: release.PublicationRoleDocumentation, Cause: cause}
 
 	if !errors.Is(failure, core.ErrDeployContract) {
 		t.Fatalf("errors.Is(deploy.UploadError, ErrDeployContract) = false, want true for %v", failure)
@@ -329,11 +329,11 @@ func TestUploadErrorKeepsEveryTypedFailureFactReachable(t *testing.T) {
 		t.Fatalf("errors.Is(deploy.UploadError, cause) = false, want true for %v", failure)
 	}
 	var found *deploy.UploadError
-	if !errors.As(error(failure), &found) || found.Role != deploy.ObjectRoleDocumentation {
-		t.Fatalf("errors.As(deploy.UploadError).Role = %v, want %v", found.Role, deploy.ObjectRoleDocumentation)
+	if !errors.As(error(failure), &found) || found.Role != release.PublicationRoleDocumentation {
+		t.Fatalf("errors.As(deploy.UploadError).Role = %v, want %v", found.Role, release.PublicationRoleDocumentation)
 	}
 
-	withoutCause := &deploy.UploadError{Role: deploy.ObjectRoleManifest}
+	withoutCause := &deploy.UploadError{Role: release.PublicationRoleManifest}
 	if !errors.Is(withoutCause, core.ErrDeployContract) {
 		t.Fatalf("errors.Is(causeless deploy.UploadError, ErrDeployContract) = false, want true")
 	}
@@ -355,35 +355,35 @@ func TestUploadErrorKeepsEveryTypedFailureFactReachable(t *testing.T) {
 func TestObjectRoleLabelsNameEveryPublishedObjectExactlyOnce(t *testing.T) {
 	t.Parallel()
 
-	want := [deploy.ReleaseObjectCount]string{
+	want := [release.PublicationObjectCount]string{
 		"windows_amd64", "darwin_arm64", "linux_amd64", "linux_arm64",
 		"manifest", "dependencies", "documentation", "release_notes",
 	}
 	seen := make(map[string]int, len(want))
 	for index, label := range want {
-		role := deploy.ObjectRole(index + 1)
+		role := release.PublicationRole(index + 1)
 		if got := role.String(); got != label {
-			t.Fatalf("deploy.ObjectRole(%d).String() = %q, want %q", index+1, got, label)
+			t.Fatalf("release.PublicationRole(%d).String() = %q, want %q", index+1, got, label)
 		}
 		seen[label]++
 	}
-	if len(seen) != deploy.ReleaseObjectCount {
-		t.Fatalf("deploy object role labels = %d distinct, want %d", len(seen), deploy.ReleaseObjectCount)
+	if len(seen) != release.PublicationObjectCount {
+		t.Fatalf("deploy object role labels = %d distinct, want %d", len(seen), release.PublicationObjectCount)
 	}
-	for _, role := range []deploy.ObjectRole{
-		deploy.ObjectRoleUnknown, deploy.ObjectRoleReleaseNotes + 1, 255,
+	for _, role := range []release.PublicationRole{
+		release.PublicationRoleUnknown, release.PublicationRoleReleaseNotes + 1, 255,
 	} {
 		if got := role.String(); got != core.UnknownEnumDiagnostic {
-			t.Fatalf("deploy.ObjectRole(%d).String() = %q, want %q", role, got, core.UnknownEnumDiagnostic)
+			t.Fatalf("release.PublicationRole(%d).String() = %q, want %q", role, got, core.UnknownEnumDiagnostic)
 		}
 	}
-	metadataRoles := [release.MetadataAssetCount]deploy.ObjectRole{
-		deploy.ObjectRoleDependencies, deploy.ObjectRoleDocumentation, deploy.ObjectRoleReleaseNotes,
+	metadataRoles := [release.MetadataAssetCount]release.PublicationRole{
+		release.PublicationRoleDependencies, release.PublicationRoleDocumentation, release.PublicationRoleReleaseNotes,
 	}
 	for index, role := range metadataRoles {
 		kind := release.MetadataKind(index + 1)
 		if got, want := role.String(), kind.String(); got != want {
-			t.Fatalf("deploy.ObjectRole(%v).String() = %q, want release.MetadataKind(%d).String() = %q",
+			t.Fatalf("release.PublicationRole(%v).String() = %q, want release.MetadataKind(%d).String() = %q",
 				role, got, index+1, want)
 		}
 	}

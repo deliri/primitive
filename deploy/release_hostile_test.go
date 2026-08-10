@@ -29,7 +29,7 @@ import (
 )
 
 type deployFixture struct {
-	payloads [deploy.ReleaseObjectCount][]byte
+	payloads [release.PublicationObjectCount][]byte
 	plan     deploy.ReleasePlan
 }
 
@@ -82,7 +82,7 @@ func deployLoopbackClient(t *testing.T, handler http.Handler) objectstore.Client
 }
 
 type recordingTransport struct {
-	contentTypes [deploy.ReleaseObjectCount]string
+	contentTypes [release.PublicationObjectCount]string
 	failAt       int
 	requests     int
 }
@@ -122,20 +122,20 @@ func TestReleaseGCSUploadsExactManifestOrderAndReturnsReceipts(t *testing.T) {
 		t.Fatalf("deploy.ReleaseGCS() error = %v", err)
 	}
 	served := provider.recorded()
-	if receipts.Count() != deploy.ReleaseObjectCount || len(served) != deploy.ReleaseObjectCount {
-		t.Fatalf("deployed counts = receipts %d requests %d, want %d", receipts.Count(), len(served), deploy.ReleaseObjectCount)
+	if receipts.Count() != release.PublicationObjectCount || len(served) != release.PublicationObjectCount {
+		t.Fatalf("deployed counts = receipts %d requests %d, want %d", receipts.Count(), len(served), release.PublicationObjectCount)
 	}
 	wantContentTypes := [...]string{
 		"application/octet-stream", "application/octet-stream", "application/octet-stream", "application/octet-stream",
 		"application/json", "application/json", "application/zip", "text/markdown; charset=utf-8",
 	}
-	for index := range deploy.ReleaseObjectCount {
+	for index := range release.PublicationObjectCount {
 		receipt, ok := receipts.At(index)
 		if !ok {
 			t.Fatalf("Receipts.At(%d) ok = false", index)
 		}
-		if receipt.Role() != deploy.ObjectRole(index+1) {
-			t.Fatalf("Receipts.At(%d).Role() = %v, want %v", index, receipt.Role(), deploy.ObjectRole(index+1))
+		if receipt.Role() != release.PublicationRole(index+1) {
+			t.Fatalf("Receipts.At(%d).Role() = %v, want %v", index, receipt.Role(), release.PublicationRole(index+1))
 		}
 		if receipt.Transfer().Commitment() != objectstore.CommitmentConfirmed {
 			t.Fatalf("Receipts.At(%d) commitment = %v, want confirmed", index, receipt.Transfer().Commitment())
@@ -162,7 +162,7 @@ func TestReleaseGCSStopsOnceAndPreservesConfirmedPrefix(t *testing.T) {
 	}
 	var uploadError *deploy.UploadError
 	if !errors.As(err, &uploadError) || !errors.Is(err, core.ErrDeployContract) ||
-		uploadError.Role != deploy.ObjectRoleLinuxARM64 ||
+		uploadError.Role != release.PublicationRoleLinuxARM64 ||
 		uploadError.Transfer.Commitment() != objectstore.CommitmentIndeterminate {
 		t.Fatalf("deploy.ReleaseGCS() error = %#v, want indeterminate Linux ARM64 UploadError", err)
 	}
@@ -181,7 +181,7 @@ func TestPrepareReleaseRejectsCrossObjectCapabilityAndIntegrityReuse(t *testing.
 	wrong, err := deploy.NewUploadItem(deploy.UploadItemRequest{
 		Source: bytes.NewReader([]byte("wrong")), Capability: fixtureCapability(t, 41),
 		Commitment: fixtureCommitment(t, fixtureCapability(t, 41)),
-		Integrity:  fixtureIntegrity(t, []byte("wrong")), Role: deploy.ObjectRoleWindowsAMD64,
+		Integrity:  fixtureReleaseIntegrity(t, []byte("wrong")), Role: release.PublicationRoleWindowsAMD64,
 	})
 	if err != nil {
 		t.Fatalf("deploy.NewUploadItem(wrong integrity setup) error = %v", err)
@@ -196,13 +196,13 @@ func TestObjectRoleExhaustsEveryUint8Value(t *testing.T) {
 	t.Parallel()
 
 	for raw := range 256 {
-		role := deploy.ObjectRole(raw)
-		wantValid := raw >= int(deploy.ObjectRoleWindowsAMD64) && raw <= int(deploy.ObjectRoleReleaseNotes)
+		role := release.PublicationRole(raw)
+		wantValid := raw >= int(release.PublicationRoleWindowsAMD64) && raw <= int(release.PublicationRoleReleaseNotes)
 		if got := role.IsValid(); got != wantValid {
-			t.Fatalf("deploy.ObjectRole(%d).IsValid() = %t, want %t", raw, got, wantValid)
+			t.Fatalf("release.PublicationRole(%d).IsValid() = %t, want %t", raw, got, wantValid)
 		}
-		if !wantValid && !errors.Is(role.Validate(), core.ErrDeployContract) {
-			t.Fatalf("deploy.ObjectRole(%d).Validate() error = %v, want %v", raw, role.Validate(), core.ErrDeployContract)
+		if !wantValid && !errors.Is(role.Validate(), core.ErrReleaseContract) {
+			t.Fatalf("release.PublicationRole(%d).Validate() error = %v, want %v", raw, role.Validate(), core.ErrReleaseContract)
 		}
 	}
 }
@@ -214,8 +214,8 @@ func newDeployFixture(t *testing.T) deployFixture {
 	if err != nil {
 		t.Fatalf("deploy.PrepareRelease() error = %v", err)
 	}
-	var payloads [deploy.ReleaseObjectCount][]byte
-	for index := range deploy.ReleaseObjectCount {
+	var payloads [release.PublicationObjectCount][]byte
+	for index := range release.PublicationObjectCount {
 		payloads[index] = fixturePayload(index)
 	}
 	payloads[release.TargetCount], err = json.Marshal(request.Manifest.Document())
@@ -232,8 +232,8 @@ func newDeployFixtureRequest(t *testing.T) deploy.ReleasePlanRequest {
 	if err != nil {
 		t.Fatalf("json.Marshal(ManifestDocument) error = %v", err)
 	}
-	var items [deploy.ReleaseObjectCount]deploy.UploadItem
-	for index := range deploy.ReleaseObjectCount {
+	var items [release.PublicationObjectCount]deploy.UploadItem
+	for index := range release.PublicationObjectCount {
 		payload := fixturePayload(index)
 		if index == release.TargetCount {
 			payload = manifestBytes
@@ -241,8 +241,8 @@ func newDeployFixtureRequest(t *testing.T) deploy.ReleasePlanRequest {
 		capability := fixtureCapability(t, index)
 		item, err := deploy.NewUploadItem(deploy.UploadItemRequest{
 			Source: bytes.NewReader(payload), Capability: capability,
-			Commitment: fixtureCommitment(t, capability), Integrity: fixtureIntegrity(t, payload),
-			Role: deploy.ObjectRole(index + 1),
+			Commitment: fixtureCommitment(t, capability), Integrity: fixtureReleaseIntegrity(t, payload),
+			Role: release.PublicationRole(index + 1),
 		})
 		if err != nil {
 			t.Fatalf("deploy.NewUploadItem(%d) error = %v", index, err)
@@ -411,6 +411,30 @@ func fixtureIntegrity(t *testing.T, payload []byte) objectstore.Integrity {
 		Length: length, SHA256: core.NewSHA256Digest(digest),
 		CRC32C: core.NewCRC32C(crc32.Checksum(payload, crc32.MakeTable(crc32.Castagnoli))),
 	}
+}
+
+func fixtureReleaseIntegrity(t *testing.T, payload []byte) release.ArtifactIntegrity {
+	t.Helper()
+	return fixtureReleaseIntegrityFromObjectstore(t, fixtureIntegrity(t, payload))
+}
+
+func fixtureReleaseIntegrityFromObjectstore(
+	t *testing.T,
+	integrity objectstore.Integrity,
+) release.ArtifactIntegrity {
+	t.Helper()
+	extent, err := core.NewByteCount(integrity.Length.Uint64())
+	if err != nil {
+		t.Fatalf("core.NewByteCount(release integrity) error = %v, want nil", err)
+	}
+	asset, err := release.NewMetadataAsset(release.MetadataAssetRequest{
+		Kind: release.MetadataKindDependencies, Extent: extent,
+		SHA256: integrity.SHA256, CRC32C: integrity.CRC32C,
+	})
+	if err != nil {
+		t.Fatalf("release.NewMetadataAsset(release integrity) error = %v, want nil", err)
+	}
+	return asset.Integrity()
 }
 
 func fixturePayload(index int) []byte {

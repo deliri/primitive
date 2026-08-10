@@ -95,7 +95,20 @@ func (p TransferEvidenceProjection) MarshalJSON() ([]byte, error) {
 	if err := p.Validate(); err != nil {
 		return nil, errors.Join(core.ErrJSONContract, err)
 	}
-	encoded, err := core.MarshalCanonicalJSONDocument(transferEvidenceWireFrom(p.evidence))
+	return marshalTransferEvidence(p.evidence)
+}
+
+// MarshalJSON re-emits authenticated receive-side evidence canonically so a
+// containing signed protocol can verify the exact body issued by Projection.
+func (e TransferEvidence) MarshalJSON() ([]byte, error) {
+	if err := e.Validate(); err != nil {
+		return nil, errors.Join(core.ErrJSONContract, err)
+	}
+	return marshalTransferEvidence(e)
+}
+
+func marshalTransferEvidence(evidence TransferEvidence) ([]byte, error) {
+	encoded, err := core.MarshalCanonicalJSONDocument(transferEvidenceWireFrom(evidence))
 	if err != nil || len(encoded) > TransferEvidenceJSONMaximumBytes {
 		return nil, errors.Join(core.ErrJSONContract, core.ErrObjectStoreContract, err)
 	}
@@ -142,10 +155,8 @@ func transferEvidenceWireFrom(evidence TransferEvidence) transferEvidenceWire {
 }
 
 func transferEvidenceFromWire(wire transferEvidenceWire) (TransferEvidence, error) {
-	if wire.Provider == nil || wire.Direction == nil || wire.Bytes == nil ||
-		wire.SHA256 == nil || wire.CRC32C == nil {
-		return TransferEvidence{}, errors.Join(core.ErrObjectStoreContract,
-			errors.New(transferEvidenceRequiredMemberErrorText))
+	if err := validateTransferEvidenceWire(wire); err != nil {
+		return TransferEvidence{}, err
 	}
 	provider, err := parseProviderToken(*wire.Provider)
 	if err != nil {
@@ -159,16 +170,33 @@ func transferEvidenceFromWire(wire transferEvidenceWire) (TransferEvidence, erro
 		provider: provider, direction: direction, bytes: *wire.Bytes,
 		sha256: *wire.SHA256, crc32c: *wire.CRC32C, set: true,
 	}
-	if wire.Version != nil {
-		evidence.version, err = newProviderVersion(provider, *wire.Version)
-		if err != nil {
-			return TransferEvidence{}, err
-		}
+	evidence.version, err = transferEvidenceVersion(provider, wire.Version)
+	if err != nil {
+		return TransferEvidence{}, err
 	}
 	if err := evidence.Validate(); err != nil {
 		return TransferEvidence{}, err
 	}
 	return evidence, nil
+}
+
+func validateTransferEvidenceWire(wire transferEvidenceWire) error {
+	if wire.Provider == nil || wire.Direction == nil || wire.Bytes == nil ||
+		wire.SHA256 == nil || wire.CRC32C == nil {
+		return errors.Join(core.ErrObjectStoreContract,
+			errors.New(transferEvidenceRequiredMemberErrorText))
+	}
+	return nil
+}
+
+func transferEvidenceVersion(
+	provider Provider,
+	encoded *string,
+) (ProviderVersion, error) {
+	if encoded == nil {
+		return ProviderVersion{}, nil
+	}
+	return newProviderVersion(provider, *encoded)
 }
 
 func parseDirectionToken(value string) (Direction, error) {
@@ -183,6 +211,7 @@ func parseDirectionToken(value string) (Direction, error) {
 var (
 	_ core.Validatable            = TransferEvidence{}
 	_ core.Validatable            = TransferEvidenceProjection{}
+	_ core.ValidatedJSONMarshaler = TransferEvidence{}
 	_ core.ValidatedJSONMarshaler = TransferEvidenceProjection{}
 	_ json.Unmarshaler            = (*TransferEvidence)(nil)
 )

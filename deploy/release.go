@@ -12,71 +12,27 @@ import (
 )
 
 const (
-	// ReleaseObjectCount is the exact immutable object count in one deployed
-	// release: four executables, one signed manifest, and three metadata assets.
-	ReleaseObjectCount         = 8
 	releaseManifestObjectIndex = 4
 	releaseMetadataObjectIndex = 5
 )
 
 var (
-	_ [ReleaseObjectCount - (release.TargetCount + 1 + release.MetadataAssetCount)]struct{}
-	_ [(release.TargetCount + 1 + release.MetadataAssetCount) - ReleaseObjectCount]struct{}
 	_ [releaseManifestObjectIndex - release.TargetCount]struct{}
 	_ [release.TargetCount - releaseManifestObjectIndex]struct{}
 	_ [releaseMetadataObjectIndex - (releaseManifestObjectIndex + 1)]struct{}
 	_ [(releaseManifestObjectIndex + 1) - releaseMetadataObjectIndex]struct{}
 )
 
-// ObjectRole is the closed ordered publication object domain.
-type ObjectRole uint8
-
-const (
-	ObjectRoleUnknown ObjectRole = iota
-	ObjectRoleWindowsAMD64
-	ObjectRoleDarwinARM64
-	ObjectRoleLinuxAMD64
-	ObjectRoleLinuxARM64
-	ObjectRoleManifest
-	ObjectRoleDependencies
-	ObjectRoleDocumentation
-	ObjectRoleReleaseNotes
-	objectRoleLimit
-)
-
-func objectRoleLabels() [objectRoleLimit]string {
-	return [...]string{
-		"", "windows_amd64", "darwin_arm64", "linux_amd64", "linux_arm64",
-		"manifest", release.MetadataKindDependencies.String(),
-		release.MetadataKindDocumentation.String(), release.MetadataKindReleaseNotes.String(),
-	}
-}
-
-func (r ObjectRole) Validate() error {
-	if r <= ObjectRoleUnknown || r >= objectRoleLimit || objectRoleLabels()[r] == "" {
-		return contractError(errors.New("deploy object role is outside the closed domain"))
-	}
-	return nil
-}
-
-func (r ObjectRole) IsValid() bool { return r.Validate() == nil }
-func (ObjectRole) OffWireEnum()    {}
-func (r ObjectRole) String() string {
-	if !r.IsValid() {
-		return core.UnknownEnumDiagnostic
-	}
-	return objectRoleLabels()[r]
-}
-
 // UploadItemRequest supplies one already-issued capability and exact source.
 // Commitment must be the separately authenticated commitment bound by the
 // caller's grant protocol.
 type UploadItemRequest struct {
 	Source     io.Reader
+	Observer   objectstore.ProgressObserver
 	Capability objectstore.UploadCapability
-	Integrity  objectstore.Integrity
+	Integrity  release.ArtifactIntegrity
 	Commitment objectstore.UploadCapabilityCommitment
-	Role       ObjectRole
+	Role       release.PublicationRole
 }
 
 func (r UploadItemRequest) Validate() error {
@@ -104,10 +60,11 @@ func (r UploadItemRequest) Validate() error {
 // UploadItem is a sealed source/capability pair. Its bearer remains opaque.
 type UploadItem struct {
 	source     io.Reader
+	observer   objectstore.ProgressObserver
 	capability objectstore.UploadCapability
-	integrity  objectstore.Integrity
+	integrity  release.ArtifactIntegrity
 	commitment objectstore.UploadCapabilityCommitment
-	role       ObjectRole
+	role       release.PublicationRole
 	valid      bool
 }
 
@@ -116,7 +73,7 @@ func NewUploadItem(request UploadItemRequest) (UploadItem, error) {
 		return UploadItem{}, err
 	}
 	return UploadItem{
-		source: request.Source, capability: request.Capability,
+		source: request.Source, observer: request.Observer, capability: request.Capability,
 		commitment: request.Commitment, integrity: request.Integrity,
 		role: request.Role, valid: true,
 	}, nil
@@ -127,14 +84,14 @@ func (i UploadItem) Validate() error {
 		return contractError(errors.New("deploy upload item is unset"))
 	}
 	return (UploadItemRequest{
-		Source: i.source, Capability: i.capability, Commitment: i.commitment,
+		Source: i.source, Observer: i.observer, Capability: i.capability, Commitment: i.commitment,
 		Integrity: i.integrity, Role: i.role,
 	}).Validate()
 }
 
 // ReleasePlanRequest binds all upload items to one authenticated manifest.
 type ReleasePlanRequest struct {
-	Items    [ReleaseObjectCount]UploadItem
+	Items    [release.PublicationObjectCount]UploadItem
 	Manifest release.VerifiedManifest
 	Policy   objectstore.Policy
 }
@@ -152,7 +109,7 @@ func (r ReleasePlanRequest) Validate() error {
 // ReleasePlan is an exact fixed-order GCS deployment prepared before any
 // source is read or external request begins.
 type ReleasePlan struct {
-	items    [ReleaseObjectCount]UploadItem
+	items    [release.PublicationObjectCount]UploadItem
 	manifest release.VerifiedManifest
 	policy   objectstore.Policy
 	valid    bool
@@ -179,7 +136,7 @@ func (p ReleasePlan) Validate() error {
 
 func validateReleaseItems(
 	manifest release.VerifiedManifest,
-	items [ReleaseObjectCount]UploadItem,
+	items [release.PublicationObjectCount]UploadItem,
 ) error {
 	if err := validateUniqueCapabilities(items); err != nil {
 		return err
@@ -190,7 +147,7 @@ func validateReleaseItems(
 		if !ok {
 			return contractError(errors.New("deploy manifest artifact slot is invalid"))
 		}
-		if err := validateReleaseItem(items[index], ObjectRole(index+1), artifact.Integrity()); err != nil {
+		if err := validateReleaseItem(items[index], release.PublicationRole(index+1), artifact.Integrity()); err != nil {
 			return err
 		}
 	}
@@ -203,7 +160,7 @@ func validateReleaseItems(
 		if !ok {
 			return contractError(errors.New("deploy metadata slot is invalid"))
 		}
-		role := ObjectRole(int(ObjectRoleDependencies) + index)
+		role := release.PublicationRole(int(release.PublicationRoleDependencies) + index)
 		if err := validateReleaseItem(items[index+releaseMetadataObjectIndex], role, asset.Integrity()); err != nil {
 			return err
 		}
@@ -211,7 +168,7 @@ func validateReleaseItems(
 	return nil
 }
 
-func validateUniqueCapabilities(items [ReleaseObjectCount]UploadItem) error {
+func validateUniqueCapabilities(items [release.PublicationObjectCount]UploadItem) error {
 	for index, item := range items {
 		for prior := range index {
 			if item.commitment == items[prior].commitment {
@@ -224,7 +181,7 @@ func validateUniqueCapabilities(items [ReleaseObjectCount]UploadItem) error {
 
 func validateReleaseItem(
 	item UploadItem,
-	role ObjectRole,
+	role release.PublicationRole,
 	integrity release.ArtifactIntegrity,
 ) error {
 	if err := item.Validate(); err != nil {
@@ -233,11 +190,7 @@ func validateReleaseItem(
 	if item.role != role {
 		return contractError(errors.New("deploy upload item occupies the wrong role slot"))
 	}
-	want, err := objectstoreIntegrity(integrity)
-	if err != nil {
-		return err
-	}
-	if item.integrity != want {
+	if item.integrity != integrity {
 		return contractError(errors.New("deploy upload integrity differs from the manifest"))
 	}
 	return nil
@@ -247,14 +200,10 @@ func validateManifestItem(item UploadItem, manifest release.VerifiedManifest) er
 	if err := item.Validate(); err != nil {
 		return err
 	}
-	if item.role != ObjectRoleManifest {
+	if item.role != release.PublicationRoleManifest {
 		return contractError(errors.New("deploy manifest occupies the wrong role slot"))
 	}
-	want, err := objectstoreIntegrity(manifest.DocumentIntegrity())
-	if err != nil {
-		return err
-	}
-	if item.integrity != want {
+	if item.integrity != manifest.DocumentIntegrity() {
 		return contractError(errors.New("deploy manifest bytes differ from the authenticated document"))
 	}
 	return nil
@@ -278,7 +227,7 @@ func objectstoreIntegrity(value release.ArtifactIntegrity) (objectstore.Integrit
 type Receipt struct {
 	transfer   objectstore.Transfer
 	commitment objectstore.UploadCapabilityCommitment
-	role       ObjectRole
+	role       release.PublicationRole
 	valid      bool
 }
 
@@ -298,13 +247,16 @@ func (r Receipt) Validate() error {
 	return nil
 }
 
-func (r Receipt) Role() ObjectRole               { return r.role }
+func (r Receipt) Role() release.PublicationRole  { return r.role }
 func (r Receipt) Transfer() objectstore.Transfer { return r.transfer }
+func (r Receipt) Commitment() objectstore.UploadCapabilityCommitment {
+	return r.commitment
+}
 
 // Receipts contains the confirmed prefix of the plan. A failed upload returns
 // prior confirmations here and the failed transfer in UploadError.
 type Receipts struct {
-	values [ReleaseObjectCount]Receipt
+	values [release.PublicationObjectCount]Receipt
 	count  uint8
 }
 
@@ -317,7 +269,7 @@ func (r Receipts) Validate() error {
 			if err := receipt.Validate(); err != nil {
 				return err
 			}
-			if receipt.role != ObjectRole(index+1) {
+			if receipt.role != release.PublicationRole(index+1) {
 				return contractError(errors.New("deploy receipt occupies the wrong role slot"))
 			}
 			continue
@@ -342,7 +294,7 @@ func (r Receipts) At(index int) (Receipt, bool) {
 type UploadError struct {
 	Cause    error
 	Transfer objectstore.Transfer
-	Role     ObjectRole
+	Role     release.PublicationRole
 }
 
 func (e *UploadError) Error() string {
@@ -369,41 +321,14 @@ func ReleaseGCS(
 	client objectstore.Client,
 	plan ReleasePlan,
 ) (Receipts, error) {
-	if ctx == nil {
-		return Receipts{}, contractError(core.ErrNilContext)
-	}
-	if err := ctx.Err(); err != nil {
-		return Receipts{}, contractError(err)
-	}
-	if err := client.Validate(); err != nil {
-		return Receipts{}, contractError(errors.New("deploy objectstore client is invalid"), err)
-	}
-	if err := plan.Validate(); err != nil {
+	if err := validateReleaseExecution(ctx, client, plan); err != nil {
 		return Receipts{}, err
 	}
 	var receipts Receipts
 	for index, item := range plan.items {
-		target, err := item.capability.Target()
-		if err != nil {
-			return receipts, contractError(err)
-		}
-		contentType, err := contentTypeForRole(item.role, plan.manifest)
+		receipt, err := plan.uploadItem(ctx, client, item)
 		if err != nil {
 			return receipts, err
-		}
-		transfer, uploadErr := objectstore.UploadGCS(ctx, client, objectstore.UploadRequest{
-			Source: item.source, ContentType: contentType, Target: target,
-			Integrity: item.integrity, Policy: plan.policy,
-		})
-		if uploadErr != nil {
-			return receipts, &UploadError{Transfer: transfer, Role: item.role, Cause: uploadErr}
-		}
-		receipt := Receipt{
-			transfer: transfer, commitment: item.commitment,
-			role: item.role, valid: true,
-		}
-		if err := receipt.Validate(); err != nil {
-			return receipts, &UploadError{Transfer: transfer, Role: item.role, Cause: err}
 		}
 		receipts.values[index] = receipt
 		receipts.count++
@@ -411,17 +336,68 @@ func ReleaseGCS(
 	return receipts, nil
 }
 
+func validateReleaseExecution(
+	ctx context.Context,
+	client objectstore.Client,
+	plan ReleasePlan,
+) error {
+	if ctx == nil {
+		return contractError(core.ErrNilContext)
+	}
+	if err := ctx.Err(); err != nil {
+		return contractError(err)
+	}
+	if err := client.Validate(); err != nil {
+		return contractError(errors.New("deploy objectstore client is invalid"), err)
+	}
+	return plan.Validate()
+}
+
+func (p ReleasePlan) uploadItem(
+	ctx context.Context,
+	client objectstore.Client,
+	item UploadItem,
+) (Receipt, error) {
+	integrity, err := objectstoreIntegrity(item.integrity)
+	if err != nil {
+		return Receipt{}, err
+	}
+	target, err := item.capability.Target()
+	if err != nil {
+		return Receipt{}, contractError(err)
+	}
+	contentType, err := contentTypeForRole(item.role, p.manifest)
+	if err != nil {
+		return Receipt{}, err
+	}
+	transfer, err := objectstore.UploadGCS(ctx, client, objectstore.UploadRequest{
+		Source: item.source, Observer: item.observer, ContentType: contentType, Target: target,
+		Integrity: integrity, Policy: p.policy,
+	})
+	if err != nil {
+		return Receipt{}, &UploadError{Transfer: transfer, Role: item.role, Cause: err}
+	}
+	receipt := Receipt{
+		transfer: transfer, commitment: item.commitment,
+		role: item.role, valid: true,
+	}
+	if err := receipt.Validate(); err != nil {
+		return Receipt{}, &UploadError{Transfer: transfer, Role: item.role, Cause: err}
+	}
+	return receipt, nil
+}
+
 func contentTypeForRole(
-	role ObjectRole,
+	role release.PublicationRole,
 	manifest release.VerifiedManifest,
 ) (core.HTTPMediaType, error) {
 	switch {
-	case role >= ObjectRoleWindowsAMD64 && role <= ObjectRoleLinuxARM64:
+	case role >= release.PublicationRoleWindowsAMD64 && role <= release.PublicationRoleLinuxARM64:
 		return core.HTTPMediaTypeOctetStream(), nil
-	case role == ObjectRoleManifest:
+	case role == release.PublicationRoleManifest:
 		return core.ParseHTTPMediaType("application/json")
-	case role >= ObjectRoleDependencies && role <= ObjectRoleReleaseNotes:
-		asset, ok := manifest.Metadata().At(int(role - ObjectRoleDependencies))
+	case role >= release.PublicationRoleDependencies && role <= release.PublicationRoleReleaseNotes:
+		asset, ok := manifest.Metadata().At(int(role - release.PublicationRoleDependencies))
 		if !ok {
 			return core.HTTPMediaType{}, contractError(errors.New("deploy metadata role is absent"))
 		}
@@ -437,5 +413,3 @@ func contractError(causes ...error) error {
 	values = append(values, causes...)
 	return errors.Join(values...)
 }
-
-var _ core.OffWireEnum = ObjectRoleUnknown

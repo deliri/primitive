@@ -220,6 +220,15 @@ const (
 	ErrReleaseConflict
 	// ErrDeployContract identifies a release-deployment contract violation.
 	ErrDeployContract
+	// ErrDistributionContract identifies an authenticated software-distribution
+	// agreement violation.
+	ErrDistributionContract
+	// ErrDistributionVerification identifies a distribution document or nested
+	// release authority that failed authentication.
+	ErrDistributionVerification
+	// ErrDistributionBinding identifies a valid distribution fact attached to
+	// the wrong request, capability, release, or lifetime.
+	ErrDistributionBinding
 
 	// ErrShutdownContract identifies a shutdown contract violation.
 	ErrShutdownContract
@@ -466,6 +475,9 @@ func errorIdentityDiagnostics() [errorIdentityLimit]errorIdentityDiagnostic {
 		{identity: ErrReleaseRollback, text: "release rollback rejected"},
 		{identity: ErrReleaseConflict, text: "release identity conflict"},
 		{identity: ErrDeployContract, text: "deploy contract violation"},
+		{identity: ErrDistributionContract, text: "distribution contract violation"},
+		{identity: ErrDistributionVerification, text: "distribution verification failed"},
+		{identity: ErrDistributionBinding, text: "distribution binding failed"},
 		{identity: ErrShutdownContract, text: "shutdown contract violation"},
 		{identity: ErrShutdownStepFailure, text: "shutdown step failed"},
 		{identity: ErrShutdownStepTimeout, text: "shutdown step timed out"},
@@ -638,6 +650,7 @@ func errorIdentityParents(identity ErrorIdentity) errorIdentityParentSet {
 		ErrFuzzFinderContract, ErrLeaseContract, ErrGateContract,
 		ErrProcessContract,
 		ErrReleaseContract, ErrDeployContract,
+		ErrDistributionContract,
 		ErrShutdownContract, ErrObjectStoreContract, ErrTimeProofContract,
 		ErrCloudIdentityContract, ErrUpgradeContract,
 		ErrLifecycleIdentityContract, ErrReceiptContract, ErrChitContract,
@@ -673,6 +686,8 @@ func errorIdentityParents(identity ErrorIdentity) errorIdentityParentSet {
 // helper with headroom, not in a function already at the line.
 func errorIdentityParentsFilestoreThroughUpgrade(identity ErrorIdentity) errorIdentityParentSet {
 	switch identity {
+	case ErrDistributionVerification, ErrDistributionBinding:
+		return oneErrorIdentityParent(ErrDistributionContract)
 	case ErrUpgradeDownload, ErrUpgradeCapacity, ErrUpgradeVerification, ErrUpgradeTrial,
 		ErrUpgradePromotion, ErrUpgradePersistence, ErrUpgradeCleanup,
 		ErrUpgradeConflict:

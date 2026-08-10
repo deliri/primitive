@@ -20,7 +20,6 @@ type (
 )
 
 type releaseContractInventory struct {
-	ProjectVersion                    protocolFact[ProjectVersion]
 	embeddedBuildIdentityText         internalFlow[embeddedBuildIdentityText]
 	MainPackage                       protocolFact[MainPackage]
 	LinkerAssignment                  protocolFact[LinkerAssignment]
@@ -194,8 +193,10 @@ func TestPublicOperationsAreExactReleaseIntent(t *testing.T) {
 		"ObserveBuildDependencies",
 		"ParseBuildTag",
 		"ParseMainPackage",
+		"ParseProjectVersion",
 		"PrepareBuildPlan",
 		"PrepareBuildProcess",
+		"PublicationRoleAt",
 		"Targets",
 		"VerifyBuildTools",
 		"VerifyLatest",

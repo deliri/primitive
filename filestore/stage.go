@@ -381,8 +381,9 @@ func validateCurrentStage(staged StagedFile) error {
 	if !info.Mode().IsRegular() || info.Mode().Perm() != staged.info.Mode().Perm() {
 		return activationError(errors.New("filestore staged file permissions or type changed"))
 	}
-	if info.Size() < 0 || uint64(info.Size()) != staged.bytes.Uint64() {
-		return sizeError(errors.New("filestore staged file extent changed"))
+	observedBytes, err := core.CheckedUint64FromInt64(info.Size())
+	if err != nil || observedBytes != staged.bytes.Uint64() {
+		return sizeError(errors.Join(errors.New("filestore staged file extent changed"), err))
 	}
 	return nil
 }

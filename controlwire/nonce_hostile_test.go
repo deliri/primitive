@@ -314,7 +314,7 @@ func TestGenerateAuthorityNonceProducesDistinctValidatedValues(t *testing.T) {
 
 	const draws = 64
 	seen := make(map[string]struct{}, draws)
-	for draw := 0; draw < draws; draw++ {
+	for draw := range draws {
 		nonce, err := controlwire.GenerateAuthorityNonce()
 		if err != nil || nonce.Validate() != nil {
 			t.Fatalf("GenerateAuthorityNonce() draw %d = (%v, %v), want valid and nil", draw, nonce, err)

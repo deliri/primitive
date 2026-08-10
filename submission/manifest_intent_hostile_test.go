@@ -92,11 +92,11 @@ func TestUploadIDCanonicalUUIDv7BoundaryTable(t *testing.T) {
 }
 
 type manifestIntentCase struct {
+	wantErr  error
 	mutate   func(*ManifestIntent)
 	name     string
 	objects  uint64
 	sequence uint64
-	wantErr  error
 }
 
 func TestManifestIntentSchemaLayerTriad(t *testing.T) {
@@ -181,8 +181,8 @@ func TestManifestIntentStructuralInvariantCarriesOnlyBlindOrganizationFacts(t *t
 	t.Parallel()
 
 	type fieldContract struct {
-		name   string
 		typeOf reflect.Type
+		name   string
 	}
 	want := []fieldContract{
 		{name: "Name", typeOf: reflect.TypeFor[chit.EntryName]()},

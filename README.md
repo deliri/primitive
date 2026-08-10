@@ -122,6 +122,15 @@ flowchart TD
     upgrade --> release
     upgrade --> temporal
 
+    distribution[distribution] --> attest
+    distribution --> controlwire
+    distribution --> core
+    distribution --> deploy
+    distribution --> objectstore
+    distribution --> release
+    distribution --> temporal
+    distribution --> upgrade
+
     gcsobjects[gcsobjects] --> core
     gcsobjects --> contextstate
     gcsobjects --> temporal

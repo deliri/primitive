@@ -118,8 +118,9 @@ func (d *StageDestination) validateCompleted(completed fs.FileInfo) error {
 	if completed.Mode().Perm() != d.request.Mode {
 		return activationError(errors.New("filestore stage destination permissions differ"))
 	}
-	if completed.Size() < 0 || uint64(completed.Size()) != d.request.ExpectedBytes.Uint64() {
-		return sizeError(errors.New("filestore stage destination extent differs"))
+	completedBytes, err := core.CheckedUint64FromInt64(completed.Size())
+	if err != nil || completedBytes != d.request.ExpectedBytes.Uint64() {
+		return sizeError(errors.Join(errors.New("filestore stage destination extent differs"), err))
 	}
 	return nil
 }
