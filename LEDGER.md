@@ -4,6 +4,41 @@ Last updated: `2026-08-09`
 
 ## Current
 
+- published object address, 2026-08-09, published `v2026.0.53` in one commit.
+  `gcsobjects` would publish an object and then decline to say where it had
+  put it: `UploadMedia` exists to write "an object a browser or CDN will
+  fetch", and `GCSObjectMetadata` returned bucket, name, generation, length,
+  CRC32C, content type, cache control and three instants without ever naming
+  the address. Consumers therefore rebuilt the provider URL from a copied host
+  and two slashes, which is the projection rule broken by omission: the owner
+  refused the address, so the address grew copies outside the owner. Two
+  distros were about to grow the same one. `ObjectAddress(bucket, name)` and
+  `GCSObjectMetadata.Address()` close it as pure value derivations that contact
+  nothing and prove nothing about existence, and both state the limit the
+  string cannot: an address is a name, not a grant, so a stored blob in a
+  private bucket has a correct address that answers 403. Composition stays in
+  `gcsobjects` because it owns the object; `core` gains only the two protocol
+  values the composition is built from, and gains them because each already had
+  two homes. `GoogleCloudStorageHost` was duplicated between `objectstore` host
+  validation and this new address, and `"https"` was duplicated between
+  `core.httpsSchemeText` and `objectstore.httpsScheme`; both are now single
+  authorities that `objectstore` consumes. The first attempt put a
+  `NewHTTPSEndpoint` composer in `core` and the export-ownership ratchet
+  refused it at one named consumer, which is the rule doing exactly its job and
+  is why the composition moved to its owner instead. Proof: a fourteen row
+  address table pinning the exact rendered URL across flat and nested names,
+  the shortest legal bucket, dotted and dashed buckets, and every character a
+  path may not carry literally, so a space, a query marker, a fragment marker,
+  a percent and non ascii each encode while the separator inside a nested name
+  stays hierarchy; a refusal table proving a zero bucket, a zero name and both
+  zero yield the object-store identity and the zero endpoint; zero metadata
+  refused; a distinctness proof that two dated names never share an address and
+  two objects in one bucket share an origin; and one mutation removing the name
+  gate, which went red on the rejection arriving from the wrong owner rather
+  than merely on an error being absent. Gates: `gofmt`, `go vet`, `staticcheck`,
+  `nilaway`, `witness-lint`, `deadcode`, `gocyclo`, `fieldalignment`, and the
+  full `core`, `objectstore` and `gcsobjects` suites.
+
 - runnable-path door and gate debt, 2026-08-09, published `v2026.0.48` in
   three commits. Process gains `ResolveExecutable(ctx, path)`, the
   path-shaped twin of `Resolve` for the consumer holding a configured

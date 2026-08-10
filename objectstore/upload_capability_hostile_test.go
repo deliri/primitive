@@ -15,18 +15,18 @@ const (
 	// The base URLs declare exactly the headers Objectstore sends itself. The
 	// metadata variants add caller-owned fields and are used only when the
 	// capability document carries those exact fields.
-	capabilityGCSObject = httpsScheme + "://storage.googleapis.com/bucket/object"
+	capabilityGCSObject = core.SchemeHTTPS + "://storage.googleapis.com/bucket/object"
 	capabilityGCSURL    = capabilityGCSObject + "?" + queryGCSSignature + "=signature&" +
 		queryGCSSignedHeaders + "=host%3Bx-goog-hash%3Bx-goog-if-generation-match"
 	capabilityGCSMetadataRunURL = capabilityGCSObject + "?" + queryGCSSignature + "=signature&" +
 		queryGCSSignedHeaders + "=host%3Bx-goog-hash%3Bx-goog-if-generation-match%3Bx-goog-meta-run"
 	capabilityGCSMetadataURL = capabilityGCSObject + "?" + queryGCSSignature + "=signature&" +
 		queryGCSSignedHeaders + "=host%3Bx-goog-hash%3Bx-goog-if-generation-match%3Bx-goog-meta-run%3Bx-goog-meta-shard"
-	capabilityS3URL = httpsScheme + "://s3.amazonaws.com/bucket/object" +
+	capabilityS3URL = core.SchemeHTTPS + "://s3.amazonaws.com/bucket/object" +
 		"?" + queryS3Signature + "=signature&" + queryS3SignedHeaders + "=host%3Bif-none-match%3Bx-amz-checksum-crc32c"
-	capabilityS3MetadataURL = httpsScheme + "://s3.amazonaws.com/bucket/object" +
+	capabilityS3MetadataURL = core.SchemeHTTPS + "://s3.amazonaws.com/bucket/object" +
 		"?" + queryS3Signature + "=signature&" + queryS3SignedHeaders + "=host%3Bif-none-match%3Bx-amz-checksum-crc32c%3Bx-amz-meta-run"
-	capabilityImagesURL = httpsScheme + "://" + cloudflareImagesUploadHost + "/image-id"
+	capabilityImagesURL = core.SchemeHTTPS + "://" + cloudflareImagesUploadHost + "/image-id"
 
 	// capabilitySecret is the value a rejection must never disclose. It is
 	// placed in the query where a real signature lives.
@@ -208,7 +208,7 @@ func TestUploadCapabilityAdmitsOnlyPublishedVendorShapes(t *testing.T) {
 		{
 			name: "a root-only url path is rejected",
 			document: `{"provider":"google_cloud_storage","method":"signed_put",` +
-				`"url":"` + httpsScheme + `://storage.googleapis.com/?` + queryGCSSignature +
+				`"url":"` + core.SchemeHTTPS + `://storage.googleapis.com/?` + queryGCSSignature +
 				`=s&` + queryGCSSignedHeaders + `=host",` +
 				`"expires_at":1893456000000000000}`,
 			wantErr: true,
@@ -242,7 +242,7 @@ func TestUploadCapabilityAdmitsOnlyPublishedVendorShapes(t *testing.T) {
 		{
 			name: "a cloudflare capability on a foreign host is rejected",
 			document: `{"provider":"cloudflare_images","method":"multipart_post",` +
-				`"url":"` + httpsScheme + `://upload.example.com/image-id","expires_at":1893456000000000000}`,
+				`"url":"` + core.SchemeHTTPS + `://upload.example.com/image-id","expires_at":1893456000000000000}`,
 			wantErr: true,
 		},
 		{

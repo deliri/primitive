@@ -11,7 +11,6 @@ const (
 	// httpEndpointMaximumBytes bounds one absolute HTTP target.
 	httpEndpointMaximumBytes = 16 * 1024
 	httpSchemeText           = "http"
-	httpsSchemeText          = "https"
 	httpDefaultPortText      = "80"
 	httpsDefaultPortText     = "443"
 )
@@ -23,6 +22,23 @@ type HTTPEndpoint struct {
 	value url.URL
 	set   bool
 }
+
+// GoogleCloudStorageHost is the canonical Google Cloud Storage data host.
+//
+// It lives here rather than in one provider package because two of them need
+// the same literal for different reasons: objectstore validates that a signed
+// capability it was handed points at Cloud Storage, and gcsobjects names the
+// address of an object it just published. Two copies of one protocol value is
+// the duplication section 4.1 forbids, and the copy that drifts is the one
+// nobody is looking at.
+const GoogleCloudStorageHost = "storage.googleapis.com"
+
+// SchemeHTTPS is the HTTPS URL scheme.
+//
+// Exported for the same reason as the host above: objectstore checks that an
+// issued capability is HTTPS, and gcsobjects composes an object address, so the
+// literal had two homes and would have grown a third.
+const SchemeHTTPS = "https"
 
 // ParseHTTPEndpoint parses and confines one absolute HTTP target.
 func ParseHTTPEndpoint(value string) (HTTPEndpoint, error) {
@@ -115,7 +131,7 @@ func validateHTTPURL(value *url.URL) error {
 
 func validateHTTPURLScheme(value *url.URL) error {
 	scheme := strings.ToLower(value.Scheme)
-	if scheme != httpSchemeText && scheme != httpsSchemeText {
+	if scheme != httpSchemeText && scheme != SchemeHTTPS {
 		return httpContractError("HTTP endpoint scheme is not HTTP or HTTPS")
 	}
 	if value.Scheme != scheme {

@@ -19,9 +19,7 @@ const (
 	SignedHeaderMaximumCount = 32
 	// SignedHeaderMaximumBytes bounds their aggregate HTTP wire extent.
 	SignedHeaderMaximumBytes    = 32 * 1024
-	httpsScheme                 = "https"
 	objectstoreOwnedHeaderCount = 15
-	googleCloudStorageHost      = "storage.googleapis.com"
 	googleCloudStorageMTLSHost  = "storage.mtls.googleapis.com"
 	amazonWebServicesDNSRoot    = "amazonaws.com"
 	amazonWebServicesChinaRoot  = "amazonaws.com.cn"
@@ -140,7 +138,7 @@ func ParseSignedURL(value string) (SignedURL, error) {
 		return SignedURL{}, errors.Join(core.ErrObjectStoreContract, err)
 	}
 	parsed := endpoint.HTTPURL()
-	if parsed.Scheme != httpsScheme || parsed.EscapedPath() == "" ||
+	if parsed.Scheme != core.SchemeHTTPS || parsed.EscapedPath() == "" ||
 		parsed.EscapedPath() == "/" {
 		return SignedURL{}, core.ErrObjectStoreContract
 	}
@@ -149,7 +147,7 @@ func ParseSignedURL(value string) (SignedURL, error) {
 
 // Validate rejects unset, non-HTTPS, or root-only capabilities.
 func (u SignedURL) Validate() error {
-	if !u.set || u.value.Scheme != httpsScheme ||
+	if !u.set || u.value.Scheme != core.SchemeHTTPS ||
 		u.value.Host == "" || u.value.EscapedPath() == "" ||
 		u.value.EscapedPath() == "/" {
 		return core.ErrObjectStoreContract
@@ -509,9 +507,9 @@ func providerEndpointHost(provider Provider, host string) bool {
 }
 
 func googleCloudStorageDataHost(host string) bool {
-	return host == googleCloudStorageHost ||
+	return host == core.GoogleCloudStorageHost ||
 		host == googleCloudStorageMTLSHost ||
-		strings.HasSuffix(host, "."+googleCloudStorageHost)
+		strings.HasSuffix(host, "."+core.GoogleCloudStorageHost)
 }
 
 func amazonS3DataHost(host string) bool {

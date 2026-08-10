@@ -509,7 +509,7 @@ type exchangeTarget struct {
 
 func (t exchangeTarget) Validate() error {
 	endpoint, err := core.ParseHTTPEndpoint(t.url.String())
-	if err != nil || endpoint.HTTPURL().Scheme != httpsScheme {
+	if err != nil || endpoint.HTTPURL().Scheme != core.SchemeHTTPS {
 		return core.ErrObjectStoreContract
 	}
 	return nil

@@ -14,9 +14,27 @@ It owns exactly:
 
 - authenticated SDK client construction from a closed typed configuration;
 - two create-only object writes, served-media and stored-file;
-- one digest-bound bounded read; and
+- one digest-bound bounded read;
+- the canonical public address of one object; and
 - generation-matched permanent deletion of one exact object or one confined
   prefix, each proved absent afterward.
+
+## The address is a name, not a grant
+
+`UploadMedia` writes an object a browser or CDN will fetch, so the package that
+publishes it owns the address it was published at. Without that, every consumer
+rebuilds the provider's URL from a copied host and two slashes, which is the
+projection rule broken by omission: the owner declines the address, so the
+address grows copies outside the owner.
+
+`ObjectAddress` derives it from a validated bucket and object name, and
+`GCSObjectMetadata.Address` derives it from an accepted result. Both are pure
+value derivations. Neither contacts the provider, neither proves the object
+exists, and neither confers access: whether a reader may fetch that address is
+the bucket's policy. A stored file in a private bucket therefore has a perfectly
+correct address that answers 403, which is the truth rather than a trap. A
+consumer serving through its own CDN composes its own origin and does not use
+this.
 
 ## Served versus stored
 
