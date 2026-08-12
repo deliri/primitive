@@ -108,8 +108,10 @@ func productionStructRole(name string) (string, bool) {
 		return "opaque validated capability value", true
 	case "UploadTarget", "DownloadTarget", "Integrity", "Policy", "TransferProgress":
 		return "public protocol fact", true
-	case "UploadRequest", "DownloadRequest", "UploadCapabilityRequest", "DownloadCapabilityRequest":
+	case "UploadRequest", "DownloadRequest", "UploadCapabilityRequest", "DownloadCapabilityRequest", "InspectionRequest":
 		return "public execution ingress", true
+	case "Inspection":
+		return "sealed stream integrity", true
 	case "Client":
 		return "capability wrapper", true
 	case "Transfer":
