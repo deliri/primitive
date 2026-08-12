@@ -14,6 +14,7 @@ import (
 )
 
 type updateExchangeFixture struct {
+	installed     release.VerifiedManifest
 	latest        release.VerifiedLatest
 	responseDoc   distribution.UpdateResponseDocument
 	callerKeys    attest.TrustedKeys
@@ -72,7 +73,7 @@ func newUpdateExchangeFixture(t testing.TB) updateExchangeFixture {
 	response, err := distribution.IssueUpdateResponse(distribution.UpdateResponseIssuance{
 		Signer: authorityKey,
 		Payload: distribution.UpdateResponsePayload{
-			Request: commitment, Latest: candidate.latest.Document(),
+			Request: commitment, Installed: installed.document, Latest: candidate.latest.Document(),
 			IssuedAt:  temporal.InstantFromNanoseconds(2_500),
 			ExpiresAt: temporal.InstantFromNanoseconds(3_500),
 		},
@@ -91,7 +92,7 @@ func newUpdateExchangeFixture(t testing.TB) updateExchangeFixture {
 	return updateExchangeFixture{
 		request: request, requestDoc: receivedRequest, responseDoc: receivedResponse,
 		callerKeys: trustedKeys(t, callerKey), authorityKeys: trustedKeys(t, authorityKey),
-		releaseKeys: trustedKeys(t, releaseKey), latest: candidate.latest,
+		releaseKeys: trustedKeys(t, releaseKey), installed: installed.manifest, latest: candidate.latest,
 	}
 }
 
@@ -113,6 +114,10 @@ func TestUpdateExchangeLayerTriadAuthenticatesLatestWithoutInstallingAnything(t 
 	if err != nil || latest.Document() != fixture.latest.Document() {
 		t.Fatalf("VerifiedUpdateResponse.Latest() = (%v, %v), want exact authenticated Latest", latest, err)
 	}
+	installed, err := verified.Installed()
+	if err != nil || installed.Document() != fixture.installed.Document() {
+		t.Fatalf("VerifiedUpdateResponse.Installed() = (%v, %v), want exact authenticated installed manifest", installed, err)
+	}
 	assessment, err := release.AssessLatest(release.AssessLatestRequest{
 		Latest: latest, Observation: temporal.InstantFromNanoseconds(3_000),
 	})
@@ -129,6 +134,30 @@ func TestUpdateExchangeLayerTriadAuthenticatesLatestWithoutInstallingAnything(t 
 
 	if gotErr := (distribution.VerifiedUpdateResponse{}).Validate(); !errors.Is(gotErr, core.ErrDistributionVerification) {
 		t.Fatalf("distribution.VerifiedUpdateResponse{}.Validate() error = %v, want %v", gotErr, core.ErrDistributionVerification)
+	}
+}
+
+func TestVerifyUpdateResponseRejectsAuthenticInstalledManifestForAnotherBuild(t *testing.T) {
+	t.Parallel()
+
+	fixture := newUpdateExchangeFixture(t)
+	payload := fixture.responseDoc.Payload
+	payload.Installed = fixture.latest.Manifest().Document()
+	document, err := distribution.IssueUpdateResponse(distribution.UpdateResponseIssuance{
+		Signer: signingKey(101), Payload: payload,
+	})
+	if err != nil {
+		t.Fatalf("distribution.IssueUpdateResponse(other installed build) error = %v, want nil", err)
+	}
+	verified, gotErr := distribution.VerifyUpdateResponse(distribution.UpdateResponseVerification{
+		Request: fixture.request, Document: document,
+		ResponseKeys: fixture.authorityKeys, LatestKeys: fixture.releaseKeys,
+		ManifestKeys: fixture.releaseKeys, ExpectedOffering: core.OfferingBug,
+		ObservedAt: temporal.InstantFromNanoseconds(3_000),
+	})
+	if !errors.Is(gotErr, core.ErrDistributionBinding) ||
+		verified != (distribution.VerifiedUpdateResponse{}) {
+		t.Fatalf("distribution.VerifyUpdateResponse(other installed build) = (%v, %v), want zero and %v", verified, gotErr, core.ErrDistributionBinding)
 	}
 }
 

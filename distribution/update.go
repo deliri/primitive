@@ -41,13 +41,14 @@ type VerifiedUpdateRequest struct {
 	proof    attest.Verified[SigningDomain]
 }
 
-// UpdateResponsePayload binds one signed Latest document to the exact request
-// and a short response lifetime.
+// UpdateResponsePayload binds the authenticated installed manifest and signed
+// Latest document to the exact request and a short response lifetime.
 type UpdateResponsePayload struct {
-	Latest    release.LatestDocument `json:"latest"`
-	IssuedAt  temporal.Instant       `json:"issued_at"`
-	ExpiresAt temporal.Instant       `json:"expires_at"`
-	Request   RequestCommitment      `json:"request_commitment"`
+	Installed release.ManifestDocument `json:"installed"`
+	Latest    release.LatestDocument   `json:"latest"`
+	IssuedAt  temporal.Instant         `json:"issued_at"`
+	ExpiresAt temporal.Instant         `json:"expires_at"`
+	Request   RequestCommitment        `json:"request_commitment"`
 }
 
 type UpdateResponseDocument struct {
@@ -72,13 +73,14 @@ type UpdateResponseVerification struct {
 	ExpectedOffering core.Offering
 }
 
-// VerifiedUpdateResponse contains the authenticated Latest proof consumed by
+// VerifiedUpdateResponse contains both authenticated proofs consumed by
 // Release assessment and selection.
 type VerifiedUpdateResponse struct {
-	latest   release.VerifiedLatest
-	document UpdateResponseDocument
-	proof    attest.Verified[SigningDomain]
-	request  UpdateRequestPayload
+	installed release.VerifiedManifest
+	latest    release.VerifiedLatest
+	document  UpdateResponseDocument
+	proof     attest.Verified[SigningDomain]
+	request   UpdateRequestPayload
 }
 
 type (
@@ -234,7 +236,7 @@ func (v VerifiedUpdateRequest) Payload() (UpdateRequestPayload, error) {
 func (p UpdateResponsePayload) Validate() error {
 	if err := errors.Join(
 		p.Request.validateDomain(SigningDomainUpdateRequestV1),
-		p.Latest.Validate(), validateLifetime(p.IssuedAt, p.ExpiresAt),
+		p.Installed.Validate(), p.Latest.Validate(), validateLifetime(p.IssuedAt, p.ExpiresAt),
 	); err != nil {
 		return contractError(err)
 	}
@@ -382,25 +384,60 @@ func VerifyUpdateResponse(verification UpdateResponseVerification) (VerifiedUpda
 	if latest.Manifest().Offering() != verification.Request.Build.Offering() {
 		return VerifiedUpdateResponse{}, bindingError(errors.New("update response offering differs from installed build"))
 	}
+	installed, err := release.VerifyManifest(release.VerifyManifestRequest{
+		Document:    verification.Document.Payload.Installed,
+		TrustedKeys: verification.ManifestKeys, ExpectedOffering: verification.ExpectedOffering,
+	})
+	if err != nil {
+		return VerifiedUpdateResponse{}, verificationError(err)
+	}
+	if err := bindInstalledManifest(installed, verification.Request.Build); err != nil {
+		return VerifiedUpdateResponse{}, err
+	}
 	verified := VerifiedUpdateResponse{
 		document: verification.Document, request: verification.Request,
-		latest: latest, proof: proof,
+		installed: installed, latest: latest, proof: proof,
 	}
 	return verified, verified.Validate()
 }
 
 func (v VerifiedUpdateResponse) Validate() error {
 	if err := errors.Join(
-		v.document.Validate(), v.request.Validate(), v.latest.Validate(), v.proof.Validate(),
+		v.document.Validate(), v.request.Validate(), v.installed.Validate(),
+		v.latest.Validate(), v.proof.Validate(),
 	); err != nil {
 		return verificationError(err)
 	}
 	request, err := CommitRequest(v.request)
 	if err != nil || request != v.document.Payload.Request ||
+		v.installed.Document() != v.document.Payload.Installed ||
 		v.latest.Document() != v.document.Payload.Latest {
 		return bindingError(errors.New("verified update response binding differs"), err)
 	}
+	if err := bindInstalledManifest(v.installed, v.request.Build); err != nil {
+		return err
+	}
 	return nil
+}
+
+func bindInstalledManifest(installed release.VerifiedManifest, build core.BuildIdentity) error {
+	if installed.Offering() != build.Offering() || installed.Version() != build.Version() {
+		return bindingError(errors.New("installed manifest differs from requested build"))
+	}
+	artifact, ok := installed.Artifacts().ForPlatform(build.Platform())
+	if !ok || artifact.Build() != build {
+		return bindingError(errors.New("installed manifest lacks requested build artifact"))
+	}
+	return nil
+}
+
+// Installed returns the authenticated manifest containing the exact build
+// named by the request. It supplies Release evaluation's installed proof.
+func (v VerifiedUpdateResponse) Installed() (release.VerifiedManifest, error) {
+	if err := v.Validate(); err != nil {
+		return release.VerifiedManifest{}, err
+	}
+	return v.installed, nil
 }
 
 func (v VerifiedUpdateResponse) Latest() (release.VerifiedLatest, error) {

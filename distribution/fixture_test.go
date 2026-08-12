@@ -22,6 +22,7 @@ import (
 
 type releaseFixture struct {
 	payloads  [release.PublicationObjectCount][]byte
+	document  release.ManifestDocument
 	manifest  release.VerifiedManifest
 	latest    release.VerifiedLatest
 	artifacts [release.TargetCount]release.Artifact
@@ -89,6 +90,7 @@ func newReleaseFixture(
 	if err != nil {
 		t.Fatalf("release.IssueManifest() error = %v, want nil", err)
 	}
+	fixture.document = document
 	fixture.payloads[release.TargetCount], err = json.Marshal(document)
 	if err != nil {
 		t.Fatalf("json.Marshal(release.ManifestDocument) error = %v, want nil", err)
