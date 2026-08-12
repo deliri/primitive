@@ -224,6 +224,15 @@ func (b InstallationCertificateBody) validateDeviceBinding() error {
 	return nil
 }
 
+// Scope derives the exact receipt namespace from the two signed certificate
+// facts that own it: account and build offering.
+func (b InstallationCertificateBody) Scope() (receipt.Scope, error) {
+	if err := b.Validate(); err != nil {
+		return receipt.Scope{}, err
+	}
+	return receipt.ScopeFor(b.Account, b.Build.Offering())
+}
+
 // AttestationDomain returns the certificate's exact signing namespace.
 func (InstallationCertificateBody) AttestationDomain() SigningDomain {
 	return SigningDomainInstallationCertificateV1

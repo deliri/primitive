@@ -163,7 +163,7 @@ func TestCredentialedPaymentQueryVerificationLayerTriadRefusesAccountDeviceAutho
 		{name: "signed request nonce changed after issue", document: tamperedNonce, trusted: base.trusted, want: core.ErrAttestVerification},
 		{name: "signed selection changed after issue", document: tamperedSelection, trusted: base.trusted, want: core.ErrAttestVerification},
 		{name: "signed page limit changed after issue", document: tamperedLimit, trusted: base.trusted, want: core.ErrAttestVerification},
-		{name: "signed offering identity changed after issue", document: tamperedOfferingIdentity, trusted: base.trusted, want: core.ErrAttestVerification},
+		{name: "signed offering identity changed after issue", document: tamperedOfferingIdentity, trusted: base.trusted, want: core.ErrControlPlaneResponseBinding},
 		{name: "request signer changed after issue", document: tamperedSigner, trusted: base.trusted, want: core.ErrAttestVerification},
 		{name: "signed body length changed after issue", document: tamperedLength, trusted: base.trusted, want: core.ErrAttestVerification},
 		{name: "signed body digest changed after issue", document: tamperedDigest, trusted: base.trusted, want: core.ErrAttestVerification},
@@ -189,6 +189,13 @@ func TestCredentialedPaymentQueryVerificationLayerTriadRefusesAccountDeviceAutho
 		Request: wrongAccountRequest, Certificate: base.document.Certificate,
 	}); !errors.Is(err, core.ErrControlPlaneResponseBinding) || document != (RequestDocument{}) {
 		t.Fatalf("Assemble(other account) = (%+v, %v), want zero and errors.Is %v",
+			document, err, core.ErrControlPlaneResponseBinding)
+	}
+	wrongOfferingRequest := paymentQueryDocumentWithOffering(t, base, paymentQueryOffering(t, 0x72))
+	if document, err := Assemble(RequestAssembly{
+		Request: wrongOfferingRequest, Certificate: base.document.Certificate,
+	}); !errors.Is(err, core.ErrControlPlaneResponseBinding) || document != (RequestDocument{}) {
+		t.Fatalf("Assemble(other offering identity) = (%+v, %v), want zero and errors.Is %v",
 			document, err, core.ErrControlPlaneResponseBinding)
 	}
 }
@@ -332,11 +339,12 @@ func newPaymentQueryFixture(t testing.TB, request paymentQueryFixtureRequest) pa
 	if err != nil {
 		t.Fatalf("controlplanetest.IssueInstallation() error = %v, want nil", err)
 	}
+	scope, err := installation.Certificate.Body.Scope()
+	if err != nil {
+		t.Fatalf("InstallationCertificateBody.Scope() error = %v, want nil", err)
+	}
 	query, err := payment.NewQuery(payment.QueryRequest{
-		Scope: receipt.Scope{
-			Account:  installation.Certificate.Body.Account,
-			Offering: paymentQueryOffering(t, byte(request.offering)+1),
-		},
+		Scope:     scope,
 		Selection: request.selection, Position: payment.Start(), PageSize: core.CatalogPageMaximumEntries,
 	})
 	if err != nil {
@@ -379,6 +387,22 @@ func paymentQueryDocumentWithAccount(
 	document, err := payment.IssueQuery(payment.QueryIssuance{Signer: fixture.device, Payload: payload})
 	if err != nil {
 		t.Fatalf("payment.IssueQuery(other account) error = %v, want nil", err)
+	}
+	return document
+}
+
+func paymentQueryDocumentWithOffering(
+	t testing.TB,
+	fixture paymentQueryFixture,
+	offering receipt.OfferingIdentity,
+) payment.QueryDocument {
+	t.Helper()
+
+	payload := fixture.payload
+	payload.Query.Scope.Offering = offering
+	document, err := payment.IssueQuery(payment.QueryIssuance{Signer: fixture.device, Payload: payload})
+	if err != nil {
+		t.Fatalf("payment.IssueQuery(other offering identity) error = %v, want nil", err)
 	}
 	return document
 }

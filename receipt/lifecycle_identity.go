@@ -1,6 +1,7 @@
 package receipt
 
 import (
+	"crypto/sha256"
 	"encoding/hex"
 	"encoding/json"
 	"errors"
@@ -13,7 +14,8 @@ const (
 	// submission, and object identities.
 	LifecycleIdentityBytes = 16
 	// LifecycleIdentityHexBytes is the canonical hexadecimal text width.
-	LifecycleIdentityHexBytes = LifecycleIdentityBytes * 2
+	LifecycleIdentityHexBytes   = LifecycleIdentityBytes * 2
+	offeringIdentityDomainToken = "primitive-receipt-offering-2026-1"
 )
 
 type lifecycleIdentity struct {
@@ -156,6 +158,34 @@ func NewOfferingIdentity(value [LifecycleIdentityBytes]byte) (OfferingIdentity, 
 		return OfferingIdentity{}, err
 	}
 	return OfferingIdentity{value: identity}, nil
+}
+
+// OfferingIdentityFor deterministically closes Primitive's product offering
+// into the receipt namespace. Both ends can therefore derive the same opaque
+// lifecycle identity from the signed build fact without another copied table
+// or server-assigned value.
+func OfferingIdentityFor(offering core.Offering) (OfferingIdentity, error) {
+	if err := offering.Validate(); err != nil {
+		return OfferingIdentity{}, contractError(core.ErrLifecycleIdentityContract, err)
+	}
+	digest := sha256.Sum256(append([]byte(offeringIdentityDomainToken), byte(offering)))
+	var value [LifecycleIdentityBytes]byte
+	copy(value[:], digest[:LifecycleIdentityBytes])
+	return NewOfferingIdentity(value)
+}
+
+// ScopeFor derives the exact receipt namespace for one signed account and
+// Primitive offering.
+func ScopeFor(account AccountIdentity, offering core.Offering) (Scope, error) {
+	if err := account.Validate(); err != nil {
+		return Scope{}, contractError(err)
+	}
+	identity, err := OfferingIdentityFor(offering)
+	if err != nil {
+		return Scope{}, err
+	}
+	scope := Scope{Account: account, Offering: identity}
+	return scope, scope.Validate()
 }
 
 // ParseOfferingIdentity accepts canonical lowercase hexadecimal.

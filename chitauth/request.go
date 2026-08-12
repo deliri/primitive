@@ -44,8 +44,11 @@ func (d RequestDocument) Validate() error {
 		return contractError(err)
 	}
 	query := d.Request.Payload.Query
-	if d.Request.Payload.Build != d.Certificate.Body.Build ||
-		query.Scope.Account != d.Certificate.Body.Account {
+	certificateScope, err := d.Certificate.Body.Scope()
+	if err != nil {
+		return bindingError(err)
+	}
+	if d.Request.Payload.Build != d.Certificate.Body.Build || query.Scope != certificateScope {
 		return bindingError()
 	}
 	return nil
