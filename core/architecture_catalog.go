@@ -16,7 +16,7 @@ const (
 	// PrimitiveDirectImportCount is the number of admitted direct import edges.
 	PrimitiveDirectImportCount = 139
 	// PrimitiveDirectTestImportCount is the number of admitted test-only edges.
-	PrimitiveDirectTestImportCount = 28
+	PrimitiveDirectTestImportCount = 30
 	// PrimitiveMaximumDirectImports caps direct sibling imports per package.
 	PrimitiveMaximumDirectImports = 9
 )
@@ -373,6 +373,8 @@ func PrimitiveArchitecture() ArchitectureCatalog {
 			{Importer: PackageDeploy, Imported: PackageAttest},
 			{Importer: PackageDeploy, Imported: PackageExchange},
 			{Importer: PackageDeploy, Imported: PackageTemporal},
+			{Importer: PackageGCSObjects, Imported: PackageExchange},
+			{Importer: PackageGCSObjects, Imported: PackageTestSerial},
 			{Importer: PackageSubmissionAuth, Imported: PackageControlPlaneTest},
 			{Importer: PackageSubmissionAuth, Imported: PackageControlWire},
 			{Importer: PackageSubmissionAuth, Imported: PackageChit},

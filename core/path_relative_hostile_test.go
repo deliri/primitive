@@ -30,18 +30,18 @@ func TestRelativeToRefusesEveryPathThatEscapesItsBase(t *testing.T) {
 		path    string
 		base    string
 		want    string
-		wantErr bool
+		wantErr error
 	}{
 		{name: "direct child", path: root + "a/b", base: root + "a", want: "b"},
 		{name: "nested descendant", path: root + "a/b/c/d", base: root + "a", want: "b/c/d"},
 		{name: "path equals its base", path: root + "a", base: root + "a", want: "."},
 		{name: "child of the filesystem root", path: root + "a", base: root, want: "a"},
-		{name: "sibling escapes", path: root + "a/b", base: root + "a/c", wantErr: true},
-		{name: "parent escapes", path: root + "a", base: root + "a/b", wantErr: true},
-		{name: "grandparent escapes", path: root + "a", base: root + "a/b/c", wantErr: true},
-		{name: "unrelated subtree escapes", path: root + "x/y", base: root + "a/b", wantErr: true},
-		{name: "base whose name prefixes the path is not an ancestor", path: root + "ab/c", base: root + "a", wantErr: true},
-		{name: "path whose name prefixes the base is not a descendant", path: root + "a", base: root + "ab", wantErr: true},
+		{name: "sibling escapes", path: root + "a/b", base: root + "a/c", wantErr: core.ErrPrimitiveContract},
+		{name: "parent escapes", path: root + "a", base: root + "a/b", wantErr: core.ErrPrimitiveContract},
+		{name: "grandparent escapes", path: root + "a", base: root + "a/b/c", wantErr: core.ErrPrimitiveContract},
+		{name: "unrelated subtree escapes", path: root + "x/y", base: root + "a/b", wantErr: core.ErrPrimitiveContract},
+		{name: "base whose name prefixes the path is not an ancestor", path: root + "ab/c", base: root + "a", wantErr: core.ErrPrimitiveContract},
+		{name: "path whose name prefixes the base is not a descendant", path: root + "a", base: root + "ab", wantErr: core.ErrPrimitiveContract},
 	}
 
 	for _, tc := range cases {
@@ -49,9 +49,9 @@ func TestRelativeToRefusesEveryPathThatEscapesItsBase(t *testing.T) {
 			t.Parallel()
 
 			got, err := absolutePathForTest(t, tc.path).RelativeTo(absolutePathForTest(t, tc.base))
-			if tc.wantErr {
-				if err == nil {
-					t.Fatalf("RelativeTo(%q, %q) = %q, want a refusal", tc.path, tc.base, got.String())
+			if tc.wantErr != nil {
+				if !errors.Is(err, tc.wantErr) {
+					t.Fatalf("RelativeTo(%q, %q) error = %v, want %v", tc.path, tc.base, err, tc.wantErr)
 				}
 				if got != (core.RelativePath{}) {
 					t.Fatalf("RelativeTo() = %q alongside a refusal, want the zero path", got.String())

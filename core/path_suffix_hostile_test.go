@@ -1,6 +1,7 @@
 package core_test
 
 import (
+	"errors"
 	"path/filepath"
 	"strings"
 	"testing"
@@ -22,17 +23,17 @@ func TestWithSuffixOnlyEverNamesASibling(t *testing.T) {
 		name    string
 		suffix  string
 		want    string
-		wantErr bool
+		wantErr error
 	}{
 		{name: "plain suffix", suffix: ".lease", want: "slot.lease"},
 		{name: "infix style suffix", suffix: "-quarantine-01", want: "slot-quarantine-01"},
 		{name: "single character", suffix: "x", want: "slotx"},
 		{name: "empty suffix names the path itself", suffix: "", want: "slot"},
-		{name: "separator escapes into another directory", suffix: string(filepath.Separator) + "child", wantErr: true},
-		{name: "leading separator escapes", suffix: string(filepath.Separator), wantErr: true},
-		{name: "parent reference escapes", suffix: string(filepath.Separator) + "..", wantErr: true},
-		{name: "embedded NUL is refused", suffix: "\x00", wantErr: true},
-		{name: "oversized component is refused", suffix: strings.Repeat("a", 512), wantErr: true},
+		{name: "separator escapes into another directory", suffix: string(filepath.Separator) + "child", wantErr: core.ErrPrimitiveContract},
+		{name: "leading separator escapes", suffix: string(filepath.Separator), wantErr: core.ErrPrimitiveContract},
+		{name: "parent reference escapes", suffix: string(filepath.Separator) + "..", wantErr: core.ErrPrimitiveContract},
+		{name: "embedded NUL is refused", suffix: "\x00", wantErr: core.ErrPrimitiveContract},
+		{name: "oversized component is refused", suffix: strings.Repeat("a", 512), wantErr: core.ErrPrimitiveContract},
 	}
 
 	for _, tc := range cases {
@@ -40,9 +41,12 @@ func TestWithSuffixOnlyEverNamesASibling(t *testing.T) {
 			t.Parallel()
 
 			got, err := base.WithSuffix(tc.suffix)
-			if tc.wantErr {
-				if err == nil {
-					t.Fatalf("WithSuffix(%q) = %q, want a refusal", tc.suffix, got.String())
+			if tc.wantErr != nil {
+				if !errors.Is(err, tc.wantErr) {
+					t.Fatalf("WithSuffix(%q) error = %v, want %v", tc.suffix, err, tc.wantErr)
+				}
+				if got != (core.AbsolutePath{}) {
+					t.Fatalf("WithSuffix(%q) = %q, want zero path on refusal", tc.suffix, got.String())
 				}
 				return
 			}

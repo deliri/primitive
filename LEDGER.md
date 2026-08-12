@@ -4,6 +4,25 @@ Last updated: `2026-08-12`
 
 ## Current
 
+- completed the repository typed-error table ratchet and repaired the failures
+  it exposed, 2026-08-12, published `v2026.0.74`. Core numeric, path, JSON,
+  catalog, and canonical-hex tables; Hostfacts cgroup and storage tables; and
+  Release metadata, artifact, closure, dependency, and toolchain tables now
+  carry typed error expectations. Metadata syntax failures use `errors.As` for
+  `*json.SyntaxError`; owned failures use `errors.Is`. Refused value-producing
+  paths prove exact zero, sealed receiver, or transactional preservation.
+
+  The stronger Hostfacts proof exposed and fixed partial rejected cgroup
+  membership values and a mount-point error that escaped under Core's identity.
+  The full Core run also exposed two stale architecture facts: GCSObjects'
+  `exchange` and `testserial` test edges are now compiler- and policy-declared,
+  and duplicate Timeproof JSON witnesses were removed in favor of its single
+  witness inventory.
+
+  Proof: Core, Hostfacts, and Release pass twice under the race detector with
+  shuffled order, and deadcode, staticcheck, and witness-lint report zero
+  findings. The repository boolean-error-table count falls from 24 to zero.
+
 - published the third typed-error table migration batch, 2026-08-12,
   published `v2026.0.73`. Cloudidentity audience, Google bearer output, timeout
   policy, signed Amazon request, and namespaced Amazon response tables now name

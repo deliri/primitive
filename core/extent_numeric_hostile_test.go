@@ -216,7 +216,7 @@ func TestCheckedNumericConversionsPinBothSidesOfEveryBoundary(t *testing.T) {
 		name    string
 		value   uint64
 		want    int64
-		wantErr bool
+		wantErr error
 	}{
 		{name: "zero converts", value: 0},
 		{name: "one converts", value: 1, want: 1},
@@ -224,9 +224,9 @@ func TestCheckedNumericConversionsPinBothSidesOfEveryBoundary(t *testing.T) {
 		{name: "uint32 upper edge converts", value: math.MaxUint32, want: math.MaxUint32},
 		{name: "one below int64 upper edge converts", value: math.MaxInt64 - 1, want: math.MaxInt64 - 1},
 		{name: "int64 upper edge converts", value: math.MaxInt64, want: math.MaxInt64},
-		{name: "one above int64 upper edge overflows", value: uint64(math.MaxInt64) + 1, wantErr: true},
-		{name: "two above int64 upper edge overflows", value: uint64(math.MaxInt64) + 2, wantErr: true},
-		{name: "uint64 upper edge overflows", value: math.MaxUint64, wantErr: true},
+		{name: "one above int64 upper edge overflows", value: uint64(math.MaxInt64) + 1, wantErr: ErrNumericOverflow},
+		{name: "two above int64 upper edge overflows", value: uint64(math.MaxInt64) + 2, wantErr: ErrNumericOverflow},
+		{name: "uint64 upper edge overflows", value: math.MaxUint64, wantErr: ErrNumericOverflow},
 	}
 	for _, tc := range int64Cases {
 		t.Run("CheckedInt64FromUint64 "+tc.name, func(t *testing.T) {
@@ -234,8 +234,8 @@ func TestCheckedNumericConversionsPinBothSidesOfEveryBoundary(t *testing.T) {
 
 			got, gotErr := CheckedInt64FromUint64(tc.value)
 			length, lengthErr := NewByteLength(tc.value)
-			if tc.wantErr {
-				if !errors.Is(gotErr, ErrNumericOverflow) || got != 0 {
+			if tc.wantErr != nil {
+				if !errors.Is(gotErr, tc.wantErr) || got != 0 {
 					t.Fatalf(
 						"CheckedInt64FromUint64(%d) = (%d, %v), want (0, %v)",
 						tc.value,
@@ -284,11 +284,11 @@ func TestCheckedNumericConversionsPinBothSidesOfEveryBoundary(t *testing.T) {
 		name    string
 		value   int64
 		want    uint64
-		wantErr bool
+		wantErr error
 	}{
-		{name: "minimum int64 overflows", value: math.MinInt64, wantErr: true},
-		{name: "negative two overflows", value: -2, wantErr: true},
-		{name: "negative one overflows", value: -1, wantErr: true},
+		{name: "minimum int64 overflows", value: math.MinInt64, wantErr: ErrNumericOverflow},
+		{name: "negative two overflows", value: -2, wantErr: ErrNumericOverflow},
+		{name: "negative one overflows", value: -1, wantErr: ErrNumericOverflow},
 		{name: "zero converts", value: 0},
 		{name: "one converts", value: 1, want: 1},
 		{name: "int32 upper edge converts", value: math.MaxInt32, want: math.MaxInt32},
@@ -301,8 +301,8 @@ func TestCheckedNumericConversionsPinBothSidesOfEveryBoundary(t *testing.T) {
 			t.Parallel()
 
 			got, gotErr := CheckedUint64FromInt64(tc.value)
-			if tc.wantErr {
-				if !errors.Is(gotErr, ErrNumericOverflow) || got != 0 {
+			if tc.wantErr != nil {
+				if !errors.Is(gotErr, tc.wantErr) || got != 0 {
 					t.Fatalf(
 						"CheckedUint64FromInt64(%d) = (%d, %v), want (0, %v)",
 						tc.value,
@@ -329,11 +329,11 @@ func TestCheckedNumericConversionsPinBothSidesOfEveryBoundary(t *testing.T) {
 		name    string
 		value   int
 		want    uint32
-		wantErr bool
+		wantErr error
 	}
 	uint32Cases := []checkedUint32Case{
-		{name: "negative one overflows", value: -1, wantErr: true},
-		{name: "minimum int overflows", value: math.MinInt, wantErr: true},
+		{name: "negative one overflows", value: -1, wantErr: ErrNumericOverflow},
+		{name: "minimum int overflows", value: math.MinInt, wantErr: ErrNumericOverflow},
 		{name: "zero converts", value: 0},
 		{name: "one converts", value: 1, want: 1},
 	}
@@ -350,8 +350,8 @@ func TestCheckedNumericConversionsPinBothSidesOfEveryBoundary(t *testing.T) {
 			uint32Cases,
 			checkedUint32Case{name: "one below uint32 upper edge converts", value: int(uint32Upper - 1), want: math.MaxUint32 - 1},
 			checkedUint32Case{name: "uint32 upper edge converts", value: int(uint32Upper), want: math.MaxUint32},
-			checkedUint32Case{name: "one above uint32 upper edge overflows", value: int(uint32Upper + 1), wantErr: true},
-			checkedUint32Case{name: "maximum int overflows", value: math.MaxInt, wantErr: true},
+			checkedUint32Case{name: "one above uint32 upper edge overflows", value: int(uint32Upper + 1), wantErr: ErrNumericOverflow},
+			checkedUint32Case{name: "maximum int overflows", value: math.MaxInt, wantErr: ErrNumericOverflow},
 		)
 	}
 	for _, tc := range uint32Cases {
@@ -359,8 +359,8 @@ func TestCheckedNumericConversionsPinBothSidesOfEveryBoundary(t *testing.T) {
 			t.Parallel()
 
 			got, gotErr := CheckedUint32FromInt(tc.value)
-			if tc.wantErr {
-				if !errors.Is(gotErr, ErrNumericOverflow) || got != 0 {
+			if tc.wantErr != nil {
+				if !errors.Is(gotErr, tc.wantErr) || got != 0 {
 					t.Fatalf(
 						"CheckedUint32FromInt(%d) = (%d, %v), want (0, %v)",
 						tc.value,

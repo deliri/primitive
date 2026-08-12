@@ -513,7 +513,7 @@ func TestDecodeJSONStringTokenHostileBoundaryTable(t *testing.T) {
 		name    string
 		want    string
 		wire    []byte
-		wantErr bool
+		wantErr error
 	}{
 		{name: "empty string token is admitted", wire: []byte(`""`)},
 		{name: "plain ASCII token is admitted", wire: []byte(`"plain"`), want: "plain"},
@@ -522,27 +522,27 @@ func TestDecodeJSONStringTokenHostileBoundaryTable(t *testing.T) {
 		{name: "escaped backslash is decoded exactly", wire: []byte(`"a\\b"`), want: `a\b`},
 		{name: "paired surrogate is decoded exactly", wire: []byte(`"\ud83d\ude42"`), want: "🙂"},
 		{name: "literal surrogate text stays literal", wire: []byte(`"\\ud800"`), want: `\ud800`},
-		{name: "empty document is rejected", wantErr: true},
-		{name: "whitespace-only document is rejected", wire: []byte(" \n\t"), wantErr: true},
-		{name: "null is rejected", wire: []byte("null"), wantErr: true},
-		{name: "number token is rejected", wire: []byte("1"), wantErr: true},
-		{name: "object token is rejected", wire: []byte("{}"), wantErr: true},
-		{name: "trailing second document is rejected", wire: []byte(`"plain" true`), wantErr: true},
-		{name: "truncated string is rejected", wire: []byte(`"plain`), wantErr: true},
-		{name: "invalid UTF8 is rejected", wire: []byte{'"', 0xff, '"'}, wantErr: true},
-		{name: "minimum lone high surrogate is rejected", wire: []byte(`"\ud800"`), wantErr: true},
-		{name: "maximum lone high surrogate is rejected", wire: []byte(`"\udbff"`), wantErr: true},
-		{name: "minimum lone low surrogate is rejected", wire: []byte(`"\udc00"`), wantErr: true},
-		{name: "maximum lone low surrogate is rejected", wire: []byte(`"\udfff"`), wantErr: true},
-		{name: "high surrogate followed by plain code unit is rejected", wire: []byte(`"\ud800\u0041"`), wantErr: true},
+		{name: "empty document is rejected", wantErr: ErrJSONContract},
+		{name: "whitespace-only document is rejected", wire: []byte(" \n\t"), wantErr: ErrJSONContract},
+		{name: "null is rejected", wire: []byte("null"), wantErr: ErrJSONContract},
+		{name: "number token is rejected", wire: []byte("1"), wantErr: ErrJSONContract},
+		{name: "object token is rejected", wire: []byte("{}"), wantErr: ErrJSONContract},
+		{name: "trailing second document is rejected", wire: []byte(`"plain" true`), wantErr: ErrJSONContract},
+		{name: "truncated string is rejected", wire: []byte(`"plain`), wantErr: ErrJSONContract},
+		{name: "invalid UTF8 is rejected", wire: []byte{'"', 0xff, '"'}, wantErr: ErrJSONContract},
+		{name: "minimum lone high surrogate is rejected", wire: []byte(`"\ud800"`), wantErr: ErrJSONContract},
+		{name: "maximum lone high surrogate is rejected", wire: []byte(`"\udbff"`), wantErr: ErrJSONContract},
+		{name: "minimum lone low surrogate is rejected", wire: []byte(`"\udc00"`), wantErr: ErrJSONContract},
+		{name: "maximum lone low surrogate is rejected", wire: []byte(`"\udfff"`), wantErr: ErrJSONContract},
+		{name: "high surrogate followed by plain code unit is rejected", wire: []byte(`"\ud800\u0041"`), wantErr: ErrJSONContract},
 	}
 	for _, tc := range cases {
 		t.Run(tc.name, func(t *testing.T) {
 			t.Parallel()
 
 			got, gotErr := DecodeJSONStringToken(tc.wire)
-			if tc.wantErr {
-				if !errors.Is(gotErr, ErrJSONContract) || got != "" {
+			if tc.wantErr != nil {
+				if !errors.Is(gotErr, tc.wantErr) || got != "" {
 					t.Fatalf("DecodeJSONStringToken(%q) = (%q, %v), want (empty, %v)", tc.wire, got, gotErr, ErrJSONContract)
 				}
 				return

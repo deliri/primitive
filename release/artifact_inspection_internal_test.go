@@ -79,18 +79,18 @@ func TestArtifactPatternFinderRejectsEveryAbsentOrNearMissStamp(t *testing.T) {
 	cases := []struct {
 		name    string
 		content string
-		wantErr bool
+		wantErr error
 	}{
 		{name: "exact stamp is found", content: "aaa" + stamp + "bbb"},
 		{name: "stamp at the first byte is found", content: stamp + strings.Repeat("z", 64)},
 		{name: "stamp at the last byte is found", content: strings.Repeat("z", 64) + stamp},
-		{name: "empty stream omits the stamp", content: "", wantErr: true},
-		{name: "one byte short prefix omits the stamp", content: stamp[:len(stamp)-1], wantErr: true},
-		{name: "one byte short suffix omits the stamp", content: stamp[1:], wantErr: true},
-		{name: "single character substitution omits the stamp", content: "product-stamp-42", wantErr: true},
-		{name: "case change omits the stamp", content: "Product-Stamp-41", wantErr: true},
-		{name: "interior NUL omits the stamp", content: "product-stamp\x00-41", wantErr: true},
-		{name: "reordered halves omit the stamp", content: "stamp-41product-", wantErr: true},
+		{name: "empty stream omits the stamp", content: "", wantErr: core.ErrReleaseContract},
+		{name: "one byte short prefix omits the stamp", content: stamp[:len(stamp)-1], wantErr: core.ErrReleaseContract},
+		{name: "one byte short suffix omits the stamp", content: stamp[1:], wantErr: core.ErrReleaseContract},
+		{name: "single character substitution omits the stamp", content: "product-stamp-42", wantErr: core.ErrReleaseContract},
+		{name: "case change omits the stamp", content: "Product-Stamp-41", wantErr: core.ErrReleaseContract},
+		{name: "interior NUL omits the stamp", content: "product-stamp\x00-41", wantErr: core.ErrReleaseContract},
+		{name: "reordered halves omit the stamp", content: "stamp-41product-", wantErr: core.ErrReleaseContract},
 	}
 	for _, tc := range cases {
 		t.Run(tc.name, func(t *testing.T) {
@@ -108,11 +108,8 @@ func TestArtifactPatternFinderRejectsEveryAbsentOrNearMissStamp(t *testing.T) {
 				}
 			}
 			gotErr := finder.Validate()
-			if tc.wantErr != (gotErr != nil) {
-				t.Fatalf("artifactPatternFinder.Validate() error = %v, want error %t", gotErr, tc.wantErr)
-			}
-			if tc.wantErr && !errors.Is(gotErr, core.ErrReleaseContract) {
-				t.Fatalf("artifactPatternFinder.Validate() error = %v, want %v", gotErr, core.ErrReleaseContract)
+			if !errors.Is(gotErr, tc.wantErr) {
+				t.Fatalf("artifactPatternFinder.Validate() error = %v, want %v", gotErr, tc.wantErr)
 			}
 		})
 	}

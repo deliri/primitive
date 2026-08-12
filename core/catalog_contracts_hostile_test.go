@@ -14,21 +14,21 @@ func TestCatalogPageLimitHostileBoundaries(t *testing.T) {
 	cases := []struct {
 		name    string
 		value   uint16
-		wantErr bool
+		wantErr error
 	}{
-		{name: "zero is below the positive domain", value: 0, wantErr: true},
+		{name: "zero is below the positive domain", value: 0, wantErr: ErrPrimitiveContract},
 		{name: "one is the narrowest page", value: 1},
 		{name: "shared maximum is admitted", value: CatalogPageMaximumEntries},
-		{name: "one above shared maximum is refused", value: CatalogPageMaximumEntries + 1, wantErr: true},
-		{name: "uint16 maximum is refused", value: math.MaxUint16, wantErr: true},
+		{name: "one above shared maximum is refused", value: CatalogPageMaximumEntries + 1, wantErr: ErrPrimitiveContract},
+		{name: "uint16 maximum is refused", value: math.MaxUint16, wantErr: ErrPrimitiveContract},
 	}
 	for _, testCase := range cases {
 		t.Run(testCase.name, func(t *testing.T) {
 			t.Parallel()
 
 			got, gotErr := NewCatalogPageLimit(testCase.value)
-			if testCase.wantErr {
-				if !errors.Is(gotErr, ErrPrimitiveContract) || got != (CatalogPageLimit{}) {
+			if testCase.wantErr != nil {
+				if !errors.Is(gotErr, testCase.wantErr) || got != (CatalogPageLimit{}) {
 					t.Fatalf("NewCatalogPageLimit(%d) = (%v, %v), want zero and errors.Is %v",
 						testCase.value, got, gotErr, ErrPrimitiveContract)
 				}

@@ -113,22 +113,22 @@ func TestArtifactSetDecodeRejectsEveryCardinalityBesidesTargetCount(t *testing.T
 	cases := []struct {
 		name    string
 		data    string
-		wantErr bool
+		wantErr error
 	}{
-		{name: "empty array carries no target", data: "[]", wantErr: true},
-		{name: "one below target count is rejected", data: array(TargetCount - 1), wantErr: true},
+		{name: "empty array carries no target", data: "[]", wantErr: core.ErrJSONContract},
+		{name: "one below target count is rejected", data: array(TargetCount - 1), wantErr: core.ErrJSONContract},
 		{name: "exact target count is accepted", data: array(TargetCount)},
-		{name: "one above target count is rejected", data: array(TargetCount + 1), wantErr: true},
-		{name: "double target count is rejected", data: array(2 * TargetCount), wantErr: true},
-		{name: "object instead of array is rejected", data: "{}", wantErr: true},
-		{name: "null instead of array is rejected", data: "null", wantErr: true},
+		{name: "one above target count is rejected", data: array(TargetCount + 1), wantErr: core.ErrJSONContract},
+		{name: "double target count is rejected", data: array(2 * TargetCount), wantErr: core.ErrJSONContract},
+		{name: "object instead of array is rejected", data: "{}", wantErr: core.ErrJSONContract},
+		{name: "null instead of array is rejected", data: "null", wantErr: core.ErrJSONContract},
 	}
 	for _, tc := range cases {
 		t.Run(tc.name, func(t *testing.T) {
 			t.Parallel()
 			got := fixture.artifactSet
 			err := json.Unmarshal([]byte(tc.data), &got)
-			if !tc.wantErr {
+			if tc.wantErr == nil {
 				if err != nil {
 					t.Fatalf("ArtifactSet.UnmarshalJSON() error = %v, want nil", err)
 				}
@@ -137,8 +137,8 @@ func TestArtifactSetDecodeRejectsEveryCardinalityBesidesTargetCount(t *testing.T
 				}
 				return
 			}
-			if !errors.Is(err, core.ErrJSONContract) {
-				t.Fatalf("ArtifactSet.UnmarshalJSON() error = %v, want %v", err, core.ErrJSONContract)
+			if !errors.Is(err, tc.wantErr) {
+				t.Fatalf("ArtifactSet.UnmarshalJSON() error = %v, want %v", err, tc.wantErr)
 			}
 			if got != fixture.artifactSet {
 				t.Fatalf("ArtifactSet.UnmarshalJSON() mutated the receiver on rejection")

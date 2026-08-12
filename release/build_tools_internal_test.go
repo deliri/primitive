@@ -29,52 +29,52 @@ func TestParseGoVersionOutputPressuresEverySideOfTheProbeGrammar(t *testing.T) {
 		name         string
 		output       string
 		wantPlatform core.Platform
-		wantErr      bool
+		wantErr      error
 	}{
 		{name: "canonical darwin arm64 line is accepted", output: "go version " + want + " darwin/arm64\n", wantPlatform: darwinARM64},
 		{name: "canonical linux amd64 line is accepted", output: "go version " + want + " linux/amd64\n", wantPlatform: linuxAMD64},
 		{name: "canonical windows amd64 line is accepted", output: "go version " + want + " windows/amd64\n", wantPlatform: core.Platform{OperatingSystem: core.OperatingSystemWindows, Architecture: core.CPUArchitectureAMD64}},
 		{name: "canonical linux arm64 line is accepted", output: "go version " + want + " linux/arm64\n", wantPlatform: core.Platform{OperatingSystem: core.OperatingSystemLinux, Architecture: core.CPUArchitectureARM64}},
-		{name: "empty output is rejected", output: "", wantErr: true},
-		{name: "whitespace only output is rejected", output: " \t\n ", wantErr: true},
-		{name: "carriage return line ending is rejected", output: "go version " + want + " linux/amd64\r\n", wantErr: true},
-		{name: "leading whitespace is rejected", output: " go version " + want + " linux/amd64\n", wantErr: true},
-		{name: "trailing whitespace is rejected", output: "go version " + want + " linux/amd64 \n", wantErr: true},
-		{name: "second trailing newline is rejected", output: "go version " + want + " linux/amd64\n\n", wantErr: true},
-		{name: "no trailing newline is rejected", output: "go version " + want + " linux/amd64", wantErr: true},
-		{name: "repeated interior whitespace is rejected", output: "go  version " + want + " linux/amd64\n", wantErr: true},
-		{name: "tab separated fields are rejected", output: "go\tversion\t" + want + "\tlinux/amd64\n", wantErr: true},
-		{name: "three fields is rejected", output: "go version " + want, wantErr: true},
-		{name: "two fields is rejected", output: "go version", wantErr: true},
-		{name: "one field is rejected", output: "go", wantErr: true},
-		{name: "five fields is rejected", output: "go version " + want + " linux/amd64 extra", wantErr: true},
-		{name: "appended toolchain build settings are rejected", output: "go version " + want + " linux/amd64 X:fieldtrack", wantErr: true},
-		{name: "wrong program token is rejected", output: "tinygo version " + want + " linux/amd64", wantErr: true},
-		{name: "wrong subcommand token is rejected", output: "go env " + want + " linux/amd64", wantErr: true},
-		{name: "one patch below the pinned toolchain is rejected", output: "go version go1.26.4 linux/amd64", wantErr: true},
-		{name: "one patch above the pinned toolchain is rejected", output: "go version go1.26.6 linux/amd64", wantErr: true},
-		{name: "one minor above the pinned toolchain is rejected", output: "go version go1.27.0 linux/amd64", wantErr: true},
-		{name: "devel toolchain is rejected", output: "go version devel go1.26.5 linux/amd64", wantErr: true},
-		{name: "pinned version as a prefix is rejected", output: "go version " + want + "rc1 linux/amd64", wantErr: true},
-		{name: "empty version token is rejected", output: "go version  linux/amd64", wantErr: true},
-		{name: "platform without a separator is rejected", output: "go version " + want + " linuxamd64", wantErr: true},
-		{name: "platform with two separators is rejected", output: "go version " + want + " linux/amd64/v3", wantErr: true},
-		{name: "platform with a trailing separator is rejected", output: "go version " + want + " linux/", wantErr: true},
-		{name: "platform with a leading separator is rejected", output: "go version " + want + " /amd64", wantErr: true},
-		{name: "unknown operating system is rejected", output: "go version " + want + " plan9/amd64", wantErr: true},
-		{name: "unknown architecture is rejected", output: "go version " + want + " linux/riscv64", wantErr: true},
-		{name: "already hyphenated platform is rejected", output: "go version " + want + " linux-amd64", wantErr: true},
-		{name: "uppercase platform is rejected", output: "go version " + want + " Linux/AMD64", wantErr: true},
-		{name: "oversized trailing field is rejected", output: "go version " + want + " " + strings.Repeat("a", 4096), wantErr: true},
-		{name: "embedded NUL platform is rejected", output: "go version " + want + " linux/amd64\x00", wantErr: true},
+		{name: "empty output is rejected", output: "", wantErr: core.ErrReleaseContract},
+		{name: "whitespace only output is rejected", output: " \t\n ", wantErr: core.ErrReleaseContract},
+		{name: "carriage return line ending is rejected", output: "go version " + want + " linux/amd64\r\n", wantErr: core.ErrReleaseContract},
+		{name: "leading whitespace is rejected", output: " go version " + want + " linux/amd64\n", wantErr: core.ErrReleaseContract},
+		{name: "trailing whitespace is rejected", output: "go version " + want + " linux/amd64 \n", wantErr: core.ErrReleaseContract},
+		{name: "second trailing newline is rejected", output: "go version " + want + " linux/amd64\n\n", wantErr: core.ErrReleaseContract},
+		{name: "no trailing newline is rejected", output: "go version " + want + " linux/amd64", wantErr: core.ErrReleaseContract},
+		{name: "repeated interior whitespace is rejected", output: "go  version " + want + " linux/amd64\n", wantErr: core.ErrReleaseContract},
+		{name: "tab separated fields are rejected", output: "go\tversion\t" + want + "\tlinux/amd64\n", wantErr: core.ErrReleaseContract},
+		{name: "three fields is rejected", output: "go version " + want, wantErr: core.ErrReleaseContract},
+		{name: "two fields is rejected", output: "go version", wantErr: core.ErrReleaseContract},
+		{name: "one field is rejected", output: "go", wantErr: core.ErrReleaseContract},
+		{name: "five fields is rejected", output: "go version " + want + " linux/amd64 extra", wantErr: core.ErrReleaseContract},
+		{name: "appended toolchain build settings are rejected", output: "go version " + want + " linux/amd64 X:fieldtrack", wantErr: core.ErrReleaseContract},
+		{name: "wrong program token is rejected", output: "tinygo version " + want + " linux/amd64", wantErr: core.ErrReleaseContract},
+		{name: "wrong subcommand token is rejected", output: "go env " + want + " linux/amd64", wantErr: core.ErrReleaseContract},
+		{name: "one patch below the pinned toolchain is rejected", output: "go version go1.26.4 linux/amd64", wantErr: core.ErrReleaseContract},
+		{name: "one patch above the pinned toolchain is rejected", output: "go version go1.26.6 linux/amd64", wantErr: core.ErrReleaseContract},
+		{name: "one minor above the pinned toolchain is rejected", output: "go version go1.27.0 linux/amd64", wantErr: core.ErrReleaseContract},
+		{name: "devel toolchain is rejected", output: "go version devel go1.26.5 linux/amd64", wantErr: core.ErrReleaseContract},
+		{name: "pinned version as a prefix is rejected", output: "go version " + want + "rc1 linux/amd64", wantErr: core.ErrReleaseContract},
+		{name: "empty version token is rejected", output: "go version  linux/amd64", wantErr: core.ErrReleaseContract},
+		{name: "platform without a separator is rejected", output: "go version " + want + " linuxamd64", wantErr: core.ErrReleaseContract},
+		{name: "platform with two separators is rejected", output: "go version " + want + " linux/amd64/v3", wantErr: core.ErrReleaseContract},
+		{name: "platform with a trailing separator is rejected", output: "go version " + want + " linux/", wantErr: core.ErrReleaseContract},
+		{name: "platform with a leading separator is rejected", output: "go version " + want + " /amd64", wantErr: core.ErrReleaseContract},
+		{name: "unknown operating system is rejected", output: "go version " + want + " plan9/amd64", wantErr: core.ErrReleaseContract},
+		{name: "unknown architecture is rejected", output: "go version " + want + " linux/riscv64", wantErr: core.ErrReleaseContract},
+		{name: "already hyphenated platform is rejected", output: "go version " + want + " linux-amd64", wantErr: core.ErrReleaseContract},
+		{name: "uppercase platform is rejected", output: "go version " + want + " Linux/AMD64", wantErr: core.ErrReleaseContract},
+		{name: "oversized trailing field is rejected", output: "go version " + want + " " + strings.Repeat("a", 4096), wantErr: core.ErrReleaseContract},
+		{name: "embedded NUL platform is rejected", output: "go version " + want + " linux/amd64\x00", wantErr: core.ErrReleaseContract},
 	}
 	for _, tc := range cases {
 		t.Run(tc.name, func(t *testing.T) {
 			t.Parallel()
 
 			got, gotErr := parseGoVersionOutput(tc.output, want)
-			if tc.wantErr {
-				if !errors.Is(gotErr, core.ErrReleaseContract) {
+			if tc.wantErr != nil {
+				if !errors.Is(gotErr, tc.wantErr) {
 					t.Fatalf("parseGoVersionOutput(%q) error = %v, want %v", tc.output, gotErr, core.ErrReleaseContract)
 				}
 				if got != (core.Platform{}) {

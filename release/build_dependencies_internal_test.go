@@ -44,7 +44,7 @@ func TestParseGoModulePathPressuresTheModulePathGrammar(t *testing.T) {
 	cases := []struct {
 		name    string
 		in      string
-		wantErr bool
+		wantErr error
 	}{
 		{name: "canonical two element path is accepted", in: "example.com/product"},
 		{name: "major version suffix is accepted", in: "example.com/product/v2"},
@@ -58,35 +58,35 @@ func TestParseGoModulePathPressuresTheModulePathGrammar(t *testing.T) {
 		{name: "exact maximum length is accepted", in: longest},
 		{name: "one below maximum length is accepted", in: longest[:len(longest)-1]},
 
-		{name: "empty path is rejected", wantErr: true},
-		{name: "one above maximum length is rejected", in: longest + "a", wantErr: true},
-		{name: "single element without a slash is rejected", in: "product", wantErr: true},
-		{name: "absolute path is rejected", in: "/example.com/product", wantErr: true},
-		{name: "trailing slash is rejected", in: "example.com/product/", wantErr: true},
-		{name: "empty interior element is rejected", in: "example.com//product", wantErr: true},
-		{name: "dot element is rejected", in: "example.com/./product", wantErr: true},
-		{name: "parent element is rejected", in: "example.com/../product", wantErr: true},
-		{name: "flag prefix element is rejected", in: "example.com/-flag", wantErr: true},
-		{name: "leading flag prefix is rejected", in: "-example.com/product", wantErr: true},
-		{name: "element ending in a dot is rejected", in: "example.com/product.", wantErr: true},
-		{name: "space is rejected", in: "example.com/my product", wantErr: true},
-		{name: "invalid UTF8 is rejected", in: "example.com/pro\xffduct", wantErr: true},
-		{name: "NUL byte is rejected", in: "example.com/pro\x00duct", wantErr: true},
-		{name: "quote is rejected", in: `example.com/pro"duct`, wantErr: true},
-		{name: "backslash is rejected", in: `example.com\product`, wantErr: true},
-		{name: "angle bracket is rejected", in: "example.com/<product>", wantErr: true},
-		{name: "ampersand is rejected", in: "example.com/a&b", wantErr: true},
-		{name: "colon is rejected", in: "example.com:443/product", wantErr: true},
-		{name: "at sign version is rejected", in: "example.com/product@v1", wantErr: true},
-		{name: "non-ASCII letter is rejected", in: "example.com/prodüct", wantErr: true},
+		{name: "empty path is rejected", wantErr: core.ErrReleaseContract},
+		{name: "one above maximum length is rejected", in: longest + "a", wantErr: core.ErrReleaseContract},
+		{name: "single element without a slash is rejected", in: "product", wantErr: core.ErrReleaseContract},
+		{name: "absolute path is rejected", in: "/example.com/product", wantErr: core.ErrReleaseContract},
+		{name: "trailing slash is rejected", in: "example.com/product/", wantErr: core.ErrReleaseContract},
+		{name: "empty interior element is rejected", in: "example.com//product", wantErr: core.ErrReleaseContract},
+		{name: "dot element is rejected", in: "example.com/./product", wantErr: core.ErrReleaseContract},
+		{name: "parent element is rejected", in: "example.com/../product", wantErr: core.ErrReleaseContract},
+		{name: "flag prefix element is rejected", in: "example.com/-flag", wantErr: core.ErrReleaseContract},
+		{name: "leading flag prefix is rejected", in: "-example.com/product", wantErr: core.ErrReleaseContract},
+		{name: "element ending in a dot is rejected", in: "example.com/product.", wantErr: core.ErrReleaseContract},
+		{name: "space is rejected", in: "example.com/my product", wantErr: core.ErrReleaseContract},
+		{name: "invalid UTF8 is rejected", in: "example.com/pro\xffduct", wantErr: core.ErrReleaseContract},
+		{name: "NUL byte is rejected", in: "example.com/pro\x00duct", wantErr: core.ErrReleaseContract},
+		{name: "quote is rejected", in: `example.com/pro"duct`, wantErr: core.ErrReleaseContract},
+		{name: "backslash is rejected", in: `example.com\product`, wantErr: core.ErrReleaseContract},
+		{name: "angle bracket is rejected", in: "example.com/<product>", wantErr: core.ErrReleaseContract},
+		{name: "ampersand is rejected", in: "example.com/a&b", wantErr: core.ErrReleaseContract},
+		{name: "colon is rejected", in: "example.com:443/product", wantErr: core.ErrReleaseContract},
+		{name: "at sign version is rejected", in: "example.com/product@v1", wantErr: core.ErrReleaseContract},
+		{name: "non-ASCII letter is rejected", in: "example.com/prodüct", wantErr: core.ErrReleaseContract},
 	}
 	for _, tc := range cases {
 		t.Run(tc.name, func(t *testing.T) {
 			t.Parallel()
 
 			got, err := parseGoModulePath(tc.in)
-			if tc.wantErr {
-				if !errors.Is(err, core.ErrReleaseContract) {
+			if tc.wantErr != nil {
+				if !errors.Is(err, tc.wantErr) {
 					t.Fatalf("parseGoModulePath(%q) error = %v, want errors.Is(..., %v)", tc.in, err, core.ErrReleaseContract)
 				}
 				if got != (GoModulePath{}) {
@@ -115,7 +115,7 @@ func TestParseGoModuleVersionPressuresTheVersionGrammar(t *testing.T) {
 	cases := []struct {
 		name    string
 		in      string
-		wantErr bool
+		wantErr error
 	}{
 		{name: "release version is accepted", in: "v1.2.3"},
 		{name: "major version zero is accepted", in: "v0.0.0"},
@@ -129,34 +129,34 @@ func TestParseGoModuleVersionPressuresTheVersionGrammar(t *testing.T) {
 		{name: "exact maximum length is accepted", in: longest},
 		{name: "one below maximum length is accepted", in: longest[:len(longest)-1]},
 
-		{name: "empty version is rejected", wantErr: true},
-		{name: "one below the shortest admissible version is rejected", in: "v", wantErr: true},
-		{name: "one above maximum length is rejected", in: longest + "1", wantErr: true},
-		{name: "missing v prefix is rejected", in: "1.2.3", wantErr: true},
-		{name: "uppercase V prefix is rejected", in: "V1.2.3", wantErr: true},
-		{name: "leading space is rejected", in: " v1.2.3", wantErr: true},
-		{name: "trailing space is rejected", in: "v1.2.3 ", wantErr: true},
-		{name: "assignment character is rejected", in: "v1.2.3=4", wantErr: true},
-		{name: "quote is rejected because it would escape in the sealed document", in: `v1.2.3"`, wantErr: true},
-		{name: "backslash is rejected because it would escape in the sealed document", in: `v1.2.3\`, wantErr: true},
-		{name: "angle bracket is rejected because it would escape in the sealed document", in: "v1.2.3<", wantErr: true},
-		{name: "ampersand is rejected because it would escape in the sealed document", in: "v1.2.3&", wantErr: true},
-		{name: "newline is rejected", in: "v1.2.3\n", wantErr: true},
-		{name: "tab is rejected", in: "v1.2.3\t", wantErr: true},
-		{name: "NUL byte is rejected", in: "v1.2.3\x00", wantErr: true},
-		{name: "invalid UTF8 is rejected", in: "v1.2.3\xff", wantErr: true},
-		{name: "non-ASCII digit is rejected", in: "v1.2.٣", wantErr: true},
-		{name: "slash is rejected", in: "v1.2.3/4", wantErr: true},
-		{name: "at sign is rejected", in: "v1.2.3@sha", wantErr: true},
-		{name: "comma is rejected", in: "v1.2,3", wantErr: true},
+		{name: "empty version is rejected", wantErr: core.ErrReleaseContract},
+		{name: "one below the shortest admissible version is rejected", in: "v", wantErr: core.ErrReleaseContract},
+		{name: "one above maximum length is rejected", in: longest + "1", wantErr: core.ErrReleaseContract},
+		{name: "missing v prefix is rejected", in: "1.2.3", wantErr: core.ErrReleaseContract},
+		{name: "uppercase V prefix is rejected", in: "V1.2.3", wantErr: core.ErrReleaseContract},
+		{name: "leading space is rejected", in: " v1.2.3", wantErr: core.ErrReleaseContract},
+		{name: "trailing space is rejected", in: "v1.2.3 ", wantErr: core.ErrReleaseContract},
+		{name: "assignment character is rejected", in: "v1.2.3=4", wantErr: core.ErrReleaseContract},
+		{name: "quote is rejected because it would escape in the sealed document", in: `v1.2.3"`, wantErr: core.ErrReleaseContract},
+		{name: "backslash is rejected because it would escape in the sealed document", in: `v1.2.3\`, wantErr: core.ErrReleaseContract},
+		{name: "angle bracket is rejected because it would escape in the sealed document", in: "v1.2.3<", wantErr: core.ErrReleaseContract},
+		{name: "ampersand is rejected because it would escape in the sealed document", in: "v1.2.3&", wantErr: core.ErrReleaseContract},
+		{name: "newline is rejected", in: "v1.2.3\n", wantErr: core.ErrReleaseContract},
+		{name: "tab is rejected", in: "v1.2.3\t", wantErr: core.ErrReleaseContract},
+		{name: "NUL byte is rejected", in: "v1.2.3\x00", wantErr: core.ErrReleaseContract},
+		{name: "invalid UTF8 is rejected", in: "v1.2.3\xff", wantErr: core.ErrReleaseContract},
+		{name: "non-ASCII digit is rejected", in: "v1.2.٣", wantErr: core.ErrReleaseContract},
+		{name: "slash is rejected", in: "v1.2.3/4", wantErr: core.ErrReleaseContract},
+		{name: "at sign is rejected", in: "v1.2.3@sha", wantErr: core.ErrReleaseContract},
+		{name: "comma is rejected", in: "v1.2,3", wantErr: core.ErrReleaseContract},
 	}
 	for _, tc := range cases {
 		t.Run(tc.name, func(t *testing.T) {
 			t.Parallel()
 
 			got, err := parseGoModuleVersion(tc.in)
-			if tc.wantErr {
-				if !errors.Is(err, core.ErrReleaseContract) {
+			if tc.wantErr != nil {
+				if !errors.Is(err, tc.wantErr) {
 					t.Fatalf("parseGoModuleVersion(%q) error = %v, want errors.Is(..., %v)", tc.in, err, core.ErrReleaseContract)
 				}
 				if got != (GoModuleVersion{}) {
@@ -193,35 +193,35 @@ func TestParseGoModuleSumPressuresTheChecksumGrammar(t *testing.T) {
 	cases := []struct {
 		name    string
 		in      string
-		wantErr bool
+		wantErr error
 	}{
 		{name: "zero digest checksum is accepted", in: testModuleSumA},
 		{name: "distinct digest checksum is accepted", in: testModuleSumB},
 		{name: "real cmd/go checksum is accepted", in: "h1:o7XGOvZQCADBQQ4Y7VNq2dRWQR7JmOUW8Kxx4ZsNgWs="},
 		{name: "all bits set checksum is accepted", in: "h1://////////////////////////////////////////8="},
 
-		{name: "empty checksum is rejected", wantErr: true},
-		{name: "absent checksum prefix is rejected", in: strings.TrimPrefix(testModuleSumA, "h1:"), wantErr: true},
-		{name: "unknown checksum generation is rejected", in: "h2:" + strings.TrimPrefix(testModuleSumA, "h1:"), wantErr: true},
-		{name: "uppercase prefix is rejected", in: "H1:" + strings.TrimPrefix(testModuleSumA, "h1:"), wantErr: true},
-		{name: "prefix only is rejected", in: "h1:", wantErr: true},
-		{name: "one base64 character short is rejected", in: "h1:AAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAA=", wantErr: true},
-		{name: "one base64 character long is rejected", in: "h1:AAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAA=", wantErr: true},
-		{name: "thirty-one byte digest is rejected", in: "h1:AAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAA==", wantErr: true},
-		{name: "unpadded encoding is rejected", in: "h1:" + strings.TrimSuffix(strings.TrimPrefix(testModuleSumA, "h1:"), "="), wantErr: true},
-		{name: "url safe alphabet is rejected", in: "h1:----------------------------------------__8=", wantErr: true},
-		{name: "non base64 body is rejected", in: "h1:not-base64", wantErr: true},
-		{name: "whitespace inside the body is rejected", in: "h1:AAAAAAAAAAAAAAAAAAAAAAAAAAAAAA AAAAAAAAAAAAA=", wantErr: true},
-		{name: "go.mod checksum suffix is rejected", in: testModuleSumA + "/go.mod", wantErr: true},
-		{name: "invalid UTF8 is rejected", in: "h1:\xff", wantErr: true},
+		{name: "empty checksum is rejected", wantErr: core.ErrReleaseContract},
+		{name: "absent checksum prefix is rejected", in: strings.TrimPrefix(testModuleSumA, "h1:"), wantErr: core.ErrReleaseContract},
+		{name: "unknown checksum generation is rejected", in: "h2:" + strings.TrimPrefix(testModuleSumA, "h1:"), wantErr: core.ErrReleaseContract},
+		{name: "uppercase prefix is rejected", in: "H1:" + strings.TrimPrefix(testModuleSumA, "h1:"), wantErr: core.ErrReleaseContract},
+		{name: "prefix only is rejected", in: "h1:", wantErr: core.ErrReleaseContract},
+		{name: "one base64 character short is rejected", in: "h1:AAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAA=", wantErr: core.ErrReleaseContract},
+		{name: "one base64 character long is rejected", in: "h1:AAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAA=", wantErr: core.ErrReleaseContract},
+		{name: "thirty-one byte digest is rejected", in: "h1:AAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAA==", wantErr: core.ErrReleaseContract},
+		{name: "unpadded encoding is rejected", in: "h1:" + strings.TrimSuffix(strings.TrimPrefix(testModuleSumA, "h1:"), "="), wantErr: core.ErrReleaseContract},
+		{name: "url safe alphabet is rejected", in: "h1:----------------------------------------__8=", wantErr: core.ErrReleaseContract},
+		{name: "non base64 body is rejected", in: "h1:not-base64", wantErr: core.ErrReleaseContract},
+		{name: "whitespace inside the body is rejected", in: "h1:AAAAAAAAAAAAAAAAAAAAAAAAAAAAAA AAAAAAAAAAAAA=", wantErr: core.ErrReleaseContract},
+		{name: "go.mod checksum suffix is rejected", in: testModuleSumA + "/go.mod", wantErr: core.ErrReleaseContract},
+		{name: "invalid UTF8 is rejected", in: "h1:\xff", wantErr: core.ErrReleaseContract},
 	}
 	for _, tc := range cases {
 		t.Run(tc.name, func(t *testing.T) {
 			t.Parallel()
 
 			got, err := parseGoModuleSum(tc.in)
-			if tc.wantErr {
-				if !errors.Is(err, core.ErrReleaseContract) {
+			if tc.wantErr != nil {
+				if !errors.Is(err, tc.wantErr) {
 					t.Fatalf("parseGoModuleSum(%q) error = %v, want errors.Is(..., %v)", tc.in, err, core.ErrReleaseContract)
 				}
 				if got != (GoModuleSum{}) {
@@ -255,7 +255,7 @@ func TestNewBuildDependenciesLayerTriadCanonicalizesTheModuleUnion(t *testing.T)
 		main      GoModulePath
 		wantOrder []string
 		toolchain GoToolchainIdentity
-		wantErr   bool
+		wantErr   error
 	}{
 		{
 			name: "neutral empty closure is a valid zero-module union",
@@ -298,40 +298,40 @@ func TestNewBuildDependenciesLayerTriadCanonicalizesTheModuleUnion(t *testing.T)
 			name: "negative one above maximum module count",
 			main: main, toolchain: CurrentGoToolchain(),
 			modules: func(t *testing.T) []BuildDependency { return numberedModules(t, BuildDependencyMaximumCount+1) },
-			wantErr: true,
+			wantErr: core.ErrReleaseContract,
 		},
 		{
 			name: "negative duplicate module path",
 			main: main, toolchain: CurrentGoToolchain(),
 			modules: func(t *testing.T) []BuildDependency { return moduleFixtures(t, "example.com/a", "example.com/a") },
-			wantErr: true,
+			wantErr: core.ErrReleaseContract,
 		},
 		{
 			name: "negative main module listed as its own dependency",
 			main: main, toolchain: CurrentGoToolchain(),
 			modules: func(t *testing.T) []BuildDependency { return moduleFixtures(t, testMainModule) },
-			wantErr: true,
+			wantErr: core.ErrReleaseContract,
 		},
 		{
 			name: "negative zero module in the closure",
 			main: main, toolchain: CurrentGoToolchain(),
 			modules: func(*testing.T) []BuildDependency { return []BuildDependency{{}} },
-			wantErr: true,
+			wantErr: core.ErrReleaseContract,
 		},
 		{
 			name: "negative unset main module", toolchain: CurrentGoToolchain(),
 			modules: func(t *testing.T) []BuildDependency { return moduleFixtures(t, "example.com/a") },
-			wantErr: true,
+			wantErr: core.ErrReleaseContract,
 		},
 		{
 			name: "negative unknown toolchain", main: main, toolchain: GoToolchainUnknown,
 			modules: func(t *testing.T) []BuildDependency { return moduleFixtures(t, "example.com/a") },
-			wantErr: true,
+			wantErr: core.ErrReleaseContract,
 		},
 		{
 			name: "negative future toolchain", main: main, toolchain: GoToolchainPrimitive2026 + 1,
 			modules: func(t *testing.T) []BuildDependency { return moduleFixtures(t, "example.com/a") },
-			wantErr: true,
+			wantErr: core.ErrReleaseContract,
 		},
 	}
 	for _, tc := range cases {
@@ -339,8 +339,8 @@ func TestNewBuildDependenciesLayerTriadCanonicalizesTheModuleUnion(t *testing.T)
 			t.Parallel()
 
 			got, err := newBuildDependencies(tc.main, tc.toolchain, tc.modules(t))
-			if tc.wantErr {
-				if !errors.Is(err, core.ErrReleaseContract) {
+			if tc.wantErr != nil {
+				if !errors.Is(err, tc.wantErr) {
 					t.Fatalf("newBuildDependencies() error = %v, want errors.Is(..., %v)", err, core.ErrReleaseContract)
 				}
 				if got != (BuildDependencies{}) {
@@ -377,7 +377,7 @@ func TestDependencyObservationMergeUnionsTargetClosures(t *testing.T) {
 		right     string
 		wantMain  string
 		wantOrder []string
-		wantErr   bool
+		wantErr   error
 	}{
 		{
 			name:  "positive disjoint target closures union in canonical order",
@@ -408,19 +408,19 @@ func TestDependencyObservationMergeUnionsTargetClosures(t *testing.T) {
 			name:    "negative disagreeing main modules",
 			left:    mainFixture(),
 			right:   goListPackageFixture("example.com/other", "", "", true),
-			wantErr: true,
+			wantErr: core.ErrReleaseContract,
 		},
 		{
 			name:    "negative same module at conflicting versions across targets",
 			left:    goListPackageFixture("example.com/a", "v1.0.0", testModuleSumA, false) + mainFixture(),
 			right:   goListPackageFixture("example.com/a", "v1.0.1", testModuleSumA, false) + mainFixture(),
-			wantErr: true,
+			wantErr: core.ErrReleaseContract,
 		},
 		{
 			name:    "negative same module at conflicting checksums across targets",
 			left:    goListPackageFixture("example.com/a", "v1.0.0", testModuleSumA, false) + mainFixture(),
 			right:   goListPackageFixture("example.com/a", "v1.0.0", testModuleSumB, false) + mainFixture(),
-			wantErr: true,
+			wantErr: core.ErrReleaseContract,
 		},
 	}
 	for _, tc := range cases {
@@ -434,10 +434,14 @@ func TestDependencyObservationMergeUnionsTargetClosures(t *testing.T) {
 			if err := decodeBuildDependencies(strings.NewReader(tc.right), right); err != nil {
 				t.Fatalf("decode right closure error = %v, want nil", err)
 			}
+			before := *left
 			err := left.merge(right)
-			if tc.wantErr {
-				if !errors.Is(err, core.ErrReleaseContract) {
+			if tc.wantErr != nil {
+				if !errors.Is(err, tc.wantErr) {
 					t.Fatalf("merge() error = %v, want errors.Is(..., %v)", err, core.ErrReleaseContract)
+				}
+				if *left != before {
+					t.Fatalf("merge() mutated the left closure on rejection")
 				}
 				return
 			}
@@ -466,11 +470,11 @@ func TestDependencyObservationRejectsClosuresPastItsBound(t *testing.T) {
 	cases := []struct {
 		name    string
 		count   int
-		wantErr bool
+		wantErr error
 	}{
 		{name: "exact maximum module count is admitted", count: BuildDependencyMaximumCount},
 		{name: "one below maximum module count is admitted", count: BuildDependencyMaximumCount - 1},
-		{name: "one above maximum module count is rejected", count: BuildDependencyMaximumCount + 1, wantErr: true},
+		{name: "one above maximum module count is rejected", count: BuildDependencyMaximumCount + 1, wantErr: core.ErrReleaseContract},
 	}
 	for _, tc := range cases {
 		t.Run(tc.name, func(t *testing.T) {
@@ -483,8 +487,8 @@ func TestDependencyObservationRejectsClosuresPastItsBound(t *testing.T) {
 					break
 				}
 			}
-			if tc.wantErr {
-				if !errors.Is(err, core.ErrReleaseContract) {
+			if tc.wantErr != nil {
+				if !errors.Is(err, tc.wantErr) {
 					t.Fatalf("addModule() error = %v, want errors.Is(..., %v)", err, core.ErrReleaseContract)
 				}
 				return

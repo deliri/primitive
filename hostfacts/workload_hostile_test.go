@@ -22,7 +22,7 @@ func TestCgroupMembershipParserHostileBoundaryTable(t *testing.T) {
 		line       string
 		wantPath   string
 		wantSource WorkloadMemoryLimitSource
-		wantErr    bool
+		wantErr    error
 	}{
 		{name: "v2 root membership", line: "0::/", wantPath: "/", wantSource: WorkloadMemoryLimitSourceCgroupV2},
 		{name: "v2 nested membership", line: "0::/system.slice/app.service", wantPath: "/system.slice/app.service", wantSource: WorkloadMemoryLimitSourceCgroupV2},
@@ -33,16 +33,16 @@ func TestCgroupMembershipParserHostileBoundaryTable(t *testing.T) {
 		{name: "named hierarchy without memory is neutral", line: "1:name=systemd:/job"},
 		{name: "memory substring is neutral", line: "5:notmemory:/job"},
 		{name: "empty controller token is neutral outside v2 hierarchy", line: "1::/job"},
-		{name: "empty line is malformed", line: "", wantErr: true},
-		{name: "missing separators is malformed", line: "0", wantErr: true},
-		{name: "one separator is malformed", line: "0:", wantErr: true},
-		{name: "empty path is malformed", line: "0::", wantErr: true},
-		{name: "relative v2 path is malformed", line: "0::relative", wantErr: true},
-		{name: "relative v1 path is malformed", line: "5:memory:relative", wantErr: true},
-		{name: "noncanonical parent traversal is malformed", line: "0::/a/../b", wantErr: true},
-		{name: "noncanonical doubled separator is malformed", line: "0::/a//b", wantErr: true},
-		{name: "deleted membership suffix is malformed", line: "0::/job (deleted)", wantErr: true},
-		{name: "NUL membership is malformed", line: "0::/job\x00tail", wantErr: true},
+		{name: "empty line is malformed", line: "", wantErr: core.ErrHostFactsObservation},
+		{name: "missing separators is malformed", line: "0", wantErr: core.ErrHostFactsObservation},
+		{name: "one separator is malformed", line: "0:", wantErr: core.ErrHostFactsObservation},
+		{name: "empty path is malformed", line: "0::", wantErr: core.ErrHostFactsObservation},
+		{name: "relative v2 path is malformed", line: "0::relative", wantErr: core.ErrHostFactsObservation},
+		{name: "relative v1 path is malformed", line: "5:memory:relative", wantErr: core.ErrHostFactsObservation},
+		{name: "noncanonical parent traversal is malformed", line: "0::/a/../b", wantErr: core.ErrHostFactsObservation},
+		{name: "noncanonical doubled separator is malformed", line: "0::/a//b", wantErr: core.ErrHostFactsObservation},
+		{name: "deleted membership suffix is malformed", line: "0::/job (deleted)", wantErr: core.ErrHostFactsObservation},
+		{name: "NUL membership is malformed", line: "0::/job\x00tail", wantErr: core.ErrHostFactsObservation},
 		{name: "extra separators remain a valid cgroup name", line: "0::/job:child", wantPath: "/job:child", wantSource: WorkloadMemoryLimitSourceCgroupV2},
 	}
 	for _, tc := range cases {
@@ -50,9 +50,12 @@ func TestCgroupMembershipParserHostileBoundaryTable(t *testing.T) {
 			t.Parallel()
 
 			got, gotErr := parseCgroupMembershipLine([]byte(tc.line))
-			if tc.wantErr {
-				if gotErr == nil {
-					t.Fatalf("parseCgroupMembershipLine(%q) error = nil, want refusal", tc.line)
+			if tc.wantErr != nil {
+				if !errors.Is(gotErr, tc.wantErr) {
+					t.Fatalf("parseCgroupMembershipLine(%q) error = %v, want %v", tc.line, gotErr, tc.wantErr)
+				}
+				if got != (cgroupMembership{}) {
+					t.Fatalf("parseCgroupMembershipLine(%q) = %+v, want zero membership", tc.line, got)
 				}
 				return
 			}
@@ -80,7 +83,7 @@ func TestMountInfoParserBindsVersionRootAndMountPoint(t *testing.T) {
 		wantMount string
 		source    WorkloadMemoryLimitSource
 		wantMatch bool
-		wantErr   bool
+		wantErr   error
 	}{
 		{name: "v2 root mount", line: "30 23 0:27 / /sys/fs/cgroup rw,nosuid,nodev,noexec,relatime - cgroup2 cgroup rw", source: WorkloadMemoryLimitSourceCgroupV2, wantMatch: true, wantRoot: "/", wantMount: "/sys/fs/cgroup"},
 		{name: "v2 namespaced root", line: "30 23 0:27 /tenant /sys/fs/cgroup rw - cgroup2 cgroup rw", source: WorkloadMemoryLimitSourceCgroupV2, wantMatch: true, wantRoot: "/tenant", wantMount: "/sys/fs/cgroup"},
@@ -90,22 +93,25 @@ func TestMountInfoParserBindsVersionRootAndMountPoint(t *testing.T) {
 		{name: "v1 is neutral for v2 request", line: "31 23 0:28 / /sys/fs/cgroup/memory rw - cgroup cgroup rw,memory", source: WorkloadMemoryLimitSourceCgroupV2},
 		{name: "v1 without memory is neutral", line: "31 23 0:28 / /sys/fs/cgroup/cpu rw - cgroup cgroup rw,cpu", source: WorkloadMemoryLimitSourceCgroupV1},
 		{name: "escaped space in mount point decodes", line: "30 23 0:27 / /sys/fs/cgroup\\040space rw - cgroup2 cgroup rw", source: WorkloadMemoryLimitSourceCgroupV2, wantMatch: true, wantRoot: "/", wantMount: "/sys/fs/cgroup space"},
-		{name: "missing separator is malformed", line: "30 23 0:27 / /sys/fs/cgroup rw cgroup2 cgroup rw", source: WorkloadMemoryLimitSourceCgroupV2, wantErr: true},
-		{name: "truncated post separator fields are malformed", line: "30 23 0:27 / /sys/fs/cgroup rw - cgroup2", source: WorkloadMemoryLimitSourceCgroupV2, wantErr: true},
-		{name: "relative mount point is malformed", line: "30 23 0:27 / relative rw - cgroup2 cgroup rw", source: WorkloadMemoryLimitSourceCgroupV2, wantErr: true},
-		{name: "noncanonical root is malformed", line: "30 23 0:27 /a/../b /sys/fs/cgroup rw - cgroup2 cgroup rw", source: WorkloadMemoryLimitSourceCgroupV2, wantErr: true},
-		{name: "truncated escape is malformed", line: "30 23 0:27 / /sys/fs/cgroup\\04 rw - cgroup2 cgroup rw", source: WorkloadMemoryLimitSourceCgroupV2, wantErr: true},
-		{name: "nonoctal escape is malformed", line: "30 23 0:27 / /sys/fs/cgroup\\xyz rw - cgroup2 cgroup rw", source: WorkloadMemoryLimitSourceCgroupV2, wantErr: true},
-		{name: "noncanonical octal escape is refused", line: "30 23 0:27 / /sys/fs/cgroup\\141 rw - cgroup2 cgroup rw", source: WorkloadMemoryLimitSourceCgroupV2, wantErr: true},
+		{name: "missing separator is malformed", line: "30 23 0:27 / /sys/fs/cgroup rw cgroup2 cgroup rw", source: WorkloadMemoryLimitSourceCgroupV2, wantErr: core.ErrHostFactsObservation},
+		{name: "truncated post separator fields are malformed", line: "30 23 0:27 / /sys/fs/cgroup rw - cgroup2", source: WorkloadMemoryLimitSourceCgroupV2, wantErr: core.ErrHostFactsObservation},
+		{name: "relative mount point is malformed", line: "30 23 0:27 / relative rw - cgroup2 cgroup rw", source: WorkloadMemoryLimitSourceCgroupV2, wantErr: core.ErrHostFactsObservation},
+		{name: "noncanonical root is malformed", line: "30 23 0:27 /a/../b /sys/fs/cgroup rw - cgroup2 cgroup rw", source: WorkloadMemoryLimitSourceCgroupV2, wantErr: core.ErrHostFactsObservation},
+		{name: "truncated escape is malformed", line: "30 23 0:27 / /sys/fs/cgroup\\04 rw - cgroup2 cgroup rw", source: WorkloadMemoryLimitSourceCgroupV2, wantErr: core.ErrHostFactsObservation},
+		{name: "nonoctal escape is malformed", line: "30 23 0:27 / /sys/fs/cgroup\\xyz rw - cgroup2 cgroup rw", source: WorkloadMemoryLimitSourceCgroupV2, wantErr: core.ErrHostFactsObservation},
+		{name: "noncanonical octal escape is refused", line: "30 23 0:27 / /sys/fs/cgroup\\141 rw - cgroup2 cgroup rw", source: WorkloadMemoryLimitSourceCgroupV2, wantErr: core.ErrHostFactsObservation},
 	}
 	for _, tc := range cases {
 		t.Run(tc.name, func(t *testing.T) {
 			t.Parallel()
 
 			got, gotMatch, gotErr := parseMountInfoLine([]byte(tc.line), tc.source)
-			if tc.wantErr {
-				if gotErr == nil {
-					t.Fatalf("parseMountInfoLine(%q) error = nil, want refusal", tc.line)
+			if tc.wantErr != nil {
+				if !errors.Is(gotErr, tc.wantErr) {
+					t.Fatalf("parseMountInfoLine(%q) error = %v, want %v", tc.line, gotErr, tc.wantErr)
+				}
+				if got != (cgroupMount{}) || gotMatch {
+					t.Fatalf("parseMountInfoLine(%q) = (%+v, %t), want zero unmatched refusal", tc.line, got, gotMatch)
 				}
 				return
 			}
@@ -166,7 +172,7 @@ func TestCgroupLimitTokenHostileBoundaryTable(t *testing.T) {
 		wantValue     uint64
 		source        WorkloadMemoryLimitSource
 		wantUnlimited bool
-		wantErr       bool
+		wantErr       error
 	}{
 		{name: "v2 zero is a finite exhausted limit", token: "0", source: WorkloadMemoryLimitSourceCgroupV2, wantValue: 0},
 		{name: "v2 zero newline is finite", token: "0\n", source: WorkloadMemoryLimitSourceCgroupV2, wantValue: 0},
@@ -178,16 +184,16 @@ func TestCgroupLimitTokenHostileBoundaryTable(t *testing.T) {
 		{name: "v1 one below unlimited sentinel is finite", token: strconv.FormatUint(cgroupV1UnlimitedMin-1, 10), source: WorkloadMemoryLimitSourceCgroupV1, wantValue: cgroupV1UnlimitedMin - 1},
 		{name: "v1 sentinel is unlimited", token: strconv.FormatUint(cgroupV1UnlimitedMin, 10), source: WorkloadMemoryLimitSourceCgroupV1, wantUnlimited: true},
 		{name: "v1 maximum uint is unlimited", token: strconv.FormatUint(math.MaxUint64, 10), source: WorkloadMemoryLimitSourceCgroupV1, wantUnlimited: true},
-		{name: "empty token is malformed", token: "", source: WorkloadMemoryLimitSourceCgroupV2, wantErr: true},
-		{name: "newline-only token is malformed", token: "\n", source: WorkloadMemoryLimitSourceCgroupV2, wantErr: true},
-		{name: "leading zero is noncanonical", token: "00", source: WorkloadMemoryLimitSourceCgroupV2, wantErr: true},
-		{name: "leading plus is noncanonical", token: "+1", source: WorkloadMemoryLimitSourceCgroupV2, wantErr: true},
-		{name: "negative value is malformed", token: "-1", source: WorkloadMemoryLimitSourceCgroupV2, wantErr: true},
-		{name: "leading space is malformed", token: " 1", source: WorkloadMemoryLimitSourceCgroupV2, wantErr: true},
-		{name: "trailing space is malformed", token: "1 ", source: WorkloadMemoryLimitSourceCgroupV2, wantErr: true},
-		{name: "double newline is malformed", token: "1\n\n", source: WorkloadMemoryLimitSourceCgroupV2, wantErr: true},
-		{name: "v1 max word is malformed", token: "max", source: WorkloadMemoryLimitSourceCgroupV1, wantErr: true},
-		{name: "uint overflow is malformed", token: "18446744073709551616", source: WorkloadMemoryLimitSourceCgroupV2, wantErr: true},
+		{name: "empty token is malformed", token: "", source: WorkloadMemoryLimitSourceCgroupV2, wantErr: core.ErrHostFactsObservation},
+		{name: "newline-only token is malformed", token: "\n", source: WorkloadMemoryLimitSourceCgroupV2, wantErr: core.ErrHostFactsObservation},
+		{name: "leading zero is noncanonical", token: "00", source: WorkloadMemoryLimitSourceCgroupV2, wantErr: core.ErrHostFactsObservation},
+		{name: "leading plus is noncanonical", token: "+1", source: WorkloadMemoryLimitSourceCgroupV2, wantErr: core.ErrHostFactsObservation},
+		{name: "negative value is malformed", token: "-1", source: WorkloadMemoryLimitSourceCgroupV2, wantErr: core.ErrHostFactsObservation},
+		{name: "leading space is malformed", token: " 1", source: WorkloadMemoryLimitSourceCgroupV2, wantErr: core.ErrHostFactsObservation},
+		{name: "trailing space is malformed", token: "1 ", source: WorkloadMemoryLimitSourceCgroupV2, wantErr: core.ErrHostFactsObservation},
+		{name: "double newline is malformed", token: "1\n\n", source: WorkloadMemoryLimitSourceCgroupV2, wantErr: core.ErrHostFactsObservation},
+		{name: "v1 max word is malformed", token: "max", source: WorkloadMemoryLimitSourceCgroupV1, wantErr: core.ErrHostFactsObservation},
+		{name: "uint overflow is malformed", token: "18446744073709551616", source: WorkloadMemoryLimitSourceCgroupV2, wantErr: core.ErrHostFactsObservation},
 	}
 	for _, tc := range cases {
 		t.Run(tc.name, func(t *testing.T) {
@@ -203,9 +209,12 @@ func TestCgroupLimitTokenHostileBoundaryTable(t *testing.T) {
 				mustAbsolutePathForHostfactsTest(t, valuePath),
 				tc.source,
 			)
-			if tc.wantErr {
-				if gotErr == nil {
-					t.Fatalf("readCgroupLimit(%q) error = nil, want refusal", tc.token)
+			if tc.wantErr != nil {
+				if !errors.Is(gotErr, tc.wantErr) {
+					t.Fatalf("readCgroupLimit(%q) error = %v, want %v", tc.token, gotErr, tc.wantErr)
+				}
+				if gotValue != 0 || gotUnlimited {
+					t.Fatalf("readCgroupLimit(%q) = (%d, %t), want zero finite refusal", tc.token, gotValue, gotUnlimited)
 				}
 				return
 			}
@@ -243,26 +252,26 @@ func TestCgroupLevelLimitExhaustsDeclarationCombinations(t *testing.T) {
 	cases := []struct {
 		name    string
 		level   cgroupLevelLimit
-		wantErr bool
+		wantErr error
 	}{
-		{name: "unset zero state is rejected", level: cgroupLevelLimit{}, wantErr: true},
+		{name: "unset zero state is rejected", level: cgroupLevelLimit{}, wantErr: core.ErrHostFactsObservation},
 		{name: "observed absence is valid", level: cgroupLevelLimit{state: cgroupLevelLimitAbsent}},
 		{name: "finite zero is valid", level: cgroupLevelLimit{state: cgroupLevelLimitFinite}},
 		{name: "finite one is valid", level: cgroupLevelLimit{state: cgroupLevelLimitFinite, value: 1}},
 		{name: "finite maximum is valid", level: cgroupLevelLimit{state: cgroupLevelLimitFinite, value: math.MaxUint64}},
 		{name: "unlimited zero is valid", level: cgroupLevelLimit{state: cgroupLevelLimitUnlimited}},
-		{name: "absent with value is contradictory", level: cgroupLevelLimit{state: cgroupLevelLimitAbsent, value: 1}, wantErr: true},
-		{name: "unlimited with value is contradictory", level: cgroupLevelLimit{state: cgroupLevelLimitUnlimited, value: 1}, wantErr: true},
-		{name: "state limit is refused", level: cgroupLevelLimit{state: cgroupLevelLimitStateLimit}, wantErr: true},
-		{name: "future state is refused", level: cgroupLevelLimit{state: cgroupLevelLimitState(255)}, wantErr: true},
+		{name: "absent with value is contradictory", level: cgroupLevelLimit{state: cgroupLevelLimitAbsent, value: 1}, wantErr: core.ErrHostFactsObservation},
+		{name: "unlimited with value is contradictory", level: cgroupLevelLimit{state: cgroupLevelLimitUnlimited, value: 1}, wantErr: core.ErrHostFactsObservation},
+		{name: "state limit is refused", level: cgroupLevelLimit{state: cgroupLevelLimitStateLimit}, wantErr: core.ErrHostFactsObservation},
+		{name: "future state is refused", level: cgroupLevelLimit{state: cgroupLevelLimitState(255)}, wantErr: core.ErrHostFactsObservation},
 	}
 	for _, tc := range cases {
 		t.Run(tc.name, func(t *testing.T) {
 			t.Parallel()
 
 			gotErr := tc.level.Validate()
-			if gotFailure := gotErr != nil; gotFailure != tc.wantErr {
-				t.Fatalf("cgroupLevelLimit%+v.Validate() error = %v, want failure %t", tc.level, gotErr, tc.wantErr)
+			if !errors.Is(gotErr, tc.wantErr) {
+				t.Fatalf("cgroupLevelLimit%+v.Validate() error = %v, want %v", tc.level, gotErr, tc.wantErr)
 			}
 		})
 	}

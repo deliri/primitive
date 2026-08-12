@@ -220,35 +220,34 @@ func TestMetadataKindUnmarshalJSONRejectsEveryNonCanonicalToken(t *testing.T) {
 	t.Parallel()
 
 	cases := []struct {
-		name      string
-		encoded   string
-		want      MetadataKind
-		wantErr   bool
-		wantTyped bool
+		name    string
+		encoded string
+		want    MetadataKind
+		wantErr error
 	}{
 		{name: "canonical dependencies token is accepted", encoded: `"dependencies"`, want: MetadataKindDependencies},
 		{name: "canonical documentation token is accepted", encoded: `"documentation"`, want: MetadataKindDocumentation},
 		{name: "canonical release notes token is accepted", encoded: `"release_notes"`, want: MetadataKindReleaseNotes},
 
-		{name: "unicode escaped token is rejected", encoded: "\"\\u0064ependencies\"", wantErr: true, wantTyped: true},
-		{name: "escaped release notes separator is rejected", encoded: "\"release\\u005fnotes\"", wantErr: true, wantTyped: true},
-		{name: "uppercase token is rejected", encoded: `"Dependencies"`, wantErr: true, wantTyped: true},
-		{name: "hyphenated token is rejected", encoded: `"release-notes"`, wantErr: true, wantTyped: true},
-		{name: "spaced token is rejected", encoded: `"release notes"`, wantErr: true, wantTyped: true},
-		{name: "unknown token is rejected", encoded: `"changelog"`, wantErr: true, wantTyped: true},
-		{name: "empty token is rejected", encoded: `""`, wantErr: true, wantTyped: true},
-		{name: "unknown zero label is rejected", encoded: `"unknown"`, wantErr: true, wantTyped: true},
-		{name: "numeric ordinal is rejected", encoded: `1`, wantErr: true, wantTyped: true},
-		{name: "zero ordinal is rejected", encoded: `0`, wantErr: true, wantTyped: true},
-		{name: "null is rejected", encoded: `null`, wantErr: true, wantTyped: true},
-		{name: "boolean is rejected", encoded: `true`, wantErr: true, wantTyped: true},
-		{name: "object is rejected", encoded: `{"kind":"dependencies"}`, wantErr: true, wantTyped: true},
-		{name: "array is rejected", encoded: `["dependencies"]`, wantErr: true, wantTyped: true},
-		{name: "truncated string is rejected", encoded: `"dependencies`, wantErr: true},
-		{name: "trailing garbage is rejected", encoded: `"dependencies"x`, wantErr: true},
-		{name: "prefix token is rejected", encoded: `"depend"`, wantErr: true, wantTyped: true},
-		{name: "padded token is rejected", encoded: `" dependencies "`, wantErr: true, wantTyped: true},
-		{name: "oversized token is rejected", encoded: `"` + strings.Repeat("d", 4096) + `"`, wantErr: true, wantTyped: true},
+		{name: "unicode escaped token is rejected", encoded: "\"\\u0064ependencies\"", wantErr: core.ErrJSONContract},
+		{name: "escaped release notes separator is rejected", encoded: "\"release\\u005fnotes\"", wantErr: core.ErrJSONContract},
+		{name: "uppercase token is rejected", encoded: `"Dependencies"`, wantErr: core.ErrJSONContract},
+		{name: "hyphenated token is rejected", encoded: `"release-notes"`, wantErr: core.ErrJSONContract},
+		{name: "spaced token is rejected", encoded: `"release notes"`, wantErr: core.ErrJSONContract},
+		{name: "unknown token is rejected", encoded: `"changelog"`, wantErr: core.ErrJSONContract},
+		{name: "empty token is rejected", encoded: `""`, wantErr: core.ErrJSONContract},
+		{name: "unknown zero label is rejected", encoded: `"unknown"`, wantErr: core.ErrJSONContract},
+		{name: "numeric ordinal is rejected", encoded: `1`, wantErr: core.ErrJSONContract},
+		{name: "zero ordinal is rejected", encoded: `0`, wantErr: core.ErrJSONContract},
+		{name: "null is rejected", encoded: `null`, wantErr: core.ErrJSONContract},
+		{name: "boolean is rejected", encoded: `true`, wantErr: core.ErrJSONContract},
+		{name: "object is rejected", encoded: `{"kind":"dependencies"}`, wantErr: core.ErrJSONContract},
+		{name: "array is rejected", encoded: `["dependencies"]`, wantErr: core.ErrJSONContract},
+		{name: "truncated string is rejected", encoded: `"dependencies`, wantErr: &json.SyntaxError{}},
+		{name: "trailing garbage is rejected", encoded: `"dependencies"x`, wantErr: &json.SyntaxError{}},
+		{name: "prefix token is rejected", encoded: `"depend"`, wantErr: core.ErrJSONContract},
+		{name: "padded token is rejected", encoded: `" dependencies "`, wantErr: core.ErrJSONContract},
+		{name: "oversized token is rejected", encoded: `"` + strings.Repeat("d", 4096) + `"`, wantErr: core.ErrJSONContract},
 	}
 	for _, tc := range cases {
 		t.Run(tc.name, func(t *testing.T) {
@@ -256,13 +255,12 @@ func TestMetadataKindUnmarshalJSONRejectsEveryNonCanonicalToken(t *testing.T) {
 
 			var got MetadataKind
 			gotErr := json.Unmarshal([]byte(tc.encoded), &got)
-			if tc.wantErr {
-				if gotErr == nil {
-					t.Fatalf("json.Unmarshal(%s, MetadataKind) error = nil, want rejection", tc.encoded)
-				}
-				if tc.wantTyped && !errors.Is(gotErr, core.ErrJSONContract) {
-					t.Fatalf("json.Unmarshal(%s, MetadataKind) error = %v, want %v", tc.encoded, gotErr, core.ErrJSONContract)
-				}
+			if tc.wantErr != nil {
+				proveMetadataKindError(t, metadataKindErrorProof{
+					encoded: tc.encoded,
+					got:     gotErr,
+					want:    tc.wantErr,
+				})
 				if got != MetadataKindUnknown {
 					t.Fatalf("json.Unmarshal(%s, MetadataKind) = %v, want the unset receiver", tc.encoded, got)
 				}
@@ -282,6 +280,27 @@ func TestMetadataKindUnmarshalJSONRejectsEveryNonCanonicalToken(t *testing.T) {
 				t.Fatalf("MetadataKind re-encoding = %s, want %s", reencoded, tc.encoded)
 			}
 		})
+	}
+}
+
+type metadataKindErrorProof struct {
+	encoded string
+	got     error
+	want    error
+}
+
+func proveMetadataKindError(t *testing.T, proof metadataKindErrorProof) {
+	t.Helper()
+
+	if _, syntax := proof.want.(*json.SyntaxError); syntax {
+		var gotSyntax *json.SyntaxError
+		if !errors.As(proof.got, &gotSyntax) {
+			t.Fatalf("json.Unmarshal(%s, MetadataKind) error = %v, want *json.SyntaxError", proof.encoded, proof.got)
+		}
+		return
+	}
+	if !errors.Is(proof.got, proof.want) {
+		t.Fatalf("json.Unmarshal(%s, MetadataKind) error = %v, want %v", proof.encoded, proof.got, proof.want)
 	}
 }
 

@@ -21,43 +21,43 @@ func TestClassifyRotationalFlagAdmitsOnlyTheDocumentedInterface(t *testing.T) {
 		name    string
 		input   string
 		want    DiskRotation
-		wantErr bool
+		wantErr error
 	}{
 		{name: "bare zero is non-rotational", input: "0", want: DiskRotationNonRotational},
 		{name: "bare one is rotational", input: "1", want: DiskRotationRotational},
 		{name: "zero with the trailing newline is non-rotational", input: "0\n", want: DiskRotationNonRotational},
 		{name: "one with the trailing newline is rotational", input: "1\n", want: DiskRotationRotational},
-		{name: "empty content is refused", input: "", wantErr: true},
-		{name: "a lone newline is refused", input: "\n", wantErr: true},
-		{name: "two newlines carry no token", input: "\n\n", wantErr: true},
-		{name: "a second trailing newline is refused", input: "0\n\n", wantErr: true},
-		{name: "the digit above the domain is refused", input: "2", wantErr: true},
-		{name: "a leading zero respelling is refused", input: "01", wantErr: true},
-		{name: "a trailing zero respelling is refused", input: "10", wantErr: true},
-		{name: "a doubled zero is refused", input: "00", wantErr: true},
-		{name: "a doubled one is refused", input: "11", wantErr: true},
-		{name: "a negative flag is refused", input: "-1", wantErr: true},
-		{name: "an explicitly positive flag is refused", input: "+1", wantErr: true},
-		{name: "a leading space is refused", input: " 0", wantErr: true},
-		{name: "a trailing space is refused", input: "0 ", wantErr: true},
-		{name: "an interior tab is refused", input: "0\t1", wantErr: true},
-		{name: "a carriage return line ending is refused", input: "0\r\n", wantErr: true},
-		{name: "a bare carriage return is refused", input: "1\r", wantErr: true},
-		{name: "two tokens on two lines are refused", input: "0\n1", wantErr: true},
-		{name: "an embedded NUL is refused", input: "0\x00", wantErr: true},
-		{name: "a prose answer is refused", input: "true", wantErr: true},
-		{name: "a vendor spelling is refused", input: "ssd", wantErr: true},
-		{name: "a hexadecimal respelling is refused", input: "0x1", wantErr: true},
-		{name: "a non-ascii digit is refused", input: "١", wantErr: true},
-		{name: "a full-extent token outside the domain is refused", input: "0000000000000000", wantErr: true},
+		{name: "empty content is refused", input: "", wantErr: core.ErrHostFactsObservation},
+		{name: "a lone newline is refused", input: "\n", wantErr: core.ErrHostFactsObservation},
+		{name: "two newlines carry no token", input: "\n\n", wantErr: core.ErrHostFactsObservation},
+		{name: "a second trailing newline is refused", input: "0\n\n", wantErr: core.ErrHostFactsObservation},
+		{name: "the digit above the domain is refused", input: "2", wantErr: core.ErrHostFactsObservation},
+		{name: "a leading zero respelling is refused", input: "01", wantErr: core.ErrHostFactsObservation},
+		{name: "a trailing zero respelling is refused", input: "10", wantErr: core.ErrHostFactsObservation},
+		{name: "a doubled zero is refused", input: "00", wantErr: core.ErrHostFactsObservation},
+		{name: "a doubled one is refused", input: "11", wantErr: core.ErrHostFactsObservation},
+		{name: "a negative flag is refused", input: "-1", wantErr: core.ErrHostFactsObservation},
+		{name: "an explicitly positive flag is refused", input: "+1", wantErr: core.ErrHostFactsObservation},
+		{name: "a leading space is refused", input: " 0", wantErr: core.ErrHostFactsObservation},
+		{name: "a trailing space is refused", input: "0 ", wantErr: core.ErrHostFactsObservation},
+		{name: "an interior tab is refused", input: "0\t1", wantErr: core.ErrHostFactsObservation},
+		{name: "a carriage return line ending is refused", input: "0\r\n", wantErr: core.ErrHostFactsObservation},
+		{name: "a bare carriage return is refused", input: "1\r", wantErr: core.ErrHostFactsObservation},
+		{name: "two tokens on two lines are refused", input: "0\n1", wantErr: core.ErrHostFactsObservation},
+		{name: "an embedded NUL is refused", input: "0\x00", wantErr: core.ErrHostFactsObservation},
+		{name: "a prose answer is refused", input: "true", wantErr: core.ErrHostFactsObservation},
+		{name: "a vendor spelling is refused", input: "ssd", wantErr: core.ErrHostFactsObservation},
+		{name: "a hexadecimal respelling is refused", input: "0x1", wantErr: core.ErrHostFactsObservation},
+		{name: "a non-ascii digit is refused", input: "١", wantErr: core.ErrHostFactsObservation},
+		{name: "a full-extent token outside the domain is refused", input: "0000000000000000", wantErr: core.ErrHostFactsObservation},
 	}
 	for _, tc := range cases {
 		t.Run(tc.name, func(t *testing.T) {
 			t.Parallel()
 
 			got, gotErr := classifyRotationalFlag([]byte(tc.input))
-			if tc.wantErr {
-				if !errors.Is(gotErr, core.ErrHostFactsObservation) {
+			if tc.wantErr != nil {
+				if !errors.Is(gotErr, tc.wantErr) {
 					t.Fatalf("classifyRotationalFlag(%q) error = %v, want errors.Is(..., %v)", tc.input, gotErr, core.ErrHostFactsObservation)
 				}
 				if got != DiskRotationUnknown {

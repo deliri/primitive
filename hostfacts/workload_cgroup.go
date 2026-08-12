@@ -262,11 +262,17 @@ func parseCgroupMembershipLine(line []byte) (cgroupMembership, error) {
 	membership := cgroupMembership{path: string(parts[2])}
 	if string(parts[0]) == "0" && len(parts[1]) == 0 {
 		membership.source = WorkloadMemoryLimitSourceCgroupV2
-		return membership, membership.Validate()
+		if err := membership.Validate(); err != nil {
+			return cgroupMembership{}, err
+		}
+		return membership, nil
 	}
 	if commaTokenContains(string(parts[1]), cgroupMemoryController) {
 		membership.source = WorkloadMemoryLimitSourceCgroupV1
-		return membership, membership.Validate()
+		if err := membership.Validate(); err != nil {
+			return cgroupMembership{}, err
+		}
+		return membership, nil
 	}
 	return cgroupMembership{}, nil
 }
@@ -285,14 +291,17 @@ func parseMountInfoLine(line []byte, source WorkloadMemoryLimitSource) (cgroupMo
 	}
 	mountPointText, err := decodeMountInfoPath(string(mountPointField))
 	if err != nil {
-		return cgroupMount{}, false, err
+		return cgroupMount{}, false, errors.Join(core.ErrHostFactsObservation, err)
 	}
 	mountPoint, err := core.ParseAbsolutePath(mountPointText)
 	if err != nil {
-		return cgroupMount{}, false, err
+		return cgroupMount{}, false, errors.Join(core.ErrHostFactsObservation, err)
 	}
 	mount := cgroupMount{root: root, mountPoint: mountPoint, source: source}
-	return mount, true, mount.Validate()
+	if err := mount.Validate(); err != nil {
+		return cgroupMount{}, false, errors.Join(core.ErrHostFactsObservation, err)
+	}
+	return mount, true, nil
 }
 
 func projectMountInfoLine(line []byte) ([]byte, []byte, []byte, []byte, error) {
