@@ -159,7 +159,7 @@ func (d PublicationCompletionDocument) MarshalJSON() ([]byte, error) {
 		return nil, jsonError(err)
 	}
 	encoded, err := core.MarshalCanonicalJSONDocument(publicationCompletionDocumentWire(d))
-	if err != nil || len(encoded) > responseDocumentJSONMaximumBytes {
+	if err != nil || len(encoded) > ResponseDocumentJSONMaximumBytes {
 		return nil, jsonError(err)
 	}
 	return encoded, nil
@@ -169,7 +169,7 @@ func (d *PublicationCompletionDocument) UnmarshalJSON(data []byte) error {
 	if d == nil {
 		return jsonError(errors.New("publication completion document receiver is nil"))
 	}
-	wire, err := decodeStrict[publicationCompletionDocumentWire](data, responseDocumentJSONMaximumBytes)
+	wire, err := decodeStrict[publicationCompletionDocumentWire](data, ResponseDocumentJSONMaximumBytes)
 	if err != nil {
 		return err
 	}
@@ -244,7 +244,7 @@ func (p PublicationCompletionProjection) MarshalJSON() ([]byte, error) {
 	encoded, err := core.MarshalCanonicalJSONDocument(publicationCompletionProjectionWire{
 		Payload: p.payload.wire(), Attestation: p.attestation,
 	})
-	if err != nil || len(encoded) > responseDocumentJSONMaximumBytes {
+	if err != nil || len(encoded) > ResponseDocumentJSONMaximumBytes {
 		return nil, jsonError(err)
 	}
 	return encoded, nil

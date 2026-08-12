@@ -297,7 +297,7 @@ func (d UpdateResponseDocument) MarshalJSON() ([]byte, error) {
 		return nil, jsonError(err)
 	}
 	encoded, err := core.MarshalCanonicalJSONDocument(updateResponseDocumentWire(d))
-	if err != nil || len(encoded) > responseDocumentJSONMaximumBytes {
+	if err != nil || len(encoded) > ResponseDocumentJSONMaximumBytes {
 		return nil, jsonError(err)
 	}
 	return encoded, nil
@@ -307,7 +307,7 @@ func (d *UpdateResponseDocument) UnmarshalJSON(data []byte) error {
 	if d == nil {
 		return jsonError(errors.New("update response document receiver is nil"))
 	}
-	wire, err := decodeStrict[updateResponseDocumentWire](data, responseDocumentJSONMaximumBytes)
+	wire, err := decodeStrict[updateResponseDocumentWire](data, ResponseDocumentJSONMaximumBytes)
 	if err != nil {
 		return err
 	}

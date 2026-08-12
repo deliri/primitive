@@ -11,9 +11,11 @@ import (
 const (
 	requestPayloadJSONMaximumBytes = 96 << 10
 	// RequestDocumentJSONMaximumBytes bounds every signed Distribution request.
-	RequestDocumentJSONMaximumBytes        = 128 << 10
-	responsePayloadJSONMaximumBytes        = 128 << 10
-	responseDocumentJSONMaximumBytes       = 256 << 10
+	RequestDocumentJSONMaximumBytes = 128 << 10
+	responsePayloadJSONMaximumBytes = 128 << 10
+	// ResponseDocumentJSONMaximumBytes is the transport ceiling shared by all
+	// signed distribution responses and grants.
+	ResponseDocumentJSONMaximumBytes       = 256 << 10
 	publicationGrantJSONMaximumBytes       = 256 << 10
 	publicationCompletionMaximumBytes      = 128 << 10
 	documentCommitmentFrameSeparator  byte = 0

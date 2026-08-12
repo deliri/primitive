@@ -347,7 +347,7 @@ func (d *UpgradeGrantDocument) UnmarshalJSON(data []byte) error {
 	if d == nil {
 		return jsonError(errors.New("upgrade grant document receiver is nil"))
 	}
-	wire, err := decodeStrict[upgradeGrantDocumentWire](data, responseDocumentJSONMaximumBytes)
+	wire, err := decodeStrict[upgradeGrantDocumentWire](data, ResponseDocumentJSONMaximumBytes)
 	if err != nil {
 		return err
 	}
@@ -376,7 +376,7 @@ func (p UpgradeGrantProjection) MarshalJSON() ([]byte, error) {
 		return nil, jsonError(err)
 	}
 	encoded, err := core.MarshalCanonicalJSONDocument(upgradeGrantProjectionWire(p))
-	if err != nil || len(encoded) > responseDocumentJSONMaximumBytes {
+	if err != nil || len(encoded) > ResponseDocumentJSONMaximumBytes {
 		return nil, jsonError(err)
 	}
 	return encoded, nil
