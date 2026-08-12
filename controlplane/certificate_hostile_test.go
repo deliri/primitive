@@ -1,11 +1,14 @@
 package controlplane_test
 
 import (
+	"errors"
 	"testing"
 
 	"github.com/deliri/primitive/v2026/attest"
 	"github.com/deliri/primitive/v2026/controlplane"
 	"github.com/deliri/primitive/v2026/core"
+	"github.com/deliri/primitive/v2026/lease"
+	"github.com/deliri/primitive/v2026/receipt"
 )
 
 // TestVerifyInstallationCertificateAdmitsOnlyTheAuthoritysOwnSignature is the
@@ -61,9 +64,11 @@ func TestVerifyInstallationCertificateRefusesEveryUnauthenticInput(t *testing.T)
 	cases := []struct {
 		mutate func(*testing.T, *controlplane.InstallationCertificateDocument) attest.TrustedKeys
 		name   string
+		want   error
 	}{
 		{
 			name: "the zero certificate names no installation",
+			want: core.ErrControlPlaneRegistration,
 			mutate: func(t *testing.T, document *controlplane.InstallationCertificateDocument) attest.TrustedKeys {
 				t.Helper()
 				*document = controlplane.InstallationCertificateDocument{}
@@ -72,13 +77,30 @@ func TestVerifyInstallationCertificateRefusesEveryUnauthenticInput(t *testing.T)
 		},
 		{
 			name: "an empty trust set admits nothing",
+			want: core.ErrAttestContract,
 			mutate: func(t *testing.T, _ *controlplane.InstallationCertificateDocument) attest.TrustedKeys {
 				t.Helper()
 				return attest.TrustedKeys{}
 			},
 		},
 		{
+			name: "a trust set containing only another authority refuses the genuine signature",
+			want: core.ErrAttestVerification,
+			mutate: func(t *testing.T, _ *controlplane.InstallationCertificateDocument) attest.TrustedKeys {
+				t.Helper()
+				other, _ := testSigningKey(t, 9)
+				trusted, err := attest.NewTrustedKeys(attest.TrustedKeysRequest{
+					Keys: []core.Ed25519PublicKey{other},
+				})
+				if err != nil {
+					t.Fatalf("attest.NewTrustedKeys() error = %v, want nil", err)
+				}
+				return trusted
+			},
+		},
+		{
 			name: "a certificate signed by another key is not this authority's",
+			want: core.ErrAttestVerification,
 			mutate: func(t *testing.T, document *controlplane.InstallationCertificateDocument) attest.TrustedKeys {
 				t.Helper()
 				_, impostor := testSigningKey(t, 9)
@@ -88,6 +110,7 @@ func TestVerifyInstallationCertificateRefusesEveryUnauthenticInput(t *testing.T)
 		},
 		{
 			name: "a device key swapped after signing breaks the signature",
+			want: core.ErrControlPlaneInstallationBinding,
 			mutate: func(t *testing.T, document *controlplane.InstallationCertificateDocument) attest.TrustedKeys {
 				t.Helper()
 				other, _ := testDeviceKey(t, 7)
@@ -97,9 +120,99 @@ func TestVerifyInstallationCertificateRefusesEveryUnauthenticInput(t *testing.T)
 		},
 		{
 			name: "a stripped attestation leaves nothing to verify",
+			want: core.ErrAttestContract,
 			mutate: func(t *testing.T, document *controlplane.InstallationCertificateDocument) attest.TrustedKeys {
 				t.Helper()
 				document.Attestation = attest.Envelope[controlplane.SigningDomain]{}
+				return issueTestRegistration(t).trusted
+			},
+		},
+		{
+			name: "an account swapped after signing breaks the body commitment",
+			want: core.ErrAttestVerification,
+			mutate: func(t *testing.T, document *controlplane.InstallationCertificateDocument) attest.TrustedKeys {
+				t.Helper()
+				account, err := receipt.ParseAccountIdentity(checkInResponseOtherAccountHex)
+				if err != nil {
+					t.Fatalf("receipt.ParseAccountIdentity() error = %v, want nil", err)
+				}
+				document.Body.Account = account
+				return issueTestRegistration(t).trusted
+			},
+		},
+		{
+			name: "an issuance instant swapped after signing breaks the body commitment",
+			want: core.ErrAttestVerification,
+			mutate: func(t *testing.T, document *controlplane.InstallationCertificateDocument) attest.TrustedKeys {
+				t.Helper()
+				document.Body.IssuedAt = testInstant(t, checkInResponseFutureInstant)
+				return issueTestRegistration(t).trusted
+			},
+		},
+		{
+			name: "a build version swapped after signing breaks the body commitment",
+			want: core.ErrAttestVerification,
+			mutate: func(t *testing.T, document *controlplane.InstallationCertificateDocument) attest.TrustedKeys {
+				t.Helper()
+				document.Body.Build = testBuildIdentity(t, 2026, 0, 99)
+				return issueTestRegistration(t).trusted
+			},
+		},
+		{
+			name: "an entitlement swapped after signing breaks the body commitment",
+			want: core.ErrAttestVerification,
+			mutate: func(t *testing.T, document *controlplane.InstallationCertificateDocument) attest.TrustedKeys {
+				t.Helper()
+				raw := [lease.IdentifierBytes]byte{}
+				for index := range raw {
+					raw[index] = 9
+				}
+				entitlement, err := lease.NewEntitlementID(raw)
+				if err != nil {
+					t.Fatalf("lease.NewEntitlementID() error = %v, want nil", err)
+				}
+				document.Body.Subject.EntitlementID = entitlement
+				return issueTestRegistration(t).trusted
+			},
+		},
+		{
+			name: "a signer identity swapped after signing cannot nominate another authority",
+			want: core.ErrAttestVerification,
+			mutate: func(t *testing.T, document *controlplane.InstallationCertificateDocument) attest.TrustedKeys {
+				t.Helper()
+				other, _ := testSigningKey(t, 9)
+				document.Attestation.Signer = other
+				return issueTestRegistration(t).trusted
+			},
+		},
+		{
+			name: "an envelope body digest swapped after signing fails authentication",
+			want: core.ErrAttestVerification,
+			mutate: func(t *testing.T, document *controlplane.InstallationCertificateDocument) attest.TrustedKeys {
+				t.Helper()
+				document.Attestation.BodySHA256 = core.SHA256Of([]byte("another certificate body"))
+				return issueTestRegistration(t).trusted
+			},
+		},
+		{
+			name: "an envelope body length swapped after signing fails authentication",
+			want: core.ErrAttestVerification,
+			mutate: func(t *testing.T, document *controlplane.InstallationCertificateDocument) attest.TrustedKeys {
+				t.Helper()
+				length, err := core.NewByteCount(1)
+				if err != nil {
+					t.Fatalf("core.NewByteCount() error = %v, want nil", err)
+				}
+				document.Attestation.BodyLength = length
+				return issueTestRegistration(t).trusted
+			},
+		},
+		{
+			name: "a foreign signing domain cannot reinterpret certificate bytes",
+			want: core.ErrControlPlaneSigningDomain,
+			mutate: func(t *testing.T, document *controlplane.InstallationCertificateDocument) attest.TrustedKeys {
+				t.Helper()
+				document.Attestation.Domain = controlplane.SigningDomainRegistrationV1
 				return issueTestRegistration(t).trusted
 			},
 		},
@@ -110,28 +223,42 @@ func TestVerifyInstallationCertificateRefusesEveryUnauthenticInput(t *testing.T)
 			t.Parallel()
 
 			issued := issueTestRegistration(t)
-			certificate := *issued.document.Payload.Certificate
+			original := *issued.document.Payload.Certificate
+			certificate := original
 			trusted := testCase.mutate(t, &certificate)
+			if certificate == original && trusted == issued.trusted {
+				t.Fatalf("certificate mutation %q changed neither document nor trust: %v",
+					testCase.name, certificate)
+			}
 
 			got, err := controlplane.VerifyInstallationCertificate(certificate, trusted)
-			if err == nil {
-				t.Fatalf("VerifyInstallationCertificate() = %v, error = nil, want a refusal", got)
+			if !errors.Is(err, core.ErrControlPlaneRegistration) || !errors.Is(err, testCase.want) {
+				t.Fatalf("VerifyInstallationCertificate() error = %v, want errors.Is %v and %v",
+					err, core.ErrControlPlaneRegistration, testCase.want)
 			}
 			// A refusal must hand back nothing usable. The sealed type is the
 			// proof of verification, so a zero value that still answered its
 			// accessors would let a rejected certificate be spent as a verified
 			// one.
-			if err := got.Validate(); err == nil {
-				t.Fatalf("rejected value Validate() = nil, want a refusal")
+			if err := got.Validate(); !errors.Is(err, core.ErrControlPlaneRegistration) {
+				t.Fatalf("rejected value Validate() error = %v, want errors.Is %v",
+					err, core.ErrControlPlaneRegistration)
 			}
-			if _, err := got.Body(); err == nil {
-				t.Fatalf("rejected value Body() error = nil, want a refusal")
+			if body, err := got.Body(); body != (controlplane.InstallationCertificateBody{}) ||
+				!errors.Is(err, core.ErrControlPlaneRegistration) {
+				t.Fatalf("rejected value Body() = (%v, %v), want zero and errors.Is %v",
+					body, err, core.ErrControlPlaneRegistration)
 			}
-			if _, err := got.DeviceKeys(); err == nil {
-				t.Fatalf("rejected value DeviceKeys() error = nil, want a refusal")
+			if keys, err := got.DeviceKeys(); keys != (attest.TrustedKeys{}) ||
+				!errors.Is(err, core.ErrControlPlaneRegistration) {
+				t.Fatalf("rejected value DeviceKeys() = (%v, %v), want zero and errors.Is %v",
+					keys, err, core.ErrControlPlaneRegistration)
 			}
-			if _, err := got.Proof(); err == nil {
-				t.Fatalf("rejected value Proof() error = nil, want a refusal")
+			proof, proofErr := got.Proof()
+			if !errors.Is(proofErr, core.ErrControlPlaneRegistration) ||
+				!errors.Is(proof.Validate(), core.ErrAttestVerification) {
+				t.Fatalf("rejected value Proof() = (%v, %v), proof Validate = %v, want sealed zero and errors.Is %v",
+					proof, proofErr, proof.Validate(), core.ErrControlPlaneRegistration)
 			}
 		})
 	}

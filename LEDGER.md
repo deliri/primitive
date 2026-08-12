@@ -4,6 +4,21 @@ Last updated: `2026-08-12`
 
 ## Current
 
+- published hostile closure for the remaining falsely exhaustive verification
+  and admission tables, 2026-08-12, published `v2026.0.69`. Check-in response
+  issuance now refuses seventeen independently mutated invalid payload facts,
+  requires the owning response or consistency identity, and returns an exact
+  zero document. Installation-certificate verification now pressures thirteen
+  structural, trust-set, signature, body-commitment, envelope, and domain
+  substitutions; every row requires both the registration identity and the
+  precise nested identity while every sealed accessor stays unusable.
+  Policy-activation admission now pins twelve numeric boundaries and walks
+  every one-hot and one-cold bit pattern across the complete uint64 width.
+
+  Proof: Controlplane and Controlwire pass twice under the race detector with
+  shuffled order, and deadcode, staticcheck, and witness-lint report zero
+  findings.
+
 - published an exact-fact hostile matrix for the Submission grant-binding
   layer triad, 2026-08-12, published `v2026.0.68`. Fifteen independently valid
   near misses now change one declared media type, extent edge, digest, CRC,

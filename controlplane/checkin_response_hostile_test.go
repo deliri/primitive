@@ -7,9 +7,11 @@ import (
 
 	"github.com/deliri/primitive/v2026/attest"
 	"github.com/deliri/primitive/v2026/controlplane"
+	"github.com/deliri/primitive/v2026/controlwire"
 	"github.com/deliri/primitive/v2026/core"
 	"github.com/deliri/primitive/v2026/lease"
 	"github.com/deliri/primitive/v2026/receipt"
+	"github.com/deliri/primitive/v2026/temporal"
 )
 
 const (
@@ -249,38 +251,134 @@ func TestIssueCheckInResponseRefusesEveryPayloadValidateRefuses(t *testing.T) {
 
 	issued := issueTestCheckInResponse(t)
 	_, signer := testSigningKey(t, checkInAuthoritySeed)
+	_, otherDevice := testDeviceKey(t, checkInOtherDeviceSeed)
+	otherGeneration, err := lease.NewGeneration(checkInResponseOtherGeneration)
+	if err != nil {
+		t.Fatalf("NewGeneration() error = %v, want nil", err)
+	}
 
 	cases := []struct {
 		mutate func(*controlplane.CheckInResponsePayload)
 		name   string
+		want   error
 	}{
 		{
 			name: "the zero payload carries no decision at all",
+			want: core.ErrControlPlaneCheckInResponse,
 			mutate: func(payload *controlplane.CheckInResponsePayload) {
 				*payload = controlplane.CheckInResponsePayload{}
 			},
 		},
 		{
+			name: "an unset header carries no authority facts",
+			want: core.ErrControlPlaneCheckInResponse,
+			mutate: func(payload *controlplane.CheckInResponsePayload) {
+				payload.Header = controlplane.ResponseHeader{}
+			},
+		},
+		{
 			name: "an unset disposition says nothing about the window",
+			want: core.ErrControlPlaneCheckInResponse,
 			mutate: func(payload *controlplane.CheckInResponsePayload) {
 				payload.Disposition = controlplane.UsageDispositionUnknown
 			},
 		},
 		{
-			name: "a watermark for another subject than the lease it arrived with",
+			name: "an unset watermark names no accepted usage",
+			want: core.ErrControlPlaneCheckInResponse,
 			mutate: func(payload *controlplane.CheckInResponsePayload) {
-				_, other := testDeviceKey(t, checkInOtherDeviceSeed)
-				payload.Watermark.Subject.DeviceID = other
+				payload.Watermark = controlplane.UsageWatermark{}
+			},
+		},
+		{
+			name: "an unset lease grants no decision",
+			want: core.ErrControlPlaneCheckInResponse,
+			mutate: func(payload *controlplane.CheckInResponsePayload) {
+				payload.Lease = lease.Document{}
+			},
+		},
+		{
+			name: "an unset provider instant cannot order authority decisions",
+			want: core.ErrControlPlaneCheckInResponse,
+			mutate: func(payload *controlplane.CheckInResponsePayload) {
+				payload.Header.ProviderTime = temporal.Instant{}
+			},
+		},
+		{
+			name: "an unset request nonce binds no request",
+			want: core.ErrControlPlaneCheckInResponse,
+			mutate: func(payload *controlplane.CheckInResponsePayload) {
+				payload.Header.RequestNonce = controlwire.RequestNonce{}
+			},
+		},
+		{
+			name: "an unset account binds no customer",
+			want: core.ErrControlPlaneCheckInResponse,
+			mutate: func(payload *controlplane.CheckInResponsePayload) {
+				payload.Header.Account = receipt.AccountIdentity{}
+			},
+		},
+		{
+			name: "an unset installation binds no device",
+			want: core.ErrControlPlaneCheckInResponse,
+			mutate: func(payload *controlplane.CheckInResponsePayload) {
+				payload.Header.Installation = lease.DeviceID{}
+			},
+		},
+		{
+			name: "an unset revision names no protocol",
+			want: core.ErrControlPlaneCheckInResponse,
+			mutate: func(payload *controlplane.CheckInResponsePayload) {
+				payload.Header.Revision = controlwire.RevisionUnknown
+			},
+		},
+		{
+			name: "an invalid commercial status cannot decide work",
+			want: core.ErrControlPlaneCheckInResponse,
+			mutate: func(payload *controlplane.CheckInResponsePayload) {
+				payload.Header.Status = controlplane.ProductStatusInvalid
+			},
+		},
+		{
+			name: "an unknown offering cannot bind a product",
+			want: core.ErrControlPlaneCheckInResponse,
+			mutate: func(payload *controlplane.CheckInResponsePayload) {
+				payload.Header.Offering = core.OfferingUnknown
+			},
+		},
+		{
+			name: "an unset policy cursor cannot name authority policy",
+			want: core.ErrControlPlaneCheckInResponse,
+			mutate: func(payload *controlplane.CheckInResponsePayload) {
+				payload.Header.Policy = controlwire.PolicyCursor{}
+			},
+		},
+		{
+			name: "a watermark for another subject than the lease it arrived with",
+			want: core.ErrControlPlaneDecisionConsistency,
+			mutate: func(payload *controlplane.CheckInResponsePayload) {
+				payload.Watermark.Subject.DeviceID = otherDevice
 			},
 		},
 		{
 			name: "a generation that disagrees with the decision it reports",
+			want: core.ErrControlPlaneDecisionConsistency,
 			mutate: func(payload *controlplane.CheckInResponsePayload) {
-				generation, err := lease.NewGeneration(checkInResponseOtherGeneration)
-				if err != nil {
-					t.Fatalf("NewGeneration() error = %v, want nil", err)
-				}
-				payload.Watermark.Generation = generation
+				payload.Watermark.Generation = otherGeneration
+			},
+		},
+		{
+			name: "an unset window digest cannot identify accepted usage",
+			want: core.ErrControlPlaneCheckInResponse,
+			mutate: func(payload *controlplane.CheckInResponsePayload) {
+				payload.Watermark.WindowDigest = core.SHA256Digest{}
+			},
+		},
+		{
+			name: "an unset chain digest cannot close usage history",
+			want: core.ErrControlPlaneCheckInResponse,
+			mutate: func(payload *controlplane.CheckInResponsePayload) {
+				payload.Watermark.ChainDigest = core.SHA256Digest{}
 			},
 		},
 	}
@@ -291,15 +389,21 @@ func TestIssueCheckInResponseRefusesEveryPayloadValidateRefuses(t *testing.T) {
 
 			payload := issued.document.Payload
 			testCase.mutate(&payload)
-			if err := payload.Validate(); err == nil {
-				t.Fatalf("the fixture must be invalid: Validate() error = nil")
+			if payload == issued.document.Payload {
+				t.Fatalf("payload mutation %q left the authority payload unchanged: %v",
+					testCase.name, payload)
+			}
+			if err := payload.Validate(); !errors.Is(err, testCase.want) {
+				t.Fatalf("invalid fixture Validate() error = %v, want errors.Is %v",
+					err, testCase.want)
 			}
 			document, err := controlplane.IssueCheckInResponse(payload, signer)
-			if err == nil {
-				t.Fatalf("IssueCheckInResponse() = %v, want a refusal", document)
+			if !errors.Is(err, testCase.want) {
+				t.Fatalf("IssueCheckInResponse() error = %v, want errors.Is %v",
+					err, testCase.want)
 			}
-			if !errors.Is(err, core.ErrControlPlaneContract) {
-				t.Fatalf("IssueCheckInResponse() error = %v, want the control-plane contract identity", err)
+			if document != (controlplane.CheckInResponseDocument{}) {
+				t.Fatalf("IssueCheckInResponse() document = %v, want exact zero", document)
 			}
 		})
 	}

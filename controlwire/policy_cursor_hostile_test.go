@@ -104,6 +104,21 @@ func TestParsePolicyRevisionIDRefusesEveryNonCanonicalRendering(t *testing.T) {
 			}
 		})
 	}
+
+	for bit := range 64 {
+		values := [...]uint64{uint64(1) << bit, ^(uint64(1) << bit)}
+		for variant, value := range values {
+			got, err := controlwire.NewPolicyActivation(value)
+			if err != nil || got.Uint64() != value {
+				t.Fatalf("NewPolicyActivation(bit %d variant %d value %d) = (%d, %v), want (%d, nil)",
+					bit, variant, value, got.Uint64(), err, value)
+			}
+			if err := got.Validate(); err != nil {
+				t.Fatalf("NewPolicyActivation(bit %d variant %d).Validate() error = %v, want nil",
+					bit, variant, err)
+			}
+		}
+	}
 }
 
 // TestPolicyRevisionIDEncodingIsABijection proves the codec agrees with itself
@@ -214,7 +229,15 @@ func TestNewPolicyActivationIsTheOnlyValidatedAdmission(t *testing.T) {
 	}{
 		{name: "zero is the unset counter", value: 0, wantErr: core.ErrControlWirePolicyCursor},
 		{name: "one is the first activation", value: 1},
-		{name: "mid range", value: 1 << 32},
+		{name: "two is one above first", value: 2},
+		{name: "one below eight bit boundary", value: 1<<8 - 1},
+		{name: "at eight bit boundary", value: 1 << 8},
+		{name: "one below sixteen bit boundary", value: 1<<16 - 1},
+		{name: "at sixteen bit boundary", value: 1 << 16},
+		{name: "one below thirty two bit boundary", value: 1<<32 - 1},
+		{name: "at thirty two bit boundary", value: 1 << 32},
+		{name: "one above thirty two bit boundary", value: 1<<32 + 1},
+		{name: "one below maximum counter", value: 1<<64 - 2},
 		{name: "maximum counter", value: 1<<64 - 1},
 	}
 	for _, testCase := range cases {
