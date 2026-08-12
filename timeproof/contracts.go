@@ -150,6 +150,8 @@ func parseTimestampPolicy(token string) (TimestampPolicy, error) {
 }
 
 var (
-	_ json.Marshaler = AuthorityUnknown
-	_ json.Marshaler = TimestampPolicyUnknown
+	_ core.ValidatedJSONMarshaler = AuthorityUnknown
+	_ core.ValidatedJSONMarshaler = TimestampPolicyUnknown
+	_ json.Unmarshaler            = (*Authority)(nil)
+	_ json.Unmarshaler            = (*TimestampPolicy)(nil)
 )

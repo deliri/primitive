@@ -59,6 +59,13 @@ func newUpgradeExchangeFixture(t *testing.T) upgradeExchangeFixture {
 	if err != nil {
 		t.Fatalf("distribution.CommitRequest(upgrade) error = %v, want nil", err)
 	}
+	if got := requestCommitment.Domain(); got != distribution.SigningDomainUpgradeRequestV1 {
+		t.Fatalf(
+			"distribution.CommitRequest(upgrade).Domain() = %v, want %v",
+			got,
+			distribution.SigningDomainUpgradeRequestV1,
+		)
+	}
 	capability, _ := downloadCapabilityProjection(t, 7)
 	commitment, err := capability.Commitment()
 	if err != nil {

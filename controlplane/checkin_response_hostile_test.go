@@ -47,7 +47,7 @@ func (i issuedCheckInResponse) verification() controlplane.CheckInResponseVerifi
 // are re-signed with a real Ed25519 key this test holds, because verification
 // is the thing being proved and the authority's private key is not in the
 // repository.
-func issueTestCheckInResponse(t *testing.T) issuedCheckInResponse {
+func issueTestCheckInResponse(t testing.TB) issuedCheckInResponse {
 	t.Helper()
 
 	signerPublic, signer := testSigningKey(t, checkInAuthoritySeed)

@@ -274,7 +274,7 @@ func TestGoldenCheckInRequestCarriesTheFactsItClaims(t *testing.T) {
 	}
 }
 
-func readGolden(t *testing.T, name string) []byte {
+func readGolden(t testing.TB, name string) []byte {
 	t.Helper()
 
 	data, err := os.ReadFile(filepath.Join("testdata", name))

@@ -48,7 +48,7 @@ type issuedCheckIn struct {
 // of the shape: the same types, the same constructors, and the same verification
 // path serve every product, and nothing below has an arm per product.
 func issueTestCheckIn(
-	t *testing.T,
+	t testing.TB,
 	offering core.Offering,
 	window controlplane.UsageWindow,
 ) issuedCheckIn {
@@ -92,7 +92,7 @@ func issueTestCheckIn(
 	}
 }
 
-func testSubject(t *testing.T, offering core.Offering, deviceKey core.Ed25519PublicKey) lease.Subject {
+func testSubject(t testing.TB, offering core.Offering, deviceKey core.Ed25519PublicKey) lease.Subject {
 	t.Helper()
 
 	product, err := lease.ProductForOffering(offering)
@@ -112,7 +112,7 @@ func testSubject(t *testing.T, offering core.Offering, deviceKey core.Ed25519Pub
 
 // testBuildForOffering takes the golden build and changes only its offering, so
 // a check-in for another product differs from the golden in exactly that field.
-func testBuildForOffering(t *testing.T, offering core.Offering) core.BuildIdentity {
+func testBuildForOffering(t testing.TB, offering core.Offering) core.BuildIdentity {
 	t.Helper()
 
 	original := testBuildIdentity(t, 1, 0, 0)
@@ -127,7 +127,7 @@ func testBuildForOffering(t *testing.T, offering core.Offering) core.BuildIdenti
 }
 
 func issueTestCertificate(
-	t *testing.T,
+	t testing.TB,
 	subject lease.Subject,
 	build core.BuildIdentity,
 	revision controlwire.Revision,
@@ -151,7 +151,7 @@ func issueTestCertificate(
 	return certificate
 }
 
-func testRevision(t *testing.T) controlwire.Revision {
+func testRevision(t testing.TB) controlwire.Revision {
 	t.Helper()
 
 	revision, err := controlwire.ParseRevision(checkInRevisionText)
@@ -161,7 +161,7 @@ func testRevision(t *testing.T) controlwire.Revision {
 	return revision
 }
 
-func testCheckInNonce(t *testing.T) controlwire.RequestNonce {
+func testCheckInNonce(t testing.TB) controlwire.RequestNonce {
 	t.Helper()
 
 	nonce, err := controlwire.ParseRequestNonce(checkInNonceHex)
@@ -171,7 +171,7 @@ func testCheckInNonce(t *testing.T) controlwire.RequestNonce {
 	return nonce
 }
 
-func testPolicyCursor(t *testing.T) controlwire.PolicyCursor {
+func testPolicyCursor(t testing.TB) controlwire.PolicyCursor {
 	t.Helper()
 
 	revision, err := controlwire.ParsePolicyRevisionID(checkInPolicyRevision)

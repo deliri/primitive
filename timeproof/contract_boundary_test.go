@@ -7,6 +7,7 @@ import (
 	"encoding/asn1"
 	"errors"
 	"math"
+	"math/big"
 	"strconv"
 	"strings"
 	"testing"
@@ -462,6 +463,139 @@ func signingCertificateV2AttributeWithAlgorithm(
 	return cmsAttribute{
 		Type:   oidSigningCertificateV2,
 		Values: []asn1.RawValue{rawValueFromDER(t, value)},
+	}
+}
+
+func issuerSerialFields(
+	t testing.TB,
+	names []asn1.RawValue,
+	serial *big.Int,
+) []byte {
+	t.Helper()
+
+	serialDER, err := asn1.Marshal(serial)
+	if err != nil {
+		t.Fatalf("asn1.Marshal(issuer serial) error = %v, want nil", err)
+	}
+	return issuerSerialFieldsWithSerialDER(t, names, serialDER)
+}
+
+func issuerSerialFieldsWithSerialDER(
+	t testing.TB,
+	names []asn1.RawValue,
+	serialDER []byte,
+) []byte {
+	t.Helper()
+
+	var nameFields []byte
+	for _, name := range names {
+		nameFields = append(nameFields, name.FullBytes...)
+	}
+	generalNames := derTagged(byte(asn1.TagSequence)|derConstructed, nameFields)
+	return derTagged(
+		byte(asn1.TagSequence)|derConstructed,
+		append(generalNames, serialDER...),
+	)
+}
+
+func issuerGeneralName(t testing.TB, tag byte, content []byte) asn1.RawValue {
+	t.Helper()
+
+	return rawValueFromDER(t, derTagged(0x80|tag, content))
+}
+
+func issuerDirectoryName(t testing.TB, rawIssuer []byte) asn1.RawValue {
+	t.Helper()
+
+	return rawValueFromDER(
+		t,
+		derTagged(0x80|derConstructed|generalNameDirectoryNameTag, rawIssuer),
+	)
+}
+
+func TestOptionalIssuerSerialBindsExactSignerIdentity(t *testing.T) {
+	t.Parallel()
+
+	token, err := parseTimestampToken(authenticTokenDER(t))
+	if err != nil {
+		t.Fatalf("parseTimestampToken(authentic) error = %v, want nil", err)
+	}
+	signer := token.Signer
+	exactName := issuerDirectoryName(t, signer.RawIssuer)
+	foreignIssuer := append([]byte(nil), signer.RawIssuer...)
+	foreignIssuer[len(foreignIssuer)-1] ^= 0x01
+	foreignName := issuerDirectoryName(t, foreignIssuer)
+	dnsName := issuerGeneralName(t, 2, []byte("tsa.example"))
+	mailName := issuerGeneralName(t, 1, []byte("tsa@example"))
+	uriName := issuerGeneralName(t, 6, []byte("https://tsa.example"))
+	ipName := issuerGeneralName(t, 7, []byte{127, 0, 0, 1})
+	registeredName := issuerGeneralName(t, 8, []byte{0x2a, 0x03})
+	exactSerial := new(big.Int).Set(signer.SerialNumber)
+
+	accepted := []struct {
+		name  string
+		names []asn1.RawValue
+	}{
+		{name: "exact directory name is the sole general name", names: []asn1.RawValue{exactName}},
+		{name: "directory name follows DNS name", names: []asn1.RawValue{dnsName, exactName}},
+		{name: "directory name precedes DNS name", names: []asn1.RawValue{exactName, dnsName}},
+		{name: "duplicate exact directory names remain the same identity", names: []asn1.RawValue{exactName, exactName}},
+		{name: "directory name follows mail name", names: []asn1.RawValue{mailName, exactName}},
+		{name: "directory name follows URI name", names: []asn1.RawValue{uriName, exactName}},
+		{name: "directory name follows IP name", names: []asn1.RawValue{ipName, exactName}},
+		{name: "directory name follows registered identifier", names: []asn1.RawValue{registeredName, exactName}},
+		{name: "exact directory name follows a foreign directory name", names: []asn1.RawValue{foreignName, exactName}},
+		{name: "exact directory name survives a heterogeneous name set", names: []asn1.RawValue{dnsName, mailName, uriName, ipName, registeredName, foreignName, exactName}},
+	}
+	for _, tc := range accepted {
+		t.Run(tc.name, func(t *testing.T) {
+			t.Parallel()
+
+			gotErr := verifyOptionalIssuerSerial(issuerSerialFields(t, tc.names, exactSerial), signer)
+			if gotErr != nil {
+				t.Fatalf("verifyOptionalIssuerSerial(accepted identity set) error = %v, want nil", gotErr)
+			}
+		})
+	}
+
+	oneAboveSerial := new(big.Int).Add(new(big.Int).Set(exactSerial), big.NewInt(1))
+	oneBelowSerial := new(big.Int).Sub(new(big.Int).Set(exactSerial), big.NewInt(1))
+	overMaximumSerial := new(big.Int).Lsh(big.NewInt(1), SerialMaximumBits)
+	exactSerialDER, err := asn1.Marshal(exactSerial)
+	if err != nil {
+		t.Fatalf("asn1.Marshal(exact serial) error = %v, want nil", err)
+	}
+	rejected := []struct {
+		name   string
+		fields []byte
+	}{
+		{name: "truncated outer issuer sequence", fields: []byte{byte(asn1.TagSequence) | derConstructed}},
+		{name: "integer cannot replace outer issuer sequence", fields: exactSerialDER},
+		{name: "trailing field follows outer issuer sequence", fields: append(issuerSerialFields(t, []asn1.RawValue{exactName}, exactSerial), 0x05, 0x00)},
+		{name: "empty outer issuer sequence", fields: derTagged(byte(asn1.TagSequence)|derConstructed, nil)},
+		{name: "serial cannot replace general names", fields: derTagged(byte(asn1.TagSequence)|derConstructed, exactSerialDER)},
+		{name: "general names without serial", fields: issuerSerialFieldsWithSerialDER(t, []asn1.RawValue{exactName}, nil)},
+		{name: "empty general names do not identify signer", fields: issuerSerialFields(t, nil, exactSerial)},
+		{name: "foreign directory name does not identify signer", fields: issuerSerialFields(t, []asn1.RawValue{foreignName}, exactSerial)},
+		{name: "non-directory general name with issuer bytes does not identify signer", fields: issuerSerialFields(t, []asn1.RawValue{issuerGeneralName(t, 5, signer.RawIssuer)}, exactSerial)},
+		{name: "raw issuer sequence without directory-name tag does not identify signer", fields: issuerSerialFields(t, []asn1.RawValue{rawValueFromDER(t, signer.RawIssuer)}, exactSerial)},
+		{name: "serial one below signer rejects", fields: issuerSerialFields(t, []asn1.RawValue{exactName}, oneBelowSerial)},
+		{name: "serial one above signer rejects", fields: issuerSerialFields(t, []asn1.RawValue{exactName}, oneAboveSerial)},
+		{name: "zero serial rejects", fields: issuerSerialFields(t, []asn1.RawValue{exactName}, big.NewInt(0))},
+		{name: "negative serial rejects", fields: issuerSerialFields(t, []asn1.RawValue{exactName}, big.NewInt(-1))},
+		{name: "serial one bit above RFC ceiling rejects", fields: issuerSerialFields(t, []asn1.RawValue{exactName}, overMaximumSerial)},
+		{name: "trailing field follows exact serial inside issuer sequence", fields: issuerSerialFieldsWithSerialDER(t, []asn1.RawValue{exactName}, append(exactSerialDER, 0x05, 0x00))},
+		{name: "truncated general name rejects", fields: derTagged(byte(asn1.TagSequence)|derConstructed, append([]byte{byte(asn1.TagSequence) | derConstructed, 0x01}, exactSerialDER...))},
+	}
+	for _, tc := range rejected {
+		t.Run(tc.name, func(t *testing.T) {
+			t.Parallel()
+
+			gotErr := verifyOptionalIssuerSerial(tc.fields, signer)
+			if !errors.Is(gotErr, core.ErrTimeProofInvalid) {
+				t.Fatalf("verifyOptionalIssuerSerial(hostile identity) error = %v, want %v", gotErr, core.ErrTimeProofInvalid)
+			}
+		})
 	}
 }
 

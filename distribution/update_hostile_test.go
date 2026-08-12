@@ -62,6 +62,13 @@ func newUpdateExchangeFixture(t *testing.T) updateExchangeFixture {
 	if err != nil {
 		t.Fatalf("distribution.CommitRequest(update) error = %v, want nil", err)
 	}
+	if got := commitment.Domain(); got != distribution.SigningDomainUpdateRequestV1 {
+		t.Fatalf(
+			"distribution.CommitRequest(update).Domain() = %v, want %v",
+			got,
+			distribution.SigningDomainUpdateRequestV1,
+		)
+	}
 	response, err := distribution.IssueUpdateResponse(distribution.UpdateResponseIssuance{
 		Signer: authorityKey,
 		Payload: distribution.UpdateResponsePayload{

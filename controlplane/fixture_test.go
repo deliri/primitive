@@ -24,7 +24,7 @@ const otherRequestNonceHex = "5c5c5c5c5c5c5c5c5c5c5c5c5c5c5c5c5c5c5c5c5c5c5c5c5c
 // signatures are replaced: each nested document is re-signed with a real
 // Ed25519 key this test holds, because verification is the thing being proved
 // and the authority's private key is not in the repository.
-func issueTestRegistration(t *testing.T) issuedRegistration {
+func issueTestRegistration(t testing.TB) issuedRegistration {
 	t.Helper()
 
 	signerPublic, signer := testSigningKey(t, 1)
@@ -68,7 +68,7 @@ func expectationFor(header controlplane.ResponseHeader) controlplane.ResponseExp
 	}
 }
 
-func resignLease(t *testing.T, document lease.Document, signer ed25519.PrivateKey) lease.Document {
+func resignLease(t testing.TB, document lease.Document, signer ed25519.PrivateKey) lease.Document {
 	t.Helper()
 
 	envelope, err := attest.Sign(attest.SignRequest[lease.Domain]{
@@ -84,7 +84,7 @@ func resignLease(t *testing.T, document lease.Document, signer ed25519.PrivateKe
 	return resigned
 }
 
-func resignCertificate(t *testing.T, document *controlplane.InstallationCertificateDocument, signer ed25519.PrivateKey) *controlplane.InstallationCertificateDocument {
+func resignCertificate(t testing.TB, document *controlplane.InstallationCertificateDocument, signer ed25519.PrivateKey) *controlplane.InstallationCertificateDocument {
 	t.Helper()
 
 	if document == nil {
@@ -100,7 +100,7 @@ func resignCertificate(t *testing.T, document *controlplane.InstallationCertific
 // testSigningKey returns a deterministic real Ed25519 key pair. Deterministic
 // so a failure reproduces exactly; real because Attest verifies real signatures
 // and a stand-in would prove nothing about that path.
-func testSigningKey(t *testing.T, seed byte) (core.Ed25519PublicKey, ed25519.PrivateKey) {
+func testSigningKey(t testing.TB, seed byte) (core.Ed25519PublicKey, ed25519.PrivateKey) {
 	t.Helper()
 
 	material := make([]byte, ed25519.SeedSize)
@@ -117,7 +117,7 @@ func testSigningKey(t *testing.T, seed byte) (core.Ed25519PublicKey, ed25519.Pri
 
 // testDeviceKey returns a key pair and the installation identity it derives, so
 // a test can name a device that is genuinely a different device.
-func testDeviceKey(t *testing.T, seed byte) (core.Ed25519PublicKey, lease.DeviceID) {
+func testDeviceKey(t testing.TB, seed byte) (core.Ed25519PublicKey, lease.DeviceID) {
 	t.Helper()
 
 	public, _ := testSigningKey(t, seed)
@@ -130,7 +130,7 @@ func testDeviceKey(t *testing.T, seed byte) (core.Ed25519PublicKey, lease.Device
 
 // testBuildIdentity returns a build that differs from the golden's only in
 // version, so a certificate-to-build mismatch is the single changed fact.
-func testBuildIdentity(t *testing.T, major, minor, patch uint32) core.BuildIdentity {
+func testBuildIdentity(t testing.TB, major, minor, patch uint32) core.BuildIdentity {
 	t.Helper()
 
 	var golden controlplane.RegistrationDocument
@@ -148,7 +148,7 @@ func testBuildIdentity(t *testing.T, major, minor, patch uint32) core.BuildIdent
 	return identity
 }
 
-func testInstant(t *testing.T, nanoseconds int64) temporal.Instant {
+func testInstant(t testing.TB, nanoseconds int64) temporal.Instant {
 	t.Helper()
 
 	instant := temporal.InstantFromNanoseconds(nanoseconds)
@@ -158,7 +158,7 @@ func testInstant(t *testing.T, nanoseconds int64) temporal.Instant {
 	return instant
 }
 
-func otherRequestNonce(t *testing.T) controlwire.RequestNonce {
+func otherRequestNonce(t testing.TB) controlwire.RequestNonce {
 	t.Helper()
 
 	nonce, err := controlwire.ParseRequestNonce(otherRequestNonceHex)

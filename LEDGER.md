@@ -4,6 +4,33 @@ Last updated: `2026-08-12`
 
 ## Current
 
+- published hostile external-boundary proof, 2026-08-12, published
+  `v2026.0.59`. Controlplane's installation certificate, certificate body,
+  registration, check-in, and check-in-response decoders now carry live fuzz
+  oracles over genuinely signed Ed25519 documents. Each oracle proves typed
+  JSON and Controlplane rejection, receiver preservation, canonical fixed-point
+  projection, authentic acceptance through the real verifier, and rejection of
+  a structurally valid but cryptographically corrupted digest. A named local
+  layer triad executes the positive, hostile, and zero-document paths of all
+  four verification authorities.
+
+  Filestore's oversize fuzz path no longer skips the boundary it was meant to
+  attack: it streams the exact maximum-plus-one prefix through the real rooted
+  writer and stage doors, requires the typed size identity, zero result, and no
+  target or temporary artifact. Exchange proves the negative body-extent
+  boundary with its typed contract identity. Chit and Retrieval now exhaust or
+  fuzz their identifier, numeric, and signing-domain ingress with preservation
+  and canonical round-trip oracles. Timeproof exhausts both closed enums and
+  drives issuer-and-serial validation through exact, reordered, duplicated,
+  foreign, truncated, negative, oversized, and trailing-data CMS identities.
+  Distribution's three request commitments prove their exact domains, and its
+  completion document proves both direct production projections and a stable
+  structural round trip.
+
+  Proof: all affected package suites and live fuzz campaigns are clean;
+  `deadcode -test ./...`, `staticcheck ./...`, and `witness-lint ./...` are
+  clean.
+
 - published compiler-owned HTTP header values and restored structural
   ratchets, 2026-08-12, published `v2026.0.58` in one commit. `exchange.Header`
   no longer accepts `[]string`: each value is constructed through

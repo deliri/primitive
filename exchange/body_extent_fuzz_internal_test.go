@@ -1,6 +1,7 @@
 package exchange
 
 import (
+	"errors"
 	"math"
 	"testing"
 
@@ -25,11 +26,22 @@ func FuzzParseDeclaredBodyLength(f *testing.F) {
 
 	f.Fuzz(func(t *testing.T, value int64) {
 		declared, parseErr := parseDeclaredBodyLength(value)
-		if parseErr != nil {
+		if value < declaredBodyLengthAbsent {
+			if !errors.Is(parseErr, core.ErrExchangeContract) {
+				t.Fatalf(
+					"parseDeclaredBodyLength(%d) error = %v, want %v",
+					value,
+					parseErr,
+					core.ErrExchangeContract,
+				)
+			}
 			if declared != (declaredBodyLength{}) {
 				t.Fatalf("parseDeclaredBodyLength(%d) refused with %+v, want zero", value, declared)
 			}
 			return
+		}
+		if parseErr != nil {
+			t.Fatalf("parseDeclaredBodyLength(%d) error = %v, want nil", value, parseErr)
 		}
 		if gotErr := declared.Validate(); gotErr != nil {
 			t.Fatalf("parseDeclaredBodyLength(%d).Validate() error = %v, want nil", value, gotErr)

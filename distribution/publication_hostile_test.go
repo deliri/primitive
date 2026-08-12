@@ -109,6 +109,13 @@ func newPublicationExchangeFixture(t *testing.T) publicationExchangeFixture {
 	if err != nil {
 		t.Fatalf("distribution.CommitRequest(publication) error = %v, want nil", err)
 	}
+	if got := requestCommitment.Domain(); got != distribution.SigningDomainPublicationRequestV1 {
+		t.Fatalf(
+			"distribution.CommitRequest(publication).Domain() = %v, want %v",
+			got,
+			distribution.SigningDomainPublicationRequestV1,
+		)
+	}
 	var projections [release.PublicationObjectCount]objectstore.UploadCapabilityProjection
 	var commitments [release.PublicationObjectCount]objectstore.UploadCapabilityCommitment
 	for index := range projections {
@@ -202,6 +209,50 @@ func completedPublicationDocument(
 	var document distribution.PublicationCompletionDocument
 	if err := json.Unmarshal(wire, &document); err != nil {
 		t.Fatalf("json.Unmarshal(PublicationCompletionDocument) error = %v, want nil", err)
+	}
+	documentWire, err := document.MarshalJSON()
+	if err != nil {
+		t.Fatalf("PublicationCompletionDocument.MarshalJSON() error = %v, want nil", err)
+	}
+	var documentRoundTrip distribution.PublicationCompletionDocument
+	if err := documentRoundTrip.UnmarshalJSON(documentWire); err != nil || documentRoundTrip != document {
+		t.Fatalf(
+			"PublicationCompletionDocument canonical round trip = (%v, %v), want (%v, nil)",
+			documentRoundTrip,
+			err,
+			document,
+		)
+	}
+	secondDocumentWire, err := documentRoundTrip.MarshalJSON()
+	if err != nil || !bytes.Equal(secondDocumentWire, documentWire) {
+		t.Fatalf(
+			"PublicationCompletionDocument second canonical projection = (%q, %v), want (%q, nil)",
+			secondDocumentWire,
+			err,
+			documentWire,
+		)
+	}
+	payloadWire, err := document.Payload.MarshalJSON()
+	if err != nil {
+		t.Fatalf("PublicationCompletionPayload.MarshalJSON() error = %v, want nil", err)
+	}
+	var payloadRoundTrip distribution.PublicationCompletionPayload
+	if err := payloadRoundTrip.UnmarshalJSON(payloadWire); err != nil || payloadRoundTrip != document.Payload {
+		t.Fatalf(
+			"PublicationCompletionPayload canonical round trip = (%v, %v), want (%v, nil)",
+			payloadRoundTrip,
+			err,
+			document.Payload,
+		)
+	}
+	secondPayloadWire, err := payloadRoundTrip.MarshalJSON()
+	if err != nil || !bytes.Equal(secondPayloadWire, payloadWire) {
+		t.Fatalf(
+			"PublicationCompletionPayload second canonical projection = (%q, %v), want (%q, nil)",
+			secondPayloadWire,
+			err,
+			payloadWire,
+		)
 	}
 	return document
 }
