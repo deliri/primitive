@@ -301,12 +301,12 @@ func TestHeadersLayerTriad(t *testing.T) {
 	t.Run("positive exact header and value boundaries remain typed", func(t *testing.T) {
 		t.Parallel()
 
-		values := make([]string, exchange.HeaderValueMaximumCount)
+		values := make([]exchange.HeaderValue, exchange.HeaderValueMaximumCount)
 		for index := range values {
-			values[index] = strings.Repeat(
+			values[index] = mustHeaderValue(t, strings.Repeat(
 				string(rune('a'+index%26)),
 				exchange.HeaderValueMaximumBytes,
-			)
+			))
 		}
 		headers := exchange.Headers{
 			Values: []exchange.Header{{Name: name, Values: values}},
@@ -319,6 +319,18 @@ func TestHeadersLayerTriad(t *testing.T) {
 
 	t.Run("negative duplicates framing overrides and injection are rejected", func(t *testing.T) {
 		t.Parallel()
+
+		for _, value := range []string{
+			strings.Repeat("a", exchange.HeaderValueMaximumBytes+1),
+			"safe\rinjected",
+			"safe\ninjected",
+		} {
+			got, gotErr := exchange.NewHeaderValue(value)
+			if !errors.Is(gotErr, core.ErrExchangeContract) || got != (exchange.HeaderValue{}) {
+				t.Fatalf("NewHeaderValue(%d bytes) = (%v, %v), want zero and errors.Is %v",
+					len(value), got, gotErr, core.ErrExchangeContract)
+			}
+		}
 
 		cases := []struct {
 			name    string
@@ -336,37 +348,9 @@ func TestHeadersLayerTriad(t *testing.T) {
 					Values: []exchange.Header{{
 						Name: name,
 						Values: make(
-							[]string,
+							[]exchange.HeaderValue,
 							exchange.HeaderValueMaximumCount+1,
 						),
-					}},
-				},
-			},
-			{
-				name: "one byte above the value bound is rejected",
-				headers: exchange.Headers{
-					Values: []exchange.Header{{
-						Name: name,
-						Values: []string{strings.Repeat(
-							"a",
-							exchange.HeaderValueMaximumBytes+1,
-						)},
-					}},
-				},
-			},
-			{
-				name: "carriage return injection is rejected",
-				headers: exchange.Headers{
-					Values: []exchange.Header{{
-						Name: name, Values: []string{"safe\rinjected"},
-					}},
-				},
-			},
-			{
-				name: "newline injection is rejected",
-				headers: exchange.Headers{
-					Values: []exchange.Header{{
-						Name: name, Values: []string{"safe\ninjected"},
 					}},
 				},
 			},
@@ -374,8 +358,8 @@ func TestHeadersLayerTriad(t *testing.T) {
 				name: "duplicate canonical name is rejected",
 				headers: exchange.Headers{
 					Values: []exchange.Header{
-						{Name: name, Values: []string{"a"}},
-						{Name: name, Values: []string{"b"}},
+						{Name: name, Values: []exchange.HeaderValue{mustHeaderValue(t, "a")}},
+						{Name: name, Values: []exchange.HeaderValue{mustHeaderValue(t, "b")}},
 					},
 				},
 			},
@@ -384,7 +368,7 @@ func TestHeadersLayerTriad(t *testing.T) {
 				headers: exchange.Headers{
 					Values: []exchange.Header{{
 						Name:   core.HTTPHeaderContentType(),
-						Values: []string{"text/plain"},
+						Values: []exchange.HeaderValue{mustHeaderValue(t, "text/plain")},
 					}},
 				},
 			},
@@ -393,7 +377,7 @@ func TestHeadersLayerTriad(t *testing.T) {
 				headers: exchange.Headers{
 					Values: []exchange.Header{{
 						Name:   core.HTTPHeaderContentLength(),
-						Values: []string{"1"},
+						Values: []exchange.HeaderValue{mustHeaderValue(t, "1")},
 					}},
 				},
 			},
@@ -402,7 +386,7 @@ func TestHeadersLayerTriad(t *testing.T) {
 				headers: exchange.Headers{
 					Values: []exchange.Header{{
 						Name:   core.HTTPHeaderAcceptEncoding(),
-						Values: []string{"gzip"},
+						Values: []exchange.HeaderValue{mustHeaderValue(t, "gzip")},
 					}},
 				},
 			},
@@ -411,7 +395,7 @@ func TestHeadersLayerTriad(t *testing.T) {
 				headers: exchange.Headers{
 					Values: []exchange.Header{{
 						Name:   core.HTTPHeaderContentEncoding(),
-						Values: []string{"gzip"},
+						Values: []exchange.HeaderValue{mustHeaderValue(t, "gzip")},
 					}},
 				},
 			},
@@ -420,7 +404,7 @@ func TestHeadersLayerTriad(t *testing.T) {
 				headers: exchange.Headers{
 					Values: []exchange.Header{{
 						Name:   core.HTTPHeaderIdempotencyKey(),
-						Values: []string{"other"},
+						Values: []exchange.HeaderValue{mustHeaderValue(t, "other")},
 					}},
 				},
 			},

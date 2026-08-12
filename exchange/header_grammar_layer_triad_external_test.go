@@ -47,21 +47,22 @@ func TestHTTPHeaderValueGrammarLayerTriad(t *testing.T) {
 		for _, tc := range cases {
 			t.Run(tc.name, func(t *testing.T) {
 				t.Parallel()
+				value := mustHeaderValue(t, tc.value)
 
 				request := exchange.Headers{
-					Values: []exchange.Header{{Name: name, Values: []string{tc.value}}},
+					Values: []exchange.Header{{Name: name, Values: []exchange.HeaderValue{value}}},
 				}
 				if gotErr := request.Validate(); gotErr != nil {
 					t.Fatalf("Headers.Validate() error = %v, want nil", gotErr)
 				}
 				response := exchange.ResponseHeaders{
-					Values: []exchange.Header{{Name: name, Values: []string{tc.value}}},
+					Values: []exchange.Header{{Name: name, Values: []exchange.HeaderValue{value}}},
 				}
 				if gotErr := response.Validate(); gotErr != nil {
 					t.Fatalf("ResponseHeaders.Validate() error = %v, want nil", gotErr)
 				}
 				captured := exchange.CapturedHeaders{
-					Values: []exchange.Header{{Name: name, Values: []string{tc.value}}},
+					Values: []exchange.Header{{Name: name, Values: []exchange.HeaderValue{value}}},
 				}
 				if gotErr := captured.Validate(); gotErr != nil {
 					t.Fatalf("CapturedHeaders.Validate() error = %v, want nil", gotErr)
@@ -96,33 +97,11 @@ func TestHTTPHeaderValueGrammarLayerTriad(t *testing.T) {
 			t.Run(tc.name, func(t *testing.T) {
 				t.Parallel()
 
-				request := exchange.Headers{
-					Values: []exchange.Header{{Name: name, Values: []string{tc.value}}},
-				}
-				gotErr := request.Validate()
-				if !errors.Is(gotErr, core.ErrExchangeContract) {
-					t.Fatalf("Headers.Validate() error = %v, want %v", gotErr, core.ErrExchangeContract)
-				}
-				response := exchange.ResponseHeaders{
-					Values: []exchange.Header{{Name: name, Values: []string{tc.value}}},
-				}
-				gotResponseErr := response.Validate()
-				if !errors.Is(gotResponseErr, core.ErrExchangeContract) {
+				got, gotErr := exchange.NewHeaderValue(tc.value)
+				if !errors.Is(gotErr, core.ErrExchangeContract) || got != (exchange.HeaderValue{}) {
 					t.Fatalf(
-						"ResponseHeaders.Validate() error = %v, want %v",
-						gotResponseErr,
-						core.ErrExchangeContract,
-					)
-				}
-				captured := exchange.CapturedHeaders{
-					Values: []exchange.Header{{Name: name, Values: []string{tc.value}}},
-				}
-				gotCapturedErr := captured.Validate()
-				if !errors.Is(gotCapturedErr, core.ErrExchangeContract) {
-					t.Fatalf(
-						"CapturedHeaders.Validate() error = %v, want %v",
-						gotCapturedErr,
-						core.ErrExchangeContract,
+						"NewHeaderValue(%d bytes) = (%v, %v), want zero and errors.Is %v",
+						len(tc.value), got, gotErr, core.ErrExchangeContract,
 					)
 				}
 			})
@@ -133,7 +112,7 @@ func TestHTTPHeaderValueGrammarLayerTriad(t *testing.T) {
 		t.Parallel()
 
 		captured := exchange.CapturedHeaders{
-			Values: []exchange.Header{{Name: name, Values: []string{"observed\x80"}}},
+			Values: []exchange.Header{{Name: name, Values: []exchange.HeaderValue{mustHeaderValue(t, "observed\x80")}}},
 		}
 		if gotErr := captured.Validate(); gotErr != nil {
 			t.Fatalf("CapturedHeaders.Validate() error = %v, want nil", gotErr)
@@ -172,6 +151,11 @@ func TestUntransmittableHeaderSpendsNoAttempt(t *testing.T) {
 
 	ok := mustHTTPStatus(t, http.StatusOK)
 	name := mustHeaderName(t, "X-Exchange-Trace")
+	invalid, invalidErr := exchange.NewHeaderValue("a\x00b")
+	if !errors.Is(invalidErr, core.ErrExchangeContract) || invalid != (exchange.HeaderValue{}) {
+		t.Fatalf("NewHeaderValue(NUL) = (%v, %v), want zero and errors.Is %v",
+			invalid, invalidErr, core.ErrExchangeContract)
+	}
 	got, gotErr := exchange.SendNoBodyBounded(
 		exchange.NoBodyBoundedCall{
 			Context: context.Background(),
@@ -184,7 +168,7 @@ func TestUntransmittableHeaderSpendsNoAttempt(t *testing.T) {
 				},
 				Headers: exchange.Headers{
 					Values: []exchange.Header{{
-						Name: name, Values: []string{"a\x00b"},
+						Name: name, Values: []exchange.HeaderValue{invalid},
 					}},
 				},
 				ExpectedResponseContentType: mustHTTPMediaType(t, "text/plain"),

@@ -588,7 +588,8 @@ func newAggregateHTTPRequest(
 func applyRequestHeaders(request *http.Request, headers Headers) {
 	for _, header := range headers.Values {
 		for _, value := range header.Values {
-			request.Header.Add(header.Name.String(), value)
+			wire, _ := value.Value()
+			request.Header.Add(header.Name.String(), wire)
 		}
 	}
 }
@@ -627,7 +628,14 @@ func readAggregateHTTPResponse(
 		)
 	}
 	result.status = status
-	result.headers = captureHeaders(input.response.Header, input.capture)
+	captured, err := captureHeaders(input.response.Header, input.capture)
+	if err != nil {
+		return attemptResponse{}, errors.Join(
+			responseError(err),
+			closeResponseBody(input.response.Body),
+		)
+	}
+	result.headers = captured
 	retryAfter, err := StandardHeaderRetryAfter.Name()
 	if err != nil {
 		return result, errors.Join(
@@ -804,9 +812,9 @@ func readBoundedBody(read boundedBodyRead) (data []byte, err error) {
 func captureHeaders(
 	headers http.Header,
 	selection HeaderSelection,
-) CapturedHeaders {
+) (CapturedHeaders, error) {
 	if len(selection.Names) == 0 {
-		return CapturedHeaders{}
+		return CapturedHeaders{}, nil
 	}
 	values := make([]Header, 0, len(selection.Names))
 	for _, name := range selection.Names {
@@ -814,11 +822,28 @@ func captureHeaders(
 		if len(selected) == 0 {
 			continue
 		}
+		typed, err := headerValues(selected)
+		if err != nil {
+			return CapturedHeaders{}, err
+		}
 		values = append(values, Header{
-			Name: name, Values: append([]string(nil), selected...),
+			Name: name, Values: typed,
 		})
 	}
-	return CapturedHeaders{Values: values}
+	result := CapturedHeaders{Values: values}
+	return result, result.Validate()
+}
+
+func headerValues(values []string) ([]HeaderValue, error) {
+	result := make([]HeaderValue, len(values))
+	for index, value := range values {
+		parsed, err := NewHeaderValue(value)
+		if err != nil {
+			return nil, err
+		}
+		result[index] = parsed
+	}
+	return result, nil
 }
 
 type aggregateAttemptResult struct {

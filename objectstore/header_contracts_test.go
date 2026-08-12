@@ -555,7 +555,15 @@ func capturedHeader(t testing.TB, name string, values ...string) exchange.Header
 	if err != nil {
 		t.Fatalf("headerName(%q) setup error = %v, want nil", name, err)
 	}
-	return exchange.Header{Name: parsed, Values: values}
+	typedValues := make([]exchange.HeaderValue, len(values))
+	for index, value := range values {
+		typed, typedErr := exchange.NewHeaderValue(value)
+		if typedErr != nil {
+			t.Fatalf("exchange.NewHeaderValue(%d bytes) setup error = %v, want nil", len(value), typedErr)
+		}
+		typedValues[index] = typed
+	}
+	return exchange.Header{Name: parsed, Values: typedValues}
 }
 
 func TestProviderDownloadCRC32CProjectionTable(t *testing.T) {

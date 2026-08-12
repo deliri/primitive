@@ -70,7 +70,7 @@ func TestJSONTransportLayerTriad(t *testing.T) {
 							Body: transportDocument{Message: "accepted"},
 							Headers: exchange.ResponseHeaders{
 								Values: []exchange.Header{{
-									Name: responseHeader, Values: []string{"sealed"},
+									Name: responseHeader, Values: []exchange.HeaderValue{mustHeaderValue(t, "sealed")},
 								}},
 							},
 							Status: created,
@@ -121,10 +121,16 @@ func TestJSONTransportLayerTriad(t *testing.T) {
 				created,
 			)
 		}
+		capturedValue := ""
+		var capturedValueErr error
+		if len(got.Metadata.Headers.Values) == 1 &&
+			len(got.Metadata.Headers.Values[0].Values) == 1 {
+			capturedValue, capturedValueErr = got.Metadata.Headers.Values[0].Values[0].Value()
+		}
 		if len(got.Metadata.Headers.Values) != 1 ||
 			got.Metadata.Headers.Values[0].Name != responseHeader ||
 			len(got.Metadata.Headers.Values[0].Values) != 1 ||
-			got.Metadata.Headers.Values[0].Values[0] != "sealed" {
+			capturedValueErr != nil || capturedValue != "sealed" {
 			t.Fatalf(
 				"exchange.SendJSON() captured headers = %+v, want one sealed %s",
 				got.Metadata.Headers,

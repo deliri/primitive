@@ -171,7 +171,11 @@ func NewSignedHeader(
 	name core.HTTPHeaderName,
 	value string,
 ) (SignedHeader, error) {
-	header := exchange.Header{Name: name, Values: []string{value}}
+	typedValue, err := exchange.NewHeaderValue(value)
+	if err != nil {
+		return SignedHeader{}, errors.Join(core.ErrObjectStoreContract, err)
+	}
+	header := exchange.Header{Name: name, Values: []exchange.HeaderValue{typedValue}}
 	if err := header.Validate(); err != nil {
 		return SignedHeader{}, errors.Join(core.ErrObjectStoreContract, err)
 	}

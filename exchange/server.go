@@ -675,7 +675,8 @@ func applyResponseHeaders(
 ) {
 	for _, header := range headers.Values {
 		for _, value := range header.Values {
-			destination.Add(header.Name.String(), value)
+			wire, _ := value.Value()
+			destination.Add(header.Name.String(), wire)
 		}
 	}
 }

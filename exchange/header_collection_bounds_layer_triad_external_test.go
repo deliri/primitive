@@ -34,7 +34,7 @@ func indexedHeaders(t testing.TB, count int) []exchange.Header {
 	values := make([]exchange.Header, 0, count)
 	for _, name := range indexedHeaderNames(t, count) {
 		values = append(values, exchange.Header{
-			Name: name, Values: []string{"value"},
+			Name: name, Values: []exchange.HeaderValue{mustHeaderValue(t, "value")},
 		})
 	}
 	return values
@@ -151,8 +151,8 @@ func TestHeaderCollectionBoundsLayerTriad(t *testing.T) {
 					name := mustHeaderName(t, "X-Exchange-Trace")
 					return exchange.CapturedHeaders{
 						Values: []exchange.Header{
-							{Name: name, Values: []string{"a"}},
-							{Name: name, Values: []string{"b"}},
+							{Name: name, Values: []exchange.HeaderValue{mustHeaderValue(t, "a")}},
+							{Name: name, Values: []exchange.HeaderValue{mustHeaderValue(t, "b")}},
 						},
 					}.Validate()
 				},
@@ -163,8 +163,8 @@ func TestHeaderCollectionBoundsLayerTriad(t *testing.T) {
 					name := mustHeaderName(t, "X-Exchange-Trace")
 					return exchange.ResponseHeaders{
 						Values: []exchange.Header{
-							{Name: name, Values: []string{"a"}},
-							{Name: name, Values: []string{"b"}},
+							{Name: name, Values: []exchange.HeaderValue{mustHeaderValue(t, "a")}},
+							{Name: name, Values: []exchange.HeaderValue{mustHeaderValue(t, "b")}},
 						},
 					}.Validate()
 				},
@@ -183,20 +183,6 @@ func TestHeaderCollectionBoundsLayerTriad(t *testing.T) {
 					return exchange.CapturedHeaders{
 						Values: []exchange.Header{{
 							Name: mustHeaderName(t, "X-Exchange-Trace"),
-						}},
-					}.Validate()
-				},
-			},
-			{
-				name: "a captured value above the value byte bound is refused",
-				validate: func(t testing.TB) error {
-					return exchange.CapturedHeaders{
-						Values: []exchange.Header{{
-							Name: mustHeaderName(t, "X-Exchange-Trace"),
-							Values: []string{strings.Repeat(
-								"a",
-								exchange.HeaderValueMaximumBytes+1,
-							)},
 						}},
 					}.Validate()
 				},

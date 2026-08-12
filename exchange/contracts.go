@@ -2,6 +2,7 @@ package exchange
 
 import (
 	"errors"
+	"fmt"
 	"io"
 	"net/url"
 
@@ -212,10 +213,56 @@ func (k IdempotencyKey) String() string {
 	return k.value
 }
 
+// HeaderValue is one bounded HTTP field value. It is a distinct compiler-owned
+// wire fact so callers cannot hand Exchange an unclassified string collection.
+// The empty value is valid under net/http semantics; collection cardinality is
+// owned by Header.
+type HeaderValue struct {
+	value string
+	set   bool
+}
+
+// NewHeaderValue admits one exact field value and keeps its bytes behind an
+// explicit projection boundary.
+func NewHeaderValue(value string) (HeaderValue, error) {
+	candidate := HeaderValue{value: value, set: true}
+	if err := candidate.Validate(); err != nil {
+		return HeaderValue{}, err
+	}
+	return candidate, nil
+}
+
+// Validate rejects oversized values and every byte net/http would interpret as
+// a field delimiter or control character.
+func (v HeaderValue) Validate() error {
+	if !v.set || len(v.value) > HeaderValueMaximumBytes {
+		return core.ErrExchangeContract
+	}
+	if err := core.ValidateHTTPFieldValue(v.value); err != nil {
+		return core.ErrExchangeContract
+	}
+	return nil
+}
+
+// Value explicitly projects the validated value for the net/http execution
+// leaf or for an owner interpreting captured provider metadata.
+func (v HeaderValue) Value() (string, error) {
+	if err := v.Validate(); err != nil {
+		return "", err
+	}
+	return v.value, nil
+}
+
+// Format prevents ordinary diagnostics from disclosing header values. Owners
+// must cross Value explicitly at the exact execution or interpretation leaf.
+func (HeaderValue) Format(state fmt.State, _ rune) {
+	_, _ = io.WriteString(state, core.RedactedValueText)
+}
+
 // Header is one validated field.
 type Header struct {
 	Name   core.HTTPHeaderName
-	Values []string
+	Values []HeaderValue
 }
 
 // Validate rejects invalid names, absent or excessive values, oversized
@@ -228,10 +275,7 @@ func (h Header) Validate() error {
 		return core.ErrExchangeContract
 	}
 	for _, value := range h.Values {
-		if len(value) > HeaderValueMaximumBytes {
-			return core.ErrExchangeContract
-		}
-		if err := core.ValidateHTTPFieldValue(value); err != nil {
+		if err := value.Validate(); err != nil {
 			return core.ErrExchangeContract
 		}
 	}
@@ -635,6 +679,7 @@ var (
 	_ core.OffWireEnum            = RedirectUnknown
 	_ core.Validatable            = RedirectPolicy{}
 	_ core.Validatable            = IdempotencyKey{}
+	_ core.Validatable            = HeaderValue{}
 	_ core.Validatable            = Header{}
 	_ core.Validatable            = Headers{}
 	_ core.Validatable            = HeaderSelection{}

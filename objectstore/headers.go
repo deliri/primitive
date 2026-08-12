@@ -334,7 +334,10 @@ func uploadHeaders(
 	target UploadTarget,
 	integrity Integrity,
 ) (exchange.Headers, error) {
-	headers := signedHeaders(target.Headers)
+	headers, err := signedHeaders(target.Headers)
+	if err != nil {
+		return exchange.Headers{}, err
+	}
 	checksum, err := integrity.CRC32C.Base64()
 	if err != nil {
 		return exchange.Headers{}, errors.Join(
@@ -365,7 +368,10 @@ func downloadHeaders(
 	provider Provider,
 	target DownloadTarget,
 ) (exchange.Headers, error) {
-	headers := signedHeaders(target.Headers)
+	headers, err := signedHeaders(target.Headers)
+	if err != nil {
+		return exchange.Headers{}, err
+	}
 	if provider != ProviderAmazonS3 {
 		return headers, nil
 	}
@@ -390,21 +396,30 @@ func appendProviderHeaders(
 		if err != nil {
 			return exchange.Headers{}, err
 		}
+		value, err := exchange.NewHeaderValue(header.value)
+		if err != nil {
+			return exchange.Headers{}, errors.Join(core.ErrObjectStoreContract, err)
+		}
 		headers.Values = append(headers.Values, exchange.Header{
-			Name: name, Values: []string{header.value},
+			Name: name, Values: []exchange.HeaderValue{value},
 		})
 	}
-	return headers, nil
+	return headers, headers.Validate()
 }
 
-func signedHeaders(headers SignedHeaders) exchange.Headers {
+func signedHeaders(headers SignedHeaders) (exchange.Headers, error) {
 	values := make([]exchange.Header, len(headers.values))
 	for index, header := range headers.values {
+		value, err := exchange.NewHeaderValue(header.value)
+		if err != nil {
+			return exchange.Headers{}, errors.Join(core.ErrObjectStoreContract, err)
+		}
 		values[index] = exchange.Header{
-			Name: header.name, Values: []string{header.value},
+			Name: header.name, Values: []exchange.HeaderValue{value},
 		}
 	}
-	return exchange.Headers{Values: values}
+	result := exchange.Headers{Values: values}
+	return result, result.Validate()
 }
 
 // responseSelection captures exactly the provider metadata Objectstore reads:
@@ -631,7 +646,10 @@ func uniqueCapturedValue(
 		if len(header.Values) != 1 {
 			return "", false, core.ErrObjectStoreContract
 		}
-		found = header.Values[0]
+		found, err = header.Values[0].Value()
+		if err != nil {
+			return "", false, errors.Join(core.ErrObjectStoreContract, err)
+		}
 		count++
 	}
 	if count == 0 {

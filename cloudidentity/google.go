@@ -64,11 +64,15 @@ func AcquireGoogleCloud(
 	if err != nil {
 		return Token{}, err
 	}
+	headers, err := googleMetadataHeaders(contracts.metadataHeader)
+	if err != nil {
+		return Token{}, err
+	}
 	response, err := acquire(acquisitionCall{
 		context:       ctx,
 		client:        client,
 		target:        target,
-		headers:       googleMetadataHeaders(contracts.metadataHeader),
+		headers:       headers,
 		responseLimit: contracts.responseLimit,
 		policy:        request.Policy,
 	})
@@ -78,11 +82,15 @@ func AcquireGoogleCloud(
 	return newToken(ProviderGoogleCloud, string(response.Body))
 }
 
-func googleMetadataHeaders(name core.HTTPHeaderName) exchange.Headers {
-	return exchange.Headers{Values: []exchange.Header{{
-		Name:   name,
-		Values: []string{googleMetadataHeaderValue},
+func googleMetadataHeaders(name core.HTTPHeaderName) (exchange.Headers, error) {
+	value, err := exchange.NewHeaderValue(googleMetadataHeaderValue)
+	if err != nil {
+		return exchange.Headers{}, contractError(err)
+	}
+	headers := exchange.Headers{Values: []exchange.Header{{
+		Name: name, Values: []exchange.HeaderValue{value},
 	}}}
+	return headers, headers.Validate()
 }
 
 func googleCloudTarget(

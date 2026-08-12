@@ -64,10 +64,11 @@ func ParseArguments(values []string) ([]Argument, error) {
 			return nil, err
 		}
 		projectedBytes, err = extendProjection(
-			projectedBytes,
-			uint64(len(value)),
-			ArgumentProjectionMaximumBytes,
-			"argument projection exceeds the admitted maximum",
+			projectionExtension{
+				current: projectedBytes, valueBytes: uint64(len(value)),
+				maximum:    ArgumentProjectionMaximumBytes,
+				diagnostic: "argument projection exceeds the admitted maximum",
+			},
 		)
 		if err != nil {
 			return nil, err
@@ -353,10 +354,11 @@ func ParseEffectiveEnvironment(values []string) (Environment, error) {
 		}
 		var err error
 		projectedBytes, err = extendProjection(
-			projectedBytes,
-			uint64(len(projection)),
-			EnvironmentProjectionMaximumBytes,
-			"environment projection exceeds the admitted maximum",
+			projectionExtension{
+				current: projectedBytes, valueBytes: uint64(len(projection)),
+				maximum:    EnvironmentProjectionMaximumBytes,
+				diagnostic: "environment projection exceeds the admitted maximum",
+			},
 		)
 		if err != nil {
 			return Environment{}, err
@@ -401,28 +403,40 @@ func (e Environment) Validate() error {
 	if uint64(len(e.Variables)) > uint64(EnvironmentVariableCountMaximum) {
 		return contractError(environmentVariableCountMaximumDiagnostic)
 	}
-	seen := make(map[EnvironmentName]struct{}, len(e.Variables))
 	var projectedBytes uint64
 	for _, variable := range e.Variables {
 		if err := variable.Validate(); err != nil {
 			return err
 		}
-		if _, duplicate := seen[variable.Name]; duplicate {
-			return contractError("exact environment contains a duplicate name")
-		}
-		seen[variable.Name] = struct{}{}
 		var err error
 		projectedBytes, err = extendProjection(
-			projectedBytes,
-			uint64(len(variable.Name.text()))+1+uint64(len(variable.Value.text())),
-			EnvironmentProjectionMaximumBytes,
-			"environment projection exceeds the admitted maximum",
+			projectionExtension{
+				current: projectedBytes,
+				valueBytes: uint64(len(variable.Name.text())) + 1 +
+					uint64(len(variable.Value.text())),
+				maximum:    EnvironmentProjectionMaximumBytes,
+				diagnostic: "environment projection exceeds the admitted maximum",
+			},
 		)
 		if err != nil {
 			return err
 		}
 	}
+	if environmentNamesCollapse(e.Variables) {
+		return contractError("exact environment contains a duplicate name")
+	}
 	return nil
+}
+
+// environmentNamesCollapse delegates the platform's exact environment-name
+// identity and linear last-value-wins projection to os/exec. Primitive has
+// already validated every pair and rejects any cardinality collapse rather
+// than maintaining a second map or OS naming model.
+func environmentNamesCollapse(variables []EnvironmentVariable) bool {
+	environment := Environment{Mode: EnvironmentModeExact, Variables: variables}
+	projected := environment.project()
+	command := exec.Cmd{Env: projected}
+	return len(command.Environ()) != len(projected)
 }
 
 func (e Environment) project() []string {
@@ -533,10 +547,11 @@ func validateArguments(arguments []Argument) error {
 		}
 		var err error
 		projectedBytes, err = extendProjection(
-			projectedBytes,
-			uint64(len(argument.value)),
-			ArgumentProjectionMaximumBytes,
-			"argument projection exceeds the admitted maximum",
+			projectionExtension{
+				current: projectedBytes, valueBytes: uint64(len(argument.value)),
+				maximum:    ArgumentProjectionMaximumBytes,
+				diagnostic: "argument projection exceeds the admitted maximum",
+			},
 		)
 		if err != nil {
 			return err
@@ -545,11 +560,19 @@ func validateArguments(arguments []Argument) error {
 	return nil
 }
 
-func extendProjection(current, valueBytes, maximum uint64, diagnostic string) (uint64, error) {
-	if valueBytes >= maximum || current > maximum-(valueBytes+1) {
-		return 0, contractError(diagnostic)
+type projectionExtension struct {
+	diagnostic string
+	current    uint64
+	valueBytes uint64
+	maximum    uint64
+}
+
+func extendProjection(request projectionExtension) (uint64, error) {
+	if request.valueBytes >= request.maximum ||
+		request.current > request.maximum-(request.valueBytes+1) {
+		return 0, contractError(request.diagnostic)
 	}
-	return current + valueBytes + 1, nil
+	return request.current + request.valueBytes + 1, nil
 }
 
 func (r Request) projectArguments() []string {

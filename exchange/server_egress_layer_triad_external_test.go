@@ -29,16 +29,34 @@ func TestResponseHeaderFramingOwnershipLayerTriad(t *testing.T) {
 
 	custom := mustHeaderName(t, "X-Exchange-Result")
 	other := mustHeaderName(t, "X-Exchange-Trace")
-	maximumValues := make([]string, exchange.HeaderValueMaximumCount)
+	maximumValues := make([]exchange.HeaderValue, exchange.HeaderValueMaximumCount)
 	for index := range maximumValues {
-		maximumValues[index] = "value"
+		maximumValues[index] = mustHeaderValue(t, "value")
 	}
 	maximumFields := make([]exchange.Header, 0, exchange.HeaderMaximumCount)
 	for index := range exchange.HeaderMaximumCount {
 		maximumFields = append(maximumFields, exchange.Header{
 			Name:   mustHeaderName(t, "X-Exchange-Field-"+string(rune('a'+index%26))+string(rune('a'+index/26))),
-			Values: []string{"value"},
+			Values: []exchange.HeaderValue{mustHeaderValue(t, "value")},
 		})
+	}
+	invalidCarriage, carriageErr := exchange.NewHeaderValue("sealed\rX-Injected: true")
+	invalidLineFeed, lineFeedErr := exchange.NewHeaderValue("sealed\nX-Injected: true")
+	invalidOversized, oversizedErr := exchange.NewHeaderValue(
+		strings.Repeat("v", exchange.HeaderValueMaximumBytes+1),
+	)
+	for _, result := range []struct {
+		err   error
+		value exchange.HeaderValue
+	}{
+		{value: invalidCarriage, err: carriageErr},
+		{value: invalidLineFeed, err: lineFeedErr},
+		{value: invalidOversized, err: oversizedErr},
+	} {
+		if !errors.Is(result.err, core.ErrExchangeContract) || result.value != (exchange.HeaderValue{}) {
+			t.Fatalf("NewHeaderValue(invalid) = (%v, %v), want zero and errors.Is %v",
+				result.value, result.err, core.ErrExchangeContract)
+		}
 	}
 
 	cases := []struct {
@@ -49,14 +67,14 @@ func TestResponseHeaderFramingOwnershipLayerTriad(t *testing.T) {
 		{
 			name: "one caller field is admitted",
 			headers: exchange.ResponseHeaders{Values: []exchange.Header{
-				{Name: custom, Values: []string{"sealed"}},
+				{Name: custom, Values: []exchange.HeaderValue{mustHeaderValue(t, "sealed")}},
 			}},
 		},
 		{
 			name: "two distinct caller fields are admitted",
 			headers: exchange.ResponseHeaders{Values: []exchange.Header{
-				{Name: custom, Values: []string{"sealed"}},
-				{Name: other, Values: []string{"trace"}},
+				{Name: custom, Values: []exchange.HeaderValue{mustHeaderValue(t, "sealed")}},
+				{Name: other, Values: []exchange.HeaderValue{mustHeaderValue(t, "trace")}},
 			}},
 		},
 		{
@@ -68,8 +86,8 @@ func TestResponseHeaderFramingOwnershipLayerTriad(t *testing.T) {
 		{
 			name: "the exact value size bound is admitted",
 			headers: exchange.ResponseHeaders{Values: []exchange.Header{
-				{Name: custom, Values: []string{
-					strings.Repeat("v", exchange.HeaderValueMaximumBytes),
+				{Name: custom, Values: []exchange.HeaderValue{
+					mustHeaderValue(t, strings.Repeat("v", exchange.HeaderValueMaximumBytes)),
 				}},
 			}},
 		},
@@ -86,7 +104,7 @@ func TestResponseHeaderFramingOwnershipLayerTriad(t *testing.T) {
 			headers: exchange.ResponseHeaders{Values: []exchange.Header{
 				{
 					Name:   core.HTTPHeaderContentType(),
-					Values: []string{mustHTTPMediaType(t, "text/plain").String()},
+					Values: []exchange.HeaderValue{mustHeaderValue(t, mustHTTPMediaType(t, "text/plain").String())},
 				},
 			}},
 			wantErr: core.ErrExchangeContract,
@@ -94,29 +112,29 @@ func TestResponseHeaderFramingOwnershipLayerTriad(t *testing.T) {
 		{
 			name: "Content-Length cannot be overridden by the caller",
 			headers: exchange.ResponseHeaders{Values: []exchange.Header{
-				{Name: core.HTTPHeaderContentLength(), Values: []string{"0"}},
+				{Name: core.HTTPHeaderContentLength(), Values: []exchange.HeaderValue{mustHeaderValue(t, "0")}},
 			}},
 			wantErr: core.ErrExchangeContract,
 		},
 		{
 			name: "Content-Encoding cannot mislabel identity response bytes",
 			headers: exchange.ResponseHeaders{Values: []exchange.Header{
-				{Name: core.HTTPHeaderContentEncoding(), Values: []string{"gzip"}},
+				{Name: core.HTTPHeaderContentEncoding(), Values: []exchange.HeaderValue{mustHeaderValue(t, "gzip")}},
 			}},
 			wantErr: core.ErrExchangeContract,
 		},
 		{
 			name: "a duplicate field name is refused",
 			headers: exchange.ResponseHeaders{Values: []exchange.Header{
-				{Name: custom, Values: []string{"first"}},
-				{Name: custom, Values: []string{"second"}},
+				{Name: custom, Values: []exchange.HeaderValue{mustHeaderValue(t, "first")}},
+				{Name: custom, Values: []exchange.HeaderValue{mustHeaderValue(t, "second")}},
 			}},
 			wantErr: core.ErrExchangeContract,
 		},
 		{
 			name: "an unset field name is refused",
 			headers: exchange.ResponseHeaders{Values: []exchange.Header{
-				{Values: []string{"orphan"}},
+				{Values: []exchange.HeaderValue{mustHeaderValue(t, "orphan")}},
 			}},
 			wantErr: core.ErrExchangeContract,
 		},
@@ -130,23 +148,21 @@ func TestResponseHeaderFramingOwnershipLayerTriad(t *testing.T) {
 		{
 			name: "carriage return injection is refused",
 			headers: exchange.ResponseHeaders{Values: []exchange.Header{
-				{Name: custom, Values: []string{"sealed\rX-Injected: true"}},
+				{Name: custom, Values: []exchange.HeaderValue{invalidCarriage}},
 			}},
 			wantErr: core.ErrExchangeContract,
 		},
 		{
 			name: "line feed injection is refused",
 			headers: exchange.ResponseHeaders{Values: []exchange.Header{
-				{Name: custom, Values: []string{"sealed\nX-Injected: true"}},
+				{Name: custom, Values: []exchange.HeaderValue{invalidLineFeed}},
 			}},
 			wantErr: core.ErrExchangeContract,
 		},
 		{
 			name: "one byte above the value size bound is refused",
 			headers: exchange.ResponseHeaders{Values: []exchange.Header{
-				{Name: custom, Values: []string{
-					strings.Repeat("v", exchange.HeaderValueMaximumBytes+1),
-				}},
+				{Name: custom, Values: []exchange.HeaderValue{invalidOversized}},
 			}},
 			wantErr: core.ErrExchangeContract,
 		},
@@ -154,8 +170,8 @@ func TestResponseHeaderFramingOwnershipLayerTriad(t *testing.T) {
 			name: "one above the repeated value bound is refused",
 			headers: exchange.ResponseHeaders{Values: []exchange.Header{
 				{Name: custom, Values: append(
-					append([]string(nil), maximumValues...),
-					"overflow",
+					append([]exchange.HeaderValue(nil), maximumValues...),
+					mustHeaderValue(t, "overflow"),
 				)},
 			}},
 			wantErr: core.ErrExchangeContract,
@@ -164,7 +180,7 @@ func TestResponseHeaderFramingOwnershipLayerTriad(t *testing.T) {
 			name: "one above the field count bound is refused",
 			headers: exchange.ResponseHeaders{Values: append(
 				append([]exchange.Header(nil), maximumFields...),
-				exchange.Header{Name: custom, Values: []string{"overflow"}},
+				exchange.Header{Name: custom, Values: []exchange.HeaderValue{mustHeaderValue(t, "overflow")}},
 			)},
 			wantErr: core.ErrExchangeContract,
 		},

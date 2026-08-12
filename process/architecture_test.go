@@ -37,6 +37,7 @@ func productionStructRoles() map[string]string {
 		"commandStreams":      "fixed execution stream carrier",
 		"observedReader":      "streaming input observation",
 		"preparedCommand":     "os/exec command and cancellation observation",
+		"projectionExtension": "bounded projection arithmetic request",
 		"streamFailures":      "fixed-size stream failure carrier",
 		"waitRequest":         "typed wait-phase handoff",
 	}

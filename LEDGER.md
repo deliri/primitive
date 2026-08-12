@@ -1,11 +1,50 @@
 # Primitive 2026 Ledger
 
-Last updated: `2026-08-10`
+Last updated: `2026-08-12`
 
 ## Current
 
+- published compiler-owned HTTP header values and restored structural
+  ratchets, 2026-08-12, published `v2026.0.58` in one commit. `exchange.Header`
+  no longer accepts `[]string`: each value is constructed through
+  `NewHeaderValue`, rejects an unset zero, exact extent overflow and every
+  untransmittable byte, redacts every formatting verb, and exposes bytes only
+  through the explicit execution/provider `Value` projection. Request and
+  response leaves consume the typed value; Cloudidentity and Objectstore now
+  construct their provider-owned values at their own boundary. Captured
+  external response metadata is raised into the same type before it can escape
+  Exchange, and a malformed capture closes the response while returning no
+  partial status, attempts, bytes, or headers.
+
+  The semantic fuzz oracle compares arbitrary bytes against Go's independent
+  HTTP grammar plus Exchange's compiler-owned extent, then requires exact
+  typed errors, zero refusal, exact accepted projection, enclosing Header
+  validity and five-verb redaction. A live five-second campaign executed more
+  than 335,000 cases. The first focused Core proof also caught Wiring's omitted
+  `ValidatedJSONMarshaler` witness; the witness now lives in its compiler-owned
+  inventory file. Process's own architecture ratchet then exposed a local map
+  and a four-parameter projection helper. The helper now receives one typed
+  request, and exact-environment duplicate detection delegates linear
+  last-value-wins identity to `os/exec` before refusing any cardinality
+  collapse, with no Primitive-owned environment map or quadratic scan.
+
+  Proof: the complete affected Exchange, Objectstore, Cloudidentity, Process,
+  Core, Release, Currency, Payment, ID, Temporal, and Wiring suites are clean;
+  `deadcode -test ./...`, `staticcheck ./...`, and `witness-lint ./...` are
+  clean; the repository-wide suite reached and passed every package except the
+  two Process structural red states that this same commit removed, after which
+  the complete Process suite passed.
+
+- published bounded runtime wiring proof, 2026-08-11, published
+  `v2026.0.57` in commit `4a64457`. `wiring` derives one immutable connected,
+  acyclic component graph from the actual runtime objects a command constructs
+  and binds each component to exact compiler-owned Primitive package doors.
+  Duplicate, missing, disconnected, cyclic, test-support, and invalid doors
+  fail closed before a command reports ready; defensive iteration cannot mutate
+  the stored graph.
+
 - blind customer-custody, completed-upload, authenticated distribution, and
-  provider namespace contracts, 2026-08-10, prepared as `v2026.0.56`.
+  provider namespace contracts, 2026-08-10, published as `v2026.0.56`.
   `chit` and `payment` now own device-signed all-or-specific catalog queries;
   `chitauth` and `paymentauth` bind those queries to the exact authenticated
   installation, device key, account, build, nonce, revision, and bounded page

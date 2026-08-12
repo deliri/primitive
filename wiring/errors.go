@@ -157,5 +157,3 @@ func wiringContractError[I Identity](request contractErrorRequest[I]) error {
 		PrimitiveDoor: request.primitiveDoor, Cause: request.cause,
 	}
 }
-
-var _ core.Validatable = ErrorKindUnknown

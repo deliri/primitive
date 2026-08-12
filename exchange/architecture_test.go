@@ -133,6 +133,7 @@ type exchangeContractInventory struct {
 
 	RedirectPolicy       protocolContract[RedirectPolicy]
 	IdempotencyKey       protocolContract[IdempotencyKey]
+	HeaderValue          protocolContract[HeaderValue]
 	Header               protocolContract[Header]
 	Headers              protocolContract[Headers]
 	HeaderSelection      protocolContract[HeaderSelection]

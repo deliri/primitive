@@ -311,12 +311,13 @@ func finishUploadResponse(
 			closeHTTPResponse(input.response),
 		)
 	}
+	headers, err := captureHeaders(input.response.Header, input.request.CaptureHeaders)
+	if err != nil {
+		return zero, errors.Join(responseError(err), closeHTTPResponse(input.response))
+	}
 	metadata := ResponseMetadata{
-		Status: status,
-		Headers: captureHeaders(
-			input.response.Header,
-			input.request.CaptureHeaders,
-		),
+		Status:   status,
+		Headers:  headers,
 		Bytes:    input.request.ContentLength,
 		Attempts: 1,
 	}
@@ -363,12 +364,13 @@ func finishDownloadResponse(
 			closeHTTPResponse(input.response),
 		)
 	}
+	headers, err := captureHeaders(input.response.Header, input.request.CaptureHeaders)
+	if err != nil {
+		return zero, errors.Join(responseError(err), closeHTTPResponse(input.response))
+	}
 	metadata := ResponseMetadata{
-		Status: status,
-		Headers: captureHeaders(
-			input.response.Header,
-			input.request.CaptureHeaders,
-		),
+		Status:   status,
+		Headers:  headers,
 		Attempts: 1,
 	}
 	response := StreamResponse{Metadata: metadata}
