@@ -72,7 +72,7 @@ func (t *publicationTransport) count() int {
 	return t.requests
 }
 
-func newPublicationExchangeFixture(t *testing.T) publicationExchangeFixture {
+func newPublicationExchangeFixture(t testing.TB) publicationExchangeFixture {
 	t.Helper()
 	software := newReleaseFixture(t, core.NewReleaseVersion(2026, 0, 55), 2)
 	callerKey := signingKey(71)
@@ -168,7 +168,7 @@ func newPublicationExchangeFixture(t *testing.T) publicationExchangeFixture {
 }
 
 func completedPublicationDocument(
-	t *testing.T,
+	t testing.TB,
 	fixture publicationExchangeFixture,
 	generationBase int,
 ) distribution.PublicationCompletionDocument {

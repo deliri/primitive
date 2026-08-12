@@ -20,7 +20,7 @@ type upgradeExchangeFixture struct {
 	request       distribution.UpgradeRequestPayload
 }
 
-func newUpgradeExchangeFixture(t *testing.T) upgradeExchangeFixture {
+func newUpgradeExchangeFixture(t testing.TB) upgradeExchangeFixture {
 	t.Helper()
 
 	installed := newReleaseFixture(t, core.NewReleaseVersion(2026, 0, 54), 1)

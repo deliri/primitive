@@ -29,7 +29,7 @@ type releaseFixture struct {
 }
 
 func newReleaseFixture(
-	t *testing.T,
+	t testing.TB,
 	version core.ReleaseVersion,
 	generation uint64,
 ) releaseFixture {
@@ -124,7 +124,7 @@ func newReleaseFixture(
 }
 
 func availableSummaryFixture(
-	t *testing.T,
+	t testing.TB,
 	installed releaseFixture,
 	candidate releaseFixture,
 ) release.AvailableSummary {
@@ -149,7 +149,7 @@ func availableSummaryFixture(
 }
 
 func releaseMetadataFixture(
-	t *testing.T,
+	t testing.TB,
 	version core.ReleaseVersion,
 ) (release.MetadataSet, [release.MetadataAssetCount][]byte) {
 	t.Helper()
@@ -178,7 +178,7 @@ func releaseMetadataFixture(
 	return set, payloads
 }
 
-func releaseProvenance(t *testing.T) release.BuildProvenance {
+func releaseProvenance(t testing.TB) release.BuildProvenance {
 	t.Helper()
 	goDigest := sha256.Sum256([]byte("go-tool"))
 	garbleDigest := sha256.Sum256([]byte("garble-tool"))
@@ -222,7 +222,7 @@ func releasePayload(index int, version core.ReleaseVersion) []byte {
 	return []byte("release-object-" + strconv.Itoa(index) + "-" + version.String())
 }
 
-func objectIntegrity(t *testing.T, payload []byte) objectstore.Integrity {
+func objectIntegrity(t testing.TB, payload []byte) objectstore.Integrity {
 	t.Helper()
 	digest := sha256.Sum256(payload)
 	length, err := core.NewByteLength(uint64(len(payload)))
@@ -243,7 +243,7 @@ func signingKey(seedByte byte) ed25519.PrivateKey {
 	return ed25519.NewKeyFromSeed(seed)
 }
 
-func trustedKeys(t *testing.T, key ed25519.PrivateKey) attest.TrustedKeys {
+func trustedKeys(t testing.TB, key ed25519.PrivateKey) attest.TrustedKeys {
 	t.Helper()
 	public, err := core.NewEd25519PublicKey(key.Public().(ed25519.PublicKey))
 	if err != nil {
@@ -258,7 +258,7 @@ func trustedKeys(t *testing.T, key ed25519.PrivateKey) attest.TrustedKeys {
 	return trusted
 }
 
-func requestNonce(t *testing.T, marker byte) controlwire.RequestNonce {
+func requestNonce(t testing.TB, marker byte) controlwire.RequestNonce {
 	t.Helper()
 	var raw [controlwire.NonceBytes]byte
 	for index := range raw {
@@ -271,7 +271,7 @@ func requestNonce(t *testing.T, marker byte) controlwire.RequestNonce {
 	return nonce
 }
 
-func authorityNonce(t *testing.T, marker byte) controlwire.AuthorityNonce {
+func authorityNonce(t testing.TB, marker byte) controlwire.AuthorityNonce {
 	t.Helper()
 	var raw [controlwire.NonceBytes]byte
 	for index := range raw {
@@ -285,7 +285,7 @@ func authorityNonce(t *testing.T, marker byte) controlwire.AuthorityNonce {
 }
 
 func uploadCapabilityProjection(
-	t *testing.T,
+	t testing.TB,
 	index int,
 ) (objectstore.UploadCapabilityProjection, objectstore.UploadCapability) {
 	t.Helper()
@@ -324,7 +324,7 @@ func uploadCapabilityProjection(
 }
 
 func downloadCapabilityProjection(
-	t *testing.T,
+	t testing.TB,
 	index int,
 ) (objectstore.DownloadCapabilityProjection, objectstore.DownloadCapability) {
 	t.Helper()
@@ -361,7 +361,7 @@ func downloadCapabilityProjection(
 	return projection, capability
 }
 
-func objectstoreClient(t *testing.T, transport http.RoundTripper) objectstore.Client {
+func objectstoreClient(t testing.TB, transport http.RoundTripper) objectstore.Client {
 	t.Helper()
 	client, err := exchange.NewClient(&http.Client{Transport: transport})
 	if err != nil {
@@ -374,7 +374,7 @@ func objectstoreClient(t *testing.T, transport http.RoundTripper) objectstore.Cl
 	return objectClient
 }
 
-func objectstorePolicy(t *testing.T) objectstore.Policy {
+func objectstorePolicy(t testing.TB) objectstore.Policy {
 	t.Helper()
 	operation, err := temporal.DurationFromSeconds(10)
 	if err != nil {

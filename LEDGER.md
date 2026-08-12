@@ -4,6 +4,18 @@ Last updated: `2026-08-12`
 
 ## Current
 
+- published semantic fuzz authorities for all seventeen Distribution external
+  decoder doors, 2026-08-12, published `v2026.0.65`. Sixteen targets cover the
+  closed signing-domain parse/JSON pair plus every publication request, grant,
+  completion, update request/response, upgrade request/grant, and commitment
+  decoder. Accepted signed alterations run the real Publication, Update, or
+  Upgrade verifier and must produce a typed verification/binding identity and
+  an exact zero proof. Receive-only upload/download bearers remain undisclosed
+  and are compared through their typed commitments.
+
+  Proof: sixteen live campaigns executed 86,453 cases, the Distribution suite
+  is clean, and deadcode, staticcheck, and witness-lint report zero findings.
+
 - published semantic fuzz authorities for every Retrieval and Retrievalauth
   external decoder, 2026-08-12, published `v2026.0.64`. The request payload,
   request document, request commitment, grant payload, bearer grant document,
