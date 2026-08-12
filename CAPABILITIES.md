@@ -67,6 +67,7 @@ transaction run this same stack, so a wire type has exactly one home.
 | a registration or usage check-in | `controlplane` |
 | permission to submit one declared evidence object | `submissionauth` authenticates the credentialed device request; `submission` binds the authority grant before `objectstore` transfers it |
 | reporting one completed evidence upload | `submission` signs URL-free provider evidence against the exact request and grant; `submissionauth` binds that completion to the same authenticated installation and original request |
+| emitting that credentialed completion without sender-side encode/decode | `submissionauth.AssembleCompletionProjection` binds the issue-only Submission projection directly to its installation certificate |
 | listing or selecting one custody chit | `chit` owns the signed all/specific query; `chitauth` binds its account, build, and device signature to the installation certificate |
 | listing or selecting one payment receipt | `payment` owns the signed all/specific query; `paymentauth` binds its account, build, and device signature to the installation certificate |
 | provisioning one GCS bucket | `gcsobjects.CreateBucket` with `GCSBucketCreateRequest`; namespace is a closed flat/hierarchical enum and existing buckets are typed conflicts |

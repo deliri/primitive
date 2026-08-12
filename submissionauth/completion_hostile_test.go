@@ -37,11 +37,45 @@ type authCompletionFixtureRequest struct {
 }
 
 type authCompletionFixture struct {
-	completionDocument submission.CompletionDocument
-	grant              submission.GrantDocument
-	credentialed       CompletionDocument
-	request            authFixture
-	verifiedRequest    Verified
+	completionDocument   submission.CompletionDocument
+	completionProjection submission.CompletionProjection
+	grant                submission.GrantDocument
+	credentialed         CompletionDocument
+	request              authFixture
+	verifiedRequest      Verified
+}
+
+func TestCredentialedCompletionProjectionLayerTriadBindsWithoutSenderSideDecode(t *testing.T) {
+	t.Parallel()
+
+	base := newAuthCompletionFixture(t, authCompletionFixtureRequest{})
+	projection, err := AssembleCompletionProjection(CompletionProjectionAssembly{
+		Completion: base.completionProjection, Certificate: base.request.certificate,
+	})
+	if err != nil {
+		t.Fatalf("AssembleCompletionProjection() error = %v, want nil", err)
+	}
+	encoded, err := projection.MarshalJSON()
+	if err != nil {
+		t.Fatalf("CompletionProjection.MarshalJSON() error = %v, want nil", err)
+	}
+	var got CompletionDocument
+	if err := got.UnmarshalJSON(encoded); err != nil || got != base.credentialed {
+		t.Fatalf("credentialed projection receive = (%v, %v), want exact %v and nil", got, err, base.credentialed)
+	}
+	other := newAuthCompletionFixture(t, authCompletionFixtureRequest{
+		authorityByte: 0x61, deviceByte: 0x62, nonceByte: 0x63, offering: core.OfferingBug,
+	})
+	if got, err := AssembleCompletionProjection(CompletionProjectionAssembly{
+		Completion: base.completionProjection, Certificate: other.request.certificate,
+	}); !errors.Is(err, core.ErrControlPlaneResponseBinding) || got != (CompletionProjection{}) {
+		t.Fatalf("AssembleCompletionProjection(other certificate) = (%v, %v), want zero and errors.Is %v",
+			got, err, core.ErrControlPlaneResponseBinding)
+	}
+	if got, err := AssembleCompletionProjection(CompletionProjectionAssembly{}); !errors.Is(err, core.ErrControlPlaneContract) || got != (CompletionProjection{}) {
+		t.Fatalf("AssembleCompletionProjection(zero) = (%v, %v), want zero and errors.Is %v",
+			got, err, core.ErrControlPlaneContract)
+	}
 }
 
 // TestCredentialedCompletionLayerTriadClosesEveryOffering proves that the
@@ -361,7 +395,7 @@ func newAuthCompletionFixture(t testing.TB, request authCompletionFixtureRequest
 	}
 	return authCompletionFixture{
 		request: base, verifiedRequest: verifiedRequest, grant: grant,
-		credentialed: credentialed, completionDocument: completion,
+		credentialed: credentialed, completionDocument: completion, completionProjection: projection,
 	}
 }
 

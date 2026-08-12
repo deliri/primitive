@@ -235,6 +235,15 @@ func (p CompletionProjection) Validate() error {
 	return nil
 }
 
+// Build returns the signed installed-build fact so an outer credential
+// envelope can bind the projection without decoding its own wire output.
+func (p CompletionProjection) Build() (core.BuildIdentity, error) {
+	if err := p.Validate(); err != nil {
+		return core.BuildIdentity{}, err
+	}
+	return p.payload.build, nil
+}
+
 func (p CompletionProjection) MarshalJSON() ([]byte, error) {
 	if err := p.Validate(); err != nil {
 		return nil, jsonError(err)

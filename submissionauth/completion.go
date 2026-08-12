@@ -26,9 +26,24 @@ type CompletionDocument struct {
 	Certificate controlplane.InstallationCertificateDocument `json:"certificate"`
 }
 
+// CompletionProjection is the issue-only credentialed form. It keeps the
+// inner provider evidence issue-only while binding the installation
+// certificate needed by the receiving authority.
+type CompletionProjection struct {
+	completion  submission.CompletionProjection
+	certificate controlplane.InstallationCertificateDocument
+}
+
 // CompletionAssembly binds two independently signed documents.
 type CompletionAssembly struct {
 	Completion  submission.CompletionDocument
+	Certificate controlplane.InstallationCertificateDocument
+}
+
+// CompletionProjectionAssembly binds an issue-only completion projection to
+// the installation certificate that nominates its signing device.
+type CompletionProjectionAssembly struct {
+	Completion  submission.CompletionProjection
 	Certificate controlplane.InstallationCertificateDocument
 }
 
@@ -63,6 +78,46 @@ func (d CompletionDocument) Validate() error {
 
 func (a CompletionAssembly) Validate() error {
 	return (CompletionDocument(a)).Validate()
+}
+
+func (a CompletionProjectionAssembly) Validate() error {
+	if err := errors.Join(a.Completion.Validate(), a.Certificate.Validate()); err != nil {
+		return contractError(err)
+	}
+	build, err := a.Completion.Build()
+	if err != nil || build != a.Certificate.Body.Build {
+		return bindingError()
+	}
+	return nil
+}
+
+// AssembleCompletionProjection binds one issue-only completion to one
+// installation certificate without decoding the sender's own wire document.
+func AssembleCompletionProjection(assembly CompletionProjectionAssembly) (CompletionProjection, error) {
+	if err := assembly.Validate(); err != nil {
+		return CompletionProjection{}, err
+	}
+	return CompletionProjection{completion: assembly.Completion, certificate: assembly.Certificate}, nil
+}
+
+func (p CompletionProjection) Validate() error {
+	return CompletionProjectionAssembly{Completion: p.completion, Certificate: p.certificate}.Validate()
+}
+
+func (p CompletionProjection) MarshalJSON() ([]byte, error) {
+	if err := p.Validate(); err != nil {
+		return nil, jsonError(err)
+	}
+	encoded, err := core.MarshalCanonicalJSONDocument(struct {
+		Completion  submission.CompletionProjection              `json:"completion"`
+		Certificate controlplane.InstallationCertificateDocument `json:"certificate"`
+	}{
+		Completion: p.completion, Certificate: p.certificate,
+	})
+	if err != nil || len(encoded) > CompletionDocumentJSONMaximumBytes {
+		return nil, jsonError(err)
+	}
+	return encoded, nil
 }
 
 // AssembleCompletion binds one completion to one installation certificate.
@@ -169,10 +224,13 @@ func (v VerifiedCompletion) Payload() (submission.CompletionPayload, error) {
 
 var (
 	_ core.Validatable = CompletionDocument{}
+	_ core.Validatable = CompletionProjection{}
 	_ core.Validatable = CompletionAssembly{}
+	_ core.Validatable = CompletionProjectionAssembly{}
 	_ core.Validatable = CompletionVerification{}
 	_ core.Validatable = VerifiedCompletion{}
 
 	_ core.ValidatedJSONMarshaler = CompletionDocument{}
+	_ core.ValidatedJSONMarshaler = CompletionProjection{}
 	_ json.Unmarshaler            = (*CompletionDocument)(nil)
 )
