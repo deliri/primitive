@@ -4,6 +4,21 @@ Last updated: `2026-08-12`
 
 ## Current
 
+- published complete signed Controlplane fuzz authorities, 2026-08-12,
+  published `v2026.0.60`. The five signed-document fuzz targets now seed every
+  load-bearing class named by the external-boundary contract: body facts,
+  signing domain, signer, signature, body length, body digest, request nonce,
+  account, and build. Invalid domains are derived by substituting JSON tokens
+  marshaled from the closed compiler-owned enum, never copied text. Accepted
+  structural mutations must fail the real Ed25519 verifier with a typed
+  Controlplane identity and an exact zero sealed proof; authentic canonical
+  documents must return a revalidating proof. Rejected decodes preserve the
+  prior receiver projection exactly.
+
+  Proof: all five live fuzz campaigns passed after gathering 35, 27, 95, 36,
+  and 80 baseline cases respectively, and the complete Controlplane suite is
+  clean.
+
 - published hostile external-boundary proof, 2026-08-12, published
   `v2026.0.59`. Controlplane's installation certificate, certificate body,
   registration, check-in, and check-in-response decoders now carry live fuzz

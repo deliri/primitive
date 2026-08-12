@@ -7,7 +7,11 @@ import (
 
 	"github.com/deliri/primitive/v2026/attest"
 	"github.com/deliri/primitive/v2026/controlplane"
+	"github.com/deliri/primitive/v2026/controlwire"
 	"github.com/deliri/primitive/v2026/core"
+	"github.com/deliri/primitive/v2026/lease"
+	"github.com/deliri/primitive/v2026/receipt"
+	"github.com/deliri/primitive/v2026/temporal"
 )
 
 type verificationLayerProbe struct {
@@ -151,6 +155,22 @@ func FuzzInstallationCertificateDocumentDecodeAndVerify(f *testing.F) {
 	canonical := mustCertificateJSON(f, issued.certificate)
 	f.Add(canonical)
 	f.Add(mustCertificateJSON(f, corruptCertificateDigest(issued.certificate)))
+	bodyMutation := issued.certificate
+	bodyMutation.Body.IssuedAt = testInstant(f, checkInIssuedAt+1)
+	f.Add(mustCertificateJSON(f, bodyMutation))
+	signerMutation := issued.certificate
+	signerMutation.Attestation.Signer, _ = testSigningKey(f, checkInOtherDeviceSeed)
+	f.Add(mustCertificateJSON(f, signerMutation))
+	lengthMutation := issued.certificate
+	lengthMutation.Attestation.BodyLength = incrementBodyLength(f, lengthMutation.Attestation.BodyLength)
+	f.Add(mustCertificateJSON(f, lengthMutation))
+	signatureMutation := issued.certificate
+	signatureMutation.Attestation.Signature = issued.request.Attestation.Signature
+	f.Add(mustCertificateJSON(f, signatureMutation))
+	f.Add(mutateSigningDomainSeed(f, signingDomainSeedMutation{
+		Document: canonical, From: controlplane.SigningDomainInstallationCertificateV1,
+		To: controlplane.SigningDomainRegistrationV1,
+	}))
 	addHostileControlplaneJSONSeeds(f)
 
 	f.Fuzz(func(t *testing.T, data []byte) {
@@ -175,6 +195,9 @@ func FuzzInstallationCertificateDocumentDecodeAndVerify(f *testing.F) {
 			return
 		}
 		requireControlplaneVerificationRefusal(t, verifyErr)
+		if proof != (controlplane.VerifiedInstallationCertificate{}) {
+			t.Fatalf("refused certificate proof = %v, want zero", proof)
+		}
 	})
 }
 
@@ -184,6 +207,12 @@ func FuzzInstallationCertificateBodyDecodeAndVerify(f *testing.F) {
 	f.Add(canonical)
 	foreign := issued.certificate.Body
 	foreign.IssuedAt = testInstant(f, checkInIssuedAt+1)
+	f.Add(mustCertificateBodyJSON(f, foreign))
+	foreign = issued.certificate.Body
+	foreign.Account = foreignAccount(f)
+	f.Add(mustCertificateBodyJSON(f, foreign))
+	foreign = issued.certificate.Body
+	foreign.Build = alternateBuild(f, foreign.Build)
 	f.Add(mustCertificateBodyJSON(f, foreign))
 	addHostileControlplaneJSONSeeds(f)
 
@@ -211,6 +240,9 @@ func FuzzInstallationCertificateBodyDecodeAndVerify(f *testing.F) {
 			return
 		}
 		requireControlplaneVerificationRefusal(t, verifyErr)
+		if proof != (controlplane.VerifiedInstallationCertificate{}) {
+			t.Fatalf("refused certificate body proof = %v, want zero", proof)
+		}
 	})
 }
 
@@ -221,6 +253,29 @@ func FuzzRegistrationDocumentDecodeAndVerify(f *testing.F) {
 	corrupt := issued.document
 	corrupt.Attestation.BodySHA256 = corruptDigest()
 	f.Add(mustRegistrationJSON(f, corrupt))
+	corrupt = issued.document
+	corrupt.Attestation.Signer, _ = testSigningKey(f, checkInOtherDeviceSeed)
+	f.Add(mustRegistrationJSON(f, corrupt))
+	corrupt = issued.document
+	corrupt.Attestation.BodyLength = incrementBodyLength(f, corrupt.Attestation.BodyLength)
+	f.Add(mustRegistrationJSON(f, corrupt))
+	corrupt = issued.document
+	corrupt.Attestation.Signature = corrupt.Payload.Certificate.Attestation.Signature
+	f.Add(mustRegistrationJSON(f, corrupt))
+	corrupt = issued.document
+	corrupt.Payload.Header.RequestNonce = otherRequestNonce(f)
+	f.Add(mustRegistrationJSON(f, corrupt))
+	corrupt = cloneRegistrationDocument(issued.document)
+	corrupt.Payload.Header.Account = foreignAccount(f)
+	corrupt.Payload.Certificate.Body.Account = corrupt.Payload.Header.Account
+	f.Add(mustRegistrationJSON(f, corrupt))
+	corrupt = cloneRegistrationDocument(issued.document)
+	corrupt.Payload.Certificate.Body.Build = alternateBuild(f, corrupt.Payload.Certificate.Body.Build)
+	f.Add(mustRegistrationJSON(f, corrupt))
+	f.Add(mutateSigningDomainSeed(f, signingDomainSeedMutation{
+		Document: canonical, From: controlplane.SigningDomainRegistrationV1,
+		To: controlplane.SigningDomainCheckInResponseV1,
+	}))
 	addHostileControlplaneJSONSeeds(f)
 
 	f.Fuzz(func(t *testing.T, data []byte) {
@@ -246,6 +301,9 @@ func FuzzRegistrationDocumentDecodeAndVerify(f *testing.F) {
 			return
 		}
 		requireControlplaneVerificationRefusal(t, verifyErr)
+		if proof != (controlplane.VerifiedRegistration{}) {
+			t.Fatalf("refused registration proof = %v, want zero", proof)
+		}
 	})
 }
 
@@ -256,6 +314,26 @@ func FuzzCheckInRequestDecodeAndVerify(f *testing.F) {
 	corrupt := issued.request
 	corrupt.Attestation.BodySHA256 = corruptDigest()
 	f.Add(mustCheckInJSON(f, corrupt))
+	corrupt = issued.request
+	corrupt.Attestation.Signer, _ = testSigningKey(f, checkInOtherDeviceSeed)
+	f.Add(mustCheckInJSON(f, corrupt))
+	corrupt = issued.request
+	corrupt.Attestation.BodyLength = incrementBodyLength(f, corrupt.Attestation.BodyLength)
+	f.Add(mustCheckInJSON(f, corrupt))
+	corrupt = issued.request
+	corrupt.Attestation.Signature = corrupt.Certificate.Attestation.Signature
+	f.Add(mustCheckInJSON(f, corrupt))
+	corrupt = issued.request
+	corrupt.Payload.RequestNonce = otherRequestNonce(f)
+	f.Add(mustCheckInJSON(f, corrupt))
+	corrupt = issued.request
+	corrupt.Payload.Build = alternateBuild(f, corrupt.Payload.Build)
+	corrupt.Certificate.Body.Build = corrupt.Payload.Build
+	f.Add(mustCheckInJSON(f, corrupt))
+	f.Add(mutateSigningDomainSeed(f, signingDomainSeedMutation{
+		Document: canonical, From: controlplane.SigningDomainCheckInV1,
+		To: controlplane.SigningDomainRegistrationV1,
+	}))
 	addHostileControlplaneJSONSeeds(f)
 
 	f.Fuzz(func(t *testing.T, data []byte) {
@@ -281,6 +359,7 @@ func FuzzCheckInRequestDecodeAndVerify(f *testing.F) {
 			return
 		}
 		requireControlplaneVerificationRefusal(t, verifyErr)
+		requireZeroVerifiedCheckIn(t, proof)
 	})
 }
 
@@ -291,6 +370,25 @@ func FuzzCheckInResponseDocumentDecodeAndVerify(f *testing.F) {
 	corrupt := issued.document
 	corrupt.Attestation.BodySHA256 = corruptDigest()
 	f.Add(mustCheckInResponseJSON(f, corrupt))
+	corrupt = issued.document
+	corrupt.Attestation.Signer, _ = testSigningKey(f, checkInOtherDeviceSeed)
+	f.Add(mustCheckInResponseJSON(f, corrupt))
+	corrupt = issued.document
+	corrupt.Attestation.BodyLength = incrementBodyLength(f, corrupt.Attestation.BodyLength)
+	f.Add(mustCheckInResponseJSON(f, corrupt))
+	corrupt = issued.document
+	corrupt.Attestation.Signature = corrupt.Payload.Lease.Attestation.Signature
+	f.Add(mustCheckInResponseJSON(f, corrupt))
+	corrupt = issued.document
+	corrupt.Payload.Header.RequestNonce = otherRequestNonce(f)
+	f.Add(mustCheckInResponseJSON(f, corrupt))
+	corrupt = issued.document
+	corrupt.Payload.Header.Account = foreignAccount(f)
+	f.Add(mustCheckInResponseJSON(f, corrupt))
+	f.Add(mutateSigningDomainSeed(f, signingDomainSeedMutation{
+		Document: canonical, From: controlplane.SigningDomainCheckInResponseV1,
+		To: controlplane.SigningDomainCheckInV1,
+	}))
 	addHostileControlplaneJSONSeeds(f)
 
 	f.Fuzz(func(t *testing.T, data []byte) {
@@ -316,6 +414,9 @@ func FuzzCheckInResponseDocumentDecodeAndVerify(f *testing.F) {
 			return
 		}
 		requireControlplaneVerificationRefusal(t, verifyErr)
+		if proof != (controlplane.VerifiedCheckInResponse{}) {
+			t.Fatalf("refused check-in response proof = %v, want zero", proof)
+		}
 	})
 }
 
@@ -327,8 +428,78 @@ func corruptDigest() core.SHA256Digest {
 	return core.NewSHA256Digest(value)
 }
 
+type signingDomainSeedMutation struct {
+	Document []byte
+	From     controlplane.SigningDomain
+	To       controlplane.SigningDomain
+}
+
+func mutateSigningDomainSeed(t testing.TB, request signingDomainSeedMutation) []byte {
+	t.Helper()
+	from, fromErr := request.From.MarshalJSON()
+	to, toErr := request.To.MarshalJSON()
+	if fromErr != nil || toErr != nil {
+		t.Fatalf("SigningDomain seed projections error = %v, want nil", errors.Join(fromErr, toErr))
+	}
+	if count := bytes.Count(request.Document, from); count != 1 {
+		t.Fatalf("signed document source domain occurrences = %d, want 1", count)
+	}
+	return bytes.Replace(request.Document, from, to, 1)
+}
+
+func incrementBodyLength(t testing.TB, current core.ByteCount) core.ByteCount {
+	t.Helper()
+	value, err := current.Uint64()
+	if err != nil {
+		t.Fatalf("attestation BodyLength.Uint64() error = %v, want nil", err)
+	}
+	incremented, err := core.NewByteCount(value + 1)
+	if err != nil {
+		t.Fatalf("NewByteCount(body length + 1) error = %v, want nil", err)
+	}
+	return incremented
+}
+
+func alternateBuild(t testing.TB, current core.BuildIdentity) core.BuildIdentity {
+	t.Helper()
+	version := core.NewReleaseVersion(9, 9, 9)
+	comparison, err := version.Compare(current.Version())
+	if err != nil {
+		t.Fatalf("alternate ReleaseVersion.Compare(current) error = %v, want nil", err)
+	}
+	if comparison == core.ComparisonEqual {
+		version = core.NewReleaseVersion(9, 9, 8)
+	}
+	alternate, err := core.NewBuildIdentity(core.BuildIdentityRequest{
+		Offering: current.Offering(), Version: version,
+		Commit: current.Commit(), Platform: current.Platform(),
+	})
+	if err != nil {
+		t.Fatalf("NewBuildIdentity(alternate version) error = %v, want nil", err)
+	}
+	return alternate
+}
+
+func foreignAccount(t testing.TB) receipt.AccountIdentity {
+	t.Helper()
+	account, err := receipt.ParseAccountIdentity(checkInResponseOtherAccountHex)
+	if err != nil {
+		t.Fatalf("ParseAccountIdentity(foreign) error = %v, want nil", err)
+	}
+	return account
+}
+
 func corruptCertificateDigest(document controlplane.InstallationCertificateDocument) controlplane.InstallationCertificateDocument {
 	document.Attestation.BodySHA256 = corruptDigest()
+	return document
+}
+
+func cloneRegistrationDocument(document controlplane.RegistrationDocument) controlplane.RegistrationDocument {
+	if document.Payload.Certificate == nil {
+		return document
+	}
+	certificate := *document.Payload.Certificate
+	document.Payload.Certificate = &certificate
 	return document
 }
 
@@ -359,6 +530,25 @@ func requireControlplaneVerificationRefusal(t *testing.T, err error) {
 	t.Helper()
 	if !errors.Is(err, core.ErrControlPlaneContract) {
 		t.Fatalf("verification error = %v, want %v", err, core.ErrControlPlaneContract)
+	}
+}
+
+func requireZeroVerifiedCheckIn(t *testing.T, proof controlplane.VerifiedCheckIn) {
+	t.Helper()
+	request, err := proof.Request()
+	if !errors.Is(err, core.ErrControlPlaneContract) {
+		t.Fatalf("refused check-in proof Request() error = %v, want %v", err, core.ErrControlPlaneContract)
+	}
+	payload := request.Payload
+	if payload.Window.Units != nil || payload.Window.Outcomes != nil ||
+		payload.Window.Bounds != (temporal.IntervalBounds{}) || payload.Window.Freshness != (temporal.Instant{}) ||
+		payload.PreviousWatermark != (controlplane.UsageWatermark{}) || payload.LeaseGeneration != (lease.Generation{}) ||
+		payload.Build != (core.BuildIdentity{}) || payload.Revision != controlwire.Revision(0) ||
+		payload.RequestNonce != (controlwire.RequestNonce{}) || payload.Installation != (lease.DeviceID{}) ||
+		payload.AppliedPolicy != (controlwire.PolicyCursor{}) ||
+		request.Certificate != (controlplane.InstallationCertificateDocument{}) ||
+		request.Attestation != (attest.Envelope[controlplane.SigningDomain]{}) {
+		t.Fatalf("refused check-in proof Request() = %+v, want exact zero request", request)
 	}
 }
 
