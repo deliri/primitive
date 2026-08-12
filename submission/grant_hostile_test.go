@@ -199,6 +199,26 @@ func testDeclaration(t testing.TB, content []byte) Declaration {
 	}
 }
 
+func testBuildIdentity(t testing.TB, request core.BuildIdentityRequest) core.BuildIdentity {
+	t.Helper()
+
+	identity, err := core.NewBuildIdentity(request)
+	if err != nil {
+		t.Fatalf("core.NewBuildIdentity() error = %v, want nil", err)
+	}
+	return identity
+}
+
+func testByteLength(t testing.TB, value uint64) core.ByteLength {
+	t.Helper()
+
+	extent, err := core.NewByteLength(value)
+	if err != nil {
+		t.Fatalf("core.NewByteLength(%d) error = %v, want nil", value, err)
+	}
+	return extent
+}
+
 func testCapabilityProjection(
 	t testing.TB,
 	objectName string,
@@ -298,47 +318,210 @@ func TestGrantVerificationLayerTriadRefusesEveryNearMissOfItsExactRequest(t *tes
 	t.Parallel()
 
 	fixture := newGrantFixture(t, grantFixtureRequest{})
+	otherMediaType, err := core.ParseHTTPMediaType("application/octet-stream")
+	if err != nil {
+		t.Fatalf("core.ParseHTTPMediaType() error = %v, want nil", err)
+	}
+	otherUpload, err := ParseUploadID("00000000-0006-7000-8000-000000000006")
+	if err != nil {
+		t.Fatalf("ParseUploadID() error = %v, want nil", err)
+	}
+	otherCollection, err := chit.ParseCollectionID("00000000-0007-7000-8000-000000000007")
+	if err != nil {
+		t.Fatalf("chit.ParseCollectionID() error = %v, want nil", err)
+	}
+	otherName, err := chit.ParseEntryName("other.json")
+	if err != nil {
+		t.Fatalf("chit.ParseEntryName() error = %v, want nil", err)
+	}
+	otherObjectCount, err := chit.NewObjectCount(2)
+	if err != nil {
+		t.Fatalf("chit.NewObjectCount() error = %v, want nil", err)
+	}
+	otherCommit, err := core.ParseBuildCommit(strings.Repeat("b", 40))
+	if err != nil {
+		t.Fatalf("core.ParseBuildCommit() error = %v, want nil", err)
+	}
+	baseBuild := fixture.request.Build
+	otherVersion := testBuildIdentity(t, core.BuildIdentityRequest{
+		Version: core.NewReleaseVersion(2026, 0, 54), Commit: baseBuild.Commit(),
+		Platform: baseBuild.Platform(), Offering: baseBuild.Offering(),
+	})
+	otherBuildCommit := testBuildIdentity(t, core.BuildIdentityRequest{
+		Version: baseBuild.Version(), Commit: otherCommit,
+		Platform: baseBuild.Platform(), Offering: baseBuild.Offering(),
+	})
+	otherOperatingSystem := testBuildIdentity(t, core.BuildIdentityRequest{
+		Version: baseBuild.Version(), Commit: baseBuild.Commit(),
+		Platform: core.Platform{
+			OperatingSystem: core.OperatingSystemLinux,
+			Architecture:    baseBuild.Platform().Architecture,
+		},
+		Offering: baseBuild.Offering(),
+	})
+	otherArchitecture := testBuildIdentity(t, core.BuildIdentityRequest{
+		Version: baseBuild.Version(), Commit: baseBuild.Commit(),
+		Platform: core.Platform{
+			OperatingSystem: baseBuild.Platform().OperatingSystem,
+			Architecture:    core.CPUArchitectureAMD64,
+		},
+		Offering: baseBuild.Offering(),
+	})
+	otherOffering := testBuildIdentity(t, core.BuildIdentityRequest{
+		Version: baseBuild.Version(), Commit: baseBuild.Commit(),
+		Platform: baseBuild.Platform(), Offering: core.OfferingBug,
+	})
+	otherNonce := testRequestPayload(t, grantFixtureRequest{requestNonceByte: 0x32}).Nonce
+	shorterExtent := testByteLength(t, fixture.request.Declaration.Extent.Uint64()-1)
+	longerExtent := testByteLength(t, fixture.request.Declaration.Extent.Uint64()+1)
 	cases := []struct {
-		name    string
-		request RequestPayload
+		name   string
+		mutate func(RequestPayload) RequestPayload
 	}{
 		{
-			name: "different content integrity and extent",
-			request: testRequestPayload(t, grantFixtureRequest{
-				content: []byte(`{"proof":"other"}`), offering: core.OfferingWitness,
-				requestNonceByte: 0x31,
-			}),
+			name: "content media type",
+			mutate: func(value RequestPayload) RequestPayload {
+				value.Declaration.ContentType = otherMediaType
+				return value
+			},
 		},
 		{
-			name: "different offering",
-			request: testRequestPayload(t, grantFixtureRequest{
-				content: []byte(`{"proof":"source-free"}`), offering: core.OfferingBug,
-				requestNonceByte: 0x31,
-			}),
+			name: "content extent one byte below",
+			mutate: func(value RequestPayload) RequestPayload {
+				value.Declaration.Extent = shorterExtent
+				return value
+			},
 		},
 		{
-			name: "different request nonce",
-			request: testRequestPayload(t, grantFixtureRequest{
-				content: []byte(`{"proof":"source-free"}`), offering: core.OfferingWitness,
-				requestNonceByte: 0x32,
-			}),
+			name: "content extent one byte above",
+			mutate: func(value RequestPayload) RequestPayload {
+				value.Declaration.Extent = longerExtent
+				return value
+			},
+		},
+		{
+			name: "content SHA-256",
+			mutate: func(value RequestPayload) RequestPayload {
+				value.Declaration.SHA256 = core.SHA256Of([]byte("other exact content"))
+				return value
+			},
+		},
+		{
+			name: "content CRC32C",
+			mutate: func(value RequestPayload) RequestPayload {
+				value.Declaration.CRC32C = core.NewCRC32C(1)
+				return value
+			},
+		},
+		{
+			name: "manifest upload identity",
+			mutate: func(value RequestPayload) RequestPayload {
+				value.Manifest.Upload = otherUpload
+				return value
+			},
+		},
+		{
+			name: "manifest collection identity",
+			mutate: func(value RequestPayload) RequestPayload {
+				value.Manifest.Collection = otherCollection
+				return value
+			},
+		},
+		{
+			name: "manifest entry name",
+			mutate: func(value RequestPayload) RequestPayload {
+				value.Manifest.Name = otherName
+				return value
+			},
+		},
+		{
+			name: "manifest object count",
+			mutate: func(value RequestPayload) RequestPayload {
+				value.Manifest.Objects = otherObjectCount
+				return value
+			},
+		},
+		{
+			name: "build release version",
+			mutate: func(value RequestPayload) RequestPayload {
+				value.Build = otherVersion
+				return value
+			},
+		},
+		{
+			name: "build commit",
+			mutate: func(value RequestPayload) RequestPayload {
+				value.Build = otherBuildCommit
+				return value
+			},
+		},
+		{
+			name: "build operating system",
+			mutate: func(value RequestPayload) RequestPayload {
+				value.Build = otherOperatingSystem
+				return value
+			},
+		},
+		{
+			name: "build architecture",
+			mutate: func(value RequestPayload) RequestPayload {
+				value.Build = otherArchitecture
+				return value
+			},
+		},
+		{
+			name: "build offering",
+			mutate: func(value RequestPayload) RequestPayload {
+				value.Build = otherOffering
+				return value
+			},
+		},
+		{
+			name: "request nonce",
+			mutate: func(value RequestPayload) RequestPayload {
+				value.Nonce = otherNonce
+				return value
+			},
 		},
 	}
 	for _, tc := range cases {
 		t.Run(tc.name, func(t *testing.T) {
 			t.Parallel()
 
-			if err := tc.request.Validate(); err != nil {
+			request := tc.mutate(fixture.request)
+			if err := request.Validate(); err != nil {
 				t.Fatalf("near-miss RequestPayload.Validate() error = %v, want nil", err)
 			}
+			commitment, err := CommitRequest(request)
+			if err != nil {
+				t.Fatalf("CommitRequest(near miss) error = %v, want nil", err)
+			}
+			if commitment == fixture.payload.Request {
+				t.Fatalf("CommitRequest(near miss) = %v, want distinct from issued %v",
+					commitment, fixture.payload.Request)
+			}
 			verified, err := VerifyGrant(GrantExpectation{
-				Document: fixture.document, Request: tc.request,
+				Document: fixture.document, Request: request,
 				ObservedAt:  temporal.InstantFromNanoseconds(testGrantIssuedAt),
 				TrustedKeys: fixture.trusted,
 			})
 			if !errors.Is(err, core.ErrControlPlaneResponseBinding) {
-				t.Fatalf("VerifyGrant(near miss) = (%v, %v), want zero and errors.Is %v",
-					verified, err, core.ErrControlPlaneResponseBinding)
+				t.Fatalf("VerifyGrant(near miss) error = %v, want errors.Is %v",
+					err, core.ErrControlPlaneResponseBinding)
+			}
+			if err := verified.Validate(); !errors.Is(err, core.ErrControlPlaneContract) {
+				t.Fatalf("rejected VerifiedGrant.Validate() error = %v, want errors.Is %v",
+					err, core.ErrControlPlaneContract)
+			}
+			payload, payloadErr := verified.Payload()
+			if payload != (GrantPayload{}) || !errors.Is(payloadErr, core.ErrControlPlaneContract) {
+				t.Fatalf("rejected VerifiedGrant.Payload() = (%v, %v), want zero and errors.Is %v",
+					payload, payloadErr, core.ErrControlPlaneContract)
+			}
+			capability, capabilityErr := verified.Capability()
+			if !capability.IsZero() || !errors.Is(capabilityErr, core.ErrControlPlaneContract) {
+				t.Fatalf("rejected VerifiedGrant.Capability() zero = %t, error = %v, want true and errors.Is %v",
+					capability.IsZero(), capabilityErr, core.ErrControlPlaneContract)
 			}
 		})
 	}
