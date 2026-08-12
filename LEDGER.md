@@ -4,6 +4,21 @@ Last updated: `2026-08-12`
 
 ## Current
 
+- published ordinary-CI execution for the complete authenticated GCS object
+  lifecycle, 2026-08-12, published `v2026.0.66`. The official SDK constructor,
+  exact create-only media and file uploads, provider metadata read-back,
+  bounded integrity-bound reads, exact generation-safe deletion, and client
+  close lifecycle now execute against a bounded hostile provider. Three
+  ten-case tables pressure empty, one-byte, short, exact, and long sources;
+  digest and CRC mismatch; provider absence, conflict, and refusal; destination
+  failure; soft-delete ambiguity; generation corruption; and post-delete
+  reappearance.
+
+  Proof: package statement coverage rose from 54.4 percent to 83.9 percent;
+  every previously unexecuted customer-byte effect leaf now measures between
+  66.7 and 100 percent, and deadcode, staticcheck, and witness-lint report zero
+  findings.
+
 - published semantic fuzz authorities for all seventeen Distribution external
   decoder doors, 2026-08-12, published `v2026.0.65`. Sixteen targets cover the
   closed signing-domain parse/JSON pair plus every publication request, grant,
