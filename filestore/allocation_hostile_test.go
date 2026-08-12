@@ -24,27 +24,27 @@ func TestAllocationSeparatesReportedFactsFromFabrication(t *testing.T) {
 		name         string
 		allocation   Allocation
 		wantBytes    uint64
-		wantErr      bool
+		wantErr      error
 		wantReported bool
-		wantBytesErr bool
+		wantBytesErr error
 	}{
 		{
 			name:         "the zero value is an honest unreported observation",
 			allocation:   Allocation{},
 			wantReported: false,
-			wantBytesErr: true,
+			wantBytesErr: core.ErrFilestoreContract,
 		},
 		{
 			name:         "an unreported allocation claiming one byte is a fabrication",
 			allocation:   Allocation{bytes: requireByteLength(t, 1)},
-			wantErr:      true,
-			wantBytesErr: true,
+			wantErr:      core.ErrFilestoreContract,
+			wantBytesErr: core.ErrFilestoreContract,
 		},
 		{
 			name:         "an unreported allocation claiming the ceiling is a fabrication",
 			allocation:   Allocation{bytes: requireByteLength(t, math.MaxInt64)},
-			wantErr:      true,
-			wantBytesErr: true,
+			wantErr:      core.ErrFilestoreContract,
+			wantBytesErr: core.ErrFilestoreContract,
 		},
 		{
 			name:         "a reported hole holds zero bytes",
@@ -69,19 +69,19 @@ func TestAllocationSeparatesReportedFactsFromFabrication(t *testing.T) {
 		t.Run(tc.name, func(t *testing.T) {
 			t.Parallel()
 			err := tc.allocation.Validate()
-			if gotErr := err != nil; gotErr != tc.wantErr {
-				t.Fatalf("Allocation.Validate() error = %v, wantErr %t", err, tc.wantErr)
+			if !errors.Is(err, tc.wantErr) {
+				t.Fatalf("Allocation.Validate() error = %v, want %v", err, tc.wantErr)
 			}
-			if got := tc.allocation.Reported(); got != tc.wantReported && !tc.wantErr {
+			if got := tc.allocation.Reported(); got != tc.wantReported && tc.wantErr == nil {
 				t.Fatalf("Allocation.Reported() = %t, want %t", got, tc.wantReported)
 			}
 			bytes, bytesErr := tc.allocation.Bytes()
-			if gotErr := bytesErr != nil; gotErr != tc.wantBytesErr {
-				t.Fatalf("Allocation.Bytes() error = %v, wantErr %t", bytesErr, tc.wantBytesErr)
+			if !errors.Is(bytesErr, tc.wantBytesErr) {
+				t.Fatalf("Allocation.Bytes() error = %v, want %v", bytesErr, tc.wantBytesErr)
 			}
-			if tc.wantBytesErr {
-				if !errors.Is(bytesErr, core.ErrFilestoreContract) {
-					t.Fatalf("Allocation.Bytes() error = %v, want %v", bytesErr, core.ErrFilestoreContract)
+			if tc.wantBytesErr != nil {
+				if bytes != (core.ByteLength{}) {
+					t.Fatalf("Allocation.Bytes() = %v, want zero bytes on rejection", bytes)
 				}
 				return
 			}

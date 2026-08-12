@@ -25,27 +25,29 @@ func TestRandomTokenRequestAdmitsOnlyBoundedSizes(t *testing.T) {
 	cases := []struct {
 		name    string
 		size    uint64
-		wantErr bool
+		wantErr error
 	}{
 		{name: "one byte is the smallest token", size: 1},
 		{name: "two bytes sit one above the floor", size: 2},
 		{name: "a sixteen byte nonce is admitted", size: 16},
+		{name: "the midpoint is admitted", size: keygen.RandomTokenMaximumBytes / 2},
+		{name: "two below the ceiling is admitted", size: keygen.RandomTokenMaximumBytes - 2},
 		{name: "the ceiling is admitted", size: keygen.RandomTokenMaximumBytes},
 		{name: "one below the ceiling is admitted", size: keygen.RandomTokenMaximumBytes - 1},
-		{name: "one above the ceiling is rejected", size: keygen.RandomTokenMaximumBytes + 1, wantErr: true},
-		{name: "far above the ceiling is rejected", size: 4096, wantErr: true},
-		{name: "the maximum representable count is rejected", size: math.MaxUint64, wantErr: true},
+		{name: "one above the ceiling is rejected", size: keygen.RandomTokenMaximumBytes + 1, wantErr: core.ErrKeygenContract},
+		{name: "far above the ceiling is rejected", size: 4096, wantErr: core.ErrKeygenContract},
+		{name: "the maximum representable count is rejected", size: math.MaxUint64, wantErr: core.ErrKeygenContract},
 	}
 	for _, tc := range cases {
 		t.Run(tc.name, func(t *testing.T) {
 			t.Parallel()
 			request := keygen.RandomTokenRequest{Size: requireByteCount(t, tc.size)}
 			err := request.Validate()
-			if gotErr := err != nil; gotErr != tc.wantErr {
-				t.Fatalf("RandomTokenRequest{%d}.Validate() error = %v, wantErr %t", tc.size, err, tc.wantErr)
+			if tc.wantErr == nil && err != nil {
+				t.Fatalf("RandomTokenRequest{%d}.Validate() error = %v, want nil", tc.size, err)
 			}
-			if tc.wantErr && !errors.Is(err, core.ErrKeygenContract) {
-				t.Fatalf("RandomTokenRequest{%d}.Validate() error = %v, want %v", tc.size, err, core.ErrKeygenContract)
+			if tc.wantErr != nil && !errors.Is(err, tc.wantErr) {
+				t.Fatalf("RandomTokenRequest{%d}.Validate() error = %v, want errors.Is %v", tc.size, err, tc.wantErr)
 			}
 		})
 	}

@@ -16,28 +16,28 @@ func TestParseLiteralPolicyExhaustsCanonicalAndHostileLabels(t *testing.T) {
 		name    string
 		value   string
 		want    garble.LiteralPolicy
-		wantErr bool
+		wantErr error
 	}{
 		{name: "preserve label is accepted", value: garble.LiteralPolicyPreserve.String(), want: garble.LiteralPolicyPreserve},
 		{name: "obfuscate label is accepted", value: garble.LiteralPolicyObfuscate.String(), want: garble.LiteralPolicyObfuscate},
-		{name: "empty label is rejected", wantErr: true},
-		{name: "unknown diagnostic is rejected", value: core.UnknownEnumDiagnostic, wantErr: true},
-		{name: "uppercase preserve is rejected", value: "PRESERVE", wantErr: true},
-		{name: "uppercase obfuscate is rejected", value: "OBFUSCATE", wantErr: true},
-		{name: "leading whitespace is rejected", value: " preserve", wantErr: true},
-		{name: "trailing whitespace is rejected", value: "obfuscate ", wantErr: true},
-		{name: "hyphenated label is rejected", value: "ob-fuscate", wantErr: true},
-		{name: "numeric ordinal is rejected", value: "1", wantErr: true},
-		{name: "embedded nul is rejected", value: "pre\x00serve", wantErr: true},
-		{name: "oversized lookalike is rejected", value: strings.Repeat("preserve", 128), wantErr: true},
+		{name: "empty label is rejected", wantErr: core.ErrGarbleContract},
+		{name: "unknown diagnostic is rejected", value: core.UnknownEnumDiagnostic, wantErr: core.ErrGarbleContract},
+		{name: "uppercase preserve is rejected", value: "PRESERVE", wantErr: core.ErrGarbleContract},
+		{name: "uppercase obfuscate is rejected", value: "OBFUSCATE", wantErr: core.ErrGarbleContract},
+		{name: "leading whitespace is rejected", value: " preserve", wantErr: core.ErrGarbleContract},
+		{name: "trailing whitespace is rejected", value: "obfuscate ", wantErr: core.ErrGarbleContract},
+		{name: "hyphenated label is rejected", value: "ob-fuscate", wantErr: core.ErrGarbleContract},
+		{name: "numeric ordinal is rejected", value: "1", wantErr: core.ErrGarbleContract},
+		{name: "embedded nul is rejected", value: "pre\x00serve", wantErr: core.ErrGarbleContract},
+		{name: "oversized lookalike is rejected", value: strings.Repeat("preserve", 128), wantErr: core.ErrGarbleContract},
 	}
 	for _, tc := range cases {
 		t.Run(tc.name, func(t *testing.T) {
 			t.Parallel()
 
 			got, gotErr := garble.ParseLiteralPolicy(tc.value)
-			if tc.wantErr {
-				if !errors.Is(gotErr, core.ErrGarbleContract) {
+			if tc.wantErr != nil {
+				if !errors.Is(gotErr, tc.wantErr) {
 					t.Fatalf("garble.ParseLiteralPolicy(%q) error = %v, want %v", tc.value, gotErr, core.ErrGarbleContract)
 				}
 				if got != garble.LiteralPolicyUnknown {
@@ -59,28 +59,28 @@ func TestParseDiagnosticPolicyExhaustsCanonicalAndHostileLabels(t *testing.T) {
 		name    string
 		value   string
 		want    garble.DiagnosticPolicy
-		wantErr bool
+		wantErr error
 	}{
 		{name: "preserve label is accepted", value: garble.DiagnosticPolicyPreserve.String(), want: garble.DiagnosticPolicyPreserve},
 		{name: "strip label is accepted", value: garble.DiagnosticPolicyStrip.String(), want: garble.DiagnosticPolicyStrip},
-		{name: "empty label is rejected", wantErr: true},
-		{name: "unknown diagnostic is rejected", value: core.UnknownEnumDiagnostic, wantErr: true},
-		{name: "uppercase preserve is rejected", value: "PRESERVE", wantErr: true},
-		{name: "uppercase strip is rejected", value: "STRIP", wantErr: true},
-		{name: "leading whitespace is rejected", value: " preserve", wantErr: true},
-		{name: "trailing whitespace is rejected", value: "strip ", wantErr: true},
-		{name: "hyphenated label is rejected", value: "str-ip", wantErr: true},
-		{name: "numeric ordinal is rejected", value: "2", wantErr: true},
-		{name: "embedded nul is rejected", value: "st\x00rip", wantErr: true},
-		{name: "oversized lookalike is rejected", value: strings.Repeat("strip", 128), wantErr: true},
+		{name: "empty label is rejected", wantErr: core.ErrGarbleContract},
+		{name: "unknown diagnostic is rejected", value: core.UnknownEnumDiagnostic, wantErr: core.ErrGarbleContract},
+		{name: "uppercase preserve is rejected", value: "PRESERVE", wantErr: core.ErrGarbleContract},
+		{name: "uppercase strip is rejected", value: "STRIP", wantErr: core.ErrGarbleContract},
+		{name: "leading whitespace is rejected", value: " preserve", wantErr: core.ErrGarbleContract},
+		{name: "trailing whitespace is rejected", value: "strip ", wantErr: core.ErrGarbleContract},
+		{name: "hyphenated label is rejected", value: "str-ip", wantErr: core.ErrGarbleContract},
+		{name: "numeric ordinal is rejected", value: "2", wantErr: core.ErrGarbleContract},
+		{name: "embedded nul is rejected", value: "st\x00rip", wantErr: core.ErrGarbleContract},
+		{name: "oversized lookalike is rejected", value: strings.Repeat("strip", 128), wantErr: core.ErrGarbleContract},
 	}
 	for _, tc := range cases {
 		t.Run(tc.name, func(t *testing.T) {
 			t.Parallel()
 
 			got, gotErr := garble.ParseDiagnosticPolicy(tc.value)
-			if tc.wantErr {
-				if !errors.Is(gotErr, core.ErrGarbleContract) {
+			if tc.wantErr != nil {
+				if !errors.Is(gotErr, tc.wantErr) {
 					t.Fatalf("garble.ParseDiagnosticPolicy(%q) error = %v, want %v", tc.value, gotErr, core.ErrGarbleContract)
 				}
 				if got != garble.DiagnosticPolicyUnknown {
@@ -101,28 +101,28 @@ func TestParseDerivationGenerationExhaustsCanonicalAndHostileLabels(t *testing.T
 	cases := []struct {
 		name    string
 		value   string
-		wantErr bool
+		wantErr error
 	}{
 		{name: "generation one label is accepted", value: garble.DerivationGenerationOne.String()},
-		{name: "empty label is rejected", wantErr: true},
-		{name: "unknown diagnostic is rejected", value: core.UnknownEnumDiagnostic, wantErr: true},
-		{name: "zero word is rejected", value: "zero", wantErr: true},
-		{name: "generation two is rejected before admission", value: "two", wantErr: true},
-		{name: "uppercase label is rejected", value: "ONE", wantErr: true},
-		{name: "leading whitespace is rejected", value: " one", wantErr: true},
-		{name: "trailing whitespace is rejected", value: "one ", wantErr: true},
-		{name: "numeric ordinal is rejected", value: "1", wantErr: true},
-		{name: "embedded nul is rejected", value: "o\x00ne", wantErr: true},
-		{name: "hyphenated lookalike is rejected", value: "o-ne", wantErr: true},
-		{name: "oversized lookalike is rejected", value: strings.Repeat("one", 128), wantErr: true},
+		{name: "empty label is rejected", wantErr: core.ErrGarbleContract},
+		{name: "unknown diagnostic is rejected", value: core.UnknownEnumDiagnostic, wantErr: core.ErrGarbleContract},
+		{name: "zero word is rejected", value: "zero", wantErr: core.ErrGarbleContract},
+		{name: "generation two is rejected before admission", value: "two", wantErr: core.ErrGarbleContract},
+		{name: "uppercase label is rejected", value: "ONE", wantErr: core.ErrGarbleContract},
+		{name: "leading whitespace is rejected", value: " one", wantErr: core.ErrGarbleContract},
+		{name: "trailing whitespace is rejected", value: "one ", wantErr: core.ErrGarbleContract},
+		{name: "numeric ordinal is rejected", value: "1", wantErr: core.ErrGarbleContract},
+		{name: "embedded nul is rejected", value: "o\x00ne", wantErr: core.ErrGarbleContract},
+		{name: "hyphenated lookalike is rejected", value: "o-ne", wantErr: core.ErrGarbleContract},
+		{name: "oversized lookalike is rejected", value: strings.Repeat("one", 128), wantErr: core.ErrGarbleContract},
 	}
 	for _, tc := range cases {
 		t.Run(tc.name, func(t *testing.T) {
 			t.Parallel()
 
 			got, gotErr := garble.ParseDerivationGeneration(tc.value)
-			if tc.wantErr {
-				if !errors.Is(gotErr, core.ErrGarbleContract) {
+			if tc.wantErr != nil {
+				if !errors.Is(gotErr, tc.wantErr) {
 					t.Fatalf("garble.ParseDerivationGeneration(%q) error = %v, want %v", tc.value, gotErr, core.ErrGarbleContract)
 				}
 				if got != garble.DerivationGenerationUnknown {

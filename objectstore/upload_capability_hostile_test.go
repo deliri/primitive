@@ -50,7 +50,7 @@ func TestUploadCapabilityAdmitsOnlyPublishedVendorShapes(t *testing.T) {
 	cases := []struct {
 		name     string
 		document string
-		wantErr  bool
+		wantErr  error
 	}{
 		{
 			name: "google cloud storage signed put with no headers member",
@@ -122,80 +122,80 @@ func TestUploadCapabilityAdmitsOnlyPublishedVendorShapes(t *testing.T) {
 			name: "absent provider member is rejected",
 			document: `{"method":"signed_put","url":"` + capabilityGCSURL +
 				`","expires_at":1893456000000000000}`,
-			wantErr: true,
+			wantErr: core.ErrObjectStoreContract,
 		},
 		{
 			name: "absent method member is rejected",
 			document: `{"provider":"google_cloud_storage","url":"` + capabilityGCSURL +
 				`","expires_at":1893456000000000000}`,
-			wantErr: true,
+			wantErr: core.ErrObjectStoreContract,
 		},
 		{
 			name: "absent url member is rejected",
 			document: `{"provider":"google_cloud_storage","method":"signed_put",` +
 				`"expires_at":1893456000000000000}`,
-			wantErr: true,
+			wantErr: core.ErrObjectStoreContract,
 		},
 		{
 			name: "absent expiry member is rejected",
 			document: `{"provider":"google_cloud_storage","method":"signed_put",` +
 				`"url":"` + capabilityGCSURL + `"}`,
-			wantErr: true,
+			wantErr: core.ErrObjectStoreContract,
 		},
 		{
 			name: "null provider member is rejected",
 			document: `{"provider":null,"method":"signed_put","url":"` + capabilityGCSURL +
 				`","expires_at":1893456000000000000}`,
-			wantErr: true,
+			wantErr: core.ErrObjectStoreContract,
 		},
 		{
 			name: "null expiry member is rejected",
 			document: `{"provider":"google_cloud_storage","method":"signed_put",` +
 				`"url":"` + capabilityGCSURL + `","expires_at":null}`,
-			wantErr: true,
+			wantErr: core.ErrObjectStoreContract,
 		},
 		{
 			name: "unknown provider token is rejected",
 			document: `{"provider":"azure_blob","method":"signed_put","url":"` + capabilityGCSURL +
 				`","expires_at":1893456000000000000}`,
-			wantErr: true,
+			wantErr: core.ErrObjectStoreContract,
 		},
 		{
 			name: "provider token in the wrong case is rejected",
 			document: `{"provider":"Google_Cloud_Storage","method":"signed_put","url":"` +
 				capabilityGCSURL + `","expires_at":1893456000000000000}`,
-			wantErr: true,
+			wantErr: core.ErrObjectStoreContract,
 		},
 		{
 			name: "empty provider token is rejected rather than matching the zero provider",
 			document: `{"provider":"","method":"signed_put","url":"` + capabilityGCSURL +
 				`","expires_at":1893456000000000000}`,
-			wantErr: true,
+			wantErr: core.ErrObjectStoreContract,
 		},
 		{
 			name: "unknown method token is rejected",
 			document: `{"provider":"google_cloud_storage","method":"resumable_post","url":"` +
 				capabilityGCSURL + `","expires_at":1893456000000000000}`,
-			wantErr: true,
+			wantErr: core.ErrObjectStoreContract,
 		},
 
 		{
 			name: "a method the named vendor does not publish is rejected",
 			document: `{"provider":"google_cloud_storage","method":"multipart_post","url":"` +
 				capabilityGCSURL + `","expires_at":1893456000000000000}`,
-			wantErr: true,
+			wantErr: core.ErrObjectStoreContract,
 		},
 		{
 			name: "cloudflare images cannot claim a signed put",
 			document: `{"provider":"cloudflare_images","method":"signed_put","url":"` +
 				capabilityImagesURL + `","expires_at":1893456000000000000}`,
-			wantErr: true,
+			wantErr: core.ErrObjectStoreContract,
 		},
 		{
 			name: "amazon s3 cannot claim a multipart post",
 			document: `{"provider":"amazon_s3","method":"multipart_post","url":"` +
 				capabilityS3URL + `","expires_at":1893456000000000000}`,
-			wantErr: true,
+			wantErr: core.ErrObjectStoreContract,
 		},
 		{
 			name: "a plaintext url is rejected",
@@ -203,7 +203,7 @@ func TestUploadCapabilityAdmitsOnlyPublishedVendorShapes(t *testing.T) {
 				`"url":"http://storage.googleapis.com/bucket/object?` + queryGCSSignature +
 				`=s&` + queryGCSSignedHeaders + `=host",` +
 				`"expires_at":1893456000000000000}`,
-			wantErr: true,
+			wantErr: core.ErrObjectStoreContract,
 		},
 		{
 			name: "a root-only url path is rejected",
@@ -211,60 +211,60 @@ func TestUploadCapabilityAdmitsOnlyPublishedVendorShapes(t *testing.T) {
 				`"url":"` + core.SchemeHTTPS + `://storage.googleapis.com/?` + queryGCSSignature +
 				`=s&` + queryGCSSignedHeaders + `=host",` +
 				`"expires_at":1893456000000000000}`,
-			wantErr: true,
+			wantErr: core.ErrObjectStoreContract,
 		},
 		{
 			name: "an empty url is rejected",
 			document: `{"provider":"google_cloud_storage","method":"signed_put","url":"",` +
 				`"expires_at":1893456000000000000}`,
-			wantErr: true,
+			wantErr: core.ErrObjectStoreContract,
 		},
 		{
 			name: "a google url with no signature query is rejected",
 			document: `{"provider":"google_cloud_storage","method":"signed_put",` +
 				`"url":"` + capabilityGCSObject + `?` + queryGCSSignedHeaders + `=host",` +
 				`"expires_at":1893456000000000000}`,
-			wantErr: true,
+			wantErr: core.ErrObjectStoreContract,
 		},
 		{
 			name: "a google url with no signed-header declaration is rejected",
 			document: `{"provider":"google_cloud_storage","method":"signed_put",` +
 				`"url":"` + capabilityGCSObject + `?` + queryGCSSignature + `=s",` +
 				`"expires_at":1893456000000000000}`,
-			wantErr: true,
+			wantErr: core.ErrObjectStoreContract,
 		},
 		{
 			name: "an amazon capability presented as a google one is rejected",
 			document: `{"provider":"google_cloud_storage","method":"signed_put","url":"` +
 				capabilityS3URL + `","expires_at":1893456000000000000}`,
-			wantErr: true,
+			wantErr: core.ErrObjectStoreContract,
 		},
 		{
 			name: "a cloudflare capability on a foreign host is rejected",
 			document: `{"provider":"cloudflare_images","method":"multipart_post",` +
 				`"url":"` + core.SchemeHTTPS + `://upload.example.com/image-id","expires_at":1893456000000000000}`,
-			wantErr: true,
+			wantErr: core.ErrObjectStoreContract,
 		},
 		{
 			name: "cloudflare images cannot carry any signed header",
 			document: `{"provider":"cloudflare_images","method":"multipart_post","url":"` +
 				capabilityImagesURL + `","expires_at":1893456000000000000,` +
 				`"headers":[{"name":"X-Meta-Run","value":"run-41"}]}`,
-			wantErr: true,
+			wantErr: core.ErrObjectStoreContract,
 		},
 		{
 			name: "a header the capability did not sign is rejected",
 			document: `{"provider":"google_cloud_storage","method":"signed_put","url":"` +
 				capabilityGCSURL + `","expires_at":1893456000000000000,` +
 				`"headers":[{"name":"X-Goog-Meta-Unsigned","value":"v"}]}`,
-			wantErr: true,
+			wantErr: core.ErrObjectStoreContract,
 		},
 		{
 			name: "a field this package sets itself is rejected",
 			document: `{"provider":"google_cloud_storage","method":"signed_put","url":"` +
 				capabilityGCSURL + `","expires_at":1893456000000000000,` +
 				`"headers":[{"name":"Content-Type","value":"application/octet-stream"}]}`,
-			wantErr: true,
+			wantErr: core.ErrObjectStoreContract,
 		},
 		{
 			name: "a duplicate header differing only by case is rejected",
@@ -272,7 +272,7 @@ func TestUploadCapabilityAdmitsOnlyPublishedVendorShapes(t *testing.T) {
 				capabilityGCSURL + `","expires_at":1893456000000000000,` +
 				`"headers":[{"name":"X-Goog-Meta-Run","value":"a"},` +
 				`{"name":"x-goog-meta-run","value":"b"}]}`,
-			wantErr: true,
+			wantErr: core.ErrObjectStoreContract,
 		},
 		{
 			name: "an exactly duplicated header is rejected",
@@ -280,21 +280,21 @@ func TestUploadCapabilityAdmitsOnlyPublishedVendorShapes(t *testing.T) {
 				capabilityGCSURL + `","expires_at":1893456000000000000,` +
 				`"headers":[{"name":"X-Goog-Meta-Run","value":"a"},` +
 				`{"name":"X-Goog-Meta-Run","value":"a"}]}`,
-			wantErr: true,
+			wantErr: core.ErrObjectStoreContract,
 		},
 		{
 			name: "a header with an absent name is rejected",
 			document: `{"provider":"google_cloud_storage","method":"signed_put","url":"` +
 				capabilityGCSURL + `","expires_at":1893456000000000000,` +
 				`"headers":[{"value":"run-41"}]}`,
-			wantErr: true,
+			wantErr: core.ErrObjectStoreContract,
 		},
 		{
 			name: "a header with an absent value is rejected",
 			document: `{"provider":"google_cloud_storage","method":"signed_put","url":"` +
 				capabilityGCSURL + `","expires_at":1893456000000000000,` +
 				`"headers":[{"name":"X-Goog-Meta-Run"}]}`,
-			wantErr: true,
+			wantErr: core.ErrObjectStoreContract,
 		},
 		{
 			name: "a header with an empty but present value is admitted",
@@ -307,67 +307,67 @@ func TestUploadCapabilityAdmitsOnlyPublishedVendorShapes(t *testing.T) {
 			document: `{"provider":"google_cloud_storage","method":"signed_put","url":"` +
 				capabilityGCSURL + `","expires_at":1893456000000000000,` +
 				`"headers":[{"name":"X Goog Meta Run","value":"v"}]}`,
-			wantErr: true,
+			wantErr: core.ErrObjectStoreContract,
 		},
 		{
 			name: "a header value carrying field injection is rejected",
 			document: `{"provider":"google_cloud_storage","method":"signed_put","url":"` +
 				capabilityGCSURL + `","expires_at":1893456000000000000,` +
 				`"headers":[{"name":"X-Goog-Meta-Run","value":"a\r\nX-Injected: b"}]}`,
-			wantErr: true,
+			wantErr: core.ErrObjectStoreContract,
 		},
 		{
 			name: "an expiry encoded as a json string is rejected",
 			document: `{"provider":"google_cloud_storage","method":"signed_put","url":"` +
 				capabilityGCSURL + `","expires_at":"1893456000000000000"}`,
-			wantErr: true,
+			wantErr: core.ErrObjectStoreContract,
 		},
 		{
 			name: "a non-canonical expiry encoding is rejected",
 			document: `{"provider":"google_cloud_storage","method":"signed_put","url":"` +
 				capabilityGCSURL + `","expires_at":+1893456000000000000}`,
-			wantErr: true,
+			wantErr: core.ErrObjectStoreContract,
 		},
 		{
 			name: "an unknown member is rejected",
 			document: `{"provider":"google_cloud_storage","method":"signed_put","url":"` +
 				capabilityGCSURL + `","expires_at":1893456000000000000,"bucket":"b"}`,
-			wantErr: true,
+			wantErr: core.ErrObjectStoreContract,
 		},
 		{
 			name: "a duplicated member is rejected",
 			document: `{"provider":"google_cloud_storage","provider":"amazon_s3",` +
 				`"method":"signed_put","url":"` + capabilityGCSURL +
 				`","expires_at":1893456000000000000}`,
-			wantErr: true,
+			wantErr: core.ErrObjectStoreContract,
 		},
 		{
 			name: "a member duplicated only by case folding is rejected",
 			document: `{"provider":"google_cloud_storage","Provider":"amazon_s3",` +
 				`"method":"signed_put","url":"` + capabilityGCSURL +
 				`","expires_at":1893456000000000000}`,
-			wantErr: true,
+			wantErr: core.ErrObjectStoreContract,
 		},
 		{
 			name:     "a null document is rejected",
 			document: `null`,
-			wantErr:  true,
+			wantErr:  core.ErrObjectStoreContract,
 		},
 		{
 			name:     "an array document is rejected",
 			document: `[]`,
-			wantErr:  true,
+			wantErr:  core.ErrObjectStoreContract,
 		},
 		{
 			name:     "an empty object is rejected",
 			document: `{}`,
-			wantErr:  true,
+			wantErr:  core.ErrObjectStoreContract,
 		},
 		{
 			name: "trailing data after the document is rejected",
 			document: `{"provider":"google_cloud_storage","method":"signed_put","url":"` +
 				capabilityGCSURL + `","expires_at":1893456000000000000}{}`,
-			wantErr: true,
+			wantErr: core.ErrObjectStoreContract,
 		},
 	}
 	for _, tc := range cases {
@@ -375,9 +375,9 @@ func TestUploadCapabilityAdmitsOnlyPublishedVendorShapes(t *testing.T) {
 			t.Parallel()
 
 			got, gotErr := capabilityDocument(t, tc.document)
-			if tc.wantErr {
-				if !errors.Is(gotErr, core.ErrObjectStoreContract) {
-					t.Fatalf("decode error = %v, want %v", gotErr, core.ErrObjectStoreContract)
+			if tc.wantErr != nil {
+				if !errors.Is(gotErr, tc.wantErr) {
+					t.Fatalf("decode error = %v, want %v", gotErr, tc.wantErr)
 				}
 				if !got.IsZero() {
 					t.Fatalf("receiver after a rejected decode is set, want the zero capability")

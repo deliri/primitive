@@ -4,6 +4,19 @@ Last updated: `2026-08-12`
 
 ## Current
 
+- published the second typed-error table migration batch, 2026-08-12,
+  published `v2026.0.72`. Garble's three external token parsers, Keygen's
+  bounded random-token request, Objectstore's received upload capability,
+  Filestore's reported-allocation contract, and Shutdown's step identity now
+  name their compiler-owned error identities instead of reducing rejection to
+  booleans. Rejected parsers, capabilities, byte projections, and step
+  identities prove their exact zero or sealed outcome. Keygen now also pins
+  midpoint and near-ceiling admission.
+
+  Proof: the five affected packages pass twice under the race detector with
+  shuffled order, and deadcode, staticcheck, and witness-lint report zero
+  findings. The repository boolean-table count falls from 38 to 31.
+
 - published the first typed-error table migration batch, 2026-08-12,
   published `v2026.0.71`. Signed grant lifetime, Process containment and
   identity, and Hostfacts terminal width and geometry no longer encode failure

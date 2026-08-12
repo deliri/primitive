@@ -35,9 +35,9 @@ func TestStepIDExhaustsItsBoundaryAndDiagnosticLabel(t *testing.T) {
 		name      string
 		wantLabel string
 		raw       uint16
-		wantErr   bool
+		wantErr   error
 	}{
-		{name: "zero identity is the rejected sentinel", raw: 0, wantLabel: core.UnknownEnumDiagnostic, wantErr: true},
+		{name: "zero identity is the rejected sentinel", raw: 0, wantLabel: core.UnknownEnumDiagnostic, wantErr: core.ErrShutdownContract},
 		{name: "one is the minimum admitted identity", raw: 1, wantLabel: "1"},
 		{name: "one above the minimum is admitted", raw: 2, wantLabel: "2"},
 		{name: "a mid-domain identity is admitted", raw: 1 << 8, wantLabel: "256"},
@@ -49,9 +49,9 @@ func TestStepIDExhaustsItsBoundaryAndDiagnosticLabel(t *testing.T) {
 			t.Parallel()
 
 			got, gotErr := NewStepID(tc.raw)
-			if tc.wantErr {
-				if !errors.Is(gotErr, core.ErrShutdownContract) {
-					t.Fatalf("NewStepID(%d) error = %v, want %v", tc.raw, gotErr, core.ErrShutdownContract)
+			if tc.wantErr != nil {
+				if !errors.Is(gotErr, tc.wantErr) {
+					t.Fatalf("NewStepID(%d) error = %v, want %v", tc.raw, gotErr, tc.wantErr)
 				}
 				if got != (StepID{}) {
 					t.Fatalf("NewStepID(%d) = %v, want the zero identity on rejection", tc.raw, got)
@@ -59,8 +59,8 @@ func TestStepIDExhaustsItsBoundaryAndDiagnosticLabel(t *testing.T) {
 			} else if gotErr != nil {
 				t.Fatalf("NewStepID(%d) error = %v, want nil", tc.raw, gotErr)
 			}
-			if (got.Validate() != nil) != tc.wantErr {
-				t.Fatalf("StepID(%d).Validate() = %v, want rejected:%t", tc.raw, got.Validate(), tc.wantErr)
+			if validateErr := got.Validate(); !errors.Is(validateErr, tc.wantErr) {
+				t.Fatalf("StepID(%d).Validate() = %v, want %v", tc.raw, validateErr, tc.wantErr)
 			}
 			if label := got.String(); label != tc.wantLabel {
 				t.Fatalf("StepID(%d).String() = %q, want %q", tc.raw, label, tc.wantLabel)
@@ -72,7 +72,7 @@ func TestStepIDExhaustsItsBoundaryAndDiagnosticLabel(t *testing.T) {
 	// rejects duplicates by comparing whole StepID values.
 	seen := make(map[StepID]uint16, len(cases))
 	for _, tc := range cases {
-		if tc.wantErr {
+		if tc.wantErr != nil {
 			continue
 		}
 		id := stepIDForTest(t, tc.raw)
