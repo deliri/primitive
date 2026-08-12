@@ -332,11 +332,11 @@ func TestInspectRefusesAnUnusableRequest(t *testing.T) {
 	cancelled, cancel := context.WithCancel(context.Background())
 	cancel()
 	got, err := filestore.Inspect(cancelled, absolute)
-	if err == nil {
-		t.Fatalf("Inspect(cancelled) = %v, error = nil, want a refusal", got)
+	if !errors.Is(err, context.Canceled) {
+		t.Fatalf("Inspect(cancelled) error = %v, want errors.Is %v", err, context.Canceled)
 	}
-	if got.Validate() == nil {
-		t.Fatalf("refused inspection Validate() = nil, want a refusal")
+	if validateErr := got.Validate(); !errors.Is(validateErr, core.ErrFilestoreContract) {
+		t.Fatalf("refused inspection Validate() error = %v, want errors.Is %v", validateErr, core.ErrFilestoreContract)
 	}
 }
 
@@ -418,15 +418,12 @@ func TestInspectRefusesAnObservationItWasNotAllowedToMake(t *testing.T) {
 	t.Cleanup(func() { _ = os.Chmod(sealed, 0o700) })
 
 	got, err := filestore.Inspect(context.Background(), mustAbsolute(t, child))
-	if err == nil {
-		t.Fatalf("Inspect(unreadable parent) error = nil, want a refusal")
-	}
 	if !errors.Is(err, core.ErrFilestoreSource) {
 		t.Fatalf("Inspect(unreadable parent) error = %v, want errors.Is %v", err, core.ErrFilestoreSource)
 	}
 	kind, kindErr := got.Kind()
-	if kindErr == nil {
-		t.Fatalf("refused inspection Kind() = %v, error = nil, want a refusal", kind)
+	if !errors.Is(kindErr, core.ErrFilestoreContract) {
+		t.Fatalf("refused inspection Kind() = %v, error = %v, want errors.Is %v", kind, kindErr, core.ErrFilestoreContract)
 	}
 	if kind == filestore.PathKindAbsent || kind == filestore.PathKindUnreachable {
 		t.Fatalf("refused inspection reported %v, want no observation at all", kind)

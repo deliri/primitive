@@ -366,8 +366,11 @@ func TestPublicationLayerTriadRejectsPartialReceiptsAndCrossManifestPlan(t *test
 	receipts, uploadErr := deploy.ReleaseGCS(
 		context.Background(), objectstoreClient(t, transport), plan,
 	)
-	if uploadErr == nil || receipts.Count() != 3 || transport.count() != 4 {
-		t.Fatalf("deploy.ReleaseGCS(partial) = receipts %d requests %d error %v, want 3, 4, nonnil", receipts.Count(), transport.count(), uploadErr)
+	if !errors.Is(uploadErr, core.ErrDeployContract) || !errors.Is(uploadErr, core.ErrObjectStoreContract) ||
+		!errors.Is(uploadErr, core.ErrExchangeTransport) || receipts.Count() != 3 || transport.count() != 4 {
+		t.Fatalf("deploy.ReleaseGCS(partial) = receipts %d requests %d error %v, want 3, 4, errors.Is %v, %v, and %v",
+			receipts.Count(), transport.count(), uploadErr, core.ErrDeployContract,
+			core.ErrObjectStoreContract, core.ErrExchangeTransport)
 	}
 	_, err = distribution.IssuePublicationCompletion(
 		distribution.PublicationCompletionIssuance{

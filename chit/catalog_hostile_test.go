@@ -38,8 +38,10 @@ func TestCustodyStateExhaustsItsByteDomainAndCanonicalJSON(t *testing.T) {
 			}
 			continue
 		}
-		if marshalErr == nil || state.String() != "" {
-			t.Fatalf("CustodyState(%d) = (%q, %v), want unnamed typed refusal", value, state, marshalErr)
+		if !errors.Is(marshalErr, core.ErrChitContract) || !errors.Is(marshalErr, core.ErrJSONContract) ||
+			encoded != nil || state.String() != "" {
+			t.Fatalf("CustodyState(%d) = (%q, %v, %v), want unnamed nil output and errors.Is %v and %v",
+				value, state, encoded, marshalErr, core.ErrChitContract, core.ErrJSONContract)
 		}
 	}
 	if admitted != int(custodyStateLimit-CustodyStateUnknown-1) {

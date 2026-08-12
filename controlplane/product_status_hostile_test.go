@@ -1,9 +1,11 @@
 package controlplane_test
 
 import (
+	"errors"
 	"testing"
 
 	"github.com/deliri/primitive/v2026/controlplane"
+	"github.com/deliri/primitive/v2026/core"
 	"github.com/deliri/primitive/v2026/lease"
 )
 
@@ -96,8 +98,8 @@ func TestProductStatusRefusesEveryValueOutsideTheClosedSet(t *testing.T) {
 		if status.IsValid() {
 			continue
 		}
-		if err := status.Validate(); err == nil {
-			t.Fatalf("ProductStatus(%d).Validate() error = nil, want a refusal", value)
+		if err := status.Validate(); !errors.Is(err, core.ErrControlPlaneProductStatus) {
+			t.Fatalf("ProductStatus(%d).Validate() error = %v, want %v", value, err, core.ErrControlPlaneProductStatus)
 		}
 		if got := status.String(); got != "" {
 			t.Fatalf("ProductStatus(%d).String() = %q, want empty text", value, got)
@@ -105,8 +107,8 @@ func TestProductStatusRefusesEveryValueOutsideTheClosedSet(t *testing.T) {
 		if status.AdmitsGrant() {
 			t.Fatalf("ProductStatus(%d).AdmitsGrant() = true, want false", value)
 		}
-		if err := status.ValidateOutcome(lease.OutcomeRefusal); err == nil {
-			t.Fatalf("ProductStatus(%d).ValidateOutcome() error = nil, want a refusal", value)
+		if err := status.ValidateOutcome(lease.OutcomeRefusal); !errors.Is(err, core.ErrControlPlaneProductStatus) {
+			t.Fatalf("ProductStatus(%d).ValidateOutcome() error = %v, want %v", value, err, core.ErrControlPlaneProductStatus)
 		}
 	}
 }
@@ -117,7 +119,7 @@ func TestProductStatusRefusesEveryValueOutsideTheClosedSet(t *testing.T) {
 func TestValidateOutcomeRefusesAnUnnamedOutcome(t *testing.T) {
 	t.Parallel()
 
-	if err := controlplane.ProductStatusActive.ValidateOutcome(lease.Outcome(0)); err == nil {
-		t.Errorf("ValidateOutcome() with an unset outcome error = nil, want a refusal")
+	if err := controlplane.ProductStatusActive.ValidateOutcome(lease.Outcome(0)); !errors.Is(err, core.ErrControlPlaneProductStatus) {
+		t.Errorf("ValidateOutcome() with an unset outcome error = %v, want %v", err, core.ErrControlPlaneProductStatus)
 	}
 }

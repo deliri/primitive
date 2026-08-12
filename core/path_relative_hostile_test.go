@@ -100,11 +100,11 @@ func TestRelativeToRefusesAnUnvalidatedPath(t *testing.T) {
 	t.Parallel()
 
 	real := absolutePathForTest(t, string(filepath.Separator)+"a")
-	if _, err := (core.AbsolutePath{}).RelativeTo(real); err == nil {
-		t.Fatalf("RelativeTo() on a zero path error = nil, want a refusal")
+	if got, err := (core.AbsolutePath{}).RelativeTo(real); !errors.Is(err, core.ErrPrimitiveContract) || got != (core.RelativePath{}) {
+		t.Fatalf("RelativeTo() on a zero path = (%v, %v), want zero and errors.Is %v", got, err, core.ErrPrimitiveContract)
 	}
-	if _, err := real.RelativeTo(core.AbsolutePath{}); err == nil {
-		t.Fatalf("RelativeTo(zero base) error = nil, want a refusal")
+	if got, err := real.RelativeTo(core.AbsolutePath{}); !errors.Is(err, core.ErrPrimitiveContract) || got != (core.RelativePath{}) {
+		t.Fatalf("RelativeTo(zero base) = (%v, %v), want zero and errors.Is %v", got, err, core.ErrPrimitiveContract)
 	}
 	if _, err := real.RelativeTo(real); err != nil && !errors.Is(err, core.ErrPrimitiveContract) {
 		t.Fatalf("RelativeTo(self) error = %v, want nil or a typed refusal", err)

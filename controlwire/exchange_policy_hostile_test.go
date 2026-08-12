@@ -101,8 +101,8 @@ func TestControlExchangePolicyRefusesUnusableCeilings(t *testing.T) {
 			if !errors.Is(err, core.ErrControlWireContract) {
 				t.Fatalf("ControlExchangePolicy() error = %v, want errors.Is %v", err, core.ErrControlWireContract)
 			}
-			if err := got.Validate(); err == nil {
-				t.Fatalf("refused policy Validate() = nil, want a refusal")
+			if err := got.Validate(); !errors.Is(err, core.ErrExchangeContract) {
+				t.Fatalf("refused policy Validate() error = %v, want errors.Is %v", err, core.ErrExchangeContract)
 			}
 		})
 	}

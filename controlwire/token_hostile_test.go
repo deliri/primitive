@@ -85,8 +85,8 @@ func TestParseRegistrationTokenEnforcesExactCanonicalHexadecimal(t *testing.T) {
 			if !errors.Is(err, core.ErrControlWireContract) {
 				t.Fatalf("ParseRegistrationToken(%q) error = %v, want %v", tc.token, err, core.ErrControlWireContract)
 			}
-			if err := got.Validate(); err == nil {
-				t.Fatalf("ParseRegistrationToken(%q) returned a usable token on rejection", tc.token)
+			if err := got.Validate(); !errors.Is(err, core.ErrControlWireToken) {
+				t.Fatalf("refused RegistrationToken.Validate() error = %v, want %v", err, core.ErrControlWireToken)
 			}
 		})
 	}
@@ -268,21 +268,21 @@ func TestRegistrationTokenJSONRejectionLeavesTheReceiverUnchanged(t *testing.T) 
 	cases := []struct {
 		name     string
 		document string
-		wantOkay bool
+		wantErr  error
 	}{
-		{name: "canonical token is accepted", document: `"` + tokenHexWithLetters + `"`, wantOkay: true},
-		{name: "json null is refused", document: `null`},
-		{name: "number is refused", document: `1`},
-		{name: "boolean is refused", document: `true`},
-		{name: "empty string is refused", document: `""`},
-		{name: "object is refused", document: `{"registration_token":"` + tokenHexWithLetters + `"}`},
-		{name: "array is refused", document: `["` + tokenHexWithLetters + `"]`},
-		{name: "uppercase hex is refused", document: `"` + strings.ToUpper(tokenHexWithLetters) + `"`},
-		{name: "truncated token is refused", document: `"` + tokenHexWithLetters[:63] + `"`},
-		{name: "overlong token is refused", document: `"` + tokenHexWithLetters + `0"`},
-		{name: "unterminated string is refused", document: `"` + tokenHexWithLetters},
-		{name: "unpaired high surrogate is refused", document: `"\ud800"`},
-		{name: "empty document is refused", document: ``},
+		{name: "canonical token is accepted", document: `"` + tokenHexWithLetters + `"`},
+		{name: "json null is refused", document: `null`, wantErr: core.ErrControlWireToken},
+		{name: "number is refused", document: `1`, wantErr: core.ErrControlWireToken},
+		{name: "boolean is refused", document: `true`, wantErr: core.ErrControlWireToken},
+		{name: "empty string is refused", document: `""`, wantErr: core.ErrControlWireToken},
+		{name: "object is refused", document: `{"registration_token":"` + tokenHexWithLetters + `"}`, wantErr: core.ErrControlWireToken},
+		{name: "array is refused", document: `["` + tokenHexWithLetters + `"]`, wantErr: core.ErrControlWireToken},
+		{name: "uppercase hex is refused", document: `"` + strings.ToUpper(tokenHexWithLetters) + `"`, wantErr: core.ErrControlWireToken},
+		{name: "truncated token is refused", document: `"` + tokenHexWithLetters[:63] + `"`, wantErr: core.ErrControlWireToken},
+		{name: "overlong token is refused", document: `"` + tokenHexWithLetters + `0"`, wantErr: core.ErrControlWireToken},
+		{name: "unterminated string is refused", document: `"` + tokenHexWithLetters, wantErr: &json.SyntaxError{}},
+		{name: "unpaired high surrogate is refused", document: `"\ud800"`, wantErr: core.ErrControlWireToken},
+		{name: "empty document is refused", document: ``, wantErr: &json.SyntaxError{}},
 	}
 
 	for _, tc := range cases {
@@ -297,7 +297,7 @@ func TestRegistrationTokenJSONRejectionLeavesTheReceiverUnchanged(t *testing.T) 
 			got := prior
 			err = json.Unmarshal([]byte(tc.document), &got)
 			gotVerifier, verifierErr := got.Verifier()
-			if tc.wantOkay {
+			if tc.wantErr == nil {
 				if err != nil {
 					t.Fatalf("json.Unmarshal(%s) error = %v, want nil", tc.document, err)
 				}
@@ -313,8 +313,13 @@ func TestRegistrationTokenJSONRejectionLeavesTheReceiverUnchanged(t *testing.T) 
 				}
 				return
 			}
-			if err == nil {
-				t.Fatalf("json.Unmarshal(%s) error = nil, want a rejection", tc.document)
+			if _, syntax := tc.wantErr.(*json.SyntaxError); syntax {
+				var gotSyntax *json.SyntaxError
+				if !errors.As(err, &gotSyntax) {
+					t.Fatalf("json.Unmarshal(%s) error = %v, want *json.SyntaxError", tc.document, err)
+				}
+			} else if !errors.Is(err, tc.wantErr) || !errors.Is(err, core.ErrJSONContract) {
+				t.Fatalf("json.Unmarshal(%s) error = %v, want %v/%v", tc.document, err, tc.wantErr, core.ErrJSONContract)
 			}
 			if verifierErr != nil {
 				t.Fatalf("Verifier() after rejection error = %v, want nil", verifierErr)

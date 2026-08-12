@@ -875,9 +875,9 @@ func TestPreparingAnOccupiedTrialSlotNeverDeletesItsCandidate(t *testing.T) {
 	download, downloadErr := downloadCandidate(
 		t.Context(), StageRequest{Root: root}, target,
 	)
-	if downloadErr == nil || download.owned {
-		t.Fatalf("downloadCandidate(occupied) = (%v, %v), want unowned error",
-			download, downloadErr)
+	if !errors.Is(downloadErr, core.ErrFilestoreConflict) || download.owned {
+		t.Fatalf("downloadCandidate(occupied) = (%v, %v), want unowned errors.Is %v",
+			download, downloadErr, core.ErrFilestoreConflict)
 	}
 	if err := cleanupOwnedCandidate(
 		t.Context(), root, target, download,
@@ -907,9 +907,9 @@ func TestBootstrapCollisionNeverDeletesAnExistingPrimaryArtifact(t *testing.T) {
 	write, writeErr := writeBootstrapArtifact(
 		t.Context(), root, artifact, bytes.NewReader(data),
 	)
-	if writeErr == nil || write.owned {
-		t.Fatalf("writeBootstrapArtifact(collision) = (%v, %v), want unowned error",
-			write, writeErr)
+	if !errors.Is(writeErr, core.ErrFilestoreConflict) || write.owned {
+		t.Fatalf("writeBootstrapArtifact(collision) = (%v, %v), want unowned errors.Is %v",
+			write, writeErr, core.ErrFilestoreConflict)
 	}
 	if err := cleanupBootstrapArtifact(
 		t.Context(), root, artifact, write,
@@ -954,9 +954,9 @@ func TestOwnedFailedDownloadAndSuccessfulBootstrapWriteCleanExactlyTheirBytes(t 
 	download, downloadErr := downloadCandidate(
 		t.Context(), StageRequest{Root: root}, target,
 	)
-	if downloadErr == nil || !download.owned {
-		t.Fatalf("downloadCandidate(invalid source) = (%v, %v), want owned error",
-			download, downloadErr)
+	if !errors.Is(downloadErr, core.ErrObjectStoreContract) || !download.owned {
+		t.Fatalf("downloadCandidate(invalid source) = (%v, %v), want owned errors.Is %v",
+			download, downloadErr, core.ErrObjectStoreContract)
 	}
 	cancelled, cancel := context.WithCancel(t.Context())
 	cancel()

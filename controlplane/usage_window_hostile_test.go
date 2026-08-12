@@ -471,15 +471,13 @@ func TestUsageWindowMarshalRefusesEveryValueValidateRefuses(t *testing.T) {
 		testWindow(unitsOf(1, 1), nil),
 	}
 	for index, window := range refused {
-		if err := window.Validate(); err == nil {
-			t.Fatalf("case %d Validate() error = nil, want a rejection: the fixture must be invalid", index)
+		if err := window.Validate(); !errors.Is(err, core.ErrControlPlaneUsageWindow) {
+			t.Fatalf("case %d Validate() error = %v, want errors.Is %v", index, err, core.ErrControlPlaneUsageWindow)
 		}
 		encoded, err := window.MarshalJSON()
-		if err == nil {
-			t.Fatalf("case %d MarshalJSON() = %s, want a rejection", index, encoded)
-		}
-		if !errors.Is(err, core.ErrJSONContract) {
-			t.Fatalf("case %d MarshalJSON() error = %v, want the JSON contract identity", index, err)
+		if !errors.Is(err, core.ErrJSONContract) || !errors.Is(err, core.ErrControlPlaneUsageWindow) {
+			t.Fatalf("case %d MarshalJSON() = (%s, %v), want errors.Is %v and %v", index, encoded, err,
+				core.ErrJSONContract, core.ErrControlPlaneUsageWindow)
 		}
 	}
 }

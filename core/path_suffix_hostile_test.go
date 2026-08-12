@@ -79,7 +79,7 @@ func TestWithSuffixOnlyEverNamesASibling(t *testing.T) {
 func TestWithSuffixRefusesAnUnvalidatedPath(t *testing.T) {
 	t.Parallel()
 
-	if _, err := (core.AbsolutePath{}).WithSuffix(".lease"); err == nil {
-		t.Fatalf("WithSuffix() on a zero path error = nil, want a refusal")
+	if got, err := (core.AbsolutePath{}).WithSuffix(".lease"); !errors.Is(err, core.ErrPrimitiveContract) || got != (core.AbsolutePath{}) {
+		t.Fatalf("WithSuffix() on a zero path = (%v, %v), want zero and errors.Is %v", got, err, core.ErrPrimitiveContract)
 	}
 }

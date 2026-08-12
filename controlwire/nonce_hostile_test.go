@@ -330,9 +330,10 @@ func TestRequestNonceJSONRejectionLeavesTheReceiverUnchanged(t *testing.T) {
 	t.Parallel()
 
 	cases := []struct {
-		name     string
-		document string
-		wantOkay bool
+		name       string
+		document   string
+		wantOkay   bool
+		wantSyntax bool
 	}{
 		{name: "canonical token is accepted", document: `"` + nonceHexWithLetters + `"`, wantOkay: true},
 		{name: "json null is refused", document: `null`},
@@ -345,9 +346,9 @@ func TestRequestNonceJSONRejectionLeavesTheReceiverUnchanged(t *testing.T) {
 		{name: "uppercase hex is refused", document: `"` + strings.ToUpper(nonceHexWithLetters) + `"`},
 		{name: "truncated token is refused", document: `"` + nonceHexWithLetters[:63] + `"`},
 		{name: "overlong token is refused", document: `"` + nonceHexWithLetters + `0"`},
-		{name: "unterminated string is refused", document: `"` + nonceHexWithLetters},
+		{name: "unterminated string is refused", document: `"` + nonceHexWithLetters, wantSyntax: true},
 		{name: "unpaired high surrogate is refused", document: `"\ud800"`},
-		{name: "empty document is refused", document: ``},
+		{name: "empty document is refused", document: ``, wantSyntax: true},
 	}
 
 	for _, tc := range cases {
@@ -369,8 +370,14 @@ func TestRequestNonceJSONRejectionLeavesTheReceiverUnchanged(t *testing.T) {
 				}
 				return
 			}
-			if err == nil {
-				t.Fatalf("json.Unmarshal(%s) error = nil, want a rejection", tc.document)
+			var syntax *json.SyntaxError
+			if tc.wantSyntax {
+				if !errors.As(err, &syntax) {
+					t.Fatalf("json.Unmarshal(%s) error = %v, want errors.As *json.SyntaxError", tc.document, err)
+				}
+			} else if !errors.Is(err, core.ErrControlWireNonce) || !errors.Is(err, core.ErrJSONContract) {
+				t.Fatalf("json.Unmarshal(%s) error = %v, want errors.Is %v and %v", tc.document, err,
+					core.ErrControlWireNonce, core.ErrJSONContract)
 			}
 			if got.String() != prior.String() {
 				t.Fatalf("json.Unmarshal(%s) mutated receiver to %q, want %q", tc.document, got.String(), prior.String())

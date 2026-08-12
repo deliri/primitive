@@ -27,8 +27,8 @@ func TestExecutionRefusesAHandleThatSkippedBegin(t *testing.T) {
 		if !errors.Is(err, core.ErrProcessContract) {
 			t.Fatalf("Wait(unstarted %v) error = %v, want errors.Is %v", handle, err, core.ErrProcessContract)
 		}
-		if err := result.Validate(); err == nil {
-			t.Fatalf("Wait(unstarted %v) result validates alongside the refusal, want the zero refusal", handle)
+		if err := result.Validate(); !errors.Is(err, core.ErrProcessContract) {
+			t.Fatalf("Wait(unstarted %v) result validation error = %v, want errors.Is %v", handle, err, core.ErrProcessContract)
 		}
 	}
 

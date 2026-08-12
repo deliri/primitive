@@ -137,9 +137,13 @@ func TestVerifyRegistrationAcceptsOnlyAResponseToThisExactRequest(t *testing.T) 
 		request.TrustedKeys = trusted
 
 		verified, err := controlplane.VerifyRegistration(request)
-		if err == nil {
-			t.Fatalf("VerifyRegistration() = %v, error = nil, want a refusal for an untrusted signer",
-				verified)
+		if !errors.Is(err, core.ErrControlPlaneRegistration) ||
+			!errors.Is(err, core.ErrAttestVerification) {
+			t.Fatalf("VerifyRegistration() error = %v, want %v and %v",
+				err, core.ErrControlPlaneRegistration, core.ErrAttestVerification)
+		}
+		if verified != (controlplane.VerifiedRegistration{}) {
+			t.Fatalf("VerifyRegistration() = %v, want zero proof on refusal", verified)
 		}
 	})
 
@@ -180,9 +184,13 @@ func TestVerifyRegistrationAcceptsOnlyAResponseToThisExactRequest(t *testing.T) 
 		request.Document = tampered
 
 		verified, err := controlplane.VerifyRegistration(request)
-		if err == nil {
-			t.Fatalf("VerifyRegistration() = %v, error = nil, want a refusal for an altered signed status",
-				verified)
+		if !errors.Is(err, core.ErrControlPlaneRegistration) ||
+			!errors.Is(err, core.ErrAttestVerification) {
+			t.Fatalf("VerifyRegistration() error = %v, want %v and %v",
+				err, core.ErrControlPlaneRegistration, core.ErrAttestVerification)
+		}
+		if verified != (controlplane.VerifiedRegistration{}) {
+			t.Fatalf("VerifyRegistration() = %v, want zero proof on refusal", verified)
 		}
 	})
 
@@ -197,9 +205,13 @@ func TestVerifyRegistrationAcceptsOnlyAResponseToThisExactRequest(t *testing.T) 
 		request.Document = stripped
 
 		verified, err := controlplane.VerifyRegistration(request)
-		if err == nil {
-			t.Fatalf("VerifyRegistration() = %v, error = nil, want a refusal for a grant with no certificate",
-				verified)
+		if !errors.Is(err, core.ErrControlPlaneRegistration) ||
+			!errors.Is(err, core.ErrControlPlaneDecisionConsistency) {
+			t.Fatalf("VerifyRegistration() error = %v, want %v and %v",
+				err, core.ErrControlPlaneRegistration, core.ErrControlPlaneDecisionConsistency)
+		}
+		if verified != (controlplane.VerifiedRegistration{}) {
+			t.Fatalf("VerifyRegistration() = %v, want zero proof on refusal", verified)
 		}
 	})
 }
@@ -210,17 +222,19 @@ func TestVerifiedRegistrationCannotBeForged(t *testing.T) {
 	t.Parallel()
 
 	var forged controlplane.VerifiedRegistration
-	if err := forged.Validate(); err == nil {
-		t.Fatalf("zero VerifiedRegistration Validate() = nil, want a refusal (value %v)", forged)
+	if err := forged.Validate(); !errors.Is(err, core.ErrControlPlaneRegistration) {
+		t.Fatalf("zero VerifiedRegistration Validate() error = %v, want %v", err, core.ErrControlPlaneRegistration)
 	}
-	if payload, err := forged.Payload(); err == nil {
-		t.Errorf("zero VerifiedRegistration Payload() = %v, error = nil, want a refusal", payload)
+	if payload, err := forged.Payload(); !errors.Is(err, core.ErrControlPlaneRegistration) || payload != (controlplane.RegistrationPayload{}) {
+		t.Errorf("zero VerifiedRegistration Payload() = (%v, %v), want zero and %v", payload, err, core.ErrControlPlaneRegistration)
 	}
-	if granted, err := forged.Lease(); err == nil {
-		t.Errorf("zero VerifiedRegistration Lease() = %v, error = nil, want a refusal", granted)
+	if granted, err := forged.Lease(); !errors.Is(err, core.ErrControlPlaneRegistration) ||
+		!errors.Is(granted.Validate(), core.ErrLeaseContract) {
+		t.Errorf("zero VerifiedRegistration Lease() = (%v, %v), want errors.Is %v and unusable with %v",
+			granted, err, core.ErrControlPlaneRegistration, core.ErrLeaseContract)
 	}
-	if certificate, err := forged.Certificate(); err == nil {
-		t.Errorf("zero VerifiedRegistration Certificate() = %v, error = nil, want a refusal", certificate)
+	if certificate, err := forged.Certificate(); !errors.Is(err, core.ErrControlPlaneRegistration) || certificate != (controlplane.InstallationCertificateDocument{}) {
+		t.Errorf("zero VerifiedRegistration Certificate() = (%v, %v), want zero and %v", certificate, err, core.ErrControlPlaneRegistration)
 	}
 }
 

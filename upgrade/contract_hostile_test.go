@@ -270,8 +270,8 @@ func TestSettledCleanupCompletesAfterTheCallerContextIsDone(t *testing.T) {
 	// The same removal under the raw done context is refused, which is the
 	// reason recoveryContext exists at all.
 	installArtifactForTest(t, root2, SlotA, oldArtifact, oldBytes)
-	if err := removeArtifact(done, root2, SlotA, oldArtifact); err == nil {
-		t.Fatal("removeArtifact(done context) error = nil, want a refusal")
+	if err := removeArtifact(done, root2, SlotA, oldArtifact); !errors.Is(err, context.Canceled) {
+		t.Fatalf("removeArtifact(done context) error = %v, want %v", err, context.Canceled)
 	}
 }
 
@@ -295,8 +295,8 @@ func TestSlotProjectionsRefuseEveryValueOutsideTheClosedDomain(t *testing.T) {
 			t.Fatalf("binaryPath(Slot(%d)) error = %v, want %v",
 				raw, err, core.ErrUpgradeContract)
 		}
-		if _, err := absoluteBinaryPath(directory, slot, build); err == nil {
-			t.Fatalf("absoluteBinaryPath(Slot(%d)) error = nil, want a refusal", raw)
+		if got, err := absoluteBinaryPath(directory, slot, build); !errors.Is(err, core.ErrUpgradeContract) || got != (core.AbsolutePath{}) {
+			t.Fatalf("absoluteBinaryPath(Slot(%d)) = (%v, %v), want zero and %v", raw, got, err, core.ErrUpgradeContract)
 		}
 		if _, err := slot.other(); !errors.Is(err, core.ErrUpgradeContract) {
 			t.Fatalf("Slot(%d).other() error = %v, want %v",

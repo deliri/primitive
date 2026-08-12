@@ -156,17 +156,20 @@ func TestSigningDomainRefusesTheUnsetDomainAtEveryBoundary(t *testing.T) {
 	if got := unset.IsValid(); got {
 		t.Fatalf("SigningDomainUnknown.IsValid() = %t, want false", got)
 	}
-	if got, err := unset.MarshalText(); err == nil {
-		t.Fatalf("MarshalText() = %q, error = nil, want a refusal", got)
+	if got, err := unset.MarshalText(); !errors.Is(err, core.ErrControlPlaneSigningDomain) || got != nil {
+		t.Fatalf("MarshalText() = (%q, %v), want nil and errors.Is %v", got, err, core.ErrControlPlaneSigningDomain)
 	}
-	if got, err := unset.MarshalJSON(); err == nil {
-		t.Fatalf("MarshalJSON() = %s, error = nil, want a refusal", got)
+	if got, err := unset.MarshalJSON(); !errors.Is(err, core.ErrControlPlaneSigningDomain) ||
+		!errors.Is(err, core.ErrJSONContract) || got != nil {
+		t.Fatalf("MarshalJSON() = (%s, %v), want nil and errors.Is %v and %v", got, err,
+			core.ErrControlPlaneSigningDomain, core.ErrJSONContract)
 	}
 	// A rejected decode must leave the receiver alone, so a partially decoded
 	// document cannot end up holding a domain it never carried.
 	held := controlplane.SigningDomainRegistrationV1
-	if err := held.UnmarshalJSON([]byte(`"ogs-control-not-a-domain"`)); err == nil {
-		t.Fatalf("UnmarshalJSON() error = nil, want a refusal")
+	if err := held.UnmarshalJSON([]byte(`"ogs-control-not-a-domain"`)); !errors.Is(err, core.ErrControlPlaneSigningDomain) || !errors.Is(err, core.ErrJSONContract) {
+		t.Fatalf("UnmarshalJSON() error = %v, want errors.Is %v and %v", err,
+			core.ErrControlPlaneSigningDomain, core.ErrJSONContract)
 	}
 	if held != controlplane.SigningDomainRegistrationV1 {
 		t.Fatalf("receiver after a rejected decode = %v, want the unchanged %v",

@@ -4,6 +4,23 @@ Last updated: `2026-08-12`
 
 ## Current
 
+- replaced weak rejection oracles across 24 hostile-test files, 2026-08-12,
+  published `v2026.0.75`. Controlplane verification, check-in, response,
+  product-status, signing-domain, and usage-window proofs now require their
+  narrow typed identities and unusable sealed outputs. Controlwire revision,
+  nonce, token, cursor, and exchange-policy proofs distinguish owner rejection
+  from `*json.SyntaxError` and preserve receivers. Filestore, Process,
+  Shutdown, Hostfacts, Chit, Release, Distribution, and Upgrade refusal paths
+  now require their real package-owned error chains and exact zero, nil,
+  unchanged, owned, or unowned outcomes.
+
+  The stronger proofs exposed two previously hidden ownership facts: a refused
+  composite exchange policy is owned by Exchange at its validation boundary,
+  and a failed publication transport carries Deploy, Objectstore, and Exchange
+  transport identities together. Focused package suites pass twice under the
+  race detector with shuffled order; deadcode, staticcheck, and witness-lint
+  report zero findings.
+
 - completed the repository typed-error table ratchet and repaired the failures
   it exposed, 2026-08-12, published `v2026.0.74`. Core numeric, path, JSON,
   catalog, and canonical-hex tables; Hostfacts cgroup and storage tables; and

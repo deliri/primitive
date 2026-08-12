@@ -43,8 +43,8 @@ func TestSharingAdmitsOnlyTheClosedDomain(t *testing.T) {
 		}
 	}
 	for _, value := range []filestore.Sharing{filestore.SharingUnknown, filestore.SharingHeld + 1, filestore.Sharing(255)} {
-		if err := value.Validate(); err == nil {
-			t.Fatalf("Sharing(%d).Validate() error = nil, want the domain refusal", value)
+		if err := value.Validate(); !errors.Is(err, core.ErrFilestoreContract) {
+			t.Fatalf("Sharing(%d).Validate() error = %v, want errors.Is %v", value, err, core.ErrFilestoreContract)
 		}
 		if value.String() != core.UnknownEnumDiagnostic {
 			t.Fatalf("Sharing(%d).String() = %q, want %q", value, value.String(), core.UnknownEnumDiagnostic)

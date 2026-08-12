@@ -155,8 +155,12 @@ func TestGenerationJSONPressuresNumericBoundaries(t *testing.T) {
 	for _, tc := range hostile {
 		receiver := mustGeneration(t, 9)
 		err := json.Unmarshal([]byte(tc.data), &receiver)
-		if err == nil || tc.wantContract && !errors.Is(err, core.ErrJSONContract) {
-			t.Fatalf("json.Unmarshal(Generation %q) error = %v, want rejection with contract=%v", tc.data, err, tc.wantContract)
+		var syntax *json.SyntaxError
+		if tc.wantContract && !errors.Is(err, core.ErrJSONContract) {
+			t.Fatalf("json.Unmarshal(Generation %q) error = %v, want errors.Is %v", tc.data, err, core.ErrJSONContract)
+		}
+		if !tc.wantContract && !errors.As(err, &syntax) {
+			t.Fatalf("json.Unmarshal(Generation %q) error = %v, want errors.As *json.SyntaxError", tc.data, err)
 		}
 		if receiver != mustGeneration(t, 9) {
 			t.Fatalf("json.Unmarshal(Generation %q) mutated receiver", tc.data)
@@ -708,8 +712,12 @@ func TestReleaseJSONReceiversRejectMalformedAndRemainUnchanged(t *testing.T) {
 	for _, tc := range hostile {
 		latestReceiver := fixture.latest
 		err := json.Unmarshal([]byte(tc.data), &latestReceiver)
-		if err == nil || tc.wantContract && !errors.Is(err, core.ErrJSONContract) {
-			t.Fatalf("json.Unmarshal(LatestDocument %q) error = %v, want rejection with contract=%v", boundedDiagnostic(tc.data), err, tc.wantContract)
+		var syntax *json.SyntaxError
+		if tc.wantContract && !errors.Is(err, core.ErrJSONContract) {
+			t.Fatalf("json.Unmarshal(LatestDocument %q) error = %v, want errors.Is %v", boundedDiagnostic(tc.data), err, core.ErrJSONContract)
+		}
+		if !tc.wantContract && !errors.As(err, &syntax) {
+			t.Fatalf("json.Unmarshal(LatestDocument %q) error = %v, want errors.As *json.SyntaxError", boundedDiagnostic(tc.data), err)
 		}
 		if latestReceiver != fixture.latest {
 			t.Fatalf("json.Unmarshal(LatestDocument %q) mutated receiver", boundedDiagnostic(tc.data))
@@ -717,8 +725,12 @@ func TestReleaseJSONReceiversRejectMalformedAndRemainUnchanged(t *testing.T) {
 
 		manifestReceiver := fixture.manifest
 		err = json.Unmarshal([]byte(tc.data), &manifestReceiver)
-		if err == nil || tc.wantContract && !errors.Is(err, core.ErrJSONContract) {
-			t.Fatalf("json.Unmarshal(ManifestDocument %q) error = %v, want rejection with contract=%v", boundedDiagnostic(tc.data), err, tc.wantContract)
+		syntax = nil
+		if tc.wantContract && !errors.Is(err, core.ErrJSONContract) {
+			t.Fatalf("json.Unmarshal(ManifestDocument %q) error = %v, want errors.Is %v", boundedDiagnostic(tc.data), err, core.ErrJSONContract)
+		}
+		if !tc.wantContract && !errors.As(err, &syntax) {
+			t.Fatalf("json.Unmarshal(ManifestDocument %q) error = %v, want errors.As *json.SyntaxError", boundedDiagnostic(tc.data), err)
 		}
 		if manifestReceiver != fixture.manifest {
 			t.Fatalf("json.Unmarshal(ManifestDocument %q) mutated receiver", boundedDiagnostic(tc.data))

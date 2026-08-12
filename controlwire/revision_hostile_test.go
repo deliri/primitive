@@ -161,9 +161,10 @@ func TestRevisionUnmarshalJSONLeavesTheReceiverUnchangedOnRejection(t *testing.T
 	t.Parallel()
 
 	cases := []struct {
-		name     string
-		document string
-		want     controlwire.Revision
+		name       string
+		document   string
+		want       controlwire.Revision
+		wantSyntax bool
 	}{
 		{name: "canonical token is accepted", document: `"2026.1"`, want: controlwire.Revision2026V1},
 		{name: "escaped separator decodes to the published token", document: `"2026\u002e1"`, want: controlwire.Revision2026V1},
@@ -174,19 +175,19 @@ func TestRevisionUnmarshalJSONLeavesTheReceiverUnchangedOnRejection(t *testing.T
 		{name: "boolean true is refused", document: `true`},
 		{name: "boolean false is refused", document: `false`},
 		{name: "empty string is refused", document: `""`},
-		{name: "empty document is refused", document: ``},
+		{name: "empty document is refused", document: ``, wantSyntax: true},
 		{name: "object is refused", document: `{"revision":"2026.1"}`},
 		{name: "array is refused", document: `["2026.1"]`},
 		{name: "array of one token is refused", document: `["2026.1","2026.1"]`},
-		{name: "unterminated string is refused", document: `"2026.1`},
-		{name: "unopened string is refused", document: `2026.1"`},
+		{name: "unterminated string is refused", document: `"2026.1`, wantSyntax: true},
+		{name: "unopened string is refused", document: `2026.1"`, wantSyntax: true},
 		{name: "whitespace-padded token is refused after decoding", document: `" 2026.1 "`},
 		{name: "future revision token is refused", document: `"2026.2"`},
 		{name: "lease revision token is refused", document: `"v1"`},
 		{name: "unpaired high surrogate is refused", document: `"\ud800"`},
 		{name: "unpaired low surrogate is refused", document: `"\udc00"`},
 		{name: "escaped null byte suffix is refused", document: `"2026.1\u0000"`},
-		{name: "trailing content after token is refused", document: `"2026.1"trailing`},
+		{name: "trailing content after token is refused", document: `"2026.1"trailing`, wantSyntax: true},
 	}
 
 	for _, tc := range cases {
@@ -207,8 +208,14 @@ func TestRevisionUnmarshalJSONLeavesTheReceiverUnchangedOnRejection(t *testing.T
 				}
 				return
 			}
-			if err == nil {
-				t.Fatalf("json.Unmarshal(%s) error = nil, want a rejection", tc.document)
+			var syntax *json.SyntaxError
+			if tc.wantSyntax {
+				if !errors.As(err, &syntax) {
+					t.Fatalf("json.Unmarshal(%s) error = %v, want errors.As *json.SyntaxError", tc.document, err)
+				}
+			} else if !errors.Is(err, core.ErrControlWireRevision) || !errors.Is(err, core.ErrJSONContract) {
+				t.Fatalf("json.Unmarshal(%s) error = %v, want errors.Is %v and %v", tc.document, err,
+					core.ErrControlWireRevision, core.ErrJSONContract)
 			}
 			if got != controlwire.Revision2026V1 {
 				t.Fatalf("json.Unmarshal(%s) mutated receiver to %v, want %v", tc.document, got, controlwire.Revision2026V1)

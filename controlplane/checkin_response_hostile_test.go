@@ -172,8 +172,8 @@ func TestVerifyCheckInResponseAcceptsOnlyAnAnswerToThisExactCheckIn(t *testing.T
 		request := issued.verification()
 		request.Expected.PriorProviderTime = testInstant(t, checkInResponseFutureInstant)
 
-		if _, err := controlplane.VerifyCheckInResponse(request); err == nil {
-			t.Fatalf("VerifyCheckInResponse() error = nil, want a refusal of a backwards instant")
+		if got, err := controlplane.VerifyCheckInResponse(request); !errors.Is(err, core.ErrControlPlaneProviderTimeRollback) || got != (controlplane.VerifiedCheckInResponse{}) {
+			t.Fatalf("VerifyCheckInResponse() = (%v, %v), want zero and %v", got, err, core.ErrControlPlaneProviderTimeRollback)
 		}
 	})
 
@@ -229,14 +229,16 @@ func TestVerifiedCheckInResponseCannotBeManufactured(t *testing.T) {
 	t.Parallel()
 
 	var forged controlplane.VerifiedCheckInResponse
-	if err := forged.Validate(); err == nil {
-		t.Fatalf("zero VerifiedCheckInResponse Validate() error = nil, want a refusal")
+	if err := forged.Validate(); !errors.Is(err, core.ErrControlPlaneCheckInResponse) {
+		t.Fatalf("zero VerifiedCheckInResponse Validate() error = %v, want %v", err, core.ErrControlPlaneCheckInResponse)
 	}
-	if payload, err := forged.Payload(); err == nil {
-		t.Errorf("zero VerifiedCheckInResponse Payload() = %v, error = nil, want a refusal", payload)
+	if payload, err := forged.Payload(); !errors.Is(err, core.ErrControlPlaneCheckInResponse) || payload != (controlplane.CheckInResponsePayload{}) {
+		t.Errorf("zero VerifiedCheckInResponse Payload() = (%v, %v), want zero and %v", payload, err, core.ErrControlPlaneCheckInResponse)
 	}
-	if granted, err := forged.Lease(); err == nil {
-		t.Errorf("zero VerifiedCheckInResponse Lease() = %v, error = nil, want a refusal", granted)
+	if granted, err := forged.Lease(); !errors.Is(err, core.ErrControlPlaneCheckInResponse) ||
+		!errors.Is(granted.Validate(), core.ErrLeaseContract) {
+		t.Errorf("zero VerifiedCheckInResponse Lease() = (%v, %v), want errors.Is %v and unusable with %v",
+			granted, err, core.ErrControlPlaneCheckInResponse, core.ErrLeaseContract)
 	}
 }
 
@@ -473,14 +475,14 @@ func TestResponseHeaderFieldRefusesEveryValueOutsideTheDomain(t *testing.T) {
 		if field.IsValid() {
 			continue
 		}
-		if err := field.Validate(); err == nil {
-			t.Fatalf("ResponseHeaderField(%d).Validate() error = nil, want a refusal", value)
+		if err := field.Validate(); !errors.Is(err, core.ErrControlPlaneResponseHeader) {
+			t.Fatalf("ResponseHeaderField(%d).Validate() error = %v, want %v", value, err, core.ErrControlPlaneResponseHeader)
 		}
 		if got := field.String(); got != "" {
 			t.Fatalf("ResponseHeaderField(%d).String() = %q, want empty text", value, got)
 		}
-		if encoded, err := field.MarshalJSON(); err == nil {
-			t.Fatalf("ResponseHeaderField(%d).MarshalJSON() = %s, want a refusal", value, encoded)
+		if encoded, err := field.MarshalJSON(); !errors.Is(err, core.ErrControlPlaneResponseHeader) || !errors.Is(err, core.ErrJSONContract) || encoded != nil {
+			t.Fatalf("ResponseHeaderField(%d).MarshalJSON() = (%s, %v), want nil and %v/%v", value, encoded, err, core.ErrControlPlaneResponseHeader, core.ErrJSONContract)
 		}
 		// A binding failure that named nothing would be a refusal a caller
 		// cannot switch on, so the constructor returns the header identity
@@ -490,11 +492,11 @@ func TestResponseHeaderFieldRefusesEveryValueOutsideTheDomain(t *testing.T) {
 			t.Fatalf("NewResponseBindingError(%d) produced a binding failure naming no field", value)
 		}
 	}
-	if _, err := controlplane.ParseResponseHeaderField(""); err == nil {
-		t.Fatalf("ParseResponseHeaderField(\"\") error = nil, want a refusal")
+	if got, err := controlplane.ParseResponseHeaderField(""); !errors.Is(err, core.ErrControlPlaneResponseHeader) || got != controlplane.ResponseHeaderFieldUnknown {
+		t.Fatalf("ParseResponseHeaderField(\"\") = (%v, %v), want unknown and %v", got, err, core.ErrControlPlaneResponseHeader)
 	}
-	if _, err := controlplane.ParseResponseHeaderField("not-a-header-field"); err == nil {
-		t.Fatalf("ParseResponseHeaderField() of an unknown token error = nil, want a refusal")
+	if got, err := controlplane.ParseResponseHeaderField("not-a-header-field"); !errors.Is(err, core.ErrControlPlaneResponseHeader) || got != controlplane.ResponseHeaderFieldUnknown {
+		t.Fatalf("ParseResponseHeaderField(unknown) = (%v, %v), want unknown and %v", got, err, core.ErrControlPlaneResponseHeader)
 	}
 }
 
@@ -522,11 +524,8 @@ func requireCheckInResponseRefusal(t *testing.T, request controlplane.CheckInRes
 	t.Helper()
 
 	verified, err := controlplane.VerifyCheckInResponse(request)
-	if err == nil {
-		t.Fatalf("VerifyCheckInResponse() = %v, want a refusal", verified)
-	}
-	if !errors.Is(err, core.ErrControlPlaneContract) {
-		t.Fatalf("VerifyCheckInResponse() error = %v, want the control-plane contract identity", err)
+	if !errors.Is(err, core.ErrControlPlaneCheckInResponse) || verified != (controlplane.VerifiedCheckInResponse{}) {
+		t.Fatalf("VerifyCheckInResponse() = (%v, %v), want zero and %v", verified, err, core.ErrControlPlaneCheckInResponse)
 	}
 }
 
@@ -557,8 +556,8 @@ func TestUsageDispositionClosesItsEntireByteDomain(t *testing.T) {
 			if disposition.AdvancesWatermark() {
 				t.Fatalf("UsageDisposition(%d).AdvancesWatermark() = true, want false for an unpublished result", value)
 			}
-			if _, err := disposition.MarshalJSON(); err == nil {
-				t.Fatalf("UsageDisposition(%d).MarshalJSON() error = nil, want a refusal", value)
+			if encoded, err := disposition.MarshalJSON(); !errors.Is(err, core.ErrControlPlaneCheckInResponse) || !errors.Is(err, core.ErrJSONContract) || encoded != nil {
+				t.Fatalf("UsageDisposition(%d).MarshalJSON() = (%s, %v), want nil and %v/%v", value, encoded, err, core.ErrControlPlaneCheckInResponse, core.ErrJSONContract)
 			}
 			continue
 		}

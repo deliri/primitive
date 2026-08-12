@@ -99,8 +99,8 @@ func TestParsePolicyRevisionIDRefusesEveryNonCanonicalRendering(t *testing.T) {
 				t.Errorf("ParsePolicyRevisionID(%q) = %v, want the zero identifier on rejection",
 					testCase.value, got)
 			}
-			if err := got.Validate(); err == nil {
-				t.Errorf("the identifier returned from a refused parse of %q validated", testCase.value)
+			if err := got.Validate(); !errors.Is(err, core.ErrControlWirePolicyCursor) {
+				t.Errorf("refused identifier Validate() error = %v, want %v", err, core.ErrControlWirePolicyCursor)
 			}
 		})
 	}
@@ -312,33 +312,33 @@ func TestPolicyCursorJSONBoundaryRefusesEveryMalformedDocument(t *testing.T) {
 	cases := []struct {
 		name     string
 		document string
-		want     bool
+		wantErr  error
 	}{
-		{name: "the document a control plane emits", document: valid, want: true},
-		{name: "the largest activation", document: `{"revision":"` + policyRevisionRealWorld + `","activation":18446744073709551615}`, want: true},
+		{name: "the document a control plane emits", document: valid},
+		{name: "the largest activation", document: `{"revision":"` + policyRevisionRealWorld + `","activation":18446744073709551615}`},
 
-		{name: "an empty document is refused", document: ``},
-		{name: "null is refused", document: `null`},
-		{name: "an empty object is refused", document: `{}`},
-		{name: "a bare string is refused", document: `"` + policyRevisionRealWorld + `"`},
-		{name: "an array is refused", document: `["` + policyRevisionRealWorld + `",1]`},
-		{name: "a missing revision is refused", document: `{"activation":1}`},
-		{name: "a missing activation is refused", document: `{"revision":"` + policyRevisionRealWorld + `"}`},
-		{name: "an unset activation is refused", document: `{"revision":"` + policyRevisionRealWorld + `","activation":0}`},
-		{name: "the reserved absent revision is refused", document: `{"revision":"` + policyRevisionAllZero + `","activation":1}`},
-		{name: "a null revision is refused", document: `{"revision":null,"activation":1}`},
-		{name: "a null activation is refused", document: `{"revision":"` + policyRevisionRealWorld + `","activation":null}`},
-		{name: "a quoted activation is refused", document: `{"revision":"` + policyRevisionRealWorld + `","activation":"1"}`},
-		{name: "a negative activation is refused", document: `{"revision":"` + policyRevisionRealWorld + `","activation":-1}`},
-		{name: "a fractional activation is refused", document: `{"revision":"` + policyRevisionRealWorld + `","activation":1.5}`},
-		{name: "an exponent activation is refused", document: `{"revision":"` + policyRevisionRealWorld + `","activation":1e2}`},
-		{name: "a leading-zero activation is refused", document: `{"revision":"` + policyRevisionRealWorld + `","activation":01}`},
-		{name: "an activation past the counter width is refused", document: `{"revision":"` + policyRevisionRealWorld + `","activation":18446744073709551616}`},
-		{name: "an unknown field is refused", document: `{"revision":"` + policyRevisionRealWorld + `","activation":1,"mode":"open"}`},
-		{name: "a lowercase revision is refused", document: `{"revision":"` + strings.ToLower(policyRevisionRealWorld) + `","activation":1}`},
-		{name: "a nested object is refused", document: `{"revision":{"revision":"` + policyRevisionRealWorld + `"},"activation":1}`},
-		{name: "trailing content is refused", document: valid + `{}`},
-		{name: "a truncated document is refused", document: valid[:len(valid)-1]},
+		{name: "an empty document is refused", document: ``, wantErr: &json.SyntaxError{}},
+		{name: "null is refused", document: `null`, wantErr: core.ErrControlWirePolicyCursor},
+		{name: "an empty object is refused", document: `{}`, wantErr: core.ErrControlWirePolicyCursor},
+		{name: "a bare string is refused", document: `"` + policyRevisionRealWorld + `"`, wantErr: core.ErrControlWirePolicyCursor},
+		{name: "an array is refused", document: `["` + policyRevisionRealWorld + `",1]`, wantErr: core.ErrControlWirePolicyCursor},
+		{name: "a missing revision is refused", document: `{"activation":1}`, wantErr: core.ErrControlWirePolicyCursor},
+		{name: "a missing activation is refused", document: `{"revision":"` + policyRevisionRealWorld + `"}`, wantErr: core.ErrControlWirePolicyCursor},
+		{name: "an unset activation is refused", document: `{"revision":"` + policyRevisionRealWorld + `","activation":0}`, wantErr: core.ErrControlWirePolicyCursor},
+		{name: "the reserved absent revision is refused", document: `{"revision":"` + policyRevisionAllZero + `","activation":1}`, wantErr: core.ErrControlWirePolicyCursor},
+		{name: "a null revision is refused", document: `{"revision":null,"activation":1}`, wantErr: core.ErrControlWirePolicyCursor},
+		{name: "a null activation is refused", document: `{"revision":"` + policyRevisionRealWorld + `","activation":null}`, wantErr: core.ErrControlWirePolicyCursor},
+		{name: "a quoted activation is refused", document: `{"revision":"` + policyRevisionRealWorld + `","activation":"1"}`, wantErr: core.ErrControlWirePolicyCursor},
+		{name: "a negative activation is refused", document: `{"revision":"` + policyRevisionRealWorld + `","activation":-1}`, wantErr: core.ErrControlWirePolicyCursor},
+		{name: "a fractional activation is refused", document: `{"revision":"` + policyRevisionRealWorld + `","activation":1.5}`, wantErr: core.ErrControlWirePolicyCursor},
+		{name: "an exponent activation is refused", document: `{"revision":"` + policyRevisionRealWorld + `","activation":1e2}`, wantErr: core.ErrControlWirePolicyCursor},
+		{name: "a leading-zero activation is refused", document: `{"revision":"` + policyRevisionRealWorld + `","activation":01}`, wantErr: &json.SyntaxError{}},
+		{name: "an activation past the counter width is refused", document: `{"revision":"` + policyRevisionRealWorld + `","activation":18446744073709551616}`, wantErr: core.ErrControlWirePolicyCursor},
+		{name: "an unknown field is refused", document: `{"revision":"` + policyRevisionRealWorld + `","activation":1,"mode":"open"}`, wantErr: core.ErrControlWirePolicyCursor},
+		{name: "a lowercase revision is refused", document: `{"revision":"` + strings.ToLower(policyRevisionRealWorld) + `","activation":1}`, wantErr: core.ErrControlWirePolicyCursor},
+		{name: "a nested object is refused", document: `{"revision":{"revision":"` + policyRevisionRealWorld + `"},"activation":1}`, wantErr: core.ErrControlWirePolicyCursor},
+		{name: "trailing content is refused", document: valid + `{}`, wantErr: &json.SyntaxError{}},
+		{name: "a truncated document is refused", document: valid[:len(valid)-1], wantErr: &json.SyntaxError{}},
 	}
 
 	for _, testCase := range cases {
@@ -350,7 +350,7 @@ func TestPolicyCursorJSONBoundaryRefusesEveryMalformedDocument(t *testing.T) {
 			existing := mustPolicyCursor(t)
 			got := existing
 			err := json.Unmarshal([]byte(testCase.document), &got)
-			if testCase.want {
+			if testCase.wantErr == nil {
 				if err != nil {
 					t.Fatalf("json.Unmarshal(%s) error = %v, want nil", testCase.document, err)
 				}
@@ -363,8 +363,13 @@ func TestPolicyCursorJSONBoundaryRefusesEveryMalformedDocument(t *testing.T) {
 				}
 				return
 			}
-			if err == nil {
-				t.Fatalf("json.Unmarshal(%s) error = nil, want a rejection", testCase.document)
+			if _, syntax := testCase.wantErr.(*json.SyntaxError); syntax {
+				var gotSyntax *json.SyntaxError
+				if !errors.As(err, &gotSyntax) {
+					t.Fatalf("json.Unmarshal(%s) error = %v, want *json.SyntaxError", testCase.document, err)
+				}
+			} else if !errors.Is(err, testCase.wantErr) || !errors.Is(err, core.ErrJSONContract) {
+				t.Fatalf("json.Unmarshal(%s) error = %v, want %v/%v", testCase.document, err, testCase.wantErr, core.ErrJSONContract)
 			}
 			if got != existing {
 				t.Fatalf("json.Unmarshal(%s) mutated the receiver to %v, want it unchanged",
@@ -391,8 +396,8 @@ func TestPolicyCursorRefusesToEmitAnUnsetValue(t *testing.T) {
 		{name: "revision", value: cursor.Revision},
 	} {
 		encoded, err := json.Marshal(subject.value)
-		if err == nil {
-			t.Errorf("json.Marshal(unset %s) = %s, want a refusal", subject.name, encoded)
+		if !errors.Is(err, core.ErrControlWirePolicyCursor) || !errors.Is(err, core.ErrJSONContract) {
+			t.Errorf("json.Marshal(unset %s) error = %v, want %v/%v", subject.name, err, core.ErrControlWirePolicyCursor, core.ErrJSONContract)
 		}
 		if encoded != nil {
 			t.Errorf("json.Marshal(unset %s) = %s, want no bytes", subject.name, encoded)
@@ -430,8 +435,8 @@ func TestUnsetPolicyRevisionRendersAWellFormedIdentifier(t *testing.T) {
 	if err := unset.Validate(); !errors.Is(err, core.ErrControlWirePolicyCursor) {
 		t.Fatalf("unset PolicyRevisionID.Validate() = %v, want %v", err, core.ErrControlWirePolicyCursor)
 	}
-	if got, err := controlwire.ParsePolicyRevisionID(unset.String()); err == nil {
-		t.Fatalf("ParsePolicyRevisionID(%q) = %v, error = nil, want a refusal", unset.String(), got)
+	if got, err := controlwire.ParsePolicyRevisionID(unset.String()); !errors.Is(err, core.ErrControlWirePolicyCursor) || got != (controlwire.PolicyRevisionID{}) {
+		t.Fatalf("ParsePolicyRevisionID(%q) = (%v, %v), want zero and %v", unset.String(), got, err, core.ErrControlWirePolicyCursor)
 	}
 }
 

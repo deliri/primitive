@@ -254,8 +254,8 @@ func TestRunRejectsAnUnusableParentContext(t *testing.T) {
 	if started {
 		t.Fatalf("Run(nil parent) step started = %t, want false", started)
 	}
-	if err := report.Validate(); err == nil {
-		t.Fatalf("Run(nil parent) report validation error = %v, want non-nil", err)
+	if err := report.Validate(); !errors.Is(err, core.ErrShutdownContract) {
+		t.Fatalf("Run(nil parent) report validation error = %v, want errors.Is %v", err, core.ErrShutdownContract)
 	}
 	if err := plan.Register(validStep(t, 2, PhaseDrain, durationForTest(t, time.Second))); err != nil {
 		t.Fatalf("Register(after rejected Run) error = %v, want the plan to stay open", err)

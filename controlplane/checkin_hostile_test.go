@@ -363,11 +363,11 @@ func TestCheckInRefusesEveryTamperedFact(t *testing.T) {
 			verified, err := controlplane.VerifyCheckIn(controlplane.CheckInVerification{
 				Request: request, TrustedKeys: trusted,
 			})
-			if err == nil {
-				t.Fatalf("VerifyCheckIn() = %v, want a rejection", verified)
+			if !errors.Is(err, core.ErrControlPlaneCheckIn) {
+				t.Fatalf("VerifyCheckIn() = (%v, %v), want errors.Is %v", verified, err, core.ErrControlPlaneCheckIn)
 			}
-			if !errors.Is(err, core.ErrControlPlaneContract) {
-				t.Fatalf("VerifyCheckIn() error = %v, want the control-plane contract identity", err)
+			if validateErr := verified.Validate(); !errors.Is(validateErr, core.ErrControlPlaneCheckIn) {
+				t.Fatalf("refused VerifiedCheckIn.Validate() error = %v, want errors.Is %v", validateErr, core.ErrControlPlaneCheckIn)
 			}
 		})
 	}
@@ -381,14 +381,14 @@ func TestVerifiedCheckInCannotBeManufactured(t *testing.T) {
 	t.Parallel()
 
 	var unverified controlplane.VerifiedCheckIn
-	if err := unverified.Validate(); err == nil {
-		t.Fatalf("zero VerifiedCheckIn Validate() error = nil, want a rejection")
+	if err := unverified.Validate(); !errors.Is(err, core.ErrControlPlaneCheckIn) {
+		t.Fatalf("zero VerifiedCheckIn Validate() error = %v, want errors.Is %v", err, core.ErrControlPlaneCheckIn)
 	}
 	request, err := unverified.Request()
-	if err == nil {
-		t.Fatalf("zero VerifiedCheckIn Request() = %v, want a rejection", request)
-	}
 	if !errors.Is(err, core.ErrControlPlaneCheckIn) {
 		t.Fatalf("Request() error = %v, want the check-in contract identity", err)
+	}
+	if validateErr := request.Validate(); !errors.Is(validateErr, core.ErrControlPlaneCheckIn) {
+		t.Fatalf("refused Request().Validate() error = %v, want errors.Is %v", validateErr, core.ErrControlPlaneCheckIn)
 	}
 }

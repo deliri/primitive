@@ -2,6 +2,7 @@ package upgrade
 
 import (
 	"encoding/json"
+	"errors"
 	"testing"
 
 	"github.com/deliri/primitive/v2026/core"
@@ -91,12 +92,15 @@ func TestSlotJSONRejectsUnknownAndPreservesReceiver(t *testing.T) {
 	}
 
 	receiver := SlotA
-	if err := json.Unmarshal([]byte(`"future"`), &receiver); err == nil ||
-		receiver != SlotA {
-		t.Fatalf("unknown Slot decode = (%v, %v), want preserved receiver and error", receiver, err)
+	if err := json.Unmarshal([]byte(`"future"`), &receiver); !errors.Is(err, core.ErrUpgradeContract) ||
+		!errors.Is(err, core.ErrJSONContract) || receiver != SlotA {
+		t.Fatalf("unknown Slot decode = (%v, %v), want preserved receiver and errors.Is %v and %v",
+			receiver, err, core.ErrUpgradeContract, core.ErrJSONContract)
 	}
-	if err := (*Slot)(nil).UnmarshalJSON(nil); err == nil {
-		t.Fatalf("nil Slot receiver error = %v, want non-nil", err)
+	if err := (*Slot)(nil).UnmarshalJSON(nil); !errors.Is(err, core.ErrUpgradeContract) ||
+		!errors.Is(err, core.ErrJSONContract) {
+		t.Fatalf("nil Slot receiver error = %v, want errors.Is %v and %v", err,
+			core.ErrUpgradeContract, core.ErrJSONContract)
 	}
 	if _, err := json.Marshal(Slot(255)); !isUpgradeContract(err) {
 		t.Fatalf("json.Marshal(Slot(255)) error = %v, want %v", err, core.ErrUpgradeContract)

@@ -254,15 +254,18 @@ func TestHostFactsErrorAxesAndTypedFailure(t *testing.T) {
 			unwrapped,
 		)
 	}
-	invalid := []Failure{
-		{},
-		{Operation: OperationUnknown, Identity: core.ErrHostFactsObservation},
-		{Operation: OperationDiskCapacity, Identity: core.ErrUnknown},
-		{Operation: OperationDiskCapacity, Identity: core.ErrExchangeContract},
+	invalid := []struct {
+		failure Failure
+		wantErr error
+	}{
+		{failure: Failure{}, wantErr: core.ErrHostFactsContract},
+		{failure: Failure{Operation: OperationUnknown, Identity: core.ErrHostFactsObservation}, wantErr: core.ErrHostFactsContract},
+		{failure: Failure{Operation: OperationDiskCapacity, Identity: core.ErrUnknown}, wantErr: core.ErrPrimitiveContract},
+		{failure: Failure{Operation: OperationDiskCapacity, Identity: core.ErrExchangeContract}, wantErr: core.ErrHostFactsContract},
 	}
 	for _, candidate := range invalid {
-		if gotErr := candidate.Validate(); gotErr == nil {
-			t.Fatalf("Failure%+v.Validate() error = nil, want refusal", candidate)
+		if gotErr := candidate.failure.Validate(); !errors.Is(gotErr, candidate.wantErr) {
+			t.Fatalf("Failure%+v.Validate() error = %v, want errors.Is %v", candidate.failure, gotErr, candidate.wantErr)
 		}
 	}
 }
