@@ -4,6 +4,20 @@ Last updated: `2026-08-12`
 
 ## Current
 
+- published semantic fuzz authorities for all three Process external ingress
+  doors, 2026-08-12, published `v2026.0.63`. Argument vectors prove exact
+  ordered projection against independently evaluated cardinality, per-value,
+  NUL, and aggregate limits. Exact environments independently classify name,
+  separator, value, count, aggregate, and duplicate-name boundaries, then
+  require byte-exact ordered projection. Effective environments validate every
+  caller projection before comparing Primitive's result with Go's independent
+  `os/exec.Cmd.Environ` last-value-wins authority, including the exact-empty
+  versus inherited distinction. Every refusal requires
+  `core.ErrProcessContract` and an exact zero result.
+
+  Proof: three live campaigns executed more than 75,000, 86,000, and 100,000
+  cases respectively; the complete Process suite is clean.
+
 - published the remaining trust-boundary layer triads, 2026-08-12, published
   `v2026.0.62`. Controlplane's signed verification triad is now joined by local
   top-level positive, negative, and neutral triads in Wiring, ID, Deploy, and
