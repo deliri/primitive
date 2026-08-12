@@ -157,7 +157,7 @@ func downloadCallIsZero(call objectstore.DownloadCapabilityRequest) bool {
 	return call.Destination == nil && call.Capability.IsZero() && call.ContentType.IsZero()
 }
 
-func newDownloadCallFixture(t *testing.T, payload []byte) downloadCallFixture {
+func newDownloadCallFixture(t testing.TB, payload []byte) downloadCallFixture {
 	t.Helper()
 
 	private, trusted := retrievalAuthority(t, 0x61)
@@ -232,7 +232,7 @@ type retrievalEvidenceRequest struct {
 	Trusted attest.TrustedKeys
 }
 
-func retrievalManifestAddition(t *testing.T, request retrievalEvidenceRequest) (chit.ManifestAddition, receipt.Scope) {
+func retrievalManifestAddition(t testing.TB, request retrievalEvidenceRequest) (chit.ManifestAddition, receipt.Scope) {
 	t.Helper()
 	scope := receipt.Scope{
 		Account:  retrievalLifecycleIdentity(t, 0x21, receipt.NewAccountIdentity),
@@ -289,7 +289,7 @@ type retrievalChitRequest struct {
 	Summary chit.ManifestSummary
 }
 
-func retrievalVerifiedChit(t *testing.T, request retrievalChitRequest) chit.Verified {
+func retrievalVerifiedChit(t testing.TB, request retrievalChitRequest) chit.Verified {
 	t.Helper()
 	collection, err := chit.ParseCollectionID("00000000-0003-7000-8000-000000000003")
 	if err != nil {
@@ -322,7 +322,7 @@ func retrievalVerifiedChit(t *testing.T, request retrievalChitRequest) chit.Veri
 	return verified
 }
 
-func retrievalDownloadCapability(t *testing.T) objectstore.DownloadCapabilityProjection {
+func retrievalDownloadCapability(t testing.TB) objectstore.DownloadCapabilityProjection {
 	t.Helper()
 	signed, err := objectstore.ParseSignedURL(
 		core.SchemeHTTPS + "://" + core.GoogleCloudStorageHost + "/bucket/object" +
@@ -348,7 +348,7 @@ func retrievalDownloadCapability(t *testing.T) objectstore.DownloadCapabilityPro
 	return projection
 }
 
-func retrievalAuthority(t *testing.T, marker byte) (ed25519.PrivateKey, attest.TrustedKeys) {
+func retrievalAuthority(t testing.TB, marker byte) (ed25519.PrivateKey, attest.TrustedKeys) {
 	t.Helper()
 	private := ed25519.NewKeyFromSeed(bytes.Repeat([]byte{marker}, ed25519.SeedSize))
 	public, err := core.NewEd25519PublicKey(private.Public().(ed25519.PublicKey))
@@ -363,7 +363,7 @@ func retrievalAuthority(t *testing.T, marker byte) (ed25519.PrivateKey, attest.T
 }
 
 func retrievalLifecycleIdentity[T core.Validatable](
-	t *testing.T,
+	t testing.TB,
 	marker byte,
 	constructor func([receipt.LifecycleIdentityBytes]byte) (T, error),
 ) T {
@@ -376,7 +376,7 @@ func retrievalLifecycleIdentity[T core.Validatable](
 	return identity
 }
 
-func retrievalPolicy(t *testing.T) objectstore.Policy {
+func retrievalPolicy(t testing.TB) objectstore.Policy {
 	t.Helper()
 	limit, err := core.NewByteCount(4096)
 	if err != nil {
@@ -388,7 +388,7 @@ func retrievalPolicy(t *testing.T) objectstore.Policy {
 	}
 }
 
-func mustRetrievalDuration(t *testing.T, seconds uint64) temporal.Duration {
+func mustRetrievalDuration(t testing.TB, seconds uint64) temporal.Duration {
 	t.Helper()
 	duration, err := temporal.DurationFromSeconds(seconds)
 	if err != nil {

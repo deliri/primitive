@@ -314,7 +314,7 @@ func retrievalAuthHostileJSONCases(canonical []byte) []retrievalAuthJSONCase {
 }
 
 func newRetrievalAuthFixture(
-	t *testing.T,
+	t testing.TB,
 	request retrievalAuthFixtureRequest,
 ) retrievalAuthFixture {
 	t.Helper()
@@ -364,7 +364,7 @@ func newRetrievalAuthFixture(
 }
 
 func retrievalAuthPayload(
-	t *testing.T,
+	t testing.TB,
 	build core.BuildIdentity,
 	nonceByte byte,
 ) retrieval.RequestPayload {

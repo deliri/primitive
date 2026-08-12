@@ -4,6 +4,22 @@ Last updated: `2026-08-12`
 
 ## Current
 
+- published semantic fuzz authorities for every Retrieval and Retrievalauth
+  external decoder, 2026-08-12, published `v2026.0.64`. The request payload,
+  request document, request commitment, grant payload, bearer grant document,
+  and credentialed request doors now require typed JSON/retrieval refusals,
+  transactional receiver preservation, validation, and canonical fixed points
+  wherever the type owns a marshal boundary. Structurally valid alterations
+  are carried into the real attestation, grant, or credential verifier and
+  must yield the compiler-owned verification/binding identity with an exact
+  zero proof. The receive-only grant bearer remains deliberately undisclosed;
+  its oracle compares typed commitments and signed facts instead of adding a
+  marshal escape hatch.
+
+  Proof: six live campaigns executed 58,329 cases, the Retrieval and
+  Retrievalauth suites are clean, and deadcode, staticcheck, and witness-lint
+  report zero findings.
+
 - published semantic fuzz authorities for all three Process external ingress
   doors, 2026-08-12, published `v2026.0.63`. Argument vectors prove exact
   ordered projection against independently evaluated cardinality, per-value,

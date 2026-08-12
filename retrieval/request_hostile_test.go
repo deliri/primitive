@@ -312,7 +312,7 @@ func retrievalPadJSON(document []byte, wantBytes int) []byte {
 }
 
 func newRetrievalRequestFixture(
-	t *testing.T,
+	t testing.TB,
 	request retrievalRequestFixtureRequest,
 ) retrievalRequestFixture {
 	t.Helper()
@@ -365,7 +365,7 @@ func newRetrievalRequestFixture(
 	}
 }
 
-func issueRetrievalRequestFixture(t *testing.T, fixture retrievalRequestFixture) RequestDocument {
+func issueRetrievalRequestFixture(t testing.TB, fixture retrievalRequestFixture) RequestDocument {
 	t.Helper()
 	document, err := IssueRequest(RequestIssuance{Signer: fixture.private, Payload: fixture.payload})
 	if err != nil {
@@ -374,7 +374,7 @@ func issueRetrievalRequestFixture(t *testing.T, fixture retrievalRequestFixture)
 	return document
 }
 
-func mustRetrievalChitID(t *testing.T, value string) chit.ChitID {
+func mustRetrievalChitID(t testing.TB, value string) chit.ChitID {
 	t.Helper()
 	identity, err := chit.ParseChitID(value)
 	if err != nil {
