@@ -5,11 +5,13 @@ import (
 	"context"
 	"errors"
 	"io"
+	"io/fs"
 	"math"
 	"os"
 	"strings"
 
 	"github.com/deliri/primitive/v2026/core"
+	"github.com/deliri/primitive/v2026/filestore"
 	"github.com/deliri/primitive/v2026/process"
 	"github.com/deliri/primitive/v2026/temporal"
 )
@@ -258,35 +260,87 @@ func VerifyRepository(
 	return verified, verified.Validate()
 }
 
-func verifyRepositoryPrivateAttributes(ctx context.Context, request RepositoryVerificationRequest) (resultErr error) {
+func verifyRepositoryPrivateAttributes(ctx context.Context, request RepositoryVerificationRequest) error {
 	path, err := repositoryPrivateAttributesPath(ctx, request)
 	if err != nil {
 		return err
 	}
-	file, err := os.Open(path.String()) // #nosec G304 -- Git resolved its own private metadata path.
+	kind, err := repositoryPrivateAttributesKind(ctx, path)
 	if err != nil {
-		if errors.Is(err, os.ErrNotExist) {
-			return nil
-		}
-		return releaseError(core.ErrReleaseContract, err)
+		return err
 	}
-	defer func() {
-		if closeErr := file.Close(); closeErr != nil {
-			resultErr = errors.Join(resultErr, releaseError(core.ErrReleaseContract, closeErr))
+	if kind == filestore.PathKindAbsent || kind == filestore.PathKindUnreachable {
+		return nil
+	}
+	if kind != filestore.PathKindRegularFile {
+		return releaseError(core.ErrReleaseContract, fs.ErrInvalid)
+	}
+	hasContent, err := repositoryPrivateAttributesHaveContent(ctx, path)
+	if err != nil {
+		return err
+	}
+	if hasContent {
+		return repositoryDirty(request.Root)
+	}
+	return nil
+}
+
+func repositoryPrivateAttributesKind(ctx context.Context, path core.AbsolutePath) (filestore.PathKind, error) {
+	inspection, err := filestore.Inspect(ctx, path)
+	if err != nil {
+		return filestore.PathKindUnknown, releaseError(core.ErrReleaseContract, err)
+	}
+	kind, err := inspection.Kind()
+	if err != nil {
+		return filestore.PathKindUnknown, releaseError(core.ErrReleaseContract, err)
+	}
+	return kind, nil
+}
+
+func repositoryPrivateAttributesHaveContent(ctx context.Context, path core.AbsolutePath) (bool, error) {
+	location, err := filestore.OpenParent(ctx, path)
+	if err != nil {
+		if errors.Is(err, fs.ErrNotExist) {
+			return false, nil
 		}
-	}()
+		return false, releaseError(core.ErrReleaseContract, err)
+	}
+	file, err := filestore.OpenRead(ctx, filestore.ReadHandleRequest{Location: location})
+	if err != nil {
+		closeErr := repositoryCloseError(location.Root.Close())
+		if errors.Is(err, fs.ErrNotExist) {
+			return false, closeErr
+		}
+		return false, errors.Join(releaseError(core.ErrReleaseContract, err), closeErr)
+	}
+	hasContent, readErr := repositoryPrivateAttributesContent(file)
+	closeErr := errors.Join(
+		repositoryCloseError(file.Close()),
+		repositoryCloseError(location.Root.Close()),
+	)
+	return hasContent, errors.Join(readErr, closeErr)
+}
+
+func repositoryPrivateAttributesContent(file *os.File) (bool, error) {
 	var first [1]byte
 	count, err := file.Read(first[:])
 	if count > 0 {
-		return repositoryDirty(request.Root)
+		return true, nil
 	}
 	if errors.Is(err, io.EOF) {
-		return nil
+		return false, nil
 	}
 	if err == nil {
 		err = io.ErrNoProgress
 	}
-	return releaseError(core.ErrReleaseContract, err)
+	return false, releaseError(core.ErrReleaseContract, err)
+}
+
+func repositoryCloseError(closeErr error) error {
+	if closeErr == nil {
+		return nil
+	}
+	return releaseError(core.ErrReleaseContract, closeErr)
 }
 
 func repositoryPrivateAttributesPath(
@@ -508,21 +562,12 @@ func (repositoryStatusWriter) Write(buffer []byte) (int, error) {
 	return len(buffer), errRepositoryStatusObserved
 }
 
-type repositoryIndexState uint8
-
-const (
-	repositoryIndexExpectTag repositoryIndexState = iota
-	repositoryIndexExpectSeparator
-	repositoryIndexExpectPath
-	repositoryIndexReadPath
-)
-
 // repositoryIndexWriter consumes the NUL-delimited `git ls-files -v -z`
 // projection without retaining paths. A normal tracked entry starts with
 // `H `. Lowercase tags are assume-unchanged entries; `S` is skip-worktree;
 // every other tag is a non-normal index state that status policy must not hide.
 type repositoryIndexWriter struct {
-	state repositoryIndexState
+	recordBytes uint64
 }
 
 func (w *repositoryIndexWriter) Write(buffer []byte) (int, error) {
@@ -535,34 +580,32 @@ func (w *repositoryIndexWriter) Write(buffer []byte) (int, error) {
 }
 
 func (w *repositoryIndexWriter) consume(value byte) error {
-	switch w.state {
-	case repositoryIndexExpectTag:
+	switch w.recordBytes {
+	case 0:
 		if value != 'H' {
 			return errRepositoryStatusObserved
 		}
-		w.state = repositoryIndexExpectSeparator
-	case repositoryIndexExpectSeparator:
+		w.recordBytes++
+	case 1:
 		if value != ' ' {
 			return contractError(errors.New("repository index output separator is invalid"))
 		}
-		w.state = repositoryIndexExpectPath
-	case repositoryIndexExpectPath:
-		if value == 0 {
-			return contractError(errors.New("repository index output path is empty"))
-		}
-		w.state = repositoryIndexReadPath
-	case repositoryIndexReadPath:
-		if value == 0 {
-			w.state = repositoryIndexExpectTag
-		}
+		w.recordBytes++
 	default:
-		return contractError(errors.New("repository index output state is invalid"))
+		if value == 0 {
+			if w.recordBytes == 2 {
+				return contractError(errors.New("repository index output path is empty"))
+			}
+			w.recordBytes = 0
+			return nil
+		}
+		w.recordBytes++
 	}
 	return nil
 }
 
 func (w repositoryIndexWriter) finish() error {
-	if w.state != repositoryIndexExpectTag {
+	if w.recordBytes != 0 {
 		return contractError(errors.New("repository index output is truncated"))
 	}
 	return nil

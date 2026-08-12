@@ -8,6 +8,7 @@ import (
 	"strings"
 	"testing"
 
+	"github.com/deliri/primitive/v2026/core"
 	"github.com/deliri/primitive/v2026/exchange"
 )
 
@@ -108,7 +109,7 @@ func amazonSignedURL(audience Audience, host string) string {
 		)
 	}
 	return (&url.URL{
-		Scheme:   httpsScheme,
+		Scheme:   core.SchemeHTTPS,
 		Host:     host,
 		Path:     "/",
 		RawQuery: query.Encode(),

@@ -12,9 +12,9 @@ const (
 	// PrimitivePackagePathPrefix prefixes every Primitive package import path.
 	PrimitivePackagePathPrefix = PrimitiveModulePath + "/"
 	// PrimitivePackageCount is the number of packages in the complete catalog.
-	PrimitivePackageCount = 39
+	PrimitivePackageCount = 40
 	// PrimitiveDirectImportCount is the number of admitted direct import edges.
-	PrimitiveDirectImportCount = 137
+	PrimitiveDirectImportCount = 139
 	// PrimitiveDirectTestImportCount is the number of admitted test-only edges.
 	PrimitiveDirectTestImportCount = 28
 	// PrimitiveMaximumDirectImports caps direct sibling imports per package.
@@ -107,6 +107,8 @@ const (
 	PackageDistribution
 	// PackageDistributionAuth identifies installation binding for update and upgrade requests.
 	PackageDistributionAuth
+	// PackageWiring identifies bounded runtime component-graph proof.
+	PackageWiring
 	packageIdentityLimit
 )
 
@@ -209,6 +211,7 @@ func PrimitiveArchitecture() ArchitectureCatalog {
 			{Identity: PackagePaymentAuth, Kind: PackageKindProduction},
 			{Identity: PackageDistribution, Kind: PackageKindProduction},
 			{Identity: PackageDistributionAuth, Kind: PackageKindProduction},
+			{Identity: PackageWiring, Kind: PackageKindProduction},
 		},
 		imports: [PrimitiveDirectImportCount]DirectImportContract{
 			{Importer: PackageAttest, Imported: PackageCore},
@@ -276,6 +279,7 @@ func PrimitiveArchitecture() ArchitectureCatalog {
 			{Importer: PackageRelease, Imported: PackageCore},
 			{Importer: PackageRelease, Imported: PackageTemporal},
 			{Importer: PackageRelease, Imported: PackageAttest},
+			{Importer: PackageRelease, Imported: PackageFilestore},
 			{Importer: PackageRelease, Imported: PackageGarble},
 			{Importer: PackageRelease, Imported: PackageProcess},
 			{Importer: PackageShutdown, Imported: PackageCore},
@@ -359,6 +363,7 @@ func PrimitiveArchitecture() ArchitectureCatalog {
 			{Importer: PackageDistributionAuth, Imported: PackageControlPlane},
 			{Importer: PackageDistributionAuth, Imported: PackageCore},
 			{Importer: PackageDistributionAuth, Imported: PackageDistribution},
+			{Importer: PackageWiring, Imported: PackageCore},
 		},
 		testImports: [PrimitiveDirectTestImportCount]DirectTestImportContract{
 			{Importer: PackageGate, Imported: PackageAttest},
@@ -661,6 +666,7 @@ func packagePurposeTexts() [packageIdentityLimit]string {
 		PackagePaymentAuth:      "Installation-certificate binding and device authentication for one payment catalog query",
 		PackageDistribution:     "Signed product-neutral release publication, update discovery, and exact upgrade-download agreements",
 		PackageDistributionAuth: "Installation-certificate binding and device authentication for update and upgrade requests",
+		PackageWiring:           "Bounded immutable runtime component graphs with exact Primitive-door declarations",
 	}
 }
 
@@ -738,6 +744,7 @@ func packageIdentityTexts() [packageIdentityLimit]string {
 		"paymentauth",
 		"distribution",
 		"distributionauth",
+		"wiring",
 	}
 }
 

@@ -10,6 +10,30 @@ import (
 	"github.com/deliri/primitive/v2026/temporal"
 )
 
+const (
+	// ArgumentCountMaximum is the largest argv cardinality admitted at the
+	// execution boundary.
+	ArgumentCountMaximum uint32 = 4 << 10
+	// ArgumentMaximumBytes bounds one exact argv value.
+	ArgumentMaximumBytes uint64 = 1 << 20
+	// ArgumentProjectionMaximumBytes bounds the complete NUL-delimited argv
+	// projection handed to the operating system.
+	ArgumentProjectionMaximumBytes uint64 = 1 << 20
+
+	// EnvironmentVariableCountMaximum is the largest exact environment
+	// cardinality admitted at the execution boundary.
+	EnvironmentVariableCountMaximum uint32 = 4 << 10
+	// EnvironmentNameMaximumBytes bounds one exact variable name.
+	EnvironmentNameMaximumBytes uint64 = 4 << 10
+	// EnvironmentValueMaximumBytes bounds one exact variable value.
+	EnvironmentValueMaximumBytes uint64 = 1 << 20
+	// EnvironmentProjectionMaximumBytes bounds the complete NUL-delimited
+	// name=value projection handed to the operating system.
+	EnvironmentProjectionMaximumBytes uint64 = 1 << 20
+
+	environmentVariableCountMaximumDiagnostic = "environment variable count exceeds the admitted maximum"
+)
+
 // Argument is one exact non-NUL argv value. Its zero value is invalid even
 // though a constructed empty argument is valid.
 type Argument struct {
@@ -29,9 +53,22 @@ func NewArgument(value string) (Argument, error) {
 // ParseArguments raises an ordered argv projection into compiler-owned exact
 // arguments without changing boundaries or shell-interpreting any value.
 func ParseArguments(values []string) ([]Argument, error) {
+	if uint64(len(values)) > uint64(ArgumentCountMaximum) {
+		return nil, contractError("argument count exceeds the admitted maximum")
+	}
 	arguments := make([]Argument, len(values))
+	var projectedBytes uint64
 	for index, value := range values {
 		argument, err := NewArgument(value)
+		if err != nil {
+			return nil, err
+		}
+		projectedBytes, err = extendProjection(
+			projectedBytes,
+			uint64(len(value)),
+			ArgumentProjectionMaximumBytes,
+			"argument projection exceeds the admitted maximum",
+		)
 		if err != nil {
 			return nil, err
 		}
@@ -47,6 +84,9 @@ func (a Argument) Validate() error {
 	}
 	if strings.IndexByte(a.value, 0) >= 0 {
 		return contractError("argument contains NUL")
+	}
+	if uint64(len(a.value)) > ArgumentMaximumBytes {
+		return contractError("argument extent exceeds the admitted maximum")
 	}
 	return nil
 }
@@ -81,6 +121,9 @@ func (n EnvironmentName) Validate() error {
 	}
 	if strings.ContainsAny(n.value, "=\x00") {
 		return contractError("environment name contains a reserved byte")
+	}
+	if uint64(len(n.value)) > EnvironmentNameMaximumBytes {
+		return contractError("environment name extent exceeds the admitted maximum")
 	}
 	return nil
 }
@@ -120,6 +163,9 @@ func (v EnvironmentValue) Validate() error {
 	}
 	if strings.IndexByte(v.value, 0) >= 0 {
 		return contractError("environment value contains NUL")
+	}
+	if uint64(len(v.value)) > EnvironmentValueMaximumBytes {
+		return contractError("environment value extent exceeds the admitted maximum")
 	}
 	return nil
 }
@@ -274,6 +320,9 @@ type Environment struct {
 // compiler-owned name/value pairs. The first '=' separates the name, so '='
 // bytes in values remain exact.
 func ParseExactEnvironment(values []string) (Environment, error) {
+	if uint64(len(values)) > uint64(EnvironmentVariableCountMaximum) {
+		return Environment{}, contractError(environmentVariableCountMaximumDiagnostic)
+	}
 	variables := make([]EnvironmentVariable, len(values))
 	for index, projection := range values {
 		variable, err := parseEnvironmentVariable(projection)
@@ -294,8 +343,22 @@ func ParseExactEnvironment(values []string) (Environment, error) {
 // additions. Primitive validates every caller projection before delegating, so
 // malformed or NUL-containing input cannot be silently omitted by os/exec.
 func ParseEffectiveEnvironment(values []string) (Environment, error) {
+	if uint64(len(values)) > uint64(EnvironmentVariableCountMaximum) {
+		return Environment{}, contractError(environmentVariableCountMaximumDiagnostic)
+	}
+	var projectedBytes uint64
 	for _, projection := range values {
 		if _, err := parseEnvironmentVariable(projection); err != nil {
+			return Environment{}, err
+		}
+		var err error
+		projectedBytes, err = extendProjection(
+			projectedBytes,
+			uint64(len(projection)),
+			EnvironmentProjectionMaximumBytes,
+			"environment projection exceeds the admitted maximum",
+		)
+		if err != nil {
 			return Environment{}, err
 		}
 	}
@@ -335,22 +398,28 @@ func (e Environment) Validate() error {
 		}
 		return nil
 	}
-	for index := range e.Variables {
-		if err := e.validateVariable(index); err != nil {
+	if uint64(len(e.Variables)) > uint64(EnvironmentVariableCountMaximum) {
+		return contractError(environmentVariableCountMaximumDiagnostic)
+	}
+	seen := make(map[EnvironmentName]struct{}, len(e.Variables))
+	var projectedBytes uint64
+	for _, variable := range e.Variables {
+		if err := variable.Validate(); err != nil {
 			return err
 		}
-	}
-	return nil
-}
-
-func (e Environment) validateVariable(index int) error {
-	current := e.Variables[index]
-	if err := current.Validate(); err != nil {
-		return err
-	}
-	for prior := range index {
-		if e.Variables[prior].Name == current.Name {
+		if _, duplicate := seen[variable.Name]; duplicate {
 			return contractError("exact environment contains a duplicate name")
+		}
+		seen[variable.Name] = struct{}{}
+		var err error
+		projectedBytes, err = extendProjection(
+			projectedBytes,
+			uint64(len(variable.Name.text()))+1+uint64(len(variable.Value.text())),
+			EnvironmentProjectionMaximumBytes,
+			"environment projection exceeds the admitted maximum",
+		)
+		if err != nil {
+			return err
 		}
 	}
 	return nil
@@ -441,10 +510,8 @@ func validateRequestHead(r Request) error {
 	if err := r.Command.Validate(); err != nil {
 		return errors.Join(core.ErrProcessContract, err)
 	}
-	for _, argument := range r.Arguments {
-		if err := argument.Validate(); err != nil {
-			return err
-		}
+	if err := validateArguments(r.Arguments); err != nil {
+		return err
 	}
 	if err := r.Environment.Validate(); err != nil {
 		return err
@@ -453,6 +520,36 @@ func validateRequestHead(r Request) error {
 		return errors.Join(core.ErrProcessContract, err)
 	}
 	return nil
+}
+
+func validateArguments(arguments []Argument) error {
+	if uint64(len(arguments)) > uint64(ArgumentCountMaximum) {
+		return contractError("argument count exceeds the admitted maximum")
+	}
+	var projectedBytes uint64
+	for _, argument := range arguments {
+		if err := argument.Validate(); err != nil {
+			return err
+		}
+		var err error
+		projectedBytes, err = extendProjection(
+			projectedBytes,
+			uint64(len(argument.value)),
+			ArgumentProjectionMaximumBytes,
+			"argument projection exceeds the admitted maximum",
+		)
+		if err != nil {
+			return err
+		}
+	}
+	return nil
+}
+
+func extendProjection(current, valueBytes, maximum uint64, diagnostic string) (uint64, error) {
+	if valueBytes >= maximum || current > maximum-(valueBytes+1) {
+		return 0, contractError(diagnostic)
+	}
+	return current + valueBytes + 1, nil
 }
 
 func (r Request) projectArguments() []string {

@@ -94,6 +94,7 @@ flowchart TD
     release[release] --> core
     release --> temporal
     release --> attest
+    release --> filestore
     release --> garble
     release --> process
     shutdown[shutdown] --> core
@@ -178,6 +179,8 @@ flowchart TD
     paymentauth --> controlplane
     paymentauth --> core
     paymentauth --> payment
+
+    wiring[wiring] --> core
 ```
 
 The diagram is the production graph. A package may additionally declare

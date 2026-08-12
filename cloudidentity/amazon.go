@@ -36,7 +36,6 @@ const (
 	amazonCredentialTerminal   = "aws4_request"
 	amazonDateLayout           = "20060102T150405Z"
 	amazonSignedURLMaximumSecs = 300
-	httpsScheme                = "https"
 	// amazonResponseNamespace is the XML namespace AWS publishes for the STS
 	// API version this package signs for. It is composed from the same version
 	// constant the request carries, so the two cannot name different versions.
@@ -251,7 +250,7 @@ func validateAmazonWebServicesEndpoint(
 }
 
 func amazonSTSRegion(target url.URL) (string, bool) {
-	if target.Scheme != httpsScheme ||
+	if target.Scheme != core.SchemeHTTPS ||
 		target.Port() != "" ||
 		(target.EscapedPath() != "" && target.EscapedPath() != "/") {
 		return "", false

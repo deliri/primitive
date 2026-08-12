@@ -86,6 +86,7 @@ func TestProductionArchitectureHasOneOwnedGoroutineAndExactImports(t *testing.T)
 		"strconv",
 		"strings",
 		"sync",
+		"sync/atomic",
 		"syscall",
 		"unicode/utf8",
 	}

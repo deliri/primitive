@@ -6,6 +6,7 @@ import (
 	"fmt"
 	"strconv"
 	"sync"
+	"sync/atomic"
 
 	"github.com/deliri/primitive/v2026/contextstate"
 	"github.com/deliri/primitive/v2026/core"
@@ -82,22 +83,13 @@ func (p PlanPolicy) Validate() error {
 	return nil
 }
 
-type planState uint8
-
-const (
-	planStateUnknown planState = iota
-	planStateOpen
-	planStateRunning
-	planStateComplete
-)
-
 // Plan owns one fixed-capacity cleanup registration and run.
 type Plan struct {
-	steps  [MaximumSteps]Step
-	policy PlanPolicy
-	mu     sync.Mutex
-	count  uint8
-	state  planState
+	steps   [MaximumSteps]Step
+	policy  PlanPolicy
+	mu      sync.Mutex
+	started atomic.Bool
+	count   uint8
 }
 
 // NewPlan constructs an empty cleanup plan.
@@ -105,7 +97,7 @@ func NewPlan(policy PlanPolicy) (*Plan, error) {
 	if err := policy.Validate(); err != nil {
 		return nil, err
 	}
-	return &Plan{policy: policy, state: planStateOpen}, nil
+	return &Plan{policy: policy}, nil
 }
 
 // Register adds one step while the plan is open.
@@ -118,7 +110,7 @@ func (p *Plan) Register(step Step) error {
 	}
 	p.mu.Lock()
 	defer p.mu.Unlock()
-	if p.state != planStateOpen {
+	if p.started.Load() {
 		return contractError(diagnosticPlanRegistrationClosed)
 	}
 	if int(p.count) > len(p.steps) {
@@ -155,9 +147,6 @@ func (p *Plan) Validate() error {
 }
 
 func (p *Plan) validateLocked() error {
-	if p.state < planStateOpen || p.state > planStateComplete {
-		return contractError(diagnosticPlanStateUnset)
-	}
 	if int(p.count) > len(p.steps) {
 		return contractError(diagnosticPlanCount)
 	}
@@ -269,7 +258,6 @@ func (p *Plan) Run(parent context.Context) (Report, error) {
 	if err != nil {
 		return Report{}, err
 	}
-	defer p.completeRun()
 	root, cancel, err := temporal.WithTimeout(temporal.TimeoutRequest{
 		Parent: context.WithoutCancel(parent), Duration: policy.TotalBudget,
 	})
@@ -284,23 +272,16 @@ func (p *Plan) beginRun() ([MaximumSteps]Step, uint8, PlanPolicy, error) {
 	if p == nil {
 		return [MaximumSteps]Step{}, 0, PlanPolicy{}, contractError(diagnosticPlanNil)
 	}
-	p.mu.Lock()
-	defer p.mu.Unlock()
-	if p.state != planStateOpen {
+	if !p.started.CompareAndSwap(false, true) {
 		return [MaximumSteps]Step{}, 0, PlanPolicy{},
 			contractError(diagnosticPlanAlreadyRun)
 	}
+	p.mu.Lock()
+	defer p.mu.Unlock()
 	if err := p.validateLocked(); err != nil {
 		return [MaximumSteps]Step{}, 0, PlanPolicy{}, err
 	}
-	p.state = planStateRunning
 	return p.steps, p.count, p.policy, nil
-}
-
-func (p *Plan) completeRun() {
-	p.mu.Lock()
-	p.state = planStateComplete
-	p.mu.Unlock()
 }
 
 func runPhases(

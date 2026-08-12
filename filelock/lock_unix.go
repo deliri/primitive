@@ -34,10 +34,10 @@ func acquire(file *os.File, exclusivity Exclusivity, patience Patience) (bool, e
 			continue
 		}
 		if patience == Immediate &&
-			(errors.Is(err, unix.EWOULDBLOCK) || errors.Is(err, unix.EAGAIN)) {
+			(errors.Is(flockErr, unix.EWOULDBLOCK) || errors.Is(flockErr, unix.EAGAIN)) {
 			return false, nil
 		}
-		return false, err
+		return false, flockErr
 	}
 }
 

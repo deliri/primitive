@@ -1051,6 +1051,7 @@ The order is dependency depth, not a command to build every package in a row.
 | 2 | `garble` | Tool identity, seed custody and derivation, and typed build intent | `core` | none |
 | 2 | `keygen` | Exact secret and Ed25519 key generation | `core` | none |
 | 2 | `testserial` | Test-only isolation declaration and analyzer contract | `core` | none |
+| 2 | `wiring` | Bounded immutable runtime component graphs with exact Primitive-door declarations | `core` | none |
 | 3 | `filelock` | One advisory whole-file lock on one already-open file | `core`, `contextstate` | none |
 | 3 | `filestore` | Rooted OS handles, confinement, inspection, durability, activation, append rotation, rename, and recovery | `core`, `contextstate`, `temporal` | `filelock` |
 | 3 | `hostfacts` | Host disk, memory, cgroup, tree, and OOM observations | `core`, `contextstate` | none |
@@ -1060,7 +1061,7 @@ The order is dependency depth, not a command to build every package in a row.
 | 4 | `id` | Canonical UUIDv7 and ULID time-ordered identifiers from one observed instant and caller-supplied entropy | `core`, `temporal` | none |
 | 4 | `lease` | Signed lease timeline, assessment, renewal, and monotonic advance | `core`, `temporal`, `attest` | none |
 | 4 | `process` | Argv, environment, containment, bounded output, exit, and reaping over `os/exec` | `core`, `contextstate`, `temporal` | `testserial` |
-| 5 | `release` | Clean repository binding, verified build tools, deterministic Garble build and process plans, executable inspection, signed tool and metadata provenance, immutable artifacts, manifests, Latest, and selection | `core`, `temporal`, `attest`, `garble`, `process` | none |
+| 5 | `release` | Clean repository binding, verified build tools, deterministic Garble build and process plans, executable inspection, signed tool and metadata provenance, immutable artifacts, manifests, Latest, and selection | `core`, `temporal`, `attest`, `filestore`, `garble`, `process` | none |
 | 4 | `shutdown` | Signal observation and phased bounded cleanup | `core`, `contextstate`, `temporal` | none |
 | 5 | `gate` | Pure CLI-side new-work authorization over one authentic Lease assessment | `core`, `lease` | `attest`, `temporal` |
 | 5 | `receipt` | Authenticated accepted-evidence facts and fixed-size monotonic watermarks | `core`, `attest`, `temporal` | none |

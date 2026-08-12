@@ -6,10 +6,12 @@ import (
 	"debug/buildinfo"
 	"errors"
 	"io"
+	"io/fs"
 	"os"
 	"strings"
 
 	"github.com/deliri/primitive/v2026/core"
+	"github.com/deliri/primitive/v2026/filestore"
 	"github.com/deliri/primitive/v2026/garble"
 	"github.com/deliri/primitive/v2026/process"
 	"github.com/deliri/primitive/v2026/temporal"
@@ -123,8 +125,7 @@ func VerifyBuildTools(
 	if err != nil {
 		return VerifiedBuildTools{}, err
 	}
-	garbleTool := garble.CurrentTool()
-	garbleDigest, err := verifyGarbleTool(request.GarbleExecutable, garbleTool, goToolchain)
+	garbleTool, garbleDigest, err := verifyGarbleTool(ctx, request, goToolchain)
 	if err != nil {
 		return VerifiedBuildTools{}, err
 	}
@@ -145,7 +146,7 @@ func verifyGoTool(
 	request BuildToolVerificationRequest,
 	toolchain GoToolchainIdentity,
 ) (core.SHA256Digest, core.Platform, error) {
-	info, digest, err := inspectBuildTool(request.GoExecutable)
+	info, digest, err := inspectBuildTool(ctx, request.GoExecutable)
 	if err != nil {
 		return core.SHA256Digest{}, core.Platform{}, err
 	}
@@ -163,35 +164,44 @@ func verifyGoTool(
 }
 
 func verifyGarbleTool(
-	path core.AbsolutePath,
-	tool garble.ToolIdentity,
+	ctx context.Context,
+	request BuildToolVerificationRequest,
 	goToolchain GoToolchainIdentity,
-) (core.SHA256Digest, error) {
-	info, digest, err := inspectBuildTool(path)
+) (garble.ToolIdentity, core.SHA256Digest, error) {
+	tool := garble.CurrentTool()
+	info, digest, err := inspectBuildTool(ctx, request.GarbleExecutable)
 	if err != nil {
-		return core.SHA256Digest{}, err
+		return garble.ToolIdentity(0), core.SHA256Digest{}, err
 	}
 	goVersion, err := goToolchain.Version()
 	if err != nil {
-		return core.SHA256Digest{}, err
+		return garble.ToolIdentity(0), core.SHA256Digest{}, err
 	}
 	if err := validateGarbleBuildInfo(info, tool, goVersion); err != nil {
-		return core.SHA256Digest{}, err
+		return garble.ToolIdentity(0), core.SHA256Digest{}, err
 	}
-	return digest, nil
+	return tool, digest, nil
 }
 
-func inspectBuildTool(path core.AbsolutePath) (_ *buildinfo.BuildInfo, digest core.SHA256Digest, resultErr error) {
-	file, err := os.Open(path.String()) // #nosec G304 -- validated absolute tool capability is the inspected object.
+func inspectBuildTool(ctx context.Context, path core.AbsolutePath) (*buildinfo.BuildInfo, core.SHA256Digest, error) {
+	location, err := filestore.OpenParent(ctx, path)
 	if err != nil {
-		return nil, core.SHA256Digest{}, contractError(errors.New("open build tool executable"), err)
+		return nil, core.SHA256Digest{}, contractError(errors.New("open build tool parent"), err)
 	}
-	defer func() {
-		resultErr = errors.Join(resultErr, file.Close())
-	}()
+	file, err := filestore.OpenRead(ctx, filestore.ReadHandleRequest{Location: location})
+	if err != nil {
+		closeErr := location.Root.Close()
+		return nil, core.SHA256Digest{}, contractError(errors.New("open build tool executable"), errors.Join(err, closeErr))
+	}
+	build, digest, inspectErr := inspectOpenedBuildTool(file)
+	closeErr := closeBuildToolResources(location, file)
+	return build, digest, errors.Join(inspectErr, closeErr)
+}
+
+func inspectOpenedBuildTool(file *os.File) (*buildinfo.BuildInfo, core.SHA256Digest, error) {
 	info, err := file.Stat()
-	if err != nil || !info.Mode().IsRegular() || info.Size() <= 0 || info.Size() > buildToolExecutableMaximumBytes {
-		return nil, core.SHA256Digest{}, contractError(errors.New("build tool executable is not a bounded regular file"), err)
+	if err := validateBuildToolFileInfo(info, err); err != nil {
+		return nil, core.SHA256Digest{}, err
 	}
 	build, err := buildinfo.Read(file)
 	if err != nil {
@@ -210,6 +220,30 @@ func inspectBuildTool(path core.AbsolutePath) (_ *buildinfo.BuildInfo, digest co
 		return nil, core.SHA256Digest{}, contractError(errors.New(digestBuildToolDiagnostic), err)
 	}
 	return build, toolDigest, nil
+}
+
+func validateBuildToolFileInfo(info fs.FileInfo, statErr error) error {
+	if statErr != nil {
+		return contractError(errors.New("inspect build tool executable"), statErr)
+	}
+	if info == nil || !info.Mode().IsRegular() {
+		return contractError(errors.New("build tool executable is not a regular file"))
+	}
+	if info.Size() <= 0 || info.Size() > buildToolExecutableMaximumBytes {
+		return contractError(errors.New("build tool executable extent is outside the admitted interval"))
+	}
+	return nil
+}
+
+func closeBuildToolResources(location filestore.Location, file *os.File) error {
+	var resultErr error
+	if closeErr := file.Close(); closeErr != nil {
+		resultErr = contractError(errors.New("close build tool executable"), closeErr)
+	}
+	if closeErr := location.Root.Close(); closeErr != nil {
+		resultErr = errors.Join(resultErr, contractError(errors.New("close build tool parent"), closeErr))
+	}
+	return resultErr
 }
 
 // digestBuildToolDiagnostic is the one spelling of the build tool digest

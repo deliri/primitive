@@ -86,7 +86,7 @@ func testIsolationContractAdmission(name coreExportName, witness any) coreSpecia
 // These are PLAN's compiler-owned architecture catalog, not ordinary shared
 // facts. Each name is paired with a live identifier reference, so a declaration
 // rename breaks the test build instead of changing policy through a filename.
-func coreSpecialExportAdmissions() [62]coreSpecialExportAdmission {
+func coreSpecialExportAdmissions() [63]coreSpecialExportAdmission {
 	return [...]coreSpecialExportAdmission{
 		architectureCatalogAdmission("ArchitectureCatalog", ArchitectureCatalog{}),
 		architectureCatalogAdmission("DirectImportContract", DirectImportContract{}),
@@ -120,6 +120,7 @@ func coreSpecialExportAdmissions() [62]coreSpecialExportAdmission {
 		architectureCatalogAdmission("PackageTimeProof", PackageTimeProof),
 		architectureCatalogAdmission("PackageCloudIdentity", PackageCloudIdentity),
 		architectureCatalogAdmission("PackageUpgrade", PackageUpgrade),
+		architectureCatalogAdmission("PackageWiring", PackageWiring),
 		architectureCatalogAdmission("ParsePackageIdentity", ParsePackageIdentity),
 		architectureCatalogAdmission("PrimitiveArchitecture", PrimitiveArchitecture),
 		architectureCatalogAdmission("PrimitivePackageCount", PrimitivePackageCount),
@@ -249,7 +250,7 @@ func TestTypedDomainMemberConsumerProjectionDoesNotLaunderUntypedExports(t *test
 }
 
 func coreExportIsSpeciallyAdmitted(
-	admissions [62]coreSpecialExportAdmission,
+	admissions [63]coreSpecialExportAdmission,
 	name coreExportName,
 ) bool {
 	return slices.ContainsFunc(admissions[:], func(admission coreSpecialExportAdmission) bool {

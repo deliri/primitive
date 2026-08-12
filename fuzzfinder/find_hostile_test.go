@@ -2,7 +2,6 @@ package fuzzfinder
 
 import (
 	"errors"
-	"io"
 	"io/fs"
 	"os"
 	"path/filepath"
@@ -24,7 +23,7 @@ func TestFindRealDirectoryLayerTriad(t *testing.T) {
 		for _, position := range []uint64{9, 1, 7, 3} {
 			writeGeneratedFile(t, rootDirectory, generatedNameForPosition(t, position))
 		}
-		got, gotErr := Find(crasherRequest(location, mustRetentionLimit(t, MaximumRetainedEntries)))
+		got, gotErr := Find(t.Context(), crasherRequest(location, mustRetentionLimit(t, MaximumRetainedEntries)))
 		if gotErr != nil || got.State() != ObservationComplete {
 			t.Fatalf("Find(real directory) = (state %d, %v), want (%d, nil)", got.State(), gotErr, ObservationComplete)
 		}
@@ -51,7 +50,7 @@ func TestFindRealDirectoryLayerTriad(t *testing.T) {
 		if err := os.WriteFile(filepath.Join(rootDirectory, cacheDirectoryComponent, "new-go-format"), []byte("unknown"), 0o600); err != nil {
 			t.Fatal(err)
 		}
-		got, gotErr := Find(crasherRequest(location, mustRetentionLimit(t, MaximumRetainedEntries)))
+		got, gotErr := Find(t.Context(), crasherRequest(location, mustRetentionLimit(t, MaximumRetainedEntries)))
 		if !errors.Is(gotErr, core.ErrFuzzFinderFormat) || got.State() != ObservationUnsupportedFormat {
 			t.Fatalf("Find(format drift) = (state %d, %v), want (%d, %v)", got.State(), gotErr, ObservationUnsupportedFormat, core.ErrFuzzFinderFormat)
 		}
@@ -64,7 +63,7 @@ func TestFindRealDirectoryLayerTriad(t *testing.T) {
 
 		rootDirectory := t.TempDir()
 		location := fuzzDirectoryLocation(t, rootDirectory)
-		got, gotErr := Find(crasherRequest(location, mustRetentionLimit(t, 1)))
+		got, gotErr := Find(t.Context(), crasherRequest(location, mustRetentionLimit(t, 1)))
 		if gotErr != nil || got.State() != ObservationComplete || len(got.Names()) != 0 || got.Retained().Uint64() != 0 {
 			t.Fatalf("Find(empty directory) = (state %d, names %v, retained %d, error %v), want complete empty", got.State(), got.Names(), got.Retained().Uint64(), gotErr)
 		}
@@ -96,7 +95,7 @@ func TestFindClassifiesEveryRealEntryKindUnderRetentionPressure(t *testing.T) {
 	if err := os.WriteFile(filepath.Join(cacheDirectory, "0123456789abcdeF"), []byte("uppercase"), 0o600); err != nil {
 		t.Fatal(err)
 	}
-	got, gotErr := Find(crasherRequest(location, mustRetentionLimit(t, 5)))
+	got, gotErr := Find(t.Context(), crasherRequest(location, mustRetentionLimit(t, 5)))
 	if !errors.Is(gotErr, core.ErrFuzzFinderFormat) || got.State() != ObservationUnsupportedFormat {
 		t.Fatalf("Find(mixed directory) = (state %d, %v), want (%d, %v)", got.State(), gotErr, ObservationUnsupportedFormat, core.ErrFuzzFinderFormat)
 	}
@@ -134,12 +133,12 @@ func TestFindStreamsRealDirectoryAcrossManyReadBatches(t *testing.T) {
 	// ceiling, so the batch loop, the eviction branch, and the canonical-prefix
 	// invariant are all proved against real getdirents ordering rather than an
 	// order the test chose.
-	const realEntries = uint64(directoryReadBatchEntries)*3 + 8
+	const realEntries = 200
 	for position := range realEntries {
-		writeGeneratedFile(t, rootDirectory, generatedNameForPosition(t, position))
+		writeGeneratedFile(t, rootDirectory, generatedNameForPosition(t, uint64(position)))
 	}
 	limit := mustRetentionLimit(t, MaximumRetainedEntries)
-	got, gotErr := Find(corpusRequest(location, limit))
+	got, gotErr := Find(t.Context(), corpusRequest(location, limit))
 	if gotErr != nil || got.State() != ObservationComplete {
 		t.Fatalf("Find(%d entries) = (state %d, %v), want (%d, nil)", realEntries, got.State(), gotErr, ObservationComplete)
 	}
@@ -194,7 +193,7 @@ func TestFindIngressAndNativeFailurePressure(t *testing.T) {
 		t.Run(tc.name, func(t *testing.T) {
 			t.Parallel()
 
-			got, gotErr := Find(tc.request)
+			got, gotErr := Find(t.Context(), tc.request)
 			if !errors.Is(gotErr, tc.wantErr) || got.State() != tc.wantState {
 				t.Fatalf("Find() = (state %d, %v), want (state %d, %v)", got.State(), gotErr, tc.wantState, tc.wantErr)
 			}
@@ -212,7 +211,7 @@ func TestFindIngressAndNativeFailurePressure(t *testing.T) {
 	t.Run("missing directory preserves the native absence error", func(t *testing.T) {
 		t.Parallel()
 
-		_, gotErr := Find(FindRequest{
+		_, gotErr := Find(t.Context(), FindRequest{
 			Location:  filestore.Location{Root: root, Path: missingPath},
 			Kind:      ArtifactCorpus,
 			Format:    CacheFormatGo1_26,
@@ -222,138 +221,6 @@ func TestFindIngressAndNativeFailurePressure(t *testing.T) {
 			t.Fatalf("Find(missing) error = %v, want native %v", gotErr, fs.ErrNotExist)
 		}
 	})
-}
-
-// The three tests below drive findDirectory through nonNativeDirectory, a
-// stdlib-conforming fs.ReadDirFile that is not a real *os.File. They are named
-// as such per test/production-path: a real rooted directory cannot be made to
-// return a nil entry, a zero-progress read, a mid-stream getdirents failure, or
-// two entries with the same name from inside this process, so these contracts
-// have no native fixture. Every other behavior in this file is proved against a
-// real directory.
-
-func TestDirectoryReaderRefusalsARealFilesystemCannotProduce(t *testing.T) {
-	t.Parallel()
-
-	request := corpusRequest(filestore.Location{}, mustRetentionLimit(t, 2))
-	cases := []struct {
-		reader    fs.ReadDirFile
-		wantErr   error
-		name      string
-		wantState ObservationState
-	}{
-		{
-			name:    "nil reader refuses the directory contract",
-			reader:  nil,
-			wantErr: core.ErrFuzzFinderContract,
-		},
-		{
-			name: "nil directory entry refuses rather than counting a phantom",
-			reader: &nonNativeDirectory{steps: []directoryStep{{
-				entries: []fs.DirEntry{nil},
-			}}},
-			wantErr:   core.ErrFuzzFinderObservation,
-			wantState: ObservationPartial,
-		},
-		{
-			name: "zero-progress read refuses instead of looping forever",
-			reader: &nonNativeDirectory{steps: []directoryStep{{
-				entries: nil,
-			}}},
-			wantErr:   io.ErrNoProgress,
-			wantState: ObservationPartial,
-		},
-	}
-	for _, tc := range cases {
-		t.Run(tc.name, func(t *testing.T) {
-			t.Parallel()
-
-			got, gotErr := findDirectory(tc.reader, request)
-			if !errors.Is(gotErr, tc.wantErr) || got.State() != tc.wantState {
-				t.Fatalf("findDirectory() = (state %d, %v), want (state %d, %v)", got.State(), gotErr, tc.wantState, tc.wantErr)
-			}
-			if got.Retained().Uint64() != 0 {
-				t.Fatalf("findDirectory() retained = %d, want 0", got.Retained().Uint64())
-			}
-		})
-	}
-}
-
-func TestDirectoryReaderPartialFailurePreservesObservedFactsAndNativeError(t *testing.T) {
-	t.Parallel()
-
-	nativeErr := errors.New("native directory failure")
-	reader := &nonNativeDirectory{steps: []directoryStep{{
-		entries: []fs.DirEntry{fixedDirectoryEntry{name: generatedNameForPosition(t, 3).String()}},
-		err:     nativeErr,
-	}}}
-	got, gotErr := findDirectory(reader, corpusRequest(filestore.Location{}, mustRetentionLimit(t, 4)))
-	if !errors.Is(gotErr, core.ErrFuzzFinderObservation) || !errors.Is(gotErr, nativeErr) {
-		t.Fatalf("findDirectory(partial failure) error = %v, want %v and native error", gotErr, core.ErrFuzzFinderObservation)
-	}
-	if got.State() != ObservationPartial || got.Retained().Uint64() != 1 {
-		t.Fatalf("findDirectory(partial failure) = state:%d retained:%d, want partial/1", got.State(), got.Retained().Uint64())
-	}
-	if got.Validate() != nil {
-		t.Fatalf("findDirectory(partial failure) observation Validate() error = %v, want nil", got.Validate())
-	}
-}
-
-func TestDirectoryReaderHoldsCanonicalPrefixUnderDescendingOrderAndDuplicates(t *testing.T) {
-	t.Parallel()
-
-	zero := generatedNameForPosition(t, 0)
-	one := generatedNameForPosition(t, 1)
-	three := generatedNameForPosition(t, 3)
-	// Descending arrival forces the eviction branch after the retained prefix is
-	// full, and the repeats prove a retained name is counted only once.
-	reader := &nonNativeDirectory{steps: []directoryStep{{
-		entries: []fs.DirEntry{
-			fixedDirectoryEntry{name: three.String()},
-			fixedDirectoryEntry{name: three.String()},
-			fixedDirectoryEntry{name: one.String()},
-			fixedDirectoryEntry{name: one.String()},
-			fixedDirectoryEntry{name: zero.String()},
-		},
-		err: io.EOF,
-	}}}
-	got, gotErr := findDirectory(reader, corpusRequest(filestore.Location{}, mustRetentionLimit(t, 2)))
-	if gotErr != nil || got.State() != ObservationComplete {
-		t.Fatalf("findDirectory(descending duplicates) = (state %d, %v), want (%d, nil)", got.State(), gotErr, ObservationComplete)
-	}
-	if !slices.Equal(got.Names(), []GeneratedName{zero, one}) {
-		t.Fatalf("findDirectory(descending duplicates) names = %v, want %v", got.Names(), []GeneratedName{zero, one})
-	}
-	if got.OverLimitObservations().Uint64() != 1 {
-		t.Fatalf("findDirectory(descending duplicates) over-limit = %d, want 1", got.OverLimitObservations().Uint64())
-	}
-}
-
-func TestDirectoryReaderCountsEachRepeatedOmittedObservation(t *testing.T) {
-	t.Parallel()
-
-	zero := generatedNameForPosition(t, 0)
-	one := generatedNameForPosition(t, 1)
-	two := generatedNameForPosition(t, 2)
-	reader := &nonNativeDirectory{steps: []directoryStep{{
-		entries: []fs.DirEntry{
-			fixedDirectoryEntry{name: zero.String()},
-			fixedDirectoryEntry{name: one.String()},
-			fixedDirectoryEntry{name: two.String()},
-			fixedDirectoryEntry{name: two.String()},
-		},
-		err: io.EOF,
-	}}}
-	got, gotErr := findDirectory(reader, corpusRequest(filestore.Location{}, mustRetentionLimit(t, 2)))
-	if gotErr != nil || got.State() != ObservationComplete {
-		t.Fatalf("findDirectory(repeated omitted name) = (state %d, %v), want (%d, nil)", got.State(), gotErr, ObservationComplete)
-	}
-	if !slices.Equal(got.Names(), []GeneratedName{zero, one}) {
-		t.Fatalf("findDirectory(repeated omitted name) names = %v, want %v", got.Names(), []GeneratedName{zero, one})
-	}
-	if got.OverLimitObservations().Uint64() != 2 {
-		t.Fatalf("findDirectory(repeated omitted name) over-limit = %d, want 2 observations", got.OverLimitObservations().Uint64())
-	}
 }
 
 func BenchmarkFindRealDirectory128(b *testing.B) {
@@ -379,7 +246,7 @@ func benchmarkFindRealDirectory(b *testing.B, entries uint64) {
 	request := corpusRequest(location, mustRetentionLimit(b, MaximumRetainedEntries))
 	b.ResetTimer()
 	for b.Loop() {
-		got, err := Find(request)
+		got, err := Find(b.Context(), request)
 		if err != nil || got.Retained().Uint64() != uint64(MaximumRetainedEntries) {
 			b.Fatalf("Find(%d entries) = (retained %d, %v), want (%d, nil)", entries, got.Retained().Uint64(), err, MaximumRetainedEntries)
 		}
@@ -446,38 +313,3 @@ func mustRetentionLimit(t testing.TB, value uint16) RetentionLimit {
 	}
 	return got
 }
-
-type directoryStep struct {
-	err     error
-	entries []fs.DirEntry
-}
-
-// nonNativeDirectory is a stdlib-conforming fs.ReadDirFile used only for the
-// directory-reader contracts a real rooted directory cannot produce in-process.
-type nonNativeDirectory struct {
-	steps []directoryStep
-	next  int
-}
-
-func (r *nonNativeDirectory) ReadDir(int) ([]fs.DirEntry, error) {
-	if r.next >= len(r.steps) {
-		return nil, io.EOF
-	}
-	step := r.steps[r.next]
-	r.next++
-	return step.entries, step.err
-}
-
-func (r *nonNativeDirectory) Read([]byte) (int, error)   { return 0, io.EOF }
-func (r *nonNativeDirectory) Close() error               { return nil }
-func (r *nonNativeDirectory) Stat() (fs.FileInfo, error) { return nil, fs.ErrInvalid }
-
-type fixedDirectoryEntry struct {
-	name string
-	mode fs.FileMode
-}
-
-func (e fixedDirectoryEntry) Name() string               { return e.name }
-func (e fixedDirectoryEntry) IsDir() bool                { return e.mode.IsDir() }
-func (e fixedDirectoryEntry) Type() fs.FileMode          { return e.mode.Type() }
-func (e fixedDirectoryEntry) Info() (fs.FileInfo, error) { return nil, fs.ErrInvalid }

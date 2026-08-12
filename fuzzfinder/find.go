@@ -1,48 +1,38 @@
 package fuzzfinder
 
 import (
+	"context"
 	"errors"
-	"io"
-	"io/fs"
-	"os"
 	"slices"
+
+	"github.com/deliri/primitive/v2026/filestore"
 )
 
-const directoryReadBatchEntries = 64
-
-// Find opens, streams, and closes one real rooted directory. It retains only a
-// bounded canonical prefix and preserves native open, stat, read, and close
-// errors through the stable Fuzzfinder identities.
-func Find(request FindRequest) (Observation, error) {
+// Find streams one real rooted directory through Filestore. It retains only a
+// bounded canonical prefix and preserves Filestore's external-door identity
+// beneath the stable Fuzzfinder observation identity.
+func Find(ctx context.Context, request FindRequest) (Observation, error) {
 	if err := request.Validate(); err != nil {
 		return Observation{}, err
 	}
-	directory, err := request.Location.Root.Open(request.Location.Path.String())
-	if err != nil {
+	current := newFinder(request)
+	err := filestore.Walk(ctx, filestore.WalkRequest{
+		Location: request.Location,
+		Order:    filestore.WalkOrderNative,
+		Visit:    current.visit,
+	})
+	if err == nil {
+		return current.finish()
+	}
+	if current.observation.retained == 0 && !current.observation.hasAccounting() {
 		return failedFind(request, observationError(err))
 	}
-	info, statErr := directory.Stat()
-	if statErr != nil {
-		return failedFind(request, errors.Join(observationError(statErr), closeDirectory(directory)))
-	}
-	if !info.IsDir() {
-		return failedFind(request, errors.Join(contractError(fs.ErrInvalid), closeDirectory(directory)))
-	}
-	result, findErr := findDirectory(directory, request)
-	closeErr := closeDirectory(directory)
-	return result, errors.Join(findErr, closeErr)
+	return current.partial(observationError(err))
 }
 
 func failedFind(request FindRequest, err error) (Observation, error) {
 	result := failedObservation(request.Kind, request.Retention)
 	return result, errors.Join(result.Validate(), err)
-}
-
-func closeDirectory(directory *os.File) error {
-	if err := directory.Close(); err != nil {
-		return observationError(err)
-	}
-	return nil
 }
 
 type finder struct {
@@ -57,43 +47,17 @@ func newFinder(request FindRequest) finder {
 	}
 }
 
-func findDirectory(directory fs.ReadDirFile, request FindRequest) (Observation, error) {
-	if directory == nil {
-		return Observation{}, contractError(errors.New("directory reader is nil"))
+func (f *finder) visit(entry filestore.WalkEntry) (filestore.WalkDirective, error) {
+	switch {
+	case entry.Entry.IsDir():
+		incrementSaturating(&f.observation.ignoredDirectories)
+		return filestore.WalkSkipDirectory, nil
+	case !entry.Entry.Type().IsRegular():
+		incrementSaturating(&f.observation.nonRegular)
+	default:
+		f.observeRegular(entry.Entry.Name())
 	}
-	current := newFinder(request)
-	for {
-		entries, readErr := directory.ReadDir(directoryReadBatchEntries)
-		if err := current.observe(entries); err != nil {
-			return current.partial(observationError(err))
-		}
-		if errors.Is(readErr, io.EOF) {
-			return current.finish()
-		}
-		if readErr != nil {
-			return current.partial(observationError(readErr))
-		}
-		if len(entries) == 0 {
-			return current.partial(observationError(io.ErrNoProgress))
-		}
-	}
-}
-
-func (f *finder) observe(entries []fs.DirEntry) error {
-	for _, entry := range entries {
-		if entry == nil {
-			return errors.New("directory returned a nil entry")
-		}
-		switch {
-		case entry.IsDir():
-			incrementSaturating(&f.observation.ignoredDirectories)
-		case !entry.Type().IsRegular():
-			incrementSaturating(&f.observation.nonRegular)
-		default:
-			f.observeRegular(entry.Name())
-		}
-	}
-	return nil
+	return filestore.WalkContinue, nil
 }
 
 func (f *finder) observeRegular(value string) {
