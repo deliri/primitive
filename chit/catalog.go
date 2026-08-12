@@ -205,11 +205,15 @@ type CatalogPayload struct {
 	Watermark    receipt.Watermark `json:"watermark"`
 	ObservedAt   temporal.Instant  `json:"observed_at"`
 	Scope        receipt.Scope     `json:"scope"`
+	Request      QueryCommitment   `json:"query_commitment"`
 	Continuation Continuation      `json:"continuation"`
 }
 
 func (p CatalogPayload) Validate() error {
-	if err := errors.Join(p.Scope.Validate(), p.Watermark.Validate(), p.ObservedAt.Validate(), p.Continuation.Validate()); err != nil {
+	if err := errors.Join(
+		p.Scope.Validate(), p.Request.Validate(), p.Watermark.Validate(),
+		p.ObservedAt.Validate(), p.Continuation.Validate(),
+	); err != nil {
 		return contractError(err)
 	}
 	if p.Watermark.Scope != p.Scope {
@@ -361,12 +365,12 @@ func (d *CatalogDocument) UnmarshalJSON(data []byte) error {
 
 type CatalogVerification struct {
 	Document    CatalogDocument
-	Scope       receipt.Scope
+	Request     QueryPayload
 	TrustedKeys attest.TrustedKeys
 }
 
 func (v CatalogVerification) Validate() error {
-	if err := errors.Join(v.Document.Validate(), v.Scope.Validate(), v.TrustedKeys.Validate()); err != nil {
+	if err := errors.Join(v.Document.Validate(), v.Request.Validate(), v.TrustedKeys.Validate()); err != nil {
 		return contractError(err)
 	}
 	return nil
@@ -382,10 +386,15 @@ func VerifyCatalog(verification CatalogVerification) (CatalogPayload, error) {
 	}); err != nil {
 		return CatalogPayload{}, verificationError(err)
 	}
-	if verification.Document.Payload.Scope != verification.Scope {
+	commitment, err := CommitQuery(verification.Request)
+	if err != nil {
+		return CatalogPayload{}, contractError(err)
+	}
+	payload := verification.Document.Payload
+	if payload.Scope != verification.Request.Query.Scope || payload.Request != commitment {
 		return CatalogPayload{}, conflictError(errors.New("catalog scope differs from expectation"))
 	}
-	return verification.Document.Payload, nil
+	return payload, nil
 }
 
 var (

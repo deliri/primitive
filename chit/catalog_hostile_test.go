@@ -7,6 +7,7 @@ import (
 	"testing"
 
 	"github.com/deliri/primitive/v2026/attest"
+	"github.com/deliri/primitive/v2026/controlwire"
 	"github.com/deliri/primitive/v2026/core"
 	"github.com/deliri/primitive/v2026/receipt"
 	"github.com/deliri/primitive/v2026/temporal"
@@ -17,7 +18,7 @@ type catalogFixture struct {
 	payload  CatalogPayload
 	document CatalogDocument
 	trusted  attest.TrustedKeys
-	scope    receipt.Scope
+	request  QueryPayload
 }
 
 func TestCustodyStateExhaustsItsByteDomainAndCanonicalJSON(t *testing.T) {
@@ -65,7 +66,7 @@ func TestCatalogLayerTriadAuthenticatesTenIndependentPages(t *testing.T) {
 	for index := range 10 {
 		fixture := newCatalogFixture(t, byte(0x21+index), uint64(index+1))
 		verified, err := VerifyCatalog(CatalogVerification{
-			Document: fixture.document, Scope: fixture.scope, TrustedKeys: fixture.trusted,
+			Document: fixture.document, Request: fixture.request, TrustedKeys: fixture.trusted,
 		})
 		if err != nil || !catalogPayloadsEqual(verified, fixture.payload) {
 			t.Fatalf("VerifyCatalog(configuration %d) = (%v, %v), want exact signed payload and nil",
@@ -96,7 +97,7 @@ func TestVerifyCatalogRejectsEveryIndependentAgreementSubstitution(t *testing.T)
 	if err != nil {
 		t.Fatalf("Issue(alternate catalog chit) error = %v, want nil", err)
 	}
-	alternateWatermark := catalogWatermarkFixture(t, fixture.scope, 0x62)
+	alternateWatermark := catalogWatermarkFixture(t, fixture.payload.Scope, 0x62)
 	more, err := More(catalogCursorFixture(t, 0x63))
 	if err != nil {
 		t.Fatalf("More() error = %v, want nil", err)
@@ -109,12 +110,18 @@ func TestVerifyCatalogRejectsEveryIndependentAgreementSubstitution(t *testing.T)
 	}{
 		{name: "zero verification", wantErr: core.ErrChitContract, mutate: func(value *CatalogVerification) { *value = CatalogVerification{} }},
 		{name: "foreign authority", wantErr: core.ErrChitVerification, mutate: func(value *CatalogVerification) { value.TrustedKeys = other.trusted }},
-		{name: "foreign expected scope", wantErr: core.ErrChitConflict, mutate: func(value *CatalogVerification) { value.Scope = other.scope }},
+		{name: "foreign exact query", wantErr: core.ErrChitConflict, mutate: func(value *CatalogVerification) { value.Request = other.request }},
+		{name: "foreign request nonce", wantErr: core.ErrChitConflict, mutate: func(value *CatalogVerification) { value.Request.Nonce = other.request.Nonce }},
+		{name: "foreign requested selection", wantErr: core.ErrChitConflict, mutate: func(value *CatalogVerification) { value.Request.Query.Selection = signedQuerySpecific(t, 0x72) }},
+		{name: "foreign requested position", wantErr: core.ErrChitConflict, mutate: func(value *CatalogVerification) { value.Request.Query.Position = signedQueryAfter(t, 0x73) }},
 		{name: "signed observation substituted", wantErr: core.ErrChitVerification, mutate: func(value *CatalogVerification) {
 			value.Document.Payload.ObservedAt = temporal.InstantFromNanoseconds(10_000)
 		}},
 		{name: "signed watermark substituted", wantErr: core.ErrChitVerification, mutate: func(value *CatalogVerification) {
 			value.Document.Payload.Watermark = alternateWatermark
+		}},
+		{name: "signed query commitment substituted", wantErr: core.ErrChitVerification, mutate: func(value *CatalogVerification) {
+			value.Document.Payload.Request = other.payload.Request
 		}},
 		{name: "signed chit substituted", wantErr: core.ErrChitVerification, mutate: func(value *CatalogVerification) {
 			value.Document.Payload.Entries[0].Chit = alternateChit
@@ -147,7 +154,7 @@ func TestVerifyCatalogRejectsEveryIndependentAgreementSubstitution(t *testing.T)
 			t.Parallel()
 
 			input := CatalogVerification{
-				Document: cloneCatalogDocument(fixture.document), Scope: fixture.scope, TrustedKeys: fixture.trusted,
+				Document: cloneCatalogDocument(fixture.document), Request: fixture.request, TrustedKeys: fixture.trusted,
 			}
 			tc.mutate(&input)
 			got, gotErr := VerifyCatalog(input)
@@ -242,19 +249,42 @@ func newCatalogFixture(t testing.TB, marker byte, version uint64) catalogFixture
 			t.Fatalf("More() error = %v, want nil", err)
 		}
 	}
+	request := catalogQueryPayload(t, chit.scope, marker)
+	commitment, err := CommitQuery(request)
+	if err != nil {
+		t.Fatalf("CommitQuery() error = %v, want nil", err)
+	}
 	payload := CatalogPayload{
 		Entries:    []CatalogEntry{{Chit: chit.document, State: state}},
 		Watermark:  catalogWatermarkFixture(t, chit.scope, marker+2),
 		ObservedAt: chit.document.Payload.RetainUntil,
-		Scope:      chit.scope, Continuation: continuation,
+		Scope:      chit.scope, Request: commitment, Continuation: continuation,
 	}
 	document, err := IssueCatalog(CatalogIssuance{Signer: chit.private, Payload: payload})
 	if err != nil {
 		t.Fatalf("IssueCatalog() error = %v, want nil", err)
 	}
 	return catalogFixture{
-		private: chit.private, trusted: chit.trusted, document: document, payload: payload, scope: chit.scope,
+		private: chit.private, trusted: chit.trusted, document: document, payload: payload, request: request,
 	}
+}
+
+func catalogQueryPayload(t testing.TB, scope receipt.Scope, marker byte) QueryPayload {
+	t.Helper()
+	query, err := NewQuery(QueryRequest{
+		Scope: scope, Selection: All(), Position: Start(), PageSize: core.CatalogPageMaximumEntries,
+	})
+	if err != nil {
+		t.Fatalf("NewQuery() error = %v, want nil", err)
+	}
+	payload := QueryPayload{
+		Query: query, Build: signedQueryBuild(t, core.OfferingWitness),
+		Nonce: signedQueryNonce(t, marker), Revision: controlwire.Revision2026V1,
+	}
+	if err := payload.Validate(); err != nil {
+		t.Fatalf("QueryPayload.Validate() error = %v, want nil", err)
+	}
+	return payload
 }
 
 func catalogCursorFixture(t testing.TB, marker byte) Cursor {
@@ -302,7 +332,7 @@ func catalogDocumentsEqual(left, right CatalogDocument) bool {
 
 func catalogPayloadsEqual(left, right CatalogPayload) bool {
 	if left.Watermark != right.Watermark || left.ObservedAt != right.ObservedAt ||
-		left.Scope != right.Scope || left.Continuation != right.Continuation ||
+		left.Scope != right.Scope || left.Request != right.Request || left.Continuation != right.Continuation ||
 		(left.Entries == nil) != (right.Entries == nil) || len(left.Entries) != len(right.Entries) {
 		return false
 	}

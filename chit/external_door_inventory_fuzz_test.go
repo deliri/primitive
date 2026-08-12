@@ -26,6 +26,7 @@ const (
 	chitJSONDoorPayload
 	chitJSONDoorDocument
 	chitJSONDoorQueryPayload
+	chitJSONDoorQueryCommitment
 	chitJSONDoorQueryDocument
 	chitJSONDoorCustodyState
 	chitJSONDoorCursor
@@ -54,6 +55,8 @@ func (d chitJSONDoor) receiverName() string {
 		return "Document"
 	case chitJSONDoorQueryPayload:
 		return "QueryPayload"
+	case chitJSONDoorQueryCommitment:
+		return "QueryCommitment"
 	case chitJSONDoorQueryDocument:
 		return "QueryDocument"
 	case chitJSONDoorCustodyState:
@@ -90,6 +93,7 @@ type chitFuzzFixtures struct {
 	payload         Payload
 	document        Document
 	queryPayload    QueryPayload
+	queryCommitment QueryCommitment
 	queryDocument   QueryDocument
 	custodyState    CustodyState
 	cursor          Cursor
@@ -135,6 +139,8 @@ func FuzzChitExternalJSONDoorInventory(f *testing.F) {
 			fuzzChitDocument(t, data, fixtures)
 		case chitJSONDoorQueryPayload:
 			fuzzChitJSONValue(t, data, fixtures.queryPayload)
+		case chitJSONDoorQueryCommitment:
+			fuzzChitJSONValue(t, data, fixtures.queryCommitment)
 		case chitJSONDoorQueryDocument:
 			fuzzChitQueryDocument(t, data, fixtures)
 		case chitJSONDoorCustodyState:
@@ -298,7 +304,7 @@ func fuzzChitCatalogDocument(t *testing.T, data []byte, fixtures chitFuzzFixture
 		return
 	}
 	proof, err := VerifyCatalog(CatalogVerification{
-		Document: candidate, Scope: fixtures.catalog.scope, TrustedKeys: fixtures.catalog.trusted,
+		Document: candidate, Request: fixtures.catalog.request, TrustedKeys: fixtures.catalog.trusted,
 	})
 	if err != nil {
 		if !errors.Is(err, core.ErrChitVerification) || proof.Validate() == nil {
@@ -338,12 +344,16 @@ func chitFixturesForFuzz(t testing.TB) chitFuzzFixtures {
 	chit := newChitFixture(t, 0xd1, 1)
 	catalog := newCatalogFixture(t, 0xd2, 2)
 	query := newSignedQueryFixture(t, signedQueryFixtureRequest{marker: 0xd3, pageSize: 2})
+	queryCommitment, err := CommitQuery(query.payload)
+	if err != nil {
+		t.Fatalf("CommitQuery() error = %v, want nil", err)
+	}
 	return chitFuzzFixtures{
 		chit: chit, catalog: catalog, query: query,
 		entryName: chit.addition.Entry.Name, chitID: chit.identity,
 		collectionID: chit.document.Payload.Collection, version: chit.document.Payload.Version,
 		payload: chit.document.Payload, document: chit.document,
-		queryPayload: query.payload, queryDocument: query.document,
+		queryPayload: query.payload, queryCommitment: queryCommitment, queryDocument: query.document,
 		custodyState: CustodyStateStored, cursor: catalogCursorFixture(t, 0xd4),
 		catalogPayload: catalog.payload, catalogDocument: catalog.document,
 		signingDomain: SigningDomainChitV1, objectCount: chit.summary.Objects,
@@ -361,6 +371,7 @@ func chitJSONSeedsForFuzz(t testing.TB, fixtures chitFuzzFixtures) []chitJSONSee
 		chitJSONSeedForFuzz(t, chitJSONDoorPayload, fixtures.payload),
 		chitJSONSeedForFuzz(t, chitJSONDoorDocument, fixtures.document),
 		chitJSONSeedForFuzz(t, chitJSONDoorQueryPayload, fixtures.queryPayload),
+		chitJSONSeedForFuzz(t, chitJSONDoorQueryCommitment, fixtures.queryCommitment),
 		chitJSONSeedForFuzz(t, chitJSONDoorQueryDocument, fixtures.queryDocument),
 		chitJSONSeedForFuzz(t, chitJSONDoorCustodyState, fixtures.custodyState),
 		chitJSONSeedForFuzz(t, chitJSONDoorCursor, fixtures.cursor),

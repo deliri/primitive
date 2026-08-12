@@ -156,7 +156,7 @@ func FuzzCatalogDocumentJSONSemanticAndAuthorityClosure(f *testing.F) {
 				second, err, encoded)
 		}
 		verified, verifyErr := VerifyCatalog(CatalogVerification{
-			Document: roundTrip, Scope: fixture.scope, TrustedKeys: fixture.trusted,
+			Document: roundTrip, Request: fixture.request, TrustedKeys: fixture.trusted,
 		})
 		if verifyErr != nil {
 			if !errors.Is(verifyErr, core.ErrChitVerification) || !catalogPayloadsEqual(verified, CatalogPayload{}) {

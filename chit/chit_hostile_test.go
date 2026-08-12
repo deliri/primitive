@@ -326,10 +326,15 @@ func TestChitRetentionAndCatalogHostileTemporalEdges(t *testing.T) {
 		t.Fatalf("stored CatalogEntry.ValidateAt(before retention) error = %v, want nil", gotErr)
 	}
 
+	request := catalogQueryPayload(t, fixture.scope, 0x31)
+	commitment, err := CommitQuery(request)
+	if err != nil {
+		t.Fatalf("CommitQuery() error = %v, want nil", err)
+	}
 	payload := CatalogPayload{
 		Entries: []CatalogEntry{}, Scope: fixture.scope,
 		Watermark: chitWatermarkFixture(t, fixture.scope), ObservedAt: before,
-		Continuation: End(),
+		Request: commitment, Continuation: End(),
 	}
 	if gotErr := payload.Validate(); gotErr != nil {
 		t.Fatalf("empty terminal CatalogPayload.Validate() error = %v, want nil", gotErr)

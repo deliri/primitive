@@ -2,6 +2,7 @@ package chit
 
 import (
 	"crypto"
+	"crypto/sha256"
 	"encoding/json"
 	"errors"
 	"io"
@@ -12,8 +13,10 @@ import (
 )
 
 const (
-	QueryPayloadJSONMaximumBytes  = 32 << 10
-	QueryDocumentJSONMaximumBytes = 64 << 10
+	QueryPayloadJSONMaximumBytes       = 32 << 10
+	QueryDocumentJSONMaximumBytes      = 64 << 10
+	queryCommitmentDomain              = "primitive/chit/query-commitment/v1"
+	queryCommitmentSeparator      byte = 0
 )
 
 // QueryPayload is one exact chit catalog query signed by an installed device.
@@ -84,6 +87,75 @@ func (p *QueryPayload) UnmarshalJSON(data []byte) error {
 type QueryDocument struct {
 	Payload     QueryPayload                   `json:"payload"`
 	Attestation attest.Envelope[SigningDomain] `json:"attestation"`
+}
+
+// QueryCommitment is the non-secret domain-separated closure of one exact
+// device-signed query payload.
+type QueryCommitment struct{ digest core.SHA256Digest }
+
+// CommitQuery closes the exact selection, position, scope, build, nonce, and
+// revision without retaining the encoded query.
+func CommitQuery(payload QueryPayload) (QueryCommitment, error) {
+	if err := payload.Validate(); err != nil {
+		return QueryCommitment{}, err
+	}
+	digest := sha256.New()
+	if _, err := io.WriteString(digest, queryCommitmentDomain); err != nil {
+		return QueryCommitment{}, contractError(err)
+	}
+	if _, err := digest.Write([]byte{queryCommitmentSeparator}); err != nil {
+		return QueryCommitment{}, contractError(err)
+	}
+	if err := payload.WriteCanonical(digest); err != nil {
+		return QueryCommitment{}, err
+	}
+	var raw [sha256.Size]byte
+	digest.Sum(raw[:0])
+	return newQueryCommitment(core.NewSHA256Digest(raw))
+}
+
+func newQueryCommitment(digest core.SHA256Digest) (QueryCommitment, error) {
+	candidate := QueryCommitment{digest: digest}
+	if err := candidate.Validate(); err != nil {
+		return QueryCommitment{}, err
+	}
+	return candidate, nil
+}
+
+func (c QueryCommitment) Validate() error {
+	raw, err := c.digest.Bytes()
+	if err != nil {
+		return contractError(err)
+	}
+	for _, value := range raw {
+		if value != 0 {
+			return nil
+		}
+	}
+	return contractError(errors.New("chit query commitment is all zero"))
+}
+
+func (c QueryCommitment) MarshalJSON() ([]byte, error) {
+	if err := c.Validate(); err != nil {
+		return nil, jsonError(err)
+	}
+	return json.Marshal(c.digest)
+}
+
+func (c *QueryCommitment) UnmarshalJSON(data []byte) error {
+	if c == nil {
+		return jsonError(errors.New("nil chit query commitment receiver"))
+	}
+	var digest core.SHA256Digest
+	if err := json.Unmarshal(data, &digest); err != nil {
+		return jsonError(err)
+	}
+	candidate, err := newQueryCommitment(digest)
+	if err != nil {
+		return jsonError(err)
+	}
+	*c = candidate
+	return nil
 }
 
 func (d QueryDocument) Validate() error {
@@ -201,10 +273,13 @@ var (
 	_ core.Validatable = QueryIssuance{}
 	_ core.Validatable = QueryVerification{}
 	_ core.Validatable = VerifiedQuery{}
+	_ core.Validatable = QueryCommitment{}
 
 	_ core.ValidatedJSONMarshaler         = QueryPayload{}
 	_ core.ValidatedJSONMarshaler         = QueryDocument{}
+	_ core.ValidatedJSONMarshaler         = QueryCommitment{}
 	_ json.Unmarshaler                    = (*QueryPayload)(nil)
 	_ json.Unmarshaler                    = (*QueryDocument)(nil)
+	_ json.Unmarshaler                    = (*QueryCommitment)(nil)
 	_ attest.CanonicalBody[SigningDomain] = QueryPayload{}
 )
