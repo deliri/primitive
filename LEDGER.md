@@ -4,6 +4,22 @@ Last updated: `2026-08-12`
 
 ## Current
 
+- published the remaining trust-boundary layer triads, 2026-08-12, published
+  `v2026.0.62`. Controlplane's signed verification triad is now joined by local
+  top-level positive, negative, and neutral triads in Wiring, ID, Deploy, and
+  Filelock. Wiring proves a connected runtime graph, a typed missing dependency
+  with zero manifest, and an absent graph that invents no root or components.
+  ID carries both UUIDv7 and ULID through canonical construction and parse,
+  rejects noncanonical text to typed zero identities, and proves zero values
+  emit neither plausible text nor JSON. Deploy drives a complete release
+  through a real TLS loopback provider, requires a typed zero-prefix failure on
+  the first provider loss, and proves an absent plan makes zero requests.
+  Filelock proves an exclusive hold, cancellation before any lock effect, and
+  immediate contention as the neutral not-held outcome rather than fake
+  failure.
+
+  Proof: the complete Wiring, ID, Deploy, and Filelock suites are clean.
+
 - published the complete Controlplane external-decoder sweep, 2026-08-12,
   published `v2026.0.61`. Eighteen semantic fuzz targets now cover the 22
   public parse and JSON ingress doors across registration, signed documents,
