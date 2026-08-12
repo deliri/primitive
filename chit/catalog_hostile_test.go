@@ -165,6 +165,98 @@ func TestVerifyCatalogRejectsEveryIndependentAgreementSubstitution(t *testing.T)
 	}
 }
 
+func TestVerifyCatalogClosesSpecificSelectionToZeroOrOneExactChit(t *testing.T) {
+	t.Parallel()
+
+	fixture := newCatalogFixture(t, 0x81, 1)
+	selected := fixture.payload.Entries[0].Chit.Payload.Identity
+	selection, err := Specific(selected)
+	if err != nil {
+		t.Fatalf("Specific(selected) error = %v, want nil", err)
+	}
+	request := fixture.request
+	request.Query.Selection = selection
+	commitment, err := CommitQuery(request)
+	if err != nil {
+		t.Fatalf("CommitQuery(specific) error = %v, want nil", err)
+	}
+	payload := fixture.payload
+	payload.Request = commitment
+	payload.Continuation = End()
+	document, err := IssueCatalog(CatalogIssuance{Signer: fixture.private, Payload: payload})
+	if err != nil {
+		t.Fatalf("IssueCatalog(specific exact) error = %v, want nil", err)
+	}
+	verified, err := VerifyCatalog(CatalogVerification{
+		Document: document, Request: request, TrustedKeys: fixture.trusted,
+	})
+	if err != nil || !catalogPayloadsEqual(verified, payload) {
+		t.Fatalf("VerifyCatalog(specific exact) = (%v, %v), want exact payload and nil", verified, err)
+	}
+
+	otherID := mustChitID(t, 0xf1, 900)
+	otherSelection, err := Specific(otherID)
+	if err != nil {
+		t.Fatalf("Specific(other) error = %v, want nil", err)
+	}
+	otherRequest := request
+	otherRequest.Query.Selection = otherSelection
+	otherCommitment, err := CommitQuery(otherRequest)
+	if err != nil {
+		t.Fatalf("CommitQuery(other specific) error = %v, want nil", err)
+	}
+	wrongPayload := payload
+	wrongPayload.Request = otherCommitment
+	wrongDocument, err := IssueCatalog(CatalogIssuance{Signer: fixture.private, Payload: wrongPayload})
+	if err != nil {
+		t.Fatalf("IssueCatalog(wrong specific entry) error = %v, want nil", err)
+	}
+	if got, gotErr := VerifyCatalog(CatalogVerification{
+		Document: wrongDocument, Request: otherRequest, TrustedKeys: fixture.trusted,
+	}); !errors.Is(gotErr, core.ErrChitConflict) || !catalogPayloadsEqual(got, CatalogPayload{}) {
+		t.Fatalf("VerifyCatalog(wrong specific entry) = (%v, %v), want zero and errors.Is %v", got, gotErr, core.ErrChitConflict)
+	}
+
+	continuedPayload := payload
+	continuedPayload.Continuation, err = More(catalogCursorFixture(t, 0x91))
+	if err != nil {
+		t.Fatalf("More(specific) error = %v, want nil", err)
+	}
+	continuedDocument, err := IssueCatalog(CatalogIssuance{Signer: fixture.private, Payload: continuedPayload})
+	if err != nil {
+		t.Fatalf("IssueCatalog(specific continuation) error = %v, want nil", err)
+	}
+	if got, gotErr := VerifyCatalog(CatalogVerification{
+		Document: continuedDocument, Request: request, TrustedKeys: fixture.trusted,
+	}); !errors.Is(gotErr, core.ErrChitConflict) || !catalogPayloadsEqual(got, CatalogPayload{}) {
+		t.Fatalf("VerifyCatalog(specific continuation) = (%v, %v), want zero and errors.Is %v", got, gotErr, core.ErrChitConflict)
+	}
+
+	secondPayload := payload.Entries[0].Chit.Payload
+	secondPayload.Identity = otherID
+	secondChit, err := Issue(Issuance{Signer: fixture.private, Payload: secondPayload})
+	if err != nil {
+		t.Fatalf("Issue(second chit) error = %v, want nil", err)
+	}
+	multiplePayload := payload
+	multiplePayload.Entries = []CatalogEntry{
+		{Chit: payload.Entries[0].Chit, State: CustodyStateStored},
+		{Chit: secondChit, State: CustodyStateStored},
+	}
+	if multiplePayload.Entries[0].Chit.Payload.Identity.String() < multiplePayload.Entries[1].Chit.Payload.Identity.String() {
+		multiplePayload.Entries[0], multiplePayload.Entries[1] = multiplePayload.Entries[1], multiplePayload.Entries[0]
+	}
+	multipleDocument, err := IssueCatalog(CatalogIssuance{Signer: fixture.private, Payload: multiplePayload})
+	if err != nil {
+		t.Fatalf("IssueCatalog(multiple specific entries) error = %v, want nil", err)
+	}
+	if got, gotErr := VerifyCatalog(CatalogVerification{
+		Document: multipleDocument, Request: request, TrustedKeys: fixture.trusted,
+	}); !errors.Is(gotErr, core.ErrChitConflict) || !catalogPayloadsEqual(got, CatalogPayload{}) {
+		t.Fatalf("VerifyCatalog(multiple specific entries) = (%v, %v), want zero and errors.Is %v", got, gotErr, core.ErrChitConflict)
+	}
+}
+
 func TestCatalogJSONPressuresValidRejectedAndExactExtentBoundaries(t *testing.T) {
 	t.Parallel()
 

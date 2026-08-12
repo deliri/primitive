@@ -394,7 +394,23 @@ func VerifyCatalog(verification CatalogVerification) (CatalogPayload, error) {
 	if payload.Scope != verification.Request.Query.Scope || payload.Request != commitment {
 		return CatalogPayload{}, conflictError(errors.New("catalog scope differs from expectation"))
 	}
+	if err := validateCatalogSelection(payload, verification.Request.Query.Selection); err != nil {
+		return CatalogPayload{}, err
+	}
 	return payload, nil
+}
+
+func validateCatalogSelection(payload CatalogPayload, selection Selection) error {
+	if selection.Kind == core.CatalogSelectionAll {
+		return nil
+	}
+	if payload.Continuation.State != core.CatalogContinuationEnd || len(payload.Entries) > 1 {
+		return conflictError(errors.New("specific catalog response has an invalid extent"))
+	}
+	if len(payload.Entries) == 1 && payload.Entries[0].Chit.Payload.Identity != selection.Chit {
+		return conflictError(errors.New("specific catalog response carries another chit"))
+	}
+	return nil
 }
 
 var (
