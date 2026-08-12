@@ -242,9 +242,16 @@ func TestDiskFloorAtOrAboveCapacityIsRefusedBeforeClassification(t *testing.T) {
 		total     uint64
 		floor     uint64
 	}{
-		{name: "floor exactly at capacity", available: 1, total: 1, floor: 1},
-		{name: "floor exactly at capacity on a larger device", available: 500, total: 1000, floor: 1000},
-		{name: "floor one byte above capacity", available: 1, total: 2, floor: 3},
+		{name: "floor exactly at one byte capacity with nothing available", available: 0, total: 1, floor: 1},
+		{name: "floor exactly at one byte capacity with everything available", available: 1, total: 1, floor: 1},
+		{name: "floor exactly at two byte capacity with nothing available", available: 0, total: 2, floor: 2},
+		{name: "floor exactly at two byte capacity with half available", available: 1, total: 2, floor: 2},
+		{name: "floor exactly at two byte capacity with everything available", available: 2, total: 2, floor: 2},
+		{name: "floor exactly at larger capacity with nothing available", available: 0, total: 1000, floor: 1000},
+		{name: "floor exactly at larger capacity with half available", available: 500, total: 1000, floor: 1000},
+		{name: "floor exactly at larger capacity with everything available", available: 1000, total: 1000, floor: 1000},
+		{name: "floor one byte above one byte capacity", available: 1, total: 1, floor: 2},
+		{name: "floor one byte above two byte capacity", available: 1, total: 2, floor: 3},
 		{name: "floor far above capacity", available: 500, total: 1000, floor: math.MaxInt64},
 		{name: "floor above capacity with nothing available", available: 0, total: 10, floor: 11},
 	}
@@ -271,8 +278,12 @@ func TestDiskFloorAtOrAboveCapacityIsRefusedBeforeClassification(t *testing.T) {
 			if errors.Is(gotErr, core.ErrDiskFloorReached) {
 				t.Fatalf("assessDiskCapacity(floor=%d) reported pressure, want a contract refusal", testCase.floor)
 			}
-			if got.Validate() == nil {
-				t.Fatalf("refused assessment Validate() = nil, want a refusal")
+			if got != (DiskAssessment{}) {
+				t.Fatalf("refused assessment = %v, want exact zero", got)
+			}
+			if err := got.Validate(); !errors.Is(err, core.ErrHostFactsContract) {
+				t.Fatalf("refused assessment Validate() error = %v, want errors.Is %v",
+					err, core.ErrHostFactsContract)
 			}
 		})
 	}

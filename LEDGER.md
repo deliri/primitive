@@ -4,6 +4,21 @@ Last updated: `2026-08-12`
 
 ## Current
 
+- published hostile expansion of the thinnest remaining validation,
+  verification, and fold tables, 2026-08-12, published `v2026.0.70`. Cgroup
+  unlimited folding now exhausts all seven nonempty root/parent/current
+  interface-presence masks under both cgroup v1 and v2 and proves the closest
+  present typed source and exact interface path. Disk-floor refusal now covers
+  twelve capacity/availability shapes at equality, one above, and far above
+  the device. Signed update and upgrade request verification each carry
+  thirteen exact mutations across trust, candidate or build closure, nonce,
+  signing domain, signer, body digest, and body length; every rejected sealed
+  proof returns a zero payload under the Distribution verification identity.
+
+  Proof: Hostfacts and Distribution pass twice under the race detector with
+  shuffled order, and deadcode, staticcheck, and witness-lint report zero
+  findings.
+
 - published hostile closure for the remaining falsely exhaustive verification
   and admission tables, 2026-08-12, published `v2026.0.69`. Check-in response
   issuance now refuses seventeen independently mutated invalid payload facts,

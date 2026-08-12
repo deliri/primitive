@@ -1,6 +1,7 @@
 package distribution_test
 
 import (
+	"crypto/ed25519"
 	"errors"
 	"testing"
 
@@ -85,6 +86,15 @@ func TestVerifyUpdateRequestRequiresExactCallerSignedBuild(t *testing.T) {
 	otherRelease := newReleaseFixture(t, core.NewReleaseVersion(2026, 0, 53), 3)
 	otherKeys := trustedKeys(t, signingKey(151))
 	otherNonce := requestNonce(t, 94)
+	secondNonce := requestNonce(t, 96)
+	otherSigner, err := core.NewEd25519PublicKey(signingKey(151).Public().(ed25519.PublicKey))
+	if err != nil {
+		t.Fatalf("core.NewEd25519PublicKey() error = %v, want nil", err)
+	}
+	oneByte, err := core.NewByteCount(1)
+	if err != nil {
+		t.Fatalf("core.NewByteCount() error = %v, want nil", err)
+	}
 	base := distribution.UpdateRequestVerification{
 		Document: fixture.requestDoc, TrustedKeys: fixture.callerKeys,
 	}
@@ -102,16 +112,44 @@ func TestVerifyUpdateRequestRequiresExactCallerSignedBuild(t *testing.T) {
 			v.Document.Payload.Build = otherRelease.builds[2]
 			return v
 		}, wantErr: core.ErrDistributionVerification},
+		{name: "different valid Darwin AMD64 build invalidates signature", mutate: func(v distribution.UpdateRequestVerification) distribution.UpdateRequestVerification {
+			v.Document.Payload.Build = otherRelease.builds[0]
+			return v
+		}, wantErr: core.ErrDistributionVerification},
+		{name: "different valid Darwin ARM64 build invalidates signature", mutate: func(v distribution.UpdateRequestVerification) distribution.UpdateRequestVerification {
+			v.Document.Payload.Build = otherRelease.builds[1]
+			return v
+		}, wantErr: core.ErrDistributionVerification},
 		{name: "different valid nonce invalidates signature", mutate: func(v distribution.UpdateRequestVerification) distribution.UpdateRequestVerification {
 			v.Document.Payload.Nonce = otherNonce
+			return v
+		}, wantErr: core.ErrDistributionVerification},
+		{name: "second different valid nonce invalidates signature", mutate: func(v distribution.UpdateRequestVerification) distribution.UpdateRequestVerification {
+			v.Document.Payload.Nonce = secondNonce
 			return v
 		}, wantErr: core.ErrDistributionVerification},
 		{name: "upgrade-domain envelope cannot authenticate update", mutate: func(v distribution.UpdateRequestVerification) distribution.UpdateRequestVerification {
 			v.Document.Attestation.Domain = distribution.SigningDomainUpgradeRequestV1
 			return v
 		}, wantErr: core.ErrDistributionVerification},
+		{name: "publication-domain envelope cannot authenticate update", mutate: func(v distribution.UpdateRequestVerification) distribution.UpdateRequestVerification {
+			v.Document.Attestation.Domain = distribution.SigningDomainPublicationRequestV1
+			return v
+		}, wantErr: core.ErrDistributionVerification},
 		{name: "unset caller trust is rejected", mutate: func(v distribution.UpdateRequestVerification) distribution.UpdateRequestVerification {
 			v.TrustedKeys = attest.TrustedKeys{}
+			return v
+		}, wantErr: core.ErrDistributionVerification},
+		{name: "substituted envelope signer is rejected", mutate: func(v distribution.UpdateRequestVerification) distribution.UpdateRequestVerification {
+			v.Document.Attestation.Signer = otherSigner
+			return v
+		}, wantErr: core.ErrDistributionVerification},
+		{name: "substituted envelope body digest is rejected", mutate: func(v distribution.UpdateRequestVerification) distribution.UpdateRequestVerification {
+			v.Document.Attestation.BodySHA256 = core.SHA256Of([]byte("another update request"))
+			return v
+		}, wantErr: core.ErrDistributionVerification},
+		{name: "substituted envelope body length is rejected", mutate: func(v distribution.UpdateRequestVerification) distribution.UpdateRequestVerification {
+			v.Document.Attestation.BodyLength = oneByte
 			return v
 		}, wantErr: core.ErrDistributionVerification},
 	}
@@ -119,10 +157,16 @@ func TestVerifyUpdateRequestRequiresExactCallerSignedBuild(t *testing.T) {
 		t.Run(tc.name, func(t *testing.T) {
 			t.Parallel()
 
-			got, gotErr := distribution.VerifyUpdateRequest(tc.mutate(base))
+			verification := tc.mutate(base)
+			if tc.wantErr != nil && verification == base {
+				t.Fatalf("update mutation %q left verification unchanged: %v", tc.name, verification)
+			}
+			got, gotErr := distribution.VerifyUpdateRequest(verification)
 			if tc.wantErr == nil {
-				if gotErr != nil || got.Validate() != nil {
-					t.Fatalf("distribution.VerifyUpdateRequest(exact) = (%v, %v), want valid proof", got, gotErr)
+				payload, payloadErr := got.Payload()
+				if gotErr != nil || got.Validate() != nil || payloadErr != nil || payload != base.Document.Payload {
+					t.Fatalf("distribution.VerifyUpdateRequest(exact) = (%v, %v), payload (%v, %v), want exact valid proof",
+						got, gotErr, payload, payloadErr)
 				}
 				return
 			}
@@ -131,6 +175,11 @@ func TestVerifyUpdateRequestRequiresExactCallerSignedBuild(t *testing.T) {
 			}
 			if err := got.Validate(); !errors.Is(err, core.ErrDistributionVerification) {
 				t.Fatalf("rejected distribution.VerifiedUpdateRequest.Validate() error = %v, want %v", err, core.ErrDistributionVerification)
+			}
+			if payload, err := got.Payload(); payload != (distribution.UpdateRequestPayload{}) ||
+				!errors.Is(err, core.ErrDistributionVerification) {
+				t.Fatalf("rejected distribution.VerifiedUpdateRequest.Payload() = (%v, %v), want zero and %v",
+					payload, err, core.ErrDistributionVerification)
 			}
 		})
 	}
@@ -143,8 +192,21 @@ func TestVerifyUpgradeRequestRequiresExactCallerSignedCandidateClosure(t *testin
 	installed := newReleaseFixture(t, core.NewReleaseVersion(2026, 0, 54), 1)
 	otherCandidate := newReleaseFixture(t, core.NewReleaseVersion(2026, 0, 56), 3)
 	otherSummary := availableSummaryFixture(t, installed, otherCandidate)
+	secondCandidate := newReleaseFixture(t, core.NewReleaseVersion(2026, 0, 57), 4)
+	secondSummary := availableSummaryFixture(t, installed, secondCandidate)
+	otherInstalled := newReleaseFixture(t, core.NewReleaseVersion(2026, 0, 53), 1)
+	thirdSummary := availableSummaryFixture(t, otherInstalled, otherCandidate)
 	otherKeys := trustedKeys(t, signingKey(151))
 	otherNonce := requestNonce(t, 95)
+	secondNonce := requestNonce(t, 97)
+	otherSigner, err := core.NewEd25519PublicKey(signingKey(151).Public().(ed25519.PublicKey))
+	if err != nil {
+		t.Fatalf("core.NewEd25519PublicKey() error = %v, want nil", err)
+	}
+	oneByte, err := core.NewByteCount(1)
+	if err != nil {
+		t.Fatalf("core.NewByteCount() error = %v, want nil", err)
+	}
 	base := distribution.UpgradeRequestVerification{
 		Document: fixture.requestDoc, TrustedKeys: fixture.callerKeys,
 	}
@@ -162,16 +224,44 @@ func TestVerifyUpgradeRequestRequiresExactCallerSignedCandidateClosure(t *testin
 			v.Document.Payload.Available = otherSummary
 			return v
 		}, wantErr: core.ErrDistributionVerification},
+		{name: "second valid candidate closure invalidates signature", mutate: func(v distribution.UpgradeRequestVerification) distribution.UpgradeRequestVerification {
+			v.Document.Payload.Available = secondSummary
+			return v
+		}, wantErr: core.ErrDistributionVerification},
+		{name: "different valid installed closure invalidates signature", mutate: func(v distribution.UpgradeRequestVerification) distribution.UpgradeRequestVerification {
+			v.Document.Payload.Available = thirdSummary
+			return v
+		}, wantErr: core.ErrDistributionVerification},
 		{name: "different valid nonce invalidates signature", mutate: func(v distribution.UpgradeRequestVerification) distribution.UpgradeRequestVerification {
 			v.Document.Payload.Nonce = otherNonce
+			return v
+		}, wantErr: core.ErrDistributionVerification},
+		{name: "second different valid nonce invalidates signature", mutate: func(v distribution.UpgradeRequestVerification) distribution.UpgradeRequestVerification {
+			v.Document.Payload.Nonce = secondNonce
 			return v
 		}, wantErr: core.ErrDistributionVerification},
 		{name: "publication-domain envelope cannot authenticate upgrade", mutate: func(v distribution.UpgradeRequestVerification) distribution.UpgradeRequestVerification {
 			v.Document.Attestation.Domain = distribution.SigningDomainPublicationRequestV1
 			return v
 		}, wantErr: core.ErrDistributionVerification},
+		{name: "update-domain envelope cannot authenticate upgrade", mutate: func(v distribution.UpgradeRequestVerification) distribution.UpgradeRequestVerification {
+			v.Document.Attestation.Domain = distribution.SigningDomainUpdateRequestV1
+			return v
+		}, wantErr: core.ErrDistributionVerification},
 		{name: "unset caller trust is rejected", mutate: func(v distribution.UpgradeRequestVerification) distribution.UpgradeRequestVerification {
 			v.TrustedKeys = attest.TrustedKeys{}
+			return v
+		}, wantErr: core.ErrDistributionVerification},
+		{name: "substituted envelope signer is rejected", mutate: func(v distribution.UpgradeRequestVerification) distribution.UpgradeRequestVerification {
+			v.Document.Attestation.Signer = otherSigner
+			return v
+		}, wantErr: core.ErrDistributionVerification},
+		{name: "substituted envelope body digest is rejected", mutate: func(v distribution.UpgradeRequestVerification) distribution.UpgradeRequestVerification {
+			v.Document.Attestation.BodySHA256 = core.SHA256Of([]byte("another upgrade request"))
+			return v
+		}, wantErr: core.ErrDistributionVerification},
+		{name: "substituted envelope body length is rejected", mutate: func(v distribution.UpgradeRequestVerification) distribution.UpgradeRequestVerification {
+			v.Document.Attestation.BodyLength = oneByte
 			return v
 		}, wantErr: core.ErrDistributionVerification},
 	}
@@ -179,10 +269,16 @@ func TestVerifyUpgradeRequestRequiresExactCallerSignedCandidateClosure(t *testin
 		t.Run(tc.name, func(t *testing.T) {
 			t.Parallel()
 
-			got, gotErr := distribution.VerifyUpgradeRequest(tc.mutate(base))
+			verification := tc.mutate(base)
+			if tc.wantErr != nil && verification == base {
+				t.Fatalf("upgrade mutation %q left verification unchanged: %v", tc.name, verification)
+			}
+			got, gotErr := distribution.VerifyUpgradeRequest(verification)
 			if tc.wantErr == nil {
-				if gotErr != nil || got.Validate() != nil {
-					t.Fatalf("distribution.VerifyUpgradeRequest(exact) = (%v, %v), want valid proof", got, gotErr)
+				payload, payloadErr := got.Payload()
+				if gotErr != nil || got.Validate() != nil || payloadErr != nil || payload != base.Document.Payload {
+					t.Fatalf("distribution.VerifyUpgradeRequest(exact) = (%v, %v), payload (%v, %v), want exact valid proof",
+						got, gotErr, payload, payloadErr)
 				}
 				return
 			}
@@ -191,6 +287,11 @@ func TestVerifyUpgradeRequestRequiresExactCallerSignedCandidateClosure(t *testin
 			}
 			if err := got.Validate(); !errors.Is(err, core.ErrDistributionVerification) {
 				t.Fatalf("rejected distribution.VerifiedUpgradeRequest.Validate() error = %v, want %v", err, core.ErrDistributionVerification)
+			}
+			if payload, err := got.Payload(); payload != (distribution.UpgradeRequestPayload{}) ||
+				!errors.Is(err, core.ErrDistributionVerification) {
+				t.Fatalf("rejected distribution.VerifiedUpgradeRequest.Payload() = (%v, %v), want zero and %v",
+					payload, err, core.ErrDistributionVerification)
 			}
 		})
 	}

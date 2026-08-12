@@ -485,6 +485,14 @@ type cgroupFileFixture struct {
 	value string
 }
 
+type cgroupFixtureLevel uint8
+
+const (
+	cgroupFixtureLevelRoot cgroupFixtureLevel = iota + 1
+	cgroupFixtureLevelTeam
+	cgroupFixtureLevelJob
+)
+
 func writeCgroupHierarchyForTest(t *testing.T, fixture cgroupHierarchyFixture) {
 	t.Helper()
 	team := filepath.Join(fixture.root, "team")
@@ -574,42 +582,69 @@ func TestCgroupFoldTreatsAnAbsentInterfaceAsNoDeclarationLayerTriad(t *testing.T
 func TestCgroupUnlimitedFoldReportsTheClosestPresentInterface(t *testing.T) {
 	t.Parallel()
 
-	cases := []struct {
+	presenceCases := []struct {
 		name      string
-		teamValue string
-		jobValue  string
-		wantLevel string
+		rootSet   bool
+		teamSet   bool
+		jobSet    bool
+		wantLevel cgroupFixtureLevel
 	}{
-		{name: "current cgroup declaration is closest", teamValue: "max", jobValue: "max", wantLevel: "job"},
-		{name: "absent current interface reports closest ancestor", teamValue: "max", wantLevel: "team"},
+		{name: "all interfaces present selects current cgroup", rootSet: true, teamSet: true, jobSet: true, wantLevel: cgroupFixtureLevelJob},
+		{name: "current and parent present selects current cgroup", teamSet: true, jobSet: true, wantLevel: cgroupFixtureLevelJob},
+		{name: "current and root present selects current cgroup", rootSet: true, jobSet: true, wantLevel: cgroupFixtureLevelJob},
+		{name: "only current interface present selects current cgroup", jobSet: true, wantLevel: cgroupFixtureLevelJob},
+		{name: "parent and root present selects parent", rootSet: true, teamSet: true, wantLevel: cgroupFixtureLevelTeam},
+		{name: "only parent interface present selects parent", teamSet: true, wantLevel: cgroupFixtureLevelTeam},
+		{name: "only root interface present selects root", rootSet: true, wantLevel: cgroupFixtureLevelRoot},
 	}
-	for _, tc := range cases {
-		t.Run(tc.name, func(t *testing.T) {
-			t.Parallel()
+	providers := []struct {
+		name      string
+		limitName string
+		unlimited string
+		source    WorkloadMemoryLimitSource
+	}{
+		{name: "cgroup v2", limitName: cgroupV2LimitName, unlimited: "max", source: WorkloadMemoryLimitSourceCgroupV2},
+		{name: "cgroup v1", limitName: cgroupV1LimitName, unlimited: strconv.FormatUint(cgroupV1UnlimitedMin, 10), source: WorkloadMemoryLimitSourceCgroupV1},
+	}
+	for _, provider := range providers {
+		for _, tc := range presenceCases {
+			t.Run(provider.name+" "+tc.name, func(t *testing.T) {
+				t.Parallel()
 
-			root := t.TempDir()
-			writeCgroupHierarchyForTest(t, cgroupHierarchyFixture{
-				root: root, limitName: cgroupV2LimitName,
-				teamValue: tc.teamValue, jobValue: tc.jobValue,
+				root := t.TempDir()
+				fixture := cgroupHierarchyFixture{root: root, limitName: provider.limitName}
+				if tc.rootSet {
+					fixture.rootValue = provider.unlimited
+				}
+				if tc.teamSet {
+					fixture.teamValue = provider.unlimited
+				}
+				if tc.jobSet {
+					fixture.jobValue = provider.unlimited
+				}
+				writeCgroupHierarchyForTest(t, fixture)
+				membership := cgroupMembership{path: "/team/job", source: provider.source}
+				mount := cgroupMount{
+					root: "/", mountPoint: mustAbsolutePathForHostfactsTest(t, root), source: provider.source,
+				}
+				got, gotErr := foldCgroupLimits(context.Background(), membership, mount)
+				path, present := got.InterfacePath()
+				wantPath := filepath.Join(root, provider.limitName)
+				switch tc.wantLevel {
+				case cgroupFixtureLevelJob:
+					wantPath = filepath.Join(root, "team", "job", provider.limitName)
+				case cgroupFixtureLevelTeam:
+					wantPath = filepath.Join(root, "team", provider.limitName)
+				}
+				if gotErr != nil || got.State() != WorkloadMemoryLimitUnlimited ||
+					got.Source() != provider.source || !present || path.String() != wantPath || got.Validate() != nil {
+					t.Fatalf(
+						"foldCgroupLimits(%s unlimited).InterfacePath() = %s/%t (source %v, state %v, err %v), want %s/%v",
+						provider.name, path.String(), present, got.Source(), got.State(), gotErr, wantPath, provider.source,
+					)
+				}
 			})
-			got, gotErr := foldCgroupLimits(
-				context.Background(),
-				cgroupV2MembershipForTest(),
-				cgroupV2MountForTest(t, root),
-			)
-			path, present := got.InterfacePath()
-			wantPath := filepath.Join(root, "team", tc.wantLevel, cgroupV2LimitName)
-			if tc.wantLevel == "team" {
-				wantPath = filepath.Join(root, "team", cgroupV2LimitName)
-			}
-			if gotErr != nil || got.State() != WorkloadMemoryLimitUnlimited ||
-				!present || path.String() != wantPath || got.Validate() != nil {
-				t.Fatalf(
-					"foldCgroupLimits(unlimited).InterfacePath() = %s/%t (state %v, err %v), want %s",
-					path.String(), present, got.State(), gotErr, wantPath,
-				)
-			}
-		})
+		}
 	}
 }
 
