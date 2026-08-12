@@ -4,6 +4,29 @@ Last updated: `2026-08-12`
 
 ## Current
 
+- published the complete Controlplane external-decoder sweep, 2026-08-12,
+  published `v2026.0.61`. Eighteen semantic fuzz targets now cover the 22
+  public parse and JSON ingress doors across registration, signed documents,
+  check-in requests and responses, headers, usage windows and watermarks,
+  product status, and signing domains. The six closed external enums derive
+  their admitted values by exhausting all 256 backing values, seed every
+  compiler-owned canonical token, and require typed parse/JSON refusal,
+  receiver preservation, exact value recovery, and a stable canonical fixed
+  point. Six unsigned structural doors add production-generated valid
+  mutations and, whenever the structure becomes part of a signed document,
+  run the real verifier and require authentic success or typed zero-proof
+  refusal.
+
+  The sweep found and fixed a production ownership defect rather than weakening
+  its oracle: RegistrationPayload could reject a nested malformed header
+  without preserving `core.ErrControlPlaneRegistration`. Its `Validate`
+  boundary now retains both the owning Registration identity and every more
+  specific nested, consistency, or outcome identity.
+
+  Proof: live campaigns passed for all twelve new targets, including more than
+  145,000 ProductStatus cases, 123,000 SigningDomain cases, 248,000 WorkUnit
+  cases, and 245,000 Outcome cases; the complete Controlplane suite is clean.
+
 - published complete signed Controlplane fuzz authorities, 2026-08-12,
   published `v2026.0.60`. The five signed-document fuzz targets now seed every
   load-bearing class named by the external-boundary contract: body facts,

@@ -539,17 +539,21 @@ func requireZeroVerifiedCheckIn(t *testing.T, proof controlplane.VerifiedCheckIn
 	if !errors.Is(err, core.ErrControlPlaneContract) {
 		t.Fatalf("refused check-in proof Request() error = %v, want %v", err, core.ErrControlPlaneContract)
 	}
-	payload := request.Payload
-	if payload.Window.Units != nil || payload.Window.Outcomes != nil ||
-		payload.Window.Bounds != (temporal.IntervalBounds{}) || payload.Window.Freshness != (temporal.Instant{}) ||
-		payload.PreviousWatermark != (controlplane.UsageWatermark{}) || payload.LeaseGeneration != (lease.Generation{}) ||
-		payload.Build != (core.BuildIdentity{}) || payload.Revision != controlwire.Revision(0) ||
-		payload.RequestNonce != (controlwire.RequestNonce{}) || payload.Installation != (lease.DeviceID{}) ||
-		payload.AppliedPolicy != (controlwire.PolicyCursor{}) ||
-		request.Certificate != (controlplane.InstallationCertificateDocument{}) ||
-		request.Attestation != (attest.Envelope[controlplane.SigningDomain]{}) {
+	if !isZeroCheckInRequest(request) {
 		t.Fatalf("refused check-in proof Request() = %+v, want exact zero request", request)
 	}
+}
+
+func isZeroCheckInRequest(request controlplane.CheckInRequest) bool {
+	payload := request.Payload
+	return payload.Window.Units == nil && payload.Window.Outcomes == nil &&
+		payload.Window.Bounds == (temporal.IntervalBounds{}) && payload.Window.Freshness == (temporal.Instant{}) &&
+		payload.PreviousWatermark == (controlplane.UsageWatermark{}) && payload.LeaseGeneration == (lease.Generation{}) &&
+		payload.Build == (core.BuildIdentity{}) && payload.Revision == controlwire.Revision(0) &&
+		payload.RequestNonce == (controlwire.RequestNonce{}) && payload.Installation == (lease.DeviceID{}) &&
+		payload.AppliedPolicy == (controlwire.PolicyCursor{}) &&
+		request.Certificate == (controlplane.InstallationCertificateDocument{}) &&
+		request.Attestation == (attest.Envelope[controlplane.SigningDomain]{})
 }
 
 func mustCertificateJSON(t testing.TB, document controlplane.InstallationCertificateDocument) []byte {

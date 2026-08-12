@@ -370,19 +370,22 @@ type (
 // another is the shape a partially forged or partially stale response takes.
 func (p RegistrationPayload) Validate() error {
 	if err := p.validateParts(); err != nil {
-		return err
+		return registrationError(err)
 	}
 	header, err := p.Lease.Decision.Header()
 	if err != nil {
 		return registrationError(err)
 	}
 	if header.Generation != p.Watermark.Generation || header.IssuedAt != p.Header.ProviderTime {
-		return consistencyError()
+		return registrationError(consistencyError())
 	}
 	if err := p.validateSubject(header.Subject); err != nil {
-		return err
+		return registrationError(err)
 	}
-	return p.validateOutcome()
+	if err := p.validateOutcome(); err != nil {
+		return registrationError(err)
+	}
+	return nil
 }
 
 func (p RegistrationPayload) validateParts() error {
