@@ -13,8 +13,6 @@ import (
 	"github.com/deliri/primitive/v2026/release"
 )
 
-const downloadProviderDiagnostic = "upgrade provider cannot download whole objects"
-
 // DownloadSource is one already-issued Objectstore download capability.
 type DownloadSource struct {
 	Client     objectstore.Client
@@ -37,11 +35,6 @@ func (s DownloadSource) Validate() error {
 	commitment, err := s.Capability.Commitment()
 	if err != nil || commitment != s.Commitment {
 		return contractError(errors.New("upgrade download capability differs from its authenticated commitment"), err)
-	}
-	provider, err := s.Capability.Provider()
-	if err != nil || provider != objectstore.ProviderAmazonS3 &&
-		provider != objectstore.ProviderGoogleCloudStorage {
-		return contractError(errors.New(downloadProviderDiagnostic))
 	}
 	if err := s.Policy.Validate(); err != nil {
 		return contractError(err)
@@ -290,17 +283,47 @@ func stageAuthority(
 			errors.New("installed manifest has no candidate platform"),
 		)
 	}
-	prior, err := readSelection(ctx, request.Root)
+	return authorizeStage(ctx, request.Root, stageAuthorityFacts{
+		candidate: candidate,
+		installed: installedArtifact,
+	})
+}
+
+// stageAuthorityFacts is the minimum authenticated Release projection Upgrade
+// needs to compare against its durable selector. PreparedRelease remains the
+// only public handoff: this private value keeps selector ownership separate
+// from Release's signature, freshness, and embedded-build authority.
+type stageAuthorityFacts struct {
+	candidate release.Artifact
+	installed release.Artifact
+}
+
+func (f stageAuthorityFacts) Validate() error {
+	if err := f.candidate.Validate(); err != nil {
+		return contractError(err)
+	}
+	if err := f.installed.Validate(); err != nil {
+		return contractError(err)
+	}
+	return validateUpgradePair(f.installed, f.candidate)
+}
+
+func authorizeStage(
+	ctx context.Context,
+	root *os.Root,
+	facts stageAuthorityFacts,
+) (release.Artifact, selectionDocument, error) {
+	if err := facts.Validate(); err != nil {
+		return release.Artifact{}, selectionDocument{}, err
+	}
+	prior, err := readSelection(ctx, root)
 	if err != nil {
 		return release.Artifact{}, selectionDocument{}, err
 	}
-	if prior.Artifact != installedArtifact {
+	if prior.Artifact != facts.installed {
 		return release.Artifact{}, selectionDocument{}, conflictError(diagnosticCurrentSelection)
 	}
-	if err := validateUpgradePair(prior.Artifact, candidate); err != nil {
-		return release.Artifact{}, selectionDocument{}, err
-	}
-	return candidate, prior, nil
+	return facts.candidate, prior, nil
 }
 
 func admitStageCapacity(

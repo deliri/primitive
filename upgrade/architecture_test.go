@@ -224,6 +224,7 @@ func TestEveryProductionStructHasADataFlowRole(t *testing.T) {
 		"candidateDownload":   "internal ownership receipt",
 		"selectionDocument":   "durable primary fact",
 		"selectionWire":       "canonical persistence wire",
+		"stageAuthorityFacts": "authenticated release-to-selector projection",
 		"trialDocument":       "durable trial ownership fact",
 		"trialWire":           "canonical persistence wire",
 	}

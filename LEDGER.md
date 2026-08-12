@@ -4,6 +4,24 @@ Last updated: `2026-08-12`
 
 ## Current
 
+- closed Upgrade's unexecuted staging mechanics, 2026-08-12, published
+  `v2026.0.76`. Download source validation, exact streamed candidate download,
+  progress reporting, independent artifact verification, owned-byte cleanup,
+  capacity arithmetic, durable-selector authority, cancellation, and public
+  path projections now carry hostile positive, negative, and neutral proof.
+  The selector decision consumes a private validated projection from Release's
+  authenticated `PreparedRelease`; Release remains the only public signature,
+  freshness, and embedded-build authority.
+
+  A transport failure removes only the candidate bytes owned by that attempt;
+  a mutation after Objectstore confirms the stream is caught by Upgrade's
+  independent verifier and removed; a stale primary seals both returned facts;
+  and pre-effect cancellation performs no transport and preserves the durable
+  selector. The redundant provider check was deleted because Objectstore's
+  typed download capability already closes that domain. Upgrade passes twice
+  under the race detector with shuffled order; deadcode, staticcheck, and
+  witness-lint report zero findings.
+
 - replaced weak rejection oracles across 24 hostile-test files, 2026-08-12,
   published `v2026.0.75`. Controlplane verification, check-in, response,
   product-status, signing-domain, and usage-window proofs now require their
