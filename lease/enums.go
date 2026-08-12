@@ -108,7 +108,7 @@ func (r *Revision) UnmarshalJSON(data []byte) error {
 	}
 	parsed, err := ParseRevision(token)
 	if err != nil {
-		return err
+		return jsonError(err)
 	}
 	*r = parsed
 	return nil
@@ -193,7 +193,7 @@ func (o *Outcome) UnmarshalJSON(data []byte) error {
 	}
 	parsed, err := ParseOutcome(token)
 	if err != nil {
-		return err
+		return jsonError(err)
 	}
 	*o = parsed
 	return nil
@@ -278,7 +278,7 @@ func (r *RevocationReason) UnmarshalJSON(data []byte) error {
 	}
 	parsed, err := ParseRevocationReason(token)
 	if err != nil {
-		return err
+		return jsonError(err)
 	}
 	*r = parsed
 	return nil

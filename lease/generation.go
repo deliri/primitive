@@ -89,7 +89,7 @@ func (g *Generation) UnmarshalJSON(data []byte) error {
 	}
 	parsed, err := ParseGeneration(text)
 	if err != nil {
-		return err
+		return jsonError(err)
 	}
 	*g = parsed
 	return nil

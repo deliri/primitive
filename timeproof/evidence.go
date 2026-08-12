@@ -108,7 +108,7 @@ func (e *AuthorityEvidence) UnmarshalJSON(data []byte) error {
 	}
 	parsed, err := evidenceFromWire(wire)
 	if err != nil {
-		return err
+		return errorsJSON(err)
 	}
 	canonical, err := parsed.MarshalJSON()
 	if err != nil || !bytes.Equal(data, canonical) {

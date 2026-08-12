@@ -208,6 +208,41 @@ func TestPublicOperationsAreExactReleaseIntent(t *testing.T) {
 	}
 }
 
+func TestExternalIngressFuzzInventoryMatchesEveryPublicDecoder(t *testing.T) {
+	t.Parallel()
+
+	gotJSON, err := exportedJSONReceiverNames()
+	if err != nil {
+		t.Fatalf("exportedJSONReceiverNames() error = %v, want nil", err)
+	}
+	var wantJSON []string
+	for door := releaseJSONDoorUnknown + 1; door < releaseJSONDoorLimit; door++ {
+		name := door.receiverName()
+		if name == "" {
+			t.Fatalf("release JSON fuzz door %d has no compiler-visible receiver", door)
+		}
+		wantJSON = append(wantJSON, name)
+	}
+	slices.Sort(wantJSON)
+	if !slices.Equal(gotJSON, wantJSON) {
+		t.Fatalf("public JSON receivers = %v, fuzz inventory = %v", gotJSON, wantJSON)
+	}
+
+	gotText := []string{"ParseBuildTag", "ParseMainPackage", "ParseProjectVersion"}
+	var wantText []string
+	for door := releaseTextDoorUnknown + 1; door < releaseTextDoorLimit; door++ {
+		name := door.functionName()
+		if name == "" {
+			t.Fatalf("release text fuzz door %d has no compiler-visible function", door)
+		}
+		wantText = append(wantText, name)
+	}
+	slices.Sort(wantText)
+	if !slices.Equal(gotText, wantText) {
+		t.Fatalf("public text parsers = %v, fuzz inventory = %v", gotText, wantText)
+	}
+}
+
 func TestEvaluateObtainsInstalledIdentityOnlyFromReleaseEmbedding(t *testing.T) {
 	t.Parallel()
 
@@ -281,6 +316,38 @@ func productionStructNames() ([]string, error) {
 				if _, ok := spec.Type.(*ast.StructType); ok {
 					names = append(names, spec.Name.Name)
 				}
+			}
+		}
+	}
+	slices.Sort(names)
+	return names, nil
+}
+
+func exportedJSONReceiverNames() ([]string, error) {
+	files, err := productionFiles()
+	if err != nil {
+		return nil, err
+	}
+	set := token.NewFileSet()
+	var names []string
+	for _, name := range files {
+		file, err := parser.ParseFile(set, name, nil, parser.SkipObjectResolution)
+		if err != nil {
+			return nil, err
+		}
+		for _, declaration := range file.Decls {
+			function, ok := declaration.(*ast.FuncDecl)
+			if !ok || function.Name.Name != "UnmarshalJSON" || function.Recv == nil ||
+				len(function.Recv.List) != 1 {
+				continue
+			}
+			pointer, ok := function.Recv.List[0].Type.(*ast.StarExpr)
+			if !ok {
+				continue
+			}
+			receiver, ok := pointer.X.(*ast.Ident)
+			if ok && receiver.IsExported() {
+				names = append(names, receiver.Name)
 			}
 		}
 	}

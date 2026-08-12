@@ -6,6 +6,7 @@ import (
 	"go/token"
 	"os"
 	"reflect"
+	"slices"
 	"strings"
 	"testing"
 )
@@ -52,6 +53,80 @@ type receiptContractInventory struct {
 	WatermarkRequest        receiptRequestCarrier[WatermarkRequest]
 	AdvanceWatermarkRequest receiptRequestCarrier[AdvanceWatermarkRequest]
 	AdvanceResult           receiptSealedProjection[AdvanceResult]
+}
+
+func TestReceiptExternalIngressFuzzInventoryMatchesProduction(t *testing.T) {
+	t.Parallel()
+
+	gotJSON, err := receiptExportedJSONReceiverNames()
+	if err != nil {
+		t.Fatalf("receiptExportedJSONReceiverNames() error = %v, want nil", err)
+	}
+	var wantJSON []string
+	for door := receiptJSONDoorUnknown + 1; door < receiptJSONDoorLimit; door++ {
+		name := door.receiverName()
+		if name == "" {
+			t.Fatalf("receipt JSON fuzz door %d has no compiler-visible receiver", door)
+		}
+		wantJSON = append(wantJSON, name)
+	}
+	slices.Sort(wantJSON)
+	if !slices.Equal(gotJSON, wantJSON) {
+		t.Fatalf("public JSON receivers = %v, fuzz inventory = %v", gotJSON, wantJSON)
+	}
+
+	gotText := []string{
+		"ParseAccountIdentity", "ParseObjectIdentity", "ParseOfferingIdentity",
+		"ParseReceiptID", "ParseSubmissionIdentity",
+	}
+	var wantText []string
+	for door := receiptTextDoorUnknown + 1; door < receiptTextDoorLimit; door++ {
+		name := door.functionName()
+		if name == "" {
+			t.Fatalf("receipt text fuzz door %d has no compiler-visible function", door)
+		}
+		wantText = append(wantText, name)
+	}
+	slices.Sort(wantText)
+	if !slices.Equal(gotText, wantText) {
+		t.Fatalf("public text parsers = %v, fuzz inventory = %v", gotText, wantText)
+	}
+}
+
+func receiptExportedJSONReceiverNames() ([]string, error) {
+	files, err := os.ReadDir(".")
+	if err != nil {
+		return nil, err
+	}
+	var names []string
+	fileSet := token.NewFileSet()
+	for _, file := range files {
+		if file.IsDir() || !strings.HasSuffix(file.Name(), ".go") ||
+			strings.HasSuffix(file.Name(), "_test.go") {
+			continue
+		}
+		parsed, parseErr := parser.ParseFile(fileSet, file.Name(), nil, parser.SkipObjectResolution)
+		if parseErr != nil {
+			return nil, parseErr
+		}
+		for _, declaration := range parsed.Decls {
+			function, ok := declaration.(*ast.FuncDecl)
+			if !ok || function.Name.Name != "UnmarshalJSON" || function.Recv == nil ||
+				len(function.Recv.List) != 1 {
+				continue
+			}
+			pointer, ok := function.Recv.List[0].Type.(*ast.StarExpr)
+			if !ok {
+				continue
+			}
+			receiver, ok := pointer.X.(*ast.Ident)
+			if ok && receiver.IsExported() {
+				names = append(names, receiver.Name)
+			}
+		}
+	}
+	slices.Sort(names)
+	return names, nil
 }
 
 func TestReceiptProductionStructsHaveCompilerVisibleDataFlowRoles(t *testing.T) {

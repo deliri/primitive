@@ -27,6 +27,6 @@ func invalidError(causes ...error) error {
 }
 
 // errorsJSON is the single spelling of a Timeproof JSON contract violation.
-func errorsJSON() error {
-	return contractError(core.ErrJSONContract)
+func errorsJSON(causes ...error) error {
+	return contractError(append([]error{core.ErrJSONContract}, causes...)...)
 }

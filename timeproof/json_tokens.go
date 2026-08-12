@@ -48,7 +48,7 @@ func unmarshalEnum[T enumValue](
 	}
 	parsed, err := parse(token)
 	if err != nil {
-		return err
+		return errorsJSON(err)
 	}
 	canonical, err := marshalEnum(parsed)
 	if err != nil || !bytes.Equal(data, canonical) {

@@ -70,7 +70,11 @@ func unmarshalIdentifier(data []byte) (identifier, error) {
 	if err != nil {
 		return identifier{}, jsonError(err)
 	}
-	return parseIdentifier(text)
+	value, err := parseIdentifier(text)
+	if err != nil {
+		return identifier{}, jsonError(err)
+	}
+	return value, nil
 }
 
 // Product is one opaque OGS product identity.

@@ -4,6 +4,26 @@ Last updated: `2026-08-12`
 
 ## Current
 
+- closed the signed-package external-door fuzz inventory, 2026-08-12,
+  published `v2026.0.77`. Core, Release, Receipt, Lease, Chit, Controlwire,
+  Submission, Payment, and Timeproof now enumerate every public JSON receiver
+  behind compiler-visible selectors and AST drift ratchets; text, identifier,
+  enum, canonical-hex, JSON-token, and HTTP-status admission paths have direct
+  semantic targets. Accepted values validate and reach canonical fixed points;
+  rejected values preserve populated receivers and retain typed owner and JSON
+  identities. Signed documents execute their independent production verifiers
+  and return no proof on failed authentication.
+
+  Live fuzzing exposed and fixed three production boundary defects: Lease JSON
+  values and Timeproof semantic JSON refusals had dropped the shared JSON
+  identity, while Core canonical-hex decoding mutated its destination before
+  refusing a noncanonical spelling. Canonical hex now validates before its
+  allocation-free decode while retaining the standard library's
+  `hex.InvalidByteError` for invalid bytes. Upgrade's real Exchange-backed
+  integration proof is declared as a test-only compiler-catalog edge and in
+  Primitive policy. The focused package suites and checkpoint deadcode,
+  staticcheck, and witness-lint gates report zero findings.
+
 - closed Upgrade's unexecuted staging mechanics, 2026-08-12, published
   `v2026.0.76`. Download source validation, exact streamed candidate download,
   progress reporting, independent artifact verification, owned-byte cleanup,

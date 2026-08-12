@@ -434,24 +434,35 @@ func (m SecretMaterial) Format(state fmt.State, _ rune) {
 }
 
 // DecodeCanonicalHex fills destination from text that must be exact canonical
-// lowercase hexadecimal for exactly len(destination) bytes: the decode must
-// succeed and re-encoding must reproduce the input byte for byte, so
-// uppercase, mixed case, odd extents, prefixes, and stray bytes are all
-// refused. The destination carries the extent, so a fixed-size identity
-// decodes into its own storage without an allocation and a variable one sizes
-// its buffer first; on refusal the destination may hold partial bytes, and a
-// refused decode has no value a caller may keep. This is the one admission
+// lowercase hexadecimal for exactly len(destination) bytes: every input byte
+// must already belong to the canonical lowercase alphabet, so uppercase,
+// mixed case, odd extents, prefixes, and stray bytes are all refused. The
+// destination carries the extent, so a fixed-size identity decodes into its
+// own storage without an allocation and a variable one sizes its buffer first.
+// Spelling is validated before decoding, so refusal leaves a populated
+// destination unchanged. This is the one admission
 // rule for canonical hex in the repository: identities in every package
 // delegate here rather than restating the decode-and-re-encode comparison.
 func DecodeCanonicalHex(destination []byte, value string) error {
 	if len(value) != hex.EncodedLen(len(destination)) {
 		return errors.Join(ErrPrimitiveContract, errors.New(hexValueInvalidLengthDiagnostic))
 	}
+	for index := range len(value) {
+		character := value[index]
+		if character >= '0' && character <= '9' || character >= 'a' && character <= 'f' {
+			continue
+		}
+		if character >= 'A' && character <= 'F' {
+			return errors.Join(ErrPrimitiveContract, errors.New(hexNotCanonicalDiagnostic))
+		}
+		return errors.Join(
+			ErrPrimitiveContract,
+			errors.New(hexNotCanonicalDiagnostic),
+			hex.InvalidByteError(character),
+		)
+	}
 	if _, err := hex.Decode(destination, []byte(value)); err != nil {
 		return errors.Join(ErrPrimitiveContract, errors.New(hexNotCanonicalDiagnostic), err)
-	}
-	if hex.EncodeToString(destination) != value {
-		return errors.Join(ErrPrimitiveContract, errors.New(hexNotCanonicalDiagnostic))
 	}
 	return nil
 }

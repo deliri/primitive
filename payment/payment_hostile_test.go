@@ -569,7 +569,7 @@ func samePaymentCatalogDocument(got, want CatalogDocument) bool {
 	return got.Attestation == want.Attestation && samePaymentCatalog(got.Payload, want.Payload)
 }
 
-func newPaymentCatalogFixture(t *testing.T, request paymentCatalogFixtureRequest) paymentCatalogFixture {
+func newPaymentCatalogFixture(t testing.TB, request paymentCatalogFixtureRequest) paymentCatalogFixture {
 	t.Helper()
 
 	if request.Marker == 0 {
@@ -774,7 +774,7 @@ func TestPaymentQueryPlannerLayerTriad(t *testing.T) {
 	})
 }
 
-func newPaymentFixture(t *testing.T, request paymentFixtureRequest) paymentFixture {
+func newPaymentFixture(t testing.TB, request paymentFixtureRequest) paymentFixture {
 	t.Helper()
 
 	if request.Marker == 0 {
@@ -871,7 +871,7 @@ func mustPaymentID(t testing.TB, marker byte, milliseconds int64) PaymentID {
 	return identity
 }
 
-func mustPaymentAmount(t *testing.T, minorUnits int64) currency.Amount {
+func mustPaymentAmount(t testing.TB, minorUnits int64) currency.Amount {
 	t.Helper()
 	amount, err := currency.New(currency.CodeUSD, minorUnits)
 	if err != nil {
@@ -880,7 +880,7 @@ func mustPaymentAmount(t *testing.T, minorUnits int64) currency.Amount {
 	return amount
 }
 
-func paymentWatermarkFixture(t *testing.T, scope receipt.Scope) receipt.Watermark {
+func paymentWatermarkFixture(t testing.TB, scope receipt.Scope) receipt.Watermark {
 	t.Helper()
 
 	generation, err := receipt.NewGeneration(1)

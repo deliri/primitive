@@ -95,7 +95,7 @@ func (s *SerialNumber) UnmarshalJSON(data []byte) error {
 	}
 	parsed, err := parseSerialNumber(token)
 	if err != nil {
-		return err
+		return errorsJSON()
 	}
 	canonical, err := parsed.MarshalJSON()
 	if err != nil || !bytes.Equal(data, canonical) {

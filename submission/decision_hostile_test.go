@@ -204,7 +204,7 @@ func TestSubmissionDecisionStrictJSONRefusesUnknownAndOversizeWithoutMutation(t 
 }
 
 func newReuseEvidenceFixture(
-	t *testing.T,
+	t testing.TB,
 	request reuseEvidenceFixtureRequest,
 ) reuseEvidenceFixture {
 	t.Helper()
@@ -237,7 +237,7 @@ func newReuseEvidenceFixture(
 }
 
 func submissionLifecycleIdentity[T core.Validatable](
-	t *testing.T,
+	t testing.TB,
 	marker byte,
 	constructor func([receipt.LifecycleIdentityBytes]byte) (T, error),
 ) T {

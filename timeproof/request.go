@@ -142,7 +142,7 @@ func (r *Request) UnmarshalJSON(data []byte) error {
 		authority: wire.Authority,
 	}
 	if err := parsed.Validate(); err != nil {
-		return err
+		return errorsJSON(err)
 	}
 	canonical, err := parsed.MarshalJSON()
 	if err != nil || !bytes.Equal(data, canonical) {

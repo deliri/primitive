@@ -582,7 +582,7 @@ func oversizedDependencyDocument() string {
 
 func mainFixture() string { return goListPackageFixture(testMainModule, "", "", true) }
 
-func mustModulePath(t *testing.T, value string) GoModulePath {
+func mustModulePath(t testing.TB, value string) GoModulePath {
 	t.Helper()
 
 	path, err := parseGoModulePath(value)
@@ -592,7 +592,7 @@ func mustModulePath(t *testing.T, value string) GoModulePath {
 	return path
 }
 
-func moduleFixtures(t *testing.T, paths ...string) []BuildDependency {
+func moduleFixtures(t testing.TB, paths ...string) []BuildDependency {
 	t.Helper()
 
 	modules := make([]BuildDependency, 0, len(paths))
@@ -606,7 +606,7 @@ func moduleFixtures(t *testing.T, paths ...string) []BuildDependency {
 	return modules
 }
 
-func numberedModules(t *testing.T, count int) []BuildDependency {
+func numberedModules(t testing.TB, count int) []BuildDependency {
 	t.Helper()
 
 	return moduleFixtures(t, numberedModulePaths(count)...)
