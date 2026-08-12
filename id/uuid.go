@@ -183,11 +183,11 @@ func (u *UUIDv7) UnmarshalJSON(data []byte) error {
 	}
 	value, err := core.DecodeJSONStringToken(data)
 	if err != nil {
-		return err
+		return jsonContractCause("decode uuid json", err)
 	}
 	parsed, err := ParseUUIDv7(value)
 	if err != nil {
-		return errors.Join(core.ErrJSONContract, err)
+		return jsonContractCause("parse uuid json", err)
 	}
 	*u = parsed
 	return nil

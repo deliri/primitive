@@ -4,12 +4,70 @@ import (
 	"crypto/ed25519"
 	"crypto/sha256"
 	"errors"
+	"go/ast"
+	"go/parser"
+	"go/token"
 	"math"
+	"os"
+	"path/filepath"
+	"slices"
 	"strings"
 	"testing"
 
 	"github.com/deliri/primitive/v2026/core"
 )
+
+func scanAttestExternalJSONReceivers(root string) ([]string, error) {
+	set := token.NewFileSet()
+	entries, err := os.ReadDir(root)
+	if err != nil {
+		return nil, err
+	}
+	var receivers []string
+	for _, entry := range entries {
+		if entry.IsDir() || !strings.HasSuffix(entry.Name(), ".go") ||
+			strings.HasSuffix(entry.Name(), "_test.go") {
+			continue
+		}
+		file, parseErr := parser.ParseFile(
+			set,
+			filepath.Join(root, entry.Name()),
+			nil,
+			parser.SkipObjectResolution,
+		)
+		if parseErr != nil {
+			return nil, parseErr
+		}
+		ast.Inspect(file, func(node ast.Node) bool {
+			declaration, ok := node.(*ast.FuncDecl)
+			if !ok || declaration.Name.Name != "UnmarshalJSON" || declaration.Recv == nil {
+				return true
+			}
+			receiver := attestReceiverName(declaration.Recv.List[0].Type)
+			if ast.IsExported(receiver) {
+				receivers = append(receivers, receiver)
+			}
+			return false
+		})
+	}
+	slices.Sort(receivers)
+	return receivers, nil
+}
+
+func attestReceiverName(expression ast.Expr) string {
+	switch value := expression.(type) {
+	case *ast.StarExpr:
+		return attestReceiverName(value.X)
+	case *ast.Ident:
+		return value.Name
+	case *ast.IndexExpr:
+		return attestReceiverName(value.X)
+	case *ast.IndexListExpr:
+		return attestReceiverName(value.X)
+	default:
+		return ""
+	}
+}
 
 func TestDomainTokenInternalFixedStorageBoundaryMatrix(t *testing.T) {
 	t.Parallel()

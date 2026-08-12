@@ -20,3 +20,7 @@ func contractCause(message string, cause error) error {
 	}
 	return errors.Join(core.ErrIDContract, errors.New(message), cause)
 }
+
+func jsonContractCause(message string, cause error) error {
+	return errors.Join(core.ErrJSONContract, contractCause(message, cause))
+}

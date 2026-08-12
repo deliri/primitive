@@ -210,11 +210,11 @@ func (u *ULID) UnmarshalJSON(data []byte) error {
 	}
 	value, err := core.DecodeJSONStringToken(data)
 	if err != nil {
-		return err
+		return jsonContractCause("decode ulid json", err)
 	}
 	parsed, err := ParseULID(value)
 	if err != nil {
-		return errors.Join(core.ErrJSONContract, err)
+		return jsonContractCause("parse ulid json", err)
 	}
 	*u = parsed
 	return nil

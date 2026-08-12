@@ -4,6 +4,24 @@ Last updated: `2026-08-12`
 
 ## Current
 
+- closed the external-ingress slice used directly by Witness, Bug, and
+  Peachfuzz, 2026-08-12, published `v2026.0.78`. Attest now inventories both
+  public JSON receivers and semantically fuzzes the fixed-size signature value;
+  ID inventories and fuzzes both text and JSON UUIDv7/ULID doors; Process
+  ratchets every argv and environment constructor/parser exercised by its
+  semantic fuzzers; and Cloudidentity inventories the acquisition, AWS signed
+  URL, audience, and Google command-output doors used by Bug's release path.
+  Existing provider integration tests remain the network proof instead of
+  constructing a server per fuzz iteration.
+
+  The new ID JSON oracle exposed a production ownership defect: malformed
+  UUIDv7 and ULID JSON retained the shared JSON identity but dropped ID's typed
+  package identity. Both receivers now preserve `core.ErrJSONContract` and
+  `core.ErrIDContract` while leaving populated receivers unchanged. Live fuzz
+  campaigns completed 190,840 Attest signature executions, 467,310 ID JSON
+  executions, and 215,760 Google command-output executions without another
+  semantic failure.
+
 - closed the signed-package external-door fuzz inventory, 2026-08-12,
   published `v2026.0.77`. Core, Release, Receipt, Lease, Chit, Controlwire,
   Submission, Payment, and Timeproof now enumerate every public JSON receiver
