@@ -4,6 +4,18 @@ Last updated: `2026-08-12`
 
 ## Current
 
+- published the third typed-error table migration batch, 2026-08-12,
+  published `v2026.0.73`. Cloudidentity audience, Google bearer output, timeout
+  policy, signed Amazon request, and namespaced Amazon response tables now name
+  the Cloudidentity contract directly. Process environment lookup names its
+  contract, and Controlplane usage windows name the narrower usage-window
+  identity across class, ordering, arithmetic, and freshness attacks. Rejected
+  Google output also proves the returned token is exactly zero.
+
+  Proof: Cloudidentity, Process, and Controlplane pass twice under the race
+  detector with shuffled order, and deadcode, staticcheck, and witness-lint
+  report zero findings. The repository boolean-table count falls from 31 to 24.
+
 - published the second typed-error table migration batch, 2026-08-12,
   published `v2026.0.72`. Garble's three external token parsers, Keygen's
   bounded random-token request, Objectstore's received upload capability,

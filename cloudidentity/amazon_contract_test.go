@@ -20,7 +20,7 @@ func TestAmazonSignedRequestHostileBoundaryTable(t *testing.T) {
 	cases := []struct {
 		mutate  func(string) string
 		name    string
-		wantErr bool
+		wantErr error
 	}{
 		{name: "commercial regional endpoint is accepted"},
 		{name: "commercial dual-stack endpoint is accepted", mutate: replaceHost("sts.us-east-2.api.aws")},
@@ -34,38 +34,38 @@ func TestAmazonSignedRequestHostileBoundaryTable(t *testing.T) {
 		{name: "one-second signed capability is accepted", mutate: setQuery(amazonExpiresQuery, "1")},
 		{name: "exact five-minute signed capability is accepted", mutate: setQuery(amazonExpiresQuery, "300")},
 		{name: "encoded audience delimiters are accepted exactly", mutate: nil},
-		{name: "global STS endpoint is rejected", mutate: replaceHost("sts.amazonaws.com"), wantErr: true},
-		{name: "plain HTTP endpoint is rejected", mutate: replaceScheme("http"), wantErr: true},
-		{name: "non-root STS path is rejected", mutate: replacePath("/identity"), wantErr: true},
-		{name: "custom port is rejected", mutate: replaceHost("sts.us-east-2.amazonaws.com:8443"), wantErr: true},
-		{name: "unrelated HTTPS host is rejected", mutate: replaceHost("identity.example.com"), wantErr: true},
-		{name: "regionless commercial host is rejected", mutate: replaceHost("sts..amazonaws.com"), wantErr: true},
-		{name: "dotted region is rejected", mutate: replaceHost("sts.us.east-2.amazonaws.com"), wantErr: true},
-		{name: "uppercase region is rejected", mutate: replaceHostAndRegion("sts.US-east-2.amazonaws.com", "US-east-2"), wantErr: true},
-		{name: "wrong action is rejected", mutate: setQuery(amazonActionQuery, "GetCallerIdentity"), wantErr: true},
-		{name: "wrong API version is rejected", mutate: setQuery(amazonVersionQuery, "2026-01-01"), wantErr: true},
-		{name: "contradictory audience is rejected", mutate: setQuery(amazonAudienceQuery, "other"), wantErr: true},
-		{name: "second audience is rejected", mutate: setQuery("Audience.member.2", audience.String()), wantErr: true},
-		{name: "tag claim is rejected", mutate: setQuery("Tags.member.1.Key", "team"), wantErr: true},
-		{name: "ES384 request is outside common RS256 contract", mutate: setQuery(amazonSigningAlgorithmQuery, "ES384"), wantErr: true},
-		{name: "longer token duration is rejected", mutate: setQuery(amazonDurationQuery, "3600"), wantErr: true},
-		{name: "unknown SigV4 algorithm is rejected", mutate: setQuery(amazonSigAlgorithmQuery, "AWS4-ECDSA-P256-SHA256"), wantErr: true},
-		{name: "credential region contradiction is rejected", mutate: setQuery(amazonCredentialQuery, "AKIATEST/20260729/us-west-2/sts/aws4_request"), wantErr: true},
-		{name: "credential service contradiction is rejected", mutate: setQuery(amazonCredentialQuery, "AKIATEST/20260729/us-east-2/s3/aws4_request"), wantErr: true},
-		{name: "credential terminal contradiction is rejected", mutate: setQuery(amazonCredentialQuery, "AKIATEST/20260729/us-east-2/sts/aws4_requestx"), wantErr: true},
-		{name: "credential date contradiction is rejected", mutate: setQuery(amazonCredentialQuery, "AKIATEST/20260728/us-east-2/sts/aws4_request"), wantErr: true},
-		{name: "malformed signed date is rejected", mutate: setQuery(amazonDateQuery, "20260729"), wantErr: true},
-		{name: "nonexistent signed date is rejected", mutate: setQuery(amazonDateQuery, "20260230T120000Z"), wantErr: true},
-		{name: "zero expiry is rejected", mutate: setQuery(amazonExpiresQuery, "0"), wantErr: true},
-		{name: "noncanonical expiry is rejected", mutate: setQuery(amazonExpiresQuery, "060"), wantErr: true},
-		{name: "one beyond expiry ceiling is rejected", mutate: setQuery(amazonExpiresQuery, "301"), wantErr: true},
-		{name: "additional signed header cannot be reconstructed", mutate: setQuery(amazonSignedHeadersQuery, "host;x-amz-date"), wantErr: true},
-		{name: "short signature is rejected", mutate: setQuery(amazonSignatureQuery, strings.Repeat("a", 63)), wantErr: true},
-		{name: "long signature is rejected", mutate: setQuery(amazonSignatureQuery, strings.Repeat("a", 65)), wantErr: true},
-		{name: "uppercase signature is rejected", mutate: setQuery(amazonSignatureQuery, strings.Repeat("A", 64)), wantErr: true},
-		{name: "nonhex signature is rejected", mutate: setQuery(amazonSignatureQuery, strings.Repeat("z", 64)), wantErr: true},
-		{name: "empty security token is rejected", mutate: setQuery(amazonSecurityTokenQuery, ""), wantErr: true},
-		{name: "unknown query field is rejected", mutate: setQuery("FutureParameter", "value"), wantErr: true},
+		{name: "global STS endpoint is rejected", mutate: replaceHost("sts.amazonaws.com"), wantErr: core.ErrCloudIdentityContract},
+		{name: "plain HTTP endpoint is rejected", mutate: replaceScheme("http"), wantErr: core.ErrCloudIdentityContract},
+		{name: "non-root STS path is rejected", mutate: replacePath("/identity"), wantErr: core.ErrCloudIdentityContract},
+		{name: "custom port is rejected", mutate: replaceHost("sts.us-east-2.amazonaws.com:8443"), wantErr: core.ErrCloudIdentityContract},
+		{name: "unrelated HTTPS host is rejected", mutate: replaceHost("identity.example.com"), wantErr: core.ErrCloudIdentityContract},
+		{name: "regionless commercial host is rejected", mutate: replaceHost("sts..amazonaws.com"), wantErr: core.ErrCloudIdentityContract},
+		{name: "dotted region is rejected", mutate: replaceHost("sts.us.east-2.amazonaws.com"), wantErr: core.ErrCloudIdentityContract},
+		{name: "uppercase region is rejected", mutate: replaceHostAndRegion("sts.US-east-2.amazonaws.com", "US-east-2"), wantErr: core.ErrCloudIdentityContract},
+		{name: "wrong action is rejected", mutate: setQuery(amazonActionQuery, "GetCallerIdentity"), wantErr: core.ErrCloudIdentityContract},
+		{name: "wrong API version is rejected", mutate: setQuery(amazonVersionQuery, "2026-01-01"), wantErr: core.ErrCloudIdentityContract},
+		{name: "contradictory audience is rejected", mutate: setQuery(amazonAudienceQuery, "other"), wantErr: core.ErrCloudIdentityContract},
+		{name: "second audience is rejected", mutate: setQuery("Audience.member.2", audience.String()), wantErr: core.ErrCloudIdentityContract},
+		{name: "tag claim is rejected", mutate: setQuery("Tags.member.1.Key", "team"), wantErr: core.ErrCloudIdentityContract},
+		{name: "ES384 request is outside common RS256 contract", mutate: setQuery(amazonSigningAlgorithmQuery, "ES384"), wantErr: core.ErrCloudIdentityContract},
+		{name: "longer token duration is rejected", mutate: setQuery(amazonDurationQuery, "3600"), wantErr: core.ErrCloudIdentityContract},
+		{name: "unknown SigV4 algorithm is rejected", mutate: setQuery(amazonSigAlgorithmQuery, "AWS4-ECDSA-P256-SHA256"), wantErr: core.ErrCloudIdentityContract},
+		{name: "credential region contradiction is rejected", mutate: setQuery(amazonCredentialQuery, "AKIATEST/20260729/us-west-2/sts/aws4_request"), wantErr: core.ErrCloudIdentityContract},
+		{name: "credential service contradiction is rejected", mutate: setQuery(amazonCredentialQuery, "AKIATEST/20260729/us-east-2/s3/aws4_request"), wantErr: core.ErrCloudIdentityContract},
+		{name: "credential terminal contradiction is rejected", mutate: setQuery(amazonCredentialQuery, "AKIATEST/20260729/us-east-2/sts/aws4_requestx"), wantErr: core.ErrCloudIdentityContract},
+		{name: "credential date contradiction is rejected", mutate: setQuery(amazonCredentialQuery, "AKIATEST/20260728/us-east-2/sts/aws4_request"), wantErr: core.ErrCloudIdentityContract},
+		{name: "malformed signed date is rejected", mutate: setQuery(amazonDateQuery, "20260729"), wantErr: core.ErrCloudIdentityContract},
+		{name: "nonexistent signed date is rejected", mutate: setQuery(amazonDateQuery, "20260230T120000Z"), wantErr: core.ErrCloudIdentityContract},
+		{name: "zero expiry is rejected", mutate: setQuery(amazonExpiresQuery, "0"), wantErr: core.ErrCloudIdentityContract},
+		{name: "noncanonical expiry is rejected", mutate: setQuery(amazonExpiresQuery, "060"), wantErr: core.ErrCloudIdentityContract},
+		{name: "one beyond expiry ceiling is rejected", mutate: setQuery(amazonExpiresQuery, "301"), wantErr: core.ErrCloudIdentityContract},
+		{name: "additional signed header cannot be reconstructed", mutate: setQuery(amazonSignedHeadersQuery, "host;x-amz-date"), wantErr: core.ErrCloudIdentityContract},
+		{name: "short signature is rejected", mutate: setQuery(amazonSignatureQuery, strings.Repeat("a", 63)), wantErr: core.ErrCloudIdentityContract},
+		{name: "long signature is rejected", mutate: setQuery(amazonSignatureQuery, strings.Repeat("a", 65)), wantErr: core.ErrCloudIdentityContract},
+		{name: "uppercase signature is rejected", mutate: setQuery(amazonSignatureQuery, strings.Repeat("A", 64)), wantErr: core.ErrCloudIdentityContract},
+		{name: "nonhex signature is rejected", mutate: setQuery(amazonSignatureQuery, strings.Repeat("z", 64)), wantErr: core.ErrCloudIdentityContract},
+		{name: "empty security token is rejected", mutate: setQuery(amazonSecurityTokenQuery, ""), wantErr: core.ErrCloudIdentityContract},
+		{name: "unknown query field is rejected", mutate: setQuery("FutureParameter", "value"), wantErr: core.ErrCloudIdentityContract},
 	}
 	for _, tc := range cases {
 		t.Run(tc.name, func(t *testing.T) {
@@ -84,8 +84,8 @@ func TestAmazonSignedRequestHostileBoundaryTable(t *testing.T) {
 					SignedURL: value,
 				},
 			)
-			if tc.wantErr {
-				if !errors.Is(gotErr, core.ErrCloudIdentityContract) {
+			if tc.wantErr != nil {
+				if !errors.Is(gotErr, tc.wantErr) {
 					t.Fatalf(
 						"NewAmazonWebServicesRequest() error = %v, want %v",
 						gotErr,

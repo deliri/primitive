@@ -272,24 +272,24 @@ func TestEnvironmentLookupRejectsContradictoryPresenceAndValue(t *testing.T) {
 	cases := []struct {
 		name    string
 		lookup  process.EnvironmentLookup
-		wantErr bool
+		wantErr error
 	}{
 		{name: "absent owns zero value", lookup: process.EnvironmentLookup{Presence: process.EnvironmentPresenceAbsent}},
 		{name: "present owns empty exact value", lookup: process.EnvironmentLookup{Presence: process.EnvironmentPresencePresent, Value: empty}},
 		{name: "present owns nonempty exact value", lookup: process.EnvironmentLookup{Presence: process.EnvironmentPresencePresent, Value: value}},
-		{name: "zero lookup rejects unknown presence", lookup: process.EnvironmentLookup{}, wantErr: true},
-		{name: "future presence rejects zero value", lookup: process.EnvironmentLookup{Presence: process.EnvironmentPresence(255)}, wantErr: true},
-		{name: "absent rejects admitted empty value", lookup: process.EnvironmentLookup{Presence: process.EnvironmentPresenceAbsent, Value: empty}, wantErr: true},
-		{name: "absent rejects admitted nonempty value", lookup: process.EnvironmentLookup{Presence: process.EnvironmentPresenceAbsent, Value: value}, wantErr: true},
-		{name: "present rejects unset value", lookup: process.EnvironmentLookup{Presence: process.EnvironmentPresencePresent}, wantErr: true},
+		{name: "zero lookup rejects unknown presence", lookup: process.EnvironmentLookup{}, wantErr: core.ErrProcessContract},
+		{name: "future presence rejects zero value", lookup: process.EnvironmentLookup{Presence: process.EnvironmentPresence(255)}, wantErr: core.ErrProcessContract},
+		{name: "absent rejects admitted empty value", lookup: process.EnvironmentLookup{Presence: process.EnvironmentPresenceAbsent, Value: empty}, wantErr: core.ErrProcessContract},
+		{name: "absent rejects admitted nonempty value", lookup: process.EnvironmentLookup{Presence: process.EnvironmentPresenceAbsent, Value: value}, wantErr: core.ErrProcessContract},
+		{name: "present rejects unset value", lookup: process.EnvironmentLookup{Presence: process.EnvironmentPresencePresent}, wantErr: core.ErrProcessContract},
 	}
 	for _, tc := range cases {
 		t.Run(tc.name, func(t *testing.T) {
 			t.Parallel()
 
 			err := tc.lookup.Validate()
-			if tc.wantErr {
-				if !errors.Is(err, core.ErrProcessContract) {
+			if tc.wantErr != nil {
+				if !errors.Is(err, tc.wantErr) {
 					t.Fatalf("EnvironmentLookup.Validate() error = %v, want errors.Is(..., ErrProcessContract)", err)
 				}
 				return

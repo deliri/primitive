@@ -116,7 +116,7 @@ func TestUsageWindowValidateAtEveryBoundary(t *testing.T) {
 	cases := []struct {
 		name    string
 		window  controlplane.UsageWindow
-		wantErr bool
+		wantErr error
 	}{
 		// Admitted.
 		{
@@ -185,66 +185,66 @@ func TestUsageWindowValidateAtEveryBoundary(t *testing.T) {
 		{
 			name:    "the unset unit class reports nothing and is refused",
 			window:  testWindow(unitsOf(0, 1), outcomesOf(1, 1)),
-			wantErr: true,
+			wantErr: core.ErrControlPlaneUsageWindow,
 		},
 		{
 			name:    "the unset outcome class reports nothing and is refused",
 			window:  testWindow(unitsOf(1, 1), outcomesOf(0, 1)),
-			wantErr: true,
+			wantErr: core.ErrControlPlaneUsageWindow,
 		},
 		{
 			name:    "one unit class above the ceiling is refused",
 			window:  testWindow(unitsOf(controlplane.WorkUnitClassMaximum+1, 1), outcomesOf(1, 1)),
-			wantErr: true,
+			wantErr: core.ErrControlPlaneUsageWindow,
 		},
 		{
 			name:    "one outcome class above the ceiling is refused",
 			window:  testWindow(unitsOf(1, 1), outcomesOf(controlplane.OutcomeClassMaximum+1, 1)),
-			wantErr: true,
+			wantErr: core.ErrControlPlaneUsageWindow,
 		},
 		{
 			name:    "the largest unsigned byte as a class is refused",
 			window:  testWindow(unitsOf(255, 1), outcomesOf(1, 1)),
-			wantErr: true,
+			wantErr: core.ErrControlPlaneUsageWindow,
 		},
 
 		// Count floor.
 		{
 			name:    "a unit class that did no work is absent, not reported as zero",
 			window:  testWindow(unitsOf(1, 0), outcomesOf(1, 1)),
-			wantErr: true,
+			wantErr: core.ErrControlPlaneUsageWindow,
 		},
 		{
 			name:    "an outcome class that happened never is absent, not reported as zero",
 			window:  testWindow(unitsOf(1, 1), outcomesOf(1, 0)),
-			wantErr: true,
+			wantErr: core.ErrControlPlaneUsageWindow,
 		},
 		{
 			name:    "a zero count hidden behind a valid entry is still refused",
 			window:  testWindow(unitsOf(1, 1, 2, 0), outcomesOf(1, 1)),
-			wantErr: true,
+			wantErr: core.ErrControlPlaneUsageWindow,
 		},
 
 		// Ordering and uniqueness.
 		{
 			name:    "a repeated unit class would double count and is refused",
 			window:  testWindow(unitsOf(2, 1, 2, 1), outcomesOf(1, 2)),
-			wantErr: true,
+			wantErr: core.ErrControlPlaneUsageWindow,
 		},
 		{
 			name:    "a repeated outcome class would double count and is refused",
 			window:  testWindow(unitsOf(1, 2), outcomesOf(2, 1, 2, 1)),
-			wantErr: true,
+			wantErr: core.ErrControlPlaneUsageWindow,
 		},
 		{
 			name:    "descending unit classes are refused",
 			window:  testWindow(unitsOf(3, 1, 1, 1), outcomesOf(1, 2)),
-			wantErr: true,
+			wantErr: core.ErrControlPlaneUsageWindow,
 		},
 		{
 			name:    "descending outcome classes are refused",
 			window:  testWindow(unitsOf(1, 2), outcomesOf(3, 1, 1, 1)),
-			wantErr: true,
+			wantErr: core.ErrControlPlaneUsageWindow,
 		},
 
 		// List length. There is no length rule: a list longer than the ladder
@@ -256,7 +256,7 @@ func TestUsageWindowValidateAtEveryBoundary(t *testing.T) {
 				append(fullUnitLadder(), controlplane.WorkUnitCount{Class: 1, Count: 1}),
 				outcomesOf(1, controlplane.WorkUnitClassMaximum+1),
 			),
-			wantErr: true,
+			wantErr: core.ErrControlPlaneUsageWindow,
 		},
 		{
 			name: "one outcome entry past the class ladder is refused",
@@ -264,71 +264,71 @@ func TestUsageWindowValidateAtEveryBoundary(t *testing.T) {
 				unitsOf(1, controlplane.OutcomeClassMaximum+1),
 				append(fullOutcomeLadder(), controlplane.OutcomeCount{Class: 1, Count: 1}),
 			),
-			wantErr: true,
+			wantErr: core.ErrControlPlaneUsageWindow,
 		},
 		{
 			name:    "an enormous unit list is refused at its second entry, not walked",
 			window:  testWindow(repeatedUnits(100_000), outcomesOf(1, 1)),
-			wantErr: true,
+			wantErr: core.ErrControlPlaneUsageWindow,
 		},
 		{
 			name:    "an enormous outcome list is refused at its second entry, not walked",
 			window:  testWindow(unitsOf(1, 1), repeatedOutcomes(100_000)),
-			wantErr: true,
+			wantErr: core.ErrControlPlaneUsageWindow,
 		},
 
 		// Arithmetic.
 		{
 			name:    "a unit total that overflows unsigned 64 bits is refused",
 			window:  testWindow(unitsOf(1, 1<<63, 2, 1<<63), outcomesOf(1, 1)),
-			wantErr: true,
+			wantErr: core.ErrControlPlaneUsageWindow,
 		},
 		{
 			name:    "an outcome total that overflows unsigned 64 bits is refused",
 			window:  testWindow(unitsOf(1, 1), outcomesOf(1, 1<<63, 2, 1<<63)),
-			wantErr: true,
+			wantErr: core.ErrControlPlaneUsageWindow,
 		},
 		{
 			name:    "more units than outcomes leaves work unclassified",
 			window:  testWindow(unitsOf(1, 5), outcomesOf(1, 4)),
-			wantErr: true,
+			wantErr: core.ErrControlPlaneUsageWindow,
 		},
 		{
 			name:    "more outcomes than units classifies work that never ran",
 			window:  testWindow(unitsOf(1, 4), outcomesOf(1, 5)),
-			wantErr: true,
+			wantErr: core.ErrControlPlaneUsageWindow,
 		},
 		{
 			name:    "one unit off in the totals is refused",
 			window:  testWindow(unitsOf(1, 1, 2, 1), outcomesOf(1, 3)),
-			wantErr: true,
+			wantErr: core.ErrControlPlaneUsageWindow,
 		},
 		{
 			name:    "units with no outcomes at all is refused",
 			window:  testWindow(unitsOf(1, 1), nil),
-			wantErr: true,
+			wantErr: core.ErrControlPlaneUsageWindow,
 		},
 		{
 			name:    "outcomes with no units at all is refused",
 			window:  testWindow(nil, outcomesOf(1, 1)),
-			wantErr: true,
+			wantErr: core.ErrControlPlaneUsageWindow,
 		},
 
 		// Interval and freshness, both sides of both bounds.
 		{
 			name:    "an unset window start is refused",
 			window:  controlplane.UsageWindow{Units: unitsOf(1, 1), Outcomes: outcomesOf(1, 1), Bounds: temporal.IntervalBounds{End: temporal.InstantFromNanoseconds(windowEndNanoseconds)}, Freshness: temporal.InstantFromNanoseconds(windowEndNanoseconds)},
-			wantErr: true,
+			wantErr: core.ErrControlPlaneUsageWindow,
 		},
 		{
 			name:    "an unset window end is refused",
 			window:  controlplane.UsageWindow{Units: unitsOf(1, 1), Outcomes: outcomesOf(1, 1), Bounds: temporal.IntervalBounds{Start: temporal.InstantFromNanoseconds(windowStartNanoseconds)}, Freshness: temporal.InstantFromNanoseconds(windowStartNanoseconds)},
-			wantErr: true,
+			wantErr: core.ErrControlPlaneUsageWindow,
 		},
 		{
 			name:    "unset freshness is refused",
 			window:  controlplane.UsageWindow{Units: unitsOf(1, 1), Outcomes: outcomesOf(1, 1), Bounds: testWindow(nil, nil).Bounds},
-			wantErr: true,
+			wantErr: core.ErrControlPlaneUsageWindow,
 		},
 		{
 			name: "a window that ends before it starts is refused",
@@ -340,7 +340,7 @@ func TestUsageWindowValidateAtEveryBoundary(t *testing.T) {
 				},
 				Freshness: temporal.InstantFromNanoseconds(windowEndNanoseconds),
 			},
-			wantErr: true,
+			wantErr: core.ErrControlPlaneUsageWindow,
 		},
 		{
 			name: "freshness one nanosecond before the window start is outside it",
@@ -352,7 +352,7 @@ func TestUsageWindowValidateAtEveryBoundary(t *testing.T) {
 				},
 				Freshness: temporal.InstantFromNanoseconds(windowStartNanoseconds - 1),
 			},
-			wantErr: true,
+			wantErr: core.ErrControlPlaneUsageWindow,
 		},
 		{
 			name: "freshness one nanosecond after the window end is outside it",
@@ -364,11 +364,11 @@ func TestUsageWindowValidateAtEveryBoundary(t *testing.T) {
 				},
 				Freshness: temporal.InstantFromNanoseconds(windowEndNanoseconds + 1),
 			},
-			wantErr: true,
+			wantErr: core.ErrControlPlaneUsageWindow,
 		},
 		{
 			name:   "the zero value carries no window at all and is refused",
-			window: controlplane.UsageWindow{}, wantErr: true,
+			window: controlplane.UsageWindow{}, wantErr: core.ErrControlPlaneUsageWindow,
 		},
 	}
 
@@ -377,15 +377,8 @@ func TestUsageWindowValidateAtEveryBoundary(t *testing.T) {
 			t.Parallel()
 
 			err := testCase.window.Validate()
-			if got := err != nil; got != testCase.wantErr {
-				t.Fatalf("Validate() error = %v, want error presence %t", err, testCase.wantErr)
-			}
-			if !testCase.wantErr {
-				return
-			}
-			if !errors.Is(err, core.ErrControlPlaneUsageWindow) &&
-				!errors.Is(err, core.ErrControlPlaneContract) {
-				t.Fatalf("Validate() error = %v, want the usage-window contract identity", err)
+			if !errors.Is(err, testCase.wantErr) {
+				t.Fatalf("Validate() error = %v, want %v", err, testCase.wantErr)
 			}
 		})
 	}

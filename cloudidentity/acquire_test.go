@@ -561,7 +561,7 @@ func TestAmazonResponseXMLPressureTable(t *testing.T) {
 		name      string
 		body      string
 		wantToken string
-		wantErr   bool
+		wantErr   error
 	}{
 		{name: "published namespaced envelope is accepted", body: envelope, wantToken: testIdentityToken},
 		{name: "single byte token is accepted", body: amazonResponseXML("a"), wantToken: "a"},
@@ -569,29 +569,29 @@ func TestAmazonResponseXMLPressureTable(t *testing.T) {
 		{name: "declared prefix namespace is accepted", body: `<sts:GetWebIdentityTokenResponse xmlns:sts="` + amazonResponseNamespace + `"><sts:GetWebIdentityTokenResult><sts:WebIdentityToken>a.b.c</sts:WebIdentityToken></sts:GetWebIdentityTokenResult></sts:GetWebIdentityTokenResponse>`, wantToken: "a.b.c"},
 		{name: "comment preserves surrounding character data", body: amazonResponseXML("first.<!--ignored-->second"), wantToken: "first.second"},
 		{name: "CDATA preserves exact token character data", body: amazonResponseXML("<![CDATA[a.b.c]]>"), wantToken: "a.b.c"},
-		{name: "unnamespaced envelope is rejected", body: amazonResponseXMLInNamespace(testIdentityToken, ""), wantErr: true},
-		{name: "foreign namespace is rejected", body: amazonResponseXMLInNamespace(testIdentityToken, "https://evil.example.com/doc/2011-06-15/"), wantErr: true},
-		{name: "another STS API version namespace is rejected", body: amazonResponseXMLInNamespace(testIdentityToken, "https://sts.amazonaws.com/doc/2099-01-01/"), wantErr: true},
-		{name: "namespace missing its trailing separator is rejected", body: amazonResponseXMLInNamespace(testIdentityToken, strings.TrimSuffix(amazonResponseNamespace, "/")), wantErr: true},
-		{name: "plaintext HTTP namespace is rejected", body: amazonResponseXMLInNamespace(testIdentityToken, "http://sts.amazonaws.com/doc/2011-06-15/"), wantErr: true},
-		{name: "result switching to a foreign namespace is rejected", body: strings.Replace(envelope, "<GetWebIdentityTokenResult>", `<GetWebIdentityTokenResult xmlns="https://evil.example.com/">`, 1), wantErr: true},
-		{name: "token switching to a foreign namespace is rejected", body: strings.Replace(envelope, "<WebIdentityToken>", `<WebIdentityToken xmlns="https://evil.example.com/">`, 1), wantErr: true},
-		{name: "token clearing the response namespace is rejected", body: strings.Replace(envelope, "<WebIdentityToken>", `<WebIdentityToken xmlns="">`, 1), wantErr: true},
-		{name: "nested markup inside the token is rejected", body: amazonResponseXML("first.<Ignored/>second"), wantErr: true},
-		{name: "duplicated token element is rejected", body: strings.Replace(envelope, "<WebIdentityToken>"+testIdentityToken+"</WebIdentityToken>", "<WebIdentityToken>first.b.c</WebIdentityToken><WebIdentityToken>second.b.c</WebIdentityToken>", 1), wantErr: true},
-		{name: "duplicated result element is rejected", body: strings.Replace(envelope, "</GetWebIdentityTokenResponse>", "<GetWebIdentityTokenResult><WebIdentityToken>second.b.c</WebIdentityToken></GetWebIdentityTokenResult></GetWebIdentityTokenResponse>", 1), wantErr: true},
-		{name: "missing result is rejected", body: `<GetWebIdentityTokenResponse xmlns="` + amazonResponseNamespace + `"/>`, wantErr: true},
-		{name: "missing token is rejected", body: `<GetWebIdentityTokenResponse xmlns="` + amazonResponseNamespace + `"><GetWebIdentityTokenResult/></GetWebIdentityTokenResponse>`, wantErr: true},
-		{name: "empty token is rejected", body: amazonResponseXML(""), wantErr: true},
-		{name: "whitespace token is rejected", body: amazonResponseXML(" "), wantErr: true},
-		{name: "malformed XML is rejected", body: "<GetWebIdentityTokenResponse>", wantErr: true},
-		{name: "truncated result is rejected", body: "<GetWebIdentityTokenResponse><GetWebIdentityTokenResult>", wantErr: true},
-		{name: "wrong root is rejected", body: `<GetCallerIdentityResponse xmlns="` + amazonResponseNamespace + `"/>`, wantErr: true},
-		{name: "token outside result is rejected", body: `<GetWebIdentityTokenResponse xmlns="` + amazonResponseNamespace + `"><WebIdentityToken>` + testIdentityToken + `</WebIdentityToken></GetWebIdentityTokenResponse>`, wantErr: true},
-		{name: "STS error envelope is rejected", body: `<ErrorResponse xmlns="` + amazonResponseNamespace + `"><Error><Code>AccessDenied</Code></Error></ErrorResponse>`, wantErr: true},
-		{name: "over-bound token is rejected", body: amazonResponseXML(strings.Repeat("a", TokenMaximumBytes+1)), wantErr: true},
-		{name: "empty body is rejected", wantErr: true},
-		{name: "bare token without an envelope is rejected", body: testIdentityToken, wantErr: true},
+		{name: "unnamespaced envelope is rejected", body: amazonResponseXMLInNamespace(testIdentityToken, ""), wantErr: core.ErrCloudIdentityContract},
+		{name: "foreign namespace is rejected", body: amazonResponseXMLInNamespace(testIdentityToken, "https://evil.example.com/doc/2011-06-15/"), wantErr: core.ErrCloudIdentityContract},
+		{name: "another STS API version namespace is rejected", body: amazonResponseXMLInNamespace(testIdentityToken, "https://sts.amazonaws.com/doc/2099-01-01/"), wantErr: core.ErrCloudIdentityContract},
+		{name: "namespace missing its trailing separator is rejected", body: amazonResponseXMLInNamespace(testIdentityToken, strings.TrimSuffix(amazonResponseNamespace, "/")), wantErr: core.ErrCloudIdentityContract},
+		{name: "plaintext HTTP namespace is rejected", body: amazonResponseXMLInNamespace(testIdentityToken, "http://sts.amazonaws.com/doc/2011-06-15/"), wantErr: core.ErrCloudIdentityContract},
+		{name: "result switching to a foreign namespace is rejected", body: strings.Replace(envelope, "<GetWebIdentityTokenResult>", `<GetWebIdentityTokenResult xmlns="https://evil.example.com/">`, 1), wantErr: core.ErrCloudIdentityContract},
+		{name: "token switching to a foreign namespace is rejected", body: strings.Replace(envelope, "<WebIdentityToken>", `<WebIdentityToken xmlns="https://evil.example.com/">`, 1), wantErr: core.ErrCloudIdentityContract},
+		{name: "token clearing the response namespace is rejected", body: strings.Replace(envelope, "<WebIdentityToken>", `<WebIdentityToken xmlns="">`, 1), wantErr: core.ErrCloudIdentityContract},
+		{name: "nested markup inside the token is rejected", body: amazonResponseXML("first.<Ignored/>second"), wantErr: core.ErrCloudIdentityContract},
+		{name: "duplicated token element is rejected", body: strings.Replace(envelope, "<WebIdentityToken>"+testIdentityToken+"</WebIdentityToken>", "<WebIdentityToken>first.b.c</WebIdentityToken><WebIdentityToken>second.b.c</WebIdentityToken>", 1), wantErr: core.ErrCloudIdentityContract},
+		{name: "duplicated result element is rejected", body: strings.Replace(envelope, "</GetWebIdentityTokenResponse>", "<GetWebIdentityTokenResult><WebIdentityToken>second.b.c</WebIdentityToken></GetWebIdentityTokenResult></GetWebIdentityTokenResponse>", 1), wantErr: core.ErrCloudIdentityContract},
+		{name: "missing result is rejected", body: `<GetWebIdentityTokenResponse xmlns="` + amazonResponseNamespace + `"/>`, wantErr: core.ErrCloudIdentityContract},
+		{name: "missing token is rejected", body: `<GetWebIdentityTokenResponse xmlns="` + amazonResponseNamespace + `"><GetWebIdentityTokenResult/></GetWebIdentityTokenResponse>`, wantErr: core.ErrCloudIdentityContract},
+		{name: "empty token is rejected", body: amazonResponseXML(""), wantErr: core.ErrCloudIdentityContract},
+		{name: "whitespace token is rejected", body: amazonResponseXML(" "), wantErr: core.ErrCloudIdentityContract},
+		{name: "malformed XML is rejected", body: "<GetWebIdentityTokenResponse>", wantErr: core.ErrCloudIdentityContract},
+		{name: "truncated result is rejected", body: "<GetWebIdentityTokenResponse><GetWebIdentityTokenResult>", wantErr: core.ErrCloudIdentityContract},
+		{name: "wrong root is rejected", body: `<GetCallerIdentityResponse xmlns="` + amazonResponseNamespace + `"/>`, wantErr: core.ErrCloudIdentityContract},
+		{name: "token outside result is rejected", body: `<GetWebIdentityTokenResponse xmlns="` + amazonResponseNamespace + `"><WebIdentityToken>` + testIdentityToken + `</WebIdentityToken></GetWebIdentityTokenResponse>`, wantErr: core.ErrCloudIdentityContract},
+		{name: "STS error envelope is rejected", body: `<ErrorResponse xmlns="` + amazonResponseNamespace + `"><Error><Code>AccessDenied</Code></Error></ErrorResponse>`, wantErr: core.ErrCloudIdentityContract},
+		{name: "over-bound token is rejected", body: amazonResponseXML(strings.Repeat("a", TokenMaximumBytes+1)), wantErr: core.ErrCloudIdentityContract},
+		{name: "empty body is rejected", wantErr: core.ErrCloudIdentityContract},
+		{name: "bare token without an envelope is rejected", body: testIdentityToken, wantErr: core.ErrCloudIdentityContract},
 	} {
 		t.Run(tc.name, func(t *testing.T) {
 			t.Parallel()
@@ -606,8 +606,8 @@ func TestAmazonResponseXMLPressureTable(t *testing.T) {
 				client,
 				mustAmazonRequest(t, audience),
 			)
-			if tc.wantErr {
-				if !errors.Is(gotErr, core.ErrCloudIdentityContract) {
+			if tc.wantErr != nil {
+				if !errors.Is(gotErr, tc.wantErr) {
 					t.Fatalf(
 						"AcquireAmazonWebServices() error = %v, want %v",
 						gotErr,

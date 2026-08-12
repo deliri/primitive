@@ -145,7 +145,7 @@ func TestParseAudienceHostileBoundaryTable(t *testing.T) {
 	cases := []struct {
 		name    string
 		value   string
-		wantErr bool
+		wantErr error
 	}{
 		{name: "one ASCII byte reaches the minimum", value: "a"},
 		{name: "service URL remains exact", value: "https://api.example.com"},
@@ -157,24 +157,24 @@ func TestParseAudienceHostileBoundaryTable(t *testing.T) {
 		{name: "Unicode remains exact UTF-8", value: "服务"},
 		{name: "one below maximum is accepted", value: strings.Repeat("a", AudienceMaximumBytes-1)},
 		{name: "exact maximum is accepted", value: strings.Repeat("a", AudienceMaximumBytes)},
-		{name: "empty audience is rejected", wantErr: true},
-		{name: "one above maximum is rejected", value: strings.Repeat("a", AudienceMaximumBytes+1), wantErr: true},
-		{name: "far above maximum is rejected", value: strings.Repeat("a", 4*AudienceMaximumBytes), wantErr: true},
-		{name: "single invalid UTF-8 byte is rejected", value: string([]byte{0xff}), wantErr: true},
-		{name: "truncated two-byte UTF-8 is rejected", value: string([]byte{0xc2}), wantErr: true},
-		{name: "truncated three-byte UTF-8 is rejected", value: string([]byte{0xe2, 0x82}), wantErr: true},
-		{name: "surrogate UTF-8 is rejected", value: string([]byte{0xed, 0xa0, 0x80}), wantErr: true},
-		{name: "overlong UTF-8 is rejected", value: string([]byte{0xc0, 0xaf}), wantErr: true},
-		{name: "maximum prefix with invalid suffix is rejected", value: strings.Repeat("a", AudienceMaximumBytes-1) + string([]byte{0xff}), wantErr: true},
-		{name: "multi-byte audience exceeding byte bound is rejected", value: strings.Repeat("界", AudienceMaximumBytes/2), wantErr: true},
+		{name: "empty audience is rejected", wantErr: core.ErrCloudIdentityContract},
+		{name: "one above maximum is rejected", value: strings.Repeat("a", AudienceMaximumBytes+1), wantErr: core.ErrCloudIdentityContract},
+		{name: "far above maximum is rejected", value: strings.Repeat("a", 4*AudienceMaximumBytes), wantErr: core.ErrCloudIdentityContract},
+		{name: "single invalid UTF-8 byte is rejected", value: string([]byte{0xff}), wantErr: core.ErrCloudIdentityContract},
+		{name: "truncated two-byte UTF-8 is rejected", value: string([]byte{0xc2}), wantErr: core.ErrCloudIdentityContract},
+		{name: "truncated three-byte UTF-8 is rejected", value: string([]byte{0xe2, 0x82}), wantErr: core.ErrCloudIdentityContract},
+		{name: "surrogate UTF-8 is rejected", value: string([]byte{0xed, 0xa0, 0x80}), wantErr: core.ErrCloudIdentityContract},
+		{name: "overlong UTF-8 is rejected", value: string([]byte{0xc0, 0xaf}), wantErr: core.ErrCloudIdentityContract},
+		{name: "maximum prefix with invalid suffix is rejected", value: strings.Repeat("a", AudienceMaximumBytes-1) + string([]byte{0xff}), wantErr: core.ErrCloudIdentityContract},
+		{name: "multi-byte audience exceeding byte bound is rejected", value: strings.Repeat("界", AudienceMaximumBytes/2), wantErr: core.ErrCloudIdentityContract},
 	}
 	for _, tc := range cases {
 		t.Run(tc.name, func(t *testing.T) {
 			t.Parallel()
 
 			got, gotErr := ParseAudience(tc.value)
-			if tc.wantErr {
-				if !errors.Is(gotErr, core.ErrCloudIdentityContract) {
+			if tc.wantErr != nil {
+				if !errors.Is(gotErr, tc.wantErr) {
 					t.Fatalf(
 						"ParseAudience() error = %v, want %v",
 						gotErr,
@@ -207,7 +207,7 @@ func TestTokenBearerBoundaryHostileTable(t *testing.T) {
 	cases := []struct {
 		name    string
 		output  string
-		wantErr bool
+		wantErr error
 	}{
 		{name: "JWT-shaped bearer remains opaque", output: testIdentityToken},
 		{name: "lexical three-segment material is accepted without JWT claim", output: "a.b.c"},
@@ -221,33 +221,36 @@ func TestTokenBearerBoundaryHostileTable(t *testing.T) {
 		{name: "one trailing carriage-return line feed is accepted", output: "abc\r\n"},
 		{name: "one below maximum is accepted", output: strings.Repeat("a", TokenMaximumBytes-1)},
 		{name: "exact maximum is accepted", output: strings.Repeat("a", TokenMaximumBytes)},
-		{name: "empty bearer is rejected", wantErr: true},
-		{name: "leading padding is rejected", output: "=abc", wantErr: true},
-		{name: "interior padding is rejected", output: "ab=c", wantErr: true},
-		{name: "space is rejected", output: "ab c", wantErr: true},
-		{name: "tab is rejected", output: "ab\tc", wantErr: true},
-		{name: "interior newline is rejected", output: "ab\nc", wantErr: true},
-		{name: "bare carriage return is rejected", output: "abc\r", wantErr: true},
-		{name: "two trailing line feeds are rejected", output: "abc\n\n", wantErr: true},
-		{name: "leading line feed is rejected", output: "\nabc", wantErr: true},
-		{name: "trailing space is rejected", output: "abc ", wantErr: true},
-		{name: "comma is rejected", output: "ab,c", wantErr: true},
-		{name: "non-ASCII is rejected", output: "ab界c", wantErr: true},
-		{name: "one above token maximum is rejected", output: strings.Repeat("a", TokenMaximumBytes+1), wantErr: true},
-		{name: "one above command-output maximum is rejected", output: strings.Repeat("a", GoogleCloudCommandOutputMaximumBytes+1), wantErr: true},
+		{name: "empty bearer is rejected", wantErr: core.ErrCloudIdentityContract},
+		{name: "leading padding is rejected", output: "=abc", wantErr: core.ErrCloudIdentityContract},
+		{name: "interior padding is rejected", output: "ab=c", wantErr: core.ErrCloudIdentityContract},
+		{name: "space is rejected", output: "ab c", wantErr: core.ErrCloudIdentityContract},
+		{name: "tab is rejected", output: "ab\tc", wantErr: core.ErrCloudIdentityContract},
+		{name: "interior newline is rejected", output: "ab\nc", wantErr: core.ErrCloudIdentityContract},
+		{name: "bare carriage return is rejected", output: "abc\r", wantErr: core.ErrCloudIdentityContract},
+		{name: "two trailing line feeds are rejected", output: "abc\n\n", wantErr: core.ErrCloudIdentityContract},
+		{name: "leading line feed is rejected", output: "\nabc", wantErr: core.ErrCloudIdentityContract},
+		{name: "trailing space is rejected", output: "abc ", wantErr: core.ErrCloudIdentityContract},
+		{name: "comma is rejected", output: "ab,c", wantErr: core.ErrCloudIdentityContract},
+		{name: "non-ASCII is rejected", output: "ab界c", wantErr: core.ErrCloudIdentityContract},
+		{name: "one above token maximum is rejected", output: strings.Repeat("a", TokenMaximumBytes+1), wantErr: core.ErrCloudIdentityContract},
+		{name: "one above command-output maximum is rejected", output: strings.Repeat("a", GoogleCloudCommandOutputMaximumBytes+1), wantErr: core.ErrCloudIdentityContract},
 	}
 	for _, tc := range cases {
 		t.Run(tc.name, func(t *testing.T) {
 			t.Parallel()
 
 			got, gotErr := ParseGoogleCloudCommandOutput([]byte(tc.output))
-			if tc.wantErr {
-				if !errors.Is(gotErr, core.ErrCloudIdentityContract) {
+			if tc.wantErr != nil {
+				if !errors.Is(gotErr, tc.wantErr) {
 					t.Fatalf(
 						"ParseGoogleCloudCommandOutput() error = %v, want %v",
 						gotErr,
 						core.ErrCloudIdentityContract,
 					)
+				}
+				if got != (Token{}) {
+					t.Fatalf("ParseGoogleCloudCommandOutput() token = %#v, want zero", got)
 				}
 				return
 			}
@@ -345,28 +348,21 @@ func TestPolicyRejectsInvalidTimeoutLattice(t *testing.T) {
 	for _, tc := range []struct {
 		name    string
 		policy  Policy
-		wantErr bool
+		wantErr error
 	}{
 		{name: "equal positive bounds are accepted", policy: Policy{OperationTimeout: one, AttemptTimeout: one}},
 		{name: "smaller attempt bound is accepted", policy: Policy{OperationTimeout: two, AttemptTimeout: one}},
-		{name: "zero operation bound is rejected", policy: Policy{AttemptTimeout: one}, wantErr: true},
-		{name: "zero attempt bound is rejected", policy: Policy{OperationTimeout: one}, wantErr: true},
-		{name: "attempt beyond operation is rejected", policy: Policy{OperationTimeout: one, AttemptTimeout: two}, wantErr: true},
-		{name: "complete zero policy is rejected", wantErr: true},
+		{name: "zero operation bound is rejected", policy: Policy{AttemptTimeout: one}, wantErr: core.ErrCloudIdentityContract},
+		{name: "zero attempt bound is rejected", policy: Policy{OperationTimeout: one}, wantErr: core.ErrCloudIdentityContract},
+		{name: "attempt beyond operation is rejected", policy: Policy{OperationTimeout: one, AttemptTimeout: two}, wantErr: core.ErrCloudIdentityContract},
+		{name: "complete zero policy is rejected", wantErr: core.ErrCloudIdentityContract},
 	} {
 		t.Run(tc.name, func(t *testing.T) {
 			t.Parallel()
 
 			gotErr := tc.policy.Validate()
-			if tc.wantErr != errors.Is(
-				gotErr,
-				core.ErrCloudIdentityContract,
-			) {
-				t.Fatalf(
-					"Policy.Validate() error = %v, want contract error %t",
-					gotErr,
-					tc.wantErr,
-				)
+			if !errors.Is(gotErr, tc.wantErr) {
+				t.Fatalf("Policy.Validate() error = %v, want %v", gotErr, tc.wantErr)
 			}
 		})
 	}
