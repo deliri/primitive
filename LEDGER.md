@@ -4,6 +4,19 @@ Last updated: `2026-08-12`
 
 ## Current
 
+- published the first typed-error table migration batch, 2026-08-12,
+  published `v2026.0.71`. Signed grant lifetime, Process containment and
+  identity, and Hostfacts terminal width and geometry no longer encode failure
+  as a boolean. Each row names its compiler-owned error identity; refused
+  grants prove zero payload and bearer, refused process identities return zero,
+  and invalid terminal geometry preserves the Hostfacts identity through both
+  accessors. Terminal widths now cover ten exact floor, conventional, midpoint,
+  and ceiling boundaries.
+
+  Proof: Submission, Process, and Hostfacts pass twice under the race detector
+  with shuffled order, and deadcode, staticcheck, and witness-lint report zero
+  findings. The repository boolean-table count falls from 43 to 38.
+
 - published hostile expansion of the thinnest remaining validation,
   verification, and fold tables, 2026-08-12, published `v2026.0.70`. Cgroup
   unlimited folding now exhausts all seven nonempty root/parent/current

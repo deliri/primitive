@@ -90,26 +90,26 @@ func TestContainmentValidatesBothMembers(t *testing.T) {
 	cases := []struct {
 		name        string
 		containment process.Containment
-		wantErr     bool
+		wantErr     error
 	}{
 		{
 			name:        "zero containment names no isolation",
 			containment: process.Containment{},
-			wantErr:     true,
+			wantErr:     core.ErrProcessContract,
 		},
 		{
 			name: "isolation without a cancel signal is incomplete",
 			containment: process.Containment{
 				Isolation: process.IsolationDirect,
 			},
-			wantErr: true,
+			wantErr: core.ErrProcessContract,
 		},
 		{
 			name: "a cancel signal without isolation is incomplete",
 			containment: process.Containment{
 				CancelSignal: process.CancelSignalKill,
 			},
-			wantErr: true,
+			wantErr: core.ErrProcessContract,
 		},
 		{
 			name: "direct isolation with a kill signal is complete",
@@ -131,18 +131,18 @@ func TestContainmentValidatesBothMembers(t *testing.T) {
 				Isolation:    process.Isolation(math.MaxUint8),
 				CancelSignal: process.CancelSignalKill,
 			},
-			wantErr: true,
+			wantErr: core.ErrProcessContract,
 		},
 	}
 	for _, tc := range cases {
 		t.Run(tc.name, func(t *testing.T) {
 			t.Parallel()
 			err := tc.containment.Validate()
-			if gotErr := err != nil; gotErr != tc.wantErr {
-				t.Fatalf("Containment.Validate() error = %v, wantErr %t", err, tc.wantErr)
+			if tc.wantErr == nil && err != nil {
+				t.Fatalf("Containment.Validate() error = %v, want nil", err)
 			}
-			if tc.wantErr && !errors.Is(err, core.ErrProcessContract) {
-				t.Fatalf("Containment.Validate() error = %v, want %v", err, core.ErrProcessContract)
+			if tc.wantErr != nil && !errors.Is(err, tc.wantErr) {
+				t.Fatalf("Containment.Validate() error = %v, want errors.Is %v", err, tc.wantErr)
 			}
 		})
 	}
@@ -154,11 +154,11 @@ func TestProcessIdentityRejectsNonPositiveValues(t *testing.T) {
 	cases := []struct {
 		name     string
 		identity process.ProcessIdentity
-		wantErr  bool
+		wantErr  error
 	}{
-		{name: "zero is not a real identity", identity: 0, wantErr: true},
-		{name: "negative one is not a real identity", identity: -1, wantErr: true},
-		{name: "the smallest negative identity is rejected", identity: math.MinInt32, wantErr: true},
+		{name: "zero is not a real identity", identity: 0, wantErr: core.ErrProcessContract},
+		{name: "negative one is not a real identity", identity: -1, wantErr: core.ErrProcessContract},
+		{name: "the smallest negative identity is rejected", identity: math.MinInt32, wantErr: core.ErrProcessContract},
 		{name: "one is the smallest real identity", identity: 1},
 		{name: "a typical pid is admitted", identity: 4321},
 		{name: "the largest identity is admitted", identity: math.MaxInt32},
@@ -166,12 +166,14 @@ func TestProcessIdentityRejectsNonPositiveValues(t *testing.T) {
 	for _, tc := range cases {
 		t.Run(tc.name, func(t *testing.T) {
 			t.Parallel()
-			_, err := tc.identity.Int()
-			if gotErr := err != nil; gotErr != tc.wantErr {
-				t.Fatalf("ProcessIdentity(%d).Int() error = %v, wantErr %t", tc.identity, err, tc.wantErr)
+			got, err := tc.identity.Int()
+			if tc.wantErr == nil && (err != nil || got != int(tc.identity)) {
+				t.Fatalf("ProcessIdentity(%d).Int() = (%d, %v), want (%d, nil)",
+					tc.identity, got, err, tc.identity)
 			}
-			if tc.wantErr && !errors.Is(err, core.ErrProcessContract) {
-				t.Fatalf("ProcessIdentity(%d).Int() error = %v, want %v", tc.identity, err, core.ErrProcessContract)
+			if tc.wantErr != nil && (got != 0 || !errors.Is(err, tc.wantErr)) {
+				t.Fatalf("ProcessIdentity(%d).Int() = (%d, %v), want zero and errors.Is %v",
+					tc.identity, got, err, tc.wantErr)
 			}
 		})
 	}

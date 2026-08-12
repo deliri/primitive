@@ -984,12 +984,12 @@ func TestGrantLifetimeClosesBothOneNanosecondBoundaries(t *testing.T) {
 	cases := []struct {
 		name       string
 		observedAt int64
-		wantErr    bool
+		wantErr    error
 	}{
-		{name: "one before issuance", observedAt: testGrantIssuedAt - 1, wantErr: true},
+		{name: "one before issuance", observedAt: testGrantIssuedAt - 1, wantErr: core.ErrControlPlaneResponseBinding},
 		{name: "at issuance", observedAt: testGrantIssuedAt},
 		{name: "one before expiry", observedAt: testGrantExpiresAt - 1},
-		{name: "at expiry", observedAt: testGrantExpiresAt, wantErr: true},
+		{name: "at expiry", observedAt: testGrantExpiresAt, wantErr: core.ErrControlPlaneResponseBinding},
 	}
 	for _, tc := range cases {
 		t.Run(tc.name, func(t *testing.T) {
@@ -1000,15 +1000,30 @@ func TestGrantLifetimeClosesBothOneNanosecondBoundaries(t *testing.T) {
 				ObservedAt:  temporal.InstantFromNanoseconds(tc.observedAt),
 				TrustedKeys: fixture.trusted,
 			})
-			if tc.wantErr {
-				if !errors.Is(err, core.ErrControlPlaneResponseBinding) {
-					t.Fatalf("VerifyGrant(%d) = (%v, %v), want zero and errors.Is %v",
-						tc.observedAt, verified, err, core.ErrControlPlaneResponseBinding)
+			if tc.wantErr != nil {
+				if !errors.Is(err, tc.wantErr) {
+					t.Fatalf("VerifyGrant(%d) error = %v, want errors.Is %v",
+						tc.observedAt, err, tc.wantErr)
+				}
+				payload, payloadErr := verified.Payload()
+				if payload != (GrantPayload{}) || !errors.Is(payloadErr, core.ErrControlPlaneContract) {
+					t.Fatalf("rejected VerifyGrant(%d).Payload() = (%v, %v), want zero and errors.Is %v",
+						tc.observedAt, payload, payloadErr, core.ErrControlPlaneContract)
+				}
+				capability, capabilityErr := verified.Capability()
+				if !capability.IsZero() || !errors.Is(capabilityErr, core.ErrControlPlaneContract) {
+					t.Fatalf("rejected VerifyGrant(%d).Capability() zero = %t, error = %v, want true and errors.Is %v",
+						tc.observedAt, capability.IsZero(), capabilityErr, core.ErrControlPlaneContract)
 				}
 				return
 			}
 			if err != nil {
 				t.Fatalf("VerifyGrant(%d) error = %v, want nil", tc.observedAt, err)
+			}
+			payload, payloadErr := verified.Payload()
+			if payloadErr != nil || payload != fixture.payload {
+				t.Fatalf("VerifyGrant(%d).Payload() = (%v, %v), want exact issued payload",
+					tc.observedAt, payload, payloadErr)
 			}
 		})
 	}
