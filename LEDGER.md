@@ -4,6 +4,21 @@ Last updated: `2026-08-12`
 
 ## Current
 
+- published an exact-fact hostile matrix for the Submission grant-binding
+  layer triad, 2026-08-12, published `v2026.0.68`. Fifteen independently valid
+  near misses now change one declared media type, extent edge, digest, CRC,
+  upload identity, collection identity, entry name, object count, build
+  version, commit, operating system, architecture, offering, or request nonce
+  at a time. An independent request commitment oracle proves each mutation is
+  distinct before the authenticated grant verifier must refuse it with the
+  compiler-owned response-binding identity. Every refusal also proves the
+  returned authority stays sealed: validation fails, payload is exact zero,
+  and the bearer capability is unset.
+
+  Proof: the Submission suite passes twice under the race detector with
+  shuffled order, and deadcode, staticcheck, and witness-lint report zero
+  findings.
+
 - published ordinary-CI execution for the complete authenticated GCS object
   lifecycle, 2026-08-12, published `v2026.0.66`. The official SDK constructor,
   exact create-only media and file uploads, provider metadata read-back,
