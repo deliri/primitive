@@ -412,7 +412,7 @@ func appendProviderHeaders(
 func signedHeaders(headers SignedHeaders) (exchange.Headers, error) {
 	values := make([]exchange.Header, len(headers.values))
 	for index, header := range headers.values {
-		value, err := exchange.NewHeaderValue(header.value)
+		value, err := exchange.NewHeaderValue(*header.value)
 		if err != nil {
 			return exchange.Headers{}, errors.Join(core.ErrObjectStoreContract, err)
 		}

@@ -18,7 +18,7 @@ import (
 func TestReleaseMaterialExternalBoundaryHostileMatrix(t *testing.T) {
 	t.Parallel()
 
-	fixture := materialResponseFixture(t)
+	fixture, _, _ := materialResponseFixture(t)
 	route, routeErr := fixture.Request.ControlRoute()
 	if routeErr != nil || route.Offering() != fixture.Request.Offering ||
 		route.Family() != controlwire.RouteFamilyReleaseMaterials ||
@@ -65,16 +65,20 @@ func TestReleaseMaterialExternalBoundaryHostileMatrix(t *testing.T) {
 func TestReleaseMaterialOpensExactCapabilitiesAndRedactsEverySecret(t *testing.T) {
 	t.Parallel()
 
-	fixture := materialResponseFixture(t)
-	opened, err := fixture.Open()
-	if err != nil {
-		t.Fatalf("MaterialResponse.Open() error = %v, want nil", err)
-	}
+	fixture, _, _ := materialResponseFixture(t)
 	wantSigning, err := fixture.ReleaseSigningSeed.SigningKey()
 	if err != nil {
 		t.Fatalf("ReleaseSigningSeed.SigningKey() error = %v, want nil", err)
 	}
 	t.Cleanup(func() { _ = wantSigning.Destroy() })
+	wantServer := fixture.ServerPublicKey
+	opened, err := fixture.Open()
+	if err != nil {
+		t.Fatalf("MaterialResponse.Open() error = %v, want nil", err)
+	}
+	if fixture != (release.MaterialResponse{}) || fixture.Validate() == nil {
+		t.Fatalf("MaterialResponse.Open() source = (%v, valid %t), want zero and invalidated", fixture, fixture.Validate() == nil)
+	}
 	gotPublic, err := opened.SigningKey.PublicKey()
 	if err != nil {
 		t.Fatalf("opened SigningKey.PublicKey() error = %v, want nil", err)
@@ -83,13 +87,8 @@ func TestReleaseMaterialOpensExactCapabilitiesAndRedactsEverySecret(t *testing.T
 	if err != nil {
 		t.Fatalf("fixture SigningKey.PublicKey() error = %v, want nil", err)
 	}
-	if gotPublic != wantPublic || opened.ServerPublicKey != fixture.ServerPublicKey || opened.Custody.Validate() != nil {
-		t.Fatalf("opened material bindings = (signer %t, server %t, custody %v), want all exact", gotPublic == wantPublic, opened.ServerPublicKey == fixture.ServerPublicKey, opened.Custody.Validate())
-	}
-	for _, secret := range []any{fixture.ReleaseSigningSeed, fixture.GarbleCustodySeed, opened} {
-		if got := fmt.Sprintf("%v", secret); got != core.RedactedValueText {
-			t.Fatalf("formatted release secret = %q, want %q", got, core.RedactedValueText)
-		}
+	if gotPublic != wantPublic || opened.ServerPublicKey != wantServer || opened.Custody.Validate() != nil {
+		t.Fatalf("opened material bindings = (signer %t, server %t, custody %v), want all exact", gotPublic == wantPublic, opened.ServerPublicKey == wantServer, opened.Custody.Validate())
 	}
 	if err := opened.Destroy(); err != nil {
 		t.Fatalf("Material.Destroy() error = %v, want nil", err)
@@ -100,8 +99,176 @@ func TestReleaseMaterialOpensExactCapabilitiesAndRedactsEverySecret(t *testing.T
 	}
 }
 
+func TestReleaseMaterialRedactsEveryFormattingPath(t *testing.T) {
+	t.Parallel()
+
+	fixture, signingBytes, custodyBytes := materialResponseFixture(t)
+	openedResponse, _, _ := materialResponseFixture(t)
+	opened, err := openedResponse.Open()
+	if err != nil {
+		t.Fatalf("MaterialResponse.Open() setup error = %v, want nil", err)
+	}
+	t.Cleanup(func() { _ = opened.Destroy() })
+	formats := []struct {
+		name      string
+		pattern   string
+		wantExact bool
+	}{
+		{name: "default value", pattern: "%v", wantExact: true},
+		{name: "field value", pattern: "%+v", wantExact: true},
+		{name: "Go syntax", pattern: "%#v", wantExact: true},
+		{name: "string", pattern: "%s", wantExact: true},
+		{name: "quoted string", pattern: "%q", wantExact: true},
+		{name: "binary", pattern: "%b", wantExact: true},
+		{name: "character", pattern: "%c", wantExact: true},
+		{name: "decimal", pattern: "%d", wantExact: true},
+		{name: "octal", pattern: "%o", wantExact: true},
+		{name: "prefixed octal", pattern: "%O", wantExact: true},
+		{name: "lower hexadecimal", pattern: "%x", wantExact: true},
+		{name: "upper hexadecimal", pattern: "%X", wantExact: true},
+		{name: "Unicode", pattern: "%U", wantExact: true},
+		{name: "boolean", pattern: "%t", wantExact: true},
+		{name: "lower exponent", pattern: "%e", wantExact: true},
+		{name: "upper exponent", pattern: "%E", wantExact: true},
+		{name: "lower decimal point", pattern: "%f", wantExact: true},
+		{name: "upper decimal point", pattern: "%F", wantExact: true},
+		{name: "compact lower exponent", pattern: "%g", wantExact: true},
+		{name: "compact upper exponent", pattern: "%G", wantExact: true},
+		{name: "left width", pattern: "%-20v", wantExact: true},
+		{name: "zero width", pattern: "%020v", wantExact: true},
+		{name: "precision", pattern: "%.3v", wantExact: true},
+		{name: "space flag", pattern: "% v", wantExact: true},
+		{name: "dynamic type", pattern: "%T"},
+		{name: "pointer identity", pattern: "%p"},
+	}
+	values := []struct {
+		name      string
+		value     any
+		forbidden []string
+	}{
+		{name: "release signing seed", value: fixture.ReleaseSigningSeed, forbidden: releaseSigningSeedProjections(t, signingBytes)},
+		{name: "Garble custody seed", value: fixture.GarbleCustodySeed, forbidden: garbleCustodySeedProjections(t, custodyBytes)},
+		{name: "unopened material response", value: fixture, forbidden: append(releaseSigningSeedProjections(t, signingBytes), garbleCustodySeedProjections(t, custodyBytes)...)},
+		{name: "opened material", value: opened, forbidden: append(releaseSigningSeedProjections(t, signingBytes), garbleCustodySeedProjections(t, custodyBytes)...)},
+	}
+	for _, valueCase := range values {
+		valueCase := valueCase
+		t.Run(valueCase.name, func(t *testing.T) {
+			t.Parallel()
+			for _, formatCase := range formats {
+				got := fmt.Sprintf(formatCase.pattern, valueCase.value)
+				if formatCase.wantExact && got != core.RedactedValueText {
+					t.Fatalf("fmt.Sprintf(%q) = %q, want %q", formatCase.pattern, got, core.RedactedValueText)
+				}
+				for _, forbidden := range valueCase.forbidden {
+					if forbidden != "" && strings.Contains(got, forbidden) {
+						t.Fatalf("fmt.Sprintf(%q) disclosed %s material", formatCase.pattern, valueCase.name)
+					}
+				}
+			}
+		})
+	}
+}
+
+func TestReleaseMaterialDestructionInvalidatesEverySharedHandle(t *testing.T) {
+	t.Parallel()
+
+	response, _, _ := materialResponseFixture(t)
+	responseCopy := response
+	signingCopy := response.ReleaseSigningSeed
+	custodyCopy := response.GarbleCustodySeed
+	if err := response.Destroy(); err != nil {
+		t.Fatalf("MaterialResponse.Destroy() error = %v, want nil", err)
+	}
+	for _, tc := range []struct {
+		name     string
+		validate func() error
+	}{
+		{name: "destroyed response", validate: response.Validate},
+		{name: "copied response handle", validate: responseCopy.Validate},
+		{name: "copied release signing seed", validate: signingCopy.Validate},
+		{name: "copied Garble custody seed", validate: custodyCopy.Validate},
+	} {
+		t.Run(tc.name, func(t *testing.T) {
+			t.Parallel()
+
+			gotErr := tc.validate()
+			if !errors.Is(gotErr, core.ErrReleaseContract) {
+				t.Fatalf("Validate() error = %v, want errors.Is %v", gotErr, core.ErrReleaseContract)
+			}
+		})
+	}
+	if err := response.Destroy(); err != nil {
+		t.Fatalf("MaterialResponse.Destroy(repeated) error = %v, want nil", err)
+	}
+
+	invalid, _, _ := materialResponseFixture(t)
+	invalid.ServerPublicKey = core.Ed25519PublicKey{}
+	opened, openErr := invalid.Open()
+	if !errors.Is(openErr, core.ErrReleaseContract) || opened != (release.Material{}) || invalid != (release.MaterialResponse{}) {
+		t.Fatalf("MaterialResponse.Open(invalid) = (%v, %v, source zero %t), want zero, errors.Is %v, and consumed source",
+			opened, openErr, invalid == (release.MaterialResponse{}), core.ErrReleaseContract)
+	}
+}
+
+func TestReleaseMaterialJSONReplacementDestroysPreviousSecretCustody(t *testing.T) {
+	t.Parallel()
+
+	response, signingBytes, custodyBytes := materialResponseFixture(t)
+	replacement, _, _ := materialResponseFixture(t)
+	canonicalResponse, err := replacement.MarshalJSON()
+	if err != nil {
+		t.Fatalf("MaterialResponse.MarshalJSON(replacement) error = %v, want nil", err)
+	}
+	previousResponse := response
+	if err := response.UnmarshalJSON(canonicalResponse); err != nil {
+		t.Fatalf("MaterialResponse.UnmarshalJSON(replacement) error = %v, want nil", err)
+	}
+	t.Cleanup(func() { _ = response.Destroy() })
+	if response.Validate() != nil || !errors.Is(previousResponse.Validate(), core.ErrReleaseContract) {
+		t.Fatalf("MaterialResponse replacement = (new %v, previous %v), want valid and errors.Is %v",
+			response.Validate(), previousResponse.Validate(), core.ErrReleaseContract)
+	}
+
+	signing, err := release.NewReleaseSigningSeed(signingBytes)
+	if err != nil {
+		t.Fatalf("NewReleaseSigningSeed() setup error = %v, want nil", err)
+	}
+	canonicalSigning, err := signing.MarshalJSON()
+	if err != nil {
+		t.Fatalf("ReleaseSigningSeed.MarshalJSON() error = %v, want nil", err)
+	}
+	previousSigning := signing
+	if err := signing.UnmarshalJSON(canonicalSigning); err != nil {
+		t.Fatalf("ReleaseSigningSeed.UnmarshalJSON(replacement) error = %v, want nil", err)
+	}
+	t.Cleanup(func() { _ = signing.Destroy() })
+	if signing.Validate() != nil || !errors.Is(previousSigning.Validate(), core.ErrReleaseContract) {
+		t.Fatalf("ReleaseSigningSeed replacement = (new %v, previous %v), want valid and errors.Is %v",
+			signing.Validate(), previousSigning.Validate(), core.ErrReleaseContract)
+	}
+
+	custody, err := release.NewGarbleCustodySeed(custodyBytes)
+	if err != nil {
+		t.Fatalf("NewGarbleCustodySeed() setup error = %v, want nil", err)
+	}
+	canonicalCustody, err := custody.MarshalJSON()
+	if err != nil {
+		t.Fatalf("GarbleCustodySeed.MarshalJSON() error = %v, want nil", err)
+	}
+	previousCustody := custody
+	if err := custody.UnmarshalJSON(canonicalCustody); err != nil {
+		t.Fatalf("GarbleCustodySeed.UnmarshalJSON(replacement) error = %v, want nil", err)
+	}
+	t.Cleanup(func() { _ = custody.Destroy() })
+	if custody.Validate() != nil || !errors.Is(previousCustody.Validate(), core.ErrReleaseContract) {
+		t.Fatalf("GarbleCustodySeed replacement = (new %v, previous %v), want valid and errors.Is %v",
+			custody.Validate(), previousCustody.Validate(), core.ErrReleaseContract)
+	}
+}
+
 func FuzzReleaseMaterialResponseExternalSemanticOracle(f *testing.F) {
-	fixture := materialResponseFixture(f)
+	fixture, _, _ := materialResponseFixture(f)
 	canonical, err := fixture.MarshalJSON()
 	if err != nil {
 		f.Fatalf("MaterialResponse.MarshalJSON(seed) error = %v, want nil", err)
@@ -110,14 +277,15 @@ func FuzzReleaseMaterialResponseExternalSemanticOracle(f *testing.F) {
 	f.Add(canonical[:len(canonical)-1])
 	f.Add(append(append([]byte{}, canonical...), byte(' ')))
 	f.Fuzz(func(t *testing.T, data []byte) {
-		candidate := fixture
+		var candidate release.MaterialResponse
 		gotErr := candidate.UnmarshalJSON(data)
 		if gotErr != nil {
-			if !errors.Is(gotErr, core.ErrJSONContract) || candidate != fixture {
-				t.Fatalf("MaterialResponse.UnmarshalJSON(fuzz) refusal = (%v, preserved %t), want typed refusal and exact preservation", gotErr, candidate == fixture)
+			if !errors.Is(gotErr, core.ErrJSONContract) || candidate != (release.MaterialResponse{}) {
+				t.Fatalf("MaterialResponse.UnmarshalJSON(fuzz) refusal = (%v, zero %t), want typed refusal and zero receiver", gotErr, candidate == (release.MaterialResponse{}))
 			}
 			return
 		}
+		defer func() { _ = candidate.Destroy() }()
 		if candidate.Validate() != nil {
 			t.Fatalf("MaterialResponse.UnmarshalJSON(fuzz) accepted value whose Validate() refuses")
 		}
@@ -126,9 +294,10 @@ func FuzzReleaseMaterialResponseExternalSemanticOracle(f *testing.F) {
 			t.Fatalf("MaterialResponse.MarshalJSON(first accepted projection) error = %v, want nil", firstErr)
 		}
 		var second release.MaterialResponse
-		if secondErr := second.UnmarshalJSON(first); secondErr != nil || second != candidate {
-			t.Fatalf("accepted material round trip = (error %v, exact %t), want nil and exact", secondErr, second == candidate)
+		if secondErr := second.UnmarshalJSON(first); secondErr != nil {
+			t.Fatalf("accepted material round trip error = %v, want nil", secondErr)
 		}
+		defer func() { _ = second.Destroy() }()
 		secondBytes, secondErr := second.MarshalJSON()
 		if secondErr != nil || !bytes.Equal(first, secondBytes) {
 			t.Fatalf("accepted material second projection = (error %v, identical %t), want nil and byte-identical", secondErr, bytes.Equal(first, secondBytes))
@@ -140,10 +309,35 @@ func FuzzReleaseMaterialResponseExternalSemanticOracle(f *testing.F) {
 		if destroyErr := opened.Destroy(); destroyErr != nil || opened.Validate() == nil {
 			t.Fatalf("accepted material destruction = (error %v, still valid %t), want nil and invalidated", destroyErr, opened.Validate() == nil)
 		}
+		if candidate != (release.MaterialResponse{}) || candidate.Validate() == nil {
+			t.Fatalf("accepted material source after Open = (%v, valid %t), want zero and invalidated", candidate, candidate.Validate() == nil)
+		}
 	})
 }
 
-func materialResponseFixture(tb testing.TB) release.MaterialResponse {
+func releaseSigningSeedProjections(tb testing.TB, seed [keygen.SeedSize]byte) []string {
+	tb.Helper()
+	return []string{
+		base64.StdEncoding.EncodeToString(seed[:]),
+		fmt.Sprint(seed[:]),
+		fmt.Sprintf("%x", seed[:]),
+	}
+}
+
+func garbleCustodySeedProjections(tb testing.TB, seed [garble.CustodyBytes]byte) []string {
+	tb.Helper()
+	return []string{
+		base64.StdEncoding.EncodeToString(seed[:]),
+		fmt.Sprint(seed[:]),
+		fmt.Sprintf("%x", seed[:]),
+	}
+}
+
+func materialResponseFixture(tb testing.TB) (
+	release.MaterialResponse,
+	[keygen.SeedSize]byte,
+	[garble.CustodyBytes]byte,
+) {
 	tb.Helper()
 	var version core.ReleaseVersion
 	if err := version.UnmarshalText([]byte("2026.1.2")); err != nil {
@@ -203,7 +397,8 @@ func materialResponseFixture(tb testing.TB) release.MaterialResponse {
 	if err := response.Validate(); err != nil {
 		tb.Fatalf("MaterialResponse.Validate() error = %v, want nil", err)
 	}
-	return response
+	tb.Cleanup(func() { _ = response.Destroy() })
+	return response, signingBytes, custodyBytes
 }
 
 func mustMaterialRequestJSON(tb testing.TB, request release.MaterialRequest) []byte {

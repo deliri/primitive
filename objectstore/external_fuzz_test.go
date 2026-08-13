@@ -3,6 +3,8 @@ package objectstore
 import (
 	"bytes"
 	"errors"
+	"fmt"
+	"strings"
 	"testing"
 
 	"github.com/deliri/primitive/v2026/core"
@@ -71,6 +73,12 @@ func FuzzDownloadCapabilityJSONSemanticClosure(f *testing.F) {
 		f.Fatalf("DownloadCapability.UnmarshalJSON(seed) error = %v, want nil", err)
 	}
 	f.Add(canonical)
+	amazon := downloadCapabilityProjectionFixture(f, ProviderAmazonS3)
+	amazonCanonical, err := amazon.MarshalJSON()
+	if err != nil {
+		f.Fatalf("DownloadCapabilityProjection.MarshalJSON(amazon seed) error = %v, want nil", err)
+	}
+	f.Add(amazonCanonical)
 	f.Add([]byte{})
 	f.Add([]byte(`{}`))
 	f.Add(append(bytes.Clone(canonical), 0))
@@ -95,6 +103,29 @@ func FuzzDownloadCapabilityJSONSemanticClosure(f *testing.F) {
 		target, err := got.Target()
 		if err != nil {
 			t.Fatalf("DownloadCapability.Target(accepted) error = %v, want nil", err)
+		}
+		for _, value := range []fmt.Formatter{got, target, target.URL, target.Headers} {
+			rendered := fmt.Sprintf("%v|%+v|%#v|%s|%q", value, value, value, value, value)
+			if strings.Count(rendered, core.RedactedValueText) != 5 {
+				t.Fatalf("formatted accepted download value = %q, want only redacted text", rendered)
+			}
+		}
+		for _, header := range target.Headers.values {
+			rendered := fmt.Sprintf("%v|%+v|%#v|%s|%q", header, header, header, header, header)
+			if strings.Count(rendered, core.RedactedValueText) != 5 ||
+				strings.Contains(rendered, *header.value) {
+				t.Fatalf("formatted accepted download header = %q, want only redacted text", rendered)
+			}
+		}
+		pointerRendered := fmt.Sprintf("%p|%p|%p", target, target.URL, target.Headers)
+		if strings.Contains(pointerRendered, core.SchemeHTTPS) {
+			t.Fatalf("pointer-formatted accepted download = %q, want no signed URL", pointerRendered)
+		}
+		for _, header := range target.Headers.values {
+			headerRendered := fmt.Sprintf("%p", header)
+			if *header.value != "" && strings.Contains(headerRendered, *header.value) {
+				t.Fatalf("pointer-formatted accepted download header disclosed its value")
+			}
 		}
 		issued, err := NewDownloadCapabilityProjection(provider, target)
 		if err != nil {

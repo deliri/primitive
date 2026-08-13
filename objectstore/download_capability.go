@@ -251,6 +251,9 @@ func validateDownloadCapabilityTarget(provider Provider, target DownloadTarget) 
 	if err := provider.Validate(); err != nil {
 		return err
 	}
+	if err := target.Validate(); err != nil {
+		return err
+	}
 	if len(target.URL.value.String()) == 0 || len(target.URL.value.String()) > CapabilityURLMaximumBytes {
 		return errors.Join(core.ErrObjectStoreContract, errors.New(downloadExtentDiagnostic))
 	}
@@ -258,7 +261,8 @@ func validateDownloadCapabilityTarget(provider Provider, target DownloadTarget) 
 		return errors.Join(core.ErrObjectStoreContract, errors.New(downloadUTF8Diagnostic))
 	}
 	for _, header := range target.Headers.values {
-		if !utf8.ValidString(header.name.String()) || !utf8.ValidString(header.value) {
+		if !utf8.ValidString(header.name.String()) ||
+			!utf8.ValidString(*header.value) {
 			return errors.Join(core.ErrObjectStoreContract, errors.New(downloadUTF8Diagnostic))
 		}
 	}

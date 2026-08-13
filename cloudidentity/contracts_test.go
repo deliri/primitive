@@ -4,6 +4,7 @@ import (
 	"errors"
 	"fmt"
 	"math"
+	"net/url"
 	"strings"
 	"testing"
 	"unicode/utf8"
@@ -82,30 +83,36 @@ func TestTokenCannotBeForgedOutsideTheAcquisitionPath(t *testing.T) {
 
 	for _, tc := range []struct {
 		name  string
-		token Token
+		setup func() Token
 	}{
-		{name: "zero token", token: Token{}},
-		{name: "value without provenance", token: Token{value: testIdentityToken}},
-		{name: "provenance without value", token: Token{provider: ProviderGoogleCloud}},
+		{name: "zero token", setup: func() Token { return Token{} }},
+		{name: "value without provenance", setup: func() Token {
+			value := testIdentityToken
+			return Token{value: &value}
+		}},
+		{name: "provenance without value", setup: func() Token {
+			return Token{provider: ProviderGoogleCloud}
+		}},
 		{
 			name: "out-of-domain provenance",
-			token: Token{
-				value:    testIdentityToken,
-				provider: providerLimit,
+			setup: func() Token {
+				value := testIdentityToken
+				return Token{value: &value, provider: providerLimit}
 			},
 		},
 		{
 			name: "value outside the token syntax",
-			token: Token{
-				value:    "not a token",
-				provider: ProviderGoogleCloud,
+			setup: func() Token {
+				value := "not a token"
+				return Token{value: &value, provider: ProviderGoogleCloud}
 			},
 		},
 	} {
 		t.Run(tc.name, func(t *testing.T) {
 			t.Parallel()
+			token := tc.setup()
 
-			if gotErr := tc.token.Validate(); !errors.Is(
+			if gotErr := token.Validate(); !errors.Is(
 				gotErr,
 				core.ErrCloudIdentityContract,
 			) {
@@ -115,7 +122,7 @@ func TestTokenCannotBeForgedOutsideTheAcquisitionPath(t *testing.T) {
 					core.ErrCloudIdentityContract,
 				)
 			}
-			gotBearer, gotErr := tc.token.BearerValue()
+			gotBearer, gotErr := token.BearerValue()
 			if gotBearer != "" || !errors.Is(
 				gotErr,
 				core.ErrCloudIdentityContract,
@@ -127,7 +134,7 @@ func TestTokenCannotBeForgedOutsideTheAcquisitionPath(t *testing.T) {
 					core.ErrCloudIdentityContract,
 				)
 			}
-			if got := fmt.Sprintf("%v", tc.token); got !=
+			if got := fmt.Sprintf("%v", token); got !=
 				core.RedactedValueText {
 				t.Fatalf(
 					"fmt.Sprintf(%%v, unusable token) = %q, want %q",
@@ -283,16 +290,17 @@ func TestTokenAndSignedRequestRedactEveryFormattingSurface(t *testing.T) {
 		t.Fatalf("newToken() setup error = %v, want nil", err)
 	}
 	audience := mustAudience(t, "https://api.example.com")
+	signedURL := amazonSignedURL(
+		audience,
+		"sts.us-east-2.amazonaws.com",
+	)
 	signed, err := NewAmazonWebServicesRequest(
 		AmazonWebServicesRequestInput{
 			Request: Request{
 				Audience: audience,
 				Policy:   mustPolicy(t),
 			},
-			SignedURL: amazonSignedURL(
-				audience,
-				"sts.us-east-2.amazonaws.com",
-			),
+			SignedURL: signedURL,
 		},
 	)
 	if err != nil {
@@ -301,33 +309,77 @@ func TestTokenAndSignedRequestRedactEveryFormattingSurface(t *testing.T) {
 			err,
 		)
 	}
+	parsedSignedURL, err := url.Parse(signedURL)
+	if err != nil {
+		t.Fatalf("url.Parse(signed URL) setup error = %v, want nil", err)
+	}
+	signature := parsedSignedURL.Query().Get(amazonSignatureQuery)
+	if signature == "" {
+		t.Fatalf("signed URL signature = empty, want a non-vacuous disclosure marker")
+	}
 	for _, tc := range []struct {
-		name   string
-		format string
+		name      string
+		format    string
+		wantExact bool
 	}{
-		{name: "default value formatting redacts", format: "%v"},
-		{name: "detailed value formatting redacts", format: "%+v"},
-		{name: "Go syntax formatting redacts", format: "%#v"},
-		{name: "string formatting redacts", format: "%s"},
-		{name: "quoted formatting redacts", format: "%q"},
-		{name: "hex formatting redacts", format: "%x"},
-		{name: "uppercase hex formatting redacts", format: "%X"},
-		{name: "integer formatting redacts", format: "%d"},
-		{name: "character formatting redacts", format: "%c"},
-		{name: "floating formatting redacts", format: "%f"},
+		{name: "default value formatting redacts", format: "%v", wantExact: true},
+		{name: "detailed value formatting redacts", format: "%+v", wantExact: true},
+		{name: "Go syntax formatting redacts", format: "%#v", wantExact: true},
+		{name: "string formatting redacts", format: "%s", wantExact: true},
+		{name: "quoted formatting redacts", format: "%q", wantExact: true},
+		{name: "binary formatting redacts", format: "%b", wantExact: true},
+		{name: "character formatting redacts", format: "%c", wantExact: true},
+		{name: "decimal formatting redacts", format: "%d", wantExact: true},
+		{name: "octal formatting redacts", format: "%o", wantExact: true},
+		{name: "prefixed octal formatting redacts", format: "%O", wantExact: true},
+		{name: "lower hex formatting redacts", format: "%x", wantExact: true},
+		{name: "upper hex formatting redacts", format: "%X", wantExact: true},
+		{name: "Unicode formatting redacts", format: "%U", wantExact: true},
+		{name: "boolean formatting redacts", format: "%t", wantExact: true},
+		{name: "lower exponent formatting redacts", format: "%e", wantExact: true},
+		{name: "upper exponent formatting redacts", format: "%E", wantExact: true},
+		{name: "lower decimal point formatting redacts", format: "%f", wantExact: true},
+		{name: "upper decimal point formatting redacts", format: "%F", wantExact: true},
+		{name: "compact lower exponent formatting redacts", format: "%g", wantExact: true},
+		{name: "compact upper exponent formatting redacts", format: "%G", wantExact: true},
+		{name: "left width formatting redacts", format: "%-20v", wantExact: true},
+		{name: "zero width formatting redacts", format: "%020v", wantExact: true},
+		{name: "precision formatting redacts", format: "%.3v", wantExact: true},
+		{name: "space flag formatting redacts", format: "% v", wantExact: true},
 	} {
 		t.Run(tc.name, func(t *testing.T) {
 			t.Parallel()
 
 			for _, value := range []fmt.Formatter{token, signed} {
 				got := fmt.Sprintf(tc.format, value)
-				if got != core.RedactedValueText {
+				if tc.wantExact && got != core.RedactedValueText {
 					t.Fatalf(
 						"fmt.Sprintf(%q) = %q, want %q",
 						tc.format,
 						got,
 						core.RedactedValueText,
 					)
+				}
+			}
+		})
+	}
+	for _, tc := range []struct {
+		name      string
+		forbidden []string
+		value     fmt.Formatter
+	}{
+		{name: "identity token pointer hides bearer", forbidden: []string{testIdentityToken}, value: token},
+		{name: "signed request pointer hides URL", forbidden: []string{signedURL, parsedSignedURL.RawQuery, signature}, value: signed},
+	} {
+		t.Run(tc.name, func(t *testing.T) {
+			t.Parallel()
+
+			for _, format := range []string{"%p", "%T"} {
+				got := fmt.Sprintf(format, tc.value)
+				for _, forbidden := range tc.forbidden {
+					if strings.Contains(got, forbidden) {
+						t.Fatalf("fmt.Sprintf(%q) = %q, want no bearer material", format, got)
+					}
 				}
 			}
 		})

@@ -376,6 +376,9 @@ func validateUploadCapabilityTarget(provider Provider, target UploadTarget) erro
 	if err := provider.Validate(); err != nil {
 		return err
 	}
+	if err := target.Validate(); err != nil {
+		return err
+	}
 	if err := validateUploadCapabilityURLExtent(target.URL.value.String()); err != nil {
 		return err
 	}
@@ -394,7 +397,8 @@ func validateUploadCapabilityUTF8(target UploadTarget) error {
 			errors.New(uploadCapabilityUTF8ErrorText))
 	}
 	for _, header := range target.Headers.values {
-		if !utf8.ValidString(header.name.String()) || !utf8.ValidString(header.value) {
+		if !utf8.ValidString(header.name.String()) ||
+			!utf8.ValidString(*header.value) {
 			return errors.Join(core.ErrObjectStoreContract,
 				errors.New(uploadCapabilityUTF8ErrorText))
 		}
@@ -571,7 +575,7 @@ func projectUploadCapabilityHeaderWire(
 	wire := make([]uploadCapabilityHeaderWire, len(headers.values))
 	for index, header := range headers.values {
 		name := header.name.String()
-		value := header.value
+		value := *header.value
 		wire[index] = uploadCapabilityHeaderWire{Name: &name, Value: &value}
 	}
 	return wire

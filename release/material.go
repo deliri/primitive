@@ -122,20 +122,33 @@ func (r *MaterialRequest) UnmarshalJSON(data []byte) error {
 }
 
 type ReleaseSigningSeed struct {
-	value [keygen.SeedSize]byte
+	material core.SecretMaterial
 }
 
 func NewReleaseSigningSeed(value [keygen.SeedSize]byte) (ReleaseSigningSeed, error) {
-	seed := ReleaseSigningSeed{value: value}
+	material, err := core.NewSecretMaterial(value[:])
+	if err != nil {
+		return ReleaseSigningSeed{}, contractError(err)
+	}
+	seed := ReleaseSigningSeed{material: material}
 	if err := seed.Validate(); err != nil {
+		_ = material.Destroy()
 		return ReleaseSigningSeed{}, err
 	}
 	return seed, nil
 }
 
 func (s ReleaseSigningSeed) Validate() error {
-	if s.value == ([keygen.SeedSize]byte{}) {
-		return contractError(errors.New("release signing seed is zero"))
+	if err := s.material.Validate(); err != nil {
+		return contractError(err)
+	}
+	count, err := s.material.ByteCount()
+	if err != nil {
+		return contractError(err)
+	}
+	extent, err := count.Uint64()
+	if err != nil || extent != keygen.SeedSize {
+		return contractError(errors.New("release signing seed has invalid extent"), err)
 	}
 	return nil
 }
@@ -144,14 +157,27 @@ func (s ReleaseSigningSeed) SigningKey() (keygen.SigningKey, error) {
 	if err := s.Validate(); err != nil {
 		return keygen.SigningKey{}, err
 	}
-	return keygen.AdoptSigningKey(s.value)
+	raw, err := s.material.CopyBytes()
+	if err != nil {
+		return keygen.SigningKey{}, contractError(err)
+	}
+	defer clear(raw)
+	var seed [keygen.SeedSize]byte
+	copy(seed[:], raw)
+	defer clear(seed[:])
+	return keygen.AdoptSigningKey(seed)
 }
 
 func (s ReleaseSigningSeed) MarshalJSON() ([]byte, error) {
 	if err := s.Validate(); err != nil {
 		return nil, jsonError(err)
 	}
-	return json.Marshal(base64.StdEncoding.EncodeToString(s.value[:]))
+	raw, err := s.material.CopyBytes()
+	if err != nil {
+		return nil, jsonError(contractError(err))
+	}
+	defer clear(raw)
+	return json.Marshal(base64.StdEncoding.EncodeToString(raw))
 }
 
 func (s *ReleaseSigningSeed) UnmarshalJSON(data []byte) error {
@@ -175,7 +201,21 @@ func (s *ReleaseSigningSeed) UnmarshalJSON(data []byte) error {
 	if err != nil {
 		return jsonError(err)
 	}
+	if s.material != (core.SecretMaterial{}) {
+		if err := s.Destroy(); err != nil {
+			_ = parsed.Destroy()
+			return jsonError(err)
+		}
+	}
 	*s = parsed
+	return nil
+}
+
+// Destroy clears the release-signing seed and invalidates every copied handle.
+func (s ReleaseSigningSeed) Destroy() error {
+	if err := s.material.Destroy(); err != nil {
+		return contractError(err)
+	}
 	return nil
 }
 
@@ -184,20 +224,33 @@ func (ReleaseSigningSeed) Format(state fmt.State, _ rune) {
 }
 
 type GarbleCustodySeed struct {
-	value [garble.CustodyBytes]byte
+	material core.SecretMaterial
 }
 
 func NewGarbleCustodySeed(value [garble.CustodyBytes]byte) (GarbleCustodySeed, error) {
-	seed := GarbleCustodySeed{value: value}
+	material, err := core.NewSecretMaterial(value[:])
+	if err != nil {
+		return GarbleCustodySeed{}, contractError(err)
+	}
+	seed := GarbleCustodySeed{material: material}
 	if err := seed.Validate(); err != nil {
+		_ = material.Destroy()
 		return GarbleCustodySeed{}, err
 	}
 	return seed, nil
 }
 
 func (s GarbleCustodySeed) Validate() error {
-	if s.value == ([garble.CustodyBytes]byte{}) {
-		return contractError(errors.New("garble custody seed is zero"))
+	if err := s.material.Validate(); err != nil {
+		return contractError(err)
+	}
+	count, err := s.material.ByteCount()
+	if err != nil {
+		return contractError(err)
+	}
+	extent, err := count.Uint64()
+	if err != nil || extent != garble.CustodyBytes {
+		return contractError(errors.New("garble custody seed has invalid extent"), err)
 	}
 	return nil
 }
@@ -206,7 +259,12 @@ func (s GarbleCustodySeed) Custody() (garble.Custody, core.SecretMaterial, error
 	if err := s.Validate(); err != nil {
 		return garble.Custody{}, core.SecretMaterial{}, err
 	}
-	material, err := core.NewSecretMaterial(s.value[:])
+	raw, err := s.material.CopyBytes()
+	if err != nil {
+		return garble.Custody{}, core.SecretMaterial{}, contractError(err)
+	}
+	defer clear(raw)
+	material, err := core.NewSecretMaterial(raw)
 	if err != nil {
 		return garble.Custody{}, core.SecretMaterial{}, err
 	}
@@ -221,7 +279,12 @@ func (s GarbleCustodySeed) MarshalJSON() ([]byte, error) {
 	if err := s.Validate(); err != nil {
 		return nil, jsonError(err)
 	}
-	return json.Marshal(base64.StdEncoding.EncodeToString(s.value[:]))
+	raw, err := s.material.CopyBytes()
+	if err != nil {
+		return nil, jsonError(contractError(err))
+	}
+	defer clear(raw)
+	return json.Marshal(base64.StdEncoding.EncodeToString(raw))
 }
 
 func (s *GarbleCustodySeed) UnmarshalJSON(data []byte) error {
@@ -245,7 +308,21 @@ func (s *GarbleCustodySeed) UnmarshalJSON(data []byte) error {
 	if err != nil {
 		return jsonError(err)
 	}
+	if s.material != (core.SecretMaterial{}) {
+		if err := s.Destroy(); err != nil {
+			_ = parsed.Destroy()
+			return jsonError(err)
+		}
+	}
 	*s = parsed
+	return nil
+}
+
+// Destroy clears the Garble custody seed and invalidates every copied handle.
+func (s GarbleCustodySeed) Destroy() error {
+	if err := s.material.Destroy(); err != nil {
+		return contractError(err)
+	}
 	return nil
 }
 
@@ -304,6 +381,10 @@ func (r *MaterialResponse) UnmarshalJSON(data []byte) error {
 		GarbleCustodySeed: *wire.GarbleCustodySeed, ServerPublicKey: *wire.ServerPublicKey,
 	}
 	if err := candidate.Validate(); err != nil {
+		return jsonError(errors.Join(err, candidate.Destroy()))
+	}
+	if err := r.Destroy(); err != nil {
+		_ = candidate.Destroy()
 		return jsonError(err)
 	}
 	*r = candidate
@@ -317,23 +398,51 @@ type Material struct {
 	custodyMaterial core.SecretMaterial
 }
 
-func (r MaterialResponse) Open() (Material, error) {
+// Destroy clears both response seeds and invalidates every copied handle.
+func (r *MaterialResponse) Destroy() error {
+	if r == nil {
+		return contractError(errors.New("release material response receiver is nil"))
+	}
+	if *r == (MaterialResponse{}) {
+		return nil
+	}
+	err := errors.Join(
+		r.ReleaseSigningSeed.Destroy(),
+		r.GarbleCustodySeed.Destroy(),
+	)
+	*r = MaterialResponse{}
+	return err
+}
+
+// Open consumes one material response into the longer-lived typed
+// capabilities. The response seeds are destroyed on every terminal path.
+func (r *MaterialResponse) Open() (Material, error) {
+	if r == nil {
+		return Material{}, contractError(errors.New("release material response receiver is nil"))
+	}
 	if err := r.Validate(); err != nil {
-		return Material{}, err
+		return Material{}, errors.Join(err, r.Destroy())
 	}
 	signing, err := r.ReleaseSigningSeed.SigningKey()
 	if err != nil {
+		_ = r.Destroy()
 		return Material{}, err
 	}
 	custody, material, err := r.GarbleCustodySeed.Custody()
 	if err != nil {
-		return Material{}, errors.Join(err, signing.Destroy())
+		return Material{}, errors.Join(err, signing.Destroy(), r.Destroy())
 	}
 	opened := Material{
 		SigningKey: signing, Custody: custody,
 		ServerPublicKey: r.ServerPublicKey, custodyMaterial: material,
 	}
-	return opened, opened.Validate()
+	if err := opened.Validate(); err != nil {
+		return Material{}, errors.Join(err, opened.Destroy(), r.Destroy())
+	}
+	if err := r.Destroy(); err != nil {
+		return Material{}, errors.Join(err, opened.Destroy())
+	}
+	return opened, nil
 }
 
 func (m Material) Validate() error {
@@ -347,7 +456,15 @@ func (m *Material) Destroy() error {
 	if m == nil {
 		return contractError(errors.New("release material receiver is nil"))
 	}
-	return errors.Join(m.SigningKey.Destroy(), m.custodyMaterial.Destroy())
+	if err := errors.Join(m.SigningKey.Destroy(), m.custodyMaterial.Destroy()); err != nil {
+		return contractError(err)
+	}
+	return nil
+}
+
+// Format redacts the unopened response because it carries both secret seeds.
+func (MaterialResponse) Format(state fmt.State, _ rune) {
+	_, _ = io.WriteString(state, core.RedactedValueText)
 }
 
 func (Material) Format(state fmt.State, _ rune) {

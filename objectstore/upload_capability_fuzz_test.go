@@ -18,21 +18,24 @@ import (
 // produce byte-stable canonical output. No formatting verb may ever render the
 // bearer the document carried.
 func FuzzUploadCapabilityAdmitsOnlyTransferableCapabilities(f *testing.F) {
-	f.Add(`{"provider":"google_cloud_storage","method":"signed_put","url":"` +
-		capabilityGCSURL + `","expires_at":1893456000000000000}`)
-	f.Add(`{"provider":"amazon_s3","method":"signed_put","url":"` +
-		capabilityS3URL + `","expires_at":1893456000000000000}`)
-	f.Add(`{"provider":"cloudflare_images","method":"multipart_post","url":"` +
-		capabilityImagesURL + `","expires_at":1893456000000000000}`)
-	f.Add(`{"provider":"google_cloud_storage","method":"signed_put","url":"` +
-		capabilityGCSURL + `","expires_at":1893456000000000000,` +
-		`"headers":[{"name":"X-Goog-Meta-Run","value":"run-41"}]}`)
-	f.Add(`{"provider":"google_cloud_storage","method":"signed_put","url":"` +
-		capabilityGCSMetadataRunURL + `","expires_at":1893456000000000000,` +
-		`"headers":[{"name":"X-Goog-Meta-Run","value":"run-41"}]}`)
-	f.Add(`{"provider":"google_cloud_storage","method":"signed_put","url":"` +
-		capabilityGCSMetadataRunURL + `","expires_at":1893456000000000000,` +
-		`"headers":[{"name":"X-Goog-Meta-Run","value":"run-<&>-41"}]}`)
+	addUploadCapabilityFuzzSeed(f, ProviderGoogleCloudStorage,
+		providerUploadTarget(f, ProviderGoogleCloudStorage))
+	addUploadCapabilityFuzzSeed(f, ProviderAmazonS3,
+		providerUploadTarget(f, ProviderAmazonS3))
+	addUploadCapabilityFuzzSeed(f, ProviderCloudflareImages,
+		providerUploadTarget(f, ProviderCloudflareImages))
+	header := secretSignedHeaderFixture(f, "X-Goog-Meta-Run", capabilityHeaderSecret)
+	headers, headersErr := NewSignedHeaders([]SignedHeader{header})
+	if headersErr != nil {
+		f.Fatalf("NewSignedHeaders(seed) error = %v, want nil", headersErr)
+	}
+	signed, signedErr := ParseSignedURL(capabilityGCSMetadataRunURL)
+	if signedErr != nil {
+		f.Fatalf("ParseSignedURL(seed) error = %v, want nil", signedErr)
+	}
+	addUploadCapabilityFuzzSeed(f, ProviderGoogleCloudStorage, UploadTarget{
+		Headers: headers, URL: signed, ExpiresAt: providerFutureInstant(f),
+	})
 	f.Add(`{"provider":"google_cloud_storage","method":"multipart_post","url":"` +
 		capabilityGCSURL + `","expires_at":1893456000000000000}`)
 	f.Add(`{"provider":"azure_blob","method":"signed_put","url":"` +
@@ -156,7 +159,8 @@ func FuzzUploadCapabilityAdmitsOnlyTransferableCapabilities(f *testing.F) {
 				len(roundTripTarget.Headers.values), len(target.Headers.values), document)
 		}
 		for index, header := range target.Headers.values {
-			if roundTripTarget.Headers.values[index] != header {
+			if roundTripTarget.Headers.values[index].name != header.name ||
+				*roundTripTarget.Headers.values[index].value != *header.value {
 				t.Fatalf("canonical header %d = %+v, want %+v for accepted %q",
 					index, roundTripTarget.Headers.values[index], header, document)
 			}
@@ -181,5 +185,43 @@ func FuzzUploadCapabilityAdmitsOnlyTransferableCapabilities(f *testing.F) {
 			rendered, core.RedactedValueText) != 3 {
 			t.Fatalf("formatted signed url = %q, want only redacted text", rendered)
 		}
+		for _, value := range []fmt.Formatter{target, target.Headers} {
+			rendered := fmt.Sprintf("%v|%+v|%#v|%s|%q", value, value, value, value, value)
+			if strings.Count(rendered, core.RedactedValueText) != 5 ||
+				strings.Contains(rendered, capabilityHeaderSecret) {
+				t.Fatalf("formatted accepted capability value = %q, want only redacted text", rendered)
+			}
+		}
+		for _, header := range target.Headers.values {
+			rendered := fmt.Sprintf("%v|%+v|%#v|%s|%q", header, header, header, header, header)
+			if strings.Count(rendered, core.RedactedValueText) != 5 ||
+				strings.Contains(rendered, *header.value) {
+				t.Fatalf("formatted accepted signed header = %q, want only redacted text", rendered)
+			}
+		}
+		pointerRendered := fmt.Sprintf("%p|%p|%p", target, target.URL, target.Headers)
+		if strings.Contains(pointerRendered, core.SchemeHTTPS) {
+			t.Fatalf("pointer-formatted accepted capability = %q, want no signed URL", pointerRendered)
+		}
+		for _, header := range target.Headers.values {
+			headerRendered := fmt.Sprintf("%p", header)
+			if *header.value != "" && strings.Contains(headerRendered, *header.value) {
+				t.Fatalf("pointer-formatted accepted signed header disclosed its value")
+			}
+		}
 	})
+}
+
+func addUploadCapabilityFuzzSeed(f *testing.F, provider Provider, target UploadTarget) {
+	f.Helper()
+
+	projection, err := NewUploadCapabilityProjection(provider, target)
+	if err != nil {
+		f.Fatalf("NewUploadCapabilityProjection(seed) error = %v, want nil", err)
+	}
+	canonical, err := projection.MarshalJSON()
+	if err != nil {
+		f.Fatalf("UploadCapabilityProjection.MarshalJSON(seed) error = %v, want nil", err)
+	}
+	f.Add(string(canonical))
 }

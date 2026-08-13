@@ -20,12 +20,12 @@ const GoogleCloudCommandOutputMaximumBytes = TokenMaximumBytes + 2
 // Token is one opaque provider-acquired outbound identity bearer. Its value
 // has no assertion accessor and every generic formatting surface is redacted.
 type Token struct {
-	value    string
+	value    *string
 	provider Provider
 }
 
 func newToken(provider Provider, value string) (Token, error) {
-	token := Token{value: value, provider: provider}
+	token := Token{value: &value, provider: provider}
 	if err := token.Validate(); err != nil {
 		return Token{}, err
 	}
@@ -59,8 +59,8 @@ func (t Token) Validate() error {
 	if err := t.provider.Validate(); err != nil {
 		return err
 	}
-	if len(t.value) == 0 || len(t.value) > TokenMaximumBytes ||
-		!validBearerToken(t.value) {
+	if t.value == nil || len(*t.value) == 0 || len(*t.value) > TokenMaximumBytes ||
+		!validBearerToken(*t.value) {
 		return core.ErrCloudIdentityContract
 	}
 	return nil
@@ -72,7 +72,7 @@ func (t Token) BearerValue() (string, error) {
 	if err := t.Validate(); err != nil {
 		return "", err
 	}
-	return bearerPrefix + t.value, nil
+	return bearerPrefix + *t.value, nil
 }
 
 // Format redacts the token for every formatting verb.
@@ -113,4 +113,7 @@ func bearerTokenByte(value byte) bool {
 	}
 }
 
-var _ core.Validatable = Token{}
+var (
+	_ core.Validatable = Token{}
+	_ fmt.Formatter    = Token{}
+)

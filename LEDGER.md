@@ -4,6 +4,27 @@ Last updated: `2026-08-13`
 
 ## Current
 
+- closed inline secret and bearer disclosure through Go's invalid `%p`
+  formatting path, 2026-08-13, prepared `v2026.0.97`. Exchange header values,
+  Cloudidentity tokens and AWS signed requests, Objectstore signed URLs and
+  fields, and Release signing/Garble seeds now keep bearer bytes behind owned
+  indirection while retaining their one explicit projection boundary.
+  Objectstore's complete upload/download targets and every nested bearer layer
+  implement compiler-witnessed redaction. Release seeds now ride Core's
+  destroyable fixed-capacity secret custody; `MaterialResponse.Destroy` clears
+  unopened material, and `Open` consumes the response on every terminal path
+  before yielding the longer-lived destroyable capabilities.
+
+  Four deliberate inline-secret mutations went red specifically on `%p`
+  disclosure before restoration. Hostile formatter matrices exhaust all Go
+  verbs plus flags, widths, precision, value/pointer forms, zero values,
+  provider variants, and nested targets. External semantic fuzzing proved
+  Exchange header agreement with Go's HTTP grammar; Google and AWS token
+  ingress; Objectstore upload/download canonical closure and bearer-free
+  projections; and Release material plus the complete JSON-door inventory.
+  Focused and race suites pass. Direct `staticcheck ./...`,
+  `deadcode -test ./...`, and `witness-lint ./...` report zero findings.
+
 - closed exact payment-page traversal and request binding, 2026-08-13,
   prepared `v2026.0.96`. Payment catalog pages now carry a nominal,
   domain-separated commitment to the exact device-signed query. Verification

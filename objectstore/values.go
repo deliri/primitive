@@ -127,8 +127,7 @@ func newProviderVersion(
 // SignedURL is one opaque HTTPS capability. It has no string accessor and all
 // formatting is redacted.
 type SignedURL struct {
-	value url.URL
-	set   bool
+	value *url.URL
 }
 
 // ParseSignedURL parses one absolute HTTPS capability.
@@ -142,12 +141,12 @@ func ParseSignedURL(value string) (SignedURL, error) {
 		parsed.EscapedPath() == "/" {
 		return SignedURL{}, core.ErrObjectStoreContract
 	}
-	return SignedURL{value: parsed, set: true}, nil
+	return SignedURL{value: &parsed}, nil
 }
 
 // Validate rejects unset, non-HTTPS, or root-only capabilities.
 func (u SignedURL) Validate() error {
-	if !u.set || u.value.Scheme != core.SchemeHTTPS ||
+	if u.value == nil || u.value.Scheme != core.SchemeHTTPS ||
 		u.value.Host == "" || u.value.EscapedPath() == "" ||
 		u.value.EscapedPath() == "/" {
 		return core.ErrObjectStoreContract
@@ -163,7 +162,7 @@ func (SignedURL) Format(state fmt.State, _ rune) {
 // SignedHeader is one immutable signed request field.
 type SignedHeader struct {
 	name  core.HTTPHeaderName
-	value string
+	value *string
 }
 
 // NewSignedHeader validates and owns one request field.
@@ -186,13 +185,23 @@ func NewSignedHeader(
 	if owned {
 		return SignedHeader{}, core.ErrObjectStoreContract
 	}
-	return SignedHeader{name: name, value: value}, nil
+	return SignedHeader{name: name, value: &value}, nil
 }
 
 // Validate rejects unset or Objectstore-owned fields.
 func (h SignedHeader) Validate() error {
-	_, err := NewSignedHeader(h.name, h.value)
+	if h.value == nil {
+		return core.ErrObjectStoreContract
+	}
+	_, err := NewSignedHeader(h.name, *h.value)
 	return err
+}
+
+// Format redacts the signed field under every formatting verb. A signed
+// header is bearer material: even when its name is harmless, its value is
+// supplied by the capability issuer and must cross only the HTTP projection.
+func (SignedHeader) Format(state fmt.State, _ rune) {
+	_, _ = io.WriteString(state, core.RedactedValueText)
 }
 
 // SignedHeaders is an immutable bounded set.
@@ -211,7 +220,7 @@ func NewSignedHeaders(values []SignedHeader) (SignedHeaders, error) {
 		if err := value.Validate(); err != nil {
 			return SignedHeaders{}, err
 		}
-		wireBytes += len(value.name.String()) + len(value.value) +
+		wireBytes += len(value.name.String()) + len(*value.value) +
 			headerWireSyntaxBytes
 		if wireBytes > SignedHeaderMaximumBytes {
 			return SignedHeaders{}, core.ErrObjectStoreContract
@@ -221,7 +230,8 @@ func NewSignedHeaders(values []SignedHeader) (SignedHeaders, error) {
 				return SignedHeaders{}, core.ErrObjectStoreContract
 			}
 		}
-		owned[index] = value
+		ownedValue := *value.value
+		owned[index] = SignedHeader{name: value.name, value: &ownedValue}
 	}
 	return SignedHeaders{values: owned}, nil
 }
@@ -230,6 +240,11 @@ func NewSignedHeaders(values []SignedHeader) (SignedHeaders, error) {
 func (h SignedHeaders) Validate() error {
 	_, err := NewSignedHeaders(h.values)
 	return err
+}
+
+// Format redacts the complete signed field set under every formatting verb.
+func (SignedHeaders) Format(state fmt.State, _ rune) {
+	_, _ = io.WriteString(state, core.RedactedValueText)
 }
 
 // UploadTarget is one already-issued provider upload capability.
@@ -253,15 +268,20 @@ func (t UploadTarget) Validate() error {
 	return nil
 }
 
+// Format redacts the complete upload bearer under every formatting verb.
+func (UploadTarget) Format(state fmt.State, _ rune) {
+	_, _ = io.WriteString(state, core.RedactedValueText)
+}
+
 func (t UploadTarget) validateFor(provider Provider) error {
 	if err := t.Validate(); err != nil {
 		return err
 	}
-	if err := validateCapability(provider, t.URL.value); err != nil {
+	if err := validateCapability(provider, *t.URL.value); err != nil {
 		return err
 	}
 	return validateCallerSignedHeaders(callerSignedHeaderValidation{
-		provider: provider, value: t.URL.value, headers: t.Headers, direction: DirectionUpload,
+		provider: provider, value: *t.URL.value, headers: t.Headers, direction: DirectionUpload,
 	})
 }
 
@@ -286,6 +306,11 @@ func (t DownloadTarget) Validate() error {
 	return nil
 }
 
+// Format redacts the complete download bearer under every formatting verb.
+func (DownloadTarget) Format(state fmt.State, _ rune) {
+	_, _ = io.WriteString(state, core.RedactedValueText)
+}
+
 // ValidateFor binds the target to one compiler-selected whole-object provider
 // before a caller performs any preparatory side effects. The transfer entry
 // points apply the same gate again at execution ingress.
@@ -300,11 +325,11 @@ func (t DownloadTarget) ValidateFor(provider Provider) error {
 	if spec.Directions != DirectionCapabilityUploadDownload {
 		return core.ErrObjectStoreContract
 	}
-	if err := validateCapability(provider, t.URL.value); err != nil {
+	if err := validateCapability(provider, *t.URL.value); err != nil {
 		return err
 	}
 	if err := validateCallerSignedHeaders(callerSignedHeaderValidation{
-		provider: provider, value: t.URL.value, headers: t.Headers, direction: DirectionDownload,
+		provider: provider, value: *t.URL.value, headers: t.Headers, direction: DirectionDownload,
 	}); err != nil {
 		return err
 	}

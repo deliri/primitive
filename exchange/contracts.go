@@ -218,14 +218,13 @@ func (k IdempotencyKey) String() string {
 // The empty value is valid under net/http semantics; collection cardinality is
 // owned by Header.
 type HeaderValue struct {
-	value string
-	set   bool
+	value *string
 }
 
 // NewHeaderValue admits one exact field value and keeps its bytes behind an
 // explicit projection boundary.
 func NewHeaderValue(value string) (HeaderValue, error) {
-	candidate := HeaderValue{value: value, set: true}
+	candidate := HeaderValue{value: &value}
 	if err := candidate.Validate(); err != nil {
 		return HeaderValue{}, err
 	}
@@ -235,10 +234,10 @@ func NewHeaderValue(value string) (HeaderValue, error) {
 // Validate rejects oversized values and every byte net/http would interpret as
 // a field delimiter or control character.
 func (v HeaderValue) Validate() error {
-	if !v.set || len(v.value) > HeaderValueMaximumBytes {
+	if v.value == nil || len(*v.value) > HeaderValueMaximumBytes {
 		return core.ErrExchangeContract
 	}
-	if err := core.ValidateHTTPFieldValue(v.value); err != nil {
+	if err := core.ValidateHTTPFieldValue(*v.value); err != nil {
 		return core.ErrExchangeContract
 	}
 	return nil
@@ -250,7 +249,7 @@ func (v HeaderValue) Value() (string, error) {
 	if err := v.Validate(); err != nil {
 		return "", err
 	}
-	return v.value, nil
+	return *v.value, nil
 }
 
 // Format prevents ordinary diagnostics from disclosing header values. Owners
@@ -680,6 +679,7 @@ var (
 	_ core.Validatable            = RedirectPolicy{}
 	_ core.Validatable            = IdempotencyKey{}
 	_ core.Validatable            = HeaderValue{}
+	_ fmt.Formatter               = HeaderValue{}
 	_ core.Validatable            = Header{}
 	_ core.Validatable            = Headers{}
 	_ core.Validatable            = HeaderSelection{}

@@ -198,7 +198,7 @@ func AcquireAmazonWebServices(
 	response, err := acquire(acquisitionCall{
 		context:       ctx,
 		client:        client,
-		target:        request.endpoint,
+		target:        *request.endpoint,
 		responseLimit: limit,
 		policy:        request.request.Policy,
 	})

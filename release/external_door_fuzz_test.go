@@ -326,11 +326,15 @@ func fuzzReleaseJSONValue[T core.ValidatedJSONMarshaler](
 	if err != nil {
 		t.Fatalf("seed MarshalJSON() error = %v, want nil", err)
 	}
-	candidate := seed
+	var candidate T
 	decoder, ok := any(&candidate).(json.Unmarshaler)
 	if !ok {
 		t.Fatalf("release JSON door receiver %T lacks json.Unmarshaler", &candidate)
 	}
+	if err := decoder.UnmarshalJSON(before); err != nil {
+		t.Fatalf("release JSON door independent receiver setup error = %v, want nil", err)
+	}
+	defer destroyReleaseFuzzValue(&candidate)
 	decodeErr := decoder.UnmarshalJSON(data)
 	if decodeErr != nil {
 		if !errors.Is(decodeErr, core.ErrReleaseContract) ||
@@ -364,12 +368,19 @@ func fuzzReleaseJSONValue[T core.ValidatedJSONMarshaler](
 	if err := roundTripDecoder.UnmarshalJSON(canonical); err != nil {
 		t.Fatalf("canonical release JSON decode error = %v, want nil", err)
 	}
+	defer destroyReleaseFuzzValue(&roundTrip)
 	if err := roundTrip.Validate(); err != nil {
 		t.Fatalf("round-trip release JSON validation error = %v, want nil", err)
 	}
 	second, err := roundTrip.MarshalJSON()
 	if err != nil || !bytes.Equal(second, canonical) {
 		t.Fatalf("release JSON door lacks a canonical fixed point: marshal error %v", err)
+	}
+}
+
+func destroyReleaseFuzzValue(value any) {
+	if destroyable, ok := value.(interface{ Destroy() error }); ok {
+		_ = destroyable.Destroy()
 	}
 }
 
@@ -580,6 +591,7 @@ func materialFixturesForFuzz(
 	if err := response.Validate(); err != nil {
 		t.Fatalf("MaterialResponse.Validate() error = %v, want nil", err)
 	}
+	t.Cleanup(func() { _ = response.Destroy() })
 	return request, signing, custody, response
 }
 

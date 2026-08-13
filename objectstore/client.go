@@ -291,7 +291,7 @@ func prepareDownload(
 	return preparedDownload{
 		digests: digests,
 		request: exchange.DownloadRequest{
-			Target: exchangeTarget{url: request.Target.URL.value},
+			Target: exchangeTarget{url: *request.Target.URL.value},
 			Destination: io.MultiWriter(
 				request.Destination,
 				digests.writer(),
@@ -364,7 +364,7 @@ func prepareUpload(
 	return preparedUpload{
 		exact: exact, digests: digests,
 		request: exchange.UploadRequest{
-			Target:         exchangeTarget{url: request.Target.URL.value},
+			Target:         exchangeTarget{url: *request.Target.URL.value},
 			Source:         body.source,
 			Semantics:      singleAttempt(spec.UploadMethod),
 			ContentType:    body.contentType,

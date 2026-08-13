@@ -177,8 +177,7 @@ type AmazonWebServicesRequestInput struct {
 // capability. It has no URL accessor.
 type AmazonWebServicesRequest struct {
 	request  Request
-	endpoint core.HTTPEndpoint
-	set      bool
+	endpoint *core.HTTPEndpoint
 }
 
 // NewAmazonWebServicesRequest parses and owns one exact signed AWS request.
@@ -193,7 +192,7 @@ func NewAmazonWebServicesRequest(
 		return AmazonWebServicesRequest{}, amazonFailure(contractError(err))
 	}
 	value := AmazonWebServicesRequest{
-		request: input.Request, endpoint: endpoint, set: true,
+		request: input.Request, endpoint: &endpoint,
 	}
 	if err := value.Validate(); err != nil {
 		return AmazonWebServicesRequest{}, amazonFailure(err)
@@ -203,7 +202,7 @@ func NewAmazonWebServicesRequest(
 
 // Validate checks the common request and exact AWS signed-query contract.
 func (r AmazonWebServicesRequest) Validate() error {
-	if !r.set {
+	if r.endpoint == nil {
 		return core.ErrCloudIdentityContract
 	}
 	if err := r.request.Validate(); err != nil {
@@ -231,4 +230,5 @@ var (
 	_ core.Validatable = Request{}
 	_ core.Validatable = Client{}
 	_ core.Validatable = AmazonWebServicesRequest{}
+	_ fmt.Formatter    = AmazonWebServicesRequest{}
 )

@@ -194,9 +194,9 @@ func TestUploadCapabilityProjectionPreservesSignedHeadersExactly(t *testing.T) {
 		t.Fatalf("received header name = %v, want %v",
 			receivedTarget.Headers.values[0].name, headerName)
 	}
-	if receivedTarget.Headers.values[0].value != headerValue {
+	if *receivedTarget.Headers.values[0].value != headerValue {
 		t.Fatalf("received header value = %q, want %q",
-			receivedTarget.Headers.values[0].value, headerValue)
+			*receivedTarget.Headers.values[0].value, headerValue)
 	}
 }
 
@@ -435,10 +435,10 @@ func TestUploadCapabilityProjectionIsAnEmbeddedJSONFixedPoint(t *testing.T) {
 		t.Fatalf("received target header count = %d, want 1", len(receivedTarget.Headers.values))
 	}
 	if receivedTarget.Headers.values[0].name != headerName ||
-		receivedTarget.Headers.values[0].value != headerValue {
+		*receivedTarget.Headers.values[0].value != headerValue {
 		t.Fatalf("received signed header = (%v, %d bytes), want (%v, %d bytes)",
 			receivedTarget.Headers.values[0].name,
-			len(receivedTarget.Headers.values[0].value),
+			len(*receivedTarget.Headers.values[0].value),
 			headerName,
 			len(headerValue))
 	}
