@@ -10,6 +10,73 @@ import (
 	"github.com/deliri/primitive/v2026/gcsobjects"
 )
 
+func TestNewGCSGenerationExhaustsProviderIntegerBoundaryClasses(t *testing.T) {
+	t.Parallel()
+
+	tests := []struct {
+		name    string
+		value   int64
+		wantErr error
+	}{
+		{name: "minimum signed generation is rejected", value: math.MinInt64, wantErr: core.ErrObjectStoreContract},
+		{name: "minimum plus one generation is rejected", value: math.MinInt64 + 1, wantErr: core.ErrObjectStoreContract},
+		{name: "ordinary negative generation is rejected", value: -2, wantErr: core.ErrObjectStoreContract},
+		{name: "one below provider floor is rejected", value: -1, wantErr: core.ErrObjectStoreContract},
+		{name: "unset provider generation is rejected", wantErr: core.ErrObjectStoreContract},
+		{name: "provider floor is admitted", value: 1},
+		{name: "one above provider floor is admitted", value: 2},
+		{name: "maximum minus one provider generation is admitted", value: math.MaxInt64 - 1},
+		{name: "maximum provider generation is admitted", value: math.MaxInt64},
+	}
+	for _, test := range tests {
+		t.Run(test.name, func(t *testing.T) {
+			t.Parallel()
+
+			got, gotErr := gcsobjects.NewGCSGeneration(test.value)
+			if !errors.Is(gotErr, test.wantErr) {
+				t.Fatalf("NewGCSGeneration(%d) error = %v, want errors.Is(..., %v)", test.value, gotErr, test.wantErr)
+			}
+			if test.wantErr != nil {
+				if got != (gcsobjects.GCSGeneration{}) {
+					t.Fatalf("NewGCSGeneration(%d) generation = %v, want zero after rejection", test.value, got)
+				}
+				return
+			}
+			gotValue, gotValueErr := got.Int64()
+			if gotValueErr != nil || gotValue != test.value || got.Validate() != nil {
+				t.Fatalf("NewGCSGeneration(%d) projection = (%d, %v), Validate() = %v, want (%d, nil, nil)", test.value, gotValue, gotValueErr, got.Validate(), test.value)
+			}
+		})
+	}
+}
+
+func FuzzNewGCSGenerationProviderIngressSemanticClosure(f *testing.F) {
+	for _, value := range []int64{math.MinInt64, -1, 0, 1, 2, math.MaxInt64} {
+		f.Add(value)
+	}
+
+	f.Fuzz(func(t *testing.T, value int64) {
+		got, gotErr := gcsobjects.NewGCSGeneration(value)
+		if value <= 0 {
+			if !errors.Is(gotErr, core.ErrObjectStoreContract) || got != (gcsobjects.GCSGeneration{}) {
+				t.Fatalf("NewGCSGeneration(%d) = (%v, %v), want zero and errors.Is(..., %v)", value, got, gotErr, core.ErrObjectStoreContract)
+			}
+			return
+		}
+		if gotErr != nil || got.Validate() != nil {
+			t.Fatalf("NewGCSGeneration(%d) = (%v, %v), Validate() = %v, want valid and nil", value, got, gotErr, got.Validate())
+		}
+		projected, projectedErr := got.Int64()
+		if projectedErr != nil || projected != value {
+			t.Fatalf("NewGCSGeneration(%d).Int64() = (%d, %v), want (%d, nil)", value, projected, projectedErr, value)
+		}
+		roundTrip, roundTripErr := gcsobjects.NewGCSGeneration(projected)
+		if roundTripErr != nil || roundTrip != got {
+			t.Fatalf("NewGCSGeneration(projected %d) = (%v, %v), want (%v, nil)", projected, roundTrip, roundTripErr, got)
+		}
+	})
+}
+
 func TestParseGCSBucketPressuresEveryProviderNamingBoundary(t *testing.T) {
 	t.Parallel()
 
