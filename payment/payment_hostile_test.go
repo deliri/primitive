@@ -829,8 +829,19 @@ func paymentScopeFixture(t testing.TB, marker byte) receipt.Scope {
 	t.Helper()
 	return receipt.Scope{
 		Account:  mustPaymentLifecycleIdentity(t, marker, receipt.NewAccountIdentity),
-		Offering: mustPaymentLifecycleIdentity(t, marker+1, receipt.NewOfferingIdentity),
+		Offering: mustPaymentOfferingIdentity(t, marker+1),
 	}
+}
+
+func mustPaymentOfferingIdentity(t testing.TB, marker byte) receipt.OfferingIdentity {
+	t.Helper()
+	offerings := [...]core.Offering{core.OfferingBug, core.OfferingWitness, core.OfferingPeachfuzz}
+	offering := offerings[int(marker)%len(offerings)]
+	identity, err := receipt.OfferingIdentityFor(offering)
+	if err != nil {
+		t.Fatalf("receipt.OfferingIdentityFor(%v) error = %v, want nil", offering, err)
+	}
+	return identity
 }
 
 func mustPaymentLifecycleIdentity[T core.Validatable](

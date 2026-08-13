@@ -99,6 +99,29 @@ func FuzzReceiptExternalJSONDoorInventory(f *testing.F) {
 	for _, seed := range receiptJSONSeedsForFuzz(f, fixtures) {
 		f.Add(uint8(seed.door), seed.document)
 	}
+	for raw := 0; raw <= 255; raw++ {
+		offering := core.Offering(raw)
+		if !offering.IsValid() {
+			continue
+		}
+		identity, err := OfferingIdentityFor(offering)
+		if err != nil {
+			f.Fatalf("OfferingIdentityFor(%v) error = %v, want nil", offering, err)
+		}
+		canonical, err := identity.MarshalJSON()
+		if err != nil {
+			f.Fatalf("OfferingIdentity.MarshalJSON(%v) error = %v, want nil", offering, err)
+		}
+		f.Add(uint8(receiptJSONDoorOfferingIdentity), canonical)
+	}
+	for _, hostile := range [][]byte{
+		nil, {}, []byte(`null`), []byte(`{}`), []byte(`[]`), []byte(`""`),
+		[]byte(`0`), []byte(`true`), []byte(`"00000000000000000000000000000000"`),
+		[]byte(`"ffffffffffffffffffffffffffffffff"`), []byte(`"FFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFF"`),
+		[]byte{'"', 0xff, '"'}, bytes.Repeat([]byte{' '}, core.JSONDocumentMaximumBytes+1),
+	} {
+		f.Add(uint8(receiptJSONDoorOfferingIdentity), hostile)
+	}
 	for _, hostile := range [][]byte{
 		nil, {}, []byte(`null`), []byte(`{}`), []byte(`[]`),
 		[]byte(`""`), []byte(`0`), []byte(`true`), []byte(`{`),
@@ -120,7 +143,7 @@ func FuzzReceiptExternalJSONDoorInventory(f *testing.F) {
 		case receiptJSONDoorAccountIdentity:
 			fuzzReceiptJSONValue(t, data, fixtures.account)
 		case receiptJSONDoorOfferingIdentity:
-			fuzzReceiptJSONValue(t, data, fixtures.offering)
+			fuzzReceiptOfferingIdentity(t, data, fixtures.offering)
 		case receiptJSONDoorSubmissionIdentity:
 			fuzzReceiptJSONValue(t, data, fixtures.submission)
 		case receiptJSONDoorObjectIdentity:
@@ -147,12 +170,63 @@ func FuzzReceiptExternalJSONDoorInventory(f *testing.F) {
 	})
 }
 
+func fuzzReceiptOfferingIdentity(t *testing.T, data []byte, seed OfferingIdentity) {
+	t.Helper()
+
+	candidate := seed
+	decodeErr := candidate.UnmarshalJSON(data)
+	if decodeErr != nil {
+		if !errors.Is(decodeErr, core.ErrReceiptContract) ||
+			!errors.Is(decodeErr, core.ErrJSONContract) ||
+			!errors.Is(decodeErr, core.ErrLifecycleIdentityContract) {
+			t.Fatalf("OfferingIdentity.UnmarshalJSON() error = %v, want Receipt+JSON+lifecycle identities", decodeErr)
+		}
+		if candidate != seed {
+			t.Fatalf("OfferingIdentity.UnmarshalJSON(rejected) receiver = %v, want preserved %v", candidate, seed)
+		}
+		return
+	}
+	if err := candidate.Validate(); err != nil {
+		t.Fatalf("OfferingIdentity.UnmarshalJSON(accepted).Validate() error = %v, want nil", err)
+	}
+	inputToken, err := core.DecodeJSONStringToken(data)
+	if err != nil || inputToken != candidate.String() {
+		t.Fatalf("OfferingIdentity accepted projection = (%q, %v), want exact input token %q and nil", candidate.String(), err, inputToken)
+	}
+	matched := false
+	for raw := 0; raw <= 255; raw++ {
+		offering := core.Offering(raw)
+		if !offering.IsValid() {
+			continue
+		}
+		admitted, deriveErr := OfferingIdentityFor(offering)
+		if deriveErr != nil {
+			t.Fatalf("OfferingIdentityFor(%v) error = %v, want nil", offering, deriveErr)
+		}
+		matched = matched || admitted == candidate
+	}
+	if !matched {
+		t.Fatalf("OfferingIdentity.UnmarshalJSON() admitted %v outside compiler-owned core.Offering projections", candidate)
+	}
+	canonical, err := candidate.MarshalJSON()
+	if err != nil || len(canonical) > core.JSONDocumentMaximumBytes {
+		t.Fatalf("OfferingIdentity.MarshalJSON(accepted) = (%d bytes, %v), want bounded and nil", len(canonical), err)
+	}
+	var roundTrip OfferingIdentity
+	if err := roundTrip.UnmarshalJSON(canonical); err != nil || roundTrip != candidate {
+		t.Fatalf("OfferingIdentity canonical round trip = (%v, %v), want (%v, nil)", roundTrip, err, candidate)
+	}
+	second, err := roundTrip.MarshalJSON()
+	if err != nil || !bytes.Equal(second, canonical) {
+		t.Fatalf("OfferingIdentity second canonical projection = (%q, %v), want (%q, nil)", second, err, canonical)
+	}
+}
+
 type receiptTextDoor uint8
 
 const (
 	receiptTextDoorUnknown receiptTextDoor = iota
 	receiptTextDoorAccountIdentity
-	receiptTextDoorOfferingIdentity
 	receiptTextDoorSubmissionIdentity
 	receiptTextDoorObjectIdentity
 	receiptTextDoorReceiptID
@@ -163,8 +237,6 @@ func (d receiptTextDoor) functionName() string {
 	switch d {
 	case receiptTextDoorAccountIdentity:
 		return "ParseAccountIdentity"
-	case receiptTextDoorOfferingIdentity:
-		return "ParseOfferingIdentity"
 	case receiptTextDoorSubmissionIdentity:
 		return "ParseSubmissionIdentity"
 	case receiptTextDoorObjectIdentity:
@@ -181,7 +253,6 @@ func (d receiptTextDoor) functionName() string {
 func FuzzReceiptExternalTextDoorInventory(f *testing.F) {
 	fixture := newReceiptFixture(f, 151)
 	f.Add(uint8(receiptTextDoorAccountIdentity), fixture.account.String())
-	f.Add(uint8(receiptTextDoorOfferingIdentity), fixture.offering.String())
 	f.Add(uint8(receiptTextDoorSubmissionIdentity), fixture.submission.String())
 	f.Add(uint8(receiptTextDoorObjectIdentity), fixture.object.String())
 	f.Add(uint8(receiptTextDoorReceiptID), fixture.receipt.String())
@@ -193,12 +264,6 @@ func FuzzReceiptExternalTextDoorInventory(f *testing.F) {
 		switch receiptTextDoor(rawDoor) {
 		case receiptTextDoorAccountIdentity:
 			got, err := ParseAccountIdentity(value)
-			fuzzReceiptTextOutcome(t, receiptTextOutcome{
-				input: value, projection: got.String(), err: err,
-				validate: got.Validate,
-			})
-		case receiptTextDoorOfferingIdentity:
-			got, err := ParseOfferingIdentity(value)
 			fuzzReceiptTextOutcome(t, receiptTextOutcome{
 				input: value, projection: got.String(), err: err,
 				validate: got.Validate,

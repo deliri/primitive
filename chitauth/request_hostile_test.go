@@ -135,7 +135,7 @@ func TestCredentialedChitQueryVerificationLayerTriadRefusesAccountDeviceAuthorit
 	}
 	tamperedLimit.Request.Payload.Query.Limit = minimumLimit
 	tamperedOfferingIdentity := base.document
-	tamperedOfferingIdentity.Request.Payload.Query.Scope.Offering = queryOffering(t, 0x73)
+	tamperedOfferingIdentity.Request.Payload.Query.Scope.Offering = queryOffering(t, core.OfferingBug)
 	tamperedSigner := base.document
 	tamperedSigner.Request.Attestation.Signer = otherDevice.document.Certificate.Body.DeviceKey
 	tamperedLength := base.document
@@ -190,7 +190,7 @@ func TestCredentialedChitQueryVerificationLayerTriadRefusesAccountDeviceAuthorit
 		t.Fatalf("Assemble(other account) = (%+v, %v), want zero and errors.Is %v",
 			document, err, core.ErrControlPlaneResponseBinding)
 	}
-	wrongOfferingRequest := queryDocumentWithOffering(t, base, queryOffering(t, 0x72))
+	wrongOfferingRequest := queryDocumentWithOffering(t, base, queryOffering(t, core.OfferingBug))
 	if document, err := Assemble(RequestAssembly{
 		Request: wrongOfferingRequest, Certificate: base.document.Certificate,
 	}); !errors.Is(err, core.ErrControlPlaneResponseBinding) || document != (RequestDocument{}) {
@@ -430,16 +430,12 @@ func queryNonce(t testing.TB, marker byte) controlwire.RequestNonce {
 	return nonce
 }
 
-func queryOffering(t testing.TB, marker byte) receipt.OfferingIdentity {
+func queryOffering(t testing.TB, offering core.Offering) receipt.OfferingIdentity {
 	t.Helper()
 
-	raw := [receipt.LifecycleIdentityBytes]byte{}
-	for index := range raw {
-		raw[index] = marker
-	}
-	identity, err := receipt.NewOfferingIdentity(raw)
+	identity, err := receipt.OfferingIdentityFor(offering)
 	if err != nil {
-		t.Fatalf("receipt.NewOfferingIdentity() error = %v, want nil", err)
+		t.Fatalf("receipt.OfferingIdentityFor(%v) error = %v, want nil", offering, err)
 	}
 	return identity
 }

@@ -280,7 +280,7 @@ func retrievalManifestAddition(t testing.TB, request retrievalEvidenceRequest) (
 	t.Helper()
 	scope := receipt.Scope{
 		Account:  retrievalLifecycleIdentity(t, 0x21, receipt.NewAccountIdentity),
-		Offering: retrievalLifecycleIdentity(t, 0x22, receipt.NewOfferingIdentity),
+		Offering: retrievalOfferingIdentity(t, core.OfferingPeachfuzz),
 	}
 	extent, err := core.NewByteLength(uint64(len(request.Payload)))
 	if err != nil {
@@ -323,6 +323,16 @@ func retrievalManifestAddition(t testing.TB, request retrievalEvidenceRequest) (
 		Name: name, ContentType: core.HTTPMediaTypeOctetStream(), Evidence: evidence, Sequence: sequence,
 	}
 	return chit.ManifestAddition{Entry: entry, Evidence: verified}, scope
+}
+
+func retrievalOfferingIdentity(t testing.TB, offering core.Offering) receipt.OfferingIdentity {
+	t.Helper()
+
+	identity, err := receipt.OfferingIdentityFor(offering)
+	if err != nil {
+		t.Fatalf("receipt.OfferingIdentityFor(%v) error = %v, want nil", offering, err)
+	}
+	return identity
 }
 
 type retrievalChitRequest struct {

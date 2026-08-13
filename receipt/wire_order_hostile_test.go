@@ -182,7 +182,7 @@ func TestSignedPayloadBytesStayByteExact(t *testing.T) {
 	}
 	want := `{"header":{"receipt_identity":"ff000000000000000000000000000000",` +
 		`"account_identity":"fb000000000000000000000000000000",` +
-		`"offering_identity":"fc000000000000000000000000000000",` +
+		`"offering_identity":"88e2f274b886f932e340d70741115477",` +
 		`"revision":"v1","occurred_at_nanoseconds":"250"},` +
 		`"body":{"submission_identity":"fd000000000000000000000000000000",` +
 		`"object_identity":"fe000000000000000000000000000000",` +

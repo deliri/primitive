@@ -35,15 +35,6 @@ func TestLifecycleIdentityLayerTriad(t *testing.T) {
 			},
 		},
 		{
-			name: "offering",
-			construct: func(value [LifecycleIdentityBytes]byte) (core.Validatable, error) {
-				return NewOfferingIdentity(value)
-			},
-			parse: func(value string) (core.Validatable, error) {
-				return ParseOfferingIdentity(value)
-			},
-		},
-		{
 			name: "submission",
 			construct: func(value [LifecycleIdentityBytes]byte) (core.Validatable, error) {
 				return NewSubmissionIdentity(value)
@@ -145,20 +136,6 @@ func TestLifecycleIdentityNominalAndJSONBoundaries(t *testing.T) {
 			},
 			nilUnmarshal: func(data []byte) error {
 				var value *AccountIdentity
-				return value.UnmarshalJSON(data)
-			},
-		},
-		{
-			name: "offering",
-			construct: func(value [LifecycleIdentityBytes]byte) (lifecycleJSONIdentity, error) {
-				return NewOfferingIdentity(value)
-			},
-			unmarshal: func(seed lifecycleJSONIdentity, data []byte) (lifecycleJSONIdentity, error) {
-				value := seed.(OfferingIdentity)
-				return value, value.UnmarshalJSON(data)
-			},
-			nilUnmarshal: func(data []byte) error {
-				var value *OfferingIdentity
 				return value.UnmarshalJSON(data)
 			},
 		},

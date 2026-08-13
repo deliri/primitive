@@ -33,7 +33,8 @@ type AccountIdentity struct {
 	_     accountIdentityDomain
 }
 
-// OfferingIdentity identifies one product offering.
+// OfferingIdentity is the opaque receipt projection of one compiler-owned
+// core.Offering. Callers cannot construct arbitrary offering identities.
 type OfferingIdentity struct {
 	value lifecycleIdentity
 	_     offeringIdentityDomain
@@ -151,8 +152,7 @@ func (i *AccountIdentity) UnmarshalJSON(data []byte) error {
 	return nil
 }
 
-// NewOfferingIdentity constructs an offering identity from its exact bytes.
-func NewOfferingIdentity(value [LifecycleIdentityBytes]byte) (OfferingIdentity, error) {
+func newOfferingIdentity(value [LifecycleIdentityBytes]byte) (OfferingIdentity, error) {
 	identity, err := newLifecycleIdentity(value)
 	if err != nil {
 		return OfferingIdentity{}, err
@@ -171,7 +171,7 @@ func OfferingIdentityFor(offering core.Offering) (OfferingIdentity, error) {
 	digest := sha256.Sum256(append([]byte(offeringIdentityDomainToken), byte(offering)))
 	var value [LifecycleIdentityBytes]byte
 	copy(value[:], digest[:LifecycleIdentityBytes])
-	return NewOfferingIdentity(value)
+	return newOfferingIdentity(value)
 }
 
 // ScopeFor derives the exact receipt namespace for one signed account and
@@ -188,13 +188,26 @@ func ScopeFor(account AccountIdentity, offering core.Offering) (Scope, error) {
 	return scope, scope.Validate()
 }
 
-// ParseOfferingIdentity accepts canonical lowercase hexadecimal.
-func ParseOfferingIdentity(value string) (OfferingIdentity, error) {
+func parseOfferingIdentity(value string) (OfferingIdentity, error) {
 	identity, err := parseLifecycleIdentity(value)
 	if err != nil {
 		return OfferingIdentity{}, err
 	}
-	return OfferingIdentity{value: identity}, nil
+	candidate := OfferingIdentity{value: identity}
+	for raw := 0; raw <= 255; raw++ {
+		offering := core.Offering(raw)
+		if !offering.IsValid() {
+			continue
+		}
+		admitted, deriveErr := OfferingIdentityFor(offering)
+		if deriveErr != nil {
+			return OfferingIdentity{}, deriveErr
+		}
+		if candidate == admitted {
+			return candidate, nil
+		}
+	}
+	return OfferingIdentity{}, lifecycleIdentityError("offering identity is not a compiler-owned projection")
 }
 
 // Validate rejects the unset identity.
@@ -213,11 +226,18 @@ func (i *OfferingIdentity) UnmarshalJSON(data []byte) error {
 	if i == nil {
 		return jsonError(lifecycleIdentityError("nil offering identity receiver"))
 	}
-	value, err := unmarshalLifecycleIdentity(data)
-	if err != nil {
-		return err
+	if len(data) > core.JSONDocumentMaximumBytes {
+		return jsonError(core.ErrLifecycleIdentityContract, errors.New("offering identity document exceeds the JSON byte ceiling"))
 	}
-	*i = OfferingIdentity{value: value}
+	token, err := core.DecodeJSONStringToken(data)
+	if err != nil {
+		return jsonError(core.ErrLifecycleIdentityContract, err)
+	}
+	value, err := parseOfferingIdentity(token)
+	if err != nil {
+		return jsonError(err)
+	}
+	*i = value
 	return nil
 }
 

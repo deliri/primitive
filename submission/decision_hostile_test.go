@@ -210,7 +210,10 @@ func newReuseEvidenceFixture(
 	t.Helper()
 
 	account := submissionLifecycleIdentity(t, request.ScopeByte, receipt.NewAccountIdentity)
-	offering := submissionLifecycleIdentity(t, request.ScopeByte+1, receipt.NewOfferingIdentity)
+	offering, offeringErr := receipt.OfferingIdentityFor(core.OfferingWitness)
+	if offeringErr != nil {
+		t.Fatalf("receipt.OfferingIdentityFor(%v) error = %v, want nil", core.OfferingWitness, offeringErr)
+	}
 	submission := submissionLifecycleIdentity(t, request.ScopeByte+2, receipt.NewSubmissionIdentity)
 	object := submissionLifecycleIdentity(t, request.ScopeByte+3, receipt.NewObjectIdentity)
 	receiptBytes := [receipt.ReceiptIDBytes]byte{}

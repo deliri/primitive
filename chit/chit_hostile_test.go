@@ -518,8 +518,19 @@ func chitScopeFixture(t testing.TB, marker byte) receipt.Scope {
 	t.Helper()
 	return receipt.Scope{
 		Account:  mustLifecycleIdentity(t, marker, receipt.NewAccountIdentity),
-		Offering: mustLifecycleIdentity(t, marker+1, receipt.NewOfferingIdentity),
+		Offering: mustOfferingIdentity(t, marker+1),
 	}
+}
+
+func mustOfferingIdentity(t testing.TB, marker byte) receipt.OfferingIdentity {
+	t.Helper()
+	offerings := [...]core.Offering{core.OfferingBug, core.OfferingWitness, core.OfferingPeachfuzz}
+	offering := offerings[int(marker)%len(offerings)]
+	identity, err := receipt.OfferingIdentityFor(offering)
+	if err != nil {
+		t.Fatalf("receipt.OfferingIdentityFor(%v) error = %v, want nil", offering, err)
+	}
+	return identity
 }
 
 func mustLifecycleIdentity[T core.Validatable](

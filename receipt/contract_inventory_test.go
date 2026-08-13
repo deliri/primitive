@@ -76,7 +76,7 @@ func TestReceiptExternalIngressFuzzInventoryMatchesProduction(t *testing.T) {
 	}
 
 	gotText := []string{
-		"ParseAccountIdentity", "ParseObjectIdentity", "ParseOfferingIdentity",
+		"ParseAccountIdentity", "ParseObjectIdentity",
 		"ParseReceiptID", "ParseSubmissionIdentity",
 	}
 	var wantText []string

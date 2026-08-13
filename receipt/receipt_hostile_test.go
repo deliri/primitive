@@ -41,7 +41,7 @@ func newReceiptFixture(t testing.TB, marker byte) receiptFixture {
 		t.Fatalf("attest.NewTrustedKeys() error = %v, want nil", err)
 	}
 	account := lifecycleFixture(t, marker+1, NewAccountIdentity)
-	offering := lifecycleFixture(t, marker+2, NewOfferingIdentity)
+	offering := offeringFixture(t, marker+2)
 	submission := lifecycleFixture(t, marker+3, NewSubmissionIdentity)
 	object := lifecycleFixture(t, marker+4, NewObjectIdentity)
 	var receiptBytes [ReceiptIDBytes]byte
@@ -67,6 +67,21 @@ func newReceiptFixture(t testing.TB, marker byte) receiptFixture {
 		submission: submission, object: object, receipt: receipt, body: body,
 		occurredAt: occurredAt, expectation: expectation,
 	}
+}
+
+func offeringFixture(t testing.TB, marker byte) OfferingIdentity {
+	t.Helper()
+	offerings := [...]core.Offering{
+		core.OfferingBug,
+		core.OfferingWitness,
+		core.OfferingPeachfuzz,
+	}
+	offering := offerings[int(marker)%len(offerings)]
+	identity, err := OfferingIdentityFor(offering)
+	if err != nil {
+		t.Fatalf("OfferingIdentityFor(%v) error = %v, want nil", offering, err)
+	}
+	return identity
 }
 
 func lifecycleFixture[T core.Validatable](
