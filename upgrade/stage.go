@@ -115,9 +115,9 @@ func installCandidate(
 ) error {
 	build := target.candidate.Build()
 	if err := prepareCandidateSlot(ctx, request.Root, target); err != nil {
-		return newAttemptError(
-			FailurePhasePersistence, build, core.ErrUpgradePersistence, err,
-		)
+		return newAttemptError(attemptErrorRequest{phase: FailurePhasePersistence, candidate: build, identity: core.ErrUpgradePersistence},
+			err)
+
 	}
 	receipt, err := ensureTrialReceipt(ctx, request.Root, target)
 	if err != nil {
@@ -125,25 +125,25 @@ func installCandidate(
 		if errors.Is(err, core.ErrUpgradeConflict) {
 			identity = core.ErrUpgradeConflict
 		}
-		return newAttemptError(
-			FailurePhasePersistence, build, identity, err,
-		)
+		return newAttemptError(attemptErrorRequest{phase: FailurePhasePersistence, candidate: build, identity: identity},
+			err)
+
 	}
 	installed, err := reclaimCandidateSlot(
 		ctx, request.Root, target, receipt,
 	)
 	if err != nil {
-		return newAttemptError(
-			FailurePhaseCleanup, build, core.ErrUpgradeCleanup, err,
-		)
+		return newAttemptError(attemptErrorRequest{phase: FailurePhaseCleanup, candidate: build, identity: core.ErrUpgradeCleanup},
+			err)
+
 	}
 	if installed {
 		return nil
 	}
 	if err := admitStageCapacity(ctx, request, target.candidate); err != nil {
-		return newAttemptError(
-			FailurePhaseCapacity, build, core.ErrUpgradeCapacity, err,
-		)
+		return newAttemptError(attemptErrorRequest{phase: FailurePhaseCapacity, candidate: build, identity: core.ErrUpgradeCapacity},
+			err)
+
 	}
 	return downloadAndVerifyCandidate(ctx, request, target)
 }
@@ -227,10 +227,10 @@ func downloadAndVerifyCandidate(
 	download, err := downloadCandidate(ctx, request, target)
 	if err != nil {
 		cleanupErr := cleanupOwnedCandidate(ctx, request.Root, target, download)
-		return newAttemptError(
-			FailurePhaseDownload, build, core.ErrUpgradeDownload,
-			err, classifyAttemptCleanup(cleanupErr),
-		)
+		return newAttemptError(attemptErrorRequest{phase: FailurePhaseDownload, candidate: build, identity: core.ErrUpgradeDownload},
+
+			err, classifyAttemptCleanup(cleanupErr))
+
 	}
 	if err := verifyArtifact(
 		ctx, request.Root, target.slot, target.candidate,
@@ -238,10 +238,10 @@ func downloadAndVerifyCandidate(
 		cleanupErr := removeArtifact(
 			recoveryContext(ctx), request.Root, target.slot, target.candidate,
 		)
-		return newAttemptError(
-			FailurePhaseVerification, build,
-			core.ErrUpgradeVerification, err, classifyAttemptCleanup(cleanupErr),
-		)
+		return newAttemptError(attemptErrorRequest{phase: FailurePhaseVerification, candidate: build, identity: core.ErrUpgradeVerification},
+
+			err, classifyAttemptCleanup(cleanupErr))
+
 	}
 	return nil
 }

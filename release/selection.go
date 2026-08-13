@@ -538,21 +538,26 @@ func evaluatePresent(
 			state: SelectionReassessAt, reassess: ReassessDirective{At: at}, valid: true,
 		})
 	case LatestFreshnessCurrent:
-		return compareSelected(request, installed, installedArtifact, assessment)
+		return compareSelected(selectionComparison{
+			request: request, installed: installed,
+			installedArtifact: installedArtifact, assessment: assessment,
+		})
 	default:
 		return Selection{}, verificationError(errors.New("freshness escaped its domain"))
 	}
 }
 
-func compareSelected(
-	request EvaluateRequest,
-	installed core.BuildIdentity,
-	installedArtifact Artifact,
-	assessment LatestAssessment,
-) (Selection, error) {
-	candidate := request.Latest.latest.Manifest()
+type selectionComparison struct {
+	request           EvaluateRequest
+	installed         core.BuildIdentity
+	installedArtifact Artifact
+	assessment        LatestAssessment
+}
+
+func compareSelected(comparison selectionComparison) (Selection, error) {
+	candidate := comparison.request.Latest.latest.Manifest()
 	version := candidate.Version()
-	order, err := installed.Version().Compare(version)
+	order, err := comparison.installed.Version().Compare(version)
 	if err != nil {
 		return Selection{}, contractError(err)
 	}
@@ -560,52 +565,52 @@ func compareSelected(
 	case core.ComparisonGreater:
 		return Selection{}, rollbackError(errors.New("installed version is newer than latest"))
 	case core.ComparisonEqual:
-		return selectCurrent(request.InstalledManifest, installedArtifact, candidate, assessment)
+		return selectCurrent(currentSelection{
+			installed: comparison.request.InstalledManifest, installedArtifact: comparison.installedArtifact,
+			candidate: candidate, assessment: comparison.assessment,
+		})
 	case core.ComparisonLess:
-		return selectAvailable(request, installed, installedArtifact, assessment)
+		return selectAvailable(comparison)
 	default:
 		return Selection{}, contractError(errors.New(versionComparisonDomainDiagnostic))
 	}
 }
 
-func selectCurrent(
-	installed VerifiedManifest,
-	installedArtifact Artifact,
-	candidate VerifiedManifest,
-	assessment LatestAssessment,
-) (Selection, error) {
-	installedID := installed.Identity()
-	candidateID := candidate.Identity()
-	artifacts := candidate.Artifacts()
-	artifact, ok := artifacts.ForPlatform(installedArtifact.Target())
-	if !ok || installedID != candidateID || artifact.Identity() != installedArtifact.Identity() {
+type currentSelection struct {
+	installed         VerifiedManifest
+	installedArtifact Artifact
+	candidate         VerifiedManifest
+	assessment        LatestAssessment
+}
+
+func selectCurrent(selection currentSelection) (Selection, error) {
+	installedID := selection.installed.Identity()
+	candidateID := selection.candidate.Identity()
+	artifacts := selection.candidate.Artifacts()
+	artifact, ok := artifacts.ForPlatform(selection.installedArtifact.Target())
+	if !ok || installedID != candidateID || artifact.Identity() != selection.installedArtifact.Identity() {
 		return Selection{}, conflictError(errors.New("equal version differs immutably"))
 	}
-	version := candidate.Version()
+	version := selection.candidate.Version()
 	current := CurrentRelease{
 		manifest: installedID, artifact: artifact.Identity(), version: version,
-		validUntil: assessment.ValidUntil(), valid: true,
+		validUntil: selection.assessment.ValidUntil(), valid: true,
 	}
 	return sealSelection(Selection{state: SelectionCurrent, current: current, valid: true})
 }
 
-func selectAvailable(
-	request EvaluateRequest,
-	installed core.BuildIdentity,
-	installedArtifact Artifact,
-	assessment LatestAssessment,
-) (Selection, error) {
-	candidate := request.Latest.latest.Manifest()
+func selectAvailable(selection selectionComparison) (Selection, error) {
+	candidate := selection.request.Latest.latest.Manifest()
 	artifacts := candidate.Artifacts()
-	artifact, ok := artifacts.ForPlatform(installed.Platform())
+	artifact, ok := artifacts.ForPlatform(selection.installed.Platform())
 	if !ok {
 		return Selection{}, verificationError(errors.New("candidate lacks installed platform"))
 	}
 	available := AvailableRelease{
-		installed: installed, installedArtifact: installedArtifact,
-		installedManifest: request.InstalledManifest,
+		installed: selection.installed, installedArtifact: selection.installedArtifact,
+		installedManifest: selection.request.InstalledManifest,
 		candidateArtifact: artifact, candidateManifest: candidate,
-		latest: request.Latest.latest, assessment: assessment, valid: true,
+		latest: selection.request.Latest.latest, assessment: selection.assessment, valid: true,
 	}
 	return sealSelection(Selection{state: SelectionAvailable, available: available, valid: true})
 }

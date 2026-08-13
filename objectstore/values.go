@@ -260,9 +260,9 @@ func (t UploadTarget) validateFor(provider Provider) error {
 	if err := validateCapability(provider, t.URL.value); err != nil {
 		return err
 	}
-	return validateCallerSignedHeaders(
-		provider, t.URL.value, t.Headers, DirectionUpload,
-	)
+	return validateCallerSignedHeaders(callerSignedHeaderValidation{
+		provider: provider, value: t.URL.value, headers: t.Headers, direction: DirectionUpload,
+	})
 }
 
 // DownloadTarget is one already-issued whole-object download capability.
@@ -303,9 +303,9 @@ func (t DownloadTarget) ValidateFor(provider Provider) error {
 	if err := validateCapability(provider, t.URL.value); err != nil {
 		return err
 	}
-	if err := validateCallerSignedHeaders(
-		provider, t.URL.value, t.Headers, DirectionDownload,
-	); err != nil {
+	if err := validateCallerSignedHeaders(callerSignedHeaderValidation{
+		provider: provider, value: t.URL.value, headers: t.Headers, direction: DirectionDownload,
+	}); err != nil {
 		return err
 	}
 	return validateDownloadSignedHeaders(provider, t)

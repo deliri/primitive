@@ -14,8 +14,16 @@ import (
 	"github.com/deliri/primitive/v2026/temporal"
 )
 
-func parseAndVerifyToken(response []byte, digest [sha256.Size]byte, nonce Nonce, authority Authority) (verifiedToken, error) {
-	tokenDER, conclusion, err := parseTimestampResponse(response)
+type timestampTokenVerification struct {
+	response  []byte
+	tokenDER  []byte
+	digest    [sha256.Size]byte
+	nonce     Nonce
+	authority Authority
+}
+
+func parseAndVerifyToken(verification timestampTokenVerification) (verifiedToken, error) {
+	tokenDER, conclusion, err := parseTimestampResponse(verification.response)
 	if err != nil {
 		return verifiedToken{}, err
 	}
@@ -26,11 +34,12 @@ func parseAndVerifyToken(response []byte, digest [sha256.Size]byte, nonce Nonce,
 		}
 		return verifiedToken{}, refusal
 	}
-	return verifyTimestampToken(tokenDER, digest, nonce, authority)
+	verification.tokenDER = tokenDER
+	return verifyTimestampToken(verification)
 }
 
-func verifyTimestampToken(tokenDER []byte, digest [sha256.Size]byte, nonce Nonce, authority Authority) (verifiedToken, error) {
-	token, err := parseTimestampToken(tokenDER)
+func verifyTimestampToken(verification timestampTokenVerification) (verifiedToken, error) {
+	token, err := parseTimestampToken(verification.tokenDER)
 	if err != nil {
 		return verifiedToken{}, invalidError(err)
 	}
@@ -38,11 +47,14 @@ func verifyTimestampToken(tokenDER []byte, digest [sha256.Size]byte, nonce Nonce
 	if err != nil {
 		return verifiedToken{}, invalidError(err)
 	}
-	policy, err := verifyTSTBinding(info, digest, nonce, authority)
+	policy, err := verifyTSTBinding(tstBindingVerification{
+		info: info, digest: verification.digest,
+		nonce: verification.nonce, authority: verification.authority,
+	})
 	if err != nil {
 		return verifiedToken{}, err
 	}
-	if err := verifyTimestampSigner(token, info.GenerationTime, authority); err != nil {
+	if err := verifyTimestampSigner(token, info.GenerationTime, verification.authority); err != nil {
 		return verifiedToken{}, invalidError(err)
 	}
 	if err := verifyTSAName(info.TSASubject, token.Signer); err != nil {
@@ -1030,16 +1042,19 @@ func validAccuracyWire(wire accuracyWire) bool {
 		wire.Micros >= 0 && wire.Micros <= 999
 }
 
-func verifyTSTBinding(
-	info parsedTSTInfo,
-	digest [sha256.Size]byte,
-	nonce Nonce,
-	authority Authority,
-) (TimestampPolicy, error) {
+type tstBindingVerification struct {
+	info      parsedTSTInfo
+	digest    [sha256.Size]byte
+	nonce     Nonce
+	authority Authority
+}
+
+func verifyTSTBinding(verification tstBindingVerification) (TimestampPolicy, error) {
+	info := verification.info
 	if info.Version != tstInfoVersion {
 		return TimestampPolicyUnknown, invalidError(nil)
 	}
-	policy, err := policyForAuthority(authority)
+	policy, err := policyForAuthority(verification.authority)
 	if err != nil || !info.Policy.Equal(policy.oid) {
 		return TimestampPolicyUnknown, invalidError(err)
 	}
@@ -1047,10 +1062,10 @@ func verifyTSTBinding(
 		len(info.MessageImprint.HashedMessage) != sha256.Size {
 		return TimestampPolicyUnknown, invalidError(nil)
 	}
-	if subtle.ConstantTimeCompare(info.MessageImprint.HashedMessage, digest[:]) != 1 {
+	if subtle.ConstantTimeCompare(info.MessageImprint.HashedMessage, verification.digest[:]) != 1 {
 		return TimestampPolicyUnknown, invalidError(nil)
 	}
-	if !nonce.matches(info.Nonce) {
+	if !verification.nonce.matches(info.Nonce) {
 		return TimestampPolicyUnknown, invalidError(nil)
 	}
 	return policy.policy, nil
@@ -1167,8 +1182,8 @@ func isUniversal(raw asn1.RawValue, tag int, compound bool) bool {
 }
 
 func derTagged(tag byte, body []byte) []byte {
-	encoded := make([]byte, 0, 1+derLengthBytes(len(body))+len(body))
-	encoded = append(encoded, tag)
+	encoded := make([]byte, 1, 1+derLengthBytes(len(body))+len(body))
+	encoded[0] = tag
 	encoded = appendDERLength(encoded, len(body))
 	return append(encoded, body...)
 }

@@ -90,15 +90,16 @@ type AttemptError struct {
 	phase     FailurePhase
 }
 
-func newAttemptError(
-	phase FailurePhase,
-	candidate core.BuildIdentity,
-	identity error,
-	causes ...error,
-) error {
+type attemptErrorRequest struct {
+	phase     FailurePhase
+	candidate core.BuildIdentity
+	identity  error
+}
+
+func newAttemptError(request attemptErrorRequest, causes ...error) error {
 	return AttemptError{
-		phase: phase, candidate: candidate,
-		cause: upgradeError(identity, causes...),
+		phase: request.phase, candidate: request.candidate,
+		cause: upgradeError(request.identity, causes...),
 	}
 }
 

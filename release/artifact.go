@@ -486,7 +486,7 @@ func artifactDigest(artifact Artifact) (core.SHA256Digest, error) {
 	if err != nil {
 		return core.SHA256Digest{}, manifestError(err)
 	}
-	return framedDigest(artifactIdentityDomain, body), nil
+	return framedDigest(artifactIdentityDomain, body)
 }
 
 // framedDigest binds a digest to one compiler-owned domain. The framing is
@@ -494,10 +494,17 @@ func artifactDigest(artifact Artifact) (core.SHA256Digest, error) {
 // NUL separator. The bounded input is assembled once and hashed through
 // Core's one whole-buffer door; every body here is already held complete
 // under this package's document ceilings, so nothing streams.
-func framedDigest(domain string, body []byte) core.SHA256Digest {
-	input := make([]byte, 0, len(domain)+1+len(body))
-	input = append(input, domain...)
-	input = append(input, 0)
-	input = append(input, body...)
-	return core.SHA256Of(input)
+func framedDigest(domain string, body []byte) (core.SHA256Digest, error) {
+	writer := core.NewDigestWriter()
+	if _, err := writer.Write([]byte(domain)); err != nil {
+		return core.SHA256Digest{}, err
+	}
+	if _, err := writer.Write([]byte{0}); err != nil {
+		return core.SHA256Digest{}, err
+	}
+	if _, err := writer.Write(body); err != nil {
+		return core.SHA256Digest{}, err
+	}
+	digest, _, err := writer.Seal()
+	return digest, err
 }

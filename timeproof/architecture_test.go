@@ -24,6 +24,8 @@ type (
 
 type timeproofContractInventory struct {
 	TimestampChainRequest      internalFlow[timestampChainRequest]
+	TimestampTokenVerification internalFlow[timestampTokenVerification]
+	TSTBindingVerification     internalFlow[tstBindingVerification]
 	MessageImprint             protocolFact[messageImprint]
 	TimestampRequestFields     internalFlow[timestampRequestFields]
 	CMSEncapsulatedContent     protocolFact[cmsEncapsulatedContent]

@@ -60,20 +60,20 @@ func Bootstrap(
 		cleanupErr := cleanupBootstrapArtifact(
 			ctx, request.Root, artifact, write,
 		)
-		return Primary{}, newAttemptError(
-			FailurePhaseBootstrap, artifact.Build(), core.ErrUpgradePersistence,
-			err, classifyAttemptCleanup(cleanupErr),
-		)
+		return Primary{}, newAttemptError(attemptErrorRequest{phase: FailurePhaseBootstrap, candidate: artifact.Build(), identity: core.ErrUpgradePersistence},
+
+			err, classifyAttemptCleanup(cleanupErr))
+
 	}
 	document := selectionDocument{
 		Revision: selectionRevisionCurrent, Slot: SlotA, Artifact: artifact,
 	}
 	if err := writeSelection(ctx, request.Root, document, filestore.InstallCreate); err != nil {
 		cleanupErr := removeArtifact(recoveryContext(ctx), request.Root, SlotA, artifact)
-		return Primary{}, newAttemptError(
-			FailurePhaseBootstrap, artifact.Build(), core.ErrUpgradePersistence,
-			err, classifyAttemptCleanup(cleanupErr),
-		)
+		return Primary{}, newAttemptError(attemptErrorRequest{phase: FailurePhaseBootstrap, candidate: artifact.Build(), identity: core.ErrUpgradePersistence},
+
+			err, classifyAttemptCleanup(cleanupErr))
+
 	}
 	return resolveCommittedPrimary(ctx, ResolveRequest{
 		Root: request.Root, Directory: request.Directory,

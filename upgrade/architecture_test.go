@@ -227,6 +227,7 @@ func TestEveryProductionStructHasADataFlowRole(t *testing.T) {
 		"stageAuthorityFacts": "authenticated release-to-selector projection",
 		"trialDocument":       "durable trial ownership fact",
 		"trialWire":           "canonical persistence wire",
+		"attemptErrorRequest": "internal failure projection request",
 	}
 	seen := make(map[string]bool, len(roles))
 	for _, source := range upgradeProductionFiles(t) {

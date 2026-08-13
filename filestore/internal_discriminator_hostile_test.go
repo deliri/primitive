@@ -41,7 +41,7 @@ func TestInternalDiscriminatorsRefuseUnknownInsteadOfSelectingBehavior(t *testin
 		if err != nil {
 			t.Fatalf("core.ParseRelativePath() error = %v, want nil", err)
 		}
-		gotErr := ensureDirectoryEntry(root, path, fs.FileMode(0o750), directoryPosition(0))
+		gotErr := ensureDirectoryEntry(directoryEntryEnsure{root: root, path: path, mode: fs.FileMode(0o750), position: directoryPosition(0)})
 		if !errors.Is(gotErr, core.ErrFilestoreContract) {
 			t.Fatalf("ensureDirectoryEntry(unknown position) error = %v, want %v", gotErr, core.ErrFilestoreContract)
 		}

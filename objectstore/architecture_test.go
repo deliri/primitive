@@ -121,7 +121,8 @@ func productionStructRole(name string) (string, bool) {
 	case "TransferEvidenceProjection":
 		return "issue-only projection of confirmed transfer evidence", true
 	case "ExactReader", "preparedUpload", "preparedDownload", "progressWriter",
-		"exchangeTarget", "streamDigests", "requestBody":
+		"exchangeTarget", "streamDigests", "requestBody", "uploadConfirmation",
+		"transferConfirmation", "callerSignedHeaderValidation":
 		return "internal streaming flow", true
 	case "providerHeader":
 		return "internal protocol field projection", true

@@ -153,42 +153,42 @@ func Promote(
 	}
 	target := request.Promotion.target
 	if current != target.prior {
-		return Primary{}, newAttemptError(
-			FailurePhasePromotion, target.candidate.Build(),
-			core.ErrUpgradeConflict, diagnosticCurrentSelection,
-		)
+		return Primary{}, newAttemptError(attemptErrorRequest{phase: FailurePhasePromotion, candidate: target.candidate.Build(), identity: core.ErrUpgradeConflict},
+
+			diagnosticCurrentSelection)
+
 	}
 	if err := requireTrialReceipt(ctx, request.Root, target); err != nil {
-		return Primary{}, newAttemptError(
-			FailurePhasePromotion, target.candidate.Build(),
-			core.ErrUpgradeConflict, err,
-		)
+		return Primary{}, newAttemptError(attemptErrorRequest{phase: FailurePhasePromotion, candidate: target.candidate.Build(), identity: core.ErrUpgradeConflict},
+
+			err)
+
 	}
 	if err := verifyArtifact(ctx, request.Root, target.slot, target.candidate); err != nil {
-		return Primary{}, newAttemptError(
-			FailurePhaseVerification, target.candidate.Build(),
-			core.ErrUpgradeVerification, err,
-		)
+		return Primary{}, newAttemptError(attemptErrorRequest{phase: FailurePhaseVerification, candidate: target.candidate.Build(), identity: core.ErrUpgradeVerification},
+
+			err)
+
 	}
 	next := selectionDocument{
 		Revision: selectionRevisionCurrent,
 		Slot:     target.slot, Artifact: target.candidate,
 	}
 	if err := writeSelection(ctx, request.Root, next, filestore.InstallReplace); err != nil {
-		return Primary{}, newAttemptError(
-			FailurePhasePersistence, target.candidate.Build(),
-			core.ErrUpgradePersistence, err,
-		)
+		return Primary{}, newAttemptError(attemptErrorRequest{phase: FailurePhasePersistence, candidate: target.candidate.Build(), identity: core.ErrUpgradePersistence},
+
+			err)
+
 	}
 	primary, err := resolveCommittedPrimary(ctx, ResolveRequest{
 		Root: request.Root, Directory: request.Directory,
 	})
 	if err != nil {
 		projected, primaryErr := newPrimary(request.Directory, next)
-		return projected, newAttemptError(
-			FailurePhasePromotion, target.candidate.Build(),
-			core.ErrUpgradePromotion, err, primaryErr,
-		)
+		return projected, newAttemptError(attemptErrorRequest{phase: FailurePhasePromotion, candidate: target.candidate.Build(), identity: core.ErrUpgradePromotion},
+
+			err, primaryErr)
+
 	}
 	// The selector is already committed, so removing the former slot must settle
 	// even when the caller's context is done. Leaving those bytes behind would
@@ -201,10 +201,10 @@ func Promote(
 		),
 	)
 	if cleanupErr != nil {
-		return primary, newAttemptError(
-			FailurePhaseCleanup, target.candidate.Build(),
-			core.ErrUpgradeCleanup, cleanupErr,
-		)
+		return primary, newAttemptError(attemptErrorRequest{phase: FailurePhaseCleanup, candidate: target.candidate.Build(), identity: core.ErrUpgradeCleanup},
+
+			cleanupErr)
+
 	}
 	return primary, nil
 }
@@ -244,34 +244,34 @@ func DiscardTrial(
 		return err
 	}
 	if current != request.Target.prior {
-		return newAttemptError(
-			FailurePhaseCleanup, request.Target.candidate.Build(),
-			core.ErrUpgradeConflict, diagnosticCurrentSelection,
-		)
+		return newAttemptError(attemptErrorRequest{phase: FailurePhaseCleanup, candidate: request.Target.candidate.Build(), identity: core.ErrUpgradeConflict},
+
+			diagnosticCurrentSelection)
+
 	}
 	if err := requireTrialReceipt(
 		ctx, request.Root, request.Target,
 	); err != nil {
-		return newAttemptError(
-			FailurePhaseCleanup, request.Target.candidate.Build(),
-			core.ErrUpgradeConflict, err,
-		)
+		return newAttemptError(attemptErrorRequest{phase: FailurePhaseCleanup, candidate: request.Target.candidate.Build(), identity: core.ErrUpgradeConflict},
+
+			err)
+
 	}
 	if err := verifyArtifact(
 		ctx, request.Root, request.Target.slot, request.Target.candidate,
 	); err != nil {
-		return newAttemptError(
-			FailurePhaseVerification, request.Target.candidate.Build(),
-			core.ErrUpgradeVerification, err,
-		)
+		return newAttemptError(attemptErrorRequest{phase: FailurePhaseVerification, candidate: request.Target.candidate.Build(), identity: core.ErrUpgradeVerification},
+
+			err)
+
 	}
 	if err := removeArtifact(
 		ctx, request.Root, request.Target.slot, request.Target.candidate,
 	); err != nil {
-		return newAttemptError(
-			FailurePhaseCleanup, request.Target.candidate.Build(),
-			core.ErrUpgradeCleanup, err,
-		)
+		return newAttemptError(attemptErrorRequest{phase: FailurePhaseCleanup, candidate: request.Target.candidate.Build(), identity: core.ErrUpgradeCleanup},
+
+			err)
+
 	}
 	return nil
 }

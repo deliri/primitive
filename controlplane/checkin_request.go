@@ -144,9 +144,10 @@ func (r CheckInRequest) Validate() error {
 	if err := r.Payload.Validate(); err != nil {
 		return checkInError(err)
 	}
-	return validateCheckInDocument(
-		r.Payload.checkInBinding(), r.Certificate, r.Attestation, r.Payload.AttestationDomain(),
-	)
+	return validateCheckInDocument(checkInDocumentValidation{
+		binding: r.Payload.checkInBinding(), certificate: r.Certificate,
+		attestation: r.Attestation, domain: r.Payload.AttestationDomain(),
+	})
 }
 
 // MarshalJSON emits one bounded canonical request.

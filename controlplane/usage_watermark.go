@@ -78,7 +78,13 @@ func NewInitialUsageWatermark(subject lease.Subject) (UsageWatermark, error) {
 	if err != nil {
 		return UsageWatermark{}, usageWatermarkError(err)
 	}
-	digest := usageDomainDigest(usageWatermarkGenesisDomain, encoded)
+	digest, err := usageDomainDigest(usageDigestRequest{
+		domain: usageWatermarkGenesisDomain,
+		first:  encoded,
+	})
+	if err != nil {
+		return UsageWatermark{}, usageWatermarkError(err)
+	}
 	watermark := UsageWatermark{
 		Subject: subject, Generation: generation,
 		WindowDigest: digest,
@@ -113,18 +119,29 @@ func AdvanceUsageWatermark(current UsageWatermark, window UsageWindow) (UsageWat
 	if err != nil {
 		return UsageWatermark{}, usageWatermarkError(err)
 	}
-	windowDigest := usageDomainDigest(usageWatermarkWindowDomain, canonicalWindow)
+	windowDigest, err := usageDomainDigest(usageDigestRequest{
+		domain: usageWatermarkWindowDomain,
+		first:  canonicalWindow,
+	})
+	if err != nil {
+		return UsageWatermark{}, usageWatermarkError(err)
+	}
 	windowBytes, err := windowDigest.Bytes()
 	if err != nil {
 		return UsageWatermark{}, usageWatermarkError(err)
 	}
-	chainInput := make([]byte, 0, len(previousChain)+len(windowBytes))
-	chainInput = append(chainInput, previousChain[:]...)
-	chainInput = append(chainInput, windowBytes[:]...)
+	chainDigest, err := usageDomainDigest(usageDigestRequest{
+		domain: usageWatermarkChainDomain,
+		first:  previousChain[:],
+		second: windowBytes[:],
+	})
+	if err != nil {
+		return UsageWatermark{}, usageWatermarkError(err)
+	}
 	next := UsageWatermark{
 		Subject: current.Subject, Generation: generation,
 		WindowDigest: windowDigest,
-		ChainDigest:  usageDomainDigest(usageWatermarkChainDomain, chainInput),
+		ChainDigest:  chainDigest,
 	}
 	return next, next.Validate()
 }
@@ -148,12 +165,28 @@ func nextUsageGeneration(current lease.Generation) (lease.Generation, error) {
 // usageDomainDigest binds a digest to one exact domain, so a genesis, window,
 // or chain digest can never be presented as one of the others. The bounded
 // input is assembled once and hashed through Core's one whole-buffer door.
-func usageDomainDigest(domain string, body []byte) core.SHA256Digest {
-	input := make([]byte, 0, len(domain)+1+len(body))
-	input = append(input, domain...)
-	input = append(input, usageDigestDomainSeparator)
-	input = append(input, body...)
-	return core.SHA256Of(input)
+type usageDigestRequest struct {
+	domain string
+	first  []byte
+	second []byte
+}
+
+func usageDomainDigest(request usageDigestRequest) (core.SHA256Digest, error) {
+	writer := core.NewDigestWriter()
+	if _, err := writer.Write([]byte(request.domain)); err != nil {
+		return core.SHA256Digest{}, err
+	}
+	if _, err := writer.Write([]byte{usageDigestDomainSeparator}); err != nil {
+		return core.SHA256Digest{}, err
+	}
+	if _, err := writer.Write(request.first); err != nil {
+		return core.SHA256Digest{}, err
+	}
+	if _, err := writer.Write(request.second); err != nil {
+		return core.SHA256Digest{}, err
+	}
+	digest, _, err := writer.Seal()
+	return digest, err
 }
 
 // MarshalJSON emits the complete validated watermark.

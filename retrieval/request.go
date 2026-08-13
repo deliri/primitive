@@ -260,11 +260,21 @@ func CommitRequest(payload RequestPayload) (RequestCommitment, error) {
 	if err != nil {
 		return RequestCommitment{}, err
 	}
-	framed := make([]byte, 0, len(requestCommitmentDomain)+1+len(encoded))
-	framed = append(framed, requestCommitmentDomain...)
-	framed = append(framed, requestCommitmentSeparator)
-	framed = append(framed, encoded...)
-	return newRequestCommitment(core.SHA256Of(framed))
+	writer := core.NewDigestWriter()
+	if _, err := writer.Write([]byte(requestCommitmentDomain)); err != nil {
+		return RequestCommitment{}, contractError(err)
+	}
+	if _, err := writer.Write([]byte{requestCommitmentSeparator}); err != nil {
+		return RequestCommitment{}, contractError(err)
+	}
+	if _, err := writer.Write(encoded); err != nil {
+		return RequestCommitment{}, contractError(err)
+	}
+	digest, _, err := writer.Seal()
+	if err != nil {
+		return RequestCommitment{}, contractError(err)
+	}
+	return newRequestCommitment(digest)
 }
 
 func newRequestCommitment(digest core.SHA256Digest) (RequestCommitment, error) {

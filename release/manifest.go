@@ -317,7 +317,7 @@ func manifestFactDigest(f ManifestFact) (core.SHA256Digest, error) {
 	if err != nil {
 		return core.SHA256Digest{}, manifestError(err)
 	}
-	return framedDigest(manifestIdentityDomain, body), nil
+	return framedDigest(manifestIdentityDomain, body)
 }
 
 // ManifestDocument is an untrusted fact and structural Attest envelope.

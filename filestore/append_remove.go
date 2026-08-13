@@ -86,20 +86,14 @@ func createAppend(request AppendRequest) (*os.File, error) {
 	}
 	createdInfo, err := file.Stat()
 	if err != nil {
-		return nil, abandonCreatedFile(
-			request.Location,
-			file,
-			nil,
-			activationError(err),
-		)
+		return nil, abandonCreatedFile(createdFileAbandonment{
+			location: request.Location, file: file, primary: activationError(err),
+		})
 	}
 	if err := prepareCreatedAppend(request, file); err != nil {
-		return nil, abandonCreatedFile(
-			request.Location,
-			file,
-			createdInfo,
-			err,
-		)
+		return nil, abandonCreatedFile(createdFileAbandonment{
+			location: request.Location, file: file, expected: createdInfo, primary: err,
+		})
 	}
 	return file, nil
 }

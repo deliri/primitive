@@ -72,12 +72,9 @@ func Stage(ctx context.Context, request StageRequest) (StagedFile, error) {
 	}
 	createdInfo, err := file.Stat()
 	if err != nil {
-		return StagedFile{}, abandonCreatedFile(
-			request.Temporary,
-			file,
-			nil,
-			activationError(err),
-		)
+		return StagedFile{}, abandonCreatedFile(createdFileAbandonment{
+			location: request.Temporary, file: file, primary: activationError(err),
+		})
 	}
 	staged, err := finishStage(ctx, request, file, createdInfo)
 	if err != nil {
@@ -93,60 +90,55 @@ func finishStage(
 	createdInfo fs.FileInfo,
 ) (StagedFile, error) {
 	if err := file.Chmod(request.Mode); err != nil {
-		return StagedFile{}, abandonCreatedFile(
-			request.Temporary, file, createdInfo,
-			activationError(err),
-		)
+		return StagedFile{}, abandonCreatedFile(createdFileAbandonment{
+			location: request.Temporary, file: file, expected: createdInfo, primary: activationError(err),
+		})
 	}
-	written, err := copyBounded(
-		ctx,
-		file,
-		request.Source,
-		request.MaximumBytes,
-		streamDestinationFile,
-	)
+	written, err := copyBounded(boundedCopyRequest{
+		ctx: ctx, destination: file, source: request.Source,
+		maximum: request.MaximumBytes, kind: streamDestinationFile,
+	})
 	if err != nil {
-		return StagedFile{}, abandonCreatedFile(
-			request.Temporary, file, createdInfo, err,
-		)
+		return StagedFile{}, abandonCreatedFile(createdFileAbandonment{
+			location: request.Temporary, file: file, expected: createdInfo, primary: err,
+		})
 	}
-	return synchronizeStage(request, file, createdInfo, written)
+	return synchronizeStage(stageSynchronization{
+		request: request, file: file, createdInfo: createdInfo, written: written,
+	})
 }
 
-func synchronizeStage(
-	request StageRequest,
-	file *os.File,
-	createdInfo fs.FileInfo,
-	written core.ByteLength,
-) (StagedFile, error) {
+type stageSynchronization struct {
+	request     StageRequest
+	file        *os.File
+	createdInfo fs.FileInfo
+	written     core.ByteLength
+}
+
+func synchronizeStage(stage stageSynchronization) (StagedFile, error) {
+	request, file, createdInfo, written := stage.request, stage.file, stage.createdInfo, stage.written
 	if err := file.Sync(); err != nil {
-		return StagedFile{}, abandonCreatedFile(
-			request.Temporary, file, createdInfo,
-			activationError(err),
-		)
+		return StagedFile{}, abandonCreatedFile(createdFileAbandonment{
+			location: request.Temporary, file: file, expected: createdInfo, primary: activationError(err),
+		})
 	}
 	completedInfo, err := file.Stat()
 	if err != nil {
-		return StagedFile{}, abandonCreatedFile(
-			request.Temporary, file, createdInfo,
-			activationError(err),
-		)
+		return StagedFile{}, abandonCreatedFile(createdFileAbandonment{
+			location: request.Temporary, file: file, expected: createdInfo, primary: activationError(err),
+		})
 	}
 	if err := file.Close(); err != nil {
-		return StagedFile{}, cleanupCreatedPath(
-			request.Temporary.Root,
-			request.Temporary.Path,
-			createdInfo,
-			activationError(err),
-		)
+		return StagedFile{}, cleanupCreatedPath(createdPathCleanup{
+			root: request.Temporary.Root, path: request.Temporary.Path,
+			expected: createdInfo, primary: activationError(err),
+		})
 	}
 	if err := syncParent(request.Temporary.Root, request.Temporary.Path); err != nil {
-		return StagedFile{}, cleanupCreatedPath(
-			request.Temporary.Root,
-			request.Temporary.Path,
-			createdInfo,
-			activationError(err),
-		)
+		return StagedFile{}, cleanupCreatedPath(createdPathCleanup{
+			root: request.Temporary.Root, path: request.Temporary.Path,
+			expected: createdInfo, primary: activationError(err),
+		})
 	}
 	return StagedFile{
 		root:  request.Temporary.Root,
@@ -411,29 +403,31 @@ func classifyCreateError(err error) error {
 	return activationError(err)
 }
 
-func abandonCreatedFile(
-	location Location,
-	file *os.File,
-	expected fs.FileInfo,
-	primary error,
-) error {
-	closeErr := file.Close()
-	return cleanupCreatedPath(
-		location.Root,
-		location.Path,
-		expected,
-		errors.Join(primary, classifyOptionalActivationError(closeErr)),
-	)
+type createdFileAbandonment struct {
+	location Location
+	file     *os.File
+	expected fs.FileInfo
+	primary  error
 }
 
-func cleanupCreatedPath(
-	root *os.Root,
-	path core.RelativePath,
-	expected fs.FileInfo,
-	primary error,
-) error {
-	cleanupErr := removeExpectedPath(root, path, expected)
-	return errors.Join(primary, cleanupErr)
+func abandonCreatedFile(request createdFileAbandonment) error {
+	closeErr := request.file.Close()
+	return cleanupCreatedPath(createdPathCleanup{
+		root: request.location.Root, path: request.location.Path, expected: request.expected,
+		primary: errors.Join(request.primary, classifyOptionalActivationError(closeErr)),
+	})
+}
+
+type createdPathCleanup struct {
+	root     *os.Root
+	path     core.RelativePath
+	expected fs.FileInfo
+	primary  error
+}
+
+func cleanupCreatedPath(request createdPathCleanup) error {
+	cleanupErr := removeExpectedPath(request.root, request.path, request.expected)
+	return errors.Join(request.primary, cleanupErr)
 }
 
 func removeExpectedPath(root *os.Root, path core.RelativePath, expected fs.FileInfo) error {

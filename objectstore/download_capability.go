@@ -299,11 +299,15 @@ func deriveDownloadCapabilityCommitment(provider Provider, target DownloadTarget
 	if err != nil {
 		return DownloadCapabilityCommitment{}, err
 	}
-	input := make([]byte, 0, len(DownloadCapabilityCommitmentDomain)+1+len(encoded))
-	input = append(input, DownloadCapabilityCommitmentDomain...)
-	input = append(input, DownloadCapabilityCommitmentFrameSeparator)
-	input = append(input, encoded...)
-	return newDownloadCapabilityCommitment(core.SHA256Of(input))
+	digest, err := capabilityCommitmentDigest(
+		DownloadCapabilityCommitmentDomain,
+		DownloadCapabilityCommitmentFrameSeparator,
+		encoded,
+	)
+	if err != nil {
+		return DownloadCapabilityCommitment{}, errors.Join(core.ErrObjectStoreContract, err)
+	}
+	return newDownloadCapabilityCommitment(digest)
 }
 
 var (

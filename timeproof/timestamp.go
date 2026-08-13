@@ -69,10 +69,10 @@ func Verify(request VerifyRequest) (AuthoritativeTimestamp, error) {
 	if err != nil {
 		return AuthoritativeTimestamp{}, contractError(err)
 	}
-	token, err := parseAndVerifyToken(
-		request.Response, digest, request.Request.Nonce(),
-		request.Request.Authority(),
-	)
+	token, err := parseAndVerifyToken(timestampTokenVerification{
+		response: request.Response, digest: digest,
+		nonce: request.Request.Nonce(), authority: request.Request.Authority(),
+	})
 	if err != nil {
 		return AuthoritativeTimestamp{}, err
 	}

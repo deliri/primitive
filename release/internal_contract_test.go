@@ -107,6 +107,8 @@ type releaseContractInventory struct {
 	RefreshDirective                  protocolFact[RefreshDirective]
 	ReassessDirective                 protocolFact[ReassessDirective]
 	Selection                         capabilityWrapper[Selection]
+	selectionComparison               internalFlow[selectionComparison]
+	currentSelection                  internalFlow[currentSelection]
 	PreparedRelease                   capabilityWrapper[PreparedRelease]
 	Preparation                       capabilityWrapper[Preparation]
 	OfferingMismatchError             failureDetail[OfferingMismatchError]
@@ -146,6 +148,8 @@ var (
 	_ = releaseContractInventory{}.repositoryIndexWriter
 	_ = releaseContractInventory{}.materialRequestWire
 	_ = releaseContractInventory{}.materialResponseWire
+	_ = releaseContractInventory{}.selectionComparison
+	_ = releaseContractInventory{}.currentSelection
 )
 
 func TestProductionStructsHaveCompilerVisibleDataFlowRoles(t *testing.T) {

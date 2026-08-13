@@ -205,12 +205,10 @@ func (c Client) upload(
 		result.commitment = uploadFailureCommitment(transferErr, prepared.exact)
 		return result, projectFailure(transferErr, DirectionUpload)
 	}
-	return confirmUpload(
-		result,
-		request.Integrity,
-		prepared,
-		response.Metadata.Headers,
-	)
+	return confirmUpload(uploadConfirmation{
+		result: result, expected: request.Integrity,
+		prepared: prepared, headers: response.Metadata.Headers,
+	})
 }
 
 // DownloadS3 performs one exact, single-attempt whole-object Amazon S3
@@ -263,12 +261,10 @@ func (c Client) download(
 		result.commitment = CommitmentRejected
 		return result, err
 	}
-	return confirmDownload(
-		result,
-		request.Integrity,
-		prepared.digests,
-		response.Metadata.Headers,
-	)
+	return confirmDownload(transferConfirmation{
+		result: result, expected: request.Integrity,
+		digests: prepared.digests, headers: response.Metadata.Headers,
+	})
 }
 
 type preparedDownload struct {
@@ -411,20 +407,25 @@ func uploadBody(
 	return requestBody{}, core.ErrObjectStoreContract
 }
 
-func confirmUpload(
-	result Transfer,
-	expected Integrity,
-	prepared preparedUpload,
-	headers exchange.CapturedHeaders,
-) (Transfer, error) {
-	if !prepared.exact.verified {
-		result.commitment = CommitmentRejected
-		return result, errors.Join(
+type uploadConfirmation struct {
+	result   Transfer
+	expected Integrity
+	prepared preparedUpload
+	headers  exchange.CapturedHeaders
+}
+
+func confirmUpload(confirmation uploadConfirmation) (Transfer, error) {
+	if !confirmation.prepared.exact.verified {
+		confirmation.result.commitment = CommitmentRejected
+		return confirmation.result, errors.Join(
 			core.ErrObjectStoreContract,
 			coreSourceIntegrity(),
 		)
 	}
-	return confirmTransfer(result, expected, prepared.digests, headers)
+	return confirmTransfer(transferConfirmation{
+		result: confirmation.result, expected: confirmation.expected,
+		digests: confirmation.prepared.digests, headers: confirmation.headers,
+	})
 }
 
 // confirmDownload compares the local streaming CRC32C with the checksum the
@@ -432,47 +433,45 @@ func confirmUpload(
 // extent and digest proof every direction shares. The caller-supplied expected
 // digests and Objectstore's local digests come from one algorithm, so the
 // provider value is the only independent witness available.
-func confirmDownload(
-	result Transfer,
-	expected Integrity,
-	digests streamDigests,
-	headers exchange.CapturedHeaders,
-) (Transfer, error) {
-	_, local, err := digests.values()
-	if err != nil {
-		result.commitment = CommitmentRejected
-		return result, err
-	}
-	remote, present, err := providerDownloadCRC32C(headers, result.provider)
-	if err != nil {
-		result.commitment = CommitmentRejected
-		return result, err
-	}
-	if present && remote != local {
-		result.commitment = CommitmentRejected
-		return result, core.ErrObjectStoreIntegrity
-	}
-	return confirmTransfer(result, expected, digests, headers)
+type transferConfirmation struct {
+	result   Transfer
+	expected Integrity
+	digests  streamDigests
+	headers  exchange.CapturedHeaders
 }
 
-func confirmTransfer(
-	result Transfer,
-	expected Integrity,
-	digests streamDigests,
-	headers exchange.CapturedHeaders,
-) (Transfer, error) {
-	shaValue, crcValue, err := digests.values()
+func confirmDownload(confirmation transferConfirmation) (Transfer, error) {
+	_, local, err := confirmation.digests.values()
 	if err != nil {
-		result.commitment = CommitmentRejected
-		return result, err
+		confirmation.result.commitment = CommitmentRejected
+		return confirmation.result, err
 	}
-	if result.bytes != expected.Length ||
-		shaValue != expected.SHA256 ||
-		crcValue != expected.CRC32C {
-		result.commitment = CommitmentRejected
-		return result, core.ErrObjectStoreIntegrity
+	remote, present, err := providerDownloadCRC32C(confirmation.headers, confirmation.result.provider)
+	if err != nil {
+		confirmation.result.commitment = CommitmentRejected
+		return confirmation.result, err
 	}
-	version, present, err := capturedVersion(headers, result.provider)
+	if present && remote != local {
+		confirmation.result.commitment = CommitmentRejected
+		return confirmation.result, core.ErrObjectStoreIntegrity
+	}
+	return confirmTransfer(confirmation)
+}
+
+func confirmTransfer(confirmation transferConfirmation) (Transfer, error) {
+	result := confirmation.result
+	shaValue, crcValue, err := confirmation.digests.values()
+	if err != nil {
+		confirmation.result.commitment = CommitmentRejected
+		return confirmation.result, err
+	}
+	if confirmation.result.bytes != confirmation.expected.Length ||
+		shaValue != confirmation.expected.SHA256 ||
+		crcValue != confirmation.expected.CRC32C {
+		confirmation.result.commitment = CommitmentRejected
+		return confirmation.result, core.ErrObjectStoreIntegrity
+	}
+	version, present, err := capturedVersion(confirmation.headers, confirmation.result.provider)
 	if err != nil {
 		result.commitment = invalidResponseCommitment(result.direction)
 		return result, err

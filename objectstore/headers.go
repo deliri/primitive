@@ -123,19 +123,21 @@ func validateProviderSignedHeaders(
 	return nil
 }
 
-func validateCallerSignedHeaders(
-	provider Provider,
-	value url.URL,
-	headers SignedHeaders,
-	direction Direction,
-) error {
-	if provider == ProviderCloudflareImages {
-		if len(headers.values) != 0 {
+type callerSignedHeaderValidation struct {
+	provider  Provider
+	value     url.URL
+	headers   SignedHeaders
+	direction Direction
+}
+
+func validateCallerSignedHeaders(validation callerSignedHeaderValidation) error {
+	if validation.provider == ProviderCloudflareImages {
+		if len(validation.headers.values) != 0 {
 			return core.ErrObjectStoreContract
 		}
 		return nil
 	}
-	signed, err := providerSignedHeaderDeclaration(provider, value.Query())
+	signed, err := providerSignedHeaderDeclaration(validation.provider, validation.value.Query())
 	if err != nil {
 		return err
 	}
@@ -143,12 +145,12 @@ func validateCallerSignedHeaders(
 	if err != nil {
 		return err
 	}
-	for _, header := range headers.values {
+	for _, header := range validation.headers.values {
 		if !declaration.contains(header.name) {
 			return core.ErrObjectStoreContract
 		}
 	}
-	sent, err := sentRequestHeaderNames(provider, direction, headers)
+	sent, err := sentRequestHeaderNames(validation.provider, validation.direction, validation.headers)
 	if err != nil {
 		return err
 	}

@@ -161,9 +161,9 @@ func CompleteTrial(report TrialReport) (Promotion, error) {
 		return Promotion{}, err
 	}
 	if report.Outcome != TrialPassed {
-		return Promotion{}, newAttemptError(
-			FailurePhaseTrial, report.Observed, core.ErrUpgradeTrial,
-		)
+		return Promotion{}, newAttemptError(attemptErrorRequest{
+			phase: FailurePhaseTrial, candidate: report.Observed, identity: core.ErrUpgradeTrial,
+		})
 	}
 	return Promotion{
 		target: report.Target, observation: report.Observation, valid: true,

@@ -78,33 +78,32 @@ func EnsureDirectory(ctx context.Context, request DirectoryRequest) error {
 		if index == len(components)-1 {
 			position = directoryFinal
 		}
-		if err := ensureDirectoryEntry(
-			request.Location.Root,
-			path,
-			request.Mode,
-			position,
-		); err != nil {
+		if err := ensureDirectoryEntry(directoryEntryEnsure{
+			root: request.Location.Root, path: path, mode: request.Mode, position: position,
+		}); err != nil {
 			return err
 		}
 	}
 	return nil
 }
 
-func ensureDirectoryEntry(
-	root *os.Root,
-	path core.RelativePath,
-	mode fs.FileMode,
-	position directoryPosition,
-) error {
-	if err := position.Validate(); err != nil {
+type directoryEntryEnsure struct {
+	root     *os.Root
+	path     core.RelativePath
+	mode     fs.FileMode
+	position directoryPosition
+}
+
+func ensureDirectoryEntry(request directoryEntryEnsure) error {
+	if err := request.position.Validate(); err != nil {
 		return err
 	}
-	err := root.Mkdir(path.String(), mode)
+	err := request.root.Mkdir(request.path.String(), request.mode)
 	if err == nil {
-		if err := synchronizeDirectoryMode(root, path, mode); err != nil {
+		if err := synchronizeDirectoryMode(request.root, request.path, request.mode); err != nil {
 			return activationError(err)
 		}
-		if err := syncParent(root, path); err != nil {
+		if err := syncParent(request.root, request.path); err != nil {
 			return activationError(err)
 		}
 		return nil
@@ -112,13 +111,13 @@ func ensureDirectoryEntry(
 	if !errors.Is(err, fs.ErrExist) {
 		return activationError(err)
 	}
-	if position == directoryFinal {
-		if err := synchronizeDirectoryMode(root, path, mode); err != nil {
+	if request.position == directoryFinal {
+		if err := synchronizeDirectoryMode(request.root, request.path, request.mode); err != nil {
 			return activationError(err)
 		}
 		return nil
 	}
-	return validateExistingDirectory(root, path)
+	return validateExistingDirectory(request.root, request.path)
 }
 
 var (
@@ -190,13 +189,10 @@ func Read(ctx context.Context, request ReadRequest) (core.ByteLength, error) {
 	if err != nil {
 		return core.ByteLength{}, err
 	}
-	count, copyErr := copyBounded(
-		ctx,
-		request.Destination,
-		file,
-		request.MaximumBytes,
-		streamDestinationCaller,
-	)
+	count, copyErr := copyBounded(boundedCopyRequest{
+		ctx: ctx, destination: request.Destination, source: file,
+		maximum: request.MaximumBytes, kind: streamDestinationCaller,
+	})
 	closeErr := file.Close()
 	if closeErr != nil {
 		closeErr = sourceError(closeErr)

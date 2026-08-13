@@ -39,10 +39,10 @@ func OpenStageDestination(ctx context.Context, request StageDestinationRequest) 
 	}
 	created, err := file.Stat()
 	if err != nil {
-		return nil, abandonCreatedFile(request.Temporary, file, nil, activationError(err))
+		return nil, abandonCreatedFile(createdFileAbandonment{location: request.Temporary, file: file, primary: activationError(err)})
 	}
 	if err := file.Chmod(request.Mode); err != nil {
-		return nil, abandonCreatedFile(request.Temporary, file, created, activationError(err))
+		return nil, abandonCreatedFile(createdFileAbandonment{location: request.Temporary, file: file, expected: created, primary: activationError(err)})
 	}
 	destination := &StageDestination{file: file, created: created, request: request}
 	destination.self = destination
@@ -138,18 +138,16 @@ func (d *StageDestination) fail(primary error) error {
 	if err := d.Validate(); err != nil {
 		return errors.Join(primary, err)
 	}
-	cleanupErr := abandonCreatedFile(d.request.Temporary, d.file, d.created, primary)
+	cleanupErr := abandonCreatedFile(createdFileAbandonment{location: d.request.Temporary, file: d.file, expected: d.created, primary: primary})
 	d.release()
 	return cleanupErr
 }
 
 func (d *StageDestination) cleanupClosed(primary error) error {
-	cleanupErr := cleanupCreatedPath(
-		d.request.Temporary.Root,
-		d.request.Temporary.Path,
-		d.created,
-		primary,
-	)
+	cleanupErr := cleanupCreatedPath(createdPathCleanup{
+		root: d.request.Temporary.Root, path: d.request.Temporary.Path,
+		expected: d.created, primary: primary,
+	})
 	d.release()
 	return cleanupErr
 }

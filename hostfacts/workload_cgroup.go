@@ -517,7 +517,8 @@ type boundedLineScan struct {
 
 func (s boundedLineScan) run(ctx context.Context) error {
 	var readBuffer [streamBufferBytes]byte
-	line := make([]byte, 0, procLineMaximumBytes)
+	var lineStorage [procLineMaximumBytes]byte
+	line := lineStorage[:0]
 	total, emptyReads := uint64(0), 0
 	for {
 		if err := contextstate.Validate(ctx); err != nil {
@@ -688,7 +689,11 @@ func validCgroupPath(value string) bool {
 }
 
 func decodeMountInfoPath(value string) (string, error) {
-	decoded := make([]byte, 0, len(value))
+	if len(value) > procLineMaximumBytes {
+		return "", core.ErrHostFactsObservation
+	}
+	var decodedStorage [procLineMaximumBytes]byte
+	decoded := decodedStorage[:0]
 	for index := 0; index < len(value); {
 		if value[index] != '\\' {
 			decoded = append(decoded, value[index])

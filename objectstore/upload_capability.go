@@ -508,11 +508,34 @@ func deriveUploadCapabilityCommitment(
 	if err != nil {
 		return UploadCapabilityCommitment{}, err
 	}
-	input := make([]byte, 0, len(UploadCapabilityCommitmentDomain)+1+len(encoded))
-	input = append(input, UploadCapabilityCommitmentDomain...)
-	input = append(input, UploadCapabilityCommitmentFrameSeparator)
-	input = append(input, encoded...)
-	return newUploadCapabilityCommitment(core.SHA256Of(input))
+	digest, err := capabilityCommitmentDigest(
+		UploadCapabilityCommitmentDomain,
+		UploadCapabilityCommitmentFrameSeparator,
+		encoded,
+	)
+	if err != nil {
+		return UploadCapabilityCommitment{}, errors.Join(core.ErrObjectStoreContract, err)
+	}
+	return newUploadCapabilityCommitment(digest)
+}
+
+func capabilityCommitmentDigest(
+	domain string,
+	separator byte,
+	encoded []byte,
+) (core.SHA256Digest, error) {
+	writer := core.NewDigestWriter()
+	if _, err := writer.Write([]byte(domain)); err != nil {
+		return core.SHA256Digest{}, err
+	}
+	if _, err := writer.Write([]byte{separator}); err != nil {
+		return core.SHA256Digest{}, err
+	}
+	if _, err := writer.Write(encoded); err != nil {
+		return core.SHA256Digest{}, err
+	}
+	digest, _, err := writer.Seal()
+	return digest, err
 }
 
 func projectUploadCapabilityWire(

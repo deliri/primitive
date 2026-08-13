@@ -198,16 +198,11 @@ func buildRequest(digest core.SHA256Digest, nonce Nonce) ([]byte, error) {
 	if err != nil {
 		return nil, err
 	}
-	body := make(
-		[]byte,
-		0,
-		len(fields.version)+len(fields.imprint)+
-			len(fields.nonce)+len(fields.certReq),
-	)
-	body = append(body, fields.version...)
-	body = append(body, fields.imprint...)
-	body = append(body, fields.nonce...)
-	body = append(body, fields.certReq...)
+	body := make([]byte, len(fields.version)+len(fields.imprint)+len(fields.nonce)+len(fields.certReq))
+	offset := copy(body, fields.version)
+	offset += copy(body[offset:], fields.imprint)
+	offset += copy(body[offset:], fields.nonce)
+	copy(body[offset:], fields.certReq)
 	encoded := derTagged(byte(asn1.TagSequence)|derConstructed, body)
 	if len(encoded) == 0 || len(encoded) > RequestMaximumBytes {
 		return nil, contractError(core.ErrExchangeBodyLimit)

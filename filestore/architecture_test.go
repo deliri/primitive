@@ -18,6 +18,7 @@ type (
 	ownershipReceipt[T any]    struct{}
 	streamedObservation[T any] struct{}
 	boundedFact[T any]         struct{}
+	internalFlow[T any]        struct{}
 )
 
 type architectureScan struct {
@@ -52,13 +53,25 @@ type filestoreContractInventory struct {
 	WalkEntry               streamedObservation[WalkEntry]
 	// One observation of a path, made before any effect and carrying no
 	// capability over it.
-	Inspection            streamedObservation[Inspection]
-	DirectoryEntryMaximum boundedFact[DirectoryEntryMaximum]
-	StagedFile            ownershipReceipt[StagedFile]
-	StageDestination      capabilityWrapper[StageDestination]
+	Inspection             streamedObservation[Inspection]
+	DirectoryEntryMaximum  boundedFact[DirectoryEntryMaximum]
+	StagedFile             ownershipReceipt[StagedFile]
+	StageDestination       capabilityWrapper[StageDestination]
+	directoryEntryEnsure   internalFlow[directoryEntryEnsure]
+	boundedCopyRequest     internalFlow[boundedCopyRequest]
+	stageSynchronization   internalFlow[stageSynchronization]
+	createdFileAbandonment internalFlow[createdFileAbandonment]
+	createdPathCleanup     internalFlow[createdPathCleanup]
 }
 
-var _ = filestoreContractInventory{}
+var (
+	_ = filestoreContractInventory{}
+	_ = filestoreContractInventory{}.directoryEntryEnsure
+	_ = filestoreContractInventory{}.boundedCopyRequest
+	_ = filestoreContractInventory{}.stageSynchronization
+	_ = filestoreContractInventory{}.createdFileAbandonment
+	_ = filestoreContractInventory{}.createdPathCleanup
+)
 
 func TestFilestorePublicSurfaceIsExactRatchet(t *testing.T) {
 	t.Parallel()

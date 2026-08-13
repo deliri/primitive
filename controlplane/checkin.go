@@ -58,21 +58,23 @@ func validateUsageFreshness(bounds temporal.IntervalBounds, freshness temporal.I
 // validateCheckInDocument closes a complete check-in: the binding, the
 // credential it presents, its signature envelope, and the agreement between
 // them.
-func validateCheckInDocument(
-	binding checkInBinding,
-	certificate InstallationCertificateDocument,
-	attestation attest.Envelope[SigningDomain],
-	domain SigningDomain,
-) error {
+type checkInDocumentValidation struct {
+	binding     checkInBinding
+	certificate InstallationCertificateDocument
+	attestation attest.Envelope[SigningDomain]
+	domain      SigningDomain
+}
+
+func validateCheckInDocument(request checkInDocumentValidation) error {
 	if err := errors.Join(
-		binding.Validate(), certificate.Validate(),
-		attestation.Validate(), domain.Validate(),
+		request.binding.Validate(), request.certificate.Validate(),
+		request.attestation.Validate(), request.domain.Validate(),
 	); err != nil {
 		return checkInError(err)
 	}
-	if certificate.Body.Subject != binding.Subject ||
-		certificate.Body.Build != binding.Build ||
-		attestation.Domain != domain {
+	if request.certificate.Body.Subject != request.binding.Subject ||
+		request.certificate.Body.Build != request.binding.Build ||
+		request.attestation.Domain != request.domain {
 		return consistencyError()
 	}
 	return nil

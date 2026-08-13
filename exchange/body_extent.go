@@ -60,19 +60,13 @@ func (d declaredBodyLength) exceedsLimit(limit core.ByteCount) (bool, error) {
 }
 
 func (d declaredBodyLength) reservedExtent(limit core.ByteCount) (int, error) {
-	exceeds, err := d.exceedsLimit(limit)
+	_, err := d.exceedsLimit(limit)
 	if err != nil {
 		return 0, err
 	}
-	if !d.present {
-		return 0, nil
-	}
-	value := d.length.Uint64()
-	if exceeds {
-		value, err = limit.Uint64()
-		if err != nil {
-			return 0, errors.Join(core.ErrExchangeContract, err)
-		}
+	value, err := limit.Uint64()
+	if err != nil {
+		return 0, errors.Join(core.ErrExchangeContract, err)
 	}
 	if value > math.MaxInt {
 		return 0, errors.Join(core.ErrExchangeContract, core.ErrNumericOverflow)

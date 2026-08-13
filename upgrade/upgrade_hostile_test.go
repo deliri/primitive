@@ -1237,9 +1237,9 @@ func TestAttemptErrorNamesCandidateWithoutRenderingItsNativeCause(t *testing.T) 
 
 	candidate := artifactForTest(t, []byte("candidate"), 2).Build()
 	native := errors.New("https://signed.example.invalid/private-token")
-	got := newAttemptError(
-		FailurePhaseDownload, candidate, core.ErrUpgradeDownload, native,
-	)
+	got := newAttemptError(attemptErrorRequest{phase: FailurePhaseDownload, candidate: candidate, identity: core.ErrUpgradeDownload},
+		native)
+
 	var attempt AttemptError
 	if !errors.As(got, &attempt) ||
 		!errors.Is(got, core.ErrUpgradeDownload) ||

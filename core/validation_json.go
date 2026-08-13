@@ -417,26 +417,32 @@ func rejectDuplicateJSONFieldsWithFields(
 		if err != nil {
 			return jsonContractError("json token scan failed", err)
 		}
-		stack, err = scanStrictJSONToken(stack, token, limits, fields)
+		stack, err = scanStrictJSONToken(strictJSONTokenScan{
+			stack: stack, token: token, limits: limits, fields: fields,
+		})
 		if err != nil {
 			return err
 		}
 	}
 }
 
-func scanStrictJSONToken(
-	stack []strictJSONContainer,
-	token json.Token,
-	limits StrictJSONLimits,
-	fields []string,
-) ([]strictJSONContainer, error) {
-	if delimiter, ok := token.(json.Delim); ok {
-		return scanStrictJSONDelimiter(stack, delimiter, limits)
+type strictJSONTokenScan struct {
+	stack  []strictJSONContainer
+	token  json.Token
+	limits StrictJSONLimits
+	fields []string
+}
+
+func scanStrictJSONToken(scan strictJSONTokenScan) ([]strictJSONContainer, error) {
+	if delimiter, ok := scan.token.(json.Delim); ok {
+		return scanStrictJSONDelimiter(scan.stack, delimiter, scan.limits)
 	}
-	if key, ok := token.(string); ok && topExpectsObjectKey(stack) {
-		return scanStrictJSONObjectKey(stack, key, limits, fields)
+	if key, ok := scan.token.(string); ok && topExpectsObjectKey(scan.stack) {
+		return scanStrictJSONObjectKey(strictJSONObjectKeyScan{
+			stack: scan.stack, key: key, limits: scan.limits, fields: scan.fields,
+		})
 	}
-	return completeStrictJSONValue(stack, limits)
+	return completeStrictJSONValue(scan.stack, scan.limits)
 }
 
 func scanStrictJSONDelimiter(
@@ -501,22 +507,24 @@ func topExpectsObjectKey(stack []strictJSONContainer) bool {
 	return top.kind == strictJSONContainerObject && top.expectKey
 }
 
-func scanStrictJSONObjectKey(
-	stack []strictJSONContainer,
-	key string,
-	limits StrictJSONLimits,
-	fields []string,
-) ([]strictJSONContainer, error) {
-	top := &stack[len(stack)-1]
-	if len(top.keys) >= int(limits.ObjectFieldMaximum) {
+type strictJSONObjectKeyScan struct {
+	stack  []strictJSONContainer
+	key    string
+	limits StrictJSONLimits
+	fields []string
+}
+
+func scanStrictJSONObjectKey(scan strictJSONObjectKeyScan) ([]strictJSONContainer, error) {
+	top := &scan.stack[len(scan.stack)-1]
+	if len(top.keys) >= int(scan.limits.ObjectFieldMaximum) {
 		return nil, jsonContractError(jsonObjectFieldLimitExceededErrorText, nil)
 	}
-	if matchesDeclaredJSONFieldOnlyByCaseFold(fields, key) {
+	if matchesDeclaredJSONFieldOnlyByCaseFold(scan.fields, scan.key) {
 		return nil, jsonContractError("json object field casing is not canonical", nil)
 	}
-	top.keys = append(top.keys, foldStrictJSONKey(key))
+	top.keys = append(top.keys, foldStrictJSONKey(scan.key))
 	top.expectKey = false
-	return stack, nil
+	return scan.stack, nil
 }
 
 func matchesDeclaredJSONFieldOnlyByCaseFold(fields []string, key string) bool {
@@ -536,43 +544,43 @@ func jsonFieldNamesForType(root reflect.Type) []string {
 		last := len(pending) - 1
 		valueType := indirectJSONFieldType(pending[last])
 		pending = pending[:last]
-		fields, pending, visited = collectJSONFieldType(
-			valueType,
-			fields,
-			pending,
-			visited,
-		)
+		fields, pending, visited = collectJSONFieldType(jsonFieldTypeCollection{
+			valueType: valueType, fields: fields, pending: pending, visited: visited,
+		})
 	}
 	slices.Sort(fields)
 	return slices.Compact(fields)
 }
 
-func collectJSONFieldType(
-	valueType reflect.Type,
-	fields []string,
-	pending []reflect.Type,
-	visited []reflect.Type,
-) ([]string, []reflect.Type, []reflect.Type) {
+type jsonFieldTypeCollection struct {
+	valueType reflect.Type
+	fields    []string
+	pending   []reflect.Type
+	visited   []reflect.Type
+}
+
+func collectJSONFieldType(collection jsonFieldTypeCollection) ([]string, []reflect.Type, []reflect.Type) {
+	valueType := collection.valueType
 	if valueType == nil || jsonFieldTypeOwnsContract(valueType) || valueType.Kind() == reflect.Interface {
-		return fields, pending, visited
+		return collection.fields, collection.pending, collection.visited
 	}
 	if valueType.Kind() == reflect.Map {
-		return fields, append(pending, valueType.Elem()), visited
+		return collection.fields, append(collection.pending, valueType.Elem()), collection.visited
 	}
-	if valueType.Kind() != reflect.Struct || slices.Contains(visited, valueType) {
-		return fields, pending, visited
+	if valueType.Kind() != reflect.Struct || slices.Contains(collection.visited, valueType) {
+		return collection.fields, collection.pending, collection.visited
 	}
-	visited = append(visited, valueType)
+	collection.visited = append(collection.visited, valueType)
 	for field := range valueType.Fields() {
 		name, included, nested := reflectedJSONFieldName(field)
 		if included {
-			fields = append(fields, name)
+			collection.fields = append(collection.fields, name)
 		}
 		if nested {
-			pending = append(pending, field.Type)
+			collection.pending = append(collection.pending, field.Type)
 		}
 	}
-	return fields, pending, visited
+	return collection.fields, collection.pending, collection.visited
 }
 
 func indirectJSONFieldType(valueType reflect.Type) reflect.Type {

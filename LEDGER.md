@@ -4,6 +4,25 @@ Last updated: `2026-08-13`
 
 ## Current
 
+- closed the compiler-visible call-shape and bounded-allocation findings exposed
+  by Witness's imported-enum and streaming analysis, 2026-08-13, prepared
+  `v2026.0.94`. Every production helper with four or more inputs now receives
+  one named request structure, and each new internal carrier is registered in
+  its package's data-flow inventory. Domain-separated commitments in
+  Controlplane, Objectstore, Release, Retrieval, and Submission now hash their
+  already-bounded parts directly through `core.DigestWriter` without assembling
+  a second whole buffer. Hostfacts reuses fixed stack storage for line and mount
+  decoding, Timeproof allocates only its exact final DER output, and Exchange's
+  aggregate reader uses one exact authorized reservation while continuing to
+  treat an absent or understated transport extent as advisory only.
+
+  The existing hostile Exchange matrices caught and refused the first incorrect
+  implementation that trusted an understated declaration; after correction,
+  the affected Controlplane, Core, Exchange, Filestore, Hostfacts, Objectstore,
+  Release, Retrieval, Submission, Timeproof, and Upgrade suites pass. Direct
+  `staticcheck ./...`, `deadcode -test ./...`, and `witness-lint ./...` report
+  zero findings. No compatibility wrapper, waiver, or unwired path was added.
+
 - closed the exact-extent stream constructor and the remaining Objectstore
   transfer-door proof, 2026-08-13, prepared `v2026.0.93`.
   `objectstore.NewExactReader` now accepts compiler-owned `core.ByteLength`

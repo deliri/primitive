@@ -50,14 +50,16 @@ func (d streamDestination) String() string {
 
 func (streamDestination) OffWireEnum() {}
 
-func copyBounded(
-	ctx context.Context,
-	destination io.Writer,
-	source io.Reader,
-	maximum core.ByteCount,
-	kind streamDestination,
-) (core.ByteLength, error) {
-	maximumBytes, err := validatedStreamMaximum(maximum, kind)
+type boundedCopyRequest struct {
+	ctx         context.Context
+	destination io.Writer
+	source      io.Reader
+	maximum     core.ByteCount
+	kind        streamDestination
+}
+
+func copyBounded(request boundedCopyRequest) (core.ByteLength, error) {
+	maximumBytes, err := validatedStreamMaximum(request.maximum, request.kind)
 	if err != nil {
 		return core.ByteLength{}, err
 	}
@@ -65,11 +67,11 @@ func copyBounded(
 	var total uint64
 	emptyReads := 0
 	for {
-		if err := contextstate.Validate(ctx); err != nil {
+		if err := contextstate.Validate(request.ctx); err != nil {
 			return finishStream(total, err)
 		}
 		limit := nextReadSize(maximumBytes, total)
-		count, readErr, validationErr := readBoundedChunk(ctx, source, buffer, limit)
+		count, readErr, validationErr := readBoundedChunk(request.ctx, request.source, buffer, limit)
 		if validationErr != nil {
 			return finishStream(total, validationErr)
 		}
@@ -78,10 +80,10 @@ func copyBounded(
 			if total == maximumBytes {
 				return finishStream(total, sizeError(errors.New("filestore source exceeds its maximum byte count")))
 			}
-			written, writeErr := writeFull(destination, buffer[:count])
+			written, writeErr := writeFull(request.destination, buffer[:count])
 			total, writeErr = accountWrite(total, written, writeErr)
 			if writeErr != nil {
-				return finishStream(total, classifyDestinationError(kind, writeErr))
+				return finishStream(total, classifyDestinationError(request.kind, writeErr))
 			}
 		} else {
 			emptyReads++

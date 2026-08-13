@@ -250,7 +250,11 @@ func latestIdentity(revision Revision, offering core.Offering) (LatestIdentity, 
 	if err != nil {
 		return LatestIdentity{}, latestError(err)
 	}
-	return newLatestIdentity(framedDigest(latestIdentityDomain, body)), nil
+	digest, err := framedDigest(latestIdentityDomain, body)
+	if err != nil {
+		return LatestIdentity{}, latestError(err)
+	}
+	return newLatestIdentity(digest), nil
 }
 
 // LatestDocument is one untrusted Latest fact and structural Attest envelope.

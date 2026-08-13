@@ -768,17 +768,21 @@ type boundedBodyRead struct {
 	limit    core.ByteCount
 }
 
-// boundedBodyDestination deliberately exposes only io.Writer. bytes.Buffer
-// implements io.ReaderFrom, which makes io.CopyBuffer ignore Exchange's bounded
-// transfer buffer and call bytes.Buffer.ReadFrom. ReadFrom grows once more before
-// discovering EOF, so even an exactly reserved extent is doubled. Keeping that
-// optional fast path out of the method set makes the declared reservation exact.
+// boundedBodyDestination deliberately exposes only io.Writer. It writes into
+// the one exact declared reservation and refuses an extent mismatch rather than
+// asking bytes.Buffer to grow through intermediate capacities.
 type boundedBodyDestination struct {
-	buffer *bytes.Buffer
+	storage []byte
+	written int
 }
 
-func (d boundedBodyDestination) Write(payload []byte) (int, error) {
-	return d.buffer.Write(payload)
+func (d *boundedBodyDestination) Write(payload []byte) (int, error) {
+	if d == nil || len(payload) > len(d.storage)-d.written {
+		return 0, core.ErrExchangeBodyLimit
+	}
+	written := copy(d.storage[d.written:], payload)
+	d.written += written
+	return written, nil
 }
 
 func readBoundedBody(read boundedBodyRead) (data []byte, err error) {
@@ -795,18 +799,18 @@ func readBoundedBody(read boundedBodyRead) (data []byte, err error) {
 	if err != nil {
 		return nil, err
 	}
-	buffer := bytes.NewBuffer(make([]byte, 0, reserved))
+	destination := &boundedBodyDestination{storage: make([]byte, reserved)}
 	_, err = copyDownload(
 		downloadCopyRequest{
 			context: read.context, source: read.source,
-			destination: boundedBodyDestination{buffer: buffer},
+			destination: destination,
 			limit:       read.limit,
 		},
 	)
 	if err != nil {
 		return nil, err
 	}
-	return buffer.Bytes(), nil
+	return destination.storage[:destination.written], nil
 }
 
 func captureHeaders(
