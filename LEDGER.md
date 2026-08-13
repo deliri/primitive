@@ -4,6 +4,24 @@ Last updated: `2026-08-13`
 
 ## Current
 
+- closed the exact-extent stream constructor and the remaining Objectstore
+  transfer-door proof, 2026-08-13, prepared `v2026.0.93`.
+  `objectstore.NewExactReader` now accepts compiler-owned `core.ByteLength`
+  instead of a raw signed integer and returns a typed construction failure.
+  Nil sources are rejected before `bufio.Reader` can defer the fault into a
+  panic. Objectstore upload and authenticated GCS upload/download consume the
+  same constructor directly; no conversion wrapper or second extent rule
+  remains.
+
+  The hostile extent matrix carries fourteen exact valid streams and twenty-six
+  short, long, empty, minimum, power-of-two, KiB, internal-buffer, and adjacent
+  boundary cases through the real reader. It requires both source and integrity
+  identities on every mismatch, proves clean neutral emptiness, withholds the
+  final declared chunk when an overlong source is discovered, and pressures
+  `MaxInt64` without allocating it. Removing the nil-source constructor gate
+  makes the targeted proof red before restoration. Existing real provider tests
+  exercise `UploadCloudflareImages` and `DownloadS3` directly.
+
 - closed Objectstore client ownership and the v2026.0.91 architecture drift,
   2026-08-13, published `v2026.0.92`. `objectstore.NewClient` now admits the
   caller-owned standard-library `*http.Client` through Exchange inside

@@ -332,12 +332,11 @@ func prepareUpload(
 	request UploadRequest,
 	provider Provider,
 ) (preparedUpload, error) {
-	length, err := request.Integrity.Length.Int64()
+	exact, err := NewExactReader(request.Source, request.Integrity.Length)
 	if err != nil {
-		return preparedUpload{}, errors.Join(core.ErrObjectStoreSize, err)
+		return preparedUpload{}, err
 	}
-	exact := NewExactReader(request.Source, length)
-	if length == 0 {
+	if request.Integrity.Length.Uint64() == 0 {
 		if proveErr := exact.ProveEmpty(); proveErr != nil {
 			return preparedUpload{}, proveErr
 		}

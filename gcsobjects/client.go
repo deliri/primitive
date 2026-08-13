@@ -298,13 +298,12 @@ func createGCSObject(ctx context.Context, client *GCSClient, request gcsWrite) (
 }
 
 func streamGCSWrite(writer *storage.Writer, cancel context.CancelFunc, request gcsWrite) error {
-	length, err := request.Integrity.Length.Int64()
+	exact, err := objectstore.NewExactReader(request.Source, request.Integrity.Length)
 	if err != nil {
-		return errors.Join(core.ErrObjectStoreSize, err)
+		return err
 	}
-	exact := objectstore.NewExactReader(request.Source, length)
 	digest := core.NewDigestWriter()
-	if length == 0 {
+	if request.Integrity.Length.Uint64() == 0 {
 		err = exact.ProveEmpty()
 	} else {
 		_, err = io.Copy(writer, io.TeeReader(exact, digest))
@@ -378,15 +377,14 @@ func readIntegrityFromMetadata(request GCSReadRequest, metadata GCSObjectMetadat
 }
 
 func streamGCSRead(reader *storage.Reader, destinationWriter io.Writer, integrity objectstore.Integrity) error {
-	length, err := integrity.Length.Int64()
+	exact, err := objectstore.NewExactReader(reader, integrity.Length)
 	if err != nil {
-		return errors.Join(core.ErrObjectStoreSize, err)
+		return err
 	}
-	exact := objectstore.NewExactReader(reader, length)
 	digest := core.NewDigestWriter()
 	checksum := crc32.New(crc32.MakeTable(crc32.Castagnoli))
 	destination := io.MultiWriter(destinationWriter, digest, checksum)
-	if length == 0 {
+	if integrity.Length.Uint64() == 0 {
 		err = exact.ProveEmpty()
 	} else {
 		_, err = io.Copy(destination, exact)

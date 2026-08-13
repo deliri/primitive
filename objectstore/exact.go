@@ -24,14 +24,20 @@ type ExactReader struct {
 	verified  bool
 }
 
-// NewExactReader wraps source to deliver exactly length bytes. length is the
-// caller's already-validated integrity extent; the reader never trusts the
-// source to stop on its own.
-func NewExactReader(source io.Reader, length int64) *ExactReader {
+// NewExactReader wraps source to deliver exactly length bytes. The reader
+// never trusts the source to stop on its own.
+func NewExactReader(source io.Reader, length core.ByteLength) (*ExactReader, error) {
+	if source == nil {
+		return nil, errors.Join(core.ErrObjectStoreContract, core.ErrObjectStoreSource)
+	}
+	remaining, err := length.Int64()
+	if err != nil {
+		return nil, errors.Join(core.ErrObjectStoreContract, core.ErrObjectStoreSize, err)
+	}
 	return &ExactReader{
 		source:    bufio.NewReaderSize(source, exactExtentBufferBytes),
-		remaining: length,
-	}
+		remaining: remaining,
+	}, nil
 }
 
 // Failure reports the source-integrity error that ended the stream, or nil
