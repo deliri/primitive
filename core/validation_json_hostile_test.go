@@ -352,6 +352,60 @@ type unstableJSONRepresentationWire struct {
 	Value string `json:"value"`
 }
 
+type projectionProbeMode uint8
+
+const (
+	projectionProbeAccept projectionProbeMode = iota
+	projectionProbeRefuse
+	projectionProbePanic
+)
+
+type validatedJSONProjectionProbe struct {
+	value string
+	mode  projectionProbeMode
+}
+
+type validatedJSONProjectionProbeWire struct {
+	Value string `json:"value"`
+}
+
+func (p validatedJSONProjectionProbe) Validate() error {
+	if p.value == "" {
+		return ErrPrimitiveContract
+	}
+	return nil
+}
+
+func (p validatedJSONProjectionProbe) MarshalJSON() ([]byte, error) {
+	if err := p.Validate(); err != nil {
+		return nil, err
+	}
+	return MarshalCanonicalJSONDocument(validatedJSONProjectionProbeWire{Value: p.value})
+}
+
+func (p validatedJSONProjectionProbe) ValidateJSONProjection(
+	encoded []byte,
+	limits StrictJSONLimits,
+) error {
+	switch p.mode {
+	case projectionProbeAccept:
+		decoded, err := DecodeStrictJSONStructure[validatedJSONProjectionProbeWire](encoded, limits)
+		if err != nil {
+			return err
+		}
+		if decoded.Value != p.value {
+			return ErrPrimitiveContract
+		}
+		return nil
+	case projectionProbeRefuse:
+		return ErrAttestContract
+	case projectionProbePanic:
+		panic("projection validator panic probe")
+	default:
+		return ErrPrimitiveContract
+	}
+}
+
 func (r strictJSONTextRecord) Validate() error {
 	if r.Text == "" {
 		return ErrPrimitiveContract
@@ -421,6 +475,51 @@ func TestEncodeValidatedJSONValidatesBeforeMarshal(t *testing.T) {
 	}
 	if gotWire != nil {
 		t.Fatalf("EncodeValidatedJSON() wire = %q, want nil", gotWire)
+	}
+}
+
+func TestEncodeValidatedJSONIssueOnlyProjectionClosesValidationAndPanicBoundaries(t *testing.T) {
+	t.Parallel()
+
+	nominal := validatedJSONProjectionProbe{value: "compiler-owned"}
+	want, err := nominal.MarshalJSON()
+	if err != nil {
+		t.Fatalf("validatedJSONProjectionProbe.MarshalJSON() error = %v, want nil", err)
+	}
+	shortLimit := DefaultStrictJSONLimits()
+	shortMaximum, err := NewByteCount(uint64(len(want) - 1))
+	if err != nil {
+		t.Fatalf("NewByteCount(one below projection length) error = %v, want nil", err)
+	}
+	shortLimit.DocumentMaximumBytes = shortMaximum
+	cases := []struct {
+		name    string
+		value   validatedJSONProjectionProbe
+		limits  StrictJSONLimits
+		wantErr error
+	}{
+		{name: "valid issue-only projection emits its exact canonical bytes", value: nominal, limits: DefaultStrictJSONLimits()},
+		{name: "zero projection is refused before any plausible output", limits: DefaultStrictJSONLimits(), wantErr: ErrPrimitiveContract},
+		{name: "projection-owned refusal retains its typed identity", value: validatedJSONProjectionProbe{value: nominal.value, mode: projectionProbeRefuse}, limits: DefaultStrictJSONLimits(), wantErr: ErrAttestContract},
+		{name: "projection validator panic becomes a typed refusal", value: validatedJSONProjectionProbe{value: nominal.value, mode: projectionProbePanic}, limits: DefaultStrictJSONLimits(), wantErr: ErrJSONContract},
+		{name: "one-byte-short output limit rejects before bytes escape", value: nominal, limits: shortLimit, wantErr: ErrJSONContract},
+		{name: "zero limits reject before projection validation", value: nominal, wantErr: ErrJSONContract},
+	}
+	for _, tc := range cases {
+		t.Run(tc.name, func(t *testing.T) {
+			t.Parallel()
+
+			got, gotErr := EncodeValidatedJSON(tc.value, tc.limits)
+			if tc.wantErr != nil {
+				if !errors.Is(gotErr, ErrJSONContract) || !errors.Is(gotErr, tc.wantErr) || got != nil {
+					t.Fatalf("EncodeValidatedJSON(issue-only projection) = (%q, %v), want nil and %v/%v", got, gotErr, ErrJSONContract, tc.wantErr)
+				}
+				return
+			}
+			if gotErr != nil || !bytes.Equal(got, want) {
+				t.Fatalf("EncodeValidatedJSON(issue-only projection) = (%q, %v), want exact %q and nil", got, gotErr, want)
+			}
+		})
 	}
 }
 

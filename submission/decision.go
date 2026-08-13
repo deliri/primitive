@@ -177,6 +177,12 @@ func (p DecisionProjection) MarshalJSON() ([]byte, error) {
 	return encoded, nil
 }
 
+func (p DecisionProjection) ValidateJSONProjection(encoded []byte, limits core.StrictJSONLimits) error {
+	return core.ValidateReceiveOnlyJSONProjection[DecisionProjection, DecisionDocument, *DecisionDocument](
+		p, encoded, limits,
+	)
+}
+
 func (p DecisionProjection) marshalJSON() ([]byte, error) {
 	switch p.kind {
 	case DecisionUpload:
@@ -307,12 +313,13 @@ func (v VerifiedDecision) Evidence() (receipt.VerifiedEvidence, bool) {
 }
 
 var (
-	_ core.Validatable            = DecisionUnknown
-	_ core.Validatable            = DecisionDocument{}
-	_ core.Validatable            = DecisionProjection{}
-	_ core.Validatable            = DecisionExpectation{}
-	_ core.Validatable            = VerifiedDecision{}
-	_ core.ValidatedJSONMarshaler = DecisionKind(0)
-	_ core.ValidatedJSONMarshaler = DecisionProjection{}
-	_ json.Unmarshaler            = (*DecisionDocument)(nil)
+	_ core.Validatable             = DecisionUnknown
+	_ core.Validatable             = DecisionDocument{}
+	_ core.Validatable             = DecisionProjection{}
+	_ core.Validatable             = DecisionExpectation{}
+	_ core.Validatable             = VerifiedDecision{}
+	_ core.ValidatedJSONMarshaler  = DecisionKind(0)
+	_ core.ValidatedJSONMarshaler  = DecisionProjection{}
+	_ core.ValidatedJSONProjection = DecisionProjection{}
+	_ json.Unmarshaler             = (*DecisionDocument)(nil)
 )

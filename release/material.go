@@ -75,6 +75,10 @@ func (r MaterialRequest) ControlRoute() (controlwire.RouteContract, error) {
 // ControlNonce projects the request identity carried by the document.
 func (r MaterialRequest) ControlNonce() controlwire.RequestNonce { return r.Nonce }
 
+func (MaterialRequest) ControlRequestBodyLimit() (core.ByteCount, error) {
+	return core.NewByteCount(documentExtentMaximum)
+}
+
 func (r MaterialRequest) MarshalJSON() ([]byte, error) {
 	if err := r.Validate(); err != nil {
 		return nil, jsonError(err)

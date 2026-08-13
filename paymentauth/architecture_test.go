@@ -20,10 +20,12 @@ type (
 )
 
 type contractInventory struct {
-	RequestDocument protocolFact[RequestDocument]
-	RequestAssembly protocolFact[RequestAssembly]
-	Verification    protocolFact[Verification]
-	Verified        capabilityWrapper[Verified]
+	RequestDocument      protocolFact[RequestDocument]
+	RequestAssembly      protocolFact[RequestAssembly]
+	Verification         protocolFact[Verification]
+	Verified             capabilityWrapper[Verified]
+	ResponseIssuance     protocolFact[ResponseIssuance]
+	ResponseVerification protocolFact[ResponseVerification]
 }
 
 func TestPaymentAuthDataFlowStructInventoryRatchet(t *testing.T) {

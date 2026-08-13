@@ -27,6 +27,58 @@ type ValidatedJSONMarshaler interface {
 	json.Marshaler
 }
 
+// ValidatedJSONProjection is an intentionally one-way JSON value whose owner
+// can prove that its exact emitted bytes satisfy the strict wire contract.
+//
+// EncodeValidatedJSON normally proves stability by decoding back into the
+// producer type. That is deliberately impossible for issue-only bearer
+// projections: only their distinct receive-only document may admit external
+// bytes. This contract keeps those directions separate without weakening the
+// encoder's strict grammar, resource, or exact-projection proof.
+type ValidatedJSONProjection interface {
+	ValidatedJSONMarshaler
+	ValidateJSONProjection([]byte, StrictJSONLimits) error
+}
+
+// ValidateReceiveOnlyJSONProjection proves that exact issue-only bytes decode
+// through their distinct receive-only owner and preserve the producer's
+// canonical projection. Projection and document stay separate compiler-owned
+// directions; neither needs a compatibility decoder or encoder.
+func ValidateReceiveOnlyJSONProjection[
+	Projection ValidatedJSONMarshaler,
+	Document any,
+	DocumentPtr interface {
+		*Document
+		Validatable
+		json.Unmarshaler
+	},
+](projection Projection, encoded []byte, limits StrictJSONLimits) error {
+	if err := limits.Validate(); err != nil {
+		return err
+	}
+	if err := validateJSONValue(projection); err != nil {
+		return jsonContractError("validated json projection is invalid", err)
+	}
+	decoded, err := DecodeStrictJSONStructure[Document](encoded, limits)
+	if err != nil {
+		return err
+	}
+	if err := validateJSONValue(DocumentPtr(&decoded)); err != nil {
+		return jsonContractError("receive-only json document is invalid", err)
+	}
+	canonical, err := marshalValidatedJSON(projection)
+	if err != nil {
+		return jsonContractError("validated json projection cannot be reencoded", err)
+	}
+	if err := validateInitialJSONEncoding(canonical); err != nil {
+		return err
+	}
+	if !bytes.Equal(encoded, canonical) {
+		return jsonContractError(jsonRepresentationUnstableErrorText, nil)
+	}
+	return nil
+}
+
 // OffWireEnum is the compiler-visible positive declaration that a validated
 // closed enum is intentionally off wire. Go interfaces cannot express method
 // absence, so each declaring package separately proves that its enum implements
@@ -58,6 +110,7 @@ const (
 	jsonDocumentByteLimitInvalidErrorText = "json document byte limit is invalid"
 	jsonMarshalerPanicErrorText           = "validated json marshaler panicked"
 	jsonValidatorPanicErrorText           = "validated json validator panicked"
+	jsonProjectionValidatorPanicErrorText = "validated json projection validator panicked"
 	jsonUnmarshalerPanicErrorText         = "strict json unmarshaler panicked"
 	jsonDocumentLimitExceededErrorText    = "json document exceeds byte limit"
 	jsonDocumentInvalidUTF8ErrorText      = "json document is not valid utf-8"
@@ -116,10 +169,11 @@ func (l StrictJSONLimits) Validate() error {
 }
 
 // EncodeValidatedJSON validates limits and value, then emits one strict JSON
-// document that DecodeStrictJSON can consume without semantic loss. The
-// encoded representation must decode into T, including through methods on
-// *T, pass T.Validate, and re-encode to the same bytes; the generic constraint
-// cannot express that value/pointer symmetry, so this function enforces it.
+// document. A bidirectional value must decode into T, including through
+// methods on *T, pass T.Validate, and re-encode to the same bytes; the generic
+// constraint cannot express that value/pointer symmetry, so this function
+// enforces it. An issue-only ValidatedJSONProjection instead proves its exact
+// emitted bytes through its distinct compiler-owned projection validator.
 // The package-wide case-insensitive object-key uniqueness rule applies to
 // encoded output at every nesting level. Invalid UTF-8, unpaired JSON
 // surrogate escapes, and any explicit null representation are rejected.
@@ -136,6 +190,12 @@ func EncodeValidatedJSON[T ValidatedJSONMarshaler](value T, limits StrictJSONLim
 	}
 	if err := validateInitialJSONEncoding(encoded); err != nil {
 		return nil, err
+	}
+	if projection, ok := any(value).(ValidatedJSONProjection); ok {
+		if err := validateJSONProjection(projection, encoded, limits); err != nil {
+			return nil, jsonContractError("validated json projection violates the strict wire contract", err)
+		}
+		return encoded, nil
 	}
 	decoded, err := decodeStrictJSONStructureValidatedLimits[T](encoded, limits)
 	if err != nil {
@@ -155,6 +215,19 @@ func EncodeValidatedJSON[T ValidatedJSONMarshaler](value T, limits StrictJSONLim
 		return nil, jsonContractError(jsonRepresentationUnstableErrorText, nil)
 	}
 	return encoded, nil
+}
+
+func validateJSONProjection(
+	projection ValidatedJSONProjection,
+	encoded []byte,
+	limits StrictJSONLimits,
+) (err error) {
+	defer func() {
+		if recover() != nil {
+			err = errors.New(jsonProjectionValidatorPanicErrorText)
+		}
+	}()
+	return projection.ValidateJSONProjection(encoded, limits)
 }
 
 func validateJSONValue(value Validatable) (err error) {

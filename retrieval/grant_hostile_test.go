@@ -28,6 +28,10 @@ func TestGrantDocumentJSONLayerTriad(t *testing.T) {
 	if gotErr != nil {
 		t.Fatalf("GrantProjection.MarshalJSON() setup error = %v, want nil", gotErr)
 	}
+	strict, gotErr := core.EncodeValidatedJSON(projection, core.DefaultStrictJSONLimits())
+	if gotErr != nil || !bytes.Equal(strict, canonical) {
+		t.Fatalf("core.EncodeValidatedJSON(GrantProjection) = (%d bytes, %v), want exact %d-byte receive-only projection", len(strict), gotErr, len(canonical))
+	}
 
 	t.Run("positive exact bearer document and extent boundaries preserve facts", func(t *testing.T) {
 		t.Parallel()

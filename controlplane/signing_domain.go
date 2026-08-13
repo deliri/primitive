@@ -20,6 +20,7 @@ const (
 	SigningDomainRegistrationV1Token            = "ogs-control-registration-2026-1"
 	SigningDomainCheckInV1Token                 = "ogs-control-check-in-2026-1"
 	SigningDomainCheckInResponseV1Token         = "ogs-control-check-in-response-2026-1"
+	SigningDomainResponseV1Token                = "ogs-control-response-2026-1"
 )
 
 // SigningDomain is the closed set of namespaces a control-plane document may
@@ -44,6 +45,9 @@ const (
 	// request and the response are separate namespaces so a signature over one
 	// can never be presented as a signature over the other.
 	SigningDomainCheckInResponseV1
+	// SigningDomainResponseV1 authenticates one response header together with
+	// the exact canonical product-body commitment carried beside it.
+	SigningDomainResponseV1
 	signingDomainLimit
 )
 
@@ -54,6 +58,7 @@ func signingDomainTokens() [signingDomainLimit]string {
 		SigningDomainRegistrationV1:            SigningDomainRegistrationV1Token,
 		SigningDomainCheckInV1:                 SigningDomainCheckInV1Token,
 		SigningDomainCheckInResponseV1:         SigningDomainCheckInResponseV1Token,
+		SigningDomainResponseV1:                SigningDomainResponseV1Token,
 	}
 }
 

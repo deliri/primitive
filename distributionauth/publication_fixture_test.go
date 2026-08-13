@@ -45,14 +45,15 @@ type publicationAuthUpload struct {
 }
 
 type publicationAuthFixture struct {
-	installation controlplanetest.Installation
-	release      publicationAuthRelease
-	document     PublicationRequestDocument
-	verified     VerifiedPublication
-	authority    attest.TrustedKeys
-	grant        distribution.PublicationGrantDocument
-	grantProof   distribution.VerifiedPublicationGrant
-	completion   PublicationCompletionDocument
+	installation    controlplanetest.Installation
+	release         publicationAuthRelease
+	document        PublicationRequestDocument
+	verified        VerifiedPublication
+	authority       attest.TrustedKeys
+	grant           distribution.PublicationGrantDocument
+	grantProjection distribution.PublicationGrantProjection
+	grantProof      distribution.VerifiedPublicationGrant
+	completion      PublicationCompletionDocument
 }
 
 type publicationAuthTransport struct {
@@ -113,7 +114,7 @@ func newPublicationAuthFixture(
 	if err != nil {
 		t.Fatalf("VerifyPublication() error = %v, want nil", err)
 	}
-	grant, grantProof, uploadTarget := newPublicationAuthGrant(
+	grantProjection, grant, grantProof, uploadTarget := newPublicationAuthGrant(
 		t, verified, installation.AuthorityPrivate, authority,
 	)
 	completion := newPublicationAuthCompletion(
@@ -121,7 +122,7 @@ func newPublicationAuthFixture(
 	)
 	return publicationAuthFixture{
 		installation: installation, release: releaseFixture, document: document,
-		verified: verified, authority: authority, grant: grant,
+		verified: verified, authority: authority, grant: grant, grantProjection: grantProjection,
 		grantProof: grantProof, completion: completion,
 	}
 }
@@ -292,6 +293,7 @@ func newPublicationAuthGrant(
 	signer ed25519.PrivateKey,
 	trusted attest.TrustedKeys,
 ) (
+	distribution.PublicationGrantProjection,
 	distribution.PublicationGrantDocument,
 	distribution.VerifiedPublicationGrant,
 	objectstore.UploadTarget,
@@ -346,7 +348,7 @@ func newPublicationAuthGrant(
 	if err != nil {
 		t.Fatalf("distribution.VerifyPublicationGrant() error = %v, want nil", err)
 	}
-	return document, verified, firstTarget
+	return projection, document, verified, firstTarget
 }
 
 func newPublicationAuthCompletion(

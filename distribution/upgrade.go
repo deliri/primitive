@@ -382,6 +382,12 @@ func (p UpgradeGrantProjection) MarshalJSON() ([]byte, error) {
 	return encoded, nil
 }
 
+func (p UpgradeGrantProjection) ValidateJSONProjection(encoded []byte, limits core.StrictJSONLimits) error {
+	return core.ValidateReceiveOnlyJSONProjection[UpgradeGrantProjection, UpgradeGrantDocument, *UpgradeGrantDocument](
+		p, encoded, limits,
+	)
+}
+
 func (i UpgradeGrantIssuance) Validate() error {
 	if err := validateUpgradeProjection(i.Capability, i.Payload); err != nil {
 		return err

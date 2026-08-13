@@ -89,6 +89,10 @@ func (d CompletionDocument) ControlNonce() controlwire.RequestNonce {
 	return d.Completion.Payload.Nonce
 }
 
+func (CompletionDocument) ControlRequestBodyLimit() (core.ByteCount, error) {
+	return core.NewByteCount(uint64(CompletionDocumentJSONMaximumBytes))
+}
+
 func (a CompletionAssembly) Validate() error {
 	return (CompletionDocument(a)).Validate()
 }

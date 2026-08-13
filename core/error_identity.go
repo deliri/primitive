@@ -347,6 +347,9 @@ const (
 	ErrControlPlaneUsageWatermark
 	// ErrControlPlaneResponseHeader identifies a rejected response header.
 	ErrControlPlaneResponseHeader
+	// ErrControlPlaneResponseDocument identifies a rejected authenticated
+	// response document.
+	ErrControlPlaneResponseDocument
 	// ErrControlPlaneResponseBinding identifies a response that does not bind to
 	// the exact request that produced it.
 	ErrControlPlaneResponseBinding
@@ -530,6 +533,7 @@ func errorIdentityDiagnostics() [errorIdentityLimit]errorIdentityDiagnostic {
 		{identity: ErrControlPlaneProductStatus, text: "control-plane product status invalid"},
 		{identity: ErrControlPlaneUsageWatermark, text: "control-plane usage watermark invalid"},
 		{identity: ErrControlPlaneResponseHeader, text: "control-plane response header invalid"},
+		{identity: ErrControlPlaneResponseDocument, text: "control-plane response document invalid"},
 		{identity: ErrControlPlaneResponseBinding, text: "control-plane response does not bind to its request"},
 		{identity: ErrControlPlaneProviderTimeRollback, text: "control-plane provider time moved backward"},
 		{identity: ErrControlPlaneRegistration, text: "control-plane registration document invalid"},
@@ -661,6 +665,7 @@ func errorIdentityParents(identity ErrorIdentity) errorIdentityParentSet {
 		ErrControlWirePolicyCursor, ErrControlWireRoute,
 		ErrControlPlaneSigningDomain, ErrControlPlaneProductStatus,
 		ErrControlPlaneUsageWatermark, ErrControlPlaneResponseHeader,
+		ErrControlPlaneResponseDocument,
 		ErrControlPlaneResponseBinding, ErrControlPlaneProviderTimeRollback,
 		ErrControlPlaneRegistration, ErrControlPlaneInstallationBinding,
 		ErrControlPlaneDecisionConsistency, ErrControlPlaneCheckIn,
@@ -773,6 +778,7 @@ func errorIdentityParentsControlExchange(identity ErrorIdentity) errorIdentityPa
 		return oneErrorIdentityParent(ErrControlWireContract)
 	case ErrControlPlaneSigningDomain, ErrControlPlaneProductStatus,
 		ErrControlPlaneUsageWatermark, ErrControlPlaneResponseHeader,
+		ErrControlPlaneResponseDocument,
 		ErrControlPlaneResponseBinding, ErrControlPlaneProviderTimeRollback,
 		ErrControlPlaneRegistration, ErrControlPlaneInstallationBinding,
 		ErrControlPlaneDecisionConsistency, ErrControlPlaneCheckIn,

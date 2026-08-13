@@ -228,6 +228,12 @@ func (p PublicationGrantProjection) MarshalJSON() ([]byte, error) {
 	return encoded, nil
 }
 
+func (p PublicationGrantProjection) ValidateJSONProjection(encoded []byte, limits core.StrictJSONLimits) error {
+	return core.ValidateReceiveOnlyJSONProjection[PublicationGrantProjection, PublicationGrantDocument, *PublicationGrantDocument](
+		p, encoded, limits,
+	)
+}
+
 func (i PublicationGrantIssuance) Validate() error {
 	if err := validatePublicationProjectionSet(i.Capabilities, i.Payload); err != nil {
 		return err

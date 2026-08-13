@@ -13,11 +13,12 @@ import (
 )
 
 type upgradeExchangeFixture struct {
-	grantDoc      distribution.UpgradeGrantDocument
-	requestDoc    distribution.UpgradeRequestDocument
-	callerKeys    attest.TrustedKeys
-	authorityKeys attest.TrustedKeys
-	request       distribution.UpgradeRequestPayload
+	grantProjection distribution.UpgradeGrantProjection
+	grantDoc        distribution.UpgradeGrantDocument
+	requestDoc      distribution.UpgradeRequestDocument
+	callerKeys      attest.TrustedKeys
+	authorityKeys   attest.TrustedKeys
+	request         distribution.UpgradeRequestPayload
 }
 
 func newUpgradeExchangeFixture(t testing.TB) upgradeExchangeFixture {
@@ -91,7 +92,7 @@ func newUpgradeExchangeFixture(t testing.TB) upgradeExchangeFixture {
 		t.Fatalf("json.Unmarshal(UpgradeGrantDocument) error = %v, want nil", err)
 	}
 	return upgradeExchangeFixture{
-		request: request, requestDoc: requestDoc, grantDoc: grantDoc,
+		request: request, requestDoc: requestDoc, grantDoc: grantDoc, grantProjection: projection,
 		callerKeys: trustedKeys(t, callerKey), authorityKeys: trustedKeys(t, authorityKey),
 	}
 }
@@ -100,6 +101,10 @@ func TestUpgradeExchangeAuthenticatesExactSummaryAndDownloadBearer(t *testing.T)
 	t.Parallel()
 
 	fixture := newUpgradeExchangeFixture(t)
+	encoded, err := core.EncodeValidatedJSON(fixture.grantProjection, core.DefaultStrictJSONLimits())
+	if err != nil || len(encoded) == 0 {
+		t.Fatalf("core.EncodeValidatedJSON(UpgradeGrantProjection) = (%d bytes, %v), want non-empty receive-only projection and nil", len(encoded), err)
+	}
 	verified, err := distribution.VerifyUpgradeGrant(distribution.UpgradeGrantExpectation{
 		Request: fixture.request, Document: fixture.grantDoc,
 		TrustedKeys: fixture.authorityKeys, ObservedAt: temporal.InstantFromNanoseconds(3_000),

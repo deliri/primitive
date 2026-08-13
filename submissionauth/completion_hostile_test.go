@@ -39,6 +39,7 @@ type authCompletionFixture struct {
 	completionDocument   submission.CompletionDocument
 	completionProjection submission.CompletionProjection
 	grant                submission.GrantDocument
+	grantProjection      submission.GrantProjection
 	credentialed         CompletionDocument
 	request              authFixture
 	verifiedRequest      Verified
@@ -412,7 +413,7 @@ func newAuthCompletionFixture(t testing.TB, request authCompletionFixtureRequest
 		t.Fatalf("submissionauth.AssembleCompletion() error = %v, want nil", err)
 	}
 	return authCompletionFixture{
-		request: base, verifiedRequest: verifiedRequest, grant: grant,
+		request: base, verifiedRequest: verifiedRequest, grant: grant, grantProjection: grantProjection,
 		credentialed: credentialed, completionDocument: completion, completionProjection: projection,
 	}
 }

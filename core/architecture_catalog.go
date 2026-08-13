@@ -14,9 +14,9 @@ const (
 	// PrimitivePackageCount is the number of packages in the complete catalog.
 	PrimitivePackageCount = 40
 	// PrimitiveDirectImportCount is the number of admitted direct import edges.
-	PrimitiveDirectImportCount = 142
+	PrimitiveDirectImportCount = 148
 	// PrimitiveDirectTestImportCount is the number of admitted test-only edges.
-	PrimitiveDirectTestImportCount = 26
+	PrimitiveDirectTestImportCount = 22
 	// PrimitiveMaximumDirectImports caps direct sibling imports per package.
 	PrimitiveMaximumDirectImports = 9
 )
@@ -266,7 +266,9 @@ func PrimitiveArchitecture() ArchitectureCatalog {
 			{Importer: PackageSubmissionAuth, Imported: PackageCore},
 			{Importer: PackageSubmissionAuth, Imported: PackageAttest},
 			{Importer: PackageSubmissionAuth, Imported: PackageControlPlane},
+			{Importer: PackageSubmissionAuth, Imported: PackageControlWire},
 			{Importer: PackageSubmissionAuth, Imported: PackageSubmission},
+			{Importer: PackageSubmissionAuth, Imported: PackageChit},
 			{Importer: PackageControlPlaneTest, Imported: PackageCore},
 			{Importer: PackageControlPlaneTest, Imported: PackageControlPlane},
 			{Importer: PackageControlPlaneTest, Imported: PackageControlWire},
@@ -326,6 +328,7 @@ func PrimitiveArchitecture() ArchitectureCatalog {
 			{Importer: PackageChitAuth, Imported: PackageAttest},
 			{Importer: PackageChitAuth, Imported: PackageChit},
 			{Importer: PackageChitAuth, Imported: PackageControlPlane},
+			{Importer: PackageChitAuth, Imported: PackageControlWire},
 			{Importer: PackageChitAuth, Imported: PackageCore},
 
 			{Importer: PackageRetrieval, Imported: PackageAttest},
@@ -338,6 +341,7 @@ func PrimitiveArchitecture() ArchitectureCatalog {
 
 			{Importer: PackageRetrievalAuth, Imported: PackageAttest},
 			{Importer: PackageRetrievalAuth, Imported: PackageControlPlane},
+			{Importer: PackageRetrievalAuth, Imported: PackageControlWire},
 			{Importer: PackageRetrievalAuth, Imported: PackageCore},
 			{Importer: PackageRetrievalAuth, Imported: PackageRetrieval},
 
@@ -350,6 +354,7 @@ func PrimitiveArchitecture() ArchitectureCatalog {
 			{Importer: PackagePayment, Imported: PackageTemporal},
 			{Importer: PackagePaymentAuth, Imported: PackageAttest},
 			{Importer: PackagePaymentAuth, Imported: PackageControlPlane},
+			{Importer: PackagePaymentAuth, Imported: PackageControlWire},
 			{Importer: PackagePaymentAuth, Imported: PackageCore},
 			{Importer: PackagePaymentAuth, Imported: PackagePayment},
 
@@ -363,6 +368,7 @@ func PrimitiveArchitecture() ArchitectureCatalog {
 			{Importer: PackageDistribution, Imported: PackageUpgrade},
 			{Importer: PackageDistributionAuth, Imported: PackageAttest},
 			{Importer: PackageDistributionAuth, Imported: PackageControlPlane},
+			{Importer: PackageDistributionAuth, Imported: PackageControlWire},
 			{Importer: PackageDistributionAuth, Imported: PackageCore},
 			{Importer: PackageDistributionAuth, Imported: PackageDistribution},
 			{Importer: PackageDistributionAuth, Imported: PackageRelease},
@@ -378,20 +384,16 @@ func PrimitiveArchitecture() ArchitectureCatalog {
 			{Importer: PackageGCSObjects, Imported: PackageExchange},
 			{Importer: PackageGCSObjects, Imported: PackageTestSerial},
 			{Importer: PackageSubmissionAuth, Imported: PackageControlPlaneTest},
-			{Importer: PackageSubmissionAuth, Imported: PackageControlWire},
-			{Importer: PackageSubmissionAuth, Imported: PackageChit},
+			{Importer: PackageControlWire, Imported: PackageControlPlane},
+			{Importer: PackageControlWire, Imported: PackageControlPlaneTest},
 			{Importer: PackageRetrievalAuth, Imported: PackageControlPlaneTest},
-			{Importer: PackageRetrievalAuth, Imported: PackageControlWire},
 			{Importer: PackageRetrieval, Imported: PackageReceipt},
 			{Importer: PackageSubmissionAuth, Imported: PackageObjectStore},
 			{Importer: PackageChitAuth, Imported: PackageControlPlaneTest},
-			{Importer: PackageChitAuth, Imported: PackageControlWire},
 			{Importer: PackageChitAuth, Imported: PackageReceipt},
 			{Importer: PackagePaymentAuth, Imported: PackageControlPlaneTest},
-			{Importer: PackagePaymentAuth, Imported: PackageControlWire},
 			{Importer: PackagePaymentAuth, Imported: PackageReceipt},
 			{Importer: PackageDistributionAuth, Imported: PackageControlPlaneTest},
-			{Importer: PackageDistributionAuth, Imported: PackageControlWire},
 			{Importer: PackageDistributionAuth, Imported: PackageDeploy},
 			{Importer: PackageDistributionAuth, Imported: PackageObjectStore},
 			{Importer: PackageRelease, Imported: PackageTestSerial},
@@ -644,7 +646,7 @@ func packagePurposeTexts() [packageIdentityLimit]string {
 		PackageLease:            "Signed lease timeline, assessment, renewal, and monotonic advance",
 		PackageGate:             "Pure CLI-side new-work authorization over one authentic Lease assessment",
 		PackageReceipt:          "Authenticated accepted-evidence facts and fixed-size monotonic watermarks",
-		PackageControlWire:      "Shared control-wire revision, request nonce, one-time registration token, policy cursor, and the control exchange policy",
+		PackageControlWire:      "Shared control-wire facts and paired authenticated socket with request-owner body limits",
 		PackageControlPlane:     "Signed control-plane request and response documents, their binding to one exact request, product status, and usage watermark",
 		PackageSubmission:       "Authenticated evidence declarations, authority upload grants, and device-signed provider completion evidence bound to one exact request",
 		PackageSubmissionAuth:   "Installation-certificate binding and device authentication for evidence-submission requests and provider completions",
@@ -666,7 +668,7 @@ func packagePurposeTexts() [packageIdentityLimit]string {
 		PackagePayment:          "Authority-signed exact payment receipts, bounded catalogs, and device-signed catalog queries",
 		PackagePaymentAuth:      "Installation-certificate binding and device authentication for one payment catalog query",
 		PackageDistribution:     "Signed product-neutral release publication, update discovery, and exact upgrade-download agreements",
-		PackageDistributionAuth: "Installation-certificate binding and device authentication for publication, update, and upgrade requests",
+		PackageDistributionAuth: "Authenticated release-material responses plus installation-certificate binding and device authentication for publication, update, and upgrade requests",
 		PackageWiring:           "Bounded immutable runtime component graphs with exact Primitive-door declarations",
 	}
 }

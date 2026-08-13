@@ -26,6 +26,11 @@ func responseHeaderError(causes ...error) error {
 	return documentError(core.ErrControlPlaneResponseHeader, causes...)
 }
 
+// responseDocumentError reports a rejected authenticated response document.
+func responseDocumentError(causes ...error) error {
+	return documentError(core.ErrControlPlaneResponseDocument, causes...)
+}
+
 // registrationError reports a rejected registration document.
 func registrationError(causes ...error) error {
 	return documentError(core.ErrControlPlaneRegistration, causes...)

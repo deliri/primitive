@@ -139,6 +139,19 @@ type CheckInResponseDocument struct {
 	Attestation attest.Envelope[SigningDomain] `json:"attestation"`
 }
 
+func (CheckInResponseDocument) ControlResponseProjection() {}
+func (*CheckInResponseDocument) ControlResponseDocument()  {}
+
+func (d CheckInResponseDocument) ValidateJSONProjection(
+	encoded []byte,
+	limits core.StrictJSONLimits,
+) error {
+	if err := validateTypedResponseProjection(d, encoded, limits); err != nil {
+		return checkInResponseError(err)
+	}
+	return nil
+}
+
 // CheckInResponseVerification is the complete input one caller supplies to
 // authenticate a response against the request that produced it.
 type CheckInResponseVerification struct {

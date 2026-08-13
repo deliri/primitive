@@ -158,6 +158,10 @@ func (r CheckInRequest) ControlRoute() (controlwire.RouteContract, error) {
 // ControlNonce projects the request identity already carried in the signed payload.
 func (r CheckInRequest) ControlNonce() controlwire.RequestNonce { return r.Payload.RequestNonce }
 
+func (CheckInRequest) ControlRequestBodyLimit() (core.ByteCount, error) {
+	return core.NewByteCount(CheckInRequestJSONMaximumBytes)
+}
+
 // MarshalJSON emits one bounded canonical request.
 func (r CheckInRequest) MarshalJSON() ([]byte, error) {
 	if err := r.Validate(); err != nil {

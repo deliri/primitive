@@ -163,6 +163,12 @@ func (p GrantProjection) MarshalJSON() ([]byte, error) {
 	return encoded, nil
 }
 
+func (p GrantProjection) ValidateJSONProjection(encoded []byte, limits core.StrictJSONLimits) error {
+	return core.ValidateReceiveOnlyJSONProjection[GrantProjection, GrantDocument, *GrantDocument](
+		p, encoded, limits,
+	)
+}
+
 type GrantIssuance struct {
 	Signer     crypto.Signer
 	Capability objectstore.DownloadCapabilityProjection
@@ -460,5 +466,6 @@ var (
 	_ core.Validatable                    = GrantContinuation{}
 	_ core.ValidatedJSONMarshaler         = GrantPayload{}
 	_ core.ValidatedJSONMarshaler         = GrantProjection{}
+	_ core.ValidatedJSONProjection        = GrantProjection{}
 	_ attest.CanonicalBody[SigningDomain] = GrantPayload{}
 )

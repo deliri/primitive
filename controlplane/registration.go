@@ -86,6 +86,10 @@ func (r RegistrationRequest) ControlRoute() (controlwire.RouteContract, error) {
 // ControlNonce projects the request identity already carried on the wire.
 func (r RegistrationRequest) ControlNonce() controlwire.RequestNonce { return r.RequestNonce }
 
+func (RegistrationRequest) ControlRequestBodyLimit() (core.ByteCount, error) {
+	return core.NewByteCount(RegistrationRequestJSONMaximumBytes)
+}
+
 func (r RegistrationRequest) validateFacts() error {
 	if err := r.Token.Validate(); err != nil {
 		return registrationError(err)
@@ -372,6 +376,19 @@ type RegistrationPayload struct {
 type RegistrationDocument struct {
 	Payload     RegistrationPayload            `json:"payload"`
 	Attestation attest.Envelope[SigningDomain] `json:"attestation"`
+}
+
+func (RegistrationDocument) ControlResponseProjection() {}
+func (*RegistrationDocument) ControlResponseDocument()  {}
+
+func (d RegistrationDocument) ValidateJSONProjection(
+	encoded []byte,
+	limits core.StrictJSONLimits,
+) error {
+	if err := validateTypedResponseProjection(d, encoded, limits); err != nil {
+		return registrationError(err)
+	}
+	return nil
 }
 
 type (

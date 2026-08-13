@@ -81,7 +81,9 @@ flowchart TD
     submissionauth[submissionauth] --> core
     submissionauth --> attest
     submissionauth --> controlplane
+    submissionauth --> controlwire
     submissionauth --> submission
+    submissionauth --> chit
     controlplanetest[controlplanetest] --> core
     controlplanetest --> controlplane
     controlplanetest --> controlwire
@@ -136,6 +138,7 @@ flowchart TD
 
     distributionauth[distributionauth] --> attest
     distributionauth --> controlplane
+    distributionauth --> controlwire
     distributionauth --> core
     distributionauth --> distribution
     distributionauth --> release
@@ -155,6 +158,7 @@ flowchart TD
     chitauth[chitauth] --> attest
     chitauth --> chit
     chitauth --> controlplane
+    chitauth --> controlwire
     chitauth --> core
 
     retrieval[retrieval] --> attest
@@ -167,6 +171,7 @@ flowchart TD
 
     retrievalauth[retrievalauth] --> attest
     retrievalauth --> controlplane
+    retrievalauth --> controlwire
     retrievalauth --> core
     retrievalauth --> retrieval
 
@@ -180,6 +185,7 @@ flowchart TD
 
     paymentauth[paymentauth] --> attest
     paymentauth --> controlplane
+    paymentauth --> controlwire
     paymentauth --> core
     paymentauth --> payment
 
@@ -191,15 +197,16 @@ test-only edges in the same compiler-owned catalog when its real ingress value
 cannot be constructed without the package that produces it. A declared test
 edge grants no production dependency, counts against the same per-package
 coupling ceiling, and is rejected when no test source uses it. `gate` uses
-`attest` and `temporal` to prove real signed leases, `submissionauth` uses
-`chit`, `controlplanetest`, `controlwire`, and `objectstore` to
+`attest` and `temporal` to prove real signed leases, `controlwire` uses
+`controlplane` and `controlplanetest` to prove its real paired request/response HTTP boundary, `submissionauth` uses
+`chit`, `controlplanetest`, and `objectstore` to
 prove real credentialed requests and completions, `chitauth` and `paymentauth`
-use `controlplanetest`, `controlwire`, and `receipt` to prove real credentialed
-catalog queries, `distributionauth` uses `controlplanetest`, `controlwire`,
-`deploy`, `objectstore`, `controlplanetest`, and `controlwire` to prove real
+use `controlplanetest` and `receipt` to prove real credentialed
+catalog queries, `distributionauth` uses `controlplanetest`, `deploy`, and
+`objectstore` to prove real
 credentialed publication, update, and upgrade requests, `release` uses
 `testserial` to isolate process-wide build identity tests,
-`retrievalauth` uses `controlplanetest` and `controlwire` to prove real
+`retrievalauth` uses `controlplanetest` to prove real
 credentialed retrieval requests, `retrieval` uses `receipt` to
 prove real streaming transport and authenticated stored evidence,
 `process` uses

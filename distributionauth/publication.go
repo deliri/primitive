@@ -65,6 +65,10 @@ func (d PublicationRequestDocument) ControlNonce() controlwire.RequestNonce {
 	return d.Request.Payload.Nonce
 }
 
+func (PublicationRequestDocument) ControlRequestBodyLimit() (core.ByteCount, error) {
+	return core.NewByteCount(uint64(RequestDocumentJSONMaximumBytes))
+}
+
 func (a PublicationRequestAssembly) Validate() error {
 	return PublicationRequestDocument(a).Validate()
 }
@@ -223,6 +227,10 @@ func (d PublicationCompletionDocument) ControlRoute() (controlwire.RouteContract
 // ControlNonce projects the completion's independently signed request identity.
 func (d PublicationCompletionDocument) ControlNonce() controlwire.RequestNonce {
 	return d.Completion.Payload.Nonce
+}
+
+func (PublicationCompletionDocument) ControlRequestBodyLimit() (core.ByteCount, error) {
+	return core.NewByteCount(uint64(PublicationCompletionDocumentJSONMaximumBytes))
 }
 
 func (a PublicationCompletionAssembly) Validate() error {

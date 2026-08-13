@@ -1065,25 +1065,25 @@ The order is dependency depth, not a command to build every package in a row.
 | 4 | `shutdown` | Signal observation and phased bounded cleanup | `core`, `contextstate`, `temporal` | none |
 | 5 | `gate` | Pure CLI-side new-work authorization over one authentic Lease assessment | `core`, `lease` | `attest`, `temporal` |
 | 5 | `receipt` | Authenticated accepted-evidence facts and fixed-size monotonic watermarks | `core`, `attest`, `temporal` | none |
-| 5 | `controlwire` | Shared control-wire revision, request nonce, one-time registration token, policy cursor, and the control exchange policy | `core`, `keygen`, `exchange`, `temporal` | none |
+| 5 | `controlwire` | Shared control-wire facts and paired authenticated socket with request-owner body limits | `core`, `keygen`, `exchange`, `temporal` | `controlplane`, `controlplanetest` |
 | 5 | `objectstore` | Bounded vendor-specified S3, GCS, or Cloudflare Images transfers through issued HTTPS capabilities, with integrity and provider evidence | `core`, `contextstate`, `temporal`, `exchange` | none |
 | 5 | `timeproof` | RFC 3161 request construction, response verification, and replay | `core`, `temporal`, `keygen` | none |
 | 5 | `cloudidentity` | Bounded Google Cloud or AWS outbound identity-token acquisition and redacted disclosure | `core`, `temporal`, `exchange` | none |
 | 6 | `controlplane` | Signed control-plane request and response documents, their binding to one exact request, product status, and usage watermark | `core`, `controlwire`, `attest`, `lease`, `temporal`, `receipt` | none |
 | 6 | `submission` | Authenticated evidence declarations, authority upload grants, and device-signed provider completion evidence bound to one exact request | `attest`, `chit`, `controlwire`, `core`, `id`, `objectstore`, `receipt`, `temporal` | none |
-| 7 | `submissionauth` | Installation-certificate binding and device authentication for evidence-submission requests and provider completions | `core`, `attest`, `controlplane`, `submission` | `chit`, `controlplanetest`, `controlwire`, `objectstore` |
+| 7 | `submissionauth` | Installation-certificate binding and device authentication for evidence-submission requests and provider completions | `core`, `attest`, `chit`, `controlplane`, `controlwire`, `submission` | `controlplanetest`, `objectstore` |
 | 7 | `controlplanetest` | Real authority-signed installation certificate fixtures for hostile control-plane tests | `core`, `controlplane`, `controlwire`, `lease`, `receipt`, `temporal` | none |
 | 6 | `deploy` | Exact create-only GCS publication of one authenticated release and its metadata | `core`, `objectstore`, `release` | `attest`, `temporal` |
 | 6 | `upgrade` | Crash-recoverable installation, activation, startup truth, rollback, and recovery | `core`, `filestore`, `hostfacts`, `objectstore`, `release`, `temporal` | none |
 | 7 | `distribution` | Signed product-neutral release publication, update discovery, and exact upgrade-download agreements | `attest`, `controlwire`, `core`, `deploy`, `objectstore`, `release`, `temporal`, `upgrade` | none |
-| 7 | `distributionauth` | Installation-certificate binding and device authentication for publication, update, and upgrade requests | `attest`, `controlplane`, `core`, `distribution`, `release` | `controlplanetest`, `controlwire`, `deploy`, `objectstore` |
+| 7 | `distributionauth` | Authenticated release-material responses plus installation-certificate binding and device authentication for publication, update, and upgrade requests | `attest`, `controlplane`, `controlwire`, `core`, `distribution`, `release` | `controlplanetest`, `deploy`, `objectstore` |
 | 6 | `gcsobjects` | Authenticated Google Cloud Storage bucket provisioning, typed logical namespace composition, create-only writes, digest-bound reads, and generation-matched permanent deletion through the official SDK | `core`, `contextstate`, `temporal`, `objectstore` | `exchange`, `testserial` |
 | 5 | `chit` | Authority-signed immutable custody tickets, streaming manifest closure, bounded catalogs, and device-signed catalog queries | `attest`, `controlwire`, `core`, `id`, `receipt`, `temporal` | none |
-| 7 | `chitauth` | Installation-certificate binding and device authentication for one chit catalog query | `attest`, `chit`, `controlplane`, `core` | `controlplanetest`, `controlwire`, `receipt` |
+| 7 | `chitauth` | Installation-certificate binding and device authentication for one chit catalog query | `attest`, `chit`, `controlplane`, `controlwire`, `core` | `controlplanetest`, `receipt` |
 | 6 | `retrieval` | Device-signed exact-object requests, authority-signed expiring download capabilities bound to authenticated chit manifests, and atomic exact-file retrieval execution | `attest`, `chit`, `controlwire`, `core`, `filestore`, `objectstore`, `temporal` | `receipt` |
-| 7 | `retrievalauth` | Installation-certificate binding and device authentication for one evidence-retrieval request | `attest`, `controlplane`, `core`, `retrieval` | `controlplanetest`, `controlwire` |
+| 7 | `retrievalauth` | Installation-certificate binding and device authentication for one evidence-retrieval request | `attest`, `controlplane`, `controlwire`, `core`, `retrieval` | `controlplanetest` |
 | 6 | `payment` | Authority-signed exact payment receipts, bounded catalogs, and device-signed catalog queries | `attest`, `controlwire`, `core`, `currency`, `id`, `receipt`, `temporal` | none |
-| 7 | `paymentauth` | Installation-certificate binding and device authentication for one payment catalog query | `attest`, `controlplane`, `core`, `payment` | `controlplanetest`, `controlwire`, `receipt` |
+| 7 | `paymentauth` | Installation-certificate binding and device authentication for one payment catalog query | `attest`, `controlplane`, `controlwire`, `core`, `payment` | `controlplanetest`, `receipt` |
 
 Graph-wide rules:
 

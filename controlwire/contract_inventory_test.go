@@ -38,7 +38,7 @@ type controlwireContractInventory struct {
 	RouteContract             controlwireProtocolFact[RouteContract]
 	ClientJSONCall            controlwireExecutionContract[ClientJSONCall[RoutedJSONRequest]]
 	AuthorityJSONReceiveCall  controlwireExecutionContract[AuthorityJSONReceiveCall]
-	ControlJSONWriteCall      controlwireExecutionContract[ControlJSONWriteCall[RoutedJSONRequest]]
+	ControlJSONWriteCall      controlwireExecutionContract[ControlJSONWriteCall[AuthenticatedResponseProjection]]
 }
 
 func TestControlWireProductionStructsHaveCompilerVisibleDataFlowRoles(t *testing.T) {

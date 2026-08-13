@@ -20,16 +20,20 @@ type (
 // submissionAuthContractInventory classifies every production struct by its
 // exact role at the installation-authentication boundary.
 type submissionAuthContractInventory struct {
-	RequestDocument              authProtocolFact[RequestDocument]
-	RequestAssembly              authProtocolFact[RequestAssembly]
-	Verification                 authProtocolFact[Verification]
-	Verified                     authCapabilityWrapper[Verified]
-	CompletionDocument           authProtocolFact[CompletionDocument]
-	CompletionProjection         authProtocolFact[CompletionProjection]
-	CompletionAssembly           authProtocolFact[CompletionAssembly]
-	CompletionProjectionAssembly authProtocolFact[CompletionProjectionAssembly]
-	CompletionVerification       authProtocolFact[CompletionVerification]
-	VerifiedCompletion           authCapabilityWrapper[VerifiedCompletion]
+	RequestDocument                authProtocolFact[RequestDocument]
+	RequestAssembly                authProtocolFact[RequestAssembly]
+	Verification                   authProtocolFact[Verification]
+	Verified                       authCapabilityWrapper[Verified]
+	CompletionDocument             authProtocolFact[CompletionDocument]
+	CompletionProjection           authProtocolFact[CompletionProjection]
+	CompletionAssembly             authProtocolFact[CompletionAssembly]
+	CompletionProjectionAssembly   authProtocolFact[CompletionProjectionAssembly]
+	CompletionVerification         authProtocolFact[CompletionVerification]
+	VerifiedCompletion             authCapabilityWrapper[VerifiedCompletion]
+	SubmissionResponseIssuance     authProtocolFact[SubmissionResponseIssuance]
+	SubmissionResponseVerification authProtocolFact[SubmissionResponseVerification]
+	CompletionResponseIssuance     authProtocolFact[CompletionResponseIssuance]
+	CompletionResponseVerification authProtocolFact[CompletionResponseVerification]
 }
 
 func TestSubmissionAuthDataFlowStructInventoryRatchet(t *testing.T) {

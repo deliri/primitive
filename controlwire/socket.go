@@ -2,6 +2,7 @@ package controlwire
 
 import (
 	"context"
+	"encoding/json"
 	"net/http"
 
 	"github.com/deliri/primitive/v2026/core"
@@ -17,6 +18,23 @@ type RoutedJSONRequest interface {
 	core.ValidatedJSONMarshaler
 	ControlRoute() (RouteContract, error)
 	ControlNonce() RequestNonce
+	ControlRequestBodyLimit() (core.ByteCount, error)
+}
+
+// AuthenticatedResponseProjection is an authority-issued response whose
+// compiler-owned authentication contract is closed before HTTP output.
+type AuthenticatedResponseProjection interface {
+	core.ValidatedJSONProjection
+	ControlResponseProjection()
+}
+
+// AuthenticatedResponseDocument is a structurally authenticated response
+// admitted from external JSON. Its owner still performs caller-selected trust
+// and request-binding verification before exposing the product body.
+type AuthenticatedResponseDocument interface {
+	core.Validatable
+	json.Unmarshaler
+	ControlResponseDocument()
 }
 
 // ClientJSONCall is one complete client-side control exchange. Authority must
@@ -39,7 +57,7 @@ type AuthorityJSONReceiveCall struct {
 // ControlJSONWriteCall is one authority-side successful control response.
 // Every control response is a typed JSON document and every successful route
 // uses the same compiler-owned status and document ceiling.
-type ControlJSONWriteCall[Body core.ValidatedJSONMarshaler] struct {
+type ControlJSONWriteCall[Body AuthenticatedResponseProjection] struct {
 	Writer http.ResponseWriter
 	Body   Body
 }
@@ -51,7 +69,7 @@ func SendRoutedJSON[
 	ResponseBody any,
 	ResponsePtr interface {
 		*ResponseBody
-		core.Validatable
+		AuthenticatedResponseDocument
 	},
 ](call ClientJSONCall[RequestBody]) (exchange.JSONResponse[ResponsePtr], error) {
 	var zero exchange.JSONResponse[ResponsePtr]
@@ -81,7 +99,11 @@ func ReceiveRoutedJSON[
 	if err := call.Validate(); err != nil {
 		return zero, err
 	}
-	policy, err := controlServerPolicy()
+	bodyLimit, err := BodyPtr(new(Body)).ControlRequestBodyLimit()
+	if err != nil {
+		return zero, err
+	}
+	policy, err := controlServerPolicy(bodyLimit)
 	if err != nil {
 		return zero, err
 	}
@@ -101,7 +123,7 @@ func ReceiveRoutedJSON[
 
 // WriteControlJSON emits one strictly bounded successful response.
 func WriteControlJSON[
-	Body core.ValidatedJSONMarshaler,
+	Body AuthenticatedResponseProjection,
 ](call ControlJSONWriteCall[Body]) error {
 	policy, err := controlJSONWritePolicy()
 	if err != nil {
@@ -226,12 +248,12 @@ func controlRouteSemantics() exchange.RouteSemantics {
 	}
 }
 
-func controlServerPolicy() (exchange.ServerPolicy, error) {
-	maximum, err := core.NewByteCount(core.JSONDocumentMaximumBytes)
-	if err != nil {
+func controlServerPolicy(maximum core.ByteCount) (exchange.ServerPolicy, error) {
+	policy := exchange.ServerPolicy{RequestBodyLimit: maximum}
+	if err := policy.Validate(); err != nil {
 		return exchange.ServerPolicy{}, exchangePolicyError(err)
 	}
-	return exchange.ServerPolicy{RequestBodyLimit: maximum}, nil
+	return policy, nil
 }
 
 func controlJSONWritePolicy() (exchange.JSONWritePolicy, error) {
