@@ -9,7 +9,40 @@ import (
 
 	"github.com/deliri/primitive/v2026/chit"
 	"github.com/deliri/primitive/v2026/core"
+	"github.com/deliri/primitive/v2026/id"
 )
+
+func TestNewUploadIDClosesOnlyValidatedUUIDv7Values(t *testing.T) {
+	t.Parallel()
+
+	canonical := []string{
+		"00000000-0001-7000-8000-000000000001",
+		"00000000-0002-7000-8000-000000000002",
+		"00000001-0000-7000-8000-000000000001",
+		"7fffffff-ffff-7fff-bfff-ffffffffffff",
+	}
+	seen := make(map[UploadID]struct{}, len(canonical))
+	for _, text := range canonical {
+		value, gotErr := id.ParseUUIDv7(text)
+		if gotErr != nil {
+			t.Fatalf("id.ParseUUIDv7(%q) setup error = %v, want nil", text, gotErr)
+		}
+		got, gotErr := NewUploadID(value)
+		if gotErr != nil || got.Validate() != nil || got.String() != text {
+			t.Fatalf("NewUploadID(%q) = (%q, %v), want exact validated closure", text, got.String(), gotErr)
+		}
+		if _, duplicate := seen[got]; duplicate {
+			t.Fatalf("NewUploadID(%q) collided with a distinct UUIDv7", text)
+		}
+		seen[got] = struct{}{}
+	}
+
+	got, gotErr := NewUploadID(id.UUIDv7{})
+	if got != (UploadID{}) || !errors.Is(gotErr, core.ErrControlPlaneContract) ||
+		!errors.Is(gotErr, core.ErrIDContract) {
+		t.Fatalf("NewUploadID(zero) = (%v, %v), want zero, errors.Is %v, and errors.Is %v", got, gotErr, core.ErrControlPlaneContract, core.ErrIDContract)
+	}
+}
 
 func TestUploadIDCanonicalUUIDv7BoundaryTable(t *testing.T) {
 	t.Parallel()

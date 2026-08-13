@@ -12,6 +12,7 @@ import (
 	"testing"
 
 	"github.com/deliri/primitive/v2026/core"
+	"github.com/deliri/primitive/v2026/testserial"
 )
 
 func TestEmbeddedBuildIdentityLinkSymbolsNameOwnedVariables(t *testing.T) {
@@ -70,6 +71,46 @@ func TestEmbeddedBuildIdentityLinkSymbolsNameOwnedVariables(t *testing.T) {
 		}
 		sort.Strings(missing)
 		t.Fatalf("link symbols name missing variables = %v", missing)
+	}
+}
+
+func TestEmbeddedBuildIdentityReadsExactLinkerOwnedFacts(t *testing.T) {
+	testserial.Declare(t, core.TestIsolationDeclaration{
+		Hazard: core.TestIsolationHazardGlobalRegistry,
+		Scope:  core.TestIsolationScopePackageProcess,
+	})
+
+	previous := embeddedBuildIdentityText{
+		offering: embeddedBuildOffering,
+		version:  embeddedBuildVersion,
+		commit:   embeddedBuildCommit,
+		platform: embeddedBuildPlatform,
+	}
+	t.Cleanup(func() {
+		embeddedBuildOffering = previous.offering
+		embeddedBuildVersion = previous.version
+		embeddedBuildCommit = previous.commit
+		embeddedBuildPlatform = previous.platform
+	})
+
+	embeddedBuildOffering = "witness"
+	embeddedBuildVersion = "2026.8.2"
+	embeddedBuildCommit = "0123456789abcdef0123456789abcdef01234567"
+	embeddedBuildPlatform = "darwin-arm64"
+	got, gotErr := EmbeddedBuildIdentity()
+	if gotErr != nil || got.Validate() != nil ||
+		got.Offering() != core.OfferingWitness ||
+		got.Version() != core.NewReleaseVersion(2026, 8, 2) ||
+		got.Commit().String() != embeddedBuildCommit ||
+		got.Platform() != (core.Platform{OperatingSystem: core.OperatingSystemDarwin, Architecture: core.CPUArchitectureARM64}) {
+		t.Fatalf("EmbeddedBuildIdentity() = (%v, %v), want exact linker-owned build facts", got, gotErr)
+	}
+
+	embeddedBuildPlatform = "darwin-386"
+	got, gotErr = EmbeddedBuildIdentity()
+	if got != (core.BuildIdentity{}) || !errors.Is(gotErr, core.ErrReleaseContract) ||
+		!errors.Is(gotErr, core.ErrPrimitiveContract) {
+		t.Fatalf("EmbeddedBuildIdentity(invalid platform) = (%v, %v), want zero, errors.Is %v, and errors.Is %v", got, gotErr, core.ErrReleaseContract, core.ErrPrimitiveContract)
 	}
 }
 
