@@ -20,6 +20,9 @@ type (
 	// controlwireDerivedFact marks a one-way value derived from a secret that a
 	// control plane may persist.
 	controlwireDerivedFact[T any] struct{}
+	// controlwireExecutionContract marks a typed in-process HTTP execution
+	// boundary. It carries protocol facts but is not itself serialized.
+	controlwireExecutionContract[T any] struct{}
 
 	controlwireProductionStructName string
 )
@@ -33,10 +36,9 @@ type controlwireContractInventory struct {
 	RegistrationTokenVerifier controlwireDerivedFact[RegistrationTokenVerifier]
 	PolicyCursor              controlwireProtocolFact[PolicyCursor]
 	RouteContract             controlwireProtocolFact[RouteContract]
-	// The document ceilings are a wire fact, not a local preference: both ends
-	// enforce the same numbers, so a client that exceeded them would be refused
-	// by a byte count rather than by a decision.
-	ControlExchangeLimits controlwireProtocolFact[ControlExchangeLimits]
+	ClientJSONCall            controlwireExecutionContract[ClientJSONCall[RoutedJSONRequest]]
+	AuthorityJSONReceiveCall  controlwireExecutionContract[AuthorityJSONReceiveCall]
+	ControlJSONWriteCall      controlwireExecutionContract[ControlJSONWriteCall[RoutedJSONRequest]]
 }
 
 func TestControlWireProductionStructsHaveCompilerVisibleDataFlowRoles(t *testing.T) {

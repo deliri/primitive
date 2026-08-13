@@ -7,6 +7,7 @@ import (
 	"github.com/deliri/primitive/v2026/attest"
 	"github.com/deliri/primitive/v2026/chit"
 	"github.com/deliri/primitive/v2026/controlplane"
+	"github.com/deliri/primitive/v2026/controlwire"
 	"github.com/deliri/primitive/v2026/core"
 )
 
@@ -52,6 +53,18 @@ func (d RequestDocument) Validate() error {
 		return bindingError()
 	}
 	return nil
+}
+
+// ControlRoute projects the sole route admitted by this credentialed query.
+func (d RequestDocument) ControlRoute() (controlwire.RouteContract, error) {
+	return controlwire.NewRouteContract(
+		d.Request.Payload.Build.Offering(), controlwire.RouteFamilyChits,
+	)
+}
+
+// ControlNonce projects the signed query identity.
+func (d RequestDocument) ControlNonce() controlwire.RequestNonce {
+	return d.Request.Payload.Nonce
 }
 
 func (a RequestAssembly) Validate() error { return RequestDocument(a).Validate() }
@@ -144,10 +157,11 @@ func (v Verified) Payload() (chit.QueryPayload, error) {
 }
 
 var (
-	_ core.Validatable = RequestDocument{}
-	_ core.Validatable = RequestAssembly{}
-	_ core.Validatable = Verification{}
-	_ core.Validatable = Verified{}
+	_ controlwire.RoutedJSONRequest = RequestDocument{}
+	_ core.Validatable              = RequestDocument{}
+	_ core.Validatable              = RequestAssembly{}
+	_ core.Validatable              = Verification{}
+	_ core.Validatable              = Verified{}
 
 	_ core.ValidatedJSONMarshaler = RequestDocument{}
 	_ json.Unmarshaler            = (*RequestDocument)(nil)

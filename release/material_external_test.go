@@ -19,6 +19,13 @@ func TestReleaseMaterialExternalBoundaryHostileMatrix(t *testing.T) {
 	t.Parallel()
 
 	fixture := materialResponseFixture(t)
+	route, routeErr := fixture.Request.ControlRoute()
+	if routeErr != nil || route.Offering() != fixture.Request.Offering ||
+		route.Family() != controlwire.RouteFamilyReleaseMaterials ||
+		fixture.Request.ControlNonce() != fixture.Request.Nonce {
+		t.Fatalf("material control projection = (%v, %v, %v), want exact route and request nonce",
+			route, fixture.Request.ControlNonce(), routeErr)
+	}
 	canonical, err := fixture.MarshalJSON()
 	if err != nil {
 		t.Fatalf("MaterialResponse.MarshalJSON() error = %v, want nil", err)

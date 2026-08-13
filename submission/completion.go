@@ -24,6 +24,7 @@ const (
 type CompletionPayload struct {
 	Evidence      objectstore.TransferEvidence           `json:"evidence"`
 	Build         core.BuildIdentity                     `json:"build"`
+	Nonce         controlwire.RequestNonce               `json:"request_nonce"`
 	Request       RequestCommitment                      `json:"request_commitment"`
 	Capability    objectstore.UploadCapabilityCommitment `json:"capability_commitment"`
 	Authorization controlwire.AuthorityNonce             `json:"authorization_nonce"`
@@ -73,6 +74,7 @@ type VerifiedCompletion struct {
 type completionProjectionPayload struct {
 	evidence      objectstore.TransferEvidenceProjection
 	build         core.BuildIdentity
+	nonce         controlwire.RequestNonce
 	request       RequestCommitment
 	capability    objectstore.UploadCapabilityCommitment
 	authorization controlwire.AuthorityNonce
@@ -84,6 +86,7 @@ type (
 	completionProjectionPayloadWire struct {
 		Evidence      objectstore.TransferEvidenceProjection `json:"evidence"`
 		Build         core.BuildIdentity                     `json:"build"`
+		Nonce         controlwire.RequestNonce               `json:"request_nonce"`
 		Request       RequestCommitment                      `json:"request_commitment"`
 		Capability    objectstore.UploadCapabilityCommitment `json:"capability_commitment"`
 		Authorization controlwire.AuthorityNonce             `json:"authorization_nonce"`
@@ -96,7 +99,7 @@ type (
 
 func (p CompletionPayload) Validate() error {
 	if err := errors.Join(
-		p.Build.Validate(), p.Request.Validate(), p.Capability.Validate(),
+		p.Build.Validate(), p.Nonce.Validate(), p.Request.Validate(), p.Capability.Validate(),
 		p.Authorization.Validate(), p.Evidence.Validate(),
 	); err != nil {
 		return contractError(err)
@@ -186,7 +189,7 @@ func (d *CompletionDocument) UnmarshalJSON(data []byte) error {
 
 func (p completionProjectionPayload) Validate() error {
 	if err := errors.Join(
-		p.build.Validate(), p.request.Validate(), p.capability.Validate(),
+		p.build.Validate(), p.nonce.Validate(), p.request.Validate(), p.capability.Validate(),
 		p.authorization.Validate(), p.evidence.Validate(),
 	); err != nil {
 		return contractError(err)
@@ -200,7 +203,7 @@ func (completionProjectionPayload) AttestationDomain() SigningDomain {
 
 func (p completionProjectionPayload) wire() completionProjectionPayloadWire {
 	return completionProjectionPayloadWire{
-		Build: p.build, Request: p.request, Capability: p.capability,
+		Build: p.build, Nonce: p.nonce, Request: p.request, Capability: p.capability,
 		Authorization: p.authorization, Evidence: p.evidence,
 	}
 }
@@ -285,7 +288,8 @@ func completionProjection(issuance CompletionIssuance) (completionProjectionPayl
 		return completionProjectionPayload{}, contractError(err)
 	}
 	payload := completionProjectionPayload{
-		build: issuance.Request.Build, request: request, capability: grant.Capability,
+		build: issuance.Request.Build, nonce: issuance.Request.Nonce,
+		request: request, capability: grant.Capability,
 		authorization: grant.Authorization, evidence: evidence,
 	}
 	return payload, payload.Validate()
@@ -337,7 +341,8 @@ func validateCompletionBinding(expectation CompletionExpectation) error {
 	}
 	payload := expectation.Document.Payload
 	grant := expectation.Grant.Payload
-	if payload.Build != expectation.Request.Build || payload.Authorization != grant.Authorization ||
+	if payload.Build != expectation.Request.Build || payload.Nonce != expectation.Request.Nonce ||
+		payload.Authorization != grant.Authorization ||
 		payload.Capability != grant.Capability {
 		return bindingError(errors.New("completion grant facts differ"))
 	}

@@ -47,6 +47,17 @@ func TestCredentialedDistributionRequestVerificationLayerTriadAuthenticatesEvery
 				offering: offering, authorityByte: byte(value) + 0x20,
 				deviceByte: byte(value) + 0x40, nonceByte: byte(value) + 1,
 			})
+			updateRoute, updateRouteErr := fixture.update.ControlRoute()
+			upgradeRoute, upgradeRouteErr := fixture.upgrade.ControlRoute()
+			if updateRouteErr != nil || upgradeRouteErr != nil ||
+				updateRoute.Offering() != offering || upgradeRoute.Offering() != offering ||
+				updateRoute.Family() != controlwire.RouteFamilyUpdateChecks ||
+				upgradeRoute.Family() != controlwire.RouteFamilyUpgrades ||
+				fixture.update.ControlNonce() != fixture.update.Request.Payload.Nonce ||
+				fixture.upgrade.ControlNonce() != fixture.upgrade.Request.Payload.Nonce {
+				t.Fatalf("distribution control projections(%v) = (%v, %v, %v, %v), want exact update/upgrade routes and nonces",
+					offering, updateRoute, updateRouteErr, upgradeRoute, upgradeRouteErr)
+			}
 			update, err := VerifyUpdate(UpdateVerification{
 				Document: fixture.update, TrustedKeys: fixture.trusted,
 			})

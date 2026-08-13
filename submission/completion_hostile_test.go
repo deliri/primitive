@@ -314,11 +314,13 @@ func TestCompletionPayloadJSONLayerTriadClosesFramingShapeAndExactByteBoundaries
 		Evidence      objectstore.TransferEvidence           `json:"evidence"`
 		Authorization controlwire.AuthorityNonce             `json:"authorization_nonce"`
 		Capability    objectstore.UploadCapabilityCommitment `json:"capability_commitment"`
+		Nonce         controlwire.RequestNonce               `json:"request_nonce"`
 		Request       RequestCommitment                      `json:"request_commitment"`
 		Build         core.BuildIdentity                     `json:"build"`
 	}{
 		Evidence: payload.Evidence, Authorization: payload.Authorization,
-		Capability: payload.Capability, Request: payload.Request, Build: payload.Build,
+		Capability: payload.Capability, Nonce: payload.Nonce,
+		Request: payload.Request, Build: payload.Build,
 	})
 	if err != nil {
 		t.Fatalf("json.Marshal(reordered completion payload) error = %v, want nil", err)
@@ -357,6 +359,7 @@ func TestCompletionPayloadJSONLayerTriadClosesFramingShapeAndExactByteBoundaries
 	unknown := append(bytes.Clone(encoded[:len(encoded)-1]), []byte(`,"future":true}`)...)
 	duplicateBuild := append(bytes.Clone(encoded[:len(encoded)-1]), []byte(`,"build":null}`)...)
 	duplicateEvidence := append(bytes.Clone(encoded[:len(encoded)-1]), []byte(`,"evidence":null}`)...)
+	duplicateNonce := append(bytes.Clone(encoded[:len(encoded)-1]), []byte(`,"request_nonce":null}`)...)
 	invalid := []struct {
 		name string
 		data []byte
@@ -372,7 +375,11 @@ func TestCompletionPayloadJSONLayerTriadClosesFramingShapeAndExactByteBoundaries
 		{name: "unknown member", data: unknown},
 		{name: "duplicate build", data: duplicateBuild},
 		{name: "duplicate evidence", data: duplicateEvidence},
+		{name: "duplicate nonce", data: duplicateNonce},
 		{name: "missing build", data: []byte(`{"request_commitment":null}`)},
+		{name: "missing nonce", data: []byte(`{"build":null,"request_commitment":null}`)},
+		{name: "null nonce", data: []byte(`{"request_nonce":null}`)},
+		{name: "wrong-type nonce", data: []byte(`{"request_nonce":true}`)},
 		{name: "missing request commitment", data: []byte(`{"build":null}`)},
 		{name: "build wrong type", data: []byte(`{"build":true}`)},
 		{name: "evidence wrong type", data: []byte(`{"evidence":true}`)},

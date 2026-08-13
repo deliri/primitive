@@ -98,6 +98,13 @@ func TestCredentialedCompletionLayerTriadClosesEveryOffering(t *testing.T) {
 				offering: offering, authorityByte: byte(value) + 0x20,
 				deviceByte: byte(value) + 0x40, nonceByte: byte(value) + 1,
 			})
+			route, routeErr := fixture.credentialed.ControlRoute()
+			if routeErr != nil || route.Offering() != offering ||
+				route.Family() != controlwire.RouteFamilySubmissionCompletions ||
+				fixture.credentialed.ControlNonce() != fixture.completionDocument.Payload.Nonce {
+				t.Fatalf("completion control projection(%v) = (%v, %v, %v), want exact route and signed nonce",
+					offering, route, fixture.credentialed.ControlNonce(), routeErr)
+			}
 			verified, err := VerifyCompletion(CompletionVerification{
 				Document: fixture.credentialed, Request: fixture.verifiedRequest,
 				Grant: fixture.grant, TrustedKeys: fixture.request.trusted,
@@ -133,6 +140,15 @@ func TestCredentialedCompletionLayerTriadRefusesCrossInstallationAndAgreementSub
 	})
 	otherCompletionSigner := base.credentialed
 	otherCompletionSigner.Completion.Attestation.Signer = other.request.certificate.Body.DeviceKey
+	otherNonceCompletion := base.credentialed
+	otherNonceCompletion.Completion.Payload.Nonce = other.request.request.Payload.Nonce
+	otherNonceAttestation, err := attest.Sign(attest.SignRequest[submission.SigningDomain]{
+		Body: otherNonceCompletion.Completion.Payload, Signer: base.request.device,
+	})
+	if err != nil {
+		t.Fatalf("attest.Sign(completion with other nonce) error = %v, want nil", err)
+	}
+	otherNonceCompletion.Completion.Attestation = otherNonceAttestation
 	cases := []struct {
 		want   error
 		mutate func(*CompletionVerification)
@@ -161,6 +177,9 @@ func TestCredentialedCompletionLayerTriadRefusesCrossInstallationAndAgreementSub
 		}, want: core.ErrControlPlaneResponseBinding},
 		{name: "other device completion with current certificate", mutate: func(value *CompletionVerification) {
 			value.Document.Completion = other.completionDocument
+		}, want: core.ErrControlPlaneResponseBinding},
+		{name: "validly signed completion names another request nonce", mutate: func(value *CompletionVerification) {
+			value.Document = otherNonceCompletion
 		}, want: core.ErrControlPlaneResponseBinding},
 		{name: "other authority trust", mutate: func(value *CompletionVerification) {
 			value.TrustedKeys = other.request.trusted

@@ -6,6 +6,7 @@ import (
 
 	"github.com/deliri/primitive/v2026/attest"
 	"github.com/deliri/primitive/v2026/controlplane"
+	"github.com/deliri/primitive/v2026/controlwire"
 	"github.com/deliri/primitive/v2026/core"
 	"github.com/deliri/primitive/v2026/retrieval"
 )
@@ -29,6 +30,18 @@ func (d RequestDocument) Validate() error {
 		return bindingError(errors.New("retrieval request build differs from certificate"))
 	}
 	return nil
+}
+
+// ControlRoute projects the sole route admitted by this credentialed request.
+func (d RequestDocument) ControlRoute() (controlwire.RouteContract, error) {
+	return controlwire.NewRouteContract(
+		d.Request.Payload.Build.Offering(), controlwire.RouteFamilyRetrievals,
+	)
+}
+
+// ControlNonce projects the signed request identity.
+func (d RequestDocument) ControlNonce() controlwire.RequestNonce {
+	return d.Request.Payload.Nonce
 }
 
 type RequestAssembly struct {
@@ -141,10 +154,11 @@ func (v Verified) Document() (RequestDocument, error) {
 }
 
 var (
-	_ core.Validatable            = RequestDocument{}
-	_ core.Validatable            = RequestAssembly{}
-	_ core.Validatable            = Verification{}
-	_ core.Validatable            = Verified{}
-	_ core.ValidatedJSONMarshaler = RequestDocument{}
-	_ json.Unmarshaler            = (*RequestDocument)(nil)
+	_ controlwire.RoutedJSONRequest = RequestDocument{}
+	_ core.Validatable              = RequestDocument{}
+	_ core.Validatable              = RequestAssembly{}
+	_ core.Validatable              = Verification{}
+	_ core.Validatable              = Verified{}
+	_ core.ValidatedJSONMarshaler   = RequestDocument{}
+	_ json.Unmarshaler              = (*RequestDocument)(nil)
 )

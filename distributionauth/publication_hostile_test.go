@@ -8,6 +8,7 @@ import (
 
 	"github.com/deliri/primitive/v2026/attest"
 	"github.com/deliri/primitive/v2026/controlplane"
+	"github.com/deliri/primitive/v2026/controlwire"
 	"github.com/deliri/primitive/v2026/core"
 	"github.com/deliri/primitive/v2026/distribution"
 	"github.com/deliri/primitive/v2026/release"
@@ -30,6 +31,17 @@ func TestCredentialedPublicationVerificationAuthenticatesEveryOfferingAndExactCo
 				deviceByte: byte(value) + 0x40, releaseByte: byte(value) + 0x60,
 				nonceByte: byte(value) + 1,
 			})
+			requestRoute, requestRouteErr := fixture.document.ControlRoute()
+			completionRoute, completionRouteErr := fixture.completion.ControlRoute()
+			if requestRouteErr != nil || completionRouteErr != nil ||
+				requestRoute.Offering() != offering || completionRoute.Offering() != offering ||
+				requestRoute.Family() != controlwire.RouteFamilyReleasePublications ||
+				completionRoute.Family() != controlwire.RouteFamilyReleasePublicationCompletions ||
+				fixture.document.ControlNonce() != fixture.document.Request.Payload.Nonce ||
+				fixture.completion.ControlNonce() != fixture.completion.Completion.Payload.Nonce {
+				t.Fatalf("publication control projections(%v) = (%v, %v, %v, %v), want exact request/completion routes and nonces",
+					offering, requestRoute, requestRouteErr, completionRoute, completionRouteErr)
+			}
 			verified, err := VerifyPublication(PublicationVerification{
 				Document: fixture.document, TrustedKeys: fixture.authority,
 				ManifestKeys: fixture.release.keys,
@@ -163,6 +175,15 @@ func TestCredentialedPublicationCompletionRefusesEveryCrossRequestAndCrossAuthor
 	}
 	tamperedRequest := base.completion
 	tamperedRequest.Completion.Payload.Request = other.completion.Completion.Payload.Request
+	otherNonceCompletion := base.completion
+	otherNonceCompletion.Completion.Payload.Nonce = other.document.Request.Payload.Nonce
+	otherNonceAttestation, err := attest.Sign(attest.SignRequest[distribution.SigningDomain]{
+		Body: otherNonceCompletion.Completion.Payload, Signer: base.installation.DevicePrivate,
+	})
+	if err != nil {
+		t.Fatalf("attest.Sign(publication completion with other nonce) error = %v, want nil", err)
+	}
+	otherNonceCompletion.Completion.Attestation = otherNonceAttestation
 	tamperedAuthorization := base.completion
 	tamperedAuthorization.Completion.Payload.Authorization = publicationAuthAuthorityNonce(t, 0x62)
 	if tamperedAuthorization.Completion.Payload.Authorization == base.completion.Completion.Payload.Authorization {
@@ -200,6 +221,7 @@ func TestCredentialedPublicationCompletionRefusesEveryCrossRequestAndCrossAuthor
 		{name: "completion signed by other device", grant: base.grant, document: otherDeviceCompletion, request: base.verified, trusted: base.authority, wantError: core.ErrAttestVerification},
 		{name: "provider evidence reordered after signing", grant: base.grant, document: tamperedEvidence, request: base.verified, trusted: base.authority, wantError: core.ErrAttestVerification},
 		{name: "request commitment changed after signing", grant: base.grant, document: tamperedRequest, request: base.verified, trusted: base.authority, wantError: core.ErrAttestVerification},
+		{name: "validly signed completion names another request nonce", grant: base.grant, document: otherNonceCompletion, request: base.verified, trusted: base.authority, wantError: core.ErrDistributionBinding},
 		{name: "authorization changed after signing", grant: base.grant, document: tamperedAuthorization, request: base.verified, trusted: base.authority, wantError: core.ErrAttestVerification},
 		{name: "manifest changed after signing", grant: base.grant, document: tamperedManifest, request: base.verified, trusted: base.authority, wantError: core.ErrAttestVerification},
 		{name: "grant from other authority and request", grant: other.grant, document: base.completion, request: base.verified, trusted: base.authority, wantError: core.ErrAttestVerification},

@@ -44,28 +44,6 @@ const (
 	exchangeRedirectMaximumHops = 0
 )
 
-// ControlExchangeLimits is the pair of document ceilings one control call runs
-// under.
-//
-// Both ends enforce the same numbers, so this is a wire fact rather than a
-// local preference: a client that sent more than the authority accepts would
-// be refused by a byte count instead of by a decision. The two ceilings are
-// named rather than positional because they are the same type and swapping
-// them produces a policy that looks reasonable and is wrong in both
-// directions.
-type ControlExchangeLimits struct {
-	RequestMaximumBytes  uint64
-	ResponseMaximumBytes uint64
-}
-
-// Validate rejects a limit pair that could not bound a real document.
-func (l ControlExchangeLimits) Validate() error {
-	if l.RequestMaximumBytes == 0 || l.ResponseMaximumBytes == 0 {
-		return exchangePolicyError()
-	}
-	return nil
-}
-
 // ControlExchangePolicy returns the complete bounds every control exchange runs
 // under.
 //
@@ -79,15 +57,12 @@ func (l ControlExchangeLimits) Validate() error {
 // a zero redirect mode rather than assuming a default, and that is the right
 // refusal: an unstated attempt count is not "once", and an unstated redirect
 // rule is not "reject".
-func ControlExchangePolicy(limits ControlExchangeLimits) (exchange.JSONPolicy, error) {
-	if err := limits.Validate(); err != nil {
-		return exchange.JSONPolicy{}, err
-	}
-	request, err := core.NewByteCount(limits.RequestMaximumBytes)
+func ControlExchangePolicy() (exchange.JSONPolicy, error) {
+	request, err := core.NewByteCount(core.JSONDocumentMaximumBytes)
 	if err != nil {
 		return exchange.JSONPolicy{}, exchangePolicyError(err)
 	}
-	response, err := core.NewByteCount(limits.ResponseMaximumBytes)
+	response, err := core.NewByteCount(core.JSONDocumentMaximumBytes)
 	if err != nil {
 		return exchange.JSONPolicy{}, exchangePolicyError(err)
 	}
@@ -188,5 +163,3 @@ func (c RouteContract) Semantics(nonce RequestNonce) (exchange.RequestSemantics,
 	}
 	return semantics, nil
 }
-
-var _ core.Validatable = ControlExchangeLimits{}

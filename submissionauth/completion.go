@@ -6,6 +6,7 @@ import (
 
 	"github.com/deliri/primitive/v2026/attest"
 	"github.com/deliri/primitive/v2026/controlplane"
+	"github.com/deliri/primitive/v2026/controlwire"
 	"github.com/deliri/primitive/v2026/core"
 	"github.com/deliri/primitive/v2026/submission"
 )
@@ -74,6 +75,18 @@ func (d CompletionDocument) Validate() error {
 		return bindingError()
 	}
 	return nil
+}
+
+// ControlRoute projects the sole route admitted by this completion.
+func (d CompletionDocument) ControlRoute() (controlwire.RouteContract, error) {
+	return controlwire.NewRouteContract(
+		d.Completion.Payload.Build.Offering(), controlwire.RouteFamilySubmissionCompletions,
+	)
+}
+
+// ControlNonce projects the completion's independently signed request identity.
+func (d CompletionDocument) ControlNonce() controlwire.RequestNonce {
+	return d.Completion.Payload.Nonce
 }
 
 func (a CompletionAssembly) Validate() error {
@@ -223,12 +236,13 @@ func (v VerifiedCompletion) Payload() (submission.CompletionPayload, error) {
 }
 
 var (
-	_ core.Validatable = CompletionDocument{}
-	_ core.Validatable = CompletionProjection{}
-	_ core.Validatable = CompletionAssembly{}
-	_ core.Validatable = CompletionProjectionAssembly{}
-	_ core.Validatable = CompletionVerification{}
-	_ core.Validatable = VerifiedCompletion{}
+	_ controlwire.RoutedJSONRequest = CompletionDocument{}
+	_ core.Validatable              = CompletionDocument{}
+	_ core.Validatable              = CompletionProjection{}
+	_ core.Validatable              = CompletionAssembly{}
+	_ core.Validatable              = CompletionProjectionAssembly{}
+	_ core.Validatable              = CompletionVerification{}
+	_ core.Validatable              = VerifiedCompletion{}
 
 	_ core.ValidatedJSONMarshaler = CompletionDocument{}
 	_ core.ValidatedJSONMarshaler = CompletionProjection{}

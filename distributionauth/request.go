@@ -6,6 +6,7 @@ import (
 
 	"github.com/deliri/primitive/v2026/attest"
 	"github.com/deliri/primitive/v2026/controlplane"
+	"github.com/deliri/primitive/v2026/controlwire"
 	"github.com/deliri/primitive/v2026/core"
 	"github.com/deliri/primitive/v2026/distribution"
 )
@@ -71,6 +72,18 @@ func (d UpdateRequestDocument) Validate() error {
 		return bindingError()
 	}
 	return nil
+}
+
+// ControlRoute projects the sole route admitted by this update request.
+func (d UpdateRequestDocument) ControlRoute() (controlwire.RouteContract, error) {
+	return controlwire.NewRouteContract(
+		d.Request.Payload.Build.Offering(), controlwire.RouteFamilyUpdateChecks,
+	)
+}
+
+// ControlNonce projects the signed update request identity.
+func (d UpdateRequestDocument) ControlNonce() controlwire.RequestNonce {
+	return d.Request.Payload.Nonce
 }
 
 func (a UpdateRequestAssembly) Validate() error { return UpdateRequestDocument(a).Validate() }
@@ -164,6 +177,19 @@ func (d UpgradeRequestDocument) Validate() error {
 		return bindingError()
 	}
 	return nil
+}
+
+// ControlRoute projects the sole route admitted by this upgrade request.
+func (d UpgradeRequestDocument) ControlRoute() (controlwire.RouteContract, error) {
+	candidate := d.Request.Payload.Available.Candidate
+	return controlwire.NewRouteContract(
+		candidate.Offering(), controlwire.RouteFamilyUpgrades,
+	)
+}
+
+// ControlNonce projects the signed upgrade request identity.
+func (d UpgradeRequestDocument) ControlNonce() controlwire.RequestNonce {
+	return d.Request.Payload.Nonce
 }
 
 func (a UpgradeRequestAssembly) Validate() error { return UpgradeRequestDocument(a).Validate() }
@@ -265,14 +291,16 @@ func decodeRequest[T any](data []byte) (T, error) {
 }
 
 var (
-	_ core.Validatable = UpdateRequestDocument{}
-	_ core.Validatable = UpdateRequestAssembly{}
-	_ core.Validatable = UpdateVerification{}
-	_ core.Validatable = VerifiedUpdate{}
-	_ core.Validatable = UpgradeRequestDocument{}
-	_ core.Validatable = UpgradeRequestAssembly{}
-	_ core.Validatable = UpgradeVerification{}
-	_ core.Validatable = VerifiedUpgrade{}
+	_ controlwire.RoutedJSONRequest = UpdateRequestDocument{}
+	_ controlwire.RoutedJSONRequest = UpgradeRequestDocument{}
+	_ core.Validatable              = UpdateRequestDocument{}
+	_ core.Validatable              = UpdateRequestAssembly{}
+	_ core.Validatable              = UpdateVerification{}
+	_ core.Validatable              = VerifiedUpdate{}
+	_ core.Validatable              = UpgradeRequestDocument{}
+	_ core.Validatable              = UpgradeRequestAssembly{}
+	_ core.Validatable              = UpgradeVerification{}
+	_ core.Validatable              = VerifiedUpgrade{}
 
 	_ core.ValidatedJSONMarshaler = UpdateRequestDocument{}
 	_ core.ValidatedJSONMarshaler = UpgradeRequestDocument{}

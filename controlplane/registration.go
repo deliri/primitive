@@ -78,6 +78,14 @@ func (r RegistrationRequest) Validate() error {
 	return nil
 }
 
+// ControlRoute projects the only route this document may address.
+func (r RegistrationRequest) ControlRoute() (controlwire.RouteContract, error) {
+	return controlwire.NewRouteContract(r.Build.Offering(), controlwire.RouteFamilyRegistrations)
+}
+
+// ControlNonce projects the request identity already carried on the wire.
+func (r RegistrationRequest) ControlNonce() controlwire.RequestNonce { return r.RequestNonce }
+
 func (r RegistrationRequest) validateFacts() error {
 	if err := r.Token.Validate(); err != nil {
 		return registrationError(err)
@@ -599,11 +607,12 @@ func writeCanonical(destination io.Writer, encoded []byte) error {
 }
 
 var (
-	_ core.Validatable = RegistrationRequest{}
-	_ core.Validatable = InstallationCertificateBody{}
-	_ core.Validatable = InstallationCertificateDocument{}
-	_ core.Validatable = RegistrationPayload{}
-	_ core.Validatable = RegistrationDocument{}
+	_ controlwire.RoutedJSONRequest = RegistrationRequest{}
+	_ core.Validatable              = RegistrationRequest{}
+	_ core.Validatable              = InstallationCertificateBody{}
+	_ core.Validatable              = InstallationCertificateDocument{}
+	_ core.Validatable              = RegistrationPayload{}
+	_ core.Validatable              = RegistrationDocument{}
 
 	_ core.ValidatedJSONMarshaler = RegistrationRequest{}
 	_ core.ValidatedJSONMarshaler = InstallationCertificateBody{}

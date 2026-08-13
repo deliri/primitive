@@ -67,6 +67,14 @@ func (r MaterialRequest) Validate() error {
 	return nil
 }
 
+// ControlRoute projects the sole route admitted by this release request.
+func (r MaterialRequest) ControlRoute() (controlwire.RouteContract, error) {
+	return controlwire.NewRouteContract(r.Offering, controlwire.RouteFamilyReleaseMaterials)
+}
+
+// ControlNonce projects the request identity carried by the document.
+func (r MaterialRequest) ControlNonce() controlwire.RequestNonce { return r.Nonce }
+
 func (r MaterialRequest) MarshalJSON() ([]byte, error) {
 	if err := r.Validate(); err != nil {
 		return nil, jsonError(err)
@@ -336,9 +344,10 @@ func (Material) Format(state fmt.State, _ rune) {
 }
 
 var (
-	_ core.Validatable = MaterialRequest{}
-	_ core.Validatable = MaterialResponse{}
-	_ core.Validatable = Material{}
-	_ json.Unmarshaler = (*MaterialRequest)(nil)
-	_ json.Unmarshaler = (*MaterialResponse)(nil)
+	_ controlwire.RoutedJSONRequest = MaterialRequest{}
+	_ core.Validatable              = MaterialRequest{}
+	_ core.Validatable              = MaterialResponse{}
+	_ core.Validatable              = Material{}
+	_ json.Unmarshaler              = (*MaterialRequest)(nil)
+	_ json.Unmarshaler              = (*MaterialResponse)(nil)
 )

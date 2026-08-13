@@ -150,6 +150,14 @@ func (r CheckInRequest) Validate() error {
 	})
 }
 
+// ControlRoute projects the only route this document may address.
+func (r CheckInRequest) ControlRoute() (controlwire.RouteContract, error) {
+	return controlwire.NewRouteContract(r.Payload.Build.Offering(), controlwire.RouteFamilyCheckIns)
+}
+
+// ControlNonce projects the request identity already carried in the signed payload.
+func (r CheckInRequest) ControlNonce() controlwire.RequestNonce { return r.Payload.RequestNonce }
+
 // MarshalJSON emits one bounded canonical request.
 func (r CheckInRequest) MarshalJSON() ([]byte, error) {
 	if err := r.Validate(); err != nil {
@@ -249,10 +257,11 @@ func (v VerifiedCheckIn) Request() (CheckInRequest, error) {
 }
 
 var (
-	_ core.Validatable = CheckInPayload{}
-	_ core.Validatable = CheckInRequest{}
-	_ core.Validatable = CheckInVerification{}
-	_ core.Validatable = VerifiedCheckIn{}
+	_ controlwire.RoutedJSONRequest = CheckInRequest{}
+	_ core.Validatable              = CheckInPayload{}
+	_ core.Validatable              = CheckInRequest{}
+	_ core.Validatable              = CheckInVerification{}
+	_ core.Validatable              = VerifiedCheckIn{}
 
 	_ core.ValidatedJSONMarshaler = CheckInPayload{}
 	_ core.ValidatedJSONMarshaler = CheckInRequest{}

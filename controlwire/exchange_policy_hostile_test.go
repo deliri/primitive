@@ -8,14 +8,6 @@ import (
 	"github.com/deliri/primitive/v2026/exchange"
 )
 
-// registrationDocumentBytes and checkInDocumentBytes stand in for the real
-// per-call ceilings so this package does not import the product protocols it
-// exists beneath.
-const (
-	registrationDocumentBytes = 16 << 10
-	checkInDocumentBytes      = 64 << 10
-)
-
 // TestControlExchangePolicyIsAcceptedByExchange is the ratchet that catches a
 // policy no request could ever be sent under.
 //
@@ -26,10 +18,7 @@ const (
 func TestControlExchangePolicyIsAcceptedByExchange(t *testing.T) {
 	t.Parallel()
 
-	policy, err := ControlExchangePolicy(ControlExchangeLimits{
-		RequestMaximumBytes:  registrationDocumentBytes,
-		ResponseMaximumBytes: checkInDocumentBytes,
-	})
+	policy, err := ControlExchangePolicy()
 	if err != nil {
 		t.Fatalf("ControlExchangePolicy() error = %v, want nil", err)
 	}
@@ -44,16 +33,12 @@ func TestControlExchangePolicyIsAcceptedByExchange(t *testing.T) {
 	}
 }
 
-// TestControlExchangePolicyProjectsTheDocumentCeilingsItWasGiven proves the two
-// ceilings reach the fields they name. They are the same type, so a swap
-// compiles, validates, and silently caps the wrong direction.
-func TestControlExchangePolicyProjectsTheDocumentCeilingsItWasGiven(t *testing.T) {
+// TestControlExchangePolicyProjectsTheCompilerOwnedDocumentCeiling proves
+// neither end can silently configure a different aggregate JSON bound.
+func TestControlExchangePolicyProjectsTheCompilerOwnedDocumentCeiling(t *testing.T) {
 	t.Parallel()
 
-	policy, err := ControlExchangePolicy(ControlExchangeLimits{
-		RequestMaximumBytes:  registrationDocumentBytes,
-		ResponseMaximumBytes: checkInDocumentBytes,
-	})
+	policy, err := ControlExchangePolicy()
 	if err != nil {
 		t.Fatalf("ControlExchangePolicy() error = %v, want nil", err)
 	}
@@ -65,46 +50,11 @@ func TestControlExchangePolicyProjectsTheDocumentCeilingsItWasGiven(t *testing.T
 	if err != nil {
 		t.Fatalf("ResponseBodyLimit.Uint64() error = %v, want nil", err)
 	}
-	if request != registrationDocumentBytes {
-		t.Fatalf("RequestBodyLimit = %d, want %d", request, registrationDocumentBytes)
+	if request != core.JSONDocumentMaximumBytes {
+		t.Fatalf("RequestBodyLimit = %d, want %d", request, core.JSONDocumentMaximumBytes)
 	}
-	if response != checkInDocumentBytes {
-		t.Fatalf("ResponseBodyLimit = %d, want %d", response, checkInDocumentBytes)
-	}
-}
-
-// TestControlExchangePolicyRefusesUnusableCeilings closes the ingress. A zero
-// ceiling would cap a document at nothing, which reads as a policy and behaves
-// as an outage.
-func TestControlExchangePolicyRefusesUnusableCeilings(t *testing.T) {
-	t.Parallel()
-
-	cases := []struct {
-		name   string
-		limits ControlExchangeLimits
-	}{
-		{name: "both ceilings unset", limits: ControlExchangeLimits{}},
-		{
-			name:   "request ceiling unset",
-			limits: ControlExchangeLimits{ResponseMaximumBytes: checkInDocumentBytes},
-		},
-		{
-			name:   "response ceiling unset",
-			limits: ControlExchangeLimits{RequestMaximumBytes: registrationDocumentBytes},
-		},
-	}
-	for _, testCase := range cases {
-		t.Run(testCase.name, func(t *testing.T) {
-			t.Parallel()
-
-			got, err := ControlExchangePolicy(testCase.limits)
-			if !errors.Is(err, core.ErrControlWireContract) {
-				t.Fatalf("ControlExchangePolicy() error = %v, want errors.Is %v", err, core.ErrControlWireContract)
-			}
-			if err := got.Validate(); !errors.Is(err, core.ErrExchangeContract) {
-				t.Fatalf("refused policy Validate() error = %v, want errors.Is %v", err, core.ErrExchangeContract)
-			}
-		})
+	if response != core.JSONDocumentMaximumBytes {
+		t.Fatalf("ResponseBodyLimit = %d, want %d", response, core.JSONDocumentMaximumBytes)
 	}
 }
 

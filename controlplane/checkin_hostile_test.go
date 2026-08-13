@@ -218,6 +218,13 @@ func TestCheckInCarriesEveryOfferingThroughOneShape(t *testing.T) {
 			t.Parallel()
 
 			issued := issueTestCheckIn(t, offering, testCheckInWindow())
+			route, routeErr := issued.request.ControlRoute()
+			if routeErr != nil || route.Offering() != offering ||
+				route.Family() != controlwire.RouteFamilyCheckIns ||
+				issued.request.ControlNonce() != issued.request.Payload.RequestNonce {
+				t.Fatalf("check-in control projection(%v) = (%v, %v, %v), want exact route and signed nonce",
+					offering, route, issued.request.ControlNonce(), routeErr)
+			}
 			verified, err := controlplane.VerifyCheckIn(controlplane.CheckInVerification{
 				Request: issued.request, TrustedKeys: issued.trusted,
 			})

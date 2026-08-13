@@ -57,6 +57,13 @@ func TestCredentialedPaymentQueryVerificationLayerTriadAuthenticatesAllAndSpecif
 					authorityByte: byte(value) + 0x20,
 					deviceByte:    byte(value) + 0x40, nonceByte: byte(value) + 1,
 				})
+				route, routeErr := fixture.document.ControlRoute()
+				if routeErr != nil || route.Offering() != offering ||
+					route.Family() != controlwire.RouteFamilyPayments ||
+					fixture.document.ControlNonce() != fixture.payload.Nonce {
+					t.Fatalf("payment control projection(%v) = (%v, %v, %v), want exact route and signed nonce",
+						offering, route, fixture.document.ControlNonce(), routeErr)
+				}
 				verified, err := Verify(Verification{
 					Document: fixture.document, TrustedKeys: fixture.trusted,
 				})

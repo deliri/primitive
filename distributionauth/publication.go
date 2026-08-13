@@ -6,6 +6,7 @@ import (
 
 	"github.com/deliri/primitive/v2026/attest"
 	"github.com/deliri/primitive/v2026/controlplane"
+	"github.com/deliri/primitive/v2026/controlwire"
 	"github.com/deliri/primitive/v2026/core"
 	"github.com/deliri/primitive/v2026/distribution"
 	"github.com/deliri/primitive/v2026/release"
@@ -50,6 +51,18 @@ func (d PublicationRequestDocument) Validate() error {
 		return bindingError()
 	}
 	return nil
+}
+
+// ControlRoute projects the sole route admitted by this publication request.
+func (d PublicationRequestDocument) ControlRoute() (controlwire.RouteContract, error) {
+	return controlwire.NewRouteContract(
+		d.Request.Payload.Build.Offering(), controlwire.RouteFamilyReleasePublications,
+	)
+}
+
+// ControlNonce projects the signed publication request identity.
+func (d PublicationRequestDocument) ControlNonce() controlwire.RequestNonce {
+	return d.Request.Payload.Nonce
 }
 
 func (a PublicationRequestAssembly) Validate() error {
@@ -199,6 +212,19 @@ func (d PublicationCompletionDocument) Validate() error {
 	return nil
 }
 
+// ControlRoute projects the sole route admitted by this publication completion.
+func (d PublicationCompletionDocument) ControlRoute() (controlwire.RouteContract, error) {
+	return controlwire.NewRouteContract(
+		d.Completion.Payload.Build.Offering(),
+		controlwire.RouteFamilyReleasePublicationCompletions,
+	)
+}
+
+// ControlNonce projects the completion's independently signed request identity.
+func (d PublicationCompletionDocument) ControlNonce() controlwire.RequestNonce {
+	return d.Completion.Payload.Nonce
+}
+
 func (a PublicationCompletionAssembly) Validate() error {
 	return PublicationCompletionDocument(a).Validate()
 }
@@ -346,16 +372,18 @@ func (v VerifiedPublicationCompletion) Payload() (distribution.PublicationComple
 }
 
 var (
-	_ core.Validatable = PublicationRequestDocument{}
-	_ core.Validatable = PublicationRequestAssembly{}
-	_ core.Validatable = PublicationVerification{}
-	_ core.Validatable = VerifiedPublication{}
-	_ core.Validatable = PublicationCompletionDocument{}
-	_ core.Validatable = PublicationCompletionProjection{}
-	_ core.Validatable = PublicationCompletionAssembly{}
-	_ core.Validatable = PublicationCompletionProjectionAssembly{}
-	_ core.Validatable = PublicationCompletionVerification{}
-	_ core.Validatable = VerifiedPublicationCompletion{}
+	_ controlwire.RoutedJSONRequest = PublicationCompletionDocument{}
+	_ controlwire.RoutedJSONRequest = PublicationRequestDocument{}
+	_ core.Validatable              = PublicationRequestDocument{}
+	_ core.Validatable              = PublicationRequestAssembly{}
+	_ core.Validatable              = PublicationVerification{}
+	_ core.Validatable              = VerifiedPublication{}
+	_ core.Validatable              = PublicationCompletionDocument{}
+	_ core.Validatable              = PublicationCompletionProjection{}
+	_ core.Validatable              = PublicationCompletionAssembly{}
+	_ core.Validatable              = PublicationCompletionProjectionAssembly{}
+	_ core.Validatable              = PublicationCompletionVerification{}
+	_ core.Validatable              = VerifiedPublicationCompletion{}
 
 	_ core.ValidatedJSONMarshaler = PublicationRequestDocument{}
 	_ core.ValidatedJSONMarshaler = PublicationCompletionDocument{}

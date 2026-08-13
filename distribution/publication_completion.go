@@ -18,6 +18,7 @@ import (
 // object in one granted release publication completed with exact integrity.
 type PublicationCompletionPayload struct {
 	Evidence         [release.PublicationObjectCount]objectstore.TransferEvidence `json:"evidence"`
+	Nonce            controlwire.RequestNonce                                     `json:"request_nonce"`
 	Request          RequestCommitment                                            `json:"request_commitment"`
 	Authorization    controlwire.AuthorityNonce                                   `json:"authorization_nonce"`
 	Manifest         release.ManifestIdentity                                     `json:"manifest"`
@@ -69,6 +70,7 @@ type VerifiedPublicationCompletion struct {
 
 type publicationCompletionProjectionPayload struct {
 	evidence         [release.PublicationObjectCount]objectstore.TransferEvidenceProjection
+	nonce            controlwire.RequestNonce
 	request          RequestCommitment
 	authorization    controlwire.AuthorityNonce
 	manifest         release.ManifestIdentity
@@ -81,6 +83,7 @@ type (
 	publicationCompletionDocumentWire          PublicationCompletionDocument
 	publicationCompletionProjectionPayloadWire struct {
 		Evidence         [release.PublicationObjectCount]objectstore.TransferEvidenceProjection `json:"evidence"`
+		Nonce            controlwire.RequestNonce                                               `json:"request_nonce"`
 		Request          RequestCommitment                                                      `json:"request_commitment"`
 		Authorization    controlwire.AuthorityNonce                                             `json:"authorization_nonce"`
 		Manifest         release.ManifestIdentity                                               `json:"manifest"`
@@ -95,7 +98,7 @@ type (
 
 func (p PublicationCompletionPayload) Validate() error {
 	if err := errors.Join(
-		p.Request.validateDomain(SigningDomainPublicationRequestV1),
+		p.Nonce.Validate(), p.Request.validateDomain(SigningDomainPublicationRequestV1),
 		p.Authorization.Validate(), p.Manifest.Validate(), p.ManifestDocument.Validate(), p.Build.Validate(),
 	); err != nil {
 		return contractError(err)
@@ -186,7 +189,7 @@ func (d *PublicationCompletionDocument) UnmarshalJSON(data []byte) error {
 
 func (p publicationCompletionProjectionPayload) Validate() error {
 	if err := errors.Join(
-		p.request.validateDomain(SigningDomainPublicationRequestV1),
+		p.nonce.Validate(), p.request.validateDomain(SigningDomainPublicationRequestV1),
 		p.authorization.Validate(), p.manifest.Validate(), p.manifestDocument.Validate(), p.build.Validate(),
 	); err != nil {
 		return contractError(err)
@@ -205,7 +208,7 @@ func (publicationCompletionProjectionPayload) AttestationDomain() SigningDomain 
 
 func (p publicationCompletionProjectionPayload) wire() publicationCompletionProjectionPayloadWire {
 	return publicationCompletionProjectionPayloadWire{
-		Request: p.request, Authorization: p.authorization,
+		Nonce: p.nonce, Request: p.request, Authorization: p.authorization,
 		Manifest: p.manifest, ManifestDocument: p.manifestDocument, Build: p.build,
 		Evidence: p.evidence,
 	}
@@ -275,7 +278,7 @@ func publicationCompletionPayload(issuance PublicationCompletionIssuance) (publi
 		return publicationCompletionProjectionPayload{}, err
 	}
 	payload := publicationCompletionProjectionPayload{
-		request: grant.Request, authorization: grant.Authorization,
+		nonce: request.Nonce, request: grant.Request, authorization: grant.Authorization,
 		manifest: manifest.Identity(), manifestDocument: manifest.DocumentDigest(), build: request.Build,
 	}
 	payload.evidence, err = publicationCompletionEvidence(issuance.Receipts, grant)
@@ -390,6 +393,7 @@ func validatePublicationCompletionIdentity(
 	commitment, err := CommitRequest(request)
 	if err != nil || commitment != expectation.Grant.Request ||
 		commitment != expectation.Document.Payload.Request ||
+		request.Nonce != expectation.Document.Payload.Nonce ||
 		expectation.Grant.Authorization != expectation.Document.Payload.Authorization {
 		return release.VerifiedManifest{}, bindingError(errors.New("publication completion request or authorization differs"), err)
 	}

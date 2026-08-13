@@ -56,6 +56,13 @@ func TestRetrievalAuthAssemblyLayerTriad(t *testing.T) {
 		}
 		for _, tc := range cases {
 			fixture := newRetrievalAuthFixture(t, tc)
+			route, routeErr := fixture.document.ControlRoute()
+			if routeErr != nil || route.Offering() != fixture.request.Payload.Build.Offering() ||
+				route.Family() != controlwire.RouteFamilyRetrievals ||
+				fixture.document.ControlNonce() != fixture.request.Payload.Nonce {
+				t.Fatalf("retrieval control projection(%v) = (%v, %v, %v), want exact route and signed nonce",
+					tc.Offering, route, fixture.document.ControlNonce(), routeErr)
+			}
 			got, gotErr := Assemble(RequestAssembly{Request: fixture.request, Certificate: fixture.certificate})
 			if gotErr != nil || got != fixture.document {
 				t.Fatalf("Assemble(%v) = (%v, %v), want exact document and nil", tc.Offering, got, gotErr)

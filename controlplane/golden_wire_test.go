@@ -163,6 +163,13 @@ func TestGoldenRegistrationRequestCarriesTheFactsItClaims(t *testing.T) {
 	if got := request.Build.Offering(); got != core.OfferingPeachfuzz {
 		t.Errorf("golden offering = %v, want %v", got, core.OfferingPeachfuzz)
 	}
+	route, routeErr := request.ControlRoute()
+	if routeErr != nil || route.Offering() != core.OfferingPeachfuzz ||
+		route.Family() != controlwire.RouteFamilyRegistrations ||
+		request.ControlNonce() != request.RequestNonce {
+		t.Fatalf("registration control projection = (%v, %v, %v), want exact route and request nonce",
+			route, request.ControlNonce(), routeErr)
+	}
 	revision, err := controlwire.ParseRevision(checkInRevisionText)
 	if err != nil {
 		t.Fatalf("ParseRevision(%s) error = %v, want nil", checkInRevisionText, err)
