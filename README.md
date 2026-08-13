@@ -138,6 +138,7 @@ flowchart TD
     distributionauth --> controlplane
     distributionauth --> core
     distributionauth --> distribution
+    distributionauth --> release
 
     gcsobjects[gcsobjects] --> core
     gcsobjects --> contextstate
@@ -190,20 +191,20 @@ test-only edges in the same compiler-owned catalog when its real ingress value
 cannot be constructed without the package that produces it. A declared test
 edge grants no production dependency, counts against the same per-package
 coupling ceiling, and is rejected when no test source uses it. `gate` uses
-`attest` and `temporal` to prove real signed leases, `submission` uses `exchange`
-to prove real provider completions, `submissionauth` uses `chit`,
-`controlplanetest`, `controlwire`, `exchange`, and `objectstore` to
+`attest` and `temporal` to prove real signed leases, `submissionauth` uses
+`chit`, `controlplanetest`, `controlwire`, and `objectstore` to
 prove real credentialed requests and completions, `chitauth` and `paymentauth`
 use `controlplanetest`, `controlwire`, and `receipt` to prove real credentialed
 catalog queries, `distributionauth` uses `controlplanetest`, `controlwire`,
-`release`, and `temporal` to prove real credentialed update and upgrade
-requests,
+`deploy`, `objectstore`, `controlplanetest`, and `controlwire` to prove real
+credentialed publication, update, and upgrade requests, `release` uses
+`testserial` to isolate process-wide build identity tests,
 `retrievalauth` uses `controlplanetest` and `controlwire` to prove real
-credentialed retrieval requests, `retrieval` uses `exchange` and `receipt` to
+credentialed retrieval requests, `retrieval` uses `receipt` to
 prove real streaming transport and authenticated stored evidence,
 `process` uses
-`testserial` for process-wide isolation, and `deploy` uses `attest`, `exchange`,
-and `temporal` to prove a real authenticated manifest and transfer substrate.
+`testserial` for process-wide isolation, and `deploy` uses `attest` and
+`temporal` to prove a real authenticated manifest and transfer substrate.
 
 ## License
 

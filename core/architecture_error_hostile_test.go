@@ -112,12 +112,12 @@ func TestArchitectureCatalogRejectsEveryStructuralFailureMode(t *testing.T) {
 		{name: "tenth direct import exceeds graph maximum", mutate: func(c *ArchitectureCatalog) {
 			replaceArchitectureImportForTest(c,
 				DirectImportContract{Importer: PackageControlPlane, Imported: PackageReceipt},
-				DirectImportContract{Importer: PackageRetrieval, Imported: PackageCurrency},
+				DirectImportContract{Importer: PackageDistributionAuth, Imported: PackageCurrency},
 			)
 		}, wantErr: ErrPrimitiveContract},
 		{name: "tenth combined production and test import exceeds graph maximum", mutate: func(c *ArchitectureCatalog) {
 			c.testImports[0] = DirectTestImportContract{
-				Importer: PackageRetrieval,
+				Importer: PackageDistributionAuth,
 				Imported: PackageCurrency,
 			}
 		}, wantErr: ErrPrimitiveContract},

@@ -11,7 +11,6 @@ import (
 	"github.com/deliri/primitive/v2026/core"
 	"github.com/deliri/primitive/v2026/distribution"
 	"github.com/deliri/primitive/v2026/release"
-	"github.com/deliri/primitive/v2026/temporal"
 )
 
 func TestCredentialedPublicationVerificationAuthenticatesEveryOfferingAndExactCompletion(t *testing.T) {
@@ -99,7 +98,7 @@ func TestCredentialedPublicationRequestRefusesEveryAuthorityDeviceBuildAndManife
 	tamperedSigner := base.document
 	tamperedSigner.Request.Attestation.Signer = otherDevice.document.Request.Attestation.Signer
 	tamperedCertificate := base.document
-	tamperedCertificate.Certificate.Body.IssuedAt = temporal.InstantFromNanoseconds(1_800_000_000_000_000_000)
+	tamperedCertificate.Certificate.Body.IssuedAt = base.grant.Payload.ExpiresAt
 	if tamperedCertificate.Certificate.Body.IssuedAt == base.document.Certificate.Body.IssuedAt {
 		t.Fatalf("certificate issuance mutation = %v, want a value distinct from %v",
 			tamperedCertificate.Certificate.Body.IssuedAt, base.document.Certificate.Body.IssuedAt)

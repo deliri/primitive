@@ -21,14 +21,19 @@ import (
 
 const cloudflareImagesFormField = "file"
 
-// Client is an immutable capability over one caller-owned Exchange client.
+// Client is an immutable capability over one caller-owned HTTP client admitted
+// through Exchange at this package boundary.
 type Client struct {
 	exchange exchange.Client
 }
 
 // NewClient constructs one Objectstore client.
-func NewClient(client exchange.Client) (Client, error) {
-	value := Client{exchange: client}
+func NewClient(client *http.Client) (Client, error) {
+	exchangeClient, err := exchange.NewClient(client)
+	if err != nil {
+		return Client{}, errors.Join(core.ErrObjectStoreContract, err)
+	}
+	value := Client{exchange: exchangeClient}
 	if err := value.Validate(); err != nil {
 		return Client{}, err
 	}

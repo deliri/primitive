@@ -13,7 +13,6 @@ import (
 	"testing"
 
 	"github.com/deliri/primitive/v2026/core"
-	"github.com/deliri/primitive/v2026/exchange"
 	"github.com/deliri/primitive/v2026/filestore"
 	"github.com/deliri/primitive/v2026/objectstore"
 	"github.com/deliri/primitive/v2026/release"
@@ -467,11 +466,7 @@ func stageDownloadSourceForTest(
 ) DownloadSource {
 	t.Helper()
 
-	client, err := exchange.NewClient(&http.Client{Transport: fixture.transport})
-	if err != nil {
-		t.Fatalf("exchange.NewClient() error = %v, want nil", err)
-	}
-	objectClient, err := objectstore.NewClient(client)
+	objectClient, err := objectstore.NewClient(&http.Client{Transport: fixture.transport})
 	if err != nil {
 		t.Fatalf("objectstore.NewClient() error = %v, want nil", err)
 	}

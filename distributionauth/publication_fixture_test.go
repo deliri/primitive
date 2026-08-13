@@ -20,10 +20,8 @@ import (
 	"github.com/deliri/primitive/v2026/core"
 	"github.com/deliri/primitive/v2026/deploy"
 	"github.com/deliri/primitive/v2026/distribution"
-	"github.com/deliri/primitive/v2026/exchange"
 	"github.com/deliri/primitive/v2026/objectstore"
 	"github.com/deliri/primitive/v2026/release"
-	"github.com/deliri/primitive/v2026/temporal"
 )
 
 type publicationAuthFixtureRequest struct {
@@ -39,6 +37,11 @@ type publicationAuthRelease struct {
 	document release.ManifestDocument
 	verified release.VerifiedManifest
 	keys     attest.TrustedKeys
+}
+
+type publicationAuthUpload struct {
+	projection objectstore.UploadCapabilityProjection
+	target     objectstore.UploadTarget
 }
 
 type publicationAuthFixture struct {
@@ -86,10 +89,10 @@ func newPublicationAuthFixture(
 	if err != nil {
 		t.Fatalf("controlplanetest.IssueInstallation() error = %v, want nil", err)
 	}
-	releaseFixture := newPublicationAuthRelease(t, installation.Build, request.releaseByte)
+	releaseFixture := newPublicationAuthRelease(t, installation, request.releaseByte)
 	requestPayload := distribution.PublicationRequestPayload{
 		Manifest: releaseFixture.document, Build: installation.Build,
-		Nonce: distributionAuthNonce(t, request.nonceByte), Revision: controlwire.Revision2026V1,
+		Nonce: distributionAuthNonce(t, request.nonceByte), Revision: installation.Certificate.Body.Revision,
 	}
 	requestDocument, err := distribution.IssuePublicationRequest(distribution.PublicationRequestIssuance{
 		Signer: installation.DevicePrivate, Payload: requestPayload,
@@ -110,8 +113,12 @@ func newPublicationAuthFixture(
 	if err != nil {
 		t.Fatalf("VerifyPublication() error = %v, want nil", err)
 	}
-	grant, grantProof := newPublicationAuthGrant(t, verified, installation.AuthorityPrivate, authority)
-	completion := newPublicationAuthCompletion(t, installation, releaseFixture, verified, grantProof)
+	grant, grantProof, uploadTarget := newPublicationAuthGrant(
+		t, verified, installation.AuthorityPrivate, authority,
+	)
+	completion := newPublicationAuthCompletion(
+		t, installation, releaseFixture, verified, grantProof, uploadTarget,
+	)
 	return publicationAuthFixture{
 		installation: installation, release: releaseFixture, document: document,
 		verified: verified, authority: authority, grant: grant,
@@ -140,10 +147,11 @@ func publicationAuthFixtureDefaults(request publicationAuthFixtureRequest) publi
 
 func newPublicationAuthRelease(
 	t testing.TB,
-	installed core.BuildIdentity,
+	installation controlplanetest.Installation,
 	signerByte byte,
 ) publicationAuthRelease {
 	t.Helper()
+	installed := installation.Build
 	var result publicationAuthRelease
 	var artifacts [release.TargetCount]release.Artifact
 	targets := release.Targets()
@@ -184,7 +192,7 @@ func newPublicationAuthRelease(
 	fact, err := release.NewManifestFact(release.ManifestFactRequest{
 		Revision: release.Revision2026V1, Offering: installed.Offering(),
 		Version: installed.Version(), Commit: installed.Commit(),
-		CreatedAt: temporal.InstantFromNanoseconds(1_000), Artifacts: artifactSet,
+		CreatedAt: installation.Certificate.Body.IssuedAt, Artifacts: artifactSet,
 		Provenance: publicationAuthProvenance(t), Metadata: metadata,
 	})
 	if err != nil {
@@ -283,7 +291,11 @@ func newPublicationAuthGrant(
 	request VerifiedPublication,
 	signer ed25519.PrivateKey,
 	trusted attest.TrustedKeys,
-) (distribution.PublicationGrantDocument, distribution.VerifiedPublicationGrant) {
+) (
+	distribution.PublicationGrantDocument,
+	distribution.VerifiedPublicationGrant,
+	objectstore.UploadTarget,
+) {
 	t.Helper()
 	payload, err := request.Payload()
 	if err != nil {
@@ -295,8 +307,13 @@ func newPublicationAuthGrant(
 	}
 	var projections [release.PublicationObjectCount]objectstore.UploadCapabilityProjection
 	var commitments [release.PublicationObjectCount]objectstore.UploadCapabilityCommitment
+	var firstTarget objectstore.UploadTarget
 	for index := range projections {
-		projections[index] = publicationAuthUploadProjection(t, index)
+		upload := publicationAuthUploadFixture(t, index)
+		projections[index] = upload.projection
+		if index == 0 {
+			firstTarget = upload.target
+		}
 		commitments[index], err = projections[index].Commitment()
 		if err != nil {
 			t.Fatalf("UploadCapabilityProjection(%d).Commitment() error = %v, want nil", index, err)
@@ -304,8 +321,9 @@ func newPublicationAuthGrant(
 	}
 	grantPayload := distribution.PublicationGrantPayload{
 		Request: commitment, Authorization: publicationAuthAuthorityNonce(t, 0x61),
-		Commitments: commitments, IssuedAt: temporal.InstantFromNanoseconds(2_000),
-		ExpiresAt: temporal.InstantFromNanoseconds(4_000),
+		Commitments: commitments,
+		IssuedAt:    request.document.Certificate.Body.IssuedAt,
+		ExpiresAt:   firstTarget.ExpiresAt,
 	}
 	projection, err := distribution.IssuePublicationGrant(distribution.PublicationGrantIssuance{
 		Signer: signer, Capabilities: projections, Payload: grantPayload,
@@ -323,12 +341,12 @@ func newPublicationAuthGrant(
 	}
 	verified, err := distribution.VerifyPublicationGrant(distribution.PublicationGrantExpectation{
 		Request: payload, Document: document, TrustedKeys: trusted,
-		ObservedAt: temporal.InstantFromNanoseconds(3_000),
+		ObservedAt: request.document.Certificate.Body.IssuedAt,
 	})
 	if err != nil {
 		t.Fatalf("distribution.VerifyPublicationGrant() error = %v, want nil", err)
 	}
-	return document, verified
+	return document, verified, firstTarget
 }
 
 func newPublicationAuthCompletion(
@@ -337,6 +355,7 @@ func newPublicationAuthCompletion(
 	releaseFixture publicationAuthRelease,
 	request VerifiedPublication,
 	grant distribution.VerifiedPublicationGrant,
+	uploadTarget objectstore.UploadTarget,
 ) PublicationCompletionDocument {
 	t.Helper()
 	var sources [release.PublicationObjectCount]distribution.PublicationSource
@@ -345,7 +364,7 @@ func newPublicationAuthCompletion(
 	}
 	plan, err := distribution.PreparePublicationPlan(distribution.PublicationPlanRequest{
 		Grant: grant, Manifest: releaseFixture.verified, Sources: sources,
-		Policy: publicationAuthObjectstorePolicy(t),
+		Policy: publicationAuthObjectstorePolicy(t, installation, uploadTarget),
 	})
 	if err != nil {
 		t.Fatalf("distribution.PreparePublicationPlan() error = %v, want nil", err)
@@ -387,10 +406,10 @@ func newPublicationAuthCompletion(
 	return document
 }
 
-func publicationAuthUploadProjection(
+func publicationAuthUploadFixture(
 	t testing.TB,
 	index int,
-) objectstore.UploadCapabilityProjection {
+) publicationAuthUpload {
 	t.Helper()
 	document := struct {
 		Provider  string `json:"provider"`
@@ -423,7 +442,7 @@ func publicationAuthUploadProjection(
 	if err != nil {
 		t.Fatalf("objectstore.NewUploadCapabilityProjection() error = %v, want nil", err)
 	}
-	return projection
+	return publicationAuthUpload{projection: projection, target: target}
 }
 
 func publicationAuthIntegrity(t testing.TB, payload []byte) objectstore.Integrity {
@@ -474,32 +493,28 @@ func publicationAuthAuthorityNonce(t testing.TB, marker byte) controlwire.Author
 
 func publicationAuthObjectstoreClient(t testing.TB) objectstore.Client {
 	t.Helper()
-	client, err := exchange.NewClient(&http.Client{Transport: &publicationAuthTransport{}})
-	if err != nil {
-		t.Fatalf("exchange.NewClient() error = %v, want nil", err)
-	}
-	objectClient, err := objectstore.NewClient(client)
+	objectClient, err := objectstore.NewClient(&http.Client{Transport: &publicationAuthTransport{}})
 	if err != nil {
 		t.Fatalf("objectstore.NewClient() error = %v, want nil", err)
 	}
 	return objectClient
 }
 
-func publicationAuthObjectstorePolicy(t testing.TB) objectstore.Policy {
+func publicationAuthObjectstorePolicy(
+	t testing.TB,
+	installation controlplanetest.Installation,
+	target objectstore.UploadTarget,
+) objectstore.Policy {
 	t.Helper()
-	operation, err := temporal.DurationFromSeconds(10)
+	operation, err := target.ExpiresAt.Since(installation.Certificate.Body.IssuedAt)
 	if err != nil {
-		t.Fatalf("temporal.DurationFromSeconds(operation) error = %v, want nil", err)
-	}
-	attempt, err := temporal.DurationFromSeconds(5)
-	if err != nil {
-		t.Fatalf("temporal.DurationFromSeconds(attempt) error = %v, want nil", err)
+		t.Fatalf("upload expiry Since(certificate issue) error = %v, want nil", err)
 	}
 	limit, err := core.NewByteCount(4 << 10)
 	if err != nil {
 		t.Fatalf("core.NewByteCount(error body limit) error = %v, want nil", err)
 	}
 	return objectstore.Policy{
-		OperationTimeout: operation, AttemptTimeout: attempt, ErrorBodyLimit: limit,
+		OperationTimeout: operation, AttemptTimeout: operation, ErrorBodyLimit: limit,
 	}
 }

@@ -1764,14 +1764,7 @@ func newObjectstoreClient(
 ) objectstore.Client {
 	tb.Helper()
 
-	exchangeClient, gotExchangeErr := exchange.NewClient(httpClient)
-	if gotExchangeErr != nil {
-		tb.Fatalf(
-			"exchange.NewClient() setup error = %v, want nil",
-			gotExchangeErr,
-		)
-	}
-	client, gotClientErr := objectstore.NewClient(exchangeClient)
+	client, gotClientErr := objectstore.NewClient(httpClient)
 	if gotClientErr != nil {
 		tb.Fatalf(
 			"objectstore.NewClient() setup error = %v, want nil",

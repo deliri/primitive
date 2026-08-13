@@ -14,9 +14,9 @@ const (
 	// PrimitivePackageCount is the number of packages in the complete catalog.
 	PrimitivePackageCount = 40
 	// PrimitiveDirectImportCount is the number of admitted direct import edges.
-	PrimitiveDirectImportCount = 141
+	PrimitiveDirectImportCount = 142
 	// PrimitiveDirectTestImportCount is the number of admitted test-only edges.
-	PrimitiveDirectTestImportCount = 31
+	PrimitiveDirectTestImportCount = 26
 	// PrimitiveMaximumDirectImports caps direct sibling imports per package.
 	PrimitiveMaximumDirectImports = 9
 )
@@ -365,6 +365,7 @@ func PrimitiveArchitecture() ArchitectureCatalog {
 			{Importer: PackageDistributionAuth, Imported: PackageControlPlane},
 			{Importer: PackageDistributionAuth, Imported: PackageCore},
 			{Importer: PackageDistributionAuth, Imported: PackageDistribution},
+			{Importer: PackageDistributionAuth, Imported: PackageRelease},
 			{Importer: PackageWiring, Imported: PackageCore},
 		},
 		testImports: [PrimitiveDirectTestImportCount]DirectTestImportContract{
@@ -373,7 +374,6 @@ func PrimitiveArchitecture() ArchitectureCatalog {
 			{Importer: PackageFilestore, Imported: PackageFileLock},
 			{Importer: PackageProcess, Imported: PackageTestSerial},
 			{Importer: PackageDeploy, Imported: PackageAttest},
-			{Importer: PackageDeploy, Imported: PackageExchange},
 			{Importer: PackageDeploy, Imported: PackageTemporal},
 			{Importer: PackageGCSObjects, Imported: PackageExchange},
 			{Importer: PackageGCSObjects, Imported: PackageTestSerial},
@@ -382,11 +382,7 @@ func PrimitiveArchitecture() ArchitectureCatalog {
 			{Importer: PackageSubmissionAuth, Imported: PackageChit},
 			{Importer: PackageRetrievalAuth, Imported: PackageControlPlaneTest},
 			{Importer: PackageRetrievalAuth, Imported: PackageControlWire},
-			{Importer: PackageRetrieval, Imported: PackageExchange},
 			{Importer: PackageRetrieval, Imported: PackageReceipt},
-			{Importer: PackageDistribution, Imported: PackageExchange},
-			{Importer: PackageSubmission, Imported: PackageExchange},
-			{Importer: PackageSubmissionAuth, Imported: PackageExchange},
 			{Importer: PackageSubmissionAuth, Imported: PackageObjectStore},
 			{Importer: PackageChitAuth, Imported: PackageControlPlaneTest},
 			{Importer: PackageChitAuth, Imported: PackageControlWire},
@@ -396,9 +392,9 @@ func PrimitiveArchitecture() ArchitectureCatalog {
 			{Importer: PackagePaymentAuth, Imported: PackageReceipt},
 			{Importer: PackageDistributionAuth, Imported: PackageControlPlaneTest},
 			{Importer: PackageDistributionAuth, Imported: PackageControlWire},
-			{Importer: PackageDistributionAuth, Imported: PackageRelease},
-			{Importer: PackageDistributionAuth, Imported: PackageTemporal},
-			{Importer: PackageUpgrade, Imported: PackageExchange},
+			{Importer: PackageDistributionAuth, Imported: PackageDeploy},
+			{Importer: PackageDistributionAuth, Imported: PackageObjectStore},
+			{Importer: PackageRelease, Imported: PackageTestSerial},
 		},
 	}
 }
@@ -670,7 +666,7 @@ func packagePurposeTexts() [packageIdentityLimit]string {
 		PackagePayment:          "Authority-signed exact payment receipts, bounded catalogs, and device-signed catalog queries",
 		PackagePaymentAuth:      "Installation-certificate binding and device authentication for one payment catalog query",
 		PackageDistribution:     "Signed product-neutral release publication, update discovery, and exact upgrade-download agreements",
-		PackageDistributionAuth: "Installation-certificate binding and device authentication for update and upgrade requests",
+		PackageDistributionAuth: "Installation-certificate binding and device authentication for publication, update, and upgrade requests",
 		PackageWiring:           "Bounded immutable runtime component graphs with exact Primitive-door declarations",
 	}
 }

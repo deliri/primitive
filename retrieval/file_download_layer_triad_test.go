@@ -11,7 +11,6 @@ import (
 	"testing"
 
 	"github.com/deliri/primitive/v2026/core"
-	"github.com/deliri/primitive/v2026/exchange"
 	"github.com/deliri/primitive/v2026/filestore"
 	"github.com/deliri/primitive/v2026/objectstore"
 	"github.com/deliri/primitive/v2026/temporal"
@@ -230,11 +229,7 @@ func retrievalObjectstoreClient(t *testing.T, payload []byte) objectstore.Client
 			Body: io.NopCloser(bytes.NewReader(payload)), ContentLength: int64(len(payload)), Request: request,
 		}, nil
 	})
-	exchangeClient, err := exchange.NewClient(&http.Client{Transport: transport})
-	if err != nil {
-		t.Fatalf("exchange.NewClient() error = %v, want nil", err)
-	}
-	client, err := objectstore.NewClient(exchangeClient)
+	client, err := objectstore.NewClient(&http.Client{Transport: transport})
 	if err != nil {
 		t.Fatalf("objectstore.NewClient() error = %v, want nil", err)
 	}

@@ -55,15 +55,28 @@ func TestRegistrationTokenVerifierRefusesTheImpossibleDigest(t *testing.T) {
 		}
 	})
 
-	t.Run("two blank records do not recognise each other", func(t *testing.T) {
+	t.Run("two refused blank records remain neutral and do not recognise each other", func(t *testing.T) {
 		t.Parallel()
 
 		var first, second controlwire.RegistrationTokenVerifier
 		document := []byte(`"` + verifierHexAllZero + `"`)
-		_ = json.Unmarshal(document, &first)
-		_ = json.Unmarshal(document, &second)
+		firstErr := json.Unmarshal(document, &first)
+		secondErr := json.Unmarshal(document, &second)
+		for position, refusal := range []error{firstErr, secondErr} {
+			if !errors.Is(refusal, core.ErrJSONContract) ||
+				!errors.Is(refusal, core.ErrControlWireContract) ||
+				!errors.Is(refusal, core.ErrControlWireToken) {
+				t.Fatalf(
+					"json.Unmarshal(all zero verifier) refusal %d = %v, want %v/%v/%v",
+					position, refusal, core.ErrJSONContract, core.ErrControlWireContract, core.ErrControlWireToken,
+				)
+			}
+		}
+		if first.String() != "" || second.String() != "" {
+			t.Fatalf("refused blank receivers = (%q, %q), want two zero verifiers", first.String(), second.String())
+		}
 		if got := first.Equal(second); got {
-			t.Fatalf("all-zero verifiers %v.Equal(%v) = %t, want false", first, second, got)
+			t.Fatalf("refused blank verifiers %v.Equal(%v) = %t, want false", first, second, got)
 		}
 		if err := first.Validate(); !errors.Is(err, core.ErrControlWireToken) {
 			t.Fatalf("all-zero verifier Validate() error = %v, want %v", err, core.ErrControlWireToken)

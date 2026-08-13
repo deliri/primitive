@@ -4,6 +4,23 @@ Last updated: `2026-08-13`
 
 ## Current
 
+- closed Objectstore client ownership and the v2026.0.91 architecture drift,
+  2026-08-13, published `v2026.0.92`. `objectstore.NewClient` now admits the
+  caller-owned standard-library `*http.Client` through Exchange inside
+  Objectstore, so six transfer consumers no longer import Exchange merely to
+  construct Objectstore's capability. Every real call site moved cleanly with
+  no wrapper or compatibility path. The compiler catalog, Primitive policy,
+  and README now declare the actual publication and Release test edges while
+  preserving the nine-edge coupling ceiling.
+
+  Hostile boundary proof pressures nil plus `MinInt64`, negative, one below,
+  one above, positive, and `MaxInt64` client timeouts; every refusal requires
+  both Objectstore and Exchange identities, a zero capability, and unchanged
+  caller state. Removing Objectstore's error ownership made the targeted test
+  fail at the nil and extreme-timeout doors before restoration. The formerly
+  vacuous two-blank-verifier test now requires two real JSON refusals, all
+  three typed identities, two neutral receivers, and failed equality.
+
 - closed authenticated release publication for installed tools, 2026-08-13,
   published `v2026.0.91`.
   `distributionauth` now carries the installation certificate beside both the

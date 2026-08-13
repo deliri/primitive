@@ -15,7 +15,6 @@ import (
 	"github.com/deliri/primitive/v2026/core"
 	"github.com/deliri/primitive/v2026/distribution"
 	"github.com/deliri/primitive/v2026/release"
-	"github.com/deliri/primitive/v2026/temporal"
 )
 
 type distributionAuthFixtureRequest struct {
@@ -191,9 +190,9 @@ func TestCredentialedDistributionRequestVerificationLayerTriadRefusesDeviceAutho
 	tamperedUpgradeCertificateSigner := base.upgrade
 	tamperedUpgradeCertificateSigner.Certificate.Attestation.Signer = otherDevice.upgrade.Certificate.Attestation.Signer
 	tamperedUpdateIssuedAt := base.update
-	tamperedUpdateIssuedAt.Certificate.Body.IssuedAt = temporal.InstantFromNanoseconds(1_800_000_000_000_000_000)
+	tamperedUpdateIssuedAt.Certificate.Body.IssuedAt = base.upgrade.Request.Payload.Available.ValidUntil
 	tamperedUpgradeIssuedAt := base.upgrade
-	tamperedUpgradeIssuedAt.Certificate.Body.IssuedAt = temporal.InstantFromNanoseconds(1_800_000_000_000_000_000)
+	tamperedUpgradeIssuedAt.Certificate.Body.IssuedAt = base.upgrade.Request.Payload.Available.ValidUntil
 	updateCases := []struct {
 		wantErr  error
 		name     string
@@ -467,7 +466,7 @@ func newDistributionAuthFixture(
 	updateRequest, err := distribution.IssueUpdateRequest(distribution.UpdateRequestIssuance{
 		Signer: installation.DevicePrivate,
 		Payload: distribution.UpdateRequestPayload{
-			Build: installation.Build, Nonce: nonce, Revision: controlwire.Revision2026V1,
+			Build: installation.Build, Nonce: nonce, Revision: installation.Certificate.Body.Revision,
 		},
 	})
 	if err != nil {
@@ -482,8 +481,8 @@ func newDistributionAuthFixture(
 	upgradeRequest, err := distribution.IssueUpgradeRequest(distribution.UpgradeRequestIssuance{
 		Signer: installation.DevicePrivate,
 		Payload: distribution.UpgradeRequestPayload{
-			Available: distributionAvailableSummary(t, installation.Build),
-			Nonce:     nonce, Revision: controlwire.Revision2026V1,
+			Available: distributionAvailableSummary(t, installation),
+			Nonce:     nonce, Revision: installation.Certificate.Body.Revision,
 		},
 	})
 	if err != nil {
@@ -506,8 +505,12 @@ func newDistributionAuthFixture(
 	}
 }
 
-func distributionAvailableSummary(t testing.TB, installed core.BuildIdentity) release.AvailableSummary {
+func distributionAvailableSummary(
+	t testing.TB,
+	installation controlplanetest.Installation,
+) release.AvailableSummary {
 	t.Helper()
+	installed := installation.Build
 
 	candidate, err := core.NewBuildIdentity(core.BuildIdentityRequest{
 		Offering: installed.Offering(), Version: core.NewReleaseVersion(2026, 0, 54),
@@ -534,10 +537,18 @@ func distributionAvailableSummary(t testing.TB, installed core.BuildIdentity) re
 	}
 	manifest := distributionManifestIdentity(t, core.SHA256Of([]byte("manifest fact")))
 	document := distributionManifestDocumentDigest(t, core.SHA256Of([]byte("manifest document")))
+	operationPolicy, err := controlwire.ControlExchangeOperationPolicy()
+	if err != nil {
+		t.Fatalf("controlwire.ControlExchangeOperationPolicy() error = %v, want nil", err)
+	}
+	validUntil, err := installation.Certificate.Body.IssuedAt.Add(operationPolicy.OperationTimeout)
+	if err != nil {
+		t.Fatalf("certificate issue Add(operation timeout) error = %v, want nil", err)
+	}
 	summary := release.AvailableSummary{
 		Installed: installed, Candidate: candidate, Manifest: manifest,
 		ManifestDocument: document, Artifact: artifact.Identity(), Filename: filename,
-		Integrity: artifact.Integrity(), ValidUntil: temporal.InstantFromNanoseconds(1_900_000_000_000_000_000),
+		Integrity: artifact.Integrity(), ValidUntil: validUntil,
 	}
 	if err := summary.Validate(); err != nil {
 		t.Fatalf("release.AvailableSummary.Validate() error = %v, want nil", err)
