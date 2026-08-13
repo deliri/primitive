@@ -20,14 +20,24 @@ type (
 )
 
 type contractInventory struct {
-	UpdateRequestDocument  protocolFact[UpdateRequestDocument]
-	UpdateRequestAssembly  protocolFact[UpdateRequestAssembly]
-	UpdateVerification     protocolFact[UpdateVerification]
-	VerifiedUpdate         capabilityWrapper[VerifiedUpdate]
-	UpgradeRequestDocument protocolFact[UpgradeRequestDocument]
-	UpgradeRequestAssembly protocolFact[UpgradeRequestAssembly]
-	UpgradeVerification    protocolFact[UpgradeVerification]
-	VerifiedUpgrade        capabilityWrapper[VerifiedUpgrade]
+	PublicationRequestDocument              protocolFact[PublicationRequestDocument]
+	PublicationRequestAssembly              protocolFact[PublicationRequestAssembly]
+	PublicationVerification                 protocolFact[PublicationVerification]
+	VerifiedPublication                     capabilityWrapper[VerifiedPublication]
+	PublicationCompletionDocument           protocolFact[PublicationCompletionDocument]
+	PublicationCompletionProjection         protocolFact[PublicationCompletionProjection]
+	PublicationCompletionAssembly           protocolFact[PublicationCompletionAssembly]
+	PublicationCompletionProjectionAssembly protocolFact[PublicationCompletionProjectionAssembly]
+	PublicationCompletionVerification       protocolFact[PublicationCompletionVerification]
+	VerifiedPublicationCompletion           capabilityWrapper[VerifiedPublicationCompletion]
+	UpdateRequestDocument                   protocolFact[UpdateRequestDocument]
+	UpdateRequestAssembly                   protocolFact[UpdateRequestAssembly]
+	UpdateVerification                      protocolFact[UpdateVerification]
+	VerifiedUpdate                          capabilityWrapper[VerifiedUpdate]
+	UpgradeRequestDocument                  protocolFact[UpgradeRequestDocument]
+	UpgradeRequestAssembly                  protocolFact[UpgradeRequestAssembly]
+	UpgradeVerification                     protocolFact[UpgradeVerification]
+	VerifiedUpgrade                         capabilityWrapper[VerifiedUpgrade]
 }
 
 func TestDistributionAuthDataFlowStructInventoryRatchet(t *testing.T) {

@@ -22,6 +22,7 @@ type PublicationCompletionPayload struct {
 	Authorization    controlwire.AuthorityNonce                                   `json:"authorization_nonce"`
 	Manifest         release.ManifestIdentity                                     `json:"manifest"`
 	ManifestDocument release.ManifestDocumentDigest                               `json:"manifest_document"`
+	Build            core.BuildIdentity                                           `json:"build"`
 }
 
 // PublicationCompletionDocument carries the caller's signature over provider
@@ -72,6 +73,7 @@ type publicationCompletionProjectionPayload struct {
 	authorization    controlwire.AuthorityNonce
 	manifest         release.ManifestIdentity
 	manifestDocument release.ManifestDocumentDigest
+	build            core.BuildIdentity
 }
 
 type (
@@ -83,6 +85,7 @@ type (
 		Authorization    controlwire.AuthorityNonce                                             `json:"authorization_nonce"`
 		Manifest         release.ManifestIdentity                                               `json:"manifest"`
 		ManifestDocument release.ManifestDocumentDigest                                         `json:"manifest_document"`
+		Build            core.BuildIdentity                                                     `json:"build"`
 	}
 	publicationCompletionProjectionWire struct {
 		Payload     publicationCompletionProjectionPayloadWire `json:"payload"`
@@ -93,7 +96,7 @@ type (
 func (p PublicationCompletionPayload) Validate() error {
 	if err := errors.Join(
 		p.Request.validateDomain(SigningDomainPublicationRequestV1),
-		p.Authorization.Validate(), p.Manifest.Validate(), p.ManifestDocument.Validate(),
+		p.Authorization.Validate(), p.Manifest.Validate(), p.ManifestDocument.Validate(), p.Build.Validate(),
 	); err != nil {
 		return contractError(err)
 	}
@@ -184,7 +187,7 @@ func (d *PublicationCompletionDocument) UnmarshalJSON(data []byte) error {
 func (p publicationCompletionProjectionPayload) Validate() error {
 	if err := errors.Join(
 		p.request.validateDomain(SigningDomainPublicationRequestV1),
-		p.authorization.Validate(), p.manifest.Validate(), p.manifestDocument.Validate(),
+		p.authorization.Validate(), p.manifest.Validate(), p.manifestDocument.Validate(), p.build.Validate(),
 	); err != nil {
 		return contractError(err)
 	}
@@ -203,7 +206,7 @@ func (publicationCompletionProjectionPayload) AttestationDomain() SigningDomain 
 func (p publicationCompletionProjectionPayload) wire() publicationCompletionProjectionPayloadWire {
 	return publicationCompletionProjectionPayloadWire{
 		Request: p.request, Authorization: p.authorization,
-		Manifest: p.manifest, ManifestDocument: p.manifestDocument,
+		Manifest: p.manifest, ManifestDocument: p.manifestDocument, Build: p.build,
 		Evidence: p.evidence,
 	}
 }
@@ -250,6 +253,13 @@ func (p PublicationCompletionProjection) MarshalJSON() ([]byte, error) {
 	return encoded, nil
 }
 
+func (p PublicationCompletionProjection) Build() (core.BuildIdentity, error) {
+	if err := p.Validate(); err != nil {
+		return core.BuildIdentity{}, err
+	}
+	return p.payload.build, nil
+}
+
 func publicationCompletionPayload(issuance PublicationCompletionIssuance) (publicationCompletionProjectionPayload, error) {
 	if err := errors.Join(
 		issuance.Request.Validate(), issuance.Grant.Validate(), issuance.Receipts.Validate(),
@@ -260,9 +270,13 @@ func publicationCompletionPayload(issuance PublicationCompletionIssuance) (publi
 	if err != nil {
 		return publicationCompletionProjectionPayload{}, err
 	}
+	request, err := issuance.Request.Payload()
+	if err != nil {
+		return publicationCompletionProjectionPayload{}, err
+	}
 	payload := publicationCompletionProjectionPayload{
 		request: grant.Request, authorization: grant.Authorization,
-		manifest: manifest.Identity(), manifestDocument: manifest.DocumentDigest(),
+		manifest: manifest.Identity(), manifestDocument: manifest.DocumentDigest(), build: request.Build,
 	}
 	payload.evidence, err = publicationCompletionEvidence(issuance.Receipts, grant)
 	if err != nil {
@@ -384,7 +398,8 @@ func validatePublicationCompletionIdentity(
 		return release.VerifiedManifest{}, err
 	}
 	if manifest.Identity() != expectation.Document.Payload.Manifest ||
-		manifest.DocumentDigest() != expectation.Document.Payload.ManifestDocument {
+		manifest.DocumentDigest() != expectation.Document.Payload.ManifestDocument ||
+		request.Build != expectation.Document.Payload.Build {
 		return release.VerifiedManifest{}, bindingError(errors.New("publication completion manifest differs"))
 	}
 	return manifest, nil
@@ -437,9 +452,6 @@ func VerifyPublicationCompletion(expectation PublicationCompletionExpectation) (
 	if err := expectation.Validate(); err != nil {
 		return VerifiedPublicationCompletion{}, err
 	}
-	if err := validatePublicationCompletionBinding(expectation); err != nil {
-		return VerifiedPublicationCompletion{}, err
-	}
 	grantProof, err := attest.Verify(attest.VerifyRequest[SigningDomain]{
 		Body: expectation.Grant, Envelope: expectation.GrantAttestation,
 		TrustedKeys: expectation.GrantKeys,
@@ -453,6 +465,9 @@ func VerifyPublicationCompletion(expectation PublicationCompletionExpectation) (
 	})
 	if err != nil {
 		return VerifiedPublicationCompletion{}, verificationError(err)
+	}
+	if err := validatePublicationCompletionBinding(expectation); err != nil {
+		return VerifiedPublicationCompletion{}, err
 	}
 	verified := VerifiedPublicationCompletion{
 		document: expectation.Document, proof: proof, grantProof: grantProof,

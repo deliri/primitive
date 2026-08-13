@@ -4,6 +4,28 @@ Last updated: `2026-08-13`
 
 ## Current
 
+- closed authenticated release publication for installed tools, 2026-08-13,
+  published `v2026.0.91`.
+  `distributionauth` now carries the installation certificate beside both the
+  exact-manifest publication request and the provider-evidence completion.
+  The authority certificate is verified before its nominated device key is
+  admitted; release-manifest trust remains a separate authority; and the
+  installed build is bound on both legs. Completion verification requires the
+  original authenticated request, the authority-signed upload grant, the same
+  certificate, the device signature, the request commitment, authorization
+  nonce, manifest identities, and every URL-free provider evidence fact.
+
+  Hostile proof crosses every offering and the real streaming upload path,
+  pressures authority, device, build, manifest, grant, request, nonce,
+  evidence, and certificate substitutions, and covers ten valid plus twenty
+  hostile representations at both bounded JSON doors. Semantic fuzz campaigns
+  completed 5,242 request and 5,220 completion executions with verifier-backed
+  oracles and receiver preservation. The suite exposed and corrected a real
+  ordering defect: unsigned completion mutations previously reached manifest
+  binding before authentication; grant and completion signatures now verify
+  before any payload binding. Removing the completion-to-certificate build
+  gate deliberately made the targeted hostile test fail before restoration.
+
 - closed authenticated bounded download-all traversal, 2026-08-13, published
   `v2026.0.90`. Retrieval replaces its ambiguous one-entry `All` request with
   typed start, after, and specific selections. Every authority grant binds one

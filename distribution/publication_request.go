@@ -16,6 +16,7 @@ import (
 // release manifest for immutable publication.
 type PublicationRequestPayload struct {
 	Manifest release.ManifestDocument `json:"manifest"`
+	Build    core.BuildIdentity       `json:"build"`
 	Nonce    controlwire.RequestNonce `json:"request_nonce"`
 	Revision controlwire.Revision     `json:"revision"`
 }
@@ -55,7 +56,9 @@ type (
 )
 
 func (p PublicationRequestPayload) Validate() error {
-	if err := errors.Join(p.Manifest.Validate(), p.Nonce.Validate(), p.Revision.Validate()); err != nil {
+	if err := errors.Join(
+		p.Manifest.Validate(), p.Build.Validate(), p.Nonce.Validate(), p.Revision.Validate(),
+	); err != nil {
 		return contractError(err)
 	}
 	if p.Revision != controlwire.Revision2026V1 {

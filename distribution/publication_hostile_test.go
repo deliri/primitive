@@ -24,6 +24,7 @@ import (
 
 type publicationExchangeFixture struct {
 	callerKey       ed25519.PrivateKey
+	authorityKey    ed25519.PrivateKey
 	grantProjection distribution.PublicationGrantProjection
 	grantDocument   distribution.PublicationGrantDocument
 	request         distribution.PublicationRequestPayload
@@ -79,7 +80,7 @@ func newPublicationExchangeFixture(t testing.TB) publicationExchangeFixture {
 	authorityKey := signingKey(101)
 	releaseKey := signingKey(19)
 	request := distribution.PublicationRequestPayload{
-		Manifest: software.manifest.Document(), Nonce: requestNonce(t, 41),
+		Manifest: software.manifest.Document(), Build: software.builds[0], Nonce: requestNonce(t, 41),
 		Revision: controlwire.Revision2026V1,
 	}
 	requestDocument, err := distribution.IssuePublicationRequest(
@@ -162,8 +163,9 @@ func newPublicationExchangeFixture(t testing.TB) publicationExchangeFixture {
 		verifiedRequest: verifiedRequest,
 		grantPayload:    grantPayload, grantProjection: grantProjection,
 		grantDocument: grantDocument, verifiedGrant: verifiedGrant,
-		callerKey: callerKey, authorityKeys: trustedKeys(t, authorityKey),
-		callerKeys: trustedKeys(t, callerKey), releaseKeys: trustedKeys(t, releaseKey),
+		callerKey: callerKey, authorityKey: authorityKey,
+		authorityKeys: trustedKeys(t, authorityKey),
+		callerKeys:    trustedKeys(t, callerKey), releaseKeys: trustedKeys(t, releaseKey),
 	}
 }
 
@@ -514,6 +516,26 @@ func TestVerifyPublicationCompletionRefusesCrossGrantManifestEvidenceAndTrust(t 
 	if err != nil {
 		t.Fatalf("distribution.CommitRequest(other publication) error = %v, want nil", err)
 	}
+	resignCompletion := func(v distribution.PublicationCompletionExpectation) distribution.PublicationCompletionExpectation {
+		envelope, signErr := attest.Sign(attest.SignRequest[distribution.SigningDomain]{
+			Body: v.Document.Payload, Signer: fixture.callerKey,
+		})
+		if signErr != nil {
+			t.Fatalf("attest.Sign(completion mutation) error = %v, want nil", signErr)
+		}
+		v.Document.Attestation = envelope
+		return v
+	}
+	resignGrant := func(v distribution.PublicationCompletionExpectation) distribution.PublicationCompletionExpectation {
+		envelope, signErr := attest.Sign(attest.SignRequest[distribution.SigningDomain]{
+			Body: v.Grant, Signer: fixture.authorityKey,
+		})
+		if signErr != nil {
+			t.Fatalf("attest.Sign(grant mutation) error = %v, want nil", signErr)
+		}
+		v.GrantAttestation = envelope
+		return v
+	}
 
 	cases := []struct {
 		wantErr error
@@ -534,27 +556,27 @@ func TestVerifyPublicationCompletionRefusesCrossGrantManifestEvidenceAndTrust(t 
 		{name: "swapped artifact evidence slots are rejected", mutate: func(v distribution.PublicationCompletionExpectation) distribution.PublicationCompletionExpectation {
 			v.Document.Payload.Evidence[0], v.Document.Payload.Evidence[1] =
 				v.Document.Payload.Evidence[1], v.Document.Payload.Evidence[0]
-			return v
+			return resignCompletion(v)
 		}, wantErr: core.ErrDistributionBinding},
 		{name: "manifest identity from another release is rejected", mutate: func(v distribution.PublicationCompletionExpectation) distribution.PublicationCompletionExpectation {
 			v.Document.Payload.Manifest = otherRelease.manifest.Identity()
-			return v
+			return resignCompletion(v)
 		}, wantErr: core.ErrDistributionBinding},
 		{name: "manifest document digest from another release is rejected", mutate: func(v distribution.PublicationCompletionExpectation) distribution.PublicationCompletionExpectation {
 			v.Document.Payload.ManifestDocument = otherRelease.manifest.DocumentDigest()
-			return v
+			return resignCompletion(v)
 		}, wantErr: core.ErrDistributionBinding},
 		{name: "grant authorization from another decision is rejected", mutate: func(v distribution.PublicationCompletionExpectation) distribution.PublicationCompletionExpectation {
 			v.Grant.Authorization = otherAuthorization
-			return v
+			return resignGrant(v)
 		}, wantErr: core.ErrDistributionBinding},
 		{name: "completion authorization from another decision is rejected", mutate: func(v distribution.PublicationCompletionExpectation) distribution.PublicationCompletionExpectation {
 			v.Document.Payload.Authorization = otherAuthorization
-			return v
+			return resignCompletion(v)
 		}, wantErr: core.ErrDistributionBinding},
 		{name: "grant request commitment from another request is rejected", mutate: func(v distribution.PublicationCompletionExpectation) distribution.PublicationCompletionExpectation {
 			v.Grant.Request = otherCommitment
-			return v
+			return resignGrant(v)
 		}, wantErr: core.ErrDistributionBinding},
 		{name: "matching authorization mutation reaches grant signature refusal", mutate: func(v distribution.PublicationCompletionExpectation) distribution.PublicationCompletionExpectation {
 			v.Grant.Authorization = otherAuthorization
