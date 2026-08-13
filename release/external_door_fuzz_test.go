@@ -6,7 +6,10 @@ import (
 	"errors"
 	"testing"
 
+	"github.com/deliri/primitive/v2026/controlwire"
 	"github.com/deliri/primitive/v2026/core"
+	"github.com/deliri/primitive/v2026/garble"
+	"github.com/deliri/primitive/v2026/keygen"
 	"github.com/deliri/primitive/v2026/temporal"
 )
 
@@ -40,6 +43,10 @@ const (
 	releaseJSONDoorManifestDocumentDigest
 	releaseJSONDoorManifestFact
 	releaseJSONDoorManifestDocument
+	releaseJSONDoorMaterialRequest
+	releaseJSONDoorMaterialResponse
+	releaseJSONDoorReleaseSigningSeed
+	releaseJSONDoorGarbleCustodySeed
 	releaseJSONDoorLimit
 )
 
@@ -87,6 +94,14 @@ func (d releaseJSONDoor) receiverName() string {
 		return "ManifestFact"
 	case releaseJSONDoorManifestDocument:
 		return "ManifestDocument"
+	case releaseJSONDoorMaterialRequest:
+		return "MaterialRequest"
+	case releaseJSONDoorMaterialResponse:
+		return "MaterialResponse"
+	case releaseJSONDoorReleaseSigningSeed:
+		return "ReleaseSigningSeed"
+	case releaseJSONDoorGarbleCustodySeed:
+		return "GarbleCustodySeed"
 	case releaseJSONDoorUnknown, releaseJSONDoorLimit:
 		return ""
 	default:
@@ -121,6 +136,10 @@ type releaseJSONDoorFixtures struct {
 	manifestDocumentDigest ManifestDocumentDigest
 	manifestFact           ManifestFact
 	manifestDocument       ManifestDocument
+	materialRequest        MaterialRequest
+	materialResponse       MaterialResponse
+	releaseSigningSeed     ReleaseSigningSeed
+	garbleCustodySeed      GarbleCustodySeed
 	release                releaseFixture
 }
 
@@ -189,6 +208,14 @@ func FuzzReleaseExternalJSONDoorInventory(f *testing.F) {
 			fuzzReleaseJSONValue(t, data, fixtures.manifestFact)
 		case releaseJSONDoorManifestDocument:
 			fuzzReleaseManifestDocument(t, data, fixtures)
+		case releaseJSONDoorMaterialRequest:
+			fuzzReleaseJSONValue(t, data, fixtures.materialRequest)
+		case releaseJSONDoorMaterialResponse:
+			fuzzReleaseJSONValue(t, data, fixtures.materialResponse)
+		case releaseJSONDoorReleaseSigningSeed:
+			fuzzReleaseJSONValue(t, data, fixtures.releaseSigningSeed)
+		case releaseJSONDoorGarbleCustodySeed:
+			fuzzReleaseJSONValue(t, data, fixtures.garbleCustodySeed)
 		case releaseJSONDoorUnknown, releaseJSONDoorLimit:
 			return
 		default:
@@ -445,6 +472,7 @@ func releaseJSONFixturesForFuzz(t testing.TB) releaseJSONDoorFixtures {
 	if err != nil {
 		t.Fatalf("newBuildDependencies() error = %v, want nil", err)
 	}
+	materialRequest, releaseSigningSeed, garbleCustodySeed, materialResponse := materialFixturesForFuzz(t, candidate)
 	return releaseJSONDoorFixtures{
 		available: summary, publicationRole: PublicationRoleManifest,
 		generation:     candidate.latest.Fact.Generation(),
@@ -459,6 +487,8 @@ func releaseJSONFixturesForFuzz(t testing.TB) releaseJSONDoorFixtures {
 		manifestIdentity:       candidate.manifest.Fact.Identity(),
 		manifestDocumentDigest: candidate.verified.DocumentDigest(),
 		manifestFact:           candidate.manifest.Fact, manifestDocument: candidate.manifest,
+		materialRequest: materialRequest, materialResponse: materialResponse,
+		releaseSigningSeed: releaseSigningSeed, garbleCustodySeed: garbleCustodySeed,
 		release: candidate,
 	}
 }
@@ -491,7 +521,66 @@ func releaseJSONSeedsForFuzz(
 		releaseJSONSeedForFuzz(t, releaseJSONDoorManifestDocumentDigest, fixtures.manifestDocumentDigest),
 		releaseJSONSeedForFuzz(t, releaseJSONDoorManifestFact, fixtures.manifestFact),
 		releaseJSONSeedForFuzz(t, releaseJSONDoorManifestDocument, fixtures.manifestDocument),
+		releaseJSONSeedForFuzz(t, releaseJSONDoorMaterialRequest, fixtures.materialRequest),
+		releaseJSONSeedForFuzz(t, releaseJSONDoorMaterialResponse, fixtures.materialResponse),
+		releaseJSONSeedForFuzz(t, releaseJSONDoorReleaseSigningSeed, fixtures.releaseSigningSeed),
+		releaseJSONSeedForFuzz(t, releaseJSONDoorGarbleCustodySeed, fixtures.garbleCustodySeed),
 	}
+}
+
+func materialFixturesForFuzz(
+	t testing.TB,
+	fixture releaseFixture,
+) (MaterialRequest, ReleaseSigningSeed, GarbleCustodySeed, MaterialResponse) {
+	t.Helper()
+	var nonceBytes [controlwire.NonceBytes]byte
+	for index := range nonceBytes {
+		nonceBytes[index] = byte(index + 1)
+	}
+	nonce, err := controlwire.NewRequestNonce(nonceBytes)
+	if err != nil {
+		t.Fatalf("NewRequestNonce() error = %v, want nil", err)
+	}
+	request, err := NewMaterialRequest(MaterialRequestInput{
+		Version: fixture.manifest.Fact.Version(), Commit: fixture.manifest.Fact.Commit(),
+		Offering: fixture.manifest.Fact.Offering(), Nonce: nonce,
+	})
+	if err != nil {
+		t.Fatalf("NewMaterialRequest() error = %v, want nil", err)
+	}
+	var signingBytes [keygen.SeedSize]byte
+	for index := range signingBytes {
+		signingBytes[index] = byte(index + 1)
+	}
+	signing, err := NewReleaseSigningSeed(signingBytes)
+	if err != nil {
+		t.Fatalf("NewReleaseSigningSeed() error = %v, want nil", err)
+	}
+	var custodyBytes [garble.CustodyBytes]byte
+	for index := range custodyBytes {
+		custodyBytes[index] = byte(index + 1)
+	}
+	custody, err := NewGarbleCustodySeed(custodyBytes)
+	if err != nil {
+		t.Fatalf("NewGarbleCustodySeed() error = %v, want nil", err)
+	}
+	server, err := keygen.GenerateSigningKey()
+	if err != nil {
+		t.Fatalf("GenerateSigningKey() error = %v, want nil", err)
+	}
+	t.Cleanup(func() { _ = server.Destroy() })
+	public, err := server.PublicKey()
+	if err != nil {
+		t.Fatalf("SigningKey.PublicKey() error = %v, want nil", err)
+	}
+	response := MaterialResponse{
+		Request: request, ReleaseSigningSeed: signing,
+		GarbleCustodySeed: custody, ServerPublicKey: public,
+	}
+	if err := response.Validate(); err != nil {
+		t.Fatalf("MaterialResponse.Validate() error = %v, want nil", err)
+	}
+	return request, signing, custody, response
 }
 
 func releaseJSONSeedForFuzz(

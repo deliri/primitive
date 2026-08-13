@@ -96,6 +96,8 @@ flowchart TD
     release --> attest
     release --> filestore
     release --> garble
+	 release --> controlwire
+	 release --> keygen
     release --> process
     shutdown[shutdown] --> core
     shutdown --> contextstate

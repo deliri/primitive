@@ -50,4 +50,8 @@ var (
 	_ core.ValidatedJSONMarshaler = MetadataSet{}
 	_ core.ValidatedJSONMarshaler = BuildProvenance{}
 	_ core.ValidatedJSONMarshaler = BuildDependencies{}
+	_ core.ValidatedJSONMarshaler = MaterialRequest{}
+	_ core.ValidatedJSONMarshaler = MaterialResponse{}
+	_ core.ValidatedJSONMarshaler = ReleaseSigningSeed{}
+	_ core.ValidatedJSONMarshaler = GarbleCustodySeed{}
 )

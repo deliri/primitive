@@ -14,7 +14,7 @@ const (
 	// PrimitivePackageCount is the number of packages in the complete catalog.
 	PrimitivePackageCount = 40
 	// PrimitiveDirectImportCount is the number of admitted direct import edges.
-	PrimitiveDirectImportCount = 139
+	PrimitiveDirectImportCount = 141
 	// PrimitiveDirectTestImportCount is the number of admitted test-only edges.
 	PrimitiveDirectTestImportCount = 31
 	// PrimitiveMaximumDirectImports caps direct sibling imports per package.
@@ -281,6 +281,8 @@ func PrimitiveArchitecture() ArchitectureCatalog {
 			{Importer: PackageRelease, Imported: PackageAttest},
 			{Importer: PackageRelease, Imported: PackageFilestore},
 			{Importer: PackageRelease, Imported: PackageGarble},
+			{Importer: PackageRelease, Imported: PackageControlWire},
+			{Importer: PackageRelease, Imported: PackageKeygen},
 			{Importer: PackageRelease, Imported: PackageProcess},
 			{Importer: PackageShutdown, Imported: PackageCore},
 			{Importer: PackageShutdown, Imported: PackageContextState},
@@ -652,7 +654,7 @@ func packagePurposeTexts() [packageIdentityLimit]string {
 		PackageSubmissionAuth:   "Installation-certificate binding and device authentication for evidence-submission requests and provider completions",
 		PackageControlPlaneTest: "Real authority-signed installation certificate fixtures for hostile control-plane tests",
 		PackageProcess:          "Argv, environment, containment, bounded output, exit, and reaping over os/exec",
-		PackageRelease:          "Clean repository binding, verified build tools, deterministic Garble build and process plans, executable inspection, signed tool and metadata provenance, immutable artifacts, manifests, Latest, and selection",
+		PackageRelease:          "Clean repository binding, verified build tools, deterministic Garble build and process plans, bounded maintainer material exchange, executable inspection, signed tool and metadata provenance, immutable artifacts, manifests, Latest, and selection",
 		PackageShutdown:         "Signal observation and phased bounded cleanup",
 		PackageObjectStore:      "Bounded vendor-specified S3, GCS, or Cloudflare Images transfers through issued HTTPS capabilities, with integrity and provider evidence",
 		PackageTimeProof:        "RFC 3161 request construction, response verification, and replay",

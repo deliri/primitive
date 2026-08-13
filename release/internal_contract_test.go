@@ -110,6 +110,14 @@ type releaseContractInventory struct {
 	PreparedRelease                   capabilityWrapper[PreparedRelease]
 	Preparation                       capabilityWrapper[Preparation]
 	OfferingMismatchError             failureDetail[OfferingMismatchError]
+	MaterialRequest                   protocolFact[MaterialRequest]
+	materialRequestWire               internalFlow[materialRequestWire]
+	MaterialRequestInput              protocolFact[MaterialRequestInput]
+	ReleaseSigningSeed                protocolFact[ReleaseSigningSeed]
+	GarbleCustodySeed                 protocolFact[GarbleCustodySeed]
+	MaterialResponse                  protocolFact[MaterialResponse]
+	materialResponseWire              internalFlow[materialResponseWire]
+	Material                          capabilityWrapper[Material]
 }
 
 var (
@@ -136,6 +144,8 @@ var (
 	_ = releaseContractInventory{}.repositoryGitRequest
 	_ = releaseContractInventory{}.repositoryStatusWriter
 	_ = releaseContractInventory{}.repositoryIndexWriter
+	_ = releaseContractInventory{}.materialRequestWire
+	_ = releaseContractInventory{}.materialResponseWire
 )
 
 func TestProductionStructsHaveCompilerVisibleDataFlowRoles(t *testing.T) {
@@ -184,12 +194,15 @@ func TestPublicOperationsAreExactReleaseIntent(t *testing.T) {
 		"NewBuildProvenance",
 		"NewBuildTags",
 		"NewCachedLatest",
+		"NewGarbleCustodySeed",
 		"NewGeneration",
 		"NewLinkerAssignment",
 		"NewLinkerAssignments",
 		"NewManifestFact",
+		"NewMaterialRequest",
 		"NewMetadataAsset",
 		"NewMetadataSet",
+		"NewReleaseSigningSeed",
 		"ObserveBuildDependencies",
 		"ParseBuildTag",
 		"ParseMainPackage",
