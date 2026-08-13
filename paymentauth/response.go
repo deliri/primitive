@@ -5,14 +5,16 @@ import (
 
 	"github.com/deliri/primitive/v2026/attest"
 	"github.com/deliri/primitive/v2026/controlplane"
+	"github.com/deliri/primitive/v2026/controlwire"
 	"github.com/deliri/primitive/v2026/core"
 	"github.com/deliri/primitive/v2026/payment"
 )
 
 type ResponseIssuance struct {
-	Signer crypto.Signer
-	Header controlplane.ResponseHeader
-	Body   payment.CatalogDocument
+	Signer     crypto.Signer
+	Header     controlplane.ResponseHeader
+	Body       payment.CatalogDocument
+	Assessment controlwire.ProtocolAssessment
 }
 
 type ResponseVerification struct {
@@ -22,11 +24,13 @@ type ResponseVerification struct {
 }
 
 func (i ResponseIssuance) Validate() error {
-	return (controlplane.ResponseIssuance[payment.CatalogDocument](i)).Validate()
+	return (controlplane.ResponseIssuance[payment.CatalogDocument](i)).ValidateForFamily(controlwire.RouteFamilyPayments)
 }
 
 func IssueResponse(i ResponseIssuance) (controlplane.ResponseProjection[payment.CatalogDocument], error) {
-	return controlplane.IssueResponse(controlplane.ResponseIssuance[payment.CatalogDocument](i))
+	return controlplane.IssueResponseForFamily(
+		controlplane.ResponseIssuance[payment.CatalogDocument](i), controlwire.RouteFamilyPayments,
+	)
 }
 
 func (v ResponseVerification) Validate() error {

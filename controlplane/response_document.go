@@ -24,14 +24,24 @@ const (
 type ResponseCommitment struct {
 	Header     ResponseHeader    `json:"header"`
 	BodySHA256 core.SHA256Digest `json:"body_sha256"`
-	BodyLength core.ByteCount    `json:"body_length_bytes"`
+	BodyLength core.ByteLength   `json:"body_length_bytes"`
 }
 
 // ResponseIssuance is the authority input for one authenticated response.
 type ResponseIssuance[Body core.ValidatedJSONMarshaler] struct {
-	Signer crypto.Signer
-	Header ResponseHeader
-	Body   Body
+	Signer     crypto.Signer
+	Header     ResponseHeader
+	Body       Body
+	Assessment controlwire.ProtocolAssessment
+}
+
+// UpgradeRequiredIssuance is the authority input for one common signed
+// refusal. It deliberately carries no product body: an incompatible client
+// must never be asked to decode facts from a contract it cannot speak.
+type UpgradeRequiredIssuance struct {
+	Signer     crypto.Signer
+	Header     ResponseHeader
+	Assessment controlwire.ProtocolAssessment
 }
 
 // ResponseProjection is the issue-only authenticated wire response. The
@@ -93,7 +103,7 @@ type responseCommitmentWire ResponseCommitment
 type responseDocumentWire struct {
 	Header ResponseHeader `json:"header"`
 	// doctrine:local-allowed=external-wire
-	Body        json.RawMessage                `json:"body"`
+	Body        json.RawMessage                `json:"body,omitempty"`
 	Attestation attest.Envelope[SigningDomain] `json:"attestation"`
 }
 
@@ -101,6 +111,9 @@ var _ core.ValidatedJSONProjection = ResponseProjection[RegistrationDocument]{}
 
 func (c ResponseCommitment) Validate() error {
 	if err := errors.Join(c.Header.Validate(), c.BodySHA256.Validate(), c.BodyLength.Validate()); err != nil {
+		return responseDocumentError(err)
+	}
+	if err := validateResponseBodyPresence(c.Header, c.BodyLength); err != nil {
 		return responseDocumentError(err)
 	}
 	return nil
@@ -151,7 +164,41 @@ func (c *ResponseCommitment) UnmarshalJSON(data []byte) error {
 }
 
 func (i ResponseIssuance[Body]) Validate() error {
+	if err := validateResponseAssessment(i.Header, i.Assessment, controlwire.ProtocolSupportOutcomeAccepted); err != nil {
+		return err
+	}
 	commitment, _, err := responseCommitmentFor(i.Header, i.Body)
+	if err != nil {
+		return err
+	}
+	request := attest.SignRequest[SigningDomain]{Body: commitment, Signer: i.Signer}
+	if err := request.Validate(); err != nil {
+		return responseDocumentError(err)
+	}
+	return nil
+}
+
+// ValidateForFamily closes the product-auth boundary: a product response
+// wrapper names its one route family here, while the generic envelope remains
+// blind to the product body it signs.
+func (i ResponseIssuance[Body]) ValidateForFamily(family controlwire.RouteFamily) error {
+	if err := family.Validate(); err != nil {
+		return responseDocumentError(err)
+	}
+	if err := i.Validate(); err != nil {
+		return err
+	}
+	if i.Header.Family != family {
+		return responseDocumentError(core.ErrControlPlaneResponseBinding)
+	}
+	return nil
+}
+
+func (i UpgradeRequiredIssuance) Validate() error {
+	if err := validateResponseAssessment(i.Header, i.Assessment, controlwire.ProtocolSupportOutcomeUpgradeRequired); err != nil {
+		return err
+	}
+	commitment, err := responseCommitmentFromRaw(i.Header, nil)
 	if err != nil {
 		return err
 	}
@@ -165,6 +212,27 @@ func (i ResponseIssuance[Body]) Validate() error {
 // IssueResponse signs one response header and the exact canonical product
 // body as one indivisible authority agreement.
 func IssueResponse[Body core.ValidatedJSONMarshaler](
+	issuance ResponseIssuance[Body],
+) (ResponseProjection[Body], error) {
+	if err := issuance.Validate(); err != nil {
+		return ResponseProjection[Body]{}, err
+	}
+	return issueResponse(issuance)
+}
+
+// IssueResponseForFamily is the product-auth issuance door. It prevents a
+// valid body and assessment from being signed for a sibling route family.
+func IssueResponseForFamily[Body core.ValidatedJSONMarshaler](
+	issuance ResponseIssuance[Body],
+	family controlwire.RouteFamily,
+) (ResponseProjection[Body], error) {
+	if err := issuance.ValidateForFamily(family); err != nil {
+		return ResponseProjection[Body]{}, err
+	}
+	return issueResponse(issuance)
+}
+
+func issueResponse[Body core.ValidatedJSONMarshaler](
 	issuance ResponseIssuance[Body],
 ) (ResponseProjection[Body], error) {
 	commitment, _, err := responseCommitmentFor(issuance.Header, issuance.Body)
@@ -183,8 +251,31 @@ func IssueResponse[Body core.ValidatedJSONMarshaler](
 	return projection, projection.Validate()
 }
 
+// IssueUpgradeRequiredResponse signs one request-bound refusal without a
+// product body. Body selects the response document the client was expecting;
+// no value of that type is constructed, encoded, or exposed.
+func IssueUpgradeRequiredResponse[Body core.ValidatedJSONMarshaler](
+	issuance UpgradeRequiredIssuance,
+) (ResponseProjection[Body], error) {
+	if err := issuance.Validate(); err != nil {
+		return ResponseProjection[Body]{}, err
+	}
+	commitment, err := responseCommitmentFromRaw(issuance.Header, nil)
+	if err != nil {
+		return ResponseProjection[Body]{}, err
+	}
+	envelope, err := attest.Sign(attest.SignRequest[SigningDomain]{
+		Body: commitment, Signer: issuance.Signer,
+	})
+	if err != nil {
+		return ResponseProjection[Body]{}, responseDocumentError(err)
+	}
+	projection := ResponseProjection[Body]{header: issuance.Header, attestation: envelope}
+	return projection, projection.Validate()
+}
+
 func (p ResponseProjection[Body]) Validate() error {
-	commitment, _, err := responseCommitmentFor(p.header, p.body)
+	commitment, _, err := responseProjectionCommitment(p.header, p.body)
 	if err != nil {
 		return err
 	}
@@ -192,7 +283,7 @@ func (p ResponseProjection[Body]) Validate() error {
 }
 
 func (p ResponseProjection[Body]) MarshalJSON() ([]byte, error) {
-	commitment, body, err := responseCommitmentFor(p.header, p.body)
+	commitment, body, err := responseProjectionCommitment(p.header, p.body)
 	if err != nil {
 		return nil, jsonError(err)
 	}
@@ -240,7 +331,12 @@ func (d ResponseDocument[Body, BodyPtr]) Validate() error {
 	if !d.set {
 		return responseDocumentError()
 	}
-	if err := BodyPtr(&d.body).Validate(); err != nil {
+	if d.commitment.Header.Status != ProductStatusUpgradeRequired {
+		if err := BodyPtr(&d.body).Validate(); err != nil {
+			return responseDocumentError(err)
+		}
+	}
+	if err := validateResponseBodyPresence(d.commitment.Header, d.commitment.BodyLength); err != nil {
 		return responseDocumentError(err)
 	}
 	return validateResponseAttestation(d.commitment, d.attestation)
@@ -259,8 +355,17 @@ func (d *ResponseDocument[Body, BodyPtr]) UnmarshalJSON(data []byte) error {
 		return jsonError(responseDocumentError(err))
 	}
 	body := BodyPtr(new(Body))
-	if err := body.UnmarshalJSON(wire.Body); err != nil {
-		return jsonError(responseDocumentError(err))
+	if wire.Header.Status == ProductStatusUpgradeRequired {
+		if len(wire.Body) != 0 {
+			return jsonError(responseDocumentError(core.ErrJSONContract))
+		}
+	} else {
+		if len(wire.Body) == 0 {
+			return jsonError(responseDocumentError(core.ErrJSONContract))
+		}
+		if err := body.UnmarshalJSON(wire.Body); err != nil {
+			return jsonError(responseDocumentError(err))
+		}
 	}
 	commitment, err := responseCommitmentFromRaw(wire.Header, wire.Body)
 	if err != nil {
@@ -316,8 +421,13 @@ func VerifyResponse[
 }
 
 func (v VerifiedResponse[Body, BodyPtr]) Validate() error {
-	if err := errors.Join(BodyPtr(&v.body).Validate(), v.header.Validate(), v.proof.Validate()); err != nil {
+	if err := errors.Join(v.header.Validate(), v.proof.Validate()); err != nil {
 		return responseDocumentError(err)
+	}
+	if v.header.Status != ProductStatusUpgradeRequired {
+		if err := BodyPtr(&v.body).Validate(); err != nil {
+			return responseDocumentError(err)
+		}
 	}
 	return nil
 }
@@ -325,6 +435,9 @@ func (v VerifiedResponse[Body, BodyPtr]) Validate() error {
 func (v VerifiedResponse[Body, BodyPtr]) Body() (Body, error) {
 	if err := v.Validate(); err != nil {
 		return *new(Body), err
+	}
+	if v.header.Status == ProductStatusUpgradeRequired {
+		return *new(Body), core.ErrControlPlaneUpgradeRequired
 	}
 	return v.body, nil
 }
@@ -351,11 +464,22 @@ func responseCommitmentFor[Body core.ValidatedJSONMarshaler](
 	return commitment, encoded, err
 }
 
+func responseProjectionCommitment[Body core.ValidatedJSONMarshaler](
+	header ResponseHeader,
+	body Body,
+) (ResponseCommitment, []byte, error) {
+	if header.Status == ProductStatusUpgradeRequired {
+		commitment, err := responseCommitmentFromRaw(header, nil)
+		return commitment, nil, err
+	}
+	return responseCommitmentFor(header, body)
+}
+
 func responseCommitmentFromRaw(
 	header ResponseHeader,
 	body []byte,
 ) (ResponseCommitment, error) {
-	length, err := core.NewByteCount(uint64(len(body)))
+	length, err := core.NewByteLength(uint64(len(body)))
 	if err != nil {
 		return ResponseCommitment{}, responseDocumentError(err)
 	}
@@ -363,6 +487,38 @@ func responseCommitmentFromRaw(
 		Header: header, BodySHA256: core.SHA256Of(body), BodyLength: length,
 	}
 	return commitment, commitment.Validate()
+}
+
+func validateResponseAssessment(
+	header ResponseHeader,
+	assessment controlwire.ProtocolAssessment,
+	want controlwire.ProtocolSupportOutcome,
+) error {
+	if err := errors.Join(header.Validate(), assessment.Validate(), want.Validate()); err != nil {
+		return responseDocumentError(err)
+	}
+	capability := controlwire.ProtocolCapability{Revision: header.Revision, Family: header.Family}
+	if assessment.Capability != capability || assessment.Outcome != want {
+		return responseDocumentError(core.ErrControlPlaneResponseBinding)
+	}
+	if want == controlwire.ProtocolSupportOutcomeUpgradeRequired && header.Status != ProductStatusUpgradeRequired {
+		return responseDocumentError(core.ErrControlPlaneDecisionConsistency)
+	}
+	if want == controlwire.ProtocolSupportOutcomeAccepted && header.Status == ProductStatusUpgradeRequired {
+		return responseDocumentError(core.ErrControlPlaneUpgradeRequired)
+	}
+	return nil
+}
+
+func validateResponseBodyPresence(header ResponseHeader, length core.ByteLength) error {
+	value := length.Uint64()
+	if header.Status == ProductStatusUpgradeRequired && value != 0 {
+		return core.ErrControlPlaneUpgradeRequired
+	}
+	if header.Status != ProductStatusUpgradeRequired && value == 0 {
+		return core.ErrControlPlaneResponseDocument
+	}
+	return nil
 }
 
 func validateResponseAttestation(
@@ -401,6 +557,7 @@ func responseJSONLimits(maximum uint64) (core.StrictJSONLimits, error) {
 
 var (
 	_ core.Validatable                    = ResponseCommitment{}
+	_ core.Validatable                    = UpgradeRequiredIssuance{}
 	_ core.ValidatedJSONMarshaler         = ResponseCommitment{}
 	_ json.Unmarshaler                    = (*ResponseCommitment)(nil)
 	_ attest.CanonicalBody[SigningDomain] = ResponseCommitment{}

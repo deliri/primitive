@@ -83,6 +83,9 @@ func (r RegistrationRequest) ControlRoute() (controlwire.RouteContract, error) {
 	return controlwire.NewRouteContract(r.Build.Offering(), controlwire.RouteFamilyRegistrations)
 }
 
+// ControlRevision projects the exact revision carried by this request.
+func (r RegistrationRequest) ControlRevision() controlwire.Revision { return r.Revision }
+
 // ControlNonce projects the request identity already carried on the wire.
 func (r RegistrationRequest) ControlNonce() controlwire.RequestNonce { return r.RequestNonce }
 
@@ -425,6 +428,9 @@ func (p RegistrationPayload) Validate() error {
 func (p RegistrationPayload) validateParts() error {
 	if err := p.Header.Validate(); err != nil {
 		return err
+	}
+	if p.Header.Family != controlwire.RouteFamilyRegistrations {
+		return registrationError(consistencyError())
 	}
 	if err := p.Entitlement.Validate(); err != nil {
 		return registrationError(err)

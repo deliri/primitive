@@ -26,6 +26,7 @@ const (
 	controlwireJSONDoorPolicyCursor
 	controlwireJSONDoorRegistrationToken
 	controlwireJSONDoorRegistrationTokenVerifier
+	controlwireJSONDoorRouteFamily
 	controlwireJSONDoorLimit
 )
 
@@ -45,6 +46,8 @@ func (d controlwireJSONDoor) receiverName() string {
 		return "RegistrationToken"
 	case controlwireJSONDoorRegistrationTokenVerifier:
 		return "RegistrationTokenVerifier"
+	case controlwireJSONDoorRouteFamily:
+		return "RouteFamily"
 	case controlwireJSONDoorUnknown, controlwireJSONDoorLimit:
 		return ""
 	default:
@@ -60,6 +63,7 @@ type controlwireFuzzFixtures struct {
 	policyCursor   PolicyCursor
 	token          RegistrationToken
 	verifier       RegistrationTokenVerifier
+	routeFamily    RouteFamily
 }
 
 type controlwireJSONSeed struct {
@@ -109,6 +113,10 @@ func FuzzControlwireExternalJSONDoorInventory(f *testing.F) {
 			fuzzControlwireJSONValue(t, controlwireJSONRequest[RegistrationTokenVerifier]{
 				data: data, seed: fixtures.verifier, want: core.ErrControlWireToken,
 			})
+		case controlwireJSONDoorRouteFamily:
+			fuzzControlwireJSONValue(t, controlwireJSONRequest[RouteFamily]{
+				data: data, seed: fixtures.routeFamily, want: core.ErrControlWireRoute,
+			})
 		case controlwireJSONDoorUnknown, controlwireJSONDoorLimit:
 			return
 		default:
@@ -127,6 +135,7 @@ const (
 	controlwireTextDoorPolicyRevisionID
 	controlwireTextDoorRegistrationToken
 	controlwireTextDoorRegistrationTokenVerifier
+	controlwireTextDoorRouteFamily
 	controlwireTextDoorLimit
 )
 
@@ -144,6 +153,7 @@ func FuzzControlwireExternalTextDoorInventory(f *testing.F) {
 	f.Add(uint8(controlwireTextDoorPolicyRevisionID), (PolicyRevisionID{}).String())
 	f.Add(uint8(controlwireTextDoorRegistrationToken), tokenText)
 	f.Add(uint8(controlwireTextDoorRegistrationTokenVerifier), fixtures.verifier.String())
+	f.Add(uint8(controlwireTextDoorRouteFamily), routeFamilyTokens()[fixtures.routeFamily])
 	for _, hostile := range []string{"", " ", "0", "unknown", "\x00", "\xff"} {
 		f.Add(uint8(controlwireTextDoorAuthorityNonce), hostile)
 		f.Add(uint8(controlwireTextDoorRegistrationToken), hostile)
@@ -173,6 +183,13 @@ func FuzzControlwireExternalTextDoorInventory(f *testing.F) {
 		case controlwireTextDoorRegistrationTokenVerifier:
 			got, err := ParseRegistrationTokenVerifier(value)
 			outcome = controlwireTextOutcome{input: value, projection: got.String(), err: err, want: core.ErrControlWireToken, validate: got.Validate}
+		case controlwireTextDoorRouteFamily:
+			got, err := ParseRouteFamily(value)
+			projection := ""
+			if got.IsValid() {
+				projection = routeFamilyTokens()[got]
+			}
+			outcome = controlwireTextOutcome{input: value, projection: projection, err: err, want: core.ErrControlWireRoute, validate: got.Validate}
 		case controlwireTextDoorUnknown, controlwireTextDoorLimit:
 			return
 		default:
@@ -346,7 +363,7 @@ func controlwireFixturesForFuzz(t testing.TB) controlwireFuzzFixtures {
 	return controlwireFuzzFixtures{
 		requestNonce: requestNonce, authorityNonce: authorityNonce, revision: Revision2026V1,
 		policyID: policyID, policyCursor: PolicyCursor{Revision: policyID, Activation: activation},
-		token: token, verifier: verifier,
+		token: token, verifier: verifier, routeFamily: RouteFamilyRegistrations,
 	}
 }
 
@@ -368,6 +385,7 @@ func controlwireJSONSeedsForFuzz(t testing.TB, fixtures controlwireFuzzFixtures)
 		controlwireJSONSeedForFuzz(t, controlwireJSONDoorPolicyCursor, fixtures.policyCursor),
 		controlwireJSONSeedForFuzz(t, controlwireJSONDoorRegistrationToken, fixtures.token),
 		controlwireJSONSeedForFuzz(t, controlwireJSONDoorRegistrationTokenVerifier, fixtures.verifier),
+		controlwireJSONSeedForFuzz(t, controlwireJSONDoorRouteFamily, fixtures.routeFamily),
 	}
 }
 

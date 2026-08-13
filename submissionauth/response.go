@@ -6,14 +6,16 @@ import (
 	"github.com/deliri/primitive/v2026/attest"
 	"github.com/deliri/primitive/v2026/chit"
 	"github.com/deliri/primitive/v2026/controlplane"
+	"github.com/deliri/primitive/v2026/controlwire"
 	"github.com/deliri/primitive/v2026/core"
 	"github.com/deliri/primitive/v2026/submission"
 )
 
 type SubmissionResponseIssuance struct {
-	Signer crypto.Signer
-	Header controlplane.ResponseHeader
-	Body   submission.DecisionProjection
+	Signer     crypto.Signer
+	Header     controlplane.ResponseHeader
+	Body       submission.DecisionProjection
+	Assessment controlwire.ProtocolAssessment
 }
 
 type SubmissionResponseVerification struct {
@@ -23,11 +25,13 @@ type SubmissionResponseVerification struct {
 }
 
 func (i SubmissionResponseIssuance) Validate() error {
-	return (controlplane.ResponseIssuance[submission.DecisionProjection](i)).Validate()
+	return (controlplane.ResponseIssuance[submission.DecisionProjection](i)).ValidateForFamily(controlwire.RouteFamilySubmissions)
 }
 
 func IssueSubmissionResponse(i SubmissionResponseIssuance) (controlplane.ResponseProjection[submission.DecisionProjection], error) {
-	return controlplane.IssueResponse(controlplane.ResponseIssuance[submission.DecisionProjection](i))
+	return controlplane.IssueResponseForFamily(
+		controlplane.ResponseIssuance[submission.DecisionProjection](i), controlwire.RouteFamilySubmissions,
+	)
 }
 
 func (v SubmissionResponseVerification) Validate() error {
@@ -41,9 +45,10 @@ func VerifySubmissionResponse(v SubmissionResponseVerification) (controlplane.Ve
 }
 
 type CompletionResponseIssuance struct {
-	Signer crypto.Signer
-	Header controlplane.ResponseHeader
-	Body   chit.Document
+	Signer     crypto.Signer
+	Header     controlplane.ResponseHeader
+	Body       chit.Document
+	Assessment controlwire.ProtocolAssessment
 }
 
 type CompletionResponseVerification struct {
@@ -53,11 +58,13 @@ type CompletionResponseVerification struct {
 }
 
 func (i CompletionResponseIssuance) Validate() error {
-	return (controlplane.ResponseIssuance[chit.Document](i)).Validate()
+	return (controlplane.ResponseIssuance[chit.Document](i)).ValidateForFamily(controlwire.RouteFamilySubmissionCompletions)
 }
 
 func IssueCompletionResponse(i CompletionResponseIssuance) (controlplane.ResponseProjection[chit.Document], error) {
-	return controlplane.IssueResponse(controlplane.ResponseIssuance[chit.Document](i))
+	return controlplane.IssueResponseForFamily(
+		controlplane.ResponseIssuance[chit.Document](i), controlwire.RouteFamilySubmissionCompletions,
+	)
 }
 
 func (v CompletionResponseVerification) Validate() error {

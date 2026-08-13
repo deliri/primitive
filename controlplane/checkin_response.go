@@ -7,6 +7,7 @@ import (
 	"io"
 
 	"github.com/deliri/primitive/v2026/attest"
+	"github.com/deliri/primitive/v2026/controlwire"
 	"github.com/deliri/primitive/v2026/core"
 	"github.com/deliri/primitive/v2026/lease"
 )
@@ -187,6 +188,9 @@ func (p CheckInResponsePayload) Validate() error {
 		p.Watermark.Validate(), p.Lease.Validate(),
 	); err != nil {
 		return checkInResponseError(err)
+	}
+	if p.Header.Family != controlwire.RouteFamilyCheckIns {
+		return checkInResponseError(consistencyError())
 	}
 	if err := p.validateDecisionAgreement(); err != nil {
 		return err

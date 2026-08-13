@@ -22,6 +22,7 @@ type ResponseHeader struct {
 	Account      receipt.AccountIdentity  `json:"account"`
 	Installation lease.DeviceID           `json:"installation"`
 	Revision     controlwire.Revision     `json:"revision"`
+	Family       controlwire.RouteFamily  `json:"route_family"`
 	Status       ProductStatus            `json:"status"`
 	Offering     core.Offering            `json:"offering"`
 	Policy       controlwire.PolicyCursor `json:"policy"`
@@ -40,6 +41,7 @@ type ResponseExpectation struct {
 	Account           receipt.AccountIdentity
 	Installation      lease.DeviceID
 	Revision          controlwire.Revision
+	Family            controlwire.RouteFamily
 	Offering          core.Offering
 }
 
@@ -54,6 +56,7 @@ const (
 	ResponseHeaderFieldAccount
 	ResponseHeaderFieldInstallation
 	ResponseHeaderFieldRevision
+	ResponseHeaderFieldRouteFamily
 	ResponseHeaderFieldOffering
 	responseHeaderFieldLimit
 )
@@ -65,6 +68,7 @@ func responseHeaderFieldTokens() [responseHeaderFieldLimit]string {
 		ResponseHeaderFieldAccount:      core.ProtocolMemberAccount,
 		ResponseHeaderFieldInstallation: protocolMemberInstallation,
 		ResponseHeaderFieldRevision:     protocolMemberRevision,
+		ResponseHeaderFieldRouteFamily:  protocolMemberRouteFamily,
 		ResponseHeaderFieldOffering:     core.ProtocolMemberOffering,
 	}
 }
@@ -141,6 +145,9 @@ func (h ResponseHeader) Validate() error {
 	if err := h.Revision.Validate(); err != nil {
 		return responseHeaderError(err)
 	}
+	if err := h.Family.Validate(); err != nil {
+		return responseHeaderError(err)
+	}
 	if err := h.Status.Validate(); err != nil {
 		return responseHeaderError(err)
 	}
@@ -181,6 +188,9 @@ func (e ResponseExpectation) Validate() error {
 		return responseHeaderError(err)
 	}
 	if err := e.Revision.Validate(); err != nil {
+		return responseHeaderError(err)
+	}
+	if err := e.Family.Validate(); err != nil {
 		return responseHeaderError(err)
 	}
 	if err := e.Offering.Validate(); err != nil {
@@ -228,6 +238,8 @@ func (h ResponseHeader) boundFieldMismatch(expectation ResponseExpectation) (Res
 		return ResponseHeaderFieldInstallation, true
 	case h.Revision != expectation.Revision:
 		return ResponseHeaderFieldRevision, true
+	case h.Family != expectation.Family:
+		return ResponseHeaderFieldRouteFamily, true
 	case h.Offering != expectation.Offering:
 		return ResponseHeaderFieldOffering, true
 	}

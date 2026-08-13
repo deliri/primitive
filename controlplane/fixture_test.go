@@ -64,8 +64,55 @@ func expectationFor(header controlplane.ResponseHeader) controlplane.ResponseExp
 		Account:      header.Account,
 		Installation: header.Installation,
 		Revision:     header.Revision,
+		Family:       header.Family,
 		Offering:     header.Offering,
 	}
+}
+
+func acceptedProtocolAssessment(t testing.TB, header controlplane.ResponseHeader) controlwire.ProtocolAssessment {
+	t.Helper()
+
+	support, err := controlwire.PublishedProtocolSupport()
+	if err != nil {
+		t.Fatalf("PublishedProtocolSupport() error = %v, want nil", err)
+	}
+	assessment, err := controlwire.AssessProtocol(controlwire.ProtocolAssessmentRequest{
+		Support: support,
+		Capability: controlwire.ProtocolCapability{
+			Revision: header.Revision,
+			Family:   header.Family,
+		},
+	})
+	if err != nil || assessment.Outcome != controlwire.ProtocolSupportOutcomeAccepted {
+		t.Fatalf("AssessProtocol(published pair) = (%+v, %v), want accepted and nil", assessment, err)
+	}
+	return assessment
+}
+
+func upgradeRequiredProtocolAssessment(t testing.TB, header controlplane.ResponseHeader) controlwire.ProtocolAssessment {
+	t.Helper()
+
+	otherFamily := controlwire.RouteFamilyCheckIns
+	if header.Family == otherFamily {
+		otherFamily = controlwire.RouteFamilyRegistrations
+	}
+	support, err := controlwire.NewProtocolSupport(controlwire.ProtocolSupportRequest{
+		Capabilities: []controlwire.ProtocolCapability{{Revision: header.Revision, Family: otherFamily}},
+	})
+	if err != nil {
+		t.Fatalf("NewProtocolSupport(foreign route only) error = %v, want nil", err)
+	}
+	assessment, err := controlwire.AssessProtocol(controlwire.ProtocolAssessmentRequest{
+		Support: support,
+		Capability: controlwire.ProtocolCapability{
+			Revision: header.Revision,
+			Family:   header.Family,
+		},
+	})
+	if err != nil || assessment.Outcome != controlwire.ProtocolSupportOutcomeUpgradeRequired {
+		t.Fatalf("AssessProtocol(retired pair) = (%+v, %v), want upgrade-required and nil", assessment, err)
+	}
+	return assessment
 }
 
 func resignLease(t testing.TB, document lease.Document, signer ed25519.PrivateKey) lease.Document {

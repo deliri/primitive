@@ -22,14 +22,16 @@ type socketFixture struct {
 	request           controlplane.RegistrationRequest
 	response          controlplane.ResponseProjection[controlplane.RegistrationDocument]
 	responseCanonical []byte
+	support           controlwire.ProtocolSupport
 }
 
 type socketObservation struct {
-	body   controlplane.RegistrationRequest
-	method string
-	path   string
-	key    string
-	err    error
+	body       controlplane.RegistrationRequest
+	assessment controlwire.ProtocolAssessment
+	method     string
+	path       string
+	key        string
+	err        error
 }
 
 func TestRoutedSocketExecutesProductionRequestAndAuthenticatedResponse(t *testing.T) {
@@ -45,7 +47,7 @@ func TestRoutedSocketExecutesProductionRequestAndAuthenticatedResponse(t *testin
 		received, receiveErr := controlwire.ReceiveRoutedJSON[
 			controlplane.RegistrationRequest,
 			*controlplane.RegistrationRequest,
-		](controlwire.AuthorityJSONReceiveCall{Request: request, Route: route})
+		](controlwire.AuthorityJSONReceiveCall{Request: request, Route: route, Support: fixture.support})
 		observation := socketObservation{
 			method: request.Method,
 			path:   request.URL.Path,
@@ -54,6 +56,7 @@ func TestRoutedSocketExecutesProductionRequestAndAuthenticatedResponse(t *testin
 		}
 		if receiveErr == nil {
 			observation.body = *received.Body
+			observation.assessment = received.Assessment
 		}
 		observed <- observation
 		if receiveErr != nil {
@@ -103,6 +106,51 @@ func TestRoutedSocketExecutesProductionRequestAndAuthenticatedResponse(t *testin
 		!bytes.Equal(gotRequestJSON, wantRequestJSON) || got.method != http.MethodPost ||
 		got.path != wantPath || got.key != fixture.request.RequestNonce.String() {
 		t.Fatalf("authority observation = %+v, want exact production request/method/path/nonce", got)
+	}
+	capability, err := route.ProtocolCapability(fixture.request.ControlRevision())
+	if err != nil || got.assessment.Capability != capability ||
+		got.assessment.Outcome != controlwire.ProtocolSupportOutcomeAccepted {
+		t.Fatalf("authority protocol assessment = (%+v, %v), want exact accepted capability %+v", got.assessment, err, capability)
+	}
+}
+
+func TestRoutedSocketReturnsUpgradeAssessmentBesideAnUnsupportedValidatedRequest(t *testing.T) {
+	t.Parallel()
+
+	fixture := productionSocketFixture(t)
+	route, err := fixture.request.ControlRoute()
+	if err != nil {
+		t.Fatalf("RegistrationRequest.ControlRoute() error = %v, want nil", err)
+	}
+	encoded, err := fixture.request.MarshalJSON()
+	if err != nil {
+		t.Fatalf("RegistrationRequest.MarshalJSON() error = %v, want nil", err)
+	}
+	path, err := route.Path()
+	if err != nil {
+		t.Fatalf("RouteContract.Path() error = %v, want nil", err)
+	}
+	mediaType := standardMediaType(t, exchange.StandardMediaTypeJSON)
+	request := httptest.NewRequest(http.MethodPost, path, bytes.NewReader(encoded))
+	request.Header.Set(core.HTTPHeaderContentType().String(), mediaType.String())
+	request.Header.Set(core.HTTPHeaderIdempotencyKey().String(), fixture.request.RequestNonce.String())
+	support, err := controlwire.NewProtocolSupport(controlwire.ProtocolSupportRequest{
+		Capabilities: []controlwire.ProtocolCapability{{
+			Revision: controlwire.Revision2026V1, Family: controlwire.RouteFamilyCheckIns,
+		}},
+	})
+	if err != nil {
+		t.Fatalf("NewProtocolSupport(non-registration pair) error = %v, want nil", err)
+	}
+	received, err := controlwire.ReceiveRoutedJSON[
+		controlplane.RegistrationRequest,
+		*controlplane.RegistrationRequest,
+	](controlwire.AuthorityJSONReceiveCall{Request: request, Route: route, Support: support})
+	capability, capabilityErr := route.ProtocolCapability(fixture.request.ControlRevision())
+	if err != nil || capabilityErr != nil || received.Validate() != nil || received.Body == nil ||
+		received.Assessment.Capability != capability ||
+		received.Assessment.Outcome != controlwire.ProtocolSupportOutcomeUpgradeRequired {
+		t.Fatalf("ReceiveRoutedJSON(unsupported exact pair) = (%+v, %v/%v), want validated request beside exact upgrade-required assessment %+v", received, err, capabilityErr, capability)
 	}
 }
 
@@ -236,9 +284,12 @@ func TestRoutedSocketAuthorityAcceptsTenProductionRequestRepresentations(t *test
 			got, gotErr := controlwire.ReceiveRoutedJSON[
 				controlplane.RegistrationRequest,
 				*controlplane.RegistrationRequest,
-			](controlwire.AuthorityJSONReceiveCall{Request: request, Route: route})
+			](controlwire.AuthorityJSONReceiveCall{Request: request, Route: route, Support: fixture.support})
 			if gotErr != nil || got.Body == nil || got.Body.Validate() != nil ||
-				got.IdempotencyKey.String() != wantKey.String() {
+				got.IdempotencyKey.String() != wantKey.String() ||
+				got.Assessment.Outcome != controlwire.ProtocolSupportOutcomeAccepted ||
+				got.Assessment.Capability.Revision != fixture.request.ControlRevision() ||
+				got.Assessment.Capability.Family != route.Family() {
 				t.Fatalf("ReceiveRoutedJSON(%s) = (%+v, %v), want exact validated body and idempotency %q", tc.name, got, gotErr, wantKey.String())
 			}
 			canonical, marshalErr := got.Body.MarshalJSON()
@@ -444,7 +495,7 @@ func TestRoutedSocketAuthorityRejectsThirtyThreeExternalRequestBoundaries(t *tes
 			got, receiveErr := controlwire.ReceiveRoutedJSON[
 				controlplane.RegistrationRequest,
 				*controlplane.RegistrationRequest,
-			](controlwire.AuthorityJSONReceiveCall{Request: tc.build(), Route: route})
+			](controlwire.AuthorityJSONReceiveCall{Request: tc.build(), Route: route, Support: fixture.support})
 			if got.Body != nil || !got.IdempotencyKey.IsZero() {
 				t.Fatalf("rejected receive = %+v, want zero result", got)
 			}
@@ -509,7 +560,7 @@ func FuzzRoutedSocketAuthoritySemanticClosure(f *testing.F) {
 		got, receiveErr := controlwire.ReceiveRoutedJSON[
 			controlplane.RegistrationRequest,
 			*controlplane.RegistrationRequest,
-		](controlwire.AuthorityJSONReceiveCall{Request: fuzzRequest(input), Route: route})
+		](controlwire.AuthorityJSONReceiveCall{Request: fuzzRequest(input), Route: route, Support: fixture.support})
 		oracle := receiveOracle(receiveOracleInput{
 			document: document, key: key, pathMode: modes[0],
 			methodMode: modes[1], contentMode: modes[2], route: route, bodyLimit: bodyLimit,
@@ -527,6 +578,11 @@ func FuzzRoutedSocketAuthoritySemanticClosure(f *testing.F) {
 		}
 		if receiveErr != nil || got.Body == nil || got.Body.Validate() != nil {
 			t.Fatalf("ReceiveRoutedJSON() = (%+v, %v), want exact validated production request", got, receiveErr)
+		}
+		if got.Assessment.Outcome != controlwire.ProtocolSupportOutcomeAccepted ||
+			got.Assessment.Capability.Revision != got.Body.ControlRevision() ||
+			got.Assessment.Capability.Family != route.Family() {
+			t.Fatalf("received protocol assessment = %+v, want exact accepted request pair", got.Assessment)
 		}
 		canonicalGot, marshalErr := got.Body.MarshalJSON()
 		if marshalErr != nil || !bytes.Equal(canonicalGot, oracle.canonical) {
@@ -677,8 +733,23 @@ func productionSocketFixture(t testing.TB) socketFixture {
 		t.Fatalf("RegistrationDocument.UnmarshalJSON() error = %v, want nil", err)
 	}
 	material := bytes.Repeat([]byte{0x73}, ed25519.SeedSize)
+	support, err := controlwire.PublishedProtocolSupport()
+	if err != nil {
+		t.Fatalf("PublishedProtocolSupport() error = %v, want nil", err)
+	}
+	assessment, err := controlwire.AssessProtocol(controlwire.ProtocolAssessmentRequest{
+		Support: support,
+		Capability: controlwire.ProtocolCapability{
+			Revision: body.Payload.Header.Revision,
+			Family:   body.Payload.Header.Family,
+		},
+	})
+	if err != nil || assessment.Outcome != controlwire.ProtocolSupportOutcomeAccepted {
+		t.Fatalf("AssessProtocol(response pair) = (%+v, %v), want accepted and nil", assessment, err)
+	}
 	projection, err := controlplane.IssueResponse(controlplane.ResponseIssuance[controlplane.RegistrationDocument]{
 		Signer: ed25519.NewKeyFromSeed(material), Header: body.Payload.Header, Body: body,
+		Assessment: assessment,
 	})
 	if err != nil {
 		t.Fatalf("IssueResponse() error = %v, want nil", err)
@@ -687,7 +758,7 @@ func productionSocketFixture(t testing.TB) socketFixture {
 	if err != nil {
 		t.Fatalf("ResponseProjection.MarshalJSON() error = %v, want nil", err)
 	}
-	return socketFixture{request: request, response: projection, responseCanonical: canonical}
+	return socketFixture{request: request, response: projection, responseCanonical: canonical, support: support}
 }
 
 func standardMediaType(t testing.TB, value exchange.StandardMediaType) core.HTTPMediaType {

@@ -5,14 +5,16 @@ import (
 
 	"github.com/deliri/primitive/v2026/attest"
 	"github.com/deliri/primitive/v2026/controlplane"
+	"github.com/deliri/primitive/v2026/controlwire"
 	"github.com/deliri/primitive/v2026/core"
 	"github.com/deliri/primitive/v2026/retrieval"
 )
 
 type ResponseIssuance struct {
-	Signer crypto.Signer
-	Header controlplane.ResponseHeader
-	Body   retrieval.GrantProjection
+	Signer     crypto.Signer
+	Header     controlplane.ResponseHeader
+	Body       retrieval.GrantProjection
+	Assessment controlwire.ProtocolAssessment
 }
 
 type ResponseVerification struct {
@@ -22,11 +24,13 @@ type ResponseVerification struct {
 }
 
 func (i ResponseIssuance) Validate() error {
-	return (controlplane.ResponseIssuance[retrieval.GrantProjection](i)).Validate()
+	return (controlplane.ResponseIssuance[retrieval.GrantProjection](i)).ValidateForFamily(controlwire.RouteFamilyRetrievals)
 }
 
 func IssueResponse(i ResponseIssuance) (controlplane.ResponseProjection[retrieval.GrantProjection], error) {
-	return controlplane.IssueResponse(controlplane.ResponseIssuance[retrieval.GrantProjection](i))
+	return controlplane.IssueResponseForFamily(
+		controlplane.ResponseIssuance[retrieval.GrantProjection](i), controlwire.RouteFamilyRetrievals,
+	)
 }
 
 func (v ResponseVerification) Validate() error {

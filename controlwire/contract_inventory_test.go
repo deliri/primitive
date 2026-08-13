@@ -36,8 +36,14 @@ type controlwireContractInventory struct {
 	RegistrationTokenVerifier controlwireDerivedFact[RegistrationTokenVerifier]
 	PolicyCursor              controlwireProtocolFact[PolicyCursor]
 	RouteContract             controlwireProtocolFact[RouteContract]
+	ProtocolCapability        controlwireProtocolFact[ProtocolCapability]
+	ProtocolSupportRequest    controlwireExecutionContract[ProtocolSupportRequest]
+	ProtocolSupport           controlwireExecutionContract[ProtocolSupport]
+	ProtocolAssessmentRequest controlwireExecutionContract[ProtocolAssessmentRequest]
+	ProtocolAssessment        controlwireExecutionContract[ProtocolAssessment]
 	ClientJSONCall            controlwireExecutionContract[ClientJSONCall[RoutedJSONRequest]]
 	AuthorityJSONReceiveCall  controlwireExecutionContract[AuthorityJSONReceiveCall]
+	RoutedJSONReceive         controlwireExecutionContract[RoutedJSONReceive[RoutedJSONRequest]]
 	ControlJSONWriteCall      controlwireExecutionContract[ControlJSONWriteCall[AuthenticatedResponseProjection]]
 }
 

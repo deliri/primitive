@@ -28,6 +28,7 @@ func TestPaymentResponseLayerTriadAuthenticatesRefusesAndKeepsNeutralZero(t *tes
 	fixture := newPaymentResponseFixture(t)
 	projection, err := IssueResponse(ResponseIssuance{
 		Signer: fixture.signer, Header: fixture.header, Body: fixture.body,
+		Assessment: acceptedPaymentResponseAssessment(t, fixture.header),
 	})
 	if err != nil {
 		t.Fatalf("IssueResponse(real signed payment catalog) error = %v, want nil", err)
@@ -131,6 +132,7 @@ func newPaymentResponseFixture(t testing.TB) paymentResponseFixture {
 		Account:      request.document.Certificate.Body.Account,
 		Installation: request.document.Certificate.Body.Subject.DeviceID,
 		Revision:     request.payload.Revision,
+		Family:       controlwire.RouteFamilyPayments,
 		Status:       controlplane.ProductStatusActive,
 		Offering:     request.payload.Build.Offering(),
 		Policy: controlwire.PolicyCursor{
@@ -139,9 +141,24 @@ func newPaymentResponseFixture(t testing.TB) paymentResponseFixture {
 	}
 	expected := controlplane.ResponseExpectation{
 		RequestNonce: header.RequestNonce, Account: header.Account,
-		Installation: header.Installation, Revision: header.Revision, Offering: header.Offering,
+		Installation: header.Installation, Revision: header.Revision, Family: header.Family, Offering: header.Offering,
 	}
 	return paymentResponseFixture{
 		body: body, header: header, expected: expected, trusted: request.trusted, signer: signer,
 	}
+}
+
+func acceptedPaymentResponseAssessment(t testing.TB, header controlplane.ResponseHeader) controlwire.ProtocolAssessment {
+	t.Helper()
+	support, err := controlwire.PublishedProtocolSupport()
+	if err != nil {
+		t.Fatalf("controlwire.PublishedProtocolSupport() error = %v, want nil", err)
+	}
+	assessment, err := controlwire.AssessProtocol(controlwire.ProtocolAssessmentRequest{
+		Support: support, Capability: controlwire.ProtocolCapability{Revision: header.Revision, Family: header.Family},
+	})
+	if err != nil {
+		t.Fatalf("controlwire.AssessProtocol(published payment response pair) error = %v, want nil", err)
+	}
+	return assessment
 }

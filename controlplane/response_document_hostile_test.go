@@ -30,6 +30,41 @@ type responseValidCase struct {
 	mutate func(testing.TB, *controlplane.ResponseHeader)
 }
 
+func TestAuthenticatedUpgradeRequiredResponseCannotExposeAProductBody(t *testing.T) {
+	t.Parallel()
+
+	fixture := authenticatedResponseForTest(t, 30)
+	header := fixture.header
+	header.Status = controlplane.ProductStatusUpgradeRequired
+	projection, err := controlplane.IssueUpgradeRequiredResponse[controlplane.RegistrationDocument](controlplane.UpgradeRequiredIssuance{
+		Signer:     fixture.signer,
+		Header:     header,
+		Assessment: upgradeRequiredProtocolAssessment(t, header),
+	})
+	if err != nil {
+		t.Fatalf("IssueUpgradeRequiredResponse() error = %v, want nil signed refusal", err)
+	}
+	encoded, err := projection.MarshalJSON()
+	if err != nil {
+		t.Fatalf("ResponseProjection.MarshalJSON(upgrade-required status) error = %v, want nil", err)
+	}
+	document := decodeAuthenticatedResponse(t, encoded)
+	expected := fixture.expected
+	verified, err := controlplane.VerifyResponse(controlplane.ResponseVerification[controlplane.RegistrationDocument, *controlplane.RegistrationDocument]{
+		Document: document, Expected: expected, TrustedKeys: fixture.trusted,
+	})
+	if err != nil {
+		t.Fatalf("VerifyResponse(authentic upgrade-required response) error = %v, want nil", err)
+	}
+	got, gotErr := verified.Body()
+	if !errors.Is(gotErr, core.ErrControlPlaneUpgradeRequired) {
+		t.Fatalf("VerifiedResponse.Body(upgrade-required response) error = %v, want %v", gotErr, core.ErrControlPlaneUpgradeRequired)
+	}
+	if got != (controlplane.RegistrationDocument{}) {
+		t.Fatalf("VerifiedResponse.Body(upgrade-required response) = %+v, want zero product body", got)
+	}
+}
+
 func TestAuthenticatedResponseProducerExhaustsValidDecisionDomains(t *testing.T) {
 	t.Parallel()
 
@@ -39,7 +74,6 @@ func TestAuthenticatedResponseProducerExhaustsValidDecisionDomains(t *testing.T)
 		{name: "payment retry status survives signed round trip", mutate: responseStatusMutation(controlplane.ProductStatusPaymentRetry)},
 		{name: "read only status survives signed round trip", mutate: responseStatusMutation(controlplane.ProductStatusReadOnly)},
 		{name: "stopped status survives signed round trip", mutate: responseStatusMutation(controlplane.ProductStatusStopped)},
-		{name: "upgrade required status survives signed round trip", mutate: responseStatusMutation(controlplane.ProductStatusUpgradeRequired)},
 		{name: "revoked status survives signed round trip", mutate: responseStatusMutation(controlplane.ProductStatusRevoked)},
 		{name: "bug offering survives signed round trip", mutate: responseOfferingMutation(core.OfferingBug)},
 		{name: "witness offering survives signed round trip", mutate: responseOfferingMutation(core.OfferingWitness)},
@@ -105,6 +139,9 @@ func TestAuthenticatedResponseProducerRejectsIndependentInvalidInputs(t *testing
 		{name: "zero revision is rejected", mutate: func(value *controlplane.ResponseIssuance[controlplane.RegistrationDocument]) {
 			value.Header.Revision = 0
 		}, want: core.ErrControlPlaneResponseHeader},
+		{name: "zero route family is rejected", mutate: func(value *controlplane.ResponseIssuance[controlplane.RegistrationDocument]) {
+			value.Header.Family = controlwire.RouteFamilyUnknown
+		}, want: core.ErrControlPlaneResponseHeader},
 		{name: "unset product status is rejected", mutate: func(value *controlplane.ResponseIssuance[controlplane.RegistrationDocument]) {
 			value.Header.Status = controlplane.ProductStatusInvalid
 		}, want: core.ErrControlPlaneProductStatus},
@@ -120,6 +157,12 @@ func TestAuthenticatedResponseProducerRejectsIndependentInvalidInputs(t *testing
 		{name: "zero product body is rejected", mutate: func(value *controlplane.ResponseIssuance[controlplane.RegistrationDocument]) {
 			value.Body = controlplane.RegistrationDocument{}
 		}, want: core.ErrControlPlaneRegistration},
+		{name: "zero protocol assessment is rejected", mutate: func(value *controlplane.ResponseIssuance[controlplane.RegistrationDocument]) {
+			value.Assessment = controlwire.ProtocolAssessment{}
+		}, want: core.ErrControlWireContract},
+		{name: "upgrade-required assessment cannot issue a product body", mutate: func(value *controlplane.ResponseIssuance[controlplane.RegistrationDocument]) {
+			value.Assessment = upgradeRequiredProtocolAssessment(t, value.Header)
+		}, want: core.ErrControlPlaneResponseBinding},
 	}
 
 	for _, tc := range cases {
@@ -128,6 +171,7 @@ func TestAuthenticatedResponseProducerRejectsIndependentInvalidInputs(t *testing
 
 			issuance := controlplane.ResponseIssuance[controlplane.RegistrationDocument]{
 				Signer: fixture.signer, Header: fixture.header, Body: fixture.body,
+				Assessment: acceptedProtocolAssessment(t, fixture.header),
 			}
 			tc.mutate(&issuance)
 			got, gotErr := controlplane.IssueResponse(issuance)
@@ -147,6 +191,7 @@ func TestAuthenticatedResponseProjectionStrictlyEncodesWithoutBecomingAnIngressT
 	fixture := authenticatedResponseForTest(t, 46)
 	issuance := controlplane.ResponseIssuance[controlplane.RegistrationDocument]{
 		Signer: fixture.signer, Header: fixture.header, Body: fixture.body,
+		Assessment: acceptedProtocolAssessment(t, fixture.header),
 	}
 	if err := issuance.Validate(); err != nil {
 		t.Fatalf("ResponseIssuance.Validate() error = %v, want nil", err)
@@ -185,6 +230,27 @@ func TestAuthenticatedResponseProjectionStrictlyEncodesWithoutBecomingAnIngressT
 	}
 }
 
+func TestProductResponseFamilyGateRejectsAnOtherwiseValidSiblingRoute(t *testing.T) {
+	t.Parallel()
+
+	fixture := authenticatedResponseForTest(t, 45)
+	issuance := controlplane.ResponseIssuance[controlplane.RegistrationDocument]{
+		Signer: fixture.signer, Header: fixture.header, Body: fixture.body,
+		Assessment: acceptedProtocolAssessment(t, fixture.header),
+	}
+	if err := issuance.Validate(); err != nil {
+		t.Fatalf("ResponseIssuance.Validate(generic valid response) error = %v, want nil", err)
+	}
+	if err := issuance.ValidateForFamily(controlwire.RouteFamilyCheckIns); !errors.Is(err, core.ErrControlPlaneResponseDocument) ||
+		!errors.Is(err, core.ErrControlPlaneResponseBinding) {
+		t.Fatalf("ResponseIssuance.ValidateForFamily(sibling route) error = %v, want %v/%v", err, core.ErrControlPlaneResponseDocument, core.ErrControlPlaneResponseBinding)
+	}
+	projection, err := controlplane.IssueResponseForFamily(issuance, controlwire.RouteFamilyCheckIns)
+	if !errors.Is(err, core.ErrControlPlaneResponseDocument) || !errors.Is(err, core.ErrControlPlaneResponseBinding) || projection.Validate() == nil {
+		t.Fatalf("IssueResponseForFamily(sibling route) = (%v, %v), want invalid zero and %v/%v", projection, err, core.ErrControlPlaneResponseDocument, core.ErrControlPlaneResponseBinding)
+	}
+}
+
 func TestAuthenticatedResponseDecoderRejectsEveryCrossResponseFactSubstitution(t *testing.T) {
 	t.Parallel()
 
@@ -198,6 +264,9 @@ func TestAuthenticatedResponseDecoderRejectsEveryCrossResponseFactSubstitution(t
 		}},
 		{name: "installation from another signed response", mutate: func(t testing.TB, header *controlplane.ResponseHeader) {
 			header.Installation = responseDeviceID(t, 0xb4)
+		}},
+		{name: "route family from another signed response", mutate: func(_ testing.TB, header *controlplane.ResponseHeader) {
+			header.Family = controlwire.RouteFamilyCheckIns
 		}},
 		{name: "product status from another signed response", mutate: responseStatusMutation(alternateStatus(fixture.header.Status))},
 		{name: "offering from another signed response", mutate: responseOfferingMutation(alternateOffering(fixture.header.Offering))},
@@ -258,6 +327,7 @@ func TestAuthenticatedResponseVerifierNamesEveryBoundFactAndTrustFailure(t *test
 	_, untrustedSigner := testSigningKey(t, 52)
 	untrustedProjection, err := controlplane.IssueResponse(controlplane.ResponseIssuance[controlplane.RegistrationDocument]{
 		Signer: untrustedSigner, Header: fixture.header, Body: fixture.body,
+		Assessment: acceptedProtocolAssessment(t, fixture.header),
 	})
 	if err != nil {
 		t.Fatalf("IssueResponse(untrusted signer) error = %v, want nil", err)
@@ -278,6 +348,9 @@ func TestAuthenticatedResponseVerifierNamesEveryBoundFactAndTrustFailure(t *test
 		{name: "different request nonce is named", verification: responseVerificationWithExpectation(document, fixture, func(value *controlplane.ResponseExpectation) { value.RequestNonce = otherRequestNonce(t) }), want: core.ErrControlPlaneResponseBinding, wantField: controlplane.ResponseHeaderFieldRequestNonce},
 		{name: "different account is named", verification: responseVerificationWithExpectation(document, fixture, func(value *controlplane.ResponseExpectation) { value.Account = otherAccount }), want: core.ErrControlPlaneResponseBinding, wantField: controlplane.ResponseHeaderFieldAccount},
 		{name: "different installation is named", verification: responseVerificationWithExpectation(document, fixture, func(value *controlplane.ResponseExpectation) { value.Installation = otherInstallation }), want: core.ErrControlPlaneResponseBinding, wantField: controlplane.ResponseHeaderFieldInstallation},
+		{name: "different route family is named", verification: responseVerificationWithExpectation(document, fixture, func(value *controlplane.ResponseExpectation) {
+			value.Family = controlwire.RouteFamilyCheckIns
+		}), want: core.ErrControlPlaneResponseBinding, wantField: controlplane.ResponseHeaderFieldRouteFamily},
 		{name: "different offering is named", verification: responseVerificationWithExpectation(document, fixture, func(value *controlplane.ResponseExpectation) {
 			value.Offering = alternateOffering(fixture.header.Offering)
 		}), want: core.ErrControlPlaneResponseBinding, wantField: controlplane.ResponseHeaderFieldOffering},
@@ -453,6 +526,7 @@ func FuzzAuthenticatedResponseExternalSemanticClosure(f *testing.F) {
 		proveRegistrationBodyEqual(t, body, fixture.body)
 		projection, issueErr := controlplane.IssueResponse(controlplane.ResponseIssuance[controlplane.RegistrationDocument]{
 			Signer: fixture.signer, Header: header, Body: body,
+			Assessment: acceptedProtocolAssessment(t, header),
 		})
 		canonical, canonicalErr := projection.MarshalJSON()
 		if issueErr != nil || canonicalErr != nil || len(canonical) > core.JSONDocumentMaximumBytes || !bytes.Equal(canonical, fixture.canonical) {
@@ -469,6 +543,7 @@ func FuzzAuthenticatedResponseExternalSemanticClosure(f *testing.F) {
 		secondBody, secondBodyErr := second.Body()
 		secondProjection, secondIssueErr := controlplane.IssueResponse(controlplane.ResponseIssuance[controlplane.RegistrationDocument]{
 			Signer: fixture.signer, Header: secondHeader, Body: secondBody,
+			Assessment: acceptedProtocolAssessment(t, secondHeader),
 		})
 		secondCanonical, secondCanonicalErr := secondProjection.MarshalJSON()
 		if secondHeaderErr != nil || secondBodyErr != nil || secondIssueErr != nil || secondCanonicalErr != nil ||
@@ -702,6 +777,7 @@ func authenticatedResponseWithHeader(
 
 	projection, err := controlplane.IssueResponse(controlplane.ResponseIssuance[controlplane.RegistrationDocument]{
 		Signer: base.signer, Header: header, Body: base.body,
+		Assessment: acceptedProtocolAssessment(t, header),
 	})
 	if err != nil {
 		t.Fatalf("IssueResponse() error = %v, want nil", err)
@@ -749,6 +825,7 @@ func proveAuthenticatedResponseCanonicalClosure(
 	}
 	projection, err := controlplane.IssueResponse(controlplane.ResponseIssuance[controlplane.RegistrationDocument]{
 		Signer: fixture.signer, Header: header, Body: body,
+		Assessment: acceptedProtocolAssessment(t, header),
 	})
 	if err != nil {
 		t.Fatalf("IssueResponse(round trip) error = %v, want nil", err)

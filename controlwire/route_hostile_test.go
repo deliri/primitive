@@ -1,7 +1,10 @@
 package controlwire
 
 import (
+	"bytes"
 	"errors"
+	"slices"
+	"strings"
 	"testing"
 
 	"github.com/deliri/primitive/v2026/core"
@@ -43,6 +46,77 @@ func TestRouteFamilyClosesItsEntireByteDomain(t *testing.T) {
 	}
 	if admitted != 12 {
 		t.Fatalf("admitted route families = %d, want all twelve compiler-owned control families", admitted)
+	}
+}
+
+func TestRouteFamilyWireContractAcceptsEveryPublishedTokenAndRejectsTwentyHostileDocuments(t *testing.T) {
+	t.Parallel()
+
+	families := []RouteFamily{
+		RouteFamilyRegistrations, RouteFamilyCheckIns, RouteFamilySubmissions,
+		RouteFamilySubmissionCompletions, RouteFamilyChits, RouteFamilyRetrievals,
+		RouteFamilyPayments, RouteFamilyReleaseMaterials, RouteFamilyReleasePublications,
+		RouteFamilyReleasePublicationCompletions, RouteFamilyUpdateChecks, RouteFamilyUpgrades,
+	}
+	seen := make([]string, 0, len(families))
+	for _, family := range families {
+		encoded, err := family.MarshalJSON()
+		if err != nil {
+			t.Fatalf("RouteFamily(%v).MarshalJSON() error = %v, want nil", family, err)
+		}
+		token, err := core.DecodeJSONStringToken(encoded)
+		if err != nil || token == "" || strings.HasPrefix(token, routeSeparator) || slices.Contains(seen, token) {
+			t.Fatalf("published route token = (%q, %v), want unique non-path token", token, err)
+		}
+		seen = append(seen, token)
+		parsed, err := ParseRouteFamily(token)
+		if err != nil || parsed != family {
+			t.Fatalf("ParseRouteFamily(MarshalJSON(%v)) = (%v, %v), want exact family and nil", family, parsed, err)
+		}
+		var roundTrip RouteFamily
+		if err := roundTrip.UnmarshalJSON(encoded); err != nil || roundTrip != family {
+			t.Fatalf("RouteFamily.UnmarshalJSON(MarshalJSON(%v)) = (%v, %v), want exact family and nil", family, roundTrip, err)
+		}
+		second, err := roundTrip.MarshalJSON()
+		if err != nil || !bytes.Equal(second, encoded) {
+			t.Fatalf("route family canonical fixed point = (%s, %v), want %s", second, err, encoded)
+		}
+	}
+	base := RouteFamilyRegistrations
+	baseJSON, err := base.MarshalJSON()
+	if err != nil {
+		t.Fatalf("RouteFamilyRegistrations.MarshalJSON() error = %v, want nil", err)
+	}
+	baseToken, err := core.DecodeJSONStringToken(baseJSON)
+	if err != nil {
+		t.Fatalf("DecodeJSONStringToken(registration family) error = %v, want nil", err)
+	}
+	stringDocument := func(value string) []byte {
+		encoded, encodeErr := core.MarshalCanonicalJSONString(value)
+		if encodeErr != nil {
+			t.Fatalf("MarshalCanonicalJSONString(hostile route token) error = %v, want nil", encodeErr)
+		}
+		return encoded
+	}
+	hostile := [][]byte{
+		nil, {}, []byte{' '}, []byte("null"), []byte("{}"), []byte("[]"),
+		[]byte("true"), []byte("0"), []byte{'{'}, []byte{0xff},
+		stringDocument(""), stringDocument("unknown"), stringDocument(base.String()),
+		stringDocument(strings.ToUpper(baseToken)), stringDocument(" " + baseToken),
+		stringDocument(baseToken + " "), stringDocument(routeSeparator + baseToken),
+		stringDocument(baseToken + routeSeparator), append(bytes.Clone(baseJSON), '0'),
+		append(bytes.Clone(baseJSON), baseJSON...),
+	}
+	if len(hostile) != 20 {
+		t.Fatalf("route family hostile inventory = %d, want exactly 20", len(hostile))
+	}
+	for index, document := range hostile {
+		candidate := RouteFamilyPayments
+		err := candidate.UnmarshalJSON(document)
+		if !errors.Is(err, core.ErrControlWireRoute) || !errors.Is(err, core.ErrControlWireContract) ||
+			!errors.Is(err, core.ErrJSONContract) || candidate != RouteFamilyPayments {
+			t.Fatalf("RouteFamily.UnmarshalJSON(hostile %d) = (%v, %v), want preserved receiver and %v/%v/%v", index, candidate, err, core.ErrControlWireRoute, core.ErrControlWireContract, core.ErrJSONContract)
+		}
 	}
 }
 

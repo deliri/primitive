@@ -60,6 +60,11 @@ func (d PublicationRequestDocument) ControlRoute() (controlwire.RouteContract, e
 	)
 }
 
+// ControlRevision projects the exact device-signed publication revision.
+func (d PublicationRequestDocument) ControlRevision() controlwire.Revision {
+	return d.Request.Payload.Revision
+}
+
 // ControlNonce projects the signed publication request identity.
 func (d PublicationRequestDocument) ControlNonce() controlwire.RequestNonce {
 	return d.Request.Payload.Nonce
@@ -222,6 +227,12 @@ func (d PublicationCompletionDocument) ControlRoute() (controlwire.RouteContract
 		d.Completion.Payload.Build.Offering(),
 		controlwire.RouteFamilyReleasePublicationCompletions,
 	)
+}
+
+// ControlRevision projects the authority-signed installation revision bound to
+// this device-signed completion.
+func (d PublicationCompletionDocument) ControlRevision() controlwire.Revision {
+	return d.Certificate.Body.Revision
 }
 
 // ControlNonce projects the completion's independently signed request identity.

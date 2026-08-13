@@ -155,6 +155,9 @@ func (r CheckInRequest) ControlRoute() (controlwire.RouteContract, error) {
 	return controlwire.NewRouteContract(r.Payload.Build.Offering(), controlwire.RouteFamilyCheckIns)
 }
 
+// ControlRevision projects the exact signed revision carried by this request.
+func (r CheckInRequest) ControlRevision() controlwire.Revision { return r.Payload.Revision }
+
 // ControlNonce projects the request identity already carried in the signed payload.
 func (r CheckInRequest) ControlNonce() controlwire.RequestNonce { return r.Payload.RequestNonce }
 

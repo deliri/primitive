@@ -84,6 +84,12 @@ func (d CompletionDocument) ControlRoute() (controlwire.RouteContract, error) {
 	)
 }
 
+// ControlRevision projects the authority-signed installation revision bound to
+// this device-signed completion.
+func (d CompletionDocument) ControlRevision() controlwire.Revision {
+	return d.Certificate.Body.Revision
+}
+
 // ControlNonce projects the completion's independently signed request identity.
 func (d CompletionDocument) ControlNonce() controlwire.RequestNonce {
 	return d.Completion.Payload.Nonce

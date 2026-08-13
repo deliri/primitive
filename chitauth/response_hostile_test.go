@@ -28,6 +28,7 @@ func TestChitResponseLayerTriadAuthenticatesRefusesAndKeepsNeutralZero(t *testin
 	fixture := newChitResponseFixture(t)
 	projection, err := IssueResponse(ResponseIssuance{
 		Signer: fixture.signer, Header: fixture.header, Body: fixture.body,
+		Assessment: acceptedChitResponseAssessment(t, fixture.header),
 	})
 	if err != nil {
 		t.Fatalf("IssueResponse(real signed catalog) error = %v, want nil", err)
@@ -135,6 +136,7 @@ func newChitResponseFixture(t testing.TB) chitResponseFixture {
 		Account:      request.document.Certificate.Body.Account,
 		Installation: request.document.Certificate.Body.Subject.DeviceID,
 		Revision:     request.payload.Revision,
+		Family:       controlwire.RouteFamilyChits,
 		Status:       controlplane.ProductStatusActive,
 		Offering:     request.payload.Build.Offering(),
 		Policy: controlwire.PolicyCursor{
@@ -143,9 +145,24 @@ func newChitResponseFixture(t testing.TB) chitResponseFixture {
 	}
 	expected := controlplane.ResponseExpectation{
 		RequestNonce: header.RequestNonce, Account: header.Account,
-		Installation: header.Installation, Revision: header.Revision, Offering: header.Offering,
+		Installation: header.Installation, Revision: header.Revision, Family: header.Family, Offering: header.Offering,
 	}
 	return chitResponseFixture{
 		body: body, header: header, expected: expected, trusted: request.trusted, signer: signer,
 	}
+}
+
+func acceptedChitResponseAssessment(t testing.TB, header controlplane.ResponseHeader) controlwire.ProtocolAssessment {
+	t.Helper()
+	support, err := controlwire.PublishedProtocolSupport()
+	if err != nil {
+		t.Fatalf("controlwire.PublishedProtocolSupport() error = %v, want nil", err)
+	}
+	assessment, err := controlwire.AssessProtocol(controlwire.ProtocolAssessmentRequest{
+		Support: support, Capability: controlwire.ProtocolCapability{Revision: header.Revision, Family: header.Family},
+	})
+	if err != nil {
+		t.Fatalf("controlwire.AssessProtocol(published chit response pair) error = %v, want nil", err)
+	}
+	return assessment
 }

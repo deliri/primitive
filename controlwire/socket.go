@@ -17,6 +17,7 @@ import (
 type RoutedJSONRequest interface {
 	core.ValidatedJSONMarshaler
 	ControlRoute() (RouteContract, error)
+	ControlRevision() Revision
 	ControlNonce() RequestNonce
 	ControlRequestBodyLimit() (core.ByteCount, error)
 }
@@ -52,6 +53,15 @@ type ClientJSONCall[Body RoutedJSONRequest] struct {
 type AuthorityJSONReceiveCall struct {
 	Request *http.Request
 	Route   RouteContract
+	Support ProtocolSupport
+}
+
+// RoutedJSONReceive is the authority-side transport result. The exact decoded
+// request and its route/revision support assessment travel together, so no
+// handler can accidentally skip compatibility policy after ingress.
+type RoutedJSONReceive[Body RoutedJSONRequest] struct {
+	exchange.Received[Body]
+	Assessment ProtocolAssessment
 }
 
 // ControlJSONWriteCall is one authority-side successful control response.
@@ -94,8 +104,8 @@ func ReceiveRoutedJSON[
 		*Body
 		RoutedJSONRequest
 	},
-](call AuthorityJSONReceiveCall) (exchange.Received[BodyPtr], error) {
-	var zero exchange.Received[BodyPtr]
+](call AuthorityJSONReceiveCall) (RoutedJSONReceive[BodyPtr], error) {
+	var zero RoutedJSONReceive[BodyPtr]
 	if err := call.Validate(); err != nil {
 		return zero, err
 	}
@@ -118,7 +128,12 @@ func ReceiveRoutedJSON[
 	if err := bindReceivedRequest(call.Route, received); err != nil {
 		return zero, err
 	}
-	return received, nil
+	assessment, err := assessReceivedProtocol(call.Support, received.Body)
+	if err != nil {
+		return zero, err
+	}
+	result := RoutedJSONReceive[BodyPtr]{Received: received, Assessment: assessment}
+	return result, result.Validate()
 }
 
 // WriteControlJSON emits one strictly bounded successful response.
@@ -147,6 +162,9 @@ func (call AuthorityJSONReceiveCall) Validate() error {
 	if err := call.Route.Validate(); err != nil {
 		return err
 	}
+	if err := call.Support.Validate(); err != nil {
+		return err
+	}
 	path, err := call.Route.Path()
 	if err != nil {
 		return err
@@ -154,6 +172,29 @@ func (call AuthorityJSONReceiveCall) Validate() error {
 	if call.Request.URL.Path != path || call.Request.URL.RawPath != "" ||
 		call.Request.URL.RawQuery != "" || call.Request.URL.ForceQuery {
 		return routeError(core.ErrExchangeContract)
+	}
+	return nil
+}
+
+// Validate closes both authority outputs and proves that the assessment names
+// the exact route/revision pair carried by the received request.
+func (r RoutedJSONReceive[Body]) Validate() error {
+	if err := r.Received.Validate(); err != nil {
+		return protocolSupportError(err)
+	}
+	if err := r.Assessment.Validate(); err != nil {
+		return err
+	}
+	route, err := r.Received.Body.ControlRoute()
+	if err != nil {
+		return err
+	}
+	capability, err := route.ProtocolCapability(r.Received.Body.ControlRevision())
+	if err != nil {
+		return err
+	}
+	if r.Assessment.Capability != capability {
+		return protocolSupportError()
 	}
 	return nil
 }
@@ -240,6 +281,21 @@ func bindReceivedRequest[Body RoutedJSONRequest](
 		return nonceError(core.ErrExchangeContract)
 	}
 	return nil
+}
+
+func assessReceivedProtocol[Body RoutedJSONRequest](
+	support ProtocolSupport,
+	body Body,
+) (ProtocolAssessment, error) {
+	route, err := body.ControlRoute()
+	if err != nil {
+		return ProtocolAssessment{}, err
+	}
+	capability, err := route.ProtocolCapability(body.ControlRevision())
+	if err != nil {
+		return ProtocolAssessment{}, err
+	}
+	return AssessProtocol(ProtocolAssessmentRequest{Support: support, Capability: capability})
 }
 
 func controlRouteSemantics() exchange.RouteSemantics {

@@ -1,6 +1,8 @@
 package controlwire
 
 import (
+	"encoding/json"
+
 	"github.com/deliri/primitive/v2026/core"
 	"github.com/deliri/primitive/v2026/exchange"
 )
@@ -10,19 +12,33 @@ const (
 	// the exchange derive their path from it, so an installation cannot address
 	// a route the authority does not mount.
 	routeControlPrefix = "/v2026/control/"
+	routeSeparator     = "/"
 
-	routeRegistrationsSuffix                 = "/registrations"
-	routeCheckInsSuffix                      = "/check-ins"
-	routeSubmissionsSuffix                   = "/submissions"
-	routeSubmissionCompletionsSuffix         = "/submission-completions"
-	routeChitsSuffix                         = "/chits"
-	routeRetrievalsSuffix                    = "/retrievals"
-	routePaymentsSuffix                      = "/payments"
-	routeReleaseMaterialsSuffix              = "/release-materials"
-	routeReleasePublicationsSuffix           = "/release-publications"
-	routeReleasePublicationCompletionsSuffix = "/release-publication-completions"
-	routeUpdateChecksSuffix                  = "/update-checks"
-	routeUpgradesSuffix                      = "/upgrades"
+	routeRegistrationsToken                 = "registrations"
+	routeCheckInsToken                      = "check-ins"
+	routeSubmissionsToken                   = "submissions"
+	routeSubmissionCompletionsToken         = "submission-completions"
+	routeChitsToken                         = "chits"
+	routeRetrievalsToken                    = "retrievals"
+	routePaymentsToken                      = "payments"
+	routeReleaseMaterialsToken              = "release-materials"
+	routeReleasePublicationsToken           = "release-publications"
+	routeReleasePublicationCompletionsToken = "release-publication-completions"
+	routeUpdateChecksToken                  = "update-checks"
+	routeUpgradesToken                      = "upgrades"
+
+	routeRegistrationsSuffix                 = routeSeparator + routeRegistrationsToken
+	routeCheckInsSuffix                      = routeSeparator + routeCheckInsToken
+	routeSubmissionsSuffix                   = routeSeparator + routeSubmissionsToken
+	routeSubmissionCompletionsSuffix         = routeSeparator + routeSubmissionCompletionsToken
+	routeChitsSuffix                         = routeSeparator + routeChitsToken
+	routeRetrievalsSuffix                    = routeSeparator + routeRetrievalsToken
+	routePaymentsSuffix                      = routeSeparator + routePaymentsToken
+	routeReleaseMaterialsSuffix              = routeSeparator + routeReleaseMaterialsToken
+	routeReleasePublicationsSuffix           = routeSeparator + routeReleasePublicationsToken
+	routeReleasePublicationCompletionsSuffix = routeSeparator + routeReleasePublicationCompletionsToken
+	routeUpdateChecksSuffix                  = routeSeparator + routeUpdateChecksToken
+	routeUpgradesSuffix                      = routeSeparator + routeUpgradesToken
 )
 
 // RouteFamily is the closed set of control-plane route families.
@@ -76,6 +92,24 @@ func routeSuffixes() [routeFamilyLimit]string {
 	}
 }
 
+func routeFamilyTokens() [routeFamilyLimit]string {
+	return [...]string{
+		RouteFamilyUnknown:                       "",
+		RouteFamilyRegistrations:                 routeRegistrationsToken,
+		RouteFamilyCheckIns:                      routeCheckInsToken,
+		RouteFamilySubmissions:                   routeSubmissionsToken,
+		RouteFamilySubmissionCompletions:         routeSubmissionCompletionsToken,
+		RouteFamilyChits:                         routeChitsToken,
+		RouteFamilyRetrievals:                    routeRetrievalsToken,
+		RouteFamilyPayments:                      routePaymentsToken,
+		RouteFamilyReleaseMaterials:              routeReleaseMaterialsToken,
+		RouteFamilyReleasePublications:           routeReleasePublicationsToken,
+		RouteFamilyReleasePublicationCompletions: routeReleasePublicationCompletionsToken,
+		RouteFamilyUpdateChecks:                  routeUpdateChecksToken,
+		RouteFamilyUpgrades:                      routeUpgradesToken,
+	}
+}
+
 // Validate rejects the unset family and every family outside the set.
 func (f RouteFamily) Validate() error {
 	if f <= RouteFamilyUnknown || f >= routeFamilyLimit || routeSuffixes()[f] == "" {
@@ -95,10 +129,46 @@ func (f RouteFamily) String() string {
 	return routeSuffixes()[f]
 }
 
-// OffWireEnum declares RouteFamily as in-process route selection. The enum
-// itself never serializes: what crosses the wire is the URL path RouteContract
-// projects from it, and both ends hold this same closed set.
-func (RouteFamily) OffWireEnum() {}
+// ParseRouteFamily accepts one exact compiler-owned wire token.
+func ParseRouteFamily(value string) (RouteFamily, error) {
+	tokens := routeFamilyTokens()
+	for family := RouteFamilyUnknown + 1; family < routeFamilyLimit; family++ {
+		if tokens[family] == value {
+			return family, nil
+		}
+	}
+	return RouteFamilyUnknown, routeError()
+}
+
+// MarshalJSON emits the family token, not its URL suffix.
+func (f RouteFamily) MarshalJSON() ([]byte, error) {
+	if err := f.Validate(); err != nil {
+		return nil, jsonError(err)
+	}
+	encoded, err := core.MarshalCanonicalJSONString(routeFamilyTokens()[f])
+	if err != nil {
+		return nil, jsonError(routeError(err))
+	}
+	return encoded, nil
+}
+
+// UnmarshalJSON accepts one exact family token and preserves the receiver on
+// every rejection.
+func (f *RouteFamily) UnmarshalJSON(data []byte) error {
+	if f == nil {
+		return jsonError(routeError())
+	}
+	token, err := core.DecodeJSONStringToken(data)
+	if err != nil {
+		return jsonError(routeError(err))
+	}
+	parsed, err := ParseRouteFamily(token)
+	if err != nil {
+		return jsonError(err)
+	}
+	*f = parsed
+	return nil
+}
 
 // RouteContract owns the two facts that decide one control-plane route.
 //
@@ -155,8 +225,21 @@ func (c RouteContract) Offering() core.Offering { return c.offering }
 // Family returns the route family this contract addresses.
 func (c RouteContract) Family() RouteFamily { return c.family }
 
+// ProtocolCapability joins this exact route family to the revision carried by
+// its request. The offering remains a separate tenant/product scope and does
+// not change whether two peers speak the same protocol.
+func (c RouteContract) ProtocolCapability(revision Revision) (ProtocolCapability, error) {
+	if err := c.Validate(); err != nil {
+		return ProtocolCapability{}, err
+	}
+	capability := ProtocolCapability{Revision: revision, Family: c.family}
+	return capability, capability.Validate()
+}
+
 var (
-	_ core.Validatable = RouteFamily(RouteFamilyUnknown)
-	_ core.OffWireEnum = RouteFamily(RouteFamilyUnknown)
-	_ core.Validatable = RouteContract{}
+	_ core.Validatable            = RouteFamily(RouteFamilyUnknown)
+	_ core.ValidatedJSONMarshaler = RouteFamily(0)
+	_ core.Validatable            = RouteContract{}
+	_ json.Marshaler              = RouteFamilyUnknown
+	_ json.Unmarshaler            = (*RouteFamily)(nil)
 )

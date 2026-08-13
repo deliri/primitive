@@ -13,6 +13,7 @@ package controlplane
 const (
 	protocolMemberBuild             = "build"
 	protocolMemberRevision          = "revision"
+	protocolMemberRouteFamily       = "route_family"
 	protocolMemberRequestNonce      = "request_nonce"
 	protocolMemberDevicePublicKey   = "device_public_key"
 	protocolMemberRegistrationToken = "registration_token"

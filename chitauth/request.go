@@ -62,6 +62,11 @@ func (d RequestDocument) ControlRoute() (controlwire.RouteContract, error) {
 	)
 }
 
+// ControlRevision projects the exact device-signed query revision.
+func (d RequestDocument) ControlRevision() controlwire.Revision {
+	return d.Request.Payload.Revision
+}
+
 // ControlNonce projects the signed query identity.
 func (d RequestDocument) ControlNonce() controlwire.RequestNonce {
 	return d.Request.Payload.Nonce

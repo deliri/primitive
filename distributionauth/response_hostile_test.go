@@ -26,6 +26,7 @@ func TestPublicationResponseLayerTriadAuthenticatesRefusesAndKeepsNeutralZero(t 
 		Account:      certificate.Account,
 		Installation: certificate.Subject.DeviceID,
 		Revision:     request.Revision,
+		Family:       controlwire.RouteFamilyReleasePublications,
 		Status:       controlplane.ProductStatusActive,
 		Offering:     request.Build.Offering(),
 		Policy: controlwire.PolicyCursor{
@@ -34,10 +35,11 @@ func TestPublicationResponseLayerTriadAuthenticatesRefusesAndKeepsNeutralZero(t 
 	}
 	expected := controlplane.ResponseExpectation{
 		RequestNonce: header.RequestNonce, Account: header.Account,
-		Installation: header.Installation, Revision: header.Revision, Offering: header.Offering,
+		Installation: header.Installation, Revision: header.Revision, Family: header.Family, Offering: header.Offering,
 	}
 	issuance := PublicationResponseIssuance{
 		Signer: fixture.installation.AuthorityPrivate, Header: header, Body: fixture.grantProjection,
+		Assessment: acceptedDistributionResponseAssessment(t, header),
 	}
 	if err := issuance.Validate(); err != nil {
 		t.Fatalf("PublicationResponseIssuance.Validate(real grant) error = %v, want nil", err)
@@ -94,6 +96,21 @@ func TestPublicationResponseLayerTriadAuthenticatesRefusesAndKeepsNeutralZero(t 
 	if !errors.Is(err, core.ErrControlPlaneResponseDocument) || zeroVerified.Validate() == nil {
 		t.Fatalf("VerifyPublicationResponse(zero) = (%v, %v), want invalid zero proof and %v", zeroVerified, err, core.ErrControlPlaneResponseDocument)
 	}
+}
+
+func acceptedDistributionResponseAssessment(t testing.TB, header controlplane.ResponseHeader) controlwire.ProtocolAssessment {
+	t.Helper()
+	support, err := controlwire.PublishedProtocolSupport()
+	if err != nil {
+		t.Fatalf("controlwire.PublishedProtocolSupport() error = %v, want nil", err)
+	}
+	assessment, err := controlwire.AssessProtocol(controlwire.ProtocolAssessmentRequest{
+		Support: support, Capability: controlwire.ProtocolCapability{Revision: header.Revision, Family: header.Family},
+	})
+	if err != nil {
+		t.Fatalf("controlwire.AssessProtocol(published distribution response pair) error = %v, want nil", err)
+	}
+	return assessment
 }
 
 func TestDistributionResponseBoundariesRefuseEveryNeutralInput(t *testing.T) {

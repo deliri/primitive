@@ -81,6 +81,11 @@ func (d UpdateRequestDocument) ControlRoute() (controlwire.RouteContract, error)
 	)
 }
 
+// ControlRevision projects the exact device-signed update revision.
+func (d UpdateRequestDocument) ControlRevision() controlwire.Revision {
+	return d.Request.Payload.Revision
+}
+
 // ControlNonce projects the signed update request identity.
 func (d UpdateRequestDocument) ControlNonce() controlwire.RequestNonce {
 	return d.Request.Payload.Nonce
@@ -189,6 +194,11 @@ func (d UpgradeRequestDocument) ControlRoute() (controlwire.RouteContract, error
 	return controlwire.NewRouteContract(
 		candidate.Offering(), controlwire.RouteFamilyUpgrades,
 	)
+}
+
+// ControlRevision projects the exact device-signed upgrade revision.
+func (d UpgradeRequestDocument) ControlRevision() controlwire.Revision {
+	return d.Request.Payload.Revision
 }
 
 // ControlNonce projects the signed upgrade request identity.

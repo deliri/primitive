@@ -337,6 +337,9 @@ const (
 	ErrControlWirePolicyCursor
 	// ErrControlWireRoute identifies a rejected control-plane route contract.
 	ErrControlWireRoute
+	// ErrControlWireProtocolSupport identifies an invalid support set or a
+	// compatibility assessment that does not name its exact route/revision pair.
+	ErrControlWireProtocolSupport
 	// ErrControlPlaneContract identifies a control-plane document contract violation.
 	ErrControlPlaneContract
 	// ErrControlPlaneSigningDomain identifies a rejected control-plane signing domain.
@@ -353,6 +356,9 @@ const (
 	// ErrControlPlaneResponseBinding identifies a response that does not bind to
 	// the exact request that produced it.
 	ErrControlPlaneResponseBinding
+	// ErrControlPlaneUpgradeRequired identifies an authentic authority refusal
+	// requiring the caller to upgrade before it can consume a product body.
+	ErrControlPlaneUpgradeRequired
 	// ErrControlPlaneProviderTimeRollback identifies an authority instant that
 	// moved backward from a previously trusted one.
 	ErrControlPlaneProviderTimeRollback
@@ -528,6 +534,7 @@ func errorIdentityDiagnostics() [errorIdentityLimit]errorIdentityDiagnostic {
 		{identity: ErrControlWireToken, text: "control-wire registration token invalid"},
 		{identity: ErrControlWirePolicyCursor, text: "control-wire policy cursor invalid"},
 		{identity: ErrControlWireRoute, text: "control-wire route contract invalid"},
+		{identity: ErrControlWireProtocolSupport, text: "control-wire protocol support contract invalid"},
 		{identity: ErrControlPlaneContract, text: "control-plane contract violation"},
 		{identity: ErrControlPlaneSigningDomain, text: "control-plane signing domain invalid"},
 		{identity: ErrControlPlaneProductStatus, text: "control-plane product status invalid"},
@@ -535,6 +542,7 @@ func errorIdentityDiagnostics() [errorIdentityLimit]errorIdentityDiagnostic {
 		{identity: ErrControlPlaneResponseHeader, text: "control-plane response header invalid"},
 		{identity: ErrControlPlaneResponseDocument, text: "control-plane response document invalid"},
 		{identity: ErrControlPlaneResponseBinding, text: "control-plane response does not bind to its request"},
+		{identity: ErrControlPlaneUpgradeRequired, text: "control-plane upgrade required"},
 		{identity: ErrControlPlaneProviderTimeRollback, text: "control-plane provider time moved backward"},
 		{identity: ErrControlPlaneRegistration, text: "control-plane registration document invalid"},
 		{identity: ErrControlPlaneInstallationBinding, text: "control-plane installation binding invalid"},
@@ -662,11 +670,12 @@ func errorIdentityParents(identity ErrorIdentity) errorIdentityParentSet {
 		ErrControlPlaneContract, ErrIDContract:
 		return oneErrorIdentityParent(ErrPrimitiveContract)
 	case ErrControlWireRevision, ErrControlWireNonce, ErrControlWireToken,
-		ErrControlWirePolicyCursor, ErrControlWireRoute,
+		ErrControlWirePolicyCursor, ErrControlWireRoute, ErrControlWireProtocolSupport,
 		ErrControlPlaneSigningDomain, ErrControlPlaneProductStatus,
 		ErrControlPlaneUsageWatermark, ErrControlPlaneResponseHeader,
 		ErrControlPlaneResponseDocument,
-		ErrControlPlaneResponseBinding, ErrControlPlaneProviderTimeRollback,
+		ErrControlPlaneResponseBinding, ErrControlPlaneUpgradeRequired,
+		ErrControlPlaneProviderTimeRollback,
 		ErrControlPlaneRegistration, ErrControlPlaneInstallationBinding,
 		ErrControlPlaneDecisionConsistency, ErrControlPlaneCheckIn,
 		ErrControlPlaneCheckInResponse, ErrControlPlaneUsageWindow:
@@ -774,12 +783,13 @@ func errorIdentityParentsAttestThroughKeygen(identity ErrorIdentity) errorIdenti
 func errorIdentityParentsControlExchange(identity ErrorIdentity) errorIdentityParentSet {
 	switch identity {
 	case ErrControlWireRevision, ErrControlWireNonce, ErrControlWireToken,
-		ErrControlWirePolicyCursor, ErrControlWireRoute:
+		ErrControlWirePolicyCursor, ErrControlWireRoute, ErrControlWireProtocolSupport:
 		return oneErrorIdentityParent(ErrControlWireContract)
 	case ErrControlPlaneSigningDomain, ErrControlPlaneProductStatus,
 		ErrControlPlaneUsageWatermark, ErrControlPlaneResponseHeader,
 		ErrControlPlaneResponseDocument,
-		ErrControlPlaneResponseBinding, ErrControlPlaneProviderTimeRollback,
+		ErrControlPlaneResponseBinding, ErrControlPlaneUpgradeRequired,
+		ErrControlPlaneProviderTimeRollback,
 		ErrControlPlaneRegistration, ErrControlPlaneInstallationBinding,
 		ErrControlPlaneDecisionConsistency, ErrControlPlaneCheckIn,
 		ErrControlPlaneCheckInResponse, ErrControlPlaneUsageWindow:

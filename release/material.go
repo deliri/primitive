@@ -22,6 +22,7 @@ type MaterialRequest struct {
 	Commit    core.BuildCommit         `json:"commit"`
 	Offering  core.Offering            `json:"offering"`
 	Nonce     controlwire.RequestNonce `json:"nonce"`
+	Revision  controlwire.Revision     `json:"revision"`
 	Primitive ProjectVersion           `json:"primitive"`
 	Garble    garble.ToolProvenance    `json:"garble"`
 }
@@ -31,6 +32,7 @@ type materialRequestWire struct {
 	Commit    *core.BuildCommit         `json:"commit"`
 	Offering  *core.Offering            `json:"offering"`
 	Nonce     *controlwire.RequestNonce `json:"nonce"`
+	Revision  *controlwire.Revision     `json:"revision"`
 	Primitive *ProjectVersion           `json:"primitive"`
 	Garble    *garble.ToolProvenance    `json:"garble"`
 }
@@ -49,7 +51,8 @@ func NewMaterialRequest(input MaterialRequestInput) (MaterialRequest, error) {
 	}
 	request := MaterialRequest{
 		Version: input.Version, Commit: input.Commit, Offering: input.Offering,
-		Nonce: input.Nonce, Primitive: PrimitiveVersion, Garble: provenance,
+		Nonce: input.Nonce, Revision: controlwire.Revision2026V1,
+		Primitive: PrimitiveVersion, Garble: provenance,
 	}
 	return request, request.Validate()
 }
@@ -57,7 +60,7 @@ func NewMaterialRequest(input MaterialRequestInput) (MaterialRequest, error) {
 func (r MaterialRequest) Validate() error {
 	if err := errors.Join(
 		r.Version.Validate(), r.Commit.Validate(), r.Offering.Validate(),
-		r.Nonce.Validate(), r.Primitive.Validate(), r.Garble.Validate(),
+		r.Nonce.Validate(), r.Revision.Validate(), r.Primitive.Validate(), r.Garble.Validate(),
 	); err != nil {
 		return contractError(err)
 	}
@@ -72,6 +75,9 @@ func (r MaterialRequest) ControlRoute() (controlwire.RouteContract, error) {
 	return controlwire.NewRouteContract(r.Offering, controlwire.RouteFamilyReleaseMaterials)
 }
 
+// ControlRevision projects the exact revision carried by this request.
+func (r MaterialRequest) ControlRevision() controlwire.Revision { return r.Revision }
+
 // ControlNonce projects the request identity carried by the document.
 func (r MaterialRequest) ControlNonce() controlwire.RequestNonce { return r.Nonce }
 
@@ -84,10 +90,10 @@ func (r MaterialRequest) MarshalJSON() ([]byte, error) {
 		return nil, jsonError(err)
 	}
 	version, commit, offering := r.Version, r.Commit, r.Offering
-	nonce, primitive, tool := r.Nonce, r.Primitive, r.Garble
+	nonce, revision, primitive, tool := r.Nonce, r.Revision, r.Primitive, r.Garble
 	return json.Marshal(materialRequestWire{
 		Version: &version, Commit: &commit, Offering: &offering,
-		Nonce: &nonce, Primitive: &primitive, Garble: &tool,
+		Nonce: &nonce, Revision: &revision, Primitive: &primitive, Garble: &tool,
 	})
 }
 
@@ -100,12 +106,13 @@ func (r *MaterialRequest) UnmarshalJSON(data []byte) error {
 		return err
 	}
 	if wire.Version == nil || wire.Commit == nil || wire.Offering == nil ||
-		wire.Nonce == nil || wire.Primitive == nil || wire.Garble == nil {
+		wire.Nonce == nil || wire.Revision == nil || wire.Primitive == nil || wire.Garble == nil {
 		return jsonError(errors.New("release material request field is missing"))
 	}
 	candidate := MaterialRequest{
 		Version: *wire.Version, Commit: *wire.Commit, Offering: *wire.Offering,
-		Nonce: *wire.Nonce, Primitive: *wire.Primitive, Garble: *wire.Garble,
+		Nonce: *wire.Nonce, Revision: *wire.Revision,
+		Primitive: *wire.Primitive, Garble: *wire.Garble,
 	}
 	if err := candidate.Validate(); err != nil {
 		return jsonError(err)

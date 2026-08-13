@@ -30,6 +30,7 @@ func TestSubmissionDecisionResponseLayerTriadAuthenticatesRefusesAndKeepsNeutral
 		Account:      certificate.Account,
 		Installation: certificate.Subject.DeviceID,
 		Revision:     request.Revision,
+		Family:       controlwire.RouteFamilySubmissions,
 		Status:       controlplane.ProductStatusActive,
 		Offering:     request.Build.Offering(),
 		Policy: controlwire.PolicyCursor{
@@ -38,9 +39,12 @@ func TestSubmissionDecisionResponseLayerTriadAuthenticatesRefusesAndKeepsNeutral
 	}
 	expected := controlplane.ResponseExpectation{
 		RequestNonce: header.RequestNonce, Account: header.Account,
-		Installation: header.Installation, Revision: header.Revision, Offering: header.Offering,
+		Installation: header.Installation, Revision: header.Revision, Family: header.Family, Offering: header.Offering,
 	}
-	issuance := SubmissionResponseIssuance{Signer: fixture.request.authority, Header: header, Body: body}
+	issuance := SubmissionResponseIssuance{
+		Signer: fixture.request.authority, Header: header, Body: body,
+		Assessment: acceptedSubmissionResponseAssessment(t, header),
+	}
 	if err := issuance.Validate(); err != nil {
 		t.Fatalf("SubmissionResponseIssuance.Validate(real decision) error = %v, want nil", err)
 	}
@@ -106,6 +110,21 @@ func TestSubmissionDecisionResponseLayerTriadAuthenticatesRefusesAndKeepsNeutral
 	if !errors.Is(err, core.ErrControlPlaneResponseDocument) || zeroVerified.Validate() == nil {
 		t.Fatalf("VerifySubmissionResponse(zero) = (%v, %v), want invalid zero proof and %v", zeroVerified, err, core.ErrControlPlaneResponseDocument)
 	}
+}
+
+func acceptedSubmissionResponseAssessment(t testing.TB, header controlplane.ResponseHeader) controlwire.ProtocolAssessment {
+	t.Helper()
+	support, err := controlwire.PublishedProtocolSupport()
+	if err != nil {
+		t.Fatalf("controlwire.PublishedProtocolSupport() error = %v, want nil", err)
+	}
+	assessment, err := controlwire.AssessProtocol(controlwire.ProtocolAssessmentRequest{
+		Support: support, Capability: controlwire.ProtocolCapability{Revision: header.Revision, Family: header.Family},
+	})
+	if err != nil {
+		t.Fatalf("controlwire.AssessProtocol(published submission response pair) error = %v, want nil", err)
+	}
+	return assessment
 }
 
 func TestSubmissionResponseBoundariesRefuseEveryNeutralInput(t *testing.T) {
