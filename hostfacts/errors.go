@@ -23,6 +23,7 @@ const (
 	OperationGoOOMBanner
 	OperationTerminalGeometry
 	OperationDiskRotation
+	OperationLogicalCPUCount
 	operationLimit
 )
 
@@ -39,6 +40,7 @@ func operationLabels() [operationLimit]string {
 		OperationGoOOMBanner:      "go OOM banner",
 		OperationTerminalGeometry: "terminal geometry",
 		OperationDiskRotation:     "disk rotation",
+		OperationLogicalCPUCount:  "logical CPU count",
 	}
 }
 

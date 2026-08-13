@@ -25,6 +25,7 @@ var (
 	_ core.Validatable = MemoryPressureState(0)
 	_ core.Validatable = GoMemoryAssessment{}
 	_ core.Validatable = PhysicalMemory{}
+	_ core.Validatable = LogicalCPUCount{}
 
 	_ core.Validatable = WorkloadMemoryLimitState(0)
 	_ core.Validatable = WorkloadMemoryLimitSource(0)

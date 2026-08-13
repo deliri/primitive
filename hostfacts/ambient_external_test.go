@@ -4,11 +4,34 @@ import (
 	"errors"
 	"os"
 	"path/filepath"
+	"runtime"
 	"testing"
 
 	"github.com/deliri/primitive/v2026/core"
 	"github.com/deliri/primitive/v2026/hostfacts"
 )
+
+// TestObserveLogicalCPUCountReportsTheRuntimeFact pins the door to Go's
+// runtime oracle and proves that the immutable result cannot admit absence.
+func TestObserveLogicalCPUCountReportsTheRuntimeFact(t *testing.T) {
+	t.Parallel()
+
+	got, err := hostfacts.ObserveLogicalCPUCount()
+	if err != nil {
+		t.Fatalf("hostfacts.ObserveLogicalCPUCount() error = %v, want nil", err)
+	}
+	if err := got.Validate(); err != nil {
+		t.Fatalf("ObserveLogicalCPUCount().Validate() error = %v, want nil", err)
+	}
+	if got.Int() != runtime.NumCPU() {
+		t.Fatalf("ObserveLogicalCPUCount().Int() = %d, want runtime.NumCPU() %d", got.Int(), runtime.NumCPU())
+	}
+
+	var zero hostfacts.LogicalCPUCount
+	if err := zero.Validate(); !errors.Is(err, core.ErrHostFactsContract) {
+		t.Fatalf("zero LogicalCPUCount.Validate() error = %v, want errors.Is %v", err, core.ErrHostFactsContract)
+	}
+}
 
 // TestObserveHostnameReportsTheAdmittedPlatformName pins the door to the
 // platform oracle and the admitted form: what the host reports is what the

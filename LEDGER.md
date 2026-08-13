@@ -4,6 +4,22 @@ Last updated: `2026-08-13`
 
 ## Current
 
+- added the missing logical-CPU host observation, 2026-08-13, prepared
+  `v2026.0.95`. `hostfacts.ObserveLogicalCPUCount` now returns one immutable,
+  validated fact directly from Go's `runtime.NumCPU`; worker budgets and
+  scheduling remain consumer policy. The zero value refuses with the stable
+  Hostfacts contract identity, the observation leaf preserves the Hostfacts
+  operation and observation identities, and the compiler-visible export,
+  struct-role, validation-witness, operation-domain, package-document, and
+  capability inventories all carry the new door.
+
+  A public external-package test pins the value to the real runtime oracle and
+  rejects the zero fact. Incrementing the production observation by one makes
+  that proof fail on the exact semantic mismatch. After restoration, the full
+  Hostfacts suite and direct `staticcheck ./...`, `deadcode -test ./...`, and
+  `witness-lint ./...` checks pass. No cache, scheduler, state machine, host
+  world model, compatibility layer, or consumer policy entered Primitive.
+
 - closed the compiler-visible call-shape and bounded-allocation findings exposed
   by Witness's imported-enum and streaming analysis, 2026-08-13, prepared
   `v2026.0.94`. Every production helper with four or more inputs now receives

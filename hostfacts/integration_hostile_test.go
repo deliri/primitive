@@ -283,6 +283,7 @@ func TestOperationDiagnosticStringExhaustsTheClosedDomain(t *testing.T) {
 		{name: "disk capacity", operation: OperationDiskCapacity, want: "disk capacity"},
 		{name: "go memory", operation: OperationGoMemory, want: "go memory"},
 		{name: "physical memory", operation: OperationPhysicalMemory, want: "physical memory"},
+		{name: "logical CPU count", operation: OperationLogicalCPUCount, want: "logical CPU count"},
 		{name: "cgroup membership", operation: OperationCgroupMembership, want: "cgroup membership"},
 		{name: "cgroup mount", operation: OperationCgroupMount, want: "cgroup mount"},
 		{name: "cgroup limit", operation: OperationCgroupLimit, want: "cgroup limit"},

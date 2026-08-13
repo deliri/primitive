@@ -46,6 +46,7 @@ func TestPublicOperationsAreExactIntentEntryPoints(t *testing.T) {
 		"ObserveDiskRotation",
 		"ObserveEffectiveWorkloadMemoryLimit",
 		"ObserveHostname",
+		"ObserveLogicalCPUCount",
 		"ObservePhysicalMemory",
 		"ObserveTerminalGeometry",
 		"TemporaryDirectory",
@@ -107,7 +108,7 @@ func productionStructRole(name string) (string, bool) {
 		"GoOOMBannerRequest", "TerminalGeometryRequest":
 		return "public execution ingress", true
 	case "DiskCapacity", "DiskAssessment", "GoMemorySnapshot",
-		"GoMemoryAssessment", "Hostname", "PhysicalMemory", "WorkloadMemoryLimit", "TreeUsage",
+		"GoMemoryAssessment", "Hostname", "LogicalCPUCount", "PhysicalMemory", "WorkloadMemoryLimit", "TreeUsage",
 		"GoOOMBannerEvidence", "Percent", "RegularFileCount", "TerminalGeometry":
 		return "validated immutable observation or policy fact", true
 	case "goOOMBannerWire":
