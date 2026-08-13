@@ -41,8 +41,8 @@ func TestRouteFamilyClosesItsEntireByteDomain(t *testing.T) {
 		}
 		seen[suffix] = family
 	}
-	if admitted != 11 {
-		t.Fatalf("admitted route families = %d, want all eleven compiler-owned control families", admitted)
+	if admitted != 12 {
+		t.Fatalf("admitted route families = %d, want all twelve compiler-owned control families", admitted)
 	}
 }
 
@@ -59,6 +59,7 @@ func TestRouteContractProjectsExactlyItsTwoFacts(t *testing.T) {
 		RouteFamilyRegistrations, RouteFamilyCheckIns, RouteFamilySubmissions,
 		RouteFamilySubmissionCompletions, RouteFamilyChits,
 		RouteFamilyRetrievals, RouteFamilyPayments,
+		RouteFamilyReleaseMaterials,
 		RouteFamilyReleasePublications, RouteFamilyReleasePublicationCompletions,
 		RouteFamilyUpdateChecks, RouteFamilyUpgrades,
 	}

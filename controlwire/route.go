@@ -18,6 +18,7 @@ const (
 	routeChitsSuffix                         = "/chits"
 	routeRetrievalsSuffix                    = "/retrievals"
 	routePaymentsSuffix                      = "/payments"
+	routeReleaseMaterialsSuffix              = "/release-materials"
 	routeReleasePublicationsSuffix           = "/release-publications"
 	routeReleasePublicationCompletionsSuffix = "/release-publication-completions"
 	routeUpdateChecksSuffix                  = "/update-checks"
@@ -44,6 +45,8 @@ const (
 	RouteFamilyRetrievals
 	// RouteFamilyPayments lists or selects customer payment receipts.
 	RouteFamilyPayments
+	// RouteFamilyReleaseMaterials provides one request-bound maintainer capability bundle.
+	RouteFamilyReleaseMaterials
 	// RouteFamilyReleasePublications requests authority for one exact release publication.
 	RouteFamilyReleasePublications
 	// RouteFamilyReleasePublicationCompletions reports one complete release publication.
@@ -65,6 +68,7 @@ func routeSuffixes() [routeFamilyLimit]string {
 		RouteFamilyChits:                         routeChitsSuffix,
 		RouteFamilyRetrievals:                    routeRetrievalsSuffix,
 		RouteFamilyPayments:                      routePaymentsSuffix,
+		RouteFamilyReleaseMaterials:              routeReleaseMaterialsSuffix,
 		RouteFamilyReleasePublications:           routeReleasePublicationsSuffix,
 		RouteFamilyReleasePublicationCompletions: routeReleasePublicationCompletionsSuffix,
 		RouteFamilyUpdateChecks:                  routeUpdateChecksSuffix,
