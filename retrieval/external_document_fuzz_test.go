@@ -6,6 +6,7 @@ import (
 	"testing"
 
 	"github.com/deliri/primitive/v2026/attest"
+	"github.com/deliri/primitive/v2026/chit"
 	"github.com/deliri/primitive/v2026/controlwire"
 	"github.com/deliri/primitive/v2026/core"
 	"github.com/deliri/primitive/v2026/temporal"
@@ -22,16 +23,19 @@ type retrievalExternalDoor[T any] struct {
 }
 
 func FuzzRequestPayloadExternalDecoderAndVerifier(f *testing.F) {
-	fixture := newRetrievalRequestFixture(f, retrievalRequestFixtureRequest{Selection: All()})
+	fixture := newRetrievalRequestFixture(f, retrievalRequestFixtureRequest{Selection: StartAll()})
 	document := issueRetrievalRequestFixture(f, fixture)
-	other := newRetrievalRequestFixture(f, retrievalRequestFixtureRequest{Selection: All(), NonceByte: 2})
-	mutation := fixture.payload
-	mutation.Nonce = other.payload.Nonce
+	other := newRetrievalRequestFixture(f, retrievalRequestFixtureRequest{Selection: StartAll(), NonceByte: 2})
+	nonceMutation := fixture.payload
+	nonceMutation.Nonce = other.payload.Nonce
+	continued := retrievalFuzzRequestPayload(f, ContinueAll, 1)
+	specific := retrievalFuzzRequestPayload(f, Specific, 1)
 	fuzzRetrievalExternalDoor(f, retrievalExternalDoor[RequestPayload]{
-		Seed: fixture.payload, Mutations: []RequestPayload{mutation}, MaximumBytes: RequestPayloadJSONMaximumBytes,
-		Marshal:   func(value RequestPayload) ([]byte, error) { return value.MarshalJSON() },
-		Unmarshal: func(value *RequestPayload, data []byte) error { return value.UnmarshalJSON(data) },
-		Validate:  func(value RequestPayload) error { return value.Validate() },
+		Seed: fixture.payload, Mutations: []RequestPayload{nonceMutation, continued, specific},
+		MaximumBytes: RequestPayloadJSONMaximumBytes,
+		Marshal:      func(value RequestPayload) ([]byte, error) { return value.MarshalJSON() },
+		Unmarshal:    func(value *RequestPayload, data []byte) error { return value.UnmarshalJSON(data) },
+		Validate:     func(value RequestPayload) error { return value.Validate() },
 		Authenticate: func(value RequestPayload, authentic bool) error {
 			proof, err := attest.Verify(attest.VerifyRequest[SigningDomain]{
 				Body: value, Envelope: document.Attestation, TrustedKeys: fixture.trusted,
@@ -42,16 +46,21 @@ func FuzzRequestPayloadExternalDecoderAndVerifier(f *testing.F) {
 }
 
 func FuzzRequestDocumentExternalDecoderAndVerifier(f *testing.F) {
-	fixture := newRetrievalRequestFixture(f, retrievalRequestFixtureRequest{Selection: All()})
+	fixture := newRetrievalRequestFixture(f, retrievalRequestFixtureRequest{Selection: StartAll()})
 	document := issueRetrievalRequestFixture(f, fixture)
-	other := newRetrievalRequestFixture(f, retrievalRequestFixtureRequest{Selection: All(), NonceByte: 2})
-	mutation := document
-	mutation.Payload.Nonce = other.payload.Nonce
+	other := newRetrievalRequestFixture(f, retrievalRequestFixtureRequest{Selection: StartAll(), NonceByte: 2})
+	nonceMutation := document
+	nonceMutation.Payload.Nonce = other.payload.Nonce
+	continued := document
+	continued.Payload = retrievalFuzzRequestPayload(f, ContinueAll, 1)
+	specific := document
+	specific.Payload = retrievalFuzzRequestPayload(f, Specific, 1)
 	fuzzRetrievalExternalDoor(f, retrievalExternalDoor[RequestDocument]{
-		Seed: document, Mutations: []RequestDocument{mutation}, MaximumBytes: RequestDocumentJSONMaximumBytes,
-		Marshal:   func(value RequestDocument) ([]byte, error) { return value.MarshalJSON() },
-		Unmarshal: func(value *RequestDocument, data []byte) error { return value.UnmarshalJSON(data) },
-		Validate:  func(value RequestDocument) error { return value.Validate() },
+		Seed: document, Mutations: []RequestDocument{nonceMutation, continued, specific},
+		MaximumBytes: RequestDocumentJSONMaximumBytes,
+		Marshal:      func(value RequestDocument) ([]byte, error) { return value.MarshalJSON() },
+		Unmarshal:    func(value *RequestDocument, data []byte) error { return value.UnmarshalJSON(data) },
+		Validate:     func(value RequestDocument) error { return value.Validate() },
 		Authenticate: func(value RequestDocument, authentic bool) error {
 			proof, err := attest.Verify(attest.VerifyRequest[SigningDomain]{
 				Body: value.Payload, Envelope: value.Attestation, TrustedKeys: fixture.trusted,
@@ -62,12 +71,12 @@ func FuzzRequestDocumentExternalDecoderAndVerifier(f *testing.F) {
 }
 
 func FuzzRequestCommitmentExternalDecoder(f *testing.F) {
-	fixture := newRetrievalRequestFixture(f, retrievalRequestFixtureRequest{Selection: All()})
+	fixture := newRetrievalRequestFixture(f, retrievalRequestFixtureRequest{Selection: StartAll()})
 	seed, err := CommitRequest(fixture.payload)
 	if err != nil {
 		f.Fatalf("CommitRequest(seed) error = %v, want nil", err)
 	}
-	other := newRetrievalRequestFixture(f, retrievalRequestFixtureRequest{Selection: All(), NonceByte: 2})
+	other := newRetrievalRequestFixture(f, retrievalRequestFixtureRequest{Selection: StartAll(), NonceByte: 2})
 	mutation, err := CommitRequest(other.payload)
 	if err != nil {
 		f.Fatalf("CommitRequest(mutation) error = %v, want nil", err)
@@ -81,14 +90,22 @@ func FuzzRequestCommitmentExternalDecoder(f *testing.F) {
 }
 
 func FuzzGrantPayloadExternalDecoderAndVerifier(f *testing.F) {
-	fixture := newDownloadCallFixture(f, []byte{0x11, 0x12})
-	mutation := fixture.grantPayload
-	mutation.Authorization = retrievalFuzzAuthorityNonce(f, 0x72)
+	fixture := newDownloadCallFixture(f, downloadCallFixtureRequest{Payload: []byte{0x11, 0x12}})
+	authorizationMutation := fixture.grantPayload
+	authorizationMutation.Authorization = retrievalFuzzAuthorityNonce(f, 0x72)
+	continuationMutation := fixture.grantPayload
+	continuationMutation.Continuation = core.CatalogContinuationMore
+	moreFixture := newDownloadCallFixture(f, downloadCallFixtureRequest{
+		Payload: []byte{0x11}, Selection: StartAll(), EntrySequence: 1,
+		ManifestEntries: 2, Continuation: core.CatalogContinuationMore,
+	})
 	fuzzRetrievalExternalDoor(f, retrievalExternalDoor[GrantPayload]{
-		Seed: fixture.grantPayload, Mutations: []GrantPayload{mutation}, MaximumBytes: GrantPayloadJSONMaximumBytes,
-		Marshal:   func(value GrantPayload) ([]byte, error) { return value.MarshalJSON() },
-		Unmarshal: func(value *GrantPayload, data []byte) error { return value.UnmarshalJSON(data) },
-		Validate:  func(value GrantPayload) error { return value.Validate() },
+		Seed:         fixture.grantPayload,
+		Mutations:    []GrantPayload{authorizationMutation, continuationMutation, moreFixture.grantPayload},
+		MaximumBytes: GrantPayloadJSONMaximumBytes,
+		Marshal:      func(value GrantPayload) ([]byte, error) { return value.MarshalJSON() },
+		Unmarshal:    func(value *GrantPayload, data []byte) error { return value.UnmarshalJSON(data) },
+		Validate:     func(value GrantPayload) error { return value.Validate() },
 		Authenticate: func(value GrantPayload, authentic bool) error {
 			document := fixture.document
 			document.Payload = value
@@ -102,10 +119,10 @@ func FuzzGrantPayloadExternalDecoderAndVerifier(f *testing.F) {
 }
 
 func FuzzGrantDocumentExternalDecoderAndVerifier(f *testing.F) {
-	fixture := newDownloadCallFixture(f, []byte{0x21, 0x22})
+	fixture := newDownloadCallFixture(f, downloadCallFixtureRequest{Payload: []byte{0x21, 0x22}})
 	projection, err := IssueGrant(GrantIssuance{
 		Signer: fixture.private, Capability: fixture.capability, Payload: fixture.grantPayload,
-		Entry: fixture.addition, Chit: fixture.chit,
+		Entry: fixture.addition, Chit: fixture.chit, Request: fixture.request,
 	})
 	if err != nil {
 		f.Fatalf("IssueGrant(seed) error = %v, want nil", err)
@@ -115,6 +132,22 @@ func FuzzGrantDocumentExternalDecoderAndVerifier(f *testing.F) {
 		f.Fatalf("GrantProjection.MarshalJSON(seed) error = %v, want nil", err)
 	}
 	f.Add(canonical)
+	moreFixture := newDownloadCallFixture(f, downloadCallFixtureRequest{
+		Payload: []byte{0x21}, Selection: StartAll(), EntrySequence: 1,
+		ManifestEntries: 2, Continuation: core.CatalogContinuationMore,
+	})
+	moreProjection, err := IssueGrant(GrantIssuance{
+		Signer: moreFixture.private, Capability: moreFixture.capability, Payload: moreFixture.grantPayload,
+		Entry: moreFixture.addition, Chit: moreFixture.chit, Request: moreFixture.request,
+	})
+	if err != nil {
+		f.Fatalf("IssueGrant(more seed) error = %v, want nil", err)
+	}
+	moreCanonical, err := moreProjection.MarshalJSON()
+	if err != nil {
+		f.Fatalf("GrantProjection.MarshalJSON(more seed) error = %v, want nil", err)
+	}
+	f.Add(moreCanonical)
 	for _, data := range retrievalHostileSeeds(GrantDocumentJSONMaximumBytes) {
 		f.Add(data)
 	}
@@ -140,6 +173,25 @@ func FuzzGrantDocumentExternalDecoderAndVerifier(f *testing.F) {
 			t.Fatalf("accepted GrantDocument verification oracle error = %v, want nil", err)
 		}
 	})
+}
+
+type retrievalSelectionConstructor func(chit.EntrySequence) (Selection, error)
+
+func retrievalFuzzRequestPayload(
+	t testing.TB,
+	constructor retrievalSelectionConstructor,
+	sequenceValue uint64,
+) RequestPayload {
+	t.Helper()
+	sequence, err := chit.NewEntrySequence(sequenceValue)
+	if err != nil {
+		t.Fatalf("chit.NewEntrySequence(%d) error = %v, want nil", sequenceValue, err)
+	}
+	selection, err := constructor(sequence)
+	if err != nil {
+		t.Fatalf("retrieval selection constructor error = %v, want nil", err)
+	}
+	return newRetrievalRequestFixture(t, retrievalRequestFixtureRequest{Selection: selection}).payload
 }
 
 func fuzzRetrievalExternalDoor[T any](f *testing.F, door retrievalExternalDoor[T]) {

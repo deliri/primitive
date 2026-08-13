@@ -21,20 +21,22 @@ type (
 )
 
 type retrievalContractInventory struct {
-	Selection           protocolFact[Selection]
-	RequestPayload      protocolFact[RequestPayload]
-	RequestDocument     protocolFact[RequestDocument]
-	RequestIssuance     protocolFact[RequestIssuance]
-	RequestCommitment   protocolFact[RequestCommitment]
-	GrantPayload        protocolFact[GrantPayload]
-	GrantDocument       protocolFact[GrantDocument]
-	GrantProjection     protocolFact[GrantProjection]
-	GrantIssuance       protocolFact[GrantIssuance]
-	GrantExpectation    protocolFact[GrantExpectation]
-	DownloadCallRequest protocolFact[DownloadCallRequest]
-	FileDownloadRequest protocolFact[FileDownloadRequest]
-	VerifiedGrant       capabilityWrapper[VerifiedGrant]
-	grantProjectionWire sealedWireProjection[grantProjectionWire]
+	Selection            protocolFact[Selection]
+	RequestPayload       protocolFact[RequestPayload]
+	RequestDocument      protocolFact[RequestDocument]
+	RequestIssuance      protocolFact[RequestIssuance]
+	RequestCommitment    protocolFact[RequestCommitment]
+	GrantPayload         protocolFact[GrantPayload]
+	GrantDocument        protocolFact[GrantDocument]
+	GrantProjection      protocolFact[GrantProjection]
+	GrantIssuance        protocolFact[GrantIssuance]
+	GrantExpectation     protocolFact[GrantExpectation]
+	GrantContinuation    protocolFact[GrantContinuation]
+	selectionExpectation protocolFact[selectionExpectation]
+	DownloadCallRequest  protocolFact[DownloadCallRequest]
+	FileDownloadRequest  protocolFact[FileDownloadRequest]
+	VerifiedGrant        capabilityWrapper[VerifiedGrant]
+	grantProjectionWire  sealedWireProjection[grantProjectionWire]
 }
 
 func TestRetrievalDataFlowStructInventoryRatchet(t *testing.T) {
@@ -122,4 +124,5 @@ func retrievalClassifiedStructNames(t *testing.T) []string {
 var (
 	_ = retrievalContractInventory{}
 	_ = retrievalContractInventory{}.grantProjectionWire
+	_ = retrievalContractInventory{}.selectionExpectation
 )

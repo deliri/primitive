@@ -30,13 +30,14 @@ type GrantPayload struct {
 	Chit          chit.ChitID                              `json:"chit_id"`
 	IssuedAt      temporal.Instant                         `json:"issued_at"`
 	ExpiresAt     temporal.Instant                         `json:"expires_at"`
+	Continuation  core.CatalogContinuationState            `json:"continuation"`
 }
 
 func (p GrantPayload) Validate() error {
 	if err := errors.Join(
 		p.Entry.Validate(), p.Request.Validate(), p.Authorization.Validate(),
 		p.Capability.Validate(), p.Manifest.Validate(), p.Chit.Validate(),
-		p.IssuedAt.Validate(), p.ExpiresAt.Validate(),
+		p.IssuedAt.Validate(), p.ExpiresAt.Validate(), p.Continuation.Validate(),
 	); err != nil {
 		return contractError(err)
 	}
@@ -168,11 +169,12 @@ type GrantIssuance struct {
 	Payload    GrantPayload
 	Entry      chit.ManifestAddition
 	Chit       chit.Verified
+	Request    RequestPayload
 }
 
 func (i GrantIssuance) Validate() error {
 	if err := errors.Join(
-		i.Capability.Validate(), i.Payload.Validate(), i.Chit.Validate(), i.Entry.Validate(),
+		i.Capability.Validate(), i.Payload.Validate(), i.Chit.Validate(), i.Entry.Validate(), i.Request.Validate(),
 	); err != nil {
 		return contractError(err)
 	}
@@ -194,9 +196,14 @@ func validateIssuanceBinding(issuance GrantIssuance) error {
 		return bindingError(err)
 	}
 	payload := issuance.Payload
+	requestCommitment, err := CommitRequest(issuance.Request)
+	if err != nil {
+		return bindingError(err)
+	}
 	if payload.Chit != document.Payload.Identity ||
 		payload.Manifest != document.Payload.Manifest.Digest ||
-		payload.Entry != issuance.Entry.Entry {
+		payload.Entry != issuance.Entry.Entry || payload.Request != requestCommitment ||
+		payload.Chit != issuance.Request.Chit {
 		return bindingError(errors.New("retrieval issuance differs from authenticated chit or entry"))
 	}
 	header := payload.Entry.Evidence.Payload.Header
@@ -204,7 +211,10 @@ func validateIssuanceBinding(issuance GrantIssuance) error {
 		header.Offering != document.Payload.Scope.Offering {
 		return bindingError(errors.New("retrieval entry scope differs from authenticated chit"))
 	}
-	return nil
+	return validateExpectedSelection(selectionExpectation{
+		Selection: issuance.Request.Selection, Sequence: payload.Entry.Sequence,
+		Continuation: payload.Continuation, Count: document.Payload.Manifest.Objects,
+	})
 }
 
 func IssueGrant(issuance GrantIssuance) (GrantProjection, error) {
@@ -248,9 +258,42 @@ func (e GrantExpectation) Validate() error {
 	return nil
 }
 
-func validateExpectedSelection(selection Selection, sequence chit.EntrySequence) error {
-	if selection.Kind == core.CatalogSelectionSpecific && selection.Sequence != sequence {
-		return bindingError(errors.New("retrieval grant sequence differs from request"))
+type selectionExpectation struct {
+	Selection    Selection
+	Sequence     chit.EntrySequence
+	Continuation core.CatalogContinuationState
+	Count        chit.ObjectCount
+}
+
+func validateExpectedSelection(expectation selectionExpectation) error {
+	if err := errors.Join(
+		expectation.Selection.Validate(), expectation.Sequence.Validate(),
+		expectation.Continuation.Validate(), expectation.Count.Validate(),
+	); err != nil {
+		return bindingError(err)
+	}
+	selection := expectation.Selection
+	if selection.Kind == core.CatalogSelectionSpecific {
+		if selection.SpecificSequence != expectation.Sequence ||
+			expectation.Continuation != core.CatalogContinuationEnd {
+			return bindingError(errors.New("specific retrieval grant differs from request"))
+		}
+		return nil
+	}
+	want := uint64(1)
+	if selection.Position == core.CatalogPositionAfter {
+		want = selection.AfterSequence.Uint64() + 1
+	}
+	if expectation.Sequence.Uint64() != want {
+		return bindingError(errors.New("all-entry retrieval grant is not the next sequence"))
+	}
+	wantContinuation := core.CatalogContinuationMore
+	if expectation.Sequence.Uint64() == expectation.Count.Uint64() {
+		wantContinuation = core.CatalogContinuationEnd
+	}
+	if expectation.Sequence.Uint64() > expectation.Count.Uint64() ||
+		expectation.Continuation != wantContinuation {
+		return bindingError(errors.New("all-entry retrieval continuation differs from manifest extent"))
 	}
 	return nil
 }
@@ -258,6 +301,32 @@ func validateExpectedSelection(selection Selection, sequence chit.EntrySequence)
 type VerifiedGrant struct {
 	document GrantDocument
 	proof    attest.Verified[SigningDomain]
+}
+
+// GrantContinuation is the compiler-owned next action after one verified grant.
+type GrantContinuation struct {
+	Selection Selection
+	State     core.CatalogContinuationState
+}
+
+func (c GrantContinuation) Validate() error {
+	if err := c.State.Validate(); err != nil {
+		return contractError(err)
+	}
+	if c.State == core.CatalogContinuationEnd {
+		if c.Selection != (Selection{}) {
+			return contractError(errors.New("ended retrieval carries another selection"))
+		}
+		return nil
+	}
+	if err := c.Selection.Validate(); err != nil {
+		return contractError(err)
+	}
+	if c.Selection.Kind != core.CatalogSelectionAll ||
+		c.Selection.Position != core.CatalogPositionAfter {
+		return contractError(errors.New("continued retrieval is not an all-entry after selection"))
+	}
+	return nil
 }
 
 func VerifyGrant(expectation GrantExpectation) (VerifiedGrant, error) {
@@ -275,7 +344,14 @@ func VerifyGrant(expectation GrantExpectation) (VerifiedGrant, error) {
 	if err := validateExpectedGrantBinding(expectation, payload); err != nil {
 		return VerifiedGrant{}, err
 	}
-	if err := validateExpectedSelection(expectation.Request.Selection, payload.Entry.Sequence); err != nil {
+	chitDocument, err := expectation.Chit.Document()
+	if err != nil {
+		return VerifiedGrant{}, bindingError(err)
+	}
+	if err := validateExpectedSelection(selectionExpectation{
+		Selection: expectation.Request.Selection, Sequence: payload.Entry.Sequence,
+		Continuation: payload.Continuation, Count: chitDocument.Payload.Manifest.Objects,
+	}); err != nil {
 		return VerifiedGrant{}, err
 	}
 	if err := validateObservedLifetime(payload, expectation.ObservedAt); err != nil {
@@ -357,6 +433,23 @@ func (v VerifiedGrant) Payload() (GrantPayload, error) {
 	return v.document.Payload, nil
 }
 
+func (v VerifiedGrant) Continuation() (GrantContinuation, error) {
+	payload, err := v.Payload()
+	if err != nil {
+		return GrantContinuation{}, err
+	}
+	if payload.Continuation == core.CatalogContinuationEnd {
+		continuation := GrantContinuation{State: core.CatalogContinuationEnd}
+		return continuation, continuation.Validate()
+	}
+	selection, err := ContinueAll(payload.Entry.Sequence)
+	if err != nil {
+		return GrantContinuation{}, contractError(err)
+	}
+	continuation := GrantContinuation{Selection: selection, State: core.CatalogContinuationMore}
+	return continuation, continuation.Validate()
+}
+
 var (
 	_ core.Validatable                    = GrantPayload{}
 	_ core.Validatable                    = GrantDocument{}
@@ -364,6 +457,7 @@ var (
 	_ core.Validatable                    = GrantIssuance{}
 	_ core.Validatable                    = GrantExpectation{}
 	_ core.Validatable                    = VerifiedGrant{}
+	_ core.Validatable                    = GrantContinuation{}
 	_ core.ValidatedJSONMarshaler         = GrantPayload{}
 	_ core.ValidatedJSONMarshaler         = GrantProjection{}
 	_ attest.CanonicalBody[SigningDomain] = GrantPayload{}

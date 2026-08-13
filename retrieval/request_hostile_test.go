@@ -4,6 +4,7 @@ import (
 	"bytes"
 	"crypto/ed25519"
 	"errors"
+	"math"
 	"strings"
 	"testing"
 
@@ -31,10 +32,10 @@ type retrievalRequestFixtureRequest struct {
 	NonceByte    byte
 }
 
-func TestRetrievalRequestAuthenticatesAllAndSpecificSelections(t *testing.T) {
+func TestRetrievalRequestAuthenticatesTraversalAndSpecificSelections(t *testing.T) {
 	t.Parallel()
 
-	fixture := newRetrievalRequestFixture(t, retrievalRequestFixtureRequest{Selection: All()})
+	fixture := newRetrievalRequestFixture(t, retrievalRequestFixtureRequest{Selection: StartAll()})
 	allDocument := issueRetrievalRequestFixture(t, fixture)
 	proof, err := attest.Verify(attest.VerifyRequest[SigningDomain]{
 		Body: allDocument.Payload, Envelope: allDocument.Attestation,
@@ -76,6 +77,19 @@ func TestRetrievalRequestAuthenticatesAllAndSpecificSelections(t *testing.T) {
 	if allCommitment == specificCommitment {
 		t.Fatalf("all request commitment = %v, specific request commitment = %v, want distinct", allCommitment, specificCommitment)
 	}
+	continued, err := ContinueAll(sequence)
+	if err != nil {
+		t.Fatalf("ContinueAll(1) error = %v, want nil", err)
+	}
+	continuedFixture := newRetrievalRequestFixture(t, retrievalRequestFixtureRequest{Selection: continued})
+	continuedDocument := issueRetrievalRequestFixture(t, continuedFixture)
+	continuedCommitment, err := CommitRequest(continuedDocument.Payload)
+	if err != nil {
+		t.Fatalf("CommitRequest(continued) error = %v, want nil", err)
+	}
+	if continuedCommitment == allCommitment || continuedCommitment == specificCommitment {
+		t.Fatalf("continued request commitment collides with start or specific, want three distinct commitments")
+	}
 }
 
 func TestRetrievalSelectionTaggedUnionRefusesEveryContradictoryArm(t *testing.T) {
@@ -91,18 +105,67 @@ func TestRetrievalSelectionTaggedUnionRefusesEveryContradictoryArm(t *testing.T)
 	}{
 		{name: "zero selection", selection: Selection{}},
 		{
-			name:      "all carries sequence",
-			selection: Selection{Kind: core.CatalogSelectionAll, Sequence: sequence},
+			name:      "all omits position",
+			selection: Selection{Kind: core.CatalogSelectionAll},
+		},
+		{
+			name: "all start carries after sequence",
+			selection: Selection{
+				Kind: core.CatalogSelectionAll, Position: core.CatalogPositionStart, AfterSequence: sequence,
+			},
+		},
+		{
+			name: "all start carries specific sequence",
+			selection: Selection{
+				Kind: core.CatalogSelectionAll, Position: core.CatalogPositionStart, SpecificSequence: sequence,
+			},
+		},
+		{
+			name:      "all after omits sequence",
+			selection: Selection{Kind: core.CatalogSelectionAll, Position: core.CatalogPositionAfter},
+		},
+		{
+			name: "all after carries specific sequence",
+			selection: Selection{
+				Kind: core.CatalogSelectionAll, Position: core.CatalogPositionAfter,
+				AfterSequence: sequence, SpecificSequence: sequence,
+			},
 		},
 		{
 			name:      "specific omits sequence",
 			selection: Selection{Kind: core.CatalogSelectionSpecific},
 		},
 		{
+			name: "specific carries all start position",
+			selection: Selection{
+				Kind: core.CatalogSelectionSpecific, Position: core.CatalogPositionStart,
+				SpecificSequence: sequence,
+			},
+		},
+		{
+			name: "specific carries after sequence",
+			selection: Selection{
+				Kind: core.CatalogSelectionSpecific, SpecificSequence: sequence, AfterSequence: sequence,
+			},
+		},
+		{
 			name:      "selection enum above domain",
 			selection: Selection{Kind: core.CatalogSelectionKind(255)},
 		},
 	}
+	maximum, err := chit.NewEntrySequence(math.MaxUint64)
+	if err != nil {
+		t.Fatalf("chit.NewEntrySequence(maximum) error = %v, want nil", err)
+	}
+	cases = append(cases, struct {
+		name      string
+		selection Selection
+	}{
+		name: "all after maximum has no successor",
+		selection: Selection{
+			Kind: core.CatalogSelectionAll, Position: core.CatalogPositionAfter, AfterSequence: maximum,
+		},
+	})
 	for _, testCase := range cases {
 		t.Run(testCase.name, func(t *testing.T) {
 			t.Parallel()
@@ -118,10 +181,39 @@ func TestRetrievalSelectionTaggedUnionRefusesEveryContradictoryArm(t *testing.T)
 	}
 }
 
+func TestRetrievalContinuationConstructorExactNumericEdges(t *testing.T) {
+	t.Parallel()
+
+	cases := []uint64{1, 2, 3, math.MaxUint64/2 - 1, math.MaxUint64 / 2, math.MaxUint64/2 + 1, math.MaxUint64 - 2, math.MaxUint64 - 1}
+	for _, value := range cases {
+		sequence, err := chit.NewEntrySequence(value)
+		if err != nil {
+			t.Fatalf("chit.NewEntrySequence(%d) error = %v, want nil", value, err)
+		}
+		selection, err := ContinueAll(sequence)
+		if err != nil || selection.Validate() != nil || selection.AfterSequence != sequence ||
+			selection.Position != core.CatalogPositionAfter || selection.Kind != core.CatalogSelectionAll {
+			t.Fatalf("ContinueAll(%d) = (%v, %v), want exact valid after selection", value, selection, err)
+		}
+	}
+	maximum, err := chit.NewEntrySequence(math.MaxUint64)
+	if err != nil {
+		t.Fatalf("chit.NewEntrySequence(maximum) error = %v, want nil", err)
+	}
+	selection, err := ContinueAll(maximum)
+	if !errors.Is(err, core.ErrRetrievalContract) || selection != (Selection{}) {
+		t.Fatalf("ContinueAll(maximum) = (%v, %v), want zero and errors.Is %v", selection, err, core.ErrRetrievalContract)
+	}
+	selection, err = ContinueAll(chit.EntrySequence{})
+	if !errors.Is(err, core.ErrRetrievalContract) || selection != (Selection{}) {
+		t.Fatalf("ContinueAll(zero) = (%v, %v), want zero and errors.Is %v", selection, err, core.ErrRetrievalContract)
+	}
+}
+
 func TestRetrievalRequestJSONBoundaryLayerTriad(t *testing.T) {
 	t.Parallel()
 
-	fixture := newRetrievalRequestFixture(t, retrievalRequestFixtureRequest{Selection: All()})
+	fixture := newRetrievalRequestFixture(t, retrievalRequestFixtureRequest{Selection: StartAll()})
 	document := issueRetrievalRequestFixture(t, fixture)
 	encoded, gotErr := document.MarshalJSON()
 	if gotErr != nil {
@@ -229,10 +321,10 @@ func TestRetrievalRequestJSONBoundaryLayerTriad(t *testing.T) {
 func TestRetrievalRequestSignatureRefusesWrongKeyAndEveryMutableSignedPayloadFact(t *testing.T) {
 	t.Parallel()
 
-	fixture := newRetrievalRequestFixture(t, retrievalRequestFixtureRequest{Selection: All()})
+	fixture := newRetrievalRequestFixture(t, retrievalRequestFixtureRequest{Selection: StartAll()})
 	document := issueRetrievalRequestFixture(t, fixture)
 	otherSigner := newRetrievalRequestFixture(t, retrievalRequestFixtureRequest{
-		Selection: All(), SignerByte: 0x52,
+		Selection: StartAll(), SignerByte: 0x52,
 	})
 	if proof, gotErr := attest.Verify(attest.VerifyRequest[SigningDomain]{
 		Body: document.Payload, Envelope: document.Attestation, TrustedKeys: otherSigner.trusted,
@@ -249,8 +341,8 @@ func TestRetrievalRequestSignatureRefusesWrongKeyAndEveryMutableSignedPayloadFac
 	if gotErr != nil {
 		t.Fatalf("Specific(1) setup error = %v, want nil", gotErr)
 	}
-	otherBuild := newRetrievalRequestFixture(t, retrievalRequestFixtureRequest{Selection: All(), VersionPatch: 2})
-	otherNonce := newRetrievalRequestFixture(t, retrievalRequestFixtureRequest{Selection: All(), NonceByte: 2})
+	otherBuild := newRetrievalRequestFixture(t, retrievalRequestFixtureRequest{Selection: StartAll(), VersionPatch: 2})
+	otherNonce := newRetrievalRequestFixture(t, retrievalRequestFixtureRequest{Selection: StartAll(), NonceByte: 2})
 	cases := []struct {
 		mutate func(*RequestPayload)
 		name   string

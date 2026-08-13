@@ -7,6 +7,7 @@ import (
 	"errors"
 	"hash/crc32"
 	"io"
+	"strconv"
 	"testing"
 
 	"github.com/deliri/primitive/v2026/attest"
@@ -38,12 +39,20 @@ type downloadCallFixture struct {
 	policy       objectstore.Policy
 }
 
+type downloadCallFixtureRequest struct {
+	Payload         []byte
+	Selection       Selection
+	Continuation    core.CatalogContinuationState
+	EntrySequence   uint64
+	ManifestEntries uint64
+}
+
 func TestVerifiedGrantDownloadCallLayerTriad(t *testing.T) {
 	t.Parallel()
 
 	t.Run("positive exact authenticated entry projects one blind download", func(t *testing.T) {
 		t.Parallel()
-		fixture := newDownloadCallFixture(t, bytes.Repeat([]byte{0x5a}, 32<<10+1))
+		fixture := newDownloadCallFixture(t, downloadCallFixtureRequest{Payload: bytes.Repeat([]byte{0x5a}, 32<<10+1)})
 		var destination bytes.Buffer
 		observed := 0
 		call, err := fixture.grant.DownloadCall(DownloadCallRequest{
@@ -65,7 +74,7 @@ func TestVerifiedGrantDownloadCallLayerTriad(t *testing.T) {
 
 	t.Run("negative zero verified grant cannot project a plausible call", func(t *testing.T) {
 		t.Parallel()
-		fixture := newDownloadCallFixture(t, []byte{1})
+		fixture := newDownloadCallFixture(t, downloadCallFixtureRequest{Payload: []byte{1}})
 		call, err := (VerifiedGrant{}).DownloadCall(DownloadCallRequest{
 			Destination: io.Discard, Policy: fixture.policy,
 		})
@@ -77,7 +86,7 @@ func TestVerifiedGrantDownloadCallLayerTriad(t *testing.T) {
 
 	t.Run("neutral projection never writes the destination", func(t *testing.T) {
 		t.Parallel()
-		fixture := newDownloadCallFixture(t, []byte{2, 3, 4})
+		fixture := newDownloadCallFixture(t, downloadCallFixtureRequest{Payload: []byte{2, 3, 4}})
 		destination := bytes.NewBufferString("customer-owned")
 		before := append([]byte(nil), destination.Bytes()...)
 		_, err := fixture.grant.DownloadCall(DownloadCallRequest{
@@ -113,7 +122,7 @@ func TestVerifiedGrantDownloadCallHostileIngressMatrix(t *testing.T) {
 	for _, mutation := range mutations {
 		t.Run(downloadCallMutationName(mutation), func(t *testing.T) {
 			t.Parallel()
-			fixture := newDownloadCallFixture(t, []byte{9, 8, 7})
+			fixture := newDownloadCallFixture(t, downloadCallFixtureRequest{Payload: []byte{9, 8, 7}})
 			request := DownloadCallRequest{Destination: io.Discard, Policy: fixture.policy}
 			grant := fixture.grant
 			switch mutation {
@@ -157,17 +166,50 @@ func downloadCallIsZero(call objectstore.DownloadCapabilityRequest) bool {
 	return call.Destination == nil && call.Capability.IsZero() && call.ContentType.IsZero()
 }
 
-func newDownloadCallFixture(t testing.TB, payload []byte) downloadCallFixture {
+func newDownloadCallFixture(t testing.TB, fixtureRequest downloadCallFixtureRequest) downloadCallFixture {
 	t.Helper()
 
+	if fixtureRequest.Selection == (Selection{}) {
+		fixtureRequest.Selection = StartAll()
+	}
+	if fixtureRequest.Continuation == core.CatalogContinuationUnknown {
+		fixtureRequest.Continuation = core.CatalogContinuationEnd
+	}
+	if fixtureRequest.EntrySequence == 0 {
+		fixtureRequest.EntrySequence = 1
+	}
+	if fixtureRequest.ManifestEntries == 0 {
+		fixtureRequest.ManifestEntries = fixtureRequest.EntrySequence
+	}
 	private, trusted := retrievalAuthority(t, 0x61)
-	request := newRetrievalRequestFixture(t, retrievalRequestFixtureRequest{Selection: All()}).payload
-	addition, scope := retrievalManifestAddition(t, retrievalEvidenceRequest{
-		Private: private, Trusted: trusted, Payload: payload,
-	})
+	request := newRetrievalRequestFixture(t, retrievalRequestFixtureRequest{Selection: fixtureRequest.Selection}).payload
 	manifest := chit.NewManifestAccumulator()
-	if err := manifest.Add(addition); err != nil {
-		t.Fatalf("ManifestAccumulator.Add() error = %v, want nil", err)
+	var addition chit.ManifestAddition
+	var scope receipt.Scope
+	for sequence := uint64(1); sequence <= fixtureRequest.ManifestEntries; sequence++ {
+		payload := []byte{byte(sequence)}
+		if sequence == fixtureRequest.EntrySequence {
+			payload = fixtureRequest.Payload
+		}
+		candidate, candidateScope := retrievalManifestAddition(t, retrievalEvidenceRequest{
+			Private: private, Trusted: trusted, Payload: payload, Sequence: sequence,
+		})
+		if sequence == 1 {
+			scope = candidateScope
+		}
+		if candidateScope != scope {
+			t.Fatalf("retrieval manifest scope at sequence %d = %v, want %v", sequence, candidateScope, scope)
+		}
+		if err := manifest.Add(candidate); err != nil {
+			t.Fatalf("ManifestAccumulator.Add(sequence %d) error = %v, want nil", sequence, err)
+		}
+		if sequence == fixtureRequest.EntrySequence {
+			addition = candidate
+		}
+	}
+	if err := addition.Validate(); err != nil {
+		t.Fatalf("retrieval target entry sequence %d is absent from %d manifest entries: %v",
+			fixtureRequest.EntrySequence, fixtureRequest.ManifestEntries, err)
 	}
 	summary, err := manifest.Seal()
 	if err != nil {
@@ -194,12 +236,13 @@ func newDownloadCallFixture(t testing.TB, payload []byte) downloadCallFixture {
 	grantPayload := GrantPayload{
 		Entry: addition.Entry, Request: requestCommitment, Authorization: nonce,
 		Capability: commitment, Manifest: summary.Digest, Chit: request.Chit,
-		IssuedAt:  temporal.InstantFromNanoseconds(retrievalGrantIssuedAt),
-		ExpiresAt: temporal.InstantFromNanoseconds(retrievalGrantExpiresAt),
+		IssuedAt:     temporal.InstantFromNanoseconds(retrievalGrantIssuedAt),
+		ExpiresAt:    temporal.InstantFromNanoseconds(retrievalGrantExpiresAt),
+		Continuation: fixtureRequest.Continuation,
 	}
 	projection, err := IssueGrant(GrantIssuance{
 		Signer: private, Capability: capability, Payload: grantPayload,
-		Entry: addition, Chit: verifiedChit,
+		Entry: addition, Chit: verifiedChit, Request: request,
 	})
 	if err != nil {
 		t.Fatalf("IssueGrant() error = %v, want nil", err)
@@ -220,16 +263,17 @@ func newDownloadCallFixture(t testing.TB, payload []byte) downloadCallFixture {
 		t.Fatalf("VerifyGrant() error = %v, want nil", err)
 	}
 	return downloadCallFixture{
-		private: private, grant: grant, payload: payload, policy: retrievalPolicy(t), document: document,
+		private: private, grant: grant, payload: fixtureRequest.Payload, policy: retrievalPolicy(t), document: document,
 		request: request, chit: verifiedChit, trusted: trusted, capability: capability,
 		addition: addition, grantPayload: grantPayload,
 	}
 }
 
 type retrievalEvidenceRequest struct {
-	Private ed25519.PrivateKey
-	Payload []byte
-	Trusted attest.TrustedKeys
+	Private  ed25519.PrivateKey
+	Payload  []byte
+	Trusted  attest.TrustedKeys
+	Sequence uint64
 }
 
 func retrievalManifestAddition(t testing.TB, request retrievalEvidenceRequest) (chit.ManifestAddition, receipt.Scope) {
@@ -242,7 +286,7 @@ func retrievalManifestAddition(t testing.TB, request retrievalEvidenceRequest) (
 	if err != nil {
 		t.Fatalf("core.NewByteLength() error = %v, want nil", err)
 	}
-	receiptBytes := [receipt.ReceiptIDBytes]byte{0x23}
+	receiptBytes := [receipt.ReceiptIDBytes]byte{0x23, byte(request.Sequence)}
 	receiptID, err := receipt.NewReceiptID(receiptBytes)
 	if err != nil {
 		t.Fatalf("receipt.NewReceiptID() error = %v, want nil", err)
@@ -253,8 +297,8 @@ func retrievalManifestAddition(t testing.TB, request retrievalEvidenceRequest) (
 		Body: receipt.EvidenceBody{
 			Extent: extent, SHA256: core.SHA256Of(request.Payload),
 			CRC32C:     core.NewCRC32C(crc32.Checksum(request.Payload, crc32.MakeTable(crc32.Castagnoli))),
-			Submission: retrievalLifecycleIdentity(t, 0x24, receipt.NewSubmissionIdentity),
-			Object:     retrievalLifecycleIdentity(t, 0x25, receipt.NewObjectIdentity),
+			Submission: retrievalLifecycleIdentity(t, 0x24+byte(request.Sequence), receipt.NewSubmissionIdentity),
+			Object:     retrievalLifecycleIdentity(t, 0x25+byte(request.Sequence), receipt.NewObjectIdentity),
 		},
 	})
 	if err != nil {
@@ -267,11 +311,11 @@ func retrievalManifestAddition(t testing.TB, request retrievalEvidenceRequest) (
 	if err != nil {
 		t.Fatalf("receipt.VerifyEvidence() error = %v, want nil", err)
 	}
-	name, err := chit.ParseEntryName("evidence/result.json")
+	name, err := chit.ParseEntryName("evidence/result-" + strconv.FormatUint(request.Sequence, 10) + ".json")
 	if err != nil {
 		t.Fatalf("chit.ParseEntryName() error = %v, want nil", err)
 	}
-	sequence, err := chit.NewEntrySequence(1)
+	sequence, err := chit.NewEntrySequence(request.Sequence)
 	if err != nil {
 		t.Fatalf("chit.NewEntrySequence() error = %v, want nil", err)
 	}

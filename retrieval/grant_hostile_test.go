@@ -16,10 +16,10 @@ import (
 func TestGrantDocumentJSONLayerTriad(t *testing.T) {
 	t.Parallel()
 
-	fixture := newDownloadCallFixture(t, []byte{0x11, 0x12})
+	fixture := newDownloadCallFixture(t, downloadCallFixtureRequest{Payload: []byte{0x11, 0x12}})
 	projection, gotErr := IssueGrant(GrantIssuance{
 		Signer: fixture.private, Capability: fixture.capability, Payload: fixture.grantPayload,
-		Entry: fixture.addition, Chit: fixture.chit,
+		Entry: fixture.addition, Chit: fixture.chit, Request: fixture.request,
 	})
 	if gotErr != nil {
 		t.Fatalf("IssueGrant() setup error = %v, want nil", gotErr)
@@ -140,10 +140,10 @@ func TestGrantIssuanceLayerTriad(t *testing.T) {
 			t.Run(tc.name, func(t *testing.T) {
 				t.Parallel()
 
-				fixture := newDownloadCallFixture(t, bytes.Repeat([]byte{0x4d}, tc.size))
+				fixture := newDownloadCallFixture(t, downloadCallFixtureRequest{Payload: bytes.Repeat([]byte{0x4d}, tc.size)})
 				got, gotErr := IssueGrant(GrantIssuance{
 					Signer: fixture.private, Capability: fixture.capability, Payload: fixture.grantPayload,
-					Entry: fixture.addition, Chit: fixture.chit,
+					Entry: fixture.addition, Chit: fixture.chit, Request: fixture.request,
 				})
 				if gotErr != nil || got.Validate() != nil {
 					t.Fatalf("IssueGrant(%d-byte entry) = (%v, %v), want valid projection and nil", tc.size, got, gotErr)
@@ -170,8 +170,8 @@ func TestGrantIssuanceLayerTriad(t *testing.T) {
 	t.Run("negative unset and cross-bound inputs issue no projection", func(t *testing.T) {
 		t.Parallel()
 
-		fixture := newDownloadCallFixture(t, []byte{0x01})
-		other := newDownloadCallFixture(t, []byte{0x02, 0x03})
+		fixture := newDownloadCallFixture(t, downloadCallFixtureRequest{Payload: []byte{0x01}})
+		other := newDownloadCallFixture(t, downloadCallFixtureRequest{Payload: []byte{0x02, 0x03}})
 		cases := []struct {
 			wantErr error
 			mutate  func(*GrantIssuance)
@@ -183,6 +183,7 @@ func TestGrantIssuanceLayerTriad(t *testing.T) {
 			{name: "zero payload", mutate: func(value *GrantIssuance) { value.Payload = GrantPayload{} }, wantErr: core.ErrRetrievalContract},
 			{name: "zero manifest entry proof", mutate: func(value *GrantIssuance) { value.Entry = chit.ManifestAddition{} }, wantErr: core.ErrRetrievalContract},
 			{name: "zero authenticated chit", mutate: func(value *GrantIssuance) { value.Chit = chit.Verified{} }, wantErr: core.ErrRetrievalContract},
+			{name: "zero authenticated request", mutate: func(value *GrantIssuance) { value.Request = RequestPayload{} }, wantErr: core.ErrRetrievalContract},
 			{name: "entry from another authenticated receipt", mutate: func(value *GrantIssuance) { value.Entry = other.addition }, wantErr: core.ErrRetrievalBinding},
 			{name: "chit with another manifest", mutate: func(value *GrantIssuance) { value.Chit = other.chit }, wantErr: core.ErrRetrievalBinding},
 			{name: "payload names another chit", mutate: func(value *GrantIssuance) { value.Payload.Chit = mustRetrievalChitID(t, retrievalFixtureChitB) }, wantErr: core.ErrRetrievalBinding},
@@ -199,7 +200,7 @@ func TestGrantIssuanceLayerTriad(t *testing.T) {
 
 				input := GrantIssuance{
 					Signer: fixture.private, Capability: fixture.capability, Payload: fixture.grantPayload,
-					Entry: fixture.addition, Chit: fixture.chit,
+					Entry: fixture.addition, Chit: fixture.chit, Request: fixture.request,
 				}
 				tc.mutate(&input)
 				got, gotErr := IssueGrant(input)
@@ -220,10 +221,227 @@ func TestGrantIssuanceLayerTriad(t *testing.T) {
 	})
 }
 
+func TestGrantTraversalAuthenticatesEveryEntryAndExactTermination(t *testing.T) {
+	t.Parallel()
+
+	afterOne, err := ContinueAll(grantEntrySequence(t, 1))
+	if err != nil {
+		t.Fatalf("ContinueAll(1) setup error = %v, want nil", err)
+	}
+	specificOne, err := Specific(grantEntrySequence(t, 1))
+	if err != nil {
+		t.Fatalf("Specific(1) setup error = %v, want nil", err)
+	}
+	specificTwo, err := Specific(grantEntrySequence(t, 2))
+	if err != nil {
+		t.Fatalf("Specific(2) setup error = %v, want nil", err)
+	}
+	cases := []struct {
+		name    string
+		request downloadCallFixtureRequest
+	}{
+		{
+			name: "all start is the sole entry and ends",
+			request: downloadCallFixtureRequest{
+				Payload: []byte{1}, Selection: StartAll(), EntrySequence: 1,
+				ManifestEntries: 1, Continuation: core.CatalogContinuationEnd,
+			},
+		},
+		{
+			name: "all start is first of two and continues",
+			request: downloadCallFixtureRequest{
+				Payload: []byte{1}, Selection: StartAll(), EntrySequence: 1,
+				ManifestEntries: 2, Continuation: core.CatalogContinuationMore,
+			},
+		},
+		{
+			name: "all after one is second of two and ends",
+			request: downloadCallFixtureRequest{
+				Payload: []byte{2}, Selection: afterOne, EntrySequence: 2,
+				ManifestEntries: 2, Continuation: core.CatalogContinuationEnd,
+			},
+		},
+		{
+			name: "specific first entry ends despite later entry",
+			request: downloadCallFixtureRequest{
+				Payload: []byte{1}, Selection: specificOne, EntrySequence: 1,
+				ManifestEntries: 2, Continuation: core.CatalogContinuationEnd,
+			},
+		},
+		{
+			name: "specific final entry ends",
+			request: downloadCallFixtureRequest{
+				Payload: []byte{2}, Selection: specificTwo, EntrySequence: 2,
+				ManifestEntries: 2, Continuation: core.CatalogContinuationEnd,
+			},
+		},
+	}
+	for _, testCase := range cases {
+		t.Run(testCase.name, func(t *testing.T) {
+			t.Parallel()
+
+			fixture := newDownloadCallFixture(t, testCase.request)
+			payload, gotErr := fixture.grant.Payload()
+			if gotErr != nil || payload.Entry.Sequence.Uint64() != testCase.request.EntrySequence ||
+				payload.Continuation != testCase.request.Continuation || payload.Validate() != nil {
+				t.Fatalf("VerifiedGrant.Payload() = (%v, %v), want sequence %d continuation %v and nil",
+					payload, gotErr, testCase.request.EntrySequence, testCase.request.Continuation)
+			}
+			continuation, gotErr := fixture.grant.Continuation()
+			if gotErr != nil || continuation.State != testCase.request.Continuation || continuation.Validate() != nil {
+				t.Fatalf("VerifiedGrant.Continuation() = (%v, %v), want state %v and nil",
+					continuation, gotErr, testCase.request.Continuation)
+			}
+			if testCase.request.Continuation == core.CatalogContinuationEnd {
+				if continuation.Selection != (Selection{}) {
+					t.Fatalf("ended continuation selection = %v, want zero", continuation.Selection)
+				}
+				return
+			}
+			wantSelection, setupErr := ContinueAll(payload.Entry.Sequence)
+			if setupErr != nil {
+				t.Fatalf("ContinueAll(granted sequence) error = %v, want nil", setupErr)
+			}
+			if continuation.Selection != wantSelection {
+				t.Fatalf("continued selection = %v, want %v", continuation.Selection, wantSelection)
+			}
+		})
+	}
+}
+
+func TestGrantContinuationTaggedUnionRefusesEveryContradictoryArm(t *testing.T) {
+	t.Parallel()
+
+	afterOne, err := ContinueAll(grantEntrySequence(t, 1))
+	if err != nil {
+		t.Fatalf("ContinueAll(1) setup error = %v, want nil", err)
+	}
+	specificOne, err := Specific(grantEntrySequence(t, 1))
+	if err != nil {
+		t.Fatalf("Specific(1) setup error = %v, want nil", err)
+	}
+	cases := []GrantContinuation{
+		{},
+		{State: core.CatalogContinuationEnd, Selection: afterOne},
+		{State: core.CatalogContinuationMore},
+		{State: core.CatalogContinuationMore, Selection: StartAll()},
+		{State: core.CatalogContinuationMore, Selection: specificOne},
+		{State: core.CatalogContinuationState(255), Selection: afterOne},
+	}
+	for _, candidate := range cases {
+		if gotErr := candidate.Validate(); !errors.Is(gotErr, core.ErrRetrievalContract) {
+			t.Fatalf("GrantContinuation.Validate(%v) error = %v, want errors.Is %v",
+				candidate, gotErr, core.ErrRetrievalContract)
+		}
+	}
+	continued := GrantContinuation{State: core.CatalogContinuationMore, Selection: afterOne}
+	ended := GrantContinuation{State: core.CatalogContinuationEnd}
+	if continued.Validate() != nil || ended.Validate() != nil || continued == ended {
+		t.Fatalf("valid continuations = (%v, %v), want distinct valid more and end arms", continued, ended)
+	}
+	continuation, err := (VerifiedGrant{}).Continuation()
+	if !errors.Is(err, core.ErrRetrievalBinding) || continuation != (GrantContinuation{}) {
+		t.Fatalf("zero VerifiedGrant.Continuation() = (%v, %v), want zero and errors.Is %v",
+			continuation, err, core.ErrRetrievalBinding)
+	}
+}
+
+func TestGrantIssuanceRefusesEveryTraversalContradiction(t *testing.T) {
+	t.Parallel()
+
+	afterOne, err := ContinueAll(grantEntrySequence(t, 1))
+	if err != nil {
+		t.Fatalf("ContinueAll(1) setup error = %v, want nil", err)
+	}
+	startMore := newDownloadCallFixture(t, downloadCallFixtureRequest{
+		Payload: []byte{1}, Selection: StartAll(), EntrySequence: 1,
+		ManifestEntries: 2, Continuation: core.CatalogContinuationMore,
+	})
+	startEnd := newDownloadCallFixture(t, downloadCallFixtureRequest{
+		Payload: []byte{1}, Selection: StartAll(), EntrySequence: 1,
+		ManifestEntries: 1, Continuation: core.CatalogContinuationEnd,
+	})
+	continued := newDownloadCallFixture(t, downloadCallFixtureRequest{
+		Payload: []byte{2}, Selection: afterOne, EntrySequence: 2,
+		ManifestEntries: 2, Continuation: core.CatalogContinuationEnd,
+	})
+	specific, err := Specific(grantEntrySequence(t, 1))
+	if err != nil {
+		t.Fatalf("Specific(1) setup error = %v, want nil", err)
+	}
+	specificFixture := newDownloadCallFixture(t, downloadCallFixtureRequest{
+		Payload: []byte{1}, Selection: specific, EntrySequence: 1,
+		ManifestEntries: 2, Continuation: core.CatalogContinuationEnd,
+	})
+	cases := []struct {
+		name    string
+		fixture downloadCallFixture
+		mutate  func(*GrantIssuance)
+	}{
+		{
+			name: "all start falsely ends before manifest end", fixture: startMore,
+			mutate: func(value *GrantIssuance) { value.Payload.Continuation = core.CatalogContinuationEnd },
+		},
+		{
+			name: "all start falsely continues at manifest end", fixture: startEnd,
+			mutate: func(value *GrantIssuance) { value.Payload.Continuation = core.CatalogContinuationMore },
+		},
+		{
+			name: "all start returns second entry", fixture: continued,
+			mutate: func(value *GrantIssuance) { rebindRetrievalIssuance(t, value, StartAll()) },
+		},
+		{
+			name: "all continuation repeats prior entry", fixture: startMore,
+			mutate: func(value *GrantIssuance) { rebindRetrievalIssuance(t, value, afterOne) },
+		},
+		{
+			name: "specific selection claims another entry", fixture: specificFixture,
+			mutate: func(value *GrantIssuance) {
+				other, setupErr := Specific(grantEntrySequence(t, 2))
+				if setupErr != nil {
+					t.Fatalf("Specific(2) setup error = %v, want nil", setupErr)
+				}
+				rebindRetrievalIssuance(t, value, other)
+			},
+		},
+		{
+			name: "specific selection falsely advertises continuation", fixture: specificFixture,
+			mutate: func(value *GrantIssuance) { value.Payload.Continuation = core.CatalogContinuationMore },
+		},
+	}
+	for _, testCase := range cases {
+		t.Run(testCase.name, func(t *testing.T) {
+			t.Parallel()
+
+			input := GrantIssuance{
+				Signer: testCase.fixture.private, Capability: testCase.fixture.capability,
+				Payload: testCase.fixture.grantPayload, Entry: testCase.fixture.addition,
+				Chit: testCase.fixture.chit, Request: testCase.fixture.request,
+			}
+			testCase.mutate(&input)
+			projection, gotErr := IssueGrant(input)
+			if !errors.Is(gotErr, core.ErrRetrievalBinding) || !grantProjectionIsZero(projection) {
+				t.Fatalf("IssueGrant(contradictory traversal) = (%v, %v), want zero and errors.Is %v",
+					projection, gotErr, core.ErrRetrievalBinding)
+			}
+		})
+	}
+}
+
+func rebindRetrievalIssuance(t testing.TB, issuance *GrantIssuance, selection Selection) {
+	t.Helper()
+	issuance.Request.Selection = selection
+	commitment, err := CommitRequest(issuance.Request)
+	if err != nil {
+		t.Fatalf("CommitRequest(rebound selection) error = %v, want nil", err)
+	}
+	issuance.Payload.Request = commitment
+}
+
 func TestGrantVerificationLayerTriad(t *testing.T) {
 	t.Parallel()
 
-	fixture := newDownloadCallFixture(t, []byte{0x01, 0x02, 0x03})
+	fixture := newDownloadCallFixture(t, downloadCallFixtureRequest{Payload: []byte{0x01, 0x02, 0x03}})
 
 	t.Run("positive exact current instants authenticate the same grant", func(t *testing.T) {
 		t.Parallel()
@@ -263,9 +481,9 @@ func TestGrantVerificationLayerTriad(t *testing.T) {
 		t.Parallel()
 
 		_, otherTrusted := retrievalAuthority(t, 0x72)
-		otherNonceRequest := newRetrievalRequestFixture(t, retrievalRequestFixtureRequest{Selection: All(), NonceByte: 2}).payload
-		otherBuildRequest := newRetrievalRequestFixture(t, retrievalRequestFixtureRequest{Selection: All(), VersionPatch: 2}).payload
-		otherChit := newDownloadCallFixture(t, []byte{0x09, 0x08, 0x07}).chit
+		otherNonceRequest := newRetrievalRequestFixture(t, retrievalRequestFixtureRequest{Selection: StartAll(), NonceByte: 2}).payload
+		otherBuildRequest := newRetrievalRequestFixture(t, retrievalRequestFixtureRequest{Selection: StartAll(), VersionPatch: 2}).payload
+		otherChit := newDownloadCallFixture(t, downloadCallFixtureRequest{Payload: []byte{0x09, 0x08, 0x07}}).chit
 		otherCommitment, gotErr := CommitRequest(otherNonceRequest)
 		if gotErr != nil {
 			t.Fatalf("CommitRequest(other nonce setup) error = %v, want nil", gotErr)

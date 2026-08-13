@@ -377,7 +377,7 @@ func retrievalAuthPayload(
 		t.Fatalf("controlwire.NewRequestNonce() error = %v, want nil", err)
 	}
 	payload := retrieval.RequestPayload{
-		Build: build, Selection: retrieval.All(),
+		Build: build, Selection: retrieval.StartAll(),
 		Revision: controlwire.Revision2026V1, Nonce: nonce,
 	}
 	encodedIdentity, err := core.MarshalCanonicalJSONString(retrievalAuthFixtureChit)

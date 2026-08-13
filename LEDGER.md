@@ -1,8 +1,26 @@
 # Primitive 2026 Ledger
 
-Last updated: `2026-08-12`
+Last updated: `2026-08-13`
 
 ## Current
+
+- closed authenticated bounded download-all traversal, 2026-08-13, published
+  `v2026.0.90`. Retrieval replaces its ambiguous one-entry `All` request with
+  typed start, after, and specific selections. Every authority grant binds one
+  exact next sequence and an end-or-more fact to the authenticated Chit
+  manifest count; issuance and client verification reject skipped, repeated,
+  premature-end, false-more, and cross-selection grants. A verified grant
+  projects the sole valid next selection, so consumers retain neither a
+  manifest nor an informal continuation convention.
+
+  Hostile proof covers the numeric cursor extremes, every contradictory tagged
+  union arm, one- and two-entry traversal, resumption, specific older entries,
+  signed mutation, canonical external decoding, and receiver preservation. A
+  deliberate mutation removing manifest-bound termination made both false-end
+  tests fail. Live semantic fuzz campaigns completed 28,802 request-payload,
+  2,384 grant-payload, and 32,857 grant-document executions. The focused suites
+  and checkpoint deadcode, staticcheck, and witness-lint gates report zero
+  findings.
 
 - closed the external-ingress slice used directly by Witness, Bug, and
   Peachfuzz, 2026-08-12, published `v2026.0.78`. Attest now inventories both

@@ -5,6 +5,7 @@ import (
 	"encoding/json"
 	"errors"
 	"io"
+	"math"
 
 	"github.com/deliri/primitive/v2026/attest"
 	"github.com/deliri/primitive/v2026/chit"
@@ -19,17 +20,34 @@ const (
 	requestCommitmentSeparator      byte = 0
 )
 
-// Selection is the exact all-or-one manifest object selection.
+// Selection is one exact manifest entry or one position in a bounded all-entry traversal.
 type Selection struct {
-	Sequence chit.EntrySequence        `json:"sequence"`
-	Kind     core.CatalogSelectionKind `json:"kind"`
+	SpecificSequence chit.EntrySequence        `json:"specific_sequence"`
+	AfterSequence    chit.EntrySequence        `json:"after_sequence"`
+	Kind             core.CatalogSelectionKind `json:"kind"`
+	Position         core.CatalogPositionKind  `json:"position"`
 }
 
-func All() Selection { return Selection{Kind: core.CatalogSelectionAll} }
+func StartAll() Selection {
+	return Selection{Kind: core.CatalogSelectionAll, Position: core.CatalogPositionStart}
+}
+
+func ContinueAll(after chit.EntrySequence) (Selection, error) {
+	candidate := Selection{
+		Kind: core.CatalogSelectionAll, Position: core.CatalogPositionAfter, AfterSequence: after,
+	}
+	if err := candidate.Validate(); err != nil {
+		return Selection{}, err
+	}
+	return candidate, nil
+}
 
 func Specific(sequence chit.EntrySequence) (Selection, error) {
-	candidate := Selection{Kind: core.CatalogSelectionSpecific, Sequence: sequence}
-	return candidate, candidate.Validate()
+	candidate := Selection{Kind: core.CatalogSelectionSpecific, SpecificSequence: sequence}
+	if err := candidate.Validate(); err != nil {
+		return Selection{}, err
+	}
+	return candidate, nil
 }
 
 func (s Selection) Validate() error {
@@ -38,15 +56,45 @@ func (s Selection) Validate() error {
 	}
 	switch s.Kind {
 	case core.CatalogSelectionAll:
-		if s.Sequence != (chit.EntrySequence{}) {
-			return contractError(errors.New("all retrieval carries a sequence"))
-		}
+		return s.validateAll()
 	case core.CatalogSelectionSpecific:
-		if err := s.Sequence.Validate(); err != nil {
-			return contractError(err)
-		}
+		return s.validateSpecific()
 	default:
 		return contractError(errors.New("retrieval selection escaped its domain"))
+	}
+}
+
+func (s Selection) validateAll() error {
+	if s.SpecificSequence != (chit.EntrySequence{}) {
+		return contractError(errors.New("all retrieval carries a specific sequence"))
+	}
+	if err := s.Position.Validate(); err != nil {
+		return contractError(err)
+	}
+	switch s.Position {
+	case core.CatalogPositionStart:
+		if s.AfterSequence != (chit.EntrySequence{}) {
+			return contractError(errors.New("all retrieval start carries an after sequence"))
+		}
+	case core.CatalogPositionAfter:
+		if err := s.AfterSequence.Validate(); err != nil {
+			return contractError(err)
+		}
+		if s.AfterSequence.Uint64() == math.MaxUint64 {
+			return contractError(errors.New("all retrieval after sequence has no successor"))
+		}
+	default:
+		return contractError(errors.New("all retrieval position escaped its domain"))
+	}
+	return nil
+}
+
+func (s Selection) validateSpecific() error {
+	if s.Position != core.CatalogPositionUnknown || s.AfterSequence != (chit.EntrySequence{}) {
+		return contractError(errors.New("specific retrieval carries an all-entry position"))
+	}
+	if err := s.SpecificSequence.Validate(); err != nil {
+		return contractError(err)
 	}
 	return nil
 }
@@ -56,15 +104,23 @@ func (s Selection) MarshalJSON() ([]byte, error) {
 	if err := s.Validate(); err != nil {
 		return nil, jsonError(err)
 	}
-	if s.Kind == core.CatalogSelectionAll {
+	if s.Kind == core.CatalogSelectionSpecific {
 		return core.MarshalCanonicalJSONDocument(struct {
-			Kind core.CatalogSelectionKind `json:"kind"`
-		}{Kind: s.Kind})
+			Kind             core.CatalogSelectionKind `json:"kind"`
+			SpecificSequence chit.EntrySequence        `json:"specific_sequence"`
+		}{Kind: s.Kind, SpecificSequence: s.SpecificSequence})
+	}
+	if s.Position == core.CatalogPositionStart {
+		return core.MarshalCanonicalJSONDocument(struct {
+			Kind     core.CatalogSelectionKind `json:"kind"`
+			Position core.CatalogPositionKind  `json:"position"`
+		}{Kind: s.Kind, Position: s.Position})
 	}
 	return core.MarshalCanonicalJSONDocument(struct {
-		Sequence chit.EntrySequence        `json:"sequence"`
-		Kind     core.CatalogSelectionKind `json:"kind"`
-	}{Sequence: s.Sequence, Kind: s.Kind})
+		AfterSequence chit.EntrySequence        `json:"after_sequence"`
+		Kind          core.CatalogSelectionKind `json:"kind"`
+		Position      core.CatalogPositionKind  `json:"position"`
+	}{AfterSequence: s.AfterSequence, Kind: s.Kind, Position: s.Position})
 }
 
 // RequestPayload is the exact chit/object request signed by one installation.

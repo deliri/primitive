@@ -46,7 +46,7 @@ func TestVerifiedGrantDownloadFileLayerTriadPositiveStreamsAndActivates(t *testi
 			t.Parallel()
 			directory := t.TempDir()
 			payload := bytes.Repeat([]byte{0x6a}, tc.size)
-			fixture := newDownloadCallFixture(t, payload)
+			fixture := newDownloadCallFixture(t, downloadCallFixtureRequest{Payload: payload})
 			root := retrievalFileRoot(t, directory)
 			var completed atomic.Uint64
 			request := FileDownloadRequest{
@@ -78,7 +78,7 @@ func TestVerifiedGrantDownloadFileLayerTriadNegativePreservesPriorTarget(t *test
 
 	directory := t.TempDir()
 	payload := bytes.Repeat([]byte{0x7b}, 64<<10+1)
-	fixture := newDownloadCallFixture(t, payload)
+	fixture := newDownloadCallFixture(t, downloadCallFixtureRequest{Payload: payload})
 	root := retrievalFileRoot(t, directory)
 	prior := []byte("customer-prior-version")
 	writeRetrievalTarget(t, root, "target", prior)
@@ -107,7 +107,7 @@ func TestVerifiedGrantDownloadFileLayerTriadNeutralAbsentObserverLeavesNoStage(t
 
 	directory := t.TempDir()
 	payload := []byte{0x01}
-	fixture := newDownloadCallFixture(t, payload)
+	fixture := newDownloadCallFixture(t, downloadCallFixtureRequest{Payload: payload})
 	root := retrievalFileRoot(t, directory)
 	request := FileDownloadRequest{
 		Client: retrievalObjectstoreClient(t, payload), Policy: fixture.policy,
@@ -171,7 +171,7 @@ func TestVerifiedGrantDownloadFileLayerTriadIngressRefusesBeforeFilesystemEffect
 			t.Parallel()
 			directory := t.TempDir()
 			payload := []byte{1, 2, 3}
-			fixture := newDownloadCallFixture(t, payload)
+			fixture := newDownloadCallFixture(t, downloadCallFixtureRequest{Payload: payload})
 			root := retrievalFileRoot(t, directory)
 			request := FileDownloadRequest{
 				Client: retrievalObjectstoreClient(t, payload), Policy: fixture.policy,
