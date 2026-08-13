@@ -34,6 +34,7 @@ type paymentContractInventory struct {
 	Query               protocolFact[Query]
 	QueryRequest        protocolFact[QueryRequest]
 	QueryPayload        protocolFact[QueryPayload]
+	QueryCommitment     protocolFact[QueryCommitment]
 	QueryDocument       protocolFact[QueryDocument]
 	QueryIssuance       protocolFact[QueryIssuance]
 	QueryVerification   protocolFact[QueryVerification]

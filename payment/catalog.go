@@ -69,6 +69,7 @@ type CatalogPayload struct {
 	Watermark    receipt.Watermark `json:"watermark"`
 	ObservedAt   temporal.Instant  `json:"observed_at"`
 	Scope        receipt.Scope     `json:"scope"`
+	Request      QueryCommitment   `json:"query_commitment"`
 	Continuation Continuation      `json:"continuation"`
 }
 
@@ -76,7 +77,7 @@ type CatalogPayload struct {
 // embedded signed receipt structure.
 func (p CatalogPayload) Validate() error {
 	if err := errors.Join(
-		p.Scope.Validate(), p.Watermark.Validate(), p.ObservedAt.Validate(),
+		p.Scope.Validate(), p.Request.Validate(), p.Watermark.Validate(), p.ObservedAt.Validate(),
 		p.Continuation.Validate(),
 	); err != nil {
 		return contractError(err)
@@ -241,23 +242,24 @@ func IssueCatalog(issuance CatalogIssuance) (CatalogDocument, error) {
 	return document, document.Validate()
 }
 
-// CatalogVerification carries one untrusted page, exact tenant scope, and
+// CatalogVerification carries one untrusted page, its exact signed query, and
 // caller-selected authority keys.
 type CatalogVerification struct {
 	Document    CatalogDocument
-	Scope       receipt.Scope
+	Request     QueryPayload
 	TrustedKeys attest.TrustedKeys
 }
 
 // Validate closes the complete catalog verification input.
 func (v CatalogVerification) Validate() error {
-	if err := errors.Join(v.Document.Validate(), v.Scope.Validate(), v.TrustedKeys.Validate()); err != nil {
+	if err := errors.Join(v.Document.Validate(), v.Request.Validate(), v.TrustedKeys.Validate()); err != nil {
 		return contractError(err)
 	}
 	return nil
 }
 
-// VerifyCatalog authenticates one exact scoped catalog page.
+// VerifyCatalog authenticates one exact payment page and binds it to the
+// selection, cursor, limit, account, build, nonce, and revision requested.
 func VerifyCatalog(verification CatalogVerification) (CatalogPayload, error) {
 	if err := verification.Validate(); err != nil {
 		return CatalogPayload{}, err
@@ -268,10 +270,31 @@ func VerifyCatalog(verification CatalogVerification) (CatalogPayload, error) {
 	}); err != nil {
 		return CatalogPayload{}, verificationError(err)
 	}
-	if verification.Document.Payload.Scope != verification.Scope {
+	commitment, err := CommitQuery(verification.Request)
+	if err != nil {
+		return CatalogPayload{}, contractError(err)
+	}
+	payload := verification.Document.Payload
+	if payload.Scope != verification.Request.Query.Scope || payload.Request != commitment {
 		return CatalogPayload{}, verificationError(errors.New("payment catalog scope differs from expectation"))
 	}
-	return verification.Document.Payload, nil
+	if err := validateCatalogSelection(payload, verification.Request.Query.Selection); err != nil {
+		return CatalogPayload{}, err
+	}
+	return payload, nil
+}
+
+func validateCatalogSelection(payload CatalogPayload, selection Selection) error {
+	if selection.Kind == core.CatalogSelectionAll {
+		return nil
+	}
+	if payload.Continuation.State != core.CatalogContinuationEnd || len(payload.Entries) > 1 {
+		return verificationError(errors.New("specific payment catalog response has an invalid extent"))
+	}
+	if len(payload.Entries) == 1 && payload.Entries[0].Payload.Identity != selection.Payment {
+		return verificationError(errors.New("specific payment catalog response carries another payment"))
+	}
+	return nil
 }
 
 var (

@@ -25,6 +25,7 @@ const (
 	paymentJSONDoorDocument
 	paymentJSONDoorQueryPayload
 	paymentJSONDoorQueryDocument
+	paymentJSONDoorQueryCommitment
 	paymentJSONDoorCursor
 	paymentJSONDoorCatalogPayload
 	paymentJSONDoorCatalogDocument
@@ -45,6 +46,8 @@ func (d paymentJSONDoor) receiverName() string {
 		return "QueryPayload"
 	case paymentJSONDoorQueryDocument:
 		return "QueryDocument"
+	case paymentJSONDoorQueryCommitment:
+		return "QueryCommitment"
 	case paymentJSONDoorCursor:
 		return "Cursor"
 	case paymentJSONDoorCatalogPayload:
@@ -68,6 +71,7 @@ type paymentFuzzFixtures struct {
 	document        Document
 	queryPayload    QueryPayload
 	queryDocument   QueryDocument
+	queryCommitment QueryCommitment
 	cursor          Cursor
 	catalogPayload  CatalogPayload
 	catalogDocument CatalogDocument
@@ -105,6 +109,8 @@ func FuzzPaymentExternalJSONDoorInventory(f *testing.F) {
 			fuzzPaymentJSONValue(t, data, fixtures.queryPayload)
 		case paymentJSONDoorQueryDocument:
 			fuzzPaymentQueryDocument(t, data, fixtures)
+		case paymentJSONDoorQueryCommitment:
+			fuzzPaymentJSONValue(t, data, fixtures.queryCommitment)
 		case paymentJSONDoorCursor:
 			fuzzPaymentJSONValue(t, data, fixtures.cursor)
 		case paymentJSONDoorCatalogPayload:
@@ -254,7 +260,7 @@ func fuzzPaymentCatalogDocument(t *testing.T, data []byte, fixtures paymentFuzzF
 		return
 	}
 	proof, err := VerifyCatalog(CatalogVerification{
-		Document: candidate, Scope: fixtures.catalog.scope, TrustedKeys: fixtures.catalog.trusted,
+		Document: candidate, Request: fixtures.catalog.request, TrustedKeys: fixtures.catalog.trusted,
 	})
 	if err != nil {
 		if !errors.Is(err, core.ErrPaymentVerification) || !isZeroPaymentCatalog(proof) {
@@ -276,11 +282,16 @@ func paymentFixturesForFuzz(t testing.TB) paymentFuzzFixtures {
 	if err != nil {
 		t.Fatalf("NewCursor() error = %v, want nil", err)
 	}
+	queryCommitment, err := CommitQuery(query.payload)
+	if err != nil {
+		t.Fatalf("CommitQuery() error = %v, want nil", err)
+	}
 	return paymentFuzzFixtures{
 		payment: payment, catalog: catalog, query: query,
 		paymentID: payment.identity, signingDomain: SigningDomainReceiptV1,
 		payload: payment.document.Payload, document: payment.document,
-		queryPayload: query.payload, queryDocument: query.document, cursor: cursor,
+		queryPayload: query.payload, queryDocument: query.document,
+		queryCommitment: queryCommitment, cursor: cursor,
 		catalogPayload: catalog.payload, catalogDocument: catalog.document,
 	}
 }
@@ -294,6 +305,7 @@ func paymentJSONSeedsForFuzz(t testing.TB, fixtures paymentFuzzFixtures) []payme
 		paymentJSONSeedForFuzz(t, paymentJSONDoorDocument, fixtures.document),
 		paymentJSONSeedForFuzz(t, paymentJSONDoorQueryPayload, fixtures.queryPayload),
 		paymentJSONSeedForFuzz(t, paymentJSONDoorQueryDocument, fixtures.queryDocument),
+		paymentJSONSeedForFuzz(t, paymentJSONDoorQueryCommitment, fixtures.queryCommitment),
 		paymentJSONSeedForFuzz(t, paymentJSONDoorCursor, fixtures.cursor),
 		paymentJSONSeedForFuzz(t, paymentJSONDoorCatalogPayload, fixtures.catalogPayload),
 		paymentJSONSeedForFuzz(t, paymentJSONDoorCatalogDocument, fixtures.catalogDocument),

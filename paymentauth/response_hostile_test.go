@@ -114,10 +114,14 @@ func newPaymentResponseFixture(t testing.TB) paymentResponseFixture {
 	}
 	seed := paymentQuerySeed(authorityMarker)
 	signer := ed25519.NewKeyFromSeed(seed[:])
+	commitment, err := payment.CommitQuery(request.payload)
+	if err != nil {
+		t.Fatalf("payment.CommitQuery(real query) error = %v, want nil", err)
+	}
 	body, err := payment.IssueCatalog(payment.CatalogIssuance{Signer: signer, Payload: payment.CatalogPayload{
 		Entries: []payment.Document{}, Watermark: watermark,
 		ObservedAt: request.document.Certificate.Body.IssuedAt,
-		Scope:      request.payload.Query.Scope, Continuation: payment.End(),
+		Scope:      request.payload.Query.Scope, Request: commitment, Continuation: payment.End(),
 	}})
 	if err != nil {
 		t.Fatalf("payment.IssueCatalog(real empty page) error = %v, want nil", err)

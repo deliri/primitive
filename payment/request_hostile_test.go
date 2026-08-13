@@ -126,6 +126,52 @@ func TestSignedPaymentQueryLayerTriad(t *testing.T) {
 	})
 }
 
+func TestPaymentQueryCommitmentBindsEveryVariableRequestFact(t *testing.T) {
+	t.Parallel()
+
+	base := newSignedQueryFixture(t, signedQueryFixtureRequest{marker: 0x51, pageSize: 1})
+	want, err := CommitQuery(base.payload)
+	if err != nil {
+		t.Fatalf("CommitQuery(base) error = %v, want nil", err)
+	}
+	repeated, err := CommitQuery(base.payload)
+	if err != nil || repeated != want {
+		t.Fatalf("CommitQuery(repeated) = (%v, %v), want deterministic %v and nil", repeated, err, want)
+	}
+	other := newSignedQueryFixture(t, signedQueryFixtureRequest{
+		marker: 0x71, offering: core.OfferingBug, pageSize: 2,
+	})
+	cases := []struct {
+		name   string
+		mutate func(*QueryPayload)
+	}{
+		{name: "scope", mutate: func(value *QueryPayload) { value.Query.Scope = other.payload.Query.Scope }},
+		{name: "selection", mutate: func(value *QueryPayload) { value.Query.Selection = signedQuerySpecific(t, 0x72) }},
+		{name: "position", mutate: func(value *QueryPayload) { value.Query.Position = signedQueryAfter(t, 0x73) }},
+		{name: "page limit", mutate: func(value *QueryPayload) { value.Query.Limit = signedQueryLimit(t, 2) }},
+		{name: "build", mutate: func(value *QueryPayload) { value.Build = other.payload.Build }},
+		{name: "nonce", mutate: func(value *QueryPayload) { value.Nonce = other.payload.Nonce }},
+	}
+	for _, tc := range cases {
+		t.Run(tc.name, func(t *testing.T) {
+			t.Parallel()
+
+			candidate := base.payload
+			tc.mutate(&candidate)
+			got, gotErr := CommitQuery(candidate)
+			if gotErr != nil || got == want {
+				t.Fatalf("CommitQuery(%s mutation) = (%v, %v), want distinct from %v and nil",
+					tc.name, got, gotErr, want)
+			}
+		})
+	}
+	if got, gotErr := CommitQuery(QueryPayload{}); got != (QueryCommitment{}) ||
+		!errors.Is(gotErr, core.ErrPaymentContract) {
+		t.Fatalf("CommitQuery(zero) = (%v, %v), want zero and errors.Is %v",
+			got, gotErr, core.ErrPaymentContract)
+	}
+}
+
 func TestSignedPaymentQueryJSONPressuresMalformedAndExactByteBoundaries(t *testing.T) {
 	t.Parallel()
 

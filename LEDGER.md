@@ -4,6 +4,26 @@ Last updated: `2026-08-13`
 
 ## Current
 
+- closed exact payment-page traversal and request binding, 2026-08-13,
+  prepared `v2026.0.96`. Payment catalog pages now carry a nominal,
+  domain-separated commitment to the exact device-signed query. Verification
+  binds account/offering scope, all-or-specific selection, start/after cursor,
+  page ceiling, build, request nonce, and protocol revision before returning a
+  page. Specific selection admits only an end page containing zero or one
+  exact selected receipt. Payment and Chit therefore expose the same bounded,
+  newest-first, O(1)-with-respect-to-history traversal contract without a
+  consumer collecting account history.
+
+  Hostile proof closes deterministic and distinct commitments across every
+  variable request fact, empty through exact-maximum page extents, strict
+  newest-first order, tagged end/more unions, cursor and page-limit
+  substitution, exact specific-result cardinality, foreign receipt refusal,
+  neutral zero outputs, and strict JSON receiver preservation. Payment's
+  compiler-visible structure inventory and external-door semantic fuzz
+  inventory include the new commitment; Paymentauth's real signed response
+  fixture uses it rather than a test-only bypass. No compatibility form or
+  unbound catalog path remains.
+
 - added the missing logical-CPU host observation, 2026-08-13, prepared
   `v2026.0.95`. `hostfacts.ObserveLogicalCPUCount` now returns one immutable,
   validated fact directly from Go's `runtime.NumCPU`; worker budgets and
