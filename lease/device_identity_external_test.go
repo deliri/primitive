@@ -142,8 +142,8 @@ func TestDeviceIDForPublicKeyRejectsUnsetKeyWithoutAnIdentity(t *testing.T) {
 	if got != (lease.DeviceID{}) || !errors.Is(gotErr, core.ErrLeaseContract) {
 		t.Fatalf("DeviceIDForPublicKey(zero) = (%v, %v), want (zero, %v)", got, gotErr, core.ErrLeaseContract)
 	}
-	if got.Validate() == nil {
-		t.Fatalf("DeviceIDForPublicKey(zero) identity Validate() = nil, want a rejection")
+	if validateErr := got.Validate(); !errors.Is(validateErr, core.ErrLeaseContract) {
+		t.Fatalf("DeviceIDForPublicKey(zero) identity Validate() error = %v, want errors.Is %v", validateErr, core.ErrLeaseContract)
 	}
 }
 

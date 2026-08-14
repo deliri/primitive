@@ -350,8 +350,8 @@ func TestNumericZeroValuesFollowTheirProjectedTypes(t *testing.T) {
 	if _, err := instant.Instant(); !errors.Is(err, core.ErrTemporalContract) {
 		t.Fatalf("zero NumericInstant Instant() error = %v, want ErrTemporalContract", err)
 	}
-	if _, err := json.Marshal(instant); err == nil {
-		t.Fatal("json.Marshal(zero NumericInstant) error = nil, want a temporal rejection")
+	if _, err := json.Marshal(instant); !errors.Is(err, core.ErrTemporalContract) {
+		t.Fatalf("json.Marshal(zero NumericInstant) error = %v, want errors.Is %v", err, core.ErrTemporalContract)
 	}
 
 	var duration temporal.NumericDuration

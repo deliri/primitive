@@ -111,8 +111,12 @@ func TestAdoptPrivateKeyAdmitsExactlyWhatPrivateKeyProjects(t *testing.T) {
 	}
 
 	for _, extent := range []int{0, 1, ed25519.SeedSize, ed25519.PrivateKeySize - 1, ed25519.PrivateKeySize + 1} {
-		if _, err := keygen.AdoptPrivateKey(make(ed25519.PrivateKey, extent)); err == nil {
-			t.Fatalf("AdoptPrivateKey(%d bytes) error = nil, want the extent refusal", extent)
+		got, gotErr := keygen.AdoptPrivateKey(make(ed25519.PrivateKey, extent))
+		if !errors.Is(gotErr, core.ErrKeygenContract) {
+			t.Fatalf("AdoptPrivateKey(%d bytes) error = %v, want errors.Is %v", extent, gotErr, core.ErrKeygenContract)
+		}
+		if got != (keygen.SigningKey{}) {
+			t.Fatalf("AdoptPrivateKey(%d bytes) = %v, want zero key on refusal", extent, got)
 		}
 	}
 }
@@ -165,8 +169,17 @@ func TestSeedSizeNamesTheExactContractExtent(t *testing.T) {
 	if got, want := len(seed), ed25519.SeedSize; got != want {
 		t.Fatalf("len([keygen.SeedSize]byte{}) = %d, want %d", got, want)
 	}
-	if _, err := keygen.AdoptSigningKey(seed); err == nil {
-		t.Fatalf("AdoptSigningKey(zero seed) error = nil, want the no-entropy refusal")
+	got, gotErr := keygen.AdoptSigningKey(seed)
+	if !errors.Is(gotErr, core.ErrKeygenEntropy) || !errors.Is(gotErr, core.ErrSecretMaterialAllZero) {
+		t.Fatalf(
+			"AdoptSigningKey(zero seed) error = %v, want errors.Is %v and %v",
+			gotErr,
+			core.ErrKeygenEntropy,
+			core.ErrSecretMaterialAllZero,
+		)
+	}
+	if got != (keygen.SigningKey{}) {
+		t.Fatalf("AdoptSigningKey(zero seed) = %v, want zero key on refusal", got)
 	}
 }
 
@@ -193,8 +206,12 @@ func TestSeedRefusesADestroyedKey(t *testing.T) {
 	if err := generated.Destroy(); err != nil {
 		t.Fatalf("Destroy() error = %v, want nil", err)
 	}
-	if _, err := generated.Seed(); err == nil {
-		t.Fatalf("destroyed SigningKey Seed() error = nil, want a custody refusal")
+	seed, gotErr := generated.Seed()
+	if !errors.Is(gotErr, core.ErrKeygenContract) {
+		t.Fatalf("destroyed SigningKey Seed() error = %v, want errors.Is %v", gotErr, core.ErrKeygenContract)
+	}
+	if seed != ([keygen.SeedSize]byte{}) {
+		t.Fatalf("destroyed SigningKey Seed() = %x, want zero secret on refusal", seed)
 	}
 }
 
@@ -212,8 +229,8 @@ func TestAdoptSigningKeyRefusesASeedWithNoEntropy(t *testing.T) {
 	if !errors.Is(err, core.ErrSecretMaterialAllZero) {
 		t.Fatalf("AdoptSigningKey(all-zero seed) error = %v, want %v", err, core.ErrSecretMaterialAllZero)
 	}
-	if verr := key.Validate(); verr == nil {
-		t.Fatalf("refused adoption key.Validate() error = %v, want a refusal on the zero value", verr)
+	if verr := key.Validate(); !errors.Is(verr, core.ErrKeygenContract) {
+		t.Fatalf("refused adoption key.Validate() error = %v, want errors.Is %v", verr, core.ErrKeygenContract)
 	}
 }
 
@@ -239,10 +256,10 @@ func TestAdoptedKeyCarriesCoreOwnedDestructionAndRedaction(t *testing.T) {
 	if err := key.Destroy(); err != nil {
 		t.Fatalf("Destroy() error = %v, want nil", err)
 	}
-	if verr := copied.Validate(); verr == nil {
-		t.Fatalf("destroyed-copy Validate() error = %v, want shared destruction to refuse", verr)
+	if verr := copied.Validate(); !errors.Is(verr, core.ErrKeygenContract) {
+		t.Fatalf("destroyed-copy Validate() error = %v, want errors.Is %v", verr, core.ErrKeygenContract)
 	}
-	if private, perr := copied.PrivateKey(); perr == nil {
-		t.Fatalf("destroyed-copy PrivateKey() = (%v, %v), want a refusal", private, perr)
+	if private, perr := copied.PrivateKey(); private != nil || !errors.Is(perr, core.ErrKeygenContract) {
+		t.Fatalf("destroyed-copy PrivateKey() = (%v, %v), want nil and errors.Is %v", private, perr, core.ErrKeygenContract)
 	}
 }

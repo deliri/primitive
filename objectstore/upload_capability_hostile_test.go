@@ -574,8 +574,8 @@ func TestUploadCapabilityZeroValueRefusesEveryProjection(t *testing.T) {
 		t.Fatalf("zero UploadCapability.Target() error = %v, want %v",
 			targetErr, core.ErrObjectStoreContract)
 	}
-	if target.Validate() == nil {
-		t.Fatalf("zero UploadCapability.Target() returned a valid target, want the zero target")
+	if gotErr := target.Validate(); !errors.Is(gotErr, core.ErrObjectStoreContract) {
+		t.Fatalf("zero UploadCapability.Target().Validate() error = %v, want errors.Is %v", gotErr, core.ErrObjectStoreContract)
 	}
 
 	var absent *UploadCapability

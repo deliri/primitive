@@ -238,8 +238,12 @@ func TestEnvironmentPresenceExhaustsUint8Domain(t *testing.T) {
 		if got := presence.IsValid(); got != wantValid {
 			t.Fatalf("EnvironmentPresence(%d).IsValid() = %t, want %t", raw, got, wantValid)
 		}
-		if err := presence.Validate(); (err == nil) != wantValid {
-			t.Fatalf("EnvironmentPresence(%d).Validate() error = %v, want valid %t", raw, err, wantValid)
+		gotErr := presence.Validate()
+		if wantValid && gotErr != nil {
+			t.Fatalf("EnvironmentPresence(%d).Validate() error = %v, want nil", raw, gotErr)
+		}
+		if !wantValid && !errors.Is(gotErr, core.ErrProcessContract) {
+			t.Fatalf("EnvironmentPresence(%d).Validate() error = %v, want errors.Is %v", raw, gotErr, core.ErrProcessContract)
 		}
 		if gotUnknown := presence.String() == core.UnknownEnumDiagnostic; gotUnknown == wantValid {
 			t.Fatalf("EnvironmentPresence(%d).String() unknown = %t, want %t", raw, gotUnknown, !wantValid)
@@ -973,7 +977,7 @@ func TestClosedEnumsExhaustAllBackingValues(t *testing.T) {
 				wantEnvironmentValid,
 			)
 		}
-		if gotErr := environmentMode.Validate(); (gotErr == nil) != wantEnvironmentValid {
+		if gotErr := environmentMode.Validate(); wantEnvironmentValid && gotErr != nil || !wantEnvironmentValid && !errors.Is(gotErr, core.ErrProcessContract) {
 			t.Errorf(
 				"EnvironmentMode(%d).Validate() error = %v, want valid %t",
 				raw,
@@ -997,7 +1001,7 @@ func TestClosedEnumsExhaustAllBackingValues(t *testing.T) {
 		if got := stream.IsValid(); got != wantStreamValid {
 			t.Errorf("Stream(%d).IsValid() = %t, want %t", raw, got, wantStreamValid)
 		}
-		if gotErr := stream.Validate(); (gotErr == nil) != wantStreamValid {
+		if gotErr := stream.Validate(); wantStreamValid && gotErr != nil || !wantStreamValid && !errors.Is(gotErr, core.ErrProcessContract) {
 			t.Errorf(
 				"Stream(%d).Validate() error = %v, want valid %t",
 				raw,
@@ -1026,7 +1030,7 @@ func TestClosedEnumsExhaustAllBackingValues(t *testing.T) {
 				wantFailureValid,
 			)
 		}
-		if gotErr := failureKind.Validate(); (gotErr == nil) != wantFailureValid {
+		if gotErr := failureKind.Validate(); wantFailureValid && gotErr != nil || !wantFailureValid && !errors.Is(gotErr, core.ErrProcessContract) {
 			t.Errorf(
 				"FailureKind(%d).Validate() error = %v, want valid %t",
 				raw,

@@ -106,8 +106,8 @@ func TestRandomTokenRefusesAnUnboundedRequest(t *testing.T) {
 	if !errors.Is(err, core.ErrKeygenContract) {
 		t.Fatalf("RandomToken(over ceiling) error = %v, want %v", err, core.ErrKeygenContract)
 	}
-	if refused.Validate() == nil {
-		t.Fatalf("RandomToken(over ceiling) token validates alongside the refusal, want the undrawn zero")
+	if gotErr := refused.Validate(); !errors.Is(gotErr, core.ErrKeygenContract) {
+		t.Fatalf("RandomToken(over ceiling) token Validate() error = %v, want errors.Is %v", gotErr, core.ErrKeygenContract)
 	}
 	if _, err := keygen.RandomToken(keygen.RandomTokenRequest{}); !errors.Is(err, core.ErrKeygenContract) {
 		t.Fatalf("RandomToken(zero) error = %v, want %v", err, core.ErrKeygenContract)

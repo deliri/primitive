@@ -168,8 +168,8 @@ func TestContractBoundaryExhaustsUnderlyingDomain(t *testing.T) {
 			)
 		}
 		if !found {
-			if boundary.Validate() == nil {
-				t.Fatalf("ContractBoundary(%d).Validate() error = nil, want rejection", raw)
+			if gotErr := boundary.Validate(); !errors.Is(gotErr, core.ErrGateContract) {
+				t.Fatalf("ContractBoundary(%d).Validate() error = %v, want errors.Is %v", raw, gotErr, core.ErrGateContract)
 			}
 			if boundary.String() != "" {
 				t.Fatalf(
@@ -229,8 +229,8 @@ func TestContractDiagnosticsCarryIdentityWithoutRenderingPrivateFacts(t *testing
 	}
 
 	unset := ContractError{}
-	if unset.Validate() == nil {
-		t.Fatal("ContractError{}.Validate() error = nil, want rejection")
+	if gotErr := unset.Validate(); !errors.Is(gotErr, core.ErrGateContract) {
+		t.Fatalf("ContractError{}.Validate() error = %v, want errors.Is %v", gotErr, core.ErrGateContract)
 	}
 
 	var unsetDenial DenialError

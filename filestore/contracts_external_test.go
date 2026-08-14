@@ -448,7 +448,7 @@ func TestRelativePathCannotBypassRealRootConfinement(t *testing.T) {
 			t.Errorf("os.Root.Close() error = %v, want nil", closeErr)
 		}
 	}()
-	_, gotErr := filestore.Write(t.Context(), filestore.WriteRequest{
+	recovery, gotErr := filestore.Write(t.Context(), filestore.WriteRequest{
 		Source: strings.NewReader("escape"),
 		Location: filestore.Location{
 			Root: root,
@@ -459,8 +459,15 @@ func TestRelativePathCannotBypassRealRootConfinement(t *testing.T) {
 		Install:      filestore.InstallReplace,
 		MaximumBytes: mustByteCount(t, 6),
 	})
-	if gotErr == nil {
-		t.Fatal("Write() through escaping symlink error = nil, want confinement failure")
+	if !errors.Is(gotErr, core.ErrFilestoreActivation) {
+		t.Fatalf(
+			"Write() through escaping symlink error = %v, want errors.Is %v",
+			gotErr,
+			core.ErrFilestoreActivation,
+		)
+	}
+	if recovery != (filestore.CommitRequest{}) {
+		t.Fatalf("Write() through escaping symlink recovery = %+v, want zero after determinate cleanup", recovery)
 	}
 	got, err := os.ReadFile(outsideTarget)
 	if err != nil {

@@ -316,8 +316,13 @@ func TestCgroupAncestorFoldRealFilesystemLayerTriad(t *testing.T) {
 		membership := cgroupMembership{path: "/team/job", source: WorkloadMemoryLimitSourceCgroupV2}
 
 		got, gotErr := foldCgroupLimits(context.Background(), membership, mount)
-		if got != (WorkloadMemoryLimit{}) || gotErr == nil {
-			t.Fatalf("foldCgroupLimits(malformed ancestor) = (%v, %v), want zero refusal", got, gotErr)
+		if got != (WorkloadMemoryLimit{}) || !errors.Is(gotErr, core.ErrHostFactsObservation) {
+			t.Fatalf(
+				"foldCgroupLimits(malformed ancestor) = (%v, %v), want zero value and errors.Is %v",
+				got,
+				gotErr,
+				core.ErrHostFactsObservation,
+			)
 		}
 	})
 

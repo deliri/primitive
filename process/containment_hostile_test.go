@@ -25,8 +25,9 @@ func TestIsolationAdmitsOnlyTheClosedDomain(t *testing.T) {
 				admitted = true
 			}
 		}
-		if got := isolation.Validate() == nil; got != admitted {
-			t.Fatalf("Isolation(%d).Validate() admitted = %t, want %t", raw, got, admitted)
+		gotErr := isolation.Validate()
+		if admitted && gotErr != nil || !admitted && !errors.Is(gotErr, core.ErrProcessContract) {
+			t.Fatalf("Isolation(%d).Validate() error = %v, want admitted %t or errors.Is %v", raw, gotErr, admitted, core.ErrProcessContract)
 		}
 		if got := isolation.IsValid(); got != admitted {
 			t.Fatalf("Isolation(%d).IsValid() = %t, want %t", raw, got, admitted)
@@ -35,8 +36,8 @@ func TestIsolationAdmitsOnlyTheClosedDomain(t *testing.T) {
 			t.Fatalf("Isolation(%d).String() = %q, want %q", raw, isolation.String(), core.UnknownEnumDiagnostic)
 		}
 	}
-	if process.IsolationUnknown.Validate() == nil {
-		t.Fatalf("IsolationUnknown.Validate() = nil, want the zero value rejected")
+	if gotErr := process.IsolationUnknown.Validate(); !errors.Is(gotErr, core.ErrProcessContract) {
+		t.Fatalf("IsolationUnknown.Validate() error = %v, want errors.Is %v", gotErr, core.ErrProcessContract)
 	}
 }
 
@@ -57,8 +58,9 @@ func TestCancelSignalAdmitsOnlyTheClosedDomain(t *testing.T) {
 				admitted = true
 			}
 		}
-		if got := signal.Validate() == nil; got != admitted {
-			t.Fatalf("CancelSignal(%d).Validate() admitted = %t, want %t", raw, got, admitted)
+		gotErr := signal.Validate()
+		if admitted && gotErr != nil || !admitted && !errors.Is(gotErr, core.ErrProcessContract) {
+			t.Fatalf("CancelSignal(%d).Validate() error = %v, want admitted %t or errors.Is %v", raw, gotErr, admitted, core.ErrProcessContract)
 		}
 		if !admitted && signal.String() != core.UnknownEnumDiagnostic {
 			t.Fatalf("CancelSignal(%d).String() = %q, want %q", raw, signal.String(), core.UnknownEnumDiagnostic)
@@ -78,8 +80,9 @@ func TestLivenessAdmitsOnlyTheClosedDomain(t *testing.T) {
 				admitted = true
 			}
 		}
-		if got := liveness.Validate() == nil; got != admitted {
-			t.Fatalf("Liveness(%d).Validate() admitted = %t, want %t", raw, got, admitted)
+		gotErr := liveness.Validate()
+		if admitted && gotErr != nil || !admitted && !errors.Is(gotErr, core.ErrProcessContract) {
+			t.Fatalf("Liveness(%d).Validate() error = %v, want admitted %t or errors.Is %v", raw, gotErr, admitted, core.ErrProcessContract)
 		}
 	}
 }

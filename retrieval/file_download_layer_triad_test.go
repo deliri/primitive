@@ -104,9 +104,17 @@ func TestVerifiedGrantDownloadFileLayerTriadNegativePreservesPriorTarget(t *test
 		}),
 	}
 	recovery, transfer, err := fixture.grant.DownloadFile(t.Context(), request)
-	if err == nil || recovery.Validate() == nil || transfer.Commitment() == objectstore.CommitmentConfirmed {
-		t.Fatalf("truncated DownloadFile() = (recovery %v, commitment %v, error %v), want zero recovery and failed transfer",
-			recovery, transfer.Commitment(), err)
+	if !errors.Is(err, core.ErrObjectStoreIntegrity) ||
+		!errors.Is(recovery.Validate(), core.ErrFilestoreContract) ||
+		transfer.Commitment() != objectstore.CommitmentRejected ||
+		transfer.Validate() == nil {
+		t.Fatalf(
+			"truncated DownloadFile() = (recovery %v, transfer %v, error %v), want zero recovery, rejected transfer, and errors.Is %v",
+			recovery,
+			transfer,
+			err,
+			core.ErrObjectStoreIntegrity,
+		)
 	}
 	if got := readRetrievalTarget(t, root, "target"); !bytes.Equal(got, prior) {
 		t.Fatalf("target after failed download = %q, want preserved %q", got, prior)

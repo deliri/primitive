@@ -4,6 +4,22 @@ Last updated: `2026-08-14`
 
 ## Current
 
+- completed the full-suite rejection-oracle audit, 2026-08-14, prepared
+  `v2026.0.116`. Twelve production slices now require their owning typed error
+  identities and their zero, rejected, preserved, or determinate-cleanup
+  outputs instead of accepting any non-nil error. The repaired proof covers
+  rooted Filestore confinement, cgroup corruption, Keygen adoption and
+  destroyed custody, Gate and Process closed domains, Objectstore zero
+  capabilities, authenticated Retrieval integrity failure, Release secret
+  destruction, Lease identity derivation, and Temporal JSON rejection.
+
+  Removing Keygen's contract wrapper from the real destroyed-seed projection
+  drives the isolated custody test red even though an error remains, proving
+  that the typed identity is load-bearing. Restored production passes every
+  touched package path. Staticcheck, repository deadcode with tests, and
+  witness-lint are green; the campaign-wide canonical gate remains reserved
+  for the end as directed.
+
 - restored the blind standard Objectstore client socket discovered by the Bug
   consumer upgrade, 2026-08-14, prepared `v2026.0.115`.
   `objectstore.NewStandardClient` now owns both the standard-library client and

@@ -76,8 +76,9 @@ func TestReleaseMaterialOpensExactCapabilitiesAndRedactsEverySecret(t *testing.T
 	if err != nil {
 		t.Fatalf("MaterialResponse.Open() error = %v, want nil", err)
 	}
-	if fixture != (release.MaterialResponse{}) || fixture.Validate() == nil {
-		t.Fatalf("MaterialResponse.Open() source = (%v, valid %t), want zero and invalidated", fixture, fixture.Validate() == nil)
+	fixtureErr := fixture.Validate()
+	if fixture != (release.MaterialResponse{}) || !errors.Is(fixtureErr, core.ErrReleaseContract) {
+		t.Fatalf("MaterialResponse.Open() source = (%v, %v), want zero and errors.Is %v", fixture, fixtureErr, core.ErrReleaseContract)
 	}
 	gotPublic, err := opened.SigningKey.PublicKey()
 	if err != nil {
@@ -94,8 +95,18 @@ func TestReleaseMaterialOpensExactCapabilitiesAndRedactsEverySecret(t *testing.T
 		t.Fatalf("Material.Destroy() error = %v, want nil", err)
 	}
 	gotMaterialErr, gotSigningErr, gotCustodyErr := opened.Validate(), opened.SigningKey.Validate(), opened.Custody.Validate()
-	if gotMaterialErr == nil || gotSigningErr == nil || gotCustodyErr == nil {
-		t.Fatalf("destroyed capability errors = (material %v, signing %v, custody %v), want all non-nil", gotMaterialErr, gotSigningErr, gotCustodyErr)
+	if !errors.Is(gotMaterialErr, core.ErrReleaseContract) ||
+		!errors.Is(gotSigningErr, core.ErrKeygenContract) ||
+		!errors.Is(gotCustodyErr, core.ErrGarbleContract) {
+		t.Fatalf(
+			"destroyed capability errors = (material %v, signing %v, custody %v), want errors.Is (%v, %v, %v)",
+			gotMaterialErr,
+			gotSigningErr,
+			gotCustodyErr,
+			core.ErrReleaseContract,
+			core.ErrKeygenContract,
+			core.ErrGarbleContract,
+		)
 	}
 }
 
@@ -306,11 +317,15 @@ func FuzzReleaseMaterialResponseExternalSemanticOracle(f *testing.F) {
 		if openErr != nil || opened.Validate() != nil {
 			t.Fatalf("accepted material capability projection = (error %v, validation %v), want usable", openErr, opened.Validate())
 		}
-		if destroyErr := opened.Destroy(); destroyErr != nil || opened.Validate() == nil {
-			t.Fatalf("accepted material destruction = (error %v, still valid %t), want nil and invalidated", destroyErr, opened.Validate() == nil)
+		if destroyErr := opened.Destroy(); destroyErr != nil {
+			t.Fatalf("accepted material Destroy() error = %v, want nil", destroyErr)
 		}
-		if candidate != (release.MaterialResponse{}) || candidate.Validate() == nil {
-			t.Fatalf("accepted material source after Open = (%v, valid %t), want zero and invalidated", candidate, candidate.Validate() == nil)
+		if validateErr := opened.Validate(); !errors.Is(validateErr, core.ErrReleaseContract) {
+			t.Fatalf("destroyed accepted material Validate() error = %v, want errors.Is %v", validateErr, core.ErrReleaseContract)
+		}
+		candidateErr := candidate.Validate()
+		if candidate != (release.MaterialResponse{}) || !errors.Is(candidateErr, core.ErrReleaseContract) {
+			t.Fatalf("accepted material source after Open = (%v, %v), want zero and errors.Is %v", candidate, candidateErr, core.ErrReleaseContract)
 		}
 	})
 }
