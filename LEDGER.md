@@ -4,6 +4,26 @@ Last updated: `2026-08-13`
 
 ## Current
 
+- closed exact manifest membership for Retrieval grants, 2026-08-13, prepared
+  `v2026.0.102`. Chit's `ManifestEntryVerifier` replays the authenticated
+  manifest in one pass, retains only the requested fixed-size addition, and
+  releases `VerifiedManifestEntry` only when the recomputed summary equals the
+  signed Chit closure and the requested sequence was present. Retrieval grant
+  issuance now requires that sealed capability and derives both the exact entry
+  and manifest summary from it; a separately valid receipt from the same tenant
+  can no longer be paired with an unrelated authenticated Chit. Memory remains
+  O(1) in object count and extent, and Primitive owns no manifest store.
+
+  The meaningful red state was the absent compiler-owned verifier and sealed
+  membership type. Hostile proof streams ten-entry manifests while selecting
+  every sequence, independently refuses ten absent selections and ten foreign
+  summaries, preserves zero-proof neutrality, and proves repeated seal is
+  terminal. A same-scope expanded manifest containing the identical selected
+  entry is refused by grant issuance because its closure differs from the
+  authenticated Chit. Removing that manifest-summary binding made the exact
+  hostile case fail red by issuing a valid-looking bearer grant, then returned
+  green on restoration.
+
 - closed exact Chit catalog pagination, 2026-08-13, prepared `v2026.0.101`.
   `CursorFor` now derives the only valid opaque continuation from the exact
   UUIDv7 identity at a newest-first page tail using a domain-separated SHA-256

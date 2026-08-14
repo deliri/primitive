@@ -173,7 +173,7 @@ type GrantIssuance struct {
 	Signer     crypto.Signer
 	Capability objectstore.DownloadCapabilityProjection
 	Payload    GrantPayload
-	Entry      chit.ManifestAddition
+	Entry      chit.VerifiedManifestEntry
 	Chit       chit.Verified
 	Request    RequestPayload
 }
@@ -201,26 +201,64 @@ func validateIssuanceBinding(issuance GrantIssuance) error {
 	if err != nil {
 		return bindingError(err)
 	}
+	addition, err := issuance.Entry.Addition()
+	if err != nil {
+		return bindingError(err)
+	}
+	summary, err := issuance.Entry.Summary()
+	if err != nil {
+		return bindingError(err)
+	}
 	payload := issuance.Payload
 	requestCommitment, err := CommitRequest(issuance.Request)
 	if err != nil {
 		return bindingError(err)
 	}
-	if payload.Chit != document.Payload.Identity ||
-		payload.Manifest != document.Payload.Manifest.Digest ||
-		payload.Entry != issuance.Entry.Entry || payload.Request != requestCommitment ||
-		payload.Chit != issuance.Request.Chit {
-		return bindingError(errors.New("retrieval issuance differs from authenticated chit or entry"))
-	}
-	header := payload.Entry.Evidence.Payload.Header
-	if header.Account != document.Payload.Scope.Account ||
-		header.Offering != document.Payload.Scope.Offering {
-		return bindingError(errors.New("retrieval entry scope differs from authenticated chit"))
+	if err := errors.Join(
+		validateManifestIdentity(issuance, document, summary),
+		validateEntryRequestIdentity(issuance, addition, requestCommitment),
+		validateEntryScope(payload, document),
+	); err != nil {
+		return err
 	}
 	return validateExpectedSelection(selectionExpectation{
 		Selection: issuance.Request.Selection, Sequence: payload.Entry.Sequence,
 		Continuation: payload.Continuation, Count: document.Payload.Manifest.Objects,
 	})
+}
+
+func validateManifestIdentity(
+	issuance GrantIssuance,
+	document chit.Document,
+	summary chit.ManifestSummary,
+) error {
+	if issuance.Payload.Chit != document.Payload.Identity ||
+		document.Payload.Manifest != summary || issuance.Payload.Manifest != summary.Digest {
+		return bindingError(errors.New("retrieval issuance differs from authenticated chit or manifest"))
+	}
+	return nil
+}
+
+func validateEntryRequestIdentity(
+	issuance GrantIssuance,
+	addition chit.ManifestAddition,
+	requestCommitment RequestCommitment,
+) error {
+	if issuance.Payload.Entry != addition.Entry ||
+		issuance.Payload.Request != requestCommitment ||
+		issuance.Payload.Chit != issuance.Request.Chit {
+		return bindingError(errors.New("retrieval issuance differs from authenticated entry or request"))
+	}
+	return nil
+}
+
+func validateEntryScope(payload GrantPayload, document chit.Document) error {
+	header := payload.Entry.Evidence.Payload.Header
+	if header.Account != document.Payload.Scope.Account ||
+		header.Offering != document.Payload.Scope.Offering {
+		return bindingError(errors.New("retrieval entry scope differs from authenticated chit"))
+	}
+	return nil
 }
 
 func IssueGrant(issuance GrantIssuance) (GrantProjection, error) {

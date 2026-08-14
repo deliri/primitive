@@ -224,6 +224,23 @@ type ManifestAccumulator struct {
 	sealed     bool
 }
 
+// ManifestEntryVerifier recomputes one persisted manifest stream while
+// retaining only the exact requested entry. Its memory is constant in the
+// number and extent of manifest objects.
+type ManifestEntryVerifier struct {
+	accumulator *ManifestAccumulator
+	selected    ManifestAddition
+	sequence    EntrySequence
+	found       bool
+}
+
+// VerifiedManifestEntry is sealed proof that one authenticated receipt entry
+// participated at its exact sequence in one exact manifest summary.
+type VerifiedManifestEntry struct {
+	addition ManifestAddition
+	summary  ManifestSummary
+}
+
 const (
 	manifestAccumulatorUnsetDiagnostic  = "manifest accumulator is unset"
 	manifestAccumulatorSealedDiagnostic = "manifest accumulator is sealed"
@@ -234,6 +251,77 @@ func NewManifestAccumulator() *ManifestAccumulator {
 	_, _ = digest.Write([]byte(manifestFrameDomain))
 	_, _ = digest.Write([]byte{0})
 	return &ManifestAccumulator{digest: digest}
+}
+
+// NewManifestEntryVerifier begins one O(1) lookup over a manifest stream.
+func NewManifestEntryVerifier(sequence EntrySequence) (*ManifestEntryVerifier, error) {
+	if err := sequence.Validate(); err != nil {
+		return nil, contractError(err)
+	}
+	return &ManifestEntryVerifier{accumulator: NewManifestAccumulator(), sequence: sequence}, nil
+}
+
+// Add admits the next authenticated manifest entry and retains it only when it
+// is the requested sequence.
+func (v *ManifestEntryVerifier) Add(addition ManifestAddition) error {
+	if v == nil || v.accumulator == nil {
+		return contractError(errors.New(manifestAccumulatorUnsetDiagnostic))
+	}
+	if err := v.accumulator.Add(addition); err != nil {
+		return err
+	}
+	if addition.Entry.Sequence == v.sequence {
+		v.selected = addition
+		v.found = true
+	}
+	return nil
+}
+
+// Seal proves the recomputed stream equals the authenticated summary before
+// releasing the selected entry. The underlying accumulator owns terminal use.
+func (v *ManifestEntryVerifier) Seal(expected ManifestSummary) (VerifiedManifestEntry, error) {
+	if v == nil || v.accumulator == nil {
+		return VerifiedManifestEntry{}, contractError(errors.New(manifestAccumulatorUnsetDiagnostic))
+	}
+	if err := expected.Validate(); err != nil {
+		return VerifiedManifestEntry{}, contractError(err)
+	}
+	got, err := v.accumulator.Seal()
+	if err != nil {
+		return VerifiedManifestEntry{}, err
+	}
+	if got != expected || !v.found {
+		return VerifiedManifestEntry{}, conflictError(errors.New("manifest stream does not prove the requested entry"))
+	}
+	proof := VerifiedManifestEntry{addition: v.selected, summary: got}
+	return proof, proof.Validate()
+}
+
+// Validate closes the sealed entry and the exact stream summary that proved it.
+func (v VerifiedManifestEntry) Validate() error {
+	if err := errors.Join(v.addition.Validate(), v.summary.Validate()); err != nil {
+		return contractError(err)
+	}
+	if v.addition.Entry.Sequence.Uint64() > v.summary.Objects.Uint64() {
+		return conflictError(errors.New("verified manifest entry exceeds its summary"))
+	}
+	return nil
+}
+
+// Addition returns the exact authenticated entry admitted by the stream.
+func (v VerifiedManifestEntry) Addition() (ManifestAddition, error) {
+	if err := v.Validate(); err != nil {
+		return ManifestAddition{}, err
+	}
+	return v.addition, nil
+}
+
+// Summary returns the exact recomputed manifest closure.
+func (v VerifiedManifestEntry) Summary() (ManifestSummary, error) {
+	if err := v.Validate(); err != nil {
+		return ManifestSummary{}, err
+	}
+	return v.summary, nil
 }
 
 // Add admits exactly the next authenticated receipt and sequence, then folds
@@ -312,6 +400,7 @@ var (
 	_ core.Validatable            = EntrySequence{}
 	_ core.Validatable            = ManifestDigest{}
 	_ core.Validatable            = ManifestSummary{}
+	_ core.Validatable            = VerifiedManifestEntry{}
 	_ core.ValidatedJSONMarshaler = ManifestDigest{}
 	_ core.ValidatedJSONMarshaler = ObjectCount{}
 	_ core.ValidatedJSONMarshaler = EntrySequence{}

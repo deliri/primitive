@@ -19,7 +19,7 @@ func TestGrantDocumentJSONLayerTriad(t *testing.T) {
 	fixture := newDownloadCallFixture(t, downloadCallFixtureRequest{Payload: []byte{0x11, 0x12}})
 	projection, gotErr := IssueGrant(GrantIssuance{
 		Signer: fixture.private, Capability: fixture.capability, Payload: fixture.grantPayload,
-		Entry: fixture.addition, Chit: fixture.chit, Request: fixture.request,
+		Entry: fixture.membership, Chit: fixture.chit, Request: fixture.request,
 	})
 	if gotErr != nil {
 		t.Fatalf("IssueGrant() setup error = %v, want nil", gotErr)
@@ -147,7 +147,7 @@ func TestGrantIssuanceLayerTriad(t *testing.T) {
 				fixture := newDownloadCallFixture(t, downloadCallFixtureRequest{Payload: bytes.Repeat([]byte{0x4d}, tc.size)})
 				got, gotErr := IssueGrant(GrantIssuance{
 					Signer: fixture.private, Capability: fixture.capability, Payload: fixture.grantPayload,
-					Entry: fixture.addition, Chit: fixture.chit, Request: fixture.request,
+					Entry: fixture.membership, Chit: fixture.chit, Request: fixture.request,
 				})
 				if gotErr != nil || got.Validate() != nil {
 					t.Fatalf("IssueGrant(%d-byte entry) = (%v, %v), want valid projection and nil", tc.size, got, gotErr)
@@ -176,6 +176,29 @@ func TestGrantIssuanceLayerTriad(t *testing.T) {
 
 		fixture := newDownloadCallFixture(t, downloadCallFixtureRequest{Payload: []byte{0x01}})
 		other := newDownloadCallFixture(t, downloadCallFixtureRequest{Payload: []byte{0x02, 0x03}})
+		expanded := other.addition
+		expanded.Entry.Sequence = grantEntrySequence(t, 2)
+		expandedManifest := chit.NewManifestAccumulator()
+		expandedVerifier, err := chit.NewManifestEntryVerifier(fixture.addition.Entry.Sequence)
+		if err != nil {
+			t.Fatalf("chit.NewManifestEntryVerifier(expanded) error = %v, want nil", err)
+		}
+		for _, addition := range []chit.ManifestAddition{fixture.addition, expanded} {
+			if gotErr := expandedManifest.Add(addition); gotErr != nil {
+				t.Fatalf("expanded ManifestAccumulator.Add() error = %v, want nil", gotErr)
+			}
+			if gotErr := expandedVerifier.Add(addition); gotErr != nil {
+				t.Fatalf("expanded ManifestEntryVerifier.Add() error = %v, want nil", gotErr)
+			}
+		}
+		expandedSummary, err := expandedManifest.Seal()
+		if err != nil {
+			t.Fatalf("expanded ManifestAccumulator.Seal() error = %v, want nil", err)
+		}
+		expandedMembership, err := expandedVerifier.Seal(expandedSummary)
+		if err != nil {
+			t.Fatalf("expanded ManifestEntryVerifier.Seal() error = %v, want nil", err)
+		}
 		cases := []struct {
 			wantErr error
 			mutate  func(*GrantIssuance)
@@ -185,10 +208,11 @@ func TestGrantIssuanceLayerTriad(t *testing.T) {
 			{name: "nil signer", mutate: func(value *GrantIssuance) { value.Signer = nil }, wantErr: core.ErrRetrievalContract},
 			{name: "zero capability", mutate: func(value *GrantIssuance) { value.Capability = objectstore.DownloadCapabilityProjection{} }, wantErr: core.ErrRetrievalContract},
 			{name: "zero payload", mutate: func(value *GrantIssuance) { value.Payload = GrantPayload{} }, wantErr: core.ErrRetrievalContract},
-			{name: "zero manifest entry proof", mutate: func(value *GrantIssuance) { value.Entry = chit.ManifestAddition{} }, wantErr: core.ErrRetrievalContract},
+			{name: "zero manifest entry proof", mutate: func(value *GrantIssuance) { value.Entry = chit.VerifiedManifestEntry{} }, wantErr: core.ErrRetrievalContract},
 			{name: "zero authenticated chit", mutate: func(value *GrantIssuance) { value.Chit = chit.Verified{} }, wantErr: core.ErrRetrievalContract},
 			{name: "zero authenticated request", mutate: func(value *GrantIssuance) { value.Request = RequestPayload{} }, wantErr: core.ErrRetrievalContract},
-			{name: "entry from another authenticated receipt", mutate: func(value *GrantIssuance) { value.Entry = other.addition }, wantErr: core.ErrRetrievalBinding},
+			{name: "entry from another authenticated manifest", mutate: func(value *GrantIssuance) { value.Entry = other.membership }, wantErr: core.ErrRetrievalBinding},
+			{name: "same entry proven under an expanded foreign manifest", mutate: func(value *GrantIssuance) { value.Entry = expandedMembership }, wantErr: core.ErrRetrievalBinding},
 			{name: "chit with another manifest", mutate: func(value *GrantIssuance) { value.Chit = other.chit }, wantErr: core.ErrRetrievalBinding},
 			{name: "payload names another chit", mutate: func(value *GrantIssuance) { value.Payload.Chit = mustRetrievalChitID(t, retrievalFixtureChitB) }, wantErr: core.ErrRetrievalBinding},
 			{name: "payload carries another entry", mutate: func(value *GrantIssuance) { value.Payload.Entry = other.addition.Entry }, wantErr: core.ErrRetrievalBinding},
@@ -204,7 +228,7 @@ func TestGrantIssuanceLayerTriad(t *testing.T) {
 
 				input := GrantIssuance{
 					Signer: fixture.private, Capability: fixture.capability, Payload: fixture.grantPayload,
-					Entry: fixture.addition, Chit: fixture.chit, Request: fixture.request,
+					Entry: fixture.membership, Chit: fixture.chit, Request: fixture.request,
 				}
 				tc.mutate(&input)
 				got, gotErr := IssueGrant(input)
@@ -419,7 +443,7 @@ func TestGrantIssuanceRefusesEveryTraversalContradiction(t *testing.T) {
 
 			input := GrantIssuance{
 				Signer: testCase.fixture.private, Capability: testCase.fixture.capability,
-				Payload: testCase.fixture.grantPayload, Entry: testCase.fixture.addition,
+				Payload: testCase.fixture.grantPayload, Entry: testCase.fixture.membership,
 				Chit: testCase.fixture.chit, Request: testCase.fixture.request,
 			}
 			testCase.mutate(&input)

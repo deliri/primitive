@@ -211,6 +211,113 @@ func TestManifestAccumulatorLayerTriad(t *testing.T) {
 	})
 }
 
+func TestManifestEntryVerifierLayerTriad(t *testing.T) {
+	t.Parallel()
+
+	t.Run("positive every selected sequence proves exact membership in the streamed closure", func(t *testing.T) {
+		t.Parallel()
+
+		for selected := uint64(1); selected <= 10; selected++ {
+			fixture := newChitFixture(t, byte(0x70+selected), 1)
+			accumulator := NewManifestAccumulator()
+			verifier, err := NewManifestEntryVerifier(mustEntrySequence(t, selected))
+			if err != nil {
+				t.Fatalf("NewManifestEntryVerifier(sequence %d) error = %v, want nil", selected, err)
+			}
+			for sequence := uint64(1); sequence <= 10; sequence++ {
+				addition := fixture.addition
+				if sequence > 1 {
+					addition = chitManifestEntryFixture(t, chitDerivedEntryFixtureRequest{
+						Fixture: fixture, Marker: byte(0x90 + sequence),
+						Sequence: sequence, Name: chitFixtureNameB,
+					})
+				}
+				if gotErr := accumulator.Add(addition); gotErr != nil {
+					t.Fatalf("ManifestAccumulator.Add(sequence %d) error = %v, want nil", sequence, gotErr)
+				}
+				if gotErr := verifier.Add(addition); gotErr != nil {
+					t.Fatalf("ManifestEntryVerifier.Add(sequence %d) error = %v, want nil", sequence, gotErr)
+				}
+			}
+			summary, err := accumulator.Seal()
+			if err != nil {
+				t.Fatalf("ManifestAccumulator.Seal(sequence %d) error = %v, want nil", selected, err)
+			}
+			proof, err := verifier.Seal(summary)
+			if err != nil {
+				t.Fatalf("ManifestEntryVerifier.Seal(sequence %d) error = %v, want nil", selected, err)
+			}
+			addition, additionErr := proof.Addition()
+			gotSummary, summaryErr := proof.Summary()
+			if additionErr != nil || summaryErr != nil || addition.Entry.Sequence.Uint64() != selected || gotSummary != summary {
+				t.Fatalf("VerifiedManifestEntry(sequence %d) = (%v, %v, %v, %v), want exact selected addition and summary", selected, addition, additionErr, gotSummary, summaryErr)
+			}
+		}
+	})
+
+	t.Run("negative absent selections and foreign summaries return no membership proof", func(t *testing.T) {
+		t.Parallel()
+
+		fixture := newChitFixture(t, 0x41, 1)
+		summary := manifestSummaryFixture(t, fixture.addition)
+		for index := uint64(1); index <= 10; index++ {
+			verifier, err := NewManifestEntryVerifier(mustEntrySequence(t, 10+index))
+			if err != nil {
+				t.Fatalf("NewManifestEntryVerifier(absent %d) error = %v, want nil", index, err)
+			}
+			if gotErr := verifier.Add(fixture.addition); gotErr != nil {
+				t.Fatalf("ManifestEntryVerifier.Add(absent %d) error = %v, want nil", index, gotErr)
+			}
+			got, gotErr := verifier.Seal(summary)
+			if !errors.Is(gotErr, core.ErrChitConflict) || got != (VerifiedManifestEntry{}) {
+				t.Fatalf("ManifestEntryVerifier.Seal(absent %d) = (%v, %v), want zero and errors.Is %v", index, got, gotErr, core.ErrChitConflict)
+			}
+
+			other := newChitFixture(t, byte(0x50+index), 1)
+			foreign := manifestSummaryFixture(t, other.addition)
+			foreignVerifier, err := NewManifestEntryVerifier(fixture.addition.Entry.Sequence)
+			if err != nil {
+				t.Fatalf("NewManifestEntryVerifier(foreign %d) error = %v, want nil", index, err)
+			}
+			if gotErr := foreignVerifier.Add(fixture.addition); gotErr != nil {
+				t.Fatalf("ManifestEntryVerifier.Add(foreign %d) error = %v, want nil", index, gotErr)
+			}
+			got, gotErr = foreignVerifier.Seal(foreign)
+			if !errors.Is(gotErr, core.ErrChitConflict) || got != (VerifiedManifestEntry{}) {
+				t.Fatalf("ManifestEntryVerifier.Seal(foreign summary %d) = (%v, %v), want zero and errors.Is %v", index, got, gotErr, core.ErrChitConflict)
+			}
+		}
+	})
+
+	t.Run("neutral zero verifier and repeated seal disclose no entry", func(t *testing.T) {
+		t.Parallel()
+
+		fixture := newChitFixture(t, 0x31, 1)
+		summary := manifestSummaryFixture(t, fixture.addition)
+		var zero *ManifestEntryVerifier
+		if gotErr := zero.Add(fixture.addition); !errors.Is(gotErr, core.ErrChitContract) {
+			t.Fatalf("nil ManifestEntryVerifier.Add() error = %v, want errors.Is %v", gotErr, core.ErrChitContract)
+		}
+		verifier, err := NewManifestEntryVerifier(fixture.addition.Entry.Sequence)
+		if err != nil {
+			t.Fatalf("NewManifestEntryVerifier() error = %v, want nil", err)
+		}
+		if gotErr := verifier.Add(fixture.addition); gotErr != nil {
+			t.Fatalf("ManifestEntryVerifier.Add() error = %v, want nil", gotErr)
+		}
+		if _, gotErr := verifier.Seal(summary); gotErr != nil {
+			t.Fatalf("ManifestEntryVerifier.Seal(first) error = %v, want nil", gotErr)
+		}
+		got, gotErr := verifier.Seal(summary)
+		if !errors.Is(gotErr, core.ErrChitContract) || got != (VerifiedManifestEntry{}) {
+			t.Fatalf("ManifestEntryVerifier.Seal(repeated) = (%v, %v), want zero and errors.Is %v", got, gotErr, core.ErrChitContract)
+		}
+		if addition, gotErr := (VerifiedManifestEntry{}).Addition(); !errors.Is(gotErr, core.ErrChitContract) || addition != (ManifestAddition{}) {
+			t.Fatalf("zero VerifiedManifestEntry.Addition() = (%v, %v), want zero and errors.Is %v", addition, gotErr, core.ErrChitContract)
+		}
+	})
+}
+
 func TestManifestDigestChangesWhenAuthenticatedOrderChanges(t *testing.T) {
 	t.Parallel()
 

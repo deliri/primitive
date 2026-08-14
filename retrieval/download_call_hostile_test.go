@@ -31,6 +31,7 @@ type downloadCallFixture struct {
 	capability   objectstore.DownloadCapabilityProjection
 	grantPayload GrantPayload
 	addition     chit.ManifestAddition
+	membership   chit.VerifiedManifestEntry
 	document     GrantDocument
 	grant        VerifiedGrant
 	trusted      attest.TrustedKeys
@@ -184,6 +185,14 @@ func newDownloadCallFixture(t testing.TB, fixtureRequest downloadCallFixtureRequ
 	private, trusted := retrievalAuthority(t, 0x61)
 	request := newRetrievalRequestFixture(t, retrievalRequestFixtureRequest{Selection: fixtureRequest.Selection}).payload
 	manifest := chit.NewManifestAccumulator()
+	entrySequence, err := chit.NewEntrySequence(fixtureRequest.EntrySequence)
+	if err != nil {
+		t.Fatalf("chit.NewEntrySequence(%d) error = %v, want nil", fixtureRequest.EntrySequence, err)
+	}
+	entryVerifier, err := chit.NewManifestEntryVerifier(entrySequence)
+	if err != nil {
+		t.Fatalf("chit.NewManifestEntryVerifier() error = %v, want nil", err)
+	}
 	var addition chit.ManifestAddition
 	var scope receipt.Scope
 	for sequence := uint64(1); sequence <= fixtureRequest.ManifestEntries; sequence++ {
@@ -203,6 +212,9 @@ func newDownloadCallFixture(t testing.TB, fixtureRequest downloadCallFixtureRequ
 		if err := manifest.Add(candidate); err != nil {
 			t.Fatalf("ManifestAccumulator.Add(sequence %d) error = %v, want nil", sequence, err)
 		}
+		if err := entryVerifier.Add(candidate); err != nil {
+			t.Fatalf("ManifestEntryVerifier.Add(sequence %d) error = %v, want nil", sequence, err)
+		}
 		if sequence == fixtureRequest.EntrySequence {
 			addition = candidate
 		}
@@ -214,6 +226,10 @@ func newDownloadCallFixture(t testing.TB, fixtureRequest downloadCallFixtureRequ
 	summary, err := manifest.Seal()
 	if err != nil {
 		t.Fatalf("ManifestAccumulator.Seal() error = %v, want nil", err)
+	}
+	membership, err := entryVerifier.Seal(summary)
+	if err != nil {
+		t.Fatalf("ManifestEntryVerifier.Seal() error = %v, want nil", err)
 	}
 	verifiedChit := retrievalVerifiedChit(t, retrievalChitRequest{
 		Private: private, Trusted: trusted, Request: request,
@@ -242,7 +258,7 @@ func newDownloadCallFixture(t testing.TB, fixtureRequest downloadCallFixtureRequ
 	}
 	projection, err := IssueGrant(GrantIssuance{
 		Signer: private, Capability: capability, Payload: grantPayload,
-		Entry: addition, Chit: verifiedChit, Request: request,
+		Entry: membership, Chit: verifiedChit, Request: request,
 	})
 	if err != nil {
 		t.Fatalf("IssueGrant() error = %v, want nil", err)
@@ -265,7 +281,7 @@ func newDownloadCallFixture(t testing.TB, fixtureRequest downloadCallFixtureRequ
 	return downloadCallFixture{
 		private: private, grant: grant, payload: fixtureRequest.Payload, policy: retrievalPolicy(t), document: document,
 		request: request, chit: verifiedChit, trusted: trusted, capability: capability,
-		addition: addition, grantPayload: grantPayload,
+		addition: addition, membership: membership, grantPayload: grantPayload,
 	}
 }
 

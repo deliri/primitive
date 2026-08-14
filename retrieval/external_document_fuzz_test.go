@@ -122,7 +122,7 @@ func FuzzGrantDocumentExternalDecoderAndVerifier(f *testing.F) {
 	fixture := newDownloadCallFixture(f, downloadCallFixtureRequest{Payload: []byte{0x21, 0x22}})
 	projection, err := IssueGrant(GrantIssuance{
 		Signer: fixture.private, Capability: fixture.capability, Payload: fixture.grantPayload,
-		Entry: fixture.addition, Chit: fixture.chit, Request: fixture.request,
+		Entry: fixture.membership, Chit: fixture.chit, Request: fixture.request,
 	})
 	if err != nil {
 		f.Fatalf("IssueGrant(seed) error = %v, want nil", err)
@@ -138,7 +138,7 @@ func FuzzGrantDocumentExternalDecoderAndVerifier(f *testing.F) {
 	})
 	moreProjection, err := IssueGrant(GrantIssuance{
 		Signer: moreFixture.private, Capability: moreFixture.capability, Payload: moreFixture.grantPayload,
-		Entry: moreFixture.addition, Chit: moreFixture.chit, Request: moreFixture.request,
+		Entry: moreFixture.membership, Chit: moreFixture.chit, Request: moreFixture.request,
 	})
 	if err != nil {
 		f.Fatalf("IssueGrant(more seed) error = %v, want nil", err)
