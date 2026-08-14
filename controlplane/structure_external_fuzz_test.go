@@ -20,6 +20,78 @@ type structureExternalDoor[T any] struct {
 	WantError    core.ErrorIdentity
 }
 
+func TestRegistrationRequestDecoderLayerTriad(t *testing.T) {
+	t.Parallel()
+
+	var seed controlplane.RegistrationRequest
+	canonical := readGolden(t, "registration_request.json")
+	if err := seed.UnmarshalJSON(canonical); err != nil {
+		t.Fatalf("registration request golden UnmarshalJSON() error = %v, want nil", err)
+	}
+
+	t.Run("positive canonical request closes exact typed facts", func(t *testing.T) {
+		t.Parallel()
+
+		var got controlplane.RegistrationRequest
+		gotErr := got.UnmarshalJSON(canonical)
+		if gotErr != nil {
+			t.Fatalf("RegistrationRequest.UnmarshalJSON(canonical) error = %v, want nil", gotErr)
+		}
+		gotValidateErr := got.Validate()
+		gotProjection := mustRegistrationRequestProjection(t, got)
+		if gotValidateErr != nil || !bytes.Equal(gotProjection, canonical) {
+			t.Fatalf("RegistrationRequest canonical closure = (projection match %t, validation %v), want exact projection and nil",
+				bytes.Equal(gotProjection, canonical), gotValidateErr)
+		}
+	})
+
+	t.Run("negative foreign installation preserves receiver and every owner identity", func(t *testing.T) {
+		t.Parallel()
+
+		_, otherInstallation := testDeviceKey(t, checkInOtherDeviceSeed)
+		mutated := bytes.Replace(
+			canonical,
+			[]byte(seed.Installation.String()),
+			[]byte(otherInstallation.String()),
+			1,
+		)
+		if bytes.Equal(mutated, canonical) {
+			t.Fatalf("typed installation mutation changed no wire bytes")
+		}
+		got := seed
+		gotErr := got.UnmarshalJSON(mutated)
+		if !errors.Is(gotErr, core.ErrJSONContract) ||
+			!errors.Is(gotErr, core.ErrControlPlaneContract) ||
+			!errors.Is(gotErr, core.ErrControlPlaneRegistration) ||
+			!errors.Is(gotErr, core.ErrControlPlaneInstallationBinding) ||
+			!bytes.Equal(mustRegistrationRequestProjection(t, got), canonical) {
+			t.Fatalf("RegistrationRequest.UnmarshalJSON(foreign installation) error = %v, want preserved canonical receiver and JSON/control-plane/registration/installation identities", gotErr)
+		}
+	})
+
+	t.Run("neutral absent request creates no registration facts", func(t *testing.T) {
+		t.Parallel()
+
+		got := seed
+		gotErr := got.UnmarshalJSON(nil)
+		if !errors.Is(gotErr, core.ErrJSONContract) ||
+			!errors.Is(gotErr, core.ErrControlPlaneContract) ||
+			!errors.Is(gotErr, core.ErrControlPlaneRegistration) ||
+			!bytes.Equal(mustRegistrationRequestProjection(t, got), canonical) {
+			t.Fatalf("RegistrationRequest.UnmarshalJSON(absent) error = %v, want preserved canonical receiver and typed refusal", gotErr)
+		}
+	})
+}
+
+func mustRegistrationRequestProjection(t testing.TB, value controlplane.RegistrationRequest) []byte {
+	t.Helper()
+	projection, err := value.MarshalJSON()
+	if err != nil {
+		t.Fatalf("RegistrationRequest.MarshalJSON() error = %v, want nil", err)
+	}
+	return projection
+}
+
 func FuzzRegistrationRequestExternalDecoder(f *testing.F) {
 	var seed controlplane.RegistrationRequest
 	if err := seed.UnmarshalJSON(readGolden(f, "registration_request.json")); err != nil {

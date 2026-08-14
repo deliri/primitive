@@ -653,6 +653,52 @@ func TestDecodeJSONStringTokenHostileBoundaryTable(t *testing.T) {
 	}
 }
 
+func TestDecodeJSONStringTokenBoundaryLayerTriad(t *testing.T) {
+	t.Parallel()
+
+	t.Run("positive exact shared document ceiling decodes", func(t *testing.T) {
+		t.Parallel()
+
+		wire := boundedJSONStringDocument(JSONDocumentMaximumBytes)
+		got, gotErr := DecodeJSONStringToken(wire)
+		if gotErr != nil || len(got) != JSONDocumentMaximumBytes-2 {
+			t.Fatalf("DecodeJSONStringToken(exact ceiling) = (length %d, %v), want (%d, nil)",
+				len(got), gotErr, JSONDocumentMaximumBytes-2)
+		}
+	})
+
+	t.Run("negative every over ceiling document refuses before decoding", func(t *testing.T) {
+		t.Parallel()
+
+		for _, extent := range []int{JSONDocumentMaximumBytes + 1, JSONDocumentMaximumBytes * 4} {
+			got, gotErr := DecodeJSONStringToken(boundedJSONStringDocument(extent))
+			if !errors.Is(gotErr, ErrJSONContract) || got != "" {
+				t.Fatalf("DecodeJSONStringToken(%d bytes) = (length %d, %v), want empty and %v",
+					extent, len(got), gotErr, ErrJSONContract)
+			}
+		}
+	})
+
+	t.Run("neutral empty value is exact while absent input creates no value", func(t *testing.T) {
+		t.Parallel()
+
+		gotEmpty, gotEmptyErr := DecodeJSONStringToken([]byte(`""`))
+		gotAbsent, gotAbsentErr := DecodeJSONStringToken(nil)
+		if gotEmptyErr != nil || gotEmpty != "" ||
+			!errors.Is(gotAbsentErr, ErrJSONContract) || gotAbsent != "" {
+			t.Fatalf("DecodeJSONStringToken(neutral) = empty (%q, %v), absent (%q, %v), want empty success and absent typed refusal",
+				gotEmpty, gotEmptyErr, gotAbsent, gotAbsentErr)
+		}
+	})
+}
+
+func boundedJSONStringDocument(extent int) []byte {
+	document := bytes.Repeat([]byte{'a'}, extent)
+	document[0] = '"'
+	document[len(document)-1] = '"'
+	return document
+}
+
 // TestMarshalJSONStringEscapingHostileBoundaryTable directly ratchets the
 // shared string primitive used by every Core JSON string producer. Exact wire
 // assertions are intentional: HTML characters use encoding/json's fixed-point

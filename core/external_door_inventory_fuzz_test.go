@@ -629,6 +629,12 @@ func FuzzCoreDecodeJSONStringTokenSemanticClosure(f *testing.F) {
 	}
 	f.Fuzz(func(t *testing.T, data []byte) {
 		got, gotErr := DecodeJSONStringToken(data)
+		if len(data) > JSONDocumentMaximumBytes {
+			if !errors.Is(gotErr, ErrJSONContract) || got != "" {
+				t.Fatalf("oversized DecodeJSONStringToken() = (length %d, %v), want empty typed refusal", len(got), gotErr)
+			}
+			return
+		}
 		if gotErr != nil {
 			if !errors.Is(gotErr, ErrJSONContract) || got != "" {
 				t.Fatalf("DecodeJSONStringToken() = (%q, %v), want empty typed refusal", got, gotErr)

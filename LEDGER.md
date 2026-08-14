@@ -4,8 +4,37 @@ Last updated: `2026-08-14`
 
 ## Current
 
+- completed the live semantic fuzz campaign across every external door,
+  2026-08-14, published `v2026.0.120`. The compiler-discovered inventory names
+  150 targets and the latest campaign result contains exactly 150 passes, with
+  no missing, unexpected, failed, or incomplete target. Every target executed
+  10,000 generated cases beyond its seed corpus. The campaign includes real
+  Filestore write/read and stage/commit effects, Release artifact inspection,
+  Retrieval atomic download, Timeproof verification, signed document binding,
+  exact digests, canonical round trips, typed refusal, and receiver
+  preservation; no-panic-only targets do not count.
+
+  The live campaign found two production-contract defects. Core's standalone
+  JSON string-token decoder admitted arbitrarily large documents despite the
+  shared one-MiB ceiling; it now rejects over-ceiling input before scanning or
+  decoding. Its local schema LayerTriad proves exact-ceiling acceptance,
+  one-byte and far-over refusal, and empty/absent neutrality. Controlplane's
+  registration-request decoder leaked the nested installation-binding error
+  without its registration-document identity; the owner boundary now preserves
+  JSON, Controlplane, registration, and installation identities together. Its
+  local decoder LayerTriad proves canonical success, a valid foreign
+  installation with preserved receiver, and absent-input neutrality.
+
+  A third retained input exposed an over-narrow Release fuzz oracle rather
+  than a production defect: mode `000` is inaccessible at Filestore before a
+  readable non-executable file reaches Process. The oracle and existing
+  artifact-inspection LayerTriad now distinguish `ErrFilestoreSource` from
+  `ErrProcessContract` while preserving exact-zero artifact authority and the
+  unchanged caller file. Both discovered inputs remain in Go's fuzz corpus and
+  replay under ordinary package tests.
+
 - made Exchange the sole network-client admission owner for Objectstore,
-  2026-08-14, prepared `v2026.0.119`. `objectstore.NewClient` now accepts only
+  2026-08-14, published `v2026.0.119`. `objectstore.NewClient` now accepts only
   an already-validated `exchange.Client`; `NewStandardClient` delegates to
   `exchange.NewStandardClient`; and Objectstore production imports no
   `net/http`. The former `*http.Client` constructor is removed with no shim.

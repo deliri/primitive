@@ -17,7 +17,7 @@ import (
 const (
 	inspectionModeExecutable uint8 = iota
 	inspectionModeReadable
-	inspectionModeAbsent
+	inspectionModeInaccessible
 	inspectionModeReadOnly
 	inspectionModeCount
 )
@@ -62,10 +62,17 @@ func FuzzInspectBuiltArtifactFileSemanticClosure(f *testing.F) {
 			if !errors.Is(gotErr, core.ErrReleaseContract) || got != (release.Artifact{}) {
 				t.Fatalf("release.InspectBuiltArtifact(fuzz refusal) = (%v, %v), want exact zero and %v", got, gotErr, core.ErrReleaseContract)
 			}
-			if modeSelector%inspectionModeCount != inspectionModeExecutable && len(data) > 0 &&
-				uint64(len(data)) <= release.BuiltArtifactMaximumBytes &&
-				!errors.Is(gotErr, core.ErrProcessContract) {
-				t.Fatalf("release.InspectBuiltArtifact(nonexecutable fuzz file) error = %v, want %v", gotErr, core.ErrProcessContract)
+			if len(data) > 0 && uint64(len(data)) <= release.BuiltArtifactMaximumBytes {
+				switch modeSelector % inspectionModeCount {
+				case inspectionModeReadable, inspectionModeReadOnly:
+					if !errors.Is(gotErr, core.ErrProcessContract) {
+						t.Fatalf("release.InspectBuiltArtifact(readable nonexecutable fuzz file) error = %v, want %v", gotErr, core.ErrProcessContract)
+					}
+				case inspectionModeInaccessible:
+					if !errors.Is(gotErr, core.ErrFilestoreSource) {
+						t.Fatalf("release.InspectBuiltArtifact(inaccessible fuzz file) error = %v, want %v", gotErr, core.ErrFilestoreSource)
+					}
+				}
 			}
 			proveInspectionFuzzFileUnchanged(t, inspectionFuzzFileProof{
 				Path: path, Data: data, WantMode: mode,
@@ -109,6 +116,7 @@ func seedArtifactInspectionFuzzCorpus(f *testing.F, canonical []byte) {
 	f.Helper()
 	f.Add(canonical, inspectionModeExecutable, inspectionBindingExact)
 	f.Add(canonical, inspectionModeReadable, inspectionBindingExact)
+	f.Add(canonical, inspectionModeInaccessible, inspectionBindingExact)
 	f.Add(canonical, inspectionModeExecutable, inspectionBindingArchitecture)
 	f.Add(canonical, inspectionModeExecutable, inspectionBindingOffering)
 	f.Add(canonical, inspectionModeExecutable, inspectionBindingAssignment)
@@ -123,7 +131,7 @@ func inspectionFuzzMode(selector uint8) os.FileMode {
 		return 0o700
 	case inspectionModeReadable:
 		return 0o600
-	case inspectionModeAbsent:
+	case inspectionModeInaccessible:
 		return 0
 	case inspectionModeReadOnly:
 		return 0o400

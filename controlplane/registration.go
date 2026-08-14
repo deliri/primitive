@@ -150,7 +150,7 @@ func (r *RegistrationRequest) UnmarshalJSON(data []byte) error {
 	}
 	candidate := RegistrationRequest(wire)
 	if err := candidate.Validate(); err != nil {
-		return jsonError(err)
+		return jsonError(registrationError(err))
 	}
 	*r = candidate
 	return nil

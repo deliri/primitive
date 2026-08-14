@@ -34,7 +34,7 @@ func TestBuiltArtifactFileInspectionLayerTriad(t *testing.T) {
 		}
 	})
 
-	t.Run("negative native bytes without executable standing acquire no artifact authority", func(t *testing.T) {
+	t.Run("negative unreadable and nonexecutable native bytes acquire no artifact authority", func(t *testing.T) {
 		t.Parallel()
 
 		build := inspectionFileTriadBuild(t)
@@ -43,15 +43,26 @@ func TestBuiltArtifactFileInspectionLayerTriad(t *testing.T) {
 			Directory: inspectionAbsolutePath(t, t.TempDir()), Build: build,
 			ProductValue: inspectionProductValue, StripFlags: releaseStripFlags,
 		})
-		if err := os.Chmod(path.String(), 0o600); err != nil {
-			t.Fatalf("os.Chmod(nonexecutable artifact) error = %v, want nil", err)
+		cases := []struct {
+			name    string
+			mode    os.FileMode
+			wantErr core.ErrorIdentity
+		}{
+			{name: "readable without executable standing", mode: 0o600, wantErr: core.ErrProcessContract},
+			{name: "inaccessible before executable standing", mode: 0, wantErr: core.ErrFilestoreSource},
 		}
-		got, gotErr := release.InspectBuiltArtifact(t.Context(), release.ArtifactInspectionRequest{
-			Path: path, Build: build, LinkerAssignments: assignments,
-		})
-		if !errors.Is(gotErr, core.ErrReleaseContract) || !errors.Is(gotErr, core.ErrProcessContract) ||
-			got != (release.Artifact{}) {
-			t.Fatalf("release.InspectBuiltArtifact(nonexecutable file) = (%v, %v), want exact zero, %v, and %v", got, gotErr, core.ErrReleaseContract, core.ErrProcessContract)
+		for _, tc := range cases {
+			if err := os.Chmod(path.String(), tc.mode); err != nil {
+				t.Fatalf("os.Chmod(%s) error = %v, want nil", tc.name, err)
+			}
+			got, gotErr := release.InspectBuiltArtifact(t.Context(), release.ArtifactInspectionRequest{
+				Path: path, Build: build, LinkerAssignments: assignments,
+			})
+			if !errors.Is(gotErr, core.ErrReleaseContract) || !errors.Is(gotErr, tc.wantErr) ||
+				got != (release.Artifact{}) {
+				t.Fatalf("release.InspectBuiltArtifact(%s) = (%v, %v), want exact zero, %v, and %v",
+					tc.name, got, gotErr, core.ErrReleaseContract, tc.wantErr)
+			}
 		}
 	})
 
