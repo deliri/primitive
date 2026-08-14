@@ -105,8 +105,7 @@ func (r *MaterialRequest) UnmarshalJSON(data []byte) error {
 	if err != nil {
 		return err
 	}
-	if wire.Version == nil || wire.Commit == nil || wire.Offering == nil ||
-		wire.Nonce == nil || wire.Revision == nil || wire.Primitive == nil || wire.Garble == nil {
+	if !wire.complete() {
 		return jsonError(errors.New("release material request field is missing"))
 	}
 	candidate := MaterialRequest{
@@ -119,6 +118,11 @@ func (r *MaterialRequest) UnmarshalJSON(data []byte) error {
 	}
 	*r = candidate
 	return nil
+}
+
+func (w materialRequestWire) complete() bool {
+	return w.Version != nil && w.Commit != nil && w.Offering != nil &&
+		w.Nonce != nil && w.Revision != nil && w.Primitive != nil && w.Garble != nil
 }
 
 type ReleaseSigningSeed struct {

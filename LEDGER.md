@@ -4,6 +4,24 @@ Last updated: `2026-08-14`
 
 ## Current
 
+- restored the production complexity ceiling across every package, 2026-08-14,
+  prepared `v2026.0.118`. Five owners that had reached cyclomatic complexity
+  11 through 13 are now split into typed, single-purpose leaves: Wiring's
+  bounded cycle traversal, Core's bidirectional JSON verification, Release's
+  complete material-wire projection, Distribution's publication request and
+  manifest bindings, and Exchange's aggregate response metadata admission.
+  Their protocol bytes, stable error identities, zero/preserved results, and
+  response-body cleanup remain unchanged under the existing hostile suites.
+
+  Production gocyclo now reports no function above ten. The retained-memory
+  audit finds no arbitrary production bulk read: real object and file extents
+  cross fixed buffers and readers; directory walks consume bounded batches;
+  manifests use accumulators; catalog and JSON aggregates stop at
+  compiler-owned maxima; Wiring's graph snapshot is capped at 255 components;
+  and the few production slices allocated from caller collections are admitted
+  by their owning count and byte ceilings. The v2026.0.117 scale and mutation
+  proof remains the measured evidence for those streaming owners.
+
 - proved flat streaming behavior across the commercial payload paths,
   2026-08-14, prepared `v2026.0.117`. New production-path benchmarks cover
   authenticated Chit manifest folding at 128 and 4,096 entries, authenticated

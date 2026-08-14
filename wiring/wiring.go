@@ -185,12 +185,32 @@ func validateDependenciesExist[I Identity](definitions []Definition[I], byIdenti
 }
 
 func wiringCycle[I Identity](definitions []Definition[I], byIdentity map[I]int) (I, I, bool) {
+	indegree := wiringIndegrees(definitions, byIdentity)
+	if acyclicVisitCount(definitions, byIdentity, indegree) == len(definitions) {
+		return zeroIdentity[I](), zeroIdentity[I](), false
+	}
+	owner, peer, found := remainingCycleEdge(definitions, byIdentity, indegree)
+	if found {
+		return owner, peer, true
+	}
+	return zeroIdentity[I](), zeroIdentity[I](), true
+}
+
+func wiringIndegrees[I Identity](definitions []Definition[I], byIdentity map[I]int) []uint16 {
 	indegree := make([]uint16, len(definitions))
 	for _, definition := range definitions {
 		for _, dependency := range definition.Dependencies {
 			indegree[byIdentity[dependency]]++
 		}
 	}
+	return indegree
+}
+
+func acyclicVisitCount[I Identity](
+	definitions []Definition[I],
+	byIdentity map[I]int,
+	indegree []uint16,
+) int {
 	queue := make([]int, 0, len(definitions))
 	for index, count := range indegree {
 		if count == 0 {
@@ -210,9 +230,14 @@ func wiringCycle[I Identity](definitions []Definition[I], byIdentity map[I]int) 
 			}
 		}
 	}
-	if visited == len(definitions) {
-		return zeroIdentity[I](), zeroIdentity[I](), false
-	}
+	return visited
+}
+
+func remainingCycleEdge[I Identity](
+	definitions []Definition[I],
+	byIdentity map[I]int,
+	indegree []uint16,
+) (I, I, bool) {
 	for _, definition := range definitions {
 		if indegree[byIdentity[definition.Identity]] == 0 {
 			continue
@@ -223,7 +248,7 @@ func wiringCycle[I Identity](definitions []Definition[I], byIdentity map[I]int) 
 			}
 		}
 	}
-	return zeroIdentity[I](), zeroIdentity[I](), true
+	return zeroIdentity[I](), zeroIdentity[I](), false
 }
 
 func validateConnected[I Identity](root I, definitions []Definition[I], byIdentity map[I]int) error {

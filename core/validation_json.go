@@ -197,6 +197,13 @@ func EncodeValidatedJSON[T ValidatedJSONMarshaler](value T, limits StrictJSONLim
 		}
 		return encoded, nil
 	}
+	return validateBidirectionalJSONEncoding[T](encoded, limits)
+}
+
+func validateBidirectionalJSONEncoding[T ValidatedJSONMarshaler](
+	encoded []byte,
+	limits StrictJSONLimits,
+) ([]byte, error) {
 	decoded, err := decodeStrictJSONStructureValidatedLimits[T](encoded, limits)
 	if err != nil {
 		return nil, jsonContractError("validated json encoding violates the strict wire contract", err)

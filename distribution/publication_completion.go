@@ -391,22 +391,38 @@ func validatePublicationCompletionIdentity(
 		return release.VerifiedManifest{}, err
 	}
 	commitment, err := CommitRequest(request)
-	if err != nil || commitment != expectation.Grant.Request ||
-		commitment != expectation.Document.Payload.Request ||
-		request.Nonce != expectation.Document.Payload.Nonce ||
-		expectation.Grant.Authorization != expectation.Document.Payload.Authorization {
+	if err != nil || publicationCompletionRequestDiffers(expectation, request, commitment) {
 		return release.VerifiedManifest{}, bindingError(errors.New("publication completion request or authorization differs"), err)
 	}
 	manifest, err := expectation.Request.Manifest()
 	if err != nil {
 		return release.VerifiedManifest{}, err
 	}
-	if manifest.Identity() != expectation.Document.Payload.Manifest ||
-		manifest.DocumentDigest() != expectation.Document.Payload.ManifestDocument ||
-		request.Build != expectation.Document.Payload.Build {
+	if publicationCompletionManifestDiffers(expectation, request, manifest) {
 		return release.VerifiedManifest{}, bindingError(errors.New("publication completion manifest differs"))
 	}
 	return manifest, nil
+}
+
+func publicationCompletionRequestDiffers(
+	expectation PublicationCompletionExpectation,
+	request PublicationRequestPayload,
+	commitment RequestCommitment,
+) bool {
+	return commitment != expectation.Grant.Request ||
+		commitment != expectation.Document.Payload.Request ||
+		request.Nonce != expectation.Document.Payload.Nonce ||
+		expectation.Grant.Authorization != expectation.Document.Payload.Authorization
+}
+
+func publicationCompletionManifestDiffers(
+	expectation PublicationCompletionExpectation,
+	request PublicationRequestPayload,
+	manifest release.VerifiedManifest,
+) bool {
+	return manifest.Identity() != expectation.Document.Payload.Manifest ||
+		manifest.DocumentDigest() != expectation.Document.Payload.ManifestDocument ||
+		request.Build != expectation.Document.Payload.Build
 }
 
 func validatePublicationCompletionEvidenceSet(

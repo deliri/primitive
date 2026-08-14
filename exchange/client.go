@@ -616,6 +616,24 @@ type aggregateReadRequest struct {
 func readAggregateHTTPResponse(
 	input aggregateReadRequest,
 ) (attemptResponse, error) {
+	result, err := readAggregateResponseMetadata(input)
+	if err != nil {
+		return result, err
+	}
+	result.body, err = readAggregateResponseBody(input)
+	closeErr := closeResponseBody(input.response.Body)
+	if err != nil && !errors.Is(err, core.ErrExchangeCancelled) {
+		err = responseError(err)
+	}
+	if err == nil {
+		if validationErr := result.headers.Validate(); validationErr != nil {
+			err = responseError(validationErr)
+		}
+	}
+	return result, errors.Join(err, closeErr)
+}
+
+func readAggregateResponseMetadata(input aggregateReadRequest) (attemptResponse, error) {
 	var result attemptResponse
 	if input.response == nil || input.response.Body == nil {
 		return result, responseError(core.ErrExchangeContract)
@@ -650,17 +668,7 @@ func readAggregateHTTPResponse(
 			closeResponseBody(input.response.Body),
 		)
 	}
-	result.body, err = readAggregateResponseBody(input)
-	closeErr := closeResponseBody(input.response.Body)
-	if err != nil && !errors.Is(err, core.ErrExchangeCancelled) {
-		err = responseError(err)
-	}
-	if err == nil {
-		if validationErr := result.headers.Validate(); validationErr != nil {
-			err = responseError(validationErr)
-		}
-	}
-	return result, errors.Join(err, closeErr)
+	return result, nil
 }
 
 // validateAggregateResponseHeaders always refuses content transformation. The
