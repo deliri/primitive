@@ -42,9 +42,9 @@ func TestParseGoModulePathPressuresTheModulePathGrammar(t *testing.T) {
 
 	longest := "example.com/" + strings.Repeat("a", mainPackageMaximumBytes-len("example.com/"))
 	cases := []struct {
+		wantErr error
 		name    string
 		in      string
-		wantErr error
 	}{
 		{name: "canonical two element path is accepted", in: "example.com/product"},
 		{name: "major version suffix is accepted", in: "example.com/product/v2"},
@@ -113,9 +113,9 @@ func TestParseGoModuleVersionPressuresTheVersionGrammar(t *testing.T) {
 
 	longest := "v" + strings.Repeat("1", goModuleVersionMaximumBytes-1)
 	cases := []struct {
+		wantErr error
 		name    string
 		in      string
-		wantErr error
 	}{
 		{name: "release version is accepted", in: "v1.2.3"},
 		{name: "major version zero is accepted", in: "v0.0.0"},
@@ -191,9 +191,9 @@ func TestParseGoModuleSumPressuresTheChecksumGrammar(t *testing.T) {
 	t.Parallel()
 
 	cases := []struct {
+		wantErr error
 		name    string
 		in      string
-		wantErr error
 	}{
 		{name: "zero digest checksum is accepted", in: testModuleSumA},
 		{name: "distinct digest checksum is accepted", in: testModuleSumB},
@@ -250,12 +250,12 @@ func TestNewBuildDependenciesLayerTriadCanonicalizesTheModuleUnion(t *testing.T)
 
 	main := mustModulePath(t, testMainModule)
 	cases := []struct {
+		wantErr   error
 		modules   func(*testing.T) []BuildDependency
 		name      string
 		main      GoModulePath
 		wantOrder []string
 		toolchain GoToolchainIdentity
-		wantErr   error
 	}{
 		{
 			name: "neutral empty closure is a valid zero-module union",
@@ -372,12 +372,12 @@ func TestDependencyObservationMergeUnionsTargetClosures(t *testing.T) {
 	t.Parallel()
 
 	cases := []struct {
+		wantErr   error
 		name      string
 		left      string
 		right     string
 		wantMain  string
 		wantOrder []string
-		wantErr   error
 	}{
 		{
 			name:  "positive disjoint target closures union in canonical order",
@@ -468,9 +468,9 @@ func TestDependencyObservationRejectsClosuresPastItsBound(t *testing.T) {
 	t.Parallel()
 
 	cases := []struct {
+		wantErr error
 		name    string
 		count   int
-		wantErr error
 	}{
 		{name: "exact maximum module count is admitted", count: BuildDependencyMaximumCount},
 		{name: "one below maximum module count is admitted", count: BuildDependencyMaximumCount - 1},

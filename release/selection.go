@@ -578,8 +578,8 @@ func compareSelected(comparison selectionComparison) (Selection, error) {
 
 type currentSelection struct {
 	installed         VerifiedManifest
-	installedArtifact Artifact
 	candidate         VerifiedManifest
+	installedArtifact Artifact
 	assessment        LatestAssessment
 }
 

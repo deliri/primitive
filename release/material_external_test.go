@@ -181,8 +181,8 @@ func TestReleaseMaterialDestructionInvalidatesEverySharedHandle(t *testing.T) {
 		t.Fatalf("MaterialResponse.Destroy() error = %v, want nil", err)
 	}
 	for _, tc := range []struct {
-		name     string
 		validate func() error
+		name     string
 	}{
 		{name: "destroyed response", validate: response.Validate},
 		{name: "copied response handle", validate: responseCopy.Validate},

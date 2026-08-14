@@ -115,32 +115,32 @@ type releaseJSONDoorSeed struct {
 }
 
 type releaseJSONDoorFixtures struct {
-	available              AvailableSummary
-	publicationRole        PublicationRole
-	generation             Generation
-	latestIdentity         LatestIdentity
-	latestFact             LatestFact
-	latestDocument         LatestDocument
-	metadataKind           MetadataKind
-	metadataAsset          MetadataAsset
-	metadataSet            MetadataSet
-	buildProvenance        BuildProvenance
-	revision               Revision
-	buildDependencies      BuildDependencies
-	binaryFilename         BinaryFilename
-	artifactIdentity       ArtifactIdentity
-	artifactIntegrity      ArtifactIntegrity
-	artifact               Artifact
-	artifactSet            ArtifactSet
-	manifestIdentity       ManifestIdentity
-	manifestDocumentDigest ManifestDocumentDigest
-	manifestFact           ManifestFact
-	manifestDocument       ManifestDocument
-	materialRequest        MaterialRequest
-	materialResponse       MaterialResponse
 	releaseSigningSeed     ReleaseSigningSeed
 	garbleCustodySeed      GarbleCustodySeed
+	materialRequest        MaterialRequest
+	buildDependencies      BuildDependencies
+	materialResponse       MaterialResponse
+	buildProvenance        BuildProvenance
+	manifestFact           ManifestFact
+	manifestDocument       ManifestDocument
+	latestFact             LatestFact
+	latestDocument         LatestDocument
 	release                releaseFixture
+	artifactSet            ArtifactSet
+	available              AvailableSummary
+	metadataSet            MetadataSet
+	artifact               Artifact
+	metadataAsset          MetadataAsset
+	artifactIntegrity      ArtifactIntegrity
+	generation             Generation
+	binaryFilename         BinaryFilename
+	manifestDocumentDigest ManifestDocumentDigest
+	manifestIdentity       ManifestIdentity
+	artifactIdentity       ArtifactIdentity
+	latestIdentity         LatestIdentity
+	revision               Revision
+	metadataKind           MetadataKind
+	publicationRole        PublicationRole
 }
 
 func FuzzReleaseExternalJSONDoorInventory(f *testing.F) {

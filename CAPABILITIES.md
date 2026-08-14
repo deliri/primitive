@@ -132,6 +132,8 @@ transaction run this same stack, so a wire type has exactly one home.
 | the scratch base for uniquely named temporary entries | `hostfacts.TemporaryDirectory` plus a keygen token for the name — never `os.MkdirTemp` from a product |
 | deciding whether work is paid for | `gate` + `lease` |
 | requesting the exact secret capabilities for one maintainer build/publication | `release.NewMaterialRequest`; the authority returns a request-bound `release.MaterialResponse`; call `Destroy` if it will not be used, or `Open` to consume it into destroyable signing and Garble custody capabilities |
+| producing the four supported release build processes | verify the clean repository and pinned Go/Garble tools with `release`, call `release.PrepareBuildPlan` once, then lower each canonical target through `release.PrepareBuildProcess`; every process binds the exact verified commit and replaces ambient build controls |
+| deciding how a product exposes build and release commands | product-owned: hidden command classification, operator confirmation, diagnostic arguments, live-data sandbox, release authorization, display, and the direct control-plane adapter remain in Bug, Witness, or Peachfuzz; Primitive supplies only typed mechanics and facts |
 | running a subprocess | `process` |
 | isolating a tool tree so cancellation reaches all of it (POSIX hosts) | `process.Containment` with `IsolationGroup` — never a hand-rolled `SysProcAttr{Setpgid}`; Windows has no group signal and refuses the request rather than delivering it to one process |
 | supervising a running child (signal, force-kill, hold it) | `process.Begin` and the `Execution` it returns — never `cmd.Process` from a product |

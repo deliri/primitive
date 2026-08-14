@@ -77,9 +77,9 @@ func TestArtifactPatternFinderRejectsEveryAbsentOrNearMissStamp(t *testing.T) {
 
 	const stamp = "product-stamp-41"
 	cases := []struct {
+		wantErr error
 		name    string
 		content string
-		wantErr error
 	}{
 		{name: "exact stamp is found", content: "aaa" + stamp + "bbb"},
 		{name: "stamp at the first byte is found", content: stamp + strings.Repeat("z", 64)},

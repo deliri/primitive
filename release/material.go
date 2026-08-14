@@ -18,13 +18,13 @@ import (
 // transport is deliberately outside this fact: Cloudidentity and Exchange own
 // that execution on both sides.
 type MaterialRequest struct {
+	Garble    garble.ToolProvenance    `json:"garble"`
+	Primitive ProjectVersion           `json:"primitive"`
 	Version   core.ReleaseVersion      `json:"version"`
 	Commit    core.BuildCommit         `json:"commit"`
-	Offering  core.Offering            `json:"offering"`
 	Nonce     controlwire.RequestNonce `json:"nonce"`
+	Offering  core.Offering            `json:"offering"`
 	Revision  controlwire.Revision     `json:"revision"`
-	Primitive ProjectVersion           `json:"primitive"`
-	Garble    garble.ToolProvenance    `json:"garble"`
 }
 
 type materialRequestWire struct {
@@ -331,9 +331,9 @@ func (GarbleCustodySeed) Format(state fmt.State, _ rune) {
 }
 
 type MaterialResponse struct {
-	Request            MaterialRequest       `json:"request"`
 	ReleaseSigningSeed ReleaseSigningSeed    `json:"release_signing_seed"`
 	GarbleCustodySeed  GarbleCustodySeed     `json:"garble_custody_seed"`
+	Request            MaterialRequest       `json:"request"`
 	ServerPublicKey    core.Ed25519PublicKey `json:"server_public_key"`
 }
 
@@ -392,10 +392,10 @@ func (r *MaterialResponse) UnmarshalJSON(data []byte) error {
 }
 
 type Material struct {
-	SigningKey      keygen.SigningKey
 	Custody         garble.Custody
-	ServerPublicKey core.Ed25519PublicKey
 	custodyMaterial core.SecretMaterial
+	SigningKey      keygen.SigningKey
+	ServerPublicKey core.Ed25519PublicKey
 }
 
 // Destroy clears both response seeds and invalidates every copied handle.

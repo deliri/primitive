@@ -111,9 +111,9 @@ func TestArtifactSetDecodeRejectsEveryCardinalityBesidesTargetCount(t *testing.T
 	}
 
 	cases := []struct {
+		wantErr error
 		name    string
 		data    string
-		wantErr error
 	}{
 		{name: "empty array carries no target", data: "[]", wantErr: core.ErrJSONContract},
 		{name: "one below target count is rejected", data: array(TargetCount - 1), wantErr: core.ErrJSONContract},

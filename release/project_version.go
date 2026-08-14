@@ -12,7 +12,7 @@ type ProjectVersion string
 
 // PrimitiveVersion is the single compiler-owned Primitive project and Git
 // release version. Publication derives the Git tag from this value directly.
-const PrimitiveVersion ProjectVersion = "v2026.0.111"
+const PrimitiveVersion ProjectVersion = "v2026.0.112"
 
 // Validate accepts only the one current compiler-owned tag and proves its
 // suffix through Core's release-version parser.

@@ -372,6 +372,11 @@ func TestVerifyRepositoryRefusesDirtySubmoduleDespiteRepositoryIgnorePolicy(t *t
 
 func newRepositoryFixture(t *testing.T) repositoryFixture {
 	t.Helper()
+	return newRepositoryFixtureAt(t, t.TempDir(), t.TempDir())
+}
+
+func newRepositoryFixtureAt(t *testing.T, rootText, home string) repositoryFixture {
+	t.Helper()
 	gitText, err := exec.LookPath("git")
 	if err != nil {
 		t.Fatalf("LookPath(git) error = %v", err)
@@ -380,10 +385,9 @@ func newRepositoryFixture(t *testing.T) repositoryFixture {
 	if err != nil {
 		t.Fatalf("Abs(git) error = %v", err)
 	}
-	home := t.TempDir()
 	fixture := repositoryFixture{
 		home:        home,
-		root:        absolutePathForTest(t, t.TempDir()),
+		root:        absolutePathForTest(t, rootText),
 		git:         absolutePathForTest(t, git),
 		environment: repositoryEnvironmentForTest(t, home),
 	}

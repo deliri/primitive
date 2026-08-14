@@ -26,10 +26,10 @@ func TestParseGoVersionOutputPressuresEverySideOfTheProbeGrammar(t *testing.T) {
 	}
 
 	cases := []struct {
+		wantErr      error
 		name         string
 		output       string
 		wantPlatform core.Platform
-		wantErr      error
 	}{
 		{name: "canonical darwin arm64 line is accepted", output: "go version " + want + " darwin/arm64\n", wantPlatform: darwinARM64},
 		{name: "canonical linux amd64 line is accepted", output: "go version " + want + " linux/amd64\n", wantPlatform: linuxAMD64},

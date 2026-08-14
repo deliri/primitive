@@ -66,6 +66,11 @@ bounds around it.
   customer language. Primitive supplies the validated declarations, progress
   observations, custody chits, payment receipts, and retrieval agreements that
   let the owning product make and present those decisions;
+- classify hidden `build` or `release` commands, obtain operator confirmation,
+  choose diagnostic arguments or a live-data sandbox, authorize a release,
+  render build and publication output, or own a product's direct control-plane
+  adapter. Primitive supplies the clean-repository proof, exact build/process
+  plans, publication agreements, and upgrade mechanics those commands use;
 - replace, imitate, or hide the substrate;
 - import Kernel, Witness, Bug, or Peachfuzz, ever; or
 - demand a value it will not produce. If Primitive requires it, Primitive
@@ -288,9 +293,12 @@ exist here and must be reachable.
   never enter Primitive. Evidence eligibility, exact pre-transfer disclosure,
   confirmation and `--yes` behavior, destination choice, CLI rendering, and
   customer language therefore remain product-owned. Primitive carries only
-  the typed facts and agreements those decisions consume. `CAPABILITIES.md` is
-  the index consumers read before writing anything that crosses the wire or
-  touches the real world.
+  the typed facts and agreements those decisions consume. Hidden build/release
+  command classification, operator confirmation, diagnostic arguments,
+  live-data sandbox policy, release authorization, display, and the direct
+  control-plane adapter likewise remain product-owned. `CAPABILITIES.md` is the
+  index consumers read before writing anything that crosses the wire or touches
+  the real world.
 
 ## 1. Normative language and decision order
 

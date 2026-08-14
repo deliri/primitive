@@ -4,6 +4,36 @@ Last updated: `2026-08-14`
 
 ## Current
 
+- closed deterministic four-target build planning and product-owned command
+  policy, 2026-08-14, prepared `v2026.0.112`. One composed hostile layer triad
+  now starts from a real clean Git checkout at an exact observed commit,
+  constructs the canonical Windows AMD64, Darwin ARM64, Linux AMD64, and Linux
+  ARM64 plan twice with identical output, verifies the installed pinned Go and
+  Garble executables, and lowers every command into a validated Process request.
+  Each process runs the verified Garble path in the verified repository, binds
+  exact offering/version/commit/platform linker identity, and replaces hostile
+  ambient PATH, CGO, GOOS, GOARCH, toolchain, flags, workspace, experiment, and
+  FIPS controls with Primitive's exact projection.
+
+  The negative oracle issues an independently valid plan for a different
+  forty-hex commit while every repository, tool, stream, environment, output,
+  and wait fact remains valid. Removing the sole command-to-verified-repository
+  commit comparison made Primitive lower a nonzero Windows build process with
+  nil error and the isolated test went red; restored production returns exact
+  zero Process authority and typed Release refusal. The neutral oracle proves
+  zero plan and process inputs acquire no authority. Existing hostile suites
+  remain the breadth proof for dirty, staged, untracked, ignored, filtered,
+  submodule, wrong-HEAD, malformed argument, tag, linker, tool, and environment
+  cases.
+
+  The policy and capability index now close the matching ownership boundary:
+  Primitive owns repository/tool verification and typed build, publication,
+  distribution, and upgrade mechanics. Bug, Witness, and Peachfuzz own hidden
+  command classification, operator confirmation, diagnostic arguments,
+  live-data sandbox policy, release authorization, display, and their direct
+  control-plane adapters. No command framework or orchestration state entered
+  Primitive.
+
 - made consent and presentation ownership explicit, 2026-08-14, prepared
   `v2026.0.111`. Primitive continues to own only product-neutral mechanisms:
   typed submission declarations, exact transfer observations, custody chits,

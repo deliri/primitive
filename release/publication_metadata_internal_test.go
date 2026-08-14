@@ -220,10 +220,10 @@ func TestMetadataKindUnmarshalJSONRejectsEveryNonCanonicalToken(t *testing.T) {
 	t.Parallel()
 
 	cases := []struct {
+		wantErr error
 		name    string
 		encoded string
 		want    MetadataKind
-		wantErr error
 	}{
 		{name: "canonical dependencies token is accepted", encoded: `"dependencies"`, want: MetadataKindDependencies},
 		{name: "canonical documentation token is accepted", encoded: `"documentation"`, want: MetadataKindDocumentation},
@@ -284,9 +284,9 @@ func TestMetadataKindUnmarshalJSONRejectsEveryNonCanonicalToken(t *testing.T) {
 }
 
 type metadataKindErrorProof struct {
-	encoded string
 	got     error
 	want    error
+	encoded string
 }
 
 func proveMetadataKindError(t *testing.T, proof metadataKindErrorProof) {
