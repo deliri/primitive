@@ -22,9 +22,6 @@ const (
 	// rotationalInterfaceRelativeText names the queue interface below a
 	// block device's own sysfs directory.
 	rotationalInterfaceRelativeText = "queue/rotational"
-	// rotationalFlagMaximumBytes bounds the kernel's one-token rotational
-	// declaration with room for nothing but the token and its newline.
-	rotationalFlagMaximumBytes = 16
 )
 
 // observeDiskRotation reads the rotational flag of the block device backing

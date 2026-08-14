@@ -21,6 +21,10 @@ const (
 	cgroupV2LimitName      = "memory.max"
 	cgroupV1LimitName      = "memory.limit_in_bytes"
 	cgroupMemoryController = "memory"
+	cgroupV2HierarchyToken = "0"
+	cgroupV2Filesystem     = "cgroup2"
+	cgroupV1Filesystem     = "cgroup"
+	mountInfoSeparator     = "-"
 	cgroupV2MaxToken       = "max"
 	cgroupV1UnlimitedMin   = uint64(1 << 62)
 
@@ -255,12 +259,15 @@ func (r virtualFileRequest) Validate() error {
 // hierarchy returns the zero membership with an unknown source rather than a pair
 // of parallel booleans that could both be set at once.
 func parseCgroupMembershipLine(line []byte) (cgroupMembership, error) {
+	if len(line) == 0 || len(line) > procLineMaximumBytes {
+		return cgroupMembership{}, core.ErrHostFactsObservation
+	}
 	parts := bytes.SplitN(line, []byte{':'}, 3)
 	if len(parts) != 3 || len(parts[2]) == 0 {
 		return cgroupMembership{}, core.ErrHostFactsObservation
 	}
 	membership := cgroupMembership{path: string(parts[2])}
-	if string(parts[0]) == "0" && len(parts[1]) == 0 {
+	if string(parts[0]) == cgroupV2HierarchyToken && len(parts[1]) == 0 {
 		membership.source = WorkloadMemoryLimitSourceCgroupV2
 		if err := membership.Validate(); err != nil {
 			return cgroupMembership{}, err
@@ -278,6 +285,9 @@ func parseCgroupMembershipLine(line []byte) (cgroupMembership, error) {
 }
 
 func parseMountInfoLine(line []byte, source WorkloadMemoryLimitSource) (cgroupMount, bool, error) {
+	if len(line) == 0 || len(line) > procLineMaximumBytes {
+		return cgroupMount{}, false, core.ErrHostFactsObservation
+	}
 	rootField, mountPointField, filesystem, superOptions, err := projectMountInfoLine(line)
 	if err != nil {
 		return cgroupMount{}, false, core.ErrHostFactsObservation
@@ -329,7 +339,7 @@ func projectMountInfoLine(line []byte) ([]byte, []byte, []byte, []byte, error) {
 		case mountPointFieldIndex:
 			mountPoint = field
 		}
-		if bytes.Equal(field, []byte("-")) {
+		if string(field) == mountInfoSeparator {
 			separatorIndex = fieldIndex
 		}
 		fieldIndex++
@@ -343,9 +353,9 @@ func projectMountInfoLine(line []byte) ([]byte, []byte, []byte, []byte, error) {
 func mountFilesystemMatches(filesystem, superOptions []byte, source WorkloadMemoryLimitSource) bool {
 	switch source {
 	case WorkloadMemoryLimitSourceCgroupV2:
-		return bytes.Equal(filesystem, []byte("cgroup2"))
+		return string(filesystem) == cgroupV2Filesystem
 	case WorkloadMemoryLimitSourceCgroupV1:
-		return bytes.Equal(filesystem, []byte("cgroup")) &&
+		return string(filesystem) == cgroupV1Filesystem &&
 			commaByteTokenContains(superOptions, cgroupMemoryController)
 	default:
 		return false

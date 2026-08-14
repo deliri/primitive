@@ -14,6 +14,9 @@ const (
 
 	rotationalFlagRotationalToken    = "1"
 	rotationalFlagNonRotationalToken = "0"
+	// rotationalFlagMaximumBytes bounds the kernel's one-token declaration
+	// with room for no representation beyond the documented token and newline.
+	rotationalFlagMaximumBytes = 16
 )
 
 // DiskRotation is the closed set of answers to one capacity-planning
@@ -95,6 +98,9 @@ func (r DiskRotationRequest) Validate() error {
 // newline; anything else is a source that stopped speaking the documented
 // interface, and that is a failed observation rather than a guess.
 func classifyRotationalFlag(data []byte) (DiskRotation, error) {
+	if len(data) == 0 || len(data) > rotationalFlagMaximumBytes {
+		return DiskRotationUnknown, core.ErrHostFactsObservation
+	}
 	token, err := canonicalVirtualValueToken(data)
 	if err != nil {
 		return DiskRotationUnknown, err

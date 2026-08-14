@@ -4,7 +4,31 @@ Last updated: `2026-08-14`
 
 ## Current
 
-- completed the live semantic fuzz campaign across every external door,
+- closed the Hostfacts platform-observation foundation, 2026-08-14, prepared
+  `v2026.0.121`. Reconciliation against Witness, Bug, and Peachfuzz confirms
+  Primitive owns the needed CPU, Go and physical memory, effective cgroup
+  limit, disk capacity and rotation, tree, hostname, platform, terminal, and
+  standard directory observations while each tool retains worker, pressure,
+  process-cause, layout, and customer policy.
+
+  The sweep found an external-ingress resource defect: the bounded stream
+  scanner enforced a 64-KiB kernel-line ceiling, but the membership and
+  mountinfo parsers could be called directly with larger lines. A 65,537-byte
+  v2 membership and a 131,122-byte matching mount record both went red by
+  returning valid facts. Each parser now refuses before splitting or decoding;
+  the rotational classifier likewise owns its common pre-allocation ceiling
+  rather than borrowing a Linux effect-file constant. Cgroup filesystem,
+  hierarchy, separator, and controller tokens now each have one package owner.
+
+  A local positive/negative/neutral LayerTriad proves exact-ceiling admission,
+  one-byte-over typed zero refusal, and an unrelated-controller no-op. Five
+  semantic fuzz targets independently close hostname admission, rotational
+  mapping, cgroup membership, mountinfo binding and canonical round trip, and
+  real-file limit parsing. Every target ran 10,000 live executions beyond its
+  seed corpus; the complete Hostfacts suite and race/shuffle repeat are green.
+
+- completed the live semantic fuzz campaign across every then-inventoried
+  external fuzz target,
   2026-08-14, published `v2026.0.120`. The compiler-discovered inventory names
   150 targets and the latest campaign result contains exactly 150 passes, with
   no missing, unexpected, failed, or incomplete target. Every target executed
