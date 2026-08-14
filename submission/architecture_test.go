@@ -9,15 +9,44 @@ import (
 	"sort"
 	"strings"
 	"testing"
+
+	"github.com/deliri/primitive/v2026/attest"
+	"github.com/deliri/primitive/v2026/controlwire"
+	"github.com/deliri/primitive/v2026/core"
+	"github.com/deliri/primitive/v2026/objectstore"
 )
 
 //go:embed *.go
 var submissionContractSources embed.FS
 
 type (
-	protocolFact[T any]         struct{}
-	sealedWireProjection[T any] struct{}
-	capabilityWrapper[T any]    struct{}
+	protocolFact[T any]                 struct{}
+	sealedWireProjection[T any]         struct{}
+	capabilityWrapper[T any]            struct{}
+	completionPayloadDisclosureContract struct {
+		Evidence      objectstore.TransferEvidence           `json:"evidence"`
+		Build         core.BuildIdentity                     `json:"build"`
+		Nonce         controlwire.RequestNonce               `json:"request_nonce"`
+		Request       RequestCommitment                      `json:"request_commitment"`
+		Capability    objectstore.UploadCapabilityCommitment `json:"capability_commitment"`
+		Authorization controlwire.AuthorityNonce             `json:"authorization_nonce"`
+	}
+	completionDocumentDisclosureContract struct {
+		Payload     CompletionPayload              `json:"payload"`
+		Attestation attest.Envelope[SigningDomain] `json:"attestation"`
+	}
+	completionProjectionDisclosureContract struct {
+		payload     completionProjectionPayload
+		attestation attest.Envelope[SigningDomain]
+	}
+	completionProjectionPayloadDisclosureContract struct {
+		evidence      objectstore.TransferEvidenceProjection
+		build         core.BuildIdentity
+		nonce         controlwire.RequestNonce
+		request       RequestCommitment
+		capability    objectstore.UploadCapabilityCommitment
+		authorization controlwire.AuthorityNonce
+	}
 )
 
 // submissionContractInventory classifies every production struct by its exact
@@ -146,6 +175,10 @@ func submissionClassifiedStructNames(t *testing.T) []string {
 }
 
 var (
+	_ = completionPayloadDisclosureContract(CompletionPayload{})
+	_ = completionDocumentDisclosureContract(CompletionDocument{})
+	_ = completionProjectionDisclosureContract(CompletionProjection{})
+	_ = completionProjectionPayloadDisclosureContract(completionProjectionPayload{})
 	_ = submissionContractInventory{}
 	_ = submissionContractInventory{}.grantDocumentWire
 	_ = submissionContractInventory{}.grantProjectionWire

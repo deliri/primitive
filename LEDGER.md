@@ -4,6 +4,29 @@ Last updated: `2026-08-13`
 
 ## Current
 
+- closed URL-free Submission completion disclosure, 2026-08-13, prepared
+  `v2026.0.107`. The device completion continues to sign only its build,
+  original request nonce and commitment, capability commitment, authority
+  nonce, and Objectstore's confirmed provider/direction/version/extent/SHA-256/
+  CRC32C evidence. Four explicit test-only structure conversions now make the
+  exact fields of the received payload/document and issue-only payload/
+  projection compiler-ratcheted: adding a bearer, URL, header, path, source,
+  object bytes, manifest name, or product payload fails compilation. The live
+  projection test injects distinctive source content and the actual fixture
+  bearer address, query/signed headers, and manifest object name, proves none
+  appear in canonical output, then proves every permitted fact exactly equals
+  the request, grant, and confirmed transfer.
+
+  This slice is a contract ratchet over already-correct production. The
+  meaningful mutation added one media-type leak field to `CompletionPayload`;
+  the compiler refused conversion to the disclosure contract before a test
+  could run. Existing hostile proof authenticates all compiler-owned offerings,
+  refuses ten issuance recombinations and thirteen independently authentic
+  request/grant/completion/trust substitutions, preserves exact zero authority,
+  and closes strict JSON limits. The signed-document semantic fuzz oracle ran
+  65,770 executions with validation, signature, canonical round-trip, and
+  typed zero/refusal requirements.
+
 - closed exact short-lived Submission grant proof, 2026-08-13, prepared
   `v2026.0.106`. The existing production path is retained: the authority signs
   the exact request commitment, authority nonce, capability commitment,

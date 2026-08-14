@@ -62,13 +62,65 @@ func TestCompletionAuthenticationLayerTriadBindsRealTransferToEveryOffering(t *t
 				t.Fatalf("VerifiedCompletion.Payload(%v) error = %v, want nil", offering, err)
 			}
 			if got.Build != fixture.request.Build || got.Request != fixture.grantDocument.Payload.Request ||
+				got.Nonce != fixture.request.Nonce ||
+				got.Capability != fixture.grantDocument.Payload.Capability ||
 				got.Authorization != fixture.grantDocument.Payload.Authorization ||
+				got.Evidence.Provider() != objectstore.ProviderGoogleCloudStorage ||
+				got.Evidence.Direction() != objectstore.DirectionUpload ||
 				got.Evidence.Bytes() != fixture.request.Declaration.Extent ||
 				got.Evidence.SHA256() != fixture.request.Declaration.SHA256 ||
 				got.Evidence.CRC32C() != fixture.request.Declaration.CRC32C {
 				t.Fatalf("completion payload = %+v, want exact request, grant, and transfer closure", got)
 			}
 		})
+	}
+}
+
+func TestCompletionProjectionCarriesEveryAllowedFactAndNoUnownedMaterial(t *testing.T) {
+	t.Parallel()
+
+	content := []byte("completion source bytes must never cross the evidence boundary")
+	fixture := newCompletionFixture(t, core.OfferingWitness, content)
+	projection, err := IssueCompletion(CompletionIssuance{
+		Signer: fixture.deviceSigner, Request: fixture.request,
+		Grant: fixture.grant, Transfer: fixture.transfer,
+	})
+	if err != nil {
+		t.Fatalf("IssueCompletion() error = %v, want nil", err)
+	}
+	encoded, err := projection.MarshalJSON()
+	if err != nil {
+		t.Fatalf("CompletionProjection.MarshalJSON() error = %v, want nil", err)
+	}
+	forbidden := []struct {
+		name  string
+		value []byte
+	}{
+		{name: "source bytes", value: content},
+		{name: "bearer object address", value: []byte(testCapabilityObjectPrefix)},
+		{name: "bearer query and signed headers", value: []byte(testCapabilityQuery)},
+		{name: "manifest object name", value: []byte(fixture.request.Manifest.Name.String())},
+	}
+	for _, tc := range forbidden {
+		if len(tc.value) == 0 {
+			t.Fatalf("%s exclusion fixture extent = 0, want a load-bearing marker", tc.name)
+		}
+		if bytes.Contains(encoded, tc.value) {
+			t.Fatalf("CompletionProjection.MarshalJSON() disclosed %s", tc.name)
+		}
+	}
+	document := receiveCompletionProjection(t, projection)
+	payload := document.Payload
+	if payload.Build != fixture.request.Build || payload.Nonce != fixture.request.Nonce ||
+		payload.Request != fixture.grantDocument.Payload.Request ||
+		payload.Capability != fixture.grantDocument.Payload.Capability ||
+		payload.Authorization != fixture.grantDocument.Payload.Authorization ||
+		payload.Evidence.Provider() != fixture.transfer.Provider() ||
+		payload.Evidence.Direction() != objectstore.DirectionUpload ||
+		payload.Evidence.Bytes() != fixture.request.Declaration.Extent ||
+		payload.Evidence.SHA256() != fixture.request.Declaration.SHA256 ||
+		payload.Evidence.CRC32C() != fixture.request.Declaration.CRC32C {
+		t.Fatalf("CompletionProjection allowed facts = %+v, want exact request, grant, and transfer projection", payload)
 	}
 }
 
