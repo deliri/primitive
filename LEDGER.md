@@ -4,6 +4,28 @@ Last updated: `2026-08-13`
 
 ## Current
 
+- closed exact short-lived Submission grant proof, 2026-08-13, prepared
+  `v2026.0.106`. The existing production path is retained: the authority signs
+  the exact request commitment, authority nonce, capability commitment,
+  issuance instant, expiry, and retention promise while transporting the
+  receive-only bearer separately. Issuance and receipt both derive the bearer
+  commitment through Objectstore's canonical projection and require the bearer
+  expiry to equal the signed expiry. Verification authenticates the selected
+  authority and exact request, admits the grant at issuance and through one
+  nanosecond before expiry, and returns zero authority before issuance or at
+  expiry. Objectstore independently proves the commitment changes with
+  provider, URL/signature, signed header, and expiry.
+
+  This slice is a contract ratchet over already-correct production. Issuance
+  neutrality expanded from three partial checks to fourteen independently
+  invalid payload, signer, bearer, commitment, nonce, lifetime, substitution,
+  and expiry-drift cases; every one now requires a completely zero payload,
+  attestation, and bearer beside its typed refusal. The positive proof
+  independently re-derives the exact request and capability commitments and
+  capability expiry. A load-bearing mutation removed the signed capability
+  comparison and `GrantDocument.Validate` accepted a replacement object bearer
+  with nil error; restoration returns the named case to typed binding refusal.
+
 - closed tenant-safe upload-or-reuse authority construction, 2026-08-13,
   prepared `v2026.0.105`. `ReuseDecision` no longer accepts a structurally
   valid evidence document directly. Its one typed request requires the exact

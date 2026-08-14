@@ -318,6 +318,21 @@ func TestGrantVerificationLayerTriadAuthenticatesOneExactCurrentUploadAgreement(
 		t.Fatalf("verified capability provider = (%v, %v), want (%v, nil)",
 			provider, err, objectstore.ProviderGoogleCloudStorage)
 	}
+	commitment, err := capability.Commitment()
+	if err != nil || commitment != payload.Capability {
+		t.Fatalf("verified capability commitment = (%v, %v), want signed %v and nil",
+			commitment, err, payload.Capability)
+	}
+	target, err := capability.Target()
+	if err != nil || target.ExpiresAt != payload.ExpiresAt {
+		t.Fatalf("verified capability expiry = (%v, %v), want signed %v and nil",
+			target.ExpiresAt, err, payload.ExpiresAt)
+	}
+	requestCommitment, err := CommitRequest(fixture.request)
+	if err != nil || requestCommitment != payload.Request {
+		t.Fatalf("verified request commitment = (%v, %v), want signed %v and nil",
+			requestCommitment, err, payload.Request)
+	}
 }
 
 // TestGrantVerificationLayerTriadRefusesEveryNearMissOfItsExactRequest changes one valid request
@@ -951,40 +966,86 @@ func TestIssueGrantReturnsNeutralOnEveryInvalidIngress(t *testing.T) {
 
 	fixture := newGrantFixture(t, grantFixtureRequest{})
 	substitute := testCapabilityProjection(t, "other.json", testGrantExpiresAt)
+	drifted := testCapabilityProjection(t, "proof.json", testGrantExpiresAt+1)
+	driftedCommitment, err := drifted.Commitment()
+	if err != nil {
+		t.Fatalf("drifted UploadCapabilityProjection.Commitment() error = %v, want nil", err)
+	}
+	driftedPayload := fixture.payload
+	driftedPayload.Capability = driftedCommitment
 	cases := []struct {
+		wantErr  error
 		name     string
 		issuance GrantIssuance
 	}{
+		{name: "zero issuance", wantErr: core.ErrControlPlaneContract},
 		{
 			name: "zero payload",
 			issuance: GrantIssuance{
 				Capability: fixture.projection.Capability, Signer: testGrantSigner(t),
 			},
+			wantErr: core.ErrControlPlaneContract,
 		},
 		{
 			name: "nil signer",
 			issuance: GrantIssuance{
 				Payload: fixture.payload, Capability: fixture.projection.Capability,
 			},
+			wantErr: core.ErrControlPlaneContract,
+		},
+		{
+			name: "zero capability",
+			issuance: GrantIssuance{
+				Payload: fixture.payload, Signer: testGrantSigner(t),
+			},
+			wantErr: core.ErrControlPlaneContract,
 		},
 		{
 			name: "capability commitment substitution",
 			issuance: GrantIssuance{
 				Payload: fixture.payload, Capability: substitute, Signer: testGrantSigner(t),
 			},
+			wantErr: core.ErrControlPlaneResponseBinding,
 		},
+		{name: "zero request commitment", issuance: grantIssuanceWithPayload(t, fixture, func(value *GrantPayload) { value.Request = RequestCommitment{} }), wantErr: core.ErrControlPlaneContract},
+		{name: "zero authority nonce", issuance: grantIssuanceWithPayload(t, fixture, func(value *GrantPayload) { value.Authorization = controlwire.AuthorityNonce{} }), wantErr: core.ErrControlPlaneContract},
+		{name: "zero capability commitment", issuance: grantIssuanceWithPayload(t, fixture, func(value *GrantPayload) { value.Capability = objectstore.UploadCapabilityCommitment{} }), wantErr: core.ErrControlPlaneContract},
+		{name: "zero issuance instant", issuance: grantIssuanceWithPayload(t, fixture, func(value *GrantPayload) { value.IssuedAt = temporal.Instant{} }), wantErr: core.ErrControlPlaneContract},
+		{name: "zero expiry instant", issuance: grantIssuanceWithPayload(t, fixture, func(value *GrantPayload) { value.ExpiresAt = temporal.Instant{} }), wantErr: core.ErrControlPlaneContract},
+		{name: "zero retention instant", issuance: grantIssuanceWithPayload(t, fixture, func(value *GrantPayload) { value.RetainUntil = temporal.Instant{} }), wantErr: core.ErrControlPlaneContract},
+		{name: "issuance equals expiry", issuance: grantIssuanceWithPayload(t, fixture, func(value *GrantPayload) { value.ExpiresAt = value.IssuedAt }), wantErr: core.ErrControlPlaneContract},
+		{name: "expiry equals retention", issuance: grantIssuanceWithPayload(t, fixture, func(value *GrantPayload) { value.RetainUntil = value.ExpiresAt }), wantErr: core.ErrControlPlaneContract},
+		{name: "capability expiry differs from signed expiry", issuance: GrantIssuance{Payload: driftedPayload, Capability: drifted, Signer: testGrantSigner(t)}, wantErr: core.ErrControlPlaneResponseBinding},
 	}
 	for _, tc := range cases {
 		t.Run(tc.name, func(t *testing.T) {
 			t.Parallel()
 
 			projection, err := IssueGrant(tc.issuance)
-			if !errors.Is(err, core.ErrControlPlaneContract) || !projection.Capability.IsZero() {
-				t.Fatalf("IssueGrant(%s) capability zero = %t, error = %v, want true and errors.Is %v",
-					tc.name, projection.Capability.IsZero(), err, core.ErrControlPlaneContract)
+			if !errors.Is(err, tc.wantErr) || !grantProjectionIsZero(projection) {
+				t.Fatalf("IssueGrant(%s) = (%v, %v), want exact zero and errors.Is %v",
+					tc.name, projection, err, tc.wantErr)
 			}
 		})
 	}
+}
+
+func grantIssuanceWithPayload(
+	t *testing.T,
+	fixture grantFixture,
+	mutate func(*GrantPayload),
+) GrantIssuance {
+	t.Helper()
+	payload := fixture.payload
+	mutate(&payload)
+	return GrantIssuance{
+		Payload: payload, Capability: fixture.projection.Capability, Signer: testGrantSigner(t),
+	}
+}
+
+func grantProjectionIsZero(projection GrantProjection) bool {
+	return projection.Capability.IsZero() && projection.Payload == (GrantPayload{}) &&
+		projection.Attestation == (attest.Envelope[SigningDomain]{})
 }
 
 func testGrantSigner(t *testing.T) ed25519.PrivateKey {
