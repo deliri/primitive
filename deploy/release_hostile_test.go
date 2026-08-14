@@ -22,6 +22,7 @@ import (
 	"github.com/deliri/primitive/v2026/attest"
 	"github.com/deliri/primitive/v2026/core"
 	"github.com/deliri/primitive/v2026/deploy"
+	"github.com/deliri/primitive/v2026/exchange"
 	"github.com/deliri/primitive/v2026/objectstore"
 	"github.com/deliri/primitive/v2026/release"
 	"github.com/deliri/primitive/v2026/temporal"
@@ -460,7 +461,11 @@ func fixturePolicy(t *testing.T) objectstore.Policy {
 
 func deployObjectstoreClient(t *testing.T, transport http.RoundTripper) objectstore.Client {
 	t.Helper()
-	client, err := objectstore.NewClient(&http.Client{Transport: transport})
+	exchangeClient, err := exchange.NewClient(&http.Client{Transport: transport})
+	if err != nil {
+		t.Fatalf("exchange.NewClient() error = %v", err)
+	}
+	client, err := objectstore.NewClient(exchangeClient)
 	if err != nil {
 		t.Fatalf("objectstore.NewClient() error = %v", err)
 	}

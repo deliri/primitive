@@ -16,9 +16,9 @@ const (
 	// PrimitiveDirectImportCount is the number of admitted direct import edges.
 	PrimitiveDirectImportCount = 150
 	// PrimitiveDirectTestImportCount is the number of admitted test-only edges.
-	PrimitiveDirectTestImportCount = 23
+	PrimitiveDirectTestImportCount = 30
 	// PrimitiveMaximumDirectImports caps direct sibling imports per package.
-	PrimitiveMaximumDirectImports = 9
+	PrimitiveMaximumDirectImports = 10
 )
 
 // PackageIdentity is a closed identity for a package in Primitive's catalog.
@@ -382,13 +382,18 @@ func PrimitiveArchitecture() ArchitectureCatalog {
 			{Importer: PackageFilestore, Imported: PackageFileLock},
 			{Importer: PackageProcess, Imported: PackageTestSerial},
 			{Importer: PackageDeploy, Imported: PackageAttest},
+			{Importer: PackageDeploy, Imported: PackageExchange},
 			{Importer: PackageDeploy, Imported: PackageTemporal},
+			{Importer: PackageUpgrade, Imported: PackageExchange},
 			{Importer: PackageGCSObjects, Imported: PackageExchange},
 			{Importer: PackageGCSObjects, Imported: PackageTestSerial},
 			{Importer: PackageSubmissionAuth, Imported: PackageControlPlaneTest},
+			{Importer: PackageSubmissionAuth, Imported: PackageExchange},
+			{Importer: PackageSubmission, Imported: PackageExchange},
 			{Importer: PackageControlWire, Imported: PackageControlPlane},
 			{Importer: PackageControlWire, Imported: PackageControlPlaneTest},
 			{Importer: PackageRetrievalAuth, Imported: PackageControlPlaneTest},
+			{Importer: PackageRetrieval, Imported: PackageExchange},
 			{Importer: PackageRetrieval, Imported: PackageReceipt},
 			{Importer: PackageChitAuth, Imported: PackageControlPlaneTest},
 			{Importer: PackageChitAuth, Imported: PackageReceipt},
@@ -398,7 +403,9 @@ func PrimitiveArchitecture() ArchitectureCatalog {
 			{Importer: PackagePaymentAuth, Imported: PackageTemporal},
 			{Importer: PackageDistributionAuth, Imported: PackageControlPlaneTest},
 			{Importer: PackageDistributionAuth, Imported: PackageDeploy},
+			{Importer: PackageDistributionAuth, Imported: PackageExchange},
 			{Importer: PackageDistributionAuth, Imported: PackageObjectStore},
+			{Importer: PackageDistribution, Imported: PackageExchange},
 			{Importer: PackageRelease, Imported: PackageTestSerial},
 		},
 	}

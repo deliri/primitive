@@ -9,7 +9,6 @@ import (
 	"hash/crc32"
 	"io"
 	"mime/multipart"
-	"net/http"
 	"net/textproto"
 	"net/url"
 
@@ -21,19 +20,14 @@ import (
 
 const cloudflareImagesFormField = "file"
 
-// Client is an immutable capability over one caller-owned HTTP client admitted
-// through Exchange at this package boundary.
+// Client is an immutable capability over one caller-owned Exchange client.
 type Client struct {
 	exchange exchange.Client
 }
 
-// NewClient constructs one Objectstore client.
-func NewClient(client *http.Client) (Client, error) {
-	exchangeClient, err := exchange.NewClient(client)
-	if err != nil {
-		return Client{}, errors.Join(core.ErrObjectStoreContract, err)
-	}
-	value := Client{exchange: exchangeClient}
+// NewClient admits one already-validated Exchange network capability.
+func NewClient(client exchange.Client) (Client, error) {
+	value := Client{exchange: client}
 	if err := value.Validate(); err != nil {
 		return Client{}, err
 	}
@@ -42,9 +36,13 @@ func NewClient(client *http.Client) (Client, error) {
 
 // NewStandardClient constructs the Objectstore capability backed by Go's
 // standard transport. Products that do not customize transport remain blind
-// to Objectstore's internal Exchange admission and net/http mechanics.
+// to Exchange and net/http mechanics.
 func NewStandardClient() (Client, error) {
-	return NewClient(&http.Client{})
+	client, err := exchange.NewStandardClient()
+	if err != nil {
+		return Client{}, errors.Join(core.ErrObjectStoreContract, err)
+	}
+	return NewClient(client)
 }
 
 // Validate rejects an unset Exchange capability.
@@ -711,11 +709,11 @@ func statusFailure(cause error, direction Direction) []error {
 		return nil
 	}
 	projected := []error{status}
-	code := statusCode(status)
-	if code == http.StatusNotFound && direction == DirectionDownload {
+	code := status.Status()
+	if code.IsNotFound() && direction == DirectionDownload {
 		projected = append(projected, core.ErrObjectStoreAbsent)
 	}
-	if (code == http.StatusConflict || code == http.StatusPreconditionFailed) &&
+	if (code.IsConflict() || code.IsPreconditionFailed()) &&
 		direction == DirectionUpload {
 		projected = append(projected, core.ErrObjectStoreConflict)
 	}
@@ -762,11 +760,6 @@ func stableExchangeIdentities(cause error) error {
 
 func coreSourceIntegrity() error {
 	return errors.Join(core.ErrObjectStoreSource, core.ErrObjectStoreIntegrity)
-}
-
-func statusCode(status exchange.StatusError) int {
-	value, _ := status.Status().Int()
-	return value
 }
 
 func singleAttempt(method exchange.Method) exchange.RequestSemantics {

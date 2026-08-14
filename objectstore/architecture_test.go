@@ -6,8 +6,90 @@ import (
 	"go/token"
 	"path/filepath"
 	"slices"
+	"strconv"
+	"strings"
 	"testing"
 )
+
+func TestObjectstoreHTTPDoorArchitectureLayerTriad(t *testing.T) {
+	t.Parallel()
+
+	t.Run("positive real production delegates every HTTP execution door", func(t *testing.T) {
+		t.Parallel()
+
+		files, err := filepath.Glob("*.go")
+		if err != nil {
+			t.Fatalf("filepath.Glob() error = %v, want nil", err)
+		}
+		var got []string
+		for _, path := range files {
+			if strings.HasSuffix(path, "_test.go") {
+				continue
+			}
+			imports, err := objectstoreHTTPImports(path, nil)
+			if err != nil {
+				t.Fatalf("objectstoreHTTPImports(%q) error = %v, want nil", path, err)
+			}
+			got = append(got, imports...)
+		}
+		if len(got) != 0 {
+			t.Fatalf("Objectstore production net/http doors = %q, want none because Exchange owns execution", got)
+		}
+	})
+
+	t.Run("negative direct aliased and subpackage HTTP mutations are all visible", func(t *testing.T) {
+		t.Parallel()
+
+		cases := []struct {
+			name string
+			code string
+			want []string
+		}{
+			{name: "direct net http import", code: "package synthetic\nimport \"net/http\"\n", want: []string{"net/http"}},
+			{name: "aliased net http import", code: "package synthetic\nimport wire \"net/http\"\n", want: []string{"net/http"}},
+			{name: "net http subpackage", code: "package synthetic\nimport \"net/http/httptest\"\n", want: []string{"net/http/httptest"}},
+		}
+		for _, tc := range cases {
+			got, err := objectstoreHTTPImports("synthetic.go", tc.code)
+			if err != nil || !slices.Equal(got, tc.want) {
+				t.Fatalf("objectstoreHTTPImports(%s) = (%q, %v), want (%q, nil)", tc.name, got, err, tc.want)
+			}
+		}
+	})
+
+	t.Run("neutral neighboring typed and MIME imports create no execution finding", func(t *testing.T) {
+		t.Parallel()
+
+		for _, code := range []string{
+			"package synthetic\nimport \"github.com/deliri/primitive/v2026/exchange\"\n",
+			"package synthetic\nimport \"net/textproto\"\n",
+		} {
+			got, err := objectstoreHTTPImports("synthetic.go", code)
+			if err != nil || len(got) != 0 {
+				t.Fatalf("objectstoreHTTPImports(neutral) = (%q, %v), want (nil, nil)", got, err)
+			}
+		}
+	})
+}
+
+func objectstoreHTTPImports(filename string, source any) ([]string, error) {
+	file, err := parser.ParseFile(token.NewFileSet(), filename, source, parser.ImportsOnly)
+	if err != nil {
+		return nil, err
+	}
+	var imports []string
+	for _, specification := range file.Imports {
+		path, err := strconv.Unquote(specification.Path.Value)
+		if err != nil {
+			return nil, err
+		}
+		if path == "net/http" || strings.HasPrefix(path, "net/http/") {
+			imports = append(imports, path)
+		}
+	}
+	slices.Sort(imports)
+	return imports, nil
+}
 
 func TestProviderOperationsAreCompilerSelectedEntryPoints(t *testing.T) {
 	t.Parallel()

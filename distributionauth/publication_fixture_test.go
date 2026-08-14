@@ -20,6 +20,7 @@ import (
 	"github.com/deliri/primitive/v2026/core"
 	"github.com/deliri/primitive/v2026/deploy"
 	"github.com/deliri/primitive/v2026/distribution"
+	"github.com/deliri/primitive/v2026/exchange"
 	"github.com/deliri/primitive/v2026/objectstore"
 	"github.com/deliri/primitive/v2026/release"
 )
@@ -495,7 +496,11 @@ func publicationAuthAuthorityNonce(t testing.TB, marker byte) controlwire.Author
 
 func publicationAuthObjectstoreClient(t testing.TB) objectstore.Client {
 	t.Helper()
-	objectClient, err := objectstore.NewClient(&http.Client{Transport: &publicationAuthTransport{}})
+	exchangeClient, err := exchange.NewClient(&http.Client{Transport: &publicationAuthTransport{}})
+	if err != nil {
+		t.Fatalf("exchange.NewClient() error = %v, want nil", err)
+	}
+	objectClient, err := objectstore.NewClient(exchangeClient)
 	if err != nil {
 		t.Fatalf("objectstore.NewClient() error = %v, want nil", err)
 	}

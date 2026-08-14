@@ -107,6 +107,17 @@ func (s HTTPStatusCode) IsServerError() bool {
 	return s.value >= httpStatusServerErrorMinimum && s.value <= httpStatusCodeMaximum
 }
 
+// IsNotFound reports the exact 404 resource-absence status.
+func (s HTTPStatusCode) IsNotFound() bool { return s.value == http.StatusNotFound }
+
+// IsConflict reports the exact 409 state-conflict status.
+func (s HTTPStatusCode) IsConflict() bool { return s.value == http.StatusConflict }
+
+// IsPreconditionFailed reports the exact 412 precondition refusal status.
+func (s HTTPStatusCode) IsPreconditionFailed() bool {
+	return s.value == http.StatusPreconditionFailed
+}
+
 // PermitsResponseBody reports whether the status alone permits a response body.
 // Informational responses, 204, and 304 never carry one. Request-method rules,
 // such as HEAD suppressing a body that the status otherwise permits, remain the

@@ -15,6 +15,7 @@ import (
 	"time"
 
 	"github.com/deliri/primitive/v2026/core"
+	"github.com/deliri/primitive/v2026/exchange"
 	"github.com/deliri/primitive/v2026/objectstore"
 	"github.com/deliri/primitive/v2026/temporal"
 	storageapi "google.golang.org/api/storage/v1"
@@ -198,7 +199,11 @@ func observedTransferEvidence(t testing.TB, payload []byte, generation int64) ob
 		return dialer.DialContext(ctx, network, address)
 	}
 	t.Cleanup(transport.CloseIdleConnections)
-	client, err := objectstore.NewClient(&http.Client{Transport: transport})
+	exchangeClient, err := exchange.NewClient(&http.Client{Transport: transport})
+	if err != nil {
+		t.Fatalf("exchange.NewClient() error = %v, want nil", err)
+	}
+	client, err := objectstore.NewClient(exchangeClient)
 	if err != nil {
 		t.Fatalf("objectstore.NewClient() error = %v, want nil", err)
 	}

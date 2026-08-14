@@ -4,6 +4,26 @@ Last updated: `2026-08-14`
 
 ## Current
 
+- made Exchange the sole network-client admission owner for Objectstore,
+  2026-08-14, prepared `v2026.0.119`. `objectstore.NewClient` now accepts only
+  an already-validated `exchange.Client`; `NewStandardClient` delegates to
+  `exchange.NewStandardClient`; and Objectstore production imports no
+  `net/http`. The former `*http.Client` constructor is removed with no shim.
+  Every Primitive call site now crosses Exchange explicitly before Objectstore,
+  and the exact production/test import graph plus policy projection records
+  those previously hidden test dependencies.
+
+  Exact 404, 409, and 412 semantics moved onto Core's existing typed
+  `HTTPStatusCode`, eliminating Objectstore's last raw HTTP status constants.
+  The Core schema triad exhausts all admitted statuses, every other uint16
+  rejection with preserved receiver and typed identity, and the neutral zero
+  value. Objectstore's behavioral triad proves validated authority, hostile
+  zero authority, and standard absent customization. Its architecture triad
+  proves the real tree contains no HTTP execution import, catches direct,
+  aliased, and subpackage mutations, and leaves Exchange and MIME neighbors
+  neutral. The compiler failure from every stale `*http.Client` call site was
+  the clean-upgrade proof; after migration all touched suites compile and pass.
+
 - restored the production complexity ceiling across every package, 2026-08-14,
   prepared `v2026.0.118`. Five owners that had reached cyclomatic complexity
   11 through 13 are now split into typed, single-purpose leaves: Wiring's

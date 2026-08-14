@@ -2,97 +2,57 @@ package objectstore_test
 
 import (
 	"errors"
-	"net/http"
 	"testing"
-	"time"
 
 	"github.com/deliri/primitive/v2026/core"
+	"github.com/deliri/primitive/v2026/exchange"
 	"github.com/deliri/primitive/v2026/objectstore"
 )
 
-// TestClientAdmissionKeepsHTTPMechanicsInsideObjectstore proves the clean
-// package boundary introduced for every real transfer caller. Callers hand
-// Objectstore the standard-library capability they own; Objectstore alone
-// admits it through Exchange and preserves both stable error identities.
-func TestClientAdmissionKeepsHTTPMechanicsInsideObjectstore(t *testing.T) {
+// TestObjectstoreClientAuthorityLayerTriad proves Objectstore cannot
+// become a second net/http owner. Customized transport is admitted by Exchange
+// first; this boundary accepts only that typed capability.
+func TestObjectstoreClientAuthorityLayerTriad(t *testing.T) {
 	t.Parallel()
 
-	t.Run("positive timeout-free standard clients cross the owner boundary", func(t *testing.T) {
+	t.Run("positive validated exchange capability crosses the owner boundary", func(t *testing.T) {
 		t.Parallel()
 
-		for _, client := range []*http.Client{
-			{},
-			{Transport: http.DefaultTransport},
-		} {
-			got, gotErr := objectstore.NewClient(client)
-			if gotErr != nil {
-				t.Fatalf("objectstore.NewClient(timeout-free client) error = %v, want nil", gotErr)
-			}
-			if gotValidateErr := got.Validate(); gotValidateErr != nil {
-				t.Fatalf("admitted objectstore.Client.Validate() error = %v, want nil", gotValidateErr)
-			}
-			if client.Timeout != 0 {
-				t.Fatalf("caller http.Client.Timeout = %v after admission, want unchanged zero", client.Timeout)
-			}
+		client, err := exchange.NewStandardClient()
+		if err != nil {
+			t.Fatalf("exchange.NewStandardClient() error = %v, want nil", err)
+		}
+		got, gotErr := objectstore.NewClient(client)
+		if gotErr != nil || got.Validate() != nil {
+			t.Fatalf("objectstore.NewClient(valid exchange client) = (%v, %v), want valid capability and nil", got, gotErr)
 		}
 	})
 
-	t.Run("negative competing timeout ownership is rejected transactionally", func(t *testing.T) {
+	t.Run("negative zero exchange authority is rejected without a fabricated capability", func(t *testing.T) {
 		t.Parallel()
 
-		for _, timeout := range []time.Duration{
-			time.Duration(-1 << 63), -time.Hour, -1, 1, time.Hour, time.Duration(1<<63 - 1),
-		} {
-			client := &http.Client{Timeout: timeout}
-			got, gotErr := objectstore.NewClient(client)
-			if !errors.Is(gotErr, core.ErrObjectStoreContract) ||
-				!errors.Is(gotErr, core.ErrExchangeContract) {
-				t.Fatalf(
-					"objectstore.NewClient(timeout %v) error = %v, want %v/%v",
-					timeout, gotErr, core.ErrObjectStoreContract, core.ErrExchangeContract,
-				)
-			}
-			if got != (objectstore.Client{}) {
-				t.Fatalf("objectstore.NewClient(timeout %v) = %+v, want zero client", timeout, got)
-			}
-			if client.Timeout != timeout {
-				t.Fatalf("refused caller timeout = %v, want preserved %v", client.Timeout, timeout)
-			}
-		}
-	})
-
-	t.Run("neutral absent client returns no fabricated capability", func(t *testing.T) {
-		t.Parallel()
-
-		got, gotErr := objectstore.NewClient(nil)
+		got, gotErr := objectstore.NewClient(exchange.Client{})
 		if !errors.Is(gotErr, core.ErrObjectStoreContract) ||
 			!errors.Is(gotErr, core.ErrExchangeContract) {
 			t.Fatalf(
-				"objectstore.NewClient(nil) error = %v, want %v/%v",
+				"objectstore.NewClient(zero exchange client) error = %v, want %v/%v",
 				gotErr, core.ErrObjectStoreContract, core.ErrExchangeContract,
 			)
 		}
 		if got != (objectstore.Client{}) {
-			t.Fatalf("objectstore.NewClient(nil) = %+v, want zero client", got)
+			t.Fatalf("objectstore.NewClient(zero exchange client) = %+v, want zero client", got)
 		}
 		if gotValidateErr := got.Validate(); !errors.Is(gotValidateErr, core.ErrObjectStoreContract) {
 			t.Fatalf("zero objectstore.Client.Validate() error = %v, want %v", gotValidateErr, core.ErrObjectStoreContract)
 		}
 	})
-}
 
-// TestStandardClientKeepsProductsBlindToTransportConstruction proves the
-// zero-input product socket is a real, validated Objectstore capability. If
-// the constructor returns a zero client or stops admitting through Exchange,
-// the independent public Validate oracle rejects it.
-func TestStandardClientKeepsProductsBlindToTransportConstruction(t *testing.T) {
-	t.Parallel()
+	t.Run("neutral absent transport customization uses the standard owner without noise", func(t *testing.T) {
+		t.Parallel()
 
-	client, err := objectstore.NewStandardClient()
-	if err != nil {
-		t.Fatalf("objectstore.NewStandardClient() error = %v, want nil", err)
-	}
-	if err := client.Validate(); err != nil {
-		t.Fatalf("standard objectstore.Client.Validate() error = %v, want nil", err)
-	}
+		client, err := objectstore.NewStandardClient()
+		if err != nil || client.Validate() != nil {
+			t.Fatalf("objectstore.NewStandardClient() = (%v, %v), want valid capability and nil", client, err)
+		}
+	})
 }

@@ -16,6 +16,7 @@ import (
 	"github.com/deliri/primitive/v2026/controlplane"
 	"github.com/deliri/primitive/v2026/controlwire"
 	"github.com/deliri/primitive/v2026/core"
+	"github.com/deliri/primitive/v2026/exchange"
 	"github.com/deliri/primitive/v2026/objectstore"
 	"github.com/deliri/primitive/v2026/submission"
 )
@@ -507,7 +508,11 @@ func authCompletionUpload(t testing.TB, request authCompletionUploadRequest) obj
 		return dialer.DialContext(ctx, network, serverAddress)
 	}
 	t.Cleanup(transport.CloseIdleConnections)
-	store, err := objectstore.NewClient(&http.Client{Transport: transport})
+	exchangeClient, err := exchange.NewClient(&http.Client{Transport: transport})
+	if err != nil {
+		t.Fatalf("exchange.NewClient() error = %v, want nil", err)
+	}
+	store, err := objectstore.NewClient(exchangeClient)
 	if err != nil {
 		t.Fatalf("objectstore.NewClient() error = %v, want nil", err)
 	}

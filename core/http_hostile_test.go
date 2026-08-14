@@ -55,67 +55,84 @@ func TestHTTPStatusOKIsTheValidatedSuccessConstant(t *testing.T) {
 	}
 }
 
-func TestHTTPStatusCodeExhaustsProtocolDomain(t *testing.T) {
+func TestHTTPStatusCodeSemanticSchemaLayerTriad(t *testing.T) {
 	t.Parallel()
 
-	for raw := 0; raw <= math.MaxUint16; raw++ {
-		got := HTTPStatusOK()
-		gotErr := got.AdmitInt(raw)
-		wantValid := raw >= httpStatusCodeMinimum && raw <= httpStatusCodeMaximum
-		if (gotErr == nil) != wantValid {
-			t.Fatalf("AdmitInt(%d) error = %v, want valid %t", raw, gotErr, wantValid)
+	t.Run("positive every admitted status closes exact classes semantics and canonical JSON", func(t *testing.T) {
+		t.Parallel()
+
+		for raw := httpStatusCodeMinimum; raw <= httpStatusCodeMaximum; raw++ {
+			proveAdmittedHTTPStatus(t, raw)
 		}
-		if !wantValid {
-			if !errors.Is(gotErr, ErrPrimitiveContract) {
-				t.Fatalf("AdmitInt(%d) error = %v, want %v", raw, gotErr, ErrPrimitiveContract)
+	})
+
+	t.Run("negative every other uint16 value refuses with identity and preserves the receiver", func(t *testing.T) {
+		t.Parallel()
+
+		for raw := 0; raw <= math.MaxUint16; raw++ {
+			if raw >= httpStatusCodeMinimum && raw <= httpStatusCodeMaximum {
+				continue
 			}
-			if got != HTTPStatusOK() {
-				t.Fatalf("AdmitInt(%d) mutated the rejecting receiver to %v, want unchanged %v", raw, got, HTTPStatusOK())
+			got := HTTPStatusOK()
+			gotErr := got.AdmitInt(raw)
+			if !errors.Is(gotErr, ErrPrimitiveContract) || got != HTTPStatusOK() {
+				t.Fatalf("AdmitInt(%d) = (%v, %v), want preserved %v and errors.Is %v",
+					raw, got, gotErr, HTTPStatusOK(), ErrPrimitiveContract)
 			}
-			continue
 		}
-		gotInt, gotIntErr := got.Int()
-		if gotIntErr != nil || gotInt != raw {
-			t.Fatalf("HTTPStatusCode.Int() = (%d, %v), want (%d, nil)", gotInt, gotIntErr, raw)
+	})
+
+	t.Run("neutral zero status fabricates no class exact semantic or integer", func(t *testing.T) {
+		t.Parallel()
+
+		var got HTTPStatusCode
+		value, gotErr := got.Int()
+		if !errors.Is(gotErr, ErrPrimitiveContract) || value != 0 ||
+			got.IsInformational() || got.IsSuccess() || got.IsRedirect() ||
+			got.IsClientError() || got.IsServerError() || got.IsNotFound() ||
+			got.IsConflict() || got.IsPreconditionFailed() || got.PermitsResponseBody() {
+			t.Fatalf("zero HTTPStatusCode = (%d, %v, semantic=%t/%t/%t), want zero, typed refusal, and no semantics",
+				value, gotErr, got.IsNotFound(), got.IsConflict(), got.IsPreconditionFailed())
 		}
-		gotJSON, gotJSONErr := json.Marshal(got)
-		if gotJSONErr != nil || string(gotJSON) != strconv.Itoa(raw) {
-			t.Fatalf("json.Marshal(HTTPStatusCode(%d)) = (%s, %v), want (%d, nil)", raw, gotJSON, gotJSONErr, raw)
-		}
-		var gotRoundTrip HTTPStatusCode
-		gotRoundTripErr := json.Unmarshal(gotJSON, &gotRoundTrip)
-		if gotRoundTripErr != nil || gotRoundTrip != got {
-			t.Fatalf(
-				"HTTPStatusCode(%d) JSON round trip = (%v, %v), want (%v, nil)",
-				raw,
-				gotRoundTrip,
-				gotRoundTripErr,
-				got,
-			)
-		}
-		wantInformational := raw >= httpStatusCodeMinimum && raw <= httpStatusInformationalMaximum
-		wantSuccess := raw >= httpStatusSuccessMinimum && raw <= httpStatusSuccessMaximum
-		wantRedirect := raw >= httpStatusRedirectMinimum && raw <= httpStatusRedirectMaximum
-		wantClientError := raw >= httpStatusClientErrorMinimum && raw <= httpStatusClientErrorMaximum
-		wantServerError := raw >= httpStatusServerErrorMinimum && raw <= httpStatusCodeMaximum
-		wantBodyPermitted := raw > httpStatusInformationalMaximum &&
-			raw != 204 &&
-			raw != 304
-		if got.IsInformational() != wantInformational ||
-			got.IsSuccess() != wantSuccess ||
-			got.IsRedirect() != wantRedirect ||
-			got.IsClientError() != wantClientError ||
-			got.IsServerError() != wantServerError ||
-			got.PermitsResponseBody() != wantBodyPermitted {
-			t.Fatalf(
-				"HTTPStatusCode(%d) classes/body = (%t,%t,%t,%t,%t,%t), want (%t,%t,%t,%t,%t,%t)",
-				raw,
-				got.IsInformational(), got.IsSuccess(), got.IsRedirect(),
-				got.IsClientError(), got.IsServerError(), got.PermitsResponseBody(),
-				wantInformational, wantSuccess, wantRedirect,
-				wantClientError, wantServerError, wantBodyPermitted,
-			)
-		}
+	})
+}
+
+func proveAdmittedHTTPStatus(t *testing.T, raw int) {
+	t.Helper()
+
+	var got HTTPStatusCode
+	if gotErr := got.AdmitInt(raw); gotErr != nil {
+		t.Fatalf("AdmitInt(%d) error = %v, want nil", raw, gotErr)
+	}
+	gotInt, gotIntErr := got.Int()
+	if gotIntErr != nil || gotInt != raw {
+		t.Fatalf("HTTPStatusCode.Int() = (%d, %v), want (%d, nil)", gotInt, gotIntErr, raw)
+	}
+	gotJSON, gotJSONErr := json.Marshal(got)
+	if gotJSONErr != nil || string(gotJSON) != strconv.Itoa(raw) {
+		t.Fatalf("json.Marshal(HTTPStatusCode(%d)) = (%s, %v), want (%d, nil)", raw, gotJSON, gotJSONErr, raw)
+	}
+	var gotRoundTrip HTTPStatusCode
+	gotRoundTripErr := json.Unmarshal(gotJSON, &gotRoundTrip)
+	if gotRoundTripErr != nil || gotRoundTrip != got {
+		t.Fatalf("HTTPStatusCode(%d) JSON round trip = (%v, %v), want (%v, nil)", raw, gotRoundTrip, gotRoundTripErr, got)
+	}
+	wantInformational := raw <= httpStatusInformationalMaximum
+	wantSuccess := raw >= httpStatusSuccessMinimum && raw <= httpStatusSuccessMaximum
+	wantRedirect := raw >= httpStatusRedirectMinimum && raw <= httpStatusRedirectMaximum
+	wantClientError := raw >= httpStatusClientErrorMinimum && raw <= httpStatusClientErrorMaximum
+	wantServerError := raw >= httpStatusServerErrorMinimum
+	wantNotFound := raw == http.StatusNotFound
+	wantConflict := raw == http.StatusConflict
+	wantPreconditionFailed := raw == http.StatusPreconditionFailed
+	wantBodyPermitted := raw > httpStatusInformationalMaximum &&
+		raw != http.StatusNoContent && raw != http.StatusNotModified
+	if got.IsInformational() != wantInformational || got.IsSuccess() != wantSuccess ||
+		got.IsRedirect() != wantRedirect || got.IsClientError() != wantClientError ||
+		got.IsServerError() != wantServerError || got.IsNotFound() != wantNotFound ||
+		got.IsConflict() != wantConflict || got.IsPreconditionFailed() != wantPreconditionFailed ||
+		got.PermitsResponseBody() != wantBodyPermitted {
+		t.Fatalf("HTTPStatusCode(%d) semantic classification differs from the standard-library oracle", raw)
 	}
 }
 
