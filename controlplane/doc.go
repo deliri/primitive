@@ -20,11 +20,16 @@
 // work-unit class means: it validates the ordinals, the window, and the
 // arithmetic, and meaning stays with the product that owns it.
 //
-// It does not own the decisions. Which installations are entitled, what a
-// policy revision permits, how an account is billed, and which key signs are
-// the authority's business, and nothing here reads them. Controlwire owns the
-// scalars underneath these documents, Lease owns the timeline a grant creates,
-// Attest owns the envelope, and this package composes them.
+// It does not own business decisions. Which installations are entitled, what a
+// policy revision permits, how an account is billed, which provider instant is
+// authoritative, and which key signs are the authority's business. It does own
+// the pure mechanism that closes those caller-supplied facts: one-use
+// registration verification, exact replay comparison, authenticated usage
+// advancement, and construction of the response that those comparisons permit.
+// Those operations perform no persistence and interpret no product policy.
+// Controlwire owns the scalars underneath these documents, Lease owns the
+// timeline a grant creates, Attest owns the envelope, and this package composes
+// them.
 //
 // Nothing here reaches the network, the clock, or the disk.
 package controlplane

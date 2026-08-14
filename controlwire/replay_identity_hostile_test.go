@@ -86,6 +86,9 @@ func TestReplayIdentitySeparatesExactReplayFromConflictingNonceReuse(t *testing.
 	if err != nil {
 		t.Fatalf("CommitReplayIdentity(identical) error = %v, want nil", err)
 	}
+	if !original.Equal(identical) || !identical.Equal(original) {
+		t.Fatalf("ReplayIdentity.Equal(exact pair) = (%t, %t), want (true, true)", original.Equal(identical), identical.Equal(original))
+	}
 	exact, err := controlwire.CheckReplay(controlwire.ReplayCheck{
 		Existing: &original,
 		Incoming: identical,
@@ -98,6 +101,11 @@ func TestReplayIdentitySeparatesExactReplayFromConflictingNonceReuse(t *testing.
 	conflicting, err := controlwire.CommitReplayIdentity(conflictingRequest)
 	if err != nil {
 		t.Fatalf("CommitReplayIdentity(conflicting) error = %v, want nil", err)
+	}
+	if original.Equal(conflicting) || conflicting.Equal(original) ||
+		original.Equal(controlwire.ReplayIdentity{}) || (controlwire.ReplayIdentity{}).Equal(original) ||
+		(controlwire.ReplayIdentity{}).Equal(controlwire.ReplayIdentity{}) {
+		t.Fatalf("ReplayIdentity.Equal(distinct/zero values) admitted a non-exact or invalid identity")
 	}
 	disposition, err := controlwire.CheckReplay(controlwire.ReplayCheck{
 		Existing: &original,

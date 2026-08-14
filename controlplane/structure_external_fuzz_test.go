@@ -6,6 +6,7 @@ import (
 	"testing"
 
 	"github.com/deliri/primitive/v2026/controlplane"
+	"github.com/deliri/primitive/v2026/controlwire"
 	"github.com/deliri/primitive/v2026/core"
 )
 
@@ -24,6 +25,14 @@ func FuzzRegistrationRequestExternalDecoder(f *testing.F) {
 	if err := seed.UnmarshalJSON(readGolden(f, "registration_request.json")); err != nil {
 		f.Fatalf("registration request golden UnmarshalJSON() error = %v, want nil", err)
 	}
+	verifier, err := seed.Token.Verifier()
+	if err != nil {
+		f.Fatalf("RegistrationToken.Verifier(seed) error = %v, want nil", err)
+	}
+	prior, err := controlwire.CommitReplayIdentity(seed)
+	if err != nil {
+		f.Fatalf("CommitReplayIdentity(seed) error = %v, want nil", err)
+	}
 	mutation := seed
 	mutation.RequestNonce = otherRequestNonce(f)
 	fuzzStructureExternalDoor(f, structureExternalDoor[controlplane.RegistrationRequest]{
@@ -32,7 +41,13 @@ func FuzzRegistrationRequestExternalDecoder(f *testing.F) {
 		Unmarshal: func(value *controlplane.RegistrationRequest, data []byte) error {
 			return value.UnmarshalJSON(data)
 		},
-		Validate:  func(value controlplane.RegistrationRequest) error { return value.Validate() },
+		Validate: func(value controlplane.RegistrationRequest) error { return value.Validate() },
+		Authenticate: func(value controlplane.RegistrationRequest, authentic bool) error {
+			proof, verifyErr := controlplane.VerifyRegistrationAuthority(controlplane.RegistrationAuthorityVerification{
+				Request: value, ExpectedVerifier: verifier, PriorReplay: &prior,
+			})
+			return registrationAuthorityAuthenticationOracle(proof, verifyErr, authentic)
+		},
 		WantError: core.ErrControlPlaneRegistration,
 	})
 }
@@ -220,6 +235,23 @@ func registrationAuthenticationOracle(proof controlplane.VerifiedRegistration, e
 		return errors.Join(err, proof.Validate())
 	}
 	if !errors.Is(err, core.ErrControlPlaneContract) || proof != (controlplane.VerifiedRegistration{}) {
+		return errors.Join(core.ErrControlPlaneContract, err)
+	}
+	return nil
+}
+
+func registrationAuthorityAuthenticationOracle(proof controlplane.VerifiedRegistrationAuthority, err error, authentic bool) error {
+	if authentic {
+		if err != nil {
+			return err
+		}
+		_, disposition, replayErr := proof.Replay()
+		if replayErr != nil || disposition != controlwire.ReplayDispositionExact {
+			return errors.Join(core.ErrControlPlaneContract, replayErr)
+		}
+		return nil
+	}
+	if !errors.Is(err, core.ErrControlPlaneRegistration) || proof.Validate() == nil {
 		return errors.Join(core.ErrControlPlaneContract, err)
 	}
 	return nil

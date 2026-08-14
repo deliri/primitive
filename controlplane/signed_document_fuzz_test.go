@@ -356,6 +356,40 @@ func FuzzCheckInRequestDecodeAndVerify(f *testing.F) {
 			if err := proof.Validate(); err != nil {
 				t.Fatalf("authentic check-in proof Validate() error = %v, want nil", err)
 			}
+			commit, commitErr := controlplane.CommitCheckIn(controlplane.CheckInCommitRequest{
+				CheckIn: proof, Current: candidate.Payload.PreviousWatermark,
+				RequiredPolicy: candidate.Payload.AppliedPolicy,
+			})
+			if commitErr != nil {
+				t.Fatalf("authentic CommitCheckIn() error = %v, want nil", commitErr)
+			}
+			watermark, watermarkErr := commit.Watermark()
+			disposition, dispositionErr := commit.Disposition()
+			previousGeneration, previousErr := candidate.Payload.PreviousWatermark.Generation.Uint64()
+			nextGeneration, nextErr := watermark.Generation.Uint64()
+			if errors.Join(watermarkErr, dispositionErr, previousErr, nextErr) != nil ||
+				disposition != controlplane.UsageDispositionAccepted ||
+				nextGeneration != previousGeneration+1 ||
+				watermark.Subject != candidate.Payload.PreviousWatermark.Subject ||
+				watermark == candidate.Payload.PreviousWatermark {
+				t.Fatalf("authentic usage commit = (%v, %v, %v/%v, %v), want accepted one-generation advance for the exact subject",
+					watermark, disposition, previousGeneration, nextGeneration,
+					errors.Join(watermarkErr, dispositionErr, previousErr, nextErr))
+			}
+			replayed, replayErr := controlplane.CommitCheckIn(controlplane.CheckInCommitRequest{
+				CheckIn: proof, Current: watermark,
+				RequiredPolicy: candidate.Payload.AppliedPolicy,
+			})
+			if replayErr != nil {
+				t.Fatalf("authentic replay CommitCheckIn() error = %v, want nil", replayErr)
+			}
+			gotReplay, replayDispositionErr := replayed.Disposition()
+			gotWatermark, replayWatermarkErr := replayed.Watermark()
+			if errors.Join(replayDispositionErr, replayWatermarkErr) != nil ||
+				gotReplay != controlplane.UsageDispositionReplay || gotWatermark != watermark {
+				t.Fatalf("authentic exact replay = (%v, %v, %v), want replay and unchanged watermark",
+					gotReplay, gotWatermark, errors.Join(replayDispositionErr, replayWatermarkErr))
+			}
 			return
 		}
 		requireControlplaneVerificationRefusal(t, verifyErr)

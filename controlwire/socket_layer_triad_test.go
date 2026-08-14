@@ -114,6 +114,57 @@ func TestRoutedSocketExecutesProductionRequestAndAuthenticatedResponse(t *testin
 	}
 }
 
+// TestRegistrationAuthorityRunsThroughTheRealControlWireReceiver proves the
+// transactional verifier is wired to the authority HTTP boundary rather than
+// existing only as an isolated pure helper.
+func TestRegistrationAuthorityRunsThroughTheRealControlWireReceiver(t *testing.T) {
+	t.Parallel()
+
+	fixture := productionSocketFixture(t)
+	canonical, err := fixture.request.MarshalJSON()
+	if err != nil {
+		t.Fatalf("RegistrationRequest.MarshalJSON() error = %v, want nil", err)
+	}
+	route, err := fixture.request.ControlRoute()
+	if err != nil {
+		t.Fatalf("RegistrationRequest.ControlRoute() error = %v, want nil", err)
+	}
+	path, err := route.Path()
+	if err != nil {
+		t.Fatalf("RouteContract.Path() error = %v, want nil", err)
+	}
+	key, err := fixture.request.RequestNonce.IdempotencyKey()
+	if err != nil {
+		t.Fatalf("RequestNonce.IdempotencyKey() error = %v, want nil", err)
+	}
+	httpRequest := httptest.NewRequest(http.MethodPost, path, bytes.NewReader(canonical))
+	httpRequest.Header.Set(core.HTTPHeaderContentType().String(), standardMediaType(t, exchange.StandardMediaTypeJSON).String())
+	httpRequest.Header.Set(core.HTTPHeaderIdempotencyKey().String(), key.String())
+	received, err := controlwire.ReceiveRoutedJSON[
+		controlplane.RegistrationRequest,
+		*controlplane.RegistrationRequest,
+	](controlwire.AuthorityJSONReceiveCall{
+		Request: httpRequest, Route: route, Support: fixture.support,
+	})
+	if err != nil {
+		t.Fatalf("ReceiveRoutedJSON() error = %v, want nil", err)
+	}
+	verifier, err := received.Body.Token.Verifier()
+	if err != nil {
+		t.Fatalf("received RegistrationToken.Verifier() error = %v, want nil", err)
+	}
+	verified, err := controlplane.VerifyRegistrationAuthority(controlplane.RegistrationAuthorityVerification{
+		Request: *received.Body, ExpectedVerifier: verifier,
+	})
+	if err != nil {
+		t.Fatalf("VerifyRegistrationAuthority(received) error = %v, want nil", err)
+	}
+	replay, disposition, err := verified.Replay()
+	if err != nil || disposition != controlwire.ReplayDispositionFresh || !replay.Equal(received.Replay) {
+		t.Fatalf("authority replay = (%v, %v, %v), want received replay, %v, nil", replay, disposition, err, controlwire.ReplayDispositionFresh)
+	}
+}
+
 func TestRoutedSocketReturnsUpgradeAssessmentBesideAnUnsupportedValidatedRequest(t *testing.T) {
 	t.Parallel()
 

@@ -4,6 +4,33 @@ Last updated: `2026-08-13`
 
 ## Current
 
+- closed the authority-side registration and check-in transaction gap,
+  2026-08-13, prepared `v2026.0.99`. `VerifyRegistrationAuthority` now matches
+  only the authority's persisted one-way verifier, derives the exact
+  Controlwire replay commitment, returns fresh or byte-exact retry, refuses any
+  changed second use, and destroys the presented token on every return path.
+  Its sealed result retains only non-secret build, nonce, device,
+  installation, revision, replay, and disposition facts.
+  `IssueRegisteredInstallation` derives every signed certificate identity fact
+  from that proof, so callers cannot substitute an offering, build, device, or
+  revision beside it.
+
+  `CommitCheckIn` now takes one authenticated device request, the watermark read
+  inside the authority's own transaction, and the authority-selected policy
+  cursor. It performs one O(1) comparison and returns accepted, exact replay, or
+  neutral conflict without owning persistence or product policy.
+  `IssueCommittedCheckInResponse` derives the disposition and watermark and
+  binds them to the exact request, account, installation, offering, revision,
+  policy, provider time, and signed Lease before output. The new hostile proof
+  includes the real Controlwire HTTP receiver, ten distinct fresh/exact
+  registration pairs, twelve registration refusals, every offering across all
+  three usage dispositions, policy and watermark neutrality, twelve signed
+  response substitutions, real Ed25519 certificate/Lease/response signatures,
+  zero-proof refusal, token destruction, and a complete compiler-visible
+  Controlplane data-flow inventory. The tests exposed and fixed a pre-existing
+  error-identity gap where decision disagreement escaped a check-in response
+  without `ErrControlPlaneCheckInResponse`.
+
 - closed the missing authority replay record, 2026-08-13, prepared
   `v2026.0.98`. Every successful `ReceiveRoutedJSON` now returns a validated,
   canonical, persistable `ReplayIdentity` derived from the request-owned

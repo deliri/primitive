@@ -193,7 +193,7 @@ func (p CheckInResponsePayload) Validate() error {
 		return checkInResponseError(consistencyError())
 	}
 	if err := p.validateDecisionAgreement(); err != nil {
-		return err
+		return checkInResponseError(err)
 	}
 	return p.Header.Status.ValidateOutcome(p.Lease.Decision.Outcome())
 }

@@ -156,6 +156,19 @@ func (i ReplayIdentity) Validate() error {
 	return nil
 }
 
+// Equal reports whether two validated identities close the same exact control
+// request. Invalid identities never compare equal, including two zero values.
+//
+// Authority records that are keyed by something other than the nonce use this
+// door to distinguish an exact retry from a second request trying to spend the
+// same one-use authority. CheckReplay remains the stricter nonce-slot check.
+func (i ReplayIdentity) Equal(other ReplayIdentity) bool {
+	if i.Validate() != nil || other.Validate() != nil {
+		return false
+	}
+	return i == other
+}
+
 // MarshalJSON emits one bounded canonical persisted identity.
 func (i ReplayIdentity) MarshalJSON() ([]byte, error) {
 	if err := i.Validate(); err != nil {
