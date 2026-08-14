@@ -530,7 +530,7 @@ func catalogHistoryEntries(t testing.TB, fixture catalogFixture, count int) []Ca
 	entries := make([]CatalogEntry, 0, count)
 	for index := count - 1; index >= 0; index-- {
 		payload := fixture.payload.Entries[0].Chit.Payload
-		payload.Identity = mustChitID(t, byte(0xa0+index), int64(1_000+index))
+		payload.Identity = mustChitID(t, byte(index%251)+1, int64(1_000+index))
 		payload.Version = mustVersion(t, uint64(index+1))
 		document, err := Issue(Issuance{
 			Signer: fixture.private, TrustedKeys: fixture.trusted, Payload: payload,

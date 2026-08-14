@@ -299,7 +299,7 @@ func artifactInspectionPatterns(request ArtifactInspectionRequest) ([artifactIns
 type artifactPatternFinder struct {
 	patterns [artifactInspectionPatternCount]string
 	found    [artifactInspectionPatternCount]bool
-	tail     [linkerValueMaximumBytes - 1]byte
+	window   [artifactInspectionBufferBytes + linkerValueMaximumBytes - 1]byte
 	tailSize int
 	longest  int
 }
@@ -315,18 +315,27 @@ func newArtifactPatternFinder(patterns [artifactInspectionPatternCount]string) *
 }
 
 func (f *artifactPatternFinder) Write(data []byte) (int, error) {
-	window := make([]byte, f.tailSize+len(data))
-	copy(window, f.tail[:f.tailSize])
-	copy(window[f.tailSize:], data)
+	written := len(data)
+	for len(data) > 0 {
+		available := len(f.window) - f.tailSize
+		chunkSize := min(available, len(data))
+		copy(f.window[f.tailSize:], data[:chunkSize])
+		f.scanWindow(f.tailSize + chunkSize)
+		data = data[chunkSize:]
+	}
+	return written, nil
+}
+
+func (f *artifactPatternFinder) scanWindow(windowSize int) {
+	window := f.window[:windowSize]
 	for index, pattern := range f.patterns {
 		if pattern != "" && !f.found[index] && bytes.Contains(window, []byte(pattern)) {
 			f.found[index] = true
 		}
 	}
 	keep := min(f.longest-1, len(window))
-	copy(f.tail[:], window[len(window)-keep:])
+	copy(f.window[:], window[len(window)-keep:])
 	f.tailSize = keep
-	return len(data), nil
 }
 
 func (f *artifactPatternFinder) Validate() error {

@@ -4,6 +4,27 @@ Last updated: `2026-08-14`
 
 ## Current
 
+- proved flat streaming behavior across the commercial payload paths,
+  2026-08-14, prepared `v2026.0.117`. New production-path benchmarks cover
+  authenticated Chit manifest folding at 128 and 4,096 entries, authenticated
+  catalog verification at one and the compiler-owned maximum page, real
+  executable inspection with and without ten MiB of additional extent, and
+  Upgrade's real Objectstore-to-Filestore candidate download at four KiB and
+  ten MiB. The existing Objectstore, Exchange, Fuzzfinder, Hostfacts, and
+  Process benchmarks complete the transfer, walk, and bounded-output matrix.
+
+  The scale proof exposed a real Release defect: the embedded-value scanner
+  allocated a fresh 64-KiB window for every artifact chunk. Its owner now
+  carries one fixed window and scans arbitrarily sized writes in bounded
+  slices. Inspection fell from roughly 4.0 MiB to 172 KiB allocated for the
+  normal executable and from roughly 15.8 MiB to 172 KiB for the same
+  executable plus ten MiB, with allocation count flat at 574. Upgrade staging
+  remains flat at 182 allocations from four KiB through ten MiB; Objectstore,
+  Exchange, and Process remain flat across their representative extents. The
+  hostile allocation ratchet compares one transfer buffer with ten MiB of
+  streamed chunks. Restoring the old scanner drives it red at 161 allocations
+  versus 2; restored production is green.
+
 - completed the full-suite rejection-oracle audit, 2026-08-14, prepared
   `v2026.0.116`. Twelve production slices now require their owning typed error
   identities and their zero, rejected, preserved, or determinate-cleanup

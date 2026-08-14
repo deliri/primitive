@@ -65,6 +65,50 @@ func TestBuiltArtifactFileInspectionLayerTriad(t *testing.T) {
 	})
 }
 
+func BenchmarkInspectBuiltArtifactRealExecutable(b *testing.B) {
+	b.ReportAllocs()
+	benchmarkInspectBuiltArtifactRealExecutable(b, 0)
+}
+
+func BenchmarkInspectBuiltArtifactRealExecutablePlusTenMiB(b *testing.B) {
+	b.ReportAllocs()
+	benchmarkInspectBuiltArtifactRealExecutable(b, 10<<20)
+}
+
+func benchmarkInspectBuiltArtifactRealExecutable(b *testing.B, padding int64) {
+	b.Helper()
+
+	build := inspectionFileTriadBuild(b)
+	assignments := mustInspectionAssignments(b, inspectionProductValue)
+	path := buildInspectionFixture(b, buildInspectionFixtureRequest{
+		Directory: inspectionAbsolutePath(b, b.TempDir()), Build: build,
+		ProductValue: inspectionProductValue, StripFlags: releaseStripFlags,
+	})
+	info, err := os.Stat(path.String())
+	if err != nil {
+		b.Fatalf("os.Stat(executable fixture) error = %v, want nil", err)
+	}
+	if err := os.Truncate(path.String(), info.Size()+padding); err != nil {
+		b.Fatalf("os.Truncate(executable fixture) error = %v, want nil", err)
+	}
+	info, err = os.Stat(path.String())
+	if err != nil {
+		b.Fatalf("os.Stat(padded executable fixture) error = %v, want nil", err)
+	}
+	request := release.ArtifactInspectionRequest{
+		Path: path, Build: build, LinkerAssignments: assignments,
+	}
+	b.ReportAllocs()
+	b.SetBytes(info.Size())
+	b.ResetTimer()
+	for range b.N {
+		artifact, err := release.InspectBuiltArtifact(b.Context(), request)
+		if err != nil || artifact.Validate() != nil || artifact.Build() != build {
+			b.Fatalf("release.InspectBuiltArtifact() = (%v, %v), want exact valid artifact", artifact, err)
+		}
+	}
+}
+
 func inspectionFileTriadBuild(t testing.TB) core.BuildIdentity {
 	t.Helper()
 	commit, err := core.ParseBuildCommit("b5c32d95d212b0a1a8cef4126e4d11ff288079ef")

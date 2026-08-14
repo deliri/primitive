@@ -10,6 +10,7 @@ import (
 	"testing"
 
 	"github.com/deliri/primitive/v2026/core"
+	"github.com/deliri/primitive/v2026/testserial"
 )
 
 // TestArtifactPatternFinderFindsStampsAcrossEveryChunkBoundary proves the
@@ -67,8 +68,54 @@ func TestArtifactPatternFinderHoldsTheLongestAdmittedValueAcrossWrites(t *testin
 	if err := finder.Validate(); err != nil {
 		t.Fatalf("artifactPatternFinder.Validate() error = %v, want nil for a split maximum value", err)
 	}
-	if finder.tailSize > len(finder.tail) {
-		t.Fatalf("artifactPatternFinder tail size = %d, want at most %d", finder.tailSize, len(finder.tail))
+	if finder.tailSize >= linkerValueMaximumBytes {
+		t.Fatalf("artifactPatternFinder tail size = %d, want below %d", finder.tailSize, linkerValueMaximumBytes)
+	}
+}
+
+// TestArtifactPatternFinderAllocationsStayFlatAcrossRepresentativeScale
+// ratchets the streaming ownership contract. The same bounded finder storage
+// must serve one transfer buffer and a representative ten-MiB artifact; a
+// per-write window allocation makes the larger observation fail by hundreds.
+func TestArtifactPatternFinderAllocationsStayFlatAcrossRepresentativeScale(t *testing.T) {
+	testserial.Declare(t, core.TestIsolationDeclaration{
+		Hazard: core.TestIsolationHazardRuntimeAllocation,
+		Scope:  core.TestIsolationScopePackageProcess,
+	})
+
+	const representativeChunks = (10 << 20) / artifactInspectionBufferBytes
+
+	var patterns [artifactInspectionPatternCount]string
+	patterns[0] = "embedded-release-stamp"
+	chunk := bytes.Repeat([]byte("embedded-release-stamp"),
+		artifactInspectionBufferBytes/len(patterns[0]))
+	chunk = append(chunk, bytes.Repeat([]byte{0x5a}, artifactInspectionBufferBytes-len(chunk))...)
+	allocations := func(writes int) (float64, error) {
+		var observedErr error
+		count := testing.AllocsPerRun(5, func() {
+			finder := newArtifactPatternFinder(patterns)
+			for range writes {
+				written, err := finder.Write(chunk)
+				if err != nil || written != len(chunk) {
+					observedErr = errors.Join(observedErr, err, core.ErrReleaseContract)
+					return
+				}
+			}
+			observedErr = errors.Join(observedErr, finder.Validate())
+		})
+		return count, observedErr
+	}
+
+	oneChunk, err := allocations(1)
+	if err != nil {
+		t.Fatalf("one-buffer pattern scan error = %v, want nil", err)
+	}
+	representative, err := allocations(representativeChunks)
+	if err != nil {
+		t.Fatalf("ten-MiB pattern scan error = %v, want nil", err)
+	}
+	if representative > oneChunk+1 {
+		t.Fatalf("ten-MiB pattern scan allocations = %.0f, want at most one above one-buffer %.0f", representative, oneChunk)
 	}
 }
 
