@@ -4,6 +4,26 @@ Last updated: `2026-08-13`
 
 ## Current
 
+- closed exact Chit catalog pagination, 2026-08-13, prepared `v2026.0.101`.
+  `CursorFor` now derives the only valid opaque continuation from the exact
+  UUIDv7 identity at a newest-first page tail using a domain-separated SHA-256
+  frame. `CatalogPayload.Validate` rejects arbitrary or stale continuations,
+  and `VerifyCatalog` rejects a signed response whose entry extent exceeds the
+  exact typed limit committed by its device request. A cursor closes the stable
+  ordering identity rather than mutable custody availability, so state changes
+  do not invalidate the position. No history is accumulated and Primitive owns
+  no persistence or pagination state.
+
+  The meaningful red state was the absent `CursorFor` contract. A second
+  load-bearing mutation disabled tail closure and request-limit enforcement;
+  the hostile suite then admitted an arbitrary cursor and a two-entry response
+  to a one-entry request before returning green on restoration. Proof covers
+  ten exact page tails with an independent standard-library SHA-256 oracle, ten
+  newest-first inversions, ten wrong-tail continuations, exact request limits,
+  all/specific selection, signed authority substitutions, and the complete
+  stored/unavailable/deleted retention matrix one nanosecond before, exactly
+  at, and one nanosecond after the promise.
+
 - closed immutable Chit authority issuance, 2026-08-13, prepared
   `v2026.0.100`. `chit.Issue` now accepts the authority document already stored
   under the candidate collection/version slot and the authority trust set. A

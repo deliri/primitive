@@ -373,9 +373,9 @@ func signedQuerySpecific(t testing.TB, marker byte) Selection {
 func signedQueryAfter(t testing.TB, marker byte) Position {
 	t.Helper()
 
-	cursor, err := NewCursor(core.SHA256Of([]byte{marker}))
+	cursor, err := CursorFor(mustChitID(t, marker, int64(marker)+20))
 	if err != nil {
-		t.Fatalf("NewCursor() error = %v, want nil", err)
+		t.Fatalf("CursorFor() error = %v, want nil", err)
 	}
 	position, err := After(cursor)
 	if err != nil {

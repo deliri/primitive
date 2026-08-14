@@ -17,6 +17,11 @@ const (
 	custodyStateTokenStored               = "stored"
 	custodyStateTokenRetrievalUnavailable = "retrieval-unavailable"
 	custodyStateTokenDeleted              = "deleted"
+	// CatalogCursorCommitmentDomain separates catalog positions from every
+	// other SHA-256 use in Primitive.
+	CatalogCursorCommitmentDomain = "primitive.chit.catalog-cursor.v1"
+	// CatalogCursorFrameSeparator makes the domain/identity frame injective.
+	CatalogCursorFrameSeparator byte = 0
 )
 
 // CustodyState is the authority-observed availability of one immutable chit.
@@ -112,12 +117,36 @@ func (e CatalogEntry) Validate() error {
 // Cursor is the opaque closure of the last entry represented by a page.
 type Cursor struct{ value core.SHA256Digest }
 
-func NewCursor(value core.SHA256Digest) (Cursor, error) {
+func newCursor(value core.SHA256Digest) (Cursor, error) {
 	candidate := Cursor{value: value}
 	if err := candidate.Validate(); err != nil {
 		return Cursor{}, err
 	}
 	return candidate, nil
+}
+
+// CursorFor closes one exact Chit identity into the opaque position used after
+// that entry. The identity is the catalog ordering key; custody-state changes
+// therefore do not invalidate a customer's position.
+func CursorFor(identity ChitID) (Cursor, error) {
+	if err := identity.Validate(); err != nil {
+		return Cursor{}, contractError(err)
+	}
+	writer := core.NewDigestWriter()
+	if _, err := writer.Write([]byte(CatalogCursorCommitmentDomain)); err != nil {
+		return Cursor{}, contractError(err)
+	}
+	if _, err := writer.Write([]byte{CatalogCursorFrameSeparator}); err != nil {
+		return Cursor{}, contractError(err)
+	}
+	if _, err := writer.Write([]byte(identity.String())); err != nil {
+		return Cursor{}, contractError(err)
+	}
+	digest, _, err := writer.Seal()
+	if err != nil {
+		return Cursor{}, contractError(err)
+	}
+	return newCursor(digest)
 }
 
 func (c Cursor) Validate() error {
@@ -142,7 +171,7 @@ func (c *Cursor) UnmarshalJSON(data []byte) error {
 	if err := json.Unmarshal(data, &value); err != nil {
 		return jsonError(err)
 	}
-	candidate, err := NewCursor(value)
+	candidate, err := newCursor(value)
 	if err != nil {
 		return jsonError(err)
 	}
@@ -240,8 +269,23 @@ func validateCatalogEntries(payload CatalogPayload) error {
 		}
 		prior = current
 	}
-	if payload.Continuation.State == core.CatalogContinuationMore && len(payload.Entries) == 0 {
+	return validateCatalogContinuation(payload)
+}
+
+func validateCatalogContinuation(payload CatalogPayload) error {
+	if payload.Continuation.State != core.CatalogContinuationMore {
+		return nil
+	}
+	if len(payload.Entries) == 0 {
 		return conflictError(errors.New("empty catalog page claims continuation"))
+	}
+	last := payload.Entries[len(payload.Entries)-1]
+	cursor, err := CursorFor(last.Chit.Payload.Identity)
+	if err != nil {
+		return err
+	}
+	if cursor != payload.Continuation.Cursor {
+		return conflictError(errors.New("catalog continuation does not close the page tail"))
 	}
 	return nil
 }
@@ -393,6 +437,9 @@ func VerifyCatalog(verification CatalogVerification) (CatalogPayload, error) {
 	payload := verification.Document.Payload
 	if payload.Scope != verification.Request.Query.Scope || payload.Request != commitment {
 		return CatalogPayload{}, conflictError(errors.New("catalog scope differs from expectation"))
+	}
+	if len(payload.Entries) > int(verification.Request.Query.Limit.Uint16()) {
+		return CatalogPayload{}, conflictError(errors.New("catalog page exceeds the requested limit"))
 	}
 	if err := validateCatalogSelection(payload, verification.Request.Query.Selection); err != nil {
 		return CatalogPayload{}, err

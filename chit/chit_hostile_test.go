@@ -400,23 +400,42 @@ func TestChitRetentionAndCatalogHostileTemporalEdges(t *testing.T) {
 
 	fixture := newChitFixture(t, 0x25, 1)
 	retention := fixture.document.Payload.RetainUntil
-	unavailable := CatalogEntry{Chit: fixture.document, State: CustodyStateRetrievalUnavailable}
 	retentionNanoseconds, err := retention.Nanoseconds()
 	if err != nil {
 		t.Fatalf("RetainUntil.Nanoseconds() error = %v, want nil", err)
 	}
 	before := temporal.InstantFromNanoseconds(retentionNanoseconds - 1)
-	if gotErr := unavailable.ValidateAt(before); !errors.Is(gotErr, core.ErrChitConflict) {
-		t.Fatalf("CatalogEntry.ValidateAt(before retention) error = %v, want errors.Is %v",
-			gotErr, core.ErrChitConflict)
+	after := temporal.InstantFromNanoseconds(retentionNanoseconds + 1)
+	cases := []struct {
+		wantErr  error
+		name     string
+		observed temporal.Instant
+		state    CustodyState
+	}{
+		{name: "stored one nanosecond before retention", state: CustodyStateStored, observed: before},
+		{name: "stored exactly at retention", state: CustodyStateStored, observed: retention},
+		{name: "stored one nanosecond after retention", state: CustodyStateStored, observed: after},
+		{name: "retrieval unavailable one nanosecond before retention", state: CustodyStateRetrievalUnavailable, observed: before, wantErr: core.ErrChitConflict},
+		{name: "retrieval unavailable exactly at retention", state: CustodyStateRetrievalUnavailable, observed: retention},
+		{name: "retrieval unavailable one nanosecond after retention", state: CustodyStateRetrievalUnavailable, observed: after},
+		{name: "deleted one nanosecond before retention", state: CustodyStateDeleted, observed: before, wantErr: core.ErrChitConflict},
+		{name: "deleted exactly at retention", state: CustodyStateDeleted, observed: retention},
+		{name: "deleted one nanosecond after retention", state: CustodyStateDeleted, observed: after},
+		{name: "zero custody state", state: CustodyStateUnknown, observed: retention, wantErr: core.ErrChitContract},
+		{name: "zero observation instant", state: CustodyStateStored, observed: temporal.Instant{}, wantErr: core.ErrChitContract},
 	}
-	if gotErr := unavailable.ValidateAt(retention); gotErr != nil {
-		t.Fatalf("CatalogEntry.ValidateAt(exact retention) error = %v, want nil", gotErr)
-	}
+	for _, tc := range cases {
+		t.Run(tc.name, func(t *testing.T) {
+			t.Parallel()
 
-	stored := CatalogEntry{Chit: fixture.document, State: CustodyStateStored}
-	if gotErr := stored.ValidateAt(before); gotErr != nil {
-		t.Fatalf("stored CatalogEntry.ValidateAt(before retention) error = %v, want nil", gotErr)
+			gotErr := (CatalogEntry{Chit: fixture.document, State: tc.state}).ValidateAt(tc.observed)
+			if tc.wantErr == nil && gotErr != nil {
+				t.Fatalf("CatalogEntry.ValidateAt() error = %v, want nil", gotErr)
+			}
+			if tc.wantErr != nil && !errors.Is(gotErr, tc.wantErr) {
+				t.Fatalf("CatalogEntry.ValidateAt() error = %v, want errors.Is %v", gotErr, tc.wantErr)
+			}
+		})
 	}
 
 	request := catalogQueryPayload(t, fixture.scope, 0x31)

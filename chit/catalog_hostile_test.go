@@ -3,6 +3,7 @@ package chit
 import (
 	"bytes"
 	"crypto"
+	"crypto/sha256"
 	"errors"
 	"testing"
 
@@ -85,10 +86,118 @@ func TestCatalogLayerTriadAuthenticatesTenIndependentPages(t *testing.T) {
 	}
 }
 
+func TestCatalogPaginationLayerTriadClosesTailOrderAndRequestedLimit(t *testing.T) {
+	t.Parallel()
+
+	fixture := newCatalogFixture(t, 0x21, 1)
+	entries := catalogHistoryEntries(t, fixture, 10)
+
+	t.Run("positive page tails derive exact distinct cursors through the full pressure set", func(t *testing.T) {
+		t.Parallel()
+
+		prior := Cursor{}
+		for count := 1; count <= len(entries); count++ {
+			pageEntries := append([]CatalogEntry(nil), entries[:count]...)
+			cursor, err := CursorFor(pageEntries[len(pageEntries)-1].Chit.Payload.Identity)
+			if err != nil {
+				t.Fatalf("CursorFor(page tail %d) error = %v, want nil", count, err)
+			}
+			framed := CatalogCursorCommitmentDomain + string([]byte{CatalogCursorFrameSeparator}) +
+				pageEntries[len(pageEntries)-1].Chit.Payload.Identity.String()
+			wantDigest := core.NewSHA256Digest(sha256.Sum256([]byte(framed)))
+			if cursor.value != wantDigest || (count > 1 && cursor == prior) {
+				t.Fatalf("CursorFor(page tail %d) = (%v, distinct %t), want (%v, true)",
+					count, cursor, cursor != prior, wantDigest)
+			}
+			prior = cursor
+
+			continuation, err := More(cursor)
+			if err != nil {
+				t.Fatalf("More(page tail %d) error = %v, want nil", count, err)
+			}
+			request := fixture.request
+			request.Query.Limit = catalogPageLimitFixture(t, uint16(count))
+			commitment, err := CommitQuery(request)
+			if err != nil {
+				t.Fatalf("CommitQuery(page %d) error = %v, want nil", count, err)
+			}
+			payload := fixture.payload
+			payload.Entries, payload.Request, payload.Continuation = pageEntries, commitment, continuation
+			document, err := IssueCatalog(CatalogIssuance{Signer: fixture.private, Payload: payload})
+			if err != nil {
+				t.Fatalf("IssueCatalog(page %d) error = %v, want nil", count, err)
+			}
+			got, gotErr := VerifyCatalog(CatalogVerification{
+				Document: document, Request: request, TrustedKeys: fixture.trusted,
+			})
+			if gotErr != nil || !catalogPayloadsEqual(got, payload) {
+				t.Fatalf("VerifyCatalog(page %d) = (%v, %v), want exact payload and nil", count, got, gotErr)
+			}
+		}
+	})
+
+	t.Run("negative arbitrary tail cursors and every newest-first inversion conflict", func(t *testing.T) {
+		t.Parallel()
+
+		for index := range entries {
+			pageEntries := append([]CatalogEntry(nil), entries...)
+			if index < len(pageEntries)-1 {
+				pageEntries[index], pageEntries[index+1] = pageEntries[index+1], pageEntries[index]
+			} else {
+				pageEntries[index] = pageEntries[index-1]
+			}
+			payload := fixture.payload
+			payload.Entries = pageEntries
+			if gotErr := payload.Validate(); !errors.Is(gotErr, core.ErrChitConflict) {
+				t.Fatalf("CatalogPayload.Validate(order mutation %d) error = %v, want errors.Is %v", index, gotErr, core.ErrChitConflict)
+			}
+
+			payload.Entries = append([]CatalogEntry(nil), entries[:index+1]...)
+			wrongIdentity := entries[(index+1)%len(entries)].Chit.Payload.Identity
+			wrong, err := CursorFor(wrongIdentity)
+			if err != nil {
+				t.Fatalf("CursorFor(wrong tail %d) error = %v, want nil", index, err)
+			}
+			payload.Continuation, err = More(wrong)
+			if err != nil {
+				t.Fatalf("More(wrong tail %d) error = %v, want nil", index, err)
+			}
+			if gotErr := payload.Validate(); !errors.Is(gotErr, core.ErrChitConflict) {
+				t.Fatalf("CatalogPayload.Validate(wrong tail %d) error = %v, want errors.Is %v", index, gotErr, core.ErrChitConflict)
+			}
+		}
+	})
+
+	t.Run("neutral end page carries no cursor and oversized response cannot exceed its request", func(t *testing.T) {
+		t.Parallel()
+
+		payload := fixture.payload
+		payload.Entries = append([]CatalogEntry(nil), entries[:2]...)
+		payload.Continuation = End()
+		request := fixture.request
+		request.Query.Limit = catalogPageLimitFixture(t, 1)
+		commitment, err := CommitQuery(request)
+		if err != nil {
+			t.Fatalf("CommitQuery(one-entry limit) error = %v, want nil", err)
+		}
+		payload.Request = commitment
+		document, err := IssueCatalog(CatalogIssuance{Signer: fixture.private, Payload: payload})
+		if err != nil {
+			t.Fatalf("IssueCatalog(two-entry response) error = %v, want nil before request verification", err)
+		}
+		got, gotErr := VerifyCatalog(CatalogVerification{
+			Document: document, Request: request, TrustedKeys: fixture.trusted,
+		})
+		if !errors.Is(gotErr, core.ErrChitConflict) || !catalogPayloadsEqual(got, CatalogPayload{}) {
+			t.Fatalf("VerifyCatalog(two entries for limit one) = (%v, %v), want zero and errors.Is %v", got, gotErr, core.ErrChitConflict)
+		}
+	})
+}
+
 func TestVerifyCatalogRejectsEveryIndependentAgreementSubstitution(t *testing.T) {
 	t.Parallel()
 
-	fixture := newCatalogFixture(t, 0x41, 1)
+	fixture := newCatalogFixture(t, 0x40, 1)
 	other := newCatalogFixture(t, 0x71, 2)
 	alternatePayload := fixture.payload
 	alternatePayload.Entries = append([]CatalogEntry(nil), fixture.payload.Entries...)
@@ -101,7 +210,11 @@ func TestVerifyCatalogRejectsEveryIndependentAgreementSubstitution(t *testing.T)
 		t.Fatalf("Issue(alternate catalog chit) error = %v, want nil", err)
 	}
 	alternateWatermark := catalogWatermarkFixture(t, fixture.payload.Scope, 0x62)
-	more, err := More(catalogCursorFixture(t, 0x63))
+	moreCursor, err := CursorFor(fixture.payload.Entries[0].Chit.Payload.Identity)
+	if err != nil {
+		t.Fatalf("CursorFor(catalog tail) error = %v, want nil", err)
+	}
+	more, err := More(moreCursor)
 	if err != nil {
 		t.Fatalf("More() error = %v, want nil", err)
 	}
@@ -221,7 +334,11 @@ func TestVerifyCatalogClosesSpecificSelectionToZeroOrOneExactChit(t *testing.T) 
 	}
 
 	continuedPayload := payload
-	continuedPayload.Continuation, err = More(catalogCursorFixture(t, 0x91))
+	continuedCursor, err := CursorFor(continuedPayload.Entries[0].Chit.Payload.Identity)
+	if err != nil {
+		t.Fatalf("CursorFor(specific entry) error = %v, want nil", err)
+	}
+	continuedPayload.Continuation, err = More(continuedCursor)
 	if err != nil {
 		t.Fatalf("More(specific) error = %v, want nil", err)
 	}
@@ -341,7 +458,11 @@ func newCatalogFixture(t testing.TB, marker byte, version uint64) catalogFixture
 	continuation := End()
 	if marker%2 == 1 {
 		var err error
-		continuation, err = More(catalogCursorFixture(t, marker+1))
+		cursor, cursorErr := CursorFor(chit.identity)
+		if cursorErr != nil {
+			t.Fatalf("CursorFor(catalog entry) error = %v, want nil", cursorErr)
+		}
+		continuation, err = More(cursor)
 		if err != nil {
 			t.Fatalf("More() error = %v, want nil", err)
 		}
@@ -386,11 +507,40 @@ func catalogQueryPayload(t testing.TB, scope receipt.Scope, marker byte) QueryPa
 
 func catalogCursorFixture(t testing.TB, marker byte) Cursor {
 	t.Helper()
-	cursor, err := NewCursor(core.SHA256Of([]byte{marker}))
+	cursor, err := CursorFor(mustChitID(t, marker, int64(marker)+1))
 	if err != nil {
-		t.Fatalf("NewCursor() error = %v, want nil", err)
+		t.Fatalf("CursorFor() error = %v, want nil", err)
 	}
 	return cursor
+}
+
+func catalogPageLimitFixture(t testing.TB, value uint16) core.CatalogPageLimit {
+	t.Helper()
+
+	limit, err := core.NewCatalogPageLimit(value)
+	if err != nil {
+		t.Fatalf("core.NewCatalogPageLimit(%d) error = %v, want nil", value, err)
+	}
+	return limit
+}
+
+func catalogHistoryEntries(t testing.TB, fixture catalogFixture, count int) []CatalogEntry {
+	t.Helper()
+
+	entries := make([]CatalogEntry, 0, count)
+	for index := count - 1; index >= 0; index-- {
+		payload := fixture.payload.Entries[0].Chit.Payload
+		payload.Identity = mustChitID(t, byte(0xa0+index), int64(1_000+index))
+		payload.Version = mustVersion(t, uint64(index+1))
+		document, err := Issue(Issuance{
+			Signer: fixture.private, TrustedKeys: fixture.trusted, Payload: payload,
+		})
+		if err != nil {
+			t.Fatalf("Issue(history entry %d) error = %v, want nil", index, err)
+		}
+		entries = append(entries, CatalogEntry{Chit: document, State: CustodyStateStored})
+	}
+	return entries
 }
 
 func catalogWatermarkFixture(t testing.TB, scope receipt.Scope, marker byte) receipt.Watermark {
