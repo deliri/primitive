@@ -62,6 +62,9 @@ type filestoreContractInventory struct {
 	stageSynchronization   internalFlow[stageSynchronization]
 	createdFileAbandonment internalFlow[createdFileAbandonment]
 	createdPathCleanup     internalFlow[createdPathCleanup]
+	readDirectoryInput     internalFlow[readDirectoryInput]
+	visitWalkEntryInput    internalFlow[visitWalkEntryInput]
+	walkDirectoryInput     internalFlow[walkDirectoryInput]
 }
 
 var (
@@ -71,6 +74,9 @@ var (
 	_ = filestoreContractInventory{}.stageSynchronization
 	_ = filestoreContractInventory{}.createdFileAbandonment
 	_ = filestoreContractInventory{}.createdPathCleanup
+	_ = filestoreContractInventory{}.readDirectoryInput
+	_ = filestoreContractInventory{}.visitWalkEntryInput
+	_ = filestoreContractInventory{}.walkDirectoryInput
 )
 
 func TestFilestorePublicSurfaceIsExactRatchet(t *testing.T) {

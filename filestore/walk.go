@@ -25,15 +25,22 @@ func Walk(ctx context.Context, request WalkRequest) error {
 	if err := request.Validate(); err != nil {
 		return err
 	}
-	return walkDirectory(ctx, request, request.Location.Path)
+	return walkDirectory(walkDirectoryInput{
+		ctx:           ctx,
+		request:       request,
+		directoryPath: request.Location.Path,
+	})
 }
 
-func walkDirectory(
-	ctx context.Context,
-	request WalkRequest,
-	directoryPath core.RelativePath,
-) error {
-	directory, err := request.Location.Root.Open(directoryPath.String())
+type walkDirectoryInput struct {
+	ctx              context.Context
+	request          WalkRequest
+	directoryPath    core.RelativePath
+	expectedIdentity fs.FileInfo
+}
+
+func walkDirectory(input walkDirectoryInput) error {
+	directory, err := input.request.Location.Root.Open(input.directoryPath.String())
 	if err != nil {
 		return sourceError(err)
 	}
@@ -44,26 +51,41 @@ func walkDirectory(
 	if !info.IsDir() {
 		return closeWalkDirectory(directory, sourceError(fs.ErrInvalid))
 	}
-	walkErr := readDirectoryEntries(ctx, request, directoryPath, directory)
+	if input.expectedIdentity != nil && !os.SameFile(input.expectedIdentity, info) {
+		return closeWalkDirectory(directory, sourceError(fs.ErrInvalid))
+	}
+	walkErr := readDirectoryEntries(readDirectoryInput{
+		ctx:           input.ctx,
+		request:       input.request,
+		directoryPath: input.directoryPath,
+		directory:     directory,
+	})
 	return closeWalkDirectory(directory, walkErr)
 }
 
-func readDirectoryEntries(
-	ctx context.Context,
-	request WalkRequest,
-	directoryPath core.RelativePath,
-	directory *os.File,
-) error {
-	if request.Order == WalkOrderLexical {
-		return readLexicalDirectoryEntries(ctx, request, directoryPath, directory)
+type readDirectoryInput struct {
+	ctx           context.Context
+	request       WalkRequest
+	directoryPath core.RelativePath
+	directory     *os.File
+}
+
+func readDirectoryEntries(input readDirectoryInput) error {
+	if input.request.Order == WalkOrderLexical {
+		return readLexicalDirectoryEntries(input)
 	}
 	for {
-		if err := contextstate.Validate(ctx); err != nil {
+		if err := contextstate.Validate(input.ctx); err != nil {
 			return err
 		}
-		entries, err := directory.ReadDir(walkDirectoryBatchEntries)
+		entries, err := input.directory.ReadDir(walkDirectoryBatchEntries)
 		for _, entry := range entries {
-			if visitErr := visitWalkEntry(ctx, request, directoryPath, entry); visitErr != nil {
+			if visitErr := visitWalkEntry(visitWalkEntryInput{
+				ctx:           input.ctx,
+				request:       input.request,
+				directoryPath: input.directoryPath,
+				entry:         entry,
+			}); visitErr != nil {
 				return visitErr
 			}
 		}
@@ -76,14 +98,9 @@ func readDirectoryEntries(
 	}
 }
 
-func readLexicalDirectoryEntries(
-	ctx context.Context,
-	request WalkRequest,
-	directoryPath core.RelativePath,
-	directory *os.File,
-) error {
-	maximum := int(request.DirectoryEntryMaximum.value)
-	entries, err := directory.ReadDir(maximum + 1)
+func readLexicalDirectoryEntries(input readDirectoryInput) error {
+	maximum := int(input.request.DirectoryEntryMaximum.value)
+	entries, err := input.directory.ReadDir(maximum + 1)
 	if len(entries) > maximum {
 		return contractError(errors.New("filestore directory exceeds entry maximum"))
 	}
@@ -94,45 +111,75 @@ func readLexicalDirectoryEntries(
 		return strings.Compare(left.Name(), right.Name())
 	})
 	for _, entry := range entries {
-		if err := contextstate.Validate(ctx); err != nil {
+		if err := contextstate.Validate(input.ctx); err != nil {
 			return err
 		}
-		if err := visitWalkEntry(ctx, request, directoryPath, entry); err != nil {
+		if err := visitWalkEntry(visitWalkEntryInput{
+			ctx:           input.ctx,
+			request:       input.request,
+			directoryPath: input.directoryPath,
+			entry:         entry,
+		}); err != nil {
 			return err
 		}
 	}
 	return nil
 }
 
-func visitWalkEntry(
-	ctx context.Context,
-	request WalkRequest,
-	directoryPath core.RelativePath,
-	entry fs.DirEntry,
-) error {
-	name, err := core.ParsePathComponent(entry.Name())
+type visitWalkEntryInput struct {
+	ctx           context.Context
+	request       WalkRequest
+	directoryPath core.RelativePath
+	entry         fs.DirEntry
+}
+
+func visitWalkEntry(input visitWalkEntryInput) error {
+	name, err := core.ParsePathComponent(input.entry.Name())
 	if err != nil {
 		return contractError(err)
 	}
-	path, err := directoryPath.Join(name)
+	path, err := input.directoryPath.Join(name)
 	if err != nil {
 		return contractError(err)
 	}
-	observation := WalkEntry{Path: path, Entry: entry}
+	observation := WalkEntry{Path: path, Entry: input.entry}
 	if err := observation.Validate(); err != nil {
 		return err
 	}
-	directive, err := request.Visit(observation)
+	identity, err := walkDirectoryIdentity(input.entry)
+	if err != nil {
+		return err
+	}
+	directive, err := input.request.Visit(observation)
 	if err != nil {
 		return err
 	}
 	if err := directive.Validate(); err != nil {
 		return err
 	}
-	if !entry.IsDir() || directive == WalkSkipDirectory {
+	if identity == nil || directive == WalkSkipDirectory {
 		return nil
 	}
-	return walkDirectory(ctx, request, path)
+	return walkDirectory(walkDirectoryInput{
+		ctx:              input.ctx,
+		request:          input.request,
+		directoryPath:    path,
+		expectedIdentity: identity,
+	})
+}
+
+func walkDirectoryIdentity(entry fs.DirEntry) (fs.FileInfo, error) {
+	if !entry.IsDir() {
+		return nil, nil
+	}
+	info, err := entry.Info()
+	if err != nil {
+		return nil, sourceError(err)
+	}
+	if !info.IsDir() {
+		return nil, sourceError(fs.ErrInvalid)
+	}
+	return info, nil
 }
 
 func closeWalkDirectory(directory *os.File, primary error) error {

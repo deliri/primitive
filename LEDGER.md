@@ -4,6 +4,22 @@ Last updated: `2026-08-14`
 
 ## Current
 
+- closed Filestore directory replacement standing, 2026-08-14, prepared
+  `v2026.0.122`. `Walk` now binds every recursive reopen to the exact operating-
+  system directory identity observed before the visitor runs. A callback or
+  concurrent namespace change cannot replace a visited directory with a
+  symlink, a different directory, a regular file, or a missing name and cause
+  traversal under the replacement. Skipped directories remain unopened.
+
+  The real-filesystem positive/negative/neutral LayerTriad proves stable-child
+  admission, typed source/invalid refusal before foreign descent, and neutral
+  skip behavior. Its deliberate inverted-identity mutation makes both stable
+  admission and replacement refusal fail. A bounded semantic fuzz target
+  independently pressures all five namespace outcomes, exact typed errors,
+  visited-path closure, original byte custody, and foreign-child non-
+  observation. The complete Filestore suite and the staticcheck, deadcode-test,
+  and witness-lint checkpoint ratchets are green.
+
 - closed the Hostfacts platform-observation foundation, 2026-08-14, prepared
   `v2026.0.121`. Reconciliation against Witness, Bug, and Peachfuzz confirms
   Primitive owns the needed CPU, Go and physical memory, effective cgroup
