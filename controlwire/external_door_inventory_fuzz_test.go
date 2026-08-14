@@ -27,6 +27,8 @@ const (
 	controlwireJSONDoorRegistrationToken
 	controlwireJSONDoorRegistrationTokenVerifier
 	controlwireJSONDoorRouteFamily
+	controlwireJSONDoorRequestCommitment
+	controlwireJSONDoorReplayIdentity
 	controlwireJSONDoorLimit
 )
 
@@ -48,6 +50,10 @@ func (d controlwireJSONDoor) receiverName() string {
 		return "RegistrationTokenVerifier"
 	case controlwireJSONDoorRouteFamily:
 		return "RouteFamily"
+	case controlwireJSONDoorRequestCommitment:
+		return "RequestCommitment"
+	case controlwireJSONDoorReplayIdentity:
+		return "ReplayIdentity"
 	case controlwireJSONDoorUnknown, controlwireJSONDoorLimit:
 		return ""
 	default:
@@ -64,6 +70,8 @@ type controlwireFuzzFixtures struct {
 	token          RegistrationToken
 	verifier       RegistrationTokenVerifier
 	routeFamily    RouteFamily
+	commitment     RequestCommitment
+	replayIdentity ReplayIdentity
 }
 
 type controlwireJSONSeed struct {
@@ -116,6 +124,14 @@ func FuzzControlwireExternalJSONDoorInventory(f *testing.F) {
 		case controlwireJSONDoorRouteFamily:
 			fuzzControlwireJSONValue(t, controlwireJSONRequest[RouteFamily]{
 				data: data, seed: fixtures.routeFamily, want: core.ErrControlWireRoute,
+			})
+		case controlwireJSONDoorRequestCommitment:
+			fuzzControlwireJSONValue(t, controlwireJSONRequest[RequestCommitment]{
+				data: data, seed: fixtures.commitment, want: core.ErrControlWireContract,
+			})
+		case controlwireJSONDoorReplayIdentity:
+			fuzzControlwireJSONValue(t, controlwireJSONRequest[ReplayIdentity]{
+				data: data, seed: fixtures.replayIdentity, want: core.ErrControlWireContract,
 			})
 		case controlwireJSONDoorUnknown, controlwireJSONDoorLimit:
 			return
@@ -360,10 +376,28 @@ func controlwireFixturesForFuzz(t testing.TB) controlwireFuzzFixtures {
 	if err != nil {
 		t.Fatalf("RegistrationToken.Verifier() error = %v, want nil", err)
 	}
+	canonicalRequest, err := core.MarshalCanonicalJSONDocument(struct {
+		Inventory string `json:"inventory"`
+	}{Inventory: "controlwire"})
+	if err != nil {
+		t.Fatalf("MarshalCanonicalJSONDocument(replay seed) error = %v, want nil", err)
+	}
+	commitment, err := commitCanonicalRequest(canonicalRequest)
+	if err != nil {
+		t.Fatalf("commitCanonicalRequest() error = %v, want nil", err)
+	}
+	replayIdentity := ReplayIdentity{
+		commitment: commitment, nonce: requestNonce, offering: core.OfferingWitness,
+		family: RouteFamilyRegistrations, revision: Revision2026V1,
+	}
+	if err := replayIdentity.Validate(); err != nil {
+		t.Fatalf("ReplayIdentity fuzz seed Validate() error = %v, want nil", err)
+	}
 	return controlwireFuzzFixtures{
 		requestNonce: requestNonce, authorityNonce: authorityNonce, revision: Revision2026V1,
 		policyID: policyID, policyCursor: PolicyCursor{Revision: policyID, Activation: activation},
 		token: token, verifier: verifier, routeFamily: RouteFamilyRegistrations,
+		commitment: commitment, replayIdentity: replayIdentity,
 	}
 }
 
@@ -386,6 +420,8 @@ func controlwireJSONSeedsForFuzz(t testing.TB, fixtures controlwireFuzzFixtures)
 		controlwireJSONSeedForFuzz(t, controlwireJSONDoorRegistrationToken, fixtures.token),
 		controlwireJSONSeedForFuzz(t, controlwireJSONDoorRegistrationTokenVerifier, fixtures.verifier),
 		controlwireJSONSeedForFuzz(t, controlwireJSONDoorRouteFamily, fixtures.routeFamily),
+		controlwireJSONSeedForFuzz(t, controlwireJSONDoorRequestCommitment, fixtures.commitment),
+		controlwireJSONSeedForFuzz(t, controlwireJSONDoorReplayIdentity, fixtures.replayIdentity),
 	}
 }
 

@@ -62,6 +62,7 @@ type AuthorityJSONReceiveCall struct {
 type RoutedJSONReceive[Body RoutedJSONRequest] struct {
 	exchange.Received[Body]
 	Assessment ProtocolAssessment
+	Replay     ReplayIdentity
 }
 
 // ControlJSONWriteCall is one authority-side successful control response.
@@ -128,11 +129,17 @@ func ReceiveRoutedJSON[
 	if err := bindReceivedRequest(call.Route, received); err != nil {
 		return zero, err
 	}
+	replay, err := CommitReplayIdentity(received.Body)
+	if err != nil {
+		return zero, err
+	}
 	assessment, err := assessReceivedProtocol(call.Support, received.Body)
 	if err != nil {
 		return zero, err
 	}
-	result := RoutedJSONReceive[BodyPtr]{Received: received, Assessment: assessment}
+	result := RoutedJSONReceive[BodyPtr]{
+		Received: received, Assessment: assessment, Replay: replay,
+	}
 	return result, result.Validate()
 }
 
@@ -195,6 +202,13 @@ func (r RoutedJSONReceive[Body]) Validate() error {
 	}
 	if r.Assessment.Capability != capability {
 		return protocolSupportError()
+	}
+	wantReplay, err := CommitReplayIdentity(r.Received.Body)
+	if err != nil {
+		return err
+	}
+	if r.Replay != wantReplay {
+		return contractError()
 	}
 	return nil
 }
@@ -307,7 +321,7 @@ func controlRouteSemantics() exchange.RouteSemantics {
 func controlServerPolicy(maximum core.ByteCount) (exchange.ServerPolicy, error) {
 	policy := exchange.ServerPolicy{RequestBodyLimit: maximum}
 	if err := policy.Validate(); err != nil {
-		return exchange.ServerPolicy{}, exchangePolicyError(err)
+		return exchange.ServerPolicy{}, contractError(err)
 	}
 	return policy, nil
 }
@@ -315,7 +329,7 @@ func controlServerPolicy(maximum core.ByteCount) (exchange.ServerPolicy, error) 
 func controlJSONWritePolicy() (exchange.JSONWritePolicy, error) {
 	maximum, err := core.NewByteCount(core.JSONDocumentMaximumBytes)
 	if err != nil {
-		return exchange.JSONWritePolicy{}, exchangePolicyError(err)
+		return exchange.JSONWritePolicy{}, contractError(err)
 	}
 	return exchange.JSONWritePolicy{ResponseBodyLimit: maximum}, nil
 }

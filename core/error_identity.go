@@ -340,6 +340,9 @@ const (
 	// ErrControlWireProtocolSupport identifies an invalid support set or a
 	// compatibility assessment that does not name its exact route/revision pair.
 	ErrControlWireProtocolSupport
+	// ErrControlWireReplayConflict identifies reuse of one request nonce for a
+	// different canonical control request.
+	ErrControlWireReplayConflict
 	// ErrControlPlaneContract identifies a control-plane document contract violation.
 	ErrControlPlaneContract
 	// ErrControlPlaneSigningDomain identifies a rejected control-plane signing domain.
@@ -535,6 +538,7 @@ func errorIdentityDiagnostics() [errorIdentityLimit]errorIdentityDiagnostic {
 		{identity: ErrControlWirePolicyCursor, text: "control-wire policy cursor invalid"},
 		{identity: ErrControlWireRoute, text: "control-wire route contract invalid"},
 		{identity: ErrControlWireProtocolSupport, text: "control-wire protocol support contract invalid"},
+		{identity: ErrControlWireReplayConflict, text: "control-wire replay identity conflict"},
 		{identity: ErrControlPlaneContract, text: "control-plane contract violation"},
 		{identity: ErrControlPlaneSigningDomain, text: "control-plane signing domain invalid"},
 		{identity: ErrControlPlaneProductStatus, text: "control-plane product status invalid"},
@@ -671,6 +675,7 @@ func errorIdentityParents(identity ErrorIdentity) errorIdentityParentSet {
 		return oneErrorIdentityParent(ErrPrimitiveContract)
 	case ErrControlWireRevision, ErrControlWireNonce, ErrControlWireToken,
 		ErrControlWirePolicyCursor, ErrControlWireRoute, ErrControlWireProtocolSupport,
+		ErrControlWireReplayConflict,
 		ErrControlPlaneSigningDomain, ErrControlPlaneProductStatus,
 		ErrControlPlaneUsageWatermark, ErrControlPlaneResponseHeader,
 		ErrControlPlaneResponseDocument,
@@ -783,7 +788,8 @@ func errorIdentityParentsAttestThroughKeygen(identity ErrorIdentity) errorIdenti
 func errorIdentityParentsControlExchange(identity ErrorIdentity) errorIdentityParentSet {
 	switch identity {
 	case ErrControlWireRevision, ErrControlWireNonce, ErrControlWireToken,
-		ErrControlWirePolicyCursor, ErrControlWireRoute, ErrControlWireProtocolSupport:
+		ErrControlWirePolicyCursor, ErrControlWireRoute, ErrControlWireProtocolSupport,
+		ErrControlWireReplayConflict:
 		return oneErrorIdentityParent(ErrControlWireContract)
 	case ErrControlPlaneSigningDomain, ErrControlPlaneProductStatus,
 		ErrControlPlaneUsageWatermark, ErrControlPlaneResponseHeader,

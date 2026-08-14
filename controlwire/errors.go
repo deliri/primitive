@@ -27,6 +27,12 @@ func policyCursorError(causes ...error) error {
 	return scalarError(core.ErrControlWirePolicyCursor, causes...)
 }
 
+// replayConflictError reports only an exact nonce slot occupied by a different
+// canonical request.
+func replayConflictError(causes ...error) error {
+	return scalarError(core.ErrControlWireReplayConflict, causes...)
+}
+
 // scalarError joins the package identity, the scalar identity, and every
 // non-nil cause. A nil cause is dropped so a rejection never widens into an
 // unrelated identity a caller could match on.
@@ -51,14 +57,9 @@ func routeError(causes ...error) error {
 	return scalarError(core.ErrControlWireRoute, causes...)
 }
 
-// exchangePolicyError reports a control-exchange policy that could not be
-// assembled or a document ceiling that could not bound anything.
-//
-// It carries the package contract identity and no scalar. The bounds are
-// published constants of this package, so a rejection here names a defect in
-// the control wire itself rather than a value some caller got wrong, and
-// borrowing the route scalar would send a reader looking at the wrong thing.
-func exchangePolicyError(causes ...error) error {
+// contractError reports a package contract rejection that does not belong to
+// one narrower scalar identity.
+func contractError(causes ...error) error {
 	joined := make([]error, 0, len(causes)+1)
 	joined = append(joined, core.ErrControlWireContract)
 	for _, cause := range causes {

@@ -23,6 +23,9 @@ type (
 	// controlwireExecutionContract marks a typed in-process HTTP execution
 	// boundary. It carries protocol facts but is not itself serialized.
 	controlwireExecutionContract[T any] struct{}
+	// controlwireInternalFlow marks a private typed projection used only across
+	// one owner-controlled implementation boundary.
+	controlwireInternalFlow[T any] struct{}
 
 	controlwireProductionStructName string
 )
@@ -41,6 +44,10 @@ type controlwireContractInventory struct {
 	ProtocolSupport           controlwireExecutionContract[ProtocolSupport]
 	ProtocolAssessmentRequest controlwireExecutionContract[ProtocolAssessmentRequest]
 	ProtocolAssessment        controlwireExecutionContract[ProtocolAssessment]
+	RequestCommitment         controlwireProtocolFact[RequestCommitment]
+	ReplayIdentity            controlwireProtocolFact[ReplayIdentity]
+	ReplayCheck               controlwireExecutionContract[ReplayCheck]
+	replayIdentityWire        controlwireInternalFlow[replayIdentityWire]
 	ClientJSONCall            controlwireExecutionContract[ClientJSONCall[RoutedJSONRequest]]
 	AuthorityJSONReceiveCall  controlwireExecutionContract[AuthorityJSONReceiveCall]
 	RoutedJSONReceive         controlwireExecutionContract[RoutedJSONReceive[RoutedJSONRequest]]
@@ -54,6 +61,7 @@ func TestControlWireProductionStructsHaveCompilerVisibleDataFlowRoles(t *testing
 	_ = controlwireContractInventory{}.AuthorityNonce
 	_ = controlwireContractInventory{}.RegistrationToken
 	_ = controlwireContractInventory{}.RegistrationTokenVerifier
+	_ = controlwireContractInventory{}.replayIdentityWire
 
 	gotProduction, err := controlwireProductionStructNames()
 	if err != nil {

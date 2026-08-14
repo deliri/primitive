@@ -4,6 +4,26 @@ Last updated: `2026-08-13`
 
 ## Current
 
+- closed the missing authority replay record, 2026-08-13, prepared
+  `v2026.0.98`. Every successful `ReceiveRoutedJSON` now returns a validated,
+  canonical, persistable `ReplayIdentity` derived from the request-owned
+  offering, route, revision, nonce, and a domain-separated SHA-256 commitment
+  over the exact canonical request bytes. `CheckReplay` returns only fresh or
+  exact; reuse of one nonce for different request facts is a typed
+  `ErrControlWireReplayConflict`, while a lookup under the wrong nonce is a
+  contract/nonce refusal. The implementation owns no persistence policy and
+  returns no stored value, leaving OGS to own atomic storage and the identical
+  external refusal.
+
+  The red state was the absent compiler-owned API and socket result. Hostile
+  proof covers an independent standard-library digest oracle, every mutable
+  registration fact, invalid device/installation recombination, the complete
+  disposition byte domain, ten accepted JSON representations, twenty-four
+  malformed/boundary documents, non-mutating rejection, and two live semantic
+  fuzz campaigns (295,371 and 275,721 executions). Focused, doubled shuffled
+  race, and full repository tests pass; Staticcheck, Deadcode-with-tests, and
+  Witness-lint are clean.
+
 - closed inline secret and bearer disclosure through Go's invalid `%p`
   formatting path, 2026-08-13, prepared `v2026.0.97`. Exchange header values,
   Cloudidentity tokens and AWS signed requests, Objectstore signed URLs and

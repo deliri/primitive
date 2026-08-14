@@ -287,6 +287,7 @@ func TestRoutedSocketAuthorityAcceptsTenProductionRequestRepresentations(t *test
 			](controlwire.AuthorityJSONReceiveCall{Request: request, Route: route, Support: fixture.support})
 			if gotErr != nil || got.Body == nil || got.Body.Validate() != nil ||
 				got.IdempotencyKey.String() != wantKey.String() ||
+				got.Replay.Validate() != nil ||
 				got.Assessment.Outcome != controlwire.ProtocolSupportOutcomeAccepted ||
 				got.Assessment.Capability.Revision != fixture.request.ControlRevision() ||
 				got.Assessment.Capability.Family != route.Family() {
@@ -496,7 +497,7 @@ func TestRoutedSocketAuthorityRejectsThirtyThreeExternalRequestBoundaries(t *tes
 				controlplane.RegistrationRequest,
 				*controlplane.RegistrationRequest,
 			](controlwire.AuthorityJSONReceiveCall{Request: tc.build(), Route: route, Support: fixture.support})
-			if got.Body != nil || !got.IdempotencyKey.IsZero() {
+			if got.Body != nil || !got.IdempotencyKey.IsZero() || got.Replay != (controlwire.ReplayIdentity{}) {
 				t.Fatalf("rejected receive = %+v, want zero result", got)
 			}
 			for _, want := range tc.want {
@@ -566,7 +567,7 @@ func FuzzRoutedSocketAuthoritySemanticClosure(f *testing.F) {
 			methodMode: modes[1], contentMode: modes[2], route: route, bodyLimit: bodyLimit,
 		})
 		if oracle.err != nil {
-			if got.Body != nil || !got.IdempotencyKey.IsZero() {
+			if got.Body != nil || !got.IdempotencyKey.IsZero() || got.Replay != (controlwire.ReplayIdentity{}) {
 				t.Fatalf("rejected receive = %+v, want zero result", got)
 			}
 			for _, want := range oracle.want {

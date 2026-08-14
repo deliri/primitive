@@ -60,11 +60,11 @@ const (
 func ControlExchangePolicy() (exchange.JSONPolicy, error) {
 	request, err := core.NewByteCount(core.JSONDocumentMaximumBytes)
 	if err != nil {
-		return exchange.JSONPolicy{}, exchangePolicyError(err)
+		return exchange.JSONPolicy{}, contractError(err)
 	}
 	response, err := core.NewByteCount(core.JSONDocumentMaximumBytes)
 	if err != nil {
-		return exchange.JSONPolicy{}, exchangePolicyError(err)
+		return exchange.JSONPolicy{}, contractError(err)
 	}
 	operation, err := ControlExchangeOperationPolicy()
 	if err != nil {
@@ -76,7 +76,7 @@ func ControlExchangePolicy() (exchange.JSONPolicy, error) {
 		ResponseBodyLimit: response,
 	}
 	if err := policy.Validate(); err != nil {
-		return exchange.JSONPolicy{}, exchangePolicyError(err)
+		return exchange.JSONPolicy{}, contractError(err)
 	}
 	return policy, nil
 }
@@ -110,7 +110,7 @@ func ControlExchangeOperationPolicy() (exchange.OperationPolicy, error) {
 		},
 	}
 	if err := policy.Validate(); err != nil {
-		return exchange.OperationPolicy{}, exchangePolicyError(err)
+		return exchange.OperationPolicy{}, contractError(err)
 	}
 	return policy, nil
 }
@@ -129,7 +129,7 @@ func controlExchangeDurations() ([7]temporal.Duration, error) {
 	for index, value := range seconds {
 		duration, err := temporal.DurationFromSeconds(value)
 		if err != nil {
-			return durations, exchangePolicyError(err)
+			return durations, contractError(err)
 		}
 		durations[index] = duration
 	}
@@ -159,7 +159,7 @@ func (c RouteContract) Semantics(nonce RequestNonce) (exchange.RequestSemantics,
 		Replay:         exchange.ReplayIdempotencyKey,
 	}
 	if err := semantics.Validate(); err != nil {
-		return exchange.RequestSemantics{}, exchangePolicyError(err)
+		return exchange.RequestSemantics{}, contractError(err)
 	}
 	return semantics, nil
 }
