@@ -4,6 +4,30 @@ Last updated: `2026-08-13`
 
 ## Current
 
+- closed exact streamed retrieval activation, 2026-08-13, prepared
+  `v2026.0.103`. `VerifiedGrant.DownloadFile` now settles Filestore activation
+  failures according to their typed certainty: a determinate failure durably
+  discards the exact staged inode and returns zero recovery, while indeterminate
+  activation or failed cleanup returns the compiler-owned commit request for a
+  caller-owned recovery context. The existing customer target remains unchanged
+  across every pre-commit refusal. Object bytes still stream once through
+  Objectstore's exact extent, SHA-256, CRC32C, progress, capability, and
+  cancellation gates into Filestore's synchronized temporary before atomic
+  activation.
+
+  The meaningful red state was an existing create-only target: transfer and
+  integrity proof succeeded, Filestore reported a determinate conflict, but
+  Retrieval returned a nonzero recovery request and stranded `.download-stage`.
+  The retained regression now requires zero recovery, exact prior target bytes,
+  confirmed transfer evidence, and durable stage absence. The surrounding
+  thirteen-case failure matrix independently pressures short, padded, and
+  same-size foreign bodies; absent, failing, content-type-less, redirecting,
+  and transport-failing providers; partial response failure; observer refusal;
+  cancellation before and during streaming; and create-only conflict. A
+  semantic external-body fuzz oracle accepts only byte-for-byte agreement,
+  otherwise requiring typed integrity refusal, prior-target preservation, zero
+  proof, and stage absence.
+
 - closed exact manifest membership for Retrieval grants, 2026-08-13, prepared
   `v2026.0.102`. Chit's `ManifestEntryVerifier` replays the authenticated
   manifest in one pass, retains only the requested fixed-size addition, and

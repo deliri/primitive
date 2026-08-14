@@ -70,10 +70,26 @@ func (v VerifiedGrant) DownloadFile(
 	if err != nil {
 		return filestore.CommitRequest{}, transfer, errors.Join(err, filestore.Discard(ctx, staged))
 	}
-	if err := filestore.Commit(ctx, commit); err != nil {
+	return finishFileDownload(ctx, commit, transfer)
+}
+
+func finishFileDownload(
+	ctx context.Context,
+	commit filestore.CommitRequest,
+	transfer objectstore.Transfer,
+) (filestore.CommitRequest, objectstore.Transfer, error) {
+	err := filestore.Commit(ctx, commit)
+	if err == nil {
+		return filestore.CommitRequest{}, transfer, nil
+	}
+	if errors.Is(err, core.ErrFilestoreActivationIndeterminate) ||
+		errors.Is(err, core.ErrFilestoreCleanup) {
 		return commit, transfer, err
 	}
-	return filestore.CommitRequest{}, transfer, nil
+	if cleanupErr := filestore.Discard(ctx, commit.Staged); cleanupErr != nil {
+		return commit, transfer, errors.Join(err, cleanupErr)
+	}
+	return filestore.CommitRequest{}, transfer, err
 }
 
 func (v VerifiedGrant) validateFileDownload(request FileDownloadRequest) error {

@@ -2,12 +2,12 @@ package retrieval
 
 import (
 	"bytes"
+	"context"
 	"errors"
 	"io"
 	"io/fs"
 	"net/http"
 	"os"
-	"sync/atomic"
 	"testing"
 
 	"github.com/deliri/primitive/v2026/core"
@@ -47,26 +47,41 @@ func TestVerifiedGrantDownloadFileLayerTriadPositiveStreamsAndActivates(t *testi
 			payload := bytes.Repeat([]byte{0x6a}, tc.size)
 			fixture := newDownloadCallFixture(t, downloadCallFixtureRequest{Payload: payload})
 			root := retrievalFileRoot(t, directory)
-			var completed atomic.Uint64
+			var completed uint64
+			observations := 0
 			request := FileDownloadRequest{
 				Client: retrievalObjectstoreClient(t, payload), Policy: fixture.policy,
 				Activation: retrievalActivation(t, retrievalActivationRequest{
 					Root: root, Size: uint64(tc.size), Install: filestore.InstallCreate,
 				}),
 				Observer: func(progress objectstore.TransferProgress) error {
-					completed.Store(progress.Completed().Uint64())
+					next := progress.Completed().Uint64()
+					if progress.Validate() != nil || progress.Direction() != objectstore.DirectionDownload ||
+						progress.Total().Uint64() != uint64(tc.size) || next <= completed {
+						return core.ErrObjectStoreContract
+					}
+					completed = next
+					observations++
 					return nil
 				},
 			}
 			recovery, transfer, err := fixture.grant.DownloadFile(t.Context(), request)
+			evidence := fixture.addition.Entry.Evidence.Payload.Body
 			if err != nil || recovery.Validate() == nil || transfer.Validate() != nil ||
-				completed.Load() != uint64(tc.size) {
-				t.Fatalf("VerifiedGrant.DownloadFile(%d) = (recovery %v, transfer %v, error %v, progress %d), want zero recovery and exact success",
-					tc.size, recovery, transfer, err, completed.Load())
+				transfer.Provider() != objectstore.ProviderGoogleCloudStorage ||
+				transfer.Direction() != objectstore.DirectionDownload ||
+				transfer.Bytes() != evidence.Extent || transfer.SHA256() != evidence.SHA256 ||
+				transfer.CRC32C() != evidence.CRC32C || completed != uint64(tc.size) || observations == 0 {
+				t.Fatalf("VerifiedGrant.DownloadFile(%d) = (recovery %v, transfer %v, error %v, progress %d/%d), want exact authenticated GCS download",
+					tc.size, recovery, transfer, err, completed, observations)
 			}
 			got := readRetrievalTarget(t, root, "target")
 			if !bytes.Equal(got, payload) {
 				t.Fatalf("activated target bytes = %d, want exact %d", len(got), len(payload))
+			}
+			info, gotStatErr := root.Stat("target")
+			if gotStatErr != nil || info.Size() != int64(tc.size) || info.Mode().Perm() != 0o600 {
+				t.Fatalf("activated target Stat() = (%v, %v), want size %d and mode 0600", info, gotStatErr, tc.size)
 			}
 		})
 	}
@@ -99,6 +114,157 @@ func TestVerifiedGrantDownloadFileLayerTriadNegativePreservesPriorTarget(t *test
 	if _, statErr := root.Stat(".download-stage"); !errors.Is(statErr, fs.ErrNotExist) {
 		t.Fatalf("temporary after failed download Stat() error = %v, want errors.Is %v", statErr, fs.ErrNotExist)
 	}
+}
+
+func TestVerifiedGrantDownloadFileLayerTriadDeterminateConflictDiscardsStage(t *testing.T) {
+	t.Parallel()
+
+	directory := t.TempDir()
+	payload := bytes.Repeat([]byte{0x2d}, 64<<10+1)
+	fixture := newDownloadCallFixture(t, downloadCallFixtureRequest{Payload: payload})
+	root := retrievalFileRoot(t, directory)
+	prior := []byte("customer-prior-version")
+	writeRetrievalTarget(t, root, "target", prior)
+	request := FileDownloadRequest{
+		Client: retrievalObjectstoreClient(t, payload), Policy: fixture.policy,
+		Activation: retrievalActivation(t, retrievalActivationRequest{
+			Root: root, Size: uint64(len(payload)), Install: filestore.InstallCreate,
+		}),
+	}
+	recovery, transfer, gotErr := fixture.grant.DownloadFile(t.Context(), request)
+	if !errors.Is(gotErr, core.ErrFilestoreConflict) || recovery.Validate() == nil || transfer.Validate() != nil {
+		t.Fatalf("create-only conflict DownloadFile() = (recovery %v, transfer %v, error %v), want zero recovery, confirmed transfer, and errors.Is %v",
+			recovery, transfer, gotErr, core.ErrFilestoreConflict)
+	}
+	if got := readRetrievalTarget(t, root, "target"); !bytes.Equal(got, prior) {
+		t.Fatalf("target after create-only conflict = %q, want preserved %q", got, prior)
+	}
+	if _, gotStatErr := root.Stat(".download-stage"); !errors.Is(gotStatErr, fs.ErrNotExist) {
+		t.Fatalf("temporary after determinate conflict Stat() error = %v, want errors.Is %v", gotStatErr, fs.ErrNotExist)
+	}
+}
+
+func TestVerifiedGrantDownloadFileLayerTriadFailureMatrixPreservesPriorTarget(t *testing.T) {
+	t.Parallel()
+
+	original := bytes.Repeat([]byte{0x53}, 64<<10+1)
+	altered := bytes.Repeat([]byte{0x54}, len(original))
+	cases := []struct {
+		name            string
+		response        retrievalHTTPResponse
+		wantErr         error
+		observerErr     error
+		cancelBefore    bool
+		cancelDuring    bool
+		install         filestore.InstallMode
+		wantTransferred bool
+	}{
+		{name: "one byte short body", response: retrievalHTTPResponse{payload: original[:len(original)-1]}, wantErr: core.ErrObjectStoreIntegrity, install: filestore.InstallReplace},
+		{name: "one byte padded body", response: retrievalHTTPResponse{payload: append(append([]byte(nil), original...), 0x55)}, wantErr: core.ErrObjectStoreIntegrity, install: filestore.InstallReplace},
+		{name: "same extent different SHA-256 and CRC32C", response: retrievalHTTPResponse{payload: altered}, wantErr: core.ErrObjectStoreIntegrity, install: filestore.InstallReplace},
+		{name: "provider reports absent object", response: retrievalHTTPResponse{status: http.StatusNotFound}, wantErr: core.ErrObjectStoreAbsent, install: filestore.InstallReplace},
+		{name: "provider reports internal failure", response: retrievalHTTPResponse{status: http.StatusInternalServerError}, wantErr: core.ErrExchangeResponse, install: filestore.InstallReplace},
+		{name: "provider omits promised content type", response: retrievalHTTPResponse{payload: original, omitContentType: true}, wantErr: core.ErrExchangeContentType, install: filestore.InstallReplace},
+		{name: "transport refuses before response", response: retrievalHTTPResponse{transportErr: io.ErrClosedPipe}, wantErr: core.ErrExchangeTransport, install: filestore.InstallReplace},
+		{name: "response stream fails after partial bytes", response: retrievalHTTPResponse{payload: original[:len(original)/2], bodyErr: io.ErrUnexpectedEOF}, wantErr: core.ErrExchangeResponse, install: filestore.InstallReplace},
+		{name: "progress observer refuses streamed bytes", response: retrievalHTTPResponse{payload: original}, observerErr: io.ErrClosedPipe, wantErr: core.ErrObjectStoreDestination, install: filestore.InstallReplace},
+		{name: "operation context is cancelled before staging", response: retrievalHTTPResponse{payload: original}, cancelBefore: true, wantErr: context.Canceled, install: filestore.InstallReplace},
+		{name: "operation context is cancelled during streaming", response: retrievalHTTPResponse{payload: original, observeContext: true}, cancelDuring: true, wantErr: core.ErrExchangeCancelled, install: filestore.InstallReplace},
+		{name: "redirect response cannot move the bearer", response: retrievalHTTPResponse{status: http.StatusTemporaryRedirect}, wantErr: core.ErrExchangeResponse, install: filestore.InstallReplace},
+		{name: "create-only target already exists", response: retrievalHTTPResponse{payload: original}, wantErr: core.ErrFilestoreConflict, install: filestore.InstallCreate, wantTransferred: true},
+	}
+	for _, tc := range cases {
+		t.Run(tc.name, func(t *testing.T) {
+			t.Parallel()
+			directory := t.TempDir()
+			fixture := newDownloadCallFixture(t, downloadCallFixtureRequest{Payload: original})
+			root := retrievalFileRoot(t, directory)
+			prior := []byte("customer-prior-version")
+			writeRetrievalTarget(t, root, "target", prior)
+			ctx := t.Context()
+			var cancel context.CancelFunc
+			if tc.cancelBefore || tc.cancelDuring {
+				ctx, cancel = context.WithCancel(ctx)
+			}
+			request := FileDownloadRequest{
+				Client: retrievalObjectstoreClientForResponse(t, tc.response), Policy: fixture.policy,
+				Activation: retrievalActivation(t, retrievalActivationRequest{
+					Root: root, Size: uint64(len(original)), Install: tc.install,
+				}),
+			}
+			if tc.observerErr != nil {
+				request.Observer = func(objectstore.TransferProgress) error { return tc.observerErr }
+			}
+			if tc.cancelBefore {
+				cancel()
+			}
+			if tc.cancelDuring {
+				request.Observer = func(objectstore.TransferProgress) error {
+					cancel()
+					return nil
+				}
+			}
+			recovery, transfer, gotErr := fixture.grant.DownloadFile(ctx, request)
+			if !errors.Is(gotErr, tc.wantErr) || recovery.Validate() == nil {
+				t.Fatalf("DownloadFile(%s) = (recovery %v, transfer %v, error %v), want zero recovery and errors.Is %v",
+					tc.name, recovery, transfer, gotErr, tc.wantErr)
+			}
+			gotTransferred := transfer.Validate() == nil
+			if gotTransferred != tc.wantTransferred {
+				t.Fatalf("DownloadFile(%s) transfer confirmed = %t, want %t", tc.name, gotTransferred, tc.wantTransferred)
+			}
+			if got := readRetrievalTarget(t, root, "target"); !bytes.Equal(got, prior) {
+				t.Fatalf("target after %s = %q, want preserved %q", tc.name, got, prior)
+			}
+			if _, gotStatErr := root.Stat(".download-stage"); !errors.Is(gotStatErr, fs.ErrNotExist) {
+				t.Fatalf("temporary after %s Stat() error = %v, want errors.Is %v", tc.name, gotStatErr, fs.ErrNotExist)
+			}
+		})
+	}
+}
+
+func FuzzVerifiedGrantDownloadFileExternalBodyAtomicity(f *testing.F) {
+	expected := []byte{0x10, 0x20, 0x30, 0x40, 0x50, 0x60, 0x70, 0x80}
+	fixture := newDownloadCallFixture(f, downloadCallFixtureRequest{Payload: expected})
+	f.Add(expected)
+	f.Add([]byte{})
+	f.Add(expected[:len(expected)-1])
+	f.Add(append(append([]byte(nil), expected...), 0x90))
+	f.Add([]byte{0x11, 0x20, 0x30, 0x40, 0x50, 0x60, 0x70, 0x80})
+
+	f.Fuzz(func(t *testing.T, body []byte) {
+		directory := t.TempDir()
+		root := retrievalFileRoot(t, directory)
+		prior := []byte("customer-prior-version")
+		writeRetrievalTarget(t, root, "target", prior)
+		request := FileDownloadRequest{
+			Client: retrievalObjectstoreClientForResponse(t, retrievalHTTPResponse{payload: body}),
+			Policy: fixture.policy,
+			Activation: retrievalActivation(t, retrievalActivationRequest{
+				Root: root, Size: uint64(len(expected)), Install: filestore.InstallReplace,
+			}),
+		}
+		recovery, transfer, gotErr := fixture.grant.DownloadFile(t.Context(), request)
+		if bytes.Equal(body, expected) {
+			if gotErr != nil || recovery.Validate() == nil || transfer.Validate() != nil {
+				t.Fatalf("DownloadFile(exact external body) = (recovery %v, transfer %v, error %v), want exact success", recovery, transfer, gotErr)
+			}
+			if got := readRetrievalTarget(t, root, "target"); !bytes.Equal(got, expected) {
+				t.Fatalf("activated exact external body = %x, want %x", got, expected)
+			}
+		} else {
+			if !errors.Is(gotErr, core.ErrObjectStoreIntegrity) || recovery.Validate() == nil || transfer.Validate() == nil {
+				t.Fatalf("DownloadFile(foreign external body %d bytes) = (recovery %v, transfer %v, error %v), want zero results and errors.Is %v",
+					len(body), recovery, transfer, gotErr, core.ErrObjectStoreIntegrity)
+			}
+			if got := readRetrievalTarget(t, root, "target"); !bytes.Equal(got, prior) {
+				t.Fatalf("target after foreign external body = %q, want preserved %q", got, prior)
+			}
+		}
+		if _, gotStatErr := root.Stat(".download-stage"); !errors.Is(gotStatErr, fs.ErrNotExist) {
+			t.Fatalf("temporary after external body Stat() error = %v, want errors.Is %v", gotStatErr, fs.ErrNotExist)
+		}
+	})
 }
 
 func TestVerifiedGrantDownloadFileLayerTriadNeutralAbsentObserverLeavesNoStage(t *testing.T) {
@@ -221,12 +387,58 @@ func TestVerifiedGrantDownloadFileLayerTriadIngressRefusesBeforeFilesystemEffect
 
 func retrievalObjectstoreClient(t *testing.T, payload []byte) objectstore.Client {
 	t.Helper()
+	return retrievalObjectstoreClientForResponse(t, retrievalHTTPResponse{payload: payload})
+}
+
+type retrievalHTTPResponse struct {
+	payload         []byte
+	transportErr    error
+	bodyErr         error
+	status          int
+	omitContentType bool
+	observeContext  bool
+}
+
+type retrievalErrorReader struct{ err error }
+
+func (r retrievalErrorReader) Read([]byte) (int, error) { return 0, r.err }
+
+type retrievalContextReader struct {
+	context context.Context
+	source  io.Reader
+}
+
+func (r retrievalContextReader) Read(payload []byte) (int, error) {
+	if err := r.context.Err(); err != nil {
+		return 0, err
+	}
+	return r.source.Read(payload)
+}
+
+func retrievalObjectstoreClientForResponse(t *testing.T, response retrievalHTTPResponse) objectstore.Client {
+	t.Helper()
 	transport := retrievalRoundTrip(func(request *http.Request) (*http.Response, error) {
+		if response.transportErr != nil {
+			return nil, response.transportErr
+		}
 		headers := make(http.Header)
-		headers.Set(core.HTTPHeaderContentType().String(), core.HTTPMediaTypeOctetStream().String())
+		if !response.omitContentType {
+			headers.Set(core.HTTPHeaderContentType().String(), core.HTTPMediaTypeOctetStream().String())
+		}
+		status := response.status
+		if status == 0 {
+			status = http.StatusOK
+		}
+		var body io.Reader = bytes.NewReader(response.payload)
+		if response.bodyErr != nil {
+			body = io.MultiReader(body, retrievalErrorReader{err: response.bodyErr})
+		}
+		if response.observeContext {
+			body = retrievalContextReader{context: request.Context(), source: body}
+		}
 		return &http.Response{
-			StatusCode: http.StatusOK, Header: headers,
-			Body: io.NopCloser(bytes.NewReader(payload)), ContentLength: int64(len(payload)), Request: request,
+			StatusCode: status, Header: headers,
+			Body: io.NopCloser(body), ContentLength: int64(len(response.payload)), Request: request,
 		}, nil
 	})
 	client, err := objectstore.NewClient(&http.Client{Transport: transport})
