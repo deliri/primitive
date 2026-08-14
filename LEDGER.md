@@ -1,8 +1,29 @@
 # Primitive 2026 Ledger
 
-Last updated: `2026-08-13`
+Last updated: `2026-08-14`
 
 ## Current
+
+- proved one blind submission lifecycle for every shipped offering, 2026-08-14,
+  prepared `v2026.0.109`. Bug, Witness, and Peachfuzz now traverse one composed
+  device declaration, signed request, installation credential, authority
+  upload decision, and exact bearer grant proof. The hostile positive oracle
+  holds the declaration, manifest shape, protocol, build version, commit, and
+  platform contract constant while changing only compiler-owned offering
+  identity. It independently re-derives both the signed request commitment and
+  bearer capability commitment after authenticating the outer authority
+  response and inner decision.
+
+  The negative oracle issues independently valid Bug and Witness documents
+  under identical authority and device key material, identical evidence,
+  manifest, nonce, revision, version, commit, and platform. Recombining the Bug
+  request with the Witness certificate or verifying the Bug grant against the
+  Witness request returns exact zero authority and typed response-binding
+  refusal. A load-bearing mutation removed the sole request/certificate build
+  comparison: the same-key foreign-offering assembly immediately went red by
+  accepting a nonzero credentialed request. Restored production returns the
+  isolated case and complete three-offering lifecycle to green. Zero request
+  and decision inputs independently remain incapable of acquiring proof.
 
 - closed authenticated upload-to-custody reconciliation, 2026-08-13, prepared
   `v2026.0.108`. GCS uploads now retain the exact positive provider generation
