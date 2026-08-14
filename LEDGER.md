@@ -4,6 +4,23 @@ Last updated: `2026-08-14`
 
 ## Current
 
+- enforced clean-upgrade-only production, 2026-08-14, prepared
+  `v2026.0.124`. Core now parses the complete landed production source set and
+  refuses Go type aliases, standard deprecated declarations, compatibility-
+  named files or symbols, and exported functions that merely forward their
+  unchanged parameter list to a second exported API. The current tree has zero
+  findings: its provider, route, duration, digest, and construction entry
+  points each add a typed semantic decision or retain implementation behind one
+  public contract rather than preserve an old surface.
+
+  The hostile positive/negative/neutral LayerTriad admits a provider binder
+  that adds a closed provider enum, exposes aliases, deprecation, compatibility
+  names and a same-signature forwarder together, and leaves an unexported
+  reconstruction helper neutral. A deliberate alias-detector mutation makes
+  the negative fixture and landed-source protection go red; restoration makes
+  the exact source audit, complete Core suite, staticcheck, deadcode-test, and
+  witness-lint checkpoint ratchets green.
+
 - ratcheted one owner for every raw real-world substrate, 2026-08-14,
   prepared `v2026.0.123`. Core now scans the landed production tree and binds
   every OS, process, signal, HTTP, clock/deadline, entropy, Unix, Windows,

@@ -168,3 +168,10 @@ disk and checks every one has a described row above. Adding a package without
 describing it here fails the build, on purpose: a capability nobody can find is
 a capability somebody rebuilds. There is no list of package names in the test,
 so there is no second copy of the answer to drift.
+
+`TestCleanUpgradeDebtIsAbsentFromLandedProduction` parses every production Go
+file and refuses type aliases, deprecated declarations, compatibility-named
+files or symbols, and exported same-signature forwarders. Provider, route, unit,
+and construction binders remain only when they add a typed semantic choice or
+hide an unexported implementation detail; a second public path cannot survive
+as an informal compatibility promise.
