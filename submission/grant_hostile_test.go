@@ -388,8 +388,8 @@ func TestGrantVerificationLayerTriadRefusesEveryNearMissOfItsExactRequest(t *tes
 	shorterExtent := testByteLength(t, fixture.request.Declaration.Extent.Uint64()-1)
 	longerExtent := testByteLength(t, fixture.request.Declaration.Extent.Uint64()+1)
 	cases := []struct {
-		name   string
 		mutate func(RequestPayload) RequestPayload
+		name   string
 	}{
 		{
 			name: "content media type",
@@ -1002,9 +1002,9 @@ func TestGrantLifetimeClosesBothOneNanosecondBoundaries(t *testing.T) {
 
 	fixture := newGrantFixture(t, grantFixtureRequest{})
 	cases := []struct {
+		wantErr    error
 		name       string
 		observedAt int64
-		wantErr    error
 	}{
 		{name: "one before issuance", observedAt: testGrantIssuedAt - 1, wantErr: core.ErrControlPlaneResponseBinding},
 		{name: "at issuance", observedAt: testGrantIssuedAt},

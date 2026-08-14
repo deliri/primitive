@@ -141,7 +141,36 @@ func UploadDecision(grant GrantProjection) (DecisionProjection, error) {
 	return candidate, candidate.Validate()
 }
 
-func ReuseDecision(evidence receipt.EvidenceDocument) (DecisionProjection, error) {
+// ReuseDecisionRequest supplies the exact authenticated tenant scope and
+// declaration an authority must prove before it may disclose accepted-object
+// evidence instead of issuing a fresh upload grant.
+type ReuseDecisionRequest struct {
+	Declaration Declaration
+	TrustedKeys attest.TrustedKeys
+	Evidence    receipt.EvidenceDocument
+	Account     receipt.AccountIdentity
+	Offering    receipt.OfferingIdentity
+}
+
+func (r ReuseDecisionRequest) Validate() error {
+	if err := errors.Join(
+		r.Evidence.Validate(), r.Declaration.Validate(), r.TrustedKeys.Validate(),
+		r.Account.Validate(), r.Offering.Validate(),
+	); err != nil {
+		return contractError(err)
+	}
+	return nil
+}
+
+func ReuseDecision(request ReuseDecisionRequest) (DecisionProjection, error) {
+	verified, err := verifyReuseEvidence(request)
+	if err != nil {
+		return DecisionProjection{}, err
+	}
+	evidence, err := verified.Document()
+	if err != nil {
+		return DecisionProjection{}, bindingError(err)
+	}
 	candidate := DecisionProjection{kind: DecisionReuse, evidence: &evidence}
 	return candidate, candidate.Validate()
 }
@@ -253,22 +282,38 @@ func VerifyDecision(expectation DecisionExpectation) (VerifiedDecision, error) {
 
 func verifyReuseDecision(expectation DecisionExpectation) (VerifiedDecision, error) {
 	evidence := *expectation.Decision.Evidence
-	body := evidence.Payload.Body
-	declaration := expectation.Request.Declaration
-	if body.Extent != declaration.Extent || body.SHA256 != declaration.SHA256 || body.CRC32C != declaration.CRC32C {
-		return VerifiedDecision{}, bindingError(errors.New("reuse evidence differs from declaration"))
-	}
-	verifiedEvidence, err := receipt.VerifyEvidence(receipt.VerifyEvidenceRequest{
-		Document: evidence, TrustedKeys: expectation.TrustedKeys,
-		Expected: receipt.EvidenceExpectation{
-			Account: expectation.Account, Offering: expectation.Offering, Body: body,
-		},
+	verifiedEvidence, err := verifyReuseEvidence(ReuseDecisionRequest{
+		Evidence: evidence, Declaration: expectation.Request.Declaration,
+		TrustedKeys: expectation.TrustedKeys, Account: expectation.Account,
+		Offering: expectation.Offering,
 	})
 	if err != nil {
-		return VerifiedDecision{}, bindingError(err)
+		return VerifiedDecision{}, err
 	}
 	verified := VerifiedDecision{kind: DecisionReuse, evidence: &verifiedEvidence}
 	return verified, verified.Validate()
+}
+
+func verifyReuseEvidence(request ReuseDecisionRequest) (receipt.VerifiedEvidence, error) {
+	if err := request.Validate(); err != nil {
+		return receipt.VerifiedEvidence{}, err
+	}
+	body := request.Evidence.Payload.Body
+	verified, err := receipt.VerifyEvidence(receipt.VerifyEvidenceRequest{
+		Document: request.Evidence, TrustedKeys: request.TrustedKeys,
+		Expected: receipt.EvidenceExpectation{
+			Account: request.Account, Offering: request.Offering, Body: body,
+		},
+	})
+	if err != nil {
+		return receipt.VerifiedEvidence{}, bindingError(err)
+	}
+	declaration := request.Declaration
+	if body.Extent != declaration.Extent || body.SHA256 != declaration.SHA256 ||
+		body.CRC32C != declaration.CRC32C {
+		return receipt.VerifiedEvidence{}, bindingError(errors.New("reuse evidence differs from declaration"))
+	}
+	return verified, nil
 }
 
 func (v VerifiedDecision) Validate() error {
@@ -317,6 +362,7 @@ var (
 	_ core.Validatable             = DecisionDocument{}
 	_ core.Validatable             = DecisionProjection{}
 	_ core.Validatable             = DecisionExpectation{}
+	_ core.Validatable             = ReuseDecisionRequest{}
 	_ core.Validatable             = VerifiedDecision{}
 	_ core.ValidatedJSONMarshaler  = DecisionKind(0)
 	_ core.ValidatedJSONMarshaler  = DecisionProjection{}

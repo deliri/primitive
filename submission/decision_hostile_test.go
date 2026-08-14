@@ -1,10 +1,13 @@
 package submission
 
 import (
+	"bytes"
 	"encoding/json"
 	"errors"
+	"strconv"
 	"testing"
 
+	"github.com/deliri/primitive/v2026/attest"
 	"github.com/deliri/primitive/v2026/core"
 	"github.com/deliri/primitive/v2026/receipt"
 	"github.com/deliri/primitive/v2026/temporal"
@@ -17,9 +20,11 @@ type reuseEvidenceFixtureRequest struct {
 }
 
 type reuseEvidenceFixture struct {
-	evidence receipt.EvidenceDocument
-	account  receipt.AccountIdentity
-	offering receipt.OfferingIdentity
+	declaration Declaration
+	trusted     attest.TrustedKeys
+	evidence    receipt.EvidenceDocument
+	account     receipt.AccountIdentity
+	offering    receipt.OfferingIdentity
 }
 
 func TestSubmissionDecisionAuthenticatesUploadAndScopedReuseArms(t *testing.T) {
@@ -41,7 +46,7 @@ func TestSubmissionDecisionAuthenticatesUploadAndScopedReuseArms(t *testing.T) {
 		},
 		{
 			name:       "same-scope accepted object reuse",
-			projection: mustReuseDecision(t, reuse.evidence),
+			projection: mustReuseDecision(t, reuse),
 			wantKind:   DecisionReuse,
 		},
 	}
@@ -95,7 +100,7 @@ func TestSubmissionReuseDecisionRefusesCrossTenantAndIntegrityOracleProbes(t *te
 	reuse := newReuseEvidenceFixture(t, reuseEvidenceFixtureRequest{
 		Request: grant.request, KeyByte: 0x41, ScopeByte: 0x62,
 	})
-	document := decodeDecisionProjection(t, mustReuseDecision(t, reuse.evidence))
+	document := decodeDecisionProjection(t, mustReuseDecision(t, reuse))
 	other := newReuseEvidenceFixture(t, reuseEvidenceFixtureRequest{
 		Request: grant.request, KeyByte: 0x41, ScopeByte: 0x72,
 	})
@@ -119,6 +124,190 @@ func TestSubmissionReuseDecisionRefusesCrossTenantAndIntegrityOracleProbes(t *te
 	}); !errors.Is(gotErr, core.ErrControlPlaneResponseBinding) || got != (VerifiedDecision{}) {
 		t.Fatalf("VerifyDecision(different declaration) = (%v, %v), want zero and errors.Is %v",
 			got, gotErr, core.ErrControlPlaneResponseBinding)
+	}
+}
+
+func TestReuseDecisionAuthorityBoundaryRefusesEveryForeignOrUnauthenticatedCandidate(t *testing.T) {
+	t.Parallel()
+
+	grant := newGrantFixture(t, grantFixtureRequest{})
+	reuse := newReuseEvidenceFixture(t, reuseEvidenceFixtureRequest{
+		Request: grant.request, KeyByte: 0x41, ScopeByte: 0x66,
+	})
+	other := newReuseEvidenceFixture(t, reuseEvidenceFixtureRequest{
+		Request: grant.request, KeyByte: 0x41, ScopeByte: 0x76,
+	})
+	foreignOffering, err := receipt.OfferingIdentityFor(core.OfferingBug)
+	if err != nil {
+		t.Fatalf("receipt.OfferingIdentityFor(%v) error = %v, want nil", core.OfferingBug, err)
+	}
+	foreignPublic, _ := testSigningKey(t, 0x42)
+	foreignTrust, err := attest.NewTrustedKeys(attest.TrustedKeysRequest{
+		Keys: []core.Ed25519PublicKey{foreignPublic},
+	})
+	if err != nil {
+		t.Fatalf("attest.NewTrustedKeys(foreign) error = %v, want nil", err)
+	}
+	foreignAuthority := newReuseEvidenceFixture(t, reuseEvidenceFixtureRequest{
+		Request: grant.request, KeyByte: 0x42, ScopeByte: 0x66,
+	})
+	shorter := reuse.declaration
+	shorter.Extent = testByteLength(t, reuse.declaration.Extent.Uint64()-1)
+	longer := reuse.declaration
+	longer.Extent = testByteLength(t, reuse.declaration.Extent.Uint64()+1)
+	differentSHA := reuse.declaration
+	differentSHA.SHA256 = core.SHA256Of([]byte("foreign digest"))
+	differentCRC := reuse.declaration
+	differentCRC.CRC32C = core.NewCRC32C(1)
+	tampered := reuse.evidence
+	tampered.Payload.Header.Account = other.account
+	cases := []struct {
+		wantErr   error
+		name      string
+		request   ReuseDecisionRequest
+		wantField receipt.ScopeField
+	}{
+		{name: "zero request", wantErr: core.ErrControlPlaneContract},
+		{name: "zero evidence", request: func() ReuseDecisionRequest {
+			value := reuseDecisionRequest(reuse)
+			value.Evidence = receipt.EvidenceDocument{}
+			return value
+		}(), wantErr: core.ErrControlPlaneContract},
+		{name: "zero declaration", request: func() ReuseDecisionRequest {
+			value := reuseDecisionRequest(reuse)
+			value.Declaration = Declaration{}
+			return value
+		}(), wantErr: core.ErrControlPlaneContract},
+		{name: "zero account", request: func() ReuseDecisionRequest {
+			value := reuseDecisionRequest(reuse)
+			value.Account = receipt.AccountIdentity{}
+			return value
+		}(), wantErr: core.ErrControlPlaneContract},
+		{name: "zero offering", request: func() ReuseDecisionRequest {
+			value := reuseDecisionRequest(reuse)
+			value.Offering = receipt.OfferingIdentity{}
+			return value
+		}(), wantErr: core.ErrControlPlaneContract},
+		{name: "zero trust", request: func() ReuseDecisionRequest {
+			value := reuseDecisionRequest(reuse)
+			value.TrustedKeys = attest.TrustedKeys{}
+			return value
+		}(), wantErr: core.ErrControlPlaneContract},
+		{name: "foreign account with identical digests", request: func() ReuseDecisionRequest {
+			value := reuseDecisionRequest(reuse)
+			value.Account = other.account
+			return value
+		}(), wantErr: core.ErrReceiptScope, wantField: receipt.ScopeFieldAccount},
+		{name: "foreign account with foreign digest", request: func() ReuseDecisionRequest {
+			value := reuseDecisionRequest(reuse)
+			value.Account = other.account
+			value.Declaration = differentSHA
+			return value
+		}(), wantErr: core.ErrReceiptScope, wantField: receipt.ScopeFieldAccount},
+		{name: "foreign offering with identical digests", request: func() ReuseDecisionRequest {
+			value := reuseDecisionRequest(reuse)
+			value.Offering = foreignOffering
+			return value
+		}(), wantErr: core.ErrReceiptScope, wantField: receipt.ScopeFieldOffering},
+		{name: "foreign offering with foreign digest", request: func() ReuseDecisionRequest {
+			value := reuseDecisionRequest(reuse)
+			value.Offering = foreignOffering
+			value.Declaration = differentCRC
+			return value
+		}(), wantErr: core.ErrReceiptScope, wantField: receipt.ScopeFieldOffering},
+		{name: "extent one below", request: func() ReuseDecisionRequest {
+			value := reuseDecisionRequest(reuse)
+			value.Declaration = shorter
+			return value
+		}(), wantErr: core.ErrControlPlaneResponseBinding},
+		{name: "extent one above", request: func() ReuseDecisionRequest {
+			value := reuseDecisionRequest(reuse)
+			value.Declaration = longer
+			return value
+		}(), wantErr: core.ErrControlPlaneResponseBinding},
+		{name: "foreign SHA-256", request: func() ReuseDecisionRequest {
+			value := reuseDecisionRequest(reuse)
+			value.Declaration = differentSHA
+			return value
+		}(), wantErr: core.ErrControlPlaneResponseBinding},
+		{name: "foreign CRC32C", request: func() ReuseDecisionRequest {
+			value := reuseDecisionRequest(reuse)
+			value.Declaration = differentCRC
+			return value
+		}(), wantErr: core.ErrControlPlaneResponseBinding},
+		{name: "foreign signing authority", request: func() ReuseDecisionRequest {
+			value := reuseDecisionRequest(foreignAuthority)
+			value.TrustedKeys = reuse.trusted
+			return value
+		}(), wantErr: core.ErrReceiptVerification},
+		{name: "tampered signed account", request: func() ReuseDecisionRequest {
+			value := reuseDecisionRequest(reuse)
+			value.Evidence = tampered
+			value.Account = other.account
+			return value
+		}(), wantErr: core.ErrReceiptVerification},
+		{name: "unrelated trust set", request: func() ReuseDecisionRequest {
+			value := reuseDecisionRequest(reuse)
+			value.TrustedKeys = foreignTrust
+			return value
+		}(), wantErr: core.ErrReceiptVerification},
+	}
+	for _, tc := range cases {
+		t.Run(tc.name, func(t *testing.T) {
+			t.Parallel()
+			projection, gotErr := ReuseDecision(tc.request)
+			if !errors.Is(gotErr, tc.wantErr) || projection != (DecisionProjection{}) {
+				t.Fatalf("ReuseDecision(%s) = (%v, %v), want invalid zero projection and errors.Is %v",
+					tc.name, projection, gotErr, tc.wantErr)
+			}
+			if !errors.Is(tc.wantErr, core.ErrControlPlaneContract) &&
+				!errors.Is(gotErr, core.ErrControlPlaneResponseBinding) {
+				t.Fatalf("ReuseDecision(%s) error = %v, want errors.Is %v",
+					tc.name, gotErr, core.ErrControlPlaneResponseBinding)
+			}
+			if tc.wantField == receipt.ScopeFieldUnknown {
+				return
+			}
+			var mismatch receipt.ScopeMismatch
+			if !errors.As(gotErr, &mismatch) {
+				t.Fatalf("ReuseDecision(%s) error = %v, want receipt.ScopeMismatch", tc.name, gotErr)
+			}
+			field, fieldErr := mismatch.Field()
+			if fieldErr != nil || field != tc.wantField {
+				t.Fatalf("ReuseDecision(%s) scope field = (%v, %v), want (%v, nil)",
+					tc.name, field, fieldErr, tc.wantField)
+			}
+		})
+	}
+}
+
+func TestReuseDecisionAuthorityBoundaryAdmitsTenExactSameScopeCandidates(t *testing.T) {
+	t.Parallel()
+
+	for extent := 1; extent <= 10; extent++ {
+		extent := extent
+		t.Run("exact extent "+strconv.Itoa(extent), func(t *testing.T) {
+			t.Parallel()
+			grant := newGrantFixture(t, grantFixtureRequest{content: bytes.Repeat([]byte{byte(extent)}, extent)})
+			reuse := newReuseEvidenceFixture(t, reuseEvidenceFixtureRequest{
+				Request: grant.request, KeyByte: 0x41, ScopeByte: byte(0x80 + extent),
+			})
+			projection, gotErr := ReuseDecision(reuseDecisionRequest(reuse))
+			if gotErr != nil || projection.Validate() != nil {
+				t.Fatalf("ReuseDecision(exact extent %d) = (%v, %v), want valid projection and nil",
+					extent, projection, gotErr)
+			}
+			document := decodeDecisionProjection(t, projection)
+			verified, gotErr := VerifyDecision(DecisionExpectation{
+				Decision: document, Request: grant.request, Account: reuse.account,
+				Offering: reuse.offering, ObservedAt: temporal.InstantFromNanoseconds(testGrantIssuedAt),
+				TrustedKeys: reuse.trusted,
+			})
+			if gotErr != nil || verified.Validate() != nil {
+				t.Fatalf("VerifyDecision(exact extent %d) = (%v, %v), want valid proof and nil",
+					extent, verified, gotErr)
+			}
+		})
 	}
 }
 
@@ -174,8 +363,8 @@ func TestSubmissionDecisionStrictJSONRefusesUnknownAndOversizeWithoutMutation(t 
 	reuse := newReuseEvidenceFixture(t, reuseEvidenceFixtureRequest{
 		Request: grant.request, KeyByte: 0x41, ScopeByte: 0x64,
 	})
-	before := decodeDecisionProjection(t, mustReuseDecision(t, reuse.evidence))
-	encoded, err := mustReuseDecision(t, reuse.evidence).MarshalJSON()
+	before := decodeDecisionProjection(t, mustReuseDecision(t, reuse))
+	encoded, err := mustReuseDecision(t, reuse).MarshalJSON()
 	if err != nil {
 		t.Fatalf("DecisionProjection.MarshalJSON() error = %v, want nil", err)
 	}
@@ -222,7 +411,13 @@ func newReuseEvidenceFixture(
 	if err != nil {
 		t.Fatalf("receipt.NewReceiptID() error = %v, want nil", err)
 	}
-	_, private := testSigningKey(t, request.KeyByte)
+	public, private := testSigningKey(t, request.KeyByte)
+	trusted, err := attest.NewTrustedKeys(attest.TrustedKeysRequest{
+		Keys: []core.Ed25519PublicKey{public},
+	})
+	if err != nil {
+		t.Fatalf("attest.NewTrustedKeys() error = %v, want nil", err)
+	}
 	document, err := receipt.IssueEvidence(receipt.IssueEvidenceRequest{
 		Key: private, Identity: identity, Account: account, Offering: offering,
 		OccurredAt: temporal.InstantFromNanoseconds(testGrantIssuedAt),
@@ -236,7 +431,10 @@ func newReuseEvidenceFixture(
 	if err != nil {
 		t.Fatalf("receipt.IssueEvidence() error = %v, want nil", err)
 	}
-	return reuseEvidenceFixture{evidence: document, account: account, offering: offering}
+	return reuseEvidenceFixture{
+		evidence: document, declaration: request.Request.Declaration,
+		trusted: trusted, account: account, offering: offering,
+	}
 }
 
 func submissionLifecycleIdentity[T core.Validatable](
@@ -263,9 +461,16 @@ func mustUploadDecision(t *testing.T, grant GrantProjection) DecisionProjection 
 	return decision
 }
 
-func mustReuseDecision(t *testing.T, evidence receipt.EvidenceDocument) DecisionProjection {
+func reuseDecisionRequest(fixture reuseEvidenceFixture) ReuseDecisionRequest {
+	return ReuseDecisionRequest{
+		Evidence: fixture.evidence, Declaration: fixture.declaration,
+		Account: fixture.account, Offering: fixture.offering, TrustedKeys: fixture.trusted,
+	}
+}
+
+func mustReuseDecision(t *testing.T, fixture reuseEvidenceFixture) DecisionProjection {
 	t.Helper()
-	decision, err := ReuseDecision(evidence)
+	decision, err := ReuseDecision(reuseDecisionRequest(fixture))
 	if err != nil {
 		t.Fatalf("ReuseDecision() error = %v, want nil", err)
 	}

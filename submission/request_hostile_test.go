@@ -52,9 +52,9 @@ func TestSignedPayloadCanonicalOutputLayerTriad(t *testing.T) {
 	}
 	document := receiveCompletionProjection(t, projection)
 	payloads := []struct {
-		name    string
 		marshal func() ([]byte, error)
 		write   func(io.Writer) error
+		name    string
 	}{
 		{name: "device request", marshal: grant.request.MarshalJSON, write: grant.request.WriteCanonical},
 		{name: "authority grant", marshal: grant.payload.MarshalJSON, write: grant.payload.WriteCanonical},
@@ -62,9 +62,9 @@ func TestSignedPayloadCanonicalOutputLayerTriad(t *testing.T) {
 		{name: "issue-only completion", marshal: projectionPayload.MarshalJSON, write: projectionPayload.WriteCanonical},
 	}
 	responses := []struct {
-		name    string
 		result  canonicalWriterResponse
 		wantErr error
+		name    string
 	}{
 		{name: "exact count succeeds", result: canonicalWriterResponse{written: func(length int) int { return length }}},
 		{name: "one byte short with nil error", result: canonicalWriterResponse{written: func(length int) int { return length - 1 }}, wantErr: io.ErrShortWrite},

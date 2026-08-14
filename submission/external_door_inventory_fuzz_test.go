@@ -66,27 +66,27 @@ func (d submissionJSONDoor) receiverName() string {
 }
 
 type submissionFuzzFixtures struct {
-	requestPayload     RequestPayload
-	requestDocument    RequestDocument
-	requestCommitment  RequestCommitment
-	signingDomain      SigningDomain
-	decisionKind       DecisionKind
 	decisionDocument   DecisionDocument
 	decisionWire       []byte
-	uploadID           UploadID
-	grantPayload       GrantPayload
-	grantDocument      GrantDocument
 	grantWire          []byte
+	requestPayload     RequestPayload
 	completionPayload  CompletionPayload
+	requestDocument    RequestDocument
+	grantDocument      GrantDocument
 	completionDocument CompletionDocument
-	completion         completionFixture
-	grant              grantFixture
 	reuse              reuseEvidenceFixture
+	grant              grantFixture
+	completion         completionFixture
+	grantPayload       GrantPayload
+	requestCommitment  RequestCommitment
+	uploadID           UploadID
+	decisionKind       DecisionKind
+	signingDomain      SigningDomain
 }
 
 type submissionJSONSeed struct {
-	door     submissionJSONDoor
 	document []byte
+	door     submissionJSONDoor
 }
 
 func FuzzSubmissionExternalJSONDoorInventory(f *testing.F) {
@@ -365,7 +365,7 @@ func submissionFixturesForFuzz(t testing.TB) submissionFuzzFixtures {
 	reuse := newReuseEvidenceFixture(t, reuseEvidenceFixtureRequest{
 		Request: grant.request, KeyByte: 0x41, ScopeByte: 0x61,
 	})
-	decisionProjection, err := ReuseDecision(reuse.evidence)
+	decisionProjection, err := ReuseDecision(reuseDecisionRequest(reuse))
 	if err != nil {
 		t.Fatalf("ReuseDecision() error = %v, want nil", err)
 	}
@@ -423,10 +423,10 @@ func submissionJSONSeedForFuzz(
 }
 
 type submissionTextOutcome struct {
-	input      string
-	projection string
 	err        error
 	validate   func() error
+	input      string
+	projection string
 }
 
 func fuzzSubmissionTextOutcome(t *testing.T, outcome submissionTextOutcome) {

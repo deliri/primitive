@@ -4,6 +4,28 @@ Last updated: `2026-08-13`
 
 ## Current
 
+- closed tenant-safe upload-or-reuse authority construction, 2026-08-13,
+  prepared `v2026.0.105`. `ReuseDecision` no longer accepts a structurally
+  valid evidence document directly. Its one typed request requires the exact
+  declaration, authenticated account and offering, and trusted Receipt
+  authorities. Receipt signature and tenant scope verify before any digest is
+  compared; only then may exact extent, SHA-256, and CRC32C release the
+  issue-only reuse projection. The installed client runs the identical verifier
+  after authenticating the outer control-plane response. Upload decisions still
+  carry exactly one signed bearer grant and reuse decisions carry exactly one
+  authenticated accepted-object proof.
+
+  The meaningful compiler red was the absent `ReuseDecisionRequest`; the prior
+  constructor admitted any structurally valid foreign evidence for projection.
+  A load-bearing mutation then replaced caller scope with the evidence's own
+  signed scope and the retained foreign-account case issued a valid-looking
+  reuse decision with nil error. Restored proof admits ten exact same-scope
+  candidates and refuses seventeen independent zero, foreign-account,
+  foreign-offering, wrong-integrity, foreign-authority, forged, and unrelated-
+  trust candidates with exact zero output. Foreign account/offering cases run
+  with both matching and nonmatching digests and always return the typed scope
+  field first, closing the cross-tenant digest-existence oracle.
+
 - closed exact Submission agreement output and binding, 2026-08-13, prepared
   `v2026.0.104`. Every signed request now carries one immutable media type,
   nonzero extent, SHA-256, CRC32C, manifest upload/collection/name/sequence/count,

@@ -76,7 +76,7 @@ func TestVerifiedDecisionUploadCallLayerTriad(t *testing.T) {
 		fixture.account = reuse.account
 		fixture.offering = reuse.offering
 		decision := verifyDecisionProjection(t, decisionProjectionFixture{
-			Fixture: fixture, Projection: mustReuseDecision(t, reuse.evidence),
+			Fixture: fixture, Projection: mustReuseDecision(t, reuse),
 		})
 		source := bytes.NewReader(fixture.content)
 		call, gotErr := decision.UploadCall(UploadCallRequest{

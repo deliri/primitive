@@ -45,6 +45,7 @@ type submissionContractInventory struct {
 	DecisionDocument                protocolFact[DecisionDocument]
 	DecisionProjection              protocolFact[DecisionProjection]
 	DecisionExpectation             protocolFact[DecisionExpectation]
+	ReuseDecisionRequest            protocolFact[ReuseDecisionRequest]
 	UploadCallRequest               protocolFact[UploadCallRequest]
 	VerifiedRequest                 capabilityWrapper[VerifiedRequest]
 	VerifiedCompletion              capabilityWrapper[VerifiedCompletion]
