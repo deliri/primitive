@@ -4,7 +4,13 @@ Last updated: `2026-08-14`
 
 ## Current
 
-- closed real runnable artifact authority, 2026-08-14, prepared
+- reconciled the release ledger with the published Git authority, 2026-08-14,
+  published `v2026.0.114`. The current ledger entries for v2026.0.93 through
+  v2026.0.113 now name those live tags as published rather than retaining the
+  pre-publication status under which their proof was first recorded. No
+  capability, wire contract, compatibility surface, or consumer policy changed.
+
+- closed real runnable artifact authority, 2026-08-14, published
   `v2026.0.113`. `ArtifactInspectionRequest` now names one typed absolute path
   instead of accepting a caller-owned reader plus caller-declared extent.
   Release derives the real regular-file extent through Filestore, opens it
@@ -36,7 +42,7 @@ Last updated: `2026-08-14`
   reserved for the end as directed.
 
 - closed deterministic four-target build planning and product-owned command
-  policy, 2026-08-14, prepared `v2026.0.112`. One composed hostile layer triad
+  policy, 2026-08-14, published `v2026.0.112`. One composed hostile layer triad
   now starts from a real clean Git checkout at an exact observed commit,
   constructs the canonical Windows AMD64, Darwin ARM64, Linux AMD64, and Linux
   ARM64 plan twice with identical output, verifies the installed pinned Go and
@@ -65,7 +71,7 @@ Last updated: `2026-08-14`
   control-plane adapters. No command framework or orchestration state entered
   Primitive.
 
-- made consent and presentation ownership explicit, 2026-08-14, prepared
+- made consent and presentation ownership explicit, 2026-08-14, published
   `v2026.0.111`. Primitive continues to own only product-neutral mechanisms:
   typed submission declarations, exact transfer observations, custody chits,
   payment receipts, and authenticated retrieval agreements. The normative
@@ -87,7 +93,7 @@ Last updated: `2026-08-14`
   coupling.
 
 - composed exact payment receipt custody and catalog authentication,
-  2026-08-14, prepared `v2026.0.110`. The real Payment control response proof
+  2026-08-14, published `v2026.0.110`. The real Payment control response proof
   no longer stops after authenticating the outer envelope. It now verifies the
   embedded catalog against the exact device-signed query commitment, requires
   one exact bounded entry, authenticates that entry as the selected authority-
@@ -111,7 +117,7 @@ Last updated: `2026-08-14`
   longer act as an invisible cross-package protocol.
 
 - proved one blind submission lifecycle for every shipped offering, 2026-08-14,
-  prepared `v2026.0.109`. Bug, Witness, and Peachfuzz now traverse one composed
+  published `v2026.0.109`. Bug, Witness, and Peachfuzz now traverse one composed
   device declaration, signed request, installation credential, authority
   upload decision, and exact bearer grant proof. The hostile positive oracle
   holds the declaration, manifest shape, protocol, build version, commit, and
@@ -131,7 +137,7 @@ Last updated: `2026-08-14`
   isolated case and complete three-offering lifecycle to green. Zero request
   and decision inputs independently remain incapable of acquiring proof.
 
-- closed authenticated upload-to-custody reconciliation, 2026-08-13, prepared
+- closed authenticated upload-to-custody reconciliation, 2026-08-13, published
   `v2026.0.108`. GCS uploads now retain the exact positive provider generation
   returned by the upload. `ObserveGCSUpload` uses the official SDK to read only
   that immutable generation, refuses foreign bucket, object, generation,
@@ -161,7 +167,7 @@ Last updated: `2026-08-14`
   generation rule so GCS downloads remain valid without an optional version
   while GCS uploads cannot reconcile without one.
 
-- closed URL-free Submission completion disclosure, 2026-08-13, prepared
+- closed URL-free Submission completion disclosure, 2026-08-13, published
   `v2026.0.107`. The device completion continues to sign only its build,
   original request nonce and commitment, capability commitment, authority
   nonce, and Objectstore's confirmed provider/direction/version/extent/SHA-256/
@@ -184,7 +190,7 @@ Last updated: `2026-08-14`
   65,770 executions with validation, signature, canonical round-trip, and
   typed zero/refusal requirements.
 
-- closed exact short-lived Submission grant proof, 2026-08-13, prepared
+- closed exact short-lived Submission grant proof, 2026-08-13, published
   `v2026.0.106`. The existing production path is retained: the authority signs
   the exact request commitment, authority nonce, capability commitment,
   issuance instant, expiry, and retention promise while transporting the
@@ -207,7 +213,7 @@ Last updated: `2026-08-14`
   with nil error; restoration returns the named case to typed binding refusal.
 
 - closed tenant-safe upload-or-reuse authority construction, 2026-08-13,
-  prepared `v2026.0.105`. `ReuseDecision` no longer accepts a structurally
+  published `v2026.0.105`. `ReuseDecision` no longer accepts a structurally
   valid evidence document directly. Its one typed request requires the exact
   declaration, authenticated account and offering, and trusted Receipt
   authorities. Receipt signature and tenant scope verify before any digest is
@@ -228,7 +234,7 @@ Last updated: `2026-08-14`
   with both matching and nonmatching digests and always return the typed scope
   field first, closing the cross-tenant digest-existence oracle.
 
-- closed exact Submission agreement output and binding, 2026-08-13, prepared
+- closed exact Submission agreement output and binding, 2026-08-13, published
   `v2026.0.104`. Every signed request now carries one immutable media type,
   nonzero extent, SHA-256, CRC32C, manifest upload/collection/name/sequence/count,
   build, protocol revision, and nonce agreement into the authority grant and the
@@ -249,7 +255,7 @@ Last updated: `2026-08-14`
   every rejected input leave the source untouched and return an exact zero
   operation.
 
-- closed exact streamed retrieval activation, 2026-08-13, prepared
+- closed exact streamed retrieval activation, 2026-08-13, published
   `v2026.0.103`. `VerifiedGrant.DownloadFile` now settles Filestore activation
   failures according to their typed certainty: a determinate failure durably
   discards the exact staged inode and returns zero recovery, while indeterminate
@@ -273,7 +279,7 @@ Last updated: `2026-08-14`
   otherwise requiring typed integrity refusal, prior-target preservation, zero
   proof, and stage absence.
 
-- closed exact manifest membership for Retrieval grants, 2026-08-13, prepared
+- closed exact manifest membership for Retrieval grants, 2026-08-13, published
   `v2026.0.102`. Chit's `ManifestEntryVerifier` replays the authenticated
   manifest in one pass, retains only the requested fixed-size addition, and
   releases `VerifiedManifestEntry` only when the recomputed summary equals the
@@ -293,7 +299,7 @@ Last updated: `2026-08-14`
   hostile case fail red by issuing a valid-looking bearer grant, then returned
   green on restoration.
 
-- closed exact Chit catalog pagination, 2026-08-13, prepared `v2026.0.101`.
+- closed exact Chit catalog pagination, 2026-08-13, published `v2026.0.101`.
   `CursorFor` now derives the only valid opaque continuation from the exact
   UUIDv7 identity at a newest-first page tail using a domain-separated SHA-256
   frame. `CatalogPayload.Validate` rejects arbitrary or stale continuations,
@@ -313,7 +319,7 @@ Last updated: `2026-08-14`
   stored/unavailable/deleted retention matrix one nanosecond before, exactly
   at, and one nanosecond after the promise.
 
-- closed immutable Chit authority issuance, 2026-08-13, prepared
+- closed immutable Chit authority issuance, 2026-08-13, published
   `v2026.0.100`. `chit.Issue` now accepts the authority document already stored
   under the candidate collection/version slot and the authority trust set. A
   fresh issuance signs and independently verifies its exact payload before any
@@ -332,7 +338,7 @@ Last updated: `2026-08-14`
   the existing independent signature/substitution verification matrix.
 
 - closed the authority-side registration and check-in transaction gap,
-  2026-08-13, prepared `v2026.0.99`. `VerifyRegistrationAuthority` now matches
+  2026-08-13, published `v2026.0.99`. `VerifyRegistrationAuthority` now matches
   only the authority's persisted one-way verifier, derives the exact
   Controlwire replay commitment, returns fresh or byte-exact retry, refuses any
   changed second use, and destroys the presented token on every return path.
@@ -358,7 +364,7 @@ Last updated: `2026-08-14`
   error-identity gap where decision disagreement escaped a check-in response
   without `ErrControlPlaneCheckInResponse`.
 
-- closed the missing authority replay record, 2026-08-13, prepared
+- closed the missing authority replay record, 2026-08-13, published
   `v2026.0.98`. Every successful `ReceiveRoutedJSON` now returns a validated,
   canonical, persistable `ReplayIdentity` derived from the request-owned
   offering, route, revision, nonce, and a domain-separated SHA-256 commitment
@@ -379,7 +385,7 @@ Last updated: `2026-08-14`
   Witness-lint are clean.
 
 - closed inline secret and bearer disclosure through Go's invalid `%p`
-  formatting path, 2026-08-13, prepared `v2026.0.97`. Exchange header values,
+  formatting path, 2026-08-13, published `v2026.0.97`. Exchange header values,
   Cloudidentity tokens and AWS signed requests, Objectstore signed URLs and
   fields, and Release signing/Garble seeds now keep bearer bytes behind owned
   indirection while retaining their one explicit projection boundary.
@@ -400,7 +406,7 @@ Last updated: `2026-08-14`
   `deadcode -test ./...`, and `witness-lint ./...` report zero findings.
 
 - closed exact payment-page traversal and request binding, 2026-08-13,
-  prepared `v2026.0.96`. Payment catalog pages now carry a nominal,
+  published `v2026.0.96`. Payment catalog pages now carry a nominal,
   domain-separated commitment to the exact device-signed query. Verification
   binds account/offering scope, all-or-specific selection, start/after cursor,
   page ceiling, build, request nonce, and protocol revision before returning a
@@ -419,7 +425,7 @@ Last updated: `2026-08-14`
   fixture uses it rather than a test-only bypass. No compatibility form or
   unbound catalog path remains.
 
-- added the missing logical-CPU host observation, 2026-08-13, prepared
+- added the missing logical-CPU host observation, 2026-08-13, published
   `v2026.0.95`. `hostfacts.ObserveLogicalCPUCount` now returns one immutable,
   validated fact directly from Go's `runtime.NumCPU`; worker budgets and
   scheduling remain consumer policy. The zero value refuses with the stable
@@ -436,7 +442,7 @@ Last updated: `2026-08-14`
   world model, compatibility layer, or consumer policy entered Primitive.
 
 - closed the compiler-visible call-shape and bounded-allocation findings exposed
-  by Witness's imported-enum and streaming analysis, 2026-08-13, prepared
+  by Witness's imported-enum and streaming analysis, 2026-08-13, published
   `v2026.0.94`. Every production helper with four or more inputs now receives
   one named request structure, and each new internal carrier is registered in
   its package's data-flow inventory. Domain-separated commitments in
@@ -455,7 +461,7 @@ Last updated: `2026-08-14`
   zero findings. No compatibility wrapper, waiver, or unwired path was added.
 
 - closed the exact-extent stream constructor and the remaining Objectstore
-  transfer-door proof, 2026-08-13, prepared `v2026.0.93`.
+  transfer-door proof, 2026-08-13, published `v2026.0.93`.
   `objectstore.NewExactReader` now accepts compiler-owned `core.ByteLength`
   instead of a raw signed integer and returns a typed construction failure.
   Nil sources are rejected before `bufio.Reader` can defer the fault into a
