@@ -30,8 +30,8 @@ type ResponseCommitment struct {
 // ResponseIssuance is the authority input for one authenticated response.
 type ResponseIssuance[Body core.ValidatedJSONMarshaler] struct {
 	Signer     crypto.Signer
-	Header     ResponseHeader
 	Body       Body
+	Header     ResponseHeader
 	Assessment controlwire.ProtocolAssessment
 }
 
@@ -47,9 +47,9 @@ type UpgradeRequiredIssuance struct {
 // ResponseProjection is the issue-only authenticated wire response. The
 // product body can therefore use an encode-only bearer projection.
 type ResponseProjection[Body core.ValidatedJSONMarshaler] struct {
-	header      ResponseHeader
 	body        Body
 	attestation attest.Envelope[SigningDomain]
+	header      ResponseHeader
 }
 
 // ResponseDocument is the receive-only authenticated wire response. Its
@@ -101,10 +101,10 @@ type VerifiedResponse[
 type responseCommitmentWire ResponseCommitment
 
 type responseDocumentWire struct {
-	Header ResponseHeader `json:"header"`
 	// doctrine:local-allowed=external-wire
 	Body        json.RawMessage                `json:"body,omitempty"`
 	Attestation attest.Envelope[SigningDomain] `json:"attestation"`
+	Header      ResponseHeader                 `json:"header"`
 }
 
 var _ core.ValidatedJSONProjection = ResponseProjection[RegistrationDocument]{}
@@ -291,10 +291,8 @@ func (p ResponseProjection[Body]) MarshalJSON() ([]byte, error) {
 		return nil, jsonError(err)
 	}
 	encoded, err := core.MarshalCanonicalJSONDocument(responseDocumentWire{
-		Header: p.header,
 		// doctrine:local-allowed=external-wire
-		Body:        json.RawMessage(body),
-		Attestation: p.attestation,
+		Body: json.RawMessage(body), Attestation: p.attestation, Header: p.header,
 	})
 	if err != nil || len(encoded) > core.JSONDocumentMaximumBytes {
 		return nil, jsonError(responseDocumentError(err))

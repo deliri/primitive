@@ -12,11 +12,11 @@ import (
 
 type structureExternalDoor[T any] struct {
 	Seed         T
-	Mutations    []T
 	Marshal      func(T) ([]byte, error)
 	Unmarshal    func(*T, []byte) error
 	Validate     func(T) error
 	Authenticate func(T, bool) error
+	Mutations    []T
 	WantError    core.ErrorIdentity
 }
 

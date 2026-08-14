@@ -310,9 +310,9 @@ func TestPolicyCursorJSONBoundaryRefusesEveryMalformedDocument(t *testing.T) {
 	valid := `{"revision":"` + policyRevisionRealWorld + `","activation":1}`
 
 	cases := []struct {
+		wantErr  error
 		name     string
 		document string
-		wantErr  error
 	}{
 		{name: "the document a control plane emits", document: valid},
 		{name: "the largest activation", document: `{"revision":"` + policyRevisionRealWorld + `","activation":18446744073709551615}`},

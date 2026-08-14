@@ -42,9 +42,9 @@ type AuthenticatedResponseDocument interface {
 // be an origin: the request document owns the complete path through its route.
 type ClientJSONCall[Body RoutedJSONRequest] struct {
 	Context   context.Context
+	Body      Body
 	Client    exchange.Client
 	Authority core.HTTPEndpoint
-	Body      Body
 }
 
 // AuthorityJSONReceiveCall is one authority-side receive boundary mounted for

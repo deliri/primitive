@@ -116,11 +116,11 @@ func TestCredentialedPublicationRequestRefusesEveryAuthorityDeviceBuildAndManife
 			tamperedCertificate.Certificate.Body.IssuedAt, base.document.Certificate.Body.IssuedAt)
 	}
 	cases := []struct {
+		wantErr      error
 		name         string
 		document     PublicationRequestDocument
 		authority    attest.TrustedKeys
 		manifestKeys attest.TrustedKeys
-		wantErr      error
 	}{
 		{name: "zero document", authority: base.authority, manifestKeys: base.release.keys, wantErr: core.ErrControlPlaneContract},
 		{name: "zero authority trust", document: base.document, manifestKeys: base.release.keys, wantErr: core.ErrControlPlaneContract},
@@ -205,12 +205,12 @@ func TestCredentialedPublicationCompletionRefusesEveryCrossRequestAndCrossAuthor
 			err, core.ErrControlPlaneResponseBinding)
 	}
 	cases := []struct {
+		wantError error
 		name      string
 		grant     distribution.PublicationGrantDocument
 		document  PublicationCompletionDocument
 		request   VerifiedPublication
 		trusted   attest.TrustedKeys
-		wantError error
 	}{
 		{name: "zero verification", wantError: core.ErrControlPlaneContract},
 		{name: "zero completion", grant: base.grant, request: base.verified, trusted: base.authority, wantError: core.ErrControlPlaneContract},
@@ -251,8 +251,8 @@ func TestCredentialedPublicationJSONBoundariesAreStrictBoundedCanonicalAndPreser
 			t.Fatalf("PublicationRequestDocument.MarshalJSON() error = %v, want nil", err)
 		}
 		reordered, err := json.Marshal(struct {
-			Certificate controlplane.InstallationCertificateDocument `json:"certificate"`
 			Request     distribution.PublicationRequestDocument      `json:"request"`
+			Certificate controlplane.InstallationCertificateDocument `json:"certificate"`
 		}{Certificate: fixture.document.Certificate, Request: fixture.document.Request})
 		if err != nil {
 			t.Fatalf("json.Marshal(reordered publication request) error = %v, want nil", err)
@@ -266,8 +266,8 @@ func TestCredentialedPublicationJSONBoundariesAreStrictBoundedCanonicalAndPreser
 			t.Fatalf("PublicationCompletionDocument.MarshalJSON() error = %v, want nil", err)
 		}
 		reordered, err := json.Marshal(struct {
-			Certificate controlplane.InstallationCertificateDocument `json:"certificate"`
 			Completion  distribution.PublicationCompletionDocument   `json:"completion"`
+			Certificate controlplane.InstallationCertificateDocument `json:"certificate"`
 		}{Certificate: fixture.completion.Certificate, Completion: fixture.completion.Completion})
 		if err != nil {
 			t.Fatalf("json.Marshal(reordered publication completion) error = %v, want nil", err)

@@ -41,20 +41,20 @@ type publicationAuthRelease struct {
 }
 
 type publicationAuthUpload struct {
-	projection objectstore.UploadCapabilityProjection
 	target     objectstore.UploadTarget
+	projection objectstore.UploadCapabilityProjection
 }
 
 type publicationAuthFixture struct {
 	installation    controlplanetest.Installation
-	release         publicationAuthRelease
-	document        PublicationRequestDocument
-	verified        VerifiedPublication
-	authority       attest.TrustedKeys
 	grant           distribution.PublicationGrantDocument
 	grantProjection distribution.PublicationGrantProjection
-	grantProof      distribution.VerifiedPublicationGrant
 	completion      PublicationCompletionDocument
+	grantProof      distribution.VerifiedPublicationGrant
+	document        PublicationRequestDocument
+	release         publicationAuthRelease
+	verified        VerifiedPublication
+	authority       attest.TrustedKeys
 }
 
 type publicationAuthTransport struct {
@@ -272,7 +272,7 @@ func publicationAuthProvenance(t testing.TB) release.BuildProvenance {
 		GarbleRevision:  "ffa2daf72f036d7ff72f6a3c8243997f06fa7b4e",
 		GarbleModuleSum: "h1:3/JEpDf12w/71XWzIrnLazgTQD6UWElzrRQWo4oJ7s0=",
 		GarbleLiterals:  "obfuscate", GarbleDiagnostics: "preserve",
-		GoToolchain: "go1.26.5", MainPackage: "github.com/offGridSoft/witness/cmd/witness",
+		GoToolchain: "go1.26.6", MainPackage: "github.com/offGridSoft/witness/cmd/witness",
 		ModuleMode: "vendor", BuildTags: []string{}, LinkerAssignments: []struct{}{},
 		GoExecutableSHA256:     core.SHA256Of([]byte("publication-auth-go")),
 		GarbleExecutableSHA256: core.SHA256Of([]byte("publication-auth-garble")),

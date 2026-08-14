@@ -51,8 +51,8 @@ func TestProcessExternalIngressInventoryMatchesProduction(t *testing.T) {
 func processExternalDoorFieldNames(inventory any) []string {
 	typeOf := reflect.TypeOf(inventory)
 	fields := make([]string, 0, typeOf.NumField())
-	for index := range typeOf.NumField() {
-		fields = append(fields, typeOf.Field(index).Name)
+	for field := range typeOf.Fields() {
+		fields = append(fields, field.Name)
 	}
 	slices.Sort(fields)
 	return fields

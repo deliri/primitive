@@ -54,7 +54,7 @@ type ProtocolSupportRequest struct {
 // policy input to a blind compatibility decision.
 type ProtocolSupport struct {
 	capabilities [ProtocolCapabilityMaximum]ProtocolCapability
-	count        uint16
+	count        int
 }
 
 // ProtocolAssessmentRequest asks one closed support set about one exact pair.
@@ -122,7 +122,7 @@ func NewProtocolSupport(request ProtocolSupportRequest) (ProtocolSupport, error)
 		return ProtocolSupport{}, err
 	}
 	var support ProtocolSupport
-	support.count = uint16(len(request.Capabilities))
+	support.count = len(request.Capabilities)
 	copy(support.capabilities[:], request.Capabilities)
 	sortProtocolCapabilities(support.capabilities[:support.count])
 	return support, support.Validate()
@@ -143,10 +143,10 @@ func PublishedProtocolSupport() (ProtocolSupport, error) {
 }
 
 func (s ProtocolSupport) Validate() error {
-	if s.count == 0 || int(s.count) > len(s.capabilities) {
+	if s.count == 0 || s.count > len(s.capabilities) {
 		return protocolSupportError()
 	}
-	for index := range int(s.count) {
+	for index := range s.count {
 		if err := s.capabilities[index].Validate(); err != nil {
 			return err
 		}
@@ -154,7 +154,7 @@ func (s ProtocolSupport) Validate() error {
 			return protocolSupportError()
 		}
 	}
-	for index := int(s.count); index < len(s.capabilities); index++ {
+	for index := s.count; index < len(s.capabilities); index++ {
 		if s.capabilities[index] != (ProtocolCapability{}) {
 			return protocolSupportError()
 		}
@@ -184,7 +184,7 @@ func AssessProtocol(request ProtocolAssessmentRequest) (ProtocolAssessment, erro
 		return ProtocolAssessment{}, err
 	}
 	outcome := ProtocolSupportOutcomeUpgradeRequired
-	for index := range int(request.Support.count) {
+	for index := range request.Support.count {
 		if request.Support.capabilities[index] == request.Capability {
 			outcome = ProtocolSupportOutcomeAccepted
 			break

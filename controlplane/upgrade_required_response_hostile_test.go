@@ -12,9 +12,9 @@ import (
 )
 
 type upgradeRequiredResponseFixture struct {
+	canonical []byte
 	base      authenticatedResponseFixture
 	header    controlplane.ResponseHeader
-	canonical []byte
 }
 
 type upgradeRequiredRepresentation struct {
@@ -67,9 +67,9 @@ func TestUpgradeRequiredIssuanceRejectsTwelveIndependentContractFailures(t *test
 		Assessment: upgradeRequiredProtocolAssessment(t, fixture.header),
 	}
 	cases := []struct {
-		name   string
-		mutate func(*controlplane.UpgradeRequiredIssuance)
 		want   error
+		mutate func(*controlplane.UpgradeRequiredIssuance)
+		name   string
 	}{
 		{name: "nil signer", mutate: func(value *controlplane.UpgradeRequiredIssuance) { value.Signer = nil }, want: core.ErrAttestContract},
 		{name: "zero header", mutate: func(value *controlplane.UpgradeRequiredIssuance) { value.Header = controlplane.ResponseHeader{} }, want: core.ErrControlPlaneResponseHeader},
@@ -310,13 +310,14 @@ func upgradeRequiredPartsForTest(t testing.TB, fixture upgradeRequiredResponseFi
 	if err != nil {
 		t.Fatalf("ResponseHeader.MarshalJSON() error = %v, want nil", err)
 	}
-	headerEnd := bytes.Index(fixture.canonical, headerJSON) + len(headerJSON)
-	if headerEnd <= len(headerJSON) || headerEnd+2 >= len(fixture.canonical) {
-		t.Fatalf("canonical refusal does not contain the exact compiler-produced header")
+	members := responseCanonicalMembers(t, fixture.canonical)
+	header, headerIndex := responseMemberWithValue(t, members, headerJSON)
+	if len(members) != 2 || headerIndex < 0 || headerIndex > 1 {
+		t.Fatalf("canonical refusal members = %d with header index %d, want two members and one header",
+			len(members), headerIndex)
 	}
 	return upgradeRequiredWireParts{
-		header:      bytes.Clone(fixture.canonical[1:headerEnd]),
-		attestation: bytes.Clone(fixture.canonical[headerEnd+1 : len(fixture.canonical)-1]),
+		header: header, attestation: bytes.Clone(members[1-headerIndex]),
 	}
 }
 

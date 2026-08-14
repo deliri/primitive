@@ -191,8 +191,8 @@ func TestRequestCommitmentChangesAcrossEveryRegistrationFact(t *testing.T) {
 	}
 	distinctInstallation := replayInstallation(t, 0x61, 0x71)
 	cases := []struct {
-		name   string
 		mutate func(*controlplane.RegistrationRequest)
+		name   string
 	}{
 		{name: "registration token changes", mutate: func(request *controlplane.RegistrationRequest) {
 			*request = registrationRequestWithDistinctToken(t, *request)
@@ -219,8 +219,8 @@ func TestRequestCommitmentChangesAcrossEveryRegistrationFact(t *testing.T) {
 	}
 
 	invalid := []struct {
-		name   string
 		mutate func(*controlplane.RegistrationRequest)
+		name   string
 	}{
 		{name: "device key changes without installation", mutate: func(request *controlplane.RegistrationRequest) { request.DeviceKey = distinctInstallation.DevicePublic }},
 		{name: "installation changes without device key", mutate: func(request *controlplane.RegistrationRequest) {
@@ -279,8 +279,8 @@ func TestReplayDispositionExhaustsItsDomainAndReplayCheckRefusals(t *testing.T) 
 	}
 	cases := []struct {
 		name  string
-		check controlwire.ReplayCheck
 		want  []error
+		check controlwire.ReplayCheck
 	}{
 		{name: "zero incoming is refused", check: controlwire.ReplayCheck{}, want: []error{core.ErrControlWireContract}},
 		{name: "zero existing is refused", check: controlwire.ReplayCheck{Existing: new(controlwire.ReplayIdentity), Incoming: incoming}, want: []error{core.ErrControlWireContract}},

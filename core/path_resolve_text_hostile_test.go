@@ -25,10 +25,10 @@ func TestResolveTextIsExactlyLexicalAbsIngress(t *testing.T) {
 	oversizedComponent := strings.Repeat("a", 256)
 
 	cases := []struct {
+		wantErr error
 		name    string
 		text    string
 		want    string
-		wantErr error
 	}{
 		{name: "absolute clean text is admitted as itself", text: join("etc", "peach.json"), want: join("etc", "peach.json")},
 		{name: "absolute noncanonical text is cleaned", text: join("etc") + separator + separator + "sub" + separator + "." + separator + "x", want: join("etc", "sub", "x")},

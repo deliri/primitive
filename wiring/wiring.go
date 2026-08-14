@@ -30,9 +30,9 @@ type Identity interface {
 
 // Definition is one component identity and its direct runtime dependencies.
 type Definition[I Identity] struct {
+	Identity       I
 	Dependencies   []I
 	PrimitiveDoors []core.PackageIdentity
-	Identity       I
 }
 
 // Validate rejects an invalid identity, an excessive dependency set, an
@@ -68,8 +68,8 @@ type Describer[I Identity] interface {
 // Request supplies the product-owned command root and the actual components
 // constructed for that command.
 type Request[I Identity] struct {
-	Components []Describer[I]
 	Root       I
+	Components []Describer[I]
 }
 
 // Validate rejects malformed request extent and nil runtime components before
@@ -81,26 +81,25 @@ func (r Request[I]) Validate() error {
 	if len(r.Components) == 0 || len(r.Components) > ComponentMaximum {
 		return wiringContractError(contractErrorRequest[I]{kind: ErrorKindRequest, owner: r.Root})
 	}
-	for _, component := range r.Components {
-		if describerIsNil(component) {
-			return wiringContractError(contractErrorRequest[I]{kind: ErrorKindComponent})
-		}
+	if slices.ContainsFunc(r.Components, describerIsNil[I]) {
+		return wiringContractError(contractErrorRequest[I]{kind: ErrorKindComponent})
 	}
 	return nil
 }
 
 // Manifest is one validated immutable snapshot of a command's runtime wiring.
 type Manifest[I Identity] struct {
-	definitions []Definition[I]
 	root        I
+	definitions []Definition[I]
 }
 
 // Root returns the command component from which every wired component is
 // reachable.
 func (m Manifest[I]) Root() I { return m.root }
 
-// Count returns the fixed admitted component cardinality.
-func (m Manifest[I]) Count() uint16 { return uint16(len(m.definitions)) }
+// Count returns the fixed admitted component cardinality in Go's native
+// collection index type.
+func (m Manifest[I]) Count() int { return len(m.definitions) }
 
 // Components yields defensive copies in caller construction order.
 func (m Manifest[I]) Components() iter.Seq[Definition[I]] {

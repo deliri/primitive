@@ -255,8 +255,8 @@ func TestHostFactsErrorAxesAndTypedFailure(t *testing.T) {
 		)
 	}
 	invalid := []struct {
-		failure Failure
 		wantErr error
+		failure Failure
 	}{
 		{failure: Failure{}, wantErr: core.ErrHostFactsContract},
 		{failure: Failure{Operation: OperationUnknown, Identity: core.ErrHostFactsObservation}, wantErr: core.ErrHostFactsContract},

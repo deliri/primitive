@@ -173,8 +173,8 @@ func TestDownloadSourceAndStagePolicyCloseEveryExecutionDependency(t *testing.T)
 		objectName: "bucket/other-candidate", transport: transport,
 	})
 	cases := []struct {
-		name   string
 		mutate func(*DownloadSource)
+		name   string
 	}{
 		{name: "client unset", mutate: func(value *DownloadSource) {
 			value.Client = objectstore.Client{}
@@ -457,8 +457,8 @@ func TestUpgradePathProjectionsRemainBoundToTheirAuthenticatedArtifacts(t *testi
 }
 
 type stageDownloadSourceFixture struct {
-	objectName string
 	transport  http.RoundTripper
+	objectName string
 }
 
 func stageDownloadSourceForTest(
@@ -527,8 +527,8 @@ func stageDownloadSourceForTest(
 }
 
 type stageDownloadTransport struct {
-	payload []byte
 	cause   error
+	payload []byte
 	calls   atomic.Uint32
 }
 
@@ -584,10 +584,10 @@ func stageTargetForTest(t testing.TB, fixture stageTargetFixture) TrialTarget {
 }
 
 type attemptFailureExpectation struct {
-	phase     FailurePhase
 	identity  error
 	cause     error
 	candidate core.BuildIdentity
+	phase     FailurePhase
 }
 
 func requireAttemptFailure(

@@ -13,10 +13,10 @@ func TestParseLiteralPolicyExhaustsCanonicalAndHostileLabels(t *testing.T) {
 	t.Parallel()
 
 	cases := []struct {
+		wantErr error
 		name    string
 		value   string
 		want    garble.LiteralPolicy
-		wantErr error
 	}{
 		{name: "preserve label is accepted", value: garble.LiteralPolicyPreserve.String(), want: garble.LiteralPolicyPreserve},
 		{name: "obfuscate label is accepted", value: garble.LiteralPolicyObfuscate.String(), want: garble.LiteralPolicyObfuscate},
@@ -56,10 +56,10 @@ func TestParseDiagnosticPolicyExhaustsCanonicalAndHostileLabels(t *testing.T) {
 	t.Parallel()
 
 	cases := []struct {
+		wantErr error
 		name    string
 		value   string
 		want    garble.DiagnosticPolicy
-		wantErr error
 	}{
 		{name: "preserve label is accepted", value: garble.DiagnosticPolicyPreserve.String(), want: garble.DiagnosticPolicyPreserve},
 		{name: "strip label is accepted", value: garble.DiagnosticPolicyStrip.String(), want: garble.DiagnosticPolicyStrip},
@@ -99,9 +99,9 @@ func TestParseDerivationGenerationExhaustsCanonicalAndHostileLabels(t *testing.T
 	t.Parallel()
 
 	cases := []struct {
+		wantErr error
 		name    string
 		value   string
-		wantErr error
 	}{
 		{name: "generation one label is accepted", value: garble.DerivationGenerationOne.String()},
 		{name: "empty label is rejected", wantErr: core.ErrGarbleContract},

@@ -32,10 +32,10 @@ func TestStepIDExhaustsItsBoundaryAndDiagnosticLabel(t *testing.T) {
 	t.Parallel()
 
 	cases := []struct {
+		wantErr   error
 		name      string
 		wantLabel string
 		raw       uint16
-		wantErr   error
 	}{
 		{name: "zero identity is the rejected sentinel", raw: 0, wantLabel: core.UnknownEnumDiagnostic, wantErr: core.ErrShutdownContract},
 		{name: "one is the minimum admitted identity", raw: 1, wantLabel: "1"},

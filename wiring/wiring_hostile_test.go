@@ -166,7 +166,7 @@ func TestDeriveAdmitsExactExtentEdgesAndPreservesOneCanonicalSnapshot(t *testing
 			if got := manifest.Root(); got != wiringTestIdentityRoot {
 				t.Fatalf("Manifest.Root() = %v, want %v", got, wiringTestIdentityRoot)
 			}
-			if got := manifest.Count(); got != uint16(len(want)) {
+			if got := manifest.Count(); got != len(want) {
 				t.Fatalf("Manifest.Count() = %d, want %d", got, len(want))
 			}
 			got := slices.Collect(manifest.Components())

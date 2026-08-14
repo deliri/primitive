@@ -18,10 +18,10 @@ func TestClassifyRotationalFlagAdmitsOnlyTheDocumentedInterface(t *testing.T) {
 	t.Parallel()
 
 	cases := []struct {
+		wantErr error
 		name    string
 		input   string
 		want    DiskRotation
-		wantErr error
 	}{
 		{name: "bare zero is non-rotational", input: "0", want: DiskRotationNonRotational},
 		{name: "bare one is rotational", input: "1", want: DiskRotationRotational},

@@ -204,7 +204,7 @@ func releaseProvenance(t testing.TB) release.BuildProvenance {
 		GarbleRevision:  "ffa2daf72f036d7ff72f6a3c8243997f06fa7b4e",
 		GarbleModuleSum: "h1:3/JEpDf12w/71XWzIrnLazgTQD6UWElzrRQWo4oJ7s0=",
 		GarbleLiterals:  "obfuscate", GarbleDiagnostics: "preserve",
-		GoToolchain: "go1.26.5", MainPackage: "github.com/offGridSoft/bug/cmd/bug",
+		GoToolchain: "go1.26.6", MainPackage: "github.com/offGridSoft/bug/cmd/bug",
 		ModuleMode: "vendor", LinkerAssignments: []struct{}{},
 		GoExecutableSHA256:     core.NewSHA256Digest(goDigest),
 		GarbleExecutableSHA256: core.NewSHA256Digest(garbleDigest),

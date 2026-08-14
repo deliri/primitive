@@ -95,7 +95,26 @@ func TestPrepareBuildPlanProjectsExactDocumentedGarbleAndGoArguments(t *testing.
 		if wantTarget.OperatingSystem == core.OperatingSystemWindows {
 			wantOutput += ".exe"
 		}
-		gotLinker := arguments[7]
+		const linkerProjection = "compiler-owned-linker-projection"
+		wantArguments := []string{
+			"-seed=AQIDBAUGBwg",
+			"-literals",
+			"build",
+			"-trimpath",
+			"-buildvcs=false",
+			"-pgo=off",
+			"-mod=vendor",
+			linkerProjection,
+			"-o",
+			wantOutput,
+			"github.com/offGridSoft/bug/cmd/bug",
+		}
+		linkerIndex := slices.Index(wantArguments, linkerProjection)
+		if linkerIndex < 0 || len(arguments) != len(wantArguments) {
+			t.Fatalf("release.BuildCommand(%d) argument extent/index = (%d, %d), want (%d, present)",
+				index, len(arguments), linkerIndex, len(wantArguments))
+		}
+		gotLinker := arguments[linkerIndex]
 		if !strings.HasPrefix(gotLinker, "-ldflags=-w -s") {
 			t.Fatalf("release.BuildCommand(%d) linker projection = %q, want production stripping first", index, gotLinker)
 		}
@@ -111,22 +130,9 @@ func TestPrepareBuildPlanProjectsExactDocumentedGarbleAndGoArguments(t *testing.
 				t.Fatalf("release.BuildCommand(%d) linker projection contains %q %d times, want exactly once", index, symbol, strings.Count(gotLinker, symbol+"="))
 			}
 		}
-		const linkerProjection = "compiler-owned-linker-projection"
-		gotArguments := slices.Clone(arguments)
-		gotArguments[7] = linkerProjection
-		wantArguments := []string{
-			"-seed=AQIDBAUGBwg",
-			"-literals",
-			"build",
-			"-trimpath",
-			"-buildvcs=false",
-			"-pgo=off",
-			"-mod=vendor",
-			linkerProjection,
-			"-o",
-			wantOutput,
-			"github.com/offGridSoft/bug/cmd/bug",
-		}
+		gotArguments := make([]string, len(arguments))
+		copy(gotArguments, arguments)
+		gotArguments[linkerIndex] = linkerProjection
 		if !slices.Equal(gotArguments, wantArguments) {
 			t.Fatalf("release.BuildCommand(%d).ArgumentValues() = %q, want %q", index, gotArguments, wantArguments)
 		}
@@ -384,8 +390,8 @@ func TestGoToolchainIdentityPinsExactReleaseCompilerAcrossItsBackingDomain(t *te
 	if err != nil {
 		t.Fatalf("release.CurrentGoToolchain().Version() error = %v, want nil", err)
 	}
-	if version != "go1.26.5" {
-		t.Fatalf("release.CurrentGoToolchain().Version() = %q, want go1.26.5", version)
+	if version != "go1.26.6" {
+		t.Fatalf("release.CurrentGoToolchain().Version() = %q, want go1.26.6", version)
 	}
 	if got := release.GoToolchainUnknown.String(); got != core.UnknownEnumDiagnostic {
 		t.Fatalf("release.GoToolchainUnknown.String() = %q, want %q", got, core.UnknownEnumDiagnostic)

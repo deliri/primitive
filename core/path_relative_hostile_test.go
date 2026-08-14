@@ -26,11 +26,11 @@ func TestRelativeToRefusesEveryPathThatEscapesItsBase(t *testing.T) {
 
 	root := string(filepath.Separator)
 	cases := []struct {
+		wantErr error
 		name    string
 		path    string
 		base    string
 		want    string
-		wantErr error
 	}{
 		{name: "direct child", path: root + "a/b", base: root + "a", want: "b"},
 		{name: "nested descendant", path: root + "a/b/c/d", base: root + "a", want: "b/c/d"},

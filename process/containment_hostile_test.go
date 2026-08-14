@@ -91,9 +91,9 @@ func TestContainmentValidatesBothMembers(t *testing.T) {
 	t.Parallel()
 
 	cases := []struct {
+		wantErr     error
 		name        string
 		containment process.Containment
-		wantErr     error
 	}{
 		{
 			name:        "zero containment names no isolation",
@@ -155,9 +155,9 @@ func TestProcessIdentityRejectsNonPositiveValues(t *testing.T) {
 	t.Parallel()
 
 	cases := []struct {
+		wantErr  error
 		name     string
 		identity process.ProcessIdentity
-		wantErr  error
 	}{
 		{name: "zero is not a real identity", identity: 0, wantErr: core.ErrProcessContract},
 		{name: "negative one is not a real identity", identity: -1, wantErr: core.ErrProcessContract},

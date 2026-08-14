@@ -266,9 +266,9 @@ func TestRegistrationTokenJSONRejectionLeavesTheReceiverUnchanged(t *testing.T) 
 	t.Parallel()
 
 	cases := []struct {
+		wantErr  error
 		name     string
 		document string
-		wantErr  error
 	}{
 		{name: "canonical token is accepted", document: `"` + tokenHexWithLetters + `"`},
 		{name: "json null is refused", document: `null`, wantErr: core.ErrControlWireToken},

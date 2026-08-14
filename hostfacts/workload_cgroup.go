@@ -121,7 +121,7 @@ const (
 func cgroupLevelLimitStateLabels() [cgroupLevelLimitStateLimit]string {
 	return [cgroupLevelLimitStateLimit]string{
 		cgroupLevelLimitStateUnknown: "unknown",
-		cgroupLevelLimitAbsent:       "absent",
+		cgroupLevelLimitAbsent:       "limit absent",
 		cgroupLevelLimitFinite:       "finite",
 		cgroupLevelLimitUnlimited:    "unlimited",
 	}

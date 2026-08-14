@@ -343,7 +343,7 @@ func fixtureProvenance(t *testing.T) release.BuildProvenance {
 		GoExecutableSHA256     core.SHA256Digest `json:"go_executable_sha256"`
 		GarbleExecutableSHA256 core.SHA256Digest `json:"garble_executable_sha256"`
 	}{
-		GoToolchain: "go1.26.5", GoExecutableSHA256: core.NewSHA256Digest(goDigest),
+		GoToolchain: "go1.26.6", GoExecutableSHA256: core.NewSHA256Digest(goDigest),
 		GarbleModule: "mvdan.cc/garble", GarbleVersion: "v0.16.1-0.20260621195108-ffa2daf72f03",
 		GarbleRevision:         "ffa2daf72f036d7ff72f6a3c8243997f06fa7b4e",
 		GarbleModuleSum:        "h1:3/JEpDf12w/71XWzIrnLazgTQD6UWElzrRQWo4oJ7s0=",

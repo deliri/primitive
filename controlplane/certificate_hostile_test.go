@@ -62,9 +62,9 @@ func TestVerifyInstallationCertificateRefusesEveryUnauthenticInput(t *testing.T)
 	t.Parallel()
 
 	cases := []struct {
+		want   error
 		mutate func(*testing.T, *controlplane.InstallationCertificateDocument) attest.TrustedKeys
 		name   string
-		want   error
 	}{
 		{
 			name: "the zero certificate names no installation",

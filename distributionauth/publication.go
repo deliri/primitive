@@ -36,8 +36,8 @@ type PublicationVerification struct {
 }
 
 type VerifiedPublication struct {
-	document         PublicationRequestDocument
 	requestProof     distribution.VerifiedPublicationRequest
+	document         PublicationRequestDocument
 	certificateProof controlplane.VerifiedInstallationCertificate
 }
 

@@ -23,9 +23,9 @@ func TestRandomTokenRequestAdmitsOnlyBoundedSizes(t *testing.T) {
 	t.Parallel()
 
 	cases := []struct {
+		wantErr error
 		name    string
 		size    uint64
-		wantErr error
 	}{
 		{name: "one byte is the smallest token", size: 1},
 		{name: "two bytes sit one above the floor", size: 2},

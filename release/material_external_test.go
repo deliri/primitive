@@ -40,7 +40,7 @@ func TestReleaseMaterialExternalBoundaryHostileMatrix(t *testing.T) {
 		{name: "truncated", data: canonical[:len(canonical)-1]},
 		{name: "trailing document", data: append(append([]byte{}, canonical...), canonical...)},
 		{name: "unknown top-level field", data: append(canonical[:len(canonical)-1], []byte(`,"future":1}`)...)},
-		{name: "missing signing seed", data: []byte(fmt.Sprintf(`{"request":%s,"garble_custody_seed":%q,"server_public_key":%s}`, mustMaterialRequestJSON(t, fixture.Request), validCustody, mustPublicKeyJSON(t, fixture.ServerPublicKey)))},
+		{name: "missing signing seed", data: fmt.Appendf(nil, `{"request":%s,"garble_custody_seed":%q,"server_public_key":%s}`, mustMaterialRequestJSON(t, fixture.Request), validCustody, mustPublicKeyJSON(t, fixture.ServerPublicKey))},
 		{name: "null signing seed", data: bytes.Replace(canonical, []byte(`"release_signing_seed":"`), []byte(`"release_signing_seed":null,"ignored":"`), 1)},
 		{name: "noncanonical signing base64", data: bytes.Replace(canonical, []byte(validSigning), []byte(strings.TrimRight(validSigning, "=")), 1)},
 		{name: "signing seed one byte short", data: bytes.Replace(canonical, []byte(validSigning), []byte(base64.StdEncoding.EncodeToString(bytes.Repeat([]byte{0x31}, keygen.SeedSize-1))), 1)},
@@ -163,7 +163,6 @@ func TestReleaseMaterialRedactsEveryFormattingPath(t *testing.T) {
 		{name: "opened material", value: opened, forbidden: append(releaseSigningSeedProjections(t, signingBytes), garbleCustodySeedProjections(t, custodyBytes)...)},
 	}
 	for _, valueCase := range values {
-		valueCase := valueCase
 		t.Run(valueCase.name, func(t *testing.T) {
 			t.Parallel()
 			for _, formatCase := range formats {

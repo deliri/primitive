@@ -71,22 +71,22 @@ func (d receiptJSONDoor) receiverName() string {
 }
 
 type receiptJSONDoorFixtures struct {
+	fixture    receiptFixture
+	document   EvidenceDocument
+	payload    EvidencePayload
+	watermark  Watermark
 	body       EvidenceBody
 	header     Header
-	payload    EvidencePayload
-	document   EvidenceDocument
-	account    AccountIdentity
-	offering   OfferingIdentity
-	submission SubmissionIdentity
-	object     ObjectIdentity
-	revision   Revision
-	receipt    ReceiptID
 	generation Generation
-	cursor     CursorDigest
-	chain      ChainHash
 	scope      Scope
-	watermark  Watermark
-	fixture    receiptFixture
+	chain      ChainHash
+	cursor     CursorDigest
+	account    AccountIdentity
+	receipt    ReceiptID
+	object     ObjectIdentity
+	submission SubmissionIdentity
+	offering   OfferingIdentity
+	revision   Revision
 }
 
 type receiptJSONDoorSeed struct {
@@ -437,10 +437,10 @@ func receiptJSONSeedForFuzz(
 }
 
 type receiptTextOutcome struct {
-	input      string
-	projection string
 	err        error
 	validate   func() error
+	input      string
+	projection string
 }
 
 func fuzzReceiptTextOutcome(t *testing.T, outcome receiptTextOutcome) {

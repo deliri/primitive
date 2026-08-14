@@ -18,9 +18,9 @@ func TestAmazonSignedRequestHostileBoundaryTable(t *testing.T) {
 	audience := mustAudience(t, "https://api.example.com/release")
 	base := amazonSignedURL(audience, amazonTestHost)
 	cases := []struct {
+		wantErr error
 		mutate  func(string) string
 		name    string
-		wantErr error
 	}{
 		{name: "commercial regional endpoint is accepted"},
 		{name: "commercial dual-stack endpoint is accepted", mutate: replaceHost("sts.us-east-2.api.aws")},

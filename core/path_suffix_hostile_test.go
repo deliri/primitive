@@ -20,10 +20,10 @@ func TestWithSuffixOnlyEverNamesASibling(t *testing.T) {
 	base := absolutePathForTest(t, root+"work"+string(filepath.Separator)+"slot")
 
 	cases := []struct {
+		wantErr error
 		name    string
 		suffix  string
 		want    string
-		wantErr error
 	}{
 		{name: "plain suffix", suffix: ".lease", want: "slot.lease"},
 		{name: "infix style suffix", suffix: "-quarantine-01", want: "slot-quarantine-01"},

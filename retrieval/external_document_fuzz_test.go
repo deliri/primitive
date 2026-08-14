@@ -14,12 +14,12 @@ import (
 
 type retrievalExternalDoor[T any] struct {
 	Seed         T
-	Mutations    []T
-	MaximumBytes uint64
 	Marshal      func(T) ([]byte, error)
 	Unmarshal    func(*T, []byte) error
 	Validate     func(T) error
 	Authenticate func(T, bool) error
+	Mutations    []T
+	MaximumBytes uint64
 }
 
 func FuzzRequestPayloadExternalDecoderAndVerifier(f *testing.F) {
@@ -235,10 +235,10 @@ func mustRetrievalProjection[T any](t testing.TB, door retrievalExternalDoor[T],
 }
 
 type retrievalDecodeRefusal[T any] struct {
-	Door      retrievalExternalDoor[T]
 	Candidate T
-	Before    []byte
 	Err       error
+	Before    []byte
+	Door      retrievalExternalDoor[T]
 }
 
 func requireRetrievalDecodeRefusal[T any](t *testing.T, refusal retrievalDecodeRefusal[T]) {
@@ -252,9 +252,9 @@ func requireRetrievalDecodeRefusal[T any](t *testing.T, refusal retrievalDecodeR
 }
 
 type retrievalCanonicalClosure[T any] struct {
-	Door      retrievalExternalDoor[T]
 	Candidate T
 	Encoded   []byte
+	Door      retrievalExternalDoor[T]
 }
 
 func requireRetrievalCanonicalClosure[T any](t *testing.T, closure retrievalCanonicalClosure[T]) {

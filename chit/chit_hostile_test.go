@@ -363,8 +363,8 @@ func TestChitIssuanceLayerTriad(t *testing.T) {
 		fixture := newChitFixture(t, 0x51, 1)
 		other := newChitFixture(t, 0x61, 2)
 		cases := []struct {
-			name   string
 			mutate func(*Payload)
+			name   string
 		}{
 			{name: "chit identity changed", mutate: func(value *Payload) { value.Identity = other.identity }},
 			{name: "collection identity changed", mutate: func(value *Payload) { value.Collection = other.document.Payload.Collection }},

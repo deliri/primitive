@@ -109,9 +109,9 @@ func finishStage(
 }
 
 type stageSynchronization struct {
-	request     StageRequest
-	file        *os.File
 	createdInfo fs.FileInfo
+	file        *os.File
+	request     StageRequest
 	written     core.ByteLength
 }
 
@@ -404,10 +404,10 @@ func classifyCreateError(err error) error {
 }
 
 type createdFileAbandonment struct {
-	location Location
-	file     *os.File
 	expected fs.FileInfo
 	primary  error
+	file     *os.File
+	location Location
 }
 
 func abandonCreatedFile(request createdFileAbandonment) error {
@@ -419,10 +419,10 @@ func abandonCreatedFile(request createdFileAbandonment) error {
 }
 
 type createdPathCleanup struct {
-	root     *os.Root
-	path     core.RelativePath
 	expected fs.FileInfo
 	primary  error
+	root     *os.Root
+	path     core.RelativePath
 }
 
 func cleanupCreatedPath(request createdPathCleanup) error {

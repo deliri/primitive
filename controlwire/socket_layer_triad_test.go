@@ -19,19 +19,19 @@ import (
 )
 
 type socketFixture struct {
+	responseCanonical []byte
 	request           controlplane.RegistrationRequest
 	response          controlplane.ResponseProjection[controlplane.RegistrationDocument]
-	responseCanonical []byte
 	support           controlwire.ProtocolSupport
 }
 
 type socketObservation struct {
-	body       controlplane.RegistrationRequest
-	assessment controlwire.ProtocolAssessment
+	err        error
 	method     string
 	path       string
 	key        string
-	err        error
+	body       controlplane.RegistrationRequest
+	assessment controlwire.ProtocolAssessment
 }
 
 func TestRoutedSocketExecutesProductionRequestAndAuthenticatedResponse(t *testing.T) {
@@ -225,10 +225,10 @@ func TestRoutedSocketClientRejectsEveryIndependentTransportBoundary(t *testing.T
 	cancelled, cancel := context.WithCancel(context.Background())
 	cancel()
 	cases := []struct {
-		name   string
-		mode   clientResponseMode
 		mutate func(*controlwire.ClientJSONCall[controlplane.RegistrationRequest])
+		name   string
 		want   []error
+		mode   clientResponseMode
 	}{
 		{name: "nil context is rejected before transport", mutate: func(call *controlwire.ClientJSONCall[controlplane.RegistrationRequest]) { call.Context = nil }, want: []error{core.ErrExchangeContract}},
 		{name: "cancelled context retains cancellation identity", mutate: func(call *controlwire.ClientJSONCall[controlplane.RegistrationRequest]) { call.Context = cancelled }, want: []error{core.ErrExchangeRequest, core.ErrExchangeCancelled}},
@@ -298,10 +298,10 @@ func TestRoutedSocketClientRejectsEveryIndependentTransportBoundary(t *testing.T
 }
 
 type clientResponse struct {
-	mode           clientResponseMode
-	body           []byte
 	jsonMediaType  core.HTTPMediaType
 	plainMediaType core.HTTPMediaType
+	body           []byte
+	mode           clientResponseMode
 }
 
 func TestRoutedSocketAuthorityAcceptsTenProductionRequestRepresentations(t *testing.T) {
@@ -648,20 +648,20 @@ func FuzzRoutedSocketAuthoritySemanticClosure(f *testing.F) {
 }
 
 type receiveOracleResult struct {
-	body      controlplane.RegistrationRequest
+	err       error
 	canonical []byte
 	want      []error
-	err       error
+	body      controlplane.RegistrationRequest
 }
 
 type receiveOracleInput struct {
-	document    []byte
 	key         string
+	document    []byte
+	bodyLimit   uint64
+	route       controlwire.RouteContract
 	pathMode    uint8
 	methodMode  uint8
 	contentMode uint8
-	route       controlwire.RouteContract
-	bodyLimit   uint64
 }
 
 func receiveOracle(input receiveOracleInput) receiveOracleResult {
@@ -701,14 +701,14 @@ func receiveOracle(input receiveOracleInput) receiveOracleResult {
 }
 
 type fuzzRequestInput struct {
-	document       []byte
 	key            string
 	path           string
+	jsonMediaType  core.HTTPMediaType
+	plainMediaType core.HTTPMediaType
+	document       []byte
 	pathMode       uint8
 	methodMode     uint8
 	contentMode    uint8
-	jsonMediaType  core.HTTPMediaType
-	plainMediaType core.HTTPMediaType
 }
 
 func fuzzRequest(input fuzzRequestInput) *http.Request {

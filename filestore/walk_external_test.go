@@ -103,13 +103,13 @@ func TestWalkReplacementStandingLayerTriad(t *testing.T) {
 }
 
 type walkReplacementFixture struct {
-	rootDirectory string
 	root          *os.Root
-	original      []byte
+	rootDirectory string
 	walk          core.RelativePath
 	branch        core.RelativePath
 	held          core.RelativePath
 	foreign       core.RelativePath
+	original      []byte
 }
 
 type walkReplacementMutation uint8
@@ -258,11 +258,11 @@ func encodeWalkReplacementSelector(mutation walkReplacementMutation, skipEntry b
 }
 
 type walkReplacementOracleInput struct {
+	gotErr    error
 	fixture   walkReplacementFixture
+	gotPaths  []core.RelativePath
 	mutation  walkReplacementMutation
 	skipEntry bool
-	gotPaths  []core.RelativePath
-	gotErr    error
 }
 
 func proveWalkReplacementOracle(t *testing.T, input walkReplacementOracleInput) {

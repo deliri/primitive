@@ -12,9 +12,9 @@ func TestTerminalColumnsAdmitOnlyUsableWidths(t *testing.T) {
 	t.Parallel()
 
 	cases := []struct {
+		wantErr error
 		name    string
 		columns TerminalColumns
-		wantErr error
 	}{
 		{name: "zero columns are rejected", columns: 0, wantErr: core.ErrHostFactsContract},
 		{name: "one column is the smallest usable width", columns: 1},
@@ -48,9 +48,9 @@ func TestTerminalGeometryValidatesAttachmentAgainstColumns(t *testing.T) {
 	t.Parallel()
 
 	cases := []struct {
+		wantErr  error
 		name     string
 		geometry TerminalGeometry
-		wantErr  error
 	}{
 		{name: "unset attachment describes nothing", geometry: TerminalGeometry{}, wantErr: core.ErrHostFactsContract},
 		{name: "unset attachment with columns is still nothing", geometry: TerminalGeometry{columns: 80}, wantErr: core.ErrHostFactsContract},

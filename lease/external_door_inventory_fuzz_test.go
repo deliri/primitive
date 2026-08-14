@@ -72,26 +72,26 @@ func (d leaseJSONDoor) receiverName() string {
 }
 
 type leaseJSONFixtures struct {
-	product       lease.Product
-	entitlement   lease.EntitlementID
-	device        lease.DeviceID
-	generation    lease.Generation
+	authority     authorityFixture
 	document      lease.Document
-	subject       lease.Subject
+	decision      lease.Decision
 	grant         lease.Grant
 	refusal       lease.Refusal
+	generation    lease.Generation
+	subject       lease.Subject
+	signedSubject lease.Subject
+	product       lease.Product
+	device        lease.DeviceID
+	entitlement   lease.EntitlementID
 	revocation    lease.Revocation
-	decision      lease.Decision
 	revision      lease.Revision
 	outcome       lease.Outcome
 	reason        lease.RevocationReason
-	authority     authorityFixture
-	signedSubject lease.Subject
 }
 
 type leaseJSONSeed struct {
-	door     leaseJSONDoor
 	document []byte
+	door     leaseJSONDoor
 }
 
 func FuzzLeaseExternalJSONDoorInventory(f *testing.F) {
@@ -361,11 +361,11 @@ func leaseJSONSeedForFuzz(t testing.TB, door leaseJSONDoor, value leaseJSONValue
 }
 
 type leaseTextOutcome struct {
+	err               error
+	validate          func() error
 	input             string
 	projection        string
 	refusalProjection string
-	err               error
-	validate          func() error
 }
 
 func fuzzLeaseTextOutcome(t *testing.T, outcome leaseTextOutcome) {

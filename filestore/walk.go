@@ -34,9 +34,9 @@ func Walk(ctx context.Context, request WalkRequest) error {
 
 type walkDirectoryInput struct {
 	ctx              context.Context
-	request          WalkRequest
-	directoryPath    core.RelativePath
 	expectedIdentity fs.FileInfo
+	directoryPath    core.RelativePath
+	request          WalkRequest
 }
 
 func walkDirectory(input walkDirectoryInput) error {
@@ -65,9 +65,9 @@ func walkDirectory(input walkDirectoryInput) error {
 
 type readDirectoryInput struct {
 	ctx           context.Context
-	request       WalkRequest
-	directoryPath core.RelativePath
 	directory     *os.File
+	directoryPath core.RelativePath
+	request       WalkRequest
 }
 
 func readDirectoryEntries(input readDirectoryInput) error {
@@ -128,9 +128,9 @@ func readLexicalDirectoryEntries(input readDirectoryInput) error {
 
 type visitWalkEntryInput struct {
 	ctx           context.Context
-	request       WalkRequest
-	directoryPath core.RelativePath
 	entry         fs.DirEntry
+	directoryPath core.RelativePath
+	request       WalkRequest
 }
 
 func visitWalkEntry(input visitWalkEntryInput) error {

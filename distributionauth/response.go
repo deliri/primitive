@@ -13,8 +13,8 @@ import (
 
 type MaterialResponseIssuance struct {
 	Signer     crypto.Signer
-	Header     controlplane.ResponseHeader
 	Body       release.MaterialResponse
+	Header     controlplane.ResponseHeader
 	Assessment controlwire.ProtocolAssessment
 }
 
@@ -25,29 +25,39 @@ type MaterialResponseVerification struct {
 }
 
 func (i MaterialResponseIssuance) Validate() error {
-	return (controlplane.ResponseIssuance[release.MaterialResponse](i)).ValidateForFamily(controlwire.RouteFamilyReleaseMaterials)
+	return i.responseIssuance().ValidateForFamily(controlwire.RouteFamilyReleaseMaterials)
 }
 
 func IssueMaterialResponse(i MaterialResponseIssuance) (controlplane.ResponseProjection[release.MaterialResponse], error) {
 	return controlplane.IssueResponseForFamily(
-		controlplane.ResponseIssuance[release.MaterialResponse](i), controlwire.RouteFamilyReleaseMaterials,
+		i.responseIssuance(), controlwire.RouteFamilyReleaseMaterials,
 	)
+}
+
+func (i MaterialResponseIssuance) responseIssuance() controlplane.ResponseIssuance[release.MaterialResponse] {
+	return controlplane.ResponseIssuance[release.MaterialResponse]{
+		Signer: i.Signer, Body: i.Body, Header: i.Header, Assessment: i.Assessment,
+	}
 }
 
 func (v MaterialResponseVerification) Validate() error {
-	return (controlplane.ResponseVerification[release.MaterialResponse, *release.MaterialResponse](v)).Validate()
+	return v.responseVerification().Validate()
 }
 
 func VerifyMaterialResponse(v MaterialResponseVerification) (controlplane.VerifiedResponse[release.MaterialResponse, *release.MaterialResponse], error) {
-	return controlplane.VerifyResponse(
-		controlplane.ResponseVerification[release.MaterialResponse, *release.MaterialResponse](v),
-	)
+	return controlplane.VerifyResponse(v.responseVerification())
+}
+
+func (v MaterialResponseVerification) responseVerification() controlplane.ResponseVerification[release.MaterialResponse, *release.MaterialResponse] {
+	return controlplane.ResponseVerification[release.MaterialResponse, *release.MaterialResponse]{
+		Document: v.Document, Expected: v.Expected, TrustedKeys: v.TrustedKeys,
+	}
 }
 
 type PublicationResponseIssuance struct {
 	Signer     crypto.Signer
-	Header     controlplane.ResponseHeader
 	Body       distribution.PublicationGrantProjection
+	Header     controlplane.ResponseHeader
 	Assessment controlwire.ProtocolAssessment
 }
 
@@ -58,29 +68,39 @@ type PublicationResponseVerification struct {
 }
 
 func (i PublicationResponseIssuance) Validate() error {
-	return (controlplane.ResponseIssuance[distribution.PublicationGrantProjection](i)).ValidateForFamily(controlwire.RouteFamilyReleasePublications)
+	return i.responseIssuance().ValidateForFamily(controlwire.RouteFamilyReleasePublications)
 }
 
 func IssuePublicationResponse(i PublicationResponseIssuance) (controlplane.ResponseProjection[distribution.PublicationGrantProjection], error) {
 	return controlplane.IssueResponseForFamily(
-		controlplane.ResponseIssuance[distribution.PublicationGrantProjection](i), controlwire.RouteFamilyReleasePublications,
+		i.responseIssuance(), controlwire.RouteFamilyReleasePublications,
 	)
+}
+
+func (i PublicationResponseIssuance) responseIssuance() controlplane.ResponseIssuance[distribution.PublicationGrantProjection] {
+	return controlplane.ResponseIssuance[distribution.PublicationGrantProjection]{
+		Signer: i.Signer, Body: i.Body, Header: i.Header, Assessment: i.Assessment,
+	}
 }
 
 func (v PublicationResponseVerification) Validate() error {
-	return (controlplane.ResponseVerification[distribution.PublicationGrantDocument, *distribution.PublicationGrantDocument](v)).Validate()
+	return v.responseVerification().Validate()
 }
 
 func VerifyPublicationResponse(v PublicationResponseVerification) (controlplane.VerifiedResponse[distribution.PublicationGrantDocument, *distribution.PublicationGrantDocument], error) {
-	return controlplane.VerifyResponse(
-		controlplane.ResponseVerification[distribution.PublicationGrantDocument, *distribution.PublicationGrantDocument](v),
-	)
+	return controlplane.VerifyResponse(v.responseVerification())
+}
+
+func (v PublicationResponseVerification) responseVerification() controlplane.ResponseVerification[distribution.PublicationGrantDocument, *distribution.PublicationGrantDocument] {
+	return controlplane.ResponseVerification[distribution.PublicationGrantDocument, *distribution.PublicationGrantDocument]{
+		Document: v.Document, Expected: v.Expected, TrustedKeys: v.TrustedKeys,
+	}
 }
 
 type PublicationCompletionResponseIssuance struct {
 	Signer     crypto.Signer
-	Header     controlplane.ResponseHeader
 	Body       release.LatestDocument
+	Header     controlplane.ResponseHeader
 	Assessment controlwire.ProtocolAssessment
 }
 
@@ -91,33 +111,43 @@ type PublicationCompletionResponseVerification struct {
 }
 
 func (i PublicationCompletionResponseIssuance) Validate() error {
-	return (controlplane.ResponseIssuance[release.LatestDocument](i)).ValidateForFamily(controlwire.RouteFamilyReleasePublicationCompletions)
+	return i.responseIssuance().ValidateForFamily(controlwire.RouteFamilyReleasePublicationCompletions)
 }
 
 func IssuePublicationCompletionResponse(
 	i PublicationCompletionResponseIssuance,
 ) (controlplane.ResponseProjection[release.LatestDocument], error) {
 	return controlplane.IssueResponseForFamily(
-		controlplane.ResponseIssuance[release.LatestDocument](i), controlwire.RouteFamilyReleasePublicationCompletions,
+		i.responseIssuance(), controlwire.RouteFamilyReleasePublicationCompletions,
 	)
 }
 
+func (i PublicationCompletionResponseIssuance) responseIssuance() controlplane.ResponseIssuance[release.LatestDocument] {
+	return controlplane.ResponseIssuance[release.LatestDocument]{
+		Signer: i.Signer, Body: i.Body, Header: i.Header, Assessment: i.Assessment,
+	}
+}
+
 func (v PublicationCompletionResponseVerification) Validate() error {
-	return (controlplane.ResponseVerification[release.LatestDocument, *release.LatestDocument](v)).Validate()
+	return v.responseVerification().Validate()
 }
 
 func VerifyPublicationCompletionResponse(
 	v PublicationCompletionResponseVerification,
 ) (controlplane.VerifiedResponse[release.LatestDocument, *release.LatestDocument], error) {
-	return controlplane.VerifyResponse(
-		controlplane.ResponseVerification[release.LatestDocument, *release.LatestDocument](v),
-	)
+	return controlplane.VerifyResponse(v.responseVerification())
+}
+
+func (v PublicationCompletionResponseVerification) responseVerification() controlplane.ResponseVerification[release.LatestDocument, *release.LatestDocument] {
+	return controlplane.ResponseVerification[release.LatestDocument, *release.LatestDocument]{
+		Document: v.Document, Expected: v.Expected, TrustedKeys: v.TrustedKeys,
+	}
 }
 
 type UpdateResponseIssuance struct {
 	Signer     crypto.Signer
-	Header     controlplane.ResponseHeader
 	Body       distribution.UpdateResponseDocument
+	Header     controlplane.ResponseHeader
 	Assessment controlwire.ProtocolAssessment
 }
 
@@ -128,29 +158,39 @@ type UpdateResponseVerification struct {
 }
 
 func (i UpdateResponseIssuance) Validate() error {
-	return (controlplane.ResponseIssuance[distribution.UpdateResponseDocument](i)).ValidateForFamily(controlwire.RouteFamilyUpdateChecks)
+	return i.responseIssuance().ValidateForFamily(controlwire.RouteFamilyUpdateChecks)
 }
 
 func IssueUpdateResponse(i UpdateResponseIssuance) (controlplane.ResponseProjection[distribution.UpdateResponseDocument], error) {
 	return controlplane.IssueResponseForFamily(
-		controlplane.ResponseIssuance[distribution.UpdateResponseDocument](i), controlwire.RouteFamilyUpdateChecks,
+		i.responseIssuance(), controlwire.RouteFamilyUpdateChecks,
 	)
+}
+
+func (i UpdateResponseIssuance) responseIssuance() controlplane.ResponseIssuance[distribution.UpdateResponseDocument] {
+	return controlplane.ResponseIssuance[distribution.UpdateResponseDocument]{
+		Signer: i.Signer, Body: i.Body, Header: i.Header, Assessment: i.Assessment,
+	}
 }
 
 func (v UpdateResponseVerification) Validate() error {
-	return (controlplane.ResponseVerification[distribution.UpdateResponseDocument, *distribution.UpdateResponseDocument](v)).Validate()
+	return v.responseVerification().Validate()
 }
 
 func VerifyUpdateResponse(v UpdateResponseVerification) (controlplane.VerifiedResponse[distribution.UpdateResponseDocument, *distribution.UpdateResponseDocument], error) {
-	return controlplane.VerifyResponse(
-		controlplane.ResponseVerification[distribution.UpdateResponseDocument, *distribution.UpdateResponseDocument](v),
-	)
+	return controlplane.VerifyResponse(v.responseVerification())
+}
+
+func (v UpdateResponseVerification) responseVerification() controlplane.ResponseVerification[distribution.UpdateResponseDocument, *distribution.UpdateResponseDocument] {
+	return controlplane.ResponseVerification[distribution.UpdateResponseDocument, *distribution.UpdateResponseDocument]{
+		Document: v.Document, Expected: v.Expected, TrustedKeys: v.TrustedKeys,
+	}
 }
 
 type UpgradeResponseIssuance struct {
 	Signer     crypto.Signer
-	Header     controlplane.ResponseHeader
 	Body       distribution.UpgradeGrantProjection
+	Header     controlplane.ResponseHeader
 	Assessment controlwire.ProtocolAssessment
 }
 
@@ -161,23 +201,33 @@ type UpgradeResponseVerification struct {
 }
 
 func (i UpgradeResponseIssuance) Validate() error {
-	return (controlplane.ResponseIssuance[distribution.UpgradeGrantProjection](i)).ValidateForFamily(controlwire.RouteFamilyUpgrades)
+	return i.responseIssuance().ValidateForFamily(controlwire.RouteFamilyUpgrades)
 }
 
 func IssueUpgradeResponse(i UpgradeResponseIssuance) (controlplane.ResponseProjection[distribution.UpgradeGrantProjection], error) {
 	return controlplane.IssueResponseForFamily(
-		controlplane.ResponseIssuance[distribution.UpgradeGrantProjection](i), controlwire.RouteFamilyUpgrades,
+		i.responseIssuance(), controlwire.RouteFamilyUpgrades,
 	)
+}
+
+func (i UpgradeResponseIssuance) responseIssuance() controlplane.ResponseIssuance[distribution.UpgradeGrantProjection] {
+	return controlplane.ResponseIssuance[distribution.UpgradeGrantProjection]{
+		Signer: i.Signer, Body: i.Body, Header: i.Header, Assessment: i.Assessment,
+	}
 }
 
 func (v UpgradeResponseVerification) Validate() error {
-	return (controlplane.ResponseVerification[distribution.UpgradeGrantDocument, *distribution.UpgradeGrantDocument](v)).Validate()
+	return v.responseVerification().Validate()
 }
 
 func VerifyUpgradeResponse(v UpgradeResponseVerification) (controlplane.VerifiedResponse[distribution.UpgradeGrantDocument, *distribution.UpgradeGrantDocument], error) {
-	return controlplane.VerifyResponse(
-		controlplane.ResponseVerification[distribution.UpgradeGrantDocument, *distribution.UpgradeGrantDocument](v),
-	)
+	return controlplane.VerifyResponse(v.responseVerification())
+}
+
+func (v UpgradeResponseVerification) responseVerification() controlplane.ResponseVerification[distribution.UpgradeGrantDocument, *distribution.UpgradeGrantDocument] {
+	return controlplane.ResponseVerification[distribution.UpgradeGrantDocument, *distribution.UpgradeGrantDocument]{
+		Document: v.Document, Expected: v.Expected, TrustedKeys: v.TrustedKeys,
+	}
 }
 
 var (

@@ -75,7 +75,6 @@ func TestSignedPayloadCanonicalOutputLayerTriad(t *testing.T) {
 		{name: "exact count with native error", result: canonicalWriterResponse{written: func(length int) int { return length }, err: io.ErrClosedPipe}, wantErr: io.ErrClosedPipe},
 	}
 	for _, payload := range payloads {
-		payload := payload
 		t.Run(payload.name, func(t *testing.T) {
 			t.Parallel()
 			canonical, gotErr := payload.marshal()
@@ -83,7 +82,6 @@ func TestSignedPayloadCanonicalOutputLayerTriad(t *testing.T) {
 				t.Fatalf("MarshalJSON() setup error = %v, want nil", gotErr)
 			}
 			for _, response := range responses {
-				response := response
 				t.Run(response.name, func(t *testing.T) {
 					t.Parallel()
 					writer := &canonicalResponseWriter{response: response.result}

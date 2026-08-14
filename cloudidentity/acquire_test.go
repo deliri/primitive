@@ -558,10 +558,10 @@ func TestAmazonResponseXMLPressureTable(t *testing.T) {
 	audience := mustAudience(t, "https://api.example.com")
 	envelope := amazonResponseXML(testIdentityToken)
 	for _, tc := range []struct {
+		wantErr   error
 		name      string
 		body      string
 		wantToken string
-		wantErr   error
 	}{
 		{name: "published namespaced envelope is accepted", body: envelope, wantToken: testIdentityToken},
 		{name: "single byte token is accepted", body: amazonResponseXML("a"), wantToken: "a"},

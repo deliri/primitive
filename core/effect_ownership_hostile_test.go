@@ -61,10 +61,10 @@ type realWorldImportUse struct {
 }
 
 type realWorldCallUse struct {
-	owner     PackageIdentity
-	substrate realWorldSubstrate
 	selector  string
 	count     uint16
+	owner     PackageIdentity
+	substrate realWorldSubstrate
 }
 
 type realWorldImportInventory struct {
@@ -78,14 +78,14 @@ type realWorldCallInventory struct {
 }
 
 type realWorldSource struct {
-	owner  PackageIdentity
 	name   string
 	source []byte
+	owner  PackageIdentity
 }
 
 type realWorldScan struct {
-	imports realWorldImportInventory
 	calls   realWorldCallInventory
+	imports realWorldImportInventory
 }
 
 type realWorldImportBinding struct {
@@ -123,11 +123,11 @@ func TestRealWorldEffectOwnershipLayerTriad(t *testing.T) {
 	t.Parallel()
 
 	tests := []struct {
+		wantErr     error
 		name        string
-		source      realWorldSource
 		wantImports []realWorldImportUse
 		wantCalls   []realWorldCallUse
-		wantErr     error
+		source      realWorldSource
 	}{
 		{
 			name: "positive Exchange owns HTTP request construction",
@@ -337,9 +337,9 @@ func realWorldImportBindings(file *ast.File) ([]realWorldImportBinding, error) {
 }
 
 type realWorldSelectorInput struct {
-	bindings  []realWorldImportBinding
 	selector  *ast.SelectorExpr
 	inventory *realWorldCallInventory
+	bindings  []realWorldImportBinding
 	owner     PackageIdentity
 }
 

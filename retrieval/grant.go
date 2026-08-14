@@ -23,13 +23,13 @@ const (
 // object and one separately transported download bearer.
 type GrantPayload struct {
 	Entry         chit.ManifestEntry                       `json:"entry"`
+	IssuedAt      temporal.Instant                         `json:"issued_at"`
+	ExpiresAt     temporal.Instant                         `json:"expires_at"`
 	Request       RequestCommitment                        `json:"request_commitment"`
 	Authorization controlwire.AuthorityNonce               `json:"authorization_nonce"`
 	Capability    objectstore.DownloadCapabilityCommitment `json:"capability_commitment"`
 	Manifest      chit.ManifestDigest                      `json:"manifest_digest"`
 	Chit          chit.ChitID                              `json:"chit_id"`
-	IssuedAt      temporal.Instant                         `json:"issued_at"`
-	ExpiresAt     temporal.Instant                         `json:"expires_at"`
 	Continuation  core.CatalogContinuationState            `json:"continuation"`
 }
 

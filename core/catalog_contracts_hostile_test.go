@@ -12,9 +12,9 @@ func TestCatalogPageLimitHostileBoundaries(t *testing.T) {
 	t.Parallel()
 
 	cases := []struct {
+		wantErr error
 		name    string
 		value   uint16
-		wantErr error
 	}{
 		{name: "zero is below the positive domain", value: 0, wantErr: ErrPrimitiveContract},
 		{name: "one is the narrowest page", value: 1},

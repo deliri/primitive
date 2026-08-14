@@ -4,6 +4,24 @@ Last updated: `2026-08-14`
 
 ## Current
 
+- completed the Primitive-native release gate, 2026-08-14, prepared
+  `v2026.0.125`. The gate upgraded the compiler authority from Go 1.26.5 to
+  Go 1.26.6 after `govulncheck` identified five reachable standard-library
+  vulnerabilities fixed by that patch release, then rebuilt the exact admitted
+  Garble revision with the same compiler so release-tool verification cannot
+  accept a mixed toolchain.
+
+  Field-alignment exposed hidden struct-layout coupling in the authenticated
+  response adapters; each adapter now projects named fields explicitly rather
+  than relying on two independent structs retaining the same declaration
+  order. Canonical response tests identify top-level members through exact
+  compiler-produced typed values instead of copied field-name strings. The
+  gate also removed unchecked integer narrowing from Wiring and Controlwire,
+  made their bounded cardinalities native collection counts, restored the
+  external-wire doctrine witness on the deliberate raw JSON conversion, fixed
+  a context-cancel leak, keyed layout-sensitive hostile fixtures, and gave
+  repeated diagnostics one semantic owner.
+
 - enforced clean-upgrade-only production, 2026-08-14, prepared
   `v2026.0.124`. Core now parses the complete landed production source set and
   refuses Go type aliases, standard deprecated declarations, compatibility-

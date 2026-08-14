@@ -62,21 +62,21 @@ func (d controlwireJSONDoor) receiverName() string {
 }
 
 type controlwireFuzzFixtures struct {
+	token          RegistrationToken
+	policyCursor   PolicyCursor
+	replayIdentity ReplayIdentity
 	requestNonce   RequestNonce
 	authorityNonce AuthorityNonce
-	revision       Revision
-	policyID       PolicyRevisionID
-	policyCursor   PolicyCursor
-	token          RegistrationToken
 	verifier       RegistrationTokenVerifier
-	routeFamily    RouteFamily
 	commitment     RequestCommitment
-	replayIdentity ReplayIdentity
+	policyID       PolicyRevisionID
+	revision       Revision
+	routeFamily    RouteFamily
 }
 
 type controlwireJSONSeed struct {
-	door     controlwireJSONDoor
 	document []byte
+	door     controlwireJSONDoor
 }
 
 func FuzzControlwireExternalJSONDoorInventory(f *testing.F) {
@@ -221,9 +221,9 @@ type controlwireJSONValue interface {
 }
 
 type controlwireJSONRequest[T controlwireJSONValue] struct {
-	data []byte
 	seed T
 	want error
+	data []byte
 }
 
 func fuzzControlwireJSONValue[T controlwireJSONValue](t *testing.T, request controlwireJSONRequest[T]) {
@@ -325,12 +325,12 @@ func fuzzRegistrationTokenText(t *testing.T, data []byte) {
 }
 
 type controlwireTextOutcome struct {
-	input             string
-	projection        string
-	refusalProjection string
 	err               error
 	want              error
 	validate          func() error
+	input             string
+	projection        string
+	refusalProjection string
 }
 
 func fuzzControlwireTextOutcome(t *testing.T, outcome controlwireTextOutcome) {

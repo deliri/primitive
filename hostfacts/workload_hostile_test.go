@@ -18,11 +18,11 @@ func TestCgroupMembershipParserHostileBoundaryTable(t *testing.T) {
 	t.Parallel()
 
 	cases := []struct {
+		wantErr    error
 		name       string
 		line       string
 		wantPath   string
 		wantSource WorkloadMemoryLimitSource
-		wantErr    error
 	}{
 		{name: "v2 root membership", line: "0::/", wantPath: "/", wantSource: WorkloadMemoryLimitSourceCgroupV2},
 		{name: "v2 nested membership", line: "0::/system.slice/app.service", wantPath: "/system.slice/app.service", wantSource: WorkloadMemoryLimitSourceCgroupV2},
@@ -77,13 +77,13 @@ func TestMountInfoParserBindsVersionRootAndMountPoint(t *testing.T) {
 	t.Parallel()
 
 	cases := []struct {
+		wantErr   error
 		name      string
 		line      string
 		wantRoot  string
 		wantMount string
 		source    WorkloadMemoryLimitSource
 		wantMatch bool
-		wantErr   error
 	}{
 		{name: "v2 root mount", line: "30 23 0:27 / /sys/fs/cgroup rw,nosuid,nodev,noexec,relatime - cgroup2 cgroup rw", source: WorkloadMemoryLimitSourceCgroupV2, wantMatch: true, wantRoot: "/", wantMount: "/sys/fs/cgroup"},
 		{name: "v2 namespaced root", line: "30 23 0:27 /tenant /sys/fs/cgroup rw - cgroup2 cgroup rw", source: WorkloadMemoryLimitSourceCgroupV2, wantMatch: true, wantRoot: "/tenant", wantMount: "/sys/fs/cgroup"},
@@ -167,12 +167,12 @@ func TestCgroupLimitTokenHostileBoundaryTable(t *testing.T) {
 	t.Parallel()
 
 	cases := []struct {
+		wantErr       error
 		name          string
 		token         string
 		wantValue     uint64
 		source        WorkloadMemoryLimitSource
 		wantUnlimited bool
-		wantErr       error
 	}{
 		{name: "v2 zero is a finite exhausted limit", token: "0", source: WorkloadMemoryLimitSourceCgroupV2, wantValue: 0},
 		{name: "v2 zero newline is finite", token: "0\n", source: WorkloadMemoryLimitSourceCgroupV2, wantValue: 0},
@@ -250,9 +250,9 @@ func TestCgroupLevelLimitExhaustsDeclarationCombinations(t *testing.T) {
 	}
 
 	cases := []struct {
+		wantErr error
 		name    string
 		level   cgroupLevelLimit
-		wantErr error
 	}{
 		{name: "unset zero state is rejected", level: cgroupLevelLimit{}, wantErr: core.ErrHostFactsObservation},
 		{name: "observed absence is valid", level: cgroupLevelLimit{state: cgroupLevelLimitAbsent}},

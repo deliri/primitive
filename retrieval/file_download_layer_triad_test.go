@@ -159,10 +159,10 @@ func TestVerifiedGrantDownloadFileLayerTriadFailureMatrixPreservesPriorTarget(t 
 	original := bytes.Repeat([]byte{0x53}, 64<<10+1)
 	altered := bytes.Repeat([]byte{0x54}, len(original))
 	cases := []struct {
-		name            string
-		response        retrievalHTTPResponse
 		wantErr         error
 		observerErr     error
+		name            string
+		response        retrievalHTTPResponse
 		cancelBefore    bool
 		cancelDuring    bool
 		install         filestore.InstallMode
@@ -191,10 +191,11 @@ func TestVerifiedGrantDownloadFileLayerTriadFailureMatrixPreservesPriorTarget(t 
 			prior := []byte("customer-prior-version")
 			writeRetrievalTarget(t, root, "target", prior)
 			ctx := t.Context()
-			var cancel context.CancelFunc
+			cancel := func() {}
 			if tc.cancelBefore || tc.cancelDuring {
 				ctx, cancel = context.WithCancel(ctx)
 			}
+			defer cancel()
 			request := FileDownloadRequest{
 				Client: retrievalObjectstoreClientForResponse(t, tc.response), Policy: fixture.policy,
 				Activation: retrievalActivation(t, retrievalActivationRequest{
@@ -400,9 +401,9 @@ func retrievalObjectstoreClient(t *testing.T, payload []byte) objectstore.Client
 }
 
 type retrievalHTTPResponse struct {
-	payload         []byte
 	transportErr    error
 	bodyErr         error
+	payload         []byte
 	status          int
 	omitContentType bool
 	observeContext  bool

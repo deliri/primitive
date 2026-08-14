@@ -82,8 +82,8 @@ func TestTokenCannotBeForgedOutsideTheAcquisitionPath(t *testing.T) {
 	t.Parallel()
 
 	for _, tc := range []struct {
-		name  string
 		setup func() Token
+		name  string
 	}{
 		{name: "zero token", setup: func() Token { return Token{} }},
 		{name: "value without provenance", setup: func() Token {
@@ -150,9 +150,9 @@ func TestParseAudienceHostileBoundaryTable(t *testing.T) {
 	t.Parallel()
 
 	cases := []struct {
+		wantErr error
 		name    string
 		value   string
-		wantErr error
 	}{
 		{name: "one ASCII byte reaches the minimum", value: "a"},
 		{name: "service URL remains exact", value: "https://api.example.com"},
@@ -212,9 +212,9 @@ func TestTokenBearerBoundaryHostileTable(t *testing.T) {
 	t.Parallel()
 
 	cases := []struct {
+		wantErr error
 		name    string
 		output  string
-		wantErr error
 	}{
 		{name: "JWT-shaped bearer remains opaque", output: testIdentityToken},
 		{name: "lexical three-segment material is accepted without JWT claim", output: "a.b.c"},
@@ -364,9 +364,9 @@ func TestTokenAndSignedRequestRedactEveryFormattingSurface(t *testing.T) {
 		})
 	}
 	for _, tc := range []struct {
+		value     fmt.Formatter
 		name      string
 		forbidden []string
-		value     fmt.Formatter
 	}{
 		{name: "identity token pointer hides bearer", forbidden: []string{testIdentityToken}, value: token},
 		{name: "signed request pointer hides URL", forbidden: []string{signedURL, parsedSignedURL.RawQuery, signature}, value: signed},
@@ -398,9 +398,9 @@ func TestPolicyRejectsInvalidTimeoutLattice(t *testing.T) {
 		t.Fatalf("DurationFromNanoseconds(2) setup error = %v, want nil", err)
 	}
 	for _, tc := range []struct {
+		wantErr error
 		name    string
 		policy  Policy
-		wantErr error
 	}{
 		{name: "equal positive bounds are accepted", policy: Policy{OperationTimeout: one, AttemptTimeout: one}},
 		{name: "smaller attempt bound is accepted", policy: Policy{OperationTimeout: two, AttemptTimeout: one}},

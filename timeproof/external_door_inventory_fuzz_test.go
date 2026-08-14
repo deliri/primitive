@@ -53,18 +53,18 @@ func (d timeproofJSONDoor) receiverName() string {
 }
 
 type timeproofFuzzFixtures struct {
+	evidence  AuthorityEvidence
+	request   Request
+	timestamp AuthoritativeTimestamp
+	serial    SerialNumber
+	nonce     Nonce
 	authority Authority
 	policy    TimestampPolicy
-	request   Request
-	nonce     Nonce
-	evidence  AuthorityEvidence
-	serial    SerialNumber
-	timestamp AuthoritativeTimestamp
 }
 
 type timeproofJSONSeed struct {
-	door     timeproofJSONDoor
 	document []byte
+	door     timeproofJSONDoor
 }
 
 func FuzzTimeproofExternalJSONDoorInventory(f *testing.F) {

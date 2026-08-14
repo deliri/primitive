@@ -10,12 +10,12 @@ import (
 )
 
 type enumExternalDoor[T comparable] struct {
-	Values    []T
 	Parse     func(string) (T, error)
 	Validate  func(T) error
 	String    func(T) string
 	Marshal   func(T) ([]byte, error)
 	Unmarshal func(*T, []byte) error
+	Values    []T
 	WantError core.ErrorIdentity
 }
 

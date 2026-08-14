@@ -85,7 +85,6 @@ func TestRegistrationAuthorityAcceptsTheClosedOfferingAndReplayMatrix(t *testing
 
 	offerings := validOfferings(t)
 	for index := range 10 {
-		index := index
 		offering := offerings[index%len(offerings)]
 		t.Run(offering.String()+" fresh and exact request "+string(rune('A'+index)), func(t *testing.T) {
 			t.Parallel()
@@ -322,7 +321,6 @@ func TestCheckInAuthorityCommitExhaustsOfferingAndDispositionMatrix(t *testing.T
 	t.Parallel()
 
 	for _, offering := range validOfferings(t) {
-		offering := offering
 		t.Run(offering.String(), func(t *testing.T) {
 			t.Parallel()
 
@@ -404,9 +402,9 @@ func TestCheckInAuthorityCommitRefusesInvalidPolicyAndAuthorityFacts(t *testing.
 	zeroChainDigestCurrent := base.Current
 	zeroChainDigestCurrent.ChainDigest = core.SHA256Digest{}
 	cases := []struct {
+		want    error
 		name    string
 		request controlplane.CheckInCommitRequest
-		want    error
 	}{
 		{name: "zero request has no authenticated check-in", request: controlplane.CheckInCommitRequest{}, want: core.ErrControlPlaneCheckIn},
 		{name: "zero verified proof cannot authorize usage", request: controlplane.CheckInCommitRequest{Current: base.Current, RequiredPolicy: base.RequiredPolicy}, want: core.ErrControlPlaneCheckIn},
@@ -522,9 +520,9 @@ func TestPrepareCheckInResponseRefusesEverySubstitutedAuthorityFact(t *testing.T
 	t.Parallel()
 
 	cases := []struct {
-		name   string
-		mutate func(*testing.T, *controlplane.CheckInResponsePreparation, issuedCheckIn)
 		want   error
+		mutate func(*testing.T, *controlplane.CheckInResponsePreparation, issuedCheckIn)
+		name   string
 	}{
 		{name: "zero preparation has no committed request", mutate: func(_ *testing.T, preparation *controlplane.CheckInResponsePreparation, _ issuedCheckIn) {
 			*preparation = controlplane.CheckInResponsePreparation{}

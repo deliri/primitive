@@ -213,10 +213,10 @@ func TestCheckedNumericConversionsPinBothSidesOfEveryBoundary(t *testing.T) {
 	t.Parallel()
 
 	int64Cases := []struct {
+		wantErr error
 		name    string
 		value   uint64
 		want    int64
-		wantErr error
 	}{
 		{name: "zero converts", value: 0},
 		{name: "one converts", value: 1, want: 1},
@@ -281,10 +281,10 @@ func TestCheckedNumericConversionsPinBothSidesOfEveryBoundary(t *testing.T) {
 	}
 
 	uint64Cases := []struct {
+		wantErr error
 		name    string
 		value   int64
 		want    uint64
-		wantErr error
 	}{
 		{name: "minimum int64 overflows", value: math.MinInt64, wantErr: ErrNumericOverflow},
 		{name: "negative two overflows", value: -2, wantErr: ErrNumericOverflow},
@@ -326,10 +326,10 @@ func TestCheckedNumericConversionsPinBothSidesOfEveryBoundary(t *testing.T) {
 	}
 
 	type checkedUint32Case struct {
+		wantErr error
 		name    string
 		value   int
 		want    uint32
-		wantErr error
 	}
 	uint32Cases := []checkedUint32Case{
 		{name: "negative one overflows", value: -1, wantErr: ErrNumericOverflow},

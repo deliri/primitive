@@ -3,6 +3,7 @@ package controlplane_test
 import (
 	"bytes"
 	"crypto/ed25519"
+	"encoding/json"
 	"errors"
 	"math"
 	"testing"
@@ -17,17 +18,17 @@ import (
 )
 
 type authenticatedResponseFixture struct {
-	body      controlplane.RegistrationDocument
-	header    controlplane.ResponseHeader
-	expected  controlplane.ResponseExpectation
-	trusted   attest.TrustedKeys
 	signer    ed25519.PrivateKey
 	canonical []byte
+	body      controlplane.RegistrationDocument
+	trusted   attest.TrustedKeys
+	header    controlplane.ResponseHeader
+	expected  controlplane.ResponseExpectation
 }
 
 type responseValidCase struct {
-	name   string
 	mutate func(testing.TB, *controlplane.ResponseHeader)
+	name   string
 }
 
 func TestAuthenticatedUpgradeRequiredResponseCannotExposeAProductBody(t *testing.T) {
@@ -116,9 +117,9 @@ func TestAuthenticatedResponseProducerRejectsIndependentInvalidInputs(t *testing
 
 	fixture := authenticatedResponseForTest(t, 41)
 	cases := []struct {
-		name   string
-		mutate func(*controlplane.ResponseIssuance[controlplane.RegistrationDocument])
 		want   error
+		mutate func(*controlplane.ResponseIssuance[controlplane.RegistrationDocument])
+		name   string
 	}{
 		{name: "nil authority signer is rejected", mutate: func(value *controlplane.ResponseIssuance[controlplane.RegistrationDocument]) { value.Signer = nil }, want: core.ErrAttestContract},
 		{name: "zero response header is rejected", mutate: func(value *controlplane.ResponseIssuance[controlplane.RegistrationDocument]) {
@@ -339,9 +340,9 @@ func TestAuthenticatedResponseVerifierNamesEveryBoundFactAndTrustFailure(t *test
 	untrustedDocument := decodeAuthenticatedResponse(t, untrustedJSON)
 
 	cases := []struct {
+		want         error
 		name         string
 		verification controlplane.ResponseVerification[controlplane.RegistrationDocument, *controlplane.RegistrationDocument]
-		want         error
 		wantField    controlplane.ResponseHeaderField
 	}{
 		{name: "matching request and trusted authority expose the exact body", verification: controlplane.ResponseVerification[controlplane.RegistrationDocument, *controlplane.RegistrationDocument]{Document: document, Expected: fixture.expected, TrustedKeys: fixture.trusted}},
@@ -396,11 +397,11 @@ func TestAuthenticatedResponseVerifierNamesEveryBoundFactAndTrustFailure(t *test
 }
 
 type responseRepresentationCase struct {
+	want       error
+	wantVerify error
 	name       string
 	document   []byte
 	wantValid  bool
-	want       error
-	wantVerify error
 }
 
 func TestAuthenticatedResponseDecoderPressuresFiftySixRepresentations(t *testing.T) {
@@ -676,25 +677,59 @@ func responsePartsForTest(t testing.TB, fixture authenticatedResponseFixture) re
 	if err != nil {
 		t.Fatalf("RegistrationDocument.MarshalJSON() error = %v, want nil", err)
 	}
-	headerStart := bytes.Index(fixture.canonical, headerJSON)
-	if headerStart <= 1 {
-		t.Fatalf("canonical response does not contain exact compiler-produced header")
+	members := responseCanonicalMembers(t, fixture.canonical)
+	header, headerIndex := responseMemberWithValue(t, members, headerJSON)
+	body, bodyIndex := responseMemberWithValue(t, members, bodyJSON)
+	if len(members) != 3 || headerIndex == bodyIndex {
+		t.Fatalf("canonical response members = %d with header/body indexes %d/%d, want three distinct members",
+			len(members), headerIndex, bodyIndex)
 	}
-	headerEnd := headerStart + len(headerJSON)
-	bodyOffset := bytes.Index(fixture.canonical[headerEnd:], bodyJSON)
-	if bodyOffset < 2 {
-		t.Fatalf("canonical response does not contain exact compiler-produced body after header")
-	}
-	bodyStart := headerEnd + bodyOffset
-	bodyEnd := bodyStart + len(bodyJSON)
-	if bodyEnd+2 >= len(fixture.canonical) || fixture.canonical[0] != '{' || fixture.canonical[len(fixture.canonical)-1] != '}' {
-		t.Fatalf("canonical response framing is incomplete")
-	}
+	attestationIndex := 3 - headerIndex - bodyIndex
 	return responseWireParts{
-		header:      bytes.Clone(fixture.canonical[1:headerEnd]),
-		body:        bytes.Clone(fixture.canonical[headerEnd+1 : bodyEnd]),
-		attestation: bytes.Clone(fixture.canonical[bodyEnd+1 : len(fixture.canonical)-1]),
+		header: header, body: body, attestation: bytes.Clone(members[attestationIndex]),
 	}
+}
+
+func responseCanonicalMembers(t testing.TB, document []byte) [][]byte {
+	t.Helper()
+	decoder := json.NewDecoder(bytes.NewReader(document))
+	opening, err := decoder.Token()
+	if err != nil || opening != json.Delim('{') {
+		t.Fatalf("canonical response opening token = (%v, %v), want object", opening, err)
+	}
+	var members [][]byte
+	for decoder.More() {
+		key, keyErr := decoder.Token()
+		var value json.RawMessage
+		valueErr := decoder.Decode(&value)
+		keyText, keyOK := key.(string)
+		encodedKey, encodeErr := json.Marshal(keyText)
+		if keyErr != nil || valueErr != nil || !keyOK || encodeErr != nil {
+			t.Fatalf("canonical response member decode = (key %v/%v, value %v, key encode %v), want exact member",
+				key, keyErr, valueErr, encodeErr)
+		}
+		member := make([]byte, 0, len(encodedKey)+1+len(value))
+		member = append(member, encodedKey...)
+		member = append(member, ':')
+		member = append(member, value...)
+		members = append(members, member)
+	}
+	closing, err := decoder.Token()
+	if err != nil || closing != json.Delim('}') {
+		t.Fatalf("canonical response closing token = (%v, %v), want object", closing, err)
+	}
+	return members
+}
+
+func responseMemberWithValue(t testing.TB, members [][]byte, value []byte) ([]byte, int) {
+	t.Helper()
+	for index, member := range members {
+		if bytes.HasSuffix(member, value) {
+			return bytes.Clone(member), index
+		}
+	}
+	t.Fatalf("canonical response has no member with exact compiler-produced value")
+	return nil, -1
 }
 
 func (p responseWireParts) object(members ...[]byte) []byte {

@@ -91,9 +91,9 @@ type AttemptError struct {
 }
 
 type attemptErrorRequest struct {
-	phase     FailurePhase
-	candidate core.BuildIdentity
 	identity  error
+	candidate core.BuildIdentity
+	phase     FailurePhase
 }
 
 func newAttemptError(request attemptErrorRequest, causes ...error) error {

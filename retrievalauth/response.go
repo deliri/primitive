@@ -12,8 +12,8 @@ import (
 
 type ResponseIssuance struct {
 	Signer     crypto.Signer
-	Header     controlplane.ResponseHeader
 	Body       retrieval.GrantProjection
+	Header     controlplane.ResponseHeader
 	Assessment controlwire.ProtocolAssessment
 }
 
@@ -24,23 +24,33 @@ type ResponseVerification struct {
 }
 
 func (i ResponseIssuance) Validate() error {
-	return (controlplane.ResponseIssuance[retrieval.GrantProjection](i)).ValidateForFamily(controlwire.RouteFamilyRetrievals)
+	return i.responseIssuance().ValidateForFamily(controlwire.RouteFamilyRetrievals)
 }
 
 func IssueResponse(i ResponseIssuance) (controlplane.ResponseProjection[retrieval.GrantProjection], error) {
 	return controlplane.IssueResponseForFamily(
-		controlplane.ResponseIssuance[retrieval.GrantProjection](i), controlwire.RouteFamilyRetrievals,
+		i.responseIssuance(), controlwire.RouteFamilyRetrievals,
 	)
+}
+
+func (i ResponseIssuance) responseIssuance() controlplane.ResponseIssuance[retrieval.GrantProjection] {
+	return controlplane.ResponseIssuance[retrieval.GrantProjection]{
+		Signer: i.Signer, Body: i.Body, Header: i.Header, Assessment: i.Assessment,
+	}
 }
 
 func (v ResponseVerification) Validate() error {
-	return (controlplane.ResponseVerification[retrieval.GrantDocument, *retrieval.GrantDocument](v)).Validate()
+	return v.responseVerification().Validate()
 }
 
 func VerifyResponse(v ResponseVerification) (controlplane.VerifiedResponse[retrieval.GrantDocument, *retrieval.GrantDocument], error) {
-	return controlplane.VerifyResponse(
-		controlplane.ResponseVerification[retrieval.GrantDocument, *retrieval.GrantDocument](v),
-	)
+	return controlplane.VerifyResponse(v.responseVerification())
+}
+
+func (v ResponseVerification) responseVerification() controlplane.ResponseVerification[retrieval.GrantDocument, *retrieval.GrantDocument] {
+	return controlplane.ResponseVerification[retrieval.GrantDocument, *retrieval.GrantDocument]{
+		Document: v.Document, Expected: v.Expected, TrustedKeys: v.TrustedKeys,
+	}
 }
 
 var (

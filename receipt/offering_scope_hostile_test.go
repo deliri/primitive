@@ -45,7 +45,6 @@ func TestOfferingIdentityJSONProjectionLayerTriad(t *testing.T) {
 				t.Fatalf("OfferingIdentity.MarshalJSON(%v) error = %v, want nil", offering, err)
 			}
 			for _, framing := range framings {
-				framing := framing
 				t.Run(fmt.Sprintf("%s/%s", offering.String(), framing.name), func(t *testing.T) {
 					t.Parallel()
 
@@ -89,7 +88,6 @@ func TestOfferingIdentityJSONProjectionLayerTriad(t *testing.T) {
 			t.Fatalf("OfferingIdentity.MarshalJSON() error = %v, want nil", err)
 		}
 		for _, extent := range []int{core.JSONDocumentMaximumBytes - 1, core.JSONDocumentMaximumBytes} {
-			extent := extent
 			t.Run(fmt.Sprintf("%d bytes", extent), func(t *testing.T) {
 				t.Parallel()
 
@@ -122,7 +120,7 @@ func TestOfferingIdentityJSONProjectionLayerTriad(t *testing.T) {
 			if gotErr != nil || len(seedBytes) != LifecycleIdentityBytes {
 				t.Fatalf("hex.DecodeString(OfferingIdentityFor(%v)) = (%x, %v), want %d bytes and nil", offering, seedBytes, gotErr, LifecycleIdentityBytes)
 			}
-			for bit := 0; bit < LifecycleIdentityBytes*8; bit++ {
+			for bit := range LifecycleIdentityBytes * 8 {
 				mutated := append([]byte{}, seedBytes...)
 				mutated[bit/8] ^= byte(1 << (bit % 8))
 				if bytes.Equal(mutated, seedBytes) {
@@ -208,7 +206,6 @@ func TestOfferingIdentityJSONProjectionLayerTriad(t *testing.T) {
 			{name: "one byte above global JSON ceiling", document: bytes.Repeat([]byte{' '}, core.JSONDocumentMaximumBytes+1)},
 		}
 		for _, tc := range cases {
-			tc := tc
 			t.Run(tc.name, func(t *testing.T) {
 				t.Parallel()
 
@@ -293,7 +290,6 @@ func TestScopeForBindsExactAccountAndDerivedOffering(t *testing.T) {
 		t.Fatalf("NewAccountIdentity() error = %v, want nil", err)
 	}
 	for _, offering := range []core.Offering{core.OfferingBug, core.OfferingWitness, core.OfferingPeachfuzz} {
-		offering := offering
 		t.Run(offering.String(), func(t *testing.T) {
 			t.Parallel()
 

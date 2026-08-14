@@ -402,9 +402,9 @@ func TestGrantIssuanceRefusesEveryTraversalContradiction(t *testing.T) {
 		ManifestEntries: 2, Continuation: core.CatalogContinuationEnd,
 	})
 	cases := []struct {
+		mutate  func(*GrantIssuance)
 		name    string
 		fixture downloadCallFixture
-		mutate  func(*GrantIssuance)
 	}{
 		{
 			name: "all start falsely ends before manifest end", fixture: startMore,

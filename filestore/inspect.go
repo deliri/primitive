@@ -45,7 +45,7 @@ const (
 func pathKindTokens() [pathKindLimit]string {
 	return [...]string{
 		PathKindUnknown:      "",
-		PathKindAbsent:       "absent",
+		PathKindAbsent:       "path absent",
 		PathKindDirectory:    "directory",
 		PathKindRegularFile:  "regular file",
 		PathKindSymbolicLink: "symbolic link",

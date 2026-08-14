@@ -21,12 +21,12 @@ func TestAllocationSeparatesReportedFactsFromFabrication(t *testing.T) {
 	t.Parallel()
 
 	cases := []struct {
+		wantErr      error
+		wantBytesErr error
 		name         string
 		allocation   Allocation
 		wantBytes    uint64
-		wantErr      error
 		wantReported bool
-		wantBytesErr error
 	}{
 		{
 			name:         "the zero value is an honest unreported observation",

@@ -176,8 +176,8 @@ type AmazonWebServicesRequestInput struct {
 // AmazonWebServicesRequest is one validated, redacted AWS acquisition
 // capability. It has no URL accessor.
 type AmazonWebServicesRequest struct {
-	request  Request
 	endpoint *core.HTTPEndpoint
+	request  Request
 }
 
 // NewAmazonWebServicesRequest parses and owns one exact signed AWS request.

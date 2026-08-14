@@ -114,9 +114,9 @@ func TestUsageWindowValidateAtEveryBoundary(t *testing.T) {
 	t.Parallel()
 
 	cases := []struct {
+		wantErr error
 		name    string
 		window  controlplane.UsageWindow
-		wantErr error
 	}{
 		// Admitted.
 		{

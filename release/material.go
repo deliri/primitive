@@ -348,6 +348,8 @@ type materialResponseWire struct {
 	ServerPublicKey    *core.Ed25519PublicKey `json:"server_public_key"`
 }
 
+const materialResponseNilReceiverDiagnostic = "release material response receiver is nil"
+
 func (r MaterialResponse) Validate() error {
 	if err := errors.Join(
 		r.Request.Validate(), r.ReleaseSigningSeed.Validate(),
@@ -371,7 +373,7 @@ func (r MaterialResponse) MarshalJSON() ([]byte, error) {
 
 func (r *MaterialResponse) UnmarshalJSON(data []byte) error {
 	if r == nil {
-		return jsonError(errors.New("release material response receiver is nil"))
+		return jsonError(errors.New(materialResponseNilReceiverDiagnostic))
 	}
 	wire, err := decodeStructure[materialResponseWire](data)
 	if err != nil {
@@ -405,7 +407,7 @@ type Material struct {
 // Destroy clears both response seeds and invalidates every copied handle.
 func (r *MaterialResponse) Destroy() error {
 	if r == nil {
-		return contractError(errors.New("release material response receiver is nil"))
+		return contractError(errors.New(materialResponseNilReceiverDiagnostic))
 	}
 	if *r == (MaterialResponse{}) {
 		return nil
@@ -422,7 +424,7 @@ func (r *MaterialResponse) Destroy() error {
 // capabilities. The response seeds are destroyed on every terminal path.
 func (r *MaterialResponse) Open() (Material, error) {
 	if r == nil {
-		return Material{}, contractError(errors.New("release material response receiver is nil"))
+		return Material{}, contractError(errors.New(materialResponseNilReceiverDiagnostic))
 	}
 	if err := r.Validate(); err != nil {
 		return Material{}, errors.Join(err, r.Destroy())

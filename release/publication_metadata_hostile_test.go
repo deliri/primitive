@@ -113,7 +113,7 @@ func TestBuildProvenancePublishesReproductionFactsWithoutGarbleSeed(t *testing.T
 		t.Fatalf("BuildProvenance JSON contains Garble seed material: %s", encoded)
 	}
 	for _, required := range []string{
-		"go1.26.5", "mvdan.cc/garble", "ffa2daf72f036d7ff72f6a3c8243997f06fa7b4e",
+		"go1.26.6", "mvdan.cc/garble", "ffa2daf72f036d7ff72f6a3c8243997f06fa7b4e",
 		garble.CurrentDerivationGeneration().String(),
 	} {
 		if !strings.Contains(string(encoded), required) {

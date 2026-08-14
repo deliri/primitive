@@ -41,13 +41,17 @@ func (i SubmissionResponseIssuance) responseIssuance() controlplane.ResponseIssu
 }
 
 func (v SubmissionResponseVerification) Validate() error {
-	return (controlplane.ResponseVerification[submission.DecisionDocument, *submission.DecisionDocument](v)).Validate()
+	return v.responseVerification().Validate()
 }
 
 func VerifySubmissionResponse(v SubmissionResponseVerification) (controlplane.VerifiedResponse[submission.DecisionDocument, *submission.DecisionDocument], error) {
-	return controlplane.VerifyResponse(
-		controlplane.ResponseVerification[submission.DecisionDocument, *submission.DecisionDocument](v),
-	)
+	return controlplane.VerifyResponse(v.responseVerification())
+}
+
+func (v SubmissionResponseVerification) responseVerification() controlplane.ResponseVerification[submission.DecisionDocument, *submission.DecisionDocument] {
+	return controlplane.ResponseVerification[submission.DecisionDocument, *submission.DecisionDocument]{
+		Document: v.Document, Expected: v.Expected, TrustedKeys: v.TrustedKeys,
+	}
 }
 
 type CompletionResponseIssuance struct {
@@ -64,23 +68,33 @@ type CompletionResponseVerification struct {
 }
 
 func (i CompletionResponseIssuance) Validate() error {
-	return (controlplane.ResponseIssuance[chit.Document](i)).ValidateForFamily(controlwire.RouteFamilySubmissionCompletions)
+	return i.responseIssuance().ValidateForFamily(controlwire.RouteFamilySubmissionCompletions)
 }
 
 func IssueCompletionResponse(i CompletionResponseIssuance) (controlplane.ResponseProjection[chit.Document], error) {
 	return controlplane.IssueResponseForFamily(
-		controlplane.ResponseIssuance[chit.Document](i), controlwire.RouteFamilySubmissionCompletions,
+		i.responseIssuance(), controlwire.RouteFamilySubmissionCompletions,
 	)
+}
+
+func (i CompletionResponseIssuance) responseIssuance() controlplane.ResponseIssuance[chit.Document] {
+	return controlplane.ResponseIssuance[chit.Document]{
+		Signer: i.Signer, Body: i.Body, Header: i.Header, Assessment: i.Assessment,
+	}
 }
 
 func (v CompletionResponseVerification) Validate() error {
-	return (controlplane.ResponseVerification[chit.Document, *chit.Document](v)).Validate()
+	return v.responseVerification().Validate()
 }
 
 func VerifyCompletionResponse(v CompletionResponseVerification) (controlplane.VerifiedResponse[chit.Document, *chit.Document], error) {
-	return controlplane.VerifyResponse(
-		controlplane.ResponseVerification[chit.Document, *chit.Document](v),
-	)
+	return controlplane.VerifyResponse(v.responseVerification())
+}
+
+func (v CompletionResponseVerification) responseVerification() controlplane.ResponseVerification[chit.Document, *chit.Document] {
+	return controlplane.ResponseVerification[chit.Document, *chit.Document]{
+		Document: v.Document, Expected: v.Expected, TrustedKeys: v.TrustedKeys,
+	}
 }
 
 var (

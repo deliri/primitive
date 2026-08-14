@@ -13,8 +13,8 @@ func TestExistingAuthenticatedResponseProjectionKeepsOneEnvelope(t *testing.T) {
 	t.Parallel()
 
 	cases := []struct {
-		name string
 		run  func(testing.TB)
+		name string
 	}{
 		{name: "registration response closes its existing envelope", run: func(t testing.TB) {
 			proveBidirectionalResponseProjection(t, issueTestRegistration(t).document)

@@ -83,31 +83,31 @@ func (d chitJSONDoor) receiverName() string {
 }
 
 type chitFuzzFixtures struct {
-	chit            chitFixture
-	catalog         catalogFixture
-	query           signedQueryFixture
 	entryName       EntryName
-	chitID          ChitID
-	collectionID    CollectionID
-	version         Version
-	payload         Payload
-	document        Document
-	queryPayload    QueryPayload
-	queryCommitment QueryCommitment
-	queryDocument   QueryDocument
-	custodyState    CustodyState
-	cursor          Cursor
 	catalogPayload  CatalogPayload
 	catalogDocument CatalogDocument
-	signingDomain   SigningDomain
+	catalog         catalogFixture
+	chit            chitFixture
+	query           signedQueryFixture
+	queryDocument   QueryDocument
+	document        Document
+	payload         Payload
+	version         Version
 	objectCount     ObjectCount
 	entrySequence   EntrySequence
+	queryPayload    QueryPayload
+	queryCommitment QueryCommitment
+	cursor          Cursor
 	manifestDigest  ManifestDigest
+	collectionID    CollectionID
+	chitID          ChitID
+	custodyState    CustodyState
+	signingDomain   SigningDomain
 }
 
 type chitJSONSeed struct {
-	door     chitJSONDoor
 	document []byte
+	door     chitJSONDoor
 }
 
 func FuzzChitExternalJSONDoorInventory(f *testing.F) {
@@ -193,16 +193,16 @@ func FuzzChitExternalTextDoorInventory(f *testing.F) {
 		switch chitTextDoor(rawDoor) {
 		case chitTextDoorEntryName:
 			got, err := ParseEntryName(value)
-			outcome = chitTextOutcome{value, got.String(), err, got.Validate}
+			outcome = chitTextOutcome{input: value, projection: got.String(), err: err, validate: got.Validate}
 		case chitTextDoorChitID:
 			got, err := ParseChitID(value)
-			outcome = chitTextOutcome{value, got.String(), err, got.Validate}
+			outcome = chitTextOutcome{input: value, projection: got.String(), err: err, validate: got.Validate}
 		case chitTextDoorCollectionID:
 			got, err := ParseCollectionID(value)
-			outcome = chitTextOutcome{value, got.String(), err, got.Validate}
+			outcome = chitTextOutcome{input: value, projection: got.String(), err: err, validate: got.Validate}
 		case chitTextDoorSigningDomain:
 			got, err := SigningDomainUnknown.ParseCanonicalText([]byte(value))
-			outcome = chitTextOutcome{value, got.String(), err, got.Validate}
+			outcome = chitTextOutcome{input: value, projection: got.String(), err: err, validate: got.Validate}
 		case chitTextDoorUnknown, chitTextDoorLimit:
 			return
 		default:
@@ -320,10 +320,10 @@ func fuzzChitCatalogDocument(t *testing.T, data []byte, fixtures chitFuzzFixture
 }
 
 type chitTextOutcome struct {
-	input      string
-	projection string
 	err        error
 	validate   func() error
+	input      string
+	projection string
 }
 
 func fuzzChitTextOutcome(t *testing.T, outcome chitTextOutcome) {

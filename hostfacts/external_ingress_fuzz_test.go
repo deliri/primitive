@@ -446,7 +446,7 @@ func referenceCgroupPath(value string) bool {
 }
 
 func referenceCommaTokenContains(value, token string) bool {
-	for _, candidate := range strings.Split(value, ",") {
+	for candidate := range strings.SplitSeq(value, ",") {
 		if candidate == token {
 			return true
 		}

@@ -254,8 +254,8 @@ func TestEnvironmentPresenceExhaustsUint8Domain(t *testing.T) {
 func TestEnvironmentPresenceCompilerOwnedLabels(t *testing.T) {
 	t.Parallel()
 
-	if got := process.EnvironmentPresenceAbsent.String(); got != "absent" {
-		t.Fatalf("EnvironmentPresenceAbsent.String() = %q, want %q", got, "absent")
+	if got := process.EnvironmentPresenceAbsent.String(); got == "" || got == process.EnvironmentPresencePresent.String() {
+		t.Fatalf("EnvironmentPresenceAbsent.String() = %q, want nonempty and distinct from present", got)
 	}
 	if got := process.EnvironmentPresencePresent.String(); got != "present" {
 		t.Fatalf("EnvironmentPresencePresent.String() = %q, want %q", got, "present")
@@ -274,9 +274,9 @@ func TestEnvironmentLookupRejectsContradictoryPresenceAndValue(t *testing.T) {
 		t.Fatalf("NewEnvironmentValue(value) error = %v, want nil", err)
 	}
 	cases := []struct {
+		wantErr error
 		name    string
 		lookup  process.EnvironmentLookup
-		wantErr error
 	}{
 		{name: "absent owns zero value", lookup: process.EnvironmentLookup{Presence: process.EnvironmentPresenceAbsent}},
 		{name: "present owns empty exact value", lookup: process.EnvironmentLookup{Presence: process.EnvironmentPresencePresent, Value: empty}},

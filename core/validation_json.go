@@ -507,10 +507,10 @@ func rejectDuplicateJSONFieldsWithFields(
 }
 
 type strictJSONTokenScan struct {
-	stack  []strictJSONContainer
 	token  json.Token
-	limits StrictJSONLimits
+	stack  []strictJSONContainer
 	fields []string
+	limits StrictJSONLimits
 }
 
 func scanStrictJSONToken(scan strictJSONTokenScan) ([]strictJSONContainer, error) {
@@ -588,10 +588,10 @@ func topExpectsObjectKey(stack []strictJSONContainer) bool {
 }
 
 type strictJSONObjectKeyScan struct {
-	stack  []strictJSONContainer
 	key    string
-	limits StrictJSONLimits
+	stack  []strictJSONContainer
 	fields []string
+	limits StrictJSONLimits
 }
 
 func scanStrictJSONObjectKey(scan strictJSONObjectKeyScan) ([]strictJSONContainer, error) {

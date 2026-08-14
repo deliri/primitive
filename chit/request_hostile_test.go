@@ -142,8 +142,8 @@ func TestQueryCommitmentBindsEveryVariableRequestFact(t *testing.T) {
 		marker: 0x71, offering: core.OfferingBug, pageSize: 2,
 	})
 	cases := []struct {
-		name   string
 		mutate func(*QueryPayload)
+		name   string
 	}{
 		{name: "scope", mutate: func(value *QueryPayload) { value.Query.Scope = other.payload.Query.Scope }},
 		{name: "selection", mutate: func(value *QueryPayload) { value.Query.Selection = signedQuerySpecific(t, 0x72) }},

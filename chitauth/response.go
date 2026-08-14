@@ -12,8 +12,8 @@ import (
 
 type ResponseIssuance struct {
 	Signer     crypto.Signer
-	Header     controlplane.ResponseHeader
 	Body       chit.CatalogDocument
+	Header     controlplane.ResponseHeader
 	Assessment controlwire.ProtocolAssessment
 }
 
@@ -24,23 +24,33 @@ type ResponseVerification struct {
 }
 
 func (i ResponseIssuance) Validate() error {
-	return (controlplane.ResponseIssuance[chit.CatalogDocument](i)).ValidateForFamily(controlwire.RouteFamilyChits)
+	return i.responseIssuance().ValidateForFamily(controlwire.RouteFamilyChits)
 }
 
 func IssueResponse(i ResponseIssuance) (controlplane.ResponseProjection[chit.CatalogDocument], error) {
 	return controlplane.IssueResponseForFamily(
-		controlplane.ResponseIssuance[chit.CatalogDocument](i), controlwire.RouteFamilyChits,
+		i.responseIssuance(), controlwire.RouteFamilyChits,
 	)
+}
+
+func (i ResponseIssuance) responseIssuance() controlplane.ResponseIssuance[chit.CatalogDocument] {
+	return controlplane.ResponseIssuance[chit.CatalogDocument]{
+		Signer: i.Signer, Body: i.Body, Header: i.Header, Assessment: i.Assessment,
+	}
 }
 
 func (v ResponseVerification) Validate() error {
-	return (controlplane.ResponseVerification[chit.CatalogDocument, *chit.CatalogDocument](v)).Validate()
+	return v.responseVerification().Validate()
 }
 
 func VerifyResponse(v ResponseVerification) (controlplane.VerifiedResponse[chit.CatalogDocument, *chit.CatalogDocument], error) {
-	return controlplane.VerifyResponse(
-		controlplane.ResponseVerification[chit.CatalogDocument, *chit.CatalogDocument](v),
-	)
+	return controlplane.VerifyResponse(v.responseVerification())
+}
+
+func (v ResponseVerification) responseVerification() controlplane.ResponseVerification[chit.CatalogDocument, *chit.CatalogDocument] {
+	return controlplane.ResponseVerification[chit.CatalogDocument, *chit.CatalogDocument]{
+		Document: v.Document, Expected: v.Expected, TrustedKeys: v.TrustedKeys,
+	}
 }
 
 var (

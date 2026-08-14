@@ -109,37 +109,37 @@ func (d coreJSONDoor) receiverName() string {
 }
 
 type coreJSONFixtures struct {
-	platform        Platform
-	operatingSystem OperatingSystem
-	architecture    CPUArchitecture
-	offering        Offering
-	version         ReleaseVersion
-	commit          BuildCommit
-	build           BuildIdentity
-	pageLimit       CatalogPageLimit
-	selection       CatalogSelectionKind
-	position        CatalogPositionKind
-	continuation    CatalogContinuationState
-	errorIdentity   ErrorIdentity
-	endpoint        HTTPEndpoint
-	packageIdentity PackageIdentity
-	packageKind     PackageKind
-	status          HTTPStatusCode
-	header          HTTPHeaderName
-	mediaType       HTTPMediaType
-	sha256          SHA256Digest
-	crc32c          CRC32C
-	publicKey       Ed25519PublicKey
-	byteCount       ByteCount
-	byteLength      ByteLength
-	component       PathComponent
-	absolutePath    AbsolutePath
 	relativePath    RelativePath
+	absolutePath    AbsolutePath
+	component       PathComponent
+	mediaType       HTTPMediaType
+	header          HTTPHeaderName
+	endpoint        HTTPEndpoint
+	byteLength      ByteLength
+	byteCount       ByteCount
+	build           BuildIdentity
+	version         ReleaseVersion
+	crc32c          CRC32C
+	errorIdentity   ErrorIdentity
+	status          HTTPStatusCode
+	pageLimit       CatalogPageLimit
+	sha256          SHA256Digest
+	commit          BuildCommit
+	publicKey       Ed25519PublicKey
+	platform        Platform
+	position        CatalogPositionKind
+	packageKind     PackageKind
+	packageIdentity PackageIdentity
+	selection       CatalogSelectionKind
+	continuation    CatalogContinuationState
+	offering        Offering
+	architecture    CPUArchitecture
+	operatingSystem OperatingSystem
 }
 
 type coreJSONSeed struct {
-	door     coreJSONDoor
 	document []byte
+	door     coreJSONDoor
 }
 
 func FuzzCoreExternalJSONDoorInventory(f *testing.F) {
@@ -372,9 +372,9 @@ func fuzzCoreJSONValue[T coreJSONValue](t *testing.T, data []byte, seed T) {
 }
 
 type coreTextDecodeRequest[T coreJSONValue] struct {
-	text       []byte
 	seed       T
 	projection func(T) (string, error)
+	text       []byte
 }
 
 func fuzzCoreTextUnmarshal[T coreJSONValue](t *testing.T, request coreTextDecodeRequest[T]) {
@@ -418,11 +418,11 @@ func fuzzCoreTextUnmarshal[T coreJSONValue](t *testing.T, request coreTextDecode
 }
 
 type coreParseOutcome struct {
-	input         string
-	projection    string
 	err           error
 	validate      func() error
 	roundTrip     func(string) (string, error)
+	input         string
+	projection    string
 	requiresExact bool
 }
 
@@ -430,11 +430,11 @@ type coreParseRequest[T interface {
 	Validate() error
 	String() string
 }] struct {
-	input         string
 	value         T
 	err           error
-	requiresExact bool
 	parse         func(string) (T, error)
+	input         string
+	requiresExact bool
 }
 
 func coreParseOutcomeFor[T interface {
@@ -472,8 +472,8 @@ func fuzzCoreParseOutcome(t *testing.T, outcome coreParseOutcome) {
 }
 
 type coreTextSeed struct {
-	door coreTextDoor
 	text string
+	door coreTextDoor
 }
 
 func coreTextSeedsForFuzz(t testing.TB, fixtures coreJSONFixtures) []coreTextSeed {
@@ -491,20 +491,20 @@ func coreTextSeedsForFuzz(t testing.TB, fixtures coreJSONFixtures) []coreTextSee
 		t.Fatalf("Ed25519PublicKey.Hex(seed) error = %v, want nil", err)
 	}
 	return []coreTextSeed{
-		{coreTextDoorPlatform, fixtures.platform.String()},
-		{coreTextDoorOffering, fixtures.offering.String()},
-		{coreTextDoorReleaseVersion, fixtures.version.String()},
-		{coreTextDoorSHA256Digest, sha256Text},
-		{coreTextDoorCRC32C, crc32cText},
-		{coreTextDoorEd25519PublicKey, publicKeyText},
-		{coreTextDoorBuildCommit, fixtures.commit.String()},
-		{coreTextDoorHTTPEndpoint, fixtures.endpoint.String()},
-		{coreTextDoorPackageIdentity, fixtures.packageIdentity.String()},
-		{coreTextDoorHTTPHeaderName, fixtures.header.String()},
-		{coreTextDoorHTTPMediaType, fixtures.mediaType.String()},
-		{coreTextDoorPathComponent, fixtures.component.String()},
-		{coreTextDoorRelativePath, fixtures.relativePath.String()},
-		{coreTextDoorAbsolutePath, fixtures.absolutePath.String()},
+		{door: coreTextDoorPlatform, text: fixtures.platform.String()},
+		{door: coreTextDoorOffering, text: fixtures.offering.String()},
+		{door: coreTextDoorReleaseVersion, text: fixtures.version.String()},
+		{door: coreTextDoorSHA256Digest, text: sha256Text},
+		{door: coreTextDoorCRC32C, text: crc32cText},
+		{door: coreTextDoorEd25519PublicKey, text: publicKeyText},
+		{door: coreTextDoorBuildCommit, text: fixtures.commit.String()},
+		{door: coreTextDoorHTTPEndpoint, text: fixtures.endpoint.String()},
+		{door: coreTextDoorPackageIdentity, text: fixtures.packageIdentity.String()},
+		{door: coreTextDoorHTTPHeaderName, text: fixtures.header.String()},
+		{door: coreTextDoorHTTPMediaType, text: fixtures.mediaType.String()},
+		{door: coreTextDoorPathComponent, text: fixtures.component.String()},
+		{door: coreTextDoorRelativePath, text: fixtures.relativePath.String()},
+		{door: coreTextDoorAbsolutePath, text: fixtures.absolutePath.String()},
 	}
 }
 

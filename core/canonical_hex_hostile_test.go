@@ -18,11 +18,11 @@ func TestDecodeCanonicalHexAdmitsOnlyTheOneCanonicalSpelling(t *testing.T) {
 	t.Parallel()
 
 	cases := []struct {
+		wantErr         error
 		name            string
 		value           string
 		wantBytes       []byte
 		destinationSize int
-		wantErr         error
 	}{
 		{name: "one byte lowercase is canonical", destinationSize: 1, value: "0a", wantBytes: []byte{0x0a}},
 		{name: "all zero bytes are a legal spelling", destinationSize: 2, value: "0000", wantBytes: []byte{0, 0}},

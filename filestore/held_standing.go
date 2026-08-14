@@ -38,7 +38,7 @@ func heldStandingDiagnostics() [heldStandingLimit]string {
 	return [...]string{
 		HeldStandingSame:     "same entry",
 		HeldStandingReplaced: "replaced",
-		HeldStandingAbsent:   "absent",
+		HeldStandingAbsent:   "path entry absent",
 	}
 }
 

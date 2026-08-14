@@ -39,10 +39,10 @@ const (
 )
 
 type cleanUpgradeDebt struct {
-	owner PackageIdentity
-	kind  cleanUpgradeDebtKind
 	file  string
 	name  string
+	owner PackageIdentity
+	kind  cleanUpgradeDebtKind
 }
 
 type cleanUpgradeDebtInventory struct {
@@ -67,8 +67,8 @@ func TestCleanUpgradeDebtLayerTriad(t *testing.T) {
 
 	tests := []struct {
 		name   string
-		source realWorldSource
 		want   []cleanUpgradeDebt
+		source realWorldSource
 	}{
 		{
 			name: "positive typed provider binder owns a semantic choice",
@@ -182,17 +182,17 @@ func scanCleanUpgradeSource(source realWorldSource, result *cleanUpgradeDebtInve
 }
 
 type cleanUpgradeDeclarationScan struct {
-	owner  PackageIdentity
+	result *cleanUpgradeDebtInventory
 	file   string
 	name   string
-	result *cleanUpgradeDebtInventory
+	owner  PackageIdentity
 }
 
 type cleanUpgradeDeclarationInput struct {
-	owner       PackageIdentity
-	file        string
 	declaration ast.Decl
 	result      *cleanUpgradeDebtInventory
+	file        string
+	owner       PackageIdentity
 }
 
 func scanCleanUpgradeDeclaration(input cleanUpgradeDeclarationInput) error {
@@ -268,7 +268,7 @@ func cleanUpgradeDeprecatedDocumentation(documentation *ast.CommentGroup) bool {
 	if documentation == nil {
 		return false
 	}
-	for _, line := range strings.Split(documentation.Text(), "\n") {
+	for line := range strings.SplitSeq(documentation.Text(), "\n") {
 		if strings.HasPrefix(strings.TrimSpace(line), cleanUpgradeDeprecatedPrefix) {
 			return true
 		}
@@ -300,7 +300,7 @@ func cleanUpgradeCompatibilityName(name string) bool {
 
 func cleanUpgradeCompatibilityFile(name string) bool {
 	stem := strings.TrimSuffix(name, filepath.Ext(name))
-	for _, component := range strings.Split(stem, "_") {
+	for component := range strings.SplitSeq(stem, "_") {
 		switch strings.ToLower(component) {
 		case "legacy", "deprecated", "compat", "compatibility", "shim", "backward", "fallback":
 			return true

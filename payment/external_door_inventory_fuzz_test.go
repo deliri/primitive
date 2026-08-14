@@ -62,24 +62,24 @@ func (d paymentJSONDoor) receiverName() string {
 }
 
 type paymentFuzzFixtures struct {
+	catalogPayload  CatalogPayload
+	catalogDocument CatalogDocument
 	payment         paymentFixture
 	catalog         paymentCatalogFixture
 	query           signedQueryFixture
-	paymentID       PaymentID
-	signingDomain   SigningDomain
-	payload         Payload
-	document        Document
-	queryPayload    QueryPayload
 	queryDocument   QueryDocument
+	document        Document
+	payload         Payload
+	queryPayload    QueryPayload
 	queryCommitment QueryCommitment
 	cursor          Cursor
-	catalogPayload  CatalogPayload
-	catalogDocument CatalogDocument
+	paymentID       PaymentID
+	signingDomain   SigningDomain
 }
 
 type paymentJSONSeed struct {
-	door     paymentJSONDoor
 	document []byte
+	door     paymentJSONDoor
 }
 
 func FuzzPaymentExternalJSONDoorInventory(f *testing.F) {
@@ -322,10 +322,10 @@ func paymentJSONSeedForFuzz(t testing.TB, door paymentJSONDoor, value paymentJSO
 }
 
 type paymentTextOutcome struct {
-	input      string
-	projection string
 	err        error
 	validate   func() error
+	input      string
+	projection string
 }
 
 func fuzzPaymentTextOutcome(t *testing.T, outcome paymentTextOutcome) {

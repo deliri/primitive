@@ -493,10 +493,10 @@ func TestEncodeValidatedJSONIssueOnlyProjectionClosesValidationAndPanicBoundarie
 	}
 	shortLimit.DocumentMaximumBytes = shortMaximum
 	cases := []struct {
+		wantErr error
 		name    string
 		value   validatedJSONProjectionProbe
 		limits  StrictJSONLimits
-		wantErr error
 	}{
 		{name: "valid issue-only projection emits its exact canonical bytes", value: nominal, limits: DefaultStrictJSONLimits()},
 		{name: "zero projection is refused before any plausible output", limits: DefaultStrictJSONLimits(), wantErr: ErrPrimitiveContract},
@@ -609,10 +609,10 @@ func TestDecodeJSONStringTokenHostileBoundaryTable(t *testing.T) {
 	t.Parallel()
 
 	cases := []struct {
+		wantErr error
 		name    string
 		want    string
 		wire    []byte
-		wantErr error
 	}{
 		{name: "empty string token is admitted", wire: []byte(`""`)},
 		{name: "plain ASCII token is admitted", wire: []byte(`"plain"`), want: "plain"},

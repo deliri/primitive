@@ -260,9 +260,9 @@ func TestIssueCheckInResponseRefusesEveryPayloadValidateRefuses(t *testing.T) {
 	}
 
 	cases := []struct {
+		want   error
 		mutate func(*controlplane.CheckInResponsePayload)
 		name   string
-		want   error
 	}{
 		{
 			name: "the zero payload carries no decision at all",

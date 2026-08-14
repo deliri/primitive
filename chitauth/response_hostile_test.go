@@ -15,11 +15,11 @@ import (
 )
 
 type chitResponseFixture struct {
+	signer   ed25519.PrivateKey
 	body     chit.CatalogDocument
+	trusted  attest.TrustedKeys
 	header   controlplane.ResponseHeader
 	expected controlplane.ResponseExpectation
-	trusted  attest.TrustedKeys
-	signer   ed25519.PrivateKey
 }
 
 func TestChitResponseLayerTriadAuthenticatesRefusesAndKeepsNeutralZero(t *testing.T) {

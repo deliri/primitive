@@ -15,10 +15,10 @@ import (
 )
 
 type verificationLayerProbe struct {
-	name     string
 	positive func() error
 	negative func() error
 	neutral  func() error
+	name     string
 }
 
 func TestControlplaneSignedVerificationLayerTriad(t *testing.T) {
@@ -35,7 +35,6 @@ func TestControlplaneSignedVerificationLayerTriad(t *testing.T) {
 		checkInResponseVerificationProbe(response),
 	}
 	for _, probe := range probes {
-		probe := probe
 		t.Run(probe.name, func(t *testing.T) {
 			t.Parallel()
 

@@ -197,7 +197,7 @@ const (
 
 func environmentPresenceDiagnostics() [environmentPresenceLimit]string {
 	return [...]string{
-		EnvironmentPresenceAbsent:  "absent",
+		EnvironmentPresenceAbsent:  "variable absent",
 		EnvironmentPresencePresent: "present",
 	}
 }
