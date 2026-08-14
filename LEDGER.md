@@ -4,6 +4,22 @@ Last updated: `2026-08-14`
 
 ## Current
 
+- ratcheted one owner for every raw real-world substrate, 2026-08-14,
+  prepared `v2026.0.123`. Core now scans the landed production tree and binds
+  every OS, process, signal, HTTP, clock/deadline, entropy, Unix, Windows,
+  network, and official GCS SDK selector to its exact Primitive package and
+  current call count. Release and Upgrade remain composite owners over typed
+  Filestore, Process, Hostfacts, Objectstore, Temporal, and Release
+  capabilities; carrying an `os.Root`, native sentinel, or standard-library
+  type is distinguished from opening a second effect path.
+
+  The local positive/negative/neutral LayerTriad proves an Exchange-owned HTTP
+  leaf is admitted, a Release-owned copy is a typed Primitive contract
+  violation, and OS capability/sentinel use is neutral. The initial empty
+  inventory enumerated every real landed call as red. Mutating the HTTP owner
+  from Exchange to Release makes the real-tree audit red, while the restored
+  exact inventory and complete Core suite are green.
+
 - closed Filestore directory replacement standing, 2026-08-14, prepared
   `v2026.0.122`. `Walk` now binds every recursive reopen to the exact operating-
   system directory identity observed before the visitor runs. A callback or

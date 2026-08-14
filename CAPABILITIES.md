@@ -8,6 +8,13 @@ The rule that puts something here: **if it crosses the wire it belongs in
 Primitive; if it never leaves one side it is policy.** Both ends of every
 transaction run this same stack, so a wire type has exactly one home.
 
+Core's landed-production ownership ratchet inventories the exact package,
+substrate selector, and call count for every raw OS, process, signal, HTTP,
+clock/deadline, entropy, Unix, Windows, network, and official GCS SDK use.
+Capability types and native sentinels remain neutral; an additional effect or
+a call moved into a composite package breaks the build until ownership is
+reviewed explicitly.
+
 | package | owns |
 | --- | --- |
 | `attest` | Ed25519 signing and verification of bounded typed canonical facts. Canonical-body hashing, domain separation, framing, detached envelopes, trusted-key sets. |
