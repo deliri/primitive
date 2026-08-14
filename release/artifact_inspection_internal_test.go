@@ -3,6 +3,8 @@ package release
 import (
 	"bytes"
 	"errors"
+	"os"
+	"path/filepath"
 	"strconv"
 	"strings"
 	"testing"
@@ -115,51 +117,35 @@ func TestArtifactPatternFinderRejectsEveryAbsentOrNearMissStamp(t *testing.T) {
 	}
 }
 
-// TestArtifactInspectionRequestRejectsEveryExtentOutsideItsBound closes the
-// pure boundary before any source byte is read.
-func TestArtifactInspectionRequestRejectsEveryExtentOutsideItsBound(t *testing.T) {
+// TestInspectBuiltArtifactRejectsEveryObservedExtentOutsideItsBound proves the
+// file's real Filestore observation, not a caller claim, owns the ceiling.
+func TestInspectBuiltArtifactRejectsEveryObservedExtentOutsideItsBound(t *testing.T) {
 	t.Parallel()
 
 	build := inspectionBuildForTest(t)
 	cases := []struct {
-		extent  func(*testing.T) core.ByteCount
-		name    string
-		wantNil bool
+		name     string
+		extent   uint64
+		zeroPath bool
 	}{
-		{
-			name:    "nil source is rejected",
-			extent:  func(t *testing.T) core.ByteCount { return mustByteCount(t, 16) },
-			wantNil: true,
-		},
-		{
-			name:   "unset extent is rejected",
-			extent: func(*testing.T) core.ByteCount { return core.ByteCount{} },
-		},
-		{
-			name:   "one byte above the artifact ceiling is rejected",
-			extent: func(t *testing.T) core.ByteCount { return mustByteCount(t, BuiltArtifactMaximumBytes+1) },
-		},
-		{
-			name:   "the artifact ceiling itself passes validation and fails on short bytes",
-			extent: func(t *testing.T) core.ByteCount { return mustByteCount(t, BuiltArtifactMaximumBytes) },
-		},
-		{
-			name:   "one byte extent passes validation and fails on format",
-			extent: func(t *testing.T) core.ByteCount { return mustByteCount(t, 1) },
-		},
+		{name: "unset path is rejected", zeroPath: true},
+		{name: "empty file is rejected", extent: 0},
+		{name: "one byte file reaches native format refusal", extent: 1},
+		{name: "one byte below the artifact ceiling reaches native format refusal", extent: BuiltArtifactMaximumBytes - 1},
+		{name: "the artifact ceiling reaches native format refusal", extent: BuiltArtifactMaximumBytes},
+		{name: "one byte above the artifact ceiling is rejected", extent: BuiltArtifactMaximumBytes + 1},
 	}
 	for _, tc := range cases {
 		t.Run(tc.name, func(t *testing.T) {
 			t.Parallel()
 
-			request := ArtifactInspectionRequest{
-				Extent: tc.extent(t), Build: build,
-				LinkerAssignments: emptyLinkerAssignmentsForTest(),
+			request := ArtifactInspectionRequest{Build: build, LinkerAssignments: emptyLinkerAssignmentsForTest()}
+			if !tc.zeroPath {
+				request.Path = writeInspectionContent(t, inspectionContentRequest{
+					Directory: t.TempDir(), Extent: tc.extent, Mode: 0o700,
+				})
 			}
-			if !tc.wantNil {
-				request.Source = bytes.NewReader(make([]byte, 16))
-			}
-			_, gotErr := InspectBuiltArtifact(request)
+			_, gotErr := InspectBuiltArtifact(t.Context(), request)
 			if !errors.Is(gotErr, core.ErrReleaseContract) {
 				t.Fatalf("InspectBuiltArtifact() error = %v, want %v", gotErr, core.ErrReleaseContract)
 			}
@@ -199,10 +185,12 @@ func TestInspectBuiltArtifactRejectsContentThatIsNotANativeExecutable(t *testing
 				if err != nil {
 					t.Fatalf("core.NewBuildIdentity() error = %v, want nil", err)
 				}
-				_, gotErr := InspectBuiltArtifact(ArtifactInspectionRequest{
-					Source: bytes.NewReader(payload.content),
-					Extent: mustByteCount(t, uint64(len(payload.content))),
-					Build:  build, LinkerAssignments: emptyLinkerAssignmentsForTest(),
+				path := writeInspectionContent(t, inspectionContentRequest{
+					Directory: t.TempDir(), Content: payload.content,
+					Extent: uint64(len(payload.content)), Mode: 0o700,
+				})
+				_, gotErr := InspectBuiltArtifact(t.Context(), ArtifactInspectionRequest{
+					Path: path, Build: build, LinkerAssignments: emptyLinkerAssignmentsForTest(),
 				})
 				if !errors.Is(gotErr, core.ErrReleaseContract) {
 					t.Fatalf("InspectBuiltArtifact() error = %v, want %v", gotErr, core.ErrReleaseContract)
@@ -210,6 +198,39 @@ func TestInspectBuiltArtifactRejectsContentThatIsNotANativeExecutable(t *testing
 			})
 		}
 	}
+}
+
+type inspectionContentRequest struct {
+	Directory string
+	Content   []byte
+	Extent    uint64
+	Mode      os.FileMode
+}
+
+func writeInspectionContent(t *testing.T, request inspectionContentRequest) core.AbsolutePath {
+	t.Helper()
+	path := filepath.Join(request.Directory, "artifact")
+	file, err := os.OpenFile(path, os.O_CREATE|os.O_EXCL|os.O_WRONLY, request.Mode)
+	if err != nil {
+		t.Fatalf("os.OpenFile(inspection content) error = %v, want nil", err)
+	}
+	if len(request.Content) != 0 {
+		written, writeErr := file.Write(request.Content)
+		if writeErr != nil || written != len(request.Content) {
+			_ = file.Close()
+			t.Fatalf("inspection content Write() = (%d, %v), want (%d, nil)", written, writeErr, len(request.Content))
+		}
+	}
+	truncateErr := file.Truncate(int64(request.Extent))
+	closeErr := file.Close()
+	if err := errors.Join(truncateErr, closeErr); err != nil {
+		t.Fatalf("inspection content finalize error = %v, want nil", err)
+	}
+	absolute, err := core.ParseAbsolutePath(path)
+	if err != nil {
+		t.Fatalf("core.ParseAbsolutePath(inspection content) error = %v, want nil", err)
+	}
+	return absolute
 }
 
 // TestLinkerAssignmentsRejectEveryCorruptedStorageShape proves the fixed

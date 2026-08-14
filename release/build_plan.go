@@ -5,6 +5,7 @@ import (
 	"go/token"
 	"path"
 	"sort"
+	"strconv"
 	"strings"
 	"unicode"
 	"unicode/utf8"
@@ -517,8 +518,12 @@ func (c BuildCommand) ArgumentValues() ([]string, error) {
 		goDisablePGOArgument,
 	)
 	arguments = append(arguments, selectors...)
+	linkerFlags, err := c.linkerFlags()
+	if err != nil {
+		return nil, err
+	}
 	arguments = append(arguments,
-		goLinkerArgumentPrefix+c.linkerFlags(),
+		goLinkerArgumentPrefix+linkerFlags,
 		goOutputArgument,
 		c.output.String(),
 		c.mainPackage.String(),
@@ -542,18 +547,48 @@ func (c BuildCommand) closureSelectorArguments() ([]string, error) {
 	return append(selectors, goModuleArgumentPrefix+c.moduleMode.String()), nil
 }
 
-func (c BuildCommand) linkerFlags() string {
+func (c BuildCommand) linkerFlags() (string, error) {
+	commitment, err := c.linkerAssignments.commitment()
+	if err != nil {
+		return "", err
+	}
+	embedded := frameEmbeddedBuildIdentity(c.build, commitment)
 	var flags strings.Builder
 	flags.WriteString(goLinkerStripArguments)
-	writeLinkerFlag(&flags, EmbeddedBuildOfferingLinkSymbol, c.build.Offering().String())
-	writeLinkerFlag(&flags, EmbeddedBuildVersionLinkSymbol, c.build.Version().String())
-	writeLinkerFlag(&flags, EmbeddedBuildCommitLinkSymbol, c.build.Commit().String())
-	writeLinkerFlag(&flags, EmbeddedBuildPlatformLinkSymbol, c.build.Platform().String())
+	writeLinkerFlag(&flags, EmbeddedBuildOfferingLinkSymbol, embedded.offering)
+	writeLinkerFlag(&flags, EmbeddedBuildVersionLinkSymbol, embedded.version)
+	writeLinkerFlag(&flags, EmbeddedBuildCommitLinkSymbol, embedded.commit)
+	writeLinkerFlag(&flags, EmbeddedBuildPlatformLinkSymbol, embedded.platform)
+	writeLinkerFlag(&flags, embeddedBuildAssignmentsLinkSymbol, embedded.assignments)
 	for index := range c.linkerAssignments.count {
 		assignment := c.linkerAssignments.values[index]
 		writeLinkerFlag(&flags, assignment.symbol, assignment.value)
 	}
-	return flags.String()
+	return flags.String(), nil
+}
+
+func (s LinkerAssignments) commitment() (string, error) {
+	if err := s.Validate(); err != nil {
+		return "", err
+	}
+	var canonical strings.Builder
+	for index := range s.count {
+		assignment := s.values[index]
+		writeLengthFramedLinkerValue(&canonical, assignment.symbol)
+		writeLengthFramedLinkerValue(&canonical, assignment.value)
+	}
+	digest := core.SHA256Of([]byte(canonical.String()))
+	value, err := digest.Hex()
+	if err != nil {
+		return "", contractError(err)
+	}
+	return value, nil
+}
+
+func writeLengthFramedLinkerValue(destination *strings.Builder, value string) {
+	destination.WriteString(strconv.Itoa(len(value)))
+	destination.WriteByte(':')
+	destination.WriteString(value)
 }
 
 func writeLinkerFlag(destination *strings.Builder, symbol, value string) {
@@ -734,7 +769,8 @@ func primitiveBuildLinkSymbol(symbol string) bool {
 	case EmbeddedBuildOfferingLinkSymbol,
 		EmbeddedBuildVersionLinkSymbol,
 		EmbeddedBuildCommitLinkSymbol,
-		EmbeddedBuildPlatformLinkSymbol:
+		EmbeddedBuildPlatformLinkSymbol,
+		embeddedBuildAssignmentsLinkSymbol:
 		return true
 	default:
 		return false

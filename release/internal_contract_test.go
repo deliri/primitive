@@ -54,6 +54,7 @@ type releaseContractInventory struct {
 	dependencyObservation             internalFlow[dependencyObservation]
 	dependencyProcessOutcome          internalFlow[dependencyProcessOutcome]
 	ArtifactInspectionRequest         protocolFact[ArtifactInspectionRequest]
+	openedArtifactInspection          internalFlow[openedArtifactInspection]
 	artifactByteInspection            internalFlow[artifactByteInspection]
 	artifactPatternFinder             internalFlow[artifactPatternFinder]
 	AdvanceLatestRequest              protocolFact[AdvanceLatestRequest]
@@ -131,6 +132,7 @@ var (
 	_ = releaseContractInventory{}.manifestFactWire
 	_ = releaseContractInventory{}.manifestIdentityWire
 	_ = releaseContractInventory{}.artifactByteInspection
+	_ = releaseContractInventory{}.openedArtifactInspection
 	_ = releaseContractInventory{}.artifactPatternFinder
 	_ = releaseContractInventory{}.metadataAssetWire
 	_ = releaseContractInventory{}.linkerAssignmentWire

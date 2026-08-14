@@ -95,13 +95,25 @@ func TestPrepareBuildPlanProjectsExactDocumentedGarbleAndGoArguments(t *testing.
 		if wantTarget.OperatingSystem == core.OperatingSystemWindows {
 			wantOutput += ".exe"
 		}
-		wantLDFlags := "-ldflags=-w -s" +
-			" -X " + release.EmbeddedBuildOfferingLinkSymbol + "=bug" +
-			" -X " + release.EmbeddedBuildVersionLinkSymbol + "=2026.0.11" +
-			" -X " + release.EmbeddedBuildCommitLinkSymbol + "=b5c32d95d212b0a1a8cef4126e4d11ff288079ef" +
-			" -X " + release.EmbeddedBuildPlatformLinkSymbol + "=" + wantTarget.String() +
-			" -X github.com/offGridSoft/bug/internal/release.embeddedReleaseKey=fedcba9876543210" +
-			" -X github.com/offGridSoft/bug/internal/release.embeddedServerKey=0123456789abcdef"
+		gotLinker := arguments[7]
+		if !strings.HasPrefix(gotLinker, "-ldflags=-w -s") {
+			t.Fatalf("release.BuildCommand(%d) linker projection = %q, want production stripping first", index, gotLinker)
+		}
+		for _, symbol := range []string{
+			release.EmbeddedBuildOfferingLinkSymbol,
+			release.EmbeddedBuildVersionLinkSymbol,
+			release.EmbeddedBuildCommitLinkSymbol,
+			release.EmbeddedBuildPlatformLinkSymbol,
+			"github.com/offGridSoft/bug/internal/release.embeddedReleaseKey",
+			"github.com/offGridSoft/bug/internal/release.embeddedServerKey",
+		} {
+			if strings.Count(gotLinker, symbol+"=") != 1 {
+				t.Fatalf("release.BuildCommand(%d) linker projection contains %q %d times, want exactly once", index, symbol, strings.Count(gotLinker, symbol+"="))
+			}
+		}
+		const linkerProjection = "compiler-owned-linker-projection"
+		gotArguments := slices.Clone(arguments)
+		gotArguments[7] = linkerProjection
 		wantArguments := []string{
 			"-seed=AQIDBAUGBwg",
 			"-literals",
@@ -110,13 +122,13 @@ func TestPrepareBuildPlanProjectsExactDocumentedGarbleAndGoArguments(t *testing.
 			"-buildvcs=false",
 			"-pgo=off",
 			"-mod=vendor",
-			wantLDFlags,
+			linkerProjection,
 			"-o",
 			wantOutput,
 			"github.com/offGridSoft/bug/cmd/bug",
 		}
-		if !slices.Equal(arguments, wantArguments) {
-			t.Fatalf("release.BuildCommand(%d).ArgumentValues() = %q, want %q", index, arguments, wantArguments)
+		if !slices.Equal(gotArguments, wantArguments) {
+			t.Fatalf("release.BuildCommand(%d).ArgumentValues() = %q, want %q", index, gotArguments, wantArguments)
 		}
 		if slices.Contains(arguments, "-tiny") {
 			t.Fatalf("release.BuildCommand(%d) arguments contain -tiny, want preserved runtime diagnostics", index)

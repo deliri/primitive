@@ -2,16 +2,20 @@ package release
 
 import (
 	"bytes"
+	"context"
 	"debug/elf"
 	"debug/macho"
 	"debug/pe"
 	"errors"
 	"hash/crc32"
 	"io"
+	"os"
 	"strconv"
 	"strings"
 
 	"github.com/deliri/primitive/v2026/core"
+	"github.com/deliri/primitive/v2026/filestore"
+	"github.com/deliri/primitive/v2026/process"
 )
 
 const (
@@ -20,57 +24,115 @@ const (
 	// release ceiling while keeping every read and parser view finite.
 	BuiltArtifactMaximumBytes      = 256 << 20
 	artifactInspectionBufferBytes  = 64 << 10
-	artifactInspectionPatternCount = 4 + linkerAssignmentMaximumCount
+	artifactInspectionPatternCount = 5
 	debugSectionPrefix             = ".debug"
 	compressedDebugSectionPrefix   = ".zdebug"
 )
 
-// ArtifactInspectionRequest supplies one bounded built executable and the
-// exact compiler-owned facts that its build command injected.
+// ArtifactInspectionRequest names one built executable and the exact
+// compiler-owned facts that its build command injected. The file extent is an
+// observed Filestore fact, never a caller declaration.
 type ArtifactInspectionRequest struct {
-	Source            io.ReaderAt
+	Path              core.AbsolutePath
 	LinkerAssignments LinkerAssignments
-	Extent            core.ByteCount
 	Build             core.BuildIdentity
 }
 
-// Validate closes the inspection boundary before the source is read.
+// Validate closes the typed boundary before the path is observed.
 func (r ArtifactInspectionRequest) Validate() error {
-	if r.Source == nil {
-		return contractError(errors.New("artifact inspection source is nil"))
-	}
 	for _, err := range []error{
-		r.Extent.Validate(), r.Build.Validate(), r.LinkerAssignments.Validate(),
+		r.Path.Validate(), r.Build.Validate(), r.LinkerAssignments.Validate(),
 	} {
 		if err != nil {
 			return contractError(errors.New("artifact inspection request is invalid"), err)
 		}
 	}
-	extent, err := r.Extent.Uint64()
-	if err != nil || extent == 0 || extent > BuiltArtifactMaximumBytes {
-		return contractError(errors.New("artifact inspection extent is outside its bound"), err)
-	}
 	return nil
 }
 
 // InspectBuiltArtifact proves the executable format, target architecture,
-// stripping, exact extent, dual integrity, and embedded release stamps. The
-// source is never retained and memory use is independent of its extent.
-func InspectBuiltArtifact(request ArtifactInspectionRequest) (Artifact, error) {
+// executable standing, stable held-file identity, stripping, exact observed
+// extent, dual integrity, and embedded release stamps. The source is never
+// retained and memory use is independent of its extent.
+func InspectBuiltArtifact(ctx context.Context, request ArtifactInspectionRequest) (Artifact, error) {
 	if err := request.Validate(); err != nil {
 		return Artifact{}, err
 	}
-	extent, _ := request.Extent.Int64()
-	bounded := io.NewSectionReader(request.Source, 0, extent)
-	if err := inspectExecutable(bounded, request.Build.Platform()); err != nil {
+	inspection, err := openBuiltArtifactInspection(ctx, request)
+	if err != nil {
 		return Artifact{}, err
 	}
-	integrity, err := inspectArtifactBytes(bounded, request, extent)
+	artifact, inspectErr := inspectOpenedBuiltArtifact(ctx, inspection)
+	closeErr := inspection.close()
+	if inspectErr != nil || closeErr != nil {
+		return Artifact{}, contractError(errors.Join(inspectErr, closeErr))
+	}
+	return artifact, nil
+}
+
+func openBuiltArtifactInspection(
+	ctx context.Context,
+	request ArtifactInspectionRequest,
+) (openedArtifactInspection, error) {
+	inspection, err := filestore.Inspect(ctx, request.Path)
+	if err != nil {
+		return openedArtifactInspection{}, contractError(err)
+	}
+	length, err := inspection.SizeBytes()
+	if err != nil || length.Uint64() == 0 || length.Uint64() > BuiltArtifactMaximumBytes {
+		return openedArtifactInspection{}, contractError(errors.New("artifact inspection extent is outside its bound"), err)
+	}
+	extent, err := core.NewByteCount(length.Uint64())
+	if err != nil {
+		return openedArtifactInspection{}, contractError(err)
+	}
+	location, err := filestore.OpenParent(ctx, request.Path)
+	if err != nil {
+		return openedArtifactInspection{}, contractError(err)
+	}
+	file, err := filestore.OpenRead(ctx, filestore.ReadHandleRequest{Location: location})
+	if err != nil {
+		return openedArtifactInspection{}, contractError(errors.Join(err, location.Root.Close()))
+	}
+	return openedArtifactInspection{
+		source: file, root: location.Root, extent: extent, request: request,
+	}, nil
+}
+
+type openedArtifactInspection struct {
+	source  *os.File
+	root    *os.Root
+	request ArtifactInspectionRequest
+	extent  core.ByteCount
+}
+
+func (i openedArtifactInspection) close() error {
+	return errors.Join(i.source.Close(), i.root.Close())
+}
+
+func inspectOpenedBuiltArtifact(ctx context.Context, inspection openedArtifactInspection) (Artifact, error) {
+	resolved, err := process.ResolveExecutable(ctx, inspection.request.Path)
+	if err != nil || resolved != inspection.request.Path {
+		return Artifact{}, contractError(errors.New("artifact is not the exact runnable path"), err)
+	}
+	standing, err := filestore.ObserveHeldStanding(ctx, inspection.source, inspection.request.Path)
+	if err != nil || standing != filestore.HeldStandingSame {
+		return Artifact{}, contractError(errors.New("artifact path no longer names the opened file"), err)
+	}
+	extentValue, err := inspection.extent.Int64()
+	if err != nil {
+		return Artifact{}, contractError(err)
+	}
+	bounded := io.NewSectionReader(inspection.source, 0, extentValue)
+	if err := inspectExecutable(bounded, inspection.request.Build.Platform()); err != nil {
+		return Artifact{}, err
+	}
+	integrity, err := inspection.inspectBytes(bounded, extentValue)
 	if err != nil {
 		return Artifact{}, err
 	}
 	return NewArtifact(ArtifactRequest{
-		Build: request.Build, Extent: request.Extent,
+		Build: inspection.request.Build, Extent: inspection.extent,
 		SHA256: integrity.sha256, CRC32C: integrity.crc32c,
 	})
 }
@@ -181,15 +243,17 @@ type artifactByteInspection struct {
 	crc32c core.CRC32C
 }
 
-func inspectArtifactBytes(
+func (i openedArtifactInspection) inspectBytes(
 	bounded *io.SectionReader,
-	request ArtifactInspectionRequest,
 	extent int64,
 ) (artifactByteInspection, error) {
 	if _, err := bounded.Seek(0, io.SeekStart); err != nil {
 		return artifactByteInspection{}, contractError(errors.New("rewind artifact"), err)
 	}
-	patterns := artifactInspectionPatterns(request)
+	patterns, err := artifactInspectionPatterns(i.request)
+	if err != nil {
+		return artifactByteInspection{}, err
+	}
 	finder := newArtifactPatternFinder(patterns)
 	sha := core.NewDigestWriter()
 	crc := crc32.New(crc32.MakeTable(crc32.Castagnoli))
@@ -199,7 +263,7 @@ func inspectArtifactBytes(
 		return artifactByteInspection{}, contractError(errors.New(streamArtifactBytesDiagnostic), err)
 	}
 	var extra [1]byte
-	read, readErr := request.Source.ReadAt(extra[:], extent)
+	read, readErr := i.source.ReadAt(extra[:], extent)
 	if read != 0 || !errors.Is(readErr, io.EOF) {
 		return artifactByteInspection{}, contractError(errors.New("artifact exceeds its declared extent"), readErr)
 	}
@@ -219,22 +283,17 @@ func inspectArtifactBytes(
 // refusal, shared by the copy and the digest seal.
 const streamArtifactBytesDiagnostic = "stream artifact bytes"
 
-func artifactInspectionPatterns(request ArtifactInspectionRequest) [artifactInspectionPatternCount]string {
-	build := request.Build
+func artifactInspectionPatterns(request ArtifactInspectionRequest) ([artifactInspectionPatternCount]string, error) {
+	commitment, err := request.LinkerAssignments.commitment()
+	if err != nil {
+		return [artifactInspectionPatternCount]string{}, err
+	}
+	embedded := frameEmbeddedBuildIdentity(request.Build, commitment)
 	patterns := [artifactInspectionPatternCount]string{
-		build.Offering().String(), build.Version().String(),
-		build.Commit().String(), build.Platform().String(),
+		embedded.offering, embedded.version, embedded.commit,
+		embedded.platform, embedded.assignments,
 	}
-	for index := range request.LinkerAssignments.count {
-		patternIndex := index + 4
-		if patternIndex >= len(patterns) {
-			break
-		}
-		// #nosec G602 -- request validation proves count <= the fixed assignment
-		// array and patternIndex is checked against the fixed destination above.
-		patterns[patternIndex] = request.LinkerAssignments.values[index].value
-	}
-	return patterns
+	return patterns, nil
 }
 
 type artifactPatternFinder struct {

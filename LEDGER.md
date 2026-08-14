@@ -4,6 +4,37 @@ Last updated: `2026-08-14`
 
 ## Current
 
+- closed real runnable artifact authority, 2026-08-14, prepared
+  `v2026.0.113`. `ArtifactInspectionRequest` now names one typed absolute path
+  instead of accepting a caller-owned reader plus caller-declared extent.
+  Release derives the real regular-file extent through Filestore, opens it
+  through a rooted capability, requires Process executable standing, binds the
+  held handle back to the same filesystem entry, and closes both handles on
+  every terminal path before returning. Native format, architecture, stripping,
+  exact extent, SHA-256, and CRC32C remain one O(1) streaming inspection.
+
+  The first semantic fuzz oracle then found a genuine pre-release identity
+  defect: a Witness binary authenticated as Bug because the old inspector
+  searched for the loose token `bug`, which appeared incidentally elsewhere in
+  the stripped executable. Build commands now inject compiler-owned domain
+  frames for offering, version, commit, and platform plus a SHA-256 commitment
+  over the canonical typed product linker-assignment set. Runtime embedded
+  identity refuses unframed or malformed values, and artifact inspection
+  authenticates the same frames instead of loose substrings. The minimized
+  foreign-offering input remains a fuzz seed.
+
+  The hostile proof executes real Go-built Mach-O, ELF, and PE files across all
+  four release targets; twelve accepted build/strip combinations; more than
+  thirty typed refusals; exact zero, one, ceiling-minus-one, ceiling, and
+  ceiling-plus-one extents; malformed native formats; stamp and assignment
+  binding; executable permissions; stable source bytes; and a local
+  positive/negative/neutral lifecycle triad. Removing Process executable
+  standing returned a fully populated Artifact for a `0600` Mach-O and drove
+  the isolated test red. The Release suite, semantic fuzz seeds, field
+  alignment, production complexity, staticcheck, repository deadcode with
+  tests, and witness-lint are green. The campaign-wide canonical gate remains
+  reserved for the end as directed.
+
 - closed deterministic four-target build planning and product-owned command
   policy, 2026-08-14, prepared `v2026.0.112`. One composed hostile layer triad
   now starts from a real clean Git checkout at an exact observed commit,
