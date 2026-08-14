@@ -354,7 +354,7 @@ func retrievalVerifiedChit(t testing.TB, request retrievalChitRequest) chit.Veri
 		t.Fatalf("chit.NewVersion() error = %v, want nil", err)
 	}
 	document, err := chit.Issue(chit.Issuance{
-		Signer: request.Private,
+		Signer: request.Private, TrustedKeys: request.Trusted,
 		Payload: chit.Payload{
 			Identity: request.Request.Chit, Collection: collection, Scope: request.Scope,
 			Manifest:    request.Summary,

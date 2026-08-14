@@ -230,6 +230,99 @@ func TestManifestDigestChangesWhenAuthenticatedOrderChanges(t *testing.T) {
 	}
 }
 
+func TestChitIssuanceLayerTriad(t *testing.T) {
+	t.Parallel()
+
+	t.Run("positive exact retries across the version domain converge on the persisted signed document", func(t *testing.T) {
+		t.Parallel()
+
+		versions := []uint64{1, 2, 3, 4, 5, 99, 100, 101, math.MaxUint32, math.MaxUint64}
+		for index, version := range versions {
+			fixture := newChitFixture(t, byte(0x71+index), version)
+			prior := fixture.document
+			got, gotErr := Issue(Issuance{
+				Existing: &prior, Signer: fixture.private, TrustedKeys: fixture.trusted,
+				Payload: fixture.document.Payload,
+			})
+			if gotErr != nil || got != prior {
+				t.Fatalf("Issue(exact retry version %d) = (%v, %v), want persisted %v and nil", version, got, gotErr, prior)
+			}
+		}
+	})
+
+	t.Run("negative reuse of one logical version with any changed content conflicts", func(t *testing.T) {
+		t.Parallel()
+
+		fixture := newChitFixture(t, 0x51, 1)
+		other := newChitFixture(t, 0x61, 2)
+		cases := []struct {
+			name   string
+			mutate func(*Payload)
+		}{
+			{name: "chit identity changed", mutate: func(value *Payload) { value.Identity = other.identity }},
+			{name: "collection identity changed", mutate: func(value *Payload) { value.Collection = other.document.Payload.Collection }},
+			{name: "account scope changed", mutate: func(value *Payload) { value.Scope.Account = other.scope.Account }},
+			{name: "offering scope changed", mutate: func(value *Payload) { value.Scope.Offering = other.scope.Offering }},
+			{name: "manifest closure changed", mutate: func(value *Payload) { value.Manifest = other.summary }},
+			{name: "acceptance instant moved forward", mutate: func(value *Payload) { value.AcceptedAt = temporal.InstantFromNanoseconds(83) }},
+			{name: "acceptance instant moved backward", mutate: func(value *Payload) { value.AcceptedAt = temporal.InstantFromNanoseconds(80) }},
+			{name: "retention promise extended", mutate: func(value *Payload) { value.RetainUntil = temporal.InstantFromNanoseconds(500) }},
+			{name: "retention promise shortened", mutate: func(value *Payload) { value.RetainUntil = temporal.InstantFromNanoseconds(100) }},
+			{name: "version advanced in occupied slot", mutate: func(value *Payload) { value.Version = mustVersion(t, 2) }},
+		}
+		for _, tc := range cases {
+			t.Run(tc.name, func(t *testing.T) {
+				t.Parallel()
+
+				candidate := fixture.document.Payload
+				tc.mutate(&candidate)
+				if candidate == fixture.document.Payload {
+					t.Fatalf("mutated candidate = %v, want value distinct from persisted %v", candidate, fixture.document.Payload)
+				}
+				if err := candidate.Validate(); err != nil {
+					t.Fatalf("mutated candidate Validate() error = %v, want nil", err)
+				}
+				prior := fixture.document
+				got, gotErr := Issue(Issuance{
+					Existing: &prior, Signer: fixture.private, TrustedKeys: fixture.trusted,
+					Payload: candidate,
+				})
+				if !errors.Is(gotErr, core.ErrChitConflict) || got != (Document{}) {
+					t.Fatalf("Issue(changed occupied version) = (%v, %v), want zero and errors.Is %v", got, gotErr, core.ErrChitConflict)
+				}
+			})
+		}
+	})
+
+	t.Run("neutral zero and unauthenticated prior state produce no signed chit", func(t *testing.T) {
+		t.Parallel()
+
+		if got, gotErr := Issue(Issuance{}); !errors.Is(gotErr, core.ErrChitContract) || got != (Document{}) {
+			t.Fatalf("Issue(zero) = (%v, %v), want zero and errors.Is %v", got, gotErr, core.ErrChitContract)
+		}
+
+		fixture := newChitFixture(t, 0x31, 1)
+		other := newChitFixture(t, 0x41, 1)
+		got, gotErr := Issue(Issuance{
+			Signer: fixture.private, TrustedKeys: other.trusted,
+			Payload: fixture.document.Payload,
+		})
+		if !errors.Is(gotErr, core.ErrChitVerification) || got != (Document{}) {
+			t.Fatalf("Issue(fresh untrusted signer) = (%v, %v), want zero and errors.Is %v", got, gotErr, core.ErrChitVerification)
+		}
+
+		forged := fixture.document
+		forged.Attestation.Signature = other.document.Attestation.Signature
+		got, gotErr = Issue(Issuance{
+			Existing: &forged, Signer: fixture.private, TrustedKeys: fixture.trusted,
+			Payload: fixture.document.Payload,
+		})
+		if !errors.Is(gotErr, core.ErrChitVerification) || got != (Document{}) {
+			t.Fatalf("Issue(unauthenticated prior) = (%v, %v), want zero and errors.Is %v", got, gotErr, core.ErrChitVerification)
+		}
+	})
+}
+
 func TestChitVerificationLayerTriad(t *testing.T) {
 	t.Parallel()
 
@@ -400,7 +493,7 @@ func newChitFixture(t testing.TB, marker byte, versionValue uint64) chitFixture 
 		Identity: identity, Collection: collection, Scope: scope, Manifest: summary,
 		AcceptedAt: accepted, RetainUntil: retained, Version: mustVersion(t, versionValue),
 	}
-	document, err := Issue(Issuance{Signer: private, Payload: payload})
+	document, err := Issue(Issuance{Signer: private, TrustedKeys: trusted, Payload: payload})
 	if err != nil {
 		t.Fatalf("chit.Issue() error = %v, want nil", err)
 	}

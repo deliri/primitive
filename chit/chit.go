@@ -186,13 +186,26 @@ func (d *Document) UnmarshalJSON(data []byte) error {
 }
 
 type Issuance struct {
-	Signer  crypto.Signer
-	Payload Payload
+	// Existing is the authority-signed document already stored under Payload's
+	// collection and version slot. Authorities read it and call Issue inside the
+	// same persistence transaction that creates a fresh slot.
+	Existing    *Document
+	Signer      crypto.Signer
+	TrustedKeys attest.TrustedKeys
+	Payload     Payload
 }
 
 func (i Issuance) Validate() error {
-	if err := (attest.SignRequest[SigningDomain]{Body: i.Payload, Signer: i.Signer}).Validate(); err != nil {
+	if err := errors.Join(
+		(attest.SignRequest[SigningDomain]{Body: i.Payload, Signer: i.Signer}).Validate(),
+		i.TrustedKeys.Validate(),
+	); err != nil {
 		return contractError(err)
+	}
+	if i.Existing != nil {
+		if err := i.Existing.Validate(); err != nil {
+			return contractError(err)
+		}
 	}
 	return nil
 }
@@ -201,12 +214,49 @@ func Issue(issuance Issuance) (Document, error) {
 	if err := issuance.Validate(); err != nil {
 		return Document{}, err
 	}
+	if issuance.Existing != nil {
+		return convergeExisting(issuance)
+	}
+	return issueFresh(issuance)
+}
+
+func convergeExisting(issuance Issuance) (Document, error) {
+	existing := *issuance.Existing
+	verified, err := Verify(Verification{
+		Document: existing,
+		Expected: Expectation{
+			Identity: existing.Payload.Identity,
+			Scope:    existing.Payload.Scope,
+		},
+		TrustedKeys: issuance.TrustedKeys,
+	})
+	if err != nil {
+		return Document{}, err
+	}
+	if existing.Payload != issuance.Payload {
+		return Document{}, conflictError(errors.New("occupied chit version differs"))
+	}
+	return verified.Document()
+}
+
+func issueFresh(issuance Issuance) (Document, error) {
 	envelope, err := attest.Sign(attest.SignRequest[SigningDomain]{Body: issuance.Payload, Signer: issuance.Signer})
 	if err != nil {
 		return Document{}, contractError(err)
 	}
 	document := Document{Payload: issuance.Payload, Attestation: envelope}
-	return document, document.Validate()
+	verified, err := Verify(Verification{
+		Document: document,
+		Expected: Expectation{
+			Identity: issuance.Payload.Identity,
+			Scope:    issuance.Payload.Scope,
+		},
+		TrustedKeys: issuance.TrustedKeys,
+	})
+	if err != nil {
+		return Document{}, err
+	}
+	return verified.Document()
 }
 
 // Expectation prevents a valid chit for another account, offering, or ID from

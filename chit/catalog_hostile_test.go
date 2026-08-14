@@ -93,7 +93,10 @@ func TestVerifyCatalogRejectsEveryIndependentAgreementSubstitution(t *testing.T)
 	alternatePayload := fixture.payload
 	alternatePayload.Entries = append([]CatalogEntry(nil), fixture.payload.Entries...)
 	alternatePayload.Entries[0].Chit.Payload.Version = mustVersion(t, 2)
-	alternateChit, err := Issue(Issuance{Signer: fixture.private, Payload: alternatePayload.Entries[0].Chit.Payload})
+	alternateChit, err := Issue(Issuance{
+		Signer: fixture.private, TrustedKeys: fixture.trusted,
+		Payload: alternatePayload.Entries[0].Chit.Payload,
+	})
 	if err != nil {
 		t.Fatalf("Issue(alternate catalog chit) error = %v, want nil", err)
 	}
@@ -234,7 +237,9 @@ func TestVerifyCatalogClosesSpecificSelectionToZeroOrOneExactChit(t *testing.T) 
 
 	secondPayload := payload.Entries[0].Chit.Payload
 	secondPayload.Identity = otherID
-	secondChit, err := Issue(Issuance{Signer: fixture.private, Payload: secondPayload})
+	secondChit, err := Issue(Issuance{
+		Signer: fixture.private, TrustedKeys: fixture.trusted, Payload: secondPayload,
+	})
 	if err != nil {
 		t.Fatalf("Issue(second chit) error = %v, want nil", err)
 	}

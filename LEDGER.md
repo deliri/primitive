@@ -4,6 +4,24 @@ Last updated: `2026-08-13`
 
 ## Current
 
+- closed immutable Chit authority issuance, 2026-08-13, prepared
+  `v2026.0.100`. `chit.Issue` now accepts the authority document already stored
+  under the candidate collection/version slot and the authority trust set. A
+  fresh issuance signs and independently verifies its exact payload before any
+  document escapes. An occupied slot first authenticates the persisted
+  document, returns that exact document for a byte-exact payload retry, and
+  returns zero plus `ErrChitConflict` when any UUIDv7 identity, scope, manifest
+  closure, acceptance instant, retention promise, or version changes. Primitive
+  owns no persistence or transaction engine; OGS supplies the slot read inside
+  its own atomic transaction.
+
+  The meaningful red state was the compiler-visible absence of persisted-slot
+  and trusted-authority inputs on `Issuance`. Hostile proof covers ten versions
+  from one through `uint64` maximum, ten independent valid content changes,
+  non-vacuous mutation checks, foreign signer trust, forged persisted
+  signatures, zero-value neutrality, exact signed-document convergence, and
+  the existing independent signature/substitution verification matrix.
+
 - closed the authority-side registration and check-in transaction gap,
   2026-08-13, prepared `v2026.0.99`. `VerifyRegistrationAuthority` now matches
   only the authority's persisted one-way verifier, derives the exact
