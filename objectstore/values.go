@@ -105,9 +105,9 @@ func validateAmazonS3Version(value string) error {
 }
 
 func validateGoogleCloudStorageGeneration(value string) error {
-	generation, err := strconv.ParseUint(value, 10, 64)
-	if err != nil || generation == 0 ||
-		strconv.FormatUint(generation, 10) != value {
+	generation, err := strconv.ParseInt(value, 10, 64)
+	if err != nil || generation <= 0 ||
+		strconv.FormatInt(generation, 10) != value {
 		return core.ErrObjectStoreContract
 	}
 	return nil
@@ -161,8 +161,8 @@ func (SignedURL) Format(state fmt.State, _ rune) {
 
 // SignedHeader is one immutable signed request field.
 type SignedHeader struct {
-	name  core.HTTPHeaderName
 	value *string
+	name  core.HTTPHeaderName
 }
 
 // NewSignedHeader validates and owns one request field.
@@ -249,8 +249,8 @@ func (SignedHeaders) Format(state fmt.State, _ rune) {
 
 // UploadTarget is one already-issued provider upload capability.
 type UploadTarget struct {
-	Headers   SignedHeaders
 	URL       SignedURL
+	Headers   SignedHeaders
 	ExpiresAt temporal.Instant
 }
 
@@ -287,8 +287,8 @@ func (t UploadTarget) validateFor(provider Provider) error {
 
 // DownloadTarget is one already-issued whole-object download capability.
 type DownloadTarget struct {
-	Headers   SignedHeaders
 	URL       SignedURL
+	Headers   SignedHeaders
 	ExpiresAt temporal.Instant
 }
 

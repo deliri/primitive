@@ -4,6 +4,36 @@ Last updated: `2026-08-13`
 
 ## Current
 
+- closed authenticated upload-to-custody reconciliation, 2026-08-13, prepared
+  `v2026.0.108`. GCS uploads now retain the exact positive provider generation
+  returned by the upload. `ObserveGCSUpload` uses the official SDK to read only
+  that immutable generation, refuses foreign bucket, object, generation,
+  extent, CRC32C, media type, or provider time, and projects Objectstore's
+  sealed provider-neutral upload proof. `submissionauth.ReconcileCompletion`
+  authenticates the original request, installation certificate, nominated
+  device completion, exact provider observation, authority receipt scope and
+  signature before releasing one chit manifest addition. Receipt integrity and
+  manifest placement derive only from authenticated request facts; provider
+  creation time is the receipt occurrence time. No object bytes are downloaded
+  and no provider or product orchestration leaks into the reconciliation
+  contract.
+
+  The architecture ratchet rejected a direct GCS dependency once test-only
+  coupling crossed the nine-edge ceiling. The final graph keeps reconciliation
+  provider-blind by making Objectstore own the common sealed observation, and
+  remains within the unchanged ceiling. Hostile proof covers ten provider
+  boundary uploads, eleven provider-neutral refusal cases, twelve independent
+  GCS metadata contradictions, ten authority identity variants, eleven
+  reconciliation substitutions, and zero-result accessors. A load-bearing
+  mutation removed the completion-evidence comparison; the isolated foreign-
+  generation case accepted generation 8 in place of generation 7 and went red.
+  Restored production returns typed binding refusal. The SDK metadata semantic
+  fuzz oracle found and retained a media-type canonicalization corpus, then ran
+  180,395 executions with typed zero/refusal and exact semantic projection
+  requirements. The repository sweep also caught and closed an overbroad
+  generation rule so GCS downloads remain valid without an optional version
+  while GCS uploads cannot reconcile without one.
+
 - closed URL-free Submission completion disclosure, 2026-08-13, prepared
   `v2026.0.107`. The device completion continues to sign only its build,
   original request nonce and commitment, capability commitment, authority

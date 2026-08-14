@@ -14,9 +14,9 @@ const (
 	// PrimitivePackageCount is the number of packages in the complete catalog.
 	PrimitivePackageCount = 40
 	// PrimitiveDirectImportCount is the number of admitted direct import edges.
-	PrimitiveDirectImportCount = 148
+	PrimitiveDirectImportCount = 150
 	// PrimitiveDirectTestImportCount is the number of admitted test-only edges.
-	PrimitiveDirectTestImportCount = 22
+	PrimitiveDirectTestImportCount = 21
 	// PrimitiveMaximumDirectImports caps direct sibling imports per package.
 	PrimitiveMaximumDirectImports = 9
 )
@@ -269,6 +269,8 @@ func PrimitiveArchitecture() ArchitectureCatalog {
 			{Importer: PackageSubmissionAuth, Imported: PackageControlWire},
 			{Importer: PackageSubmissionAuth, Imported: PackageSubmission},
 			{Importer: PackageSubmissionAuth, Imported: PackageChit},
+			{Importer: PackageSubmissionAuth, Imported: PackageObjectStore},
+			{Importer: PackageSubmissionAuth, Imported: PackageReceipt},
 			{Importer: PackageControlPlaneTest, Imported: PackageCore},
 			{Importer: PackageControlPlaneTest, Imported: PackageControlPlane},
 			{Importer: PackageControlPlaneTest, Imported: PackageControlWire},
@@ -388,7 +390,6 @@ func PrimitiveArchitecture() ArchitectureCatalog {
 			{Importer: PackageControlWire, Imported: PackageControlPlaneTest},
 			{Importer: PackageRetrievalAuth, Imported: PackageControlPlaneTest},
 			{Importer: PackageRetrieval, Imported: PackageReceipt},
-			{Importer: PackageSubmissionAuth, Imported: PackageObjectStore},
 			{Importer: PackageChitAuth, Imported: PackageControlPlaneTest},
 			{Importer: PackageChitAuth, Imported: PackageReceipt},
 			{Importer: PackagePaymentAuth, Imported: PackageControlPlaneTest},
@@ -649,7 +650,7 @@ func packagePurposeTexts() [packageIdentityLimit]string {
 		PackageControlWire:      "Shared control-wire facts and paired authenticated socket with request-owner body limits",
 		PackageControlPlane:     "Signed control-plane request and response documents, their binding to one exact request, product status, and usage watermark",
 		PackageSubmission:       "Authenticated evidence declarations, authority upload grants, and device-signed provider completion evidence bound to one exact request",
-		PackageSubmissionAuth:   "Installation-certificate binding and device authentication for evidence-submission requests and provider completions",
+		PackageSubmissionAuth:   "Installation-certificate binding, device authentication, and authority reconciliation for evidence submissions",
 		PackageControlPlaneTest: "Real authority-signed installation certificate fixtures for hostile control-plane tests",
 		PackageProcess:          "Argv, environment, containment, bounded output, exit, and reaping over os/exec",
 		PackageRelease:          "Clean repository binding, verified build tools, deterministic Garble build and process plans, bounded maintainer material exchange, executable inspection, signed tool and metadata provenance, immutable artifacts, manifests, Latest, and selection",
@@ -659,7 +660,7 @@ func packagePurposeTexts() [packageIdentityLimit]string {
 		PackageCloudIdentity:    "Bounded Google Cloud or AWS outbound identity-token acquisition and redacted disclosure",
 		PackageDeploy:           "Exact create-only GCS publication of one authenticated release and its metadata",
 		PackageUpgrade:          "Crash-recoverable installation, activation, startup truth, rollback, and recovery",
-		PackageGCSObjects:       "Authenticated Google Cloud Storage bucket provisioning, typed logical namespace composition, create-only writes, digest-bound reads, and generation-matched permanent deletion through the official SDK",
+		PackageGCSObjects:       "Authenticated Google Cloud Storage bucket provisioning, typed logical namespace composition, create-only writes, exact-generation observation, digest-bound reads, and generation-matched permanent deletion through the official SDK",
 		PackageID:               "Canonical UUIDv7 and ULID time-ordered identifiers from one observed instant and caller-supplied entropy",
 		PackageChit:             "Authority-signed immutable custody tickets, streaming manifest closure, bounded catalogs, and device-signed catalog queries",
 		PackageChitAuth:         "Installation-certificate binding and device authentication for one chit catalog query",

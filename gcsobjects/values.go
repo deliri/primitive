@@ -7,6 +7,7 @@ import (
 	"unicode/utf8"
 
 	"github.com/deliri/primitive/v2026/core"
+	"github.com/deliri/primitive/v2026/objectstore"
 	"github.com/deliri/primitive/v2026/temporal"
 )
 
@@ -306,7 +307,7 @@ func (m GCSObjectMetadata) Validate() error {
 	for _, err := range []error{
 		m.bucket.Validate(), m.name.Validate(), m.generation.Validate(),
 		m.length.Validate(), m.crc32c.Validate(), m.contentType.Validate(),
-		m.createdAt.Validate(), m.updatedAt.Validate(), m.customTime.Validate(),
+		m.createdAt.Validate(), m.updatedAt.Validate(),
 	} {
 		if err != nil {
 			return errors.Join(core.ErrObjectStoreContract, err)
@@ -317,7 +318,86 @@ func (m GCSObjectMetadata) Validate() error {
 			return errors.Join(core.ErrObjectStoreContract, err)
 		}
 	}
+	if m.customTime != (temporal.Instant{}) {
+		if err := m.customTime.Validate(); err != nil {
+			return errors.Join(core.ErrObjectStoreContract, err)
+		}
+	}
 	return nil
+}
+
+// VerifiedGCSUpload is sealed proof that official provider metadata for one
+// exact generation agreed with authenticated upload evidence.
+type VerifiedGCSUpload struct {
+	metadata    GCSObjectMetadata
+	observation objectstore.VerifiedProviderUpload
+	set         bool
+}
+
+// Validate rechecks every fact retained by the observation proof.
+func (v VerifiedGCSUpload) Validate() error {
+	if !v.set {
+		return core.ErrObjectStoreContract
+	}
+	if err := errors.Join(v.metadata.Validate(), v.observation.Validate()); err != nil {
+		return errors.Join(core.ErrObjectStoreContract, err)
+	}
+	return errors.Join(v.validateEvidenceBinding(), v.validateProviderProjection())
+}
+
+func (v VerifiedGCSUpload) validateEvidenceBinding() error {
+	evidence, err := v.observation.Evidence()
+	if err != nil {
+		return err
+	}
+	generation, err := gcsGenerationFromEvidence(evidence)
+	if err != nil {
+		return err
+	}
+	if v.metadata.Generation() != generation ||
+		v.metadata.Length() != evidence.Bytes() ||
+		v.metadata.CRC32C() != evidence.CRC32C() {
+		return errors.Join(core.ErrObjectStoreIntegrity, core.ErrObjectStoreSource)
+	}
+	return nil
+}
+
+func (v VerifiedGCSUpload) validateProviderProjection() error {
+	contentType, contentTypeErr := v.observation.ContentType()
+	occurredAt, occurredAtErr := v.observation.OccurredAt()
+	if err := errors.Join(contentTypeErr, occurredAtErr); err != nil {
+		return err
+	}
+	if v.metadata.ContentType() != contentType || v.metadata.CreatedAt() != occurredAt {
+		return errors.Join(core.ErrObjectStoreIntegrity, core.ErrObjectStoreSource)
+	}
+	return nil
+}
+
+// Metadata returns the exact authenticated provider metadata.
+func (v VerifiedGCSUpload) Metadata() (GCSObjectMetadata, error) {
+	if err := v.Validate(); err != nil {
+		return GCSObjectMetadata{}, err
+	}
+	return v.metadata, nil
+}
+
+// Evidence returns the exact authenticated client evidence reconciled by the
+// provider observation.
+func (v VerifiedGCSUpload) Evidence() (objectstore.TransferEvidence, error) {
+	if err := v.Validate(); err != nil {
+		return objectstore.TransferEvidence{}, err
+	}
+	return v.observation.Evidence()
+}
+
+// ProviderObservation returns the provider-neutral exact-upload proof used by
+// authority reconciliation.
+func (v VerifiedGCSUpload) ProviderObservation() (objectstore.VerifiedProviderUpload, error) {
+	if err := v.Validate(); err != nil {
+		return objectstore.VerifiedProviderUpload{}, err
+	}
+	return v.observation, nil
 }
 
 // GCSDeleteResult is sealed evidence that a bounded prefix was absent after a
@@ -353,4 +433,8 @@ func (r GCSDeleteResult) Validate() error {
 	return r.deleted.Validate()
 }
 
-var _ core.OffWireEnum = GCSAuthenticationUnknown
+var (
+	_ core.OffWireEnum = GCSAuthenticationUnknown
+	_ core.Validatable = GCSUploadObservationRequest{}
+	_ core.Validatable = VerifiedGCSUpload{}
+)

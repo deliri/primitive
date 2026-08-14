@@ -5,6 +5,7 @@ import (
 	"errors"
 
 	"github.com/deliri/primitive/v2026/core"
+	"github.com/deliri/primitive/v2026/temporal"
 )
 
 const (
@@ -46,6 +47,88 @@ type TransferEvidence struct {
 // confirmed Transfer. It contains no URL, bearer, header, path, or content.
 type TransferEvidenceProjection struct{ evidence TransferEvidence }
 
+// ProviderUploadObservationRequest supplies provider-read facts for one exact
+// upload. Provider-specific packages obtain these facts from their official
+// SDK; Objectstore owns their comparison with client transfer evidence.
+type ProviderUploadObservationRequest struct {
+	ContentType core.HTTPMediaType
+	Version     ProviderVersion
+	Evidence    TransferEvidence
+	OccurredAt  temporal.Instant
+	Bytes       core.ByteLength
+	CRC32C      core.CRC32C
+}
+
+// VerifiedProviderUpload is sealed provider-neutral proof that independently
+// observed object facts agree with one exact client upload.
+type VerifiedProviderUpload struct {
+	request ProviderUploadObservationRequest
+	set     bool
+}
+
+// Validate closes the independently observed upload facts and their binding
+// to the authenticated client evidence.
+func (r ProviderUploadObservationRequest) Validate() error {
+	if err := errors.Join(
+		r.Evidence.Validate(), r.Version.Validate(), r.Bytes.Validate(),
+		r.CRC32C.Validate(), r.ContentType.Validate(), r.OccurredAt.Validate(),
+	); err != nil {
+		return errors.Join(core.ErrObjectStoreContract, err)
+	}
+	evidenceVersion, present := r.Evidence.Version()
+	if r.Evidence.Direction() != DirectionUpload || !present ||
+		r.Version != evidenceVersion || r.Bytes != r.Evidence.Bytes() ||
+		r.CRC32C != r.Evidence.CRC32C() {
+		return errors.Join(core.ErrObjectStoreIntegrity, core.ErrObjectStoreSource)
+	}
+	return nil
+}
+
+// VerifyProviderUpload releases provider-neutral proof only for exact facts.
+func VerifyProviderUpload(request ProviderUploadObservationRequest) (VerifiedProviderUpload, error) {
+	if err := request.Validate(); err != nil {
+		return VerifiedProviderUpload{}, err
+	}
+	verified := VerifiedProviderUpload{request: request, set: true}
+	if err := verified.Validate(); err != nil {
+		return VerifiedProviderUpload{}, err
+	}
+	return verified, nil
+}
+
+// Validate rechecks the sealed provider-neutral proof.
+func (v VerifiedProviderUpload) Validate() error {
+	if !v.set {
+		return core.ErrObjectStoreContract
+	}
+	return v.request.Validate()
+}
+
+// Evidence returns the exact client transfer evidence observed by the
+// provider.
+func (v VerifiedProviderUpload) Evidence() (TransferEvidence, error) {
+	if err := v.Validate(); err != nil {
+		return TransferEvidence{}, err
+	}
+	return v.request.Evidence, nil
+}
+
+// ContentType returns the independently observed media type.
+func (v VerifiedProviderUpload) ContentType() (core.HTTPMediaType, error) {
+	if err := v.Validate(); err != nil {
+		return core.HTTPMediaType{}, err
+	}
+	return v.request.ContentType, nil
+}
+
+// OccurredAt returns the provider's immutable creation instant.
+func (v VerifiedProviderUpload) OccurredAt() (temporal.Instant, error) {
+	if err := v.Validate(); err != nil {
+		return temporal.Instant{}, err
+	}
+	return v.request.OccurredAt, nil
+}
+
 // Evidence projects confirmed transfer proof for a higher signed protocol.
 func (t Transfer) Evidence() (TransferEvidenceProjection, error) {
 	if err := t.Validate(); err != nil {
@@ -71,6 +154,9 @@ func (e TransferEvidence) Validate() error {
 	}
 	if err := validateProviderDirection(e.provider, e.direction); err != nil {
 		return errors.Join(core.ErrObjectStoreContract, err)
+	}
+	if e.provider == ProviderGoogleCloudStorage && e.direction == DirectionUpload && e.version.IsZero() {
+		return core.ErrObjectStoreContract
 	}
 	if !e.version.IsZero() {
 		if err := e.version.Validate(); err != nil || e.version.Provider() != e.provider {
@@ -211,6 +297,8 @@ func parseDirectionToken(value string) (Direction, error) {
 var (
 	_ core.Validatable            = TransferEvidence{}
 	_ core.Validatable            = TransferEvidenceProjection{}
+	_ core.Validatable            = ProviderUploadObservationRequest{}
+	_ core.Validatable            = VerifiedProviderUpload{}
 	_ core.ValidatedJSONMarshaler = TransferEvidence{}
 	_ core.ValidatedJSONMarshaler = TransferEvidenceProjection{}
 	_ json.Unmarshaler            = (*TransferEvidence)(nil)

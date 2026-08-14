@@ -14,9 +14,9 @@ func TestNewGCSGenerationExhaustsProviderIntegerBoundaryClasses(t *testing.T) {
 	t.Parallel()
 
 	tests := []struct {
+		wantErr error
 		name    string
 		value   int64
-		wantErr error
 	}{
 		{name: "minimum signed generation is rejected", value: math.MinInt64, wantErr: core.ErrObjectStoreContract},
 		{name: "minimum plus one generation is rejected", value: math.MinInt64 + 1, wantErr: core.ErrObjectStoreContract},

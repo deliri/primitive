@@ -18,6 +18,8 @@ It owns exactly:
 - logical directory and object-name composition from validated segments,
   without fake placeholder objects or caller-owned slash conventions;
 - two create-only object writes, served-media and stored-file;
+- exact-generation upload observation that binds authenticated client evidence
+  to the official provider metadata without downloading object bytes;
 - one digest-bound bounded read;
 - the canonical public address of one object; and
 - generation-matched permanent deletion of one exact object or one confined
@@ -54,7 +56,11 @@ mode flag. The caller makes the decision by naming the function:
 
 Both are create-only under a generation-zero precondition, so an existing object
 is a conflict rather than an overwrite, and both bind the stream to a declared
-SHA-256 and CRC32C over an exact extent.
+SHA-256 and CRC32C over an exact extent. `ObserveGCSUpload` then reads only the
+exact generation named by authenticated transfer evidence and releases sealed
+proof only when bucket, name, generation, extent, and CRC32C agree. Its
+`ProviderObservation` projection then hands Objectstore's provider-neutral
+sealed facts to an authority without teaching that authority about GCS.
 
 ## Buckets and logical directories
 

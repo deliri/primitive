@@ -44,8 +44,8 @@ func TestObjectstoreBearerValuesRedactAtEveryReachableLayer(t *testing.T) {
 	amazonDownload := downloadTargetFixture(t, downloadCapabilityFixtureRequest{Provider: ProviderAmazonS3})
 
 	values := []struct {
-		name  string
 		value fmt.Formatter
+		name  string
 	}{
 		{name: "zero signed URL", value: SignedURL{}},
 		{name: "valid signed URL", value: googleUpload.URL},
@@ -134,8 +134,8 @@ func TestObjectstoreNestedBearerValuesHaveNoImplicitPersistenceProjection(t *tes
 		t.Fatalf("NewSignedHeaders() setup error = %v, want nil", headersErr)
 	}
 	values := []struct {
-		name  string
 		value fmt.Formatter
+		name  string
 	}{
 		{name: "signed header", value: header},
 		{name: "signed headers", value: headers},

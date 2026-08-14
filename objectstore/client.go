@@ -137,6 +137,9 @@ func validateProviderDirection(provider Provider, direction Direction) error {
 }
 
 func (t Transfer) validateVersion() error {
+	if t.provider == ProviderGoogleCloudStorage && t.direction == DirectionUpload && t.version.IsZero() {
+		return core.ErrObjectStoreContract
+	}
 	if t.version.IsZero() {
 		return nil
 	}
@@ -408,10 +411,10 @@ func uploadBody(
 }
 
 type uploadConfirmation struct {
+	headers  exchange.CapturedHeaders
+	prepared preparedUpload
 	result   Transfer
 	expected Integrity
-	prepared preparedUpload
-	headers  exchange.CapturedHeaders
 }
 
 func confirmUpload(confirmation uploadConfirmation) (Transfer, error) {
@@ -434,10 +437,10 @@ func confirmUpload(confirmation uploadConfirmation) (Transfer, error) {
 // digests and Objectstore's local digests come from one algorithm, so the
 // provider value is the only independent witness available.
 type transferConfirmation struct {
-	result   Transfer
-	expected Integrity
 	digests  streamDigests
 	headers  exchange.CapturedHeaders
+	result   Transfer
+	expected Integrity
 }
 
 func confirmDownload(confirmation transferConfirmation) (Transfer, error) {
@@ -483,6 +486,7 @@ func confirmTransfer(confirmation transferConfirmation) (Transfer, error) {
 	result.crc32c = crcValue
 	result.commitment = CommitmentConfirmed
 	if err := result.Validate(); err != nil {
+		result.commitment = invalidResponseCommitment(result.direction)
 		return result, err
 	}
 	return result, nil

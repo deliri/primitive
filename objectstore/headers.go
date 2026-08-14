@@ -124,9 +124,9 @@ func validateProviderSignedHeaders(
 }
 
 type callerSignedHeaderValidation struct {
-	provider  Provider
 	value     url.URL
 	headers   SignedHeaders
+	provider  Provider
 	direction Direction
 }
 

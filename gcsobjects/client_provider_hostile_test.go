@@ -54,12 +54,12 @@ const (
 
 type gcsUploadCase struct {
 	name        string
-	kind        gcsUploadKind
 	source      []byte
 	wantBytes   []byte
 	crcSource   []byte
-	disposition gcsProviderDisposition
 	wantErr     core.ErrorIdentity
+	kind        gcsUploadKind
+	disposition gcsProviderDisposition
 }
 
 type gcsUploadProvider struct {
@@ -235,15 +235,15 @@ const (
 )
 
 type gcsReadCase struct {
+	destination   io.Writer
+	wantCause     error
 	name          string
 	payload       []byte
 	metadataBytes []byte
 	wantBytes     []byte
 	maximum       uint64
-	destination   io.Writer
-	disposition   gcsReadDisposition
 	wantErr       core.ErrorIdentity
-	wantCause     error
+	disposition   gcsReadDisposition
 }
 
 type gcsReadProvider struct {

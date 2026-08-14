@@ -13,8 +13,8 @@ import (
 
 type SubmissionResponseIssuance struct {
 	Signer     crypto.Signer
-	Header     controlplane.ResponseHeader
 	Body       submission.DecisionProjection
+	Header     controlplane.ResponseHeader
 	Assessment controlwire.ProtocolAssessment
 }
 
@@ -25,13 +25,19 @@ type SubmissionResponseVerification struct {
 }
 
 func (i SubmissionResponseIssuance) Validate() error {
-	return (controlplane.ResponseIssuance[submission.DecisionProjection](i)).ValidateForFamily(controlwire.RouteFamilySubmissions)
+	return i.responseIssuance().ValidateForFamily(controlwire.RouteFamilySubmissions)
 }
 
 func IssueSubmissionResponse(i SubmissionResponseIssuance) (controlplane.ResponseProjection[submission.DecisionProjection], error) {
 	return controlplane.IssueResponseForFamily(
-		controlplane.ResponseIssuance[submission.DecisionProjection](i), controlwire.RouteFamilySubmissions,
+		i.responseIssuance(), controlwire.RouteFamilySubmissions,
 	)
+}
+
+func (i SubmissionResponseIssuance) responseIssuance() controlplane.ResponseIssuance[submission.DecisionProjection] {
+	return controlplane.ResponseIssuance[submission.DecisionProjection]{
+		Signer: i.Signer, Header: i.Header, Body: i.Body, Assessment: i.Assessment,
+	}
 }
 
 func (v SubmissionResponseVerification) Validate() error {

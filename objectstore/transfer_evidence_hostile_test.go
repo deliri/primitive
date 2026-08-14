@@ -7,10 +7,12 @@ import (
 	"hash/crc32"
 	"math"
 	"net/http"
+	"strconv"
 	"strings"
 	"testing"
 
 	"github.com/deliri/primitive/v2026/core"
+	"github.com/deliri/primitive/v2026/temporal"
 )
 
 type transferEvidenceFixtureRequest struct {
@@ -18,6 +20,130 @@ type transferEvidenceFixtureRequest struct {
 	Bytes     uint64
 	Provider  Provider
 	Direction Direction
+}
+
+// TestProviderUploadObservationLayerTriad proves the provider-neutral custody
+// handoff accepts exact upload facts and refuses every incomplete or
+// contradictory observation without releasing a partial sealed value.
+func TestProviderUploadObservationLayerTriad(t *testing.T) {
+	t.Parallel()
+
+	occurredAt := temporal.InstantFromNanoseconds(1_786_183_200_000_000_000)
+	valid := []transferEvidenceFixtureRequest{
+		{Provider: ProviderGoogleCloudStorage, Direction: DirectionUpload, Version: "1"},
+		{Provider: ProviderGoogleCloudStorage, Direction: DirectionUpload, Version: "2", Bytes: 1},
+		{Provider: ProviderGoogleCloudStorage, Direction: DirectionUpload, Version: "3", Bytes: 2},
+		{Provider: ProviderGoogleCloudStorage, Direction: DirectionUpload, Version: "7", Bytes: 7},
+		{Provider: ProviderGoogleCloudStorage, Direction: DirectionUpload, Version: "8", Bytes: 8},
+		{Provider: ProviderGoogleCloudStorage, Direction: DirectionUpload, Version: "9", Bytes: 9},
+		{Provider: ProviderGoogleCloudStorage, Direction: DirectionUpload, Version: "41", Bytes: 32<<10 - 1},
+		{Provider: ProviderGoogleCloudStorage, Direction: DirectionUpload, Version: "42", Bytes: 32 << 10},
+		{Provider: ProviderGoogleCloudStorage, Direction: DirectionUpload, Version: "43", Bytes: 32<<10 + 1},
+		{Provider: ProviderGoogleCloudStorage, Direction: DirectionUpload, Version: "9223372036854775807", Bytes: math.MaxInt64},
+	}
+	for index, fixture := range valid {
+		t.Run("exact provider upload "+strconv.Itoa(index), func(t *testing.T) {
+			t.Parallel()
+			evidence := transferEvidenceFromFixture(t, fixture)
+			version, present := evidence.Version()
+			if !present {
+				t.Fatal("TransferEvidence.Version() present = false, want true")
+			}
+			request := ProviderUploadObservationRequest{
+				Evidence: evidence, Version: version, Bytes: evidence.Bytes(), CRC32C: evidence.CRC32C(),
+				ContentType: core.HTTPMediaTypeOctetStream(), OccurredAt: occurredAt,
+			}
+			got, gotErr := VerifyProviderUpload(request)
+			gotEvidence, evidenceErr := got.Evidence()
+			gotType, typeErr := got.ContentType()
+			gotOccurredAt, occurredAtErr := got.OccurredAt()
+			if gotErr != nil || got.Validate() != nil || evidenceErr != nil || typeErr != nil || occurredAtErr != nil ||
+				gotEvidence != evidence || gotType != request.ContentType || gotOccurredAt != occurredAt {
+				t.Fatalf("VerifyProviderUpload(%d) closure = (%v, %v, %v, %v, %v, %v), want exact validated facts",
+					index, got, gotErr, gotEvidence, gotType, gotOccurredAt, errors.Join(evidenceErr, typeErr, occurredAtErr))
+			}
+		})
+	}
+
+	baseEvidence := transferEvidenceFromFixture(t, transferEvidenceFixtureRequest{
+		Provider: ProviderGoogleCloudStorage, Direction: DirectionUpload, Version: "42", Bytes: 8,
+	})
+	baseVersion, present := baseEvidence.Version()
+	if !present {
+		t.Fatal("base TransferEvidence.Version() present = false, want true")
+	}
+	base := ProviderUploadObservationRequest{
+		Evidence: baseEvidence, Version: baseVersion, Bytes: baseEvidence.Bytes(), CRC32C: baseEvidence.CRC32C(),
+		ContentType: core.HTTPMediaTypeOctetStream(), OccurredAt: occurredAt,
+	}
+	otherGCSVersion, err := newProviderVersion(ProviderGoogleCloudStorage, "43")
+	if err != nil {
+		t.Fatalf("newProviderVersion(GCS) error = %v, want nil", err)
+	}
+	otherS3Version, err := newProviderVersion(ProviderAmazonS3, "version")
+	if err != nil {
+		t.Fatalf("newProviderVersion(S3) error = %v, want nil", err)
+	}
+	downloadEvidence := transferEvidenceFromFixture(t, transferEvidenceFixtureRequest{
+		Provider: ProviderGoogleCloudStorage, Direction: DirectionDownload, Version: "42", Bytes: 8,
+	})
+	shortBytes, shortErr := core.NewByteLength(7)
+	longBytes, longErr := core.NewByteLength(9)
+	if err := errors.Join(shortErr, longErr); err != nil {
+		t.Fatalf("observation boundary ByteLength setup error = %v, want nil", err)
+	}
+	negative := []struct {
+		wantErr error
+		mutate  func(*ProviderUploadObservationRequest)
+		name    string
+	}{
+		{name: "zero request", mutate: func(v *ProviderUploadObservationRequest) { *v = ProviderUploadObservationRequest{} }, wantErr: core.ErrObjectStoreContract},
+		{name: "evidence absent", mutate: func(v *ProviderUploadObservationRequest) { v.Evidence = TransferEvidence{} }, wantErr: core.ErrObjectStoreContract},
+		{name: "version absent", mutate: func(v *ProviderUploadObservationRequest) { v.Version = ProviderVersion{} }, wantErr: core.ErrObjectStoreContract},
+		{name: "download is not an upload observation", mutate: func(v *ProviderUploadObservationRequest) { v.Evidence = downloadEvidence }, wantErr: core.ErrObjectStoreIntegrity},
+		{name: "one provider generation later", mutate: func(v *ProviderUploadObservationRequest) { v.Version = otherGCSVersion }, wantErr: core.ErrObjectStoreIntegrity},
+		{name: "version belongs to another provider", mutate: func(v *ProviderUploadObservationRequest) { v.Version = otherS3Version }, wantErr: core.ErrObjectStoreIntegrity},
+		{name: "one byte short", mutate: func(v *ProviderUploadObservationRequest) { v.Bytes = shortBytes }, wantErr: core.ErrObjectStoreIntegrity},
+		{name: "one byte long", mutate: func(v *ProviderUploadObservationRequest) { v.Bytes = longBytes }, wantErr: core.ErrObjectStoreIntegrity},
+		{name: "foreign CRC32C", mutate: func(v *ProviderUploadObservationRequest) { v.CRC32C = core.NewCRC32C(0x01020304) }, wantErr: core.ErrObjectStoreIntegrity},
+		{name: "content type absent", mutate: func(v *ProviderUploadObservationRequest) { v.ContentType = core.HTTPMediaType{} }, wantErr: core.ErrObjectStoreContract},
+		{name: "provider time absent", mutate: func(v *ProviderUploadObservationRequest) { v.OccurredAt = temporal.Instant{} }, wantErr: core.ErrObjectStoreContract},
+	}
+	for _, tc := range negative {
+		t.Run(tc.name, func(t *testing.T) {
+			t.Parallel()
+			request := base
+			tc.mutate(&request)
+			got, gotErr := VerifyProviderUpload(request)
+			if !errors.Is(gotErr, tc.wantErr) || got != (VerifiedProviderUpload{}) {
+				t.Fatalf("VerifyProviderUpload(%s) = (%v, %v), want zero and errors.Is(..., %v)", tc.name, got, gotErr, tc.wantErr)
+			}
+		})
+	}
+
+	zero := VerifiedProviderUpload{}
+	gotEvidence, evidenceErr := zero.Evidence()
+	gotType, typeErr := zero.ContentType()
+	gotOccurredAt, occurredAtErr := zero.OccurredAt()
+	if gotEvidence != (TransferEvidence{}) || gotType != (core.HTTPMediaType{}) || gotOccurredAt != (temporal.Instant{}) ||
+		!errors.Is(evidenceErr, core.ErrObjectStoreContract) || !errors.Is(typeErr, core.ErrObjectStoreContract) ||
+		!errors.Is(occurredAtErr, core.ErrObjectStoreContract) {
+		t.Fatalf("zero VerifiedProviderUpload projections = (%v, %v, %v, %v), want zero facts and typed refusals",
+			gotEvidence, gotType, gotOccurredAt, errors.Join(evidenceErr, typeErr, occurredAtErr))
+	}
+}
+
+func transferEvidenceFromFixture(t testing.TB, request transferEvidenceFixtureRequest) TransferEvidence {
+	t.Helper()
+	projection, err := sealedTransferEvidenceFixture(t, request).Evidence()
+	if err != nil {
+		t.Fatalf("Transfer.Evidence() error = %v, want nil", err)
+	}
+	evidence, err := transferEvidenceRoundTrip(t, projection)
+	if err != nil {
+		t.Fatalf("transfer evidence round trip error = %v, want nil", err)
+	}
+	return evidence
 }
 
 type transferEvidenceProjectionCase struct {
@@ -37,15 +163,15 @@ func TestTransferEvidenceProjectionLayerTriad(t *testing.T) {
 		cases := []transferEvidenceProjectionCase{
 			{name: "zero-byte amazon upload without provider version", request: transferEvidenceFixtureRequest{Provider: ProviderAmazonS3, Direction: DirectionUpload}},
 			{name: "one-byte amazon download without provider version", request: transferEvidenceFixtureRequest{Provider: ProviderAmazonS3, Direction: DirectionDownload, Bytes: 1}},
-			{name: "two-byte google upload without provider version", request: transferEvidenceFixtureRequest{Provider: ProviderGoogleCloudStorage, Direction: DirectionUpload, Bytes: 2}},
-			{name: "stream chunk one below boundary", request: transferEvidenceFixtureRequest{Provider: ProviderGoogleCloudStorage, Direction: DirectionDownload, Bytes: 32<<10 - 1}},
-			{name: "stream chunk at boundary", request: transferEvidenceFixtureRequest{Provider: ProviderGoogleCloudStorage, Direction: DirectionDownload, Bytes: 32 << 10}},
-			{name: "stream chunk one above boundary", request: transferEvidenceFixtureRequest{Provider: ProviderGoogleCloudStorage, Direction: DirectionDownload, Bytes: 32<<10 + 1}},
+			{name: "two-byte google upload with exact generation", request: transferEvidenceFixtureRequest{Provider: ProviderGoogleCloudStorage, Direction: DirectionUpload, Bytes: 2, Version: "1"}},
+			{name: "stream chunk one below boundary without optional download version", request: transferEvidenceFixtureRequest{Provider: ProviderGoogleCloudStorage, Direction: DirectionDownload, Bytes: 32<<10 - 1}},
+			{name: "stream chunk at boundary", request: transferEvidenceFixtureRequest{Provider: ProviderGoogleCloudStorage, Direction: DirectionDownload, Bytes: 32 << 10, Version: "3"}},
+			{name: "stream chunk one above boundary", request: transferEvidenceFixtureRequest{Provider: ProviderGoogleCloudStorage, Direction: DirectionDownload, Bytes: 32<<10 + 1, Version: "4"}},
 			{name: "maximum signed byte length", request: transferEvidenceFixtureRequest{Provider: ProviderAmazonS3, Direction: DirectionUpload, Bytes: math.MaxInt64}},
 			{name: "minimum amazon version identifier", request: transferEvidenceFixtureRequest{Provider: ProviderAmazonS3, Direction: DirectionUpload, Bytes: 1, Version: "v"}},
 			{name: "maximum amazon version identifier", request: transferEvidenceFixtureRequest{Provider: ProviderAmazonS3, Direction: DirectionDownload, Bytes: 1, Version: strings.Repeat("v", AmazonS3VersionIDMaximumBytes)}},
 			{name: "maximum amazon version json expansion", request: transferEvidenceFixtureRequest{Provider: ProviderAmazonS3, Direction: DirectionUpload, Bytes: 1, Version: strings.Repeat("<", AmazonS3VersionIDMaximumBytes)}},
-			{name: "maximum google generation", request: transferEvidenceFixtureRequest{Provider: ProviderGoogleCloudStorage, Direction: DirectionUpload, Bytes: 1, Version: "18446744073709551615"}},
+			{name: "maximum SDK-representable google generation", request: transferEvidenceFixtureRequest{Provider: ProviderGoogleCloudStorage, Direction: DirectionUpload, Bytes: 1, Version: "9223372036854775807"}},
 			{name: "cloudflare upload without impossible version", request: transferEvidenceFixtureRequest{Provider: ProviderCloudflareImages, Direction: DirectionUpload, Bytes: CloudflareImagesUploadMaximumBytes}},
 		}
 		for _, tc := range cases {
@@ -79,6 +205,10 @@ func TestTransferEvidenceProjectionLayerTriad(t *testing.T) {
 		if gotErr := failedStatus.AdmitInt(http.StatusInternalServerError); gotErr != nil {
 			t.Fatalf("HTTPStatusCode.AdmitInt(%d) setup error = %v, want nil", http.StatusInternalServerError, gotErr)
 		}
+		foreignVersion, gotErr := newProviderVersion(ProviderAmazonS3, "version")
+		if gotErr != nil {
+			t.Fatalf("newProviderVersion(ProviderAmazonS3) setup error = %v, want nil", gotErr)
+		}
 		cases := []struct {
 			wantErr error
 			mutate  func(Transfer) Transfer
@@ -97,7 +227,11 @@ func TestTransferEvidenceProjectionLayerTriad(t *testing.T) {
 			{name: "unset status proves no provider acceptance", mutate: func(value Transfer) Transfer { value.status = core.HTTPStatusCode{}; return value }, wantErr: core.ErrObjectStoreContract},
 			{name: "failed status contradicts confirmed commitment", mutate: func(value Transfer) Transfer { value.status = failedStatus; return value }, wantErr: core.ErrObjectStoreContract},
 			{name: "provider version from another provider is contradictory", mutate: func(value Transfer) Transfer {
-				value.version, _ = newProviderVersion(ProviderAmazonS3, "version")
+				value.version = foreignVersion
+				return value
+			}, wantErr: core.ErrObjectStoreContract},
+			{name: "google upload without an exact generation cannot be reconciled", mutate: func(value Transfer) Transfer {
+				value.version = ProviderVersion{}
 				return value
 			}, wantErr: core.ErrObjectStoreContract},
 			{name: "cloudflare version is not a published object identity", mutate: func(value Transfer) Transfer { value.provider = ProviderCloudflareImages; return value }, wantErr: core.ErrObjectStoreContract},
@@ -307,7 +441,7 @@ func sealedTransferEvidenceFixture(t testing.TB, request transferEvidenceFixture
 	return transfer
 }
 
-func transferEvidenceRoundTrip(t *testing.T, projection TransferEvidenceProjection) (TransferEvidence, error) {
+func transferEvidenceRoundTrip(t testing.TB, projection TransferEvidenceProjection) (TransferEvidence, error) {
 	t.Helper()
 
 	issued, gotErr := projection.MarshalJSON()

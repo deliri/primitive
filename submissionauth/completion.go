@@ -62,6 +62,7 @@ type CompletionVerification struct {
 type VerifiedCompletion struct {
 	document         CompletionDocument
 	completionProof  submission.VerifiedCompletion
+	requestProof     Verified
 	certificateProof controlplane.VerifiedInstallationCertificate
 }
 
@@ -224,7 +225,7 @@ func VerifyCompletion(verification CompletionVerification) (VerifiedCompletion, 
 	}
 	verified := VerifiedCompletion{
 		document: verification.Document, certificateProof: certificate,
-		completionProof: completion,
+		completionProof: completion, requestProof: verification.Request,
 	}
 	return verified, verified.Validate()
 }
@@ -232,8 +233,12 @@ func VerifyCompletion(verification CompletionVerification) (VerifiedCompletion, 
 func (v VerifiedCompletion) Validate() error {
 	if err := errors.Join(
 		v.document.Validate(), v.certificateProof.Validate(), v.completionProof.Validate(),
+		v.requestProof.Validate(),
 	); err != nil {
 		return contractError(err)
+	}
+	if v.document.Certificate != v.requestProof.document.Certificate {
+		return bindingError()
 	}
 	return nil
 }

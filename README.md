@@ -84,6 +84,8 @@ flowchart TD
     submissionauth --> controlwire
     submissionauth --> submission
     submissionauth --> chit
+    submissionauth --> objectstore
+    submissionauth --> receipt
     controlplanetest[controlplanetest] --> core
     controlplanetest --> controlplane
     controlplanetest --> controlwire

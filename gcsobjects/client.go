@@ -5,6 +5,7 @@ import (
 	"errors"
 	"hash/crc32"
 	"io"
+	"strconv"
 
 	"cloud.google.com/go/storage"
 	"github.com/deliri/primitive/v2026/contextstate"
@@ -174,6 +175,40 @@ type GCSReadRequest struct {
 	Name        GCSObjectName
 	SHA256      core.SHA256Digest
 	Maximum     core.ByteCount
+}
+
+// GCSUploadObservationRequest names the authority-owned provider object whose
+// exact generation must agree with one authenticated client upload result.
+type GCSUploadObservationRequest struct {
+	Bucket   GCSBucket
+	Name     GCSObjectName
+	Evidence objectstore.TransferEvidence
+}
+
+// Validate rejects any observation that does not name one exact GCS upload
+// generation. The generation is provider evidence, not a caller convention.
+func (r GCSUploadObservationRequest) Validate() error {
+	if err := errors.Join(r.Bucket.Validate(), r.Name.Validate(), r.Evidence.Validate()); err != nil {
+		return errors.Join(core.ErrObjectStoreContract, err)
+	}
+	_, err := gcsGenerationFromEvidence(r.Evidence)
+	return err
+}
+
+func gcsGenerationFromEvidence(evidence objectstore.TransferEvidence) (GCSGeneration, error) {
+	if evidence.Provider() != objectstore.ProviderGoogleCloudStorage ||
+		evidence.Direction() != objectstore.DirectionUpload {
+		return GCSGeneration{}, core.ErrObjectStoreContract
+	}
+	version, present := evidence.Version()
+	if !present || version.Provider() != objectstore.ProviderGoogleCloudStorage {
+		return GCSGeneration{}, core.ErrObjectStoreContract
+	}
+	value, err := strconv.ParseInt(version.String(), 10, 64)
+	if err != nil {
+		return GCSGeneration{}, errors.Join(core.ErrObjectStoreContract, err)
+	}
+	return NewGCSGeneration(value)
 }
 
 // Validate rejects incomplete or contradictory read ingress.
@@ -355,6 +390,67 @@ func ReadGCSObject(ctx context.Context, client *GCSClient, request GCSReadReques
 		return GCSObjectMetadata{}, projectGCSError(err, core.ErrObjectStoreSource)
 	}
 	return metadata, nil
+}
+
+// ObserveGCSUpload reads only the official provider metadata for the exact
+// generation authenticated by a client completion. It downloads no object
+// bytes and releases proof only when provider identity, extent, and CRC32C all
+// agree with that completion.
+func ObserveGCSUpload(
+	ctx context.Context,
+	client *GCSClient,
+	request GCSUploadObservationRequest,
+) (VerifiedGCSUpload, error) {
+	if err := validateGCSCall(ctx, client); err != nil {
+		return VerifiedGCSUpload{}, err
+	}
+	if err := request.Validate(); err != nil {
+		return VerifiedGCSUpload{}, err
+	}
+	generation, err := gcsGenerationFromEvidence(request.Evidence)
+	if err != nil {
+		return VerifiedGCSUpload{}, err
+	}
+	value, err := generation.Int64()
+	if err != nil {
+		return VerifiedGCSUpload{}, err
+	}
+	attrs, err := client.client.Bucket(request.Bucket.String()).
+		Object(request.Name.String()).Generation(value).Attrs(ctx)
+	if err != nil {
+		return VerifiedGCSUpload{}, projectGCSError(err, core.ErrObjectStoreSource)
+	}
+	metadata, err := metadataFromGCSAttrs(attrs)
+	if err != nil {
+		return VerifiedGCSUpload{}, errors.Join(core.ErrObjectStoreSource, err)
+	}
+	if metadata.Bucket() != request.Bucket || metadata.Name() != request.Name {
+		return VerifiedGCSUpload{}, errors.Join(core.ErrObjectStoreIntegrity, core.ErrObjectStoreSource)
+	}
+	return verifiedGCSUpload(metadata, request.Evidence)
+}
+
+func verifiedGCSUpload(
+	metadata GCSObjectMetadata,
+	evidence objectstore.TransferEvidence,
+) (VerifiedGCSUpload, error) {
+	version, present := evidence.Version()
+	if !present {
+		return VerifiedGCSUpload{}, core.ErrObjectStoreContract
+	}
+	observation, err := objectstore.VerifyProviderUpload(objectstore.ProviderUploadObservationRequest{
+		Evidence: evidence, Version: version,
+		Bytes: metadata.Length(), CRC32C: metadata.CRC32C(),
+		ContentType: metadata.ContentType(), OccurredAt: metadata.CreatedAt(),
+	})
+	if err != nil {
+		return VerifiedGCSUpload{}, err
+	}
+	verified := VerifiedGCSUpload{metadata: metadata, observation: observation, set: true}
+	if err := verified.Validate(); err != nil {
+		return VerifiedGCSUpload{}, err
+	}
+	return verified, nil
 }
 
 func metadataFromReader(ctx context.Context, object *storage.ObjectHandle, reader *storage.Reader) (GCSObjectMetadata, error) {
@@ -651,9 +747,12 @@ func gcsTimesFromAttrs(attrs *storage.ObjectAttrs) (gcsObjectTimes, error) {
 	if err != nil {
 		return gcsObjectTimes{}, errors.Join(core.ErrObjectStoreContract, err)
 	}
-	customTime, err := temporal.NewInstant(attrs.CustomTime)
-	if err != nil {
-		return gcsObjectTimes{}, errors.Join(core.ErrObjectStoreContract, err)
+	var customTime temporal.Instant
+	if !attrs.CustomTime.IsZero() {
+		customTime, err = temporal.NewInstant(attrs.CustomTime)
+		if err != nil {
+			return gcsObjectTimes{}, errors.Join(core.ErrObjectStoreContract, err)
+		}
 	}
 	return gcsObjectTimes{createdAt: createdAt, updatedAt: updatedAt, customTime: customTime}, nil
 }

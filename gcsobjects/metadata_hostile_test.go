@@ -2,8 +2,11 @@ package gcsobjects
 
 import (
 	"context"
+	"encoding/binary"
 	"errors"
+	"strings"
 	"testing"
+	"time"
 
 	"cloud.google.com/go/storage"
 	"github.com/deliri/primitive/v2026/core"
@@ -45,6 +48,16 @@ func TestMetadataFromGCSAttrsProjectsProviderEvidence(t *testing.T) {
 			},
 			wantContentType: "application/octet-stream",
 			wantCache:       "",
+		},
+		{
+			name: "signed upload attrs may carry no optional custom time",
+			build: func(t *testing.T) *storage.ObjectAttrs {
+				attrs := validMediaGCSAttrs(t)
+				attrs.CustomTime = time.Time{}
+				return attrs
+			},
+			wantContentType: "image/webp",
+			wantCache:       "private, no-store",
 		},
 		{
 			name:    "nil attrs are refused",
@@ -199,4 +212,102 @@ func validMediaGCSAttrs(t *testing.T) *storage.ObjectAttrs {
 		Updated:      instant,
 		CustomTime:   instant,
 	}
+}
+
+// FuzzMetadataFromGCSAttrsSemanticClosure pressures the official SDK handoff.
+// Accepted provider facts must project exactly into a validated sealed value;
+// every refusal keeps the result zero and retains a stable typed identity.
+func FuzzMetadataFromGCSAttrsSemanticClosure(f *testing.F) {
+	f.Add(metadataFuzzBytes(metadataFuzzSeed{
+		bucket: "primitive-object-tests", name: "users/01/profile/photo.webp",
+		generation: 1, contentType: "application/octet-stream",
+	}))
+	f.Add(metadataFuzzBytes(metadataFuzzSeed{
+		bucket: "primitive-object-tests", name: "users/01/profile/photo.webp",
+		generation: 42, size: 7, checksum: 0x01020304,
+		contentType: "image/webp", cacheControl: "private, no-store", hasCustomTime: true,
+	}))
+	f.Add(metadataFuzzBytes(metadataFuzzSeed{
+		bucket: "Invalid_UPPER", name: "..", size: -1,
+		contentType: "not a media type", cacheControl: "\x01bad",
+	}))
+
+	f.Fuzz(func(t *testing.T, input []byte) {
+		attrs, hasCustomTime := metadataAttrsFromFuzzBytes(input)
+		instant := time.Unix(0, metadataFixtureInstantNanos).UTC()
+		attrs.Created = instant
+		attrs.Updated = instant
+		if hasCustomTime {
+			attrs.CustomTime = instant
+		}
+		got, gotErr := metadataFromGCSAttrs(attrs)
+		if gotErr != nil {
+			if (!errors.Is(gotErr, core.ErrObjectStoreContract) && !errors.Is(gotErr, core.ErrObjectStoreSize)) ||
+				got != (GCSObjectMetadata{}) {
+				t.Fatalf("metadataFromGCSAttrs(rejected) = (%v, %v), want zero and stable object-store identity", got, gotErr)
+			}
+			return
+		}
+		if got.Validate() != nil {
+			t.Fatalf("metadataFromGCSAttrs(accepted).Validate() error = %v, want nil", got.Validate())
+		}
+		projectedGeneration, generationErr := got.Generation().Int64()
+		if generationErr != nil || projectedGeneration != attrs.Generation || got.Bucket().String() != attrs.Bucket ||
+			got.Name().String() != attrs.Name || got.Length().Uint64() != uint64(attrs.Size) || got.CRC32C() != core.NewCRC32C(attrs.CRC32C) {
+			t.Fatalf("metadataFromGCSAttrs(accepted) identity/integrity = (%q, %q, %d, %d, %v), want exact provider facts",
+				got.Bucket().String(), got.Name().String(), projectedGeneration, got.Length().Uint64(), got.CRC32C())
+		}
+		wantContentType, contentTypeErr := core.ParseHTTPMediaType(attrs.ContentType)
+		if contentTypeErr != nil || got.ContentType() != wantContentType || got.CacheControl().String() != attrs.CacheControl {
+			t.Fatalf("metadataFromGCSAttrs(accepted) HTTP facts = (%q, %q), want typed (%q, %q), parse error %v",
+				got.ContentType().String(), got.CacheControl().String(), wantContentType.String(), attrs.CacheControl, contentTypeErr)
+		}
+		if (got.CustomTime() != (temporal.Instant{})) != hasCustomTime {
+			t.Fatalf("metadataFromGCSAttrs(accepted) custom-time presence = %t, want %t",
+				got.CustomTime() != (temporal.Instant{}), hasCustomTime)
+		}
+	})
+}
+
+type metadataFuzzSeed struct {
+	bucket        string
+	name          string
+	contentType   string
+	cacheControl  string
+	generation    int64
+	size          int64
+	checksum      uint32
+	hasCustomTime bool
+}
+
+func metadataFuzzBytes(seed metadataFuzzSeed) []byte {
+	encoded := make([]byte, 21, 21+len(seed.bucket)+len(seed.name)+len(seed.contentType)+len(seed.cacheControl)+3)
+	binary.BigEndian.PutUint64(encoded[0:8], uint64(seed.generation))
+	binary.BigEndian.PutUint64(encoded[8:16], uint64(seed.size))
+	binary.BigEndian.PutUint32(encoded[16:20], seed.checksum)
+	if seed.hasCustomTime {
+		encoded[20] = 1
+	}
+	encoded = append(encoded, seed.bucket...)
+	encoded = append(encoded, 0)
+	encoded = append(encoded, seed.name...)
+	encoded = append(encoded, 0)
+	encoded = append(encoded, seed.contentType...)
+	encoded = append(encoded, 0)
+	return append(encoded, seed.cacheControl...)
+}
+
+func metadataAttrsFromFuzzBytes(input []byte) (*storage.ObjectAttrs, bool) {
+	encoded := make([]byte, 21)
+	copy(encoded, input)
+	fields := strings.SplitN(string(input[min(len(input), 21):]), "\x00", 4)
+	for len(fields) < 4 {
+		fields = append(fields, "")
+	}
+	return &storage.ObjectAttrs{
+		Bucket: fields[0], Name: fields[1], ContentType: fields[2], CacheControl: fields[3],
+		Generation: int64(binary.BigEndian.Uint64(encoded[0:8])),
+		Size:       int64(binary.BigEndian.Uint64(encoded[8:16])),
+		CRC32C:     binary.BigEndian.Uint32(encoded[16:20]),
+	}, encoded[20]&1 == 1
 }

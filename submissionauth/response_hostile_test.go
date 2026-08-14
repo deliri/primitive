@@ -131,8 +131,8 @@ func TestSubmissionResponseBoundariesRefuseEveryNeutralInput(t *testing.T) {
 	t.Parallel()
 
 	cases := []struct {
-		name    string
 		execute func() (error, error)
+		name    string
 	}{
 		{name: "submission issuance validation", execute: func() (error, error) { err := (SubmissionResponseIssuance{}).Validate(); return err, err }},
 		{name: "submission issue", execute: func() (error, error) {

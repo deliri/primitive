@@ -99,10 +99,10 @@ func TestInspectRefusesInvalidSizeAndSourceBoundariesWithTypedErrors(t *testing.
 		t.Fatalf("core.NewByteCount(2) setup error = %v, want nil", err)
 	}
 	cases := []struct {
-		request      objectstore.InspectionRequest
-		name         string
 		wantIdentity error
 		wantCause    error
+		request      objectstore.InspectionRequest
+		name         string
 	}{
 		{name: "nil source", request: objectstore.InspectionRequest{MaximumBytes: one}, wantIdentity: core.ErrObjectStoreSource},
 		{name: "zero maximum", request: objectstore.InspectionRequest{Source: strings.NewReader("x")}, wantIdentity: core.ErrObjectStoreSize},

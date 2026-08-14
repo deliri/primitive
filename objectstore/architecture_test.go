@@ -14,7 +14,7 @@ func TestProviderOperationsAreCompilerSelectedEntryPoints(t *testing.T) {
 
 	set := token.NewFileSet()
 	var got []string
-	for _, path := range []string{"client.go", "capability_execution.go"} {
+	for _, path := range []string{"client.go", "capability_execution.go", "transfer_evidence.go"} {
 		file, gotParseErr := parser.ParseFile(set, path, nil, 0)
 		if gotParseErr != nil {
 			t.Fatalf("parser.ParseFile(%s) error = %v, want nil", path, gotParseErr)
@@ -37,6 +37,7 @@ func TestProviderOperationsAreCompilerSelectedEntryPoints(t *testing.T) {
 		"UploadCloudflareImages",
 		"UploadGCS",
 		"UploadS3",
+		"VerifyProviderUpload",
 	}
 	if !slices.Equal(got, want) {
 		t.Fatalf(
@@ -120,6 +121,10 @@ func productionStructRole(name string) (string, bool) {
 		return "received wire projection of confirmed transfer evidence", true
 	case "TransferEvidenceProjection":
 		return "issue-only projection of confirmed transfer evidence", true
+	case "ProviderUploadObservationRequest":
+		return "provider-neutral exact-upload observation ingress", true
+	case "VerifiedProviderUpload":
+		return "sealed provider-neutral exact-upload evidence", true
 	case "ExactReader", "preparedUpload", "preparedDownload", "progressWriter",
 		"exchangeTarget", "streamDigests", "requestBody", "uploadConfirmation",
 		"transferConfirmation", "callerSignedHeaderValidation":

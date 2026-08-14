@@ -9,6 +9,7 @@ import (
 	"net"
 	"net/http"
 	"net/http/httptest"
+	"strconv"
 	"testing"
 
 	"github.com/deliri/primitive/v2026/attest"
@@ -29,6 +30,7 @@ const (
 var authCompletionContent = []byte(`{"proof":"source-free"}`)
 
 type authCompletionFixtureRequest struct {
+	generation    int64
 	offering      core.Offering
 	authorityByte byte
 	deviceByte    byte
@@ -327,7 +329,13 @@ func TestCredentialedCompletionJSONLayerTriadIsStrictBoundedAndPreserving(t *tes
 func newAuthCompletionFixture(t testing.TB, request authCompletionFixtureRequest) authCompletionFixture {
 	t.Helper()
 
-	base := newAuthFixture(t, authFixtureRequest(request))
+	base := newAuthFixture(t, authFixtureRequest{
+		offering: request.offering, authorityByte: request.authorityByte,
+		deviceByte: request.deviceByte, nonceByte: request.nonceByte,
+	})
+	if request.generation == 0 {
+		request.generation = 7
+	}
 	verifiedRequest, err := Verify(Verification{Document: base.document, TrustedKeys: base.trusted})
 	if err != nil {
 		t.Fatalf("submissionauth.Verify() error = %v, want nil", err)
@@ -398,7 +406,9 @@ func newAuthCompletionFixture(t testing.TB, request authCompletionFixtureRequest
 	if err != nil {
 		t.Fatalf("submission.VerifyGrant() error = %v, want nil", err)
 	}
-	transfer := authCompletionUpload(t, verifiedGrant, base.request.Payload)
+	transfer := authCompletionUpload(t, authCompletionUploadRequest{
+		grant: verifiedGrant, request: base.request.Payload, generation: request.generation,
+	})
 	projection, err := submission.IssueCompletion(submission.CompletionIssuance{
 		Signer: base.device, Request: base.request.Payload, Grant: verifiedGrant, Transfer: transfer,
 	})
@@ -463,11 +473,13 @@ func receiveAuthCompletion(
 	return document
 }
 
-func authCompletionUpload(
-	t testing.TB,
-	grant submission.VerifiedGrant,
-	request submission.RequestPayload,
-) objectstore.Transfer {
+type authCompletionUploadRequest struct {
+	request    submission.RequestPayload
+	grant      submission.VerifiedGrant
+	generation int64
+}
+
+func authCompletionUpload(t testing.TB, request authCompletionUploadRequest) objectstore.Transfer {
 	t.Helper()
 
 	server := httptest.NewTLSServer(http.HandlerFunc(func(writer http.ResponseWriter, incoming *http.Request) {
@@ -482,7 +494,7 @@ func authCompletionUpload(
 			writer.WriteHeader(http.StatusBadRequest)
 			return
 		}
-		writer.Header().Set("x-goog-generation", "7")
+		writer.Header().Set("x-goog-generation", strconv.FormatInt(request.generation, 10))
 		writer.WriteHeader(http.StatusOK)
 	}))
 	t.Cleanup(server.Close)
@@ -499,13 +511,13 @@ func authCompletionUpload(
 	if err != nil {
 		t.Fatalf("objectstore.NewClient() error = %v, want nil", err)
 	}
-	capability, err := grant.Capability()
+	capability, err := request.grant.Capability()
 	if err != nil {
 		t.Fatalf("VerifiedGrant.Capability() error = %v, want nil", err)
 	}
 	transfer, err := objectstore.Upload(context.Background(), store, objectstore.UploadCapabilityRequest{
-		Source: bytes.NewReader(authCompletionContent), ContentType: request.Declaration.ContentType,
-		Capability: capability, Integrity: request.Declaration.Integrity(),
+		Source: bytes.NewReader(authCompletionContent), ContentType: request.request.Declaration.ContentType,
+		Capability: capability, Integrity: request.request.Declaration.Integrity(),
 		Policy: authCompletionPolicy(t),
 	})
 	if err != nil {
