@@ -40,6 +40,13 @@ func NewClient(client *http.Client) (Client, error) {
 	return value, nil
 }
 
+// NewStandardClient constructs the Objectstore capability backed by Go's
+// standard transport. Products that do not customize transport remain blind
+// to Objectstore's internal Exchange admission and net/http mechanics.
+func NewStandardClient() (Client, error) {
+	return NewClient(&http.Client{})
+}
+
 // Validate rejects an unset Exchange capability.
 func (c Client) Validate() error {
 	if err := c.exchange.Validate(); err != nil {

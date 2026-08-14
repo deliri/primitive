@@ -80,3 +80,19 @@ func TestClientAdmissionKeepsHTTPMechanicsInsideObjectstore(t *testing.T) {
 		}
 	})
 }
+
+// TestStandardClientKeepsProductsBlindToTransportConstruction proves the
+// zero-input product socket is a real, validated Objectstore capability. If
+// the constructor returns a zero client or stops admitting through Exchange,
+// the independent public Validate oracle rejects it.
+func TestStandardClientKeepsProductsBlindToTransportConstruction(t *testing.T) {
+	t.Parallel()
+
+	client, err := objectstore.NewStandardClient()
+	if err != nil {
+		t.Fatalf("objectstore.NewStandardClient() error = %v, want nil", err)
+	}
+	if err := client.Validate(); err != nil {
+		t.Fatalf("standard objectstore.Client.Validate() error = %v, want nil", err)
+	}
+}

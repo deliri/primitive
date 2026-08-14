@@ -4,6 +4,15 @@ Last updated: `2026-08-14`
 
 ## Current
 
+- restored the blind standard Objectstore client socket discovered by the Bug
+  consumer upgrade, 2026-08-14, prepared `v2026.0.115`.
+  `objectstore.NewStandardClient` now owns both the standard-library client and
+  its Exchange admission. Bug, Peachfuzz, and Witness no longer need to import
+  Exchange merely to construct the Objectstore capability, while callers with
+  a genuine customized transport still use `NewClient`. The public validation
+  oracle proves the zero-input constructor cannot return an unset capability,
+  and the capability catalog names the two distinct standard-client owners.
+
 - reconciled the release ledger with the published Git authority, 2026-08-14,
   published `v2026.0.114`. The current ledger entries for v2026.0.93 through
   v2026.0.113 now name those live tags as published rather than retaining the

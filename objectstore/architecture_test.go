@@ -33,6 +33,7 @@ func TestProviderOperationsAreCompilerSelectedEntryPoints(t *testing.T) {
 		"DownloadGCS",
 		"DownloadS3",
 		"NewClient",
+		"NewStandardClient",
 		"Upload",
 		"UploadCloudflareImages",
 		"UploadGCS",
