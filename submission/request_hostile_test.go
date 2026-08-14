@@ -4,6 +4,7 @@ import (
 	"bytes"
 	"encoding/json"
 	"errors"
+	"io"
 	"strings"
 	"testing"
 
@@ -11,6 +12,100 @@ import (
 	"github.com/deliri/primitive/v2026/chit"
 	"github.com/deliri/primitive/v2026/core"
 )
+
+type canonicalWriterResponse struct {
+	written func(int) int
+	err     error
+}
+
+type canonicalResponseWriter struct {
+	response canonicalWriterResponse
+	bytes    bytes.Buffer
+}
+
+func (w *canonicalResponseWriter) Write(payload []byte) (int, error) {
+	written := w.response.written(len(payload))
+	if written > 0 && written <= len(payload) {
+		_, _ = w.bytes.Write(payload[:written])
+	}
+	return written, w.response.err
+}
+
+func TestSignedPayloadCanonicalOutputLayerTriad(t *testing.T) {
+	t.Parallel()
+
+	grant := newGrantFixture(t, grantFixtureRequest{})
+	completion := newCompletionFixture(t, core.OfferingWitness, []byte("canonical output proof"))
+	projection, err := IssueCompletion(CompletionIssuance{
+		Signer: completion.deviceSigner, Transfer: completion.transfer,
+		Request: completion.request, Grant: completion.grant,
+	})
+	if err != nil {
+		t.Fatalf("IssueCompletion() setup error = %v, want nil", err)
+	}
+	projectionPayload, err := completionProjection(CompletionIssuance{
+		Signer: completion.deviceSigner, Transfer: completion.transfer,
+		Request: completion.request, Grant: completion.grant,
+	})
+	if err != nil {
+		t.Fatalf("completionProjection() setup error = %v, want nil", err)
+	}
+	document := receiveCompletionProjection(t, projection)
+	payloads := []struct {
+		name    string
+		marshal func() ([]byte, error)
+		write   func(io.Writer) error
+	}{
+		{name: "device request", marshal: grant.request.MarshalJSON, write: grant.request.WriteCanonical},
+		{name: "authority grant", marshal: grant.payload.MarshalJSON, write: grant.payload.WriteCanonical},
+		{name: "received completion", marshal: document.Payload.MarshalJSON, write: document.Payload.WriteCanonical},
+		{name: "issue-only completion", marshal: projectionPayload.MarshalJSON, write: projectionPayload.WriteCanonical},
+	}
+	responses := []struct {
+		name    string
+		result  canonicalWriterResponse
+		wantErr error
+	}{
+		{name: "exact count succeeds", result: canonicalWriterResponse{written: func(length int) int { return length }}},
+		{name: "one byte short with nil error", result: canonicalWriterResponse{written: func(length int) int { return length - 1 }}, wantErr: io.ErrShortWrite},
+		{name: "zero bytes with nil error", result: canonicalWriterResponse{written: func(int) int { return 0 }}, wantErr: io.ErrShortWrite},
+		{name: "negative count with nil error", result: canonicalWriterResponse{written: func(int) int { return -1 }}, wantErr: io.ErrShortWrite},
+		{name: "one byte overreported with nil error", result: canonicalWriterResponse{written: func(length int) int { return length + 1 }}, wantErr: io.ErrShortWrite},
+		{name: "half written with native error", result: canonicalWriterResponse{written: func(length int) int { return length / 2 }, err: io.ErrClosedPipe}, wantErr: io.ErrClosedPipe},
+		{name: "exact count with native error", result: canonicalWriterResponse{written: func(length int) int { return length }, err: io.ErrClosedPipe}, wantErr: io.ErrClosedPipe},
+	}
+	for _, payload := range payloads {
+		payload := payload
+		t.Run(payload.name, func(t *testing.T) {
+			t.Parallel()
+			canonical, gotErr := payload.marshal()
+			if gotErr != nil {
+				t.Fatalf("MarshalJSON() setup error = %v, want nil", gotErr)
+			}
+			for _, response := range responses {
+				response := response
+				t.Run(response.name, func(t *testing.T) {
+					t.Parallel()
+					writer := &canonicalResponseWriter{response: response.result}
+					gotErr := payload.write(writer)
+					if response.wantErr == nil {
+						if gotErr != nil || !bytes.Equal(writer.bytes.Bytes(), canonical) {
+							t.Fatalf("WriteCanonical(exact) = (%x, %v), want (%x, nil)", writer.bytes.Bytes(), gotErr, canonical)
+						}
+						return
+					}
+					if !errors.Is(gotErr, core.ErrControlPlaneContract) || !errors.Is(gotErr, response.wantErr) {
+						t.Fatalf("WriteCanonical(%s) error = %v, want errors.Is %v and %v",
+							response.name, gotErr, core.ErrControlPlaneContract, response.wantErr)
+					}
+				})
+			}
+			if gotErr := payload.write(nil); !errors.Is(gotErr, core.ErrControlPlaneContract) {
+				t.Fatalf("WriteCanonical(nil) error = %v, want errors.Is %v", gotErr, core.ErrControlPlaneContract)
+			}
+		})
+	}
+}
 
 // TestRequestAuthenticationLayerTriadAuthenticatesEveryOfferingThroughOneShape proves the blind request
 // protocol has no product arm: every compiler-owned offering crosses the same

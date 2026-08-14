@@ -126,8 +126,7 @@ func (p GrantPayload) WriteCanonical(destination io.Writer) error {
 	if err != nil {
 		return err
 	}
-	_, err = destination.Write(encoded)
-	return err
+	return writeCanonicalPayload(destination, encoded)
 }
 
 // MarshalJSON emits one bounded canonical grant payload.

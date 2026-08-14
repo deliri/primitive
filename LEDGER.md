@@ -4,6 +4,27 @@ Last updated: `2026-08-13`
 
 ## Current
 
+- closed exact Submission agreement output and binding, 2026-08-13, prepared
+  `v2026.0.104`. Every signed request now carries one immutable media type,
+  nonzero extent, SHA-256, CRC32C, manifest upload/collection/name/sequence/count,
+  build, protocol revision, and nonce agreement into the authority grant and the
+  exact Objectstore upload call. A future or zero revision, zero agreement, or
+  valid request near-miss returns only typed contract/binding refusal before the
+  caller-owned source is read. Objectstore remains the owner that streams the
+  source once and proves its bytes against the declaration.
+
+  The meaningful red state was shared across all four signed-body writers:
+  `WriteCanonical` discarded the standard-library writer count and panicked for
+  a nil writer. The retained four-by-eight seam matrix now requires exact
+  canonical bytes on success and typed contract plus `io.ErrShortWrite` or the
+  native writer identity across one-short, zero, negative, overreported,
+  partial-error, exact-error, and nil outcomes. The signed grant near-miss
+  matrix independently changes media type, both extent edges, both digests,
+  every manifest fact including a valid sequence move, every build fact, and
+  nonce; the upload-call matrix additionally proves unpublished revisions and
+  every rejected input leave the source untouched and return an exact zero
+  operation.
+
 - closed exact streamed retrieval activation, 2026-08-13, prepared
   `v2026.0.103`. `VerifiedGrant.DownloadFile` now settles Filestore activation
   failures according to their typed certainty: a determinate failure durably

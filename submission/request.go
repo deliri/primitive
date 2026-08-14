@@ -90,8 +90,21 @@ func (p RequestPayload) WriteCanonical(destination io.Writer) error {
 	if err != nil {
 		return err
 	}
-	_, err = destination.Write(encoded)
-	return err
+	return writeCanonicalPayload(destination, encoded)
+}
+
+func writeCanonicalPayload(destination io.Writer, encoded []byte) error {
+	if destination == nil {
+		return contractError(errors.New("submission canonical destination is nil"))
+	}
+	written, err := destination.Write(encoded)
+	if err != nil {
+		return contractError(err)
+	}
+	if written != len(encoded) {
+		return contractError(io.ErrShortWrite)
+	}
+	return nil
 }
 
 // MarshalJSON emits one bounded canonical payload.

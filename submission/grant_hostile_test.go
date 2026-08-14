@@ -31,6 +31,8 @@ type grantFixtureRequest struct {
 	objectName        string
 	content           []byte
 	expiresAt         int64
+	manifestSequence  uint64
+	manifestObjects   uint64
 	offering          core.Offering
 	requestNonceByte  byte
 	authorityByte     byte
@@ -149,8 +151,15 @@ func testRequestPayload(t testing.TB, request grantFixtureRequest) RequestPayloa
 	if err != nil {
 		t.Fatalf("controlwire.NewRequestNonce() error = %v, want nil", err)
 	}
+	manifest := testManifestIntent(t)
+	if request.manifestSequence != 0 {
+		manifest.Sequence = manifestSequence(t, request.manifestSequence)
+	}
+	if request.manifestObjects != 0 {
+		manifest.Objects = manifestObjects(t, request.manifestObjects)
+	}
 	return RequestPayload{
-		Declaration: testDeclaration(t, request.content), Manifest: testManifestIntent(t), Build: build,
+		Declaration: testDeclaration(t, request.content), Manifest: manifest, Build: build,
 		Revision: controlwire.Revision2026V1, Nonce: nonce,
 	}
 }
@@ -317,7 +326,7 @@ func TestGrantVerificationLayerTriadAuthenticatesOneExactCurrentUploadAgreement(
 func TestGrantVerificationLayerTriadRefusesEveryNearMissOfItsExactRequest(t *testing.T) {
 	t.Parallel()
 
-	fixture := newGrantFixture(t, grantFixtureRequest{})
+	fixture := newGrantFixture(t, grantFixtureRequest{manifestObjects: 2})
 	otherMediaType, err := core.ParseHTTPMediaType("application/octet-stream")
 	if err != nil {
 		t.Fatalf("core.ParseHTTPMediaType() error = %v, want nil", err)
@@ -334,7 +343,11 @@ func TestGrantVerificationLayerTriadRefusesEveryNearMissOfItsExactRequest(t *tes
 	if err != nil {
 		t.Fatalf("chit.ParseEntryName() error = %v, want nil", err)
 	}
-	otherObjectCount, err := chit.NewObjectCount(2)
+	otherSequence, err := chit.NewEntrySequence(2)
+	if err != nil {
+		t.Fatalf("chit.NewEntrySequence() error = %v, want nil", err)
+	}
+	otherObjectCount, err := chit.NewObjectCount(3)
 	if err != nil {
 		t.Fatalf("chit.NewObjectCount() error = %v, want nil", err)
 	}
@@ -431,6 +444,13 @@ func TestGrantVerificationLayerTriadRefusesEveryNearMissOfItsExactRequest(t *tes
 			name: "manifest entry name",
 			mutate: func(value RequestPayload) RequestPayload {
 				value.Manifest.Name = otherName
+				return value
+			},
+		},
+		{
+			name: "manifest entry sequence",
+			mutate: func(value RequestPayload) RequestPayload {
+				value.Manifest.Sequence = otherSequence
 				return value
 			},
 		},

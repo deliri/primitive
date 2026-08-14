@@ -119,8 +119,7 @@ func (p CompletionPayload) WriteCanonical(destination io.Writer) error {
 	if err != nil {
 		return err
 	}
-	_, err = destination.Write(encoded)
-	return err
+	return writeCanonicalPayload(destination, encoded)
 }
 
 func (p CompletionPayload) MarshalJSON() ([]byte, error) {
@@ -213,8 +212,7 @@ func (p completionProjectionPayload) WriteCanonical(destination io.Writer) error
 	if err != nil {
 		return err
 	}
-	_, err = destination.Write(encoded)
-	return err
+	return writeCanonicalPayload(destination, encoded)
 }
 
 func (p completionProjectionPayload) MarshalJSON() ([]byte, error) {

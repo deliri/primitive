@@ -236,7 +236,7 @@ func TestManifestIntentStructuralInvariantCarriesOnlyBlindOrganizationFacts(t *t
 	}
 }
 
-func manifestSequence(t *testing.T, value uint64) chit.EntrySequence {
+func manifestSequence(t testing.TB, value uint64) chit.EntrySequence {
 	t.Helper()
 	sequence, gotErr := chit.NewEntrySequence(value)
 	if gotErr != nil {
@@ -245,7 +245,7 @@ func manifestSequence(t *testing.T, value uint64) chit.EntrySequence {
 	return sequence
 }
 
-func manifestObjects(t *testing.T, value uint64) chit.ObjectCount {
+func manifestObjects(t testing.TB, value uint64) chit.ObjectCount {
 	t.Helper()
 	objects, gotErr := chit.NewObjectCount(value)
 	if gotErr != nil {

@@ -101,6 +101,7 @@ const (
 	uploadCallMutationZeroDeclaration
 	uploadCallMutationZeroBuild
 	uploadCallMutationZeroRevision
+	uploadCallMutationFutureRevision
 	uploadCallMutationZeroNonce
 	uploadCallMutationZeroPolicy
 	uploadCallMutationDifferentDeclaration
@@ -125,6 +126,7 @@ func TestVerifiedDecisionUploadCallHostileBoundaryMatrix(t *testing.T) {
 		{name: "zero declaration", mutation: uploadCallMutationZeroDeclaration, wantErr: core.ErrControlPlaneContract},
 		{name: "zero build", mutation: uploadCallMutationZeroBuild, wantErr: core.ErrControlPlaneContract},
 		{name: "zero revision", mutation: uploadCallMutationZeroRevision, wantErr: core.ErrControlPlaneContract},
+		{name: "future revision", mutation: uploadCallMutationFutureRevision, wantErr: core.ErrControlPlaneContract},
 		{name: "zero nonce", mutation: uploadCallMutationZeroNonce, wantErr: core.ErrControlPlaneContract},
 		{name: "zero transfer policy", mutation: uploadCallMutationZeroPolicy, wantErr: core.ErrControlPlaneContract},
 		{name: "different declaration", mutation: uploadCallMutationDifferentDeclaration, wantErr: core.ErrControlPlaneResponseBinding},
@@ -137,8 +139,9 @@ func TestVerifiedDecisionUploadCallHostileBoundaryMatrix(t *testing.T) {
 			t.Parallel()
 
 			fixture := newUploadCallFixture(t, []byte{21, 22, 23})
+			source := bytes.NewReader(fixture.content)
 			input := UploadCallRequest{
-				Source: bytes.NewReader(fixture.content), Request: fixture.request,
+				Source: source, Request: fixture.request,
 				Policy: providerPolicy(t),
 			}
 			decision := fixture.decision
@@ -155,6 +158,8 @@ func TestVerifiedDecisionUploadCallHostileBoundaryMatrix(t *testing.T) {
 				input.Request.Build = core.BuildIdentity{}
 			case uploadCallMutationZeroRevision:
 				input.Request.Revision = 0
+			case uploadCallMutationFutureRevision:
+				input.Request.Revision = controlwire.Revision(255)
 			case uploadCallMutationZeroNonce:
 				input.Request.Nonce = controlwire.RequestNonce{}
 			case uploadCallMutationZeroPolicy:
@@ -174,6 +179,10 @@ func TestVerifiedDecisionUploadCallHostileBoundaryMatrix(t *testing.T) {
 			if !errors.Is(gotErr, tc.wantErr) || !uploadCallIsZero(call) {
 				t.Fatalf("VerifiedDecision.UploadCall(hostile) = (%v, %v), want zero and errors.Is %v",
 					call, gotErr, tc.wantErr)
+			}
+			if gotRemaining := source.Len(); gotRemaining != len(fixture.content) {
+				t.Fatalf("VerifiedDecision.UploadCall(hostile) source bytes remaining = %d, want untouched %d",
+					gotRemaining, len(fixture.content))
 			}
 		})
 	}
@@ -217,7 +226,9 @@ func verifyDecisionProjection(t *testing.T, input decisionProjectionFixture) Ver
 }
 
 func uploadCallIsZero(call objectstore.UploadCapabilityRequest) bool {
-	return call.Source == nil && call.Capability.IsZero() && call.ContentType.IsZero()
+	return call.Source == nil && call.Observer == nil && call.Capability.IsZero() &&
+		call.ContentType.IsZero() && call.Integrity == (objectstore.Integrity{}) &&
+		call.Policy == (objectstore.Policy{})
 }
 
 func providerPolicy(t *testing.T) objectstore.Policy {
