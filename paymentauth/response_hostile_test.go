@@ -10,16 +10,20 @@ import (
 	"github.com/deliri/primitive/v2026/controlplane"
 	"github.com/deliri/primitive/v2026/controlwire"
 	"github.com/deliri/primitive/v2026/core"
+	"github.com/deliri/primitive/v2026/currency"
 	"github.com/deliri/primitive/v2026/payment"
 	"github.com/deliri/primitive/v2026/receipt"
+	"github.com/deliri/primitive/v2026/temporal"
 )
 
 type paymentResponseFixture struct {
+	signer   ed25519.PrivateKey
 	body     payment.CatalogDocument
+	trusted  attest.TrustedKeys
+	settled  payment.Document
 	header   controlplane.ResponseHeader
 	expected controlplane.ResponseExpectation
-	trusted  attest.TrustedKeys
-	signer   ed25519.PrivateKey
+	request  payment.QueryPayload
 }
 
 func TestPaymentResponseLayerTriadAuthenticatesRefusesAndKeepsNeutralZero(t *testing.T) {
@@ -59,6 +63,27 @@ func TestPaymentResponseLayerTriadAuthenticatesRefusesAndKeepsNeutralZero(t *tes
 	wantJSON, wantErr := fixture.body.MarshalJSON()
 	if gotErr != nil || wantErr != nil || !bytes.Equal(gotJSON, wantJSON) {
 		t.Fatalf("verified payment catalog = (%d bytes, %v), want exact signed body (%d bytes, %v)", len(gotJSON), gotErr, len(wantJSON), wantErr)
+	}
+	catalog, err := payment.VerifyCatalog(payment.CatalogVerification{
+		Document: gotBody, Request: fixture.request, TrustedKeys: fixture.trusted,
+	})
+	if err != nil || len(catalog.Entries) != 1 || catalog.Entries[0] != fixture.settled {
+		t.Fatalf("VerifyCatalog(authenticated response) = (%v, %v), want one exact settled receipt",
+			catalog, err)
+	}
+	receiptProof, err := payment.Verify(payment.Verification{
+		Document: catalog.Entries[0],
+		Expected: payment.Expectation{
+			Identity: fixture.settled.Payload.Identity, Scope: fixture.settled.Payload.Scope,
+		},
+		TrustedKeys: fixture.trusted,
+	})
+	if err != nil {
+		t.Fatalf("payment.Verify(catalog receipt) error = %v, want nil", err)
+	}
+	settled, err := receiptProof.Document()
+	if err != nil || settled != fixture.settled {
+		t.Fatalf("authenticated catalog receipt = (%v, %v), want exact settled receipt and nil", settled, err)
 	}
 
 	mismatched := fixture.expected
@@ -114,12 +139,15 @@ func newPaymentResponseFixture(t testing.TB) paymentResponseFixture {
 	}
 	seed := paymentQuerySeed(authorityMarker)
 	signer := ed25519.NewKeyFromSeed(seed[:])
+	settled := paymentResponseReceipt(t, paymentResponseReceiptRequest{
+		Signer: signer, Scope: request.payload.Query.Scope,
+	})
 	commitment, err := payment.CommitQuery(request.payload)
 	if err != nil {
 		t.Fatalf("payment.CommitQuery(real query) error = %v, want nil", err)
 	}
 	body, err := payment.IssueCatalog(payment.CatalogIssuance{Signer: signer, Payload: payment.CatalogPayload{
-		Entries: []payment.Document{}, Watermark: watermark,
+		Entries: []payment.Document{settled}, Watermark: watermark,
 		ObservedAt: request.document.Certificate.Body.IssuedAt,
 		Scope:      request.payload.Query.Scope, Request: commitment, Continuation: payment.End(),
 	}})
@@ -148,8 +176,38 @@ func newPaymentResponseFixture(t testing.TB) paymentResponseFixture {
 		Installation: header.Installation, Revision: header.Revision, Family: header.Family, Offering: header.Offering,
 	}
 	return paymentResponseFixture{
-		body: body, header: header, expected: expected, trusted: request.trusted, signer: signer,
+		body: body, header: header, expected: expected, trusted: request.trusted,
+		signer: signer, request: request.payload, settled: settled,
 	}
+}
+
+type paymentResponseReceiptRequest struct {
+	Signer ed25519.PrivateKey
+	Scope  receipt.Scope
+}
+
+func paymentResponseReceipt(t testing.TB, request paymentResponseReceiptRequest) payment.Document {
+	t.Helper()
+
+	selection := paymentQuerySpecificSelection(t)
+	amount, err := currency.New(currency.CodeUSD, 1)
+	if err != nil {
+		t.Fatalf("currency.New(minimum positive USD amount) error = %v, want nil", err)
+	}
+	document, err := payment.Issue(payment.Issuance{
+		Signer: request.Signer,
+		Payload: payment.Payload{
+			Identity: selection.Payment, Scope: request.Scope, Amount: amount,
+			PaidAt: temporal.InstantFromNanoseconds(1),
+			Service: payment.ServicePeriod{
+				Start: temporal.InstantFromNanoseconds(1), End: temporal.InstantFromNanoseconds(2),
+			},
+		},
+	})
+	if err != nil {
+		t.Fatalf("payment.Issue(exact settled receipt) error = %v, want nil", err)
+	}
+	return document
 }
 
 func acceptedPaymentResponseAssessment(t testing.TB, header controlplane.ResponseHeader) controlwire.ProtocolAssessment {

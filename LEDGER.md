@@ -4,6 +4,30 @@ Last updated: `2026-08-14`
 
 ## Current
 
+- composed exact payment receipt custody and catalog authentication,
+  2026-08-14, prepared `v2026.0.110`. The real Payment control response proof
+  no longer stops after authenticating the outer envelope. It now verifies the
+  embedded catalog against the exact device-signed query commitment, requires
+  one exact bounded entry, authenticates that entry as the selected authority-
+  signed payment receipt, and proves its UUIDv7 identity, account/offering
+  scope, Primitive `currency.Amount`, settlement instant, and service period
+  survive unchanged.
+
+  Existing hostile suites remain the independent breadth proof: ten amount and
+  service-period boundaries, exact receipt identity/scope/signature
+  substitutions, empty through maximum-size newest-first pages, all/specific
+  selection, start/after traversal, query commitment over selection/cursor/
+  limit/build/nonce/revision, watermark scope, and zero-or-one specific result.
+  The meaningful production mutation removed the catalog entry/scope
+  comparison. An independently valid foreign-tenant receipt was then admitted
+  into a signed page with nil error and the isolated test went red. Restored
+  production returns exact zero catalog output and typed Payment verification
+  refusal; zero issue and verification inputs likewise acquire no authority.
+  Field alignment also exposed Paymentauth's implicit whole-struct conversion
+  into the generic control response contract. Explicit typed issuance and
+  verification projections now name every field, so declaration order can no
+  longer act as an invisible cross-package protocol.
+
 - proved one blind submission lifecycle for every shipped offering, 2026-08-14,
   prepared `v2026.0.109`. Bug, Witness, and Peachfuzz now traverse one composed
   device declaration, signed request, installation credential, authority
