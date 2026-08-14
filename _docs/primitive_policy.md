@@ -60,6 +60,12 @@ bounds around it.
 
 - own product policy. Business rules, thresholds, vocabulary, and workflow
   belong to consumers;
+- decide which product evidence is eligible, choose a transfer destination,
+  disclose transfer contents to a customer, obtain confirmation, interpret a
+  product-owned `--yes` flag, render CLI tables or progress bars, or write
+  customer language. Primitive supplies the validated declarations, progress
+  observations, custody chits, payment receipts, and retrieval agreements that
+  let the owning product make and present those decisions;
 - replace, imitate, or hide the substrate;
 - import Kernel, Witness, Bug, or Peachfuzz, ever; or
 - demand a value it will not produce. If Primitive requires it, Primitive
@@ -279,8 +285,12 @@ exist here and must be reachable.
   different hat. If Primitive requires a value, Primitive supplies a way to make
   one.
 - Consumer-specific product policy, vocabulary, thresholds, and business rules
-  never enter Primitive. `CAPABILITIES.md` is the index consumers read before
-  writing anything that crosses the wire or touches the real world.
+  never enter Primitive. Evidence eligibility, exact pre-transfer disclosure,
+  confirmation and `--yes` behavior, destination choice, CLI rendering, and
+  customer language therefore remain product-owned. Primitive carries only
+  the typed facts and agreements those decisions consume. `CAPABILITIES.md` is
+  the index consumers read before writing anything that crosses the wire or
+  touches the real world.
 
 ## 1. Normative language and decision order
 
@@ -1034,7 +1044,7 @@ starts.
 
 ## 15. Exact package graph
 
-The catalog contains **37 production packages** plus test-only `testserial` and
+The catalog contains **38 production packages** plus test-only `testserial` and
 `controlplanetest`.
 Every listed production import is required and MUST be used semantically. Every
 unlisted Primitive sibling import is forbidden.
@@ -1083,7 +1093,7 @@ The order is dependency depth, not a command to build every package in a row.
 | 6 | `retrieval` | Device-signed exact-object requests, authority-signed expiring download capabilities bound to authenticated chit manifests, and atomic exact-file retrieval execution | `attest`, `chit`, `controlwire`, `core`, `filestore`, `objectstore`, `temporal` | `receipt` |
 | 7 | `retrievalauth` | Installation-certificate binding and device authentication for one evidence-retrieval request | `attest`, `controlplane`, `controlwire`, `core`, `retrieval` | `controlplanetest` |
 | 6 | `payment` | Authority-signed exact payment receipts, bounded catalogs, and device-signed catalog queries | `attest`, `controlwire`, `core`, `currency`, `id`, `receipt`, `temporal` | none |
-| 7 | `paymentauth` | Installation-certificate binding and device authentication for one payment catalog query | `attest`, `controlplane`, `controlwire`, `core`, `payment` | `controlplanetest`, `receipt` |
+| 7 | `paymentauth` | Installation-certificate binding and device authentication for one payment catalog query | `attest`, `controlplane`, `controlwire`, `core`, `payment` | `controlplanetest`, `currency`, `receipt`, `temporal` |
 
 Graph-wide rules:
 

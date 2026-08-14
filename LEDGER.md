@@ -4,6 +4,27 @@ Last updated: `2026-08-14`
 
 ## Current
 
+- made consent and presentation ownership explicit, 2026-08-14, prepared
+  `v2026.0.111`. Primitive continues to own only product-neutral mechanisms:
+  typed submission declarations, exact transfer observations, custody chits,
+  payment receipts, and authenticated retrieval agreements. The normative
+  policy and capability index now state the matching negative boundary in
+  concrete terms. Bug, Witness, and Peachfuzz own evidence eligibility, exact
+  pre-transfer disclosure, confirmation and `--yes` behavior, destination
+  choice, CLI tables and progress rendering, and customer language.
+
+  No presentation framework, consent state machine, product vocabulary, or
+  compatibility surface was added. The compiler-owned architecture catalog
+  remains the executable package boundary: it admits only the forty named
+  mechanism packages, its graph tests reject unlisted production and test
+  edges, and consumer imports remain forbidden. This slice therefore closes a
+  documentation ambiguity around already-enforced architecture instead of
+  manufacturing unused code. Running that ratchet exposed two test-only edges
+  omitted by the preceding Paymentauth receipt proof: `currency` and
+  `temporal`. Both are now admitted explicitly in the catalog and its policy
+  projection, keeping Paymentauth at the nine-edge ceiling with no hidden
+  coupling.
+
 - composed exact payment receipt custody and catalog authentication,
   2026-08-14, prepared `v2026.0.110`. The real Payment control response proof
   no longer stops after authenticating the outer envelope. It now verifies the

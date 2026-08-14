@@ -204,7 +204,9 @@ coupling ceiling, and is rejected when no test source uses it. `gate` uses
 `chit`, `controlplanetest`, and `objectstore` to
 prove real credentialed requests and completions, `chitauth` and `paymentauth`
 use `controlplanetest` and `receipt` to prove real credentialed
-catalog queries, `distributionauth` uses `controlplanetest`, `deploy`, and
+catalog queries, with `paymentauth` additionally using `currency` and
+`temporal` to prove exact receipt facts; `distributionauth` uses
+`controlplanetest`, `deploy`, and
 `objectstore` to prove real
 credentialed publication, update, and upgrade requests, `release` uses
 `testserial` to isolate process-wide build identity tests,
