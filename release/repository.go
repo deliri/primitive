@@ -127,11 +127,14 @@ func (r RepositoryVerificationRequest) Validate() error {
 }
 
 // VerifiedRepository is proof that the observed checkout was clean and its
-// exact HEAD matched the requested release commit.
+// exact HEAD matched the requested release commit. It retains the Git
+// executable that produced that proof so later release work can reach it
+// without inheriting an ambient PATH.
 type VerifiedRepository struct {
-	root   core.AbsolutePath
-	commit core.BuildCommit
-	valid  bool
+	root          core.AbsolutePath
+	gitExecutable core.AbsolutePath
+	commit        core.BuildCommit
+	valid         bool
 }
 
 // Validate rechecks the retained proof facts.
@@ -139,7 +142,9 @@ func (r VerifiedRepository) Validate() error {
 	if !r.valid {
 		return contractError(errors.New("verified repository is unset"))
 	}
-	for _, err := range [...]error{r.root.Validate(), r.commit.Validate()} {
+	for _, err := range [...]error{
+		r.root.Validate(), r.gitExecutable.Validate(), r.commit.Validate(),
+	} {
 		if err != nil {
 			return contractError(errors.New("verified repository is invalid"), err)
 		}
@@ -147,9 +152,11 @@ func (r VerifiedRepository) Validate() error {
 	return nil
 }
 
-// Root and Commit return the exact repository facts that were verified.
-func (r VerifiedRepository) Root() core.AbsolutePath  { return r.root }
-func (r VerifiedRepository) Commit() core.BuildCommit { return r.commit }
+// Root, GitExecutable, and Commit return the exact repository facts that were
+// verified.
+func (r VerifiedRepository) Root() core.AbsolutePath          { return r.root }
+func (r VerifiedRepository) GitExecutable() core.AbsolutePath { return r.gitExecutable }
+func (r VerifiedRepository) Commit() core.BuildCommit         { return r.commit }
 
 // RepositoryCommitMismatchError carries both sides of a rejected HEAD binding.
 type RepositoryCommitMismatchError struct {
@@ -232,8 +239,8 @@ func (RepositoryDirtyError) Unwrap() error { return core.ErrReleaseContract }
 func (e RepositoryDirtyError) Root() core.AbsolutePath { return e.root }
 
 // VerifyRepository observes the real Git repository through Primitive Process.
-// It retains only fixed-size commit and root facts; status output stops at the
-// first byte and is never world-built in memory.
+// It retains the verified Git executable plus fixed-size commit and root
+// facts; status output stops at the first byte and is never world-built.
 func VerifyRepository(
 	ctx context.Context,
 	request RepositoryVerificationRequest,
@@ -256,7 +263,10 @@ func VerifyRepository(
 	if err := verifyRepositoryClean(ctx, request); err != nil {
 		return VerifiedRepository{}, err
 	}
-	verified := VerifiedRepository{root: request.Root, commit: request.ExpectedCommit, valid: true}
+	verified := VerifiedRepository{
+		root: request.Root, gitExecutable: request.GitExecutable,
+		commit: request.ExpectedCommit, valid: true,
+	}
 	return verified, verified.Validate()
 }
 

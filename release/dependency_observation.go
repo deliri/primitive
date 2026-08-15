@@ -195,7 +195,11 @@ func prepareBuildDependencyProcess(
 	if err != nil {
 		return process.Request{}, contractError(errors.New(goToolDirectoryInvalidDiagnostic), err)
 	}
-	environment, err := prepareBuildEnvironment(request.HostEnvironment, goDirectory, command)
+	searchPath, err := composeExactSearchPath([]core.AbsolutePath{goDirectory})
+	if err != nil {
+		return process.Request{}, err
+	}
+	environment, err := prepareBuildEnvironment(request.HostEnvironment, searchPath, command)
 	if err != nil {
 		return process.Request{}, err
 	}

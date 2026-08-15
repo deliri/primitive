@@ -3,6 +3,7 @@ package release_test
 import (
 	"errors"
 	"io"
+	"os"
 	"slices"
 	"strings"
 	"testing"
@@ -90,9 +91,17 @@ func TestPrepareBuildProcessReplacesEveryTargetControlledEnvironmentFact(t *test
 	if err != nil {
 		t.Fatalf("prepared Environment.Strings() error = %v, want nil", err)
 	}
+	gitToolDirectory, err := repository.GitExecutable().Parent()
+	if err != nil {
+		t.Fatalf("verified Git executable parent error = %v, want nil", err)
+	}
+	wantPath := goToolDirectory.String()
+	if gitToolDirectory != goToolDirectory {
+		wantPath = goToolDirectory.String() + string(os.PathListSeparator) + gitToolDirectory.String()
+	}
 	wantEnvironment := []string{
 		"HOME=/tmp/release-home",
-		"PATH=" + goToolDirectory.String(),
+		"PATH=" + wantPath,
 		"CGO_ENABLED=0",
 		"GOARCH=amd64",
 		"GOOS=windows",

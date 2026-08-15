@@ -178,8 +178,8 @@ func TestVerifyRepositoryPressuresEveryObservableCheckoutState(t *testing.T) {
 				if err != nil {
 					t.Fatalf("VerifyRepository(clean checkout) error = %v, want nil", err)
 				}
-				if verified.Root() != fixture.root || verified.Commit() != fixture.commit {
-					t.Fatalf("VerifyRepository(clean checkout) facts = (%v, %v), want (%v, %v)", verified.Root(), verified.Commit(), fixture.root, fixture.commit)
+				if verified.Root() != fixture.root || verified.GitExecutable() != fixture.git || verified.Commit() != fixture.commit {
+					t.Fatalf("VerifyRepository(clean checkout) facts = (%v, %v, %v), want (%v, %v, %v)", verified.Root(), verified.GitExecutable(), verified.Commit(), fixture.root, fixture.git, fixture.commit)
 				}
 				return
 			}

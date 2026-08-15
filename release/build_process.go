@@ -2,6 +2,7 @@ package release
 
 import (
 	"errors"
+	"os"
 	"strings"
 
 	"github.com/deliri/primitive/v2026/core"
@@ -53,13 +54,13 @@ func prepareBuildProcess(request BuildProcessRequest) (process.Request, error) {
 	if request.WorkingDirectory != request.Repository.Root() {
 		return process.Request{}, contractError(errors.New("build working directory differs from the verified repository"))
 	}
-	goToolDirectory, err := request.Tools.GoExecutable().Parent()
+	searchPath, err := verifiedBuildSearchPath(request.Tools, request.Repository)
 	if err != nil {
-		return process.Request{}, contractError(errors.New(goToolDirectoryInvalidDiagnostic), err)
+		return process.Request{}, err
 	}
 	environment, err := prepareBuildEnvironment(
 		request.HostEnvironment,
-		goToolDirectory,
+		searchPath,
 		request.Command,
 	)
 	if err != nil {
@@ -107,9 +108,12 @@ func validateBuildProcessCapabilityBinding(request BuildProcessRequest) error {
 
 func prepareBuildEnvironment(
 	host process.Environment,
-	goToolDirectory core.AbsolutePath,
+	searchPath string,
 	command BuildCommand,
 ) (process.Environment, error) {
+	if searchPath == "" {
+		return process.Environment{}, contractError(errors.New("build search path is empty"))
+	}
 	values, err := host.Strings()
 	if err != nil {
 		return process.Environment{}, contractError(errors.New("host build environment is invalid"), err)
@@ -129,13 +133,46 @@ func prepareBuildEnvironment(
 	if err != nil {
 		return process.Environment{}, err
 	}
-	filtered = append(filtered, goPathEnvironmentName+"="+goToolDirectory.String())
+	filtered = append(filtered, goPathEnvironmentName+"="+searchPath)
 	filtered = append(filtered, overrides...)
 	prepared, err := process.ParseExactEnvironment(filtered)
 	if err != nil {
 		return process.Environment{}, contractError(errors.New("exact build environment is invalid"), err)
 	}
 	return prepared, nil
+}
+
+// composeExactSearchPath projects one exact PATH value from already-validated
+// directories. Consecutive duplicates collapse so Go and Git in one directory
+// do not invent a second search entry.
+func verifiedBuildSearchPath(tools VerifiedBuildTools, repository VerifiedRepository) (string, error) {
+	goToolDirectory, err := tools.GoExecutable().Parent()
+	if err != nil {
+		return "", contractError(errors.New(goToolDirectoryInvalidDiagnostic), err)
+	}
+	gitToolDirectory, err := repository.GitExecutable().Parent()
+	if err != nil {
+		return "", contractError(errors.New("git tool directory is invalid"), err)
+	}
+	return composeExactSearchPath([]core.AbsolutePath{goToolDirectory, gitToolDirectory})
+}
+
+func composeExactSearchPath(directories []core.AbsolutePath) (string, error) {
+	if len(directories) == 0 {
+		return "", contractError(errors.New("build search path has no directories"))
+	}
+	parts := make([]string, 0, len(directories))
+	for _, directory := range directories {
+		if err := directory.Validate(); err != nil {
+			return "", contractError(errors.New("build search path directory is invalid"), err)
+		}
+		next := directory.String()
+		if len(parts) > 0 && parts[len(parts)-1] == next {
+			continue
+		}
+		parts = append(parts, next)
+	}
+	return strings.Join(parts, string(os.PathListSeparator)), nil
 }
 
 func buildControlledEnvironmentName(name string) bool {

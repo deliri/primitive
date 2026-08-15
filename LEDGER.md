@@ -4,6 +4,15 @@ Last updated: `2026-08-15`
 
 ## Current
 
+- retained the verified Git executable on the repository proof and put its
+  parent on the Garble search path, 2026-08-15, prepared `v2026.0.128`.
+  `PrepareBuildProcess` had replaced `PATH` with only the Go tool directory, so
+  Garble could not reach `git apply` for linker patches. `VerifiedRepository`
+  now keeps the Git executable that produced the clean-commit proof.
+  `composeExactSearchPath` projects Go then Git parents, collapsing a shared
+  directory. Ambient `PATH` stays stripped. Peachfuzz four-target Garble builds
+  can reach the already-verified git without inheriting operator PATH.
+
 - closed issue-only completion encode, 2026-08-15, prepared `v2026.0.127`.
   `EncodeValidatedJSON` refused `submissionauth.CompletionProjection`,
   `submission.CompletionProjection`, `submission.GrantProjection`,
