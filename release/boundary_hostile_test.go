@@ -517,6 +517,106 @@ func TestEvaluatePublicBoundaryRejectsAnUnstampedBinary(t *testing.T) {
 	}
 }
 
+func TestEvaluateInstalledLayerTriad(t *testing.T) {
+	t.Parallel()
+
+	t.Run("positive known installed identity admits the newer candidate", func(t *testing.T) {
+		t.Parallel()
+		installed := newReleaseFixture(t, core.NewReleaseVersion(2026, 7, 30), 1)
+		candidate := newReleaseFixture(t, core.NewReleaseVersion(2026, 7, 31), 2)
+		cached, err := NewCachedLatest(candidate.verifiedLatest)
+		if err != nil {
+			t.Fatalf("NewCachedLatest() error = %v", err)
+		}
+		got, gotErr := EvaluateInstalled(EvaluateInstalledRequest{
+			Evaluate: EvaluateRequest{
+				InstalledManifest: installed.verified,
+				Latest:            cached,
+				Observation:       temporal.InstantFromNanoseconds(3_000),
+			},
+			Installed: installed.builds[2],
+		})
+		if gotErr != nil || got.State() != SelectionAvailable {
+			t.Fatalf("EvaluateInstalled(newer) = (%v, %v), want (%v, nil)", got.State(), gotErr, SelectionAvailable)
+		}
+		available, ok := got.Available()
+		if !ok {
+			t.Fatalf("EvaluateInstalled(newer).Available() ok = false")
+		}
+		preparation, err := available.PrepareAt(temporal.InstantFromNanoseconds(4_000))
+		if err != nil {
+			t.Fatalf("AvailableRelease.PrepareAt() error = %v", err)
+		}
+		prepared, ok := preparation.Ready()
+		if !ok {
+			t.Fatal("Preparation.Ready() ok = false")
+		}
+		artifact, err := prepared.Artifact()
+		if err != nil || artifact != candidate.artifacts[2] {
+			t.Fatalf("PreparedRelease.Artifact() = (%v, %v), want exact candidate", artifact, err)
+		}
+	})
+
+	t.Run("negative zero installed identity is refused before selection", func(t *testing.T) {
+		t.Parallel()
+		installed := newReleaseFixture(t, core.NewReleaseVersion(2026, 7, 30), 1)
+		cached, err := NewCachedLatest(installed.verifiedLatest)
+		if err != nil {
+			t.Fatalf("NewCachedLatest() error = %v", err)
+		}
+		got, gotErr := EvaluateInstalled(EvaluateInstalledRequest{
+			Evaluate: EvaluateRequest{
+				InstalledManifest: installed.verified,
+				Latest:            cached,
+				Observation:       temporal.InstantFromNanoseconds(3_000),
+			},
+		})
+		if !errors.Is(gotErr, core.ErrReleaseConflict) || got != (Selection{}) {
+			t.Fatalf("EvaluateInstalled(zero identity) = (%v, %v), want zero/%v", got, gotErr, core.ErrReleaseConflict)
+		}
+	})
+
+	t.Run("negative rollback installed identity is refused", func(t *testing.T) {
+		t.Parallel()
+		installed := newReleaseFixture(t, core.NewReleaseVersion(2026, 8, 0), 1)
+		candidate := newReleaseFixture(t, core.NewReleaseVersion(2026, 7, 31), 2)
+		cached, err := NewCachedLatest(candidate.verifiedLatest)
+		if err != nil {
+			t.Fatalf("NewCachedLatest() error = %v", err)
+		}
+		got, gotErr := EvaluateInstalled(EvaluateInstalledRequest{
+			Evaluate: EvaluateRequest{
+				InstalledManifest: installed.verified,
+				Latest:            cached,
+				Observation:       temporal.InstantFromNanoseconds(3_000),
+			},
+			Installed: installed.builds[2],
+		})
+		if !errors.Is(gotErr, core.ErrReleaseRollback) || got != (Selection{}) {
+			t.Fatalf("EvaluateInstalled(rollback) = (%v, %v), want zero/%v", got, gotErr, core.ErrReleaseRollback)
+		}
+	})
+
+	t.Run("neutral missing cache requires refresh and yields no prepared handoff", func(t *testing.T) {
+		t.Parallel()
+		installed := newReleaseFixture(t, core.NewReleaseVersion(2026, 7, 30), 1)
+		got, gotErr := EvaluateInstalled(EvaluateInstalledRequest{
+			Evaluate: EvaluateRequest{
+				InstalledManifest: installed.verified,
+				Latest:            MissingCachedLatest(),
+				Observation:       temporal.InstantFromNanoseconds(3_000),
+			},
+			Installed: installed.builds[2],
+		})
+		if gotErr != nil || got.State() != SelectionRefreshRequired {
+			t.Fatalf("EvaluateInstalled(missing) = (%v, %v), want (%v, nil)", got.State(), gotErr, SelectionRefreshRequired)
+		}
+		if _, ok := got.Available(); ok {
+			t.Fatal("EvaluateInstalled(missing).Available() ok = true")
+		}
+	})
+}
+
 func TestPreparedReleaseExposesOnlyValidatedExactHandoffFacts(t *testing.T) {
 	t.Parallel()
 	installed := newReleaseFixture(t, core.NewReleaseVersion(2026, 7, 30), 1)

@@ -143,6 +143,24 @@ func (r EvaluateRequest) Validate() error {
 	return nil
 }
 
+// EvaluateInstalledRequest binds one authenticated latest cache to one
+// already-known installed identity. It is the only public way to produce a
+// PreparedRelease for an installation that is not the running binary.
+type EvaluateInstalledRequest struct {
+	Evaluate  EvaluateRequest
+	Installed core.BuildIdentity
+}
+
+func (r EvaluateInstalledRequest) Validate() error {
+	if err := r.Evaluate.Validate(); err != nil {
+		return err
+	}
+	if err := r.Installed.Validate(); err != nil {
+		return conflictError(err)
+	}
+	return nil
+}
+
 // CurrentRelease proves the installed immutable release remains selected.
 type CurrentRelease struct {
 	validUntil temporal.Instant
@@ -470,7 +488,19 @@ func Evaluate(request EvaluateRequest) (Selection, error) {
 	if err != nil {
 		return Selection{}, conflictError(err)
 	}
-	return evaluateWithInstalled(request, installed)
+	return EvaluateInstalled(EvaluateInstalledRequest{
+		Evaluate: request, Installed: installed,
+	})
+}
+
+// EvaluateInstalled makes one pure installed-versus-latest selection for an
+// already-known installed identity. Products use this when the installation
+// under review is not the running process.
+func EvaluateInstalled(request EvaluateInstalledRequest) (Selection, error) {
+	if err := request.Validate(); err != nil {
+		return Selection{}, err
+	}
+	return evaluateWithInstalled(request.Evaluate, request.Installed)
 }
 
 func evaluateWithInstalled(request EvaluateRequest, installed core.BuildIdentity) (Selection, error) {

@@ -1,8 +1,16 @@
 # Primitive 2026 Ledger
 
-Last updated: `2026-08-14`
+Last updated: `2026-08-15`
 
 ## Current
+
+- opened installed-identity release evaluation, 2026-08-15, prepared
+  `v2026.0.126`. `Evaluate` still reads the running binary's embedded stamp.
+  `EvaluateInstalled` accepts one already-known installed identity and is the
+  only public door that can produce a `PreparedRelease` for an installation
+  that is not the process under test. The hostile LayerTriad admits a newer
+  candidate, refuses a zero or rollback identity, and leaves a missing cache
+  as refresh-required with no prepared handoff.
 
 - completed the Primitive-native release gate, 2026-08-14, prepared
   `v2026.0.125`. The gate upgraded the compiler authority from Go 1.26.5 to

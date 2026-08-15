@@ -101,6 +101,7 @@ type releaseContractInventory struct {
 	VerifiedManifest                  capabilityWrapper[VerifiedManifest]
 	CachedLatest                      capabilityWrapper[CachedLatest]
 	EvaluateRequest                   protocolFact[EvaluateRequest]
+	EvaluateInstalledRequest          protocolFact[EvaluateInstalledRequest]
 	CurrentRelease                    capabilityWrapper[CurrentRelease]
 	CurrentSummary                    protocolFact[CurrentSummary]
 	AvailableRelease                  capabilityWrapper[AvailableRelease]
@@ -190,6 +191,7 @@ func TestPublicOperationsAreExactReleaseIntent(t *testing.T) {
 		"CurrentGoToolchain",
 		"EmbeddedBuildIdentity",
 		"Evaluate",
+		"EvaluateInstalled",
 		"InspectBuiltArtifact",
 		"InspectMetadataAsset",
 		"IssueLatest",
@@ -310,6 +312,57 @@ func TestEvaluateObtainsInstalledIdentityOnlyFromReleaseEmbedding(t *testing.T) 
 	}
 	if !embeddedCall {
 		t.Fatalf("Evaluate does not call EmbeddedBuildIdentity")
+	}
+}
+
+func TestEvaluateInstalledDoesNotReadTheRunningBinaryStamp(t *testing.T) {
+	t.Parallel()
+
+	set := token.NewFileSet()
+	file, err := parser.ParseFile(set, "selection.go", nil, parser.SkipObjectResolution)
+	if err != nil {
+		t.Fatalf("parser.ParseFile(selection.go) error = %v", err)
+	}
+	var requestFields []string
+	embeddedCall := false
+	for _, declaration := range file.Decls {
+		switch node := declaration.(type) {
+		case *ast.GenDecl:
+			for _, raw := range node.Specs {
+				spec, ok := raw.(*ast.TypeSpec)
+				if !ok || spec.Name.Name != "EvaluateInstalledRequest" {
+					continue
+				}
+				structure := spec.Type.(*ast.StructType)
+				for _, field := range structure.Fields.List {
+					for _, name := range field.Names {
+						requestFields = append(requestFields, name.Name)
+					}
+				}
+			}
+		case *ast.FuncDecl:
+			if node.Name.Name != "EvaluateInstalled" {
+				continue
+			}
+			ast.Inspect(node.Body, func(raw ast.Node) bool {
+				call, ok := raw.(*ast.CallExpr)
+				if !ok {
+					return true
+				}
+				function, ok := call.Fun.(*ast.Ident)
+				if ok && function.Name == "EmbeddedBuildIdentity" {
+					embeddedCall = true
+				}
+				return true
+			})
+		}
+	}
+	wantFields := []string{"Evaluate", "Installed"}
+	if !slices.Equal(requestFields, wantFields) {
+		t.Fatalf("EvaluateInstalledRequest fields = %v, want %v", requestFields, wantFields)
+	}
+	if embeddedCall {
+		t.Fatal("EvaluateInstalled must not call EmbeddedBuildIdentity")
 	}
 }
 
