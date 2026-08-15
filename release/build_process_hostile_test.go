@@ -32,6 +32,9 @@ func TestPrepareBuildProcessReplacesEveryTargetControlledEnvironmentFact(t *test
 	hostEnvironment, err := process.ParseExactEnvironment([]string{
 		"PATH=/poison/ambient/bin",
 		"HOME=/tmp/release-home",
+		"GOCACHE=/executor/cache",
+		"GOMODCACHE=/executor/modcache",
+		"GOPATH=/executor/gopath",
 		"GOOS=poison",
 		"GOARCH=poison",
 		"CGO_ENABLED=1",
@@ -101,6 +104,9 @@ func TestPrepareBuildProcessReplacesEveryTargetControlledEnvironmentFact(t *test
 	}
 	wantEnvironment := []string{
 		"HOME=/tmp/release-home",
+		"GOCACHE=/executor/cache",
+		"GOMODCACHE=/executor/modcache",
+		"GOPATH=/executor/gopath",
 		"PATH=" + wantPath,
 		"CGO_ENABLED=0",
 		"GOARCH=amd64",

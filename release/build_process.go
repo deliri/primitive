@@ -12,6 +12,17 @@ import (
 
 const (
 	goPathEnvironmentName            = "PATH"
+	goEnvironmentNameCGO             = "CGO_ENABLED"
+	goEnvironmentNameOS              = "GOOS"
+	goEnvironmentNameArchitecture    = "GOARCH"
+	goEnvironmentNameToolchain       = "GOTOOLCHAIN"
+	goEnvironmentNameAMD64           = "GOAMD64"
+	goEnvironmentNameARM64           = "GOARM64"
+	goEnvironmentNameConfiguration   = "GOENV"
+	goEnvironmentNameFlags           = "GOFLAGS"
+	goEnvironmentNameExperiment      = "GOEXPERIMENT"
+	goEnvironmentNameFIPS            = "GOFIPS140"
+	goEnvironmentNameWorkspace       = "GOWORK"
 	goToolDirectoryInvalidDiagnostic = "go tool directory is invalid"
 )
 
@@ -175,6 +186,28 @@ func composeExactSearchPath(directories []core.AbsolutePath) (string, error) {
 	return strings.Join(parts, string(os.PathListSeparator)), nil
 }
 
+func buildControlledEnvironmentNames() []string {
+	return []string{
+		goPathEnvironmentName,
+		goEnvironmentNameCGO,
+		goEnvironmentNameOS,
+		goEnvironmentNameArchitecture,
+		goEnvironmentNameToolchain,
+		goEnvironmentNameAMD64,
+		goEnvironmentNameARM64,
+		goEnvironmentNameConfiguration,
+		goEnvironmentNameFlags,
+		goEnvironmentNameExperiment,
+		goEnvironmentNameFIPS,
+		goEnvironmentNameWorkspace,
+	}
+}
+
 func buildControlledEnvironmentName(name string) bool {
-	return name == goPathEnvironmentName || name == "CGO_ENABLED" || strings.HasPrefix(name, "GO")
+	for _, controlled := range buildControlledEnvironmentNames() {
+		if controlled == name {
+			return true
+		}
+	}
+	return false
 }

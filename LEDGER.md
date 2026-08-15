@@ -4,6 +4,13 @@ Last updated: `2026-08-15`
 
 ## Current
 
+- preserved executor GOCACHE, GOMODCACHE, and GOPATH through
+  `PrepareBuildProcess`, 2026-08-15, prepared `v2026.0.129`. The previous
+  filter stripped every `GO*` name, which deleted the executor's module and
+  build caches. Go 1.26 then refused Garble overlays under the host
+  `GOMODCACHE`. Controlled names are now a closed set; cache directories stay
+  with the executor that owns them.
+
 - retained the verified Git executable on the repository proof and put its
   parent on the Garble search path, 2026-08-15, prepared `v2026.0.128`.
   `PrepareBuildProcess` had replaced `PATH` with only the Go tool directory, so
