@@ -27,6 +27,7 @@ type BuildDependencyObservationRequest struct {
 	Stderr           io.Writer
 	WorkingDirectory core.AbsolutePath
 	HostEnvironment  process.Environment
+	Repository       VerifiedRepository
 	Tools            VerifiedBuildTools
 	Plan             BuildPlan
 	WaitDelay        temporal.Duration
@@ -37,8 +38,8 @@ func (r BuildDependencyObservationRequest) Validate() error {
 		return contractError(errors.New("build dependency stderr is nil"))
 	}
 	for _, err := range [...]error{
-		r.WorkingDirectory.Validate(), r.HostEnvironment.Validate(), r.Tools.Validate(),
-		r.Plan.Validate(), r.WaitDelay.Validate(),
+		r.WorkingDirectory.Validate(), r.HostEnvironment.Validate(), r.Repository.Validate(),
+		r.Tools.Validate(), r.Plan.Validate(), r.WaitDelay.Validate(),
 	} {
 		if err != nil {
 			return contractError(errors.New("build dependency observation request is invalid"), err)
@@ -191,11 +192,7 @@ func prepareBuildDependencyProcess(
 	command BuildCommand,
 	stdout io.Writer,
 ) (process.Request, error) {
-	goDirectory, err := request.Tools.GoExecutable().Parent()
-	if err != nil {
-		return process.Request{}, contractError(errors.New(goToolDirectoryInvalidDiagnostic), err)
-	}
-	searchPath, err := composeExactSearchPath([]core.AbsolutePath{goDirectory})
+	searchPath, err := verifiedBuildSearchPath(request.Tools, request.Repository)
 	if err != nil {
 		return process.Request{}, err
 	}

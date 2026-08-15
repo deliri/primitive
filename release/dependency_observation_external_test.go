@@ -178,6 +178,9 @@ func TestObserveBuildDependenciesRejectsEveryIncompleteRequest(t *testing.T) {
 		{name: "unverified build tools are rejected", mutate: func(r *release.BuildDependencyObservationRequest) {
 			r.Tools = release.VerifiedBuildTools{}
 		}},
+		{name: "unverified repository is rejected", mutate: func(r *release.BuildDependencyObservationRequest) {
+			r.Repository = release.VerifiedRepository{}
+		}},
 		{name: "unset build plan is rejected", mutate: func(r *release.BuildDependencyObservationRequest) {
 			r.Plan = release.BuildPlan{}
 		}},
@@ -304,10 +307,12 @@ func dependencyObservationRequestForLiveTest(
 		t.Fatalf("process.ParseExactEnvironment() error = %v, want nil", err)
 	}
 	verification := buildToolVerificationRequestForLiveTest(t)
+	_, repository := verifiedRepositoryForBuildProcessTest(t)
 	return release.BuildDependencyObservationRequest{
 		Stderr:           io.Discard,
 		WorkingDirectory: verification.WorkingDirectory,
 		HostEnvironment:  environment,
+		Repository:       repository,
 		Tools:            verifiedBuildToolsForLiveTest(t),
 		Plan:             plan,
 		WaitDelay:        verification.WaitDelay,

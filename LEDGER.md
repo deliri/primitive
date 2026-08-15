@@ -4,6 +4,12 @@ Last updated: `2026-08-15`
 
 ## Current
 
+- put verified git on the `go list` search path, 2026-08-15, prepared
+  `v2026.0.130`. Dependency observation had composed PATH from the Go tool
+  directory only, so `go list` in a git checkout could not run `git`. The
+  request now carries the verified repository and uses the same Go-then-Git
+  search path as `PrepareBuildProcess`.
+
 - preserved executor GOCACHE, GOMODCACHE, and GOPATH through
   `PrepareBuildProcess`, 2026-08-15, prepared `v2026.0.129`. The previous
   filter stripped every `GO*` name, which deleted the executor's module and
