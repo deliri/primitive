@@ -208,6 +208,11 @@ func completedPublicationDocument(
 	if err != nil {
 		t.Fatalf("json.Marshal(PublicationCompletionProjection) error = %v, want nil", err)
 	}
+	strict, err := core.EncodeValidatedJSON(projection, core.DefaultStrictJSONLimits())
+	if err != nil || !bytes.Equal(strict, wire) {
+		t.Fatalf("EncodeValidatedJSON(PublicationCompletionProjection) = (%d bytes, %v), want exact %d-byte receive-only projection",
+			len(strict), err, len(wire))
+	}
 	var document distribution.PublicationCompletionDocument
 	if err := json.Unmarshal(wire, &document); err != nil {
 		t.Fatalf("json.Unmarshal(PublicationCompletionDocument) error = %v, want nil", err)
@@ -323,6 +328,9 @@ func TestPublicationLayerTriadExecutesExactPlanAndReturnsURLFreeCompletion(t *te
 	completionWire, err := json.Marshal(completionProjection)
 	if err != nil {
 		t.Fatalf("json.Marshal(PublicationCompletionProjection) error = %v, want nil", err)
+	}
+	if _, err := core.EncodeValidatedJSON(completionProjection, core.DefaultStrictJSONLimits()); err != nil {
+		t.Fatalf("EncodeValidatedJSON(PublicationCompletionProjection) error = %v, want nil", err)
 	}
 	if bytes.Contains(completionWire, []byte(core.GoogleCloudStorageHost)) {
 		t.Fatalf("publication completion wire disclosed provider bearer material: %q", completionWire)

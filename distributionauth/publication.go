@@ -299,6 +299,12 @@ func (p PublicationCompletionProjection) MarshalJSON() ([]byte, error) {
 	return encoded, nil
 }
 
+func (p PublicationCompletionProjection) ValidateJSONProjection(encoded []byte, limits core.StrictJSONLimits) error {
+	return core.ValidateReceiveOnlyJSONProjection[PublicationCompletionProjection, PublicationCompletionDocument, *PublicationCompletionDocument](
+		p, encoded, limits,
+	)
+}
+
 func (d PublicationCompletionDocument) MarshalJSON() ([]byte, error) {
 	if err := d.Validate(); err != nil {
 		return nil, jsonError(err)
@@ -404,9 +410,10 @@ var (
 	_ core.Validatable              = PublicationCompletionVerification{}
 	_ core.Validatable              = VerifiedPublicationCompletion{}
 
-	_ core.ValidatedJSONMarshaler = PublicationRequestDocument{}
-	_ core.ValidatedJSONMarshaler = PublicationCompletionDocument{}
-	_ core.ValidatedJSONMarshaler = PublicationCompletionProjection{}
-	_ json.Unmarshaler            = (*PublicationRequestDocument)(nil)
-	_ json.Unmarshaler            = (*PublicationCompletionDocument)(nil)
+	_ core.ValidatedJSONMarshaler  = PublicationRequestDocument{}
+	_ core.ValidatedJSONMarshaler  = PublicationCompletionDocument{}
+	_ core.ValidatedJSONMarshaler  = PublicationCompletionProjection{}
+	_ core.ValidatedJSONProjection = PublicationCompletionProjection{}
+	_ json.Unmarshaler             = (*PublicationRequestDocument)(nil)
+	_ json.Unmarshaler             = (*PublicationCompletionDocument)(nil)
 )

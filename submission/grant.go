@@ -212,6 +212,12 @@ func (p GrantProjection) MarshalJSON() ([]byte, error) {
 	return encoded, nil
 }
 
+func (p GrantProjection) ValidateJSONProjection(encoded []byte, limits core.StrictJSONLimits) error {
+	return core.ValidateReceiveOnlyJSONProjection[GrantProjection, GrantDocument, *GrantDocument](
+		p, encoded, limits,
+	)
+}
+
 // IssueGrant signs one exact grant and returns its encode-only bearer projection.
 func IssueGrant(issuance GrantIssuance) (GrantProjection, error) {
 	if err := issuance.Validate(); err != nil {
@@ -341,6 +347,7 @@ var (
 
 	_ core.ValidatedJSONMarshaler         = GrantPayload{}
 	_ core.ValidatedJSONMarshaler         = GrantProjection{}
+	_ core.ValidatedJSONProjection        = GrantProjection{}
 	_ json.Unmarshaler                    = (*GrantPayload)(nil)
 	_ json.Unmarshaler                    = (*GrantDocument)(nil)
 	_ attest.CanonicalBody[SigningDomain] = GrantPayload{}

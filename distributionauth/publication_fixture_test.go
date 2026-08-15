@@ -402,6 +402,11 @@ func newPublicationAuthCompletion(
 	if err != nil {
 		t.Fatalf("PublicationCompletionProjection.MarshalJSON() error = %v, want nil", err)
 	}
+	strict, err := core.EncodeValidatedJSON(credentialed, core.DefaultStrictJSONLimits())
+	if err != nil || !bytes.Equal(strict, encoded) {
+		t.Fatalf("EncodeValidatedJSON(PublicationCompletionProjection) = (%d bytes, %v), want exact %d-byte receive-only projection",
+			len(strict), err, len(encoded))
+	}
 	var document PublicationCompletionDocument
 	if err := document.UnmarshalJSON(encoded); err != nil {
 		t.Fatalf("PublicationCompletionDocument.UnmarshalJSON() error = %v, want nil", err)

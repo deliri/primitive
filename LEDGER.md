@@ -4,6 +4,18 @@ Last updated: `2026-08-15`
 
 ## Current
 
+- closed issue-only completion encode, 2026-08-15, prepared `v2026.0.127`.
+  `EncodeValidatedJSON` refused `submissionauth.CompletionProjection`,
+  `submission.CompletionProjection`, `submission.GrantProjection`,
+  `distribution.PublicationCompletionProjection`, and
+  `distributionauth.PublicationCompletionProjection` because those
+  issue-only types implemented `ValidatedJSONMarshaler` without
+  `ValidateJSONProjection`. Bidirectional decode treated the unexported
+  producer as an empty object and rejected the real `completion` field.
+  Each type now proves its exact issued bytes through the receive-only
+  document. Bug `CompleteSubmission` can send the credentialed projection
+  without a local shim.
+
 - opened installed-identity release evaluation, 2026-08-15, prepared
   `v2026.0.126`. `Evaluate` still reads the running binary's embedded stamp.
   `EvaluateInstalled` accepts one already-known installed identity and is the

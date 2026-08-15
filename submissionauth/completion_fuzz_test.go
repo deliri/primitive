@@ -8,6 +8,36 @@ import (
 	"github.com/deliri/primitive/v2026/core"
 )
 
+func FuzzCredentialedCompletionProjectionValidateJSONProjectionOracle(f *testing.F) {
+	fixture := newAuthCompletionFixture(f, authCompletionFixtureRequest{nonceByte: 0x71})
+	projection := assembleAuthCompletionProjection(f, fixture)
+	canonical, err := projection.MarshalJSON()
+	if err != nil {
+		f.Fatalf("CompletionProjection.MarshalJSON(seed) error = %v, want nil", err)
+	}
+	f.Add(canonical)
+	f.Add([]byte{})
+	f.Add([]byte(`{}`))
+	f.Add(append(bytes.Clone(canonical), 0))
+
+	f.Fuzz(func(t *testing.T, data []byte) {
+		gotErr := projection.ValidateJSONProjection(data, core.DefaultStrictJSONLimits())
+		if gotErr != nil {
+			if !errors.Is(gotErr, core.ErrJSONContract) {
+				t.Fatalf("ValidateJSONProjection(rejected) error = %v, want errors.Is %v", gotErr, core.ErrJSONContract)
+			}
+			return
+		}
+		if !bytes.Equal(data, canonical) {
+			t.Fatalf("ValidateJSONProjection authenticated bytes other than the compiler-owned issued projection")
+		}
+		encoded, err := core.EncodeValidatedJSON(projection, core.DefaultStrictJSONLimits())
+		if err != nil || !bytes.Equal(encoded, canonical) {
+			t.Fatalf("EncodeValidatedJSON(accepted projection) = (%d bytes, %v), want exact seed", len(encoded), err)
+		}
+	})
+}
+
 func FuzzCredentialedCompletionJSONSemanticAndAuthorityClosure(f *testing.F) {
 	fixture := newAuthCompletionFixture(f, authCompletionFixtureRequest{})
 	canonical, err := fixture.credentialed.MarshalJSON()

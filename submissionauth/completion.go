@@ -144,6 +144,12 @@ func (p CompletionProjection) MarshalJSON() ([]byte, error) {
 	return encoded, nil
 }
 
+func (p CompletionProjection) ValidateJSONProjection(encoded []byte, limits core.StrictJSONLimits) error {
+	return core.ValidateReceiveOnlyJSONProjection[CompletionProjection, CompletionDocument, *CompletionDocument](
+		p, encoded, limits,
+	)
+}
+
 // AssembleCompletion binds one completion to one installation certificate.
 func AssembleCompletion(assembly CompletionAssembly) (CompletionDocument, error) {
 	if err := assembly.Validate(); err != nil {
@@ -259,7 +265,8 @@ var (
 	_ core.Validatable              = CompletionVerification{}
 	_ core.Validatable              = VerifiedCompletion{}
 
-	_ core.ValidatedJSONMarshaler = CompletionDocument{}
-	_ core.ValidatedJSONMarshaler = CompletionProjection{}
-	_ json.Unmarshaler            = (*CompletionDocument)(nil)
+	_ core.ValidatedJSONMarshaler  = CompletionDocument{}
+	_ core.ValidatedJSONMarshaler  = CompletionProjection{}
+	_ core.ValidatedJSONProjection = CompletionProjection{}
+	_ json.Unmarshaler             = (*CompletionDocument)(nil)
 )

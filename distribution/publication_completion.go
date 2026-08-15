@@ -256,6 +256,12 @@ func (p PublicationCompletionProjection) MarshalJSON() ([]byte, error) {
 	return encoded, nil
 }
 
+func (p PublicationCompletionProjection) ValidateJSONProjection(encoded []byte, limits core.StrictJSONLimits) error {
+	return core.ValidateReceiveOnlyJSONProjection[PublicationCompletionProjection, PublicationCompletionDocument, *PublicationCompletionDocument](
+		p, encoded, limits,
+	)
+}
+
 func (p PublicationCompletionProjection) Build() (core.BuildIdentity, error) {
 	if err := p.Validate(); err != nil {
 		return core.BuildIdentity{}, err
@@ -521,6 +527,7 @@ var (
 	_ core.ValidatedJSONMarshaler         = PublicationCompletionDocument{}
 	_ core.ValidatedJSONMarshaler         = PublicationCompletionProjection{}
 	_ core.ValidatedJSONMarshaler         = publicationCompletionProjectionPayload{}
+	_ core.ValidatedJSONProjection        = PublicationCompletionProjection{}
 	_ json.Unmarshaler                    = (*PublicationCompletionPayload)(nil)
 	_ json.Unmarshaler                    = (*PublicationCompletionDocument)(nil)
 	_ attest.CanonicalBody[SigningDomain] = PublicationCompletionPayload{}

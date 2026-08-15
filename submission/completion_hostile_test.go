@@ -110,6 +110,18 @@ func TestCompletionProjectionCarriesEveryAllowedFactAndNoUnownedMaterial(t *test
 			t.Fatalf("CompletionProjection.MarshalJSON() disclosed %s", tc.name)
 		}
 	}
+	encoded, err = core.EncodeValidatedJSON(projection, core.DefaultStrictJSONLimits())
+	if err != nil {
+		t.Fatalf("EncodeValidatedJSON(CompletionProjection) error = %v, want nil", err)
+	}
+	if err := projection.ValidateJSONProjection(encoded, core.DefaultStrictJSONLimits()); err != nil {
+		t.Fatalf("ValidateJSONProjection(exact encoded bytes) error = %v, want nil", err)
+	}
+	if got, gotErr := core.EncodeValidatedJSON(CompletionProjection{}, core.DefaultStrictJSONLimits()); got != nil ||
+		!errors.Is(gotErr, core.ErrJSONContract) {
+		t.Fatalf("EncodeValidatedJSON(zero CompletionProjection) = (%d bytes, %v), want nil and %v",
+			len(got), gotErr, core.ErrJSONContract)
+	}
 	document := receiveCompletionProjection(t, projection)
 	payload := document.Payload
 	if payload.Build != fixture.request.Build || payload.Nonce != fixture.request.Nonce ||

@@ -258,6 +258,12 @@ func (p CompletionProjection) MarshalJSON() ([]byte, error) {
 	return encoded, nil
 }
 
+func (p CompletionProjection) ValidateJSONProjection(encoded []byte, limits core.StrictJSONLimits) error {
+	return core.ValidateReceiveOnlyJSONProjection[CompletionProjection, CompletionDocument, *CompletionDocument](
+		p, encoded, limits,
+	)
+}
+
 func completionProjection(issuance CompletionIssuance) (completionProjectionPayload, error) {
 	if err := errors.Join(issuance.Request.Validate(), issuance.Grant.Validate(), issuance.Transfer.Validate()); err != nil {
 		return completionProjectionPayload{}, contractError(err)
@@ -420,6 +426,7 @@ var (
 	_ core.ValidatedJSONMarshaler         = CompletionDocument{}
 	_ core.ValidatedJSONMarshaler         = CompletionProjection{}
 	_ core.ValidatedJSONMarshaler         = completionProjectionPayload{}
+	_ core.ValidatedJSONProjection        = CompletionProjection{}
 	_ json.Unmarshaler                    = (*CompletionPayload)(nil)
 	_ json.Unmarshaler                    = (*CompletionDocument)(nil)
 	_ attest.CanonicalBody[SigningDomain] = CompletionPayload{}
