@@ -4,6 +4,27 @@ Last updated: `2026-08-15`
 
 ## Current
 
+- opened complete browser-spendable raw-object upload projection, 2026-08-16,
+  prepared `v2026.0.132`. `UploadHTTPProjection` derives one deterministic S3
+  or GCS `PUT` from an existing issue-only `UploadCapabilityProjection`, exact
+  `Integrity`, and a typed content type. It carries the browser-settable
+  Content-Type, checksum, create-only, and caller-signed fields plus the exact
+  provider response-version header; Host and Content-Length remain browser
+  framing. Cloudflare multipart capabilities are compiler-refused rather than
+  hidden behind a second body protocol. The projection preserves the original
+  capability commitment and redacts under every formatting verb, so it does
+  not mint or disclose a second authority.
+
+  The missing door was observed red as a compiler failure before production
+  existed. The retained hostile matrix covers both raw providers, thirteen
+  incomplete or multipart contracts, exact body and response facts,
+  deterministic complete headers, commitment identity, and formatter
+  redaction. A deliberate Content-Type-value mutation made the exact browser
+  request test red and was reverted. Focused Objectstore tests, vet,
+  staticcheck, errcheck, fieldalignment, production `gocyclo <= 10`, and
+  witness-lint are green; the campaign-wide suite remains reserved for the
+  final campaign gate.
+
 - exposed `BuildCommand.LinkerAssignments`, 2026-08-15, prepared
   `v2026.0.131`. Artifact inspection must use the exact assignment set the
   command injected. Reconstructing an empty set looks for the wrong

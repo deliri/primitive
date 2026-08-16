@@ -220,6 +220,8 @@ func productionStructRole(name string) (string, bool) {
 		return "received wire projection of a capability value", true
 	case "UploadCapabilityProjection":
 		return "external output projection of an already-issued capability value", true
+	case "UploadHTTPProjection":
+		return "external output projection of one browser-spendable upload request", true
 	case "UploadCapabilityCommitment":
 		return "sealed non-secret capability binding", true
 	case "DownloadCapability":
@@ -228,7 +230,7 @@ func productionStructRole(name string) (string, bool) {
 		return "external output projection of an already-issued retrieval capability value", true
 	case "DownloadCapabilityCommitment":
 		return "sealed non-secret retrieval capability binding", true
-	case "uploadCapabilityWire", "uploadCapabilityHeaderWire":
+	case "uploadCapabilityWire", "uploadCapabilityHeaderWire", "uploadHTTPProjectionWire":
 		return "internal exact wire temporary", true
 	case "transferEvidenceWire":
 		return "internal exact wire temporary", true

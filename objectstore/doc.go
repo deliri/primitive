@@ -6,7 +6,10 @@
 // create buckets, mint credentials, signed URLs, Cloudflare draft records,
 // retries, resumable sessions, lifecycle policy, or multi-provider workflows.
 // It can project an already-issued UploadTarget into the exact capability
-// document its receiver consumes; signing and authorization remain the caller's
+// document its receiver consumes. For raw-object providers it can also project
+// that same bearer plus one exact Integrity and content type into the complete
+// browser-spendable HTTP request, including provider-owned checksum and
+// create-only fields. Signing and authorization remain the caller's
 // responsibility.
 //
 // UploadS3, UploadGCS, and UploadCloudflareImages are separate compiler-selected
