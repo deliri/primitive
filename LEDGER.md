@@ -4,6 +4,11 @@ Last updated: `2026-08-15`
 
 ## Current
 
+- exposed `BuildCommand.LinkerAssignments`, 2026-08-15, prepared
+  `v2026.0.131`. Artifact inspection must use the exact assignment set the
+  command injected. Reconstructing an empty set looks for the wrong
+  commitment slot.
+
 - put verified git on the `go list` search path, 2026-08-15, prepared
   `v2026.0.130`. Dependency observation had composed PATH from the Go tool
   directory only, so `go list` in a git checkout could not run `git`. The

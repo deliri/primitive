@@ -460,6 +460,10 @@ func (c BuildCommand) GoToolchain() GoToolchainIdentity { return c.goToolchain }
 // Output returns the derived artifact path.
 func (c BuildCommand) Output() core.RelativePath { return c.output }
 
+// LinkerAssignments returns the exact product-owned linker mutations the
+// command injected. Inspection must use this set, not an empty reconstruction.
+func (c BuildCommand) LinkerAssignments() LinkerAssignments { return c.linkerAssignments }
+
 // EnvironmentOverrides lowers the target to its hermetic compatibility
 // controls. The executor supplies exact host paths and caches separately.
 func (c BuildCommand) EnvironmentOverrides() ([]string, error) {
