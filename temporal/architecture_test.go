@@ -53,6 +53,8 @@ type temporalInstantSignature interface {
 	IsSet() bool
 	Nanoseconds() (int64, error)
 	Time() (time.Time, error)
+	RFC3339() (string, error)
+	RFC3339Nano() (string, error)
 	Add(Duration) (Instant, error)
 	Subtract(Duration) (Instant, error)
 	Since(Instant) (Duration, error)
@@ -153,6 +155,7 @@ var (
 	_ = TickerRequest{Duration{}}
 
 	_ func(time.Time) (Instant, error)                                   = NewInstant
+	_ func(string) (Instant, error)                                      = ParseRFC3339
 	_ func(int64) Instant                                                = InstantFromNanoseconds
 	_ func(time.Duration) (Duration, error)                              = NewDuration
 	_ func(int64) (Duration, error)                                      = DurationFromNanoseconds
@@ -246,6 +249,8 @@ func TestTemporalPublicSurfaceMatchesReviewedContract(t *testing.T) {
 		"const PrecisionNanosecond",
 		"const PrecisionSecond",
 		"const PrecisionUnknown",
+		"const RFC3339MaximumTextBytes",
+		"const RFC3339MinimumTextBytes",
 		"const TemporalJSONDocumentSlackBytes",
 		"func AggregateDurationFromDuration",
 		"func AggregateDurationFromNanoseconds",
@@ -268,6 +273,7 @@ func TestTemporalPublicSurfaceMatchesReviewedContract(t *testing.T) {
 		"func OpenTicker",
 		"func ParseAggregateDuration",
 		"func ParseDuration",
+		"func ParseRFC3339",
 		"func Wait",
 		"func WithDeadline",
 		"func WithTimeout",
@@ -299,6 +305,7 @@ func TestTemporalPublicSurfaceMatchesReviewedContract(t *testing.T) {
 		"method Instant.MarshalJSON",
 		"method Instant.Nanoseconds",
 		"method Instant.RFC3339",
+		"method Instant.RFC3339Nano",
 		"method Instant.Since",
 		"method Instant.Subtract",
 		"method Instant.Time",

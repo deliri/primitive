@@ -8,9 +8,9 @@ import (
 
 const (
 	toolModulePath           = "mvdan.cc/garble"
-	toolVersion              = "v0.16.1-0.20260621195108-ffa2daf72f03"
-	toolRevision             = "ffa2daf72f036d7ff72f6a3c8243997f06fa7b4e"
-	toolModuleSum            = "h1:3/JEpDf12w/71XWzIrnLazgTQD6UWElzrRQWo4oJ7s0="
+	toolVersion              = "v0.17.0"
+	toolRevision             = "39c484d3007e9a608ac8692dab0b9bb5f71dfc2a"
+	toolModuleSum            = "h1:XJ6jJhlT8HTEU9Dd02nLDUciuyPDXGRopwy/Cuoo/0M="
 	toolMinimumGoVersion     = "go1.26.0"
 	toolUnsupportedGoVersion = "go1.27"
 )

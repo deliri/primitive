@@ -458,6 +458,7 @@ func declaredRealWorldCalls() (realWorldCallInventory, error) {
 		{owner: PackageTemporal, substrate: realWorldSubstrateClock, selector: "NewTicker", count: 1},
 		{owner: PackageTemporal, substrate: realWorldSubstrateClock, selector: "NewTimer", count: 1},
 		{owner: PackageTemporal, substrate: realWorldSubstrateClock, selector: "Now", count: 1},
+		{owner: PackageTemporal, substrate: realWorldSubstrateClock, selector: "Parse", count: 1},
 		{owner: PackageTemporal, substrate: realWorldSubstrateClock, selector: "ParseDuration", count: 1},
 		{owner: PackageTemporal, substrate: realWorldSubstrateClock, selector: "Unix", count: 2},
 		{owner: PackageTimeProof, substrate: realWorldSubstrateClock, selector: "Date", count: 4},

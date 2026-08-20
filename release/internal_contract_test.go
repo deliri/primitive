@@ -362,7 +362,7 @@ func TestEvaluateInstalledDoesNotReadTheRunningBinaryStamp(t *testing.T) {
 		t.Fatalf("EvaluateInstalledRequest fields = %v, want %v", requestFields, wantFields)
 	}
 	if embeddedCall {
-		t.Fatal("EvaluateInstalled must not call EmbeddedBuildIdentity")
+		t.Fatalf("EvaluateInstalled EmbeddedBuildIdentity call = %t, want false", embeddedCall)
 	}
 }
 

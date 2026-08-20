@@ -26,9 +26,9 @@ func TestCurrentToolCarriesExactReviewedProvenanceAndCompatibility(t *testing.T)
 		want    string
 	}{
 		{name: "module path is exact", project: garble.ToolIdentity.ModulePath, want: "mvdan.cc/garble"},
-		{name: "module version is exact", project: garble.ToolIdentity.Version, want: "v0.16.1-0.20260621195108-ffa2daf72f03"},
-		{name: "source revision is exact", project: garble.ToolIdentity.Revision, want: "ffa2daf72f036d7ff72f6a3c8243997f06fa7b4e"},
-		{name: "module checksum is exact", project: garble.ToolIdentity.ModuleSum, want: "h1:3/JEpDf12w/71XWzIrnLazgTQD6UWElzrRQWo4oJ7s0="},
+		{name: "module version is exact", project: garble.ToolIdentity.Version, want: "v0.17.0"},
+		{name: "source revision is exact", project: garble.ToolIdentity.Revision, want: "39c484d3007e9a608ac8692dab0b9bb5f71dfc2a"},
+		{name: "module checksum is exact", project: garble.ToolIdentity.ModuleSum, want: "h1:XJ6jJhlT8HTEU9Dd02nLDUciuyPDXGRopwy/Cuoo/0M="},
 		{name: "minimum Go version is exact", project: garble.ToolIdentity.MinimumGoVersion, want: "go1.26.0"},
 		{name: "first unsupported Go version is exact", project: garble.ToolIdentity.UnsupportedGoVersion, want: "go1.27"},
 	}
@@ -43,14 +43,9 @@ func TestCurrentToolCarriesExactReviewedProvenanceAndCompatibility(t *testing.T)
 		})
 	}
 
-	moduleVersion, _ := tool.Version()
-	revision, _ := tool.Revision()
 	moduleSum, _ := tool.ModuleSum()
 	minimumGo, _ := tool.MinimumGoVersion()
 	unsupportedGo, _ := tool.UnsupportedGoVersion()
-	if !strings.HasSuffix(moduleVersion, revision[:12]) {
-		t.Fatalf("tool version %q does not bind revision prefix %q", moduleVersion, revision[:12])
-	}
 	sum, found := strings.CutPrefix(moduleSum, "h1:")
 	decodedSum, gotDecodeErr := base64.StdEncoding.DecodeString(sum)
 	if !found || gotDecodeErr != nil || len(decodedSum) != sha256.Size {

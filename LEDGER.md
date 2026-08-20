@@ -1,8 +1,26 @@
 # Primitive 2026 Ledger
 
-Last updated: `2026-08-15`
+Last updated: `2026-08-20`
 
 ## Current
+
+- opened the strict RFC 3339 temporal text door and refreshed the admitted
+  dependency frontier, 2026-08-20, prepared `v2026.0.133`. `temporal.Instant`
+  now parses hostile external RFC 3339 text through Go's standard-library
+  grammar, adds exact nanosecond and offset constraints owned by Temporal, and
+  projects canonical RFC3339Nano text. The boundary preserves both Primitive's
+  typed temporal identity and native `*time.ParseError`, rejects unset
+  instants, and remains bounded by compiler-owned minimum and maximum text
+  extents.
+
+  Every declared module requirement was advanced to its latest compatible
+  release and the exact release tool moved to Garble `v0.17.0`, revision
+  `39c484d3007e9a608ac8692dab0b9bb5f71dfc2a`. Primitive retains exact Go
+  `1.26.6`: Garble `v0.17.0` supports Go 1.26 and explicitly marks Go 1.27 as
+  unsupported, so advancing the compiler would split the compiler-owned build
+  contract. Go toolchain fixture values now derive from Release's typed
+  identity, and Release's provenance check derives Garble facts from Garble's
+  typed owner instead of relying on a pseudo-version naming convention.
 
 - opened complete browser-spendable raw-object upload projection, 2026-08-16,
   prepared `v2026.0.132`. `UploadHTTPProjection` derives one deterministic S3

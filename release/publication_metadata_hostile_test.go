@@ -105,6 +105,14 @@ func TestBuildProvenancePublishesReproductionFactsWithoutGarbleSeed(t *testing.T
 	t.Parallel()
 
 	provenance := fixtureBuildProvenance(t)
+	goToolchain, err := CurrentGoToolchain().Version()
+	if err != nil {
+		t.Fatalf("CurrentGoToolchain().Version() error = %v, want nil", err)
+	}
+	garbleTool, err := garble.CurrentTool().Provenance()
+	if err != nil {
+		t.Fatalf("garble.CurrentTool().Provenance() error = %v, want nil", err)
+	}
 	encoded, err := json.Marshal(provenance)
 	if err != nil {
 		t.Fatalf("json.Marshal(BuildProvenance) error = %v", err)
@@ -113,7 +121,7 @@ func TestBuildProvenancePublishesReproductionFactsWithoutGarbleSeed(t *testing.T
 		t.Fatalf("BuildProvenance JSON contains Garble seed material: %s", encoded)
 	}
 	for _, required := range []string{
-		"go1.26.6", "mvdan.cc/garble", "ffa2daf72f036d7ff72f6a3c8243997f06fa7b4e",
+		goToolchain, garbleTool.ModulePath, garbleTool.Revision,
 		garble.CurrentDerivationGeneration().String(),
 	} {
 		if !strings.Contains(string(encoded), required) {

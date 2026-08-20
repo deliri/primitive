@@ -326,6 +326,10 @@ func fixtureVerifiedManifest(t *testing.T) release.VerifiedManifest {
 
 func fixtureProvenance(t *testing.T) release.BuildProvenance {
 	t.Helper()
+	goToolchain, err := release.CurrentGoToolchain().Version()
+	if err != nil {
+		t.Fatalf("release.CurrentGoToolchain().Version() error = %v, want nil", err)
+	}
 	goDigest := sha256.Sum256([]byte("go tool"))
 	garbleDigest := sha256.Sum256([]byte("garble tool"))
 	wire := struct {
@@ -343,10 +347,10 @@ func fixtureProvenance(t *testing.T) release.BuildProvenance {
 		GoExecutableSHA256     core.SHA256Digest `json:"go_executable_sha256"`
 		GarbleExecutableSHA256 core.SHA256Digest `json:"garble_executable_sha256"`
 	}{
-		GoToolchain: "go1.26.6", GoExecutableSHA256: core.NewSHA256Digest(goDigest),
-		GarbleModule: "mvdan.cc/garble", GarbleVersion: "v0.16.1-0.20260621195108-ffa2daf72f03",
-		GarbleRevision:         "ffa2daf72f036d7ff72f6a3c8243997f06fa7b4e",
-		GarbleModuleSum:        "h1:3/JEpDf12w/71XWzIrnLazgTQD6UWElzrRQWo4oJ7s0=",
+		GoToolchain: goToolchain, GoExecutableSHA256: core.NewSHA256Digest(goDigest),
+		GarbleModule: "mvdan.cc/garble", GarbleVersion: "v0.17.0",
+		GarbleRevision:         "39c484d3007e9a608ac8692dab0b9bb5f71dfc2a",
+		GarbleModuleSum:        "h1:XJ6jJhlT8HTEU9Dd02nLDUciuyPDXGRopwy/Cuoo/0M=",
 		GarbleExecutableSHA256: core.NewSHA256Digest(garbleDigest),
 		GarbleLiterals:         "obfuscate", GarbleDiagnostics: "preserve", GarbleDerivation: "one",
 		MainPackage: "github.com/offGridSoft/bug/cmd/bug", ModuleMode: "vendor",
