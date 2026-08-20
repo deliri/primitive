@@ -615,7 +615,7 @@ func sameGrantDocument(got GrantDocument, want GrantDocument) bool {
 func grantAuthorityNonce(t *testing.T, marker byte) controlwire.AuthorityNonce {
 	t.Helper()
 
-	raw := [controlwire.NonceBytes]byte{marker}
+	raw := [core.SHA256DigestBytes]byte{marker}
 	got, gotErr := controlwire.NewAuthorityNonce(raw)
 	if gotErr != nil {
 		t.Fatalf("controlwire.NewAuthorityNonce() error = %v, want nil", gotErr)

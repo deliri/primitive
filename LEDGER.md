@@ -4,6 +4,11 @@ Last updated: `2026-08-20`
 
 ## Current
 
+- published the SHA-256 binary extent from Core, 2026-08-20, preparing
+  `v2026.0.135`. Controlwire and Release consume the shared width directly;
+  downstream products can derive encoding widths without reaching past
+  Primitive into `crypto/sha256` or duplicating the binary extent.
+
 - advanced the compiler-owned module and release contract to exact Go 1.27.0,
   2026-08-20, preparing `v2026.0.134`. The installed compiler now satisfies
   Release's exact identity checks. The upstream Garble branch still declares

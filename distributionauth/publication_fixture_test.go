@@ -492,7 +492,7 @@ func publicationAuthTrustedKeys(t testing.TB, signer ed25519.PrivateKey) attest.
 
 func publicationAuthAuthorityNonce(t testing.TB, marker byte) controlwire.AuthorityNonce {
 	t.Helper()
-	raw := [controlwire.NonceBytes]byte{}
+	raw := [core.SHA256DigestBytes]byte{}
 	for index := range raw {
 		raw[index] = marker
 	}

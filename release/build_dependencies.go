@@ -7,6 +7,8 @@ import (
 	"sort"
 	"strings"
 	"unicode/utf8"
+
+	"github.com/deliri/primitive/v2026/core"
 )
 
 const (
@@ -21,7 +23,6 @@ const (
 	BuildDependencyMaximumCount = 1024
 	goModuleVersionMaximumBytes = 256
 	goModuleSumPrefix           = "h1:"
-	goModuleSumDigestBytes      = 32
 	goModuleSumMaximumBytes     = 47
 	// dependencyDocumentExtentMaximum is Core's supported document ceiling. The
 	// projection must never produce a document the decoder would refuse, so the
@@ -131,7 +132,7 @@ func (v GoModuleVersion) String() string {
 
 // GoModuleSum is one exact h1 module-content checksum.
 type GoModuleSum struct {
-	digest [goModuleSumDigestBytes]byte
+	digest [core.SHA256DigestBytes]byte
 	valid  bool
 }
 
@@ -141,10 +142,10 @@ func parseGoModuleSum(value string) (GoModuleSum, error) {
 		return GoModuleSum{}, contractError(errors.New(goModuleSumInvalidDiagnostic))
 	}
 	decoded, err := base64.StdEncoding.DecodeString(encoded)
-	if err != nil || len(decoded) != goModuleSumDigestBytes {
+	if err != nil || len(decoded) != core.SHA256DigestBytes {
 		return GoModuleSum{}, contractError(errors.New(goModuleSumInvalidDiagnostic), err)
 	}
-	var digest [goModuleSumDigestBytes]byte
+	var digest [core.SHA256DigestBytes]byte
 	copy(digest[:], decoded)
 	return GoModuleSum{digest: digest, valid: true}, nil
 }

@@ -11,7 +11,7 @@ type AuthorityNonce struct {
 	value core.SHA256Digest
 }
 
-func NewAuthorityNonce(value [NonceBytes]byte) (AuthorityNonce, error) {
+func NewAuthorityNonce(value [core.SHA256DigestBytes]byte) (AuthorityNonce, error) {
 	nonce := AuthorityNonce{value: core.NewSHA256Digest(value)}
 	if err := nonce.Validate(); err != nil {
 		return AuthorityNonce{}, err
@@ -21,7 +21,7 @@ func NewAuthorityNonce(value [NonceBytes]byte) (AuthorityNonce, error) {
 
 // GenerateAuthorityNonce owns the entropy draw for an issuing authority.
 func GenerateAuthorityNonce() (AuthorityNonce, error) {
-	size, err := core.NewByteCount(NonceBytes)
+	size, err := core.NewByteCount(core.SHA256DigestBytes)
 	if err != nil {
 		return AuthorityNonce{}, nonceError(err)
 	}
@@ -35,7 +35,7 @@ func GenerateAuthorityNonce() (AuthorityNonce, error) {
 		return AuthorityNonce{}, nonceError(err)
 	}
 	defer clear(raw)
-	var value [NonceBytes]byte
+	var value [core.SHA256DigestBytes]byte
 	copy(value[:], raw)
 	return NewAuthorityNonce(value)
 }
@@ -60,7 +60,7 @@ func (n AuthorityNonce) Validate() error {
 	if err != nil {
 		return nonceError(err)
 	}
-	if raw == ([NonceBytes]byte{}) {
+	if raw == ([core.SHA256DigestBytes]byte{}) {
 		return nonceError()
 	}
 	return nil

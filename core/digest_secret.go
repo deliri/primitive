@@ -2,7 +2,6 @@ package core
 
 import (
 	"crypto/ed25519"
-	"crypto/sha256"
 	"encoding/base64"
 	"encoding/binary"
 	"encoding/hex"
@@ -19,6 +18,8 @@ const (
 	SecretMaterialMinimumBytes = 16
 	// SecretMaterialMaximumBytes is the maximum admitted material length.
 	SecretMaterialMaximumBytes = 64
+	// SHA256DigestBytes is the exact binary width of SHA-256.
+	SHA256DigestBytes = 32
 	// crc32CBytes is the width of a CRC32C checksum.
 	crc32CBytes = 4
 	// crc32CBase64Bytes is the canonical padded Base64 width of CRC32C.
@@ -35,30 +36,30 @@ const (
 
 // SHA256Digest is a set SHA-256 digest. Its zero value is invalid.
 type SHA256Digest struct {
-	value [sha256.Size]byte
+	value [SHA256DigestBytes]byte
 	set   bool
 }
 
 // NewSHA256Digest constructs a set digest from all 32 bytes.
-func NewSHA256Digest(value [sha256.Size]byte) SHA256Digest {
+func NewSHA256Digest(value [SHA256DigestBytes]byte) SHA256Digest {
 	return SHA256Digest{value: value, set: true}
 }
 
 // parseSHA256Hex accepts exactly 64 canonical lowercase hexadecimal bytes.
 func parseSHA256Hex(value string) (SHA256Digest, error) {
-	decoded, err := decodeCanonicalHex(value, sha256.Size)
+	decoded, err := decodeCanonicalHex(value, SHA256DigestBytes)
 	if err != nil {
 		return SHA256Digest{}, errors.Join(ErrPrimitiveContract, err)
 	}
-	var digest [sha256.Size]byte
+	var digest [SHA256DigestBytes]byte
 	copy(digest[:], decoded)
 	return NewSHA256Digest(digest), nil
 }
 
 // Bytes returns the digest bytes after validating that the value is set.
-func (d SHA256Digest) Bytes() ([sha256.Size]byte, error) {
+func (d SHA256Digest) Bytes() ([SHA256DigestBytes]byte, error) {
 	if err := d.Validate(); err != nil {
-		return [sha256.Size]byte{}, err
+		return [SHA256DigestBytes]byte{}, err
 	}
 	return d.value, nil
 }
@@ -77,7 +78,7 @@ func (d *SHA256Digest) UnmarshalText(text []byte) error {
 	if d == nil {
 		return errors.Join(ErrPrimitiveContract, errors.New(sha256DigestNilReceiverDiagnostic))
 	}
-	if len(text) != hex.EncodedLen(sha256.Size) {
+	if len(text) != hex.EncodedLen(SHA256DigestBytes) {
 		return errors.Join(ErrPrimitiveContract, errors.New(hexValueInvalidLengthDiagnostic))
 	}
 	parsed, err := parseSHA256Hex(string(text))

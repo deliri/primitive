@@ -24,28 +24,28 @@ func TestNewRequestNonceRefusesTheUnpredictableFloor(t *testing.T) {
 	t.Parallel()
 
 	cases := []struct {
-		build    func() [controlwire.NonceBytes]byte
+		build    func() [core.SHA256DigestBytes]byte
 		name     string
 		wantOkay bool
 	}{
 		{
 			name:     "all-zero nonce is refused because it is not unpredictable",
-			build:    func() [controlwire.NonceBytes]byte { return [controlwire.NonceBytes]byte{} },
+			build:    func() [core.SHA256DigestBytes]byte { return [core.SHA256DigestBytes]byte{} },
 			wantOkay: false,
 		},
 		{
 			name: "single set bit in the last byte is accepted",
-			build: func() [controlwire.NonceBytes]byte {
-				var value [controlwire.NonceBytes]byte
-				value[controlwire.NonceBytes-1] = 1
+			build: func() [core.SHA256DigestBytes]byte {
+				var value [core.SHA256DigestBytes]byte
+				value[core.SHA256DigestBytes-1] = 1
 				return value
 			},
 			wantOkay: true,
 		},
 		{
 			name: "single set bit in the first byte is accepted",
-			build: func() [controlwire.NonceBytes]byte {
-				var value [controlwire.NonceBytes]byte
+			build: func() [core.SHA256DigestBytes]byte {
+				var value [core.SHA256DigestBytes]byte
 				value[0] = 1
 				return value
 			},
@@ -53,8 +53,8 @@ func TestNewRequestNonceRefusesTheUnpredictableFloor(t *testing.T) {
 		},
 		{
 			name: "every byte set is accepted",
-			build: func() [controlwire.NonceBytes]byte {
-				var value [controlwire.NonceBytes]byte
+			build: func() [core.SHA256DigestBytes]byte {
+				var value [core.SHA256DigestBytes]byte
 				for index := range value {
 					value[index] = 0xff
 				}
@@ -64,9 +64,9 @@ func TestNewRequestNonceRefusesTheUnpredictableFloor(t *testing.T) {
 		},
 		{
 			name: "all bytes zero except a middle byte is accepted",
-			build: func() [controlwire.NonceBytes]byte {
-				var value [controlwire.NonceBytes]byte
-				value[controlwire.NonceBytes/2] = 0x80
+			build: func() [core.SHA256DigestBytes]byte {
+				var value [core.SHA256DigestBytes]byte
+				value[core.SHA256DigestBytes/2] = 0x80
 				return value
 			},
 			wantOkay: true,
@@ -196,8 +196,8 @@ func TestGenerateRequestNonceProducesDistinctValidNonces(t *testing.T) {
 			t.Fatalf("GenerateRequestNonce() draw %d produced an invalid nonce: %v", draw, err)
 		}
 		text := nonce.String()
-		if len(text) != 2*controlwire.NonceBytes {
-			t.Fatalf("GenerateRequestNonce() draw %d text width = %d, want %d", draw, len(text), 2*controlwire.NonceBytes)
+		if len(text) != 2*core.SHA256DigestBytes {
+			t.Fatalf("GenerateRequestNonce() draw %d text width = %d, want %d", draw, len(text), 2*core.SHA256DigestBytes)
 		}
 		if _, repeated := seen[text]; repeated {
 			t.Fatalf("GenerateRequestNonce() draw %d repeated a prior nonce", draw)
@@ -233,7 +233,7 @@ func TestRequestNonceIdempotencyKeyCarriesTheExactNonceText(t *testing.T) {
 func TestAuthorityNonceHostileNominalAndCanonicalBoundaries(t *testing.T) {
 	t.Parallel()
 
-	raw := [controlwire.NonceBytes]byte{}
+	raw := [core.SHA256DigestBytes]byte{}
 	for index := range raw {
 		raw[index] = 0x5a
 	}
@@ -303,7 +303,7 @@ func TestAuthorityNonceRefusesZeroAndEveryNonCanonicalTextWithoutMutation(t *tes
 			}
 		})
 	}
-	if got, gotErr := controlwire.NewAuthorityNonce([controlwire.NonceBytes]byte{}); !errors.Is(gotErr, core.ErrControlWireNonce) || got != (controlwire.AuthorityNonce{}) {
+	if got, gotErr := controlwire.NewAuthorityNonce([core.SHA256DigestBytes]byte{}); !errors.Is(gotErr, core.ErrControlWireNonce) || got != (controlwire.AuthorityNonce{}) {
 		t.Fatalf("NewAuthorityNonce(zero) = (%v, %v), want zero and errors.Is %v",
 			got, gotErr, core.ErrControlWireNonce)
 	}

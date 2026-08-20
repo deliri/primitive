@@ -762,7 +762,7 @@ func productionSocketFixture(t testing.TB) socketFixture {
 	if err != nil {
 		t.Fatalf("controlwire.NewRegistrationToken() error = %v, want nil", err)
 	}
-	nonceBytes := [controlwire.NonceBytes]byte{1}
+	nonceBytes := [core.SHA256DigestBytes]byte{1}
 	nonce, err := controlwire.NewRequestNonce(nonceBytes)
 	if err != nil {
 		t.Fatalf("controlwire.NewRequestNonce() error = %v, want nil", err)

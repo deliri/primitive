@@ -442,7 +442,7 @@ func newRetrievalRequestFixture(
 	if err != nil {
 		t.Fatalf("core.NewBuildIdentity() error = %v, want nil", err)
 	}
-	rawNonce := [controlwire.NonceBytes]byte{}
+	rawNonce := [core.SHA256DigestBytes]byte{}
 	rawNonce[0] = request.NonceByte
 	nonce, err := controlwire.NewRequestNonce(rawNonce)
 	if err != nil {

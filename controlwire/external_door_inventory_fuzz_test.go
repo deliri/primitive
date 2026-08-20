@@ -349,7 +349,7 @@ func fuzzControlwireTextOutcome(t *testing.T, outcome controlwireTextOutcome) {
 
 func controlwireFixturesForFuzz(t testing.TB) controlwireFuzzFixtures {
 	t.Helper()
-	var requestBytes, authorityBytes, tokenBytes [NonceBytes]byte
+	var requestBytes, authorityBytes, tokenBytes [core.SHA256DigestBytes]byte
 	for index := range requestBytes {
 		requestBytes[index] = byte(index + 1)
 		authorityBytes[index] = byte(index + 33)

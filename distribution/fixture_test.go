@@ -266,7 +266,7 @@ func trustedKeys(t testing.TB, key ed25519.PrivateKey) attest.TrustedKeys {
 
 func requestNonce(t testing.TB, marker byte) controlwire.RequestNonce {
 	t.Helper()
-	var raw [controlwire.NonceBytes]byte
+	var raw [core.SHA256DigestBytes]byte
 	for index := range raw {
 		raw[index] = marker + byte(index)
 	}
@@ -279,7 +279,7 @@ func requestNonce(t testing.TB, marker byte) controlwire.RequestNonce {
 
 func authorityNonce(t testing.TB, marker byte) controlwire.AuthorityNonce {
 	t.Helper()
-	var raw [controlwire.NonceBytes]byte
+	var raw [core.SHA256DigestBytes]byte
 	for index := range raw {
 		raw[index] = marker + byte(index)
 	}

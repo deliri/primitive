@@ -614,7 +614,7 @@ func registrationRequestVariant(t testing.TB, offering core.Offering, seed byte)
 	request := registrationRequestFixture(t)
 	request.Build = testBuildForOffering(t, offering)
 	tokenBytes := [controlwire.RegistrationTokenBytes]byte{}
-	nonceBytes := [controlwire.NonceBytes]byte{}
+	nonceBytes := [core.SHA256DigestBytes]byte{}
 	for index := range tokenBytes {
 		tokenBytes[index] = seed
 		nonceBytes[index] = seed + 1

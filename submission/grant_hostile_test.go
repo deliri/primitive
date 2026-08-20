@@ -143,7 +143,7 @@ func testRequestPayload(t testing.TB, request grantFixtureRequest) RequestPayloa
 	if err != nil {
 		t.Fatalf("core.NewBuildIdentity() error = %v, want nil", err)
 	}
-	rawNonce := [controlwire.NonceBytes]byte{}
+	rawNonce := [core.SHA256DigestBytes]byte{}
 	for index := range rawNonce {
 		rawNonce[index] = request.requestNonceByte
 	}
@@ -261,7 +261,7 @@ func testCapabilityProjection(
 func testAuthorizationNonce(t testing.TB, value byte) controlwire.AuthorityNonce {
 	t.Helper()
 
-	raw := [controlwire.NonceBytes]byte{}
+	raw := [core.SHA256DigestBytes]byte{}
 	for index := range raw {
 		raw[index] = value
 	}
@@ -711,11 +711,11 @@ func TestGrantPayloadRefusesEveryInvalidLifetimeMember(t *testing.T) {
 func TestAuthorizationNonceClosesEveryByteAndCanonicalTextEdge(t *testing.T) {
 	t.Parallel()
 
-	for position := range controlwire.NonceBytes {
+	for position := range core.SHA256DigestBytes {
 		t.Run("single nonzero byte at position "+strconv.Itoa(position), func(t *testing.T) {
 			t.Parallel()
 
-			raw := [controlwire.NonceBytes]byte{}
+			raw := [core.SHA256DigestBytes]byte{}
 			raw[position] = 1
 			nonce, err := controlwire.NewAuthorityNonce(raw)
 			if err != nil {
@@ -729,7 +729,7 @@ func TestAuthorizationNonceClosesEveryByteAndCanonicalTextEdge(t *testing.T) {
 		})
 	}
 
-	zero, err := controlwire.NewAuthorityNonce([controlwire.NonceBytes]byte{})
+	zero, err := controlwire.NewAuthorityNonce([core.SHA256DigestBytes]byte{})
 	if !errors.Is(err, core.ErrControlWireNonce) || zero != (controlwire.AuthorityNonce{}) {
 		t.Fatalf("NewAuthorizationNonce(zero) = (%v, %v), want zero and errors.Is %v",
 			zero, err, core.ErrControlPlaneContract)

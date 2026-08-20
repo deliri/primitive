@@ -544,7 +544,7 @@ func materialFixturesForFuzz(
 	fixture releaseFixture,
 ) (MaterialRequest, ReleaseSigningSeed, GarbleCustodySeed, MaterialResponse) {
 	t.Helper()
-	var nonceBytes [controlwire.NonceBytes]byte
+	var nonceBytes [core.SHA256DigestBytes]byte
 	for index := range nonceBytes {
 		nonceBytes[index] = byte(index + 1)
 	}

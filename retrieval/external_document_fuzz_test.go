@@ -299,7 +299,7 @@ func retrievalHostileSeeds(maximum uint64) [][]byte {
 
 func retrievalFuzzAuthorityNonce(t testing.TB, marker byte) controlwire.AuthorityNonce {
 	t.Helper()
-	raw := [controlwire.NonceBytes]byte{marker}
+	raw := [core.SHA256DigestBytes]byte{marker}
 	nonce, err := controlwire.NewAuthorityNonce(raw)
 	if err != nil {
 		t.Fatalf("controlwire.NewAuthorityNonce() error = %v, want nil", err)

@@ -39,6 +39,9 @@ type secretMaterialWorkerOutcome struct {
 
 func TestSHA256DigestHostileCanonicalBoundaryTable(t *testing.T) {
 	t.Parallel()
+	if SHA256DigestBytes != sha256.Size {
+		t.Fatalf("SHA256DigestBytes = %d, want %d", SHA256DigestBytes, sha256.Size)
+	}
 
 	valid := []struct {
 		name string

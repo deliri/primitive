@@ -632,7 +632,7 @@ func newAuthCompletionFixture(t testing.TB, request authCompletionFixtureRequest
 func authAuthorityNonce(t testing.TB, marker byte) controlwire.AuthorityNonce {
 	t.Helper()
 
-	raw := [controlwire.NonceBytes]byte{}
+	raw := [core.SHA256DigestBytes]byte{}
 	for index := range raw {
 		raw[index] = marker
 	}

@@ -166,7 +166,7 @@ func TestRequestCommitmentChangesAcrossEveryRegistrationFact(t *testing.T) {
 	if err != nil {
 		t.Fatalf("CommitReplayIdentity(baseline) error = %v, want nil", err)
 	}
-	distinctNonceBytes := [controlwire.NonceBytes]byte{2}
+	distinctNonceBytes := [core.SHA256DigestBytes]byte{2}
 	distinctNonce, err := controlwire.NewRequestNonce(distinctNonceBytes)
 	if err != nil {
 		t.Fatalf("NewRequestNonce(distinct) error = %v, want nil", err)
@@ -268,7 +268,7 @@ func TestReplayDispositionExhaustsItsDomainAndReplayCheckRefusals(t *testing.T) 
 		t.Fatalf("CommitReplayIdentity(incoming) error = %v, want nil", err)
 	}
 	otherRequest := fixture.request
-	otherNonceBytes := [controlwire.NonceBytes]byte{3}
+	otherNonceBytes := [core.SHA256DigestBytes]byte{3}
 	otherRequest.RequestNonce, err = controlwire.NewRequestNonce(otherNonceBytes)
 	if err != nil {
 		t.Fatalf("NewRequestNonce(other slot) error = %v, want nil", err)

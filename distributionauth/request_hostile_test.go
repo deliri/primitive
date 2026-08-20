@@ -609,7 +609,7 @@ func distributionAuthSeed(marker byte) [ed25519.SeedSize]byte {
 func distributionAuthNonce(t testing.TB, marker byte) controlwire.RequestNonce {
 	t.Helper()
 
-	raw := [controlwire.NonceBytes]byte{}
+	raw := [core.SHA256DigestBytes]byte{}
 	for index := range raw {
 		raw[index] = marker
 	}

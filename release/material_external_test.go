@@ -365,7 +365,7 @@ func materialResponseFixture(tb testing.TB) (
 	if err != nil {
 		tb.Fatalf("ParseBuildCommit() error = %v, want nil", err)
 	}
-	var nonceBytes [controlwire.NonceBytes]byte
+	var nonceBytes [core.SHA256DigestBytes]byte
 	for index := range nonceBytes {
 		nonceBytes[index] = byte(index + 1)
 	}

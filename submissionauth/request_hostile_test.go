@@ -123,7 +123,7 @@ func authRequestPayload(
 	if err != nil {
 		t.Fatalf("core.NewByteLength() error = %v, want nil", err)
 	}
-	rawNonce := [controlwire.NonceBytes]byte{}
+	rawNonce := [core.SHA256DigestBytes]byte{}
 	for index := range rawNonce {
 		rawNonce[index] = nonceByte
 	}

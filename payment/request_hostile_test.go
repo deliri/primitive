@@ -351,7 +351,7 @@ func signedQueryBuild(t testing.TB, offering core.Offering) core.BuildIdentity {
 func signedQueryNonce(t testing.TB, marker byte) controlwire.RequestNonce {
 	t.Helper()
 
-	raw := [controlwire.NonceBytes]byte{}
+	raw := [core.SHA256DigestBytes]byte{}
 	for index := range raw {
 		raw[index] = marker
 	}

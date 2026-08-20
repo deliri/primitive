@@ -377,7 +377,7 @@ func retrievalAuthPayload(
 ) retrieval.RequestPayload {
 	t.Helper()
 
-	rawNonce := [controlwire.NonceBytes]byte{}
+	rawNonce := [core.SHA256DigestBytes]byte{}
 	rawNonce[0] = nonceByte
 	nonce, err := controlwire.NewRequestNonce(rawNonce)
 	if err != nil {

@@ -244,7 +244,7 @@ func newDownloadCallFixture(t testing.TB, fixtureRequest downloadCallFixtureRequ
 	if err != nil {
 		t.Fatalf("CommitRequest() error = %v, want nil", err)
 	}
-	nonceBytes := [controlwire.NonceBytes]byte{0x71}
+	nonceBytes := [core.SHA256DigestBytes]byte{0x71}
 	nonce, err := controlwire.NewAuthorityNonce(nonceBytes)
 	if err != nil {
 		t.Fatalf("controlwire.NewAuthorityNonce() error = %v, want nil", err)
