@@ -1,6 +1,6 @@
 module github.com/deliri/primitive/v2026
 
-go 1.27.0
+go 1.26.6
 
 require (
 	cloud.google.com/go/storage v1.65.0

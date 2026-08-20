@@ -5,7 +5,7 @@ Last updated: `2026-08-20`
 ## Current
 
 - opened bounded Google Cloud OAuth access-token acquisition, 2026-08-20,
-  preparing `v2026.0.136`. Cloudidentity now keeps authorization credentials
+  preparing `v2026.0.137`. Cloudidentity now keeps authorization credentials
   compiler-distinct from audience-bound identity assertions, decodes the exact
   bounded metadata response through Primitive Exchange, preserves a positive
   typed provider lifetime, and redacts every generic formatting surface. The
@@ -14,23 +14,23 @@ Last updated: `2026-08-20`
   provider proof remains the final effect check; the door owns no caching,
   refresh, or consumer policy.
 
-  Go 1.27 tool follow-through pins compatible Staticcheck, keeps goconst at its
-  existing 15-entry ceiling, gives each gate an artifact-local tool directory,
-  and makes every closed-enum switch explicit under the current Witness
-  doctrine. The hostile Fuzzfinder schema triad caught and retained the partial
-  observation regression while those enum decisions were tightened.
+  The release contract returns to exact Go 1.26.6 so the same reviewed compiler
+  can build Garble v0.17.0 and drive its supported linker patches. The compiler
+  retreat keeps the published OAuth and SHA-256 contracts intact rather than
+  forcing consumers onto v2026.0.133 or copying widths locally. Compatible
+  Staticcheck, the existing goconst ceiling, artifact-local gate tools, and
+  explicit closed-enum switches remain unchanged.
 
 - published the SHA-256 binary extent from Core, 2026-08-20, preparing
   `v2026.0.135`. Controlwire and Release consume the shared width directly;
   downstream products can derive encoding widths without reaching past
   Primitive into `crypto/sha256` or duplicating the binary extent.
 
-- advanced the compiler-owned module and release contract to exact Go 1.27.0,
-  2026-08-20, preparing `v2026.0.134`. The installed compiler now satisfies
-  Release's exact identity checks. The upstream Garble branch still declares
-  Go 1.27 unsupported because its reviewed linker patches stop at Go 1.26, so
-  publication remains open until that external tool has an exact Go 1.27
-  revision that Primitive can admit and rebuild with the same compiler.
+- attempted the compiler-owned module and release contract at exact Go 1.27.0,
+  2026-08-20, in `v2026.0.134`. Garble v0.17.0 still declares Go 1.27
+  unsupported because its reviewed linker patches stop at Go 1.26; v2026.0.137
+  therefore restores exact Go 1.26.6 while retaining the later Primitive
+  contracts.
 
 - opened the strict RFC 3339 temporal text door and refreshed the admitted
   dependency frontier, 2026-08-20, prepared `v2026.0.133`. `temporal.Instant`
