@@ -51,10 +51,10 @@ func TestParseGoVersionOutputPressuresEverySideOfTheProbeGrammar(t *testing.T) {
 		{name: "appended toolchain build settings are rejected", output: "go version " + want + " linux/amd64 X:fieldtrack", wantErr: core.ErrReleaseContract},
 		{name: "wrong program token is rejected", output: "tinygo version " + want + " linux/amd64", wantErr: core.ErrReleaseContract},
 		{name: "wrong subcommand token is rejected", output: "go env " + want + " linux/amd64", wantErr: core.ErrReleaseContract},
-		{name: "one patch below the pinned toolchain is rejected", output: "go version go1.26.5 linux/amd64", wantErr: core.ErrReleaseContract},
-		{name: "one patch above the pinned toolchain is rejected", output: "go version go1.26.7 linux/amd64", wantErr: core.ErrReleaseContract},
-		{name: "one minor above the pinned toolchain is rejected", output: "go version go1.27.0 linux/amd64", wantErr: core.ErrReleaseContract},
-		{name: "devel toolchain is rejected", output: "go version devel go1.26.6 linux/amd64", wantErr: core.ErrReleaseContract},
+		{name: "one patch below the pinned toolchain is rejected", output: "go version go1.26.9 linux/amd64", wantErr: core.ErrReleaseContract},
+		{name: "one patch above the pinned toolchain is rejected", output: "go version go1.27.1 linux/amd64", wantErr: core.ErrReleaseContract},
+		{name: "one minor above the pinned toolchain is rejected", output: "go version go1.28.0 linux/amd64", wantErr: core.ErrReleaseContract},
+		{name: "devel toolchain is rejected", output: "go version devel go1.27.0 linux/amd64", wantErr: core.ErrReleaseContract},
 		{name: "pinned version as a prefix is rejected", output: "go version " + want + "rc1 linux/amd64", wantErr: core.ErrReleaseContract},
 		{name: "empty version token is rejected", output: "go version  linux/amd64", wantErr: core.ErrReleaseContract},
 		{name: "platform without a separator is rejected", output: "go version " + want + " linuxamd64", wantErr: core.ErrReleaseContract},
@@ -141,8 +141,8 @@ func TestValidateGarbleBuildInfoRejectsEverySingleFieldSubstitution(t *testing.T
 		{name: "empty module sum is rejected", mutate: func(i *buildinfo.BuildInfo) { i.Main.Sum = "" }},
 		{name: "one byte module sum change is rejected", mutate: func(i *buildinfo.BuildInfo) { i.Main.Sum = flipLastByteForTest(sum) }},
 		{name: "empty go version is rejected", mutate: func(i *buildinfo.BuildInfo) { i.GoVersion = "" }},
-		{name: "one patch below go version is rejected", mutate: func(i *buildinfo.BuildInfo) { i.GoVersion = "go1.26.5" }},
-		{name: "one patch above go version is rejected", mutate: func(i *buildinfo.BuildInfo) { i.GoVersion = "go1.26.7" }},
+		{name: "one patch below go version is rejected", mutate: func(i *buildinfo.BuildInfo) { i.GoVersion = "go1.26.9" }},
+		{name: "one patch above go version is rejected", mutate: func(i *buildinfo.BuildInfo) { i.GoVersion = "go1.27.1" }},
 	}
 	for _, tc := range cases {
 		t.Run(tc.name, func(t *testing.T) {

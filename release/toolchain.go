@@ -6,7 +6,7 @@ import (
 	"github.com/deliri/primitive/v2026/core"
 )
 
-const goToolchainVersionPrimitive2026 = "go1.26.6"
+const goToolchainVersionPrimitive2026 = "go1.27.0"
 
 // GoToolchainIdentity is the closed set of compilers admitted for release
 // construction. Exact compiler identity is retained outside stripped binaries.
@@ -15,13 +15,13 @@ type GoToolchainIdentity uint8
 const (
 	// GoToolchainUnknown is the invalid zero compiler identity.
 	GoToolchainUnknown GoToolchainIdentity = iota
-	// GoToolchainPrimitive2026 identifies the exact reviewed Go 1.26.6 toolchain.
+	// GoToolchainPrimitive2026 identifies the exact reviewed Go 1.27.0 toolchain.
 	GoToolchainPrimitive2026
 	goToolchainLimit
 )
 
 func goToolchainLabels() [goToolchainLimit]string {
-	return [...]string{GoToolchainPrimitive2026: "go-1.26.6"}
+	return [...]string{GoToolchainPrimitive2026: "go-1.27.0"}
 }
 
 func goToolchainVersions() [goToolchainLimit]string {

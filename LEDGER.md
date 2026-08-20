@@ -4,6 +4,13 @@ Last updated: `2026-08-20`
 
 ## Current
 
+- advanced the compiler-owned module and release contract to exact Go 1.27.0,
+  2026-08-20, preparing `v2026.0.134`. The installed compiler now satisfies
+  Release's exact identity checks. The upstream Garble branch still declares
+  Go 1.27 unsupported because its reviewed linker patches stop at Go 1.26, so
+  publication remains open until that external tool has an exact Go 1.27
+  revision that Primitive can admit and rebuild with the same compiler.
+
 - opened the strict RFC 3339 temporal text door and refreshed the admitted
   dependency frontier, 2026-08-20, prepared `v2026.0.133`. `temporal.Instant`
   now parses hostile external RFC 3339 text through Go's standard-library

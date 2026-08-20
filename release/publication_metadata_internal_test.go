@@ -86,7 +86,7 @@ func TestBuildProvenanceWireFieldsRejectInvalidDomainsAndRetainSignedDigests(t *
 		name         string
 		wantAccepted bool
 	}{
-		{name: "go toolchain version substitution is rejected", mutate: func(w *buildProvenanceWire) { w.GoToolchain = "go1.26.7" }},
+		{name: "go toolchain version substitution is rejected", mutate: func(w *buildProvenanceWire) { w.GoToolchain = "go1.27.1" }},
 		{name: "garble module substitution is rejected", mutate: func(w *buildProvenanceWire) { w.GarbleModule += "/fork" }},
 		{name: "garble version substitution is rejected", mutate: func(w *buildProvenanceWire) { w.GarbleVersion += "1" }},
 		{name: "garble revision substitution is rejected", mutate: func(w *buildProvenanceWire) { w.GarbleRevision = strings.Repeat("0", len(w.GarbleRevision)) }},
