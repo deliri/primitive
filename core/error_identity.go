@@ -657,8 +657,10 @@ func isAdmittedErrorIdentity(identity ErrorIdentity) bool {
 }
 
 func errorIdentityParents(identity ErrorIdentity) errorIdentityParentSet {
-	switch identity {
-	case ErrJSONContract, ErrNumericOverflow, ErrSecretMaterialAllZero,
+	if identity == ErrPrimitiveContract {
+		return errorIdentityParentSet{}
+	}
+	if errorIdentityIn(identity, ErrJSONContract, ErrNumericOverflow, ErrSecretMaterialAllZero,
 		ErrAttestContract,
 		ErrContextStateContract, ErrCurrencyContract, ErrGarbleContract,
 		ErrKeygenContract, ErrTestIsolationContract, ErrFilestoreContract,
@@ -671,9 +673,10 @@ func errorIdentityParents(identity ErrorIdentity) errorIdentityParentSet {
 		ErrCloudIdentityContract, ErrUpgradeContract,
 		ErrLifecycleIdentityContract, ErrReceiptContract, ErrChitContract,
 		ErrRetrievalContract, ErrPaymentContract, ErrControlWireContract,
-		ErrControlPlaneContract, ErrIDContract:
+		ErrControlPlaneContract, ErrIDContract) {
 		return oneErrorIdentityParent(ErrPrimitiveContract)
-	case ErrControlWireRevision, ErrControlWireNonce, ErrControlWireToken,
+	}
+	if errorIdentityIn(identity, ErrControlWireRevision, ErrControlWireNonce, ErrControlWireToken,
 		ErrControlWirePolicyCursor, ErrControlWireRoute, ErrControlWireProtocolSupport,
 		ErrControlWireReplayConflict,
 		ErrControlPlaneSigningDomain, ErrControlPlaneProductStatus,
@@ -683,20 +686,21 @@ func errorIdentityParents(identity ErrorIdentity) errorIdentityParentSet {
 		ErrControlPlaneProviderTimeRollback,
 		ErrControlPlaneRegistration, ErrControlPlaneInstallationBinding,
 		ErrControlPlaneDecisionConsistency, ErrControlPlaneCheckIn,
-		ErrControlPlaneCheckInResponse, ErrControlPlaneUsageWindow:
+		ErrControlPlaneCheckInResponse, ErrControlPlaneUsageWindow) {
 		return errorIdentityParentsControlExchange(identity)
-	case ErrAttestVerification, ErrNilContext, ErrContextObservation,
+	}
+	if errorIdentityIn(identity, ErrAttestVerification, ErrNilContext, ErrContextObservation,
 		ErrCurrencyMismatch, ErrCurrencyDecimal, ErrCurrencyOverflow,
-		ErrGarbleDerivation, ErrGarbleBuildIntent, ErrKeygenEntropy:
+		ErrGarbleDerivation, ErrGarbleBuildIntent, ErrKeygenEntropy) {
 		return errorIdentityParentsAttestThroughKeygen(identity)
-	case ErrHostFacts, ErrHostFactsContract, ErrHostFactsObservation,
+	}
+	if errorIdentityIn(identity, ErrHostFacts, ErrHostFactsContract, ErrHostFactsObservation,
 		ErrHostFactsUnsupported, ErrHostFactsPressure, ErrHostFactsEvidence,
 		ErrDiskCapacityUnsupported, ErrTreeMeasurementUnsupported,
-		ErrDiskFloorReached, ErrMemoryLimitReached:
+		ErrDiskFloorReached, ErrMemoryLimitReached) {
 		return errorIdentityParentsHostFacts(identity)
-	default:
-		return errorIdentityParentsFilestoreThroughUpgrade(identity)
 	}
+	return errorIdentityParentsFilestoreThroughUpgrade(identity)
 }
 
 // errorIdentityParentsFilestoreThroughUpgrade continues the family chain. The
@@ -704,80 +708,89 @@ func errorIdentityParents(identity ErrorIdentity) errorIdentityParentSet {
 // the complexity ceiling as new identities join; the next family lands in the
 // helper with headroom, not in a function already at the line.
 func errorIdentityParentsFilestoreThroughUpgrade(identity ErrorIdentity) errorIdentityParentSet {
-	switch identity {
-	case ErrDistributionVerification, ErrDistributionBinding:
+	if errorIdentityIn(identity, ErrDistributionVerification, ErrDistributionBinding) {
 		return oneErrorIdentityParent(ErrDistributionContract)
-	case ErrUpgradeDownload, ErrUpgradeCapacity, ErrUpgradeVerification, ErrUpgradeTrial,
-		ErrUpgradePromotion, ErrUpgradePersistence, ErrUpgradeCleanup,
-		ErrUpgradeConflict:
-		return oneErrorIdentityParent(ErrUpgradeContract)
-	case ErrFilestoreSize, ErrFilestoreSource, ErrFilestoreDestination,
-		ErrFilestoreConflict, ErrFilestoreActivation, ErrFilestoreCleanup:
-		return oneErrorIdentityParent(ErrFilestoreContract)
-	case ErrFilestoreActivationIndeterminate:
-		return oneErrorIdentityParent(ErrFilestoreActivation)
-	case ErrTemporalOverflow:
-		return twoErrorIdentityParents(ErrTemporalContract, ErrNumericOverflow)
-	case ErrExchangeRequest, ErrExchangeResponse, ErrExchangeBodyLimit,
-		ErrExchangeContentType, ErrExchangeCancelled, ErrExchangeRedirect,
-		ErrExchangeTransport, ErrExchangeRetryExhausted, ErrExchangeWrite:
-		return oneErrorIdentityParent(ErrExchangeContract)
-	default:
-		return errorIdentityParentsReceipt(identity)
 	}
+	if errorIdentityIn(identity, ErrUpgradeDownload, ErrUpgradeCapacity, ErrUpgradeVerification, ErrUpgradeTrial,
+		ErrUpgradePromotion, ErrUpgradePersistence, ErrUpgradeCleanup,
+		ErrUpgradeConflict) {
+		return oneErrorIdentityParent(ErrUpgradeContract)
+	}
+	if errorIdentityIn(identity, ErrFilestoreSize, ErrFilestoreSource, ErrFilestoreDestination,
+		ErrFilestoreConflict, ErrFilestoreActivation, ErrFilestoreCleanup) {
+		return oneErrorIdentityParent(ErrFilestoreContract)
+	}
+	if identity == ErrFilestoreActivationIndeterminate {
+		return oneErrorIdentityParent(ErrFilestoreActivation)
+	}
+	if identity == ErrTemporalOverflow {
+		return twoErrorIdentityParents(ErrTemporalContract, ErrNumericOverflow)
+	}
+	if errorIdentityIn(identity, ErrExchangeRequest, ErrExchangeResponse, ErrExchangeBodyLimit,
+		ErrExchangeContentType, ErrExchangeCancelled, ErrExchangeRedirect,
+		ErrExchangeTransport, ErrExchangeRetryExhausted, ErrExchangeWrite) {
+		return oneErrorIdentityParent(ErrExchangeContract)
+	}
+	return errorIdentityParentsReceipt(identity)
 }
 
 func errorIdentityParentsReceipt(identity ErrorIdentity) errorIdentityParentSet {
-	switch identity {
-	case ErrReceiptVerification, ErrReceiptScope, ErrReceiptRollback,
-		ErrReceiptConflict:
+	if errorIdentityIn(identity, ErrReceiptVerification, ErrReceiptScope, ErrReceiptRollback,
+		ErrReceiptConflict) {
 		return oneErrorIdentityParent(ErrReceiptContract)
-	case ErrChitVerification, ErrChitConflict:
-		return oneErrorIdentityParent(ErrChitContract)
-	case ErrRetrievalBinding:
-		return oneErrorIdentityParent(ErrRetrievalContract)
-	case ErrPaymentVerification:
-		return oneErrorIdentityParent(ErrPaymentContract)
-	default:
-		return errorIdentityParentsFuzzFinderThroughObjectStore(identity)
 	}
+	if errorIdentityIn(identity, ErrChitVerification, ErrChitConflict) {
+		return oneErrorIdentityParent(ErrChitContract)
+	}
+	if identity == ErrRetrievalBinding {
+		return oneErrorIdentityParent(ErrRetrievalContract)
+	}
+	if identity == ErrPaymentVerification {
+		return oneErrorIdentityParent(ErrPaymentContract)
+	}
+	return errorIdentityParentsFuzzFinderThroughObjectStore(identity)
 }
 
 func errorIdentityParentsHostFacts(identity ErrorIdentity) errorIdentityParentSet {
-	switch identity {
-	case ErrHostFacts:
-		return errorIdentityParentSet{}
-	case ErrHostFactsContract:
-		return twoErrorIdentityParents(ErrHostFacts, ErrPrimitiveContract)
-	case ErrHostFactsObservation, ErrHostFactsUnsupported, ErrHostFactsPressure,
-		ErrHostFactsEvidence:
-		return oneErrorIdentityParent(ErrHostFacts)
-	case ErrDiskCapacityUnsupported, ErrTreeMeasurementUnsupported:
-		return oneErrorIdentityParent(ErrHostFactsUnsupported)
-	case ErrDiskFloorReached, ErrMemoryLimitReached:
-		return oneErrorIdentityParent(ErrHostFactsPressure)
-	default:
+	if identity == ErrHostFacts {
 		return errorIdentityParentSet{}
 	}
+	if identity == ErrHostFactsContract {
+		return twoErrorIdentityParents(ErrHostFacts, ErrPrimitiveContract)
+	}
+	if errorIdentityIn(identity, ErrHostFactsObservation, ErrHostFactsUnsupported, ErrHostFactsPressure,
+		ErrHostFactsEvidence) {
+		return oneErrorIdentityParent(ErrHostFacts)
+	}
+	if errorIdentityIn(identity, ErrDiskCapacityUnsupported, ErrTreeMeasurementUnsupported) {
+		return oneErrorIdentityParent(ErrHostFactsUnsupported)
+	}
+	if errorIdentityIn(identity, ErrDiskFloorReached, ErrMemoryLimitReached) {
+		return oneErrorIdentityParent(ErrHostFactsPressure)
+	}
+	return errorIdentityParentSet{}
 }
 
 func errorIdentityParentsAttestThroughKeygen(identity ErrorIdentity) errorIdentityParentSet {
-	switch identity {
-	case ErrAttestVerification:
+	if identity == ErrAttestVerification {
 		return oneErrorIdentityParent(ErrAttestContract)
-	case ErrNilContext, ErrContextObservation:
-		return oneErrorIdentityParent(ErrContextStateContract)
-	case ErrCurrencyMismatch, ErrCurrencyDecimal:
-		return oneErrorIdentityParent(ErrCurrencyContract)
-	case ErrCurrencyOverflow:
-		return twoErrorIdentityParents(ErrCurrencyContract, ErrNumericOverflow)
-	case ErrGarbleDerivation, ErrGarbleBuildIntent:
-		return oneErrorIdentityParent(ErrGarbleContract)
-	case ErrKeygenEntropy:
-		return oneErrorIdentityParent(ErrKeygenContract)
-	default:
-		return errorIdentityParentSet{}
 	}
+	if errorIdentityIn(identity, ErrNilContext, ErrContextObservation) {
+		return oneErrorIdentityParent(ErrContextStateContract)
+	}
+	if errorIdentityIn(identity, ErrCurrencyMismatch, ErrCurrencyDecimal) {
+		return oneErrorIdentityParent(ErrCurrencyContract)
+	}
+	if identity == ErrCurrencyOverflow {
+		return twoErrorIdentityParents(ErrCurrencyContract, ErrNumericOverflow)
+	}
+	if errorIdentityIn(identity, ErrGarbleDerivation, ErrGarbleBuildIntent) {
+		return oneErrorIdentityParent(ErrGarbleContract)
+	}
+	if identity == ErrKeygenEntropy {
+		return oneErrorIdentityParent(ErrKeygenContract)
+	}
+	return errorIdentityParentSet{}
 }
 
 // errorIdentityParentsControlExchange owns the parents of both halves of the
@@ -786,55 +799,69 @@ func errorIdentityParentsAttestThroughKeygen(identity ErrorIdentity) errorIdenti
 // exchange, and separating them here would say two ends of the same protocol
 // are unrelated.
 func errorIdentityParentsControlExchange(identity ErrorIdentity) errorIdentityParentSet {
-	switch identity {
-	case ErrControlWireRevision, ErrControlWireNonce, ErrControlWireToken,
+	if errorIdentityIn(identity, ErrControlWireRevision, ErrControlWireNonce, ErrControlWireToken,
 		ErrControlWirePolicyCursor, ErrControlWireRoute, ErrControlWireProtocolSupport,
-		ErrControlWireReplayConflict:
+		ErrControlWireReplayConflict) {
 		return oneErrorIdentityParent(ErrControlWireContract)
-	case ErrControlPlaneSigningDomain, ErrControlPlaneProductStatus,
+	}
+	if errorIdentityIn(identity, ErrControlPlaneSigningDomain, ErrControlPlaneProductStatus,
 		ErrControlPlaneUsageWatermark, ErrControlPlaneResponseHeader,
 		ErrControlPlaneResponseDocument,
 		ErrControlPlaneResponseBinding, ErrControlPlaneUpgradeRequired,
 		ErrControlPlaneProviderTimeRollback,
 		ErrControlPlaneRegistration, ErrControlPlaneInstallationBinding,
 		ErrControlPlaneDecisionConsistency, ErrControlPlaneCheckIn,
-		ErrControlPlaneCheckInResponse, ErrControlPlaneUsageWindow:
+		ErrControlPlaneCheckInResponse, ErrControlPlaneUsageWindow) {
 		return oneErrorIdentityParent(ErrControlPlaneContract)
-	default:
-		return errorIdentityParentSet{}
 	}
+	return errorIdentityParentSet{}
 }
 
 func errorIdentityParentsFuzzFinderThroughObjectStore(identity ErrorIdentity) errorIdentityParentSet {
-	switch identity {
-	case ErrFuzzFinderFormat, ErrFuzzFinderObservation:
+	if errorIdentityIn(identity, ErrFuzzFinderFormat, ErrFuzzFinderObservation) {
 		return oneErrorIdentityParent(ErrFuzzFinderContract)
-	case ErrLeaseVerification, ErrLeaseRollback, ErrLeaseConflict,
-		ErrLeaseScope, ErrLeaseClock, ErrLeaseProduct:
-		return oneErrorIdentityParent(ErrLeaseContract)
-	case ErrGateDenied:
-		return oneErrorIdentityParent(ErrGateContract)
-	case ErrProcessStart, ErrProcessStream, ErrProcessWait,
-		ErrProcessObservation, ErrProcessUnsupported:
-		return oneErrorIdentityParent(ErrProcessContract)
-	case ErrProcessOutputLimit:
-		return oneErrorIdentityParent(ErrProcessStream)
-	case ErrReleaseManifest, ErrReleaseVerification, ErrReleaseLatest,
-		ErrReleaseRollback, ErrReleaseConflict:
-		return oneErrorIdentityParent(ErrReleaseContract)
-	case ErrShutdownStepFailure, ErrShutdownStepTimeout, ErrShutdownStepPanic,
-		ErrShutdownTotalTimeout, ErrShutdownSignalSource,
-		ErrShutdownSignalReceived:
-		return oneErrorIdentityParent(ErrShutdownContract)
-	case ErrObjectStoreExpired, ErrObjectStoreIntegrity, ErrObjectStoreSource,
-		ErrObjectStoreDestination, ErrObjectStoreConflict, ErrObjectStoreSize,
-		ErrObjectStoreAbsent:
-		return oneErrorIdentityParent(ErrObjectStoreContract)
-	case ErrTimeProofRefused, ErrTimeProofInvalid:
-		return oneErrorIdentityParent(ErrTimeProofContract)
-	default:
-		return errorIdentityParentSet{}
 	}
+	if errorIdentityIn(identity, ErrLeaseVerification, ErrLeaseRollback, ErrLeaseConflict,
+		ErrLeaseScope, ErrLeaseClock, ErrLeaseProduct) {
+		return oneErrorIdentityParent(ErrLeaseContract)
+	}
+	if identity == ErrGateDenied {
+		return oneErrorIdentityParent(ErrGateContract)
+	}
+	if errorIdentityIn(identity, ErrProcessStart, ErrProcessStream, ErrProcessWait,
+		ErrProcessObservation, ErrProcessUnsupported) {
+		return oneErrorIdentityParent(ErrProcessContract)
+	}
+	if identity == ErrProcessOutputLimit {
+		return oneErrorIdentityParent(ErrProcessStream)
+	}
+	if errorIdentityIn(identity, ErrReleaseManifest, ErrReleaseVerification, ErrReleaseLatest,
+		ErrReleaseRollback, ErrReleaseConflict) {
+		return oneErrorIdentityParent(ErrReleaseContract)
+	}
+	if errorIdentityIn(identity, ErrShutdownStepFailure, ErrShutdownStepTimeout, ErrShutdownStepPanic,
+		ErrShutdownTotalTimeout, ErrShutdownSignalSource,
+		ErrShutdownSignalReceived) {
+		return oneErrorIdentityParent(ErrShutdownContract)
+	}
+	if errorIdentityIn(identity, ErrObjectStoreExpired, ErrObjectStoreIntegrity, ErrObjectStoreSource,
+		ErrObjectStoreDestination, ErrObjectStoreConflict, ErrObjectStoreSize,
+		ErrObjectStoreAbsent) {
+		return oneErrorIdentityParent(ErrObjectStoreContract)
+	}
+	if errorIdentityIn(identity, ErrTimeProofRefused, ErrTimeProofInvalid) {
+		return oneErrorIdentityParent(ErrTimeProofContract)
+	}
+	return errorIdentityParentSet{}
+}
+
+func errorIdentityIn(identity ErrorIdentity, candidates ...ErrorIdentity) bool {
+	for _, candidate := range candidates {
+		if identity == candidate {
+			return true
+		}
+	}
+	return false
 }
 
 func oneErrorIdentityParent(parent ErrorIdentity) errorIdentityParentSet {

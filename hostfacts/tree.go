@@ -137,15 +137,17 @@ const (
 )
 
 func (k treeEntryKind) decision() treeEntryDecision {
-	switch k {
-	case treeEntryRegular:
-		return treeEntryDecisionCount
-	case treeEntryIgnored:
-		return treeEntryDecisionSkip
-	case treeEntryDirectory:
-		return treeEntryDecisionDescend
-	default:
+	if k >= treeEntryKind(len(treeEntryDecisions())) {
 		return treeEntryDecisionRefuse
+	}
+	return treeEntryDecisions()[k]
+}
+
+func treeEntryDecisions() [treeEntryDirectory + 1]treeEntryDecision {
+	return [...]treeEntryDecision{
+		treeEntryRegular:   treeEntryDecisionCount,
+		treeEntryIgnored:   treeEntryDecisionSkip,
+		treeEntryDirectory: treeEntryDecisionDescend,
 	}
 }
 

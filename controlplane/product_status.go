@@ -133,8 +133,9 @@ func (s ProductStatus) ValidateOutcome(outcome lease.Outcome) error {
 		return admitted(s == ProductStatusRevoked)
 	case lease.OutcomeRefusal:
 		return admitted(s.admitsRefusal())
+	default:
+		return consistencyError()
 	}
-	return consistencyError()
 }
 
 func (s ProductStatus) admitsRefusal() bool {

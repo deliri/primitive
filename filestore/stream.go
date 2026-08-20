@@ -185,8 +185,9 @@ func classifyDestinationError(kind streamDestination, err error) error {
 		return destinationError(err)
 	case streamDestinationFile:
 		return activationError(err)
+	default:
+		return contractError(err)
 	}
-	return contractError(err)
 }
 
 var (

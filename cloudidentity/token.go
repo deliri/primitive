@@ -59,11 +59,10 @@ func (t Token) Validate() error {
 	if err := t.provider.Validate(); err != nil {
 		return err
 	}
-	if t.value == nil || len(*t.value) == 0 || len(*t.value) > TokenMaximumBytes ||
-		!validBearerToken(*t.value) {
+	if t.value == nil {
 		return core.ErrCloudIdentityContract
 	}
-	return nil
+	return validateBearerTokenValue(*t.value)
 }
 
 // BearerValue explicitly crosses the authorization-header disclosure
@@ -97,6 +96,13 @@ func validBearerToken(value string) bool {
 		}
 	}
 	return true
+}
+
+func validateBearerTokenValue(value string) error {
+	if len(value) == 0 || len(value) > TokenMaximumBytes || !validBearerToken(value) {
+		return core.ErrCloudIdentityContract
+	}
+	return nil
 }
 
 func bearerTokenByte(value byte) bool {

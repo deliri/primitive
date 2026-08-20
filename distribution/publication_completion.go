@@ -303,7 +303,7 @@ func publicationCompletionOwners(
 	}
 	grantedRequest, err := issuance.Grant.Request()
 	if err != nil || grantedRequest != request {
-		return PublicationGrantPayload{}, release.VerifiedManifest{}, bindingError(errors.New("completion request differs from grant"), err)
+		return PublicationGrantPayload{}, release.VerifiedManifest{}, bindingError(errors.New("publication completion request differs from grant"), err)
 	}
 	grant, err := issuance.Grant.Payload()
 	if err != nil {

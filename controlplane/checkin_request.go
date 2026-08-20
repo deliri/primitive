@@ -54,9 +54,12 @@ func (p CheckInPayload) Validate() error {
 		return checkInError(err)
 	}
 	if p.PreviousWatermark.Generation != p.LeaseGeneration {
-		return consistencyError()
+		return checkInError(consistencyError())
 	}
-	return p.checkInBinding().Validate()
+	if err := p.checkInBinding().Validate(); err != nil {
+		return checkInError(err)
+	}
+	return nil
 }
 
 func (p CheckInPayload) checkInBinding() checkInBinding {

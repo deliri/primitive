@@ -300,8 +300,9 @@ func providerRequiredSignedHeaders(provider Provider) ([]string, error) {
 		return nil, nil
 	case ProviderUnknown, providerLimit:
 		return nil, core.ErrObjectStoreContract
+	default:
+		return nil, core.ErrObjectStoreContract
 	}
-	return nil, core.ErrObjectStoreContract
 }
 
 func providerSignedHeadersQuery(provider Provider) (string, error) {
@@ -312,8 +313,9 @@ func providerSignedHeadersQuery(provider Provider) (string, error) {
 		return queryGCSSignedHeaders, nil
 	case ProviderCloudflareImages, ProviderUnknown, providerLimit:
 		return "", core.ErrObjectStoreContract
+	default:
+		return "", core.ErrObjectStoreContract
 	}
-	return "", core.ErrObjectStoreContract
 }
 
 // semicolonTokenContains reports whether the vendor declaration lists token as
@@ -361,6 +363,8 @@ func uploadHeaders(
 		}
 	case ProviderCloudflareImages:
 	case ProviderUnknown, providerLimit:
+		return exchange.Headers{}, core.ErrObjectStoreContract
+	default:
 		return exchange.Headers{}, core.ErrObjectStoreContract
 	}
 	return appendProviderHeaders(headers, emitted)
@@ -472,6 +476,8 @@ func responseSelectionValues(
 	case ProviderCloudflareImages:
 	case ProviderUnknown, providerLimit:
 		return nil, core.ErrObjectStoreContract
+	default:
+		return nil, core.ErrObjectStoreContract
 	}
 	if direction == DirectionDownload {
 		values = append(values, headerContentRange)
@@ -511,8 +517,9 @@ func providerVersionHeader(provider Provider) (string, error) {
 		return "", nil
 	case ProviderUnknown, providerLimit:
 		return "", core.ErrObjectStoreContract
+	default:
+		return "", core.ErrObjectStoreContract
 	}
-	return "", core.ErrObjectStoreContract
 }
 
 // providerDownloadCRC32C returns the checksum the provider computed over the
@@ -534,8 +541,9 @@ func providerDownloadCRC32C(
 		return core.CRC32C{}, false, nil
 	case ProviderUnknown, providerLimit:
 		return core.CRC32C{}, false, core.ErrObjectStoreContract
+	default:
+		return core.CRC32C{}, false, core.ErrObjectStoreContract
 	}
-	return core.CRC32C{}, false, core.ErrObjectStoreContract
 }
 
 func amazonS3DownloadCRC32C(

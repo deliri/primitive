@@ -26,17 +26,21 @@ type (
 type cloudidentityStructInventory struct {
 	AmazonRequestError            internalFlow[amazonRequestError]
 	Client                        capabilityWrapper[Client]
-	Audience                      protocolFact[Audience]
-	AmazonResponse                providerWire[amazonResponse]
-	AmazonResult                  providerWire[amazonResult]
-	AmazonTokenElement            providerWire[amazonTokenElement]
 	AmazonUnexpectedElement       providerWire[amazonUnexpectedElement]
 	Token                         sealedCapability[Token]
+	Audience                      protocolFact[Audience]
+	AmazonTokenElement            providerWire[amazonTokenElement]
+	AmazonResponse                providerWire[amazonResponse]
+	AmazonResult                  providerWire[amazonResult]
+	GoogleAccessTokenResponse     providerWire[googleAccessTokenResponse]
+	AccessToken                   sealedCapability[AccessToken]
 	AmazonWebServicesRequestInput operationRequest[AmazonWebServicesRequestInput]
-	Request                       operationRequest[Request]
 	AmazonWebServicesRequest      sealedCapability[AmazonWebServicesRequest]
+	Request                       operationRequest[Request]
 	GoogleProtocolContracts       internalFlow[googleProtocolContracts]
+	GoogleAccessTokenContracts    internalFlow[googleAccessTokenContracts]
 	AcquisitionCall               internalFlow[acquisitionCall]
+	GoogleCloudAccessTokenRequest operationRequest[GoogleCloudAccessTokenRequest]
 	Policy                        protocolFact[Policy]
 }
 
@@ -72,6 +76,7 @@ func TestCloudidentityProductionStructsHaveCompilerVisibleDataFlowRoles(
 		"github.com/deliri/primitive/v2026/exchange",
 		"github.com/deliri/primitive/v2026/temporal",
 		"io",
+		"math",
 		"net/url",
 		"strconv",
 		"strings",
@@ -101,6 +106,7 @@ func TestProviderSelectionHasOnlyExplicitAcquisitionEntryPoints(t *testing.T) {
 	want := []string{
 		"AcquireAmazonWebServices",
 		"AcquireGoogleCloud",
+		"AcquireGoogleCloudAccessToken",
 		"DefaultPolicy",
 		"NewAmazonWebServicesRequest",
 		"NewClient",

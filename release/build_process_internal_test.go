@@ -14,10 +14,10 @@ func TestComposeExactSearchPathExhaustsDirectoryCombinations(t *testing.T) {
 	goDir := parseAbsolutePathForSearchTest(t, t.TempDir())
 	gitDir := parseAbsolutePathForSearchTest(t, t.TempDir())
 	cases := []struct {
-		name    string
-		in      []core.AbsolutePath
-		want    string
 		wantErr error
+		name    string
+		want    string
+		in      []core.AbsolutePath
 	}{
 		{name: "one go directory is admitted", in: []core.AbsolutePath{goDir}, want: goDir.String()},
 		{name: "identical go and git directories collapse", in: []core.AbsolutePath{goDir, goDir}, want: goDir.String()},

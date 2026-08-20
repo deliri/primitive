@@ -666,7 +666,7 @@ func packagePurposeTexts() [packageIdentityLimit]string {
 		PackageShutdown:         "Signal observation and phased bounded cleanup",
 		PackageObjectStore:      "Bounded vendor-specified S3, GCS, or Cloudflare Images transfers through issued HTTPS capabilities, with integrity and provider evidence",
 		PackageTimeProof:        "RFC 3161 request construction, response verification, and replay",
-		PackageCloudIdentity:    "Bounded Google Cloud or AWS outbound identity-token acquisition and redacted disclosure",
+		PackageCloudIdentity:    "Bounded Google Cloud identity-token and OAuth access-token or AWS identity-token acquisition with redacted disclosure",
 		PackageDeploy:           "Exact create-only GCS publication of one authenticated release and its metadata",
 		PackageUpgrade:          "Crash-recoverable installation, activation, startup truth, rollback, and recovery",
 		PackageGCSObjects:       "Authenticated Google Cloud Storage bucket provisioning, typed logical namespace composition, create-only writes, exact-generation observation, digest-bound reads, and generation-matched permanent deletion through the official SDK",

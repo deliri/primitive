@@ -92,8 +92,9 @@ func Upload(
 		return client.upload(ctx, ordinary, provider)
 	case ProviderUnknown, providerLimit:
 		return Transfer{}, core.ErrObjectStoreContract
+	default:
+		return Transfer{}, core.ErrObjectStoreContract
 	}
-	return Transfer{}, core.ErrObjectStoreContract
 }
 
 // Download streams through the exact provider operation selected by one
@@ -115,8 +116,9 @@ func Download(
 		return client.download(ctx, ordinary, provider)
 	case ProviderUnknown, ProviderCloudflareImages, providerLimit:
 		return Transfer{}, core.ErrObjectStoreContract
+	default:
+		return Transfer{}, core.ErrObjectStoreContract
 	}
-	return Transfer{}, core.ErrObjectStoreContract
 }
 
 var (

@@ -3,6 +3,7 @@ package cloudidentity
 import (
 	"bytes"
 	"context"
+	"encoding/json"
 	"errors"
 	"fmt"
 	"go/ast"
@@ -24,6 +25,7 @@ import (
 type cloudIdentityExternalDoorInventory struct {
 	AcquireAmazonWebServices      func(context.Context, Client, AmazonWebServicesRequest) (Token, error)
 	AcquireGoogleCloud            func(context.Context, Client, Request) (Token, error)
+	AcquireGoogleCloudAccessToken func(context.Context, Client, GoogleCloudAccessTokenRequest) (AccessToken, error)
 	NewAmazonWebServicesRequest   func(AmazonWebServicesRequestInput) (AmazonWebServicesRequest, error)
 	ParseAudience                 func(string) (Audience, error)
 	ParseGoogleCloudCommandOutput func([]byte) (Token, error)
@@ -32,9 +34,62 @@ type cloudIdentityExternalDoorInventory struct {
 var cloudIdentityExternalDoors = cloudIdentityExternalDoorInventory{
 	AcquireAmazonWebServices:      AcquireAmazonWebServices,
 	AcquireGoogleCloud:            AcquireGoogleCloud,
+	AcquireGoogleCloudAccessToken: AcquireGoogleCloudAccessToken,
 	NewAmazonWebServicesRequest:   NewAmazonWebServicesRequest,
 	ParseAudience:                 ParseAudience,
 	ParseGoogleCloudCommandOutput: ParseGoogleCloudCommandOutput,
+}
+
+func FuzzGoogleAccessTokenResponseSemanticClosure(f *testing.F) {
+	canonical, err := json.Marshal(googleAccessTokenResponse{
+		AccessToken: testIdentityToken,
+		ExpiresIn:   300,
+		TokenType:   googleAccessTokenTypeBearer,
+	})
+	if err != nil {
+		f.Fatalf("json.Marshal(googleAccessTokenResponse seed) error = %v, want nil", err)
+	}
+	for _, seed := range [][]byte{
+		canonical,
+		nil,
+		{},
+		[]byte(`{}`),
+		[]byte(`null`),
+		[]byte(`{"access_token":"a","expires_in":1,"token_type":"Bearer","unknown":true}`),
+		[]byte(`{"access_token":"a","access_token":"b","expires_in":1,"token_type":"Bearer"}`),
+		bytes.Repeat([]byte{' '}, GoogleCloudAccessTokenResponseMaximumBytes+1),
+	} {
+		f.Add(seed)
+	}
+
+	f.Fuzz(func(t *testing.T, data []byte) {
+		got, gotErr := decodeGoogleAccessTokenResponse(data)
+		if gotErr != nil {
+			if !errors.Is(gotErr, core.ErrCloudIdentityContract) || got != (googleAccessTokenResponse{}) {
+				t.Fatalf("decodeGoogleAccessTokenResponse(rejected) = (%+v, %v), want zero and %v", got, gotErr, core.ErrCloudIdentityContract)
+			}
+			return
+		}
+		if got.Validate() != nil {
+			t.Fatalf("decodeGoogleAccessTokenResponse(accepted).Validate() error = %v, want nil", got.Validate())
+		}
+		token, tokenErr := got.token()
+		if tokenErr != nil || token.Validate() != nil {
+			t.Fatalf("googleAccessTokenResponse.token() = (%v, %v), want validated token", token, tokenErr)
+		}
+		canonical, marshalErr := json.Marshal(got)
+		if marshalErr != nil || len(canonical) > GoogleCloudAccessTokenResponseMaximumBytes {
+			t.Fatalf("json.Marshal(accepted response) = (%d bytes, %v), want bounded and nil", len(canonical), marshalErr)
+		}
+		roundTrip, roundTripErr := decodeGoogleAccessTokenResponse(canonical)
+		if roundTripErr != nil || roundTrip != got {
+			t.Fatalf("canonical response round trip = (%+v, %v), want (%+v, nil)", roundTrip, roundTripErr, got)
+		}
+		second, secondErr := json.Marshal(roundTrip)
+		if secondErr != nil || !bytes.Equal(second, canonical) {
+			t.Fatalf("second canonical response = (%q, %v), want (%q, nil)", second, secondErr, canonical)
+		}
+	})
 }
 
 func FuzzParseGoogleCloudCommandOutput(f *testing.F) {

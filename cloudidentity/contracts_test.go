@@ -279,7 +279,7 @@ func TestTokenBearerBoundaryHostileTable(t *testing.T) {
 	}
 }
 
-func TestTokenAndSignedRequestRedactEveryFormattingSurface(t *testing.T) {
+func TestTokensAndSignedRequestRedactEveryFormattingSurface(t *testing.T) {
 	t.Parallel()
 
 	token, err := newToken(
@@ -288,6 +288,14 @@ func TestTokenAndSignedRequestRedactEveryFormattingSurface(t *testing.T) {
 	)
 	if err != nil {
 		t.Fatalf("newToken() setup error = %v, want nil", err)
+	}
+	lifetime, err := temporal.DurationFromSeconds(300)
+	if err != nil {
+		t.Fatalf("DurationFromSeconds() setup error = %v, want nil", err)
+	}
+	accessToken, err := newGoogleAccessToken(testIdentityToken, lifetime)
+	if err != nil {
+		t.Fatalf("newGoogleAccessToken() setup error = %v, want nil", err)
 	}
 	audience := mustAudience(t, "https://api.example.com")
 	signedURL := amazonSignedURL(
@@ -350,7 +358,7 @@ func TestTokenAndSignedRequestRedactEveryFormattingSurface(t *testing.T) {
 		t.Run(tc.name, func(t *testing.T) {
 			t.Parallel()
 
-			for _, value := range []fmt.Formatter{token, signed} {
+			for _, value := range []fmt.Formatter{token, accessToken, signed} {
 				got := fmt.Sprintf(tc.format, value)
 				if tc.wantExact && got != core.RedactedValueText {
 					t.Fatalf(
@@ -369,6 +377,7 @@ func TestTokenAndSignedRequestRedactEveryFormattingSurface(t *testing.T) {
 		forbidden []string
 	}{
 		{name: "identity token pointer hides bearer", forbidden: []string{testIdentityToken}, value: token},
+		{name: "access token pointer hides bearer", forbidden: []string{testIdentityToken}, value: accessToken},
 		{name: "signed request pointer hides URL", forbidden: []string{signedURL, parsedSignedURL.RawQuery, signature}, value: signed},
 	} {
 		t.Run(tc.name, func(t *testing.T) {

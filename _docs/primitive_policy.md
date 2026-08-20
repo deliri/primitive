@@ -1086,7 +1086,7 @@ The order is dependency depth, not a command to build every package in a row.
 | 5 | `controlwire` | Shared control-wire facts and paired authenticated socket with request-owner body limits | `core`, `keygen`, `exchange`, `temporal` | `controlplane`, `controlplanetest` |
 | 5 | `objectstore` | Bounded vendor-specified S3, GCS, or Cloudflare Images transfers through issued HTTPS capabilities, with integrity and provider evidence | `core`, `contextstate`, `temporal`, `exchange` | none |
 | 5 | `timeproof` | RFC 3161 request construction, response verification, and replay | `core`, `temporal`, `keygen` | none |
-| 5 | `cloudidentity` | Bounded Google Cloud or AWS outbound identity-token acquisition and redacted disclosure | `core`, `temporal`, `exchange` | none |
+| 5 | `cloudidentity` | Bounded Google Cloud identity-token and OAuth access-token or AWS identity-token acquisition with redacted disclosure | `core`, `temporal`, `exchange` | none |
 | 6 | `controlplane` | Signed control-plane request and response documents, their binding to one exact request, product status, and usage watermark | `core`, `controlwire`, `attest`, `lease`, `temporal`, `receipt` | none |
 | 6 | `submission` | Authenticated evidence declarations, authority upload grants, and device-signed provider completion evidence bound to one exact request | `attest`, `chit`, `controlwire`, `core`, `id`, `objectstore`, `receipt`, `temporal` | `exchange` |
 | 7 | `submissionauth` | Installation-certificate binding, device authentication, and authority reconciliation for evidence submissions | `core`, `attest`, `chit`, `controlplane`, `controlwire`, `objectstore`, `receipt`, `submission` | `controlplanetest`, `exchange` |
@@ -1157,11 +1157,13 @@ section 16.3.
 
 ### 16.2 `cloudidentity`
 
-`cloudidentity` owns one common opaque, redacted outbound bearer and two
-explicit provider entry points:
+`cloudidentity` owns distinct opaque, redacted outbound identity and OAuth
+access bearers through three explicit entry points:
 
 1. Google Cloud metadata identity-token acquisition; and
-2. Amazon Web Services regional STS `GetWebIdentityToken` acquisition.
+2. Google Cloud metadata OAuth access-token acquisition with its positive
+   provider-declared lifetime; and
+3. Amazon Web Services regional STS `GetWebIdentityToken` acquisition.
 
 Google Cloud and AWS retain distinct typed request contracts. There is no
 runtime provider selector and no generic dispatch path.

@@ -351,15 +351,14 @@ func projectMountInfoLine(line []byte) ([]byte, []byte, []byte, []byte, error) {
 }
 
 func mountFilesystemMatches(filesystem, superOptions []byte, source WorkloadMemoryLimitSource) bool {
-	switch source {
-	case WorkloadMemoryLimitSourceCgroupV2:
+	if source == WorkloadMemoryLimitSourceCgroupV2 {
 		return string(filesystem) == cgroupV2Filesystem
-	case WorkloadMemoryLimitSourceCgroupV1:
+	}
+	if source == WorkloadMemoryLimitSourceCgroupV1 {
 		return string(filesystem) == cgroupV1Filesystem &&
 			commaByteTokenContains(superOptions, cgroupMemoryController)
-	default:
-		return false
 	}
+	return false
 }
 
 func commaByteTokenContains(value []byte, token string) bool {

@@ -4,6 +4,22 @@ Last updated: `2026-08-20`
 
 ## Current
 
+- opened bounded Google Cloud OAuth access-token acquisition, 2026-08-20,
+  preparing `v2026.0.136`. Cloudidentity now keeps authorization credentials
+  compiler-distinct from audience-bound identity assertions, decodes the exact
+  bounded metadata response through Primitive Exchange, preserves a positive
+  typed provider lifetime, and redacts every generic formatting surface. The
+  retained real-HTTP LayerTriad holds exactly 10 accepted, 10 rejected, and 20
+  boundary cases, and semantic fuzzing plus race proof are green. Live
+  provider proof remains the final effect check; the door owns no caching,
+  refresh, or consumer policy.
+
+  Go 1.27 tool follow-through pins compatible Staticcheck, keeps goconst at its
+  existing 15-entry ceiling, gives each gate an artifact-local tool directory,
+  and makes every closed-enum switch explicit under the current Witness
+  doctrine. The hostile Fuzzfinder schema triad caught and retained the partial
+  observation regression while those enum decisions were tightened.
+
 - published the SHA-256 binary extent from Core, 2026-08-20, preparing
   `v2026.0.135`. Controlwire and Release consume the shared width directly;
   downstream products can derive encoding widths without reaching past

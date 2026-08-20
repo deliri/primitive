@@ -31,6 +31,9 @@ const (
 	// name=value projection handed to the operating system.
 	EnvironmentProjectionMaximumBytes uint64 = 1 << 20
 
+	argumentCountMaximumDiagnostic            = "argument count exceeds the admitted maximum"
+	argumentProjectionMaximumDiagnostic       = "argument projection exceeds the admitted maximum"
+	environmentProjectionMaximumDiagnostic    = "environment projection exceeds the admitted maximum"
 	environmentVariableCountMaximumDiagnostic = "environment variable count exceeds the admitted maximum"
 )
 
@@ -54,7 +57,7 @@ func NewArgument(value string) (Argument, error) {
 // arguments without changing boundaries or shell-interpreting any value.
 func ParseArguments(values []string) ([]Argument, error) {
 	if uint64(len(values)) > uint64(ArgumentCountMaximum) {
-		return nil, contractError("argument count exceeds the admitted maximum")
+		return nil, contractError(argumentCountMaximumDiagnostic)
 	}
 	arguments := make([]Argument, len(values))
 	var projectedBytes uint64
@@ -67,7 +70,7 @@ func ParseArguments(values []string) ([]Argument, error) {
 			projectionExtension{
 				current: projectedBytes, valueBytes: uint64(len(value)),
 				maximum:    ArgumentProjectionMaximumBytes,
-				diagnostic: "argument projection exceeds the admitted maximum",
+				diagnostic: argumentProjectionMaximumDiagnostic,
 			},
 		)
 		if err != nil {
@@ -357,7 +360,7 @@ func ParseEffectiveEnvironment(values []string) (Environment, error) {
 			projectionExtension{
 				current: projectedBytes, valueBytes: uint64(len(projection)),
 				maximum:    EnvironmentProjectionMaximumBytes,
-				diagnostic: "environment projection exceeds the admitted maximum",
+				diagnostic: environmentProjectionMaximumDiagnostic,
 			},
 		)
 		if err != nil {
@@ -415,7 +418,7 @@ func (e Environment) Validate() error {
 				valueBytes: uint64(len(variable.Name.text())) + 1 +
 					uint64(len(variable.Value.text())),
 				maximum:    EnvironmentProjectionMaximumBytes,
-				diagnostic: "environment projection exceeds the admitted maximum",
+				diagnostic: environmentProjectionMaximumDiagnostic,
 			},
 		)
 		if err != nil {
@@ -538,7 +541,7 @@ func validateRequestHead(r Request) error {
 
 func validateArguments(arguments []Argument) error {
 	if uint64(len(arguments)) > uint64(ArgumentCountMaximum) {
-		return contractError("argument count exceeds the admitted maximum")
+		return contractError(argumentCountMaximumDiagnostic)
 	}
 	var projectedBytes uint64
 	for _, argument := range arguments {
@@ -550,7 +553,7 @@ func validateArguments(arguments []Argument) error {
 			projectionExtension{
 				current: projectedBytes, valueBytes: uint64(len(argument.value)),
 				maximum:    ArgumentProjectionMaximumBytes,
-				diagnostic: "argument projection exceeds the admitted maximum",
+				diagnostic: argumentProjectionMaximumDiagnostic,
 			},
 		)
 		if err != nil {

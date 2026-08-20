@@ -113,8 +113,9 @@ func progressError(direction Direction, cause error) error {
 		return errors.Join(core.ErrObjectStoreDestination, cause)
 	case DirectionUnknown, directionLimit:
 		return errors.Join(core.ErrObjectStoreContract, cause)
+	default:
+		return errors.Join(core.ErrObjectStoreContract, cause)
 	}
-	return errors.Join(core.ErrObjectStoreContract, cause)
 }
 
 var (

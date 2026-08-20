@@ -210,9 +210,9 @@ func TestUploadHTTPProjectionRejectsEveryIncompleteOrMultipartContract(t *testin
 
 	cases := []struct {
 		name        string
+		contentType core.HTTPMediaType
 		capability  UploadCapabilityProjection
 		integrity   Integrity
-		contentType core.HTTPMediaType
 	}{
 		{name: "zero capability is rejected", integrity: validIntegrity, contentType: validContentType},
 		{name: "explicitly unset capability is rejected", capability: unsetCapability, integrity: validIntegrity, contentType: validContentType},

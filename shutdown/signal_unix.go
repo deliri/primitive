@@ -8,16 +8,16 @@ import (
 )
 
 func operatingSystemSignals(set SignalSet) []os.Signal {
-	switch set {
-	case SignalSetInteractive:
+	if set == SignalSetInteractive {
 		return []os.Signal{os.Interrupt}
-	case SignalSetStandard:
-		return []os.Signal{os.Interrupt, syscall.SIGTERM}
-	case SignalSetTerminalLifecycle:
-		return []os.Signal{os.Interrupt, syscall.SIGTERM, syscall.SIGHUP}
-	default:
-		return nil
 	}
+	if set == SignalSetStandard {
+		return []os.Signal{os.Interrupt, syscall.SIGTERM}
+	}
+	if set == SignalSetTerminalLifecycle {
+		return []os.Signal{os.Interrupt, syscall.SIGTERM, syscall.SIGHUP}
+	}
+	return nil
 }
 
 func classifyOperatingSystemSignal(observed os.Signal) SignalKind {

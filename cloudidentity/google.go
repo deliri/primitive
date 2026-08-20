@@ -8,12 +8,14 @@ import (
 )
 
 const (
-	googleMetadataIdentityURL = "http://metadata.google.internal/computeMetadata/v1/instance/service-accounts/default/identity"
-	googleMetadataHeaderName  = "Metadata-Flavor"
-	googleMetadataHeaderValue = "Google"
-	googleAudienceQueryName   = "audience"
-	googleFormatQueryName     = "format"
-	googleFormatStandardValue = "standard"
+	googleMetadataBaseURL      = "http://metadata.google.internal"
+	googleMetadataIdentityPath = "/computeMetadata/v1/instance/service-accounts/default/identity"
+	googleMetadataIdentityURL  = googleMetadataBaseURL + googleMetadataIdentityPath
+	googleMetadataHeaderName   = "Metadata-Flavor"
+	googleMetadataHeaderValue  = "Google"
+	googleAudienceQueryName    = "audience"
+	googleFormatQueryName      = "format"
+	googleFormatStandardValue  = "standard"
 )
 
 type googleProtocolContracts struct {

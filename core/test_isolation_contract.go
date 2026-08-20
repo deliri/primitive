@@ -89,25 +89,22 @@ func (h TestIsolationHazard) Validate() error {
 // GoIdentifier returns the exact Core constant identifier recognized by the
 // pinned test-isolation analyzer.
 func (h TestIsolationHazard) GoIdentifier() string {
-	switch h {
-	case TestIsolationHazardProcessEnvironment:
-		return "TestIsolationHazardProcessEnvironment"
-	case TestIsolationHazardProcessWorkingDirectory:
-		return "TestIsolationHazardProcessWorkingDirectory"
-	case TestIsolationHazardProcessSignal:
-		return "TestIsolationHazardProcessSignal"
-	case TestIsolationHazardProcessOutput:
-		return "TestIsolationHazardProcessOutput"
-	case TestIsolationHazardProcessLogger:
-		return "TestIsolationHazardProcessLogger"
-	case TestIsolationHazardGlobalRegistry:
-		return "TestIsolationHazardGlobalRegistry"
-	case TestIsolationHazardRuntimeAllocation:
-		return "TestIsolationHazardRuntimeAllocation"
-	case TestIsolationHazardSiblingOrder:
-		return "TestIsolationHazardSiblingOrder"
-	default:
+	if !h.IsValid() {
 		return ""
+	}
+	return testIsolationHazardGoIdentifiers()[h]
+}
+
+func testIsolationHazardGoIdentifiers() [testIsolationHazardLimit]string {
+	return [...]string{
+		TestIsolationHazardProcessEnvironment:      "TestIsolationHazardProcessEnvironment",
+		TestIsolationHazardProcessWorkingDirectory: "TestIsolationHazardProcessWorkingDirectory",
+		TestIsolationHazardProcessSignal:           "TestIsolationHazardProcessSignal",
+		TestIsolationHazardProcessOutput:           "TestIsolationHazardProcessOutput",
+		TestIsolationHazardProcessLogger:           "TestIsolationHazardProcessLogger",
+		TestIsolationHazardGlobalRegistry:          "TestIsolationHazardGlobalRegistry",
+		TestIsolationHazardRuntimeAllocation:       "TestIsolationHazardRuntimeAllocation",
+		TestIsolationHazardSiblingOrder:            "TestIsolationHazardSiblingOrder",
 	}
 }
 
@@ -181,13 +178,16 @@ func (s TestIsolationScope) Validate() error {
 // GoIdentifier returns the exact Core constant identifier recognized by the
 // pinned test-isolation analyzer.
 func (s TestIsolationScope) GoIdentifier() string {
-	switch s {
-	case TestIsolationScopeSiblingTable:
-		return "TestIsolationScopeSiblingTable"
-	case TestIsolationScopePackageProcess:
-		return "TestIsolationScopePackageProcess"
-	default:
+	if !s.IsValid() {
 		return ""
+	}
+	return testIsolationScopeGoIdentifiers()[s]
+}
+
+func testIsolationScopeGoIdentifiers() [testIsolationScopeLimit]string {
+	return [...]string{
+		TestIsolationScopeSiblingTable:   "TestIsolationScopeSiblingTable",
+		TestIsolationScopePackageProcess: "TestIsolationScopePackageProcess",
 	}
 }
 

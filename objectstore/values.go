@@ -534,15 +534,14 @@ func validateProviderEndpoint(provider Provider, value url.URL) error {
 }
 
 func providerEndpointHost(provider Provider, host string) bool {
-	switch provider {
-	case ProviderAmazonS3:
+	if provider == ProviderAmazonS3 {
 		return amazonS3DataHost(host)
-	case ProviderGoogleCloudStorage:
+	}
+	if provider == ProviderGoogleCloudStorage {
 		return googleCloudStorageDataHost(host)
-	case ProviderCloudflareImages:
+	}
+	if provider == ProviderCloudflareImages {
 		return host == cloudflareImagesUploadHost
-	case ProviderUnknown, providerLimit:
-		return false
 	}
 	return false
 }

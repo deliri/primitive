@@ -5,7 +5,7 @@ set -eu
 witness_revision=v0.0.0-20260803211814-57582de85018
 
 go install github.com/fzipp/gocyclo/cmd/gocyclo@v0.6.0
-go install honnef.co/go/tools/cmd/staticcheck@v0.7.0
+go install honnef.co/go/tools/cmd/staticcheck@v0.8.0
 go install golang.org/x/vuln/cmd/govulncheck@v1.3.0
 go install github.com/kisielk/errcheck@v1.20.0
 go install go.uber.org/nilaway/cmd/nilaway@v0.0.0-20260612163715-2d8907f431ca

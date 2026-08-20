@@ -106,6 +106,8 @@ func (o Observation) validateStateAccounting() error {
 		if o.unsupportedRegular != 0 {
 			return contractError(errors.New("complete observation contains unsupported regular entries"))
 		}
+	case ObservationPartial:
+		return nil
 	case ObservationUnsupportedFormat:
 		if o.unsupportedRegular == 0 {
 			return contractError(errors.New("unsupported observation has no unsupported regular entry"))
@@ -114,6 +116,8 @@ func (o Observation) validateStateAccounting() error {
 		if o.retained != 0 || o.hasAccounting() {
 			return contractError(errors.New("failed observation contains directory facts"))
 		}
+	default:
+		return contractError(errors.New("observation state is outside the admitted domain"))
 	}
 	return nil
 }

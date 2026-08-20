@@ -150,24 +150,24 @@ func failurePhaseAccepts(phase FailurePhase, cause error) bool {
 }
 
 func failurePhasePrimaryIdentity(phase FailurePhase) core.ErrorIdentity {
-	switch phase {
-	case FailurePhaseBootstrap:
-		return core.ErrUpgradePersistence
-	case FailurePhaseCapacity:
-		return core.ErrUpgradeCapacity
-	case FailurePhaseDownload:
-		return core.ErrUpgradeDownload
-	case FailurePhaseVerification:
-		return core.ErrUpgradeVerification
-	case FailurePhaseTrial:
-		return core.ErrUpgradeTrial
-	case FailurePhasePromotion:
-		return core.ErrUpgradePromotion
-	case FailurePhasePersistence:
-		return core.ErrUpgradePersistence
-	case FailurePhaseCleanup:
-		return core.ErrUpgradeCleanup
-	default:
-		return core.ErrUnknown
+	identities := failurePhasePrimaryIdentities()
+	for index, identity := range identities {
+		if phase == FailurePhase(index) {
+			return identity
+		}
+	}
+	return core.ErrUnknown
+}
+
+func failurePhasePrimaryIdentities() [failurePhaseLimit]core.ErrorIdentity {
+	return [...]core.ErrorIdentity{
+		FailurePhaseBootstrap:    core.ErrUpgradePersistence,
+		FailurePhaseCapacity:     core.ErrUpgradeCapacity,
+		FailurePhaseDownload:     core.ErrUpgradeDownload,
+		FailurePhaseVerification: core.ErrUpgradeVerification,
+		FailurePhaseTrial:        core.ErrUpgradeTrial,
+		FailurePhasePromotion:    core.ErrUpgradePromotion,
+		FailurePhasePersistence:  core.ErrUpgradePersistence,
+		FailurePhaseCleanup:      core.ErrUpgradeCleanup,
 	}
 }

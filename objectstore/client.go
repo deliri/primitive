@@ -137,8 +137,9 @@ func validateProviderDirection(provider Provider, direction Direction) error {
 		return nil
 	case DirectionUnknown, directionLimit:
 		return core.ErrObjectStoreContract
+	default:
+		return core.ErrObjectStoreContract
 	}
-	return core.ErrObjectStoreContract
 }
 
 func (t Transfer) validateVersion() error {
@@ -411,8 +412,9 @@ func uploadBody(
 		)
 	case UploadEncodingUnknown, uploadEncodingLimit:
 		return requestBody{}, core.ErrObjectStoreContract
+	default:
+		return requestBody{}, core.ErrObjectStoreContract
 	}
-	return requestBody{}, core.ErrObjectStoreContract
 }
 
 type uploadConfirmation struct {

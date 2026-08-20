@@ -9,15 +9,12 @@ normalized_repository_root=$(printf '%s' "$repository_root" | tr '\\' '/')
 artifact_directory=${1:-".artifacts/gates/local"}
 mkdir -p "$artifact_directory"
 artifact_directory=$(CDPATH= cd -- "$artifact_directory" && pwd)
-go_binary_directory=$(go env GOBIN)
-if test -z "$go_binary_directory"; then
-	go_binary_directory=$(go env GOPATH)/bin
-fi
-if test "$(go env GOOS)" = "windows"; then
-	go_binary_directory=$(cygpath -u "$go_binary_directory")
-fi
+go_binary_directory="$artifact_directory/bin"
+mkdir -p "$go_binary_directory"
 PATH="$go_binary_directory:$PATH"
 export PATH
+GOBIN="$go_binary_directory"
+export GOBIN
 
 result_file="$artifact_directory/gate-results.tsv"
 platform=$(go env GOOS)/$(go env GOARCH)
