@@ -12,9 +12,9 @@ const (
 	// PrimitivePackagePathPrefix prefixes every Primitive package import path.
 	PrimitivePackagePathPrefix = PrimitiveModulePath + "/"
 	// PrimitivePackageCount is the number of packages in the complete catalog.
-	PrimitivePackageCount = 40
+	PrimitivePackageCount = 41
 	// PrimitiveDirectImportCount is the number of admitted direct import edges.
-	PrimitiveDirectImportCount = 149
+	PrimitiveDirectImportCount = 150
 	// PrimitiveDirectTestImportCount is the number of admitted test-only edges.
 	PrimitiveDirectTestImportCount = 31
 	// PrimitiveMaximumDirectImports caps direct sibling imports per package.
@@ -109,6 +109,8 @@ const (
 	PackageWiring
 	// PackageLineIO identifies bounded line scanning over one reader.
 	PackageLineIO
+	// PackageManual identifies bounded human and machine manual projection.
+	PackageManual
 	packageIdentityLimit
 )
 
@@ -212,6 +214,7 @@ func PrimitiveArchitecture() ArchitectureCatalog {
 			{Identity: PackageDistributionAuth, Kind: PackageKindProduction},
 			{Identity: PackageWiring, Kind: PackageKindProduction},
 			{Identity: PackageLineIO, Kind: PackageKindProduction},
+			{Identity: PackageManual, Kind: PackageKindProduction},
 		},
 		imports: [PrimitiveDirectImportCount]DirectImportContract{
 			{Importer: PackageAttest, Imported: PackageCore},
@@ -374,6 +377,7 @@ func PrimitiveArchitecture() ArchitectureCatalog {
 			{Importer: PackageDistributionAuth, Imported: PackageRelease},
 			{Importer: PackageWiring, Imported: PackageCore},
 			{Importer: PackageLineIO, Imported: PackageCore},
+			{Importer: PackageManual, Imported: PackageCore},
 		},
 		testImports: [PrimitiveDirectTestImportCount]DirectTestImportContract{
 			{Importer: PackageGate, Imported: PackageAttest},
@@ -680,6 +684,7 @@ func packagePurposeTexts() [packageIdentityLimit]string {
 		PackageDistributionAuth: "Authenticated release-material responses plus installation-certificate binding and device authentication for publication, update, and upgrade requests",
 		PackageWiring:           "Bounded immutable runtime component graphs with exact Primitive-door declarations",
 		PackageLineIO:           "Bounded line scanning over one io.Reader through Go bufio.Scanner and bufio.ScanLines",
+		PackageManual:           "Bounded validated human text and stable machine JSON manuals from one product-owned typed book",
 	}
 }
 
@@ -758,6 +763,7 @@ func packageIdentityTexts() [packageIdentityLimit]string {
 		"distributionauth",
 		"wiring",
 		"lineio",
+		"manual",
 	}
 }
 

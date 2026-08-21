@@ -78,6 +78,10 @@ const (
 	ErrLineIOContract
 	// ErrLineIOScan identifies failure while advancing a bounded line stream.
 	ErrLineIOScan
+	// ErrManualContract identifies invalid shared manual facts or requests.
+	ErrManualContract
+	// ErrManualWrite identifies failed human or machine manual output.
+	ErrManualWrite
 
 	// ErrCurrencyContract identifies a currency contract violation.
 	ErrCurrencyContract
@@ -421,6 +425,8 @@ func errorIdentityDiagnostics() [errorIdentityLimit]errorIdentityDiagnostic {
 		{identity: ErrContextObservation, text: "context observation failed"},
 		{identity: ErrLineIOContract, text: "line I/O contract violation"},
 		{identity: ErrLineIOScan, text: "line scan failed"},
+		{identity: ErrManualContract, text: "manual contract violation"},
+		{identity: ErrManualWrite, text: "manual write failed"},
 		{identity: ErrCurrencyContract, text: "currency contract violation"},
 		{identity: ErrCurrencyMismatch, text: "currency mismatch"},
 		{identity: ErrCurrencyOverflow, text: "currency overflow"},
@@ -659,7 +665,7 @@ func errorIdentityParents(identity ErrorIdentity) errorIdentityParentSet {
 	}
 	if errorIdentityIn(identity, ErrJSONContract, ErrNumericOverflow, ErrSecretMaterialAllZero,
 		ErrAttestContract,
-		ErrContextStateContract, ErrLineIOContract, ErrCurrencyContract,
+		ErrContextStateContract, ErrLineIOContract, ErrManualContract, ErrCurrencyContract,
 		ErrKeygenContract, ErrTestIsolationContract, ErrFilestoreContract,
 		ErrTemporalContract, ErrExchangeContract,
 		ErrFuzzFinderContract, ErrLeaseContract, ErrGateContract,
@@ -687,7 +693,7 @@ func errorIdentityParents(identity ErrorIdentity) errorIdentityParentSet {
 		return errorIdentityParentsControlExchange(identity)
 	}
 	if errorIdentityIn(identity, ErrAttestVerification, ErrNilContext, ErrContextObservation,
-		ErrLineIOScan,
+		ErrLineIOScan, ErrManualWrite,
 		ErrCurrencyMismatch, ErrCurrencyDecimal, ErrCurrencyOverflow, ErrKeygenEntropy) {
 		return errorIdentityParentsAttestThroughLineIO(identity)
 	}
@@ -777,6 +783,9 @@ func errorIdentityParentsAttestThroughLineIO(identity ErrorIdentity) errorIdenti
 	}
 	if identity == ErrLineIOScan {
 		return oneErrorIdentityParent(ErrLineIOContract)
+	}
+	if identity == ErrManualWrite {
+		return oneErrorIdentityParent(ErrManualContract)
 	}
 	if errorIdentityIn(identity, ErrCurrencyMismatch, ErrCurrencyDecimal) {
 		return oneErrorIdentityParent(ErrCurrencyContract)

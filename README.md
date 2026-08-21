@@ -33,6 +33,7 @@ flowchart TD
     keygen[keygen] --> core
     testserial[testserial] --> core
     lineio[lineio] --> core
+    manual[manual] --> core
 
     filelock[filelock] --> core
     filelock --> contextstate
@@ -216,7 +217,7 @@ prove real streaming transport and authenticated stored evidence,
 `testserial` for process-wide isolation, and `deploy` uses `attest` and
 `temporal` to prove a real authenticated manifest and transfer substrate;
 `lineio` uses `filestore` to prove its reader boundary against a real rooted
-file.
+file. `manual` is pure and needs no test-only sibling import.
 
 ## License
 

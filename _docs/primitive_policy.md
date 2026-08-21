@@ -177,7 +177,7 @@ layer is defined by a **question** rather than by whatever currently occupies it
 
 ```text
 B2  core currency contextstate testserial
-B3  temporal keygen attest filestore filelock process exchange shutdown hostfacts id lineio
+B3  temporal keygen attest filestore filelock process exchange shutdown hostfacts id lineio manual
 B4  objectstore gcsobjects cloudidentity timeproof fuzzfinder release deploy upgrade
 B5  controlwire lease receipt controlplane distribution
 B6  gate
@@ -1052,7 +1052,7 @@ starts.
 
 ## 15. Exact package graph
 
-The catalog contains **38 production packages** plus test-only `testserial` and
+The catalog contains **39 production packages** plus test-only `testserial` and
 `controlplanetest`.
 Every listed production import is required and MUST be used semantically. Every
 unlisted Primitive sibling import is forbidden.
@@ -1074,6 +1074,7 @@ The order is dependency depth, not a command to build every package in a row.
 | 3 | `hostfacts` | Host disk, memory, cgroup, tree, and OOM observations | `core`, `contextstate` | none |
 | 3 | `temporal` | Time, duration, arithmetic, persistence, waits, and tickers | `core`, `contextstate` | none |
 | 3 | `lineio` | Bounded line scanning over one `io.Reader` through Go `bufio.Scanner` and `bufio.ScanLines` | `core` | `filestore` |
+| 3 | `manual` | Bounded validated human text and stable machine JSON manuals from one product-owned typed book | `core` | none |
 | 4 | `exchange` | Bounded client and server boundary policy over `net/http` | `core`, `contextstate`, `keygen`, `temporal` | none |
 | 4 | `fuzzfinder` | Bounded classification and observation of Go-generated fuzz artifacts | `core`, `filestore` | none |
 | 4 | `id` | Canonical UUIDv7 and ULID time-ordered identifiers from one observed instant and caller-supplied entropy | `core`, `temporal` | none |

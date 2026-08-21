@@ -4,6 +4,19 @@ Last updated: `2026-08-20`
 
 ## Current
 
+- opened shared human and machine command guidance, 2026-08-20, preparing
+  `v2026.0.139`. Manual owns one bounded product-neutral `Book` projection:
+  Bug, Witness, and Peachfuzz retain their typed command enums, customer
+  wording, and CLI routing, while Primitive validates the shared pages,
+  outcomes, definitions, examples, relations, and limits. Concise help,
+  complete manual text, and stable `primitive.manual.v1` JSON derive from the
+  same validated facts. Human output is deterministic plain text with fixed
+  accessible headings and incremental exact writes; machine output is a typed
+  bounded snapshot. Native and short writer failures remain reachable beneath
+  `core.ErrManualWrite`, and invalid input emits zero bytes. Hostile layer
+  triads, exact text boundaries, duplicate and foreign relation refusals,
+  race proof, doctrine lint, and semantic JSON enum fuzz closure are green.
+
 - opened bounded line scanning over one reader, 2026-08-20, preparing
   `v2026.0.138`. Lineio now owns the missing B3 mechanism over Go's real
   `bufio.Scanner` and `bufio.ScanLines`: one validated structure-to-structure
@@ -4019,7 +4032,6 @@ State vocabulary: `NEXT`, `BLOCKED_BY_DEPENDENCY`, `NOT_STARTED`, `RED`,
 | `attest`           | `DONE`                  |
 | `contextstate`     | `DONE`                  |
 | `currency`         | `DONE`                  |
-| `garble`           | `DONE`                  |
 | `keygen`           | `DONE`                  |
 | `testserial`       | `CONSUMER_SURGERY`       |
 | `filestore`        | `DONE`                  |
@@ -4036,6 +4048,8 @@ State vocabulary: `NEXT`, `BLOCKED_BY_DEPENDENCY`, `NOT_STARTED`, `RED`,
 | `objectstore`      | `DONE`                  |
 | `timeproof`        | `DONE`                  |
 | `cloudidentity`    | `DONE`                  |
+| `lineio`           | `DONE`                  |
+| `manual`           | `REVIEW`                |
 | `upgrade`          | `BLOCKED_BY_DEPENDENCY` |
 
 Consumer state is recorded under the active package only. There is no separate

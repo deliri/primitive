@@ -16,7 +16,7 @@ import (
 const (
 	coreExportInventoryMaximum      = 512
 	coreExportDependencyMaximum     = 32
-	coreSpecialExportAdmissionCount = 64
+	coreSpecialExportAdmissionCount = 65
 )
 
 type coreExportName string
@@ -131,6 +131,7 @@ func coreSpecialExportAdmissions() [coreSpecialExportAdmissionCount]coreSpecialE
 		architectureCatalogAdmission("PackageUpgrade", PackageUpgrade),
 		architectureCatalogAdmission("PackageWiring", PackageWiring),
 		architectureCatalogAdmission("PackageLineIO", PackageLineIO),
+		architectureCatalogAdmission("PackageManual", PackageManual),
 		architectureCatalogAdmission("ParsePackageIdentity", ParsePackageIdentity),
 		architectureCatalogAdmission("PrimitiveArchitecture", PrimitiveArchitecture),
 		architectureCatalogAdmission("PrimitivePackageCount", PrimitivePackageCount),
