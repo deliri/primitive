@@ -9,6 +9,7 @@ import (
 const (
 	authorizationHeaderNameText = "Authorization"
 	cacheControlHeaderNameText  = "Cache-Control"
+	forwardedForHeaderNameText  = "X-Forwarded-For"
 	retryAfterHeaderNameText    = "Retry-After"
 )
 
@@ -20,6 +21,7 @@ const (
 	StandardHeaderUnknown StandardHeader = iota
 	StandardHeaderAuthorization
 	StandardHeaderCacheControl
+	StandardHeaderForwardedFor
 	StandardHeaderRetryAfter
 	standardHeaderLimit
 )
@@ -29,6 +31,7 @@ func standardHeaderFacts() [standardHeaderLimit]string {
 		StandardHeaderUnknown:       "",
 		StandardHeaderAuthorization: authorizationHeaderNameText,
 		StandardHeaderCacheControl:  cacheControlHeaderNameText,
+		StandardHeaderForwardedFor:  forwardedForHeaderNameText,
 		StandardHeaderRetryAfter:    retryAfterHeaderNameText,
 	}
 }

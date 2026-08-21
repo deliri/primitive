@@ -18,6 +18,7 @@ func TestStandardHeaderExhaustsCompleteByteDomain(t *testing.T) {
 	valid := []exchange.StandardHeader{
 		exchange.StandardHeaderAuthorization,
 		exchange.StandardHeaderCacheControl,
+		exchange.StandardHeaderForwardedFor,
 		exchange.StandardHeaderRetryAfter,
 	}
 	seen := make([]string, 0, len(valid))
@@ -113,6 +114,7 @@ func TestStandardHTTPFactsReachRealStandardLibraryHandoffs(t *testing.T) {
 	headerCases := []exchange.StandardHeader{
 		exchange.StandardHeaderAuthorization,
 		exchange.StandardHeaderCacheControl,
+		exchange.StandardHeaderForwardedFor,
 		exchange.StandardHeaderRetryAfter,
 	}
 	for _, header := range headerCases {

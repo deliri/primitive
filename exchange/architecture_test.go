@@ -127,9 +127,10 @@ type exchangeContractInventory struct {
 	StatusError         typedFailure[StatusError]
 	RetryExhaustedError typedFailure[RetryExhaustedError]
 
-	replayFact      internalFlow[replayFact]
-	redirectFact    internalFlow[redirectFact]
-	requestMetadata internalFlow[requestMetadata]
+	replayFact            internalFlow[replayFact]
+	redirectFact          internalFlow[redirectFact]
+	requestMetadata       internalFlow[requestMetadata]
+	forwardedMemberCursor internalFlow[forwardedMemberCursor]
 
 	RedirectPolicy       protocolContract[RedirectPolicy]
 	IdempotencyKey       protocolContract[IdempotencyKey]
@@ -138,6 +139,9 @@ type exchangeContractInventory struct {
 	Headers              protocolContract[Headers]
 	HeaderSelection      protocolContract[HeaderSelection]
 	CapturedHeaders      protocolContract[CapturedHeaders]
+	TrustedProxyPrefixes protocolContract[TrustedProxyPrefixes]
+	ClientAddressRequest protocolContract[ClientAddressRequest]
+	ClientAddress        protocolContract[ClientAddress]
 	RequestSemantics     protocolContract[RequestSemantics]
 	RetryPolicy          protocolContract[RetryPolicy]
 	OperationPolicy      protocolContract[OperationPolicy]
@@ -314,6 +318,7 @@ var (
 	_                             = exchangeContractInventory{}.replayFact
 	_                             = exchangeContractInventory{}.redirectFact
 	_                             = exchangeContractInventory{}.requestMetadata
+	_                             = exchangeContractInventory{}.forwardedMemberCursor
 	_                             = exchangeContractInventory{}.declaredBodyLength
 	_                             = exchangeContractInventory{}.httpContentCoding
 	_                             = exchangeContractInventory{}.aggregateRequest

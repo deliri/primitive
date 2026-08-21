@@ -4,6 +4,25 @@ Last updated: `2026-08-21`
 
 ## Current
 
+- opened bounded upstream client-address projection, 2026-08-21, published
+  `v2026.0.141`. Exchange now owns the product-neutral projection from one real
+  `net/http.Request` to one canonical `netip.Addr`. A closed caller authority
+  selects the direct peer by safe zero-value default, X-Forwarded-For only
+  behind a fixed caller-admitted trusted-prefix set, or Google Cloud's
+  documented final proxy pair with its penultimate packet source selected.
+  Prefixes canonicalize through Go's `net/netip`, mapped IPv4 addresses unmap,
+  zones and malformed peers are refused, and malformed or over-bound forwarding
+  facts fall back to the direct peer. Fixed 64-prefix and 64-value capacities
+  plus the existing 8 KiB field-value ceiling keep work bounded without a
+  goroutine, network effect, retry owner, or consumer vocabulary. The retained
+  hostile parser and real-request resolution matrices each hold at least 10
+  accepted, 10 rejected, and 20 boundary cases; the authority byte domain is
+  exhausted, semantic fuzzing checks an independent standard-library
+  projection, and the Exchange package, `go vet`, `gocyclo <= 10`, field
+  alignment, and `witness-lint` are green. Blink Kernel can now delete its
+  copied forwarding parser and select Google Cloud authority through the typed
+  Primitive door.
+
 - removed Primitive's closed product catalog, 2026-08-21, published
   `v2026.0.140`. `core.Offering` now carries one bounded, canonical,
   consumer-owned identity that Primitive validates but never enumerates or
