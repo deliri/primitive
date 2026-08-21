@@ -256,30 +256,16 @@ func publicationAuthProvenance(t testing.TB) release.BuildProvenance {
 		t.Fatalf("release.CurrentGoToolchain().Version() error = %v, want nil", err)
 	}
 	wire := struct {
-		GarbleDerivation       string            `json:"garble_derivation"`
-		GarbleModule           string            `json:"garble_module"`
-		GarbleVersion          string            `json:"garble_version"`
-		GarbleRevision         string            `json:"garble_revision"`
-		GarbleModuleSum        string            `json:"garble_module_sum"`
-		GarbleLiterals         string            `json:"garble_literals"`
-		GarbleDiagnostics      string            `json:"garble_diagnostics"`
-		GoToolchain            string            `json:"go_toolchain"`
-		MainPackage            string            `json:"main_package"`
-		ModuleMode             string            `json:"module_mode"`
-		BuildTags              []string          `json:"build_tags"`
-		LinkerAssignments      []struct{}        `json:"linker_assignments"`
-		GoExecutableSHA256     core.SHA256Digest `json:"go_executable_sha256"`
-		GarbleExecutableSHA256 core.SHA256Digest `json:"garble_executable_sha256"`
+		GoToolchain        string            `json:"go_toolchain"`
+		MainPackage        string            `json:"main_package"`
+		ModuleMode         string            `json:"module_mode"`
+		BuildTags          []string          `json:"build_tags"`
+		LinkerAssignments  []struct{}        `json:"linker_assignments"`
+		GoExecutableSHA256 core.SHA256Digest `json:"go_executable_sha256"`
 	}{
-		GarbleDerivation: "one", GarbleModule: "mvdan.cc/garble",
-		GarbleVersion:   "v0.17.0",
-		GarbleRevision:  "39c484d3007e9a608ac8692dab0b9bb5f71dfc2a",
-		GarbleModuleSum: "h1:XJ6jJhlT8HTEU9Dd02nLDUciuyPDXGRopwy/Cuoo/0M=",
-		GarbleLiterals:  "obfuscate", GarbleDiagnostics: "preserve",
 		GoToolchain: goToolchain, MainPackage: "github.com/offGridSoft/witness/cmd/witness",
 		ModuleMode: "vendor", BuildTags: []string{}, LinkerAssignments: []struct{}{},
-		GoExecutableSHA256:     core.SHA256Of([]byte("publication-auth-go")),
-		GarbleExecutableSHA256: core.SHA256Of([]byte("publication-auth-garble")),
+		GoExecutableSHA256: core.SHA256Of([]byte("publication-auth-go")),
 	}
 	encoded, err := json.Marshal(wire)
 	if err != nil {

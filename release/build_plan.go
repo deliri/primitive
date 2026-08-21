@@ -11,7 +11,6 @@ import (
 	"unicode/utf8"
 
 	"github.com/deliri/primitive/v2026/core"
-	"github.com/deliri/primitive/v2026/garble"
 )
 
 const (
@@ -26,6 +25,7 @@ const (
 	buildTagsOrderingDiagnostic         = "build tags are not unique and sorted"
 	buildTagSeparator                   = ","
 	goBuildTagArgumentPrefix            = "-tags="
+	goBuildArgument                     = "build"
 	goTrimpathArgument                  = "-trimpath"
 	goDisableBuildVCSArgument           = "-buildvcs=false"
 	goDisablePGOArgument                = "-pgo=off"
@@ -164,7 +164,7 @@ func (t BuildTag) String() string {
 }
 
 // validateBuildTag admits the exact go/build constraint word grammar. Every tag
-// reaches cmd/go and Garble inside one comma-separated argument element, so a
+// reaches cmd/go inside one comma-separated argument element, so a
 // separator, a flag prefix, a negation, or a space is rejected here instead of
 // silently splitting one tag into two or reaching argv as a flag.
 func validateBuildTag(value string) error {
@@ -382,7 +382,6 @@ type BuildPlanRequest struct {
 	BuildTags         BuildTags
 	Version           core.ReleaseVersion
 	Commit            core.BuildCommit
-	Garble            garble.BuildIntent
 	GoToolchain       GoToolchainIdentity
 	Offering          core.Offering
 	ModuleMode        BuildModuleMode
@@ -400,20 +399,13 @@ func (r BuildPlanRequest) Validate() error {
 			return contractError(errors.New("build plan request is invalid"), err)
 		}
 	}
-	if err := r.Garble.Validate(); err != nil {
-		return err
-	}
-	tool, err := r.Garble.Tool()
-	if err != nil {
-		return err
-	}
-	if r.GoToolchain != CurrentGoToolchain() || tool != garble.CurrentTool() {
-		return contractError(errors.New("build plan does not use the current release tools"))
+	if r.GoToolchain != CurrentGoToolchain() {
+		return contractError(errors.New("build plan does not use the current release toolchain"))
 	}
 	return nil
 }
 
-// BuildCommand is one exact Garble invocation for one canonical target.
+// BuildCommand is one exact Go invocation for one canonical target.
 type BuildCommand struct {
 	mainPackage       MainPackage
 	outputDirectory   core.RelativePath
@@ -421,7 +413,6 @@ type BuildCommand struct {
 	linkerAssignments LinkerAssignments
 	buildTags         BuildTags
 	build             core.BuildIdentity
-	garble            garble.BuildIntent
 	goToolchain       GoToolchainIdentity
 	moduleMode        BuildModuleMode
 	valid             bool
@@ -440,9 +431,6 @@ func (c BuildCommand) Validate() error {
 		if err != nil {
 			return contractError(errors.New("build command is invalid"), err)
 		}
-	}
-	if err := c.garble.Validate(); err != nil {
-		return err
 	}
 	want, err := buildOutputPath(c.outputDirectory, c.build)
 	if err != nil || want != c.output {
@@ -495,28 +483,18 @@ func (c BuildCommand) EnvironmentOverrides() ([]string, error) {
 	return values, nil
 }
 
-// ArgumentValues lowers the validated command to exact Garble and Go arguments.
+// ArgumentValues lowers the validated command to exact Go arguments.
 func (c BuildCommand) ArgumentValues() ([]string, error) {
 	if err := c.Validate(); err != nil {
-		return nil, err
-	}
-	garbleArguments, err := c.garble.Arguments()
-	if err != nil {
 		return nil, err
 	}
 	selectors, err := c.closureSelectorArguments()
 	if err != nil {
 		return nil, err
 	}
-	arguments := make([]string, 0, 14)
-	for argument := range garbleArguments {
-		value, textErr := argument.Text()
-		if textErr != nil {
-			return nil, textErr
-		}
-		arguments = append(arguments, value)
-	}
+	arguments := make([]string, 0, 12)
 	arguments = append(arguments,
+		goBuildArgument,
 		goTrimpathArgument,
 		goDisableBuildVCSArgument,
 		goDisablePGOArgument,
@@ -536,8 +514,8 @@ func (c BuildCommand) ArgumentValues() ([]string, error) {
 }
 
 // closureSelectorArguments returns the exact arguments that decide which Go
-// files enter this command's package closure. The Garble build and the
-// pre-Garble dependency observation both lower through this one projection, so
+// files enter this command's package closure. The build and the dependency
+// observation both lower through this one projection, so
 // the observed module closure cannot drift from the compiled closure.
 func (c BuildCommand) closureSelectorArguments() ([]string, error) {
 	tags, err := c.buildTags.Argument()
@@ -638,7 +616,7 @@ func prepareBuildPlan(request BuildPlanRequest) (BuildPlan, error) {
 		commands[index] = BuildCommand{
 			build: build, mainPackage: request.MainPackage,
 			outputDirectory: request.OutputDirectory, output: output,
-			garble: request.Garble, goToolchain: request.GoToolchain,
+			goToolchain:       request.GoToolchain,
 			moduleMode:        request.ModuleMode,
 			linkerAssignments: request.LinkerAssignments,
 			buildTags:         request.BuildTags, valid: true,

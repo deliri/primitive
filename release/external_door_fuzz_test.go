@@ -8,7 +8,6 @@ import (
 
 	"github.com/deliri/primitive/v2026/controlwire"
 	"github.com/deliri/primitive/v2026/core"
-	"github.com/deliri/primitive/v2026/garble"
 	"github.com/deliri/primitive/v2026/keygen"
 	"github.com/deliri/primitive/v2026/temporal"
 )
@@ -46,7 +45,6 @@ const (
 	releaseJSONDoorMaterialRequest
 	releaseJSONDoorMaterialResponse
 	releaseJSONDoorReleaseSigningSeed
-	releaseJSONDoorGarbleCustodySeed
 	releaseJSONDoorLimit
 )
 
@@ -100,8 +98,6 @@ func (d releaseJSONDoor) receiverName() string {
 		return "MaterialResponse"
 	case releaseJSONDoorReleaseSigningSeed:
 		return "ReleaseSigningSeed"
-	case releaseJSONDoorGarbleCustodySeed:
-		return "GarbleCustodySeed"
 	case releaseJSONDoorUnknown, releaseJSONDoorLimit:
 		return ""
 	default:
@@ -116,7 +112,6 @@ type releaseJSONDoorSeed struct {
 
 type releaseJSONDoorFixtures struct {
 	releaseSigningSeed     ReleaseSigningSeed
-	garbleCustodySeed      GarbleCustodySeed
 	materialRequest        MaterialRequest
 	buildDependencies      BuildDependencies
 	materialResponse       MaterialResponse
@@ -214,8 +209,6 @@ func FuzzReleaseExternalJSONDoorInventory(f *testing.F) {
 			fuzzReleaseJSONValue(t, data, fixtures.materialResponse)
 		case releaseJSONDoorReleaseSigningSeed:
 			fuzzReleaseJSONValue(t, data, fixtures.releaseSigningSeed)
-		case releaseJSONDoorGarbleCustodySeed:
-			fuzzReleaseJSONValue(t, data, fixtures.garbleCustodySeed)
 		case releaseJSONDoorUnknown, releaseJSONDoorLimit:
 			return
 		default:
@@ -483,7 +476,7 @@ func releaseJSONFixturesForFuzz(t testing.TB) releaseJSONDoorFixtures {
 	if err != nil {
 		t.Fatalf("newBuildDependencies() error = %v, want nil", err)
 	}
-	materialRequest, releaseSigningSeed, garbleCustodySeed, materialResponse := materialFixturesForFuzz(t, candidate)
+	materialRequest, releaseSigningSeed, materialResponse := materialFixturesForFuzz(t, candidate)
 	return releaseJSONDoorFixtures{
 		available: summary, publicationRole: PublicationRoleManifest,
 		generation:     candidate.latest.Fact.Generation(),
@@ -499,8 +492,8 @@ func releaseJSONFixturesForFuzz(t testing.TB) releaseJSONDoorFixtures {
 		manifestDocumentDigest: candidate.verified.DocumentDigest(),
 		manifestFact:           candidate.manifest.Fact, manifestDocument: candidate.manifest,
 		materialRequest: materialRequest, materialResponse: materialResponse,
-		releaseSigningSeed: releaseSigningSeed, garbleCustodySeed: garbleCustodySeed,
-		release: candidate,
+		releaseSigningSeed: releaseSigningSeed,
+		release:            candidate,
 	}
 }
 
@@ -535,14 +528,13 @@ func releaseJSONSeedsForFuzz(
 		releaseJSONSeedForFuzz(t, releaseJSONDoorMaterialRequest, fixtures.materialRequest),
 		releaseJSONSeedForFuzz(t, releaseJSONDoorMaterialResponse, fixtures.materialResponse),
 		releaseJSONSeedForFuzz(t, releaseJSONDoorReleaseSigningSeed, fixtures.releaseSigningSeed),
-		releaseJSONSeedForFuzz(t, releaseJSONDoorGarbleCustodySeed, fixtures.garbleCustodySeed),
 	}
 }
 
 func materialFixturesForFuzz(
 	t testing.TB,
 	fixture releaseFixture,
-) (MaterialRequest, ReleaseSigningSeed, GarbleCustodySeed, MaterialResponse) {
+) (MaterialRequest, ReleaseSigningSeed, MaterialResponse) {
 	t.Helper()
 	var nonceBytes [core.SHA256DigestBytes]byte
 	for index := range nonceBytes {
@@ -567,14 +559,6 @@ func materialFixturesForFuzz(
 	if err != nil {
 		t.Fatalf("NewReleaseSigningSeed() error = %v, want nil", err)
 	}
-	var custodyBytes [garble.CustodyBytes]byte
-	for index := range custodyBytes {
-		custodyBytes[index] = byte(index + 1)
-	}
-	custody, err := NewGarbleCustodySeed(custodyBytes)
-	if err != nil {
-		t.Fatalf("NewGarbleCustodySeed() error = %v, want nil", err)
-	}
 	server, err := keygen.GenerateSigningKey()
 	if err != nil {
 		t.Fatalf("GenerateSigningKey() error = %v, want nil", err)
@@ -586,13 +570,13 @@ func materialFixturesForFuzz(
 	}
 	response := MaterialResponse{
 		Request: request, ReleaseSigningSeed: signing,
-		GarbleCustodySeed: custody, ServerPublicKey: public,
+		ServerPublicKey: public,
 	}
 	if err := response.Validate(); err != nil {
 		t.Fatalf("MaterialResponse.Validate() error = %v, want nil", err)
 	}
 	t.Cleanup(func() { _ = response.Destroy() })
-	return request, signing, custody, response
+	return request, signing, response
 }
 
 func releaseJSONSeedForFuzz(

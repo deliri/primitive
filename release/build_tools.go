@@ -12,7 +12,6 @@ import (
 
 	"github.com/deliri/primitive/v2026/core"
 	"github.com/deliri/primitive/v2026/filestore"
-	"github.com/deliri/primitive/v2026/garble"
 	"github.com/deliri/primitive/v2026/process"
 	"github.com/deliri/primitive/v2026/temporal"
 )
@@ -28,7 +27,6 @@ const (
 // bounded process conditions used to prove them.
 type BuildToolVerificationRequest struct {
 	GoExecutable     core.AbsolutePath
-	GarbleExecutable core.AbsolutePath
 	WorkingDirectory core.AbsolutePath
 	HostEnvironment  process.Environment
 	WaitDelay        temporal.Duration
@@ -37,7 +35,7 @@ type BuildToolVerificationRequest struct {
 // Validate proves the complete verification boundary before file or process I/O.
 func (r BuildToolVerificationRequest) Validate() error {
 	for _, err := range []error{
-		r.GoExecutable.Validate(), r.GarbleExecutable.Validate(),
+		r.GoExecutable.Validate(),
 		r.WorkingDirectory.Validate(), r.HostEnvironment.Validate(), r.WaitDelay.Validate(),
 	} {
 		if err != nil {
@@ -57,17 +55,14 @@ func (r BuildToolVerificationRequest) Validate() error {
 	return nil
 }
 
-// VerifiedBuildTools is proof that exact on-disk Go and Garble executables
-// matched every compiler-owned identity at one observation.
+// VerifiedBuildTools is proof that one exact on-disk Go executable matched
+// every compiler-owned identity at one observation.
 type VerifiedBuildTools struct {
-	goExecutable           core.AbsolutePath
-	garbleExecutable       core.AbsolutePath
-	goExecutableDigest     core.SHA256Digest
-	garbleExecutableDigest core.SHA256Digest
-	hostPlatform           core.Platform
-	goToolchain            GoToolchainIdentity
-	garbleTool             garble.ToolIdentity
-	valid                  bool
+	goExecutable       core.AbsolutePath
+	goExecutableDigest core.SHA256Digest
+	hostPlatform       core.Platform
+	goToolchain        GoToolchainIdentity
+	valid              bool
 }
 
 // Validate proves the retained tool identities and observation seal.
@@ -76,15 +71,14 @@ func (v VerifiedBuildTools) Validate() error {
 		return contractError(errors.New("verified build tools are unset"))
 	}
 	for _, err := range []error{
-		v.goExecutableDigest.Validate(), v.garbleExecutableDigest.Validate(),
-		v.goExecutable.Validate(), v.garbleExecutable.Validate(), v.hostPlatform.Validate(),
-		v.goToolchain.Validate(), v.garbleTool.Validate(),
+		v.goExecutableDigest.Validate(), v.goExecutable.Validate(),
+		v.hostPlatform.Validate(), v.goToolchain.Validate(),
 	} {
 		if err != nil {
 			return contractError(errors.New("verified build tools are invalid"), err)
 		}
 	}
-	if v.goToolchain != CurrentGoToolchain() || v.garbleTool != garble.CurrentTool() {
+	if v.goToolchain != CurrentGoToolchain() {
 		return contractError(errors.New("verified build tools differ from the current release tools"))
 	}
 	return nil
@@ -92,16 +86,11 @@ func (v VerifiedBuildTools) Validate() error {
 
 // Accessors return the exact verified tool facts.
 func (v VerifiedBuildTools) GoExecutable() core.AbsolutePath       { return v.goExecutable }
-func (v VerifiedBuildTools) GarbleExecutable() core.AbsolutePath   { return v.garbleExecutable }
 func (v VerifiedBuildTools) HostPlatform() core.Platform           { return v.hostPlatform }
 func (v VerifiedBuildTools) GoToolchain() GoToolchainIdentity      { return v.goToolchain }
-func (v VerifiedBuildTools) GarbleTool() garble.ToolIdentity       { return v.garbleTool }
 func (v VerifiedBuildTools) GoExecutableDigest() core.SHA256Digest { return v.goExecutableDigest }
-func (v VerifiedBuildTools) GarbleExecutableDigest() core.SHA256Digest {
-	return v.garbleExecutableDigest
-}
 
-// VerifyBuildTools inspects both executable files and executes the selected Go
+// VerifyBuildTools inspects the executable file and executes the selected Go
 // command with bounded output. Operator-supplied version strings are never
 // accepted as evidence.
 func VerifyBuildTools(
@@ -125,15 +114,10 @@ func VerifyBuildTools(
 	if err != nil {
 		return VerifiedBuildTools{}, err
 	}
-	garbleTool, garbleDigest, err := verifyGarbleTool(ctx, request, goToolchain)
-	if err != nil {
-		return VerifiedBuildTools{}, err
-	}
 	verified := VerifiedBuildTools{
-		goExecutableDigest: goDigest, garbleExecutableDigest: garbleDigest,
-		goExecutable: request.GoExecutable, garbleExecutable: request.GarbleExecutable,
+		goExecutableDigest: goDigest, goExecutable: request.GoExecutable,
 		hostPlatform: hostPlatform, goToolchain: goToolchain,
-		garbleTool: garbleTool, valid: true,
+		valid: true,
 	}
 	if err := verified.Validate(); err != nil {
 		return VerifiedBuildTools{}, err
@@ -161,26 +145,6 @@ func verifyGoTool(
 		return core.SHA256Digest{}, core.Platform{}, err
 	}
 	return digest, platform, nil
-}
-
-func verifyGarbleTool(
-	ctx context.Context,
-	request BuildToolVerificationRequest,
-	goToolchain GoToolchainIdentity,
-) (garble.ToolIdentity, core.SHA256Digest, error) {
-	tool := garble.CurrentTool()
-	info, digest, err := inspectBuildTool(ctx, request.GarbleExecutable)
-	if err != nil {
-		return garble.ToolIdentity(0), core.SHA256Digest{}, err
-	}
-	goVersion, err := goToolchain.Version()
-	if err != nil {
-		return garble.ToolIdentity(0), core.SHA256Digest{}, err
-	}
-	if err := validateGarbleBuildInfo(info, tool, goVersion); err != nil {
-		return garble.ToolIdentity(0), core.SHA256Digest{}, err
-	}
-	return tool, digest, nil
 }
 
 func inspectBuildTool(ctx context.Context, path core.AbsolutePath) (*buildinfo.BuildInfo, core.SHA256Digest, error) {
@@ -318,18 +282,4 @@ func parseGoVersionLine(output, wantVersion string) (string, error) {
 func goVersionTokensMatch(fields []string, wantVersion string) bool {
 	return len(fields) == 4 && fields[0] == "go" && fields[1] == "version" &&
 		fields[2] == wantVersion
-}
-
-func validateGarbleBuildInfo(info *buildinfo.BuildInfo, tool garble.ToolIdentity, goVersion string) error {
-	module, moduleErr := tool.ModulePath()
-	version, versionErr := tool.Version()
-	sum, sumErr := tool.ModuleSum()
-	if err := errors.Join(moduleErr, versionErr, sumErr); err != nil {
-		return err
-	}
-	if info.Path != module || info.Main.Path != module || info.Main.Version != version ||
-		info.Main.Sum != sum || info.GoVersion != goVersion {
-		return contractError(errors.New("garble executable identity differs from the admitted tool"))
-	}
-	return nil
 }

@@ -85,9 +85,9 @@ func TestDeterministicFourTargetBuildLifecycleLayerTriad(t *testing.T) {
 			if err != nil || prepared.Validate() != nil {
 				t.Fatalf("release.PrepareBuildProcess(%v) = (%v, %v), want valid request and nil", wantPlatform, prepared, err)
 			}
-			if prepared.Command != tools.GarbleExecutable() || prepared.WorkingDirectory != repository.Root() ||
+			if prepared.Command != tools.GoExecutable() || prepared.WorkingDirectory != repository.Root() ||
 				prepared.Environment.Mode != process.EnvironmentModeExact {
-				t.Fatalf("prepared %v execution facts = (%v, %v, %v), want verified Garble, repository root, and exact environment", wantPlatform, prepared.Command, prepared.WorkingDirectory, prepared.Environment.Mode)
+				t.Fatalf("prepared %v execution facts = (%v, %v, %v), want verified Go, repository root, and exact environment", wantPlatform, prepared.Command, prepared.WorkingDirectory, prepared.Environment.Mode)
 			}
 			wantArguments, err := command.ArgumentValues()
 			if err != nil {

@@ -73,8 +73,8 @@ func TestPrepareBuildProcessReplacesEveryTargetControlledEnvironmentFact(t *test
 	if err := got.Validate(); err != nil {
 		t.Fatalf("prepared process.Request.Validate() error = %v, want nil", err)
 	}
-	if got.Command != tools.GarbleExecutable() || got.WorkingDirectory != workingDirectory {
-		t.Fatalf("prepared process paths = (%v, %v), want (%v, %v)", got.Command, got.WorkingDirectory, tools.GarbleExecutable(), workingDirectory)
+	if got.Command != tools.GoExecutable() || got.WorkingDirectory != workingDirectory {
+		t.Fatalf("prepared process paths = (%v, %v), want (%v, %v)", got.Command, got.WorkingDirectory, tools.GoExecutable(), workingDirectory)
 	}
 	wantArguments, err := command.ArgumentValues()
 	if err != nil {

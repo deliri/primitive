@@ -177,7 +177,7 @@ layer is defined by a **question** rather than by whatever currently occupies it
 
 ```text
 B2  core currency contextstate testserial
-B3  temporal keygen attest garble filestore filelock process exchange shutdown hostfacts id
+B3  temporal keygen attest filestore filelock process exchange shutdown hostfacts id lineio
 B4  objectstore gcsobjects cloudidentity timeproof fuzzfinder release deploy upgrade
 B5  controlwire lease receipt controlplane distribution
 B6  gate
@@ -1066,7 +1066,6 @@ The order is dependency depth, not a command to build every package in a row.
 | 2 | `attest` | Canonical Ed25519 envelopes and proof-carrying verification | `core` | none |
 | 2 | `contextstate` | Nil-safe context ingress and terminal observation | `core` | none |
 | 2 | `currency` | Exact minor-unit values, arithmetic, ordering, and decimal projection | `core` | none |
-| 2 | `garble` | Tool identity, seed custody and derivation, and typed build intent | `core` | none |
 | 2 | `keygen` | Exact secret and Ed25519 key generation | `core` | none |
 | 2 | `testserial` | Test-only isolation declaration and analyzer contract | `core` | none |
 | 2 | `wiring` | Bounded immutable runtime component graphs with exact Primitive-door declarations | `core` | none |
@@ -1074,12 +1073,13 @@ The order is dependency depth, not a command to build every package in a row.
 | 3 | `filestore` | Rooted OS handles, confinement, inspection, durability, activation, append rotation, rename, and recovery | `core`, `contextstate`, `temporal` | `filelock` |
 | 3 | `hostfacts` | Host disk, memory, cgroup, tree, and OOM observations | `core`, `contextstate` | none |
 | 3 | `temporal` | Time, duration, arithmetic, persistence, waits, and tickers | `core`, `contextstate` | none |
+| 3 | `lineio` | Bounded line scanning over one `io.Reader` through Go `bufio.Scanner` and `bufio.ScanLines` | `core` | `filestore` |
 | 4 | `exchange` | Bounded client and server boundary policy over `net/http` | `core`, `contextstate`, `keygen`, `temporal` | none |
 | 4 | `fuzzfinder` | Bounded classification and observation of Go-generated fuzz artifacts | `core`, `filestore` | none |
 | 4 | `id` | Canonical UUIDv7 and ULID time-ordered identifiers from one observed instant and caller-supplied entropy | `core`, `temporal` | none |
 | 4 | `lease` | Signed lease timeline, assessment, renewal, and monotonic advance | `core`, `temporal`, `attest` | none |
 | 4 | `process` | Argv, environment, containment, bounded output, exit, and reaping over `os/exec` | `core`, `contextstate`, `temporal` | `testserial` |
-| 5 | `release` | Clean repository binding, verified build tools, deterministic Garble build and process plans, bounded maintainer material exchange, executable inspection, signed tool and metadata provenance, immutable artifacts, manifests, Latest, and selection | `core`, `temporal`, `attest`, `filestore`, `garble`, `controlwire`, `keygen`, `process` | `testserial` |
+| 5 | `release` | Clean repository binding, verified Go builds and process plans, bounded maintainer material exchange, executable inspection, signed tool and metadata provenance, immutable artifacts, manifests, Latest, and selection | `core`, `temporal`, `attest`, `filestore`, `controlwire`, `keygen`, `process` | `testserial` |
 | 4 | `shutdown` | Signal observation and phased bounded cleanup | `core`, `contextstate`, `temporal` | none |
 | 5 | `gate` | Pure CLI-side new-work authorization over one authentic Lease assessment | `core`, `lease` | `attest`, `temporal` |
 | 5 | `receipt` | Authenticated accepted-evidence facts and fixed-size monotonic watermarks | `core`, `attest`, `temporal` | none |

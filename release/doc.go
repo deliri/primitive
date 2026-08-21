@@ -1,5 +1,5 @@
 // Package release verifies a clean repository at its exact commit and exact
-// build tools, constructs deterministic fixed-target Garble build and process
+// build tools, constructs deterministic fixed-target Go build and process
 // plans, inspects the resulting native executables, binds signed tool and
 // metadata provenance into immutable manifests, authenticates Latest
 // selections, then makes the installed-versus-latest decision.

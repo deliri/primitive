@@ -31,11 +31,6 @@ func TestVerifyBuildToolsRejectsEveryUnusableVerificationBoundary(t *testing.T) 
 			wantErr: core.ErrReleaseContract,
 		},
 		{
-			name:    "zero garble executable is rejected",
-			mutate:  func(r *release.BuildToolVerificationRequest) { r.GarbleExecutable = core.AbsolutePath{} },
-			wantErr: core.ErrReleaseContract,
-		},
-		{
 			name:    "zero working directory is rejected",
 			mutate:  func(r *release.BuildToolVerificationRequest) { r.WorkingDirectory = core.AbsolutePath{} },
 			wantErr: core.ErrReleaseContract,
@@ -113,37 +108,30 @@ func TestVerifyBuildToolsRejectsEveryExecutableThatIsNotTheAdmittedTool(t *testi
 	directory := t.TempDir()
 	empty := writeToolFixture(t, directory, "empty", nil)
 	text := writeToolFixture(t, directory, "text", []byte("#!/bin/sh\nexit 0\n"))
-	truncated := writeToolFixture(t, directory, "truncated", truncatedToolBytes(t, valid.GarbleExecutable))
+	truncated := writeToolFixture(t, directory, "truncated", truncatedToolBytes(t, valid.GoExecutable))
 	missing := absoluteToolPath(t, filepath.Join(directory, "absent"))
 	folder := absoluteToolPath(t, directory)
 
 	cases := []struct {
-		name   string
-		goPath core.AbsolutePath
-		garble core.AbsolutePath
+		wantErr error
+		name    string
+		path    core.AbsolutePath
 	}{
-		{name: "garble path holding the go executable is rejected", goPath: valid.GoExecutable, garble: valid.GoExecutable},
-		{name: "go path holding the garble executable is rejected", goPath: valid.GarbleExecutable, garble: valid.GarbleExecutable},
-		{name: "absent go executable is rejected", goPath: missing, garble: valid.GarbleExecutable},
-		{name: "absent garble executable is rejected", goPath: valid.GoExecutable, garble: missing},
-		{name: "directory as go executable is rejected", goPath: folder, garble: valid.GarbleExecutable},
-		{name: "directory as garble executable is rejected", goPath: valid.GoExecutable, garble: folder},
-		{name: "empty go executable is rejected", goPath: empty, garble: valid.GarbleExecutable},
-		{name: "empty garble executable is rejected", goPath: valid.GoExecutable, garble: empty},
-		{name: "script instead of go executable is rejected", goPath: text, garble: valid.GarbleExecutable},
-		{name: "script instead of garble executable is rejected", goPath: valid.GoExecutable, garble: text},
-		{name: "truncated garble executable is rejected", goPath: valid.GoExecutable, garble: truncated},
+		{name: "absent go executable is rejected", path: missing, wantErr: core.ErrReleaseContract},
+		{name: "directory as go executable is rejected", path: folder, wantErr: core.ErrReleaseContract},
+		{name: "empty go executable is rejected", path: empty, wantErr: core.ErrReleaseContract},
+		{name: "script instead of go executable is rejected", path: text, wantErr: core.ErrReleaseContract},
+		{name: "truncated go executable is rejected", path: truncated, wantErr: core.ErrReleaseContract},
 	}
 	for _, tc := range cases {
 		t.Run(tc.name, func(t *testing.T) {
 			t.Parallel()
 
 			request := valid
-			request.GoExecutable = tc.goPath
-			request.GarbleExecutable = tc.garble
+			request.GoExecutable = tc.path
 			got, gotErr := release.VerifyBuildTools(t.Context(), request)
-			if !errors.Is(gotErr, core.ErrReleaseContract) {
-				t.Fatalf("release.VerifyBuildTools() error = %v, want %v", gotErr, core.ErrReleaseContract)
+			if !errors.Is(gotErr, tc.wantErr) {
+				t.Fatalf("release.VerifyBuildTools() error = %v, want %v", gotErr, tc.wantErr)
 			}
 			if got != (release.VerifiedBuildTools{}) {
 				t.Fatalf("release.VerifyBuildTools() tools = %v, want zero on rejection", got)
@@ -169,8 +157,8 @@ func TestVerifyBuildToolsIsIndependentOfRepeatedObservation(t *testing.T) {
 	if first != second {
 		t.Fatalf("release.VerifyBuildTools() second observation differs from the first")
 	}
-	if first.GoExecutableDigest() == first.GarbleExecutableDigest() {
-		t.Fatalf("go and garble executable digests are equal, want distinct executables")
+	if first.GoExecutableDigest() != second.GoExecutableDigest() {
+		t.Fatalf("go executable digest changed across repeated observation")
 	}
 }
 

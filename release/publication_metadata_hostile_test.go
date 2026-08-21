@@ -9,7 +9,6 @@ import (
 	"testing"
 
 	"github.com/deliri/primitive/v2026/core"
-	"github.com/deliri/primitive/v2026/garble"
 )
 
 func TestInspectMetadataAssetProvesExactStreamingBytes(t *testing.T) {
@@ -101,62 +100,42 @@ func TestMetadataSetRejectsRoleAndMediaTypeSubstitution(t *testing.T) {
 	}
 }
 
-func TestBuildProvenancePublishesReproductionFactsWithoutGarbleSeed(t *testing.T) {
+func TestBuildProvenanceCanonicalJSONRoundTripPreservesExactGoReproductionFacts(t *testing.T) {
 	t.Parallel()
 
 	provenance := fixtureBuildProvenance(t)
-	goToolchain, err := CurrentGoToolchain().Version()
-	if err != nil {
-		t.Fatalf("CurrentGoToolchain().Version() error = %v, want nil", err)
-	}
-	garbleTool, err := garble.CurrentTool().Provenance()
-	if err != nil {
-		t.Fatalf("garble.CurrentTool().Provenance() error = %v, want nil", err)
-	}
 	encoded, err := json.Marshal(provenance)
 	if err != nil {
-		t.Fatalf("json.Marshal(BuildProvenance) error = %v", err)
-	}
-	if strings.Contains(string(encoded), "AQIDBAUGBwg") || strings.Contains(string(encoded), "seed") {
-		t.Fatalf("BuildProvenance JSON contains Garble seed material: %s", encoded)
-	}
-	for _, required := range []string{
-		goToolchain, garbleTool.ModulePath, garbleTool.Revision,
-		garble.CurrentDerivationGeneration().String(),
-	} {
-		if !strings.Contains(string(encoded), required) {
-			t.Fatalf("BuildProvenance JSON omits %q: %s", required, encoded)
-		}
+		t.Fatalf("json.Marshal(BuildProvenance) error = %v, want nil", err)
 	}
 	var decoded BuildProvenance
 	if err := json.Unmarshal(encoded, &decoded); err != nil {
-		t.Fatalf("json.Unmarshal(BuildProvenance) error = %v", err)
+		t.Fatalf("json.Unmarshal(BuildProvenance) error = %v, want nil", err)
 	}
 	if decoded != provenance {
-		t.Fatalf("BuildProvenance JSON round trip differs")
+		t.Fatalf("BuildProvenance JSON round trip = %v, want %v", decoded, provenance)
+	}
+	canonical, err := json.Marshal(decoded)
+	if err != nil {
+		t.Fatalf("json.Marshal(round-trip BuildProvenance) error = %v, want nil", err)
+	}
+	if !bytes.Equal(canonical, encoded) {
+		t.Fatalf("BuildProvenance second canonical JSON = %q, want %q", canonical, encoded)
 	}
 }
 
-func TestBuildProvenanceRejectsUnverifiedToolsOrNoncurrentDerivation(t *testing.T) {
+func TestBuildProvenanceRejectsUnverifiedTools(t *testing.T) {
 	t.Parallel()
 
 	plan := provenanceBuildPlan(t)
 	tools := provenanceVerifiedTools(t)
-	request := BuildProvenanceRequest{
-		Plan: plan, Tools: tools,
-		DerivationGeneration: garble.CurrentDerivationGeneration(),
-	}
+	request := BuildProvenanceRequest{Plan: plan, Tools: tools}
 	if _, err := NewBuildProvenance(request); err != nil {
 		t.Fatalf("NewBuildProvenance(valid) error = %v", err)
 	}
 	request.Tools = VerifiedBuildTools{}
 	if _, err := NewBuildProvenance(request); !errors.Is(err, core.ErrReleaseManifest) {
 		t.Fatalf("NewBuildProvenance(unverified tools) error = %v, want %v", err, core.ErrReleaseManifest)
-	}
-	request.Tools = tools
-	request.DerivationGeneration = garble.DerivationGenerationUnknown
-	if _, err := NewBuildProvenance(request); !errors.Is(err, core.ErrReleaseManifest) {
-		t.Fatalf("NewBuildProvenance(zero derivation) error = %v, want %v", err, core.ErrReleaseManifest)
 	}
 }
 
@@ -165,16 +144,9 @@ func provenanceBuildPlan(t *testing.T) BuildPlan {
 	mainPackage, _ := ParseMainPackage("github.com/offGridSoft/bug/cmd/bug")
 	output, _ := core.ParseRelativePath("dist")
 	commit, _ := core.ParseBuildCommit("b5c32d95d212b0a1a8cef4126e4d11ff288079ef")
-	intent, err := garble.PrepareBuild(garble.BuildRequest{
-		Tool: garble.CurrentTool(), Seed: garble.NewSeed([garble.SeedBytes]byte{1, 2, 3, 4, 5, 6, 7, 8}),
-		Literals: garble.LiteralPolicyObfuscate, Diagnostics: garble.DiagnosticPolicyPreserve,
-	})
-	if err != nil {
-		t.Fatalf("garble.PrepareBuild() error = %v", err)
-	}
 	plan, err := PrepareBuildPlan(BuildPlanRequest{
 		Offering: core.OfferingBug, Version: core.NewReleaseVersion(2026, 0, 11), Commit: commit,
-		MainPackage: mainPackage, OutputDirectory: output, Garble: intent,
+		MainPackage: mainPackage, OutputDirectory: output,
 		GoToolchain: CurrentGoToolchain(), ModuleMode: BuildModuleVendor,
 		LinkerAssignments: emptyLinkerAssignmentsForTest(),
 	})
@@ -187,17 +159,14 @@ func provenanceBuildPlan(t *testing.T) BuildPlan {
 func provenanceVerifiedTools(t *testing.T) VerifiedBuildTools {
 	t.Helper()
 	goPath, _ := core.ParseAbsolutePath("/usr/local/go/bin/go")
-	garblePath, _ := core.ParseAbsolutePath("/usr/local/bin/garble")
 	goSum := sha256.Sum256([]byte("go"))
-	garbleSum := sha256.Sum256([]byte("garble"))
 	value := VerifiedBuildTools{
-		goExecutable: goPath, garbleExecutable: garblePath,
-		goExecutableDigest:     core.NewSHA256Digest(goSum),
-		garbleExecutableDigest: core.NewSHA256Digest(garbleSum),
+		goExecutable:       goPath,
+		goExecutableDigest: core.NewSHA256Digest(goSum),
 		hostPlatform: core.Platform{
 			OperatingSystem: core.OperatingSystemDarwin, Architecture: core.CPUArchitectureARM64,
 		},
-		goToolchain: CurrentGoToolchain(), garbleTool: garble.CurrentTool(), valid: true,
+		goToolchain: CurrentGoToolchain(), valid: true,
 	}
 	if err := value.Validate(); err != nil {
 		t.Fatalf("VerifiedBuildTools.Validate() error = %v", err)

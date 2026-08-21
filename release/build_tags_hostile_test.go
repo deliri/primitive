@@ -7,7 +7,6 @@ import (
 	"testing"
 
 	"github.com/deliri/primitive/v2026/core"
-	"github.com/deliri/primitive/v2026/garble"
 	"github.com/deliri/primitive/v2026/release"
 )
 
@@ -15,7 +14,7 @@ const buildTagMaximumBytesForTest = 64
 
 // TestParseBuildTagPressuresConstraintWordGrammar attacks the one grammar that
 // decides whether a release build compiles the files the operator asked for. A
-// tag reaches cmd/go and Garble inside one comma-separated argument, so every
+// tag reaches cmd/go inside one comma-separated argument, so every
 // separator, flag prefix, negation, and encoding hazard must be rejected before
 // argv is built rather than silently splitting or inverting a constraint.
 func TestParseBuildTagPressuresConstraintWordGrammar(t *testing.T) {
@@ -229,7 +228,7 @@ func TestBuildTagsLayerTriadCanonicalizesTheConstraintSet(t *testing.T) {
 
 // TestBuildPlanLowersOneTagProjectionToEveryTargetAndObservation is the ratchet
 // for the defect class this slice exists to prevent: cmd/go must enumerate the
-// same package closure the Garble build compiles. The plan owns the tags, so
+// same package closure the Go build compiles. The plan owns the tags, so
 // every one of the four target commands must carry the identical -tags argument
 // and it must sit on the Go side of the invocation.
 func TestBuildPlanLowersOneTagProjectionToEveryTargetAndObservation(t *testing.T) {
@@ -332,9 +331,8 @@ func TestBuildProvenanceSealsTheExactTagSet(t *testing.T) {
 				t.Fatalf("release.PrepareBuildPlan() error = %v, want nil", err)
 			}
 			provenance, err := release.NewBuildProvenance(release.BuildProvenanceRequest{
-				Tools:                tools,
-				Plan:                 plan,
-				DerivationGeneration: garble.CurrentDerivationGeneration(),
+				Tools: tools,
+				Plan:  plan,
 			})
 			if err != nil {
 				t.Fatalf("release.NewBuildProvenance() error = %v, want nil", err)
@@ -379,9 +377,8 @@ func TestBuildProvenanceRejectsNoncanonicalSelectorDocuments(t *testing.T) {
 		t.Fatalf("release.PrepareBuildPlan() error = %v, want nil", err)
 	}
 	provenance, err := release.NewBuildProvenance(release.BuildProvenanceRequest{
-		Tools:                verifiedBuildToolsForLiveTest(t),
-		Plan:                 plan,
-		DerivationGeneration: garble.CurrentDerivationGeneration(),
+		Tools: verifiedBuildToolsForLiveTest(t),
+		Plan:  plan,
 	})
 	if err != nil {
 		t.Fatalf("release.NewBuildProvenance() error = %v, want nil", err)

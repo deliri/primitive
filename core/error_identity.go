@@ -74,6 +74,11 @@ const (
 	// ErrContextObservation identifies failed context observation.
 	ErrContextObservation
 
+	// ErrLineIOContract identifies a bounded line-scanner contract violation.
+	ErrLineIOContract
+	// ErrLineIOScan identifies failure while advancing a bounded line stream.
+	ErrLineIOScan
+
 	// ErrCurrencyContract identifies a currency contract violation.
 	ErrCurrencyContract
 	// ErrCurrencyMismatch identifies incompatible currencies.
@@ -82,13 +87,6 @@ const (
 	ErrCurrencyOverflow
 	// ErrCurrencyDecimal identifies rejected decimal currency input.
 	ErrCurrencyDecimal
-
-	// ErrGarbleContract identifies a garble contract violation.
-	ErrGarbleContract
-	// ErrGarbleDerivation identifies failed garble derivation.
-	ErrGarbleDerivation
-	// ErrGarbleBuildIntent identifies rejected typed Garble build intent.
-	ErrGarbleBuildIntent
 
 	// ErrKeygenContract identifies a key-generation contract violation.
 	ErrKeygenContract
@@ -421,13 +419,12 @@ func errorIdentityDiagnostics() [errorIdentityLimit]errorIdentityDiagnostic {
 		{identity: ErrContextStateContract, text: "context state contract violation"},
 		{identity: ErrNilContext, text: "nil context"},
 		{identity: ErrContextObservation, text: "context observation failed"},
+		{identity: ErrLineIOContract, text: "line I/O contract violation"},
+		{identity: ErrLineIOScan, text: "line scan failed"},
 		{identity: ErrCurrencyContract, text: "currency contract violation"},
 		{identity: ErrCurrencyMismatch, text: "currency mismatch"},
 		{identity: ErrCurrencyOverflow, text: "currency overflow"},
 		{identity: ErrCurrencyDecimal, text: "currency decimal rejected"},
-		{identity: ErrGarbleContract, text: "garble contract violation"},
-		{identity: ErrGarbleDerivation, text: "garble derivation failed"},
-		{identity: ErrGarbleBuildIntent, text: "garble build intent rejected"},
 		{identity: ErrKeygenContract, text: "key generation contract violation"},
 		{identity: ErrKeygenEntropy, text: "key generation entropy failed"},
 		{identity: ErrTestIsolationContract, text: "test isolation contract violation"},
@@ -662,7 +659,7 @@ func errorIdentityParents(identity ErrorIdentity) errorIdentityParentSet {
 	}
 	if errorIdentityIn(identity, ErrJSONContract, ErrNumericOverflow, ErrSecretMaterialAllZero,
 		ErrAttestContract,
-		ErrContextStateContract, ErrCurrencyContract, ErrGarbleContract,
+		ErrContextStateContract, ErrLineIOContract, ErrCurrencyContract,
 		ErrKeygenContract, ErrTestIsolationContract, ErrFilestoreContract,
 		ErrTemporalContract, ErrExchangeContract,
 		ErrFuzzFinderContract, ErrLeaseContract, ErrGateContract,
@@ -690,9 +687,9 @@ func errorIdentityParents(identity ErrorIdentity) errorIdentityParentSet {
 		return errorIdentityParentsControlExchange(identity)
 	}
 	if errorIdentityIn(identity, ErrAttestVerification, ErrNilContext, ErrContextObservation,
-		ErrCurrencyMismatch, ErrCurrencyDecimal, ErrCurrencyOverflow,
-		ErrGarbleDerivation, ErrGarbleBuildIntent, ErrKeygenEntropy) {
-		return errorIdentityParentsAttestThroughKeygen(identity)
+		ErrLineIOScan,
+		ErrCurrencyMismatch, ErrCurrencyDecimal, ErrCurrencyOverflow, ErrKeygenEntropy) {
+		return errorIdentityParentsAttestThroughLineIO(identity)
 	}
 	if errorIdentityIn(identity, ErrHostFacts, ErrHostFactsContract, ErrHostFactsObservation,
 		ErrHostFactsUnsupported, ErrHostFactsPressure, ErrHostFactsEvidence,
@@ -771,21 +768,21 @@ func errorIdentityParentsHostFacts(identity ErrorIdentity) errorIdentityParentSe
 	return errorIdentityParentSet{}
 }
 
-func errorIdentityParentsAttestThroughKeygen(identity ErrorIdentity) errorIdentityParentSet {
+func errorIdentityParentsAttestThroughLineIO(identity ErrorIdentity) errorIdentityParentSet {
 	if identity == ErrAttestVerification {
 		return oneErrorIdentityParent(ErrAttestContract)
 	}
 	if errorIdentityIn(identity, ErrNilContext, ErrContextObservation) {
 		return oneErrorIdentityParent(ErrContextStateContract)
 	}
+	if identity == ErrLineIOScan {
+		return oneErrorIdentityParent(ErrLineIOContract)
+	}
 	if errorIdentityIn(identity, ErrCurrencyMismatch, ErrCurrencyDecimal) {
 		return oneErrorIdentityParent(ErrCurrencyContract)
 	}
 	if identity == ErrCurrencyOverflow {
 		return twoErrorIdentityParents(ErrCurrencyContract, ErrNumericOverflow)
-	}
-	if errorIdentityIn(identity, ErrGarbleDerivation, ErrGarbleBuildIntent) {
-		return oneErrorIdentityParent(ErrGarbleContract)
 	}
 	if identity == ErrKeygenEntropy {
 		return oneErrorIdentityParent(ErrKeygenContract)

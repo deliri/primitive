@@ -7,7 +7,6 @@ import (
 
 	"github.com/deliri/primitive/v2026/attest"
 	"github.com/deliri/primitive/v2026/core"
-	"github.com/deliri/primitive/v2026/garble"
 	"github.com/deliri/primitive/v2026/temporal"
 )
 
@@ -152,20 +151,17 @@ func fixtureMetadataSet(t testing.TB) MetadataSet {
 func fixtureBuildProvenance(t testing.TB) BuildProvenance {
 	t.Helper()
 	goDigest := sha256.Sum256([]byte("go tool"))
-	garbleDigest := sha256.Sum256([]byte("garble tool"))
 	mainPackage, err := ParseMainPackage("github.com/offGridSoft/witness/cmd/witness")
 	if err != nil {
 		t.Fatalf("ParseMainPackage() error = %v", err)
 	}
 	value := BuildProvenance{
-		linkerAssignments:      emptyLinkerAssignmentsForTest(),
-		mainPackage:            mainPackage,
-		goExecutableDigest:     core.NewSHA256Digest(goDigest),
-		garbleExecutableDigest: core.NewSHA256Digest(garbleDigest),
-		garbleTool:             garble.CurrentTool(), goToolchain: CurrentGoToolchain(),
-		moduleMode: BuildModuleReadonly, literals: garble.LiteralPolicyObfuscate,
-		diagnostics:          garble.DiagnosticPolicyPreserve,
-		derivationGeneration: garble.CurrentDerivationGeneration(), valid: true,
+		linkerAssignments:  emptyLinkerAssignmentsForTest(),
+		mainPackage:        mainPackage,
+		goExecutableDigest: core.NewSHA256Digest(goDigest),
+		goToolchain:        CurrentGoToolchain(),
+		moduleMode:         BuildModuleReadonly,
+		valid:              true,
 	}
 	if err := value.Validate(); err != nil {
 		t.Fatalf("BuildProvenance.Validate() error = %v", err)

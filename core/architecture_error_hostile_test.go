@@ -86,7 +86,9 @@ func TestArchitectureCatalogRejectsEveryStructuralFailureMode(t *testing.T) {
 		{name: "future package identity exceeds closed domain", mutate: func(c *ArchitectureCatalog) { c.packages[0].Identity = packageIdentityLimit }, wantErr: ErrPrimitiveContract},
 		{name: "duplicate package identity removes one owner", mutate: func(c *ArchitectureCatalog) { c.packages[1].Identity = PackageCore }, wantErr: ErrPrimitiveContract},
 		{name: "production package marked test support", mutate: func(c *ArchitectureCatalog) { c.packages[1].Kind = PackageKindTestSupport }, wantErr: ErrPrimitiveContract},
-		{name: "testserial marked production", mutate: func(c *ArchitectureCatalog) { c.packages[6].Kind = PackageKindProduction }, wantErr: ErrPrimitiveContract},
+		{name: "testserial marked production", mutate: func(c *ArchitectureCatalog) {
+			replaceArchitecturePackageKindForTest(c, PackageTestSerial, PackageKindProduction)
+		}, wantErr: ErrPrimitiveContract},
 		{name: "core imports a sibling", mutate: func(c *ArchitectureCatalog) { c.imports[0].Importer = PackageCore }, wantErr: ErrPrimitiveContract},
 		{name: "package imports itself", mutate: func(c *ArchitectureCatalog) { c.imports[0].Imported = PackageAttest }, wantErr: ErrPrimitiveContract},
 		{name: "production imports test support", mutate: func(c *ArchitectureCatalog) { c.imports[0].Imported = PackageTestSerial }, wantErr: ErrPrimitiveContract},
@@ -133,6 +135,19 @@ func TestArchitectureCatalogRejectsEveryStructuralFailureMode(t *testing.T) {
 				t.Fatalf("mutated ArchitectureCatalog.Validate() error = %v, want %v", gotErr, tc.wantErr)
 			}
 		})
+	}
+}
+
+func replaceArchitecturePackageKindForTest(
+	catalog *ArchitectureCatalog,
+	target PackageIdentity,
+	replacement PackageKind,
+) {
+	for index, contract := range catalog.packages {
+		if contract.Identity == target {
+			catalog.packages[index].Kind = replacement
+			return
+		}
 	}
 }
 

@@ -14,9 +14,9 @@ const (
 	// PrimitivePackageCount is the number of packages in the complete catalog.
 	PrimitivePackageCount = 40
 	// PrimitiveDirectImportCount is the number of admitted direct import edges.
-	PrimitiveDirectImportCount = 150
+	PrimitiveDirectImportCount = 149
 	// PrimitiveDirectTestImportCount is the number of admitted test-only edges.
-	PrimitiveDirectTestImportCount = 30
+	PrimitiveDirectTestImportCount = 31
 	// PrimitiveMaximumDirectImports caps direct sibling imports per package.
 	PrimitiveMaximumDirectImports = 10
 )
@@ -35,8 +35,6 @@ const (
 	PackageContextState
 	// PackageCurrency identifies the currency package.
 	PackageCurrency
-	// PackageGarble identifies the garbling package.
-	PackageGarble
 	// PackageKeygen identifies the key-generation package.
 	PackageKeygen
 	// PackageTestSerial identifies the serial test-support package.
@@ -109,6 +107,8 @@ const (
 	PackageDistributionAuth
 	// PackageWiring identifies bounded runtime component-graph proof.
 	PackageWiring
+	// PackageLineIO identifies bounded line scanning over one reader.
+	PackageLineIO
 	packageIdentityLimit
 )
 
@@ -176,7 +176,6 @@ func PrimitiveArchitecture() ArchitectureCatalog {
 			{Identity: PackageAttest, Kind: PackageKindProduction},
 			{Identity: PackageContextState, Kind: PackageKindProduction},
 			{Identity: PackageCurrency, Kind: PackageKindProduction},
-			{Identity: PackageGarble, Kind: PackageKindProduction},
 			{Identity: PackageKeygen, Kind: PackageKindProduction},
 			{Identity: PackageTestSerial, Kind: PackageKindTestSupport},
 			{Identity: PackageFileLock, Kind: PackageKindProduction},
@@ -212,12 +211,12 @@ func PrimitiveArchitecture() ArchitectureCatalog {
 			{Identity: PackageDistribution, Kind: PackageKindProduction},
 			{Identity: PackageDistributionAuth, Kind: PackageKindProduction},
 			{Identity: PackageWiring, Kind: PackageKindProduction},
+			{Identity: PackageLineIO, Kind: PackageKindProduction},
 		},
 		imports: [PrimitiveDirectImportCount]DirectImportContract{
 			{Importer: PackageAttest, Imported: PackageCore},
 			{Importer: PackageContextState, Imported: PackageCore},
 			{Importer: PackageCurrency, Imported: PackageCore},
-			{Importer: PackageGarble, Imported: PackageCore},
 			{Importer: PackageKeygen, Imported: PackageCore},
 			{Importer: PackageTestSerial, Imported: PackageCore},
 
@@ -284,7 +283,6 @@ func PrimitiveArchitecture() ArchitectureCatalog {
 			{Importer: PackageRelease, Imported: PackageTemporal},
 			{Importer: PackageRelease, Imported: PackageAttest},
 			{Importer: PackageRelease, Imported: PackageFilestore},
-			{Importer: PackageRelease, Imported: PackageGarble},
 			{Importer: PackageRelease, Imported: PackageControlWire},
 			{Importer: PackageRelease, Imported: PackageKeygen},
 			{Importer: PackageRelease, Imported: PackageProcess},
@@ -375,6 +373,7 @@ func PrimitiveArchitecture() ArchitectureCatalog {
 			{Importer: PackageDistributionAuth, Imported: PackageDistribution},
 			{Importer: PackageDistributionAuth, Imported: PackageRelease},
 			{Importer: PackageWiring, Imported: PackageCore},
+			{Importer: PackageLineIO, Imported: PackageCore},
 		},
 		testImports: [PrimitiveDirectTestImportCount]DirectTestImportContract{
 			{Importer: PackageGate, Imported: PackageAttest},
@@ -407,6 +406,7 @@ func PrimitiveArchitecture() ArchitectureCatalog {
 			{Importer: PackageDistributionAuth, Imported: PackageObjectStore},
 			{Importer: PackageDistribution, Imported: PackageExchange},
 			{Importer: PackageRelease, Imported: PackageTestSerial},
+			{Importer: PackageLineIO, Imported: PackageFilestore},
 		},
 	}
 }
@@ -644,7 +644,6 @@ func packagePurposeTexts() [packageIdentityLimit]string {
 		PackageAttest:           "Canonical Ed25519 envelopes and proof-carrying verification",
 		PackageContextState:     "Nil-safe context ingress and terminal observation",
 		PackageCurrency:         "Exact minor-unit values, arithmetic, ordering, and decimal projection",
-		PackageGarble:           "Tool identity, seed custody and derivation, and typed build intent",
 		PackageKeygen:           "Exact secret and Ed25519 key generation",
 		PackageTestSerial:       "Test-only isolation declaration and analyzer contract",
 		PackageFileLock:         "One advisory whole-file lock on one already-open file",
@@ -662,7 +661,7 @@ func packagePurposeTexts() [packageIdentityLimit]string {
 		PackageSubmissionAuth:   "Installation-certificate binding, device authentication, and authority reconciliation for evidence submissions",
 		PackageControlPlaneTest: "Real authority-signed installation certificate fixtures for hostile control-plane tests",
 		PackageProcess:          "Argv, environment, containment, bounded output, exit, and reaping over os/exec",
-		PackageRelease:          "Clean repository binding, verified build tools, deterministic Garble build and process plans, bounded maintainer material exchange, executable inspection, signed tool and metadata provenance, immutable artifacts, manifests, Latest, and selection",
+		PackageRelease:          "Clean repository binding, verified Go builds and process plans, bounded maintainer material exchange, executable inspection, signed tool and metadata provenance, immutable artifacts, manifests, Latest, and selection",
 		PackageShutdown:         "Signal observation and phased bounded cleanup",
 		PackageObjectStore:      "Bounded vendor-specified S3, GCS, or Cloudflare Images transfers through issued HTTPS capabilities, with integrity and provider evidence",
 		PackageTimeProof:        "RFC 3161 request construction, response verification, and replay",
@@ -680,6 +679,7 @@ func packagePurposeTexts() [packageIdentityLimit]string {
 		PackageDistribution:     "Signed product-neutral release publication, update discovery, and exact upgrade-download agreements",
 		PackageDistributionAuth: "Authenticated release-material responses plus installation-certificate binding and device authentication for publication, update, and upgrade requests",
 		PackageWiring:           "Bounded immutable runtime component graphs with exact Primitive-door declarations",
+		PackageLineIO:           "Bounded line scanning over one io.Reader through Go bufio.Scanner and bufio.ScanLines",
 	}
 }
 
@@ -722,7 +722,6 @@ func packageIdentityTexts() [packageIdentityLimit]string {
 		"attest",
 		"contextstate",
 		"currency",
-		"garble",
 		"keygen",
 		"testserial",
 		"filelock",
@@ -758,6 +757,7 @@ func packageIdentityTexts() [packageIdentityLimit]string {
 		"distribution",
 		"distributionauth",
 		"wiring",
+		"lineio",
 	}
 }
 

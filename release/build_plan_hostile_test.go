@@ -8,22 +8,12 @@ import (
 	"testing"
 
 	"github.com/deliri/primitive/v2026/core"
-	"github.com/deliri/primitive/v2026/garble"
 	"github.com/deliri/primitive/v2026/release"
 )
 
-func TestPrepareBuildPlanProjectsExactDocumentedGarbleAndGoArguments(t *testing.T) {
+func TestPrepareBuildPlanProjectsExactDocumentedGoArguments(t *testing.T) {
 	t.Parallel()
 
-	intent, err := garble.PrepareBuild(garble.BuildRequest{
-		Tool:        garble.CurrentTool(),
-		Seed:        garble.NewSeed([garble.SeedBytes]byte{1, 2, 3, 4, 5, 6, 7, 8}),
-		Literals:    garble.LiteralPolicyObfuscate,
-		Diagnostics: garble.DiagnosticPolicyPreserve,
-	})
-	if err != nil {
-		t.Fatalf("garble.PrepareBuild() error = %v, want nil", err)
-	}
 	serverKey, err := release.NewLinkerAssignment(
 		"github.com/offGridSoft/bug/internal/release.embeddedServerKey",
 		"0123456789abcdef",
@@ -63,7 +53,6 @@ func TestPrepareBuildPlanProjectsExactDocumentedGarbleAndGoArguments(t *testing.
 		GoToolchain:       release.CurrentGoToolchain(),
 		MainPackage:       mainPackage,
 		OutputDirectory:   output,
-		Garble:            intent,
 		ModuleMode:        release.BuildModuleVendor,
 		LinkerAssignments: assignments,
 	})
@@ -97,8 +86,6 @@ func TestPrepareBuildPlanProjectsExactDocumentedGarbleAndGoArguments(t *testing.
 		}
 		const linkerProjection = "compiler-owned-linker-projection"
 		wantArguments := []string{
-			"-seed=AQIDBAUGBwg",
-			"-literals",
 			"build",
 			"-trimpath",
 			"-buildvcs=false",
@@ -188,7 +175,6 @@ func TestBuildPlanRejectsIncompleteAndConflictingCompilerOwnedInputs(t *testing.
 		{name: "zero commit is rejected", mutate: func(r *release.BuildPlanRequest) { r.Commit = core.BuildCommit{} }, wantErr: core.ErrReleaseContract},
 		{name: "zero main package is rejected", mutate: func(r *release.BuildPlanRequest) { r.MainPackage = release.MainPackage{} }, wantErr: core.ErrReleaseContract},
 		{name: "zero output directory is rejected", mutate: func(r *release.BuildPlanRequest) { r.OutputDirectory = core.RelativePath{} }, wantErr: core.ErrReleaseContract},
-		{name: "zero garble intent is rejected", mutate: func(r *release.BuildPlanRequest) { r.Garble = garble.BuildIntent{} }, wantErr: core.ErrGarbleBuildIntent},
 		{name: "zero Go toolchain is rejected", mutate: func(r *release.BuildPlanRequest) { r.GoToolchain = release.GoToolchainUnknown }, wantErr: core.ErrReleaseContract},
 		{name: "future Go toolchain is rejected", mutate: func(r *release.BuildPlanRequest) { r.GoToolchain = release.GoToolchainPrimitive2026 + 1 }, wantErr: core.ErrReleaseContract},
 		{name: "zero module mode is rejected", mutate: func(r *release.BuildPlanRequest) { r.ModuleMode = release.BuildModuleUnknown }, wantErr: core.ErrReleaseContract},
@@ -295,7 +281,7 @@ func TestMainPackageAndLinkerSetBoundEveryCommandProjection(t *testing.T) {
 		{name: "interior dot inside an element is accepted", value: "gopkg.in/yaml.v3/cmd"},
 		{name: "underscore and tilde elements are accepted", value: "example.com/a_b/c~d"},
 		{name: "digits and version element are accepted", value: "github.com/deliri/primitive/v2026/release"},
-		{name: "two component path is accepted", value: "mvdan.cc/garble"},
+		{name: "two component path is accepted", value: "example.com/tool"},
 		{name: "trailing slash is rejected", value: "github.com/offGridSoft/witness/", wantErr: core.ErrReleaseContract},
 		{name: "double slash is rejected", value: "github.com//witness", wantErr: core.ErrReleaseContract},
 		{name: "parent traversal element is rejected", value: "github.com/offGridSoft/../../etc", wantErr: core.ErrReleaseContract},
@@ -390,8 +376,8 @@ func TestGoToolchainIdentityPinsExactReleaseCompilerAcrossItsBackingDomain(t *te
 	if err != nil {
 		t.Fatalf("release.CurrentGoToolchain().Version() error = %v, want nil", err)
 	}
-	if version != "go1.26.6" {
-		t.Fatalf("release.CurrentGoToolchain().Version() = %q, want go1.26.6", version)
+	if version != "go1.27.0" {
+		t.Fatalf("release.CurrentGoToolchain().Version() = %q, want go1.27.0", version)
 	}
 	if got := release.GoToolchainUnknown.String(); got != core.UnknownEnumDiagnostic {
 		t.Fatalf("release.GoToolchainUnknown.String() = %q, want %q", got, core.UnknownEnumDiagnostic)
@@ -401,15 +387,6 @@ func TestGoToolchainIdentityPinsExactReleaseCompilerAcrossItsBackingDomain(t *te
 func buildPlanRequestForHostileTest(t *testing.T) release.BuildPlanRequest {
 	t.Helper()
 
-	intent, err := garble.PrepareBuild(garble.BuildRequest{
-		Tool:        garble.CurrentTool(),
-		Seed:        garble.NewSeed([garble.SeedBytes]byte{1}),
-		Literals:    garble.LiteralPolicyPreserve,
-		Diagnostics: garble.DiagnosticPolicyPreserve,
-	})
-	if err != nil {
-		t.Fatalf("garble.PrepareBuild() error = %v, want nil", err)
-	}
 	mainPackage, err := release.ParseMainPackage("github.com/offGridSoft/bug/cmd/bug")
 	if err != nil {
 		t.Fatalf("release.ParseMainPackage() error = %v, want nil", err)
@@ -424,7 +401,7 @@ func buildPlanRequestForHostileTest(t *testing.T) release.BuildPlanRequest {
 	}
 	return release.BuildPlanRequest{
 		Offering: core.OfferingBug, Version: core.NewReleaseVersion(2026, 0, 11), Commit: commit,
-		MainPackage: mainPackage, OutputDirectory: output, Garble: intent,
+		MainPackage: mainPackage, OutputDirectory: output,
 		GoToolchain: release.CurrentGoToolchain(), ModuleMode: release.BuildModuleReadonly,
 	}
 }

@@ -86,7 +86,7 @@ func prepareBuildProcess(request BuildProcessRequest) (process.Request, error) {
 		return process.Request{}, contractError(errors.New("build arguments are invalid"), err)
 	}
 	prepared := process.Request{
-		Streams: request.Streams, Command: request.Tools.GarbleExecutable(),
+		Streams: request.Streams, Command: request.Tools.GoExecutable(),
 		WorkingDirectory: request.WorkingDirectory, Arguments: arguments,
 		Environment: environment, OutputLimit: request.OutputLimit,
 		WaitDelay: request.WaitDelay,

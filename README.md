@@ -30,9 +30,9 @@ flowchart TD
     attest[attest] --> core
     contextstate[contextstate] --> core
     currency[currency] --> core
-    garble[garble] --> core
     keygen[keygen] --> core
     testserial[testserial] --> core
+    lineio[lineio] --> core
 
     filelock[filelock] --> core
     filelock --> contextstate
@@ -99,7 +99,6 @@ flowchart TD
     release --> temporal
     release --> attest
     release --> filestore
-    release --> garble
 	 release --> controlwire
 	 release --> keygen
     release --> process
@@ -215,7 +214,9 @@ credentialed retrieval requests, `retrieval` uses `receipt` to
 prove real streaming transport and authenticated stored evidence,
 `process` uses
 `testserial` for process-wide isolation, and `deploy` uses `attest` and
-`temporal` to prove a real authenticated manifest and transfer substrate.
+`temporal` to prove a real authenticated manifest and transfer substrate;
+`lineio` uses `filestore` to prove its reader boundary against a real rooted
+file.
 
 ## License
 

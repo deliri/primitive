@@ -331,28 +331,14 @@ func fixtureProvenance(t *testing.T) release.BuildProvenance {
 		t.Fatalf("release.CurrentGoToolchain().Version() error = %v, want nil", err)
 	}
 	goDigest := sha256.Sum256([]byte("go tool"))
-	garbleDigest := sha256.Sum256([]byte("garble tool"))
 	wire := struct {
-		GarbleDerivation       string            `json:"garble_derivation"`
-		GarbleModule           string            `json:"garble_module"`
-		GarbleVersion          string            `json:"garble_version"`
-		GarbleRevision         string            `json:"garble_revision"`
-		GarbleModuleSum        string            `json:"garble_module_sum"`
-		GarbleLiterals         string            `json:"garble_literals"`
-		GarbleDiagnostics      string            `json:"garble_diagnostics"`
-		GoToolchain            string            `json:"go_toolchain"`
-		MainPackage            string            `json:"main_package"`
-		ModuleMode             string            `json:"module_mode"`
-		LinkerAssignments      []struct{}        `json:"linker_assignments"`
-		GoExecutableSHA256     core.SHA256Digest `json:"go_executable_sha256"`
-		GarbleExecutableSHA256 core.SHA256Digest `json:"garble_executable_sha256"`
+		GoToolchain        string            `json:"go_toolchain"`
+		MainPackage        string            `json:"main_package"`
+		ModuleMode         string            `json:"module_mode"`
+		LinkerAssignments  []struct{}        `json:"linker_assignments"`
+		GoExecutableSHA256 core.SHA256Digest `json:"go_executable_sha256"`
 	}{
 		GoToolchain: goToolchain, GoExecutableSHA256: core.NewSHA256Digest(goDigest),
-		GarbleModule: "mvdan.cc/garble", GarbleVersion: "v0.17.0",
-		GarbleRevision:         "39c484d3007e9a608ac8692dab0b9bb5f71dfc2a",
-		GarbleModuleSum:        "h1:XJ6jJhlT8HTEU9Dd02nLDUciuyPDXGRopwy/Cuoo/0M=",
-		GarbleExecutableSHA256: core.NewSHA256Digest(garbleDigest),
-		GarbleLiterals:         "obfuscate", GarbleDiagnostics: "preserve", GarbleDerivation: "one",
 		MainPackage: "github.com/offGridSoft/bug/cmd/bug", ModuleMode: "vendor",
 		LinkerAssignments: []struct{}{},
 	}

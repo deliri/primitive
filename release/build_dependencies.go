@@ -202,7 +202,7 @@ func (d BuildDependency) Version() GoModuleVersion { return d.version }
 func (d BuildDependency) Sum() GoModuleSum         { return d.sum }
 
 // BuildDependencies is the fixed, path-sorted union of all four target package
-// closures observed from the verified Go tool before Garble erases build info.
+// closures observed from the verified Go tool before the release build runs.
 type BuildDependencies struct {
 	storage     *buildDependencyStorage
 	main        GoModulePath

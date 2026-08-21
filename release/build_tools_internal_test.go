@@ -1,14 +1,11 @@
 package release
 
 import (
-	"debug/buildinfo"
 	"errors"
-	"runtime/debug"
 	"strings"
 	"testing"
 
 	"github.com/deliri/primitive/v2026/core"
-	"github.com/deliri/primitive/v2026/garble"
 )
 
 // TestParseGoVersionOutputPressuresEverySideOfTheProbeGrammar exhausts the
@@ -51,10 +48,10 @@ func TestParseGoVersionOutputPressuresEverySideOfTheProbeGrammar(t *testing.T) {
 		{name: "appended toolchain build settings are rejected", output: "go version " + want + " linux/amd64 X:fieldtrack", wantErr: core.ErrReleaseContract},
 		{name: "wrong program token is rejected", output: "tinygo version " + want + " linux/amd64", wantErr: core.ErrReleaseContract},
 		{name: "wrong subcommand token is rejected", output: "go env " + want + " linux/amd64", wantErr: core.ErrReleaseContract},
-		{name: "one patch below the pinned toolchain is rejected", output: "go version go1.26.5 linux/amd64", wantErr: core.ErrReleaseContract},
-		{name: "one patch above the pinned toolchain is rejected", output: "go version go1.26.7 linux/amd64", wantErr: core.ErrReleaseContract},
+		{name: "previous minor toolchain is rejected", output: "go version go1.26.9 linux/amd64", wantErr: core.ErrReleaseContract},
+		{name: "one patch above the pinned toolchain is rejected", output: "go version go1.27.1 linux/amd64", wantErr: core.ErrReleaseContract},
 		{name: "one minor above the pinned toolchain is rejected", output: "go version go1.28.0 linux/amd64", wantErr: core.ErrReleaseContract},
-		{name: "devel toolchain is rejected", output: "go version devel go1.26.6 linux/amd64", wantErr: core.ErrReleaseContract},
+		{name: "devel toolchain is rejected", output: "go version devel go1.27.0 linux/amd64", wantErr: core.ErrReleaseContract},
 		{name: "pinned version as a prefix is rejected", output: "go version " + want + "rc1 linux/amd64", wantErr: core.ErrReleaseContract},
 		{name: "empty version token is rejected", output: "go version  linux/amd64", wantErr: core.ErrReleaseContract},
 		{name: "platform without a separator is rejected", output: "go version " + want + " linuxamd64", wantErr: core.ErrReleaseContract},
@@ -90,84 +87,4 @@ func TestParseGoVersionOutputPressuresEverySideOfTheProbeGrammar(t *testing.T) {
 			}
 		})
 	}
-}
-
-// TestValidateGarbleBuildInfoRejectsEverySingleFieldSubstitution proves each
-// pinned Garble module fact is load bearing on its own.
-func TestValidateGarbleBuildInfoRejectsEverySingleFieldSubstitution(t *testing.T) {
-	t.Parallel()
-
-	tool := garble.CurrentTool()
-	module, err := tool.ModulePath()
-	if err != nil {
-		t.Fatalf("garble.ToolIdentity.ModulePath() error = %v, want nil", err)
-	}
-	version, err := tool.Version()
-	if err != nil {
-		t.Fatalf("garble.ToolIdentity.Version() error = %v, want nil", err)
-	}
-	sum, err := tool.ModuleSum()
-	if err != nil {
-		t.Fatalf("garble.ToolIdentity.ModuleSum() error = %v, want nil", err)
-	}
-	goVersion, err := CurrentGoToolchain().Version()
-	if err != nil {
-		t.Fatalf("GoToolchainIdentity.Version() error = %v, want nil", err)
-	}
-	admitted := func() *buildinfo.BuildInfo {
-		return &buildinfo.BuildInfo{
-			Path:      module,
-			Main:      debug.Module{Path: module, Version: version, Sum: sum},
-			GoVersion: goVersion,
-		}
-	}
-
-	if err := validateGarbleBuildInfo(admitted(), tool, goVersion); err != nil {
-		t.Fatalf("validateGarbleBuildInfo(admitted) error = %v, want nil", err)
-	}
-
-	cases := []struct {
-		mutate func(*buildinfo.BuildInfo)
-		name   string
-	}{
-		{name: "empty command path is rejected", mutate: func(i *buildinfo.BuildInfo) { i.Path = "" }},
-		{name: "forked command path is rejected", mutate: func(i *buildinfo.BuildInfo) { i.Path = module + "/v2" }},
-		{name: "lookalike command path is rejected", mutate: func(i *buildinfo.BuildInfo) { i.Path = "mvdan.cc/garbIe" }},
-		{name: "empty main module path is rejected", mutate: func(i *buildinfo.BuildInfo) { i.Main.Path = "" }},
-		{name: "vendored main module path is rejected", mutate: func(i *buildinfo.BuildInfo) { i.Main.Path = "example.com/vendor/garble" }},
-		{name: "empty module version is rejected", mutate: func(i *buildinfo.BuildInfo) { i.Main.Version = "" }},
-		{name: "devel module version is rejected", mutate: func(i *buildinfo.BuildInfo) { i.Main.Version = "(devel)" }},
-		{name: "neighbouring module version is rejected", mutate: func(i *buildinfo.BuildInfo) { i.Main.Version = version + "1" }},
-		{name: "empty module sum is rejected", mutate: func(i *buildinfo.BuildInfo) { i.Main.Sum = "" }},
-		{name: "one byte module sum change is rejected", mutate: func(i *buildinfo.BuildInfo) { i.Main.Sum = flipLastByteForTest(sum) }},
-		{name: "empty go version is rejected", mutate: func(i *buildinfo.BuildInfo) { i.GoVersion = "" }},
-		{name: "one patch below go version is rejected", mutate: func(i *buildinfo.BuildInfo) { i.GoVersion = "go1.26.5" }},
-		{name: "one patch above go version is rejected", mutate: func(i *buildinfo.BuildInfo) { i.GoVersion = "go1.26.7" }},
-	}
-	for _, tc := range cases {
-		t.Run(tc.name, func(t *testing.T) {
-			t.Parallel()
-
-			info := admitted()
-			tc.mutate(info)
-			if gotErr := validateGarbleBuildInfo(info, tool, goVersion); !errors.Is(gotErr, core.ErrReleaseContract) {
-				t.Fatalf("validateGarbleBuildInfo() error = %v, want %v", gotErr, core.ErrReleaseContract)
-			}
-		})
-	}
-
-	if gotErr := validateGarbleBuildInfo(admitted(), garble.ToolIdentityUnknown, goVersion); gotErr == nil {
-		t.Fatal("validateGarbleBuildInfo(unknown tool) error = nil, want rejection")
-	}
-}
-
-func flipLastByteForTest(value string) string {
-	if value == "" {
-		return "x"
-	}
-	last := value[len(value)-1]
-	if last == 'a' {
-		return value[:len(value)-1] + "b"
-	}
-	return value[:len(value)-1] + "a"
 }

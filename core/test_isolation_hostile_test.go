@@ -360,16 +360,16 @@ func TestDepthTwoErrorIdentitiesPreserveCallerDecisions(t *testing.T) {
 		wantReject ErrorIdentity
 	}{
 		{
-			name:       "garble build intent remains separate from derivation",
-			produced:   ErrGarbleBuildIntent,
-			wantMatch:  ErrGarbleContract,
-			wantReject: ErrGarbleDerivation,
+			name:       "indeterminate activation remains separate from cleanup",
+			produced:   ErrFilestoreActivationIndeterminate,
+			wantMatch:  ErrFilestoreActivation,
+			wantReject: ErrFilestoreCleanup,
 		},
 		{
 			name:       "keygen entropy remains separate from input contract",
 			produced:   ErrKeygenEntropy,
 			wantMatch:  ErrKeygenContract,
-			wantReject: ErrGarbleContract,
+			wantReject: ErrCurrencyContract,
 		},
 		{
 			name:       "test isolation remains separate from runtime packages",

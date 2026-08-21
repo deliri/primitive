@@ -7,7 +7,6 @@ import (
 	"io"
 
 	"github.com/deliri/primitive/v2026/core"
-	"github.com/deliri/primitive/v2026/garble"
 )
 
 const (
@@ -367,27 +366,20 @@ func (s *MetadataSet) UnmarshalJSON(data []byte) error {
 }
 
 // BuildProvenanceRequest binds public reproducibility facts to one exact plan
-// and one verified pair of build executables. The Garble seed remains secret;
-// callers reproduce it from custody and the named derivation generation.
+// and one verified Go executable.
 type BuildProvenanceRequest struct {
-	Tools                VerifiedBuildTools
-	Plan                 BuildPlan
-	DerivationGeneration garble.DerivationGeneration
+	Tools VerifiedBuildTools
+	Plan  BuildPlan
 }
 
 type BuildProvenance struct {
-	mainPackage            MainPackage
-	linkerAssignments      LinkerAssignments
-	buildTags              BuildTags
-	goExecutableDigest     core.SHA256Digest
-	garbleExecutableDigest core.SHA256Digest
-	garbleTool             garble.ToolIdentity
-	goToolchain            GoToolchainIdentity
-	moduleMode             BuildModuleMode
-	literals               garble.LiteralPolicy
-	diagnostics            garble.DiagnosticPolicy
-	derivationGeneration   garble.DerivationGeneration
-	valid                  bool
+	mainPackage        MainPackage
+	linkerAssignments  LinkerAssignments
+	buildTags          BuildTags
+	goExecutableDigest core.SHA256Digest
+	goToolchain        GoToolchainIdentity
+	moduleMode         BuildModuleMode
+	valid              bool
 }
 
 type linkerAssignmentWire struct {
@@ -396,20 +388,12 @@ type linkerAssignmentWire struct {
 }
 
 type buildProvenanceWire struct {
-	GarbleDerivation       string                 `json:"garble_derivation"`
-	GarbleModule           string                 `json:"garble_module"`
-	GarbleVersion          string                 `json:"garble_version"`
-	GarbleRevision         string                 `json:"garble_revision"`
-	GarbleModuleSum        string                 `json:"garble_module_sum"`
-	GarbleLiterals         string                 `json:"garble_literals"`
-	GarbleDiagnostics      string                 `json:"garble_diagnostics"`
-	GoToolchain            string                 `json:"go_toolchain"`
-	MainPackage            string                 `json:"main_package"`
-	ModuleMode             string                 `json:"module_mode"`
-	BuildTags              []string               `json:"build_tags"`
-	LinkerAssignments      []linkerAssignmentWire `json:"linker_assignments"`
-	GoExecutableSHA256     core.SHA256Digest      `json:"go_executable_sha256"`
-	GarbleExecutableSHA256 core.SHA256Digest      `json:"garble_executable_sha256"`
+	GoToolchain        string                 `json:"go_toolchain"`
+	MainPackage        string                 `json:"main_package"`
+	ModuleMode         string                 `json:"module_mode"`
+	BuildTags          []string               `json:"build_tags"`
+	LinkerAssignments  []linkerAssignmentWire `json:"linker_assignments"`
+	GoExecutableSHA256 core.SHA256Digest      `json:"go_executable_sha256"`
 }
 
 func (r BuildProvenanceRequest) Validate() error {
@@ -431,29 +415,11 @@ func buildProvenance(request BuildProvenanceRequest) (BuildProvenance, error) {
 	if err := request.Tools.Validate(); err != nil {
 		return BuildProvenance{}, manifestError(err)
 	}
-	if err := request.DerivationGeneration.Validate(); err != nil {
-		return BuildProvenance{}, manifestError(err)
-	}
-	if request.DerivationGeneration != garble.CurrentDerivationGeneration() {
-		return BuildProvenance{}, manifestError(errors.New("build provenance does not use the current derivation"))
-	}
 	plan := request.Plan.request
-	literals, err := plan.Garble.LiteralPolicy()
-	if err != nil {
-		return BuildProvenance{}, manifestError(err)
-	}
-	diagnostics, err := plan.Garble.DiagnosticPolicy()
-	if err != nil {
-		return BuildProvenance{}, manifestError(err)
-	}
 	value := BuildProvenance{
 		linkerAssignments: plan.LinkerAssignments, buildTags: plan.BuildTags,
-		mainPackage:            plan.MainPackage,
-		goExecutableDigest:     request.Tools.GoExecutableDigest(),
-		garbleExecutableDigest: request.Tools.GarbleExecutableDigest(),
-		garbleTool:             request.Tools.GarbleTool(), goToolchain: request.Tools.GoToolchain(),
-		moduleMode: plan.ModuleMode, literals: literals, diagnostics: diagnostics,
-		derivationGeneration: request.DerivationGeneration, valid: true,
+		mainPackage: plan.MainPackage, goExecutableDigest: request.Tools.GoExecutableDigest(),
+		goToolchain: request.Tools.GoToolchain(), moduleMode: plan.ModuleMode, valid: true,
 	}
 	if err := value.Validate(); err != nil {
 		return BuildProvenance{}, err
@@ -461,39 +427,29 @@ func buildProvenance(request BuildProvenanceRequest) (BuildProvenance, error) {
 	return value, nil
 }
 
-// Validate accepts every explicitly admitted historical tool set. Construction
-// separately pins new builds to the current toolchain, Garble tool, and seed
-// derivation; reading a signed older manifest must not consult those selectors.
+// Validate accepts every explicitly admitted historical Go toolchain.
+// Construction separately pins new builds to the current toolchain; reading a
+// signed older manifest must not consult that selector.
 func (p BuildProvenance) Validate() error {
 	if !p.valid {
 		return manifestError(errors.New("build provenance is unset"))
 	}
 	for _, err := range []error{
 		p.linkerAssignments.Validate(), p.buildTags.Validate(), p.mainPackage.Validate(),
-		p.goExecutableDigest.Validate(), p.garbleExecutableDigest.Validate(),
-		p.garbleTool.Validate(), p.goToolchain.Validate(), p.moduleMode.Validate(),
-		p.literals.Validate(), p.diagnostics.Validate(), p.derivationGeneration.Validate(),
+		p.goExecutableDigest.Validate(), p.goToolchain.Validate(), p.moduleMode.Validate(),
 	} {
 		if err != nil {
 			return manifestError(errors.New("build provenance is invalid"), err)
 		}
 	}
-	if !admittedBuildProvenanceToolSet(
-		p.goToolchain, p.garbleTool, p.derivationGeneration,
-	) {
+	if !admittedBuildProvenanceToolchain(p.goToolchain) {
 		return manifestError(errors.New("build provenance tool set is not admitted"))
 	}
 	return nil
 }
 
-func admittedBuildProvenanceToolSet(
-	goToolchain GoToolchainIdentity,
-	garbleTool garble.ToolIdentity,
-	derivation garble.DerivationGeneration,
-) bool {
-	return goToolchain == GoToolchainPrimitive2026 &&
-		garbleTool == garble.ToolIdentityPrimitive2026 &&
-		derivation == garble.DerivationGenerationOne
+func admittedBuildProvenanceToolchain(goToolchain GoToolchainIdentity) bool {
+	return goToolchain == GoToolchainPrimitive2026
 }
 
 func (p BuildProvenance) MarshalJSON() ([]byte, error) {
@@ -512,22 +468,6 @@ func (p BuildProvenance) wire() (buildProvenanceWire, error) {
 	if err != nil {
 		return buildProvenanceWire{}, err
 	}
-	module, err := p.garbleTool.ModulePath()
-	if err != nil {
-		return buildProvenanceWire{}, err
-	}
-	version, err := p.garbleTool.Version()
-	if err != nil {
-		return buildProvenanceWire{}, err
-	}
-	revision, err := p.garbleTool.Revision()
-	if err != nil {
-		return buildProvenanceWire{}, err
-	}
-	sum, err := p.garbleTool.ModuleSum()
-	if err != nil {
-		return buildProvenanceWire{}, err
-	}
 	assignments := make([]linkerAssignmentWire, p.linkerAssignments.count)
 	for index := range p.linkerAssignments.count {
 		value := p.linkerAssignments.values[index]
@@ -540,11 +480,8 @@ func (p BuildProvenance) wire() (buildProvenanceWire, error) {
 	return buildProvenanceWire{
 		BuildTags:   tags,
 		GoToolchain: goVersion, GoExecutableSHA256: p.goExecutableDigest,
-		GarbleModule: module, GarbleVersion: version, GarbleRevision: revision,
-		GarbleModuleSum: sum, GarbleExecutableSHA256: p.garbleExecutableDigest,
-		GarbleLiterals: p.literals.String(), GarbleDiagnostics: p.diagnostics.String(),
-		GarbleDerivation: p.derivationGeneration.String(), MainPackage: p.mainPackage.String(),
-		ModuleMode: p.moduleMode.String(), LinkerAssignments: assignments,
+		MainPackage: p.mainPackage.String(),
+		ModuleMode:  p.moduleMode.String(), LinkerAssignments: assignments,
 	}, nil
 }
 
@@ -565,7 +502,7 @@ func (p *BuildProvenance) UnmarshalJSON(data []byte) error {
 }
 
 func buildProvenanceFromWire(w buildProvenanceWire) (BuildProvenance, error) {
-	goToolchain, garbleTool, derivation, err := parseBuildProvenanceTools(w)
+	goToolchain, err := parseGoToolchainVersion(w.GoToolchain)
 	if err != nil {
 		return BuildProvenance{}, err
 	}
@@ -581,48 +518,15 @@ func buildProvenanceFromWire(w buildProvenanceWire) (BuildProvenance, error) {
 	if err != nil {
 		return BuildProvenance{}, err
 	}
-	literals, err := garble.ParseLiteralPolicy(w.GarbleLiterals)
-	if err != nil {
-		return BuildProvenance{}, manifestError(err)
-	}
-	diagnostics, err := garble.ParseDiagnosticPolicy(w.GarbleDiagnostics)
-	if err != nil {
-		return BuildProvenance{}, manifestError(err)
-	}
 	candidate := BuildProvenance{
 		linkerAssignments: linkers, buildTags: tags, mainPackage: mainPackage,
-		goExecutableDigest: w.GoExecutableSHA256, garbleExecutableDigest: w.GarbleExecutableSHA256,
-		garbleTool: garbleTool, goToolchain: goToolchain,
-		moduleMode: moduleMode, literals: literals, diagnostics: diagnostics,
-		derivationGeneration: derivation, valid: true,
+		goExecutableDigest: w.GoExecutableSHA256, goToolchain: goToolchain,
+		moduleMode: moduleMode, valid: true,
 	}
 	if err := candidate.Validate(); err != nil {
 		return BuildProvenance{}, err
 	}
 	return candidate, nil
-}
-
-func parseBuildProvenanceTools(
-	w buildProvenanceWire,
-) (GoToolchainIdentity, garble.ToolIdentity, garble.DerivationGeneration, error) {
-	goToolchain, err := parseGoToolchainVersion(w.GoToolchain)
-	if err != nil {
-		return GoToolchainUnknown, garble.ToolIdentityUnknown, garble.DerivationGenerationUnknown, err
-	}
-	garbleTool, err := garble.ResolveTool(garble.ToolProvenance{
-		ModulePath: w.GarbleModule, Version: w.GarbleVersion,
-		Revision: w.GarbleRevision, ModuleSum: w.GarbleModuleSum,
-	})
-	if err != nil {
-		return GoToolchainUnknown, garble.ToolIdentityUnknown, garble.DerivationGenerationUnknown,
-			manifestError(err)
-	}
-	derivation, err := garble.ParseDerivationGeneration(w.GarbleDerivation)
-	if err != nil {
-		return GoToolchainUnknown, garble.ToolIdentityUnknown, garble.DerivationGenerationUnknown,
-			manifestError(err)
-	}
-	return goToolchain, garbleTool, derivation, nil
 }
 
 // buildSelectorsFromWire reconstructs the two compiler-owned selector sets that

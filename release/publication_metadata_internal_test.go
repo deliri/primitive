@@ -11,7 +11,6 @@ import (
 	"testing"
 
 	"github.com/deliri/primitive/v2026/core"
-	"github.com/deliri/primitive/v2026/garble"
 )
 
 // TestMetadataKindExhaustsItsEntireBackingDomain proves the closed wire enum
@@ -66,7 +65,6 @@ func TestBuildProvenanceWireFieldsRejectInvalidDomainsAndRetainSignedDigests(t *
 	}
 	provenance, err := NewBuildProvenance(BuildProvenanceRequest{
 		Plan: plan, Tools: provenanceVerifiedTools(t),
-		DerivationGeneration: garble.CurrentDerivationGeneration(),
 	})
 	if err != nil {
 		t.Fatalf("NewBuildProvenance() error = %v, want nil", err)
@@ -79,30 +77,21 @@ func TestBuildProvenanceWireFieldsRejectInvalidDomainsAndRetainSignedDigests(t *
 		t.Fatalf("BuildProvenance linker assignments = %d, want 1 nonempty mutation target", len(wire.LinkerAssignments))
 	}
 	alternateGoDigest := sha256.Sum256([]byte("different go executable"))
-	alternateGarbleDigest := sha256.Sum256([]byte("different garble executable"))
 
 	cases := []struct {
-		mutate       func(*buildProvenanceWire)
-		name         string
-		wantAccepted bool
+		wantErr error
+		mutate  func(*buildProvenanceWire)
+		name    string
 	}{
-		{name: "go toolchain version substitution is rejected", mutate: func(w *buildProvenanceWire) { w.GoToolchain = "go1.26.7" }},
-		{name: "garble module substitution is rejected", mutate: func(w *buildProvenanceWire) { w.GarbleModule += "/fork" }},
-		{name: "garble version substitution is rejected", mutate: func(w *buildProvenanceWire) { w.GarbleVersion += "1" }},
-		{name: "garble revision substitution is rejected", mutate: func(w *buildProvenanceWire) { w.GarbleRevision = strings.Repeat("0", len(w.GarbleRevision)) }},
-		{name: "garble module sum substitution is rejected", mutate: func(w *buildProvenanceWire) { w.GarbleModuleSum += "x" }},
-		{name: "future derivation substitution is rejected", mutate: func(w *buildProvenanceWire) { w.GarbleDerivation = "two" }},
-		{name: "literal policy substitution is rejected", mutate: func(w *buildProvenanceWire) { w.GarbleLiterals = "future" }},
-		{name: "diagnostic policy substitution is rejected", mutate: func(w *buildProvenanceWire) { w.GarbleDiagnostics = "future" }},
-		{name: "flag shaped main package substitution is rejected", mutate: func(w *buildProvenanceWire) { w.MainPackage = "-buildmode=exe/cmd" }},
-		{name: "module mode substitution is rejected", mutate: func(w *buildProvenanceWire) { w.ModuleMode = "mod" }},
-		{name: "linker symbol substitution is rejected", mutate: func(w *buildProvenanceWire) { w.LinkerAssignments[0].Symbol = "-ldflags/y.Value" }},
-		{name: "linker value control byte substitution is rejected", mutate: func(w *buildProvenanceWire) { w.LinkerAssignments[0].Value = "one\x00two" }},
+		{name: "go toolchain version substitution is rejected", mutate: func(w *buildProvenanceWire) { w.GoToolchain = "go1.27.1" }, wantErr: core.ErrJSONContract},
+		{name: "flag shaped main package substitution is rejected", mutate: func(w *buildProvenanceWire) { w.MainPackage = "-buildmode=exe/cmd" }, wantErr: core.ErrJSONContract},
+		{name: "module mode substitution is rejected", mutate: func(w *buildProvenanceWire) { w.ModuleMode = "mod" }, wantErr: core.ErrJSONContract},
+		{name: "linker symbol substitution is rejected", mutate: func(w *buildProvenanceWire) { w.LinkerAssignments[0].Symbol = "-ldflags/y.Value" }, wantErr: core.ErrJSONContract},
+		{name: "linker value control byte substitution is rejected", mutate: func(w *buildProvenanceWire) { w.LinkerAssignments[0].Value = "one\x00two" }, wantErr: core.ErrJSONContract},
 		{name: "duplicated linker assignment is rejected", mutate: func(w *buildProvenanceWire) {
 			w.LinkerAssignments = append(w.LinkerAssignments, w.LinkerAssignments[0])
-		}},
-		{name: "go executable digest substitution is retained as signed provenance", mutate: func(w *buildProvenanceWire) { w.GoExecutableSHA256 = core.NewSHA256Digest(alternateGoDigest) }, wantAccepted: true},
-		{name: "garble executable digest substitution is retained as signed provenance", mutate: func(w *buildProvenanceWire) { w.GarbleExecutableSHA256 = core.NewSHA256Digest(alternateGarbleDigest) }, wantAccepted: true},
+		}, wantErr: core.ErrJSONContract},
+		{name: "go executable digest substitution is retained as signed provenance", mutate: func(w *buildProvenanceWire) { w.GoExecutableSHA256 = core.NewSHA256Digest(alternateGoDigest) }},
 	}
 	for _, tc := range cases {
 		t.Run(tc.name, func(t *testing.T) {
@@ -117,20 +106,20 @@ func TestBuildProvenanceWireFieldsRejectInvalidDomainsAndRetainSignedDigests(t *
 			}
 			got := provenance
 			gotErr := json.Unmarshal(encoded, &got)
-			if tc.wantAccepted {
-				if gotErr != nil {
-					t.Fatalf("json.Unmarshal(signed digest substitution) error = %v, want nil", gotErr)
+			if tc.wantErr != nil {
+				if !errors.Is(gotErr, tc.wantErr) {
+					t.Fatalf("json.Unmarshal(mutated BuildProvenance) error = %v, want %v", gotErr, tc.wantErr)
 				}
-				if got == provenance {
-					t.Fatalf("%s: json.Unmarshal() provenance = original, want changed signed fact", tc.name)
+				if got != provenance {
+					t.Fatalf("%s: json.Unmarshal() receiver changed, want original provenance on rejection", tc.name)
 				}
 				return
 			}
-			if !errors.Is(gotErr, core.ErrJSONContract) {
-				t.Fatalf("json.Unmarshal(mutated BuildProvenance) error = %v, want %v", gotErr, core.ErrJSONContract)
+			if gotErr != nil {
+				t.Fatalf("json.Unmarshal(signed digest substitution) error = %v, want nil", gotErr)
 			}
-			if got != provenance {
-				t.Fatalf("%s: json.Unmarshal() receiver changed, want original provenance on rejection", tc.name)
+			if got == provenance {
+				t.Fatalf("%s: json.Unmarshal() provenance = original, want changed signed fact", tc.name)
 			}
 		})
 	}
@@ -154,7 +143,6 @@ func TestBuildProvenanceHistoricalValidationDoesNotConsultCurrentSelectors(t *te
 	}{
 		{name: "BuildProvenance.Validate"},
 		{name: "buildProvenanceFromWire"},
-		{name: "parseBuildProvenanceTools"},
 	}
 	var forbidden []string
 	for _, declaration := range file.Decls {
@@ -184,7 +172,7 @@ func TestBuildProvenanceHistoricalValidationDoesNotConsultCurrentSelectors(t *te
 			}
 			called := calledFunctionName(call.Fun)
 			switch called {
-			case "CurrentGoToolchain", "garble.CurrentTool", "garble.CurrentDerivationGeneration":
+			case "CurrentGoToolchain":
 				forbidden = append(forbidden, name+" -> "+called)
 			}
 			return true

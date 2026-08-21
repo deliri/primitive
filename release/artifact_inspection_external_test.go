@@ -16,7 +16,6 @@ import (
 	"time"
 
 	"github.com/deliri/primitive/v2026/core"
-	"github.com/deliri/primitive/v2026/garble"
 	"github.com/deliri/primitive/v2026/release"
 )
 
@@ -226,17 +225,10 @@ func inspectionGoBuildArguments(
 	if err != nil {
 		t.Fatalf("core.ParseRelativePath(inspection output) error = %v, want nil", err)
 	}
-	intent, err := garble.PrepareBuild(garble.BuildRequest{
-		Tool: garble.CurrentTool(), Seed: garble.NewSeed([garble.SeedBytes]byte{1}),
-		Literals: garble.LiteralPolicyObfuscate, Diagnostics: garble.DiagnosticPolicyPreserve,
-	})
-	if err != nil {
-		t.Fatalf("garble.PrepareBuild(inspection fixture) error = %v, want nil", err)
-	}
 	plan, err := release.PrepareBuildPlan(release.BuildPlanRequest{
 		Offering: request.Build.Offering(), Version: request.Build.Version(), Commit: request.Build.Commit(),
 		GoToolchain: release.CurrentGoToolchain(), MainPackage: mainPackage, OutputDirectory: outputDirectory,
-		Garble: intent, ModuleMode: release.BuildModuleReadonly,
+		ModuleMode:        release.BuildModuleReadonly,
 		LinkerAssignments: mustInspectionAssignments(t, request.ProductValue),
 	})
 	if err != nil {
@@ -247,7 +239,7 @@ func inspectionGoBuildArguments(
 	if err != nil {
 		t.Fatalf("release.BuildCommand.ArgumentValues(inspection fixture) error = %v, want nil", err)
 	}
-	return lowerInspectionGarbleArguments(t, lowerInspectionGarbleArgumentsRequest{
+	return lowerInspectionGoArguments(t, lowerInspectionGoArgumentsRequest{
 		Arguments: arguments, Output: output, StripFlags: request.StripFlags,
 	})
 }
@@ -268,13 +260,13 @@ func inspectionBuildCommand(
 	return release.BuildCommand{}
 }
 
-type lowerInspectionGarbleArgumentsRequest struct {
+type lowerInspectionGoArgumentsRequest struct {
 	Output     core.AbsolutePath
 	StripFlags string
 	Arguments  []string
 }
 
-func lowerInspectionGarbleArguments(t testing.TB, request lowerInspectionGarbleArgumentsRequest) []string {
+func lowerInspectionGoArguments(t testing.TB, request lowerInspectionGoArgumentsRequest) []string {
 	t.Helper()
 	buildIndex := slices.Index(request.Arguments, "build")
 	if buildIndex < 0 {

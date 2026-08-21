@@ -118,7 +118,6 @@ type releaseContractInventory struct {
 	materialRequestWire               internalFlow[materialRequestWire]
 	MaterialRequestInput              protocolFact[MaterialRequestInput]
 	ReleaseSigningSeed                protocolFact[ReleaseSigningSeed]
-	GarbleCustodySeed                 protocolFact[GarbleCustodySeed]
 	MaterialResponse                  protocolFact[MaterialResponse]
 	materialResponseWire              internalFlow[materialResponseWire]
 	Material                          capabilityWrapper[Material]
@@ -202,7 +201,6 @@ func TestPublicOperationsAreExactReleaseIntent(t *testing.T) {
 		"NewBuildProvenance",
 		"NewBuildTags",
 		"NewCachedLatest",
-		"NewGarbleCustodySeed",
 		"NewGeneration",
 		"NewLinkerAssignment",
 		"NewLinkerAssignments",

@@ -8,7 +8,6 @@ import (
 	"time"
 
 	"github.com/deliri/primitive/v2026/core"
-	"github.com/deliri/primitive/v2026/garble"
 	"github.com/deliri/primitive/v2026/process"
 	"github.com/deliri/primitive/v2026/release"
 	"github.com/deliri/primitive/v2026/temporal"
@@ -25,11 +24,11 @@ func TestVerifyBuildToolsProvesTheExactInstalledExecutables(t *testing.T) {
 	if err := verified.Validate(); err != nil {
 		t.Fatalf("release.VerifiedBuildTools.Validate() error = %v, want nil", err)
 	}
-	if verified.GoExecutable() != request.GoExecutable || verified.GarbleExecutable() != request.GarbleExecutable {
+	if verified.GoExecutable() != request.GoExecutable {
 		t.Fatalf("verified executable paths differ from the inspected paths")
 	}
-	if verified.GoToolchain() != release.CurrentGoToolchain() || verified.GarbleTool() != garble.CurrentTool() {
-		t.Fatalf("verified tool identities = (%v, %v), want current", verified.GoToolchain(), verified.GarbleTool())
+	if verified.GoToolchain() != release.CurrentGoToolchain() {
+		t.Fatalf("verified tool identity = %v, want current", verified.GoToolchain())
 	}
 	wantPlatform := core.Platform{OperatingSystem: core.OperatingSystemDarwin, Architecture: core.CPUArchitectureARM64}
 	if runtime.GOOS != "darwin" || runtime.GOARCH != "arm64" {
@@ -41,9 +40,6 @@ func TestVerifyBuildToolsProvesTheExactInstalledExecutables(t *testing.T) {
 	if err := verified.GoExecutableDigest().Validate(); err != nil {
 		t.Fatalf("verified Go executable digest error = %v, want nil", err)
 	}
-	if err := verified.GarbleExecutableDigest().Validate(); err != nil {
-		t.Fatalf("verified Garble executable digest error = %v, want nil", err)
-	}
 }
 
 func buildToolVerificationRequestForLiveTest(t *testing.T) release.BuildToolVerificationRequest {
@@ -53,17 +49,9 @@ func buildToolVerificationRequestForLiveTest(t *testing.T) release.BuildToolVeri
 	if err != nil {
 		t.Fatalf("exec.LookPath(go) error = %v, want installed Go", err)
 	}
-	garblePath, err := exec.LookPath("garble")
-	if err != nil {
-		t.Fatalf("exec.LookPath(garble) error = %v, want installed pinned Garble", err)
-	}
 	goExecutable, err := core.ParseAbsolutePath(goPath)
 	if err != nil {
 		t.Fatalf("core.ParseAbsolutePath(go) error = %v, want nil", err)
-	}
-	garbleExecutable, err := core.ParseAbsolutePath(garblePath)
-	if err != nil {
-		t.Fatalf("core.ParseAbsolutePath(garble) error = %v, want nil", err)
 	}
 	workingText, err := os.Getwd()
 	if err != nil {
@@ -83,8 +71,8 @@ func buildToolVerificationRequestForLiveTest(t *testing.T) release.BuildToolVeri
 	}
 	return release.BuildToolVerificationRequest{
 		HostEnvironment: environment, GoExecutable: goExecutable,
-		GarbleExecutable: garbleExecutable, WorkingDirectory: workingDirectory,
-		WaitDelay: waitDelay,
+		WorkingDirectory: workingDirectory,
+		WaitDelay:        waitDelay,
 	}
 }
 

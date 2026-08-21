@@ -58,10 +58,8 @@ var (
 	_ core.ValidatedJSONMarshaler = MaterialRequest{}
 	_ core.ValidatedJSONMarshaler = MaterialResponse{}
 	_ core.ValidatedJSONMarshaler = ReleaseSigningSeed{}
-	_ core.ValidatedJSONMarshaler = GarbleCustodySeed{}
 
 	_ fmt.Formatter = ReleaseSigningSeed{}
-	_ fmt.Formatter = GarbleCustodySeed{}
 	_ fmt.Formatter = MaterialResponse{}
 	_ fmt.Formatter = Material{}
 )

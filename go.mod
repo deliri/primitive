@@ -1,6 +1,6 @@
 module github.com/deliri/primitive/v2026
 
-go 1.26.6
+go 1.27.0
 
 require (
 	cloud.google.com/go/storage v1.65.0
@@ -12,7 +12,7 @@ require (
 require (
 	cel.dev/expr v0.25.3 // indirect
 	cloud.google.com/go v0.123.0 // indirect
-	cloud.google.com/go/auth v0.23.1 // indirect
+	cloud.google.com/go/auth v0.23.2 // indirect
 	cloud.google.com/go/auth/oauth2adapt v0.2.8 // indirect
 	cloud.google.com/go/compute/metadata v0.9.0 // indirect
 	cloud.google.com/go/iam v1.13.0 // indirect

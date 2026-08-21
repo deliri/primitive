@@ -4,8 +4,30 @@ Last updated: `2026-08-20`
 
 ## Current
 
+- opened bounded line scanning over one reader, 2026-08-20, preparing
+  `v2026.0.138`. Lineio now owns the missing B3 mechanism over Go's real
+  `bufio.Scanner` and `bufio.ScanLines`: one validated structure-to-structure
+  request carries `core.ByteCount` bounds, exact-width LF and CRLF lines are
+  admitted, one-byte-over lines preserve both `ErrLineIOScan` and native
+  `bufio.ErrTooLong`, and native reader failures remain reachable. One
+  compiler-owned 16 MiB ceiling bounds both the initial allocation and line
+  growth; the former platform-maximum contract that could request an enormous
+  allocation is gone. There is no global pool, lease, release lifecycle,
+  goroutine, retry, filesystem effect, or alternate reader. The exact 10
+  accepted / 10 rejected / 20 boundary table, semantic fuzz closure, race proof,
+  and real Filestore positive/negative/neutral triad are green. The selected
+  consumer surgery deletes Witness `internal/streamutil` and migrates every
+  scanner call site after publication.
+
+  The same clean-break release advances Primitive to exact Go 1.27.0 and
+  removes Garble from the package graph, build plan, provenance, custody,
+  documentation, and release execution. Release is now a direct, typed Go
+  pipeline rather than a compiler pipeline coupled to an obfuscator's supported
+  linker versions. Go's reachable-module upgrade advances Cloud Auth to
+  `v0.23.2`; every direct requirement was already current.
+
 - opened bounded Google Cloud OAuth access-token acquisition, 2026-08-20,
-  preparing `v2026.0.137`. Cloudidentity now keeps authorization credentials
+  published `v2026.0.137`. Cloudidentity now keeps authorization credentials
   compiler-distinct from audience-bound identity assertions, decodes the exact
   bounded metadata response through Primitive Exchange, preserves a positive
   typed provider lifetime, and redacts every generic formatting surface. The

@@ -14,8 +14,9 @@ import (
 )
 
 const (
-	coreExportInventoryMaximum  = 512
-	coreExportDependencyMaximum = 32
+	coreExportInventoryMaximum      = 512
+	coreExportDependencyMaximum     = 32
+	coreSpecialExportAdmissionCount = 64
 )
 
 type coreExportName string
@@ -50,13 +51,15 @@ const (
 	coreSpecialExportAdmissionReasonUnknown coreSpecialExportAdmissionReason = iota
 	coreSpecialExportAdmissionReasonArchitectureCatalog
 	coreSpecialExportAdmissionReasonTestIsolationContract
+	coreSpecialExportAdmissionReasonCoherentDomainContract
 	coreSpecialExportAdmissionReasonLimit
 )
 
 func coreSpecialExportAdmissionReasonTexts() [coreSpecialExportAdmissionReasonLimit]string {
 	return [...]string{
-		coreSpecialExportAdmissionReasonArchitectureCatalog:   "compiler-owned architecture catalog is Core's self-projection",
-		coreSpecialExportAdmissionReasonTestIsolationContract: "external test-isolation analyzer ABI is Core's self-projection",
+		coreSpecialExportAdmissionReasonArchitectureCatalog:    "compiler-owned architecture catalog is Core's self-projection",
+		coreSpecialExportAdmissionReasonTestIsolationContract:  "external test-isolation analyzer ABI is Core's self-projection",
+		coreSpecialExportAdmissionReasonCoherentDomainContract: "export is an invariant of its Core-owned coherent domain",
 	}
 }
 
@@ -83,10 +86,17 @@ func testIsolationContractAdmission(name coreExportName, witness any) coreSpecia
 	}
 }
 
+func coherentDomainContractAdmission(name coreExportName, witness any) coreSpecialExportAdmission {
+	return coreSpecialExportAdmission{
+		name: name, witness: witness,
+		reason: coreSpecialExportAdmissionReasonCoherentDomainContract,
+	}
+}
+
 // These are PLAN's compiler-owned architecture catalog, not ordinary shared
 // facts. Each name is paired with a live identifier reference, so a declaration
 // rename breaks the test build instead of changing policy through a filename.
-func coreSpecialExportAdmissions() [63]coreSpecialExportAdmission {
+func coreSpecialExportAdmissions() [coreSpecialExportAdmissionCount]coreSpecialExportAdmission {
 	return [...]coreSpecialExportAdmission{
 		architectureCatalogAdmission("ArchitectureCatalog", ArchitectureCatalog{}),
 		architectureCatalogAdmission("DirectImportContract", DirectImportContract{}),
@@ -102,7 +112,6 @@ func coreSpecialExportAdmissions() [63]coreSpecialExportAdmission {
 		architectureCatalogAdmission("PackageAttest", PackageAttest),
 		architectureCatalogAdmission("PackageContextState", PackageContextState),
 		architectureCatalogAdmission("PackageCurrency", PackageCurrency),
-		architectureCatalogAdmission("PackageGarble", PackageGarble),
 		architectureCatalogAdmission("PackageKeygen", PackageKeygen),
 		architectureCatalogAdmission("PackageTestSerial", PackageTestSerial),
 		architectureCatalogAdmission("PackageFilestore", PackageFilestore),
@@ -121,6 +130,7 @@ func coreSpecialExportAdmissions() [63]coreSpecialExportAdmission {
 		architectureCatalogAdmission("PackageCloudIdentity", PackageCloudIdentity),
 		architectureCatalogAdmission("PackageUpgrade", PackageUpgrade),
 		architectureCatalogAdmission("PackageWiring", PackageWiring),
+		architectureCatalogAdmission("PackageLineIO", PackageLineIO),
 		architectureCatalogAdmission("ParsePackageIdentity", ParsePackageIdentity),
 		architectureCatalogAdmission("PrimitiveArchitecture", PrimitiveArchitecture),
 		architectureCatalogAdmission("PrimitivePackageCount", PrimitivePackageCount),
@@ -129,6 +139,7 @@ func coreSpecialExportAdmissions() [63]coreSpecialExportAdmission {
 		architectureCatalogAdmission("PrimitiveMaximumDirectImports", PrimitiveMaximumDirectImports),
 		architectureCatalogAdmission("PrimitiveModulePath", PrimitiveModulePath),
 		architectureCatalogAdmission("PrimitivePackagePathPrefix", PrimitivePackagePathPrefix),
+		coherentDomainContractAdmission("SecretMaterialMaximumBytes", SecretMaterialMaximumBytes),
 		testIsolationContractAdmission("TestIsolationCorePackagePath", TestIsolationCorePackagePath),
 		testIsolationContractAdmission("TestIsolationDeclarationPackagePath", TestIsolationDeclarationPackagePath),
 		testIsolationContractAdmission("TestIsolationDeclarationFunctionName", TestIsolationDeclarationFunctionName),
@@ -250,7 +261,7 @@ func TestTypedDomainMemberConsumerProjectionDoesNotLaunderUntypedExports(t *test
 }
 
 func coreExportIsSpeciallyAdmitted(
-	admissions [63]coreSpecialExportAdmission,
+	admissions [coreSpecialExportAdmissionCount]coreSpecialExportAdmission,
 	name coreExportName,
 ) bool {
 	return slices.ContainsFunc(admissions[:], func(admission coreSpecialExportAdmission) bool {
