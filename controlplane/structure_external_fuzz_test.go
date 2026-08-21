@@ -147,7 +147,7 @@ func FuzzRegistrationPayloadExternalDecoder(f *testing.F) {
 }
 
 func FuzzCheckInPayloadExternalDecoder(f *testing.F) {
-	issued := issueTestCheckIn(f, core.OfferingWitness, testCheckInWindow())
+	issued := issueTestCheckIn(f, controlplaneOffering(f, 2), testCheckInWindow())
 	seed := issued.request.Payload
 	mutation := seed
 	mutation.RequestNonce = otherRequestNonce(f)

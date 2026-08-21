@@ -1,10 +1,30 @@
 # Primitive 2026 Ledger
 
-Last updated: `2026-08-20`
+Last updated: `2026-08-21`
 
 ## Current
 
-- opened shared human and machine command guidance, 2026-08-20, preparing
+- removed Primitive's closed product catalog, 2026-08-21, published
+  `v2026.0.140`. `core.Offering` now carries one bounded, canonical,
+  consumer-owned identity that Primitive validates but never enumerates or
+  interprets. Lease, Receipt, Controlplane, Submission, Chit, Payment,
+  Retrieval, Distribution, Release, Upgrade, and their authentication
+  contracts carry that same typed value directly; the derived Lease product
+  table and Receipt offering hash identity are deleted. This lets Blink Kernel
+  and future consumers use Manual and the shared client/server documents
+  without teaching Primitive their names. The same clean break moves every
+  JSON boundary to Go's `encoding/json/v2`; owner validation prevents partial
+  external output, while native JSON v2 syntax identity and canonical behavior
+  remain visible. Hostile triads exposed and ratcheted partial invalid Receipt
+  scopes, stale Lease wire fields, voided JSON tokens, and partial invalid
+  ManifestIntent output. Focused behavior tests, repository compile closure,
+  doctrine lint, field alignment, and diff hygiene are green. The canonical
+  gate passed tests, race, analysis, security, dead-code, benchmark, and the
+  executed semantic-fuzz targets before its remaining fuzz sweep was stopped
+  at the user's direction to avoid wasting wall clock; no release or Cink
+  closure is claimed yet.
+
+- opened shared human and machine command guidance, 2026-08-20, published
   `v2026.0.139`. Manual owns one bounded product-neutral `Book` projection:
   Bug, Witness, and Peachfuzz retain their typed command enums, customer
   wording, and CLI routing, while Primitive validates the shared pages,

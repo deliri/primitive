@@ -1,7 +1,7 @@
 package submission
 
 import (
-	"encoding/json"
+	json "encoding/json/v2"
 	"errors"
 
 	"github.com/deliri/primitive/v2026/chit"
@@ -92,8 +92,22 @@ func (i ManifestIntent) Validate() error {
 	return nil
 }
 
+// MarshalJSON validates the complete intent before any external bytes escape.
+func (i ManifestIntent) MarshalJSON() ([]byte, error) {
+	type wire ManifestIntent
+	if err := i.Validate(); err != nil {
+		return nil, jsonError(err)
+	}
+	encoded, err := json.Marshal(wire(i))
+	if err != nil {
+		return nil, jsonError(err)
+	}
+	return encoded, nil
+}
+
 var (
 	_ core.Validatable            = UploadID{}
 	_ core.Validatable            = ManifestIntent{}
 	_ core.ValidatedJSONMarshaler = UploadID{}
+	_ core.ValidatedJSONMarshaler = ManifestIntent{}
 )

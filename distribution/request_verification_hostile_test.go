@@ -19,7 +19,7 @@ func TestVerifyPublicationRequestRequiresCallerManifestAndOfferingClosure(t *tes
 	otherNonce := requestNonce(t, 93)
 	base := distribution.PublicationRequestVerification{
 		Document: fixture.requestDocument, RequestKeys: fixture.callerKeys,
-		ManifestKeys: fixture.releaseKeys, ExpectedOffering: core.OfferingBug,
+		ManifestKeys: fixture.releaseKeys, ExpectedOffering: distributionOffering(t, 1),
 	}
 	cases := []struct {
 		wantErr error
@@ -38,7 +38,7 @@ func TestVerifyPublicationRequestRequiresCallerManifestAndOfferingClosure(t *tes
 			return v
 		}, wantErr: core.ErrDistributionVerification},
 		{name: "different expected offering is rejected", mutate: func(v distribution.PublicationRequestVerification) distribution.PublicationRequestVerification {
-			v.ExpectedOffering = core.OfferingWitness
+			v.ExpectedOffering = distributionOffering(t, 2)
 			return v
 		}, wantErr: core.ErrDistributionVerification},
 		{name: "valid alternate signed manifest invalidates caller signature", mutate: func(v distribution.PublicationRequestVerification) distribution.PublicationRequestVerification {

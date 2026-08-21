@@ -29,7 +29,7 @@ var (
 	_ Validatable              = Platform{}
 	_ Validatable              = OperatingSystem(0)
 	_ Validatable              = CPUArchitecture(0)
-	_ Validatable              = Offering(0)
+	_ Validatable              = Offering{}
 	_ Validatable              = ReleaseVersion{}
 	_ Validatable              = BuildCommit{}
 	_ Validatable              = BuildIdentity{}
@@ -59,7 +59,7 @@ var (
 	_ ValidatedJSONMarshaler = Platform{}
 	_ ValidatedJSONMarshaler = OperatingSystem(0)
 	_ ValidatedJSONMarshaler = CPUArchitecture(0)
-	_ ValidatedJSONMarshaler = Offering(0)
+	_ ValidatedJSONMarshaler = Offering{}
 	_ ValidatedJSONMarshaler = ReleaseVersion{}
 	_ ValidatedJSONMarshaler = BuildCommit{}
 	_ ValidatedJSONMarshaler = BuildIdentity{}

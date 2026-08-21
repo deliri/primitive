@@ -1,7 +1,8 @@
 package core_test
 
 import (
-	"encoding/json"
+	jsontext "encoding/json/jsontext"
+	json "encoding/json/v2"
 	"errors"
 	"math"
 	"strconv"
@@ -10,6 +11,8 @@ import (
 
 	"github.com/deliri/primitive/v2026/core"
 )
+
+const offeringFixtureToken = "core-fixture"
 
 func TestReleaseVersionBoundaries(t *testing.T) {
 	t.Parallel()
@@ -79,7 +82,7 @@ func TestBuildCommitBoundaries(t *testing.T) {
 func TestBuildIdentityJSONRejectsLooseProtocol(t *testing.T) {
 	t.Parallel()
 
-	identity := releaseIdentityFixture(t, core.OfferingWitness)
+	identity := releaseIdentityFixture(t, offeringFixture(t))
 	encoded, err := json.Marshal(identity)
 	if err != nil {
 		t.Fatalf("json.Marshal(BuildIdentity) error = %v", err)
@@ -92,82 +95,129 @@ func TestBuildIdentityJSONRejectsLooseProtocol(t *testing.T) {
 		t.Fatalf("BuildIdentity round trip = %v, want %v", got, identity)
 	}
 
-	hostile := [][]byte{
-		[]byte(`null`),
-		[]byte(`{}`),
-		[]byte(`{"offering":"witness","offering":"witness","version":"2026.7.30","commit":"0123456789abcdef0123456789abcdef01234567","platform":"linux-amd64"}`),
-		[]byte(`{"offering":"witness","version":"2026.7.30","commit":"0123456789abcdef0123456789abcdef01234567","platform":"linux-amd64","future":true}`),
+	hostile := []struct {
+		name       string
+		data       []byte
+		wantNative bool
+	}{
+		{name: "null document reaches the typed contract", data: []byte(`null`)},
+		{name: "missing fields reach the typed contract", data: []byte(`{}`)},
+		{name: "duplicate member stops at JSON v2 syntax", data: []byte(`{"offering":"core-fixture","offering":"core-fixture","version":"2026.7.30","commit":"0123456789abcdef0123456789abcdef01234567","platform":"linux-amd64"}`), wantNative: true},
+		{name: "unknown member reaches the typed contract", data: []byte(`{"offering":"core-fixture","version":"2026.7.30","commit":"0123456789abcdef0123456789abcdef01234567","platform":"linux-amd64","future":true}`)},
 	}
-	for _, data := range hostile {
-		var receiver core.BuildIdentity
-		err := json.Unmarshal(data, &receiver)
-		if !errors.Is(err, core.ErrJSONContract) {
-			t.Fatalf("json.Unmarshal(%q) error = %v, want %v", data, err, core.ErrJSONContract)
-		}
-		if receiver != (core.BuildIdentity{}) {
-			t.Fatalf("json.Unmarshal(%q) mutated receiver to %v", data, receiver)
-		}
+	for _, tc := range hostile {
+		t.Run(tc.name, func(t *testing.T) {
+			t.Parallel()
+			var receiver core.BuildIdentity
+			err := json.Unmarshal(tc.data, &receiver)
+			if tc.wantNative {
+				var gotSyntax *jsontext.SyntacticError
+				if !errors.As(err, &gotSyntax) {
+					t.Fatalf("json.Unmarshal(%q) error = %v, want JSON v2 syntactic error", tc.data, err)
+				}
+			} else if !errors.Is(err, core.ErrJSONContract) {
+				t.Fatalf("json.Unmarshal(%q) error = %v, want %v", tc.data, err, core.ErrJSONContract)
+			}
+			if receiver != (core.BuildIdentity{}) {
+				t.Fatalf("json.Unmarshal(%q) mutated receiver to %v", tc.data, receiver)
+			}
+		})
 	}
 }
 
-func TestOfferingExhaustsCompleteByteDomain(t *testing.T) {
+func TestOfferingHostileCanonicalDomain(t *testing.T) {
 	t.Parallel()
 
-	for value := range 256 {
-		offering := core.Offering(value)
-		wantValid := offering == core.OfferingBug ||
-			offering == core.OfferingWitness ||
-			offering == core.OfferingPeachfuzz
-		if offering.IsValid() != wantValid {
-			t.Fatalf("Offering(%d).IsValid() = %v, want %v", value, offering.IsValid(), wantValid)
-		}
-		if (offering.String() != "") != wantValid {
-			t.Fatalf("Offering(%d).String() = %q, want nonempty=%v", value, offering.String(), wantValid)
-		}
-		if !wantValid {
-			continue
-		}
-		encoded, err := json.Marshal(offering)
-		if err != nil {
-			t.Fatalf("json.Marshal(Offering(%d)) error = %v", value, err)
-		}
-		var roundTrip core.Offering
-		if err := json.Unmarshal(encoded, &roundTrip); err != nil || roundTrip != offering {
-			t.Fatalf("Offering(%d) round trip = (%v, %v), want (%v, nil)", value, roundTrip, err, offering)
-		}
-		var textRoundTrip core.Offering
-		if err := textRoundTrip.UnmarshalText([]byte(offering.String())); err != nil || textRoundTrip != offering {
-			t.Fatalf("Offering(%d) text round trip = (%v, %v), want (%v, nil)", value, textRoundTrip, err, offering)
-		}
+	cases := []struct {
+		name   string
+		text   string
+		wantOK bool
+	}{
+		{name: "minimum one-letter identity", text: "a", wantOK: true},
+		{name: "last lowercase letter identity", text: "z", wantOK: true},
+		{name: "single trailing digit", text: "a0", wantOK: true},
+		{name: "one internal separator", text: "a-b", wantOK: true},
+		{name: "letters and digits in segments", text: "a0-b9", wantOK: true},
+		{name: "several canonical segments", text: "a-b-c-d", wantOK: true},
+		{name: "ordinary product-neutral identity", text: offeringFixtureToken, wantOK: true},
+		{name: "calendar suffix identity", text: "product-2026", wantOK: true},
+		{name: "long canonical segment", text: strings.Repeat("a", 24), wantOK: true},
+		{name: "long segmented identity", text: "product-alpha-2026-release", wantOK: true},
+		{name: "empty identity", text: ""},
+		{name: "obviously oversized identity", text: strings.Repeat("a", 1<<10)},
+		{name: "leading digit", text: "1product"},
+		{name: "leading separator", text: "-product"},
+		{name: "trailing separator", text: "product-"},
+		{name: "adjacent separators", text: "product--alpha"},
+		{name: "uppercase first byte", text: "Product"},
+		{name: "uppercase interior byte", text: "proDuct"},
+		{name: "underscore separator", text: "product_alpha"},
+		{name: "slash separator", text: "product/alpha"},
+		{name: "dot separator", text: "product.alpha"},
+		{name: "colon separator", text: "product:alpha"},
+		{name: "leading space", text: " product"},
+		{name: "trailing space", text: "product "},
+		{name: "interior tab", text: "product\talpha"},
+		{name: "interior newline", text: "product\nalpha"},
+		{name: "NUL byte", text: "product\x00alpha"},
+		{name: "non-ASCII letter", text: "prøduct"},
+		{name: "invalid UTF-8 byte", text: string([]byte{0xff})},
+		{name: "oversized segmented identity", text: strings.Repeat("a", 1<<10) + "-a"},
+	}
+	for _, tc := range cases {
+		t.Run(tc.name, func(t *testing.T) {
+			t.Parallel()
+
+			got := core.Offering{Token: tc.text}
+			gotErr := got.Validate()
+			if !tc.wantOK {
+				if !errors.Is(gotErr, core.ErrPrimitiveContract) {
+					t.Fatalf("Offering{%q}.Validate() error = %v, want %v", tc.text, gotErr, core.ErrPrimitiveContract)
+				}
+				receiver := offeringFixture(t)
+				if err := receiver.UnmarshalText([]byte(tc.text)); !errors.Is(err, core.ErrPrimitiveContract) || receiver != offeringFixture(t) {
+					t.Fatalf("Offering.UnmarshalText(%q) = (%v, %v), want preserved and %v", tc.text, receiver, err, core.ErrPrimitiveContract)
+				}
+				return
+			}
+			if gotErr != nil || got.String() != tc.text {
+				t.Fatalf("Offering{%q}.Validate() = %v, want exact valid identity", tc.text, gotErr)
+			}
+			encoded, err := json.Marshal(got)
+			if err != nil {
+				t.Fatalf("json.Marshal(Offering %q) error = %v, want nil", tc.text, err)
+			}
+			var roundTrip core.Offering
+			if err := json.Unmarshal(encoded, &roundTrip); err != nil || roundTrip != got {
+				t.Fatalf("Offering %q JSON round trip = (%v, %v), want (%v, nil)", tc.text, roundTrip, err, got)
+			}
+		})
 	}
 
-	var alternateCase core.Offering
-	if err := json.Unmarshal([]byte(`"Witness"`), &alternateCase); !errors.Is(err, core.ErrPrimitiveContract) {
-		t.Fatalf("json.Unmarshal(Offering alternate case) error = %v, want %v", err, core.ErrPrimitiveContract)
-	}
 	var receiver *core.Offering
-	if err := receiver.UnmarshalJSON([]byte(`"witness"`)); !errors.Is(err, core.ErrJSONContract) {
+	if err := receiver.UnmarshalJSON([]byte(`"core-fixture"`)); !errors.Is(err, core.ErrJSONContract) {
 		t.Fatalf("nil Offering.UnmarshalJSON() error = %v, want %v", err, core.ErrJSONContract)
 	}
-	if _, err := json.Marshal(core.OfferingUnknown); !errors.Is(err, core.ErrJSONContract) {
-		t.Fatalf("json.Marshal(OfferingUnknown) error = %v, want %v", err, core.ErrJSONContract)
+	if _, err := json.Marshal(core.Offering{}); !errors.Is(err, core.ErrJSONContract) {
+		t.Fatalf("json.Marshal(zero Offering) error = %v, want %v", err, core.ErrJSONContract)
 	}
 }
 
-func TestPeachfuzzOfferingTraversesBuildIdentity(t *testing.T) {
+func TestOfferingTraversesBuildIdentityWithoutProductInterpretation(t *testing.T) {
 	t.Parallel()
 
-	identity := releaseIdentityFixture(t, core.OfferingPeachfuzz)
+	offering := offeringFixture(t)
+	identity := releaseIdentityFixture(t, offering)
 	encoded, err := json.Marshal(identity)
 	if err != nil {
-		t.Fatalf("json.Marshal(Peachfuzz BuildIdentity) error = %v", err)
+		t.Fatalf("json.Marshal(BuildIdentity) error = %v", err)
 	}
 	var roundTrip core.BuildIdentity
 	if err := json.Unmarshal(encoded, &roundTrip); err != nil {
-		t.Fatalf("json.Unmarshal(Peachfuzz BuildIdentity) error = %v", err)
+		t.Fatalf("json.Unmarshal(BuildIdentity) error = %v", err)
 	}
-	if roundTrip != identity || roundTrip.Offering() != core.OfferingPeachfuzz {
-		t.Fatalf("Peachfuzz BuildIdentity round trip = %v, want %v", roundTrip, identity)
+	if roundTrip != identity || roundTrip.Offering() != offering {
+		t.Fatalf("BuildIdentity round trip = %v, want %v", roundTrip, identity)
 	}
 }
 
@@ -206,8 +256,9 @@ func TestReleaseVersionComparePressuresEveryComponent(t *testing.T) {
 func TestBuildIdentityAccessorsAreExactCompilerOwnedFacts(t *testing.T) {
 	t.Parallel()
 
-	identity := releaseIdentityFixture(t, core.OfferingWitness)
-	if identity.Offering() != core.OfferingWitness ||
+	offering := offeringFixture(t)
+	identity := releaseIdentityFixture(t, offering)
+	if identity.Offering() != offering ||
 		identity.Version() != core.NewReleaseVersion(2026, 7, 30) ||
 		identity.Commit().String() != "0123456789abcdef0123456789abcdef01234567" ||
 		identity.Platform().String() != "linux-amd64" {
@@ -230,9 +281,9 @@ func TestBuildIdentityAccessorsAreExactCompilerOwnedFacts(t *testing.T) {
 func TestReleaseIdentityTextDecodersBoundInputAndPreserveReceivers(t *testing.T) {
 	t.Parallel()
 
-	offering := core.OfferingWitness
-	if gotErr := offering.UnmarshalText([]byte(strings.Repeat("x", 1<<20))); !errors.Is(gotErr, core.ErrPrimitiveContract) || offering != core.OfferingWitness {
-		t.Fatalf("Offering.UnmarshalText(oversized) = (%v, %v), want preserved %v and %v", offering, gotErr, core.OfferingWitness, core.ErrPrimitiveContract)
+	offering := offeringFixture(t)
+	if gotErr := offering.UnmarshalText([]byte(strings.Repeat("x", 1<<20))); !errors.Is(gotErr, core.ErrPrimitiveContract) || offering != offeringFixture(t) {
+		t.Fatalf("Offering.UnmarshalText(oversized) = (%v, %v), want preserved %v and %v", offering, gotErr, offeringFixture(t), core.ErrPrimitiveContract)
 	}
 	version := core.NewReleaseVersion(2026, 8, 2)
 	if gotErr := version.UnmarshalText([]byte(strings.Repeat("9", 1<<20))); !errors.Is(gotErr, core.ErrPrimitiveContract) || version != core.NewReleaseVersion(2026, 8, 2) {
@@ -269,4 +320,13 @@ func releaseIdentityFixture(t *testing.T, offering core.Offering) core.BuildIden
 		t.Fatalf("NewBuildIdentity() error = %v", err)
 	}
 	return identity
+}
+
+func offeringFixture(t testing.TB) core.Offering {
+	t.Helper()
+	offering := core.Offering{Token: offeringFixtureToken}
+	if err := offering.Validate(); err != nil {
+		t.Fatalf("Offering{%q}.Validate() error = %v, want nil", offeringFixtureToken, err)
+	}
+	return offering
 }

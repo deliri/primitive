@@ -12,7 +12,7 @@ func TestAdvanceLatestIdentityPrecedesGeneration(t *testing.T) {
 	t.Parallel()
 	retained := newReleaseFixture(t, core.NewReleaseVersion(2026, 7, 30), 9)
 	other := newReleaseFixtureForOffering(
-		t, core.OfferingBug, core.NewReleaseVersion(2026, 7, 31), 1,
+		t, releaseOffering(t, 1), core.NewReleaseVersion(2026, 7, 31), 1,
 	)
 
 	_, err := AdvanceLatest(AdvanceLatestRequest{

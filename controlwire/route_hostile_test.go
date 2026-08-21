@@ -137,11 +137,11 @@ func TestRouteContractProjectsExactlyItsTwoFacts(t *testing.T) {
 		RouteFamilyReleasePublications, RouteFamilyReleasePublicationCompletions,
 		RouteFamilyUpdateChecks, RouteFamilyUpgrades,
 	}
-	for value := 0; value <= 255; value++ {
-		offering := core.Offering(value)
-		if !offering.IsValid() {
-			continue
-		}
+	for _, offering := range []core.Offering{
+		controlwireOfferingFixture(t, 7),
+		controlwireOfferingFixture(t, 127),
+		controlwireOfferingFixture(t, 255),
+	} {
 		for _, family := range families {
 			contract, err := NewRouteContract(offering, family)
 			if err != nil {

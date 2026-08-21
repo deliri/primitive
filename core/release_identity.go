@@ -2,18 +2,19 @@ package core
 
 import (
 	"encoding/hex"
-	"encoding/json"
+	json "encoding/json/v2"
 	"errors"
 	"strconv"
 	"strings"
 )
 
 const (
-	offeringBugToken       = "bug"
-	offeringPeachfuzzToken = "peachfuzz"
-	offeringWitnessToken   = "witness"
-	// offeringTokenMaximumBytes bounds the closed product identity domain.
-	offeringTokenMaximumBytes = len(offeringPeachfuzzToken)
+	// offeringMaximumBytes bounds one consumer-owned product identity while
+	// leaving Primitive blind to the product it names.
+	offeringMaximumBytes = 63
+	// OfferingCanonicalJSONMaximumBytes is the maximum compact JSON string
+	// extent of one Offering.
+	OfferingCanonicalJSONMaximumBytes = offeringMaximumBytes + len(`""`)
 	// releaseVersionMaximumBytes bounds three uint32 decimal components and
 	// their two separators.
 	releaseVersionMaximumBytes = 3*10 + 2
@@ -24,60 +25,71 @@ const (
 	// buildIdentityJSONMaximumBytes bounds one complete identity projection.
 	buildIdentityJSONMaximumBytes         = 2 << 10
 	offeringNilReceiverDiagnostic         = "offering receiver is nil"
+	offeringNonCanonicalDiagnostic        = "offering token is not canonical"
 	releaseVersionNilReceiverDiagnostic   = "release version receiver is nil"
 	releaseVersionInvalidLengthDiagnostic = "release version has invalid length"
 )
 
-// Offering is the closed set of products sharing the release protocol.
-type Offering uint8
-
-const (
-	// OfferingUnknown is the invalid zero offering.
-	OfferingUnknown Offering = iota
-	// OfferingBug identifies Bug.
-	OfferingBug
-	// OfferingWitness identifies Witness.
-	OfferingWitness
-	// OfferingPeachfuzz identifies Peachfuzz.
-	OfferingPeachfuzz
-	offeringLimit
-)
-
-// Validate rejects offerings outside the closed domain.
-func (o Offering) Validate() error {
-	if o <= OfferingUnknown || o >= offeringLimit || offeringTexts()[o] == "" {
-		return releaseIdentityError("offering is outside the closed domain")
-	}
-	return nil
+// Offering carries one bounded consumer-owned product identity. Primitive
+// validates its transport shape but never enumerates or interprets products.
+type Offering struct {
+	// Token is the consumer-owned canonical product identity.
+	Token string
 }
 
-// IsValid reports whether o belongs to the closed offering domain.
+func parseOffering(value string) (Offering, error) {
+	if err := validateOfferingToken(value); err != nil {
+		return Offering{}, err
+	}
+	return Offering{Token: value}, nil
+}
+
+// Validate rejects unset or non-canonical product identities.
+func (o Offering) Validate() error {
+	return validateOfferingToken(o.Token)
+}
+
+// IsValid reports whether o carries a canonical consumer-owned identity.
 func (o Offering) IsValid() bool { return o.Validate() == nil }
 
 // String returns canonical offering text, or empty text when invalid.
 func (o Offering) String() string {
-	if o >= offeringLimit {
+	if o.Validate() != nil {
 		return ""
 	}
-	return offeringTexts()[o]
+	return o.Token
 }
 
-func offeringTexts() [offeringLimit]string {
-	return [...]string{"", offeringBugToken, offeringWitnessToken, offeringPeachfuzzToken}
-}
-
-// parseOffering accepts one canonical offering token.
-func parseOffering(value string) (Offering, error) {
-	switch value {
-	case offeringBugToken:
-		return OfferingBug, nil
-	case offeringWitnessToken:
-		return OfferingWitness, nil
-	case offeringPeachfuzzToken:
-		return OfferingPeachfuzz, nil
-	default:
-		return OfferingUnknown, releaseIdentityError("offering token is unsupported")
+func validateOfferingToken(value string) error {
+	if len(value) == 0 || len(value) > offeringMaximumBytes {
+		return releaseIdentityError("offering token has invalid length")
 	}
+	if !isOfferingLowercase(value[0]) {
+		return releaseIdentityError(offeringNonCanonicalDiagnostic)
+	}
+	for index := 1; index < len(value); index++ {
+		if isOfferingContinuation(value, index) {
+			continue
+		}
+		return releaseIdentityError(offeringNonCanonicalDiagnostic)
+	}
+	return nil
+}
+
+func isOfferingContinuation(value string, index int) bool {
+	current := value[index]
+	if isOfferingLowercase(current) || isOfferingDigit(current) {
+		return true
+	}
+	return current == '-' && index < len(value)-1 && value[index-1] != '-'
+}
+
+func isOfferingLowercase(value byte) bool {
+	return value >= 'a' && value <= 'z'
+}
+
+func isOfferingDigit(value byte) bool {
+	return value >= '0' && value <= '9'
 }
 
 // MarshalJSON emits canonical offering text.
@@ -109,9 +121,6 @@ func (o *Offering) UnmarshalJSON(data []byte) error {
 func (o *Offering) UnmarshalText(text []byte) error {
 	if o == nil {
 		return releaseIdentityError(offeringNilReceiverDiagnostic)
-	}
-	if len(text) == 0 || len(text) > offeringTokenMaximumBytes {
-		return releaseIdentityError("offering token has invalid length")
 	}
 	parsed, err := parseOffering(string(text))
 	if err != nil {
@@ -340,23 +349,23 @@ func (c *BuildCommit) UnmarshalJSON(data []byte) error {
 // BuildIdentityRequest carries the immutable facts shared by Release and
 // Upgrade.
 type BuildIdentityRequest struct {
+	// Offering identifies the released product without Primitive interpreting it.
+	Offering Offering
 	// Version identifies the ordered product release.
 	Version ReleaseVersion
 	// Commit identifies the exact source commit.
 	Commit BuildCommit
 	// Platform identifies the compiled target.
 	Platform Platform
-	// Offering identifies the released product.
-	Offering Offering
 }
 
 // BuildIdentity identifies immutable release bytes without claiming that the
 // current process embeds those facts.
 type BuildIdentity struct {
+	offering Offering
 	version  ReleaseVersion
 	commit   BuildCommit
 	platform Platform
-	offering Offering
 }
 
 type buildIdentityWire struct {

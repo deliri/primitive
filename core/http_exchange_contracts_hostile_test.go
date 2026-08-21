@@ -2,7 +2,7 @@ package core
 
 import (
 	"bytes"
-	"encoding/json"
+	json "encoding/json/v2"
 	"errors"
 	"strings"
 	"testing"

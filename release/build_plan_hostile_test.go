@@ -45,9 +45,10 @@ func TestPrepareBuildPlanProjectsExactDocumentedGoArguments(t *testing.T) {
 		t.Fatalf("core.ParseBuildCommit() error = %v, want nil", err)
 	}
 	version := core.NewReleaseVersion(2026, 0, 11)
+	offering := releaseExternalOffering(t, 1)
 
 	plan, err := release.PrepareBuildPlan(release.BuildPlanRequest{
-		Offering:          core.OfferingBug,
+		Offering:          offering,
 		Version:           version,
 		Commit:            commit,
 		GoToolchain:       release.CurrentGoToolchain(),
@@ -80,7 +81,7 @@ func TestPrepareBuildPlanProjectsExactDocumentedGoArguments(t *testing.T) {
 		if err != nil {
 			t.Fatalf("release.BuildCommand(%d).ArgumentValues() error = %v, want nil", index, err)
 		}
-		wantOutput := "dist/releases/bug-2026.0.11-" + wantTarget.String()
+		wantOutput := "dist/releases/" + offering.String() + "-2026.0.11-" + wantTarget.String()
 		if wantTarget.OperatingSystem == core.OperatingSystemWindows {
 			wantOutput += ".exe"
 		}
@@ -169,8 +170,8 @@ func TestBuildPlanRejectsIncompleteAndConflictingCompilerOwnedInputs(t *testing.
 		mutate  func(*release.BuildPlanRequest)
 		name    string
 	}{
-		{name: "zero offering is rejected", mutate: func(r *release.BuildPlanRequest) { r.Offering = core.OfferingUnknown }, wantErr: core.ErrReleaseContract},
-		{name: "future offering is rejected", mutate: func(r *release.BuildPlanRequest) { r.Offering = core.OfferingPeachfuzz + 1 }, wantErr: core.ErrReleaseContract},
+		{name: "zero offering is rejected", mutate: func(r *release.BuildPlanRequest) { r.Offering = core.Offering{} }, wantErr: core.ErrReleaseContract},
+		{name: "noncanonical offering is rejected", mutate: func(r *release.BuildPlanRequest) { r.Offering = core.Offering{Token: "INVALID"} }, wantErr: core.ErrReleaseContract},
 		{name: "zero version is rejected", mutate: func(r *release.BuildPlanRequest) { r.Version = core.ReleaseVersion{} }, wantErr: core.ErrReleaseContract},
 		{name: "zero commit is rejected", mutate: func(r *release.BuildPlanRequest) { r.Commit = core.BuildCommit{} }, wantErr: core.ErrReleaseContract},
 		{name: "zero main package is rejected", mutate: func(r *release.BuildPlanRequest) { r.MainPackage = release.MainPackage{} }, wantErr: core.ErrReleaseContract},
@@ -400,7 +401,7 @@ func buildPlanRequestForHostileTest(t *testing.T) release.BuildPlanRequest {
 		t.Fatalf("core.ParseBuildCommit() error = %v, want nil", err)
 	}
 	return release.BuildPlanRequest{
-		Offering: core.OfferingBug, Version: core.NewReleaseVersion(2026, 0, 11), Commit: commit,
+		Offering: releaseExternalOffering(t, 1), Version: core.NewReleaseVersion(2026, 0, 11), Commit: commit,
 		MainPackage: mainPackage, OutputDirectory: output,
 		GoToolchain: release.CurrentGoToolchain(), ModuleMode: release.BuildModuleReadonly,
 	}

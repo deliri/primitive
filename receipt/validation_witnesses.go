@@ -11,7 +11,6 @@ var (
 	_ core.ValidatedJSONMarshaler = EvidencePayload{}
 	_ core.ValidatedJSONMarshaler = EvidenceDocument{}
 	_ core.ValidatedJSONMarshaler = AccountIdentity{}
-	_ core.ValidatedJSONMarshaler = OfferingIdentity{}
 	_ core.ValidatedJSONMarshaler = SubmissionIdentity{}
 	_ core.ValidatedJSONMarshaler = ObjectIdentity{}
 	_ core.ValidatedJSONMarshaler = CursorDigest{}

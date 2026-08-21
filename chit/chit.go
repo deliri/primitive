@@ -2,7 +2,7 @@ package chit
 
 import (
 	"crypto"
-	"encoding/json"
+	json "encoding/json/v2"
 	"errors"
 	"io"
 
@@ -67,13 +67,13 @@ func (v *Version) UnmarshalJSON(data []byte) error {
 // Payload is the immutable authority statement for one logical uploaded
 // version. The manifest summary closes every object without embedding a slice.
 type Payload struct {
-	Identity    ChitID           `json:"chit_id"`
-	Collection  CollectionID     `json:"collection_id"`
 	Scope       receipt.Scope    `json:"scope"`
 	Manifest    ManifestSummary  `json:"manifest"`
 	AcceptedAt  temporal.Instant `json:"accepted_at"`
 	RetainUntil temporal.Instant `json:"retain_until"`
 	Version     Version          `json:"version"`
+	Identity    ChitID           `json:"chit_id"`
+	Collection  CollectionID     `json:"collection_id"`
 }
 
 func (p Payload) Validate() error {
@@ -186,13 +186,10 @@ func (d *Document) UnmarshalJSON(data []byte) error {
 }
 
 type Issuance struct {
-	// Existing is the authority-signed document already stored under Payload's
-	// collection and version slot. Authorities read it and call Issue inside the
-	// same persistence transaction that creates a fresh slot.
-	Existing    *Document
 	Signer      crypto.Signer
-	TrustedKeys attest.TrustedKeys
+	Existing    *Document
 	Payload     Payload
+	TrustedKeys attest.TrustedKeys
 }
 
 func (i Issuance) Validate() error {
@@ -262,8 +259,8 @@ func issueFresh(issuance Issuance) (Document, error) {
 // Expectation prevents a valid chit for another account, offering, or ID from
 // satisfying a caller's request.
 type Expectation struct {
-	Identity ChitID
 	Scope    receipt.Scope
+	Identity ChitID
 }
 
 func (e Expectation) Validate() error {
@@ -274,8 +271,8 @@ func (e Expectation) Validate() error {
 }
 
 type Verification struct {
-	Document    Document
 	Expected    Expectation
+	Document    Document
 	TrustedKeys attest.TrustedKeys
 }
 

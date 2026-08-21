@@ -2,7 +2,7 @@ package receipt
 
 import (
 	"encoding/hex"
-	"encoding/json"
+	json "encoding/json/v2"
 	"errors"
 	"reflect"
 	"strings"
@@ -101,7 +101,6 @@ func TestLifecycleIdentityNominalAndJSONBoundaries(t *testing.T) {
 
 	types := []reflect.Type{
 		reflect.TypeFor[AccountIdentity](),
-		reflect.TypeFor[OfferingIdentity](),
 		reflect.TypeFor[SubmissionIdentity](),
 		reflect.TypeFor[ObjectIdentity](),
 	}

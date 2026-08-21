@@ -1,7 +1,7 @@
 package submissionauth
 
 import (
-	"encoding/json"
+	json "encoding/json/v2"
 	"errors"
 
 	"github.com/deliri/primitive/v2026/attest"
@@ -23,29 +23,29 @@ const (
 // CompletionDocument carries one device-signed provider completion beside the
 // installation certificate that nominates the device key.
 type CompletionDocument struct {
-	Completion  submission.CompletionDocument                `json:"completion"`
 	Certificate controlplane.InstallationCertificateDocument `json:"certificate"`
+	Completion  submission.CompletionDocument                `json:"completion"`
 }
 
 // CompletionProjection is the issue-only credentialed form. It keeps the
 // inner provider evidence issue-only while binding the installation
 // certificate needed by the receiving authority.
 type CompletionProjection struct {
-	completion  submission.CompletionProjection
 	certificate controlplane.InstallationCertificateDocument
+	completion  submission.CompletionProjection
 }
 
 // CompletionAssembly binds two independently signed documents.
 type CompletionAssembly struct {
-	Completion  submission.CompletionDocument
 	Certificate controlplane.InstallationCertificateDocument
+	Completion  submission.CompletionDocument
 }
 
 // CompletionProjectionAssembly binds an issue-only completion projection to
 // the installation certificate that nominates its signing device.
 type CompletionProjectionAssembly struct {
-	Completion  submission.CompletionProjection
 	Certificate controlplane.InstallationCertificateDocument
+	Completion  submission.CompletionProjection
 }
 
 // CompletionVerification supplies the authenticated original request, exact
@@ -61,8 +61,8 @@ type CompletionVerification struct {
 // nominated device key authenticated the completion.
 type VerifiedCompletion struct {
 	document         CompletionDocument
-	completionProof  submission.VerifiedCompletion
 	requestProof     Verified
+	completionProof  submission.VerifiedCompletion
 	certificateProof controlplane.VerifiedInstallationCertificate
 }
 
@@ -133,8 +133,8 @@ func (p CompletionProjection) MarshalJSON() ([]byte, error) {
 		return nil, jsonError(err)
 	}
 	encoded, err := core.MarshalCanonicalJSONDocument(struct {
-		Completion  submission.CompletionProjection              `json:"completion"`
 		Certificate controlplane.InstallationCertificateDocument `json:"certificate"`
+		Completion  submission.CompletionProjection              `json:"completion"`
 	}{
 		Completion: p.completion, Certificate: p.certificate,
 	})

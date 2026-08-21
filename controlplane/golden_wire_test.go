@@ -1,14 +1,13 @@
 package controlplane_test
 
 import (
-	"encoding/json"
+	json "encoding/json/v2"
 	"os"
 	"path/filepath"
 	"testing"
 
 	"github.com/deliri/primitive/v2026/controlplane"
 	"github.com/deliri/primitive/v2026/controlwire"
-	"github.com/deliri/primitive/v2026/core"
 	"github.com/deliri/primitive/v2026/lease"
 )
 
@@ -160,11 +159,11 @@ func TestGoldenRegistrationRequestCarriesTheFactsItClaims(t *testing.T) {
 	if err := request.UnmarshalJSON(readGolden(t, "registration_request.json")); err != nil {
 		t.Fatalf("UnmarshalJSON() error = %v, want nil", err)
 	}
-	if got := request.Build.Offering(); got != core.OfferingPeachfuzz {
-		t.Errorf("golden offering = %v, want %v", got, core.OfferingPeachfuzz)
+	if got := request.Build.Offering(); got != controlplaneOffering(t, 3) {
+		t.Errorf("golden offering = %v, want %v", got, controlplaneOffering(t, 3))
 	}
 	route, routeErr := request.ControlRoute()
-	if routeErr != nil || route.Offering() != core.OfferingPeachfuzz ||
+	if routeErr != nil || route.Offering() != controlplaneOffering(t, 3) ||
 		route.Family() != controlwire.RouteFamilyRegistrations ||
 		request.ControlNonce() != request.RequestNonce {
 		t.Fatalf("registration control projection = (%v, %v, %v), want exact route and request nonce",
@@ -237,7 +236,7 @@ func TestGoldenCheckInResponseCarriesTheFactsItClaims(t *testing.T) {
 func TestGoldenCheckInRequestIsWhatTheProducersEmit(t *testing.T) {
 	t.Parallel()
 
-	issued := issueTestCheckIn(t, core.OfferingPeachfuzz, testCheckInWindow())
+	issued := issueTestCheckIn(t, controlplaneOffering(t, 3), testCheckInWindow())
 	got, err := issued.request.MarshalJSON()
 	if err != nil {
 		t.Fatalf("MarshalJSON() error = %v, want nil", err)
@@ -259,8 +258,8 @@ func TestGoldenCheckInRequestCarriesTheFactsItClaims(t *testing.T) {
 		t.Fatalf("UnmarshalJSON() error = %v, want nil", err)
 	}
 	payload := request.Payload
-	if got := payload.Build.Offering(); got != core.OfferingPeachfuzz {
-		t.Errorf("golden offering = %v, want %v", got, core.OfferingPeachfuzz)
+	if got := payload.Build.Offering(); got != controlplaneOffering(t, 3) {
+		t.Errorf("golden offering = %v, want %v", got, controlplaneOffering(t, 3))
 	}
 	// The credential binds to the same installation the payload names, which is
 	// the fact that stops one machine's check-in being replayed as another's.

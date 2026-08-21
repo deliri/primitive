@@ -1,7 +1,7 @@
 package exchange
 
 import (
-	"encoding/json"
+	json "encoding/json/v2"
 	"errors"
 	"go/ast"
 	"go/parser"

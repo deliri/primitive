@@ -1,7 +1,7 @@
 package release
 
 import (
-	"encoding/json"
+	json "encoding/json/v2"
 	"errors"
 	"strconv"
 	"strings"
@@ -14,11 +14,12 @@ import (
 func TestDerivedFilenameIsCanonicalForEveryTarget(t *testing.T) {
 	t.Parallel()
 	fixture := newReleaseFixture(t, core.NewReleaseVersion(2026, 7, 30), 1)
+	offering := fixture.manifest.Fact.Offering()
 	wants := [TargetCount]string{
-		"witness-2026.7.30-windows-amd64.exe",
-		"witness-2026.7.30-darwin-arm64",
-		"witness-2026.7.30-linux-amd64",
-		"witness-2026.7.30-linux-arm64",
+		offering.String() + "-2026.7.30-windows-amd64.exe",
+		offering.String() + "-2026.7.30-darwin-arm64",
+		offering.String() + "-2026.7.30-linux-amd64",
+		offering.String() + "-2026.7.30-linux-arm64",
 	}
 	for index, artifact := range fixture.artifacts {
 		t.Run(wants[index], func(t *testing.T) {
@@ -46,7 +47,7 @@ func TestVerificationClosureRebindsRetainedDocumentBodyBeforeSealing(t *testing.
 	tamperedManifest.Fact = second.manifest.Fact
 	if _, err := VerifyManifest(VerifyManifestRequest{
 		Document: tamperedManifest, TrustedKeys: first.manifestTrust,
-		ExpectedOffering: core.OfferingWitness,
+		ExpectedOffering: releaseOffering(t, 2),
 	}); !errors.Is(err, core.ErrReleaseVerification) {
 		t.Fatalf("VerifyManifest(tampered body) error = %v, want %v", err, core.ErrReleaseVerification)
 	}
@@ -55,7 +56,7 @@ func TestVerificationClosureRebindsRetainedDocumentBodyBeforeSealing(t *testing.
 	tamperedLatest.Fact = second.latest.Fact
 	if _, err := VerifyLatest(VerifyLatestRequest{
 		Document: tamperedLatest, LatestKeys: first.latestTrust,
-		ManifestKeys: second.manifestTrust, ExpectedOffering: core.OfferingWitness,
+		ManifestKeys: second.manifestTrust, ExpectedOffering: releaseOffering(t, 2),
 	}); !errors.Is(err, core.ErrReleaseVerification) {
 		t.Fatalf("VerifyLatest(tampered body) error = %v, want %v", err, core.ErrReleaseVerification)
 	}
@@ -196,43 +197,43 @@ func TestVerificationNamesOfferingMismatchDistinctlyFromInvalidDocument(t *testi
 
 	_, manifestErr := VerifyManifest(VerifyManifestRequest{
 		Document: fixture.manifest, TrustedKeys: fixture.manifestTrust,
-		ExpectedOffering: core.OfferingBug,
+		ExpectedOffering: releaseOffering(t, 1),
 	})
 	if !errors.Is(manifestErr, core.ErrReleaseVerification) {
 		t.Fatalf("VerifyManifest(wrong offering) error = %v, want %v", manifestErr, core.ErrReleaseVerification)
 	}
 	var manifestMismatch OfferingMismatchError
 	if !errors.As(manifestErr, &manifestMismatch) ||
-		manifestMismatch.Observed() != core.OfferingWitness ||
-		manifestMismatch.Expected() != core.OfferingBug {
+		manifestMismatch.Observed() != releaseOffering(t, 2) ||
+		manifestMismatch.Expected() != releaseOffering(t, 1) {
 		t.Fatalf(
 			"VerifyManifest(wrong offering) detail = (%v, %v, %v), want (%v, %v, true)",
 			manifestMismatch.Observed(),
 			manifestMismatch.Expected(),
 			errors.As(manifestErr, &manifestMismatch),
-			core.OfferingWitness,
-			core.OfferingBug,
+			releaseOffering(t, 2),
+			releaseOffering(t, 1),
 		)
 	}
 
 	_, latestErr := VerifyLatest(VerifyLatestRequest{
 		Document: fixture.latest, LatestKeys: fixture.latestTrust,
-		ManifestKeys: fixture.manifestTrust, ExpectedOffering: core.OfferingBug,
+		ManifestKeys: fixture.manifestTrust, ExpectedOffering: releaseOffering(t, 1),
 	})
 	if !errors.Is(latestErr, core.ErrReleaseVerification) {
 		t.Fatalf("VerifyLatest(wrong offering) error = %v, want %v", latestErr, core.ErrReleaseVerification)
 	}
 	var latestMismatch OfferingMismatchError
 	if !errors.As(latestErr, &latestMismatch) ||
-		latestMismatch.Observed() != core.OfferingWitness ||
-		latestMismatch.Expected() != core.OfferingBug {
+		latestMismatch.Observed() != releaseOffering(t, 2) ||
+		latestMismatch.Expected() != releaseOffering(t, 1) {
 		t.Fatalf(
 			"VerifyLatest(wrong offering) detail = (%v, %v, %v), want (%v, %v, true)",
 			latestMismatch.Observed(),
 			latestMismatch.Expected(),
 			errors.As(latestErr, &latestMismatch),
-			core.OfferingWitness,
-			core.OfferingBug,
+			releaseOffering(t, 2),
+			releaseOffering(t, 1),
 		)
 	}
 
@@ -241,7 +242,7 @@ func TestVerificationNamesOfferingMismatchDistinctlyFromInvalidDocument(t *testi
 	broken.Fact = ManifestFact{}
 	_, brokenErr := VerifyManifest(VerifyManifestRequest{
 		Document: broken, TrustedKeys: fixture.manifestTrust,
-		ExpectedOffering: core.OfferingWitness,
+		ExpectedOffering: releaseOffering(t, 2),
 	})
 	if !errors.Is(brokenErr, core.ErrReleaseVerification) {
 		t.Fatalf("VerifyManifest(unset fact) error = %v, want %v", brokenErr, core.ErrReleaseVerification)
@@ -255,10 +256,10 @@ func TestVerificationNamesOfferingMismatchDistinctlyFromInvalidDocument(t *testi
 func TestOfferingMismatchErrorOwnsExactTypedFacts(t *testing.T) {
 	t.Parallel()
 
-	mismatch, err := newOfferingMismatchError(core.OfferingWitness, core.OfferingBug)
+	mismatch, err := newOfferingMismatchError(releaseOffering(t, 2), releaseOffering(t, 1))
 	if err != nil || mismatch.Validate() != nil ||
-		mismatch.Observed() != core.OfferingWitness ||
-		mismatch.Expected() != core.OfferingBug ||
+		mismatch.Observed() != releaseOffering(t, 2) ||
+		mismatch.Expected() != releaseOffering(t, 1) ||
 		!errors.Is(mismatch, core.ErrReleaseVerification) {
 		t.Fatalf("newOfferingMismatchError() = (%v, %v), want validated exact verification detail", mismatch, err)
 	}
@@ -267,13 +268,13 @@ func TestOfferingMismatchErrorOwnsExactTypedFacts(t *testing.T) {
 		observed core.Offering
 		want     core.Offering
 	}{
-		{name: "unknown observed", observed: core.OfferingUnknown, want: core.OfferingBug},
-		{name: "future observed", observed: core.Offering(255), want: core.OfferingBug},
-		{name: "unknown expected", observed: core.OfferingBug, want: core.OfferingUnknown},
-		{name: "future expected", observed: core.OfferingBug, want: core.Offering(255)},
-		{name: "equal bug", observed: core.OfferingBug, want: core.OfferingBug},
-		{name: "equal witness", observed: core.OfferingWitness, want: core.OfferingWitness},
-		{name: "equal peachfuzz", observed: core.OfferingPeachfuzz, want: core.OfferingPeachfuzz},
+		{name: "unknown observed", observed: core.Offering{}, want: releaseOffering(t, 1)},
+		{name: "noncanonical observed", observed: core.Offering{Token: "INVALID"}, want: releaseOffering(t, 1)},
+		{name: "unknown expected", observed: releaseOffering(t, 1), want: core.Offering{}},
+		{name: "noncanonical expected", observed: releaseOffering(t, 1), want: core.Offering{Token: "INVALID"}},
+		{name: "equal first opaque offering", observed: releaseOffering(t, 1), want: releaseOffering(t, 1)},
+		{name: "equal second opaque offering", observed: releaseOffering(t, 2), want: releaseOffering(t, 2)},
+		{name: "equal third opaque offering", observed: releaseOffering(t, 3), want: releaseOffering(t, 3)},
 	}
 	for _, tc := range cases {
 		t.Run(tc.name, func(t *testing.T) {

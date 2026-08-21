@@ -3,6 +3,7 @@ package controlplanetest
 import (
 	"crypto/ed25519"
 	"errors"
+	"fmt"
 	"testing"
 
 	"github.com/deliri/primitive/v2026/controlplane"
@@ -17,17 +18,17 @@ func fixtureSeed(value byte) [ed25519.SeedSize]byte {
 	return seed
 }
 
-// TestIssueInstallationConstructsEveryOfferingThroughTheRealIssuers proves the
-// test-support boundary is product blind and returns a fully validating,
-// internally coherent certificate fixture for every compiler-owned offering.
-func TestIssueInstallationConstructsEveryOfferingThroughTheRealIssuers(t *testing.T) {
+// TestIssueInstallationConstructsOpaqueOfferingsThroughTheRealIssuers proves
+// the test-support boundary is product blind and returns fully validating,
+// internally coherent certificate fixtures for consumer-owned identities.
+func TestIssueInstallationConstructsOpaqueOfferingsThroughTheRealIssuers(t *testing.T) {
 	t.Parallel()
 
-	for value := 0; value <= 255; value++ {
-		offering := core.Offering(value)
-		if !offering.IsValid() {
-			continue
-		}
+	for value, offering := range []core.Offering{
+		controlplaneTestOffering(t, 1),
+		controlplaneTestOffering(t, 127),
+		controlplaneTestOffering(t, 255),
+	} {
 		fixture, err := IssueInstallation(InstallationRequest{
 			AuthoritySeed: fixtureSeed(byte(value) + 0x20),
 			DeviceSeed:    fixtureSeed(byte(value) + 0x40),
@@ -59,20 +60,20 @@ func TestIssueInstallationReturnsNeutralForEveryInvalidSeedRelation(t *testing.T
 		{
 			name: "zero authority seed",
 			request: InstallationRequest{
-				DeviceSeed: validDevice, Offering: core.OfferingWitness,
+				DeviceSeed: validDevice, Offering: controlplaneTestOffering(t, 10),
 			},
 		},
 		{
 			name: "zero device seed",
 			request: InstallationRequest{
-				AuthoritySeed: validAuthority, Offering: core.OfferingWitness,
+				AuthoritySeed: validAuthority, Offering: controlplaneTestOffering(t, 11),
 			},
 		},
 		{
 			name: "same key on both sides",
 			request: InstallationRequest{
 				AuthoritySeed: validAuthority, DeviceSeed: validAuthority,
-				Offering: core.OfferingWitness,
+				Offering: controlplaneTestOffering(t, 12),
 			},
 		},
 		{
@@ -98,4 +99,13 @@ func TestIssueInstallationReturnsNeutralForEveryInvalidSeedRelation(t *testing.T
 			}
 		})
 	}
+}
+
+func controlplaneTestOffering(t testing.TB, marker byte) core.Offering {
+	t.Helper()
+	offering := core.Offering{Token: fmt.Sprintf("controlplanetest-fixture-%02x", marker)}
+	if err := offering.Validate(); err != nil {
+		t.Fatalf("Offering.Validate() error = %v, want nil", err)
+	}
+	return offering
 }

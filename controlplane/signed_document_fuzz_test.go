@@ -24,9 +24,9 @@ type verificationLayerProbe struct {
 func TestControlplaneSignedVerificationLayerTriad(t *testing.T) {
 	t.Parallel()
 
-	certificate := issueTestCheckIn(t, core.OfferingWitness, testCheckInWindow())
+	certificate := issueTestCheckIn(t, controlplaneOffering(t, 2), testCheckInWindow())
 	registration := issueTestRegistration(t)
-	checkIn := issueTestCheckIn(t, core.OfferingBug, testCheckInWindow())
+	checkIn := issueTestCheckIn(t, controlplaneOffering(t, 1), testCheckInWindow())
 	response := issueTestCheckInResponse(t)
 	probes := []verificationLayerProbe{
 		certificateVerificationProbe(certificate),
@@ -150,7 +150,7 @@ func checkInResponseVerificationProbe(issued issuedCheckInResponse) verification
 }
 
 func FuzzInstallationCertificateDocumentDecodeAndVerify(f *testing.F) {
-	issued := issueTestCheckIn(f, core.OfferingWitness, testCheckInWindow())
+	issued := issueTestCheckIn(f, controlplaneOffering(f, 2), testCheckInWindow())
 	canonical := mustCertificateJSON(f, issued.certificate)
 	f.Add(canonical)
 	f.Add(mustCertificateJSON(f, corruptCertificateDigest(issued.certificate)))
@@ -201,7 +201,7 @@ func FuzzInstallationCertificateDocumentDecodeAndVerify(f *testing.F) {
 }
 
 func FuzzInstallationCertificateBodyDecodeAndVerify(f *testing.F) {
-	issued := issueTestCheckIn(f, core.OfferingWitness, testCheckInWindow())
+	issued := issueTestCheckIn(f, controlplaneOffering(f, 2), testCheckInWindow())
 	canonical := mustCertificateBodyJSON(f, issued.certificate.Body)
 	f.Add(canonical)
 	foreign := issued.certificate.Body
@@ -307,7 +307,7 @@ func FuzzRegistrationDocumentDecodeAndVerify(f *testing.F) {
 }
 
 func FuzzCheckInRequestDecodeAndVerify(f *testing.F) {
-	issued := issueTestCheckIn(f, core.OfferingWitness, testCheckInWindow())
+	issued := issueTestCheckIn(f, controlplaneOffering(f, 2), testCheckInWindow())
 	canonical := mustCheckInJSON(f, issued.request)
 	f.Add(canonical)
 	corrupt := issued.request

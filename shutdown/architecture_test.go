@@ -113,7 +113,7 @@ func TestProductionRejectsProcessExitAndWorldBuildingRatchet(t *testing.T) {
 			"exec.Command",
 			"syscall.Kill(",
 			"runtime.NumGoroutine",
-			"encoding/json",
+			"encoding/json/v2",
 			"map[",
 			"time.NewTimer(",
 		} {

@@ -336,7 +336,7 @@ func materialResponseFixture(tb testing.TB) (
 		tb.Fatalf("NewRequestNonce() error = %v, want nil", err)
 	}
 	request, err := release.NewMaterialRequest(release.MaterialRequestInput{
-		Version: version, Commit: commit, Offering: core.OfferingPeachfuzz, Nonce: nonce,
+		Version: version, Commit: commit, Offering: releaseExternalOffering(tb, 3), Nonce: nonce,
 	})
 	if err != nil {
 		tb.Fatalf("NewMaterialRequest() error = %v, want nil", err)

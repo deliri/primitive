@@ -3,7 +3,7 @@ package upgrade
 import (
 	"bytes"
 	"context"
-	"encoding/json"
+	json "encoding/json/v2"
 	"errors"
 	"os"
 
@@ -49,9 +49,9 @@ func (r *trialRevision) UnmarshalJSON(data []byte) error {
 // distinguishes an interrupted attempt for the same candidate from another
 // candidate that a caller may still be trialing.
 type trialDocument struct {
-	Revision  trialRevision
-	Prior     selectionDocument
 	Candidate release.Artifact
+	Prior     selectionDocument
+	Revision  trialRevision
 }
 
 type trialWire struct {

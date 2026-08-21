@@ -2,7 +2,7 @@ package receipt
 
 import (
 	"crypto/ed25519"
-	"encoding/json"
+	json "encoding/json/v2"
 	"errors"
 	"hash/crc32"
 	"io"
@@ -14,8 +14,8 @@ import (
 
 const (
 	evidenceHeaderCanonicalJSONMaximumBytes = len(
-		`{"receipt_identity":"","account_identity":"","offering_identity":"","revision":"","occurred_at_nanoseconds":""}`,
-	) + ReceiptIDHexBytes + 2*LifecycleIdentityHexBytes + len("v1") + 20
+		`{"receipt_identity":"","account_identity":"","offering":,"revision":"","occurred_at_nanoseconds":""}`,
+	) + ReceiptIDHexBytes + LifecycleIdentityHexBytes + core.OfferingCanonicalJSONMaximumBytes + len("v1") + 20
 	evidenceBodyCanonicalJSONMaximumBytes = len(
 		`{"submission_identity":"","object_identity":"","extent_bytes":,"sha256":"","crc32c":""}`,
 	) + 2*LifecycleIdentityHexBytes + len("9223372036854775807") + 64 + len("AAAAAA==")
@@ -53,11 +53,11 @@ type EvidenceBody struct {
 
 // Header identifies one signed evidence fact and its scope.
 type Header struct {
+	Offering   core.Offering    `json:"offering"`
+	OccurredAt temporal.Instant `json:"occurred_at_nanoseconds"`
 	Identity   ReceiptID        `json:"receipt_identity"`
 	Account    AccountIdentity  `json:"account_identity"`
-	Offering   OfferingIdentity `json:"offering_identity"`
 	Revision   Revision         `json:"revision"`
-	OccurredAt temporal.Instant `json:"occurred_at_nanoseconds"`
 }
 
 // EvidencePayload is the canonical typed body signed through Attest.
@@ -74,26 +74,26 @@ type EvidenceDocument struct {
 
 // IssueEvidenceRequest carries exact issuance inputs.
 type IssueEvidenceRequest struct {
+	Offering   core.Offering
 	Key        ed25519.PrivateKey
 	Body       EvidenceBody
 	OccurredAt temporal.Instant
 	Identity   ReceiptID
 	Account    AccountIdentity
-	Offering   OfferingIdentity
 }
 
 // EvidenceExpectation is the exact scope and integrity a caller will accept.
 type EvidenceExpectation struct {
-	Account  AccountIdentity
-	Offering OfferingIdentity
+	Offering core.Offering
 	Body     EvidenceBody
+	Account  AccountIdentity
 }
 
 // VerifyEvidenceRequest carries untrusted evidence, caller trust, and intent.
 type VerifyEvidenceRequest struct {
+	Expected    EvidenceExpectation
 	Document    EvidenceDocument
 	TrustedKeys attest.TrustedKeys
-	Expected    EvidenceExpectation
 }
 
 // VerifiedEvidence is an in-package sealed authentication proof.
@@ -400,7 +400,7 @@ func (b *EvidenceBody) UnmarshalJSON(data []byte) error {
 type headerWire struct {
 	Identity   *ReceiptID        `json:"receipt_identity"`
 	Account    *AccountIdentity  `json:"account_identity"`
-	Offering   *OfferingIdentity `json:"offering_identity"`
+	Offering   *core.Offering    `json:"offering"`
 	Revision   *Revision         `json:"revision"`
 	OccurredAt *temporal.Instant `json:"occurred_at_nanoseconds"`
 }

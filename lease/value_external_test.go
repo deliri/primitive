@@ -1,7 +1,7 @@
 package lease_test
 
 import (
-	"encoding/json"
+	json "encoding/json/v2"
 	"errors"
 	"math"
 	"slices"
@@ -35,14 +35,12 @@ func TestIdentifierEntryPointPressure(t *testing.T) {
 		t.Run(tc.name, func(t *testing.T) {
 			t.Parallel()
 
-			product, productErr := lease.NewProduct(tc.value)
 			entitlement, entitlementErr := lease.NewEntitlementID(tc.value)
 			device, deviceErr := lease.NewDeviceID(tc.value)
 			results := []struct {
 				err  error
 				name string
 			}{
-				{name: "product", err: productErr},
 				{name: "entitlement", err: entitlementErr},
 				{name: "device", err: deviceErr},
 			}
@@ -54,13 +52,8 @@ func TestIdentifierEntryPointPressure(t *testing.T) {
 			if tc.wantErr != nil {
 				return
 			}
-			if product.String() != entitlement.String() ||
-				product.String() != device.String() {
+			if entitlement.String() != device.String() {
 				t.Fatalf("nominal identifier projections differ for equal bytes")
-			}
-			parsedProduct, err := lease.ParseProduct(product.String())
-			if err != nil || parsedProduct != product {
-				t.Fatalf("lease.ParseProduct() = (%v, %v), want (%v, nil)", parsedProduct, err, product)
 			}
 			parsedEntitlement, err := lease.ParseEntitlementID(entitlement.String())
 			if err != nil || parsedEntitlement != entitlement {
@@ -77,11 +70,11 @@ func TestIdentifierEntryPointPressure(t *testing.T) {
 func TestIdentifierJSONHostilePressure(t *testing.T) {
 	t.Parallel()
 
-	product, err := lease.NewProduct(fixtureIdentifierBytes(111))
+	entitlement, err := lease.NewEntitlementID(fixtureIdentifierBytes(111))
 	if err != nil {
-		t.Fatalf("lease.NewProduct() error = %v, want nil", err)
+		t.Fatalf("lease.NewEntitlementID() error = %v, want nil", err)
 	}
-	canonical, err := json.Marshal(product)
+	canonical, err := json.Marshal(entitlement)
 	if err != nil {
 		t.Fatalf("json.Marshal() error = %v, want nil", err)
 	}
@@ -115,13 +108,13 @@ func TestIdentifierJSONHostilePressure(t *testing.T) {
 		t.Run(tc.name, func(t *testing.T) {
 			t.Parallel()
 
-			got := product
+			got := entitlement
 			err := got.UnmarshalJSON(tc.data)
 			if !errors.Is(err, tc.wantErr) {
 				t.Fatalf("json.Unmarshal() error = %v, want %v", err, tc.wantErr)
 			}
-			if tc.wantErr != nil && got != product {
-				t.Fatalf("rejected Product mutated receiver")
+			if tc.wantErr != nil && got != entitlement {
+				t.Fatalf("rejected EntitlementID mutated receiver")
 			}
 		})
 	}

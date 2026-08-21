@@ -1,7 +1,7 @@
 package controlplane_test
 
 import (
-	"encoding/json"
+	json "encoding/json/v2"
 	"errors"
 	"math"
 	"testing"

@@ -19,8 +19,8 @@ type SubmissionResponseIssuance struct {
 }
 
 type SubmissionResponseVerification struct {
-	Document    controlplane.ResponseDocument[submission.DecisionDocument, *submission.DecisionDocument]
 	Expected    controlplane.ResponseExpectation
+	Document    controlplane.ResponseDocument[submission.DecisionDocument, *submission.DecisionDocument]
 	TrustedKeys attest.TrustedKeys
 }
 
@@ -62,8 +62,8 @@ type CompletionResponseIssuance struct {
 }
 
 type CompletionResponseVerification struct {
-	Document    controlplane.ResponseDocument[chit.Document, *chit.Document]
 	Expected    controlplane.ResponseExpectation
+	Document    controlplane.ResponseDocument[chit.Document, *chit.Document]
 	TrustedKeys attest.TrustedKeys
 }
 

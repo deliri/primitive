@@ -2,7 +2,7 @@ package distribution
 
 import (
 	"crypto"
-	"encoding/json"
+	json "encoding/json/v2"
 	"errors"
 	"io"
 
@@ -17,13 +17,13 @@ import (
 // PublicationCompletionPayload is the authority-received proof that every
 // object in one granted release publication completed with exact integrity.
 type PublicationCompletionPayload struct {
+	Build            core.BuildIdentity                                           `json:"build"`
 	Evidence         [release.PublicationObjectCount]objectstore.TransferEvidence `json:"evidence"`
-	Nonce            controlwire.RequestNonce                                     `json:"request_nonce"`
 	Request          RequestCommitment                                            `json:"request_commitment"`
+	Nonce            controlwire.RequestNonce                                     `json:"request_nonce"`
 	Authorization    controlwire.AuthorityNonce                                   `json:"authorization_nonce"`
 	Manifest         release.ManifestIdentity                                     `json:"manifest"`
 	ManifestDocument release.ManifestDocumentDigest                               `json:"manifest_document"`
-	Build            core.BuildIdentity                                           `json:"build"`
 }
 
 // PublicationCompletionDocument carries the caller's signature over provider
@@ -69,26 +69,26 @@ type VerifiedPublicationCompletion struct {
 }
 
 type publicationCompletionProjectionPayload struct {
+	build            core.BuildIdentity
 	evidence         [release.PublicationObjectCount]objectstore.TransferEvidenceProjection
-	nonce            controlwire.RequestNonce
 	request          RequestCommitment
+	nonce            controlwire.RequestNonce
 	authorization    controlwire.AuthorityNonce
 	manifest         release.ManifestIdentity
 	manifestDocument release.ManifestDocumentDigest
-	build            core.BuildIdentity
 }
 
 type (
 	publicationCompletionPayloadWire           PublicationCompletionPayload
 	publicationCompletionDocumentWire          PublicationCompletionDocument
 	publicationCompletionProjectionPayloadWire struct {
+		Build            core.BuildIdentity                                                     `json:"build"`
 		Evidence         [release.PublicationObjectCount]objectstore.TransferEvidenceProjection `json:"evidence"`
-		Nonce            controlwire.RequestNonce                                               `json:"request_nonce"`
 		Request          RequestCommitment                                                      `json:"request_commitment"`
+		Nonce            controlwire.RequestNonce                                               `json:"request_nonce"`
 		Authorization    controlwire.AuthorityNonce                                             `json:"authorization_nonce"`
 		Manifest         release.ManifestIdentity                                               `json:"manifest"`
 		ManifestDocument release.ManifestDocumentDigest                                         `json:"manifest_document"`
-		Build            core.BuildIdentity                                                     `json:"build"`
 	}
 	publicationCompletionProjectionWire struct {
 		Payload     publicationCompletionProjectionPayloadWire `json:"payload"`

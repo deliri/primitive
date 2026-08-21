@@ -118,7 +118,7 @@ func TestControlExchangeRejectsRedirects(t *testing.T) {
 func TestRouteSemanticsBindReplayToTheRequestNonce(t *testing.T) {
 	t.Parallel()
 
-	contract, err := NewRouteContract(core.OfferingPeachfuzz, RouteFamilyRegistrations)
+	contract, err := NewRouteContract(controlwireOfferingFixture(t, 5), RouteFamilyRegistrations)
 	if err != nil {
 		t.Fatalf("NewRouteContract() error = %v, want nil", err)
 	}
@@ -176,7 +176,7 @@ func TestRouteSemanticsRefuseAnUnusableContractOrNonce(t *testing.T) {
 		t.Fatalf("zero RouteContract Semantics() error = %v, want errors.Is %v", err, core.ErrControlWireContract)
 	}
 
-	contract, err := NewRouteContract(core.OfferingPeachfuzz, RouteFamilyCheckIns)
+	contract, err := NewRouteContract(controlwireOfferingFixture(t, 6), RouteFamilyCheckIns)
 	if err != nil {
 		t.Fatalf("NewRouteContract() error = %v, want nil", err)
 	}

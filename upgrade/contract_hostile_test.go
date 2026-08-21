@@ -36,8 +36,8 @@ func TestValidateUpgradePairAdmitsOnlyAStrictlyNewerSameTargetBuild(t *testing.T
 	installed := core.NewReleaseVersion(2, 4, 6)
 	for _, tc := range []struct {
 		name     string
-		version  core.ReleaseVersion
 		offering core.Offering
+		version  core.ReleaseVersion
 		platform core.Platform
 		wantOK   bool
 	}{
@@ -57,7 +57,7 @@ func TestValidateUpgradePairAdmitsOnlyAStrictlyNewerSameTargetBuild(t *testing.T
 		{name: "an older minor with newer patch is rejected", version: core.NewReleaseVersion(2, 3, 99)},
 		{
 			name:    "a newer version of a different offering is rejected",
-			version: core.NewReleaseVersion(3, 0, 0), offering: core.OfferingWitness,
+			version: core.NewReleaseVersion(3, 0, 0), offering: upgradeOffering(t, 2),
 		},
 		{
 			name:    "a newer version for a different platform is rejected",
@@ -65,21 +65,21 @@ func TestValidateUpgradePairAdmitsOnlyAStrictlyNewerSameTargetBuild(t *testing.T
 		},
 		{
 			name:    "the identical version of a different offering is rejected",
-			version: installed, offering: core.OfferingWitness,
+			version: installed, offering: upgradeOffering(t, 2),
 		},
 	} {
 		t.Run(tc.name, func(t *testing.T) {
 			t.Parallel()
 			offering := tc.offering
-			if offering == core.OfferingUnknown {
-				offering = core.OfferingBug
+			if !offering.IsValid() {
+				offering = upgradeOffering(t, 1)
 			}
 			target := tc.platform
 			if target == (core.Platform{}) {
 				target = platform
 			}
 			from := buildArtifactForTest(
-				t, []byte("installed"), core.OfferingBug, installed, platform,
+				t, []byte("installed"), upgradeOffering(t, 1), installed, platform,
 			)
 			to := buildArtifactForTest(
 				t, []byte("candidate"), offering, tc.version, target,
@@ -97,10 +97,10 @@ func TestValidateUpgradePairAdmitsOnlyAStrictlyNewerSameTargetBuild(t *testing.T
 		})
 	}
 	peachfuzzInstalled := buildArtifactForTest(
-		t, []byte("peachfuzz-installed"), core.OfferingPeachfuzz, installed, platform,
+		t, []byte("second-installed"), upgradeOffering(t, 3), installed, platform,
 	)
 	peachfuzzCandidate := buildArtifactForTest(
-		t, []byte("peachfuzz-candidate"), core.OfferingPeachfuzz,
+		t, []byte("second-candidate"), upgradeOffering(t, 3),
 		core.NewReleaseVersion(2, 4, 7), platform,
 	)
 	if err := validateUpgradePair(peachfuzzInstalled, peachfuzzCandidate); err != nil {

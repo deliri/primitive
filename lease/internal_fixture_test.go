@@ -3,15 +3,16 @@ package lease
 import (
 	"testing"
 
+	"github.com/deliri/primitive/v2026/core"
 	"github.com/deliri/primitive/v2026/temporal"
 )
 
 func fixtureInternalHeader(tb testing.TB) Header {
 	tb.Helper()
 
-	product, err := NewProduct([IdentifierBytes]byte{1})
-	if err != nil {
-		tb.Fatalf("NewProduct() error = %v, want nil", err)
+	offering := core.Offering{Token: "lease-internal-fixture"}
+	if err := offering.Validate(); err != nil {
+		tb.Fatalf("Offering.Validate() error = %v, want nil", err)
 	}
 	entitlement, err := NewEntitlementID([IdentifierBytes]byte{2})
 	if err != nil {
@@ -28,7 +29,7 @@ func fixtureInternalHeader(tb testing.TB) Header {
 	return Header{
 		Revision: RevisionV1,
 		Subject: Subject{
-			Product: product, EntitlementID: entitlement, DeviceID: device,
+			Offering: offering, EntitlementID: entitlement, DeviceID: device,
 		},
 		Generation: generation,
 		IssuedAt:   fixtureInternalInstant(1_000),

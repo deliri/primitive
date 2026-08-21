@@ -2,7 +2,7 @@ package gcsobjects
 
 import (
 	"context"
-	"encoding/json"
+	json "encoding/json/v2"
 	"errors"
 	"net/http"
 	"net/http/httptest"
@@ -239,13 +239,13 @@ func TestGCSBucketProvisioningLayerTriadUsesOfficialSDKAndPreservesExactPolicy(t
 					writer.WriteHeader(http.StatusMethodNotAllowed)
 					return
 				}
-				if err := json.NewDecoder(incoming.Body).Decode(&received); err != nil {
+				if err := json.UnmarshalRead(incoming.Body, &received); err != nil {
 					t.Errorf("provider request decode error = %v, want nil", err)
 					writer.WriteHeader(http.StatusBadRequest)
 					return
 				}
 				writer.Header().Set("Content-Type", "application/json")
-				if err := json.NewEncoder(writer).Encode(received); err != nil {
+				if err := json.MarshalWrite(writer, received); err != nil {
 					t.Errorf("provider response encode error = %v, want nil", err)
 				}
 			}))

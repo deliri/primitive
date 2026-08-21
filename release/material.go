@@ -2,7 +2,7 @@ package release
 
 import (
 	"encoding/base64"
-	"encoding/json"
+	json "encoding/json/v2"
 	"errors"
 	"fmt"
 	"io"
@@ -18,10 +18,10 @@ import (
 // that execution on both sides.
 type MaterialRequest struct {
 	Primitive ProjectVersion           `json:"primitive"`
+	Offering  core.Offering            `json:"offering"`
 	Version   core.ReleaseVersion      `json:"version"`
 	Commit    core.BuildCommit         `json:"commit"`
 	Nonce     controlwire.RequestNonce `json:"nonce"`
-	Offering  core.Offering            `json:"offering"`
 	Revision  controlwire.Revision     `json:"revision"`
 }
 
@@ -35,9 +35,9 @@ type materialRequestWire struct {
 }
 
 type MaterialRequestInput struct {
+	Offering core.Offering
 	Version  core.ReleaseVersion
 	Commit   core.BuildCommit
-	Offering core.Offering
 	Nonce    controlwire.RequestNonce
 }
 

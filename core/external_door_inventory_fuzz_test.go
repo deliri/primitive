@@ -5,7 +5,8 @@ import (
 	"crypto/ed25519"
 	"encoding"
 	"encoding/hex"
-	"encoding/json"
+	jsontext "encoding/json/jsontext"
+	json "encoding/json/v2"
 	"errors"
 	"go/ast"
 	"go/parser"
@@ -114,25 +115,25 @@ type coreJSONFixtures struct {
 	component       PathComponent
 	mediaType       HTTPMediaType
 	header          HTTPHeaderName
+	offering        Offering
 	endpoint        HTTPEndpoint
+	build           BuildIdentity
 	byteLength      ByteLength
 	byteCount       ByteCount
-	build           BuildIdentity
 	version         ReleaseVersion
 	crc32c          CRC32C
-	errorIdentity   ErrorIdentity
 	status          HTTPStatusCode
 	pageLimit       CatalogPageLimit
+	errorIdentity   ErrorIdentity
 	sha256          SHA256Digest
 	commit          BuildCommit
 	publicKey       Ed25519PublicKey
 	platform        Platform
-	position        CatalogPositionKind
 	packageKind     PackageKind
 	packageIdentity PackageIdentity
 	selection       CatalogSelectionKind
 	continuation    CatalogContinuationState
-	offering        Offering
+	position        CatalogPositionKind
 	architecture    CPUArchitecture
 	operatingSystem OperatingSystem
 }
@@ -490,9 +491,8 @@ func coreTextSeedsForFuzz(t testing.TB, fixtures coreJSONFixtures) []coreTextSee
 	if err != nil {
 		t.Fatalf("Ed25519PublicKey.Hex(seed) error = %v, want nil", err)
 	}
-	return []coreTextSeed{
+	seeds := []coreTextSeed{
 		{door: coreTextDoorPlatform, text: fixtures.platform.String()},
-		{door: coreTextDoorOffering, text: fixtures.offering.String()},
 		{door: coreTextDoorReleaseVersion, text: fixtures.version.String()},
 		{door: coreTextDoorSHA256Digest, text: sha256Text},
 		{door: coreTextDoorCRC32C, text: crc32cText},
@@ -506,6 +506,8 @@ func coreTextSeedsForFuzz(t testing.TB, fixtures coreJSONFixtures) []coreTextSee
 		{door: coreTextDoorRelativePath, text: fixtures.relativePath.String()},
 		{door: coreTextDoorAbsolutePath, text: fixtures.absolutePath.String()},
 	}
+	seeds = append(seeds, coreTextSeed{door: coreTextDoorOffering, text: fixtures.offering.String()})
+	return seeds
 }
 
 func coreFixturesForFuzz(t testing.TB) coreJSONFixtures {
@@ -516,8 +518,12 @@ func coreFixturesForFuzz(t testing.TB) coreJSONFixtures {
 		t.Fatalf("ParseBuildCommit(seed) error = %v, want nil", err)
 	}
 	version := NewReleaseVersion(2026, 0, 76)
+	offering, err := parseOffering("core-fuzz-fixture")
+	if err != nil {
+		t.Fatalf("ParseOffering(seed) error = %v, want nil", err)
+	}
 	build, err := NewBuildIdentity(BuildIdentityRequest{
-		Offering: OfferingWitness, Version: version, Commit: commit, Platform: platform,
+		Offering: offering, Version: version, Commit: commit, Platform: platform,
 	})
 	if err != nil {
 		t.Fatalf("NewBuildIdentity(seed) error = %v, want nil", err)
@@ -565,7 +571,7 @@ func coreFixturesForFuzz(t testing.TB) coreJSONFixtures {
 	}
 	return coreJSONFixtures{
 		platform: platform, operatingSystem: OperatingSystemDarwin,
-		architecture: CPUArchitectureARM64, offering: OfferingWitness,
+		architecture: CPUArchitectureARM64, offering: offering,
 		version: version, commit: commit, build: build, pageLimit: pageLimit,
 		selection: CatalogSelectionAll, position: CatalogPositionStart,
 		continuation: CatalogContinuationEnd, errorIdentity: ErrPrimitiveContract,
@@ -580,11 +586,10 @@ func coreFixturesForFuzz(t testing.TB) coreJSONFixtures {
 
 func coreJSONSeedsForFuzz(t testing.TB, fixtures coreJSONFixtures) []coreJSONSeed {
 	t.Helper()
-	return []coreJSONSeed{
+	seeds := []coreJSONSeed{
 		coreJSONSeedForFuzz(t, coreJSONDoorPlatform, fixtures.platform),
 		coreJSONSeedForFuzz(t, coreJSONDoorOperatingSystem, fixtures.operatingSystem),
 		coreJSONSeedForFuzz(t, coreJSONDoorCPUArchitecture, fixtures.architecture),
-		coreJSONSeedForFuzz(t, coreJSONDoorOffering, fixtures.offering),
 		coreJSONSeedForFuzz(t, coreJSONDoorReleaseVersion, fixtures.version),
 		coreJSONSeedForFuzz(t, coreJSONDoorBuildCommit, fixtures.commit),
 		coreJSONSeedForFuzz(t, coreJSONDoorBuildIdentity, fixtures.build),
@@ -607,6 +612,8 @@ func coreJSONSeedsForFuzz(t testing.TB, fixtures coreJSONFixtures) []coreJSONSee
 		coreJSONSeedForFuzz(t, coreJSONDoorPathComponent, fixtures.component),
 		coreJSONSeedForFuzz(t, coreJSONDoorAbsolutePath, fixtures.absolutePath),
 	}
+	seeds = append(seeds, coreJSONSeedForFuzz(t, coreJSONDoorOffering, fixtures.offering))
+	return seeds
 }
 
 func coreJSONSeedForFuzz(t testing.TB, door coreJSONDoor, value coreJSONValue) coreJSONSeed {
@@ -641,7 +648,7 @@ func FuzzCoreDecodeJSONStringTokenSemanticClosure(f *testing.F) {
 			}
 			return
 		}
-		if !json.Valid(data) {
+		if !jsontext.Value(data).IsValid() {
 			t.Fatalf("DecodeJSONStringToken accepted invalid JSON")
 		}
 		encoded, err := MarshalCanonicalJSONString(got)

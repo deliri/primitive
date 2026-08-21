@@ -127,7 +127,7 @@ func inspectionFileTriadBuild(t testing.TB) core.BuildIdentity {
 		t.Fatalf("core.ParseBuildCommit() error = %v, want nil", err)
 	}
 	build, err := core.NewBuildIdentity(core.BuildIdentityRequest{
-		Offering: core.OfferingWitness, Version: core.NewReleaseVersion(2026, 0, 11), Commit: commit,
+		Offering: releaseExternalOffering(t, 2), Version: core.NewReleaseVersion(2026, 0, 11), Commit: commit,
 		Platform: core.Platform{OperatingSystem: core.OperatingSystemDarwin, Architecture: core.CPUArchitectureARM64},
 	})
 	if err != nil {

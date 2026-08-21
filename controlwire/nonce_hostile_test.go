@@ -1,10 +1,12 @@
 package controlwire_test
 
 import (
-	"encoding/json"
+	json "encoding/json/v2"
 	"errors"
 	"strings"
 	"testing"
+
+	"encoding/json/jsontext"
 
 	"github.com/deliri/primitive/v2026/controlwire"
 	"github.com/deliri/primitive/v2026/core"
@@ -347,7 +349,7 @@ func TestRequestNonceJSONRejectionLeavesTheReceiverUnchanged(t *testing.T) {
 		{name: "truncated token is refused", document: `"` + nonceHexWithLetters[:63] + `"`},
 		{name: "overlong token is refused", document: `"` + nonceHexWithLetters + `0"`},
 		{name: "unterminated string is refused", document: `"` + nonceHexWithLetters, wantSyntax: true},
-		{name: "unpaired high surrogate is refused", document: `"\ud800"`},
+		{name: "unpaired high surrogate is refused by JSON v2 syntax", document: `"\ud800"`, wantSyntax: true},
 		{name: "empty document is refused", document: ``, wantSyntax: true},
 	}
 
@@ -370,10 +372,10 @@ func TestRequestNonceJSONRejectionLeavesTheReceiverUnchanged(t *testing.T) {
 				}
 				return
 			}
-			var syntax *json.SyntaxError
+			var syntax *jsontext.SyntacticError
 			if tc.wantSyntax {
 				if !errors.As(err, &syntax) {
-					t.Fatalf("json.Unmarshal(%s) error = %v, want errors.As *json.SyntaxError", tc.document, err)
+					t.Fatalf("json.Unmarshal(%s) error = %v, want errors.As *jsontext.SyntacticError", tc.document, err)
 				}
 			} else if !errors.Is(err, core.ErrControlWireNonce) || !errors.Is(err, core.ErrJSONContract) {
 				t.Fatalf("json.Unmarshal(%s) error = %v, want errors.Is %v and %v", tc.document, err,

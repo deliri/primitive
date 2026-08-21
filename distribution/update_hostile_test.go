@@ -1,7 +1,7 @@
 package distribution_test
 
 import (
-	"encoding/json"
+	json "encoding/json/v2"
 	"errors"
 	"testing"
 
@@ -14,14 +14,14 @@ import (
 )
 
 type updateExchangeFixture struct {
+	request       distribution.UpdateRequestPayload
+	requestDoc    distribution.UpdateRequestDocument
 	installed     release.VerifiedManifest
 	latest        release.VerifiedLatest
 	responseDoc   distribution.UpdateResponseDocument
 	callerKeys    attest.TrustedKeys
 	authorityKeys attest.TrustedKeys
 	releaseKeys   attest.TrustedKeys
-	requestDoc    distribution.UpdateRequestDocument
-	request       distribution.UpdateRequestPayload
 }
 
 func newUpdateExchangeFixture(t testing.TB) updateExchangeFixture {
@@ -103,7 +103,7 @@ func TestUpdateExchangeLayerTriadAuthenticatesLatestWithoutInstallingAnything(t 
 	verification := distribution.UpdateResponseVerification{
 		Request: fixture.request, Document: fixture.responseDoc,
 		ResponseKeys: fixture.authorityKeys, LatestKeys: fixture.releaseKeys,
-		ManifestKeys: fixture.releaseKeys, ExpectedOffering: core.OfferingBug,
+		ManifestKeys: fixture.releaseKeys, ExpectedOffering: distributionOffering(t, 1),
 		ObservedAt: temporal.InstantFromNanoseconds(3_000),
 	}
 	verified, err := distribution.VerifyUpdateResponse(verification)
@@ -152,7 +152,7 @@ func TestVerifyUpdateResponseRejectsAuthenticInstalledManifestForAnotherBuild(t 
 	verified, gotErr := distribution.VerifyUpdateResponse(distribution.UpdateResponseVerification{
 		Request: fixture.request, Document: document,
 		ResponseKeys: fixture.authorityKeys, LatestKeys: fixture.releaseKeys,
-		ManifestKeys: fixture.releaseKeys, ExpectedOffering: core.OfferingBug,
+		ManifestKeys: fixture.releaseKeys, ExpectedOffering: distributionOffering(t, 1),
 		ObservedAt: temporal.InstantFromNanoseconds(3_000),
 	})
 	if !errors.Is(gotErr, core.ErrDistributionBinding) ||
@@ -168,7 +168,7 @@ func TestVerifyUpdateResponsePressuresBindingLifetimeAndAuthorityEdges(t *testin
 	base := distribution.UpdateResponseVerification{
 		Request: fixture.request, Document: fixture.responseDoc,
 		ResponseKeys: fixture.authorityKeys, LatestKeys: fixture.releaseKeys,
-		ManifestKeys: fixture.releaseKeys, ExpectedOffering: core.OfferingBug,
+		ManifestKeys: fixture.releaseKeys, ExpectedOffering: distributionOffering(t, 1),
 		ObservedAt: temporal.InstantFromNanoseconds(3_000),
 	}
 	otherKey := signingKey(151)
@@ -236,7 +236,7 @@ func TestVerifyUpdateResponsePressuresBindingLifetimeAndAuthorityEdges(t *testin
 			return v
 		}, wantErr: core.ErrDistributionVerification},
 		{name: "different offering is rejected", mutate: func(v distribution.UpdateResponseVerification) distribution.UpdateResponseVerification {
-			v.ExpectedOffering = core.OfferingPeachfuzz
+			v.ExpectedOffering = distributionOffering(t, 3)
 			return v
 		}, wantErr: core.ErrDistributionVerification},
 		{name: "unset response document is rejected", mutate: func(v distribution.UpdateResponseVerification) distribution.UpdateResponseVerification {

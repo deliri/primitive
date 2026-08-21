@@ -24,8 +24,8 @@ type (
 	sealedWireProjection[T any]         struct{}
 	capabilityWrapper[T any]            struct{}
 	completionPayloadDisclosureContract struct {
-		Evidence      objectstore.TransferEvidence           `json:"evidence"`
 		Build         core.BuildIdentity                     `json:"build"`
+		Evidence      objectstore.TransferEvidence           `json:"evidence"`
 		Nonce         controlwire.RequestNonce               `json:"request_nonce"`
 		Request       RequestCommitment                      `json:"request_commitment"`
 		Capability    objectstore.UploadCapabilityCommitment `json:"capability_commitment"`
@@ -40,8 +40,8 @@ type (
 		attestation attest.Envelope[SigningDomain]
 	}
 	completionProjectionPayloadDisclosureContract struct {
-		evidence      objectstore.TransferEvidenceProjection
 		build         core.BuildIdentity
+		evidence      objectstore.TransferEvidenceProjection
 		nonce         controlwire.RequestNonce
 		request       RequestCommitment
 		capability    objectstore.UploadCapabilityCommitment

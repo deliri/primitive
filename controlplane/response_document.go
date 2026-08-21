@@ -3,9 +3,11 @@ package controlplane
 import (
 	"bytes"
 	"crypto"
-	"encoding/json"
+	json "encoding/json/v2"
 	"errors"
 	"io"
+
+	"encoding/json/jsontext"
 
 	"github.com/deliri/primitive/v2026/attest"
 	"github.com/deliri/primitive/v2026/controlwire"
@@ -48,8 +50,8 @@ type UpgradeRequiredIssuance struct {
 // product body can therefore use an encode-only bearer projection.
 type ResponseProjection[Body core.ValidatedJSONMarshaler] struct {
 	body        Body
-	attestation attest.Envelope[SigningDomain]
 	header      ResponseHeader
+	attestation attest.Envelope[SigningDomain]
 }
 
 // ResponseDocument is the receive-only authenticated wire response. Its
@@ -78,8 +80,8 @@ type ResponseVerification[
 		json.Unmarshaler
 	},
 ] struct {
-	Document    ResponseDocument[Body, BodyPtr]
 	Expected    ResponseExpectation
+	Document    ResponseDocument[Body, BodyPtr]
 	TrustedKeys attest.TrustedKeys
 }
 
@@ -101,10 +103,9 @@ type VerifiedResponse[
 type responseCommitmentWire ResponseCommitment
 
 type responseDocumentWire struct {
-	// doctrine:local-allowed=external-wire
-	Body        json.RawMessage                `json:"body,omitempty"`
-	Attestation attest.Envelope[SigningDomain] `json:"attestation"`
+	Body        jsontext.Value                 `json:"body,omitempty"`
 	Header      ResponseHeader                 `json:"header"`
+	Attestation attest.Envelope[SigningDomain] `json:"attestation"`
 }
 
 var _ core.ValidatedJSONProjection = ResponseProjection[RegistrationDocument]{}
@@ -292,7 +293,7 @@ func (p ResponseProjection[Body]) MarshalJSON() ([]byte, error) {
 	}
 	encoded, err := core.MarshalCanonicalJSONDocument(responseDocumentWire{
 		// doctrine:local-allowed=external-wire
-		Body: json.RawMessage(body), Attestation: p.attestation, Header: p.header,
+		Body: jsontext.Value(body), Attestation: p.attestation, Header: p.header,
 	})
 	if err != nil || len(encoded) > core.JSONDocumentMaximumBytes {
 		return nil, jsonError(responseDocumentError(err))

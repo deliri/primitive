@@ -1,7 +1,7 @@
 package submissionauth
 
 import (
-	"encoding/json"
+	json "encoding/json/v2"
 	"errors"
 
 	"github.com/deliri/primitive/v2026/attest"
@@ -43,8 +43,8 @@ type Verification struct {
 // Verified proves the authority certificate authenticated before its device
 // key became the sole authority for the Submission request.
 type Verified struct {
-	requestProof     submission.VerifiedRequest
 	document         RequestDocument
+	requestProof     submission.VerifiedRequest
 	certificateProof controlplane.VerifiedInstallationCertificate
 }
 

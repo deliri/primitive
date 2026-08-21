@@ -356,6 +356,7 @@ func TestEvaluateInstalledDoesNotReadTheRunningBinaryStamp(t *testing.T) {
 		}
 	}
 	wantFields := []string{"Evaluate", "Installed"}
+	slices.Sort(requestFields)
 	if !slices.Equal(requestFields, wantFields) {
 		t.Fatalf("EvaluateInstalledRequest fields = %v, want %v", requestFields, wantFields)
 	}

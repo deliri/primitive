@@ -1,7 +1,7 @@
 package temporal
 
 import (
-	"encoding/json"
+	json "encoding/json/v2"
 	"math"
 	"math/bits"
 

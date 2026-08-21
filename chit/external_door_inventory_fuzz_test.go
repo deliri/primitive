@@ -2,7 +2,7 @@ package chit
 
 import (
 	"bytes"
-	"encoding/json"
+	json "encoding/json/v2"
 	"errors"
 	"go/ast"
 	"go/parser"
@@ -84,18 +84,18 @@ func (d chitJSONDoor) receiverName() string {
 
 type chitFuzzFixtures struct {
 	entryName       EntryName
+	queryPayload    QueryPayload
+	payload         Payload
 	catalogPayload  CatalogPayload
-	catalogDocument CatalogDocument
-	catalog         catalogFixture
-	chit            chitFixture
-	query           signedQueryFixture
 	queryDocument   QueryDocument
 	document        Document
-	payload         Payload
-	version         Version
+	catalogDocument CatalogDocument
+	query           signedQueryFixture
+	catalog         catalogFixture
+	chit            chitFixture
 	objectCount     ObjectCount
 	entrySequence   EntrySequence
-	queryPayload    QueryPayload
+	version         Version
 	queryCommitment QueryCommitment
 	cursor          Cursor
 	manifestDigest  ManifestDigest

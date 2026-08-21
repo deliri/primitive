@@ -1,7 +1,7 @@
 package release
 
 import (
-	"encoding/json"
+	json "encoding/json/v2"
 	"runtime"
 	"testing"
 
@@ -14,7 +14,7 @@ func BenchmarkVerifyLatest(b *testing.B) {
 	request := VerifyLatestRequest{
 		Document: fixture.latest, LatestKeys: fixture.latestTrust,
 		ManifestKeys:     fixture.manifestTrust,
-		ExpectedOffering: core.OfferingWitness,
+		ExpectedOffering: releaseOffering(b, 2),
 	}
 	b.ReportAllocs()
 

@@ -29,12 +29,12 @@ type CompletionReconciliationRequest struct {
 // provider observation, authority receipt, and chit entry all describe one
 // exact object.
 type ReconciledCompletion struct {
-	observation objectstore.VerifiedProviderUpload
+	scope       receipt.Scope
 	request     submission.RequestPayload
+	observation objectstore.VerifiedProviderUpload
 	completion  submission.CompletionPayload
 	addition    chit.ManifestAddition
 	body        receipt.EvidenceBody
-	scope       receipt.Scope
 	receipt     receipt.ReceiptID
 }
 

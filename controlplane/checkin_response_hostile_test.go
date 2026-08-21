@@ -29,10 +29,10 @@ const (
 // issuedCheckInResponse is one genuinely signed authority answer and everything
 // a client needs to authenticate it.
 type issuedCheckInResponse struct {
+	expectation controlplane.ResponseExpectation
 	signer      ed25519.PrivateKey
 	document    controlplane.CheckInResponseDocument
 	trusted     attest.TrustedKeys
-	expectation controlplane.ResponseExpectation
 }
 
 func (i issuedCheckInResponse) verification() controlplane.CheckInResponseVerification {
@@ -137,7 +137,7 @@ func TestVerifyCheckInResponseAcceptsOnlyAnAnswerToThisExactCheckIn(t *testing.T
 		t.Parallel()
 
 		request := issued.verification()
-		request.Expected.Offering = core.OfferingBug
+		request.Expected.Offering = controlplaneOffering(t, 1)
 
 		requireResponseBindingRefusal(t, request, controlplane.ResponseHeaderFieldOffering)
 	})
@@ -345,7 +345,7 @@ func TestIssueCheckInResponseRefusesEveryPayloadValidateRefuses(t *testing.T) {
 			name: "an unknown offering cannot bind a product",
 			want: core.ErrControlPlaneCheckInResponse,
 			mutate: func(payload *controlplane.CheckInResponsePayload) {
-				payload.Header.Offering = core.OfferingUnknown
+				payload.Header.Offering = core.Offering{}
 			},
 		},
 		{

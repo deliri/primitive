@@ -4,6 +4,7 @@ import (
 	"bytes"
 	"crypto/ed25519"
 	"errors"
+	"fmt"
 	"testing"
 
 	"github.com/deliri/primitive/v2026/attest"
@@ -25,10 +26,10 @@ type retrievalAuthFixtureRequest struct {
 
 type retrievalAuthFixture struct {
 	device      ed25519.PrivateKey
-	request     retrieval.RequestDocument
 	document    RequestDocument
-	trusted     attest.TrustedKeys
 	certificate controlplane.InstallationCertificateDocument
+	request     retrieval.RequestDocument
+	trusted     attest.TrustedKeys
 }
 
 type retrievalAuthJSONCase struct {
@@ -43,16 +44,16 @@ func TestRetrievalAuthAssemblyLayerTriad(t *testing.T) {
 		t.Parallel()
 
 		cases := []retrievalAuthFixtureRequest{
-			{Offering: core.OfferingBug, AuthorityByte: 0x11, DeviceByte: 0x21, NonceByte: 0x31},
-			{Offering: core.OfferingWitness, AuthorityByte: 0x12, DeviceByte: 0x22, NonceByte: 0x32},
-			{Offering: core.OfferingPeachfuzz, AuthorityByte: 0x13, DeviceByte: 0x23, NonceByte: 0x33},
-			{Offering: core.OfferingBug, AuthorityByte: 0x14, DeviceByte: 0x24, NonceByte: 0x34},
-			{Offering: core.OfferingWitness, AuthorityByte: 0x15, DeviceByte: 0x25, NonceByte: 0x35},
-			{Offering: core.OfferingPeachfuzz, AuthorityByte: 0x16, DeviceByte: 0x26, NonceByte: 0x36},
-			{Offering: core.OfferingBug, AuthorityByte: 0x17, DeviceByte: 0x27, NonceByte: 0x37},
-			{Offering: core.OfferingWitness, AuthorityByte: 0x18, DeviceByte: 0x28, NonceByte: 0x38},
-			{Offering: core.OfferingPeachfuzz, AuthorityByte: 0x19, DeviceByte: 0x29, NonceByte: 0x39},
-			{Offering: core.OfferingWitness, AuthorityByte: 0x1a, DeviceByte: 0x2a, NonceByte: 0x3a},
+			{Offering: retrievalAuthOffering(t, 1), AuthorityByte: 0x11, DeviceByte: 0x21, NonceByte: 0x31},
+			{Offering: retrievalAuthOffering(t, 2), AuthorityByte: 0x12, DeviceByte: 0x22, NonceByte: 0x32},
+			{Offering: retrievalAuthOffering(t, 3), AuthorityByte: 0x13, DeviceByte: 0x23, NonceByte: 0x33},
+			{Offering: retrievalAuthOffering(t, 1), AuthorityByte: 0x14, DeviceByte: 0x24, NonceByte: 0x34},
+			{Offering: retrievalAuthOffering(t, 2), AuthorityByte: 0x15, DeviceByte: 0x25, NonceByte: 0x35},
+			{Offering: retrievalAuthOffering(t, 3), AuthorityByte: 0x16, DeviceByte: 0x26, NonceByte: 0x36},
+			{Offering: retrievalAuthOffering(t, 1), AuthorityByte: 0x17, DeviceByte: 0x27, NonceByte: 0x37},
+			{Offering: retrievalAuthOffering(t, 2), AuthorityByte: 0x18, DeviceByte: 0x28, NonceByte: 0x38},
+			{Offering: retrievalAuthOffering(t, 3), AuthorityByte: 0x19, DeviceByte: 0x29, NonceByte: 0x39},
+			{Offering: retrievalAuthOffering(t, 2), AuthorityByte: 0x1a, DeviceByte: 0x2a, NonceByte: 0x3a},
 		}
 		for _, tc := range cases {
 			fixture := newRetrievalAuthFixture(t, tc)
@@ -75,7 +76,7 @@ func TestRetrievalAuthAssemblyLayerTriad(t *testing.T) {
 
 		fixture := newRetrievalAuthFixture(t, retrievalAuthFixtureRequest{})
 		other := newRetrievalAuthFixture(t, retrievalAuthFixtureRequest{
-			Offering: core.OfferingBug, AuthorityByte: 0x51, DeviceByte: 0x52, NonceByte: 0x53,
+			Offering: retrievalAuthOffering(t, 1), AuthorityByte: 0x51, DeviceByte: 0x52, NonceByte: 0x53,
 		})
 		cases := []struct {
 			wantErr error
@@ -127,15 +128,15 @@ func TestRetrievalAuthVerificationLayerTriad(t *testing.T) {
 		t.Parallel()
 
 		cases := []retrievalAuthFixtureRequest{
-			{Offering: core.OfferingBug, AuthorityByte: 0x41, DeviceByte: 0x51, NonceByte: 0x61},
-			{Offering: core.OfferingWitness, AuthorityByte: 0x42, DeviceByte: 0x52, NonceByte: 0x62},
-			{Offering: core.OfferingPeachfuzz, AuthorityByte: 0x43, DeviceByte: 0x53, NonceByte: 0x63},
-			{Offering: core.OfferingBug, AuthorityByte: 0x44, DeviceByte: 0x54, NonceByte: 0x64},
-			{Offering: core.OfferingPeachfuzz, AuthorityByte: 0x46, DeviceByte: 0x56, NonceByte: 0x66},
-			{Offering: core.OfferingBug, AuthorityByte: 0x47, DeviceByte: 0x57, NonceByte: 0x67},
-			{Offering: core.OfferingWitness, AuthorityByte: 0x48, DeviceByte: 0x58, NonceByte: 0x68},
-			{Offering: core.OfferingPeachfuzz, AuthorityByte: 0x49, DeviceByte: 0x59, NonceByte: 0x69},
-			{Offering: core.OfferingWitness, AuthorityByte: 0x4a, DeviceByte: 0x5a, NonceByte: 0x6a},
+			{Offering: retrievalAuthOffering(t, 1), AuthorityByte: 0x41, DeviceByte: 0x51, NonceByte: 0x61},
+			{Offering: retrievalAuthOffering(t, 2), AuthorityByte: 0x42, DeviceByte: 0x52, NonceByte: 0x62},
+			{Offering: retrievalAuthOffering(t, 3), AuthorityByte: 0x43, DeviceByte: 0x53, NonceByte: 0x63},
+			{Offering: retrievalAuthOffering(t, 1), AuthorityByte: 0x44, DeviceByte: 0x54, NonceByte: 0x64},
+			{Offering: retrievalAuthOffering(t, 3), AuthorityByte: 0x46, DeviceByte: 0x56, NonceByte: 0x66},
+			{Offering: retrievalAuthOffering(t, 1), AuthorityByte: 0x47, DeviceByte: 0x57, NonceByte: 0x67},
+			{Offering: retrievalAuthOffering(t, 2), AuthorityByte: 0x48, DeviceByte: 0x58, NonceByte: 0x68},
+			{Offering: retrievalAuthOffering(t, 3), AuthorityByte: 0x49, DeviceByte: 0x59, NonceByte: 0x69},
+			{Offering: retrievalAuthOffering(t, 2), AuthorityByte: 0x4a, DeviceByte: 0x5a, NonceByte: 0x6a},
 		}
 		for _, tc := range cases {
 			fixture := newRetrievalAuthFixture(t, tc)
@@ -308,9 +309,9 @@ func retrievalAuthHostileJSONCases(canonical []byte) []retrievalAuthJSONCase {
 		{name: "truncated before final brace", data: canonical[:len(canonical)-1]},
 		{name: "trailing object", data: append(append([]byte(nil), canonical...), '{', '}')},
 		{name: "two concatenated documents", data: append(append([]byte(nil), canonical...), canonical...)},
-		{name: "unknown top-level member", data: bytes.Replace(canonical, []byte(`{"request"`), []byte(`{"unknown":1,"request"`), 1)},
-		{name: "duplicate request member", data: bytes.Replace(canonical, []byte(`{"request":`), []byte(`{"request":null,"request":`), 1)},
-		{name: "duplicate certificate member", data: bytes.Replace(canonical, []byte(`,"certificate":`), []byte(`,"certificate":null,"certificate":`), 1)},
+		{name: "unknown top-level member", data: append([]byte(`{"unknown":1,`), canonical[1:]...)},
+		{name: "duplicate request member", data: append(bytes.Clone(canonical[:len(canonical)-1]), []byte(`,"request":null}`)...)},
+		{name: "duplicate certificate member", data: append(bytes.Clone(canonical[:len(canonical)-1]), []byte(`,"certificate":null}`)...)},
 		{name: "missing every member", data: []byte("{}")},
 		{name: "missing request", data: []byte(`{"certificate":null}`)},
 		{name: "missing certificate", data: []byte(`{"request":null}`)},
@@ -326,8 +327,8 @@ func newRetrievalAuthFixture(
 ) retrievalAuthFixture {
 	t.Helper()
 
-	if request.Offering == core.OfferingUnknown {
-		request.Offering = core.OfferingWitness
+	if !request.Offering.IsValid() {
+		request.Offering = retrievalAuthOffering(t, 2)
 	}
 	if request.AuthorityByte == 0 {
 		request.AuthorityByte = 0x21
@@ -368,6 +369,15 @@ func newRetrievalAuthFixture(
 		device: installation.DevicePrivate, request: signed, document: document,
 		trusted: trusted, certificate: installation.Certificate,
 	}
+}
+
+func retrievalAuthOffering(t testing.TB, marker byte) core.Offering {
+	t.Helper()
+	offering := core.Offering{Token: fmt.Sprintf("retrievalauth-fixture-%02x", marker)}
+	if err := offering.Validate(); err != nil {
+		t.Fatalf("Offering.Validate() error = %v, want nil", err)
+	}
+	return offering
 }
 
 func retrievalAuthPayload(

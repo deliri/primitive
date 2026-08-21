@@ -3,10 +3,12 @@ package release
 import (
 	"bytes"
 	"context"
-	"encoding/json"
+	json "encoding/json/v2"
 	"errors"
 	"io"
 	"sort"
+
+	"encoding/json/jsontext"
 
 	"github.com/deliri/primitive/v2026/core"
 	"github.com/deliri/primitive/v2026/process"
@@ -240,13 +242,13 @@ func decodeBuildDependencies(source io.Reader, observed *dependencyObservation) 
 }
 
 func decodeBuildDependencyStream(source io.Reader, observed *dependencyObservation) error {
-	decoder := json.NewDecoder(source)
+	decoder := jsontext.NewDecoder(source)
 	for packageCount := 0; ; packageCount++ {
 		if packageCount >= buildPackageObservationMaximumCount {
 			return contractError(errors.New("build package count exceeds its bound"))
 		}
 		var wire goListPackageWire
-		err := decoder.Decode(&wire)
+		err := json.UnmarshalDecode(decoder, &wire)
 		if errors.Is(err, io.EOF) {
 			break
 		}

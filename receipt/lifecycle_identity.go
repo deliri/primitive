@@ -1,21 +1,19 @@
 package receipt
 
 import (
-	"crypto/sha256"
 	"encoding/hex"
-	"encoding/json"
+	json "encoding/json/v2"
 	"errors"
 
 	"github.com/deliri/primitive/v2026/core"
 )
 
 const (
-	// LifecycleIdentityBytes is the fixed width of account, offering,
-	// submission, and object identities.
+	// LifecycleIdentityBytes is the fixed width of account, submission, and
+	// object identities.
 	LifecycleIdentityBytes = 16
 	// LifecycleIdentityHexBytes is the canonical hexadecimal text width.
-	LifecycleIdentityHexBytes   = LifecycleIdentityBytes * 2
-	offeringIdentityDomainToken = "primitive-receipt-offering-2026-1"
+	LifecycleIdentityHexBytes = LifecycleIdentityBytes * 2
 )
 
 type lifecycleIdentity struct {
@@ -23,7 +21,6 @@ type lifecycleIdentity struct {
 }
 
 type accountIdentityDomain uint8
-type offeringIdentityDomain uint8
 type submissionIdentityDomain uint8
 type objectIdentityDomain uint8
 
@@ -31,13 +28,6 @@ type objectIdentityDomain uint8
 type AccountIdentity struct {
 	value lifecycleIdentity
 	_     accountIdentityDomain
-}
-
-// OfferingIdentity is the opaque receipt projection of one compiler-owned
-// core.Offering. Callers cannot construct arbitrary offering identities.
-type OfferingIdentity struct {
-	value lifecycleIdentity
-	_     offeringIdentityDomain
 }
 
 // SubmissionIdentity identifies one submitted input.
@@ -152,93 +142,14 @@ func (i *AccountIdentity) UnmarshalJSON(data []byte) error {
 	return nil
 }
 
-func newOfferingIdentity(value [LifecycleIdentityBytes]byte) (OfferingIdentity, error) {
-	identity, err := newLifecycleIdentity(value)
-	if err != nil {
-		return OfferingIdentity{}, err
-	}
-	return OfferingIdentity{value: identity}, nil
-}
-
-// OfferingIdentityFor deterministically closes Primitive's product offering
-// into the receipt namespace. Both ends can therefore derive the same opaque
-// lifecycle identity from the signed build fact without another copied table
-// or server-assigned value.
-func OfferingIdentityFor(offering core.Offering) (OfferingIdentity, error) {
-	if err := offering.Validate(); err != nil {
-		return OfferingIdentity{}, contractError(core.ErrLifecycleIdentityContract, err)
-	}
-	digest := sha256.Sum256(append([]byte(offeringIdentityDomainToken), byte(offering)))
-	var value [LifecycleIdentityBytes]byte
-	copy(value[:], digest[:LifecycleIdentityBytes])
-	return newOfferingIdentity(value)
-}
-
 // ScopeFor derives the exact receipt namespace for one signed account and
 // Primitive offering.
 func ScopeFor(account AccountIdentity, offering core.Offering) (Scope, error) {
-	if err := account.Validate(); err != nil {
-		return Scope{}, contractError(err)
-	}
-	identity, err := OfferingIdentityFor(offering)
-	if err != nil {
+	scope := Scope{Account: account, Offering: offering}
+	if err := scope.Validate(); err != nil {
 		return Scope{}, err
 	}
-	scope := Scope{Account: account, Offering: identity}
-	return scope, scope.Validate()
-}
-
-func parseOfferingIdentity(value string) (OfferingIdentity, error) {
-	identity, err := parseLifecycleIdentity(value)
-	if err != nil {
-		return OfferingIdentity{}, err
-	}
-	candidate := OfferingIdentity{value: identity}
-	for raw := 0; raw <= 255; raw++ {
-		offering := core.Offering(raw)
-		if !offering.IsValid() {
-			continue
-		}
-		admitted, deriveErr := OfferingIdentityFor(offering)
-		if deriveErr != nil {
-			return OfferingIdentity{}, deriveErr
-		}
-		if candidate == admitted {
-			return candidate, nil
-		}
-	}
-	return OfferingIdentity{}, lifecycleIdentityError("offering identity is not a compiler-owned projection")
-}
-
-// Validate rejects the unset identity.
-func (i OfferingIdentity) Validate() error { return i.value.validate() }
-
-// String returns canonical lowercase hexadecimal, or empty text when unset.
-func (i OfferingIdentity) String() string { return i.value.string() }
-
-// MarshalJSON emits canonical lowercase hexadecimal.
-func (i OfferingIdentity) MarshalJSON() ([]byte, error) {
-	return marshalLifecycleIdentity(i.value)
-}
-
-// UnmarshalJSON accepts one canonical offering identity without mutating on failure.
-func (i *OfferingIdentity) UnmarshalJSON(data []byte) error {
-	if i == nil {
-		return jsonError(lifecycleIdentityError("nil offering identity receiver"))
-	}
-	if len(data) > core.JSONDocumentMaximumBytes {
-		return jsonError(core.ErrLifecycleIdentityContract, errors.New("offering identity document exceeds the JSON byte ceiling"))
-	}
-	token, err := core.DecodeJSONStringToken(data)
-	if err != nil {
-		return jsonError(core.ErrLifecycleIdentityContract, err)
-	}
-	value, err := parseOfferingIdentity(token)
-	if err != nil {
-		return jsonError(err)
-	}
-	*i = value
-	return nil
+	return scope, nil
 }
 
 // NewSubmissionIdentity constructs a submission identity from its exact bytes.

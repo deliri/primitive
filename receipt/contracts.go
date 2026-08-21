@@ -2,7 +2,7 @@ package receipt
 
 import (
 	"encoding/hex"
-	"encoding/json"
+	json "encoding/json/v2"
 	"errors"
 	"strconv"
 

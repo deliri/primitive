@@ -1,7 +1,8 @@
 package core
 
 import (
-	"encoding/json"
+	jsontext "encoding/json/jsontext"
+	json "encoding/json/v2"
 	"errors"
 	"path/filepath"
 	"strings"
@@ -83,7 +84,7 @@ func TestAbsoluteFilesystemPathHostileBoundaryTable(t *testing.T) {
 				if directMarshalErr != nil {
 					t.Fatalf("AbsolutePath.MarshalJSON(%q) error = %v, want nil", got, directMarshalErr)
 				}
-				if !json.Valid(directWire) {
+				if !jsontext.Value(directWire).IsValid() {
 					t.Fatalf("AbsolutePath.MarshalJSON(%q) wire = %q, want valid JSON", got, directWire)
 				}
 				directRoundTrip, directDecodeErr := DecodeStrictJSON[AbsolutePath](
@@ -203,13 +204,14 @@ func TestAbsolutePathStrictJSONRejectsLossySurrogateRepair(t *testing.T) {
 		t.Run(tc.name, func(t *testing.T) {
 			t.Parallel()
 
-			var repaired string
-			gotStdlibErr := json.Unmarshal([]byte(tc.wire), &repaired)
-			if gotStdlibErr != nil || !strings.ContainsRune(repaired, utf8.RuneError) {
+			var refused string
+			gotStdlibErr := json.Unmarshal([]byte(tc.wire), &refused)
+			var gotSyntax *jsontext.SyntacticError
+			if !errors.As(gotStdlibErr, &gotSyntax) || refused != "" {
 				t.Fatalf(
-					"json.Unmarshal(%q) = (%q, %v), want lossy replacement/nil fixture proof",
+					"json.Unmarshal(%q) = (%q, %v), want empty and JSON v2 syntactic refusal",
 					tc.wire,
-					repaired,
+					refused,
 					gotStdlibErr,
 				)
 			}
@@ -404,7 +406,7 @@ func TestPathComponentHostileBoundaryTable(t *testing.T) {
 				if directMarshalErr != nil {
 					t.Fatalf("PathComponent.MarshalJSON(%q) error = %v, want nil", got, directMarshalErr)
 				}
-				if !json.Valid(directWire) {
+				if !jsontext.Value(directWire).IsValid() {
 					t.Fatalf("PathComponent.MarshalJSON(%q) wire = %q, want valid JSON", got, directWire)
 				}
 				directRoundTrip, directDecodeErr := DecodeStrictJSON[PathComponent](

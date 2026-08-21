@@ -4,7 +4,7 @@ import (
 	"bytes"
 	"context"
 	"crypto/ed25519"
-	"encoding/json"
+	json "encoding/json/v2"
 	"errors"
 	"io"
 	"net/http"
@@ -23,13 +23,13 @@ import (
 )
 
 type publicationExchangeFixture struct {
-	callerKey       ed25519.PrivateKey
 	authorityKey    ed25519.PrivateKey
-	grantProjection distribution.PublicationGrantProjection
+	callerKey       ed25519.PrivateKey
 	grantDocument   distribution.PublicationGrantDocument
+	grantProjection distribution.PublicationGrantProjection
 	request         distribution.PublicationRequestPayload
-	requestDocument distribution.PublicationRequestDocument
 	verifiedGrant   distribution.VerifiedPublicationGrant
+	requestDocument distribution.PublicationRequestDocument
 	verifiedRequest distribution.VerifiedPublicationRequest
 	release         releaseFixture
 	authorityKeys   attest.TrustedKeys
@@ -100,7 +100,7 @@ func newPublicationExchangeFixture(t testing.TB) publicationExchangeFixture {
 	verifiedRequest, err := distribution.VerifyPublicationRequest(
 		distribution.PublicationRequestVerification{
 			Document: receivedRequest, RequestKeys: trustedKeys(t, callerKey),
-			ManifestKeys: trustedKeys(t, releaseKey), ExpectedOffering: core.OfferingBug,
+			ManifestKeys: trustedKeys(t, releaseKey), ExpectedOffering: distributionOffering(t, 1),
 		},
 	)
 	if err != nil {

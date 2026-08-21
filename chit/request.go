@@ -3,7 +3,7 @@ package chit
 import (
 	"crypto"
 	"crypto/sha256"
-	"encoding/json"
+	json "encoding/json/v2"
 	"errors"
 	"io"
 
@@ -21,8 +21,8 @@ const (
 
 // QueryPayload is one exact chit catalog query signed by an installed device.
 type QueryPayload struct {
-	Query    Query                    `json:"query"`
 	Build    core.BuildIdentity       `json:"build"`
+	Query    Query                    `json:"query"`
 	Nonce    controlwire.RequestNonce `json:"request_nonce"`
 	Revision controlwire.Revision     `json:"revision"`
 }

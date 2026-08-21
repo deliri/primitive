@@ -1,7 +1,7 @@
 package controlwire_test
 
 import (
-	"encoding/json"
+	json "encoding/json/v2"
 	"errors"
 	"fmt"
 	"testing"
@@ -175,7 +175,7 @@ func TestControlWireScalarLayerTriad(t *testing.T) {
 			if err == nil {
 				t.Errorf("json.Marshal(unset %s) = %s, want a refusal", subject.name, encoded)
 			}
-			if encoded != nil {
+			if len(encoded) != 0 {
 				t.Errorf("json.Marshal(unset %s) = %s, want no bytes", subject.name, encoded)
 			}
 		}

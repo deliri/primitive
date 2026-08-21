@@ -167,7 +167,7 @@ func inspectionFuzzRequest(t *testing.T, input inspectionFuzzRequestInput) relea
 func inspectionFuzzOfferingBuild(t *testing.T, base core.BuildIdentity) core.BuildIdentity {
 	t.Helper()
 	build, err := core.NewBuildIdentity(core.BuildIdentityRequest{
-		Offering: core.OfferingBug, Version: base.Version(), Commit: base.Commit(), Platform: base.Platform(),
+		Offering: releaseExternalOffering(t, 1), Version: base.Version(), Commit: base.Commit(), Platform: base.Platform(),
 	})
 	if err != nil {
 		t.Fatalf("core.NewBuildIdentity(foreign offering) error = %v, want nil", err)

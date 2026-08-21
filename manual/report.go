@@ -1,7 +1,7 @@
 package manual
 
 import (
-	"encoding/json"
+	json "encoding/json/v2"
 	"errors"
 	"io"
 
@@ -107,7 +107,7 @@ func (p PageReport) Validate() error {
 
 func validateTopicNames(names []TopicName) error {
 	if len(names) > MaximumSectionItems {
-		return contractError("manual related topics exceed their item limit")
+		return contractError(relatedLimitDiagnostic)
 	}
 	seen := make(map[TopicName]struct{}, len(names))
 	for _, name := range names {
@@ -125,12 +125,12 @@ func validateTopicNames(names []TopicName) error {
 // WriteJSON validates and streams one canonical JSON report.
 func WriteJSON(destination io.Writer, report Report) error {
 	if destination == nil {
-		return contractError("manual destination is nil")
+		return contractError(destinationNilDiagnostic)
 	}
 	if err := report.Validate(); err != nil {
 		return err
 	}
-	if err := json.NewEncoder(exactWriter{destination: destination}).Encode(report); err != nil {
+	if err := json.MarshalWrite(exactWriter{destination: destination}, report); err != nil {
 		return err
 	}
 	return nil

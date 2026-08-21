@@ -164,7 +164,7 @@ func TestAttestProductionImportsStayOnApprovedStandardLibraryAndCoreSubstrate(t 
 		"encoding",
 		"encoding/binary",
 		"encoding/hex",
-		"encoding/json",
+		"encoding/json/jsontext",
 		"errors",
 		"github.com/deliri/primitive/v2026/core",
 		"io",

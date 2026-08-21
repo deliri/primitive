@@ -1,7 +1,7 @@
 package distributionauth
 
 import (
-	"encoding/json"
+	json "encoding/json/v2"
 	"errors"
 
 	"github.com/deliri/primitive/v2026/attest"
@@ -20,13 +20,13 @@ const (
 )
 
 type PublicationRequestDocument struct {
-	Request     distribution.PublicationRequestDocument      `json:"request"`
 	Certificate controlplane.InstallationCertificateDocument `json:"certificate"`
+	Request     distribution.PublicationRequestDocument      `json:"request"`
 }
 
 type PublicationRequestAssembly struct {
-	Request     distribution.PublicationRequestDocument
 	Certificate controlplane.InstallationCertificateDocument
+	Request     distribution.PublicationRequestDocument
 }
 
 type PublicationVerification struct {
@@ -36,9 +36,9 @@ type PublicationVerification struct {
 }
 
 type VerifiedPublication struct {
-	requestProof     distribution.VerifiedPublicationRequest
-	document         PublicationRequestDocument
 	certificateProof controlplane.VerifiedInstallationCertificate
+	document         PublicationRequestDocument
+	requestProof     distribution.VerifiedPublicationRequest
 }
 
 type publicationRequestDocumentWire PublicationRequestDocument
@@ -177,28 +177,28 @@ func (v VerifiedPublication) Manifest() (release.VerifiedManifest, error) {
 }
 
 type PublicationCompletionDocument struct {
-	Completion  distribution.PublicationCompletionDocument   `json:"completion"`
 	Certificate controlplane.InstallationCertificateDocument `json:"certificate"`
+	Completion  distribution.PublicationCompletionDocument   `json:"completion"`
 }
 
 type PublicationCompletionProjection struct {
-	completion  distribution.PublicationCompletionProjection
 	certificate controlplane.InstallationCertificateDocument
+	completion  distribution.PublicationCompletionProjection
 }
 
 type PublicationCompletionAssembly struct {
-	Completion  distribution.PublicationCompletionDocument
 	Certificate controlplane.InstallationCertificateDocument
+	Completion  distribution.PublicationCompletionDocument
 }
 
 type PublicationCompletionProjectionAssembly struct {
-	Completion  distribution.PublicationCompletionProjection
 	Certificate controlplane.InstallationCertificateDocument
+	Completion  distribution.PublicationCompletionProjection
 }
 
 type PublicationCompletionVerification struct {
-	Grant       distribution.PublicationGrantDocument
 	Document    PublicationCompletionDocument
+	Grant       distribution.PublicationGrantDocument
 	Request     VerifiedPublication
 	TrustedKeys attest.TrustedKeys
 }
@@ -290,8 +290,8 @@ func (p PublicationCompletionProjection) MarshalJSON() ([]byte, error) {
 		return nil, jsonError(err)
 	}
 	encoded, err := core.MarshalCanonicalJSONDocument(struct {
-		Completion  distribution.PublicationCompletionProjection `json:"completion"`
 		Certificate controlplane.InstallationCertificateDocument `json:"certificate"`
+		Completion  distribution.PublicationCompletionProjection `json:"completion"`
 	}{Completion: p.completion, Certificate: p.certificate})
 	if err != nil || len(encoded) > PublicationCompletionDocumentJSONMaximumBytes {
 		return nil, jsonError(err)

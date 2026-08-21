@@ -101,7 +101,7 @@ func TestEmbeddedBuildIdentityReadsExactLinkerOwnedFacts(t *testing.T) {
 		t.Fatalf("core.ParseBuildCommit() error = %v, want nil", err)
 	}
 	build, err := core.NewBuildIdentity(core.BuildIdentityRequest{
-		Offering: core.OfferingWitness, Version: core.NewReleaseVersion(2026, 8, 2), Commit: commit,
+		Offering: releaseOffering(t, 2), Version: core.NewReleaseVersion(2026, 8, 2), Commit: commit,
 		Platform: core.Platform{OperatingSystem: core.OperatingSystemDarwin, Architecture: core.CPUArchitectureARM64},
 	})
 	if err != nil {
@@ -138,7 +138,7 @@ func TestEmbeddedBuildIdentityTextBoundary(t *testing.T) {
 		t.Fatalf("core.ParseBuildCommit() error = %v, want nil", err)
 	}
 	want, err := core.NewBuildIdentity(core.BuildIdentityRequest{
-		Offering: core.OfferingWitness, Version: core.NewReleaseVersion(2026, 8, 2), Commit: commit,
+		Offering: releaseOffering(t, 2), Version: core.NewReleaseVersion(2026, 8, 2), Commit: commit,
 		Platform: core.Platform{OperatingSystem: core.OperatingSystemDarwin, Architecture: core.CPUArchitectureARM64},
 	})
 	if err != nil {
@@ -158,12 +158,12 @@ func TestEmbeddedBuildIdentityTextBoundary(t *testing.T) {
 		name  string
 		value embeddedBuildIdentityText
 	}{
-		{name: "offering payload", value: embeddedBuildIdentityText{offering: embeddedBuildOfferingFramePrefix + "future", version: valid.version, commit: valid.commit, platform: valid.platform, assignments: valid.assignments}},
+		{name: "noncanonical offering payload", value: embeddedBuildIdentityText{offering: embeddedBuildOfferingFramePrefix + "FUTURE", version: valid.version, commit: valid.commit, platform: valid.platform, assignments: valid.assignments}},
 		{name: "version payload", value: embeddedBuildIdentityText{offering: valid.offering, version: embeddedBuildVersionFramePrefix + "2026.08.2", commit: valid.commit, platform: valid.platform, assignments: valid.assignments}},
 		{name: "commit payload", value: embeddedBuildIdentityText{offering: valid.offering, version: valid.version, commit: embeddedBuildCommitFramePrefix + "invalid", platform: valid.platform, assignments: valid.assignments}},
 		{name: "platform payload", value: embeddedBuildIdentityText{offering: valid.offering, version: valid.version, commit: valid.commit, platform: embeddedBuildPlatformFramePrefix + "darwin-386", assignments: valid.assignments}},
 		{name: "assignment payload", value: embeddedBuildIdentityText{offering: valid.offering, version: valid.version, commit: valid.commit, platform: valid.platform, assignments: embeddedBuildAssignmentsFramePrefix + "invalid"}},
-		{name: "raw offering lacks frame", value: embeddedBuildIdentityText{offering: "witness", version: valid.version, commit: valid.commit, platform: valid.platform, assignments: valid.assignments}},
+		{name: "raw offering lacks frame", value: embeddedBuildIdentityText{offering: "opaque-offering", version: valid.version, commit: valid.commit, platform: valid.platform, assignments: valid.assignments}},
 		{name: "raw assignments lack frame", value: embeddedBuildIdentityText{offering: valid.offering, version: valid.version, commit: valid.commit, platform: valid.platform, assignments: commitment}},
 	} {
 		t.Run(tc.name, func(t *testing.T) {

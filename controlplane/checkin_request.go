@@ -2,7 +2,7 @@ package controlplane
 
 import (
 	"crypto/ed25519"
-	"encoding/json"
+	json "encoding/json/v2"
 	"errors"
 	"io"
 
@@ -26,14 +26,14 @@ const (
 // border agent reads a nationality: after admitting the document, not before,
 // and without a second reader for the next product.
 type CheckInPayload struct {
+	Build             core.BuildIdentity       `json:"build"`
 	Window            UsageWindow              `json:"window"`
 	PreviousWatermark UsageWatermark           `json:"previous_watermark"`
+	AppliedPolicy     controlwire.PolicyCursor `json:"applied_policy"`
 	LeaseGeneration   lease.Generation         `json:"lease_generation"`
-	Build             core.BuildIdentity       `json:"build"`
-	Revision          controlwire.Revision     `json:"revision"`
 	RequestNonce      controlwire.RequestNonce `json:"request_nonce"`
 	Installation      lease.DeviceID           `json:"installation"`
-	AppliedPolicy     controlwire.PolicyCursor `json:"applied_policy"`
+	Revision          controlwire.Revision     `json:"revision"`
 }
 
 type checkInPayloadWire CheckInPayload

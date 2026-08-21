@@ -2,7 +2,7 @@ package lease
 
 import (
 	"encoding/hex"
-	"encoding/json"
+	json "encoding/json/v2"
 	"errors"
 
 	"github.com/deliri/primitive/v2026/core"
@@ -75,45 +75,6 @@ func unmarshalIdentifier(data []byte) (identifier, error) {
 		return identifier{}, jsonError(err)
 	}
 	return value, nil
-}
-
-// Product is one opaque OGS product identity.
-type Product struct {
-	value identifier
-}
-
-// NewProduct constructs one nonzero opaque product identity.
-func NewProduct(value [IdentifierBytes]byte) (Product, error) {
-	parsed, err := newIdentifier(value)
-	return Product{value: parsed}, err
-}
-
-// ParseProduct parses exact lowercase hexadecimal.
-func ParseProduct(text string) (Product, error) {
-	parsed, err := parseIdentifier(text)
-	return Product{value: parsed}, err
-}
-
-// Validate rejects the unset product.
-func (p Product) Validate() error { return p.value.Validate() }
-
-// String returns exact lowercase hexadecimal or empty for an invalid value.
-func (p Product) String() string { return p.value.String() }
-
-// MarshalJSON emits exact lowercase hexadecimal.
-func (p Product) MarshalJSON() ([]byte, error) { return marshalIdentifier(p.value) }
-
-// UnmarshalJSON accepts one exact product without mutating on rejection.
-func (p *Product) UnmarshalJSON(data []byte) error {
-	if p == nil {
-		return jsonError(errors.New("product receiver is nil"))
-	}
-	value, err := unmarshalIdentifier(data)
-	if err != nil {
-		return err
-	}
-	*p = Product{value: value}
-	return nil
 }
 
 // EntitlementID is one opaque OGS entitlement identity.

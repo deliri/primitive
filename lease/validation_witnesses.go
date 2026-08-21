@@ -6,7 +6,6 @@ import (
 )
 
 var (
-	_ core.Validatable = Product{}
 	_ core.Validatable = EntitlementID{}
 	_ core.Validatable = DeviceID{}
 	_ core.Validatable = Subject{}
@@ -32,7 +31,6 @@ var (
 )
 
 var (
-	_ core.ValidatedJSONMarshaler = Product{}
 	_ core.ValidatedJSONMarshaler = EntitlementID{}
 	_ core.ValidatedJSONMarshaler = DeviceID{}
 	_ core.ValidatedJSONMarshaler = Subject{}

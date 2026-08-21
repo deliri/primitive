@@ -2,13 +2,15 @@ package release
 
 import (
 	"crypto/sha256"
-	"encoding/json"
+	json "encoding/json/v2"
 	"errors"
 	"go/ast"
 	"go/parser"
 	"go/token"
 	"strings"
 	"testing"
+
+	"encoding/json/jsontext"
 
 	"github.com/deliri/primitive/v2026/core"
 )
@@ -231,8 +233,8 @@ func TestMetadataKindUnmarshalJSONRejectsEveryNonCanonicalToken(t *testing.T) {
 		{name: "boolean is rejected", encoded: `true`, wantErr: core.ErrJSONContract},
 		{name: "object is rejected", encoded: `{"kind":"dependencies"}`, wantErr: core.ErrJSONContract},
 		{name: "array is rejected", encoded: `["dependencies"]`, wantErr: core.ErrJSONContract},
-		{name: "truncated string is rejected", encoded: `"dependencies`, wantErr: &json.SyntaxError{}},
-		{name: "trailing garbage is rejected", encoded: `"dependencies"x`, wantErr: &json.SyntaxError{}},
+		{name: "truncated string is rejected", encoded: `"dependencies`, wantErr: &jsontext.SyntacticError{}},
+		{name: "trailing garbage is rejected", encoded: `"dependencies"x`, wantErr: &jsontext.SyntacticError{}},
 		{name: "prefix token is rejected", encoded: `"depend"`, wantErr: core.ErrJSONContract},
 		{name: "padded token is rejected", encoded: `" dependencies "`, wantErr: core.ErrJSONContract},
 		{name: "oversized token is rejected", encoded: `"` + strings.Repeat("d", 4096) + `"`, wantErr: core.ErrJSONContract},
@@ -242,7 +244,7 @@ func TestMetadataKindUnmarshalJSONRejectsEveryNonCanonicalToken(t *testing.T) {
 			t.Parallel()
 
 			var got MetadataKind
-			gotErr := json.Unmarshal([]byte(tc.encoded), &got)
+			gotErr := got.UnmarshalJSON([]byte(tc.encoded))
 			if tc.wantErr != nil {
 				proveMetadataKindError(t, metadataKindErrorProof{
 					encoded: tc.encoded,
@@ -280,10 +282,10 @@ type metadataKindErrorProof struct {
 func proveMetadataKindError(t *testing.T, proof metadataKindErrorProof) {
 	t.Helper()
 
-	if _, syntax := proof.want.(*json.SyntaxError); syntax {
-		var gotSyntax *json.SyntaxError
+	if _, syntax := proof.want.(*jsontext.SyntacticError); syntax {
+		var gotSyntax *jsontext.SyntacticError
 		if !errors.As(proof.got, &gotSyntax) {
-			t.Fatalf("json.Unmarshal(%s, MetadataKind) error = %v, want *json.SyntaxError", proof.encoded, proof.got)
+			t.Fatalf("json.Unmarshal(%s, MetadataKind) error = %v, want *jsontext.SyntacticError", proof.encoded, proof.got)
 		}
 		return
 	}
@@ -303,14 +305,14 @@ func TestMetadataSetRejectsEveryCardinalityAndRoleSubstitutionOnTheWire(t *testi
 	if err != nil {
 		t.Fatalf("json.Marshal(MetadataSet) error = %v, want nil", err)
 	}
-	assets := make([]json.RawMessage, 0, MetadataAssetCount)
+	assets := make([]jsontext.Value, 0, MetadataAssetCount)
 	if err := json.Unmarshal(encoded, &assets); err != nil {
 		t.Fatalf("json.Unmarshal(MetadataSet, raw assets) error = %v, want nil", err)
 	}
 	if len(assets) != MetadataAssetCount {
 		t.Fatalf("encoded MetadataSet length = %d, want %d", len(assets), MetadataAssetCount)
 	}
-	joined := func(values ...json.RawMessage) string {
+	joined := func(values ...jsontext.Value) string {
 		parts := make([]string, len(values))
 		for index, value := range values {
 			parts[index] = string(value)
@@ -333,7 +335,7 @@ func TestMetadataSetRejectsEveryCardinalityAndRoleSubstitutionOnTheWire(t *testi
 		{name: "null members are rejected", encoded: "[null,null,null]"},
 		{name: "null document is rejected", encoded: "null"},
 		{name: "object document is rejected", encoded: `{"dependencies":{}}`},
-		{name: "nested array is rejected", encoded: joined(json.RawMessage(joined(assets[0], assets[1], assets[2])))},
+		{name: "nested array is rejected", encoded: joined(jsontext.Value(joined(assets[0], assets[1], assets[2])))},
 	}
 	for _, tc := range cases {
 		t.Run(tc.name, func(t *testing.T) {

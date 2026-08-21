@@ -2,7 +2,7 @@ package receipt
 
 import (
 	"bytes"
-	"encoding/json"
+	json "encoding/json/v2"
 	"errors"
 	"io"
 	"math"
@@ -54,8 +54,8 @@ func TestEvidenceDocumentStrictJSONHostileMatrix(t *testing.T) {
 		t.Fatalf("json.Marshal(document) error = %v, want nil", err)
 	}
 	reordered, err := json.Marshal(struct {
-		Attestation attest.Envelope[Domain] `json:"attestation"`
 		Payload     EvidencePayload         `json:"payload"`
+		Attestation attest.Envelope[Domain] `json:"attestation"`
 	}{Attestation: document.Attestation, Payload: document.Payload})
 	if err != nil {
 		t.Fatalf("json.Marshal(reordered fixture) error = %v, want nil", err)
@@ -112,6 +112,7 @@ func TestEvidenceCanonicalMaximaAreAttainable(t *testing.T) {
 	t.Parallel()
 
 	fixture := newReceiptFixture(t, 120)
+	maximumOffering := maximumOfferingFixture(t)
 	var maximumID [ReceiptIDBytes]byte
 	for index := range maximumID {
 		maximumID[index] = math.MaxUint8
@@ -124,7 +125,7 @@ func TestEvidenceCanonicalMaximaAreAttainable(t *testing.T) {
 	maximumBody.Extent = mustByteLength(t, math.MaxInt64)
 	payload := EvidencePayload{
 		Header: Header{
-			Identity: identity, Account: fixture.account, Offering: fixture.offering,
+			Identity: identity, Account: fixture.account, Offering: maximumOffering,
 			Revision: RevisionV1, OccurredAt: temporal.InstantFromNanoseconds(math.MinInt64),
 		},
 		Body: maximumBody,
@@ -137,7 +138,7 @@ func TestEvidenceCanonicalMaximaAreAttainable(t *testing.T) {
 		t.Fatalf("maximum payload extent = %d, want %d", len(payloadJSON), EvidencePayloadCanonicalJSONMaximumBytes)
 	}
 	document, err := IssueEvidence(IssueEvidenceRequest{
-		Identity: identity, Account: fixture.account, Offering: fixture.offering,
+		Identity: identity, Account: fixture.account, Offering: maximumOffering,
 		OccurredAt: payload.Header.OccurredAt, Body: maximumBody, Key: fixture.private,
 	})
 	if err != nil {
@@ -280,7 +281,7 @@ func TestWatermarkPersistenceJSONLayerTriad(t *testing.T) {
 	t.Parallel()
 
 	fixture := newReceiptFixture(t, 180)
-	scope := Scope{Account: fixture.account, Offering: fixture.offering}
+	scope := Scope{Account: fixture.account, Offering: maximumOfferingFixture(t)}
 	maximum := watermarkFixture(t, scope, math.MaxUint64, "maximum")
 	canonical, err := json.Marshal(maximum)
 	if err != nil {

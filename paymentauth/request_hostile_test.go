@@ -3,10 +3,11 @@ package paymentauth
 import (
 	"bytes"
 	"crypto/ed25519"
-	"encoding/json"
+	json "encoding/json/v2"
 	"errors"
 	"testing"
 
+	"encoding/json/jsontext"
 	"github.com/deliri/primitive/v2026/attest"
 	"github.com/deliri/primitive/v2026/controlplane"
 	"github.com/deliri/primitive/v2026/controlplanetest"
@@ -26,20 +27,20 @@ type paymentQueryFixtureRequest struct {
 
 type paymentQueryFixture struct {
 	device   ed25519.PrivateKey
+	payload  payment.QueryPayload
 	document RequestDocument
 	trusted  attest.TrustedKeys
-	payload  payment.QueryPayload
 }
 
-func TestCredentialedPaymentQueryVerificationLayerTriadAuthenticatesAllAndSpecificForEveryOffering(t *testing.T) {
+func TestCredentialedPaymentQueryVerificationLayerTriadAuthenticatesAllAndSpecificForRepresentativeOpaqueOfferings(t *testing.T) {
 	t.Parallel()
 
 	admitted := 0
-	for value := 0; value <= 255; value++ {
-		offering := core.Offering(value)
-		if !offering.IsValid() {
-			continue
-		}
+	for value, offering := range []core.Offering{
+		paymentAuthOffering(t, 1),
+		paymentAuthOffering(t, 127),
+		paymentAuthOffering(t, 255),
+	} {
 		admitted++
 		selections := []struct {
 			name      string
@@ -124,7 +125,7 @@ func TestCredentialedPaymentQueryVerificationLayerTriadRefusesAccountDeviceAutho
 		authorityByte: 0x51, deviceByte: 0x52, nonceByte: 0x53,
 	})
 	otherOffering := newPaymentQueryFixture(t, paymentQueryFixtureRequest{
-		offering: core.OfferingBug, authorityByte: 0x61, deviceByte: 0x62, nonceByte: 0x63,
+		offering: paymentAuthOffering(t, 1), authorityByte: 0x61, deviceByte: 0x62, nonceByte: 0x63,
 	})
 	wrongDeviceAssembly, err := Assemble(RequestAssembly{
 		Request: otherDevice.document.Request, Certificate: base.document.Certificate,
@@ -143,7 +144,7 @@ func TestCredentialedPaymentQueryVerificationLayerTriadRefusesAccountDeviceAutho
 	}
 	tamperedLimit.Request.Payload.Query.Limit = minimumLimit
 	tamperedOfferingIdentity := base.document
-	tamperedOfferingIdentity.Request.Payload.Query.Scope.Offering = paymentQueryOffering(t, core.OfferingBug)
+	tamperedOfferingIdentity.Request.Payload.Query.Scope.Offering = paymentQueryOffering(t, paymentAuthOffering(t, 1))
 	tamperedSigner := base.document
 	tamperedSigner.Request.Attestation.Signer = otherDevice.document.Certificate.Body.DeviceKey
 	tamperedLength := base.document
@@ -198,7 +199,7 @@ func TestCredentialedPaymentQueryVerificationLayerTriadRefusesAccountDeviceAutho
 		t.Fatalf("Assemble(other account) = (%+v, %v), want zero and errors.Is %v",
 			document, err, core.ErrControlPlaneResponseBinding)
 	}
-	wrongOfferingRequest := paymentQueryDocumentWithOffering(t, base, paymentQueryOffering(t, core.OfferingBug))
+	wrongOfferingRequest := paymentQueryDocumentWithOffering(t, base, paymentQueryOffering(t, paymentAuthOffering(t, 1)))
 	if document, err := Assemble(RequestAssembly{
 		Request: wrongOfferingRequest, Certificate: base.document.Certificate,
 	}); !errors.Is(err, core.ErrControlPlaneResponseBinding) || document != (RequestDocument{}) {
@@ -239,8 +240,8 @@ func TestCredentialedPaymentQueryJSONLayerTriadIsStrictBoundedAndPreserving(t *t
 	if err != nil {
 		t.Fatalf("json.Marshal(reordered request) error = %v, want nil", err)
 	}
-	var indented bytes.Buffer
-	if err := json.Indent(&indented, encoded, "", "  "); err != nil {
+	indented := jsontext.Value(bytes.Clone(encoded))
+	if err := indented.Indent(jsontext.WithIndent("  ")); err != nil {
 		t.Fatalf("json.Indent(request) error = %v, want nil", err)
 	}
 	unknown := append(bytes.Clone(encoded[:len(encoded)-1]), []byte(`,"future":true}`)...)
@@ -252,7 +253,7 @@ func TestCredentialedPaymentQueryJSONLayerTriadIsStrictBoundedAndPreserving(t *t
 	}{
 		{name: "canonical", data: encoded},
 		{name: "reordered", data: reordered},
-		{name: "indented", data: indented.Bytes()},
+		{name: "indented", data: []byte(indented)},
 		{name: "leading space", data: append([]byte(" "), encoded...)},
 		{name: "trailing newline", data: append(bytes.Clone(encoded), '\n')},
 		{name: "carriage return framing", data: append(append([]byte("\r"), encoded...), '\r')},
@@ -324,8 +325,8 @@ func TestCredentialedPaymentQueryJSONLayerTriadIsStrictBoundedAndPreserving(t *t
 func newPaymentQueryFixture(t testing.TB, request paymentQueryFixtureRequest) paymentQueryFixture {
 	t.Helper()
 
-	if request.offering == core.OfferingUnknown {
-		request.offering = core.OfferingWitness
+	if request.offering == (core.Offering{}) {
+		request.offering = paymentAuthOffering(t, 2)
 	}
 	if request.authorityByte == 0 {
 		request.authorityByte = 0x21
@@ -401,7 +402,7 @@ func paymentQueryDocumentWithAccount(
 func paymentQueryDocumentWithOffering(
 	t testing.TB,
 	fixture paymentQueryFixture,
-	offering receipt.OfferingIdentity,
+	offering core.Offering,
 ) payment.QueryDocument {
 	t.Helper()
 
@@ -450,14 +451,12 @@ func paymentQueryNonce(t testing.TB, marker byte) controlwire.RequestNonce {
 	return nonce
 }
 
-func paymentQueryOffering(t testing.TB, offering core.Offering) receipt.OfferingIdentity {
+func paymentQueryOffering(t testing.TB, offering core.Offering) core.Offering {
 	t.Helper()
-
-	identity, err := receipt.OfferingIdentityFor(offering)
-	if err != nil {
-		t.Fatalf("receipt.OfferingIdentityFor(%v) error = %v, want nil", offering, err)
+	if err := offering.Validate(); err != nil {
+		t.Fatalf("Offering.Validate() error = %v, want nil", err)
 	}
-	return identity
+	return offering
 }
 
 func paymentQueryAccount(t testing.TB, marker byte) receipt.AccountIdentity {

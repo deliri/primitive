@@ -1,11 +1,13 @@
 package lease_test
 
 import (
-	"encoding/json"
+	json "encoding/json/v2"
 	"math"
+	"strings"
 	"testing"
 
 	"github.com/deliri/primitive/v2026/attest"
+	"github.com/deliri/primitive/v2026/core"
 	"github.com/deliri/primitive/v2026/lease"
 )
 
@@ -20,14 +22,15 @@ func maximalIdentifierBytes() [lease.IdentifierBytes]byte {
 	return value
 }
 
-// maximalSubject is the widest subject: three fixed-width identifiers.
+// maximalSubject is the widest subject: one maximum opaque offering and two
+// fixed-width identifiers.
 func maximalSubject(tb testing.TB) lease.Subject {
 	tb.Helper()
 
 	value := maximalIdentifierBytes()
-	product, err := lease.NewProduct(value)
-	if err != nil {
-		tb.Fatalf("lease.NewProduct() error = %v, want nil", err)
+	offering := core.Offering{Token: strings.Repeat("a", core.OfferingCanonicalJSONMaximumBytes-len(`""`))}
+	if err := offering.Validate(); err != nil {
+		tb.Fatalf("Offering.Validate() error = %v, want nil", err)
 	}
 	entitlement, err := lease.NewEntitlementID(value)
 	if err != nil {
@@ -37,7 +40,7 @@ func maximalSubject(tb testing.TB) lease.Subject {
 	if err != nil {
 		tb.Fatalf("lease.NewDeviceID() error = %v, want nil", err)
 	}
-	return lease.Subject{Product: product, EntitlementID: entitlement, DeviceID: device}
+	return lease.Subject{Offering: offering, EntitlementID: entitlement, DeviceID: device}
 }
 
 // maximalHeader is the widest header: the widest subject, the widest generation
@@ -92,9 +95,9 @@ func TestCanonicalMaximumsAreExactlyAttained(t *testing.T) {
 	if err != nil {
 		t.Fatalf("lease.NewGeneration() error = %v, want nil", err)
 	}
-	product, err := lease.NewProduct(maximalIdentifierBytes())
+	entitlement, err := lease.NewEntitlementID(maximalIdentifierBytes())
 	if err != nil {
-		t.Fatalf("lease.NewProduct() error = %v, want nil", err)
+		t.Fatalf("lease.NewEntitlementID() error = %v, want nil", err)
 	}
 
 	cases := []struct {
@@ -102,7 +105,7 @@ func TestCanonicalMaximumsAreExactlyAttained(t *testing.T) {
 		name  string
 		want  int
 	}{
-		{name: "identifier", value: product, want: lease.IdentifierCanonicalJSONMaximumBytes},
+		{name: "identifier", value: entitlement, want: lease.IdentifierCanonicalJSONMaximumBytes},
 		{name: "generation", value: generation, want: lease.GenerationCanonicalJSONMaximumBytes},
 		{name: "revision", value: lease.RevisionV1, want: lease.RevisionCanonicalJSONMaximumBytes},
 		{name: "outcome", value: lease.OutcomeRevocation, want: lease.OutcomeCanonicalJSONMaximumBytes},

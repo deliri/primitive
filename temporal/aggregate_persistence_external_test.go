@@ -1,7 +1,7 @@
 package temporal_test
 
 import (
-	"encoding/json"
+	json "encoding/json/v2"
 	"errors"
 	"math"
 	"slices"
@@ -9,6 +9,8 @@ import (
 	"strings"
 	"testing"
 	"unicode/utf8"
+
+	"encoding/json/jsontext"
 
 	"github.com/deliri/primitive/v2026/core"
 	"github.com/deliri/primitive/v2026/temporal"
@@ -237,14 +239,14 @@ func TestTemporalPersistenceRejectsMalformedInputWithoutMutation(t *testing.T) {
 			durationErr := json.Unmarshal([]byte(tc.raw), &duration)
 			aggregateErr := json.Unmarshal([]byte(tc.raw), &aggregate)
 			if tc.wantNativeSyntaxError {
-				var instantSyntax *json.SyntaxError
-				var durationSyntax *json.SyntaxError
-				var aggregateSyntax *json.SyntaxError
+				var instantSyntax *jsontext.SyntacticError
+				var durationSyntax *jsontext.SyntacticError
+				var aggregateSyntax *jsontext.SyntacticError
 				if !errors.As(instantErr, &instantSyntax) ||
 					!errors.As(durationErr, &durationSyntax) ||
 					!errors.As(aggregateErr, &aggregateSyntax) {
 					t.Fatalf(
-						"native syntax errors = (instant:%v duration:%v aggregate:%v), want *json.SyntaxError",
+						"native syntax errors = (instant:%v duration:%v aggregate:%v), want *jsontext.SyntacticError",
 						instantErr,
 						durationErr,
 						aggregateErr,

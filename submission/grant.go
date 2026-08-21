@@ -2,7 +2,7 @@ package submission
 
 import (
 	"crypto"
-	"encoding/json"
+	json "encoding/json/v2"
 	"errors"
 	"io"
 

@@ -2,7 +2,7 @@ package release
 
 import (
 	"encoding/base64"
-	"encoding/json"
+	json "encoding/json/v2"
 	"errors"
 	"sort"
 	"strings"

@@ -3,7 +3,7 @@ package receipt
 import (
 	"bytes"
 	"crypto/sha256"
-	"encoding/json"
+	json "encoding/json/v2"
 	"errors"
 	"math"
 	"strings"
@@ -35,8 +35,8 @@ func TestWatermarkScopeStrictJSONHostileMatrix(t *testing.T) {
 		t.Fatalf("json.Unmarshal(canonical scope) = (%v, %v), want exact scope and nil", decoded, err)
 	}
 	reordered, err := json.Marshal(struct {
-		Offering *OfferingIdentity `json:"offering_identity"`
-		Account  *AccountIdentity  `json:"account_identity"`
+		Offering *core.Offering   `json:"offering"`
+		Account  *AccountIdentity `json:"account_identity"`
 	}{Offering: &fixture.offering, Account: &fixture.account})
 	if err != nil {
 		t.Fatalf("json.Marshal(reordered scope) error = %v, want nil", err)
@@ -64,11 +64,11 @@ func TestWatermarkScopeStrictJSONHostileMatrix(t *testing.T) {
 		{name: "unknown member is rejected", data: bytes.Replace(canonical, []byte(`"account_identity":`), []byte(`"unknown":0,"account_identity":`), 1)},
 		{name: "duplicate account is rejected", data: bytes.Replace(canonical, []byte(`"account_identity":`), []byte(`"account_identity":"`+fixture.account.String()+`","account_identity":`), 1)},
 		{name: "missing offering is rejected", data: []byte(`{"account_identity":"` + fixture.account.String() + `"}`)},
-		{name: "missing account is rejected", data: []byte(`{"offering_identity":"` + fixture.offering.String() + `"}`)},
-		{name: "zero account text is rejected", data: []byte(`{"account_identity":"` + strings.Repeat("0", LifecycleIdentityHexBytes) + `","offering_identity":"` + fixture.offering.String() + `"}`)},
-		{name: "uppercase account hex is rejected", data: []byte(`{"account_identity":"` + strings.ToUpper(fixture.account.String()) + `","offering_identity":"` + fixture.offering.String() + `"}`)},
-		{name: "account of the wrong width is rejected", data: []byte(`{"account_identity":"00","offering_identity":"` + fixture.offering.String() + `"}`)},
-		{name: "numeric account is rejected", data: []byte(`{"account_identity":1,"offering_identity":"` + fixture.offering.String() + `"}`)},
+		{name: "missing account is rejected", data: []byte(`{"offering":"` + fixture.offering.String() + `"}`)},
+		{name: "zero account text is rejected", data: []byte(`{"account_identity":"` + strings.Repeat("0", LifecycleIdentityHexBytes) + `","offering":"` + fixture.offering.String() + `"}`)},
+		{name: "uppercase account hex is rejected", data: []byte(`{"account_identity":"` + strings.ToUpper(fixture.account.String()) + `","offering":"` + fixture.offering.String() + `"}`)},
+		{name: "account of the wrong width is rejected", data: []byte(`{"account_identity":"00","offering":"` + fixture.offering.String() + `"}`)},
+		{name: "numeric account is rejected", data: []byte(`{"account_identity":1,"offering":"` + fixture.offering.String() + `"}`)},
 		{name: "invalid UTF-8 is rejected", data: []byte{'{', '"', 0xff, '"', ':', '1', '}'}},
 		{name: "nesting bomb is rejected", data: []byte(`{"account_identity":{"nested":{"deeper":{}}}}`)},
 		{name: "one above byte bound is rejected", data: bytes.Repeat([]byte{' '}, scopeCanonicalJSONMaximumBytes+scopeJSONWhitespaceAllowance+1)},
@@ -137,7 +137,7 @@ func TestWatermarkNominalConstructorsAndValidationMatrix(t *testing.T) {
 		{name: "unset revision is rejected", watermark: from(func(v *Watermark) { v.Revision = RevisionUnknown }), wantErr: core.ErrReceiptContract},
 		{name: "future revision is rejected", watermark: from(func(v *Watermark) { v.Revision = Revision(math.MaxUint8) }), wantErr: core.ErrReceiptContract},
 		{name: "unset scope account is rejected", watermark: from(func(v *Watermark) { v.Scope.Account = AccountIdentity{} }), wantErr: core.ErrReceiptContract},
-		{name: "unset scope offering is rejected", watermark: from(func(v *Watermark) { v.Scope.Offering = OfferingIdentity{} }), wantErr: core.ErrReceiptContract},
+		{name: "unset scope offering is rejected", watermark: from(func(v *Watermark) { v.Scope.Offering = core.Offering{} }), wantErr: core.ErrReceiptContract},
 		{name: "unset generation is rejected", watermark: from(func(v *Watermark) { v.Generation = Generation{} }), wantErr: core.ErrReceiptContract},
 		{name: "unset cursor digest is rejected", watermark: from(func(v *Watermark) { v.CursorDigest = CursorDigest{} }), wantErr: core.ErrReceiptContract},
 		{name: "unset chain hash is rejected", watermark: from(func(v *Watermark) { v.ChainHash = ChainHash{} }), wantErr: core.ErrReceiptContract},

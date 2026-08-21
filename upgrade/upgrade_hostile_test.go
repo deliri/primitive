@@ -1277,7 +1277,7 @@ func artifactForTest(t testing.TB, data []byte, version uint32) release.Artifact
 		t.Fatalf("core.ParseBuildCommit() error = %v, want nil", err)
 	}
 	build, err := core.NewBuildIdentity(core.BuildIdentityRequest{
-		Offering: core.OfferingBug,
+		Offering: upgradeOffering(t, 4),
 		Version:  core.NewReleaseVersion(version, 0, 0),
 		Commit:   commit,
 		Platform: platform,

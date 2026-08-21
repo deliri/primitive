@@ -2,7 +2,7 @@ package release
 
 import (
 	"crypto/ed25519"
-	"encoding/json"
+	json "encoding/json/v2"
 	"errors"
 	"io"
 
@@ -98,6 +98,7 @@ func (i *LatestIdentity) UnmarshalJSON(data []byte) error {
 
 // LatestFact is the immutable canonical release-selection body.
 type LatestFact struct {
+	offering   core.Offering
 	manifest   ManifestDocument
 	issuedAt   temporal.Instant
 	validFrom  temporal.Instant
@@ -105,7 +106,6 @@ type LatestFact struct {
 	generation Generation
 	identity   LatestIdentity
 	revision   Revision
-	offering   core.Offering
 	valid      bool
 }
 
@@ -244,8 +244,8 @@ func latestIdentity(revision Revision, offering core.Offering) (LatestIdentity, 
 		return LatestIdentity{}, latestError(err)
 	}
 	body, err := json.Marshal(struct {
-		Revision Revision      `json:"revision"`
 		Offering core.Offering `json:"offering"`
+		Revision Revision      `json:"revision"`
 	}{Revision: revision, Offering: offering})
 	if err != nil {
 		return LatestIdentity{}, latestError(err)
@@ -372,10 +372,10 @@ func IssueLatest(request IssueLatestRequest) (LatestDocument, error) {
 }
 
 type VerifyLatestRequest struct {
+	ExpectedOffering core.Offering
 	Document         LatestDocument
 	LatestKeys       attest.TrustedKeys
 	ManifestKeys     attest.TrustedKeys
-	ExpectedOffering core.Offering
 }
 
 // Validate proves both caller-selected authority sets, document structure,

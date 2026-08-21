@@ -2,7 +2,7 @@ package contextstate_test
 
 import (
 	"encoding"
-	"encoding/json"
+	json "encoding/json/v2"
 	"errors"
 	"math"
 	"slices"

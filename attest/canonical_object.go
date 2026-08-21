@@ -2,10 +2,11 @@ package attest
 
 import (
 	"bytes"
-	"encoding/json"
 	"errors"
 	"strconv"
 	"unicode/utf8"
+
+	"encoding/json/jsontext"
 
 	"github.com/deliri/primitive/v2026/core"
 )
@@ -329,7 +330,7 @@ func validateCanonicalMemberEncoding(encoded []byte) error {
 	}
 	limits := core.DefaultStrictJSONLimits()
 	// doctrine:local-allowed=external-wire
-	if _, err := core.DecodeStrictJSONStructure[json.RawMessage](encoded, limits); err != nil {
+	if _, err := core.DecodeStrictJSONStructure[jsontext.Value](encoded, limits); err != nil {
 		return errors.Join(errors.New(canonicalMemberEncodingErrorText), err)
 	}
 	if bytes.Equal(bytes.TrimSpace(encoded), []byte(canonicalMemberNullText)) {

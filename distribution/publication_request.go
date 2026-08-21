@@ -2,7 +2,7 @@ package distribution
 
 import (
 	"crypto"
-	"encoding/json"
+	json "encoding/json/v2"
 	"errors"
 	"io"
 
@@ -15,8 +15,8 @@ import (
 // PublicationRequestPayload asks an authority to admit one exact signed
 // release manifest for immutable publication.
 type PublicationRequestPayload struct {
-	Manifest release.ManifestDocument `json:"manifest"`
 	Build    core.BuildIdentity       `json:"build"`
+	Manifest release.ManifestDocument `json:"manifest"`
 	Nonce    controlwire.RequestNonce `json:"request_nonce"`
 	Revision controlwire.Revision     `json:"revision"`
 }
@@ -37,10 +37,10 @@ type PublicationRequestIssuance struct {
 // PublicationRequestVerification supplies both caller and manifest trust
 // authorities. Distribution decides neither set.
 type PublicationRequestVerification struct {
+	ExpectedOffering core.Offering
 	Document         PublicationRequestDocument
 	RequestKeys      attest.TrustedKeys
 	ManifestKeys     attest.TrustedKeys
-	ExpectedOffering core.Offering
 }
 
 // VerifiedPublicationRequest proves both signatures and their exact offering.

@@ -10,7 +10,7 @@ import (
 // WriteText validates and streams deterministic plain text.
 func WriteText[T Topic](destination io.Writer, request RenderRequest[T]) error {
 	if destination == nil {
-		return contractError("manual destination is nil")
+		return contractError(destinationNilDiagnostic)
 	}
 	if err := request.Validate(); err != nil {
 		return err

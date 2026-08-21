@@ -6,7 +6,7 @@ import (
 	"embed"
 	"encoding/asn1"
 	"encoding/base64"
-	"encoding/json"
+	json "encoding/json/v2"
 	"errors"
 	"math/big"
 	"testing"

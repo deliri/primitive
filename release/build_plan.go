@@ -378,12 +378,12 @@ func (s LinkerAssignments) At(index int) (LinkerAssignment, bool) {
 type BuildPlanRequest struct {
 	MainPackage       MainPackage
 	OutputDirectory   core.RelativePath
+	Offering          core.Offering
 	LinkerAssignments LinkerAssignments
 	BuildTags         BuildTags
 	Version           core.ReleaseVersion
 	Commit            core.BuildCommit
 	GoToolchain       GoToolchainIdentity
-	Offering          core.Offering
 	ModuleMode        BuildModuleMode
 }
 
@@ -582,8 +582,8 @@ func writeLinkerFlag(destination *strings.Builder, symbol, value string) {
 
 // BuildPlan is the exact fixed-target deterministic release build projection.
 type BuildPlan struct {
-	request  BuildPlanRequest
 	commands [TargetCount]BuildCommand
+	request  BuildPlanRequest
 	valid    bool
 }
 

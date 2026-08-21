@@ -12,14 +12,14 @@ import (
 
 type ResponseIssuance struct {
 	Signer     crypto.Signer
-	Body       payment.CatalogDocument
 	Header     controlplane.ResponseHeader
+	Body       payment.CatalogDocument
 	Assessment controlwire.ProtocolAssessment
 }
 
 type ResponseVerification struct {
-	Document    controlplane.ResponseDocument[payment.CatalogDocument, *payment.CatalogDocument]
 	Expected    controlplane.ResponseExpectation
+	Document    controlplane.ResponseDocument[payment.CatalogDocument, *payment.CatalogDocument]
 	TrustedKeys attest.TrustedKeys
 }
 

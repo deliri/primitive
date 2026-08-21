@@ -31,7 +31,7 @@ func TestProductionImportsAreExactAndNoWorldModelExists(t *testing.T) {
 	want := []string{
 		"bytes",
 		"context",
-		"encoding/json",
+		"encoding/json/v2",
 		"errors",
 		"fmt",
 		"github.com/deliri/primitive/v2026/core",

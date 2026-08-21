@@ -1,12 +1,14 @@
 package currency_test
 
 import (
-	"encoding/json"
+	json "encoding/json/v2"
 	"errors"
 	"fmt"
 	"math"
 	"strings"
 	"testing"
+
+	"encoding/json/jsontext"
 
 	"github.com/deliri/primitive/v2026/core"
 	"github.com/deliri/primitive/v2026/currency"
@@ -261,9 +263,9 @@ func TestAmountJSONUsesClosedExactProjection(t *testing.T) {
 		})
 	}
 
-	indented, gotIndentErr := json.MarshalIndent(struct {
+	indented, gotIndentErr := json.Marshal(struct {
 		Amount currency.Amount `json:"amount"`
-	}{Amount: value}, "", "  ")
+	}{Amount: value}, jsontext.WithIndent("  "))
 	if gotIndentErr != nil {
 		t.Fatalf("json.MarshalIndent(Amount carrier) error = %v, want nil", gotIndentErr)
 	}
@@ -356,7 +358,7 @@ func TestAmountJSONValidSemanticMatrix(t *testing.T) {
 				)
 			}
 			canonical, gotMarshalErr := json.Marshal(got)
-			if gotMarshalErr != nil || !json.Valid(canonical) ||
+			if gotMarshalErr != nil || !jsontext.Value(canonical).IsValid() ||
 				len(canonical) > currency.AmountCanonicalJSONMaximumBytes {
 				t.Fatalf(
 					"json.Marshal(decoded Amount) = (%q, %v), want valid JSON within %d bytes",

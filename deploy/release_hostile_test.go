@@ -5,8 +5,9 @@ import (
 	"context"
 	"crypto/ed25519"
 	"crypto/sha256"
-	"encoding/json"
+	json "encoding/json/v2"
 	"errors"
+	"fmt"
 	"hash/crc32"
 	"io"
 	"net"
@@ -261,7 +262,7 @@ func fixtureVerifiedManifest(t *testing.T) release.VerifiedManifest {
 	for index := range release.TargetCount {
 		platform, _ := targets.At(index)
 		build, _ := core.NewBuildIdentity(core.BuildIdentityRequest{
-			Offering: core.OfferingBug, Version: version, Commit: commit, Platform: platform,
+			Offering: deployOffering(t, 1), Version: version, Commit: commit, Platform: platform,
 		})
 		payload := fixturePayload(index)
 		integrity := fixtureIntegrity(t, payload)
@@ -298,7 +299,7 @@ func fixtureVerifiedManifest(t *testing.T) release.VerifiedManifest {
 	}
 	provenance := fixtureProvenance(t)
 	fact, err := release.NewManifestFact(release.ManifestFactRequest{
-		Revision: release.Revision2026V1, Offering: core.OfferingBug,
+		Revision: release.Revision2026V1, Offering: deployOffering(t, 1),
 		Version: version, Commit: commit, CreatedAt: temporal.InstantFromNanoseconds(1_000),
 		Artifacts: artifactSet, Provenance: provenance, Metadata: metadataSet,
 	})
@@ -316,12 +317,21 @@ func fixtureVerifiedManifest(t *testing.T) release.VerifiedManifest {
 		t.Fatalf("attest.NewTrustedKeys() error = %v", err)
 	}
 	verified, err := release.VerifyManifest(release.VerifyManifestRequest{
-		Document: document, TrustedKeys: trusted, ExpectedOffering: core.OfferingBug,
+		Document: document, TrustedKeys: trusted, ExpectedOffering: deployOffering(t, 1),
 	})
 	if err != nil {
 		t.Fatalf("release.VerifyManifest() error = %v", err)
 	}
 	return verified
+}
+
+func deployOffering(t testing.TB, marker byte) core.Offering {
+	t.Helper()
+	offering := core.Offering{Token: fmt.Sprintf("deploy-fixture-%02x", marker)}
+	if err := offering.Validate(); err != nil {
+		t.Fatalf("Offering.Validate() error = %v, want nil", err)
+	}
+	return offering
 }
 
 func fixtureProvenance(t *testing.T) release.BuildProvenance {

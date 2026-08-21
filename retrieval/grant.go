@@ -2,7 +2,7 @@ package retrieval
 
 import (
 	"crypto"
-	"encoding/json"
+	json "encoding/json/v2"
 	"errors"
 	"io"
 
@@ -172,10 +172,10 @@ func (p GrantProjection) ValidateJSONProjection(encoded []byte, limits core.Stri
 type GrantIssuance struct {
 	Signer     crypto.Signer
 	Capability objectstore.DownloadCapabilityProjection
-	Payload    GrantPayload
+	Request    RequestPayload
 	Entry      chit.VerifiedManifestEntry
 	Chit       chit.Verified
-	Request    RequestPayload
+	Payload    GrantPayload
 }
 
 func (i GrantIssuance) Validate() error {
@@ -278,11 +278,11 @@ func IssueGrant(issuance GrantIssuance) (GrantProjection, error) {
 // GrantExpectation binds untrusted authority output to the exact request and
 // manifest entry the caller obtained from its authenticated chit manifest.
 type GrantExpectation struct {
-	Document    GrantDocument
 	Request     RequestPayload
 	Chit        chit.Verified
-	ObservedAt  temporal.Instant
+	Document    GrantDocument
 	TrustedKeys attest.TrustedKeys
+	ObservedAt  temporal.Instant
 }
 
 func (e GrantExpectation) Validate() error {

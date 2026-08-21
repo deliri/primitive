@@ -9,6 +9,12 @@ import (
 	"github.com/deliri/primitive/v2026/core"
 )
 
+const (
+	destinationNilDiagnostic = "manual destination is nil"
+	relatedLimitDiagnostic   = "manual related topics exceed their item limit"
+	topicCanonicalDiagnostic = "manual topic is not canonical"
+)
+
 func contractError(text string) error { return errors.Join(core.ErrManualContract, errors.New(text)) }
 
 // NewTopicName validates and returns one canonical topic name.
@@ -63,11 +69,11 @@ func (n TopicName) Validate() error {
 	}
 	for index, current := range value {
 		if !validTopicRune(index, current) {
-			return contractError("manual topic is not canonical")
+			return contractError(topicCanonicalDiagnostic)
 		}
 	}
 	if value[len(value)-1] == '-' || strings.Contains(value, "--") {
-		return contractError("manual topic is not canonical")
+		return contractError(topicCanonicalDiagnostic)
 	}
 	return nil
 }
@@ -166,7 +172,7 @@ func validateDefinitions(definitions []Definition) error {
 
 func validateRelated[T Topic](owner T, related []T) error {
 	if len(related) > MaximumSectionItems {
-		return contractError("manual related topics exceed their item limit")
+		return contractError(relatedLimitDiagnostic)
 	}
 	seen := make(map[T]struct{}, len(related))
 	for _, topic := range related {

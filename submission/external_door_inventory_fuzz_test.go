@@ -2,7 +2,7 @@ package submission
 
 import (
 	"bytes"
-	"encoding/json"
+	json "encoding/json/v2"
 	"errors"
 	"go/ast"
 	"go/parser"
@@ -349,7 +349,7 @@ func sameGrantDocument(left, right GrantDocument) bool {
 
 func submissionFixturesForFuzz(t testing.TB) submissionFuzzFixtures {
 	t.Helper()
-	completion := newCompletionFixture(t, core.OfferingWitness, []byte("submission door fuzz"))
+	completion := newCompletionFixture(t, submissionOffering(t, 2), []byte("submission door fuzz"), 0x10)
 	completionDocument := receiveIssuedCompletion(t, completion)
 	requestDocument, err := IssueRequest(RequestIssuance{
 		Signer: completion.deviceSigner, Payload: completion.request,

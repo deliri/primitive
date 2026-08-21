@@ -13,14 +13,14 @@ import (
 
 type MaterialResponseIssuance struct {
 	Signer     crypto.Signer
-	Body       release.MaterialResponse
 	Header     controlplane.ResponseHeader
+	Body       release.MaterialResponse
 	Assessment controlwire.ProtocolAssessment
 }
 
 type MaterialResponseVerification struct {
-	Document    controlplane.ResponseDocument[release.MaterialResponse, *release.MaterialResponse]
 	Expected    controlplane.ResponseExpectation
+	Document    controlplane.ResponseDocument[release.MaterialResponse, *release.MaterialResponse]
 	TrustedKeys attest.TrustedKeys
 }
 
@@ -56,14 +56,14 @@ func (v MaterialResponseVerification) responseVerification() controlplane.Respon
 
 type PublicationResponseIssuance struct {
 	Signer     crypto.Signer
-	Body       distribution.PublicationGrantProjection
 	Header     controlplane.ResponseHeader
+	Body       distribution.PublicationGrantProjection
 	Assessment controlwire.ProtocolAssessment
 }
 
 type PublicationResponseVerification struct {
-	Document    controlplane.ResponseDocument[distribution.PublicationGrantDocument, *distribution.PublicationGrantDocument]
 	Expected    controlplane.ResponseExpectation
+	Document    controlplane.ResponseDocument[distribution.PublicationGrantDocument, *distribution.PublicationGrantDocument]
 	TrustedKeys attest.TrustedKeys
 }
 
@@ -99,14 +99,14 @@ func (v PublicationResponseVerification) responseVerification() controlplane.Res
 
 type PublicationCompletionResponseIssuance struct {
 	Signer     crypto.Signer
-	Body       release.LatestDocument
 	Header     controlplane.ResponseHeader
+	Body       release.LatestDocument
 	Assessment controlwire.ProtocolAssessment
 }
 
 type PublicationCompletionResponseVerification struct {
-	Document    controlplane.ResponseDocument[release.LatestDocument, *release.LatestDocument]
 	Expected    controlplane.ResponseExpectation
+	Document    controlplane.ResponseDocument[release.LatestDocument, *release.LatestDocument]
 	TrustedKeys attest.TrustedKeys
 }
 
@@ -146,14 +146,14 @@ func (v PublicationCompletionResponseVerification) responseVerification() contro
 
 type UpdateResponseIssuance struct {
 	Signer     crypto.Signer
-	Body       distribution.UpdateResponseDocument
 	Header     controlplane.ResponseHeader
+	Body       distribution.UpdateResponseDocument
 	Assessment controlwire.ProtocolAssessment
 }
 
 type UpdateResponseVerification struct {
-	Document    controlplane.ResponseDocument[distribution.UpdateResponseDocument, *distribution.UpdateResponseDocument]
 	Expected    controlplane.ResponseExpectation
+	Document    controlplane.ResponseDocument[distribution.UpdateResponseDocument, *distribution.UpdateResponseDocument]
 	TrustedKeys attest.TrustedKeys
 }
 
@@ -189,14 +189,14 @@ func (v UpdateResponseVerification) responseVerification() controlplane.Response
 
 type UpgradeResponseIssuance struct {
 	Signer     crypto.Signer
-	Body       distribution.UpgradeGrantProjection
 	Header     controlplane.ResponseHeader
+	Body       distribution.UpgradeGrantProjection
 	Assessment controlwire.ProtocolAssessment
 }
 
 type UpgradeResponseVerification struct {
-	Document    controlplane.ResponseDocument[distribution.UpgradeGrantDocument, *distribution.UpgradeGrantDocument]
 	Expected    controlplane.ResponseExpectation
+	Document    controlplane.ResponseDocument[distribution.UpgradeGrantDocument, *distribution.UpgradeGrantDocument]
 	TrustedKeys attest.TrustedKeys
 }
 

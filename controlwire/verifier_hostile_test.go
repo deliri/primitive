@@ -1,7 +1,7 @@
 package controlwire_test
 
 import (
-	"encoding/json"
+	json "encoding/json/v2"
 	"errors"
 	"strings"
 	"testing"
@@ -212,7 +212,7 @@ func TestDestroyingOneTokenHandleDisablesEveryCopy(t *testing.T) {
 			t.Errorf("%s Verifier() error = %v, want %v", holder.name, err, core.ErrControlWireToken)
 		}
 		encoded, err := json.Marshal(holder.token)
-		if !errors.Is(err, core.ErrControlWireToken) || encoded != nil {
+		if !errors.Is(err, core.ErrControlWireToken) || len(encoded) != 0 {
 			t.Errorf("json.Marshal(%s) = (%s, %v), want no bytes and %v",
 				holder.name, encoded, err, core.ErrControlWireToken)
 		}

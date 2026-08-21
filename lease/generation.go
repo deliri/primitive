@@ -1,7 +1,7 @@
 package lease
 
 import (
-	"encoding/json"
+	json "encoding/json/v2"
 	"errors"
 	"strconv"
 

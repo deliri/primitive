@@ -1,7 +1,7 @@
 package submission
 
 import (
-	"encoding/json"
+	json "encoding/json/v2"
 	"errors"
 	"reflect"
 	"strings"
@@ -204,8 +204,8 @@ func TestManifestIntentSchemaLayerTriad(t *testing.T) {
 		t.Parallel()
 
 		got, gotErr := json.Marshal(ManifestIntent{})
-		if !errors.Is(gotErr, core.ErrJSONContract) || got != nil {
-			t.Fatalf("json.Marshal(zero ManifestIntent) = (%q, %v), want nil and errors.Is %v", got, gotErr, core.ErrJSONContract)
+		if !errors.Is(gotErr, core.ErrJSONContract) || len(got) != 0 {
+			t.Fatalf("json.Marshal(zero ManifestIntent) = (%q, %v), want no bytes and errors.Is %v", got, gotErr, core.ErrJSONContract)
 		}
 	})
 }

@@ -3,10 +3,11 @@ package chitauth
 import (
 	"bytes"
 	"crypto/ed25519"
-	"encoding/json"
+	json "encoding/json/v2"
 	"errors"
 	"testing"
 
+	"encoding/json/jsontext"
 	"github.com/deliri/primitive/v2026/attest"
 	"github.com/deliri/primitive/v2026/chit"
 	"github.com/deliri/primitive/v2026/controlplane"
@@ -26,20 +27,20 @@ type queryFixtureRequest struct {
 
 type queryFixture struct {
 	device   ed25519.PrivateKey
+	payload  chit.QueryPayload
 	document RequestDocument
 	trusted  attest.TrustedKeys
-	payload  chit.QueryPayload
 }
 
-func TestCredentialedChitQueryVerificationLayerTriadAuthenticatesAllAndSpecificForEveryOffering(t *testing.T) {
+func TestCredentialedChitQueryVerificationLayerTriadAuthenticatesAllAndSpecificForRepresentativeOpaqueOfferings(t *testing.T) {
 	t.Parallel()
 
 	admitted := 0
-	for value := 0; value <= 255; value++ {
-		offering := core.Offering(value)
-		if !offering.IsValid() {
-			continue
-		}
+	for value, offering := range []core.Offering{
+		chitAuthOffering(t, 1),
+		chitAuthOffering(t, 127),
+		chitAuthOffering(t, 255),
+	} {
 		admitted++
 		selections := []struct {
 			name      string
@@ -122,7 +123,7 @@ func TestCredentialedChitQueryVerificationLayerTriadRefusesAccountDeviceAuthorit
 	base := newQueryFixture(t, queryFixtureRequest{})
 	otherDevice := newQueryFixture(t, queryFixtureRequest{authorityByte: 0x51, deviceByte: 0x52, nonceByte: 0x53})
 	otherOffering := newQueryFixture(t, queryFixtureRequest{
-		offering: core.OfferingBug, authorityByte: 0x61, deviceByte: 0x62, nonceByte: 0x63,
+		offering: chitAuthOffering(t, 1), authorityByte: 0x61, deviceByte: 0x62, nonceByte: 0x63,
 	})
 
 	wrongDeviceAssembly, err := Assemble(RequestAssembly{
@@ -142,7 +143,7 @@ func TestCredentialedChitQueryVerificationLayerTriadRefusesAccountDeviceAuthorit
 	}
 	tamperedLimit.Request.Payload.Query.Limit = minimumLimit
 	tamperedOfferingIdentity := base.document
-	tamperedOfferingIdentity.Request.Payload.Query.Scope.Offering = queryOffering(t, core.OfferingBug)
+	tamperedOfferingIdentity.Request.Payload.Query.Scope.Offering = queryOffering(t, chitAuthOffering(t, 1))
 	tamperedSigner := base.document
 	tamperedSigner.Request.Attestation.Signer = otherDevice.document.Certificate.Body.DeviceKey
 	tamperedLength := base.document
@@ -197,7 +198,7 @@ func TestCredentialedChitQueryVerificationLayerTriadRefusesAccountDeviceAuthorit
 		t.Fatalf("Assemble(other account) = (%+v, %v), want zero and errors.Is %v",
 			document, err, core.ErrControlPlaneResponseBinding)
 	}
-	wrongOfferingRequest := queryDocumentWithOffering(t, base, queryOffering(t, core.OfferingBug))
+	wrongOfferingRequest := queryDocumentWithOffering(t, base, queryOffering(t, chitAuthOffering(t, 1)))
 	if document, err := Assemble(RequestAssembly{
 		Request: wrongOfferingRequest, Certificate: base.document.Certificate,
 	}); !errors.Is(err, core.ErrControlPlaneResponseBinding) || document != (RequestDocument{}) {
@@ -236,8 +237,8 @@ func TestCredentialedChitQueryJSONLayerTriadIsStrictBoundedAndPreserving(t *test
 	if err != nil {
 		t.Fatalf("json.Marshal(reordered request) error = %v, want nil", err)
 	}
-	var indented bytes.Buffer
-	if err := json.Indent(&indented, encoded, "", "  "); err != nil {
+	indented := jsontext.Value(bytes.Clone(encoded))
+	if err := indented.Indent(jsontext.WithIndent("  ")); err != nil {
 		t.Fatalf("json.Indent(request) error = %v, want nil", err)
 	}
 	unknown := append(bytes.Clone(encoded[:len(encoded)-1]), []byte(`,"future":true}`)...)
@@ -249,7 +250,7 @@ func TestCredentialedChitQueryJSONLayerTriadIsStrictBoundedAndPreserving(t *test
 	}{
 		{name: "canonical", data: encoded},
 		{name: "reordered", data: reordered},
-		{name: "indented", data: indented.Bytes()},
+		{name: "indented", data: []byte(indented)},
 		{name: "leading space", data: append([]byte(" "), encoded...)},
 		{name: "trailing newline", data: append(bytes.Clone(encoded), '\n')},
 		{name: "carriage return framing", data: append(append([]byte("\r"), encoded...), '\r')},
@@ -321,8 +322,8 @@ func TestCredentialedChitQueryJSONLayerTriadIsStrictBoundedAndPreserving(t *test
 func newQueryFixture(t testing.TB, request queryFixtureRequest) queryFixture {
 	t.Helper()
 
-	if request.offering == core.OfferingUnknown {
-		request.offering = core.OfferingWitness
+	if request.offering == (core.Offering{}) {
+		request.offering = chitAuthOffering(t, 2)
 	}
 	if request.authorityByte == 0 {
 		request.authorityByte = 0x21
@@ -389,7 +390,7 @@ func queryDocumentWithAccount(t testing.TB, fixture queryFixture, account receip
 	return document
 }
 
-func queryDocumentWithOffering(t testing.TB, fixture queryFixture, offering receipt.OfferingIdentity) chit.QueryDocument {
+func queryDocumentWithOffering(t testing.TB, fixture queryFixture, offering core.Offering) chit.QueryDocument {
 	t.Helper()
 
 	payload := fixture.payload
@@ -437,14 +438,12 @@ func queryNonce(t testing.TB, marker byte) controlwire.RequestNonce {
 	return nonce
 }
 
-func queryOffering(t testing.TB, offering core.Offering) receipt.OfferingIdentity {
+func queryOffering(t testing.TB, offering core.Offering) core.Offering {
 	t.Helper()
-
-	identity, err := receipt.OfferingIdentityFor(offering)
-	if err != nil {
-		t.Fatalf("receipt.OfferingIdentityFor(%v) error = %v, want nil", offering, err)
+	if err := offering.Validate(); err != nil {
+		t.Fatalf("Offering.Validate() error = %v, want nil", err)
 	}
-	return identity
+	return offering
 }
 
 func queryAccount(t testing.TB, marker byte) receipt.AccountIdentity {

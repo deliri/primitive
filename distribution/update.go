@@ -2,7 +2,7 @@ package distribution
 
 import (
 	"crypto"
-	"encoding/json"
+	json "encoding/json/v2"
 	"errors"
 	"io"
 
@@ -64,23 +64,23 @@ type UpdateResponseIssuance struct {
 // UpdateResponseVerification carries each independent trust set explicitly:
 // response authority, Latest authority, and release-manifest authority.
 type UpdateResponseVerification struct {
+	ExpectedOffering core.Offering
+	Request          UpdateRequestPayload
 	Document         UpdateResponseDocument
 	ResponseKeys     attest.TrustedKeys
 	LatestKeys       attest.TrustedKeys
 	ManifestKeys     attest.TrustedKeys
 	ObservedAt       temporal.Instant
-	Request          UpdateRequestPayload
-	ExpectedOffering core.Offering
 }
 
 // VerifiedUpdateResponse contains both authenticated proofs consumed by
 // Release assessment and selection.
 type VerifiedUpdateResponse struct {
+	request   UpdateRequestPayload
 	installed release.VerifiedManifest
 	latest    release.VerifiedLatest
 	document  UpdateResponseDocument
 	proof     attest.Verified[SigningDomain]
-	request   UpdateRequestPayload
 }
 
 type (

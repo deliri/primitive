@@ -1,7 +1,7 @@
 package lease
 
 import (
-	"encoding/json"
+	json "encoding/json/v2"
 	"errors"
 
 	"github.com/deliri/primitive/v2026/attest"

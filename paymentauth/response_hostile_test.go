@@ -17,13 +17,13 @@ import (
 )
 
 type paymentResponseFixture struct {
+	expected controlplane.ResponseExpectation
 	signer   ed25519.PrivateKey
+	header   controlplane.ResponseHeader
+	request  payment.QueryPayload
+	settled  payment.Document
 	body     payment.CatalogDocument
 	trusted  attest.TrustedKeys
-	settled  payment.Document
-	header   controlplane.ResponseHeader
-	expected controlplane.ResponseExpectation
-	request  payment.QueryPayload
 }
 
 func TestPaymentResponseLayerTriadAuthenticatesRefusesAndKeepsNeutralZero(t *testing.T) {

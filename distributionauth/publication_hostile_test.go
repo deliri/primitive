@@ -2,7 +2,8 @@ package distributionauth
 
 import (
 	"bytes"
-	"encoding/json"
+	"encoding/json/jsontext"
+	json "encoding/json/v2"
 	"errors"
 	"testing"
 
@@ -14,15 +15,15 @@ import (
 	"github.com/deliri/primitive/v2026/release"
 )
 
-func TestCredentialedPublicationVerificationAuthenticatesEveryOfferingAndExactCompletion(t *testing.T) {
+func TestCredentialedPublicationVerificationLayerTriadCarriesRepresentativeOpaqueOfferingsAndExactCompletion(t *testing.T) {
 	t.Parallel()
 
 	admitted := 0
-	for value := 0; value <= 255; value++ {
-		offering := core.Offering(value)
-		if !offering.IsValid() {
-			continue
-		}
+	for value, offering := range []core.Offering{
+		distributionAuthOffering(t, 6),
+		distributionAuthOffering(t, 127),
+		distributionAuthOffering(t, 255),
+	} {
 		admitted++
 		t.Run(offering.String(), func(t *testing.T) {
 			t.Parallel()
@@ -76,7 +77,7 @@ func TestCredentialedPublicationVerificationAuthenticatesEveryOfferingAndExactCo
 		})
 	}
 	if admitted < 3 {
-		t.Fatalf("admitted offerings = %d, want at least the shipped set", admitted)
+		t.Fatalf("admitted offerings = %d, want at least three distinct opaque offerings", admitted)
 	}
 }
 
@@ -88,7 +89,7 @@ func TestCredentialedPublicationRequestRefusesEveryAuthorityDeviceBuildAndManife
 		authorityByte: 0x71, deviceByte: 0x72, releaseByte: 0x73, nonceByte: 0x74,
 	})
 	otherBuild := newPublicationAuthFixture(t, publicationAuthFixtureRequest{
-		offering: core.OfferingBug, authorityByte: 0x81, deviceByte: 0x82,
+		offering: distributionAuthOffering(t, 129), authorityByte: 0x81, deviceByte: 0x82,
 		releaseByte: 0x83, nonceByte: 0x84,
 	})
 	wrongDevice, err := AssemblePublication(PublicationRequestAssembly{
@@ -155,7 +156,7 @@ func TestCredentialedPublicationCompletionRefusesEveryCrossRequestAndCrossAuthor
 		authorityByte: 0xa1, deviceByte: 0xa2, releaseByte: 0xa3, nonceByte: 0xa4,
 	})
 	otherBuild := newPublicationAuthFixture(t, publicationAuthFixtureRequest{
-		offering: core.OfferingPeachfuzz, authorityByte: 0xb1, deviceByte: 0xb2,
+		offering: distributionAuthOffering(t, 177), authorityByte: 0xb1, deviceByte: 0xb2,
 		releaseByte: 0xb3, nonceByte: 0xb4,
 	})
 	otherDeviceCompletion, err := AssemblePublicationCompletion(PublicationCompletionAssembly{
@@ -207,8 +208,8 @@ func TestCredentialedPublicationCompletionRefusesEveryCrossRequestAndCrossAuthor
 	cases := []struct {
 		wantError error
 		name      string
-		grant     distribution.PublicationGrantDocument
 		document  PublicationCompletionDocument
+		grant     distribution.PublicationGrantDocument
 		request   VerifiedPublication
 		trusted   attest.TrustedKeys
 	}{
@@ -251,8 +252,8 @@ func TestCredentialedPublicationJSONBoundariesAreStrictBoundedCanonicalAndPreser
 			t.Fatalf("PublicationRequestDocument.MarshalJSON() error = %v, want nil", err)
 		}
 		reordered, err := json.Marshal(struct {
-			Request     distribution.PublicationRequestDocument      `json:"request"`
 			Certificate controlplane.InstallationCertificateDocument `json:"certificate"`
+			Request     distribution.PublicationRequestDocument      `json:"request"`
 		}{Certificate: fixture.document.Certificate, Request: fixture.document.Request})
 		if err != nil {
 			t.Fatalf("json.Marshal(reordered publication request) error = %v, want nil", err)
@@ -266,8 +267,8 @@ func TestCredentialedPublicationJSONBoundariesAreStrictBoundedCanonicalAndPreser
 			t.Fatalf("PublicationCompletionDocument.MarshalJSON() error = %v, want nil", err)
 		}
 		reordered, err := json.Marshal(struct {
-			Completion  distribution.PublicationCompletionDocument   `json:"completion"`
 			Certificate controlplane.InstallationCertificateDocument `json:"certificate"`
+			Completion  distribution.PublicationCompletionDocument   `json:"completion"`
 		}{Certificate: fixture.completion.Certificate, Completion: fixture.completion.Completion})
 		if err != nil {
 			t.Fatalf("json.Marshal(reordered publication completion) error = %v, want nil", err)
@@ -395,14 +396,14 @@ func publicationAuthValidJSONCases(
 	maximum int,
 ) []distributionAuthJSONCase {
 	t.Helper()
-	var indented bytes.Buffer
-	if err := json.Indent(&indented, canonical, "", "  "); err != nil {
+	indented := jsontext.Value(bytes.Clone(canonical))
+	if err := indented.Indent(jsontext.WithIndent("  ")); err != nil {
 		t.Fatalf("json.Indent(credentialed publication) error = %v, want nil", err)
 	}
 	return []distributionAuthJSONCase{
 		{name: "canonical", data: canonical},
 		{name: "reordered", data: reordered},
-		{name: "indented", data: indented.Bytes()},
+		{name: "indented", data: []byte(indented)},
 		{name: "leading space", data: append([]byte(" "), canonical...)},
 		{name: "trailing newline", data: append(bytes.Clone(canonical), '\n')},
 		{name: "carriage return framing", data: append(append([]byte("\r"), canonical...), '\r')},

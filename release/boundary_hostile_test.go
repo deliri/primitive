@@ -3,7 +3,7 @@ package release
 import (
 	"bytes"
 	"crypto/sha256"
-	"encoding/json"
+	json "encoding/json/v2"
 	"errors"
 	"hash/crc32"
 	"io"
@@ -11,6 +11,8 @@ import (
 	"strconv"
 	"strings"
 	"testing"
+
+	"encoding/json/jsontext"
 
 	"github.com/deliri/primitive/v2026/core"
 	"github.com/deliri/primitive/v2026/temporal"
@@ -142,7 +144,7 @@ func TestGenerationJSONPressuresNumericBoundaries(t *testing.T) {
 		{data: `0`, wantContract: true},
 		{data: `-1`, wantContract: true},
 		{data: `1.0`, wantContract: true},
-		{data: `01`},
+		{data: `01`, wantContract: true},
 		{data: `+1`},
 		{data: `"1"`, wantContract: true},
 		{data: `null`, wantContract: true},
@@ -155,12 +157,12 @@ func TestGenerationJSONPressuresNumericBoundaries(t *testing.T) {
 	for _, tc := range hostile {
 		receiver := mustGeneration(t, 9)
 		err := json.Unmarshal([]byte(tc.data), &receiver)
-		var syntax *json.SyntaxError
+		var syntax *jsontext.SyntacticError
 		if tc.wantContract && !errors.Is(err, core.ErrJSONContract) {
 			t.Fatalf("json.Unmarshal(Generation %q) error = %v, want errors.Is %v", tc.data, err, core.ErrJSONContract)
 		}
 		if !tc.wantContract && !errors.As(err, &syntax) {
-			t.Fatalf("json.Unmarshal(Generation %q) error = %v, want errors.As *json.SyntaxError", tc.data, err)
+			t.Fatalf("json.Unmarshal(Generation %q) error = %v, want errors.As *jsontext.SyntacticError", tc.data, err)
 		}
 		if receiver != mustGeneration(t, 9) {
 			t.Fatalf("json.Unmarshal(Generation %q) mutated receiver", tc.data)
@@ -278,7 +280,7 @@ func TestAdvanceLatestTreatsSignerRotationAsDocumentIdentity(t *testing.T) {
 	}
 	rotatedLatest, err := VerifyLatest(VerifyLatestRequest{
 		Document: rotatedLatestDocument, LatestKeys: latestTrust,
-		ManifestKeys: fixture.manifestTrust, ExpectedOffering: core.OfferingWitness,
+		ManifestKeys: fixture.manifestTrust, ExpectedOffering: releaseOffering(t, 2),
 	})
 	if err != nil {
 		t.Fatalf("VerifyLatest(rotated signer) error = %v", err)
@@ -300,7 +302,7 @@ func TestAdvanceLatestTreatsSignerRotationAsDocumentIdentity(t *testing.T) {
 	}
 	rotatedManifest, err := VerifyManifest(VerifyManifestRequest{
 		Document: rotatedManifestDocument, TrustedKeys: manifestTrust,
-		ExpectedOffering: core.OfferingWitness,
+		ExpectedOffering: releaseOffering(t, 2),
 	})
 	if err != nil {
 		t.Fatalf("VerifyManifest(rotated signer) error = %v", err)
@@ -317,7 +319,7 @@ func TestAdvanceLatestTreatsSignerRotationAsDocumentIdentity(t *testing.T) {
 	}
 	proposed, err := VerifyLatest(VerifyLatestRequest{
 		Document: proposedDocument, LatestKeys: fixture.latestTrust,
-		ManifestKeys: manifestTrust, ExpectedOffering: core.OfferingWitness,
+		ManifestKeys: manifestTrust, ExpectedOffering: releaseOffering(t, 2),
 	})
 	if err != nil {
 		t.Fatalf("VerifyLatest(rotated manifest) error = %v", err)
@@ -338,35 +340,35 @@ func TestReleaseVerifierLayerTriadSeparatesEveryAuthority(t *testing.T) {
 
 	_, err := VerifyManifest(VerifyManifestRequest{
 		Document: fixture.manifest, TrustedKeys: untrustedKeys,
-		ExpectedOffering: core.OfferingWitness,
+		ExpectedOffering: releaseOffering(t, 2),
 	})
 	if !errors.Is(err, core.ErrReleaseVerification) {
 		t.Fatalf("VerifyManifest(untrusted key) error = %v, want %v", err, core.ErrReleaseVerification)
 	}
 	_, err = VerifyManifest(VerifyManifestRequest{
 		Document: fixture.manifest, TrustedKeys: fixture.manifestTrust,
-		ExpectedOffering: core.OfferingBug,
+		ExpectedOffering: releaseOffering(t, 1),
 	})
 	if !errors.Is(err, core.ErrReleaseVerification) {
 		t.Fatalf("VerifyManifest(wrong offering) error = %v, want %v", err, core.ErrReleaseVerification)
 	}
 	_, err = VerifyLatest(VerifyLatestRequest{
 		Document: fixture.latest, LatestKeys: untrustedKeys,
-		ManifestKeys: fixture.manifestTrust, ExpectedOffering: core.OfferingWitness,
+		ManifestKeys: fixture.manifestTrust, ExpectedOffering: releaseOffering(t, 2),
 	})
 	if !errors.Is(err, core.ErrReleaseVerification) {
 		t.Fatalf("VerifyLatest(untrusted latest key) error = %v, want %v", err, core.ErrReleaseVerification)
 	}
 	_, err = VerifyLatest(VerifyLatestRequest{
 		Document: fixture.latest, LatestKeys: fixture.latestTrust,
-		ManifestKeys: untrustedKeys, ExpectedOffering: core.OfferingWitness,
+		ManifestKeys: untrustedKeys, ExpectedOffering: releaseOffering(t, 2),
 	})
 	if !errors.Is(err, core.ErrReleaseVerification) {
 		t.Fatalf("VerifyLatest(untrusted manifest key) error = %v, want %v", err, core.ErrReleaseVerification)
 	}
 	_, err = VerifyLatest(VerifyLatestRequest{
 		Document: fixture.latest, LatestKeys: fixture.latestTrust,
-		ManifestKeys: fixture.manifestTrust, ExpectedOffering: core.OfferingBug,
+		ManifestKeys: fixture.manifestTrust, ExpectedOffering: releaseOffering(t, 1),
 	})
 	if !errors.Is(err, core.ErrReleaseVerification) {
 		t.Fatalf("VerifyLatest(wrong offering) error = %v, want %v", err, core.ErrReleaseVerification)
@@ -383,17 +385,17 @@ func TestPeachfuzzOfferingTraversesSignedReleasePipeline(t *testing.T) {
 	t.Parallel()
 
 	fixture := newReleaseFixtureForOffering(
-		t, core.OfferingPeachfuzz, core.NewReleaseVersion(2026, 8, 2), 1,
+		t, releaseOffering(t, 3), core.NewReleaseVersion(2026, 8, 2), 1,
 	)
-	if fixture.manifest.Fact.Offering() != core.OfferingPeachfuzz ||
-		fixture.verified.Offering() != core.OfferingPeachfuzz ||
-		fixture.latest.Fact.Offering() != core.OfferingPeachfuzz ||
-		fixture.verifiedLatest.Manifest().Offering() != core.OfferingPeachfuzz {
+	if fixture.manifest.Fact.Offering() != releaseOffering(t, 3) ||
+		fixture.verified.Offering() != releaseOffering(t, 3) ||
+		fixture.latest.Fact.Offering() != releaseOffering(t, 3) ||
+		fixture.verifiedLatest.Manifest().Offering() != releaseOffering(t, 3) {
 		t.Fatalf("Peachfuzz offering did not survive the signed release pipeline")
 	}
 	for index, build := range fixture.builds {
-		if build.Offering() != core.OfferingPeachfuzz {
-			t.Fatalf("Peachfuzz build %d offering = %v, want %v", index, build.Offering(), core.OfferingPeachfuzz)
+		if build.Offering() != releaseOffering(t, 3) {
+			t.Fatalf("Peachfuzz build %d offering = %v, want %v", index, build.Offering(), releaseOffering(t, 3))
 		}
 	}
 }
@@ -796,6 +798,7 @@ func TestReleaseJSONReceiversRejectMalformedAndRemainUnchanged(t *testing.T) {
 	hostile := []struct {
 		data         string
 		wantContract bool
+		wantSyntax   bool
 	}{
 		{data: ``},
 		{data: `null`, wantContract: true},
@@ -804,7 +807,7 @@ func TestReleaseJSONReceiversRejectMalformedAndRemainUnchanged(t *testing.T) {
 		{data: `true`, wantContract: true},
 		{data: `{"fact":null,"attestation":null}`, wantContract: true},
 		{data: `{"fact":{},"attestation":{}}`, wantContract: true},
-		{data: `{"fact":{},"fact":{},"attestation":{}}`, wantContract: true},
+		{data: `{"fact":{},"fact":{},"attestation":{}}`, wantSyntax: true},
 		{data: `{"fact":{},"attestation":{},"future":true}`, wantContract: true},
 		{data: `{"fact":[],"attestation":{}}`, wantContract: true},
 		{data: `"` + strings.Repeat("x", documentExtentMaximum+1) + `"`, wantContract: true},
@@ -812,12 +815,12 @@ func TestReleaseJSONReceiversRejectMalformedAndRemainUnchanged(t *testing.T) {
 	for _, tc := range hostile {
 		latestReceiver := fixture.latest
 		err := json.Unmarshal([]byte(tc.data), &latestReceiver)
-		var syntax *json.SyntaxError
+		var syntax *jsontext.SyntacticError
 		if tc.wantContract && !errors.Is(err, core.ErrJSONContract) {
 			t.Fatalf("json.Unmarshal(LatestDocument %q) error = %v, want errors.Is %v", boundedDiagnostic(tc.data), err, core.ErrJSONContract)
 		}
-		if !tc.wantContract && !errors.As(err, &syntax) {
-			t.Fatalf("json.Unmarshal(LatestDocument %q) error = %v, want errors.As *json.SyntaxError", boundedDiagnostic(tc.data), err)
+		if (tc.wantSyntax || !tc.wantContract) && !errors.As(err, &syntax) {
+			t.Fatalf("json.Unmarshal(LatestDocument %q) error = %v, want errors.As *jsontext.SyntacticError", boundedDiagnostic(tc.data), err)
 		}
 		if latestReceiver != fixture.latest {
 			t.Fatalf("json.Unmarshal(LatestDocument %q) mutated receiver", boundedDiagnostic(tc.data))
@@ -829,8 +832,8 @@ func TestReleaseJSONReceiversRejectMalformedAndRemainUnchanged(t *testing.T) {
 		if tc.wantContract && !errors.Is(err, core.ErrJSONContract) {
 			t.Fatalf("json.Unmarshal(ManifestDocument %q) error = %v, want errors.Is %v", boundedDiagnostic(tc.data), err, core.ErrJSONContract)
 		}
-		if !tc.wantContract && !errors.As(err, &syntax) {
-			t.Fatalf("json.Unmarshal(ManifestDocument %q) error = %v, want errors.As *json.SyntaxError", boundedDiagnostic(tc.data), err)
+		if (tc.wantSyntax || !tc.wantContract) && !errors.As(err, &syntax) {
+			t.Fatalf("json.Unmarshal(ManifestDocument %q) error = %v, want errors.As *jsontext.SyntacticError", boundedDiagnostic(tc.data), err)
 		}
 		if manifestReceiver != fixture.manifest {
 			t.Fatalf("json.Unmarshal(ManifestDocument %q) mutated receiver", boundedDiagnostic(tc.data))

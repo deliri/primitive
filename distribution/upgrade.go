@@ -2,7 +2,7 @@ package distribution
 
 import (
 	"crypto"
-	"encoding/json"
+	json "encoding/json/v2"
 	"errors"
 	"io"
 	"os"
@@ -74,8 +74,8 @@ type UpgradeGrantIssuance struct {
 
 type UpgradeGrantExpectation struct {
 	Document    UpgradeGrantDocument
-	TrustedKeys attest.TrustedKeys
 	Request     UpgradeRequestPayload
+	TrustedKeys attest.TrustedKeys
 	ObservedAt  temporal.Instant
 }
 

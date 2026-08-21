@@ -1,7 +1,7 @@
 package controlwire
 
 import (
-	"encoding/json"
+	json "encoding/json/v2"
 
 	"github.com/deliri/primitive/v2026/core"
 )
@@ -64,9 +64,9 @@ func (c *RequestCommitment) UnmarshalJSON(data []byte) error {
 // request. The nonce selects a replay slot; the canonical commitment prevents
 // a different request from occupying that slot.
 type ReplayIdentity struct {
+	offering   core.Offering
 	commitment RequestCommitment
 	nonce      RequestNonce
-	offering   core.Offering
 	family     RouteFamily
 	revision   Revision
 }

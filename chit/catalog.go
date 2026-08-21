@@ -2,7 +2,7 @@ package chit
 
 import (
 	"crypto"
-	"encoding/json"
+	json "encoding/json/v2"
 	"errors"
 	"io"
 	"strings"
@@ -230,12 +230,12 @@ func (c Continuation) MarshalJSON() ([]byte, error) {
 // CatalogPayload is one bounded authority-observed page. Entries are newest
 // first by UUIDv7 text, making pagination deterministic across large histories.
 type CatalogPayload struct {
+	Scope        receipt.Scope     `json:"scope"`
 	Entries      []CatalogEntry    `json:"entries"`
 	Watermark    receipt.Watermark `json:"watermark"`
 	ObservedAt   temporal.Instant  `json:"observed_at"`
-	Scope        receipt.Scope     `json:"scope"`
-	Request      QueryCommitment   `json:"query_commitment"`
 	Continuation Continuation      `json:"continuation"`
+	Request      QueryCommitment   `json:"query_commitment"`
 }
 
 func (p CatalogPayload) Validate() error {
@@ -408,8 +408,8 @@ func (d *CatalogDocument) UnmarshalJSON(data []byte) error {
 }
 
 type CatalogVerification struct {
-	Document    CatalogDocument
 	Request     QueryPayload
+	Document    CatalogDocument
 	TrustedKeys attest.TrustedKeys
 }
 

@@ -3,13 +3,14 @@ package submission
 import (
 	"bytes"
 	"crypto/ed25519"
-	"encoding/json"
+	json "encoding/json/v2"
 	"errors"
 	"hash/crc32"
 	"strconv"
 	"strings"
 	"testing"
 
+	"encoding/json/jsontext"
 	"github.com/deliri/primitive/v2026/attest"
 	"github.com/deliri/primitive/v2026/chit"
 	"github.com/deliri/primitive/v2026/controlwire"
@@ -29,11 +30,11 @@ const (
 
 type grantFixtureRequest struct {
 	objectName        string
+	offering          core.Offering
 	content           []byte
 	expiresAt         int64
 	manifestSequence  uint64
 	manifestObjects   uint64
-	offering          core.Offering
 	requestNonceByte  byte
 	authorityByte     byte
 	authorizationByte byte
@@ -56,8 +57,8 @@ func newGrantFixture(t testing.TB, request grantFixtureRequest) grantFixture {
 	if request.objectName == "" {
 		request.objectName = "proof.json"
 	}
-	if request.offering == core.OfferingUnknown {
-		request.offering = core.OfferingWitness
+	if request.offering == (core.Offering{}) {
+		request.offering = submissionOffering(t, 2)
 	}
 	if request.requestNonceByte == 0 {
 		request.requestNonceByte = 0x31
@@ -121,8 +122,8 @@ func testRequestPayload(t testing.TB, request grantFixtureRequest) RequestPayloa
 	if request.content == nil {
 		request.content = []byte(`{"proof":"source-free"}`)
 	}
-	if request.offering == core.OfferingUnknown {
-		request.offering = core.OfferingWitness
+	if request.offering == (core.Offering{}) {
+		request.offering = submissionOffering(t, 2)
 	}
 	if request.requestNonceByte == 0 {
 		request.requestNonceByte = 0x31
@@ -397,7 +398,7 @@ func TestGrantVerificationLayerTriadRefusesEveryNearMissOfItsExactRequest(t *tes
 	})
 	otherOffering := testBuildIdentity(t, core.BuildIdentityRequest{
 		Version: baseBuild.Version(), Commit: baseBuild.Commit(),
-		Platform: baseBuild.Platform(), Offering: core.OfferingBug,
+		Platform: baseBuild.Platform(), Offering: submissionOffering(t, 1),
 	})
 	otherNonce := testRequestPayload(t, grantFixtureRequest{requestNonceByte: 0x32}).Nonce
 	shorterExtent := testByteLength(t, fixture.request.Declaration.Extent.Uint64()-1)
@@ -866,8 +867,8 @@ func TestGrantJSONBoundaryIsStrictBoundedAndPreserving(t *testing.T) {
 	if err != nil {
 		t.Fatalf("json.Marshal(wrong capability type fixture) error = %v, want nil", err)
 	}
-	var indented bytes.Buffer
-	if err := json.Indent(&indented, encoded, "", "  "); err != nil {
+	indented := jsontext.Value(bytes.Clone(encoded))
+	if err := indented.Indent(jsontext.WithIndent("  ")); err != nil {
 		t.Fatalf("json.Indent(grant) error = %v, want nil", err)
 	}
 	unknown := append(bytes.Clone(encoded[:len(encoded)-1]), []byte(`,"future":true}`)...)
@@ -888,7 +889,7 @@ func TestGrantJSONBoundaryIsStrictBoundedAndPreserving(t *testing.T) {
 		{name: "leading and trailing newlines", data: append(append([]byte("\n"), encoded...), '\n')},
 		{name: "mixed legal outer whitespace", data: append(append([]byte("\t\r\n"), encoded...), ' ', '\t')},
 		{name: "members in reverse order", data: reordered},
-		{name: "indented grant", data: indented.Bytes()},
+		{name: "indented grant", data: []byte(indented)},
 		{name: "one byte below document ceiling", data: leftPadJSON(encoded, GrantDocumentJSONMaximumBytes-1)},
 		{name: "exactly at document ceiling", data: leftPadJSON(encoded, GrantDocumentJSONMaximumBytes)},
 		{name: "canonical second decode", data: bytes.Clone(encoded)},

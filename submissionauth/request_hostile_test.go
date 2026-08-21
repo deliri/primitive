@@ -3,11 +3,12 @@ package submissionauth
 import (
 	"bytes"
 	"crypto/ed25519"
-	"encoding/json"
+	json "encoding/json/v2"
 	"errors"
 	"hash/crc32"
 	"testing"
 
+	"encoding/json/jsontext"
 	"github.com/deliri/primitive/v2026/attest"
 	"github.com/deliri/primitive/v2026/chit"
 	"github.com/deliri/primitive/v2026/controlplane"
@@ -29,15 +30,15 @@ type authFixture struct {
 	device      ed25519.PrivateKey
 	request     submission.RequestDocument
 	document    RequestDocument
-	trusted     attest.TrustedKeys
 	certificate controlplane.InstallationCertificateDocument
+	trusted     attest.TrustedKeys
 }
 
 func newAuthFixture(t testing.TB, request authFixtureRequest) authFixture {
 	t.Helper()
 
-	if request.offering == core.OfferingUnknown {
-		request.offering = core.OfferingWitness
+	if request.offering == (core.Offering{}) {
+		request.offering = submissionAuthOffering(t, 2)
 	}
 	if request.authorityByte == 0 {
 		request.authorityByte = 0x21
@@ -169,17 +170,17 @@ func submissionManifestIntent(t testing.TB) submission.ManifestIntent {
 	}
 }
 
-// TestCredentialedRequestLayerTriadAuthenticatesEveryOfferingThroughOneBlindPath proves
-// every product reaches the same certificate-first authentication sequence.
-func TestCredentialedRequestLayerTriadAuthenticatesEveryOfferingThroughOneBlindPath(t *testing.T) {
+// TestCredentialedRequestLayerTriadAuthenticatesRepresentativeOpaqueOfferingsThroughOneBlindPath
+// proves every product reaches the same certificate-first authentication sequence.
+func TestCredentialedRequestLayerTriadAuthenticatesRepresentativeOpaqueOfferingsThroughOneBlindPath(t *testing.T) {
 	t.Parallel()
 
 	admitted := 0
-	for value := 0; value <= 255; value++ {
-		offering := core.Offering(value)
-		if !offering.IsValid() {
-			continue
-		}
+	for value, offering := range []core.Offering{
+		submissionAuthOffering(t, 1),
+		submissionAuthOffering(t, 127),
+		submissionAuthOffering(t, 255),
+	} {
 		admitted++
 		t.Run(offering.String(), func(t *testing.T) {
 			t.Parallel()
@@ -264,7 +265,7 @@ func TestAssemblyRefusesAuthenticDocumentsForDifferentBuilds(t *testing.T) {
 	bugInstallation, err := controlplanetest.IssueInstallation(
 		controlplanetest.InstallationRequest{
 			AuthoritySeed: authSeed(0x51), DeviceSeed: authSeed(0x52),
-			Offering: core.OfferingBug,
+			Offering: submissionAuthOffering(t, 1),
 		},
 	)
 	if err != nil {
@@ -330,8 +331,8 @@ func TestCredentialedRequestJSONIsStrictBoundedAndPreserving(t *testing.T) {
 		t.Fatalf("json.Marshal(null certificate fixture) error = %v, want nil", err)
 	}
 	wrongRequestType, err := json.Marshal(struct {
-		Request     int                                          `json:"request"`
 		Certificate controlplane.InstallationCertificateDocument `json:"certificate"`
+		Request     int                                          `json:"request"`
 	}{Request: 1, Certificate: fixture.certificate})
 	if err != nil {
 		t.Fatalf("json.Marshal(wrong request type fixture) error = %v, want nil", err)
@@ -343,8 +344,8 @@ func TestCredentialedRequestJSONIsStrictBoundedAndPreserving(t *testing.T) {
 	if err != nil {
 		t.Fatalf("json.Marshal(wrong certificate type fixture) error = %v, want nil", err)
 	}
-	var indented bytes.Buffer
-	if err := json.Indent(&indented, encoded, "", "  "); err != nil {
+	indented := jsontext.Value(bytes.Clone(encoded))
+	if err := indented.Indent(jsontext.WithIndent("  ")); err != nil {
 		t.Fatalf("json.Indent(credentialed request) error = %v, want nil", err)
 	}
 	unknown := append(bytes.Clone(encoded[:len(encoded)-1]), []byte(`,"future":true}`)...)
@@ -360,7 +361,7 @@ func TestCredentialedRequestJSONIsStrictBoundedAndPreserving(t *testing.T) {
 		{name: "leading and trailing newlines", data: append(append([]byte("\n"), encoded...), '\n')},
 		{name: "mixed legal outer whitespace", data: append(append([]byte("\t\r\n"), encoded...), ' ', '\t')},
 		{name: "members in reverse order", data: reordered},
-		{name: "indented credentialed request", data: indented.Bytes()},
+		{name: "indented credentialed request", data: []byte(indented)},
 		{name: "one byte below document ceiling", data: authLeftPadJSON(encoded, RequestDocumentJSONMaximumBytes-1)},
 		{name: "exactly at document ceiling", data: authLeftPadJSON(encoded, RequestDocumentJSONMaximumBytes)},
 		{name: "canonical second decode", data: bytes.Clone(encoded)},

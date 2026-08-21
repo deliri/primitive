@@ -52,7 +52,7 @@ func TestInspectBuiltArtifactProvesEveryShippedExecutable(t *testing.T) {
 			t.Parallel()
 
 			build, err := core.NewBuildIdentity(core.BuildIdentityRequest{
-				Offering: core.OfferingWitness, Version: version, Commit: commit, Platform: platform,
+				Offering: releaseExternalOffering(t, 2), Version: version, Commit: commit, Platform: platform,
 			})
 			if err != nil {
 				t.Fatalf("core.NewBuildIdentity() error = %v", err)
@@ -90,7 +90,7 @@ func TestInspectBuiltArtifactBreaksOnEachGuardRemoval(t *testing.T) {
 	}
 	commit, _ := core.ParseBuildCommit("b5c32d95d212b0a1a8cef4126e4d11ff288079ef")
 	build, err := core.NewBuildIdentity(core.BuildIdentityRequest{
-		Offering: core.OfferingBug, Version: core.NewReleaseVersion(2026, 0, 11),
+		Offering: releaseExternalOffering(t, 1), Version: core.NewReleaseVersion(2026, 0, 11),
 		Commit: commit, Platform: platform,
 	})
 	if err != nil {
@@ -158,7 +158,7 @@ func TestInspectBuiltArtifactRejectsEveryUnderStrippedExecutableFormat(t *testin
 				t.Parallel()
 
 				build, err := core.NewBuildIdentity(core.BuildIdentityRequest{
-					Offering: core.OfferingWitness, Version: version, Commit: commit, Platform: platform,
+					Offering: releaseExternalOffering(t, 2), Version: version, Commit: commit, Platform: platform,
 				})
 				if err != nil {
 					t.Fatalf("core.NewBuildIdentity() error = %v", err)

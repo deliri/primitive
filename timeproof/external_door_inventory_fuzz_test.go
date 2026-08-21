@@ -2,7 +2,7 @@ package timeproof
 
 import (
 	"bytes"
-	"encoding/json"
+	json "encoding/json/v2"
 	"errors"
 	"go/ast"
 	"go/parser"

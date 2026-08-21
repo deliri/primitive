@@ -15,11 +15,11 @@ import (
 
 type uploadCallFixture struct {
 	decision VerifiedDecision
+	offering core.Offering
 	content  []byte
 	request  RequestPayload
 	trusted  attest.TrustedKeys
 	account  receipt.AccountIdentity
-	offering receipt.OfferingIdentity
 }
 
 func TestVerifiedDecisionUploadCallLayerTriad(t *testing.T) {
@@ -167,7 +167,7 @@ func TestVerifiedDecisionUploadCallHostileBoundaryMatrix(t *testing.T) {
 			case uploadCallMutationDifferentDeclaration:
 				input.Request.Declaration = testDeclaration(t, []byte{24})
 			case uploadCallMutationDifferentBuild:
-				input.Request.Build = newGrantFixture(t, grantFixtureRequest{offering: core.OfferingBug}).request.Build
+				input.Request.Build = newGrantFixture(t, grantFixtureRequest{offering: submissionOffering(t, 1)}).request.Build
 			case uploadCallMutationDifferentNonce:
 				input.Request.Nonce = newGrantFixture(t, grantFixtureRequest{requestNonceByte: 0x73}).request.Nonce
 			case uploadCallMutationZeroDecision:

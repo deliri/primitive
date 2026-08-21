@@ -2,7 +2,7 @@ package lease_test
 
 import (
 	"bytes"
-	"encoding/json"
+	json "encoding/json/v2"
 	"errors"
 	"testing"
 

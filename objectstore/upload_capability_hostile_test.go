@@ -2,7 +2,7 @@ package objectstore
 
 import (
 	"encoding"
-	"encoding/json"
+	json "encoding/json/v2"
 	"errors"
 	"fmt"
 	"strings"

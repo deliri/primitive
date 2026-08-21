@@ -1,7 +1,7 @@
 package release
 
 import (
-	"encoding/json"
+	json "encoding/json/v2"
 	"errors"
 	"math"
 	"strings"
@@ -192,8 +192,8 @@ func (i *ArtifactIntegrity) UnmarshalJSON(data []byte) error {
 
 // ArtifactRequest supplies one artifact's immutable facts.
 type ArtifactRequest struct {
-	Extent core.ByteCount
 	Build  core.BuildIdentity
+	Extent core.ByteCount
 	CRC32C core.CRC32C
 	SHA256 core.SHA256Digest
 }
@@ -209,8 +209,8 @@ func (r ArtifactRequest) Validate() error {
 
 // Artifact is one immutable release object. Its filename is derived.
 type Artifact struct {
-	integrity ArtifactIntegrity
 	build     core.BuildIdentity
+	integrity ArtifactIntegrity
 	identity  ArtifactIdentity
 	valid     bool
 }

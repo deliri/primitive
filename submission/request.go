@@ -2,7 +2,7 @@ package submission
 
 import (
 	"crypto"
-	"encoding/json"
+	json "encoding/json/v2"
 	"errors"
 	"io"
 
@@ -22,9 +22,9 @@ const (
 
 // RequestPayload is the exact declaration one installed build signs.
 type RequestPayload struct {
+	Build       core.BuildIdentity       `json:"build"`
 	Manifest    ManifestIntent           `json:"manifest"`
 	Declaration Declaration              `json:"declaration"`
-	Build       core.BuildIdentity       `json:"build"`
 	Nonce       controlwire.RequestNonce `json:"request_nonce"`
 	Revision    controlwire.Revision     `json:"revision"`
 }

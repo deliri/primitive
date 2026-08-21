@@ -18,9 +18,9 @@ const bootstrapTemporaryFilename = ".primitive-bootstrap"
 type BootstrapRequest struct {
 	Source    io.Reader
 	Root      *os.Root
+	Build     core.BuildIdentity
 	Directory core.AbsolutePath
 	Manifest  release.VerifiedManifest
-	Build     core.BuildIdentity
 }
 
 func (r BootstrapRequest) Validate() error {

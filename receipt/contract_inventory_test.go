@@ -26,7 +26,6 @@ type receiptContractInventory struct {
 	watermarkConflict       receiptFailureDetail[watermarkConflict]
 	lifecycleIdentity       receiptInternalFlow[lifecycleIdentity]
 	AccountIdentity         receiptProtocolFact[AccountIdentity]
-	OfferingIdentity        receiptProtocolFact[OfferingIdentity]
 	SubmissionIdentity      receiptProtocolFact[SubmissionIdentity]
 	ObjectIdentity          receiptProtocolFact[ObjectIdentity]
 	ReceiptID               receiptProtocolFact[ReceiptID]

@@ -2,7 +2,7 @@ package release
 
 import (
 	"crypto"
-	"encoding/json"
+	json "encoding/json/v2"
 	"errors"
 	"hash/crc32"
 	"io"
@@ -88,6 +88,7 @@ func (d ManifestDocumentDigest) SHA256() core.SHA256Digest { return d.digest }
 // ManifestFactRequest supplies the facts an artifact producer asks a manifest
 // authority to sign.
 type ManifestFactRequest struct {
+	Offering   core.Offering
 	Provenance BuildProvenance
 	Artifacts  ArtifactSet
 	Metadata   MetadataSet
@@ -95,7 +96,6 @@ type ManifestFactRequest struct {
 	Version    core.ReleaseVersion
 	Commit     core.BuildCommit
 	Revision   Revision
-	Offering   core.Offering
 }
 
 // Validate proves every manifest fact and its artifact/build bindings before
@@ -114,6 +114,7 @@ func (r ManifestFactRequest) Validate() error {
 
 // ManifestFact is the immutable canonical body authenticated by Attest.
 type ManifestFact struct {
+	offering    core.Offering
 	provenance  BuildProvenance
 	artifacts   ArtifactSet
 	metadata    MetadataSet
@@ -123,7 +124,6 @@ type ManifestFact struct {
 	identity    ManifestIdentity
 	commit      core.BuildCommit
 	revision    Revision
-	offering    core.Offering
 	valid       bool
 }
 
@@ -141,6 +141,7 @@ type manifestFactWire struct {
 }
 
 type manifestIdentityWire struct {
+	Offering    core.Offering       `json:"offering"`
 	Provenance  BuildProvenance     `json:"provenance"`
 	Artifacts   ArtifactSet         `json:"artifacts"`
 	Metadata    MetadataSet         `json:"metadata"`
@@ -149,7 +150,6 @@ type manifestIdentityWire struct {
 	Version     core.ReleaseVersion `json:"version"`
 	Commit      core.BuildCommit    `json:"commit"`
 	Revision    Revision            `json:"revision"`
-	Offering    core.Offering       `json:"offering"`
 }
 
 func NewManifestFact(request ManifestFactRequest) (ManifestFact, error) {
@@ -403,9 +403,9 @@ func IssueManifest(request IssueManifestRequest) (ManifestDocument, error) {
 }
 
 type VerifyManifestRequest struct {
+	ExpectedOffering core.Offering
 	Document         ManifestDocument
 	TrustedKeys      attest.TrustedKeys
-	ExpectedOffering core.Offering
 }
 
 // Validate proves document structure, caller authority, and expected stream.

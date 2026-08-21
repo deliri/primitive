@@ -1,9 +1,10 @@
 package attest_test
 
 import (
-	"encoding/json"
 	"errors"
 	"testing"
+
+	"encoding/json/jsontext"
 
 	"github.com/deliri/primitive/v2026/attest"
 	"github.com/deliri/primitive/v2026/core"
@@ -82,7 +83,7 @@ func FuzzCanonicalObjectEmitsStrictlyDecodableAndStableDocuments(f *testing.F) {
 		// accepted names are still required to be strictly decodable objects.
 		if textName != "text" || signedName != "signed" ||
 			unsignedName != "unsigned" || flagName != "flag" {
-			if _, decodeErr := core.DecodeStrictJSONStructure[map[string]json.RawMessage](
+			if _, decodeErr := core.DecodeStrictJSONStructure[map[string]jsontext.Value](
 				encoded, core.DefaultStrictJSONLimits(),
 			); decodeErr != nil {
 				t.Fatalf("DecodeStrictJSONStructure() error = %v, want nil for %q", decodeErr, encoded)

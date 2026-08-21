@@ -1,9 +1,11 @@
 package lease
 
 import (
-	"encoding/json"
+	json "encoding/json/v2"
 	"errors"
 	"io"
+
+	"encoding/json/jsontext"
 
 	"github.com/deliri/primitive/v2026/core"
 	"github.com/deliri/primitive/v2026/temporal"
@@ -61,10 +63,10 @@ var (
 
 // Header is the common authenticated identity and sequence of every decision.
 type Header struct {
-	Revision   Revision         `json:"revision"`
 	Subject    Subject          `json:"subject"`
-	Generation Generation       `json:"generation"`
 	IssuedAt   temporal.Instant `json:"issued_at"`
+	Generation Generation       `json:"generation"`
+	Revision   Revision         `json:"revision"`
 }
 
 // Validate closes the common decision facts.
@@ -253,7 +255,7 @@ type decisionWire struct {
 	IssuedAt   *temporal.Instant `json:"issued_at"`
 	Outcome    *Outcome          `json:"outcome"`
 	// doctrine:local-allowed=external-wire
-	Body *json.RawMessage `json:"body"`
+	Body *jsontext.Value `json:"body"`
 }
 
 func (w decisionWire) Validate() error {
@@ -447,7 +449,7 @@ func (d Decision) MarshalJSON() ([]byte, error) {
 	issuedAt := d.header.IssuedAt
 	outcome := d.outcome
 	// doctrine:local-allowed=external-wire
-	rawBody := json.RawMessage(body)
+	rawBody := jsontext.Value(body)
 	wire := decisionWire{
 		Revision: &revision, Subject: &subject,
 		Generation: &generation, IssuedAt: &issuedAt,

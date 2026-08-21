@@ -2,7 +2,7 @@ package release
 
 import (
 	"bytes"
-	"encoding/json"
+	json "encoding/json/v2"
 	"errors"
 	"testing"
 
@@ -112,19 +112,19 @@ type releaseJSONDoorSeed struct {
 
 type releaseJSONDoorFixtures struct {
 	releaseSigningSeed     ReleaseSigningSeed
-	materialRequest        MaterialRequest
 	buildDependencies      BuildDependencies
-	materialResponse       MaterialResponse
 	buildProvenance        BuildProvenance
+	materialRequest        MaterialRequest
+	materialResponse       MaterialResponse
+	artifact               Artifact
+	artifactSet            ArtifactSet
+	available              AvailableSummary
 	manifestFact           ManifestFact
 	manifestDocument       ManifestDocument
 	latestFact             LatestFact
 	latestDocument         LatestDocument
 	release                releaseFixture
-	artifactSet            ArtifactSet
-	available              AvailableSummary
 	metadataSet            MetadataSet
-	artifact               Artifact
 	metadataAsset          MetadataAsset
 	artifactIntegrity      ArtifactIntegrity
 	generation             Generation
@@ -391,7 +391,7 @@ func fuzzReleaseManifestDocument(
 	}
 	proof, err := VerifyManifest(VerifyManifestRequest{
 		Document: candidate, TrustedKeys: fixtures.release.manifestTrust,
-		ExpectedOffering: core.OfferingWitness,
+		ExpectedOffering: releaseOffering(t, 2),
 	})
 	if err != nil {
 		if !errors.Is(err, core.ErrReleaseVerification) || proof != (VerifiedManifest{}) {
@@ -420,7 +420,7 @@ func fuzzReleaseLatestDocument(
 	proof, err := VerifyLatest(VerifyLatestRequest{
 		Document: candidate, LatestKeys: fixtures.release.latestTrust,
 		ManifestKeys:     fixtures.release.manifestTrust,
-		ExpectedOffering: core.OfferingWitness,
+		ExpectedOffering: releaseOffering(t, 2),
 	})
 	if err != nil {
 		if !errors.Is(err, core.ErrReleaseVerification) || proof != (VerifiedLatest{}) {

@@ -3,7 +3,7 @@ package upgrade
 import (
 	"bytes"
 	"context"
-	"encoding/json"
+	json "encoding/json/v2"
 	"errors"
 	"os"
 
@@ -43,9 +43,9 @@ func (r *selectionRevision) UnmarshalJSON(data []byte) error {
 }
 
 type selectionDocument struct {
+	Artifact release.Artifact
 	Revision selectionRevision
 	Slot     Slot
-	Artifact release.Artifact
 }
 
 type selectionWire struct {

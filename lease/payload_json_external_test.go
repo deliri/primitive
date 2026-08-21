@@ -2,9 +2,11 @@ package lease_test
 
 import (
 	"bytes"
-	"encoding/json"
+	json "encoding/json/v2"
 	"errors"
 	"testing"
+
+	"encoding/json/jsontext"
 
 	"github.com/deliri/primitive/v2026/core"
 	"github.com/deliri/primitive/v2026/lease"
@@ -30,7 +32,7 @@ func TestSubjectStrictJSONPressure(t *testing.T) {
 		name:      "subject",
 		seed:      fixtureSubject(t, 31),
 		canonical: fixtureSubject(t, 33),
-		fields:    []string{"product", "entitlement_id", "device_id"},
+		fields:    []string{"offering", "entitlement_id", "device_id"},
 		maximum:   lease.SubjectJSONMaximumBytes,
 		decode: func(value *lease.Subject, data []byte) error {
 			return value.UnmarshalJSON(data)
@@ -225,7 +227,7 @@ func payloadJSONCases[T comparable](
 func objectFields(t *testing.T, canonical []byte) map[string]string {
 	t.Helper()
 
-	var members map[string]json.RawMessage
+	var members map[string]jsontext.Value
 	if err := json.Unmarshal(canonical, &members); err != nil {
 		t.Fatalf("json.Unmarshal(canonical object) error = %v, want nil", err)
 	}
@@ -302,7 +304,6 @@ func TestPayloadUnmarshalRejectsNilReceivers(t *testing.T) {
 		decode func([]byte) error
 		name   string
 	}{
-		{name: "product", decode: func(data []byte) error { return (*lease.Product)(nil).UnmarshalJSON(data) }},
 		{name: "entitlement id", decode: func(data []byte) error { return (*lease.EntitlementID)(nil).UnmarshalJSON(data) }},
 		{name: "device id", decode: func(data []byte) error { return (*lease.DeviceID)(nil).UnmarshalJSON(data) }},
 		{name: "generation", decode: func(data []byte) error { return (*lease.Generation)(nil).UnmarshalJSON(data) }},
@@ -340,7 +341,6 @@ func TestZeroPayloadsRefuseToMarshal(t *testing.T) {
 		marshal func() ([]byte, error)
 		name    string
 	}{
-		{name: "product", marshal: lease.Product{}.MarshalJSON},
 		{name: "entitlement id", marshal: lease.EntitlementID{}.MarshalJSON},
 		{name: "device id", marshal: lease.DeviceID{}.MarshalJSON},
 		{name: "generation", marshal: lease.Generation{}.MarshalJSON},

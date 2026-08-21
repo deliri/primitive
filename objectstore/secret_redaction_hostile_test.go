@@ -2,7 +2,8 @@ package objectstore
 
 import (
 	"encoding"
-	"encoding/json"
+	json "encoding/json/v2"
+	"errors"
 	"fmt"
 	"strings"
 	"testing"
@@ -124,7 +125,8 @@ func TestObjectstoreBearerValuesRedactAtEveryReachableLayer(t *testing.T) {
 // TestObjectstoreNestedBearerValuesHaveNoImplicitPersistenceProjection proves
 // the four newly closed values cannot acquire a text or explicit JSON encoder.
 // The only bearer disclosure boundary remains the nominal issue-only
-// capability projection; default JSON sees no private bearer bytes.
+// capability projection; JSON v2 refuses structs whose only state is private
+// rather than silently projecting an empty document.
 func TestObjectstoreNestedBearerValuesHaveNoImplicitPersistenceProjection(t *testing.T) {
 	t.Parallel()
 
@@ -153,11 +155,13 @@ func TestObjectstoreNestedBearerValuesHaveNoImplicitPersistenceProjection(t *tes
 				t.Fatalf("%s implements json.Marshaler, want no JSON disclosure boundary", value.name)
 			}
 			encoded, err := json.Marshal(value.value)
-			if err != nil {
-				t.Fatalf("json.Marshal(%s) error = %v, want nil empty/private-field projection", value.name, err)
+			var semanticErr *json.SemanticError
+			if !errors.As(err, &semanticErr) {
+				t.Fatalf("json.Marshal(%s) = (%q, %v), want *json.SemanticError", value.name, encoded, err)
 			}
 			if strings.Contains(string(encoded), capabilityHeaderSecret) ||
-				strings.Contains(string(encoded), capabilitySecret) {
+				strings.Contains(string(encoded), capabilitySecret) ||
+				strings.Contains(string(encoded), core.SchemeHTTPS) {
 				t.Fatalf("json.Marshal(%s) = %q, want no bearer material", value.name, encoded)
 			}
 		})

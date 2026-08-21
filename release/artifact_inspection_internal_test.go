@@ -226,7 +226,7 @@ func TestInspectBuiltArtifactRejectsContentThatIsNotANativeExecutable(t *testing
 				t.Parallel()
 
 				build, err := core.NewBuildIdentity(core.BuildIdentityRequest{
-					Offering: core.OfferingBug, Version: core.NewReleaseVersion(2026, 0, 11),
+					Offering: releaseOffering(t, 1), Version: core.NewReleaseVersion(2026, 0, 11),
 					Commit: inspectionCommitForTest(t), Platform: platform,
 				})
 				if err != nil {
@@ -388,7 +388,7 @@ func inspectionCommitForTest(t *testing.T) core.BuildCommit {
 func inspectionBuildForTest(t *testing.T) core.BuildIdentity {
 	t.Helper()
 	build, err := core.NewBuildIdentity(core.BuildIdentityRequest{
-		Offering: core.OfferingBug, Version: core.NewReleaseVersion(2026, 0, 11),
+		Offering: releaseOffering(t, 1), Version: core.NewReleaseVersion(2026, 0, 11),
 		Commit: inspectionCommitForTest(t),
 		Platform: core.Platform{
 			OperatingSystem: core.OperatingSystemDarwin, Architecture: core.CPUArchitectureARM64,

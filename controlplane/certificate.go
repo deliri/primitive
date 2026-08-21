@@ -19,9 +19,9 @@ import (
 // all there is to check. Making that a first-class result keeps the weaker
 // situation from being served by a weaker rule.
 type VerifiedInstallationCertificate struct {
-	proof      attest.Verified[SigningDomain]
-	deviceKeys attest.TrustedKeys
 	body       InstallationCertificateBody
+	deviceKeys attest.TrustedKeys
+	proof      attest.Verified[SigningDomain]
 }
 
 // VerifyInstallationCertificate authenticates one authority-issued installation

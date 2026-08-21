@@ -2,7 +2,7 @@ package lease_test
 
 import (
 	"bytes"
-	"encoding/json"
+	json "encoding/json/v2"
 	"errors"
 	"go/ast"
 	"go/parser"
@@ -20,7 +20,6 @@ type leaseJSONDoor uint8
 
 const (
 	leaseJSONDoorUnknown leaseJSONDoor = iota
-	leaseJSONDoorProduct
 	leaseJSONDoorEntitlementID
 	leaseJSONDoorDeviceID
 	leaseJSONDoorGeneration
@@ -38,8 +37,6 @@ const (
 
 func (d leaseJSONDoor) receiverName() string {
 	switch d {
-	case leaseJSONDoorProduct:
-		return "Product"
 	case leaseJSONDoorEntitlementID:
 		return "EntitlementID"
 	case leaseJSONDoorDeviceID:
@@ -72,15 +69,14 @@ func (d leaseJSONDoor) receiverName() string {
 }
 
 type leaseJSONFixtures struct {
-	authority     authorityFixture
-	document      lease.Document
+	subject       lease.Subject
+	signedSubject lease.Subject
 	decision      lease.Decision
+	document      lease.Document
+	authority     authorityFixture
 	grant         lease.Grant
 	refusal       lease.Refusal
 	generation    lease.Generation
-	subject       lease.Subject
-	signedSubject lease.Subject
-	product       lease.Product
 	device        lease.DeviceID
 	entitlement   lease.EntitlementID
 	revocation    lease.Revocation
@@ -109,8 +105,6 @@ func FuzzLeaseExternalJSONDoorInventory(f *testing.F) {
 
 	f.Fuzz(func(t *testing.T, rawDoor uint8, data []byte) {
 		switch leaseJSONDoor(rawDoor) {
-		case leaseJSONDoorProduct:
-			fuzzLeaseJSONValue(t, data, fixtures.product)
 		case leaseJSONDoorEntitlementID:
 			fuzzLeaseJSONValue(t, data, fixtures.entitlement)
 		case leaseJSONDoorDeviceID:
@@ -147,7 +141,6 @@ type leaseTextDoor uint8
 
 const (
 	leaseTextDoorUnknown leaseTextDoor = iota
-	leaseTextDoorProduct
 	leaseTextDoorEntitlementID
 	leaseTextDoorDeviceID
 	leaseTextDoorGeneration
@@ -159,8 +152,6 @@ const (
 
 func (d leaseTextDoor) functionName() string {
 	switch d {
-	case leaseTextDoorProduct:
-		return "ParseProduct"
 	case leaseTextDoorEntitlementID:
 		return "ParseEntitlementID"
 	case leaseTextDoorDeviceID:
@@ -182,7 +173,6 @@ func (d leaseTextDoor) functionName() string {
 
 func FuzzLeaseExternalTextDoorInventory(f *testing.F) {
 	fixtures := leaseFixturesForFuzz(f)
-	f.Add(uint8(leaseTextDoorProduct), fixtures.product.String())
 	f.Add(uint8(leaseTextDoorEntitlementID), fixtures.entitlement.String())
 	f.Add(uint8(leaseTextDoorDeviceID), fixtures.device.String())
 	f.Add(uint8(leaseTextDoorGeneration), fixtures.generation.String())
@@ -197,9 +187,6 @@ func FuzzLeaseExternalTextDoorInventory(f *testing.F) {
 	f.Fuzz(func(t *testing.T, rawDoor uint8, value string) {
 		var outcome leaseTextOutcome
 		switch leaseTextDoor(rawDoor) {
-		case leaseTextDoorProduct:
-			got, err := lease.ParseProduct(value)
-			outcome = leaseTextOutcome{input: value, projection: got.String(), err: err, validate: got.Validate}
 		case leaseTextDoorEntitlementID:
 			got, err := lease.ParseEntitlementID(value)
 			outcome = leaseTextOutcome{input: value, projection: got.String(), err: err, validate: got.Validate}
@@ -323,7 +310,7 @@ func leaseFixturesForFuzz(t testing.TB) leaseJSONFixtures {
 		t.Fatalf("lease.NewGeneration() error = %v, want nil", err)
 	}
 	return leaseJSONFixtures{
-		product: subject.Product, entitlement: subject.EntitlementID, device: subject.DeviceID,
+		entitlement: subject.EntitlementID, device: subject.DeviceID,
 		generation: generation, document: document, subject: subject, grant: fixtureGrant(),
 		refusal:    lease.Refusal{ContactAfter: fixtureInstant(6_000)},
 		revocation: lease.Revocation{Reason: lease.RevocationReasonLicenceBreach},
@@ -335,7 +322,6 @@ func leaseFixturesForFuzz(t testing.TB) leaseJSONFixtures {
 func leaseJSONSeedsForFuzz(t testing.TB, fixtures leaseJSONFixtures) []leaseJSONSeed {
 	t.Helper()
 	return []leaseJSONSeed{
-		leaseJSONSeedForFuzz(t, leaseJSONDoorProduct, fixtures.product),
 		leaseJSONSeedForFuzz(t, leaseJSONDoorEntitlementID, fixtures.entitlement),
 		leaseJSONSeedForFuzz(t, leaseJSONDoorDeviceID, fixtures.device),
 		leaseJSONSeedForFuzz(t, leaseJSONDoorGeneration, fixtures.generation),
@@ -400,7 +386,7 @@ func TestLeaseExternalIngressFuzzInventoryMatchesProduction(t *testing.T) {
 	}
 	gotText := []string{
 		"ParseDeviceID", "ParseEntitlementID", "ParseGeneration", "ParseOutcome",
-		"ParseProduct", "ParseRevision", "ParseRevocationReason",
+		"ParseRevision", "ParseRevocationReason",
 	}
 	var wantText []string
 	for door := leaseTextDoorUnknown + 1; door < leaseTextDoorLimit; door++ {

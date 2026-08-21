@@ -3,7 +3,7 @@ package lease
 import (
 	"bytes"
 	"crypto/sha256"
-	"encoding/json"
+	json "encoding/json/v2"
 	"errors"
 	"go/ast"
 	"go/parser"
@@ -12,6 +12,8 @@ import (
 	"slices"
 	"strings"
 	"testing"
+
+	"encoding/json/jsontext"
 
 	"github.com/deliri/primitive/v2026/core"
 	"github.com/deliri/primitive/v2026/temporal"
@@ -37,13 +39,11 @@ type leaseContractInventory struct {
 	scopeMismatch             typedFailure[scopeMismatch]
 	clockContradiction        typedFailure[clockContradiction]
 	identifier                internalFlow[identifier]
-	Product                   protocolFact[Product]
 	EntitlementID             protocolFact[EntitlementID]
 	DeviceID                  protocolFact[DeviceID]
 	Generation                protocolFact[Generation]
 	enumFact                  internalFlow[enumFact]
 	jsonStructureContract     internalFlow[jsonStructureContract]
-	productCatalogEntry       internalFlow[productCatalogEntry]
 	Subject                   protocolFact[Subject]
 	Header                    protocolFact[Header]
 	Grant                     protocolFact[Grant]
@@ -71,7 +71,6 @@ var (
 	_ = leaseContractInventory{}.identifier
 	_ = leaseContractInventory{}.enumFact
 	_ = leaseContractInventory{}.jsonStructureContract
-	_ = leaseContractInventory{}.productCatalogEntry
 	_ = leaseContractInventory{}.decisionWire
 )
 
@@ -113,48 +112,18 @@ func TestPublicOperationsAreExactIntentEntryPoints(t *testing.T) {
 		"NewEntitlementID",
 		"NewGeneration",
 		"NewGrantDecision",
-		"NewProduct",
 		"NewRefusalDecision",
 		"NewRevocationDecision",
-		"OfferingForProduct",
 		"ParseDeviceID",
 		"ParseEntitlementID",
 		"ParseGeneration",
 		"ParseOutcome",
-		"ParseProduct",
 		"ParseRevision",
 		"ParseRevocationReason",
-		"ProductForOffering",
 		"Verify",
 	}
 	if !slices.Equal(got, want) {
 		t.Fatalf("exported top-level functions = %v, want %v", got, want)
-	}
-}
-
-// TestProductCatalogCanonicalVector pins the complete private product catalog
-// without exporting copyable token strings. The NUL separators keep adjacent
-// fixed-width entries independently framed.
-func TestProductCatalogCanonicalVector(t *testing.T) {
-	t.Parallel()
-
-	hash := sha256.New()
-	for index, entry := range productCatalog() {
-		if index > 0 {
-			_, _ = hash.Write([]byte{0})
-		}
-		_, _ = hash.Write([]byte(entry.token))
-	}
-	var got [sha256.Size]byte
-	copy(got[:], hash.Sum(nil))
-	want := [sha256.Size]byte{
-		0x0c, 0xf8, 0x83, 0xad, 0xcd, 0xe3, 0x58, 0xe2,
-		0x88, 0x1b, 0x75, 0xed, 0xee, 0x1d, 0x83, 0x72,
-		0x3d, 0xd6, 0xc3, 0xe7, 0x11, 0x0e, 0x8b, 0x4a,
-		0x1a, 0xca, 0x55, 0xb4, 0x98, 0xe6, 0x23, 0x79,
-	}
-	if got != want {
-		t.Fatalf("SHA-256(Lease product catalog) = %x, want %x", got, want)
 	}
 }
 
@@ -177,11 +146,11 @@ func TestDecisionV1CanonicalBodyVector(t *testing.T) {
 		t.Fatalf("Decision.MarshalJSON() error = %v, want nil", err)
 	}
 	got := sha256.Sum256(encoded)
-	want := [sha256.Size]byte{
-		0xe9, 0x66, 0x34, 0x99, 0xc0, 0x73, 0x39, 0x60,
-		0x7c, 0x1b, 0x02, 0x1f, 0x0a, 0x1e, 0xed, 0x0f,
-		0x31, 0x4c, 0xac, 0x4b, 0x0a, 0x5b, 0x60, 0x7f,
-		0x66, 0x5e, 0xa9, 0xec, 0x71, 0xb3, 0x56, 0x85,
+	want := [core.SHA256DigestBytes]byte{
+		0x28, 0x5c, 0xef, 0x9a, 0x9f, 0x92, 0xff, 0xec,
+		0x05, 0xed, 0x87, 0xa0, 0x51, 0x25, 0x53, 0xf1,
+		0xa3, 0x51, 0x0d, 0xbc, 0x04, 0x6f, 0x21, 0xfd,
+		0x35, 0xee, 0x92, 0x3d, 0x74, 0x0f, 0x15, 0x6b,
 	}
 	if got != want {
 		t.Fatalf("SHA-256(Decision v1 canonical body) = %x, want %x", got, want)
@@ -246,7 +215,7 @@ func TestDecisionTaggedUnionRejectsContradictoryWireBodies(t *testing.T) {
 	generation := header.Generation
 	issuedAt := header.IssuedAt
 	outcome := OutcomeGrant
-	grantBody := json.RawMessage(grantJSON)
+	grantBody := jsontext.Value(grantJSON)
 	base := decisionWire{
 		Revision: &revision, Subject: &subject,
 		Generation: &generation, IssuedAt: &issuedAt,
@@ -263,7 +232,7 @@ func TestDecisionTaggedUnionRejectsContradictoryWireBodies(t *testing.T) {
 	if !bytes.Equal(baseJSON, validJSON) {
 		t.Fatalf("base wire JSON = %s, want %s", baseJSON, validJSON)
 	}
-	refusalRaw := json.RawMessage(refusalJSON)
+	refusalRaw := jsontext.Value(refusalJSON)
 	refusalBody, err := json.Marshal(decisionWire{
 		Revision: base.Revision, Subject: base.Subject,
 		Generation: base.Generation, IssuedAt: base.IssuedAt,
@@ -272,7 +241,7 @@ func TestDecisionTaggedUnionRejectsContradictoryWireBodies(t *testing.T) {
 	if err != nil {
 		t.Fatalf("json.Marshal() error = %v, want nil", err)
 	}
-	nullRaw := json.RawMessage("null")
+	nullRaw := jsontext.Value("null")
 	nullBody, err := json.Marshal(decisionWire{
 		Revision: base.Revision, Subject: base.Subject,
 		Generation: base.Generation, IssuedAt: base.IssuedAt,
@@ -281,7 +250,7 @@ func TestDecisionTaggedUnionRejectsContradictoryWireBodies(t *testing.T) {
 	if err != nil {
 		t.Fatalf("json.Marshal() error = %v, want nil", err)
 	}
-	emptyRaw := json.RawMessage("{}")
+	emptyRaw := jsontext.Value("{}")
 	emptyBody, err := json.Marshal(decisionWire{
 		Revision: base.Revision, Subject: base.Subject,
 		Generation: base.Generation, IssuedAt: base.IssuedAt,
@@ -297,9 +266,9 @@ func TestDecisionTaggedUnionRejectsContradictoryWireBodies(t *testing.T) {
 		1,
 	)
 	type missingBodyWire struct {
+		Subject    Subject          `json:"subject"`
 		IssuedAt   temporal.Instant `json:"issued_at"`
 		Generation Generation       `json:"generation"`
-		Subject    Subject          `json:"subject"`
 		Revision   Revision         `json:"revision"`
 		Outcome    Outcome          `json:"outcome"`
 	}
@@ -502,7 +471,7 @@ func TestOutcomeOutsideTheClosedDomainRefusesEveryPath(t *testing.T) {
 	generation := header.Generation
 	issuedAt := header.IssuedAt
 	outcome := outcomeLimit
-	body := json.RawMessage(`{}`)
+	body := jsontext.Value(`{}`)
 	if _, err := decisionFromWire(decisionWire{
 		Revision: &revision, Subject: &subject,
 		Generation: &generation, IssuedAt: &issuedAt,

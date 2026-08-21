@@ -3,10 +3,12 @@ package controlplane_test
 import (
 	"bytes"
 	"crypto/ed25519"
-	"encoding/json"
+	json "encoding/json/v2"
 	"errors"
 	"math"
 	"testing"
+
+	"encoding/json/jsontext"
 
 	"github.com/deliri/primitive/v2026/attest"
 	"github.com/deliri/primitive/v2026/controlplane"
@@ -18,12 +20,12 @@ import (
 )
 
 type authenticatedResponseFixture struct {
+	expected  controlplane.ResponseExpectation
 	signer    ed25519.PrivateKey
 	canonical []byte
+	header    controlplane.ResponseHeader
 	body      controlplane.RegistrationDocument
 	trusted   attest.TrustedKeys
-	header    controlplane.ResponseHeader
-	expected  controlplane.ResponseExpectation
 }
 
 type responseValidCase struct {
@@ -76,9 +78,9 @@ func TestAuthenticatedResponseProducerExhaustsValidDecisionDomains(t *testing.T)
 		{name: "read only status survives signed round trip", mutate: responseStatusMutation(controlplane.ProductStatusReadOnly)},
 		{name: "stopped status survives signed round trip", mutate: responseStatusMutation(controlplane.ProductStatusStopped)},
 		{name: "revoked status survives signed round trip", mutate: responseStatusMutation(controlplane.ProductStatusRevoked)},
-		{name: "bug offering survives signed round trip", mutate: responseOfferingMutation(core.OfferingBug)},
-		{name: "witness offering survives signed round trip", mutate: responseOfferingMutation(core.OfferingWitness)},
-		{name: "peachfuzz offering survives signed round trip", mutate: responseOfferingMutation(core.OfferingPeachfuzz)},
+		{name: "bug offering survives signed round trip", mutate: responseOfferingMutation(controlplaneOffering(t, 1))},
+		{name: "witness offering survives signed round trip", mutate: responseOfferingMutation(controlplaneOffering(t, 2))},
+		{name: "peachfuzz offering survives signed round trip", mutate: responseOfferingMutation(controlplaneOffering(t, 3))},
 		{name: "minimum signed Unix instant survives signed round trip", mutate: responseProviderTimeMutation(math.MinInt64)},
 		{name: "maximum signed Unix instant survives signed round trip", mutate: responseProviderTimeMutation(math.MaxInt64)},
 		{name: "maximum policy activation survives signed round trip", mutate: responsePolicyActivationMutation(math.MaxUint64)},
@@ -150,7 +152,7 @@ func TestAuthenticatedResponseProducerRejectsIndependentInvalidInputs(t *testing
 			value.Header.Status = controlplane.ProductStatus(math.MaxUint8)
 		}, want: core.ErrControlPlaneProductStatus},
 		{name: "future offering is rejected", mutate: func(value *controlplane.ResponseIssuance[controlplane.RegistrationDocument]) {
-			value.Header.Offering = core.Offering(math.MaxUint8)
+			value.Header.Offering = core.Offering{Token: "NONCANONICAL"}
 		}, want: core.ErrControlPlaneResponseHeader},
 		{name: "zero policy cursor is rejected", mutate: func(value *controlplane.ResponseIssuance[controlplane.RegistrationDocument]) {
 			value.Header.Policy = controlwire.PolicyCursor{}
@@ -270,7 +272,7 @@ func TestAuthenticatedResponseDecoderRejectsEveryCrossResponseFactSubstitution(t
 			header.Family = controlwire.RouteFamilyCheckIns
 		}},
 		{name: "product status from another signed response", mutate: responseStatusMutation(alternateStatus(fixture.header.Status))},
-		{name: "offering from another signed response", mutate: responseOfferingMutation(alternateOffering(fixture.header.Offering))},
+		{name: "offering from another signed response", mutate: responseOfferingMutation(alternateOffering(t, fixture.header.Offering))},
 		{name: "policy cursor from another signed response", mutate: nextPolicyActivationMutation(t, fixture.header.Policy.Activation)},
 	}
 
@@ -353,7 +355,7 @@ func TestAuthenticatedResponseVerifierNamesEveryBoundFactAndTrustFailure(t *test
 			value.Family = controlwire.RouteFamilyCheckIns
 		}), want: core.ErrControlPlaneResponseBinding, wantField: controlplane.ResponseHeaderFieldRouteFamily},
 		{name: "different offering is named", verification: responseVerificationWithExpectation(document, fixture, func(value *controlplane.ResponseExpectation) {
-			value.Offering = alternateOffering(fixture.header.Offering)
+			value.Offering = alternateOffering(t, fixture.header.Offering)
 		}), want: core.ErrControlPlaneResponseBinding, wantField: controlplane.ResponseHeaderFieldOffering},
 		{name: "provider time one nanosecond behind prior is rollback", verification: responseVerificationWithExpectation(document, fixture, func(value *controlplane.ResponseExpectation) {
 			value.PriorProviderTime = instantAfter(t, fixture.header.ProviderTime)
@@ -692,21 +694,23 @@ func responsePartsForTest(t testing.TB, fixture authenticatedResponseFixture) re
 
 func responseCanonicalMembers(t testing.TB, document []byte) [][]byte {
 	t.Helper()
-	decoder := json.NewDecoder(bytes.NewReader(document))
-	opening, err := decoder.Token()
-	if err != nil || opening != json.Delim('{') {
+	decoder := jsontext.NewDecoder(bytes.NewReader(document))
+	opening, err := decoder.ReadToken()
+	if err != nil || opening.Kind() != jsontext.KindBeginObject {
 		t.Fatalf("canonical response opening token = (%v, %v), want object", opening, err)
 	}
 	var members [][]byte
-	for decoder.More() {
-		key, keyErr := decoder.Token()
-		var value json.RawMessage
-		valueErr := decoder.Decode(&value)
-		keyText, keyOK := key.(string)
+	for decoder.PeekKind() != jsontext.KindEndObject {
+		key, keyErr := decoder.ReadToken()
+		if keyErr != nil || key.Kind() != jsontext.KindString {
+			t.Fatalf("canonical response key decode = (%v, %v), want string member name", key, keyErr)
+		}
+		keyText := key.String()
 		encodedKey, encodeErr := json.Marshal(keyText)
-		if keyErr != nil || valueErr != nil || !keyOK || encodeErr != nil {
-			t.Fatalf("canonical response member decode = (key %v/%v, value %v, key encode %v), want exact member",
-				key, keyErr, valueErr, encodeErr)
+		value, valueErr := decoder.ReadValue()
+		if valueErr != nil || encodeErr != nil {
+			t.Fatalf("canonical response member decode = (value %v, key encode %v), want exact member",
+				valueErr, encodeErr)
 		}
 		member := make([]byte, 0, len(encodedKey)+1+len(value))
 		member = append(member, encodedKey...)
@@ -714,8 +718,8 @@ func responseCanonicalMembers(t testing.TB, document []byte) [][]byte {
 		member = append(member, value...)
 		members = append(members, member)
 	}
-	closing, err := decoder.Token()
-	if err != nil || closing != json.Delim('}') {
+	closing, err := decoder.ReadToken()
+	if err != nil || closing.Kind() != jsontext.KindEndObject {
 		t.Fatalf("canonical response closing token = (%v, %v), want object", closing, err)
 	}
 	return members
@@ -961,11 +965,12 @@ func responseDeviceID(t testing.TB, fill byte) lease.DeviceID {
 	return identity
 }
 
-func alternateOffering(value core.Offering) core.Offering {
-	if value == core.OfferingBug {
-		return core.OfferingWitness
+func alternateOffering(t testing.TB, value core.Offering) core.Offering {
+	t.Helper()
+	if value == controlplaneOffering(t, 1) {
+		return controlplaneOffering(t, 2)
 	}
-	return core.OfferingBug
+	return controlplaneOffering(t, 1)
 }
 
 func alternateStatus(value controlplane.ProductStatus) controlplane.ProductStatus {

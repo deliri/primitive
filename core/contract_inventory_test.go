@@ -37,9 +37,7 @@ type coreContractInventory struct {
 	strictJSONContainer      internalFlow[strictJSONContainer]
 	strictJSONTokenScan      internalFlow[strictJSONTokenScan]
 	strictJSONObjectKeyScan  internalFlow[strictJSONObjectKeyScan]
-	jsonFieldTypeCollection  internalFlow[jsonFieldTypeCollection]
 	jsonContractDiagnostic   internalFlow[jsonContractDiagnostic]
-	jsonFieldNameCache       internalFlow[jsonFieldNameCache]
 	errorIdentityParentSet   internalFlow[errorIdentityParentSet]
 	errorIdentityDiagnostic  internalFlow[errorIdentityDiagnostic]
 	comparisonDiagnostic     internalFlow[comparisonDiagnostic]
@@ -60,6 +58,7 @@ type coreContractInventory struct {
 	HTTPMediaType            protocolFact[HTTPMediaType]
 	HTTPEndpoint             protocolFact[HTTPEndpoint]
 	Platform                 protocolFact[Platform]
+	Offering                 protocolFact[Offering]
 	ReleaseVersion           protocolFact[ReleaseVersion]
 	BuildCommit              protocolFact[BuildCommit]
 	BuildIdentityRequest     internalFlow[BuildIdentityRequest]
@@ -71,9 +70,7 @@ var (
 	_ = coreContractInventory{}.strictJSONContainer
 	_ = coreContractInventory{}.strictJSONTokenScan
 	_ = coreContractInventory{}.strictJSONObjectKeyScan
-	_ = coreContractInventory{}.jsonFieldTypeCollection
 	_ = coreContractInventory{}.jsonContractDiagnostic
-	_ = coreContractInventory{}.jsonFieldNameCache
 	_ = coreContractInventory{}.errorIdentityParentSet
 	_ = coreContractInventory{}.errorIdentityDiagnostic
 	_ = coreContractInventory{}.comparisonDiagnostic

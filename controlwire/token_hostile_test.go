@@ -3,11 +3,13 @@ package controlwire_test
 import (
 	"crypto/sha256"
 	"encoding/hex"
-	"encoding/json"
+	json "encoding/json/v2"
 	"errors"
 	"fmt"
 	"strings"
 	"testing"
+
+	"encoding/json/jsontext"
 
 	"github.com/deliri/primitive/v2026/controlwire"
 	"github.com/deliri/primitive/v2026/core"
@@ -239,7 +241,7 @@ func TestDestroyedRegistrationTokenCannotBeUsed(t *testing.T) {
 	if !errors.Is(err, core.ErrControlWireToken) {
 		t.Fatalf("json.Marshal(destroyed token) error = %v, want %v", err, core.ErrControlWireToken)
 	}
-	if encoded != nil {
+	if len(encoded) != 0 {
 		t.Fatalf("json.Marshal(destroyed token) = %s, want no bytes", encoded)
 	}
 }
@@ -280,9 +282,9 @@ func TestRegistrationTokenJSONRejectionLeavesTheReceiverUnchanged(t *testing.T) 
 		{name: "uppercase hex is refused", document: `"` + strings.ToUpper(tokenHexWithLetters) + `"`, wantErr: core.ErrControlWireToken},
 		{name: "truncated token is refused", document: `"` + tokenHexWithLetters[:63] + `"`, wantErr: core.ErrControlWireToken},
 		{name: "overlong token is refused", document: `"` + tokenHexWithLetters + `0"`, wantErr: core.ErrControlWireToken},
-		{name: "unterminated string is refused", document: `"` + tokenHexWithLetters, wantErr: &json.SyntaxError{}},
-		{name: "unpaired high surrogate is refused", document: `"\ud800"`, wantErr: core.ErrControlWireToken},
-		{name: "empty document is refused", document: ``, wantErr: &json.SyntaxError{}},
+		{name: "unterminated string is refused", document: `"` + tokenHexWithLetters, wantErr: &jsontext.SyntacticError{}},
+		{name: "unpaired high surrogate is refused by JSON v2 syntax", document: `"\ud800"`, wantErr: &jsontext.SyntacticError{}},
+		{name: "empty document is refused", document: ``, wantErr: &jsontext.SyntacticError{}},
 	}
 
 	for _, tc := range cases {
@@ -313,10 +315,10 @@ func TestRegistrationTokenJSONRejectionLeavesTheReceiverUnchanged(t *testing.T) 
 				}
 				return
 			}
-			if _, syntax := tc.wantErr.(*json.SyntaxError); syntax {
-				var gotSyntax *json.SyntaxError
+			if _, syntax := tc.wantErr.(*jsontext.SyntacticError); syntax {
+				var gotSyntax *jsontext.SyntacticError
 				if !errors.As(err, &gotSyntax) {
-					t.Fatalf("json.Unmarshal(%s) error = %v, want *json.SyntaxError", tc.document, err)
+					t.Fatalf("json.Unmarshal(%s) error = %v, want *jsontext.SyntacticError", tc.document, err)
 				}
 			} else if !errors.Is(err, tc.wantErr) || !errors.Is(err, core.ErrJSONContract) {
 				t.Fatalf("json.Unmarshal(%s) error = %v, want %v/%v", tc.document, err, tc.wantErr, core.ErrJSONContract)

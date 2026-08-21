@@ -16,10 +16,10 @@ import (
 
 type catalogFixture struct {
 	private  crypto.Signer
+	request  QueryPayload
 	payload  CatalogPayload
 	document CatalogDocument
 	trusted  attest.TrustedKeys
-	request  QueryPayload
 }
 
 func TestCustodyStateExhaustsItsByteDomainAndCanonicalJSON(t *testing.T) {
@@ -496,7 +496,7 @@ func catalogQueryPayload(t testing.TB, scope receipt.Scope, marker byte) QueryPa
 		t.Fatalf("NewQuery() error = %v, want nil", err)
 	}
 	payload := QueryPayload{
-		Query: query, Build: signedQueryBuild(t, core.OfferingWitness),
+		Query: query, Build: signedQueryBuild(t, chitOffering(t, 2)),
 		Nonce: signedQueryNonce(t, marker), Revision: controlwire.Revision2026V1,
 	}
 	if err := payload.Validate(); err != nil {

@@ -41,8 +41,8 @@ type RegistrationIdentity struct {
 // the request that consumed it. Its fields are private so callers cannot claim
 // that verification happened.
 type VerifiedRegistrationAuthority struct {
-	identity    RegistrationIdentity
 	replay      controlwire.ReplayIdentity
+	identity    RegistrationIdentity
 	disposition controlwire.ReplayDisposition
 }
 
@@ -208,14 +208,10 @@ func IssueRegisteredInstallation(
 	if err != nil {
 		return InstallationCertificateDocument{}, err
 	}
-	product, err := lease.ProductForOffering(identity.Build.Offering())
-	if err != nil {
-		return InstallationCertificateDocument{}, registrationError(err)
-	}
 	body := InstallationCertificateBody{
 		IssuedAt: issuance.IssuedAt, Build: identity.Build, Revision: identity.Revision,
 		Subject: lease.Subject{
-			Product: product, EntitlementID: issuance.Entitlement,
+			Offering: identity.Build.Offering(), EntitlementID: issuance.Entitlement,
 			DeviceID: identity.Installation,
 		},
 		DeviceKey: identity.DeviceKey, Account: issuance.Account,

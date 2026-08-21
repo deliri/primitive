@@ -1,33 +1,33 @@
 package lease
 
 import (
-	"encoding/json"
+	json "encoding/json/v2"
 	"errors"
 
 	"github.com/deliri/primitive/v2026/core"
 )
 
 const (
-	// SubjectCanonicalJSONMaximumBytes is the exact compact subject extent.
-	SubjectCanonicalJSONMaximumBytes = len(`{"product":,"entitlement_id":,"device_id":}`) +
-		3*IdentifierCanonicalJSONMaximumBytes
+	// SubjectCanonicalJSONMaximumBytes is the exact maximum compact subject extent.
+	SubjectCanonicalJSONMaximumBytes = len(`{"offering":,"entitlement_id":,"device_id":}`) +
+		core.OfferingCanonicalJSONMaximumBytes + 2*IdentifierCanonicalJSONMaximumBytes
 	subjectJSONWhitespaceAllowance = 1 << 10
 	// SubjectJSONMaximumBytes bounds accepted subject JSON.
 	SubjectJSONMaximumBytes = SubjectCanonicalJSONMaximumBytes +
 		subjectJSONWhitespaceAllowance
 )
 
-// Subject binds one decision to an exact product, entitlement, and registered
+// Subject binds one decision to an exact offering, entitlement, and registered
 // installation.
 type Subject struct {
-	Product       Product       `json:"product"`
+	Offering      core.Offering `json:"offering"`
 	EntitlementID EntitlementID `json:"entitlement_id"`
 	DeviceID      DeviceID      `json:"device_id"`
 }
 
 // Validate closes every subject component.
 func (s Subject) Validate() error {
-	if err := s.Product.Validate(); err != nil {
+	if err := s.Offering.Validate(); err != nil {
 		return contractError(err)
 	}
 	if err := s.EntitlementID.Validate(); err != nil {

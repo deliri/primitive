@@ -1,11 +1,13 @@
 package fuzzfinder
 
 import (
-	"encoding/json"
+	json "encoding/json/v2"
 	"errors"
 	"strconv"
 	"strings"
 	"testing"
+
+	"encoding/json/jsontext"
 
 	"github.com/deliri/primitive/v2026/core"
 )
@@ -77,7 +79,7 @@ func TestArtifactKindWireLayerTriad(t *testing.T) {
 			wire       []byte
 			wantSyntax bool
 		}{
-			{name: "empty document", wire: nil, wantSyntax: true},
+			{name: "empty document", wire: nil},
 			{name: "null token", wire: []byte("null")},
 			{name: "number token", wire: []byte("1")},
 			{name: "boolean token", wire: []byte("true")},
@@ -91,9 +93,9 @@ func TestArtifactKindWireLayerTriad(t *testing.T) {
 			{name: "leading whitespace inside the token", wire: []byte(`" fuzz-corpus"`)},
 			{name: "trailing whitespace inside the token", wire: []byte(`"fuzz-corpus "`)},
 			{name: "corpus token with an escaped nul byte", wire: []byte(`"fuzz-corpus\u0000"`)},
-			{name: "unpaired high surrogate escape", wire: []byte(`"\ud800"`)},
-			{name: "unpaired low surrogate escape", wire: []byte(`"\udc00"`)},
-			{name: "invalid utf-8 byte inside the token", wire: []byte("\"fuzz-corpus\xff\"")},
+			{name: "unpaired high surrogate escape", wire: []byte(`"\ud800"`), wantSyntax: true},
+			{name: "unpaired low surrogate escape", wire: []byte(`"\udc00"`), wantSyntax: true},
+			{name: "invalid utf-8 byte inside the token", wire: []byte("\"fuzz-corpus\xff\""), wantSyntax: true},
 			{name: "truncated string", wire: []byte(`"fuzz-corpus`), wantSyntax: true},
 			{name: "valid token with trailing document", wire: []byte(`"fuzz-corpus" true`), wantSyntax: true},
 			{name: "token at the exact extent ceiling", wire: []byte(strconv.Quote(strings.Repeat("a", artifactKindJSONMaximumBytes-2)))},
@@ -104,16 +106,15 @@ func TestArtifactKindWireLayerTriad(t *testing.T) {
 				t.Parallel()
 
 				got := ArtifactCrasher
-				gotErr := json.Unmarshal(tc.wire, &got)
-				var syntaxErr *json.SyntaxError
-				if tc.wantSyntax {
-					if !errors.As(gotErr, &syntaxErr) || got != ArtifactCrasher {
-						t.Fatalf("json.Unmarshal(%q) = (%d, %v), want unchanged %d and *json.SyntaxError", tc.wire, got, gotErr, ArtifactCrasher)
-					}
-					return
-				}
+				gotErr := (&got).UnmarshalJSON(tc.wire)
+				var syntaxErr *jsontext.SyntacticError
 				if !errors.Is(gotErr, core.ErrFuzzFinderContract) || got != ArtifactCrasher {
-					t.Fatalf("json.Unmarshal(%q) = (%d, %v), want unchanged %d and %v", tc.wire, got, gotErr, ArtifactCrasher, core.ErrFuzzFinderContract)
+					t.Fatalf("ArtifactKind.UnmarshalJSON(%q) = (%d, %v), want unchanged %d and %v", tc.wire, got, gotErr, ArtifactCrasher, core.ErrFuzzFinderContract)
+				}
+				if tc.wantSyntax {
+					if !errors.As(gotErr, &syntaxErr) {
+						t.Fatalf("ArtifactKind.UnmarshalJSON(%q) error = %v, want *jsontext.SyntacticError", tc.wire, gotErr)
+					}
 				}
 			})
 		}

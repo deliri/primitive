@@ -3,7 +3,7 @@ package gcsobjects
 import (
 	"bytes"
 	"context"
-	"encoding/json"
+	json "encoding/json/v2"
 	"errors"
 	"hash/crc32"
 	"io"
@@ -196,7 +196,7 @@ func receiveGCSMultipart(incoming *http.Request) (storageapi.Object, objectstore
 		return storageapi.Object{}, objectstore.Integrity{}, err
 	}
 	var metadata storageapi.Object
-	if err := json.NewDecoder(metadataPart).Decode(&metadata); err != nil {
+	if err := json.UnmarshalRead(metadataPart, &metadata); err != nil {
 		return storageapi.Object{}, objectstore.Integrity{}, err
 	}
 	payloadPart, err := reader.NextPart()
@@ -601,7 +601,7 @@ func writeGCSObjectResponse(response gcsObjectResponse) {
 func writeProviderJSON(t testing.TB, writer http.ResponseWriter, value any) {
 	t.Helper()
 	writer.Header().Set("Content-Type", "application/json")
-	if err := json.NewEncoder(writer).Encode(value); err != nil {
+	if err := json.MarshalWrite(writer, value); err != nil {
 		t.Errorf("provider JSON response error = %v, want nil", err)
 	}
 }

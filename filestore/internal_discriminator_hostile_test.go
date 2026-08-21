@@ -1,7 +1,7 @@
 package filestore
 
 import (
-	"encoding/json"
+	json "encoding/json/v2"
 	"errors"
 	"io/fs"
 	"math"

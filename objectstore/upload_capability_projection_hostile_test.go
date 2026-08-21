@@ -2,7 +2,7 @@ package objectstore
 
 import (
 	"encoding"
-	"encoding/json"
+	json "encoding/json/v2"
 	"errors"
 	"fmt"
 	"strings"
@@ -86,8 +86,9 @@ func TestUploadCapabilityProjectionRoundTripsEveryPublishedProvider(t *testing.T
 			if string(encoded) != wantDocument {
 				t.Fatalf("UploadCapabilityProjection.MarshalJSON() = %q, want %q", encoded, wantDocument)
 			}
-			if tc.provider != ProviderCloudflareImages && !strings.Contains(string(encoded), `\u0026`) {
-				t.Fatalf("UploadCapabilityProjection.MarshalJSON() = %q, want canonical query-separator escape", encoded)
+			if tc.provider != ProviderCloudflareImages &&
+				(!strings.Contains(string(encoded), "&") || strings.Contains(string(encoded), `\u0026`)) {
+				t.Fatalf("UploadCapabilityProjection.MarshalJSON() = %q, want JSON v2 literal query separator", encoded)
 			}
 
 			var received UploadCapability
@@ -388,8 +389,8 @@ func TestUploadCapabilityProjectionIsAnEmbeddedJSONFixedPoint(t *testing.T) {
 		t.Fatalf("UploadCapabilityProjection.MarshalJSON() extent = %d, want at most %d",
 			len(direct), CapabilityJSONMaximumBytes)
 	}
-	if !strings.Contains(string(direct), `\u0026`) {
-		t.Fatalf("UploadCapabilityProjection.MarshalJSON() did not exercise canonical HTML escaping")
+	if !strings.Contains(string(direct), "&") || strings.Contains(string(direct), `\u0026`) {
+		t.Fatalf("UploadCapabilityProjection.MarshalJSON() = %q, want JSON v2 literal query separators", direct)
 	}
 
 	throughMarshaler, gotMarshalErr := json.Marshal(projection)

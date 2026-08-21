@@ -1,7 +1,8 @@
 package core
 
 import (
-	"encoding/json"
+	jsontext "encoding/json/jsontext"
+	json "encoding/json/v2"
 	"errors"
 	"go/ast"
 	"go/parser"
@@ -208,7 +209,7 @@ func TestHTTPHeaderNameHostileBoundaryTable(t *testing.T) {
 			if directMarshalErr != nil {
 				t.Fatalf("HTTPHeaderName.MarshalJSON(%q) error = %v, want nil", got, directMarshalErr)
 			}
-			if !json.Valid(directWire) {
+			if !jsontext.Value(directWire).IsValid() {
 				t.Fatalf("HTTPHeaderName.MarshalJSON(%q) wire = %q, want valid JSON", got, directWire)
 			}
 			directRoundTrip, directDecodeErr := DecodeStrictJSON[HTTPHeaderName](

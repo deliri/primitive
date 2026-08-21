@@ -4,7 +4,7 @@ import (
 	"bytes"
 	"crypto/ed25519"
 	"crypto/sha256"
-	"encoding/json"
+	json "encoding/json/v2"
 	"errors"
 	"math"
 	"testing"
@@ -184,7 +184,7 @@ func TestRequestCommitmentChangesAcrossEveryRegistrationFact(t *testing.T) {
 		Version:  fixture.request.Build.Version(),
 		Commit:   fixture.request.Build.Commit(),
 		Platform: fixture.request.Build.Platform(),
-		Offering: core.OfferingBug,
+		Offering: controlwireExternalOfferingFixture(t, 2),
 	})
 	if err != nil {
 		t.Fatalf("NewBuildIdentity(distinct offering) error = %v, want nil", err)
@@ -313,7 +313,7 @@ func replayInstallation(t testing.TB, authorityByte, deviceByte byte) controlpla
 		deviceSeed[index] = deviceByte
 	}
 	installation, err := controlplanetest.IssueInstallation(controlplanetest.InstallationRequest{
-		AuthoritySeed: authoritySeed, DeviceSeed: deviceSeed, Offering: core.OfferingWitness,
+		AuthoritySeed: authoritySeed, DeviceSeed: deviceSeed, Offering: controlwireExternalOfferingFixture(t, 3),
 	})
 	if err != nil {
 		t.Fatalf("controlplanetest.IssueInstallation() error = %v, want nil", err)

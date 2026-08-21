@@ -64,11 +64,7 @@ func TestSealedFailureFactsSurviveConstruction(t *testing.T) {
 
 	expected := fixtureInternalHeader(t).Subject
 	actual := expected
-	product, err := NewProduct([IdentifierBytes]byte{9})
-	if err != nil {
-		t.Fatalf("NewProduct() error = %v, want nil", err)
-	}
-	actual.Product = product
+	actual.Offering = core.Offering{Token: "lease-foreign-fixture"}
 	scopeErr := newScopeMismatch(expected, actual)
 	var mismatch ScopeMismatch
 	if !errors.Is(scopeErr, core.ErrLeaseScope) ||

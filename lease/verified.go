@@ -8,9 +8,9 @@ import (
 
 // VerifyRequest authenticates and subject-binds one untrusted document.
 type VerifyRequest struct {
+	ExpectedSubject Subject
 	Document        Document
 	TrustedKeys     attest.TrustedKeys
-	ExpectedSubject Subject
 }
 
 // Validate proves request structure without claiming signature trust.
@@ -29,9 +29,9 @@ func (r VerifyRequest) Validate() error {
 
 // Verified is an authentic decision bound to the caller's expected subject.
 type Verified struct {
+	subject  Subject
 	decision Decision
 	proof    attest.Verified[Domain]
-	subject  Subject
 	verified bool
 }
 

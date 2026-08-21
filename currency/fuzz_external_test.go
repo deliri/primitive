@@ -2,7 +2,7 @@ package currency_test
 
 import (
 	"bytes"
-	"encoding/json"
+	json "encoding/json/v2"
 	"errors"
 	"io"
 	"math"
@@ -12,6 +12,8 @@ import (
 	"strings"
 	"testing"
 	"unicode/utf8"
+
+	"encoding/json/jsontext"
 
 	"github.com/deliri/primitive/v2026/core"
 	"github.com/deliri/primitive/v2026/currency"
@@ -211,46 +213,47 @@ func oracleAmountJSON(data []byte) (currency.Code, int64, bool) {
 		!utf8.Valid(data) {
 		return currency.CodeUnknown, 0, false
 	}
-	decoder := json.NewDecoder(bytes.NewReader(data))
-	open, err := decoder.Token()
-	if err != nil || open != json.Delim('{') {
+	decoder := jsontext.NewDecoder(bytes.NewReader(data))
+	open, err := decoder.ReadToken()
+	if err != nil || open.Kind() != jsontext.KindBeginObject {
 		return currency.CodeUnknown, 0, false
 	}
 	state, ok := oracleAmountJSONFields(decoder)
 	if !ok || !state.codeSet || !state.minorSet {
 		return currency.CodeUnknown, 0, false
 	}
-	closeObject, err := decoder.Token()
-	if err != nil || closeObject != json.Delim('}') {
+	closeObject, err := decoder.ReadToken()
+	if err != nil || closeObject.Kind() != jsontext.KindEndObject {
 		return currency.CodeUnknown, 0, false
 	}
-	if _, err := decoder.Token(); !errors.Is(err, io.EOF) {
+	if _, err := decoder.ReadToken(); !errors.Is(err, io.EOF) {
 		return currency.CodeUnknown, 0, false
 	}
 	return state.code, state.minor, true
 }
 
 func oracleAmountJSONFields(
-	decoder *json.Decoder,
+	decoder *jsontext.Decoder,
 ) (amountJSONOracleState, bool) {
 	var state amountJSONOracleState
-	for decoder.More() {
-		field, err := decoder.Token()
+	for decoder.PeekKind() != jsontext.KindEndObject {
+		field, err := decoder.ReadToken()
 		if err != nil {
 			return amountJSONOracleState{}, false
 		}
-		fieldName, ok := field.(string)
+		if field.Kind() != jsontext.KindString {
+			return amountJSONOracleState{}, false
+		}
+		fieldName := field.String()
+		raw, err := decoder.ReadValue()
+		if err != nil {
+			return amountJSONOracleState{}, false
+		}
+		next, ok := oracleAmountJSONField(state, fieldName, raw)
 		if !ok {
 			return amountJSONOracleState{}, false
 		}
-		var raw json.RawMessage
-		if err := decoder.Decode(&raw); err != nil {
-			return amountJSONOracleState{}, false
-		}
-		state, ok = oracleAmountJSONField(state, fieldName, raw)
-		if !ok {
-			return amountJSONOracleState{}, false
-		}
+		state = next
 	}
 	return state, true
 }
@@ -258,7 +261,7 @@ func oracleAmountJSONFields(
 func oracleAmountJSONField(
 	state amountJSONOracleState,
 	fieldName string,
-	raw json.RawMessage,
+	raw jsontext.Value,
 ) (amountJSONOracleState, bool) {
 	var token string
 	if err := json.Unmarshal(raw, &token); err != nil {
@@ -450,7 +453,7 @@ func proveFuzzAmountJSONAcceptance(
 		)
 	}
 	canonical, gotMarshalErr := json.Marshal(got)
-	if gotMarshalErr != nil || !json.Valid(canonical) ||
+	if gotMarshalErr != nil || !jsontext.Value(canonical).IsValid() ||
 		len(canonical) > currency.AmountCanonicalJSONMaximumBytes {
 		t.Fatalf(
 			"json.Marshal(decoded Amount) = (%q, %v), want valid JSON within %d bytes",

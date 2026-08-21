@@ -2,7 +2,7 @@ package controlplane
 
 import (
 	"crypto"
-	"encoding/json"
+	json "encoding/json/v2"
 	"io"
 
 	"github.com/deliri/primitive/v2026/attest"
@@ -159,12 +159,12 @@ func (r *RegistrationRequest) UnmarshalJSON(data []byte) error {
 // InstallationCertificateBody is the signed statement that one device key
 // belongs to one entitlement under one account.
 type InstallationCertificateBody struct {
-	IssuedAt  temporal.Instant        `json:"issued_at"`
-	Build     core.BuildIdentity      `json:"build"`
-	Revision  controlwire.Revision    `json:"revision"`
 	Subject   lease.Subject           `json:"subject"`
+	Build     core.BuildIdentity      `json:"build"`
+	IssuedAt  temporal.Instant        `json:"issued_at"`
 	DeviceKey core.Ed25519PublicKey   `json:"device_public_key"`
 	Account   receipt.AccountIdentity `json:"account"`
+	Revision  controlwire.Revision    `json:"revision"`
 }
 
 // InstallationCertificateDocument is the certificate body with its signature.
@@ -184,7 +184,7 @@ func (b InstallationCertificateBody) Validate() error {
 	if err := b.validateFacts(); err != nil {
 		return err
 	}
-	if err := b.validateProductBinding(); err != nil {
+	if err := b.validateOfferingBinding(); err != nil {
 		return err
 	}
 	return b.validateDeviceBinding()
@@ -212,15 +212,10 @@ func (b InstallationCertificateBody) validateFacts() error {
 	return nil
 }
 
-// validateProductBinding re-derives the product from the offering the build
-// declares, so a certificate cannot name one product while the binary it
-// authorises is another.
-func (b InstallationCertificateBody) validateProductBinding() error {
-	product, err := lease.ProductForOffering(b.Build.Offering())
-	if err != nil {
-		return registrationError(err)
-	}
-	if product != b.Subject.Product {
+// validateOfferingBinding proves the certificate carries the exact opaque
+// offering declared by its build.
+func (b InstallationCertificateBody) validateOfferingBinding() error {
+	if b.Build.Offering() != b.Subject.Offering {
 		return consistencyError()
 	}
 	return nil
@@ -369,9 +364,9 @@ func IssueInstallationCertificate(body InstallationCertificateBody, signer crypt
 // certificate is absent exactly when the decision grants nothing.
 type RegistrationPayload struct {
 	Certificate *InstallationCertificateDocument `json:"certificate,omitempty"`
-	Lease       lease.Document                   `json:"lease"`
-	Watermark   UsageWatermark                   `json:"watermark"`
 	Header      ResponseHeader                   `json:"header"`
+	Watermark   UsageWatermark                   `json:"watermark"`
+	Lease       lease.Document                   `json:"lease"`
 	Entitlement lease.EntitlementID              `json:"entitlement"`
 }
 
@@ -442,11 +437,7 @@ func (p RegistrationPayload) validateParts() error {
 }
 
 func (p RegistrationPayload) validateSubject(subject lease.Subject) error {
-	product, err := lease.ProductForOffering(p.Header.Offering)
-	if err != nil {
-		return registrationError(err)
-	}
-	if subject.Product != product || subject.EntitlementID != p.Entitlement ||
+	if subject.Offering != p.Header.Offering || subject.EntitlementID != p.Entitlement ||
 		subject.DeviceID != p.Header.Installation {
 		return consistencyError()
 	}

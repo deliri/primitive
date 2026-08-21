@@ -47,11 +47,11 @@ func (p ServicePeriod) Bounds() (temporal.IntervalBounds, error) {
 
 // Payload is the immutable authority statement for one settled payment.
 type Payload struct {
-	Identity PaymentID        `json:"payment_id"`
 	Scope    receipt.Scope    `json:"scope"`
+	Service  ServicePeriod    `json:"service_period"`
 	Amount   currency.Amount  `json:"amount"`
 	PaidAt   temporal.Instant `json:"paid_at"`
-	Service  ServicePeriod    `json:"service_period"`
+	Identity PaymentID        `json:"payment_id"`
 }
 
 // Validate closes identity, tenant scope, exact positive amount, settlement
@@ -203,8 +203,8 @@ func Issue(issuance Issuance) (Document, error) {
 // Expectation prevents a valid receipt for another payment or tenant scope
 // from satisfying a caller's request.
 type Expectation struct {
-	Identity PaymentID
 	Scope    receipt.Scope
+	Identity PaymentID
 }
 
 // Validate closes the exact expected identity and scope.
@@ -217,8 +217,8 @@ func (e Expectation) Validate() error {
 
 // Verification carries one untrusted receipt and caller-selected authority keys.
 type Verification struct {
-	Document    Document
 	Expected    Expectation
+	Document    Document
 	TrustedKeys attest.TrustedKeys
 }
 

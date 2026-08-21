@@ -25,11 +25,11 @@ type paymentFixtureRequest struct {
 }
 
 type paymentFixture struct {
-	private  ed25519.PrivateKey
-	trusted  attest.TrustedKeys
 	scope    receipt.Scope
-	identity PaymentID
+	private  ed25519.PrivateKey
 	document Document
+	trusted  attest.TrustedKeys
+	identity PaymentID
 }
 
 type paymentCatalogFixtureRequest struct {
@@ -39,12 +39,12 @@ type paymentCatalogFixtureRequest struct {
 }
 
 type paymentCatalogFixture struct {
+	scope    receipt.Scope
 	private  ed25519.PrivateKey
+	request  QueryPayload
 	payload  CatalogPayload
 	document CatalogDocument
 	trusted  attest.TrustedKeys
-	scope    receipt.Scope
-	request  QueryPayload
 }
 
 type paymentJSONCase struct {
@@ -448,7 +448,7 @@ func TestPaymentCatalogVerificationLayerTriad(t *testing.T) {
 			{name: "different requested selection", mutate: func(value *CatalogVerification) { value.Request.Query.Selection = signedQuerySpecific(t, 0x74) }, wantErr: core.ErrPaymentVerification},
 			{name: "different requested position", mutate: func(value *CatalogVerification) { value.Request.Query.Position = after }, wantErr: core.ErrPaymentVerification},
 			{name: "different requested limit", mutate: func(value *CatalogVerification) { value.Request.Query.Limit = minimumLimit }, wantErr: core.ErrPaymentVerification},
-			{name: "different requested build", mutate: func(value *CatalogVerification) { value.Request.Build = signedQueryBuild(t, core.OfferingBug) }, wantErr: core.ErrPaymentVerification},
+			{name: "different requested build", mutate: func(value *CatalogVerification) { value.Request.Build = signedQueryBuild(t, paymentOffering(t, 1)) }, wantErr: core.ErrPaymentVerification},
 			{name: "different authority trust set", mutate: func(value *CatalogVerification) { value.TrustedKeys = other.trusted }, wantErr: core.ErrPaymentVerification},
 			{name: "signed observation instant substituted", mutate: func(value *CatalogVerification) {
 				value.Document.Payload.ObservedAt = temporal.InstantFromNanoseconds(1_000_001)
@@ -735,7 +735,7 @@ func paymentCatalogQueryPayload(t testing.TB, scope receipt.Scope, marker byte) 
 		t.Fatalf("NewQuery() error = %v, want nil", err)
 	}
 	payload := QueryPayload{
-		Query: query, Build: signedQueryBuild(t, core.OfferingWitness),
+		Query: query, Build: signedQueryBuild(t, paymentOffering(t, 2)),
 		Nonce: signedQueryNonce(t, marker), Revision: controlwire.Revision2026V1,
 	}
 	if err := payload.Validate(); err != nil {
@@ -758,8 +758,8 @@ func marshalReorderedPaymentReceipt(t *testing.T, document Document) []byte {
 	t.Helper()
 
 	encoded, gotErr := core.MarshalCanonicalJSONDocument(struct {
-		Attestation attest.Envelope[SigningDomain] `json:"attestation"`
 		Payload     Payload                        `json:"payload"`
+		Attestation attest.Envelope[SigningDomain] `json:"attestation"`
 	}{Attestation: document.Attestation, Payload: document.Payload})
 	if gotErr != nil {
 		t.Fatalf("core.MarshalCanonicalJSONDocument(reordered receipt) error = %v, want nil", gotErr)
@@ -975,15 +975,10 @@ func paymentScopeFixture(t testing.TB, marker byte) receipt.Scope {
 	}
 }
 
-func mustPaymentOfferingIdentity(t testing.TB, marker byte) receipt.OfferingIdentity {
+func mustPaymentOfferingIdentity(t testing.TB, marker byte) core.Offering {
 	t.Helper()
-	offerings := [...]core.Offering{core.OfferingBug, core.OfferingWitness, core.OfferingPeachfuzz}
-	offering := offerings[int(marker)%len(offerings)]
-	identity, err := receipt.OfferingIdentityFor(offering)
-	if err != nil {
-		t.Fatalf("receipt.OfferingIdentityFor(%v) error = %v, want nil", offering, err)
-	}
-	return identity
+	offerings := [...]core.Offering{paymentOffering(t, 1), paymentOffering(t, 2), paymentOffering(t, 3)}
+	return offerings[int(marker)%len(offerings)]
 }
 
 func mustPaymentLifecycleIdentity[T core.Validatable](

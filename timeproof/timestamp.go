@@ -2,7 +2,7 @@ package timeproof
 
 import (
 	"bytes"
-	"encoding/json"
+	json "encoding/json/v2"
 
 	"github.com/deliri/primitive/v2026/core"
 	"github.com/deliri/primitive/v2026/temporal"

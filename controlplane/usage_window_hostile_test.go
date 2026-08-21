@@ -1,7 +1,7 @@
 package controlplane_test
 
 import (
-	"encoding/json"
+	json "encoding/json/v2"
 	"errors"
 	"testing"
 
@@ -482,13 +482,9 @@ func TestUsageWindowMarshalRefusesEveryValueValidateRefuses(t *testing.T) {
 	}
 }
 
-// TestUsageWindowRoundTripPreservesAbsentAndEmptyLists pins the wire's own
-// distinction.
-//
-// Go renders a nil slice as null and an empty slice as an empty array, and both
-// decode back to what they were. Collapsing them here would change the bytes a
-// signature covers for a document whose meaning did not change.
-func TestUsageWindowRoundTripPreservesAbsentAndEmptyLists(t *testing.T) {
+// TestUsageWindowRoundTripCanonicalizesAbsentAndEmptyLists pins JSON v2's one
+// canonical empty-list projection.
+func TestUsageWindowRoundTripCanonicalizesAbsentAndEmptyLists(t *testing.T) {
 	t.Parallel()
 
 	cases := []struct {
@@ -497,9 +493,9 @@ func TestUsageWindowRoundTripPreservesAbsentAndEmptyLists(t *testing.T) {
 		window controlplane.UsageWindow
 	}{
 		{
-			name:   "absent lists render as null",
+			name:   "absent lists canonicalize as empty arrays",
 			window: testWindow(nil, nil),
-			want:   `{"units":null,"outcomes":null,"bounds":{"start":"10","end":"20"},"freshness":"20"}`,
+			want:   `{"units":[],"outcomes":[],"bounds":{"start":"10","end":"20"},"freshness":"20"}`,
 		},
 		{
 			name:   "empty lists render as empty arrays",
@@ -528,11 +524,11 @@ func TestUsageWindowRoundTripPreservesAbsentAndEmptyLists(t *testing.T) {
 			if err := decoded.UnmarshalJSON(encoded); err != nil {
 				t.Fatalf("UnmarshalJSON(%s) error = %v, want nil", encoded, err)
 			}
-			if got := decoded.Units == nil; got != (testCase.window.Units == nil) {
-				t.Fatalf("decoded units nil = %t, want %t", got, testCase.window.Units == nil)
+			if got := decoded.Units == nil; got {
+				t.Fatalf("decoded units nil = %t, want canonical non-nil empty list", got)
 			}
-			if got := decoded.Outcomes == nil; got != (testCase.window.Outcomes == nil) {
-				t.Fatalf("decoded outcomes nil = %t, want %t", got, testCase.window.Outcomes == nil)
+			if got := decoded.Outcomes == nil; got {
+				t.Fatalf("decoded outcomes nil = %t, want canonical non-nil empty list", got)
 			}
 			again, err := json.Marshal(decoded)
 			if err != nil {

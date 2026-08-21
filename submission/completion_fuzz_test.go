@@ -9,7 +9,7 @@ import (
 )
 
 func FuzzCompletionPayloadJSONSemanticClosure(f *testing.F) {
-	fixture := newCompletionFixture(f, core.OfferingWitness, []byte("fuzz completion payload"))
+	fixture := newCompletionFixture(f, submissionOffering(f, 2), []byte("fuzz completion payload"), 0x10)
 	payload := receiveIssuedCompletion(f, fixture).Payload
 	canonical, err := payload.MarshalJSON()
 	if err != nil {
@@ -51,7 +51,7 @@ func FuzzCompletionPayloadJSONSemanticClosure(f *testing.F) {
 }
 
 func FuzzCompletionDocumentJSONSemanticAndSignatureClosure(f *testing.F) {
-	fixture := newCompletionFixture(f, core.OfferingWitness, []byte("fuzz completion document"))
+	fixture := newCompletionFixture(f, submissionOffering(f, 2), []byte("fuzz completion document"), 0x10)
 	document := receiveIssuedCompletion(f, fixture)
 	canonical, err := document.MarshalJSON()
 	if err != nil {

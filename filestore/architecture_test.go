@@ -432,7 +432,7 @@ func TestFilestoreProductionArchitectureMatcherDetectsForbiddenSyntheticShapes(t
 
 	source := `package filestore
 import (
-	"encoding/json"
+	json "encoding/json/v2"
 	"io"
 	"os"
 	"path/filepath"
@@ -450,7 +450,7 @@ func violate() {
 	_, _ = io.ReadAll(nil)
 	_, _ = os.ReadFile("target")
 	_ = filepath.Walk(".", nil)
-	_ = json.RawMessage{}
+	_ = jsontext.Value{}
 	_ = sync.Mutex{}
 }`
 	file, err := parser.ParseFile(
@@ -469,7 +469,7 @@ func violate() {
 	requireExactNames(t, "synthetic architecture violations", got.violations, []string{
 		"RemoveAll: forbidden world-building function",
 		"SyncDirectory: forbidden world-building function",
-		"import encoding/json",
+		"import encoding/json/v2",
 		"import sync",
 		"replacement.Read: forbidden file-lookalike method",
 		"replacement: channel coordination",
@@ -493,10 +493,10 @@ const ownerIdentityLeafFile = "attributes_unix.go"
 func scanProductionArchitecture(files []productionFile) (architectureScan, error) {
 	primitiveImports := make(map[string]struct{})
 	forbiddenImports := map[string]struct{}{
-		"encoding/json": {},
-		"sync":          {},
-		"sync/atomic":   {},
-		"unsafe":        {},
+		"encoding/json/v2": {},
+		"sync":             {},
+		"sync/atomic":      {},
+		"unsafe":           {},
 	}
 	forbiddenCalls := map[string]struct{}{
 		"io.ReadAll":       {},

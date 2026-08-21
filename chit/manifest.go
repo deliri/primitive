@@ -1,7 +1,7 @@
 package chit
 
 import (
-	"encoding/json"
+	json "encoding/json/v2"
 	"errors"
 	"math"
 

@@ -11,22 +11,22 @@ import (
 )
 
 type releaseFixture struct {
+	builds         [TargetCount]core.BuildIdentity
 	manifestKey    ed25519.PrivateKey
 	latestKey      ed25519.PrivateKey
+	artifacts      [TargetCount]Artifact
+	artifactSet    ArtifactSet
+	latest         LatestDocument
 	manifest       ManifestDocument
 	verified       VerifiedManifest
-	latest         LatestDocument
 	verifiedLatest VerifiedLatest
-	artifactSet    ArtifactSet
-	artifacts      [TargetCount]Artifact
 	manifestTrust  attest.TrustedKeys
 	latestTrust    attest.TrustedKeys
-	builds         [TargetCount]core.BuildIdentity
 }
 
 func newReleaseFixture(t testing.TB, version core.ReleaseVersion, generation uint64) releaseFixture {
 	t.Helper()
-	return newReleaseFixtureForOffering(t, core.OfferingWitness, version, generation)
+	return newReleaseFixtureForOffering(t, releaseOffering(t, 2), version, generation)
 }
 
 func newReleaseFixtureForOffering(
@@ -245,7 +245,7 @@ func issueVerifiedLatest(
 	verified, err := VerifyLatest(VerifyLatestRequest{
 		Document: document, LatestKeys: fixture.latestTrust,
 		ManifestKeys:     fixture.manifestTrust,
-		ExpectedOffering: core.OfferingWitness,
+		ExpectedOffering: releaseOffering(t, 2),
 	})
 	if err != nil {
 		t.Fatalf("VerifyLatest(generation %d) error = %v", generation, err)

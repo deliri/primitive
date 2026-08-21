@@ -2,7 +2,7 @@ package objectstore
 
 import (
 	"crypto/sha256"
-	"encoding/json"
+	json "encoding/json/v2"
 	"errors"
 	"strings"
 	"testing"

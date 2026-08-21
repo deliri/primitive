@@ -2,7 +2,7 @@ package receipt
 
 import (
 	"bytes"
-	"encoding/json"
+	json "encoding/json/v2"
 	"errors"
 	"testing"
 
@@ -18,7 +18,6 @@ const (
 	receiptJSONDoorEvidencePayload
 	receiptJSONDoorEvidenceDocument
 	receiptJSONDoorAccountIdentity
-	receiptJSONDoorOfferingIdentity
 	receiptJSONDoorSubmissionIdentity
 	receiptJSONDoorObjectIdentity
 	receiptJSONDoorRevision
@@ -43,8 +42,6 @@ func (d receiptJSONDoor) receiverName() string {
 		return "EvidenceDocument"
 	case receiptJSONDoorAccountIdentity:
 		return "AccountIdentity"
-	case receiptJSONDoorOfferingIdentity:
-		return "OfferingIdentity"
 	case receiptJSONDoorSubmissionIdentity:
 		return "SubmissionIdentity"
 	case receiptJSONDoorObjectIdentity:
@@ -71,21 +68,20 @@ func (d receiptJSONDoor) receiverName() string {
 }
 
 type receiptJSONDoorFixtures struct {
-	fixture    receiptFixture
-	document   EvidenceDocument
-	payload    EvidencePayload
-	watermark  Watermark
-	body       EvidenceBody
-	header     Header
-	generation Generation
 	scope      Scope
+	header     Header
+	watermark  Watermark
+	payload    EvidencePayload
+	document   EvidenceDocument
+	fixture    receiptFixture
+	body       EvidenceBody
+	generation Generation
 	chain      ChainHash
 	cursor     CursorDigest
 	account    AccountIdentity
 	receipt    ReceiptID
 	object     ObjectIdentity
 	submission SubmissionIdentity
-	offering   OfferingIdentity
 	revision   Revision
 }
 
@@ -98,29 +94,6 @@ func FuzzReceiptExternalJSONDoorInventory(f *testing.F) {
 	fixtures := receiptJSONFixturesForFuzz(f)
 	for _, seed := range receiptJSONSeedsForFuzz(f, fixtures) {
 		f.Add(uint8(seed.door), seed.document)
-	}
-	for raw := 0; raw <= 255; raw++ {
-		offering := core.Offering(raw)
-		if !offering.IsValid() {
-			continue
-		}
-		identity, err := OfferingIdentityFor(offering)
-		if err != nil {
-			f.Fatalf("OfferingIdentityFor(%v) error = %v, want nil", offering, err)
-		}
-		canonical, err := identity.MarshalJSON()
-		if err != nil {
-			f.Fatalf("OfferingIdentity.MarshalJSON(%v) error = %v, want nil", offering, err)
-		}
-		f.Add(uint8(receiptJSONDoorOfferingIdentity), canonical)
-	}
-	for _, hostile := range [][]byte{
-		nil, {}, []byte(`null`), []byte(`{}`), []byte(`[]`), []byte(`""`),
-		[]byte(`0`), []byte(`true`), []byte(`"00000000000000000000000000000000"`),
-		[]byte(`"ffffffffffffffffffffffffffffffff"`), []byte(`"FFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFF"`),
-		[]byte{'"', 0xff, '"'}, bytes.Repeat([]byte{' '}, core.JSONDocumentMaximumBytes+1),
-	} {
-		f.Add(uint8(receiptJSONDoorOfferingIdentity), hostile)
 	}
 	for _, hostile := range [][]byte{
 		nil, {}, []byte(`null`), []byte(`{}`), []byte(`[]`),
@@ -142,8 +115,6 @@ func FuzzReceiptExternalJSONDoorInventory(f *testing.F) {
 			fuzzReceiptEvidenceDocument(t, data, fixtures)
 		case receiptJSONDoorAccountIdentity:
 			fuzzReceiptJSONValue(t, data, fixtures.account)
-		case receiptJSONDoorOfferingIdentity:
-			fuzzReceiptOfferingIdentity(t, data, fixtures.offering)
 		case receiptJSONDoorSubmissionIdentity:
 			fuzzReceiptJSONValue(t, data, fixtures.submission)
 		case receiptJSONDoorObjectIdentity:
@@ -168,58 +139,6 @@ func FuzzReceiptExternalJSONDoorInventory(f *testing.F) {
 			return
 		}
 	})
-}
-
-func fuzzReceiptOfferingIdentity(t *testing.T, data []byte, seed OfferingIdentity) {
-	t.Helper()
-
-	candidate := seed
-	decodeErr := candidate.UnmarshalJSON(data)
-	if decodeErr != nil {
-		if !errors.Is(decodeErr, core.ErrReceiptContract) ||
-			!errors.Is(decodeErr, core.ErrJSONContract) ||
-			!errors.Is(decodeErr, core.ErrLifecycleIdentityContract) {
-			t.Fatalf("OfferingIdentity.UnmarshalJSON() error = %v, want Receipt+JSON+lifecycle identities", decodeErr)
-		}
-		if candidate != seed {
-			t.Fatalf("OfferingIdentity.UnmarshalJSON(rejected) receiver = %v, want preserved %v", candidate, seed)
-		}
-		return
-	}
-	if err := candidate.Validate(); err != nil {
-		t.Fatalf("OfferingIdentity.UnmarshalJSON(accepted).Validate() error = %v, want nil", err)
-	}
-	inputToken, err := core.DecodeJSONStringToken(data)
-	if err != nil || inputToken != candidate.String() {
-		t.Fatalf("OfferingIdentity accepted projection = (%q, %v), want exact input token %q and nil", candidate.String(), err, inputToken)
-	}
-	matched := false
-	for raw := 0; raw <= 255; raw++ {
-		offering := core.Offering(raw)
-		if !offering.IsValid() {
-			continue
-		}
-		admitted, deriveErr := OfferingIdentityFor(offering)
-		if deriveErr != nil {
-			t.Fatalf("OfferingIdentityFor(%v) error = %v, want nil", offering, deriveErr)
-		}
-		matched = matched || admitted == candidate
-	}
-	if !matched {
-		t.Fatalf("OfferingIdentity.UnmarshalJSON() admitted %v outside compiler-owned core.Offering projections", candidate)
-	}
-	canonical, err := candidate.MarshalJSON()
-	if err != nil || len(canonical) > core.JSONDocumentMaximumBytes {
-		t.Fatalf("OfferingIdentity.MarshalJSON(accepted) = (%d bytes, %v), want bounded and nil", len(canonical), err)
-	}
-	var roundTrip OfferingIdentity
-	if err := roundTrip.UnmarshalJSON(canonical); err != nil || roundTrip != candidate {
-		t.Fatalf("OfferingIdentity canonical round trip = (%v, %v), want (%v, nil)", roundTrip, err, candidate)
-	}
-	second, err := roundTrip.MarshalJSON()
-	if err != nil || !bytes.Equal(second, canonical) {
-		t.Fatalf("OfferingIdentity second canonical projection = (%q, %v), want (%q, nil)", second, err, canonical)
-	}
 }
 
 type receiptTextDoor uint8
@@ -388,7 +307,7 @@ func receiptJSONFixturesForFuzz(t testing.TB) receiptJSONDoorFixtures {
 	return receiptJSONDoorFixtures{
 		body: document.Payload.Body, header: document.Payload.Header,
 		payload: document.Payload, document: document,
-		account: fixture.account, offering: fixture.offering,
+		account:    fixture.account,
 		submission: fixture.submission, object: fixture.object,
 		revision: RevisionV1, receipt: fixture.receipt,
 		generation: watermark.Generation, cursor: watermark.CursorDigest,
@@ -409,7 +328,6 @@ func receiptJSONSeedsForFuzz(
 		receiptJSONSeedForFuzz(t, receiptJSONDoorEvidencePayload, fixtures.payload),
 		receiptJSONSeedForFuzz(t, receiptJSONDoorEvidenceDocument, fixtures.document),
 		receiptJSONSeedForFuzz(t, receiptJSONDoorAccountIdentity, fixtures.account),
-		receiptJSONSeedForFuzz(t, receiptJSONDoorOfferingIdentity, fixtures.offering),
 		receiptJSONSeedForFuzz(t, receiptJSONDoorSubmissionIdentity, fixtures.submission),
 		receiptJSONSeedForFuzz(t, receiptJSONDoorObjectIdentity, fixtures.object),
 		receiptJSONSeedForFuzz(t, receiptJSONDoorRevision, fixtures.revision),

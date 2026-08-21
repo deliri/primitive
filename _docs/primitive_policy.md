@@ -229,8 +229,11 @@ mechanic. A contract that needs per-product types is not a contract yet; it is a
 coupled design, and moving it to another module relocates the coupling rather
 than removing it.
 
-`core.Offering` naming each product is therefore correct. It is the nationality
-field. A per-product payload type is not.
+`core.Offering` carrying one consumer-owned canonical identity is therefore
+correct. It is the nationality field, but Primitive does not own a catalog of
+nationalities and never interprets the value. A Primitive-named product
+constant, per-product payload type, derived product identity, or product switch
+would reintroduce the coupling this contract forbids.
 
 #### The documents
 

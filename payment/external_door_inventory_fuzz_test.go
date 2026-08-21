@@ -2,7 +2,7 @@ package payment
 
 import (
 	"bytes"
-	"encoding/json"
+	json "encoding/json/v2"
 	"errors"
 	"go/ast"
 	"go/parser"
@@ -62,15 +62,15 @@ func (d paymentJSONDoor) receiverName() string {
 }
 
 type paymentFuzzFixtures struct {
-	catalogPayload  CatalogPayload
-	catalogDocument CatalogDocument
-	payment         paymentFixture
-	catalog         paymentCatalogFixture
-	query           signedQueryFixture
-	queryDocument   QueryDocument
-	document        Document
 	payload         Payload
 	queryPayload    QueryPayload
+	catalogPayload  CatalogPayload
+	document        Document
+	queryDocument   QueryDocument
+	catalogDocument CatalogDocument
+	query           signedQueryFixture
+	payment         paymentFixture
+	catalog         paymentCatalogFixture
 	queryCommitment QueryCommitment
 	cursor          Cursor
 	paymentID       PaymentID

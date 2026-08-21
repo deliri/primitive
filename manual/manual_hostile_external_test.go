@@ -2,7 +2,7 @@ package manual_test
 
 import (
 	"bytes"
-	"encoding/json"
+	json "encoding/json/v2"
 	"errors"
 	"io"
 	"strings"
@@ -123,7 +123,7 @@ func TestBookValidationLayerTriad(t *testing.T) {
 	for _, tc := range cases {
 		t.Run(tc.name, func(t *testing.T) {
 			t.Parallel()
-			book := validBook()
+			book := validBook(t)
 			if tc.mutate != nil {
 				tc.mutate(&book)
 			}
@@ -137,7 +137,7 @@ func TestBookValidationLayerTriad(t *testing.T) {
 
 func TestHumanProjectionLayerTriad(t *testing.T) {
 	t.Parallel()
-	book := validBook()
+	book := validBook(t)
 	request := manual.RenderRequest[testTopic]{Book: book, View: manual.ViewManual, Selection: manual.Selection[testTopic]{Mode: manual.SelectionModeTopic, Topic: testTopicOpen}}
 	var first bytes.Buffer
 	if err := manual.WriteText(&first, request); err != nil {
@@ -186,7 +186,7 @@ func (shortWriter) Write(value []byte) (int, error) { return len(value) - 1, nil
 
 func TestOutputFailurePreservesNativeIdentity(t *testing.T) {
 	t.Parallel()
-	request := manual.RenderRequest[testTopic]{Book: validBook(), View: manual.ViewHelp, Selection: manual.Selection[testTopic]{Mode: manual.SelectionModeIndex}}
+	request := manual.RenderRequest[testTopic]{Book: validBook(t), View: manual.ViewHelp, Selection: manual.Selection[testTopic]{Mode: manual.SelectionModeIndex}}
 	native := errors.New("native writer refusal")
 	if gotErr := manual.WriteText(failingWriter{failure: native}, request); !errors.Is(gotErr, native) || !errors.Is(gotErr, core.ErrManualWrite) {
 		t.Fatalf("WriteText(native failure) error = %v, want %v and %v", gotErr, native, core.ErrManualWrite)
@@ -194,7 +194,7 @@ func TestOutputFailurePreservesNativeIdentity(t *testing.T) {
 	if gotErr := manual.WriteText(shortWriter{}, request); !errors.Is(gotErr, io.ErrShortWrite) || !errors.Is(gotErr, core.ErrManualWrite) {
 		t.Fatalf("WriteText(short write) error = %v, want %v and %v", gotErr, io.ErrShortWrite, core.ErrManualWrite)
 	}
-	report, err := manual.Project(validBook())
+	report, err := manual.Project(validBook(t))
 	if err != nil {
 		t.Fatalf("Project(valid) error = %v, want nil", err)
 	}
@@ -205,7 +205,8 @@ func TestOutputFailurePreservesNativeIdentity(t *testing.T) {
 
 func TestMachineProjectionLayerTriad(t *testing.T) {
 	t.Parallel()
-	book := validBook()
+	book := validBook(t)
+	book.Offering = manualOfferingFixture(t, "kernel-manual")
 	report, err := manual.Project(book)
 	if err != nil {
 		t.Fatalf("Project(valid) error = %v, want nil", err)
@@ -224,6 +225,9 @@ func TestMachineProjectionLayerTriad(t *testing.T) {
 	if got, want := decoded.Schema, manual.SchemaV1; got != want {
 		t.Fatalf("Report.Schema = %q, want %q", got, want)
 	}
+	if got, want := decoded.Offering, book.Offering; got != want {
+		t.Fatalf("Report.Offering = %q, want %q", got, want)
+	}
 
 	report.Schema = ""
 	var rejected bytes.Buffer
@@ -240,9 +244,19 @@ func TestMachineProjectionLayerTriad(t *testing.T) {
 	}
 }
 
-func validBook() manual.Book[testTopic] {
-	return manual.Book[testTopic]{Offering: core.OfferingBug, Title: "Bug command guide", Summary: "Use this guide to understand each command before running it.", Pages: []manual.Page[testTopic]{
+func validBook(t testing.TB) manual.Book[testTopic] {
+	t.Helper()
+	return manual.Book[testTopic]{Offering: manualOfferingFixture(t, "manual-fixture"), Title: "Bug command guide", Summary: "Use this guide to understand each command before running it.", Pages: []manual.Page[testTopic]{
 		{Topic: testTopicOpen, Summary: "Open one bug record.", Usage: []manual.Line{"bug open login_auth"}, Prerequisites: []manual.Line{"Run this inside a Git repository."}, Changes: []manual.Line{"Creates one local bug record."}, Unchanged: []manual.Line{"Does not upload source code."}, Definitions: []manual.Definition{{Term: "bug record", Meaning: "A local file containing typed defect facts."}}, Examples: []manual.Line{"bug open login_auth"}, Outcome: manual.Outcome{Success: []manual.Line{"Prints the created record name."}, Refusal: []manual.Line{"Prints why no record was created."}}, Related: []testTopic{testTopicClose}},
 		{Topic: testTopicClose, Summary: "Close one proven bug record.", Usage: []manual.Line{"bug close login_auth"}, Changes: []manual.Line{"Records verified closure evidence."}, Unchanged: []manual.Line{"Does not rewrite source files."}, Examples: []manual.Line{"bug close login_auth"}, Outcome: manual.Outcome{Success: []manual.Line{"Prints the closure receipt."}, Refusal: []manual.Line{"Keeps the record open and explains why."}}, Related: []testTopic{testTopicOpen}},
 	}}
+}
+
+func manualOfferingFixture(t testing.TB, token string) core.Offering {
+	t.Helper()
+	offering := core.Offering{Token: token}
+	if err := offering.Validate(); err != nil {
+		t.Fatalf("Offering.Validate() error = %v, want nil", err)
+	}
+	return offering
 }

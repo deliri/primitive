@@ -2,7 +2,7 @@ package submission
 
 import (
 	"bytes"
-	"encoding/json"
+	json "encoding/json/v2"
 	"errors"
 	"strconv"
 	"testing"
@@ -20,11 +20,11 @@ type reuseEvidenceFixtureRequest struct {
 }
 
 type reuseEvidenceFixture struct {
+	offering    core.Offering
 	declaration Declaration
-	trusted     attest.TrustedKeys
 	evidence    receipt.EvidenceDocument
+	trusted     attest.TrustedKeys
 	account     receipt.AccountIdentity
-	offering    receipt.OfferingIdentity
 }
 
 func TestSubmissionDecisionAuthenticatesUploadAndScopedReuseArms(t *testing.T) {
@@ -137,10 +137,7 @@ func TestReuseDecisionAuthorityBoundaryRefusesEveryForeignOrUnauthenticatedCandi
 	other := newReuseEvidenceFixture(t, reuseEvidenceFixtureRequest{
 		Request: grant.request, KeyByte: 0x41, ScopeByte: 0x76,
 	})
-	foreignOffering, err := receipt.OfferingIdentityFor(core.OfferingBug)
-	if err != nil {
-		t.Fatalf("receipt.OfferingIdentityFor(%v) error = %v, want nil", core.OfferingBug, err)
-	}
+	foreignOffering := submissionOffering(t, 1)
 	foreignPublic, _ := testSigningKey(t, 0x42)
 	foreignTrust, err := attest.NewTrustedKeys(attest.TrustedKeysRequest{
 		Keys: []core.Ed25519PublicKey{foreignPublic},
@@ -185,7 +182,7 @@ func TestReuseDecisionAuthorityBoundaryRefusesEveryForeignOrUnauthenticatedCandi
 		}(), wantErr: core.ErrControlPlaneContract},
 		{name: "zero offering", request: func() ReuseDecisionRequest {
 			value := reuseDecisionRequest(reuse)
-			value.Offering = receipt.OfferingIdentity{}
+			value.Offering = core.Offering{}
 			return value
 		}(), wantErr: core.ErrControlPlaneContract},
 		{name: "zero trust", request: func() ReuseDecisionRequest {
@@ -399,10 +396,7 @@ func newReuseEvidenceFixture(
 	t.Helper()
 
 	account := submissionLifecycleIdentity(t, request.ScopeByte, receipt.NewAccountIdentity)
-	offering, offeringErr := receipt.OfferingIdentityFor(core.OfferingWitness)
-	if offeringErr != nil {
-		t.Fatalf("receipt.OfferingIdentityFor(%v) error = %v, want nil", core.OfferingWitness, offeringErr)
-	}
+	offering := submissionOffering(t, 2)
 	submission := submissionLifecycleIdentity(t, request.ScopeByte+2, receipt.NewSubmissionIdentity)
 	object := submissionLifecycleIdentity(t, request.ScopeByte+3, receipt.NewObjectIdentity)
 	receiptBytes := [receipt.ReceiptIDBytes]byte{}

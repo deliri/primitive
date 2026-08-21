@@ -2,7 +2,8 @@ package receipt
 
 import (
 	"bytes"
-	"encoding/json"
+	"encoding/json/jsontext"
+	json "encoding/json/v2"
 	"errors"
 	"go/ast"
 	"go/parser"
@@ -24,26 +25,28 @@ func canonicalKeys(t *testing.T, data []byte) []string {
 		object    bool
 		expectKey bool
 	}
-	decoder := json.NewDecoder(bytes.NewReader(data))
+	decoder := jsontext.NewDecoder(bytes.NewReader(data))
 	var got []string
 	var stack []frame
 	for {
-		element, err := decoder.Token()
+		element, err := decoder.ReadToken()
 		if errors.Is(err, io.EOF) {
 			break
 		}
 		if err != nil {
 			t.Fatalf("decode canonical JSON token: %v", err)
 		}
-		if delimiter, ok := element.(json.Delim); ok {
-			switch delimiter {
-			case '{':
+		kind := element.Kind()
+		if kind == jsontext.KindBeginObject || kind == jsontext.KindBeginArray ||
+			kind == jsontext.KindEndObject || kind == jsontext.KindEndArray {
+			switch kind {
+			case jsontext.KindBeginObject:
 				stack = append(stack, frame{object: true, expectKey: true})
-			case '[':
+			case jsontext.KindBeginArray:
 				stack = append(stack, frame{})
-			case '}', ']':
+			case jsontext.KindEndObject, jsontext.KindEndArray:
 				if len(stack) == 0 {
-					t.Fatalf("closing delimiter %q has no open container", delimiter)
+					t.Fatalf("closing delimiter %q has no open container", kind)
 				}
 				stack = stack[:len(stack)-1]
 				if len(stack) > 0 && stack[len(stack)-1].object {
@@ -56,11 +59,10 @@ func canonicalKeys(t *testing.T, data []byte) []string {
 			continue
 		}
 		if stack[len(stack)-1].expectKey {
-			key, ok := element.(string)
-			if !ok {
+			if element.Kind() != jsontext.KindString {
 				t.Fatalf("object member name = %v, want a string", element)
 			}
-			got = append(got, key)
+			got = append(got, element.String())
 			stack[len(stack)-1].expectKey = false
 			continue
 		}
@@ -106,7 +108,7 @@ func TestCanonicalMemberOrderIsPinnedIndependentlyOfMemoryLayout(t *testing.T) {
 			name:  "signed header",
 			value: document.Payload.Header,
 			want: []string{
-				"receipt_identity", "account_identity", "offering_identity",
+				"receipt_identity", "account_identity", "offering",
 				"revision", "occurred_at_nanoseconds",
 			},
 		},
@@ -115,7 +117,7 @@ func TestCanonicalMemberOrderIsPinnedIndependentlyOfMemoryLayout(t *testing.T) {
 			value: document.Payload,
 			want: []string{
 				"header",
-				"receipt_identity", "account_identity", "offering_identity",
+				"receipt_identity", "account_identity", "offering",
 				"revision", "occurred_at_nanoseconds",
 				"body",
 				"submission_identity", "object_identity", "extent_bytes",
@@ -125,14 +127,14 @@ func TestCanonicalMemberOrderIsPinnedIndependentlyOfMemoryLayout(t *testing.T) {
 		{
 			name:  "durable watermark scope",
 			value: watermark.Scope,
-			want:  []string{"account_identity", "offering_identity"},
+			want:  []string{"account_identity", "offering"},
 		},
 		{
 			name:  "durable watermark",
 			value: watermark,
 			want: []string{
 				"revision",
-				"scope", "account_identity", "offering_identity",
+				"scope", "account_identity", "offering",
 				"generation", "cursor_digest", "chain_hash",
 			},
 		},
@@ -142,7 +144,7 @@ func TestCanonicalMemberOrderIsPinnedIndependentlyOfMemoryLayout(t *testing.T) {
 			want: []string{
 				"payload",
 				"header",
-				"receipt_identity", "account_identity", "offering_identity",
+				"receipt_identity", "account_identity", "offering",
 				"revision", "occurred_at_nanoseconds",
 				"body",
 				"submission_identity", "object_identity", "extent_bytes",
@@ -182,7 +184,7 @@ func TestSignedPayloadBytesStayByteExact(t *testing.T) {
 	}
 	want := `{"header":{"receipt_identity":"ff000000000000000000000000000000",` +
 		`"account_identity":"fb000000000000000000000000000000",` +
-		`"offering_identity":"88e2f274b886f932e340d70741115477",` +
+		`"offering":"receipt-fixture-fc",` +
 		`"revision":"v1","occurred_at_nanoseconds":"250"},` +
 		`"body":{"submission_identity":"fd000000000000000000000000000000",` +
 		`"object_identity":"fe000000000000000000000000000000",` +

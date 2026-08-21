@@ -3,7 +3,7 @@ package release
 import (
 	"bytes"
 	"crypto/sha256"
-	"encoding/json"
+	json "encoding/json/v2"
 	"errors"
 	"strings"
 	"testing"
@@ -42,6 +42,7 @@ func TestMetadataSetOwnsExactCustomerDocumentRoles(t *testing.T) {
 	t.Parallel()
 
 	set := fixtureMetadataSet(t)
+	offering := releaseOffering(t, 3)
 	wantSuffixes := [...]string{
 		metadataDependenciesSuffix, metadataDocumentationSuffix, metadataReleaseNotesSuffix,
 	}
@@ -60,8 +61,8 @@ func TestMetadataSetOwnsExactCustomerDocumentRoles(t *testing.T) {
 		if err != nil || mediaType.String() != wantMedia[index] {
 			t.Fatalf("MetadataSet.At(%d).ContentType() = (%q, %v), want (%q, nil)", index, mediaType, err, wantMedia[index])
 		}
-		filename, err := asset.Filename(core.OfferingPeachfuzz, core.NewReleaseVersion(2026, 0, 11))
-		if err != nil || filename.String() != "peachfuzz-2026.0.11-"+wantSuffixes[index] {
+		filename, err := asset.Filename(offering, core.NewReleaseVersion(2026, 0, 11))
+		if err != nil || filename.String() != offering.String()+"-2026.0.11-"+wantSuffixes[index] {
 			t.Fatalf("MetadataSet.At(%d).Filename() = (%q, %v)", index, filename, err)
 		}
 	}
@@ -145,7 +146,7 @@ func provenanceBuildPlan(t *testing.T) BuildPlan {
 	output, _ := core.ParseRelativePath("dist")
 	commit, _ := core.ParseBuildCommit("b5c32d95d212b0a1a8cef4126e4d11ff288079ef")
 	plan, err := PrepareBuildPlan(BuildPlanRequest{
-		Offering: core.OfferingBug, Version: core.NewReleaseVersion(2026, 0, 11), Commit: commit,
+		Offering: releaseOffering(t, 1), Version: core.NewReleaseVersion(2026, 0, 11), Commit: commit,
 		MainPackage: mainPackage, OutputDirectory: output,
 		GoToolchain: CurrentGoToolchain(), ModuleMode: BuildModuleVendor,
 		LinkerAssignments: emptyLinkerAssignmentsForTest(),

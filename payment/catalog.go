@@ -65,12 +65,12 @@ func (c Continuation) MarshalJSON() ([]byte, error) {
 
 // CatalogPayload is one bounded, newest-first authority-observed receipt page.
 type CatalogPayload struct {
+	Scope        receipt.Scope     `json:"scope"`
 	Entries      []Document        `json:"entries"`
 	Watermark    receipt.Watermark `json:"watermark"`
 	ObservedAt   temporal.Instant  `json:"observed_at"`
-	Scope        receipt.Scope     `json:"scope"`
-	Request      QueryCommitment   `json:"query_commitment"`
 	Continuation Continuation      `json:"continuation"`
+	Request      QueryCommitment   `json:"query_commitment"`
 }
 
 // Validate closes page bounds, scope, monotonic watermark, ordering, and every
@@ -245,8 +245,8 @@ func IssueCatalog(issuance CatalogIssuance) (CatalogDocument, error) {
 // CatalogVerification carries one untrusted page, its exact signed query, and
 // caller-selected authority keys.
 type CatalogVerification struct {
-	Document    CatalogDocument
 	Request     QueryPayload
+	Document    CatalogDocument
 	TrustedKeys attest.TrustedKeys
 }
 

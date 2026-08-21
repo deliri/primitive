@@ -13,8 +13,8 @@ import (
 
 type upgradeRequiredResponseFixture struct {
 	canonical []byte
-	base      authenticatedResponseFixture
 	header    controlplane.ResponseHeader
+	base      authenticatedResponseFixture
 }
 
 type upgradeRequiredRepresentation struct {

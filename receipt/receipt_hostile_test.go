@@ -4,10 +4,12 @@ import (
 	"bytes"
 	"crypto/ed25519"
 	"crypto/sha256"
-	"encoding/json"
+	json "encoding/json/v2"
 	"errors"
+	"fmt"
 	"hash/crc32"
 	"math"
+	"strings"
 	"testing"
 
 	"github.com/deliri/primitive/v2026/attest"
@@ -16,16 +18,16 @@ import (
 )
 
 type receiptFixture struct {
+	offering    core.Offering
 	private     ed25519.PrivateKey
+	expectation EvidenceExpectation
 	trusted     attest.TrustedKeys
+	body        EvidenceBody
+	occurredAt  temporal.Instant
 	account     AccountIdentity
-	offering    OfferingIdentity
 	submission  SubmissionIdentity
 	object      ObjectIdentity
 	receipt     ReceiptID
-	body        EvidenceBody
-	occurredAt  temporal.Instant
-	expectation EvidenceExpectation
 }
 
 func newReceiptFixture(t testing.TB, marker byte) receiptFixture {
@@ -69,19 +71,22 @@ func newReceiptFixture(t testing.TB, marker byte) receiptFixture {
 	}
 }
 
-func offeringFixture(t testing.TB, marker byte) OfferingIdentity {
+func offeringFixture(t testing.TB, marker byte) core.Offering {
 	t.Helper()
-	offerings := [...]core.Offering{
-		core.OfferingBug,
-		core.OfferingWitness,
-		core.OfferingPeachfuzz,
+	offering := core.Offering{Token: fmt.Sprintf("receipt-fixture-%02x", marker)}
+	if err := offering.Validate(); err != nil {
+		t.Fatalf("Offering.Validate() error = %v, want nil", err)
 	}
-	offering := offerings[int(marker)%len(offerings)]
-	identity, err := OfferingIdentityFor(offering)
-	if err != nil {
-		t.Fatalf("OfferingIdentityFor(%v) error = %v, want nil", offering, err)
+	return offering
+}
+
+func maximumOfferingFixture(t testing.TB) core.Offering {
+	t.Helper()
+	offering := core.Offering{Token: strings.Repeat("a", core.OfferingCanonicalJSONMaximumBytes-len(`""`))}
+	if err := offering.Validate(); err != nil {
+		t.Fatalf("maximum Offering.Validate() error = %v, want nil", err)
 	}
-	return identity
+	return offering
 }
 
 func lifecycleFixture[T core.Validatable](
@@ -274,8 +279,8 @@ func TestEvidenceVerificationMutationMatrix(t *testing.T) {
 		want            error
 		mutate          func(*EvidenceDocument)
 		name            string
-		trusted         attest.TrustedKeys
 		wantExpectation EvidenceExpectation
+		trusted         attest.TrustedKeys
 		wantField       ScopeField
 	}{
 		{name: "authentic exact document verifies", trusted: fixture.trusted, wantExpectation: fixture.expectation},

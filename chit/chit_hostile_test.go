@@ -23,11 +23,11 @@ const (
 
 type chitFixture struct {
 	private  ed25519.PrivateKey
-	addition ManifestAddition
-	trusted  attest.TrustedKeys
-	document Document
-	summary  ManifestSummary
 	scope    receipt.Scope
+	addition ManifestAddition
+	document Document
+	trusted  attest.TrustedKeys
+	summary  ManifestSummary
 	identity ChitID
 }
 
@@ -35,9 +35,9 @@ type chitEntryFixtureRequest struct {
 	Extent   *core.ByteLength
 	Name     string
 	Private  ed25519.PrivateKey
+	Scope    receipt.Scope
 	Trusted  attest.TrustedKeys
 	Sequence uint64
-	Scope    receipt.Scope
 	Marker   byte
 }
 
@@ -741,15 +741,10 @@ func chitScopeFixture(t testing.TB, marker byte) receipt.Scope {
 	}
 }
 
-func mustOfferingIdentity(t testing.TB, marker byte) receipt.OfferingIdentity {
+func mustOfferingIdentity(t testing.TB, marker byte) core.Offering {
 	t.Helper()
-	offerings := [...]core.Offering{core.OfferingBug, core.OfferingWitness, core.OfferingPeachfuzz}
-	offering := offerings[int(marker)%len(offerings)]
-	identity, err := receipt.OfferingIdentityFor(offering)
-	if err != nil {
-		t.Fatalf("receipt.OfferingIdentityFor(%v) error = %v, want nil", offering, err)
-	}
-	return identity
+	offerings := [...]core.Offering{chitOffering(t, 1), chitOffering(t, 2), chitOffering(t, 3)}
+	return offerings[int(marker)%len(offerings)]
 }
 
 func mustLifecycleIdentity[T core.Validatable](

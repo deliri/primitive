@@ -3,7 +3,8 @@ package distributionauth
 import (
 	"bytes"
 	"crypto/ed25519"
-	"encoding/json"
+	"encoding/json/jsontext"
+	json "encoding/json/v2"
 	"errors"
 	"hash/crc32"
 	"testing"
@@ -30,15 +31,15 @@ type distributionAuthFixture struct {
 	trusted attest.TrustedKeys
 }
 
-func TestCredentialedDistributionRequestVerificationLayerTriadAuthenticatesEveryOffering(t *testing.T) {
+func TestCredentialedDistributionRequestVerificationLayerTriadCarriesRepresentativeOpaqueOfferings(t *testing.T) {
 	t.Parallel()
 
 	admitted := 0
-	for value := 0; value <= 255; value++ {
-		offering := core.Offering(value)
-		if !offering.IsValid() {
-			continue
-		}
+	for value, offering := range []core.Offering{
+		distributionAuthOffering(t, 1),
+		distributionAuthOffering(t, 127),
+		distributionAuthOffering(t, 255),
+	} {
 		admitted++
 		t.Run(offering.String(), func(t *testing.T) {
 			t.Parallel()
@@ -83,7 +84,7 @@ func TestCredentialedDistributionRequestVerificationLayerTriadAuthenticatesEvery
 		})
 	}
 	if admitted < 3 {
-		t.Fatalf("admitted offerings = %d, want at least the shipped set", admitted)
+		t.Fatalf("admitted offerings = %d, want at least three distinct opaque offerings", admitted)
 	}
 	boundaries := []struct {
 		name    string
@@ -140,7 +141,7 @@ func TestCredentialedDistributionRequestVerificationLayerTriadRefusesDeviceAutho
 		authorityByte: 0x51, deviceByte: 0x52, nonceByte: 0x53,
 	})
 	otherOffering := newDistributionAuthFixture(t, distributionAuthFixtureRequest{
-		offering: core.OfferingBug, authorityByte: 0x61, deviceByte: 0x62, nonceByte: 0x63,
+		offering: distributionAuthOffering(t, 97), authorityByte: 0x61, deviceByte: 0x62, nonceByte: 0x63,
 	})
 	wrongUpdateDevice, err := AssembleUpdate(UpdateRequestAssembly{
 		Request: otherDevice.update.Request, Certificate: base.update.Certificate,
@@ -353,8 +354,8 @@ func testUpgradeJSONBoundary(t *testing.T, document UpgradeRequestDocument) {
 		t.Fatalf("UpgradeRequestDocument.MarshalJSON() error = %v, want nil", err)
 	}
 	reordered, err := json.Marshal(struct {
-		Request     distribution.UpgradeRequestDocument          `json:"request"`
 		Certificate controlplane.InstallationCertificateDocument `json:"certificate"`
+		Request     distribution.UpgradeRequestDocument          `json:"request"`
 	}{Request: document.Request, Certificate: document.Certificate})
 	if err != nil {
 		t.Fatalf("json.Marshal(reordered upgrade) error = %v, want nil", err)
@@ -400,14 +401,14 @@ func distributionAuthValidJSONCases(
 ) []distributionAuthJSONCase {
 	t.Helper()
 
-	var indented bytes.Buffer
-	if err := json.Indent(&indented, encoded, "", "  "); err != nil {
+	indented := jsontext.Value(bytes.Clone(encoded))
+	if err := indented.Indent(jsontext.WithIndent("  ")); err != nil {
 		t.Fatalf("json.Indent(credentialed distribution request) error = %v, want nil", err)
 	}
 	return []distributionAuthJSONCase{
 		{name: "canonical", data: encoded},
 		{name: "reordered", data: reordered},
-		{name: "indented", data: indented.Bytes()},
+		{name: "indented", data: []byte(indented)},
 		{name: "leading space", data: append([]byte(" "), encoded...)},
 		{name: "trailing newline", data: append(bytes.Clone(encoded), '\n')},
 		{name: "carriage return framing", data: append(append([]byte("\r"), encoded...), '\r')},
@@ -454,8 +455,8 @@ func newDistributionAuthFixture(
 ) distributionAuthFixture {
 	t.Helper()
 
-	if request.offering == core.OfferingUnknown {
-		request.offering = core.OfferingWitness
+	if !request.offering.IsValid() {
+		request.offering = distributionAuthOffering(t, 5)
 	}
 	if request.authorityByte == 0 {
 		request.authorityByte = 0x21

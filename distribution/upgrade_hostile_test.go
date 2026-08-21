@@ -1,7 +1,7 @@
 package distribution_test
 
 import (
-	"encoding/json"
+	json "encoding/json/v2"
 	"errors"
 	"testing"
 
@@ -13,12 +13,12 @@ import (
 )
 
 type upgradeExchangeFixture struct {
+	request         distribution.UpgradeRequestPayload
 	grantProjection distribution.UpgradeGrantProjection
 	grantDoc        distribution.UpgradeGrantDocument
 	requestDoc      distribution.UpgradeRequestDocument
 	callerKeys      attest.TrustedKeys
 	authorityKeys   attest.TrustedKeys
-	request         distribution.UpgradeRequestPayload
 }
 
 func newUpgradeExchangeFixture(t testing.TB) upgradeExchangeFixture {

@@ -2,6 +2,7 @@ package lease_test
 
 import (
 	"crypto/ed25519"
+	"fmt"
 	"testing"
 	"time"
 
@@ -49,9 +50,9 @@ func fixtureIdentifierBytes(marker byte) [lease.IdentifierBytes]byte {
 func fixtureSubject(tb testing.TB, marker byte) lease.Subject {
 	tb.Helper()
 
-	product, err := lease.NewProduct(fixtureIdentifierBytes(marker))
-	if err != nil {
-		tb.Fatalf("lease.NewProduct() error = %v, want nil", err)
+	offering := core.Offering{Token: fmt.Sprintf("lease-fixture-%02x", marker)}
+	if err := offering.Validate(); err != nil {
+		tb.Fatalf("Offering.Validate() error = %v, want nil", err)
 	}
 	entitlement, err := lease.NewEntitlementID(fixtureIdentifierBytes(marker + 32))
 	if err != nil {
@@ -62,7 +63,7 @@ func fixtureSubject(tb testing.TB, marker byte) lease.Subject {
 		tb.Fatalf("lease.NewDeviceID() error = %v, want nil", err)
 	}
 	return lease.Subject{
-		Product: product, EntitlementID: entitlement, DeviceID: device,
+		Offering: offering, EntitlementID: entitlement, DeviceID: device,
 	}
 }
 

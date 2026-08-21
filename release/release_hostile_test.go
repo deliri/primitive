@@ -2,7 +2,7 @@ package release
 
 import (
 	"crypto/sha256"
-	"encoding/json"
+	json "encoding/json/v2"
 	"errors"
 	"math"
 	"testing"
@@ -94,7 +94,7 @@ func TestSignedDocumentsRejectTamperingAndLooseJSON(t *testing.T) {
 	tampered.Fact = ManifestFact{}
 	_, err := VerifyManifest(VerifyManifestRequest{
 		Document: tampered, TrustedKeys: fixture.manifestTrust,
-		ExpectedOffering: core.OfferingWitness,
+		ExpectedOffering: releaseOffering(t, 2),
 	})
 	if !errors.Is(err, core.ErrReleaseVerification) {
 		t.Fatalf("VerifyManifest(tampered fact) error = %v, want %v", err, core.ErrReleaseVerification)

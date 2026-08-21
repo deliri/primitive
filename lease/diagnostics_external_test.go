@@ -127,7 +127,7 @@ func TestDiagnosticLabelsAreExhaustiveAndClosed(t *testing.T) {
 
 // TestUnsetNominalValuesProjectEmptyText proves an unset opaque value renders
 // as empty text rather than a plausible-looking identifier, so a diagnostic can
-// never present a zero value as a real product, entitlement, installation, or
+// never present a zero value as a real entitlement, installation, or
 // generation.
 func TestUnsetNominalValuesProjectEmptyText(t *testing.T) {
 	t.Parallel()
@@ -136,7 +136,6 @@ func TestUnsetNominalValuesProjectEmptyText(t *testing.T) {
 		project func() string
 		name    string
 	}{
-		{name: "product", project: lease.Product{}.String},
 		{name: "entitlement id", project: lease.EntitlementID{}.String},
 		{name: "device id", project: lease.DeviceID{}.String},
 		{name: "generation", project: lease.Generation{}.String},
@@ -318,8 +317,8 @@ func TestHeaderValidationRejectsEveryUnsetComponent(t *testing.T) {
 			wantErr: core.ErrLeaseContract,
 		},
 		{
-			name:    "unset product",
-			mutate:  func(h lease.Header) lease.Header { h.Subject.Product = lease.Product{}; return h },
+			name:    "unset offering",
+			mutate:  func(h lease.Header) lease.Header { h.Subject.Offering = core.Offering{}; return h },
 			wantErr: core.ErrLeaseContract,
 		},
 		{

@@ -2,7 +2,7 @@ package submission
 
 import (
 	"crypto"
-	"encoding/json"
+	json "encoding/json/v2"
 	"errors"
 	"io"
 
@@ -22,8 +22,8 @@ const (
 // CompletionPayload is the receive-side statement that one exact granted
 // upload completed. Evidence contains no bearer, URL, path, or object bytes.
 type CompletionPayload struct {
-	Evidence      objectstore.TransferEvidence           `json:"evidence"`
 	Build         core.BuildIdentity                     `json:"build"`
+	Evidence      objectstore.TransferEvidence           `json:"evidence"`
 	Nonce         controlwire.RequestNonce               `json:"request_nonce"`
 	Request       RequestCommitment                      `json:"request_commitment"`
 	Capability    objectstore.UploadCapabilityCommitment `json:"capability_commitment"`
@@ -72,8 +72,8 @@ type VerifiedCompletion struct {
 }
 
 type completionProjectionPayload struct {
-	evidence      objectstore.TransferEvidenceProjection
 	build         core.BuildIdentity
+	evidence      objectstore.TransferEvidenceProjection
 	nonce         controlwire.RequestNonce
 	request       RequestCommitment
 	capability    objectstore.UploadCapabilityCommitment
@@ -84,8 +84,8 @@ type (
 	completionPayloadWire           CompletionPayload
 	completionDocumentWire          CompletionDocument
 	completionProjectionPayloadWire struct {
-		Evidence      objectstore.TransferEvidenceProjection `json:"evidence"`
 		Build         core.BuildIdentity                     `json:"build"`
+		Evidence      objectstore.TransferEvidenceProjection `json:"evidence"`
 		Nonce         controlwire.RequestNonce               `json:"request_nonce"`
 		Request       RequestCommitment                      `json:"request_commitment"`
 		Capability    objectstore.UploadCapabilityCommitment `json:"capability_commitment"`

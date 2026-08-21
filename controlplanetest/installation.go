@@ -22,20 +22,20 @@ const (
 // InstallationRequest selects the product identity and exact deterministic
 // test keys. The seeds are test material, never production entropy.
 type InstallationRequest struct {
+	Offering      core.Offering
 	AuthoritySeed [ed25519.SeedSize]byte
 	DeviceSeed    [ed25519.SeedSize]byte
-	Offering      core.Offering
 }
 
 // Installation is one genuinely authority-signed installation certificate
 // and the exact keys and build facts that produced it.
 type Installation struct {
+	Build            core.BuildIdentity
 	AuthorityPrivate ed25519.PrivateKey
 	DevicePrivate    ed25519.PrivateKey
 	Certificate      controlplane.InstallationCertificateDocument
 	AuthorityPublic  core.Ed25519PublicKey
 	DevicePublic     core.Ed25519PublicKey
-	Build            core.BuildIdentity
 }
 
 // Validate rejects unset, identical, or invalid fixture inputs.
@@ -119,10 +119,6 @@ func fixtureCertificateBody(
 	build core.BuildIdentity,
 	devicePublic core.Ed25519PublicKey,
 ) (controlplane.InstallationCertificateBody, error) {
-	product, err := lease.ProductForOffering(build.Offering())
-	if err != nil {
-		return controlplane.InstallationCertificateBody{}, errors.Join(core.ErrPrimitiveContract, err)
-	}
 	entitlement, err := lease.ParseEntitlementID(fixtureEntitlementIdentity)
 	if err != nil {
 		return controlplane.InstallationCertificateBody{}, errors.Join(core.ErrPrimitiveContract, err)
@@ -139,7 +135,7 @@ func fixtureCertificateBody(
 		IssuedAt: temporal.InstantFromNanoseconds(fixtureIssuedAtNanoseconds),
 		Build:    build, Revision: controlwire.Revision2026V1,
 		Subject: lease.Subject{
-			Product: product, EntitlementID: entitlement, DeviceID: device,
+			Offering: build.Offering(), EntitlementID: entitlement, DeviceID: device,
 		},
 		DeviceKey: devicePublic, Account: account,
 	}, nil

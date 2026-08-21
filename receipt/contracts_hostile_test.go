@@ -2,7 +2,7 @@ package receipt
 
 import (
 	"bytes"
-	"encoding/json"
+	json "encoding/json/v2"
 	"errors"
 	"math"
 	"strings"

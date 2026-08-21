@@ -2,7 +2,7 @@ package retrieval
 
 import (
 	"crypto"
-	"encoding/json"
+	json "encoding/json/v2"
 	"errors"
 	"io"
 	"math"
@@ -125,8 +125,8 @@ func (s Selection) MarshalJSON() ([]byte, error) {
 
 // RequestPayload is the exact chit/object request signed by one installation.
 type RequestPayload struct {
-	Selection Selection                `json:"selection"`
 	Build     core.BuildIdentity       `json:"build"`
+	Selection Selection                `json:"selection"`
 	Nonce     controlwire.RequestNonce `json:"request_nonce"`
 	Chit      chit.ChitID              `json:"chit_id"`
 	Revision  controlwire.Revision     `json:"revision"`

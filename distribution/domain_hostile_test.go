@@ -1,10 +1,12 @@
 package distribution_test
 
 import (
-	"encoding/json"
+	json "encoding/json/v2"
 	"errors"
 	"strings"
 	"testing"
+
+	"encoding/json/jsontext"
 
 	"github.com/deliri/primitive/v2026/core"
 	"github.com/deliri/primitive/v2026/distribution"
@@ -59,7 +61,7 @@ func TestSigningDomainExhaustsEveryUint8AndCanonicalToken(t *testing.T) {
 	}
 }
 
-func TestSigningDomainHostileJSONLeavesReceiverUnchanged(t *testing.T) {
+func TestSigningDomainHostileJSONSeparatesOwnerRefusalFromJSONV2TrailingDocumentRefusal(t *testing.T) {
 	t.Parallel()
 
 	canonical, err := json.Marshal(distribution.SigningDomainPublicationRequestV1)
@@ -68,10 +70,11 @@ func TestSigningDomainHostileJSONLeavesReceiverUnchanged(t *testing.T) {
 	}
 	oversized := `"` + strings.Repeat("x", 1<<10) + `"`
 	cases := []struct {
-		name      string
-		wire      []byte
-		wantValue distribution.SigningDomain
-		wantTyped bool
+		name           string
+		wire           []byte
+		wantValue      distribution.SigningDomain
+		wantTyped      bool
+		wantFirstValue bool
 	}{
 		{name: "empty document is rejected by the stdlib parser", wire: nil},
 		{name: "whitespace-only document is rejected by the stdlib parser", wire: []byte(" \t\n")},
@@ -85,11 +88,11 @@ func TestSigningDomainHostileJSONLeavesReceiverUnchanged(t *testing.T) {
 		{name: "token prefix is semantically rejected", wire: append([]byte(`"x`), canonical[1:]...), wantTyped: true},
 		{name: "token suffix is semantically rejected", wire: append(append([]byte(nil), canonical[:len(canonical)-1]...), []byte(`x"`)...), wantTyped: true},
 		{name: "uppercase token is semantically rejected", wire: []byte(strings.ToUpper(string(canonical))), wantTyped: true},
-		{name: "leading whitespace is accepted by the stdlib JSON boundary", wire: append([]byte(" "), canonical...), wantValue: distribution.SigningDomainPublicationRequestV1},
-		{name: "trailing whitespace is accepted by the stdlib JSON boundary", wire: append(append([]byte(nil), canonical...), ' '), wantValue: distribution.SigningDomainPublicationRequestV1},
-		{name: "trailing value is rejected by the stdlib parser", wire: append(append([]byte(nil), canonical...), []byte(" true")...)},
-		{name: "missing opening quote is rejected by the stdlib parser", wire: append([]byte(nil), canonical[1:]...)},
-		{name: "missing closing quote is rejected by the stdlib parser", wire: append([]byte(nil), canonical[:len(canonical)-1]...)},
+		{name: "leading whitespace is accepted by the JSON v2 boundary", wire: append([]byte(" "), canonical...), wantValue: distribution.SigningDomainPublicationRequestV1},
+		{name: "trailing whitespace is accepted by the JSON v2 boundary", wire: append(append([]byte(nil), canonical...), ' '), wantValue: distribution.SigningDomainPublicationRequestV1},
+		{name: "trailing value is rejected after JSON v2 admits the complete first value", wire: append(append([]byte(nil), canonical...), []byte(" true")...), wantFirstValue: true},
+		{name: "missing opening quote is rejected by the JSON v2 parser", wire: append([]byte(nil), canonical[1:]...)},
+		{name: "missing closing quote is rejected by the JSON v2 parser", wire: append([]byte(nil), canonical[:len(canonical)-1]...)},
 		{name: "truncated token is semantically rejected", wire: append(append([]byte(nil), canonical[:len(canonical)-2]...), '"'), wantTyped: true},
 		{name: "escaped canonical byte is semantically rejected", wire: []byte(`"\u0070rimitive-distribution-publication-request-2026-1"`), wantTyped: true},
 		{name: "embedded null is rejected by the stdlib parser", wire: []byte{'"', 0, '"'}},
@@ -114,13 +117,17 @@ func TestSigningDomainHostileJSONLeavesReceiverUnchanged(t *testing.T) {
 					t.Fatalf("json.Unmarshal(semantic signing-domain refusal) error = %v, want %v and %v", gotErr, core.ErrJSONContract, core.ErrDistributionContract)
 				}
 			} else {
-				var syntax *json.SyntaxError
+				var syntax *jsontext.SyntacticError
 				if !errors.As(gotErr, &syntax) {
-					t.Fatalf("json.Unmarshal(malformed signing domain) error = %v, want *json.SyntaxError", gotErr)
+					t.Fatalf("json.Unmarshal(malformed signing domain) error = %v, want *jsontext.SyntacticError", gotErr)
 				}
 			}
-			if got != distribution.SigningDomainUpgradeGrantV1 {
-				t.Fatalf("rejected signing-domain receiver = %v, want preserved %v", got, distribution.SigningDomainUpgradeGrantV1)
+			wantReceiver := distribution.SigningDomainUpgradeGrantV1
+			if tc.wantFirstValue {
+				wantReceiver = distribution.SigningDomainPublicationRequestV1
+			}
+			if got != wantReceiver {
+				t.Fatalf("rejected signing-domain receiver = %v, want %v", got, wantReceiver)
 			}
 		})
 	}

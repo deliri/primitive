@@ -19,10 +19,10 @@ import (
 // rule could drift into accepting a window for one device under another
 // device's certificate.
 type checkInBinding struct {
-	Build        core.BuildIdentity
 	Subject      lease.Subject
-	Installation lease.DeviceID
+	Build        core.BuildIdentity
 	RequestNonce controlwire.RequestNonce
+	Installation lease.DeviceID
 }
 
 func (b checkInBinding) Validate() error {
@@ -32,9 +32,8 @@ func (b checkInBinding) Validate() error {
 	); err != nil {
 		return checkInError(err)
 	}
-	product, err := lease.ProductForOffering(b.Build.Offering())
-	if err != nil || b.Subject.Product != product || b.Subject.DeviceID != b.Installation {
-		return consistencyError(err)
+	if b.Subject.Offering != b.Build.Offering() || b.Subject.DeviceID != b.Installation {
+		return consistencyError()
 	}
 	return nil
 }

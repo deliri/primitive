@@ -10,7 +10,7 @@ import (
 	"github.com/deliri/primitive/v2026/submission"
 )
 
-// TestBlindSubmissionLifecycleLayerTriad proves Bug, Witness, and Peachfuzz
+// TestBlindSubmissionLifecycleLayerTriad proves distinct opaque products
 // traverse one declaration/request/credential/decision/grant contract. The
 // positive oracle holds selected evidence constant while changing only typed
 // offering identity. The negative oracle then recombines independently valid
@@ -19,9 +19,9 @@ func TestBlindSubmissionLifecycleLayerTriad(t *testing.T) {
 	t.Parallel()
 
 	offerings := [...]core.Offering{
-		core.OfferingBug,
-		core.OfferingWitness,
-		core.OfferingPeachfuzz,
+		submissionAuthOffering(t, 1),
+		submissionAuthOffering(t, 2),
+		submissionAuthOffering(t, 3),
 	}
 	var commonDeclaration submission.Declaration
 	for index, offering := range offerings {
@@ -86,10 +86,10 @@ func TestBlindSubmissionLifecycleLayerTriad(t *testing.T) {
 		t.Parallel()
 
 		bug := newAuthCompletionFixture(t, authCompletionFixtureRequest{
-			offering: core.OfferingBug, authorityByte: 0x61, deviceByte: 0x62, nonceByte: 0x63,
+			offering: submissionAuthOffering(t, 1), authorityByte: 0x61, deviceByte: 0x62, nonceByte: 0x63,
 		})
 		witness := newAuthCompletionFixture(t, authCompletionFixtureRequest{
-			offering: core.OfferingWitness, authorityByte: 0x61, deviceByte: 0x62, nonceByte: 0x63,
+			offering: submissionAuthOffering(t, 2), authorityByte: 0x61, deviceByte: 0x62, nonceByte: 0x63,
 		})
 		proveOnlyOfferingDiffers(t, bug.request.request.Payload, witness.request.request.Payload)
 

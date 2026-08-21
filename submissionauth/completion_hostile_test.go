@@ -3,7 +3,7 @@ package submissionauth
 import (
 	"bytes"
 	"context"
-	"encoding/json"
+	json "encoding/json/v2"
 	"errors"
 	"io"
 	"net"
@@ -12,6 +12,7 @@ import (
 	"strconv"
 	"testing"
 
+	"encoding/json/jsontext"
 	"github.com/deliri/primitive/v2026/attest"
 	"github.com/deliri/primitive/v2026/controlplane"
 	"github.com/deliri/primitive/v2026/controlwire"
@@ -31,19 +32,19 @@ const (
 var authCompletionContent = []byte(`{"proof":"source-free"}`)
 
 type authCompletionFixtureRequest struct {
-	generation    int64
 	offering      core.Offering
+	generation    int64
 	authorityByte byte
 	deviceByte    byte
 	nonceByte     byte
 }
 
 type authCompletionFixture struct {
-	completionDocument   submission.CompletionDocument
-	completionProjection submission.CompletionProjection
 	grant                submission.GrantDocument
 	grantProjection      submission.GrantProjection
 	credentialed         CompletionDocument
+	completionDocument   submission.CompletionDocument
+	completionProjection submission.CompletionProjection
 	request              authFixture
 	verifiedRequest      Verified
 }
@@ -67,7 +68,7 @@ func TestCredentialedCompletionProjectionLayerTriadBindsWithoutSenderSideDecode(
 		t.Fatalf("credentialed projection receive = (%v, %v), want exact %v and nil", got, err, base.credentialed)
 	}
 	other := newAuthCompletionFixture(t, authCompletionFixtureRequest{
-		authorityByte: 0x61, deviceByte: 0x62, nonceByte: 0x63, offering: core.OfferingBug,
+		authorityByte: 0x61, deviceByte: 0x62, nonceByte: 0x63, offering: submissionAuthOffering(t, 1),
 	})
 	if got, err := AssembleCompletionProjection(CompletionProjectionAssembly{
 		Completion: base.completionProjection, Certificate: other.request.certificate,
@@ -91,28 +92,28 @@ func TestCredentialedCompletionProjectionEncodeValidatedJSONHostileBindingMatrix
 	valid := []validCase{
 		{name: "witness default fixture encodes as receive-only projection"},
 		{name: "bug nonce 2 encodes as receive-only projection", request: authCompletionFixtureRequest{
-			offering: core.OfferingBug, nonceByte: 0x02,
+			offering: submissionAuthOffering(t, 1), nonceByte: 0x02,
 		}},
 		{name: "peachfuzz nonce 3 encodes as receive-only projection", request: authCompletionFixtureRequest{
-			offering: core.OfferingPeachfuzz, nonceByte: 0x03,
+			offering: submissionAuthOffering(t, 3), nonceByte: 0x03,
 		}},
 		{name: "witness nonce 4 device 0x32 encodes as receive-only projection", request: authCompletionFixtureRequest{
 			nonceByte: 0x04, deviceByte: 0x32,
 		}},
 		{name: "bug nonce 5 authority 0x22 encodes as receive-only projection", request: authCompletionFixtureRequest{
-			offering: core.OfferingBug, nonceByte: 0x05, authorityByte: 0x22,
+			offering: submissionAuthOffering(t, 1), nonceByte: 0x05, authorityByte: 0x22,
 		}},
 		{name: "peachfuzz nonce 6 encodes as receive-only projection", request: authCompletionFixtureRequest{
-			offering: core.OfferingPeachfuzz, nonceByte: 0x06,
+			offering: submissionAuthOffering(t, 3), nonceByte: 0x06,
 		}},
 		{name: "witness nonce 7 encodes as receive-only projection", request: authCompletionFixtureRequest{
 			nonceByte: 0x07,
 		}},
 		{name: "bug nonce 8 encodes as receive-only projection", request: authCompletionFixtureRequest{
-			offering: core.OfferingBug, nonceByte: 0x08,
+			offering: submissionAuthOffering(t, 1), nonceByte: 0x08,
 		}},
 		{name: "peachfuzz nonce 9 encodes as receive-only projection", request: authCompletionFixtureRequest{
-			offering: core.OfferingPeachfuzz, nonceByte: 0x09,
+			offering: submissionAuthOffering(t, 3), nonceByte: 0x09,
 		}},
 		{name: "witness nonce 10 encodes as receive-only projection", request: authCompletionFixtureRequest{
 			nonceByte: 0x0a,
@@ -149,7 +150,7 @@ func TestCredentialedCompletionProjectionEncodeValidatedJSONHostileBindingMatrix
 		t.Fatalf("CompletionProjection.MarshalJSON() error = %v, want nil", err)
 	}
 	foreign := newAuthCompletionFixture(t, authCompletionFixtureRequest{
-		offering: core.OfferingBug, authorityByte: 0x61, deviceByte: 0x62, nonceByte: 0x63,
+		offering: submissionAuthOffering(t, 1), authorityByte: 0x61, deviceByte: 0x62, nonceByte: 0x63,
 	})
 	foreignProjection := assembleAuthCompletionProjection(t, foreign)
 	foreignEncoded, err := foreignProjection.MarshalJSON()
@@ -167,13 +168,17 @@ func TestCredentialedCompletionProjectionEncodeValidatedJSONHostileBindingMatrix
 	if err != nil {
 		t.Fatalf("json.Marshal(completion) error = %v, want nil", err)
 	}
-	reordered := append(append(append([]byte(`{"certificate":`), certificateJSON...), `,"completion":`...), completionJSON...)
+	reordered := append(append(append([]byte(`{"completion":`), completionJSON...), `,"certificate":`...), certificateJSON...)
 	reordered = append(reordered, '}')
+	if bytes.Equal(reordered, canonical) {
+		reordered = append(append(append([]byte(`{"certificate":`), certificateJSON...), `,"completion":`...), completionJSON...)
+		reordered = append(reordered, '}')
+	}
 	if bytes.Equal(reordered, canonical) {
 		t.Fatalf("certificate-first completion bytes = %d identical bytes, want a genuine member reorder", len(canonical))
 	}
-	var indented bytes.Buffer
-	if err := json.Indent(&indented, canonical, "", "  "); err != nil {
+	indented := jsontext.Value(bytes.Clone(canonical))
+	if err := indented.Indent(jsontext.WithIndent("  ")); err != nil {
 		t.Fatalf("json.Indent(credentialed completion) error = %v, want nil", err)
 	}
 	unknown := append(bytes.Clone(canonical[:len(canonical)-1]), []byte(`,"future":true}`)...)
@@ -226,7 +231,7 @@ func TestCredentialedCompletionProjectionEncodeValidatedJSONHostileBindingMatrix
 		{name: "carriage return framing", data: append(append([]byte("\r"), canonical...), '\r')},
 		{name: "mixed outer whitespace", data: append(append([]byte("\t\r\n"), canonical...), ' ', '\t')},
 		{name: "reordered members", data: reordered},
-		{name: "indented", data: indented.Bytes()},
+		{name: "indented", data: []byte(indented)},
 		{name: "foreign authentic projection", data: foreignEncoded},
 		{name: "mutated interior byte", data: mutated},
 		{name: "one above ceiling", data: authLeftPadJSON(canonical, CompletionDocumentJSONMaximumBytes+1)},
@@ -281,19 +286,19 @@ func assembleAuthCompletionProjection(t testing.TB, fixture authCompletionFixtur
 	return projection
 }
 
-// TestCredentialedCompletionLayerTriadClosesEveryOffering proves that the
+// TestCredentialedCompletionLayerTriadClosesRepresentativeOpaqueOfferings proves that the
 // authority certificate, original request, authority grant, real provider
 // transfer, and device completion all survive the complete authentication
 // path for every admitted product without a product-specific branch.
-func TestCredentialedCompletionLayerTriadClosesEveryOffering(t *testing.T) {
+func TestCredentialedCompletionLayerTriadClosesRepresentativeOpaqueOfferings(t *testing.T) {
 	t.Parallel()
 
 	admitted := 0
-	for value := 0; value <= 255; value++ {
-		offering := core.Offering(value)
-		if !offering.IsValid() {
-			continue
-		}
+	for value, offering := range []core.Offering{
+		submissionAuthOffering(t, 1),
+		submissionAuthOffering(t, 127),
+		submissionAuthOffering(t, 255),
+	} {
 		admitted++
 		t.Run(offering.String(), func(t *testing.T) {
 			t.Parallel()
@@ -437,14 +442,14 @@ func TestCredentialedCompletionJSONLayerTriadIsStrictBoundedAndPreserving(t *tes
 		t.Fatalf("CompletionDocument.MarshalJSON() error = %v, want nil", err)
 	}
 	reordered, err := json.Marshal(struct {
-		Completion  submission.CompletionDocument                `json:"completion"`
 		Certificate controlplane.InstallationCertificateDocument `json:"certificate"`
+		Completion  submission.CompletionDocument                `json:"completion"`
 	}{Certificate: fixture.request.certificate, Completion: fixture.completionDocument})
 	if err != nil {
 		t.Fatalf("json.Marshal(reordered completion) error = %v, want nil", err)
 	}
-	var indented bytes.Buffer
-	if err := json.Indent(&indented, encoded, "", "  "); err != nil {
+	indented := jsontext.Value(bytes.Clone(encoded))
+	if err := indented.Indent(jsontext.WithIndent("  ")); err != nil {
 		t.Fatalf("json.Indent(credentialed completion) error = %v, want nil", err)
 	}
 	unknown := append(bytes.Clone(encoded[:len(encoded)-1]), []byte(`,"future":true}`)...)
@@ -456,7 +461,7 @@ func TestCredentialedCompletionJSONLayerTriadIsStrictBoundedAndPreserving(t *tes
 	}{
 		{name: "canonical", data: encoded},
 		{name: "reordered members", data: reordered},
-		{name: "indented", data: indented.Bytes()},
+		{name: "indented", data: []byte(indented)},
 		{name: "leading space", data: append([]byte(" "), encoded...)},
 		{name: "trailing newline", data: append(bytes.Clone(encoded), '\n')},
 		{name: "carriage return framing", data: append(append([]byte("\r"), encoded...), '\r')},

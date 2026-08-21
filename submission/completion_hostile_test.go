@@ -4,7 +4,7 @@ import (
 	"bytes"
 	"context"
 	"crypto"
-	"encoding/json"
+	json "encoding/json/v2"
 	"errors"
 	"io"
 	"net"
@@ -12,6 +12,7 @@ import (
 	"net/http/httptest"
 	"testing"
 
+	"encoding/json/jsontext"
 	"github.com/deliri/primitive/v2026/attest"
 	"github.com/deliri/primitive/v2026/controlwire"
 	"github.com/deliri/primitive/v2026/core"
@@ -30,18 +31,18 @@ type completionFixture struct {
 	deviceKeys    attest.TrustedKeys
 }
 
-func TestCompletionAuthenticationLayerTriadBindsRealTransferToEveryOffering(t *testing.T) {
+func TestCompletionAuthenticationLayerTriadBindsRealTransferToRepresentativeOpaqueOfferings(t *testing.T) {
 	t.Parallel()
 
-	for value := 0; value <= 255; value++ {
-		offering := core.Offering(value)
-		if !offering.IsValid() {
-			continue
-		}
+	for index, offering := range []core.Offering{
+		submissionOffering(t, 1),
+		submissionOffering(t, 127),
+		submissionOffering(t, 255),
+	} {
 		t.Run(offering.String(), func(t *testing.T) {
 			t.Parallel()
 
-			fixture := newCompletionFixture(t, offering, []byte(`{"proof":"source-free"}`))
+			fixture := newCompletionFixture(t, offering, []byte(`{"proof":"source-free"}`), byte(index)+0x10)
 			projection, err := IssueCompletion(CompletionIssuance{
 				Signer: fixture.deviceSigner, Request: fixture.request,
 				Grant: fixture.grant, Transfer: fixture.transfer,
@@ -81,7 +82,7 @@ func TestCompletionProjectionCarriesEveryAllowedFactAndNoUnownedMaterial(t *test
 	t.Parallel()
 
 	content := []byte("completion source bytes must never cross the evidence boundary")
-	fixture := newCompletionFixture(t, core.OfferingWitness, content)
+	fixture := newCompletionFixture(t, submissionOffering(t, 2), content, 0x10)
 	projection, err := IssueCompletion(CompletionIssuance{
 		Signer: fixture.deviceSigner, Request: fixture.request,
 		Grant: fixture.grant, Transfer: fixture.transfer,
@@ -140,9 +141,9 @@ func TestCompletionProjectionCarriesEveryAllowedFactAndNoUnownedMaterial(t *test
 func TestCompletionIssuanceLayerTriadRefusesEveryCrossAgreementSubstitution(t *testing.T) {
 	t.Parallel()
 
-	base := newCompletionFixture(t, core.OfferingWitness, []byte("original proof"))
-	otherContent := newCompletionFixture(t, core.OfferingWitness, []byte("different proof"))
-	otherOffering := newCompletionFixture(t, core.OfferingBug, []byte("original proof"))
+	base := newCompletionFixture(t, submissionOffering(t, 2), []byte("original proof"), 0x10)
+	otherContent := newCompletionFixture(t, submissionOffering(t, 2), []byte("different proof"), 0x10)
+	otherOffering := newCompletionFixture(t, submissionOffering(t, 1), []byte("original proof"), 0x20)
 	cases := []struct {
 		signer   crypto.Signer
 		name     string
@@ -182,9 +183,9 @@ func TestCompletionIssuanceLayerTriadRefusesEveryCrossAgreementSubstitution(t *t
 func TestCompletionVerificationLayerTriadRefusesEveryAuthenticCrossAgreementSubstitution(t *testing.T) {
 	t.Parallel()
 
-	base := newCompletionFixture(t, core.OfferingWitness, []byte("original proof"))
-	otherContent := newCompletionFixture(t, core.OfferingWitness, []byte("different proof"))
-	otherOffering := newCompletionFixture(t, core.OfferingBug, []byte("original proof"))
+	base := newCompletionFixture(t, submissionOffering(t, 2), []byte("original proof"), 0x10)
+	otherContent := newCompletionFixture(t, submissionOffering(t, 2), []byte("different proof"), 0x10)
+	otherOffering := newCompletionFixture(t, submissionOffering(t, 1), []byte("original proof"), 0x20)
 	baseDocument := receiveIssuedCompletion(t, base)
 	otherContentDocument := receiveIssuedCompletion(t, otherContent)
 	otherOfferingDocument := receiveIssuedCompletion(t, otherOffering)
@@ -274,7 +275,7 @@ func TestCompletionAuthenticationLayerTriadZeroValuesNeverProjectEvidence(t *tes
 func TestCompletionDocumentJSONLayerTriadClosesFramingShapeAndExactByteBoundaries(t *testing.T) {
 	t.Parallel()
 
-	fixture := newCompletionFixture(t, core.OfferingWitness, []byte("completion document JSON proof"))
+	fixture := newCompletionFixture(t, submissionOffering(t, 2), []byte("completion document JSON proof"), 0x10)
 	document := receiveIssuedCompletion(t, fixture)
 	encoded, err := document.MarshalJSON()
 	if err != nil {
@@ -287,8 +288,8 @@ func TestCompletionDocumentJSONLayerTriadClosesFramingShapeAndExactByteBoundarie
 	if err != nil {
 		t.Fatalf("json.Marshal(reordered completion document) error = %v, want nil", err)
 	}
-	var indented bytes.Buffer
-	if err := json.Indent(&indented, encoded, "", "  "); err != nil {
+	indented := jsontext.Value(bytes.Clone(encoded))
+	if err := indented.Indent(jsontext.WithIndent("  ")); err != nil {
 		t.Fatalf("json.Indent(completion document) error = %v, want nil", err)
 	}
 	valid := []struct {
@@ -297,7 +298,7 @@ func TestCompletionDocumentJSONLayerTriadClosesFramingShapeAndExactByteBoundarie
 	}{
 		{name: "canonical document", data: encoded},
 		{name: "reordered document members", data: reordered},
-		{name: "indented document", data: indented.Bytes()},
+		{name: "indented document", data: []byte(indented)},
 		{name: "leading space", data: append([]byte(" "), encoded...)},
 		{name: "trailing newline", data: append(bytes.Clone(encoded), '\n')},
 		{name: "carriage return framing", data: append(append([]byte("\r"), encoded...), '\r')},
@@ -369,19 +370,19 @@ func TestCompletionDocumentJSONLayerTriadClosesFramingShapeAndExactByteBoundarie
 func TestCompletionPayloadJSONLayerTriadClosesFramingShapeAndExactByteBoundaries(t *testing.T) {
 	t.Parallel()
 
-	fixture := newCompletionFixture(t, core.OfferingWitness, []byte("completion payload JSON proof"))
+	fixture := newCompletionFixture(t, submissionOffering(t, 2), []byte("completion payload JSON proof"), 0x10)
 	payload := receiveIssuedCompletion(t, fixture).Payload
 	encoded, err := payload.MarshalJSON()
 	if err != nil {
 		t.Fatalf("CompletionPayload.MarshalJSON() error = %v, want nil", err)
 	}
 	reordered, err := json.Marshal(struct {
+		Build         core.BuildIdentity                     `json:"build"`
 		Evidence      objectstore.TransferEvidence           `json:"evidence"`
 		Authorization controlwire.AuthorityNonce             `json:"authorization_nonce"`
 		Capability    objectstore.UploadCapabilityCommitment `json:"capability_commitment"`
 		Nonce         controlwire.RequestNonce               `json:"request_nonce"`
 		Request       RequestCommitment                      `json:"request_commitment"`
-		Build         core.BuildIdentity                     `json:"build"`
 	}{
 		Evidence: payload.Evidence, Authorization: payload.Authorization,
 		Capability: payload.Capability, Nonce: payload.Nonce,
@@ -390,8 +391,8 @@ func TestCompletionPayloadJSONLayerTriadClosesFramingShapeAndExactByteBoundaries
 	if err != nil {
 		t.Fatalf("json.Marshal(reordered completion payload) error = %v, want nil", err)
 	}
-	var indented bytes.Buffer
-	if err := json.Indent(&indented, encoded, "", "  "); err != nil {
+	indented := jsontext.Value(bytes.Clone(encoded))
+	if err := indented.Indent(jsontext.WithIndent("  ")); err != nil {
 		t.Fatalf("json.Indent(completion payload) error = %v, want nil", err)
 	}
 	valid := []struct {
@@ -400,7 +401,7 @@ func TestCompletionPayloadJSONLayerTriadClosesFramingShapeAndExactByteBoundaries
 	}{
 		{name: "canonical payload", data: encoded},
 		{name: "reordered payload members", data: reordered},
-		{name: "indented payload", data: indented.Bytes()},
+		{name: "indented payload", data: []byte(indented)},
 		{name: "leading space", data: append([]byte(" "), encoded...)},
 		{name: "trailing newline", data: append(bytes.Clone(encoded), '\n')},
 		{name: "carriage return framing", data: append(append([]byte("\r"), encoded...), '\r')},
@@ -501,14 +502,14 @@ func receiveCompletionProjection(t testing.TB, projection CompletionProjection) 
 	return document
 }
 
-func newCompletionFixture(t testing.TB, offering core.Offering, content []byte) completionFixture {
+func newCompletionFixture(t testing.TB, offering core.Offering, content []byte, seed byte) completionFixture {
 	t.Helper()
 
 	grantFixture := newGrantFixture(t, grantFixtureRequest{
 		content: content, offering: offering,
-		requestNonceByte:  byte(offering) + 0x20,
-		authorityByte:     byte(offering) + 0x40,
-		authorizationByte: byte(offering) + 0x60,
+		requestNonceByte:  seed + 0x20,
+		authorityByte:     seed + 0x40,
+		authorizationByte: seed + 0x60,
 	})
 	verifiedGrant, err := VerifyGrant(GrantExpectation{
 		Document: grantFixture.document, Request: grantFixture.request,
@@ -518,7 +519,7 @@ func newCompletionFixture(t testing.TB, offering core.Offering, content []byte) 
 	if err != nil {
 		t.Fatalf("VerifyGrant() error = %v, want nil", err)
 	}
-	devicePublic, deviceSigner := testSigningKey(t, byte(offering)+0x70)
+	devicePublic, deviceSigner := testSigningKey(t, seed+0x70)
 	deviceKeys, err := attest.NewTrustedKeys(attest.TrustedKeysRequest{
 		Keys: []core.Ed25519PublicKey{devicePublic},
 	})

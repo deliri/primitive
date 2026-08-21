@@ -378,7 +378,7 @@ func TestTemporalProductionStaysOnGoContextAndTimePrimitives(t *testing.T) {
 	wantImports := []string{
 		"bytes",
 		"context",
-		"encoding/json",
+		"encoding/json/v2",
 		"errors",
 		"github.com/deliri/primitive/v2026/contextstate",
 		"github.com/deliri/primitive/v2026/core",

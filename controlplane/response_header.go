@@ -1,7 +1,7 @@
 package controlplane
 
 import (
-	"encoding/json"
+	json "encoding/json/v2"
 
 	"github.com/deliri/primitive/v2026/controlwire"
 	"github.com/deliri/primitive/v2026/core"
@@ -17,6 +17,8 @@ const ResponseHeaderJSONMaximumBytes = 2 << 10
 // control-plane response carries. A response signature must cover this header
 // and its complete body together, never one without the other.
 type ResponseHeader struct {
+	Offering     core.Offering            `json:"offering"`
+	Policy       controlwire.PolicyCursor `json:"policy"`
 	ProviderTime temporal.Instant         `json:"provider_time"`
 	RequestNonce controlwire.RequestNonce `json:"request_nonce"`
 	Account      receipt.AccountIdentity  `json:"account"`
@@ -24,8 +26,6 @@ type ResponseHeader struct {
 	Revision     controlwire.Revision     `json:"revision"`
 	Family       controlwire.RouteFamily  `json:"route_family"`
 	Status       ProductStatus            `json:"status"`
-	Offering     core.Offering            `json:"offering"`
-	Policy       controlwire.PolicyCursor `json:"policy"`
 }
 
 type responseHeaderWire ResponseHeader
@@ -36,13 +36,13 @@ type responseHeaderWire ResponseHeader
 // PriorProviderTime may be unset, which is the first-contact case. Once set, an
 // authority's clock may not move backward.
 type ResponseExpectation struct {
+	Offering          core.Offering
 	PriorProviderTime temporal.Instant
 	RequestNonce      controlwire.RequestNonce
 	Account           receipt.AccountIdentity
 	Installation      lease.DeviceID
 	Revision          controlwire.Revision
 	Family            controlwire.RouteFamily
-	Offering          core.Offering
 }
 
 // ResponseHeaderField names one bound fact, so a binding failure says which

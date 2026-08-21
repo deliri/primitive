@@ -2,12 +2,13 @@ package submission
 
 import (
 	"bytes"
-	"encoding/json"
+	json "encoding/json/v2"
 	"errors"
 	"io"
 	"strings"
 	"testing"
 
+	"encoding/json/jsontext"
 	"github.com/deliri/primitive/v2026/attest"
 	"github.com/deliri/primitive/v2026/chit"
 	"github.com/deliri/primitive/v2026/core"
@@ -35,7 +36,7 @@ func TestSignedPayloadCanonicalOutputLayerTriad(t *testing.T) {
 	t.Parallel()
 
 	grant := newGrantFixture(t, grantFixtureRequest{})
-	completion := newCompletionFixture(t, core.OfferingWitness, []byte("canonical output proof"))
+	completion := newCompletionFixture(t, submissionOffering(t, 2), []byte("canonical output proof"), 0x10)
 	projection, err := IssueCompletion(CompletionIssuance{
 		Signer: completion.deviceSigner, Transfer: completion.transfer,
 		Request: completion.request, Grant: completion.grant,
@@ -105,17 +106,16 @@ func TestSignedPayloadCanonicalOutputLayerTriad(t *testing.T) {
 	}
 }
 
-// TestRequestAuthenticationLayerTriadAuthenticatesEveryOfferingThroughOneShape proves the blind request
-// protocol has no product arm: every compiler-owned offering crosses the same
-// payload, signature, document, and verification path.
-func TestRequestAuthenticationLayerTriadAuthenticatesEveryOfferingThroughOneShape(t *testing.T) {
+// TestRequestAuthenticationLayerTriadAuthenticatesRepresentativeOpaqueOfferingsThroughOneShape
+// proves the blind request protocol has no product arm.
+func TestRequestAuthenticationLayerTriadAuthenticatesRepresentativeOpaqueOfferingsThroughOneShape(t *testing.T) {
 	t.Parallel()
 
-	for value := 0; value <= 255; value++ {
-		offering := core.Offering(value)
-		if !offering.IsValid() {
-			continue
-		}
+	for value, offering := range []core.Offering{
+		submissionOffering(t, 1),
+		submissionOffering(t, 127),
+		submissionOffering(t, 255),
+	} {
 		t.Run(offering.String(), func(t *testing.T) {
 			t.Parallel()
 
@@ -180,7 +180,7 @@ func TestRequestAuthenticationLayerTriadRefusesEveryValidFactSubstitution(t *tes
 		{
 			name: "different object integrity and extent",
 			payload: testRequestPayload(t, grantFixtureRequest{
-				content: []byte("different proof"), offering: core.OfferingWitness,
+				content: []byte("different proof"), offering: submissionOffering(t, 2),
 				requestNonceByte: 0x31,
 			}),
 		},
@@ -188,13 +188,13 @@ func TestRequestAuthenticationLayerTriadRefusesEveryValidFactSubstitution(t *tes
 		{
 			name: "different build offering",
 			payload: testRequestPayload(t, grantFixtureRequest{
-				offering: core.OfferingBug, requestNonceByte: 0x31,
+				offering: submissionOffering(t, 1), requestNonceByte: 0x31,
 			}),
 		},
 		{
 			name: "different request nonce",
 			payload: testRequestPayload(t, grantFixtureRequest{
-				offering: core.OfferingWitness, requestNonceByte: 0x32,
+				offering: submissionOffering(t, 2), requestNonceByte: 0x32,
 			}),
 		},
 	}
@@ -278,7 +278,7 @@ func TestRequestCommitmentChangesForEveryAuthorizationFact(t *testing.T) {
 	differentCount.Manifest.Objects = manifestObjects(t, 2)
 	mutations := []RequestPayload{
 		testRequestPayload(t, grantFixtureRequest{
-			content: []byte("different proof"), offering: core.OfferingWitness,
+			content: []byte("different proof"), offering: submissionOffering(t, 2),
 			requestNonceByte: 0x31,
 		}),
 		mediaTypeMutation,
@@ -287,10 +287,10 @@ func TestRequestCommitmentChangesForEveryAuthorizationFact(t *testing.T) {
 		differentPosition,
 		differentCount,
 		testRequestPayload(t, grantFixtureRequest{
-			offering: core.OfferingBug, requestNonceByte: 0x31,
+			offering: submissionOffering(t, 1), requestNonceByte: 0x31,
 		}),
 		testRequestPayload(t, grantFixtureRequest{
-			offering: core.OfferingWitness, requestNonceByte: 0x32,
+			offering: submissionOffering(t, 2), requestNonceByte: 0x32,
 		}),
 	}
 	for index, mutation := range mutations {
@@ -423,8 +423,8 @@ func TestRequestJSONBoundaryIsStrictBoundedAndPreserving(t *testing.T) {
 	if err != nil {
 		t.Fatalf("json.Marshal(wrong attestation type fixture) error = %v, want nil", err)
 	}
-	var indented bytes.Buffer
-	if err := json.Indent(&indented, encoded, "", "  "); err != nil {
+	indented := jsontext.Value(bytes.Clone(encoded))
+	if err := indented.Indent(jsontext.WithIndent("  ")); err != nil {
 		t.Fatalf("json.Indent() error = %v, want nil", err)
 	}
 	validCases := []struct {
@@ -437,7 +437,7 @@ func TestRequestJSONBoundaryIsStrictBoundedAndPreserving(t *testing.T) {
 		{name: "leading and trailing newlines", data: append(append([]byte("\n"), encoded...), '\n')},
 		{name: "mixed legal outer whitespace", data: append(append([]byte("\t\r\n"), encoded...), ' ', '\t')},
 		{name: "members in reverse order", data: reordered},
-		{name: "indented object", data: indented.Bytes()},
+		{name: "indented object", data: []byte(indented)},
 		{name: "one byte below document ceiling", data: leftPadJSON(encoded, RequestDocumentJSONMaximumBytes-1)},
 		{name: "exactly at document ceiling", data: leftPadJSON(encoded, RequestDocumentJSONMaximumBytes)},
 		{name: "canonical second decode", data: bytes.Clone(encoded)},

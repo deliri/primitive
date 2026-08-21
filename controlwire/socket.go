@@ -2,7 +2,7 @@ package controlwire
 
 import (
 	"context"
-	"encoding/json"
+	json "encoding/json/v2"
 	"net/http"
 
 	"github.com/deliri/primitive/v2026/core"
@@ -61,8 +61,8 @@ type AuthorityJSONReceiveCall struct {
 // handler can accidentally skip compatibility policy after ingress.
 type RoutedJSONReceive[Body RoutedJSONRequest] struct {
 	exchange.Received[Body]
-	Assessment ProtocolAssessment
 	Replay     ReplayIdentity
+	Assessment ProtocolAssessment
 }
 
 // ControlJSONWriteCall is one authority-side successful control response.

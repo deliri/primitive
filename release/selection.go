@@ -147,8 +147,8 @@ func (r EvaluateRequest) Validate() error {
 // already-known installed identity. It is the only public way to produce a
 // PreparedRelease for an installation that is not the running binary.
 type EvaluateInstalledRequest struct {
-	Evaluate  EvaluateRequest
 	Installed core.BuildIdentity
+	Evaluate  EvaluateRequest
 }
 
 func (r EvaluateInstalledRequest) Validate() error {
@@ -221,13 +221,13 @@ func (c CurrentRelease) Summary() (CurrentSummary, error) {
 // AvailableRelease privately carries every authenticated fact needed to
 // prepare one Upgrade handoff without re-decoding caller data.
 type AvailableRelease struct {
+	installed         core.BuildIdentity
+	installedArtifact Artifact
+	candidateArtifact Artifact
 	installedManifest VerifiedManifest
 	candidateManifest VerifiedManifest
 	latest            VerifiedLatest
-	installedArtifact Artifact
-	candidateArtifact Artifact
 	assessment        LatestAssessment
-	installed         core.BuildIdentity
 	valid             bool
 }
 
@@ -578,9 +578,9 @@ func evaluatePresent(
 }
 
 type selectionComparison struct {
-	request           EvaluateRequest
 	installed         core.BuildIdentity
 	installedArtifact Artifact
+	request           EvaluateRequest
 	assessment        LatestAssessment
 }
 
@@ -607,9 +607,9 @@ func compareSelected(comparison selectionComparison) (Selection, error) {
 }
 
 type currentSelection struct {
+	installedArtifact Artifact
 	installed         VerifiedManifest
 	candidate         VerifiedManifest
-	installedArtifact Artifact
 	assessment        LatestAssessment
 }
 
@@ -654,12 +654,12 @@ func sealSelection(candidate Selection) (Selection, error) {
 
 // PreparedRelease is the authenticated handoff consumed by Upgrade.
 type PreparedRelease struct {
+	artifact          Artifact
 	candidateManifest VerifiedManifest
 	installedManifest VerifiedManifest
 	latest            VerifiedLatest
-	artifact          Artifact
-	observation       temporal.Instant
 	assessment        LatestAssessment
+	observation       temporal.Instant
 	valid             bool
 }
 

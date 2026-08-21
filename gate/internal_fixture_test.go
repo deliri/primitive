@@ -69,9 +69,9 @@ func fixtureInternalAssessment(tb testing.TB, atNanoseconds int64) lease.Assessm
 func fixtureInternalSubject(tb testing.TB) lease.Subject {
 	tb.Helper()
 
-	product, err := lease.NewProduct([lease.IdentifierBytes]byte{1})
-	if err != nil {
-		tb.Fatalf("lease.NewProduct() error = %v, want nil", err)
+	offering := core.Offering{Token: "gate-internal-fixture"}
+	if err := offering.Validate(); err != nil {
+		tb.Fatalf("Offering.Validate() error = %v, want nil", err)
 	}
 	entitlement, err := lease.NewEntitlementID([lease.IdentifierBytes]byte{2})
 	if err != nil {
@@ -82,7 +82,7 @@ func fixtureInternalSubject(tb testing.TB) lease.Subject {
 		tb.Fatalf("lease.NewDeviceID() error = %v, want nil", err)
 	}
 	return lease.Subject{
-		Product: product, EntitlementID: entitlement, DeviceID: device,
+		Offering: offering, EntitlementID: entitlement, DeviceID: device,
 	}
 }
 

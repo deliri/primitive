@@ -13,8 +13,8 @@ type TrialTarget struct {
 	directory core.AbsolutePath
 	command   core.AbsolutePath
 	path      core.RelativePath
-	prior     selectionDocument
 	candidate release.Artifact
+	prior     selectionDocument
 	slot      Slot
 	valid     bool
 }
@@ -109,9 +109,9 @@ func (t TrialTarget) Directory() core.AbsolutePath { return t.directory }
 
 // TrialReport is a product-owned observation of the exact TrialTarget.
 type TrialReport struct {
+	Observed    core.BuildIdentity
 	Target      TrialTarget
 	Observation temporal.Instant
-	Observed    core.BuildIdentity
 	Outcome     TrialOutcome
 }
 

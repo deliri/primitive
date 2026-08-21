@@ -1,10 +1,12 @@
 package controlwire_test
 
 import (
-	"encoding/json"
+	json "encoding/json/v2"
 	"errors"
 	"strings"
 	"testing"
+
+	"encoding/json/jsontext"
 
 	"github.com/deliri/primitive/v2026/controlwire"
 	"github.com/deliri/primitive/v2026/core"
@@ -151,7 +153,7 @@ func TestRevisionMarshalJSONRefusesToGuessAContract(t *testing.T) {
 		if !errors.Is(err, core.ErrJSONContract) {
 			t.Errorf("json.Marshal(Revision(%d)) error = %v, want %v", revision, err, core.ErrJSONContract)
 		}
-		if encoded != nil {
+		if len(encoded) != 0 {
 			t.Errorf("json.Marshal(Revision(%d)) = %s, want no bytes", revision, encoded)
 		}
 	}
@@ -180,12 +182,12 @@ func TestRevisionUnmarshalJSONLeavesTheReceiverUnchangedOnRejection(t *testing.T
 		{name: "array is refused", document: `["2026.1"]`},
 		{name: "array of one token is refused", document: `["2026.1","2026.1"]`},
 		{name: "unterminated string is refused", document: `"2026.1`, wantSyntax: true},
-		{name: "unopened string is refused", document: `2026.1"`, wantSyntax: true},
+		{name: "unopened string is refused as a type mismatch", document: `2026.1"`},
 		{name: "whitespace-padded token is refused after decoding", document: `" 2026.1 "`},
 		{name: "future revision token is refused", document: `"2026.2"`},
 		{name: "lease revision token is refused", document: `"v1"`},
-		{name: "unpaired high surrogate is refused", document: `"\ud800"`},
-		{name: "unpaired low surrogate is refused", document: `"\udc00"`},
+		{name: "unpaired high surrogate is refused by JSON v2 syntax", document: `"\ud800"`, wantSyntax: true},
+		{name: "unpaired low surrogate is refused by JSON v2 syntax", document: `"\udc00"`, wantSyntax: true},
 		{name: "escaped null byte suffix is refused", document: `"2026.1\u0000"`},
 		{name: "trailing content after token is refused", document: `"2026.1"trailing`, wantSyntax: true},
 	}
@@ -208,10 +210,10 @@ func TestRevisionUnmarshalJSONLeavesTheReceiverUnchangedOnRejection(t *testing.T
 				}
 				return
 			}
-			var syntax *json.SyntaxError
+			var syntax *jsontext.SyntacticError
 			if tc.wantSyntax {
 				if !errors.As(err, &syntax) {
-					t.Fatalf("json.Unmarshal(%s) error = %v, want errors.As *json.SyntaxError", tc.document, err)
+					t.Fatalf("json.Unmarshal(%s) error = %v, want errors.As *jsontext.SyntacticError", tc.document, err)
 				}
 			} else if !errors.Is(err, core.ErrControlWireRevision) || !errors.Is(err, core.ErrJSONContract) {
 				t.Fatalf("json.Unmarshal(%s) error = %v, want errors.Is %v and %v", tc.document, err,

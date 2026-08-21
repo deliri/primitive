@@ -14,10 +14,10 @@ import (
 // keys, the signatures are produced by Attest over the real canonical bytes,
 // and verification runs the same path a customer binary runs.
 type issuedRegistration struct {
-	document    controlplane.RegistrationDocument
 	expectation controlplane.ResponseExpectation
-	trusted     attest.TrustedKeys
 	build       core.BuildIdentity
+	document    controlplane.RegistrationDocument
+	trusted     attest.TrustedKeys
 	deviceKey   core.Ed25519PublicKey
 }
 
@@ -88,7 +88,7 @@ func TestVerifyRegistrationAcceptsOnlyAResponseToThisExactRequest(t *testing.T) 
 		t.Parallel()
 
 		request := issued.verification()
-		request.Expected.Offering = core.OfferingBug
+		request.Expected.Offering = controlplaneOffering(t, 1)
 
 		requireBindingRefusal(t, request, controlplane.ResponseHeaderFieldOffering)
 	})

@@ -14,8 +14,8 @@ import (
 // authority's selected policy cursor; Primitive compares it but never
 // interprets what the policy means.
 type CheckInCommitRequest struct {
-	CheckIn        VerifiedCheckIn
 	Current        UsageWatermark
+	CheckIn        VerifiedCheckIn
 	RequiredPolicy controlwire.PolicyCursor
 }
 
@@ -23,8 +23,8 @@ type CheckInCommitRequest struct {
 // authenticated check-in with authoritative usage and policy facts. It owns no
 // storage and performs no effect.
 type VerifiedCheckInCommit struct {
-	request     CheckInCommitRequest
 	watermark   UsageWatermark
+	request     CheckInCommitRequest
 	disposition UsageDisposition
 }
 
@@ -32,9 +32,9 @@ type VerifiedCheckInCommit struct {
 // verified usage commit. Disposition and watermark are derived from Commit and
 // cannot be repeated or substituted by the caller.
 type CheckInResponsePreparation struct {
-	Commit VerifiedCheckInCommit
 	Header ResponseHeader
 	Lease  lease.Document
+	Commit VerifiedCheckInCommit
 }
 
 // Validate closes all inputs before the authority uses them in its own

@@ -5,7 +5,7 @@ import (
 	"crypto/x509/pkix"
 	"encoding/asn1"
 	"encoding/base64"
-	"encoding/json"
+	json "encoding/json/v2"
 
 	"github.com/deliri/primitive/v2026/core"
 )

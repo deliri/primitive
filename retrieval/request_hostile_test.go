@@ -21,8 +21,8 @@ const (
 
 type retrievalRequestFixture struct {
 	private ed25519.PrivateKey
-	trusted attest.TrustedKeys
 	payload RequestPayload
+	trusted attest.TrustedKeys
 }
 
 type retrievalRequestFixtureRequest struct {
@@ -387,8 +387,8 @@ func marshalReorderedRetrievalRequest(t *testing.T, document RequestDocument) []
 	t.Helper()
 
 	encoded, gotErr := core.MarshalCanonicalJSONDocument(struct {
-		Attestation attest.Envelope[SigningDomain] `json:"attestation"`
 		Payload     RequestPayload                 `json:"payload"`
+		Attestation attest.Envelope[SigningDomain] `json:"attestation"`
 	}{Attestation: document.Attestation, Payload: document.Payload})
 	if gotErr != nil {
 		t.Fatalf("core.MarshalCanonicalJSONDocument(reordered request) error = %v, want nil", gotErr)
@@ -437,7 +437,7 @@ func newRetrievalRequestFixture(
 			OperatingSystem: core.OperatingSystemLinux,
 			Architecture:    core.CPUArchitectureAMD64,
 		},
-		Offering: core.OfferingWitness,
+		Offering: retrievalOffering(t, 2),
 	})
 	if err != nil {
 		t.Fatalf("core.NewBuildIdentity() error = %v, want nil", err)

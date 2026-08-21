@@ -1,7 +1,7 @@
 package submission
 
 import (
-	"encoding/json"
+	json "encoding/json/v2"
 	"errors"
 
 	"github.com/deliri/primitive/v2026/attest"
@@ -145,11 +145,11 @@ func UploadDecision(grant GrantProjection) (DecisionProjection, error) {
 // declaration an authority must prove before it may disclose accepted-object
 // evidence instead of issuing a fresh upload grant.
 type ReuseDecisionRequest struct {
+	Offering    core.Offering
 	Declaration Declaration
-	TrustedKeys attest.TrustedKeys
 	Evidence    receipt.EvidenceDocument
+	TrustedKeys attest.TrustedKeys
 	Account     receipt.AccountIdentity
-	Offering    receipt.OfferingIdentity
 }
 
 func (r ReuseDecisionRequest) Validate() error {
@@ -234,11 +234,11 @@ func (p DecisionProjection) marshalJSON() ([]byte, error) {
 // existence oracle.
 type DecisionExpectation struct {
 	Decision    DecisionDocument
+	Offering    core.Offering
 	Request     RequestPayload
-	Account     receipt.AccountIdentity
-	Offering    receipt.OfferingIdentity
-	ObservedAt  temporal.Instant
 	TrustedKeys attest.TrustedKeys
+	ObservedAt  temporal.Instant
+	Account     receipt.AccountIdentity
 }
 
 func (e DecisionExpectation) Validate() error {

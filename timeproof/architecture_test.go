@@ -88,7 +88,7 @@ func TestTimeproofProductionStructsHaveCompilerVisibleDataFlowRoles(
 		"encoding/asn1",
 		"encoding/base64",
 		"encoding/hex",
-		"encoding/json",
+		"encoding/json/v2",
 		"encoding/pem",
 		"errors",
 		"github.com/deliri/primitive/v2026/core",

@@ -1,7 +1,7 @@
 package receipt
 
 import (
-	"encoding/json"
+	json "encoding/json/v2"
 	"errors"
 
 	"github.com/deliri/primitive/v2026/core"
@@ -9,8 +9,8 @@ import (
 
 const (
 	scopeCanonicalJSONMaximumBytes = len(
-		`{"account_identity":"","offering_identity":""}`,
-	) + 2*LifecycleIdentityHexBytes
+		`{"account_identity":"","offering":}`,
+	) + LifecycleIdentityHexBytes + core.OfferingCanonicalJSONMaximumBytes
 	// WatermarkCanonicalJSONMaximumBytes is the exact compact watermark bound.
 	WatermarkCanonicalJSONMaximumBytes = len(
 		`{"revision":"","scope":,"generation":,"cursor_digest":"","chain_hash":""}`,
@@ -113,8 +113,8 @@ func (h *ChainHash) UnmarshalJSON(data []byte) error {
 
 // Scope is the exact account and offering sequence namespace.
 type Scope struct {
-	Account  AccountIdentity  `json:"account_identity"`
-	Offering OfferingIdentity `json:"offering_identity"`
+	Offering core.Offering   `json:"offering"`
+	Account  AccountIdentity `json:"account_identity"`
 }
 
 func (s Scope) Validate() error {
@@ -168,8 +168,8 @@ func (s *Scope) UnmarshalJSON(data []byte) error {
 
 // Watermark is one fixed-size durable high-water fact.
 type Watermark struct {
-	Generation   Generation   `json:"generation"`
 	Scope        Scope        `json:"scope"`
+	Generation   Generation   `json:"generation"`
 	CursorDigest CursorDigest `json:"cursor_digest"`
 	ChainHash    ChainHash    `json:"chain_hash"`
 	Revision     Revision     `json:"revision"`
@@ -189,14 +189,14 @@ type watermarkWire struct {
 
 // scopeWire fixes the canonical member order of the nested scope object.
 type scopeWire struct {
-	Account  *AccountIdentity  `json:"account_identity"`
-	Offering *OfferingIdentity `json:"offering_identity"`
+	Account  *AccountIdentity `json:"account_identity"`
+	Offering *core.Offering   `json:"offering"`
 }
 
 // WatermarkRequest carries exact initial watermark facts.
 type WatermarkRequest struct {
-	Generation   Generation
 	Scope        Scope
+	Generation   Generation
 	CursorDigest CursorDigest
 	ChainHash    ChainHash
 }

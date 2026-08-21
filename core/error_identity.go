@@ -184,9 +184,6 @@ const (
 	ErrLeaseScope
 	// ErrLeaseClock identifies a local clock contradiction.
 	ErrLeaseClock
-	// ErrLeaseProduct identifies an offering/product projection that is absent
-	// from or contradictory within the published Lease product catalog.
-	ErrLeaseProduct
 
 	// ErrGateContract identifies a new-work Gate contract violation.
 	ErrGateContract
@@ -473,7 +470,6 @@ func errorIdentityDiagnostics() [errorIdentityLimit]errorIdentityDiagnostic {
 		{identity: ErrLeaseConflict, text: "lease identity conflict"},
 		{identity: ErrLeaseScope, text: "lease subject mismatch"},
 		{identity: ErrLeaseClock, text: "lease clock contradiction"},
-		{identity: ErrLeaseProduct, text: "lease product projection rejected"},
 		{identity: ErrGateContract, text: "gate contract violation"},
 		{identity: ErrGateDenied, text: "gate denied new work"},
 		{identity: ErrProcessContract, text: "process contract violation"},
@@ -828,7 +824,7 @@ func errorIdentityParentsFuzzFinderThroughObjectStore(identity ErrorIdentity) er
 		return oneErrorIdentityParent(ErrFuzzFinderContract)
 	}
 	if errorIdentityIn(identity, ErrLeaseVerification, ErrLeaseRollback, ErrLeaseConflict,
-		ErrLeaseScope, ErrLeaseClock, ErrLeaseProduct) {
+		ErrLeaseScope, ErrLeaseClock) {
 		return oneErrorIdentityParent(ErrLeaseContract)
 	}
 	if identity == ErrGateDenied {

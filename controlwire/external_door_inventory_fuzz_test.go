@@ -2,7 +2,7 @@ package controlwire
 
 import (
 	"bytes"
-	"encoding/json"
+	json "encoding/json/v2"
 	"errors"
 	"go/ast"
 	"go/parser"
@@ -63,8 +63,8 @@ func (d controlwireJSONDoor) receiverName() string {
 
 type controlwireFuzzFixtures struct {
 	token          RegistrationToken
-	policyCursor   PolicyCursor
 	replayIdentity ReplayIdentity
+	policyCursor   PolicyCursor
 	requestNonce   RequestNonce
 	authorityNonce AuthorityNonce
 	verifier       RegistrationTokenVerifier
@@ -387,7 +387,7 @@ func controlwireFixturesForFuzz(t testing.TB) controlwireFuzzFixtures {
 		t.Fatalf("commitCanonicalRequest() error = %v, want nil", err)
 	}
 	replayIdentity := ReplayIdentity{
-		commitment: commitment, nonce: requestNonce, offering: core.OfferingWitness,
+		commitment: commitment, nonce: requestNonce, offering: controlwireOfferingFixture(t, 4),
 		family: RouteFamilyRegistrations, revision: Revision2026V1,
 	}
 	if err := replayIdentity.Validate(); err != nil {

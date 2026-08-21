@@ -1,10 +1,12 @@
 package controlwire_test
 
 import (
-	"encoding/json"
+	json "encoding/json/v2"
 	"errors"
 	"strings"
 	"testing"
+
+	"encoding/json/jsontext"
 
 	"github.com/deliri/primitive/v2026/controlwire"
 	"github.com/deliri/primitive/v2026/core"
@@ -317,7 +319,7 @@ func TestPolicyCursorJSONBoundaryRefusesEveryMalformedDocument(t *testing.T) {
 		{name: "the document a control plane emits", document: valid},
 		{name: "the largest activation", document: `{"revision":"` + policyRevisionRealWorld + `","activation":18446744073709551615}`},
 
-		{name: "an empty document is refused", document: ``, wantErr: &json.SyntaxError{}},
+		{name: "an empty document is refused", document: ``, wantErr: &jsontext.SyntacticError{}},
 		{name: "null is refused", document: `null`, wantErr: core.ErrControlWirePolicyCursor},
 		{name: "an empty object is refused", document: `{}`, wantErr: core.ErrControlWirePolicyCursor},
 		{name: "a bare string is refused", document: `"` + policyRevisionRealWorld + `"`, wantErr: core.ErrControlWirePolicyCursor},
@@ -332,13 +334,13 @@ func TestPolicyCursorJSONBoundaryRefusesEveryMalformedDocument(t *testing.T) {
 		{name: "a negative activation is refused", document: `{"revision":"` + policyRevisionRealWorld + `","activation":-1}`, wantErr: core.ErrControlWirePolicyCursor},
 		{name: "a fractional activation is refused", document: `{"revision":"` + policyRevisionRealWorld + `","activation":1.5}`, wantErr: core.ErrControlWirePolicyCursor},
 		{name: "an exponent activation is refused", document: `{"revision":"` + policyRevisionRealWorld + `","activation":1e2}`, wantErr: core.ErrControlWirePolicyCursor},
-		{name: "a leading-zero activation is refused", document: `{"revision":"` + policyRevisionRealWorld + `","activation":01}`, wantErr: &json.SyntaxError{}},
+		{name: "a leading-zero activation is refused", document: `{"revision":"` + policyRevisionRealWorld + `","activation":01}`, wantErr: &jsontext.SyntacticError{}},
 		{name: "an activation past the counter width is refused", document: `{"revision":"` + policyRevisionRealWorld + `","activation":18446744073709551616}`, wantErr: core.ErrControlWirePolicyCursor},
 		{name: "an unknown field is refused", document: `{"revision":"` + policyRevisionRealWorld + `","activation":1,"mode":"open"}`, wantErr: core.ErrControlWirePolicyCursor},
 		{name: "a lowercase revision is refused", document: `{"revision":"` + strings.ToLower(policyRevisionRealWorld) + `","activation":1}`, wantErr: core.ErrControlWirePolicyCursor},
 		{name: "a nested object is refused", document: `{"revision":{"revision":"` + policyRevisionRealWorld + `"},"activation":1}`, wantErr: core.ErrControlWirePolicyCursor},
-		{name: "trailing content is refused", document: valid + `{}`, wantErr: &json.SyntaxError{}},
-		{name: "a truncated document is refused", document: valid[:len(valid)-1], wantErr: &json.SyntaxError{}},
+		{name: "trailing content is refused", document: valid + `{}`, wantErr: &jsontext.SyntacticError{}},
+		{name: "a truncated document is refused", document: valid[:len(valid)-1], wantErr: &jsontext.SyntacticError{}},
 	}
 
 	for _, testCase := range cases {
@@ -363,10 +365,10 @@ func TestPolicyCursorJSONBoundaryRefusesEveryMalformedDocument(t *testing.T) {
 				}
 				return
 			}
-			if _, syntax := testCase.wantErr.(*json.SyntaxError); syntax {
-				var gotSyntax *json.SyntaxError
+			if _, syntax := testCase.wantErr.(*jsontext.SyntacticError); syntax {
+				var gotSyntax *jsontext.SyntacticError
 				if !errors.As(err, &gotSyntax) {
-					t.Fatalf("json.Unmarshal(%s) error = %v, want *json.SyntaxError", testCase.document, err)
+					t.Fatalf("json.Unmarshal(%s) error = %v, want *jsontext.SyntacticError", testCase.document, err)
 				}
 			} else if !errors.Is(err, testCase.wantErr) || !errors.Is(err, core.ErrJSONContract) {
 				t.Fatalf("json.Unmarshal(%s) error = %v, want %v/%v", testCase.document, err, testCase.wantErr, core.ErrJSONContract)
@@ -399,7 +401,7 @@ func TestPolicyCursorRefusesToEmitAnUnsetValue(t *testing.T) {
 		if !errors.Is(err, core.ErrControlWirePolicyCursor) || !errors.Is(err, core.ErrJSONContract) {
 			t.Errorf("json.Marshal(unset %s) error = %v, want %v/%v", subject.name, err, core.ErrControlWirePolicyCursor, core.ErrJSONContract)
 		}
-		if encoded != nil {
+		if len(encoded) != 0 {
 			t.Errorf("json.Marshal(unset %s) = %s, want no bytes", subject.name, encoded)
 		}
 	}

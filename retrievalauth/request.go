@@ -1,7 +1,7 @@
 package retrievalauth
 
 import (
-	"encoding/json"
+	json "encoding/json/v2"
 	"errors"
 
 	"github.com/deliri/primitive/v2026/attest"
@@ -18,8 +18,8 @@ const (
 )
 
 type RequestDocument struct {
-	Request     retrieval.RequestDocument                    `json:"request"`
 	Certificate controlplane.InstallationCertificateDocument `json:"certificate"`
+	Request     retrieval.RequestDocument                    `json:"request"`
 }
 
 func (d RequestDocument) Validate() error {
@@ -54,8 +54,8 @@ func (RequestDocument) ControlRequestBodyLimit() (core.ByteCount, error) {
 }
 
 type RequestAssembly struct {
-	Request     retrieval.RequestDocument
 	Certificate controlplane.InstallationCertificateDocument
+	Request     retrieval.RequestDocument
 }
 
 func (a RequestAssembly) Validate() error {
@@ -118,8 +118,8 @@ func (v Verification) Validate() error {
 
 type Verified struct {
 	document         RequestDocument
-	requestProof     attest.Verified[retrieval.SigningDomain]
 	certificateProof controlplane.VerifiedInstallationCertificate
+	requestProof     attest.Verified[retrieval.SigningDomain]
 }
 
 func Verify(verification Verification) (Verified, error) {

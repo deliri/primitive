@@ -36,10 +36,10 @@ const (
 type issuedCheckIn struct {
 	device      ed25519.PrivateKey
 	authority   ed25519.PrivateKey
-	request     controlplane.CheckInRequest
-	certificate controlplane.InstallationCertificateDocument
-	trusted     attest.TrustedKeys
 	subject     lease.Subject
+	certificate controlplane.InstallationCertificateDocument
+	request     controlplane.CheckInRequest
+	trusted     attest.TrustedKeys
 }
 
 // issueTestCheckIn builds one complete check-in for the named offering.
@@ -95,10 +95,6 @@ func issueTestCheckIn(
 func testSubject(t testing.TB, offering core.Offering, deviceKey core.Ed25519PublicKey) lease.Subject {
 	t.Helper()
 
-	product, err := lease.ProductForOffering(offering)
-	if err != nil {
-		t.Fatalf("ProductForOffering(%v) error = %v, want nil", offering, err)
-	}
 	entitlement, err := lease.ParseEntitlementID(checkInEntitlementHex)
 	if err != nil {
 		t.Fatalf("ParseEntitlementID() error = %v, want nil", err)
@@ -107,7 +103,7 @@ func testSubject(t testing.TB, offering core.Offering, deviceKey core.Ed25519Pub
 	if err != nil {
 		t.Fatalf("DeviceIDForPublicKey() error = %v, want nil", err)
 	}
-	return lease.Subject{Product: product, EntitlementID: entitlement, DeviceID: device}
+	return lease.Subject{Offering: offering, EntitlementID: entitlement, DeviceID: device}
 }
 
 // testBuildForOffering takes the golden build and changes only its offering, so
@@ -198,20 +194,16 @@ func testCheckInWindow() controlplane.UsageWindow {
 // a field. If a product ever needed its own type, function, or arm, this test is
 // where that would show up as a compile error rather than as a design nobody
 // re-examined.
-func TestCheckInCarriesEveryOfferingThroughOneShape(t *testing.T) {
+func TestCheckInOfferingLayerTriadCarriesRepresentativeOpaqueOfferingsThroughOneShape(t *testing.T) {
 	t.Parallel()
 
-	// The offering list is derived by walking the closed byte domain, never
-	// spelled, so a product added to core.Offering joins this obliviousness
-	// proof without anyone remembering to add it here.
-	var offerings []core.Offering
-	for value := 0; value <= 255; value++ {
-		if offering := core.Offering(value); offering.IsValid() {
-			offerings = append(offerings, offering)
-		}
+	offerings := []core.Offering{
+		controlplaneOffering(t, 1),
+		controlplaneOffering(t, 127),
+		controlplaneOffering(t, 255),
 	}
 	if len(offerings) < 3 {
-		t.Fatalf("admitted offerings = %d, want at least the three shipped products", len(offerings))
+		t.Fatalf("admitted offerings = %d, want at least three distinct opaque offerings", len(offerings))
 	}
 	for _, offering := range offerings {
 		t.Run(offering.String(), func(t *testing.T) {
@@ -352,7 +344,7 @@ func TestCheckInRefusesEveryTamperedFact(t *testing.T) {
 		t.Run(testCase.name, func(t *testing.T) {
 			t.Parallel()
 
-			issued := issueTestCheckIn(t, core.OfferingPeachfuzz, testCheckInWindow())
+			issued := issueTestCheckIn(t, controlplaneOffering(t, 3), testCheckInWindow())
 			if _, err := controlplane.VerifyCheckIn(controlplane.CheckInVerification{
 				Request: issued.request, TrustedKeys: issued.trusted,
 			}); err != nil {

@@ -4,13 +4,13 @@ import (
 	"bytes"
 	"context"
 	"crypto/ed25519"
-	"encoding/json"
 	"errors"
 	"net/http"
 	"net/http/httptest"
 	"os"
 	"testing"
 
+	"encoding/json/jsontext"
 	"github.com/deliri/primitive/v2026/controlplane"
 	"github.com/deliri/primitive/v2026/controlplanetest"
 	"github.com/deliri/primitive/v2026/controlwire"
@@ -365,8 +365,8 @@ func validSocketRequestBodies(t testing.TB, request controlplane.RegistrationReq
 	if err != nil {
 		t.Fatalf("RegistrationRequest.MarshalJSON() error = %v, want nil", err)
 	}
-	var indented bytes.Buffer
-	if err := json.Indent(&indented, canonical, "", "  "); err != nil {
+	indented := jsontext.Value(bytes.Clone(canonical))
+	if err := indented.Indent(jsontext.WithIndent("  ")); err != nil {
 		t.Fatalf("json.Indent(compiler-produced request) error = %v, want nil", err)
 	}
 	return []validSocketRequestBody{
@@ -374,7 +374,7 @@ func validSocketRequestBodies(t testing.TB, request controlplane.RegistrationReq
 		{name: "one leading space", body: append([]byte{' '}, canonical...)},
 		{name: "one trailing newline", body: append(bytes.Clone(canonical), '\n')},
 		{name: "mixed outer whitespace", body: append(append([]byte{'\t', '\r'}, canonical...), '\n', ' ')},
-		{name: "indented typed document", body: indented.Bytes()},
+		{name: "indented typed document", body: []byte(indented)},
 		{name: "one below request ceiling", body: padSocketRequest(canonical, controlplane.RegistrationRequestJSONMaximumBytes-1)},
 		{name: "exact request ceiling", body: padSocketRequest(canonical, controlplane.RegistrationRequestJSONMaximumBytes)},
 		{name: "half request ceiling", body: padSocketRequest(canonical, controlplane.RegistrationRequestJSONMaximumBytes/2)},
@@ -657,8 +657,8 @@ type receiveOracleResult struct {
 type receiveOracleInput struct {
 	key         string
 	document    []byte
-	bodyLimit   uint64
 	route       controlwire.RouteContract
+	bodyLimit   uint64
 	pathMode    uint8
 	methodMode  uint8
 	contentMode uint8
@@ -752,7 +752,7 @@ func productionSocketFixture(t testing.TB) socketFixture {
 		deviceSeed[index] = 0x51
 	}
 	installation, err := controlplanetest.IssueInstallation(controlplanetest.InstallationRequest{
-		AuthoritySeed: authoritySeed, DeviceSeed: deviceSeed, Offering: core.OfferingWitness,
+		AuthoritySeed: authoritySeed, DeviceSeed: deviceSeed, Offering: controlwireExternalOfferingFixture(t, 1),
 	})
 	if err != nil {
 		t.Fatalf("controlplanetest.IssueInstallation() error = %v, want nil", err)

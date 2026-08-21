@@ -3,7 +3,7 @@ package retrieval
 import (
 	"bytes"
 	"crypto/ed25519"
-	"encoding/json"
+	json "encoding/json/v2"
 	"errors"
 	"hash/crc32"
 	"io"
@@ -29,14 +29,14 @@ type downloadCallFixture struct {
 	private      ed25519.PrivateKey
 	payload      []byte
 	capability   objectstore.DownloadCapabilityProjection
-	grantPayload GrantPayload
+	request      RequestPayload
 	addition     chit.ManifestAddition
 	membership   chit.VerifiedManifestEntry
+	chit         chit.Verified
+	grantPayload GrantPayload
 	document     GrantDocument
 	grant        VerifiedGrant
 	trusted      attest.TrustedKeys
-	chit         chit.Verified
-	request      RequestPayload
 	policy       objectstore.Policy
 }
 
@@ -296,7 +296,7 @@ func retrievalManifestAddition(t testing.TB, request retrievalEvidenceRequest) (
 	t.Helper()
 	scope := receipt.Scope{
 		Account:  retrievalLifecycleIdentity(t, 0x21, receipt.NewAccountIdentity),
-		Offering: retrievalOfferingIdentity(t, core.OfferingPeachfuzz),
+		Offering: retrievalOfferingIdentity(t, retrievalOffering(t, 3)),
 	}
 	extent, err := core.NewByteLength(uint64(len(request.Payload)))
 	if err != nil {
@@ -341,21 +341,19 @@ func retrievalManifestAddition(t testing.TB, request retrievalEvidenceRequest) (
 	return chit.ManifestAddition{Entry: entry, Evidence: verified}, scope
 }
 
-func retrievalOfferingIdentity(t testing.TB, offering core.Offering) receipt.OfferingIdentity {
+func retrievalOfferingIdentity(t testing.TB, offering core.Offering) core.Offering {
 	t.Helper()
-
-	identity, err := receipt.OfferingIdentityFor(offering)
-	if err != nil {
-		t.Fatalf("receipt.OfferingIdentityFor(%v) error = %v, want nil", offering, err)
+	if err := offering.Validate(); err != nil {
+		t.Fatalf("Offering.Validate() error = %v, want nil", err)
 	}
-	return identity
+	return offering
 }
 
 type retrievalChitRequest struct {
-	Private ed25519.PrivateKey
-	Trusted attest.TrustedKeys
-	Request RequestPayload
 	Scope   receipt.Scope
+	Private ed25519.PrivateKey
+	Request RequestPayload
+	Trusted attest.TrustedKeys
 	Summary chit.ManifestSummary
 }
 

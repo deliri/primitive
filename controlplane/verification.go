@@ -13,11 +13,11 @@ import (
 // naming the request it made, the build it is, and the key it holds would be
 // checking only that somebody signed something.
 type RegistrationVerification struct {
-	Document    RegistrationDocument
 	Expected    ResponseExpectation
 	Build       core.BuildIdentity
-	DeviceKey   core.Ed25519PublicKey
+	Document    RegistrationDocument
 	TrustedKeys attest.TrustedKeys
+	DeviceKey   core.Ed25519PublicKey
 }
 
 // VerifiedRegistration is returned only after the response, the credential when
@@ -28,9 +28,9 @@ type RegistrationVerification struct {
 // that verification happened rather than a claim that it did.
 type VerifiedRegistration struct {
 	payload          RegistrationPayload
+	leaseProof       lease.Verified
 	responseProof    attest.Verified[SigningDomain]
 	certificateProof attest.Verified[SigningDomain]
-	leaseProof       lease.Verified
 }
 
 // Validate closes the verification request's own shape.

@@ -2,7 +2,7 @@ package release
 
 import (
 	"bytes"
-	"encoding/json"
+	json "encoding/json/v2"
 	"errors"
 	"testing"
 
@@ -55,7 +55,7 @@ func FuzzLatestDocumentJSON(f *testing.F) {
 		verified, verifyErr := VerifyLatest(VerifyLatestRequest{
 			Document: roundTrip, LatestKeys: fixture.latestTrust,
 			ManifestKeys:     fixture.manifestTrust,
-			ExpectedOffering: core.OfferingWitness,
+			ExpectedOffering: releaseOffering(t, 2),
 		})
 		if verifyErr != nil {
 			if !errors.Is(verifyErr, core.ErrReleaseVerification) {

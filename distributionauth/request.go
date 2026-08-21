@@ -1,7 +1,7 @@
 package distributionauth
 
 import (
-	"encoding/json"
+	json "encoding/json/v2"
 	"errors"
 
 	"github.com/deliri/primitive/v2026/attest"
@@ -39,13 +39,13 @@ type VerifiedUpdate struct {
 }
 
 type UpgradeRequestDocument struct {
-	Request     distribution.UpgradeRequestDocument          `json:"request"`
 	Certificate controlplane.InstallationCertificateDocument `json:"certificate"`
+	Request     distribution.UpgradeRequestDocument          `json:"request"`
 }
 
 type UpgradeRequestAssembly struct {
-	Request     distribution.UpgradeRequestDocument
 	Certificate controlplane.InstallationCertificateDocument
+	Request     distribution.UpgradeRequestDocument
 }
 
 type UpgradeVerification struct {

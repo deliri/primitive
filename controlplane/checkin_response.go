@@ -2,7 +2,7 @@ package controlplane
 
 import (
 	"crypto/ed25519"
-	"encoding/json"
+	json "encoding/json/v2"
 	"errors"
 	"io"
 
@@ -129,9 +129,9 @@ func (d *UsageDisposition) UnmarshalJSON(data []byte) error {
 // check-in.
 type CheckInResponsePayload struct {
 	Header      ResponseHeader   `json:"header"`
-	Disposition UsageDisposition `json:"disposition"`
 	Watermark   UsageWatermark   `json:"watermark"`
 	Lease       lease.Document   `json:"lease"`
+	Disposition UsageDisposition `json:"disposition"`
 }
 
 // CheckInResponseDocument is the response payload with its authority signature.
@@ -156,8 +156,8 @@ func (d CheckInResponseDocument) ValidateJSONProjection(
 // CheckInResponseVerification is the complete input one caller supplies to
 // authenticate a response against the request that produced it.
 type CheckInResponseVerification struct {
-	Document    CheckInResponseDocument
 	Expected    ResponseExpectation
+	Document    CheckInResponseDocument
 	TrustedKeys attest.TrustedKeys
 }
 
@@ -166,8 +166,8 @@ type CheckInResponseVerification struct {
 // verification.
 type VerifiedCheckInResponse struct {
 	payload       CheckInResponsePayload
-	responseProof attest.Verified[SigningDomain]
 	leaseProof    lease.Verified
+	responseProof attest.Verified[SigningDomain]
 }
 
 type (
@@ -203,13 +203,12 @@ func (p CheckInResponsePayload) validateDecisionAgreement() error {
 	if err != nil {
 		return checkInResponseError(err)
 	}
-	product, err := lease.ProductForOffering(p.Header.Offering)
-	if err != nil || header.Subject.Product != product ||
+	if header.Subject.Offering != p.Header.Offering ||
 		header.Subject != p.Watermark.Subject ||
 		header.Subject.DeviceID != p.Header.Installation ||
 		header.Generation != p.Watermark.Generation ||
 		header.IssuedAt != p.Header.ProviderTime {
-		return consistencyError(err)
+		return consistencyError()
 	}
 	return nil
 }

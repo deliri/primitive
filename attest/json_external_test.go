@@ -3,12 +3,14 @@ package attest_test
 import (
 	"bytes"
 	"encoding/hex"
-	"encoding/json"
+	json "encoding/json/v2"
 	"errors"
 	"io"
 	"strconv"
 	"strings"
 	"testing"
+
+	"encoding/json/jsontext"
 
 	"github.com/deliri/primitive/v2026/attest"
 	"github.com/deliri/primitive/v2026/core"
@@ -344,11 +346,11 @@ func maximumExtentEnvelopeFixture(t testing.TB) attest.Envelope[textDomain] {
 func indentJSONFixture(prefix string, indent string) envelopeJSONFixture {
 	return func(t testing.TB, input []byte) []byte {
 		t.Helper()
-		var indented bytes.Buffer
-		if err := json.Indent(&indented, input, prefix, indent); err != nil {
+		indented := jsontext.Value(bytes.Clone(input))
+		if err := indented.Indent(jsontext.WithIndentPrefix(prefix), jsontext.WithIndent(indent)); err != nil {
 			t.Fatalf("json.Indent() error = %v, want nil", err)
 		}
-		return indented.Bytes()
+		return []byte(indented)
 	}
 }
 
@@ -703,19 +705,19 @@ func (m envelopeJSONMember) text() string {
 }
 
 type envelopeJSONParts struct {
-	Domain     json.RawMessage `json:"domain"`
-	Signer     json.RawMessage `json:"signer"`
-	BodyLength json.RawMessage `json:"body_length_bytes"`
-	BodySHA256 json.RawMessage `json:"body_sha256"`
-	Signature  json.RawMessage `json:"signature"`
+	Domain     jsontext.Value `json:"domain"`
+	Signer     jsontext.Value `json:"signer"`
+	BodyLength jsontext.Value `json:"body_length_bytes"`
+	BodySHA256 jsontext.Value `json:"body_sha256"`
+	Signature  jsontext.Value `json:"signature"`
 }
 
 type optionalEnvelopeJSONParts struct {
-	Domain     json.RawMessage `json:"domain,omitempty"`
-	Signer     json.RawMessage `json:"signer,omitempty"`
-	BodyLength json.RawMessage `json:"body_length_bytes,omitempty"`
-	BodySHA256 json.RawMessage `json:"body_sha256,omitempty"`
-	Signature  json.RawMessage `json:"signature,omitempty"`
+	Domain     jsontext.Value `json:"domain,omitempty"`
+	Signer     jsontext.Value `json:"signer,omitempty"`
+	BodyLength jsontext.Value `json:"body_length_bytes,omitempty"`
+	BodySHA256 jsontext.Value `json:"body_sha256,omitempty"`
+	Signature  jsontext.Value `json:"signature,omitempty"`
 }
 
 func cloneJSONFixture(_ testing.TB, input []byte) []byte {
@@ -759,11 +761,11 @@ func reverseEnvelopeMembersFixture(t testing.TB, input []byte) []byte {
 	t.Helper()
 	parts := envelopeJSONPartsFixture(t, input)
 	wire := struct {
-		Signature  json.RawMessage `json:"signature"`
-		BodySHA256 json.RawMessage `json:"body_sha256"`
-		BodyLength json.RawMessage `json:"body_length_bytes"`
-		Signer     json.RawMessage `json:"signer"`
-		Domain     json.RawMessage `json:"domain"`
+		Signature  jsontext.Value `json:"signature"`
+		BodySHA256 jsontext.Value `json:"body_sha256"`
+		BodyLength jsontext.Value `json:"body_length_bytes"`
+		Signer     jsontext.Value `json:"signer"`
+		Domain     jsontext.Value `json:"domain"`
 	}{
 		Signature:  parts.Signature,
 		BodySHA256: parts.BodySHA256,
@@ -778,11 +780,11 @@ func domainLastFixture(t testing.TB, input []byte) []byte {
 	t.Helper()
 	parts := envelopeJSONPartsFixture(t, input)
 	wire := struct {
-		Signer     json.RawMessage `json:"signer"`
-		BodyLength json.RawMessage `json:"body_length_bytes"`
-		BodySHA256 json.RawMessage `json:"body_sha256"`
-		Signature  json.RawMessage `json:"signature"`
-		Domain     json.RawMessage `json:"domain"`
+		Signer     jsontext.Value `json:"signer"`
+		BodyLength jsontext.Value `json:"body_length_bytes"`
+		BodySHA256 jsontext.Value `json:"body_sha256"`
+		Signature  jsontext.Value `json:"signature"`
+		Domain     jsontext.Value `json:"domain"`
 	}{
 		Signer:     parts.Signer,
 		BodyLength: parts.BodyLength,
@@ -818,12 +820,12 @@ func unknownMemberFixture(t testing.TB, input []byte) []byte {
 	t.Helper()
 	parts := envelopeJSONPartsFixture(t, input)
 	wire := struct {
-		Domain     json.RawMessage `json:"domain"`
-		Signer     json.RawMessage `json:"signer"`
-		BodyLength json.RawMessage `json:"body_length_bytes"`
-		BodySHA256 json.RawMessage `json:"body_sha256"`
-		Signature  json.RawMessage `json:"signature"`
-		Unknown    bool            `json:"unknown"`
+		Domain     jsontext.Value `json:"domain"`
+		Signer     jsontext.Value `json:"signer"`
+		BodyLength jsontext.Value `json:"body_length_bytes"`
+		BodySHA256 jsontext.Value `json:"body_sha256"`
+		Signature  jsontext.Value `json:"signature"`
+		Unknown    bool           `json:"unknown"`
 	}{
 		Domain:     parts.Domain,
 		Signer:     parts.Signer,
@@ -925,7 +927,7 @@ func replaceJSONValueFixture(
 	return func(t testing.TB, input []byte) []byte {
 		t.Helper()
 		parts := envelopeJSONPartsFixture(t, input)
-		replacement := json.RawMessage(value)
+		replacement := jsontext.Value(value)
 		switch member {
 		case envelopeJSONMemberDomain:
 			parts.Domain = replacement
@@ -963,7 +965,7 @@ func uppercaseJSONValueFixture(
 ) []byte {
 	t.Helper()
 	parts := envelopeJSONPartsFixture(t, input)
-	var target *json.RawMessage
+	var target *jsontext.Value
 	switch member {
 	case envelopeJSONMemberSigner:
 		target = &parts.Signer
@@ -998,11 +1000,11 @@ func nestedUnknownFixture(t testing.TB, input []byte) []byte {
 	t.Helper()
 	parts := envelopeJSONPartsFixture(t, input)
 	wire := struct {
-		Domain     json.RawMessage `json:"domain"`
-		Signer     json.RawMessage `json:"signer"`
-		BodyLength json.RawMessage `json:"body_length_bytes"`
-		BodySHA256 json.RawMessage `json:"body_sha256"`
-		Signature  json.RawMessage `json:"signature"`
+		Domain     jsontext.Value `json:"domain"`
+		Signer     jsontext.Value `json:"signer"`
+		BodyLength jsontext.Value `json:"body_length_bytes"`
+		BodySHA256 jsontext.Value `json:"body_sha256"`
+		Signature  jsontext.Value `json:"signature"`
 		Nested     struct {
 			Value int `json:"value"`
 		} `json:"nested"`

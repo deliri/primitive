@@ -4,7 +4,7 @@ import (
 	"bytes"
 	"context"
 	"crypto/sha256"
-	"encoding/json"
+	json "encoding/json/v2"
 	"errors"
 	"hash/crc32"
 	"io"

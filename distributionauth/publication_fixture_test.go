@@ -5,7 +5,7 @@ import (
 	"context"
 	"crypto/ed25519"
 	"crypto/sha256"
-	"encoding/json"
+	json "encoding/json/v2"
 	"hash/crc32"
 	"io"
 	"net/http"
@@ -47,13 +47,13 @@ type publicationAuthUpload struct {
 
 type publicationAuthFixture struct {
 	installation    controlplanetest.Installation
-	grant           distribution.PublicationGrantDocument
-	grantProjection distribution.PublicationGrantProjection
-	completion      PublicationCompletionDocument
+	verified        VerifiedPublication
 	grantProof      distribution.VerifiedPublicationGrant
 	document        PublicationRequestDocument
+	completion      PublicationCompletionDocument
+	grant           distribution.PublicationGrantDocument
+	grantProjection distribution.PublicationGrantProjection
 	release         publicationAuthRelease
-	verified        VerifiedPublication
 	authority       attest.TrustedKeys
 }
 
@@ -82,7 +82,7 @@ func newPublicationAuthFixture(
 	request publicationAuthFixtureRequest,
 ) publicationAuthFixture {
 	t.Helper()
-	request = publicationAuthFixtureDefaults(request)
+	request = publicationAuthFixtureDefaults(t, request)
 	installation, err := controlplanetest.IssueInstallation(controlplanetest.InstallationRequest{
 		AuthoritySeed: distributionAuthSeed(request.authorityByte),
 		DeviceSeed:    distributionAuthSeed(request.deviceByte),
@@ -128,9 +128,10 @@ func newPublicationAuthFixture(
 	}
 }
 
-func publicationAuthFixtureDefaults(request publicationAuthFixtureRequest) publicationAuthFixtureRequest {
-	if request.offering == core.OfferingUnknown {
-		request.offering = core.OfferingWitness
+func publicationAuthFixtureDefaults(t testing.TB, request publicationAuthFixtureRequest) publicationAuthFixtureRequest {
+	t.Helper()
+	if !request.offering.IsValid() {
+		request.offering = distributionAuthOffering(t, 9)
 	}
 	if request.authorityByte == 0 {
 		request.authorityByte = 0x21

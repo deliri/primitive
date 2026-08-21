@@ -3,7 +3,7 @@ package cloudidentity
 import (
 	"bytes"
 	"context"
-	"encoding/json"
+	json "encoding/json/v2"
 	"errors"
 	"fmt"
 	"go/ast"

@@ -2,15 +2,14 @@ package core
 
 import (
 	"bytes"
-	"encoding/json"
+	jsontext "encoding/json/jsontext"
+	json "encoding/json/v2"
 	"errors"
 	"math"
 	"path/filepath"
-	"reflect"
 	"runtime"
 	"strconv"
 	"strings"
-	"sync"
 	"testing"
 	"unicode/utf8"
 )
@@ -32,61 +31,6 @@ const (
 	strictJSONDecodeAllocationMaximum    = 1_500_000
 	strictJSONDecodeBytesMaximum         = 40 << 20
 )
-
-func TestJSONFieldNameCacheHasFixedMemoryAdmissionBounds(t *testing.T) {
-	t.Parallel()
-
-	t.Run("concurrent distinct types cannot exceed the entry ceiling", func(t *testing.T) {
-		t.Parallel()
-		var cache jsonFieldNameCache
-		rootElement := reflect.TypeFor[struct {
-			Name string `json:"name"`
-		}]()
-		var workers sync.WaitGroup
-		for extent := 1; extent <= jsonFieldNameCacheEntryMaximum+32; extent++ {
-			root := reflect.ArrayOf(extent, rootElement)
-			workers.Go(func() {
-				fields := cache.lookup(root)
-				if len(fields) != 1 || fields[0] != "name" {
-					t.Errorf("json field names for %v = %v, want [name]", root, fields)
-				}
-			})
-		}
-		workers.Wait()
-		if got := cache.entries.Load(); got != jsonFieldNameCacheEntryMaximum {
-			t.Fatalf("cached type entries = %d, want %d", got, jsonFieldNameCacheEntryMaximum)
-		}
-		stored := 0
-		cache.values.Range(func(_, _ any) bool {
-			stored++
-			return true
-		})
-		if stored != jsonFieldNameCacheEntryMaximum {
-			t.Fatalf("sync.Map entries = %d, want %d", stored, jsonFieldNameCacheEntryMaximum)
-		}
-	})
-
-	t.Run("an over-wide type is derived but never retained", func(t *testing.T) {
-		t.Parallel()
-		fields := make([]reflect.StructField, jsonFieldNameCacheFieldsPerTypeMaximum+1)
-		for index := range fields {
-			fields[index] = reflect.StructField{
-				Name: "Field" + strconv.Itoa(index),
-				Type: reflect.TypeFor[string](),
-				Tag:  reflect.StructTag(`json:"field` + strconv.Itoa(index) + `"`),
-			}
-		}
-		root := reflect.StructOf(fields)
-		var cache jsonFieldNameCache
-		got := cache.lookup(root)
-		if len(got) != len(fields) {
-			t.Fatalf("derived field names = %d, want %d", len(got), len(fields))
-		}
-		if entries := cache.entries.Load(); entries != 0 {
-			t.Fatalf("over-wide cached type entries = %d, want 0", entries)
-		}
-	})
-}
 
 // TestDecodeStrictJSONStructureHostileBoundaryTable is a direct unit ratchet
 // for Core's real generic document boundary. Raw bytes are intentional here:
@@ -183,12 +127,12 @@ func TestDecodeStrictJSONStructureHostileBoundaryTable(t *testing.T) {
 			if tc.limits != nil {
 				limits = tc.limits()
 			}
-			got, gotErr := decodeStrictJSONStructure[json.RawMessage](wire, limits)
+			got, gotErr := decodeStrictJSONStructure[jsontext.Value](wire, limits)
 			if tc.disposition == boundaryAccept {
 				if gotErr != nil {
 					t.Fatalf("DecodeStrictJSONStructure() error = %v, want nil", gotErr)
 				}
-				if !json.Valid(got) {
+				if !jsontext.Value(got).IsValid() {
 					t.Fatalf("DecodeStrictJSONStructure() returned invalid JSON %q", got)
 				}
 				return
@@ -201,6 +145,46 @@ func TestDecodeStrictJSONStructureHostileBoundaryTable(t *testing.T) {
 			}
 		})
 	}
+}
+
+func TestDecodeStrictJSONV2SubstrateLayerTriad(t *testing.T) {
+	t.Parallel()
+
+	t.Run("positive typed member decodes through JSON v2", func(t *testing.T) {
+		t.Parallel()
+		got, gotErr := DecodeStrictJSONStructure[strictJSONTextRecord](
+			[]byte(`{"text":"value"}`),
+			DefaultStrictJSONLimits(),
+		)
+		want := strictJSONTextRecord{Text: "value"}
+		if gotErr != nil || got != want {
+			t.Fatalf("DecodeStrictJSONStructure(positive) = (%+v, %v), want (%+v, nil)", got, gotErr, want)
+		}
+	})
+
+	t.Run("negative duplicate member preserves JSON v2 syntax identity", func(t *testing.T) {
+		t.Parallel()
+		got, gotErr := DecodeStrictJSONStructure[strictJSONTextRecord](
+			[]byte(`{"text":"first","text":"second"}`),
+			DefaultStrictJSONLimits(),
+		)
+		var gotSyntax *jsontext.SyntacticError
+		if !errors.Is(gotErr, ErrJSONContract) || !errors.As(gotErr, &gotSyntax) ||
+			got != (strictJSONTextRecord{}) {
+			t.Fatalf("DecodeStrictJSONStructure(negative) = (%+v, %v), want zero with JSON contract and v2 syntax identity", got, gotErr)
+		}
+	})
+
+	t.Run("neutral empty object creates no typed fact", func(t *testing.T) {
+		t.Parallel()
+		got, gotErr := DecodeStrictJSONStructure[strictJSONTextRecord](
+			[]byte(`{}`),
+			DefaultStrictJSONLimits(),
+		)
+		if gotErr != nil || got != (strictJSONTextRecord{}) {
+			t.Fatalf("DecodeStrictJSONStructure(neutral) = (%+v, %v), want zero and nil", got, gotErr)
+		}
+	})
 }
 
 func FuzzDecodeStrictJSONAbsolutePathPublicBoundary(f *testing.F) {
@@ -250,7 +234,7 @@ func FuzzDecodeStrictJSONAbsolutePathPublicBoundary(f *testing.F) {
 				t.Fatalf("accepted absolute path Validate() error = %v, want nil", gotValidateErr)
 			}
 			directWire, gotMarshalErr := got.MarshalJSON()
-			if gotMarshalErr != nil || !json.Valid(directWire) {
+			if gotMarshalErr != nil || !jsontext.Value(directWire).IsValid() {
 				t.Fatalf(
 					"accepted AbsolutePath.MarshalJSON() = (%q, %v), want valid JSON/nil",
 					directWire,
@@ -578,13 +562,13 @@ func TestMarshalCanonicalJSONDocumentOwnsSharedEncoderConfiguration(t *testing.T
 	if gotErr != nil {
 		t.Fatalf("MarshalCanonicalJSONDocument() error = %v, want nil", gotErr)
 	}
-	want := `{"message":"a\u003cb\u003ec\u0026d","values":[1,2,3]}`
+	want := `{"message":"a<b>c&d","values":[1,2,3]}`
 	if !bytes.Equal(got, []byte(want)) {
 		t.Fatalf("MarshalCanonicalJSONDocument() = %q, want %q", got, want)
 	}
 
 	embedded, embeddedErr := json.Marshal(struct {
-		Document json.RawMessage `json:"document"`
+		Document jsontext.Value `json:"document"`
 	}{Document: got})
 	if embeddedErr != nil {
 		t.Fatalf("json.Marshal(embedded canonical document) error = %v, want nil", embeddedErr)
@@ -701,9 +685,8 @@ func boundedJSONStringDocument(extent int) []byte {
 
 // TestMarshalJSONStringEscapingHostileBoundaryTable directly ratchets the
 // shared string primitive used by every Core JSON string producer. Exact wire
-// assertions are intentional: HTML characters use encoding/json's fixed-point
-// escapes, while backslashes, controls, and literal Unicode-escape text remain
-// unambiguous.
+// assertions are intentional: JSON v2 emits valid UTF-8 directly while
+// backslashes, controls, and literal Unicode-escape text remain unambiguous.
 func TestMarshalJSONStringEscapingHostileBoundaryTable(t *testing.T) {
 	t.Parallel()
 
@@ -712,10 +695,10 @@ func TestMarshalJSONStringEscapingHostileBoundaryTable(t *testing.T) {
 		value string
 		want  string
 	}{
-		{name: "ampersand uses the stdlib fixed-point escape", value: "&", want: `"\u0026"`},
-		{name: "less-than uses the stdlib fixed-point escape", value: "<", want: `"\u003c"`},
-		{name: "greater-than uses the stdlib fixed-point escape", value: ">", want: `"\u003e"`},
-		{name: "HTML-sensitive trio uses exact stdlib escapes", value: "&<>", want: `"\u0026\u003c\u003e"`},
+		{name: "ampersand remains direct UTF8", value: "&", want: `"&"`},
+		{name: "less-than remains direct UTF8", value: "<", want: `"<"`},
+		{name: "greater-than remains direct UTF8", value: ">", want: `">"`},
+		{name: "HTML-sensitive trio remains direct UTF8", value: "&<>", want: `"&<>"`},
 		{name: "quote remains escaped", value: `"`, want: `"\""`},
 		{name: "backslash remains escaped", value: `\`, want: `"\\"`},
 		{name: "literal ampersand escape text remains literal", value: `\u0026`, want: `"\\u0026"`},
@@ -723,7 +706,7 @@ func TestMarshalJSONStringEscapingHostileBoundaryTable(t *testing.T) {
 		{name: "literal period escape text remains literal", value: `\u002e`, want: `"\\u002e"`},
 		{name: "two backslashes remain distinct", value: `\\u0026`, want: `"\\\\u0026"`},
 		{name: "control byte remains escaped", value: "\x01", want: `"\u0001"`},
-		{name: "line separator remains escaped", value: "\u2028", want: `"\u2028"`},
+		{name: "line separator remains direct UTF8", value: "\u2028", want: "\"\u2028\""},
 	}
 	for _, tc := range cases {
 		t.Run(tc.name, func(t *testing.T) {
@@ -736,7 +719,7 @@ func TestMarshalJSONStringEscapingHostileBoundaryTable(t *testing.T) {
 			if !bytes.Equal(got, []byte(tc.want)) {
 				t.Fatalf("MarshalCanonicalJSONString(%q) = %q, want %q", tc.value, got, tc.want)
 			}
-			if !json.Valid(got) {
+			if !jsontext.Value(got).IsValid() {
 				t.Fatalf("MarshalCanonicalJSONString(%q) = %q, want valid JSON", tc.value, got)
 			}
 			roundTrip, gotUnquoteErr := strconv.Unquote(string(got))
@@ -777,7 +760,7 @@ func FuzzMarshalJSONStringRoundTrip(f *testing.F) {
 			}
 			return
 		}
-		if gotErr != nil || !json.Valid(got) {
+		if gotErr != nil || !jsontext.Value(got).IsValid() {
 			t.Fatalf("MarshalCanonicalJSONString(valid UTF-8) = (%q, %v), want valid JSON/nil", got, gotErr)
 		}
 		roundTrip, gotUnquoteErr := strconv.Unquote(string(got))
@@ -809,36 +792,6 @@ func TestStrictJSONPublicDiagnosticRatchet(t *testing.T) {
 				return err
 			},
 			wantMessage: jsonDocumentLimitExceededErrorText,
-		},
-		{
-			name: "invalid UTF8 identifies the encoding rule",
-			run: func() error {
-				_, err := DecodeStrictJSON[strictJSONTextRecord]([]byte{0xff}, defaultLimits)
-				return err
-			},
-			wantMessage: jsonDocumentInvalidUTF8ErrorText,
-		},
-		{
-			name: "lone high surrogate identifies the malformed escape",
-			run: func() error {
-				_, err := DecodeStrictJSON[strictJSONTextRecord](
-					[]byte(`{"text":"\ud800"}`),
-					defaultLimits,
-				)
-				return err
-			},
-			wantMessage: jsonUnpairedHighSurrogateErrorText,
-		},
-		{
-			name: "lone low surrogate identifies the malformed escape",
-			run: func() error {
-				_, err := DecodeStrictJSON[strictJSONTextRecord](
-					[]byte(`{"text":"\udfff"}`),
-					defaultLimits,
-				)
-				return err
-			},
-			wantMessage: jsonUnpairedLowSurrogateErrorText,
 		},
 		{
 			name: "nesting limit identifies the exceeded resource",
@@ -937,7 +890,7 @@ func TestStrictJSONStructuralLimitsDirectHelperHostileBoundaryTable(t *testing.T
 
 	largeDocument := bytes.Repeat([]byte{' '}, JSONDocumentMaximumBytes-jsonArrayOverheadBytes)
 	largeDocument = append(largeDocument, '[', ']')
-	if _, gotErr := decodeStrictJSONStructure[json.RawMessage](largeDocument, custom); gotErr != nil {
+	if _, gotErr := decodeStrictJSONStructure[jsontext.Value](largeDocument, custom); gotErr != nil {
 		t.Fatalf("custom document limit decode error = %v, want nil", gotErr)
 	}
 
@@ -964,7 +917,7 @@ func TestStrictJSONStructuralLimitsDirectHelperHostileBoundaryTable(t *testing.T
 		t.Run(tc.name, func(t *testing.T) {
 			t.Parallel()
 
-			_, gotErr := decodeStrictJSONStructure[json.RawMessage](tc.wire, custom)
+			_, gotErr := decodeStrictJSONStructure[jsontext.Value](tc.wire, custom)
 			wantAccept := tc.disposition == boundaryAccept
 			if (gotErr == nil) != wantAccept {
 				t.Fatalf("decode with custom limits error = %v, want accept %t", gotErr, wantAccept)
@@ -1109,7 +1062,7 @@ func BenchmarkEncodeValidatedJSONAbsolutePath(b *testing.B) {
 	if gotErr != nil {
 		b.Fatalf("EncodeValidatedJSON(allocation ratchet path) error = %v, want nil", gotErr)
 	}
-	if !json.Valid(gotWire) {
+	if !jsontext.Value(gotWire).IsValid() {
 		b.Fatalf("EncodeValidatedJSON(allocation ratchet path) wire = %q, want valid JSON", gotWire)
 	}
 	if gotAllocations > validatedJSONEncodeAllocationMaximum {
@@ -1146,8 +1099,8 @@ func BenchmarkRejectDuplicateJSONFieldsMaximum(b *testing.B) {
 	b.ReportAllocs()
 	b.ResetTimer()
 	for b.Loop() {
-		if err := rejectDuplicateJSONFieldsWithFields(document, limits, nil); err != nil {
-			b.Fatalf("rejectDuplicateJSONFieldsWithFields(maximum) error = %v, want nil", err)
+		if err := scanStrictJSONBoundsAndCaseFoldNames(document, limits); err != nil {
+			b.Fatalf("scanStrictJSONBoundsAndCaseFoldNames(maximum) error = %v, want nil", err)
 		}
 	}
 }
@@ -1181,9 +1134,9 @@ func BenchmarkRejectDuplicateJSONFieldsGlobalMaximumLongSharedPrefix(b *testing.
 	b.ReportAllocs()
 	b.ResetTimer()
 	for b.Loop() {
-		if err := rejectDuplicateJSONFieldsWithFields(document, limits, nil); err != nil {
+		if err := scanStrictJSONBoundsAndCaseFoldNames(document, limits); err != nil {
 			b.Fatalf(
-				"rejectDuplicateJSONFieldsWithFields(global maximum long shared prefix) error = %v, want nil",
+				"scanStrictJSONBoundsAndCaseFoldNames(global maximum long shared prefix) error = %v, want nil",
 				err,
 			)
 		}

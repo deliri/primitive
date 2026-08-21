@@ -60,6 +60,7 @@ func FuzzSigningDomainExternalDecoders(f *testing.F) {
 
 func FuzzPublicationRequestPayloadExternalDecoder(f *testing.F) {
 	fixture := newPublicationExchangeFixture(f)
+	expectedOffering := distributionOffering(f, 1)
 	mutation := fixture.request
 	mutation.Nonce = requestNonce(f, 42)
 	fuzzDistributionDoor(f, distributionExternalDoor[distribution.PublicationRequestPayload]{
@@ -72,7 +73,7 @@ func FuzzPublicationRequestPayloadExternalDecoder(f *testing.F) {
 			document.Payload = v
 			proof, err := distribution.VerifyPublicationRequest(distribution.PublicationRequestVerification{
 				Document: document, RequestKeys: fixture.callerKeys, ManifestKeys: fixture.releaseKeys,
-				ExpectedOffering: core.OfferingBug,
+				ExpectedOffering: expectedOffering,
 			})
 			return distributionProofOracle(proof.Validate(), err, authentic)
 		},
@@ -81,6 +82,7 @@ func FuzzPublicationRequestPayloadExternalDecoder(f *testing.F) {
 
 func FuzzPublicationRequestDocumentExternalDecoder(f *testing.F) {
 	fixture := newPublicationExchangeFixture(f)
+	expectedOffering := distributionOffering(f, 1)
 	mutation := fixture.requestDocument
 	mutation.Payload.Nonce = requestNonce(f, 42)
 	fuzzDistributionDoor(f, distributionExternalDoor[distribution.PublicationRequestDocument]{
@@ -91,7 +93,7 @@ func FuzzPublicationRequestDocumentExternalDecoder(f *testing.F) {
 		Authenticate: func(v distribution.PublicationRequestDocument, authentic bool) error {
 			proof, err := distribution.VerifyPublicationRequest(distribution.PublicationRequestVerification{
 				Document: v, RequestKeys: fixture.callerKeys, ManifestKeys: fixture.releaseKeys,
-				ExpectedOffering: core.OfferingBug,
+				ExpectedOffering: expectedOffering,
 			})
 			return distributionProofOracle(proof.Validate(), err, authentic)
 		},
@@ -374,7 +376,7 @@ func publicationCompletionExpectation(f publicationExchangeFixture, d distributi
 func updateResponseVerification(f updateExchangeFixture, d distribution.UpdateResponseDocument) distribution.UpdateResponseVerification {
 	return distribution.UpdateResponseVerification{
 		Request: f.request, Document: d, ResponseKeys: f.authorityKeys, LatestKeys: f.releaseKeys,
-		ManifestKeys: f.releaseKeys, ExpectedOffering: core.OfferingBug,
+		ManifestKeys: f.releaseKeys, ExpectedOffering: f.request.Build.Offering(),
 		ObservedAt: temporal.InstantFromNanoseconds(3_000),
 	}
 }

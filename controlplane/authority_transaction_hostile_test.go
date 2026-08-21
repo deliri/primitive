@@ -160,7 +160,7 @@ func TestRegistrationAuthorityRefusesEveryInvalidOrSecondUse(t *testing.T) {
 		}, want: []error{core.ErrControlPlaneRegistration, core.ErrControlWireReplayConflict}},
 		{name: "second use with another offering conflicts", mutate: func(t *testing.T, verification *controlplane.RegistrationAuthorityVerification, replay *controlwire.ReplayIdentity) {
 			verification.PriorReplay = replay
-			verification.Request.Build = testBuildForOffering(t, core.OfferingBug)
+			verification.Request.Build = testBuildForOffering(t, controlplaneOffering(t, 1))
 		}, want: []error{core.ErrControlPlaneRegistration, core.ErrControlWireReplayConflict}},
 		{name: "second use with another build version conflicts", mutate: func(t *testing.T, verification *controlplane.RegistrationAuthorityVerification, replay *controlwire.ReplayIdentity) {
 			verification.PriorReplay = replay
@@ -270,7 +270,7 @@ func TestIssueRegisteredInstallationDerivesEveryCertificateIdentityFact(t *testi
 func TestCheckInAuthorityCommitLayerTriad(t *testing.T) {
 	t.Parallel()
 
-	issued := issueTestCheckIn(t, core.OfferingPeachfuzz, testCheckInWindow())
+	issued := issueTestCheckIn(t, controlplaneOffering(t, 3), testCheckInWindow())
 	verified, err := controlplane.VerifyCheckIn(controlplane.CheckInVerification{
 		Request: issued.request, TrustedKeys: issued.trusted,
 	})
@@ -304,7 +304,7 @@ func TestCheckInAuthorityCommitLayerTriad(t *testing.T) {
 		t.Fatalf("replay Disposition() = (%v, %v), want (%v, nil)", disposition, err, controlplane.UsageDispositionReplay)
 	}
 
-	other := issueTestCheckIn(t, core.OfferingBug, testCheckInWindow())
+	other := issueTestCheckIn(t, controlplaneOffering(t, 1), testCheckInWindow())
 	conflictRequest := base
 	conflictRequest.Current = other.request.Payload.PreviousWatermark
 	conflicted, err := controlplane.CommitCheckIn(conflictRequest)
@@ -376,7 +376,7 @@ func TestCheckInAuthorityCommitExhaustsOfferingAndDispositionMatrix(t *testing.T
 func TestCheckInAuthorityCommitRefusesInvalidPolicyAndAuthorityFacts(t *testing.T) {
 	t.Parallel()
 
-	issued := issueTestCheckIn(t, core.OfferingWitness, testCheckInWindow())
+	issued := issueTestCheckIn(t, controlplaneOffering(t, 2), testCheckInWindow())
 	verified, err := controlplane.VerifyCheckIn(controlplane.CheckInVerification{Request: issued.request, TrustedKeys: issued.trusted})
 	if err != nil {
 		t.Fatalf("VerifyCheckIn() error = %v, want nil", err)
@@ -388,7 +388,7 @@ func TestCheckInAuthorityCommitRefusesInvalidPolicyAndAuthorityFacts(t *testing.
 		t.Fatalf("NewPolicyActivation() error = %v, want nil", err)
 	}
 	otherPolicy.Activation = activation
-	foreign := issueTestCheckIn(t, core.OfferingBug, testCheckInWindow())
+	foreign := issueTestCheckIn(t, controlplaneOffering(t, 1), testCheckInWindow())
 	zeroRevisionPolicy := base.RequiredPolicy
 	zeroRevisionPolicy.Revision = controlwire.PolicyRevisionID{}
 	zeroActivationPolicy := base.RequiredPolicy
@@ -443,7 +443,7 @@ func TestCheckInAuthorityCommitRefusesInvalidPolicyAndAuthorityFacts(t *testing.
 func TestIssueCommittedCheckInResponseBindsUsagePolicyProviderTimeAndRequest(t *testing.T) {
 	t.Parallel()
 
-	issued := issueTestCheckIn(t, core.OfferingPeachfuzz, testCheckInWindow())
+	issued := issueTestCheckIn(t, controlplaneOffering(t, 3), testCheckInWindow())
 	verified, err := controlplane.VerifyCheckIn(controlplane.CheckInVerification{Request: issued.request, TrustedKeys: issued.trusted})
 	if err != nil {
 		t.Fatalf("VerifyCheckIn() error = %v, want nil", err)
@@ -553,7 +553,7 @@ func TestPrepareCheckInResponseRefusesEverySubstitutedAuthorityFact(t *testing.T
 			preparation.Header.Family = controlwire.RouteFamilyRegistrations
 		}, want: core.ErrControlPlaneResponseBinding},
 		{name: "another offering cannot receive this commit", mutate: func(_ *testing.T, preparation *controlplane.CheckInResponsePreparation, _ issuedCheckIn) {
-			preparation.Header.Offering = core.OfferingBug
+			preparation.Header.Offering = controlplaneOffering(t, 1)
 		}, want: core.ErrControlPlaneResponseBinding},
 		{name: "another policy cannot be substituted after usage verification", mutate: func(t *testing.T, preparation *controlplane.CheckInResponsePreparation, _ issuedCheckIn) {
 			activation, err := controlwire.NewPolicyActivation(preparation.Header.Policy.Activation.Uint64() + 1)
@@ -638,12 +638,10 @@ func registrationRequestVariant(t testing.TB, offering core.Offering, seed byte)
 func validOfferings(t testing.TB) []core.Offering {
 	t.Helper()
 
-	var offerings []core.Offering
-	for value := 0; value <= 255; value++ {
-		offering := core.Offering(value)
-		if offering.IsValid() {
-			offerings = append(offerings, offering)
-		}
+	offerings := []core.Offering{
+		controlplaneOffering(t, 11),
+		controlplaneOffering(t, 127),
+		controlplaneOffering(t, 255),
 	}
 	if len(offerings) < 3 {
 		t.Fatalf("valid offerings = %d, want at least three", len(offerings))
@@ -654,7 +652,7 @@ func validOfferings(t testing.TB) []core.Offering {
 func committedCheckInResponseFixture(t testing.TB) (issuedCheckIn, controlplane.CheckInResponsePreparation) {
 	t.Helper()
 
-	issued := issueTestCheckIn(t, core.OfferingPeachfuzz, testCheckInWindow())
+	issued := issueTestCheckIn(t, controlplaneOffering(t, 3), testCheckInWindow())
 	verified, err := controlplane.VerifyCheckIn(controlplane.CheckInVerification{Request: issued.request, TrustedKeys: issued.trusted})
 	if err != nil {
 		t.Fatalf("VerifyCheckIn() error = %v, want nil", err)

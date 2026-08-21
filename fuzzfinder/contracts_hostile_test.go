@@ -2,7 +2,7 @@ package fuzzfinder
 
 import (
 	"encoding/hex"
-	"encoding/json"
+	json "encoding/json/v2"
 	"errors"
 	"fmt"
 	"math"

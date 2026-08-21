@@ -86,14 +86,10 @@ type Page[T Topic] struct {
 
 // Book is one product's source of truth for help and manual output.
 type Book[T Topic] struct {
-	// Title names the product guide for people.
-	Title Line
-	// Summary explains when the guide is useful.
-	Summary Line
-	// Pages contains one page per documented command topic.
-	Pages []Page[T]
-	// Offering binds the guide to its product identity.
+	Title    Line
+	Summary  Line
 	Offering core.Offering
+	Pages    []Page[T]
 }
 
 // View selects concise help or a complete manual page.
@@ -136,16 +132,11 @@ type RenderRequest[T Topic] struct {
 
 // Report is the stable machine projection of one complete Book.
 type Report struct {
-	// Schema identifies the stable machine contract.
-	Schema Schema `json:"schema"`
-	// Title is the human guide title.
-	Title Line `json:"title"`
-	// Summary explains the guide's purpose.
-	Summary Line `json:"summary"`
-	// Pages contains the complete bounded machine manual.
-	Pages []PageReport `json:"pages"`
-	// Offering binds the report to one product.
+	Schema   Schema        `json:"schema"`
+	Title    Line          `json:"title"`
+	Summary  Line          `json:"summary"`
 	Offering core.Offering `json:"offering"`
+	Pages    []PageReport  `json:"pages"`
 }
 
 // PageReport is one machine-readable manual page.

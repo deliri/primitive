@@ -3,7 +3,7 @@ package distribution_test
 import (
 	"crypto/ed25519"
 	"crypto/sha256"
-	"encoding/json"
+	json "encoding/json/v2"
 	"hash/crc32"
 	"net/http"
 	"net/url"
@@ -21,12 +21,12 @@ import (
 )
 
 type releaseFixture struct {
+	builds    [release.TargetCount]core.BuildIdentity
 	payloads  [release.PublicationObjectCount][]byte
+	artifacts [release.TargetCount]release.Artifact
 	document  release.ManifestDocument
 	manifest  release.VerifiedManifest
 	latest    release.VerifiedLatest
-	artifacts [release.TargetCount]release.Artifact
-	builds    [release.TargetCount]core.BuildIdentity
 }
 
 func newReleaseFixture(
@@ -47,7 +47,7 @@ func newReleaseFixture(
 			t.Fatalf("release.Targets().At(%d) ok = false, want true", index)
 		}
 		build, buildErr := core.NewBuildIdentity(core.BuildIdentityRequest{
-			Offering: core.OfferingBug, Version: version, Commit: commit, Platform: platform,
+			Offering: distributionOffering(t, 1), Version: version, Commit: commit, Platform: platform,
 		})
 		if buildErr != nil {
 			t.Fatalf("core.NewBuildIdentity(%d) error = %v, want nil", index, buildErr)
@@ -78,7 +78,7 @@ func newReleaseFixture(
 		fixture.payloads[release.TargetCount+1+index] = payload
 	}
 	fact, err := release.NewManifestFact(release.ManifestFactRequest{
-		Revision: release.Revision2026V1, Offering: core.OfferingBug,
+		Revision: release.Revision2026V1, Offering: distributionOffering(t, 1),
 		Version: version, Commit: commit, CreatedAt: temporal.InstantFromNanoseconds(1_000),
 		Artifacts: artifacts, Provenance: releaseProvenance(t), Metadata: metadata,
 	})
@@ -97,7 +97,7 @@ func newReleaseFixture(
 	}
 	trusted := trustedKeys(t, key)
 	fixture.manifest, err = release.VerifyManifest(release.VerifyManifestRequest{
-		Document: document, TrustedKeys: trusted, ExpectedOffering: core.OfferingBug,
+		Document: document, TrustedKeys: trusted, ExpectedOffering: distributionOffering(t, 1),
 	})
 	if err != nil {
 		t.Fatalf("release.VerifyManifest() error = %v, want nil", err)
@@ -117,7 +117,7 @@ func newReleaseFixture(
 	}
 	fixture.latest, err = release.VerifyLatest(release.VerifyLatestRequest{
 		Document: latestDocument, LatestKeys: trusted, ManifestKeys: trusted,
-		ExpectedOffering: core.OfferingBug,
+		ExpectedOffering: distributionOffering(t, 1),
 	})
 	if err != nil {
 		t.Fatalf("release.VerifyLatest() error = %v, want nil", err)

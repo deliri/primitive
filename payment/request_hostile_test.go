@@ -2,21 +2,22 @@ package payment
 
 import (
 	"bytes"
-	"encoding/json"
+	json "encoding/json/v2"
 	"errors"
 	"testing"
 
+	"encoding/json/jsontext"
 	"github.com/deliri/primitive/v2026/attest"
 	"github.com/deliri/primitive/v2026/controlwire"
 	"github.com/deliri/primitive/v2026/core"
 )
 
 type signedQueryFixtureRequest struct {
-	marker    byte
 	offering  core.Offering
-	selection Selection
-	position  Position
 	pageSize  uint16
+	position  Position
+	selection Selection
+	marker    byte
 }
 
 type signedQueryFixture struct {
@@ -37,9 +38,9 @@ func TestSignedPaymentQueryLayerTriad(t *testing.T) {
 			wantKind  core.CatalogSelectionKind
 			wantLimit uint16
 		}{
-			{name: "all minimum page witness", request: signedQueryFixtureRequest{marker: 0x21, offering: core.OfferingWitness, pageSize: 1}, wantKind: core.CatalogSelectionAll, wantLimit: 1},
-			{name: "all one above minimum page bug", request: signedQueryFixtureRequest{marker: 0x22, offering: core.OfferingBug, pageSize: 2}, wantKind: core.CatalogSelectionAll, wantLimit: 2},
-			{name: "all midpoint page peachfuzz", request: signedQueryFixtureRequest{marker: 0x23, offering: core.OfferingPeachfuzz, pageSize: core.CatalogPageMaximumEntries / 2}, wantKind: core.CatalogSelectionAll, wantLimit: core.CatalogPageMaximumEntries / 2},
+			{name: "all minimum page witness", request: signedQueryFixtureRequest{marker: 0x21, offering: paymentOffering(t, 2), pageSize: 1}, wantKind: core.CatalogSelectionAll, wantLimit: 1},
+			{name: "all one above minimum page bug", request: signedQueryFixtureRequest{marker: 0x22, offering: paymentOffering(t, 1), pageSize: 2}, wantKind: core.CatalogSelectionAll, wantLimit: 2},
+			{name: "all midpoint page peachfuzz", request: signedQueryFixtureRequest{marker: 0x23, offering: paymentOffering(t, 3), pageSize: core.CatalogPageMaximumEntries / 2}, wantKind: core.CatalogSelectionAll, wantLimit: core.CatalogPageMaximumEntries / 2},
 			{name: "all one below maximum page", request: signedQueryFixtureRequest{marker: 0x24, pageSize: core.CatalogPageMaximumEntries - 1}, wantKind: core.CatalogSelectionAll, wantLimit: core.CatalogPageMaximumEntries - 1},
 			{name: "all exact maximum page", request: signedQueryFixtureRequest{marker: 0x25, pageSize: core.CatalogPageMaximumEntries}, wantKind: core.CatalogSelectionAll, wantLimit: core.CatalogPageMaximumEntries},
 			{name: "all after opaque cursor minimum page", request: signedQueryFixtureRequest{marker: 0x26, position: signedQueryAfter(t, 0x26), pageSize: 1}, wantKind: core.CatalogSelectionAll, wantLimit: 1},
@@ -74,7 +75,7 @@ func TestSignedPaymentQueryLayerTriad(t *testing.T) {
 
 		base := newSignedQueryFixture(t, signedQueryFixtureRequest{marker: 0x41})
 		other := newSignedQueryFixture(t, signedQueryFixtureRequest{
-			marker: 0x61, offering: core.OfferingBug, pageSize: 2,
+			marker: 0x61, offering: paymentOffering(t, 1), pageSize: 2,
 		})
 		cases := []struct {
 			want   error
@@ -139,7 +140,7 @@ func TestPaymentQueryCommitmentBindsEveryVariableRequestFact(t *testing.T) {
 		t.Fatalf("CommitQuery(repeated) = (%v, %v), want deterministic %v and nil", repeated, err, want)
 	}
 	other := newSignedQueryFixture(t, signedQueryFixtureRequest{
-		marker: 0x71, offering: core.OfferingBug, pageSize: 2,
+		marker: 0x71, offering: paymentOffering(t, 1), pageSize: 2,
 	})
 	cases := []struct {
 		mutate func(*QueryPayload)
@@ -183,14 +184,14 @@ func TestSignedPaymentQueryJSONPressuresMalformedAndExactByteBoundaries(t *testi
 		t.Fatalf("QueryDocument.MarshalJSON() error = %v, want nil", err)
 	}
 	reordered, err := json.Marshal(struct {
-		Attestation attest.Envelope[SigningDomain] `json:"attestation"`
 		Payload     QueryPayload                   `json:"payload"`
+		Attestation attest.Envelope[SigningDomain] `json:"attestation"`
 	}{Attestation: fixture.document.Attestation, Payload: fixture.payload})
 	if err != nil {
 		t.Fatalf("json.Marshal(reordered query document) error = %v, want nil", err)
 	}
-	var indented bytes.Buffer
-	if err := json.Indent(&indented, encoded, "", "  "); err != nil {
+	indented := jsontext.Value(bytes.Clone(encoded))
+	if err := indented.Indent(jsontext.WithIndent("  ")); err != nil {
 		t.Fatalf("json.Indent(query document) error = %v, want nil", err)
 	}
 	valid := []struct {
@@ -202,7 +203,7 @@ func TestSignedPaymentQueryJSONPressuresMalformedAndExactByteBoundaries(t *testi
 		{name: "one trailing space", data: append(bytes.Clone(encoded), ' ')},
 		{name: "mixed outer whitespace", data: append(append([]byte("\t\r\n"), encoded...), ' ', '\t')},
 		{name: "members reordered", data: reordered},
-		{name: "indented document", data: indented.Bytes()},
+		{name: "indented document", data: []byte(indented)},
 		{name: "one below document ceiling", data: signedQueryPadJSON(encoded, QueryDocumentJSONMaximumBytes-1)},
 		{name: "exact document ceiling", data: signedQueryPadJSON(encoded, QueryDocumentJSONMaximumBytes)},
 		{name: "canonical clone", data: bytes.Clone(encoded)},
@@ -300,8 +301,8 @@ func newSignedQueryFixture(t testing.TB, request signedQueryFixtureRequest) sign
 	if request.marker == 0 {
 		request.marker = 0x21
 	}
-	if request.offering == core.OfferingUnknown {
-		request.offering = core.OfferingWitness
+	if request.offering == (core.Offering{}) {
+		request.offering = paymentOffering(t, 2)
 	}
 	if request.selection == (Selection{}) {
 		request.selection = All()
