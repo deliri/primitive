@@ -1,5 +1,6 @@
 // Package gcsobjects performs the authenticated Google Cloud Storage object
-// lifecycle over the official provider SDK.
+// lifecycle and short-lived upload-capability issuance over official provider
+// SDKs.
 //
 // Gcsobjects owns authenticated SDK client construction, create-only bucket
 // provisioning, typed logical namespace composition, create-only object writes,
@@ -9,6 +10,11 @@
 // issued-capability transfers rather than reimplemented. The official Cloud
 // Storage SDK is confined here: no consumer imports it, and the base
 // objectstore package stays SDK-free.
+//
+// IssueGCSUploadCapability uses the official IAM Credentials client to sign
+// Objectstore's exact typed create-only and CRC32C request fields. It returns
+// only an opaque Objectstore capability projection; product grants, users,
+// media roles, and workflows have no representation here.
 //
 // UploadMedia and UploadFile are two compiler-selected entry points, not one
 // call behind a mode flag. UploadMedia writes a served asset a browser or CDN

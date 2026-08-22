@@ -25,24 +25,28 @@ func NewGCSClient(ctx context.Context, config GCSClientConfig) (*GCSClient, erro
 	if err := contextstate.Validate(ctx); err != nil {
 		return nil, errors.Join(core.ErrObjectStoreContract, err)
 	}
-	if err := config.Validate(); err != nil {
+	options, err := gcsClientOptions(config)
+	if err != nil {
 		return nil, err
 	}
-	var (
-		client *storage.Client
-		err    error
-	)
-	if config.Authentication == GCSAuthenticationServiceAccountFile {
-		client, err = storage.NewClient(ctx, option.WithAuthCredentialsFile(
-			option.ServiceAccount, config.CredentialFile.String(),
-		))
-	} else {
-		client, err = storage.NewClient(ctx)
-	}
+	client, err := storage.NewClient(ctx, options...)
 	if err != nil {
 		return nil, errors.Join(core.ErrObjectStoreContract, err)
 	}
 	return &GCSClient{client: client}, nil
+}
+
+func gcsClientOptions(config GCSClientConfig) ([]option.ClientOption, error) {
+	if err := config.Validate(); err != nil {
+		return nil, err
+	}
+	if config.Authentication == GCSAuthenticationServiceAccountFile {
+		return []option.ClientOption{option.WithAuthCredentialsFile(
+			option.ServiceAccount,
+			config.CredentialFile.String(),
+		)}, nil
+	}
+	return nil, nil
 }
 
 // Validate rejects an unconstructed or closed client capability.

@@ -9,8 +9,10 @@
 // document its receiver consumes. For raw-object providers it can also project
 // that same bearer plus one exact Integrity and content type into the complete
 // browser-spendable HTTP request, including provider-owned checksum and
-// create-only fields. Signing and authorization remain the caller's
-// responsibility.
+// create-only fields. NewUploadSigningHeaders exposes that same typed field
+// projection to a Primitive provider package without giving Objectstore
+// credentials or URL-signing authority. Signing and authorization remain the
+// caller's responsibility.
 //
 // UploadS3, UploadGCS, and UploadCloudflareImages are separate compiler-selected
 // operations. Replication is ordinary caller composition: reopen the source and

@@ -27,6 +27,7 @@ const (
 	realWorldSubstrateUnix
 	realWorldSubstrateWindows
 	realWorldSubstrateGoogleCloudStorage
+	realWorldSubstrateGoogleIAMCredentials
 	realWorldSubstrateNetwork
 	realWorldSubstrateContextDeadline
 	realWorldSubstrateLimit
@@ -45,6 +46,7 @@ const (
 	realWorldUnixPath                  = "golang.org/x/sys/unix"
 	realWorldWindowsPath               = "golang.org/x/sys/windows"
 	realWorldGoogleCloudStoragePath    = "cloud.google.com/go/storage"
+	realWorldGoogleIAMCredentialsPath  = "google.golang.org/api/iamcredentials/v1"
 	realWorldNetworkPath               = "net"
 	realWorldContextDeadlinePath       = "context"
 )
@@ -383,6 +385,8 @@ func parseRealWorldSubstrate(path string) realWorldSubstrate {
 		return realWorldSubstrateWindows
 	case realWorldGoogleCloudStoragePath:
 		return realWorldSubstrateGoogleCloudStorage
+	case realWorldGoogleIAMCredentialsPath:
+		return realWorldSubstrateGoogleIAMCredentials
 	case realWorldNetworkPath:
 		return realWorldSubstrateNetwork
 	case realWorldContextDeadlinePath:
@@ -405,6 +409,7 @@ func declaredRealWorldImports() (realWorldImportInventory, error) {
 		realWorldImportOwners(realWorldSubstrateUnix, PackageFileLock, PackageFilestore, PackageHostFacts, PackageProcess),
 		realWorldImportOwners(realWorldSubstrateWindows, PackageFileLock, PackageFilestore, PackageHostFacts, PackageProcess),
 		realWorldImportOwners(realWorldSubstrateGoogleCloudStorage, PackageGCSObjects),
+		realWorldImportOwners(realWorldSubstrateGoogleIAMCredentials, PackageGCSObjects),
 		realWorldImportOwners(realWorldSubstrateNetwork, PackageGCSObjects),
 	}
 	var inventory realWorldImportInventory
@@ -499,7 +504,9 @@ func declaredRealWorldCalls() (realWorldCallInventory, error) {
 		{owner: PackageProcess, substrate: realWorldSubstrateWindows, selector: "Process32First", count: 1},
 		{owner: PackageProcess, substrate: realWorldSubstrateWindows, selector: "Process32Next", count: 1},
 		{owner: PackageProcess, substrate: realWorldSubstrateWindows, selector: "UTF16ToString", count: 1},
-		{owner: PackageGCSObjects, substrate: realWorldSubstrateGoogleCloudStorage, selector: "NewClient", count: 2},
+		{owner: PackageGCSObjects, substrate: realWorldSubstrateGoogleCloudStorage, selector: "NewClient", count: 1},
+		{owner: PackageGCSObjects, substrate: realWorldSubstrateGoogleCloudStorage, selector: "SignedURL", count: 1},
+		{owner: PackageGCSObjects, substrate: realWorldSubstrateGoogleIAMCredentials, selector: "NewService", count: 1},
 		{owner: PackageGCSObjects, substrate: realWorldSubstrateNetwork, selector: "ParseIP", count: 1},
 		{owner: PackageTemporal, substrate: realWorldSubstrateContextDeadline, selector: "WithDeadline", count: 1},
 		{owner: PackageTemporal, substrate: realWorldSubstrateContextDeadline, selector: "WithTimeout", count: 1},

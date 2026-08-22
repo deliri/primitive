@@ -333,12 +333,29 @@ func semicolonTokenContains(value, token string) bool {
 	return false
 }
 
-func uploadHeaders(
+// NewUploadSigningHeaders returns the exact validated extension fields that an
+// issuer must bind into one raw-object signed upload capability. Content-Type
+// remains a separately typed SDK field, and HTTP framing remains with the
+// eventual client. The same projection is used when Objectstore spends or
+// renders the capability, so issuer and receiver cannot drift through copied
+// provider literals.
+func NewUploadSigningHeaders(
 	provider Provider,
-	target UploadTarget,
+	headers SignedHeaders,
 	integrity Integrity,
 ) (exchange.Headers, error) {
-	headers, err := signedHeaders(target.Headers)
+	if err := validateUploadSigningHeaders(provider, headers, integrity); err != nil {
+		return exchange.Headers{}, err
+	}
+	return uploadHeaders(provider, headers, integrity)
+}
+
+func uploadHeaders(
+	provider Provider,
+	headers SignedHeaders,
+	integrity Integrity,
+) (exchange.Headers, error) {
+	projected, err := signedHeaders(headers)
 	if err != nil {
 		return exchange.Headers{}, err
 	}
@@ -367,7 +384,32 @@ func uploadHeaders(
 	default:
 		return exchange.Headers{}, core.ErrObjectStoreContract
 	}
-	return appendProviderHeaders(headers, emitted)
+	return appendProviderHeaders(projected, emitted)
+}
+
+func validateUploadSigningHeaders(
+	provider Provider,
+	headers SignedHeaders,
+	integrity Integrity,
+) error {
+	if err := headers.Validate(); err != nil {
+		return err
+	}
+	if err := integrity.Validate(); err != nil {
+		return err
+	}
+	spec, err := Spec(provider)
+	if err != nil {
+		return err
+	}
+	if spec.UploadEncoding != UploadEncodingRawObject ||
+		spec.UploadMethod != exchange.MethodPut {
+		return core.ErrObjectStoreContract
+	}
+	if integrity.Length.Uint64() > spec.UploadMaximum.Uint64() {
+		return core.ErrObjectStoreSize
+	}
+	return nil
 }
 
 func downloadHeaders(

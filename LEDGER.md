@@ -4,6 +4,24 @@ Last updated: `2026-08-21`
 
 ## Current
 
+- opened provider-blind GCS upload-capability issuance, 2026-08-22, published
+  `v2026.0.142`. Objectstore now exposes one typed
+  `NewUploadSigningHeaders` projection shared by capability issuers, browser
+  request projection, and streaming execution, so create-only and CRC32C
+  provider fields have one compiler-visible owner. GCSObjects accepts one
+  product-neutral request containing only bucket, object, service-account
+  principal, integrity, media type, and a positive lifetime bounded by the
+  provider's seven-day V4 ceiling. It observes the real Primitive clock,
+  signs through the official IAM Credentials and Cloud Storage SDKs with the
+  request context, and returns only an opaque Objectstore capability
+  projection. Hostile triads cover valid issuance, provider refusal, empty
+  signatures, and canceled zero-effect ingress; the service-account parser has
+  a hostile boundary table and semantic fuzz closure. Focused Objectstore,
+  GCSObjects, and Core tests, race, vet, static analysis, field alignment,
+  `gocyclo <= 10`, witness-lint, and diff hygiene are green. Blink Kernel can
+  now delete its direct Storage/IAM signing path and route issuance through a
+  vendor-blind Bridge server.
+
 - opened bounded upstream client-address projection, 2026-08-21, published
   `v2026.0.141`. Exchange now owns the product-neutral projection from one real
   `net/http.Request` to one canonical `netip.Addr`. A closed caller authority

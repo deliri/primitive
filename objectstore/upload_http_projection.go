@@ -172,9 +172,9 @@ func projectUploadHTTPWire(
 func projectUploadHTTPHeaders(
 	projection UploadHTTPProjection,
 ) ([]uploadCapabilityHeaderWire, error) {
-	headers, err := uploadHeaders(
+	headers, err := NewUploadSigningHeaders(
 		projection.capability.provider,
-		projection.capability.target,
+		projection.capability.target.Headers,
 		projection.integrity,
 	)
 	if err != nil {

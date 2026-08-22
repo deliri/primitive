@@ -359,7 +359,7 @@ func prepareUpload(
 	if err != nil {
 		return preparedUpload{}, err
 	}
-	headers, err := uploadHeaders(provider, request.Target, request.Integrity)
+	headers, err := uploadHeaders(provider, request.Target.Headers, request.Integrity)
 	if err != nil {
 		return preparedUpload{}, err
 	}

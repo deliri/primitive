@@ -20,6 +20,8 @@ It owns exactly:
 - two create-only object writes, served-media and stored-file;
 - exact-generation upload observation that binds authenticated client evidence
   to the official provider metadata without downloading object bytes;
+- official IAM Credentials signing of one short-lived V4 create-only upload
+  capability from Objectstore's exact typed request fields;
 - one digest-bound bounded read;
 - the canonical public address of one object; and
 - generation-matched permanent deletion of one exact object or one confined
@@ -79,7 +81,7 @@ remains outside this object lifecycle.
 
 ## What it deliberately does not do
 
-- mutate existing buckets, mint or persist credentials, or create signed URLs;
+- mutate existing buckets or mint or persist credentials;
 - create placeholder objects to imitate directories;
 - administer managed-folder IAM policy;
 - overwrite, copy, compose, or mutate arbitrary object metadata;
@@ -99,8 +101,11 @@ enabled, because there success would not mean permanent deletion.
 
 ## Where it meets the real world
 
-The effect leaf is the official Cloud Storage SDK,
-`cloud.google.com/go/storage`, reached through one authenticated client.
+The effect leaves are the official Cloud Storage SDK,
+`cloud.google.com/go/storage`, and the official IAM Credentials API client.
+The latter signs exactly one Objectstore-owned V4 upload request with an
+explicit service-account principal and request context; it does not create or
+store signing keys.
 Product code selects Application Default Credentials or an explicit
 service-account file through a closed typed configuration; the SDK type and
 credential-discovery mechanics never escape the package.

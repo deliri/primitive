@@ -19,7 +19,7 @@ func TestAuthenticatedGCSOperationsAreCompilerSelectedEntryPoints(t *testing.T) 
 
 	set := token.NewFileSet()
 	var got []string
-	for _, path := range []string{"client.go"} {
+	for _, path := range []string{"client.go", "upload_capability.go"} {
 		file, gotParseErr := parser.ParseFile(set, path, nil, 0)
 		if gotParseErr != nil {
 			t.Fatalf("parser.ParseFile(%s) error = %v, want nil", path, gotParseErr)
@@ -37,8 +37,11 @@ func TestAuthenticatedGCSOperationsAreCompilerSelectedEntryPoints(t *testing.T) 
 		"CreateBucket",
 		"DeleteGCSObject",
 		"DeleteGCSObjects",
+		"IssueGCSUploadCapability",
 		"NewGCSClient",
+		"NewGCSUploadCapabilityIssuer",
 		"ObserveGCSUpload",
+		"ParseGCSServiceAccount",
 		"ReadGCSObject",
 		"UploadFile",
 		"UploadMedia",
@@ -107,19 +110,21 @@ func TestProductionStructDataFlowInventory(t *testing.T) {
 
 func productionStructRole(name string) (string, bool) {
 	switch name {
-	case "GCSClient":
+	case "GCSClient", "GCSUploadCapabilityIssuer":
 		return "authenticated provider capability wrapper", true
 	case "GCSClientConfig":
 		return "authenticated provider construction ingress", true
 	case "GCSBucket", "GCSObjectName", "GCSObjectPrefix", "GCSCacheControl",
-		"GCSGeneration", "GCSProjectID", "GCSLocation", "GCSObjectSegment":
+		"GCSGeneration", "GCSProjectID", "GCSLocation", "GCSObjectSegment", "GCSServiceAccount":
 		return "opaque validated provider value", true
 	case "GCSMediaUpload", "GCSFileUpload", "GCSReadRequest", "GCSUploadObservationRequest", "GCSDeleteRequest",
 		"GCSDeleteObjectRequest", "GCSBucketCreateRequest", "GCSRootPrefixRequest",
-		"GCSChildPrefixRequest", "GCSObjectInPrefixRequest":
+		"GCSChildPrefixRequest", "GCSObjectInPrefixRequest", "GCSUploadCapabilityRequest":
 		return "authenticated provider execution ingress", true
 	case "gcsWrite":
 		return "internal owner-only write projection", true
+	case "gcsUploadURLRequest":
+		return "internal official SDK signing projection", true
 	case "GCSObjectMetadata", "VerifiedGCSUpload", "GCSDeleteResult", "GCSDeleteObjectResult", "GCSBucketProvisioning":
 		return "sealed authenticated provider evidence", true
 	case "gcsObjectIdentity", "gcsObjectProperties", "gcsObjectTimes":
