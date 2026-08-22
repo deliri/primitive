@@ -127,7 +127,7 @@ func (r *Request) UnmarshalJSON(data []byte) error {
 		return errorsJSON()
 	}
 	wire, err := core.DecodeStrictJSON[requestWire](
-		data,
+		bytes.NewReader(data),
 		core.DefaultStrictJSONLimits(),
 	)
 	if err != nil {

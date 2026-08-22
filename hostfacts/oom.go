@@ -196,7 +196,7 @@ func (e *GoOOMBannerEvidence) UnmarshalJSON(data []byte) error {
 	if e == nil {
 		return errors.Join(core.ErrJSONContract, core.ErrHostFactsEvidence)
 	}
-	wire, err := core.DecodeStrictJSON[goOOMBannerWire](data, goOOMEvidenceJSONLimits())
+	wire, err := core.DecodeStrictJSON[goOOMBannerWire](bytes.NewReader(data), goOOMEvidenceJSONLimits())
 	if err != nil || wire.BytesExamined == nil || wire.State == nil {
 		return errors.Join(core.ErrJSONContract, core.ErrHostFactsEvidence, err)
 	}

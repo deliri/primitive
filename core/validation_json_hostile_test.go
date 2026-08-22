@@ -221,7 +221,7 @@ func FuzzDecodeStrictJSONAbsolutePathPublicBoundary(f *testing.F) {
 			)
 		}
 		limits.DocumentMaximumBytes = documentMaximum
-		got, gotErr := DecodeStrictJSON[AbsolutePath](wire, limits)
+		got, gotErr := DecodeStrictJSON[AbsolutePath](bytes.NewReader(wire), limits)
 		if gotErr != nil {
 			if !errors.Is(gotErr, ErrJSONContract) {
 				t.Fatalf("DecodeStrictJSON[AbsolutePath]() error = %v, want %v", gotErr, ErrJSONContract)
@@ -250,7 +250,7 @@ func FuzzDecodeStrictJSONAbsolutePathPublicBoundary(f *testing.F) {
 					directWire,
 				)
 			}
-			roundTrip, roundTripErr := DecodeStrictJSON[AbsolutePath](encoded, limits)
+			roundTrip, roundTripErr := DecodeStrictJSON[AbsolutePath](bytes.NewReader(encoded), limits)
 			if roundTripErr != nil {
 				t.Fatalf("DecodeStrictJSON[AbsolutePath](round trip) error = %v, want nil", roundTripErr)
 			}
@@ -788,7 +788,7 @@ func TestStrictJSONPublicDiagnosticRatchet(t *testing.T) {
 			name: "document byte limit identifies the exceeded resource",
 			run: func() error {
 				wire := bytes.Repeat([]byte{' '}, JSONDocumentMaximumBytes+1)
-				_, err := DecodeStrictJSON[strictJSONTextRecord](wire, defaultLimits)
+				_, err := DecodeStrictJSON[strictJSONTextRecord](bytes.NewReader(wire), defaultLimits)
 				return err
 			},
 			wantMessage: jsonDocumentLimitExceededErrorText,
@@ -797,7 +797,7 @@ func TestStrictJSONPublicDiagnosticRatchet(t *testing.T) {
 			name: "nesting limit identifies the exceeded resource",
 			run: func() error {
 				_, err := DecodeStrictJSON[strictJSONTextRecord](
-					strictJSONNestedArrays(JSONNestingDepthMaximum+1),
+					bytes.NewReader(strictJSONNestedArrays(JSONNestingDepthMaximum+1)),
 					defaultLimits,
 				)
 				return err
@@ -808,7 +808,7 @@ func TestStrictJSONPublicDiagnosticRatchet(t *testing.T) {
 			name: "object field limit identifies the exceeded resource",
 			run: func() error {
 				_, err := DecodeStrictJSON[strictJSONTextRecord](
-					strictJSONObject(JSONObjectFieldCountMaximum+1),
+					bytes.NewReader(strictJSONObject(JSONObjectFieldCountMaximum+1)),
 					defaultLimits,
 				)
 				return err
@@ -819,7 +819,7 @@ func TestStrictJSONPublicDiagnosticRatchet(t *testing.T) {
 			name: "array item limit identifies the exceeded resource",
 			run: func() error {
 				_, err := DecodeStrictJSON[strictJSONTextRecord](
-					strictJSONArray(jsonArrayItemCountMaximum+1),
+					bytes.NewReader(strictJSONArray(jsonArrayItemCountMaximum+1)),
 					defaultLimits,
 				)
 				return err
@@ -841,7 +841,7 @@ func TestStrictJSONPublicDiagnosticRatchet(t *testing.T) {
 			name: "decoded validation failure identifies the ownership boundary",
 			run: func() error {
 				_, err := DecodeStrictJSON[strictJSONTextRecord](
-					[]byte(`{"text":""}`),
+					bytes.NewReader([]byte(`{"text":""}`)),
 					defaultLimits,
 				)
 				return err
@@ -1035,7 +1035,7 @@ func TestStrictJSONPublicDocumentLimitBoundary(t *testing.T) {
 			if !bytes.Equal(gotWire, stdlibWire) {
 				t.Fatalf("EncodeValidatedJSON() wire length = %d, want canonical length %d", len(gotWire), len(stdlibWire))
 			}
-			gotRecord, gotDecodeErr := DecodeStrictJSON[strictJSONTextRecord](gotWire, limits)
+			gotRecord, gotDecodeErr := DecodeStrictJSON[strictJSONTextRecord](bytes.NewReader(gotWire), limits)
 			if gotDecodeErr != nil || gotRecord.Text != record.Text {
 				t.Fatalf(
 					"DecodeStrictJSON() = (text length %d, %v), want (text length %d, nil)",
@@ -1177,7 +1177,7 @@ func BenchmarkDecodeStrictJSONAdvertisedMaximumComposition(b *testing.B) {
 	var got strictJSONBenchmarkDocument
 	var gotErr error
 	gotAllocations := testing.AllocsPerRun(1, func() {
-		got, gotErr = DecodeStrictJSON[strictJSONBenchmarkDocument](document, limits)
+		got, gotErr = DecodeStrictJSON[strictJSONBenchmarkDocument](bytes.NewReader(document), limits)
 	})
 	if gotErr != nil || !got.decoded {
 		b.Fatalf(
@@ -1208,7 +1208,7 @@ func BenchmarkDecodeStrictJSONAdvertisedMaximumComposition(b *testing.B) {
 	b.ReportAllocs()
 	b.ResetTimer()
 	for b.Loop() {
-		got, err := DecodeStrictJSON[strictJSONBenchmarkDocument](document, limits)
+		got, err := DecodeStrictJSON[strictJSONBenchmarkDocument](bytes.NewReader(document), limits)
 		if err != nil || !got.decoded {
 			b.Fatalf(
 				"DecodeStrictJSON(advertised maximum composition) = (%v, %v), want (decoded, nil)",
@@ -1227,7 +1227,7 @@ func strictJSONDecodeBytesPerRun(
 	runtime.GC()
 	var before runtime.MemStats
 	runtime.ReadMemStats(&before)
-	got, err := DecodeStrictJSON[strictJSONBenchmarkDocument](document, limits)
+	got, err := DecodeStrictJSON[strictJSONBenchmarkDocument](bytes.NewReader(document), limits)
 	if err != nil {
 		return 0, err
 	}

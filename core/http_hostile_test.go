@@ -1,6 +1,7 @@
 package core
 
 import (
+	"bytes"
 	jsontext "encoding/json/jsontext"
 	json "encoding/json/v2"
 	"errors"
@@ -213,7 +214,7 @@ func TestHTTPHeaderNameHostileBoundaryTable(t *testing.T) {
 				t.Fatalf("HTTPHeaderName.MarshalJSON(%q) wire = %q, want valid JSON", got, directWire)
 			}
 			directRoundTrip, directDecodeErr := DecodeStrictJSON[HTTPHeaderName](
-				directWire,
+				bytes.NewReader(directWire),
 				DefaultStrictJSONLimits(),
 			)
 			if directDecodeErr != nil || directRoundTrip != got {
@@ -229,7 +230,7 @@ func TestHTTPHeaderNameHostileBoundaryTable(t *testing.T) {
 				t.Fatalf("EncodeValidatedJSON(HTTPHeaderName %q) error = %v, want nil", got, gotEncodeErr)
 			}
 			gotRoundTrip, gotDecodeErr := DecodeStrictJSON[HTTPHeaderName](
-				gotWire,
+				bytes.NewReader(gotWire),
 				DefaultStrictJSONLimits(),
 			)
 			if gotDecodeErr != nil || gotRoundTrip != got {

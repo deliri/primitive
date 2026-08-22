@@ -102,6 +102,7 @@ const (
 	JSONObjectFieldCountMaximum = 256
 	// jsonArrayItemCountMaximum is the per-array item cap.
 	jsonArrayItemCountMaximum             = 1024
+	strictJSONReaderInitialBufferBytes    = 4 << 10
 	jsonObjectOverheadBytes               = len(`{}`)
 	jsonArrayOverheadBytes                = len(`[]`)
 	jsonNullLiteralText                   = "null"
@@ -110,6 +111,9 @@ const (
 	jsonValidatorPanicErrorText           = "validated json validator panicked"
 	jsonProjectionValidatorPanicErrorText = "validated json projection validator panicked"
 	jsonUnmarshalerPanicErrorText         = "strict json unmarshaler panicked"
+	jsonReaderInvalidErrorText            = "strict json reader is nil"
+	jsonReaderCountInvalidErrorText       = "strict json reader returned an invalid byte count"
+	jsonReaderFailureErrorText            = "strict json reader failed"
 	jsonDocumentLimitExceededErrorText    = "json document exceeds byte limit"
 	jsonObjectFieldLimitExceededErrorText = "json object exceeds field limit"
 	jsonNestingLimitExceededErrorText     = "json nesting exceeds depth limit"
@@ -270,11 +274,12 @@ func marshalValidatedJSON(value json.Marshaler) (encoded []byte, err error) {
 	return value.MarshalJSON()
 }
 
-// DecodeStrictJSON decodes one strict JSON document into T. It rejects invalid
-// UTF-8, unpaired JSON surrogate escapes, unknown fields, case-insensitive
-// duplicate object keys at every nesting level, trailing data, null documents,
-// and configured-limit violations. The uniqueness rule applies package-wide,
-// not only to Go structs.
+// DecodeStrictJSON reads one strict JSON document into T. It reads no more than
+// the configured maximum plus one proof byte, bounds repeated empty reads, and
+// preserves native reader failures. It rejects invalid UTF-8, unpaired JSON
+// surrogate escapes, unknown fields, case-insensitive duplicate object keys at
+// every nesting level, trailing data, null documents, and configured-limit
+// violations. The uniqueness rule applies package-wide, not only to Go structs.
 //
 // Strict describes rejection and resource rules, not an injective or canonical
 // byte representation. Leading and trailing whitespace and equivalent JSON
@@ -282,11 +287,20 @@ func marshalValidatedJSON(value json.Marshaler) (encoded []byte, err error) {
 // hashes wire bytes must authenticate the original bytes before decoding; a
 // protocol that signs typed values must define its own canonical projection.
 // Every failure returns the zero value of T.
-func DecodeStrictJSON[T Validatable](data []byte, limits StrictJSONLimits) (T, error) {
+func DecodeStrictJSON[T Validatable](reader io.Reader, limits StrictJSONLimits) (T, error) {
 	var zero T
 	if err := limits.Validate(); err != nil {
 		return zero, err
 	}
+	data, err := readStrictJSONDocument(reader, limits)
+	if err != nil {
+		return zero, err
+	}
+	return decodeStrictJSONValidatedLimits[T](data, limits)
+}
+
+func decodeStrictJSONValidatedLimits[T Validatable](data []byte, limits StrictJSONLimits) (T, error) {
+	var zero T
 	if bytes.Equal(bytes.TrimSpace(data), []byte(jsonNullLiteralText)) {
 		return zero, jsonContractError("decoded json document is null", nil)
 	}
@@ -314,6 +328,59 @@ func DecodeStrictJSONStructure[T any](
 		return zero, err
 	}
 	return decodeStrictJSONStructureValidatedLimits[T](data, limits)
+}
+
+func readStrictJSONDocument(reader io.Reader, limits StrictJSONLimits) ([]byte, error) {
+	if ReaderIsNil(reader) {
+		return nil, jsonContractError(jsonReaderInvalidErrorText, nil)
+	}
+	maximum, err := limits.DocumentMaximumBytes.Uint64()
+	if err != nil {
+		return nil, jsonContractError(jsonDocumentByteLimitInvalidErrorText, err)
+	}
+	buffer := make([]byte, min(int(maximum)+1, strictJSONReaderInitialBufferBytes))
+	used := 0
+	emptyReads := 0
+	for {
+		if used == len(buffer) {
+			buffer = growStrictJSONReadBuffer(buffer, int(maximum)+1)
+		}
+		count, readErr := reader.Read(buffer[used:])
+		if !strictJSONReadCountValid(count, len(buffer)-used) {
+			return nil, jsonContractError(jsonReaderCountInvalidErrorText, nil)
+		}
+		used += count
+		if used > int(maximum) {
+			return nil, jsonContractError(jsonDocumentLimitExceededErrorText, nil)
+		}
+		if readErr != nil {
+			return finishStrictJSONRead(buffer[:used], readErr)
+		}
+		if count > 0 {
+			emptyReads = 0
+			continue
+		}
+		emptyReads++
+		if emptyReads >= ReaderConsecutiveEmptyReadMaximum {
+			return nil, jsonContractError(jsonReaderFailureErrorText, io.ErrNoProgress)
+		}
+	}
+}
+
+func strictJSONReadCountValid(count, remaining int) bool {
+	return count >= 0 && count <= remaining
+}
+
+func finishStrictJSONRead(data []byte, readErr error) ([]byte, error) {
+	if readErr == io.EOF {
+		return data, nil
+	}
+	return nil, jsonContractError(jsonReaderFailureErrorText, readErr)
+}
+
+func growStrictJSONReadBuffer(buffer []byte, maximum int) []byte {
+	next := min(len(buffer)*2, maximum)
+	return append(buffer, make([]byte, next-len(buffer))...)
 }
 
 func decodeStrictJSONStructureValidatedLimits[T any](data []byte, limits StrictJSONLimits) (T, error) {

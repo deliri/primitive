@@ -1,6 +1,7 @@
 package core
 
 import (
+	"bytes"
 	jsontext "encoding/json/jsontext"
 	json "encoding/json/v2"
 	"errors"
@@ -88,7 +89,7 @@ func TestAbsoluteFilesystemPathHostileBoundaryTable(t *testing.T) {
 					t.Fatalf("AbsolutePath.MarshalJSON(%q) wire = %q, want valid JSON", got, directWire)
 				}
 				directRoundTrip, directDecodeErr := DecodeStrictJSON[AbsolutePath](
-					directWire,
+					bytes.NewReader(directWire),
 					DefaultStrictJSONLimits(),
 				)
 				if directDecodeErr != nil || directRoundTrip != got {
@@ -104,7 +105,7 @@ func TestAbsoluteFilesystemPathHostileBoundaryTable(t *testing.T) {
 					t.Fatalf("EncodeValidatedJSON(AbsolutePath %q) error = %v, want nil", got, gotEncodeErr)
 				}
 				gotRoundTrip, gotDecodeErr := DecodeStrictJSON[AbsolutePath](
-					gotWire,
+					bytes.NewReader(gotWire),
 					DefaultStrictJSONLimits(),
 				)
 				if gotDecodeErr != nil || gotRoundTrip != got {
@@ -168,7 +169,7 @@ func TestAbsolutePathStrictJSONInteroperableEscaping(t *testing.T) {
 			if wantErr != nil {
 				t.Fatalf("ParseAbsolutePath(%q) error = %v, want nil", tc.want, wantErr)
 			}
-			got, gotErr := DecodeStrictJSON[AbsolutePath]([]byte(tc.wire), DefaultStrictJSONLimits())
+			got, gotErr := DecodeStrictJSON[AbsolutePath](bytes.NewReader([]byte(tc.wire)), DefaultStrictJSONLimits())
 			if gotErr != nil || got != want {
 				t.Fatalf(
 					"DecodeStrictJSON[AbsolutePath](%q) = (%v, %v), want (%v, nil)",
@@ -216,7 +217,7 @@ func TestAbsolutePathStrictJSONRejectsLossySurrogateRepair(t *testing.T) {
 				)
 			}
 			got, gotErr := DecodeStrictJSON[AbsolutePath](
-				[]byte(tc.wire),
+				bytes.NewReader([]byte(tc.wire)),
 				DefaultStrictJSONLimits(),
 			)
 			if !errors.Is(gotErr, ErrJSONContract) {
@@ -410,7 +411,7 @@ func TestPathComponentHostileBoundaryTable(t *testing.T) {
 					t.Fatalf("PathComponent.MarshalJSON(%q) wire = %q, want valid JSON", got, directWire)
 				}
 				directRoundTrip, directDecodeErr := DecodeStrictJSON[PathComponent](
-					directWire,
+					bytes.NewReader(directWire),
 					DefaultStrictJSONLimits(),
 				)
 				if directDecodeErr != nil || directRoundTrip != got {
@@ -426,7 +427,7 @@ func TestPathComponentHostileBoundaryTable(t *testing.T) {
 					t.Fatalf("EncodeValidatedJSON(PathComponent %q) error = %v, want nil", got, gotEncodeErr)
 				}
 				gotRoundTrip, gotDecodeErr := DecodeStrictJSON[PathComponent](
-					gotWire,
+					bytes.NewReader(gotWire),
 					DefaultStrictJSONLimits(),
 				)
 				if gotDecodeErr != nil || gotRoundTrip != got {

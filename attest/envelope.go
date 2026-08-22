@@ -1,6 +1,7 @@
 package attest
 
 import (
+	"bytes"
 	"errors"
 
 	"github.com/deliri/primitive/v2026/core"
@@ -117,7 +118,7 @@ func (e *Envelope[D]) UnmarshalJSON(data []byte) error {
 	if err != nil {
 		return envelopeJSONError(err)
 	}
-	wire, err := core.DecodeStrictJSON[envelopeWire](data, limits)
+	wire, err := core.DecodeStrictJSON[envelopeWire](bytes.NewReader(data), limits)
 	if err != nil {
 		return envelopeJSONError(err)
 	}

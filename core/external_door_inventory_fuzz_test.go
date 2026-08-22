@@ -723,6 +723,7 @@ func TestCoreExternalIngressFuzzInventoryMatchesProduction(t *testing.T) {
 		t.Fatalf("public JSON receivers = %v, fuzz inventory = %v", gotJSON, wantJSON)
 	}
 	_ = FuzzDecodeStrictJSONAbsolutePathPublicBoundary
+	_ = FuzzDecodeStrictJSONReaderAbsolutePathPublicBoundary
 	_ = FuzzCoreDecodeJSONStringTokenSemanticClosure
 	_ = FuzzCoreDecodeCanonicalHexSemanticClosure
 	_ = FuzzCoreHTTPStatusAdmitIntSemanticClosure

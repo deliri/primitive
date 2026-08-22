@@ -101,7 +101,7 @@ func (e *AuthorityEvidence) UnmarshalJSON(data []byte) error {
 		return errorsJSON()
 	}
 	wire, err := core.DecodeStrictJSON[authorityEvidenceWire](
-		data, core.DefaultStrictJSONLimits(),
+		bytes.NewReader(data), core.DefaultStrictJSONLimits(),
 	)
 	if err != nil {
 		return errorsJSON()

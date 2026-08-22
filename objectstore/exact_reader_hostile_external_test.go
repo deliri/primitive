@@ -14,17 +14,30 @@ import (
 func TestExactReaderConstructionRejectsNilSource(t *testing.T) {
 	t.Parallel()
 
-	got, gotErr := objectstore.NewExactReader(nil, mustByteLength(t, 0))
-	if got != nil ||
-		!errors.Is(gotErr, core.ErrObjectStoreContract) ||
-		!errors.Is(gotErr, core.ErrObjectStoreSource) {
-		t.Fatalf(
-			"NewExactReader(nil) = (%v, %v), want (nil, errors.Is %v and %v)",
-			got,
-			gotErr,
-			core.ErrObjectStoreContract,
-			core.ErrObjectStoreSource,
-		)
+	var typedNil *bytes.Reader
+	cases := []struct {
+		source io.Reader
+		name   string
+	}{
+		{name: "nil interface", source: nil},
+		{name: "typed nil pointer", source: typedNil},
+	}
+	for _, testCase := range cases {
+		t.Run(testCase.name, func(t *testing.T) {
+			t.Parallel()
+			got, gotErr := objectstore.NewExactReader(testCase.source, mustByteLength(t, 0))
+			if got != nil ||
+				!errors.Is(gotErr, core.ErrObjectStoreContract) ||
+				!errors.Is(gotErr, core.ErrObjectStoreSource) {
+				t.Fatalf(
+					"NewExactReader() = (%v, %v), want (nil, errors including %v and %v)",
+					got,
+					gotErr,
+					core.ErrObjectStoreContract,
+					core.ErrObjectStoreSource,
+				)
+			}
+		})
 	}
 }
 

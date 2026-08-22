@@ -401,7 +401,7 @@ func decodeJSONResponse[Body core.Validatable](
 	if operationErr != nil {
 		return JSONResponse[Body]{Metadata: raw.metadata}, operationErr
 	}
-	body, err := core.DecodeStrictJSON[Body](raw.body, strictJSONLimits(limit))
+	body, err := core.DecodeStrictJSON[Body](bytes.NewReader(raw.body), strictJSONLimits(limit))
 	if err != nil {
 		return JSONResponse[Body]{Metadata: raw.metadata}, responseError(err)
 	}

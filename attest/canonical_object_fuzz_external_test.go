@@ -1,6 +1,7 @@
 package attest_test
 
 import (
+	"bytes"
 	"errors"
 	"testing"
 
@@ -92,7 +93,7 @@ func FuzzCanonicalObjectEmitsStrictlyDecodableAndStableDocuments(f *testing.F) {
 		}
 
 		decoded, decodeErr := core.DecodeStrictJSON[fuzzedCanonicalMembers](
-			encoded, core.DefaultStrictJSONLimits(),
+			bytes.NewReader(encoded), core.DefaultStrictJSONLimits(),
 		)
 		if decodeErr != nil {
 			t.Fatalf("DecodeStrictJSON() error = %v, want nil for %q", decodeErr, encoded)

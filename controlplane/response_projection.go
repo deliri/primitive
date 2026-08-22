@@ -15,7 +15,7 @@ func validateTypedResponseProjection[T core.ValidatedJSONMarshaler](
 	encoded []byte,
 	limits core.StrictJSONLimits,
 ) error {
-	decoded, err := core.DecodeStrictJSON[T](encoded, limits)
+	decoded, err := core.DecodeStrictJSON[T](bytes.NewReader(encoded), limits)
 	if err != nil {
 		return err
 	}

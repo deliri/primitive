@@ -1,6 +1,7 @@
 package core_test
 
 import (
+	"bytes"
 	"errors"
 	"testing"
 
@@ -45,7 +46,7 @@ func TestStrictJSONExternalConsumerPanicsBecomeTypedErrors(t *testing.T) {
 		t.Parallel()
 
 		got, gotErr := core.DecodeStrictJSON[externalPanicUnmarshalRecord](
-			[]byte(`{}`),
+			bytes.NewReader([]byte(`{}`)),
 			limits,
 		)
 		if !errors.Is(gotErr, core.ErrJSONContract) {
@@ -59,7 +60,7 @@ func TestStrictJSONExternalConsumerPanicsBecomeTypedErrors(t *testing.T) {
 		t.Parallel()
 
 		got, gotErr := core.DecodeStrictJSON[externalPanicValidateRecord](
-			[]byte(`{"value":"decoded"}`),
+			bytes.NewReader([]byte(`{"value":"decoded"}`)),
 			limits,
 		)
 		if !errors.Is(gotErr, core.ErrJSONContract) {
@@ -93,7 +94,7 @@ func TestStrictJSONExternalTypedNilNeverPanics(t *testing.T) {
 		t.Run(tc.name, func(t *testing.T) {
 			t.Parallel()
 
-			got, gotErr := core.DecodeStrictJSON[*core.SHA256Digest](tc.wire, limits)
+			got, gotErr := core.DecodeStrictJSON[*core.SHA256Digest](bytes.NewReader(tc.wire), limits)
 			if !errors.Is(gotErr, core.ErrJSONContract) {
 				t.Fatalf("DecodeStrictJSON[*SHA256Digest](%q) error = %v, want %v", tc.wire, gotErr, core.ErrJSONContract)
 			}
@@ -129,7 +130,7 @@ func TestStrictJSONExternalErrorsAlwaysReturnZeroValue(t *testing.T) {
 		t.Run(tc.name, func(t *testing.T) {
 			t.Parallel()
 
-			got, gotErr := core.DecodeStrictJSON[externalValidatedRecord](tc.wire, limits)
+			got, gotErr := core.DecodeStrictJSON[externalValidatedRecord](bytes.NewReader(tc.wire), limits)
 			if !errors.Is(gotErr, core.ErrJSONContract) {
 				t.Fatalf("DecodeStrictJSON(%q) error = %v, want %v", tc.wire, gotErr, core.ErrJSONContract)
 			}

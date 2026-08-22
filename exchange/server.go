@@ -1,6 +1,7 @@
 package exchange
 
 import (
+	"bytes"
 	"context"
 	"errors"
 	"io"
@@ -173,7 +174,7 @@ func receiveJSON[
 		return zero, err
 	}
 	body, err := core.DecodeStrictJSON[BodyPtr](
-		data,
+		bytes.NewReader(data),
 		strictJSONLimits(call.Policy.RequestBodyLimit),
 	)
 	if err != nil {

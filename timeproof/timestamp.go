@@ -164,7 +164,7 @@ func (t *AuthoritativeTimestamp) UnmarshalJSON(data []byte) error {
 		return errorsJSON()
 	}
 	wire, err := core.DecodeStrictJSON[authoritativeTimestampWire](
-		data, core.DefaultStrictJSONLimits(),
+		bytes.NewReader(data), core.DefaultStrictJSONLimits(),
 	)
 	if err != nil {
 		return errorsJSON()

@@ -1,6 +1,7 @@
 package currency
 
 import (
+	"bytes"
 	"errors"
 	"strconv"
 
@@ -102,7 +103,7 @@ func (a *Amount) UnmarshalJSON(data []byte) error {
 	if err != nil {
 		return jsonError(err)
 	}
-	wire, err := core.DecodeStrictJSON[amountWire](data, limits)
+	wire, err := core.DecodeStrictJSON[amountWire](bytes.NewReader(data), limits)
 	if err != nil {
 		return jsonError(errors.Join(
 			contractError("currency amount JSON is invalid"),

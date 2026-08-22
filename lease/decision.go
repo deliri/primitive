@@ -1,6 +1,7 @@
 package lease
 
 import (
+	"bytes"
 	json "encoding/json/v2"
 	"errors"
 	"io"
@@ -489,7 +490,7 @@ func (d *Decision) UnmarshalJSON(data []byte) error {
 	if err != nil {
 		return err
 	}
-	wire, err := core.DecodeStrictJSON[decisionWire](data, limits)
+	wire, err := core.DecodeStrictJSON[decisionWire](bytes.NewReader(data), limits)
 	if err != nil {
 		return jsonError(err)
 	}

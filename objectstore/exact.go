@@ -27,7 +27,7 @@ type ExactReader struct {
 // NewExactReader wraps source to deliver exactly length bytes. The reader
 // never trusts the source to stop on its own.
 func NewExactReader(source io.Reader, length core.ByteLength) (*ExactReader, error) {
-	if source == nil {
+	if core.ReaderIsNil(source) {
 		return nil, errors.Join(core.ErrObjectStoreContract, core.ErrObjectStoreSource)
 	}
 	remaining, err := length.Int64()

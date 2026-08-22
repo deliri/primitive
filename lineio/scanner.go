@@ -4,7 +4,6 @@ import (
 	"bufio"
 	"errors"
 	"io"
-	"reflect"
 
 	"github.com/deliri/primitive/v2026/core"
 )
@@ -55,7 +54,7 @@ type Request struct {
 
 // Validate rejects an unusable reader or invalid buffer policy.
 func (r Request) Validate() error {
-	if readerIsNil(r.Source) {
+	if core.ReaderIsNil(r.Source) {
 		return core.ErrLineIOContract
 	}
 	return r.Buffer.Validate()
@@ -180,17 +179,4 @@ func classifyScanError(err error) error {
 		return err
 	}
 	return errors.Join(core.ErrLineIOScan, err)
-}
-
-func readerIsNil(reader io.Reader) bool {
-	if reader == nil {
-		return true
-	}
-	value := reflect.ValueOf(reader)
-	switch value.Kind() {
-	case reflect.Chan, reflect.Func, reflect.Interface, reflect.Map, reflect.Pointer, reflect.Slice:
-		return value.IsNil()
-	default:
-		return false
-	}
 }

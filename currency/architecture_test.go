@@ -132,6 +132,7 @@ func TestCurrencyProductionUsesOnlyStandardLibraryAndCoreWithoutMaps(t *testing.
 		t.Fatalf("scanCurrencyArchitecture() error = %v, want nil", gotErr)
 	}
 	wantImports := []string{
+		"bytes",
 		"errors",
 		"github.com/deliri/primitive/v2026/core",
 		"math",

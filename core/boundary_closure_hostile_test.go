@@ -1,6 +1,7 @@
 package core
 
 import (
+	"bytes"
 	json "encoding/json/v2"
 	"errors"
 	"math"
@@ -18,7 +19,7 @@ func TestCoreSchemaLayerTriad(t *testing.T) {
 		if gotEncodeErr != nil {
 			t.Fatalf("EncodeValidatedJSON(HTTPStatusCode) error = %v, want nil", gotEncodeErr)
 		}
-		gotDecoded, gotDecodeErr := DecodeStrictJSON[HTTPStatusCode](gotWire, limits)
+		gotDecoded, gotDecodeErr := DecodeStrictJSON[HTTPStatusCode](bytes.NewReader(gotWire), limits)
 		if gotDecodeErr != nil || gotDecoded != status {
 			t.Fatalf("DecodeStrictJSON(HTTPStatusCode) = (%v, %v), want (%v, nil)", gotDecoded, gotDecodeErr, status)
 		}
@@ -32,7 +33,7 @@ func TestCoreSchemaLayerTriad(t *testing.T) {
 			!errors.Is(gotZeroEncodeErr, ErrPrimitiveContract) {
 			t.Fatalf("EncodeValidatedJSON(zero HTTPStatusCode) error = %v, want %v and %v", gotZeroEncodeErr, ErrJSONContract, ErrPrimitiveContract)
 		}
-		_, gotNullDecodeErr := DecodeStrictJSON[HTTPStatusCode]([]byte("null"), limits)
+		_, gotNullDecodeErr := DecodeStrictJSON[HTTPStatusCode](bytes.NewReader([]byte("null")), limits)
 		if !errors.Is(gotNullDecodeErr, ErrJSONContract) ||
 			!errors.Is(gotNullDecodeErr, ErrPrimitiveContract) {
 			t.Fatalf("DecodeStrictJSON(HTTPStatusCode null) error = %v, want %v and %v", gotNullDecodeErr, ErrJSONContract, ErrPrimitiveContract)

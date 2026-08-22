@@ -1,6 +1,7 @@
 package objectstore
 
 import (
+	"bytes"
 	"encoding"
 	json "encoding/json/v2"
 	"errors"
@@ -764,7 +765,7 @@ func TestUploadCapabilityDecodesThroughTheRealOuterDecoders(t *testing.T) {
 		t.Parallel()
 
 		carrier, err := core.DecodeStrictJSON[capabilityCarrier](
-			[]byte(document), core.DefaultStrictJSONLimits(),
+			bytes.NewReader([]byte(document)), core.DefaultStrictJSONLimits(),
 		)
 		if err != nil {
 			t.Fatalf("DecodeStrictJSON() error = %v, want nil", err)
@@ -778,7 +779,7 @@ func TestUploadCapabilityDecodesThroughTheRealOuterDecoders(t *testing.T) {
 		hostile := `{"capability":{"provider":"google_cloud_storage","method":"multipart_post",` +
 			`"url":"` + capabilityGCSURL + `","expires_at":1893456000000000000}}`
 		got, err := core.DecodeStrictJSON[capabilityCarrier](
-			[]byte(hostile), core.DefaultStrictJSONLimits(),
+			bytes.NewReader([]byte(hostile)), core.DefaultStrictJSONLimits(),
 		)
 		if !errors.Is(err, core.ErrObjectStoreContract) {
 			t.Fatalf("DecodeStrictJSON() error = %v, want %v", err, core.ErrObjectStoreContract)

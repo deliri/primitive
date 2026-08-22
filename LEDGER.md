@@ -1,8 +1,24 @@
 # Primitive 2026 Ledger
 
-Last updated: `2026-08-21`
+Last updated: `2026-08-22`
 
 ## Current
+
+- opened reader-native strict JSON ingress, 2026-08-22, preparing
+  `v2026.0.143`. Core's validated `DecodeStrictJSON` cleanly replaces its
+  whole-buffer argument with one real `io.Reader`, validates caller limits
+  before reading, rejects nil and typed-nil readers, reads at most the exact
+  document ceiling plus one proof byte, and bounds consecutive empty reads.
+  Exact EOF is the only clean terminal result; native failures, including a
+  failure joined with EOF, remain reachable beneath `core.ErrJSONContract`.
+  The shared typed-nil rule also removes Lineio's private duplicate and closes
+  Objectstore's typed-nil source gap. Hostile tests cover fragmented reads,
+  partial terminal results, impossible byte counts, below/at/above document
+  bounds, empty-read exhaustion, invalid pre-read policy, nil ingress, and
+  zero results on every refusal. The public boundary has semantic fuzz closure,
+  the affected package suites are green, and touched production functions
+  remain at `gocyclo <= 10`. Witness can now delete four unbounded direct JSON
+  reader decoders and use the Primitive boundary without materializing input.
 
 - opened provider-blind GCS upload-capability issuance, 2026-08-22, published
   `v2026.0.142`. Objectstore now exposes one typed
