@@ -487,8 +487,7 @@ func TestResponseHeaderFieldRefusesEveryValueOutsideTheDomain(t *testing.T) {
 		// A binding failure that named nothing would be a refusal a caller
 		// cannot switch on, so the constructor returns the header identity
 		// instead of a binding error it cannot describe.
-		var named controlplane.ResponseBindingError
-		if errors.As(controlplane.NewResponseBindingError(field), &named) {
+		if _, ok := errors.AsType[controlplane.ResponseBindingError](controlplane.NewResponseBindingError(field)); ok {
 			t.Fatalf("NewResponseBindingError(%d) produced a binding failure naming no field", value)
 		}
 	}

@@ -117,8 +117,7 @@ func TestSigningDomainHostileJSONSeparatesOwnerRefusalFromJSONV2TrailingDocument
 					t.Fatalf("json.Unmarshal(semantic signing-domain refusal) error = %v, want %v and %v", gotErr, core.ErrJSONContract, core.ErrDistributionContract)
 				}
 			} else {
-				var syntax *jsontext.SyntacticError
-				if !errors.As(gotErr, &syntax) {
+				if _, ok := errors.AsType[*jsontext.SyntacticError](gotErr); !ok {
 					t.Fatalf("json.Unmarshal(malformed signing domain) error = %v, want *jsontext.SyntacticError", gotErr)
 				}
 			}

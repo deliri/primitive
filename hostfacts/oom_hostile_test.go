@@ -139,8 +139,7 @@ func TestGoOOMBannerRequestAndReaderFailureBoundaries(t *testing.T) {
 		failure.Operation != OperationGoOOMBanner {
 		t.Fatalf("ClassifyGoOOMBanner(invalid count) = (%v, %v), want one typed banner-operation failure", got, gotErr)
 	}
-	var nested Failure
-	if errors.As(failure.Cause, &nested) {
+	if _, ok := errors.AsType[Failure](failure.Cause); ok {
 		t.Fatalf("ClassifyGoOOMBanner(invalid count) cause = %v, want leaf cause without nested Failure", failure.Cause)
 	}
 }

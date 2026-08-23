@@ -247,8 +247,7 @@ func TestVerificationNamesOfferingMismatchDistinctlyFromInvalidDocument(t *testi
 	if !errors.Is(brokenErr, core.ErrReleaseVerification) {
 		t.Fatalf("VerifyManifest(unset fact) error = %v, want %v", brokenErr, core.ErrReleaseVerification)
 	}
-	var brokenMismatch OfferingMismatchError
-	if errors.As(brokenErr, &brokenMismatch) {
+	if brokenMismatch, ok := errors.AsType[OfferingMismatchError](brokenErr); ok {
 		t.Fatalf("VerifyManifest(unset fact) detail = %v, want no offering mismatch", brokenMismatch)
 	}
 }

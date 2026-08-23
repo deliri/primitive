@@ -155,8 +155,7 @@ func TestObjectstoreNestedBearerValuesHaveNoImplicitPersistenceProjection(t *tes
 				t.Fatalf("%s implements json.Marshaler, want no JSON disclosure boundary", value.name)
 			}
 			encoded, err := json.Marshal(value.value)
-			var semanticErr *json.SemanticError
-			if !errors.As(err, &semanticErr) {
+			if _, ok := errors.AsType[*json.SemanticError](err); !ok {
 				t.Fatalf("json.Marshal(%s) = (%q, %v), want *json.SemanticError", value.name, encoded, err)
 			}
 			if strings.Contains(string(encoded), capabilityHeaderSecret) ||

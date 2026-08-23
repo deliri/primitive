@@ -91,8 +91,7 @@ func TestDiskCapacityRejectsImpossibleShapesAndMultiplicationOverflow(t *testing
 			if got != (DiskCapacity{}) || !errors.Is(gotErr, core.ErrHostFactsObservation) {
 				t.Fatalf("newDiskCapacity(%d, %d) = (%v, %v), want (zero, %v)", tc.available, tc.total, got, gotErr, core.ErrHostFactsObservation)
 			}
-			var failure Failure
-			if errors.As(gotErr, &failure) {
+			if _, ok := errors.AsType[Failure](gotErr); ok {
 				t.Fatalf("newDiskCapacity(%d, %d) error = %v, want leaf error without operation wrapper", tc.available, tc.total, gotErr)
 			}
 		})
@@ -202,8 +201,7 @@ func TestGoMemoryPolicyAndSnapshotRejectBoundaryContradictions(t *testing.T) {
 			if got != (GoMemorySnapshot{}) || !errors.Is(gotErr, core.ErrHostFactsObservation) {
 				t.Fatalf("newGoMemorySnapshot() = (%v, %v), want (zero, %v)", got, gotErr, core.ErrHostFactsObservation)
 			}
-			var failure Failure
-			if errors.As(gotErr, &failure) {
+			if _, ok := errors.AsType[Failure](gotErr); ok {
 				t.Fatalf("newGoMemorySnapshot() error = %v, want leaf error without operation wrapper", gotErr)
 			}
 		})

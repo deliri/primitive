@@ -316,8 +316,7 @@ func TestRegistrationTokenJSONRejectionLeavesTheReceiverUnchanged(t *testing.T) 
 				return
 			}
 			if _, syntax := tc.wantErr.(*jsontext.SyntacticError); syntax {
-				var gotSyntax *jsontext.SyntacticError
-				if !errors.As(err, &gotSyntax) {
+				if _, ok := errors.AsType[*jsontext.SyntacticError](err); !ok {
 					t.Fatalf("json.Unmarshal(%s) error = %v, want *jsontext.SyntacticError", tc.document, err)
 				}
 			} else if !errors.Is(err, tc.wantErr) || !errors.Is(err, core.ErrJSONContract) {

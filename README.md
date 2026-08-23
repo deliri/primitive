@@ -117,6 +117,8 @@ flowchart TD
     cloudidentity[cloudidentity] --> core
     cloudidentity --> temporal
     cloudidentity --> exchange
+    secretstore[secretstore] --> core
+    secretstore --> contextstate
 
     deploy[deploy] --> core
     deploy --> objectstore

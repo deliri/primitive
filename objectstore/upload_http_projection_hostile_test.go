@@ -279,7 +279,7 @@ func wireHeader(t testing.TB, name core.HTTPHeaderName, value string) uploadCapa
 	if err := name.Validate(); err != nil {
 		t.Fatalf("HTTP header name Validate() error = %v, want nil", err)
 	}
-	return uploadCapabilityHeaderWire{Name: pointer(name.String()), Value: pointer(value)}
+	return uploadCapabilityHeaderWire{Name: new(name.String()), Value: new(value)}
 }
 
 func mustHeaderName(t testing.TB, value string) core.HTTPHeaderName {
@@ -304,5 +304,3 @@ func sameUploadCapabilityHeaderWire(left, right uploadCapabilityHeaderWire) bool
 	return left.Name != nil && right.Name != nil && *left.Name == *right.Name &&
 		left.Value != nil && right.Value != nil && *left.Value == *right.Value
 }
-
-func pointer[T any](value T) *T { return &value }

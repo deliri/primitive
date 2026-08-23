@@ -6,6 +6,7 @@ import (
 	"net/http"
 	"net/http/httptest"
 	"net/netip"
+	"slices"
 	"strconv"
 	"strings"
 	"testing"
@@ -311,8 +312,8 @@ func independentTrustedProxyAddress(peer netip.Addr, forwarded string) netip.Add
 		return peer
 	}
 	members := strings.Split(forwarded, ",")
-	for index := len(members) - 1; index >= 0; index-- {
-		candidate, ok := independentParsedAddress(strings.TrimSpace(members[index]))
+	for _, member := range slices.Backward(members) {
+		candidate, ok := independentParsedAddress(strings.TrimSpace(member))
 		if !ok {
 			return peer
 		}
@@ -376,7 +377,7 @@ func mustAddress(t *testing.T, raw string) netip.Addr {
 
 func proxyPrefixText(count uint8) string {
 	parts := make([]string, 0, count)
-	for index := uint8(0); index < count; index++ {
+	for index := range count {
 		parts = append(parts, "10."+strconv.Itoa(int(index))+".0.0/16")
 	}
 	return strings.Join(parts, ",")

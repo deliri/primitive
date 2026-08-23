@@ -210,9 +210,8 @@ func TestRevisionUnmarshalJSONLeavesTheReceiverUnchangedOnRejection(t *testing.T
 				}
 				return
 			}
-			var syntax *jsontext.SyntacticError
 			if tc.wantSyntax {
-				if !errors.As(err, &syntax) {
+				if _, ok := errors.AsType[*jsontext.SyntacticError](err); !ok {
 					t.Fatalf("json.Unmarshal(%s) error = %v, want errors.As *jsontext.SyntacticError", tc.document, err)
 				}
 			} else if !errors.Is(err, core.ErrControlWireRevision) || !errors.Is(err, core.ErrJSONContract) {

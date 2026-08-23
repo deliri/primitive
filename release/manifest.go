@@ -457,8 +457,8 @@ func VerifyManifest(request VerifyManifestRequest) (VerifiedManifest, error) {
 		document: request.Document, integrity: integrity,
 		digest: newManifestDocumentDigest(integrity.SHA256()),
 		proof:  proof,
+		seal:   verificationSealAuthenticated,
 	}
-	result.seal = verificationSealAuthenticated
 	return result, nil
 }
 

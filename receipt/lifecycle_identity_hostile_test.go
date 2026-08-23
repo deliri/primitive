@@ -90,8 +90,7 @@ func TestLifecycleIdentityLayerTriad(t *testing.T) {
 	}
 
 	_, err := ParseAccountIdentity(strings.Repeat("z", LifecycleIdentityHexBytes))
-	var invalidByte hex.InvalidByteError
-	if !errors.As(err, &invalidByte) {
+	if _, ok := errors.AsType[hex.InvalidByteError](err); !ok {
 		t.Fatalf("ParseAccountIdentity(non-hex) error = %v, want native hex.InvalidByteError", err)
 	}
 }

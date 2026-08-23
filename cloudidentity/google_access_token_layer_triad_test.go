@@ -82,8 +82,7 @@ func TestLayerTriadGoogleCloudAccessTokenRealHTTPHostileTable(t *testing.T) {
 					t.Fatalf("AcquireGoogleCloudAccessToken() token = %#v, want zero", got)
 				}
 				if errors.Is(tc.wantErr, core.ErrExchangeResponse) {
-					var statusErr exchange.StatusError
-					if !errors.As(gotErr, &statusErr) {
+					if _, ok := errors.AsType[exchange.StatusError](gotErr); !ok {
 						t.Fatalf("AcquireGoogleCloudAccessToken() error = %v, want exchange.StatusError", gotErr)
 					}
 				}

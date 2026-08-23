@@ -428,8 +428,7 @@ func TestAuthorityRefusalHostileStatusInfoTable(t *testing.T) {
 			t.Parallel()
 
 			gotErr := verifyCraftedResponse(t, tc.response)
-			var refusal Refusal
-			if errors.As(gotErr, &refusal) {
+			if _, ok := errors.AsType[Refusal](gotErr); ok {
 				t.Fatalf(
 					"Verify(hostile status info) error = %v, want no typed refusal from malformed input",
 					gotErr,

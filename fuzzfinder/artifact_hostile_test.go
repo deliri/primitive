@@ -107,12 +107,11 @@ func TestArtifactKindWireLayerTriad(t *testing.T) {
 
 				got := ArtifactCrasher
 				gotErr := (&got).UnmarshalJSON(tc.wire)
-				var syntaxErr *jsontext.SyntacticError
 				if !errors.Is(gotErr, core.ErrFuzzFinderContract) || got != ArtifactCrasher {
 					t.Fatalf("ArtifactKind.UnmarshalJSON(%q) = (%d, %v), want unchanged %d and %v", tc.wire, got, gotErr, ArtifactCrasher, core.ErrFuzzFinderContract)
 				}
 				if tc.wantSyntax {
-					if !errors.As(gotErr, &syntaxErr) {
+					if _, ok := errors.AsType[*jsontext.SyntacticError](gotErr); !ok {
 						t.Fatalf("ArtifactKind.UnmarshalJSON(%q) error = %v, want *jsontext.SyntacticError", tc.wire, gotErr)
 					}
 				}

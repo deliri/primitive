@@ -283,8 +283,7 @@ func proveMetadataKindError(t *testing.T, proof metadataKindErrorProof) {
 	t.Helper()
 
 	if _, syntax := proof.want.(*jsontext.SyntacticError); syntax {
-		var gotSyntax *jsontext.SyntacticError
-		if !errors.As(proof.got, &gotSyntax) {
+		if _, ok := errors.AsType[*jsontext.SyntacticError](proof.got); !ok {
 			t.Fatalf("json.Unmarshal(%s, MetadataKind) error = %v, want *jsontext.SyntacticError", proof.encoded, proof.got)
 		}
 		return

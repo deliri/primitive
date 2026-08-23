@@ -1,6 +1,9 @@
 package release
 
-import "testing"
+import (
+	"slices"
+	"testing"
+)
 
 func TestBuildControlledEnvironmentNameHostileBoundaries(t *testing.T) {
 	t.Parallel()
@@ -104,13 +107,7 @@ func FuzzBuildControlledEnvironmentNameSemanticClosure(f *testing.F) {
 	f.Add("path")
 	f.Fuzz(func(t *testing.T, name string) {
 		got := buildControlledEnvironmentName(name)
-		want := false
-		for _, controlled := range buildControlledEnvironmentNames() {
-			if name == controlled {
-				want = true
-				break
-			}
-		}
+		want := slices.Contains(buildControlledEnvironmentNames(), name)
 		if got != want {
 			t.Fatalf("buildControlledEnvironmentName(%q) = %v, want %v", name, got, want)
 		}

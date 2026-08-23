@@ -944,8 +944,7 @@ func TestAmazonTransportFailureKeepsTheNativeErrorReachable(t *testing.T) {
 			gotErr,
 		)
 	}
-	var native *url.Error
-	if !errors.As(gotErr, &native) {
+	if _, ok := errors.AsType[*url.Error](gotErr); !ok {
 		t.Fatalf(
 			"AcquireAmazonWebServices() error type = %T, want reachable *url.Error",
 			gotErr,

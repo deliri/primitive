@@ -12,11 +12,11 @@ const (
 	// PrimitivePackagePathPrefix prefixes every Primitive package import path.
 	PrimitivePackagePathPrefix = PrimitiveModulePath + "/"
 	// PrimitivePackageCount is the number of packages in the complete catalog.
-	PrimitivePackageCount = 41
+	PrimitivePackageCount = 42
 	// PrimitiveDirectImportCount is the number of admitted direct import edges.
-	PrimitiveDirectImportCount = 150
+	PrimitiveDirectImportCount = 152
 	// PrimitiveDirectTestImportCount is the number of admitted test-only edges.
-	PrimitiveDirectTestImportCount = 31
+	PrimitiveDirectTestImportCount = 32
 	// PrimitiveMaximumDirectImports caps direct sibling imports per package.
 	PrimitiveMaximumDirectImports = 10
 )
@@ -111,6 +111,8 @@ const (
 	PackageLineIO
 	// PackageManual identifies bounded human and machine manual projection.
 	PackageManual
+	// PackageSecretStore identifies bounded secret-provider access.
+	PackageSecretStore
 	packageIdentityLimit
 )
 
@@ -215,6 +217,7 @@ func PrimitiveArchitecture() ArchitectureCatalog {
 			{Identity: PackageWiring, Kind: PackageKindProduction},
 			{Identity: PackageLineIO, Kind: PackageKindProduction},
 			{Identity: PackageManual, Kind: PackageKindProduction},
+			{Identity: PackageSecretStore, Kind: PackageKindProduction},
 		},
 		imports: [PrimitiveDirectImportCount]DirectImportContract{
 			{Importer: PackageAttest, Imported: PackageCore},
@@ -378,6 +381,8 @@ func PrimitiveArchitecture() ArchitectureCatalog {
 			{Importer: PackageWiring, Imported: PackageCore},
 			{Importer: PackageLineIO, Imported: PackageCore},
 			{Importer: PackageManual, Imported: PackageCore},
+			{Importer: PackageSecretStore, Imported: PackageCore},
+			{Importer: PackageSecretStore, Imported: PackageContextState},
 		},
 		testImports: [PrimitiveDirectTestImportCount]DirectTestImportContract{
 			{Importer: PackageGate, Imported: PackageAttest},
@@ -411,6 +416,7 @@ func PrimitiveArchitecture() ArchitectureCatalog {
 			{Importer: PackageDistribution, Imported: PackageExchange},
 			{Importer: PackageRelease, Imported: PackageTestSerial},
 			{Importer: PackageLineIO, Imported: PackageFilestore},
+			{Importer: PackageSecretStore, Imported: PackageProcess},
 		},
 	}
 }
@@ -685,6 +691,7 @@ func packagePurposeTexts() [packageIdentityLimit]string {
 		PackageWiring:           "Bounded immutable runtime component graphs with exact Primitive-door declarations",
 		PackageLineIO:           "Bounded line scanning over one io.Reader through Go bufio.Scanner and bufio.ScanLines",
 		PackageManual:           "Bounded validated human text and stable machine JSON manuals from one product-owned typed book",
+		PackageSecretStore:      "Bounded exact-version secret access through official provider SDKs",
 	}
 }
 
@@ -764,6 +771,7 @@ func packageIdentityTexts() [packageIdentityLimit]string {
 		"wiring",
 		"lineio",
 		"manual",
+		"secretstore",
 	}
 }
 

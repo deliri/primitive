@@ -3,6 +3,7 @@ package release
 import (
 	"errors"
 	"os"
+	"slices"
 	"strings"
 
 	"github.com/deliri/primitive/v2026/core"
@@ -204,10 +205,5 @@ func buildControlledEnvironmentNames() []string {
 }
 
 func buildControlledEnvironmentName(name string) bool {
-	for _, controlled := range buildControlledEnvironmentNames() {
-		if controlled == name {
-			return true
-		}
-	}
-	return false
+	return slices.Contains(buildControlledEnvironmentNames(), name)
 }

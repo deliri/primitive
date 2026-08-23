@@ -233,8 +233,7 @@ func TestAuthorizeNewWorkLayerTriad(t *testing.T) {
 		if gotPermit != (gate.NewWorkPermit{}) {
 			t.Fatalf("AuthorizeNewWork(unset) permit = %+v, want the zero permit", gotPermit)
 		}
-		var gotDenial gate.DenialError
-		if errors.As(gotErr, &gotDenial) {
+		if _, ok := errors.AsType[gate.DenialError](gotErr); ok {
 			t.Fatalf("AuthorizeNewWork(unset) produced a denial, want a contract rejection")
 		}
 		if errors.Is(gotErr, core.ErrGateDenied) {

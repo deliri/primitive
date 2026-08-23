@@ -187,8 +187,7 @@ func TestUntransmittableHeaderSpendsNoAttempt(t *testing.T) {
 			core.ErrExchangeRequest,
 		)
 	}
-	var exhausted exchange.RetryExhaustedError
-	if errors.As(gotErr, &exhausted) {
+	if exhausted, ok := errors.AsType[exchange.RetryExhaustedError](gotErr); ok {
 		t.Fatalf(
 			"SendNoBodyBounded() spent the replay budget on an impossible request: attempts = %d, want a pre-attempt rejection",
 			exhausted.Attempts(),
@@ -254,8 +253,7 @@ func TestAggregateTransportFailureDoesNotFabricateResponseIdentity(t *testing.T)
 			core.ErrExchangeResponse,
 		)
 	}
-	var native *net.OpError
-	if !errors.As(gotErr, &native) {
+	if _, ok := errors.AsType[*net.OpError](gotErr); !ok {
 		t.Fatalf(
 			"SendNoBodyBounded() error = %v, want reachable *net.OpError",
 			gotErr,

@@ -111,8 +111,7 @@ func TestBuildIdentityJSONRejectsLooseProtocol(t *testing.T) {
 			var receiver core.BuildIdentity
 			err := json.Unmarshal(tc.data, &receiver)
 			if tc.wantNative {
-				var gotSyntax *jsontext.SyntacticError
-				if !errors.As(err, &gotSyntax) {
+				if _, ok := errors.AsType[*jsontext.SyntacticError](err); !ok {
 					t.Fatalf("json.Unmarshal(%q) error = %v, want JSON v2 syntactic error", tc.data, err)
 				}
 			} else if !errors.Is(err, core.ErrJSONContract) {

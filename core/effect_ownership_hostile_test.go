@@ -28,6 +28,7 @@ const (
 	realWorldSubstrateWindows
 	realWorldSubstrateGoogleCloudStorage
 	realWorldSubstrateGoogleIAMCredentials
+	realWorldSubstrateGoogleSecretManager
 	realWorldSubstrateNetwork
 	realWorldSubstrateContextDeadline
 	realWorldSubstrateLimit
@@ -47,6 +48,7 @@ const (
 	realWorldWindowsPath               = "golang.org/x/sys/windows"
 	realWorldGoogleCloudStoragePath    = "cloud.google.com/go/storage"
 	realWorldGoogleIAMCredentialsPath  = "google.golang.org/api/iamcredentials/v1"
+	realWorldGoogleSecretManagerPath   = "cloud.google.com/go/secretmanager/apiv1"
 	realWorldNetworkPath               = "net"
 	realWorldContextDeadlinePath       = "context"
 )
@@ -387,6 +389,8 @@ func parseRealWorldSubstrate(path string) realWorldSubstrate {
 		return realWorldSubstrateGoogleCloudStorage
 	case realWorldGoogleIAMCredentialsPath:
 		return realWorldSubstrateGoogleIAMCredentials
+	case realWorldGoogleSecretManagerPath:
+		return realWorldSubstrateGoogleSecretManager
 	case realWorldNetworkPath:
 		return realWorldSubstrateNetwork
 	case realWorldContextDeadlinePath:
@@ -410,6 +414,7 @@ func declaredRealWorldImports() (realWorldImportInventory, error) {
 		realWorldImportOwners(realWorldSubstrateWindows, PackageFileLock, PackageFilestore, PackageHostFacts, PackageProcess),
 		realWorldImportOwners(realWorldSubstrateGoogleCloudStorage, PackageGCSObjects),
 		realWorldImportOwners(realWorldSubstrateGoogleIAMCredentials, PackageGCSObjects),
+		realWorldImportOwners(realWorldSubstrateGoogleSecretManager, PackageSecretStore),
 		realWorldImportOwners(realWorldSubstrateNetwork, PackageGCSObjects),
 	}
 	var inventory realWorldImportInventory
@@ -507,6 +512,7 @@ func declaredRealWorldCalls() (realWorldCallInventory, error) {
 		{owner: PackageGCSObjects, substrate: realWorldSubstrateGoogleCloudStorage, selector: "NewClient", count: 1},
 		{owner: PackageGCSObjects, substrate: realWorldSubstrateGoogleCloudStorage, selector: "SignedURL", count: 1},
 		{owner: PackageGCSObjects, substrate: realWorldSubstrateGoogleIAMCredentials, selector: "NewService", count: 1},
+		{owner: PackageSecretStore, substrate: realWorldSubstrateGoogleSecretManager, selector: "NewClient", count: 1},
 		{owner: PackageGCSObjects, substrate: realWorldSubstrateNetwork, selector: "ParseIP", count: 1},
 		{owner: PackageTemporal, substrate: realWorldSubstrateContextDeadline, selector: "WithDeadline", count: 1},
 		{owner: PackageTemporal, substrate: realWorldSubstrateContextDeadline, selector: "WithTimeout", count: 1},

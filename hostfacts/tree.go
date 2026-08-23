@@ -8,6 +8,7 @@ import (
 	"math"
 	"os"
 	"path/filepath"
+	"slices"
 
 	"github.com/deliri/primitive/v2026/contextstate"
 	"github.com/deliri/primitive/v2026/core"
@@ -281,8 +282,8 @@ func ascendTree(stack []treeFrame, readErr error) ([]treeFrame, error) {
 }
 
 func closeTreeStack(stack []treeFrame, cause error) error {
-	for index := len(stack) - 1; index >= 0; index-- {
-		cause = errors.Join(cause, stack[index].directory.Close())
+	for _, s := range slices.Backward(stack) {
+		cause = errors.Join(cause, s.directory.Close())
 	}
 	return cause
 }

@@ -430,8 +430,8 @@ func VerifyLatest(request VerifyLatestRequest) (VerifiedLatest, error) {
 	}
 	result := VerifiedLatest{
 		document: request.Document, manifest: manifest, proof: proof,
+		seal: verificationSealAuthenticated,
 	}
-	result.seal = verificationSealAuthenticated
 	return result, nil
 }
 

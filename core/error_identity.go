@@ -2,6 +2,7 @@ package core
 
 import (
 	"errors"
+	"slices"
 )
 
 const unknownErrorIdentityText = "unknown primitive error identity"
@@ -390,6 +391,12 @@ const (
 
 	// ErrIDContract identifies a time-ordered identifier contract violation.
 	ErrIDContract
+	// ErrSecretStoreContract identifies an invalid secret-store request or state.
+	ErrSecretStoreContract
+	// ErrSecretStorePayload identifies invalid, corrupt, or destroyed secret material.
+	ErrSecretStorePayload
+	// ErrSecretStoreAccess identifies a provider secret-access failure.
+	ErrSecretStoreAccess
 
 	errorIdentityLimit
 )
@@ -555,6 +562,9 @@ func errorIdentityDiagnostics() [errorIdentityLimit]errorIdentityDiagnostic {
 		{identity: ErrControlPlaneUsageWindow, text: "control-plane usage window invalid"},
 		{identity: ErrFileLockUnavailable, text: "filelock unavailable"},
 		{identity: ErrIDContract, text: "id contract violation"},
+		{identity: ErrSecretStoreContract, text: "secret store contract violation"},
+		{identity: ErrSecretStorePayload, text: "secret store payload invalid"},
+		{identity: ErrSecretStoreAccess, text: "secret store access failed"},
 	}
 }
 
@@ -672,7 +682,7 @@ func errorIdentityParents(identity ErrorIdentity) errorIdentityParentSet {
 		ErrCloudIdentityContract, ErrUpgradeContract,
 		ErrLifecycleIdentityContract, ErrReceiptContract, ErrChitContract,
 		ErrRetrievalContract, ErrPaymentContract, ErrControlWireContract,
-		ErrControlPlaneContract, ErrIDContract) {
+		ErrControlPlaneContract, ErrIDContract, ErrSecretStoreContract) {
 		return oneErrorIdentityParent(ErrPrimitiveContract)
 	}
 	if errorIdentityIn(identity, ErrControlWireRevision, ErrControlWireNonce, ErrControlWireToken,
@@ -730,10 +740,13 @@ func errorIdentityParentsFilestoreThroughUpgrade(identity ErrorIdentity) errorId
 		ErrExchangeTransport, ErrExchangeRetryExhausted, ErrExchangeWrite) {
 		return oneErrorIdentityParent(ErrExchangeContract)
 	}
-	return errorIdentityParentsReceipt(identity)
+	return errorIdentityParentsSecretStoreThroughPayment(identity)
 }
 
-func errorIdentityParentsReceipt(identity ErrorIdentity) errorIdentityParentSet {
+func errorIdentityParentsSecretStoreThroughPayment(identity ErrorIdentity) errorIdentityParentSet {
+	if errorIdentityIn(identity, ErrSecretStorePayload, ErrSecretStoreAccess) {
+		return oneErrorIdentityParent(ErrSecretStoreContract)
+	}
 	if errorIdentityIn(identity, ErrReceiptVerification, ErrReceiptScope, ErrReceiptRollback,
 		ErrReceiptConflict) {
 		return oneErrorIdentityParent(ErrReceiptContract)
@@ -858,12 +871,7 @@ func errorIdentityParentsFuzzFinderThroughObjectStore(identity ErrorIdentity) er
 }
 
 func errorIdentityIn(identity ErrorIdentity, candidates ...ErrorIdentity) bool {
-	for _, candidate := range candidates {
-		if identity == candidate {
-			return true
-		}
-	}
-	return false
+	return slices.Contains(candidates, identity)
 }
 
 func oneErrorIdentityParent(parent ErrorIdentity) errorIdentityParentSet {
