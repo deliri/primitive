@@ -5,6 +5,7 @@ import (
 	"errors"
 	"fmt"
 	"io"
+	"net/http"
 	"unicode"
 	"unicode/utf8"
 
@@ -67,6 +68,8 @@ const (
 	basicAuthorizationScheme             = "Basic "
 	basicAuthorizationRawMaximumBytes    = BasicAuthorizationIdentityMaximumBytes + 1 + BasicAuthorizationSecretMaximumBytes
 	basicAuthorizationBase64MaximumBytes = (basicAuthorizationRawMaximumBytes + 2) / 3 * 4
+	// BasicAuthorizationHeaderMaximumBytes bounds the complete encoded value.
+	BasicAuthorizationHeaderMaximumBytes = len(basicAuthorizationScheme) + basicAuthorizationBase64MaximumBytes
 )
 
 // BasicAuthorizationRequest supplies caller-custodied UTF-8 credentials for
@@ -75,6 +78,26 @@ const (
 type BasicAuthorizationRequest struct {
 	Identity BasicAuthorizationIdentity
 	Secret   []byte
+}
+
+// BasicAuthorizationReceiveCall supplies one real HTTP server request.
+type BasicAuthorizationReceiveCall struct {
+	Request *http.Request
+}
+
+func (call BasicAuthorizationReceiveCall) Validate() error {
+	if call.Request == nil {
+		return requestError(core.ErrExchangeContract)
+	}
+	headerName, err := StandardHeaderAuthorization.Name()
+	if err != nil {
+		return requestError(err)
+	}
+	values := call.Request.Header.Values(headerName.String())
+	if len(values) != 1 || len(values[0]) > BasicAuthorizationHeaderMaximumBytes {
+		return requestError(core.ErrExchangeContract)
+	}
+	return nil
 }
 
 func (r BasicAuthorizationRequest) Validate() error {
@@ -126,6 +149,30 @@ func NewBasicAuthorizationHeader(request BasicAuthorizationRequest) (Header, err
 	return header, nil
 }
 
+// ReceiveBasicAuthorization decodes and validates one standard Basic header.
+// The caller owns and clears the returned secret after authentication.
+func ReceiveBasicAuthorization(call BasicAuthorizationReceiveCall) (BasicAuthorizationRequest, error) {
+	var zero BasicAuthorizationRequest
+	if err := call.Validate(); err != nil {
+		return zero, err
+	}
+	identityText, secretText, ok := call.Request.BasicAuth()
+	if !ok {
+		return zero, requestError(core.ErrExchangeContract)
+	}
+	identity, err := ParseBasicAuthorizationIdentity(identityText)
+	if err != nil {
+		return zero, requestError(err)
+	}
+	secret := []byte(secretText)
+	received := BasicAuthorizationRequest{Identity: identity, Secret: secret}
+	if err := received.Validate(); err != nil {
+		clear(secret)
+		return zero, requestError(err)
+	}
+	return received, nil
+}
+
 func invalidBasicIdentity(value []byte) bool {
 	for _, character := range string(value) {
 		if character == ':' || unicode.IsControl(character) {
@@ -148,4 +195,5 @@ var (
 	_ core.Validatable            = BasicAuthorizationIdentity("")
 	_ core.ValidatedJSONMarshaler = BasicAuthorizationIdentity("")
 	_ core.Validatable            = BasicAuthorizationRequest{}
+	_ core.Validatable            = BasicAuthorizationReceiveCall{}
 )

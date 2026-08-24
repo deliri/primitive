@@ -4,6 +4,15 @@ Last updated: `2026-08-24`
 
 ## Current
 
+- closed the missing server half of Exchange's Basic-authorization socket,
+  2026-08-24. `ReceiveBasicAuthorization` now projects one real bounded
+  `net/http.Request` through Go's standard `BasicAuth` decoder into the same
+  validated, redacted credential document the client header constructor owns.
+  Missing, malformed, oversized, duplicate, control-bearing, and invalid UTF-8
+  input returns zero credentials under typed Exchange request/contract
+  identity. Hostile boundary and semantic fuzz proof are green; exact diff
+  review remains before the next Primitive publication and Blink pin.
+
 - reopened the task-application consumer slice as the narrower `taskmanager`
   agreement, 2026-08-24, after explicit consumer direction clarified that both
   socket ends must live in Primitive while storage and application policy stay
