@@ -22,10 +22,10 @@ import (
 // boundary is exactly what this package exists to prevent. OpenAppend already
 // returns a real handle for the write side; this is its read counterpart.
 //
-// The caller owns the returned handle and must close it. A path that is not a
-// regular file is refused before any bytes are read, so a symbolic link,
-// directory, or device planted at the name cannot answer for the file the
-// caller asked for.
+// The caller owns the returned handle and must close it. A path that resolves
+// to a non-regular file is refused before any bytes are read. The rooted OS
+// capability may follow a symbolic link confined beneath the root, while a
+// dangling link or one that escapes the root is refused.
 func OpenRead(ctx context.Context, request ReadHandleRequest) (*os.File, error) {
 	if err := contextstate.Validate(ctx); err != nil {
 		return nil, err

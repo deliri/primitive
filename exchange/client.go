@@ -6,6 +6,7 @@ import (
 	"errors"
 	"io"
 	"net/http"
+	"net/http/cookiejar"
 	"strconv"
 	"strings"
 
@@ -39,6 +40,17 @@ func NewClient(client *http.Client) (Client, error) {
 // and admits it through NewClient.
 func NewStandardClient() (Client, error) {
 	return NewClient(&http.Client{})
+}
+
+// NewSessionClient produces a standard client backed by Go's real cookie jar.
+// The jar owns cookie matching and session state; Exchange continues to own
+// operation timing, replay, redirect, and body policy per call.
+func NewSessionClient() (Client, error) {
+	jar, err := cookiejar.New(nil)
+	if err != nil {
+		return Client{}, errors.Join(core.ErrExchangeContract, err)
+	}
+	return NewClient(&http.Client{Jar: jar})
 }
 
 // Validate rejects an unset client or a competing client-wide timeout.
@@ -127,6 +139,14 @@ func SendJSON[
 	if err := call.Validate(); err != nil {
 		return zero, err
 	}
+	return sendValidatedJSON[RequestBody, ResponseBody](call)
+}
+
+func sendValidatedJSON[
+	RequestBody core.ValidatedJSONMarshaler,
+	ResponseBody core.Validatable,
+](call JSONCall[RequestBody]) (JSONResponse[ResponseBody], error) {
+	var zero JSONResponse[ResponseBody]
 	requestLimits := strictJSONLimits(call.Policy.RequestBodyLimit)
 	body, err := core.EncodeValidatedJSON(call.Request.Body, requestLimits)
 	if err != nil {
@@ -157,6 +177,30 @@ func SendJSON[
 		return zero, err
 	}
 	return decodeJSONResponse[ResponseBody](raw, call.Policy.ResponseBodyLimit, err)
+}
+
+// SendReplayBoundJSON refuses a replayable mutation unless the caller-owned
+// typed body and request semantics carry the same idempotency identity. The
+// binding is checked before encoding or network execution.
+func SendReplayBoundJSON[
+	RequestBody interface {
+		core.ValidatedJSONMarshaler
+		IdempotencyBound
+	},
+	ResponseBody core.Validatable,
+](call JSONCall[RequestBody]) (JSONResponse[ResponseBody], error) {
+	var zero JSONResponse[ResponseBody]
+	if err := call.Validate(); err != nil {
+		return zero, err
+	}
+	key, err := call.Request.Body.IdempotencyKey()
+	if err != nil {
+		return zero, requestError(errors.Join(core.ErrExchangeIdempotencyBinding, err))
+	}
+	if key != call.Request.Semantics.IdempotencyKey {
+		return zero, requestError(core.ErrExchangeIdempotencyBinding)
+	}
+	return sendValidatedJSON[RequestBody, ResponseBody](call)
 }
 
 // SendNoBodyJSON performs one body-absent request and strictly decodes one
@@ -776,21 +820,35 @@ type boundedBodyRead struct {
 	limit    core.ByteCount
 }
 
-// boundedBodyDestination deliberately exposes only io.Writer. It writes into
-// the one exact declared reservation and refuses an extent mismatch rather than
-// asking bytes.Buffer to grow through intermediate capacities.
+// boundedBodyDestination deliberately exposes only io.Writer. It starts with
+// the declared reservation, grows only when real bytes prove that declaration
+// absent or understated, and never grows beyond the admitted aggregate limit.
 type boundedBodyDestination struct {
-	storage []byte
-	written int
+	storage     []byte
+	reservation int
+	limit       int
 }
 
 func (d *boundedBodyDestination) Write(payload []byte) (int, error) {
-	if d == nil || len(payload) > len(d.storage)-d.written {
+	if d == nil || d.limit < len(d.storage) || len(payload) > d.limit-len(d.storage) {
 		return 0, core.ErrExchangeBodyLimit
 	}
-	written := copy(d.storage[d.written:], payload)
-	d.written += written
+	start := len(d.storage)
+	needed := start + len(payload)
+	if needed > cap(d.storage) {
+		capacityFloor := max(needed, d.reservation)
+		d.storage = growBoundedBodyStorage(d.storage, capacityFloor, d.limit)
+	}
+	d.storage = d.storage[:needed]
+	written := copy(d.storage[start:], payload)
 	return written, nil
+}
+
+func growBoundedBodyStorage(storage []byte, needed, limit int) []byte {
+	capacity := min(max(cap(storage)*2, needed), limit)
+	grown := make([]byte, len(storage), capacity)
+	copy(grown, storage)
+	return grown
 }
 
 func readBoundedBody(read boundedBodyRead) (data []byte, err error) {
@@ -807,7 +865,14 @@ func readBoundedBody(read boundedBodyRead) (data []byte, err error) {
 	if err != nil {
 		return nil, err
 	}
-	destination := &boundedBodyDestination{storage: make([]byte, reserved)}
+	limit, err := boundedBodyLimitExtent(read.limit)
+	if err != nil {
+		return nil, err
+	}
+	destination := &boundedBodyDestination{
+		reservation: reserved,
+		limit:       limit,
+	}
 	_, err = copyDownload(
 		downloadCopyRequest{
 			context: read.context, source: read.source,
@@ -818,7 +883,7 @@ func readBoundedBody(read boundedBodyRead) (data []byte, err error) {
 	if err != nil {
 		return nil, err
 	}
-	return destination.storage[:destination.written], nil
+	return destination.storage, nil
 }
 
 func captureHeaders(

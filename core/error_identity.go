@@ -155,6 +155,9 @@ const (
 	ErrExchangeBodyLimit
 	// ErrExchangeContentType identifies a rejected exchange content type.
 	ErrExchangeContentType
+	// ErrExchangeIdempotencyBinding identifies divergent HTTP and body replay
+	// identities.
+	ErrExchangeIdempotencyBinding
 	// ErrExchangeCancelled identifies exchange cancellation.
 	ErrExchangeCancelled
 	// ErrExchangeRedirect identifies a rejected redirect.
@@ -397,6 +400,9 @@ const (
 	ErrSecretStorePayload
 	// ErrSecretStoreAccess identifies a provider secret-access failure.
 	ErrSecretStoreAccess
+	// ErrTaskManagerContract identifies an invalid task-manager wire fact,
+	// request, response, route, or socket boundary.
+	ErrTaskManagerContract
 
 	errorIdentityLimit
 )
@@ -463,6 +469,7 @@ func errorIdentityDiagnostics() [errorIdentityLimit]errorIdentityDiagnostic {
 		{identity: ErrExchangeResponse, text: "exchange response rejected"},
 		{identity: ErrExchangeBodyLimit, text: "exchange body limit exceeded"},
 		{identity: ErrExchangeContentType, text: "exchange content type rejected"},
+		{identity: ErrExchangeIdempotencyBinding, text: "exchange idempotency binding rejected"},
 		{identity: ErrExchangeCancelled, text: "exchange cancelled"},
 		{identity: ErrExchangeRedirect, text: "exchange redirect rejected"},
 		{identity: ErrExchangeTransport, text: "exchange transport failed"},
@@ -565,6 +572,7 @@ func errorIdentityDiagnostics() [errorIdentityLimit]errorIdentityDiagnostic {
 		{identity: ErrSecretStoreContract, text: "secret store contract violation"},
 		{identity: ErrSecretStorePayload, text: "secret store payload invalid"},
 		{identity: ErrSecretStoreAccess, text: "secret store access failed"},
+		{identity: ErrTaskManagerContract, text: "task manager contract violation"},
 	}
 }
 
@@ -682,7 +690,8 @@ func errorIdentityParents(identity ErrorIdentity) errorIdentityParentSet {
 		ErrCloudIdentityContract, ErrUpgradeContract,
 		ErrLifecycleIdentityContract, ErrReceiptContract, ErrChitContract,
 		ErrRetrievalContract, ErrPaymentContract, ErrControlWireContract,
-		ErrControlPlaneContract, ErrIDContract, ErrSecretStoreContract) {
+		ErrControlPlaneContract, ErrIDContract, ErrSecretStoreContract,
+		ErrTaskManagerContract) {
 		return oneErrorIdentityParent(ErrPrimitiveContract)
 	}
 	if errorIdentityIn(identity, ErrControlWireRevision, ErrControlWireNonce, ErrControlWireToken,
@@ -736,7 +745,7 @@ func errorIdentityParentsFilestoreThroughUpgrade(identity ErrorIdentity) errorId
 		return twoErrorIdentityParents(ErrTemporalContract, ErrNumericOverflow)
 	}
 	if errorIdentityIn(identity, ErrExchangeRequest, ErrExchangeResponse, ErrExchangeBodyLimit,
-		ErrExchangeContentType, ErrExchangeCancelled, ErrExchangeRedirect,
+		ErrExchangeContentType, ErrExchangeIdempotencyBinding, ErrExchangeCancelled, ErrExchangeRedirect,
 		ErrExchangeTransport, ErrExchangeRetryExhausted, ErrExchangeWrite) {
 		return oneErrorIdentityParent(ErrExchangeContract)
 	}

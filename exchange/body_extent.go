@@ -7,7 +7,10 @@ import (
 	"github.com/deliri/primitive/v2026/core"
 )
 
-const declaredBodyLengthAbsent = -1
+const (
+	declaredBodyLengthAbsent                  = -1
+	boundedBodyInitialReservationMaximumBytes = 4 << 10
+)
 
 type declaredBodyLength struct {
 	length  core.ByteLength
@@ -64,6 +67,20 @@ func (d declaredBodyLength) reservedExtent(limit core.ByteCount) (int, error) {
 	if err != nil {
 		return 0, err
 	}
+	if !d.present {
+		return 0, nil
+	}
+	value := min(
+		d.length.Uint64(),
+		uint64(boundedBodyInitialReservationMaximumBytes),
+	)
+	if value > math.MaxInt {
+		return 0, errors.Join(core.ErrExchangeContract, core.ErrNumericOverflow)
+	}
+	return int(value), nil
+}
+
+func boundedBodyLimitExtent(limit core.ByteCount) (int, error) {
 	value, err := limit.Uint64()
 	if err != nil {
 		return 0, errors.Join(core.ErrExchangeContract, err)

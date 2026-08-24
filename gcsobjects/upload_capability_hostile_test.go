@@ -239,6 +239,30 @@ func TestGCSUploadCapabilityIssuerLayerTriadUsesOfficialSDKSigningLeaf(t *testin
 	})
 }
 
+func TestNewGCSUploadCapabilityIssuerRefusesInvalidConstructionIngress(t *testing.T) {
+	t.Parallel()
+
+	cases := []struct {
+		name   string
+		ctx    context.Context
+		config GCSClientConfig
+	}{
+		{name: "nil context is rejected before official sdk construction", config: GCSClientConfig{Authentication: GCSAuthenticationApplicationDefault}},
+		{name: "unset authentication is rejected before official sdk construction", ctx: context.Background()},
+	}
+
+	for _, tc := range cases {
+		t.Run(tc.name, func(t *testing.T) {
+			t.Parallel()
+
+			got, gotErr := NewGCSUploadCapabilityIssuer(tc.ctx, tc.config)
+			if !errors.Is(gotErr, core.ErrObjectStoreContract) || got != nil {
+				t.Fatalf("NewGCSUploadCapabilityIssuer() = (%v, %v), want nil and errors.Is(..., %v)", got, gotErr, core.ErrObjectStoreContract)
+			}
+		})
+	}
+}
+
 func gcsCapabilityIssuer(
 	t *testing.T,
 	outcome gcsCapabilityProviderOutcome,

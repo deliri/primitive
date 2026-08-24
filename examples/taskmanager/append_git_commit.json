@@ -1,0 +1,12 @@
+{
+  "revision": 1,
+  "operation": "append_git_commit",
+  "append_git_commit": {
+    "task_id": "0000ffff-ffff-7000-8000-000000000001",
+    "repository": "github.com/example/project",
+    "parent": "0123456789abcdef0123456789abcdef01234567",
+    "result": "89abcdef0123456789abcdef0123456789abcdef",
+    "summary": "Implement and prove the bounded task operation.",
+    "expected_revision": 2
+  }
+}

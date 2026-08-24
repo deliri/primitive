@@ -124,8 +124,9 @@ func TestInventoryDocumentDrivesTheRealJSONWritePath(t *testing.T) {
 // exchangeContractInventory classifies every production struct by its real
 // data-flow role. Field names deliberately equal the classified type names.
 type exchangeContractInventory struct {
-	StatusError         typedFailure[StatusError]
-	RetryExhaustedError typedFailure[RetryExhaustedError]
+	StatusError               typedFailure[StatusError]
+	RetryExhaustedError       typedFailure[RetryExhaustedError]
+	BasicAuthorizationRequest protocolContract[BasicAuthorizationRequest]
 
 	replayFact            internalFlow[replayFact]
 	redirectFact          internalFlow[redirectFact]

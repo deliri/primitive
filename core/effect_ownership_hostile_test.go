@@ -42,6 +42,7 @@ const (
 	realWorldProcessExecutionPath      = "os/exec"
 	realWorldOperatingSystemSignalPath = "os/signal"
 	realWorldHTTPPath                  = "net/http"
+	realWorldHTTPCookieJarPath         = "net/http/cookiejar"
 	realWorldClockPath                 = "time"
 	realWorldEntropyPath               = "crypto/rand"
 	realWorldUnixPath                  = "golang.org/x/sys/unix"
@@ -375,7 +376,7 @@ func parseRealWorldSubstrate(path string) realWorldSubstrate {
 		return realWorldSubstrateProcessExecution
 	case realWorldOperatingSystemSignalPath:
 		return realWorldSubstrateOperatingSystemSignal
-	case realWorldHTTPPath:
+	case realWorldHTTPPath, realWorldHTTPCookieJarPath:
 		return realWorldSubstrateHTTP
 	case realWorldClockPath:
 		return realWorldSubstrateClock
@@ -407,7 +408,7 @@ func declaredRealWorldImports() (realWorldImportInventory, error) {
 			PackageProcess, PackageRelease, PackageShutdown, PackageUpgrade),
 		realWorldImportOwners(realWorldSubstrateProcessExecution, PackageProcess),
 		realWorldImportOwners(realWorldSubstrateOperatingSystemSignal, PackageShutdown),
-		realWorldImportOwners(realWorldSubstrateHTTP, PackageCore, PackageControlWire, PackageExchange),
+		realWorldImportOwners(realWorldSubstrateHTTP, PackageCore, PackageControlWire, PackageExchange, PackageTaskManager),
 		realWorldImportOwners(realWorldSubstrateClock, PackageCloudIdentity, PackageTemporal, PackageTimeProof),
 		realWorldImportOwners(realWorldSubstrateEntropy, PackageAttest, PackageKeygen),
 		realWorldImportOwners(realWorldSubstrateUnix, PackageFileLock, PackageFilestore, PackageHostFacts, PackageProcess),
@@ -463,6 +464,7 @@ func declaredRealWorldCalls() (realWorldCallInventory, error) {
 		{owner: PackageShutdown, substrate: realWorldSubstrateOperatingSystemSignal, selector: "Notify", count: 1},
 		{owner: PackageShutdown, substrate: realWorldSubstrateOperatingSystemSignal, selector: "Stop", count: 1},
 		{owner: PackageExchange, substrate: realWorldSubstrateHTTP, selector: "NewRequestWithContext", count: 3},
+		{owner: PackageExchange, substrate: realWorldSubstrateHTTP, selector: "New", count: 1},
 		{owner: PackageExchange, substrate: realWorldSubstrateHTTP, selector: "ParseTime", count: 1},
 		{owner: PackageTemporal, substrate: realWorldSubstrateClock, selector: "Duration", count: 1},
 		{owner: PackageTemporal, substrate: realWorldSubstrateClock, selector: "NewTicker", count: 1},

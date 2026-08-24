@@ -1,0 +1,9 @@
+{
+  "revision": 1,
+  "operation": "create_phase",
+  "create_phase": {
+    "name": "Sale readiness",
+    "description": "Prepare the project for customer delivery.",
+    "position": 1
+  }
+}

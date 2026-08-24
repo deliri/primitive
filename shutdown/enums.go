@@ -67,7 +67,7 @@ const (
 
 func stepOutcomeLabels() [stepOutcomeLimit]string {
 	return [...]string{
-		StepOutcomeCompleted:           "completed",
+		StepOutcomeCompleted:           core.CompletionStateText,
 		StepOutcomeFailed:              "failed",
 		StepOutcomeTimedOut:            "timed-out",
 		StepOutcomePanicked:            "panicked",

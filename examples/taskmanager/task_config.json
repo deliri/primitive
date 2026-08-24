@@ -1,0 +1,10 @@
+{
+  "revision": 1,
+  "authority": "https://admin.example.com",
+  "username": "agent-operator",
+  "password_secret": {
+    "project": "example-task-project",
+    "secret": "task-manager-admin-password"
+  },
+  "project_id": "019ff548-29cb-7451-869e-aa644c0947e6"
+}

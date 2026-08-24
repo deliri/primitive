@@ -103,6 +103,7 @@ type VerifiedResponse[
 type responseCommitmentWire ResponseCommitment
 
 type responseDocumentWire struct {
+	// doctrine:local-allowed=external-wire
 	Body        jsontext.Value                 `json:"body,omitempty"`
 	Header      ResponseHeader                 `json:"header"`
 	Attestation attest.Envelope[SigningDomain] `json:"attestation"`

@@ -1,0 +1,2 @@
+go test fuzz v1
+string("{\"provider\":\"google_cloud_storage\",\"method\":\"signed_put\",\"url\":\"https://storAge.googleApis.Com/00000000000000?X-Goog-Signature=000000000&X-Goog-SignedHeaders=host%3Bx-goog-hash%3Bx-goog-if-generation-match%3Bx-goog-meta-run\",\"expires_at\":1000000000000000000,\"headers\":[{\"name\":\"X-Goog-MetA-Run\",\"value\":\"\"}]}")

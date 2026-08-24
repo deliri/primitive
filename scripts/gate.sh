@@ -175,6 +175,10 @@ run_benchmark_packages() {
 	done <"$benchmark_packages"
 }
 
+run_deadcode() {
+	deadcode -test ./... </dev/null
+}
+
 run_fuzz_targets() {
 	fuzz_inventory=$1
 	while read -r package_path target_name; do
@@ -300,7 +304,7 @@ run_gate constants validate_goconst_findings
 run_gate field-alignment fieldalignment ./...
 run_gate security gosec -quiet ./...
 run_gate vulnerabilities govulncheck ./...
-run_empty_output_gate dead-code deadcode -test ./...
+run_empty_output_gate dead-code run_deadcode
 run_gate benchmark-inventory discover_go_targets Benchmark
 run_gate benchmark-inventory-ratchet validate_target_inventory \
 	"$artifact_directory/benchmark-inventory.log" 51 benchmark

@@ -1,8 +1,31 @@
 # Primitive 2026 Ledger
 
-Last updated: `2026-08-22`
+Last updated: `2026-08-24`
 
 ## Current
+
+- reopened the task-application consumer slice as the narrower `taskmanager`
+  agreement, 2026-08-24, after explicit consumer direction clarified that both
+  socket ends must live in Primitive while storage and application policy stay
+  in Blink. Archaeology found the rejected `taskprogress` tree was an exact
+  package-name-only copy of Blink's aggregate model and did not compile; the
+  command's useful strict JSON, Secretstore, cookie-jar, UUIDv7, and replay
+  mechanics were retained as design evidence while its duplicated routes,
+  opaque response, whole-registry lookup, and one-operation surface were
+  rejected. Ownership inventory is recorded in
+  `_docs/interviews/taskmanager.md`. The replacement is a clean-break,
+  paginated, direct-ID, entity-revision socket with exhaustive typed contract,
+  real TLS, hostile boundary, semantic fuzz, race, and analyzer proof. Exact
+  diff review remains.
+
+- opened one Exchange reachability slice from task-application consumer
+  evidence, 2026-08-23. Exchange now exposes Go's real cookie-jar client and
+  compiler-bound send/receive idempotency agreement. The proposed
+  `taskprogress` package was rejected and deleted under the feature-rejection
+  test: it duplicated Exchange and required a task-application world model.
+  Product routes, documents, credentials, and workflow remain consumer-owned.
+  Focused and repository-wide implementation proof is green; exact diff review
+  remains.
 
 - opened reader-native strict JSON ingress, 2026-08-22, preparing
   `v2026.0.143`. Core's validated `DecodeStrictJSON` cleanly replaces its
@@ -4110,7 +4133,7 @@ State vocabulary: `NEXT`, `BLOCKED_BY_DEPENDENCY`, `NOT_STARTED`, `RED`,
 | `filestore`        | `DONE`                  |
 | `hostfacts`        | `DONE`                  |
 | `temporal`         | `DONE`                  |
-| `exchange`         | `DONE`                  |
+| `exchange`         | `REVIEW`                |
 | `fuzzfinder`       | `DONE`                  |
 | `lease`            | `DONE`                  |
 | `gate`             | `DONE`                  |
@@ -4123,6 +4146,8 @@ State vocabulary: `NEXT`, `BLOCKED_BY_DEPENDENCY`, `NOT_STARTED`, `RED`,
 | `cloudidentity`    | `DONE`                  |
 | `lineio`           | `DONE`                  |
 | `manual`           | `REVIEW`                |
+| `secretstore`      | `REVIEW`                |
+| `taskmanager`      | `REVIEW`                |
 | `upgrade`          | `BLOCKED_BY_DEPENDENCY` |
 
 Consumer state is recorded under the active package only. There is no separate

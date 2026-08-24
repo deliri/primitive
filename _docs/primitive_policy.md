@@ -1055,7 +1055,7 @@ starts.
 
 ## 15. Exact package graph
 
-The catalog contains **40 production packages** plus test-only `testserial` and
+The catalog contains **41 production packages** plus test-only `testserial` and
 `controlplanetest`.
 Every listed production import is required and MUST be used semantically. Every
 unlisted Primitive sibling import is forbidden.
@@ -1092,6 +1092,7 @@ The order is dependency depth, not a command to build every package in a row.
 | 5 | `timeproof` | RFC 3161 request construction, response verification, and replay | `core`, `temporal`, `keygen` | none |
 | 5 | `cloudidentity` | Bounded Google Cloud identity-token and OAuth access-token or AWS identity-token acquisition with redacted disclosure | `core`, `temporal`, `exchange` | none |
 | 4 | `secretstore` | Bounded exact-version secret access through official provider SDKs | `core`, `contextstate` | `process` |
+| 5 | `taskmanager` | Blind bounded task-management wire and paired HTTP socket | `core`, `exchange`, `id`, `temporal` | none |
 | 6 | `controlplane` | Signed control-plane request and response documents, their binding to one exact request, product status, and usage watermark | `core`, `controlwire`, `attest`, `lease`, `temporal`, `receipt` | none |
 | 6 | `submission` | Authenticated evidence declarations, authority upload grants, and device-signed provider completion evidence bound to one exact request | `attest`, `chit`, `controlwire`, `core`, `id`, `objectstore`, `receipt`, `temporal` | `exchange` |
 | 7 | `submissionauth` | Installation-certificate binding, device authentication, and authority reconciliation for evidence submissions | `core`, `attest`, `chit`, `controlplane`, `controlwire`, `objectstore`, `receipt`, `submission` | `controlplanetest`, `exchange` |

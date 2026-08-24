@@ -184,6 +184,13 @@ type IdempotencyKey struct {
 	value string
 }
 
+// IdempotencyBound is a validated caller-owned document that projects the
+// replay identity carried by the HTTP request.
+type IdempotencyBound interface {
+	core.Validatable
+	IdempotencyKey() (IdempotencyKey, error)
+}
+
 // ParseIdempotencyKey validates and owns one key.
 func ParseIdempotencyKey(value string) (IdempotencyKey, error) {
 	if len(value) == 0 || len(value) > IdempotencyKeyMaximumBytes {

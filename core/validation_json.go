@@ -120,6 +120,7 @@ const (
 	jsonArrayItemLimitExceededErrorText   = "json array exceeds item limit"
 	jsonRepresentationUnstableErrorText   = "validated json representation is not stable"
 	jsonDecodedValueInvalidErrorText      = "decoded json value is invalid"
+	jsonDecodeFailedErrorText             = "strict json decode failed"
 	jsonMismatchedDelimiterErrorText      = "json delimiter does not close current container"
 	jsonContainerKindInvalidErrorText     = "json container kind is invalid"
 )
@@ -248,6 +249,7 @@ func validateJSONValue(value Validatable) (err error) {
 }
 
 func validateInitialJSONEncoding(encoded []byte) error {
+	// doctrine:local-allowed=external-wire
 	if !jsontext.Value(encoded).IsValid() {
 		return jsonContractError("validated json marshaler emitted invalid json", nil)
 	}
@@ -258,6 +260,7 @@ func validateInitialJSONEncoding(encoded []byte) error {
 }
 
 func validateReencodedJSON(encoded []byte) error {
+	// doctrine:local-allowed=external-wire
 	if !jsontext.Value(encoded).IsValid() {
 		return jsonContractError("validated json decoded value emitted invalid json", nil)
 	}
@@ -338,19 +341,20 @@ func readStrictJSONDocument(reader io.Reader, limits StrictJSONLimits) ([]byte, 
 	if err != nil {
 		return nil, jsonContractError(jsonDocumentByteLimitInvalidErrorText, err)
 	}
-	buffer := make([]byte, min(int(maximum)+1, strictJSONReaderInitialBufferBytes))
+	maximumInt := int(maximum) // #nosec G115 -- limits.Validate caps this value at JSONDocumentMaximumBytes.
+	buffer := make([]byte, min(maximumInt+1, strictJSONReaderInitialBufferBytes))
 	used := 0
 	emptyReads := 0
 	for {
 		if used == len(buffer) {
-			buffer = growStrictJSONReadBuffer(buffer, int(maximum)+1)
+			buffer = growStrictJSONReadBuffer(buffer, maximumInt+1)
 		}
 		count, readErr := reader.Read(buffer[used:])
 		if !strictJSONReadCountValid(count, len(buffer)-used) {
 			return nil, jsonContractError(jsonReaderCountInvalidErrorText, nil)
 		}
 		used += count
-		if used > int(maximum) {
+		if used > maximumInt {
 			return nil, jsonContractError(jsonDocumentLimitExceededErrorText, nil)
 		}
 		if readErr != nil {
@@ -372,10 +376,23 @@ func strictJSONReadCountValid(count, remaining int) bool {
 }
 
 func finishStrictJSONRead(data []byte, readErr error) ([]byte, error) {
-	if readErr == io.EOF {
+	if isStandaloneEOF(readErr) {
 		return data, nil
 	}
 	return nil, jsonContractError(jsonReaderFailureErrorText, readErr)
+}
+
+func isStandaloneEOF(err error) bool {
+	if !errors.Is(err, io.EOF) || errors.Unwrap(err) != nil {
+		return false
+	}
+	_, joined := errors.AsType[multiUnwrapper](err)
+	return !joined
+}
+
+type multiUnwrapper interface {
+	error
+	Unwrap() []error
 }
 
 func growStrictJSONReadBuffer(buffer []byte, maximum int) []byte {
@@ -383,25 +400,22 @@ func growStrictJSONReadBuffer(buffer []byte, maximum int) []byte {
 	return append(buffer, make([]byte, next-len(buffer))...)
 }
 
-func decodeStrictJSONStructureValidatedLimits[T any](data []byte, limits StrictJSONLimits) (T, error) {
-	var value T
+func decodeStrictJSONStructureValidatedLimits[T any](data []byte, limits StrictJSONLimits) (value T, err error) {
 	if err := validateStrictJSONTypedInput(data, limits); err != nil {
 		return value, err
 	}
-	if err := decodeJSONValue(data, &value); err != nil {
-		var zero T
-		return zero, jsonContractError("strict json decode failed", err)
-	}
-	return value, nil
-}
-
-func decodeJSONValue[T any](data []byte, destination *T) (err error) {
 	defer func() {
 		if recover() != nil {
-			err = errors.New(jsonUnmarshalerPanicErrorText)
+			var zero T
+			value = zero
+			err = jsonContractError(jsonDecodeFailedErrorText, errors.New(jsonUnmarshalerPanicErrorText))
 		}
 	}()
-	return json.Unmarshal(data, destination, json.RejectUnknownMembers(true))
+	if err := json.Unmarshal(data, &value, json.RejectUnknownMembers(true)); err != nil {
+		var zero T
+		return zero, jsonContractError(jsonDecodeFailedErrorText, err)
+	}
+	return value, nil
 }
 
 func validateStrictJSONTypedInput(data []byte, limits StrictJSONLimits) error {

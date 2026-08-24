@@ -1,0 +1,9 @@
+{
+  "revision": 1,
+  "operation": "create_project",
+  "create_project": {
+    "name": "Example project",
+    "description": "Bounded working memory for one independently addressable project.",
+    "lifecycle": "active"
+  }
+}

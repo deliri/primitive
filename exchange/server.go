@@ -158,6 +158,36 @@ func ReceiveJSON[
 	)
 }
 
+// ReceiveReplayBoundJSON receives one strict typed document and refuses it
+// unless the validated body and real HTTP request carry the same idempotency
+// identity. Every refusal returns zero output.
+func ReceiveReplayBoundJSON[
+	Body any,
+	BodyPtr interface {
+		*Body
+		IdempotencyBound
+	},
+](call JSONReceiveCall) (Received[BodyPtr], error) {
+	var zero Received[BodyPtr]
+	received, err := ReceiveJSON[Body, BodyPtr](call)
+	if err != nil {
+		return zero, err
+	}
+	key, err := received.Body.IdempotencyKey()
+	if err != nil {
+		return zero, requestError(errors.Join(
+			core.ErrExchangeIdempotencyBinding,
+			err,
+		))
+	}
+	if key != received.IdempotencyKey {
+		return zero, requestError(
+			core.ErrExchangeIdempotencyBinding,
+		)
+	}
+	return received, nil
+}
+
 func receiveJSON[
 	Body any,
 	BodyPtr interface {

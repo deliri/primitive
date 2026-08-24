@@ -1,0 +1,9 @@
+{
+  "revision": 1,
+  "operation": "list_evidence",
+  "list_evidence": {
+    "task_id": "0000ffff-ffff-7000-8000-000000000001",
+	"order": "descending",
+    "limit": 100
+  }
+}

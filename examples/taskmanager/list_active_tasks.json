@@ -1,0 +1,9 @@
+{
+  "revision": 1,
+  "operation": "list_tasks",
+  "list_tasks": {
+    "collection": "active",
+	"order": "descending",
+    "limit": 100
+  }
+}

@@ -195,7 +195,7 @@ func FuzzUploadCapabilityAdmitsOnlyTransferableCapabilities(f *testing.F) {
 		for _, header := range target.Headers.values {
 			rendered := fmt.Sprintf("%v|%+v|%#v|%s|%q", header, header, header, header, header)
 			if strings.Count(rendered, core.RedactedValueText) != 5 ||
-				strings.Contains(rendered, *header.value) {
+				*header.value != "" && *header.value != core.RedactedValueText && strings.Contains(rendered, *header.value) {
 				t.Fatalf("formatted accepted signed header = %q, want only redacted text", rendered)
 			}
 		}

@@ -1,0 +1,12 @@
+{
+  "revision": 1,
+  "operation": "append_evidence",
+  "append_evidence": {
+    "task_id": "0000ffff-ffff-7000-8000-000000000001",
+    "kind": "screenshot",
+    "summary": "Browser proof uploaded through Primitive object storage.",
+    "location": "https://storage.googleapis.com/example-task-proof/evidence/browser-proof.png",
+    "digest": "0123456789abcdef0123456789abcdef0123456789abcdef0123456789abcdef",
+    "expected_revision": 2
+  }
+}

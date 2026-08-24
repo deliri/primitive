@@ -113,11 +113,11 @@ func TestDecodeStrictJSONReaderHostileBoundaryTable(t *testing.T) {
 	canonical := strictJSONReaderCanonicalAbsolutePath(t)
 	limits := strictJSONReaderLimits(t)
 	cases := []struct {
-		reader  func() io.Reader
-		limits  StrictJSONLimits
-		name    string
 		wantErr error
 		forbid  error
+		reader  func() io.Reader
+		name    string
+		limits  StrictJSONLimits
 	}{
 		{
 			name: "one byte below document limit is accepted",

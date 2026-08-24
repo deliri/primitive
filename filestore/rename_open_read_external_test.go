@@ -439,18 +439,46 @@ func TestOpenReadAcquiresOnlyARegularFile(t *testing.T) {
 func TestOpenReadRefusesAnUnusableRequest(t *testing.T) {
 	t.Parallel()
 
-	directory := t.TempDir()
-	renameWriteFile("source")(t, directory)
-
-	if _, err := filestore.OpenRead(t.Context(), filestore.ReadHandleRequest{
-		Location: filestore.Location{Path: mustRelativePath(t, "source")},
-	}); !errors.Is(err, core.ErrFilestoreContract) {
-		t.Fatalf("OpenRead(no root) error = %v, want errors.Is %v", err, core.ErrFilestoreContract)
+	cases := []struct {
+		wantErr error
+		build   func(*testing.T, string) filestore.ReadHandleRequest
+		name    string
+	}{
+		{
+			name: "missing root capability returns no handle",
+			build: func(t *testing.T, _ string) filestore.ReadHandleRequest {
+				return filestore.ReadHandleRequest{
+					Location: filestore.Location{Path: mustRelativePath(t, "source")},
+				}
+			},
+			wantErr: core.ErrFilestoreContract,
+		},
+		{
+			name: "unset path returns no handle",
+			build: func(t *testing.T, directory string) filestore.ReadHandleRequest {
+				return filestore.ReadHandleRequest{
+					Location: filestore.Location{Root: requireTestRoot(t, directory)},
+				}
+			},
+			wantErr: core.ErrFilestoreContract,
+		},
 	}
-	if _, err := filestore.OpenRead(t.Context(), filestore.ReadHandleRequest{
-		Location: filestore.Location{Root: requireTestRoot(t, directory)},
-	}); !errors.Is(err, core.ErrFilestoreContract) {
-		t.Fatalf("OpenRead(no path) error = %v, want errors.Is %v", err, core.ErrFilestoreContract)
+
+	for _, tc := range cases {
+		t.Run(tc.name, func(t *testing.T) {
+			t.Parallel()
+
+			directory := t.TempDir()
+			renameWriteFile("source")(t, directory)
+			gotHandle, gotErr := filestore.OpenRead(t.Context(), tc.build(t, directory))
+			if !errors.Is(gotErr, tc.wantErr) {
+				t.Fatalf("OpenRead() error = %v, want errors.Is %v", gotErr, tc.wantErr)
+			}
+			if gotHandle != nil {
+				t.Fatalf("OpenRead() handle = %v, want nil", gotHandle)
+			}
+			requireDirectoryEntryNames(t, directory, []string{"source"})
+		})
 	}
 }
 
