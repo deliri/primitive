@@ -48,6 +48,9 @@ than in a second file, because a second file does not get read.
 
 - every mechanism by which a consumer touches the real world: filesystem,
   process, network, clock, locks, entropy, signals, and host facts;
+- product-neutral execution of consumer-owned typed policy through bounded
+  scans, streaming transforms, incremental commitments, durable writes,
+  process and network calls, and other real-world effects;
 - every contract that crosses a wire, because both ends run this identical
   stack and a wire type has exactly one home; and
 - the obligation to be reachable: a door that exists but a caller cannot reach
@@ -60,6 +63,9 @@ bounds around it.
 
 - own product policy. Business rules, thresholds, vocabulary, and workflow
   belong to consumers;
+- own a consumer's record schema, event vocabulary, lifecycle, ordering,
+  rotation or retention decision, replay interpretation, fold, or result
+  meaning;
 - decide which product evidence is eligible, choose a transfer destination,
   disclose transfer contents to a customer, obtain confirmation, interpret a
   product-owned `--yes` flag, render CLI tables or progress bars, or write
@@ -155,6 +161,26 @@ exceptions and takes none.
   bypassing it. A type assertion such as `info.Sys().(*syscall.Stat_t)` is
   admissible for exactly that reason: it inspects what `Lstat` handed back and
   asks the kernel for nothing.
+
+#### Policy enters; execution leaves
+
+```text
+consumer-owned typed policy
+    -> Primitive-owned typed execution contract
+        -> Go standard library
+            -> operating system or documented external service
+        <- typed execution observation
+    <- consumer-owned interpretation
+```
+
+The consumer owns what a fact means and which operation it wants. Primitive
+owns the product-neutral mechanics that execute the validated request with
+explicit bounds. Primitive returns typed observations; it does not reinterpret
+them as consumer state, workflow, success, or failure.
+
+Reuse moves blind mechanics downward. It never moves product vocabulary,
+record schema, lifecycle, ordering, replay acceptance, folds, or terminal
+meaning downward.
 
 ### 0.2 The blink model
 
@@ -352,7 +378,7 @@ contract exists.
 Every package MUST follow one path:
 
 ```text
-typed request or external input
+typed execution request or external input
     -> pure typed Decode / New / Validate / Prepare
     -> one owner-only projection
     -> exact Go standard-library, documented protocol, or official-SDK primitive
@@ -696,8 +722,9 @@ Use Go's real interfaces directly, including:
 - standard encoders and decoders; and
 - official provider SDK types when the package contract selects an SDK.
 
-Primitive MUST add typed policy and validation around these primitives. It MUST
-NOT replace them with Primitive-shaped lookalikes.
+Primitive MUST add typed execution contracts, validation, and bounds around
+these primitives. It MUST NOT replace them with Primitive-shaped lookalikes or
+interpret a consumer's product policy.
 
 ### 8.2 One effect leaf
 
@@ -717,6 +744,11 @@ The effect leaf MUST:
 Hidden effect paths are forbidden.
 
 ### 8.3 Single ownership of execution policy
+
+Here, execution policy means the mechanics of performing an effect: retry,
+backoff, timeout, buffering, commitment, and cleanup. The consumer still owns
+which operation to request, the values it selects, and the product meaning of
+the returned observation.
 
 Exactly one layer owns each of the following for one operation:
 
