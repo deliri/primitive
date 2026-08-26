@@ -65,9 +65,9 @@ func taskCommandJobFuzzSeeds(t testing.TB) []jobDocument {
 	if err != nil {
 		t.Fatalf("taskmanager.NewRevision(seed) error = %v, want nil", err)
 	}
-	location, err := core.ParseHTTPEndpoint("https://evidence.example.invalid/tasks/proof.json")
+	contentType, err := core.ParseHTTPMediaType("application/json")
 	if err != nil {
-		t.Fatalf("core.ParseHTTPEndpoint(seed) error = %v, want nil", err)
+		t.Fatalf("core.ParseHTTPMediaType(seed) error = %v, want nil", err)
 	}
 	parent, err := core.ParseBuildCommit(strings.Repeat("a", 40))
 	if err != nil {
@@ -77,27 +77,23 @@ func taskCommandJobFuzzSeeds(t testing.TB) []jobDocument {
 	if err != nil {
 		t.Fatalf("core.ParseBuildCommit(result seed) error = %v, want nil", err)
 	}
-	var digestBytes [core.SHA256DigestBytes]byte
-	for index := range digestBytes {
-		digestBytes[index] = byte(index + 1)
-	}
 	state := taskmanager.TaskStateInProgress
 	return []jobDocument{
-		{Revision: commandDocumentRevisionV1, Operation: operationListProjects, ListProjects: &listProjectsInput{Lifecycle: taskmanager.ProjectLifecycleActive, Order: taskmanager.PageOrderDescending, Limit: 7}},
-		{Revision: commandDocumentRevisionV1, Operation: operationGetProject},
-		{Revision: commandDocumentRevisionV1, Operation: operationCreateProject, CreateProject: &createProjectInput{Name: "Project", Description: "Bounded working memory.", Lifecycle: taskmanager.ProjectLifecycleActive}},
-		{Revision: commandDocumentRevisionV1, Operation: operationListPhases, ListPhases: &listPhasesInput{Order: taskmanager.PageOrderAscending, Limit: 7}},
-		{Revision: commandDocumentRevisionV1, Operation: operationCreatePhase, CreatePhase: &createPhaseInput{Name: "Phase", Description: "Bounded phase.", Position: 1}},
-		{Revision: commandDocumentRevisionV1, Operation: operationListTasks, ListTasks: &listTasksInput{PhaseID: &phaseID, Collection: taskmanager.TaskCollectionActive, Order: taskmanager.PageOrderDescending, Limit: 7}},
-		{Revision: commandDocumentRevisionV1, Operation: operationGetTask, GetTask: &getTaskInput{TaskID: taskID}},
-		{Revision: commandDocumentRevisionV1, Operation: operationCreateTask, CreateTask: &createTaskInput{PhaseID: phaseID, Title: "Task", Description: "Bounded task.", Kind: taskmanager.TaskKindFeature, State: taskmanager.TaskStateBacklog}},
-		{Revision: commandDocumentRevisionV1, Operation: operationUpdateTask, UpdateTask: &updateTaskInput{TaskID: taskID, ExpectedRevision: revision, Change: taskChangeInput{State: &state}}},
-		{Revision: commandDocumentRevisionV1, Operation: operationCompleteTask, CompleteTask: &completeTaskInput{TaskID: taskID, ExpectedRevision: revision}},
-		{Revision: commandDocumentRevisionV1, Operation: operationListEvidence, ListEvidence: &listEvidenceInput{TaskID: taskID, Order: taskmanager.PageOrderDescending, Limit: 7}},
-		{Revision: commandDocumentRevisionV1, Operation: operationAppendEvidence, AppendEvidence: &appendEvidenceInput{TaskID: taskID, Kind: taskmanager.EvidenceKindTest, Summary: "Hostile tests pass.", Location: location, Digest: core.NewSHA256Digest(digestBytes), ExpectedRevision: revision}},
-		{Revision: commandDocumentRevisionV1, Operation: operationListGitCommits, ListGitCommits: &listGitCommitsInput{TaskID: taskID, Order: taskmanager.PageOrderDescending, Limit: 7}},
-		{Revision: commandDocumentRevisionV1, Operation: operationAppendGitCommit, AppendGitCommit: &appendGitCommitInput{TaskID: taskID, Repository: "github.com/example/project", Parent: parent, Result: result, Summary: "Bounded change.", ExpectedRevision: revision}},
-		{Revision: commandDocumentRevisionV1, Operation: operationListPhases, ListPhases: &listPhasesInput{After: &taskmanager.PhaseCursor{ProjectID: projectID, Position: 1, ID: phaseID}, Order: taskmanager.PageOrderAscending, Limit: 7}},
+		{Revision: commandDocumentRevisionV2, Operation: operationListProjects, ListProjects: &listProjectsInput{Lifecycle: taskmanager.ProjectLifecycleActive, Order: taskmanager.PageOrderDescending, Limit: 7}},
+		{Revision: commandDocumentRevisionV2, Operation: operationGetProject},
+		{Revision: commandDocumentRevisionV2, Operation: operationCreateProject, CreateProject: &createProjectInput{Name: "Project", Description: "Bounded working memory.", Lifecycle: taskmanager.ProjectLifecycleActive}},
+		{Revision: commandDocumentRevisionV2, Operation: operationListPhases, ListPhases: &listPhasesInput{Order: taskmanager.PageOrderAscending, Limit: 7}},
+		{Revision: commandDocumentRevisionV2, Operation: operationCreatePhase, CreatePhase: &createPhaseInput{Name: "Phase", Description: "Bounded phase.", Position: 1}},
+		{Revision: commandDocumentRevisionV2, Operation: operationListTasks, ListTasks: &listTasksInput{PhaseID: &phaseID, Collection: taskmanager.TaskCollectionActive, Order: taskmanager.PageOrderDescending, Limit: 7}},
+		{Revision: commandDocumentRevisionV2, Operation: operationGetTask, GetTask: &getTaskInput{TaskID: taskID}},
+		{Revision: commandDocumentRevisionV2, Operation: operationCreateTask, CreateTask: &createTaskInput{PhaseID: phaseID, Title: "Task", Description: "Bounded task.", Kind: taskmanager.TaskKindFeature, State: taskmanager.TaskStateBacklog}},
+		{Revision: commandDocumentRevisionV2, Operation: operationUpdateTask, UpdateTask: &updateTaskInput{TaskID: taskID, ExpectedRevision: revision, Change: taskChangeInput{State: &state}}},
+		{Revision: commandDocumentRevisionV2, Operation: operationCompleteTask, CompleteTask: &completeTaskInput{TaskID: taskID, ExpectedRevision: revision}},
+		{Revision: commandDocumentRevisionV2, Operation: operationListEvidence, ListEvidence: &listEvidenceInput{TaskID: taskID, Order: taskmanager.PageOrderDescending, Limit: 7}},
+		{Revision: commandDocumentRevisionV2, Operation: operationAppendEvidence, AppendEvidence: &appendEvidenceInput{TaskID: taskID, Kind: taskmanager.EvidenceKindTest, Summary: "Hostile tests pass.", Source: "taskops/evidence/proof.json", ContentType: contentType, ExpectedRevision: revision}},
+		{Revision: commandDocumentRevisionV2, Operation: operationListGitCommits, ListGitCommits: &listGitCommitsInput{TaskID: taskID, Order: taskmanager.PageOrderDescending, Limit: 7}},
+		{Revision: commandDocumentRevisionV2, Operation: operationAppendGitCommit, AppendGitCommit: &appendGitCommitInput{TaskID: taskID, Repository: "github.com/example/project", Parent: parent, Result: result, Summary: "Bounded change.", ExpectedRevision: revision}},
+		{Revision: commandDocumentRevisionV2, Operation: operationListPhases, ListPhases: &listPhasesInput{After: &taskmanager.PhaseCursor{ProjectID: projectID, Position: 1, ID: phaseID}, Order: taskmanager.PageOrderAscending, Limit: 7}},
 	}
 }
 
@@ -114,10 +110,17 @@ func FuzzTaskConfigurationJSONSemanticClosure(f *testing.F) {
 	if err != nil {
 		f.Fatalf("ParseBasicAuthorizationIdentity(seed) error = %v, want nil", err)
 	}
+	maximum, err := core.NewByteCount(64 << 20)
+	if err != nil {
+		f.Fatalf("core.NewByteCount(seed) error = %v, want nil", err)
+	}
 	seed := configurationDocument{
-		Revision: commandDocumentRevisionV1, Authority: authority, Username: identity,
+		Revision: commandDocumentRevisionV2, Authority: authority, Username: identity,
 		PasswordSecret: googleSecretReference{Project: "example-task-project", Secret: "task-manager-admin-password"},
 		ProjectID:      &projectID,
+		EvidenceStorage: &evidenceStorageReference{
+			Bucket: "example-task-proof", Prefix: "evidence/", MaximumBytes: maximum,
+		},
 	}
 	canonical, err := seed.MarshalJSON()
 	if err != nil {
@@ -137,7 +140,7 @@ func FuzzTaskConfigurationJSONSemanticClosure(f *testing.F) {
 			if !errors.Is(gotErr, core.ErrJSONContract) && !errors.Is(gotErr, core.ErrTaskManagerContract) {
 				t.Fatalf("DecodeStrictJSON(rejected configuration) error = %v, want typed JSON or task-manager identity", gotErr)
 			}
-			if got.Authority.String() != "" || got.Username.String() != "" || got.ProjectID != nil {
+			if got.Authority.String() != "" || got.Username.String() != "" || got.ProjectID != nil || got.EvidenceStorage != nil {
 				t.Fatalf("DecodeStrictJSON(rejected configuration) = %+v, want zero", got)
 			}
 			return

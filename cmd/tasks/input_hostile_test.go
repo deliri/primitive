@@ -38,9 +38,9 @@ func TestTaskCommandFileIngressLayerTriad(t *testing.T) {
 		t.Run(tc.name, func(t *testing.T) {
 			t.Parallel()
 			scenario := tc.build(t)
-			gotConfiguration, gotJob, gotErr := loadInputs(
-				t.Context(), scenario.root, scenario.jobPath, scenario.stdin,
-			)
+			gotConfiguration, gotJob, gotErr := loadInputs(t.Context(), commandInputRequest{
+				WorkingDirectory: scenario.root, JobPath: scenario.jobPath, StandardInput: scenario.stdin,
+			})
 			if !errors.Is(gotErr, scenario.wantErr) {
 				t.Fatalf("loadInputs() error = %v, want %v", gotErr, scenario.wantErr)
 			}
@@ -161,12 +161,12 @@ func commandInputFixture(t testing.TB) (core.AbsolutePath, configurationDocument
 	}
 	projectID := commandUUIDFixture(t, "019ff548-29cb-7451-869e-aa644c0947e6")
 	configuration := configurationDocument{
-		Revision: commandDocumentRevisionV1, Authority: authority, Username: commandIdentityFixture(t),
+		Revision: commandDocumentRevisionV2, Authority: authority, Username: commandIdentityFixture(t),
 		PasswordSecret: googleSecretReference{Project: "example-task-project", Secret: "task-manager-admin-password"},
 		ProjectID:      &projectID,
 	}
 	job := jobDocument{
-		Revision: commandDocumentRevisionV1, Operation: operationListProjects,
+		Revision: commandDocumentRevisionV2, Operation: operationListProjects,
 		ListProjects: &listProjectsInput{Lifecycle: taskmanager.ProjectLifecycleActive, Order: taskmanager.PageOrderDescending, Limit: 17},
 	}
 	return root, configuration, job

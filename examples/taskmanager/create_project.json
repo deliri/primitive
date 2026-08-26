@@ -1,5 +1,5 @@
 {
-  "revision": 1,
+  "revision": 2,
   "operation": "create_project",
   "create_project": {
     "name": "Example project",

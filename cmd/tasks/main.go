@@ -60,7 +60,9 @@ func runJob(ctx context.Context, invocation invocation, streams commandStreams) 
 	if err != nil {
 		return writeFailure(streams.stderr, commandError("working directory observation failed", err))
 	}
-	configuration, job, err := loadInputs(ctx, workingDirectory, invocation.JobPath, streams.stdin)
+	configuration, job, err := loadInputs(ctx, commandInputRequest{
+		WorkingDirectory: workingDirectory, JobPath: invocation.JobPath, StandardInput: streams.stdin,
+	})
 	if err != nil {
 		return writeFailure(streams.stderr, err)
 	}
@@ -71,7 +73,9 @@ func runJob(ctx context.Context, invocation invocation, streams commandStreams) 
 	if err != nil {
 		return writeFailure(streams.stderr, err)
 	}
-	result, err := executeJob(ctx, client, configuration, job)
+	result, err := executeJob(executionRequest{
+		ctx: ctx, workingDirectory: workingDirectory, client: client, configuration: configuration, job: job,
+	})
 	if err != nil {
 		return writeFailure(streams.stderr, err)
 	}

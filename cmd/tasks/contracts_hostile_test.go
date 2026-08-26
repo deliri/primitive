@@ -82,6 +82,9 @@ func TestShippedTaskCommandExamplesAreExecutableContracts(t *testing.T) {
 			if job.Operation != tc.operation {
 				t.Fatalf("job operation = %v, want %v", job.Operation, tc.operation)
 			}
+			if validationErr := validateJobConfiguration(configuration, job); validationErr != nil {
+				t.Fatalf("validateJobConfiguration(%s) error = %v, want nil", tc.file, validationErr)
+			}
 			encoded, encodeErr := job.MarshalJSON()
 			if encodeErr != nil {
 				t.Fatalf("job MarshalJSON() error = %v, want nil", encodeErr)
@@ -116,17 +119,21 @@ func TestJobDocumentRejectsMalformedAndAmbiguousIngress(t *testing.T) {
 		{name: "null", data: "null"},
 		{name: "array", data: "[]"},
 		{name: "empty object", data: "{}"},
-		{name: "unsupported revision", data: `{"revision":2,"operation":"list_projects","list_projects":{"lifecycle":"active","order":"descending","limit":100}}`},
-		{name: "unknown operation", data: `{"revision":1,"operation":"destroy_world","list_projects":{"lifecycle":"active","order":"descending","limit":100}}`},
-		{name: "missing payload", data: `{"revision":1,"operation":"list_projects"}`},
-		{name: "mismatched payload", data: `{"revision":1,"operation":"create_project","list_projects":{"lifecycle":"active","order":"descending","limit":100}}`},
-		{name: "two payloads", data: `{"revision":1,"operation":"list_projects","list_projects":{"lifecycle":"active","order":"descending","limit":100},"list_phases":{"order":"ascending","limit":100}}`},
-		{name: "unknown field", data: `{"revision":1,"operation":"list_projects","list_projects":{"lifecycle":"active","order":"descending","limit":100},"surprise":true}`},
-		{name: "duplicate operation", data: `{"revision":1,"operation":"list_projects","operation":"list_projects","list_projects":{"lifecycle":"active","order":"descending","limit":100}}`},
-		{name: "case folded duplicate", data: `{"revision":1,"operation":"list_projects","Operation":"list_projects","list_projects":{"lifecycle":"active","order":"descending","limit":100}}`},
-		{name: "zero page limit", data: `{"revision":1,"operation":"list_projects","list_projects":{"lifecycle":"active","order":"descending","limit":0}}`},
-		{name: "completed typo", data: `{"revision":1,"operation":"list_tasks","list_tasks":{"collection":"complete","order":"descending","limit":100}}`},
-		{name: "trailing document", data: `{"revision":1,"operation":"list_projects","list_projects":{"lifecycle":"active","order":"descending","limit":100}} {}`},
+		{name: "superseded revision is refused", data: `{"revision":1,"operation":"list_projects","list_projects":{"lifecycle":"active","order":"descending","limit":100}}`},
+		{name: "unknown operation", data: `{"revision":2,"operation":"destroy_world","list_projects":{"lifecycle":"active","order":"descending","limit":100}}`},
+		{name: "missing payload", data: `{"revision":2,"operation":"list_projects"}`},
+		{name: "mismatched payload", data: `{"revision":2,"operation":"create_project","list_projects":{"lifecycle":"active","order":"descending","limit":100}}`},
+		{name: "two payloads", data: `{"revision":2,"operation":"list_projects","list_projects":{"lifecycle":"active","order":"descending","limit":100},"list_phases":{"order":"ascending","limit":100}}`},
+		{name: "unknown field", data: `{"revision":2,"operation":"list_projects","list_projects":{"lifecycle":"active","order":"descending","limit":100},"surprise":true}`},
+		{name: "duplicate operation", data: `{"revision":2,"operation":"list_projects","operation":"list_projects","list_projects":{"lifecycle":"active","order":"descending","limit":100}}`},
+		{name: "case folded duplicate", data: `{"revision":2,"operation":"list_projects","Operation":"list_projects","list_projects":{"lifecycle":"active","order":"descending","limit":100}}`},
+		{name: "zero page limit", data: `{"revision":2,"operation":"list_projects","list_projects":{"lifecycle":"active","order":"descending","limit":0}}`},
+		{name: "completed typo", data: `{"revision":2,"operation":"list_tasks","list_tasks":{"collection":"complete","order":"descending","limit":100}}`},
+		{name: "trailing document", data: `{"revision":2,"operation":"list_projects","list_projects":{"lifecycle":"active","order":"descending","limit":100}} {}`},
+		{name: "preuploaded evidence location is forbidden", data: `{"revision":2,"operation":"append_evidence","append_evidence":{"task_id":"0000ffff-ffff-7000-8000-000000000001","kind":"screenshot","summary":"proof","location":"https://storage.googleapis.com/example-task-proof/proof.png","digest":"0123456789abcdef0123456789abcdef0123456789abcdef0123456789abcdef","expected_revision":2}}`},
+		{name: "caller supplied evidence digest is forbidden", data: `{"revision":2,"operation":"append_evidence","append_evidence":{"task_id":"0000ffff-ffff-7000-8000-000000000001","kind":"screenshot","summary":"proof","source":"proof.png","content_type":"image/png","digest":"0123456789abcdef0123456789abcdef0123456789abcdef0123456789abcdef","expected_revision":2}}`},
+		{name: "local evidence source is required", data: `{"revision":2,"operation":"append_evidence","append_evidence":{"task_id":"0000ffff-ffff-7000-8000-000000000001","kind":"screenshot","summary":"proof","content_type":"image/png","expected_revision":2}}`},
+		{name: "local evidence content type is required", data: `{"revision":2,"operation":"append_evidence","append_evidence":{"task_id":"0000ffff-ffff-7000-8000-000000000001","kind":"screenshot","summary":"proof","source":"proof.png","expected_revision":2}}`},
 	}
 	for _, tc := range cases {
 		t.Run(tc.name, func(t *testing.T) {

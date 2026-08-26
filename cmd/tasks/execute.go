@@ -11,114 +11,84 @@ import (
 	"github.com/deliri/primitive/v2026/temporal"
 )
 
-func executeJob(
-	ctx context.Context,
-	client taskmanager.Client,
-	configuration configurationDocument,
-	job jobDocument,
-) (commandResult, error) {
-	if err := errors.Join(client.Validate(), configuration.Validate(), job.Validate()); err != nil {
+func executeJob(request executionRequest) (commandResult, error) {
+	if err := request.Validate(); err != nil {
 		return commandResult{}, commandError("command execution input is invalid", err)
 	}
-	executor := jobExecutors()[job.Operation]
+	executor := jobExecutors()[request.job.Operation]
 	if executor == nil {
 		return commandResult{}, commandError("operation is outside the published domain", nil)
 	}
-	return executor(executionRequest{
-		ctx: ctx, client: client, configuration: configuration, job: job,
-	})
+	return executor(request)
 }
 
 type executionRequest struct {
-	configuration configurationDocument
-	job           jobDocument
-	ctx           context.Context
-	client        taskmanager.Client
+	configuration    configurationDocument
+	job              jobDocument
+	ctx              context.Context
+	workingDirectory core.AbsolutePath
+	client           taskmanager.Client
+}
+
+func (r executionRequest) Validate() error {
+	if r.ctx == nil {
+		return core.ErrNilContext
+	}
+	return errors.Join(
+		r.workingDirectory.Validate(), r.client.Validate(), r.configuration.Validate(), r.job.Validate(),
+	)
 }
 
 type jobExecutor func(executionRequest) (commandResult, error)
 
 func jobExecutors() [operationLimit]jobExecutor {
 	return [...]jobExecutor{
-		operationListProjects: func(r executionRequest) (commandResult, error) {
-			return executeListProjects(r.ctx, r.client, r.job)
-		},
-		operationGetProject: func(r executionRequest) (commandResult, error) {
-			return executeGetProject(r.ctx, r.client, r.configuration, r.job)
-		},
-		operationCreateProject: func(r executionRequest) (commandResult, error) {
-			return executeCreateProject(r.ctx, r.client, r.job)
-		},
-		operationListPhases: func(r executionRequest) (commandResult, error) {
-			return executeListPhases(r.ctx, r.client, r.configuration, r.job)
-		},
-		operationCreatePhase: func(r executionRequest) (commandResult, error) {
-			return executeCreatePhase(r.ctx, r.client, r.configuration, r.job)
-		},
-		operationListTasks: func(r executionRequest) (commandResult, error) {
-			return executeListTasks(r.ctx, r.client, r.configuration, r.job)
-		},
-		operationGetTask: func(r executionRequest) (commandResult, error) {
-			return executeGetTask(r.ctx, r.client, r.configuration, r.job)
-		},
-		operationCreateTask: func(r executionRequest) (commandResult, error) {
-			return executeCreateTask(r.ctx, r.client, r.configuration, r.job)
-		},
-		operationUpdateTask: func(r executionRequest) (commandResult, error) {
-			return executeUpdateTask(r.ctx, r.client, r.configuration, r.job)
-		},
-		operationCompleteTask: func(r executionRequest) (commandResult, error) {
-			return executeCompleteTask(r.ctx, r.client, r.configuration, r.job)
-		},
-		operationListEvidence: func(r executionRequest) (commandResult, error) {
-			return executeListEvidence(r.ctx, r.client, r.configuration, r.job)
-		},
-		operationAppendEvidence: func(r executionRequest) (commandResult, error) {
-			return executeAppendEvidence(r.ctx, r.client, r.configuration, r.job)
-		},
-		operationListGitCommits: func(r executionRequest) (commandResult, error) {
-			return executeListGitCommits(r.ctx, r.client, r.configuration, r.job)
-		},
-		operationAppendGitCommit: func(r executionRequest) (commandResult, error) {
-			return executeAppendGitCommit(r.ctx, r.client, r.configuration, r.job)
-		},
+		operationListProjects:    executeListProjects,
+		operationGetProject:      executeGetProject,
+		operationCreateProject:   executeCreateProject,
+		operationListPhases:      executeListPhases,
+		operationCreatePhase:     executeCreatePhase,
+		operationListTasks:       executeListTasks,
+		operationGetTask:         executeGetTask,
+		operationCreateTask:      executeCreateTask,
+		operationUpdateTask:      executeUpdateTask,
+		operationCompleteTask:    executeCompleteTask,
+		operationListEvidence:    executeListEvidence,
+		operationAppendEvidence:  executeAppendEvidence,
+		operationListGitCommits:  executeListGitCommits,
+		operationAppendGitCommit: executeAppendGitCommit,
 	}
 }
 
-func executeGetProject(
-	ctx context.Context,
-	client taskmanager.Client,
-	configuration configurationDocument,
-	job jobDocument,
-) (commandResult, error) {
-	projectID, err := configuration.projectID()
+func executeGetProject(request executionRequest) (commandResult, error) {
+	projectID, err := request.configuration.projectID()
 	if err != nil {
 		return commandResult{}, err
 	}
-	project, err := client.GetProject(ctx, taskmanager.GetProjectRequest{ProjectID: projectID})
+	project, err := request.client.GetProject(request.ctx, taskmanager.GetProjectRequest{ProjectID: projectID})
 	if err != nil {
 		return commandResult{}, err
 	}
 	return checkedResult(commandResult{
-		Revision: commandDocumentRevisionV1, Operation: job.Operation, Project: &project,
+		Revision: commandDocumentRevisionV2, Operation: request.job.Operation, Project: &project,
 	})
 }
 
-func executeListProjects(ctx context.Context, client taskmanager.Client, job jobDocument) (commandResult, error) {
-	input := *job.ListProjects
-	page, err := client.ListProjects(ctx, taskmanager.ListProjectsRequest{
+func executeListProjects(request executionRequest) (commandResult, error) {
+	input := *request.job.ListProjects
+	page, err := request.client.ListProjects(request.ctx, taskmanager.ListProjectsRequest{
 		Lifecycle: input.Lifecycle, Order: input.Order, Limit: input.Limit, After: input.After,
 	})
 	if err != nil {
 		return commandResult{}, err
 	}
 	return checkedResult(commandResult{
-		Revision: commandDocumentRevisionV1, Operation: job.Operation, Projects: &page,
+		Revision: commandDocumentRevisionV2, Operation: request.job.Operation, Projects: &page,
 	})
 }
 
-func executeCreateProject(ctx context.Context, client taskmanager.Client, job jobDocument) (commandResult, error) {
-	input := *job.CreateProject
+func executeCreateProject(request executionRequest) (commandResult, error) {
+	input := *request.job.CreateProject
 	projectID, err := freshID()
 	if err != nil {
 		return commandResult{}, err
@@ -129,7 +99,7 @@ func executeCreateProject(ctx context.Context, client taskmanager.Client, job jo
 	}
 	name, _ := commandTitle(createProjectNameField, input.Name)
 	description, _ := commandDescription(createProjectDescriptionField, input.Description)
-	project, err := client.CreateProject(ctx, taskmanager.CreateProjectRequest{
+	project, err := request.client.CreateProject(request.ctx, taskmanager.CreateProjectRequest{
 		ID: projectID, MutationID: mutationID, Name: name, Description: description, Lifecycle: input.Lifecycle,
 	})
 	if err != nil {
@@ -139,39 +109,29 @@ func executeCreateProject(ctx context.Context, client taskmanager.Client, job jo
 		return commandResult{}, commandError("create_project response identity is not request-bound", nil)
 	}
 	return checkedResult(commandResult{
-		Revision: commandDocumentRevisionV1, Operation: job.Operation, Project: &project,
+		Revision: commandDocumentRevisionV2, Operation: request.job.Operation, Project: &project,
 	})
 }
 
-func executeListPhases(
-	ctx context.Context,
-	client taskmanager.Client,
-	configuration configurationDocument,
-	job jobDocument,
-) (commandResult, error) {
-	projectID, err := configuration.projectID()
+func executeListPhases(request executionRequest) (commandResult, error) {
+	projectID, err := request.configuration.projectID()
 	if err != nil {
 		return commandResult{}, err
 	}
-	input := *job.ListPhases
-	page, err := client.ListPhases(ctx, taskmanager.ListPhasesRequest{
+	input := *request.job.ListPhases
+	page, err := request.client.ListPhases(request.ctx, taskmanager.ListPhasesRequest{
 		ProjectID: projectID, Order: input.Order, Limit: input.Limit, After: input.After,
 	})
 	if err != nil {
 		return commandResult{}, err
 	}
 	return checkedResult(commandResult{
-		Revision: commandDocumentRevisionV1, Operation: job.Operation, Phases: &page,
+		Revision: commandDocumentRevisionV2, Operation: request.job.Operation, Phases: &page,
 	})
 }
 
-func executeCreatePhase(
-	ctx context.Context,
-	client taskmanager.Client,
-	configuration configurationDocument,
-	job jobDocument,
-) (commandResult, error) {
-	projectID, err := configuration.projectID()
+func executeCreatePhase(request executionRequest) (commandResult, error) {
+	projectID, err := request.configuration.projectID()
 	if err != nil {
 		return commandResult{}, err
 	}
@@ -183,10 +143,10 @@ func executeCreatePhase(
 	if err != nil {
 		return commandResult{}, err
 	}
-	input := *job.CreatePhase
+	input := *request.job.CreatePhase
 	name, _ := commandTitle(createPhaseNameField, input.Name)
 	description, _ := commandDescription(createPhaseDescriptionField, input.Description)
-	phase, err := client.CreatePhase(ctx, taskmanager.CreatePhaseRequest{
+	phase, err := request.client.CreatePhase(request.ctx, taskmanager.CreatePhaseRequest{
 		ID: phaseID, ProjectID: projectID, MutationID: mutationID,
 		Name: name, Description: description, Position: input.Position,
 	})
@@ -197,22 +157,17 @@ func executeCreatePhase(
 		return commandResult{}, commandError("create_phase response is not request-bound", nil)
 	}
 	return checkedResult(commandResult{
-		Revision: commandDocumentRevisionV1, Operation: job.Operation, Phase: &phase,
+		Revision: commandDocumentRevisionV2, Operation: request.job.Operation, Phase: &phase,
 	})
 }
 
-func executeListTasks(
-	ctx context.Context,
-	client taskmanager.Client,
-	configuration configurationDocument,
-	job jobDocument,
-) (commandResult, error) {
-	projectID, err := configuration.projectID()
+func executeListTasks(request executionRequest) (commandResult, error) {
+	projectID, err := request.configuration.projectID()
 	if err != nil {
 		return commandResult{}, err
 	}
-	input := *job.ListTasks
-	page, err := client.ListTasks(ctx, taskmanager.ListTasksRequest{
+	input := *request.job.ListTasks
+	page, err := request.client.ListTasks(request.ctx, taskmanager.ListTasksRequest{
 		ProjectID: projectID, PhaseID: input.PhaseID, After: input.After,
 		Collection: input.Collection, Order: input.Order, Limit: input.Limit,
 	})
@@ -220,37 +175,27 @@ func executeListTasks(
 		return commandResult{}, err
 	}
 	return checkedResult(commandResult{
-		Revision: commandDocumentRevisionV1, Operation: job.Operation, Tasks: &page,
+		Revision: commandDocumentRevisionV2, Operation: request.job.Operation, Tasks: &page,
 	})
 }
 
-func executeGetTask(
-	ctx context.Context,
-	client taskmanager.Client,
-	configuration configurationDocument,
-	job jobDocument,
-) (commandResult, error) {
-	projectID, err := configuration.projectID()
+func executeGetTask(request executionRequest) (commandResult, error) {
+	projectID, err := request.configuration.projectID()
 	if err != nil {
 		return commandResult{}, err
 	}
-	input := *job.GetTask
-	task, err := client.GetTask(ctx, taskmanager.GetTaskRequest{ProjectID: projectID, TaskID: input.TaskID})
+	input := *request.job.GetTask
+	task, err := request.client.GetTask(request.ctx, taskmanager.GetTaskRequest{ProjectID: projectID, TaskID: input.TaskID})
 	if err != nil {
 		return commandResult{}, err
 	}
 	return checkedResult(commandResult{
-		Revision: commandDocumentRevisionV1, Operation: job.Operation, TaskDetail: &task,
+		Revision: commandDocumentRevisionV2, Operation: request.job.Operation, TaskDetail: &task,
 	})
 }
 
-func executeCreateTask(
-	ctx context.Context,
-	client taskmanager.Client,
-	configuration configurationDocument,
-	job jobDocument,
-) (commandResult, error) {
-	projectID, err := configuration.projectID()
+func executeCreateTask(request executionRequest) (commandResult, error) {
+	projectID, err := request.configuration.projectID()
 	if err != nil {
 		return commandResult{}, err
 	}
@@ -262,10 +207,10 @@ func executeCreateTask(
 	if err != nil {
 		return commandResult{}, err
 	}
-	input := *job.CreateTask
+	input := *request.job.CreateTask
 	title, _ := commandTitle(createTaskTitleField, input.Title)
 	description, _ := commandDescription(createTaskDescriptionField, input.Description)
-	task, err := client.CreateTask(ctx, taskmanager.CreateTaskRequest{
+	task, err := request.client.CreateTask(request.ctx, taskmanager.CreateTaskRequest{
 		ID: taskID, ProjectID: projectID, PhaseID: input.PhaseID, MutationID: mutationID,
 		Title: title, Description: description, Kind: input.Kind, State: input.State,
 	})
@@ -276,17 +221,12 @@ func executeCreateTask(
 		return commandResult{}, commandError("create_task response is not request-bound", nil)
 	}
 	return checkedResult(commandResult{
-		Revision: commandDocumentRevisionV1, Operation: job.Operation, TaskDetail: &task,
+		Revision: commandDocumentRevisionV2, Operation: request.job.Operation, TaskDetail: &task,
 	})
 }
 
-func executeUpdateTask(
-	ctx context.Context,
-	client taskmanager.Client,
-	configuration configurationDocument,
-	job jobDocument,
-) (commandResult, error) {
-	projectID, err := configuration.projectID()
+func executeUpdateTask(request executionRequest) (commandResult, error) {
+	projectID, err := request.configuration.projectID()
 	if err != nil {
 		return commandResult{}, err
 	}
@@ -294,12 +234,12 @@ func executeUpdateTask(
 	if err != nil {
 		return commandResult{}, err
 	}
-	input := *job.UpdateTask
+	input := *request.job.UpdateTask
 	change, err := input.Change.taskChange()
 	if err != nil {
 		return commandResult{}, err
 	}
-	task, err := client.UpdateTask(ctx, taskmanager.UpdateTaskRequest{
+	task, err := request.client.UpdateTask(request.ctx, taskmanager.UpdateTaskRequest{
 		ProjectID: projectID, TaskID: input.TaskID, MutationID: mutationID,
 		ExpectedRevision: input.ExpectedRevision, Change: change,
 	})
@@ -310,7 +250,7 @@ func executeUpdateTask(
 		return commandResult{}, commandError("update_task response is not request-bound", nil)
 	}
 	return checkedResult(commandResult{
-		Revision: commandDocumentRevisionV1, Operation: job.Operation, TaskDetail: &task,
+		Revision: commandDocumentRevisionV2, Operation: request.job.Operation, TaskDetail: &task,
 	})
 }
 
@@ -333,13 +273,8 @@ func (i taskChangeInput) taskChange() (taskmanager.TaskChange, error) {
 	return change, nil
 }
 
-func executeCompleteTask(
-	ctx context.Context,
-	client taskmanager.Client,
-	configuration configurationDocument,
-	job jobDocument,
-) (commandResult, error) {
-	projectID, err := configuration.projectID()
+func executeCompleteTask(request executionRequest) (commandResult, error) {
+	projectID, err := request.configuration.projectID()
 	if err != nil {
 		return commandResult{}, err
 	}
@@ -347,8 +282,8 @@ func executeCompleteTask(
 	if err != nil {
 		return commandResult{}, err
 	}
-	input := *job.CompleteTask
-	task, err := client.CompleteTask(ctx, taskmanager.CompleteTaskRequest{
+	input := *request.job.CompleteTask
+	task, err := request.client.CompleteTask(request.ctx, taskmanager.CompleteTaskRequest{
 		ProjectID: projectID, TaskID: input.TaskID, MutationID: mutationID,
 		ExpectedRevision: input.ExpectedRevision,
 	})
@@ -359,19 +294,16 @@ func executeCompleteTask(
 		return commandResult{}, commandError("complete_task response is not request-bound", nil)
 	}
 	return checkedResult(commandResult{
-		Revision: commandDocumentRevisionV1, Operation: job.Operation, Task: &task,
+		Revision: commandDocumentRevisionV2, Operation: request.job.Operation, Task: &task,
 	})
 }
 
-func executeAppendEvidence(
-	ctx context.Context,
-	client taskmanager.Client,
-	configuration configurationDocument,
-	job jobDocument,
-) (commandResult, error) {
-	projectID, err := configuration.projectID()
-	if err != nil {
-		return commandResult{}, err
+func executeAppendEvidence(request executionRequest) (commandResult, error) {
+	if err := request.Validate(); err != nil {
+		return commandResult{}, commandError("append_evidence execution input is invalid", err)
+	}
+	if request.job.Operation != operationAppendEvidence || request.job.AppendEvidence == nil {
+		return commandResult{}, commandError("append_evidence execution input is not append_evidence", nil)
 	}
 	evidenceID, err := freshID()
 	if err != nil {
@@ -381,53 +313,94 @@ func executeAppendEvidence(
 	if err != nil {
 		return commandResult{}, err
 	}
-	input := *job.AppendEvidence
+	input := *request.job.AppendEvidence
+	uploaded, err := uploadTaskEvidence(request.ctx, taskEvidenceUploadRequest{
+		WorkingDirectory: request.workingDirectory,
+		Configuration:    request.configuration,
+		Input:            input,
+	})
+	if err != nil {
+		return commandResult{}, err
+	}
+	return appendUploadedTaskEvidence(request.ctx, taskEvidenceAppendRequest{
+		Client: request.client, Configuration: request.configuration, Job: request.job,
+		Uploaded: uploaded, EvidenceID: evidenceID, MutationID: mutationID,
+	})
+}
+
+type taskEvidenceAppendRequest struct {
+	Client        taskmanager.Client
+	Configuration configurationDocument
+	Job           jobDocument
+	Uploaded      taskEvidenceUploadReceipt
+	EvidenceID    id.UUIDv7
+	MutationID    id.UUIDv7
+}
+
+func (r taskEvidenceAppendRequest) Validate() error {
+	if err := errors.Join(
+		r.Client.Validate(), r.Configuration.Validate(), r.Job.Validate(),
+		r.Uploaded.Validate(), r.EvidenceID.Validate(), r.MutationID.Validate(),
+	); err != nil {
+		return err
+	}
+	if r.Job.Operation != operationAppendEvidence || r.Job.AppendEvidence == nil {
+		return commandError("uploaded evidence append operation is invalid", nil)
+	}
+	return nil
+}
+
+func appendUploadedTaskEvidence(
+	ctx context.Context,
+	request taskEvidenceAppendRequest,
+) (commandResult, error) {
+	if ctx == nil {
+		return commandResult{}, commandError("uploaded evidence append input is invalid", core.ErrNilContext)
+	}
+	if err := request.Validate(); err != nil {
+		return commandResult{}, commandError("uploaded evidence append input is invalid", err)
+	}
+	projectID, err := request.Configuration.projectID()
+	if err != nil {
+		return commandResult{}, err
+	}
+	input := *request.Job.AppendEvidence
 	summary, _ := commandEvidenceSummary(input.Summary)
-	evidence, err := client.AppendEvidence(ctx, taskmanager.AppendEvidenceRequest{
-		ID: evidenceID, ProjectID: projectID, TaskID: input.TaskID, MutationID: mutationID,
-		Kind: input.Kind, Summary: summary, Location: input.Location, Digest: input.Digest,
+	evidence, err := request.Client.AppendEvidence(ctx, taskmanager.AppendEvidenceRequest{
+		ID: request.EvidenceID, ProjectID: projectID, TaskID: input.TaskID, MutationID: request.MutationID,
+		Kind: input.Kind, Summary: summary, Location: request.Uploaded.Location, Digest: request.Uploaded.Digest,
 		ExpectedRevision: input.ExpectedRevision,
 	})
 	if err != nil {
 		return commandResult{}, err
 	}
-	if evidence.ID != evidenceID || evidence.ProjectID != projectID || evidence.TaskID != input.TaskID {
+	if evidence.ID != request.EvidenceID || evidence.ProjectID != projectID || evidence.TaskID != input.TaskID {
 		return commandResult{}, commandError("append_evidence response is not request-bound", nil)
 	}
 	return checkedResult(commandResult{
-		Revision: commandDocumentRevisionV1, Operation: job.Operation, Evidence: &evidence,
+		Revision: commandDocumentRevisionV2, Operation: request.Job.Operation, Evidence: &evidence,
 	})
 }
 
-func executeListEvidence(
-	ctx context.Context,
-	client taskmanager.Client,
-	configuration configurationDocument,
-	job jobDocument,
-) (commandResult, error) {
-	projectID, err := configuration.projectID()
+func executeListEvidence(request executionRequest) (commandResult, error) {
+	projectID, err := request.configuration.projectID()
 	if err != nil {
 		return commandResult{}, err
 	}
-	input := *job.ListEvidence
-	page, err := client.ListEvidence(ctx, taskmanager.ListEvidenceRequest{
+	input := *request.job.ListEvidence
+	page, err := request.client.ListEvidence(request.ctx, taskmanager.ListEvidenceRequest{
 		ProjectID: projectID, TaskID: input.TaskID, After: input.After, Order: input.Order, Limit: input.Limit,
 	})
 	if err != nil {
 		return commandResult{}, err
 	}
 	return checkedResult(commandResult{
-		Revision: commandDocumentRevisionV1, Operation: job.Operation, EvidencePage: &page,
+		Revision: commandDocumentRevisionV2, Operation: request.job.Operation, EvidencePage: &page,
 	})
 }
 
-func executeAppendGitCommit(
-	ctx context.Context,
-	client taskmanager.Client,
-	configuration configurationDocument,
-	job jobDocument,
-) (commandResult, error) {
-	projectID, err := configuration.projectID()
+func executeAppendGitCommit(request executionRequest) (commandResult, error) {
+	projectID, err := request.configuration.projectID()
 	if err != nil {
 		return commandResult{}, err
 	}
@@ -439,10 +412,10 @@ func executeAppendGitCommit(
 	if err != nil {
 		return commandResult{}, err
 	}
-	input := *job.AppendGitCommit
+	input := *request.job.AppendGitCommit
 	repository, _ := commandRepository(input.Repository)
 	summary, _ := commandCommitSummary(input.Summary)
-	record, err := client.AppendGitCommit(ctx, taskmanager.AppendGitCommitRequest{
+	record, err := request.client.AppendGitCommit(request.ctx, taskmanager.AppendGitCommitRequest{
 		ID: recordID, ProjectID: projectID, TaskID: input.TaskID, MutationID: mutationID,
 		Repository: repository, Parent: input.Parent, Result: input.Result, Summary: summary,
 		ExpectedRevision: input.ExpectedRevision,
@@ -454,29 +427,24 @@ func executeAppendGitCommit(
 		return commandResult{}, commandError("append_git_commit response is not request-bound", nil)
 	}
 	return checkedResult(commandResult{
-		Revision: commandDocumentRevisionV1, Operation: job.Operation, GitCommit: &record,
+		Revision: commandDocumentRevisionV2, Operation: request.job.Operation, GitCommit: &record,
 	})
 }
 
-func executeListGitCommits(
-	ctx context.Context,
-	client taskmanager.Client,
-	configuration configurationDocument,
-	job jobDocument,
-) (commandResult, error) {
-	projectID, err := configuration.projectID()
+func executeListGitCommits(request executionRequest) (commandResult, error) {
+	projectID, err := request.configuration.projectID()
 	if err != nil {
 		return commandResult{}, err
 	}
-	input := *job.ListGitCommits
-	page, err := client.ListGitCommits(ctx, taskmanager.ListGitCommitsRequest{
+	input := *request.job.ListGitCommits
+	page, err := request.client.ListGitCommits(request.ctx, taskmanager.ListGitCommitsRequest{
 		ProjectID: projectID, TaskID: input.TaskID, After: input.After, Order: input.Order, Limit: input.Limit,
 	})
 	if err != nil {
 		return commandResult{}, err
 	}
 	return checkedResult(commandResult{
-		Revision: commandDocumentRevisionV1, Operation: job.Operation, GitCommits: &page,
+		Revision: commandDocumentRevisionV2, Operation: request.job.Operation, GitCommits: &page,
 	})
 }
 
@@ -507,3 +475,8 @@ func freshID() (id.UUIDv7, error) {
 	}
 	return value, nil
 }
+
+var (
+	_ core.Validatable = executionRequest{}
+	_ core.Validatable = taskEvidenceAppendRequest{}
+)

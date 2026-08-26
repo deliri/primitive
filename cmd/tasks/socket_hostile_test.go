@@ -12,6 +12,7 @@ import (
 	"github.com/deliri/primitive/v2026/core"
 	"github.com/deliri/primitive/v2026/exchange"
 	"github.com/deliri/primitive/v2026/id"
+	"github.com/deliri/primitive/v2026/process"
 	"github.com/deliri/primitive/v2026/taskmanager"
 	"github.com/deliri/primitive/v2026/temporal"
 )
@@ -71,10 +72,17 @@ func runAuthenticatedSocketCase(t testing.TB, testCase authenticatedSocketCase) 
 		t.Fatalf("taskManagerClient() error = %v, want nil", err)
 	}
 	job := jobDocument{
-		Revision: commandDocumentRevisionV1, Operation: operationListTasks,
+		Revision: commandDocumentRevisionV2, Operation: operationListTasks,
 		ListTasks: &listTasksInput{Collection: testCase.collection, Order: taskmanager.PageOrderDescending, Limit: 13},
 	}
-	result, gotErr := executeJob(context.Background(), client, configuration, job)
+	workingDirectory, err := process.WorkingDirectory()
+	if err != nil {
+		t.Fatalf("process.WorkingDirectory() error = %v, want nil", err)
+	}
+	result, gotErr := executeJob(executionRequest{
+		ctx: context.Background(), workingDirectory: workingDirectory,
+		client: client, configuration: configuration, job: job,
+	})
 	if testCase.wantErr {
 		if !errors.Is(gotErr, core.ErrTaskManagerContract) || result.payloadCount() != 0 {
 			t.Fatalf("executeJob(refused auth) = (%+v, %v), want zero and %v", result, gotErr, core.ErrTaskManagerContract)
@@ -135,7 +143,7 @@ func commandConfigurationFixture(
 		t.Fatalf("ParseHTTPEndpoint(server) error = %v, want nil", err)
 	}
 	return configurationDocument{
-		Revision: commandDocumentRevisionV1, Authority: authority, Username: identity,
+		Revision: commandDocumentRevisionV2, Authority: authority, Username: identity,
 		PasswordSecret: googleSecretReference{Project: "example-task-project", Secret: "task-manager-admin-password"},
 		ProjectID:      &projectID,
 	}

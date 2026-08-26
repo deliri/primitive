@@ -106,7 +106,7 @@ func currentSchema() schemaDocument {
 		operations = append(operations, candidate)
 	}
 	return schemaDocument{
-		Revision:                    commandDocumentRevisionV1,
+		Revision:                    commandDocumentRevisionV2,
 		ConfigurationFile:           configurationFileName,
 		ConfigurationMaximumBytes:   configurationMaxBytes,
 		JobMaximumBytes:             commandDocumentMaxBytes,

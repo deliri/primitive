@@ -1,5 +1,5 @@
 {
-  "revision": 1,
+  "revision": 2,
   "operation": "list_tasks",
   "list_tasks": {
     "collection": "completed",

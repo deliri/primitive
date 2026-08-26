@@ -34,6 +34,19 @@ type invocation struct {
 	Mode    invocationMode
 }
 
+type commandInputRequest struct {
+	WorkingDirectory core.AbsolutePath
+	JobPath          string
+	StandardInput    io.Reader
+}
+
+func (r commandInputRequest) Validate() error {
+	if r.JobPath == "" || r.StandardInput == nil {
+		return commandError("command input request is incomplete", nil)
+	}
+	return r.WorkingDirectory.Validate()
+}
+
 func (i invocation) Validate() error {
 	switch i.Mode {
 	case invocationModeExecute:
@@ -80,11 +93,15 @@ func parseInvocation(values []string) (invocation, error) {
 
 func loadInputs(
 	ctx context.Context,
-	workingDirectory core.AbsolutePath,
-	jobPath string,
-	stdin io.Reader,
+	request commandInputRequest,
 ) (configurationDocument, jobDocument, error) {
-	configurationPath, err := workingDirectory.Resolve(configurationFileName)
+	if ctx == nil {
+		return configurationDocument{}, jobDocument{}, commandError("command input context is nil", core.ErrNilContext)
+	}
+	if err := request.Validate(); err != nil {
+		return configurationDocument{}, jobDocument{}, err
+	}
+	configurationPath, err := request.WorkingDirectory.Resolve(configurationFileName)
 	if err != nil {
 		return configurationDocument{}, jobDocument{}, commandError("configuration path is invalid", err)
 	}
@@ -92,7 +109,7 @@ func loadInputs(
 	if err != nil {
 		return configurationDocument{}, jobDocument{}, commandError("task_config.json cannot be loaded", err)
 	}
-	job, err := loadJob(ctx, workingDirectory, jobPath, stdin)
+	job, err := loadJob(ctx, request)
 	if err != nil {
 		return configurationDocument{}, jobDocument{}, err
 	}
@@ -101,22 +118,26 @@ func loadInputs(
 
 func loadJob(
 	ctx context.Context,
-	workingDirectory core.AbsolutePath,
-	jobPath string,
-	stdin io.Reader,
+	request commandInputRequest,
 ) (jobDocument, error) {
-	if jobPath == standardInputPath {
+	if ctx == nil {
+		return jobDocument{}, commandError("job input context is nil", core.ErrNilContext)
+	}
+	if err := request.Validate(); err != nil {
+		return jobDocument{}, err
+	}
+	if request.JobPath == standardInputPath {
 		limits, err := documentLimits(commandDocumentMaxBytes)
 		if err != nil {
 			return jobDocument{}, err
 		}
-		job, err := core.DecodeStrictJSON[jobDocument](stdin, limits)
+		job, err := core.DecodeStrictJSON[jobDocument](request.StandardInput, limits)
 		if err != nil {
 			return jobDocument{}, commandError("stdin job document is invalid", err)
 		}
 		return job, nil
 	}
-	absolute, err := workingDirectory.ResolveText(jobPath)
+	absolute, err := request.WorkingDirectory.ResolveText(request.JobPath)
 	if err != nil {
 		return jobDocument{}, commandError("job path is invalid", err)
 	}
@@ -218,4 +239,7 @@ func taskManagerClient(
 	return client, nil
 }
 
-var _ core.Validatable = invocation{}
+var (
+	_ core.Validatable = invocation{}
+	_ core.Validatable = commandInputRequest{}
+)

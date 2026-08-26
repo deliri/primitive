@@ -47,7 +47,7 @@ func TestConfigurationDocumentAdmitsExactTypedCredentialReferences(t *testing.T)
 				t.Fatalf("ParseBasicAuthorizationIdentity() error = %v, want nil", parseErr)
 			}
 			configuration := configurationDocument{
-				Revision: commandDocumentRevisionV1, Authority: authority, Username: username,
+				Revision: commandDocumentRevisionV2, Authority: authority, Username: username,
 				PasswordSecret: googleSecretReference{Project: tc.project, Secret: tc.secret},
 			}
 			if tc.withID {
@@ -79,21 +79,21 @@ func TestConfigurationDocumentRejectsEmbeddedSecretsAndMalformedOwnership(t *tes
 		name string
 		data string
 	}{
-		{name: "password field is forbidden", data: `{"revision":1,"authority":"https://admin.example.com","username":"agent","password":"never","password_secret":{"project":"example-task-project","secret":"admin-password"}}`},
+		{name: "password field is forbidden", data: `{"revision":2,"authority":"https://admin.example.com","username":"agent","password":"never","password_secret":{"project":"example-task-project","secret":"admin-password"}}`},
 		{name: "empty object", data: `{}`},
 		{name: "null", data: `null`},
-		{name: "unsupported revision", data: `{"revision":2,"authority":"https://admin.example.com","username":"agent","password_secret":{"project":"example-task-project","secret":"admin-password"}}`},
-		{name: "HTTP authority", data: `{"revision":1,"authority":"http://admin.example.com","username":"agent","password_secret":{"project":"example-task-project","secret":"admin-password"}}`},
-		{name: "authority path", data: `{"revision":1,"authority":"https://admin.example.com/tasks","username":"agent","password_secret":{"project":"example-task-project","secret":"admin-password"}}`},
-		{name: "authority query", data: `{"revision":1,"authority":"https://admin.example.com?x=1","username":"agent","password_secret":{"project":"example-task-project","secret":"admin-password"}}`},
-		{name: "username delimiter", data: `{"revision":1,"authority":"https://admin.example.com","username":"agent:secret","password_secret":{"project":"example-task-project","secret":"admin-password"}}`},
-		{name: "username leading whitespace", data: `{"revision":1,"authority":"https://admin.example.com","username":" agent","password_secret":{"project":"example-task-project","secret":"admin-password"}}`},
-		{name: "invalid Google project", data: `{"revision":1,"authority":"https://admin.example.com","username":"agent","password_secret":{"project":"UPPERCASE","secret":"admin-password"}}`},
-		{name: "invalid Google secret", data: `{"revision":1,"authority":"https://admin.example.com","username":"agent","password_secret":{"project":"example-task-project","secret":"secret/path"}}`},
-		{name: "missing secret reference", data: `{"revision":1,"authority":"https://admin.example.com","username":"agent"}`},
-		{name: "invalid default project UUID", data: `{"revision":1,"authority":"https://admin.example.com","username":"agent","password_secret":{"project":"example-task-project","secret":"admin-password"},"project_id":"not-a-uuid"}`},
-		{name: "duplicate username", data: `{"revision":1,"authority":"https://admin.example.com","username":"agent","username":"agent","password_secret":{"project":"example-task-project","secret":"admin-password"}}`},
-		{name: "trailing document", data: `{"revision":1,"authority":"https://admin.example.com","username":"agent","password_secret":{"project":"example-task-project","secret":"admin-password"}} {}`},
+		{name: "superseded revision is refused", data: `{"revision":1,"authority":"https://admin.example.com","username":"agent","password_secret":{"project":"example-task-project","secret":"admin-password"}}`},
+		{name: "HTTP authority", data: `{"revision":2,"authority":"http://admin.example.com","username":"agent","password_secret":{"project":"example-task-project","secret":"admin-password"}}`},
+		{name: "authority path", data: `{"revision":2,"authority":"https://admin.example.com/tasks","username":"agent","password_secret":{"project":"example-task-project","secret":"admin-password"}}`},
+		{name: "authority query", data: `{"revision":2,"authority":"https://admin.example.com?x=1","username":"agent","password_secret":{"project":"example-task-project","secret":"admin-password"}}`},
+		{name: "username delimiter", data: `{"revision":2,"authority":"https://admin.example.com","username":"agent:secret","password_secret":{"project":"example-task-project","secret":"admin-password"}}`},
+		{name: "username leading whitespace", data: `{"revision":2,"authority":"https://admin.example.com","username":" agent","password_secret":{"project":"example-task-project","secret":"admin-password"}}`},
+		{name: "invalid Google project", data: `{"revision":2,"authority":"https://admin.example.com","username":"agent","password_secret":{"project":"UPPERCASE","secret":"admin-password"}}`},
+		{name: "invalid Google secret", data: `{"revision":2,"authority":"https://admin.example.com","username":"agent","password_secret":{"project":"example-task-project","secret":"secret/path"}}`},
+		{name: "missing secret reference", data: `{"revision":2,"authority":"https://admin.example.com","username":"agent"}`},
+		{name: "invalid default project UUID", data: `{"revision":2,"authority":"https://admin.example.com","username":"agent","password_secret":{"project":"example-task-project","secret":"admin-password"},"project_id":"not-a-uuid"}`},
+		{name: "duplicate username", data: `{"revision":2,"authority":"https://admin.example.com","username":"agent","username":"agent","password_secret":{"project":"example-task-project","secret":"admin-password"}}`},
+		{name: "trailing document", data: `{"revision":2,"authority":"https://admin.example.com","username":"agent","password_secret":{"project":"example-task-project","secret":"admin-password"}} {}`},
 	}
 	for _, tc := range cases {
 		t.Run(tc.name, func(t *testing.T) {

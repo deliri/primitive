@@ -1,5 +1,5 @@
 {
-  "revision": 1,
+  "revision": 2,
   "operation": "create_phase",
   "create_phase": {
     "name": "Sale readiness",

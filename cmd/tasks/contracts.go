@@ -9,7 +9,9 @@ import (
 
 	"github.com/deliri/primitive/v2026/core"
 	"github.com/deliri/primitive/v2026/exchange"
+	"github.com/deliri/primitive/v2026/gcsobjects"
 	"github.com/deliri/primitive/v2026/id"
+	"github.com/deliri/primitive/v2026/objectstore"
 	"github.com/deliri/primitive/v2026/secretstore"
 	"github.com/deliri/primitive/v2026/taskmanager"
 )
@@ -36,12 +38,13 @@ type commandDocumentRevision uint8
 
 const (
 	commandDocumentRevisionUnknown commandDocumentRevision = iota
-	commandDocumentRevisionV1
+	_
+	commandDocumentRevisionV2
 	commandDocumentRevisionLimit
 )
 
 func (r commandDocumentRevision) Validate() error {
-	if r != commandDocumentRevisionV1 {
+	if r != commandDocumentRevisionV2 {
 		return commandError("revision must be the published revision", nil)
 	}
 	return nil
@@ -177,12 +180,41 @@ func (r googleSecretReference) accessRequest() (secretstore.AccessRequest, error
 	return request, nil
 }
 
+type evidenceStorageReference struct {
+	Bucket       string         `json:"bucket"`
+	Prefix       string         `json:"prefix"`
+	MaximumBytes core.ByteCount `json:"maximum_bytes"`
+}
+
+func (r evidenceStorageReference) Validate() error {
+	_, bucketErr := gcsobjects.ParseGCSBucket(r.Bucket)
+	_, prefixErr := gcsobjects.ParseGCSObjectPrefix(r.Prefix)
+	maximum, maximumErr := r.MaximumBytes.Uint64()
+	if maximumErr == nil && maximum > objectstore.GoogleCloudStorageObjectMaximumBytes {
+		maximumErr = core.ErrObjectStoreSize
+	}
+	if err := errors.Join(bucketErr, prefixErr, maximumErr); err != nil {
+		return commandError("evidence_storage is invalid", err)
+	}
+	return nil
+}
+
+func (r evidenceStorageReference) destination() (gcsobjects.GCSBucket, gcsobjects.GCSObjectPrefix, error) {
+	if err := r.Validate(); err != nil {
+		return gcsobjects.GCSBucket{}, gcsobjects.GCSObjectPrefix{}, err
+	}
+	bucket, _ := gcsobjects.ParseGCSBucket(r.Bucket)
+	prefix, _ := gcsobjects.ParseGCSObjectPrefix(r.Prefix)
+	return bucket, prefix, nil
+}
+
 type configurationDocument struct {
-	ProjectID      *id.UUIDv7                          `json:"project_id,omitempty"`
-	PasswordSecret googleSecretReference               `json:"password_secret"`
-	Username       exchange.BasicAuthorizationIdentity `json:"username"`
-	Authority      core.HTTPEndpoint                   `json:"authority"`
-	Revision       commandDocumentRevision             `json:"revision"`
+	ProjectID       *id.UUIDv7                          `json:"project_id,omitempty"`
+	EvidenceStorage *evidenceStorageReference           `json:"evidence_storage,omitempty"`
+	PasswordSecret  googleSecretReference               `json:"password_secret"`
+	Username        exchange.BasicAuthorizationIdentity `json:"username"`
+	Authority       core.HTTPEndpoint                   `json:"authority"`
+	Revision        commandDocumentRevision             `json:"revision"`
 }
 
 func (d configurationDocument) Validate() error {
@@ -197,6 +229,11 @@ func (d configurationDocument) Validate() error {
 	if d.ProjectID != nil {
 		if err := d.ProjectID.Validate(); err != nil {
 			return commandError("project_id is invalid", err)
+		}
+	}
+	if d.EvidenceStorage != nil {
+		if err := d.EvidenceStorage.Validate(); err != nil {
+			return err
 		}
 	}
 	return nil
@@ -371,24 +408,34 @@ func (i completeTaskInput) Validate() error {
 
 type appendEvidenceInput struct {
 	Summary          string                   `json:"summary"`
-	Location         core.HTTPEndpoint        `json:"location"`
+	Source           string                   `json:"source"`
+	ContentType      core.HTTPMediaType       `json:"content_type"`
 	ExpectedRevision taskmanager.Revision     `json:"expected_revision"`
-	Digest           core.SHA256Digest        `json:"digest"`
 	TaskID           id.UUIDv7                `json:"task_id"`
 	Kind             taskmanager.EvidenceKind `json:"kind"`
 }
 
 func (i appendEvidenceInput) Validate() error {
 	_, summaryErr := commandEvidenceSummary(i.Summary)
-	url := i.Location.HTTPURL()
-	var locationPolicyErr error
-	if url.Scheme != core.SchemeHTTPS {
-		locationPolicyErr = commandError("append_evidence.location must use HTTPS", nil)
+	source, sourceErr := core.ParseRelativePath(i.Source)
+	if sourceErr == nil && source.String() == "." {
+		sourceErr = commandError("append_evidence.source must name a file", nil)
 	}
 	return errors.Join(
-		i.TaskID.Validate(), i.Kind.Validate(), summaryErr, i.Location.Validate(),
-		locationPolicyErr, i.Digest.Validate(), i.ExpectedRevision.Validate(),
+		i.TaskID.Validate(), i.Kind.Validate(), summaryErr, sourceErr,
+		i.ContentType.Validate(), i.ExpectedRevision.Validate(),
 	)
+}
+
+func (i appendEvidenceInput) sourcePath(workingDirectory core.AbsolutePath) (core.AbsolutePath, error) {
+	if err := errors.Join(i.Validate(), workingDirectory.Validate()); err != nil {
+		return core.AbsolutePath{}, commandError("append_evidence source path is invalid", err)
+	}
+	path, err := workingDirectory.ResolveText(i.Source)
+	if err != nil {
+		return core.AbsolutePath{}, commandError("append_evidence source path cannot be resolved", err)
+	}
+	return path, nil
 }
 
 type appendGitCommitInput struct {
@@ -545,7 +592,7 @@ func configurationValidators() [operationLimit]configurationValidator {
 		operationUpdateTask:      validateProjectConfiguration,
 		operationCompleteTask:    validateProjectConfiguration,
 		operationListEvidence:    validateEvidencePageConfiguration,
-		operationAppendEvidence:  validateProjectConfiguration,
+		operationAppendEvidence:  validateEvidenceAppendConfiguration,
 		operationListGitCommits:  validateGitPageConfiguration,
 		operationAppendGitCommit: validateProjectConfiguration,
 	}
@@ -556,6 +603,16 @@ func validateUnscopedConfiguration(configurationDocument, jobDocument) error { r
 func validateProjectConfiguration(configuration configurationDocument, _ jobDocument) error {
 	_, err := configuration.projectID()
 	return err
+}
+
+func validateEvidenceAppendConfiguration(configuration configurationDocument, _ jobDocument) error {
+	if _, err := configuration.projectID(); err != nil {
+		return err
+	}
+	if configuration.EvidenceStorage == nil {
+		return commandError("evidence_storage is required for append_evidence", nil)
+	}
+	return configuration.EvidenceStorage.Validate()
 }
 
 func validatePhasePageConfiguration(configuration configurationDocument, job jobDocument) error {
