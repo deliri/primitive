@@ -114,6 +114,7 @@ func (p Position) MarshalJSON() ([]byte, error) {
 // Query is the complete typed input behind `chit -all` or `chit <id>`.
 type Query struct {
 	Scope     receipt.Scope         `json:"scope"`
+	Partition Partition             `json:"partition"`
 	Selection Selection             `json:"selection"`
 	Position  Position              `json:"position"`
 	Limit     core.CatalogPageLimit `json:"limit"`
@@ -123,6 +124,7 @@ type Query struct {
 // PageSize is immediately closed into Core's nominal page limit.
 type QueryRequest struct {
 	Scope     receipt.Scope
+	Partition Partition
 	Selection Selection
 	Position  Position
 	PageSize  uint16
@@ -131,7 +133,7 @@ type QueryRequest struct {
 // Validate closes every constructor input without constructing the query.
 func (r QueryRequest) Validate() error {
 	_, limitErr := core.NewCatalogPageLimit(r.PageSize)
-	if err := errors.Join(r.Scope.Validate(), r.Selection.Validate(), r.Position.Validate(), limitErr); err != nil {
+	if err := errors.Join(r.Scope.Validate(), r.Partition.Validate(), r.Selection.Validate(), r.Position.Validate(), limitErr); err != nil {
 		return contractError(err)
 	}
 	if r.Selection.Kind == core.CatalogSelectionSpecific && r.Position.Kind != core.CatalogPositionStart {
@@ -150,7 +152,7 @@ func NewQuery(request QueryRequest) (Query, error) {
 		return Query{}, contractError(err)
 	}
 	candidate := Query{
-		Scope: request.Scope, Selection: request.Selection,
+		Scope: request.Scope, Partition: request.Partition, Selection: request.Selection,
 		Position: request.Position, Limit: limit,
 	}
 	return candidate, candidate.Validate()
@@ -158,7 +160,7 @@ func NewQuery(request QueryRequest) (Query, error) {
 
 // Validate closes the scope, selection, position, and shared page limit.
 func (q Query) Validate() error {
-	if err := errors.Join(q.Scope.Validate(), q.Selection.Validate(), q.Position.Validate(), q.Limit.Validate()); err != nil {
+	if err := errors.Join(q.Scope.Validate(), q.Partition.Validate(), q.Selection.Validate(), q.Position.Validate(), q.Limit.Validate()); err != nil {
 		return contractError(err)
 	}
 	if q.Selection.Kind == core.CatalogSelectionSpecific && q.Position.Kind != core.CatalogPositionStart {

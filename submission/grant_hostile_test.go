@@ -188,8 +188,22 @@ func testManifestIntent(t testing.TB) ManifestIntent {
 		t.Fatalf("chit.NewObjectCount() error = %v, want nil", err)
 	}
 	return ManifestIntent{
-		Upload: upload, Collection: collection, Name: name, Sequence: sequence, Objects: objects,
+		Upload: upload, Collection: collection, Partition: submissionPartition(t, 0x51),
+		Name: name, Sequence: sequence, Objects: objects,
 	}
+}
+
+func submissionPartition(t testing.TB, marker byte) chit.Partition {
+	t.Helper()
+	raw := [core.SHA256DigestBytes]byte{}
+	for index := range raw {
+		raw[index] = marker
+	}
+	partition, err := chit.NewPartition(core.NewSHA256Digest(raw))
+	if err != nil {
+		t.Fatalf("chit.NewPartition(marker %d) error = %v, want nil", marker, err)
+	}
+	return partition
 }
 
 func testDeclaration(t testing.TB, content []byte) Declaration {

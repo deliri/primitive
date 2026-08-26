@@ -172,6 +172,7 @@ func TestManifestIntentSchemaLayerTriad(t *testing.T) {
 			{name: "zero intent", mutate: func(value *ManifestIntent) { *value = ManifestIntent{} }, wantErr: core.ErrControlPlaneContract},
 			{name: "upload identity absent", mutate: func(value *ManifestIntent) { value.Upload = UploadID{} }, wantErr: core.ErrControlPlaneContract},
 			{name: "collection identity absent", mutate: func(value *ManifestIntent) { value.Collection = chit.CollectionID{} }, wantErr: core.ErrControlPlaneContract},
+			{name: "partition commitment absent", mutate: func(value *ManifestIntent) { value.Partition = chit.Partition{} }, wantErr: core.ErrControlPlaneContract},
 			{name: "portable entry name absent", mutate: func(value *ManifestIntent) { value.Name = chit.EntryName{} }, wantErr: core.ErrControlPlaneContract},
 			{name: "entry sequence absent", mutate: func(value *ManifestIntent) { value.Sequence = chit.EntrySequence{} }, wantErr: core.ErrControlPlaneContract},
 			{name: "object count absent", mutate: func(value *ManifestIntent) { value.Objects = chit.ObjectCount{} }, wantErr: core.ErrControlPlaneContract},
@@ -222,6 +223,7 @@ func TestManifestIntentStructuralInvariantCarriesOnlyBlindOrganizationFacts(t *t
 		{name: "Sequence", typeOf: reflect.TypeFor[chit.EntrySequence]()},
 		{name: "Objects", typeOf: reflect.TypeFor[chit.ObjectCount]()},
 		{name: "Collection", typeOf: reflect.TypeFor[chit.CollectionID]()},
+		{name: "Partition", typeOf: reflect.TypeFor[chit.Partition]()},
 		{name: "Upload", typeOf: reflect.TypeFor[UploadID]()},
 	}
 	got := reflect.TypeFor[ManifestIntent]()

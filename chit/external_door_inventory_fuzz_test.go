@@ -22,6 +22,7 @@ const (
 	chitJSONDoorEntryName
 	chitJSONDoorChitID
 	chitJSONDoorCollectionID
+	chitJSONDoorPartition
 	chitJSONDoorVersion
 	chitJSONDoorPayload
 	chitJSONDoorDocument
@@ -47,6 +48,8 @@ func (d chitJSONDoor) receiverName() string {
 		return "ChitID"
 	case chitJSONDoorCollectionID:
 		return "CollectionID"
+	case chitJSONDoorPartition:
+		return "Partition"
 	case chitJSONDoorVersion:
 		return "Version"
 	case chitJSONDoorPayload:
@@ -100,6 +103,7 @@ type chitFuzzFixtures struct {
 	cursor          Cursor
 	manifestDigest  ManifestDigest
 	collectionID    CollectionID
+	partition       Partition
 	chitID          ChitID
 	custodyState    CustodyState
 	signingDomain   SigningDomain
@@ -131,6 +135,8 @@ func FuzzChitExternalJSONDoorInventory(f *testing.F) {
 			fuzzChitJSONValue(t, data, fixtures.chitID)
 		case chitJSONDoorCollectionID:
 			fuzzChitJSONValue(t, data, fixtures.collectionID)
+		case chitJSONDoorPartition:
+			fuzzChitJSONValue(t, data, fixtures.partition)
 		case chitJSONDoorVersion:
 			fuzzChitJSONValue(t, data, fixtures.version)
 		case chitJSONDoorPayload:
@@ -352,7 +358,8 @@ func chitFixturesForFuzz(t testing.TB) chitFuzzFixtures {
 		chit: chit, catalog: catalog, query: query,
 		entryName: chit.addition.Entry.Name, chitID: chit.identity,
 		collectionID: chit.document.Payload.Collection, version: chit.document.Payload.Version,
-		payload: chit.document.Payload, document: chit.document,
+		partition: mustPartition(t, 0xd5),
+		payload:   chit.document.Payload, document: chit.document,
 		queryPayload: query.payload, queryCommitment: queryCommitment, queryDocument: query.document,
 		custodyState: CustodyStateStored, cursor: catalogCursorFixture(t, 0xd4),
 		catalogPayload: catalog.payload, catalogDocument: catalog.document,
@@ -367,6 +374,7 @@ func chitJSONSeedsForFuzz(t testing.TB, fixtures chitFuzzFixtures) []chitJSONSee
 		chitJSONSeedForFuzz(t, chitJSONDoorEntryName, fixtures.entryName),
 		chitJSONSeedForFuzz(t, chitJSONDoorChitID, fixtures.chitID),
 		chitJSONSeedForFuzz(t, chitJSONDoorCollectionID, fixtures.collectionID),
+		chitJSONSeedForFuzz(t, chitJSONDoorPartition, fixtures.partition),
 		chitJSONSeedForFuzz(t, chitJSONDoorVersion, fixtures.version),
 		chitJSONSeedForFuzz(t, chitJSONDoorPayload, fixtures.payload),
 		chitJSONSeedForFuzz(t, chitJSONDoorDocument, fixtures.document),

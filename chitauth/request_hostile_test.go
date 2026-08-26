@@ -136,6 +136,8 @@ func TestCredentialedChitQueryVerificationLayerTriadRefusesAccountDeviceAuthorit
 	tamperedNonce.Request.Payload.Nonce = queryNonce(t, 0x72)
 	tamperedSelection := base.document
 	tamperedSelection.Request.Payload.Query.Selection = querySpecificSelection(t)
+	tamperedPartition := base.document
+	tamperedPartition.Request.Payload.Query.Partition = queryPartition(t, 0x73)
 	tamperedLimit := base.document
 	minimumLimit, err := core.NewCatalogPageLimit(1)
 	if err != nil {
@@ -169,6 +171,7 @@ func TestCredentialedChitQueryVerificationLayerTriadRefusesAccountDeviceAuthorit
 		{name: "other authority", document: base.document, trusted: otherDevice.trusted, want: core.ErrAttestVerification},
 		{name: "signed request nonce changed after issue", document: tamperedNonce, trusted: base.trusted, want: core.ErrAttestVerification},
 		{name: "signed selection changed after issue", document: tamperedSelection, trusted: base.trusted, want: core.ErrAttestVerification},
+		{name: "signed partition changed after issue", document: tamperedPartition, trusted: base.trusted, want: core.ErrAttestVerification},
 		{name: "signed page limit changed after issue", document: tamperedLimit, trusted: base.trusted, want: core.ErrAttestVerification},
 		{name: "signed offering identity changed after issue", document: tamperedOfferingIdentity, trusted: base.trusted, want: core.ErrControlPlaneResponseBinding},
 		{name: "request signer changed after issue", document: tamperedSigner, trusted: base.trusted, want: core.ErrAttestVerification},
@@ -350,6 +353,7 @@ func newQueryFixture(t testing.TB, request queryFixtureRequest) queryFixture {
 	}
 	query, err := chit.NewQuery(chit.QueryRequest{
 		Scope:     scope,
+		Partition: queryPartition(t, request.nonceByte),
 		Selection: request.selection, Position: chit.Start(), PageSize: core.CatalogPageMaximumEntries,
 	})
 	if err != nil {
@@ -376,6 +380,19 @@ func newQueryFixture(t testing.TB, request queryFixtureRequest) queryFixture {
 	return queryFixture{
 		document: document, payload: payload, trusted: trusted, device: installation.DevicePrivate,
 	}
+}
+
+func queryPartition(t testing.TB, marker byte) chit.Partition {
+	t.Helper()
+	raw := [core.SHA256DigestBytes]byte{}
+	for index := range raw {
+		raw[index] = marker
+	}
+	partition, err := chit.NewPartition(core.NewSHA256Digest(raw))
+	if err != nil {
+		t.Fatalf("chit.NewPartition(marker %d) error = %v, want nil", marker, err)
+	}
+	return partition
 }
 
 func queryDocumentWithAccount(t testing.TB, fixture queryFixture, account receipt.AccountIdentity) chit.QueryDocument {

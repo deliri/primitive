@@ -173,9 +173,12 @@ func TestRequestAuthenticationLayerTriadRefusesEveryValidFactSubstitution(t *tes
 	}
 	mediaTypeMutation := original
 	mediaTypeMutation.Declaration.ContentType = differentMediaType
+	partitionMutation := original
+	partitionMutation.Manifest.Partition = submissionPartition(t, 0x52)
 	cases := []struct {
 		name    string
 		payload RequestPayload
+		wantErr error
 	}{
 		{
 			name: "different object integrity and extent",
@@ -183,19 +186,23 @@ func TestRequestAuthenticationLayerTriadRefusesEveryValidFactSubstitution(t *tes
 				content: []byte("different proof"), offering: submissionOffering(t, 2),
 				requestNonceByte: 0x31,
 			}),
+			wantErr: core.ErrAttestVerification,
 		},
-		{name: "different media type", payload: mediaTypeMutation},
+		{name: "different media type", payload: mediaTypeMutation, wantErr: core.ErrAttestVerification},
+		{name: "different custody partition", payload: partitionMutation, wantErr: core.ErrAttestVerification},
 		{
 			name: "different build offering",
 			payload: testRequestPayload(t, grantFixtureRequest{
 				offering: submissionOffering(t, 1), requestNonceByte: 0x31,
 			}),
+			wantErr: core.ErrAttestVerification,
 		},
 		{
 			name: "different request nonce",
 			payload: testRequestPayload(t, grantFixtureRequest{
 				offering: submissionOffering(t, 2), requestNonceByte: 0x32,
 			}),
+			wantErr: core.ErrAttestVerification,
 		},
 	}
 	for _, tc := range cases {
@@ -210,9 +217,9 @@ func TestRequestAuthenticationLayerTriadRefusesEveryValidFactSubstitution(t *tes
 			verified, err := VerifyRequest(RequestVerification{
 				Document: mutated, TrustedKeys: trusted,
 			})
-			if !errors.Is(err, core.ErrAttestVerification) {
+			if !errors.Is(err, tc.wantErr) || verified != (VerifiedRequest{}) {
 				t.Fatalf("VerifyRequest(valid substitution) = (%v, %v), want zero and errors.Is %v",
-					verified, err, core.ErrAttestVerification)
+					verified, err, tc.wantErr)
 			}
 		})
 	}
@@ -276,31 +283,38 @@ func TestRequestCommitmentChangesForEveryAuthorizationFact(t *testing.T) {
 	differentPosition.Manifest.Objects = manifestObjects(t, 2)
 	differentCount := original
 	differentCount.Manifest.Objects = manifestObjects(t, 2)
-	mutations := []RequestPayload{
-		testRequestPayload(t, grantFixtureRequest{
+	differentPartition := original
+	differentPartition.Manifest.Partition = submissionPartition(t, 0x52)
+	cases := []struct {
+		name    string
+		payload RequestPayload
+	}{
+		{name: "object integrity extent and offering", payload: testRequestPayload(t, grantFixtureRequest{
 			content: []byte("different proof"), offering: submissionOffering(t, 2),
 			requestNonceByte: 0x31,
-		}),
-		mediaTypeMutation,
-		differentUpload,
-		differentName,
-		differentPosition,
-		differentCount,
-		testRequestPayload(t, grantFixtureRequest{
+		})},
+		{name: "content type", payload: mediaTypeMutation},
+		{name: "upload identity", payload: differentUpload},
+		{name: "portable entry name", payload: differentName},
+		{name: "manifest position", payload: differentPosition},
+		{name: "manifest object count", payload: differentCount},
+		{name: "custody partition", payload: differentPartition},
+		{name: "build offering", payload: testRequestPayload(t, grantFixtureRequest{
 			offering: submissionOffering(t, 1), requestNonceByte: 0x31,
-		}),
-		testRequestPayload(t, grantFixtureRequest{
+		})},
+		{name: "request nonce", payload: testRequestPayload(t, grantFixtureRequest{
 			offering: submissionOffering(t, 2), requestNonceByte: 0x32,
-		}),
+		})},
 	}
-	for index, mutation := range mutations {
-		got, err := CommitRequest(mutation)
-		if err != nil {
-			t.Fatalf("CommitRequest(mutation %d) error = %v, want nil", index, err)
-		}
-		if got == want {
-			t.Fatalf("CommitRequest(mutation %d) = original commitment, want distinct", index)
-		}
+	for _, tc := range cases {
+		t.Run(tc.name, func(t *testing.T) {
+			t.Parallel()
+
+			got, gotErr := CommitRequest(tc.payload)
+			if gotErr != nil || got == want {
+				t.Fatalf("CommitRequest(%s) = (%v, %v), want distinct commitment and nil", tc.name, got, gotErr)
+			}
+		})
 	}
 }
 

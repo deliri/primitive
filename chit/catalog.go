@@ -441,10 +441,22 @@ func VerifyCatalog(verification CatalogVerification) (CatalogPayload, error) {
 	if len(payload.Entries) > int(verification.Request.Query.Limit.Uint16()) {
 		return CatalogPayload{}, conflictError(errors.New("catalog page exceeds the requested limit"))
 	}
+	if err := validateCatalogPartition(payload, verification.Request.Query.Partition); err != nil {
+		return CatalogPayload{}, err
+	}
 	if err := validateCatalogSelection(payload, verification.Request.Query.Selection); err != nil {
 		return CatalogPayload{}, err
 	}
 	return payload, nil
+}
+
+func validateCatalogPartition(payload CatalogPayload, partition Partition) error {
+	for _, entry := range payload.Entries {
+		if entry.Chit.Payload.Partition != partition {
+			return conflictError(errors.New("catalog entry partition differs from the request"))
+		}
+	}
+	return nil
 }
 
 func validateCatalogSelection(payload CatalogPayload, selection Selection) error {

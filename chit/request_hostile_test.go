@@ -15,6 +15,7 @@ import (
 type signedQueryFixtureRequest struct {
 	offering  core.Offering
 	pageSize  uint16
+	partition Partition
 	position  Position
 	selection Selection
 	marker    byte
@@ -92,6 +93,9 @@ func TestSignedChitQueryLayerTriad(t *testing.T) {
 			{name: "scope offering changed after signing", mutate: func(value *QueryVerification) {
 				value.Document.Payload.Query.Scope.Offering = other.payload.Query.Scope.Offering
 			}, want: core.ErrChitVerification},
+			{name: "partition changed after signing", mutate: func(value *QueryVerification) {
+				value.Document.Payload.Query.Partition = other.payload.Query.Partition
+			}, want: core.ErrChitVerification},
 			{name: "selection changed after signing", mutate: func(value *QueryVerification) { value.Document.Payload.Query.Selection = signedQuerySpecific(t, 0x62) }, want: core.ErrChitVerification},
 			{name: "position changed after signing", mutate: func(value *QueryVerification) { value.Document.Payload.Query.Position = signedQueryAfter(t, 0x63) }, want: core.ErrChitVerification},
 			{name: "page limit changed after signing", mutate: func(value *QueryVerification) { value.Document.Payload.Query.Limit = signedQueryLimit(t, 2) }, want: core.ErrChitVerification},
@@ -147,6 +151,7 @@ func TestQueryCommitmentBindsEveryVariableRequestFact(t *testing.T) {
 		name   string
 	}{
 		{name: "scope", mutate: func(value *QueryPayload) { value.Query.Scope = other.payload.Query.Scope }},
+		{name: "partition", mutate: func(value *QueryPayload) { value.Query.Partition = other.payload.Query.Partition }},
 		{name: "selection", mutate: func(value *QueryPayload) { value.Query.Selection = signedQuerySpecific(t, 0x72) }},
 		{name: "position", mutate: func(value *QueryPayload) { value.Query.Position = signedQueryAfter(t, 0x73) }},
 		{name: "page limit", mutate: func(value *QueryPayload) { value.Query.Limit = signedQueryLimit(t, 2) }},
@@ -305,6 +310,9 @@ func newSignedQueryFixture(t testing.TB, request signedQueryFixtureRequest) sign
 	if request.selection == (Selection{}) {
 		request.selection = All()
 	}
+	if request.partition == (Partition{}) {
+		request.partition = mustPartition(t, request.marker+0x10)
+	}
 	if request.position == (Position{}) {
 		request.position = Start()
 	}
@@ -313,7 +321,7 @@ func newSignedQueryFixture(t testing.TB, request signedQueryFixtureRequest) sign
 	}
 	query, err := NewQuery(QueryRequest{
 		Scope: chitScopeFixture(t, request.marker), Selection: request.selection,
-		Position: request.position, PageSize: request.pageSize,
+		Partition: request.partition, Position: request.position, PageSize: request.pageSize,
 	})
 	if err != nil {
 		t.Fatalf("NewQuery() error = %v, want nil", err)

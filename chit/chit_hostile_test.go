@@ -368,6 +368,7 @@ func TestChitIssuanceLayerTriad(t *testing.T) {
 		}{
 			{name: "chit identity changed", mutate: func(value *Payload) { value.Identity = other.identity }},
 			{name: "collection identity changed", mutate: func(value *Payload) { value.Collection = other.document.Payload.Collection }},
+			{name: "partition changed", mutate: func(value *Payload) { value.Partition = other.document.Payload.Partition }},
 			{name: "account scope changed", mutate: func(value *Payload) { value.Scope.Account = other.scope.Account }},
 			{name: "offering scope changed", mutate: func(value *Payload) { value.Scope.Offering = other.scope.Offering }},
 			{name: "manifest closure changed", mutate: func(value *Payload) { value.Manifest = other.summary }},
@@ -466,6 +467,7 @@ func TestChitVerificationLayerTriad(t *testing.T) {
 			{name: "authority trust set substituted", mutate: func(value *Verification) { value.TrustedKeys = other.trusted }, wantErr: core.ErrChitVerification},
 			{name: "signed identity substituted", mutate: func(value *Verification) { value.Document.Payload.Identity = other.document.Payload.Identity }, wantErr: core.ErrChitVerification},
 			{name: "signed collection substituted", mutate: func(value *Verification) { value.Document.Payload.Collection = other.document.Payload.Collection }, wantErr: core.ErrChitVerification},
+			{name: "signed partition substituted", mutate: func(value *Verification) { value.Document.Payload.Partition = other.document.Payload.Partition }, wantErr: core.ErrChitVerification},
 			{name: "signed scope substituted", mutate: func(value *Verification) { value.Document.Payload.Scope = other.document.Payload.Scope }, wantErr: core.ErrChitVerification},
 			{name: "signed manifest substituted", mutate: func(value *Verification) { value.Document.Payload.Manifest = other.document.Payload.Manifest }, wantErr: core.ErrChitVerification},
 			{name: "signed acceptance instant substituted", mutate: func(value *Verification) { value.Document.Payload.AcceptedAt = temporal.InstantFromNanoseconds(1) }, wantErr: core.ErrChitVerification},
@@ -545,7 +547,7 @@ func TestChitRetentionAndCatalogHostileTemporalEdges(t *testing.T) {
 		})
 	}
 
-	request := catalogQueryPayload(t, fixture.scope, 0x31)
+	request := catalogQueryPayload(t, fixture.scope, fixture.document.Payload.Partition, 0x31)
 	commitment, err := CommitQuery(request)
 	if err != nil {
 		t.Fatalf("CommitQuery() error = %v, want nil", err)
@@ -617,7 +619,8 @@ func newChitFixture(t testing.TB, marker byte, versionValue uint64) chitFixture 
 	retained := temporal.InstantFromNanoseconds(int64(marker) + 100)
 	payload := Payload{
 		Identity: identity, Collection: collection, Scope: scope, Manifest: summary,
-		AcceptedAt: accepted, RetainUntil: retained, Version: mustVersion(t, versionValue),
+		Partition: mustPartition(t, marker+5), AcceptedAt: accepted,
+		RetainUntil: retained, Version: mustVersion(t, versionValue),
 	}
 	document, err := Issue(Issuance{Signer: private, TrustedKeys: trusted, Payload: payload})
 	if err != nil {

@@ -76,12 +76,13 @@ type ManifestIntent struct {
 	Sequence   chit.EntrySequence `json:"sequence"`
 	Objects    chit.ObjectCount   `json:"objects"`
 	Collection chit.CollectionID  `json:"collection_id"`
+	Partition  chit.Partition     `json:"partition"`
 	Upload     UploadID           `json:"upload_id"`
 }
 
 func (i ManifestIntent) Validate() error {
 	if err := errors.Join(
-		i.Upload.Validate(), i.Collection.Validate(), i.Name.Validate(),
+		i.Upload.Validate(), i.Collection.Validate(), i.Partition.Validate(), i.Name.Validate(),
 		i.Sequence.Validate(), i.Objects.Validate(),
 	); err != nil {
 		return contractError(err)

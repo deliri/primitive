@@ -4,6 +4,26 @@ Last updated: `2026-08-26`
 
 ## Current
 
+- closed blind partitioned custody catalogs for leaf-side bootstrap,
+  2026-08-26, publishing `v2026.0.149`. `chit.Partition` closes one nonzero
+  product-owned SHA-256 commitment without learning its meaning. The exact
+  partition now travels in every signed Chit, signed catalog query, and signed
+  Submission `ManifestIntent`; query commitments bind it, and catalog
+  verification refuses every returned entry outside it. Empty pages remain an
+  authenticated neutral result. This gives consumers one product-neutral,
+  client/server wire contract for pull-before-push deduplication without a
+  global catalog scan, server-side product model, scheduler, dataset
+  aggregation, compatibility path, or new effect owner. Hostile proof covers
+  the complete typed zero boundary, 10 canonical JSON inputs, 10 refusals, 20
+  minimum-nonzero positions, 10 matching page extents, 20 foreign-entry page
+  positions, signed fact substitution, authenticated pass-through, neutral
+  output, data-flow classification, and semantic ingress closure. The
+  ten-second Chit JSON fuzz run completed 266,538 executions without failure.
+  Five-second catalog verification benchmarks measured one entry at 73,715
+  ns/op and the compiler-bounded maximum page at 1,308,920 ns/op. Go fix, Vet,
+  Staticcheck, repository-rooted Deadcode, Witness-lint, focused package tests,
+  and the changed-function complexity ratchet are green.
+
 - opened the exact Go-generated fuzz-entry naming door for Peachfuzz shared
   corpus bootstrap, 2026-08-26, preparing `v2026.0.148`. Fuzzfinder's selected
   cache format now derives one validated `GeneratedName` directly from a typed

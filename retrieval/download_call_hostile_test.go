@@ -370,7 +370,8 @@ func retrievalVerifiedChit(t testing.TB, request retrievalChitRequest) chit.Veri
 	document, err := chit.Issue(chit.Issuance{
 		Signer: request.Private, TrustedKeys: request.Trusted,
 		Payload: chit.Payload{
-			Identity: request.Request.Chit, Collection: collection, Scope: request.Scope,
+			Identity: request.Request.Chit, Collection: collection,
+			Partition: retrievalPartition(t, 0x71), Scope: request.Scope,
 			Manifest:    request.Summary,
 			AcceptedAt:  temporal.InstantFromNanoseconds(retrievalGrantIssuedAt - 1),
 			RetainUntil: temporal.InstantFromNanoseconds(retrievalGrantExpiresAt + 1), Version: version,
@@ -388,6 +389,19 @@ func retrievalVerifiedChit(t testing.TB, request retrievalChitRequest) chit.Veri
 		t.Fatalf("chit.Verify() error = %v, want nil", err)
 	}
 	return verified
+}
+
+func retrievalPartition(t testing.TB, marker byte) chit.Partition {
+	t.Helper()
+	raw := [core.SHA256DigestBytes]byte{}
+	for index := range raw {
+		raw[index] = marker
+	}
+	partition, err := chit.NewPartition(core.NewSHA256Digest(raw))
+	if err != nil {
+		t.Fatalf("chit.NewPartition(marker %d) error = %v, want nil", marker, err)
+	}
+	return partition
 }
 
 func retrievalDownloadCapability(t testing.TB) objectstore.DownloadCapabilityProjection {

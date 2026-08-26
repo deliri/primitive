@@ -5,6 +5,7 @@ import (
 	"crypto"
 	"crypto/sha256"
 	"errors"
+	"strconv"
 	"testing"
 
 	"github.com/deliri/primitive/v2026/attest"
@@ -83,6 +84,89 @@ func TestCatalogLayerTriadAuthenticatesTenIndependentPages(t *testing.T) {
 			t.Fatalf("CatalogPayload round trip(configuration %d) = (%v, %v), want exact payload and nil",
 				index, payloadRoundTrip, err)
 		}
+	}
+}
+
+func TestCatalogPartitionLayerTriadExhaustsMatchingForeignAndEmptyRelations(t *testing.T) {
+	t.Parallel()
+
+	fixture := newCatalogFixture(t, 0x35, 1)
+	type partitionRelation uint8
+	const (
+		partitionRelationUnknown partitionRelation = iota
+		partitionRelationEmpty
+		partitionRelationMatching
+		partitionRelationForeign
+	)
+
+	type partitionRelationCase struct {
+		name         string
+		entryCount   int
+		foreignIndex int
+		relation     partitionRelation
+		wantErr      error
+	}
+	cases := []partitionRelationCase{{
+		name: "neutral empty partition emits no invented custody evidence", relation: partitionRelationEmpty,
+	}}
+	for _, count := range []int{1, 2, 3, 4, 5, 8, 16, 32, core.CatalogPageMaximumEntries - 1, core.CatalogPageMaximumEntries} {
+		cases = append(cases, partitionRelationCase{
+			name:       "positive matching partition page extent " + strconv.Itoa(count),
+			entryCount: count, relation: partitionRelationMatching,
+		})
+	}
+	for position := range 20 {
+		cases = append(cases, partitionRelationCase{
+			name:       "negative foreign partition at page position " + strconv.Itoa(position),
+			entryCount: core.CatalogPageMaximumEntries, foreignIndex: position, relation: partitionRelationForeign,
+			wantErr: core.ErrChitConflict,
+		})
+	}
+	for _, tc := range cases {
+		t.Run(tc.name, func(t *testing.T) {
+			t.Parallel()
+
+			payload := fixture.payload
+			switch tc.relation {
+			case partitionRelationEmpty:
+				payload.Entries = []CatalogEntry{}
+			case partitionRelationMatching:
+				payload.Entries = catalogHistoryEntries(t, fixture, tc.entryCount)
+			case partitionRelationForeign:
+				payload.Entries = catalogHistoryEntries(t, fixture, tc.entryCount)
+				foreign := payload.Entries[tc.foreignIndex]
+				foreignPayload := foreign.Chit.Payload
+				foreignPayload.Partition = mustPartition(t, 0xe5)
+				foreignDocument, issueErr := Issue(Issuance{
+					Signer: fixture.private, TrustedKeys: fixture.trusted, Payload: foreignPayload,
+				})
+				if issueErr != nil {
+					t.Fatalf("Issue(foreign partition chit) error = %v, want nil", issueErr)
+				}
+				payload.Entries[tc.foreignIndex] = CatalogEntry{Chit: foreignDocument, State: foreign.State}
+			case partitionRelationUnknown:
+				t.Fatalf("partition relation = %d, want a compiler-owned test relation", tc.relation)
+			default:
+				t.Fatalf("partition relation = %d, want a published test relation", tc.relation)
+			}
+			payload.Continuation = End()
+			document, issueErr := IssueCatalog(CatalogIssuance{Signer: fixture.private, Payload: payload})
+			if issueErr != nil {
+				t.Fatalf("IssueCatalog() error = %v, want nil", issueErr)
+			}
+			got, gotErr := VerifyCatalog(CatalogVerification{
+				Document: document, Request: fixture.request, TrustedKeys: fixture.trusted,
+			})
+			if tc.wantErr != nil {
+				if !errors.Is(gotErr, tc.wantErr) || !catalogPayloadsEqual(got, CatalogPayload{}) {
+					t.Fatalf("VerifyCatalog() = (%v, %v), want zero and errors.Is %v", got, gotErr, tc.wantErr)
+				}
+				return
+			}
+			if gotErr != nil || !catalogPayloadsEqual(got, payload) {
+				t.Fatalf("VerifyCatalog() = (%v, %v), want exact payload and nil", got, gotErr)
+			}
+		})
 	}
 }
 
@@ -467,7 +551,7 @@ func newCatalogFixture(t testing.TB, marker byte, version uint64) catalogFixture
 			t.Fatalf("More() error = %v, want nil", err)
 		}
 	}
-	request := catalogQueryPayload(t, chit.scope, marker)
+	request := catalogQueryPayload(t, chit.scope, chit.document.Payload.Partition, marker)
 	commitment, err := CommitQuery(request)
 	if err != nil {
 		t.Fatalf("CommitQuery() error = %v, want nil", err)
@@ -487,10 +571,10 @@ func newCatalogFixture(t testing.TB, marker byte, version uint64) catalogFixture
 	}
 }
 
-func catalogQueryPayload(t testing.TB, scope receipt.Scope, marker byte) QueryPayload {
+func catalogQueryPayload(t testing.TB, scope receipt.Scope, partition Partition, marker byte) QueryPayload {
 	t.Helper()
 	query, err := NewQuery(QueryRequest{
-		Scope: scope, Selection: All(), Position: Start(), PageSize: core.CatalogPageMaximumEntries,
+		Scope: scope, Partition: partition, Selection: All(), Position: Start(), PageSize: core.CatalogPageMaximumEntries,
 	})
 	if err != nil {
 		t.Fatalf("NewQuery() error = %v, want nil", err)

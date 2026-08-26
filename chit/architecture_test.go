@@ -24,6 +24,7 @@ type chitContractInventory struct {
 	EntryName             protocolFact[EntryName]
 	ChitID                protocolFact[ChitID]
 	CollectionID          protocolFact[CollectionID]
+	Partition             protocolFact[Partition]
 	Version               protocolFact[Version]
 	Payload               protocolFact[Payload]
 	Document              protocolFact[Document]

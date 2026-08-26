@@ -165,9 +165,22 @@ func submissionManifestIntent(t testing.TB) submission.ManifestIntent {
 		t.Fatalf("chit.NewObjectCount() error = %v, want nil", err)
 	}
 	return submission.ManifestIntent{
-		Upload: upload, Collection: collection, Name: name,
+		Upload: upload, Collection: collection, Partition: submissionAuthPartition(t, 0x61), Name: name,
 		Sequence: sequence, Objects: objects,
 	}
+}
+
+func submissionAuthPartition(t testing.TB, marker byte) chit.Partition {
+	t.Helper()
+	raw := [core.SHA256DigestBytes]byte{}
+	for index := range raw {
+		raw[index] = marker
+	}
+	partition, err := chit.NewPartition(core.NewSHA256Digest(raw))
+	if err != nil {
+		t.Fatalf("chit.NewPartition(marker %d) error = %v, want nil", marker, err)
+	}
+	return partition
 }
 
 // TestCredentialedRequestLayerTriadAuthenticatesRepresentativeOpaqueOfferingsThroughOneBlindPath
@@ -228,13 +241,6 @@ func TestCredentialedRequestLayerTriadRefusesEveryAuthorityAndDeviceSubstitution
 	if err != nil {
 		t.Fatalf("attest.NewTrustedKeys(other authority) error = %v, want nil", err)
 	}
-	if verified, err := Verify(Verification{
-		Document: fixture.document, TrustedKeys: otherAuthorityTrust,
-	}); !errors.Is(err, core.ErrAttestVerification) {
-		t.Fatalf("Verify(other authority) = (%v, %v), want zero and errors.Is %v",
-			verified, err, core.ErrAttestVerification)
-	}
-
 	_, otherDevice := authSigningKey(t, 0x62)
 	otherRequest, err := submission.IssueRequest(submission.RequestIssuance{
 		Payload: fixture.request.Payload, Signer: otherDevice,
@@ -248,11 +254,36 @@ func TestCredentialedRequestLayerTriadRefusesEveryAuthorityAndDeviceSubstitution
 	if err != nil {
 		t.Fatalf("Assemble(other device signature) error = %v, want nil", err)
 	}
-	if verified, err := Verify(Verification{
-		Document: otherDeviceDocument, TrustedKeys: fixture.trusted,
-	}); !errors.Is(err, core.ErrAttestVerification) {
-		t.Fatalf("Verify(other device) = (%v, %v), want zero and errors.Is %v",
-			verified, err, core.ErrAttestVerification)
+	partitionDocument := fixture.document
+	partitionDocument.Request.Payload.Manifest.Partition = submissionAuthPartition(t, 0x62)
+	if err := partitionDocument.Validate(); err != nil {
+		t.Fatalf("partition-substituted RequestDocument.Validate() error = %v, want nil", err)
+	}
+	cases := []struct {
+		name    string
+		request Verification
+		wantErr error
+	}{
+		{name: "authority trust belongs to another signer", request: Verification{
+			Document: fixture.document, TrustedKeys: otherAuthorityTrust,
+		}, wantErr: core.ErrAttestVerification},
+		{name: "request signature belongs to an uncertified device", request: Verification{
+			Document: otherDeviceDocument, TrustedKeys: fixture.trusted,
+		}, wantErr: core.ErrAttestVerification},
+		{name: "partition changed after device signing", request: Verification{
+			Document: partitionDocument, TrustedKeys: fixture.trusted,
+		}, wantErr: core.ErrAttestVerification},
+	}
+	for _, tc := range cases {
+		t.Run(tc.name, func(t *testing.T) {
+			t.Parallel()
+
+			got, gotErr := Verify(tc.request)
+			if !errors.Is(gotErr, tc.wantErr) || got != (Verified{}) {
+				t.Fatalf("Verify(%s) = (%v, %v), want zero and errors.Is %v",
+					tc.name, got, gotErr, tc.wantErr)
+			}
+		})
 	}
 }
 

@@ -74,11 +74,12 @@ type Payload struct {
 	Version     Version          `json:"version"`
 	Identity    ChitID           `json:"chit_id"`
 	Collection  CollectionID     `json:"collection_id"`
+	Partition   Partition        `json:"partition"`
 }
 
 func (p Payload) Validate() error {
 	if err := errors.Join(
-		p.Identity.Validate(), p.Collection.Validate(), p.Scope.Validate(),
+		p.Identity.Validate(), p.Collection.Validate(), p.Partition.Validate(), p.Scope.Validate(),
 		p.Manifest.Validate(), p.AcceptedAt.Validate(), p.RetainUntil.Validate(),
 		p.Version.Validate(),
 	); err != nil {
