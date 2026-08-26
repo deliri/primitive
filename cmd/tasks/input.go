@@ -35,9 +35,9 @@ type invocation struct {
 }
 
 type commandInputRequest struct {
+	StandardInput    io.Reader
 	WorkingDirectory core.AbsolutePath
 	JobPath          string
-	StandardInput    io.Reader
 }
 
 func (r commandInputRequest) Validate() error {

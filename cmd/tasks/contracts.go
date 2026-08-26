@@ -221,20 +221,33 @@ func (d configurationDocument) Validate() error {
 	if err := errors.Join(d.Revision.Validate(), d.Authority.Validate(), d.Username.Validate(), d.PasswordSecret.Validate()); err != nil {
 		return commandError("task configuration is invalid", err)
 	}
+	if err := d.validateAuthorityIdentity(); err != nil {
+		return err
+	}
+	return errors.Join(d.validateProjectID(), d.validateEvidenceStorage())
+}
+
+func (d configurationDocument) validateAuthorityIdentity() error {
 	url := d.Authority.HTTPURL()
 	if url.Scheme != core.SchemeHTTPS || url.Path != "" || url.RawPath != "" ||
 		url.RawQuery != "" || url.ForceQuery || strings.TrimSpace(d.Username.String()) != d.Username.String() {
 		return commandError("task configuration authority or username is invalid", nil)
 	}
+	return nil
+}
+
+func (d configurationDocument) validateProjectID() error {
 	if d.ProjectID != nil {
 		if err := d.ProjectID.Validate(); err != nil {
 			return commandError("project_id is invalid", err)
 		}
 	}
+	return nil
+}
+
+func (d configurationDocument) validateEvidenceStorage() error {
 	if d.EvidenceStorage != nil {
-		if err := d.EvidenceStorage.Validate(); err != nil {
-			return err
-		}
+		return d.EvidenceStorage.Validate()
 	}
 	return nil
 }
@@ -610,7 +623,7 @@ func validateEvidenceAppendConfiguration(configuration configurationDocument, _ 
 		return err
 	}
 	if configuration.EvidenceStorage == nil {
-		return commandError("evidence_storage is required for append_evidence", nil)
+		return commandError(evidenceStorageRequiredErrorText, nil)
 	}
 	return configuration.EvidenceStorage.Validate()
 }

@@ -1,8 +1,29 @@
 # Primitive 2026 Ledger
 
-Last updated: `2026-08-24`
+Last updated: `2026-08-26`
 
 ## Current
+
+- opened the exact Go-generated fuzz-entry naming door for Peachfuzz shared
+  corpus bootstrap, 2026-08-26, preparing `v2026.0.148`. Fuzzfinder's selected
+  cache format now derives one validated `GeneratedName` directly from a typed
+  `core.SHA256Digest`; consumers no longer copy Go 1.27's leading-digest-byte
+  width or hexadecimal projection. Artifact kind remains bound into the name
+  because the same filesystem spelling cannot distinguish cache corpus from a
+  crasher. The operation is pure, fixed-size, and has
+  no filesystem effect, allocation proportional to corpus size, product
+  vocabulary, compatibility path, or alternate naming authority. A hostile
+  exact 10 accepted / 10 rejected / 20 boundary matrices pin parsing,
+  derivation, observation state, every included byte, the first and final
+  excluded bytes, cross-kind facts, invalid formats, unset digests, typed error
+  identity, zero output on refusal, and validated output. An AST ratchet reads
+  the installed Go 1.27 standard-library source and proves both artifact kinds
+  match the real `internal/fuzz.writeToCorpus` filesystem projection instead
+  of its shorter transient worker label. Focused and race proof are green. The
+  ten-second semantic parser fuzz run completed 969,820 executions without
+  failure. Five-second benchmark windows measured corpus and crasher name
+  derivation at 26.75 and 26.80 ns/op respectively, both with zero allocations.
+  The canonical gate remains before publication and Peachfuzz pinning.
 
 - closed the missing server half of Exchange's Basic-authorization socket,
   2026-08-24. `ReceiveBasicAuthorization` now projects one real bounded
@@ -3669,8 +3690,8 @@ Last updated: `2026-08-24`
   array, and separately counts ignored directories, non-regular entries,
   over-limit observations, and unsupported regular files. Returned names are
   observations, not payload custody.
-- Fuzzfinder format decision: `CacheFormatGo1_26` binds the exact
-  16-lowercase-hex generated filename emitted by Go 1.26.5's
+- Fuzzfinder format decision: `CacheFormatGo1_27` binds the exact
+  16-lowercase-hex persisted filename emitted by Go 1.27.0's
   `internal/fuzz.writeToCorpus` path. The archive's invented 8..64-character
   compatibility range is retired. An unknown regular filename returns a
   validated `ObservationUnsupportedFormat` plus

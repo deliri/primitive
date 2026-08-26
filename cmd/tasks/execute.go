@@ -329,10 +329,10 @@ func executeAppendEvidence(request executionRequest) (commandResult, error) {
 }
 
 type taskEvidenceAppendRequest struct {
-	Client        taskmanager.Client
-	Configuration configurationDocument
 	Job           jobDocument
+	Configuration configurationDocument
 	Uploaded      taskEvidenceUploadReceipt
+	Client        taskmanager.Client
 	EvidenceID    id.UUIDv7
 	MutationID    id.UUIDv7
 }
@@ -355,10 +355,10 @@ func appendUploadedTaskEvidence(
 	request taskEvidenceAppendRequest,
 ) (commandResult, error) {
 	if ctx == nil {
-		return commandResult{}, commandError("uploaded evidence append input is invalid", core.ErrNilContext)
+		return commandResult{}, commandError(uploadedEvidenceAppendInputErrorText, core.ErrNilContext)
 	}
 	if err := request.Validate(); err != nil {
-		return commandResult{}, commandError("uploaded evidence append input is invalid", err)
+		return commandResult{}, commandError(uploadedEvidenceAppendInputErrorText, err)
 	}
 	projectID, err := request.Configuration.projectID()
 	if err != nil {

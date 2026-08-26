@@ -31,19 +31,17 @@ func Find(ctx context.Context, request FindRequest) (Observation, error) {
 }
 
 func failedFind(request FindRequest, err error) (Observation, error) {
-	result := failedObservation(request.Kind, request.Retention)
+	result := failedObservation(request.Kind, request.Format, request.Retention)
 	return result, errors.Join(result.Validate(), err)
 }
 
 type finder struct {
 	observation Observation
-	format      CacheFormat
 }
 
 func newFinder(request FindRequest) finder {
 	return finder{
-		observation: Observation{limit: request.Retention, kind: request.Kind},
-		format:      request.Format,
+		observation: Observation{limit: request.Retention, kind: request.Kind, format: request.Format},
 	}
 }
 
@@ -61,7 +59,7 @@ func (f *finder) visit(entry filestore.WalkEntry) (filestore.WalkDirective, erro
 }
 
 func (f *finder) observeRegular(value string) {
-	name, err := ParseGeneratedName(f.format, value)
+	name, err := ParseGeneratedName(f.observation.Format(), f.observation.kind, value)
 	if err != nil {
 		incrementSaturating(&f.observation.unsupportedRegular)
 		return

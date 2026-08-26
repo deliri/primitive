@@ -74,6 +74,7 @@ type Observation struct {
 	retained           uint16
 	names              [MaximumRetainedEntries]GeneratedName
 	kind               ArtifactKind
+	format             CacheFormat
 	state              ObservationState
 }
 
@@ -83,6 +84,9 @@ func (o Observation) Validate() error {
 		return err
 	}
 	if err := o.kind.Validate(); err != nil {
+		return err
+	}
+	if err := o.format.Validate(); err != nil {
 		return err
 	}
 	if err := o.limit.Validate(); err != nil {
@@ -127,6 +131,9 @@ func (o Observation) validateNames() error {
 		if err := o.names[index].Validate(); err != nil {
 			return contractError(err)
 		}
+		if o.names[index].Kind() != o.kind || o.names[index].Format() != o.format {
+			return contractError(errors.New("retained generated name differs from the observation contract"))
+		}
 		if index > 0 && o.names[index-1].compare(o.names[index]) >= 0 {
 			return contractError(errors.New("retained generated names are not strictly canonical"))
 		}
@@ -154,6 +161,11 @@ func (o Observation) State() ObservationState {
 // a property of the directory the caller named rather than of what was read.
 func (o Observation) Kind() ArtifactKind {
 	return o.kind
+}
+
+// Format returns the exact Go naming contract applied to this observation.
+func (o Observation) Format() CacheFormat {
+	return o.format
 }
 
 // Names returns a defensive copy of the canonical retained prefix.
@@ -189,8 +201,8 @@ func (o Observation) UnsupportedRegular() EntryCount {
 	return EntryCount{value: o.unsupportedRegular}
 }
 
-func failedObservation(kind ArtifactKind, limit RetentionLimit) Observation {
-	return Observation{limit: limit, kind: kind, state: ObservationFailed}
+func failedObservation(kind ArtifactKind, format CacheFormat, limit RetentionLimit) Observation {
+	return Observation{limit: limit, kind: kind, format: format, state: ObservationFailed}
 }
 
 func incrementSaturating(value *uint64) {

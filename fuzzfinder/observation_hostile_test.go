@@ -12,58 +12,82 @@ import (
 func TestObservationSchemaLayerTriad(t *testing.T) {
 	t.Parallel()
 
+	type caseClass uint8
+	const (
+		caseValid caseClass = iota + 1
+		caseReject
+		caseBoundary
+	)
 	limit := mustRetentionLimit(t, 2)
-	first := generatedNameForPosition(t, 1)
-	second := generatedNameForPosition(t, 2)
+	first := generatedNameForPosition(t, ArtifactCorpus, 1)
+	second := generatedNameForPosition(t, ArtifactCorpus, 2)
+	crasherFirst := generatedNameForPosition(t, ArtifactCrasher, 1)
+	crasherSecond := generatedNameForPosition(t, ArtifactCrasher, 2)
 	valid := Observation{
 		limit:    limit,
 		retained: 2,
 		names:    [MaximumRetainedEntries]GeneratedName{first, second},
 		kind:     ArtifactCorpus,
+		format:   CacheFormatGo1_27,
 		state:    ObservationComplete,
 	}
 	cases := []struct {
+		wantErr     error
 		name        string
 		observation Observation
-		wantValid   bool
+		class       caseClass
 	}{
-		{name: "positive complete canonical observation is valid", observation: valid, wantValid: true},
-		{name: "neutral complete empty observation is valid", observation: Observation{limit: limit, kind: ArtifactCorpus, state: ObservationComplete}, wantValid: true},
-		{name: "neutral partial observation may retain facts", observation: Observation{limit: limit, retained: 1, names: [MaximumRetainedEntries]GeneratedName{first}, kind: ArtifactCorpus, state: ObservationPartial}, wantValid: true},
-		{name: "neutral partial observation may carry unsupported entries", observation: Observation{limit: limit, unsupportedRegular: 1, kind: ArtifactCorpus, state: ObservationPartial}, wantValid: true},
-		{name: "unsupported state binds a positive unsupported count", observation: Observation{limit: limit, unsupportedRegular: 1, kind: ArtifactCorpus, state: ObservationUnsupportedFormat}, wantValid: true},
-		{name: "failed state with no directory facts is valid", observation: Observation{limit: limit, kind: ArtifactCorpus, state: ObservationFailed}, wantValid: true},
-		{name: "retained count at the exact limit is valid", observation: Observation{limit: mustRetentionLimit(t, 2), retained: 2, names: [MaximumRetainedEntries]GeneratedName{first, second}, kind: ArtifactCrasher, state: ObservationComplete}, wantValid: true},
-		{name: "retained count one below the limit is valid", observation: Observation{limit: limit, retained: 1, names: [MaximumRetainedEntries]GeneratedName{first}, kind: ArtifactCrasher, state: ObservationComplete}, wantValid: true},
-		{name: "saturated accounting with a full canonical prefix is valid", observation: Observation{limit: limit, retained: 2, names: [MaximumRetainedEntries]GeneratedName{first, second}, overLimit: math.MaxUint64, ignoredDirectories: math.MaxUint64, kind: ArtifactCorpus, state: ObservationComplete}, wantValid: true},
-		{name: "zero state is rejected", observation: Observation{limit: limit, kind: ArtifactCorpus}},
-		{name: "future state is rejected", observation: Observation{limit: limit, kind: ArtifactCorpus, state: ObservationState(255)}},
-		{name: "undeclared artifact kind is rejected", observation: Observation{limit: limit, state: ObservationComplete}},
-		{name: "future artifact kind is rejected", observation: Observation{limit: limit, kind: ArtifactKind(255), state: ObservationComplete}},
-		{name: "zero limit is rejected", observation: Observation{kind: ArtifactCorpus, state: ObservationComplete}},
-		{name: "retained count above request limit is rejected", observation: Observation{limit: mustRetentionLimit(t, 1), retained: 2, names: [MaximumRetainedEntries]GeneratedName{first, second}, kind: ArtifactCorpus, state: ObservationComplete}},
-		{name: "retained count above the shared ceiling is rejected", observation: Observation{limit: mustRetentionLimit(t, MaximumRetainedEntries), retained: MaximumRetainedEntries + 1, kind: ArtifactCorpus, state: ObservationComplete}},
-		{name: "one over-limit observation with an empty retained prefix is rejected", observation: Observation{limit: limit, overLimit: 1, kind: ArtifactCorpus, state: ObservationComplete}},
-		{name: "one over-limit observation with a one-below-limit retained prefix is rejected", observation: Observation{limit: limit, retained: 1, names: [MaximumRetainedEntries]GeneratedName{first}, overLimit: 1, kind: ArtifactCorpus, state: ObservationComplete}},
-		{name: "retained zero name is rejected", observation: Observation{limit: limit, retained: 1, kind: ArtifactCorpus, state: ObservationComplete}},
-		{name: "retained duplicate name is rejected", observation: Observation{limit: limit, retained: 2, names: [MaximumRetainedEntries]GeneratedName{first, first}, kind: ArtifactCorpus, state: ObservationComplete}},
-		{name: "retained descending names are rejected", observation: Observation{limit: limit, retained: 2, names: [MaximumRetainedEntries]GeneratedName{second, first}, kind: ArtifactCorpus, state: ObservationComplete}},
-		{name: "complete state with unsupported regular is rejected", observation: Observation{limit: limit, unsupportedRegular: 1, kind: ArtifactCorpus, state: ObservationComplete}},
-		{name: "unsupported state without unsupported regular is rejected", observation: Observation{limit: limit, kind: ArtifactCorpus, state: ObservationUnsupportedFormat}},
-		{name: "failed state with retained name is rejected", observation: Observation{limit: limit, retained: 1, names: [MaximumRetainedEntries]GeneratedName{first}, kind: ArtifactCorpus, state: ObservationFailed}},
-		{name: "failed state with ignored directory is rejected", observation: Observation{limit: limit, ignoredDirectories: 1, kind: ArtifactCorpus, state: ObservationFailed}},
-		{name: "failed state with non-regular entry is rejected", observation: Observation{limit: limit, nonRegular: 1, kind: ArtifactCorpus, state: ObservationFailed}},
-		{name: "failed state with over-limit entry is rejected", observation: Observation{limit: limit, overLimit: 1, kind: ArtifactCorpus, state: ObservationFailed}},
-		{name: "failed state with unsupported entry is rejected", observation: Observation{limit: limit, unsupportedRegular: 1, kind: ArtifactCorpus, state: ObservationFailed}},
-		{name: "unretained hidden name is rejected", observation: Observation{limit: limit, names: [MaximumRetainedEntries]GeneratedName{1: first}, kind: ArtifactCorpus, state: ObservationComplete}},
-		{name: "name beyond the retained prefix at the storage ceiling is rejected", observation: Observation{limit: limit, names: [MaximumRetainedEntries]GeneratedName{MaximumRetainedEntries - 1: first}, kind: ArtifactCorpus, state: ObservationComplete}},
+		{name: "positive complete canonical observation is valid", class: caseValid, observation: valid},
+		{name: "neutral complete empty observation is valid", class: caseValid, observation: Observation{limit: limit, kind: ArtifactCorpus, format: CacheFormatGo1_27, state: ObservationComplete}},
+		{name: "neutral partial observation may retain facts", class: caseValid, observation: Observation{limit: limit, retained: 1, names: [MaximumRetainedEntries]GeneratedName{first}, kind: ArtifactCorpus, format: CacheFormatGo1_27, state: ObservationPartial}},
+		{name: "neutral partial observation may carry unsupported entries", class: caseValid, observation: Observation{limit: limit, unsupportedRegular: 1, kind: ArtifactCorpus, format: CacheFormatGo1_27, state: ObservationPartial}},
+		{name: "unsupported state binds a positive unsupported count", class: caseValid, observation: Observation{limit: limit, unsupportedRegular: 1, kind: ArtifactCorpus, format: CacheFormatGo1_27, state: ObservationUnsupportedFormat}},
+		{name: "failed state with no directory facts is valid", class: caseValid, observation: Observation{limit: limit, kind: ArtifactCorpus, format: CacheFormatGo1_27, state: ObservationFailed}},
+		{name: "retained count at the exact limit is valid", class: caseValid, observation: Observation{limit: mustRetentionLimit(t, 2), retained: 2, names: [MaximumRetainedEntries]GeneratedName{crasherFirst, crasherSecond}, kind: ArtifactCrasher, format: CacheFormatGo1_27, state: ObservationComplete}},
+		{name: "retained count one below the limit is valid", class: caseValid, observation: Observation{limit: limit, retained: 1, names: [MaximumRetainedEntries]GeneratedName{crasherFirst}, kind: ArtifactCrasher, format: CacheFormatGo1_27, state: ObservationComplete}},
+		{name: "saturated accounting with a full canonical prefix is valid", class: caseValid, observation: Observation{limit: limit, retained: 2, names: [MaximumRetainedEntries]GeneratedName{first, second}, overLimit: math.MaxUint64, ignoredDirectories: math.MaxUint64, kind: ArtifactCorpus, format: CacheFormatGo1_27, state: ObservationComplete}},
+		{name: "crasher partial empty observation is valid", class: caseValid, observation: Observation{limit: limit, kind: ArtifactCrasher, format: CacheFormatGo1_27, state: ObservationPartial}},
+
+		{name: "zero state is rejected", class: caseReject, observation: Observation{limit: limit, kind: ArtifactCorpus, format: CacheFormatGo1_27}, wantErr: core.ErrFuzzFinderContract},
+		{name: "future state is rejected", class: caseReject, observation: Observation{limit: limit, kind: ArtifactCorpus, format: CacheFormatGo1_27, state: ObservationState(255)}, wantErr: core.ErrFuzzFinderContract},
+		{name: "undeclared artifact kind is rejected", class: caseReject, observation: Observation{limit: limit, format: CacheFormatGo1_27, state: ObservationComplete}, wantErr: core.ErrFuzzFinderContract},
+		{name: "future artifact kind is rejected", class: caseReject, observation: Observation{limit: limit, kind: ArtifactKind(255), format: CacheFormatGo1_27, state: ObservationComplete}, wantErr: core.ErrFuzzFinderContract},
+		{name: "undeclared format is rejected", class: caseReject, observation: Observation{limit: limit, kind: ArtifactCorpus, state: ObservationComplete}, wantErr: core.ErrFuzzFinderContract},
+		{name: "future format is rejected", class: caseReject, observation: Observation{limit: limit, kind: ArtifactCorpus, format: CacheFormat(255), state: ObservationComplete}, wantErr: core.ErrFuzzFinderContract},
+		{name: "zero limit is rejected", class: caseReject, observation: Observation{kind: ArtifactCorpus, format: CacheFormatGo1_27, state: ObservationComplete}, wantErr: core.ErrFuzzFinderContract},
+		{name: "retained count above request limit is rejected", class: caseReject, observation: Observation{limit: mustRetentionLimit(t, 1), retained: 2, names: [MaximumRetainedEntries]GeneratedName{first, second}, kind: ArtifactCorpus, format: CacheFormatGo1_27, state: ObservationComplete}, wantErr: core.ErrFuzzFinderContract},
+		{name: "retained count above shared ceiling is rejected", class: caseReject, observation: Observation{limit: mustRetentionLimit(t, MaximumRetainedEntries), retained: MaximumRetainedEntries + 1, kind: ArtifactCorpus, format: CacheFormatGo1_27, state: ObservationComplete}, wantErr: core.ErrFuzzFinderContract},
+		{name: "over-limit with empty retained prefix is rejected", class: caseReject, observation: Observation{limit: limit, overLimit: 1, kind: ArtifactCorpus, format: CacheFormatGo1_27, state: ObservationComplete}, wantErr: core.ErrFuzzFinderContract},
+
+		{name: "boundary over-limit one below full prefix", class: caseBoundary, observation: Observation{limit: limit, retained: 1, names: [MaximumRetainedEntries]GeneratedName{first}, overLimit: 1, kind: ArtifactCorpus, format: CacheFormatGo1_27, state: ObservationComplete}, wantErr: core.ErrFuzzFinderContract},
+		{name: "boundary retained zero name", class: caseBoundary, observation: Observation{limit: limit, retained: 1, kind: ArtifactCorpus, format: CacheFormatGo1_27, state: ObservationComplete}, wantErr: core.ErrFuzzFinderContract},
+		{name: "boundary retained cross-kind name", class: caseBoundary, observation: Observation{limit: limit, retained: 1, names: [MaximumRetainedEntries]GeneratedName{crasherFirst}, kind: ArtifactCorpus, format: CacheFormatGo1_27, state: ObservationComplete}, wantErr: core.ErrFuzzFinderContract},
+		{name: "boundary retained duplicate name", class: caseBoundary, observation: Observation{limit: limit, retained: 2, names: [MaximumRetainedEntries]GeneratedName{first, first}, kind: ArtifactCorpus, format: CacheFormatGo1_27, state: ObservationComplete}, wantErr: core.ErrFuzzFinderContract},
+		{name: "boundary retained descending names", class: caseBoundary, observation: Observation{limit: limit, retained: 2, names: [MaximumRetainedEntries]GeneratedName{second, first}, kind: ArtifactCorpus, format: CacheFormatGo1_27, state: ObservationComplete}, wantErr: core.ErrFuzzFinderContract},
+		{name: "boundary complete with unsupported regular", class: caseBoundary, observation: Observation{limit: limit, unsupportedRegular: 1, kind: ArtifactCorpus, format: CacheFormatGo1_27, state: ObservationComplete}, wantErr: core.ErrFuzzFinderContract},
+		{name: "boundary unsupported without unsupported regular", class: caseBoundary, observation: Observation{limit: limit, kind: ArtifactCorpus, format: CacheFormatGo1_27, state: ObservationUnsupportedFormat}, wantErr: core.ErrFuzzFinderContract},
+		{name: "boundary failed with retained name", class: caseBoundary, observation: Observation{limit: limit, retained: 1, names: [MaximumRetainedEntries]GeneratedName{first}, kind: ArtifactCorpus, format: CacheFormatGo1_27, state: ObservationFailed}, wantErr: core.ErrFuzzFinderContract},
+		{name: "boundary failed with ignored directory", class: caseBoundary, observation: Observation{limit: limit, ignoredDirectories: 1, kind: ArtifactCorpus, format: CacheFormatGo1_27, state: ObservationFailed}, wantErr: core.ErrFuzzFinderContract},
+		{name: "boundary failed with non-regular entry", class: caseBoundary, observation: Observation{limit: limit, nonRegular: 1, kind: ArtifactCorpus, format: CacheFormatGo1_27, state: ObservationFailed}, wantErr: core.ErrFuzzFinderContract},
+		{name: "boundary failed with over-limit entry", class: caseBoundary, observation: Observation{limit: limit, overLimit: 1, kind: ArtifactCorpus, format: CacheFormatGo1_27, state: ObservationFailed}, wantErr: core.ErrFuzzFinderContract},
+		{name: "boundary failed with unsupported entry", class: caseBoundary, observation: Observation{limit: limit, unsupportedRegular: 1, kind: ArtifactCorpus, format: CacheFormatGo1_27, state: ObservationFailed}, wantErr: core.ErrFuzzFinderContract},
+		{name: "boundary unretained hidden name", class: caseBoundary, observation: Observation{limit: limit, names: [MaximumRetainedEntries]GeneratedName{1: first}, kind: ArtifactCorpus, format: CacheFormatGo1_27, state: ObservationComplete}, wantErr: core.ErrFuzzFinderContract},
+		{name: "boundary name at storage ceiling", class: caseBoundary, observation: Observation{limit: limit, names: [MaximumRetainedEntries]GeneratedName{MaximumRetainedEntries - 1: first}, kind: ArtifactCorpus, format: CacheFormatGo1_27, state: ObservationComplete}, wantErr: core.ErrFuzzFinderContract},
+		{name: "boundary full prefix admits one over-limit", class: caseBoundary, observation: Observation{limit: limit, retained: 2, names: [MaximumRetainedEntries]GeneratedName{first, second}, overLimit: 1, kind: ArtifactCorpus, format: CacheFormatGo1_27, state: ObservationComplete}},
+		{name: "boundary unsupported maximum count is valid", class: caseBoundary, observation: Observation{limit: limit, unsupportedRegular: math.MaxUint64, kind: ArtifactCrasher, format: CacheFormatGo1_27, state: ObservationUnsupportedFormat}},
+		{name: "boundary partial saturated counters are valid", class: caseBoundary, observation: Observation{limit: limit, ignoredDirectories: math.MaxUint64, nonRegular: math.MaxUint64, unsupportedRegular: math.MaxUint64, kind: ArtifactCorpus, format: CacheFormatGo1_27, state: ObservationPartial}},
+		{name: "boundary crasher failed empty is valid", class: caseBoundary, observation: Observation{limit: limit, kind: ArtifactCrasher, format: CacheFormatGo1_27, state: ObservationFailed}},
+		{name: "boundary complete maximum non-regular is valid", class: caseBoundary, observation: Observation{limit: limit, nonRegular: math.MaxUint64, kind: ArtifactCorpus, format: CacheFormatGo1_27, state: ObservationComplete}},
+		{name: "boundary exact one-entry limit is valid", class: caseBoundary, observation: Observation{limit: mustRetentionLimit(t, 1), retained: 1, names: [MaximumRetainedEntries]GeneratedName{first}, kind: ArtifactCorpus, format: CacheFormatGo1_27, state: ObservationComplete}},
 	}
+	counts := [4]int{}
 	for _, tc := range cases {
+		counts[tc.class]++
 		t.Run(tc.name, func(t *testing.T) {
 			t.Parallel()
 
 			gotErr := tc.observation.Validate()
-			if tc.wantValid {
+			if tc.wantErr == nil {
 				if gotErr != nil {
 					t.Fatalf("Observation.Validate() error = %v, want nil", gotErr)
 				}
@@ -73,10 +97,13 @@ func TestObservationSchemaLayerTriad(t *testing.T) {
 			// the noncanonical-name rows whose cause is a format error: the
 			// observation is what failed its own rule, so the identity a caller
 			// switches on must not depend on which field was wrong.
-			if !errors.Is(gotErr, core.ErrFuzzFinderContract) {
-				t.Fatalf("Observation.Validate() error = %v, want %v", gotErr, core.ErrFuzzFinderContract)
+			if !errors.Is(gotErr, tc.wantErr) {
+				t.Fatalf("Observation.Validate() error = %v, want %v", gotErr, tc.wantErr)
 			}
 		})
+	}
+	if counts[caseValid] != 10 || counts[caseReject] != 10 || counts[caseBoundary] != 20 {
+		t.Fatalf("hostile case counts = valid:%d reject:%d boundary:%d, want 10/10/20", counts[caseValid], counts[caseReject], counts[caseBoundary])
 	}
 }
 
@@ -122,7 +149,7 @@ func TestObservationNamesAreDefensiveAndCountersSaturate(t *testing.T) {
 	t.Parallel()
 
 	limit := mustRetentionLimit(t, 1)
-	name := generatedNameForPosition(t, 1)
+	name := generatedNameForPosition(t, ArtifactCorpus, 1)
 	got := Observation{
 		limit:              limit,
 		retained:           1,
@@ -132,6 +159,7 @@ func TestObservationNamesAreDefensiveAndCountersSaturate(t *testing.T) {
 		overLimit:          math.MaxUint64,
 		unsupportedRegular: math.MaxUint64,
 		kind:               ArtifactCorpus,
+		format:             CacheFormatGo1_27,
 		state:              ObservationPartial,
 	}
 	names := got.Names()

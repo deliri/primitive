@@ -12,12 +12,12 @@ const (
 	// bounded observation.
 	MaximumRetainedEntries uint16 = 128
 
-	generatedNameBytesGo1_26 = 16
+	generatedNameBytesGo1_27 = 16
 )
 
 func cacheFormatDiagnostics() [cacheFormatLimit]string {
 	return [...]string{
-		CacheFormatGo1_26: "go1.26",
+		CacheFormatGo1_27: "go1.27",
 	}
 }
 
@@ -26,9 +26,9 @@ type CacheFormat uint8
 
 const (
 	CacheFormatUnknown CacheFormat = iota
-	// CacheFormatGo1_26 is the generated cache/crasher filename format written
-	// by Go 1.26's internal/fuzz writeToCorpus path.
-	CacheFormatGo1_26
+	// CacheFormatGo1_27 is the generated cache/crasher filename format written
+	// by Go 1.27's internal fuzz engine.
+	CacheFormatGo1_27
 	cacheFormatLimit
 )
 
@@ -56,9 +56,10 @@ func (f CacheFormat) String() string {
 	return cacheFormatDiagnostics()[f]
 }
 
-// GeneratedNameBytes returns the exact generated filename width for f.
-func (f CacheFormat) GeneratedNameBytes() (core.ByteCount, error) {
-	width, err := f.generatedNameBytes()
+// GeneratedNameBytes returns the exact persisted filename width for kind under
+// f. Go 1.27 writes both cache corpus and durable crashers through writeToCorpus.
+func (f CacheFormat) GeneratedNameBytes(kind ArtifactKind) (core.ByteCount, error) {
+	width, err := f.generatedNameBytes(kind)
 	if err != nil {
 		return core.ByteCount{}, err
 	}
@@ -69,14 +70,15 @@ func (f CacheFormat) GeneratedNameBytes() (core.ByteCount, error) {
 	return value, nil
 }
 
-// generatedNameBytes is the single owner of each format's exact generated
-// filename width. Parsing derives its width here rather than reading the
-// storage ceiling, so a second format cannot inherit Go 1.26's width by
-// accident; the storage ceiling is pinned against this switch by test.
-func (f CacheFormat) generatedNameBytes() (uint8, error) {
+// generatedNameBytes is the single owner of each format and artifact kind's
+// exact generated filename width.
+func (f CacheFormat) generatedNameBytes(kind ArtifactKind) (uint8, error) {
+	if err := kind.Validate(); err != nil {
+		return 0, err
+	}
 	switch f {
-	case CacheFormatGo1_26:
-		return generatedNameBytesGo1_26, nil
+	case CacheFormatGo1_27:
+		return generatedNameBytesGo1_27, nil
 	default:
 		return 0, f.Validate()
 	}
@@ -113,12 +115,10 @@ func (l RetentionLimit) Uint16() uint16 {
 // FindRequest binds one rooted directory, one declared artifact class, the
 // exact Go format, and a retention limit to one observation.
 //
-// Kind is declared rather than observed. The Go toolchain writes cache corpus
-// entries and testdata crashers through the same generated-name format, so the
-// containing directory is the only discriminator and only the caller that chose
-// the directory knows it. Binding it into the request forces every observation
-// to say which class it counted, so a consumer cannot merge corpus and crasher
-// facts by losing track of which directory produced them.
+// Kind is declared rather than observed. Go 1.27 persists cache corpus and
+// testdata crashers through the same filename projection, so the name alone
+// cannot identify its class. Binding Kind into the request and retained name
+// prevents corpus and crasher facts from being merged.
 type FindRequest struct {
 	Location  filestore.Location
 	Retention RetentionLimit

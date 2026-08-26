@@ -46,15 +46,15 @@ func (r taskEvidencePreparationRequest) Validate() error {
 		return err
 	}
 	if r.Configuration.EvidenceStorage == nil {
-		return commandError("evidence_storage is required for append_evidence", nil)
+		return commandError(evidenceStorageRequiredErrorText, nil)
 	}
 	return nil
 }
 
 type taskEvidenceObjectNameRequest struct {
 	Prefix gcsobjects.GCSObjectPrefix
-	Input  appendEvidenceInput
 	Source core.AbsolutePath
+	Input  appendEvidenceInput
 	Digest core.SHA256Digest
 }
 
@@ -102,10 +102,10 @@ func uploadTaskEvidence(
 	request taskEvidenceUploadRequest,
 ) (taskEvidenceUploadReceipt, error) {
 	if ctx == nil {
-		return taskEvidenceUploadReceipt{}, commandError("evidence upload input is invalid", core.ErrNilContext)
+		return taskEvidenceUploadReceipt{}, commandError(evidenceUploadInputErrorText, core.ErrNilContext)
 	}
 	if err := request.Validate(); err != nil {
-		return taskEvidenceUploadReceipt{}, commandError("evidence upload input is invalid", err)
+		return taskEvidenceUploadReceipt{}, commandError(evidenceUploadInputErrorText, err)
 	}
 	observation, err := temporal.Observe()
 	if err != nil {
@@ -150,10 +150,10 @@ func prepareTaskEvidenceUpload(
 	request taskEvidencePreparationRequest,
 ) (taskEvidenceUploadPlan, error) {
 	if ctx == nil {
-		return taskEvidenceUploadPlan{}, commandError("evidence upload preparation input is invalid", core.ErrNilContext)
+		return taskEvidenceUploadPlan{}, commandError(evidenceUploadPreparationInputErrorText, core.ErrNilContext)
 	}
 	if err := request.Validate(); err != nil {
-		return taskEvidenceUploadPlan{}, commandError("evidence upload preparation input is invalid", err)
+		return taskEvidenceUploadPlan{}, commandError(evidenceUploadPreparationInputErrorText, err)
 	}
 	sourcePath, err := request.Input.sourcePath(request.WorkingDirectory)
 	if err != nil {

@@ -162,12 +162,12 @@ func liveTaskEvidenceServer(t testing.TB, received *atomic.Uint32) *httptest.Ser
 }
 
 type poisonedTaskEvidenceProofRequest struct {
+	Provider      *gcsobjects.GCSClient
+	Received      *atomic.Uint32
 	Root          core.AbsolutePath
+	Bucket        gcsobjects.GCSBucket
 	Configuration configurationDocument
 	Client        taskmanager.Client
-	Provider      *gcsobjects.GCSClient
-	Bucket        gcsobjects.GCSBucket
-	Received      *atomic.Uint32
 	Instant       temporal.Instant
 }
 

@@ -21,7 +21,7 @@ func TestFindRealDirectoryLayerTriad(t *testing.T) {
 		rootDirectory := t.TempDir()
 		location := fuzzDirectoryLocation(t, rootDirectory)
 		for _, position := range []uint64{9, 1, 7, 3} {
-			writeGeneratedFile(t, rootDirectory, generatedNameForPosition(t, position))
+			writeGeneratedFile(t, rootDirectory, generatedNameForPosition(t, ArtifactCrasher, position))
 		}
 		got, gotErr := Find(t.Context(), crasherRequest(location, mustRetentionLimit(t, MaximumRetainedEntries)))
 		if gotErr != nil || got.State() != ObservationComplete {
@@ -32,10 +32,10 @@ func TestFindRealDirectoryLayerTriad(t *testing.T) {
 		}
 		gotNames := got.Names()
 		wantNames := []GeneratedName{
-			generatedNameForPosition(t, 1),
-			generatedNameForPosition(t, 3),
-			generatedNameForPosition(t, 7),
-			generatedNameForPosition(t, 9),
+			generatedNameForPosition(t, ArtifactCrasher, 1),
+			generatedNameForPosition(t, ArtifactCrasher, 3),
+			generatedNameForPosition(t, ArtifactCrasher, 7),
+			generatedNameForPosition(t, ArtifactCrasher, 9),
 		}
 		if !slices.Equal(gotNames, wantNames) || got.Retained().Uint64() != uint64(len(wantNames)) {
 			t.Fatalf("Find(real directory) names/count = (%v, %d), want (%v, %d)", gotNames, got.Retained().Uint64(), wantNames, len(wantNames))
@@ -46,7 +46,7 @@ func TestFindRealDirectoryLayerTriad(t *testing.T) {
 
 		rootDirectory := t.TempDir()
 		location := fuzzDirectoryLocation(t, rootDirectory)
-		writeGeneratedFile(t, rootDirectory, generatedNameForPosition(t, 1))
+		writeGeneratedFile(t, rootDirectory, generatedNameForPosition(t, ArtifactCrasher, 1))
 		if err := os.WriteFile(filepath.Join(rootDirectory, cacheDirectoryComponent, "new-go-format"), []byte("unknown"), 0o600); err != nil {
 			t.Fatal(err)
 		}
@@ -80,16 +80,16 @@ func TestFindClassifiesEveryRealEntryKindUnderRetentionPressure(t *testing.T) {
 	location := fuzzDirectoryLocation(t, rootDirectory)
 	const generatedFiles = 12
 	for position := range uint64(generatedFiles) {
-		writeGeneratedFile(t, rootDirectory, generatedNameForPosition(t, position))
+		writeGeneratedFile(t, rootDirectory, generatedNameForPosition(t, ArtifactCrasher, position))
 	}
 	cacheDirectory := filepath.Join(rootDirectory, cacheDirectoryComponent)
 	// The subdirectory, the dangling symlink, and the off-format regular file all
 	// carry names the format would otherwise accept, so a classifier that read the
 	// name before the entry type would miscount every one of them.
-	if err := os.Mkdir(filepath.Join(cacheDirectory, generatedNameForPosition(t, 90).String()), 0o700); err != nil {
+	if err := os.Mkdir(filepath.Join(cacheDirectory, generatedNameForPosition(t, ArtifactCrasher, 90).String()), 0o700); err != nil {
 		t.Fatal(err)
 	}
-	if err := os.Symlink("absent-target", filepath.Join(cacheDirectory, generatedNameForPosition(t, 91).String())); err != nil {
+	if err := os.Symlink("absent-target", filepath.Join(cacheDirectory, generatedNameForPosition(t, ArtifactCrasher, 91).String())); err != nil {
 		t.Fatal(err)
 	}
 	if err := os.WriteFile(filepath.Join(cacheDirectory, "0123456789abcdeF"), []byte("uppercase"), 0o600); err != nil {
@@ -100,11 +100,11 @@ func TestFindClassifiesEveryRealEntryKindUnderRetentionPressure(t *testing.T) {
 		t.Fatalf("Find(mixed directory) = (state %d, %v), want (%d, %v)", got.State(), gotErr, ObservationUnsupportedFormat, core.ErrFuzzFinderFormat)
 	}
 	wantNames := []GeneratedName{
-		generatedNameForPosition(t, 0),
-		generatedNameForPosition(t, 1),
-		generatedNameForPosition(t, 2),
-		generatedNameForPosition(t, 3),
-		generatedNameForPosition(t, 4),
+		generatedNameForPosition(t, ArtifactCrasher, 0),
+		generatedNameForPosition(t, ArtifactCrasher, 1),
+		generatedNameForPosition(t, ArtifactCrasher, 2),
+		generatedNameForPosition(t, ArtifactCrasher, 3),
+		generatedNameForPosition(t, ArtifactCrasher, 4),
 	}
 	if !slices.Equal(got.Names(), wantNames) {
 		t.Fatalf("Find(mixed directory) names = %v, want %v", got.Names(), wantNames)
@@ -135,7 +135,7 @@ func TestFindStreamsRealDirectoryAcrossManyReadBatches(t *testing.T) {
 	// order the test chose.
 	const realEntries = 200
 	for position := range realEntries {
-		writeGeneratedFile(t, rootDirectory, generatedNameForPosition(t, uint64(position)))
+		writeGeneratedFile(t, rootDirectory, generatedNameForPosition(t, ArtifactCorpus, uint64(position)))
 	}
 	limit := mustRetentionLimit(t, MaximumRetainedEntries)
 	got, gotErr := Find(t.Context(), corpusRequest(location, limit))
@@ -144,7 +144,7 @@ func TestFindStreamsRealDirectoryAcrossManyReadBatches(t *testing.T) {
 	}
 	wantNames := make([]GeneratedName, MaximumRetainedEntries)
 	for position := range uint64(MaximumRetainedEntries) {
-		wantNames[position] = generatedNameForPosition(t, position)
+		wantNames[position] = generatedNameForPosition(t, ArtifactCorpus, position)
 	}
 	if !slices.Equal(got.Names(), wantNames) {
 		t.Fatalf("Find(%d entries) retained the wrong canonical prefix: first = %q last = %q, want %q..%q",
@@ -179,15 +179,15 @@ func TestFindIngressAndNativeFailurePressure(t *testing.T) {
 		wantState ObservationState
 	}{
 		{name: "zero request is rejected", wantErr: core.ErrFuzzFinderContract},
-		{name: "nil root is rejected", request: FindRequest{Location: filestore.Location{Path: cachePath}, Kind: ArtifactCorpus, Format: CacheFormatGo1_26, Retention: validLimit}, wantErr: core.ErrFuzzFinderContract},
-		{name: "zero path is rejected", request: FindRequest{Location: filestore.Location{Root: root}, Kind: ArtifactCorpus, Format: CacheFormatGo1_26, Retention: validLimit}, wantErr: core.ErrFuzzFinderContract},
-		{name: "undeclared artifact kind is rejected", request: FindRequest{Location: cacheLocation, Format: CacheFormatGo1_26, Retention: validLimit}, wantErr: core.ErrFuzzFinderContract},
-		{name: "future artifact kind is rejected", request: FindRequest{Location: cacheLocation, Kind: ArtifactKind(255), Format: CacheFormatGo1_26, Retention: validLimit}, wantErr: core.ErrFuzzFinderContract},
+		{name: "nil root is rejected", request: FindRequest{Location: filestore.Location{Path: cachePath}, Kind: ArtifactCorpus, Format: CacheFormatGo1_27, Retention: validLimit}, wantErr: core.ErrFuzzFinderContract},
+		{name: "zero path is rejected", request: FindRequest{Location: filestore.Location{Root: root}, Kind: ArtifactCorpus, Format: CacheFormatGo1_27, Retention: validLimit}, wantErr: core.ErrFuzzFinderContract},
+		{name: "undeclared artifact kind is rejected", request: FindRequest{Location: cacheLocation, Format: CacheFormatGo1_27, Retention: validLimit}, wantErr: core.ErrFuzzFinderContract},
+		{name: "future artifact kind is rejected", request: FindRequest{Location: cacheLocation, Kind: ArtifactKind(255), Format: CacheFormatGo1_27, Retention: validLimit}, wantErr: core.ErrFuzzFinderContract},
 		{name: "unknown format is rejected", request: FindRequest{Location: cacheLocation, Kind: ArtifactCorpus, Retention: validLimit}, wantErr: core.ErrFuzzFinderFormat},
 		{name: "future format is rejected", request: FindRequest{Location: cacheLocation, Kind: ArtifactCorpus, Format: CacheFormat(255), Retention: validLimit}, wantErr: core.ErrFuzzFinderFormat},
-		{name: "zero retention is rejected", request: FindRequest{Location: cacheLocation, Kind: ArtifactCorpus, Format: CacheFormatGo1_26}, wantErr: core.ErrFuzzFinderContract},
-		{name: "missing directory preserves native absence", request: FindRequest{Location: filestore.Location{Root: root, Path: missingPath}, Kind: ArtifactCorpus, Format: CacheFormatGo1_26, Retention: validLimit}, wantErr: core.ErrFuzzFinderObservation, wantState: ObservationFailed},
-		{name: "regular file refuses directory contract", request: FindRequest{Location: filestore.Location{Root: root, Path: regularPath}, Kind: ArtifactCorpus, Format: CacheFormatGo1_26, Retention: validLimit}, wantErr: core.ErrFuzzFinderContract, wantState: ObservationFailed},
+		{name: "zero retention is rejected", request: FindRequest{Location: cacheLocation, Kind: ArtifactCorpus, Format: CacheFormatGo1_27}, wantErr: core.ErrFuzzFinderContract},
+		{name: "missing directory preserves native absence", request: FindRequest{Location: filestore.Location{Root: root, Path: missingPath}, Kind: ArtifactCorpus, Format: CacheFormatGo1_27, Retention: validLimit}, wantErr: core.ErrFuzzFinderObservation, wantState: ObservationFailed},
+		{name: "regular file refuses directory contract", request: FindRequest{Location: filestore.Location{Root: root, Path: regularPath}, Kind: ArtifactCorpus, Format: CacheFormatGo1_27, Retention: validLimit}, wantErr: core.ErrFuzzFinderContract, wantState: ObservationFailed},
 	}
 	for _, tc := range cases {
 		t.Run(tc.name, func(t *testing.T) {
@@ -214,7 +214,7 @@ func TestFindIngressAndNativeFailurePressure(t *testing.T) {
 		_, gotErr := Find(t.Context(), FindRequest{
 			Location:  filestore.Location{Root: root, Path: missingPath},
 			Kind:      ArtifactCorpus,
-			Format:    CacheFormatGo1_26,
+			Format:    CacheFormatGo1_27,
 			Retention: validLimit,
 		})
 		if !errors.Is(gotErr, fs.ErrNotExist) {
@@ -241,7 +241,7 @@ func benchmarkFindRealDirectory(b *testing.B, entries uint64) {
 	rootDirectory := b.TempDir()
 	location := fuzzDirectoryLocation(b, rootDirectory)
 	for position := range entries {
-		writeGeneratedFile(b, rootDirectory, generatedNameForPosition(b, position))
+		writeGeneratedFile(b, rootDirectory, generatedNameForPosition(b, ArtifactCorpus, position))
 	}
 	request := corpusRequest(location, mustRetentionLimit(b, MaximumRetainedEntries))
 	b.ResetTimer()
@@ -256,11 +256,11 @@ func benchmarkFindRealDirectory(b *testing.B, entries uint64) {
 const cacheDirectoryComponent = "cache"
 
 func corpusRequest(location filestore.Location, limit RetentionLimit) FindRequest {
-	return FindRequest{Location: location, Kind: ArtifactCorpus, Format: CacheFormatGo1_26, Retention: limit}
+	return FindRequest{Location: location, Kind: ArtifactCorpus, Format: CacheFormatGo1_27, Retention: limit}
 }
 
 func crasherRequest(location filestore.Location, limit RetentionLimit) FindRequest {
-	return FindRequest{Location: location, Kind: ArtifactCrasher, Format: CacheFormatGo1_26, Retention: limit}
+	return FindRequest{Location: location, Kind: ArtifactCrasher, Format: CacheFormatGo1_27, Retention: limit}
 }
 
 func writeGeneratedFile(t testing.TB, rootDirectory string, name GeneratedName) {
