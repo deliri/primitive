@@ -131,7 +131,7 @@ reviewed explicitly.
 | downloading one authenticated chit object directly to a file | verify the Retrieval grant, then use `retrieval.VerifiedGrant.DownloadFile`; it streams through Objectstore into Filestore and activates only after exact evidence matches |
 | downloading every object in one authenticated chit without loading its manifest | begin with `retrieval.StartAll`; after each verified grant, use `VerifiedGrant.Continuation`: `more` owns the exact after-selection and `end` owns no selection |
 | authenticated GCS bucket/object create, read, or permanent exact/prefix delete | `gcsobjects` — `CreateBucket`, `UploadMedia`, and `UploadFile` own the official SDK; products never import it |
-| naming the public URL of a stored object | `gcsobjects` — `Address` on an accepted result, `ObjectAddress` from a bucket and name; never rebuild the provider URL from a copied host |
+| naming or reversing the canonical address of a stored object | `gcsobjects` — `Address` on an accepted result, `ObjectAddress` from a bucket and name, `ParseObjectAddress` from an exact unsigned canonical address; never rebuild or parse the provider URL outside its owner |
 | a timestamp, duration, or deadline | `temporal` |
 | a time-ordered unique identifier | `id` — `NewUUIDv7` or `NewULID` from `keygen.GenerateSecret` entropy and `temporal.Observe`; never `google/uuid` or a hand-rolled ULID from a product |
 | third-party proof of *when* | `timeproof` |

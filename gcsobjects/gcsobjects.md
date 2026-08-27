@@ -35,10 +35,12 @@ rebuilds the provider's URL from a copied host and two slashes, which is the
 projection rule broken by omission: the owner declines the address, so the
 address grows copies outside the owner.
 
-`ObjectAddress` derives it from a validated bucket and object name, and
-`GCSObjectMetadata.Address` derives it from an accepted result. Both are pure
-value derivations. Neither contacts the provider, neither proves the object
-exists, and neither confers access: whether a reader may fetch that address is
+`ObjectAddress` derives it from a validated bucket and object name,
+`ParseObjectAddress` reverses only that exact unsigned canonical form into a
+validated bucket and object identity, and
+`GCSObjectMetadata.Address` derives it from an accepted result. All three are
+pure value derivations. None contacts the provider, proves the object exists,
+or confers access: whether a reader may fetch that address is
 the bucket's policy. A stored file in a private bucket therefore has a perfectly
 correct address that answers 403, which is the truth rather than a trap. A
 consumer serving through its own CDN composes its own origin and does not use

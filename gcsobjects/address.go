@@ -2,9 +2,73 @@ package gcsobjects
 
 import (
 	"net/url"
+	"strings"
 
 	"github.com/deliri/primitive/v2026/core"
 )
+
+// GCSObjectAddress is one canonical provider address reversed into the exact
+// bucket and flat object identity it names. It is an address, never a read
+// capability.
+type GCSObjectAddress struct {
+	bucket GCSBucket
+	name   GCSObjectName
+}
+
+// ParseObjectAddress admits only the canonical path-style address emitted by
+// ObjectAddress. Signed URLs, alternate provider hosts, ports, queries, and
+// noncanonical escaping are different contracts and fail closed.
+func ParseObjectAddress(address core.HTTPEndpoint) (GCSObjectAddress, error) {
+	if err := address.Validate(); err != nil {
+		return GCSObjectAddress{}, core.ErrObjectStoreContract
+	}
+	parsed := address.HTTPURL()
+	if !canonicalGCSObjectAuthority(parsed) {
+		return GCSObjectAddress{}, core.ErrObjectStoreContract
+	}
+	bucketText, nameText, ok := strings.Cut(strings.TrimPrefix(parsed.Path, "/"), "/")
+	if !ok || bucketText == "" || nameText == "" {
+		return GCSObjectAddress{}, core.ErrObjectStoreContract
+	}
+	bucket, bucketErr := ParseGCSBucket(bucketText)
+	name, nameErr := ParseGCSObjectName(nameText)
+	if bucketErr != nil || nameErr != nil {
+		return GCSObjectAddress{}, core.ErrObjectStoreContract
+	}
+	result := GCSObjectAddress{bucket: bucket, name: name}
+	canonical, err := ObjectAddress(bucket, name)
+	if err != nil || canonical != address {
+		return GCSObjectAddress{}, core.ErrObjectStoreContract
+	}
+	return result, result.Validate()
+}
+
+func canonicalGCSObjectAuthority(address url.URL) bool {
+	return address.Scheme == core.SchemeHTTPS &&
+		address.Host == core.GoogleCloudStorageHost &&
+		address.Port() == "" && address.RawQuery == "" && !address.ForceQuery &&
+		address.Fragment == "" && address.RawFragment == "" &&
+		strings.HasPrefix(address.Path, "/")
+}
+
+// Validate proves both provider identities and their canonical combined
+// address remain valid.
+func (a GCSObjectAddress) Validate() error {
+	if err := a.bucket.Validate(); err != nil {
+		return core.ErrObjectStoreContract
+	}
+	if err := a.name.Validate(); err != nil {
+		return core.ErrObjectStoreContract
+	}
+	_, err := ObjectAddress(a.bucket, a.name)
+	return err
+}
+
+// Bucket returns the exact validated bucket identity.
+func (a GCSObjectAddress) Bucket() GCSBucket { return a.bucket }
+
+// Name returns the exact validated flat object identity.
+func (a GCSObjectAddress) Name() GCSObjectName { return a.name }
 
 // THE ADDRESS OF A PUBLISHED OBJECT.
 //

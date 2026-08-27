@@ -115,7 +115,8 @@ func productionStructRole(name string) (string, bool) {
 	case "GCSClientConfig":
 		return "authenticated provider construction ingress", true
 	case "GCSBucket", "GCSObjectName", "GCSObjectPrefix", "GCSCacheControl",
-		"GCSGeneration", "GCSProjectID", "GCSLocation", "GCSObjectSegment", "GCSServiceAccount":
+		"GCSGeneration", "GCSProjectID", "GCSLocation", "GCSObjectSegment", "GCSServiceAccount",
+		"GCSObjectAddress":
 		return "opaque validated provider value", true
 	case "GCSMediaUpload", "GCSFileUpload", "GCSReadRequest", "GCSUploadObservationRequest", "GCSDeleteRequest",
 		"GCSDeleteObjectRequest", "GCSBucketCreateRequest", "GCSRootPrefixRequest",
