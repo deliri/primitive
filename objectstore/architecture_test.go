@@ -188,7 +188,7 @@ func productionStructRole(name string) (string, bool) {
 	switch name {
 	case "VendorSpec":
 		return "published compiler-owned vendor contract", true
-	case "ProviderVersion", "SignedURL", "SignedHeader", "SignedHeaders":
+	case "ProviderVersion", "SignedURL", "SignedHeader", "SignedHeaders", "BLAKE3Digest":
 		return "opaque validated capability value", true
 	case "UploadTarget", "DownloadTarget", "Integrity", "Policy", "TransferProgress":
 		return "public protocol fact", true

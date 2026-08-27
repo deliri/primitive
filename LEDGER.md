@@ -4,6 +4,22 @@ Last updated: `2026-08-27`
 
 ## Current
 
+- opened one product-neutral BLAKE3-256 content-identity door for Witness, Bug,
+  Peachfuzz, and Blink Kernel, 2026-08-27, preparing `v2026.0.153`.
+  `objectstore.BLAKE3Digest` owns the exact set/unset and canonical lowercase
+  hexadecimal contract because no second Primitive package currently
+  interprets it; Core's two-Primitive-consumer admission ratchet rejected the
+  first attempted placement. `objectstore.Inspect` now derives BLAKE3 beside
+  its existing SHA-256, CRC32C, and byte count in the same bounded streaming
+  pass. The first established library was rejected after the one-MiB benchmark
+  exposed roughly 1.18 MiB and 652 allocations per operation. The replacement
+  holds exactly 44,017 B/op and 11 allocs/op at 1 KiB, 1 MiB, and 16 MiB, so
+  memory no longer grows with stream extent. Hostile 10-valid/30-rejection
+  canonical pressure, JSON framing rejection, local schema and inspection
+  positive/negative/neutral triads, official vectors, independent digest
+  oracles, and semantic text/JSON/stream fuzz targets are the acceptance
+  surfaces before publication.
+
 - opened the missing private-GCS whole-object retrieval capability for Blink's
   evidence display flow, 2026-08-27. GCSObjects now owns the single official
   IAM Credentials and Storage SDK signing leaf for both upload and retrieval;

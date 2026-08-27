@@ -8,6 +8,7 @@ import (
 
 	"github.com/deliri/primitive/v2026/contextstate"
 	"github.com/deliri/primitive/v2026/core"
+	"github.com/zeebo/blake3"
 )
 
 const inspectionBufferBytes = 32 << 10
@@ -32,10 +33,14 @@ func (r InspectionRequest) Validate() error {
 // Inspection is the exact declaration produced from one complete stream.
 type Inspection struct {
 	Integrity Integrity
+	BLAKE3    BLAKE3Digest
 }
 
 func (i Inspection) Validate() error {
 	if err := i.Integrity.Validate(); err != nil {
+		return errors.Join(core.ErrObjectStoreContract, err)
+	}
+	if err := i.BLAKE3.Validate(); err != nil {
 		return errors.Join(core.ErrObjectStoreContract, err)
 	}
 	if i.Integrity.Length.Uint64() == 0 {
@@ -56,10 +61,11 @@ func Inspect(ctx context.Context, request InspectionRequest) (Inspection, error)
 	}
 	maximum, _ := request.MaximumBytes.Int64()
 	digest := core.NewDigestWriter()
+	contentIdentity := blake3.New()
 	checksum := crc32.New(crc32.MakeTable(crc32.Castagnoli))
 	limited := &io.LimitedReader{R: request.Source, N: maximum}
 	buffer := make([]byte, inspectionBufferBytes)
-	if _, err := io.CopyBuffer(io.MultiWriter(digest, checksum), limited, buffer); err != nil {
+	if _, err := io.CopyBuffer(io.MultiWriter(digest, contentIdentity, checksum), limited, buffer); err != nil {
 		return Inspection{}, errors.Join(core.ErrObjectStoreContract, core.ErrObjectStoreSource, err)
 	}
 	over, err := sourceHasAnotherByte(request.Source)
@@ -73,9 +79,11 @@ func Inspect(ctx context.Context, request InspectionRequest) (Inspection, error)
 	if err != nil {
 		return Inspection{}, errors.Join(core.ErrObjectStoreContract, err)
 	}
+	var blake3Sum [BLAKE3DigestBytes]byte
+	contentIdentity.Sum(blake3Sum[:0])
 	inspection := Inspection{Integrity: Integrity{
 		Length: length, SHA256: sha256, CRC32C: core.NewCRC32C(checksum.Sum32()),
-	}}
+	}, BLAKE3: NewBLAKE3Digest(blake3Sum)}
 	if err := inspection.Validate(); err != nil {
 		return Inspection{}, err
 	}

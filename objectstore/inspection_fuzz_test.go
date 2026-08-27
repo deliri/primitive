@@ -9,6 +9,7 @@ import (
 
 	"github.com/deliri/primitive/v2026/core"
 	"github.com/deliri/primitive/v2026/objectstore"
+	"github.com/zeebo/blake3"
 )
 
 func FuzzInspectSemanticIntegrityAndSizeClosure(f *testing.F) {
@@ -52,9 +53,10 @@ func FuzzInspectSemanticIntegrityAndSizeClosure(f *testing.F) {
 			t.Fatalf("objectstore.Inspect(accepted size %d) = (%+v, %v), want validated and nil", len(data), got, gotErr)
 		}
 		wantSHA := core.NewSHA256Digest(sha256.Sum256(data))
+		wantBLAKE3 := objectstore.NewBLAKE3Digest(blake3.Sum256(data))
 		wantCRC := core.NewCRC32C(crc32.Checksum(data, crc32.MakeTable(crc32.Castagnoli)))
-		if got.Integrity.Length.Uint64() != uint64(len(data)) || got.Integrity.SHA256 != wantSHA || got.Integrity.CRC32C != wantCRC {
-			t.Fatalf("objectstore.Inspect(accepted) integrity = %+v, want independent length=%d sha256=%v crc32c=%v", got.Integrity, len(data), wantSHA, wantCRC)
+		if got.Integrity.Length.Uint64() != uint64(len(data)) || got.Integrity.SHA256 != wantSHA || got.BLAKE3 != wantBLAKE3 || got.Integrity.CRC32C != wantCRC {
+			t.Fatalf("objectstore.Inspect(accepted) = %+v, want independent length=%d sha256=%v blake3=%v crc32c=%v", got, len(data), wantSHA, wantBLAKE3, wantCRC)
 		}
 	})
 }

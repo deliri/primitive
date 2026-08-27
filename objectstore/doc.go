@@ -2,9 +2,10 @@
 // already-issued HTTPS capabilities.
 //
 // Objectstore owns provider request shape, exact extent, streaming SHA-256 and
-// CRC32C proof, create-only intent, and commitment classification. It does not
-// create buckets, mint credentials, signed URLs, Cloudflare draft records,
-// retries, resumable sessions, lifecycle policy, or multi-provider workflows.
+// CRC32C proof, streaming BLAKE3-256 content identity, create-only intent, and
+// commitment classification. It does not create buckets, mint credentials,
+// signed URLs, Cloudflare draft records, retries, resumable sessions, lifecycle
+// policy, or multi-provider workflows.
 // It can project an already-issued UploadTarget into the exact capability
 // document its receiver consumes. For raw-object providers it can also project
 // that same bearer plus one exact Integrity and content type into the complete
