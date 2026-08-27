@@ -2,10 +2,6 @@ package gcsobjects
 
 import (
 	"context"
-	"crypto"
-	"crypto/rand"
-	"crypto/rsa"
-	"crypto/sha256"
 	"encoding/base64"
 	json "encoding/json/v2"
 	"errors"
@@ -100,14 +96,14 @@ func TestGCSUploadCapabilityRequestHostileBoundaries(t *testing.T) {
 		{name: "unset content type is refused", mutate: func(value *GCSUploadCapabilityRequest) { value.ContentType = core.HTTPMediaType{} }, wantErr: core.ErrObjectStoreContract},
 		{name: "zero lifetime is refused", mutate: func(value *GCSUploadCapabilityRequest) { value.Lifetime = temporal.Duration{} }, wantErr: core.ErrObjectStoreContract},
 		{name: "exact seven day lifetime is admitted", mutate: func(value *GCSUploadCapabilityRequest) {
-			lifetime, err := temporal.DurationFromDays(GCSUploadCapabilityMaximumDays)
+			lifetime, err := temporal.DurationFromDays(GCSCapabilityMaximumDays)
 			if err != nil {
 				t.Fatalf("temporal.DurationFromDays(maximum) error = %v, want nil", err)
 			}
 			value.Lifetime = lifetime
 		}},
 		{name: "one nanosecond beyond seven days is refused", mutate: func(value *GCSUploadCapabilityRequest) {
-			maximum, err := temporal.DurationFromDays(GCSUploadCapabilityMaximumDays)
+			maximum, err := temporal.DurationFromDays(GCSCapabilityMaximumDays)
 			if err != nil {
 				t.Fatalf("temporal.DurationFromDays(maximum) error = %v, want nil", err)
 			}
@@ -142,7 +138,7 @@ func TestGCSUploadCapabilityRequestHostileBoundaries(t *testing.T) {
 	}
 }
 
-func TestGCSUploadCapabilityIssuerLayerTriadUsesOfficialSDKSigningLeaf(t *testing.T) {
+func TestGCSUploadCapabilityIssuanceLayerTriadUsesOfficialSDKSigningLeaf(t *testing.T) {
 	t.Parallel()
 
 	t.Run("positive official IAM response closes one valid Objectstore capability", func(t *testing.T) {
@@ -239,7 +235,7 @@ func TestGCSUploadCapabilityIssuerLayerTriadUsesOfficialSDKSigningLeaf(t *testin
 	})
 }
 
-func TestNewGCSUploadCapabilityIssuerRefusesInvalidConstructionIngress(t *testing.T) {
+func TestNewGCSCapabilityIssuerRefusesInvalidConstructionIngress(t *testing.T) {
 	t.Parallel()
 
 	cases := []struct {
@@ -255,24 +251,25 @@ func TestNewGCSUploadCapabilityIssuerRefusesInvalidConstructionIngress(t *testin
 		t.Run(tc.name, func(t *testing.T) {
 			t.Parallel()
 
-			got, gotErr := NewGCSUploadCapabilityIssuer(tc.ctx, tc.config)
+			got, gotErr := NewGCSCapabilityIssuer(tc.ctx, tc.config)
 			if !errors.Is(gotErr, core.ErrObjectStoreContract) || got != nil {
-				t.Fatalf("NewGCSUploadCapabilityIssuer() = (%v, %v), want nil and errors.Is(..., %v)", got, gotErr, core.ErrObjectStoreContract)
+				t.Fatalf("NewGCSCapabilityIssuer() = (%v, %v), want nil and errors.Is(..., %v)", got, gotErr, core.ErrObjectStoreContract)
 			}
 		})
 	}
 }
 
 func gcsCapabilityIssuer(
-	t *testing.T,
+	t testing.TB,
 	outcome gcsCapabilityProviderOutcome,
-) (*GCSUploadCapabilityIssuer, *atomic.Uint64) {
+) (*GCSCapabilityIssuer, *atomic.Uint64) {
 	t.Helper()
 
-	key, err := rsa.GenerateKey(rand.Reader, 2048)
-	if err != nil {
-		t.Fatalf("rsa.GenerateKey() error = %v, want nil", err)
+	signedBlob := base64.StdEncoding.EncodeToString([]byte("deterministic-provider-signature"))
+	if outcome == gcsCapabilityProviderOutcomeEmptySignature {
+		signedBlob = ""
 	}
+
 	var calls atomic.Uint64
 	server := httptest.NewServer(http.HandlerFunc(func(writer http.ResponseWriter, request *http.Request) {
 		calls.Add(1)
@@ -292,17 +289,6 @@ func gcsCapabilityIssuer(
 			writer.WriteHeader(http.StatusBadRequest)
 			return
 		}
-		digest := sha256.Sum256(payload)
-		signature, err := rsa.SignPKCS1v15(rand.Reader, key, crypto.SHA256, digest[:])
-		if err != nil {
-			t.Errorf("rsa.SignPKCS1v15() error = %v, want nil", err)
-			writer.WriteHeader(http.StatusInternalServerError)
-			return
-		}
-		signedBlob := base64.StdEncoding.EncodeToString(signature)
-		if outcome == gcsCapabilityProviderOutcomeEmptySignature {
-			signedBlob = ""
-		}
 		encoded, err := json.Marshal(&iamcredentials.SignBlobResponse{SignedBlob: signedBlob})
 		if err != nil {
 			t.Errorf("json.Marshal(SignBlobResponse) error = %v, want nil", err)
@@ -321,10 +307,10 @@ func gcsCapabilityIssuer(
 	if err != nil {
 		t.Fatalf("iamcredentials.NewService() error = %v, want nil", err)
 	}
-	return &GCSUploadCapabilityIssuer{service: service}, &calls
+	return &GCSCapabilityIssuer{service: service}, &calls
 }
 
-func gcsCapabilityRequest(t *testing.T) GCSUploadCapabilityRequest {
+func gcsCapabilityRequest(t testing.TB) GCSUploadCapabilityRequest {
 	t.Helper()
 
 	bucket, err := ParseGCSBucket("blink-kernel-stage-media")

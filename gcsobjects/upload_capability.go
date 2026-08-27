@@ -19,12 +19,18 @@ const (
 	// GCSServiceAccountMaximumBytes is the documented Internet mailbox ceiling
 	// applied to one Google service-account principal.
 	GCSServiceAccountMaximumBytes = 254
-	// GCSUploadCapabilityMaximumDays is the provider's V4 signed URL lifetime
+	// GCSCapabilityMaximumDays is the provider's V4 signed URL lifetime
 	// ceiling in exact 24-hour days.
-	GCSUploadCapabilityMaximumDays uint64 = 7
-	gcsServiceAccountDomainSuffix         = ".gserviceaccount.com"
-	gcsSignBlobResourcePrefix             = "projects/-/serviceAccounts/"
-	gcsSignedURLHeaderSeparator           = ":"
+	GCSCapabilityMaximumDays uint64 = 7
+	// GCSSignatureMaximumBytes bounds one decoded provider signature before it
+	// can become bearer material.
+	GCSSignatureMaximumBytes = 1024
+	// GCSSignatureMaximumEncodedBytes is the canonical base64 ceiling for one
+	// provider signature.
+	GCSSignatureMaximumEncodedBytes = ((GCSSignatureMaximumBytes + 2) / 3) * 4
+	gcsServiceAccountDomainSuffix   = ".gserviceaccount.com"
+	gcsSignBlobResourcePrefix       = "projects/-/serviceAccounts/"
+	gcsSignedURLHeaderSeparator     = ":"
 )
 
 // GCSServiceAccount is one validated Google service-account signing principal.
@@ -65,19 +71,19 @@ func gcsServiceAccountASCII(value string) bool {
 	return true
 }
 
-// GCSUploadCapabilityIssuer is an authenticated capability over the official
+// GCSCapabilityIssuer is an authenticated capability over the official
 // IAM Credentials SDK. It mints no credential; it asks the named provider
-// principal to sign one Objectstore-owned raw upload request.
-type GCSUploadCapabilityIssuer struct {
+// principal to sign one Objectstore-owned raw object request.
+type GCSCapabilityIssuer struct {
 	service *iamcredentials.Service
 }
 
-// NewGCSUploadCapabilityIssuer constructs the official IAM Credentials client
+// NewGCSCapabilityIssuer constructs the official IAM Credentials client
 // through the same closed credential discovery contract as GCSClient.
-func NewGCSUploadCapabilityIssuer(
+func NewGCSCapabilityIssuer(
 	ctx context.Context,
 	config GCSClientConfig,
-) (*GCSUploadCapabilityIssuer, error) {
+) (*GCSCapabilityIssuer, error) {
 	if err := contextstate.Validate(ctx); err != nil {
 		return nil, errors.Join(core.ErrObjectStoreContract, err)
 	}
@@ -89,11 +95,11 @@ func NewGCSUploadCapabilityIssuer(
 	if err != nil {
 		return nil, errors.Join(core.ErrObjectStoreContract, err)
 	}
-	return &GCSUploadCapabilityIssuer{service: service}, nil
+	return &GCSCapabilityIssuer{service: service}, nil
 }
 
 // Validate rejects an unconstructed signing capability.
-func (i *GCSUploadCapabilityIssuer) Validate() error {
+func (i *GCSCapabilityIssuer) Validate() error {
 	if i == nil || i.service == nil {
 		return core.ErrObjectStoreContract
 	}
@@ -158,7 +164,7 @@ func (r GCSUploadCapabilityRequest) Validate() error {
 		r.ServiceAccount.Validate(),
 		validateAuthenticatedGCSIntegrity(r.Integrity),
 		r.ContentType.Validate(),
-		validateGCSUploadCapabilityLifetime(r.Lifetime),
+		validateGCSCapabilityLifetime(r.Lifetime),
 	} {
 		if err != nil {
 			return errors.Join(core.ErrObjectStoreContract, err)
@@ -167,8 +173,8 @@ func (r GCSUploadCapabilityRequest) Validate() error {
 	return nil
 }
 
-func validateGCSUploadCapabilityLifetime(lifetime temporal.Duration) error {
-	maximum, err := temporal.DurationFromDays(GCSUploadCapabilityMaximumDays)
+func validateGCSCapabilityLifetime(lifetime temporal.Duration) error {
+	maximum, err := temporal.DurationFromDays(GCSCapabilityMaximumDays)
 	if err != nil {
 		return errors.Join(core.ErrObjectStoreContract, err)
 	}
@@ -183,13 +189,16 @@ func validateGCSUploadCapabilityLifetime(lifetime temporal.Duration) error {
 // official V4 signed URL and returns only the opaque Objectstore projection.
 func IssueGCSUploadCapability(
 	ctx context.Context,
-	issuer *GCSUploadCapabilityIssuer,
+	issuer *GCSCapabilityIssuer,
 	request GCSUploadCapabilityRequest,
 ) (objectstore.UploadCapabilityProjection, error) {
-	if err := validateGCSCapabilityIssuance(ctx, issuer, request); err != nil {
+	if err := request.Validate(); err != nil {
 		return objectstore.UploadCapabilityProjection{}, err
 	}
-	expiresAt, err := gcsUploadCapabilityExpiry(request.Lifetime)
+	if err := validateGCSCapabilityIssuer(ctx, issuer); err != nil {
+		return objectstore.UploadCapabilityProjection{}, err
+	}
+	expiresAt, err := gcsCapabilityExpiry(request.Lifetime)
 	if err != nil {
 		return objectstore.UploadCapabilityProjection{}, err
 	}
@@ -203,7 +212,7 @@ func IssueGCSUploadCapability(
 	return projectGCSUploadCapability(rawURL, expiresAt)
 }
 
-func gcsUploadCapabilityExpiry(lifetime temporal.Duration) (temporal.Instant, error) {
+func gcsCapabilityExpiry(lifetime temporal.Duration) (temporal.Instant, error) {
 	observation, err := temporal.Observe()
 	if err != nil {
 		return temporal.Instant{}, errors.Join(core.ErrObjectStoreContract, err)
@@ -219,14 +228,10 @@ func gcsUploadCapabilityExpiry(lifetime temporal.Duration) (temporal.Instant, er
 	return expiresAt, nil
 }
 
-func validateGCSCapabilityIssuance(
+func validateGCSCapabilityIssuer(
 	ctx context.Context,
-	issuer *GCSUploadCapabilityIssuer,
-	request GCSUploadCapabilityRequest,
+	issuer *GCSCapabilityIssuer,
 ) error {
-	if err := request.Validate(); err != nil {
-		return err
-	}
 	if err := contextstate.Validate(ctx); err != nil {
 		return errors.Join(core.ErrObjectStoreContract, err)
 	}
@@ -235,7 +240,7 @@ func validateGCSCapabilityIssuance(
 
 func issueGCSUploadURL(
 	ctx context.Context,
-	issuer *GCSUploadCapabilityIssuer,
+	issuer *GCSCapabilityIssuer,
 	request gcsUploadURLRequest,
 ) (string, error) {
 	if err := request.Validate(); err != nil {
@@ -272,7 +277,7 @@ func issueGCSUploadURL(
 
 func signGCSCapabilityBytes(
 	ctx context.Context,
-	issuer *GCSUploadCapabilityIssuer,
+	issuer *GCSCapabilityIssuer,
 	account GCSServiceAccount,
 	payload []byte,
 ) ([]byte, error) {
@@ -289,8 +294,16 @@ func signGCSCapabilityBytes(
 	if response == nil || response.SignedBlob == "" {
 		return nil, core.ErrObjectStoreDestination
 	}
-	signed, err := base64.StdEncoding.DecodeString(response.SignedBlob)
-	if err != nil || len(signed) == 0 {
+	return decodeGCSCapabilitySignature(response.SignedBlob)
+}
+
+func decodeGCSCapabilitySignature(encoded string) ([]byte, error) {
+	if len(encoded) == 0 || len(encoded) > GCSSignatureMaximumEncodedBytes {
+		return nil, core.ErrObjectStoreDestination
+	}
+	signed, err := base64.StdEncoding.DecodeString(encoded)
+	if err != nil || len(signed) == 0 || len(signed) > GCSSignatureMaximumBytes ||
+		base64.StdEncoding.EncodeToString(signed) != encoded {
 		return nil, errors.Join(core.ErrObjectStoreDestination, err)
 	}
 	return signed, nil
@@ -316,6 +329,6 @@ func projectGCSUploadCapability(
 
 var (
 	_ core.Validatable = GCSServiceAccount{}
-	_ core.Validatable = (*GCSUploadCapabilityIssuer)(nil)
+	_ core.Validatable = (*GCSCapabilityIssuer)(nil)
 	_ core.Validatable = GCSUploadCapabilityRequest{}
 )

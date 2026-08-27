@@ -638,6 +638,19 @@ func TestProviderDownloadCRC32CProjectionTable(t *testing.T) {
 			wantPresent: true,
 		},
 		{
+			name:     "GCS provider repeats hash field values for crc32c and md5",
+			provider: ProviderGoogleCloudStorage,
+			headers: []exchange.Header{
+				capturedHeader(
+					t,
+					headerGCSHash,
+					headerGCSChecksumPrefix+encoded,
+					"md5=1B2M2Y8AsgTpgAmY7PhCfg==",
+				),
+			},
+			wantPresent: true,
+		},
+		{
 			name:     "GCS crc32c component with surrounding whitespace",
 			provider: ProviderGoogleCloudStorage,
 			headers: []exchange.Header{
@@ -695,6 +708,19 @@ func TestProviderDownloadCRC32CProjectionTable(t *testing.T) {
 					headerGCSHash,
 					headerGCSChecksumPrefix+encoded+","+
 						headerGCSChecksumPrefix+encoded,
+				),
+			},
+			wantErr: core.ErrObjectStoreIntegrity,
+		},
+		{
+			name:     "GCS repeats crc32c across provider field values",
+			provider: ProviderGoogleCloudStorage,
+			headers: []exchange.Header{
+				capturedHeader(
+					t,
+					headerGCSHash,
+					headerGCSChecksumPrefix+encoded,
+					headerGCSChecksumPrefix+encoded,
 				),
 			},
 			wantErr: core.ErrObjectStoreIntegrity,
@@ -822,6 +848,205 @@ func TestProviderDownloadCRC32CProjectionTable(t *testing.T) {
 				)
 			}
 		})
+	}
+}
+
+func TestProviderDownloadCRC32CProjectionLayerTriad(t *testing.T) {
+	t.Parallel()
+
+	const encoded = "SUYRpg=="
+	var want core.CRC32C
+	if gotErr := want.UnmarshalText([]byte(encoded)); gotErr != nil {
+		t.Fatalf("core.CRC32C.UnmarshalText() setup error = %v, want nil", gotErr)
+	}
+
+	cases := []struct {
+		wantErr     error
+		name        string
+		values      []string
+		want        core.CRC32C
+		wantPresent bool
+	}{
+		{
+			name:   "positive repeated GCS field values yield the one exact provider checksum",
+			values: []string{headerGCSChecksumPrefix + encoded, "md5=1B2M2Y8AsgTpgAmY7PhCfg=="},
+			want:   want, wantPresent: true,
+		},
+		{
+			name:    "negative duplicate GCS crc32c facts refuse commitment with integrity identity",
+			values:  []string{headerGCSChecksumPrefix + encoded, headerGCSChecksumPrefix + encoded},
+			wantErr: core.ErrObjectStoreIntegrity,
+		},
+		{
+			name:   "neutral GCS md5 without crc32c produces no checksum and no refusal",
+			values: []string{"md5=1B2M2Y8AsgTpgAmY7PhCfg=="},
+		},
+	}
+
+	for _, tc := range cases {
+		t.Run(tc.name, func(t *testing.T) {
+			t.Parallel()
+
+			got, gotPresent, gotErr := providerDownloadCRC32C(
+				exchange.CapturedHeaders{Values: gcsHashHeaders(t, tc.values...)},
+				ProviderGoogleCloudStorage,
+			)
+			if tc.wantErr != nil {
+				if !errors.Is(gotErr, tc.wantErr) || gotPresent || got != (core.CRC32C{}) {
+					t.Fatalf(
+						"providerDownloadCRC32C() = (%v, %t, %v), want (zero, false, %v)",
+						got, gotPresent, gotErr, tc.wantErr,
+					)
+				}
+				return
+			}
+			if gotErr != nil || gotPresent != tc.wantPresent || got != tc.want {
+				t.Fatalf(
+					"providerDownloadCRC32C() = (%v, %t, %v), want (%v, %t, nil)",
+					got, gotPresent, gotErr, tc.want, tc.wantPresent,
+				)
+			}
+		})
+	}
+}
+
+func TestGoogleCloudStorageDownloadCRC32CProviderProjectionHostileBoundaryTable(t *testing.T) {
+	t.Parallel()
+
+	const encoded = "SUYRpg=="
+	var want core.CRC32C
+	if gotErr := want.UnmarshalText([]byte(encoded)); gotErr != nil {
+		t.Fatalf("core.CRC32C.UnmarshalText() setup error = %v, want nil", gotErr)
+	}
+	maximumValue := strings.Repeat(
+		"x",
+		exchange.HeaderValueMaximumBytes-len(headerGCSChecksumPrefix)-len(encoded)-1,
+	) + "," + headerGCSChecksumPrefix + encoded
+	maximumUnknownValue := strings.Repeat("x", exchange.HeaderValueMaximumBytes)
+	maximumHashValues := make([]string, exchange.HeaderValueMaximumCount)
+	for index := range maximumHashValues {
+		maximumHashValues[index] = "md5=1B2M2Y8AsgTpgAmY7PhCfg=="
+	}
+	maximumHashValues[len(maximumHashValues)-1] = headerGCSChecksumPrefix + encoded
+	aboveMaximumHashValues := append([]string(nil), maximumHashValues...)
+	aboveMaximumHashValues = append(
+		aboveMaximumHashValues,
+		"md5=1B2M2Y8AsgTpgAmY7PhCfg==",
+	)
+
+	cases := []struct {
+		wantErr     error
+		name        string
+		headers     []exchange.Header
+		wantPresent bool
+	}{
+		{name: "accepted crc32c is the only component", headers: gcsHashHeaders(t, headerGCSChecksumPrefix+encoded), wantPresent: true},
+		{name: "accepted crc32c follows md5 in one field value", headers: gcsHashHeaders(t, "md5=1B2M2Y8AsgTpgAmY7PhCfg==,"+headerGCSChecksumPrefix+encoded), wantPresent: true},
+		{name: "accepted crc32c precedes md5 in one field value", headers: gcsHashHeaders(t, headerGCSChecksumPrefix+encoded+",md5=1B2M2Y8AsgTpgAmY7PhCfg=="), wantPresent: true},
+		{name: "accepted whitespace surrounds provider components", headers: gcsHashHeaders(t, " md5=1B2M2Y8AsgTpgAmY7PhCfg== , "+headerGCSChecksumPrefix+encoded+" "), wantPresent: true},
+		{name: "accepted crc32c and md5 occupy separate field values", headers: gcsHashHeaders(t, headerGCSChecksumPrefix+encoded, "md5=1B2M2Y8AsgTpgAmY7PhCfg=="), wantPresent: true},
+		{name: "accepted md5 and crc32c occupy reversed field values", headers: gcsHashHeaders(t, "md5=1B2M2Y8AsgTpgAmY7PhCfg==", headerGCSChecksumPrefix+encoded), wantPresent: true},
+		{name: "accepted unknown component precedes crc32c", headers: gcsHashHeaders(t, "future=value,"+headerGCSChecksumPrefix+encoded), wantPresent: true},
+		{name: "accepted unknown component follows crc32c", headers: gcsHashHeaders(t, headerGCSChecksumPrefix+encoded+",future=value"), wantPresent: true},
+		{name: "accepted unknown field values surround one crc32c", headers: gcsHashHeaders(t, "future=one", headerGCSChecksumPrefix+encoded, "future=two"), wantPresent: true},
+		{name: "accepted exact header value byte ceiling retains crc32c", headers: gcsHashHeaders(t, maximumValue), wantPresent: true},
+
+		{name: "rejected empty crc32c component", headers: gcsHashHeaders(t, headerGCSChecksumPrefix), wantErr: core.ErrObjectStoreIntegrity},
+		{name: "rejected crc32c component is not base64", headers: gcsHashHeaders(t, headerGCSChecksumPrefix+"not-base64!!"), wantErr: core.ErrObjectStoreIntegrity},
+		{name: "rejected crc32c component decodes below exact width", headers: gcsHashHeaders(t, headerGCSChecksumPrefix+"AAAA"), wantErr: core.ErrObjectStoreIntegrity},
+		{name: "rejected crc32c component decodes above exact width", headers: gcsHashHeaders(t, headerGCSChecksumPrefix+"AAAAAAA="), wantErr: core.ErrObjectStoreIntegrity},
+		{name: "rejected crc32c component uses noncanonical base64", headers: gcsHashHeaders(t, headerGCSChecksumPrefix+"SUYRpg"), wantErr: core.ErrObjectStoreIntegrity},
+		{name: "rejected duplicate crc32c components share one field value", headers: gcsHashHeaders(t, headerGCSChecksumPrefix+encoded+","+headerGCSChecksumPrefix+encoded), wantErr: core.ErrObjectStoreIntegrity},
+		{name: "rejected duplicate crc32c components occupy separate field values", headers: gcsHashHeaders(t, headerGCSChecksumPrefix+encoded, headerGCSChecksumPrefix+encoded), wantErr: core.ErrObjectStoreIntegrity},
+		{name: "rejected duplicate captured hash fields contradict exchange projection", headers: append(gcsHashHeaders(t, headerGCSChecksumPrefix+encoded), gcsHashHeaders(t, "md5=1B2M2Y8AsgTpgAmY7PhCfg==")...), wantErr: core.ErrObjectStoreContract},
+		{name: "rejected zero header value cannot cross exchange boundary", headers: []exchange.Header{{Name: mustHeaderName(t, headerGCSHash), Values: []exchange.HeaderValue{{}}}}, wantErr: core.ErrObjectStoreContract},
+		{name: "rejected field value count exceeds exchange ceiling", headers: gcsHashHeaders(t, aboveMaximumHashValues...), wantErr: core.ErrObjectStoreContract},
+
+		{name: "boundary absent response headers report no checksum"},
+		{name: "boundary md5 only reports no crc32c", headers: gcsHashHeaders(t, "md5=1B2M2Y8AsgTpgAmY7PhCfg==")},
+		{name: "boundary unknown component only reports no crc32c", headers: gcsHashHeaders(t, "future=value")},
+		{name: "boundary empty field value reports no crc32c", headers: gcsHashHeaders(t, "")},
+		{name: "boundary whitespace only reports no crc32c", headers: gcsHashHeaders(t, "   ")},
+		{name: "boundary separators only report no crc32c", headers: gcsHashHeaders(t, ",,,")},
+		{name: "boundary uppercase checksum label is not crc32c", headers: gcsHashHeaders(t, "CRC32C="+encoded)},
+		{name: "boundary prefixed checksum label is not crc32c", headers: gcsHashHeaders(t, "x"+headerGCSChecksumPrefix+encoded)},
+		{name: "boundary trailing bytes corrupt exact checksum width", headers: gcsHashHeaders(t, headerGCSChecksumPrefix+encoded+"x"), wantErr: core.ErrObjectStoreIntegrity},
+		{name: "boundary exact header value byte ceiling without crc32c is neutral", headers: gcsHashHeaders(t, maximumUnknownValue)},
+		{name: "boundary exact field value count admits crc32c at the end", headers: gcsHashHeaders(t, maximumHashValues...), wantPresent: true},
+		{name: "boundary leading whitespace before crc32c is admitted", headers: gcsHashHeaders(t, "  "+headerGCSChecksumPrefix+encoded), wantPresent: true},
+		{name: "boundary trailing whitespace after crc32c is admitted", headers: gcsHashHeaders(t, headerGCSChecksumPrefix+encoded+"  "), wantPresent: true},
+		{name: "boundary empty component before crc32c is neutral", headers: gcsHashHeaders(t, ","+headerGCSChecksumPrefix+encoded), wantPresent: true},
+		{name: "boundary empty component after crc32c is neutral", headers: gcsHashHeaders(t, headerGCSChecksumPrefix+encoded+","), wantPresent: true},
+		{name: "boundary repeated md5 components do not counterfeit crc32c", headers: gcsHashHeaders(t, "md5=one,md5=two,"+headerGCSChecksumPrefix+encoded), wantPresent: true},
+		{name: "boundary checksum label without delimiter is neutral", headers: gcsHashHeaders(t, "crc32c")},
+		{name: "boundary malformed crc32c precedes valid duplicate and is rejected", headers: gcsHashHeaders(t, headerGCSChecksumPrefix+"bad,"+headerGCSChecksumPrefix+encoded), wantErr: core.ErrObjectStoreIntegrity},
+		{name: "boundary valid crc32c precedes malformed duplicate and is rejected", headers: gcsHashHeaders(t, headerGCSChecksumPrefix+encoded+","+headerGCSChecksumPrefix+"bad"), wantErr: core.ErrObjectStoreIntegrity},
+		{name: "boundary exact field value count admits crc32c at the beginning", headers: gcsHashHeaders(t, append([]string{headerGCSChecksumPrefix + encoded}, maximumHashValues[:len(maximumHashValues)-1]...)...), wantPresent: true},
+	}
+
+	for _, tc := range cases {
+		t.Run(tc.name, func(t *testing.T) {
+			t.Parallel()
+
+			got, gotPresent, gotErr := googleCloudStorageDownloadCRC32C(
+				exchange.CapturedHeaders{Values: tc.headers},
+			)
+			if tc.wantErr != nil {
+				if !errors.Is(gotErr, tc.wantErr) || gotPresent || got != (core.CRC32C{}) {
+					t.Fatalf(
+						"googleCloudStorageDownloadCRC32C() = (%v, %t, %v), want (zero, false, %v)",
+						got,
+						gotPresent,
+						gotErr,
+						tc.wantErr,
+					)
+				}
+				return
+			}
+			if gotErr != nil || gotPresent != tc.wantPresent {
+				t.Fatalf(
+					"googleCloudStorageDownloadCRC32C() = (%v, %t, %v), want present %t and nil error",
+					got,
+					gotPresent,
+					gotErr,
+					tc.wantPresent,
+				)
+			}
+			if tc.wantPresent && got != want {
+				t.Fatalf("googleCloudStorageDownloadCRC32C() = %v, want %v", got, want)
+			}
+			if !tc.wantPresent && got != (core.CRC32C{}) {
+				t.Fatalf("googleCloudStorageDownloadCRC32C() = %v, want zero when absent", got)
+			}
+		})
+	}
+}
+
+func gcsHashHeaders(t testing.TB, values ...string) []exchange.Header {
+	t.Helper()
+	return []exchange.Header{capturedHeader(t, headerGCSHash, values...)}
+}
+
+func BenchmarkGoogleCloudStorageDownloadCRC32CProviderProjection(b *testing.B) {
+	const encoded = "SUYRpg=="
+	headers := exchange.CapturedHeaders{Values: gcsHashHeaders(
+		b,
+		"md5=1B2M2Y8AsgTpgAmY7PhCfg==",
+		headerGCSChecksumPrefix+encoded,
+	)}
+	b.ReportAllocs()
+	b.ResetTimer()
+
+	for b.Loop() {
+		got, gotPresent, gotErr := googleCloudStorageDownloadCRC32C(headers)
+		if gotErr != nil || !gotPresent || got == (core.CRC32C{}) {
+			b.Fatalf(
+				"googleCloudStorageDownloadCRC32C() = (%v, %t, %v), want set checksum and nil",
+				got,
+				gotPresent,
+				gotErr,
+			)
+		}
 	}
 }
 

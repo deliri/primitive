@@ -20,8 +20,8 @@ It owns exactly:
 - two create-only object writes, served-media and stored-file;
 - exact-generation upload observation that binds authenticated client evidence
   to the official provider metadata without downloading object bytes;
-- official IAM Credentials signing of one short-lived V4 create-only upload
-  capability from Objectstore's exact typed request fields;
+- official IAM Credentials signing of short-lived V4 create-only upload and
+  whole-object retrieval capabilities from Objectstore's exact typed fields;
 - one digest-bound bounded read;
 - the canonical public address of one object; and
 - generation-matched permanent deletion of one exact object or one confined
@@ -105,9 +105,9 @@ enabled, because there success would not mean permanent deletion.
 
 The effect leaves are the official Cloud Storage SDK,
 `cloud.google.com/go/storage`, and the official IAM Credentials API client.
-The latter signs exactly one Objectstore-owned V4 upload request with an
-explicit service-account principal and request context; it does not create or
-store signing keys.
+The latter signs exactly one Objectstore-owned V4 upload or retrieval request
+with an explicit service-account principal and request context; it does not
+create or store signing keys.
 Product code selects Application Default Credentials or an explicit
 service-account file through a closed typed configuration; the SDK type and
 credential-discovery mechanics never escape the package.

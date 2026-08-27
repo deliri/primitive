@@ -686,7 +686,7 @@ func packagePurposeTexts() [packageIdentityLimit]string {
 		PackageCloudIdentity:    "Bounded Google Cloud identity-token and OAuth access-token or AWS identity-token acquisition with redacted disclosure",
 		PackageDeploy:           "Exact create-only GCS publication of one authenticated release and its metadata",
 		PackageUpgrade:          "Crash-recoverable installation, activation, startup truth, rollback, and recovery",
-		PackageGCSObjects:       "Authenticated Google Cloud Storage bucket provisioning, typed logical namespace composition, create-only writes, IAM-signed short-lived upload capabilities, exact-generation observation, digest-bound reads, and generation-matched permanent deletion through official SDKs",
+		PackageGCSObjects:       "Authenticated Google Cloud Storage bucket provisioning, typed logical namespace composition, create-only writes, IAM-signed short-lived upload and whole-object retrieval capabilities, exact-generation observation, digest-bound reads, and generation-matched permanent deletion through official SDKs",
 		PackageID:               "Canonical UUIDv7 and ULID time-ordered identifiers from one observed instant and caller-supplied entropy",
 		PackageChit:             "Authority-signed immutable custody tickets, streaming manifest closure, bounded catalogs, and device-signed catalog queries",
 		PackageChitAuth:         "Installation-certificate binding and device authentication for one chit catalog query",

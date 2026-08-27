@@ -512,7 +512,7 @@ func declaredRealWorldCalls() (realWorldCallInventory, error) {
 		{owner: PackageProcess, substrate: realWorldSubstrateWindows, selector: "Process32Next", count: 1},
 		{owner: PackageProcess, substrate: realWorldSubstrateWindows, selector: "UTF16ToString", count: 1},
 		{owner: PackageGCSObjects, substrate: realWorldSubstrateGoogleCloudStorage, selector: "NewClient", count: 1},
-		{owner: PackageGCSObjects, substrate: realWorldSubstrateGoogleCloudStorage, selector: "SignedURL", count: 1},
+		{owner: PackageGCSObjects, substrate: realWorldSubstrateGoogleCloudStorage, selector: "SignedURL", count: 2},
 		{owner: PackageGCSObjects, substrate: realWorldSubstrateGoogleIAMCredentials, selector: "NewService", count: 1},
 		{owner: PackageSecretStore, substrate: realWorldSubstrateGoogleSecretManager, selector: "NewClient", count: 1},
 		{owner: PackageGCSObjects, substrate: realWorldSubstrateNetwork, selector: "ParseIP", count: 1},

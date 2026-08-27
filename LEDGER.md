@@ -1,8 +1,21 @@
 # Primitive 2026 Ledger
 
-Last updated: `2026-08-26`
+Last updated: `2026-08-27`
 
 ## Current
+
+- opened the missing private-GCS whole-object retrieval capability for Blink's
+  evidence display flow, 2026-08-27. GCSObjects now owns the single official
+  IAM Credentials and Storage SDK signing leaf for both upload and retrieval;
+  the former upload-only issuer has been cleanly renamed to the direction-blind
+  `GCSCapabilityIssuer`. One typed download request binds bucket, object,
+  service account, and bounded lifetime into Objectstore's opaque receive-only
+  projection. Provider signatures are canonical-base64 and compiler-bounded
+  before release. The meaningful red state was the absent typed request and
+  operation. Hostile 10/10/20 request pressure, the official-SDK
+  positive/negative/neutral issuer triad, provider-error preservation,
+  semantic provider-signature fuzzing, benchmark proof, and live private-object
+  retrieval remain the acceptance surfaces before review and publication.
 
 - closed blind partitioned custody catalogs for leaf-side bootstrap,
   2026-08-26, publishing `v2026.0.149`. `chit.Partition` closes one nonzero

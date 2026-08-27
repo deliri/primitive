@@ -634,29 +634,42 @@ func amazonS3DownloadChecksumType(
 func googleCloudStorageDownloadCRC32C(
 	headers exchange.CapturedHeaders,
 ) (core.CRC32C, bool, error) {
-	value, present, err := uniqueCapturedValue(headers, headerGCSHash)
-	if err != nil || !present {
-		return core.CRC32C{}, false, err
-	}
-	encoded, present, err := googleCloudStorageHashComponent(value)
+	encoded, present, err := googleCloudStorageCRC32CComponent(headers)
 	if err != nil || !present {
 		return core.CRC32C{}, false, err
 	}
 	return parseProviderCRC32C(encoded)
 }
 
-// googleCloudStorageHashComponent extracts the one crc32c component of an
-// x-goog-hash value. A repeated component is contradictory metadata.
-func googleCloudStorageHashComponent(value string) (string, bool, error) {
+// googleCloudStorageCRC32CComponent extracts exactly one crc32c component from
+// every value of the one captured x-goog-hash field. GCS may return CRC32C and
+// MD5 as separate HTTP field values or as comma-separated components.
+func googleCloudStorageCRC32CComponent(
+	headers exchange.CapturedHeaders,
+) (string, bool, error) {
+	if err := headers.Validate(); err != nil {
+		return "", false, errors.Join(core.ErrObjectStoreContract, err)
+	}
+	wanted, err := headerName(headerGCSHash)
+	if err != nil {
+		return "", false, err
+	}
 	found := ""
 	count := 0
-	for component := range strings.SplitSeq(value, gcsHashComponentSeparator) {
-		trimmed := strings.TrimSpace(component)
-		if !strings.HasPrefix(trimmed, headerGCSChecksumPrefix) {
+	for _, header := range headers.Values {
+		if header.Name != wanted {
 			continue
 		}
-		found = strings.TrimPrefix(trimmed, headerGCSChecksumPrefix)
-		count++
+		for _, value := range header.Values {
+			text, valueErr := value.Value()
+			if valueErr != nil {
+				return "", false, errors.Join(
+					core.ErrObjectStoreContract,
+					valueErr,
+				)
+			}
+			found, count = collectGCSCRC32CComponents(text, found, count)
+		}
 	}
 	if count == 0 {
 		return "", false, nil
@@ -665,6 +678,22 @@ func googleCloudStorageHashComponent(value string) (string, bool, error) {
 		return "", false, core.ErrObjectStoreIntegrity
 	}
 	return found, true, nil
+}
+
+func collectGCSCRC32CComponents(
+	value string,
+	found string,
+	count int,
+) (string, int) {
+	for component := range strings.SplitSeq(value, gcsHashComponentSeparator) {
+		trimmed := strings.TrimSpace(component)
+		if !strings.HasPrefix(trimmed, headerGCSChecksumPrefix) {
+			continue
+		}
+		found = strings.TrimPrefix(trimmed, headerGCSChecksumPrefix)
+		count++
+	}
+	return found, count
 }
 
 func parseProviderCRC32C(value string) (core.CRC32C, bool, error) {

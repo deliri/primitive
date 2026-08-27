@@ -19,7 +19,7 @@ func TestAuthenticatedGCSOperationsAreCompilerSelectedEntryPoints(t *testing.T) 
 
 	set := token.NewFileSet()
 	var got []string
-	for _, path := range []string{"client.go", "upload_capability.go"} {
+	for _, path := range []string{"client.go", "download_capability.go", "upload_capability.go"} {
 		file, gotParseErr := parser.ParseFile(set, path, nil, 0)
 		if gotParseErr != nil {
 			t.Fatalf("parser.ParseFile(%s) error = %v, want nil", path, gotParseErr)
@@ -37,9 +37,10 @@ func TestAuthenticatedGCSOperationsAreCompilerSelectedEntryPoints(t *testing.T) 
 		"CreateBucket",
 		"DeleteGCSObject",
 		"DeleteGCSObjects",
+		"IssueGCSDownloadCapability",
 		"IssueGCSUploadCapability",
+		"NewGCSCapabilityIssuer",
 		"NewGCSClient",
-		"NewGCSUploadCapabilityIssuer",
 		"ObserveGCSUpload",
 		"ParseGCSServiceAccount",
 		"ReadGCSObject",
@@ -110,7 +111,7 @@ func TestProductionStructDataFlowInventory(t *testing.T) {
 
 func productionStructRole(name string) (string, bool) {
 	switch name {
-	case "GCSClient", "GCSUploadCapabilityIssuer":
+	case "GCSClient", "GCSCapabilityIssuer":
 		return "authenticated provider capability wrapper", true
 	case "GCSClientConfig":
 		return "authenticated provider construction ingress", true
@@ -120,7 +121,8 @@ func productionStructRole(name string) (string, bool) {
 		return "opaque validated provider value", true
 	case "GCSMediaUpload", "GCSFileUpload", "GCSReadRequest", "GCSUploadObservationRequest", "GCSDeleteRequest",
 		"GCSDeleteObjectRequest", "GCSBucketCreateRequest", "GCSRootPrefixRequest",
-		"GCSChildPrefixRequest", "GCSObjectInPrefixRequest", "GCSUploadCapabilityRequest":
+		"GCSChildPrefixRequest", "GCSObjectInPrefixRequest", "GCSUploadCapabilityRequest",
+		"GCSDownloadCapabilityRequest":
 		return "authenticated provider execution ingress", true
 	case "gcsWrite":
 		return "internal owner-only write projection", true
