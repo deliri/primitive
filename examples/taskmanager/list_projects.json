@@ -1,9 +1,0 @@
-{
-  "revision": 2,
-  "operation": "list_projects",
-  "list_projects": {
-    "lifecycle": "active",
-	"order": "descending",
-    "limit": 100
-  }
-}

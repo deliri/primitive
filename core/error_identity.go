@@ -400,10 +400,6 @@ const (
 	ErrSecretStorePayload
 	// ErrSecretStoreAccess identifies a provider secret-access failure.
 	ErrSecretStoreAccess
-	// ErrTaskManagerContract identifies an invalid task-manager wire fact,
-	// request, response, route, or socket boundary.
-	ErrTaskManagerContract
-
 	errorIdentityLimit
 )
 
@@ -572,7 +568,6 @@ func errorIdentityDiagnostics() [errorIdentityLimit]errorIdentityDiagnostic {
 		{identity: ErrSecretStoreContract, text: "secret store contract violation"},
 		{identity: ErrSecretStorePayload, text: "secret store payload invalid"},
 		{identity: ErrSecretStoreAccess, text: "secret store access failed"},
-		{identity: ErrTaskManagerContract, text: "task manager contract violation"},
 	}
 }
 
@@ -690,8 +685,7 @@ func errorIdentityParents(identity ErrorIdentity) errorIdentityParentSet {
 		ErrCloudIdentityContract, ErrUpgradeContract,
 		ErrLifecycleIdentityContract, ErrReceiptContract, ErrChitContract,
 		ErrRetrievalContract, ErrPaymentContract, ErrControlWireContract,
-		ErrControlPlaneContract, ErrIDContract, ErrSecretStoreContract,
-		ErrTaskManagerContract) {
+		ErrControlPlaneContract, ErrIDContract, ErrSecretStoreContract) {
 		return oneErrorIdentityParent(ErrPrimitiveContract)
 	}
 	if errorIdentityIn(identity, ErrControlWireRevision, ErrControlWireNonce, ErrControlWireToken,

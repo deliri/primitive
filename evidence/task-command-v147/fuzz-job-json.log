@@ -1,9 +1,0 @@
-fuzz: elapsed: 0s, gathering baseline coverage: 0/130 completed
-fuzz: elapsed: 0s, gathering baseline coverage: 130/130 completed, now fuzzing with 10 workers
-fuzz: elapsed: 3s, execs: 11383 (3793/sec), new interesting: 0 (total: 130)
-fuzz: elapsed: 6s, execs: 58295 (15640/sec), new interesting: 9 (total: 139)
-fuzz: elapsed: 9s, execs: 131001 (24234/sec), new interesting: 35 (total: 165)
-fuzz: elapsed: 12s, execs: 157879 (8960/sec), new interesting: 49 (total: 179)
-fuzz: elapsed: 13s, execs: 157879 (0/sec), new interesting: 49 (total: 179)
-PASS
-ok  	github.com/deliri/primitive/v2026/cmd/tasks	13.673s

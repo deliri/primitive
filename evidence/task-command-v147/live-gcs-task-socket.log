@@ -1,6 +1,0 @@
-=== RUN   TestTaskEvidenceUploadUsesRealProviderAndTaskSocketLive
-=== PAUSE TestTaskEvidenceUploadUsesRealProviderAndTaskSocketLive
-=== CONT  TestTaskEvidenceUploadUsesRealProviderAndTaskSocketLive
---- PASS: TestTaskEvidenceUploadUsesRealProviderAndTaskSocketLive (0.97s)
-PASS
-ok  	github.com/deliri/primitive/v2026/cmd/tasks	1.465s

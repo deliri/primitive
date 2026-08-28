@@ -1,7 +1,0 @@
-{
-  "revision": 2,
-  "operation": "get_task",
-  "get_task": {
-    "task_id": "0000ffff-ffff-7000-8000-000000000001"
-  }
-}

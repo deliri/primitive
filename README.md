@@ -119,11 +119,6 @@ flowchart TD
     cloudidentity --> exchange
     secretstore[secretstore] --> core
     secretstore --> contextstate
-    taskmanager[taskmanager] --> core
-    taskmanager --> exchange
-    taskmanager --> id
-    taskmanager --> temporal
-
     deploy[deploy] --> core
     deploy --> objectstore
     deploy --> release

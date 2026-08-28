@@ -1,8 +1,0 @@
-{
-  "revision": 2,
-  "operation": "list_phases",
-  "list_phases": {
-	"order": "ascending",
-    "limit": 100
-  }
-}

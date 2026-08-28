@@ -12,9 +12,9 @@ const (
 	// PrimitivePackagePathPrefix prefixes every Primitive package import path.
 	PrimitivePackagePathPrefix = PrimitiveModulePath + "/"
 	// PrimitivePackageCount is the number of packages in the complete catalog.
-	PrimitivePackageCount = 43
+	PrimitivePackageCount = 42
 	// PrimitiveDirectImportCount is the number of admitted direct import edges.
-	PrimitiveDirectImportCount = 158
+	PrimitiveDirectImportCount = 154
 	// PrimitiveDirectTestImportCount is the number of admitted test-only edges.
 	PrimitiveDirectTestImportCount = 31
 	// PrimitiveMaximumDirectImports caps direct sibling imports per package.
@@ -113,8 +113,6 @@ const (
 	PackageManual
 	// PackageSecretStore identifies bounded secret-provider access.
 	PackageSecretStore
-	// PackageTaskManager identifies the blind paired task-management socket.
-	PackageTaskManager
 	packageIdentityLimit
 )
 
@@ -220,7 +218,6 @@ func PrimitiveArchitecture() ArchitectureCatalog {
 			{Identity: PackageLineIO, Kind: PackageKindProduction},
 			{Identity: PackageManual, Kind: PackageKindProduction},
 			{Identity: PackageSecretStore, Kind: PackageKindProduction},
-			{Identity: PackageTaskManager, Kind: PackageKindProduction},
 		},
 		imports: [PrimitiveDirectImportCount]DirectImportContract{
 			{Importer: PackageAttest, Imported: PackageCore},
@@ -388,10 +385,6 @@ func PrimitiveArchitecture() ArchitectureCatalog {
 			{Importer: PackageManual, Imported: PackageCore},
 			{Importer: PackageSecretStore, Imported: PackageCore},
 			{Importer: PackageSecretStore, Imported: PackageContextState},
-			{Importer: PackageTaskManager, Imported: PackageCore},
-			{Importer: PackageTaskManager, Imported: PackageExchange},
-			{Importer: PackageTaskManager, Imported: PackageID},
-			{Importer: PackageTaskManager, Imported: PackageTemporal},
 		},
 		testImports: [PrimitiveDirectTestImportCount]DirectTestImportContract{
 			{Importer: PackageGate, Imported: PackageAttest},
@@ -701,7 +694,6 @@ func packagePurposeTexts() [packageIdentityLimit]string {
 		PackageLineIO:           "Bounded line scanning over one io.Reader through Go bufio.Scanner and bufio.ScanLines",
 		PackageManual:           "Bounded validated human text and stable machine JSON manuals from one product-owned typed book",
 		PackageSecretStore:      "Bounded exact-version secret access through official provider SDKs",
-		PackageTaskManager:      "Blind bounded task-management wire and paired HTTP socket",
 	}
 }
 
@@ -782,7 +774,6 @@ func packageIdentityTexts() [packageIdentityLimit]string {
 		"lineio",
 		"manual",
 		"secretstore",
-		"taskmanager",
 	}
 }
 

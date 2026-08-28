@@ -1,9 +1,0 @@
-{
-  "revision": 2,
-  "operation": "list_git_commits",
-  "list_git_commits": {
-    "task_id": "0000ffff-ffff-7000-8000-000000000001",
-	"order": "descending",
-    "limit": 100
-  }
-}
