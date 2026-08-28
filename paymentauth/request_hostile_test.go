@@ -30,81 +30,93 @@ type paymentQueryFixture struct {
 	payload  payment.QueryPayload
 	document RequestDocument
 	trusted  attest.TrustedKeys
+	client   controlplane.Client
+	server   controlplane.Server
 }
 
-func TestCredentialedPaymentQueryVerificationLayerTriadAuthenticatesAllAndSpecificForRepresentativeOpaqueOfferings(t *testing.T) {
+func TestCredentialedPaymentQueryVerificationLayerTriadAuthenticatesOnlyTheBoundDeviceRequest(t *testing.T) {
 	t.Parallel()
 
-	admitted := 0
-	for value, offering := range []core.Offering{
-		paymentAuthOffering(t, 1),
-		paymentAuthOffering(t, 127),
-		paymentAuthOffering(t, 255),
-	} {
-		admitted++
-		selections := []struct {
-			name      string
-			selection payment.Selection
-		}{
-			{name: "all", selection: payment.All()},
-			{name: "specific", selection: paymentQuerySpecificSelection(t)},
-		}
-		for _, selection := range selections {
-			t.Run(offering.String()+"/"+selection.name, func(t *testing.T) {
-				t.Parallel()
+	t.Run("positive ten signed identity and selection boundaries expose the exact query", func(t *testing.T) {
+		t.Parallel()
+		proveCredentialedPaymentQueryVerificationAdmissions(t)
+	})
+	t.Run("negative signed substitutions and foreign authority facts expose no proof", func(t *testing.T) {
+		t.Parallel()
+		proveCredentialedPaymentQueryVerificationRejections(t)
+	})
+	t.Run("neutral zero contracts expose neither query nor proof", func(t *testing.T) {
+		t.Parallel()
+		proveCredentialedPaymentQueryVerificationNeutralState(t)
+	})
+}
 
-				fixture := newPaymentQueryFixture(t, paymentQueryFixtureRequest{
-					offering: offering, selection: selection.selection,
-					authorityByte: byte(value) + 0x20,
-					deviceByte:    byte(value) + 0x40, nonceByte: byte(value) + 1,
-				})
-				route, routeErr := fixture.document.ControlRoute()
-				if routeErr != nil || route.Offering() != offering ||
-					route.Family() != controlwire.RouteFamilyPayments ||
-					fixture.document.ControlNonce() != fixture.payload.Nonce {
-					t.Fatalf("payment control projection(%v) = (%v, %v, %v), want exact route and signed nonce",
-						offering, route, fixture.document.ControlNonce(), routeErr)
-				}
-				verified, err := Verify(Verification{
-					Document: fixture.document, TrustedKeys: fixture.trusted,
-				})
-				if err != nil {
-					t.Fatalf("paymentauth.Verify(%v, %s) error = %v, want nil", offering, selection.name, err)
-				}
-				payload, err := verified.Payload()
-				if err != nil || payload != fixture.payload {
-					t.Fatalf("Verified.Payload(%v, %s) = (%+v, %v), want exact %+v and nil",
-						offering, selection.name, payload, err, fixture.payload)
-				}
-			})
-		}
-	}
-	if admitted < 3 {
-		t.Fatalf("admitted offerings = %d, want at least the shipped set", admitted)
-	}
-	boundaries := []struct {
-		name    string
-		request paymentQueryFixtureRequest
+func proveCredentialedPaymentQueryVerificationAdmissions(t *testing.T) {
+	t.Helper()
+
+	cases := []struct {
+		name          string
+		request       paymentQueryFixtureRequest
+		wantOffering  core.Offering
+		wantSelection payment.Selection
 	}{
+		{name: "minimum opaque offering with all selection", request: paymentQueryFixtureRequest{
+			offering: paymentAuthOffering(t, 1), authorityByte: 0x21, deviceByte: 0x41,
+			nonceByte: 1, selection: payment.All(),
+		}, wantOffering: paymentAuthOffering(t, 1), wantSelection: payment.All()},
+		{name: "minimum opaque offering with specific selection", request: paymentQueryFixtureRequest{
+			offering: paymentAuthOffering(t, 1), authorityByte: 0x22, deviceByte: 0x42,
+			nonceByte: 2, selection: paymentQuerySpecificSelection(t),
+		}, wantOffering: paymentAuthOffering(t, 1), wantSelection: paymentQuerySpecificSelection(t)},
+		{name: "midpoint opaque offering with all selection", request: paymentQueryFixtureRequest{
+			offering: paymentAuthOffering(t, 127), authorityByte: 0x23, deviceByte: 0x43,
+			nonceByte: 3, selection: payment.All(),
+		}, wantOffering: paymentAuthOffering(t, 127), wantSelection: payment.All()},
+		{name: "midpoint opaque offering with specific selection", request: paymentQueryFixtureRequest{
+			offering: paymentAuthOffering(t, 127), authorityByte: 0x24, deviceByte: 0x44,
+			nonceByte: 4, selection: paymentQuerySpecificSelection(t),
+		}, wantOffering: paymentAuthOffering(t, 127), wantSelection: paymentQuerySpecificSelection(t)},
+		{name: "maximum opaque offering with all selection", request: paymentQueryFixtureRequest{
+			offering: paymentAuthOffering(t, 255), authorityByte: 0x25, deviceByte: 0x45,
+			nonceByte: 5, selection: payment.All(),
+		}, wantOffering: paymentAuthOffering(t, 255), wantSelection: payment.All()},
+		{name: "maximum opaque offering with specific selection", request: paymentQueryFixtureRequest{
+			offering: paymentAuthOffering(t, 255), authorityByte: 0x26, deviceByte: 0x46,
+			nonceByte: 6, selection: paymentQuerySpecificSelection(t),
+		}, wantOffering: paymentAuthOffering(t, 255), wantSelection: paymentQuerySpecificSelection(t)},
 		{name: "minimum authority maximum device and minimum nonce", request: paymentQueryFixtureRequest{
-			authorityByte: 1, deviceByte: 255, nonceByte: 1, selection: payment.All(),
-		}},
+			offering: paymentAuthOffering(t, 2), authorityByte: 1, deviceByte: 255,
+			nonceByte: 1, selection: payment.All(),
+		}, wantOffering: paymentAuthOffering(t, 2), wantSelection: payment.All()},
 		{name: "maximum authority minimum device and maximum nonce", request: paymentQueryFixtureRequest{
-			authorityByte: 255, deviceByte: 1, nonceByte: 255, selection: paymentQuerySpecificSelection(t),
-		}},
+			offering: paymentAuthOffering(t, 2), authorityByte: 255, deviceByte: 1,
+			nonceByte: 255, selection: paymentQuerySpecificSelection(t),
+		}, wantOffering: paymentAuthOffering(t, 2), wantSelection: paymentQuerySpecificSelection(t)},
 		{name: "authority one below midpoint and device at midpoint", request: paymentQueryFixtureRequest{
-			authorityByte: 127, deviceByte: 128, nonceByte: 127, selection: payment.All(),
-		}},
+			offering: paymentAuthOffering(t, 2), authorityByte: 127, deviceByte: 128,
+			nonceByte: 127, selection: payment.All(),
+		}, wantOffering: paymentAuthOffering(t, 2), wantSelection: payment.All()},
 		{name: "authority at midpoint and device one below midpoint", request: paymentQueryFixtureRequest{
-			authorityByte: 128, deviceByte: 127, nonceByte: 128, selection: paymentQuerySpecificSelection(t),
-		}},
+			offering: paymentAuthOffering(t, 2), authorityByte: 128, deviceByte: 127,
+			nonceByte: 128, selection: paymentQuerySpecificSelection(t),
+		}, wantOffering: paymentAuthOffering(t, 2), wantSelection: paymentQuerySpecificSelection(t)},
 	}
-	for _, tc := range boundaries {
+	for _, tc := range cases {
 		t.Run(tc.name, func(t *testing.T) {
 			t.Parallel()
 
 			fixture := newPaymentQueryFixture(t, tc.request)
-			verified, err := Verify(Verification{Document: fixture.document, TrustedKeys: fixture.trusted})
+			route, routeErr := fixture.document.ControlRoute()
+			wantRoute, wantRouteErr := controlwire.NewRouteContract(
+				tc.wantOffering, controlwire.RouteFamilyPayments,
+			)
+			if routeErr != nil || wantRouteErr != nil || route != wantRoute ||
+				fixture.document.ControlNonce() != fixture.payload.Nonce ||
+				fixture.payload.Query.Selection != tc.wantSelection {
+				t.Fatalf("RequestDocument control projection = (%v, %v, %v), want (%v, %v, nil)",
+					route, fixture.document.ControlNonce(), routeErr, wantRoute, fixture.payload.Nonce)
+			}
+			verified, err := Verify(Verification{Server: fixture.server, Document: fixture.document})
 			if err != nil {
 				t.Fatalf("Verify(%s) error = %v, want nil", tc.name, err)
 			}
@@ -117,16 +129,22 @@ func TestCredentialedPaymentQueryVerificationLayerTriadAuthenticatesAllAndSpecif
 	}
 }
 
-func TestCredentialedPaymentQueryVerificationLayerTriadRefusesAccountDeviceAuthorityAndBuildSubstitution(t *testing.T) {
-	t.Parallel()
+func proveCredentialedPaymentQueryVerificationRejections(t *testing.T) {
+	t.Helper()
 
-	base := newPaymentQueryFixture(t, paymentQueryFixtureRequest{})
-	otherDevice := newPaymentQueryFixture(t, paymentQueryFixtureRequest{
-		authorityByte: 0x51, deviceByte: 0x52, nonceByte: 0x53,
-	})
-	otherOffering := newPaymentQueryFixture(t, paymentQueryFixtureRequest{
-		offering: paymentAuthOffering(t, 1), authorityByte: 0x61, deviceByte: 0x62, nonceByte: 0x63,
-	})
+	baseRequest := standardPaymentQueryFixtureRequest(t)
+	base := newPaymentQueryFixture(t, baseRequest)
+	otherDeviceRequest := standardPaymentQueryFixtureRequest(t)
+	otherDeviceRequest.authorityByte = 0x51
+	otherDeviceRequest.deviceByte = 0x52
+	otherDeviceRequest.nonceByte = 0x53
+	otherDevice := newPaymentQueryFixture(t, otherDeviceRequest)
+	otherOfferingRequest := standardPaymentQueryFixtureRequest(t)
+	otherOfferingRequest.offering = paymentAuthOffering(t, 1)
+	otherOfferingRequest.authorityByte = 0x61
+	otherOfferingRequest.deviceByte = 0x62
+	otherOfferingRequest.nonceByte = 0x63
+	otherOffering := newPaymentQueryFixture(t, otherOfferingRequest)
 	wrongDeviceAssembly, err := Assemble(RequestAssembly{
 		Request: otherDevice.document.Request, Certificate: base.document.Certificate,
 	})
@@ -162,25 +180,25 @@ func TestCredentialedPaymentQueryVerificationLayerTriadRefusesAccountDeviceAutho
 		want     error
 		name     string
 		document RequestDocument
-		trusted  attest.TrustedKeys
+		server   controlplane.Server
 	}{
-		{name: "zero document", trusted: base.trusted, want: core.ErrControlPlaneContract},
-		{name: "zero trust", document: base.document, want: core.ErrControlPlaneContract},
-		{name: "same-build other device", document: wrongDeviceAssembly, trusted: base.trusted, want: core.ErrAttestVerification},
-		{name: "other authority", document: base.document, trusted: otherDevice.trusted, want: core.ErrAttestVerification},
-		{name: "signed request nonce changed after issue", document: tamperedNonce, trusted: base.trusted, want: core.ErrAttestVerification},
-		{name: "signed selection changed after issue", document: tamperedSelection, trusted: base.trusted, want: core.ErrAttestVerification},
-		{name: "signed page limit changed after issue", document: tamperedLimit, trusted: base.trusted, want: core.ErrAttestVerification},
-		{name: "signed offering identity changed after issue", document: tamperedOfferingIdentity, trusted: base.trusted, want: core.ErrControlPlaneResponseBinding},
-		{name: "request signer changed after issue", document: tamperedSigner, trusted: base.trusted, want: core.ErrAttestVerification},
-		{name: "signed body length changed after issue", document: tamperedLength, trusted: base.trusted, want: core.ErrAttestVerification},
-		{name: "signed body digest changed after issue", document: tamperedDigest, trusted: base.trusted, want: core.ErrAttestVerification},
+		{name: "zero document", server: base.server, want: core.ErrControlPlaneContract},
+		{name: "zero server capability", document: base.document, want: core.ErrControlPlaneContract},
+		{name: "same-build other device", document: wrongDeviceAssembly, server: base.server, want: core.ErrAttestVerification},
+		{name: "other authority", document: base.document, server: otherDevice.server, want: core.ErrAttestVerification},
+		{name: "signed request nonce changed after issue", document: tamperedNonce, server: base.server, want: core.ErrAttestVerification},
+		{name: "signed selection changed after issue", document: tamperedSelection, server: base.server, want: core.ErrAttestVerification},
+		{name: "signed page limit changed after issue", document: tamperedLimit, server: base.server, want: core.ErrAttestVerification},
+		{name: "signed offering identity changed after issue", document: tamperedOfferingIdentity, server: base.server, want: core.ErrControlPlaneResponseBinding},
+		{name: "request signer changed after issue", document: tamperedSigner, server: base.server, want: core.ErrAttestVerification},
+		{name: "signed body length changed after issue", document: tamperedLength, server: base.server, want: core.ErrAttestVerification},
+		{name: "signed body digest changed after issue", document: tamperedDigest, server: base.server, want: core.ErrAttestVerification},
 	}
 	for _, tc := range cases {
 		t.Run(tc.name, func(t *testing.T) {
 			t.Parallel()
 
-			got, err := Verify(Verification{Document: tc.document, TrustedKeys: tc.trusted})
+			got, err := Verify(Verification{Server: tc.server, Document: tc.document})
 			if !errors.Is(err, tc.want) || got != (Verified{}) {
 				t.Fatalf("Verify(%s) = (%v, %v), want zero and errors.Is %v", tc.name, got, err, tc.want)
 			}
@@ -208,8 +226,8 @@ func TestCredentialedPaymentQueryVerificationLayerTriadRefusesAccountDeviceAutho
 	}
 }
 
-func TestCredentialedPaymentQueryVerificationLayerTriadZeroValuesNeverAcquireProof(t *testing.T) {
-	t.Parallel()
+func proveCredentialedPaymentQueryVerificationNeutralState(t *testing.T) {
+	t.Helper()
 
 	verified, err := Verify(Verification{})
 	if !errors.Is(err, core.ErrControlPlaneContract) || verified != (Verified{}) {
@@ -223,12 +241,12 @@ func TestCredentialedPaymentQueryVerificationLayerTriadZeroValuesNeverAcquirePro
 	}
 }
 
-func TestCredentialedPaymentQueryJSONLayerTriadIsStrictBoundedAndPreserving(t *testing.T) {
+func TestCredentialedPaymentQueryJSONEnforcesTenValidTenRejectAndTwentyBoundaryCases(t *testing.T) {
 	t.Parallel()
 
-	fixture := newPaymentQueryFixture(t, paymentQueryFixtureRequest{
-		selection: paymentQuerySpecificSelection(t),
-	})
+	request := standardPaymentQueryFixtureRequest(t)
+	request.selection = paymentQuerySpecificSelection(t)
+	fixture := newPaymentQueryFixture(t, request)
 	encoded, err := fixture.document.MarshalJSON()
 	if err != nil {
 		t.Fatalf("RequestDocument.MarshalJSON() error = %v, want nil", err)
@@ -247,72 +265,68 @@ func TestCredentialedPaymentQueryJSONLayerTriadIsStrictBoundedAndPreserving(t *t
 	unknown := append(bytes.Clone(encoded[:len(encoded)-1]), []byte(`,"future":true}`)...)
 	duplicateRequest := append(bytes.Clone(encoded[:len(encoded)-1]), []byte(`,"request":null}`)...)
 	duplicateCertificate := append(bytes.Clone(encoded[:len(encoded)-1]), []byte(`,"certificate":null}`)...)
-	valid := []struct {
-		name string
-		data []byte
+	cases := []struct {
+		name         string
+		data         []byte
+		receiver     RequestDocument
+		wantDocument RequestDocument
+		wantErr      error
 	}{
-		{name: "canonical", data: encoded},
-		{name: "reordered", data: reordered},
-		{name: "indented", data: []byte(indented)},
-		{name: "leading space", data: append([]byte(" "), encoded...)},
-		{name: "trailing newline", data: append(bytes.Clone(encoded), '\n')},
-		{name: "carriage return framing", data: append(append([]byte("\r"), encoded...), '\r')},
-		{name: "mixed whitespace", data: append(append([]byte("\t\r\n"), encoded...), ' ', '\t')},
-		{name: "one below ceiling", data: paymentQueryPadJSON(encoded, RequestDocumentJSONMaximumBytes-1)},
-		{name: "exact ceiling", data: paymentQueryPadJSON(encoded, RequestDocumentJSONMaximumBytes)},
-		{name: "half ceiling", data: paymentQueryPadJSON(encoded, RequestDocumentJSONMaximumBytes/2)},
+		{name: "valid canonical production projection", data: encoded, wantDocument: fixture.document},
+		{name: "valid reordered typed members", data: reordered, wantDocument: fixture.document},
+		{name: "valid indented production projection", data: []byte(indented), wantDocument: fixture.document},
+		{name: "valid leading space", data: append([]byte(" "), encoded...), wantDocument: fixture.document},
+		{name: "valid trailing newline", data: append(bytes.Clone(encoded), '\n'), wantDocument: fixture.document},
+		{name: "valid carriage return framing", data: append(append([]byte("\r"), encoded...), '\r'), wantDocument: fixture.document},
+		{name: "valid mixed whitespace", data: append(append([]byte("\t\r\n"), encoded...), ' ', '\t'), wantDocument: fixture.document},
+		{name: "valid one byte below ceiling", data: paymentQueryJSONAtLength(t, encoded, RequestDocumentJSONMaximumBytes-1), wantDocument: fixture.document},
+		{name: "valid exactly at ceiling", data: paymentQueryJSONAtLength(t, encoded, RequestDocumentJSONMaximumBytes), wantDocument: fixture.document},
+		{name: "valid midpoint extent", data: paymentQueryJSONAtLength(t, encoded, RequestDocumentJSONMaximumBytes/2), wantDocument: fixture.document},
+
+		{name: "reject boolean document", data: []byte(`true`), receiver: fixture.document, wantDocument: fixture.document, wantErr: core.ErrJSONContract},
+		{name: "reject empty object", data: []byte(`{}`), receiver: fixture.document, wantDocument: fixture.document, wantErr: core.ErrJSONContract},
+		{name: "reject unknown member", data: unknown, receiver: fixture.document, wantDocument: fixture.document, wantErr: core.ErrJSONContract},
+		{name: "reject duplicate request", data: duplicateRequest, receiver: fixture.document, wantDocument: fixture.document, wantErr: core.ErrJSONContract},
+		{name: "reject duplicate certificate", data: duplicateCertificate, receiver: fixture.document, wantDocument: fixture.document, wantErr: core.ErrJSONContract},
+		{name: "reject request with wrong type", data: []byte(`{"request":true,"certificate":null}`), receiver: fixture.document, wantDocument: fixture.document, wantErr: core.ErrJSONContract},
+		{name: "reject certificate with wrong type", data: []byte(`{"request":null,"certificate":true}`), receiver: fixture.document, wantDocument: fixture.document, wantErr: core.ErrJSONContract},
+		{name: "reject missing request", data: []byte(`{"certificate":null}`), receiver: fixture.document, wantDocument: fixture.document, wantErr: core.ErrJSONContract},
+		{name: "reject missing certificate", data: []byte(`{"request":null}`), receiver: fixture.document, wantDocument: fixture.document, wantErr: core.ErrJSONContract},
+		{name: "reject structurally complete zero members", data: []byte(`{"request":null,"certificate":null}`), receiver: fixture.document, wantDocument: fixture.document, wantErr: core.ErrJSONContract},
+
+		{name: "boundary empty input", wantErr: core.ErrJSONContract},
+		{name: "boundary whitespace only", data: []byte(" \t\r\n"), wantErr: core.ErrJSONContract},
+		{name: "boundary null", data: []byte(`null`), wantErr: core.ErrJSONContract},
+		{name: "boundary scalar", data: []byte(`1`), wantErr: core.ErrJSONContract},
+		{name: "boundary string", data: []byte(`"request"`), wantErr: core.ErrJSONContract},
+		{name: "boundary array", data: []byte(`[]`), wantErr: core.ErrJSONContract},
+		{name: "boundary open object", data: []byte(`{`), wantErr: core.ErrJSONContract},
+		{name: "boundary open array", data: []byte(`[`), wantErr: core.ErrJSONContract},
+		{name: "boundary one byte truncated", data: encoded[:len(encoded)-1], wantErr: core.ErrJSONContract},
+		{name: "boundary half truncated", data: encoded[:len(encoded)/2], wantErr: core.ErrJSONContract},
+		{name: "boundary two concatenated documents", data: append(bytes.Clone(encoded), encoded...), wantErr: core.ErrJSONContract},
+		{name: "boundary trailing scalar", data: append(bytes.Clone(encoded), []byte(` 0`)...), wantErr: core.ErrJSONContract},
+		{name: "boundary one byte above ceiling", data: paymentQueryJSONAtLength(t, encoded, RequestDocumentJSONMaximumBytes+1), wantErr: core.ErrJSONContract},
+		{name: "boundary leading byte order mark", data: append([]byte{0xef, 0xbb, 0xbf}, encoded...), wantErr: core.ErrJSONContract},
+		{name: "boundary trailing comma", data: append(bytes.Clone(encoded[:len(encoded)-1]), []byte(`,}`)...), wantErr: core.ErrJSONContract},
+		{name: "boundary prefixed token", data: append([]byte(`0 `), encoded...), wantErr: core.ErrJSONContract},
+		{name: "boundary suffixed object", data: append(bytes.Clone(encoded), []byte(` {}`)...), wantErr: core.ErrJSONContract},
+		{name: "boundary invalid utf8", data: []byte{0xff}, wantErr: core.ErrJSONContract},
+		{name: "boundary embedded null byte", data: append(bytes.Clone(encoded[:len(encoded)/2]), append([]byte{0}, encoded[len(encoded)/2:]...)...), wantErr: core.ErrJSONContract},
+		{name: "boundary missing value after member", data: []byte(`{"request":`), wantErr: core.ErrJSONContract},
 	}
-	for _, tc := range valid {
+	for _, tc := range cases {
 		t.Run(tc.name, func(t *testing.T) {
 			t.Parallel()
 
-			var receiver RequestDocument
-			if err := receiver.UnmarshalJSON(tc.data); err != nil {
-				t.Fatalf("RequestDocument.UnmarshalJSON(%s) error = %v, want nil", tc.name, err)
+			receiver := tc.receiver
+			gotErr := receiver.UnmarshalJSON(tc.data)
+			if !errors.Is(gotErr, tc.wantErr) {
+				t.Fatalf("RequestDocument.UnmarshalJSON(%s) error = %v, want errors.Is %v", tc.name, gotErr, tc.wantErr)
 			}
-			if receiver != fixture.document {
-				t.Fatalf("RequestDocument.UnmarshalJSON(%s) = %+v, want exact %+v", tc.name, receiver, fixture.document)
-			}
-		})
-	}
-	invalid := []struct {
-		name string
-		data []byte
-	}{
-		{name: "empty"},
-		{name: "whitespace only", data: []byte(" \t\r\n")},
-		{name: "null", data: []byte(`null`)},
-		{name: "boolean", data: []byte(`true`)},
-		{name: "scalar", data: []byte(`1`)},
-		{name: "string", data: []byte(`"request"`)},
-		{name: "array", data: []byte(`[]`)},
-		{name: "empty object", data: []byte(`{}`)},
-		{name: "unknown member", data: unknown},
-		{name: "duplicate request", data: duplicateRequest},
-		{name: "duplicate certificate", data: duplicateCertificate},
-		{name: "request wrong type", data: []byte(`{"request":true,"certificate":null}`)},
-		{name: "certificate wrong type", data: []byte(`{"request":null,"certificate":true}`)},
-		{name: "missing request", data: []byte(`{"certificate":null}`)},
-		{name: "missing certificate", data: []byte(`{"request":null}`)},
-		{name: "open object", data: []byte(`{`)},
-		{name: "open array", data: []byte(`[`)},
-		{name: "truncated", data: encoded[:len(encoded)-1]},
-		{name: "half truncated", data: encoded[:len(encoded)/2]},
-		{name: "two documents", data: append(bytes.Clone(encoded), encoded...)},
-		{name: "trailing scalar", data: append(bytes.Clone(encoded), []byte(` 0`)...)},
-		{name: "one above ceiling", data: paymentQueryPadJSON(encoded, RequestDocumentJSONMaximumBytes+1)},
-	}
-	for _, tc := range invalid {
-		t.Run(tc.name, func(t *testing.T) {
-			t.Parallel()
-
-			receiver := fixture.document
-			if err := receiver.UnmarshalJSON(tc.data); !errors.Is(err, core.ErrJSONContract) {
-				t.Fatalf("RequestDocument.UnmarshalJSON(%s) error = %v, want errors.Is %v", tc.name, err, core.ErrJSONContract)
-			}
-			if receiver != fixture.document {
-				t.Fatalf("RequestDocument.UnmarshalJSON(%s) mutated receiver = %+v, want preserved %+v",
-					tc.name, receiver, fixture.document)
+			if receiver != tc.wantDocument {
+				t.Fatalf("RequestDocument.UnmarshalJSON(%s) receiver = %+v, want %+v",
+					tc.name, receiver, tc.wantDocument)
 			}
 		})
 	}
@@ -325,20 +339,8 @@ func TestCredentialedPaymentQueryJSONLayerTriadIsStrictBoundedAndPreserving(t *t
 func newPaymentQueryFixture(t testing.TB, request paymentQueryFixtureRequest) paymentQueryFixture {
 	t.Helper()
 
-	if request.offering == (core.Offering{}) {
-		request.offering = paymentAuthOffering(t, 2)
-	}
-	if request.authorityByte == 0 {
-		request.authorityByte = 0x21
-	}
-	if request.deviceByte == 0 {
-		request.deviceByte = 0x31
-	}
-	if request.nonceByte == 0 {
-		request.nonceByte = 0x41
-	}
-	if request.selection == (payment.Selection{}) {
-		request.selection = payment.All()
+	if err := errors.Join(request.offering.Validate(), request.selection.Validate()); err != nil {
+		t.Fatalf("paymentQueryFixtureRequest typed fields validation error = %v, want nil", err)
 	}
 	installation, err := controlplanetest.IssueInstallation(controlplanetest.InstallationRequest{
 		AuthoritySeed: paymentQuerySeed(request.authorityByte),
@@ -378,8 +380,26 @@ func newPaymentQueryFixture(t testing.TB, request paymentQueryFixtureRequest) pa
 	if err != nil {
 		t.Fatalf("attest.NewTrustedKeys() error = %v, want nil", err)
 	}
+	client, err := controlplane.NewClient(controlplane.ClientConfiguration{TrustedAuthorityKeys: trusted})
+	if err != nil {
+		t.Fatalf("controlplane.NewClient() error = %v, want nil", err)
+	}
+	server, err := controlplane.NewServer(controlplane.ServerConfiguration{TrustedAuthorityKeys: trusted})
+	if err != nil {
+		t.Fatalf("controlplane.NewServer() error = %v, want nil", err)
+	}
 	return paymentQueryFixture{
 		document: document, payload: payload, trusted: trusted, device: installation.DevicePrivate,
+		client: client, server: server,
+	}
+}
+
+func standardPaymentQueryFixtureRequest(t testing.TB) paymentQueryFixtureRequest {
+	t.Helper()
+
+	return paymentQueryFixtureRequest{
+		offering: paymentAuthOffering(t, 2), authorityByte: 0x21, deviceByte: 0x31,
+		nonceByte: 0x41, selection: payment.All(),
 	}
 }
 
@@ -473,14 +493,19 @@ func paymentQueryAccount(t testing.TB, marker byte) receipt.AccountIdentity {
 	return identity
 }
 
-func paymentQueryPadJSON(encoded []byte, length int) []byte {
+func paymentQueryJSONAtLength(t testing.TB, encoded []byte, length int) []byte {
+	t.Helper()
+
 	if length < len(encoded) {
-		return nil
+		t.Fatalf("requested JSON boundary length = %d, want at least canonical length %d", length, len(encoded))
 	}
 	padded := make([]byte, length)
 	for index := 0; index < length-len(encoded); index++ {
 		padded[index] = ' '
 	}
 	copy(padded[length-len(encoded):], encoded)
+	if len(padded) != length {
+		t.Fatalf("padded JSON length = %d, want %d", len(padded), length)
+	}
 	return padded
 }

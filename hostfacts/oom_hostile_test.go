@@ -5,7 +5,9 @@ import (
 	"context"
 	json "encoding/json/v2"
 	"errors"
+	"fmt"
 	"io"
+	"strconv"
 	"strings"
 	"testing"
 
@@ -147,47 +149,97 @@ func TestGoOOMBannerRequestAndReaderFailureBoundaries(t *testing.T) {
 func TestGoOOMBannerEvidenceJSONHostileTable(t *testing.T) {
 	t.Parallel()
 
-	valid := GoOOMBannerEvidence{
-		examined: mustByteLength(t, GoOOMMaximumEvidenceBytes),
-		state:    GoOOMBannerPresent,
+	validCases := []struct {
+		name   string
+		extent uint64
+		state  GoOOMBannerState
+	}{
+		{name: "zero-byte absence is canonical", extent: 0, state: GoOOMBannerAbsent},
+		{name: "one-byte absence is canonical", extent: 1, state: GoOOMBannerAbsent},
+		{name: "one below shortest banner remains canonical absence", extent: uint64(len(GoOOMPlainBanner) - 1), state: GoOOMBannerAbsent},
+		{name: "shortest banner extent remains canonical absence", extent: uint64(len(GoOOMPlainBanner)), state: GoOOMBannerAbsent},
+		{name: "shortest banner extent admits presence", extent: uint64(len(GoOOMPlainBanner)), state: GoOOMBannerPresent},
+		{name: "prefixed banner extent admits presence", extent: uint64(len(GoOOMPrefixedBanner)), state: GoOOMBannerPresent},
+		{name: "kilobyte absence is canonical", extent: 1 << 10, state: GoOOMBannerAbsent},
+		{name: "kilobyte presence is canonical", extent: 1 << 10, state: GoOOMBannerPresent},
+		{name: "one below evidence ceiling is canonical", extent: GoOOMMaximumEvidenceBytes - 1, state: GoOOMBannerAbsent},
+		{name: "exact evidence ceiling is canonical", extent: GoOOMMaximumEvidenceBytes, state: GoOOMBannerPresent},
 	}
-	wire, err := json.Marshal(valid)
-	if err != nil {
-		t.Fatalf("json.Marshal(valid evidence) error = %v, want nil", err)
-	}
-	var roundTrip GoOOMBannerEvidence
-	if err := json.Unmarshal(wire, &roundTrip); err != nil || roundTrip != valid {
-		t.Fatalf("json.Unmarshal(valid evidence) = (%v, %v), want (%v, nil)", roundTrip, err, valid)
+	for _, tc := range validCases {
+		t.Run(tc.name, func(t *testing.T) {
+			t.Parallel()
+
+			want := classifiedEvidenceFixture(t, tc.extent, tc.state)
+			wire, gotErr := json.Marshal(want)
+			if gotErr != nil {
+				t.Fatalf("json.Marshal(%v) error = %v, want nil", want, gotErr)
+			}
+			var got GoOOMBannerEvidence
+			gotErr = json.Unmarshal(wire, &got)
+			if gotErr != nil || got != want {
+				t.Fatalf("json.Unmarshal(%q) = (%v, %v), want (%v, nil)", wire, got, gotErr, want)
+			}
+			second, gotErr := got.MarshalJSON()
+			if gotErr != nil || !bytes.Equal(second, wire) {
+				t.Fatalf("GoOOMBannerEvidence.MarshalJSON(round trip) = (%q, %v), want (%q, nil)", second, gotErr, wire)
+			}
+		})
 	}
 
-	rejected := []string{
-		"",
-		"null",
-		"{}",
-		`{"bytes_examined":0}`,
-		`{"state":"absent"}`,
-		`{"bytes_examined":0,"state":null}`,
-		`{"bytes_examined":null,"state":"absent"}`,
-		`{"bytes_examined":0,"state":"unknown"}`,
-		`{"bytes_examined":0,"state":"present","extra":0}`,
-		`{"state":"present","bytes_examined":0}`,
-		`{"bytes_examined":00,"state":"absent"}`,
-		`{"bytes_examined":-1,"state":"absent"}`,
-		`{"bytes_examined":1.0,"state":"absent"}`,
-		`{"bytes_examined":"1","state":"absent"}`,
-		`{"bytes_examined":1048577,"state":"present"}`,
-		"{\"bytes_examined\":0,\"state\":\"absent\"}\n",
-		`{"bytes_examined":0,"state":"absent","state":"present"}`,
-		`{"bytes_examined":0,"bytes_examined":1,"state":"absent"}`,
-		`{"bytes_examined":18446744073709551615,"state":"absent"}`,
-		`[]`,
+	rejectedCases := []struct {
+		name string
+		wire string
+	}{
+		{name: "empty document is rejected", wire: ""},
+		{name: "whitespace-only document is rejected", wire: " \t\n"},
+		{name: "null document is rejected", wire: "null"},
+		{name: "empty object is rejected", wire: "{}"},
+		{name: "missing state is rejected", wire: `{"bytes_examined":0}`},
+		{name: "missing extent is rejected", wire: `{"state":"absent"}`},
+		{name: "null state is rejected", wire: `{"bytes_examined":0,"state":null}`},
+		{name: "null extent is rejected", wire: `{"bytes_examined":null,"state":"absent"}`},
+		{name: "unknown state is rejected", wire: `{"bytes_examined":0,"state":"unknown"}`},
+		{name: "extra field is rejected", wire: `{"bytes_examined":0,"state":"absent","extra":0}`},
+		{name: "reordered fields are rejected as noncanonical", wire: `{"state":"absent","bytes_examined":0}`},
+		{name: "leading-zero extent is rejected", wire: `{"bytes_examined":00,"state":"absent"}`},
+		{name: "negative extent is rejected", wire: `{"bytes_examined":-1,"state":"absent"}`},
+		{name: "fractional extent is rejected", wire: `{"bytes_examined":1.0,"state":"absent"}`},
+		{name: "string extent is rejected", wire: `{"bytes_examined":"1","state":"absent"}`},
+		{name: "one over evidence ceiling is rejected", wire: fmt.Sprintf(`{"bytes_examined":%d,"state":"absent"}`, GoOOMMaximumEvidenceBytes+1)},
+		{name: "trailing newline is rejected", wire: "{\"bytes_examined\":0,\"state\":\"absent\"}\n"},
+		{name: "leading space is rejected", wire: ` {"bytes_examined":0,"state":"absent"}`},
+		{name: "space before separator is rejected", wire: `{"bytes_examined":0, "state":"absent"}`},
+		{name: "duplicate state is rejected", wire: `{"bytes_examined":0,"state":"absent","state":"present"}`},
+		{name: "duplicate extent is rejected", wire: `{"bytes_examined":0,"bytes_examined":1,"state":"absent"}`},
+		{name: "maximum uint64 extent is rejected", wire: `{"bytes_examined":18446744073709551615,"state":"absent"}`},
+		{name: "array document is rejected", wire: `[]`},
+		{name: "boolean document is rejected", wire: `true`},
+		{name: "uppercase state is rejected", wire: `{"bytes_examined":0,"state":"ABSENT"}`},
+		{name: "empty state is rejected", wire: `{"bytes_examined":0,"state":""}`},
+		{name: "escaped state spelling is rejected as noncanonical", wire: `{"bytes_examined":0,"state":"ab\u0073ent"}`},
+		{name: "presence below shortest banner is rejected", wire: fmt.Sprintf(`{"bytes_examined":%d,"state":"present"}`, len(GoOOMPlainBanner)-1)},
+		{name: "nested extent is rejected", wire: `{"bytes_examined":{"value":0},"state":"absent"}`},
+		{name: "second document is rejected", wire: `{"bytes_examined":0,"state":"absent"}{}`},
 	}
-	for _, candidate := range rejected {
-		before := valid
-		gotErr := before.UnmarshalJSON([]byte(candidate))
-		if !errors.Is(gotErr, core.ErrJSONContract) || before != valid {
-			t.Fatalf("GoOOMBannerEvidence.UnmarshalJSON(%q) = (%v, %v), want unchanged %v and %v", candidate, before, gotErr, valid, core.ErrJSONContract)
-		}
+	wantPreserved := classifiedEvidenceFixture(t, uint64(len(GoOOMPlainBanner)), GoOOMBannerPresent)
+	for _, tc := range rejectedCases {
+		t.Run(tc.name, func(t *testing.T) {
+			t.Parallel()
+
+			got := wantPreserved
+			gotErr := got.UnmarshalJSON([]byte(tc.wire))
+			if !errors.Is(gotErr, core.ErrJSONContract) || !errors.Is(gotErr, core.ErrHostFactsEvidence) {
+				t.Fatalf("GoOOMBannerEvidence.UnmarshalJSON(%q) error = %v, want JSON and evidence identities", tc.wire, gotErr)
+			}
+			if got != wantPreserved {
+				t.Fatalf("GoOOMBannerEvidence.UnmarshalJSON(%q) receiver = %v, want preserved %v", tc.wire, got, wantPreserved)
+			}
+		})
+	}
+
+	var nilEvidence *GoOOMBannerEvidence
+	if gotErr := nilEvidence.UnmarshalJSON([]byte(`{"bytes_examined":0,"state":"absent"}`)); !errors.Is(gotErr, core.ErrJSONContract) || !errors.Is(gotErr, core.ErrHostFactsEvidence) {
+		t.Fatalf("nil GoOOMBannerEvidence.UnmarshalJSON() error = %v, want JSON and evidence identities", gotErr)
 	}
 }
 
@@ -213,13 +265,155 @@ func TestGoOOMBannerStateJSONExhaustsClosedDomain(t *testing.T) {
 		}
 	}
 
-	before := GoOOMBannerPresent
-	for _, wire := range []string{"", "null", `""`, `"unknown"`, `"Present"`, `"present" `, `"present\"\u0000"`} {
-		gotErr := before.UnmarshalJSON([]byte(wire))
-		if !errors.Is(gotErr, core.ErrJSONContract) || before != GoOOMBannerPresent {
-			t.Fatalf("GoOOMBannerState.UnmarshalJSON(%q) = (%v, %v), want unchanged present and %v", wire, before, gotErr, core.ErrJSONContract)
-		}
+	rejectedCases := []struct {
+		name string
+		wire string
+	}{
+		{name: "empty document", wire: ""},
+		{name: "null document", wire: "null"},
+		{name: "empty token", wire: `""`},
+		{name: "unknown token", wire: `"unknown"`},
+		{name: "uppercase token", wire: `"Present"`},
+		{name: "trailing space", wire: `"present" `},
+		{name: "leading space", wire: ` "present"`},
+		{name: "escaped canonical token", wire: `"pre\u0073ent"`},
+		{name: "embedded NUL", wire: `"present\u0000"`},
+		{name: "unquoted token", wire: `present`},
+		{name: "array token", wire: `[]`},
+		{name: "object token", wire: `{}`},
+		{name: "numeric token", wire: `1`},
+		{name: "boolean token", wire: `true`},
+		{name: "two documents", wire: `"present""absent"`},
+		{name: "truncated quote", wire: `"present`},
+		{name: "invalid escape", wire: `"pre\qsent"`},
+		{name: "surrogate escape", wire: `"\ud800"`},
+		{name: "newline after token", wire: "\"present\"\n"},
+		{name: "maximum plus one bytes", wire: strings.Repeat("x", len(strconv.Quote(goOOMPresentToken))+1)},
 	}
+	for _, tc := range rejectedCases {
+		t.Run(tc.name, func(t *testing.T) {
+			t.Parallel()
+
+			got := GoOOMBannerPresent
+			gotErr := got.UnmarshalJSON([]byte(tc.wire))
+			if !errors.Is(gotErr, core.ErrJSONContract) || !errors.Is(gotErr, core.ErrHostFactsEvidence) {
+				t.Fatalf("GoOOMBannerState.UnmarshalJSON(%q) error = %v, want JSON and evidence identities", tc.wire, gotErr)
+			}
+			if got != GoOOMBannerPresent {
+				t.Fatalf("GoOOMBannerState.UnmarshalJSON(%q) receiver = %v, want preserved %v", tc.wire, got, GoOOMBannerPresent)
+			}
+		})
+	}
+
+	var nilState *GoOOMBannerState
+	if gotErr := nilState.UnmarshalJSON([]byte(`"absent"`)); !errors.Is(gotErr, core.ErrJSONContract) || !errors.Is(gotErr, core.ErrHostFactsEvidence) {
+		t.Fatalf("nil GoOOMBannerState.UnmarshalJSON() error = %v, want JSON and evidence identities", gotErr)
+	}
+}
+
+func FuzzGoOOMBannerStateJSONSemanticClosure(f *testing.F) {
+	for _, state := range []GoOOMBannerState{GoOOMBannerAbsent, GoOOMBannerPresent} {
+		seed, err := state.MarshalJSON()
+		if err != nil {
+			f.Fatalf("GoOOMBannerState(%d).MarshalJSON(seed) error = %v, want nil", state, err)
+		}
+		f.Add(seed)
+	}
+	for _, seed := range [][]byte{
+		{},
+		[]byte("null"),
+		[]byte(`"unknown"`),
+		[]byte(`"pre\u0073ent"`),
+		[]byte(strings.Repeat("x", len(strconv.Quote(goOOMPresentToken))+1)),
+	} {
+		f.Add(seed)
+	}
+
+	f.Fuzz(func(t *testing.T, data []byte) {
+		want, wantErr := referenceGoOOMBannerStateJSON(data)
+		got := GoOOMBannerPresent
+		gotErr := got.UnmarshalJSON(data)
+		if wantErr != nil {
+			if !errors.Is(gotErr, core.ErrJSONContract) || !errors.Is(gotErr, core.ErrHostFactsEvidence) {
+				t.Fatalf("GoOOMBannerState.UnmarshalJSON(rejected %q) error = %v, want JSON and evidence identities", data, gotErr)
+			}
+			if got != GoOOMBannerPresent {
+				t.Fatalf("GoOOMBannerState.UnmarshalJSON(rejected %q) receiver = %v, want preserved %v", data, got, GoOOMBannerPresent)
+			}
+			return
+		}
+		if gotErr != nil || got != want {
+			t.Fatalf("GoOOMBannerState.UnmarshalJSON(%q) = (%v, %v), want (%v, nil)", data, got, gotErr, want)
+		}
+		if err := got.Validate(); err != nil {
+			t.Fatalf("GoOOMBannerState.UnmarshalJSON(%q).Validate() error = %v, want nil", data, err)
+		}
+		canonical, err := got.MarshalJSON()
+		if err != nil || !bytes.Equal(canonical, data) {
+			t.Fatalf("GoOOMBannerState.MarshalJSON(accepted) = (%q, %v), want (%q, nil)", canonical, err, data)
+		}
+		var roundTrip GoOOMBannerState
+		if err := roundTrip.UnmarshalJSON(canonical); err != nil || roundTrip != got {
+			t.Fatalf("GoOOMBannerState canonical round trip = (%v, %v), want (%v, nil)", roundTrip, err, got)
+		}
+	})
+}
+
+func FuzzGoOOMBannerEvidenceJSONSemanticClosure(f *testing.F) {
+	for _, fixture := range []GoOOMBannerEvidence{
+		classifiedEvidenceFixture(f, 0, GoOOMBannerAbsent),
+		classifiedEvidenceFixture(f, uint64(len(GoOOMPlainBanner)), GoOOMBannerPresent),
+		classifiedEvidenceFixture(f, 1<<10, GoOOMBannerAbsent),
+	} {
+		seed, err := fixture.MarshalJSON()
+		if err != nil {
+			f.Fatalf("GoOOMBannerEvidence.MarshalJSON(seed) error = %v, want nil", err)
+		}
+		f.Add(seed)
+	}
+	for _, seed := range [][]byte{
+		{},
+		[]byte("null"),
+		[]byte(`{}`),
+		[]byte(`{"bytes_examined":0,"state":"unknown"}`),
+		[]byte(fmt.Sprintf(`{"bytes_examined":%d,"state":"absent"}`, GoOOMMaximumEvidenceBytes+1)),
+	} {
+		f.Add(seed)
+	}
+
+	f.Fuzz(func(t *testing.T, data []byte) {
+		want, wantErr := referenceGoOOMBannerEvidenceJSON(data)
+		preserved := classifiedEvidenceFixture(t, uint64(len(GoOOMPlainBanner)), GoOOMBannerPresent)
+		got := preserved
+		gotErr := got.UnmarshalJSON(data)
+		if wantErr != nil {
+			if !errors.Is(gotErr, core.ErrJSONContract) || !errors.Is(gotErr, core.ErrHostFactsEvidence) {
+				t.Fatalf("GoOOMBannerEvidence.UnmarshalJSON(rejected %d bytes) error = %v, want JSON and evidence identities", len(data), gotErr)
+			}
+			if got != preserved {
+				t.Fatalf("GoOOMBannerEvidence.UnmarshalJSON(rejected %d bytes) receiver = %v, want preserved %v", len(data), got, preserved)
+			}
+			return
+		}
+		if gotErr != nil || got != want {
+			t.Fatalf("GoOOMBannerEvidence.UnmarshalJSON(%q) = (%v, %v), want (%v, nil)", data, got, gotErr, want)
+		}
+		if err := got.Validate(); err != nil {
+			t.Fatalf("GoOOMBannerEvidence.UnmarshalJSON(%q).Validate() error = %v, want nil", data, err)
+		}
+		canonical, err := got.MarshalJSON()
+		if err != nil || !bytes.Equal(canonical, data) {
+			t.Fatalf("GoOOMBannerEvidence.MarshalJSON(accepted) = (%q, %v), want (%q, nil)", canonical, err, data)
+		}
+		var roundTrip GoOOMBannerEvidence
+		if err := roundTrip.UnmarshalJSON(canonical); err != nil || roundTrip != got {
+			t.Fatalf("GoOOMBannerEvidence canonical round trip = (%v, %v), want (%v, nil)", roundTrip, err, got)
+		}
+		second, err := roundTrip.MarshalJSON()
+		if err != nil || !bytes.Equal(second, canonical) {
+			t.Fatalf("GoOOMBannerEvidence second canonical projection = (%q, %v), want (%q, nil)", second, err, canonical)
+		}
+	})
 }
 
 func FuzzGoOOMBannerClassifier(f *testing.F) {
@@ -249,6 +443,75 @@ func FuzzGoOOMBannerClassifier(f *testing.F) {
 			t.Fatalf("ClassifyGoOOMBanner(%d bytes) emitted invalid extent/state: %v", len(data), got)
 		}
 	})
+}
+
+func classifiedEvidenceFixture(t testing.TB, extent uint64, state GoOOMBannerState) GoOOMBannerEvidence {
+	t.Helper()
+
+	data := bytes.Repeat([]byte{'x'}, int(extent))
+	if state == GoOOMBannerPresent {
+		copy(data[len(data)-len(GoOOMPlainBanner):], GoOOMPlainBanner)
+	}
+	got, gotErr := ClassifyGoOOMBanner(context.Background(), GoOOMBannerRequest{
+		Source: bytes.NewReader(data),
+		Length: mustByteLength(t, extent),
+	})
+	if gotErr != nil {
+		t.Fatalf("ClassifyGoOOMBanner(%d-byte fixture) error = %v, want nil", extent, gotErr)
+	}
+	if got.State() != state || got.BytesExamined().Uint64() != extent {
+		t.Fatalf("ClassifyGoOOMBanner(%d-byte fixture) = %v, want state %v and exact extent", extent, got, state)
+	}
+	if err := got.Validate(); err != nil {
+		t.Fatalf("ClassifyGoOOMBanner(%d-byte fixture).Validate() error = %v, want nil", extent, err)
+	}
+	return got
+}
+
+func referenceGoOOMBannerStateJSON(data []byte) (GoOOMBannerState, error) {
+	if len(data) == 0 || len(data) > len(strconv.Quote(goOOMPresentToken)) {
+		return GoOOMBannerUnknown, core.ErrJSONContract
+	}
+	token, err := strconv.Unquote(string(data))
+	if err != nil || !bytes.Equal(strconv.AppendQuote(nil, token), data) {
+		return GoOOMBannerUnknown, core.ErrJSONContract
+	}
+	switch token {
+	case goOOMAbsentToken:
+		return GoOOMBannerAbsent, nil
+	case goOOMPresentToken:
+		return GoOOMBannerPresent, nil
+	default:
+		return GoOOMBannerUnknown, core.ErrJSONContract
+	}
+}
+
+func referenceGoOOMBannerEvidenceJSON(data []byte) (GoOOMBannerEvidence, error) {
+	maximum, err := goOOMEvidenceJSONLimits().DocumentMaximumBytes.Uint64()
+	if err != nil || len(data) == 0 || uint64(len(data)) > maximum || data[len(data)-1] != '}' {
+		return GoOOMBannerEvidence{}, core.ErrJSONContract
+	}
+	if !bytes.HasPrefix(data, []byte(goOOMEvidenceBytesPrefix)) {
+		return GoOOMBannerEvidence{}, core.ErrJSONContract
+	}
+	body := data[len(goOOMEvidenceBytesPrefix) : len(data)-1]
+	extentToken, stateToken, found := bytes.Cut(body, []byte(goOOMEvidenceStatePrefix))
+	if !found || len(extentToken) == 0 || bytes.Contains(stateToken, []byte(goOOMEvidenceStatePrefix)) {
+		return GoOOMBannerEvidence{}, core.ErrJSONContract
+	}
+	extent, err := strconv.ParseUint(string(extentToken), 10, 64)
+	if err != nil || strconv.FormatUint(extent, 10) != string(extentToken) || extent > GoOOMMaximumEvidenceBytes {
+		return GoOOMBannerEvidence{}, core.ErrJSONContract
+	}
+	state, err := referenceGoOOMBannerStateJSON(stateToken)
+	if err != nil || state == GoOOMBannerPresent && extent < uint64(len(GoOOMPlainBanner)) {
+		return GoOOMBannerEvidence{}, core.ErrJSONContract
+	}
+	length, err := core.NewByteLength(extent)
+	if err != nil {
+		return GoOOMBannerEvidence{}, core.ErrJSONContract
+	}
+	return GoOOMBannerEvidence{examined: length, state: state}, nil
 }
 
 func BenchmarkClassifyGoOOMBanner1KiB(b *testing.B) {

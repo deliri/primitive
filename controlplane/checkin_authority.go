@@ -62,7 +62,10 @@ func (r CheckInCommitRequest) Validate() error {
 // advances once, is the exact window already committed, or conflicts with a
 // different authoritative watermark. It allocates no history and owns no
 // persistence mechanism.
-func CommitCheckIn(request CheckInCommitRequest) (VerifiedCheckInCommit, error) {
+func (s Server) CommitCheckIn(request CheckInCommitRequest) (VerifiedCheckInCommit, error) {
+	if err := s.Validate(); err != nil {
+		return VerifiedCheckInCommit{}, checkInError(err)
+	}
 	watermark, disposition, err := resolveCheckInCommit(request)
 	if err != nil {
 		return VerifiedCheckInCommit{}, err
@@ -159,7 +162,16 @@ func (p CheckInResponsePreparation) Validate() error {
 
 // PrepareCheckInResponse derives the only disposition and watermark the
 // authenticated usage transaction permits, then closes the complete payload.
-func PrepareCheckInResponse(
+func (s Server) PrepareCheckInResponse(
+	preparation CheckInResponsePreparation,
+) (CheckInResponsePayload, error) {
+	if err := s.Validate(); err != nil {
+		return CheckInResponsePayload{}, checkInResponseError(err)
+	}
+	return prepareCheckInResponse(preparation)
+}
+
+func prepareCheckInResponse(
 	preparation CheckInResponsePreparation,
 ) (CheckInResponsePayload, error) {
 	if err := preparation.Validate(); err != nil {
@@ -178,15 +190,18 @@ func PrepareCheckInResponse(
 // IssueCommittedCheckInResponse signs the response derived from one verified
 // authority commit. It is the direct server-side counterpart to the installed
 // client's VerifyCheckInResponse.
-func IssueCommittedCheckInResponse(
+func (s Server) IssueCommittedCheckInResponse(
 	preparation CheckInResponsePreparation,
 	key ed25519.PrivateKey,
 ) (CheckInResponseDocument, error) {
-	payload, err := PrepareCheckInResponse(preparation)
+	if err := s.Validate(); err != nil {
+		return CheckInResponseDocument{}, checkInResponseError(err)
+	}
+	payload, err := prepareCheckInResponse(preparation)
 	if err != nil {
 		return CheckInResponseDocument{}, err
 	}
-	return IssueCheckInResponse(payload, key)
+	return issueCheckInResponse(payload, key)
 }
 
 var (

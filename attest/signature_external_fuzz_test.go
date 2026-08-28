@@ -43,37 +43,48 @@ func FuzzSignatureExternalJSONDoor(f *testing.F) {
 	}
 
 	f.Fuzz(func(t *testing.T, data []byte) {
-		got := survivor
-		gotErr := attestExternalJSONDoors.Signature(&got, data)
-		if gotErr != nil {
-			if !errors.Is(gotErr, core.ErrJSONContract) ||
-				!errors.Is(gotErr, core.ErrAttestContract) {
+		var gotFresh Signature
+		gotFreshErr := attestExternalJSONDoors.Signature(&gotFresh, data)
+		gotPopulated := survivor
+		gotPopulatedErr := attestExternalJSONDoors.Signature(&gotPopulated, data)
+		if gotFreshErr != nil || gotPopulatedErr != nil {
+			if !errors.Is(gotFreshErr, core.ErrJSONContract) ||
+				!errors.Is(gotFreshErr, core.ErrAttestContract) ||
+				!errors.Is(gotPopulatedErr, core.ErrJSONContract) ||
+				!errors.Is(gotPopulatedErr, core.ErrAttestContract) {
 				t.Fatalf(
-					"Signature.UnmarshalJSON(rejected) error = %v, want %v and %v",
-					gotErr,
+					"Signature.UnmarshalJSON(rejected) errors = (%v, %v), want %v and %v for both",
+					gotFreshErr,
+					gotPopulatedErr,
 					core.ErrJSONContract,
 					core.ErrAttestContract,
 				)
 			}
-			if got != survivor {
-				t.Fatalf("Signature after rejection = %v, want preserved %v", got, survivor)
+			if gotFresh != (Signature{}) {
+				t.Fatalf("fresh Signature after rejection = %v, want zero", gotFresh)
+			}
+			if gotPopulated != survivor {
+				t.Fatalf("populated Signature after rejection = %v, want preserved %v", gotPopulated, survivor)
 			}
 			return
 		}
-		if gotErr := got.Validate(); gotErr != nil {
+		if gotFresh != gotPopulated {
+			t.Fatalf("Signature.UnmarshalJSON(accepted) receivers = (%v, %v), want equal", gotFresh, gotPopulated)
+		}
+		if gotErr := gotFresh.Validate(); gotErr != nil {
 			t.Fatalf("Signature.UnmarshalJSON(accepted).Validate() error = %v, want nil", gotErr)
 		}
-		encoded, gotErr := got.MarshalJSON()
+		encoded, gotErr := gotFresh.MarshalJSON()
 		if gotErr != nil {
 			t.Fatalf("Signature.MarshalJSON() error = %v, want nil", gotErr)
 		}
 		var roundTrip Signature
-		if gotErr := attestExternalJSONDoors.Signature(&roundTrip, encoded); gotErr != nil || roundTrip != got {
+		if gotErr := attestExternalJSONDoors.Signature(&roundTrip, encoded); gotErr != nil || roundTrip != gotFresh {
 			t.Fatalf(
 				"Signature canonical round trip = (%v, %v), want (%v, nil)",
 				roundTrip,
 				gotErr,
-				got,
+				gotFresh,
 			)
 		}
 		second, gotErr := roundTrip.MarshalJSON()

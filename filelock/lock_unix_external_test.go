@@ -37,15 +37,16 @@ func TestUnixClosedDescriptorPreservesNativeLockFailure(t *testing.T) {
 	for _, tc := range cases {
 		t.Run(tc.name, func(t *testing.T) {
 			t.Parallel()
-			proveClosedDescriptorAcquireFailure(t, tc)
+			path := filepath.Join(t.TempDir(), "closed.lock")
+			proveClosedDescriptorAcquireFailure(t, tc, path)
 		})
 	}
 }
 
-func proveClosedDescriptorAcquireFailure(t *testing.T, policy closedDescriptorPolicy) {
+func proveClosedDescriptorAcquireFailure(t *testing.T, policy closedDescriptorPolicy, path string) {
 	t.Helper()
 
-	file := closedDescriptor(t)
+	file := closedDescriptor(t, path)
 	got, gotErr := filelock.Acquire(t.Context(), filelock.Request{
 		File: file, Exclusivity: policy.exclusivity, Patience: policy.patience,
 	})
@@ -63,17 +64,17 @@ func proveClosedDescriptorAcquireFailure(t *testing.T, policy closedDescriptorPo
 func TestUnixClosedDescriptorReleasePreservesNativeLockFailure(t *testing.T) {
 	t.Parallel()
 
-	gotErr := filelock.Release(t.Context(), closedDescriptor(t))
+	path := filepath.Join(t.TempDir(), "closed.lock")
+	gotErr := filelock.Release(t.Context(), closedDescriptor(t, path))
 	if !errors.Is(gotErr, core.ErrFileLockUnavailable) ||
 		!errors.Is(gotErr, syscall.EBADF) {
 		t.Fatalf("Release(closed descriptor) error = %v, want errors.Is(..., %v) and errors.Is(..., %v)", gotErr, core.ErrFileLockUnavailable, syscall.EBADF)
 	}
 }
 
-func closedDescriptor(t *testing.T) *os.File {
+func closedDescriptor(t *testing.T, path string) *os.File {
 	t.Helper()
 
-	path := filepath.Join(t.TempDir(), "closed.lock")
 	file, err := os.Create(path)
 	if err != nil {
 		t.Fatalf("Create(%s) error = %v, want nil", path, err)

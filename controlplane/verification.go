@@ -13,11 +13,10 @@ import (
 // naming the request it made, the build it is, and the key it holds would be
 // checking only that somebody signed something.
 type RegistrationVerification struct {
-	Expected    ResponseExpectation
-	Build       core.BuildIdentity
-	Document    RegistrationDocument
-	TrustedKeys attest.TrustedKeys
-	DeviceKey   core.Ed25519PublicKey
+	Expected  ResponseExpectation
+	Build     core.BuildIdentity
+	Document  RegistrationDocument
+	DeviceKey core.Ed25519PublicKey
 }
 
 // VerifiedRegistration is returned only after the response, the credential when
@@ -47,9 +46,6 @@ func (v RegistrationVerification) Validate() error {
 	if err := v.DeviceKey.Validate(); err != nil {
 		return registrationError(err)
 	}
-	if err := v.TrustedKeys.Validate(); err != nil {
-		return registrationError(err)
-	}
 	return nil
 }
 
@@ -61,7 +57,10 @@ func (v RegistrationVerification) Validate() error {
 // verification on it. The response signature comes next, then the Lease, then
 // the certificate: each stage only runs on bytes an earlier stage has already
 // accepted.
-func VerifyRegistration(request RegistrationVerification) (VerifiedRegistration, error) {
+func (c Client) VerifyRegistration(request RegistrationVerification) (VerifiedRegistration, error) {
+	if err := c.Validate(); err != nil {
+		return VerifiedRegistration{}, registrationError(err)
+	}
 	if err := request.Validate(); err != nil {
 		return VerifiedRegistration{}, err
 	}
@@ -71,16 +70,22 @@ func VerifyRegistration(request RegistrationVerification) (VerifiedRegistration,
 	responseProof, err := attest.Verify(attest.VerifyRequest[SigningDomain]{
 		Body:        request.Document.Payload,
 		Envelope:    request.Document.Attestation,
-		TrustedKeys: request.TrustedKeys,
+		TrustedKeys: c.configuration.TrustedAuthorityKeys,
 	})
 	if err != nil {
 		return VerifiedRegistration{}, registrationError(err)
 	}
-	leaseProof, err := verifyRegistrationLease(request.Document.Payload, request.TrustedKeys)
+	leaseProof, err := verifyRegistrationLease(
+		request.Document.Payload,
+		c.configuration.TrustedAuthorityKeys,
+	)
 	if err != nil {
 		return VerifiedRegistration{}, err
 	}
-	certificateProof, err := verifyRegistrationCertificate(request)
+	certificateProof, err := verifyRegistrationCertificate(
+		request,
+		c.configuration.TrustedAuthorityKeys,
+	)
 	if err != nil {
 		return VerifiedRegistration{}, err
 	}
@@ -114,7 +119,10 @@ func verifyRegistrationLease(payload RegistrationPayload, trusted attest.Trusted
 // A signed certificate naming another device key or another build is authentic
 // and still wrong: it is somebody else's credential, or this machine's
 // credential for a binary it is not running.
-func verifyRegistrationCertificate(request RegistrationVerification) (attest.Verified[SigningDomain], error) {
+func verifyRegistrationCertificate(
+	request RegistrationVerification,
+	trusted attest.TrustedKeys,
+) (attest.Verified[SigningDomain], error) {
 	certificate := request.Document.Payload.Certificate
 	if certificate == nil {
 		return attest.Verified[SigningDomain]{}, nil
@@ -125,7 +133,7 @@ func verifyRegistrationCertificate(request RegistrationVerification) (attest.Ver
 	verified, err := attest.Verify(attest.VerifyRequest[SigningDomain]{
 		Body:        certificate.Body,
 		Envelope:    certificate.Attestation,
-		TrustedKeys: request.TrustedKeys,
+		TrustedKeys: trusted,
 	})
 	if err != nil {
 		return attest.Verified[SigningDomain]{}, registrationError(err)

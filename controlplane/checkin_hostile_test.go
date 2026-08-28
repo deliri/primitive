@@ -56,11 +56,21 @@ func issueTestCheckIn(
 
 	authorityPublic, authority := testSigningKey(t, checkInAuthoritySeed)
 	devicePublic, device := testSigningKey(t, checkInDeviceSeed)
+	trusted, err := attest.NewTrustedKeys(attest.TrustedKeysRequest{
+		Keys: []core.Ed25519PublicKey{authorityPublic},
+	})
+	if err != nil {
+		t.Fatalf("NewTrustedKeys() error = %v, want nil", err)
+	}
+	client := testControlplaneClient(t, trusted)
+	server := testControlplaneServer(t, trusted)
 
 	subject := testSubject(t, offering, devicePublic)
 	build := testBuildForOffering(t, offering)
 	revision := testRevision(t)
-	certificate := issueTestCertificate(t, subject, build, revision, devicePublic, authority)
+	certificate := issueTestCertificate(
+		t, server, subject, build, revision, devicePublic, authority,
+	)
 
 	watermark, err := controlplane.NewInitialUsageWatermark(subject)
 	if err != nil {
@@ -76,20 +86,24 @@ func issueTestCheckIn(
 		Installation:      subject.DeviceID,
 		AppliedPolicy:     testPolicyCursor(t),
 	}
-	request, err := controlplane.IssueCheckIn(payload, device, certificate)
+	request, err := client.IssueCheckIn(payload, device, certificate)
 	if err != nil {
-		t.Fatalf("IssueCheckIn() for %v error = %v, want nil", offering, err)
-	}
-	trusted, err := attest.NewTrustedKeys(attest.TrustedKeysRequest{
-		Keys: []core.Ed25519PublicKey{authorityPublic},
-	})
-	if err != nil {
-		t.Fatalf("NewTrustedKeys() error = %v, want nil", err)
+		t.Fatalf("Client.IssueCheckIn() for %v error = %v, want nil", offering, err)
 	}
 	return issuedCheckIn{
 		request: request, certificate: certificate, trusted: trusted,
 		device: device, authority: authority, subject: subject,
 	}
+}
+
+func (i issuedCheckIn) client(t testing.TB) controlplane.Client {
+	t.Helper()
+	return testControlplaneClient(t, i.trusted)
+}
+
+func (i issuedCheckIn) server(t testing.TB) controlplane.Server {
+	t.Helper()
+	return testControlplaneServer(t, i.trusted)
 }
 
 func testSubject(t testing.TB, offering core.Offering, deviceKey core.Ed25519PublicKey) lease.Subject {
@@ -124,6 +138,7 @@ func testBuildForOffering(t testing.TB, offering core.Offering) core.BuildIdenti
 
 func issueTestCertificate(
 	t testing.TB,
+	server controlplane.Server,
 	subject lease.Subject,
 	build core.BuildIdentity,
 	revision controlwire.Revision,
@@ -140,9 +155,9 @@ func issueTestCertificate(
 		IssuedAt: testInstant(t, checkInIssuedAt), Build: build, Revision: revision,
 		Subject: subject, DeviceKey: deviceKey, Account: account,
 	}
-	certificate, err := controlplane.IssueInstallationCertificate(body, authority)
+	certificate, err := server.IssueInstallationCertificate(body, authority)
 	if err != nil {
-		t.Fatalf("IssueInstallationCertificate() error = %v, want nil", err)
+		t.Fatalf("Server.IssueInstallationCertificate() error = %v, want nil", err)
 	}
 	return certificate
 }
@@ -210,6 +225,7 @@ func TestCheckInOfferingLayerTriadCarriesRepresentativeOpaqueOfferingsThroughOne
 			t.Parallel()
 
 			issued := issueTestCheckIn(t, offering, testCheckInWindow())
+			server := issued.server(t)
 			route, routeErr := issued.request.ControlRoute()
 			if routeErr != nil || route.Offering() != offering ||
 				route.Family() != controlwire.RouteFamilyCheckIns ||
@@ -217,8 +233,8 @@ func TestCheckInOfferingLayerTriadCarriesRepresentativeOpaqueOfferingsThroughOne
 				t.Fatalf("check-in control projection(%v) = (%v, %v, %v), want exact route and signed nonce",
 					offering, route, issued.request.ControlNonce(), routeErr)
 			}
-			verified, err := controlplane.VerifyCheckIn(controlplane.CheckInVerification{
-				Request: issued.request, TrustedKeys: issued.trusted,
+			verified, err := server.VerifyCheckIn(controlplane.CheckInVerification{
+				Request: issued.request,
 			})
 			if err != nil {
 				t.Fatalf("VerifyCheckIn() for %v error = %v, want nil", offering, err)
@@ -295,7 +311,10 @@ func TestCheckInRefusesEveryTamperedFact(t *testing.T) {
 			name: "a credential this authority did not sign is refused",
 			mutate: func(t *testing.T, request *controlplane.CheckInRequest, issued issuedCheckIn) {
 				_, impostor := testSigningKey(t, checkInOtherDeviceSeed)
-				forged, err := controlplane.IssueInstallationCertificate(issued.certificate.Body, impostor)
+				forged, err := issued.server(t).IssueInstallationCertificate(
+					issued.certificate.Body,
+					impostor,
+				)
 				if err != nil {
 					t.Fatalf("IssueInstallationCertificate() error = %v, want nil", err)
 				}
@@ -345,8 +364,9 @@ func TestCheckInRefusesEveryTamperedFact(t *testing.T) {
 			t.Parallel()
 
 			issued := issueTestCheckIn(t, controlplaneOffering(t, 3), testCheckInWindow())
-			if _, err := controlplane.VerifyCheckIn(controlplane.CheckInVerification{
-				Request: issued.request, TrustedKeys: issued.trusted,
+			server := issued.server(t)
+			if _, err := server.VerifyCheckIn(controlplane.CheckInVerification{
+				Request: issued.request,
 			}); err != nil {
 				t.Fatalf("the untampered fixture must verify first: VerifyCheckIn() error = %v", err)
 			}
@@ -359,9 +379,13 @@ func TestCheckInRefusesEveryTamperedFact(t *testing.T) {
 			if testCase.trusted != nil {
 				trusted = testCase.trusted(t)
 			}
-			verified, err := controlplane.VerifyCheckIn(controlplane.CheckInVerification{
-				Request: request, TrustedKeys: trusted,
+			server, serverErr := controlplane.NewServer(controlplane.ServerConfiguration{
+				TrustedAuthorityKeys: trusted,
 			})
+			verified, err := server.VerifyCheckIn(controlplane.CheckInVerification{
+				Request: request,
+			})
+			err = errors.Join(serverErr, err)
 			if !errors.Is(err, core.ErrControlPlaneCheckIn) {
 				t.Fatalf("VerifyCheckIn() = (%v, %v), want errors.Is %v", verified, err, core.ErrControlPlaneCheckIn)
 			}

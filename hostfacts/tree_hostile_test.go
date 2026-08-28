@@ -11,7 +11,7 @@ import (
 	"github.com/deliri/primitive/v2026/core"
 )
 
-func TestMeasureTreeRealFilesystemLayerTriad(t *testing.T) {
+func TestMeasureTreeUsesHeldRootWithoutFollowingLinks(t *testing.T) {
 	t.Parallel()
 
 	t.Run("positive nested regular sparse and hard-linked entries are measured logically", func(t *testing.T) {

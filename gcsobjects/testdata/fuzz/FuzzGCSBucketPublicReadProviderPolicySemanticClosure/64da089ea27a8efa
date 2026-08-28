@@ -1,0 +1,2 @@
+go test fuzz v1
+[]byte("{\"bindings\":[{\"members\":[\"serviceAc\xff\xff\x7f\xfft:reader@example.test\"],\"role\":\"roles/storage.legacyObjectReader\"},{\"members\":[\"allUsers\"],\"role\":\"roles/storage.legacyObjectReader\"}],\"etag\":\"etag-repeated\"}")

@@ -4,7 +4,6 @@ import (
 	json "encoding/json/v2"
 	"errors"
 
-	"github.com/deliri/primitive/v2026/attest"
 	"github.com/deliri/primitive/v2026/controlplane"
 	"github.com/deliri/primitive/v2026/controlwire"
 	"github.com/deliri/primitive/v2026/core"
@@ -33,11 +32,11 @@ type RequestAssembly struct {
 	Certificate controlplane.InstallationCertificateDocument
 }
 
-// Verification carries caller-selected authority keys and one untrusted
-// credentialed request into authentication.
+// Verification carries one authority capability and one untrusted credentialed
+// request into authentication.
 type Verification struct {
-	Document    RequestDocument
-	TrustedKeys attest.TrustedKeys
+	Server   controlplane.Server
+	Document RequestDocument
 }
 
 // Verified proves the authority certificate authenticated before its device
@@ -134,7 +133,7 @@ func (d *RequestDocument) UnmarshalJSON(data []byte) error {
 
 // Validate closes the full authority-verification input.
 func (v Verification) Validate() error {
-	if err := errors.Join(v.Document.Validate(), v.TrustedKeys.Validate()); err != nil {
+	if err := errors.Join(v.Server.Validate(), v.Document.Validate()); err != nil {
 		return contractError(err)
 	}
 	return nil
@@ -146,8 +145,8 @@ func Verify(verification Verification) (Verified, error) {
 	if err := verification.Validate(); err != nil {
 		return Verified{}, err
 	}
-	certificate, err := controlplane.VerifyInstallationCertificate(
-		verification.Document.Certificate, verification.TrustedKeys,
+	certificate, err := verification.Server.VerifyInstallationCertificate(
+		verification.Document.Certificate,
 	)
 	if err != nil {
 		return Verified{}, contractError(err)

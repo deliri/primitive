@@ -54,3 +54,4 @@ coverage*.out
 # Durable review evidence
 !/evidence/
 !/evidence/**
+/evidence/.DS_Store

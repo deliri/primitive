@@ -38,13 +38,81 @@ type AuthenticatedResponseDocument interface {
 	ControlResponseDocument()
 }
 
+// ClientConfiguration binds the installed-tool side of the control socket to
+// one bounded Exchange client and one authority origin. It carries no protocol
+// support, signing authority, handler, or response writer.
+type ClientConfiguration struct {
+	Exchange  exchange.Client
+	Authority core.HTTPEndpoint
+}
+
+// Validate closes every installed-tool execution dependency.
+func (c ClientConfiguration) Validate() error {
+	if err := c.Exchange.Validate(); err != nil {
+		return contractError(err)
+	}
+	return validateAuthorityOrigin(c.Authority)
+}
+
+// Client is the opaque installed-tool capability for the paired control
+// socket. Its private configuration prevents callers from assembling a send
+// from loose transport and authority facts at the operation boundary.
+type Client struct {
+	configuration ClientConfiguration
+}
+
+// NewClient closes one installed-tool control socket capability.
+func NewClient(configuration ClientConfiguration) (Client, error) {
+	if err := configuration.Validate(); err != nil {
+		return Client{}, err
+	}
+	return Client{configuration: configuration}, nil
+}
+
+// Validate rejects the zero capability and revalidates its owned dependencies.
+func (c Client) Validate() error {
+	return c.configuration.Validate()
+}
+
+// ServerConfiguration binds the authority side of the control socket to its
+// exact supported protocol set. It carries no client transport or authority
+// endpoint.
+type ServerConfiguration struct {
+	Support ProtocolSupport
+}
+
+// Validate closes the authority-side protocol dependency.
+func (c ServerConfiguration) Validate() error {
+	if err := c.Support.Validate(); err != nil {
+		return contractError(err)
+	}
+	return nil
+}
+
+// Server is the opaque authority capability for the paired control socket.
+type Server struct {
+	configuration ServerConfiguration
+}
+
+// NewServer closes one authority control socket capability.
+func NewServer(configuration ServerConfiguration) (Server, error) {
+	if err := configuration.Validate(); err != nil {
+		return Server{}, err
+	}
+	return Server{configuration: configuration}, nil
+}
+
+// Validate rejects the zero capability and revalidates its protocol support.
+func (s Server) Validate() error {
+	return s.configuration.Validate()
+}
+
 // ClientJSONCall is one complete client-side control exchange. Authority must
 // be an origin: the request document owns the complete path through its route.
 type ClientJSONCall[Body RoutedJSONRequest] struct {
-	Context   context.Context
-	Body      Body
-	Client    exchange.Client
-	Authority core.HTTPEndpoint
+	Context context.Context
+	Body    Body
+	Client  Client
 }
 
 // AuthorityJSONReceiveCall is one authority-side receive boundary mounted for
@@ -53,7 +121,7 @@ type ClientJSONCall[Body RoutedJSONRequest] struct {
 type AuthorityJSONReceiveCall struct {
 	Request *http.Request
 	Route   RouteContract
-	Support ProtocolSupport
+	Server  Server
 }
 
 // RoutedJSONReceive is the authority-side transport result. The exact decoded
@@ -71,6 +139,7 @@ type RoutedJSONReceive[Body RoutedJSONRequest] struct {
 type ControlJSONWriteCall[Body AuthenticatedResponseProjection] struct {
 	Writer http.ResponseWriter
 	Body   Body
+	Server Server
 }
 
 // SendRoutedJSON executes one request against the route and nonce projected by
@@ -90,7 +159,7 @@ func SendRoutedJSON[
 	}
 	return exchange.SendJSON[RequestBody, ResponsePtr](exchange.JSONCall[RequestBody]{
 		Context: call.Context,
-		Client:  call.Client,
+		Client:  call.Client.configuration.Exchange,
 		Request: request,
 		Policy:  policy,
 	})
@@ -133,7 +202,7 @@ func ReceiveRoutedJSON[
 	if err != nil {
 		return zero, err
 	}
-	assessment, err := assessReceivedProtocol(call.Support, received.Body)
+	assessment, err := assessReceivedProtocol(call.Server.configuration.Support, received.Body)
 	if err != nil {
 		return zero, err
 	}
@@ -147,6 +216,9 @@ func ReceiveRoutedJSON[
 func WriteControlJSON[
 	Body AuthenticatedResponseProjection,
 ](call ControlJSONWriteCall[Body]) error {
+	if err := call.Server.Validate(); err != nil {
+		return err
+	}
 	policy, err := controlJSONWritePolicy()
 	if err != nil {
 		return err
@@ -169,7 +241,7 @@ func (call AuthorityJSONReceiveCall) Validate() error {
 	if err := call.Route.Validate(); err != nil {
 		return err
 	}
-	if err := call.Support.Validate(); err != nil {
+	if err := call.Server.Validate(); err != nil {
 		return err
 	}
 	path, err := call.Route.Path()
@@ -230,7 +302,7 @@ func clientExchange[Body RoutedJSONRequest](
 	if err != nil {
 		return zero, exchange.JSONPolicy{}, err
 	}
-	target, err := controlTarget(call.Authority, route)
+	target, err := controlTarget(call.Client.configuration.Authority, route)
 	if err != nil {
 		return zero, exchange.JSONPolicy{}, err
 	}
@@ -256,14 +328,10 @@ func controlTarget(
 	authority core.HTTPEndpoint,
 	route RouteContract,
 ) (core.HTTPEndpoint, error) {
-	if err := authority.Validate(); err != nil {
-		return core.HTTPEndpoint{}, routeError(err)
+	if err := validateAuthorityOrigin(authority); err != nil {
+		return core.HTTPEndpoint{}, err
 	}
 	address := authority.HTTPURL()
-	if (address.Path != "" && address.Path != "/") || address.RawPath != "" ||
-		address.RawQuery != "" || address.ForceQuery {
-		return core.HTTPEndpoint{}, routeError(core.ErrExchangeContract)
-	}
 	path, err := route.Path()
 	if err != nil {
 		return core.HTTPEndpoint{}, err
@@ -274,6 +342,18 @@ func controlTarget(
 		return core.HTTPEndpoint{}, routeError(err)
 	}
 	return target, nil
+}
+
+func validateAuthorityOrigin(authority core.HTTPEndpoint) error {
+	if err := authority.Validate(); err != nil {
+		return routeError(err)
+	}
+	address := authority.HTTPURL()
+	if (address.Path != "" && address.Path != "/") || address.RawPath != "" ||
+		address.RawQuery != "" || address.ForceQuery {
+		return routeError(core.ErrExchangeContract)
+	}
+	return nil
 }
 
 func bindReceivedRequest[Body RoutedJSONRequest](

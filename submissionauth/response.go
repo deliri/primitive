@@ -3,7 +3,6 @@ package submissionauth
 import (
 	"crypto"
 
-	"github.com/deliri/primitive/v2026/attest"
 	"github.com/deliri/primitive/v2026/chit"
 	"github.com/deliri/primitive/v2026/controlplane"
 	"github.com/deliri/primitive/v2026/controlwire"
@@ -12,6 +11,7 @@ import (
 )
 
 type SubmissionResponseIssuance struct {
+	Server     controlplane.Server
 	Signer     crypto.Signer
 	Body       submission.DecisionProjection
 	Header     controlplane.ResponseHeader
@@ -19,9 +19,9 @@ type SubmissionResponseIssuance struct {
 }
 
 type SubmissionResponseVerification struct {
-	Expected    controlplane.ResponseExpectation
-	Document    controlplane.ResponseDocument[submission.DecisionDocument, *submission.DecisionDocument]
-	TrustedKeys attest.TrustedKeys
+	Client   controlplane.Client
+	Expected controlplane.ResponseExpectation
+	Document controlplane.ResponseDocument[submission.DecisionDocument, *submission.DecisionDocument]
 }
 
 func (i SubmissionResponseIssuance) Validate() error {
@@ -36,7 +36,7 @@ func IssueSubmissionResponse(i SubmissionResponseIssuance) (controlplane.Respons
 
 func (i SubmissionResponseIssuance) responseIssuance() controlplane.ResponseIssuance[submission.DecisionProjection] {
 	return controlplane.ResponseIssuance[submission.DecisionProjection]{
-		Signer: i.Signer, Header: i.Header, Body: i.Body, Assessment: i.Assessment,
+		Server: i.Server, Signer: i.Signer, Header: i.Header, Body: i.Body, Assessment: i.Assessment,
 	}
 }
 
@@ -50,11 +50,12 @@ func VerifySubmissionResponse(v SubmissionResponseVerification) (controlplane.Ve
 
 func (v SubmissionResponseVerification) responseVerification() controlplane.ResponseVerification[submission.DecisionDocument, *submission.DecisionDocument] {
 	return controlplane.ResponseVerification[submission.DecisionDocument, *submission.DecisionDocument]{
-		Document: v.Document, Expected: v.Expected, TrustedKeys: v.TrustedKeys,
+		Client: v.Client, Document: v.Document, Expected: v.Expected,
 	}
 }
 
 type CompletionResponseIssuance struct {
+	Server     controlplane.Server
 	Signer     crypto.Signer
 	Header     controlplane.ResponseHeader
 	Body       chit.Document
@@ -62,9 +63,9 @@ type CompletionResponseIssuance struct {
 }
 
 type CompletionResponseVerification struct {
-	Expected    controlplane.ResponseExpectation
-	Document    controlplane.ResponseDocument[chit.Document, *chit.Document]
-	TrustedKeys attest.TrustedKeys
+	Client   controlplane.Client
+	Expected controlplane.ResponseExpectation
+	Document controlplane.ResponseDocument[chit.Document, *chit.Document]
 }
 
 func (i CompletionResponseIssuance) Validate() error {
@@ -79,7 +80,7 @@ func IssueCompletionResponse(i CompletionResponseIssuance) (controlplane.Respons
 
 func (i CompletionResponseIssuance) responseIssuance() controlplane.ResponseIssuance[chit.Document] {
 	return controlplane.ResponseIssuance[chit.Document]{
-		Signer: i.Signer, Body: i.Body, Header: i.Header, Assessment: i.Assessment,
+		Server: i.Server, Signer: i.Signer, Body: i.Body, Header: i.Header, Assessment: i.Assessment,
 	}
 }
 
@@ -93,7 +94,7 @@ func VerifyCompletionResponse(v CompletionResponseVerification) (controlplane.Ve
 
 func (v CompletionResponseVerification) responseVerification() controlplane.ResponseVerification[chit.Document, *chit.Document] {
 	return controlplane.ResponseVerification[chit.Document, *chit.Document]{
-		Document: v.Document, Expected: v.Expected, TrustedKeys: v.TrustedKeys,
+		Client: v.Client, Document: v.Document, Expected: v.Expected,
 	}
 }
 

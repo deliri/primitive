@@ -87,7 +87,7 @@ func NewGCSCapabilityIssuer(
 	if err := contextstate.Validate(ctx); err != nil {
 		return nil, errors.Join(core.ErrObjectStoreContract, err)
 	}
-	options, err := gcsClientOptions(config)
+	options, err := gcsClientOptions(ctx, config)
 	if err != nil {
 		return nil, err
 	}

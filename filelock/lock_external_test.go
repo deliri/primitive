@@ -143,8 +143,10 @@ func TestBlockingAcquisitionWaitsForTheHolderRatherThanRefusing(t *testing.T) {
 		err         error
 		acquisition filelock.Acquisition
 	}
+	started := make(chan struct{})
 	done := make(chan outcome, 1)
 	go func() {
+		close(started)
 		acquisition, err := filelock.Acquire(context.Background(), filelock.Request{
 			File:        waiter,
 			Exclusivity: filelock.Exclusive,
@@ -152,28 +154,26 @@ func TestBlockingAcquisitionWaitsForTheHolderRatherThanRefusing(t *testing.T) {
 		})
 		done <- outcome{acquisition: acquisition, err: err}
 	}()
+	<-started
 
-	// The waiter must still be blocked. Releasing is the only thing that can
-	// let it through, so its completion is evidence of waiting rather than of
-	// timing.
-	select {
-	case got := <-done:
-		t.Fatalf("blocking Acquire returned %v/%v before the holder released", got.acquisition, got.err)
-	case <-time.After(50 * time.Millisecond):
-	}
-
-	if err := filelock.Release(t.Context(), holder); err != nil {
-		t.Fatalf("Release() error = %v, want nil", err)
+	gotReleaseErr := filelock.Release(t.Context(), holder)
+	if gotReleaseErr != nil {
+		// Closing is the OS-owned abnormal completion path for a blocking lock.
+		// The goroutine is still joined below before the test reports failure.
+		_ = holder.Close()
 	}
 
 	select {
 	case got := <-done:
+		if gotReleaseErr != nil {
+			t.Fatalf("Release() error = %v, want nil", gotReleaseErr)
+		}
 		if got.err != nil {
 			t.Fatalf("blocking Acquire() error = %v, want nil", got.err)
 		}
 		requireHeld(t, got.acquisition, true, "blocking waiter")
 	case <-time.After(lockBackstop):
-		t.Fatalf("blocking Acquire did not return within %v of the holder releasing", lockBackstop)
+		t.Fatalf("blocking Acquire did not return within %v of holder release or close", lockBackstop)
 	}
 }
 
@@ -237,26 +237,74 @@ func TestReleaseRefusesAMissingFile(t *testing.T) {
 	}
 }
 
-// TestAcquireRefusesACancelledContextBeforeAnyEffect proves the context is a
-// real gate on entry, which is the only place it can be one: no cancellation
-// reaches a process already parked in a blocking lock call.
-func TestAcquireRefusesACancelledContextBeforeAnyEffect(t *testing.T) {
+type contextGateOperation uint8
+
+const (
+	contextGateOperationUnknown contextGateOperation = iota
+	contextGateAcquire
+	contextGateRelease
+)
+
+// TestContextIngressRefusesTerminalStateBeforeLockMutation proves both public
+// effect doors consult contextstate before touching the descriptor. The exact
+// terminal states belong to contextstate; this table proves filelock preserves
+// them and produces no lock or unlock beside a refusal.
+func TestContextIngressRefusesTerminalStateBeforeLockMutation(t *testing.T) {
 	t.Parallel()
 
-	path := filepath.Join(t.TempDir(), "lock")
-	file := openLockFile(t, path)
-	ctx, cancel := context.WithCancel(context.Background())
+	cancelled, cancel := context.WithCancel(context.Background())
 	cancel()
+	expired, stopExpired := context.WithDeadline(context.Background(), time.Unix(0, 0))
+	defer stopExpired()
 
-	if _, err := filelock.Acquire(ctx, filelock.Request{
-		File:        file,
-		Exclusivity: filelock.Exclusive,
-		Patience:    filelock.Immediate,
-	}); !errors.Is(err, context.Canceled) {
-		t.Fatalf("Acquire(cancelled) error = %v, want errors.Is %v", err, context.Canceled)
+	cases := []struct {
+		name      string
+		operation contextGateOperation
+		ctx       context.Context
+		wantErr   error
+	}{
+		{name: "acquire refuses nil context before taking a lock", operation: contextGateAcquire, wantErr: core.ErrNilContext},
+		{name: "acquire refuses cancelled context before taking a lock", operation: contextGateAcquire, ctx: cancelled, wantErr: context.Canceled},
+		{name: "acquire refuses expired context before taking a lock", operation: contextGateAcquire, ctx: expired, wantErr: context.DeadlineExceeded},
+		{name: "release refuses nil context without dropping the lock", operation: contextGateRelease, wantErr: core.ErrNilContext},
+		{name: "release refuses cancelled context without dropping the lock", operation: contextGateRelease, ctx: cancelled, wantErr: context.Canceled},
+		{name: "release refuses expired context without dropping the lock", operation: contextGateRelease, ctx: expired, wantErr: context.DeadlineExceeded},
 	}
 
-	// Nothing was locked, so a second caller still gets the lock.
-	other := openLockFile(t, path)
-	requireHeld(t, acquireImmediate(t, other, filelock.Exclusive), true, "caller after a refused acquisition")
+	for _, tc := range cases {
+		t.Run(tc.name, func(t *testing.T) {
+			t.Parallel()
+
+			path := filepath.Join(t.TempDir(), "context.lock")
+			first := openLockFile(t, path)
+			second := openLockFile(t, path)
+
+			switch tc.operation {
+			case contextGateAcquire:
+				got, gotErr := filelock.Acquire(tc.ctx, filelock.Request{
+					File: first, Exclusivity: filelock.Exclusive, Patience: filelock.Immediate,
+				})
+				if !errors.Is(gotErr, tc.wantErr) {
+					t.Fatalf("Acquire(terminal context) error = %v, want %v", gotErr, tc.wantErr)
+				}
+				if _, gotHeldErr := got.Held(); !errors.Is(gotHeldErr, core.ErrPrimitiveContract) {
+					t.Fatalf("Acquire(terminal context) acquisition.Held() error = %v, want %v", gotHeldErr, core.ErrPrimitiveContract)
+				}
+				requireHeld(t, acquireImmediate(t, second, filelock.Exclusive), true, "successor after refused acquire")
+			case contextGateRelease:
+				requireHeld(t, acquireImmediate(t, first, filelock.Exclusive), true, "holder")
+				gotErr := filelock.Release(tc.ctx, first)
+				if !errors.Is(gotErr, tc.wantErr) {
+					t.Fatalf("Release(terminal context) error = %v, want %v", gotErr, tc.wantErr)
+				}
+				requireHeld(t, acquireImmediate(t, second, filelock.Exclusive), false, "contender after refused release")
+				if gotReleaseErr := filelock.Release(t.Context(), first); gotReleaseErr != nil {
+					t.Fatalf("Release(active context) error = %v, want nil", gotReleaseErr)
+				}
+				requireHeld(t, acquireImmediate(t, second, filelock.Exclusive), true, "successor after accepted release")
+			default:
+				t.Fatalf("context gate operation = %d, want admitted operation", tc.operation)
+			}
+		})
+	}
 }

@@ -68,57 +68,150 @@ func TestAdoptedKeyIsIndistinguishableFromAGeneratedOne(t *testing.T) {
 func TestAdoptPrivateKeyAdmitsExactlyWhatPrivateKeyProjects(t *testing.T) {
 	t.Parallel()
 
-	generated, err := keygen.GenerateSigningKey()
-	if err != nil {
-		t.Fatalf("GenerateSigningKey() error = %v, want nil", err)
+	type adoptionCase struct {
+		name       string
+		setup      func(*testing.T) ed25519.PrivateKey
+		wantErr    error
+		wantSource error
 	}
-	wantPublic, err := generated.PublicKey()
-	if err != nil {
-		t.Fatalf("PublicKey() error = %v, want nil", err)
+	validCases := []adoptionCase{
+		{name: "production private projection is readopted", setup: projectedPrivateKeyFixture},
+		{name: "ascending seed derives a canonical private key", setup: func(*testing.T) ed25519.PrivateKey { return privateKeyFromSeed(nonZeroSeed()) }},
+		{name: "descending seed derives a canonical private key", setup: func(*testing.T) ed25519.PrivateKey { return privateKeyFromSeed(descendingSeed()) }},
+		{name: "first seed byte alone is nonzero", setup: func(*testing.T) ed25519.PrivateKey { return privateKeyFromSeed(sparseSeed(0)) }},
+		{name: "last seed byte alone is nonzero", setup: func(*testing.T) ed25519.PrivateKey { return privateKeyFromSeed(sparseSeed(ed25519.SeedSize - 1)) }},
+		{name: "middle seed byte alone is nonzero", setup: func(*testing.T) ed25519.PrivateKey { return privateKeyFromSeed(sparseSeed(ed25519.SeedSize / 2)) }},
+		{name: "all one seed derives a canonical private key", setup: func(*testing.T) ed25519.PrivateKey { return privateKeyFromSeed(repeatedSeed(0x01)) }},
+		{name: "all maximum-byte seed derives a canonical private key", setup: func(*testing.T) ed25519.PrivateKey { return privateKeyFromSeed(repeatedSeed(0xff)) }},
+		{name: "alternating seed derives a canonical private key", setup: func(*testing.T) ed25519.PrivateKey { return privateKeyFromSeed(alternatingSeed()) }},
+		{name: "zeroed trailing public half is ignored and rederived", setup: func(*testing.T) ed25519.PrivateKey { return privateKeyWithForgedPublic(nonZeroSeed(), 0x00) }},
+		{name: "maximum-byte trailing public half is ignored and rederived", setup: func(*testing.T) ed25519.PrivateKey { return privateKeyWithForgedPublic(nonZeroSeed(), 0xff) }},
 	}
-	private, err := generated.PrivateKey()
-	if err != nil {
-		t.Fatalf("PrivateKey() error = %v, want nil", err)
+	invalidExtents := []struct {
+		name   string
+		extent int
+	}{
+		{name: "empty private key is rejected", extent: 0},
+		{name: "one byte is rejected", extent: 1},
+		{name: "one below secret minimum is rejected", extent: core.SecretMaterialMinimumBytes - 1},
+		{name: "secret minimum is rejected", extent: core.SecretMaterialMinimumBytes},
+		{name: "two below seed extent are rejected", extent: ed25519.SeedSize - 2},
+		{name: "one below seed extent is rejected", extent: ed25519.SeedSize - 1},
+		{name: "seed extent is rejected", extent: ed25519.SeedSize},
+		{name: "one above seed extent is rejected", extent: ed25519.SeedSize + 1},
+		{name: "midway between seed and private extents is rejected", extent: (ed25519.SeedSize + ed25519.PrivateKeySize) / 2},
+		{name: "two below private extent are rejected", extent: ed25519.PrivateKeySize - 2},
+		{name: "one below private extent is rejected", extent: ed25519.PrivateKeySize - 1},
+		{name: "one above private extent is rejected", extent: ed25519.PrivateKeySize + 1},
+		{name: "two above private extent are rejected", extent: ed25519.PrivateKeySize + 2},
+		{name: "eighty bytes are rejected", extent: 80},
+		{name: "one hundred twenty eight bytes are rejected", extent: 128},
+		{name: "one kilobyte is rejected", extent: 1024},
 	}
-	adopted, err := keygen.AdoptPrivateKey(private)
-	if err != nil {
-		t.Fatalf("AdoptPrivateKey(PrivateKey()) error = %v, want nil", err)
+	cases := append([]adoptionCase(nil), validCases...)
+	for _, boundary := range invalidExtents {
+		boundary := boundary
+		cases = append(cases, adoptionCase{
+			name:    boundary.name,
+			setup:   func(*testing.T) ed25519.PrivateKey { return make(ed25519.PrivateKey, boundary.extent) },
+			wantErr: core.ErrKeygenContract,
+		})
 	}
-	gotPublic, err := adopted.PublicKey()
-	if err != nil {
-		t.Fatalf("adopted PublicKey() error = %v, want nil", err)
-	}
-	if gotPublic != wantPublic {
-		t.Fatalf("adopted PublicKey() = %v, want the projecting identity %v", gotPublic, wantPublic)
-	}
+	cases = append(cases, adoptionCase{
+		name:       "exact private extent with all-zero seed is rejected",
+		setup:      func(*testing.T) ed25519.PrivateKey { return make(ed25519.PrivateKey, ed25519.PrivateKeySize) },
+		wantErr:    core.ErrKeygenEntropy,
+		wantSource: core.ErrSecretMaterialAllZero,
+	})
 
-	// A tampered trailing half signs as the seed says, never as the tamper
-	// says: adoption re-derives, so the forged public half simply vanishes.
-	forged := append(ed25519.PrivateKey(nil), private...)
-	for i := ed25519.SeedSize; i < len(forged); i++ {
-		forged[i] ^= 0xff
-	}
-	readopted, err := keygen.AdoptPrivateKey(forged)
-	if err != nil {
-		t.Fatalf("AdoptPrivateKey(forged trailing half) error = %v, want adoption from the seed", err)
-	}
-	forgedPublic, err := readopted.PublicKey()
-	if err != nil {
-		t.Fatalf("readopted PublicKey() error = %v, want nil", err)
-	}
-	if forgedPublic != wantPublic {
-		t.Fatalf("forged-half PublicKey() = %v, want the seed-derived %v", forgedPublic, wantPublic)
-	}
+	for _, tc := range cases {
+		t.Run(tc.name, func(t *testing.T) {
+			t.Parallel()
 
-	for _, extent := range []int{0, 1, ed25519.SeedSize, ed25519.PrivateKeySize - 1, ed25519.PrivateKeySize + 1} {
-		got, gotErr := keygen.AdoptPrivateKey(make(ed25519.PrivateKey, extent))
-		if !errors.Is(gotErr, core.ErrKeygenContract) {
-			t.Fatalf("AdoptPrivateKey(%d bytes) error = %v, want errors.Is %v", extent, gotErr, core.ErrKeygenContract)
-		}
-		if got != (keygen.SigningKey{}) {
-			t.Fatalf("AdoptPrivateKey(%d bytes) = %v, want zero key on refusal", extent, got)
+			private := tc.setup(t)
+			before := append(ed25519.PrivateKey(nil), private...)
+			got, gotErr := keygen.AdoptPrivateKey(private)
+			if tc.wantErr == nil {
+				provePrivateKeyAdoptionClosure(t, got, gotErr, private)
+			} else {
+				if got != (keygen.SigningKey{}) ||
+					!errors.Is(gotErr, tc.wantErr) ||
+					!errors.Is(gotErr, core.ErrPrimitiveContract) {
+					t.Fatalf("AdoptPrivateKey(%d bytes) = (%v, %v), want (zero, %v and %v)", len(private), got, gotErr, tc.wantErr, core.ErrPrimitiveContract)
+				}
+				if tc.wantSource != nil && !errors.Is(gotErr, tc.wantSource) {
+					t.Fatalf("AdoptPrivateKey(%d bytes) error = %v, want wrapped %v", len(private), gotErr, tc.wantSource)
+				}
+			}
+			if !bytes.Equal(private, before) {
+				t.Fatalf("AdoptPrivateKey() input = %x, want preserved %x", private, before)
+			}
+			clear(private)
+			clear(before)
+		})
+	}
+}
+
+func projectedPrivateKeyFixture(t *testing.T) ed25519.PrivateKey {
+	t.Helper()
+	key, gotErr := keygen.AdoptSigningKey(nonZeroSeed())
+	if gotErr != nil {
+		t.Fatalf("AdoptSigningKey(projected fixture) error = %v, want nil", gotErr)
+	}
+	private, gotPrivateErr := key.PrivateKey()
+	if gotPrivateErr != nil {
+		t.Fatalf("SigningKey.PrivateKey(projected fixture) error = %v, want nil", gotPrivateErr)
+	}
+	if gotDestroyErr := key.Destroy(); gotDestroyErr != nil {
+		t.Fatalf("SigningKey.Destroy(projected fixture) error = %v, want nil", gotDestroyErr)
+	}
+	return private
+}
+
+func privateKeyFromSeed(seed [ed25519.SeedSize]byte) ed25519.PrivateKey {
+	return ed25519.NewKeyFromSeed(seed[:])
+}
+
+func privateKeyWithForgedPublic(seed [ed25519.SeedSize]byte, fill byte) ed25519.PrivateKey {
+	private := privateKeyFromSeed(seed)
+	for index := ed25519.SeedSize; index < len(private); index++ {
+		private[index] = fill
+	}
+	return private
+}
+
+func descendingSeed() [ed25519.SeedSize]byte {
+	var seed [ed25519.SeedSize]byte
+	for index := range seed {
+		seed[index] = byte(ed25519.SeedSize - index)
+	}
+	return seed
+}
+
+func sparseSeed(index int) [ed25519.SeedSize]byte {
+	var seed [ed25519.SeedSize]byte
+	seed[index] = 1
+	return seed
+}
+
+func repeatedSeed(value byte) [ed25519.SeedSize]byte {
+	var seed [ed25519.SeedSize]byte
+	for index := range seed {
+		seed[index] = value
+	}
+	return seed
+}
+
+func alternatingSeed() [ed25519.SeedSize]byte {
+	var seed [ed25519.SeedSize]byte
+	for index := range seed {
+		if index%2 == 0 {
+			seed[index] = 0xaa
+		} else {
+			seed[index] = 0x55
 		}
 	}
+	return seed
 }
 
 // TestSeedRoundTripsThroughAdoption proves the persistence story the door

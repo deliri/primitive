@@ -93,6 +93,7 @@ func mustRegistrationRequestProjection(t testing.TB, value controlplane.Registra
 }
 
 func FuzzRegistrationRequestExternalDecoder(f *testing.F) {
+	server := issueTestRegistration(f).server(f)
 	var seed controlplane.RegistrationRequest
 	if err := seed.UnmarshalJSON(readGolden(f, "registration_request.json")); err != nil {
 		f.Fatalf("registration request golden UnmarshalJSON() error = %v, want nil", err)
@@ -115,7 +116,7 @@ func FuzzRegistrationRequestExternalDecoder(f *testing.F) {
 		},
 		Validate: func(value controlplane.RegistrationRequest) error { return value.Validate() },
 		Authenticate: func(value controlplane.RegistrationRequest, authentic bool) error {
-			proof, verifyErr := controlplane.VerifyRegistrationAuthority(controlplane.RegistrationAuthorityVerification{
+			proof, verifyErr := server.VerifyRegistrationAuthority(controlplane.RegistrationAuthorityVerification{
 				Request: value, ExpectedVerifier: verifier, PriorReplay: &prior,
 			})
 			return registrationAuthorityAuthenticationOracle(proof, verifyErr, authentic)
@@ -126,6 +127,7 @@ func FuzzRegistrationRequestExternalDecoder(f *testing.F) {
 
 func FuzzRegistrationPayloadExternalDecoder(f *testing.F) {
 	issued := issueTestRegistration(f)
+	client := issued.client(f)
 	seed := issued.document.Payload
 	mutation := seed
 	mutation.Header.RequestNonce = otherRequestNonce(f)
@@ -139,7 +141,7 @@ func FuzzRegistrationPayloadExternalDecoder(f *testing.F) {
 		Authenticate: func(value controlplane.RegistrationPayload, authentic bool) error {
 			request := issued.verification()
 			request.Document.Payload = value
-			proof, err := controlplane.VerifyRegistration(request)
+			proof, err := client.VerifyRegistration(request)
 			return registrationAuthenticationOracle(proof, err, authentic)
 		},
 		WantError: core.ErrControlPlaneRegistration,
@@ -148,6 +150,7 @@ func FuzzRegistrationPayloadExternalDecoder(f *testing.F) {
 
 func FuzzCheckInPayloadExternalDecoder(f *testing.F) {
 	issued := issueTestCheckIn(f, controlplaneOffering(f, 2), testCheckInWindow())
+	server := issued.server(f)
 	seed := issued.request.Payload
 	mutation := seed
 	mutation.RequestNonce = otherRequestNonce(f)
@@ -161,8 +164,8 @@ func FuzzCheckInPayloadExternalDecoder(f *testing.F) {
 		Authenticate: func(value controlplane.CheckInPayload, authentic bool) error {
 			request := issued.request
 			request.Payload = value
-			proof, err := controlplane.VerifyCheckIn(controlplane.CheckInVerification{
-				Request: request, TrustedKeys: issued.trusted,
+			proof, err := server.VerifyCheckIn(controlplane.CheckInVerification{
+				Request: request,
 			})
 			return checkInAuthenticationOracle(proof, err, authentic)
 		},
@@ -172,6 +175,7 @@ func FuzzCheckInPayloadExternalDecoder(f *testing.F) {
 
 func FuzzCheckInResponsePayloadExternalDecoder(f *testing.F) {
 	issued := issueTestCheckInResponse(f)
+	client := issued.client(f)
 	seed := issued.document.Payload
 	mutation := seed
 	mutation.Header.RequestNonce = otherRequestNonce(f)
@@ -185,7 +189,7 @@ func FuzzCheckInResponsePayloadExternalDecoder(f *testing.F) {
 		Authenticate: func(value controlplane.CheckInResponsePayload, authentic bool) error {
 			request := issued.verification()
 			request.Document.Payload = value
-			proof, err := controlplane.VerifyCheckInResponse(request)
+			proof, err := client.VerifyCheckInResponse(request)
 			return checkInResponseAuthenticationOracle(proof, err, authentic)
 		},
 		WantError: core.ErrControlPlaneCheckInResponse,
@@ -194,6 +198,7 @@ func FuzzCheckInResponsePayloadExternalDecoder(f *testing.F) {
 
 func FuzzResponseHeaderExternalDecoder(f *testing.F) {
 	issued := issueTestRegistration(f)
+	client := issued.client(f)
 	seed := issued.document.Payload.Header
 	mutation := seed
 	mutation.RequestNonce = otherRequestNonce(f)
@@ -207,7 +212,7 @@ func FuzzResponseHeaderExternalDecoder(f *testing.F) {
 		Authenticate: func(value controlplane.ResponseHeader, authentic bool) error {
 			request := issued.verification()
 			request.Document.Payload.Header = value
-			proof, err := controlplane.VerifyRegistration(request)
+			proof, err := client.VerifyRegistration(request)
 			return registrationAuthenticationOracle(proof, err, authentic)
 		},
 		WantError: core.ErrControlPlaneResponseHeader,
@@ -216,6 +221,7 @@ func FuzzResponseHeaderExternalDecoder(f *testing.F) {
 
 func FuzzUsageWatermarkExternalDecoder(f *testing.F) {
 	issued := issueTestCheckInResponse(f)
+	client := issued.client(f)
 	seed := issued.document.Payload.Watermark
 	mutation, err := controlplane.AdvanceUsageWatermark(seed, testCheckInWindow())
 	if err != nil {
@@ -231,7 +237,7 @@ func FuzzUsageWatermarkExternalDecoder(f *testing.F) {
 		Authenticate: func(value controlplane.UsageWatermark, authentic bool) error {
 			request := issued.verification()
 			request.Document.Payload.Watermark = value
-			proof, verifyErr := controlplane.VerifyCheckInResponse(request)
+			proof, verifyErr := client.VerifyCheckInResponse(request)
 			return checkInResponseAuthenticationOracle(proof, verifyErr, authentic)
 		},
 		WantError: core.ErrControlPlaneUsageWatermark,

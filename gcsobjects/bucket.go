@@ -155,6 +155,87 @@ func (p GCSBucketProvisioning) Bucket() GCSBucket       { return p.request.Bucke
 func (p GCSBucketProvisioning) Location() GCSLocation   { return p.request.Location }
 func (p GCSBucketProvisioning) Namespace() GCSNamespace { return p.request.Namespace }
 
+// GCSBucketPublicReadRequest names one bucket whose objects must be readable
+// without authentication. The product chooses the bucket; Primitive owns the
+// exact provider IAM effect.
+type GCSBucketPublicReadRequest struct {
+	Bucket GCSBucket
+}
+
+// Validate rejects an unset provider bucket before any IAM call.
+func (r GCSBucketPublicReadRequest) Validate() error {
+	if err := r.Bucket.Validate(); err != nil {
+		return errors.Join(core.ErrObjectStoreContract, err)
+	}
+	return nil
+}
+
+// GCSBucketPublicReadChange reports whether the exact public-read membership
+// already existed or was added by this operation.
+type GCSBucketPublicReadChange uint8
+
+const (
+	// GCSBucketPublicReadChangeUnknown is the invalid zero change.
+	GCSBucketPublicReadChangeUnknown GCSBucketPublicReadChange = iota
+	// GCSBucketPublicReadUnchanged means the exact membership already existed.
+	GCSBucketPublicReadUnchanged
+	// GCSBucketPublicReadGranted means the membership was added and confirmed.
+	GCSBucketPublicReadGranted
+	gcsBucketPublicReadChangeLimit
+)
+
+// Validate closes the public-read change domain.
+func (c GCSBucketPublicReadChange) Validate() error {
+	if c <= GCSBucketPublicReadChangeUnknown || c >= gcsBucketPublicReadChangeLimit ||
+		gcsBucketPublicReadChangeDiagnostics()[c] == "" {
+		return core.ErrObjectStoreContract
+	}
+	return nil
+}
+
+// IsValid reports whether c is a published public-read change.
+func (c GCSBucketPublicReadChange) IsValid() bool { return c.Validate() == nil }
+
+// String returns the diagnostic public-read change token.
+func (c GCSBucketPublicReadChange) String() string {
+	if !c.IsValid() {
+		return ""
+	}
+	return gcsBucketPublicReadChangeDiagnostics()[c]
+}
+
+func gcsBucketPublicReadChangeDiagnostics() [gcsBucketPublicReadChangeLimit]string {
+	return [...]string{"", "unchanged", "granted"}
+}
+
+// OffWireEnum declares GCSBucketPublicReadChange as provider execution state.
+func (GCSBucketPublicReadChange) OffWireEnum() {}
+
+// GCSBucketPublicReadGrant is sealed evidence that the official provider IAM
+// policy contains the exact unauthenticated object-read membership.
+type GCSBucketPublicReadGrant struct {
+	bucket GCSBucket
+	change GCSBucketPublicReadChange
+	set    bool
+}
+
+// Validate rejects unset, malformed, or contradictory grant evidence.
+func (g GCSBucketPublicReadGrant) Validate() error {
+	if !g.set {
+		return core.ErrObjectStoreContract
+	}
+	if err := errors.Join(g.bucket.Validate(), g.change.Validate()); err != nil {
+		return errors.Join(core.ErrObjectStoreContract, err)
+	}
+	return nil
+}
+
+// Bucket returns the exact bucket whose IAM policy was observed.
+func (g GCSBucketPublicReadGrant) Bucket() GCSBucket { return g.bucket }
+
+// Change reports whether the exact membership already existed or was added.
+func (g GCSBucketPublicReadGrant) Change() GCSBucketPublicReadChange { return g.change }
+
 func gcsLowerAlpha(value byte) bool { return value >= 'a' && value <= 'z' }
 
 func gcsAlphaNumeric(value byte) bool {
@@ -162,3 +243,4 @@ func gcsAlphaNumeric(value byte) bool {
 }
 
 var _ core.OffWireEnum = GCSNamespaceUnknown
+var _ core.OffWireEnum = GCSBucketPublicReadChangeUnknown

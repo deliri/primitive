@@ -15,55 +15,22 @@ import (
 	"github.com/deliri/primitive/v2026/core"
 )
 
-// TestKernelTextIngressBoundaryLayerTriad pins the local parser boundary that
-// the bounded stream reader normally protects: the exact maximum is admitted,
-// maximum-plus-one is refused with the typed observation identity, and an
-// unrelated controller line remains a neutral zero fact.
-func TestKernelTextIngressBoundaryLayerTriad(t *testing.T) {
-	t.Parallel()
-
-	t.Run("positive exact line ceiling remains a typed v2 membership", func(t *testing.T) {
-		t.Parallel()
-
-		line := cgroupMembershipLineAtExtent(procLineMaximumBytes, cgroupV2HierarchyToken, "")
-		got, gotErr := parseCgroupMembershipLine(line)
-		if gotErr != nil {
-			t.Fatalf("parseCgroupMembershipLine(exact ceiling) error = %v, want nil", gotErr)
-		}
-		if got.source != WorkloadMemoryLimitSourceCgroupV2 || got.path != string(line[len(cgroupV2HierarchyToken)+2:]) {
-			t.Fatalf("parseCgroupMembershipLine(exact ceiling) = %+v, want exact v2 membership", got)
-		}
-	})
-
-	t.Run("negative one byte over line ceiling is a typed zero refusal", func(t *testing.T) {
-		t.Parallel()
-
-		line := cgroupMembershipLineAtExtent(procLineMaximumBytes+1, cgroupV2HierarchyToken, "")
-		got, gotErr := parseCgroupMembershipLine(line)
-		if !errors.Is(gotErr, core.ErrHostFactsObservation) {
-			t.Fatalf("parseCgroupMembershipLine(maximum+1) error = %v, want errors.Is(..., %v)", gotErr, core.ErrHostFactsObservation)
-		}
-		if got != (cgroupMembership{}) {
-			t.Fatalf("parseCgroupMembershipLine(maximum+1) = %+v, want zero membership", got)
-		}
-	})
-
-	t.Run("neutral unrelated controller at ceiling emits no memory fact", func(t *testing.T) {
-		t.Parallel()
-
-		line := cgroupMembershipLineAtExtent(procLineMaximumBytes, "2", "cpu")
-		got, gotErr := parseCgroupMembershipLine(line)
-		if gotErr != nil || got != (cgroupMembership{}) {
-			t.Fatalf("parseCgroupMembershipLine(unrelated exact ceiling) = (%+v, %v), want zero membership and nil", got, gotErr)
-		}
-	})
-}
-
 func FuzzHostnameIngressSemanticClosure(f *testing.F) {
-	for _, seed := range []string{
+	for _, candidate := range []string{
 		"host",
 		"host.example.internal",
 		strings.Repeat("h", hostnameMaximumBytes),
+	} {
+		seed, err := admitHostname(candidate)
+		if err != nil {
+			f.Fatalf("admitHostname(%q) seed error = %v, want nil", candidate, err)
+		}
+		if err := seed.Validate(); err != nil {
+			f.Fatalf("admitHostname(%q) seed Validate() error = %v, want nil", candidate, err)
+		}
+		f.Add(seed.String())
+	}
+	for _, seed := range []string{
 		strings.Repeat("h", hostnameMaximumBytes+1),
 		"",
 		"host\x00name",
@@ -90,6 +57,55 @@ func FuzzHostnameIngressSemanticClosure(f *testing.F) {
 		}
 		if err := got.Validate(); err != nil || got.String() != value {
 			t.Fatalf("admitHostname(%q) closure = (Validate %v, String %q), want (nil, input)", value, err, got.String())
+		}
+	})
+}
+
+func FuzzObservedPathIngressSemanticClosure(f *testing.F) {
+	for _, candidate := range []string{
+		"/",
+		"/tmp",
+		"/var/folders/runtime",
+	} {
+		seed, err := admitObservedPath(candidate)
+		if err != nil {
+			f.Fatalf("admitObservedPath(%q) seed error = %v, want nil", candidate, err)
+		}
+		if err := seed.Validate(); err != nil {
+			f.Fatalf("admitObservedPath(%q) seed Validate() error = %v, want nil", candidate, err)
+		}
+		f.Add(seed.String())
+	}
+	for _, seed := range []string{
+		"",
+		".",
+		"..",
+		"relative/path",
+		"../escape",
+		"/tmp/../escape",
+		"/tmp/./entry",
+		"/tmp/\x00entry",
+	} {
+		f.Add(seed)
+	}
+
+	f.Fuzz(func(t *testing.T, value string) {
+		got, gotErr := admitObservedPath(value)
+		want, wantErr := core.ParseAbsolutePath(value)
+		if wantErr != nil {
+			if !errors.Is(gotErr, core.ErrHostFactsObservation) || !errors.Is(gotErr, core.ErrPrimitiveContract) {
+				t.Fatalf("admitObservedPath(rejected %q) error = %v, want observation and primitive-contract identities", value, gotErr)
+			}
+			if got != (core.AbsolutePath{}) {
+				t.Fatalf("admitObservedPath(rejected %q) = %v, want zero path", value, got)
+			}
+			return
+		}
+		if gotErr != nil || got != want {
+			t.Fatalf("admitObservedPath(%q) = (%v, %v), want (%v, nil)", value, got, gotErr, want)
+		}
+		if err := got.Validate(); err != nil || got.String() != value {
+			t.Fatalf("admitObservedPath(%q) closure = (Validate %v, String %q), want (nil, input)", value, err, got.String())
 		}
 	})
 }

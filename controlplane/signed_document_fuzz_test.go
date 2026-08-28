@@ -29,10 +29,10 @@ func TestControlplaneSignedVerificationLayerTriad(t *testing.T) {
 	checkIn := issueTestCheckIn(t, controlplaneOffering(t, 1), testCheckInWindow())
 	response := issueTestCheckInResponse(t)
 	probes := []verificationLayerProbe{
-		certificateVerificationProbe(certificate),
-		registrationVerificationProbe(registration),
-		checkInVerificationProbe(checkIn),
-		checkInResponseVerificationProbe(response),
+		certificateVerificationProbe(certificate, certificate.client(t)),
+		registrationVerificationProbe(registration, registration.client(t)),
+		checkInVerificationProbe(checkIn, checkIn.server(t)),
+		checkInResponseVerificationProbe(response, response.client(t)),
 	}
 	for _, probe := range probes {
 		t.Run(probe.name, func(t *testing.T) {
@@ -51,36 +51,40 @@ func TestControlplaneSignedVerificationLayerTriad(t *testing.T) {
 	}
 }
 
-func certificateVerificationProbe(issued issuedCheckIn) verificationLayerProbe {
+func certificateVerificationProbe(
+	issued issuedCheckIn,
+	client controlplane.Client,
+) verificationLayerProbe {
 	return verificationLayerProbe{
 		name: "installation certificate authority and device trust",
 		positive: func() error {
-			proof, err := controlplane.VerifyInstallationCertificate(issued.certificate, issued.trusted)
+			proof, err := client.VerifyInstallationCertificate(issued.certificate)
 			if err != nil {
 				return err
 			}
 			return proof.Validate()
 		},
 		negative: func() error {
-			_, err := controlplane.VerifyInstallationCertificate(
-				corruptCertificateDigest(issued.certificate), issued.trusted,
-			)
+			_, err := client.VerifyInstallationCertificate(corruptCertificateDigest(issued.certificate))
 			return err
 		},
 		neutral: func() error {
-			_, err := controlplane.VerifyInstallationCertificate(
-				controlplane.InstallationCertificateDocument{}, attest.TrustedKeys{},
+			_, err := (controlplane.Client{}).VerifyInstallationCertificate(
+				controlplane.InstallationCertificateDocument{},
 			)
 			return err
 		},
 	}
 }
 
-func registrationVerificationProbe(issued issuedRegistration) verificationLayerProbe {
+func registrationVerificationProbe(
+	issued issuedRegistration,
+	client controlplane.Client,
+) verificationLayerProbe {
 	return verificationLayerProbe{
 		name: "registration response and nested authorities",
 		positive: func() error {
-			proof, err := controlplane.VerifyRegistration(issued.verification())
+			proof, err := client.VerifyRegistration(issued.verification())
 			if err != nil {
 				return err
 			}
@@ -89,22 +93,25 @@ func registrationVerificationProbe(issued issuedRegistration) verificationLayerP
 		negative: func() error {
 			request := issued.verification()
 			request.Document.Attestation.BodySHA256 = corruptDigest()
-			_, err := controlplane.VerifyRegistration(request)
+			_, err := client.VerifyRegistration(request)
 			return err
 		},
 		neutral: func() error {
-			_, err := controlplane.VerifyRegistration(controlplane.RegistrationVerification{})
+			_, err := (controlplane.Client{}).VerifyRegistration(controlplane.RegistrationVerification{})
 			return err
 		},
 	}
 }
 
-func checkInVerificationProbe(issued issuedCheckIn) verificationLayerProbe {
+func checkInVerificationProbe(
+	issued issuedCheckIn,
+	server controlplane.Server,
+) verificationLayerProbe {
 	return verificationLayerProbe{
 		name: "check-in certificate then device signature",
 		positive: func() error {
-			proof, err := controlplane.VerifyCheckIn(controlplane.CheckInVerification{
-				Request: issued.request, TrustedKeys: issued.trusted,
+			proof, err := server.VerifyCheckIn(controlplane.CheckInVerification{
+				Request: issued.request,
 			})
 			if err != nil {
 				return err
@@ -114,23 +121,26 @@ func checkInVerificationProbe(issued issuedCheckIn) verificationLayerProbe {
 		negative: func() error {
 			request := issued.request
 			request.Attestation.BodySHA256 = corruptDigest()
-			_, err := controlplane.VerifyCheckIn(controlplane.CheckInVerification{
-				Request: request, TrustedKeys: issued.trusted,
+			_, err := server.VerifyCheckIn(controlplane.CheckInVerification{
+				Request: request,
 			})
 			return err
 		},
 		neutral: func() error {
-			_, err := controlplane.VerifyCheckIn(controlplane.CheckInVerification{})
+			_, err := (controlplane.Server{}).VerifyCheckIn(controlplane.CheckInVerification{})
 			return err
 		},
 	}
 }
 
-func checkInResponseVerificationProbe(issued issuedCheckInResponse) verificationLayerProbe {
+func checkInResponseVerificationProbe(
+	issued issuedCheckInResponse,
+	client controlplane.Client,
+) verificationLayerProbe {
 	return verificationLayerProbe{
 		name: "check-in response and nested lease",
 		positive: func() error {
-			proof, err := controlplane.VerifyCheckInResponse(issued.verification())
+			proof, err := client.VerifyCheckInResponse(issued.verification())
 			if err != nil {
 				return err
 			}
@@ -139,11 +149,11 @@ func checkInResponseVerificationProbe(issued issuedCheckInResponse) verification
 		negative: func() error {
 			request := issued.verification()
 			request.Document.Attestation.BodySHA256 = corruptDigest()
-			_, err := controlplane.VerifyCheckInResponse(request)
+			_, err := client.VerifyCheckInResponse(request)
 			return err
 		},
 		neutral: func() error {
-			_, err := controlplane.VerifyCheckInResponse(controlplane.CheckInResponseVerification{})
+			_, err := (controlplane.Client{}).VerifyCheckInResponse(controlplane.CheckInResponseVerification{})
 			return err
 		},
 	}
@@ -151,6 +161,7 @@ func checkInResponseVerificationProbe(issued issuedCheckInResponse) verification
 
 func FuzzInstallationCertificateDocumentDecodeAndVerify(f *testing.F) {
 	issued := issueTestCheckIn(f, controlplaneOffering(f, 2), testCheckInWindow())
+	client := issued.client(f)
 	canonical := mustCertificateJSON(f, issued.certificate)
 	f.Add(canonical)
 	f.Add(mustCertificateJSON(f, corruptCertificateDigest(issued.certificate)))
@@ -183,7 +194,7 @@ func FuzzInstallationCertificateDocumentDecodeAndVerify(f *testing.F) {
 		}
 		reencoded := mustCertificateJSON(t, candidate)
 		requireCertificateStableRoundTrip(t, candidate, reencoded)
-		proof, verifyErr := controlplane.VerifyInstallationCertificate(candidate, issued.trusted)
+		proof, verifyErr := client.VerifyInstallationCertificate(candidate)
 		if bytes.Equal(reencoded, canonical) {
 			if verifyErr != nil {
 				t.Fatalf("authentic certificate verification error = %v, want nil", verifyErr)
@@ -202,6 +213,7 @@ func FuzzInstallationCertificateDocumentDecodeAndVerify(f *testing.F) {
 
 func FuzzInstallationCertificateBodyDecodeAndVerify(f *testing.F) {
 	issued := issueTestCheckIn(f, controlplaneOffering(f, 2), testCheckInWindow())
+	client := issued.client(f)
 	canonical := mustCertificateBodyJSON(f, issued.certificate.Body)
 	f.Add(canonical)
 	foreign := issued.certificate.Body
@@ -228,7 +240,7 @@ func FuzzInstallationCertificateBodyDecodeAndVerify(f *testing.F) {
 		requireCertificateBodyStableRoundTrip(t, candidate, reencoded)
 		document := issued.certificate
 		document.Body = candidate
-		proof, verifyErr := controlplane.VerifyInstallationCertificate(document, issued.trusted)
+		proof, verifyErr := client.VerifyInstallationCertificate(document)
 		if bytes.Equal(reencoded, canonical) {
 			if verifyErr != nil {
 				t.Fatalf("authentic certificate body verification error = %v, want nil", verifyErr)
@@ -247,6 +259,7 @@ func FuzzInstallationCertificateBodyDecodeAndVerify(f *testing.F) {
 
 func FuzzRegistrationDocumentDecodeAndVerify(f *testing.F) {
 	issued := issueTestRegistration(f)
+	client := issued.client(f)
 	canonical := mustRegistrationJSON(f, issued.document)
 	f.Add(canonical)
 	corrupt := issued.document
@@ -289,7 +302,7 @@ func FuzzRegistrationDocumentDecodeAndVerify(f *testing.F) {
 		requireRegistrationStableRoundTrip(t, candidate, reencoded)
 		request := issued.verification()
 		request.Document = candidate
-		proof, verifyErr := controlplane.VerifyRegistration(request)
+		proof, verifyErr := client.VerifyRegistration(request)
 		if bytes.Equal(reencoded, canonical) {
 			if verifyErr != nil {
 				t.Fatalf("authentic registration verification error = %v, want nil", verifyErr)
@@ -308,6 +321,7 @@ func FuzzRegistrationDocumentDecodeAndVerify(f *testing.F) {
 
 func FuzzCheckInRequestDecodeAndVerify(f *testing.F) {
 	issued := issueTestCheckIn(f, controlplaneOffering(f, 2), testCheckInWindow())
+	server := issued.server(f)
 	canonical := mustCheckInJSON(f, issued.request)
 	f.Add(canonical)
 	corrupt := issued.request
@@ -345,8 +359,8 @@ func FuzzCheckInRequestDecodeAndVerify(f *testing.F) {
 		}
 		reencoded := mustCheckInJSON(t, candidate)
 		requireCheckInStableRoundTrip(t, candidate, reencoded)
-		proof, verifyErr := controlplane.VerifyCheckIn(controlplane.CheckInVerification{
-			Request: candidate, TrustedKeys: issued.trusted,
+		proof, verifyErr := server.VerifyCheckIn(controlplane.CheckInVerification{
+			Request: candidate,
 		})
 		if bytes.Equal(reencoded, canonical) {
 			if verifyErr != nil {
@@ -355,7 +369,7 @@ func FuzzCheckInRequestDecodeAndVerify(f *testing.F) {
 			if err := proof.Validate(); err != nil {
 				t.Fatalf("authentic check-in proof Validate() error = %v, want nil", err)
 			}
-			commit, commitErr := controlplane.CommitCheckIn(controlplane.CheckInCommitRequest{
+			commit, commitErr := server.CommitCheckIn(controlplane.CheckInCommitRequest{
 				CheckIn: proof, Current: candidate.Payload.PreviousWatermark,
 				RequiredPolicy: candidate.Payload.AppliedPolicy,
 			})
@@ -375,7 +389,7 @@ func FuzzCheckInRequestDecodeAndVerify(f *testing.F) {
 					watermark, disposition, previousGeneration, nextGeneration,
 					errors.Join(watermarkErr, dispositionErr, previousErr, nextErr))
 			}
-			replayed, replayErr := controlplane.CommitCheckIn(controlplane.CheckInCommitRequest{
+			replayed, replayErr := server.CommitCheckIn(controlplane.CheckInCommitRequest{
 				CheckIn: proof, Current: watermark,
 				RequiredPolicy: candidate.Payload.AppliedPolicy,
 			})
@@ -398,6 +412,7 @@ func FuzzCheckInRequestDecodeAndVerify(f *testing.F) {
 
 func FuzzCheckInResponseDocumentDecodeAndVerify(f *testing.F) {
 	issued := issueTestCheckInResponse(f)
+	client := issued.client(f)
 	canonical := mustCheckInResponseJSON(f, issued.document)
 	f.Add(canonical)
 	corrupt := issued.document
@@ -436,7 +451,7 @@ func FuzzCheckInResponseDocumentDecodeAndVerify(f *testing.F) {
 		requireCheckInResponseStableRoundTrip(t, candidate, reencoded)
 		request := issued.verification()
 		request.Document = candidate
-		proof, verifyErr := controlplane.VerifyCheckInResponse(request)
+		proof, verifyErr := client.VerifyCheckInResponse(request)
 		if bytes.Equal(reencoded, canonical) {
 			if verifyErr != nil {
 				t.Fatalf("authentic check-in response verification error = %v, want nil", verifyErr)

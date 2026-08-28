@@ -113,14 +113,14 @@ func TestRealWorldEffectOwnershipMatchesLandedProduction(t *testing.T) {
 	if err != nil {
 		t.Fatalf("declaredRealWorldCalls() error = %v, want nil", err)
 	}
-	if err := validateAdmittedRealWorldUses(got, wantImports, wantCalls); err != nil {
-		t.Fatalf("validateAdmittedRealWorldUses() error = %v, want nil", err)
-	}
 	if !slices.Equal(got.imports.Values(), wantImports.Values()) {
 		t.Fatalf("real-world substrate imports = %+v, want %+v", got.imports.Values(), wantImports.Values())
 	}
 	if !slices.Equal(got.calls.Values(), wantCalls.Values()) {
 		t.Fatalf("real-world substrate calls = %+v, want %+v", got.calls.Values(), wantCalls.Values())
+	}
+	if err := validateAdmittedRealWorldUses(got, wantImports, wantCalls); err != nil {
+		t.Fatalf("validateAdmittedRealWorldUses() error = %v, want nil", err)
 	}
 }
 
@@ -513,6 +513,7 @@ func declaredRealWorldCalls() (realWorldCallInventory, error) {
 		{owner: PackageProcess, substrate: realWorldSubstrateWindows, selector: "UTF16ToString", count: 1},
 		{owner: PackageGCSObjects, substrate: realWorldSubstrateGoogleCloudStorage, selector: "NewClient", count: 1},
 		{owner: PackageGCSObjects, substrate: realWorldSubstrateGoogleCloudStorage, selector: "SignedURL", count: 2},
+		{owner: PackageGCSObjects, substrate: realWorldSubstrateGoogleCloudStorage, selector: "WithPolicy", count: 1},
 		{owner: PackageGCSObjects, substrate: realWorldSubstrateGoogleIAMCredentials, selector: "NewService", count: 1},
 		{owner: PackageSecretStore, substrate: realWorldSubstrateGoogleSecretManager, selector: "NewClient", count: 1},
 		{owner: PackageGCSObjects, substrate: realWorldSubstrateNetwork, selector: "ParseIP", count: 1},

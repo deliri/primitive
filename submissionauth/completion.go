@@ -51,10 +51,11 @@ type CompletionProjectionAssembly struct {
 // CompletionVerification supplies the authenticated original request, exact
 // grant, and authority keys used for both certificate and grant verification.
 type CompletionVerification struct {
-	Grant       submission.GrantDocument
-	Document    CompletionDocument
-	Request     Verified
-	TrustedKeys attest.TrustedKeys
+	Server    controlplane.Server
+	GrantKeys attest.TrustedKeys
+	Grant     submission.GrantDocument
+	Document  CompletionDocument
+	Request   Verified
 }
 
 // VerifiedCompletion proves certificate authentication happened before the
@@ -193,7 +194,7 @@ func (d *CompletionDocument) UnmarshalJSON(data []byte) error {
 
 func (v CompletionVerification) Validate() error {
 	if err := errors.Join(
-		v.Document.Validate(), v.Request.Validate(), v.Grant.Validate(), v.TrustedKeys.Validate(),
+		v.Server.Validate(), v.GrantKeys.Validate(), v.Document.Validate(), v.Request.Validate(), v.Grant.Validate(),
 	); err != nil {
 		return contractError(err)
 	}
@@ -210,8 +211,8 @@ func VerifyCompletion(verification CompletionVerification) (VerifiedCompletion, 
 	if err := verification.Validate(); err != nil {
 		return VerifiedCompletion{}, err
 	}
-	certificate, err := controlplane.VerifyInstallationCertificate(
-		verification.Document.Certificate, verification.TrustedKeys,
+	certificate, err := verification.Server.VerifyInstallationCertificate(
+		verification.Document.Certificate,
 	)
 	if err != nil {
 		return VerifiedCompletion{}, contractError(err)
@@ -223,7 +224,7 @@ func VerifyCompletion(verification CompletionVerification) (VerifiedCompletion, 
 	completion, err := submission.VerifyCompletion(submission.CompletionExpectation{
 		Document: verification.Document.Completion,
 		Request:  verification.Request.document.Request.Payload,
-		Grant:    verification.Grant, GrantKeys: verification.TrustedKeys,
+		Grant:    verification.Grant, GrantKeys: verification.GrantKeys,
 		CompletionKeys: deviceKeys,
 	})
 	if err != nil {

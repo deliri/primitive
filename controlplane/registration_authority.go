@@ -110,9 +110,12 @@ func (i RegistrationIdentity) Validate() error {
 // destroys the presented token on every return path. A changed second use
 // returns no proof and the replay-conflict identity, regardless of which
 // request field changed.
-func VerifyRegistrationAuthority(
+func (s Server) VerifyRegistrationAuthority(
 	verification RegistrationAuthorityVerification,
 ) (verified VerifiedRegistrationAuthority, resultErr error) {
+	if err := s.Validate(); err != nil {
+		return VerifiedRegistrationAuthority{}, registrationError(err)
+	}
 	defer func() {
 		if err := verification.Request.Token.Destroy(); err != nil {
 			verified = VerifiedRegistrationAuthority{}
@@ -197,10 +200,13 @@ func (i RegistrationCertificateIssuance) Validate() error {
 // IssueRegisteredInstallation signs a certificate derived from one
 // authenticated registration. No caller can substitute build, offering,
 // device key, installation, or revision beside the verified request.
-func IssueRegisteredInstallation(
+func (s Server) IssueRegisteredInstallation(
 	issuance RegistrationCertificateIssuance,
 	signer crypto.Signer,
 ) (InstallationCertificateDocument, error) {
+	if err := s.Validate(); err != nil {
+		return InstallationCertificateDocument{}, registrationError(err)
+	}
 	if err := issuance.Validate(); err != nil {
 		return InstallationCertificateDocument{}, err
 	}
@@ -216,7 +222,7 @@ func IssueRegisteredInstallation(
 		},
 		DeviceKey: identity.DeviceKey, Account: issuance.Account,
 	}
-	return IssueInstallationCertificate(body, signer)
+	return issueInstallationCertificate(body, signer)
 }
 
 var (

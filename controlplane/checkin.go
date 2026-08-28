@@ -90,7 +90,7 @@ func verifyCheckInCertificate(
 	certificate InstallationCertificateDocument,
 	trusted attest.TrustedKeys,
 ) (attest.Verified[SigningDomain], attest.TrustedKeys, error) {
-	verified, err := VerifyInstallationCertificate(certificate, trusted)
+	verified, err := verifyInstallationCertificate(certificate, trusted)
 	if err != nil {
 		return attest.Verified[SigningDomain]{}, attest.TrustedKeys{}, checkInError(err)
 	}

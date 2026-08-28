@@ -310,7 +310,7 @@ func TestDurationConstructorsAndArithmeticAttackEveryMagnitude(t *testing.T) {
 	}
 }
 
-func TestParseDurationAcceptsGoSyntaxWithoutAdmittingNegativeTime(t *testing.T) {
+func TestParseDurationLayerTriadHostileMatrix(t *testing.T) {
 	t.Parallel()
 
 	cases := []struct {
@@ -319,12 +319,45 @@ func TestParseDurationAcceptsGoSyntaxWithoutAdmittingNegativeTime(t *testing.T) 
 		value   string
 		want    int64
 	}{
-		{name: "zero", value: "0s"},
-		{name: "compound exact", value: "1h2m3.004005006s", want: 3_723_004_005_006},
-		{name: "fractional", value: "1.5ms", want: 1_500_000},
-		{name: "negative rejected", value: "-1ns", wantErr: core.ErrTemporalContract},
-		{name: "empty rejected", value: "", wantErr: core.ErrTemporalContract},
-		{name: "overflow rejected", value: "2562048h", wantErr: core.ErrTemporalContract},
+		{name: "neutral bare zero is admitted", value: "0"},
+		{name: "neutral zero seconds is admitted", value: "0s"},
+		{name: "minimum positive nanosecond is exact", value: "1ns", want: 1},
+		{name: "one below a microsecond is exact", value: "999ns", want: 999},
+		{name: "ASCII microsecond is exact", value: "1us", want: 1_000},
+		{name: "Unicode microsecond is exact", value: "1µs", want: 1_000},
+		{name: "one millisecond is exact", value: "1ms", want: 1_000_000},
+		{name: "fractional millisecond is exact", value: "1.5ms", want: 1_500_000},
+		{name: "one second is exact", value: "1s", want: 1_000_000_000},
+		{name: "one minute is exact", value: "1m", want: 60_000_000_000},
+		{name: "one hour is exact", value: "1h", want: 3_600_000_000_000},
+		{name: "one day as fixed hours is exact", value: "24h", want: 86_400_000_000_000},
+		{name: "compound units preserve every nanosecond", value: "1h2m3.004005006s", want: 3_723_004_005_006},
+		{name: "explicit positive sign follows Go syntax", value: "+1s", want: 1_000_000_000},
+		{name: "maximum bounded duration is exact", value: "2562047h47m16.854775807s", want: math.MaxInt64},
+		{name: "one below maximum bounded duration is exact", value: "2562047h47m16.854775806s", want: math.MaxInt64 - 1},
+
+		{name: "empty text is rejected", value: "", wantErr: core.ErrTemporalContract},
+		{name: "space-only text is rejected", value: " ", wantErr: core.ErrTemporalContract},
+		{name: "tab-only text is rejected", value: "\t", wantErr: core.ErrTemporalContract},
+		{name: "one nanosecond below zero is rejected", value: "-1ns", wantErr: core.ErrTemporalContract},
+		{name: "negative second is rejected", value: "-1s", wantErr: core.ErrTemporalContract},
+		{name: "unitless magnitude is rejected", value: "1", wantErr: core.ErrTemporalContract},
+		{name: "unit without magnitude is rejected", value: "ns", wantErr: core.ErrTemporalContract},
+		{name: "unknown unit is rejected", value: "1xs", wantErr: core.ErrTemporalContract},
+		{name: "space between magnitude and unit is rejected", value: "1 s", wantErr: core.ErrTemporalContract},
+		{name: "exponent syntax is rejected", value: "1e3s", wantErr: core.ErrTemporalContract},
+		{name: "not-a-number is rejected", value: "NaN", wantErr: core.ErrTemporalContract},
+		{name: "infinity is rejected", value: "Inf", wantErr: core.ErrTemporalContract},
+		{name: "duplicated decimal point is rejected", value: "1..0s", wantErr: core.ErrTemporalContract},
+		{name: "comma decimal is rejected", value: "1,5s", wantErr: core.ErrTemporalContract},
+		{name: "uppercase unit is rejected", value: "1S", wantErr: core.ErrTemporalContract},
+		{name: "calendar day unit is rejected", value: "1d", wantErr: core.ErrTemporalContract},
+		{name: "one above maximum bounded duration is rejected", value: "2562047h47m16.854775808s", wantErr: core.ErrTemporalContract},
+		{name: "negative minimum bounded magnitude is rejected by the domain", value: "-2562047h47m16.854775808s", wantErr: core.ErrTemporalContract},
+		{name: "one below negative bounded range is rejected", value: "-2562047h47m16.854775809s", wantErr: core.ErrTemporalContract},
+		{name: "trailing text is rejected", value: "1s trailing", wantErr: core.ErrTemporalContract},
+		{name: "leading text is rejected", value: "x1s", wantErr: core.ErrTemporalContract},
+		{name: "full-width digit is rejected", value: "１s", wantErr: core.ErrTemporalContract},
 	}
 	for _, testCase := range cases {
 		t.Run(testCase.name, func(t *testing.T) {
@@ -333,11 +366,78 @@ func TestParseDurationAcceptsGoSyntaxWithoutAdmittingNegativeTime(t *testing.T) 
 			if !errors.Is(gotErr, testCase.wantErr) {
 				t.Fatalf("ParseDuration(%q) error = %v, want %v", testCase.value, gotErr, testCase.wantErr)
 			}
-			if testCase.wantErr == nil && got.Nanoseconds() != testCase.want {
+			if testCase.wantErr != nil {
+				if got != (temporal.Duration{}) {
+					t.Fatalf("ParseDuration(%q) result = %v, want zero after rejection", testCase.value, got)
+				}
+				return
+			}
+			if got.Nanoseconds() != testCase.want {
 				t.Fatalf("ParseDuration(%q) nanoseconds = %d, want %d", testCase.value, got.Nanoseconds(), testCase.want)
 			}
 		})
 	}
+}
+
+func FuzzParseDurationSemanticClosure(f *testing.F) {
+	for _, nanoseconds := range []int64{0, 1, 999, 1_000, 1_000_000_000, math.MaxInt64 - 1, math.MaxInt64} {
+		value, err := temporal.DurationFromNanoseconds(nanoseconds)
+		if err != nil {
+			f.Fatalf("DurationFromNanoseconds(%d) seed error = %v, want nil", nanoseconds, err)
+		}
+		stdlib, err := value.Stdlib()
+		if err != nil {
+			f.Fatalf("Duration.Stdlib(%d) seed error = %v, want nil", nanoseconds, err)
+		}
+		f.Add(stdlib.String())
+	}
+	for _, malformed := range []string{"", "-1ns", "1", "1xs", "1e3s", "2562047h47m16.854775808s"} {
+		f.Add(malformed)
+	}
+
+	f.Fuzz(func(t *testing.T, input string) {
+		stdlib, stdlibErr := time.ParseDuration(input)
+		wantAccepted := stdlibErr == nil && stdlib >= 0
+
+		got, gotErr := temporal.ParseDuration(input)
+		if gotErr != nil {
+			if wantAccepted || !errors.Is(gotErr, core.ErrTemporalContract) || got != (temporal.Duration{}) {
+				t.Fatalf(
+					"ParseDuration(%q) = (%v, %v), want zero/typed refusal with standard accepted=%t",
+					input,
+					got,
+					gotErr,
+					wantAccepted,
+				)
+			}
+			return
+		}
+
+		if !wantAccepted {
+			t.Fatalf("ParseDuration(%q) = (%v, nil), want refusal because time.ParseDuration error = %v or value is negative", input, got, stdlibErr)
+		}
+		if gotErr := got.Validate(); gotErr != nil {
+			t.Fatalf("ParseDuration(%q).Validate() error = %v, want nil", input, gotErr)
+		}
+		gotStdlib, projectionErr := got.Stdlib()
+		if projectionErr != nil || gotStdlib != stdlib {
+			t.Fatalf("ParseDuration(%q).Stdlib() = (%v, %v), want (%v, nil)", input, gotStdlib, projectionErr, stdlib)
+		}
+		canonical := gotStdlib.String()
+		roundTrip, roundTripErr := temporal.ParseDuration(canonical)
+		second, secondErr := roundTrip.Stdlib()
+		if roundTripErr != nil || secondErr != nil || roundTrip != got || second.String() != canonical {
+			t.Fatalf(
+				"ParseDuration(%q) closure = (canonical:%q round:%v second:%v errors:%v/%v), want stable exact round trip",
+				input,
+				canonical,
+				roundTrip,
+				second,
+				roundTripErr,
+				secondErr,
+			)
+		}
+	})
 }
 
 func TestPrecisionExhaustsClosedDomainAndTruncationMagnitudes(t *testing.T) {

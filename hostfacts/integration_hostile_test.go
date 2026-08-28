@@ -11,7 +11,7 @@ import (
 	"github.com/deliri/primitive/v2026/core"
 )
 
-func TestAssessDiskRealHeldRootLayerTriad(t *testing.T) {
+func TestAssessDiskUsesHeldRootAndSeparatesPolicyFromObservationFailures(t *testing.T) {
 	t.Parallel()
 
 	t.Run("positive real directory returns caller capacity and disabled policy", func(t *testing.T) {

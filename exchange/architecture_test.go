@@ -124,10 +124,14 @@ func TestInventoryDocumentDrivesTheRealJSONWritePath(t *testing.T) {
 // exchangeContractInventory classifies every production struct by its real
 // data-flow role. Field names deliberately equal the classified type names.
 type exchangeContractInventory struct {
-	StatusError                   typedFailure[StatusError]
-	RetryExhaustedError           typedFailure[RetryExhaustedError]
-	BasicAuthorizationRequest     protocolContract[BasicAuthorizationRequest]
-	BasicAuthorizationReceiveCall protocolContract[BasicAuthorizationReceiveCall]
+	StatusError                         typedFailure[StatusError]
+	RetryExhaustedError                 typedFailure[RetryExhaustedError]
+	BasicAuthorizationRequest           protocolContract[BasicAuthorizationRequest]
+	BasicAuthorizationReceiveCall       protocolContract[BasicAuthorizationReceiveCall]
+	OfficialSDKResponseBoundary         protocolContract[OfficialSDKResponseBoundary]
+	OfficialSDKResponseBoundaryRequest  protocolContract[OfficialSDKResponseBoundaryRequest]
+	OfficialSDKResponseCeilingRequest   protocolContract[OfficialSDKResponseCeilingRequest]
+	OfficialSDKResponseTransportRequest protocolContract[OfficialSDKResponseTransportRequest]
 
 	replayFact            internalFlow[replayFact]
 	redirectFact          internalFlow[redirectFact]
@@ -166,16 +170,18 @@ type exchangeContractInventory struct {
 	BoundedCall       protocolContract[BoundedCall]
 	NoBodyBoundedCall protocolContract[NoBodyBoundedCall]
 
-	aggregateRequest       internalFlow[aggregateRequest]
-	aggregateCall          internalFlow[aggregateCall]
-	aggregateResponse      internalFlow[aggregateResponse]
-	attemptResponse        internalFlow[attemptResponse]
-	retryProgress          internalFlow[retryProgress]
-	aggregateAttempt       internalFlow[aggregateAttempt]
-	aggregateReadRequest   internalFlow[aggregateReadRequest]
-	aggregateAttemptResult internalFlow[aggregateAttemptResult]
-	retryWaitRequest       internalFlow[retryWaitRequest]
-	redirectCheckRequest   internalFlow[redirectCheckRequest]
+	aggregateRequest               internalFlow[aggregateRequest]
+	aggregateCall                  internalFlow[aggregateCall]
+	aggregateResponse              internalFlow[aggregateResponse]
+	attemptResponse                internalFlow[attemptResponse]
+	retryProgress                  internalFlow[retryProgress]
+	aggregateAttempt               internalFlow[aggregateAttempt]
+	aggregateReadRequest           internalFlow[aggregateReadRequest]
+	aggregateAttemptResult         internalFlow[aggregateAttemptResult]
+	retryWaitRequest               internalFlow[retryWaitRequest]
+	redirectCheckRequest           internalFlow[redirectCheckRequest]
+	officialSDKResponseTransport   internalFlow[officialSDKResponseTransport]
+	officialSDKResponseReadRequest internalFlow[officialSDKResponseReadRequest]
 
 	UploadCall              protocolContract[UploadCall]
 	DownloadCall            protocolContract[DownloadCall]
@@ -333,6 +339,8 @@ var (
 	_                             = exchangeContractInventory{}.aggregateAttemptResult
 	_                             = exchangeContractInventory{}.retryWaitRequest
 	_                             = exchangeContractInventory{}.redirectCheckRequest
+	_                             = exchangeContractInventory{}.officialSDKResponseTransport
+	_                             = exchangeContractInventory{}.officialSDKResponseReadRequest
 	_                             = exchangeContractInventory{}.uploadHTTPRequest
 	_                             = exchangeContractInventory{}.downloadHTTPRequest
 	_                             = exchangeContractInventory{}.uploadResponseRequest

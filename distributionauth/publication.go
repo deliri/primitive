@@ -30,8 +30,8 @@ type PublicationRequestAssembly struct {
 }
 
 type PublicationVerification struct {
+	Server       controlplane.Server
 	Document     PublicationRequestDocument
-	TrustedKeys  attest.TrustedKeys
 	ManifestKeys attest.TrustedKeys
 }
 
@@ -114,7 +114,7 @@ func (d *PublicationRequestDocument) UnmarshalJSON(data []byte) error {
 
 func (v PublicationVerification) Validate() error {
 	if err := errors.Join(
-		v.Document.Validate(), v.TrustedKeys.Validate(), v.ManifestKeys.Validate(),
+		v.Server.Validate(), v.Document.Validate(), v.ManifestKeys.Validate(),
 	); err != nil {
 		return contractError(err)
 	}
@@ -125,8 +125,8 @@ func VerifyPublication(verification PublicationVerification) (VerifiedPublicatio
 	if err := verification.Validate(); err != nil {
 		return VerifiedPublication{}, err
 	}
-	certificate, err := controlplane.VerifyInstallationCertificate(
-		verification.Document.Certificate, verification.TrustedKeys,
+	certificate, err := verification.Server.VerifyInstallationCertificate(
+		verification.Document.Certificate,
 	)
 	if err != nil {
 		return VerifiedPublication{}, contractError(err)
@@ -197,10 +197,11 @@ type PublicationCompletionProjectionAssembly struct {
 }
 
 type PublicationCompletionVerification struct {
-	Document    PublicationCompletionDocument
-	Grant       distribution.PublicationGrantDocument
-	Request     VerifiedPublication
-	TrustedKeys attest.TrustedKeys
+	Server    controlplane.Server
+	GrantKeys attest.TrustedKeys
+	Document  PublicationCompletionDocument
+	Grant     distribution.PublicationGrantDocument
+	Request   VerifiedPublication
 }
 
 type VerifiedPublicationCompletion struct {
@@ -340,7 +341,7 @@ func (d *PublicationCompletionDocument) UnmarshalJSON(data []byte) error {
 
 func (v PublicationCompletionVerification) Validate() error {
 	if err := errors.Join(
-		v.Grant.Validate(), v.Document.Validate(), v.Request.Validate(), v.TrustedKeys.Validate(),
+		v.Server.Validate(), v.GrantKeys.Validate(), v.Grant.Validate(), v.Document.Validate(), v.Request.Validate(),
 	); err != nil {
 		return contractError(err)
 	}
@@ -356,8 +357,8 @@ func VerifyPublicationCompletion(
 	if err := verification.Validate(); err != nil {
 		return VerifiedPublicationCompletion{}, err
 	}
-	certificate, err := controlplane.VerifyInstallationCertificate(
-		verification.Document.Certificate, verification.TrustedKeys,
+	certificate, err := verification.Server.VerifyInstallationCertificate(
+		verification.Document.Certificate,
 	)
 	if err != nil {
 		return VerifiedPublicationCompletion{}, contractError(err)
@@ -369,7 +370,7 @@ func VerifyPublicationCompletion(
 	completion, err := distribution.VerifyPublicationCompletion(distribution.PublicationCompletionExpectation{
 		Document: verification.Document.Completion, Request: verification.Request.requestProof,
 		Grant: verification.Grant.Payload, GrantAttestation: verification.Grant.Attestation,
-		GrantKeys: verification.TrustedKeys, CompletionKeys: deviceKeys,
+		GrantKeys: verification.GrantKeys, CompletionKeys: deviceKeys,
 	})
 	if err != nil {
 		return VerifiedPublicationCompletion{}, contractError(err)

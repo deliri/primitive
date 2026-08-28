@@ -1,0 +1,374 @@
+=== RUN   TestAppendEvidenceInputPressuresEveryOwnedLocalSourceBoundary
+=== PAUSE TestAppendEvidenceInputPressuresEveryOwnedLocalSourceBoundary
+=== RUN   TestTaskEvidenceStorageConfigurationLayerTriad
+=== PAUSE TestTaskEvidenceStorageConfigurationLayerTriad
+=== RUN   TestTaskEvidenceSourcePreparationLayerTriad
+=== PAUSE TestTaskEvidenceSourcePreparationLayerTriad
+=== RUN   TestTaskCommandDataFlowStructInventory
+=== PAUSE TestTaskCommandDataFlowStructInventory
+=== CONT  TestAppendEvidenceInputPressuresEveryOwnedLocalSourceBoundary
+=== RUN   TestAppendEvidenceInputPressuresEveryOwnedLocalSourceBoundary/valid_ordinary_PNG_screenshot
+=== PAUSE TestAppendEvidenceInputPressuresEveryOwnedLocalSourceBoundary/valid_ordinary_PNG_screenshot
+=== RUN   TestAppendEvidenceInputPressuresEveryOwnedLocalSourceBoundary/valid_JSON_test_transcript
+=== CONT  TestTaskEvidenceSourcePreparationLayerTriad
+=== PAUSE TestAppendEvidenceInputPressuresEveryOwnedLocalSourceBoundary/valid_JSON_test_transcript
+=== RUN   TestTaskEvidenceSourcePreparationLayerTriad/valid_ordinary_file_seals_one_exact_plan
+=== PAUSE TestTaskEvidenceSourcePreparationLayerTriad/valid_ordinary_file_seals_one_exact_plan
+=== RUN   TestTaskEvidenceSourcePreparationLayerTriad/valid_confined_symbolic_link_seals_its_target
+=== PAUSE TestTaskEvidenceSourcePreparationLayerTriad/valid_confined_symbolic_link_seals_its_target
+=== RUN   TestTaskEvidenceSourcePreparationLayerTriad/valid_hard_link_seals_the_shared_inode_bytes
+=== PAUSE TestTaskEvidenceSourcePreparationLayerTriad/valid_hard_link_seals_the_shared_inode_bytes
+=== RUN   TestTaskEvidenceSourcePreparationLayerTriad/valid_nested_source_remains_rooted
+=== PAUSE TestTaskEvidenceSourcePreparationLayerTriad/valid_nested_source_remains_rooted
+=== CONT  TestTaskEvidenceStorageConfigurationLayerTriad
+=== RUN   TestTaskEvidenceStorageConfigurationLayerTriad/positive_append_binds_project_and_validated_storage
+=== PAUSE TestTaskEvidenceStorageConfigurationLayerTriad/positive_append_binds_project_and_validated_storage
+=== RUN   TestTaskEvidenceStorageConfigurationLayerTriad/positive_provider_object_ceiling_remains_bounded_and_accepted
+=== CONT  TestTaskCommandDataFlowStructInventory
+=== RUN   TestTaskEvidenceSourcePreparationLayerTriad/valid_one-byte_source_matches_one-byte_bound
+=== PAUSE TestTaskEvidenceSourcePreparationLayerTriad/valid_one-byte_source_matches_one-byte_bound
+=== RUN   TestAppendEvidenceInputPressuresEveryOwnedLocalSourceBoundary/valid_plain_text_transcript_with_charset
+=== PAUSE TestTaskEvidenceStorageConfigurationLayerTriad/positive_provider_object_ceiling_remains_bounded_and_accepted
+=== RUN   TestTaskEvidenceSourcePreparationLayerTriad/valid_source_one_byte_below_bound_stays_exact
+=== PAUSE TestTaskEvidenceSourcePreparationLayerTriad/valid_source_one_byte_below_bound_stays_exact
+=== PAUSE TestAppendEvidenceInputPressuresEveryOwnedLocalSourceBoundary/valid_plain_text_transcript_with_charset
+=== RUN   TestTaskEvidenceStorageConfigurationLayerTriad/negative_append_without_storage_is_refused_before_source_I/O
+=== RUN   TestTaskEvidenceSourcePreparationLayerTriad/valid_sixty-four-kibibyte_source_streams_at_its_bound
+=== PAUSE TestTaskEvidenceStorageConfigurationLayerTriad/negative_append_without_storage_is_refused_before_source_I/O
+=== RUN   TestAppendEvidenceInputPressuresEveryOwnedLocalSourceBoundary/valid_vendor_artifact_media_type
+=== PAUSE TestAppendEvidenceInputPressuresEveryOwnedLocalSourceBoundary/valid_vendor_artifact_media_type
+=== RUN   TestAppendEvidenceInputPressuresEveryOwnedLocalSourceBoundary/valid_Unicode_filename_remains_a_relative_source
+=== RUN   TestTaskEvidenceStorageConfigurationLayerTriad/negative_malformed_bucket_delegates_to_the_GCS_owner
+=== PAUSE TestTaskEvidenceStorageConfigurationLayerTriad/negative_malformed_bucket_delegates_to_the_GCS_owner
+=== PAUSE TestAppendEvidenceInputPressuresEveryOwnedLocalSourceBoundary/valid_Unicode_filename_remains_a_relative_source
+=== RUN   TestTaskEvidenceStorageConfigurationLayerTriad/negative_whole-bucket_prefix_delegates_to_the_GCS_owner
+=== PAUSE TestTaskEvidenceSourcePreparationLayerTriad/valid_sixty-four-kibibyte_source_streams_at_its_bound
+=== RUN   TestAppendEvidenceInputPressuresEveryOwnedLocalSourceBoundary/valid_filename_containing_spaces
+=== PAUSE TestAppendEvidenceInputPressuresEveryOwnedLocalSourceBoundary/valid_filename_containing_spaces
+=== PAUSE TestTaskEvidenceStorageConfigurationLayerTriad/negative_whole-bucket_prefix_delegates_to_the_GCS_owner
+=== RUN   TestAppendEvidenceInputPressuresEveryOwnedLocalSourceBoundary/valid_deeply_nested_evidence_path
+=== PAUSE TestAppendEvidenceInputPressuresEveryOwnedLocalSourceBoundary/valid_deeply_nested_evidence_path
+=== RUN   TestTaskEvidenceSourcePreparationLayerTriad/valid_punctuated_leaf_becomes_the_object_leaf
+=== RUN   TestTaskEvidenceStorageConfigurationLayerTriad/negative_leaf-shaped_prefix_delegates_to_the_GCS_owner
+=== PAUSE TestTaskEvidenceSourcePreparationLayerTriad/valid_punctuated_leaf_becomes_the_object_leaf
+=== RUN   TestTaskEvidenceSourcePreparationLayerTriad/valid_JSON_media_type_survives_plan_projection
+=== RUN   TestAppendEvidenceInputPressuresEveryOwnedLocalSourceBoundary/valid_single-component_source
+=== PAUSE TestAppendEvidenceInputPressuresEveryOwnedLocalSourceBoundary/valid_single-component_source
+=== PAUSE TestTaskEvidenceStorageConfigurationLayerTriad/negative_leaf-shaped_prefix_delegates_to_the_GCS_owner
+=== PAUSE TestTaskEvidenceSourcePreparationLayerTriad/valid_JSON_media_type_survives_plan_projection
+=== RUN   TestTaskEvidenceStorageConfigurationLayerTriad/negative_zero_upload_bound_is_refused_by_the_byte-count_owner
+=== PAUSE TestTaskEvidenceStorageConfigurationLayerTriad/negative_zero_upload_bound_is_refused_by_the_byte-count_owner
+=== RUN   TestTaskEvidenceStorageConfigurationLayerTriad/negative_one_byte_beyond_provider_ceiling_is_refused_locally
+=== RUN   TestAppendEvidenceInputPressuresEveryOwnedLocalSourceBoundary/valid_punctuation_confined_to_filename
+=== PAUSE TestTaskEvidenceStorageConfigurationLayerTriad/negative_one_byte_beyond_provider_ceiling_is_refused_locally
+=== RUN   TestTaskEvidenceStorageConfigurationLayerTriad/neutral_non-evidence_operation_needs_no_storage_capability
+=== PAUSE TestTaskEvidenceStorageConfigurationLayerTriad/neutral_non-evidence_operation_needs_no_storage_capability
+=== PAUSE TestAppendEvidenceInputPressuresEveryOwnedLocalSourceBoundary/valid_punctuation_confined_to_filename
+=== CONT  TestTaskEvidenceStorageConfigurationLayerTriad/positive_append_binds_project_and_validated_storage
+=== RUN   TestAppendEvidenceInputPressuresEveryOwnedLocalSourceBoundary/valid_Unicode_summary
+=== PAUSE TestAppendEvidenceInputPressuresEveryOwnedLocalSourceBoundary/valid_Unicode_summary
+=== CONT  TestTaskEvidenceStorageConfigurationLayerTriad/neutral_non-evidence_operation_needs_no_storage_capability
+=== RUN   TestAppendEvidenceInputPressuresEveryOwnedLocalSourceBoundary/reject_empty_source
+=== PAUSE TestAppendEvidenceInputPressuresEveryOwnedLocalSourceBoundary/reject_empty_source
+=== RUN   TestAppendEvidenceInputPressuresEveryOwnedLocalSourceBoundary/reject_absolute_source
+=== PAUSE TestAppendEvidenceInputPressuresEveryOwnedLocalSourceBoundary/reject_absolute_source
+=== RUN   TestAppendEvidenceInputPressuresEveryOwnedLocalSourceBoundary/reject_parent_escape_source
+=== PAUSE TestAppendEvidenceInputPressuresEveryOwnedLocalSourceBoundary/reject_parent_escape_source
+=== CONT  TestTaskEvidenceStorageConfigurationLayerTriad/negative_leaf-shaped_prefix_delegates_to_the_GCS_owner
+=== RUN   TestTaskEvidenceSourcePreparationLayerTriad/valid_provider_ceiling_does_not_inflate_a_small_source
+=== PAUSE TestTaskEvidenceSourcePreparationLayerTriad/valid_provider_ceiling_does_not_inflate_a_small_source
+=== RUN   TestAppendEvidenceInputPressuresEveryOwnedLocalSourceBoundary/reject_embedded_parent_navigation
+=== PAUSE TestAppendEvidenceInputPressuresEveryOwnedLocalSourceBoundary/reject_embedded_parent_navigation
+=== RUN   TestAppendEvidenceInputPressuresEveryOwnedLocalSourceBoundary/reject_current-directory_alias
+=== PAUSE TestAppendEvidenceInputPressuresEveryOwnedLocalSourceBoundary/reject_current-directory_alias
+=== RUN   TestAppendEvidenceInputPressuresEveryOwnedLocalSourceBoundary/reject_doubled_separator
+=== PAUSE TestAppendEvidenceInputPressuresEveryOwnedLocalSourceBoundary/reject_doubled_separator
+=== RUN   TestAppendEvidenceInputPressuresEveryOwnedLocalSourceBoundary/reject_source_containing_NUL
+=== PAUSE TestAppendEvidenceInputPressuresEveryOwnedLocalSourceBoundary/reject_source_containing_NUL
+=== RUN   TestAppendEvidenceInputPressuresEveryOwnedLocalSourceBoundary/reject_unset_content_type
+=== PAUSE TestAppendEvidenceInputPressuresEveryOwnedLocalSourceBoundary/reject_unset_content_type
+=== RUN   TestAppendEvidenceInputPressuresEveryOwnedLocalSourceBoundary/reject_unset_task_identity
+=== PAUSE TestAppendEvidenceInputPressuresEveryOwnedLocalSourceBoundary/reject_unset_task_identity
+=== CONT  TestTaskEvidenceStorageConfigurationLayerTriad/negative_one_byte_beyond_provider_ceiling_is_refused_locally
+=== CONT  TestTaskEvidenceStorageConfigurationLayerTriad/negative_malformed_bucket_delegates_to_the_GCS_owner
+=== CONT  TestTaskEvidenceStorageConfigurationLayerTriad/negative_whole-bucket_prefix_delegates_to_the_GCS_owner
+=== CONT  TestTaskEvidenceStorageConfigurationLayerTriad/negative_zero_upload_bound_is_refused_by_the_byte-count_owner
+=== CONT  TestTaskEvidenceStorageConfigurationLayerTriad/positive_provider_object_ceiling_remains_bounded_and_accepted
+=== CONT  TestTaskEvidenceStorageConfigurationLayerTriad/negative_append_without_storage_is_refused_before_source_I/O
+=== RUN   TestTaskEvidenceSourcePreparationLayerTriad/reject_absent_source_before_object_facts_exist
+--- PASS: TestTaskEvidenceStorageConfigurationLayerTriad (0.00s)
+    --- PASS: TestTaskEvidenceStorageConfigurationLayerTriad/neutral_non-evidence_operation_needs_no_storage_capability (0.00s)
+    --- PASS: TestTaskEvidenceStorageConfigurationLayerTriad/negative_malformed_bucket_delegates_to_the_GCS_owner (0.00s)
+    --- PASS: TestTaskEvidenceStorageConfigurationLayerTriad/positive_append_binds_project_and_validated_storage (0.00s)
+    --- PASS: TestTaskEvidenceStorageConfigurationLayerTriad/negative_leaf-shaped_prefix_delegates_to_the_GCS_owner (0.00s)
+    --- PASS: TestTaskEvidenceStorageConfigurationLayerTriad/negative_zero_upload_bound_is_refused_by_the_byte-count_owner (0.00s)
+    --- PASS: TestTaskEvidenceStorageConfigurationLayerTriad/positive_provider_object_ceiling_remains_bounded_and_accepted (0.00s)
+    --- PASS: TestTaskEvidenceStorageConfigurationLayerTriad/negative_one_byte_beyond_provider_ceiling_is_refused_locally (0.00s)
+    --- PASS: TestTaskEvidenceStorageConfigurationLayerTriad/negative_whole-bucket_prefix_delegates_to_the_GCS_owner (0.00s)
+    --- PASS: TestTaskEvidenceStorageConfigurationLayerTriad/negative_append_without_storage_is_refused_before_source_I/O (0.00s)
+=== PAUSE TestTaskEvidenceSourcePreparationLayerTriad/reject_absent_source_before_object_facts_exist
+=== RUN   TestAppendEvidenceInputPressuresEveryOwnedLocalSourceBoundary/reject_unset_expected_revision
+=== PAUSE TestAppendEvidenceInputPressuresEveryOwnedLocalSourceBoundary/reject_unset_expected_revision
+=== RUN   TestTaskEvidenceSourcePreparationLayerTriad/reject_directory_source_before_object_facts_exist
+=== PAUSE TestTaskEvidenceSourcePreparationLayerTriad/reject_directory_source_before_object_facts_exist
+=== RUN   TestTaskEvidenceSourcePreparationLayerTriad/reject_escaping_symbolic_link_before_reading_external_bytes
+=== PAUSE TestTaskEvidenceSourcePreparationLayerTriad/reject_escaping_symbolic_link_before_reading_external_bytes
+=== RUN   TestTaskEvidenceSourcePreparationLayerTriad/reject_broken_symbolic_link_before_object_facts_exist
+=== PAUSE TestTaskEvidenceSourcePreparationLayerTriad/reject_broken_symbolic_link_before_object_facts_exist
+=== RUN   TestTaskEvidenceSourcePreparationLayerTriad/reject_empty_source_because_evidence_cannot_prove_zero_bytes
+=== PAUSE TestTaskEvidenceSourcePreparationLayerTriad/reject_empty_source_because_evidence_cannot_prove_zero_bytes
+=== RUN   TestAppendEvidenceInputPressuresEveryOwnedLocalSourceBoundary/boundary_one-rune_summary_is_accepted
+=== PAUSE TestAppendEvidenceInputPressuresEveryOwnedLocalSourceBoundary/boundary_one-rune_summary_is_accepted
+=== RUN   TestTaskEvidenceSourcePreparationLayerTriad/reject_one-byte_oversize_source_without_partial_plan
+=== RUN   TestAppendEvidenceInputPressuresEveryOwnedLocalSourceBoundary/boundary_exact_maximum_summary_is_accepted
+=== PAUSE TestAppendEvidenceInputPressuresEveryOwnedLocalSourceBoundary/boundary_exact_maximum_summary_is_accepted
+=== RUN   TestAppendEvidenceInputPressuresEveryOwnedLocalSourceBoundary/boundary_one_above_maximum_summary_is_rejected
+=== PAUSE TestAppendEvidenceInputPressuresEveryOwnedLocalSourceBoundary/boundary_one_above_maximum_summary_is_rejected
+=== RUN   TestAppendEvidenceInputPressuresEveryOwnedLocalSourceBoundary/boundary_empty_summary_is_rejected
+=== PAUSE TestTaskEvidenceSourcePreparationLayerTriad/reject_one-byte_oversize_source_without_partial_plan
+=== PAUSE TestAppendEvidenceInputPressuresEveryOwnedLocalSourceBoundary/boundary_empty_summary_is_rejected
+=== RUN   TestAppendEvidenceInputPressuresEveryOwnedLocalSourceBoundary/boundary_whitespace-only_summary_is_rejected
+=== PAUSE TestAppendEvidenceInputPressuresEveryOwnedLocalSourceBoundary/boundary_whitespace-only_summary_is_rejected
+=== RUN   TestAppendEvidenceInputPressuresEveryOwnedLocalSourceBoundary/boundary_summary_newline_is_rejected
+=== RUN   TestTaskEvidenceSourcePreparationLayerTriad/reject_pre-cancelled_context_before_source_inspection
+=== PAUSE TestAppendEvidenceInputPressuresEveryOwnedLocalSourceBoundary/boundary_summary_newline_is_rejected
+=== PAUSE TestTaskEvidenceSourcePreparationLayerTriad/reject_pre-cancelled_context_before_source_inspection
+=== RUN   TestAppendEvidenceInputPressuresEveryOwnedLocalSourceBoundary/boundary_note_evidence_kind_is_accepted
+=== RUN   TestTaskEvidenceSourcePreparationLayerTriad/reject_nil_context_before_observing_the_filesystem
+=== PAUSE TestAppendEvidenceInputPressuresEveryOwnedLocalSourceBoundary/boundary_note_evidence_kind_is_accepted
+=== RUN   TestAppendEvidenceInputPressuresEveryOwnedLocalSourceBoundary/boundary_test_evidence_kind_is_accepted
+=== PAUSE TestTaskEvidenceSourcePreparationLayerTriad/reject_nil_context_before_observing_the_filesystem
+=== RUN   TestTaskEvidenceSourcePreparationLayerTriad/reject_zero_working_directory_before_source_resolution
+=== PAUSE TestAppendEvidenceInputPressuresEveryOwnedLocalSourceBoundary/boundary_test_evidence_kind_is_accepted
+=== PAUSE TestTaskEvidenceSourcePreparationLayerTriad/reject_zero_working_directory_before_source_resolution
+=== RUN   TestAppendEvidenceInputPressuresEveryOwnedLocalSourceBoundary/boundary_benchmark_evidence_kind_is_accepted
+=== PAUSE TestAppendEvidenceInputPressuresEveryOwnedLocalSourceBoundary/boundary_benchmark_evidence_kind_is_accepted
+=== RUN   TestAppendEvidenceInputPressuresEveryOwnedLocalSourceBoundary/boundary_screenshot_evidence_kind_is_accepted
+=== PAUSE TestAppendEvidenceInputPressuresEveryOwnedLocalSourceBoundary/boundary_screenshot_evidence_kind_is_accepted
+=== RUN   TestAppendEvidenceInputPressuresEveryOwnedLocalSourceBoundary/boundary_Git_inventory_evidence_kind_is_accepted
+=== PAUSE TestAppendEvidenceInputPressuresEveryOwnedLocalSourceBoundary/boundary_Git_inventory_evidence_kind_is_accepted
+=== RUN   TestAppendEvidenceInputPressuresEveryOwnedLocalSourceBoundary/boundary_artifact_evidence_kind_is_accepted
+=== RUN   TestTaskEvidenceSourcePreparationLayerTriad/reject_missing_evidence_storage_before_source_resolution
+=== PAUSE TestAppendEvidenceInputPressuresEveryOwnedLocalSourceBoundary/boundary_artifact_evidence_kind_is_accepted
+=== RUN   TestAppendEvidenceInputPressuresEveryOwnedLocalSourceBoundary/boundary_unknown_evidence_kind_is_rejected
+=== PAUSE TestTaskEvidenceSourcePreparationLayerTriad/reject_missing_evidence_storage_before_source_resolution
+=== PAUSE TestAppendEvidenceInputPressuresEveryOwnedLocalSourceBoundary/boundary_unknown_evidence_kind_is_rejected
+=== RUN   TestAppendEvidenceInputPressuresEveryOwnedLocalSourceBoundary/boundary_future_evidence_kind_is_rejected
+=== PAUSE TestAppendEvidenceInputPressuresEveryOwnedLocalSourceBoundary/boundary_future_evidence_kind_is_rejected
+=== RUN   TestAppendEvidenceInputPressuresEveryOwnedLocalSourceBoundary/boundary_revision_floor_is_accepted
+=== PAUSE TestAppendEvidenceInputPressuresEveryOwnedLocalSourceBoundary/boundary_revision_floor_is_accepted
+=== RUN   TestAppendEvidenceInputPressuresEveryOwnedLocalSourceBoundary/boundary_revision_ceiling_is_accepted
+=== PAUSE TestAppendEvidenceInputPressuresEveryOwnedLocalSourceBoundary/boundary_revision_ceiling_is_accepted
+=== RUN   TestAppendEvidenceInputPressuresEveryOwnedLocalSourceBoundary/boundary_exact_path-component_ceiling_is_accepted
+=== PAUSE TestAppendEvidenceInputPressuresEveryOwnedLocalSourceBoundary/boundary_exact_path-component_ceiling_is_accepted
+=== RUN   TestAppendEvidenceInputPressuresEveryOwnedLocalSourceBoundary/boundary_one_above_path-component_ceiling_is_rejected
+=== PAUSE TestAppendEvidenceInputPressuresEveryOwnedLocalSourceBoundary/boundary_one_above_path-component_ceiling_is_rejected
+=== RUN   TestAppendEvidenceInputPressuresEveryOwnedLocalSourceBoundary/boundary_dot_source_cannot_name_a_file
+=== PAUSE TestAppendEvidenceInputPressuresEveryOwnedLocalSourceBoundary/boundary_dot_source_cannot_name_a_file
+=== RUN   TestAppendEvidenceInputPressuresEveryOwnedLocalSourceBoundary/boundary_media_type_with_quoted_parameter_is_accepted
+=== PAUSE TestAppendEvidenceInputPressuresEveryOwnedLocalSourceBoundary/boundary_media_type_with_quoted_parameter_is_accepted
+=== CONT  TestAppendEvidenceInputPressuresEveryOwnedLocalSourceBoundary/valid_ordinary_PNG_screenshot
+=== CONT  TestAppendEvidenceInputPressuresEveryOwnedLocalSourceBoundary/boundary_exact_maximum_summary_is_accepted
+=== CONT  TestAppendEvidenceInputPressuresEveryOwnedLocalSourceBoundary/boundary_artifact_evidence_kind_is_accepted
+=== CONT  TestAppendEvidenceInputPressuresEveryOwnedLocalSourceBoundary/boundary_exact_path-component_ceiling_is_accepted
+=== CONT  TestAppendEvidenceInputPressuresEveryOwnedLocalSourceBoundary/boundary_note_evidence_kind_is_accepted
+=== CONT  TestAppendEvidenceInputPressuresEveryOwnedLocalSourceBoundary/boundary_summary_newline_is_rejected
+=== CONT  TestAppendEvidenceInputPressuresEveryOwnedLocalSourceBoundary/boundary_whitespace-only_summary_is_rejected
+=== RUN   TestTaskEvidenceSourcePreparationLayerTriad/boundary_three-byte_bucket_is_admitted
+=== PAUSE TestTaskEvidenceSourcePreparationLayerTriad/boundary_three-byte_bucket_is_admitted
+=== RUN   TestTaskEvidenceSourcePreparationLayerTriad/boundary_bucket_one_below_minimum_is_refused
+=== CONT  TestAppendEvidenceInputPressuresEveryOwnedLocalSourceBoundary/boundary_dot_source_cannot_name_a_file
+=== CONT  TestAppendEvidenceInputPressuresEveryOwnedLocalSourceBoundary/boundary_media_type_with_quoted_parameter_is_accepted
+=== PAUSE TestTaskEvidenceSourcePreparationLayerTriad/boundary_bucket_one_below_minimum_is_refused
+=== RUN   TestTaskEvidenceSourcePreparationLayerTriad/boundary_222-byte_dotted_bucket_is_admitted
+=== CONT  TestAppendEvidenceInputPressuresEveryOwnedLocalSourceBoundary/boundary_empty_summary_is_rejected
+=== CONT  TestAppendEvidenceInputPressuresEveryOwnedLocalSourceBoundary/boundary_one_above_maximum_summary_is_rejected
+=== CONT  TestAppendEvidenceInputPressuresEveryOwnedLocalSourceBoundary/boundary_revision_floor_is_accepted
+=== CONT  TestAppendEvidenceInputPressuresEveryOwnedLocalSourceBoundary/boundary_revision_ceiling_is_accepted
+=== PAUSE TestTaskEvidenceSourcePreparationLayerTriad/boundary_222-byte_dotted_bucket_is_admitted
+=== RUN   TestTaskEvidenceSourcePreparationLayerTriad/boundary_bucket_one_above_provider_maximum_is_refused
+=== PAUSE TestTaskEvidenceSourcePreparationLayerTriad/boundary_bucket_one_above_provider_maximum_is_refused
+=== RUN   TestTaskEvidenceSourcePreparationLayerTriad/boundary_nested_slash-terminated_prefix_is_admitted
+=== PAUSE TestTaskEvidenceSourcePreparationLayerTriad/boundary_nested_slash-terminated_prefix_is_admitted
+=== RUN   TestTaskEvidenceSourcePreparationLayerTriad/boundary_leaf-shaped_prefix_is_refused
+=== PAUSE TestTaskEvidenceSourcePreparationLayerTriad/boundary_leaf-shaped_prefix_is_refused
+=== RUN   TestTaskEvidenceSourcePreparationLayerTriad/boundary_empty_prefix_is_refused
+=== PAUSE TestTaskEvidenceSourcePreparationLayerTriad/boundary_empty_prefix_is_refused
+=== RUN   TestTaskEvidenceSourcePreparationLayerTriad/boundary_zero_maximum_is_refused_before_source_I/O
+=== PAUSE TestTaskEvidenceSourcePreparationLayerTriad/boundary_zero_maximum_is_refused_before_source_I/O
+=== RUN   TestTaskEvidenceSourcePreparationLayerTriad/boundary_provider_maximum_admits_bounded_source
+=== PAUSE TestTaskEvidenceSourcePreparationLayerTriad/boundary_provider_maximum_admits_bounded_source
+=== RUN   TestTaskEvidenceSourcePreparationLayerTriad/boundary_one_above_provider_maximum_is_refused
+=== PAUSE TestTaskEvidenceSourcePreparationLayerTriad/boundary_one_above_provider_maximum_is_refused
+=== RUN   TestTaskEvidenceSourcePreparationLayerTriad/boundary_exact_resolved_filesystem_component_ceiling_is_admitted
+=== PAUSE TestTaskEvidenceSourcePreparationLayerTriad/boundary_exact_resolved_filesystem_component_ceiling_is_admitted
+=== RUN   TestTaskEvidenceSourcePreparationLayerTriad/boundary_one_above_resolved_filesystem_component_ceiling_is_refused
+=== PAUSE TestTaskEvidenceSourcePreparationLayerTriad/boundary_one_above_resolved_filesystem_component_ceiling_is_refused
+=== RUN   TestTaskEvidenceSourcePreparationLayerTriad/boundary_dot_source_is_refused_as_no_file
+=== PAUSE TestTaskEvidenceSourcePreparationLayerTriad/boundary_dot_source_is_refused_as_no_file
+=== RUN   TestTaskEvidenceSourcePreparationLayerTriad/boundary_absolute_source_is_refused_before_root_crossing
+=== PAUSE TestTaskEvidenceSourcePreparationLayerTriad/boundary_absolute_source_is_refused_before_root_crossing
+=== CONT  TestAppendEvidenceInputPressuresEveryOwnedLocalSourceBoundary/boundary_screenshot_evidence_kind_is_accepted
+=== CONT  TestAppendEvidenceInputPressuresEveryOwnedLocalSourceBoundary/boundary_one_above_path-component_ceiling_is_rejected
+=== CONT  TestAppendEvidenceInputPressuresEveryOwnedLocalSourceBoundary/boundary_future_evidence_kind_is_rejected
+=== CONT  TestAppendEvidenceInputPressuresEveryOwnedLocalSourceBoundary/reject_absolute_source
+=== CONT  TestAppendEvidenceInputPressuresEveryOwnedLocalSourceBoundary/boundary_one-rune_summary_is_accepted
+=== CONT  TestAppendEvidenceInputPressuresEveryOwnedLocalSourceBoundary/reject_unset_expected_revision
+=== RUN   TestTaskEvidenceSourcePreparationLayerTriad/boundary_parent_source_is_refused_before_root_crossing
+=== PAUSE TestTaskEvidenceSourcePreparationLayerTriad/boundary_parent_source_is_refused_before_root_crossing
+=== CONT  TestAppendEvidenceInputPressuresEveryOwnedLocalSourceBoundary/reject_unset_content_type
+=== RUN   TestTaskEvidenceSourcePreparationLayerTriad/boundary_zero_instant_is_refused_before_source_I/O
+=== PAUSE TestTaskEvidenceSourcePreparationLayerTriad/boundary_zero_instant_is_refused_before_source_I/O
+=== CONT  TestAppendEvidenceInputPressuresEveryOwnedLocalSourceBoundary/reject_unset_task_identity
+=== RUN   TestTaskEvidenceSourcePreparationLayerTriad/boundary_zero_media_type_is_refused_before_source_I/O
+=== PAUSE TestTaskEvidenceSourcePreparationLayerTriad/boundary_zero_media_type_is_refused_before_source_I/O
+=== CONT  TestAppendEvidenceInputPressuresEveryOwnedLocalSourceBoundary/reject_parent_escape_source
+=== CONT  TestAppendEvidenceInputPressuresEveryOwnedLocalSourceBoundary/valid_Unicode_summary
+=== CONT  TestAppendEvidenceInputPressuresEveryOwnedLocalSourceBoundary/valid_punctuation_confined_to_filename
+=== CONT  TestAppendEvidenceInputPressuresEveryOwnedLocalSourceBoundary/reject_current-directory_alias
+=== CONT  TestAppendEvidenceInputPressuresEveryOwnedLocalSourceBoundary/reject_empty_source
+=== CONT  TestAppendEvidenceInputPressuresEveryOwnedLocalSourceBoundary/boundary_benchmark_evidence_kind_is_accepted
+=== CONT  TestAppendEvidenceInputPressuresEveryOwnedLocalSourceBoundary/valid_single-component_source
+=== CONT  TestAppendEvidenceInputPressuresEveryOwnedLocalSourceBoundary/valid_vendor_artifact_media_type
+=== CONT  TestAppendEvidenceInputPressuresEveryOwnedLocalSourceBoundary/valid_plain_text_transcript_with_charset
+=== CONT  TestAppendEvidenceInputPressuresEveryOwnedLocalSourceBoundary/valid_JSON_test_transcript
+=== RUN   TestTaskEvidenceSourcePreparationLayerTriad/boundary_zero_task_identity_is_refused_before_source_I/O
+=== CONT  TestAppendEvidenceInputPressuresEveryOwnedLocalSourceBoundary/reject_doubled_separator
+=== PAUSE TestTaskEvidenceSourcePreparationLayerTriad/boundary_zero_task_identity_is_refused_before_source_I/O
+=== CONT  TestAppendEvidenceInputPressuresEveryOwnedLocalSourceBoundary/reject_embedded_parent_navigation
+=== CONT  TestAppendEvidenceInputPressuresEveryOwnedLocalSourceBoundary/boundary_Git_inventory_evidence_kind_is_accepted
+=== CONT  TestAppendEvidenceInputPressuresEveryOwnedLocalSourceBoundary/valid_Unicode_filename_remains_a_relative_source
+=== CONT  TestAppendEvidenceInputPressuresEveryOwnedLocalSourceBoundary/boundary_unknown_evidence_kind_is_rejected
+=== RUN   TestTaskEvidenceSourcePreparationLayerTriad/boundary_zero_expected_revision_is_refused_before_source_I/O
+=== PAUSE TestTaskEvidenceSourcePreparationLayerTriad/boundary_zero_expected_revision_is_refused_before_source_I/O
+=== CONT  TestAppendEvidenceInputPressuresEveryOwnedLocalSourceBoundary/boundary_test_evidence_kind_is_accepted
+=== CONT  TestAppendEvidenceInputPressuresEveryOwnedLocalSourceBoundary/valid_deeply_nested_evidence_path
+=== CONT  TestAppendEvidenceInputPressuresEveryOwnedLocalSourceBoundary/valid_filename_containing_spaces
+=== CONT  TestAppendEvidenceInputPressuresEveryOwnedLocalSourceBoundary/reject_source_containing_NUL
+=== RUN   TestTaskEvidenceSourcePreparationLayerTriad/boundary_quoted_media_parameter_survives_projection
+=== PAUSE TestTaskEvidenceSourcePreparationLayerTriad/boundary_quoted_media_parameter_survives_projection
+--- PASS: TestAppendEvidenceInputPressuresEveryOwnedLocalSourceBoundary (0.00s)
+    --- PASS: TestAppendEvidenceInputPressuresEveryOwnedLocalSourceBoundary/boundary_summary_newline_is_rejected (0.00s)
+    --- PASS: TestAppendEvidenceInputPressuresEveryOwnedLocalSourceBoundary/boundary_whitespace-only_summary_is_rejected (0.00s)
+    --- PASS: TestAppendEvidenceInputPressuresEveryOwnedLocalSourceBoundary/boundary_dot_source_cannot_name_a_file (0.00s)
+    --- PASS: TestAppendEvidenceInputPressuresEveryOwnedLocalSourceBoundary/boundary_empty_summary_is_rejected (0.00s)
+    --- PASS: TestAppendEvidenceInputPressuresEveryOwnedLocalSourceBoundary/boundary_one_above_maximum_summary_is_rejected (0.00s)
+    --- PASS: TestAppendEvidenceInputPressuresEveryOwnedLocalSourceBoundary/boundary_artifact_evidence_kind_is_accepted (0.00s)
+    --- PASS: TestAppendEvidenceInputPressuresEveryOwnedLocalSourceBoundary/boundary_exact_path-component_ceiling_is_accepted (0.00s)
+    --- PASS: TestAppendEvidenceInputPressuresEveryOwnedLocalSourceBoundary/boundary_exact_maximum_summary_is_accepted (0.00s)
+    --- PASS: TestAppendEvidenceInputPressuresEveryOwnedLocalSourceBoundary/boundary_one_above_path-component_ceiling_is_rejected (0.00s)
+    --- PASS: TestAppendEvidenceInputPressuresEveryOwnedLocalSourceBoundary/boundary_future_evidence_kind_is_rejected (0.00s)
+    --- PASS: TestAppendEvidenceInputPressuresEveryOwnedLocalSourceBoundary/reject_absolute_source (0.00s)
+    --- PASS: TestAppendEvidenceInputPressuresEveryOwnedLocalSourceBoundary/boundary_media_type_with_quoted_parameter_is_accepted (0.00s)
+    --- PASS: TestAppendEvidenceInputPressuresEveryOwnedLocalSourceBoundary/boundary_one-rune_summary_is_accepted (0.00s)
+    --- PASS: TestAppendEvidenceInputPressuresEveryOwnedLocalSourceBoundary/reject_unset_expected_revision (0.00s)
+    --- PASS: TestAppendEvidenceInputPressuresEveryOwnedLocalSourceBoundary/reject_unset_content_type (0.00s)
+    --- PASS: TestAppendEvidenceInputPressuresEveryOwnedLocalSourceBoundary/boundary_note_evidence_kind_is_accepted (0.00s)
+    --- PASS: TestAppendEvidenceInputPressuresEveryOwnedLocalSourceBoundary/valid_ordinary_PNG_screenshot (0.00s)
+    --- PASS: TestAppendEvidenceInputPressuresEveryOwnedLocalSourceBoundary/boundary_screenshot_evidence_kind_is_accepted (0.00s)
+    --- PASS: TestAppendEvidenceInputPressuresEveryOwnedLocalSourceBoundary/boundary_revision_ceiling_is_accepted (0.00s)
+    --- PASS: TestAppendEvidenceInputPressuresEveryOwnedLocalSourceBoundary/reject_unset_task_identity (0.00s)
+    --- PASS: TestAppendEvidenceInputPressuresEveryOwnedLocalSourceBoundary/boundary_revision_floor_is_accepted (0.00s)
+    --- PASS: TestAppendEvidenceInputPressuresEveryOwnedLocalSourceBoundary/reject_parent_escape_source (0.00s)
+    --- PASS: TestAppendEvidenceInputPressuresEveryOwnedLocalSourceBoundary/valid_Unicode_summary (0.00s)
+    --- PASS: TestAppendEvidenceInputPressuresEveryOwnedLocalSourceBoundary/valid_punctuation_confined_to_filename (0.00s)
+    --- PASS: TestAppendEvidenceInputPressuresEveryOwnedLocalSourceBoundary/reject_empty_source (0.00s)
+    --- PASS: TestAppendEvidenceInputPressuresEveryOwnedLocalSourceBoundary/reject_current-directory_alias (0.00s)
+    --- PASS: TestAppendEvidenceInputPressuresEveryOwnedLocalSourceBoundary/boundary_benchmark_evidence_kind_is_accepted (0.00s)
+    --- PASS: TestAppendEvidenceInputPressuresEveryOwnedLocalSourceBoundary/valid_vendor_artifact_media_type (0.00s)
+    --- PASS: TestAppendEvidenceInputPressuresEveryOwnedLocalSourceBoundary/valid_JSON_test_transcript (0.00s)
+    --- PASS: TestAppendEvidenceInputPressuresEveryOwnedLocalSourceBoundary/valid_single-component_source (0.00s)
+    --- PASS: TestAppendEvidenceInputPressuresEveryOwnedLocalSourceBoundary/valid_plain_text_transcript_with_charset (0.00s)
+    --- PASS: TestAppendEvidenceInputPressuresEveryOwnedLocalSourceBoundary/reject_doubled_separator (0.00s)
+    --- PASS: TestAppendEvidenceInputPressuresEveryOwnedLocalSourceBoundary/reject_embedded_parent_navigation (0.00s)
+    --- PASS: TestAppendEvidenceInputPressuresEveryOwnedLocalSourceBoundary/boundary_Git_inventory_evidence_kind_is_accepted (0.00s)
+    --- PASS: TestAppendEvidenceInputPressuresEveryOwnedLocalSourceBoundary/valid_Unicode_filename_remains_a_relative_source (0.00s)
+    --- PASS: TestAppendEvidenceInputPressuresEveryOwnedLocalSourceBoundary/boundary_unknown_evidence_kind_is_rejected (0.00s)
+    --- PASS: TestAppendEvidenceInputPressuresEveryOwnedLocalSourceBoundary/boundary_test_evidence_kind_is_accepted (0.00s)
+    --- PASS: TestAppendEvidenceInputPressuresEveryOwnedLocalSourceBoundary/valid_deeply_nested_evidence_path (0.00s)
+    --- PASS: TestAppendEvidenceInputPressuresEveryOwnedLocalSourceBoundary/valid_filename_containing_spaces (0.00s)
+    --- PASS: TestAppendEvidenceInputPressuresEveryOwnedLocalSourceBoundary/reject_source_containing_NUL (0.00s)
+=== CONT  TestTaskEvidenceSourcePreparationLayerTriad/boundary_one_above_provider_maximum_is_refused
+=== CONT  TestTaskEvidenceSourcePreparationLayerTriad/valid_ordinary_file_seals_one_exact_plan
+=== CONT  TestTaskEvidenceSourcePreparationLayerTriad/boundary_zero_media_type_is_refused_before_source_I/O
+=== CONT  TestTaskEvidenceSourcePreparationLayerTriad/boundary_zero_instant_is_refused_before_source_I/O
+=== CONT  TestTaskEvidenceSourcePreparationLayerTriad/boundary_parent_source_is_refused_before_root_crossing
+=== CONT  TestTaskEvidenceSourcePreparationLayerTriad/boundary_absolute_source_is_refused_before_root_crossing
+=== CONT  TestTaskEvidenceSourcePreparationLayerTriad/boundary_dot_source_is_refused_as_no_file
+=== CONT  TestTaskEvidenceSourcePreparationLayerTriad/boundary_one_above_resolved_filesystem_component_ceiling_is_refused
+=== CONT  TestTaskEvidenceSourcePreparationLayerTriad/boundary_exact_resolved_filesystem_component_ceiling_is_admitted
+--- PASS: TestTaskCommandDataFlowStructInventory (0.00s)
+=== CONT  TestTaskEvidenceSourcePreparationLayerTriad/boundary_quoted_media_parameter_survives_projection
+=== CONT  TestTaskEvidenceSourcePreparationLayerTriad/boundary_zero_expected_revision_is_refused_before_source_I/O
+=== CONT  TestTaskEvidenceSourcePreparationLayerTriad/reject_one-byte_oversize_source_without_partial_plan
+=== CONT  TestTaskEvidenceSourcePreparationLayerTriad/boundary_provider_maximum_admits_bounded_source
+=== CONT  TestTaskEvidenceSourcePreparationLayerTriad/boundary_zero_maximum_is_refused_before_source_I/O
+=== CONT  TestTaskEvidenceSourcePreparationLayerTriad/boundary_empty_prefix_is_refused
+=== CONT  TestTaskEvidenceSourcePreparationLayerTriad/boundary_leaf-shaped_prefix_is_refused
+=== CONT  TestTaskEvidenceSourcePreparationLayerTriad/boundary_nested_slash-terminated_prefix_is_admitted
+=== CONT  TestTaskEvidenceSourcePreparationLayerTriad/boundary_bucket_one_above_provider_maximum_is_refused
+=== CONT  TestTaskEvidenceSourcePreparationLayerTriad/boundary_222-byte_dotted_bucket_is_admitted
+=== CONT  TestTaskEvidenceSourcePreparationLayerTriad/boundary_bucket_one_below_minimum_is_refused
+=== CONT  TestTaskEvidenceSourcePreparationLayerTriad/boundary_three-byte_bucket_is_admitted
+=== CONT  TestTaskEvidenceSourcePreparationLayerTriad/reject_missing_evidence_storage_before_source_resolution
+=== CONT  TestTaskEvidenceSourcePreparationLayerTriad/reject_zero_working_directory_before_source_resolution
+=== CONT  TestTaskEvidenceSourcePreparationLayerTriad/reject_nil_context_before_observing_the_filesystem
+=== CONT  TestTaskEvidenceSourcePreparationLayerTriad/reject_pre-cancelled_context_before_source_inspection
+=== CONT  TestTaskEvidenceSourcePreparationLayerTriad/valid_JSON_media_type_survives_plan_projection
+=== CONT  TestTaskEvidenceSourcePreparationLayerTriad/reject_empty_source_because_evidence_cannot_prove_zero_bytes
+=== CONT  TestTaskEvidenceSourcePreparationLayerTriad/reject_broken_symbolic_link_before_object_facts_exist
+=== CONT  TestTaskEvidenceSourcePreparationLayerTriad/reject_escaping_symbolic_link_before_reading_external_bytes
+=== CONT  TestTaskEvidenceSourcePreparationLayerTriad/reject_directory_source_before_object_facts_exist
+=== CONT  TestTaskEvidenceSourcePreparationLayerTriad/reject_absent_source_before_object_facts_exist
+=== CONT  TestTaskEvidenceSourcePreparationLayerTriad/valid_provider_ceiling_does_not_inflate_a_small_source
+=== CONT  TestTaskEvidenceSourcePreparationLayerTriad/valid_one-byte_source_matches_one-byte_bound
+=== CONT  TestTaskEvidenceSourcePreparationLayerTriad/valid_punctuated_leaf_becomes_the_object_leaf
+=== CONT  TestTaskEvidenceSourcePreparationLayerTriad/valid_sixty-four-kibibyte_source_streams_at_its_bound
+=== CONT  TestTaskEvidenceSourcePreparationLayerTriad/valid_source_one_byte_below_bound_stays_exact
+=== CONT  TestTaskEvidenceSourcePreparationLayerTriad/valid_hard_link_seals_the_shared_inode_bytes
+=== CONT  TestTaskEvidenceSourcePreparationLayerTriad/valid_nested_source_remains_rooted
+=== CONT  TestTaskEvidenceSourcePreparationLayerTriad/valid_confined_symbolic_link_seals_its_target
+=== CONT  TestTaskEvidenceSourcePreparationLayerTriad/boundary_zero_task_identity_is_refused_before_source_I/O
+--- PASS: TestTaskEvidenceSourcePreparationLayerTriad (0.00s)
+    --- PASS: TestTaskEvidenceSourcePreparationLayerTriad/boundary_parent_source_is_refused_before_root_crossing (0.00s)
+    --- PASS: TestTaskEvidenceSourcePreparationLayerTriad/boundary_zero_instant_is_refused_before_source_I/O (0.01s)
+    --- PASS: TestTaskEvidenceSourcePreparationLayerTriad/boundary_dot_source_is_refused_as_no_file (0.01s)
+    --- PASS: TestTaskEvidenceSourcePreparationLayerTriad/boundary_absolute_source_is_refused_before_root_crossing (0.01s)
+    --- PASS: TestTaskEvidenceSourcePreparationLayerTriad/boundary_one_above_provider_maximum_is_refused (0.01s)
+    --- PASS: TestTaskEvidenceSourcePreparationLayerTriad/boundary_zero_media_type_is_refused_before_source_I/O (0.01s)
+    --- PASS: TestTaskEvidenceSourcePreparationLayerTriad/boundary_quoted_media_parameter_survives_projection (0.01s)
+    --- PASS: TestTaskEvidenceSourcePreparationLayerTriad/boundary_zero_expected_revision_is_refused_before_source_I/O (0.01s)
+    --- PASS: TestTaskEvidenceSourcePreparationLayerTriad/valid_ordinary_file_seals_one_exact_plan (0.01s)
+    --- PASS: TestTaskEvidenceSourcePreparationLayerTriad/boundary_leaf-shaped_prefix_is_refused (0.00s)
+    --- PASS: TestTaskEvidenceSourcePreparationLayerTriad/boundary_bucket_one_above_provider_maximum_is_refused (0.00s)
+    --- PASS: TestTaskEvidenceSourcePreparationLayerTriad/reject_one-byte_oversize_source_without_partial_plan (0.01s)
+    --- PASS: TestTaskEvidenceSourcePreparationLayerTriad/boundary_zero_maximum_is_refused_before_source_I/O (0.01s)
+    --- PASS: TestTaskEvidenceSourcePreparationLayerTriad/boundary_empty_prefix_is_refused (0.01s)
+    --- PASS: TestTaskEvidenceSourcePreparationLayerTriad/boundary_provider_maximum_admits_bounded_source (0.01s)
+    --- PASS: TestTaskEvidenceSourcePreparationLayerTriad/boundary_222-byte_dotted_bucket_is_admitted (0.01s)
+    --- PASS: TestTaskEvidenceSourcePreparationLayerTriad/boundary_bucket_one_below_minimum_is_refused (0.01s)
+    --- PASS: TestTaskEvidenceSourcePreparationLayerTriad/boundary_nested_slash-terminated_prefix_is_admitted (0.01s)
+    --- PASS: TestTaskEvidenceSourcePreparationLayerTriad/reject_zero_working_directory_before_source_resolution (0.01s)
+    --- PASS: TestTaskEvidenceSourcePreparationLayerTriad/reject_missing_evidence_storage_before_source_resolution (0.01s)
+    --- PASS: TestTaskEvidenceSourcePreparationLayerTriad/boundary_three-byte_bucket_is_admitted (0.01s)
+    --- PASS: TestTaskEvidenceSourcePreparationLayerTriad/reject_pre-cancelled_context_before_source_inspection (0.01s)
+    --- PASS: TestTaskEvidenceSourcePreparationLayerTriad/reject_empty_source_because_evidence_cannot_prove_zero_bytes (0.01s)
+    --- PASS: TestTaskEvidenceSourcePreparationLayerTriad/reject_nil_context_before_observing_the_filesystem (0.01s)
+    --- PASS: TestTaskEvidenceSourcePreparationLayerTriad/reject_broken_symbolic_link_before_object_facts_exist (0.01s)
+    --- PASS: TestTaskEvidenceSourcePreparationLayerTriad/valid_JSON_media_type_survives_plan_projection (0.01s)
+    --- PASS: TestTaskEvidenceSourcePreparationLayerTriad/reject_escaping_symbolic_link_before_reading_external_bytes (0.01s)
+    --- PASS: TestTaskEvidenceSourcePreparationLayerTriad/reject_directory_source_before_object_facts_exist (0.01s)
+    --- PASS: TestTaskEvidenceSourcePreparationLayerTriad/reject_absent_source_before_object_facts_exist (0.01s)
+    --- PASS: TestTaskEvidenceSourcePreparationLayerTriad/valid_one-byte_source_matches_one-byte_bound (0.01s)
+    --- PASS: TestTaskEvidenceSourcePreparationLayerTriad/valid_source_one_byte_below_bound_stays_exact (0.01s)
+    --- PASS: TestTaskEvidenceSourcePreparationLayerTriad/valid_punctuated_leaf_becomes_the_object_leaf (0.01s)
+    --- PASS: TestTaskEvidenceSourcePreparationLayerTriad/valid_sixty-four-kibibyte_source_streams_at_its_bound (0.01s)
+    --- PASS: TestTaskEvidenceSourcePreparationLayerTriad/valid_nested_source_remains_rooted (0.01s)
+    --- PASS: TestTaskEvidenceSourcePreparationLayerTriad/valid_provider_ceiling_does_not_inflate_a_small_source (0.01s)
+    --- PASS: TestTaskEvidenceSourcePreparationLayerTriad/valid_confined_symbolic_link_seals_its_target (0.01s)
+    --- PASS: TestTaskEvidenceSourcePreparationLayerTriad/boundary_zero_task_identity_is_refused_before_source_I/O (0.00s)
+    --- PASS: TestTaskEvidenceSourcePreparationLayerTriad/valid_hard_link_seals_the_shared_inode_bytes (0.01s)
+    --- PASS: TestTaskEvidenceSourcePreparationLayerTriad/boundary_one_above_resolved_filesystem_component_ceiling_is_refused (0.15s)
+    --- PASS: TestTaskEvidenceSourcePreparationLayerTriad/boundary_exact_resolved_filesystem_component_ceiling_is_admitted (0.15s)
+PASS
+ok  	github.com/deliri/primitive/v2026/cmd/tasks	0.641s

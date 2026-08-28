@@ -16,7 +16,6 @@ type contextValue uint8
 const testContextValueKey contextValueKey = iota
 const testContextValue contextValue = iota
 const futureDeadlineYear = 9999
-const unknownState contextstate.State = 0
 
 type contextErrBehavior uint8
 
@@ -112,6 +111,18 @@ type contextFixture struct {
 	probe   *contextProbe
 }
 
+type observationOperation func(context.Context) (contextstate.State, error)
+
+type observationCase struct {
+	makeFixture contextFixtureFactory
+	name        string
+	operation   observationOperation
+	wantErr     error
+	wantState   contextstate.State
+}
+
+type contextFixtureFactory func() contextFixture
+
 func TestValidatePublicIngressMatrix(t *testing.T) {
 	t.Parallel()
 
@@ -180,35 +191,68 @@ func TestValidatePublicIngressMatrix(t *testing.T) {
 	}
 }
 
-func TestContextstateProcessBoundaryLayerTriadObserveAfterDoneTerminalMatrix(t *testing.T) {
+func TestContextstateObservationLayerTriadPreservesOnlyExactStandardTerminalFacts(t *testing.T) {
 	t.Parallel()
 
-	cases := []struct {
-		makeFixture func() contextFixture
-		wantErr     error
-		name        string
-		wantState   contextstate.State
-	}{
-		{name: "nil interface is rejected", makeFixture: nilContextFixture, wantState: unknownState, wantErr: core.ErrNilContext},
-		{name: "standard cancellation is observed", makeFixture: cancelledContextFixture, wantState: contextstate.StateCancelled},
-		{name: "cancellation cause is observed", makeFixture: cancellationCauseContextFixture, wantState: contextstate.StateCancelled},
-		{name: "expired deadline is observed", makeFixture: deadlineContextFixture, wantState: contextstate.StateDeadlineExceeded},
-		{name: "post-Done observation reads Err without rereading Done", makeFixture: errOnlyCancelledContextFixture, wantState: contextstate.StateCancelled},
-		{name: "wrapped cancellation violates the Context Err contract", makeFixture: wrappedCancellationProbeFixture, wantState: unknownState, wantErr: core.ErrContextObservation},
-		{name: "custom cancellation matcher cannot replace the exact sentinel", makeFixture: hostileCancellationProbeFixture, wantState: unknownState, wantErr: core.ErrContextObservation},
-		{name: "wrapped deadline violates the Context Err contract", makeFixture: wrappedDeadlineProbeFixture, wantState: unknownState, wantErr: core.ErrContextObservation},
-		{name: "joined terminal state violates the Context Err contract", makeFixture: contradictoryProbeFixture, wantState: unknownState, wantErr: core.ErrContextObservation},
-		{name: "closed Done with active state is unobservable", makeFixture: activeAfterDoneProbeFixture, wantState: unknownState, wantErr: core.ErrContextObservation},
-		{name: "background used after Done is unobservable", makeFixture: backgroundContextFixture, wantState: unknownState, wantErr: core.ErrContextObservation},
-		{name: "safe typed nil used after Done is unobservable", makeFixture: nilSafeContextFixture, wantState: unknownState, wantErr: core.ErrContextObservation},
-		{name: "unrelated terminal state is unobservable", makeFixture: unrelatedProbeFixture, wantState: unknownState, wantErr: core.ErrContextObservation},
-		{name: "typed nil terminal error is unobservable", makeFixture: typedNilTerminalProbeFixture, wantState: unknownState, wantErr: core.ErrContextObservation},
-		{name: "noncomparable terminal error is rejected without identity traversal", makeFixture: nonComparableTerminalProbeFixture, wantState: unknownState, wantErr: core.ErrContextObservation},
-		{name: "panicking Err is contained", makeFixture: panickingErrProbeFixture, wantState: unknownState, wantErr: core.ErrContextObservation},
-		{name: "custom Is method is not consulted", makeFixture: panickingIdentityProbeFixture, wantState: unknownState, wantErr: core.ErrContextObservation},
-		{name: "cyclic custom error is rejected without traversal", makeFixture: cyclicErrorProbeFixture, wantState: unknownState, wantErr: core.ErrContextObservation},
-		{name: "typed nil whose Err panics is contained", makeFixture: nilPanickingContextFixture, wantState: unknownState, wantErr: core.ErrContextObservation},
-	}
+	t.Run("positive exact standard terminal facts cross both public observation doors", func(t *testing.T) {
+		t.Parallel()
+
+		cases := []observationCase{
+			{name: "Observe admits exact cancellation", makeFixture: cancelledContextFixture, operation: contextstate.Observe, wantState: contextstate.StateCancelled},
+			{name: "Observe admits cancellation whose cause remains owner-private", makeFixture: cancellationCauseContextFixture, operation: contextstate.Observe, wantState: contextstate.StateCancelled},
+			{name: "Observe admits exact deadline expiration", makeFixture: deadlineContextFixture, operation: contextstate.Observe, wantState: contextstate.StateDeadlineExceeded},
+			{name: "ObserveAfterDone admits exact cancellation", makeFixture: cancelledContextFixture, operation: contextstate.ObserveAfterDone, wantState: contextstate.StateCancelled},
+			{name: "ObserveAfterDone admits cancellation whose cause remains owner-private", makeFixture: cancellationCauseContextFixture, operation: contextstate.ObserveAfterDone, wantState: contextstate.StateCancelled},
+			{name: "ObserveAfterDone admits exact deadline expiration", makeFixture: deadlineContextFixture, operation: contextstate.ObserveAfterDone, wantState: contextstate.StateDeadlineExceeded},
+			{name: "ObserveAfterDone reads Err without rereading Done", makeFixture: errOnlyCancelledContextFixture, operation: contextstate.ObserveAfterDone, wantState: contextstate.StateCancelled},
+		}
+		runObservationCases(t, cases)
+	})
+
+	t.Run("negative malformed context implementations cannot forge a terminal fact", func(t *testing.T) {
+		t.Parallel()
+
+		cases := []observationCase{
+			{name: "Observe rejects a nil interface", makeFixture: nilContextFixture, operation: contextstate.Observe, wantErr: core.ErrNilContext},
+			{name: "ObserveAfterDone rejects a nil interface", makeFixture: nilContextFixture, operation: contextstate.ObserveAfterDone, wantErr: core.ErrNilContext},
+			{name: "wrapped cancellation is not the exact Context sentinel", makeFixture: wrappedCancellationProbeFixture, operation: contextstate.Observe, wantErr: core.ErrContextObservation},
+			{name: "custom cancellation matching cannot replace sentinel identity", makeFixture: hostileCancellationProbeFixture, operation: contextstate.ObserveAfterDone, wantErr: core.ErrContextObservation},
+			{name: "wrapped deadline is not the exact Context sentinel", makeFixture: wrappedDeadlineProbeFixture, operation: contextstate.Observe, wantErr: core.ErrContextObservation},
+			{name: "joined terminal states are contradictory", makeFixture: contradictoryProbeFixture, operation: contextstate.ObserveAfterDone, wantErr: core.ErrContextObservation},
+			{name: "unrelated terminal error has no observable state", makeFixture: unrelatedProbeFixture, operation: contextstate.Observe, wantErr: core.ErrContextObservation},
+			{name: "typed nil terminal error has no observable state", makeFixture: typedNilTerminalProbeFixture, operation: contextstate.ObserveAfterDone, wantErr: core.ErrContextObservation},
+			{name: "noncomparable terminal error is rejected without identity traversal", makeFixture: nonComparableTerminalProbeFixture, operation: contextstate.Observe, wantErr: core.ErrContextObservation},
+			{name: "panicking Err is contained", makeFixture: panickingErrProbeFixture, operation: contextstate.ObserveAfterDone, wantErr: core.ErrContextObservation},
+			{name: "custom Is method is never consulted", makeFixture: panickingIdentityProbeFixture, operation: contextstate.Observe, wantErr: core.ErrContextObservation},
+			{name: "cyclic error is rejected without traversal", makeFixture: cyclicErrorProbeFixture, operation: contextstate.ObserveAfterDone, wantErr: core.ErrContextObservation},
+			{name: "typed nil whose Err panics is contained", makeFixture: nilPanickingContextFixture, operation: contextstate.Observe, wantErr: core.ErrContextObservation},
+		}
+		runObservationCases(t, cases)
+	})
+
+	t.Run("neutral active contexts stay active without an invented terminal fact", func(t *testing.T) {
+		t.Parallel()
+
+		cases := []observationCase{
+			{name: "Observe reports background as active", makeFixture: backgroundContextFixture, operation: contextstate.Observe, wantState: contextstate.StateNone},
+			{name: "Observe reports TODO as active", makeFixture: todoContextFixture, operation: contextstate.Observe, wantState: contextstate.StateNone},
+			{name: "Observe ignores an unrelated context value", makeFixture: valueContextFixture, operation: contextstate.Observe, wantState: contextstate.StateNone},
+			{name: "Observe reports an uncancelled context as active", makeFixture: activeContextFixture, operation: contextstate.Observe, wantState: contextstate.StateNone},
+			{name: "Observe does not infer a future deadline terminal state", makeFixture: futureDeadlineContextFixture, operation: contextstate.Observe, wantState: contextstate.StateNone},
+			{name: "Observe honors a detached active context", makeFixture: detachedContextFixture, operation: contextstate.Observe, wantState: contextstate.StateNone},
+			{name: "Observe admits a nil-safe typed nil reporting no terminal error", makeFixture: nilSafeContextFixture, operation: contextstate.Observe, wantState: contextstate.StateNone},
+			{name: "Observe calls an active custom context Err exactly once", makeFixture: activeProbeFixture, operation: contextstate.Observe, wantState: contextstate.StateNone},
+			{name: "ObserveAfterDone refuses an active state after a closed Done", makeFixture: activeAfterDoneProbeFixture, operation: contextstate.ObserveAfterDone, wantErr: core.ErrContextObservation},
+			{name: "ObserveAfterDone refuses background without inventing state", makeFixture: backgroundContextFixture, operation: contextstate.ObserveAfterDone, wantErr: core.ErrContextObservation},
+			{name: "ObserveAfterDone refuses a nil-safe typed nil without inventing state", makeFixture: nilSafeContextFixture, operation: contextstate.ObserveAfterDone, wantErr: core.ErrContextObservation},
+		}
+		runObservationCases(t, cases)
+	})
+}
+
+func runObservationCases(t *testing.T, cases []observationCase) {
+	t.Helper()
+
 	for _, tc := range cases {
 		t.Run(tc.name, func(t *testing.T) {
 			t.Parallel()
@@ -217,22 +261,15 @@ func TestContextstateProcessBoundaryLayerTriadObserveAfterDoneTerminalMatrix(t *
 			if fixture.cleanup != nil {
 				defer fixture.cleanup()
 			}
-			gotState, gotErr := contextstate.ObserveAfterDone(fixture.ctx)
+			gotState, gotErr := tc.operation(fixture.ctx)
 			if gotState != tc.wantState {
-				t.Fatalf("ObserveAfterDone() state = %v, want %v", gotState, tc.wantState)
+				t.Fatalf("observation state = %v, want %v", gotState, tc.wantState)
 			}
 			if !errors.Is(gotErr, tc.wantErr) {
-				t.Fatalf(
-					"ObserveAfterDone() error = %v, want %v",
-					gotErr,
-					tc.wantErr,
-				)
+				t.Fatalf("observation error = %v, want %v", gotErr, tc.wantErr)
 			}
 			if fixture.probe != nil && fixture.probe.errCalls != 1 {
-				t.Fatalf(
-					"ObserveAfterDone() Context.Err() calls = %d, want 1",
-					fixture.probe.errCalls,
-				)
+				t.Fatalf("Context.Err() calls = %d, want 1", fixture.probe.errCalls)
 			}
 		})
 	}

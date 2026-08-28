@@ -1,0 +1,12 @@
+goos: darwin
+goarch: arm64
+pkg: github.com/deliri/primitive/v2026/cmd/tasks
+cpu: Apple M1 Max
+BenchmarkDecodeCreateTaskJob-10          	  244660	      4864 ns/op	    6229 B/op	      51 allocs/op
+BenchmarkDecodeCreateTaskJob-10          	  252049	      4788 ns/op	    6229 B/op	      51 allocs/op
+BenchmarkDecodeCreateTaskJob-10          	  257845	      4880 ns/op	    6228 B/op	      51 allocs/op
+BenchmarkPrepareTaskEvidenceUpload-10    	   24940	     47224 ns/op	   35040 B/op	      53 allocs/op
+BenchmarkPrepareTaskEvidenceUpload-10    	   25550	     47709 ns/op	   35040 B/op	      53 allocs/op
+BenchmarkPrepareTaskEvidenceUpload-10    	   23755	     48516 ns/op	   35040 B/op	      53 allocs/op
+PASS
+ok  	github.com/deliri/primitive/v2026/cmd/tasks	7.715s

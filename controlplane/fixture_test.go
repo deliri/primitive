@@ -35,17 +35,18 @@ func issueTestRegistration(t testing.TB) issuedRegistration {
 	}
 	payload := golden.Payload
 	payload.Lease = resignLease(t, payload.Lease, signer)
-	payload.Certificate = resignCertificate(t, payload.Certificate, signer)
-
-	document, err := controlplane.IssueRegistration(payload, signer)
-	if err != nil {
-		t.Fatalf("IssueRegistration() error = %v, want nil", err)
-	}
 	trusted, err := attest.NewTrustedKeys(attest.TrustedKeysRequest{
 		Keys: []core.Ed25519PublicKey{signerPublic},
 	})
 	if err != nil {
 		t.Fatalf("NewTrustedKeys() error = %v, want nil", err)
+	}
+	server := testControlplaneServer(t, trusted)
+	payload.Certificate = resignCertificate(t, server, payload.Certificate, signer)
+
+	document, err := server.IssueRegistration(payload, signer)
+	if err != nil {
+		t.Fatalf("Server.IssueRegistration() error = %v, want nil", err)
 	}
 	return issuedRegistration{
 		document:    document,
@@ -131,17 +132,46 @@ func resignLease(t testing.TB, document lease.Document, signer ed25519.PrivateKe
 	return resigned
 }
 
-func resignCertificate(t testing.TB, document *controlplane.InstallationCertificateDocument, signer ed25519.PrivateKey) *controlplane.InstallationCertificateDocument {
+func resignCertificate(
+	t testing.TB,
+	server controlplane.Server,
+	document *controlplane.InstallationCertificateDocument,
+	signer ed25519.PrivateKey,
+) *controlplane.InstallationCertificateDocument {
 	t.Helper()
 
 	if document == nil {
 		t.Fatalf("golden response certificate = %v, want a certificate to re-sign", document)
 	}
-	resigned, err := controlplane.IssueInstallationCertificate(document.Body, signer)
+	resigned, err := server.IssueInstallationCertificate(document.Body, signer)
 	if err != nil {
-		t.Fatalf("IssueInstallationCertificate() error = %v, want nil", err)
+		t.Fatalf("Server.IssueInstallationCertificate() error = %v, want nil", err)
 	}
 	return &resigned
+}
+
+func testControlplaneClient(t testing.TB, trusted attest.TrustedKeys) controlplane.Client {
+	t.Helper()
+
+	client, err := controlplane.NewClient(controlplane.ClientConfiguration{
+		TrustedAuthorityKeys: trusted,
+	})
+	if err != nil {
+		t.Fatalf("controlplane.NewClient() error = %v, want nil", err)
+	}
+	return client
+}
+
+func testControlplaneServer(t testing.TB, trusted attest.TrustedKeys) controlplane.Server {
+	t.Helper()
+
+	server, err := controlplane.NewServer(controlplane.ServerConfiguration{
+		TrustedAuthorityKeys: trusted,
+	})
+	if err != nil {
+		t.Fatalf("controlplane.NewServer() error = %v, want nil", err)
+	}
+	return server
 }
 
 // testSigningKey returns a deterministic real Ed25519 key pair. Deterministic

@@ -433,15 +433,36 @@ func TestNumericProjectionPreservesInstantValueSemantics(t *testing.T) {
 // to exactly the bytes that were accepted, and a rejection must carry a stable
 // typed identity and leave the receiver untouched.
 func FuzzNumericInstantJSON(f *testing.F) {
-	seeds := []string{
-		"0", "1", "-1", "9223372036854775807", "-9223372036854775808",
-		"01", "-0", "1e9", "1.0", `"1"`, "", "null", "+1", "9223372036854775808",
+	for _, nanoseconds := range []int64{math.MinInt64, -1, 0, 1, math.MaxInt64} {
+		value, err := temporal.NewNumericInstant(temporal.InstantFromNanoseconds(nanoseconds))
+		if err != nil {
+			f.Fatalf("NewNumericInstant(%d) seed error = %v, want nil", nanoseconds, err)
+		}
+		encoded, err := value.MarshalJSON()
+		if err != nil {
+			f.Fatalf("NumericInstant.MarshalJSON(%d) seed error = %v, want nil", nanoseconds, err)
+		}
+		f.Add(encoded)
 	}
-	for _, seed := range seeds {
-		f.Add([]byte(seed))
+	for _, malformed := range []string{"01", "-0", "1e9", "1.0", `"1"`, "", "null", "+1", "9223372036854775808"} {
+		f.Add([]byte(malformed))
 	}
 
 	f.Fuzz(func(t *testing.T, data []byte) {
+		if len(data) > temporal.NumericInstantCanonicalJSONMaximumBytes {
+			retained, retainedErr := temporal.NewNumericInstant(temporal.InstantFromNanoseconds(-77))
+			if retainedErr != nil {
+				t.Fatalf("NewNumericInstant(retained) error = %v, want nil", retainedErr)
+			}
+			got := retained
+			gotErr := got.UnmarshalJSON(data)
+			if !errors.Is(gotErr, core.ErrJSONContract) || !errors.Is(gotErr, core.ErrTemporalContract) || got != retained {
+				t.Fatalf("NumericInstant.UnmarshalJSON(%d-byte oversized input) = (%v, %v), want retained/%v/%v", len(data), got, gotErr, core.ErrJSONContract, core.ErrTemporalContract)
+			}
+			return
+		}
+		independent, independentErr := strconv.ParseInt(string(data), 10, 64)
+		wantAccepted := independentErr == nil && strconv.FormatInt(independent, 10) == string(data)
 		sentinel := temporal.InstantFromNanoseconds(-77)
 		retained, err := temporal.NewNumericInstant(sentinel)
 		if err != nil {
@@ -450,8 +471,8 @@ func FuzzNumericInstantJSON(f *testing.F) {
 		got := retained
 
 		if err := got.UnmarshalJSON(data); err != nil {
-			if !errors.Is(err, core.ErrTemporalContract) && !errors.Is(err, core.ErrTemporalOverflow) {
-				t.Fatalf("UnmarshalJSON(%q) error = %v, want a stable temporal identity", data, err)
+			if wantAccepted || (!errors.Is(err, core.ErrTemporalContract) && !errors.Is(err, core.ErrTemporalOverflow)) {
+				t.Fatalf("UnmarshalJSON(%q) error = %v, want accepted=%t or a stable temporal identity", data, err, wantAccepted)
 			}
 			instant, instantErr := got.Instant()
 			if instantErr != nil {
@@ -467,8 +488,9 @@ func FuzzNumericInstantJSON(f *testing.F) {
 			return
 		}
 
-		if err := got.Validate(); err != nil {
-			t.Fatalf("UnmarshalJSON accepted a value that fails Validate: %v", err)
+		gotNanoseconds := requireNanoseconds(t, got)
+		if gotErr := got.Validate(); !wantAccepted || gotErr != nil || gotNanoseconds != independent {
+			t.Fatalf("UnmarshalJSON(%q) = (value:%d validate:%v), want accepted=%t value=%d", data, gotNanoseconds, gotErr, wantAccepted, independent)
 		}
 		encoded, err := got.MarshalJSON()
 		if err != nil {
@@ -477,17 +499,58 @@ func FuzzNumericInstantJSON(f *testing.F) {
 		if string(encoded) != string(data) {
 			t.Fatalf("re-encoded = %s, want the accepted bytes %s", encoded, data)
 		}
+		var roundTrip temporal.NumericInstant
+		if err := roundTrip.UnmarshalJSON(encoded); err != nil {
+			t.Fatalf("second UnmarshalJSON(%s) error = %v, want nil", encoded, err)
+		}
+		second, err := roundTrip.MarshalJSON()
+		roundTripNanoseconds := requireNanoseconds(t, roundTrip)
+		if err != nil || roundTripNanoseconds != gotNanoseconds || string(second) != string(encoded) {
+			t.Fatalf("numeric instant closure = (%s, %v, %d), want (%s, nil, %d)", second, err, roundTripNanoseconds, encoded, gotNanoseconds)
+		}
 	})
 }
 
 // FuzzNumericDurationJSON holds the same boundary for the nonnegative half.
 func FuzzNumericDurationJSON(f *testing.F) {
-	seeds := []string{"0", "1", "9223372036854775807", "-1", "-0", "00", "1e3", `"0"`, ""}
-	for _, seed := range seeds {
-		f.Add([]byte(seed))
+	for _, nanoseconds := range []int64{0, 1, 1_000, math.MaxInt64} {
+		duration, err := temporal.DurationFromNanoseconds(nanoseconds)
+		if err != nil {
+			f.Fatalf("DurationFromNanoseconds(%d) seed error = %v, want nil", nanoseconds, err)
+		}
+		value, err := temporal.NewNumericDuration(duration)
+		if err != nil {
+			f.Fatalf("NewNumericDuration(%d) seed error = %v, want nil", nanoseconds, err)
+		}
+		encoded, err := value.MarshalJSON()
+		if err != nil {
+			f.Fatalf("NumericDuration.MarshalJSON(%d) seed error = %v, want nil", nanoseconds, err)
+		}
+		f.Add(encoded)
+	}
+	for _, malformed := range []string{"-1", "-0", "00", "1e3", `"0"`, ""} {
+		f.Add([]byte(malformed))
 	}
 
 	f.Fuzz(func(t *testing.T, data []byte) {
+		if len(data) > temporal.NumericDurationCanonicalJSONMaximumBytes {
+			retainedDuration, retainedDurationErr := temporal.DurationFromNanoseconds(13)
+			if retainedDurationErr != nil {
+				t.Fatalf("DurationFromNanoseconds(retained) error = %v, want nil", retainedDurationErr)
+			}
+			retained, retainedErr := temporal.NewNumericDuration(retainedDuration)
+			if retainedErr != nil {
+				t.Fatalf("NewNumericDuration(retained) error = %v, want nil", retainedErr)
+			}
+			got := retained
+			gotErr := got.UnmarshalJSON(data)
+			if !errors.Is(gotErr, core.ErrJSONContract) || !errors.Is(gotErr, core.ErrTemporalContract) || got != retained {
+				t.Fatalf("NumericDuration.UnmarshalJSON(%d-byte oversized input) = (%v, %v), want retained/%v/%v", len(data), got, gotErr, core.ErrJSONContract, core.ErrTemporalContract)
+			}
+			return
+		}
+		independent, independentErr := strconv.ParseInt(string(data), 10, 64)
+		wantAccepted := independentErr == nil && independent >= 0 && strconv.FormatInt(independent, 10) == string(data)
 		base, err := temporal.DurationFromNanoseconds(13)
 		if err != nil {
 			t.Fatalf("DurationFromNanoseconds() error = %v, want nil", err)
@@ -499,8 +562,8 @@ func FuzzNumericDurationJSON(f *testing.F) {
 		got := retained
 
 		if err := got.UnmarshalJSON(data); err != nil {
-			if !errors.Is(err, core.ErrTemporalContract) && !errors.Is(err, core.ErrTemporalOverflow) {
-				t.Fatalf("UnmarshalJSON(%q) error = %v, want a stable temporal identity", data, err)
+			if wantAccepted || (!errors.Is(err, core.ErrTemporalContract) && !errors.Is(err, core.ErrTemporalOverflow)) {
+				t.Fatalf("UnmarshalJSON(%q) error = %v, want accepted=%t or a stable temporal identity", data, err, wantAccepted)
 			}
 			if got.Duration().Nanoseconds() != 13 {
 				t.Fatalf("receiver after rejection = %d, want 13 unchanged", got.Duration().Nanoseconds())
@@ -508,8 +571,8 @@ func FuzzNumericDurationJSON(f *testing.F) {
 			return
 		}
 
-		if got.Duration().Nanoseconds() < 0 {
-			t.Fatalf("UnmarshalJSON accepted a negative duration: %d", got.Duration().Nanoseconds())
+		if gotErr := got.Validate(); !wantAccepted || gotErr != nil || got.Duration().Nanoseconds() != independent {
+			t.Fatalf("UnmarshalJSON(%q) accepted duration = (%d, %v), want accepted=%t value=%d", data, got.Duration().Nanoseconds(), gotErr, wantAccepted, independent)
 		}
 		encoded, err := got.MarshalJSON()
 		if err != nil {
@@ -517,6 +580,14 @@ func FuzzNumericDurationJSON(f *testing.F) {
 		}
 		if string(encoded) != string(data) {
 			t.Fatalf("re-encoded = %s, want the accepted bytes %s", encoded, data)
+		}
+		var roundTrip temporal.NumericDuration
+		if err := roundTrip.UnmarshalJSON(encoded); err != nil {
+			t.Fatalf("second UnmarshalJSON(%s) error = %v, want nil", encoded, err)
+		}
+		second, err := roundTrip.MarshalJSON()
+		if err != nil || roundTrip.Duration() != got.Duration() || string(second) != string(encoded) {
+			t.Fatalf("numeric duration closure = (%s, %v, %v), want (%s, nil, %v)", second, err, roundTrip.Duration(), encoded, got.Duration())
 		}
 	})
 }

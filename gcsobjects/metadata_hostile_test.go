@@ -159,15 +159,14 @@ func TestProjectGCSErrorMapsProviderFailuresToStableIdentities(t *testing.T) {
 		operation    core.ErrorIdentity
 		wantAbsent   bool
 		wantConflict bool
-		wantCancel   bool
 	}{
 		{name: "object-not-exist sentinel is absence", cause: storage.ErrObjectNotExist, operation: core.ErrObjectStoreSource, wantAbsent: true},
 		{name: "provider 404 is absence", cause: &googleapi.Error{Code: 404}, operation: core.ErrObjectStoreDestination, wantAbsent: true},
 		{name: "provider 409 is conflict", cause: &googleapi.Error{Code: 409}, operation: core.ErrObjectStoreDestination, wantConflict: true},
 		{name: "provider 412 precondition is conflict", cause: &googleapi.Error{Code: 412}, operation: core.ErrObjectStoreDestination, wantConflict: true},
 		{name: "provider 500 is neither absence nor conflict", cause: &googleapi.Error{Code: 500}, operation: core.ErrObjectStoreDestination},
-		{name: "context cancellation is preserved", cause: context.Canceled, operation: core.ErrObjectStoreSource, wantCancel: true},
-		{name: "deadline exceeded is preserved", cause: context.DeadlineExceeded, operation: core.ErrObjectStoreSource, wantCancel: true},
+		{name: "context cancellation is preserved", cause: context.Canceled, operation: core.ErrObjectStoreSource},
+		{name: "deadline exceeded is preserved", cause: context.DeadlineExceeded, operation: core.ErrObjectStoreSource},
 		{name: "opaque provider error carries only contract and operation", cause: errors.New("provider boom"), operation: core.ErrObjectStoreSource},
 	}
 
@@ -187,8 +186,15 @@ func TestProjectGCSErrorMapsProviderFailuresToStableIdentities(t *testing.T) {
 			if gotConflict := errors.Is(got, core.ErrObjectStoreConflict); gotConflict != tc.wantConflict {
 				t.Fatalf("projectGCSError() conflict = %t, want %t", gotConflict, tc.wantConflict)
 			}
-			if tc.wantCancel && !errors.Is(got, tc.cause) {
-				t.Fatalf("projectGCSError() = %v, want preserved cancellation %v", got, tc.cause)
+			if !errors.Is(got, tc.cause) {
+				t.Fatalf("projectGCSError() = %v, want preserved native/provider cause %v", got, tc.cause)
+			}
+			if provider, wantProvider := errors.AsType[*googleapi.Error](tc.cause); wantProvider {
+				gotProvider, gotProviderCause := errors.AsType[*googleapi.Error](got)
+				if !gotProviderCause || gotProvider != provider {
+					t.Fatalf("projectGCSError() provider cause = (%v, %t), want (%v, true)",
+						gotProvider, gotProviderCause, provider)
+				}
 			}
 		})
 	}

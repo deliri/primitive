@@ -153,6 +153,8 @@ flowchart TD
 
     gcsobjects[gcsobjects] --> core
     gcsobjects --> contextstate
+    gcsobjects --> exchange
+    gcsobjects --> filestore
     gcsobjects --> temporal
     gcsobjects --> objectstore
 

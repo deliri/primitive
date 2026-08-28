@@ -74,25 +74,115 @@ func TestCodeDefinitionMatrixIsClosedAndCanonical(t *testing.T) {
 func TestCurrencySchemaLayerTriad(t *testing.T) {
 	t.Parallel()
 
-	cases := []struct {
-		wantErr error
-		name    string
-		value   currency.Amount
-	}{
-		{name: "positive complete amount", value: mustAmount(t, currency.CodeCAD, 1)},
-		{name: "negative missing currency", value: currency.Amount{}, wantErr: core.ErrCurrencyContract},
-		{name: "neutral zero minor units", value: mustAmount(t, currency.CodeCAD, 0)},
-	}
-	for _, tc := range cases {
-		t.Run(tc.name, func(t *testing.T) {
-			t.Parallel()
+	t.Run("positive every admitted currency seals nonzero extrema", func(t *testing.T) {
+		t.Parallel()
 
-			gotErr := tc.value.Validate()
-			if !errors.Is(gotErr, tc.wantErr) {
-				t.Fatalf("Amount.Validate() error = %v, want %v", gotErr, tc.wantErr)
-			}
-		})
-	}
+		cases := []struct {
+			name       string
+			code       currency.Code
+			minorUnits int64
+		}{
+			{name: "USD minimum", code: currency.CodeUSD, minorUnits: math.MinInt64},
+			{name: "EUR one above minimum", code: currency.CodeEUR, minorUnits: math.MinInt64 + 1},
+			{name: "GBP negative one", code: currency.CodeGBP, minorUnits: -1},
+			{name: "CAD positive one", code: currency.CodeCAD, minorUnits: 1},
+			{name: "AUD one below maximum", code: currency.CodeAUD, minorUnits: math.MaxInt64 - 1},
+			{name: "JPY maximum", code: currency.CodeJPY, minorUnits: math.MaxInt64},
+			{name: "CHF negative midpoint", code: currency.CodeCHF, minorUnits: math.MinInt64 / 2},
+			{name: "NZD positive midpoint", code: currency.CodeNZD, minorUnits: math.MaxInt64 / 2},
+			{name: "SGD negative ordinary value", code: currency.CodeSGD, minorUnits: -125},
+			{name: "HKD positive ordinary value", code: currency.CodeHKD, minorUnits: 125},
+			{name: "BHD negative exponent-sensitive value", code: currency.CodeBHD, minorUnits: -1001},
+			{name: "CLF positive exponent-sensitive value", code: currency.CodeCLF, minorUnits: 10001},
+		}
+		for _, tc := range cases {
+			t.Run(tc.name, func(t *testing.T) {
+				t.Parallel()
+
+				got, gotErr := currency.New(tc.code, tc.minorUnits)
+				if gotErr != nil {
+					t.Fatalf("currency.New(%v, %d) error = %v, want nil", tc.code, tc.minorUnits, gotErr)
+				}
+				if gotValidateErr := got.Validate(); gotValidateErr != nil {
+					t.Fatalf("Amount.Validate() error = %v, want nil", gotValidateErr)
+				}
+				gotCode, gotCodeErr := got.Code()
+				gotMinor, gotMinorErr := got.MinorUnits()
+				if gotCodeErr != nil || gotMinorErr != nil ||
+					gotCode != tc.code || gotMinor != tc.minorUnits {
+					t.Fatalf(
+						"Amount projection = (code:%v/%v minor:%d/%v), want (%v, %d)",
+						gotCode,
+						gotCodeErr,
+						gotMinor,
+						gotMinorErr,
+						tc.code,
+						tc.minorUnits,
+					)
+				}
+			})
+		}
+	})
+
+	t.Run("negative the sole externally constructible invalid amount stays zero", func(t *testing.T) {
+		t.Parallel()
+
+		got := currency.Amount{}
+		gotErr := got.Validate()
+		if got != (currency.Amount{}) ||
+			!errors.Is(gotErr, core.ErrCurrencyContract) ||
+			!errors.Is(gotErr, core.ErrPrimitiveContract) {
+			t.Fatalf(
+				"zero Amount.Validate() = (%v, %v), want zero and %v/%v",
+				got,
+				gotErr,
+				core.ErrCurrencyContract,
+				core.ErrPrimitiveContract,
+			)
+		}
+	})
+
+	t.Run("neutral zero minor units remain real amounts for every currency", func(t *testing.T) {
+		t.Parallel()
+
+		codes := []currency.Code{
+			currency.CodeUSD,
+			currency.CodeEUR,
+			currency.CodeGBP,
+			currency.CodeCAD,
+			currency.CodeAUD,
+			currency.CodeJPY,
+			currency.CodeCHF,
+			currency.CodeNZD,
+			currency.CodeSGD,
+			currency.CodeHKD,
+			currency.CodeBHD,
+			currency.CodeCLF,
+		}
+		for _, code := range codes {
+			t.Run(code.String(), func(t *testing.T) {
+				t.Parallel()
+
+				got, gotErr := currency.New(code, 0)
+				if gotErr != nil {
+					t.Fatalf("currency.New(%v, 0) error = %v, want nil", code, gotErr)
+				}
+				gotMinor, gotMinorErr := got.MinorUnits()
+				gotCode, gotCodeErr := got.Code()
+				if gotMinorErr != nil || gotCodeErr != nil ||
+					gotMinor != 0 || gotCode != code {
+					t.Fatalf(
+						"zero Amount projection = (code:%v/%v minor:%d/%v), want (%v, 0)",
+						gotCode,
+						gotCodeErr,
+						gotMinor,
+						gotMinorErr,
+						code,
+					)
+				}
+			})
+		}
+	})
 }
 
 func TestCodeRejectsOutsideDomainAndNoncanonicalTokens(t *testing.T) {

@@ -4,6 +4,7 @@ import (
 	"crypto/ed25519"
 	"errors"
 
+	"github.com/deliri/primitive/v2026/attest"
 	"github.com/deliri/primitive/v2026/controlplane"
 	"github.com/deliri/primitive/v2026/controlwire"
 	"github.com/deliri/primitive/v2026/core"
@@ -84,7 +85,19 @@ func IssueInstallation(request InstallationRequest) (Installation, error) {
 	if err != nil {
 		return Installation{}, err
 	}
-	certificate, err := controlplane.IssueInstallationCertificate(body, authorityPrivate)
+	trusted, err := attest.NewTrustedKeys(attest.TrustedKeysRequest{
+		Keys: []core.Ed25519PublicKey{authorityPublic},
+	})
+	if err != nil {
+		return Installation{}, errors.Join(core.ErrPrimitiveContract, err)
+	}
+	server, err := controlplane.NewServer(controlplane.ServerConfiguration{
+		TrustedAuthorityKeys: trusted,
+	})
+	if err != nil {
+		return Installation{}, errors.Join(core.ErrPrimitiveContract, err)
+	}
+	certificate, err := server.IssueInstallationCertificate(body, authorityPrivate)
 	if err != nil {
 		return Installation{}, errors.Join(core.ErrPrimitiveContract, err)
 	}

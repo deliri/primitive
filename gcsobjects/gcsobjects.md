@@ -15,6 +15,8 @@ It owns exactly:
 - authenticated SDK client construction from a closed typed configuration;
 - create-only bucket provisioning in one typed provider location with a closed
   flat or hierarchical namespace choice;
+- one idempotent bucket-IAM operation that grants and confirms unconditional
+  unauthenticated object reads without granting listing or writes;
 - logical directory and object-name composition from validated segments,
   without fake placeholder objects or caller-owned slash conventions;
 - two create-only object writes, served-media and stored-file;
@@ -71,8 +73,12 @@ sealed facts to an authority without teaching that authority about GCS.
 `CreateBucket` accepts one `GCSBucketCreateRequest` containing a nominal Google
 project ID, validated bucket name, provider location, and closed namespace
 choice. It calls the official SDK once and returns sealed provisioning evidence
-only after the provider accepts creation. Existing buckets are conflicts; this
-surface never updates bucket policy in place.
+only after the provider accepts creation. Existing buckets are conflicts.
+
+`GrantGCSBucketPublicRead` is the one admitted existing-bucket mutation. It
+preserves the provider policy, adds only the unconditional all-users object-read
+role when absent, and releases sealed evidence only after an official-SDK
+read-back confirms the exact membership. It never grants listing or writes.
 
 Flat object storage has no directory resource to create. `ComposeGCSRootPrefix`,
 `ComposeGCSChildPrefix`, and `ComposeGCSObjectName` therefore build validated
@@ -83,7 +89,8 @@ remains outside this object lifecycle.
 
 ## What it deliberately does not do
 
-- mutate existing buckets or mint or persist credentials;
+- mutate existing buckets beyond the exact public-read grant, or mint or
+  persist credentials;
 - create placeholder objects to imitate directories;
 - administer managed-folder IAM policy;
 - overwrite, copy, compose, or mutate arbitrary object metadata;
@@ -104,10 +111,13 @@ enabled, because there success would not mean permanent deletion.
 ## Where it meets the real world
 
 The effect leaves are the official Cloud Storage SDK,
-`cloud.google.com/go/storage`, and the official IAM Credentials API client.
+`cloud.google.com/go/storage`, and the official IAM Credentials API client,
+both riding Exchange's bounded standard HTTP transport boundary.
 The latter signs exactly one Objectstore-owned V4 upload or retrieval request
 with an explicit service-account principal and request context; it does not
 create or store signing keys.
 Product code selects Application Default Credentials or an explicit
-service-account file through a closed typed configuration; the SDK type and
-credential-discovery mechanics never escape the package.
+service-account file through a closed typed configuration. Explicit credential
+bytes enter through Filestore under a fixed ceiling, are handed to Google's
+authentication SDK, and are destroyed after transport construction; neither
+the SDK type nor raw filesystem mechanics escape the package.

@@ -7,10 +7,12 @@ import (
 	"net/http"
 	"net/http/httptest"
 	"strings"
+	"sync/atomic"
 	"testing"
 
 	"cloud.google.com/go/storage"
 	"github.com/deliri/primitive/v2026/core"
+	"github.com/deliri/primitive/v2026/exchange"
 	"google.golang.org/api/option"
 	storageapi "google.golang.org/api/storage/v1"
 )
@@ -258,11 +260,19 @@ func TestGCSBucketProvisioningLayerTriadUsesOfficialSDKAndPreservesExactPolicy(t
 			}
 			wantHierarchical := request.Namespace == GCSNamespaceHierarchical
 			gotHierarchical := received.HierarchicalNamespace != nil && received.HierarchicalNamespace.Enabled
+			gotUniform := received.IamConfiguration != nil &&
+				received.IamConfiguration.UniformBucketLevelAccess != nil &&
+				received.IamConfiguration.UniformBucketLevelAccess.Enabled
+			gotPublicAccessPrevention := ""
+			if received.IamConfiguration != nil {
+				gotPublicAccessPrevention = received.IamConfiguration.PublicAccessPrevention
+			}
+			wantPublicAccessPrevention := storage.PublicAccessPreventionInherited.String()
 			if received.Name != request.Bucket.String() || received.Location != request.Location.String() ||
-				gotHierarchical != wantHierarchical {
-				t.Fatalf("provider bucket request = (%q, %q, hierarchical %t), want (%q, %q, %t)",
-					received.Name, received.Location, gotHierarchical,
-					request.Bucket.String(), request.Location.String(), wantHierarchical)
+				gotHierarchical != wantHierarchical || !gotUniform || gotPublicAccessPrevention != wantPublicAccessPrevention {
+				t.Fatalf("provider bucket request = (%q, %q, hierarchical %t, uniform %t, public access %q), want (%q, %q, %t, true, %q)",
+					received.Name, received.Location, gotHierarchical, gotUniform, gotPublicAccessPrevention,
+					request.Bucket.String(), request.Location.String(), wantHierarchical, wantPublicAccessPrevention)
 			}
 		})
 	}
@@ -283,12 +293,14 @@ func TestGCSBucketProvisioningLayerTriadUsesOfficialSDKAndPreservesExactPolicy(t
 	t.Run("neutral zero request and canceled context create no provisioning evidence", func(t *testing.T) {
 		t.Parallel()
 
+		var gotCalls atomic.Int64
 		got, gotErr := CreateBucket(context.Background(), nil, GCSBucketCreateRequest{})
 		if !errors.Is(gotErr, core.ErrObjectStoreContract) || got != (GCSBucketProvisioning{}) {
 			t.Fatalf("CreateBucket(zero) = (%v, %v), want zero and errors.Is %v",
 				got, gotErr, core.ErrObjectStoreContract)
 		}
 		client := bucketTestClient(t, http.HandlerFunc(func(writer http.ResponseWriter, _ *http.Request) {
+			gotCalls.Add(1)
 			writer.WriteHeader(http.StatusCreated)
 		}))
 		ctx, cancel := context.WithCancel(context.Background())
@@ -296,6 +308,9 @@ func TestGCSBucketProvisioningLayerTriadUsesOfficialSDKAndPreservesExactPolicy(t
 		got, gotErr = CreateBucket(ctx, client, bucketCreateFixture(t, GCSNamespaceFlat))
 		if !errors.Is(gotErr, context.Canceled) || got != (GCSBucketProvisioning{}) {
 			t.Fatalf("CreateBucket(canceled) = (%v, %v), want zero and errors.Is context.Canceled", got, gotErr)
+		}
+		if got := gotCalls.Load(); got != 0 {
+			t.Fatalf("neutral CreateBucket provider calls = %d, want 0", got)
 		}
 	})
 }
@@ -361,7 +376,7 @@ func bucketTestClient(t testing.TB, handler http.Handler) *GCSClient {
 	t.Cleanup(server.Close)
 	client, err := storage.NewClient(
 		context.Background(), option.WithEndpoint(server.URL+"/storage/v1/"),
-		option.WithoutAuthentication(), option.WithHTTPClient(server.Client()),
+		option.WithoutAuthentication(), option.WithHTTPClient(boundedGCSTestHTTPClient(t, server.Client())),
 	)
 	if err != nil {
 		t.Fatalf("storage.NewClient(test provider) error = %v, want nil", err)
@@ -372,4 +387,52 @@ func bucketTestClient(t testing.TB, handler http.Handler) *GCSClient {
 		}
 	})
 	return &GCSClient{client: client}
+}
+
+func boundedGCSTestHTTPClient(t testing.TB, client *http.Client) *http.Client {
+	t.Helper()
+
+	limit, err := core.NewByteCount(GCSProviderResponseMaximumBytes)
+	if err != nil {
+		t.Fatalf("core.NewByteCount(GCS IAM response maximum) error = %v, want nil", err)
+	}
+	getBoundary, err := exchange.NewOfficialSDKResponseBoundary(exchange.OfficialSDKResponseBoundaryRequest{
+		Method: exchange.MethodGet, PathPrefix: gcsJSONBucketPathPrefix,
+		PathSuffix:     gcsIAMPolicyPathSuffix,
+		Representation: exchange.OfficialSDKResponseRepresentationJSON,
+		MaximumBytes:   limit,
+	})
+	if err != nil {
+		t.Fatalf("exchange.NewOfficialSDKResponseBoundary() error = %v, want nil", err)
+	}
+	base := client.Transport
+	if base == nil {
+		base = http.DefaultTransport
+	}
+	transport, err := exchange.NewOfficialSDKResponseTransport(exchange.OfficialSDKResponseTransportRequest{
+		Base: base, Boundary: getBoundary,
+	})
+	if err != nil {
+		t.Fatalf("exchange.NewOfficialSDKResponseTransport(GET) error = %v, want nil", err)
+	}
+	putBoundary, err := exchange.NewOfficialSDKResponseBoundary(exchange.OfficialSDKResponseBoundaryRequest{
+		Method: exchange.MethodPut, PathPrefix: gcsJSONBucketPathPrefix,
+		PathSuffix:     gcsIAMPolicyPathSuffix,
+		Representation: exchange.OfficialSDKResponseRepresentationJSON,
+		MaximumBytes:   limit,
+	})
+	if err != nil {
+		t.Fatalf("exchange.NewOfficialSDKResponseBoundary(PUT) error = %v, want nil", err)
+	}
+	transport, err = exchange.NewOfficialSDKResponseTransport(exchange.OfficialSDKResponseTransportRequest{
+		Base: transport, Boundary: putBoundary,
+	})
+	if err != nil {
+		t.Fatalf("exchange.NewOfficialSDKResponseTransport(PUT) error = %v, want nil", err)
+	}
+	bounded, err := exchange.NewOfficialSDKHTTPClient(transport)
+	if err != nil {
+		t.Fatalf("exchange.NewOfficialSDKHTTPClient() error = %v, want nil", err)
+	}
+	return bounded
 }

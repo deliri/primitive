@@ -21,6 +21,7 @@ func TestRegistrationAuthorityTransactionLayerTriad(t *testing.T) {
 	t.Parallel()
 
 	request := registrationRequestFixture(t)
+	server := issueTestRegistration(t).server(t)
 	verifier, err := request.Token.Verifier()
 	if err != nil {
 		t.Fatalf("RegistrationToken.Verifier() error = %v, want nil", err)
@@ -30,7 +31,7 @@ func TestRegistrationAuthorityTransactionLayerTriad(t *testing.T) {
 		t.Fatalf("RegistrationRequest.MarshalJSON() error = %v, want nil", err)
 	}
 
-	fresh, err := controlplane.VerifyRegistrationAuthority(controlplane.RegistrationAuthorityVerification{
+	fresh, err := server.VerifyRegistrationAuthority(controlplane.RegistrationAuthorityVerification{
 		Request: request, ExpectedVerifier: verifier,
 	})
 	if err != nil {
@@ -48,7 +49,7 @@ func TestRegistrationAuthorityTransactionLayerTriad(t *testing.T) {
 	if err := retry.UnmarshalJSON(canonical); err != nil {
 		t.Fatalf("RegistrationRequest.UnmarshalJSON(retry) error = %v, want nil", err)
 	}
-	exact, err := controlplane.VerifyRegistrationAuthority(controlplane.RegistrationAuthorityVerification{
+	exact, err := server.VerifyRegistrationAuthority(controlplane.RegistrationAuthorityVerification{
 		Request: retry, ExpectedVerifier: verifier, PriorReplay: &replay,
 	})
 	if err != nil {
@@ -64,7 +65,7 @@ func TestRegistrationAuthorityTransactionLayerTriad(t *testing.T) {
 		t.Fatalf("RegistrationRequest.UnmarshalJSON(changed retry) error = %v, want nil", err)
 	}
 	changed.RequestNonce = otherRequestNonce(t)
-	refused, err := controlplane.VerifyRegistrationAuthority(controlplane.RegistrationAuthorityVerification{
+	refused, err := server.VerifyRegistrationAuthority(controlplane.RegistrationAuthorityVerification{
 		Request: changed, ExpectedVerifier: verifier, PriorReplay: &replay,
 	})
 	if !errors.Is(err, core.ErrControlWireReplayConflict) ||
@@ -88,6 +89,7 @@ func TestRegistrationAuthorityAcceptsTheClosedOfferingAndReplayMatrix(t *testing
 		offering := offerings[index%len(offerings)]
 		t.Run(offering.String()+" fresh and exact request "+string(rune('A'+index)), func(t *testing.T) {
 			t.Parallel()
+			server := issueTestRegistration(t).server(t)
 
 			request := registrationRequestVariant(t, offering, byte(index+1))
 			verifier, err := request.Token.Verifier()
@@ -98,7 +100,7 @@ func TestRegistrationAuthorityAcceptsTheClosedOfferingAndReplayMatrix(t *testing
 			if err != nil {
 				t.Fatalf("RegistrationRequest.MarshalJSON() error = %v, want nil", err)
 			}
-			fresh, err := controlplane.VerifyRegistrationAuthority(controlplane.RegistrationAuthorityVerification{
+			fresh, err := server.VerifyRegistrationAuthority(controlplane.RegistrationAuthorityVerification{
 				Request: request, ExpectedVerifier: verifier,
 			})
 			if err != nil {
@@ -112,7 +114,7 @@ func TestRegistrationAuthorityAcceptsTheClosedOfferingAndReplayMatrix(t *testing
 			if err := retry.UnmarshalJSON(canonical); err != nil {
 				t.Fatalf("RegistrationRequest.UnmarshalJSON(retry) error = %v, want nil", err)
 			}
-			exact, err := controlplane.VerifyRegistrationAuthority(controlplane.RegistrationAuthorityVerification{
+			exact, err := server.VerifyRegistrationAuthority(controlplane.RegistrationAuthorityVerification{
 				Request: retry, ExpectedVerifier: verifier, PriorReplay: &replay,
 			})
 			if err != nil {
@@ -190,6 +192,7 @@ func TestRegistrationAuthorityRefusesEveryInvalidOrSecondUse(t *testing.T) {
 	for _, tc := range cases {
 		t.Run(tc.name, func(t *testing.T) {
 			t.Parallel()
+			server := issueTestRegistration(t).server(t)
 
 			request := registrationRequestFixture(t)
 			verifier, err := request.Token.Verifier()
@@ -203,7 +206,7 @@ func TestRegistrationAuthorityRefusesEveryInvalidOrSecondUse(t *testing.T) {
 			verification := controlplane.RegistrationAuthorityVerification{Request: request, ExpectedVerifier: verifier}
 			tc.mutate(t, &verification, &replay)
 			hadLiveToken := verification.Request.Token.Validate() == nil
-			got, gotErr := controlplane.VerifyRegistrationAuthority(verification)
+			got, gotErr := server.VerifyRegistrationAuthority(verification)
 			for _, wantErr := range tc.want {
 				if !errors.Is(gotErr, wantErr) {
 					t.Fatalf("VerifyRegistrationAuthority() error = %v, want errors.Is %v", gotErr, wantErr)
@@ -229,11 +232,12 @@ func TestIssueRegisteredInstallationDerivesEveryCertificateIdentityFact(t *testi
 	t.Parallel()
 
 	request := registrationRequestFixture(t)
+	server := issueTestRegistration(t).server(t)
 	verifier, err := request.Token.Verifier()
 	if err != nil {
 		t.Fatalf("RegistrationToken.Verifier() error = %v, want nil", err)
 	}
-	registration, err := controlplane.VerifyRegistrationAuthority(controlplane.RegistrationAuthorityVerification{
+	registration, err := server.VerifyRegistrationAuthority(controlplane.RegistrationAuthorityVerification{
 		Request: request, ExpectedVerifier: verifier,
 	})
 	if err != nil {
@@ -242,7 +246,7 @@ func TestIssueRegisteredInstallationDerivesEveryCertificateIdentityFact(t *testi
 	existing := issueTestRegistration(t)
 	existingBody := existing.document.Payload.Certificate.Body
 	_, signer := testSigningKey(t, checkInAuthoritySeed)
-	certificate, err := controlplane.IssueRegisteredInstallation(controlplane.RegistrationCertificateIssuance{
+	certificate, err := server.IssueRegisteredInstallation(controlplane.RegistrationCertificateIssuance{
 		Registration: registration, IssuedAt: existingBody.IssuedAt,
 		Account: existingBody.Account, Entitlement: existingBody.Subject.EntitlementID,
 	}, signer)
@@ -258,7 +262,8 @@ func TestIssueRegisteredInstallationDerivesEveryCertificateIdentityFact(t *testi
 	if err != nil {
 		t.Fatalf("NewTrustedKeys() error = %v, want nil", err)
 	}
-	verified, err := controlplane.VerifyInstallationCertificate(certificate, trusted)
+	client := testControlplaneClient(t, trusted)
+	verified, err := client.VerifyInstallationCertificate(certificate)
 	if err != nil || verified.Validate() != nil {
 		t.Fatalf("VerifyInstallationCertificate(issued) = (%v, %v), want authenticated proof and nil", verified, err)
 	}
@@ -271,8 +276,9 @@ func TestCheckInAuthorityCommitLayerTriad(t *testing.T) {
 	t.Parallel()
 
 	issued := issueTestCheckIn(t, controlplaneOffering(t, 3), testCheckInWindow())
-	verified, err := controlplane.VerifyCheckIn(controlplane.CheckInVerification{
-		Request: issued.request, TrustedKeys: issued.trusted,
+	server := issued.server(t)
+	verified, err := server.VerifyCheckIn(controlplane.CheckInVerification{
+		Request: issued.request,
 	})
 	if err != nil {
 		t.Fatalf("VerifyCheckIn() error = %v, want nil", err)
@@ -282,7 +288,7 @@ func TestCheckInAuthorityCommitLayerTriad(t *testing.T) {
 		RequiredPolicy: issued.request.Payload.AppliedPolicy,
 	}
 
-	accepted, err := controlplane.CommitCheckIn(base)
+	accepted, err := server.CommitCheckIn(base)
 	if err != nil {
 		t.Fatalf("CommitCheckIn(fresh) error = %v, want nil", err)
 	}
@@ -296,7 +302,7 @@ func TestCheckInAuthorityCommitLayerTriad(t *testing.T) {
 
 	replayRequest := base
 	replayRequest.Current = acceptedWatermark
-	replayed, err := controlplane.CommitCheckIn(replayRequest)
+	replayed, err := server.CommitCheckIn(replayRequest)
 	if err != nil {
 		t.Fatalf("CommitCheckIn(exact replay) error = %v, want nil", err)
 	}
@@ -307,7 +313,7 @@ func TestCheckInAuthorityCommitLayerTriad(t *testing.T) {
 	other := issueTestCheckIn(t, controlplaneOffering(t, 1), testCheckInWindow())
 	conflictRequest := base
 	conflictRequest.Current = other.request.Payload.PreviousWatermark
-	conflicted, err := controlplane.CommitCheckIn(conflictRequest)
+	conflicted, err := server.CommitCheckIn(conflictRequest)
 	if !errors.Is(err, core.ErrControlPlaneDecisionConsistency) ||
 		!errors.Is(conflicted.Validate(), core.ErrControlPlaneCheckIn) {
 		t.Fatalf("CommitCheckIn(foreign subject) = (%v, %v), want zero proof and errors.Is(..., %v)", conflicted, err, core.ErrControlPlaneDecisionConsistency)
@@ -325,12 +331,13 @@ func TestCheckInAuthorityCommitExhaustsOfferingAndDispositionMatrix(t *testing.T
 			t.Parallel()
 
 			issued := issueTestCheckIn(t, offering, testCheckInWindow())
-			verified, err := controlplane.VerifyCheckIn(controlplane.CheckInVerification{Request: issued.request, TrustedKeys: issued.trusted})
+			server := issued.server(t)
+			verified, err := server.VerifyCheckIn(controlplane.CheckInVerification{Request: issued.request})
 			if err != nil {
 				t.Fatalf("VerifyCheckIn() error = %v, want nil", err)
 			}
 			base := controlplane.CheckInCommitRequest{CheckIn: verified, Current: issued.request.Payload.PreviousWatermark, RequiredPolicy: issued.request.Payload.AppliedPolicy}
-			accepted, err := controlplane.CommitCheckIn(base)
+			accepted, err := server.CommitCheckIn(base)
 			if err != nil {
 				t.Fatalf("CommitCheckIn(accepted) error = %v, want nil", err)
 			}
@@ -340,7 +347,7 @@ func TestCheckInAuthorityCommitExhaustsOfferingAndDispositionMatrix(t *testing.T
 			}
 			replayed := base
 			replayed.Current = next
-			gotReplay, err := controlplane.CommitCheckIn(replayed)
+			gotReplay, err := server.CommitCheckIn(replayed)
 			if err != nil {
 				t.Fatalf("CommitCheckIn(replay) error = %v, want nil", err)
 			}
@@ -357,7 +364,7 @@ func TestCheckInAuthorityCommitExhaustsOfferingAndDispositionMatrix(t *testing.T
 			}
 			conflicting := base
 			conflicting.Current = foreignNext
-			gotConflict, err := controlplane.CommitCheckIn(conflicting)
+			gotConflict, err := server.CommitCheckIn(conflicting)
 			if err != nil {
 				t.Fatalf("CommitCheckIn(conflict) error = %v, want nil", err)
 			}
@@ -377,7 +384,8 @@ func TestCheckInAuthorityCommitRefusesInvalidPolicyAndAuthorityFacts(t *testing.
 	t.Parallel()
 
 	issued := issueTestCheckIn(t, controlplaneOffering(t, 2), testCheckInWindow())
-	verified, err := controlplane.VerifyCheckIn(controlplane.CheckInVerification{Request: issued.request, TrustedKeys: issued.trusted})
+	server := issued.server(t)
+	verified, err := server.VerifyCheckIn(controlplane.CheckInVerification{Request: issued.request})
 	if err != nil {
 		t.Fatalf("VerifyCheckIn() error = %v, want nil", err)
 	}
@@ -423,7 +431,7 @@ func TestCheckInAuthorityCommitRefusesInvalidPolicyAndAuthorityFacts(t *testing.
 		t.Run(tc.name, func(t *testing.T) {
 			t.Parallel()
 
-			got, gotErr := controlplane.CommitCheckIn(tc.request)
+			got, gotErr := server.CommitCheckIn(tc.request)
 			if !errors.Is(gotErr, tc.want) || !errors.Is(gotErr, core.ErrControlPlaneCheckIn) {
 				t.Fatalf("CommitCheckIn() error = %v, want errors.Is(..., %v, %v)", gotErr, tc.want, core.ErrControlPlaneCheckIn)
 			}
@@ -444,11 +452,13 @@ func TestIssueCommittedCheckInResponseBindsUsagePolicyProviderTimeAndRequest(t *
 	t.Parallel()
 
 	issued := issueTestCheckIn(t, controlplaneOffering(t, 3), testCheckInWindow())
-	verified, err := controlplane.VerifyCheckIn(controlplane.CheckInVerification{Request: issued.request, TrustedKeys: issued.trusted})
+	server := issued.server(t)
+	client := issued.client(t)
+	verified, err := server.VerifyCheckIn(controlplane.CheckInVerification{Request: issued.request})
 	if err != nil {
 		t.Fatalf("VerifyCheckIn() error = %v, want nil", err)
 	}
-	commit, err := controlplane.CommitCheckIn(controlplane.CheckInCommitRequest{
+	commit, err := server.CommitCheckIn(controlplane.CheckInCommitRequest{
 		CheckIn: verified, Current: issued.request.Payload.PreviousWatermark,
 		RequiredPolicy: issued.request.Payload.AppliedPolicy,
 	})
@@ -486,20 +496,19 @@ func TestIssueCommittedCheckInResponseBindsUsagePolicyProviderTimeAndRequest(t *
 	if err != nil {
 		t.Fatalf("attest.Sign(lease) error = %v, want nil", err)
 	}
-	document, err := controlplane.IssueCommittedCheckInResponse(controlplane.CheckInResponsePreparation{
+	document, err := server.IssueCommittedCheckInResponse(controlplane.CheckInResponsePreparation{
 		Commit: commit, Header: header, Lease: lease.Document{Decision: decision, Attestation: envelope},
 	}, issued.authority)
 	if err != nil {
 		t.Fatalf("IssueCommittedCheckInResponse() error = %v, want nil", err)
 	}
-	response, err := controlplane.VerifyCheckInResponse(controlplane.CheckInResponseVerification{
+	response, err := client.VerifyCheckInResponse(controlplane.CheckInResponseVerification{
 		Document: document,
 		Expected: controlplane.ResponseExpectation{
 			RequestNonce: header.RequestNonce, Account: header.Account,
 			Installation: header.Installation, Revision: header.Revision,
 			Family: header.Family, Offering: header.Offering,
 		},
-		TrustedKeys: issued.trusted,
 	})
 	if err != nil {
 		t.Fatalf("VerifyCheckInResponse() error = %v, want nil", err)
@@ -586,8 +595,9 @@ func TestPrepareCheckInResponseRefusesEverySubstitutedAuthorityFact(t *testing.T
 			t.Parallel()
 
 			issued, preparation := committedCheckInResponseFixture(t)
+			server := issued.server(t)
 			tc.mutate(t, &preparation, issued)
-			payload, gotErr := controlplane.PrepareCheckInResponse(preparation)
+			payload, gotErr := server.PrepareCheckInResponse(preparation)
 			if !errors.Is(gotErr, tc.want) || !errors.Is(gotErr, core.ErrControlPlaneCheckInResponse) {
 				t.Fatalf("PrepareCheckInResponse() error = %v, want errors.Is(..., %v, %v)", gotErr, tc.want, core.ErrControlPlaneCheckInResponse)
 			}
@@ -653,11 +663,12 @@ func committedCheckInResponseFixture(t testing.TB) (issuedCheckIn, controlplane.
 	t.Helper()
 
 	issued := issueTestCheckIn(t, controlplaneOffering(t, 3), testCheckInWindow())
-	verified, err := controlplane.VerifyCheckIn(controlplane.CheckInVerification{Request: issued.request, TrustedKeys: issued.trusted})
+	server := issued.server(t)
+	verified, err := server.VerifyCheckIn(controlplane.CheckInVerification{Request: issued.request})
 	if err != nil {
 		t.Fatalf("VerifyCheckIn() error = %v, want nil", err)
 	}
-	commit, err := controlplane.CommitCheckIn(controlplane.CheckInCommitRequest{
+	commit, err := server.CommitCheckIn(controlplane.CheckInCommitRequest{
 		CheckIn: verified, Current: issued.request.Payload.PreviousWatermark,
 		RequiredPolicy: issued.request.Payload.AppliedPolicy,
 	})

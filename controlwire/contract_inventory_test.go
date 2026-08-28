@@ -23,6 +23,14 @@ type (
 	// controlwireExecutionContract marks a typed in-process HTTP execution
 	// boundary. It carries protocol facts but is not itself serialized.
 	controlwireExecutionContract[T any] struct{}
+	// controlwireClientCapability marks the opaque installed-tool side of the
+	// paired control socket. It may send shared documents but owns no authority
+	// support or response writer.
+	controlwireClientCapability[T any] struct{}
+	// controlwireServerCapability marks the opaque authority side of the paired
+	// control socket. It may receive and answer shared documents but owns no
+	// client endpoint or transport.
+	controlwireServerCapability[T any] struct{}
 	// controlwireInternalFlow marks a private typed projection used only across
 	// one owner-controlled implementation boundary.
 	controlwireInternalFlow[T any] struct{}
@@ -48,6 +56,10 @@ type controlwireContractInventory struct {
 	ReplayIdentity            controlwireProtocolFact[ReplayIdentity]
 	ReplayCheck               controlwireExecutionContract[ReplayCheck]
 	replayIdentityWire        controlwireInternalFlow[replayIdentityWire]
+	ClientConfiguration       controlwireExecutionContract[ClientConfiguration]
+	Client                    controlwireClientCapability[Client]
+	ServerConfiguration       controlwireExecutionContract[ServerConfiguration]
+	Server                    controlwireServerCapability[Server]
 	ClientJSONCall            controlwireExecutionContract[ClientJSONCall[RoutedJSONRequest]]
 	AuthorityJSONReceiveCall  controlwireExecutionContract[AuthorityJSONReceiveCall]
 	RoutedJSONReceive         controlwireExecutionContract[RoutedJSONReceive[RoutedJSONRequest]]

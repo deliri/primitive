@@ -31,6 +31,7 @@ type ResponseCommitment struct {
 
 // ResponseIssuance is the authority input for one authenticated response.
 type ResponseIssuance[Body core.ValidatedJSONMarshaler] struct {
+	Server     Server
 	Signer     crypto.Signer
 	Body       Body
 	Header     ResponseHeader
@@ -41,6 +42,7 @@ type ResponseIssuance[Body core.ValidatedJSONMarshaler] struct {
 // refusal. It deliberately carries no product body: an incompatible client
 // must never be asked to decode facts from a contract it cannot speak.
 type UpgradeRequiredIssuance struct {
+	Server     Server
 	Signer     crypto.Signer
 	Header     ResponseHeader
 	Assessment controlwire.ProtocolAssessment
@@ -80,9 +82,9 @@ type ResponseVerification[
 		json.Unmarshaler
 	},
 ] struct {
-	Expected    ResponseExpectation
-	Document    ResponseDocument[Body, BodyPtr]
-	TrustedKeys attest.TrustedKeys
+	Client   Client
+	Expected ResponseExpectation
+	Document ResponseDocument[Body, BodyPtr]
 }
 
 // VerifiedResponse is the only path that exposes an authenticated product
@@ -166,6 +168,9 @@ func (c *ResponseCommitment) UnmarshalJSON(data []byte) error {
 }
 
 func (i ResponseIssuance[Body]) Validate() error {
+	if err := i.Server.Validate(); err != nil {
+		return responseDocumentError(err)
+	}
 	if err := validateResponseAssessment(i.Header, i.Assessment, controlwire.ProtocolSupportOutcomeAccepted); err != nil {
 		return err
 	}
@@ -197,6 +202,9 @@ func (i ResponseIssuance[Body]) ValidateForFamily(family controlwire.RouteFamily
 }
 
 func (i UpgradeRequiredIssuance) Validate() error {
+	if err := i.Server.Validate(); err != nil {
+		return responseDocumentError(err)
+	}
 	if err := validateResponseAssessment(i.Header, i.Assessment, controlwire.ProtocolSupportOutcomeUpgradeRequired); err != nil {
 		return err
 	}
@@ -384,7 +392,7 @@ func (d *ResponseDocument[Body, BodyPtr]) UnmarshalJSON(data []byte) error {
 func (ResponseDocument[Body, BodyPtr]) ControlResponseDocument() {}
 
 func (v ResponseVerification[Body, BodyPtr]) Validate() error {
-	if err := errors.Join(v.Document.Validate(), v.Expected.Validate(), v.TrustedKeys.Validate()); err != nil {
+	if err := errors.Join(v.Client.Validate(), v.Document.Validate(), v.Expected.Validate()); err != nil {
 		return responseDocumentError(err)
 	}
 	return nil
@@ -409,7 +417,7 @@ func VerifyResponse[
 	}
 	proof, err := attest.Verify(attest.VerifyRequest[SigningDomain]{
 		Body: verification.Document.commitment, Envelope: verification.Document.attestation,
-		TrustedKeys: verification.TrustedKeys,
+		TrustedKeys: verification.Client.configuration.TrustedAuthorityKeys,
 	})
 	if err != nil {
 		return VerifiedResponse[Body, BodyPtr]{}, responseDocumentError(err)

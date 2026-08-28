@@ -20,8 +20,9 @@ func TestVerifyInstallationCertificateAdmitsOnlyTheAuthoritysOwnSignature(t *tes
 
 	issued := issueTestRegistration(t)
 	certificate := issued.document.Payload.Certificate
+	client := issued.client(t)
 
-	verified, err := controlplane.VerifyInstallationCertificate(*certificate, issued.trusted)
+	verified, err := client.VerifyInstallationCertificate(*certificate)
 	if err != nil {
 		t.Fatalf("VerifyInstallationCertificate() error = %v, want nil", err)
 	}
@@ -104,8 +105,10 @@ func TestVerifyInstallationCertificateRefusesEveryUnauthenticInput(t *testing.T)
 			mutate: func(t *testing.T, document *controlplane.InstallationCertificateDocument) attest.TrustedKeys {
 				t.Helper()
 				_, impostor := testSigningKey(t, 9)
-				*document = *resignCertificate(t, document, impostor)
-				return issueTestRegistration(t).trusted
+				issued := issueTestRegistration(t)
+				server := issued.server(t)
+				*document = *resignCertificate(t, server, document, impostor)
+				return issued.trusted
 			},
 		},
 		{
@@ -231,7 +234,11 @@ func TestVerifyInstallationCertificateRefusesEveryUnauthenticInput(t *testing.T)
 					testCase.name, certificate)
 			}
 
-			got, err := controlplane.VerifyInstallationCertificate(certificate, trusted)
+			client, clientErr := controlplane.NewClient(controlplane.ClientConfiguration{
+				TrustedAuthorityKeys: trusted,
+			})
+			got, err := client.VerifyInstallationCertificate(certificate)
+			err = errors.Join(clientErr, err)
 			if !errors.Is(err, core.ErrControlPlaneRegistration) || !errors.Is(err, testCase.want) {
 				t.Fatalf("VerifyInstallationCertificate() error = %v, want errors.Is %v and %v",
 					err, core.ErrControlPlaneRegistration, testCase.want)
@@ -277,8 +284,9 @@ func TestVerifyInstallationCertificateIsTheRuleCheckInApplies(t *testing.T) {
 
 	issued := issueTestRegistration(t)
 	certificate := *issued.document.Payload.Certificate
+	client := issued.client(t)
 
-	verified, err := controlplane.VerifyInstallationCertificate(certificate, issued.trusted)
+	verified, err := client.VerifyInstallationCertificate(certificate)
 	if err != nil {
 		t.Fatalf("VerifyInstallationCertificate() error = %v, want nil", err)
 	}

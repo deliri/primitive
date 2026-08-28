@@ -44,6 +44,9 @@ func TestCgroupMembershipParserHostileBoundaryTable(t *testing.T) {
 		{name: "deleted membership suffix is malformed", line: "0::/job (deleted)", wantErr: core.ErrHostFactsObservation},
 		{name: "NUL membership is malformed", line: "0::/job\x00tail", wantErr: core.ErrHostFactsObservation},
 		{name: "extra separators remain a valid cgroup name", line: "0::/job:child", wantPath: "/job:child", wantSource: WorkloadMemoryLimitSourceCgroupV2},
+		{name: "exact line ceiling remains a v2 membership", line: string(cgroupMembershipLineAtExtent(procLineMaximumBytes, cgroupV2HierarchyToken, "")), wantPath: string(cgroupMembershipLineAtExtent(procLineMaximumBytes, cgroupV2HierarchyToken, "")[len(cgroupV2HierarchyToken)+2:]), wantSource: WorkloadMemoryLimitSourceCgroupV2},
+		{name: "unrelated controller at line ceiling remains neutral", line: string(cgroupMembershipLineAtExtent(procLineMaximumBytes, "2", "cpu"))},
+		{name: "one byte over line ceiling is refused", line: string(cgroupMembershipLineAtExtent(procLineMaximumBytes+1, cgroupV2HierarchyToken, "")), wantErr: core.ErrHostFactsObservation},
 	}
 	for _, tc := range cases {
 		t.Run(tc.name, func(t *testing.T) {
@@ -277,7 +280,7 @@ func TestCgroupLevelLimitExhaustsDeclarationCombinations(t *testing.T) {
 	}
 }
 
-func TestCgroupAncestorFoldRealFilesystemLayerTriad(t *testing.T) {
+func TestCgroupAncestorFoldChoosesEffectiveFiniteLimitAndFailsClosed(t *testing.T) {
 	t.Parallel()
 
 	t.Run("positive smallest finite ancestor is selected", func(t *testing.T) {
@@ -531,7 +534,7 @@ func writeCgroupHierarchyForTest(t *testing.T, fixture cgroupHierarchyFixture) {
 	}
 }
 
-func TestCgroupFoldTreatsAnAbsentInterfaceAsNoDeclarationLayerTriad(t *testing.T) {
+func TestCgroupFoldTreatsAbsentInterfaceAsNoDeclaration(t *testing.T) {
 	t.Parallel()
 
 	// The kernel exposes memory.max only on non-root cgroups, so the mount root

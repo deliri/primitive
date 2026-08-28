@@ -21,6 +21,7 @@ import (
 	"github.com/deliri/primitive/v2026/objectstore"
 	"github.com/deliri/primitive/v2026/temporal"
 	"github.com/deliri/primitive/v2026/testserial"
+	"google.golang.org/api/googleapi"
 	storageapi "google.golang.org/api/storage/v1"
 )
 
@@ -521,6 +522,46 @@ func TestGCSClientConstructorAndCloseOwnTheSDKLifecycle(t *testing.T) {
 	})
 	if gotCanceled != nil || !errors.Is(gotCanceledErr, core.ErrObjectStoreContract) || !errors.Is(gotCanceledErr, context.Canceled) {
 		t.Fatalf("NewGCSClient(canceled) = (%v, %v), want nil plus contract and cancellation identities", gotCanceled, gotCanceledErr)
+	}
+}
+
+func TestGCSClientDisablesOfficialSDKRetryForOneProviderExecutionPolicy(t *testing.T) {
+	testserial.Declare(t, core.TestIsolationDeclaration{
+		Hazard: core.TestIsolationHazardProcessEnvironment,
+		Scope:  core.TestIsolationScopePackageProcess,
+	})
+
+	var gotCalls atomic.Int64
+	server := httptest.NewServer(http.HandlerFunc(func(writer http.ResponseWriter, _ *http.Request) {
+		gotCalls.Add(1)
+		writeGoogleAPIError(writer, http.StatusServiceUnavailable)
+	}))
+	t.Cleanup(server.Close)
+	t.Setenv("STORAGE_EMULATOR_HOST", server.URL)
+
+	client, gotClientErr := NewGCSClient(context.Background(), GCSClientConfig{
+		Authentication: GCSAuthenticationApplicationDefault,
+	})
+	if gotClientErr != nil || client.Validate() != nil {
+		t.Fatalf("NewGCSClient(emulator) = (%v, %v), want validated client and nil", client, gotClientErr)
+	}
+	t.Cleanup(func() {
+		if gotCloseErr := client.Close(); gotCloseErr != nil {
+			t.Errorf("GCSClient.Close() error = %v, want nil", gotCloseErr)
+		}
+	})
+
+	got, gotErr := CreateBucket(
+		context.Background(), client, bucketCreateFixture(t, GCSNamespaceFlat),
+	)
+	providerCause, gotProviderCause := errors.AsType[*googleapi.Error](gotErr)
+	if got != (GCSBucketProvisioning{}) || !errors.Is(gotErr, core.ErrObjectStoreDestination) ||
+		!gotProviderCause || providerCause.Code != http.StatusServiceUnavailable {
+		t.Fatalf("CreateBucket(provider unavailable) = (%v, %v, provider=%v/%t), want zero, destination identity, and provider 503",
+			got, gotErr, providerCause, gotProviderCause)
+	}
+	if got := gotCalls.Load(); got != 1 {
+		t.Fatalf("official SDK provider calls after retriable 503 = %d, want exactly 1", got)
 	}
 }
 

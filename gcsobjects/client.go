@@ -1,20 +1,29 @@
 package gcsobjects
 
 import (
+	"bytes"
 	"context"
 	"errors"
 	"hash/crc32"
 	"io"
+	"slices"
 	"strconv"
+	"unicode/utf8"
 
+	"cloud.google.com/go/iam"
+	"cloud.google.com/go/iam/apiv1/iampb"
 	"cloud.google.com/go/storage"
 	"github.com/deliri/primitive/v2026/contextstate"
 	"github.com/deliri/primitive/v2026/core"
+	"github.com/deliri/primitive/v2026/exchange"
+	"github.com/deliri/primitive/v2026/filestore"
 	"github.com/deliri/primitive/v2026/objectstore"
 	"github.com/deliri/primitive/v2026/temporal"
+	"golang.org/x/oauth2"
 	"google.golang.org/api/googleapi"
 	"google.golang.org/api/iterator"
 	"google.golang.org/api/option"
+	htransport "google.golang.org/api/transport/http"
 )
 
 // GCSClient is an authenticated capability over the official Cloud Storage SDK.
@@ -25,7 +34,7 @@ func NewGCSClient(ctx context.Context, config GCSClientConfig) (*GCSClient, erro
 	if err := contextstate.Validate(ctx); err != nil {
 		return nil, errors.Join(core.ErrObjectStoreContract, err)
 	}
-	options, err := gcsClientOptions(config)
+	options, err := gcsClientOptions(ctx, config)
 	if err != nil {
 		return nil, err
 	}
@@ -33,20 +42,188 @@ func NewGCSClient(ctx context.Context, config GCSClientConfig) (*GCSClient, erro
 	if err != nil {
 		return nil, errors.Join(core.ErrObjectStoreContract, err)
 	}
+	client.SetRetry(storage.WithPolicy(storage.RetryNever))
 	return &GCSClient{client: client}, nil
 }
 
-func gcsClientOptions(config GCSClientConfig) ([]option.ClientOption, error) {
+const (
+	// GCSCredentialJSONMaximumBytes bounds one service-account credential file
+	// before its bytes enter Google's authentication SDK.
+	GCSCredentialJSONMaximumBytes = 64 << 10
+	// GCSAuthenticationResponseMaximumBytes bounds provider credential exchange.
+	GCSAuthenticationResponseMaximumBytes = 64 << 10
+)
+
+func gcsSDKResponseMethods() [7]exchange.Method {
+	return [...]exchange.Method{
+		exchange.MethodGet,
+		exchange.MethodHead,
+		exchange.MethodPost,
+		exchange.MethodPut,
+		exchange.MethodPatch,
+		exchange.MethodDelete,
+		exchange.MethodOptions,
+	}
+}
+
+func gcsProviderHTTPClientOption(
+	ctx context.Context,
+	config GCSClientConfig,
+) (option.ClientOption, error) {
+	credentialJSON, err := gcsCredentialJSON(ctx, config)
+	if err != nil {
+		return nil, err
+	}
+	defer clear(credentialJSON)
+
+	authContext, err := gcsAuthenticationContext(ctx)
+	if err != nil {
+		return nil, err
+	}
+	boundaries, err := gcsProviderResponseBoundaries()
+	if err != nil {
+		return nil, err
+	}
+	providerTransport, err := exchange.NewStandardOfficialSDKResponseTransport(boundaries[0])
+	if err != nil {
+		return nil, err
+	}
+	for _, boundary := range boundaries[1:] {
+		providerTransport, err = exchange.NewOfficialSDKResponseTransport(
+			exchange.OfficialSDKResponseTransportRequest{
+				Base: providerTransport, Boundary: boundary,
+			},
+		)
+		if err != nil {
+			return nil, err
+		}
+	}
+	providerTransport, err = htransport.NewTransport(
+		authContext,
+		providerTransport,
+		gcsProviderAuthenticationOptions(credentialJSON)...,
+	)
+	if err != nil {
+		return nil, err
+	}
+	client, err := exchange.NewOfficialSDKHTTPClient(providerTransport)
+	if err != nil {
+		return nil, err
+	}
+	return option.WithHTTPClient(client), nil
+}
+
+func gcsProviderResponseBoundaries() ([7]exchange.OfficialSDKResponseBoundary, error) {
+	methods := gcsSDKResponseMethods()
+	var boundaries [7]exchange.OfficialSDKResponseBoundary
+	for index, method := range methods {
+		boundary, err := gcsProviderResponseBoundary(method)
+		if err != nil {
+			return [7]exchange.OfficialSDKResponseBoundary{}, err
+		}
+		boundaries[index] = boundary
+	}
+	return boundaries, nil
+}
+
+func gcsProviderAuthenticationOptions(credentialJSON []byte) []option.ClientOption {
+	options := []option.ClientOption{option.WithScopes(storage.ScopeFullControl)}
+	if len(credentialJSON) != 0 {
+		options = append(
+			options,
+			option.WithAuthCredentialsJSON(option.ServiceAccount, credentialJSON),
+		)
+	}
+	return options
+}
+
+func gcsClientOptions(ctx context.Context, config GCSClientConfig) ([]option.ClientOption, error) {
 	if err := config.Validate(); err != nil {
 		return nil, err
 	}
-	if config.Authentication == GCSAuthenticationServiceAccountFile {
-		return []option.ClientOption{option.WithAuthCredentialsFile(
-			option.ServiceAccount,
-			config.CredentialFile.String(),
-		)}, nil
+	clientOption, err := gcsProviderHTTPClientOption(ctx, config)
+	if err != nil {
+		return nil, errors.Join(core.ErrObjectStoreContract, err)
 	}
-	return nil, nil
+	return []option.ClientOption{clientOption}, nil
+}
+
+func gcsCredentialJSON(ctx context.Context, config GCSClientConfig) ([]byte, error) {
+	if config.Authentication == GCSAuthenticationApplicationDefault {
+		return nil, nil
+	}
+	location, err := filestore.OpenParent(ctx, config.CredentialFile)
+	if err != nil {
+		return nil, errors.Join(core.ErrObjectStoreContract, err)
+	}
+	maximum, err := core.NewByteCount(GCSCredentialJSONMaximumBytes)
+	if err != nil {
+		return nil, errors.Join(core.ErrObjectStoreContract, location.Root.Close(), err)
+	}
+	var destination bytes.Buffer
+	_, readErr := filestore.Read(ctx, filestore.ReadRequest{
+		Destination:  &destination,
+		Location:     location,
+		MaximumBytes: maximum,
+	})
+	closeErr := location.Root.Close()
+	if readErr != nil || closeErr != nil {
+		return nil, errors.Join(core.ErrObjectStoreContract, readErr, closeErr)
+	}
+	return destination.Bytes(), nil
+}
+
+func gcsProviderResponseBoundary(method exchange.Method) (exchange.OfficialSDKResponseBoundary, error) {
+	limit, err := core.NewByteCount(GCSProviderResponseMaximumBytes)
+	if err != nil {
+		return exchange.OfficialSDKResponseBoundary{}, errors.Join(core.ErrObjectStoreContract, err)
+	}
+	boundary, err := exchange.NewOfficialSDKResponseCeiling(exchange.OfficialSDKResponseCeilingRequest{
+		Method: method, Representation: exchange.OfficialSDKResponseRepresentationJSON,
+		MaximumBytes: limit,
+	})
+	if err != nil {
+		return exchange.OfficialSDKResponseBoundary{}, errors.Join(core.ErrObjectStoreContract, err)
+	}
+	return boundary, nil
+}
+
+func gcsAuthenticationContext(ctx context.Context) (context.Context, error) {
+	limit, err := core.NewByteCount(GCSAuthenticationResponseMaximumBytes)
+	if err != nil {
+		return nil, errors.Join(core.ErrObjectStoreContract, err)
+	}
+	getBoundary, err := exchange.NewOfficialSDKResponseCeiling(exchange.OfficialSDKResponseCeilingRequest{
+		Method: exchange.MethodGet, Representation: exchange.OfficialSDKResponseRepresentationJSON,
+		MaximumBytes: limit,
+	})
+	if err != nil {
+		return nil, errors.Join(core.ErrObjectStoreContract, err)
+	}
+	authTransport, err := exchange.NewStandardOfficialSDKResponseTransport(getBoundary)
+	if err != nil {
+		return nil, errors.Join(core.ErrObjectStoreContract, err)
+	}
+	postBoundary, err := exchange.NewOfficialSDKResponseCeiling(exchange.OfficialSDKResponseCeilingRequest{
+		Method: exchange.MethodPost, Representation: exchange.OfficialSDKResponseRepresentationJSON,
+		MaximumBytes: limit,
+	})
+	if err != nil {
+		return nil, errors.Join(core.ErrObjectStoreContract, err)
+	}
+	authTransport, err = exchange.NewOfficialSDKResponseTransport(
+		exchange.OfficialSDKResponseTransportRequest{
+			Base: authTransport, Boundary: postBoundary,
+		},
+	)
+	if err != nil {
+		return nil, errors.Join(core.ErrObjectStoreContract, err)
+	}
+	authClient, err := exchange.NewOfficialSDKHTTPClient(authTransport)
+	if err != nil {
+		return nil, errors.Join(core.ErrObjectStoreContract, err)
+	}
+	return context.WithValue(ctx, oauth2.HTTPClient, authClient), nil
 }
 
 // Validate rejects an unconstructed or closed client capability.
@@ -83,7 +260,11 @@ func CreateBucket(
 	if err := validateGCSCall(ctx, client); err != nil {
 		return GCSBucketProvisioning{}, err
 	}
-	attrs := &storage.BucketAttrs{Location: request.Location.String()}
+	attrs := &storage.BucketAttrs{
+		Location:                 request.Location.String(),
+		UniformBucketLevelAccess: storage.UniformBucketLevelAccess{Enabled: true},
+		PublicAccessPrevention:   storage.PublicAccessPreventionInherited,
+	}
 	if request.Namespace == GCSNamespaceHierarchical {
 		attrs.HierarchicalNamespace = &storage.HierarchicalNamespace{Enabled: true}
 	}
@@ -94,6 +275,154 @@ func CreateBucket(
 	}
 	result := GCSBucketProvisioning{request: request, set: true}
 	return result, result.Validate()
+}
+
+const (
+	// GCSProviderResponseMaximumBytes bounds one complete provider response
+	// before an official Google SDK decodes it.
+	GCSProviderResponseMaximumBytes              = 1 << 20
+	gcsPublicReadRole               iam.RoleName = "roles/storage.legacyObjectReader"
+	gcsJSONBucketPathPrefix                      = "/storage/v1/b/"
+	gcsIAMPolicyPathSuffix                       = "/iam"
+)
+
+// GrantGCSBucketPublicRead idempotently adds the provider's unauthenticated,
+// object-get-only membership to one bucket IAM policy. It performs no upload,
+// listing, retry, or product policy and returns proof only after reading the
+// provider policy back and observing the exact membership.
+func GrantGCSBucketPublicRead(
+	ctx context.Context,
+	client *GCSClient,
+	request GCSBucketPublicReadRequest,
+) (GCSBucketPublicReadGrant, error) {
+	if err := request.Validate(); err != nil {
+		return GCSBucketPublicReadGrant{}, err
+	}
+	if err := validateGCSCall(ctx, client); err != nil {
+		return GCSBucketPublicReadGrant{}, err
+	}
+	handle := client.client.Bucket(request.Bucket.String()).IAM().V3()
+	policy, err := readGCSBucketIAMPolicy(ctx, handle)
+	if err != nil {
+		return GCSBucketPublicReadGrant{}, err
+	}
+	if gcsPolicyHasPublicRead(policy) {
+		return newGCSBucketPublicReadGrant(request.Bucket, GCSBucketPublicReadUnchanged)
+	}
+	addGCSBucketPublicRead(policy)
+	if err := handle.SetPolicy(ctx, policy); err != nil {
+		return GCSBucketPublicReadGrant{}, projectGCSError(err, core.ErrObjectStoreDestination)
+	}
+	confirmed, err := readGCSBucketIAMPolicy(ctx, handle)
+	if err != nil {
+		return GCSBucketPublicReadGrant{}, err
+	}
+	if !gcsPolicyHasPublicRead(confirmed) {
+		return GCSBucketPublicReadGrant{}, errors.Join(
+			core.ErrObjectStoreContract,
+			core.ErrObjectStoreDestination,
+			core.ErrObjectStoreConflict,
+		)
+	}
+	return newGCSBucketPublicReadGrant(request.Bucket, GCSBucketPublicReadGranted)
+}
+
+// readGCSBucketIAMPolicy confines the official SDK's provider-response
+// projection. The SDK currently panics when a successful IAM response contains
+// JSON null; Primitive converts that malformed external response into a typed
+// refusal while preserving an error-valued native panic cause.
+func readGCSBucketIAMPolicy(ctx context.Context, handle *iam.Handle3) (policy *iam.Policy3, err error) {
+	defer func() {
+		recovered := recover()
+		if recovered == nil {
+			return
+		}
+		policy = nil
+		err = errors.Join(core.ErrObjectStoreContract, core.ErrObjectStoreDestination)
+		if cause, ok := recovered.(error); ok {
+			err = errors.Join(err, cause)
+		}
+	}()
+	policy, err = handle.Policy(ctx)
+	if err != nil {
+		return nil, projectGCSError(err, core.ErrObjectStoreDestination)
+	}
+	if policy == nil {
+		return nil, errors.Join(core.ErrObjectStoreContract, core.ErrObjectStoreDestination)
+	}
+	if err := validateGCSBucketIAMPolicy(policy); err != nil {
+		return nil, err
+	}
+	return policy, nil
+}
+
+func validateGCSBucketIAMPolicy(policy *iam.Policy3) error {
+	if policy == nil {
+		return errors.Join(core.ErrObjectStoreContract, core.ErrObjectStoreDestination)
+	}
+	for _, binding := range policy.Bindings {
+		if !validGCSBucketIAMBindingText(binding) {
+			return errors.Join(core.ErrObjectStoreContract, core.ErrObjectStoreDestination)
+		}
+	}
+	return nil
+}
+
+func validGCSBucketIAMBindingText(binding *iampb.Binding) bool {
+	if binding == nil || !utf8.ValidString(binding.Role) {
+		return false
+	}
+	for _, member := range binding.Members {
+		if !utf8.ValidString(member) {
+			return false
+		}
+	}
+	if binding.Condition == nil {
+		return true
+	}
+	return utf8.ValidString(binding.Condition.Expression) &&
+		utf8.ValidString(binding.Condition.Title) &&
+		utf8.ValidString(binding.Condition.Description) &&
+		utf8.ValidString(binding.Condition.Location)
+}
+
+func gcsPolicyHasPublicRead(policy *iam.Policy3) bool {
+	if policy == nil {
+		return false
+	}
+	for _, binding := range policy.Bindings {
+		if binding == nil || binding.Condition != nil || binding.Role != string(gcsPublicReadRole) {
+			continue
+		}
+		if slices.Contains(binding.Members, iam.AllUsers) {
+			return true
+		}
+	}
+	return false
+}
+
+func addGCSBucketPublicRead(policy *iam.Policy3) {
+	for _, binding := range policy.Bindings {
+		if binding == nil || binding.Condition != nil || binding.Role != string(gcsPublicReadRole) {
+			continue
+		}
+		binding.Members = append(binding.Members, iam.AllUsers)
+		return
+	}
+	policy.Bindings = append(policy.Bindings, &iampb.Binding{
+		Role: string(gcsPublicReadRole), Members: []string{iam.AllUsers},
+	})
+}
+
+func newGCSBucketPublicReadGrant(
+	bucket GCSBucket,
+	change GCSBucketPublicReadChange,
+) (GCSBucketPublicReadGrant, error) {
+	grant := GCSBucketPublicReadGrant{bucket: bucket, change: change, set: true}
+	if err := grant.Validate(); err != nil {
+		return GCSBucketPublicReadGrant{}, err
+	}
+	return grant, nil
 }
 
 // GCSMediaUpload is create-only ingress for an object a browser or CDN will
@@ -275,11 +604,18 @@ func (r GCSDeleteRequest) Validate() error {
 	return nil
 }
 
-// UploadMedia streams one create-only object a browser or CDN will fetch,
-// stamping the content type that makes it render and any cache-control the
-// caller declared.
+// UploadMedia confirms unauthenticated object read on the exact destination
+// bucket, then streams one create-only object a browser or CDN will fetch. The
+// upload never succeeds merely because its metadata looks browser-compatible:
+// the provider IAM policy must first prove that the resulting address is
+// publicly readable.
 func UploadMedia(ctx context.Context, client *GCSClient, request GCSMediaUpload) (GCSObjectMetadata, error) {
 	if err := request.Validate(); err != nil {
+		return GCSObjectMetadata{}, err
+	}
+	if _, err := GrantGCSBucketPublicRead(ctx, client, GCSBucketPublicReadRequest{
+		Bucket: request.Bucket,
+	}); err != nil {
 		return GCSObjectMetadata{}, err
 	}
 	return createGCSObject(ctx, client, gcsWrite(request))
@@ -762,7 +1098,10 @@ func gcsTimesFromAttrs(attrs *storage.ObjectAttrs) (gcsObjectTimes, error) {
 }
 
 func projectGCSError(cause error, operation core.ErrorIdentity) error {
-	projected := []error{core.ErrObjectStoreContract, operation}
+	projected := []error{core.ErrObjectStoreContract, operation, cause}
+	if errors.Is(cause, core.ErrExchangeBodyLimit) {
+		projected = append(projected, core.ErrObjectStoreSize)
+	}
 	if errors.Is(cause, storage.ErrObjectNotExist) {
 		projected = append(projected, core.ErrObjectStoreAbsent)
 	}
@@ -774,9 +1113,6 @@ func projectGCSError(cause error, operation core.ErrorIdentity) error {
 		case 409, 412:
 			projected = append(projected, core.ErrObjectStoreConflict)
 		}
-	}
-	if errors.Is(cause, context.Canceled) || errors.Is(cause, context.DeadlineExceeded) {
-		projected = append(projected, cause)
 	}
 	return errors.Join(projected...)
 }

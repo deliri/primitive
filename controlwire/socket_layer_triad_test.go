@@ -43,11 +43,12 @@ func TestRoutedSocketExecutesProductionRequestAndAuthenticatedResponse(t *testin
 		t.Fatalf("RegistrationRequest.ControlRoute() error = %v, want nil", err)
 	}
 	observed := make(chan socketObservation, 1)
+	authorityServer := socketServer(t, fixture.support)
 	server := httptest.NewServer(http.HandlerFunc(func(writer http.ResponseWriter, request *http.Request) {
 		received, receiveErr := controlwire.ReceiveRoutedJSON[
 			controlplane.RegistrationRequest,
 			*controlplane.RegistrationRequest,
-		](controlwire.AuthorityJSONReceiveCall{Request: request, Route: route, Support: fixture.support})
+		](controlwire.AuthorityJSONReceiveCall{Request: request, Route: route, Server: authorityServer})
 		observation := socketObservation{
 			method: request.Method,
 			path:   request.URL.Path,
@@ -63,7 +64,7 @@ func TestRoutedSocketExecutesProductionRequestAndAuthenticatedResponse(t *testin
 			writer.WriteHeader(http.StatusBadRequest)
 			return
 		}
-		if writeErr := controlwire.WriteControlJSON(controlwire.ControlJSONWriteCall[controlplane.ResponseProjection[controlplane.RegistrationDocument]]{Writer: writer, Body: fixture.response}); writeErr != nil {
+		if writeErr := controlwire.WriteControlJSON(controlwire.ControlJSONWriteCall[controlplane.ResponseProjection[controlplane.RegistrationDocument]]{Writer: writer, Body: fixture.response, Server: authorityServer}); writeErr != nil {
 			t.Errorf("WriteControlJSON() error = %v, want nil", writeErr)
 		}
 	}))
@@ -82,8 +83,8 @@ func TestRoutedSocketExecutesProductionRequestAndAuthenticatedResponse(t *testin
 		controlplane.ResponseDocument[controlplane.RegistrationDocument, *controlplane.RegistrationDocument],
 		*controlplane.ResponseDocument[controlplane.RegistrationDocument, *controlplane.RegistrationDocument],
 	](controlwire.ClientJSONCall[controlplane.RegistrationRequest]{
-		Context: context.Background(), Client: client,
-		Authority: authority, Body: fixture.request,
+		Context: context.Background(), Client: socketClient(t, client, authority),
+		Body: fixture.request,
 	})
 	if err != nil {
 		t.Fatalf("SendRoutedJSON() error = %v, want nil", err)
@@ -144,7 +145,7 @@ func TestRegistrationAuthorityRunsThroughTheRealControlWireReceiver(t *testing.T
 		controlplane.RegistrationRequest,
 		*controlplane.RegistrationRequest,
 	](controlwire.AuthorityJSONReceiveCall{
-		Request: httpRequest, Route: route, Support: fixture.support,
+		Request: httpRequest, Route: route, Server: socketServer(t, fixture.support),
 	})
 	if err != nil {
 		t.Fatalf("ReceiveRoutedJSON() error = %v, want nil", err)
@@ -196,7 +197,7 @@ func TestRoutedSocketReturnsUpgradeAssessmentBesideAnUnsupportedValidatedRequest
 	received, err := controlwire.ReceiveRoutedJSON[
 		controlplane.RegistrationRequest,
 		*controlplane.RegistrationRequest,
-	](controlwire.AuthorityJSONReceiveCall{Request: request, Route: route, Support: support})
+	](controlwire.AuthorityJSONReceiveCall{Request: request, Route: route, Server: socketServer(t, support)})
 	capability, capabilityErr := route.ProtocolCapability(fixture.request.ControlRevision())
 	if err != nil || capabilityErr != nil || received.Validate() != nil || received.Body == nil ||
 		received.Assessment.Capability != capability ||
@@ -232,18 +233,9 @@ func TestRoutedSocketClientRejectsEveryIndependentTransportBoundary(t *testing.T
 	}{
 		{name: "nil context is rejected before transport", mutate: func(call *controlwire.ClientJSONCall[controlplane.RegistrationRequest]) { call.Context = nil }, want: []error{core.ErrExchangeContract}},
 		{name: "cancelled context retains cancellation identity", mutate: func(call *controlwire.ClientJSONCall[controlplane.RegistrationRequest]) { call.Context = cancelled }, want: []error{core.ErrExchangeRequest, core.ErrExchangeCancelled}},
-		{name: "zero exchange client is rejected before transport", mutate: func(call *controlwire.ClientJSONCall[controlplane.RegistrationRequest]) {
-			call.Client = exchange.Client{}
-		}, want: []error{core.ErrExchangeContract}},
-		{name: "zero authority is rejected before transport", mutate: func(call *controlwire.ClientJSONCall[controlplane.RegistrationRequest]) {
-			call.Authority = core.HTTPEndpoint{}
-		}, want: []error{core.ErrControlWireRoute}},
-		{name: "authority carrying a path cannot steal route ownership", mutate: func(call *controlwire.ClientJSONCall[controlplane.RegistrationRequest]) {
-			call.Authority = authorityWithSuffix(t, call.Authority, "/base")
-		}, want: []error{core.ErrControlWireRoute, core.ErrExchangeContract}},
-		{name: "authority carrying a query cannot alter route ownership", mutate: func(call *controlwire.ClientJSONCall[controlplane.RegistrationRequest]) {
-			call.Authority = authorityWithSuffix(t, call.Authority, "?page=1")
-		}, want: []error{core.ErrControlWireRoute, core.ErrExchangeContract}},
+		{name: "zero client capability is rejected before transport", mutate: func(call *controlwire.ClientJSONCall[controlplane.RegistrationRequest]) {
+			call.Client = controlwire.Client{}
+		}, want: []error{core.ErrControlWireContract, core.ErrExchangeContract}},
 		{name: "zero production request is rejected before transport", mutate: func(call *controlwire.ClientJSONCall[controlplane.RegistrationRequest]) {
 			call.Body = controlplane.RegistrationRequest{}
 		}, want: []error{core.ErrControlPlaneRegistration}},
@@ -274,8 +266,8 @@ func TestRoutedSocketClientRejectsEveryIndependentTransportBoundary(t *testing.T
 				t.Fatalf("exchange.NewClient() error = %v, want nil", clientErr)
 			}
 			call := controlwire.ClientJSONCall[controlplane.RegistrationRequest]{
-				Context: context.Background(), Client: client,
-				Authority: authority, Body: fixture.request,
+				Context: context.Background(), Client: socketClient(t, client, authority),
+				Body: fixture.request,
 			}
 			if tc.mutate != nil {
 				tc.mutate(&call)
@@ -335,7 +327,7 @@ func TestRoutedSocketAuthorityAcceptsTenProductionRequestRepresentations(t *test
 			got, gotErr := controlwire.ReceiveRoutedJSON[
 				controlplane.RegistrationRequest,
 				*controlplane.RegistrationRequest,
-			](controlwire.AuthorityJSONReceiveCall{Request: request, Route: route, Support: fixture.support})
+			](controlwire.AuthorityJSONReceiveCall{Request: request, Route: route, Server: socketServer(t, fixture.support)})
 			if gotErr != nil || got.Body == nil || got.Body.Validate() != nil ||
 				got.IdempotencyKey.String() != wantKey.String() ||
 				got.Replay.Validate() != nil ||
@@ -547,7 +539,7 @@ func TestRoutedSocketAuthorityRejectsThirtyThreeExternalRequestBoundaries(t *tes
 			got, receiveErr := controlwire.ReceiveRoutedJSON[
 				controlplane.RegistrationRequest,
 				*controlplane.RegistrationRequest,
-			](controlwire.AuthorityJSONReceiveCall{Request: tc.build(), Route: route, Support: fixture.support})
+			](controlwire.AuthorityJSONReceiveCall{Request: tc.build(), Route: route, Server: socketServer(t, fixture.support)})
 			if got.Body != nil || !got.IdempotencyKey.IsZero() || got.Replay != (controlwire.ReplayIdentity{}) {
 				t.Fatalf("rejected receive = %+v, want zero result", got)
 			}
@@ -612,7 +604,7 @@ func FuzzRoutedSocketAuthoritySemanticClosure(f *testing.F) {
 		got, receiveErr := controlwire.ReceiveRoutedJSON[
 			controlplane.RegistrationRequest,
 			*controlplane.RegistrationRequest,
-		](controlwire.AuthorityJSONReceiveCall{Request: fuzzRequest(input), Route: route, Support: fixture.support})
+		](controlwire.AuthorityJSONReceiveCall{Request: fuzzRequest(input), Route: route, Server: socketServer(t, fixture.support)})
 		oracle := receiveOracle(receiveOracleInput{
 			document: document, key: key, pathMode: modes[0],
 			methodMode: modes[1], contentMode: modes[2], route: route, bodyLimit: bodyLimit,
@@ -821,6 +813,32 @@ func standardMediaType(t testing.TB, value exchange.StandardMediaType) core.HTTP
 		t.Fatalf("StandardMediaType.HTTPMediaType() error = %v, want nil", err)
 	}
 	return mediaType
+}
+
+func socketClient(
+	t testing.TB,
+	exchangeClient exchange.Client,
+	authority core.HTTPEndpoint,
+) controlwire.Client {
+	t.Helper()
+
+	client, err := controlwire.NewClient(controlwire.ClientConfiguration{
+		Exchange: exchangeClient, Authority: authority,
+	})
+	if err != nil {
+		t.Fatalf("controlwire.NewClient() error = %v, want nil", err)
+	}
+	return client
+}
+
+func socketServer(t testing.TB, support controlwire.ProtocolSupport) controlwire.Server {
+	t.Helper()
+
+	server, err := controlwire.NewServer(controlwire.ServerConfiguration{Support: support})
+	if err != nil {
+		t.Fatalf("controlwire.NewServer() error = %v, want nil", err)
+	}
+	return server
 }
 
 func authorityWithSuffix(t testing.TB, authority core.HTTPEndpoint, suffix string) core.HTTPEndpoint {

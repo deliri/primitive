@@ -3,7 +3,6 @@ package retrievalauth
 import (
 	"crypto"
 
-	"github.com/deliri/primitive/v2026/attest"
 	"github.com/deliri/primitive/v2026/controlplane"
 	"github.com/deliri/primitive/v2026/controlwire"
 	"github.com/deliri/primitive/v2026/core"
@@ -11,6 +10,7 @@ import (
 )
 
 type ResponseIssuance struct {
+	Server     controlplane.Server
 	Signer     crypto.Signer
 	Header     controlplane.ResponseHeader
 	Body       retrieval.GrantProjection
@@ -18,9 +18,9 @@ type ResponseIssuance struct {
 }
 
 type ResponseVerification struct {
-	Expected    controlplane.ResponseExpectation
-	Document    controlplane.ResponseDocument[retrieval.GrantDocument, *retrieval.GrantDocument]
-	TrustedKeys attest.TrustedKeys
+	Client   controlplane.Client
+	Expected controlplane.ResponseExpectation
+	Document controlplane.ResponseDocument[retrieval.GrantDocument, *retrieval.GrantDocument]
 }
 
 func (i ResponseIssuance) Validate() error {
@@ -35,7 +35,7 @@ func IssueResponse(i ResponseIssuance) (controlplane.ResponseProjection[retrieva
 
 func (i ResponseIssuance) responseIssuance() controlplane.ResponseIssuance[retrieval.GrantProjection] {
 	return controlplane.ResponseIssuance[retrieval.GrantProjection]{
-		Signer: i.Signer, Body: i.Body, Header: i.Header, Assessment: i.Assessment,
+		Server: i.Server, Signer: i.Signer, Body: i.Body, Header: i.Header, Assessment: i.Assessment,
 	}
 }
 
@@ -49,7 +49,7 @@ func VerifyResponse(v ResponseVerification) (controlplane.VerifiedResponse[retri
 
 func (v ResponseVerification) responseVerification() controlplane.ResponseVerification[retrieval.GrantDocument, *retrieval.GrantDocument] {
 	return controlplane.ResponseVerification[retrieval.GrantDocument, *retrieval.GrantDocument]{
-		Document: v.Document, Expected: v.Expected, TrustedKeys: v.TrustedKeys,
+		Client: v.Client, Document: v.Document, Expected: v.Expected,
 	}
 }
 

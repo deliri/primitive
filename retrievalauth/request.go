@@ -105,12 +105,12 @@ func (d *RequestDocument) UnmarshalJSON(data []byte) error {
 }
 
 type Verification struct {
-	Document    RequestDocument
-	TrustedKeys attest.TrustedKeys
+	Server   controlplane.Server
+	Document RequestDocument
 }
 
 func (v Verification) Validate() error {
-	if err := errors.Join(v.Document.Validate(), v.TrustedKeys.Validate()); err != nil {
+	if err := errors.Join(v.Server.Validate(), v.Document.Validate()); err != nil {
 		return contractError(err)
 	}
 	return nil
@@ -126,8 +126,8 @@ func Verify(verification Verification) (Verified, error) {
 	if err := verification.Validate(); err != nil {
 		return Verified{}, err
 	}
-	certificate, err := controlplane.VerifyInstallationCertificate(
-		verification.Document.Certificate, verification.TrustedKeys,
+	certificate, err := verification.Server.VerifyInstallationCertificate(
+		verification.Document.Certificate,
 	)
 	if err != nil {
 		return Verified{}, contractError(err)

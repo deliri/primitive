@@ -3,7 +3,6 @@ package paymentauth
 import (
 	"crypto"
 
-	"github.com/deliri/primitive/v2026/attest"
 	"github.com/deliri/primitive/v2026/controlplane"
 	"github.com/deliri/primitive/v2026/controlwire"
 	"github.com/deliri/primitive/v2026/core"
@@ -11,6 +10,7 @@ import (
 )
 
 type ResponseIssuance struct {
+	Server     controlplane.Server
 	Signer     crypto.Signer
 	Header     controlplane.ResponseHeader
 	Body       payment.CatalogDocument
@@ -18,9 +18,9 @@ type ResponseIssuance struct {
 }
 
 type ResponseVerification struct {
-	Expected    controlplane.ResponseExpectation
-	Document    controlplane.ResponseDocument[payment.CatalogDocument, *payment.CatalogDocument]
-	TrustedKeys attest.TrustedKeys
+	Client   controlplane.Client
+	Expected controlplane.ResponseExpectation
+	Document controlplane.ResponseDocument[payment.CatalogDocument, *payment.CatalogDocument]
 }
 
 func (i ResponseIssuance) Validate() error {
@@ -35,7 +35,7 @@ func IssueResponse(i ResponseIssuance) (controlplane.ResponseProjection[payment.
 
 func (i ResponseIssuance) responseIssuance() controlplane.ResponseIssuance[payment.CatalogDocument] {
 	return controlplane.ResponseIssuance[payment.CatalogDocument]{
-		Signer: i.Signer, Header: i.Header, Body: i.Body, Assessment: i.Assessment,
+		Server: i.Server, Signer: i.Signer, Header: i.Header, Body: i.Body, Assessment: i.Assessment,
 	}
 }
 
@@ -49,7 +49,7 @@ func VerifyResponse(v ResponseVerification) (controlplane.VerifiedResponse[payme
 
 func (v ResponseVerification) responseVerification() controlplane.ResponseVerification[payment.CatalogDocument, *payment.CatalogDocument] {
 	return controlplane.ResponseVerification[payment.CatalogDocument, *payment.CatalogDocument]{
-		Document: v.Document, Expected: v.Expected, TrustedKeys: v.TrustedKeys,
+		Client: v.Client, Document: v.Document, Expected: v.Expected,
 	}
 }
 

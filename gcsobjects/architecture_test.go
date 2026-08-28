@@ -37,6 +37,7 @@ func TestAuthenticatedGCSOperationsAreCompilerSelectedEntryPoints(t *testing.T) 
 		"CreateBucket",
 		"DeleteGCSObject",
 		"DeleteGCSObjects",
+		"GrantGCSBucketPublicRead",
 		"IssueGCSDownloadCapability",
 		"IssueGCSUploadCapability",
 		"NewGCSCapabilityIssuer",
@@ -120,7 +121,7 @@ func productionStructRole(name string) (string, bool) {
 		"GCSObjectAddress":
 		return "opaque validated provider value", true
 	case "GCSMediaUpload", "GCSFileUpload", "GCSReadRequest", "GCSUploadObservationRequest", "GCSDeleteRequest",
-		"GCSDeleteObjectRequest", "GCSBucketCreateRequest", "GCSRootPrefixRequest",
+		"GCSDeleteObjectRequest", "GCSBucketCreateRequest", "GCSBucketPublicReadRequest", "GCSRootPrefixRequest",
 		"GCSChildPrefixRequest", "GCSObjectInPrefixRequest", "GCSUploadCapabilityRequest",
 		"GCSDownloadCapabilityRequest":
 		return "authenticated provider execution ingress", true
@@ -128,7 +129,8 @@ func productionStructRole(name string) (string, bool) {
 		return "internal owner-only write projection", true
 	case "gcsUploadURLRequest":
 		return "internal official SDK signing projection", true
-	case "GCSObjectMetadata", "VerifiedGCSUpload", "GCSDeleteResult", "GCSDeleteObjectResult", "GCSBucketProvisioning":
+	case "GCSObjectMetadata", "VerifiedGCSUpload", "GCSDeleteResult", "GCSDeleteObjectResult", "GCSBucketProvisioning",
+		"GCSBucketPublicReadGrant":
 		return "sealed authenticated provider evidence", true
 	case "gcsObjectIdentity", "gcsObjectProperties", "gcsObjectTimes":
 		return "internal authenticated provider metadata projection", true

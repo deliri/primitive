@@ -118,6 +118,60 @@ func TestObservationUsesGoClockWithoutClockFramework(t *testing.T) {
 	})
 }
 
+func TestObservationRejectsEveryUnusableCarrierBeforeProjection(t *testing.T) {
+	t.Parallel()
+
+	validValue := time.Unix(0, 7).UTC()
+	validWall := InstantFromNanoseconds(7)
+	cases := []struct {
+		observation Observation
+		wantErr     error
+		name        string
+	}{
+		{name: "zero observation has neither carrier nor wall", wantErr: core.ErrTemporalContract},
+		{name: "wall without a representable Go carrier is rejected", observation: Observation{wall: validWall}, wantErr: core.ErrTemporalOverflow},
+		{name: "Go carrier without a set wall is rejected", observation: Observation{value: validValue}, wantErr: core.ErrTemporalContract},
+		{name: "minimum signed carrier and wall are admitted", observation: Observation{value: time.Unix(0, math.MinInt64).UTC(), wall: InstantFromNanoseconds(math.MinInt64)}},
+		{name: "epoch carrier and wall are admitted", observation: Observation{value: time.Unix(0, 0).UTC(), wall: InstantFromNanoseconds(0)}},
+		{name: "maximum signed carrier and wall are admitted", observation: Observation{value: time.Unix(0, math.MaxInt64).UTC(), wall: InstantFromNanoseconds(math.MaxInt64)}},
+		{name: "corrected wall may differ from the elapsed carrier", observation: Observation{value: validValue, wall: InstantFromNanoseconds(-11)}},
+	}
+	for _, tc := range cases {
+		t.Run(tc.name, func(t *testing.T) {
+			t.Parallel()
+
+			gotErr := tc.observation.Validate()
+			if !errors.Is(gotErr, tc.wantErr) {
+				t.Fatalf("Observation.Validate() error = %v, want %v", gotErr, tc.wantErr)
+			}
+			gotInstant, gotInstantErr := tc.observation.Instant()
+			if tc.wantErr != nil {
+				if !errors.Is(gotInstantErr, tc.wantErr) || gotInstant.IsSet() {
+					t.Fatalf("Observation.Instant() = (%v, %v), want unset/%v", gotInstant, gotInstantErr, tc.wantErr)
+				}
+				return
+			}
+			if gotInstantErr != nil || gotInstant != tc.observation.wall {
+				t.Fatalf("Observation.Instant() = (%v, %v), want (%v, nil)", gotInstant, gotInstantErr, tc.observation.wall)
+			}
+		})
+	}
+
+	outsideLow, lowErr := NewObservation(time.Unix(0, math.MinInt64).Add(-time.Nanosecond))
+	outsideHigh, highErr := NewObservation(time.Unix(0, math.MaxInt64).Add(time.Nanosecond))
+	if !errors.Is(lowErr, core.ErrTemporalOverflow) || outsideLow != (Observation{}) ||
+		!errors.Is(highErr, core.ErrTemporalOverflow) || outsideHigh != (Observation{}) {
+		t.Fatalf(
+			"NewObservation(outside signed range) = (low:%v/%v high:%v/%v), want zero/%v for both",
+			outsideLow,
+			lowErr,
+			outsideHigh,
+			highErr,
+			core.ErrTemporalOverflow,
+		)
+	}
+}
+
 func TestIntervalConstructionLayerTriad(t *testing.T) {
 	t.Parallel()
 
@@ -213,6 +267,58 @@ func TestIntervalRejectsEveryContradictoryOwnedFact(t *testing.T) {
 			}
 		})
 	}
+}
+
+func TestIntervalIngressExhaustsMissingOrderingAndOverflowBoundaries(t *testing.T) {
+	t.Parallel()
+
+	minimumObservation, _ := NewObservation(time.Unix(0, math.MinInt64).UTC())
+	epochObservation, _ := NewObservation(time.Unix(0, 0).UTC())
+	maximumObservation, _ := NewObservation(time.Unix(0, math.MaxInt64).UTC())
+	minimum := InstantFromNanoseconds(math.MinInt64)
+	epoch := InstantFromNanoseconds(0)
+	maximum := InstantFromNanoseconds(math.MaxInt64)
+
+	cases := []struct {
+		validate func() error
+		wantErr  error
+		name     string
+	}{
+		{name: "zero observation request rejects missing start", validate: (IntervalRequest{}).Validate, wantErr: core.ErrTemporalContract},
+		{name: "observation request rejects missing start", validate: (IntervalRequest{Finish: epochObservation}).Validate, wantErr: core.ErrTemporalContract},
+		{name: "observation request rejects missing finish", validate: (IntervalRequest{Start: epochObservation}).Validate, wantErr: core.ErrTemporalContract},
+		{name: "observation request rejects reversed order", validate: (IntervalRequest{Start: maximumObservation, Finish: epochObservation}).Validate, wantErr: core.ErrTemporalContract},
+		{name: "observation request rejects elapsed overflow", validate: (IntervalRequest{Start: minimumObservation, Finish: maximumObservation}).Validate, wantErr: core.ErrTemporalOverflow},
+		{name: "observation request admits a point", validate: (IntervalRequest{Start: epochObservation, Finish: epochObservation}).Validate},
+		{name: "observation request admits maximum bounded elapsed", validate: (IntervalRequest{Start: minimumObservation, Finish: requireObservation(t, time.Unix(0, -1).UTC())}).Validate},
+		{name: "zero bounds reject missing start", validate: (IntervalBounds{}).Validate, wantErr: core.ErrTemporalContract},
+		{name: "bounds reject missing start", validate: (IntervalBounds{End: epoch}).Validate, wantErr: core.ErrTemporalContract},
+		{name: "bounds reject missing end", validate: (IntervalBounds{Start: epoch}).Validate, wantErr: core.ErrTemporalContract},
+		{name: "bounds reject reversed order", validate: (IntervalBounds{Start: maximum, End: epoch}).Validate, wantErr: core.ErrTemporalContract},
+		{name: "bounds reject elapsed overflow", validate: (IntervalBounds{Start: minimum, End: maximum}).Validate, wantErr: core.ErrTemporalOverflow},
+		{name: "bounds admit a point at signed minimum", validate: (IntervalBounds{Start: minimum, End: minimum}).Validate},
+		{name: "bounds admit a point at signed maximum", validate: (IntervalBounds{Start: maximum, End: maximum}).Validate},
+		{name: "bounds admit maximum bounded elapsed", validate: (IntervalBounds{Start: minimum, End: InstantFromNanoseconds(-1)}).Validate},
+	}
+	for _, tc := range cases {
+		t.Run(tc.name, func(t *testing.T) {
+			t.Parallel()
+
+			gotErr := tc.validate()
+			if !errors.Is(gotErr, tc.wantErr) {
+				t.Fatalf("interval ingress Validate() error = %v, want %v", gotErr, tc.wantErr)
+			}
+		})
+	}
+}
+
+func requireObservation(t *testing.T, value time.Time) Observation {
+	t.Helper()
+	got, gotErr := NewObservation(value)
+	if gotErr != nil {
+		t.Fatalf("NewObservation(%v) error = %v, want nil", value, gotErr)
+	}
+	return got
 }
 
 func TestInternalDurationValidationBlocksCorruptArithmetic(t *testing.T) {

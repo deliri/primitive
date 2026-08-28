@@ -26,6 +26,8 @@ type authenticatedResponseFixture struct {
 	header    controlplane.ResponseHeader
 	body      controlplane.RegistrationDocument
 	trusted   attest.TrustedKeys
+	client    controlplane.Client
+	server    controlplane.Server
 }
 
 type responseValidCase struct {
@@ -40,6 +42,7 @@ func TestAuthenticatedUpgradeRequiredResponseCannotExposeAProductBody(t *testing
 	header := fixture.header
 	header.Status = controlplane.ProductStatusUpgradeRequired
 	projection, err := controlplane.IssueUpgradeRequiredResponse[controlplane.RegistrationDocument](controlplane.UpgradeRequiredIssuance{
+		Server:     fixture.server,
 		Signer:     fixture.signer,
 		Header:     header,
 		Assessment: upgradeRequiredProtocolAssessment(t, header),
@@ -54,7 +57,7 @@ func TestAuthenticatedUpgradeRequiredResponseCannotExposeAProductBody(t *testing
 	document := decodeAuthenticatedResponse(t, encoded)
 	expected := fixture.expected
 	verified, err := controlplane.VerifyResponse(controlplane.ResponseVerification[controlplane.RegistrationDocument, *controlplane.RegistrationDocument]{
-		Document: document, Expected: expected, TrustedKeys: fixture.trusted,
+		Client: fixture.client, Document: document, Expected: expected,
 	})
 	if err != nil {
 		t.Fatalf("VerifyResponse(authentic upgrade-required response) error = %v, want nil", err)
@@ -95,7 +98,7 @@ func TestAuthenticatedResponseProducerExhaustsValidDecisionDomains(t *testing.T)
 			fixture := authenticatedResponseWithHeader(t, base, header)
 			document := decodeAuthenticatedResponse(t, fixture.canonical)
 			verified, err := controlplane.VerifyResponse(controlplane.ResponseVerification[controlplane.RegistrationDocument, *controlplane.RegistrationDocument]{
-				Document: document, Expected: fixture.expected, TrustedKeys: fixture.trusted,
+				Client: fixture.client, Document: document, Expected: fixture.expected,
 			})
 			if err != nil {
 				t.Fatalf("VerifyResponse(compiler-produced response) error = %v, want nil", err)
@@ -173,6 +176,7 @@ func TestAuthenticatedResponseProducerRejectsIndependentInvalidInputs(t *testing
 			t.Parallel()
 
 			issuance := controlplane.ResponseIssuance[controlplane.RegistrationDocument]{
+				Server: fixture.server,
 				Signer: fixture.signer, Header: fixture.header, Body: fixture.body,
 				Assessment: acceptedProtocolAssessment(t, fixture.header),
 			}
@@ -193,6 +197,7 @@ func TestAuthenticatedResponseProjectionStrictlyEncodesWithoutBecomingAnIngressT
 
 	fixture := authenticatedResponseForTest(t, 46)
 	issuance := controlplane.ResponseIssuance[controlplane.RegistrationDocument]{
+		Server: fixture.server,
 		Signer: fixture.signer, Header: fixture.header, Body: fixture.body,
 		Assessment: acceptedProtocolAssessment(t, fixture.header),
 	}
@@ -238,6 +243,7 @@ func TestProductResponseFamilyGateRejectsAnOtherwiseValidSiblingRoute(t *testing
 
 	fixture := authenticatedResponseForTest(t, 45)
 	issuance := controlplane.ResponseIssuance[controlplane.RegistrationDocument]{
+		Server: fixture.server,
 		Signer: fixture.signer, Header: fixture.header, Body: fixture.body,
 		Assessment: acceptedProtocolAssessment(t, fixture.header),
 	}
@@ -329,6 +335,7 @@ func TestAuthenticatedResponseVerifierNamesEveryBoundFactAndTrustFailure(t *test
 	otherInstallation := responseDeviceID(t, 0xb2)
 	_, untrustedSigner := testSigningKey(t, 52)
 	untrustedProjection, err := controlplane.IssueResponse(controlplane.ResponseIssuance[controlplane.RegistrationDocument]{
+		Server: fixture.server,
 		Signer: untrustedSigner, Header: fixture.header, Body: fixture.body,
 		Assessment: acceptedProtocolAssessment(t, fixture.header),
 	})
@@ -347,7 +354,7 @@ func TestAuthenticatedResponseVerifierNamesEveryBoundFactAndTrustFailure(t *test
 		verification controlplane.ResponseVerification[controlplane.RegistrationDocument, *controlplane.RegistrationDocument]
 		wantField    controlplane.ResponseHeaderField
 	}{
-		{name: "matching request and trusted authority expose the exact body", verification: controlplane.ResponseVerification[controlplane.RegistrationDocument, *controlplane.RegistrationDocument]{Document: document, Expected: fixture.expected, TrustedKeys: fixture.trusted}},
+		{name: "matching request and trusted authority expose the exact body", verification: controlplane.ResponseVerification[controlplane.RegistrationDocument, *controlplane.RegistrationDocument]{Client: fixture.client, Document: document, Expected: fixture.expected}},
 		{name: "different request nonce is named", verification: responseVerificationWithExpectation(document, fixture, func(value *controlplane.ResponseExpectation) { value.RequestNonce = otherRequestNonce(t) }), want: core.ErrControlPlaneResponseBinding, wantField: controlplane.ResponseHeaderFieldRequestNonce},
 		{name: "different account is named", verification: responseVerificationWithExpectation(document, fixture, func(value *controlplane.ResponseExpectation) { value.Account = otherAccount }), want: core.ErrControlPlaneResponseBinding, wantField: controlplane.ResponseHeaderFieldAccount},
 		{name: "different installation is named", verification: responseVerificationWithExpectation(document, fixture, func(value *controlplane.ResponseExpectation) { value.Installation = otherInstallation }), want: core.ErrControlPlaneResponseBinding, wantField: controlplane.ResponseHeaderFieldInstallation},
@@ -361,11 +368,11 @@ func TestAuthenticatedResponseVerifierNamesEveryBoundFactAndTrustFailure(t *test
 			value.PriorProviderTime = instantAfter(t, fixture.header.ProviderTime)
 		}), want: core.ErrControlPlaneProviderTimeRollback},
 		{name: "provider time exactly equal to prior is accepted", verification: responseVerificationWithExpectation(document, fixture, func(value *controlplane.ResponseExpectation) { value.PriorProviderTime = fixture.header.ProviderTime })},
-		{name: "unset prior provider time is first contact and accepted", verification: controlplane.ResponseVerification[controlplane.RegistrationDocument, *controlplane.RegistrationDocument]{Document: document, Expected: fixture.expected, TrustedKeys: fixture.trusted}},
-		{name: "foreign valid signature is rejected by caller trust", verification: controlplane.ResponseVerification[controlplane.RegistrationDocument, *controlplane.RegistrationDocument]{Document: untrustedDocument, Expected: fixture.expected, TrustedKeys: fixture.trusted}, want: core.ErrAttestVerification},
-		{name: "zero document is rejected", verification: controlplane.ResponseVerification[controlplane.RegistrationDocument, *controlplane.RegistrationDocument]{Expected: fixture.expected, TrustedKeys: fixture.trusted}, want: core.ErrControlPlaneResponseDocument},
-		{name: "zero expectation is rejected", verification: controlplane.ResponseVerification[controlplane.RegistrationDocument, *controlplane.RegistrationDocument]{Document: document, TrustedKeys: fixture.trusted}, want: core.ErrControlPlaneResponseHeader},
-		{name: "zero trust set is rejected", verification: controlplane.ResponseVerification[controlplane.RegistrationDocument, *controlplane.RegistrationDocument]{Document: document, Expected: fixture.expected}, want: core.ErrAttestContract},
+		{name: "unset prior provider time is first contact and accepted", verification: controlplane.ResponseVerification[controlplane.RegistrationDocument, *controlplane.RegistrationDocument]{Client: fixture.client, Document: document, Expected: fixture.expected}},
+		{name: "foreign valid signature is rejected by caller trust", verification: controlplane.ResponseVerification[controlplane.RegistrationDocument, *controlplane.RegistrationDocument]{Client: fixture.client, Document: untrustedDocument, Expected: fixture.expected}, want: core.ErrAttestVerification},
+		{name: "zero document is rejected", verification: controlplane.ResponseVerification[controlplane.RegistrationDocument, *controlplane.RegistrationDocument]{Client: fixture.client, Expected: fixture.expected}, want: core.ErrControlPlaneResponseDocument},
+		{name: "zero expectation is rejected", verification: controlplane.ResponseVerification[controlplane.RegistrationDocument, *controlplane.RegistrationDocument]{Client: fixture.client, Document: document}, want: core.ErrControlPlaneResponseHeader},
+		{name: "zero client capability is rejected", verification: controlplane.ResponseVerification[controlplane.RegistrationDocument, *controlplane.RegistrationDocument]{Document: document, Expected: fixture.expected}, want: core.ErrAttestContract},
 	}
 
 	for _, tc := range cases {
@@ -440,7 +447,7 @@ func TestAuthenticatedResponseDecoderPressuresFiftySixRepresentations(t *testing
 					t.Fatalf("accepted ResponseDocument.Validate() error = %v, want nil", err)
 				}
 				verified, err := controlplane.VerifyResponse(controlplane.ResponseVerification[controlplane.RegistrationDocument, *controlplane.RegistrationDocument]{
-					Document: got, Expected: fixture.expected, TrustedKeys: fixture.trusted,
+					Client: fixture.client, Document: got, Expected: fixture.expected,
 				})
 				if tc.wantVerify != nil {
 					if !errors.Is(err, core.ErrControlPlaneResponseDocument) || !errors.Is(err, tc.wantVerify) || verified.Validate() == nil {
@@ -511,7 +518,7 @@ func FuzzAuthenticatedResponseExternalSemanticClosure(f *testing.F) {
 			t.Fatalf("ResponseDocument.UnmarshalJSON(accepted).Validate() error = %v, want nil", err)
 		}
 		verified, verifyErr := controlplane.VerifyResponse(controlplane.ResponseVerification[controlplane.RegistrationDocument, *controlplane.RegistrationDocument]{
-			Document: got, Expected: fixture.expected, TrustedKeys: fixture.trusted,
+			Client: fixture.client, Document: got, Expected: fixture.expected,
 		})
 		if verifyErr != nil {
 			if !errors.Is(verifyErr, core.ErrControlPlaneResponseDocument) ||
@@ -528,6 +535,7 @@ func FuzzAuthenticatedResponseExternalSemanticClosure(f *testing.F) {
 		}
 		proveRegistrationBodyEqual(t, body, fixture.body)
 		projection, issueErr := controlplane.IssueResponse(controlplane.ResponseIssuance[controlplane.RegistrationDocument]{
+			Server: fixture.server,
 			Signer: fixture.signer, Header: header, Body: body,
 			Assessment: acceptedProtocolAssessment(t, header),
 		})
@@ -537,7 +545,7 @@ func FuzzAuthenticatedResponseExternalSemanticClosure(f *testing.F) {
 		}
 		roundTrip := decodeAuthenticatedResponse(t, canonical)
 		second, secondErr := controlplane.VerifyResponse(controlplane.ResponseVerification[controlplane.RegistrationDocument, *controlplane.RegistrationDocument]{
-			Document: roundTrip, Expected: fixture.expected, TrustedKeys: fixture.trusted,
+			Client: fixture.client, Document: roundTrip, Expected: fixture.expected,
 		})
 		if secondErr != nil || second.Validate() != nil {
 			t.Fatalf("canonical second verification = (%v, %v), want valid and nil", second, secondErr)
@@ -545,6 +553,7 @@ func FuzzAuthenticatedResponseExternalSemanticClosure(f *testing.F) {
 		secondHeader, secondHeaderErr := second.Header()
 		secondBody, secondBodyErr := second.Body()
 		secondProjection, secondIssueErr := controlplane.IssueResponse(controlplane.ResponseIssuance[controlplane.RegistrationDocument]{
+			Server: fixture.server,
 			Signer: fixture.signer, Header: secondHeader, Body: secondBody,
 			Assessment: acceptedProtocolAssessment(t, secondHeader),
 		})
@@ -798,12 +807,17 @@ func authenticatedResponseForTest(t testing.TB, seed byte) authenticatedResponse
 	}
 	payload := registration.document.Payload
 	payload.Lease = resignLease(t, payload.Lease, signer)
-	payload.Certificate = resignCertificate(t, payload.Certificate, signer)
-	body, err := controlplane.IssueRegistration(payload, signer)
+	server := testControlplaneServer(t, trusted)
+	client := testControlplaneClient(t, trusted)
+	payload.Certificate = resignCertificate(t, server, payload.Certificate, signer)
+	body, err := server.IssueRegistration(payload, signer)
 	if err != nil {
 		t.Fatalf("IssueRegistration() error = %v, want nil", err)
 	}
-	base := authenticatedResponseFixture{body: body, header: body.Payload.Header, trusted: trusted, signer: signer}
+	base := authenticatedResponseFixture{
+		body: body, header: body.Payload.Header, trusted: trusted, signer: signer,
+		client: client, server: server,
+	}
 	return authenticatedResponseWithHeader(t, base, base.header)
 }
 
@@ -815,6 +829,7 @@ func authenticatedResponseWithHeader(
 	t.Helper()
 
 	projection, err := controlplane.IssueResponse(controlplane.ResponseIssuance[controlplane.RegistrationDocument]{
+		Server: base.server,
 		Signer: base.signer, Header: header, Body: base.body,
 		Assessment: acceptedProtocolAssessment(t, header),
 	})
@@ -849,7 +864,7 @@ func proveAuthenticatedResponseCanonicalClosure(
 	t.Helper()
 
 	verified, err := controlplane.VerifyResponse(controlplane.ResponseVerification[controlplane.RegistrationDocument, *controlplane.RegistrationDocument]{
-		Document: document, Expected: fixture.expected, TrustedKeys: fixture.trusted,
+		Client: fixture.client, Document: document, Expected: fixture.expected,
 	})
 	if err != nil {
 		t.Fatalf("VerifyResponse() error = %v, want nil", err)
@@ -863,6 +878,7 @@ func proveAuthenticatedResponseCanonicalClosure(
 		t.Fatalf("VerifiedResponse.Header() error = %v, want nil", err)
 	}
 	projection, err := controlplane.IssueResponse(controlplane.ResponseIssuance[controlplane.RegistrationDocument]{
+		Server: fixture.server,
 		Signer: fixture.signer, Header: header, Body: body,
 		Assessment: acceptedProtocolAssessment(t, header),
 	})
@@ -934,7 +950,7 @@ func responseVerificationWithExpectation(
 ) controlplane.ResponseVerification[controlplane.RegistrationDocument, *controlplane.RegistrationDocument] {
 	expected := fixture.expected
 	mutate(&expected)
-	return controlplane.ResponseVerification[controlplane.RegistrationDocument, *controlplane.RegistrationDocument]{Document: document, Expected: expected, TrustedKeys: fixture.trusted}
+	return controlplane.ResponseVerification[controlplane.RegistrationDocument, *controlplane.RegistrationDocument]{Client: fixture.client, Document: document, Expected: expected}
 }
 
 func responseAccountIdentity(t testing.TB, fill byte) receipt.AccountIdentity {

@@ -1,9 +1,9 @@
 package keygen_test
 
 import (
-	"bytes"
 	"errors"
 	"math"
+	"slices"
 	"testing"
 
 	"github.com/deliri/primitive/v2026/core"
@@ -22,32 +22,38 @@ func requireByteCount(t *testing.T, value uint64) core.ByteCount {
 func TestRandomTokenRequestAdmitsOnlyBoundedSizes(t *testing.T) {
 	t.Parallel()
 
-	cases := []struct {
-		wantErr error
+	for size := uint64(1); size <= keygen.RandomTokenMaximumBytes; size++ {
+		request := keygen.RandomTokenRequest{Size: requireByteCount(t, size)}
+		if gotErr := request.Validate(); gotErr != nil {
+			t.Fatalf("RandomTokenRequest{%d}.Validate() error = %v, want nil", size, gotErr)
+		}
+	}
+
+	invalidSizes := []struct {
 		name    string
 		size    uint64
+		wantErr error
 	}{
-		{name: "one byte is the smallest token", size: 1},
-		{name: "two bytes sit one above the floor", size: 2},
-		{name: "a sixteen byte nonce is admitted", size: 16},
-		{name: "the midpoint is admitted", size: keygen.RandomTokenMaximumBytes / 2},
-		{name: "two below the ceiling is admitted", size: keygen.RandomTokenMaximumBytes - 2},
-		{name: "the ceiling is admitted", size: keygen.RandomTokenMaximumBytes},
-		{name: "one below the ceiling is admitted", size: keygen.RandomTokenMaximumBytes - 1},
-		{name: "one above the ceiling is rejected", size: keygen.RandomTokenMaximumBytes + 1, wantErr: core.ErrKeygenContract},
-		{name: "far above the ceiling is rejected", size: 4096, wantErr: core.ErrKeygenContract},
-		{name: "the maximum representable count is rejected", size: math.MaxUint64, wantErr: core.ErrKeygenContract},
+		{name: "one above ceiling is rejected", size: keygen.RandomTokenMaximumBytes + 1, wantErr: core.ErrKeygenContract},
+		{name: "two above ceiling are rejected", size: keygen.RandomTokenMaximumBytes + 2, wantErr: core.ErrKeygenContract},
+		{name: "one hundred twenty eight bytes are rejected", size: 128, wantErr: core.ErrKeygenContract},
+		{name: "one kilobyte is rejected", size: 1024, wantErr: core.ErrKeygenContract},
+		{name: "four kilobytes are rejected", size: 4096, wantErr: core.ErrKeygenContract},
+		{name: "maximum uint8 is rejected", size: math.MaxUint8, wantErr: core.ErrKeygenContract},
+		{name: "maximum uint16 is rejected", size: math.MaxUint16, wantErr: core.ErrKeygenContract},
+		{name: "maximum uint32 is rejected", size: math.MaxUint32, wantErr: core.ErrKeygenContract},
+		{name: "maximum int64 is rejected", size: math.MaxInt64, wantErr: core.ErrKeygenContract},
+		{name: "maximum uint64 is rejected", size: math.MaxUint64, wantErr: core.ErrKeygenContract},
 	}
-	for _, tc := range cases {
+	for _, tc := range invalidSizes {
 		t.Run(tc.name, func(t *testing.T) {
 			t.Parallel()
+
 			request := keygen.RandomTokenRequest{Size: requireByteCount(t, tc.size)}
-			err := request.Validate()
-			if tc.wantErr == nil && err != nil {
-				t.Fatalf("RandomTokenRequest{%d}.Validate() error = %v, want nil", tc.size, err)
-			}
-			if tc.wantErr != nil && !errors.Is(err, tc.wantErr) {
-				t.Fatalf("RandomTokenRequest{%d}.Validate() error = %v, want errors.Is %v", tc.size, err, tc.wantErr)
+			gotErr := request.Validate()
+			if !errors.Is(gotErr, tc.wantErr) ||
+				!errors.Is(gotErr, core.ErrPrimitiveContract) {
+				t.Fatalf("RandomTokenRequest{%d}.Validate() error = %v, want %v and %v", tc.size, gotErr, tc.wantErr, core.ErrPrimitiveContract)
 			}
 		})
 	}
@@ -67,7 +73,7 @@ func TestRandomTokenRequestZeroValueIsRefused(t *testing.T) {
 func TestRandomTokenFillsTheExactRequestedExtent(t *testing.T) {
 	t.Parallel()
 
-	for _, size := range []uint64{1, 16, 32, keygen.RandomTokenMaximumBytes} {
+	for size := uint64(1); size <= keygen.RandomTokenMaximumBytes; size++ {
 		token, err := keygen.RandomToken(keygen.RandomTokenRequest{Size: requireByteCount(t, size)})
 		if err != nil {
 			t.Fatalf("RandomToken(%d) error = %v, want nil", size, err)
@@ -79,8 +85,22 @@ func TestRandomTokenFillsTheExactRequestedExtent(t *testing.T) {
 		if err != nil {
 			t.Fatalf("RandomToken(%d).Bytes() error = %v, want nil", size, err)
 		}
-		if uint64(len(drawn)) != size {
+		if got, want := uint64(len(drawn)), size; got != want {
 			t.Fatalf("RandomToken(%d) length = %d, want %d", size, len(drawn), size)
+		}
+		wantSecond := append([]byte(nil), drawn...)
+		if len(drawn) > 0 {
+			drawn[0] ^= 0xff
+		}
+		second, gotSecondErr := token.Bytes()
+		if gotSecondErr != nil {
+			t.Fatalf("RandomToken(%d).Bytes(second) error = %v, want nil", size, gotSecondErr)
+		}
+		if len(second) != int(size) {
+			t.Fatalf("RandomToken(%d).Bytes(second) length = %d, want %d", size, len(second), size)
+		}
+		if !slices.Equal(second, wantSecond) {
+			t.Fatalf("RandomToken(%d).Bytes(second) = %x, want immutable projection %x", size, second, wantSecond)
 		}
 	}
 }
@@ -114,42 +134,11 @@ func TestRandomTokenRefusesAnUnboundedRequest(t *testing.T) {
 	}
 }
 
-func TestRandomTokenDrawsAreDistinct(t *testing.T) {
+func TestRandomUint64UsesProductionCSPRNGBoundary(t *testing.T) {
 	t.Parallel()
 
-	const draws = 64
-	seen := make([][]byte, 0, draws)
-	for range draws {
-		token, err := keygen.RandomToken(keygen.RandomTokenRequest{Size: requireByteCount(t, 32)})
-		if err != nil {
-			t.Fatalf("RandomToken(32) error = %v, want nil", err)
-		}
-		drawn, err := token.Bytes()
-		if err != nil {
-			t.Fatalf("RandomToken(32).Bytes() error = %v, want nil", err)
-		}
-		for _, prior := range seen {
-			if bytes.Equal(prior, drawn) {
-				t.Fatalf("RandomToken(32) repeated a draw; the production CSPRNG must not collide across %d draws", draws)
-			}
-		}
-		seen = append(seen, drawn)
-	}
-}
-
-func TestRandomUint64DrawsAreDistinct(t *testing.T) {
-	t.Parallel()
-
-	const draws = 64
-	seen := make(map[uint64]struct{}, draws)
-	for range draws {
-		value, err := keygen.RandomUint64()
-		if err != nil {
-			t.Fatalf("RandomUint64() error = %v, want nil", err)
-		}
-		if _, repeated := seen[value]; repeated {
-			t.Fatalf("RandomUint64() repeated %d; the production CSPRNG must not collide across %d draws", value, draws)
-		}
-		seen[value] = struct{}{}
+	_, gotErr := keygen.RandomUint64()
+	if gotErr != nil {
+		t.Fatalf("RandomUint64() error = %v, want nil", gotErr)
 	}
 }

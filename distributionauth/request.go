@@ -4,7 +4,6 @@ import (
 	json "encoding/json/v2"
 	"errors"
 
-	"github.com/deliri/primitive/v2026/attest"
 	"github.com/deliri/primitive/v2026/controlplane"
 	"github.com/deliri/primitive/v2026/controlwire"
 	"github.com/deliri/primitive/v2026/core"
@@ -28,8 +27,8 @@ type UpdateRequestAssembly struct {
 }
 
 type UpdateVerification struct {
-	Document    UpdateRequestDocument
-	TrustedKeys attest.TrustedKeys
+	Server   controlplane.Server
+	Document UpdateRequestDocument
 }
 
 type VerifiedUpdate struct {
@@ -49,8 +48,8 @@ type UpgradeRequestAssembly struct {
 }
 
 type UpgradeVerification struct {
-	Document    UpgradeRequestDocument
-	TrustedKeys attest.TrustedKeys
+	Server   controlplane.Server
+	Document UpgradeRequestDocument
 }
 
 type VerifiedUpgrade struct {
@@ -132,7 +131,7 @@ func (d *UpdateRequestDocument) UnmarshalJSON(data []byte) error {
 }
 
 func (v UpdateVerification) Validate() error {
-	if err := errors.Join(v.Document.Validate(), v.TrustedKeys.Validate()); err != nil {
+	if err := errors.Join(v.Server.Validate(), v.Document.Validate()); err != nil {
 		return contractError(err)
 	}
 	return nil
@@ -142,8 +141,8 @@ func VerifyUpdate(verification UpdateVerification) (VerifiedUpdate, error) {
 	if err := verification.Validate(); err != nil {
 		return VerifiedUpdate{}, err
 	}
-	certificate, err := controlplane.VerifyInstallationCertificate(
-		verification.Document.Certificate, verification.TrustedKeys,
+	certificate, err := verification.Server.VerifyInstallationCertificate(
+		verification.Document.Certificate,
 	)
 	if err != nil {
 		return VerifiedUpdate{}, contractError(err)
@@ -247,7 +246,7 @@ func (d *UpgradeRequestDocument) UnmarshalJSON(data []byte) error {
 }
 
 func (v UpgradeVerification) Validate() error {
-	if err := errors.Join(v.Document.Validate(), v.TrustedKeys.Validate()); err != nil {
+	if err := errors.Join(v.Server.Validate(), v.Document.Validate()); err != nil {
 		return contractError(err)
 	}
 	return nil
@@ -257,8 +256,8 @@ func VerifyUpgrade(verification UpgradeVerification) (VerifiedUpgrade, error) {
 	if err := verification.Validate(); err != nil {
 		return VerifiedUpgrade{}, err
 	}
-	certificate, err := controlplane.VerifyInstallationCertificate(
-		verification.Document.Certificate, verification.TrustedKeys,
+	certificate, err := verification.Server.VerifyInstallationCertificate(
+		verification.Document.Certificate,
 	)
 	if err != nil {
 		return VerifiedUpgrade{}, contractError(err)

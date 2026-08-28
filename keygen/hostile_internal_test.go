@@ -21,7 +21,7 @@ func allZero(value []byte) bool {
 	return aggregate == 0
 }
 
-func TestKeygenSourceCaptureLayerTriadHostileResultAndClearingMatrix(t *testing.T) {
+func TestGenerateSecretSourceBoundaryPreservesResultErrorIdentityAndClearing(t *testing.T) {
 	t.Parallel()
 
 	sourceErr := errors.New("hostile entropy read failure")

@@ -11,19 +11,27 @@ import (
 )
 
 type (
-	controlplaneProtocolFact[T any]   struct{}
-	controlplaneAuthorityInput[T any] struct{}
-	controlplaneVerifiedProof[T any]  struct{}
-	controlplaneIssuance[T any]       struct{}
-	controlplaneInternalFlow[T any]   struct{}
-	controlplaneTypedFailure[T any]   struct{}
-	controlplaneProductionStructName  string
+	controlplaneProtocolFact[T any]     struct{}
+	controlplaneClientInput[T any]      struct{}
+	controlplaneClientCapability[T any] struct{}
+	controlplaneServerInput[T any]      struct{}
+	controlplaneServerCapability[T any] struct{}
+	controlplaneAuthorityInput[T any]   struct{}
+	controlplaneVerifiedProof[T any]    struct{}
+	controlplaneIssuance[T any]         struct{}
+	controlplaneInternalFlow[T any]     struct{}
+	controlplaneTypedFailure[T any]     struct{}
+	controlplaneProductionStructName    string
 )
 
 // controlplaneContractInventory classifies every production struct that moves,
 // authenticates, signs, or projects control-plane data. The field name is the
 // production type name, so the AST comparison below makes omissions fail.
 type controlplaneContractInventory struct {
+	ClientConfiguration               controlplaneClientInput[ClientConfiguration]
+	Client                            controlplaneClientCapability[Client]
+	ServerConfiguration               controlplaneServerInput[ServerConfiguration]
+	Server                            controlplaneServerCapability[Server]
 	RegistrationRequest               controlplaneProtocolFact[RegistrationRequest]
 	RegistrationIdentity              controlplaneProtocolFact[RegistrationIdentity]
 	InstallationCertificateBody       controlplaneProtocolFact[InstallationCertificateBody]

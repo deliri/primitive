@@ -25,8 +25,18 @@ type issuedRegistration struct {
 func (i issuedRegistration) verification() controlplane.RegistrationVerification {
 	return controlplane.RegistrationVerification{
 		Document: i.document, Expected: i.expectation,
-		Build: i.build, DeviceKey: i.deviceKey, TrustedKeys: i.trusted,
+		Build: i.build, DeviceKey: i.deviceKey,
 	}
+}
+
+func (i issuedRegistration) client(t testing.TB) controlplane.Client {
+	t.Helper()
+	return testControlplaneClient(t, i.trusted)
+}
+
+func (i issuedRegistration) server(t testing.TB) controlplane.Server {
+	t.Helper()
+	return testControlplaneServer(t, i.trusted)
 }
 
 // TestVerifyRegistrationAcceptsOnlyAResponseToThisExactRequest is the end-to-end
@@ -41,11 +51,12 @@ func TestVerifyRegistrationAcceptsOnlyAResponseToThisExactRequest(t *testing.T) 
 	t.Parallel()
 
 	issued := issueTestRegistration(t)
+	client := issued.client(t)
 
 	t.Run("the genuine response verifies", func(t *testing.T) {
 		t.Parallel()
 
-		verified, err := controlplane.VerifyRegistration(issued.verification())
+		verified, err := client.VerifyRegistration(issued.verification())
 		if err != nil {
 			t.Fatalf("VerifyRegistration() error = %v, want nil", err)
 		}
@@ -71,7 +82,7 @@ func TestVerifyRegistrationAcceptsOnlyAResponseToThisExactRequest(t *testing.T) 
 		request := issued.verification()
 		request.Expected.RequestNonce = otherRequestNonce(t)
 
-		requireBindingRefusal(t, request, controlplane.ResponseHeaderFieldRequestNonce)
+		requireBindingRefusal(t, client, request, controlplane.ResponseHeaderFieldRequestNonce)
 	})
 
 	t.Run("a response for another installation is refused", func(t *testing.T) {
@@ -81,7 +92,7 @@ func TestVerifyRegistrationAcceptsOnlyAResponseToThisExactRequest(t *testing.T) 
 		_, otherDevice := testDeviceKey(t, 9)
 		request.Expected.Installation = otherDevice
 
-		requireBindingRefusal(t, request, controlplane.ResponseHeaderFieldInstallation)
+		requireBindingRefusal(t, client, request, controlplane.ResponseHeaderFieldInstallation)
 	})
 
 	t.Run("a response for another offering is refused", func(t *testing.T) {
@@ -90,7 +101,7 @@ func TestVerifyRegistrationAcceptsOnlyAResponseToThisExactRequest(t *testing.T) 
 		request := issued.verification()
 		request.Expected.Offering = controlplaneOffering(t, 1)
 
-		requireBindingRefusal(t, request, controlplane.ResponseHeaderFieldOffering)
+		requireBindingRefusal(t, client, request, controlplane.ResponseHeaderFieldOffering)
 	})
 
 	t.Run("a credential for another device key is refused", func(t *testing.T) {
@@ -103,7 +114,7 @@ func TestVerifyRegistrationAcceptsOnlyAResponseToThisExactRequest(t *testing.T) 
 		otherPublic, _ := testDeviceKey(t, 9)
 		request.DeviceKey = otherPublic
 
-		_, err := controlplane.VerifyRegistration(request)
+		_, err := client.VerifyRegistration(request)
 		if !errors.Is(err, core.ErrControlPlaneInstallationBinding) {
 			t.Fatalf("VerifyRegistration() error = %v, want %v",
 				err, core.ErrControlPlaneInstallationBinding)
@@ -116,7 +127,7 @@ func TestVerifyRegistrationAcceptsOnlyAResponseToThisExactRequest(t *testing.T) 
 		request := issued.verification()
 		request.Build = testBuildIdentity(t, 2026, 0, 2)
 
-		_, err := controlplane.VerifyRegistration(request)
+		_, err := client.VerifyRegistration(request)
 		if !errors.Is(err, core.ErrControlPlaneInstallationBinding) {
 			t.Fatalf("VerifyRegistration() error = %v, want %v",
 				err, core.ErrControlPlaneInstallationBinding)
@@ -134,9 +145,9 @@ func TestVerifyRegistrationAcceptsOnlyAResponseToThisExactRequest(t *testing.T) 
 		if err != nil {
 			t.Fatalf("NewTrustedKeys() error = %v, want nil", err)
 		}
-		request.TrustedKeys = trusted
+		untrustedClient := testControlplaneClient(t, trusted)
 
-		verified, err := controlplane.VerifyRegistration(request)
+		verified, err := untrustedClient.VerifyRegistration(request)
 		if !errors.Is(err, core.ErrControlPlaneRegistration) ||
 			!errors.Is(err, core.ErrAttestVerification) {
 			t.Fatalf("VerifyRegistration() error = %v, want %v and %v",
@@ -153,7 +164,7 @@ func TestVerifyRegistrationAcceptsOnlyAResponseToThisExactRequest(t *testing.T) 
 		request := issued.verification()
 		request.Expected.PriorProviderTime = testInstant(t, 500)
 
-		_, err := controlplane.VerifyRegistration(request)
+		_, err := client.VerifyRegistration(request)
 		if !errors.Is(err, core.ErrControlPlaneProviderTimeRollback) {
 			t.Fatalf("VerifyRegistration() error = %v, want %v",
 				err, core.ErrControlPlaneProviderTimeRollback)
@@ -168,7 +179,7 @@ func TestVerifyRegistrationAcceptsOnlyAResponseToThisExactRequest(t *testing.T) 
 		request := issued.verification()
 		request.Expected.PriorProviderTime = testInstant(t, 50)
 
-		if _, err := controlplane.VerifyRegistration(request); err != nil {
+		if _, err := client.VerifyRegistration(request); err != nil {
 			t.Fatalf("VerifyRegistration() error = %v, want nil", err)
 		}
 	})
@@ -183,7 +194,7 @@ func TestVerifyRegistrationAcceptsOnlyAResponseToThisExactRequest(t *testing.T) 
 		tampered.Payload.Header.Status = controlplane.ProductStatusPaymentRetry
 		request.Document = tampered
 
-		verified, err := controlplane.VerifyRegistration(request)
+		verified, err := client.VerifyRegistration(request)
 		if !errors.Is(err, core.ErrControlPlaneRegistration) ||
 			!errors.Is(err, core.ErrAttestVerification) {
 			t.Fatalf("VerifyRegistration() error = %v, want %v and %v",
@@ -204,7 +215,7 @@ func TestVerifyRegistrationAcceptsOnlyAResponseToThisExactRequest(t *testing.T) 
 		stripped.Payload.Certificate = nil
 		request.Document = stripped
 
-		verified, err := controlplane.VerifyRegistration(request)
+		verified, err := client.VerifyRegistration(request)
 		if !errors.Is(err, core.ErrControlPlaneRegistration) ||
 			!errors.Is(err, core.ErrControlPlaneDecisionConsistency) {
 			t.Fatalf("VerifyRegistration() error = %v, want %v and %v",
@@ -238,10 +249,15 @@ func TestVerifiedRegistrationCannotBeForged(t *testing.T) {
 	}
 }
 
-func requireBindingRefusal(t *testing.T, request controlplane.RegistrationVerification, want controlplane.ResponseHeaderField) {
+func requireBindingRefusal(
+	t *testing.T,
+	client controlplane.Client,
+	request controlplane.RegistrationVerification,
+	want controlplane.ResponseHeaderField,
+) {
 	t.Helper()
 
-	_, err := controlplane.VerifyRegistration(request)
+	_, err := client.VerifyRegistration(request)
 	if !errors.Is(err, core.ErrControlPlaneResponseBinding) {
 		t.Fatalf("VerifyRegistration() error = %v, want %v", err, core.ErrControlPlaneResponseBinding)
 	}

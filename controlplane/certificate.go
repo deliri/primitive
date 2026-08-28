@@ -33,7 +33,7 @@ type VerifiedInstallationCertificate struct {
 // an authority for anything. A caller that read the device key out of an
 // unverified certificate and then checked a request against it would be letting
 // a self-signed document nominate the key that validates it.
-func VerifyInstallationCertificate(
+func verifyInstallationCertificate(
 	certificate InstallationCertificateDocument,
 	trusted attest.TrustedKeys,
 ) (VerifiedInstallationCertificate, error) {
@@ -59,6 +59,28 @@ func VerifyInstallationCertificate(
 		return VerifiedInstallationCertificate{}, err
 	}
 	return verified, nil
+}
+
+// VerifyInstallationCertificate authenticates an authority-issued credential
+// using only the installed tool's configured trust roots.
+func (c Client) VerifyInstallationCertificate(
+	certificate InstallationCertificateDocument,
+) (VerifiedInstallationCertificate, error) {
+	if err := c.Validate(); err != nil {
+		return VerifiedInstallationCertificate{}, registrationError(err)
+	}
+	return verifyInstallationCertificate(certificate, c.configuration.TrustedAuthorityKeys)
+}
+
+// VerifyInstallationCertificate authenticates a credential presented to the
+// authority using only the server's configured trust roots.
+func (s Server) VerifyInstallationCertificate(
+	certificate InstallationCertificateDocument,
+) (VerifiedInstallationCertificate, error) {
+	if err := s.Validate(); err != nil {
+		return VerifiedInstallationCertificate{}, registrationError(err)
+	}
+	return verifyInstallationCertificate(certificate, s.configuration.TrustedAuthorityKeys)
 }
 
 // Validate revalidates every proof the value claims to hold, so a sealed type

@@ -3,6 +3,7 @@ package temporal_test
 import (
 	"context"
 	"errors"
+	"math"
 	"testing"
 	"testing/synctest"
 	"time"
@@ -201,10 +202,15 @@ func TestTickerEffectLayerTriad(t *testing.T) {
 			interval, _ := temporal.DurationFromNanoseconds(11)
 			ticker, gotErr := temporal.OpenTicker(temporal.TickerRequest{Interval: interval})
 			if gotErr != nil || ticker == nil {
-				t.Fatalf("OpenTicker() = (%v, %v), want real ticker/nil", ticker, gotErr)
+				t.Fatalf("OpenTicker() = (%v, %v), want nonnil ticker/nil", ticker, gotErr)
+			}
+			gotValidationErr := ticker.Validate()
+			gotTicks := ticker.Ticks()
+			if gotValidationErr != nil || gotTicks == nil {
+				t.Fatalf("opened ticker = (validate:%v ticks:%v), want (nil, nonnil)", gotValidationErr, gotTicks)
 			}
 			defer ticker.Stop()
-			first := <-ticker.Ticks()
+			first := <-gotTicks
 			second := <-ticker.Ticks()
 			if got := second.Sub(first); got != 11*time.Nanosecond {
 				t.Fatalf("two real ticker readings differ by %v, want %v", got, 11*time.Nanosecond)
@@ -240,4 +246,104 @@ func TestTickerEffectLayerTriad(t *testing.T) {
 			}
 		})
 	})
+}
+
+func TestTemporalEffectRequestsExhaustTheirTypedIngressBoundaries(t *testing.T) {
+	t.Parallel()
+
+	zero, _ := temporal.DurationFromNanoseconds(0)
+	one, _ := temporal.DurationFromNanoseconds(1)
+	maximum, _ := temporal.DurationFromNanoseconds(temporal.DurationMaximumNanoseconds)
+	cancelled, cancel := context.WithCancel(context.Background())
+	cancel()
+	expired, expire := context.WithDeadline(context.Background(), time.Unix(0, 0))
+	defer expire()
+
+	cases := []struct {
+		validate func() error
+		wantErr  error
+		name     string
+	}{
+		{name: "timeout admits neutral zero duration", validate: func() error {
+			return (temporal.TimeoutRequest{Parent: context.Background(), Duration: zero}).Validate()
+		}},
+		{name: "timeout admits maximum duration", validate: func() error {
+			return (temporal.TimeoutRequest{Parent: context.Background(), Duration: maximum}).Validate()
+		}},
+		{name: "timeout rejects nil parent", validate: func() error {
+			return (temporal.TimeoutRequest{Duration: one}).Validate()
+		}, wantErr: core.ErrNilContext},
+		{name: "deadline admits minimum signed instant", validate: func() error {
+			return (temporal.DeadlineRequest{Parent: context.Background(), Deadline: temporal.InstantFromNanoseconds(math.MinInt64)}).Validate()
+		}},
+		{name: "deadline admits maximum signed instant", validate: func() error {
+			return (temporal.DeadlineRequest{Parent: context.Background(), Deadline: temporal.InstantFromNanoseconds(math.MaxInt64)}).Validate()
+		}},
+		{name: "deadline rejects unset instant", validate: func() error {
+			return (temporal.DeadlineRequest{Parent: context.Background()}).Validate()
+		}, wantErr: core.ErrTemporalContract},
+		{name: "deadline rejects nil parent", validate: func() error {
+			return (temporal.DeadlineRequest{Deadline: temporal.InstantFromNanoseconds(0)}).Validate()
+		}, wantErr: core.ErrNilContext},
+		{name: "wait admits neutral zero duration", validate: func() error {
+			return (temporal.WaitRequest{Context: context.Background(), Duration: zero}).Validate()
+		}},
+		{name: "wait admits maximum duration", validate: func() error {
+			return (temporal.WaitRequest{Context: context.Background(), Duration: maximum}).Validate()
+		}},
+		{name: "wait rejects nil context", validate: func() error {
+			return (temporal.WaitRequest{Duration: one}).Validate()
+		}, wantErr: core.ErrNilContext},
+		{name: "wait rejects cancelled context", validate: func() error {
+			return (temporal.WaitRequest{Context: cancelled, Duration: one}).Validate()
+		}, wantErr: context.Canceled},
+		{name: "wait rejects expired context", validate: func() error {
+			return (temporal.WaitRequest{Context: expired, Duration: one}).Validate()
+		}, wantErr: context.DeadlineExceeded},
+		{name: "ticker admits minimum positive interval", validate: func() error {
+			return (temporal.TickerRequest{Interval: one}).Validate()
+		}},
+		{name: "ticker admits maximum interval", validate: func() error {
+			return (temporal.TickerRequest{Interval: maximum}).Validate()
+		}},
+		{name: "ticker rejects zero interval", validate: func() error {
+			return (temporal.TickerRequest{Interval: zero}).Validate()
+		}, wantErr: core.ErrTemporalContract},
+	}
+
+	for _, tc := range cases {
+		t.Run(tc.name, func(t *testing.T) {
+			t.Parallel()
+
+			gotErr := tc.validate()
+			if !errors.Is(gotErr, tc.wantErr) {
+				t.Fatalf("request.Validate() error = %v, want %v", gotErr, tc.wantErr)
+			}
+		})
+	}
+}
+
+func TestTickerCapabilityExhaustsUnsetRepresentations(t *testing.T) {
+	t.Parallel()
+
+	cases := []struct {
+		name  string
+		value *temporal.Ticker
+	}{
+		{name: "nil ticker pointer is unset"},
+		{name: "allocated zero ticker is unset", value: new(temporal.Ticker)},
+	}
+	for _, tc := range cases {
+		t.Run(tc.name, func(t *testing.T) {
+			t.Parallel()
+
+			gotErr := tc.value.Validate()
+			gotTicks := tc.value.Ticks()
+			tc.value.Stop()
+			tc.value.Stop()
+			if !errors.Is(gotErr, core.ErrTemporalContract) || gotTicks != nil {
+				t.Fatalf("unset Ticker = (validate:%v ticks:%v), want (%v, nil)", gotErr, gotTicks, core.ErrTemporalContract)
+			}
+		})
+	}
 }

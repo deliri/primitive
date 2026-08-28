@@ -3,7 +3,6 @@ package distributionauth
 import (
 	"crypto"
 
-	"github.com/deliri/primitive/v2026/attest"
 	"github.com/deliri/primitive/v2026/controlplane"
 	"github.com/deliri/primitive/v2026/controlwire"
 	"github.com/deliri/primitive/v2026/core"
@@ -12,6 +11,7 @@ import (
 )
 
 type MaterialResponseIssuance struct {
+	Server     controlplane.Server
 	Signer     crypto.Signer
 	Header     controlplane.ResponseHeader
 	Body       release.MaterialResponse
@@ -19,9 +19,9 @@ type MaterialResponseIssuance struct {
 }
 
 type MaterialResponseVerification struct {
-	Expected    controlplane.ResponseExpectation
-	Document    controlplane.ResponseDocument[release.MaterialResponse, *release.MaterialResponse]
-	TrustedKeys attest.TrustedKeys
+	Client   controlplane.Client
+	Expected controlplane.ResponseExpectation
+	Document controlplane.ResponseDocument[release.MaterialResponse, *release.MaterialResponse]
 }
 
 func (i MaterialResponseIssuance) Validate() error {
@@ -36,7 +36,7 @@ func IssueMaterialResponse(i MaterialResponseIssuance) (controlplane.ResponsePro
 
 func (i MaterialResponseIssuance) responseIssuance() controlplane.ResponseIssuance[release.MaterialResponse] {
 	return controlplane.ResponseIssuance[release.MaterialResponse]{
-		Signer: i.Signer, Body: i.Body, Header: i.Header, Assessment: i.Assessment,
+		Server: i.Server, Signer: i.Signer, Body: i.Body, Header: i.Header, Assessment: i.Assessment,
 	}
 }
 
@@ -50,11 +50,12 @@ func VerifyMaterialResponse(v MaterialResponseVerification) (controlplane.Verifi
 
 func (v MaterialResponseVerification) responseVerification() controlplane.ResponseVerification[release.MaterialResponse, *release.MaterialResponse] {
 	return controlplane.ResponseVerification[release.MaterialResponse, *release.MaterialResponse]{
-		Document: v.Document, Expected: v.Expected, TrustedKeys: v.TrustedKeys,
+		Client: v.Client, Document: v.Document, Expected: v.Expected,
 	}
 }
 
 type PublicationResponseIssuance struct {
+	Server     controlplane.Server
 	Signer     crypto.Signer
 	Header     controlplane.ResponseHeader
 	Body       distribution.PublicationGrantProjection
@@ -62,9 +63,9 @@ type PublicationResponseIssuance struct {
 }
 
 type PublicationResponseVerification struct {
-	Expected    controlplane.ResponseExpectation
-	Document    controlplane.ResponseDocument[distribution.PublicationGrantDocument, *distribution.PublicationGrantDocument]
-	TrustedKeys attest.TrustedKeys
+	Client   controlplane.Client
+	Expected controlplane.ResponseExpectation
+	Document controlplane.ResponseDocument[distribution.PublicationGrantDocument, *distribution.PublicationGrantDocument]
 }
 
 func (i PublicationResponseIssuance) Validate() error {
@@ -79,7 +80,7 @@ func IssuePublicationResponse(i PublicationResponseIssuance) (controlplane.Respo
 
 func (i PublicationResponseIssuance) responseIssuance() controlplane.ResponseIssuance[distribution.PublicationGrantProjection] {
 	return controlplane.ResponseIssuance[distribution.PublicationGrantProjection]{
-		Signer: i.Signer, Body: i.Body, Header: i.Header, Assessment: i.Assessment,
+		Server: i.Server, Signer: i.Signer, Body: i.Body, Header: i.Header, Assessment: i.Assessment,
 	}
 }
 
@@ -93,11 +94,12 @@ func VerifyPublicationResponse(v PublicationResponseVerification) (controlplane.
 
 func (v PublicationResponseVerification) responseVerification() controlplane.ResponseVerification[distribution.PublicationGrantDocument, *distribution.PublicationGrantDocument] {
 	return controlplane.ResponseVerification[distribution.PublicationGrantDocument, *distribution.PublicationGrantDocument]{
-		Document: v.Document, Expected: v.Expected, TrustedKeys: v.TrustedKeys,
+		Client: v.Client, Document: v.Document, Expected: v.Expected,
 	}
 }
 
 type PublicationCompletionResponseIssuance struct {
+	Server     controlplane.Server
 	Signer     crypto.Signer
 	Header     controlplane.ResponseHeader
 	Body       release.LatestDocument
@@ -105,9 +107,9 @@ type PublicationCompletionResponseIssuance struct {
 }
 
 type PublicationCompletionResponseVerification struct {
-	Expected    controlplane.ResponseExpectation
-	Document    controlplane.ResponseDocument[release.LatestDocument, *release.LatestDocument]
-	TrustedKeys attest.TrustedKeys
+	Client   controlplane.Client
+	Expected controlplane.ResponseExpectation
+	Document controlplane.ResponseDocument[release.LatestDocument, *release.LatestDocument]
 }
 
 func (i PublicationCompletionResponseIssuance) Validate() error {
@@ -124,7 +126,7 @@ func IssuePublicationCompletionResponse(
 
 func (i PublicationCompletionResponseIssuance) responseIssuance() controlplane.ResponseIssuance[release.LatestDocument] {
 	return controlplane.ResponseIssuance[release.LatestDocument]{
-		Signer: i.Signer, Body: i.Body, Header: i.Header, Assessment: i.Assessment,
+		Server: i.Server, Signer: i.Signer, Body: i.Body, Header: i.Header, Assessment: i.Assessment,
 	}
 }
 
@@ -140,11 +142,12 @@ func VerifyPublicationCompletionResponse(
 
 func (v PublicationCompletionResponseVerification) responseVerification() controlplane.ResponseVerification[release.LatestDocument, *release.LatestDocument] {
 	return controlplane.ResponseVerification[release.LatestDocument, *release.LatestDocument]{
-		Document: v.Document, Expected: v.Expected, TrustedKeys: v.TrustedKeys,
+		Client: v.Client, Document: v.Document, Expected: v.Expected,
 	}
 }
 
 type UpdateResponseIssuance struct {
+	Server     controlplane.Server
 	Signer     crypto.Signer
 	Header     controlplane.ResponseHeader
 	Body       distribution.UpdateResponseDocument
@@ -152,9 +155,9 @@ type UpdateResponseIssuance struct {
 }
 
 type UpdateResponseVerification struct {
-	Expected    controlplane.ResponseExpectation
-	Document    controlplane.ResponseDocument[distribution.UpdateResponseDocument, *distribution.UpdateResponseDocument]
-	TrustedKeys attest.TrustedKeys
+	Client   controlplane.Client
+	Expected controlplane.ResponseExpectation
+	Document controlplane.ResponseDocument[distribution.UpdateResponseDocument, *distribution.UpdateResponseDocument]
 }
 
 func (i UpdateResponseIssuance) Validate() error {
@@ -169,7 +172,7 @@ func IssueUpdateResponse(i UpdateResponseIssuance) (controlplane.ResponseProject
 
 func (i UpdateResponseIssuance) responseIssuance() controlplane.ResponseIssuance[distribution.UpdateResponseDocument] {
 	return controlplane.ResponseIssuance[distribution.UpdateResponseDocument]{
-		Signer: i.Signer, Body: i.Body, Header: i.Header, Assessment: i.Assessment,
+		Server: i.Server, Signer: i.Signer, Body: i.Body, Header: i.Header, Assessment: i.Assessment,
 	}
 }
 
@@ -183,11 +186,12 @@ func VerifyUpdateResponse(v UpdateResponseVerification) (controlplane.VerifiedRe
 
 func (v UpdateResponseVerification) responseVerification() controlplane.ResponseVerification[distribution.UpdateResponseDocument, *distribution.UpdateResponseDocument] {
 	return controlplane.ResponseVerification[distribution.UpdateResponseDocument, *distribution.UpdateResponseDocument]{
-		Document: v.Document, Expected: v.Expected, TrustedKeys: v.TrustedKeys,
+		Client: v.Client, Document: v.Document, Expected: v.Expected,
 	}
 }
 
 type UpgradeResponseIssuance struct {
+	Server     controlplane.Server
 	Signer     crypto.Signer
 	Header     controlplane.ResponseHeader
 	Body       distribution.UpgradeGrantProjection
@@ -195,9 +199,9 @@ type UpgradeResponseIssuance struct {
 }
 
 type UpgradeResponseVerification struct {
-	Expected    controlplane.ResponseExpectation
-	Document    controlplane.ResponseDocument[distribution.UpgradeGrantDocument, *distribution.UpgradeGrantDocument]
-	TrustedKeys attest.TrustedKeys
+	Client   controlplane.Client
+	Expected controlplane.ResponseExpectation
+	Document controlplane.ResponseDocument[distribution.UpgradeGrantDocument, *distribution.UpgradeGrantDocument]
 }
 
 func (i UpgradeResponseIssuance) Validate() error {
@@ -212,7 +216,7 @@ func IssueUpgradeResponse(i UpgradeResponseIssuance) (controlplane.ResponseProje
 
 func (i UpgradeResponseIssuance) responseIssuance() controlplane.ResponseIssuance[distribution.UpgradeGrantProjection] {
 	return controlplane.ResponseIssuance[distribution.UpgradeGrantProjection]{
-		Signer: i.Signer, Body: i.Body, Header: i.Header, Assessment: i.Assessment,
+		Server: i.Server, Signer: i.Signer, Body: i.Body, Header: i.Header, Assessment: i.Assessment,
 	}
 }
 
@@ -226,7 +230,7 @@ func VerifyUpgradeResponse(v UpgradeResponseVerification) (controlplane.Verified
 
 func (v UpgradeResponseVerification) responseVerification() controlplane.ResponseVerification[distribution.UpgradeGrantDocument, *distribution.UpgradeGrantDocument] {
 	return controlplane.ResponseVerification[distribution.UpgradeGrantDocument, *distribution.UpgradeGrantDocument]{
-		Document: v.Document, Expected: v.Expected, TrustedKeys: v.TrustedKeys,
+		Client: v.Client, Document: v.Document, Expected: v.Expected,
 	}
 }
 

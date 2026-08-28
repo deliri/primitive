@@ -6,6 +6,7 @@ import (
 	"context"
 	"errors"
 	"testing"
+	"time"
 
 	"github.com/deliri/primitive/v2026/core"
 	"github.com/deliri/primitive/v2026/hostfacts"
@@ -17,13 +18,16 @@ const (
 	physicalMemoryContextOutcomeSuccess physicalMemoryContextOutcome = iota + 1
 	physicalMemoryContextOutcomeNil
 	physicalMemoryContextOutcomeCancelled
+	physicalMemoryContextOutcomeDeadline
 )
 
-func TestObservePhysicalMemoryLayerTriad(t *testing.T) {
+func TestObservePhysicalMemoryHonorsContextBeforeNativeObservation(t *testing.T) {
 	t.Parallel()
 
 	cancelled, cancel := context.WithCancel(context.Background())
 	cancel()
+	expired, expire := context.WithDeadline(context.Background(), time.Unix(0, 0))
+	defer expire()
 	cases := []struct {
 		makeContext func() context.Context
 		name        string
@@ -32,6 +36,7 @@ func TestObservePhysicalMemoryLayerTriad(t *testing.T) {
 		{name: "positive active context observes nonzero physical memory", makeContext: context.Background, wantOutcome: physicalMemoryContextOutcomeSuccess},
 		{name: "negative nil context is refused before observation", makeContext: func() context.Context { return nil }, wantOutcome: physicalMemoryContextOutcomeNil},
 		{name: "neutral cancelled context is refused before observation", makeContext: func() context.Context { return cancelled }, wantOutcome: physicalMemoryContextOutcomeCancelled},
+		{name: "expired deadline is refused before observation", makeContext: func() context.Context { return expired }, wantOutcome: physicalMemoryContextOutcomeDeadline},
 	}
 	for _, tc := range cases {
 		t.Run(tc.name, func(t *testing.T) {
@@ -42,6 +47,9 @@ func TestObservePhysicalMemoryLayerTriad(t *testing.T) {
 				var wantErr error = core.ErrNilContext
 				if tc.wantOutcome == physicalMemoryContextOutcomeCancelled {
 					wantErr = context.Canceled
+				}
+				if tc.wantOutcome == physicalMemoryContextOutcomeDeadline {
+					wantErr = context.DeadlineExceeded
 				}
 				if !errors.Is(gotErr, wantErr) {
 					t.Fatalf("ObservePhysicalMemory() error = %v, want %v", gotErr, wantErr)

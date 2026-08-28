@@ -37,8 +37,18 @@ type issuedCheckInResponse struct {
 
 func (i issuedCheckInResponse) verification() controlplane.CheckInResponseVerification {
 	return controlplane.CheckInResponseVerification{
-		Document: i.document, Expected: i.expectation, TrustedKeys: i.trusted,
+		Document: i.document, Expected: i.expectation,
 	}
+}
+
+func (i issuedCheckInResponse) client(t testing.TB) controlplane.Client {
+	t.Helper()
+	return testControlplaneClient(t, i.trusted)
+}
+
+func (i issuedCheckInResponse) server(t testing.TB) controlplane.Server {
+	t.Helper()
+	return testControlplaneServer(t, i.trusted)
 }
 
 // issueTestCheckInResponse builds one genuinely signed check-in answer.
@@ -60,16 +70,16 @@ func issueTestCheckInResponse(t testing.TB) issuedCheckInResponse {
 	}
 	payload := golden.Payload
 	payload.Lease = resignLease(t, payload.Lease, signer)
-
-	document, err := controlplane.IssueCheckInResponse(payload, signer)
-	if err != nil {
-		t.Fatalf("IssueCheckInResponse() error = %v, want nil", err)
-	}
 	trusted, err := attest.NewTrustedKeys(attest.TrustedKeysRequest{
 		Keys: []core.Ed25519PublicKey{signerPublic},
 	})
 	if err != nil {
 		t.Fatalf("NewTrustedKeys() error = %v, want nil", err)
+	}
+	server := testControlplaneServer(t, trusted)
+	document, err := server.IssueCheckInResponse(payload, signer)
+	if err != nil {
+		t.Fatalf("Server.IssueCheckInResponse() error = %v, want nil", err)
 	}
 	return issuedCheckInResponse{
 		signer: signer, document: document, trusted: trusted,
@@ -88,11 +98,12 @@ func TestVerifyCheckInResponseAcceptsOnlyAnAnswerToThisExactCheckIn(t *testing.T
 	t.Parallel()
 
 	issued := issueTestCheckInResponse(t)
+	client := issued.client(t)
 
 	t.Run("the genuine answer verifies and carries its decision", func(t *testing.T) {
 		t.Parallel()
 
-		verified, err := controlplane.VerifyCheckInResponse(issued.verification())
+		verified, err := client.VerifyCheckInResponse(issued.verification())
 		if err != nil {
 			t.Fatalf("VerifyCheckInResponse() error = %v, want nil", err)
 		}
@@ -120,7 +131,7 @@ func TestVerifyCheckInResponseAcceptsOnlyAnAnswerToThisExactCheckIn(t *testing.T
 		request := issued.verification()
 		request.Expected.RequestNonce = otherRequestNonce(t)
 
-		requireResponseBindingRefusal(t, request, controlplane.ResponseHeaderFieldRequestNonce)
+		requireResponseBindingRefusal(t, client, request, controlplane.ResponseHeaderFieldRequestNonce)
 	})
 
 	t.Run("an answer for another installation is refused", func(t *testing.T) {
@@ -130,7 +141,7 @@ func TestVerifyCheckInResponseAcceptsOnlyAnAnswerToThisExactCheckIn(t *testing.T
 		_, otherDevice := testDeviceKey(t, checkInOtherDeviceSeed)
 		request.Expected.Installation = otherDevice
 
-		requireResponseBindingRefusal(t, request, controlplane.ResponseHeaderFieldInstallation)
+		requireResponseBindingRefusal(t, client, request, controlplane.ResponseHeaderFieldInstallation)
 	})
 
 	t.Run("an answer for another offering is refused", func(t *testing.T) {
@@ -139,7 +150,7 @@ func TestVerifyCheckInResponseAcceptsOnlyAnAnswerToThisExactCheckIn(t *testing.T
 		request := issued.verification()
 		request.Expected.Offering = controlplaneOffering(t, 1)
 
-		requireResponseBindingRefusal(t, request, controlplane.ResponseHeaderFieldOffering)
+		requireResponseBindingRefusal(t, client, request, controlplane.ResponseHeaderFieldOffering)
 	})
 
 	t.Run("an answer for another account is refused", func(t *testing.T) {
@@ -152,7 +163,7 @@ func TestVerifyCheckInResponseAcceptsOnlyAnAnswerToThisExactCheckIn(t *testing.T
 		}
 		request.Expected.Account = other
 
-		requireResponseBindingRefusal(t, request, controlplane.ResponseHeaderFieldAccount)
+		requireResponseBindingRefusal(t, client, request, controlplane.ResponseHeaderFieldAccount)
 	})
 
 	// Revision is the fifth bound fact and has no case here, deliberately.
@@ -172,7 +183,7 @@ func TestVerifyCheckInResponseAcceptsOnlyAnAnswerToThisExactCheckIn(t *testing.T
 		request := issued.verification()
 		request.Expected.PriorProviderTime = testInstant(t, checkInResponseFutureInstant)
 
-		if got, err := controlplane.VerifyCheckInResponse(request); !errors.Is(err, core.ErrControlPlaneProviderTimeRollback) || got != (controlplane.VerifiedCheckInResponse{}) {
+		if got, err := client.VerifyCheckInResponse(request); !errors.Is(err, core.ErrControlPlaneProviderTimeRollback) || got != (controlplane.VerifiedCheckInResponse{}) {
 			t.Fatalf("VerifyCheckInResponse() = (%v, %v), want zero and %v", got, err, core.ErrControlPlaneProviderTimeRollback)
 		}
 	})
@@ -183,7 +194,7 @@ func TestVerifyCheckInResponseAcceptsOnlyAnAnswerToThisExactCheckIn(t *testing.T
 		request := issued.verification()
 		request.Document.Attestation = attest.Envelope[controlplane.SigningDomain]{}
 
-		requireCheckInResponseRefusal(t, request)
+		requireCheckInResponseRefusal(t, client, request)
 	})
 
 	t.Run("a trust set holding only some other key is refused", func(t *testing.T) {
@@ -197,9 +208,9 @@ func TestVerifyCheckInResponseAcceptsOnlyAnAnswerToThisExactCheckIn(t *testing.T
 			t.Fatalf("NewTrustedKeys() error = %v, want nil", err)
 		}
 		request := issued.verification()
-		request.TrustedKeys = keys
+		untrustedClient := testControlplaneClient(t, keys)
 
-		requireCheckInResponseRefusal(t, request)
+		requireCheckInResponseRefusal(t, untrustedClient, request)
 	})
 
 	t.Run("a lease signed by another key is refused inside a genuine answer", func(t *testing.T) {
@@ -211,14 +222,14 @@ func TestVerifyCheckInResponseAcceptsOnlyAnAnswerToThisExactCheckIn(t *testing.T
 		_, impostor := testSigningKey(t, checkInOtherDeviceSeed)
 		payload := issued.document.Payload
 		payload.Lease = resignLease(t, payload.Lease, impostor)
-		document, err := controlplane.IssueCheckInResponse(payload, issued.signer)
+		document, err := issued.server(t).IssueCheckInResponse(payload, issued.signer)
 		if err != nil {
 			t.Fatalf("IssueCheckInResponse() error = %v, want nil", err)
 		}
 		request := issued.verification()
 		request.Document = document
 
-		requireCheckInResponseRefusal(t, request)
+		requireCheckInResponseRefusal(t, client, request)
 	})
 }
 
@@ -252,6 +263,7 @@ func TestIssueCheckInResponseRefusesEveryPayloadValidateRefuses(t *testing.T) {
 	t.Parallel()
 
 	issued := issueTestCheckInResponse(t)
+	server := issued.server(t)
 	_, signer := testSigningKey(t, checkInAuthoritySeed)
 	_, otherDevice := testDeviceKey(t, checkInOtherDeviceSeed)
 	otherGeneration, err := lease.NewGeneration(checkInResponseOtherGeneration)
@@ -399,7 +411,7 @@ func TestIssueCheckInResponseRefusesEveryPayloadValidateRefuses(t *testing.T) {
 				t.Fatalf("invalid fixture Validate() error = %v, want errors.Is %v",
 					err, testCase.want)
 			}
-			document, err := controlplane.IssueCheckInResponse(payload, signer)
+			document, err := server.IssueCheckInResponse(payload, signer)
 			if !errors.Is(err, testCase.want) {
 				t.Fatalf("IssueCheckInResponse() error = %v, want errors.Is %v",
 					err, testCase.want)
@@ -501,12 +513,13 @@ func TestResponseHeaderFieldRefusesEveryValueOutsideTheDomain(t *testing.T) {
 
 func requireResponseBindingRefusal(
 	t *testing.T,
+	client controlplane.Client,
 	request controlplane.CheckInResponseVerification,
 	want controlplane.ResponseHeaderField,
 ) {
 	t.Helper()
 
-	_, err := controlplane.VerifyCheckInResponse(request)
+	_, err := client.VerifyCheckInResponse(request)
 	if !errors.Is(err, core.ErrControlPlaneResponseBinding) {
 		t.Fatalf("VerifyCheckInResponse() error = %v, want %v", err, core.ErrControlPlaneResponseBinding)
 	}
@@ -519,10 +532,14 @@ func requireResponseBindingRefusal(
 	}
 }
 
-func requireCheckInResponseRefusal(t *testing.T, request controlplane.CheckInResponseVerification) {
+func requireCheckInResponseRefusal(
+	t *testing.T,
+	client controlplane.Client,
+	request controlplane.CheckInResponseVerification,
+) {
 	t.Helper()
 
-	verified, err := controlplane.VerifyCheckInResponse(request)
+	verified, err := client.VerifyCheckInResponse(request)
 	if !errors.Is(err, core.ErrControlPlaneCheckInResponse) || verified != (controlplane.VerifiedCheckInResponse{}) {
 		t.Fatalf("VerifyCheckInResponse() = (%v, %v), want zero and %v", verified, err, core.ErrControlPlaneCheckInResponse)
 	}

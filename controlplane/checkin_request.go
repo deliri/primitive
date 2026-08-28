@@ -129,8 +129,7 @@ type checkInRequestWire CheckInRequest
 // CheckInVerification carries the authority's trusted keys into exact credential
 // and device-request authentication.
 type CheckInVerification struct {
-	Request     CheckInRequest
-	TrustedKeys attest.TrustedKeys
+	Request CheckInRequest
 }
 
 // VerifiedCheckIn is proof that a check-in authenticated. Its fields are
@@ -203,11 +202,14 @@ func (r *CheckInRequest) UnmarshalJSON(data []byte) error {
 
 // IssueCheckIn signs one validated payload with the device key and attaches the
 // credential the authority issued for that device.
-func IssueCheckIn(
+func (c Client) IssueCheckIn(
 	payload CheckInPayload,
 	key ed25519.PrivateKey,
 	certificate InstallationCertificateDocument,
 ) (CheckInRequest, error) {
+	if err := c.Validate(); err != nil {
+		return CheckInRequest{}, checkInError(err)
+	}
 	if err := errors.Join(payload.Validate(), certificate.Validate()); err != nil {
 		return CheckInRequest{}, checkInError(err)
 	}
@@ -221,7 +223,7 @@ func IssueCheckIn(
 
 // Validate closes the complete verification input.
 func (v CheckInVerification) Validate() error {
-	if err := errors.Join(v.Request.Validate(), v.TrustedKeys.Validate()); err != nil {
+	if err := v.Request.Validate(); err != nil {
 		return checkInError(err)
 	}
 	return nil
@@ -229,12 +231,15 @@ func (v CheckInVerification) Validate() error {
 
 // VerifyCheckIn authenticates the authority-issued credential first, then uses
 // the exact device key it names as the sole authority for the request.
-func VerifyCheckIn(verification CheckInVerification) (VerifiedCheckIn, error) {
+func (s Server) VerifyCheckIn(verification CheckInVerification) (VerifiedCheckIn, error) {
+	if err := s.Validate(); err != nil {
+		return VerifiedCheckIn{}, checkInError(err)
+	}
 	if err := verification.Validate(); err != nil {
 		return VerifiedCheckIn{}, err
 	}
 	certificateProof, deviceKeys, err := verifyCheckInCertificate(
-		verification.Request.Certificate, verification.TrustedKeys,
+		verification.Request.Certificate, s.configuration.TrustedAuthorityKeys,
 	)
 	if err != nil {
 		return VerifiedCheckIn{}, err

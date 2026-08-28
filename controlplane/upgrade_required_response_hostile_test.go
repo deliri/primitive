@@ -58,11 +58,12 @@ func TestUpgradeRequiredResponseAcceptsTenBoundedBodylessRepresentations(t *test
 	}
 }
 
-func TestUpgradeRequiredIssuanceRejectsTwelveIndependentContractFailures(t *testing.T) {
+func TestUpgradeRequiredIssuanceRejectsEveryIndependentContractFailure(t *testing.T) {
 	t.Parallel()
 
 	fixture := upgradeRequiredResponseForTest(t, 96)
 	base := controlplane.UpgradeRequiredIssuance{
+		Server: fixture.base.server,
 		Signer: fixture.base.signer, Header: fixture.header,
 		Assessment: upgradeRequiredProtocolAssessment(t, fixture.header),
 	}
@@ -71,6 +72,7 @@ func TestUpgradeRequiredIssuanceRejectsTwelveIndependentContractFailures(t *test
 		mutate func(*controlplane.UpgradeRequiredIssuance)
 		name   string
 	}{
+		{name: "zero server capability", mutate: func(value *controlplane.UpgradeRequiredIssuance) { value.Server = controlplane.Server{} }, want: core.ErrControlPlaneContract},
 		{name: "nil signer", mutate: func(value *controlplane.UpgradeRequiredIssuance) { value.Signer = nil }, want: core.ErrAttestContract},
 		{name: "zero header", mutate: func(value *controlplane.UpgradeRequiredIssuance) { value.Header = controlplane.ResponseHeader{} }, want: core.ErrControlPlaneResponseHeader},
 		{name: "zero revision", mutate: func(value *controlplane.UpgradeRequiredIssuance) { value.Header.Revision = controlwire.RevisionUnknown }, want: core.ErrControlPlaneResponseHeader},
@@ -100,8 +102,8 @@ func TestUpgradeRequiredIssuanceRejectsTwelveIndependentContractFailures(t *test
 			value.Assessment.Capability.Revision = controlwire.Revision(math.MaxUint8)
 		}, want: core.ErrControlWireProtocolSupport},
 	}
-	if len(cases) != 12 {
-		t.Fatalf("upgrade issuance rejection inventory = %d, want exactly 12", len(cases))
+	if len(cases) != 13 {
+		t.Fatalf("upgrade issuance rejection inventory = %d, want exactly 13", len(cases))
 	}
 	for _, tc := range cases {
 		t.Run(tc.name, func(t *testing.T) {
@@ -217,7 +219,7 @@ func FuzzUpgradeRequiredResponseSemanticClosure(f *testing.F) {
 			t.Fatalf("accepted refusal Validate() error = %v, want nil", candidate.Validate())
 		}
 		verified, verifyErr := controlplane.VerifyResponse(controlplane.ResponseVerification[controlplane.RegistrationDocument, *controlplane.RegistrationDocument]{
-			Document: candidate, Expected: fixture.base.expected, TrustedKeys: fixture.base.trusted,
+			Client: fixture.base.client, Document: candidate, Expected: fixture.base.expected,
 		})
 		if verifyErr != nil {
 			bindingRefusal := errors.Is(verifyErr, core.ErrControlPlaneResponseBinding)
@@ -234,6 +236,7 @@ func FuzzUpgradeRequiredResponseSemanticClosure(f *testing.F) {
 			t.Fatalf("trusted refusal facts = (header %+v/%v, body %+v/%v), want exact header, zero body, and %v", header, headerErr, body, bodyErr, core.ErrControlPlaneUpgradeRequired)
 		}
 		projection, issueErr := controlplane.IssueUpgradeRequiredResponse[controlplane.RegistrationDocument](controlplane.UpgradeRequiredIssuance{
+			Server: fixture.base.server,
 			Signer: fixture.base.signer, Header: header, Assessment: upgradeRequiredProtocolAssessment(t, header),
 		})
 		canonical, marshalErr := projection.MarshalJSON()
@@ -260,6 +263,7 @@ func upgradeRequiredResponseWithHeader(
 	t.Helper()
 
 	projection, err := controlplane.IssueUpgradeRequiredResponse[controlplane.RegistrationDocument](controlplane.UpgradeRequiredIssuance{
+		Server: base.server,
 		Signer: base.signer, Header: header, Assessment: upgradeRequiredProtocolAssessment(t, header),
 	})
 	if err != nil {
@@ -291,7 +295,7 @@ func proveUpgradeRequiredResponse(
 	t.Helper()
 
 	verified, err := controlplane.VerifyResponse(controlplane.ResponseVerification[controlplane.RegistrationDocument, *controlplane.RegistrationDocument]{
-		Document: document, Expected: fixture.base.expected, TrustedKeys: fixture.base.trusted,
+		Client: fixture.base.client, Document: document, Expected: fixture.base.expected,
 	})
 	if err != nil {
 		t.Fatalf("VerifyResponse(authentic refusal) error = %v, want nil", err)

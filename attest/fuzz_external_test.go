@@ -24,7 +24,14 @@ const (
 )
 
 func FuzzEnvelopeJSONSemanticClosure(f *testing.F) {
-	canonical := canonicalEnvelopeJSONFixture(f)
+	canonicalBody := literalBody{value: []byte("body"), domain: testDomainPrimary}
+	canonicalSigner := deterministicPrivateKey(f, "canonical-json")
+	canonicalEnvelope := mustEnvelope(f, canonicalBody, canonicalSigner)
+	canonical, gotErr := canonicalEnvelope.MarshalJSON()
+	if gotErr != nil {
+		f.Fatalf("Envelope.MarshalJSON(seed) error = %v, want nil", gotErr)
+	}
+	canonicalTrust := mustTrustedKeys(f, mustPublicKey(f, canonicalSigner))
 	f.Add(canonical)
 	f.Add([]byte{})
 	f.Add([]byte(`{"domain":"test-primary-2026"}`))
@@ -37,24 +44,46 @@ func FuzzEnvelopeJSONSemanticClosure(f *testing.F) {
 			literalBody{value: []byte("fuzz receiver"), domain: testDomainAlternate},
 			deterministicPrivateKey(t, "fuzz-json-receiver"),
 		)
-		gotEnvelope := original
-		gotErr := gotEnvelope.UnmarshalJSON(data)
-		if gotErr != nil {
-			if !errors.Is(gotErr, core.ErrJSONContract) {
-				t.Fatalf("Envelope.UnmarshalJSON() error = %v, want %v", gotErr, core.ErrJSONContract)
+		var gotFresh attest.Envelope[testDomain]
+		gotFreshErr := gotFresh.UnmarshalJSON(data)
+		gotPopulated := original
+		gotPopulatedErr := gotPopulated.UnmarshalJSON(data)
+		if gotFreshErr != nil || gotPopulatedErr != nil {
+			if !errors.Is(gotFreshErr, core.ErrJSONContract) ||
+				!errors.Is(gotPopulatedErr, core.ErrJSONContract) {
+				t.Fatalf(
+					"Envelope.UnmarshalJSON(rejected) JSON errors = (%v, %v), want (%v, %v)",
+					gotFreshErr,
+					gotPopulatedErr,
+					core.ErrJSONContract,
+					core.ErrJSONContract,
+				)
 			}
-			if !errors.Is(gotErr, core.ErrAttestContract) {
-				t.Fatalf("Envelope.UnmarshalJSON() attest identity = %v, want %v", gotErr, core.ErrAttestContract)
+			if !errors.Is(gotFreshErr, core.ErrAttestContract) ||
+				!errors.Is(gotPopulatedErr, core.ErrAttestContract) {
+				t.Fatalf(
+					"Envelope.UnmarshalJSON(rejected) attest errors = (%v, %v), want (%v, %v)",
+					gotFreshErr,
+					gotPopulatedErr,
+					core.ErrAttestContract,
+					core.ErrAttestContract,
+				)
 			}
-			if gotEnvelope != original {
-				t.Fatalf("Envelope after rejection = %+v, want preserved %+v", gotEnvelope, original)
+			if gotFresh != (attest.Envelope[testDomain]{}) {
+				t.Fatalf("fresh Envelope after rejection = %+v, want zero", gotFresh)
+			}
+			if gotPopulated != original {
+				t.Fatalf("populated Envelope after rejection = %+v, want preserved %+v", gotPopulated, original)
 			}
 			return
 		}
-		if gotErr := gotEnvelope.Validate(); gotErr != nil {
+		if gotFresh != gotPopulated {
+			t.Fatalf("Envelope.UnmarshalJSON(accepted) receivers = (%+v, %+v), want equal", gotFresh, gotPopulated)
+		}
+		if gotErr := gotFresh.Validate(); gotErr != nil {
 			t.Fatalf("Envelope.UnmarshalJSON() accepted invalid envelope: %v", gotErr)
 		}
-		gotCanonical, gotMarshalErr := gotEnvelope.MarshalJSON()
+		gotCanonical, gotMarshalErr := gotFresh.MarshalJSON()
 		if gotMarshalErr != nil {
 			t.Fatalf("Envelope.MarshalJSON() error = %v, want nil", gotMarshalErr)
 		}
@@ -70,8 +99,8 @@ func FuzzEnvelopeJSONSemanticClosure(f *testing.F) {
 		if gotRoundTripErr != nil {
 			t.Fatalf("canonical Envelope.UnmarshalJSON() error = %v, want nil", gotRoundTripErr)
 		}
-		if gotRoundTrip != gotEnvelope {
-			t.Fatalf("canonical round trip = %+v, want %+v", gotRoundTrip, gotEnvelope)
+		if gotRoundTrip != gotFresh {
+			t.Fatalf("canonical round trip = %+v, want %+v", gotRoundTrip, gotFresh)
 		}
 		gotSecond, gotSecondErr := gotRoundTrip.MarshalJSON()
 		if gotSecondErr != nil {
@@ -79,6 +108,33 @@ func FuzzEnvelopeJSONSemanticClosure(f *testing.F) {
 		}
 		if !bytes.Equal(gotSecond, gotCanonical) {
 			t.Fatalf("second canonical projection = %s, want %s", gotSecond, gotCanonical)
+		}
+
+		gotVerified, gotVerifyErr := attest.Verify(attest.VerifyRequest[testDomain]{
+			Body:        copyLiteralBody(canonicalBody),
+			Envelope:    gotFresh,
+			TrustedKeys: canonicalTrust,
+		})
+		if gotFresh != canonicalEnvelope {
+			if !errors.Is(gotVerifyErr, core.ErrAttestVerification) {
+				t.Fatalf("attest.Verify(structurally accepted foreign envelope) error = %v, want %v", gotVerifyErr, core.ErrAttestVerification)
+			}
+			if gotVerified != (attest.Verified[testDomain]{}) {
+				t.Fatalf("attest.Verify(structurally accepted foreign envelope) proof = %+v, want zero", gotVerified)
+			}
+			return
+		}
+		if gotVerifyErr != nil {
+			t.Fatalf("attest.Verify(genuinely signed seed) error = %v, want nil", gotVerifyErr)
+		}
+		gotVerifiedEnvelope, gotVerifiedEnvelopeErr := gotVerified.Envelope()
+		if gotVerifiedEnvelopeErr != nil || gotVerifiedEnvelope != canonicalEnvelope {
+			t.Fatalf(
+				"Verified.Envelope(genuinely signed seed) = (%+v, %v), want (%+v, nil)",
+				gotVerifiedEnvelope,
+				gotVerifiedEnvelopeErr,
+				canonicalEnvelope,
+			)
 		}
 	})
 }

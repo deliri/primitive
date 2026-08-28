@@ -17,11 +17,10 @@ import (
 // observes Declare itself. A nested body that only set reached would pass with
 // Declare deleted; that vacuous shape is what this table exists to avoid.
 //
-// The loop walks Core's closed hazard domain instead of a hand-listed table, so
-// a hazard added to Core cannot enter the tree with its accepting path
-// unproven. Validate binds the sibling-order hazard to sibling-table scope and
-// every process-global hazard to package-process scope, which is the whole
-// admitted combination space.
+// The nested loops walk Core's closed hazard and scope domains instead of
+// copying Core's hazard-to-scope pairing rule into this package. Every
+// declaration admitted by the owner Validate method must cross the real
+// Declare boundary and permit the following behavior.
 func TestDeclareAcceptsEveryAdmittedDeclaration(t *testing.T) {
 	testserial.Declare(t, core.TestIsolationDeclaration{
 		Hazard: core.TestIsolationHazardProcessOutput,
@@ -34,36 +33,36 @@ func TestDeclareAcceptsEveryAdmittedDeclaration(t *testing.T) {
 		if !hazard.IsValid() {
 			break
 		}
-		admitted++
-
-		scope := core.TestIsolationScopePackageProcess
-		if hazard == core.TestIsolationHazardSiblingOrder {
-			scope = core.TestIsolationScopeSiblingTable
-		}
-		declaration := core.TestIsolationDeclaration{Hazard: hazard, Scope: scope}
-		name := hazard.GoIdentifier() + " with " + scope.GoIdentifier()
-		if gotErr := declaration.Validate(); gotErr != nil {
-			t.Fatalf("TestIsolationDeclaration{%s}.Validate() error = %v, want nil", name, gotErr)
-		}
-
-		reached := false
-		gotPassed := testing.RunTests(
-			func(pattern string, test string) (bool, error) {
-				return true, nil
-			},
-			[]testing.InternalTest{{
-				Name: name,
-				F: func(inner *testing.T) {
-					testserial.Declare(inner, declaration)
-					reached = true
+		for rawScope := 1; ; rawScope++ {
+			scope := core.TestIsolationScope(rawScope)
+			if !scope.IsValid() {
+				break
+			}
+			declaration := core.TestIsolationDeclaration{Hazard: hazard, Scope: scope}
+			if gotErr := declaration.Validate(); gotErr != nil {
+				continue
+			}
+			admitted++
+			name := hazard.GoIdentifier() + " with " + scope.GoIdentifier()
+			reached := false
+			gotPassed := testing.RunTests(
+				func(pattern string, test string) (bool, error) {
+					return true, nil
 				},
-			}},
-		)
-		if !gotPassed {
-			t.Fatalf("testing.RunTests(%q) = false, want an admitted declaration to permit following behavior", name)
-		}
-		if !reached {
-			t.Fatalf("behavior after Declare(%q) reached = false, want true", name)
+				[]testing.InternalTest{{
+					Name: name,
+					F: func(inner *testing.T) {
+						testserial.Declare(inner, declaration)
+						reached = true
+					},
+				}},
+			)
+			if !gotPassed {
+				t.Fatalf("testing.RunTests(%q) = false, want true", name)
+			}
+			if !reached {
+				t.Fatalf("behavior after Declare(%q) reached = false, want true", name)
+			}
 		}
 	}
 
@@ -87,6 +86,8 @@ func TestDeclareRejectsInvalidDeclarationsBeforeFollowingBehavior(t *testing.T) 
 	cases := []struct {
 		name        string
 		declaration core.TestIsolationDeclaration
+		wantPassed  bool
+		wantReached bool
 	}{
 		{name: "zero declaration"},
 		{
@@ -144,11 +145,11 @@ func TestDeclareRejectsInvalidDeclarationsBeforeFollowingBehavior(t *testing.T) 
 				},
 			}},
 		)
-		if gotPassed {
-			t.Fatalf("testing.RunTests(%q) = true, want invalid declaration failure", tc.name)
+		if gotPassed != tc.wantPassed {
+			t.Fatalf("testing.RunTests(%q) = %t, want %t", tc.name, gotPassed, tc.wantPassed)
 		}
-		if reached {
-			t.Fatalf("behavior after rejected Declare(%q) reached = true, want false", tc.name)
+		if reached != tc.wantReached {
+			t.Fatalf("behavior after rejected Declare(%q) reached = %t, want %t", tc.name, reached, tc.wantReached)
 		}
 	}
 }

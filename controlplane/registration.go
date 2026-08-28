@@ -345,7 +345,20 @@ func (d *InstallationCertificateDocument) UnmarshalJSON(data []byte) error {
 }
 
 // IssueInstallationCertificate signs one validated certificate body.
-func IssueInstallationCertificate(body InstallationCertificateBody, signer crypto.Signer) (InstallationCertificateDocument, error) {
+func (s Server) IssueInstallationCertificate(
+	body InstallationCertificateBody,
+	signer crypto.Signer,
+) (InstallationCertificateDocument, error) {
+	if err := s.Validate(); err != nil {
+		return InstallationCertificateDocument{}, registrationError(err)
+	}
+	return issueInstallationCertificate(body, signer)
+}
+
+func issueInstallationCertificate(
+	body InstallationCertificateBody,
+	signer crypto.Signer,
+) (InstallationCertificateDocument, error) {
 	if err := body.Validate(); err != nil {
 		return InstallationCertificateDocument{}, err
 	}
@@ -598,7 +611,17 @@ func (d *RegistrationDocument) UnmarshalJSON(data []byte) error {
 }
 
 // IssueRegistration signs one validated registration payload.
-func IssueRegistration(payload RegistrationPayload, signer crypto.Signer) (RegistrationDocument, error) {
+func (s Server) IssueRegistration(
+	payload RegistrationPayload,
+	signer crypto.Signer,
+) (RegistrationDocument, error) {
+	if err := s.Validate(); err != nil {
+		return RegistrationDocument{}, registrationError(err)
+	}
+	return issueRegistration(payload, signer)
+}
+
+func issueRegistration(payload RegistrationPayload, signer crypto.Signer) (RegistrationDocument, error) {
 	if err := payload.Validate(); err != nil {
 		return RegistrationDocument{}, err
 	}

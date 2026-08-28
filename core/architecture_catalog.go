@@ -14,9 +14,9 @@ const (
 	// PrimitivePackageCount is the number of packages in the complete catalog.
 	PrimitivePackageCount = 43
 	// PrimitiveDirectImportCount is the number of admitted direct import edges.
-	PrimitiveDirectImportCount = 156
+	PrimitiveDirectImportCount = 158
 	// PrimitiveDirectTestImportCount is the number of admitted test-only edges.
-	PrimitiveDirectTestImportCount = 32
+	PrimitiveDirectTestImportCount = 31
 	// PrimitiveMaximumDirectImports caps direct sibling imports per package.
 	PrimitiveMaximumDirectImports = 10
 )
@@ -324,6 +324,8 @@ func PrimitiveArchitecture() ArchitectureCatalog {
 			{Importer: PackageGCSObjects, Imported: PackageContextState},
 			{Importer: PackageGCSObjects, Imported: PackageTemporal},
 			{Importer: PackageGCSObjects, Imported: PackageObjectStore},
+			{Importer: PackageGCSObjects, Imported: PackageExchange},
+			{Importer: PackageGCSObjects, Imported: PackageFilestore},
 
 			{Importer: PackageID, Imported: PackageCore},
 			{Importer: PackageID, Imported: PackageTemporal},
@@ -400,7 +402,6 @@ func PrimitiveArchitecture() ArchitectureCatalog {
 			{Importer: PackageDeploy, Imported: PackageExchange},
 			{Importer: PackageDeploy, Imported: PackageTemporal},
 			{Importer: PackageUpgrade, Imported: PackageExchange},
-			{Importer: PackageGCSObjects, Imported: PackageExchange},
 			{Importer: PackageGCSObjects, Imported: PackageTestSerial},
 			{Importer: PackageSubmissionAuth, Imported: PackageControlPlaneTest},
 			{Importer: PackageSubmissionAuth, Imported: PackageExchange},
@@ -686,7 +687,7 @@ func packagePurposeTexts() [packageIdentityLimit]string {
 		PackageCloudIdentity:    "Bounded Google Cloud identity-token and OAuth access-token or AWS identity-token acquisition with redacted disclosure",
 		PackageDeploy:           "Exact create-only GCS publication of one authenticated release and its metadata",
 		PackageUpgrade:          "Crash-recoverable installation, activation, startup truth, rollback, and recovery",
-		PackageGCSObjects:       "Authenticated Google Cloud Storage bucket provisioning, typed logical namespace composition, create-only writes, IAM-signed short-lived upload and whole-object retrieval capabilities, exact-generation observation, digest-bound reads, and generation-matched permanent deletion through official SDKs",
+		PackageGCSObjects:       "Authenticated Google Cloud Storage bucket provisioning and public-read IAM, typed logical namespace composition, create-only writes, IAM-signed short-lived upload and whole-object retrieval capabilities, exact-generation observation, digest-bound reads, and generation-matched permanent deletion through official SDKs over Exchange",
 		PackageID:               "Canonical UUIDv7 and ULID time-ordered identifiers from one observed instant and caller-supplied entropy",
 		PackageChit:             "Authority-signed immutable custody tickets, streaming manifest closure, bounded catalogs, and device-signed catalog queries",
 		PackageChitAuth:         "Installation-certificate binding and device authentication for one chit catalog query",

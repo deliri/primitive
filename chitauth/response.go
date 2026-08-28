@@ -3,7 +3,6 @@ package chitauth
 import (
 	"crypto"
 
-	"github.com/deliri/primitive/v2026/attest"
 	"github.com/deliri/primitive/v2026/chit"
 	"github.com/deliri/primitive/v2026/controlplane"
 	"github.com/deliri/primitive/v2026/controlwire"
@@ -11,6 +10,7 @@ import (
 )
 
 type ResponseIssuance struct {
+	Server     controlplane.Server
 	Signer     crypto.Signer
 	Header     controlplane.ResponseHeader
 	Body       chit.CatalogDocument
@@ -18,9 +18,9 @@ type ResponseIssuance struct {
 }
 
 type ResponseVerification struct {
-	Expected    controlplane.ResponseExpectation
-	Document    controlplane.ResponseDocument[chit.CatalogDocument, *chit.CatalogDocument]
-	TrustedKeys attest.TrustedKeys
+	Client   controlplane.Client
+	Expected controlplane.ResponseExpectation
+	Document controlplane.ResponseDocument[chit.CatalogDocument, *chit.CatalogDocument]
 }
 
 func (i ResponseIssuance) Validate() error {
@@ -35,7 +35,7 @@ func IssueResponse(i ResponseIssuance) (controlplane.ResponseProjection[chit.Cat
 
 func (i ResponseIssuance) responseIssuance() controlplane.ResponseIssuance[chit.CatalogDocument] {
 	return controlplane.ResponseIssuance[chit.CatalogDocument]{
-		Signer: i.Signer, Body: i.Body, Header: i.Header, Assessment: i.Assessment,
+		Server: i.Server, Signer: i.Signer, Body: i.Body, Header: i.Header, Assessment: i.Assessment,
 	}
 }
 
@@ -49,7 +49,7 @@ func VerifyResponse(v ResponseVerification) (controlplane.VerifiedResponse[chit.
 
 func (v ResponseVerification) responseVerification() controlplane.ResponseVerification[chit.CatalogDocument, *chit.CatalogDocument] {
 	return controlplane.ResponseVerification[chit.CatalogDocument, *chit.CatalogDocument]{
-		Document: v.Document, Expected: v.Expected, TrustedKeys: v.TrustedKeys,
+		Client: v.Client, Document: v.Document, Expected: v.Expected,
 	}
 }
 

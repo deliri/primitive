@@ -21,20 +21,38 @@ import (
 
 func FuzzDecimalParserAgainstStandardGrammarAndBigRationalOracle(f *testing.F) {
 	grammar := decimalOracleGrammar()
-	seeds := []struct {
+	typedSeeds := []struct {
+		code       currency.Code
+		minorUnits int64
+	}{
+		{code: currency.CodeJPY},
+		{code: currency.CodeJPY, minorUnits: math.MinInt64},
+		{code: currency.CodeJPY, minorUnits: math.MaxInt64},
+		{code: currency.CodeCAD, minorUnits: -1},
+		{code: currency.CodeCAD, minorUnits: math.MaxInt64},
+		{code: currency.CodeCAD, minorUnits: math.MinInt64},
+		{code: currency.CodeBHD, minorUnits: 12345},
+		{code: currency.CodeCLF, minorUnits: math.MaxInt64},
+		{code: currency.CodeCLF, minorUnits: math.MinInt64},
+	}
+	for _, seed := range typedSeeds {
+		amount, gotNewErr := currency.New(seed.code, seed.minorUnits)
+		if gotNewErr != nil {
+			f.Fatalf("currency.New(%v, %d) seed error = %v, want nil", seed.code, seed.minorUnits, gotNewErr)
+		}
+		if gotValidateErr := amount.Validate(); gotValidateErr != nil {
+			f.Fatalf("Amount.Validate(seed) error = %v, want nil", gotValidateErr)
+		}
+		raw, gotDecimalErr := amount.Decimal()
+		if gotDecimalErr != nil {
+			f.Fatalf("Amount.Decimal(seed) error = %v, want nil", gotDecimalErr)
+		}
+		f.Add(uint8(seed.code-currency.CodeUSD), raw)
+	}
+	hostileSeeds := []struct {
 		raw      string
 		selector uint8
 	}{
-		{selector: uint8(currency.CodeJPY - currency.CodeUSD), raw: "0"},
-		{selector: uint8(currency.CodeJPY - currency.CodeUSD), raw: "-9223372036854775808"},
-		{selector: uint8(currency.CodeJPY - currency.CodeUSD), raw: "9223372036854775807"},
-		{selector: uint8(currency.CodeCAD - currency.CodeUSD), raw: "00012.3"},
-		{selector: uint8(currency.CodeCAD - currency.CodeUSD), raw: "-0.01"},
-		{selector: uint8(currency.CodeCAD - currency.CodeUSD), raw: "92233720368547758.07"},
-		{selector: uint8(currency.CodeCAD - currency.CodeUSD), raw: "-92233720368547758.08"},
-		{selector: uint8(currency.CodeBHD - currency.CodeUSD), raw: "12.345"},
-		{selector: uint8(currency.CodeCLF - currency.CodeUSD), raw: "922337203685477.5807"},
-		{selector: uint8(currency.CodeCLF - currency.CodeUSD), raw: "-922337203685477.5808"},
 		{selector: uint8(currency.CodeCAD - currency.CodeUSD), raw: "-0.00"},
 		{selector: uint8(currency.CodeCAD - currency.CodeUSD), raw: "1.001"},
 		{selector: uint8(currency.CodeJPY - currency.CodeUSD), raw: "1.0"},
@@ -48,7 +66,7 @@ func FuzzDecimalParserAgainstStandardGrammarAndBigRationalOracle(f *testing.F) {
 		{selector: uint8(currency.CodeCAD - currency.CodeUSD), raw: "92233720368547758.08"},
 		{selector: uint8(currency.CodeCAD - currency.CodeUSD), raw: "-92233720368547758.09"},
 	}
-	for _, seed := range seeds {
+	for _, seed := range hostileSeeds {
 		f.Add(seed.selector, seed.raw)
 	}
 	f.Fuzz(func(t *testing.T, selector uint8, raw string) {
@@ -56,7 +74,7 @@ func FuzzDecimalParserAgainstStandardGrammarAndBigRationalOracle(f *testing.F) {
 			uint8(currency.CodeUSD) +
 				selector%uint8(currency.CodeCLF-currency.CodeUSD+1),
 		)
-		wantMinor, wantAccept := oracleDecimal(grammar, code, raw)
+		wantMinor, wantErr := oracleDecimal(grammar, code, raw)
 		got, gotErr := currency.Parse(code, raw)
 		proveFuzzDecimalResult(
 			t,
@@ -65,25 +83,205 @@ func FuzzDecimalParserAgainstStandardGrammarAndBigRationalOracle(f *testing.F) {
 			got,
 			gotErr,
 			wantMinor,
+			wantErr,
+		)
+	})
+}
+
+func FuzzParseCodeAgainstClosedCurrencyDomain(f *testing.F) {
+	codes := []currency.Code{
+		currency.CodeUSD,
+		currency.CodeEUR,
+		currency.CodeGBP,
+		currency.CodeCAD,
+		currency.CodeAUD,
+		currency.CodeJPY,
+		currency.CodeCHF,
+		currency.CodeNZD,
+		currency.CodeSGD,
+		currency.CodeHKD,
+		currency.CodeBHD,
+		currency.CodeCLF,
+	}
+	for _, code := range codes {
+		if gotErr := code.Validate(); gotErr != nil {
+			f.Fatalf("Code(%d).Validate(seed) error = %v, want nil", code, gotErr)
+		}
+		f.Add(code.String())
+	}
+	for _, hostile := range []string{
+		"",
+		"usd",
+		" USD",
+		"USD ",
+		"US",
+		"USDX",
+		"U\x00D",
+		"U\xffD",
+		"ZZZ",
+		"\nUSD",
+	} {
+		f.Add(hostile)
+	}
+	f.Fuzz(func(t *testing.T, token string) {
+		wantCode, wantAccept := oracleCode(token)
+		gotCode, gotErr := currency.ParseCode(token)
+		if !wantAccept {
+			if gotCode != currency.CodeUnknown ||
+				!errors.Is(gotErr, core.ErrCurrencyContract) ||
+				!errors.Is(gotErr, core.ErrPrimitiveContract) {
+				t.Fatalf(
+					"currency.ParseCode(%q) = (%v, %v), want (%v, %v/%v)",
+					token,
+					gotCode,
+					gotErr,
+					currency.CodeUnknown,
+					core.ErrCurrencyContract,
+					core.ErrPrimitiveContract,
+				)
+			}
+			return
+		}
+		if gotErr != nil || gotCode != wantCode {
+			t.Fatalf(
+				"currency.ParseCode(%q) = (%v, %v), want (%v, nil)",
+				token,
+				gotCode,
+				gotErr,
+				wantCode,
+			)
+		}
+		if gotValidateErr := gotCode.Validate(); gotValidateErr != nil {
+			t.Fatalf("accepted Code.Validate() error = %v, want nil", gotValidateErr)
+		}
+		canonical := gotCode.String()
+		gotRoundTrip, gotRoundTripErr := currency.ParseCode(canonical)
+		if gotRoundTripErr != nil || gotRoundTrip != gotCode {
+			t.Fatalf(
+				"currency.ParseCode(Code.String()) = (%v, %v), want (%v, nil)",
+				gotRoundTrip,
+				gotRoundTripErr,
+				gotCode,
+			)
+		}
+		if gotSecond := gotRoundTrip.String(); gotSecond != canonical {
+			t.Fatalf("second Code.String() = %q, want %q", gotSecond, canonical)
+		}
+	})
+}
+
+func FuzzCodeJSONAgainstIndependentStringTokenOracle(f *testing.F) {
+	codes := []currency.Code{
+		currency.CodeUSD,
+		currency.CodeEUR,
+		currency.CodeGBP,
+		currency.CodeCAD,
+		currency.CodeAUD,
+		currency.CodeJPY,
+		currency.CodeCHF,
+		currency.CodeNZD,
+		currency.CodeSGD,
+		currency.CodeHKD,
+		currency.CodeBHD,
+		currency.CodeCLF,
+	}
+	for _, code := range codes {
+		if gotErr := code.Validate(); gotErr != nil {
+			f.Fatalf("Code(%d).Validate(seed) error = %v, want nil", code, gotErr)
+		}
+		canonical, gotErr := code.MarshalJSON()
+		if gotErr != nil {
+			f.Fatalf("Code(%d).MarshalJSON(seed) error = %v, want nil", code, gotErr)
+		}
+		f.Add(canonical)
+	}
+	canonical, gotCanonicalErr := currency.CodeCAD.MarshalJSON()
+	if gotCanonicalErr != nil {
+		f.Fatalf("CodeCAD.MarshalJSON(seed) error = %v, want nil", gotCanonicalErr)
+	}
+	padding := currency.CodeJSONMaximumBytes - len(canonical)
+	f.Add(append(bytes.Repeat([]byte{' '}, padding), canonical...))
+	f.Add(append(append([]byte(nil), canonical...), bytes.Repeat([]byte{' '}, padding)...))
+	f.Add(append(append([]byte(nil), canonical...), bytes.Repeat([]byte{' '}, padding+1)...))
+	for _, hostile := range [][]byte{
+		nil,
+		[]byte("null"),
+		[]byte("true"),
+		[]byte("1"),
+		[]byte("[]"),
+		[]byte("{}"),
+		[]byte(`"cad"`),
+		[]byte(`"ZZZ"`),
+		[]byte(`"CAD`),
+		[]byte{0xff},
+		append(append([]byte(nil), canonical...), canonical...),
+	} {
+		f.Add(hostile)
+	}
+	f.Fuzz(func(t *testing.T, data []byte) {
+		wantCode, wantAccept := oracleCodeJSON(data)
+
+		var gotFresh currency.Code
+		gotFreshErr := gotFresh.UnmarshalJSON(data)
+		gotPopulated := currency.CodeCLF
+		gotPopulatedErr := gotPopulated.UnmarshalJSON(data)
+
+		proveFuzzCodeJSONResult(
+			t,
+			data,
+			gotFresh,
+			gotFreshErr,
+			gotPopulated,
+			gotPopulatedErr,
+			wantCode,
 			wantAccept,
 		)
 	})
 }
 
 func FuzzAmountJSONAgainstStandardTokenStreamOracle(f *testing.F) {
+	typedSeeds := []struct {
+		code       currency.Code
+		minorUnits int64
+	}{
+		{code: currency.CodeUSD},
+		{code: currency.CodeCAD, minorUnits: -1},
+		{code: currency.CodeJPY, minorUnits: math.MaxInt64},
+		{code: currency.CodeBHD, minorUnits: math.MinInt64},
+		{code: currency.CodeCLF, minorUnits: math.MaxInt64},
+	}
+	var maximumCanonical []byte
+	for _, seed := range typedSeeds {
+		amount, gotNewErr := currency.New(seed.code, seed.minorUnits)
+		if gotNewErr != nil {
+			f.Fatalf("currency.New(%v, %d) seed error = %v, want nil", seed.code, seed.minorUnits, gotNewErr)
+		}
+		if gotValidateErr := amount.Validate(); gotValidateErr != nil {
+			f.Fatalf("Amount.Validate(seed) error = %v, want nil", gotValidateErr)
+		}
+		canonical, gotMarshalErr := amount.MarshalJSON()
+		if gotMarshalErr != nil {
+			f.Fatalf("Amount.MarshalJSON(seed) error = %v, want nil", gotMarshalErr)
+		}
+		f.Add(canonical)
+		if seed.code == currency.CodeBHD && seed.minorUnits == math.MinInt64 {
+			maximumCanonical = canonical
+		}
+	}
+	if len(maximumCanonical) != currency.AmountCanonicalJSONMaximumBytes {
+		f.Fatalf(
+			"maximum canonical Amount seed bytes = %d, want %d",
+			len(maximumCanonical),
+			currency.AmountCanonicalJSONMaximumBytes,
+		)
+	}
 	exactMaximum := append(
 		bytes.Repeat([]byte{' '}, currency.AmountJSONDocumentSlackBytes),
-		[]byte(`{"currency":"BHD","minor_units":"-9223372036854775808"}`)...,
+		maximumCanonical...,
 	)
+	f.Add(exactMaximum)
 	seeds := [][]byte{
-		[]byte(`{"currency":"USD","minor_units":"0"}`),
-		[]byte(`{"minor_units":"-1","currency":"CAD"}`),
-		[]byte(" \n\t{\"currency\":\"JPY\",\"minor_units\":\"9223372036854775807\"}\r "),
-		[]byte(`{"currency":"BHD","minor_units":"-9223372036854775808"}`),
-		[]byte(`{"currency":"CLF","minor_units":"9223372036854775807"}`),
 		[]byte(`{"currency":"usd","minor_units":"1"}`),
-		[]byte(`{"currency":"USD","minor_units":"\u0031"}`),
-		[]byte(`{"\u0063urrency":"USD","minor_units":"1"}`),
 		[]byte(`{"currency":"USD","minor_units":"-0"}`),
 		[]byte(`{"currency":"USD","minor_units":"01"}`),
 		[]byte(`{"currency":"USD","minor_units":"9223372036854775808"}`),
@@ -102,7 +300,6 @@ func FuzzAmountJSONAgainstStandardTokenStreamOracle(f *testing.F) {
 		[]byte(`[]`),
 		[]byte(`{}`),
 		{0xff},
-		exactMaximum,
 		append(bytes.Clone(exactMaximum), ' '),
 	}
 	for _, seed := range seeds {
@@ -111,14 +308,18 @@ func FuzzAmountJSONAgainstStandardTokenStreamOracle(f *testing.F) {
 	f.Fuzz(func(t *testing.T, data []byte) {
 		wantCode, wantMinor, wantAccept := oracleAmountJSON(data)
 		before := mustAmount(t, currency.CodeCLF, math.MinInt64)
-		got := before
-		gotErr := got.UnmarshalJSON(data)
+		var gotFresh currency.Amount
+		gotFreshErr := gotFresh.UnmarshalJSON(data)
+		gotPopulated := before
+		gotPopulatedErr := gotPopulated.UnmarshalJSON(data)
 		proveFuzzAmountJSONResult(
 			t,
 			data,
 			before,
-			got,
-			gotErr,
+			gotFresh,
+			gotFreshErr,
+			gotPopulated,
+			gotPopulatedErr,
 			wantCode,
 			wantMinor,
 			wantAccept,
@@ -146,16 +347,16 @@ func oracleDecimal(
 	grammar decimalOraclePatterns,
 	code currency.Code,
 	raw string,
-) (int64, bool) {
+) (int64, error) {
 	exponent, admitted := oracleFractionDigits(code)
 	pattern := grammar.forExponent(exponent)
 	if !admitted || pattern == nil || raw == "" ||
 		len(raw) > currency.DecimalMaximumBytes || !pattern.MatchString(raw) {
-		return 0, false
+		return 0, core.ErrCurrencyDecimal
 	}
 	value, ok := new(big.Rat).SetString(raw)
 	if !ok || strings.HasPrefix(raw, "-") && value.Sign() == 0 {
-		return 0, false
+		return 0, core.ErrCurrencyDecimal
 	}
 	scale := new(big.Int).Exp(
 		big.NewInt(10),
@@ -163,10 +364,13 @@ func oracleDecimal(
 		nil,
 	)
 	value.Mul(value, new(big.Rat).SetInt(scale))
-	if !value.IsInt() || !value.Num().IsInt64() {
-		return 0, false
+	if !value.IsInt() {
+		return 0, core.ErrCurrencyDecimal
 	}
-	return value.Num().Int64(), true
+	if !value.Num().IsInt64() {
+		return 0, core.ErrCurrencyOverflow
+	}
+	return value.Num().Int64(), nil
 }
 
 func (p decimalOraclePatterns) forExponent(exponent uint8) *regexp.Regexp {
@@ -199,6 +403,23 @@ func oracleFractionDigits(code currency.Code) (uint8, bool) {
 	default:
 		return 0, false
 	}
+}
+
+func oracleCodeJSON(data []byte) (currency.Code, bool) {
+	if len(data) == 0 || len(data) > currency.CodeJSONMaximumBytes ||
+		!utf8.Valid(data) {
+		return currency.CodeUnknown, false
+	}
+	decoder := jsontext.NewDecoder(bytes.NewReader(data))
+	token, err := decoder.ReadToken()
+	if err != nil || token.Kind() != jsontext.KindString {
+		return currency.CodeUnknown, false
+	}
+	value := token.String()
+	if _, err := decoder.ReadToken(); !errors.Is(err, io.EOF) {
+		return currency.CodeUnknown, false
+	}
+	return oracleCode(value)
 }
 
 type amountJSONOracleState struct {
@@ -296,12 +517,12 @@ func proveFuzzDecimalResult(
 	got currency.Amount,
 	gotErr error,
 	wantMinor int64,
-	wantAccept bool,
+	wantErr error,
 ) {
 	t.Helper()
 
-	if !wantAccept {
-		proveFuzzDecimalRejection(t, code, raw, got, gotErr)
+	if wantErr != nil {
+		proveFuzzDecimalRejection(t, code, raw, got, gotErr, wantErr)
 		return
 	}
 	proveFuzzDecimalAcceptance(t, code, raw, got, gotErr, wantMinor)
@@ -313,20 +534,38 @@ func proveFuzzDecimalRejection(
 	raw string,
 	got currency.Amount,
 	gotErr error,
+	wantErr error,
 ) {
 	t.Helper()
 
 	if got != (currency.Amount{}) ||
+		!errors.Is(gotErr, wantErr) ||
 		!errors.Is(gotErr, core.ErrCurrencyContract) ||
 		!errors.Is(gotErr, core.ErrPrimitiveContract) {
 		t.Fatalf(
-			"currency.Parse(%v, %q) = (%v, %v), want zero and %v/%v",
+			"currency.Parse(%v, %q) = (%v, %v), want zero and %v/%v/%v",
 			code,
 			raw,
 			got,
 			gotErr,
+			wantErr,
 			core.ErrCurrencyContract,
 			core.ErrPrimitiveContract,
+		)
+	}
+	if errors.Is(wantErr, core.ErrCurrencyOverflow) {
+		if !errors.Is(gotErr, core.ErrNumericOverflow) {
+			t.Fatalf("currency.Parse(%v, %q) error = %v, want %v", code, raw, gotErr, core.ErrNumericOverflow)
+		}
+		return
+	}
+	if errors.Is(gotErr, core.ErrCurrencyOverflow) ||
+		errors.Is(gotErr, core.ErrNumericOverflow) {
+		t.Fatalf(
+			"currency.Parse(%v, %q) error = %v, want decimal rejection without overflow identity",
+			code,
+			raw,
+			gotErr,
 		)
 	}
 }
@@ -343,6 +582,9 @@ func proveFuzzDecimalAcceptance(
 
 	if gotErr != nil {
 		t.Fatalf("currency.Parse(%v, %q) error = %v, want nil", code, raw, gotErr)
+	}
+	if gotValidateErr := got.Validate(); gotValidateErr != nil {
+		t.Fatalf("currency.Parse(%v, %q).Validate() error = %v, want nil", code, raw, gotValidateErr)
 	}
 	gotCode, gotCodeErr := got.Code()
 	gotMinor, gotMinorErr := got.MinorUnits()
@@ -372,14 +614,105 @@ func proveFuzzDecimalAcceptance(
 			got,
 		)
 	}
+	gotSecond, gotSecondErr := gotRoundTrip.Decimal()
+	if gotSecondErr != nil || gotSecond != canonical {
+		t.Fatalf(
+			"second Amount.Decimal() = (%q, %v), want (%q, nil)",
+			gotSecond,
+			gotSecondErr,
+			canonical,
+		)
+	}
+}
+
+func proveFuzzCodeJSONResult(
+	t *testing.T,
+	data []byte,
+	gotFresh currency.Code,
+	gotFreshErr error,
+	gotPopulated currency.Code,
+	gotPopulatedErr error,
+	wantCode currency.Code,
+	wantAccept bool,
+) {
+	t.Helper()
+
+	if !wantAccept {
+		if gotFresh != currency.CodeUnknown || gotPopulated != currency.CodeCLF ||
+			!errors.Is(gotFreshErr, core.ErrJSONContract) ||
+			!errors.Is(gotFreshErr, core.ErrCurrencyContract) ||
+			!errors.Is(gotFreshErr, core.ErrPrimitiveContract) ||
+			!errors.Is(gotPopulatedErr, core.ErrJSONContract) ||
+			!errors.Is(gotPopulatedErr, core.ErrCurrencyContract) ||
+			!errors.Is(gotPopulatedErr, core.ErrPrimitiveContract) {
+			t.Fatalf(
+				"Code.UnmarshalJSON(%q) fresh/populated = (%v/%v, %v/%v), want zero/preserved and %v/%v/%v",
+				data,
+				gotFresh,
+				gotFreshErr,
+				gotPopulated,
+				gotPopulatedErr,
+				core.ErrJSONContract,
+				core.ErrCurrencyContract,
+				core.ErrPrimitiveContract,
+			)
+		}
+		return
+	}
+	if gotFreshErr != nil || gotPopulatedErr != nil ||
+		gotFresh != wantCode || gotPopulated != wantCode {
+		t.Fatalf(
+			"Code.UnmarshalJSON(%q) fresh/populated = (%v/%v, %v/%v), want (%v/nil, %v/nil)",
+			data,
+			gotFresh,
+			gotFreshErr,
+			gotPopulated,
+			gotPopulatedErr,
+			wantCode,
+			wantCode,
+		)
+	}
+	if gotValidateErr := gotFresh.Validate(); gotValidateErr != nil {
+		t.Fatalf("accepted Code.Validate() error = %v, want nil", gotValidateErr)
+	}
+	canonical, gotMarshalErr := gotFresh.MarshalJSON()
+	if gotMarshalErr != nil || len(canonical) > currency.CodeJSONMaximumBytes {
+		t.Fatalf(
+			"Code.MarshalJSON(accepted) = (%q, %v), want at most %d bytes and nil",
+			canonical,
+			gotMarshalErr,
+			currency.CodeJSONMaximumBytes,
+		)
+	}
+	var gotRoundTrip currency.Code
+	gotRoundTripErr := gotRoundTrip.UnmarshalJSON(canonical)
+	if gotRoundTripErr != nil || gotRoundTrip != gotFresh {
+		t.Fatalf(
+			"Code.UnmarshalJSON(canonical) = (%v, %v), want (%v, nil)",
+			gotRoundTrip,
+			gotRoundTripErr,
+			gotFresh,
+		)
+	}
+	second, gotSecondErr := gotRoundTrip.MarshalJSON()
+	if gotSecondErr != nil || !bytes.Equal(second, canonical) {
+		t.Fatalf(
+			"second Code.MarshalJSON() = (%q, %v), want (%q, nil)",
+			second,
+			gotSecondErr,
+			canonical,
+		)
+	}
 }
 
 func proveFuzzAmountJSONResult(
 	t *testing.T,
 	data []byte,
 	before currency.Amount,
-	got currency.Amount,
-	gotErr error,
+	gotFresh currency.Amount,
+	gotFreshErr error,
+	gotPopulated currency.Amount,
+	gotPopulatedErr error,
 	wantCode currency.Code,
 	wantMinor int64,
 	wantAccept bool,
@@ -387,14 +720,24 @@ func proveFuzzAmountJSONResult(
 	t.Helper()
 
 	if !wantAccept {
-		proveFuzzAmountJSONRejection(t, data, before, got, gotErr)
+		proveFuzzAmountJSONRejection(
+			t,
+			data,
+			before,
+			gotFresh,
+			gotFreshErr,
+			gotPopulated,
+			gotPopulatedErr,
+		)
 		return
 	}
 	proveFuzzAmountJSONAcceptance(
 		t,
 		data,
-		got,
-		gotErr,
+		gotFresh,
+		gotFreshErr,
+		gotPopulated,
+		gotPopulatedErr,
 		wantCode,
 		wantMinor,
 	)
@@ -404,20 +747,27 @@ func proveFuzzAmountJSONRejection(
 	t *testing.T,
 	data []byte,
 	before currency.Amount,
-	got currency.Amount,
-	gotErr error,
+	gotFresh currency.Amount,
+	gotFreshErr error,
+	gotPopulated currency.Amount,
+	gotPopulatedErr error,
 ) {
 	t.Helper()
 
-	if !errors.Is(gotErr, core.ErrJSONContract) ||
-		!errors.Is(gotErr, core.ErrCurrencyContract) ||
-		!errors.Is(gotErr, core.ErrPrimitiveContract) ||
-		got != before {
+	if !errors.Is(gotFreshErr, core.ErrJSONContract) ||
+		!errors.Is(gotFreshErr, core.ErrCurrencyContract) ||
+		!errors.Is(gotFreshErr, core.ErrPrimitiveContract) ||
+		!errors.Is(gotPopulatedErr, core.ErrJSONContract) ||
+		!errors.Is(gotPopulatedErr, core.ErrCurrencyContract) ||
+		!errors.Is(gotPopulatedErr, core.ErrPrimitiveContract) ||
+		gotFresh != (currency.Amount{}) || gotPopulated != before {
 		t.Fatalf(
-			"Amount.UnmarshalJSON(%q) = (%v, %v), want preserved receiver and %v/%v/%v",
+			"Amount.UnmarshalJSON(%q) fresh/populated = (%v/%v, %v/%v), want zero/preserved and %v/%v/%v",
 			data,
-			got,
-			gotErr,
+			gotFresh,
+			gotFreshErr,
+			gotPopulated,
+			gotPopulatedErr,
 			core.ErrJSONContract,
 			core.ErrCurrencyContract,
 			core.ErrPrimitiveContract,
@@ -428,18 +778,30 @@ func proveFuzzAmountJSONRejection(
 func proveFuzzAmountJSONAcceptance(
 	t *testing.T,
 	data []byte,
-	got currency.Amount,
-	gotErr error,
+	gotFresh currency.Amount,
+	gotFreshErr error,
+	gotPopulated currency.Amount,
+	gotPopulatedErr error,
 	wantCode currency.Code,
 	wantMinor int64,
 ) {
 	t.Helper()
 
-	if gotErr != nil {
-		t.Fatalf("Amount.UnmarshalJSON(%q) error = %v, want nil", data, gotErr)
+	if gotFreshErr != nil || gotPopulatedErr != nil || gotFresh != gotPopulated {
+		t.Fatalf(
+			"Amount.UnmarshalJSON(%q) fresh/populated = (%v/%v, %v/%v), want equal admitted values and nil",
+			data,
+			gotFresh,
+			gotFreshErr,
+			gotPopulated,
+			gotPopulatedErr,
+		)
 	}
-	gotCode, gotCodeErr := got.Code()
-	gotMinor, gotMinorErr := got.MinorUnits()
+	if gotValidateErr := gotFresh.Validate(); gotValidateErr != nil {
+		t.Fatalf("accepted Amount.Validate() error = %v, want nil", gotValidateErr)
+	}
+	gotCode, gotCodeErr := gotFresh.Code()
+	gotMinor, gotMinorErr := gotFresh.MinorUnits()
 	if gotCodeErr != nil || gotMinorErr != nil ||
 		gotCode != wantCode || gotMinor != wantMinor {
 		t.Fatalf(
@@ -452,7 +814,7 @@ func proveFuzzAmountJSONAcceptance(
 			wantMinor,
 		)
 	}
-	canonical, gotMarshalErr := json.Marshal(got)
+	canonical, gotMarshalErr := json.Marshal(gotFresh)
 	if gotMarshalErr != nil || !jsontext.Value(canonical).IsValid() ||
 		len(canonical) > currency.AmountCanonicalJSONMaximumBytes {
 		t.Fatalf(
@@ -464,12 +826,21 @@ func proveFuzzAmountJSONAcceptance(
 	}
 	var gotRoundTrip currency.Amount
 	gotRoundTripErr := json.Unmarshal(canonical, &gotRoundTrip)
-	if gotRoundTripErr != nil || gotRoundTrip != got {
+	if gotRoundTripErr != nil || gotRoundTrip != gotFresh {
 		t.Fatalf(
 			"json.Unmarshal(canonical Amount) = (%v, %v), want (%v, nil)",
 			gotRoundTrip,
 			gotRoundTripErr,
-			got,
+			gotFresh,
+		)
+	}
+	second, gotSecondErr := json.Marshal(gotRoundTrip)
+	if gotSecondErr != nil || !bytes.Equal(second, canonical) {
+		t.Fatalf(
+			"second json.Marshal(Amount) = (%q, %v), want (%q, nil)",
+			second,
+			gotSecondErr,
+			canonical,
 		)
 	}
 }

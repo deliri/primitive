@@ -156,9 +156,8 @@ func (d CheckInResponseDocument) ValidateJSONProjection(
 // CheckInResponseVerification is the complete input one caller supplies to
 // authenticate a response against the request that produced it.
 type CheckInResponseVerification struct {
-	Expected    ResponseExpectation
-	Document    CheckInResponseDocument
-	TrustedKeys attest.TrustedKeys
+	Expected ResponseExpectation
+	Document CheckInResponseDocument
 }
 
 // VerifiedCheckInResponse is proof that a response authenticated. Its fields
@@ -308,7 +307,14 @@ func (d *CheckInResponseDocument) UnmarshalJSON(data []byte) error {
 // IssueCheckInResponse signs one validated response payload. It is the
 // authority half of the exchange and is exercised by every client test, so the
 // bytes a client verifies are produced by the same code a server runs.
-func IssueCheckInResponse(payload CheckInResponsePayload, key ed25519.PrivateKey) (CheckInResponseDocument, error) {
+func (s Server) IssueCheckInResponse(payload CheckInResponsePayload, key ed25519.PrivateKey) (CheckInResponseDocument, error) {
+	if err := s.Validate(); err != nil {
+		return CheckInResponseDocument{}, checkInResponseError(err)
+	}
+	return issueCheckInResponse(payload, key)
+}
+
+func issueCheckInResponse(payload CheckInResponsePayload, key ed25519.PrivateKey) (CheckInResponseDocument, error) {
 	if err := payload.Validate(); err != nil {
 		return CheckInResponseDocument{}, err
 	}
@@ -323,7 +329,7 @@ func IssueCheckInResponse(payload CheckInResponsePayload, key ed25519.PrivateKey
 // Validate closes the complete verification input.
 func (v CheckInResponseVerification) Validate() error {
 	if err := errors.Join(
-		v.Document.Validate(), v.Expected.Validate(), v.TrustedKeys.Validate(),
+		v.Document.Validate(), v.Expected.Validate(),
 	); err != nil {
 		return checkInResponseError(err)
 	}
@@ -337,7 +343,10 @@ func (v CheckInResponseVerification) Validate() error {
 // signed response to somebody else's request is the interesting attack, and
 // naming that failure as a binding error rather than a signature error is what
 // lets a caller tell a replayed response from a forged one.
-func VerifyCheckInResponse(verification CheckInResponseVerification) (VerifiedCheckInResponse, error) {
+func (c Client) VerifyCheckInResponse(verification CheckInResponseVerification) (VerifiedCheckInResponse, error) {
+	if err := c.Validate(); err != nil {
+		return VerifiedCheckInResponse{}, checkInResponseError(err)
+	}
 	if err := verification.Validate(); err != nil {
 		return VerifiedCheckInResponse{}, err
 	}
@@ -347,12 +356,15 @@ func VerifyCheckInResponse(verification CheckInResponseVerification) (VerifiedCh
 	responseProof, err := attest.Verify(attest.VerifyRequest[SigningDomain]{
 		Body:        verification.Document.Payload,
 		Envelope:    verification.Document.Attestation,
-		TrustedKeys: verification.TrustedKeys,
+		TrustedKeys: c.configuration.TrustedAuthorityKeys,
 	})
 	if err != nil {
 		return VerifiedCheckInResponse{}, checkInResponseError(err)
 	}
-	leaseProof, err := verifyCheckInResponseLease(verification.Document.Payload, verification.TrustedKeys)
+	leaseProof, err := verifyCheckInResponseLease(
+		verification.Document.Payload,
+		c.configuration.TrustedAuthorityKeys,
+	)
 	if err != nil {
 		return VerifiedCheckInResponse{}, err
 	}
