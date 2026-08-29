@@ -40,11 +40,13 @@ func TestAuthenticatedGCSOperationsAreCompilerSelectedEntryPoints(t *testing.T) 
 		"GrantGCSBucketPublicRead",
 		"IssueGCSDownloadCapability",
 		"IssueGCSUploadCapability",
+		"ListGCSObjects",
 		"NewGCSCapabilityIssuer",
 		"NewGCSClient",
 		"ObserveGCSUpload",
 		"ParseGCSServiceAccount",
 		"ReadGCSObject",
+		"ReadListedGCSObject",
 		"UploadFile",
 		"UploadMedia",
 	}
@@ -120,7 +122,7 @@ func productionStructRole(name string) (string, bool) {
 		"GCSGeneration", "GCSProjectID", "GCSLocation", "GCSObjectSegment", "GCSServiceAccount",
 		"GCSObjectAddress":
 		return "opaque validated provider value", true
-	case "GCSMediaUpload", "GCSFileUpload", "GCSReadRequest", "GCSUploadObservationRequest", "GCSDeleteRequest",
+	case "GCSMediaUpload", "GCSFileUpload", "GCSReadRequest", "GCSListRequest", "GCSListedReadRequest", "GCSUploadObservationRequest", "GCSDeleteRequest",
 		"GCSDeleteObjectRequest", "GCSBucketCreateRequest", "GCSBucketPublicReadRequest", "GCSRootPrefixRequest",
 		"GCSChildPrefixRequest", "GCSObjectInPrefixRequest", "GCSUploadCapabilityRequest",
 		"GCSDownloadCapabilityRequest":

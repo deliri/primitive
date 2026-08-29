@@ -24,6 +24,8 @@ const (
 	GCSCacheControlMaximumBytes = 1024
 	// GCSDeleteMaximumObjects is the largest bounded destructive sweep.
 	GCSDeleteMaximumObjects = 10_000
+	// GCSListMaximumObjects is the largest bounded object inventory.
+	GCSListMaximumObjects = 10_000
 )
 
 // GCSAuthentication selects exactly how the official SDK finds credentials.
@@ -185,7 +187,7 @@ func (n GCSObjectName) Validate() error {
 	return nil
 }
 
-// GCSObjectPrefix is a nonempty destructive-list boundary. It must identify a
+// GCSObjectPrefix is a nonempty object-list boundary. It must identify a
 // directory-shaped namespace, never the whole bucket or an ambiguous leaf.
 type GCSObjectPrefix struct{ value string }
 

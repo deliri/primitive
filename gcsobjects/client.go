@@ -510,6 +510,23 @@ type GCSReadRequest struct {
 	Maximum     core.ByteCount
 }
 
+// GCSListRequest is one bounded authenticated prefix inventory.
+type GCSListRequest struct {
+	Bucket     GCSBucket
+	Prefix     GCSObjectPrefix
+	MaxObjects core.ByteCount
+}
+
+// GCSListedReadRequest reads one exact generation returned by ListGCSObjects.
+type GCSListedReadRequest struct {
+	Destination io.Writer
+	Object      GCSObjectMetadata
+	Maximum     core.ByteCount
+}
+
+// GCSObjectVisitor consumes one provider-sealed object without requiring a slice.
+type GCSObjectVisitor func(GCSObjectMetadata) error
+
 // GCSUploadObservationRequest names the authority-owned provider object whose
 // exact generation must agree with one authenticated client upload result.
 type GCSUploadObservationRequest struct {
@@ -556,6 +573,31 @@ func (r GCSReadRequest) Validate() error {
 	}
 	maximum, err := r.Maximum.Uint64()
 	if err != nil || maximum > objectstore.GoogleCloudStorageObjectMaximumBytes {
+		return errors.Join(core.ErrObjectStoreContract, core.ErrObjectStoreSize, err)
+	}
+	return nil
+}
+
+func (r GCSListRequest) Validate() error {
+	if err := errors.Join(r.Bucket.Validate(), r.Prefix.Validate()); err != nil {
+		return errors.Join(core.ErrObjectStoreContract, err)
+	}
+	maximum, err := r.MaxObjects.Uint64()
+	if err != nil || maximum > GCSListMaximumObjects {
+		return errors.Join(core.ErrObjectStoreContract, core.ErrObjectStoreSize, err)
+	}
+	return nil
+}
+
+func (r GCSListedReadRequest) Validate() error {
+	if r.Destination == nil {
+		return errors.Join(core.ErrObjectStoreContract, core.ErrObjectStoreDestination)
+	}
+	if err := r.Object.Validate(); err != nil {
+		return errors.Join(core.ErrObjectStoreContract, err)
+	}
+	maximum, err := r.Maximum.Uint64()
+	if err != nil || maximum > objectstore.GoogleCloudStorageObjectMaximumBytes || r.Object.Length().Uint64() > maximum {
 		return errors.Join(core.ErrObjectStoreContract, core.ErrObjectStoreSize, err)
 	}
 	return nil
@@ -730,6 +772,115 @@ func ReadGCSObject(ctx context.Context, client *GCSClient, request GCSReadReques
 		return GCSObjectMetadata{}, projectGCSError(err, core.ErrObjectStoreSource)
 	}
 	return metadata, nil
+}
+
+// ListGCSObjects streams a bounded, lexicographically ordered prefix inventory.
+func ListGCSObjects(ctx context.Context, client *GCSClient, request GCSListRequest, visit GCSObjectVisitor) error {
+	if err := validateGCSCall(ctx, client); err != nil {
+		return err
+	}
+	if err := request.Validate(); err != nil {
+		return err
+	}
+	if visit == nil {
+		return errors.Join(core.ErrObjectStoreContract, core.ErrObjectStoreDestination)
+	}
+	objects := client.client.Bucket(request.Bucket.String()).Objects(ctx, &storage.Query{Prefix: request.Prefix.String(), Projection: storage.ProjectionNoACL})
+	maximum, _ := request.MaxObjects.Uint64()
+	return visitGCSObjects(objects, maximum, visit)
+}
+
+type gcsObjectIterator interface {
+	Next() (*storage.ObjectAttrs, error)
+}
+
+func visitGCSObjects(objects gcsObjectIterator, maximum uint64, visit GCSObjectVisitor) error {
+	var count uint64
+	for {
+		attrs, err := objects.Next()
+		if errors.Is(err, iterator.Done) {
+			return nil
+		}
+		if err != nil {
+			return projectGCSError(err, core.ErrObjectStoreSource)
+		}
+		if count == maximum {
+			return errors.Join(core.ErrObjectStoreContract, core.ErrObjectStoreSize)
+		}
+		metadata, err := metadataFromGCSAttrs(attrs)
+		if err != nil {
+			return err
+		}
+		if err := visit(metadata); err != nil {
+			return err
+		}
+		count++
+	}
+}
+
+// ReadListedGCSObject streams the exact listed generation and verifies its
+// provider extent and CRC32C before returning.
+func ReadListedGCSObject(ctx context.Context, client *GCSClient, request GCSListedReadRequest) (GCSObjectMetadata, error) {
+	if err := validateGCSCall(ctx, client); err != nil {
+		return GCSObjectMetadata{}, err
+	}
+	if err := request.Validate(); err != nil {
+		return GCSObjectMetadata{}, err
+	}
+	generation, err := request.Object.Generation().Int64()
+	if err != nil {
+		return GCSObjectMetadata{}, errors.Join(core.ErrObjectStoreContract, err)
+	}
+	object := client.client.Bucket(request.Object.Bucket().String()).Object(request.Object.Name().String()).Generation(generation)
+	reader, err := object.NewReader(ctx)
+	if err != nil {
+		return GCSObjectMetadata{}, projectGCSError(err, core.ErrObjectStoreSource)
+	}
+	metadata, err := metadataFromReader(ctx, object, reader)
+	if err != nil {
+		_ = reader.Close()
+		return GCSObjectMetadata{}, err
+	}
+	if !sameListedGCSObject(request.Object, metadata) {
+		_ = reader.Close()
+		return GCSObjectMetadata{}, errors.Join(core.ErrObjectStoreContract, core.ErrObjectStoreConflict)
+	}
+	if err := streamGCSListedRead(reader, request.Destination, request.Object); err != nil {
+		return GCSObjectMetadata{}, errors.Join(err, reader.Close())
+	}
+	if err := reader.Close(); err != nil {
+		return GCSObjectMetadata{}, projectGCSError(err, core.ErrObjectStoreSource)
+	}
+	return metadata, nil
+}
+
+func sameListedGCSObject(listed, read GCSObjectMetadata) bool {
+	return listed.Bucket() == read.Bucket() && listed.Name() == read.Name() && listed.Generation() == read.Generation() &&
+		listed.Length() == read.Length() && listed.CRC32C() == read.CRC32C()
+}
+
+func streamGCSListedRead(reader *storage.Reader, destination io.Writer, listed GCSObjectMetadata) error {
+	exact, err := objectstore.NewExactReader(reader, listed.Length())
+	if err != nil {
+		return err
+	}
+	checksum := crc32.New(crc32.MakeTable(crc32.Castagnoli))
+	output := io.MultiWriter(destination, checksum)
+	if listed.Length().Uint64() == 0 {
+		err = exact.ProveEmpty()
+	} else {
+		_, err = io.Copy(output, exact)
+	}
+	if err != nil {
+		if exact.Failure() != nil {
+			return exact.Failure()
+		}
+		return errors.Join(core.ErrObjectStoreDestination, err)
+	}
+	if core.NewCRC32C(checksum.Sum32()) != listed.CRC32C() {
+		return core.ErrObjectStoreIntegrity
+	}
+	return nil
 }
 
 // ObserveGCSUpload reads only the official provider metadata for the exact

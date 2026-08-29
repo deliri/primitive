@@ -1,0 +1,2074 @@
+# Testing Protocol
+
+This protocol is not a ceremony and not a separate truth source.
+
+It is the test-quality doctrine for evidence-producing Go pipelines. Rules
+that can be proven from source belong in a lint tool. Rules that require
+intent stay in this document until they can be encoded safely. The
+references to `witness-lint` and the `witness:waiver` comment grammar
+throughout this document are this codebase's implementation of the rule;
+adopt the same names or substitute equivalents that fit your project.
+
+The goal is not pretty tests. The goal is evidence.
+
+In this protocol, "hostile" means extreme valid and invalid inputs on both
+sides of every expected boundary, plus malformed data, partial results,
+cancellation, resource failure, and state-transition pressure. It describes
+test intensity, not a threat model or an assumption about malicious callers.
+
+## Rule Model
+
+Each rule has:
+
+- `id` — stable name used by docs, waivers, and future lint output
+- `level` — `must`, `should`, or `review`
+- `enforcement` — `lint`, `tool`, `review`, or `future-lint`
+- `why` — the failure class it prevents
+
+`must` means a violation is a correctness risk. `should` means the default is
+required unless there is a better local reason. `review` means the rule needs
+human judgment today.
+
+When rules conflict, the more specific rule wins. A serial test may override
+`test/parallel/default` only with a waiver. A tempdir isolation rule may override
+a helper convenience pattern. A structural invariant test may use source
+inspection when a runtime test cannot prove the compiler-visible contract.
+When two rules still conflict, choose the rule that preserves evidence
+accounting and determinism. If that choice weakens another rule, add a waiver
+at the call site and state the exact failure class being accepted.
+
+## Rule Index
+
+| id | level | enforcement | summary |
+| :- | :---- | :---------- | :------ |
+| `test/review-checklist` | must | review | Reviewer questions for every new or changed test |
+| `test/compiler-driven` | must | review | Keep the compiler in charge; clean break over compat shims |
+| `test/evidence` | must | review | Tests must prove a behavior that can fail |
+| `test/red-green-slice` | must | review | Every slice has a red state or a named ratchet reason |
+| `test/isolation/tempdir` | must | lint | Filesystem-mutating tests own a tempdir per parallel unit |
+| `test/parallel/default` | should | lint | Tests parallelize by default; serial cases need a waiver |
+| `test/sync/no-sleep` | must | lint | Synchronize on facts, not on `time.Sleep` |
+| `test/determinism` | must | review | Control time, randomness, paths, env, IDs, command output |
+| `test/table-shape` | must | review | The table is the pressure surface; names name the boundary |
+| `test/earned-rows` | must | review | Quota stuffing is prohibited; each row must earn its place |
+| `test/boundaries` | must | review | Policy/data code needs negative and boundary coverage |
+| `test/layer-triad` | must | review | Each touched layer needs positive/negative/neutral coverage |
+| `test/producer-classifier-matrix` | must | review | Producer→classifier handoffs need a 50-case hostile transition matrix |
+| `test/package-sweep-exit` | must | review | A sweep is done when surfaces have coverage and legacy retired |
+| `test/errors` | must | review | Assert the strongest stable error contract (`errors.Is`/`As` over strings) |
+| `test/structural-equality` | must | lint | No `reflect.DeepEqual`; use `==`, `slices.Equal`, or explicit fields |
+| `test/helpers` | must | lint | No testify/`assert*`; show `got`/`want` in plain Go |
+| `test/fixtures/no-shared-mutable` | must | lint | Parallel tests must not share mutable fixtures |
+| `test/fixtures/non-vacuous` | must | review | Fixtures must force the behavior under test to execute |
+| `test/production-path` | must | review | Be honest about which path the test exercises |
+| `test/evidence-path-consistency` | must | review | Ref-says-X ∧ manifest-says-X ∧ disk-has-X for every evidence file |
+| `test/goroutines/owned` | must | review | Every goroutine has owner, cancel path, wait path, timeout backstop |
+| `test/structural-invariant` | must | review | Source/AST tests valid when contract is compiler-visible structure |
+| `test/data-flow-inventory` | must | review | Production structs in eligible packages must be classified |
+| `test/repeat-policy` | must | review | `RepeatCount` is tests-only; tools/benchmarks/fuzz run once per phase |
+| `test/budget-divergence` | must | review | Effective/configured budget ratio is a contract, not a side effect |
+| `test/benchmarks` | must | review | Measure one thing, report allocs, run serial+last, manifest covers evidence |
+| `test/fuzz-boundary` | must | review | Every external ingress has semantic fuzz proof; evidence covered by manifest |
+| `test/ledger-chain` | must | review | Ledger tests prove the real chain |
+| `protocol/typed-boundary` | must | lint | Protocol payloads are typed structs and enums |
+| `test/waivers` | must | review | Waivers name why the rule is wrong for this case |
+
+Grep this index by `id` to jump to the rule body. Every rule body restates the
+`id`, `level`, and `enforcement` line so the table stays a navigation aid, not a
+duplicate truth source.
+
+## Review Checklist
+
+`id: test/review-checklist`
+
+`level: must`
+
+`enforcement: review`
+
+Review-only rules are still rules.
+
+For every new or changed test, reviewers must ask:
+
+- What behavior would fail red before the fix?
+- Which production contract is being ratcheted: parser, validator, classifier,
+  fold, writer, manifest, verifier, reporter, CLI, or doctrine?
+- Does the test own filesystem mutations with `t.TempDir()` in the test or
+  parallel subtest body?
+- Is the test parallel, or does it carry a canonical waiver?
+- Are time, randomness, paths, environment, IDs, and command output controlled?
+- For tables, do case names describe boundaries or failure modes?
+- Does every row earn its place, or is the table padded to hit a count?
+- For policy/parser/classifier/fold code, are negative and boundary cases
+  present?
+- For producer→classifier handoffs, is the 50-case hostile matrix present with
+  exclusive primary classes, transition assertions, and mutation pairs?
+- For evidence/accounting changes, does every touched layer have positive,
+  negative, and neutral coverage?
+- Are errors asserted with sentinels, typed errors, or a documented waiver?
+- If a value is derived, does the test prove the source facts rather than
+  restating a persisted duplicate?
+- Do helpers preserve `got`/`want` facts instead of hiding assertions?
+- Do fixtures force the behavior under test to execute, instead of passing by
+  no-op?
+- If the test scans source or reflects on types, is the invariant structural and
+  tied to a real bug class?
+- If a production struct was added, is it covered by the package's struct or
+  data-flow inventory and classified into an intentional role?
+- If old tests support a deleted legacy path, were they upgraded to the new
+  contract instead of kept as compatibility ballast?
+
+## Compiler-Driven Testing
+
+`id: test/compiler-driven`
+
+`level: must`
+
+`enforcement: review`
+
+Tests must keep the compiler in charge.
+
+The preferred upgrade path is a clean break: structs to structs, enums to
+closed `iota` enums, explicit `Validate()` gates, typed sentinels, and direct
+call sites. Do not add compatibility wrappers, shims, alternate model structs,
+or stringly adapters just to keep old tests green.
+
+When a legacy assumption is wrong, upgrade the assumption. Do not fight the old
+test. Either rewrite it around the new typed contract or replace it with a
+non-vacuous test that proves the current execution path.
+
+Required:
+
+- public protocol data is a typed struct or closed enum
+- derived values are tested through their source facts and method result
+- invalid states are rejected by `Validate()` or a boundary constructor
+- errors route through typed sentinels or typed error structs
+- tests assert the compiler-visible shape when shape is the contract
+
+Forbidden:
+
+- test-only wrappers that hide production shape changes
+- compatibility constructors that preserve deleted fields
+- duplicate fixtures that encode the same truth in two places
+- `map[string]any` or raw JSON fixtures where a typed fixture is available
+- keeping an old substring/prose assertion when a sentinel exists
+
+If the compiler cannot see the contract, first ask whether the production code
+needs a typed surface. Runtime assertions are still needed, but they should sit
+on top of compiler-visible structure, not replace it.
+
+## First Principle
+
+`id: test/evidence`
+
+`level: must`
+
+`enforcement: review`
+
+A test must prove a behavior that can fail.
+
+If a test cannot explain what bug it catches, it is theater. Delete it or
+rewrite it. A useful test has a meaningful red state, then proves the green
+state after the fix.
+
+Required proof:
+
+- the assertion checks a real contract, not just that code executed
+- failure output identifies the broken fact
+- the test would fail if the production behavior regressed
+- the fixture cannot pass by skipping the production branch under review
+- the test is connected to the actual production path unless the slice is
+  explicitly a direct unit ratchet for a helper
+
+Weak:
+
+```go
+func TestBuild(t *testing.T) {
+	t.Parallel()
+	_ = Build()
+}
+```
+
+Strong:
+
+```go
+func TestBuildRejectsMissingCommand(t *testing.T) {
+	t.Parallel()
+
+	_, err := Build(Input{})
+	if !errors.Is(err, ErrMissingCommand) {
+		t.Fatalf("Build() error = %v, want %v", err, ErrMissingCommand)
+	}
+}
+```
+
+## Red/Green Slice Discipline
+
+`id: test/red-green-slice`
+
+`level: must`
+
+`enforcement: review`
+
+Every behavioral slice should have a red state before the production fix or an
+explicit reason why the slice is a pure ratchet over already-correct behavior.
+
+Acceptable slice shapes:
+
+- bug fix: add or expose the failing hostile case, fix production, keep the
+  hostile case as a ratchet
+- contract ratchet: production is already correct, but the test now proves a
+  previously unpinned invariant
+- deletion/collapse: flip tests away from the deleted legacy field/path and
+  assert absence where the wire or struct shape matters
+- structural guard: source/AST test proves a compiler-visible invariant that a
+  runtime test cannot observe cheaply
+
+Unacceptable slice shapes:
+
+- green test that exercises only a fake path while claiming production coverage
+- fixture pre-writing a file that production cannot see at that point in the
+  lifecycle
+- test that pins a compatibility branch scheduled for deletion
+- assertion that duplicates production logic without independently checking the
+  output state
+
+When a slice intentionally stops short, name the remaining gap in the commit or
+review note. "Out of scope" must identify the next proof surface, not hide it.
+
+## Isolation
+
+`id: test/isolation/tempdir`
+
+`level: must`
+
+`enforcement: lint`
+
+Every test that mutates the filesystem must own its directory.
+
+If a test or subtest calls `t.Parallel()` and creates, writes, renames, removes,
+links, chmods, or truncates files, it must call `t.TempDir()` in the same test or
+subtest function body.
+
+Parent temp directories do not make child subtests safe. A parallel subtest is a
+separate unit of isolation.
+
+A helper may receive a temp directory created by the test or subtest. A helper
+must not hide `t.TempDir()` for a parallel subtest that mutates files; ownership
+must be visible at the call site.
+
+Wrong:
+
+```go
+func TestWrite(t *testing.T) {
+	t.Parallel()
+
+	err := os.WriteFile("ledger.jsonl", []byte("{}"), 0o600)
+	if err != nil {
+		t.Fatal(err)
+	}
+}
+```
+
+Right:
+
+```go
+func TestWrite(t *testing.T) {
+	t.Parallel()
+
+	dir := t.TempDir()
+	path := filepath.Join(dir, "ledger.jsonl")
+	err := os.WriteFile(path, []byte("{}"), 0o600)
+	if err != nil {
+		t.Fatal(err)
+	}
+}
+```
+
+## Parallelism
+
+`id: test/parallel/default`
+
+`level: should`
+
+`enforcement: lint`
+
+Tests should call `t.Parallel()` at the parent and subtest level unless they
+mutate process-wide state or intentionally prove ordering.
+
+Allowed serial cases:
+
+- `t.Setenv`, `os.Setenv`, `os.Clearenv`, or environment inheritance behavior
+- `os.Chdir`
+- process signal handlers
+- fixed ports, named sockets, global loggers, global registries
+- tests that prove serialization, lock contention, or ordering against one
+  shared resource
+
+Serial tests require a reason at the call site:
+
+```go
+func TestSignalHandler(t *testing.T) {
+	// witness:waiver test/parallel/default -- installs process-wide signal.Notify handler.
+}
+```
+
+Silence means the author forgot. It does not mean the test is exempt.
+
+## Synchronization
+
+`id: test/sync/no-sleep`
+
+`level: must`
+
+`enforcement: lint`
+
+Tests must not use `time.Sleep` for synchronization.
+
+Sleeping is a guess about scheduler timing. Guesses pass locally and fail on
+loaded runners. Synchronize on facts: channel close, `sync.WaitGroup`,
+`errgroup`, context cancellation, file appearance with bounded polling, or a
+mock clock.
+
+Wrong:
+
+```go
+go worker()
+time.Sleep(100 * time.Millisecond)
+if !done {
+	t.Fatal("worker did not finish")
+}
+```
+
+Right:
+
+```go
+done := make(chan struct{})
+go func() {
+	defer close(done)
+	worker()
+}()
+
+select {
+case <-done:
+case <-time.After(10 * time.Second):
+	t.Fatal("worker did not finish")
+}
+```
+
+Timeouts are allowed as deadlock backstops. They are not allowed as proof that
+work probably happened.
+
+Timeouts should be generous enough to prove only "this is wedged", not
+performance. Prefer a package-local timeout constant when several tests need the
+same backstop. A timeout assertion must not be the only evidence that work
+completed.
+
+## Determinism
+
+`id: test/determinism`
+
+`level: must`
+
+`enforcement: review`
+
+Tests must control time, randomness, paths, environment, and process output.
+
+Production code that needs current time, random values, generated IDs, or
+external commands should accept those dependencies at the boundary. Tests supply
+fixed values. Production supplies the real implementation.
+
+Required defaults:
+
+- use fixed timestamps
+- assert stored timestamps as raw nanoseconds when the contract is persistence;
+  assert formatted timestamps only when the contract is display
+- use seeded random sources
+- use deterministic IDs
+- sort map keys before comparing serialized output
+- avoid assertions on wall-clock duration outside benchmarks
+- inject clocks or command runners at package boundaries; if third-party code
+  calls `time.Now()` directly, wrap it before testing deterministic behavior
+
+## Table Shape
+
+`id: test/table-shape`
+
+`level: must`
+
+`enforcement: review`
+
+When cases share one execution shape, use a table test.
+
+The table is the pressure surface.
+
+A table test is not a list of examples. It is an extreme-input proof set
+designed to break the function. Happy-path sampling is not enough. The table
+must pressure both sides of every expected boundary and the exact places the
+implementation is most likely to lie.
+
+The loop is just the executor. The table is the specification. Case names must
+name the boundary, failure mode, or invariant being attacked, not vague labels
+like `case 1`.
+
+Required fields:
+
+- `name`
+- input or setup function
+- `want*` result fields
+- `wantErr`, `wantViolation`, or other `want*` contract fields when applicable
+- why this case exists when the reason is not obvious from the name
+
+Required adversarial shape:
+
+- at least 10 expected-valid cases for non-trivial policy/data functions
+- at least 10 negative/rejection cases for non-trivial policy/data functions
+- at least 20 boundary cases distributed across both sides of the function's
+  meaningful spectrum
+- exact-boundary cases must include the value at the boundary, one below, and
+  one above
+- malformed input cases must include empty, truncated, oversized, unknown,
+  duplicated, reordered, and type-wrong variants where relevant
+- enum/domain tests must include every valid enum value plus unknown/future
+  values
+- parser tests must include hostile input, not just polite malformed input
+- classifier/scoring tests must include tie, threshold, saturation, and
+  precedence cases
+- producer→classifier handoffs use `test/producer-classifier-matrix` instead of
+  the generic 10/10/20 floor; do not count generic pass/fail rows as that matrix
+- every row is an earned row under `test/earned-rows`; numeric floors count
+  distinct load-bearing cases, not slice length
+
+For small functions with a smaller complete input space, exhaust the whole
+space. The counts are floors for serious functions, not bureaucracy for trivial
+helpers. Exhaustive proof of a tiny domain replaces the floor and still forbids
+padding.
+
+If a table has only two or three cases, it is probably not proving enough unless
+the function is mathematically tiny.
+
+Pattern:
+
+```go
+cases := []struct {
+	name string
+	in   Input
+	want Result
+}{
+	{name: "valid floor timeout is accepted", in: Input{Timeout: floor}, want: Result{Timeout: floor}},
+	{name: "zero timeout is rejected", in: Input{Timeout: 0}, want: Result{Err: ErrInvalidTimeout}},
+	{name: "one below floor is rejected", in: Input{Timeout: floor - 1}, want: Result{Err: ErrInvalidTimeout}},
+	{name: "one above floor is accepted", in: Input{Timeout: floor + 1}, want: Result{Timeout: floor + 1}},
+}
+
+for _, tc := range cases {
+	t.Run(tc.name, func(t *testing.T) {
+		t.Parallel()
+		got := Resolve(tc.in)
+		if got != tc.want {
+			t.Fatalf("Resolve() = %v, want %v", got, tc.want)
+		}
+	})
+}
+```
+
+Do not force a table when there is only one behavior and no meaningful case
+matrix. The rule exists to make boundaries visible, not to add ceremony.
+
+A weak table proves the author knew the function's intended happy path. A strong
+table proves the function survives contact with bad inputs, edge cases, future
+enum values, and maximally inconvenient state.
+
+## Boundary Coverage
+
+`id: test/boundaries`
+
+`level: must`
+
+`enforcement: review`
+
+Policy/data packages need negative and boundary coverage.
+
+For a function that validates, classifies, parses, grades, plans, or folds, a
+happy-path-only test is incomplete.
+
+Minimum coverage:
+
+- valid input
+- invalid input
+- zero value
+- exact threshold
+- one below threshold
+- one above threshold
+- minimum representable value when applicable
+- maximum representable value when applicable
+- duplicate input when uniqueness matters
+- missing input when required fields matter
+- conflicting input when precedence matters
+- unknown future enum when applicable
+- malformed external input when parsing
+
+This is why exact-at-threshold grade behavior belongs in a test: the contract is
+different from one point below.
+
+For serious validation, parsing, planning, scoring, folding, and classification
+code that is *not* a producer→classifier handoff, the expected default is:
+
+- 10 cases that should pass
+- 10 cases that should fail
+- 20 boundary/hostile cases that probe both sides of the behavior spectrum
+
+Producer→classifier handoffs are a stricter special case of this rule. They use
+`test/producer-classifier-matrix` (10 contradiction / 10 typed-refusal /
+10 neutral / 20 structured boundary). Do not satisfy that handoff with the
+generic 10/10/20 split.
+
+If those numbers feel excessive, the function is either trivial enough to
+exhaust completely or important enough to deserve the proof.
+
+`test/table-shape` governs the shape of the executor and case table.
+`test/earned-rows` governs whether a row may count toward any of those floors.
+`test/boundaries` governs what hostile dimensions must be represented inside
+that table. Do not count the same three polite cases as both table shape and
+boundary coverage. Do not let one `threshold-1` case satisfy negative, neutral,
+and boundary quotas at once.
+
+A serious function is one that sits on a trust boundary, parser, classifier,
+planner, scorer, ledger/fold path, artifact/finalization path, or doctrine
+rule. Tiny field formatters and one-branch adapters can exhaust their complete
+input space instead of meeting the 10/10/20 floor.
+
+## Layer Triad Coverage
+
+`id: test/layer-triad`
+
+`level: must`
+
+`enforcement: review`
+
+Evidence and accounting changes must prove every layer they touch with a
+positive, negative, and neutral case.
+
+One triad at the highest layer is not enough. Each touched layer must have its
+own local triad test. End-to-end and integration tests are valuable, but they do
+not replace local producer, schema, writer, replay, fold, projection, verifier,
+reporter, and CLI/process triads.
+
+An evidence pipeline is not one function. A correct producer paired with a
+blind verifier is a bug. A correct producer paired with a blind classifier is
+a bug; see `test/producer-classifier-matrix`. A correct writer paired with a
+stale reporter is a bug. A typed index that accepts a bad counter because a
+lower layer already "should have" checked it is a bug.
+
+Any change that affects captured output, fuzz evidence, retained facts,
+artifacts, ledgers, manifests, terminal envelopes, run/fold accounting, or
+verification must name the layers it crosses and add or update tests at each
+crossed layer. Untouched downstream layers require an explicit reason in the
+review or bug record.
+
+Required layer map:
+
+- producer/capture: execution code emits the right typed facts and refuses or
+  marks bad source material
+- core schema: records validate impossible, unknown, duplicate, missing, and
+  zero-value combinations
+- durable writer: files, indexes, shards, fsync/rename, and close failures keep
+  accounting honest
+- ledger writer/replay: envelopes seal, replay, reject tampering, and preserve
+  final-state precedence
+- fold/run accounting: planned, emitted, skipped, failed, aborted, and degraded
+  facts stay balanced
+- artifact/manifest projection: every durable evidence file is projected once,
+  and scratch/raw/duplicate files are rejected or explicitly excluded
+- hostile self-consistency scan: an independent walk over the finalized
+  bundle compares the typed projection, the manifest, and the on-disk tree
+  and refuses to certify when any two disagree
+- verifier: the independent disk/manifest/ledger check catches forged,
+  missing, duplicated, truncated, and extra evidence
+- reporter/human output: typed evidence is rendered once and generic fallback
+  output does not repeat or hide it
+- CLI/process boundary: cancellation, close errors, setup/install state, and
+  command-output capture do not silently downgrade evidence
+
+The hostile self-consistency scan is a separate layer from verifier even when
+they share code. Verifier proves the bundle is internally consistent against
+its own claims. The hostile scan proves the producer/writer/projection chain
+did not record presence the durable tree cannot sustain. A bundle that passes
+verifier but fails the hostile scan has a producer/writer bug.
+
+Required triad per layer:
+
+- positive: the intended evidence path succeeds and the exact counters, files,
+  hashes, states, and terminal facts match
+- negative: a hostile or impossible input fails loudly with the strongest stable
+  error contract available
+- neutral: absent, empty, zero, skipped, disabled, duplicate-no-op, or
+  below-threshold input does not create fake evidence, noisy artifacts, or
+  misleading counters
+
+Neutral is mandatory. Many evidence-pipeline bugs are not "bad input accepted";
+they are "nothing happened but the ledger said something did" or "a tiny no-op
+produced three durable files." A neutral test must assert both sides: the
+expected absence of durable noise and the preservation of any required
+zero/empty sealed fact.
+
+The triad must be hostile, not polite. Examples:
+
+- duplicate refs with identical path/hash/bytes and conflicting path/hash/bytes
+- all dropped evidence, partially dropped evidence, and no reported evidence
+- missing trailing newline, truncated JSON, oversized line, and empty stream
+- forged index that matches disk size but lies about child hashes or counts
+- successful seal, seal failure before rename, and seal failure after temp file
+  creation
+- completed run, aborted run, and multiple terminal envelopes where last wins
+
+Structural tests may enforce that every evidence family supplies the layer
+triad, but they do not replace the behavioral tests. The behavioral tests must
+execute the real producer/writer/verifier path whenever that path is cheap
+enough to run inside the package test.
+
+Every package that owns one of the required layer responsibilities must
+declare its local triad tests as top-level test functions whose names contain
+`LayerTriad`. The doctrine ratchet locates the contract by function name
+across the package's consolidated `_test.go`, so an auditor can grep for
+`LayerTriad` to find the layer's positive/negative/neutral coverage without
+threading through file boundaries.
+
+## Earned Rows
+
+`id: test/earned-rows`
+
+`level: must`
+
+`enforcement: review`
+
+Quota stuffing and nonsense padding are prohibited. Each row must earn its
+place.
+
+A test table is not a headcount. Meeting a numeric floor by cloning, renaming,
+permuting unused fields, or double-counting one fixture across quotas is a
+protocol violation equal to missing coverage. Numeric floors count distinct
+load-bearing cases, not the length of a `[]struct` literal.
+
+A row earns its place only if it proves a distinct load-bearing transition,
+boundary, or invariant that no other row in the same table already proves. Two
+rows that execute the same production branch with the same `want*` contract are
+one row, regardless of names.
+
+Forbidden:
+
+- counting one case against two primary quotas
+- near-duplicates that differ only in name, comments, ignored fields, or
+  semantically inert payload
+- permuting identical facts and calling the permutation order-invariance
+  coverage
+- enumerating every spelling of empty, zero, nil, and missing when they
+  collapse to one producer state, unless the producer actually distinguishes
+  those states
+- padding 10/10/20 or 50 with "also invalid" variants that share one rejection
+  branch
+- generating synthetic rows whose `want*` values are copied from a sibling
+  without an independent expected contract
+- flipping a field the production path does not read and treating the flip as
+  new coverage
+- using unknown/future enum arms as filler when the classifier dumps them all
+  into one default
+- treating a mutation pair as two unrelated quota members when only one
+  load-bearing fact changed and both rows occupy the same primary class
+
+Required:
+
+- each row names the unique contract it attacks
+- each row differs from every other row in at least one load-bearing typed fact
+  that the production path reads
+- if two rows would execute the same branch with the same `want*` contract,
+  delete one
+- reviewers reject tables that hit the number without hitting the failure class
+- a waiver that says "padded to satisfy the floor" is invalid
+
+`why`: padded tables hide missing handoff bugs behind a passing count. The
+protocol's floors exist to force pressure, not to be gamed.
+
+`test/fixtures/non-vacuous` forbids a fixture that never executes the behavior.
+`test/earned-rows` forbids a crowd of fixtures that all execute the same
+behavior. Both are required.
+
+## Producer → Classifier Hostile Matrix
+
+`id: test/producer-classifier-matrix`
+
+`level: must`
+
+`enforcement: review`
+
+Serious producer-to-classifier handoffs must maintain a hostile transition
+matrix. Testing the producer and classifier independently does not prove that
+the typed handoff between them preserves meaning.
+
+A producer admits or refuses source material as typed facts. A classifier
+derives a classification from those facts. The bugs live in the seam: silent
+reconciliation of conflicting facts, refusals that become empty success,
+absence that becomes evidence, order-dependent "first match wins," and
+thresholds that work locally but collapse at extremes.
+
+If a package has no producer→classifier split, this rule does not apply. If a
+scan, decode, or capture stage emits typed facts or typed refusals into a
+classifier, that stage *is* the producer for this rule.
+
+### Primary Classes
+
+The default matrix contains at least 50 primary cases:
+
+| Primary class     | Cases | What it proves                                                           |
+| ----------------- | ----: | ------------------------------------------------------------------------ |
+| **Contradiction** |    10 | Conflicting producer facts cannot be silently reconciled                 |
+| **Typed refusal** |    10 | Producer/scan rejection remains a typed rejection through classification |
+| **Neutral**       |    10 | Absence/no-op cannot magically become evidence                           |
+| **Boundary**      |    20 | Every classification boundary behaves correctly on both sides            |
+
+Every case has exactly one primary class for quota accounting. A case may
+carry additional dimension tags, but the same case must not satisfy multiple
+primary quotas. One `threshold-1` row is boundary or neutral, not both.
+
+Where the input domain is small enough to exhaust completely, exhaustive proof
+replaces the 50-case floor. Exhaustive still requires exclusive primary-class
+labels so contradiction, refusal, and neutrality are not collapsed into one
+"invalid" bucket.
+
+### Contradiction Versus Refusal
+
+These are different bug classes. Do not mix them.
+
+A **refusal** means: the producer cannot admit this source material into the
+typed domain.
+
+A **contradiction** means: these facts are individually admissible, but cannot
+all simultaneously be true of the same subject, identity, artifact, state, or
+event.
+
+```text
+malformed bytes
+    ↓
+producer refuses
+    ↓
+typed refusal preserved
+
+valid fact A + valid fact B
+but A ∧ B impossible for the same subject
+    ↓
+producer/classifier contradiction
+    ↓
+typed contradiction classification
+```
+
+Contradiction cases must pin the shared subject. Two admissible facts about
+different identities are not a contradiction unless the contract says they
+name the same thing.
+
+### Transitions, Not Final Labels
+
+The matrix proves transitions, not merely final labels:
+
+```text
+source
+  ↓
+producer state
+  ↓
+typed facts/refusal
+  ↓
+classifier
+  ↓
+classification
+  ↓
+retained evidence
+```
+
+A test that only asserts the final classification can pass while the producer
+emitted the wrong intermediate facts. That is still a broken pipeline.
+
+```go
+type matrixClass string
+
+const (
+	matrixContradiction matrixClass = "contradiction"
+	matrixRefusal       matrixClass = "typed-refusal"
+	matrixNeutral       matrixClass = "neutral"
+	matrixBoundary      matrixClass = "boundary"
+)
+
+type producerClassifierCase struct {
+	name string
+
+	produce func(t *testing.T) ProducerResult
+
+	wantProducerState ProducerState
+	wantClass         Classification
+	wantErr           error
+
+	wantEvidence      []Evidence
+	wantEvidenceCount int
+
+	primary    matrixClass
+	dimensions []string
+}
+```
+
+Assertions must prove, in order:
+
+- producer state matches `wantProducerState`
+- typed facts or typed refusal identity match the producer contract
+- `wantErr` and `wantClass` both match; they are orthogonal
+- retained evidence identity matches `wantEvidence`, not merely a count
+- no extra evidence, counters, proofs, or durable state escaped
+
+Hand-built classifier input does not count toward the matrix unless a sibling
+assertion proves the producer would emit that exact typed fact or refusal.
+Classifier-only fixtures skip the handoff this rule exists to test.
+
+### Contradiction
+
+Contradiction cases contain facts that are individually admissible but cannot
+simultaneously describe the same subject, identity, artifact, state, or event.
+
+Required contradiction pressure includes conflicting duplicates, competing
+identities, mutually exclusive states, equal-precedence conflicts,
+weaker-versus-stronger evidence, conflicts introduced in different input
+orders, and same-identity facts with conflicting payloads.
+
+A contradiction must never be silently resolved by input order, converted to
+neutral, hidden by otherwise-positive evidence, or collapsed into generic
+failure. The expected precedence rule must be explicit in the case.
+
+If contradiction is terminal, encode the lattice, for example:
+
+```text
+contradiction > positive > neutral
+```
+
+Then prove:
+
+```text
+positive + contradiction != positive
+```
+
+If that is not the intended precedence, encode the lattice that actually
+exists. Do not leave it implicit inside a `switch`.
+
+### Typed Refusal
+
+Typed-refusal cases prove that material rejected by the producer or scan
+boundary retains the strongest stable refusal identity through classification.
+
+The classifier must not convert a typed refusal into generic failure, neutral
+classification, unknown classification, successful empty output, degraded
+success, or positive evidence.
+
+Rejected material must not contribute evidence, counters, proofs, or durable
+state unless the protocol explicitly defines a retained refusal fact. A refusal
+payload that happens to look like a valid fact is still a refusal, not
+evidence.
+
+Mixed batches are required when the producer can admit some facts and refuse
+others in one result: refused slices must not leak into classification
+evidence, and admitted slices must still classify under the remaining
+contract.
+
+### Neutral
+
+Neutral cases prove that absence of evidence remains absence of evidence.
+
+Required neutral pressure includes absent, empty, zero, skipped, disabled,
+below-threshold, identical duplicate, irrelevant, and repeated-no-op input
+where the producer actually distinguishes those states. If empty, zero, and
+nil collapse to one producer state, that is one earned row, not three.
+
+Neutral input must not manufacture positive evidence, contradiction, durable
+artifacts, misleading counters, or stronger classification.
+
+```text
+neutral + neutral → neutral
+```
+
+not:
+
+```text
+neutral + neutral → weak-positive
+```
+
+Empty, missing, and explicit-null are distinct only when the producer emits
+distinct typed states for them. Prove those distinctions; do not pad them.
+
+### Boundary
+
+The 20 boundary cases are five meaningful boundary families with four pressure
+points each, not twenty miscellaneous edge cases.
+
+| Boundary family              | Four required positions                                 |
+| ---------------------------- | ------------------------------------------------------- |
+| classification threshold     | `-1`, exact, `+1`, extreme                              |
+| producer count/cardinality   | `-1`, exact, `+1`, extreme                              |
+| size/extent limit            | `-1`, exact, `+1`, extreme                              |
+| enum/domain edge             | lowest valid, highest valid, unknown-next, pathological |
+| precedence/conflict strength | weaker, tie, stronger, saturation                       |
+
+For ordered numeric boundaries the default pressure points are:
+
+```text
+boundary - 1
+boundary
+boundary + 1
+extreme value on the relevant side
+```
+
+The fourth point exists because implementations that work locally around a
+threshold still overflow, saturate, truncate, or misclassify extremes. If the
+domain is floating, extreme includes `+Inf`, `-Inf`, `NaN`, and signed zero
+when those values can reach the classifier. If a family does not exist for the
+package, substitute a more meaningful package-specific family. Do not invent a
+vacuous family to keep the grid 5×4.
+
+### Required Cross-Case Invariants
+
+The cases themselves matter less than these invariants. The matrix must prove
+all applicable ones with an independent oracle, not by restating production
+branches.
+
+**No evidence ex nihilo.** The classifier may derive a conclusion from
+producer facts, but it must never invent a supporting fact the producer did
+not emit.
+
+```text
+classifier evidence ⊆ producer evidence ∪ deterministic derivations
+```
+
+Deterministic derivations must be named in the contract and marked as derived
+so they cannot be treated as producer-emitted evidence. `got == want` is not a
+substitute for this inclusion invariant.
+
+**Refusal preservation.** If the producer or scan refuses material with a
+typed reason, classification must not turn it into neutral, unknown,
+successful-but-empty, degraded success, or generic failure. The refusal
+identity has to survive. This is the handoff form of `test/errors`.
+
+**Contradiction precedence.** Contradictory facts resolve according to one
+explicit precedence contract. Positive evidence cannot outvote a terminal
+contradiction unless that is the documented lattice.
+
+**Neutrality conservation.** Neutral facts alone cannot produce positive
+evidence. Absence plus absence is still absence.
+
+**Duplicate idempotence.** Identical duplicate producer facts should satisfy
+`classify(x) == classify(x,x)` unless multiplicity is explicitly semantic.
+Replay of the same producer result through the classifier must not accumulate
+evidence. Same identity plus conflicting payload is not a duplicate; it is
+contradiction or refusal.
+
+**Order invariance.** If ordering has no semantic meaning,
+`classify(a,b,c) == classify(c,a,b)`. Prove it with distinct facts, not with
+permutations of identical payloads. If order does matter, invert the rule:
+prove exactly where it matters and pin that in the case. Accidental
+first-match-wins is a classifier bug.
+
+**Boundary monotonicity.** For an ordered classification domain, define the
+intended ordering and prove it, for example
+`below threshold ≤ threshold ≤ above threshold`. Then attack the places where
+monotonicity intentionally breaks, such as contradiction precedence.
+
+**Classification and error orthogonality.** `wantClass` and `wantErr` are both
+asserted. A typed producer refusal with a positive class is a bug. A nil error
+with a refusal class is a bug unless the contract stores refusal as
+classification without error. Do not assert only one of them.
+
+**Classifier isolation.** If the classifier can retain state, independent
+batches must not cross-contaminate. Prove two successive classifications of
+unrelated producer results do not share evidence, counters, or class.
+
+**Retained evidence stays typed.** Downstream of classification, retained
+facts remain structs and enums. Stringly dumps, `any`, and reconstructed JSON
+maps are not retained evidence.
+
+### Mutation Pairs
+
+At least one case for every load-bearing transition must be a mutation pair:
+begin with a known baseline, change exactly one semantic fact, and prove that
+the expected producer or classifier state changes. This is the table-test form
+of the fuzz rule that a mutation must prove it changed a load-bearing fact.
+
+```text
+baseline → expected classification
+baseline + exactly one mutation → different expected classification
+```
+
+Examples:
+
+```text
+valid fact
+→ positive
+
+same fact + conflicting sibling
+→ contradiction
+```
+
+```text
+score = threshold
+→ positive
+
+score = threshold - 1
+→ neutral
+```
+
+Do not construct two unrelated fixtures and claim they prove the same
+transition. The pair is causal evidence that the load-bearing change caused
+the classification change. Vacuous mutations — requested flips that the
+fixture silently defaults back — fail the pair.
+
+### Independent Oracle
+
+Do not copy the production `switch` into the test and call it an oracle. The
+matrix oracle is the seven invariants plus the explicit precedence lattice,
+inclusion of evidence, and typed identities. If the test's expected class is
+computed by calling the same unexported helper the classifier uses, the test
+cannot catch a wrong helper.
+
+`why`: a correct producer paired with a blind classifier is still a broken
+pipeline. Subtle bugs live in the handoff, and a generic 10/10/20 table does
+not force systematic disagreement testing.
+
+## Package Sweep Exit Gate
+
+`id: test/package-sweep-exit`
+
+`level: must`
+
+`enforcement: review`
+
+A package sweep is not done because a few new tests were added. It is done when
+the package's trust surfaces have explicit coverage and the old weak contracts
+are retired.
+
+Exit checklist:
+
+- all new or touched rejection paths have typed sentinels or typed errors
+- substring error assertions are gone or carry a waiver naming the upstream gap
+- serious validators, parsers, classifiers, planners, folders, writers, and
+  verifiers have hostile tables or exhaustive matrices
+- producer→classifier handoffs have the 50-case hostile transition matrix or an
+  exhaustive replacement of that domain
+- tables contain only earned rows; quota stuffing is a sweep-blocking defect
+- evidence/accounting paths have local layer triads
+- structural invariants have source/AST ratchets when runtime tests cannot
+  cheaply prove them
+- old compatibility tests have been upgraded or deleted
+- no new dead wrappers, duplicate truths, or test-only shims were introduced
+- focused package tests pass
+- relevant lint (the project's doctrine linter, `go vet`, `staticcheck`, and
+  any package-owned tool) is clean or has an explicit known baseline
+
+For a large package, the sweep may land in slices. Each slice must say which
+surface it closed and which surface remains. Do not declare the package done
+while known hostile surfaces are only "documented" and not ratcheted.
+
+## Error Assertions
+
+`id: test/errors`
+
+`level: must`
+
+`enforcement: review`
+
+Assert the strongest stable error contract available.
+
+Order of preference:
+
+1. `errors.Is` for sentinels
+2. `errors.As` / `errors.AsType` for typed errors
+3. category helpers like `os.IsNotExist`
+4. `err != nil` only when platform differences make stronger checks brittle
+
+Weak:
+
+```go
+if err == nil {
+	t.Fatal("expected error")
+}
+```
+
+Strong:
+
+```go
+if !errors.Is(err, ErrHashMismatch) {
+	t.Fatalf("Replay() error = %v, want %v", err, ErrHashMismatch)
+}
+```
+
+Do not compare error strings. Strings are diagnostics, not contracts.
+
+### Two-Tier Assertions
+
+When a diagnostic string still matters to an operator, the assertion is
+two-tiered:
+
+1. assert the typed class with `errors.Is` or `errors.As` — this is the
+   load-bearing rejection proof
+2. then assert the diagnostic detail only for the user-visible payload —
+   this is the operator-facing message check, not the contract
+
+The diagnostic check must never be the only rejection proof. A test that
+matches only on the diagnostic string passes when the error class regresses
+to a different typed error that happens to render the same prose.
+
+If an upstream library exposes only strings, wrap the error at the boundary
+with a typed or sentinel error and assert that wrapper. If no wrapper exists
+yet, a string assertion needs a waiver that names the upstream gap and the
+migration target.
+
+## Structural Equality
+
+`id: test/structural-equality`
+
+`level: must`
+
+`enforcement: lint`
+
+Do not use `reflect.DeepEqual` in tests.
+
+`reflect.DeepEqual` hides type-specific diffs, treats nil and empty slices in a
+way that often conflicts with wire contracts, and encourages whole-record
+comparison without explaining which field is load-bearing.
+
+Preferred comparison order:
+
+1. direct `==` for comparable values
+2. `slices.Equal` / `maps.Equal` for comparable collections
+3. `slices.EqualFunc` / `maps.EqualFunc` with domain comparators
+4. explicit field-by-field comparison when each field is a contract
+5. canonical JSON byte equality only when the JSON projection itself is the
+   contract
+6. `cmp.Diff` only in tests where a rich structural diff is worth the
+   dependency and the comparison options are explicit
+
+Wrong:
+
+```go
+if !reflect.DeepEqual(got, want) {
+	t.Fatalf("record = %v, want %v", got, want)
+}
+```
+
+Better:
+
+```go
+if got.Kind != want.Kind || got.Path != want.Path || got.SHA256 != want.SHA256 {
+	t.Fatalf("artifact = %+v, want %+v", got, want)
+}
+```
+
+## Helpers
+
+`id: test/helpers`
+
+`level: must`
+
+`enforcement: lint`
+
+Assertion frameworks and `assert*` helpers are banned.
+
+Tests must show the fact being checked in plain Go with `got` and `want`
+language. A failing test should tell the reader exactly what was observed and
+what contract was expected without hiding the comparison behind a generic
+assertion API.
+
+Table tests must use `got` and `want` vocabulary. Do not name table fields
+`expected`, `actual`, `expectedResult`, or `actualOutput`. The table describes
+the contract with `want*` fields; the test body computes `got`.
+
+Subtest names must name the behavior or hostile condition. Names like `case`,
+`valid`, `invalid`, `success`, `failure`, `ok`, `true`, and `false` are too
+generic.
+
+Forbidden:
+
+- `github.com/stretchr/testify/assert`
+- `github.com/stretchr/testify/require`
+- local helpers named `assert*`
+- local helpers named `check*`, `expect*`, or `require*` when they hide the
+  observed value or expected contract
+- table fields named `expected*` or `actual*`
+- generic subtest names that hide the boundary being exercised
+- failure messages like `expected X, got Y`
+- failure messages that hide the observed value
+
+Allowed:
+
+- direct `if got != want { t.Fatalf(...) }`
+- small `require*` setup helpers for fixture construction or repeated
+  fail-fast preconditions
+- domain-specific helpers that preserve `got`/`want` in the failure text
+- helper functions that accept `*testing.T` and call `t.Helper()` before any
+  failure path
+
+Helpers should make failures sharper, not hide complexity. If a helper needs
+branch-heavy logic, split it or return structured data and check it in the
+test.
+
+Pattern:
+
+```go
+got := Verify(record)
+want := Verification{Status: VerificationVerified}
+if got != want {
+	t.Fatalf("Verify() = %v, want %v", got, want)
+}
+```
+
+Helper pattern:
+
+```go
+func requireVerified(t *testing.T, got Verification, want Verification) {
+	t.Helper()
+	if got != want {
+		t.Fatalf("verification = %v, want %v", got, want)
+	}
+}
+```
+
+## Mutable Fixtures
+
+`id: test/fixtures/no-shared-mutable`
+
+`level: must`
+
+`enforcement: lint`
+
+Parallel tests must not share mutable fixtures.
+
+Package-level maps, slices, pointers, and buffers are allowed only as immutable
+templates. Each test case must clone or construct its own mutable value.
+
+Preferred table shape:
+
+```go
+cases := []struct {
+	name  string
+	setup func() *Config
+}{
+	{
+		name: "default tags",
+		setup: func() *Config {
+			return &Config{Tags: []string{"a"}}
+		},
+	},
+}
+```
+
+## Non-Vacuous Fixtures
+
+`id: test/fixtures/non-vacuous`
+
+`level: must`
+
+`enforcement: review`
+
+Fixtures must force the behavior under test to execute.
+
+A shared fixture that makes one table row or one projected writer no-op can
+produce a green test that proves nothing. Every fixture-driven test must have a
+minimum-output, minimum-effect, or explicit branch assertion that would fail if
+the target silently skipped its work.
+
+Required when a test calls multiple conditional implementations through one
+harness:
+
+- each row declares the minimum facts, files, records, or state transitions it
+  must produce
+- pass and fail branches use different fixtures when the production code writes
+  different artifacts
+- a zero-output result is accepted only when the case name says the no-op is the
+  contract
+
+## Production Path Proof
+
+`id: test/production-path`
+
+`level: must`
+
+`enforcement: review`
+
+A test must be honest about which path it exercises.
+
+Direct helper tests are useful, but they are not integration proof. Fake
+commanders, pre-baked refs, pre-written sidecar files, synthetic ledger lines,
+and in-memory publishers must be named as such in the test or review note. If
+the commit message claims the real durable path is covered, the test must drive
+the real producer, writer, commit, replay, or verifier path.
+
+Common false coverage patterns:
+
+- a worker test pre-writes the final sidecar file even though production writes
+  a temp file and commits it later
+- a fake commander pre-populates `StdoutRef` while the claimed contract is
+  runwriter post-fill
+- a report test string-matches Markdown while the machine JSON projection is
+  the stable surface
+- a verifier test names a manifest drift but skips the bundle manifest writer
+  that normally creates the input
+
+When only a lower-level unit is practical, say so and add the next integration
+surface as a separate slice. The distinction matters because pipeline bugs often
+live between two correct local components.
+
+## Evidence Path Consistency
+
+`id: test/evidence-path-consistency`
+
+`level: must`
+
+`enforcement: review`
+
+A test that asserts a captured evidence file must prove the three-way
+invariant: the typed reference names the file, the durable manifest seals
+the file, and the file exists on disk at the asserted path.
+
+Three independent layers can disagree about a single evidence file:
+
+- the typed reference that the producer records in the run projection
+- the final manifest that the seal/finalize path emits
+- the bytes on disk under the bundle root
+
+Two of three agreeing is not enough. A test that only checks the typed
+reference passes when the manifest is missing the entry. A test that only
+checks disk presence passes when the projection never recorded it. The
+hostile self-consistency scan (see `test/layer-triad`) catches divergence at
+run time, but local tests must not let the run get that far.
+
+Required for every test that touches captured evidence:
+
+- assert the typed reference names the expected path, hash, and byte count
+- assert the manifest contains the same path with matching hash and byte
+  count
+- assert the file exists on disk at the manifest-asserted path with the
+  manifest-asserted bytes
+- assert the manifest entry was produced by the projection writer being
+  tested, not by a pre-baked fixture
+
+Triad reminder: this rule is in addition to `test/layer-triad`. The triad
+governs per-layer positive/negative/neutral coverage. This rule governs
+cross-layer consistency for a single piece of evidence.
+
+Common failure classes this rule catches:
+
+- the run projection records a path that the writer never wrote
+- the writer seals a file but the manifest projection skips it
+- the manifest claims bytes the disk file no longer has after a cleanup pass
+- profile or benchmark capture records the reference optimistically before
+  the subprocess writes a non-empty file
+
+Helper pattern:
+
+```go
+func requireEvidenceConsistent(t *testing.T, ref EvidenceRef, m Manifest, bundleRoot string) {
+	t.Helper()
+	entry, ok := m.Lookup(ref.Path)
+	if !ok {
+		t.Fatalf("manifest missing %s; ref says present", ref.Path)
+	}
+	if entry.SHA256 != ref.SHA256 || entry.Bytes != ref.Bytes {
+		t.Fatalf("%s manifest=%s/%d ref=%s/%d", ref.Path, entry.SHA256, entry.Bytes, ref.SHA256, ref.Bytes)
+	}
+	info, err := os.Stat(filepath.Join(bundleRoot, ref.Path))
+	if err != nil {
+		t.Fatalf("stat %s: %v", ref.Path, err)
+	}
+	if info.Size() != entry.Bytes {
+		t.Fatalf("%s disk=%d manifest=%d", ref.Path, info.Size(), entry.Bytes)
+	}
+}
+```
+
+`EvidenceRef` and `Manifest` are placeholders for whatever typed reference
+and manifest types the package owns. The point is the three-way check, not
+the helper signature.
+
+## Goroutine Ownership
+
+`id: test/goroutines/owned`
+
+`level: must`
+
+`enforcement: review`
+
+Every goroutine started by a test must have an owner and an exit proof.
+
+Required proof:
+
+- a cancel path
+- a wait path
+- a timeout backstop
+- no assertion on global `runtime.NumGoroutine`
+
+`runtime.NumGoroutine` is process-global. It changes with the Go runtime, test
+runner, coverage, race detector, and unrelated packages. It does not prove that
+the goroutine this test started exited.
+
+Pattern:
+
+```go
+ctx, cancel := context.WithCancel(context.Background())
+defer cancel()
+
+done := make(chan error, 1)
+go func() {
+	done <- run(ctx)
+}()
+
+cancel()
+select {
+case err := <-done:
+	if err != nil {
+		t.Fatal(err)
+	}
+case <-time.After(10 * time.Second):
+	t.Fatal("worker did not exit")
+}
+```
+
+## Structural Invariant Tests
+
+`id: test/structural-invariant`
+
+`level: must`
+
+`enforcement: review`
+
+Source-scanning, reflection-shape, discovery-fence, and allowlist-ratchet tests
+are valid when the contract is compiler-visible structure that runtime behavior
+cannot prove.
+
+Use these tests for architecture boundaries:
+
+- a finalization stage must not accept a mutable pointer
+- a projection carrier must have exactly the expected fields
+- every writer helper must be classified
+- every raw write must be projected or explicitly scratch
+- an allowlist must shrink or stay fixed
+
+Required shape:
+
+- the test states the structural invariant in its name
+- the source scan is narrow and deterministic
+- failure output names the missing or forbidden symbol
+- allowlists require a reason string and a ratcheted maximum count
+- synthetic-source fixtures share the same matcher as the live repository scan
+  when the matcher is non-trivial
+- the scan proves structure, not prose; avoid broad string searches when an AST
+  shape can be matched
+- runtime tests still prove behavior when behavior can be executed cheaply
+
+Structural tests are not substitutes for red/green behavioral proof. They lock
+architecture after the behavior is understood.
+
+These scans are test-only. Production evidence capture stays streaming and must
+not build a world model just to enforce a doctrine rule.
+
+## Data-Flow Struct Inventories
+
+`id: test/data-flow-inventory`
+
+`level: must`
+
+`enforcement: review`
+
+Every package that owns a trust-boundary surface must maintain a data-flow
+struct inventory and treat it as a wiring ratchet.
+
+Trust-boundary surfaces include protocol parsing and emission, evidence
+capture and projection, durable writing and replay, run/fold accounting,
+manifest generation, verification, and doctrine enforcement. Packages that
+do not own such a surface — small leaf helpers, pure-format utilities, thin
+glue — are not required to maintain an inventory, but adding one is never
+wrong.
+
+Every production struct in an eligible package must appear in the inventory
+and be classified into an intentional role: protocol fact, sealed projection,
+internal flow carrier, test-only seam, capability wrapper, or another
+package-local category with the same precision.
+
+The inventory does not prove behavior by itself. It proves that the compiler
+can see the shape and that reviewers cannot accidentally miss a new data
+carrier. Behavior still needs hostile tests, `Validate()` gates, typed
+sentinels, layer-triad coverage, and end-to-end evidence checks where
+appropriate.
+
+Required:
+
+- newly added production structs must be added to the package inventory in the
+  same slice
+- the classification must describe the struct's role in the execution pipeline,
+  not just its file location
+- internal DTOs, overlay keys, outcome maps, and typed handoff structs are not
+  exempt; they should usually be classified as internal flow
+- wire/protocol structs must be distinguished from internal flow structs
+- deleted structs must be removed from the inventory in the same slice
+- failure output must name the missing or unclassified struct
+
+Forbidden:
+
+- allowing a new production struct to compile without an inventory entry
+- hiding a data carrier behind `map[string]any`, raw JSON, or an untyped helper
+  to avoid inventory classification
+- treating the inventory as behavioral proof; it is a wiring proof only
+
+Example: a temporary-looking finalize-time identity struct that routes one
+event's outcome to a specific transform is still a production struct. It must
+be classified, because it decides which event receives the transform. The right
+inventory role is internal flow; the behavior is then proved separately by
+hostile tests showing same-key siblings do not receive each other's transforms.
+
+## Repeat Policy
+
+`id: test/repeat-policy`
+
+`level: must`
+
+`enforcement: review`
+
+`RepeatCount` applies to Go tests only.
+
+Tools, benchmarks, and fuzz targets are evidence phases, not repeat-amplified
+test loops. Running them multiple times by default adds noise, distorts timing,
+and creates duplicate sidecars without increasing confidence in the same way
+test repetition does.
+
+Required phase policy:
+
+- tests may repeat according to `RepeatCount`
+- tools run once per run unless a tool-specific contract says otherwise
+- benchmarks run once per configured benchmark pass
+- fuzz targets run once per configured fuzz budget
+- repeated phases must be explicit in the run record and final artifacts
+
+## Budget Divergence
+
+`id: test/budget-divergence`
+
+`level: must`
+
+`enforcement: review`
+
+The ratio of effective to configured budget is a contract, not a side
+effect.
+
+Run profiles declare configured budgets for tests, benchmarks, fuzz,
+per-package timeouts, and aggregate timeouts. The orchestrator computes
+effective budgets from configured budgets, parallelism, repeat counts, and
+the unit count of each phase. A large divergence ratio means one of:
+
+- the profile under-declares the work the run actually does
+- the orchestrator silently amplifies a small budget into hours of execution
+- the unit count grew without the profile being re-tuned
+
+Any of those should be visible, not invisible.
+
+Required:
+
+- profile changes that move a configured budget must state the expected
+  effective range in the commit
+- a run with `effective / configured > 10×` for any budget must surface that
+  ratio in the human-facing report and in the machine record
+- a run with `effective / configured > 100×` for any budget is an
+  infrastructure violation; either the profile is wrong or the amplification
+  is wrong, and certification must not bury the discrepancy
+- changes to amplification factors (parallelism, repeat count, unit-count
+  multipliers) must update tests that assert the resulting effective budgets
+
+Forbidden:
+
+- treating effective budgets as derived telemetry without a contract
+- profiles that configure tiny budgets relying on amplification to make the
+  run feasible; configure the real intended budget
+- silencing divergence by raising the configured budget post-hoc instead of
+  fixing the source of amplification
+
+Budget divergence is also a diagnostic signal. Stable allocation counts with
+noisy wall-clock numbers in benchmarks indicate contention, not flakiness;
+large budget divergence indicates orchestration drift, not flexibility.
+
+## Benchmarks
+
+`id: test/benchmarks`
+
+`level: must`
+
+`enforcement: review`
+
+Benchmarks must measure one thing and report allocations.
+
+Required shape:
+
+- setup before `b.ResetTimer()`
+- `b.Loop()` may replace an explicit `b.N` loop and timer reset when the Go
+  version supports it
+- `b.ReportAllocs()`
+- no logging in the timed loop
+- no filesystem/network setup in the timed loop unless that is the benchmark
+- stable input size
+- benchmarks run serially and after tools and tests in the run orchestration
+  unless the benchmark explicitly measures parallel behavior
+- benchmark stdout, stderr, profiles, and retained binaries are evidence and
+  must land on disk when captured
+- captured benchmark evidence must be covered by the final manifest
+- CPU and memory profiles, when requested by a profile, must be retained as
+  evidence with durable refs and manifest coverage
+
+Pattern:
+
+```go
+func BenchmarkEncodeEnvelope(b *testing.B) {
+	record := fixtureEnvelope()
+	b.ReportAllocs()
+	b.ResetTimer()
+
+	for range b.N {
+		_, _ = Encode(record)
+	}
+}
+```
+
+## Fuzz Tests
+
+`id: test/fuzz-boundary`
+
+`level: must`
+
+`enforcement: review`
+
+Every external ingress must have a fuzz target with a semantic oracle. This is
+not optional coverage reserved for complicated parsers. If bytes, text, typed
+wire documents, provider facts, filesystem content, process input, or remote
+responses cross from an untrusted external owner into a package, fuzz the
+public boundary that admits them.
+
+External ingress includes:
+
+- JSON, JSONL, text, binary, archive, manifest, sidecar, profile, and ledger
+  decoding
+- HTTP bodies, headers, query values, path parameters, status metadata, and
+  provider responses
+- CLI arguments, flags, environment values, stdin, and subprocess output
+- files, directories, symlinks, object-store metadata, database records, and
+  persisted state read back from disk or a service
+- IPC, queues, webhooks, callbacks, certificates, signatures, tokens, update
+  metadata, and downloaded artifacts
+- enum, identifier, path, URL, media type, checksum, size, timestamp, and
+  numeric values reconstructed from an external representation
+
+A tiny closed enum still needs a fuzz target when its decoder accepts external
+bytes. Exhausting the typed enum values proves the domain; fuzzing the decoder
+proves the hostile representation boundary. Pure functions whose inputs are
+already validated internal structs are not external ingress and should normally
+remain exhaustive table tests instead.
+
+### Fuzz Target Inventory
+
+The package sweep must inventory every public external door: `Parse`, `Decode`,
+`Read`, `Load`, `Replay`, `UnmarshalJSON`, `UnmarshalText`, CLI parsing, HTTP
+decoding, provider-response projection, and equivalent constructors that admit
+external material. Each door must name its fuzz target. When several public
+doors deliberately share one exact decoder, one fuzz target may cover them only
+if its name, seeds, and oracle visibly exercise every public door.
+
+Adding an external decoder without its fuzz target is an incomplete production
+change. Structural or AST ratchets should compare the external-ingress
+inventory with the fuzz-target inventory where a package has enough doors for
+manual drift to be likely.
+
+Hostile tables and fuzzing are complementary:
+
+- hostile tables pin named boundaries, exact thresholds, and known regressions
+- fuzzing searches representation combinations the table author did not think
+  to name
+- a fuzz target never waives the 10 valid / 10 reject / 20 boundary pressure
+  required for a serious parser
+- a fuzz seed corpus is also subject to `test/earned-rows`; duplicate seeds
+  that exercise one branch do not pad the named-boundary table
+- a table never waives semantic fuzzing at an external ingress
+- producer→classifier fuzz still requires the named hostile matrix; fuzzing
+  does not replace it
+
+### Compiler-Owned Seed Corpus
+
+Every fuzz target starts from at least one canonical valid seed produced by the
+real typed production path:
+
+1. construct validated nominal values with their owning constructors
+2. assemble the real typed request, record, envelope, or projection
+3. call `Validate()` at the production boundary
+4. encode with the real production marshaler or writer
+5. add those emitted bytes to the fuzz corpus
+
+Do not handwrite a valid JSON blob, duplicate a protocol token, build a loose
+map, or copy a wire spelling when a typed production fixture can emit it. Raw
+byte or string seeds are allowed only when their purpose is to be malformed or
+hostile external input. Shared protocol values used by both production and
+tests remain compiler-owned constants or typed enums.
+
+The seed corpus should include the meaningful representations the boundary
+claims to support:
+
+- canonical valid minimum, ordinary, and maximum typed documents
+- one below, exactly at, and one above every byte/count/depth threshold
+- harmless accepted reordering or whitespace when the contract permits it
+- empty, whitespace-only, null, truncated, trailing-data, and oversized input
+- missing, duplicate, unknown, conflicting, and wrong-type members
+- every published enum arm and at least one unknown/future representation
+- independently valid but foreign signatures, identities, accounts, builds,
+  capabilities, hashes, or sequence facts when binding matters
+
+The seed corpus is a launch point, not the oracle. The mutated input inside the
+fuzz callback must reach the production boundary and every assertion must be
+derived from what that call accepted or rejected.
+
+### Semantic Oracle Requirements
+
+"Did not panic" is only a runtime safety property. It does not count as fuzz
+evidence. Every fuzz callback owns a semantic oracle strong enough to reject an
+incorrect accepted value and an incorrectly classified refusal.
+
+For an accepted parser or decoder result, prove all applicable facts:
+
+- `Validate()` succeeds on the admitted nominal value
+- the result contains the exact typed facts implied by the accepted input
+- canonical marshal/write succeeds within the compiler-owned byte ceiling
+- parsing the canonical output yields the exact same nominal value
+- a second canonical marshal/write is byte-identical to the first
+- any signature, certificate, account, build, nonce, digest, extent, provider,
+  route, entitlement, or capability binding verifies through the independent
+  production verifier
+- successful verification of mutated signed input is allowed only when the
+  resulting signed document is exactly one of the genuinely signed typed seeds
+- output contains no secret, bearer, source content, unowned path, or extra
+  field the projection contract excludes
+
+For a rejected parser or decoder result, prove all applicable facts:
+
+- `errors.Is` or `errors.As` reaches the strongest stable core-owned identity
+- the package's typed boundary identity is retained when it wraps a lower error
+- a populated receiver is unchanged, or a fresh receiver remains exactly zero
+- no durable file, index, ledger fact, network request, provider mutation, or
+  output artifact was produced
+- no partial proof, capability, verified wrapper, count, or terminal state
+  escaped beside the error
+
+An accepted structural document may still fail authentication. In that case
+the oracle must run the real verifier and require the typed verification or
+binding error plus a zero proof. Merely calling `Validate()` on a signed
+envelope is not an authentication oracle.
+
+For classifiers, planners, folds, and replay boundaries, use an independent
+invariant rather than restating production branches. Examples include count
+conservation, sequence monotonicity, chain linkage, final-state precedence,
+mutual exclusion, checksum agreement, or differential agreement with a
+standard-library parser. Producer→classifier fuzz oracles must also prove the
+invariants in `test/producer-classifier-matrix`: no evidence ex nihilo,
+refusal preservation, contradiction precedence, neutrality conservation,
+duplicate idempotence, order invariance, and boundary monotonicity.
+
+### Mutation Must Be Real
+
+A mutation case must prove it changed a load-bearing fact. Fixtures must not
+silently default a requested mutation back to the original value. When a
+mutation could be vacuous, compare the before and after typed values before
+calling production and fail the fuzz callback if they are equal.
+
+For signed input, mutate one independently pinned field at a time where
+possible: body bytes, domain, signer, signature, body length, body digest,
+nonce, account, build, capability commitment, provider evidence, or authority
+certificate. The verifier must reject every authentic-looking recombination
+unless the complete signed agreement still matches.
+
+Do not mutate only an outer framing byte and claim cryptographic coverage. The
+fuzzer must reach structurally valid but unauthenticated states often enough to
+exercise the independent verifier oracle; typed signed seeds and targeted
+mutation selectors are the preferred way to guarantee that reachability.
+
+### Bounds, Streaming, And Resource Safety
+
+Fuzzing an external boundary must pressure its resource contract as well as its
+grammar:
+
+- the production decoder enforces its compiler-owned byte, depth, item, and
+  field ceilings before unbounded allocation or recursion
+- exact below/at/above limit seeds reach the real boundary
+- streaming readers use bounded buffers and do not read the world before
+  deciding an input is oversized
+- secondary oracle work is bounded; do not duplicate an arbitrary fuzz input
+  into an unbounded in-memory model
+- large projects, object listings, ledgers, archives, and upload/download
+  streams remain O(1) memory unless their typed contract explicitly requires a
+  bounded aggregate
+- temporary filesystem mutations belong to the callback's `t.TempDir()` and
+  no callback shares mutable state with another callback
+
+Use standard-library readers, writers, decoders, HTTP test servers, and
+filesystem behavior to drive the real path. Do not contact live external
+services from a fuzz callback. A local provider test server is appropriate
+when the semantic boundary includes HTTP framing or streaming behavior.
+
+### Canonical Parser Pattern
+
+```go
+func FuzzDocumentJSONSemanticClosure(f *testing.F) {
+	document := typedSignedFixture(f)
+	canonical, err := document.MarshalJSON()
+	if err != nil {
+		f.Fatalf("Document.MarshalJSON(seed) error = %v, want nil", err)
+	}
+	f.Add(canonical)
+	f.Add([]byte{})
+	f.Add([]byte(`{}`))
+
+	f.Fuzz(func(t *testing.T, data []byte) {
+		got := document
+		gotErr := got.UnmarshalJSON(data)
+		if gotErr != nil {
+			if !errors.Is(gotErr, core.ErrJSONContract) || got != document {
+				t.Fatalf("Document.UnmarshalJSON(rejected) = (%v, %v), want preserved and typed rejection", got, gotErr)
+			}
+			return
+		}
+
+		if err := got.Validate(); err != nil {
+			t.Fatalf("Document.UnmarshalJSON(accepted).Validate() error = %v, want nil", err)
+		}
+		encoded, err := got.MarshalJSON()
+		if err != nil || len(encoded) > DocumentJSONMaximumBytes {
+			t.Fatalf("Document.MarshalJSON(accepted) = (%d bytes, %v), want bounded and nil", len(encoded), err)
+		}
+		var roundTrip Document
+		if err := roundTrip.UnmarshalJSON(encoded); err != nil || roundTrip != got {
+			t.Fatalf("canonical round trip = (%v, %v), want (%v, nil)", roundTrip, err, got)
+		}
+		second, err := roundTrip.MarshalJSON()
+		if err != nil || !bytes.Equal(second, encoded) {
+			t.Fatalf("second canonical projection = (%q, %v), want (%q, nil)", second, err, encoded)
+		}
+	})
+}
+```
+
+The pattern is a floor. Signed, stateful, durable, streaming, and
+provider-facing boundaries require their additional independent oracles.
+
+Fuzz phase policy:
+
+- fuzz targets run serially and after tools/tests/benchmarks unless the fuzz
+  target explicitly proves parallel behavior
+- stdout, stderr, crashers, and promoted corpus snapshots are evidence and must
+  land on disk when captured
+- fuzz cache, minimization scratch, and junk corpus churn must not enter the
+  final bundle unless promoted as explicit evidence
+- timeout or minimization quirks must be classified as harness behavior, not
+  target-code failure, when no target failure was produced
+
+Every fuzz callback must own an oracle that can reject a semantically wrong
+result. "Did not panic" is a runtime safety property, not sufficient evidence
+for a parser, verifier, writer, classifier, or fold. Mutated input must reach
+the oracle inside the fuzz callback; a sibling seed table does not substitute
+for it.
+
+Required shapes include at least one independent invariant appropriate to the
+boundary:
+
+- accepted parse -> `Validate()` succeeds -> marshal/parse round trip preserves
+  the typed value
+- rejected parse -> stable typed error identity and a zero/non-mutated receiver
+- signed input -> accepted if and only if the independently pinned fields and
+  signature match
+- writer -> bounded output, canonical second write, and decode/validate parity
+- fold/replay -> arithmetic, sequence, chain-link, or final-state invariants
+- differential parser -> two independent representations or implementations
+  agree
+
+```go
+f.Fuzz(func(t *testing.T, data []byte) {
+	got, err := Parse(data)
+	if err != nil {
+		if !errors.Is(err, ErrInvalidInput) {
+			t.Fatalf("Parse() error = %v, want %v", err, ErrInvalidInput)
+		}
+		return
+	}
+	if err := got.Validate(); err != nil {
+		t.Fatalf("Parse() accepted invalid value: %v", err)
+	}
+	encoded, err := got.MarshalBinary()
+	if err != nil {
+		t.Fatalf("MarshalBinary() error = %v", err)
+	}
+	roundTrip, err := Parse(encoded)
+	if err != nil || roundTrip != got {
+		t.Fatalf("round trip = (%v, %v), want (%v, nil)", roundTrip, err, got)
+	}
+})
+```
+
+Fuzz targets are production ratchets. A discovered crasher or semantic failure
+must be minimized, classified, and promoted as a named hostile regression seed
+when stable. Do not delete an external-ingress fuzz target merely because its
+current corpus is green or its typed value domain is small.
+
+Every behavioral fuzz slice follows red/green discipline: preserve the input
+that exposed the failure, prove the typed red state, fix production, and retain
+the minimized reproducer. A new fuzz target over already-correct production is
+a contract ratchet and must name the previously unpinned invariant in review.
+
+## Streaming And Ledger Proofs
+
+`id: test/ledger-chain`
+
+`level: must`
+
+`enforcement: review`
+
+Ledger tests must prove the real chain when the behavior concerns evidence.
+
+If a test claims writer/replay/fold correctness, it should write through the
+real writer, replay through the real verifier, and assert the chain status and
+fold result. Mocking the ledger in those tests proves the mock.
+
+Required assertions:
+
+- sequence monotonicity when sequence matters
+- previous-hash linkage
+- final hash or verification status
+- corruption/truncation failure mode for negative cases
+
+## Protocol Types
+
+`id: protocol/typed-boundary`
+
+`level: must`
+
+`enforcement: lint`
+
+Protocol payloads must be typed structs and enums.
+
+Forbidden in protocol-bearing code:
+
+- `any`
+- `interface{}`
+- `map[...]any`
+- generic instantiations that smuggle `any`
+- silent enum switch defaults
+- string-backed domain types where an iota enum is correct
+
+Allowed:
+
+- `any` as a generic type parameter constraint
+- `json.RawMessage` at explicit wire/replay boundaries only
+- `interface` when it is a narrow behavior interface, not a payload bag
+
+## Waivers
+
+`id: test/waivers`
+
+`level: must`
+
+`enforcement: review`
+
+A waiver must explain why the rule is wrong for this specific case.
+
+Good:
+
+```go
+// witness:waiver test/parallel/default -- verifies process-wide environment inheritance.
+```
+
+Good:
+
+```go
+// witness:waiver test/isolation/tempdir -- verifies global lock contention on one path.
+```
+
+Bad:
+
+```go
+// flaky in CI
+```
+
+Bad:
+
+```go
+// TODO
+```
+
+Waivers are not permission slips. Where the typed helper is available, tests do
+not use serial waiver comments at all: they call `testserial.Declare` with a
+Primitive-owned `core.TestIsolationDeclaration`. That typed call is the
+compiler-visible reason the test cannot call `t.Parallel`, and invalid or zero
+declarations fail at execution. The doctrine linter verifies the exact imported
+package, function, hazard identifier, and scope identifier contract.
+
+A typed declaration beats a comment for the reason this whole protocol exists:
+a comment cannot be validated, cannot fail at execution, and cannot break the
+build when the hazard it names stops being true.
+
+Canonical grammar:
+
+```text
+// witness:waiver <rule-id> -- <specific reason>
+```
+
+The reason must name why this case is structurally different, not why fixing it
+is inconvenient. Legacy local comments such as `serial:` are rejected. The
+comment grammar remains available only where the typed helper has not yet been
+installed; once a repository has it, the ratchet rejects both forms.
+
+## Automation Map
+
+Each repository's canonical gate installs and runs its pinned doctrine-linter
+version once a production package exists. Each row names the rule or sub-rule
+and the lint surface that owns enforcement so a reader can locate the
+implementation by grepping the implementer column.
+
+The gate discovers the landed production packages from the module and runs the
+pinned analyzers over that exact set. An empty set is reported as
+`NOT_APPLICABLE`; with landed packages, an analyzer result is package evidence
+and no design-phase exception exists.
+
+| rule or sub-rule | implemented by |
+| :--------------- | :------------- |
+| `test/isolation/tempdir` | lint: filesystem-mutation analyzer |
+| `test/sync/no-sleep` | lint: `time.Sleep` rejector in tests |
+| `test/parallel/default` | lint: missing-`t.Parallel()` analyzer |
+| `protocol/typed-boundary` | lint: protocol-bag (`any`/`map[...]any`) rejector |
+| `test/helpers` (assertion-framework imports) | lint: import allowlist for `testing` packages |
+| `test/helpers` (assert-style local helpers) | lint: function-name analyzer for `assert*`/`expect*` |
+| `test/helpers` (got/want vocabulary) | lint: table-field and failure-message wording analyzer |
+| `test/helpers` (generic subtest names) | lint: subtest-name vocabulary analyzer |
+| `test/benchmarks` | lint: benchmark shape and `b.ReportAllocs` requirement |
+| `test/structural-equality` | lint: `reflect.DeepEqual` rejector in tests |
+| `test/fixtures/no-shared-mutable` | lint: mutable package-level test variable rejector |
+| `TestMain` must call `m.Run()` or a recognized goleak wrapper | lint: `TestMain` body analyzer |
+| `runtime.NumGoroutine` and `time.Now` in tests | lint: nondeterminism-source rejector |
+| loud enum switch defaults | lint: switch-default analyzer for typed enums |
+| streaming-critical no whole-stream reads | lint: streaming-budget analyzer |
+
+Next good automation targets. Each is currently `review`-enforced and should
+graduate to lint when its false-positive story is understood.
+
+| rule or sub-rule | candidate lint surface |
+| :--------------- | :--------------------- |
+| `test/table-shape` (named subtests) | table-test-shape analyzer |
+| `test/earned-rows` | near-duplicate table-row detector and primary-class double-count scanner |
+| `test/producer-classifier-matrix` | matrix quota and transition-field analyzer |
+| `test/structural-invariant` (allowlist ratchets) | allowlist count-monotonicity analyzer |
+| `test/fixtures/non-vacuous` | minimum-output checker for common harnesses |
+| `test/fuzz-boundary` (panic-free assertion) | fuzz-target body analyzer |
+| `test/package-sweep-exit` (sweep metadata) | package-sweep-marker scanner |
+| `test/production-path` (fake commanders / pre-baked refs) | production-path proof-marker scanner |
+| `test/compiler-driven` (stale legacy-compat branches after clean-break) | dead-branch ratchet against the new typed contract |
+| `test/evidence-path-consistency` | three-way-invariant analyzer for evidence-ref tests |
+| `test/budget-divergence` | run-record analyzer flagging ratio thresholds |
+
+Do not automate a rule until the false-positive story is understood. A noisy
+doctrine rule creates waivers, and waivers rot.
