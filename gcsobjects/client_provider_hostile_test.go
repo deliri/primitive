@@ -16,6 +16,7 @@ import (
 	"testing"
 	"time"
 
+	"cloud.google.com/go/iam"
 	"github.com/deliri/primitive/v2026/core"
 	"github.com/deliri/primitive/v2026/exchange"
 	"github.com/deliri/primitive/v2026/objectstore"
@@ -147,6 +148,10 @@ func executeGCSUpload(execution gcsUploadExecution) (GCSObjectMetadata, error) {
 }
 
 func (p *gcsUploadProvider) ServeHTTP(writer http.ResponseWriter, incoming *http.Request) {
+	if incoming.Method == exchange.MethodGet.String() {
+		writeGCSPolicy(p.t, writer, gcsPolicy("upload-public-read", gcsPublicReadBinding(iam.AllUsers)))
+		return
+	}
 	if incoming.Method != exchange.MethodPost.String() {
 		p.t.Errorf("upload provider method = %q, want %q", incoming.Method, exchange.MethodPost.String())
 		writer.WriteHeader(http.StatusMethodNotAllowed)

@@ -87,6 +87,23 @@ type DirectoryRequest struct {
 	Mode     fs.FileMode
 }
 
+// PermissionRequest changes one existing rooted entry to an exact permission
+// mode and proves the metadata update durable.
+type PermissionRequest struct {
+	Location Location
+	Mode     fs.FileMode
+}
+
+func (r PermissionRequest) Validate() error {
+	if err := r.Location.Validate(); err != nil {
+		return err
+	}
+	if err := validateMutablePath(r.Location.Path); err != nil {
+		return err
+	}
+	return validatePermissionMode(r.Mode)
+}
+
 // Validate rejects an invalid location or permission mode.
 func (r DirectoryRequest) Validate() error {
 	if err := r.Location.Validate(); err != nil {
@@ -160,7 +177,7 @@ type DurabilityRequest struct {
 }
 
 // Validate rejects an invalid location or one naming the rooted entry itself,
-// which has no parent inside the capability to prove anything about.
+// which has no parent inside the capability to prove anything projectstandards.
 func (r DurabilityRequest) Validate() error {
 	if err := r.Location.Validate(); err != nil {
 		return err

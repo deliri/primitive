@@ -153,6 +153,7 @@ func blindSubmissionDecisionDocument(
 		Policy: blindSubmissionPolicyCursor(t),
 	}
 	projection, err := IssueSubmissionResponse(SubmissionResponseIssuance{
+		Server: submissionAuthServer(t, fixture.request.trusted),
 		Signer: fixture.request.authority, Header: header, Body: body,
 		Assessment: acceptedSubmissionResponseAssessment(t, header),
 	})
@@ -174,7 +175,7 @@ func blindSubmissionDecisionDocument(
 			Installation: header.Installation, Revision: header.Revision,
 			Family: header.Family, Offering: header.Offering,
 		},
-		TrustedKeys: fixture.request.trusted,
+		Client: submissionAuthClient(t, fixture.request.trusted),
 	})
 	if err != nil {
 		t.Fatalf("VerifySubmissionResponse() error = %v, want nil", err)

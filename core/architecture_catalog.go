@@ -12,11 +12,11 @@ const (
 	// PrimitivePackagePathPrefix prefixes every Primitive package import path.
 	PrimitivePackagePathPrefix = PrimitiveModulePath + "/"
 	// PrimitivePackageCount is the number of packages in the complete catalog.
-	PrimitivePackageCount = 44
+	PrimitivePackageCount = 46
 	// PrimitiveDirectImportCount is the number of admitted direct import edges.
-	PrimitiveDirectImportCount = 163
+	PrimitiveDirectImportCount = 179
 	// PrimitiveDirectTestImportCount is the number of admitted test-only edges.
-	PrimitiveDirectTestImportCount = 32
+	PrimitiveDirectTestImportCount = 38
 	// PrimitiveMaximumDirectImports caps direct sibling imports per package.
 	PrimitiveMaximumDirectImports = 10
 )
@@ -113,10 +113,14 @@ const (
 	PackageManual
 	// PackageSecretStore identifies bounded secret-provider access.
 	PackageSecretStore
-	// PackageAbout identifies reusable project/package knowledge and evidence projection.
-	PackageAbout
+	// PackageProjectStandards identifies reusable project/package knowledge and evidence projection.
+	PackageProjectStandards
 	// PackageMachineProbe identifies bounded execution of one admitted machine probe.
 	PackageMachineProbe
+	// PackageRunnerControl identifies typed domain-blind runner control contracts.
+	PackageRunnerControl
+	// PackageRunWorkspace identifies owned per-run workspace and evidence effects.
+	PackageRunWorkspace
 	packageIdentityLimit
 )
 
@@ -222,8 +226,10 @@ func PrimitiveArchitecture() ArchitectureCatalog {
 			{Identity: PackageLineIO, Kind: PackageKindProduction},
 			{Identity: PackageManual, Kind: PackageKindProduction},
 			{Identity: PackageSecretStore, Kind: PackageKindProduction},
-			{Identity: PackageAbout, Kind: PackageKindProduction},
+			{Identity: PackageProjectStandards, Kind: PackageKindProduction},
 			{Identity: PackageMachineProbe, Kind: PackageKindProduction},
+			{Identity: PackageRunnerControl, Kind: PackageKindProduction},
+			{Identity: PackageRunWorkspace, Kind: PackageKindProduction},
 		},
 		imports: [PrimitiveDirectImportCount]DirectImportContract{
 			{Importer: PackageAttest, Imported: PackageCore},
@@ -283,6 +289,7 @@ func PrimitiveArchitecture() ArchitectureCatalog {
 			{Importer: PackageSubmissionAuth, Imported: PackageObjectStore},
 			{Importer: PackageSubmissionAuth, Imported: PackageReceipt},
 			{Importer: PackageControlPlaneTest, Imported: PackageCore},
+			{Importer: PackageControlPlaneTest, Imported: PackageAttest},
 			{Importer: PackageControlPlaneTest, Imported: PackageControlPlane},
 			{Importer: PackageControlPlaneTest, Imported: PackageControlWire},
 			{Importer: PackageControlPlaneTest, Imported: PackageLease},
@@ -310,6 +317,7 @@ func PrimitiveArchitecture() ArchitectureCatalog {
 			{Importer: PackageTimeProof, Imported: PackageTemporal},
 			{Importer: PackageTimeProof, Imported: PackageKeygen},
 			{Importer: PackageCloudIdentity, Imported: PackageCore},
+			{Importer: PackageCloudIdentity, Imported: PackageContextState},
 			{Importer: PackageCloudIdentity, Imported: PackageTemporal},
 			{Importer: PackageCloudIdentity, Imported: PackageExchange},
 			{Importer: PackageDeploy, Imported: PackageCore},
@@ -339,7 +347,6 @@ func PrimitiveArchitecture() ArchitectureCatalog {
 			{Importer: PackageChit, Imported: PackageID},
 			{Importer: PackageChit, Imported: PackageReceipt},
 			{Importer: PackageChit, Imported: PackageTemporal},
-			{Importer: PackageChitAuth, Imported: PackageAttest},
 			{Importer: PackageChitAuth, Imported: PackageChit},
 			{Importer: PackageChitAuth, Imported: PackageControlPlane},
 			{Importer: PackageChitAuth, Imported: PackageControlWire},
@@ -366,7 +373,6 @@ func PrimitiveArchitecture() ArchitectureCatalog {
 			{Importer: PackagePayment, Imported: PackageID},
 			{Importer: PackagePayment, Imported: PackageReceipt},
 			{Importer: PackagePayment, Imported: PackageTemporal},
-			{Importer: PackagePaymentAuth, Imported: PackageAttest},
 			{Importer: PackagePaymentAuth, Imported: PackageControlPlane},
 			{Importer: PackagePaymentAuth, Imported: PackageControlWire},
 			{Importer: PackagePaymentAuth, Imported: PackageCore},
@@ -389,15 +395,31 @@ func PrimitiveArchitecture() ArchitectureCatalog {
 			{Importer: PackageWiring, Imported: PackageCore},
 			{Importer: PackageLineIO, Imported: PackageCore},
 			{Importer: PackageManual, Imported: PackageCore},
-			{Importer: PackageAbout, Imported: PackageCore},
-			{Importer: PackageAbout, Imported: PackageExchange},
-			{Importer: PackageAbout, Imported: PackageID},
-			{Importer: PackageAbout, Imported: PackageTemporal},
-			{Importer: PackageMachineProbe, Imported: PackageAbout},
+			{Importer: PackageProjectStandards, Imported: PackageCore},
+			{Importer: PackageProjectStandards, Imported: PackageExchange},
+			{Importer: PackageProjectStandards, Imported: PackageID},
+			{Importer: PackageProjectStandards, Imported: PackageTemporal},
+			{Importer: PackageMachineProbe, Imported: PackageProjectStandards},
 			{Importer: PackageMachineProbe, Imported: PackageCore},
 			{Importer: PackageMachineProbe, Imported: PackageFilestore},
 			{Importer: PackageMachineProbe, Imported: PackageProcess},
 			{Importer: PackageMachineProbe, Imported: PackageTemporal},
+			{Importer: PackageRunnerControl, Imported: PackageProjectStandards},
+			{Importer: PackageRunnerControl, Imported: PackageAttest},
+			{Importer: PackageRunnerControl, Imported: PackageCore},
+			{Importer: PackageRunnerControl, Imported: PackageExchange},
+			{Importer: PackageRunnerControl, Imported: PackageID},
+			{Importer: PackageRunnerControl, Imported: PackageObjectStore},
+			{Importer: PackageRunnerControl, Imported: PackageProcess},
+			{Importer: PackageRunnerControl, Imported: PackageTemporal},
+			{Importer: PackageRunWorkspace, Imported: PackageProjectStandards},
+			{Importer: PackageRunWorkspace, Imported: PackageAttest},
+			{Importer: PackageRunWorkspace, Imported: PackageCore},
+			{Importer: PackageRunWorkspace, Imported: PackageFilestore},
+			{Importer: PackageRunWorkspace, Imported: PackageObjectStore},
+			{Importer: PackageRunWorkspace, Imported: PackageProcess},
+			{Importer: PackageRunWorkspace, Imported: PackageRunnerControl},
+			{Importer: PackageRunWorkspace, Imported: PackageTemporal},
 			{Importer: PackageSecretStore, Imported: PackageCore},
 			{Importer: PackageSecretStore, Imported: PackageContextState},
 		},
@@ -416,12 +438,16 @@ func PrimitiveArchitecture() ArchitectureCatalog {
 			{Importer: PackageSubmission, Imported: PackageExchange},
 			{Importer: PackageControlWire, Imported: PackageControlPlane},
 			{Importer: PackageControlWire, Imported: PackageControlPlaneTest},
+			{Importer: PackageControlWire, Imported: PackageAttest},
 			{Importer: PackageRetrievalAuth, Imported: PackageControlPlaneTest},
 			{Importer: PackageRetrieval, Imported: PackageExchange},
 			{Importer: PackageRetrieval, Imported: PackageReceipt},
 			{Importer: PackageChitAuth, Imported: PackageControlPlaneTest},
+			{Importer: PackageChitAuth, Imported: PackageAttest},
 			{Importer: PackageChitAuth, Imported: PackageReceipt},
+			{Importer: PackageChitAuth, Imported: PackageTemporal},
 			{Importer: PackagePaymentAuth, Imported: PackageControlPlaneTest},
+			{Importer: PackagePaymentAuth, Imported: PackageAttest},
 			{Importer: PackagePaymentAuth, Imported: PackageCurrency},
 			{Importer: PackagePaymentAuth, Imported: PackageReceipt},
 			{Importer: PackagePaymentAuth, Imported: PackageTemporal},
@@ -434,6 +460,8 @@ func PrimitiveArchitecture() ArchitectureCatalog {
 			{Importer: PackageLineIO, Imported: PackageFilestore},
 			{Importer: PackageSecretStore, Imported: PackageProcess},
 			{Importer: PackageMachineProbe, Imported: PackageID},
+			{Importer: PackageRunWorkspace, Imported: PackageExchange},
+			{Importer: PackageRunWorkspace, Imported: PackageID},
 		},
 	}
 }
@@ -709,8 +737,10 @@ func packagePurposeTexts() [packageIdentityLimit]string {
 		PackageWiring:           "Bounded immutable runtime component graphs with exact Primitive-door declarations",
 		PackageLineIO:           "Bounded line scanning over one io.Reader through Go bufio.Scanner and bufio.ScanLines",
 		PackageManual:           "Bounded validated human text and stable machine JSON manuals from one product-owned typed book",
-		PackageAbout:            "Validated project and package knowledge, exact evidence references, deterministic reports, and bounded exchange",
+		PackageProjectStandards: "Validated project and package knowledge, exact evidence references, deterministic reports, and bounded exchange",
 		PackageMachineProbe:     "Bounded execution and typed evidence capture for one admitted machine-observation script",
+		PackageRunnerControl:    "Typed domain-blind runner admission, execution, evidence, completion, and delivery contracts",
+		PackageRunWorkspace:     "Owned per-run writable workspace, source acquisition, evidence retention, and cleanup effects",
 		PackageSecretStore:      "Bounded exact-version secret access through official provider SDKs",
 	}
 }
@@ -792,8 +822,10 @@ func packageIdentityTexts() [packageIdentityLimit]string {
 		"lineio",
 		"manual",
 		"secretstore",
-		"about",
+		"projectstandards",
 		"machineprobe",
+		"runnercontrol",
+		"runworkspace",
 	}
 }
 

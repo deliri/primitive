@@ -8,12 +8,12 @@ import (
 	"path/filepath"
 	"testing"
 
-	"github.com/deliri/primitive/v2026/about"
 	"github.com/deliri/primitive/v2026/core"
 	"github.com/deliri/primitive/v2026/filestore"
 	primitiveid "github.com/deliri/primitive/v2026/id"
 	"github.com/deliri/primitive/v2026/machineprobe"
 	"github.com/deliri/primitive/v2026/process"
+	"github.com/deliri/primitive/v2026/projectstandards"
 	"github.com/deliri/primitive/v2026/temporal"
 )
 
@@ -114,7 +114,7 @@ func exactProbeScript(t testing.TB, size uint64) []byte {
 	return append(prefix, suffix...)
 }
 
-func isZeroObservation(got about.MachineObservation) bool {
+func isZeroObservation(got projectstandards.MachineObservation) bool {
 	return got.SchemaVersion == 0 &&
 		got.Configuration.Toolchains == nil &&
 		got.Execution.StdoutBytes.Uint64() == 0
@@ -150,8 +150,8 @@ func writeProbeFixture(t *testing.T, directory string, script []byte) machinepro
 		t.Fatalf("process.Resolve(bash) setup error = %v, want nil", err)
 	}
 	uuid := mustUUID(t)
-	observationID, observationErr := about.NewMachineObservationID(uuid)
-	generationID, generationErr := about.NewMachineGenerationID(uuid)
+	observationID, observationErr := projectstandards.NewMachineObservationID(uuid)
+	generationID, generationErr := projectstandards.NewMachineGenerationID(uuid)
 	if err := errors.Join(observationErr, generationErr); err != nil {
 		t.Fatalf("machine probe identity setup error = %v, want nil", err)
 	}
@@ -161,7 +161,7 @@ func writeProbeFixture(t *testing.T, directory string, script []byte) machinepro
 	}
 	return machineprobe.Request{
 		ObservationID: observationID, GenerationID: generationID, ObservedAt: temporal.InstantFromNanoseconds(2_000_000),
-		Collector: about.EvidenceAuthority{Offering: core.Offering{Token: "anvil"}}, Bash: bash,
+		Collector: projectstandards.EvidenceAuthority{Offering: core.Offering{Token: "anvil"}}, Bash: bash,
 		Script:           mustAbsolutePath(t, filepath.Join(directory, "machine-probe.sh")),
 		WorkingDirectory: rootPath, Environment: process.Environment{Mode: process.EnvironmentModeExact, Variables: []process.EnvironmentVariable{}}, WaitDelay: waitDelay,
 	}
@@ -183,25 +183,25 @@ func validProbeScript(testing.TB) []byte {
 	return []byte("#!/bin/bash\nexec /bin/cat -- report.json\n")
 }
 
-func machineReport(t testing.TB) about.MachineProbeReport {
+func machineReport(t testing.TB) projectstandards.MachineProbeReport {
 	t.Helper()
-	machineID, err := about.NewMachineID(mustUUID(t))
+	machineID, err := projectstandards.NewMachineID(mustUUID(t))
 	if err != nil {
-		t.Fatalf("about.NewMachineID() setup error = %v, want nil", err)
+		t.Fatalf("projectstandards.NewMachineID() setup error = %v, want nil", err)
 	}
 	digest := core.NewSHA256Digest([core.SHA256DigestBytes]byte{1})
-	return about.MachineProbeReport{
-		SchemaVersion: about.MachineProbeSchemaVersion,
-		Configuration: about.MachineConfiguration{
-			Identity:   about.MachineIdentity{ID: machineID, Provider: core.Offering{Token: "google-cloud"}, Project: mustIdentifier(t, "blink-kernel"), Instance: mustIdentifier(t, "anvil-1"), Zone: mustIdentifier(t, "northamerica-northeast2-a"), MachineType: mustIdentifier(t, "e2-standard-4")},
-			Compute:    about.MachineCompute{CPUPlatform: mustName(t, "Intel Broadwell"), Processor: mustName(t, "Intel Xeon"), Architecture: mustName(t, "x86_64"), Virtualization: mustName(t, "Google virtualization"), VCPU: 4, Sockets: 1, CoresPerSocket: 2, ThreadsPerCore: 2, NUMANodes: 1, MemoryConfiguredBytes: mustByteCount(t, 16<<30), MemoryGuestBytes: mustByteCount(t, 15<<30)},
-			System:     about.MachineSystem{OperatingSystem: mustName(t, "Ubuntu"), OperatingSystemVersion: mustName(t, "24.04.4 LTS"), OperatingSystemImage: mustName(t, "ubuntu-2404"), Kernel: mustName(t, "6.17.0-gcp")},
-			Storage:    about.MachineStorage{BootDiskType: mustName(t, "Balanced Persistent Disk"), Interface: mustName(t, "SCSI"), Filesystem: mustName(t, "ext4"), PhysicalBlockBytes: mustByteCount(t, 4096), CapacityBytes: mustByteCount(t, 30<<30), BaselineIOPS: 3000, BaselineReadBytes: 140 << 20, InstanceCeilingIOPS: 15_000, InstanceCeilingReadBytes: 240 << 20, SwapBytes: mustByteLength(t, 0)},
-			Network:    about.MachineNetwork{Interface: mustName(t, "VirtIO Net"), NetworkTier: mustName(t, "Tier 1 disabled"), Addressing: mustName(t, "IPv4 ephemeral"), VPC: mustIdentifier(t, "blink-kernel-test-runner"), MTU: 1460, ReceiveQueues: 4, TransmitQueues: 4, EgressFloorBits: 1_000_000_000, EgressCeilingBits: 10_000_000_000},
-			Lifecycle:  about.MachineLifecycleSecurity{ProvisioningModel: about.MachineProvisioningStandard, StoppedWhenIdle: true, HostMaintenance: about.MachineMaintenanceMigrate, SecureBoot: true, VirtualTPM: true, IntegrityMonitoring: true},
-			Toolchains: []about.MachineToolchain{{Tool: about.MachineToolchainGo, Version: mustName(t, "go1.27.0"), Platform: mustName(t, "linux/amd64"), InstallMode: about.MachineInstallModeInstalled, ExecutableSHA256: digest}},
+	return projectstandards.MachineProbeReport{
+		SchemaVersion: projectstandards.MachineProbeSchemaVersion,
+		Configuration: projectstandards.MachineConfiguration{
+			Identity:   projectstandards.MachineIdentity{ID: machineID, Provider: core.Offering{Token: "google-cloud"}, Project: mustIdentifier(t, "blink-kernel"), Instance: mustIdentifier(t, "anvil-1"), Zone: mustIdentifier(t, "northamerica-northeast2-a"), MachineType: mustIdentifier(t, "e2-standard-4")},
+			Compute:    projectstandards.MachineCompute{CPUPlatform: mustName(t, "Intel Broadwell"), Processor: mustName(t, "Intel Xeon"), Architecture: mustName(t, "x86_64"), Virtualization: mustName(t, "Google virtualization"), VCPU: 4, Sockets: 1, CoresPerSocket: 2, ThreadsPerCore: 2, NUMANodes: 1, MemoryConfiguredBytes: mustByteCount(t, 16<<30), MemoryGuestBytes: mustByteCount(t, 15<<30)},
+			System:     projectstandards.MachineSystem{OperatingSystem: mustName(t, "Ubuntu"), OperatingSystemVersion: mustName(t, "24.04.4 LTS"), OperatingSystemImage: mustName(t, "ubuntu-2404"), Kernel: mustName(t, "6.17.0-gcp")},
+			Storage:    projectstandards.MachineStorage{BootDiskType: mustName(t, "Balanced Persistent Disk"), Interface: mustName(t, "SCSI"), Filesystem: mustName(t, "ext4"), PhysicalBlockBytes: mustByteCount(t, 4096), CapacityBytes: mustByteCount(t, 30<<30), BaselineIOPS: 3000, BaselineReadBytes: 140 << 20, InstanceCeilingIOPS: 15_000, InstanceCeilingReadBytes: 240 << 20, SwapBytes: mustByteLength(t, 0)},
+			Network:    projectstandards.MachineNetwork{Interface: mustName(t, "VirtIO Net"), NetworkTier: mustName(t, "Tier 1 disabled"), Addressing: mustName(t, "IPv4 ephemeral"), VPC: mustIdentifier(t, "blink-kernel-test-runner"), MTU: 1460, ReceiveQueues: 4, TransmitQueues: 4, EgressFloorBits: 1_000_000_000, EgressCeilingBits: 10_000_000_000},
+			Lifecycle:  projectstandards.MachineLifecycleSecurity{ProvisioningModel: projectstandards.MachineProvisioningStandard, StoppedWhenIdle: true, HostMaintenance: projectstandards.MachineMaintenanceMigrate, SecureBoot: true, VirtualTPM: true, IntegrityMonitoring: true},
+			Toolchains: []projectstandards.MachineToolchain{{Tool: projectstandards.MachineToolchainGo, Version: mustName(t, "go1.27.0"), Platform: mustName(t, "linux/amd64"), InstallMode: projectstandards.MachineInstallModeInstalled, ExecutableSHA256: digest}},
 		},
-		Runtime: about.MachineRuntime{BootID: mustIdentifier(t, "4c9b6f78-79d0-442b-bd8f-1dcbbcc9c68f"), Uptime: mustDuration(t, 60), MemoryAvailableBytes: mustByteLength(t, 14<<30), DiskAvailableBytes: mustByteLength(t, 24<<30), Address: mustName(t, "10.42.0.4")},
+		Runtime: projectstandards.MachineRuntime{BootID: mustIdentifier(t, "4c9b6f78-79d0-442b-bd8f-1dcbbcc9c68f"), Uptime: mustDuration(t, 60), MemoryAvailableBytes: mustByteLength(t, 14<<30), DiskAvailableBytes: mustByteLength(t, 24<<30), Address: mustName(t, "10.42.0.4")},
 	}
 }
 
@@ -214,19 +214,19 @@ func mustUUID(t testing.TB) primitiveid.UUIDv7 {
 	return got
 }
 
-func mustIdentifier(t testing.TB, value string) about.Identifier {
+func mustIdentifier(t testing.TB, value string) projectstandards.Identifier {
 	t.Helper()
-	got, err := about.NewIdentifier(value)
+	got, err := projectstandards.NewIdentifier(value)
 	if err != nil {
-		t.Fatalf("about.NewIdentifier(%q) setup error = %v, want nil", value, err)
+		t.Fatalf("projectstandards.NewIdentifier(%q) setup error = %v, want nil", value, err)
 	}
 	return got
 }
-func mustName(t testing.TB, value string) about.Name {
+func mustName(t testing.TB, value string) projectstandards.Name {
 	t.Helper()
-	got, err := about.NewName(value)
+	got, err := projectstandards.NewName(value)
 	if err != nil {
-		t.Fatalf("about.NewName(%q) setup error = %v, want nil", value, err)
+		t.Fatalf("projectstandards.NewName(%q) setup error = %v, want nil", value, err)
 	}
 	return got
 }

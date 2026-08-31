@@ -20,6 +20,7 @@ var (
 	_ core.Validatable = outputLimitExceeded{}
 	_ core.Validatable = ExitCode{}
 	_ core.Validatable = Result{}
+	_ core.Validatable = ResultObservation{}
 	_ core.Validatable = (*TruncatingWriter)(nil)
 	_ core.Validatable = Containment{}
 	_ core.Validatable = IsolationUnknown

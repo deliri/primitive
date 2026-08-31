@@ -24,24 +24,27 @@ type (
 )
 
 type cloudidentityStructInventory struct {
-	AmazonRequestError            internalFlow[amazonRequestError]
-	Client                        capabilityWrapper[Client]
-	AmazonUnexpectedElement       providerWire[amazonUnexpectedElement]
-	Token                         sealedCapability[Token]
-	Audience                      protocolFact[Audience]
-	AmazonTokenElement            providerWire[amazonTokenElement]
-	AmazonResponse                providerWire[amazonResponse]
-	AmazonResult                  providerWire[amazonResult]
-	GoogleAccessTokenResponse     providerWire[googleAccessTokenResponse]
-	AccessToken                   sealedCapability[AccessToken]
-	AmazonWebServicesRequestInput operationRequest[AmazonWebServicesRequestInput]
-	AmazonWebServicesRequest      sealedCapability[AmazonWebServicesRequest]
-	Request                       operationRequest[Request]
-	GoogleProtocolContracts       internalFlow[googleProtocolContracts]
-	GoogleAccessTokenContracts    internalFlow[googleAccessTokenContracts]
-	AcquisitionCall               internalFlow[acquisitionCall]
-	GoogleCloudAccessTokenRequest operationRequest[GoogleCloudAccessTokenRequest]
-	Policy                        protocolFact[Policy]
+	AmazonRequestError               internalFlow[amazonRequestError]
+	Client                           capabilityWrapper[Client]
+	AmazonUnexpectedElement          providerWire[amazonUnexpectedElement]
+	Token                            sealedCapability[Token]
+	Audience                         protocolFact[Audience]
+	AmazonTokenElement               providerWire[amazonTokenElement]
+	AmazonResponse                   providerWire[amazonResponse]
+	AmazonResult                     providerWire[amazonResult]
+	GoogleAccessTokenResponse        providerWire[googleAccessTokenResponse]
+	AccessToken                      sealedCapability[AccessToken]
+	AmazonWebServicesRequestInput    operationRequest[AmazonWebServicesRequestInput]
+	AmazonWebServicesRequest         sealedCapability[AmazonWebServicesRequest]
+	Request                          operationRequest[Request]
+	GoogleProtocolContracts          internalFlow[googleProtocolContracts]
+	GoogleAccessTokenContracts       internalFlow[googleAccessTokenContracts]
+	AcquisitionCall                  internalFlow[acquisitionCall]
+	GoogleCloudAccessTokenRequest    operationRequest[GoogleCloudAccessTokenRequest]
+	Policy                           protocolFact[Policy]
+	GoogleCloudVerifiedIdentity      sealedCapability[GoogleCloudVerifiedIdentity]
+	GoogleCloudVerifier              capabilityWrapper[GoogleCloudVerifier]
+	GoogleCloudVerifierConfiguration protocolFact[GoogleCloudVerifierConfiguration]
 }
 
 var _ = cloudidentityStructInventory{}
@@ -72,9 +75,12 @@ func TestCloudidentityProductionStructsHaveCompilerVisibleDataFlowRoles(
 		"encoding/xml",
 		"errors",
 		"fmt",
+		"github.com/deliri/primitive/v2026/contextstate",
 		"github.com/deliri/primitive/v2026/core",
 		"github.com/deliri/primitive/v2026/exchange",
 		"github.com/deliri/primitive/v2026/temporal",
+		"google.golang.org/api/idtoken",
+		"google.golang.org/api/option",
 		"io",
 		"math",
 		"net/url",
@@ -110,6 +116,7 @@ func TestProviderSelectionHasOnlyExplicitAcquisitionEntryPoints(t *testing.T) {
 		"DefaultPolicy",
 		"NewAmazonWebServicesRequest",
 		"NewClient",
+		"NewGoogleCloudVerifier",
 		"ParseAudience",
 		"ParseGoogleCloudCommandOutput",
 	}

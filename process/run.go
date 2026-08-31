@@ -196,6 +196,10 @@ func newResult(
 	if err != nil {
 		return Result{}, err
 	}
+	peakMemory, err := peakMemoryBytes(state)
+	if err != nil {
+		return Result{}, err
+	}
 	signal, signalReported := observedTerminationSignal(state)
 	return Result{
 		exit:           exit,
@@ -203,6 +207,7 @@ func newResult(
 		stdinBytes:     stdinBytes,
 		stdoutBytes:    stdoutBytes,
 		stderrBytes:    stderrBytes,
+		peakMemory:     peakMemory,
 		signal:         signal,
 		signalReported: signalReported,
 		set:            true,

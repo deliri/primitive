@@ -1,6 +1,8 @@
 package process
 
 import (
+	"errors"
+
 	"github.com/deliri/primitive/v2026/core"
 	"github.com/deliri/primitive/v2026/temporal"
 )
@@ -83,9 +85,64 @@ type Result struct {
 	stdinBytes     core.ByteLength
 	stdoutBytes    core.ByteLength
 	stderrBytes    core.ByteLength
+	peakMemory     core.ByteLength
 	signal         SignalNumber
 	signalReported bool
 	set            bool
+}
+
+// ResultObservation is the durable, stream-free projection of one reaped
+// direct child. It retains exact exit, CPU, byte, and signal facts.
+type ResultObservation struct {
+	ExitCode          int32             `json:"exit_code"`
+	CPUTime           temporal.Duration `json:"cpu_time_nanoseconds"`
+	StdinBytes        core.ByteLength   `json:"stdin_bytes"`
+	StdoutBytes       core.ByteLength   `json:"stdout_bytes"`
+	StderrBytes       core.ByteLength   `json:"stderr_bytes"`
+	PeakMemoryBytes   core.ByteLength   `json:"peak_memory_bytes"`
+	TerminationSignal *SignalNumber     `json:"termination_signal,omitempty"`
+}
+
+func (o ResultObservation) Validate() error {
+	if o.ExitCode < -1 {
+		return contractError("result observation exit code is outside the admitted domain")
+	}
+	if err := errors.Join(o.CPUTime.Validate(), o.StdinBytes.Validate(), o.StdoutBytes.Validate(), o.StderrBytes.Validate(), o.PeakMemoryBytes.Validate()); err != nil {
+		return errors.Join(core.ErrProcessContract, err)
+	}
+	if o.ExitCode == -1 {
+		if o.TerminationSignal != nil {
+			return o.TerminationSignal.Validate()
+		}
+		return nil
+	}
+	if o.TerminationSignal != nil {
+		return contractError("normally exited result observation carries a termination signal")
+	}
+	return nil
+}
+
+// Observation projects the exact durable facts from a validated result.
+func (r Result) Observation() (ResultObservation, error) {
+	if err := r.Validate(); err != nil {
+		return ResultObservation{}, err
+	}
+	exit, err := r.exit.Int()
+	if err != nil {
+		return ResultObservation{}, err
+	}
+	observation := ResultObservation{
+		ExitCode: int32(exit), CPUTime: r.cpu,
+		StdinBytes: r.stdinBytes, StdoutBytes: r.stdoutBytes, StderrBytes: r.stderrBytes, PeakMemoryBytes: r.peakMemory,
+	}
+	if r.signalReported {
+		signal := r.signal
+		observation.TerminationSignal = &signal
+	}
+	if err := observation.Validate(); err != nil {
+		return ResultObservation{}, err
+	}
+	return observation, nil
 }
 
 // Validate rejects the unset zero result.
@@ -96,7 +153,7 @@ func (r Result) Validate() error {
 	if err := r.exit.Validate(); err != nil {
 		return err
 	}
-	return r.cpu.Validate()
+	return errors.Join(r.cpu.Validate(), r.peakMemory.Validate())
 }
 
 // ExitCode returns the observed direct-child exit code.
@@ -113,6 +170,15 @@ func (r Result) CPUTime() (temporal.Duration, error) {
 		return temporal.Duration{}, err
 	}
 	return r.cpu, nil
+}
+
+// PeakMemoryBytes returns the maximum resident set observed for the reaped
+// child process tree by the host kernel.
+func (r Result) PeakMemoryBytes() (core.ByteLength, error) {
+	if err := r.Validate(); err != nil {
+		return core.ByteLength{}, err
+	}
+	return r.peakMemory, nil
 }
 
 // StdinBytes returns bytes obtained from caller stdin.

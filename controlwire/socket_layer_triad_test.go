@@ -11,6 +11,7 @@ import (
 	"testing"
 
 	"encoding/json/jsontext"
+	"github.com/deliri/primitive/v2026/attest"
 	"github.com/deliri/primitive/v2026/controlplane"
 	"github.com/deliri/primitive/v2026/controlplanetest"
 	"github.com/deliri/primitive/v2026/controlwire"
@@ -23,6 +24,7 @@ type socketFixture struct {
 	request           controlplane.RegistrationRequest
 	response          controlplane.ResponseProjection[controlplane.RegistrationDocument]
 	support           controlwire.ProtocolSupport
+	authority         controlplane.Server
 }
 
 type socketObservation struct {
@@ -154,7 +156,7 @@ func TestRegistrationAuthorityRunsThroughTheRealControlWireReceiver(t *testing.T
 	if err != nil {
 		t.Fatalf("received RegistrationToken.Verifier() error = %v, want nil", err)
 	}
-	verified, err := controlplane.VerifyRegistrationAuthority(controlplane.RegistrationAuthorityVerification{
+	verified, err := fixture.authority.VerifyRegistrationAuthority(controlplane.RegistrationAuthorityVerification{
 		Request: *received.Body, ExpectedVerifier: verifier,
 	})
 	if err != nil {
@@ -749,6 +751,16 @@ func productionSocketFixture(t testing.TB) socketFixture {
 	if err != nil {
 		t.Fatalf("controlplanetest.IssueInstallation() error = %v, want nil", err)
 	}
+	trusted, err := attest.NewTrustedKeys(attest.TrustedKeysRequest{
+		Keys: []core.Ed25519PublicKey{installation.AuthorityPublic},
+	})
+	if err != nil {
+		t.Fatalf("attest.NewTrustedKeys(authority) error = %v, want nil", err)
+	}
+	authority, err := controlplane.NewServer(controlplane.ServerConfiguration{TrustedAuthorityKeys: trusted})
+	if err != nil {
+		t.Fatalf("controlplane.NewServer(authority) error = %v, want nil", err)
+	}
 	tokenBytes := [controlwire.RegistrationTokenBytes]byte{1}
 	token, err := controlwire.NewRegistrationToken(tokenBytes)
 	if err != nil {
@@ -792,7 +804,7 @@ func productionSocketFixture(t testing.TB) socketFixture {
 		t.Fatalf("AssessProtocol(response pair) = (%+v, %v), want accepted and nil", assessment, err)
 	}
 	projection, err := controlplane.IssueResponse(controlplane.ResponseIssuance[controlplane.RegistrationDocument]{
-		Signer: ed25519.NewKeyFromSeed(material), Header: body.Payload.Header, Body: body,
+		Server: authority, Signer: ed25519.NewKeyFromSeed(material), Header: body.Payload.Header, Body: body,
 		Assessment: assessment,
 	})
 	if err != nil {
@@ -802,7 +814,7 @@ func productionSocketFixture(t testing.TB) socketFixture {
 	if err != nil {
 		t.Fatalf("ResponseProjection.MarshalJSON() error = %v, want nil", err)
 	}
-	return socketFixture{request: request, response: projection, responseCanonical: canonical, support: support}
+	return socketFixture{request: request, response: projection, responseCanonical: canonical, support: support, authority: authority}
 }
 
 func standardMediaType(t testing.TB, value exchange.StandardMediaType) core.HTTPMediaType {

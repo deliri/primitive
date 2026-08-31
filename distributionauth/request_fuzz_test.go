@@ -42,7 +42,7 @@ func FuzzCredentialedUpdateRequestJSONSemanticAndAuthorityClosure(f *testing.F) 
 		if err := roundTrip.UnmarshalJSON(encoded); err != nil || roundTrip != got {
 			t.Fatalf("UpdateRequestDocument canonical round trip = (%v, %v), want exact %v and nil", roundTrip, err, got)
 		}
-		verified, verifyErr := VerifyUpdate(UpdateVerification{Document: roundTrip, TrustedKeys: fixture.trusted})
+		verified, verifyErr := VerifyUpdate(UpdateVerification{Document: roundTrip, Server: distributionAuthServer(t, fixture.trusted)})
 		if verifyErr != nil {
 			if !errors.Is(verifyErr, core.ErrAttestVerification) || verified != (VerifiedUpdate{}) {
 				t.Fatalf("VerifyUpdate(fuzzed credential) = (%v, %v), want zero typed attestation rejection", verified, verifyErr)
@@ -89,7 +89,7 @@ func FuzzCredentialedUpgradeRequestJSONSemanticAndAuthorityClosure(f *testing.F)
 		if err := roundTrip.UnmarshalJSON(encoded); err != nil || roundTrip != got {
 			t.Fatalf("UpgradeRequestDocument canonical round trip = (%v, %v), want exact %v and nil", roundTrip, err, got)
 		}
-		verified, verifyErr := VerifyUpgrade(UpgradeVerification{Document: roundTrip, TrustedKeys: fixture.trusted})
+		verified, verifyErr := VerifyUpgrade(UpgradeVerification{Document: roundTrip, Server: distributionAuthServer(t, fixture.trusted)})
 		if verifyErr != nil {
 			if !errors.Is(verifyErr, core.ErrAttestVerification) || verified != (VerifiedUpgrade{}) {
 				t.Fatalf("VerifyUpgrade(fuzzed credential) = (%v, %v), want zero typed attestation rejection", verified, verifyErr)

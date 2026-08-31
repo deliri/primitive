@@ -42,6 +42,7 @@ func TestSubmissionDecisionResponseLayerTriadAuthenticatesRefusesAndKeepsNeutral
 		Installation: header.Installation, Revision: header.Revision, Family: header.Family, Offering: header.Offering,
 	}
 	issuance := SubmissionResponseIssuance{
+		Server: submissionAuthServer(t, fixture.request.trusted),
 		Signer: fixture.request.authority, Header: header, Body: body,
 		Assessment: acceptedSubmissionResponseAssessment(t, header),
 	}
@@ -61,7 +62,7 @@ func TestSubmissionDecisionResponseLayerTriadAuthenticatesRefusesAndKeepsNeutral
 		t.Fatalf("ResponseDocument.UnmarshalJSON(real decision) error = %v, want nil", err)
 	}
 	verification := SubmissionResponseVerification{
-		Document: document, Expected: expected, TrustedKeys: fixture.request.trusted,
+		Document: document, Expected: expected, Client: submissionAuthClient(t, fixture.request.trusted),
 	}
 	if err := verification.Validate(); err != nil {
 		t.Fatalf("SubmissionResponseVerification.Validate(real decision) error = %v, want nil", err)
@@ -94,7 +95,7 @@ func TestSubmissionDecisionResponseLayerTriadAuthenticatesRefusesAndKeepsNeutral
 	mismatched := expected
 	mismatched.RequestNonce = authRequestPayload(t, request.Build, 0x72).Nonce
 	rejected, err := VerifySubmissionResponse(SubmissionResponseVerification{
-		Document: document, Expected: mismatched, TrustedKeys: fixture.request.trusted,
+		Document: document, Expected: mismatched, Client: submissionAuthClient(t, fixture.request.trusted),
 	})
 	var binding controlplane.ResponseBindingError
 	if !errors.Is(err, core.ErrControlPlaneResponseBinding) ||

@@ -22,7 +22,8 @@ func TestCompletionReconciliationLayerTriad(t *testing.T) {
 	fixture := newAuthCompletionFixture(t, authCompletionFixtureRequest{})
 	completion, err := VerifyCompletion(CompletionVerification{
 		Document: fixture.credentialed, Request: fixture.verifiedRequest,
-		Grant: fixture.grant, TrustedKeys: fixture.request.trusted,
+		Grant: fixture.grant, GrantKeys: fixture.request.trusted,
+		Server: submissionAuthServer(t, fixture.request.trusted),
 	})
 	if err != nil {
 		t.Fatalf("VerifyCompletion() error = %v, want nil", err)

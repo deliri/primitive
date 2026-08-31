@@ -49,7 +49,7 @@ func FuzzRequestDocumentExternalDecoderAndVerifier(f *testing.F) {
 			t.Fatalf("accepted RequestDocument canonical closure = (%v, %x, %v, %v, %v), want exact fixed point",
 				roundTrip, second, marshalErr, roundTripErr, secondErr)
 		}
-		verified, verifyErr := Verify(Verification{Document: candidate, TrustedKeys: fixture.trusted})
+		verified, verifyErr := Verify(Verification{Document: candidate, Server: retrievalAuthServer(t, fixture.trusted)})
 		authentic := bytes.Equal(encoded, canonical)
 		if authentic {
 			if verifyErr != nil || verified.Validate() != nil {

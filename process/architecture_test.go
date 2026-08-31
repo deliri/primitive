@@ -28,6 +28,9 @@ func productionStructRoles() map[string]string {
 		"ExitCode":            "validated exit observation",
 		"failure":             "typed execution failure",
 		"outputLimitExceeded": "typed output-bound failure",
+		"Plan":                "validated stream-free execution capability",
+		"planWire":            "private canonical execution-plan projection",
+		"ResultObservation":   "durable exact direct-child result projection",
 		"Request":             "validated execution ingress",
 		"Result":              "fixed-size execution result",
 		"streamFailure":       "typed stream failure",
@@ -51,6 +54,7 @@ func productionStructRoles() map[string]string {
 func productionImportAllowlist() []string {
 	return []string{
 		"context",
+		"encoding/json/v2",
 		"errors",
 		"github.com/deliri/primitive/v2026/contextstate",
 		"github.com/deliri/primitive/v2026/core",

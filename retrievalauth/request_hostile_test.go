@@ -140,7 +140,7 @@ func TestRetrievalAuthVerificationLayerTriad(t *testing.T) {
 		}
 		for _, tc := range cases {
 			fixture := newRetrievalAuthFixture(t, tc)
-			verified, gotErr := Verify(Verification{Document: fixture.document, TrustedKeys: fixture.trusted})
+			verified, gotErr := Verify(Verification{Document: fixture.document, Server: retrievalAuthServer(t, fixture.trusted)})
 			got, documentErr := verified.Document()
 			if gotErr != nil || documentErr != nil || got != fixture.document {
 				t.Fatalf("Verify()/Verified.Document(%v) = (%v, %v, %v), want exact document and nil", tc.Offering, got, gotErr, documentErr)
@@ -162,8 +162,8 @@ func TestRetrievalAuthVerificationLayerTriad(t *testing.T) {
 		}{
 			{name: "zero verification", mutate: func(value *Verification) { *value = Verification{} }, wantErr: core.ErrRetrievalContract},
 			{name: "document absent", mutate: func(value *Verification) { value.Document = RequestDocument{} }, wantErr: core.ErrRetrievalContract},
-			{name: "trusted authority absent", mutate: func(value *Verification) { value.TrustedKeys = attest.TrustedKeys{} }, wantErr: core.ErrRetrievalContract},
-			{name: "different authority trust set", mutate: func(value *Verification) { value.TrustedKeys = otherAuthority.trusted }, wantErr: core.ErrAttestVerification},
+			{name: "trusted authority absent", mutate: func(value *Verification) { value.Server = controlplane.Server{} }, wantErr: core.ErrRetrievalContract},
+			{name: "different authority trust set", mutate: func(value *Verification) { value.Server = retrievalAuthServer(t, otherAuthority.trusted) }, wantErr: core.ErrAttestVerification},
 			{name: "authentic certificate names another device", mutate: func(value *Verification) { value.Document.Certificate = otherDevice.certificate }, wantErr: core.ErrAttestVerification},
 			{name: "request nonce substituted after signing", mutate: func(value *Verification) { value.Document.Request.Payload.Nonce = otherNonce.request.Payload.Nonce }, wantErr: core.ErrAttestVerification},
 			{name: "request signer substituted", mutate: func(value *Verification) {
@@ -190,7 +190,7 @@ func TestRetrievalAuthVerificationLayerTriad(t *testing.T) {
 			t.Run(tc.name, func(t *testing.T) {
 				t.Parallel()
 
-				input := Verification{Document: fixture.document, TrustedKeys: fixture.trusted}
+				input := Verification{Document: fixture.document, Server: retrievalAuthServer(t, fixture.trusted)}
 				tc.mutate(&input)
 				got, gotErr := Verify(input)
 				if !errors.Is(gotErr, tc.wantErr) || got != (Verified{}) {

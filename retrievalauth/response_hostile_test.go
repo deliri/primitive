@@ -11,8 +11,8 @@ func TestRetrievalResponseBoundaryRefusesEveryNeutralInput(t *testing.T) {
 	t.Parallel()
 
 	issuance := ResponseIssuance{}
-	if err := issuance.Validate(); !errors.Is(err, core.ErrControlPlaneResponseDocument) || !errors.Is(err, core.ErrControlPlaneResponseHeader) {
-		t.Fatalf("ResponseIssuance.Validate() error = %v, want %v/%v", err, core.ErrControlPlaneResponseDocument, core.ErrControlPlaneResponseHeader)
+	if err := issuance.Validate(); !errors.Is(err, core.ErrControlPlaneResponseDocument) || !errors.Is(err, core.ErrControlPlaneContract) {
+		t.Fatalf("ResponseIssuance.Validate(zero server and document) error = %v, want %v/%v", err, core.ErrControlPlaneResponseDocument, core.ErrControlPlaneContract)
 	}
 	projection, err := IssueResponse(issuance)
 	if !errors.Is(err, core.ErrControlPlaneResponseDocument) || projection.Validate() == nil {

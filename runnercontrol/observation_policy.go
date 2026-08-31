@@ -1,0 +1,92 @@
+package runnercontrol
+
+import (
+	json "encoding/json/v2"
+	"errors"
+
+	"github.com/deliri/primitive/v2026/core"
+)
+
+const ExecutionAccountingUnitMaximum uint32 = 1 << 16
+
+type ObservationFormat uint8
+
+const (
+	ObservationFormatUnknown ObservationFormat = iota
+	ObservationOpaque
+	ObservationGoTestJSON
+	ObservationJUnitXML
+	observationFormatLimit
+)
+
+func (f ObservationFormat) Validate() error {
+	if f <= ObservationFormatUnknown || f >= observationFormatLimit {
+		return core.ErrPrimitiveContract
+	}
+	return nil
+}
+
+func (f ObservationFormat) String() string {
+	switch f {
+	case ObservationOpaque:
+		return "opaque"
+	case ObservationGoTestJSON:
+		return "go-test-json"
+	case ObservationJUnitXML:
+		return "junit-xml"
+	default:
+		return ""
+	}
+}
+
+func (f ObservationFormat) MarshalJSON() ([]byte, error) {
+	if err := f.Validate(); err != nil {
+		return nil, errors.Join(core.ErrJSONContract, err)
+	}
+	return core.MarshalCanonicalJSONString(f.String())
+}
+
+func (f *ObservationFormat) UnmarshalJSON(data []byte) error {
+	if f == nil {
+		return errors.Join(core.ErrJSONContract, core.ErrPrimitiveContract)
+	}
+	value, err := core.DecodeJSONStringToken(data)
+	if err != nil {
+		return err
+	}
+	for candidate := ObservationFormatUnknown + 1; candidate < observationFormatLimit; candidate++ {
+		if candidate.String() == value {
+			*f = candidate
+			return nil
+		}
+	}
+	return errors.Join(core.ErrJSONContract, core.ErrPrimitiveContract)
+}
+
+type ObservationPolicy struct {
+	Format        ObservationFormat `json:"format"`
+	ExpectedUnits uint32            `json:"expected_units"`
+	Filtered      bool              `json:"filtered"`
+}
+
+func (p ObservationPolicy) Validate() error {
+	if err := p.Format.Validate(); err != nil {
+		return err
+	}
+	if p.ExpectedUnits > ExecutionAccountingUnitMaximum {
+		return core.ErrPrimitiveContract
+	}
+	if p.Format == ObservationOpaque && (p.ExpectedUnits != 0 || p.Filtered) {
+		return core.ErrPrimitiveContract
+	}
+	if (p.Format == ObservationGoTestJSON || p.Format == ObservationJUnitXML) && p.ExpectedUnits == 0 {
+		return core.ErrPrimitiveContract
+	}
+	return nil
+}
+
+var (
+	_ core.Validatable = ObservationFormatUnknown
+	_ json.Unmarshaler = (*ObservationFormat)(nil)
+	_ core.Validatable = ObservationPolicy{}
+)

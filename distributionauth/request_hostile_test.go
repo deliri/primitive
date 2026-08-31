@@ -60,7 +60,7 @@ func TestCredentialedDistributionRequestVerificationLayerTriadCarriesRepresentat
 					offering, updateRoute, updateRouteErr, upgradeRoute, upgradeRouteErr)
 			}
 			update, err := VerifyUpdate(UpdateVerification{
-				Document: fixture.update, TrustedKeys: fixture.trusted,
+				Document: fixture.update, Server: distributionAuthServer(t, fixture.trusted),
 			})
 			if err != nil {
 				t.Fatalf("VerifyUpdate(%v) error = %v, want nil", offering, err)
@@ -71,7 +71,7 @@ func TestCredentialedDistributionRequestVerificationLayerTriadCarriesRepresentat
 					offering, updatePayload, err)
 			}
 			upgrade, err := VerifyUpgrade(UpgradeVerification{
-				Document: fixture.upgrade, TrustedKeys: fixture.trusted,
+				Document: fixture.upgrade, Server: distributionAuthServer(t, fixture.trusted),
 			})
 			if err != nil {
 				t.Fatalf("VerifyUpgrade(%v) error = %v, want nil", offering, err)
@@ -118,13 +118,13 @@ func TestCredentialedDistributionRequestVerificationLayerTriadCarriesRepresentat
 
 			fixture := newDistributionAuthFixture(t, tc.request)
 			update, updateErr := VerifyUpdate(UpdateVerification{
-				Document: fixture.update, TrustedKeys: fixture.trusted,
+				Document: fixture.update, Server: distributionAuthServer(t, fixture.trusted),
 			})
 			if updateErr != nil || update.document != fixture.update {
 				t.Fatalf("VerifyUpdate(%s) = (%v, %v), want exact proof and nil", tc.name, update, updateErr)
 			}
 			upgrade, upgradeErr := VerifyUpgrade(UpgradeVerification{
-				Document: fixture.upgrade, TrustedKeys: fixture.trusted,
+				Document: fixture.upgrade, Server: distributionAuthServer(t, fixture.trusted),
 			})
 			if upgradeErr != nil || upgrade.document != fixture.upgrade {
 				t.Fatalf("VerifyUpgrade(%s) = (%v, %v), want exact proof and nil", tc.name, upgrade, upgradeErr)
@@ -226,7 +226,11 @@ func TestCredentialedDistributionRequestVerificationLayerTriadRefusesDeviceAutho
 		t.Run(tc.name, func(t *testing.T) {
 			t.Parallel()
 
-			got, gotErr := VerifyUpdate(UpdateVerification{Document: tc.document, TrustedKeys: tc.trusted})
+			var server controlplane.Server
+			if tc.trusted.Validate() == nil {
+				server = distributionAuthServer(t, tc.trusted)
+			}
+			got, gotErr := VerifyUpdate(UpdateVerification{Document: tc.document, Server: server})
 			if !errors.Is(gotErr, tc.wantErr) || got != (VerifiedUpdate{}) {
 				t.Fatalf("VerifyUpdate(%s) = (%v, %v), want zero and errors.Is %v",
 					tc.name, got, gotErr, tc.wantErr)
@@ -254,7 +258,11 @@ func TestCredentialedDistributionRequestVerificationLayerTriadRefusesDeviceAutho
 		t.Run(tc.name, func(t *testing.T) {
 			t.Parallel()
 
-			got, gotErr := VerifyUpgrade(UpgradeVerification{Document: tc.document, TrustedKeys: tc.trusted})
+			var server controlplane.Server
+			if tc.trusted.Validate() == nil {
+				server = distributionAuthServer(t, tc.trusted)
+			}
+			got, gotErr := VerifyUpgrade(UpgradeVerification{Document: tc.document, Server: server})
 			if !errors.Is(gotErr, tc.wantErr) || got != (VerifiedUpgrade{}) {
 				t.Fatalf("VerifyUpgrade(%s) = (%v, %v), want zero and errors.Is %v",
 					tc.name, got, gotErr, tc.wantErr)

@@ -316,7 +316,8 @@ func TestCredentialedCompletionLayerTriadClosesRepresentativeOpaqueOfferings(t *
 			}
 			verified, err := VerifyCompletion(CompletionVerification{
 				Document: fixture.credentialed, Request: fixture.verifiedRequest,
-				Grant: fixture.grant, TrustedKeys: fixture.request.trusted,
+				Grant: fixture.grant, GrantKeys: fixture.request.trusted,
+				Server: submissionAuthServer(t, fixture.request.trusted),
 			})
 			if err != nil {
 				t.Fatalf("submissionauth.VerifyCompletion(%v) error = %v, want nil", offering, err)
@@ -373,7 +374,7 @@ func TestCredentialedCompletionLayerTriadRefusesCrossInstallationAndAgreementSub
 			value.Grant = submission.GrantDocument{}
 		}, want: core.ErrControlPlaneContract},
 		{name: "authority trust absent", mutate: func(value *CompletionVerification) {
-			value.TrustedKeys = attest.TrustedKeys{}
+			value.Server = controlplane.Server{}
 		}, want: core.ErrControlPlaneContract},
 		{name: "other installation certificate", mutate: func(value *CompletionVerification) {
 			value.Document.Certificate = other.request.certificate
@@ -391,7 +392,7 @@ func TestCredentialedCompletionLayerTriadRefusesCrossInstallationAndAgreementSub
 			value.Document = otherNonceCompletion
 		}, want: core.ErrControlPlaneResponseBinding},
 		{name: "other authority trust", mutate: func(value *CompletionVerification) {
-			value.TrustedKeys = other.request.trusted
+			value.Server = submissionAuthServer(t, other.request.trusted)
 		}, want: core.ErrAttestVerification},
 		{name: "other device named by completion envelope", mutate: func(value *CompletionVerification) {
 			value.Document = otherCompletionSigner
@@ -403,7 +404,8 @@ func TestCredentialedCompletionLayerTriadRefusesCrossInstallationAndAgreementSub
 
 			verification := CompletionVerification{
 				Document: base.credentialed, Request: base.verifiedRequest,
-				Grant: base.grant, TrustedKeys: base.request.trusted,
+				Grant: base.grant, GrantKeys: base.request.trusted,
+				Server: submissionAuthServer(t, base.request.trusted),
 			}
 			tc.mutate(&verification)
 			got, err := VerifyCompletion(verification)
@@ -542,7 +544,7 @@ func newAuthCompletionFixture(t testing.TB, request authCompletionFixtureRequest
 	if request.generation == 0 {
 		request.generation = 7
 	}
-	verifiedRequest, err := Verify(Verification{Document: base.document, TrustedKeys: base.trusted})
+	verifiedRequest, err := Verify(Verification{Document: base.document, Server: submissionAuthServer(t, base.trusted)})
 	if err != nil {
 		t.Fatalf("submissionauth.Verify() error = %v, want nil", err)
 	}

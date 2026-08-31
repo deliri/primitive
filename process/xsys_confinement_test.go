@@ -13,13 +13,17 @@ import (
 // paths for the package, which left the escape free to spread into any file;
 // section 8.4 wants the leaf files named, so adding syscall.Kill to run.go is
 // a red test rather than a green build.
-func substrateEscapeLeafFiles() map[string]bool {
-	return map[string]bool{
-		"alive_unix.go":        true,
-		"alive_windows.go":     true,
-		"containment_unix.go":  true,
-		"sightings_windows.go": true,
-		"termination_unix.go":  true,
+const substrateEscapeLeafMaximum = 7
+
+func substrateEscapeLeafFiles() map[string]string {
+	return map[string]string{
+		"alive_unix.go":        "observes process liveness through the Unix kernel",
+		"alive_windows.go":     "observes process liveness through the Windows kernel",
+		"containment_unix.go":  "installs and signals Unix process-group containment",
+		"sightings_windows.go": "enumerates Windows process identities",
+		"termination_unix.go":  "decodes the Unix termination signal",
+		"usage_linux.go":       "decodes Linux rusage peak-resident-memory units",
+		"usage_darwin.go":      "decodes Darwin rusage peak-resident-memory units",
 	}
 }
 
@@ -31,6 +35,14 @@ func TestSubstrateEscapeStaysInNamedLeafFiles(t *testing.T) {
 	t.Parallel()
 
 	allowed := substrateEscapeLeafFiles()
+	if len(allowed) > substrateEscapeLeafMaximum {
+		t.Fatalf("substrate escape leaf count = %d, want at most ratcheted maximum %d", len(allowed), substrateEscapeLeafMaximum)
+	}
+	for name, reason := range allowed {
+		if reason == "" {
+			t.Fatalf("substrate escape leaf %s reason is empty, want the exact kernel failure class it owns", name)
+		}
+	}
 	seen := map[string]bool{}
 	entries, err := os.ReadDir(".")
 	if err != nil {
@@ -50,7 +62,7 @@ func TestSubstrateEscapeStaysInNamedLeafFiles(t *testing.T) {
 			if path != "syscall" && !strings.HasPrefix(path, "golang.org/x/sys") {
 				continue
 			}
-			if !allowed[name] {
+			if _, admitted := allowed[name]; !admitted {
 				t.Errorf("production file %s imports %s, want the escape confined to the named platform leaves", name, path)
 			}
 			seen[name] = true

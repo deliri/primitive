@@ -110,7 +110,7 @@ func newPublicationAuthFixture(
 	}
 	authority := publicationAuthTrustedKeys(t, installation.AuthorityPrivate)
 	verified, err := VerifyPublication(PublicationVerification{
-		Document: document, TrustedKeys: authority, ManifestKeys: releaseFixture.keys,
+		Document: document, Server: distributionAuthServer(t, authority), ManifestKeys: releaseFixture.keys,
 	})
 	if err != nil {
 		t.Fatalf("VerifyPublication() error = %v, want nil", err)

@@ -65,7 +65,7 @@ func FuzzCredentialedPublicationRequestJSONSemanticAndAuthorityClosure(f *testin
 				second, err, encoded)
 		}
 		verified, verifyErr := VerifyPublication(PublicationVerification{
-			Document: roundTrip, TrustedKeys: fixture.authority, ManifestKeys: fixture.release.keys,
+			Document: roundTrip, Server: distributionAuthServer(t, fixture.authority), ManifestKeys: fixture.release.keys,
 		})
 		if verifyErr != nil {
 			if !errors.Is(verifyErr, core.ErrAttestVerification) || verified != (VerifiedPublication{}) {
@@ -142,7 +142,8 @@ func FuzzCredentialedPublicationCompletionJSONSemanticAndAuthorityClosure(f *tes
 		}
 		verified, verifyErr := VerifyPublicationCompletion(PublicationCompletionVerification{
 			Grant: fixture.grant, Document: roundTrip,
-			Request: fixture.verified, TrustedKeys: fixture.authority,
+			Request: fixture.verified, GrantKeys: fixture.authority,
+			Server: distributionAuthServer(t, fixture.authority),
 		})
 		if verifyErr != nil {
 			if (!errors.Is(verifyErr, core.ErrAttestVerification) &&

@@ -41,6 +41,7 @@ type filestoreContractInventory struct {
 	CommitRequest           validatedRequest[CommitRequest]
 	TouchRequest            validatedRequest[TouchRequest]
 	DurabilityRequest       validatedRequest[DurabilityRequest]
+	PermissionRequest       validatedRequest[PermissionRequest]
 	Permissions             boundedFact[Permissions]
 	Ownership               boundedFact[Ownership]
 	Allocation              boundedFact[Allocation]
@@ -136,6 +137,7 @@ func TestFilestorePublicSurfaceIsExactRatchet(t *testing.T) {
 		"Ownership",
 		"Allocation",
 		"Permissions",
+		"PermissionRequest",
 		"LockFileRequest",
 		"TouchRequest",
 		"InstallMode",
@@ -185,6 +187,7 @@ func TestFilestorePublicSurfaceIsExactRatchet(t *testing.T) {
 		"Rename",
 		"RotateAppend",
 		"Stage",
+		"SetPermissions",
 		"Touch",
 		"Walk",
 		"Write",
@@ -249,6 +252,7 @@ func TestFilestorePublicSurfaceIsExactRatchet(t *testing.T) {
 		"Ownership.IsSet",
 		"Ownership.UID",
 		"Ownership.Validate",
+		"PermissionRequest.Validate",
 		"Permissions.Bits",
 		"Permissions.FileMode",
 		"Permissions.IsSet",

@@ -1,0 +1,85 @@
+package runworkspace
+
+import (
+	"embed"
+	"go/ast"
+	"go/parser"
+	"go/token"
+	"io/fs"
+	"slices"
+	"strings"
+	"testing"
+)
+
+//go:embed *.go
+var runWorkspaceSource embed.FS
+
+func TestRunWorkspaceProductionStructsHaveCompilerVisibleDataFlowRoles(t *testing.T) {
+	t.Parallel()
+
+	files, globErr := fs.Glob(runWorkspaceSource, "*.go")
+	if globErr != nil {
+		t.Fatalf("fs.Glob(runworkspace production source) error = %v, want nil", globErr)
+	}
+	structs := make(map[string]struct{})
+	classified := make(map[string]struct{})
+	for _, name := range files {
+		if strings.HasSuffix(name, "_test.go") {
+			continue
+		}
+		source, readErr := runWorkspaceSource.ReadFile(name)
+		file, parseErr := parser.ParseFile(token.NewFileSet(), name, source, 0)
+		if readErr != nil || parseErr != nil {
+			t.Fatalf("parse embedded runworkspace source %s errors = (%v, %v), want nil", name, readErr, parseErr)
+		}
+		collectRunWorkspaceStructRoles(file, structs, classified)
+	}
+	missing := make([]string, 0)
+	for name := range structs {
+		if _, ok := classified[name]; !ok {
+			missing = append(missing, name)
+		}
+	}
+	slices.Sort(missing)
+	if len(missing) != 0 {
+		t.Fatalf("runworkspace production structs missing data-flow role = %q, want every protocol, flow, or capability struct classified", missing)
+	}
+}
+
+func collectRunWorkspaceStructRoles(file *ast.File, structs, classified map[string]struct{}) {
+	for _, declaration := range file.Decls {
+		switch value := declaration.(type) {
+		case *ast.GenDecl:
+			for _, specification := range value.Specs {
+				typeSpec, ok := specification.(*ast.TypeSpec)
+				if !ok {
+					continue
+				}
+				if _, structType := typeSpec.Type.(*ast.StructType); structType {
+					structs[typeSpec.Name.Name] = struct{}{}
+				}
+			}
+		case *ast.FuncDecl:
+			if value.Recv == nil || !runWorkspaceRoleMethod(value.Name.Name) {
+				continue
+			}
+			if receiver := runWorkspaceReceiverName(value.Recv.List[0].Type); receiver != "" {
+				classified[receiver] = struct{}{}
+			}
+		}
+	}
+}
+
+func runWorkspaceRoleMethod(name string) bool {
+	return name == "runWorkspaceProtocolFact" || name == "runWorkspaceInternalFlow" || name == "runWorkspaceCapabilityWrapper"
+}
+
+func runWorkspaceReceiverName(expression ast.Expr) string {
+	if pointer, ok := expression.(*ast.StarExpr); ok {
+		expression = pointer.X
+	}
+	if identifier, ok := expression.(*ast.Ident); ok {
+		return identifier.Name
+	}
+	return ""
+}

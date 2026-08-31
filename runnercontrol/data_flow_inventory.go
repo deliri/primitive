@@ -1,0 +1,409 @@
+package runnercontrol
+
+type protocolFact interface{ runnerControlProtocolFact() }
+type sealedProjection interface{ runnerControlSealedProjection() }
+type internalFlow interface{ runnerControlInternalFlow() }
+type capabilityWrapper interface{ runnerControlCapabilityWrapper() }
+
+func (MachineFence) runnerControlProtocolFact()                     {}
+func (RunLimits) runnerControlProtocolFact()                        {}
+func (RequestedRun) runnerControlProtocolFact()                     {}
+func (RepositoryGrant) runnerControlProtocolFact()                  {}
+func (OriginDeliveryGrant) runnerControlProtocolFact()              {}
+func (SourceGrant) runnerControlProtocolFact()                      {}
+func (AdmittedRun) runnerControlProtocolFact()                      {}
+func (AdmissionResponse) runnerControlProtocolFact()                {}
+func (AuthenticatedPeer) runnerControlProtocolFact()                {}
+func (AuthenticatedAdmissionRequest) runnerControlProtocolFact()    {}
+func (SchedulingUnitIdentity) runnerControlProtocolFact()           {}
+func (MemberSet) runnerControlProtocolFact()                        {}
+func (SchedulingFence) runnerControlProtocolFact()                  {}
+func (ClaimRequest) runnerControlProtocolFact()                     {}
+func (SchedulingCapability) runnerControlProtocolFact()             {}
+func (MemberCapability) runnerControlProtocolFact()                 {}
+func (ExperimentCapability) runnerControlProtocolFact()             {}
+func (SchedulingClaim) runnerControlProtocolFact()                  {}
+func (ClaimResponse) runnerControlProtocolFact()                    {}
+func (Directive) runnerControlProtocolFact()                        {}
+func (HeartbeatRequest) runnerControlProtocolFact()                 {}
+func (HeartbeatResponse) runnerControlProtocolFact()                {}
+func (ExperimentCompletionPayload) runnerControlProtocolFact()      {}
+func (ExperimentCompletionDocument) runnerControlProtocolFact()     {}
+func (ExperimentCompletionReceipt) runnerControlProtocolFact()      {}
+func (SourceGrantIdentity) runnerControlProtocolFact()              {}
+func (AttemptedSource) runnerControlProtocolFact()                  {}
+func (ExperimentManifestEntry) runnerControlProtocolFact()          {}
+func (ExperimentManifest) runnerControlProtocolFact()               {}
+func (PreSourceRunnerCompletion) runnerControlProtocolFact()        {}
+func (SelectionRunnerCompletion) runnerControlProtocolFact()        {}
+func (DirectExperimentRunnerCompletion) runnerControlProtocolFact() {}
+func (RunnerCompletionPayload) runnerControlProtocolFact()          {}
+func (RunnerCompletionDocument) runnerControlProtocolFact()         {}
+func (RunnerCompletionReceipt) runnerControlProtocolFact()          {}
+func (ArtifactManifestEntry) runnerControlProtocolFact()            {}
+func (ArtifactManifest) runnerControlProtocolFact()                 {}
+func (ArtifactChunk) runnerControlProtocolFact()                    {}
+func (ArtifactChunkReceipt) runnerControlProtocolFact()             {}
+func (ArtifactManifestReceipt) runnerControlProtocolFact()          {}
+func (MachineStateObservation) runnerControlProtocolFact()          {}
+func (CleanMachineState) runnerControlProtocolFact()                {}
+func (CleanupPayload) runnerControlProtocolFact()                   {}
+func (CleanupDocument) runnerControlProtocolFact()                  {}
+func (CleanupReceipt) runnerControlProtocolFact()                   {}
+func (GoBuildContext) runnerControlProtocolFact()                   {}
+func (GoBuildTag) runnerControlProtocolFact()                       {}
+func (GoBuildContextEntry) runnerControlProtocolFact()              {}
+func (GoBuildContextSet) runnerControlProtocolFact()                {}
+func (ExpansionChild) runnerControlProtocolFact()                   {}
+func (CIExpansionChild) runnerControlProtocolFact()                 {}
+func (CIExpansionPlan) runnerControlProtocolFact()                  {}
+func (ExpansionManifest) runnerControlProtocolFact()                {}
+func (ExpansionDocument) runnerControlProtocolFact()                {}
+func (ExpansionApproval) runnerControlProtocolFact()                {}
+func (EgressRule) runnerControlProtocolFact()                       {}
+func (EgressPolicy) runnerControlProtocolFact()                     {}
+func (IsolationPolicy) runnerControlProtocolFact()                  {}
+func (SubjectExecution) runnerControlProtocolFact()                 {}
+func (SecretMemoryPolicy) runnerControlProtocolFact()               {}
+func (MachineSessionBudget) runnerControlProtocolFact()             {}
+func (BatchSessionBudget) runnerControlProtocolFact()               {}
+func (ResourceRequirement) runnerControlProtocolFact()              {}
+func (ResourceWave) runnerControlProtocolFact()                     {}
+func (ExecutionBudget) runnerControlProtocolFact()                  {}
+func (DiagnosticArtifacts) runnerControlProtocolFact()              {}
+func (ArtifactExpectation) runnerControlProtocolFact()              {}
+func (GoExperimentPlan) runnerControlProtocolFact()                 {}
+func (GoExecutionEnvironment) runnerControlProtocolFact()           {}
+func (GoPlanRequest) runnerControlProtocolFact()                    {}
+func (ExperimentExecution) runnerControlProtocolFact()              {}
+func (WritableWorkspace) runnerControlProtocolFact()                {}
+func (GoTestObservation) runnerControlProtocolFact()                {}
+func (GoCoverageObservation) runnerControlProtocolFact()            {}
+func (ObservationPolicy) runnerControlProtocolFact()                {}
+func (SourceArchiveManifest) runnerControlProtocolFact()            {}
+func (SourceArchiveDocument) runnerControlProtocolFact()            {}
+func (CleanupOutcome) runnerControlProtocolFact()                   {}
+func (InterruptedRunnerEvidence) runnerControlProtocolFact()        {}
+func (PreRunnerEvidence) runnerControlProtocolFact()                {}
+func (ObservationEvidenceBody) runnerControlProtocolFact()          {}
+func (ObservationEnvelopePayload) runnerControlProtocolFact()       {}
+func (ObservationEnvelope) runnerControlProtocolFact()              {}
+func (ExperimentDeliveryEntry) runnerControlProtocolFact()          {}
+func (ExperimentDeliveryManifest) runnerControlProtocolFact()       {}
+func (ExperimentDeliveryPage) runnerControlProtocolFact()           {}
+func (ObservationDeliveryIdentity) runnerControlProtocolFact()      {}
+func (ObservationDeliveryStage) runnerControlProtocolFact()         {}
+func (ObservationDeliveryPageUpload) runnerControlProtocolFact()    {}
+func (ObservationDeliveryCommit) runnerControlProtocolFact()        {}
+func (ObservationDeliveryReceipt) runnerControlProtocolFact()       {}
+func (SourceAcquisitionRequest) runnerControlProtocolFact()         {}
+func (SourceAcquisition) runnerControlProtocolFact()                {}
+func (SourceAcquisitionProjection) runnerControlProtocolFact()      {}
+func (MachineObservationSubmission) runnerControlProtocolFact()     {}
+func (MachineObservationReceipt) runnerControlProtocolFact()        {}
+func (MachineResourceCapacity) runnerControlProtocolFact()          {}
+func (ResourceReservation) runnerControlProtocolFact()              {}
+func (JUnitObservation) runnerControlProtocolFact()                 {}
+func (ExternalExecutionEnvironment) runnerControlProtocolFact()     {}
+func (ExternalPlanBase) runnerControlProtocolFact()                 {}
+func (JavaScriptTestPlan) runnerControlProtocolFact()               {}
+func (JavaScriptPlanRequest) runnerControlProtocolFact()            {}
+func (SmokePlan) runnerControlProtocolFact()                        {}
+func (SmokePlanRequest) runnerControlProtocolFact()                 {}
+func (ToolPlan) runnerControlProtocolFact()                         {}
+func (ToolPlanRequest) runnerControlProtocolFact()                  {}
+func (CancellationIdentity) runnerControlProtocolFact()             {}
+func (CancellationRequest) runnerControlProtocolFact()              {}
+func (CancellationResponse) runnerControlProtocolFact()             {}
+func (RunStateRequest) runnerControlProtocolFact()                  {}
+func (RunStateResponse) runnerControlProtocolFact()                 {}
+
+func (ExperimentCompletionRecord) runnerControlSealedProjection() {}
+func (RunnerCompletionRecord) runnerControlSealedProjection()     {}
+func (CleanupRecord) runnerControlSealedProjection()              {}
+func (ArtifactManifestRecord) runnerControlSealedProjection()     {}
+func (ExpansionRecord) runnerControlSealedProjection()            {}
+
+func (claimRequestWire) runnerControlInternalFlow()                       {}
+func (requestedRunWire) runnerControlInternalFlow()                       {}
+func (admittedRunWire) runnerControlInternalFlow()                        {}
+func (admissionResponseWire) runnerControlInternalFlow()                  {}
+func (claimResponseWire) runnerControlInternalFlow()                      {}
+func (heartbeatRequestWire) runnerControlInternalFlow()                   {}
+func (heartbeatResponseWire) runnerControlInternalFlow()                  {}
+func (experimentCompletionPayloadWire) runnerControlInternalFlow()        {}
+func (experimentCompletionDocumentWire) runnerControlInternalFlow()       {}
+func (experimentCompletionReceiptWire) runnerControlInternalFlow()        {}
+func (runnerCompletionPayloadWire) runnerControlInternalFlow()            {}
+func (runnerCompletionDocumentWire) runnerControlInternalFlow()           {}
+func (runnerCompletionReceiptWire) runnerControlInternalFlow()            {}
+func (artifactManifestWire) runnerControlInternalFlow()                   {}
+func (artifactChunkWire) runnerControlInternalFlow()                      {}
+func (artifactChunkReceiptWire) runnerControlInternalFlow()               {}
+func (cleanupPayloadWire) runnerControlInternalFlow()                     {}
+func (cleanupDocumentWire) runnerControlInternalFlow()                    {}
+func (cleanupReceiptWire) runnerControlInternalFlow()                     {}
+func (expansionManifestWire) runnerControlInternalFlow()                  {}
+func (artifactManifestReceiptWire) runnerControlInternalFlow()            {}
+func (expansionDocumentWire) runnerControlInternalFlow()                  {}
+func (expansionApprovalWire) runnerControlInternalFlow()                  {}
+func (sourceArchiveDocumentWire) runnerControlInternalFlow()              {}
+func (observationEnvelopePayloadWire) runnerControlInternalFlow()         {}
+func (observationEnvelopeWire) runnerControlInternalFlow()                {}
+func (experimentDeliveryPageWire) runnerControlInternalFlow()             {}
+func (observationDeliveryStageWire) runnerControlInternalFlow()           {}
+func (observationDeliveryPageUploadWire) runnerControlInternalFlow()      {}
+func (observationDeliveryCommitWire) runnerControlInternalFlow()          {}
+func (observationDeliveryReceiptWire) runnerControlInternalFlow()         {}
+func (sourceAcquisitionRequestWire) runnerControlInternalFlow()           {}
+func (sourceAcquisitionWire) runnerControlInternalFlow()                  {}
+func (sourceAcquisitionProjectionWire) runnerControlInternalFlow()        {}
+func (machineObservationSubmissionWire) runnerControlInternalFlow()       {}
+func (machineObservationReceiptWire) runnerControlInternalFlow()          {}
+func (waveAccumulator) runnerControlInternalFlow()                        {}
+func (ExperimentObservationRequest) runnerControlInternalFlow()           {}
+func (goTestEventWire) runnerControlInternalFlow()                        {}
+func (ObservationDeliveryClientConfiguration) runnerControlInternalFlow() {}
+func (authenticatedPeerContextKey) runnerControlInternalFlow()            {}
+func (compiledGoArtifactPaths) runnerControlInternalFlow()                {}
+func (diagnosticArtifactPaths) runnerControlInternalFlow()                {}
+func (junitCompileResult) runnerControlInternalFlow()                     {}
+func (externalCompilation) runnerControlInternalFlow()                    {}
+func (AuthenticatedCancellationRequest) runnerControlInternalFlow()       {}
+func (AuthenticatedRunStateRequest) runnerControlInternalFlow()           {}
+
+func (ClaimClient) runnerControlCapabilityWrapper()                 {}
+func (AdmissionClient) runnerControlCapabilityWrapper()             {}
+func (AdmissionServer) runnerControlCapabilityWrapper()             {}
+func (ClaimServer) runnerControlCapabilityWrapper()                 {}
+func (HeartbeatClient) runnerControlCapabilityWrapper()             {}
+func (HeartbeatServer) runnerControlCapabilityWrapper()             {}
+func (ExperimentCompletionClient) runnerControlCapabilityWrapper()  {}
+func (ExperimentCompletionServer) runnerControlCapabilityWrapper()  {}
+func (RunnerCompletionClient) runnerControlCapabilityWrapper()      {}
+func (RunnerCompletionServer) runnerControlCapabilityWrapper()      {}
+func (ArtifactClient) runnerControlCapabilityWrapper()              {}
+func (ArtifactServer) runnerControlCapabilityWrapper()              {}
+func (CleanupClient) runnerControlCapabilityWrapper()               {}
+func (CleanupServer) runnerControlCapabilityWrapper()               {}
+func (ArtifactManifestClient) runnerControlCapabilityWrapper()      {}
+func (ArtifactManifestServer) runnerControlCapabilityWrapper()      {}
+func (ExpansionClient) runnerControlCapabilityWrapper()             {}
+func (ExpansionServer) runnerControlCapabilityWrapper()             {}
+func (MutualTLSAuthenticator) runnerControlCapabilityWrapper()      {}
+func (ObservationDeliveryVerifier) runnerControlCapabilityWrapper() {}
+func (ObservationDeliveryClient) runnerControlCapabilityWrapper()   {}
+func (ObservationDeliveryServer) runnerControlCapabilityWrapper()   {}
+func (SourceAcquisitionClient) runnerControlCapabilityWrapper()     {}
+func (SourceAcquisitionServer) runnerControlCapabilityWrapper()     {}
+func (MachineObservationClient) runnerControlCapabilityWrapper()    {}
+func (MachineObservationServer) runnerControlCapabilityWrapper()    {}
+func (GoTestObservationCompiler) runnerControlCapabilityWrapper()   {}
+func (GoCoverageCompiler) runnerControlCapabilityWrapper()          {}
+func (CancellationClient) runnerControlCapabilityWrapper()          {}
+func (CancellationServer) runnerControlCapabilityWrapper()          {}
+func (RunStateClient) runnerControlCapabilityWrapper()              {}
+func (RunStateServer) runnerControlCapabilityWrapper()              {}
+func (JUnitObservationCompiler) runnerControlCapabilityWrapper()    {}
+
+var (
+	_ protocolFact = MachineFence{}
+	_ protocolFact = RunLimits{}
+	_ protocolFact = RequestedRun{}
+	_ protocolFact = RepositoryGrant{}
+	_ protocolFact = OriginDeliveryGrant{}
+	_ protocolFact = SourceGrant{}
+	_ protocolFact = AdmittedRun{}
+	_ protocolFact = AdmissionResponse{}
+	_ protocolFact = AuthenticatedPeer{}
+	_ protocolFact = AuthenticatedAdmissionRequest{}
+	_ protocolFact = SchedulingUnitIdentity{}
+	_ protocolFact = MemberSet{}
+	_ protocolFact = SchedulingFence{}
+	_ protocolFact = ClaimRequest{}
+	_ protocolFact = SchedulingCapability{}
+	_ protocolFact = MemberCapability{}
+	_ protocolFact = ExperimentCapability{}
+	_ protocolFact = ArtifactExpectation{}
+	_ protocolFact = SchedulingClaim{}
+	_ protocolFact = ClaimResponse{}
+	_ protocolFact = Directive{}
+	_ protocolFact = HeartbeatRequest{}
+	_ protocolFact = HeartbeatResponse{}
+	_ protocolFact = ExperimentCompletionPayload{}
+	_ protocolFact = ExperimentCompletionDocument{}
+	_ protocolFact = ExperimentCompletionReceipt{}
+	_ protocolFact = SourceGrantIdentity{}
+	_ protocolFact = AttemptedSource{}
+	_ protocolFact = ExperimentManifestEntry{}
+	_ protocolFact = ExperimentManifest{}
+	_ protocolFact = PreSourceRunnerCompletion{}
+	_ protocolFact = SelectionRunnerCompletion{}
+	_ protocolFact = DirectExperimentRunnerCompletion{}
+	_ protocolFact = RunnerCompletionPayload{}
+	_ protocolFact = RunnerCompletionDocument{}
+	_ protocolFact = RunnerCompletionReceipt{}
+	_ protocolFact = ArtifactManifestEntry{}
+	_ protocolFact = ArtifactManifest{}
+	_ protocolFact = ArtifactChunk{}
+	_ protocolFact = ArtifactChunkReceipt{}
+	_ protocolFact = ArtifactManifestReceipt{}
+	_ protocolFact = MachineStateObservation{}
+	_ protocolFact = CleanMachineState{}
+	_ protocolFact = CleanupPayload{}
+	_ protocolFact = CleanupDocument{}
+	_ protocolFact = CleanupReceipt{}
+	_ protocolFact = GoBuildContext{}
+	_ protocolFact = GoBuildTag{}
+	_ protocolFact = GoBuildContextEntry{}
+	_ protocolFact = GoBuildContextSet{}
+	_ protocolFact = ExpansionChild{}
+	_ protocolFact = CIExpansionChild{}
+	_ protocolFact = CIExpansionPlan{}
+	_ protocolFact = ExpansionManifest{}
+	_ protocolFact = ExpansionDocument{}
+	_ protocolFact = ExpansionApproval{}
+	_ protocolFact = EgressRule{}
+	_ protocolFact = EgressPolicy{}
+	_ protocolFact = IsolationPolicy{}
+	_ protocolFact = SubjectExecution{}
+	_ protocolFact = SecretMemoryPolicy{}
+	_ protocolFact = MachineSessionBudget{}
+	_ protocolFact = BatchSessionBudget{}
+	_ protocolFact = ResourceRequirement{}
+	_ protocolFact = ResourceWave{}
+	_ protocolFact = ExecutionBudget{}
+	_ protocolFact = DiagnosticArtifacts{}
+	_ protocolFact = GoExperimentPlan{}
+	_ protocolFact = GoExecutionEnvironment{}
+	_ protocolFact = GoPlanRequest{}
+	_ protocolFact = ExperimentExecution{}
+	_ protocolFact = WritableWorkspace{}
+	_ protocolFact = GoTestObservation{}
+	_ protocolFact = GoCoverageObservation{}
+	_ protocolFact = SourceArchiveManifest{}
+	_ protocolFact = SourceArchiveDocument{}
+	_ protocolFact = CleanupOutcome{}
+	_ protocolFact = InterruptedRunnerEvidence{}
+	_ protocolFact = PreRunnerEvidence{}
+	_ protocolFact = ObservationEvidenceBody{}
+	_ protocolFact = ObservationEnvelopePayload{}
+	_ protocolFact = ObservationEnvelope{}
+	_ protocolFact = ExperimentDeliveryEntry{}
+	_ protocolFact = ExperimentDeliveryManifest{}
+	_ protocolFact = ExperimentDeliveryPage{}
+	_ protocolFact = ObservationDeliveryIdentity{}
+	_ protocolFact = ObservationDeliveryStage{}
+	_ protocolFact = ObservationDeliveryPageUpload{}
+	_ protocolFact = ObservationDeliveryCommit{}
+	_ protocolFact = ObservationDeliveryReceipt{}
+	_ protocolFact = SourceAcquisitionRequest{}
+	_ protocolFact = SourceAcquisition{}
+	_ protocolFact = SourceAcquisitionProjection{}
+	_ protocolFact = MachineObservationSubmission{}
+	_ protocolFact = MachineObservationReceipt{}
+	_ protocolFact = MachineResourceCapacity{}
+	_ protocolFact = ResourceReservation{}
+	_ protocolFact = JUnitObservation{}
+	_ protocolFact = ExternalExecutionEnvironment{}
+	_ protocolFact = ExternalPlanBase{}
+	_ protocolFact = JavaScriptTestPlan{}
+	_ protocolFact = JavaScriptPlanRequest{}
+	_ protocolFact = SmokePlan{}
+	_ protocolFact = SmokePlanRequest{}
+	_ protocolFact = ToolPlan{}
+	_ protocolFact = ToolPlanRequest{}
+	_ protocolFact = CancellationIdentity{}
+	_ protocolFact = CancellationRequest{}
+	_ protocolFact = CancellationResponse{}
+	_ protocolFact = RunStateRequest{}
+	_ protocolFact = RunStateResponse{}
+
+	_ sealedProjection = ExperimentCompletionRecord{}
+	_ sealedProjection = RunnerCompletionRecord{}
+	_ sealedProjection = CleanupRecord{}
+	_ sealedProjection = ArtifactManifestRecord{}
+	_ sealedProjection = ExpansionRecord{}
+
+	_ internalFlow = claimRequestWire{}
+	_ internalFlow = requestedRunWire{}
+	_ internalFlow = admittedRunWire{}
+	_ internalFlow = admissionResponseWire{}
+	_ internalFlow = claimResponseWire{}
+	_ internalFlow = heartbeatRequestWire{}
+	_ internalFlow = heartbeatResponseWire{}
+	_ internalFlow = experimentCompletionPayloadWire{}
+	_ internalFlow = experimentCompletionDocumentWire{}
+	_ internalFlow = experimentCompletionReceiptWire{}
+	_ internalFlow = runnerCompletionPayloadWire{}
+	_ internalFlow = runnerCompletionDocumentWire{}
+	_ internalFlow = runnerCompletionReceiptWire{}
+	_ internalFlow = artifactManifestWire{}
+	_ internalFlow = artifactChunkWire{}
+	_ internalFlow = artifactChunkReceiptWire{}
+	_ internalFlow = cleanupPayloadWire{}
+	_ internalFlow = cleanupDocumentWire{}
+	_ internalFlow = cleanupReceiptWire{}
+	_ internalFlow = expansionManifestWire{}
+	_ internalFlow = artifactManifestReceiptWire{}
+	_ internalFlow = expansionDocumentWire{}
+	_ internalFlow = expansionApprovalWire{}
+	_ internalFlow = sourceArchiveDocumentWire{}
+	_ internalFlow = observationEnvelopePayloadWire{}
+	_ internalFlow = observationEnvelopeWire{}
+	_ internalFlow = experimentDeliveryPageWire{}
+	_ internalFlow = observationDeliveryStageWire{}
+	_ internalFlow = observationDeliveryPageUploadWire{}
+	_ internalFlow = observationDeliveryCommitWire{}
+	_ internalFlow = observationDeliveryReceiptWire{}
+	_ internalFlow = sourceAcquisitionRequestWire{}
+	_ internalFlow = sourceAcquisitionWire{}
+	_ internalFlow = sourceAcquisitionProjectionWire{}
+	_ internalFlow = machineObservationSubmissionWire{}
+	_ internalFlow = machineObservationReceiptWire{}
+	_ internalFlow = waveAccumulator{}
+	_ internalFlow = ExperimentObservationRequest{}
+	_ internalFlow = goTestEventWire{}
+	_ internalFlow = ObservationDeliveryClientConfiguration{}
+	_ internalFlow = authenticatedPeerContextKey{}
+	_ internalFlow = compiledGoArtifactPaths{}
+	_ internalFlow = diagnosticArtifactPaths{}
+	_ internalFlow = junitCompileResult{}
+	_ internalFlow = externalCompilation{}
+	_ internalFlow = AuthenticatedCancellationRequest{}
+	_ internalFlow = AuthenticatedRunStateRequest{}
+
+	_ capabilityWrapper = ClaimClient{}
+	_ capabilityWrapper = AdmissionClient{}
+	_ capabilityWrapper = AdmissionServer{}
+	_ capabilityWrapper = ClaimServer{}
+	_ capabilityWrapper = HeartbeatClient{}
+	_ capabilityWrapper = HeartbeatServer{}
+	_ capabilityWrapper = ExperimentCompletionClient{}
+	_ capabilityWrapper = ExperimentCompletionServer{}
+	_ capabilityWrapper = RunnerCompletionClient{}
+	_ capabilityWrapper = RunnerCompletionServer{}
+	_ capabilityWrapper = ArtifactClient{}
+	_ capabilityWrapper = ArtifactServer{}
+	_ capabilityWrapper = CleanupClient{}
+	_ capabilityWrapper = CleanupServer{}
+	_ capabilityWrapper = ArtifactManifestClient{}
+	_ capabilityWrapper = ArtifactManifestServer{}
+	_ capabilityWrapper = ExpansionClient{}
+	_ capabilityWrapper = ExpansionServer{}
+	_ capabilityWrapper = MutualTLSAuthenticator{}
+	_ capabilityWrapper = ObservationDeliveryVerifier{}
+	_ capabilityWrapper = ObservationDeliveryClient{}
+	_ capabilityWrapper = ObservationDeliveryServer{}
+	_ capabilityWrapper = SourceAcquisitionClient{}
+	_ capabilityWrapper = SourceAcquisitionServer{}
+	_ capabilityWrapper = MachineObservationClient{}
+	_ capabilityWrapper = MachineObservationServer{}
+	_ capabilityWrapper = GoTestObservationCompiler{}
+	_ capabilityWrapper = GoCoverageCompiler{}
+	_ capabilityWrapper = CancellationClient{}
+	_ capabilityWrapper = CancellationServer{}
+	_ capabilityWrapper = RunStateClient{}
+	_ capabilityWrapper = RunStateServer{}
+	_ capabilityWrapper = JUnitObservationCompiler{}
+)

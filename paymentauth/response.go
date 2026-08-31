@@ -40,11 +40,11 @@ func (i ResponseIssuance) responseIssuance() controlplane.ResponseIssuance[payme
 }
 
 func (v ResponseVerification) Validate() error {
-	return v.responseVerification().Validate()
+	return v.responseVerification().ValidateForFamily(controlwire.RouteFamilyPayments)
 }
 
 func VerifyResponse(v ResponseVerification) (controlplane.VerifiedResponse[payment.CatalogDocument, *payment.CatalogDocument], error) {
-	return controlplane.VerifyResponse(v.responseVerification())
+	return controlplane.VerifyResponseForFamily(v.responseVerification(), controlwire.RouteFamilyPayments)
 }
 
 func (v ResponseVerification) responseVerification() controlplane.ResponseVerification[payment.CatalogDocument, *payment.CatalogDocument] {

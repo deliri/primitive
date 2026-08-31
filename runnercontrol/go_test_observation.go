@@ -1,0 +1,367 @@
+package runnercontrol
+
+import (
+	"bytes"
+	"context"
+	"errors"
+	"io"
+	"strconv"
+	"strings"
+
+	"github.com/deliri/primitive/v2026/core"
+	"github.com/deliri/primitive/v2026/projectstandards"
+)
+
+const GoTestJSONEventMaximumBytes = 1 << 20
+
+type GoTestObservation struct {
+	Accounting projectstandards.ExecutionAccounting    `json:"accounting"`
+	Benchmarks []projectstandards.BenchmarkMeasurement `json:"benchmarks"`
+}
+
+func (o GoTestObservation) Validate() error {
+	if err := o.Accounting.Validate(); err != nil {
+		return err
+	}
+	if len(o.Benchmarks) > projectstandards.BenchmarkMeasurementMaximum {
+		return core.ErrPrimitiveContract
+	}
+	for index := range o.Benchmarks {
+		if err := o.Benchmarks[index].Validate(); err != nil {
+			return err
+		}
+	}
+	return nil
+}
+
+type goTestEventWire struct {
+	Time        string  `json:"Time"`
+	Action      string  `json:"Action"`
+	Package     string  `json:"Package"`
+	Test        string  `json:"Test"`
+	Elapsed     float64 `json:"Elapsed"`
+	Output      string  `json:"Output"`
+	FailedBuild string  `json:"FailedBuild"`
+}
+
+// GoTestObservationCompiler consumes the exact stdout emitted by go test
+// -json. It retains bounded state only for planned package units.
+type GoTestObservationCompiler struct {
+	policy     ObservationPolicy
+	pending    []byte
+	seen       map[string]struct{}
+	terminal   map[string]string
+	benchmarks []projectstandards.BenchmarkMeasurement
+	failure    error
+}
+
+func NewGoTestObservationCompiler(policy ObservationPolicy) (*GoTestObservationCompiler, error) {
+	if err := policy.Validate(); err != nil {
+		return nil, err
+	}
+	if policy.Format != ObservationGoTestJSON {
+		return nil, observationFailure("go test observation compiler requires go-test-json format", core.ErrPrimitiveContract)
+	}
+	return &GoTestObservationCompiler{policy: policy, seen: make(map[string]struct{}), terminal: make(map[string]string), benchmarks: []projectstandards.BenchmarkMeasurement{}}, nil
+}
+
+func (c *GoTestObservationCompiler) Write(data []byte) (int, error) {
+	if c == nil {
+		return 0, observationFailure("go test observation compiler receiver is nil", core.ErrPrimitiveContract)
+	}
+	if c.failure != nil {
+		return len(data), nil
+	}
+	if len(c.pending)+len(data) > GoTestJSONEventMaximumBytes && !bytes.Contains(data, []byte{'\n'}) {
+		c.failure = observationFailure("go test JSON event exceeds the byte ceiling", core.ErrJSONContract)
+		c.pending = nil
+		return len(data), nil
+	}
+	c.pending = append(c.pending, data...)
+	if err := c.consumeLines(); err != nil {
+		c.failure = err
+		c.pending = nil
+		return len(data), nil
+	}
+	return len(data), nil
+}
+
+func (c *GoTestObservationCompiler) consumeLines() error {
+	for {
+		end := bytes.IndexByte(c.pending, '\n')
+		if end < 0 {
+			if len(c.pending) > GoTestJSONEventMaximumBytes {
+				return observationFailure("go test JSON event exceeds the byte ceiling", core.ErrJSONContract)
+			}
+			return nil
+		}
+		if end == 0 {
+			return observationFailure("go test JSON stream contains an empty event", core.ErrJSONContract)
+		}
+		if end > GoTestJSONEventMaximumBytes {
+			return observationFailure("go test JSON event exceeds the byte ceiling", core.ErrJSONContract)
+		}
+		line := c.pending[:end]
+		c.pending = c.pending[end+1:]
+		if err := c.consumeEvent(line); err != nil {
+			return err
+		}
+	}
+}
+
+func (c *GoTestObservationCompiler) consumeEvent(line []byte) error {
+	event, err := core.DecodeStrictJSONStructure[goTestEventWire](line, core.DefaultStrictJSONLimits())
+	if err != nil {
+		return observationFailure("go test JSON event cannot be decoded", core.ErrJSONContract, err)
+	}
+	if !goTestActionKnown(event.Action) {
+		return observationFailure("go test JSON event has an unknown action", core.ErrJSONContract)
+	}
+	if event.Package == "" {
+		return observationFailure("go test JSON event is missing its package identity", core.ErrJSONContract)
+	}
+	if err := c.observePackage(event); err != nil {
+		return err
+	}
+	if event.Action == "output" && strings.Contains(event.Output, " ns/op") {
+		measurement, measurementErr := parseGoBenchmarkMeasurement(event.Output)
+		if measurementErr != nil {
+			return measurementErr
+		}
+		if len(c.benchmarks) >= projectstandards.BenchmarkMeasurementMaximum {
+			return observationFailure("go benchmark measurement count exceeds its ceiling", core.ErrPrimitiveContract)
+		}
+		c.benchmarks = append(c.benchmarks, measurement)
+	}
+	return nil
+}
+
+func (c *GoTestObservationCompiler) observePackage(event goTestEventWire) error {
+	if _, terminal := c.terminal[event.Package]; terminal {
+		return observationFailure("go test JSON event follows a terminal package event", core.ErrJSONContract)
+	}
+	c.seen[event.Package] = struct{}{}
+	if uint32(len(c.seen)) > c.policy.ExpectedUnits {
+		return observationFailure("go test JSON stream names more packages than planned", core.ErrPrimitiveContract)
+	}
+	if event.Test != "" || !goTestTerminalAction(event.Action) {
+		return nil
+	}
+	c.terminal[event.Package] = event.Action
+	return nil
+}
+
+func (c *GoTestObservationCompiler) Seal(executionErr error) (GoTestObservation, error) {
+	if c == nil {
+		return GoTestObservation{}, observationFailure("go test observation compiler receiver is nil", core.ErrPrimitiveContract)
+	}
+	if c.failure != nil {
+		result, err := c.unavailableObservation()
+		return result, errors.Join(c.failure, err)
+	}
+	if len(c.pending) > 0 {
+		if len(c.pending) > GoTestJSONEventMaximumBytes {
+			c.failure = observationFailure("go test JSON event exceeds the byte ceiling", core.ErrJSONContract)
+			result, err := c.unavailableObservation()
+			return result, errors.Join(c.failure, err)
+		}
+		if err := c.consumeEvent(c.pending); err != nil {
+			c.failure = err
+			result, validationErr := c.unavailableObservation()
+			return result, errors.Join(err, validationErr)
+		}
+		c.pending = nil
+	}
+	accounting, err := c.compileAccounting(executionErr)
+	if err != nil {
+		result, validationErr := c.unavailableObservation()
+		return result, errors.Join(err, validationErr)
+	}
+	result := GoTestObservation{Accounting: accounting, Benchmarks: append([]projectstandards.BenchmarkMeasurement(nil), c.benchmarks...)}
+	return result, result.Validate()
+}
+
+func (c *GoTestObservationCompiler) unavailableObservation() (GoTestObservation, error) {
+	attempt := newExecutionAttempt(c.policy)
+	for _, action := range c.terminal {
+		switch action {
+		case "pass":
+			attempt.Passed++
+		case "fail":
+			attempt.Failed++
+		case "skip":
+			attempt.Skipped++
+		}
+	}
+	terminal := uint32(len(c.terminal))
+	if terminal > c.policy.ExpectedUnits {
+		return GoTestObservation{}, observationFailure("go test terminal count exceeds planned units", core.ErrPrimitiveContract)
+	}
+	attempt.Unavailable = c.policy.ExpectedUnits - terminal
+	accounting := projectstandards.ExecutionAccounting{Attempts: []projectstandards.ExecutionAttempt{attempt}}
+	result := GoTestObservation{Accounting: accounting, Benchmarks: append([]projectstandards.BenchmarkMeasurement(nil), c.benchmarks...)}
+	return result, result.Validate()
+}
+
+func (c *GoTestObservationCompiler) compileAccounting(executionErr error) (projectstandards.ExecutionAccounting, error) {
+	attempt := newExecutionAttempt(c.policy)
+	for _, action := range c.terminal {
+		switch action {
+		case "pass":
+			attempt.Passed++
+		case "fail":
+			attempt.Failed++
+		case "skip":
+			attempt.Skipped++
+		}
+	}
+	active := uint32(len(c.seen) - len(c.terminal))
+	observed := uint32(len(c.terminal)) + active
+	if err := c.validateObservedAccounting(observed, executionErr); err != nil {
+		return projectstandards.ExecutionAccounting{}, err
+	}
+	c.classifyInterrupted(&attempt, active, executionErr)
+	attempt.NotRun = c.policy.ExpectedUnits - observed
+	if executionErr != nil && observed == 0 {
+		attempt.NotRun--
+		c.classifyInterrupted(&attempt, 1, executionErr)
+	}
+	accounting := projectstandards.ExecutionAccounting{Attempts: []projectstandards.ExecutionAttempt{attempt}}
+	return accounting, accounting.Validate()
+}
+
+func newExecutionAttempt(policy ObservationPolicy) projectstandards.ExecutionAttempt {
+	return projectstandards.ExecutionAttempt{Sequence: 1, Planned: policy.ExpectedUnits, Cache: projectstandards.CacheDisabled, Filtered: policy.Filtered}
+}
+
+func (c *GoTestObservationCompiler) validateObservedAccounting(observed uint32, executionErr error) error {
+	terminal := uint32(len(c.terminal))
+	if observed > c.policy.ExpectedUnits {
+		return observationFailure("go test observed package count exceeds planned units", core.ErrPrimitiveContract)
+	}
+	if executionErr != nil {
+		return nil
+	}
+	if observed != terminal {
+		return observationFailure("go test exited successfully with an unterminated package", core.ErrPrimitiveContract)
+	}
+	if terminal != c.policy.ExpectedUnits {
+		return observationFailure("go test exited successfully without terminal evidence for every planned package", core.ErrPrimitiveContract)
+	}
+	return nil
+}
+
+func (c *GoTestObservationCompiler) classifyInterrupted(accounting *projectstandards.ExecutionAttempt, count uint32, executionErr error) {
+	if count == 0 {
+		return
+	}
+	switch {
+	case errors.Is(executionErr, context.Canceled):
+		accounting.Cancelled += count
+	case errors.Is(executionErr, context.DeadlineExceeded):
+		accounting.TimedOut += count
+	default:
+		accounting.Failed += count
+	}
+}
+
+func goTestActionKnown(action string) bool {
+	switch action {
+	case "start", "run", "pause", "cont", "pass", "bench", "fail", "output", "skip":
+		return true
+	default:
+		return false
+	}
+}
+
+func goTestTerminalAction(action string) bool {
+	return action == "pass" || action == "fail" || action == "skip"
+}
+
+func parseGoBenchmarkMeasurement(output string) (projectstandards.BenchmarkMeasurement, error) {
+	fields := strings.Fields(output)
+	if len(fields) < 8 {
+		return projectstandards.BenchmarkMeasurement{}, observationFailure("go benchmark result is incomplete", core.ErrJSONContract)
+	}
+	name, err := projectstandards.NewName(fields[0])
+	if err != nil {
+		return projectstandards.BenchmarkMeasurement{}, observationFailure("go benchmark name is invalid", core.ErrJSONContract, err)
+	}
+	iterations, err := strconv.ParseUint(fields[1], 10, 64)
+	if err != nil || iterations == 0 {
+		return projectstandards.BenchmarkMeasurement{}, observationFailure("go benchmark iteration count is invalid", core.ErrJSONContract, err)
+	}
+	nanoseconds, nanosecondsErr := benchmarkDecimal(fields, "ns/op")
+	bytesPerOp, bytesErr := benchmarkInteger(fields, "B/op")
+	allocations, allocationsErr := benchmarkInteger(fields, "allocs/op")
+	if err := errors.Join(nanosecondsErr, bytesErr, allocationsErr); err != nil {
+		return projectstandards.BenchmarkMeasurement{}, err
+	}
+	measurement := projectstandards.BenchmarkMeasurement{Name: name, Iterations: iterations, NanosecondsPerOp: nanoseconds, BytesPerOp: bytesPerOp, AllocationsPerOp: allocations}
+	return measurement, measurement.Validate()
+}
+
+func benchmarkDecimal(fields []string, unit string) (projectstandards.DecimalMeasurement, error) {
+	value, ok := benchmarkField(fields, unit)
+	if !ok {
+		return projectstandards.DecimalMeasurement{}, observationFailure("go benchmark result is missing "+unit, core.ErrJSONContract)
+	}
+	coefficient, scale, err := parseBenchmarkDecimal(value)
+	if err != nil {
+		return projectstandards.DecimalMeasurement{}, err
+	}
+	for scale > 0 && coefficient%10 == 0 {
+		coefficient /= 10
+		scale--
+	}
+	result := projectstandards.DecimalMeasurement{Coefficient: coefficient, Scale: scale}
+	return result, result.Validate()
+}
+
+func parseBenchmarkDecimal(value string) (uint64, uint8, error) {
+	parts := strings.Split(value, ".")
+	if len(parts) > 2 || parts[0] == "" || (len(parts) == 2 && parts[1] == "") {
+		return 0, 0, observationFailure("go benchmark decimal is invalid", core.ErrJSONContract)
+	}
+	scale := uint8(0)
+	if len(parts) == 2 {
+		if len(parts[1]) > int(projectstandards.DecimalMeasurementScaleMaximum) {
+			return 0, 0, observationFailure("go benchmark decimal precision exceeds its ceiling", core.ErrJSONContract)
+		}
+		scale = uint8(len(parts[1]))
+	}
+	coefficient, err := strconv.ParseUint(strings.Join(parts, ""), 10, 64)
+	if err != nil {
+		return 0, 0, observationFailure("go benchmark decimal exceeds its numeric ceiling", core.ErrJSONContract, err)
+	}
+	return coefficient, scale, nil
+}
+
+func benchmarkInteger(fields []string, unit string) (uint64, error) {
+	value, ok := benchmarkField(fields, unit)
+	if !ok {
+		return 0, observationFailure("go benchmark result is missing "+unit, core.ErrJSONContract)
+	}
+	parsed, err := strconv.ParseUint(value, 10, 64)
+	if err != nil {
+		return 0, observationFailure("go benchmark integer is invalid for "+unit, core.ErrJSONContract, err)
+	}
+	return parsed, nil
+}
+
+func benchmarkField(fields []string, unit string) (string, bool) {
+	for index := 2; index < len(fields); index++ {
+		if fields[index] == unit && index > 0 {
+			return fields[index-1], true
+		}
+	}
+	return "", false
+}
+
+func observationFailure(message string, causes ...error) error {
+	joined := []error{core.ErrPrimitiveContract, errors.New(message)}
+	joined = append(joined, causes...)
+	return errors.Join(joined...)
+}
+
+var _ io.Writer = (*GoTestObservationCompiler)(nil)

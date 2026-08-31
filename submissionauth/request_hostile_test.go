@@ -210,7 +210,7 @@ func TestCredentialedRequestLayerTriadAuthenticatesRepresentativeOpaqueOfferings
 					offering, route, fixture.document.ControlNonce(), routeErr)
 			}
 			verified, err := Verify(Verification{
-				Document: fixture.document, TrustedKeys: fixture.trusted,
+				Document: fixture.document, Server: submissionAuthServer(t, fixture.trusted),
 			})
 			if err != nil {
 				t.Fatalf("submissionauth.Verify(%v) error = %v, want nil", offering, err)
@@ -265,13 +265,13 @@ func TestCredentialedRequestLayerTriadRefusesEveryAuthorityAndDeviceSubstitution
 		wantErr error
 	}{
 		{name: "authority trust belongs to another signer", request: Verification{
-			Document: fixture.document, TrustedKeys: otherAuthorityTrust,
+			Document: fixture.document, Server: submissionAuthServer(t, otherAuthorityTrust),
 		}, wantErr: core.ErrAttestVerification},
 		{name: "request signature belongs to an uncertified device", request: Verification{
-			Document: otherDeviceDocument, TrustedKeys: fixture.trusted,
+			Document: otherDeviceDocument, Server: submissionAuthServer(t, fixture.trusted),
 		}, wantErr: core.ErrAttestVerification},
 		{name: "partition changed after device signing", request: Verification{
-			Document: partitionDocument, TrustedKeys: fixture.trusted,
+			Document: partitionDocument, Server: submissionAuthServer(t, fixture.trusted),
 		}, wantErr: core.ErrAttestVerification},
 	}
 	for _, tc := range cases {

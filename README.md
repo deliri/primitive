@@ -34,15 +34,31 @@ flowchart TD
     testserial[testserial] --> core
     lineio[lineio] --> core
     manual[manual] --> core
-    about[about] --> core
-    about --> exchange
-    about --> id
-    about --> temporal
-    machineprobe[machineprobe] --> about
+    projectstandards[projectstandards] --> core
+    projectstandards --> exchange
+    projectstandards --> id
+    projectstandards --> temporal
+    machineprobe[machineprobe] --> projectstandards
     machineprobe --> core
     machineprobe --> filestore
     machineprobe --> process
     machineprobe --> temporal
+    runnercontrol[runnercontrol] --> projectstandards
+    runnercontrol --> attest
+    runnercontrol --> core
+    runnercontrol --> exchange
+    runnercontrol --> id
+    runnercontrol --> objectstore
+    runnercontrol --> process
+    runnercontrol --> temporal
+    runworkspace[runworkspace] --> projectstandards
+    runworkspace --> attest
+    runworkspace --> core
+    runworkspace --> filestore
+    runworkspace --> objectstore
+    runworkspace --> process
+    runworkspace --> runnercontrol
+    runworkspace --> temporal
 
     filelock[filelock] --> core
     filelock --> contextstate
@@ -97,6 +113,7 @@ flowchart TD
     submissionauth --> objectstore
     submissionauth --> receipt
     controlplanetest[controlplanetest] --> core
+    controlplanetest --> attest
     controlplanetest --> controlplane
     controlplanetest --> controlwire
     controlplanetest --> lease
@@ -124,6 +141,7 @@ flowchart TD
     timeproof --> temporal
     timeproof --> keygen
     cloudidentity[cloudidentity] --> core
+    cloudidentity --> contextstate
     cloudidentity --> temporal
     cloudidentity --> exchange
     secretstore[secretstore] --> core
@@ -169,8 +187,7 @@ flowchart TD
     chit --> receipt
     chit --> temporal
 
-    chitauth[chitauth] --> attest
-    chitauth --> chit
+    chitauth[chitauth] --> chit
     chitauth --> controlplane
     chitauth --> controlwire
     chitauth --> core
@@ -197,8 +214,7 @@ flowchart TD
     payment --> receipt
     payment --> temporal
 
-    paymentauth[paymentauth] --> attest
-    paymentauth --> controlplane
+    paymentauth[paymentauth] --> controlplane
     paymentauth --> controlwire
     paymentauth --> core
     paymentauth --> payment
@@ -229,7 +245,9 @@ prove real streaming transport and authenticated stored evidence,
 `testserial` for process-wide isolation, and `deploy` uses `attest` and
 `temporal` to prove a real authenticated manifest and transfer substrate;
 `lineio` uses `filestore` to prove its reader boundary against a real rooted
-file. `manual` is pure and needs no test-only sibling import.
+file; `runworkspace` uses `exchange` and `id` to prove real bounded source
+transport and exact run-owned identities. `manual` is pure and needs no
+test-only sibling import.
 
 ## License
 

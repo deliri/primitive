@@ -3,8 +3,9 @@ package shutdown
 import "github.com/deliri/primitive/v2026/core"
 
 const (
-	escalateLabel = "escalate"
-	releaseLabel  = "release"
+	completionStateText = "completed"
+	escalateLabel       = "escalate"
+	releaseLabel        = "release"
 )
 
 // Phase is a closed cleanup phase executed in declaration order.
@@ -67,7 +68,7 @@ const (
 
 func stepOutcomeLabels() [stepOutcomeLimit]string {
 	return [...]string{
-		StepOutcomeCompleted:           core.CompletionStateText,
+		StepOutcomeCompleted:           completionStateText,
 		StepOutcomeFailed:              "failed",
 		StepOutcomeTimedOut:            "timed-out",
 		StepOutcomePanicked:            "panicked",

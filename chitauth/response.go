@@ -40,11 +40,11 @@ func (i ResponseIssuance) responseIssuance() controlplane.ResponseIssuance[chit.
 }
 
 func (v ResponseVerification) Validate() error {
-	return v.responseVerification().Validate()
+	return v.responseVerification().ValidateForFamily(controlwire.RouteFamilyChits)
 }
 
 func VerifyResponse(v ResponseVerification) (controlplane.VerifiedResponse[chit.CatalogDocument, *chit.CatalogDocument], error) {
-	return controlplane.VerifyResponse(v.responseVerification())
+	return controlplane.VerifyResponseForFamily(v.responseVerification(), controlwire.RouteFamilyChits)
 }
 
 func (v ResponseVerification) responseVerification() controlplane.ResponseVerification[chit.CatalogDocument, *chit.CatalogDocument] {

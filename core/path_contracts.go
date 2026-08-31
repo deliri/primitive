@@ -220,6 +220,22 @@ func (p AbsolutePath) RelativeTo(base AbsolutePath) (RelativePath, error) {
 	return ParseRelativePath(relative)
 }
 
+// RelativeTo expresses one already-rooted path beneath another rooted path.
+// It preserves confinement while making descendant ownership compiler-visible.
+func (p RelativePath) RelativeTo(base RelativePath) (RelativePath, error) {
+	if err := p.Validate(); err != nil {
+		return RelativePath{}, err
+	}
+	if err := base.Validate(); err != nil {
+		return RelativePath{}, err
+	}
+	relative, err := filepath.Rel(base.value, p.value)
+	if err != nil {
+		return RelativePath{}, filesystemPathError("relative path is not expressible beneath the base")
+	}
+	return ParseRelativePath(relative)
+}
+
 // Resolve joins names below an absolute path, admitting each as its own
 // component.
 //

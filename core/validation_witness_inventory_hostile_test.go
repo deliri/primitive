@@ -2,6 +2,7 @@ package core
 
 import (
 	"go/ast"
+	"go/build"
 	"go/parser"
 	"go/token"
 	"os"
@@ -11,7 +12,7 @@ import (
 	"testing"
 )
 
-const coreMethodContractMaximum = 128
+const coreMethodContractMaximum = 192
 
 type coreMethodContractName string
 
@@ -90,6 +91,13 @@ func collectPackageMethodContracts(directory string) (
 		if entry.IsDir() || !strings.HasSuffix(entry.Name(), ".go") || strings.HasSuffix(entry.Name(), "_test.go") {
 			continue
 		}
+		matched, matchErr := build.Default.MatchFile(directory, entry.Name())
+		if matchErr != nil {
+			return coreMethodContractInventory{}, coreMethodContractInventory{}, matchErr
+		}
+		if !matched {
+			continue
+		}
 		file, parseErr := parser.ParseFile(token.NewFileSet(), filepath.Join(directory, entry.Name()), nil, parser.SkipObjectResolution)
 		if parseErr != nil {
 			return coreMethodContractInventory{}, coreMethodContractInventory{}, parseErr
@@ -125,6 +133,13 @@ func collectPackageValidatedJSONWitnesses(directory string) (coreMethodContractI
 	var witnesses coreMethodContractInventory
 	for _, entry := range entries {
 		if entry.IsDir() || !strings.HasSuffix(entry.Name(), ".go") || strings.HasSuffix(entry.Name(), "_test.go") {
+			continue
+		}
+		matched, matchErr := build.Default.MatchFile(directory, entry.Name())
+		if matchErr != nil {
+			return coreMethodContractInventory{}, matchErr
+		}
+		if !matched {
 			continue
 		}
 		file, parseErr := parser.ParseFile(token.NewFileSet(), filepath.Join(directory, entry.Name()), nil, parser.SkipObjectResolution)

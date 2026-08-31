@@ -38,6 +38,7 @@ func TestPublicationResponseLayerTriadAuthenticatesRefusesAndKeepsNeutralZero(t 
 		Installation: header.Installation, Revision: header.Revision, Family: header.Family, Offering: header.Offering,
 	}
 	issuance := PublicationResponseIssuance{
+		Server: distributionAuthServer(t, fixture.authority),
 		Signer: fixture.installation.AuthorityPrivate, Header: header, Body: fixture.grantProjection,
 		Assessment: acceptedDistributionResponseAssessment(t, header),
 	}
@@ -57,7 +58,7 @@ func TestPublicationResponseLayerTriadAuthenticatesRefusesAndKeepsNeutralZero(t 
 		t.Fatalf("ResponseDocument.UnmarshalJSON(real publication grant) error = %v, want nil", err)
 	}
 	verification := PublicationResponseVerification{
-		Document: document, Expected: expected, TrustedKeys: fixture.authority,
+		Document: document, Expected: expected, Client: distributionAuthClient(t, fixture.authority),
 	}
 	if err := verification.Validate(); err != nil {
 		t.Fatalf("PublicationResponseVerification.Validate(real grant) error = %v, want nil", err)
@@ -80,7 +81,7 @@ func TestPublicationResponseLayerTriadAuthenticatesRefusesAndKeepsNeutralZero(t 
 	mismatched := expected
 	mismatched.RequestNonce = distributionAuthNonce(t, 0x72)
 	rejected, err := VerifyPublicationResponse(PublicationResponseVerification{
-		Document: document, Expected: mismatched, TrustedKeys: fixture.authority,
+		Document: document, Expected: mismatched, Client: distributionAuthClient(t, fixture.authority),
 	})
 	var binding controlplane.ResponseBindingError
 	if !errors.Is(err, core.ErrControlPlaneResponseBinding) ||

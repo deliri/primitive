@@ -44,7 +44,7 @@ func TestCredentialedPublicationVerificationLayerTriadCarriesRepresentativeOpaqu
 					offering, requestRoute, requestRouteErr, completionRoute, completionRouteErr)
 			}
 			verified, err := VerifyPublication(PublicationVerification{
-				Document: fixture.document, TrustedKeys: fixture.authority,
+				Document: fixture.document, Server: distributionAuthServer(t, fixture.authority),
 				ManifestKeys: fixture.release.keys,
 			})
 			if err != nil {
@@ -62,7 +62,8 @@ func TestCredentialedPublicationVerificationLayerTriadCarriesRepresentativeOpaqu
 			}
 			completion, err := VerifyPublicationCompletion(PublicationCompletionVerification{
 				Grant: fixture.grant, Document: fixture.completion,
-				Request: fixture.verified, TrustedKeys: fixture.authority,
+				Request: fixture.verified, GrantKeys: fixture.authority,
+				Server: distributionAuthServer(t, fixture.authority),
 			})
 			if err != nil {
 				t.Fatalf("VerifyPublicationCompletion(%v) error = %v, want nil", offering, err)
@@ -137,8 +138,12 @@ func TestCredentialedPublicationRequestRefusesEveryAuthorityDeviceBuildAndManife
 	for _, tc := range cases {
 		t.Run(tc.name, func(t *testing.T) {
 			t.Parallel()
+			var server controlplane.Server
+			if tc.authority.Validate() == nil {
+				server = distributionAuthServer(t, tc.authority)
+			}
 			got, gotErr := VerifyPublication(PublicationVerification{
-				Document: tc.document, TrustedKeys: tc.authority, ManifestKeys: tc.manifestKeys,
+				Document: tc.document, Server: server, ManifestKeys: tc.manifestKeys,
 			})
 			if !errors.Is(gotErr, tc.wantErr) || got != (VerifiedPublication{}) {
 				t.Fatalf("VerifyPublication(%s) = (%+v, %v), want zero and errors.Is %v",
@@ -230,8 +235,13 @@ func TestCredentialedPublicationCompletionRefusesEveryCrossRequestAndCrossAuthor
 	for _, tc := range cases {
 		t.Run(tc.name, func(t *testing.T) {
 			t.Parallel()
+			var server controlplane.Server
+			if tc.trusted.Validate() == nil {
+				server = distributionAuthServer(t, tc.trusted)
+			}
 			got, gotErr := VerifyPublicationCompletion(PublicationCompletionVerification{
-				Grant: tc.grant, Document: tc.document, Request: tc.request, TrustedKeys: tc.trusted,
+				Grant: tc.grant, Document: tc.document, Request: tc.request,
+				GrantKeys: tc.trusted, Server: server,
 			})
 			if !errors.Is(gotErr, tc.wantError) || got != (VerifiedPublicationCompletion{}) {
 				t.Fatalf("VerifyPublicationCompletion(%s) = (%+v, %v), want zero and errors.Is %v",

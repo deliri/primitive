@@ -398,6 +398,22 @@ func (v ResponseVerification[Body, BodyPtr]) Validate() error {
 	return nil
 }
 
+// ValidateForFamily closes the product-auth verification boundary. A product
+// wrapper names its one admitted route family before authority proof or body
+// access can escape the generic response envelope.
+func (v ResponseVerification[Body, BodyPtr]) ValidateForFamily(family controlwire.RouteFamily) error {
+	if err := family.Validate(); err != nil {
+		return responseDocumentError(err)
+	}
+	if err := v.Validate(); err != nil {
+		return err
+	}
+	if v.Document.commitment.Header.Family != family {
+		return responseDocumentError(core.ErrControlPlaneResponseBinding)
+	}
+	return nil
+}
+
 // VerifyResponse authenticates the authority and binds the common header to
 // the exact request before it exposes the product body.
 func VerifyResponse[
@@ -426,6 +442,22 @@ func VerifyResponse[
 		body: verification.Document.body, header: header, proof: proof,
 	}
 	return verified, verified.Validate()
+}
+
+// VerifyResponseForFamily authenticates a response only after its signed route
+// family matches the product wrapper that admitted the document.
+func VerifyResponseForFamily[
+	Body any,
+	BodyPtr interface {
+		*Body
+		core.Validatable
+		json.Unmarshaler
+	},
+](verification ResponseVerification[Body, BodyPtr], family controlwire.RouteFamily) (VerifiedResponse[Body, BodyPtr], error) {
+	if err := verification.ValidateForFamily(family); err != nil {
+		return VerifiedResponse[Body, BodyPtr]{}, err
+	}
+	return VerifyResponse(verification)
 }
 
 func (v VerifiedResponse[Body, BodyPtr]) Validate() error {
