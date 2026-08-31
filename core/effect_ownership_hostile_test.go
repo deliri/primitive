@@ -408,7 +408,7 @@ func declaredRealWorldImports() (realWorldImportInventory, error) {
 			PackageProcess, PackageRelease, PackageShutdown, PackageUpgrade),
 		realWorldImportOwners(realWorldSubstrateProcessExecution, PackageProcess),
 		realWorldImportOwners(realWorldSubstrateOperatingSystemSignal, PackageShutdown),
-		realWorldImportOwners(realWorldSubstrateHTTP, PackageCore, PackageControlWire, PackageExchange),
+		realWorldImportOwners(realWorldSubstrateHTTP, PackageCore, PackageControlWire, PackageExchange, PackageAbout),
 		realWorldImportOwners(realWorldSubstrateClock, PackageCloudIdentity, PackageTemporal, PackageTimeProof),
 		realWorldImportOwners(realWorldSubstrateEntropy, PackageAttest, PackageKeygen),
 		realWorldImportOwners(realWorldSubstrateUnix, PackageFileLock, PackageFilestore, PackageHostFacts, PackageProcess),

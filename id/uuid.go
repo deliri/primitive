@@ -2,8 +2,8 @@ package id
 
 import (
 	"encoding"
-	"encoding/hex"
 	"errors"
+	"uuid"
 
 	"github.com/deliri/primitive/v2026/core"
 )
@@ -20,7 +20,7 @@ const (
 // them, and the version and variant marks set by this package. Its zero
 // value is invalid.
 type UUIDv7 struct {
-	value [identityBytes]byte
+	value uuid.UUID
 }
 
 // NewUUIDv7 builds one canonical version 7 value from the validated request.
@@ -63,18 +63,18 @@ const uuidOutsideCanonicalFormDiagnostic = "uuid text is outside the canonical f
 // padded spellings are refused, because a persisted identity has one
 // spelling or it is not this identity.
 func ParseUUIDv7(value string) (UUIDv7, error) {
-	compact, ok := compactCanonicalUUIDText(value)
-	if !ok {
+	if _, ok := compactCanonicalUUIDText(value); !ok {
 		return UUIDv7{}, contractError(uuidOutsideCanonicalFormDiagnostic)
 	}
-	var parsed UUIDv7
-	if _, err := hex.Decode(parsed.value[:], compact[:]); err != nil {
+	parsed, err := uuid.Parse(value)
+	if err != nil || parsed.String() != value {
 		return UUIDv7{}, contractCause(uuidOutsideCanonicalFormDiagnostic, err)
 	}
-	if err := parsed.Validate(); err != nil {
+	candidate := UUIDv7{value: parsed}
+	if err := candidate.Validate(); err != nil {
 		return UUIDv7{}, err
 	}
-	return parsed, nil
+	return candidate, nil
 }
 
 // compactCanonicalUUIDText strips the four fixed dashes and refuses every
@@ -111,28 +111,13 @@ func uuidDashPosition(position int) bool {
 
 // canonicalText spells the value into one stack-owned canonical form shared
 // by String and AppendText, so the spelling has exactly one implementation.
-func (u UUIDv7) canonicalText() [uuidTextBytes]byte {
-	var text [uuidTextBytes]byte
-	hex.Encode(text[0:8], u.value[0:4])
-	text[8] = '-'
-	hex.Encode(text[9:13], u.value[4:6])
-	text[13] = '-'
-	hex.Encode(text[14:18], u.value[6:8])
-	text[18] = '-'
-	hex.Encode(text[19:23], u.value[8:10])
-	text[23] = '-'
-	hex.Encode(text[24:36], u.value[10:16])
-	return text
-}
-
 // String returns the canonical lowercase spelling, or the empty string for a
 // value that fails its own contract.
 func (u UUIDv7) String() string {
 	if !u.IsValid() {
 		return ""
 	}
-	text := u.canonicalText()
-	return string(text[:])
+	return u.value.String()
 }
 
 // AppendText appends the canonical lowercase spelling to destination and
@@ -144,13 +129,12 @@ func (u UUIDv7) AppendText(destination []byte) ([]byte, error) {
 	if err := u.Validate(); err != nil {
 		return nil, err
 	}
-	text := u.canonicalText()
-	return append(destination, text[:]...), nil
+	return u.value.AppendText(destination)
 }
 
 // IsZero reports the unset value.
 func (u UUIDv7) IsZero() bool {
-	return u.value == [identityBytes]byte{}
+	return u.value == uuid.Nil()
 }
 
 // IsValid reports a set value carrying the version 7 and RFC 9562 variant

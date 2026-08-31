@@ -34,6 +34,15 @@ flowchart TD
     testserial[testserial] --> core
     lineio[lineio] --> core
     manual[manual] --> core
+    about[about] --> core
+    about --> exchange
+    about --> id
+    about --> temporal
+    machineprobe[machineprobe] --> about
+    machineprobe --> core
+    machineprobe --> filestore
+    machineprobe --> process
+    machineprobe --> temporal
 
     filelock[filelock] --> core
     filelock --> contextstate

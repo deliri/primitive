@@ -105,12 +105,12 @@ func TestIDProductionImportsProvePureValueConstruction(t *testing.T) {
 	wantImports := []string{
 		"encoding",
 		"encoding/binary",
-		"encoding/hex",
 		"errors",
 		"github.com/deliri/primitive/v2026/core",
 		"github.com/deliri/primitive/v2026/temporal",
 		"math",
 		"strings",
+		"uuid",
 	}
 	if !slices.Equal(gotScan.imports, wantImports) {
 		t.Fatalf("ID production imports = %q, want %q", gotScan.imports, wantImports)

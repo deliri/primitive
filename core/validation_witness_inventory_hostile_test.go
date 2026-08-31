@@ -11,7 +11,7 @@ import (
 	"testing"
 )
 
-const coreMethodContractMaximum = 96
+const coreMethodContractMaximum = 128
 
 type coreMethodContractName string
 

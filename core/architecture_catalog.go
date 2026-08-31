@@ -12,11 +12,11 @@ const (
 	// PrimitivePackagePathPrefix prefixes every Primitive package import path.
 	PrimitivePackagePathPrefix = PrimitiveModulePath + "/"
 	// PrimitivePackageCount is the number of packages in the complete catalog.
-	PrimitivePackageCount = 42
+	PrimitivePackageCount = 44
 	// PrimitiveDirectImportCount is the number of admitted direct import edges.
-	PrimitiveDirectImportCount = 154
+	PrimitiveDirectImportCount = 163
 	// PrimitiveDirectTestImportCount is the number of admitted test-only edges.
-	PrimitiveDirectTestImportCount = 31
+	PrimitiveDirectTestImportCount = 32
 	// PrimitiveMaximumDirectImports caps direct sibling imports per package.
 	PrimitiveMaximumDirectImports = 10
 )
@@ -113,6 +113,10 @@ const (
 	PackageManual
 	// PackageSecretStore identifies bounded secret-provider access.
 	PackageSecretStore
+	// PackageAbout identifies reusable project/package knowledge and evidence projection.
+	PackageAbout
+	// PackageMachineProbe identifies bounded execution of one admitted machine probe.
+	PackageMachineProbe
 	packageIdentityLimit
 )
 
@@ -218,6 +222,8 @@ func PrimitiveArchitecture() ArchitectureCatalog {
 			{Identity: PackageLineIO, Kind: PackageKindProduction},
 			{Identity: PackageManual, Kind: PackageKindProduction},
 			{Identity: PackageSecretStore, Kind: PackageKindProduction},
+			{Identity: PackageAbout, Kind: PackageKindProduction},
+			{Identity: PackageMachineProbe, Kind: PackageKindProduction},
 		},
 		imports: [PrimitiveDirectImportCount]DirectImportContract{
 			{Importer: PackageAttest, Imported: PackageCore},
@@ -383,6 +389,15 @@ func PrimitiveArchitecture() ArchitectureCatalog {
 			{Importer: PackageWiring, Imported: PackageCore},
 			{Importer: PackageLineIO, Imported: PackageCore},
 			{Importer: PackageManual, Imported: PackageCore},
+			{Importer: PackageAbout, Imported: PackageCore},
+			{Importer: PackageAbout, Imported: PackageExchange},
+			{Importer: PackageAbout, Imported: PackageID},
+			{Importer: PackageAbout, Imported: PackageTemporal},
+			{Importer: PackageMachineProbe, Imported: PackageAbout},
+			{Importer: PackageMachineProbe, Imported: PackageCore},
+			{Importer: PackageMachineProbe, Imported: PackageFilestore},
+			{Importer: PackageMachineProbe, Imported: PackageProcess},
+			{Importer: PackageMachineProbe, Imported: PackageTemporal},
 			{Importer: PackageSecretStore, Imported: PackageCore},
 			{Importer: PackageSecretStore, Imported: PackageContextState},
 		},
@@ -418,6 +433,7 @@ func PrimitiveArchitecture() ArchitectureCatalog {
 			{Importer: PackageRelease, Imported: PackageTestSerial},
 			{Importer: PackageLineIO, Imported: PackageFilestore},
 			{Importer: PackageSecretStore, Imported: PackageProcess},
+			{Importer: PackageMachineProbe, Imported: PackageID},
 		},
 	}
 }
@@ -681,7 +697,7 @@ func packagePurposeTexts() [packageIdentityLimit]string {
 		PackageDeploy:           "Exact create-only GCS publication of one authenticated release and its metadata",
 		PackageUpgrade:          "Crash-recoverable installation, activation, startup truth, rollback, and recovery",
 		PackageGCSObjects:       "Authenticated Google Cloud Storage bucket provisioning and public-read IAM, typed logical namespace composition, create-only writes, IAM-signed short-lived upload and whole-object retrieval capabilities, exact-generation observation, digest-bound reads, and generation-matched permanent deletion through official SDKs over Exchange",
-		PackageID:               "Canonical UUIDv7 and ULID time-ordered identifiers from one observed instant and caller-supplied entropy",
+		PackageID:               "Standard-library-backed UUIDv7 and canonical ULID time-ordered identifiers from one observed instant and caller-supplied entropy",
 		PackageChit:             "Authority-signed immutable custody tickets, streaming manifest closure, bounded catalogs, and device-signed catalog queries",
 		PackageChitAuth:         "Installation-certificate binding and device authentication for one chit catalog query",
 		PackageRetrieval:        "Device-signed exact-object requests, authority-signed expiring download capabilities bound to authenticated chit manifests, and atomic exact-file retrieval execution",
@@ -693,6 +709,8 @@ func packagePurposeTexts() [packageIdentityLimit]string {
 		PackageWiring:           "Bounded immutable runtime component graphs with exact Primitive-door declarations",
 		PackageLineIO:           "Bounded line scanning over one io.Reader through Go bufio.Scanner and bufio.ScanLines",
 		PackageManual:           "Bounded validated human text and stable machine JSON manuals from one product-owned typed book",
+		PackageAbout:            "Validated project and package knowledge, exact evidence references, deterministic reports, and bounded exchange",
+		PackageMachineProbe:     "Bounded execution and typed evidence capture for one admitted machine-observation script",
 		PackageSecretStore:      "Bounded exact-version secret access through official provider SDKs",
 	}
 }
@@ -774,6 +792,8 @@ func packageIdentityTexts() [packageIdentityLimit]string {
 		"lineio",
 		"manual",
 		"secretstore",
+		"about",
+		"machineprobe",
 	}
 }
 
