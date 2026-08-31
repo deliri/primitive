@@ -484,6 +484,34 @@ func (s Streams) Validate() error {
 	return nil
 }
 
+// WriteOutput performs one complete write to an admitted calling-process
+// output stream. The caller owns the bounded payload; Process owns contact
+// with the real stream and refuses partial success.
+func (s Streams) WriteOutput(stream Stream, payload []byte) (core.ByteLength, error) {
+	if err := errors.Join(s.Validate(), stream.Validate()); err != nil {
+		return core.ByteLength{}, errors.Join(core.ErrProcessContract, err)
+	}
+	var destination io.Writer
+	switch stream {
+	case StreamStdout:
+		destination = s.Stdout
+	case StreamStderr:
+		destination = s.Stderr
+	default:
+		return core.ByteLength{}, core.ErrProcessContract
+	}
+	retained := uint64(0)
+	_, writeErr := forwardFullWrite(destination, &retained, payload)
+	written, countErr := core.NewByteLength(retained)
+	if countErr != nil {
+		return core.ByteLength{}, errors.Join(core.ErrProcessContract, countErr, writeErr)
+	}
+	if writeErr != nil {
+		return written, errors.Join(core.ErrProcessStream, writeErr)
+	}
+	return written, nil
+}
+
 // Request contains every input required to execute one direct child.
 type Request struct {
 	Streams          Streams

@@ -188,6 +188,7 @@ func TestPublicOperationsAreOnlyTypedConstructionAndExecution(t *testing.T) {
 	got := productionFunctionNames(t)
 	want := []string{
 		"Alive",
+		"AmbientArguments",
 		"AmbientEnvironment",
 		"Begin",
 		"Executable",
@@ -204,6 +205,7 @@ func TestPublicOperationsAreOnlyTypedConstructionAndExecution(t *testing.T) {
 		"ResolveExecutable",
 		"Run",
 		"Self",
+		"StandardStreams",
 		"WorkingDirectory",
 	}
 	if !slices.Equal(got, want) {
