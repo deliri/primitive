@@ -162,7 +162,7 @@ func evolutionMatrixBase(t testing.TB) (PackageSnapshot, PackageSnapshot) {
 func noEvolutionMutation(testing.TB, *PackageSnapshot, *PackageSnapshot) {}
 
 func mutateEvolutionRuntime(t testing.TB, _ *PackageSnapshot, after *PackageSnapshot) {
-	after.Package.Knowledge.Runtime = fixtureName(t, "Go 1.28")
+	after.Package.Knowledge.AuthorRuntime = fixtureName(t, "Go 1.28")
 }
 
 func mutateEvolutionGoPackage(_ testing.TB, _ *PackageSnapshot, after *PackageSnapshot) {

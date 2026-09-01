@@ -323,14 +323,14 @@ func (s PackageSnapshot) validateAuthoredSurfaceReferences() error {
 			return conflictError(errors.New("project standards evidence surface subject differs from package subject"))
 		}
 	}
-	for _, control := range [...]AssuranceControl{s.Package.Knowledge.Assurance.Policy, s.Package.Knowledge.Assurance.Validation, s.Package.Knowledge.Assurance.Effects, s.Package.Knowledge.Assurance.Proof} {
+	for _, control := range [...]AssuranceControl{s.Package.Knowledge.AuthorAssurance.Policy, s.Package.Knowledge.AuthorAssurance.Validation, s.Package.Knowledge.AuthorAssurance.Effects, s.Package.Knowledge.AuthorAssurance.Proof} {
 		for _, id := range control.SurfaceIDs {
 			if !surfaceExists(s.Evidence.Surfaces, id) {
 				return conflictError(errors.New("project standards assurance names an absent evidence surface"))
 			}
 		}
 	}
-	for _, claim := range s.Package.Knowledge.Complexity {
+	for _, claim := range s.Package.Knowledge.AuthorComplexity {
 		if !surfaceExists(s.Evidence.Surfaces, claim.SurfaceID) {
 			return conflictError(errors.New("project standards complexity claim names an absent evidence surface"))
 		}
@@ -438,15 +438,15 @@ func (s PackageSnapshot) Summary() (PackageSummary, error) {
 	if err != nil {
 		return PackageSummary{}, err
 	}
-	featureCount, featureErr := core.CheckedUint16FromInt(len(s.Package.Knowledge.Features))
+	featureCount, featureErr := core.CheckedUint16FromInt(len(s.Package.Knowledge.AuthorFeatures))
 	componentCount, componentErr := core.CheckedUint16FromInt(len(s.Code.Components))
-	complexityCount, complexityErr := core.CheckedUint16FromInt(len(s.Package.Knowledge.Complexity))
+	complexityCount, complexityErr := core.CheckedUint16FromInt(len(s.Package.Knowledge.AuthorComplexity))
 	if err := errors.Join(featureErr, componentErr, complexityErr); err != nil {
 		return PackageSummary{}, contractError(err)
 	}
 	return PackageSummary{
-		Key: s.Package.Key, Path: s.Package.Knowledge.Path, Title: s.Package.Knowledge.Title, Purpose: s.Package.Knowledge.Purpose,
-		Value: s.Package.Knowledge.Value, GroupID: s.Package.GroupID, Language: s.Package.Language, Runtime: s.Package.Knowledge.Runtime,
+		Key: s.Package.Key, Path: s.Package.Knowledge.Path, Title: s.Package.Knowledge.AuthorTitle, Purpose: s.Package.Knowledge.AuthorPurpose,
+		Value: s.Package.Knowledge.AuthorValue, GroupID: s.Package.GroupID, Language: s.Package.Language, Runtime: s.Package.Knowledge.AuthorRuntime,
 		Changed: s.Package.Knowledge.Changed, Evidence: evidence, SourceUsage: usage,
 		FeatureCount: featureCount, ComponentCount: componentCount,
 		ComplexityClaimCount: complexityCount,
@@ -602,7 +602,7 @@ func (s Project) Validate() error {
 	if err := validatePackageSummaries(s.Groups, s.Packages); err != nil {
 		return err
 	}
-	return validateCapabilities(s.Knowledge.Features, s.Capabilities)
+	return validateCapabilities(s.Knowledge.AuthorFeatures, s.Capabilities)
 }
 
 func (s Project) validShape() bool {
@@ -721,7 +721,7 @@ func (c Catalog) validateCapabilityBindings() error {
 	for _, capability := range c.Project.Capabilities {
 		for _, contribution := range capability.Contributions {
 			owner, ok := findPackage(c.Packages, contribution.Package)
-			if !ok || !featureExists(owner.Package.Knowledge.Features, contribution.FeatureID) {
+			if !ok || !featureExists(owner.Package.Knowledge.AuthorFeatures, contribution.FeatureID) {
 				return conflictError(errors.New("project standards capability contribution has no package feature"))
 			}
 			for _, surfaceID := range contribution.SurfaceIDs {

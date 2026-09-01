@@ -230,51 +230,51 @@ func (k *ComponentKind) UnmarshalJSON(data []byte) error {
 }
 
 type Component struct {
-	Created    OptionalGitOrigin `json:"created"`
-	Purpose    Text              `json:"purpose"`
-	Title      Name              `json:"title"`
-	Path       SourcePath        `json:"path"`
-	Language   Name              `json:"language"`
-	Package    SourcePath        `json:"package"`
-	Removal    Text              `json:"removal"`
-	Reasons    []Reason          `json:"reasons"`
-	Owns       []Boundary        `json:"owns"`
-	DoesNotOwn []Boundary        `json:"does_not_own"`
-	Features   []Feature         `json:"features"`
-	Changed    GitOrigin         `json:"changed"`
-	Kind       ComponentKind     `json:"kind"`
+	Created          OptionalGitOrigin `json:"created"`
+	AuthorPurpose    Text              `json:"purpose"`
+	AuthorTitle      Name              `json:"title"`
+	Path             SourcePath        `json:"path"`
+	Language         Name              `json:"language"`
+	Package          SourcePath        `json:"package"`
+	AuthorRemoval    Text              `json:"removal"`
+	AuthorReasons    []Reason          `json:"reasons"`
+	AuthorOwns       []Boundary        `json:"owns"`
+	AuthorDoesNotOwn []Boundary        `json:"does_not_own"`
+	AuthorFeatures   []Feature         `json:"features"`
+	Changed          GitOrigin         `json:"changed"`
+	Kind             ComponentKind     `json:"kind"`
 }
 
 func (c Component) Validate() error {
-	if err := contractJoin(c.Path.Validate(), c.Package.Validate(), c.Title.Validate(), c.Purpose.Validate(), c.Language.Validate(), c.Kind.Validate(), c.Created.Validate(), c.Changed.Validate(), c.Removal.Validate()); err != nil {
+	if err := contractJoin(c.Path.Validate(), c.Package.Validate(), c.AuthorTitle.Validate(), c.AuthorPurpose.Validate(), c.Language.Validate(), c.Kind.Validate(), c.Created.Validate(), c.Changed.Validate(), c.AuthorRemoval.Validate()); err != nil {
 		return err
 	}
 	if !pathWithin(c.Package, c.Path, false) {
 		return conflictError(errors.New("project standards component is outside its package"))
 	}
-	return validateKnowledgeLists(knowledgeLists{Reasons: c.Reasons, Owns: c.Owns, Excludes: c.DoesNotOwn, Features: c.Features})
+	return validateKnowledgeLists(knowledgeLists{Reasons: c.AuthorReasons, Owns: c.AuthorOwns, Excludes: c.AuthorDoesNotOwn, Features: c.AuthorFeatures})
 }
 
 type ProductKnowledge struct {
-	Created    OptionalGitOrigin `json:"created"`
-	Title      Name              `json:"title"`
-	Problem    Text              `json:"problem"`
-	Purpose    Text              `json:"purpose"`
-	Audience   Text              `json:"audience"`
-	Promise    Text              `json:"promise"`
-	SourcePath SourcePath        `json:"source_path"`
-	Reasons    []Reason          `json:"reasons"`
-	Owns       []Boundary        `json:"owns"`
-	NonGoals   []Boundary        `json:"non_goals"`
-	Features   []Feature         `json:"features"`
-	Changed    GitOrigin         `json:"changed"`
+	Created        OptionalGitOrigin `json:"created"`
+	AuthorTitle    Name              `json:"title"`
+	AuthorProblem  Text              `json:"problem"`
+	AuthorPurpose  Text              `json:"purpose"`
+	AuthorAudience Text              `json:"audience"`
+	AuthorPromise  Text              `json:"promise"`
+	SourcePath     SourcePath        `json:"source_path"`
+	AuthorReasons  []Reason          `json:"reasons"`
+	AuthorOwns     []Boundary        `json:"owns"`
+	AuthorNonGoals []Boundary        `json:"non_goals"`
+	AuthorFeatures []Feature         `json:"features"`
+	Changed        GitOrigin         `json:"changed"`
 }
 
 func (p ProductKnowledge) Validate() error {
-	if err := contractJoin(p.Title.Validate(), p.Problem.Validate(), p.Purpose.Validate(), p.Audience.Validate(), p.Promise.Validate(), p.SourcePath.Validate(), p.Created.Validate(), p.Changed.Validate()); err != nil {
+	if err := contractJoin(p.AuthorTitle.Validate(), p.AuthorProblem.Validate(), p.AuthorPurpose.Validate(), p.AuthorAudience.Validate(), p.AuthorPromise.Validate(), p.SourcePath.Validate(), p.Created.Validate(), p.Changed.Validate()); err != nil {
 		return err
 	}
-	return validateKnowledgeLists(knowledgeLists{Reasons: p.Reasons, Owns: p.Owns, Excludes: p.NonGoals, Features: p.Features})
+	return validateKnowledgeLists(knowledgeLists{Reasons: p.AuthorReasons, Owns: p.AuthorOwns, Excludes: p.AuthorNonGoals, Features: p.AuthorFeatures})
 }
 
 type Inventory struct {
@@ -303,38 +303,38 @@ func (i Inventory) Validate() error {
 }
 
 type PackageKnowledge struct {
-	Created    OptionalGitOrigin `json:"created"`
-	Path       SourcePath        `json:"path"`
-	Title      Name              `json:"title"`
-	Purpose    Text              `json:"purpose"`
-	Audience   Text              `json:"audience"`
-	Value      Text              `json:"value"`
-	Steward    Name              `json:"steward"`
-	Substrate  Name              `json:"substrate"`
-	Runtime    Name              `json:"runtime"`
-	Removal    Text              `json:"removal"`
-	Problem    Text              `json:"problem"`
-	Reasons    []Reason          `json:"reasons"`
-	Owns       []Boundary        `json:"owns"`
-	DoesNotOwn []Boundary        `json:"does_not_own"`
-	Usage      []Usage           `json:"usage"`
-	Features   []Feature         `json:"features"`
-	Complexity []ComplexityClaim `json:"complexity_claims"`
-	Assurance  Assurance         `json:"assurance"`
-	Changed    GitOrigin         `json:"changed"`
+	Created          OptionalGitOrigin `json:"created"`
+	Path             SourcePath        `json:"path"`
+	AuthorTitle      Name              `json:"title"`
+	AuthorPurpose    Text              `json:"purpose"`
+	AuthorAudience   Text              `json:"audience"`
+	AuthorValue      Text              `json:"value"`
+	AuthorSteward    Name              `json:"steward"`
+	AuthorSubstrate  Name              `json:"substrate"`
+	AuthorRuntime    Name              `json:"runtime"`
+	AuthorRemoval    Text              `json:"removal"`
+	AuthorProblem    Text              `json:"problem"`
+	AuthorReasons    []Reason          `json:"reasons"`
+	AuthorOwns       []Boundary        `json:"owns"`
+	AuthorDoesNotOwn []Boundary        `json:"does_not_own"`
+	AuthorUsage      []Usage           `json:"usage"`
+	AuthorFeatures   []Feature         `json:"features"`
+	AuthorComplexity []ComplexityClaim `json:"complexity_claims"`
+	AuthorAssurance  Assurance         `json:"assurance"`
+	Changed          GitOrigin         `json:"changed"`
 }
 
 func (p PackageKnowledge) Validate() error {
-	if err := contractJoin(p.Path.Validate(), p.Title.Validate(), p.Problem.Validate(), p.Purpose.Validate(), p.Audience.Validate(), p.Value.Validate(), p.Steward.Validate(), p.Substrate.Validate(), p.Runtime.Validate(), p.Created.Validate(), p.Changed.Validate(), p.Removal.Validate(), p.Assurance.Validate()); err != nil {
+	if err := contractJoin(p.Path.Validate(), p.AuthorTitle.Validate(), p.AuthorProblem.Validate(), p.AuthorPurpose.Validate(), p.AuthorAudience.Validate(), p.AuthorValue.Validate(), p.AuthorSteward.Validate(), p.AuthorSubstrate.Validate(), p.AuthorRuntime.Validate(), p.Created.Validate(), p.Changed.Validate(), p.AuthorRemoval.Validate(), p.AuthorAssurance.Validate()); err != nil {
 		return err
 	}
-	if err := validateKnowledgeLists(knowledgeLists{Reasons: p.Reasons, Owns: p.Owns, Excludes: p.DoesNotOwn, Features: p.Features}); err != nil {
+	if err := validateKnowledgeLists(knowledgeLists{Reasons: p.AuthorReasons, Owns: p.AuthorOwns, Excludes: p.AuthorDoesNotOwn, Features: p.AuthorFeatures}); err != nil {
 		return err
 	}
-	if err := validateUsage(p.Usage); err != nil {
+	if err := validateUsage(p.AuthorUsage); err != nil {
 		return err
 	}
-	return validateComplexityClaims(p.Path, p.Complexity)
+	return validateComplexityClaims(p.Path, p.AuthorComplexity)
 }
 
 type knowledgeLists struct {

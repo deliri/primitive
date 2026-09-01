@@ -22,19 +22,19 @@ func WriteProjectMarkdown(destination io.Writer, project Project) error {
 	if err := writeProjectHeader(writer, project); err != nil {
 		return err
 	}
-	if err := writeReasons(writer, project.Knowledge.Reasons); err != nil {
+	if err := writeReasons(writer, project.Knowledge.AuthorReasons); err != nil {
 		return err
 	}
-	if err := writeBoundaries(writer, "Owns", project.Knowledge.Owns); err != nil {
+	if err := writeBoundaries(writer, "Owns", project.Knowledge.AuthorOwns); err != nil {
 		return err
 	}
-	if err := writeBoundaries(writer, "Non-goals", project.Knowledge.NonGoals); err != nil {
+	if err := writeBoundaries(writer, "Non-goals", project.Knowledge.AuthorNonGoals); err != nil {
 		return err
 	}
 	if err := writeUsage(writer, project.Usage); err != nil {
 		return err
 	}
-	if err := writeFeatures(writer, project.Knowledge.Features); err != nil {
+	if err := writeFeatures(writer, project.Knowledge.AuthorFeatures); err != nil {
 		return err
 	}
 	return writePackageIndex(writer, project)
@@ -52,15 +52,19 @@ func WritePackageMarkdown(destination io.Writer, snapshot PackageSnapshot) error
 	writer := exactReportWriter{destination: destination}
 	writers := []func(exactReportWriter) error{
 		func(w exactReportWriter) error { return writePackageHeader(w, snapshot) },
-		func(w exactReportWriter) error { return writeReasons(w, snapshot.Package.Knowledge.Reasons) },
-		func(w exactReportWriter) error { return writeBoundaries(w, "Owns", snapshot.Package.Knowledge.Owns) },
+		func(w exactReportWriter) error { return writeReasons(w, snapshot.Package.Knowledge.AuthorReasons) },
 		func(w exactReportWriter) error {
-			return writeBoundaries(w, "Does not own", snapshot.Package.Knowledge.DoesNotOwn)
+			return writeBoundaries(w, "Owns", snapshot.Package.Knowledge.AuthorOwns)
 		},
-		func(w exactReportWriter) error { return writeUsage(w, snapshot.Package.Knowledge.Usage) },
-		func(w exactReportWriter) error { return writeFeatures(w, snapshot.Package.Knowledge.Features) },
-		func(w exactReportWriter) error { return writeAssurance(w, snapshot.Package.Knowledge.Assurance) },
-		func(w exactReportWriter) error { return writeComplexity(w, snapshot.Package.Knowledge.Complexity) },
+		func(w exactReportWriter) error {
+			return writeBoundaries(w, "Does not own", snapshot.Package.Knowledge.AuthorDoesNotOwn)
+		},
+		func(w exactReportWriter) error { return writeUsage(w, snapshot.Package.Knowledge.AuthorUsage) },
+		func(w exactReportWriter) error { return writeFeatures(w, snapshot.Package.Knowledge.AuthorFeatures) },
+		func(w exactReportWriter) error { return writeAssurance(w, snapshot.Package.Knowledge.AuthorAssurance) },
+		func(w exactReportWriter) error {
+			return writeComplexity(w, snapshot.Package.Knowledge.AuthorComplexity)
+		},
 		func(w exactReportWriter) error { return writeComponents(w, snapshot.Code.Components) },
 		func(w exactReportWriter) error { return writeEvidence(w, snapshot) },
 		func(w exactReportWriter) error { return writeSourceUsage(w, snapshot.Code.SourceUsage) },
@@ -187,14 +191,14 @@ func signed(value CountChange) string {
 }
 
 func writeProjectHeader(writer exactReportWriter, project Project) error {
-	if err := heading(writer, 1, project.Knowledge.Title.String()); err != nil {
+	if err := heading(writer, 1, project.Knowledge.AuthorTitle.String()); err != nil {
 		return err
 	}
 	facts := [][2]string{
-		{"Purpose", project.Knowledge.Purpose.String()},
-		{"Problem", project.Knowledge.Problem.String()},
-		{"Audience", project.Knowledge.Audience.String()},
-		{"Promise", project.Knowledge.Promise.String()},
+		{"Purpose", project.Knowledge.AuthorPurpose.String()},
+		{"Problem", project.Knowledge.AuthorProblem.String()},
+		{"Audience", project.Knowledge.AuthorAudience.String()},
+		{"Promise", project.Knowledge.AuthorPromise.String()},
 		{"Revision", project.Revision.String()},
 	}
 	if project.Release != nil {
@@ -204,20 +208,20 @@ func writeProjectHeader(writer exactReportWriter, project Project) error {
 }
 
 func writePackageHeader(writer exactReportWriter, snapshot PackageSnapshot) error {
-	if err := heading(writer, 1, snapshot.Package.Knowledge.Title.String()); err != nil {
+	if err := heading(writer, 1, snapshot.Package.Knowledge.AuthorTitle.String()); err != nil {
 		return err
 	}
 	return writeFacts(writer, [][2]string{
 		{"Package", snapshot.Package.Knowledge.Path.String()},
 		{"Revision", snapshot.Package.Revision.String()},
-		{"Purpose", snapshot.Package.Knowledge.Purpose.String()},
-		{"Problem", snapshot.Package.Knowledge.Problem.String()},
-		{"Audience", snapshot.Package.Knowledge.Audience.String()},
-		{"Value", snapshot.Package.Knowledge.Value.String()},
-		{"Steward", snapshot.Package.Knowledge.Steward.String()},
-		{"Substrate", snapshot.Package.Knowledge.Substrate.String()},
-		{"Runtime", snapshot.Package.Knowledge.Runtime.String()},
-		{"Removal consequence", snapshot.Package.Knowledge.Removal.String()},
+		{"Purpose", snapshot.Package.Knowledge.AuthorPurpose.String()},
+		{"Problem", snapshot.Package.Knowledge.AuthorProblem.String()},
+		{"Audience", snapshot.Package.Knowledge.AuthorAudience.String()},
+		{"Value", snapshot.Package.Knowledge.AuthorValue.String()},
+		{"Steward", snapshot.Package.Knowledge.AuthorSteward.String()},
+		{"Substrate", snapshot.Package.Knowledge.AuthorSubstrate.String()},
+		{"Runtime", snapshot.Package.Knowledge.AuthorRuntime.String()},
+		{"Removal consequence", snapshot.Package.Knowledge.AuthorRemoval.String()},
 	})
 }
 
@@ -377,7 +381,7 @@ func writeComponents(writer exactReportWriter, values []Component) error {
 		return paragraph(writer, "No separately authored component record.")
 	}
 	for _, component := range values {
-		if err := bulletPair(writer, component.Path.String(), component.Purpose.String()); err != nil {
+		if err := bulletPair(writer, component.Path.String(), component.AuthorPurpose.String()); err != nil {
 			return err
 		}
 	}

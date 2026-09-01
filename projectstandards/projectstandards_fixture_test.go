@@ -45,13 +45,13 @@ func fixtureCatalog(t testing.TB) Catalog {
 		Proof:      fixtureAssurance(AssuranceStageProof, AssuranceAuthorityIndependent, surfaceID, reference, fixtureText(t, "Independent observations remain distinct from product claims.")),
 	}
 	knowledge := PackageKnowledge{
-		Path: path, Title: fixtureName(t, "About"), Problem: fixtureText(t, "Engineering knowledge otherwise fragments across products."),
-		Purpose: fixtureText(t, "Provide one reusable engineering knowledge contract."), Audience: fixtureText(t, "Go products and engineering tools."),
-		Value: fixtureText(t, "Exact context and evidence can be inspected over time."), Steward: fixtureName(t, "Primitive"),
-		Substrate: fixtureName(t, "Go standard library"), Runtime: fixtureName(t, "Go 1.27"), Changed: changed,
-		Reasons: []Reason{reason}, Owns: []Boundary{owns}, DoesNotOwn: []Boundary{excludes},
-		Removal: fixtureText(t, "Projects would return to competing and unverifiable Project standards models."),
-		Usage:   []Usage{usage}, Features: []Feature{feature}, Assurance: assurance,
+		Path: path, AuthorTitle: fixtureName(t, "About"), AuthorProblem: fixtureText(t, "Engineering knowledge otherwise fragments across products."),
+		AuthorPurpose: fixtureText(t, "Provide one reusable engineering knowledge contract."), AuthorAudience: fixtureText(t, "Go products and engineering tools."),
+		AuthorValue: fixtureText(t, "Exact context and evidence can be inspected over time."), AuthorSteward: fixtureName(t, "Primitive"),
+		AuthorSubstrate: fixtureName(t, "Go standard library"), AuthorRuntime: fixtureName(t, "Go 1.27"), Changed: changed,
+		AuthorReasons: []Reason{reason}, AuthorOwns: []Boundary{owns}, AuthorDoesNotOwn: []Boundary{excludes},
+		AuthorRemoval: fixtureText(t, "Projects would return to competing and unverifiable Project standards models."),
+		AuthorUsage:   []Usage{usage}, AuthorFeatures: []Feature{feature}, AuthorAssurance: assurance,
 	}
 	target := ProbeTarget{Kind: ProbeTargetGoPackage, GoPackage: &GoPackageTarget{Module: fixtureIdentifier(t, "primitive"), Package: path, ChildKinds: []ProbeKind{ProbeKindGoTest}}}
 	surface := ProjectStandardsEvidenceSurface{
@@ -72,11 +72,11 @@ func fixtureCatalog(t testing.TB) Catalog {
 	project := Project{
 		SchemaVersion: SchemaVersion, Subject: subject, Revision: commit,
 		Knowledge: ProductKnowledge{
-			Title: fixtureName(t, "Primitive"), Problem: fixtureText(t, "Products need one owned real-world substrate."),
-			Purpose: fixtureText(t, "Own reusable effects and low-level contracts."), Audience: fixtureText(t, "Cooperating Go products."),
-			Promise:    fixtureText(t, "Products do not bypass the standard library or duplicate real-world effects."),
-			SourcePath: fixturePath(t, "README.md"), Changed: changed, Reasons: []Reason{reason}, Owns: []Boundary{owns},
-			NonGoals: []Boundary{excludes}, Features: []Feature{feature},
+			AuthorTitle: fixtureName(t, "Primitive"), AuthorProblem: fixtureText(t, "Products need one owned real-world substrate."),
+			AuthorPurpose: fixtureText(t, "Own reusable effects and low-level contracts."), AuthorAudience: fixtureText(t, "Cooperating Go products."),
+			AuthorPromise: fixtureText(t, "Products do not bypass the standard library or duplicate real-world effects."),
+			SourcePath:    fixturePath(t, "README.md"), Changed: changed, AuthorReasons: []Reason{reason}, AuthorOwns: []Boundary{owns},
+			AuthorNonGoals: []Boundary{excludes}, AuthorFeatures: []Feature{feature},
 		},
 		Code: ProjectCode{Inventory: inventory}, Usage: []Usage{usage},
 		Groups:       []PackageGroup{{ID: groupID, Title: fixtureName(t, "Foundation"), Purpose: fixtureText(t, "Reusable compiler-owned contracts.")}},

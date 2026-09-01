@@ -56,3 +56,4 @@ transitions. This projection is ratcheted against the compiler-owned catalog.
 | 46 | `runworkspace` | Owned per-run writable workspace, source acquisition, evidence retention, and cleanup effects | `projectstandards`, `attest`, `core`, `filestore`, `objectstore`, `process`, `runnercontrol`, `temporal` | `exchange`, `id` |
 | 47 | `providerwire` | Provider-authenticated domain-blind streamed HTTP plugs for Stripe, Twilio, Plunk, and PayPal | `contextstate`, `core`, `exchange`, `temporal` | none |
 | 48 | `capabilities` | Compiler-owned discovery and exact resolution of Primitive package and real-world effect capabilities | `core` | none |
+| 49 | `primitiveproject` | Authored Primitive project policy expressed through the product-neutral Project Standards contract | `projectstandards` | none |

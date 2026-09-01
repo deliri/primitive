@@ -65,6 +65,7 @@ flowchart TD
     providerwire --> exchange
     providerwire --> temporal
     capabilities[capabilities] --> core
+    primitiveproject[primitiveproject] --> projectstandards
 
     filelock[filelock] --> core
     filelock --> contextstate

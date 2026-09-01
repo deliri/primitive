@@ -16,7 +16,7 @@ const (
 	// no copied package count can drift from the enum.
 	PrimitivePackageCount = int(packageIdentityLimit - PackageCore)
 	// PrimitiveDirectImportCount is the number of admitted direct import edges.
-	PrimitiveDirectImportCount = 185
+	PrimitiveDirectImportCount = 186
 	// PrimitiveDirectTestImportCount is the number of admitted test-only edges.
 	PrimitiveDirectTestImportCount = 38
 	// PrimitiveMaximumDirectImports caps direct sibling imports per package.
@@ -127,6 +127,8 @@ const (
 	PackageProviderWire
 	// PackageCapabilities identifies the compiler-owned Primitive capability catalog.
 	PackageCapabilities
+	// PackagePrimitiveProject identifies Primitive's authored project policy.
+	PackagePrimitiveProject
 	packageIdentityLimit
 )
 
@@ -238,6 +240,7 @@ func PrimitiveArchitecture() ArchitectureCatalog {
 			{Identity: PackageRunWorkspace, Kind: PackageKindProduction},
 			{Identity: PackageProviderWire, Kind: PackageKindProduction},
 			{Identity: PackageCapabilities, Kind: PackageKindProduction},
+			{Identity: PackagePrimitiveProject, Kind: PackageKindProduction},
 		},
 		imports: [PrimitiveDirectImportCount]DirectImportContract{
 			{Importer: PackageAttest, Imported: PackageCore},
@@ -436,6 +439,7 @@ func PrimitiveArchitecture() ArchitectureCatalog {
 			{Importer: PackageProviderWire, Imported: PackageExchange},
 			{Importer: PackageProviderWire, Imported: PackageTemporal},
 			{Importer: PackageCapabilities, Imported: PackageCore},
+			{Importer: PackagePrimitiveProject, Imported: PackageProjectStandards},
 		},
 		testImports: [PrimitiveDirectTestImportCount]DirectTestImportContract{
 			{Importer: PackageGate, Imported: PackageAttest},
@@ -766,6 +770,7 @@ func packagePurposeTexts() [packageIdentityLimit]string {
 		PackageSecretStore:      "Bounded exact-version secret access through official provider SDKs",
 		PackageProviderWire:     "Provider-authenticated domain-blind streamed HTTP plugs for Stripe, Twilio, Plunk, and PayPal",
 		PackageCapabilities:     "Compiler-owned discovery and exact resolution of Primitive package and real-world effect capabilities",
+		PackagePrimitiveProject: "Authored Primitive project policy expressed through the product-neutral Project Standards contract",
 	}
 }
 
@@ -852,6 +857,7 @@ func packageIdentityTexts() [packageIdentityLimit]string {
 		"runworkspace",
 		"providerwire",
 		"capabilities",
+		"primitiveproject",
 	}
 }
 
