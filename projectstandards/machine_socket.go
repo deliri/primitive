@@ -52,9 +52,9 @@ func (q *MachineQuery) UnmarshalJSON(data []byte) error {
 }
 
 type MachineResponse struct {
-	SchemaVersion uint16         `json:"schema_version"`
-	Query         MachineQuery   `json:"query"`
 	Machine       CurrentMachine `json:"machine"`
+	Query         MachineQuery   `json:"query"`
+	SchemaVersion uint16         `json:"schema_version"`
 }
 
 func (r MachineResponse) Validate() error {
@@ -161,8 +161,8 @@ func (c MachineClient) Fetch(ctx context.Context, query MachineQuery) (MachineFe
 }
 
 type MachineFetchResult struct {
-	Response MachineResponse           `json:"response"`
 	Metadata exchange.ResponseMetadata `json:"metadata"`
+	Response MachineResponse           `json:"response"`
 }
 
 func (r MachineFetchResult) Validate() error {
@@ -170,8 +170,8 @@ func (r MachineFetchResult) Validate() error {
 }
 
 type MachineServer struct {
-	socket  exchange.ServerSocket
 	service MachineService
+	socket  exchange.ServerSocket
 }
 
 func NewMachineServer(path exchange.SocketRoutePath, repository MachineRepository) (MachineServer, error) {

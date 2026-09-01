@@ -7,6 +7,22 @@ import (
 	"github.com/deliri/primitive/v2026/temporal"
 )
 
+func TestMachineConfigurationFingerprintPreservesCanonicalFieldContract(t *testing.T) {
+	t.Parallel()
+	got, gotErr := fixtureMachineProbeReport(t).Configuration.Fingerprint()
+	if gotErr != nil {
+		t.Fatalf("MachineConfiguration.Fingerprint() error = %v, want nil", gotErr)
+	}
+	gotHex, hexErr := got.SHA256.Hex()
+	if hexErr != nil {
+		t.Fatalf("MachineFingerprint.SHA256.Hex() error = %v, want nil", hexErr)
+	}
+	const wantHex = "d113016aef169f8feb0e6913580f461f6935ff3645d193be90301a020d8fcb13"
+	if gotHex != wantHex {
+		t.Fatalf("MachineConfiguration.Fingerprint().SHA256 = %q, want %q", gotHex, wantHex)
+	}
+}
+
 func fixtureMachineProbeReport(t testing.TB) MachineProbeReport {
 	t.Helper()
 	uuid := fixtureProjectStandardsUUID(t)

@@ -1,0 +1,324 @@
+package projectstandards
+
+import (
+	"errors"
+
+	"github.com/deliri/primitive/v2026/capabilities"
+	"github.com/deliri/primitive/v2026/core"
+)
+
+const (
+	// PackageSourceFileMaximum is a resource ceiling for one package projection,
+	// not a claim about how many files any current package contains.
+	PackageSourceFileMaximum = 65_535
+	// SourceFileDeclarationMaximum bounds test, benchmark, and fuzz declarations
+	// admitted from one source file.
+	SourceFileDeclarationMaximum = 256
+)
+
+// SourceLanguage identifies the compiler-visible source family of one file.
+type SourceLanguage uint8
+
+const (
+	SourceLanguageUnknown SourceLanguage = iota
+	SourceLanguageGo
+	SourceLanguageJavaScript
+	SourceLanguageMarkdown
+	SourceLanguageOther
+	sourceLanguageLimit
+)
+
+func sourceLanguageLabels() []string {
+	return []string{"", "go", "javascript", "markdown", "other"}
+}
+
+func (l SourceLanguage) Validate() error {
+	return validateEnum(uint8(l), sourceLanguageLabels(), "project standards source language is invalid")
+}
+
+func (l SourceLanguage) IsValid() bool  { return l.Validate() == nil }
+func (l SourceLanguage) String() string { return enumString(uint8(l), sourceLanguageLabels()) }
+func (l SourceLanguage) MarshalJSON() ([]byte, error) {
+	return marshalEnum(uint8(l), sourceLanguageLabels(), "project standards source language is invalid")
+}
+func (l *SourceLanguage) UnmarshalJSON(data []byte) error {
+	if l == nil {
+		return jsonError(errors.New("nil project standards source language receiver"))
+	}
+	value, err := unmarshalEnum(data, sourceLanguageLabels(), "project standards source language is invalid")
+	if err == nil {
+		*l = SourceLanguage(value)
+	}
+	return err
+}
+
+// SourceFileKind identifies the role a file has in its package.
+type SourceFileKind uint8
+
+const (
+	SourceFileKindUnknown SourceFileKind = iota
+	SourceFileKindProduction
+	SourceFileKindTest
+	SourceFileKindDocumentation
+	SourceFileKindConfiguration
+	SourceFileKindAsset
+	sourceFileKindLimit
+)
+
+func sourceFileKindLabels() []string {
+	return []string{"", "production", "test", "documentation", "configuration", "asset"}
+}
+
+func (k SourceFileKind) Validate() error {
+	return validateEnum(uint8(k), sourceFileKindLabels(), "project standards source file kind is invalid")
+}
+
+func (k SourceFileKind) IsValid() bool  { return k.Validate() == nil }
+func (k SourceFileKind) String() string { return enumString(uint8(k), sourceFileKindLabels()) }
+func (k SourceFileKind) MarshalJSON() ([]byte, error) {
+	return marshalEnum(uint8(k), sourceFileKindLabels(), "project standards source file kind is invalid")
+}
+func (k *SourceFileKind) UnmarshalJSON(data []byte) error {
+	if k == nil {
+		return jsonError(errors.New("nil project standards source file kind receiver"))
+	}
+	value, err := unmarshalEnum(data, sourceFileKindLabels(), "project standards source file kind is invalid")
+	if err == nil {
+		*k = SourceFileKind(value)
+	}
+	return err
+}
+
+// PrimitiveEffectPosture records the exact relationship between a source file,
+// product policy, and Primitive-owned real-world effects.
+type PrimitiveEffectPosture uint8
+
+const (
+	PrimitiveEffectPostureUnknown PrimitiveEffectPosture = iota
+	// PrimitiveEffectNotApplicable means the file cannot execute policy or effects.
+	PrimitiveEffectNotApplicable
+	// PrimitiveEffectPurePolicy means the file contains policy with no real-world effect.
+	PrimitiveEffectPurePolicy
+	// PrimitiveEffectMediated means every observed effect crosses a Primitive capability.
+	PrimitiveEffectMediated
+	// PrimitiveEffectImplementation means the file implements the named Primitive capability.
+	PrimitiveEffectImplementation
+	// PrimitiveEffectDirectObserved means a real-world effect bypasses its named Primitive owner.
+	PrimitiveEffectDirectObserved
+	// PrimitiveEffectUnresolved means the scan could not classify every effect site.
+	PrimitiveEffectUnresolved
+	primitiveEffectPostureLimit
+)
+
+func primitiveEffectPostureLabels() []string {
+	return []string{"", "not_applicable", "pure_policy", "primitive_mediated", "primitive_implementation", "direct_effect_observed", "unresolved"}
+}
+
+func (p PrimitiveEffectPosture) Validate() error {
+	return validateEnum(uint8(p), primitiveEffectPostureLabels(), "project standards Primitive effect posture is invalid")
+}
+
+func (p PrimitiveEffectPosture) IsValid() bool { return p.Validate() == nil }
+func (p PrimitiveEffectPosture) String() string {
+	return enumString(uint8(p), primitiveEffectPostureLabels())
+}
+func (p PrimitiveEffectPosture) MarshalJSON() ([]byte, error) {
+	return marshalEnum(uint8(p), primitiveEffectPostureLabels(), "project standards Primitive effect posture is invalid")
+}
+func (p *PrimitiveEffectPosture) UnmarshalJSON(data []byte) error {
+	if p == nil {
+		return jsonError(errors.New("nil project standards Primitive effect posture receiver"))
+	}
+	value, err := unmarshalEnum(data, primitiveEffectPostureLabels(), "project standards Primitive effect posture is invalid")
+	if err == nil {
+		*p = PrimitiveEffectPosture(value)
+	}
+	return err
+}
+
+// PrimitiveCapabilityUse names one compiler-owned Primitive package used by a
+// file, or the package that a direct-effect observation should have used.
+type PrimitiveCapabilityUse struct {
+	Package core.PackageIdentity `json:"package"`
+}
+
+// Validate proves that Package resolves through Primitive's compiled catalog.
+func (u PrimitiveCapabilityUse) Validate() error {
+	_, err := capabilities.Resolve(capabilities.ForPackage(capabilities.ScopeTest, u.Package))
+	if err != nil {
+		return contractError(err)
+	}
+	return nil
+}
+
+// SourceFileDeclarations retains declarations attributable to exactly one
+// source file. TestDeclarations includes tests, benchmarks, and fuzz targets.
+type SourceFileDeclarations struct {
+	TestDeclarations uint16 `json:"test_declarations"`
+	Benchmarks       uint16 `json:"benchmarks"`
+	FuzzTargets      uint16 `json:"fuzz_targets"`
+}
+
+func (d SourceFileDeclarations) Validate() error {
+	if d.TestDeclarations > SourceFileDeclarationMaximum {
+		return contractError(errors.New("project standards source file declaration count exceeds its bound"))
+	}
+	if uint32(d.Benchmarks)+uint32(d.FuzzTargets) > uint32(d.TestDeclarations) {
+		return conflictError(errors.New("project standards source file declaration accounting does not close"))
+	}
+	return nil
+}
+
+// SourceFileEffects is the bounded effect analysis for one exact source file.
+type SourceFileEffects struct {
+	Capabilities    []PrimitiveCapabilityUse `json:"capabilities"`
+	UnresolvedSites uint16                   `json:"unresolved_sites"`
+	Posture         PrimitiveEffectPosture   `json:"posture"`
+}
+
+func (e SourceFileEffects) Validate() error {
+	if err := e.Posture.Validate(); err != nil {
+		return err
+	}
+	if len(e.Capabilities) > core.PrimitivePackageCount {
+		return contractError(errors.New("project standards source file capability count exceeds the Primitive catalog"))
+	}
+	if err := e.validateCapabilities(); err != nil {
+		return err
+	}
+	return e.validatePostureShape()
+}
+
+func (e SourceFileEffects) validateCapabilities() error {
+	for index := range e.Capabilities {
+		if err := e.Capabilities[index].Validate(); err != nil {
+			return err
+		}
+		for previous := range index {
+			if e.Capabilities[previous].Package == e.Capabilities[index].Package {
+				return conflictError(errors.New("project standards source file capability is duplicated"))
+			}
+		}
+	}
+	return nil
+}
+
+func (e SourceFileEffects) validatePostureShape() error {
+	switch e.Posture {
+	case PrimitiveEffectNotApplicable, PrimitiveEffectPurePolicy:
+		if len(e.Capabilities) != 0 || e.UnresolvedSites != 0 {
+			return conflictError(errors.New("project standards effect-free posture carries effect facts"))
+		}
+	case PrimitiveEffectMediated, PrimitiveEffectImplementation, PrimitiveEffectDirectObserved:
+		if len(e.Capabilities) == 0 || e.UnresolvedSites != 0 {
+			return conflictError(errors.New("project standards resolved effect posture has incomplete capability accounting"))
+		}
+	case PrimitiveEffectUnresolved:
+		if e.UnresolvedSites == 0 {
+			return conflictError(errors.New("project standards unresolved effect posture has no unresolved site"))
+		}
+	default:
+		return contractError(errors.New("project standards validated effect posture has no shape"))
+	}
+	return nil
+}
+
+// SourceFile is the exact, generated code-facing record for one file. It owns
+// observed structure and effect posture; it does not invent authored purpose.
+type SourceFile struct {
+	Path         SourcePath             `json:"path"`
+	Package      SourcePath             `json:"package"`
+	Effects      SourceFileEffects      `json:"effects"`
+	Declarations SourceFileDeclarations `json:"declarations"`
+	Language     SourceLanguage         `json:"language"`
+	Kind         SourceFileKind         `json:"kind"`
+	Generated    bool                   `json:"generated"`
+}
+
+func (f SourceFile) Validate() error {
+	if err := contractJoin(f.Path.Validate(), f.Package.Validate(), f.Language.Validate(), f.Kind.Validate(), f.Declarations.Validate(), f.Effects.Validate()); err != nil {
+		return err
+	}
+	if !pathWithin(f.Package, f.Path, false) {
+		return conflictError(errors.New("project standards source file is outside its package"))
+	}
+	if err := f.validateKind(); err != nil {
+		return err
+	}
+	if err := f.validateCapabilityScope(); err != nil {
+		return err
+	}
+	return f.validatePrimitiveImplementation()
+}
+
+// ExecutesPolicyThroughPrimitive reports the narrow positive contract: this
+// product file has effects and every observed effect is Primitive-mediated.
+func (f SourceFile) ExecutesPolicyThroughPrimitive() bool {
+	return f.Validate() == nil && f.Effects.Posture == PrimitiveEffectMediated
+}
+
+func (f SourceFile) validateKind() error {
+	if f.Kind != SourceFileKindTest && f.Declarations != (SourceFileDeclarations{}) {
+		return conflictError(errors.New("project standards non-test file carries test declarations"))
+	}
+	if f.Kind == SourceFileKindDocumentation && f.Language != SourceLanguageMarkdown {
+		return conflictError(errors.New("project standards documentation file is not Markdown"))
+	}
+	if (f.Kind == SourceFileKindDocumentation || f.Kind == SourceFileKindAsset) && f.Effects.Posture != PrimitiveEffectNotApplicable {
+		return conflictError(errors.New("project standards inert file carries an executable effect posture"))
+	}
+	return nil
+}
+
+func (f SourceFile) validateCapabilityScope() error {
+	scope := capabilities.ScopeProduction
+	if f.Kind == SourceFileKindTest {
+		scope = capabilities.ScopeTest
+	}
+	for _, use := range f.Effects.Capabilities {
+		if _, err := capabilities.Resolve(capabilities.ForPackage(scope, use.Package)); err != nil {
+			return contractError(err)
+		}
+	}
+	return nil
+}
+
+func (f SourceFile) validatePrimitiveImplementation() error {
+	if f.Effects.Posture != PrimitiveEffectImplementation {
+		return nil
+	}
+	for _, use := range f.Effects.Capabilities {
+		if use.Package.String() != f.Package.String() {
+			return conflictError(errors.New("project standards Primitive implementation file names a different capability owner"))
+		}
+	}
+	return nil
+}
+
+// PackageFileCatalog is an optional exact source scan for one package. Nil on
+// Code means not observed; an empty present catalog is never folded into zero.
+type PackageFileCatalog struct {
+	Package SourcePath   `json:"package"`
+	Files   []SourceFile `json:"files"`
+}
+
+func (c PackageFileCatalog) Validate() error {
+	if err := c.Package.Validate(); err != nil {
+		return err
+	}
+	if len(c.Files) == 0 || len(c.Files) > PackageSourceFileMaximum {
+		return contractError(errors.New("project standards package file catalog count is invalid"))
+	}
+	for index := range c.Files {
+		if err := c.Files[index].Validate(); err != nil {
+			return err
+		}
+		if c.Files[index].Package != c.Package {
+			return conflictError(errors.New("project standards source file package differs from its catalog"))
+		}
+		if index > 0 && c.Files[index-1].Path.String() >= c.Files[index].Path.String() {
+			return conflictError(errors.New("project standards source files are duplicated or not in canonical order"))
+		}
+	}
+	return nil
+}

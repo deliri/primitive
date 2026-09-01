@@ -16,6 +16,10 @@ func TestDeriveExperimentIDBindsCanonicalRunAndProbe(t *testing.T) {
 	if firstErr != nil || secondErr != nil || first != second {
 		t.Fatalf("DeriveExperimentID(same typed child) = (%v, %v) then (%v, %v), want one stable identity", first, firstErr, second, secondErr)
 	}
+	const wantCanonicalIdentity = "01890f2e-7b00-71a4-a9c5-cda35219e6f0"
+	if first.String() != wantCanonicalIdentity {
+		t.Fatalf("DeriveExperimentID(canonical fixture) = %q, want %q", first.String(), wantCanonicalIdentity)
+	}
 	mutated := probe
 	mutated.Target.GoDeclaration.Symbol = fixtureName(t, "TestDifferentEvidence")
 	different, differentErr := DeriveExperimentID(run, mutated)

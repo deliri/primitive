@@ -46,6 +46,9 @@ const (
 	doorAssuranceStage
 	doorAssuranceAuthority
 	doorComponentKind
+	doorSourceLanguage
+	doorSourceFileKind
+	doorPrimitiveEffectPosture
 	doorProbeRole
 	doorProbeKind
 	doorProbeTargetKind
@@ -155,6 +158,9 @@ func FuzzProjectStandardsAtomicJSONDoorsSemanticClosure(f *testing.F) {
 	addEnumDoorSeeds(f, doorAssuranceStage, uint8(assuranceStageLimit), func(value uint8) AssuranceStage { return AssuranceStage(value) })
 	addEnumDoorSeeds(f, doorAssuranceAuthority, uint8(assuranceAuthorityLimit), func(value uint8) AssuranceAuthority { return AssuranceAuthority(value) })
 	addEnumDoorSeeds(f, doorComponentKind, uint8(componentKindLimit), func(value uint8) ComponentKind { return ComponentKind(value) })
+	addEnumDoorSeeds(f, doorSourceLanguage, uint8(sourceLanguageLimit), func(value uint8) SourceLanguage { return SourceLanguage(value) })
+	addEnumDoorSeeds(f, doorSourceFileKind, uint8(sourceFileKindLimit), func(value uint8) SourceFileKind { return SourceFileKind(value) })
+	addEnumDoorSeeds(f, doorPrimitiveEffectPosture, uint8(primitiveEffectPostureLimit), func(value uint8) PrimitiveEffectPosture { return PrimitiveEffectPosture(value) })
 	addEnumDoorSeeds(f, doorProbeRole, uint8(probeRoleLimit), func(value uint8) ProbeRole { return ProbeRole(value) })
 	addEnumDoorSeeds(f, doorProbeKind, uint8(probeKindLimit), func(value uint8) ProbeKind { return ProbeKind(value) })
 	addEnumDoorSeeds(f, doorProbeTargetKind, uint8(probeTargetLimit), func(value uint8) ProbeTargetKind { return ProbeTargetKind(value) })
@@ -246,6 +252,12 @@ func FuzzProjectStandardsAtomicJSONDoorsSemanticClosure(f *testing.F) {
 			proveComparableJSONClosure(t, AssuranceAuthorityProduct, data, (*AssuranceAuthority).UnmarshalJSON)
 		case doorComponentKind:
 			proveComparableJSONClosure(t, ComponentKindSourceFile, data, (*ComponentKind).UnmarshalJSON)
+		case doorSourceLanguage:
+			proveComparableJSONClosure(t, SourceLanguageGo, data, (*SourceLanguage).UnmarshalJSON)
+		case doorSourceFileKind:
+			proveComparableJSONClosure(t, SourceFileKindProduction, data, (*SourceFileKind).UnmarshalJSON)
+		case doorPrimitiveEffectPosture:
+			proveComparableJSONClosure(t, PrimitiveEffectMediated, data, (*PrimitiveEffectPosture).UnmarshalJSON)
 		case doorProbeRole:
 			proveComparableJSONClosure(t, ProbeRoleSelection, data, (*ProbeRole).UnmarshalJSON)
 		case doorProbeKind:

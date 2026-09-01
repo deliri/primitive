@@ -29,7 +29,8 @@ import (
 // because it produced a false positive against the live tree.
 
 // producerForbiddenStdlib names standard-library types a consumer may not
-// construct, because CAPABILITIES.md gives the operation to a Primitive door.
+// construct, because the compiler-owned capabilities catalog gives the
+// operation to a Primitive door.
 // A Primitive door demanding one of these must hand one over. A function
 // rather than a package variable, so no parallel test can mutate the fixture
 // another is reading.

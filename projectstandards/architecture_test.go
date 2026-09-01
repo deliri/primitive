@@ -50,6 +50,9 @@ type projectStandardsJSONDoorInventory struct {
 	AssuranceStage             func(*AssuranceStage, []byte) error
 	AssuranceAuthority         func(*AssuranceAuthority, []byte) error
 	ComponentKind              func(*ComponentKind, []byte) error
+	SourceLanguage             func(*SourceLanguage, []byte) error
+	SourceFileKind             func(*SourceFileKind, []byte) error
+	PrimitiveEffectPosture     func(*PrimitiveEffectPosture, []byte) error
 	ProbeRole                  func(*ProbeRole, []byte) error
 	ProbeKind                  func(*ProbeKind, []byte) error
 	ProbeTargetKind            func(*ProbeTargetKind, []byte) error
@@ -96,6 +99,9 @@ var projectStandardsJSONDoors = projectStandardsJSONDoorInventory{
 	AssuranceStage:             (*AssuranceStage).UnmarshalJSON,
 	AssuranceAuthority:         (*AssuranceAuthority).UnmarshalJSON,
 	ComponentKind:              (*ComponentKind).UnmarshalJSON,
+	SourceLanguage:             (*SourceLanguage).UnmarshalJSON,
+	SourceFileKind:             (*SourceFileKind).UnmarshalJSON,
+	PrimitiveEffectPosture:     (*PrimitiveEffectPosture).UnmarshalJSON,
 	ProbeRole:                  (*ProbeRole).UnmarshalJSON,
 	ProbeKind:                  (*ProbeKind).UnmarshalJSON,
 	ProbeTargetKind:            (*ProbeTargetKind).UnmarshalJSON,

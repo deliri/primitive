@@ -49,11 +49,11 @@ func (k *QueryKind) UnmarshalJSON(data []byte) error {
 // Query selects one project index or one package snapshot at an exact source
 // revision. Package is present only for QueryPackage.
 type Query struct {
-	SchemaVersion uint16           `json:"schema_version"`
+	Package       *SourcePath      `json:"package,omitempty"`
 	Subject       SubjectIdentity  `json:"subject"`
+	SchemaVersion uint16           `json:"schema_version"`
 	Revision      core.BuildCommit `json:"revision"`
 	Kind          QueryKind        `json:"kind"`
-	Package       *SourcePath      `json:"package,omitempty"`
 }
 
 func (q Query) Validate() error {
@@ -103,10 +103,10 @@ func (q *Query) UnmarshalJSON(data []byte) error {
 
 // Response carries exactly one project or package projection matching Query.
 type Response struct {
-	SchemaVersion uint16           `json:"schema_version"`
-	Query         Query            `json:"query"`
 	Project       *Project         `json:"project,omitempty"`
 	Package       *PackageSnapshot `json:"package,omitempty"`
+	Query         Query            `json:"query"`
+	SchemaVersion uint16           `json:"schema_version"`
 }
 
 func (r Response) Validate() error {
@@ -297,8 +297,8 @@ func (c Client) Fetch(ctx context.Context, query Query) (FetchResult, error) {
 // FetchResult preserves the exact Exchange execution metadata beside the
 // validated Project standards response.
 type FetchResult struct {
-	Response Response                  `json:"response"`
 	Metadata exchange.ResponseMetadata `json:"metadata"`
+	Response Response                  `json:"response"`
 }
 
 func (r FetchResult) Validate() error {
@@ -307,8 +307,8 @@ func (r FetchResult) Validate() error {
 
 // Server owns one paired Project standards socket.
 type Server struct {
-	socket  exchange.ServerSocket
 	service Service
+	socket  exchange.ServerSocket
 }
 
 // NewServer constructs the paired server over one product repository.

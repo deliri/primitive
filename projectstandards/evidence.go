@@ -186,13 +186,13 @@ func (s *InfrastructureStage) UnmarshalJSON(data []byte) error {
 }
 
 type ProjectStandardsEvidenceSurface struct {
-	ID                 Identifier        `json:"id"`
-	Subject            SubjectIdentity   `json:"subject"`
 	Target             ProbeTarget       `json:"target"`
+	Subject            SubjectIdentity   `json:"subject"`
+	ID                 Identifier        `json:"id"`
 	EligibleKinds      []ProbeKind       `json:"eligible_kinds"`
 	Profiles           []ProfileIdentity `json:"profiles"`
-	Placement          ReportPlacement   `json:"report_placement"`
 	ComplexityClaimIDs []Identifier      `json:"complexity_claim_ids"`
+	Placement          ReportPlacement   `json:"report_placement"`
 }
 
 func (s ProjectStandardsEvidenceSurface) Validate() error {
@@ -258,9 +258,9 @@ func validateIdentifiers(values []Identifier) error {
 }
 
 type Admission struct {
-	Run    RunID             `json:"run_id"`
 	Probe  ProbeIdentity     `json:"probe"`
 	Status core.HTTPEndpoint `json:"status"`
+	Run    RunID             `json:"run_id"`
 }
 
 func (a Admission) Validate() error {
@@ -274,9 +274,9 @@ type Refusal struct {
 func (r Refusal) Validate() error { return r.Reason.Validate() }
 
 type RequestDisposition struct {
-	Kind     DispositionKind `json:"kind"`
 	Admitted *Admission      `json:"admitted,omitempty"`
 	Refused  *Refusal        `json:"refused,omitempty"`
+	Kind     DispositionKind `json:"kind"`
 }
 
 func (d RequestDisposition) Validate() error {
@@ -296,11 +296,11 @@ func (d RequestDisposition) Validate() error {
 }
 
 type ProjectStandardsRequestReference struct {
-	SurfaceID   Identifier         `json:"surface_id"`
-	Request     RequestIdentity    `json:"request_id"`
-	Source      SourceCoordinate   `json:"source"`
-	Requested   RequestedProbe     `json:"requested"`
 	Disposition RequestDisposition `json:"disposition"`
+	SurfaceID   Identifier         `json:"surface_id"`
+	Requested   RequestedProbe     `json:"requested"`
+	Source      SourceCoordinate   `json:"source"`
+	Request     RequestIdentity    `json:"request_id"`
 }
 
 func (r ProjectStandardsRequestReference) Validate() error {
@@ -463,7 +463,6 @@ func (p *CachePosture) UnmarshalJSON(data []byte) error {
 const ExecutionAttemptMaximum = 16
 
 type ExecutionAttempt struct {
-	Sequence    uint16       `json:"sequence"`
 	Planned     uint32       `json:"planned"`
 	Passed      uint32       `json:"passed"`
 	Failed      uint32       `json:"failed"`
@@ -472,6 +471,7 @@ type ExecutionAttempt struct {
 	Expired     uint32       `json:"timed_out"`
 	Cancelled   uint32       `json:"cancelled"`
 	NotRun      uint32       `json:"not_run"`
+	Sequence    uint16       `json:"sequence"`
 	Cache       CachePosture `json:"cache"`
 	Filtered    bool         `json:"filtered"`
 }
@@ -528,12 +528,12 @@ func (a ExecutionAccounting) Equal(other ExecutionAccounting) bool {
 }
 
 type ExperimentMeasurements struct {
-	DurationNs          uint64                 `json:"duration_ns"`
-	PeakMemoryBytes     uint64                 `json:"peak_memory_bytes"`
 	CoverageBasisPoints *uint16                `json:"coverage_basis_points,omitempty"`
+	Accounting          *ExecutionAccounting   `json:"accounting,omitempty"`
 	Benchmarks          []BenchmarkMeasurement `json:"benchmarks"`
 	Complexity          []ComplexityCapture    `json:"complexity"`
-	Accounting          *ExecutionAccounting   `json:"accounting,omitempty"`
+	DurationNs          uint64                 `json:"duration_ns"`
+	PeakMemoryBytes     uint64                 `json:"peak_memory_bytes"`
 }
 
 func (m ExperimentMeasurements) Validate() error {
@@ -586,14 +586,14 @@ func (o SelectionObservation) Validate() error {
 }
 
 type ExperimentObservation struct {
-	Experiment             ExperimentID           `json:"experiment_id"`
-	Started                bool                   `json:"started"`
-	Outcome                Outcome                `json:"outcome"`
+	Artifacts              []ArtifactReference    `json:"artifacts"`
+	Measurements           ExperimentMeasurements `json:"measurements"`
 	EnvironmentFingerprint core.SHA256Digest      `json:"environment_fingerprint"`
 	ExecutionFingerprint   core.SHA256Digest      `json:"execution_fingerprint"`
 	MachineSheetDigest     core.SHA256Digest      `json:"machine_sheet_digest"`
-	Measurements           ExperimentMeasurements `json:"measurements"`
-	Artifacts              []ArtifactReference    `json:"artifacts"`
+	Experiment             ExperimentID           `json:"experiment_id"`
+	Started                bool                   `json:"started"`
+	Outcome                Outcome                `json:"outcome"`
 }
 
 func (o ExperimentObservation) Validate() error {
@@ -632,9 +632,9 @@ func outcomePermitsUnstarted(outcome Outcome) bool {
 }
 
 type InfrastructureObservation struct {
-	Stage           InfrastructureStage `json:"stage"`
-	Failure         core.ErrorIdentity  `json:"failure"`
 	PartialEvidence []ArtifactReference `json:"partial_evidence"`
+	Failure         core.ErrorIdentity  `json:"failure"`
+	Stage           InfrastructureStage `json:"stage"`
 }
 
 func (o InfrastructureObservation) Validate() error {
@@ -662,20 +662,20 @@ func validateArtifacts(values []ArtifactReference) error {
 }
 
 type ProjectStandardsObservationReference struct {
-	Observation    ObservationID              `json:"observation_id"`
-	Producer       EvidenceAuthority          `json:"producer_authority"`
-	Verifier       EvidenceAuthority          `json:"verifier_authority"`
-	Kind           ObservationKind            `json:"kind"`
-	Request        RequestIdentity            `json:"request_id"`
-	Run            RunID                      `json:"run_id"`
-	Source         SourceCoordinate           `json:"source"`
-	EnvelopeDigest core.SHA256Digest          `json:"envelope_digest"`
 	Probe          ProbeIdentity              `json:"probe"`
-	Terminal       TerminalState              `json:"terminal"`
-	CapturedAt     temporal.Instant           `json:"captured_at"`
+	Infrastructure *InfrastructureObservation `json:"infrastructure,omitempty"`
 	Selection      *SelectionObservation      `json:"selection,omitempty"`
 	Experiment     *ExperimentObservation     `json:"experiment,omitempty"`
-	Infrastructure *InfrastructureObservation `json:"infrastructure,omitempty"`
+	Verifier       EvidenceAuthority          `json:"verifier_authority"`
+	Producer       EvidenceAuthority          `json:"producer_authority"`
+	Source         SourceCoordinate           `json:"source"`
+	CapturedAt     temporal.Instant           `json:"captured_at"`
+	EnvelopeDigest core.SHA256Digest          `json:"envelope_digest"`
+	Observation    ObservationID              `json:"observation_id"`
+	Request        RequestIdentity            `json:"request_id"`
+	Run            RunID                      `json:"run_id"`
+	Kind           ObservationKind            `json:"kind"`
+	Terminal       TerminalState              `json:"terminal"`
 }
 
 func (r ProjectStandardsObservationReference) Validate() error {

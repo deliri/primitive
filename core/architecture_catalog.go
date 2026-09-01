@@ -11,10 +11,12 @@ const (
 	PrimitiveModulePath = "github.com/deliri/primitive/v2026"
 	// PrimitivePackagePathPrefix prefixes every Primitive package import path.
 	PrimitivePackagePathPrefix = PrimitiveModulePath + "/"
-	// PrimitivePackageCount is the number of packages in the complete catalog.
-	PrimitivePackageCount = 47
+	// PrimitivePackageCount is derived from the closed package-identity domain.
+	// Adding or removing an identity changes the catalog shape at compile time;
+	// no copied package count can drift from the enum.
+	PrimitivePackageCount = int(packageIdentityLimit - PackageCore)
 	// PrimitiveDirectImportCount is the number of admitted direct import edges.
-	PrimitiveDirectImportCount = 183
+	PrimitiveDirectImportCount = 185
 	// PrimitiveDirectTestImportCount is the number of admitted test-only edges.
 	PrimitiveDirectTestImportCount = 38
 	// PrimitiveMaximumDirectImports caps direct sibling imports per package.
@@ -123,6 +125,8 @@ const (
 	PackageRunWorkspace
 	// PackageProviderWire identifies provider-authenticated domain-blind HTTP plugs.
 	PackageProviderWire
+	// PackageCapabilities identifies the compiler-owned Primitive capability catalog.
+	PackageCapabilities
 	packageIdentityLimit
 )
 
@@ -233,6 +237,7 @@ func PrimitiveArchitecture() ArchitectureCatalog {
 			{Identity: PackageRunnerControl, Kind: PackageKindProduction},
 			{Identity: PackageRunWorkspace, Kind: PackageKindProduction},
 			{Identity: PackageProviderWire, Kind: PackageKindProduction},
+			{Identity: PackageCapabilities, Kind: PackageKindProduction},
 		},
 		imports: [PrimitiveDirectImportCount]DirectImportContract{
 			{Importer: PackageAttest, Imported: PackageCore},
@@ -398,6 +403,7 @@ func PrimitiveArchitecture() ArchitectureCatalog {
 			{Importer: PackageWiring, Imported: PackageCore},
 			{Importer: PackageLineIO, Imported: PackageCore},
 			{Importer: PackageManual, Imported: PackageCore},
+			{Importer: PackageProjectStandards, Imported: PackageCapabilities},
 			{Importer: PackageProjectStandards, Imported: PackageCore},
 			{Importer: PackageProjectStandards, Imported: PackageExchange},
 			{Importer: PackageProjectStandards, Imported: PackageID},
@@ -429,6 +435,7 @@ func PrimitiveArchitecture() ArchitectureCatalog {
 			{Importer: PackageProviderWire, Imported: PackageCore},
 			{Importer: PackageProviderWire, Imported: PackageExchange},
 			{Importer: PackageProviderWire, Imported: PackageTemporal},
+			{Importer: PackageCapabilities, Imported: PackageCore},
 		},
 		testImports: [PrimitiveDirectTestImportCount]DirectTestImportContract{
 			{Importer: PackageGate, Imported: PackageAttest},
@@ -576,6 +583,14 @@ func (p PackageIdentity) Name() (string, error) {
 		return "", err
 	}
 	return packageIdentityText(p), nil
+}
+
+// Purpose returns the compiler-owned statement of what the package provides.
+func (p PackageIdentity) Purpose() (string, error) {
+	if err := p.Validate(); err != nil {
+		return "", err
+	}
+	return packagePurposeText(p), nil
 }
 
 // MarshalJSON emits the canonical package name as a JSON string.
@@ -744,12 +759,13 @@ func packagePurposeTexts() [packageIdentityLimit]string {
 		PackageWiring:           "Bounded immutable runtime component graphs with exact Primitive-door declarations",
 		PackageLineIO:           "Bounded line scanning over one io.Reader through Go bufio.Scanner and bufio.ScanLines",
 		PackageManual:           "Bounded validated human text and stable machine JSON manuals from one product-owned typed book",
-		PackageProjectStandards: "Validated project and package knowledge, exact evidence references, deterministic reports, and bounded exchange",
+		PackageProjectStandards: "Validated project, package, and file knowledge with exact Primitive-effect posture, evidence references, deterministic reports, and bounded exchange",
 		PackageMachineProbe:     "Bounded execution and typed evidence capture for one admitted machine-observation script",
 		PackageRunnerControl:    "Typed domain-blind runner admission, execution, evidence, completion, and delivery contracts",
 		PackageRunWorkspace:     "Owned per-run writable workspace, source acquisition, evidence retention, and cleanup effects",
 		PackageSecretStore:      "Bounded exact-version secret access through official provider SDKs",
 		PackageProviderWire:     "Provider-authenticated domain-blind streamed HTTP plugs for Stripe, Twilio, Plunk, and PayPal",
+		PackageCapabilities:     "Compiler-owned discovery and exact resolution of Primitive package and real-world effect capabilities",
 	}
 }
 
@@ -835,6 +851,7 @@ func packageIdentityTexts() [packageIdentityLimit]string {
 		"runnercontrol",
 		"runworkspace",
 		"providerwire",
+		"capabilities",
 	}
 }
 

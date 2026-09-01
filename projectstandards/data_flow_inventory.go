@@ -39,6 +39,11 @@ func (Assurance) projectStandardsProtocolFact()                   {}
 func (Component) projectStandardsProtocolFact()                   {}
 func (ProductKnowledge) projectStandardsProtocolFact()            {}
 func (Inventory) projectStandardsProtocolFact()                   {}
+func (PrimitiveCapabilityUse) projectStandardsProtocolFact()      {}
+func (SourceFileDeclarations) projectStandardsProtocolFact()      {}
+func (SourceFileEffects) projectStandardsProtocolFact()           {}
+func (SourceFile) projectStandardsProtocolFact()                  {}
+func (PackageFileCatalog) projectStandardsProtocolFact()          {}
 func (PackageKnowledge) projectStandardsProtocolFact()            {}
 func (ComplexityBound) projectStandardsProtocolFact()             {}
 func (ComplexityInput) projectStandardsProtocolFact()             {}
@@ -120,9 +125,10 @@ func (CurrentMachine) projectStandardsSealedProjection()                       {
 func (MachineResponse) projectStandardsSealedProjection()                      {}
 func (MachineFetchResult) projectStandardsSealedProjection()                   {}
 
-func (exactReportWriter) projectStandardsInternalFlowCarrier() {}
-func (inventoryTotals) projectStandardsInternalFlowCarrier()   {}
-func (knowledgeLists) projectStandardsInternalFlowCarrier()    {}
+func (exactReportWriter) projectStandardsInternalFlowCarrier()   {}
+func (inventoryTotals) projectStandardsInternalFlowCarrier()     {}
+func (knowledgeLists) projectStandardsInternalFlowCarrier()      {}
+func (fileInventoryTotals) projectStandardsInternalFlowCarrier() {}
 
 func (Service) projectStandardsCapabilityWrapper()        {}
 func (Client) projectStandardsCapabilityWrapper()         {}

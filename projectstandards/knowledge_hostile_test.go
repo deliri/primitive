@@ -15,9 +15,9 @@ func TestInventoryHostileBoundaryTable(t *testing.T) {
 	coverageFull := uint16(10_000)
 	coverageAbove := uint16(10_001)
 	cases := []struct {
+		wantErr error
 		name    string
 		in      Inventory
-		wantErr error
 	}{
 		{name: "one non-Go document is a complete one-file inventory", in: Inventory{Files: 1, Documents: 1}},
 		{name: "one Go package can occupy one file", in: Inventory{Files: 1, GoPackages: 1}},

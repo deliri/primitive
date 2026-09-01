@@ -36,15 +36,15 @@ const (
 )
 
 type evolutionHostileCase struct {
-	name              string
-	primary           evolutionPrimaryClass
-	mutate            func(testing.TB, *PackageSnapshot, *PackageSnapshot)
 	wantErr           error
-	wantField         evolutionField
+	mutate            func(testing.TB, *PackageSnapshot, *PackageSnapshot)
+	name              string
 	wantChange        CountChange
+	wantNewCandidates int
+	primary           evolutionPrimaryClass
+	wantField         evolutionField
 	wantBeforeSource  bool
 	wantAfterSource   bool
-	wantNewCandidates int
 }
 
 func TestComparePackageSnapshotsHostileBoundaries(t *testing.T) {

@@ -41,6 +41,7 @@ func (c CoverageChange) Validate() error {
 // InventoryChange makes the exact compiler-visible code-shape movement
 // between two compatible package Project standards snapshots explicit.
 type InventoryChange struct {
+	CoverageBasisPoints CoverageChange
 	GoPackages          CountChange
 	JavaScriptUnits     CountChange
 	Files               CountChange
@@ -49,7 +50,6 @@ type InventoryChange struct {
 	TestDeclarations    CountChange
 	Benchmarks          CountChange
 	FuzzTargets         CountChange
-	CoverageBasisPoints CoverageChange
 }
 
 func (c InventoryChange) Validate() error {
@@ -118,13 +118,13 @@ func (c SourceUsageChange) Validate() error {
 type PackageEvolution struct {
 	Package                Identifier
 	Path                   SourcePath
-	BeforeRevision         core.BuildCommit
-	AfterRevision          core.BuildCommit
+	NewReviewCandidates    []FunctionUsage
+	FormerReviewCandidates []FunctionUsage
 	Inventory              InventoryChange
 	Evidence               EvidenceChange
 	SourceUsage            SourceUsageChange
-	NewReviewCandidates    []FunctionUsage
-	FormerReviewCandidates []FunctionUsage
+	BeforeRevision         core.BuildCommit
+	AfterRevision          core.BuildCommit
 }
 
 func (e PackageEvolution) Validate() error {

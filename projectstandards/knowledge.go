@@ -3,13 +3,14 @@ package projectstandards
 import "errors"
 
 const (
-	ReasonMaximum             = 32
-	BoundaryMaximum           = 32
-	FeatureMaximum            = 32
-	UsageMaximum              = 16
-	UsageStepMaximum          = 16
-	ComponentMaximum          = 64
-	PackageMaximum            = 64
+	ReasonMaximum    = 32
+	BoundaryMaximum  = 32
+	FeatureMaximum   = 32
+	UsageMaximum     = 16
+	UsageStepMaximum = 16
+	ComponentMaximum = 64
+	// PackageMaximum is a bounded project capacity, not a current package count.
+	PackageMaximum            = 512
 	GroupMaximum              = 32
 	ContributionMaximum       = 32
 	AssuranceReferenceMaximum = 16
@@ -44,9 +45,9 @@ func (f Feature) Validate() error {
 }
 
 type UsageStep struct {
+	Reference *CodeReference `json:"reference,omitempty"`
 	Title     Name           `json:"title"`
 	Detail    Text           `json:"detail"`
-	Reference *CodeReference `json:"reference,omitempty"`
 }
 
 func (s UsageStep) Validate() error {
@@ -64,8 +65,8 @@ type Usage struct {
 	Title    Name        `json:"title"`
 	Audience Text        `json:"audience"`
 	Goal     Text        `json:"goal"`
-	Steps    []UsageStep `json:"steps"`
 	Outcome  Text        `json:"outcome"`
+	Steps    []UsageStep `json:"steps"`
 }
 
 func (u Usage) Validate() error {
@@ -148,11 +149,11 @@ func (a *AssuranceAuthority) UnmarshalJSON(data []byte) error {
 }
 
 type AssuranceControl struct {
-	Stage      AssuranceStage     `json:"stage"`
-	Authority  AssuranceAuthority `json:"authority"`
 	Statement  Text               `json:"statement"`
 	References []CodeReference    `json:"references"`
 	SurfaceIDs []Identifier       `json:"evidence_surface_ids"`
+	Stage      AssuranceStage     `json:"stage"`
+	Authority  AssuranceAuthority `json:"authority"`
 }
 
 func (c AssuranceControl) Validate() error {
@@ -229,19 +230,19 @@ func (k *ComponentKind) UnmarshalJSON(data []byte) error {
 }
 
 type Component struct {
-	Path       SourcePath        `json:"path"`
-	Package    SourcePath        `json:"package"`
-	Title      Name              `json:"title"`
-	Purpose    Text              `json:"purpose"`
-	Language   Name              `json:"language"`
-	Kind       ComponentKind     `json:"kind"`
 	Created    OptionalGitOrigin `json:"created"`
-	Changed    GitOrigin         `json:"changed"`
+	Purpose    Text              `json:"purpose"`
+	Title      Name              `json:"title"`
+	Path       SourcePath        `json:"path"`
+	Language   Name              `json:"language"`
+	Package    SourcePath        `json:"package"`
+	Removal    Text              `json:"removal"`
 	Reasons    []Reason          `json:"reasons"`
 	Owns       []Boundary        `json:"owns"`
 	DoesNotOwn []Boundary        `json:"does_not_own"`
-	Removal    Text              `json:"removal"`
 	Features   []Feature         `json:"features"`
+	Changed    GitOrigin         `json:"changed"`
+	Kind       ComponentKind     `json:"kind"`
 }
 
 func (c Component) Validate() error {
@@ -255,18 +256,18 @@ func (c Component) Validate() error {
 }
 
 type ProductKnowledge struct {
+	Created    OptionalGitOrigin `json:"created"`
 	Title      Name              `json:"title"`
 	Problem    Text              `json:"problem"`
 	Purpose    Text              `json:"purpose"`
 	Audience   Text              `json:"audience"`
 	Promise    Text              `json:"promise"`
 	SourcePath SourcePath        `json:"source_path"`
-	Created    OptionalGitOrigin `json:"created"`
-	Changed    GitOrigin         `json:"changed"`
 	Reasons    []Reason          `json:"reasons"`
 	Owns       []Boundary        `json:"owns"`
 	NonGoals   []Boundary        `json:"non_goals"`
 	Features   []Feature         `json:"features"`
+	Changed    GitOrigin         `json:"changed"`
 }
 
 func (p ProductKnowledge) Validate() error {
@@ -277,6 +278,7 @@ func (p ProductKnowledge) Validate() error {
 }
 
 type Inventory struct {
+	CoverageBasisPoints *uint16 `json:"coverage_basis_points,omitempty"`
 	GoPackages          uint32  `json:"go_packages"`
 	JavaScriptUnits     uint32  `json:"javascript_units"`
 	Files               uint32  `json:"files"`
@@ -285,14 +287,13 @@ type Inventory struct {
 	TestDeclarations    uint32  `json:"test_declarations"`
 	Benchmarks          uint32  `json:"benchmarks"`
 	FuzzTargets         uint32  `json:"fuzz_targets"`
-	CoverageBasisPoints *uint16 `json:"coverage_basis_points,omitempty"`
 }
 
 func (i Inventory) Validate() error {
 	if i.Files == 0 || i.GoPackages > i.Files || i.JavaScriptUnits > i.Files || i.TestFiles > i.Files || i.Documents > i.Files {
 		return contractError(errors.New("project standards inventory file accounting is invalid"))
 	}
-	if uint64(i.TestDeclarations) > uint64(i.TestFiles)*256 || uint64(i.Benchmarks)+uint64(i.FuzzTargets) > uint64(i.TestDeclarations) {
+	if uint64(i.TestDeclarations) > uint64(i.TestFiles)*SourceFileDeclarationMaximum || uint64(i.Benchmarks)+uint64(i.FuzzTargets) > uint64(i.TestDeclarations) {
 		return conflictError(errors.New("project standards inventory declaration accounting is invalid"))
 	}
 	if i.CoverageBasisPoints != nil && *i.CoverageBasisPoints > 10_000 {
@@ -302,25 +303,25 @@ func (i Inventory) Validate() error {
 }
 
 type PackageKnowledge struct {
+	Created    OptionalGitOrigin `json:"created"`
 	Path       SourcePath        `json:"path"`
 	Title      Name              `json:"title"`
-	Problem    Text              `json:"problem"`
 	Purpose    Text              `json:"purpose"`
 	Audience   Text              `json:"audience"`
 	Value      Text              `json:"value"`
 	Steward    Name              `json:"steward"`
 	Substrate  Name              `json:"substrate"`
 	Runtime    Name              `json:"runtime"`
-	Created    OptionalGitOrigin `json:"created"`
-	Changed    GitOrigin         `json:"changed"`
+	Removal    Text              `json:"removal"`
+	Problem    Text              `json:"problem"`
 	Reasons    []Reason          `json:"reasons"`
 	Owns       []Boundary        `json:"owns"`
 	DoesNotOwn []Boundary        `json:"does_not_own"`
-	Removal    Text              `json:"removal"`
 	Usage      []Usage           `json:"usage"`
 	Features   []Feature         `json:"features"`
-	Assurance  Assurance         `json:"assurance"`
 	Complexity []ComplexityClaim `json:"complexity_claims"`
+	Assurance  Assurance         `json:"assurance"`
+	Changed    GitOrigin         `json:"changed"`
 }
 
 func (p PackageKnowledge) Validate() error {

@@ -412,6 +412,12 @@ const (
 	// ErrProviderWireBinding identifies provider facts attached to the wrong
 	// authority, account, route, version, or replay identity.
 	ErrProviderWireBinding
+	// ErrCapabilitiesContract identifies an invalid capability catalog,
+	// requirement, or match.
+	ErrCapabilitiesContract
+	// ErrCapabilityUnavailable identifies a valid requirement for which
+	// Primitive exposes no admissible capability in the requested scope.
+	ErrCapabilityUnavailable
 	errorIdentityLimit
 )
 
@@ -587,6 +593,8 @@ func errorIdentityDiagnostics() [errorIdentityLimit]errorIdentityDiagnostic {
 		{identity: ErrProviderWireAuthentication, text: "provider wire authentication failed"},
 		{identity: ErrProviderWireVerification, text: "provider wire verification failed"},
 		{identity: ErrProviderWireBinding, text: "provider wire binding failed"},
+		{identity: ErrCapabilitiesContract, text: "capabilities contract violation"},
+		{identity: ErrCapabilityUnavailable, text: "primitive capability unavailable"},
 	}
 }
 
@@ -705,7 +713,7 @@ func errorIdentityParents(identity ErrorIdentity) errorIdentityParentSet {
 		ErrLifecycleIdentityContract, ErrReceiptContract, ErrChitContract,
 		ErrRetrievalContract, ErrPaymentContract, ErrControlWireContract,
 		ErrControlPlaneContract, ErrIDContract, ErrSecretStoreContract,
-		ErrProviderWireContract) {
+		ErrProviderWireContract, ErrCapabilitiesContract) {
 		return oneErrorIdentityParent(ErrPrimitiveContract)
 	}
 	if errorIdentityIn(identity, ErrControlWireRevision, ErrControlWireNonce, ErrControlWireToken,
@@ -767,6 +775,9 @@ func errorIdentityParentsFilestoreThroughUpgrade(identity ErrorIdentity) errorId
 }
 
 func errorIdentityParentsSecretStoreThroughPayment(identity ErrorIdentity) errorIdentityParentSet {
+	if identity == ErrCapabilityUnavailable {
+		return oneErrorIdentityParent(ErrCapabilitiesContract)
+	}
 	if errorIdentityIn(identity, ErrProviderWireAuthentication, ErrProviderWireVerification,
 		ErrProviderWireBinding) {
 		return oneErrorIdentityParent(ErrProviderWireContract)

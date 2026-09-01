@@ -7,7 +7,7 @@ import (
 )
 
 const (
-	SchemaVersion              = 1
+	SchemaVersion              = 2
 	PackageComponentMaximum    = 64
 	PackageContributionMaximum = 32
 )
@@ -16,12 +16,12 @@ const (
 // identity, purpose, ownership, usage, features, assurance, and grouping; it
 // does not own source analysis or execution evidence.
 type Package struct {
-	Key       Identifier       `json:"key"`
 	Subject   SubjectIdentity  `json:"subject"`
-	Revision  core.BuildCommit `json:"revision"`
+	Key       Identifier       `json:"key"`
 	GroupID   Identifier       `json:"group_id"`
 	Language  Name             `json:"language"`
 	Knowledge PackageKnowledge `json:"knowledge"`
+	Revision  core.BuildCommit `json:"revision"`
 }
 
 func (p Package) Validate() error {
@@ -31,10 +31,11 @@ func (p Package) Validate() error {
 // Code is the exact code-facing package projection. Inventory, components,
 // source use, and complexity observations live here rather than in Package.
 type Code struct {
-	Package     SourcePath          `json:"package"`
-	Inventory   Inventory           `json:"inventory"`
-	Components  []Component         `json:"components"`
+	Files       *PackageFileCatalog `json:"files,omitempty"`
 	SourceUsage *PackageSourceUsage `json:"source_usage,omitempty"`
+	Package     SourcePath          `json:"package"`
+	Components  []Component         `json:"components"`
+	Inventory   Inventory           `json:"inventory"`
 }
 
 func (c Code) Validate() error {
@@ -47,7 +48,52 @@ func (c Code) Validate() error {
 	if err := c.validateComponents(); err != nil {
 		return err
 	}
+	if err := c.validateFiles(); err != nil {
+		return err
+	}
 	return c.validateSourceUsage()
+}
+
+func (c Code) validateFiles() error {
+	if c.Files == nil {
+		return nil
+	}
+	if err := c.Files.Validate(); err != nil {
+		return err
+	}
+	if c.Files.Package != c.Package {
+		return conflictError(errors.New("project standards file catalog package differs from code package"))
+	}
+	if !summarizePackageFiles(c.Files.Files).matches(c.Inventory) {
+		return conflictError(errors.New("project standards file catalog does not close against inventory"))
+	}
+	return nil
+}
+
+type fileInventoryTotals struct {
+	files, testFiles, documents           uint64
+	declarations, benchmarks, fuzzTargets uint64
+}
+
+func summarizePackageFiles(files []SourceFile) fileInventoryTotals {
+	totals := fileInventoryTotals{files: uint64(len(files))}
+	for _, file := range files {
+		if file.Kind == SourceFileKindTest {
+			totals.testFiles++
+		}
+		if file.Kind == SourceFileKindDocumentation {
+			totals.documents++
+		}
+		totals.declarations += uint64(file.Declarations.TestDeclarations)
+		totals.benchmarks += uint64(file.Declarations.Benchmarks)
+		totals.fuzzTargets += uint64(file.Declarations.FuzzTargets)
+	}
+	return totals
+}
+
+func (t fileInventoryTotals) matches(inventory Inventory) bool {
+	return t.files == uint64(inventory.Files) && t.testFiles == uint64(inventory.TestFiles) && t.documents == uint64(inventory.Documents) &&
+		t.declarations == uint64(inventory.TestDeclarations) && t.benchmarks == uint64(inventory.Benchmarks) && t.fuzzTargets == uint64(inventory.FuzzTargets)
 }
 
 func (c Code) validateComponents() error {
@@ -235,10 +281,10 @@ func (c ProjectCapability) Validate() error {
 // PackageSnapshot is one bounded package Project standards record at a selected revision.
 // Product knowledge remains authored; source usage and evidence are observed.
 type PackageSnapshot struct {
-	SchemaVersion uint16   `json:"schema_version"`
-	Package       Package  `json:"package"`
 	Code          Code     `json:"code"`
 	Evidence      Evidence `json:"evidence"`
+	Package       Package  `json:"package"`
+	SchemaVersion uint16   `json:"schema_version"`
 }
 
 func (s PackageSnapshot) Validate() error {
@@ -350,17 +396,17 @@ func validateSelectionExpansion(values []ProjectStandardsObservationReference, c
 
 // PackageSummary is derived from PackageSnapshot for a compact project index.
 type PackageSummary struct {
-	Key                  Identifier          `json:"key"`
-	Path                 SourcePath          `json:"path"`
+	SourceUsage          *SourceUsageSummary `json:"source_usage,omitempty"`
+	Language             Name                `json:"language"`
 	Title                Name                `json:"title"`
 	Purpose              Text                `json:"purpose"`
 	Value                Text                `json:"value"`
 	GroupID              Identifier          `json:"group_id"`
-	Language             Name                `json:"language"`
+	Key                  Identifier          `json:"key"`
 	Runtime              Name                `json:"runtime"`
+	Path                 SourcePath          `json:"path"`
 	Changed              GitOrigin           `json:"changed"`
 	Evidence             EvidenceSummary     `json:"evidence"`
-	SourceUsage          *SourceUsageSummary `json:"source_usage,omitempty"`
 	FeatureCount         uint16              `json:"feature_count"`
 	ComponentCount       uint16              `json:"component_count"`
 	ComplexityClaimCount uint16              `json:"complexity_claim_count"`
@@ -502,8 +548,8 @@ func (s PackageSnapshot) SourceUsageSummary() (*SourceUsageSummary, error) {
 // ProjectCode is the exact project-wide code inventory. Catalog validation
 // proves its additive counters equal the package Code inventories.
 type ProjectCode struct {
-	Inventory    Inventory  `json:"inventory"`
 	Unattributed *Inventory `json:"unattributed,omitempty"`
+	Inventory    Inventory  `json:"inventory"`
 }
 
 func (c ProjectCode) Validate() error {
@@ -525,16 +571,16 @@ func (c ProjectCode) Validate() error {
 // Project is the authored project record plus its derived package index and
 // exact project-wide code inventory at one revision.
 type Project struct {
-	SchemaVersion uint16               `json:"schema_version"`
-	Subject       SubjectIdentity      `json:"subject"`
-	Revision      core.BuildCommit     `json:"revision"`
-	Release       *core.ReleaseVersion `json:"release,omitempty"`
-	Knowledge     ProductKnowledge     `json:"knowledge"`
 	Code          ProjectCode          `json:"code"`
+	Release       *core.ReleaseVersion `json:"release,omitempty"`
+	Subject       SubjectIdentity      `json:"subject"`
 	Usage         []Usage              `json:"usage"`
 	Groups        []PackageGroup       `json:"groups"`
 	Capabilities  []ProjectCapability  `json:"capabilities"`
 	Packages      []PackageSummary     `json:"packages"`
+	Knowledge     ProductKnowledge     `json:"knowledge"`
+	SchemaVersion uint16               `json:"schema_version"`
+	Revision      core.BuildCommit     `json:"revision"`
 }
 
 func (s Project) Validate() error {
@@ -576,8 +622,8 @@ func (s Project) validateRelease() error {
 // Catalog proves that one project index and its package snapshots describe
 // the same exact bounded set. It is not a persistence schema.
 type Catalog struct {
-	Project  Project           `json:"project"`
 	Packages []PackageSnapshot `json:"packages"`
+	Project  Project           `json:"project"`
 }
 
 func (c Catalog) Validate() error {

@@ -118,6 +118,8 @@ func DeriveRequestIdentity(origin OriginIdentity, nonce RequestNonce) (RequestId
 	if err := errors.Join(origin.Validate(), nonce.Validate()); err != nil {
 		return RequestIdentity{}, contractError(err)
 	}
+	// Field order is identity material and is pinned by the canonical fixture
+	// test; it must not be mechanically field-aligned.
 	canonical, err := core.MarshalCanonicalJSONDocument(struct {
 		Origin OriginIdentity `json:"origin"`
 		Nonce  RequestNonce   `json:"request_nonce"`

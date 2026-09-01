@@ -12,10 +12,10 @@ func TestExperimentOutcomeTerminalRelationshipExhaustive(t *testing.T) {
 	t.Parallel()
 
 	cases := []struct {
+		wantErr  error
 		name     string
 		outcome  Outcome
 		terminal TerminalState
-		wantErr  error
 	}{
 		{name: "unknown outcome never becomes a terminal fact", outcome: OutcomeUnknown, terminal: TerminalCompleted, wantErr: core.ErrProjectStandardsContract},
 		{name: "passed experiment closes as completed", outcome: OutcomePassed, terminal: TerminalCompleted},

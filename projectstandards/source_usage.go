@@ -82,12 +82,12 @@ func (p *FunctionReferencePosture) UnmarshalJSON(data []byte) error {
 
 type FunctionUsage struct {
 	Function             CodeReference            `json:"function"`
+	ObservedConsumers    []SourcePath             `json:"observed_consumers"`
 	DeclarationLine      uint32                   `json:"declaration_line"`
-	Exported             bool                     `json:"exported"`
-	ReferencePosture     FunctionReferencePosture `json:"reference_posture"`
 	ProductionReferences uint32                   `json:"production_references"`
 	TestReferences       uint32                   `json:"test_references"`
-	ObservedConsumers    []SourcePath             `json:"observed_consumers"`
+	Exported             bool                     `json:"exported"`
+	ReferencePosture     FunctionReferencePosture `json:"reference_posture"`
 }
 
 func (u FunctionUsage) Validate() error {
@@ -147,19 +147,19 @@ func productionFunctionReference(u FunctionUsage) bool {
 
 type PackageSourceUsage struct {
 	Generation               Identifier                 `json:"generation"`
-	Revision                 core.BuildCommit           `json:"revision"`
 	Package                  SourcePath                 `json:"package"`
-	Completeness             SourceAnalysisCompleteness `json:"completeness"`
-	DeclarationCount         uint32                     `json:"declaration_count"`
-	ProductionReferenced     uint32                     `json:"production_referenced"`
-	RuntimeEntryPoints       uint32                     `json:"runtime_entry_points"`
+	ReviewCandidates         []FunctionUsage            `json:"review_candidates"`
+	MostReferenced           []FunctionUsage            `json:"most_referenced"`
+	ObservedConsumerPackages []SourcePath               `json:"observed_consumer_packages"`
+	AnalyzedAt               temporal.Instant           `json:"analyzed_at"`
+	NoReferenceObserved      uint32                     `json:"no_reference_observed"`
 	UnresolvedDeclarations   uint32                     `json:"unresolved_declarations"`
 	TestReferencedOnly       uint32                     `json:"test_referenced_only"`
-	NoReferenceObserved      uint32                     `json:"no_reference_observed"`
-	ObservedConsumerPackages []SourcePath               `json:"observed_consumer_packages"`
-	MostReferenced           []FunctionUsage            `json:"most_referenced"`
-	ReviewCandidates         []FunctionUsage            `json:"review_candidates"`
-	AnalyzedAt               temporal.Instant           `json:"analyzed_at"`
+	RuntimeEntryPoints       uint32                     `json:"runtime_entry_points"`
+	ProductionReferenced     uint32                     `json:"production_referenced"`
+	DeclarationCount         uint32                     `json:"declaration_count"`
+	Revision                 core.BuildCommit           `json:"revision"`
+	Completeness             SourceAnalysisCompleteness `json:"completeness"`
 }
 
 func (u PackageSourceUsage) Validate() error {

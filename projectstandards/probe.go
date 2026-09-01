@@ -180,6 +180,8 @@ type NamedTarget struct {
 
 func (t NamedTarget) Validate() error { return t.Identity.Validate() }
 
+// ToolTarget, ProbeTarget, SelectionParent, and ProbeIdentity retain canonical
+// field order because the complete ProbeIdentity is hashed into ExperimentID.
 type ToolTarget struct {
 	Identity Identifier  `json:"identity"`
 	Module   *Identifier `json:"module,omitempty"`
@@ -314,13 +316,13 @@ func (r EnvironmentRequirement) Validate() error {
 }
 
 type RequestedProbe struct {
-	Origin      OriginIdentity         `json:"origin"`
-	Subject     SubjectIdentity        `json:"subject"`
-	Source      SourceCoordinate       `json:"source"`
 	Target      ProbeTarget            `json:"target"`
+	Subject     SubjectIdentity        `json:"subject"`
+	Origin      OriginIdentity         `json:"origin"`
 	Kinds       []ProbeKind            `json:"requested_kinds"`
 	Profile     ProfileIdentity        `json:"profile"`
 	Constraints EnvironmentRequirement `json:"requested_environment"`
+	Source      SourceCoordinate       `json:"source"`
 }
 
 func (r RequestedProbe) Validate() error {

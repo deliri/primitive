@@ -34,7 +34,8 @@ flowchart TD
     testserial[testserial] --> core
     lineio[lineio] --> core
     manual[manual] --> core
-    projectstandards[projectstandards] --> core
+    projectstandards[projectstandards] --> capabilities
+    projectstandards --> core
     projectstandards --> exchange
     projectstandards --> id
     projectstandards --> temporal
@@ -63,6 +64,7 @@ flowchart TD
     providerwire --> core
     providerwire --> exchange
     providerwire --> temporal
+    capabilities[capabilities] --> core
 
     filelock[filelock] --> core
     filelock --> contextstate

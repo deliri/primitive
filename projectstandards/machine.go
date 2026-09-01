@@ -328,7 +328,9 @@ func (t MachineToolchain) Validate() error {
 }
 
 // MachineConfiguration contains only generation-defining observed facts.
-// Volatile availability and uptime live in MachineRuntime.
+// Volatile availability and uptime live in MachineRuntime. Its field order and
+// the order of nested identity/toolchain facts are canonical fingerprint
+// material pinned by a hostile ratchet.
 type MachineConfiguration struct {
 	Identity   MachineIdentity          `json:"identity"`
 	Compute    MachineCompute           `json:"compute"`
@@ -403,15 +405,15 @@ type MachineProbeReport struct {
 type MachineProbeExecution struct {
 	Bash         core.AbsolutePath `json:"bash"`
 	Script       core.AbsolutePath `json:"script"`
-	ScriptDigest core.SHA256Digest `json:"script_digest"`
 	ScriptBytes  core.ByteLength   `json:"script_bytes"`
 	OutputLimit  core.ByteCount    `json:"output_limit"`
-	ExitCode     int32             `json:"exit_code"`
 	CPUTime      temporal.Duration `json:"cpu_time"`
-	StdoutDigest core.SHA256Digest `json:"stdout_digest"`
 	StdoutBytes  core.ByteLength   `json:"stdout_bytes"`
-	StderrDigest core.SHA256Digest `json:"stderr_digest"`
 	StderrBytes  core.ByteLength   `json:"stderr_bytes"`
+	ExitCode     int32             `json:"exit_code"`
+	ScriptDigest core.SHA256Digest `json:"script_digest"`
+	StdoutDigest core.SHA256Digest `json:"stdout_digest"`
+	StderrDigest core.SHA256Digest `json:"stderr_digest"`
 }
 
 func (e MachineProbeExecution) Validate() error {
@@ -467,15 +469,15 @@ func (r *MachineProbeReport) UnmarshalJSON(data []byte) error {
 }
 
 type MachineObservation struct {
+	Runtime       MachineRuntime        `json:"runtime"`
+	Collector     EvidenceAuthority     `json:"collector"`
+	Configuration MachineConfiguration  `json:"configuration"`
+	Execution     MachineProbeExecution `json:"execution"`
+	ObservedAt    temporal.Instant      `json:"observed_at"`
+	Fingerprint   MachineFingerprint    `json:"fingerprint"`
 	SchemaVersion uint16                `json:"schema_version"`
 	ID            MachineObservationID  `json:"id"`
 	GenerationID  MachineGenerationID   `json:"generation_id"`
-	ObservedAt    temporal.Instant      `json:"observed_at"`
-	Collector     EvidenceAuthority     `json:"collector"`
-	Execution     MachineProbeExecution `json:"execution"`
-	Configuration MachineConfiguration  `json:"configuration"`
-	Runtime       MachineRuntime        `json:"runtime"`
-	Fingerprint   MachineFingerprint    `json:"fingerprint"`
 }
 
 // MachineExecutionSettings is the exact observed machine fact that bounds an
@@ -520,13 +522,13 @@ func (o MachineObservation) Validate() error {
 }
 
 type MachineGeneration struct {
-	SchemaVersion    uint16               `json:"schema_version"`
-	ID               MachineGenerationID  `json:"id"`
-	Fingerprint      MachineFingerprint   `json:"fingerprint"`
 	Configuration    MachineConfiguration `json:"configuration"`
 	FirstObservedAt  temporal.Instant     `json:"first_observed_at"`
 	LastObservedAt   temporal.Instant     `json:"last_observed_at"`
 	ObservationCount uint64               `json:"observation_count"`
+	Fingerprint      MachineFingerprint   `json:"fingerprint"`
+	SchemaVersion    uint16               `json:"schema_version"`
+	ID               MachineGenerationID  `json:"id"`
 }
 
 func (g MachineGeneration) Validate() error {
@@ -593,9 +595,9 @@ func (f *MachineChangeField) UnmarshalJSON(data []byte) error {
 }
 
 type MachineChange struct {
-	Field  MachineChangeField `json:"field"`
 	Before Name               `json:"before"`
 	After  Name               `json:"after"`
+	Field  MachineChangeField `json:"field"`
 }
 
 func (c MachineChange) Validate() error {
@@ -609,10 +611,10 @@ func (c MachineChange) Validate() error {
 }
 
 type MachineGenerationTransition struct {
+	Changes              []MachineChange     `json:"changes"`
+	DetectedAt           temporal.Instant    `json:"detected_at"`
 	PreviousGenerationID MachineGenerationID `json:"previous_generation_id"`
 	CurrentGenerationID  MachineGenerationID `json:"current_generation_id"`
-	DetectedAt           temporal.Instant    `json:"detected_at"`
-	Changes              []MachineChange     `json:"changes"`
 }
 
 func (t MachineGenerationTransition) Validate() error {
@@ -634,9 +636,9 @@ func (t MachineGenerationTransition) Validate() error {
 }
 
 type CurrentMachine struct {
+	Transition  *MachineGenerationTransition `json:"transition,omitempty"`
 	Generation  MachineGeneration            `json:"generation"`
 	Observation MachineObservation           `json:"observation"`
-	Transition  *MachineGenerationTransition `json:"transition,omitempty"`
 }
 
 func (m CurrentMachine) Validate() error {

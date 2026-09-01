@@ -167,9 +167,9 @@ type ComplexityInput struct {
 	Name        Name     `json:"name"`
 	Unit        Name     `json:"unit"`
 	Meaning     Text     `json:"meaning"`
+	SampleSizes []uint64 `json:"sample_sizes"`
 	Minimum     uint64   `json:"minimum"`
 	Maximum     uint64   `json:"maximum"`
-	SampleSizes []uint64 `json:"sample_sizes"`
 }
 
 func (i ComplexityInput) Validate() error {
@@ -204,8 +204,8 @@ func (a ComplexityAssumption) Validate() error {
 }
 
 type CodeReference struct {
-	Path   SourcePath `json:"path"`
 	Symbol *Name      `json:"symbol,omitempty"`
+	Path   SourcePath `json:"path"`
 }
 
 func (r CodeReference) Validate() error {
@@ -219,13 +219,13 @@ func (r CodeReference) Validate() error {
 }
 
 type ComplexityClaim struct {
-	ID             Identifier             `json:"id"`
 	Operation      CodeReference          `json:"operation"`
+	ID             Identifier             `json:"id"`
+	SurfaceID      Identifier             `json:"evidence_surface_id"`
+	Assumptions    []ComplexityAssumption `json:"assumptions"`
 	Input          ComplexityInput        `json:"input"`
 	Time           ComplexityBound        `json:"time"`
 	AuxiliarySpace ComplexityBound        `json:"auxiliary_space"`
-	Assumptions    []ComplexityAssumption `json:"assumptions"`
-	SurfaceID      Identifier             `json:"evidence_surface_id"`
 }
 
 func (c ComplexityClaim) Validate() error {
@@ -260,10 +260,10 @@ func (s ComplexitySample) Validate() error {
 
 type ComplexityCapture struct {
 	ClaimID                Identifier                 `json:"claim_id"`
-	EnvironmentFingerprint core.SHA256Digest          `json:"environment_fingerprint"`
 	Profile                ProfileIdentity            `json:"profile"`
-	BudgetSeconds          uint32                     `json:"budget_seconds"`
 	Samples                []ComplexitySample         `json:"samples"`
+	BudgetSeconds          uint32                     `json:"budget_seconds"`
+	EnvironmentFingerprint core.SHA256Digest          `json:"environment_fingerprint"`
 	Assessment             ComplexityAssessmentStatus `json:"assessment"`
 }
 
