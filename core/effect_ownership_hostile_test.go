@@ -417,7 +417,7 @@ func declaredRealWorldImports() (realWorldImportInventory, error) {
 		realWorldImportOwners(realWorldSubstrateGoogleCloudStorage, PackageGCSObjects),
 		realWorldImportOwners(realWorldSubstrateGoogleIAMCredentials, PackageGCSObjects),
 		realWorldImportOwners(realWorldSubstrateGoogleSecretManager, PackageSecretStore),
-		realWorldImportOwners(realWorldSubstrateNetwork, PackageGCSObjects),
+		realWorldImportOwners(realWorldSubstrateNetwork, PackageExchange, PackageGCSObjects),
 	}
 	var inventory realWorldImportInventory
 	for _, contract := range contracts {
@@ -522,6 +522,7 @@ func declaredRealWorldCalls() (realWorldCallInventory, error) {
 		{owner: PackageGCSObjects, substrate: realWorldSubstrateGoogleIAMCredentials, selector: "NewService", count: 1},
 		{owner: PackageSecretStore, substrate: realWorldSubstrateGoogleSecretManager, selector: "NewClient", count: 1},
 		{owner: PackageGCSObjects, substrate: realWorldSubstrateNetwork, selector: "ParseIP", count: 1},
+		{owner: PackageExchange, substrate: realWorldSubstrateNetwork, selector: "Listen", count: 1},
 		{owner: PackageTemporal, substrate: realWorldSubstrateContextDeadline, selector: "WithDeadline", count: 1},
 		{owner: PackageTemporal, substrate: realWorldSubstrateContextDeadline, selector: "WithTimeout", count: 1},
 	}

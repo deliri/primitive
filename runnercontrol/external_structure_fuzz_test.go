@@ -172,12 +172,22 @@ func expansionApprovalSeed(t testing.TB, manifest runnercontrol.ExpansionManifes
 	t.Helper()
 	capability := experimentObservationRequestFixture(t).Capability
 	child := manifest.Children[0]
+	observation, observationErr := projectstandards.NewMachineObservationID(completionUUIDFixture(t))
+	resolution, resolutionErr := runnercontrol.ResolveGoConcurrency(
+		projectstandards.MachineExecutionSettings{Observation: observation, Generation: manifest.Fence.Machine.Generation, LogicalCPUCount: 1},
+		runnercontrol.GoProfileFocused,
+		runnercontrol.GoConcurrency{GOMAXPROCS: 1, Parallel: 1, PackageParallel: 1, CPU: []uint16{1}},
+	)
+	if err := errors.Join(observationErr, resolutionErr); err != nil {
+		t.Fatalf("ResolveGoConcurrency(expansion approval seed) error = %v, want nil", err)
+	}
 	capability.Fence = manifest.Fence
 	capability.Run = manifest.Run
 	capability.Experiment = *child.Experiment
 	capability.Probe = child.Probe
 	capability.Source = manifest.Source
 	capability.BuildContextDigest = child.BuildContextDigest
+	capability.Execution.Go = &resolution
 	manifestDigest, digestErr := manifest.Digest()
 	if digestErr != nil {
 		t.Fatalf("ExpansionManifest.Digest(approval seed) error = %v, want nil", digestErr)

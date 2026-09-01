@@ -144,6 +144,16 @@ func TestEverySchedulingCapabilityLayerRejectsAuthenticLookingSubstitution(t *te
 			got.Payload.Request = capabilityRequestIdentity(t, 77)
 			return runnercontrol.VerifyMemberCapability(got, trusted)
 		}},
+		{name: "member requested time changed under original signature", verify: func() error {
+			got := claim.Members[0]
+			got.Payload.RequestedAt = temporal.InstantFromNanoseconds(999_999)
+			return runnercontrol.VerifyMemberCapability(got, trusted)
+		}},
+		{name: "member admitted time changed under original signature", verify: func() error {
+			got := claim.Members[0]
+			got.Payload.AdmittedAt = temporal.InstantFromNanoseconds(1_499_999)
+			return runnercontrol.VerifyMemberCapability(got, trusted)
+		}},
 		{name: "experiment expiry changed under original signature", verify: func() error {
 			got := claim.Direct[0]
 			got.Payload.ExpiresAt = temporal.InstantFromNanoseconds(2_999_999)
@@ -200,6 +210,7 @@ func schedulingClaimDocumentFixture(t testing.TB) (runnercontrol.SchedulingClaim
 	memberPayload := runnercontrol.MemberCapability{
 		SchemaVersion: runnercontrol.SchemaVersion, SchedulingDigest: schedulingDigest, Fence: completion.Fence,
 		Request: request, Run: completion.Run, AdmittedRunDigest: core.SHA256Of([]byte("admitted run")), Probe: completion.Probe,
+		RequestedAt: temporal.InstantFromNanoseconds(1_000_000), AdmittedAt: temporal.InstantFromNanoseconds(1_500_000),
 		Limits: capabilityRunLimits(t), Nonce: core.SHA256Of([]byte("member nonce")), ExpiresAt: temporal.InstantFromNanoseconds(3_250_000),
 	}
 	member, memberErr := runnercontrol.IssueMemberCapability(memberPayload, signer)

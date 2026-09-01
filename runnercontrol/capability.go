@@ -62,6 +62,8 @@ type MemberCapability struct {
 	Request           projectstandards.RequestIdentity `json:"request_id"`
 	Run               projectstandards.RunID           `json:"run_id"`
 	AdmittedRunDigest core.SHA256Digest                `json:"admitted_run_digest"`
+	RequestedAt       temporal.Instant                 `json:"requested_at"`
+	AdmittedAt        temporal.Instant                 `json:"admitted_at"`
 	Probe             projectstandards.ProbeIdentity   `json:"probe"`
 	Limits            RunLimits                        `json:"limits"`
 	BuildContexts     *GoBuildContextSet               `json:"build_contexts,omitempty"`
@@ -74,8 +76,13 @@ func (c MemberCapability) Validate() error {
 	if c.SchemaVersion != SchemaVersion {
 		return core.ErrPrimitiveContract
 	}
-	if err := errors.Join(c.SchedulingDigest.Validate(), c.Fence.Validate(), c.Request.Validate(), c.Run.Validate(), c.AdmittedRunDigest.Validate(), c.Probe.Validate(), c.Limits.Validate(), c.Nonce.Validate(), c.ExpiresAt.Validate()); err != nil {
+	if err := errors.Join(c.SchedulingDigest.Validate(), c.Fence.Validate(), c.Request.Validate(), c.Run.Validate(), c.AdmittedRunDigest.Validate(), c.RequestedAt.Validate(), c.AdmittedAt.Validate(), c.Probe.Validate(), c.Limits.Validate(), c.Nonce.Validate(), c.ExpiresAt.Validate()); err != nil {
 		return err
+	}
+	requestAdmission, requestErr := c.RequestedAt.Compare(c.AdmittedAt)
+	admissionExpiry, expiryErr := c.AdmittedAt.Compare(c.ExpiresAt)
+	if requestErr != nil || expiryErr != nil || requestAdmission == core.ComparisonGreater || admissionExpiry == core.ComparisonGreater {
+		return errors.Join(core.ErrPrimitiveContract, requestErr, expiryErr)
 	}
 	if err := c.validateBuildContexts(); err != nil {
 		return err
@@ -228,6 +235,10 @@ func (c ExperimentCapability) validateIdentityClosure() error {
 	if c.Probe.Role != projectstandards.ProbeRoleExperiment || c.Probe.Source != c.Source || c.Probe.Environment.MachineGeneration != c.Fence.Machine.Generation {
 		return core.ErrPrimitiveContract
 	}
+	wantGo := completionCarriesGoConcurrency(c.Probe.Kind)
+	if wantGo != (c.Execution.Go != nil) {
+		return core.ErrPrimitiveContract
+	}
 	if c.Execution.Go != nil && c.Execution.Go.Machine.Generation != c.Fence.Machine.Generation {
 		return core.ErrPrimitiveContract
 	}
@@ -316,6 +327,9 @@ func validateDirectExperiment(scheduling SchedulingCapabilityDocument, member Me
 		return err
 	}
 	if experiment.Payload.Run != member.Payload.Run || experiment.Payload.Fence != member.Payload.Fence || experiment.Payload.MemberCapabilityDigest != memberDigest || experiment.Payload.Source != scheduling.Payload.Source || experiment.Payload.Execution.Subject.PolicyIdentity != scheduling.Payload.IsolationPolicy || experiment.Payload.ExpansionManifestDigest != nil || equalProbeIdentity(experiment.Payload.Probe, member.Payload.Probe) != nil {
+		return core.ErrPrimitiveContract
+	}
+	if experiment.Payload.Execution.Go != nil && experiment.Payload.Execution.Go.Machine.Observation != scheduling.Payload.Observation {
 		return core.ErrPrimitiveContract
 	}
 	return nil
