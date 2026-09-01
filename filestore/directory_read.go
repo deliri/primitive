@@ -130,7 +130,7 @@ func synchronizeDirectoryMode(
 	path core.RelativePath,
 	mode fs.FileMode,
 ) error {
-	directory, err := root.Open(path.String())
+	directory, err := openDirectory(root, path.String())
 	if err != nil {
 		return err
 	}
@@ -155,7 +155,7 @@ func synchronizeDirectoryMode(
 }
 
 func validateExistingDirectory(root *os.Root, path core.RelativePath) error {
-	entry, err := root.Open(path.String())
+	entry, err := openDirectory(root, path.String())
 	if err != nil {
 		return activationError(err)
 	}
@@ -189,9 +189,18 @@ func Read(ctx context.Context, request ReadRequest) (core.ByteLength, error) {
 	if err != nil {
 		return core.ByteLength{}, err
 	}
+	info, err := file.Stat()
+	if err != nil {
+		return core.ByteLength{}, closeReadFile(file, sourceError(err))
+	}
+	extent, err := core.CheckedUint64FromInt64(info.Size())
+	if err != nil {
+		return core.ByteLength{}, closeReadFile(file, sourceError(err))
+	}
 	count, copyErr := copyBounded(boundedCopyRequest{
 		ctx: ctx, destination: request.Destination, source: file,
 		maximum: request.MaximumBytes, kind: streamDestinationCaller,
+		knownExtent: extent, extentKnown: true,
 	})
 	closeErr := file.Close()
 	if closeErr != nil {

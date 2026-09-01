@@ -9,9 +9,5 @@ import "os"
 // stay with the advisory mechanism that guards the record, because process
 // identifiers are reused.
 func Self() (ProcessIdentity, error) {
-	identity := ProcessIdentity(os.Getpid()) // #nosec G115 -- the platform reports the calling process's identifier inside the platform pid domain.
-	if err := identity.Validate(); err != nil {
-		return 0, err
-	}
-	return identity, nil
+	return newProcessIdentity(os.Getpid())
 }

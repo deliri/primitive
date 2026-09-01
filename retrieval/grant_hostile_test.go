@@ -10,6 +10,7 @@ import (
 	"github.com/deliri/primitive/v2026/controlwire"
 	"github.com/deliri/primitive/v2026/core"
 	"github.com/deliri/primitive/v2026/objectstore"
+	"github.com/deliri/primitive/v2026/receipt"
 	"github.com/deliri/primitive/v2026/temporal"
 )
 
@@ -161,7 +162,7 @@ func TestGrantIssuanceLayerTriad(t *testing.T) {
 					t.Fatalf("GrantDocument.UnmarshalJSON() error = %v, want nil", decodeErr)
 				}
 				verified, verifyErr := VerifyGrant(GrantExpectation{
-					Document: received, Request: fixture.request, Chit: fixture.chit,
+					Document: received, Request: fixture.request, Chit: fixture.chit, Entry: fixture.membership,
 					ObservedAt: temporal.InstantFromNanoseconds(retrievalGrantObserved), TrustedKeys: fixture.trusted,
 				})
 				if verifyErr != nil || verified.Validate() != nil {
@@ -211,6 +212,9 @@ func TestGrantIssuanceLayerTriad(t *testing.T) {
 			{name: "zero manifest entry proof", mutate: func(value *GrantIssuance) { value.Entry = chit.VerifiedManifestEntry{} }, wantErr: core.ErrRetrievalContract},
 			{name: "zero authenticated chit", mutate: func(value *GrantIssuance) { value.Chit = chit.Verified{} }, wantErr: core.ErrRetrievalContract},
 			{name: "zero authenticated request", mutate: func(value *GrantIssuance) { value.Request = RequestPayload{} }, wantErr: core.ErrRetrievalContract},
+			{name: "request account differs from authenticated chit", mutate: func(value *GrantIssuance) {
+				value.Request.Scope.Account = retrievalLifecycleIdentity(t, 0x99, receipt.NewAccountIdentity)
+			}, wantErr: core.ErrRetrievalBinding},
 			{name: "entry from another authenticated manifest", mutate: func(value *GrantIssuance) { value.Entry = other.membership }, wantErr: core.ErrRetrievalBinding},
 			{name: "same entry proven under an expanded foreign manifest", mutate: func(value *GrantIssuance) { value.Entry = expandedMembership }, wantErr: core.ErrRetrievalBinding},
 			{name: "chit with another manifest", mutate: func(value *GrantIssuance) { value.Chit = other.chit }, wantErr: core.ErrRetrievalBinding},
@@ -495,7 +499,7 @@ func TestGrantVerificationLayerTriad(t *testing.T) {
 				t.Parallel()
 
 				got, gotErr := VerifyGrant(GrantExpectation{
-					Document: fixture.document, Request: fixture.request, Chit: fixture.chit,
+					Document: fixture.document, Request: fixture.request, Chit: fixture.chit, Entry: fixture.membership,
 					ObservedAt: temporal.InstantFromNanoseconds(tc.observedAt), TrustedKeys: fixture.trusted,
 				})
 				if gotErr != nil || got.Validate() != nil {
@@ -511,7 +515,8 @@ func TestGrantVerificationLayerTriad(t *testing.T) {
 		_, otherTrusted := retrievalAuthority(t, 0x72)
 		otherNonceRequest := newRetrievalRequestFixture(t, retrievalRequestFixtureRequest{Selection: StartAll(), NonceByte: 2}).payload
 		otherBuildRequest := newRetrievalRequestFixture(t, retrievalRequestFixtureRequest{Selection: StartAll(), VersionPatch: 2}).payload
-		otherChit := newDownloadCallFixture(t, downloadCallFixtureRequest{Payload: []byte{0x09, 0x08, 0x07}}).chit
+		otherFixture := newDownloadCallFixture(t, downloadCallFixtureRequest{Payload: []byte{0x09, 0x08, 0x07}})
+		otherChit := otherFixture.chit
 		otherCommitment, gotErr := CommitRequest(otherNonceRequest)
 		if gotErr != nil {
 			t.Fatalf("CommitRequest(other nonce setup) error = %v, want nil", gotErr)
@@ -537,6 +542,7 @@ func TestGrantVerificationLayerTriad(t *testing.T) {
 			{name: "request nonce differs from signed commitment", mutate: func(value *GrantExpectation) { value.Request = otherNonceRequest }, wantErr: core.ErrRetrievalBinding},
 			{name: "request build differs from signed commitment", mutate: func(value *GrantExpectation) { value.Request = otherBuildRequest }, wantErr: core.ErrRetrievalBinding},
 			{name: "authenticated chit has another manifest", mutate: func(value *GrantExpectation) { value.Chit = otherChit }, wantErr: core.ErrRetrievalBinding},
+			{name: "authenticated manifest entry belongs to another manifest", mutate: func(value *GrantExpectation) { value.Entry = otherFixture.membership }, wantErr: core.ErrRetrievalBinding},
 			{name: "signed payload request commitment substituted", mutate: func(value *GrantExpectation) { value.Document.Payload.Request = otherCommitment }, wantErr: core.ErrRetrievalBinding},
 			{name: "signed payload authorization nonce substituted", mutate: func(value *GrantExpectation) { value.Document.Payload.Authorization = otherAuthorization }, wantErr: core.ErrRetrievalBinding},
 			{name: "signed payload entry sequence substituted", mutate: func(value *GrantExpectation) { value.Document.Payload.Entry.Sequence = grantEntrySequence(t, 2) }, wantErr: core.ErrRetrievalBinding},
@@ -549,7 +555,7 @@ func TestGrantVerificationLayerTriad(t *testing.T) {
 				t.Parallel()
 
 				input := GrantExpectation{
-					Document: fixture.document, Request: fixture.request, Chit: fixture.chit,
+					Document: fixture.document, Request: fixture.request, Chit: fixture.chit, Entry: fixture.membership,
 					ObservedAt: temporal.InstantFromNanoseconds(retrievalGrantObserved), TrustedKeys: fixture.trusted,
 				}
 				tc.mutate(&input)
@@ -558,6 +564,43 @@ func TestGrantVerificationLayerTriad(t *testing.T) {
 					t.Fatalf("VerifyGrant() = (%v, %v), want zero and errors.Is %v", got, gotErr, tc.wantErr)
 				}
 			})
+		}
+	})
+
+	t.Run("negative authentic grant cannot outlive its authenticated chit", func(t *testing.T) {
+		t.Parallel()
+
+		fixture := newDownloadCallFixture(t, downloadCallFixtureRequest{Payload: []byte{0x41, 0x42}})
+		badExpiry := retrievalGrantExpiresAt + 2
+		capability := retrievalDownloadCapability(t, badExpiry)
+		commitment, gotErr := capability.Commitment()
+		if gotErr != nil {
+			t.Fatalf("DownloadCapabilityProjection.Commitment() error = %v, want nil", gotErr)
+		}
+		payload := fixture.grantPayload
+		payload.ExpiresAt = temporal.InstantFromNanoseconds(badExpiry)
+		payload.Capability = commitment
+		envelope, gotErr := attest.Sign(attest.SignRequest[SigningDomain]{Body: payload, Signer: fixture.private})
+		if gotErr != nil {
+			t.Fatalf("attest.Sign(outliving grant) error = %v, want nil", gotErr)
+		}
+		projection := GrantProjection{Capability: capability, Payload: payload, Attestation: envelope}
+		encoded, gotErr := projection.MarshalJSON()
+		if gotErr != nil {
+			t.Fatalf("GrantProjection.MarshalJSON(outliving grant) error = %v, want nil", gotErr)
+		}
+		var document GrantDocument
+		if gotErr := document.UnmarshalJSON(encoded); gotErr != nil {
+			t.Fatalf("GrantDocument.UnmarshalJSON(outliving grant) error = %v, want nil", gotErr)
+		}
+
+		got, gotErr := VerifyGrant(GrantExpectation{
+			Document: document, Request: fixture.request, Chit: fixture.chit, Entry: fixture.membership,
+			ObservedAt: temporal.InstantFromNanoseconds(retrievalGrantObserved), TrustedKeys: fixture.trusted,
+		})
+		if !errors.Is(gotErr, core.ErrRetrievalBinding) || !verifiedGrantIsZero(got) {
+			t.Fatalf("VerifyGrant(outliving grant) = (%v, %v), want zero and errors.Is %v",
+				got, gotErr, core.ErrRetrievalBinding)
 		}
 	})
 

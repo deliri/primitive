@@ -413,6 +413,32 @@ type CatalogVerification struct {
 	TrustedKeys attest.TrustedKeys
 }
 
+// VerifiedCatalog is sealed proof that one exact page authenticated and
+// matched the query that selected it.
+type VerifiedCatalog struct {
+	state *verifiedCatalogState
+}
+
+type verifiedCatalogState struct {
+	payload CatalogPayload
+	proof   attest.Verified[SigningDomain]
+}
+
+func (v VerifiedCatalog) Validate() error {
+	if v.state == nil {
+		return verificationError(errors.New("verified catalog is unset"))
+	}
+	return errors.Join(v.state.payload.Validate(), v.state.proof.Validate())
+}
+
+// Payload returns an ownership-isolated copy of the authenticated page.
+func (v VerifiedCatalog) Payload() (CatalogPayload, error) {
+	if err := v.Validate(); err != nil {
+		return CatalogPayload{}, verificationError(err)
+	}
+	return cloneCatalogPayload(v.state.payload), nil
+}
+
 func (v CatalogVerification) Validate() error {
 	if err := errors.Join(v.Document.Validate(), v.Request.Validate(), v.TrustedKeys.Validate()); err != nil {
 		return contractError(err)
@@ -420,34 +446,46 @@ func (v CatalogVerification) Validate() error {
 	return nil
 }
 
-func VerifyCatalog(verification CatalogVerification) (CatalogPayload, error) {
+func VerifyCatalog(verification CatalogVerification) (VerifiedCatalog, error) {
 	if err := verification.Validate(); err != nil {
-		return CatalogPayload{}, err
+		return VerifiedCatalog{}, err
 	}
-	if _, err := attest.Verify(attest.VerifyRequest[SigningDomain]{
+	proof, err := attest.Verify(attest.VerifyRequest[SigningDomain]{
 		Body: verification.Document.Payload, Envelope: verification.Document.Attestation,
 		TrustedKeys: verification.TrustedKeys,
-	}); err != nil {
-		return CatalogPayload{}, verificationError(err)
+	})
+	if err != nil {
+		return VerifiedCatalog{}, verificationError(err)
 	}
 	commitment, err := CommitQuery(verification.Request)
 	if err != nil {
-		return CatalogPayload{}, contractError(err)
+		return VerifiedCatalog{}, contractError(err)
 	}
-	payload := verification.Document.Payload
+	payload := cloneCatalogPayload(verification.Document.Payload)
 	if payload.Scope != verification.Request.Query.Scope || payload.Request != commitment {
-		return CatalogPayload{}, conflictError(errors.New("catalog scope differs from expectation"))
+		return VerifiedCatalog{}, conflictError(errors.New("catalog scope differs from expectation"))
 	}
 	if len(payload.Entries) > int(verification.Request.Query.Limit.Uint16()) {
-		return CatalogPayload{}, conflictError(errors.New("catalog page exceeds the requested limit"))
+		return VerifiedCatalog{}, conflictError(errors.New("catalog page exceeds the requested limit"))
 	}
 	if err := validateCatalogPartition(payload, verification.Request.Query.Partition); err != nil {
-		return CatalogPayload{}, err
+		return VerifiedCatalog{}, err
 	}
 	if err := validateCatalogSelection(payload, verification.Request.Query.Selection); err != nil {
-		return CatalogPayload{}, err
+		return VerifiedCatalog{}, err
 	}
-	return payload, nil
+	verified := VerifiedCatalog{state: &verifiedCatalogState{payload: payload, proof: proof}}
+	return verified, verified.Validate()
+}
+
+func cloneCatalogPayload(payload CatalogPayload) CatalogPayload {
+	if payload.Entries == nil {
+		return payload
+	}
+	entries := make([]CatalogEntry, len(payload.Entries))
+	copy(entries, payload.Entries)
+	payload.Entries = entries
+	return payload
 }
 
 func validateCatalogPartition(payload CatalogPayload, partition Partition) error {

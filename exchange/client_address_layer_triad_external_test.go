@@ -86,6 +86,8 @@ func TestTrustedProxyPrefixesHostileTable(t *testing.T) {
 		{name: "boundary IPv6 minimum address and width", raw: "::/0", wantCount: 1},
 		{name: "boundary IPv6 maximum address and width", raw: "ffff:ffff:ffff:ffff:ffff:ffff:ffff:ffff/128", wantCount: 1},
 		{name: "boundary mapped IPv4 prefix canonicalizes", raw: "::ffff:192.0.2.1/128", wantCount: 1},
+		{name: "boundary mapped IPv4 zero-width prefix cannot widen trust", raw: "::ffff:10.0.0.0/96", wantErr: core.ErrExchangeContract},
+		{name: "boundary mapped IPv4 eight-bit prefix remains bounded", raw: "::ffff:10.0.0.0/104", wantCount: 1},
 		{name: "boundary IPv6 zone is refused", raw: "fe80::1%en0/128", wantErr: core.ErrExchangeContract},
 		{name: "boundary missing prefix width is refused", raw: "192.0.2.0/", wantErr: core.ErrExchangeContract},
 		{name: "boundary negative prefix width is refused", raw: "192.0.2.0/-1", wantErr: core.ErrExchangeContract},

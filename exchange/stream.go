@@ -4,6 +4,7 @@ import (
 	"context"
 	"errors"
 	"io"
+	"io/fs"
 	"net/http"
 	"sync"
 
@@ -361,15 +362,15 @@ func newUploadHTTPRequest(
 	if err != nil {
 		return nil, requestError(err)
 	}
-	limited := &io.LimitedReader{
-		R: input.request.Source,
-		N: contentLength,
+	remaining, proven, extentErr := exactUploadSourceExtent(input.request.Source)
+	if extentErr != nil || proven && remaining != contentLength {
+		return nil, requestError(errors.Join(core.ErrExchangeContract, extentErr))
 	}
 	request, err := http.NewRequestWithContext(
 		ctx,
 		input.request.Semantics.Method.String(),
 		input.target.String(),
-		limited,
+		io.NopCloser(input.request.Source),
 	)
 	if err != nil {
 		return nil, requestError(err)
@@ -386,6 +387,70 @@ func newUploadHTTPRequest(
 	applyRequestHeaders(request, input.request.Headers)
 	applyIdempotencyKey(request, input.request.Semantics)
 	return request, nil
+}
+
+type uploadRemainingByteReader interface {
+	Len() int
+}
+
+type uploadExactExtentReader interface {
+	io.Reader
+	RemainingBytes() uint64
+}
+
+type uploadFileReader interface {
+	io.Seeker
+	Stat() (fs.FileInfo, error)
+}
+
+func exactUploadSourceExtent(source io.Reader) (int64, bool, error) {
+	if exact, ok := source.(uploadExactExtentReader); ok {
+		return uploadUint64Extent(exact.RemainingBytes())
+	}
+	if remaining, ok := source.(uploadRemainingByteReader); ok {
+		return uploadInt64Extent(int64(remaining.Len()))
+	}
+	if section, ok := source.(*io.SectionReader); ok {
+		return uploadSectionExtent(section)
+	}
+	if file, ok := source.(uploadFileReader); ok {
+		return uploadFileExtent(file)
+	}
+	return 0, false, nil
+}
+
+func uploadUint64Extent(remaining uint64) (int64, bool, error) {
+	if remaining > uint64(^uint64(0)>>1) {
+		return 0, true, errors.New("upload source extent exceeds the signed integer domain")
+	}
+	return int64(remaining), true, nil
+}
+
+func uploadInt64Extent(remaining int64) (int64, bool, error) {
+	if remaining < 0 {
+		return 0, true, errors.New("upload source reported a negative remaining extent")
+	}
+	return remaining, true, nil
+}
+
+func uploadSectionExtent(section *io.SectionReader) (int64, bool, error) {
+	position, err := section.Seek(0, io.SeekCurrent)
+	if err != nil {
+		return 0, true, err
+	}
+	return uploadInt64Extent(section.Size() - position)
+}
+
+func uploadFileExtent(file uploadFileReader) (int64, bool, error) {
+	position, err := file.Seek(0, io.SeekCurrent)
+	if err != nil {
+		return 0, true, err
+	}
+	info, err := file.Stat()
+	if err != nil {
+		return 0, true, err
+	}
+	return uploadInt64Extent(info.Size() - position)
 }
 
 type downloadHTTPRequest struct {

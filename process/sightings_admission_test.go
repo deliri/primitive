@@ -15,17 +15,17 @@ func TestSnapshotSightingAdmitsOnlyActionableRows(t *testing.T) {
 	tests := []struct {
 		name     string
 		image    string
-		identity int32
+		identity uint32
 		wantOK   bool
 	}{
 		{name: "ordinary user process is a sighting", identity: 4321, image: "worker.exe", wantOK: true},
 		{name: "identity one is a sighting", identity: 1, image: "init", wantOK: true},
 		{name: "single-character image is a sighting", identity: 2, image: "a", wantOK: true},
 		{name: "image with spaces is a sighting", identity: 5, image: "Some Service Host", wantOK: true},
-		{name: "maximum admitted identity is a sighting", identity: 2147483647, image: "svchost.exe", wantOK: true},
+		{name: "maximum signed identity is a sighting", identity: 2147483647, image: "svchost.exe", wantOK: true},
+		{name: "one above the signed identity domain is a sighting", identity: 2147483648, image: "svchost.exe", wantOK: true},
+		{name: "maximum Windows identity is a sighting", identity: 4294967295, image: "svchost.exe", wantOK: true},
 		{name: "idle pseudo-process at identity zero is dropped", identity: 0, image: "System", wantOK: false},
-		{name: "negative identity is dropped", identity: -1, image: "svchost.exe", wantOK: false},
-		{name: "minimum signed identity from an overflowed pid is dropped", identity: -2147483648, image: "svchost.exe", wantOK: false},
 		{name: "empty image is dropped", identity: 100, image: "", wantOK: false},
 		{name: "current-directory image is dropped", identity: 100, image: ".", wantOK: false},
 		{name: "parent-directory image is dropped", identity: 100, image: "..", wantOK: false},

@@ -263,12 +263,12 @@ func fuzzPaymentCatalogDocument(t *testing.T, data []byte, fixtures paymentFuzzF
 		Document: candidate, Request: fixtures.catalog.request, TrustedKeys: fixtures.catalog.trusted,
 	})
 	if err != nil {
-		if !errors.Is(err, core.ErrPaymentVerification) || !isZeroPaymentCatalog(proof) {
+		if !errors.Is(err, core.ErrPaymentVerification) || proof != (VerifiedCatalog{}) {
 			t.Fatalf("VerifyCatalog(fuzz document) = (%v, %v), want typed refusal and zero proof", proof, err)
 		}
 		return
 	}
-	if !samePaymentCatalog(proof, fixtures.catalog.payload) {
+	if !verifiedPaymentCatalogEqual(proof, fixtures.catalog.payload) {
 		t.Fatalf("VerifyCatalog(fuzz document) authenticated facts outside the signed seed")
 	}
 }

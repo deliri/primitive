@@ -127,6 +127,28 @@ type SourceArchiveDocument struct {
 	Attestation attest.Envelope[SourceSigningDomain] `json:"attestation"`
 }
 
+// SourceArchiveVerification binds one authenticated archive to the exact
+// observation instant at which a caller intends to admit it.
+type SourceArchiveVerification struct {
+	Document    SourceArchiveDocument
+	TrustedKeys attest.TrustedKeys
+	ObservedAt  temporal.Instant
+}
+
+func (v SourceArchiveVerification) Validate() error {
+	if err := errors.Join(v.Document.Validate(), v.TrustedKeys.Validate(), v.ObservedAt.Validate()); err != nil {
+		return errors.Join(core.ErrPrimitiveContract, err)
+	}
+	issued, issuedErr := v.ObservedAt.Compare(v.Document.Manifest.IssuedAt)
+	expires, expiresErr := v.ObservedAt.Compare(v.Document.Manifest.ExpiresAt)
+	if issuedErr != nil || expiresErr != nil || issued == core.ComparisonLess || expires != core.ComparisonLess {
+		return errors.Join(core.ErrPrimitiveContract, issuedErr, expiresErr)
+	}
+	return nil
+}
+
+func (SourceArchiveVerification) runnerControlProtocolFact() {}
+
 func (d SourceArchiveDocument) Validate() error {
 	if err := errors.Join(d.Manifest.Validate(), d.Attestation.Validate()); err != nil {
 		return err
@@ -144,11 +166,11 @@ func IssueSourceArchive(manifest SourceArchiveManifest, signer crypto.Signer) (S
 	document := SourceArchiveDocument{Manifest: manifest, Attestation: envelope}
 	return document, document.Validate()
 }
-func VerifySourceArchive(document SourceArchiveDocument, trusted attest.TrustedKeys) error {
-	if err := document.Validate(); err != nil {
+func VerifySourceArchive(verification SourceArchiveVerification) error {
+	if err := verification.Validate(); err != nil {
 		return err
 	}
-	proof, err := attest.Verify(attest.VerifyRequest[SourceSigningDomain]{Body: document.Manifest, Envelope: document.Attestation, TrustedKeys: trusted})
+	proof, err := attest.Verify(attest.VerifyRequest[SourceSigningDomain]{Body: verification.Document.Manifest, Envelope: verification.Document.Attestation, TrustedKeys: verification.TrustedKeys})
 	if err != nil {
 		return err
 	}
@@ -195,6 +217,7 @@ var (
 	_ encoding.TextMarshaler      = SourceSigningDomainUnknown
 	_ json.Unmarshaler            = (*SourceSigningDomain)(nil)
 	_ core.Validatable            = SourceArchiveManifest{}
+	_ core.Validatable            = SourceArchiveVerification{}
 	_ core.ValidatedJSONMarshaler = SourceArchiveDocument{}
 	_ json.Unmarshaler            = (*SourceArchiveDocument)(nil)
 	_                             = sourceSigningDomainWitness[SourceSigningDomain]{}

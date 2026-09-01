@@ -9,10 +9,11 @@ import (
 
 const (
 	// httpEndpointMaximumBytes bounds one absolute HTTP target.
-	httpEndpointMaximumBytes = 16 * 1024
-	httpSchemeText           = "http"
-	httpDefaultPortText      = "80"
-	httpsDefaultPortText     = "443"
+	httpEndpointMaximumBytes       = 16 * 1024
+	httpSchemeText                 = "http"
+	httpDefaultPortText            = "80"
+	httpsDefaultPortText           = "443"
+	httpEndpointFragmentDiagnostic = "HTTP endpoint contains a fragment"
 )
 
 // HTTPEndpoint is one absolute, credential-free HTTP or HTTPS URL. It retains
@@ -44,6 +45,9 @@ const SchemeHTTPS = "https"
 func ParseHTTPEndpoint(value string) (HTTPEndpoint, error) {
 	if len(value) == 0 || len(value) > httpEndpointMaximumBytes {
 		return HTTPEndpoint{}, httpContractError("HTTP endpoint has invalid length")
+	}
+	if strings.Contains(value, "#") {
+		return HTTPEndpoint{}, httpContractError(httpEndpointFragmentDiagnostic)
 	}
 	parsed, err := url.Parse(value)
 	if err != nil {
@@ -148,7 +152,7 @@ func validateHTTPURLAuthority(value *url.URL) error {
 		return httpContractError("HTTP endpoint contains user information")
 	}
 	if value.Fragment != "" || value.RawFragment != "" {
-		return httpContractError("HTTP endpoint contains a fragment")
+		return httpContractError(httpEndpointFragmentDiagnostic)
 	}
 	if strings.ContainsAny(value.Host, "\r\n\t ") {
 		return httpContractError("HTTP endpoint host contains whitespace")
@@ -164,6 +168,9 @@ func validateHTTPURLPort(value *url.URL) error {
 	number, err := strconv.ParseUint(port, 10, 16)
 	if err != nil || number == 0 {
 		return httpContractError("HTTP endpoint port is invalid")
+	}
+	if strconv.FormatUint(number, 10) != port {
+		return httpContractError("HTTP endpoint port is not canonical")
 	}
 	return nil
 }

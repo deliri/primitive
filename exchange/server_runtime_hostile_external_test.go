@@ -134,13 +134,32 @@ func TestServerRuntimeRefusesDuplicateServeAndOccupiedAddress(t *testing.T) {
 		if err != nil {
 			t.Fatalf("net.Listen(occupied fixture) error = %v, want nil", err)
 		}
-		defer listener.Close()
+		t.Cleanup(func() {
+			if closeErr := listener.Close(); closeErr != nil && !errors.Is(closeErr, net.ErrClosed) {
+				t.Errorf("occupied fixture Close() error = %v, want nil or %v", closeErr, net.ErrClosed)
+			}
+		})
 		runtime, runtimeErr := exchange.NewServerRuntime(serverRuntimeConfiguration(t, listener.Addr().String()), http.NotFoundHandler())
 		if runtimeErr != nil {
 			t.Fatalf("exchange.NewServerRuntime(occupied address) error = %v, want nil before effect", runtimeErr)
 		}
 		if gotErr := runtime.Serve(); !errors.Is(gotErr, core.ErrExchangeTransport) {
 			t.Fatalf("ServerRuntime.Serve(occupied address) error = %v, want %v", gotErr, core.ErrExchangeTransport)
+		}
+		if gotErr := waitForRuntimeStart(t, runtime.Ready()); !errors.Is(gotErr, core.ErrExchangeTransport) {
+			t.Fatalf("ServerRuntime.Ready() startup result = %v, want %v", gotErr, core.ErrExchangeTransport)
+		}
+		if err := listener.Close(); err != nil {
+			t.Fatalf("occupied fixture Close() error = %v, want nil", err)
+		}
+		served := make(chan error, 1)
+		go func() { served <- runtime.Serve() }()
+		waitForRuntimeReady(t, runtime.Ready())
+		if err := runtime.Shutdown(t.Context()); err != nil {
+			t.Fatalf("ServerRuntime.Shutdown() after recovered listen error = %v, want nil", err)
+		}
+		if err := waitForRuntimeExit(t, served); err != nil {
+			t.Fatalf("ServerRuntime.Serve() after recovered listen error = %v, want nil", err)
 		}
 	})
 }

@@ -3,6 +3,7 @@ package providerwire
 import (
 	"context"
 	"errors"
+	"net/url"
 	"path"
 	"strings"
 
@@ -32,7 +33,9 @@ const (
 	// StripeVersionHeaderName selects Stripe's pinned API contract.
 	StripeVersionHeaderName = "Stripe-Version"
 	// PayPalRequestIDHeaderName carries PayPal's idempotency identity.
-	PayPalRequestIDHeaderName = "PayPal-Request-Id"
+	PayPalRequestIDHeaderName       = "PayPal-Request-Id"
+	providerAPIVersionOnePathPrefix = "/v1/"
+	providerAPIVersionTwoPathPrefix = "/v2/"
 )
 
 type stripeClient struct {
@@ -99,8 +102,11 @@ func (c StripeClient) Download(ctx context.Context, request exchange.DownloadReq
 	if err := c.Validate(); err != nil {
 		return zero, err
 	}
-	if err := validateProviderDownload(request, StripeAPIHost, "/v"); err != nil {
+	if err := validateProviderDownload(request, StripeAPIHost); err != nil {
 		return zero, err
+	}
+	if !validVersionedProviderPath(request.Target.HTTPURL().Path) {
+		return zero, core.ErrProviderWireBinding
 	}
 	authorization, err := exchange.NewBearerAuthorizationHeader(exchange.BearerAuthorization{Token: c.state.credential.key})
 	if err != nil {
@@ -174,8 +180,11 @@ func (c PlunkClient) Download(ctx context.Context, request exchange.DownloadRequ
 	if err := c.Validate(); err != nil {
 		return zero, err
 	}
-	if err := validateProviderDownload(request, PlunkAPIHost, "/v1/"); err != nil {
+	if err := validateProviderDownload(request, PlunkAPIHost); err != nil {
 		return zero, err
+	}
+	if !strings.HasPrefix(request.Target.HTTPURL().Path, providerAPIVersionOnePathPrefix) {
+		return zero, core.ErrProviderWireBinding
 	}
 	authorization, err := exchange.NewBearerAuthorizationHeader(exchange.BearerAuthorization{Token: c.state.credential.key})
 	if err != nil {
@@ -250,8 +259,11 @@ func (c TwilioClient) Download(ctx context.Context, request exchange.DownloadReq
 		return zero, err
 	}
 	prefix := "/2010-04-01/Accounts/" + c.state.credential.AccountSID.String() + "/"
-	if err := validateProviderDownload(request, TwilioAPIHost, prefix); err != nil {
+	if err := validateProviderDownload(request, TwilioAPIHost); err != nil {
 		return zero, err
+	}
+	if !strings.HasPrefix(request.Target.HTTPURL().Path, prefix) {
+		return zero, core.ErrProviderWireBinding
 	}
 	identity, err := exchange.ParseBasicAuthorizationIdentity(c.state.credential.APIKeySID.String())
 	if err != nil {
@@ -275,14 +287,6 @@ type jsonProviderRequestContract struct {
 	request exchange.StreamRoundTripRequest
 	host    string
 	prefix  string
-}
-
-type providerURLContract struct {
-	scheme      string
-	authority   string
-	rawPath     string
-	requestPath string
-	host        string
 }
 
 // PayPalClient is one OAuth-authorized PayPal REST protocol plug.
@@ -357,8 +361,11 @@ func (c PayPalClient) Download(ctx context.Context, request exchange.DownloadReq
 	if c.state.test {
 		host = PayPalSandboxAPIHost
 	}
-	if err := validateProviderDownload(request, host, "/v"); err != nil {
+	if err := validateProviderDownload(request, host); err != nil {
 		return zero, err
+	}
+	if !validVersionedProviderPath(request.Target.HTTPURL().Path) {
+		return zero, core.ErrProviderWireBinding
 	}
 	authorization, err := exchange.NewBearerAuthorizationHeader(c.state.token.authorization)
 	if err != nil {
@@ -374,9 +381,9 @@ func validateStripeRequest(request exchange.StreamRoundTripRequest) error {
 	}
 	urlValue := request.Target.HTTPURL()
 	wantRequest := "application/x-www-form-urlencoded"
-	if strings.HasPrefix(urlValue.Path, "/v2/") {
+	if strings.HasPrefix(urlValue.Path, providerAPIVersionTwoPathPrefix) {
 		wantRequest = "application/json"
-	} else if !strings.HasPrefix(urlValue.Path, "/v1/") {
+	} else if !strings.HasPrefix(urlValue.Path, providerAPIVersionOnePathPrefix) {
 		return core.ErrProviderWireBinding
 	}
 	if err := requireMediaType(request.RequestContentType, wantRequest); err != nil {
@@ -389,7 +396,7 @@ func validateStripeRequest(request exchange.StreamRoundTripRequest) error {
 }
 
 func validatePlunkRequest(request exchange.StreamRoundTripRequest) error {
-	if err := validateJSONProviderRequest(jsonProviderRequestContract{request: request, host: PlunkAPIHost, prefix: "/v1/"}); err != nil {
+	if err := validateJSONProviderRequest(jsonProviderRequestContract{request: request, host: PlunkAPIHost, prefix: providerAPIVersionOnePathPrefix}); err != nil {
 		return err
 	}
 	return validateOptionalProviderIdempotency(request.Semantics, PlunkIdempotencyKeyMaximumBytes)
@@ -419,7 +426,13 @@ func validateJSONProviderRequest(contract jsonProviderRequestContract) error {
 }
 
 func validatePayPalRequest(request exchange.StreamRoundTripRequest, host string) error {
-	if err := validateJSONProviderRequest(jsonProviderRequestContract{request: request, host: host, prefix: "/v"}); err != nil {
+	if err := validateProviderRequestBase(request, host); err != nil {
+		return err
+	}
+	if !validVersionedProviderPath(request.Target.HTTPURL().Path) || request.Semantics.Method != exchange.MethodPost {
+		return core.ErrProviderWireBinding
+	}
+	if err := requireMediaType(request.RequestContentType, "application/json"); err != nil {
 		return err
 	}
 	return validateOptionalProviderIdempotency(request.Semantics, PayPalRequestIDMaximumBytes)
@@ -444,7 +457,7 @@ func validateProviderRequestBase(request exchange.StreamRoundTripRequest, host s
 		return core.ErrProviderWireContract
 	}
 	urlValue := request.Target.HTTPURL()
-	if urlValue.Scheme != core.SchemeHTTPS || urlValue.Host != host || urlValue.RawPath != "" || urlValue.Path == "" || path.Clean(urlValue.Path) != urlValue.Path {
+	if !validProviderURL(urlValue, host) {
 		return core.ErrProviderWireBinding
 	}
 	if err := requireMediaType(request.ExpectedResponseContentType, "application/json"); err != nil {
@@ -453,13 +466,12 @@ func validateProviderRequestBase(request exchange.StreamRoundTripRequest, host s
 	return nil
 }
 
-func validateProviderDownload(request exchange.DownloadRequest, host, prefix string) error {
+func validateProviderDownload(request exchange.DownloadRequest, host string) error {
 	if len(request.Headers.Values) != 0 || request.Validate() != nil {
 		return core.ErrProviderWireContract
 	}
 	urlValue := request.Target.HTTPURL()
-	if !validProviderURL(providerURLContract{scheme: urlValue.Scheme, authority: urlValue.Host, rawPath: urlValue.RawPath, requestPath: urlValue.Path, host: host}) ||
-		!strings.HasPrefix(urlValue.Path, prefix) {
+	if !validProviderURL(urlValue, host) {
 		return core.ErrProviderWireBinding
 	}
 	if request.Semantics.Method != exchange.MethodGet || request.Semantics.Replay != exchange.ReplaySingleAttempt {
@@ -468,9 +480,17 @@ func validateProviderDownload(request exchange.DownloadRequest, host, prefix str
 	return requireMediaType(request.ExpectedResponseContentType, "application/json")
 }
 
-func validProviderURL(contract providerURLContract) bool {
-	return contract.scheme == core.SchemeHTTPS && contract.authority == contract.host && contract.rawPath == "" && contract.requestPath != "" &&
-		path.Clean(contract.requestPath) == contract.requestPath
+func validProviderURL(value url.URL, host string) bool {
+	endpoint, endpointErr := core.ParseHTTPEndpoint(value.String())
+	originURL := url.URL{Scheme: core.SchemeHTTPS, Host: host}
+	origin, originErr := core.ParseHTTPEndpoint(originURL.String())
+	return endpointErr == nil && originErr == nil && endpoint.SameOrigin(origin) &&
+		value.RawPath == "" && value.Path != "" && path.Clean(value.Path) == value.Path
+}
+
+func validVersionedProviderPath(value string) bool {
+	return strings.HasPrefix(value, providerAPIVersionOnePathPrefix) ||
+		strings.HasPrefix(value, providerAPIVersionTwoPathPrefix)
 }
 
 func requireMediaType(got core.HTTPMediaType, want string) error {

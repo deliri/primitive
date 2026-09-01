@@ -110,7 +110,7 @@ func FuzzGrantPayloadExternalDecoderAndVerifier(f *testing.F) {
 			document := fixture.document
 			document.Payload = value
 			grant, err := VerifyGrant(GrantExpectation{
-				Document: document, Request: fixture.request, Chit: fixture.chit,
+				Document: document, Request: fixture.request, Chit: fixture.chit, Entry: fixture.membership,
 				ObservedAt: retrievalObservedInstant(), TrustedKeys: fixture.trusted,
 			})
 			return grantProofOracle(grant, err, authentic)
@@ -166,7 +166,7 @@ func FuzzGrantDocumentExternalDecoderAndVerifier(f *testing.F) {
 			t.Fatalf("accepted GrantDocument.Validate() error = %v, want nil", err)
 		}
 		grant, verifyErr := VerifyGrant(GrantExpectation{
-			Document: candidate, Request: fixture.request, Chit: fixture.chit,
+			Document: candidate, Request: fixture.request, Chit: fixture.chit, Entry: fixture.membership,
 			ObservedAt: retrievalObservedInstant(), TrustedKeys: fixture.trusted,
 		})
 		if err := grantProofOracle(grant, verifyErr, sameGrantDocument(candidate, fixture.document)); err != nil {

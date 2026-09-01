@@ -293,8 +293,8 @@ func TestTaggedUnionsRejectEverySecondActiveArm(t *testing.T) {
 	t.Parallel()
 	fixture := newReleaseFixture(t, core.NewReleaseVersion(2026, 7, 30), 1)
 	assessment, err := AssessLatest(AssessLatestRequest{
-		Latest:      fixture.verifiedLatest,
-		Observation: temporal.InstantFromNanoseconds(3_000),
+		Latest: fixture.verifiedLatest,
+		Time:   latestTimeEvidenceAt(t, 3_000),
 	})
 	if err != nil {
 		t.Fatalf("AssessLatest() error = %v", err)

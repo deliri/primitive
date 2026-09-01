@@ -1,7 +1,6 @@
 package runnercontrol
 
 import (
-	"bytes"
 	"context"
 	"errors"
 	"io"
@@ -70,43 +69,22 @@ func (c *GoTestObservationCompiler) Write(data []byte) (int, error) {
 		return 0, observationFailure("go test observation compiler receiver is nil", core.ErrPrimitiveContract)
 	}
 	if c.failure != nil {
-		return len(data), nil
+		return 0, c.failure
 	}
-	if len(c.pending)+len(data) > GoTestJSONEventMaximumBytes && !bytes.Contains(data, []byte{'\n'}) {
-		c.failure = observationFailure("go test JSON event exceeds the byte ceiling", core.ErrJSONContract)
-		c.pending = nil
-		return len(data), nil
-	}
-	c.pending = append(c.pending, data...)
-	if err := c.consumeLines(); err != nil {
+	written, extentFailure, err := writeBoundedLines(boundedLineWrite{
+		pending: &c.pending,
+		data:    data,
+		maximum: GoTestJSONEventMaximumBytes,
+		consume: c.consumeEvent,
+	})
+	if err != nil {
 		c.failure = err
 		c.pending = nil
-		return len(data), nil
-	}
-	return len(data), nil
-}
-
-func (c *GoTestObservationCompiler) consumeLines() error {
-	for {
-		end := bytes.IndexByte(c.pending, '\n')
-		if end < 0 {
-			if len(c.pending) > GoTestJSONEventMaximumBytes {
-				return observationFailure("go test JSON event exceeds the byte ceiling", core.ErrJSONContract)
-			}
-			return nil
-		}
-		if end == 0 {
-			return observationFailure("go test JSON stream contains an empty event", core.ErrJSONContract)
-		}
-		if end > GoTestJSONEventMaximumBytes {
-			return observationFailure("go test JSON event exceeds the byte ceiling", core.ErrJSONContract)
-		}
-		line := c.pending[:end]
-		c.pending = c.pending[end+1:]
-		if err := c.consumeEvent(line); err != nil {
-			return err
+		if !extentFailure {
+			return len(data), nil
 		}
 	}
+	return written, err
 }
 
 func (c *GoTestObservationCompiler) consumeEvent(line []byte) error {

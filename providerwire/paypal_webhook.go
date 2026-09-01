@@ -206,6 +206,24 @@ type payPalWebhookReceiver struct {
 // documented verification endpoint before releasing it to caller custody.
 type PayPalWebhookReceiver struct{ state *payPalWebhookReceiver }
 
+// PayPalWebhookReceiveRequest supplies explicit wall time, replay tolerance,
+// transfer policy, and caller custody for one callback.
+type PayPalWebhookReceiveRequest struct {
+	Request     *http.Request
+	Destination io.Writer
+	ObservedAt  temporal.Instant
+	Tolerance   temporal.Duration
+	Policy      exchange.OperationPolicy
+}
+
+func (r PayPalWebhookReceiveRequest) Validate() error {
+	if r.Request == nil || r.Destination == nil || r.ObservedAt.Validate() != nil ||
+		r.Tolerance.Validate() != nil || r.Tolerance.IsZero() || r.Policy.Validate() != nil {
+		return core.ErrProviderWireContract
+	}
+	return nil
+}
+
 func NewPayPalWebhookReceiver(client PayPalClient, webhookID PayPalWebhookID, maximum core.ByteCount) (PayPalWebhookReceiver, error) {
 	if err := errors.Join(client.Validate(), webhookID.Validate(), validatePayPalWebhookMaximum(maximum)); err != nil {
 		return PayPalWebhookReceiver{}, contractError(err)
@@ -233,33 +251,33 @@ func (r *PayPalWebhookReceiver) Close() error {
 	return err
 }
 
-func (r PayPalWebhookReceiver) Receive(request *http.Request, destination io.Writer, policy exchange.OperationPolicy) (InboundObservation, error) {
-	if err := errors.Join(r.Validate(), policy.Validate()); err != nil {
+func (r PayPalWebhookReceiver) Receive(request PayPalWebhookReceiveRequest) (InboundObservation, error) {
+	if err := errors.Join(r.Validate(), request.Validate()); err != nil {
 		return InboundObservation{}, contractError(err)
-	}
-	if request == nil || destination == nil {
-		return InboundObservation{}, core.ErrProviderWireContract
 	}
 	media, err := jsonMediaType()
 	if err != nil {
 		return InboundObservation{}, contractError(err)
 	}
-	body, err := receiveWebhookBody(request, r.state.maximum, media)
+	body, err := receiveWebhookBody(request.Request, r.state.maximum, media)
 	if err != nil {
 		return InboundObservation{}, err
 	}
-	projection, err := r.verificationProjection(request, body)
+	projection, err := r.verificationProjection(request.Request, body)
 	if err != nil {
 		return InboundObservation{}, err
 	}
-	status, err := r.state.client.verifyWebhook(request.Context(), projection, policy)
+	if err := validatePayPalTransmissionTime(projection.TransmissionAt, request.ObservedAt, request.Tolerance); err != nil {
+		return InboundObservation{}, verificationError(err)
+	}
+	status, err := r.state.client.verifyWebhook(request.Request.Context(), projection, request.Policy)
 	if err != nil {
 		return InboundObservation{}, err
 	}
 	if status != PayPalWebhookVerificationSuccess {
 		return InboundObservation{}, core.ErrProviderWireVerification
 	}
-	return writeAuthenticatedBody(request.Context(), ProviderPayPal, destination, body)
+	return writeAuthenticatedBody(request.Request.Context(), ProviderPayPal, request.Destination, body)
 }
 
 func (r PayPalWebhookReceiver) verificationProjection(request *http.Request, body []byte) (payPalWebhookVerificationProjection, error) {
@@ -533,6 +551,33 @@ func (v PayPalTransmissionTime) String() string {
 	return validPayPalScalarString(string(v), v.Validate())
 }
 
+func validatePayPalTransmissionTime(
+	signed PayPalTransmissionTime,
+	observed temporal.Instant,
+	tolerance temporal.Duration,
+) error {
+	if err := signed.Validate(); err != nil {
+		return err
+	}
+	instant, err := temporal.ParseRFC3339(signed.String())
+	if err != nil {
+		return err
+	}
+	comparison, err := observed.Compare(instant)
+	if err != nil {
+		return err
+	}
+	age, err := stripeSignatureAge(observed, instant, comparison)
+	if err != nil {
+		return err
+	}
+	order, err := age.Compare(tolerance)
+	if err != nil || order == core.ComparisonGreater {
+		return errors.Join(core.ErrProviderWireVerification, err)
+	}
+	return nil
+}
+
 func validPayPalScalarString(value string, err error) string {
 	if err != nil {
 		return ""
@@ -591,4 +636,5 @@ var (
 	_ core.ValidatedJSONMarshaler  = payPalWebhookVerificationProjection{}
 	_ core.ValidatedJSONProjection = payPalWebhookVerificationProjection{}
 	_ core.Validatable             = PayPalWebhookReceiver{}
+	_ core.Validatable             = PayPalWebhookReceiveRequest{}
 )

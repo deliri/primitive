@@ -503,7 +503,9 @@ func TestIssueCommittedCheckInResponseBindsUsagePolicyProviderTimeAndRequest(t *
 		t.Fatalf("IssueCommittedCheckInResponse() error = %v, want nil", err)
 	}
 	response, err := client.VerifyCheckInResponse(controlplane.CheckInResponseVerification{
-		Document: document,
+		Document:          document,
+		PreviousWatermark: issued.request.Payload.PreviousWatermark,
+		Window:            issued.request.Payload.Window,
 		Expected: controlplane.ResponseExpectation{
 			RequestNonce: header.RequestNonce, Account: header.Account,
 			Installation: header.Installation, Revision: header.Revision,

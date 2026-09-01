@@ -56,6 +56,7 @@ type CompletionVerification struct {
 	Grant     submission.GrantDocument
 	Document  CompletionDocument
 	Request   Verified
+	Nonce     controlwire.RequestNonce
 }
 
 // VerifiedCompletion proves certificate authentication happened before the
@@ -195,6 +196,7 @@ func (d *CompletionDocument) UnmarshalJSON(data []byte) error {
 func (v CompletionVerification) Validate() error {
 	if err := errors.Join(
 		v.Server.Validate(), v.GrantKeys.Validate(), v.Document.Validate(), v.Request.Validate(), v.Grant.Validate(),
+		v.Nonce.Validate(),
 	); err != nil {
 		return contractError(err)
 	}
@@ -225,7 +227,7 @@ func VerifyCompletion(verification CompletionVerification) (VerifiedCompletion, 
 		Document: verification.Document.Completion,
 		Request:  verification.Request.document.Request.Payload,
 		Grant:    verification.Grant, GrantKeys: verification.GrantKeys,
-		CompletionKeys: deviceKeys,
+		CompletionKeys: deviceKeys, Nonce: verification.Nonce,
 	})
 	if err != nil {
 		return VerifiedCompletion{}, contractError(err)

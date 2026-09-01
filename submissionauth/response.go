@@ -41,11 +41,13 @@ func (i SubmissionResponseIssuance) responseIssuance() controlplane.ResponseIssu
 }
 
 func (v SubmissionResponseVerification) Validate() error {
-	return v.responseVerification().Validate()
+	return v.responseVerification().ValidateForFamily(controlwire.RouteFamilySubmissions)
 }
 
 func VerifySubmissionResponse(v SubmissionResponseVerification) (controlplane.VerifiedResponse[submission.DecisionDocument, *submission.DecisionDocument], error) {
-	return controlplane.VerifyResponse(v.responseVerification())
+	return controlplane.VerifyResponseForFamily(
+		v.responseVerification(), controlwire.RouteFamilySubmissions,
+	)
 }
 
 func (v SubmissionResponseVerification) responseVerification() controlplane.ResponseVerification[submission.DecisionDocument, *submission.DecisionDocument] {
@@ -85,11 +87,13 @@ func (i CompletionResponseIssuance) responseIssuance() controlplane.ResponseIssu
 }
 
 func (v CompletionResponseVerification) Validate() error {
-	return v.responseVerification().Validate()
+	return v.responseVerification().ValidateForFamily(controlwire.RouteFamilySubmissionCompletions)
 }
 
 func VerifyCompletionResponse(v CompletionResponseVerification) (controlplane.VerifiedResponse[chit.Document, *chit.Document], error) {
-	return controlplane.VerifyResponse(v.responseVerification())
+	return controlplane.VerifyResponseForFamily(
+		v.responseVerification(), controlwire.RouteFamilySubmissionCompletions,
+	)
 }
 
 func (v CompletionResponseVerification) responseVerification() controlplane.ResponseVerification[chit.Document, *chit.Document] {

@@ -10,6 +10,7 @@ import (
 	"net"
 	"net/http"
 	"net/http/httptest"
+	"strconv"
 	"testing"
 
 	"encoding/json/jsontext"
@@ -29,6 +30,7 @@ type completionFixture struct {
 	grant         VerifiedGrant
 	grantKeys     attest.TrustedKeys
 	deviceKeys    attest.TrustedKeys
+	nonce         controlwire.RequestNonce
 }
 
 func TestCompletionAuthenticationLayerTriadBindsRealTransferToRepresentativeOpaqueOfferings(t *testing.T) {
@@ -45,7 +47,7 @@ func TestCompletionAuthenticationLayerTriadBindsRealTransferToRepresentativeOpaq
 			fixture := newCompletionFixture(t, offering, []byte(`{"proof":"source-free"}`), byte(index)+0x10)
 			projection, err := IssueCompletion(CompletionIssuance{
 				Signer: fixture.deviceSigner, Request: fixture.request,
-				Grant: fixture.grant, Transfer: fixture.transfer,
+				Grant: fixture.grant, Transfer: fixture.transfer, Nonce: fixture.nonce,
 			})
 			if err != nil {
 				t.Fatalf("IssueCompletion(%v) error = %v, want nil", offering, err)
@@ -54,7 +56,7 @@ func TestCompletionAuthenticationLayerTriadBindsRealTransferToRepresentativeOpaq
 			verified, err := VerifyCompletion(CompletionExpectation{
 				Document: document, Request: fixture.request,
 				Grant:     fixture.grantDocument,
-				GrantKeys: fixture.grantKeys, CompletionKeys: fixture.deviceKeys,
+				GrantKeys: fixture.grantKeys, CompletionKeys: fixture.deviceKeys, Nonce: fixture.nonce,
 			})
 			if err != nil {
 				t.Fatalf("VerifyCompletion(%v) error = %v, want nil", offering, err)
@@ -64,7 +66,7 @@ func TestCompletionAuthenticationLayerTriadBindsRealTransferToRepresentativeOpaq
 				t.Fatalf("VerifiedCompletion.Payload(%v) error = %v, want nil", offering, err)
 			}
 			if got.Build != fixture.request.Build || got.Request != fixture.grantDocument.Payload.Request ||
-				got.Nonce != fixture.request.Nonce ||
+				got.Nonce != fixture.nonce ||
 				got.Capability != fixture.grantDocument.Payload.Capability ||
 				got.Authorization != fixture.grantDocument.Payload.Authorization ||
 				got.Evidence.Provider() != objectstore.ProviderGoogleCloudStorage ||
@@ -85,7 +87,7 @@ func TestCompletionProjectionCarriesEveryAllowedFactAndNoUnownedMaterial(t *test
 	fixture := newCompletionFixture(t, submissionOffering(t, 2), content, 0x10)
 	projection, err := IssueCompletion(CompletionIssuance{
 		Signer: fixture.deviceSigner, Request: fixture.request,
-		Grant: fixture.grant, Transfer: fixture.transfer,
+		Grant: fixture.grant, Transfer: fixture.transfer, Nonce: fixture.nonce,
 	})
 	if err != nil {
 		t.Fatalf("IssueCompletion() error = %v, want nil", err)
@@ -125,7 +127,7 @@ func TestCompletionProjectionCarriesEveryAllowedFactAndNoUnownedMaterial(t *test
 	}
 	document := receiveCompletionProjection(t, projection)
 	payload := document.Payload
-	if payload.Build != fixture.request.Build || payload.Nonce != fixture.request.Nonce ||
+	if payload.Build != fixture.request.Build || payload.Nonce != fixture.nonce ||
 		payload.Request != fixture.grantDocument.Payload.Request ||
 		payload.Capability != fixture.grantDocument.Payload.Capability ||
 		payload.Authorization != fixture.grantDocument.Payload.Authorization ||
@@ -143,6 +145,7 @@ func TestCompletionIssuanceLayerTriadRefusesEveryCrossAgreementSubstitution(t *t
 
 	base := newCompletionFixture(t, submissionOffering(t, 2), []byte("original proof"), 0x10)
 	otherContent := newCompletionFixture(t, submissionOffering(t, 2), []byte("different proof"), 0x10)
+	otherObject := newCompletionFixture(t, submissionOffering(t, 2), []byte("original proof"), 0x30)
 	otherOffering := newCompletionFixture(t, submissionOffering(t, 1), []byte("original proof"), 0x20)
 	cases := []struct {
 		signer   crypto.Signer
@@ -150,24 +153,31 @@ func TestCompletionIssuanceLayerTriadRefusesEveryCrossAgreementSubstitution(t *t
 		transfer objectstore.Transfer
 		request  RequestPayload
 		grant    VerifiedGrant
+		nonce    controlwire.RequestNonce
 	}{
 		{name: "zero request", grant: base.grant, transfer: base.transfer, signer: base.deviceSigner},
 		{name: "zero grant", request: base.request, transfer: base.transfer, signer: base.deviceSigner},
 		{name: "zero transfer", request: base.request, grant: base.grant, signer: base.deviceSigner},
 		{name: "nil signer", request: base.request, grant: base.grant, transfer: base.transfer},
 		{name: "different content transfer", request: base.request, grant: base.grant, transfer: otherContent.transfer, signer: base.deviceSigner},
+		{name: "same bytes uploaded through another capability", request: base.request, grant: base.grant, transfer: otherObject.transfer, signer: base.deviceSigner},
 		{name: "different content request", request: otherContent.request, grant: base.grant, transfer: base.transfer, signer: base.deviceSigner},
 		{name: "different offering request", request: otherOffering.request, grant: base.grant, transfer: base.transfer, signer: base.deviceSigner},
 		{name: "different grant", request: base.request, grant: otherContent.grant, transfer: base.transfer, signer: base.deviceSigner},
 		{name: "different offering grant", request: base.request, grant: otherOffering.grant, transfer: base.transfer, signer: base.deviceSigner},
 		{name: "grant request with other transfer", request: otherContent.request, grant: otherContent.grant, transfer: base.transfer, signer: base.deviceSigner},
+		{name: "submission request nonce reused by completion", request: base.request, grant: base.grant, transfer: base.transfer, signer: base.deviceSigner, nonce: base.request.Nonce},
 	}
 	for _, tc := range cases {
 		t.Run(tc.name, func(t *testing.T) {
 			t.Parallel()
 
+			nonce := tc.nonce
+			if nonce == (controlwire.RequestNonce{}) {
+				nonce = base.nonce
+			}
 			got, err := IssueCompletion(CompletionIssuance{
-				Signer: tc.signer, Request: tc.request, Grant: tc.grant, Transfer: tc.transfer,
+				Signer: tc.signer, Request: tc.request, Grant: tc.grant, Transfer: tc.transfer, Nonce: nonce,
 			})
 			if !errors.Is(err, core.ErrControlPlaneContract) || got != (CompletionProjection{}) {
 				t.Fatalf("IssueCompletion() = (%v, %v), want zero and errors.Is %v",
@@ -233,6 +243,9 @@ func TestCompletionVerificationLayerTriadRefusesEveryAuthenticCrossAgreementSubs
 		{name: "other device completion keys", mutate: func(value *CompletionExpectation) {
 			value.CompletionKeys = otherOffering.deviceKeys
 		}, want: core.ErrAttestVerification},
+		{name: "other completion nonce", mutate: func(value *CompletionExpectation) {
+			value.Nonce = otherOffering.nonce
+		}, want: core.ErrControlPlaneResponseBinding},
 	}
 	for _, tc := range cases {
 		t.Run(tc.name, func(t *testing.T) {
@@ -240,7 +253,7 @@ func TestCompletionVerificationLayerTriadRefusesEveryAuthenticCrossAgreementSubs
 
 			expectation := CompletionExpectation{
 				Document: baseDocument, Request: base.request, Grant: base.grantDocument,
-				GrantKeys: base.grantKeys, CompletionKeys: base.deviceKeys,
+				GrantKeys: base.grantKeys, CompletionKeys: base.deviceKeys, Nonce: base.nonce,
 			}
 			tc.mutate(&expectation)
 			got, err := VerifyCompletion(expectation)
@@ -480,7 +493,7 @@ func receiveIssuedCompletion(t testing.TB, fixture completionFixture) Completion
 
 	projection, err := IssueCompletion(CompletionIssuance{
 		Signer: fixture.deviceSigner, Request: fixture.request,
-		Grant: fixture.grant, Transfer: fixture.transfer,
+		Grant: fixture.grant, Transfer: fixture.transfer, Nonce: fixture.nonce,
 	})
 	if err != nil {
 		t.Fatalf("IssueCompletion() error = %v, want nil", err)
@@ -507,6 +520,7 @@ func newCompletionFixture(t testing.TB, offering core.Offering, content []byte, 
 
 	grantFixture := newGrantFixture(t, grantFixtureRequest{
 		content: content, offering: offering,
+		objectName:        "proof-" + strconv.Itoa(int(seed)) + ".json",
 		requestNonceByte:  seed + 0x20,
 		authorityByte:     seed + 0x40,
 		authorizationByte: seed + 0x60,
@@ -526,10 +540,16 @@ func newCompletionFixture(t testing.TB, offering core.Offering, content []byte, 
 	if err != nil {
 		t.Fatalf("attest.NewTrustedKeys(device) error = %v, want nil", err)
 	}
+	nonceBytes := [core.SHA256DigestBytes]byte{seed + 0x21}
+	nonce, err := controlwire.NewRequestNonce(nonceBytes)
+	if err != nil {
+		t.Fatalf("controlwire.NewRequestNonce(completion) error = %v, want nil", err)
+	}
 	return completionFixture{
 		request: grantFixture.request, grant: verifiedGrant,
 		grantDocument: grantFixture.document, grantKeys: grantFixture.trusted,
 		deviceSigner: deviceSigner, deviceKeys: deviceKeys,
+		nonce:    nonce,
 		transfer: completionUpload(t, verifiedGrant, grantFixture.request, content),
 	}
 }

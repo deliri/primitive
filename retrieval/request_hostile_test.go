@@ -12,6 +12,7 @@ import (
 	"github.com/deliri/primitive/v2026/chit"
 	"github.com/deliri/primitive/v2026/controlwire"
 	"github.com/deliri/primitive/v2026/core"
+	"github.com/deliri/primitive/v2026/receipt"
 )
 
 const (
@@ -452,6 +453,10 @@ func newRetrievalRequestFixture(
 		private: private, trusted: trusted,
 		payload: RequestPayload{
 			Build: build, Chit: mustRetrievalChitID(t, retrievalFixtureChitA),
+			Scope: receipt.Scope{
+				Account:  retrievalLifecycleIdentity(t, 0x21, receipt.NewAccountIdentity),
+				Offering: build.Offering(),
+			},
 			Selection: request.Selection, Revision: controlwire.Revision2026V1, Nonce: nonce,
 		},
 	}

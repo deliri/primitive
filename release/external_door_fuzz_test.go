@@ -9,7 +9,6 @@ import (
 	"github.com/deliri/primitive/v2026/controlwire"
 	"github.com/deliri/primitive/v2026/core"
 	"github.com/deliri/primitive/v2026/keygen"
-	"github.com/deliri/primitive/v2026/temporal"
 )
 
 // releaseJSONDoor is the explicit fuzz inventory for every public Release JSON
@@ -446,7 +445,7 @@ func releaseJSONFixturesForFuzz(t testing.TB) releaseJSONDoorFixtures {
 	selection, err := evaluateWithInstalled(EvaluateRequest{
 		InstalledManifest: installed.verified,
 		Latest:            cache,
-		Observation:       temporal.InstantFromNanoseconds(2_000),
+		Time:              latestTimeEvidenceAt(t, 2_000),
 	}, installed.builds[2])
 	if err != nil {
 		t.Fatalf("evaluateWithInstalled() error = %v, want nil", err)

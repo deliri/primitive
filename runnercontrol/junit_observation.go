@@ -37,8 +37,9 @@ type junitStreamState struct {
 }
 
 // JUnitObservationCompiler streams one bounded JUnit report through the
-// standard XML decoder. The parser goroutine is owned by Seal: closing the
-// writer ends input and Seal joins the parser before returning.
+// standard XML decoder. The caller owns exactly one terminal action: Seal
+// closes successful input, while Abort closes abandoned input. Both join the
+// parser before returning.
 type JUnitObservationCompiler struct {
 	policy  ObservationPolicy
 	writer  *io.PipeWriter
@@ -71,19 +72,27 @@ func (c *JUnitObservationCompiler) Write(data []byte) (int, error) {
 		return 0, observationFailure("JUnit observation compiler is not writable", core.ErrPrimitiveContract)
 	}
 	if c.failure != nil {
-		return len(data), nil
+		return 0, c.failure
 	}
 	if uint64(len(data)) > JUnitXMLMaximumBytes-c.bytes {
 		c.failure = observationFailure("JUnit XML exceeds the byte ceiling", core.ErrPrimitiveContract)
 		_ = c.writer.CloseWithError(c.failure)
-		return len(data), nil
+		return 0, c.failure
 	}
-	c.bytes += uint64(len(data))
 	written, err := c.writer.Write(data)
+	if err == nil && written != len(data) {
+		err = io.ErrShortWrite
+	}
 	if err != nil {
 		c.failure = observationFailure("JUnit XML stream cannot be consumed", core.ErrPrimitiveContract, err)
-		return len(data), nil
+		return written, c.failure
 	}
+	writtenBytes, conversionErr := core.CheckedUint64FromInt64(int64(written))
+	if conversionErr != nil {
+		c.failure = observationFailure("JUnit XML write extent cannot be represented", core.ErrPrimitiveContract, conversionErr)
+		return written, c.failure
+	}
+	c.bytes += writtenBytes
 	return written, nil
 }
 
@@ -102,6 +111,18 @@ func (c *JUnitObservationCompiler) Seal(executionErr error) (JUnitObservation, e
 	}
 	observation := JUnitObservation{Accounting: projectstandards.ExecutionAccounting{Attempts: []projectstandards.ExecutionAttempt{result.attempt}}}
 	return observation, observation.Validate()
+}
+
+// Abort releases an unsealed compiler and joins its parser. It is idempotent so
+// a caller may defer it immediately after construction and still Seal on the
+// successful path.
+func (c *JUnitObservationCompiler) Abort() {
+	if c == nil || c.writer == nil || c.sealed {
+		return
+	}
+	c.sealed = true
+	_ = c.writer.CloseWithError(core.ErrPrimitiveContract)
+	<-c.done
 }
 
 func parseJUnitStream(reader io.Reader, policy ObservationPolicy) (projectstandards.ExecutionAttempt, error) {

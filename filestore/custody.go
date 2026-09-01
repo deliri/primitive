@@ -3,6 +3,7 @@ package filestore
 import (
 	"context"
 	"errors"
+	"io/fs"
 	"os"
 
 	"github.com/deliri/primitive/v2026/contextstate"
@@ -121,13 +122,40 @@ func OpenLockFile(ctx context.Context, request LockFileRequest) (*os.File, error
 	if err := request.Validate(); err != nil {
 		return nil, err
 	}
-	file, err := request.Location.Root.OpenFile(
-		request.Location.Path.String(),
-		os.O_CREATE|os.O_RDWR,
-		request.Mode,
-	)
+	file, err := openMutableFile(rootedOpenRequest{
+		root: request.Location.Root, path: request.Location.Path.String(),
+		flag: os.O_CREATE | os.O_RDWR, mode: request.Mode,
+	})
 	if err != nil {
 		return nil, destinationError(err)
 	}
+	if err := validateLockFile(file); err != nil {
+		return nil, err
+	}
+	if err := prepareRegularReadFile(file); err != nil {
+		return nil, closeCustodyFile(file, destinationError(err))
+	}
+	if err := file.Chmod(request.Mode); err != nil {
+		return nil, closeCustodyFile(file, destinationError(err))
+	}
 	return file, nil
+}
+
+func validateLockFile(file *os.File) error {
+	info, err := file.Stat()
+	if err != nil {
+		return closeCustodyFile(file, destinationError(err))
+	}
+	if !info.Mode().IsRegular() {
+		return closeCustodyFile(file, destinationError(fs.ErrInvalid))
+	}
+	return nil
+}
+
+func closeCustodyFile(file *os.File, primary error) error {
+	closeErr := file.Close()
+	if closeErr != nil {
+		closeErr = destinationError(closeErr)
+	}
+	return errors.Join(primary, closeErr)
 }

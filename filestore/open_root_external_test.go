@@ -155,8 +155,8 @@ func TestOpenRootAcceptsTheDirectoriesProductsKeep(t *testing.T) {
 			}
 			defer openRootClose(t, root)
 
-			if root.Name() != path {
-				t.Fatalf("OpenRoot(%s) name = %q, want %q", tc.suffix, root.Name(), path)
+			if !rootNamesDirectory(t, root, path) {
+				t.Fatalf("OpenRoot(%s) root = %q, want the directory identity %q", tc.suffix, root.Name(), path)
 			}
 			// A root that opened but cannot serve an operation would satisfy a
 			// nil-error check and fail the caller on first use.
@@ -166,6 +166,17 @@ func TestOpenRootAcceptsTheDirectoriesProductsKeep(t *testing.T) {
 			}
 		})
 	}
+}
+
+func rootNamesDirectory(t testing.TB, root *os.Root, path string) bool {
+	t.Helper()
+
+	got, gotErr := root.Stat(".")
+	want, wantErr := os.Stat(path)
+	if gotErr != nil || wantErr != nil {
+		t.Fatalf("stat root identity = (%v, %v), want nil errors", gotErr, wantErr)
+	}
+	return os.SameFile(got, want)
 }
 
 // openRootRelative parses one relative path or fails the test.

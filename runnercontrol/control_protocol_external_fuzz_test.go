@@ -278,6 +278,57 @@ func FuzzSourceArchiveDocumentSemanticClosure(f *testing.F) {
 	})
 }
 
+func TestVerifySourceArchivePinsTheSignedObservationInterval(t *testing.T) {
+	t.Parallel()
+
+	completion := experimentCompletionPayloadFixture(t, true)
+	archiveBytes, err := core.NewByteLength(1024)
+	if err != nil {
+		t.Fatalf("core.NewByteLength() error = %v, want nil", err)
+	}
+	fileMaximum, err := core.NewByteCount(1 << 20)
+	if err != nil {
+		t.Fatalf("core.NewByteCount() error = %v, want nil", err)
+	}
+	manifest := runnercontrol.SourceArchiveManifest{
+		SchemaVersion: runnercontrol.SchemaVersion, Repository: completion.Probe.Source.Repository,
+		Commit: completion.Probe.Source.Commit, Tree: completion.Probe.Source.Tree,
+		ArchiveDigest: core.SHA256Of([]byte("archive")), ArchiveBytes: archiveBytes,
+		EntryMaximum: 128, DepthMaximum: 32, FileMaximumBytes: fileMaximum,
+		IssuedAt: temporal.InstantFromNanoseconds(10), ExpiresAt: temporal.InstantFromNanoseconds(20),
+	}
+	key, trusted := completionSignerFixture(t)
+	document, err := runnercontrol.IssueSourceArchive(manifest, key)
+	if err != nil {
+		t.Fatalf("runnercontrol.IssueSourceArchive() error = %v, want nil", err)
+	}
+	cases := []struct {
+		name      string
+		observed  int64
+		wantValid bool
+	}{
+		{name: "one before issuance is refused", observed: 9},
+		{name: "exact issuance instant is admitted", observed: 10, wantValid: true},
+		{name: "one before expiry is admitted", observed: 19, wantValid: true},
+		{name: "exact expiry instant is refused", observed: 20},
+	}
+	for _, tc := range cases {
+		t.Run(tc.name, func(t *testing.T) {
+			t.Parallel()
+
+			gotErr := runnercontrol.VerifySourceArchive(runnercontrol.SourceArchiveVerification{
+				Document: document, TrustedKeys: trusted, ObservedAt: temporal.InstantFromNanoseconds(tc.observed),
+			})
+			if tc.wantValid && gotErr != nil {
+				t.Fatalf("VerifySourceArchive(%d) error = %v, want nil", tc.observed, gotErr)
+			}
+			if !tc.wantValid && !errors.Is(gotErr, core.ErrPrimitiveContract) {
+				t.Fatalf("VerifySourceArchive(%d) error = %v, want %v", tc.observed, gotErr, core.ErrPrimitiveContract)
+			}
+		})
+	}
+}
+
 func mustRequestedRunJSON(t testing.TB, value runnercontrol.RequestedRun) []byte {
 	t.Helper()
 	got, err := value.MarshalJSON()

@@ -97,8 +97,9 @@ func benchmarkVerifyCatalogPage(b *testing.B, entries int) {
 	b.ResetTimer()
 	for range b.N {
 		got, err := VerifyCatalog(verification)
-		if err != nil || len(got.Entries) != entries {
-			b.Fatalf("VerifyCatalog() = (%d entries, %v), want %d entries and nil", len(got.Entries), err, entries)
+		payload, payloadErr := got.Payload()
+		if err != nil || payloadErr != nil || len(payload.Entries) != entries {
+			b.Fatalf("VerifyCatalog() = (%d entries, %v, payload error %v), want %d entries and nil", len(payload.Entries), err, payloadErr, entries)
 		}
 	}
 }

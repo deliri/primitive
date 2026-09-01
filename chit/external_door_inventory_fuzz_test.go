@@ -318,9 +318,10 @@ func fuzzChitCatalogDocument(t *testing.T, data []byte, fixtures chitFuzzFixture
 		}
 		return
 	}
-	got, gotErr := proof.MarshalJSON()
+	payload, payloadErr := proof.Payload()
+	got, gotErr := payload.MarshalJSON()
 	want, wantErr := fixtures.catalog.payload.MarshalJSON()
-	if gotErr != nil || wantErr != nil || !bytes.Equal(got, want) {
+	if payloadErr != nil || gotErr != nil || wantErr != nil || !bytes.Equal(got, want) {
 		t.Fatalf("VerifyCatalog(fuzz document) authenticated facts outside the signed seed")
 	}
 }

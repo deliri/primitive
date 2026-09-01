@@ -13,6 +13,7 @@ var (
 	_ core.Validatable = ArtifactSetRequest{}
 	_ core.Validatable = AssessLatestRequest{}
 	_ core.Validatable = EvaluateRequest{}
+	_ core.Validatable = LatestTimeEvidence{}
 	_ core.Validatable = EvaluateInstalledRequest{}
 	_ core.Validatable = IssueLatestRequest{}
 	_ core.Validatable = IssueManifestRequest{}

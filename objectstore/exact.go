@@ -4,6 +4,7 @@ import (
 	"bufio"
 	"errors"
 	"io"
+	"io/fs"
 
 	"github.com/deliri/primitive/v2026/core"
 )
@@ -17,11 +18,13 @@ const exactExtentBufferBytes = 32 * 1024
 // transfer in gcsobjects. A short or overlong source is a source-integrity
 // failure, reachable through Failure after the stream ends.
 type ExactReader struct {
-	source    *bufio.Reader
-	failure   error
-	remaining int64
-	delivered uint64
-	verified  bool
+	input      io.Reader
+	source     *bufio.Reader
+	failure    error
+	remaining  int64
+	delivered  uint64
+	emptyReads int
+	verified   bool
 }
 
 // NewExactReader wraps source to deliver exactly length bytes. The reader
@@ -35,6 +38,7 @@ func NewExactReader(source io.Reader, length core.ByteLength) (*ExactReader, err
 		return nil, errors.Join(core.ErrObjectStoreContract, core.ErrObjectStoreSize, err)
 	}
 	return &ExactReader{
+		input:     source,
 		source:    bufio.NewReaderSize(source, exactExtentBufferBytes),
 		remaining: remaining,
 	}, nil
@@ -62,26 +66,48 @@ func (r *ExactReader) Read(destination []byte) (int, error) {
 	if count < 0 || count > len(destination) {
 		return r.fail(0, coreSourceIntegrity())
 	}
-	if int64(count) < r.remaining {
-		r.remaining -= int64(count)
-		if addErr := r.addDelivered(count); addErr != nil {
-			return r.fail(0, addErr)
-		}
-		if err != nil {
-			return r.fail(count, err)
-		}
-		return count, nil
+	if count == 0 && err == nil {
+		return r.recordEmptyRead()
 	}
-	return r.finish(count, err)
+	r.emptyReads = 0
+	if int64(count) == r.remaining {
+		return r.finish(count, err)
+	}
+	return r.continueRead(count, err)
+}
+
+func (r *ExactReader) recordEmptyRead() (int, error) {
+	r.emptyReads++
+	if r.emptyReads >= core.ReaderConsecutiveEmptyReadMaximum {
+		return r.fail(0, io.ErrNoProgress)
+	}
+	return 0, nil
+}
+
+func (r *ExactReader) continueRead(count int, readErr error) (int, error) {
+	r.remaining -= int64(count)
+	if err := r.addDelivered(count); err != nil {
+		return r.fail(0, err)
+	}
+	if readErr != nil {
+		return r.fail(count, readErr)
+	}
+	return count, nil
 }
 
 func (r *ExactReader) finish(count int, readErr error) (int, error) {
 	if readErr != nil && !errors.Is(readErr, io.EOF) {
 		return r.fail(count, readErr)
 	}
-	_, probeErr := r.source.Peek(1)
-	if probeErr == nil || !errors.Is(probeErr, io.EOF) {
-		return r.fail(0, probeErr)
+	if r.source.Buffered() != 0 {
+		return r.fail(0, nil)
+	}
+	remaining, proven, extentErr := exactSourceRemaining(r.input)
+	if extentErr != nil || proven && remaining != 0 {
+		return r.fail(0, extentErr)
+	}
+	if !proven && !errors.Is(readErr, io.EOF) {
+		return r.fail(0, io.ErrNoProgress)
 	}
 	r.remaining = 0
 	if err := r.addDelivered(count); err != nil {
@@ -107,13 +133,74 @@ func (r *ExactReader) ProveEmpty() error {
 	if r.remaining != 0 {
 		return coreSourceIntegrity()
 	}
-	_, err := r.source.Peek(1)
-	if !errors.Is(err, io.EOF) {
+	if r.source.Buffered() != 0 {
+		r.failure = coreSourceIntegrity()
+		return r.failure
+	}
+	remaining, proven, err := exactSourceRemaining(r.input)
+	if err != nil || !proven || remaining != 0 {
+		if err == nil && !proven {
+			err = io.ErrNoProgress
+		}
 		r.failure = errors.Join(coreSourceIntegrity(), err)
 		return r.failure
 	}
 	r.verified = true
 	return nil
+}
+
+type exactRemainingSource interface {
+	RemainingBytes() uint64
+}
+
+type exactLengthSource interface {
+	Len() int
+}
+
+type exactFileSource interface {
+	io.Seeker
+	Stat() (fs.FileInfo, error)
+}
+
+func exactSourceRemaining(source io.Reader) (uint64, bool, error) {
+	if exact, ok := source.(exactRemainingSource); ok {
+		return exact.RemainingBytes(), true, nil
+	}
+	if measured, ok := source.(exactLengthSource); ok {
+		if measured.Len() < 0 {
+			return 0, true, coreSourceIntegrity()
+		}
+		remaining, err := core.CheckedUint64FromInt64(int64(measured.Len()))
+		return remaining, true, err
+	}
+	if section, ok := source.(*io.SectionReader); ok {
+		position, err := section.Seek(0, io.SeekCurrent)
+		if err != nil || position < 0 || position > section.Size() {
+			return 0, true, errors.Join(coreSourceIntegrity(), err)
+		}
+		remaining, conversionErr := core.CheckedUint64FromInt64(section.Size() - position)
+		return remaining, true, conversionErr
+	}
+	if file, ok := source.(exactFileSource); ok {
+		return exactFileRemaining(file)
+	}
+	return 0, false, nil
+}
+
+func exactFileRemaining(file exactFileSource) (uint64, bool, error) {
+	position, err := file.Seek(0, io.SeekCurrent)
+	if err != nil {
+		return 0, true, err
+	}
+	info, err := file.Stat()
+	if err != nil {
+		return 0, true, err
+	}
+	if position < 0 || position > info.Size() {
+		return 0, true, coreSourceIntegrity()
+	}
+	remaining, conversionErr := core.CheckedUint64FromInt64(info.Size() - position)
+	return remaining, true, conversionErr
 }
 
 func (r *ExactReader) fail(count int, cause error) (int, error) {

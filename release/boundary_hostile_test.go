@@ -409,7 +409,7 @@ func TestSelectionAndPreparationExhaustActionBoundaries(t *testing.T) {
 	missing, err := evaluateWithInstalled(EvaluateRequest{
 		InstalledManifest: installed.verified,
 		Latest:            MissingCachedLatest(),
-		Observation:       temporal.InstantFromNanoseconds(2_000),
+		Time:              latestTimeEvidenceAt(t, 2_000),
 	}, installedBuild)
 	if err != nil || missing.State() != SelectionRefreshRequired {
 		t.Fatalf("evaluateWithInstalled(missing) = (%v, %v), want (%v, nil)", missing.State(), err, SelectionRefreshRequired)
@@ -421,7 +421,7 @@ func TestSelectionAndPreparationExhaustActionBoundaries(t *testing.T) {
 	}
 	current, err := evaluateWithInstalled(EvaluateRequest{
 		InstalledManifest: installed.verified, Latest: currentCache,
-		Observation: temporal.InstantFromNanoseconds(2_000),
+		Time: latestTimeEvidenceAt(t, 2_000),
 	}, installedBuild)
 	if err != nil || current.State() != SelectionCurrent {
 		t.Fatalf("evaluateWithInstalled(current) = (%v, %v), want (%v, nil)", current.State(), err, SelectionCurrent)
@@ -443,7 +443,7 @@ func TestSelectionAndPreparationExhaustActionBoundaries(t *testing.T) {
 	}
 	reassess, err := evaluateWithInstalled(EvaluateRequest{
 		InstalledManifest: installed.verified, Latest: futureCache,
-		Observation: temporal.InstantFromNanoseconds(1_500),
+		Time: latestTimeEvidenceAt(t, 1_500),
 	}, installedBuild)
 	if err != nil || reassess.State() != SelectionReassessAt {
 		t.Fatalf("evaluateWithInstalled(future) = (%v, %v), want (%v, nil)", reassess.State(), err, SelectionReassessAt)
@@ -451,7 +451,7 @@ func TestSelectionAndPreparationExhaustActionBoundaries(t *testing.T) {
 
 	expired, err := evaluateWithInstalled(EvaluateRequest{
 		InstalledManifest: installed.verified, Latest: futureCache,
-		Observation: temporal.InstantFromNanoseconds(10_000),
+		Time: latestTimeEvidenceAt(t, 10_000),
 	}, installedBuild)
 	if err != nil || expired.State() != SelectionRefreshRequired {
 		t.Fatalf("evaluateWithInstalled(expired) = (%v, %v), want (%v, nil)", expired.State(), err, SelectionRefreshRequired)
@@ -459,7 +459,7 @@ func TestSelectionAndPreparationExhaustActionBoundaries(t *testing.T) {
 
 	available, err := evaluateWithInstalled(EvaluateRequest{
 		InstalledManifest: installed.verified, Latest: futureCache,
-		Observation: temporal.InstantFromNanoseconds(2_000),
+		Time: latestTimeEvidenceAt(t, 2_000),
 	}, installedBuild)
 	if err != nil || available.State() != SelectionAvailable {
 		t.Fatalf("evaluateWithInstalled(available) = (%v, %v), want (%v, nil)", available.State(), err, SelectionAvailable)
@@ -492,7 +492,7 @@ func TestSelectionAndPreparationExhaustActionBoundaries(t *testing.T) {
 	newerInstalled := newReleaseFixture(t, core.NewReleaseVersion(2026, 8, 0), 1)
 	_, err = evaluateWithInstalled(EvaluateRequest{
 		InstalledManifest: newerInstalled.verified, Latest: futureCache,
-		Observation: temporal.InstantFromNanoseconds(2_000),
+		Time: latestTimeEvidenceAt(t, 2_000),
 	}, newerInstalled.builds[2])
 	if !errors.Is(err, core.ErrReleaseRollback) {
 		t.Fatalf("evaluateWithInstalled(installed newer) error = %v, want %v", err, core.ErrReleaseRollback)
@@ -509,7 +509,7 @@ func TestEvaluatePublicBoundaryRejectsAnUnstampedBinary(t *testing.T) {
 	got, err := Evaluate(EvaluateRequest{
 		InstalledManifest: fixture.verified,
 		Latest:            latest,
-		Observation:       temporal.InstantFromNanoseconds(3_000),
+		Time:              latestTimeEvidenceAt(t, 3_000),
 	})
 	if !errors.Is(err, core.ErrReleaseConflict) {
 		t.Fatalf("Evaluate(unstamped binary) error = %v, want %v", err, core.ErrReleaseConflict)
@@ -534,7 +534,7 @@ func TestEvaluateInstalledLayerTriad(t *testing.T) {
 			Evaluate: EvaluateRequest{
 				InstalledManifest: installed.verified,
 				Latest:            cached,
-				Observation:       temporal.InstantFromNanoseconds(3_000),
+				Time:              latestTimeEvidenceAt(t, 3_000),
 			},
 			Installed: installed.builds[2],
 		})
@@ -545,7 +545,7 @@ func TestEvaluateInstalledLayerTriad(t *testing.T) {
 		if !ok {
 			t.Fatalf("EvaluateInstalled(newer).Available() ok = false")
 		}
-		preparation, err := available.PrepareAt(temporal.InstantFromNanoseconds(4_000))
+		preparation, err := available.Prepare(latestTimeEvidenceAt(t, 4_000))
 		if err != nil {
 			t.Fatalf("AvailableRelease.PrepareAt() error = %v", err)
 		}
@@ -570,7 +570,7 @@ func TestEvaluateInstalledLayerTriad(t *testing.T) {
 			Evaluate: EvaluateRequest{
 				InstalledManifest: installed.verified,
 				Latest:            cached,
-				Observation:       temporal.InstantFromNanoseconds(3_000),
+				Time:              latestTimeEvidenceAt(t, 3_000),
 			},
 		})
 		if !errors.Is(gotErr, core.ErrReleaseConflict) || got != (Selection{}) {
@@ -590,7 +590,7 @@ func TestEvaluateInstalledLayerTriad(t *testing.T) {
 			Evaluate: EvaluateRequest{
 				InstalledManifest: installed.verified,
 				Latest:            cached,
-				Observation:       temporal.InstantFromNanoseconds(3_000),
+				Time:              latestTimeEvidenceAt(t, 3_000),
 			},
 			Installed: installed.builds[2],
 		})
@@ -606,7 +606,7 @@ func TestEvaluateInstalledLayerTriad(t *testing.T) {
 			Evaluate: EvaluateRequest{
 				InstalledManifest: installed.verified,
 				Latest:            MissingCachedLatest(),
-				Observation:       temporal.InstantFromNanoseconds(3_000),
+				Time:              latestTimeEvidenceAt(t, 3_000),
 			},
 			Installed: installed.builds[2],
 		})
@@ -629,7 +629,7 @@ func TestPreparedReleaseExposesOnlyValidatedExactHandoffFacts(t *testing.T) {
 	}
 	selection, err := evaluateWithInstalled(EvaluateRequest{
 		InstalledManifest: installed.verified, Latest: cached,
-		Observation: temporal.InstantFromNanoseconds(3_000),
+		Time: latestTimeEvidenceAt(t, 3_000),
 	}, installed.builds[2])
 	if err != nil {
 		t.Fatalf("evaluateWithInstalled() error = %v", err)
@@ -638,7 +638,7 @@ func TestPreparedReleaseExposesOnlyValidatedExactHandoffFacts(t *testing.T) {
 	if !ok {
 		t.Fatalf("Selection.Available() ok = false, state = %v", selection.State())
 	}
-	preparation, err := available.PrepareAt(temporal.InstantFromNanoseconds(4_000))
+	preparation, err := available.Prepare(latestTimeEvidenceAt(t, 4_000))
 	if err != nil {
 		t.Fatalf("AvailableRelease.PrepareAt() error = %v", err)
 	}
@@ -662,9 +662,14 @@ func TestPreparedReleaseExposesOnlyValidatedExactHandoffFacts(t *testing.T) {
 	if err != nil || latest != candidate.verifiedLatest {
 		t.Fatalf("PreparedRelease.Latest() differs or error = %v", err)
 	}
-	observation, err := prepared.Observation()
-	if err != nil || observation != temporal.InstantFromNanoseconds(4_000) {
-		t.Fatalf("PreparedRelease.Observation() = (%v, %v), want exact preparation observation", observation, err)
+	timeEvidence, err := prepared.TimeEvidence()
+	wantTimeEvidence := latestTimeEvidenceAt(t, 4_000)
+	if err != nil || timeEvidence != wantTimeEvidence {
+		t.Fatalf("PreparedRelease.TimeEvidence() = (%v, %v), want exact preparation evidence", timeEvidence, err)
+	}
+	observation, err := timeEvidence.ObservedAt.Instant()
+	if err != nil {
+		t.Fatalf("PreparedRelease observed instant error = %v, want nil", err)
 	}
 	assessment, err := prepared.Assessment()
 	if err != nil || assessment.Freshness() != LatestFreshnessCurrent ||
@@ -732,8 +737,8 @@ func TestZeroValueCapabilitiesRefuseEveryAccessor(t *testing.T) {
 	if _, err := (PreparedRelease{}).Latest(); !errors.Is(err, core.ErrReleaseVerification) {
 		t.Fatalf("PreparedRelease{}.Latest() error = %v, want %v", err, core.ErrReleaseVerification)
 	}
-	if _, err := (PreparedRelease{}).Observation(); !errors.Is(err, core.ErrReleaseVerification) {
-		t.Fatalf("PreparedRelease{}.Observation() error = %v, want %v", err, core.ErrReleaseVerification)
+	if _, err := (PreparedRelease{}).TimeEvidence(); !errors.Is(err, core.ErrReleaseVerification) {
+		t.Fatalf("PreparedRelease{}.TimeEvidence() error = %v, want %v", err, core.ErrReleaseVerification)
 	}
 	if _, err := (PreparedRelease{}).Assessment(); !errors.Is(err, core.ErrReleaseVerification) {
 		t.Fatalf("PreparedRelease{}.Assessment() error = %v, want %v", err, core.ErrReleaseVerification)
@@ -757,7 +762,7 @@ func TestZeroValueCapabilitiesRefuseEveryAccessor(t *testing.T) {
 
 func provePreparationState(t *testing.T, available AvailableRelease, at int64, want SelectionState) {
 	t.Helper()
-	preparation, err := available.PrepareAt(temporal.InstantFromNanoseconds(at))
+	preparation, err := available.Prepare(latestTimeEvidenceAt(t, at))
 	if err != nil {
 		t.Fatalf("AvailableRelease.PrepareAt(%d) error = %v", at, err)
 	}

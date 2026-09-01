@@ -140,6 +140,31 @@ func TestRequestSemanticsLayerTriad(t *testing.T) {
 			}
 		}
 	})
+
+	t.Run("neutral keyed single attempt carries identity without permitting retry", func(t *testing.T) {
+		t.Parallel()
+
+		key, gotKeyErr := exchange.ParseIdempotencyKey("operation-123")
+		if gotKeyErr != nil {
+			t.Fatalf("ParseIdempotencyKey() setup error = %v, want nil", gotKeyErr)
+		}
+		for _, method := range [...]exchange.Method{exchange.MethodPost, exchange.MethodPatch} {
+			semantics := exchange.RequestSemantics{
+				Method:         method,
+				Replay:         exchange.ReplaySingleAttemptWithIdempotencyKey,
+				IdempotencyKey: key,
+			}
+			gotRetry, gotErr := semantics.AllowsRetry()
+			if gotErr != nil || gotRetry {
+				t.Fatalf(
+					"%s keyed single-attempt AllowsRetry() = (%t, %v), want (false, nil)",
+					method,
+					gotRetry,
+					gotErr,
+				)
+			}
+		}
+	})
 }
 
 func TestOperationPolicyLayerTriad(t *testing.T) {
@@ -407,6 +432,24 @@ func TestHeadersLayerTriad(t *testing.T) {
 						Values: []exchange.HeaderValue{mustHeaderValue(t, "other")},
 					}},
 				},
+			},
+			{
+				name: "Host ownership cannot be overridden",
+				headers: exchange.Headers{Values: []exchange.Header{{
+					Name: core.HTTPHeaderHost(), Values: []exchange.HeaderValue{mustHeaderValue(t, "other.example")},
+				}}},
+			},
+			{
+				name: "Transfer-Encoding ownership cannot be overridden",
+				headers: exchange.Headers{Values: []exchange.Header{{
+					Name: core.HTTPHeaderTransferEncoding(), Values: []exchange.HeaderValue{mustHeaderValue(t, "chunked")},
+				}}},
+			},
+			{
+				name: "Connection ownership cannot be overridden",
+				headers: exchange.Headers{Values: []exchange.Header{{
+					Name: core.HTTPHeaderConnection(), Values: []exchange.HeaderValue{mustHeaderValue(t, "close")},
+				}}},
 			},
 		}
 		for _, tc := range cases {

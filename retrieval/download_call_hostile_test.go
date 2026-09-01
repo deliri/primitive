@@ -235,7 +235,7 @@ func newDownloadCallFixture(t testing.TB, fixtureRequest downloadCallFixtureRequ
 		Private: private, Trusted: trusted, Request: request,
 		Scope: scope, Summary: summary,
 	})
-	capability := retrievalDownloadCapability(t)
+	capability := retrievalDownloadCapability(t, retrievalGrantExpiresAt)
 	commitment, err := capability.Commitment()
 	if err != nil {
 		t.Fatalf("DownloadCapabilityProjection.Commitment() error = %v, want nil", err)
@@ -272,7 +272,7 @@ func newDownloadCallFixture(t testing.TB, fixtureRequest downloadCallFixtureRequ
 		t.Fatalf("json.Unmarshal(GrantDocument) error = %v, want nil", err)
 	}
 	grant, err := VerifyGrant(GrantExpectation{
-		Document: document, Request: request, Chit: verifiedChit,
+		Document: document, Request: request, Chit: verifiedChit, Entry: membership,
 		ObservedAt: temporal.InstantFromNanoseconds(retrievalGrantObserved), TrustedKeys: trusted,
 	})
 	if err != nil {
@@ -296,7 +296,7 @@ func retrievalManifestAddition(t testing.TB, request retrievalEvidenceRequest) (
 	t.Helper()
 	scope := receipt.Scope{
 		Account:  retrievalLifecycleIdentity(t, 0x21, receipt.NewAccountIdentity),
-		Offering: retrievalOfferingIdentity(t, retrievalOffering(t, 3)),
+		Offering: retrievalOfferingIdentity(t, retrievalOffering(t, 2)),
 	}
 	extent, err := core.NewByteLength(uint64(len(request.Payload)))
 	if err != nil {
@@ -404,7 +404,7 @@ func retrievalPartition(t testing.TB, marker byte) chit.Partition {
 	return partition
 }
 
-func retrievalDownloadCapability(t testing.TB) objectstore.DownloadCapabilityProjection {
+func retrievalDownloadCapability(t testing.TB, expiresAt int64) objectstore.DownloadCapabilityProjection {
 	t.Helper()
 	signed, err := objectstore.ParseSignedURL(
 		core.SchemeHTTPS + "://" + core.GoogleCloudStorageHost + "/bucket/object" +
@@ -421,7 +421,7 @@ func retrievalDownloadCapability(t testing.TB) objectstore.DownloadCapabilityPro
 		objectstore.ProviderGoogleCloudStorage,
 		objectstore.DownloadTarget{
 			URL: signed, Headers: headers,
-			ExpiresAt: temporal.InstantFromNanoseconds(retrievalGrantExpiresAt),
+			ExpiresAt: temporal.InstantFromNanoseconds(expiresAt),
 		},
 	)
 	if err != nil {

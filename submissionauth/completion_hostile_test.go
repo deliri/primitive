@@ -47,6 +47,7 @@ type authCompletionFixture struct {
 	completionProjection submission.CompletionProjection
 	request              authFixture
 	verifiedRequest      Verified
+	completionNonce      controlwire.RequestNonce
 }
 
 func TestCredentialedCompletionProjectionLayerTriadBindsWithoutSenderSideDecode(t *testing.T) {
@@ -318,6 +319,7 @@ func TestCredentialedCompletionLayerTriadClosesRepresentativeOpaqueOfferings(t *
 				Document: fixture.credentialed, Request: fixture.verifiedRequest,
 				Grant: fixture.grant, GrantKeys: fixture.request.trusted,
 				Server: submissionAuthServer(t, fixture.request.trusted),
+				Nonce:  fixture.completionNonce,
 			})
 			if err != nil {
 				t.Fatalf("submissionauth.VerifyCompletion(%v) error = %v, want nil", offering, err)
@@ -406,6 +408,7 @@ func TestCredentialedCompletionLayerTriadRefusesCrossInstallationAndAgreementSub
 				Document: base.credentialed, Request: base.verifiedRequest,
 				Grant: base.grant, GrantKeys: base.request.trusted,
 				Server: submissionAuthServer(t, base.request.trusted),
+				Nonce:  base.completionNonce,
 			}
 			tc.mutate(&verification)
 			got, err := VerifyCompletion(verification)
@@ -617,8 +620,10 @@ func newAuthCompletionFixture(t testing.TB, request authCompletionFixtureRequest
 	transfer := authCompletionUpload(t, authCompletionUploadRequest{
 		grant: verifiedGrant, request: base.request.Payload, generation: request.generation,
 	})
+	completionNonce := authRequestNonce(t, request.nonceByte+0x40)
 	projection, err := submission.IssueCompletion(submission.CompletionIssuance{
 		Signer: base.device, Request: base.request.Payload, Grant: verifiedGrant, Transfer: transfer,
+		Nonce: completionNonce,
 	})
 	if err != nil {
 		t.Fatalf("submission.IssueCompletion() error = %v, want nil", err)
@@ -633,7 +638,18 @@ func newAuthCompletionFixture(t testing.TB, request authCompletionFixtureRequest
 	return authCompletionFixture{
 		request: base, verifiedRequest: verifiedRequest, grant: grant, grantProjection: grantProjection,
 		credentialed: credentialed, completionDocument: completion, completionProjection: projection,
+		completionNonce: completionNonce,
 	}
+}
+
+func authRequestNonce(t testing.TB, marker byte) controlwire.RequestNonce {
+	t.Helper()
+	raw := [core.SHA256DigestBytes]byte{marker}
+	nonce, err := controlwire.NewRequestNonce(raw)
+	if err != nil {
+		t.Fatalf("controlwire.NewRequestNonce() error = %v, want nil", err)
+	}
+	return nonce
 }
 
 func authAuthorityNonce(t testing.TB, marker byte) controlwire.AuthorityNonce {

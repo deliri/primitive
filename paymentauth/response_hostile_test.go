@@ -212,12 +212,13 @@ func proveExactPaymentCatalog(
 	catalog, catalogErr := payment.VerifyCatalog(payment.CatalogVerification{
 		Document: gotBody, Request: fixture.request, TrustedKeys: fixture.trusted,
 	})
-	if catalogErr != nil || len(catalog.Entries) != 1 || catalog.Entries[0] != fixture.settled {
+	payload, payloadErr := catalog.Payload()
+	if catalogErr != nil || payloadErr != nil || len(payload.Entries) != 1 || payload.Entries[0] != fixture.settled {
 		t.Fatalf("payment.VerifyCatalog(authenticated response) = (%v, %v), want one exact settled receipt and nil",
 			catalog, catalogErr)
 	}
 	receiptProof, receiptErr := payment.Verify(payment.Verification{
-		Document: catalog.Entries[0],
+		Document: payload.Entries[0],
 		Expected: payment.Expectation{
 			Identity: fixture.settled.Payload.Identity, Scope: fixture.settled.Payload.Scope,
 		},

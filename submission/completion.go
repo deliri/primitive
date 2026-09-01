@@ -51,12 +51,14 @@ type CompletionIssuance struct {
 	Transfer objectstore.Transfer
 	Request  RequestPayload
 	Grant    VerifiedGrant
+	Nonce    controlwire.RequestNonce
 }
 
 // CompletionExpectation supplies the original request, exact signed grant,
 // and the two independently selected trust sets used by an authority.
 type CompletionExpectation struct {
 	Request        RequestPayload
+	Nonce          controlwire.RequestNonce
 	Grant          GrantDocument
 	Document       CompletionDocument
 	GrantKeys      attest.TrustedKeys
@@ -265,26 +267,11 @@ func (p CompletionProjection) ValidateJSONProjection(encoded []byte, limits core
 }
 
 func completionProjection(issuance CompletionIssuance) (completionProjectionPayload, error) {
-	if err := errors.Join(issuance.Request.Validate(), issuance.Grant.Validate(), issuance.Transfer.Validate()); err != nil {
-		return completionProjectionPayload{}, contractError(err)
-	}
-	grant, err := issuance.Grant.Payload()
+	grant, request, err := validateCompletionIssuanceRequest(issuance)
 	if err != nil {
-		return completionProjectionPayload{}, contractError(err)
+		return completionProjectionPayload{}, err
 	}
-	request, err := CommitRequest(issuance.Request)
-	if err != nil || request != grant.Request {
-		return completionProjectionPayload{}, bindingError(errors.New("completion request differs from grant"), err)
-	}
-	capability, err := issuance.Grant.Capability()
-	if err != nil {
-		return completionProjectionPayload{}, contractError(err)
-	}
-	provider, err := capability.Provider()
-	if err != nil || provider != issuance.Transfer.Provider() {
-		return completionProjectionPayload{}, bindingError(errors.New("completion provider differs from grant"), err)
-	}
-	if err := validateCompletionIntegrity(issuance.Transfer, issuance.Request.Declaration); err != nil {
+	if err := validateCompletionIssuanceTransfer(issuance, grant); err != nil {
 		return completionProjectionPayload{}, err
 	}
 	evidence, err := issuance.Transfer.Evidence()
@@ -292,11 +279,47 @@ func completionProjection(issuance CompletionIssuance) (completionProjectionPayl
 		return completionProjectionPayload{}, contractError(err)
 	}
 	payload := completionProjectionPayload{
-		build: issuance.Request.Build, nonce: issuance.Request.Nonce,
+		build: issuance.Request.Build, nonce: issuance.Nonce,
 		request: request, capability: grant.Capability,
 		authorization: grant.Authorization, evidence: evidence,
 	}
 	return payload, payload.Validate()
+}
+
+func validateCompletionIssuanceRequest(
+	issuance CompletionIssuance,
+) (GrantPayload, RequestCommitment, error) {
+	if err := errors.Join(
+		issuance.Request.Validate(), issuance.Grant.Validate(), issuance.Transfer.Validate(),
+		validateCompletionNonce(issuance.Nonce, issuance.Request.Nonce),
+	); err != nil {
+		return GrantPayload{}, RequestCommitment{}, contractError(err)
+	}
+	grant, err := issuance.Grant.Payload()
+	if err != nil {
+		return GrantPayload{}, RequestCommitment{}, contractError(err)
+	}
+	request, err := CommitRequest(issuance.Request)
+	if err != nil || request != grant.Request {
+		return GrantPayload{}, RequestCommitment{}, bindingError(errors.New("completion request differs from grant"), err)
+	}
+	return grant, request, nil
+}
+
+func validateCompletionIssuanceTransfer(issuance CompletionIssuance, grant GrantPayload) error {
+	capability, err := issuance.Grant.Capability()
+	if err != nil {
+		return contractError(err)
+	}
+	provider, err := capability.Provider()
+	if err != nil || provider != issuance.Transfer.Provider() {
+		return bindingError(errors.New("completion provider differs from grant"), err)
+	}
+	transferCapability, present := issuance.Transfer.UploadCapability()
+	if !present || transferCapability != grant.Capability {
+		return bindingError(errors.New("completion transfer capability differs from grant"))
+	}
+	return validateCompletionIntegrity(issuance.Transfer, issuance.Request.Declaration)
 }
 
 func (i CompletionIssuance) Validate() error {
@@ -331,6 +354,7 @@ func (e CompletionExpectation) Validate() error {
 	if err := errors.Join(
 		e.Document.Validate(), e.Request.Validate(), e.Grant.Validate(),
 		e.GrantKeys.Validate(), e.CompletionKeys.Validate(),
+		validateCompletionNonce(e.Nonce, e.Request.Nonce),
 	); err != nil {
 		return contractError(err)
 	}
@@ -338,23 +362,63 @@ func (e CompletionExpectation) Validate() error {
 }
 
 func validateCompletionBinding(expectation CompletionExpectation) error {
+	if err := validateCompletionRequestBinding(expectation); err != nil {
+		return err
+	}
+	payload := expectation.Document.Payload
+	grant := expectation.Grant.Payload
+	if err := validateCompletionGrantFacts(expectation, payload, grant); err != nil {
+		return err
+	}
+	return validateCompletionEvidenceBinding(expectation, payload, grant)
+}
+
+func validateCompletionRequestBinding(expectation CompletionExpectation) error {
 	request, err := CommitRequest(expectation.Request)
 	if err != nil || request != expectation.Grant.Payload.Request ||
 		request != expectation.Document.Payload.Request {
 		return bindingError(errors.New("completion request commitment differs"), err)
 	}
-	payload := expectation.Document.Payload
-	grant := expectation.Grant.Payload
-	if payload.Build != expectation.Request.Build || payload.Nonce != expectation.Request.Nonce ||
+	return nil
+}
+
+func validateCompletionGrantFacts(
+	expectation CompletionExpectation,
+	payload CompletionPayload,
+	grant GrantPayload,
+) error {
+	if payload.Build != expectation.Request.Build || payload.Nonce != expectation.Nonce ||
 		payload.Authorization != grant.Authorization ||
 		payload.Capability != grant.Capability {
 		return bindingError(errors.New("completion grant facts differ"))
 	}
+	return nil
+}
+
+func validateCompletionEvidenceBinding(
+	expectation CompletionExpectation,
+	payload CompletionPayload,
+	grant GrantPayload,
+) error {
 	provider, err := expectation.Grant.Capability.Provider()
 	if err != nil || provider != payload.Evidence.Provider() {
 		return bindingError(errors.New("completion evidence provider differs"), err)
 	}
+	evidenceCapability, present := payload.Evidence.UploadCapability()
+	if !present || evidenceCapability != grant.Capability {
+		return bindingError(errors.New("completion evidence capability differs from grant"))
+	}
 	return validateCompletionEvidence(payload.Evidence, expectation.Request.Declaration)
+}
+
+func validateCompletionNonce(completion, submission controlwire.RequestNonce) error {
+	if err := completion.Validate(); err != nil {
+		return contractError(err)
+	}
+	if completion == submission {
+		return bindingError(errors.New("completion reuses the submission request nonce"))
+	}
+	return nil
 }
 
 func validateCompletionIntegrity(transfer objectstore.Transfer, declaration Declaration) error {

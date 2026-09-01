@@ -205,6 +205,7 @@ flowchart TD
     retrieval --> core
     retrieval --> filestore
     retrieval --> objectstore
+    retrieval --> receipt
     retrieval --> temporal
 
     retrievalauth[retrievalauth] --> attest

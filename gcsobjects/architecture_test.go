@@ -131,11 +131,13 @@ func productionStructRole(name string) (string, bool) {
 		return "internal owner-only write projection", true
 	case "gcsUploadURLRequest":
 		return "internal official SDK signing projection", true
-	case "GCSObjectMetadata", "VerifiedGCSUpload", "GCSDeleteResult", "GCSDeleteObjectResult", "GCSBucketProvisioning",
+	case "GCSObjectMetadata", "GCSReadResult", "VerifiedGCSUpload", "GCSDeleteResult", "GCSDeleteObjectResult", "GCSBucketProvisioning",
 		"GCSBucketPublicReadGrant":
 		return "sealed authenticated provider evidence", true
-	case "gcsObjectIdentity", "gcsObjectProperties", "gcsObjectTimes":
+	case "gcsObjectIdentity", "gcsObjectProperties", "gcsObjectTimes", "gcsReadSession":
 		return "internal authenticated provider metadata projection", true
+	case "gcsExactSource":
+		return "provider-observed exact stream extent", true
 	default:
 		return "", false
 	}

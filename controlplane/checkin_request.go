@@ -253,7 +253,7 @@ func (s Server) VerifyCheckIn(verification CheckInVerification) (VerifiedCheckIn
 		return VerifiedCheckIn{}, checkInError(err)
 	}
 	result := VerifiedCheckIn{
-		request: verification.Request, certificateProof: certificateProof, requestProof: requestProof,
+		request: cloneCheckInRequest(verification.Request), certificateProof: certificateProof, requestProof: requestProof,
 	}
 	return result, result.Validate()
 }
@@ -268,7 +268,13 @@ func (v VerifiedCheckIn) Request() (CheckInRequest, error) {
 	if err := v.Validate(); err != nil {
 		return CheckInRequest{}, err
 	}
-	return v.request, nil
+	return cloneCheckInRequest(v.request), nil
+}
+
+func cloneCheckInRequest(request CheckInRequest) CheckInRequest {
+	request.Payload.Window.Units = append([]WorkUnitCount(nil), request.Payload.Window.Units...)
+	request.Payload.Window.Outcomes = append([]OutcomeCount(nil), request.Payload.Window.Outcomes...)
+	return request
 }
 
 var (

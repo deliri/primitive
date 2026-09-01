@@ -4,6 +4,7 @@ import (
 	json "encoding/json/v2"
 	"errors"
 	"testing"
+	"time"
 
 	"github.com/deliri/primitive/v2026/attest"
 	"github.com/deliri/primitive/v2026/controlwire"
@@ -119,7 +120,7 @@ func TestUpdateExchangeLayerTriadAuthenticatesLatestWithoutInstallingAnything(t 
 		t.Fatalf("VerifiedUpdateResponse.Installed() = (%v, %v), want exact authenticated installed manifest", installed, err)
 	}
 	assessment, err := release.AssessLatest(release.AssessLatestRequest{
-		Latest: latest, Observation: temporal.InstantFromNanoseconds(3_000),
+		Latest: latest, Time: distributionLatestTimeEvidence(t, 3_000),
 	})
 	if err != nil || assessment.Freshness() != release.LatestFreshnessCurrent {
 		t.Fatalf("release.AssessLatest(update result) = (%v, %v), want current", assessment.Freshness(), err)
@@ -134,6 +135,19 @@ func TestUpdateExchangeLayerTriadAuthenticatesLatestWithoutInstallingAnything(t 
 
 	if gotErr := (distribution.VerifiedUpdateResponse{}).Validate(); !errors.Is(gotErr, core.ErrDistributionVerification) {
 		t.Fatalf("distribution.VerifiedUpdateResponse{}.Validate() error = %v, want %v", gotErr, core.ErrDistributionVerification)
+	}
+}
+
+func distributionLatestTimeEvidence(t testing.TB, nanoseconds int64) release.LatestTimeEvidence {
+	t.Helper()
+
+	observation, err := temporal.NewObservation(time.Unix(0, nanoseconds).UTC())
+	if err != nil {
+		t.Fatalf("temporal.NewObservation(%d) error = %v, want nil", nanoseconds, err)
+	}
+	return release.LatestTimeEvidence{
+		StartedAt: observation, ObservedAt: observation,
+		DurableHighWater: temporal.InstantFromNanoseconds(nanoseconds),
 	}
 }
 

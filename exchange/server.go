@@ -484,7 +484,9 @@ func receiveIdempotencyKey(
 	values := request.Header.Values(
 		core.HTTPHeaderIdempotencyKey().String(),
 	)
-	if route.Replay != ReplayIdempotencyKey {
+	requiresKey := route.Replay == ReplayIdempotencyKey ||
+		route.Replay == ReplaySingleAttemptWithIdempotencyKey
+	if !requiresKey {
 		if len(values) != 0 {
 			return IdempotencyKey{}, requestError(core.ErrExchangeContract)
 		}

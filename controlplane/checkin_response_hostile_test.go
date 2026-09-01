@@ -20,7 +20,7 @@ const (
 	checkInResponseFutureInstant = int64(1_000)
 	// checkInResponseOtherGeneration is any generation the golden does not
 	// carry.
-	checkInResponseOtherGeneration = uint64(2)
+	checkInResponseOtherGeneration = uint64(3)
 	// checkInResponseOtherAccountHex is a well-formed account that is not the
 	// golden's.
 	checkInResponseOtherAccountHex = "3c3c3c3c3c3c3c3c3c3c3c3c3c3c3c3c"
@@ -30,6 +30,8 @@ const (
 // a client needs to authenticate it.
 type issuedCheckInResponse struct {
 	expectation controlplane.ResponseExpectation
+	previous    controlplane.UsageWatermark
+	window      controlplane.UsageWindow
 	signer      ed25519.PrivateKey
 	document    controlplane.CheckInResponseDocument
 	trusted     attest.TrustedKeys
@@ -38,6 +40,7 @@ type issuedCheckInResponse struct {
 func (i issuedCheckInResponse) verification() controlplane.CheckInResponseVerification {
 	return controlplane.CheckInResponseVerification{
 		Document: i.document, Expected: i.expectation,
+		PreviousWatermark: i.previous, Window: i.window,
 	}
 }
 
@@ -69,7 +72,19 @@ func issueTestCheckInResponse(t testing.TB) issuedCheckInResponse {
 		t.Fatalf("decoding the golden response error = %v, want nil", err)
 	}
 	payload := golden.Payload
-	payload.Lease = resignLease(t, payload.Lease, signer)
+	var request controlplane.CheckInRequest
+	if err := request.UnmarshalJSON(readGolden(t, "check_in_request.json")); err != nil {
+		t.Fatalf("decoding the golden check-in request error = %v, want nil", err)
+	}
+	previous, err := controlplane.NewInitialUsageWatermark(payload.Watermark.Subject)
+	if err != nil {
+		t.Fatalf("NewInitialUsageWatermark() error = %v, want nil", err)
+	}
+	payload.Watermark, err = controlplane.AdvanceUsageWatermark(previous, request.Payload.Window)
+	if err != nil {
+		t.Fatalf("AdvanceUsageWatermark() error = %v, want nil", err)
+	}
+	payload.Lease = resignCheckInLease(t, payload.Lease, payload.Watermark.Generation, signer)
 	trusted, err := attest.NewTrustedKeys(attest.TrustedKeysRequest{
 		Keys: []core.Ed25519PublicKey{signerPublic},
 	})
@@ -83,8 +98,30 @@ func issueTestCheckInResponse(t testing.TB) issuedCheckInResponse {
 	}
 	return issuedCheckInResponse{
 		signer: signer, document: document, trusted: trusted,
-		expectation: expectationFor(payload.Header),
+		expectation: expectationFor(payload.Header), previous: previous, window: request.Payload.Window,
 	}
+}
+
+func resignCheckInLease(t testing.TB, document lease.Document, generation lease.Generation, signer ed25519.PrivateKey) lease.Document {
+	t.Helper()
+	header, err := document.Decision.Header()
+	if err != nil {
+		t.Fatalf("lease Decision.Header() error = %v, want nil", err)
+	}
+	grant, err := document.Decision.Grant()
+	if err != nil {
+		t.Fatalf("lease Decision.Grant() error = %v, want nil", err)
+	}
+	header.Generation = generation
+	decision, err := lease.NewGrantDecision(lease.GrantDecisionRequest{Header: header, Grant: grant})
+	if err != nil {
+		t.Fatalf("lease.NewGrantDecision() error = %v, want nil", err)
+	}
+	envelope, err := attest.Sign(attest.SignRequest[lease.Domain]{Body: decision, Signer: signer})
+	if err != nil {
+		t.Fatalf("attest.Sign(check-in lease) error = %v, want nil", err)
+	}
+	return lease.Document{Decision: decision, Attestation: envelope}
 }
 
 // TestVerifyCheckInResponseAcceptsOnlyAnAnswerToThisExactCheckIn is the
@@ -122,6 +159,23 @@ func TestVerifyCheckInResponseAcceptsOnlyAnAnswerToThisExactCheckIn(t *testing.T
 		}
 		if _, err := verified.Lease(); err != nil {
 			t.Errorf("Lease() error = %v, want nil", err)
+		}
+	})
+
+	t.Run("an authentic answer cannot authorize a different usage window", func(t *testing.T) {
+		t.Parallel()
+
+		request := issued.verification()
+		request.Window.Units = append([]controlplane.WorkUnitCount(nil), request.Window.Units...)
+		request.Window.Outcomes = append([]controlplane.OutcomeCount(nil), request.Window.Outcomes...)
+		request.Window.Units[0].Count++
+		request.Window.Outcomes[0].Count++
+		if err := request.Window.Validate(); err != nil {
+			t.Fatalf("mutated UsageWindow.Validate() error = %v, want nil", err)
+		}
+		got, gotErr := client.VerifyCheckInResponse(request)
+		if !errors.Is(gotErr, core.ErrControlPlaneDecisionConsistency) || got != (controlplane.VerifiedCheckInResponse{}) {
+			t.Fatalf("VerifyCheckInResponse(other window) = (%v, %v), want zero and %v", got, gotErr, core.ErrControlPlaneDecisionConsistency)
 		}
 	})
 

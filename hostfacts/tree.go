@@ -159,10 +159,11 @@ type treeEntry struct {
 }
 
 type treeFrame struct {
-	directory *os.File
-	relative  string
-	entries   []fs.DirEntry
-	next      int
+	directory  *os.File
+	relative   string
+	entries    []fs.DirEntry
+	next       int
+	emptyReads int
 }
 
 type treeAccumulator struct {
@@ -224,14 +225,36 @@ func (w *treeWalk) step(ctx context.Context) error {
 		return w.inspectNext(index)
 	}
 	entries, err := w.stack[index].directory.ReadDir(directoryBatchEntries)
-	if len(entries) != 0 {
-		w.stack[index].entries = entries
-		w.stack[index].next = 0
-		return nil
+	retained, err := retainTreeRead(&w.stack[index], entries, err)
+	if err != nil || retained {
+		return err
 	}
 	next, ascendErr := ascendTree(w.stack, err)
 	w.stack = next
 	return ascendErr
+}
+
+func retainTreeRead(frame *treeFrame, entries []fs.DirEntry, readErr error) (bool, error) {
+	if frame == nil {
+		return false, core.ErrHostFactsObservation
+	}
+	if readErr != nil && !errors.Is(readErr, io.EOF) {
+		return false, readErr
+	}
+	if len(entries) != 0 {
+		frame.entries = entries
+		frame.next = 0
+		frame.emptyReads = 0
+		return true, nil
+	}
+	if readErr == nil {
+		frame.emptyReads++
+		if frame.emptyReads >= core.ReaderConsecutiveEmptyReadMaximum {
+			return false, errors.Join(core.ErrHostFactsObservation, io.ErrNoProgress)
+		}
+		return true, nil
+	}
+	return false, nil
 }
 
 func (w *treeWalk) inspectNext(index int) error {

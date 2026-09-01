@@ -108,6 +108,28 @@ func TestRegistrationPayloadRefusalNamesWhyAcrossTheWholeStatusDomain(t *testing
 	}
 }
 
+func TestRegistrationPayloadRefusesAConsistentNonGenesisWatermark(t *testing.T) {
+	t.Parallel()
+
+	issued := issueTestRegistration(t)
+	payload := issued.document.Payload
+	var checkIn controlplane.CheckInRequest
+	if err := checkIn.UnmarshalJSON(readGolden(t, "check_in_request.json")); err != nil {
+		t.Fatalf("CheckInRequest.UnmarshalJSON() error = %v, want nil", err)
+	}
+	advanced, err := controlplane.AdvanceUsageWatermark(payload.Watermark, checkIn.Payload.Window)
+	if err != nil {
+		t.Fatalf("AdvanceUsageWatermark() error = %v, want nil", err)
+	}
+	_, signer := testSigningKey(t, 1)
+	payload.Watermark = advanced
+	payload.Lease = resignCheckInLease(t, payload.Lease, advanced.Generation, signer)
+	gotErr := payload.Validate()
+	if !errors.Is(gotErr, core.ErrControlPlaneDecisionConsistency) {
+		t.Fatalf("RegistrationPayload.Validate(non-genesis start) error = %v, want %v", gotErr, core.ErrControlPlaneDecisionConsistency)
+	}
+}
+
 // TestRegistrationDocumentsBindTheirEnvelopeToTheBodysDomain closes the
 // decode-time half of signing-domain confusion.
 //

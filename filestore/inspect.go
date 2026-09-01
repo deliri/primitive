@@ -181,7 +181,7 @@ func Inspect(ctx context.Context, path core.AbsolutePath) (Inspection, error) {
 	if !holdsEntries {
 		return newInspection(PathKindUnreachable)
 	}
-	root, err := os.OpenRoot(parent.String())
+	root, err := openRootDirectory(parent.String())
 	if err != nil {
 		return Inspection{}, sourceError(err)
 	}

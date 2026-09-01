@@ -80,6 +80,7 @@ type releaseContractInventory struct {
 	linkerAssignmentWire              internalFlow[linkerAssignmentWire]
 	buildProvenanceWire               internalFlow[buildProvenanceWire]
 	AssessLatestRequest               protocolFact[AssessLatestRequest]
+	LatestTimeEvidence                protocolFact[LatestTimeEvidence]
 	LatestAssessment                  capabilityWrapper[LatestAssessment]
 	Generation                        protocolFact[Generation]
 	LatestIdentity                    protocolFact[LatestIdentity]
@@ -304,7 +305,7 @@ func TestEvaluateObtainsInstalledIdentityOnlyFromReleaseEmbedding(t *testing.T) 
 			})
 		}
 	}
-	wantFields := []string{"InstalledManifest", "Latest", "Observation"}
+	wantFields := []string{"InstalledManifest", "Latest", "Time"}
 	if !slices.Equal(requestFields, wantFields) {
 		t.Fatalf("EvaluateRequest fields = %v, want %v", requestFields, wantFields)
 	}

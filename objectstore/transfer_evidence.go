@@ -12,7 +12,8 @@ const (
 	// TransferEvidenceJSONMaximumBytes is the derived wire ceiling for every
 	// admitted provider version plus the widest fixed evidence document.
 	TransferEvidenceJSONMaximumBytes = canonicalJSONStringMaximumExpansion*AmazonS3VersionIDMaximumBytes +
-		transferEvidenceDocumentSyntaxMaximumBytes
+		transferEvidenceDocumentSyntaxMaximumBytes + 2*core.SHA256DigestBytes +
+		len(`,"capability_commitment":""`)
 	transferEvidenceDocumentSyntaxMaximumBytes = len(
 		`{"provider":"google_cloud_storage","direction":"download",` +
 			`"version":"","bytes":9223372036854775807,` +
@@ -23,24 +24,26 @@ const (
 )
 
 type transferEvidenceWire struct {
-	Provider  *string            `json:"provider"`
-	Direction *string            `json:"direction"`
-	Version   *string            `json:"version,omitempty"`
-	Bytes     *core.ByteLength   `json:"bytes"`
-	SHA256    *core.SHA256Digest `json:"sha256"`
-	CRC32C    *core.CRC32C       `json:"crc32c"`
+	Provider   *string                     `json:"provider"`
+	Direction  *string                     `json:"direction"`
+	Version    *string                     `json:"version,omitempty"`
+	Bytes      *core.ByteLength            `json:"bytes"`
+	SHA256     *core.SHA256Digest          `json:"sha256"`
+	CRC32C     *core.CRC32C                `json:"crc32c"`
+	Capability *UploadCapabilityCommitment `json:"capability_commitment,omitempty"`
 }
 
 // TransferEvidence is the receive-only exact fact that one provider transfer
 // completed and passed Objectstore integrity verification.
 type TransferEvidence struct {
-	version   ProviderVersion
-	bytes     core.ByteLength
-	sha256    core.SHA256Digest
-	crc32c    core.CRC32C
-	provider  Provider
-	direction Direction
-	set       bool
+	version    ProviderVersion
+	bytes      core.ByteLength
+	sha256     core.SHA256Digest
+	crc32c     core.CRC32C
+	provider   Provider
+	direction  Direction
+	capability UploadCapabilityCommitment
+	set        bool
 }
 
 // TransferEvidenceProjection is the issue-only form created solely from a
@@ -136,7 +139,7 @@ func (t Transfer) Evidence() (TransferEvidenceProjection, error) {
 	}
 	evidence := TransferEvidence{
 		version: t.version, bytes: t.bytes, sha256: t.sha256, crc32c: t.crc32c,
-		provider: t.provider, direction: t.direction, set: true,
+		provider: t.provider, direction: t.direction, capability: t.capability, set: true,
 	}
 	projection := TransferEvidenceProjection{evidence: evidence}
 	return projection, projection.Validate()
@@ -155,13 +158,21 @@ func (e TransferEvidence) Validate() error {
 	if err := validateProviderDirection(e.provider, e.direction); err != nil {
 		return errors.Join(core.ErrObjectStoreContract, err)
 	}
+	if err := validateTransferEvidenceVersion(e); err != nil {
+		return err
+	}
+	return validateOptionalUploadCapability(e.direction, e.capability)
+}
+
+func validateTransferEvidenceVersion(e TransferEvidence) error {
 	if e.provider == ProviderGoogleCloudStorage && e.direction == DirectionUpload && e.version.IsZero() {
 		return core.ErrObjectStoreContract
 	}
-	if !e.version.IsZero() {
-		if err := e.version.Validate(); err != nil || e.version.Provider() != e.provider {
-			return errors.Join(core.ErrObjectStoreContract, err)
-		}
+	if e.version.IsZero() {
+		return nil
+	}
+	if err := e.version.Validate(); err != nil || e.version.Provider() != e.provider {
+		return errors.Join(core.ErrObjectStoreContract, err)
 	}
 	return nil
 }
@@ -175,6 +186,12 @@ func (e TransferEvidence) SHA256() core.SHA256Digest { return e.sha256 }
 func (e TransferEvidence) CRC32C() core.CRC32C       { return e.crc32c }
 func (e TransferEvidence) Version() (ProviderVersion, bool) {
 	return e.version, !e.version.IsZero()
+}
+
+// UploadCapability returns the exact upload capability commitment carried by
+// capability-mediated evidence. Raw provider operations carry none.
+func (e TransferEvidence) UploadCapability() (UploadCapabilityCommitment, bool) {
+	return e.capability, !e.capability.IsZero()
 }
 
 func (p TransferEvidenceProjection) MarshalJSON() ([]byte, error) {
@@ -237,6 +254,10 @@ func transferEvidenceWireFrom(evidence TransferEvidence) transferEvidenceWire {
 		value := evidence.version.String()
 		wire.Version = &value
 	}
+	if !evidence.capability.IsZero() {
+		value := evidence.capability
+		wire.Capability = &value
+	}
 	return wire
 }
 
@@ -255,6 +276,9 @@ func transferEvidenceFromWire(wire transferEvidenceWire) (TransferEvidence, erro
 	evidence := TransferEvidence{
 		provider: provider, direction: direction, bytes: *wire.Bytes,
 		sha256: *wire.SHA256, crc32c: *wire.CRC32C, set: true,
+	}
+	if wire.Capability != nil {
+		evidence.capability = *wire.Capability
 	}
 	evidence.version, err = transferEvidenceVersion(provider, wire.Version)
 	if err != nil {

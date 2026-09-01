@@ -63,6 +63,7 @@ type Transfer struct {
 	provider   Provider
 	direction  Direction
 	commitment Commitment
+	capability UploadCapabilityCommitment
 }
 
 // Provider returns the selected vendor.
@@ -93,33 +94,47 @@ func (t Transfer) Version() (ProviderVersion, bool) {
 	return t.version, !t.version.IsZero()
 }
 
+// UploadCapability returns the exact received upload capability commitment
+// when the transfer ran through Upload. Raw provider operations carry none.
+func (t Transfer) UploadCapability() (UploadCapabilityCommitment, bool) {
+	return t.capability, !t.capability.IsZero()
+}
+
 // Validate proves one confirmed exact transfer.
 func (t Transfer) Validate() error {
-	if err := t.provider.Validate(); err != nil {
+	if err := errors.Join(
+		t.provider.Validate(), t.direction.Validate(),
+		validateProviderDirection(t.provider, t.direction),
+	); err != nil {
 		return err
 	}
-	if err := t.direction.Validate(); err != nil {
+	if err := errors.Join(t.validateConfirmedIntegrity(), t.validateVersion()); err != nil {
 		return err
 	}
-	if err := validateProviderDirection(t.provider, t.direction); err != nil {
-		return err
-	}
-	if t.commitment != CommitmentConfirmed {
+	return validateOptionalUploadCapability(t.direction, t.capability)
+}
+
+func (t Transfer) validateConfirmedIntegrity() error {
+	if t.commitment != CommitmentConfirmed || !t.status.IsSuccess() {
 		return core.ErrObjectStoreContract
 	}
-	if err := t.sha256.Validate(); err != nil {
+	if err := errors.Join(t.sha256.Validate(), t.crc32c.Validate(), t.status.Validate()); err != nil {
 		return errors.Join(core.ErrObjectStoreContract, err)
-	}
-	if err := t.crc32c.Validate(); err != nil {
-		return errors.Join(core.ErrObjectStoreContract, err)
-	}
-	if err := t.status.Validate(); err != nil || !t.status.IsSuccess() {
-		return core.ErrObjectStoreContract
-	}
-	if err := t.validateVersion(); err != nil {
-		return err
 	}
 	return nil
+}
+
+func validateOptionalUploadCapability(
+	direction Direction,
+	capability UploadCapabilityCommitment,
+) error {
+	if capability.IsZero() {
+		return nil
+	}
+	if direction != DirectionUpload {
+		return core.ErrObjectStoreContract
+	}
+	return capability.Validate()
 }
 
 func validateProviderDirection(provider Provider, direction Direction) error {
@@ -347,10 +362,13 @@ func prepareUpload(
 		}
 	}
 	digests := newDigests()
-	source := io.TeeReader(exact, io.MultiWriter(
-		digests.writer(),
-		progressDestination(request.Observer, DirectionUpload, request.Integrity.Length),
-	))
+	source := &uploadObservedSource{
+		exact: exact,
+		destination: io.MultiWriter(
+			digests.writer(),
+			progressDestination(request.Observer, DirectionUpload, request.Integrity.Length),
+		),
+	}
 	spec, err := Spec(provider)
 	if err != nil {
 		return preparedUpload{}, err
@@ -391,6 +409,49 @@ type requestBody struct {
 	contentType core.HTTPMediaType
 	length      core.ByteLength
 }
+
+type uploadObservedSource struct {
+	exact       *ExactReader
+	destination io.Writer
+}
+
+func (s *uploadObservedSource) Read(buffer []byte) (int, error) {
+	count, readErr := s.exact.Read(buffer)
+	if count == 0 {
+		return 0, readErr
+	}
+	written, writeErr := s.destination.Write(buffer[:count])
+	if writeErr != nil {
+		return written, writeErr
+	}
+	if written != count {
+		return written, io.ErrShortWrite
+	}
+	return count, readErr
+}
+
+func (s *uploadObservedSource) RemainingBytes() uint64 {
+	if s == nil || s.exact == nil || s.exact.remaining < 0 {
+		return 0
+	}
+	return uint64(s.exact.remaining)
+}
+
+type framedUploadSource struct {
+	reader    io.Reader
+	remaining uint64
+}
+
+func (s *framedUploadSource) Read(buffer []byte) (int, error) {
+	count, err := s.reader.Read(buffer)
+	if count < 0 || uint64(count) > s.remaining {
+		return 0, core.ErrObjectStoreIntegrity
+	}
+	s.remaining -= uint64(count)
+	return count, err
+}
+
+func (s *framedUploadSource) RemainingBytes() uint64 { return s.remaining }
 
 func uploadBody(
 	spec VendorSpec,
@@ -630,9 +691,9 @@ func multipartUpload(
 		return requestBody{}, errors.Join(core.ErrObjectStoreSize, err)
 	}
 	return requestBody{
-		source: io.MultiReader(
+		source: &framedUploadSource{reader: io.MultiReader(
 			bytes.NewReader(prefix), source, bytes.NewReader(suffix),
-		),
+		), remaining: framedLength.Uint64()},
 		contentType: contentType,
 		length:      framedLength,
 	}, nil

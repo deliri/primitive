@@ -363,7 +363,23 @@ func (b OfficialSDKResponseBoundary) matches(request *http.Request) bool {
 		return true
 	}
 	path := request.URL.EscapedPath()
-	return strings.HasPrefix(path, b.prefix) && strings.HasSuffix(path, b.suffix)
+	return officialSDKPathPrefixMatches(path, b.prefix) &&
+		officialSDKPathSuffixMatches(path, b.suffix)
+}
+
+func officialSDKPathPrefixMatches(path, prefix string) bool {
+	if !strings.HasPrefix(path, prefix) {
+		return false
+	}
+	return len(path) == len(prefix) || strings.HasSuffix(prefix, "/") || path[len(prefix)] == '/'
+}
+
+func officialSDKPathSuffixMatches(path, suffix string) bool {
+	if !strings.HasSuffix(path, suffix) {
+		return false
+	}
+	start := len(path) - len(suffix)
+	return start == 0 || strings.HasPrefix(suffix, "/") || path[start-1] == '/'
 }
 
 // OfficialSDKResponseTransportRequest binds one standard HTTP transport to
@@ -457,7 +473,10 @@ func (t officialSDKResponseTransport) projectResponse(
 	if response == nil {
 		return nil, transportError(core.ErrExchangeContract)
 	}
-	if !t.boundary.matches(request) || response.Body == nil {
+	if response.Body == nil {
+		return nil, transportError(core.ErrExchangeContract)
+	}
+	if !t.boundary.matches(request) {
 		return response, nil
 	}
 	if t.boundary.streamsSuccessfulResponse(request, response) {
@@ -522,12 +541,22 @@ func readOfficialSDKResponse(readRequest officialSDKResponseReadRequest) ([]byte
 	})
 	closeErr := closeResponseBody(readRequest.response.Body)
 	if readErr != nil || closeErr != nil {
-		return nil, errors.Join(responseError(readErr), closeErr)
+		return nil, errors.Join(officialSDKResponseReadError(readRequest.request, readErr), closeErr)
 	}
 	if err := validateOfficialSDKResponsePayload(readRequest.representation, payload); err != nil {
 		return nil, err
 	}
 	return payload, nil
+}
+
+func officialSDKResponseReadError(request *http.Request, readErr error) error {
+	if request == nil {
+		return responseError(readErr)
+	}
+	if contextErr := exchangeContextError(request.Context()); contextErr != nil {
+		return errors.Join(responseError(readErr), contextErr)
+	}
+	return responseError(readErr)
 }
 
 func validateOfficialSDKResponsePayload(

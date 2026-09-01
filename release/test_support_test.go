@@ -4,6 +4,7 @@ import (
 	"crypto/ed25519"
 	"crypto/sha256"
 	"testing"
+	"time"
 
 	"github.com/deliri/primitive/v2026/attest"
 	"github.com/deliri/primitive/v2026/core"
@@ -22,6 +23,19 @@ type releaseFixture struct {
 	verifiedLatest VerifiedLatest
 	manifestTrust  attest.TrustedKeys
 	latestTrust    attest.TrustedKeys
+}
+
+func latestTimeEvidenceAt(t testing.TB, nanoseconds int64) LatestTimeEvidence {
+	t.Helper()
+
+	observation, err := temporal.NewObservation(time.Unix(0, nanoseconds).UTC())
+	if err != nil {
+		t.Fatalf("temporal.NewObservation(%d) error = %v, want nil", nanoseconds, err)
+	}
+	return LatestTimeEvidence{
+		StartedAt: observation, ObservedAt: observation,
+		DurableHighWater: temporal.InstantFromNanoseconds(nanoseconds),
+	}
 }
 
 func newReleaseFixture(t testing.TB, version core.ReleaseVersion, generation uint64) releaseFixture {

@@ -180,20 +180,32 @@ type signalDelivery struct {
 // another process once the observed one is fully gone, so a holder signals
 // through the Execution that owns the child rather than storing the number
 // and signaling later.
-type ProcessIdentity int32
+type ProcessIdentity uint32
 
-// Validate rejects the zero and negative identifiers no real child carries.
+const processIdentityDomainDiagnostic = "process identity is outside the admitted domain"
+
+// Validate rejects the zero identifier no real child carries.
 func (p ProcessIdentity) Validate() error {
-	if p <= 0 {
-		return contractError("process identity is outside the admitted domain")
+	if p == 0 {
+		return contractError(processIdentityDomainDiagnostic)
 	}
 	return nil
+}
+
+func newProcessIdentity(value int) (ProcessIdentity, error) {
+	if value <= 0 || uint64(value) > uint64(^uint32(0)) {
+		return 0, contractError(processIdentityDomainDiagnostic)
+	}
+	return ProcessIdentity(uint32(value)), nil
 }
 
 // Int returns the identifier for a durable record or diagnostic.
 func (p ProcessIdentity) Int() (int, error) {
 	if err := p.Validate(); err != nil {
 		return 0, err
+	}
+	if uint64(p) > uint64(^uint(0)>>1) {
+		return 0, contractError("process identity exceeds the platform int domain")
 	}
 	return int(p), nil
 }

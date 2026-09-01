@@ -271,6 +271,32 @@ func TestCheckInOfferingLayerTriadCarriesRepresentativeOpaqueOfferingsThroughOne
 	}
 }
 
+func TestVerifiedCheckInOwnsUsageSlicesAcrossInputAndAccessorMutation(t *testing.T) {
+	t.Parallel()
+
+	issued := issueTestCheckIn(t, controlplaneOffering(t, 61), testCheckInWindow())
+	input := issued.request
+	wantUnits := issued.request.Payload.Window.Units[0].Count
+	wantOutcomes := issued.request.Payload.Window.Outcomes[0].Count
+	verified, err := issued.server(t).VerifyCheckIn(controlplane.CheckInVerification{Request: input})
+	if err != nil {
+		t.Fatalf("VerifyCheckIn() error = %v, want nil", err)
+	}
+	input.Payload.Window.Units[0].Count++
+	input.Payload.Window.Outcomes[0].Count++
+	first, err := verified.Request()
+	if err != nil {
+		t.Fatalf("VerifiedCheckIn.Request(first) error = %v, want nil", err)
+	}
+	first.Payload.Window.Units[0].Count++
+	first.Payload.Window.Outcomes[0].Count++
+	second, err := verified.Request()
+	if err != nil || second.Payload.Window.Units[0].Count != wantUnits ||
+		second.Payload.Window.Outcomes[0].Count != wantOutcomes {
+		t.Fatalf("VerifiedCheckIn.Request(after mutation) = (%v, %v), want original authenticated counts", second, err)
+	}
+}
+
 // TestCheckInRefusesEveryTamperedFact walks the facts a signature is supposed to
 // bind and proves each one is actually bound.
 //

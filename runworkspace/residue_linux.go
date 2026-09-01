@@ -108,11 +108,12 @@ func (s LinuxResidueSource) observeSubjectProcesses(ctx context.Context) (counts
 		return residueCounts{}, fmt.Errorf("open Linux process table: %w", err)
 	}
 	defer func() { resultErr = errors.Join(resultErr, directory.Close()) }()
+	emptyReads := 0
 	for {
 		if err := ctx.Err(); err != nil {
 			return residueCounts{}, err
 		}
-		entries, readErr := directory.ReadDir(residueReadBatch)
+		entries, readErr := readResidueDirectoryBatch(directory, &emptyReads)
 		for _, entry := range entries {
 			contribution, observeErr := s.observeProcessEntry(ctx, entry)
 			if observeErr != nil {
@@ -189,11 +190,12 @@ func (s LinuxResidueSource) observeProcessDescriptors(ctx context.Context, proce
 		return residueCounts{}, err
 	}
 	defer func() { resultErr = errors.Join(resultErr, directory.Close()) }()
+	emptyReads := 0
 	for {
 		if err := ctx.Err(); err != nil {
 			return residueCounts{}, err
 		}
-		entries, readErr := directory.ReadDir(residueReadBatch)
+		entries, readErr := readResidueDirectoryBatch(directory, &emptyReads)
 		for _, entry := range entries {
 			contribution, observeErr := s.observeDescriptor(processID, entry.Name())
 			if observeErr != nil {
@@ -271,11 +273,12 @@ func countDirectoryEntries(ctx context.Context, root core.AbsolutePath, include 
 		return 0, err
 	}
 	defer func() { resultErr = errors.Join(resultErr, directory.Close()) }()
+	emptyReads := 0
 	for {
 		if err := ctx.Err(); err != nil {
 			return 0, err
 		}
-		entries, readErr := directory.ReadDir(residueReadBatch)
+		entries, readErr := readResidueDirectoryBatch(directory, &emptyReads)
 		for _, entry := range entries {
 			if include(entry.Name()) {
 				if err := incrementResidue(&count); err != nil {
@@ -291,6 +294,19 @@ func countDirectoryEntries(ctx context.Context, root core.AbsolutePath, include 
 		}
 	}
 	return count, nil
+}
+
+func readResidueDirectoryBatch(directory *os.File, emptyReads *int) ([]fs.DirEntry, error) {
+	entries, err := directory.ReadDir(residueReadBatch)
+	if len(entries) != 0 || err != nil {
+		*emptyReads = 0
+		return entries, err
+	}
+	*emptyReads++
+	if *emptyReads >= core.ReaderConsecutiveEmptyReadMaximum {
+		return nil, io.ErrNoProgress
+	}
+	return nil, nil
 }
 
 func decimalName(value string) bool {

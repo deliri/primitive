@@ -11,14 +11,15 @@ import (
 )
 
 type coverageCase struct {
-	name        string
-	class       string
-	setup       func() [][]byte
-	wantMode    runnercontrol.CoverageMode
-	wantTotal   uint64
-	wantCovered uint64
-	wantBasis   uint16
-	wantErr     error
+	name         string
+	class        string
+	setup        func() [][]byte
+	wantMode     runnercontrol.CoverageMode
+	wantTotal    uint64
+	wantCovered  uint64
+	wantBasis    uint16
+	wantErr      error
+	wantWriteErr error
 }
 
 func TestGoCoverageCompilerHostileEvidenceMatrix(t *testing.T) {
@@ -39,6 +40,12 @@ func TestGoCoverageCompilerHostileEvidenceMatrix(t *testing.T) {
 			compiler := runnercontrol.NewGoCoverageCompiler()
 			for chunkIndex, chunk := range tc.setup() {
 				gotWritten, gotWriteErr := compiler.Write(chunk)
+				if tc.wantWriteErr != nil {
+					if !errors.Is(gotWriteErr, tc.wantWriteErr) || gotWritten >= len(chunk) {
+						t.Fatalf("GoCoverageCompiler.Write(%s chunk %d) = (%d, %v), want partial write and errors.Is(..., %v)", tc.name, chunkIndex, gotWritten, gotWriteErr, tc.wantWriteErr)
+					}
+					break
+				}
 				if gotWriteErr != nil || gotWritten != len(chunk) {
 					t.Fatalf("GoCoverageCompiler.Write(%s chunk %d) = (%d, %v), want (%d, nil) while retaining the full artifact", tc.name, chunkIndex, gotWritten, gotWriteErr, len(chunk))
 				}
@@ -151,7 +158,7 @@ func coverageExactLineCase() coverageCase {
 
 func coverageAboveLineCase() coverageCase {
 	return coverageCase{
-		name: "record one byte above line ceiling is refused", class: "boundary", wantErr: core.ErrPrimitiveContract,
+		name: "record one byte above line ceiling is refused", class: "boundary", wantErr: core.ErrPrimitiveContract, wantWriteErr: core.ErrJSONContract,
 		setup: func() [][]byte {
 			line := strings.Repeat("x", int(runnercontrol.GoCoverageLineMaximumBytes)+1)
 			return [][]byte{[]byte(fmt.Sprintf("mode: set\n%s", line))}
@@ -168,7 +175,17 @@ func FuzzGoCoverageCompilerSemanticClosure(f *testing.F) {
 	f.Fuzz(func(t *testing.T, data []byte) {
 		compiler := runnercontrol.NewGoCoverageCompiler()
 		gotWritten, gotWriteErr := compiler.Write(data)
-		if gotWriteErr != nil || gotWritten != len(data) {
+		if gotWriteErr != nil {
+			if !errors.Is(gotWriteErr, core.ErrJSONContract) || gotWritten >= len(data) {
+				t.Fatalf("GoCoverageCompiler.Write(fuzz input) = (%d, %v), want a typed partial-write refusal", gotWritten, gotWriteErr)
+			}
+			got, gotErr := compiler.Seal()
+			if !errors.Is(gotErr, core.ErrPrimitiveContract) || got != (runnercontrol.GoCoverageObservation{}) {
+				t.Fatalf("GoCoverageCompiler.Seal(write-refused fuzz input) = (%+v, %v), want zero and typed refusal", got, gotErr)
+			}
+			return
+		}
+		if gotWritten != len(data) {
 			t.Fatalf("GoCoverageCompiler.Write(fuzz input) = (%d, %v), want (%d, nil) so the raw artifact remains retainable", gotWritten, gotWriteErr, len(data))
 		}
 		got, gotErr := compiler.Seal()

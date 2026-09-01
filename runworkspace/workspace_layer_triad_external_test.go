@@ -2,6 +2,7 @@ package runworkspace_test
 
 import (
 	"errors"
+	"os"
 	"testing"
 
 	"github.com/deliri/primitive/v2026/core"
@@ -64,6 +65,16 @@ func TestWorkspaceEffectLayerTriad(t *testing.T) {
 		before, observeErr := manager.Observe(t.Context(), temporal.InstantFromNanoseconds(1), runworkspace.Residue{})
 		if observeErr != nil || before.Entries < 9 {
 			t.Fatalf("Manager.Observe(populated) = (%+v, %v), want at least 9 workspace entries and nil", before, observeErr)
+		}
+		absoluteUnit, unitRootErr := manager.Absolute(unit.Root)
+		if unitRootErr != nil {
+			t.Fatalf("Manager.Absolute(unit root) error = %v, want nil", unitRootErr)
+		}
+		if err := os.Chmod(absoluteCache.String(), 0o000); err != nil {
+			t.Fatalf("chmod nested workspace directory to 000 error = %v, want nil", err)
+		}
+		if err := os.Chmod(absoluteUnit.String(), 0o000); err != nil {
+			t.Fatalf("chmod unit workspace directory to 000 error = %v, want nil", err)
 		}
 		if cleanupErr := manager.CleanupUnit(t.Context(), unit); cleanupErr != nil {
 			t.Fatalf("Manager.CleanupUnit() error = %v, want nil", cleanupErr)

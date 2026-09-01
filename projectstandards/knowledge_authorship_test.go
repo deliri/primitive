@@ -18,7 +18,7 @@ func TestKnowledgeRecordsExposeExactAuthoredFieldPrefixes(t *testing.T) {
 	}{
 		{
 			name:   "file knowledge separates source coordinates from authored meaning",
-			record: reflect.TypeOf(Component{}),
+			record: reflect.TypeFor[Component](),
 			wantObserved: []string{
 				"Created", "Path", "Language", "Package", "Changed", "Kind",
 			},
@@ -29,7 +29,7 @@ func TestKnowledgeRecordsExposeExactAuthoredFieldPrefixes(t *testing.T) {
 		},
 		{
 			name:   "project knowledge separates source coordinates from authored meaning",
-			record: reflect.TypeOf(ProductKnowledge{}),
+			record: reflect.TypeFor[ProductKnowledge](),
 			wantObserved: []string{
 				"Created", "SourcePath", "Changed",
 			},
@@ -41,7 +41,7 @@ func TestKnowledgeRecordsExposeExactAuthoredFieldPrefixes(t *testing.T) {
 		},
 		{
 			name:   "package knowledge separates source coordinates from authored meaning",
-			record: reflect.TypeOf(PackageKnowledge{}),
+			record: reflect.TypeFor[PackageKnowledge](),
 			wantObserved: []string{
 				"Created", "Path", "Changed",
 			},
@@ -61,8 +61,7 @@ func TestKnowledgeRecordsExposeExactAuthoredFieldPrefixes(t *testing.T) {
 			if testCase.record.NumField() != wantCount {
 				t.Fatalf("%s field count = %d, want %d classified fields", testCase.record.Name(), testCase.record.NumField(), wantCount)
 			}
-			for index := range testCase.record.NumField() {
-				field := testCase.record.Field(index)
+			for field := range testCase.record.Fields() {
 				observed := slices.Contains(testCase.wantObserved, field.Name)
 				authored := slices.Contains(testCase.wantAuthor, field.Name)
 				if observed == authored {

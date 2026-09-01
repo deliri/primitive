@@ -106,8 +106,23 @@ func validateCatalogEntries(payload CatalogPayload) error {
 		}
 		prior = current
 	}
-	if payload.Continuation.State == core.CatalogContinuationMore && len(payload.Entries) == 0 {
+	return validateCatalogContinuation(payload)
+}
+
+func validateCatalogContinuation(payload CatalogPayload) error {
+	if payload.Continuation.State != core.CatalogContinuationMore {
+		return nil
+	}
+	if len(payload.Entries) == 0 {
 		return verificationError(errors.New("empty payment catalog claims continuation"))
+	}
+	last := payload.Entries[len(payload.Entries)-1]
+	cursor, err := CursorFor(last.Payload.Identity)
+	if err != nil {
+		return err
+	}
+	if cursor != payload.Continuation.Cursor {
+		return verificationError(errors.New("payment catalog continuation does not close the page tail"))
 	}
 	return nil
 }
@@ -250,6 +265,32 @@ type CatalogVerification struct {
 	TrustedKeys attest.TrustedKeys
 }
 
+// VerifiedCatalog is sealed proof that one exact payment page authenticated
+// and matched the query that selected it.
+type VerifiedCatalog struct {
+	state *verifiedCatalogState
+}
+
+type verifiedCatalogState struct {
+	payload CatalogPayload
+	proof   attest.Verified[SigningDomain]
+}
+
+func (v VerifiedCatalog) Validate() error {
+	if v.state == nil {
+		return verificationError(errors.New("verified payment catalog is unset"))
+	}
+	return errors.Join(v.state.payload.Validate(), v.state.proof.Validate())
+}
+
+// Payload returns an ownership-isolated copy of the authenticated page.
+func (v VerifiedCatalog) Payload() (CatalogPayload, error) {
+	if err := v.Validate(); err != nil {
+		return CatalogPayload{}, verificationError(err)
+	}
+	return cloneCatalogPayload(v.state.payload), nil
+}
+
 // Validate closes the complete catalog verification input.
 func (v CatalogVerification) Validate() error {
 	if err := errors.Join(v.Document.Validate(), v.Request.Validate(), v.TrustedKeys.Validate()); err != nil {
@@ -260,28 +301,43 @@ func (v CatalogVerification) Validate() error {
 
 // VerifyCatalog authenticates one exact payment page and binds it to the
 // selection, cursor, limit, account, build, nonce, and revision requested.
-func VerifyCatalog(verification CatalogVerification) (CatalogPayload, error) {
+func VerifyCatalog(verification CatalogVerification) (VerifiedCatalog, error) {
 	if err := verification.Validate(); err != nil {
-		return CatalogPayload{}, err
+		return VerifiedCatalog{}, err
 	}
-	if _, err := attest.Verify(attest.VerifyRequest[SigningDomain]{
+	proof, err := attest.Verify(attest.VerifyRequest[SigningDomain]{
 		Body: verification.Document.Payload, Envelope: verification.Document.Attestation,
 		TrustedKeys: verification.TrustedKeys,
-	}); err != nil {
-		return CatalogPayload{}, verificationError(err)
+	})
+	if err != nil {
+		return VerifiedCatalog{}, verificationError(err)
 	}
 	commitment, err := CommitQuery(verification.Request)
 	if err != nil {
-		return CatalogPayload{}, contractError(err)
+		return VerifiedCatalog{}, contractError(err)
 	}
-	payload := verification.Document.Payload
+	payload := cloneCatalogPayload(verification.Document.Payload)
 	if payload.Scope != verification.Request.Query.Scope || payload.Request != commitment {
-		return CatalogPayload{}, verificationError(errors.New("payment catalog scope differs from expectation"))
+		return VerifiedCatalog{}, verificationError(errors.New("payment catalog scope differs from expectation"))
+	}
+	if len(payload.Entries) > int(verification.Request.Query.Limit.Uint16()) {
+		return VerifiedCatalog{}, verificationError(errors.New("payment catalog page exceeds the requested limit"))
 	}
 	if err := validateCatalogSelection(payload, verification.Request.Query.Selection); err != nil {
-		return CatalogPayload{}, err
+		return VerifiedCatalog{}, err
 	}
-	return payload, nil
+	verified := VerifiedCatalog{state: &verifiedCatalogState{payload: payload, proof: proof}}
+	return verified, verified.Validate()
+}
+
+func cloneCatalogPayload(payload CatalogPayload) CatalogPayload {
+	if payload.Entries == nil {
+		return payload
+	}
+	entries := make([]Document, len(payload.Entries))
+	copy(entries, payload.Entries)
+	payload.Entries = entries
+	return payload
 }
 
 func validateCatalogSelection(payload CatalogPayload, selection Selection) error {

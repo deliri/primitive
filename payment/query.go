@@ -10,6 +10,14 @@ import (
 
 const specificSelectionPaginationDiagnostic = "specific payment selection cannot be paginated"
 
+const (
+	// CatalogCursorCommitmentDomain separates payment catalog positions from
+	// every other digest use in Primitive.
+	CatalogCursorCommitmentDomain = "primitive.payment.catalog-cursor.v1"
+	// CatalogCursorFrameSeparator makes the domain and payment identity frame injective.
+	CatalogCursorFrameSeparator byte = 0
+)
+
 // Cursor is Payment's nominal opaque closure of one catalog position.
 type Cursor struct{ value core.SHA256Digest }
 
@@ -20,6 +28,29 @@ func NewCursor(value core.SHA256Digest) (Cursor, error) {
 		return Cursor{}, err
 	}
 	return candidate, nil
+}
+
+// CursorFor closes the exact last Payment identity represented by a page into
+// the opaque position from which the next page must continue.
+func CursorFor(identity PaymentID) (Cursor, error) {
+	if err := identity.Validate(); err != nil {
+		return Cursor{}, contractError(err)
+	}
+	writer := core.NewDigestWriter()
+	if _, err := writer.Write([]byte(CatalogCursorCommitmentDomain)); err != nil {
+		return Cursor{}, contractError(err)
+	}
+	if _, err := writer.Write([]byte{CatalogCursorFrameSeparator}); err != nil {
+		return Cursor{}, contractError(err)
+	}
+	if _, err := writer.Write([]byte(identity.String())); err != nil {
+		return Cursor{}, contractError(err)
+	}
+	digest, _, err := writer.Seal()
+	if err != nil {
+		return Cursor{}, contractError(err)
+	}
+	return NewCursor(digest)
 }
 
 // Validate rejects an unset cursor.

@@ -41,11 +41,13 @@ func (i MaterialResponseIssuance) responseIssuance() controlplane.ResponseIssuan
 }
 
 func (v MaterialResponseVerification) Validate() error {
-	return v.responseVerification().Validate()
+	return v.responseVerification().ValidateForFamily(controlwire.RouteFamilyReleaseMaterials)
 }
 
 func VerifyMaterialResponse(v MaterialResponseVerification) (controlplane.VerifiedResponse[release.MaterialResponse, *release.MaterialResponse], error) {
-	return controlplane.VerifyResponse(v.responseVerification())
+	return controlplane.VerifyResponseForFamily(
+		v.responseVerification(), controlwire.RouteFamilyReleaseMaterials,
+	)
 }
 
 func (v MaterialResponseVerification) responseVerification() controlplane.ResponseVerification[release.MaterialResponse, *release.MaterialResponse] {
@@ -85,11 +87,13 @@ func (i PublicationResponseIssuance) responseIssuance() controlplane.ResponseIss
 }
 
 func (v PublicationResponseVerification) Validate() error {
-	return v.responseVerification().Validate()
+	return v.responseVerification().ValidateForFamily(controlwire.RouteFamilyReleasePublications)
 }
 
 func VerifyPublicationResponse(v PublicationResponseVerification) (controlplane.VerifiedResponse[distribution.PublicationGrantDocument, *distribution.PublicationGrantDocument], error) {
-	return controlplane.VerifyResponse(v.responseVerification())
+	return controlplane.VerifyResponseForFamily(
+		v.responseVerification(), controlwire.RouteFamilyReleasePublications,
+	)
 }
 
 func (v PublicationResponseVerification) responseVerification() controlplane.ResponseVerification[distribution.PublicationGrantDocument, *distribution.PublicationGrantDocument] {
@@ -131,13 +135,15 @@ func (i PublicationCompletionResponseIssuance) responseIssuance() controlplane.R
 }
 
 func (v PublicationCompletionResponseVerification) Validate() error {
-	return v.responseVerification().Validate()
+	return v.responseVerification().ValidateForFamily(controlwire.RouteFamilyReleasePublicationCompletions)
 }
 
 func VerifyPublicationCompletionResponse(
 	v PublicationCompletionResponseVerification,
 ) (controlplane.VerifiedResponse[release.LatestDocument, *release.LatestDocument], error) {
-	return controlplane.VerifyResponse(v.responseVerification())
+	return controlplane.VerifyResponseForFamily(
+		v.responseVerification(), controlwire.RouteFamilyReleasePublicationCompletions,
+	)
 }
 
 func (v PublicationCompletionResponseVerification) responseVerification() controlplane.ResponseVerification[release.LatestDocument, *release.LatestDocument] {
@@ -177,11 +183,13 @@ func (i UpdateResponseIssuance) responseIssuance() controlplane.ResponseIssuance
 }
 
 func (v UpdateResponseVerification) Validate() error {
-	return v.responseVerification().Validate()
+	return v.responseVerification().ValidateForFamily(controlwire.RouteFamilyUpdateChecks)
 }
 
 func VerifyUpdateResponse(v UpdateResponseVerification) (controlplane.VerifiedResponse[distribution.UpdateResponseDocument, *distribution.UpdateResponseDocument], error) {
-	return controlplane.VerifyResponse(v.responseVerification())
+	return controlplane.VerifyResponseForFamily(
+		v.responseVerification(), controlwire.RouteFamilyUpdateChecks,
+	)
 }
 
 func (v UpdateResponseVerification) responseVerification() controlplane.ResponseVerification[distribution.UpdateResponseDocument, *distribution.UpdateResponseDocument] {
@@ -221,11 +229,13 @@ func (i UpgradeResponseIssuance) responseIssuance() controlplane.ResponseIssuanc
 }
 
 func (v UpgradeResponseVerification) Validate() error {
-	return v.responseVerification().Validate()
+	return v.responseVerification().ValidateForFamily(controlwire.RouteFamilyUpgrades)
 }
 
 func VerifyUpgradeResponse(v UpgradeResponseVerification) (controlplane.VerifiedResponse[distribution.UpgradeGrantDocument, *distribution.UpgradeGrantDocument], error) {
-	return controlplane.VerifyResponse(v.responseVerification())
+	return controlplane.VerifyResponseForFamily(
+		v.responseVerification(), controlwire.RouteFamilyUpgrades,
+	)
 }
 
 func (v UpgradeResponseVerification) responseVerification() controlplane.ResponseVerification[distribution.UpgradeGrantDocument, *distribution.UpgradeGrantDocument] {

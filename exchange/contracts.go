@@ -417,7 +417,8 @@ func (s RequestSemantics) AllowsRetry() (bool, error) {
 	if err := s.Validate(); err != nil {
 		return false, err
 	}
-	return s.Replay != ReplaySingleAttempt, nil
+	return s.Replay != ReplaySingleAttempt &&
+		s.Replay != ReplaySingleAttemptWithIdempotencyKey, nil
 }
 
 // RetryPolicy owns finite exponential backoff, jitter, and server-hint bounds.
@@ -679,7 +680,10 @@ func managedHeader(name core.HTTPHeaderName) bool {
 		name == core.HTTPHeaderContentEncoding() ||
 		name == core.HTTPHeaderContentType() ||
 		name == core.HTTPHeaderAccept() ||
-		name == core.HTTPHeaderIdempotencyKey()
+		name == core.HTTPHeaderIdempotencyKey() ||
+		name == core.HTTPHeaderHost() ||
+		name == core.HTTPHeaderTransferEncoding() ||
+		name == core.HTTPHeaderConnection()
 }
 
 func validateTimeoutPair(operation, attempt temporal.Duration) error {

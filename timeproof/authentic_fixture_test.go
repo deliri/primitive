@@ -85,7 +85,8 @@ func TestTimeProofVerifierLayerTriad(t *testing.T) {
 				AuthorityFreeTSA,
 			)
 		}
-		gotNanoseconds, gotInstantErr := got.Instant().Nanoseconds()
+		gotTime := got.Time()
+		gotNanoseconds, gotInstantErr := gotTime.Generation.Nanoseconds()
 		const wantNanoseconds = int64(1784942623 * 1_000_000_000)
 		if gotInstantErr != nil || gotNanoseconds != wantNanoseconds {
 			t.Fatalf(
@@ -93,6 +94,12 @@ func TestTimeProofVerifierLayerTriad(t *testing.T) {
 				gotNanoseconds,
 				gotInstantErr,
 				wantNanoseconds,
+			)
+		}
+		if gotTime.AccuracyDeclared() {
+			t.Fatalf(
+				"Verify(authentic) accuracy = %d, want unspecified",
+				gotTime.Accuracy.Nanoseconds(),
 			)
 		}
 	})
@@ -614,7 +621,7 @@ func TestAuthoritativeTimestampPersistenceLayerTriad(t *testing.T) {
 		if gotErr != nil {
 			t.Fatalf("temporal.NewInstant(forged) error = %v, want nil", gotErr)
 		}
-		wire.Generation = forged
+		wire.Time.Generation = forged
 		forgedJSON, gotErr := json.Marshal(wire)
 		if gotErr != nil {
 			t.Fatalf("json.Marshal(forged wire) error = %v, want nil", gotErr)
@@ -627,6 +634,37 @@ func TestAuthoritativeTimestampPersistenceLayerTriad(t *testing.T) {
 			!bytes.Equal(receiverJSON, encoded) {
 			t.Fatalf(
 				"AuthoritativeTimestamp.UnmarshalJSON(forged) receiver/error = (%q, %v), want unchanged and %v",
+				receiverJSON,
+				gotErr,
+				core.ErrTimeProofInvalid,
+			)
+		}
+	})
+
+	t.Run("negative forged accuracy mutates no receiver", func(t *testing.T) {
+		t.Parallel()
+
+		var wire authoritativeTimestampWire
+		if gotErr := json.Unmarshal(encoded, &wire); gotErr != nil {
+			t.Fatalf("json.Unmarshal(timestamp wire) error = %v, want nil", gotErr)
+		}
+		forged, gotErr := temporal.NewDuration(time.Second)
+		if gotErr != nil {
+			t.Fatalf("temporal.NewDuration(1s) error = %v, want nil", gotErr)
+		}
+		wire.Time.Accuracy = forged
+		forgedJSON, gotErr := json.Marshal(wire)
+		if gotErr != nil {
+			t.Fatalf("json.Marshal(forged accuracy wire) error = %v, want nil", gotErr)
+		}
+		receiver := verified
+		gotErr = receiver.UnmarshalJSON(forgedJSON)
+		receiverJSON, receiverMarshalErr := receiver.MarshalJSON()
+		if !errors.Is(gotErr, core.ErrTimeProofInvalid) ||
+			receiverMarshalErr != nil ||
+			!bytes.Equal(receiverJSON, encoded) {
+			t.Fatalf(
+				"AuthoritativeTimestamp.UnmarshalJSON(forged accuracy) receiver/error = (%q, %v), want unchanged and %v",
 				receiverJSON,
 				gotErr,
 				core.ErrTimeProofInvalid,

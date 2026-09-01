@@ -19,7 +19,7 @@ const (
 	SignedHeaderMaximumCount = 32
 	// SignedHeaderMaximumBytes bounds their aggregate HTTP wire extent.
 	SignedHeaderMaximumBytes    = 32 * 1024
-	objectstoreOwnedHeaderCount = 15
+	objectstoreOwnedHeaderCount = 17
 	googleCloudStorageMTLSHost  = "storage.mtls.googleapis.com"
 	amazonWebServicesDNSRoot    = "amazonaws.com"
 	amazonWebServicesChinaRoot  = "amazonaws.com.cn"
@@ -593,10 +593,12 @@ func objectstoreOwnedHeaderNames() ([objectstoreOwnedHeaderCount]core.HTTPHeader
 		authorization,
 		core.HTTPHeaderIdempotencyKey(),
 		contentRange,
+		core.HTTPHeaderHost(),
+		core.HTTPHeaderTransferEncoding(),
+		core.HTTPHeaderConnection(),
 	}
-	index := 8
+	index := 11
 	for _, value := range [...]string{
-		headerHost,
 		headerRange,
 		headerIfNoneMatch,
 		headerS3ChecksumCRC32C,

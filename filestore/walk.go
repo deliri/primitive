@@ -40,7 +40,7 @@ type walkDirectoryInput struct {
 }
 
 func walkDirectory(input walkDirectoryInput) error {
-	directory, err := input.request.Location.Root.Open(input.directoryPath.String())
+	directory, err := openDirectory(input.request.Location.Root, input.directoryPath.String())
 	if err != nil {
 		return sourceError(err)
 	}
@@ -74,38 +74,56 @@ func readDirectoryEntries(input readDirectoryInput) error {
 	if input.request.Order == WalkOrderLexical {
 		return readLexicalDirectoryEntries(input)
 	}
+	emptyReads := 0
 	for {
 		if err := contextstate.Validate(input.ctx); err != nil {
 			return err
 		}
-		entries, err := input.directory.ReadDir(walkDirectoryBatchEntries)
-		for _, entry := range entries {
-			if visitErr := visitWalkEntry(visitWalkEntryInput{
-				ctx:           input.ctx,
-				request:       input.request,
-				directoryPath: input.directoryPath,
-				entry:         entry,
-			}); visitErr != nil {
-				return visitErr
-			}
-		}
-		if errors.Is(err, io.EOF) {
-			return nil
-		}
+		done, err := readStreamingDirectoryBatch(input, &emptyReads)
 		if err != nil {
-			return sourceError(err)
+			return err
+		}
+		if done {
+			return nil
 		}
 	}
 }
 
+func readStreamingDirectoryBatch(input readDirectoryInput, emptyReads *int) (bool, error) {
+	entries, err := input.directory.ReadDir(walkDirectoryBatchEntries)
+	if len(entries) == 0 && err == nil {
+		*emptyReads++
+		if *emptyReads >= core.ReaderConsecutiveEmptyReadMaximum {
+			return false, sourceError(io.ErrNoProgress)
+		}
+		return false, nil
+	}
+	*emptyReads = 0
+	for _, entry := range entries {
+		if visitErr := visitWalkEntry(visitWalkEntryInput{
+			ctx: input.ctx, request: input.request,
+			directoryPath: input.directoryPath, entry: entry,
+		}); visitErr != nil {
+			return false, visitErr
+		}
+	}
+	if errors.Is(err, io.EOF) {
+		return true, nil
+	}
+	if err != nil {
+		return false, sourceError(err)
+	}
+	return false, nil
+}
+
 func readLexicalDirectoryEntries(input readDirectoryInput) error {
 	maximum := int(input.request.DirectoryEntryMaximum.value)
-	entries, err := input.directory.ReadDir(maximum + 1)
+	entries, err := readLexicalDirectoryBatch(input, maximum)
+	if err != nil {
+		return err
+	}
 	if len(entries) > maximum {
 		return contractError(errors.New("filestore directory exceeds entry maximum"))
-	}
-	if err != nil && !errors.Is(err, io.EOF) {
-		return sourceError(err)
 	}
 	slices.SortFunc(entries, func(left, right fs.DirEntry) int {
 		return strings.Compare(left.Name(), right.Name())
@@ -124,6 +142,30 @@ func readLexicalDirectoryEntries(input readDirectoryInput) error {
 		}
 	}
 	return nil
+}
+
+func readLexicalDirectoryBatch(input readDirectoryInput, maximum int) ([]fs.DirEntry, error) {
+	entries := make([]fs.DirEntry, 0, maximum+1)
+	emptyReads := 0
+	for len(entries) <= maximum {
+		batch, err := input.directory.ReadDir(maximum + 1 - len(entries))
+		entries = append(entries, batch...)
+		if len(batch) == 0 && err == nil {
+			emptyReads++
+			if emptyReads >= core.ReaderConsecutiveEmptyReadMaximum {
+				return nil, sourceError(io.ErrNoProgress)
+			}
+			continue
+		}
+		emptyReads = 0
+		if errors.Is(err, io.EOF) {
+			return entries, nil
+		}
+		if err != nil {
+			return nil, sourceError(err)
+		}
+	}
+	return entries, nil
 }
 
 type visitWalkEntryInput struct {

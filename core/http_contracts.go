@@ -218,12 +218,15 @@ func (n *HTTPHeaderName) UnmarshalJSON(data []byte) error {
 }
 
 const (
-	httpHeaderContentTypeText     = "Content-Type"
-	httpHeaderAcceptText          = "Accept"
-	httpHeaderContentLengthText   = "Content-Length"
-	httpHeaderContentEncodingText = "Content-Encoding"
-	httpHeaderAcceptEncodingText  = "Accept-Encoding"
-	httpHeaderIdempotencyKeyText  = "Idempotency-Key"
+	httpHeaderContentTypeText      = "Content-Type"
+	httpHeaderAcceptText           = "Accept"
+	httpHeaderContentLengthText    = "Content-Length"
+	httpHeaderContentEncodingText  = "Content-Encoding"
+	httpHeaderAcceptEncodingText   = "Accept-Encoding"
+	httpHeaderIdempotencyKeyText   = "Idempotency-Key"
+	httpHeaderHostText             = "Host"
+	httpHeaderTransferEncodingText = "Transfer-Encoding"
+	httpHeaderConnectionText       = "Connection"
 )
 
 // HTTPHeaderContentType returns the validated Content-Type field name.
@@ -254,6 +257,19 @@ func HTTPHeaderAcceptEncoding() HTTPHeaderName {
 // HTTPHeaderIdempotencyKey returns the validated Idempotency-Key field name.
 func HTTPHeaderIdempotencyKey() HTTPHeaderName {
 	return HTTPHeaderName{value: httpHeaderIdempotencyKeyText}
+}
+
+// HTTPHeaderHost returns the validated Host authority field name.
+func HTTPHeaderHost() HTTPHeaderName { return HTTPHeaderName{value: httpHeaderHostText} }
+
+// HTTPHeaderTransferEncoding returns the validated Transfer-Encoding framing field name.
+func HTTPHeaderTransferEncoding() HTTPHeaderName {
+	return HTTPHeaderName{value: httpHeaderTransferEncodingText}
+}
+
+// HTTPHeaderConnection returns the validated Connection hop-by-hop field name.
+func HTTPHeaderConnection() HTTPHeaderName {
+	return HTTPHeaderName{value: httpHeaderConnectionText}
 }
 
 // HTTPMediaType is one canonical standard-library-parsed media type, including

@@ -841,6 +841,57 @@ func TestReclaimNeverDeletesAStillAuthorizedDifferentTrial(t *testing.T) {
 	}
 }
 
+func TestReclaimPreservesAuthenticCandidateWhenVerificationIsCancelled(t *testing.T) {
+	t.Parallel()
+
+	directory := t.TempDir()
+	root, err := os.OpenRoot(directory)
+	if err != nil {
+		t.Fatalf("os.OpenRoot() error = %v, want nil", err)
+	}
+	t.Cleanup(func() { _ = root.Close() })
+
+	oldArtifact := artifactForTest(t, []byte("old"), 1)
+	candidateBytes := []byte("candidate under trial")
+	candidate := artifactForTest(t, candidateBytes, 2)
+	target, err := newTrialTarget(
+		absolutePathForTest(t, directory),
+		selectionDocument{
+			Revision: selectionRevisionCurrent, Slot: SlotA, Artifact: oldArtifact,
+		},
+		candidate,
+	)
+	if err != nil {
+		t.Fatalf("newTrialTarget() error = %v, want nil", err)
+	}
+	installArtifactForTest(t, root, target.slot, candidate, candidateBytes)
+	receipt, err := ensureTrialReceipt(t.Context(), root, target)
+	if err != nil {
+		t.Fatalf("ensureTrialReceipt() error = %v, want nil", err)
+	}
+	cancelled, cancel := context.WithCancel(t.Context())
+	cancel()
+
+	adopted, reclaimErr := reclaimCandidateSlot(cancelled, root, target, receipt)
+	if adopted || !errors.Is(reclaimErr, context.Canceled) {
+		t.Fatalf(
+			"reclaimCandidateSlot(cancelled) = (%t, %v), want (false, %v)",
+			adopted,
+			reclaimErr,
+			context.Canceled,
+		)
+	}
+	got, readErr := root.ReadFile(target.Path().String())
+	if readErr != nil || !bytes.Equal(got, candidateBytes) {
+		t.Fatalf(
+			"candidate after cancelled verification = (%q, %v), want %q unchanged",
+			got,
+			readErr,
+			candidateBytes,
+		)
+	}
+}
+
 // TestPreparingAnOccupiedTrialSlotNeverDeletesItsCandidate pins the two halves
 // of the occupied-slot contract that reclamation depends on: preparing the slot
 // is purely additive, and the download open is exclusive-create so it can never

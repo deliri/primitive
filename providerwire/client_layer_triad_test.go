@@ -226,6 +226,40 @@ func TestProviderAuthenticatedDownloadsUseExactOfficialAuthorities(t *testing.T)
 	}
 }
 
+func TestVersionedProviderDownloadsRejectEveryVPrefixLookalike(t *testing.T) {
+	t.Parallel()
+
+	tests := []struct {
+		name    string
+		host    string
+		path    string
+		invoke  func(testing.TB, exchange.Client, exchange.DownloadRequest, exchange.StreamPolicy) error
+		wantErr error
+	}{
+		{name: "Stripe void prefix", host: StripeAPIHost, path: "/void/payment_intents", invoke: invokeStripeDownload, wantErr: core.ErrProviderWireBinding},
+		{name: "Stripe vault prefix", host: StripeAPIHost, path: "/vault/payment_intents", invoke: invokeStripeDownload, wantErr: core.ErrProviderWireBinding},
+		{name: "Stripe verification prefix", host: StripeAPIHost, path: "/verification/payment_intents", invoke: invokeStripeDownload, wantErr: core.ErrProviderWireBinding},
+		{name: "PayPal void prefix", host: PayPalLiveAPIHost, path: "/void/checkout/orders", invoke: invokePayPalDownload, wantErr: core.ErrProviderWireBinding},
+		{name: "PayPal vault prefix", host: PayPalLiveAPIHost, path: "/vault/payment-tokens", invoke: invokePayPalDownload, wantErr: core.ErrProviderWireBinding},
+		{name: "PayPal verification prefix", host: PayPalLiveAPIHost, path: "/verification/orders", invoke: invokePayPalDownload, wantErr: core.ErrProviderWireBinding},
+	}
+	for _, testCase := range tests {
+		t.Run(testCase.name, func(t *testing.T) {
+			t.Parallel()
+
+			observation := &providerRequestObservation{}
+			client := providerExchangeClient(t, observation)
+			var destination bytes.Buffer
+			request := providerDownloadRequest(t, testCase.host, testCase.path, &destination)
+			gotErr := testCase.invoke(t, client, request, providerStreamPolicy(t))
+			if !errors.Is(gotErr, testCase.wantErr) || observation.calls != 0 || destination.Len() != 0 {
+				t.Fatalf("provider lookalike Download() = error:%v calls:%d bytes:%d, want %v, 0, 0",
+					gotErr, observation.calls, destination.Len(), testCase.wantErr)
+			}
+		})
+	}
+}
+
 func providerExchangeClient(t testing.TB, observation *providerRequestObservation) exchange.Client {
 	t.Helper()
 

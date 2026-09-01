@@ -3,6 +3,7 @@ package controlplane
 import (
 	"crypto"
 	json "encoding/json/v2"
+	"errors"
 	"io"
 
 	"github.com/deliri/primitive/v2026/attest"
@@ -426,6 +427,10 @@ func (p RegistrationPayload) Validate() error {
 	}
 	if err := p.validateSubject(header.Subject); err != nil {
 		return registrationError(err)
+	}
+	initial, err := NewInitialUsageWatermark(header.Subject)
+	if err != nil || p.Watermark != initial {
+		return registrationError(errors.Join(consistencyError(), err))
 	}
 	if err := p.validateOutcome(); err != nil {
 		return registrationError(err)

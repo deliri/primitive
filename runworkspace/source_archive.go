@@ -85,7 +85,9 @@ func (m Manager) authorizeSourceArchive(request SourceArchiveAcquisitionRequest)
 	if err := errors.Join(m.Validate(), request.Validate()); err != nil || request.Unit.RootIdentity != m.rootIdentity {
 		return errors.Join(core.ErrPrimitiveContract, err)
 	}
-	return runnercontrol.VerifySourceArchive(request.Document, request.Trusted)
+	return runnercontrol.VerifySourceArchive(runnercontrol.SourceArchiveVerification{
+		Document: request.Document, TrustedKeys: request.Trusted, ObservedAt: request.ObservedAt,
+	})
 }
 
 func (m Manager) prepareCheckout(ctx context.Context, unit Unit) (core.RelativePath, error) {

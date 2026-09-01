@@ -78,6 +78,10 @@ func TestRetrievalAuthAssemblyLayerTriad(t *testing.T) {
 		other := newRetrievalAuthFixture(t, retrievalAuthFixtureRequest{
 			Offering: retrievalAuthOffering(t, 1), AuthorityByte: 0x51, DeviceByte: 0x52, NonceByte: 0x53,
 		})
+		otherAccount := fixture.document.Request.Payload.Scope.Account
+		if err := otherAccount.UnmarshalJSON([]byte(`"99999999999999999999999999999999"`)); err != nil {
+			t.Fatalf("AccountIdentity.UnmarshalJSON() error = %v, want nil", err)
+		}
 		cases := []struct {
 			wantErr error
 			mutate  func(*RequestAssembly)
@@ -93,6 +97,9 @@ func TestRetrievalAuthAssemblyLayerTriad(t *testing.T) {
 				value.Certificate.Attestation = attest.Envelope[controlplane.SigningDomain]{}
 			}, wantErr: core.ErrRetrievalContract},
 			{name: "request build belongs to another offering", mutate: func(value *RequestAssembly) { value.Request = other.request }, wantErr: core.ErrRetrievalBinding},
+			{name: "request account scope differs from certificate", mutate: func(value *RequestAssembly) {
+				value.Request.Payload.Scope.Account = otherAccount
+			}, wantErr: core.ErrRetrievalBinding},
 			{name: "certificate build belongs to another offering", mutate: func(value *RequestAssembly) { value.Certificate = other.certificate }, wantErr: core.ErrRetrievalBinding},
 			{name: "request build absent", mutate: func(value *RequestAssembly) { value.Request.Payload.Build = core.BuildIdentity{} }, wantErr: core.ErrRetrievalContract},
 			{name: "certificate build absent", mutate: func(value *RequestAssembly) { value.Certificate.Body.Build = core.BuildIdentity{} }, wantErr: core.ErrRetrievalContract},
@@ -346,7 +353,7 @@ func newRetrievalAuthFixture(
 	if err != nil {
 		t.Fatalf("controlplanetest.IssueInstallation() error = %v, want nil", err)
 	}
-	payload := retrievalAuthPayload(t, installation.Build, request.NonceByte)
+	payload := retrievalAuthPayload(t, installation.Certificate.Body, request.NonceByte)
 	signed, err := retrieval.IssueRequest(retrieval.RequestIssuance{
 		Payload: payload, Signer: installation.DevicePrivate,
 	})
@@ -382,10 +389,14 @@ func retrievalAuthOffering(t testing.TB, marker byte) core.Offering {
 
 func retrievalAuthPayload(
 	t testing.TB,
-	build core.BuildIdentity,
+	certificate controlplane.InstallationCertificateBody,
 	nonceByte byte,
 ) retrieval.RequestPayload {
 	t.Helper()
+	scope, err := certificate.Scope()
+	if err != nil {
+		t.Fatalf("InstallationCertificateBody.Scope() error = %v, want nil", err)
+	}
 
 	rawNonce := [core.SHA256DigestBytes]byte{}
 	rawNonce[0] = nonceByte
@@ -394,7 +405,7 @@ func retrievalAuthPayload(
 		t.Fatalf("controlwire.NewRequestNonce() error = %v, want nil", err)
 	}
 	payload := retrieval.RequestPayload{
-		Build: build, Selection: retrieval.StartAll(),
+		Build: certificate.Build, Scope: scope, Selection: retrieval.StartAll(),
 		Revision: controlwire.Revision2026V1, Nonce: nonce,
 	}
 	encodedIdentity, err := core.MarshalCanonicalJSONString(retrievalAuthFixtureChit)

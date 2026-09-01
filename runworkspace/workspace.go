@@ -350,6 +350,11 @@ func (m Manager) CleanupUnit(ctx context.Context, unit Unit) error {
 	if err != nil {
 		return err
 	}
+	if err := filestore.SetPermissions(ctx, filestore.PermissionRequest{
+		Location: filestore.Location{Root: m.root, Path: unit.Root}, Mode: workspaceDirectoryMode,
+	}); err != nil {
+		return err
+	}
 	walkErr := filestore.Walk(ctx, filestore.WalkRequest{
 		Location: filestore.Location{Root: m.root, Path: unit.Root}, Order: filestore.WalkOrderLexical, DirectoryEntryMaximum: maximum,
 		Visit: func(entry filestore.WalkEntry) (filestore.WalkDirective, error) {

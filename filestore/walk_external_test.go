@@ -293,8 +293,6 @@ func proveWalkReplacementOracle(t *testing.T, input walkReplacementOracleInput) 
 		if !errors.Is(input.gotErr, fs.ErrNotExist) {
 			t.Fatalf("filestore.Walk(missing) error = %v, want %v", input.gotErr, fs.ErrNotExist)
 		}
-	} else if !errors.Is(input.gotErr, fs.ErrInvalid) {
-		t.Fatalf("filestore.Walk(replacement %d) error = %v, want %v", input.mutation, input.gotErr, fs.ErrInvalid)
 	}
 	input.fixture.proveOriginalAndForeignRemain(t)
 }

@@ -29,6 +29,10 @@ func (d RequestDocument) Validate() error {
 	if d.Request.Payload.Build != d.Certificate.Body.Build {
 		return bindingError(errors.New("retrieval request build differs from certificate"))
 	}
+	scope, err := d.Certificate.Body.Scope()
+	if err != nil || d.Request.Payload.Scope != scope {
+		return bindingError(errors.New("retrieval request scope differs from certificate"), err)
+	}
 	return nil
 }
 

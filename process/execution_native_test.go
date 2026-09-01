@@ -195,9 +195,13 @@ func TestGroupCancellationReapsTheWholeTree(t *testing.T) {
 		Isolation:    process.IsolationGroup,
 		CancelSignal: process.CancelSignalQuit,
 	}
+	execution, err := process.Begin(ctx, request)
+	if err != nil {
+		t.Fatalf("process.Begin(group cancellation) error = %v, want nil", err)
+	}
 	done := make(chan runOutcome, 1)
 	go func() {
-		result, err := process.Run(ctx, request)
+		result, err := execution.Wait()
 		done <- runOutcome{result: result, err: err}
 	}()
 

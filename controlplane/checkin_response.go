@@ -156,8 +156,10 @@ func (d CheckInResponseDocument) ValidateJSONProjection(
 // CheckInResponseVerification is the complete input one caller supplies to
 // authenticate a response against the request that produced it.
 type CheckInResponseVerification struct {
-	Expected ResponseExpectation
-	Document CheckInResponseDocument
+	Expected          ResponseExpectation
+	PreviousWatermark UsageWatermark
+	Window            UsageWindow
+	Document          CheckInResponseDocument
 }
 
 // VerifiedCheckInResponse is proof that a response authenticated. Its fields
@@ -329,7 +331,7 @@ func issueCheckInResponse(payload CheckInResponsePayload, key ed25519.PrivateKey
 // Validate closes the complete verification input.
 func (v CheckInResponseVerification) Validate() error {
 	if err := errors.Join(
-		v.Document.Validate(), v.Expected.Validate(),
+		v.Document.Validate(), v.Expected.Validate(), v.PreviousWatermark.Validate(), v.Window.Validate(),
 	); err != nil {
 		return checkInResponseError(err)
 	}
@@ -353,6 +355,13 @@ func (c Client) VerifyCheckInResponse(verification CheckInResponseVerification) 
 	if err := verification.Document.Payload.Header.ValidateAgainst(verification.Expected); err != nil {
 		return VerifiedCheckInResponse{}, err
 	}
+	if verification.PreviousWatermark.Subject.Offering != verification.Expected.Offering ||
+		verification.PreviousWatermark.Subject.DeviceID != verification.Expected.Installation {
+		return VerifiedCheckInResponse{}, checkInResponseError(consistencyError())
+	}
+	if err := validateCheckInWatermarkSuccession(verification); err != nil {
+		return VerifiedCheckInResponse{}, err
+	}
 	responseProof, err := attest.Verify(attest.VerifyRequest[SigningDomain]{
 		Body:        verification.Document.Payload,
 		Envelope:    verification.Document.Attestation,
@@ -364,6 +373,7 @@ func (c Client) VerifyCheckInResponse(verification CheckInResponseVerification) 
 	leaseProof, err := verifyCheckInResponseLease(
 		verification.Document.Payload,
 		c.configuration.TrustedAuthorityKeys,
+		verification.PreviousWatermark.Subject,
 	)
 	if err != nil {
 		return VerifiedCheckInResponse{}, err
@@ -374,9 +384,30 @@ func (c Client) VerifyCheckInResponse(verification CheckInResponseVerification) 
 	return verified, verified.Validate()
 }
 
-func verifyCheckInResponseLease(payload CheckInResponsePayload, trusted attest.TrustedKeys) (lease.Verified, error) {
+func validateCheckInWatermarkSuccession(verification CheckInResponseVerification) error {
+	successor, err := AdvanceUsageWatermark(verification.PreviousWatermark, verification.Window)
+	if err != nil {
+		return checkInResponseError(err)
+	}
+	actual := verification.Document.Payload.Watermark
+	switch verification.Document.Payload.Disposition {
+	case UsageDispositionAccepted, UsageDispositionReplay:
+		if actual != successor {
+			return checkInResponseError(consistencyError())
+		}
+	case UsageDispositionConflict:
+		if actual == successor {
+			return checkInResponseError(consistencyError())
+		}
+	default:
+		return checkInResponseError(consistencyError())
+	}
+	return nil
+}
+
+func verifyCheckInResponseLease(payload CheckInResponsePayload, trusted attest.TrustedKeys, expectedSubject lease.Subject) (lease.Verified, error) {
 	verified, err := lease.Verify(lease.VerifyRequest{
-		Document: payload.Lease, TrustedKeys: trusted, ExpectedSubject: payload.Watermark.Subject,
+		Document: payload.Lease, TrustedKeys: trusted, ExpectedSubject: expectedSubject,
 	})
 	if err != nil {
 		return lease.Verified{}, checkInResponseError(err)

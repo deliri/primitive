@@ -171,7 +171,7 @@ func FuzzPayPalWebhookReceiveSemanticBoundary(f *testing.F) {
 		defer closePayPalWebhookTestReceiver(t, &receiver, &token)
 		request := payPalWebhookRequest(t, data, true)
 		var destination bytes.Buffer
-		observation, gotErr := receiver.Receive(request, &destination, providerOperationPolicy(t))
+		observation, gotErr := receiver.Receive(payPalWebhookReceiveRequest(t, request, &destination))
 		// doctrine:local-allowed=external-wire
 		value := jsontext.Value(data)
 		accepted := len(data) != 0 && len(data) <= PayPalWebhookMaximumBytes && value.IsValid() && value.Kind() == jsontext.KindBeginObject
@@ -208,7 +208,7 @@ func FuzzPayPalWebhookHeaderSemanticBoundary(f *testing.F) {
 		request.Header.Set(PayPalTransmissionSignatureHeaderName, signature)
 		request.Header.Set(PayPalTransmissionTimeHeaderName, transmissionTime)
 		var destination bytes.Buffer
-		observation, gotErr := receiver.Receive(request, &destination, providerOperationPolicy(t))
+		observation, gotErr := receiver.Receive(payPalWebhookReceiveRequest(t, request, &destination))
 		wantAccepted := payPalAuthAlgorithmOracle(algorithm) && payPalTransmissionMemberOracle(transmissionID, PayPalTransmissionIDMaximumBytes) &&
 			payPalTransmissionMemberOracle(signature, PayPalTransmissionSignatureMaximumBytes) && payPalTransmissionTimeOracle(transmissionTime)
 		if wantAccepted {
@@ -237,7 +237,7 @@ func FuzzPayPalWebhookCertificateBindingSemanticBoundary(f *testing.F) {
 		request := payPalWebhookRequest(t, body, true)
 		request.Header.Set(PayPalCertificateURLHeaderName, certificate)
 		var destination bytes.Buffer
-		observation, gotErr := receiver.Receive(request, &destination, providerOperationPolicy(t))
+		observation, gotErr := receiver.Receive(payPalWebhookReceiveRequest(t, request, &destination))
 		if payPalLiveCertificateBindingOracle(certificate) {
 			if gotErr != nil || verificationCalls != 1 || observation.Provider != ProviderPayPal || !bytes.Equal(destination.Bytes(), body) {
 				t.Fatalf("PayPal admitted certificate Receive() = calls:%d observation:%+v body:%q error:%v, want 1, exact body, nil", verificationCalls, observation, destination.Bytes(), gotErr)

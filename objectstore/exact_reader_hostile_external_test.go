@@ -11,6 +11,26 @@ import (
 	"github.com/deliri/primitive/v2026/objectstore"
 )
 
+type exactReaderEmptySource struct{ reads int }
+
+func (r *exactReaderEmptySource) Read([]byte) (int, error) {
+	r.reads++
+	return 0, nil
+}
+
+type exactReaderUnclosedSource struct {
+	reads int
+	data  []byte
+}
+
+func (r *exactReaderUnclosedSource) Read(destination []byte) (int, error) {
+	r.reads++
+	if r.reads > 1 {
+		panic("ExactReader attempted a blocking overflow probe")
+	}
+	return copy(destination, r.data), nil
+}
+
 func TestExactReaderConstructionRejectsNilSource(t *testing.T) {
 	t.Parallel()
 
@@ -180,5 +200,56 @@ func TestExactReaderSignedLengthCeilingFailsShortWithoutAllocation(t *testing.T)
 			core.ErrObjectStoreSource,
 			core.ErrObjectStoreIntegrity,
 		)
+	}
+}
+
+func TestExactReaderRefusesConsecutiveEmptyReadsWithTypedSourceFailure(t *testing.T) {
+	t.Parallel()
+
+	source := &exactReaderEmptySource{}
+	reader, gotErr := objectstore.NewExactReader(source, mustByteLength(t, 1))
+	if gotErr != nil {
+		t.Fatalf("NewExactReader(empty reader) error = %v, want nil", gotErr)
+	}
+	var destination bytes.Buffer
+	_, gotErr = io.CopyBuffer(&destination, reader, make([]byte, 1))
+	if !errors.Is(gotErr, io.ErrNoProgress) ||
+		!errors.Is(gotErr, core.ErrObjectStoreSource) ||
+		!errors.Is(gotErr, core.ErrObjectStoreIntegrity) ||
+		destination.Len() != 0 || source.reads > core.ReaderConsecutiveEmptyReadMaximum {
+		t.Fatalf(
+			"ExactReader(empty source) = (error %v, bytes %d, reads %d), want %v with typed source integrity and at most %d reads",
+			gotErr,
+			destination.Len(),
+			source.reads,
+			io.ErrNoProgress,
+			core.ReaderConsecutiveEmptyReadMaximum,
+		)
+	}
+}
+
+func TestExactReaderRefusesUnprovableEndWithoutASecondRead(t *testing.T) {
+	t.Parallel()
+
+	source := &exactReaderUnclosedSource{data: []byte{0x7a}}
+	reader, err := objectstore.NewExactReader(source, mustByteLength(t, 1))
+	if err != nil {
+		t.Fatalf("NewExactReader() error = %v, want nil", err)
+	}
+	var destination [1]byte
+	got, gotErr := reader.Read(destination[:])
+	if got != 0 || source.reads != 1 || !errors.Is(gotErr, io.ErrNoProgress) ||
+		!errors.Is(gotErr, core.ErrObjectStoreSource) {
+		t.Fatalf("ExactReader.Read(unclosed exact source) = (%d, %v, %d source reads), want (0, typed no-progress, 1 read)", got, gotErr, source.reads)
+	}
+
+	empty := &exactReaderUnclosedSource{}
+	reader, err = objectstore.NewExactReader(empty, mustByteLength(t, 0))
+	if err != nil {
+		t.Fatalf("NewExactReader(empty) error = %v, want nil", err)
+	}
+	gotErr = reader.ProveEmpty()
+	if empty.reads != 0 || !errors.Is(gotErr, io.ErrNoProgress) || !errors.Is(gotErr, core.ErrObjectStoreSource) {
+		t.Fatalf("ExactReader.ProveEmpty(unprovable source) = (%v, %d reads), want typed no-progress without reading", gotErr, empty.reads)
 	}
 }

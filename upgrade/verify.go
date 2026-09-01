@@ -2,6 +2,7 @@ package upgrade
 
 import (
 	"context"
+	"errors"
 	"hash/crc32"
 	"io"
 	"os"
@@ -11,24 +12,71 @@ import (
 	"github.com/deliri/primitive/v2026/release"
 )
 
+type artifactVerificationState uint8
+
+const (
+	artifactVerificationUnknown artifactVerificationState = iota
+	artifactVerificationAuthentic
+	artifactVerificationAbsent
+	artifactVerificationInvalid
+)
+
 func verifyArtifact(
 	ctx context.Context,
 	root *os.Root,
 	slot Slot,
 	artifact release.Artifact,
 ) error {
+	state, err := inspectArtifact(ctx, root, slot, artifact)
+	if state == artifactVerificationAuthentic {
+		return nil
+	}
+	return verificationError(diagnosticCandidateBytes, err)
+}
+
+func inspectArtifact(
+	ctx context.Context,
+	root *os.Root,
+	slot Slot,
+	artifact release.Artifact,
+) (artifactVerificationState, error) {
+	path, integrity, extent, err := artifactVerificationInput(slot, artifact)
+	if err != nil {
+		return artifactVerificationUnknown, err
+	}
+	count, digest, hashed, checksum, err := readArtifactIntegrity(ctx, root, path, integrity)
+	if err != nil {
+		return classifyArtifactReadError(err)
+	}
+	if count.Uint64() != extent || hashed.Uint64() != extent ||
+		digest != integrity.SHA256() || checksum != integrity.CRC32C() {
+		return artifactVerificationInvalid, nil
+	}
+	return artifactVerificationAuthentic, nil
+}
+
+func artifactVerificationInput(
+	slot Slot,
+	artifact release.Artifact,
+) (core.RelativePath, release.ArtifactIntegrity, uint64, error) {
 	if err := artifact.Validate(); err != nil {
-		return verificationError(err)
+		return core.RelativePath{}, release.ArtifactIntegrity{}, 0, err
 	}
 	path, err := binaryPath(slot, artifact.Build())
 	if err != nil {
-		return verificationError(err)
+		return core.RelativePath{}, release.ArtifactIntegrity{}, 0, err
 	}
 	integrity := artifact.Integrity()
 	extent, err := integrity.Extent().Uint64()
-	if err != nil {
-		return verificationError(diagnosticCandidateBytes, err)
-	}
+	return path, integrity, extent, err
+}
+
+func readArtifactIntegrity(
+	ctx context.Context,
+	root *os.Root,
+	path core.RelativePath,
+	integrity release.ArtifactIntegrity,
+) (core.ByteLength, core.SHA256Digest, core.ByteLength, core.CRC32C, error) {
 	sha := core.NewDigestWriter()
 	crc := crc32.New(crc32.MakeTable(crc32.Castagnoli))
 	count, err := filestore.Read(ctx, filestore.ReadRequest{
@@ -37,20 +85,21 @@ func verifyArtifact(
 		MaximumBytes: integrity.Extent(),
 	})
 	if err != nil {
-		return verificationError(diagnosticCandidateBytes, err)
+		return core.ByteLength{}, core.SHA256Digest{}, core.ByteLength{}, core.CRC32C{}, err
 	}
 	digest, hashed, err := sha.Seal()
 	if err != nil {
-		return verificationError(diagnosticCandidateBytes, err)
+		return core.ByteLength{}, core.SHA256Digest{}, core.ByteLength{}, core.CRC32C{}, err
 	}
-	// The sealed count is checked alongside the streamed count: they describe
-	// the same bytes from two independent owners, so a disagreement means the
-	// artifact was not read the way verification believes it was.
-	if count.Uint64() != extent || hashed.Uint64() != extent {
-		return verificationError(diagnosticCandidateBytes)
+	return count, digest, hashed, core.NewCRC32C(crc.Sum32()), nil
+}
+
+func classifyArtifactReadError(err error) (artifactVerificationState, error) {
+	if errors.Is(err, os.ErrNotExist) {
+		return artifactVerificationAbsent, err
 	}
-	if digest != integrity.SHA256() || core.NewCRC32C(crc.Sum32()) != integrity.CRC32C() {
-		return verificationError(diagnosticCandidateBytes)
+	if errors.Is(err, core.ErrFilestoreSize) {
+		return artifactVerificationInvalid, nil
 	}
-	return nil
+	return artifactVerificationUnknown, err
 }

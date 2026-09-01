@@ -206,31 +206,17 @@ func TestUploadTransportLayerTriad(t *testing.T) {
 				Policy: singleAttemptStreamPolicy(t),
 			},
 		)
-		if !errors.Is(gotErr, core.ErrExchangeTransport) {
-			t.Fatalf("exchange.Upload(truncated source) error = %v, want %v", gotErr, core.ErrExchangeTransport)
+		if !errors.Is(gotErr, core.ErrExchangeContract) {
+			t.Fatalf("exchange.Upload(truncated source) error = %v, want %v", gotErr, core.ErrExchangeContract)
 		}
 		if got.Metadata.Attempts != 0 ||
 			got.Metadata.Bytes.Uint64() != 0 ||
 			len(got.Metadata.Headers.Values) != 0 {
 			t.Fatalf("exchange.Upload(truncated source) response = %+v, want zero", got)
 		}
-		select {
-		case serverGot := <-observed:
-			if !errors.Is(serverGot.receiveErr, core.ErrExchangeRequest) {
-				t.Fatalf("server truncated receive error = %v, want %v", serverGot.receiveErr, core.ErrExchangeRequest)
-			}
-			if serverGot.bytes >= testLargeTransferBytes {
-				t.Fatalf("server truncated receive bytes = %d, want below %d", serverGot.bytes, testLargeTransferBytes)
-			}
-		case <-time.After(testDeadlockBackstop):
-			t.Fatalf(
-				"truncated upload server observation = absent after %v, want one completed observation",
-				testDeadlockBackstop,
-			)
-		}
 	})
 
-	t.Run("neutral zero extent sends no bytes and does not consume the next segment", func(t *testing.T) {
+	t.Run("negative zero extent refuses a source that still carries another segment", func(t *testing.T) {
 		t.Parallel()
 
 		created := mustHTTPStatus(t, http.StatusCreated)
@@ -287,31 +273,15 @@ func TestUploadTransportLayerTriad(t *testing.T) {
 				Policy: singleAttemptStreamPolicy(t),
 			},
 		)
-		if gotErr != nil {
-			t.Fatalf("exchange.Upload(zero extent) error = %v, want nil", gotErr)
+		if !errors.Is(gotErr, core.ErrExchangeContract) {
+			t.Fatalf("exchange.Upload(zero extent with remaining source) error = %v, want %v", gotErr, core.ErrExchangeContract)
 		}
-		if got.Metadata.Bytes.Uint64() != 0 || source.Len() != 1 {
+		if got.Metadata.Attempts != 0 || got.Metadata.Bytes.Uint64() != 0 ||
+			len(got.Metadata.Headers.Values) != 0 || source.Len() != 1 {
 			t.Fatalf(
-				"zero upload bytes/source remaining = (%d, %d), want (0, 1)",
-				got.Metadata.Bytes.Uint64(),
+				"zero upload response/source remaining = (%v, %d), want (zero, 1)",
+				got,
 				source.Len(),
-			)
-		}
-		select {
-		case serverGot := <-observed:
-			if serverGot.receiveErr != nil || serverGot.writeErr != nil ||
-				serverGot.bytes != 0 {
-				t.Fatalf(
-					"zero upload server = (%d, %v, %v), want (0, nil, nil)",
-					serverGot.bytes,
-					serverGot.receiveErr,
-					serverGot.writeErr,
-				)
-			}
-		case <-time.After(testDeadlockBackstop):
-			t.Fatalf(
-				"zero upload server observation = absent after %v, want one completed observation",
-				testDeadlockBackstop,
 			)
 		}
 	})

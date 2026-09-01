@@ -209,7 +209,7 @@ func productionStructRole(name string) (string, bool) {
 	case "VerifiedProviderUpload":
 		return "sealed provider-neutral exact-upload evidence", true
 	case "ExactReader", "preparedUpload", "preparedDownload", "progressWriter",
-		"exchangeTarget", "streamDigests", "requestBody", "uploadConfirmation",
+		"exchangeTarget", "streamDigests", "requestBody", "uploadObservedSource", "framedUploadSource", "inspectionCopier", "uploadConfirmation",
 		"transferConfirmation", "callerSignedHeaderValidation":
 		return "internal streaming flow", true
 	case "providerHeader":

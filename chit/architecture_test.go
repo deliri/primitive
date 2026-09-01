@@ -18,6 +18,7 @@ type (
 	protocolFact[T any]      struct{}
 	streamingState[T any]    struct{}
 	capabilityWrapper[T any] struct{}
+	internalFlow[T any]      struct{}
 )
 
 type chitContractInventory struct {
@@ -48,6 +49,8 @@ type chitContractInventory struct {
 	CatalogDocument       protocolFact[CatalogDocument]
 	CatalogIssuance       protocolFact[CatalogIssuance]
 	CatalogVerification   protocolFact[CatalogVerification]
+	VerifiedCatalog       capabilityWrapper[VerifiedCatalog]
+	verifiedCatalogState  internalFlow[verifiedCatalogState]
 	Selection             protocolFact[Selection]
 	Position              protocolFact[Position]
 	Query                 protocolFact[Query]
@@ -143,3 +146,4 @@ func chitClassifiedStructNames(t *testing.T) []string {
 }
 
 var _ = chitContractInventory{}
+var _ = chitContractInventory{}.verifiedCatalogState

@@ -87,7 +87,7 @@ func FuzzCompletionDocumentJSONSemanticAndSignatureClosure(f *testing.F) {
 		}
 		verified, verifyErr := VerifyCompletion(CompletionExpectation{
 			Document: roundTrip, Request: fixture.request, Grant: fixture.grantDocument,
-			GrantKeys: fixture.grantKeys, CompletionKeys: fixture.deviceKeys,
+			GrantKeys: fixture.grantKeys, CompletionKeys: fixture.deviceKeys, Nonce: fixture.nonce,
 		})
 		if verifyErr != nil {
 			stableRejection := errors.Is(verifyErr, core.ErrControlPlaneResponseBinding) ||

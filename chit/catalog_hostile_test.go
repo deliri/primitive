@@ -70,7 +70,7 @@ func TestCatalogLayerTriadAuthenticatesTenIndependentPages(t *testing.T) {
 		verified, err := VerifyCatalog(CatalogVerification{
 			Document: fixture.document, Request: fixture.request, TrustedKeys: fixture.trusted,
 		})
-		if err != nil || !catalogPayloadsEqual(verified, fixture.payload) {
+		if err != nil || !verifiedCatalogPayloadsEqual(verified, fixture.payload) {
 			t.Fatalf("VerifyCatalog(configuration %d) = (%v, %v), want exact signed payload and nil",
 				index, verified, err)
 		}
@@ -84,6 +84,30 @@ func TestCatalogLayerTriadAuthenticatesTenIndependentPages(t *testing.T) {
 			t.Fatalf("CatalogPayload round trip(configuration %d) = (%v, %v), want exact payload and nil",
 				index, payloadRoundTrip, err)
 		}
+	}
+}
+
+func TestVerifiedCatalogOwnsAuthenticatedEntriesAcrossInputAndAccessorMutation(t *testing.T) {
+	t.Parallel()
+
+	fixture := newCatalogFixture(t, 0x34, 2)
+	want := cloneCatalogPayload(fixture.payload)
+	document := fixture.document
+	verified, err := VerifyCatalog(CatalogVerification{
+		Document: document, Request: fixture.request, TrustedKeys: fixture.trusted,
+	})
+	if err != nil {
+		t.Fatalf("VerifyCatalog() error = %v, want nil", err)
+	}
+	document.Payload.Entries[0].State = CustodyStateDeleted
+	first, err := verified.Payload()
+	if err != nil {
+		t.Fatalf("VerifiedCatalog.Payload(first) error = %v, want nil", err)
+	}
+	first.Entries[0].State = CustodyStateDeleted
+	second, err := verified.Payload()
+	if err != nil || !catalogPayloadsEqual(second, want) {
+		t.Fatalf("VerifiedCatalog.Payload(after mutation) = (%v, %v), want original authenticated page", second, err)
 	}
 }
 
@@ -158,12 +182,12 @@ func TestCatalogPartitionLayerTriadExhaustsMatchingForeignAndEmptyRelations(t *t
 				Document: document, Request: fixture.request, TrustedKeys: fixture.trusted,
 			})
 			if tc.wantErr != nil {
-				if !errors.Is(gotErr, tc.wantErr) || !catalogPayloadsEqual(got, CatalogPayload{}) {
+				if !errors.Is(gotErr, tc.wantErr) || got != (VerifiedCatalog{}) {
 					t.Fatalf("VerifyCatalog() = (%v, %v), want zero and errors.Is %v", got, gotErr, tc.wantErr)
 				}
 				return
 			}
-			if gotErr != nil || !catalogPayloadsEqual(got, payload) {
+			if gotErr != nil || !verifiedCatalogPayloadsEqual(got, payload) {
 				t.Fatalf("VerifyCatalog() = (%v, %v), want exact payload and nil", got, gotErr)
 			}
 		})
@@ -214,7 +238,7 @@ func TestCatalogPaginationLayerTriadClosesTailOrderAndRequestedLimit(t *testing.
 			got, gotErr := VerifyCatalog(CatalogVerification{
 				Document: document, Request: request, TrustedKeys: fixture.trusted,
 			})
-			if gotErr != nil || !catalogPayloadsEqual(got, payload) {
+			if gotErr != nil || !verifiedCatalogPayloadsEqual(got, payload) {
 				t.Fatalf("VerifyCatalog(page %d) = (%v, %v), want exact payload and nil", count, got, gotErr)
 			}
 		}
@@ -272,7 +296,7 @@ func TestCatalogPaginationLayerTriadClosesTailOrderAndRequestedLimit(t *testing.
 		got, gotErr := VerifyCatalog(CatalogVerification{
 			Document: document, Request: request, TrustedKeys: fixture.trusted,
 		})
-		if !errors.Is(gotErr, core.ErrChitConflict) || !catalogPayloadsEqual(got, CatalogPayload{}) {
+		if !errors.Is(gotErr, core.ErrChitConflict) || got != (VerifiedCatalog{}) {
 			t.Fatalf("VerifyCatalog(two entries for limit one) = (%v, %v), want zero and errors.Is %v", got, gotErr, core.ErrChitConflict)
 		}
 	})
@@ -358,7 +382,7 @@ func TestVerifyCatalogRejectsEveryIndependentAgreementSubstitution(t *testing.T)
 			}
 			tc.mutate(&input)
 			got, gotErr := VerifyCatalog(input)
-			if !errors.Is(gotErr, tc.wantErr) || !catalogPayloadsEqual(got, CatalogPayload{}) {
+			if !errors.Is(gotErr, tc.wantErr) || got != (VerifiedCatalog{}) {
 				t.Fatalf("VerifyCatalog(%s) = (%v, %v), want zero and errors.Is %v", tc.name, got, gotErr, tc.wantErr)
 			}
 		})
@@ -390,7 +414,7 @@ func TestVerifyCatalogClosesSpecificSelectionToZeroOrOneExactChit(t *testing.T) 
 	verified, err := VerifyCatalog(CatalogVerification{
 		Document: document, Request: request, TrustedKeys: fixture.trusted,
 	})
-	if err != nil || !catalogPayloadsEqual(verified, payload) {
+	if err != nil || !verifiedCatalogPayloadsEqual(verified, payload) {
 		t.Fatalf("VerifyCatalog(specific exact) = (%v, %v), want exact payload and nil", verified, err)
 	}
 
@@ -413,7 +437,7 @@ func TestVerifyCatalogClosesSpecificSelectionToZeroOrOneExactChit(t *testing.T) 
 	}
 	if got, gotErr := VerifyCatalog(CatalogVerification{
 		Document: wrongDocument, Request: otherRequest, TrustedKeys: fixture.trusted,
-	}); !errors.Is(gotErr, core.ErrChitConflict) || !catalogPayloadsEqual(got, CatalogPayload{}) {
+	}); !errors.Is(gotErr, core.ErrChitConflict) || got != (VerifiedCatalog{}) {
 		t.Fatalf("VerifyCatalog(wrong specific entry) = (%v, %v), want zero and errors.Is %v", got, gotErr, core.ErrChitConflict)
 	}
 
@@ -432,7 +456,7 @@ func TestVerifyCatalogClosesSpecificSelectionToZeroOrOneExactChit(t *testing.T) 
 	}
 	if got, gotErr := VerifyCatalog(CatalogVerification{
 		Document: continuedDocument, Request: request, TrustedKeys: fixture.trusted,
-	}); !errors.Is(gotErr, core.ErrChitConflict) || !catalogPayloadsEqual(got, CatalogPayload{}) {
+	}); !errors.Is(gotErr, core.ErrChitConflict) || got != (VerifiedCatalog{}) {
 		t.Fatalf("VerifyCatalog(specific continuation) = (%v, %v), want zero and errors.Is %v", got, gotErr, core.ErrChitConflict)
 	}
 
@@ -458,7 +482,7 @@ func TestVerifyCatalogClosesSpecificSelectionToZeroOrOneExactChit(t *testing.T) 
 	}
 	if got, gotErr := VerifyCatalog(CatalogVerification{
 		Document: multipleDocument, Request: request, TrustedKeys: fixture.trusted,
-	}); !errors.Is(gotErr, core.ErrChitConflict) || !catalogPayloadsEqual(got, CatalogPayload{}) {
+	}); !errors.Is(gotErr, core.ErrChitConflict) || got != (VerifiedCatalog{}) {
 		t.Fatalf("VerifyCatalog(multiple specific entries) = (%v, %v), want zero and errors.Is %v", got, gotErr, core.ErrChitConflict)
 	}
 }
@@ -673,6 +697,11 @@ func catalogPayloadsEqual(left, right CatalogPayload) bool {
 		}
 	}
 	return true
+}
+
+func verifiedCatalogPayloadsEqual(verified VerifiedCatalog, want CatalogPayload) bool {
+	got, err := verified.Payload()
+	return err == nil && catalogPayloadsEqual(got, want)
 }
 
 func padCatalogJSON(canonical []byte, target int) []byte {

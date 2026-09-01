@@ -22,6 +22,7 @@ func TestOfficialSDKResponseTransportLayerTriad(t *testing.T) {
 
 	const selectedPath = "/storage/v1/b/evidence/iam"
 	const neutralPath = "/unselected/provider/path"
+	const siblingPrefixPath = "/storage/v1/backup/evidence/iam"
 	selectedBody := strings.Repeat("s", 128)
 	neutralBody := strings.Repeat("n", 256)
 	cases := []struct {
@@ -36,6 +37,7 @@ func TestOfficialSDKResponseTransportLayerTriad(t *testing.T) {
 		{name: "positive selected response at exact ceiling is released intact", path: selectedPath, limit: uint64(len(selectedBody)), wantBody: selectedBody, wantResponse: true, wantCallDelta: 1},
 		{name: "negative selected response above ceiling is refused without partial response", path: selectedPath, limit: uint64(len(selectedBody) - 1), wantErr: core.ErrExchangeBodyLimit, wantCallDelta: 1},
 		{name: "neutral unselected response remains SDK streaming data", path: neutralPath, limit: 1, wantBody: neutralBody, wantResponse: true, wantCallDelta: 1},
+		{name: "neutral sibling path segment remains SDK streaming data", path: siblingPrefixPath, limit: 1, wantBody: neutralBody, wantResponse: true, wantCallDelta: 1},
 	}
 	for _, testCase := range cases {
 		t.Run(testCase.name, func(t *testing.T) {
@@ -47,7 +49,7 @@ func TestOfficialSDKResponseTransportLayerTriad(t *testing.T) {
 				switch request.URL.Path {
 				case selectedPath:
 					_, _ = io.WriteString(writer, selectedBody)
-				case neutralPath:
+				case neutralPath, siblingPrefixPath:
 					_, _ = io.WriteString(writer, neutralBody)
 				default:
 					http.NotFound(writer, request)
@@ -60,7 +62,7 @@ func TestOfficialSDKResponseTransportLayerTriad(t *testing.T) {
 				t.Fatalf("core.NewByteCount() error = %v, want nil", limitErr)
 			}
 			boundary, boundaryErr := exchange.NewOfficialSDKResponseBoundary(exchange.OfficialSDKResponseBoundaryRequest{
-				Method: exchange.MethodGet, PathPrefix: "/storage/v1/b/", PathSuffix: "/iam",
+				Method: exchange.MethodGet, PathPrefix: "/storage/v1/b", PathSuffix: "/iam",
 				Representation: exchange.OfficialSDKResponseRepresentationBinary,
 				MaximumBytes:   limit,
 			})

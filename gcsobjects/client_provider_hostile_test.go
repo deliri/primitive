@@ -7,10 +7,12 @@ import (
 	"errors"
 	"hash/crc32"
 	"io"
+	"io/fs"
 	"mime"
 	"mime/multipart"
 	"net/http"
 	"net/http/httptest"
+	"os"
 	"strings"
 	"sync/atomic"
 	"testing"
@@ -19,6 +21,7 @@ import (
 	"cloud.google.com/go/iam"
 	"github.com/deliri/primitive/v2026/core"
 	"github.com/deliri/primitive/v2026/exchange"
+	"github.com/deliri/primitive/v2026/filestore"
 	"github.com/deliri/primitive/v2026/objectstore"
 	"github.com/deliri/primitive/v2026/temporal"
 	"github.com/deliri/primitive/v2026/testserial"
@@ -241,8 +244,6 @@ const (
 )
 
 type gcsReadCase struct {
-	destination   io.Writer
-	wantCause     error
 	name          string
 	payload       []byte
 	metadataBytes []byte
@@ -266,13 +267,12 @@ func TestAuthenticatedGCSReadsExecuteTheOfficialSDKAndProveEveryByte(t *testing.
 	long := append(bytes.Clone(gcsProviderPayload), 0x7f)
 	cases := []gcsReadCase{
 		{name: "exact non-empty object", payload: gcsProviderPayload, metadataBytes: gcsProviderPayload, wantBytes: gcsProviderPayload, maximum: uint64(len(gcsProviderPayload)), disposition: gcsReadAvailable},
-		{name: "exact empty object", payload: nil, metadataBytes: nil, wantBytes: nil, maximum: 1, disposition: gcsReadAvailable},
+		{name: "exact empty object", payload: nil, metadataBytes: nil, wantBytes: nil, disposition: gcsReadAvailable},
 		{name: "exact one-byte object", payload: []byte{0x7f}, metadataBytes: []byte{0x7f}, wantBytes: []byte{0x7f}, maximum: 1, disposition: gcsReadAvailable},
 		{name: "metadata extent exceeds caller ceiling", payload: gcsProviderPayload, metadataBytes: gcsProviderPayload, wantBytes: gcsProviderPayload, maximum: uint64(len(gcsProviderPayload) - 1), disposition: gcsReadAvailable, wantErr: core.ErrObjectStoreSize},
 		{name: "caller digest differs from provider bytes", payload: gcsProviderPayload, metadataBytes: gcsProviderPayload, wantBytes: append([]byte("x"), gcsProviderPayload[1:]...), maximum: uint64(len(gcsProviderPayload)), disposition: gcsReadAvailable, wantErr: core.ErrObjectStoreIntegrity},
 		{name: "provider body is shorter than metadata", payload: short, metadataBytes: gcsProviderPayload, wantBytes: gcsProviderPayload, maximum: uint64(len(gcsProviderPayload)), disposition: gcsReadAvailable, wantErr: core.ErrObjectStoreIntegrity},
 		{name: "provider body is longer than metadata", payload: long, metadataBytes: gcsProviderPayload, wantBytes: gcsProviderPayload, maximum: uint64(len(gcsProviderPayload)), disposition: gcsReadAvailable, wantErr: core.ErrObjectStoreIntegrity},
-		{name: "destination failure keeps destination identity", payload: gcsProviderPayload, metadataBytes: gcsProviderPayload, wantBytes: gcsProviderPayload, maximum: uint64(len(gcsProviderPayload)), destination: closedGCSWriter{}, disposition: gcsReadAvailable, wantErr: core.ErrObjectStoreDestination, wantCause: io.ErrClosedPipe},
 		{name: "missing media retains source and absence identities", wantBytes: gcsProviderPayload, maximum: uint64(len(gcsProviderPayload)), disposition: gcsReadMediaAbsent, wantErr: core.ErrObjectStoreAbsent},
 		{name: "missing generation metadata retains absence identity", payload: gcsProviderPayload, metadataBytes: gcsProviderPayload, wantBytes: gcsProviderPayload, maximum: uint64(len(gcsProviderPayload)), disposition: gcsReadMetadataAbsent, wantErr: core.ErrObjectStoreAbsent},
 	}
@@ -282,35 +282,80 @@ func TestAuthenticatedGCSReadsExecuteTheOfficialSDKAndProveEveryByte(t *testing.
 			t.Parallel()
 			provider := &gcsReadProvider{t: t, payload: tc.payload, metadataBytes: tc.metadataBytes, disposition: tc.disposition}
 			client := bucketTestClient(t, provider)
-			var destination bytes.Buffer
-			writer := tc.destination
-			if writer == nil {
-				writer = &destination
-			}
+			destination, root := gcsReadStageDestination(t, tc.maximum)
 			got, gotErr := ReadGCSObject(context.Background(), client, GCSReadRequest{
-				Destination: writer, Bucket: parsedGCSBucket(t, gcsProviderBucketText),
-				Name: parsedGCSObjectName(t, gcsProviderObjectText), SHA256: core.SHA256Of(tc.wantBytes),
-				Maximum: gcsProviderMaximum(t, tc.maximum),
+				Destination: destination, Bucket: parsedGCSBucket(t, gcsProviderBucketText),
+				Name:      parsedGCSObjectName(t, gcsProviderObjectText),
+				Integrity: gcsExpectedReadIntegrity(t, tc.wantBytes, tc.metadataBytes, tc.maximum),
 			})
 			if !errors.Is(tc.wantErr, core.ErrUnknown) {
-				if !errors.Is(gotErr, tc.wantErr) || got != (GCSObjectMetadata{}) {
+				if !errors.Is(gotErr, tc.wantErr) || got != (GCSReadResult{}) {
 					t.Fatalf("ReadGCSObject() = (%v, %v), want zero and errors.Is(..., %v)", got, gotErr, tc.wantErr)
 				}
-				if tc.wantCause != nil && !errors.Is(gotErr, tc.wantCause) {
-					t.Fatalf("ReadGCSObject() error = %v, want preserved cause %v", gotErr, tc.wantCause)
+				var leaked bytes.Buffer
+				_, leakErr := filestore.Read(t.Context(), filestore.ReadRequest{
+					Destination:  &leaked,
+					Location:     filestore.Location{Root: root, Path: destination.Temporary.Path},
+					MaximumBytes: gcsProviderMaximum(t, tc.maximum+1),
+				})
+				if !errors.Is(leakErr, fs.ErrNotExist) || leaked.Len() != 0 {
+					t.Fatalf("rejected GCS read local stage = (%d bytes, %v), want absent and zero", leaked.Len(), leakErr)
 				}
 				return
 			}
-			if gotErr != nil || got.Validate() != nil || !bytes.Equal(destination.Bytes(), tc.wantBytes) {
-				t.Fatalf("ReadGCSObject() = (%v, %v, %q), want validated metadata, nil, %q", got, gotErr, destination.Bytes(), tc.wantBytes)
+			staged, stagedErr := got.Staged()
+			var content bytes.Buffer
+			_, readErr := filestore.Read(t.Context(), filestore.ReadRequest{
+				Destination:  &content,
+				Location:     filestore.Location{Root: root, Path: destination.Temporary.Path},
+				MaximumBytes: gcsProviderMaximum(t, tc.maximum+1),
+			})
+			if gotErr != nil || got.Validate() != nil || stagedErr != nil || readErr != nil ||
+				!bytes.Equal(content.Bytes(), tc.wantBytes) {
+				t.Fatalf("ReadGCSObject() = (%v, %v, staged %v, read %v, %q), want validated result and exact %q", got, gotErr, stagedErr, readErr, content.Bytes(), tc.wantBytes)
+			}
+			if err := filestore.Discard(t.Context(), staged); err != nil {
+				t.Fatalf("filestore.Discard(verified read) error = %v, want nil", err)
 			}
 		})
 	}
 }
 
-type closedGCSWriter struct{}
+func gcsReadStageDestination(t testing.TB, expected uint64) (filestore.StageDestinationRequest, *os.Root) {
+	t.Helper()
+	absolute, err := core.ParseAbsolutePath(t.TempDir())
+	if err != nil {
+		t.Fatalf("core.ParseAbsolutePath(stage root) error = %v, want nil", err)
+	}
+	root, err := filestore.OpenRoot(t.Context(), absolute)
+	if err != nil {
+		t.Fatalf("filestore.OpenRoot(stage root) error = %v, want nil", err)
+	}
+	t.Cleanup(func() { _ = root.Close() })
+	path, err := core.ParseRelativePath("download.stage")
+	if err != nil {
+		t.Fatalf("core.ParseRelativePath(download.stage) error = %v, want nil", err)
+	}
+	length, err := core.NewByteLength(expected)
+	if err != nil {
+		t.Fatalf("core.NewByteLength(%d) error = %v, want nil", expected, err)
+	}
+	return filestore.StageDestinationRequest{
+		Temporary: filestore.Location{Root: root, Path: path}, ExpectedBytes: length, Mode: 0o600,
+	}, root
+}
 
-func (closedGCSWriter) Write([]byte) (int, error) { return 0, io.ErrClosedPipe }
+func gcsExpectedReadIntegrity(t testing.TB, digest, checksum []byte, expected uint64) objectstore.Integrity {
+	t.Helper()
+	length, err := core.NewByteLength(expected)
+	if err != nil {
+		t.Fatalf("core.NewByteLength(%d) error = %v, want nil", expected, err)
+	}
+	return objectstore.Integrity{
+		SHA256: core.SHA256Of(digest), Length: length,
+		CRC32C: core.NewCRC32C(crc32.Checksum(checksum, crc32.MakeTable(crc32.Castagnoli))),
+	}
+}
 
 func (p *gcsReadProvider) ServeHTTP(writer http.ResponseWriter, incoming *http.Request) {
 	if incoming.Method != exchange.MethodGet.String() {

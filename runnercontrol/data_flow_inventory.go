@@ -192,6 +192,7 @@ func (deliveryReceiptWrite) runnerControlInternalFlow()                   {}
 func (deliveryClosure) runnerControlInternalFlow()                        {}
 func (expansionCounts) runnerControlInternalFlow()                        {}
 func (measurementValidation) runnerControlInternalFlow()                  {}
+func (boundedLineWrite) runnerControlInternalFlow()                       {}
 
 func (ClaimClient) runnerControlCapabilityWrapper()                 {}
 func (AdmissionClient) runnerControlCapabilityWrapper()             {}
@@ -414,6 +415,7 @@ var (
 	_ internalFlow = deliveryClosure{}
 	_ internalFlow = expansionCounts{}
 	_ internalFlow = measurementValidation{}
+	_ internalFlow = boundedLineWrite{}
 
 	_ capabilityWrapper = ClaimClient{}
 	_ capabilityWrapper = AdmissionClient{}

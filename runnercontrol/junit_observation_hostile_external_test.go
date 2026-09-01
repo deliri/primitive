@@ -63,6 +63,42 @@ func TestJUnitObservationCompilerHostileEvidenceMatrix(t *testing.T) {
 	}
 }
 
+func TestJUnitObservationCompilerAbortOwnsAndJoinsAnAbandonedParser(t *testing.T) {
+	t.Parallel()
+
+	compiler, err := runnercontrol.NewJUnitObservationCompiler(runnercontrol.ObservationPolicy{
+		Format: runnercontrol.ObservationJUnitXML, ExpectedUnits: 1,
+	})
+	if err != nil {
+		t.Fatalf("NewJUnitObservationCompiler() error = %v, want nil", err)
+	}
+	if _, err := compiler.Write([]byte(`<testsuite><testcase`)); err != nil {
+		t.Fatalf("JUnitObservationCompiler.Write(partial) error = %v, want nil", err)
+	}
+	compiler.Abort()
+	compiler.Abort()
+	if _, err := compiler.Write([]byte(`/>`)); !errors.Is(err, core.ErrPrimitiveContract) {
+		t.Fatalf("JUnitObservationCompiler.Write(after Abort) error = %v, want %v", err, core.ErrPrimitiveContract)
+	}
+}
+
+func TestJUnitObservationCompilerWriteRefusesOverflowImmediately(t *testing.T) {
+	t.Parallel()
+
+	compiler, err := runnercontrol.NewJUnitObservationCompiler(runnercontrol.ObservationPolicy{
+		Format: runnercontrol.ObservationJUnitXML, ExpectedUnits: 1,
+	})
+	if err != nil {
+		t.Fatalf("NewJUnitObservationCompiler() error = %v, want nil", err)
+	}
+	defer compiler.Abort()
+	oversized := []byte(strings.Repeat("x", int(runnercontrol.JUnitXMLMaximumBytes)+1))
+	written, gotErr := compiler.Write(oversized)
+	if written != 0 || !errors.Is(gotErr, core.ErrPrimitiveContract) {
+		t.Fatalf("JUnitObservationCompiler.Write(overflow) = (%d, %v), want (0, %v)", written, gotErr, core.ErrPrimitiveContract)
+	}
+}
+
 func junitHostileCases() []junitBoundaryCase {
 	pass := `<testsuite><testcase name="one"/></testsuite>`
 	fail := `<testsuite><testcase name="one"><failure>assertion</failure></testcase></testsuite>`

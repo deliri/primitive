@@ -14,9 +14,11 @@ import (
 const (
 	// BearerAuthorizationTokenMaximumBytes bounds one OAuth-style bearer token.
 	BearerAuthorizationTokenMaximumBytes = 4 * 1024
-	bearerAuthorizationScheme            = "Bearer "
+	// BearerAuthorizationScheme is the canonical HTTP authentication scheme
+	// shared by RFC 6750 and provider-owned opaque bearer protocols.
+	BearerAuthorizationScheme = "Bearer"
 	// BearerAuthorizationHeaderMaximumBytes bounds the complete encoded value.
-	BearerAuthorizationHeaderMaximumBytes = len(bearerAuthorizationScheme) + BearerAuthorizationTokenMaximumBytes
+	BearerAuthorizationHeaderMaximumBytes = len(BearerAuthorizationScheme) + 1 + BearerAuthorizationTokenMaximumBytes
 )
 
 // BearerAuthorization is one caller-custodied RFC 6750 bearer token. The
@@ -53,7 +55,7 @@ func NewBearerAuthorizationHeader(authorization BearerAuthorization) (Header, er
 	if err := authorization.Validate(); err != nil {
 		return Header{}, err
 	}
-	value, err := NewHeaderValue(bearerAuthorizationScheme + string(authorization.Token))
+	value, err := NewHeaderValue(BearerAuthorizationScheme + " " + string(authorization.Token))
 	if err != nil {
 		return Header{}, err
 	}
@@ -77,11 +79,14 @@ func ReceiveBearerAuthorization(request *http.Request) (BearerAuthorization, err
 		return zero, requestError(err)
 	}
 	values := request.Header.Values(name.String())
-	if len(values) != 1 || len(values[0]) > BearerAuthorizationHeaderMaximumBytes ||
-		!strings.HasPrefix(values[0], bearerAuthorizationScheme) {
+	if len(values) != 1 || len(values[0]) > BearerAuthorizationHeaderMaximumBytes {
 		return zero, requestError(core.ErrExchangeContract)
 	}
-	token := []byte(strings.TrimPrefix(values[0], bearerAuthorizationScheme))
+	scheme, tokenText, found := strings.Cut(values[0], " ")
+	if !found || !strings.EqualFold(scheme, BearerAuthorizationScheme) {
+		return zero, requestError(core.ErrExchangeContract)
+	}
+	token := []byte(tokenText)
 	authorization := BearerAuthorization{Token: token}
 	if err := authorization.Validate(); err != nil {
 		clear(token)

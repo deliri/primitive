@@ -14,6 +14,7 @@ import (
 	"github.com/deliri/primitive/v2026/core"
 	"github.com/deliri/primitive/v2026/keygen"
 	"github.com/deliri/primitive/v2026/temporal"
+	"golang.org/x/net/publicsuffix"
 )
 
 // Client is a validated reference to the caller-owned real net/http client.
@@ -46,7 +47,7 @@ func NewStandardClient() (Client, error) {
 // The jar owns cookie matching and session state; Exchange continues to own
 // operation timing, replay, redirect, and body policy per call.
 func NewSessionClient() (Client, error) {
-	jar, err := cookiejar.New(nil)
+	jar, err := cookiejar.New(&cookiejar.Options{PublicSuffixList: publicsuffix.List})
 	if err != nil {
 		return Client{}, errors.Join(core.ErrExchangeContract, err)
 	}

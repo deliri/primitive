@@ -13,4 +13,5 @@ var (
 	_ core.ValidatedJSONMarshaler = SerialNumber{}
 	_ core.ValidatedJSONMarshaler = authoritativeTimestampWire{}
 	_ core.ValidatedJSONMarshaler = AuthoritativeTimestamp{}
+	_ core.Validatable            = AuthoritativeTime{}
 )

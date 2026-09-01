@@ -126,7 +126,7 @@ func selectionStateLabels() [selectionLimit]string {
 type EvaluateRequest struct {
 	InstalledManifest VerifiedManifest
 	Latest            CachedLatest
-	Observation       temporal.Instant
+	Time              LatestTimeEvidence
 }
 
 // Validate proves the complete installed-selection ingress.
@@ -137,7 +137,7 @@ func (r EvaluateRequest) Validate() error {
 	if err := r.Latest.Validate(); err != nil {
 		return err
 	}
-	if err := r.Observation.Validate(); err != nil {
+	if err := r.Time.Validate(); err != nil {
 		return contractError(err)
 	}
 	return nil
@@ -549,7 +549,7 @@ func evaluatePresent(
 		return Selection{}, conflictError(errors.New("latest offering differs from installed offering"))
 	}
 	assessment, err := AssessLatest(AssessLatestRequest{
-		Latest: request.Latest.latest, Observation: request.Observation,
+		Latest: request.Latest.latest, Time: request.Time,
 	})
 	if err != nil {
 		return Selection{}, err
@@ -659,7 +659,7 @@ type PreparedRelease struct {
 	installedManifest VerifiedManifest
 	latest            VerifiedLatest
 	assessment        LatestAssessment
-	observation       temporal.Instant
+	time              LatestTimeEvidence
 	valid             bool
 }
 
@@ -679,7 +679,7 @@ func (p PreparedRelease) Validate() error {
 func (p PreparedRelease) validateValues() error {
 	for _, err := range []error{
 		p.candidateManifest.Validate(), p.installedManifest.Validate(),
-		p.latest.Validate(), p.artifact.Validate(), p.observation.Validate(),
+		p.latest.Validate(), p.artifact.Validate(), p.time.Validate(),
 		p.assessment.Validate(),
 	} {
 		if err != nil {
@@ -691,7 +691,7 @@ func (p PreparedRelease) validateValues() error {
 
 func (p PreparedRelease) validateFreshness() error {
 	reassessed, err := AssessLatest(AssessLatestRequest{
-		Latest: p.latest, Observation: p.observation,
+		Latest: p.latest, Time: p.time,
 	})
 	if err != nil || reassessed != p.assessment ||
 		p.assessment.Freshness() != LatestFreshnessCurrent {
@@ -742,12 +742,13 @@ func (p PreparedRelease) Latest() (VerifiedLatest, error) {
 	return p.latest, nil
 }
 
-// Observation returns the exact observation used for final freshness proof.
-func (p PreparedRelease) Observation() (temporal.Instant, error) {
+// TimeEvidence returns the exact durable and monotonic observations used for
+// final freshness proof.
+func (p PreparedRelease) TimeEvidence() (LatestTimeEvidence, error) {
 	if err := p.Validate(); err != nil {
-		return temporal.Instant{}, err
+		return LatestTimeEvidence{}, err
 	}
-	return p.observation, nil
+	return p.time, nil
 }
 
 // Assessment returns the exact freshness proof at Observation.
@@ -839,11 +840,11 @@ func (p Preparation) Reassess() (ReassessDirective, bool) {
 	return p.reassess, p.valid && p.state == SelectionReassessAt
 }
 
-func (a AvailableRelease) PrepareAt(observation temporal.Instant) (Preparation, error) {
+func (a AvailableRelease) Prepare(timeEvidence LatestTimeEvidence) (Preparation, error) {
 	if err := a.Validate(); err != nil {
 		return Preparation{}, err
 	}
-	assessment, err := AssessLatest(AssessLatestRequest{Latest: a.latest, Observation: observation})
+	assessment, err := AssessLatest(AssessLatestRequest{Latest: a.latest, Time: timeEvidence})
 	if err != nil {
 		return Preparation{}, err
 	}
@@ -864,7 +865,7 @@ func (a AvailableRelease) PrepareAt(observation temporal.Instant) (Preparation, 
 		ready := PreparedRelease{
 			candidateManifest: a.candidateManifest,
 			installedManifest: a.installedManifest, latest: a.latest,
-			artifact: a.candidateArtifact, observation: observation,
+			artifact: a.candidateArtifact, time: timeEvidence,
 			assessment: assessment, valid: true,
 		}
 		return sealPreparation(Preparation{state: SelectionAvailable, ready: ready, valid: true})

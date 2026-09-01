@@ -6,8 +6,6 @@ import (
 	"crypto/x509/pkix"
 	"encoding/asn1"
 	"math/big"
-
-	"github.com/deliri/primitive/v2026/temporal"
 )
 
 type cmsEncapsulatedContent struct {
@@ -56,15 +54,15 @@ type parsedTSTInfo struct {
 	MessageImprint messageImprint
 	Policy         asn1.ObjectIdentifier
 	TSASubject     []byte
-	GenerationTime temporal.Instant
+	Time           AuthoritativeTime
 	Version        int
 }
 
 type verifiedToken struct {
-	Serial         *big.Int
-	GenerationTime temporal.Instant
-	SignerSHA256   [sha256.Size]byte
-	Policy         TimestampPolicy
+	Serial       *big.Int
+	Time         AuthoritativeTime
+	SignerSHA256 [sha256.Size]byte
+	Policy       TimestampPolicy
 }
 
 type accuracyWire struct {

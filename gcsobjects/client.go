@@ -520,11 +520,35 @@ type gcsWrite struct {
 
 // GCSReadRequest is exact authenticated object egress.
 type GCSReadRequest struct {
-	Destination io.Writer
+	Destination filestore.StageDestinationRequest
 	Bucket      GCSBucket
 	Name        GCSObjectName
-	SHA256      core.SHA256Digest
-	Maximum     core.ByteCount
+	Integrity   objectstore.Integrity
+}
+
+// GCSReadResult transfers ownership of one integrity-verified local stage and
+// the exact provider metadata that produced it.
+type GCSReadResult struct {
+	metadata GCSObjectMetadata
+	staged   filestore.StagedFile
+}
+
+func (r GCSReadResult) Validate() error {
+	return errors.Join(r.metadata.Validate(), r.staged.Validate())
+}
+
+func (r GCSReadResult) Metadata() (GCSObjectMetadata, error) {
+	if err := r.Validate(); err != nil {
+		return GCSObjectMetadata{}, errors.Join(core.ErrObjectStoreContract, err)
+	}
+	return r.metadata, nil
+}
+
+func (r GCSReadResult) Staged() (filestore.StagedFile, error) {
+	if err := r.Validate(); err != nil {
+		return filestore.StagedFile{}, errors.Join(core.ErrObjectStoreContract, err)
+	}
+	return r.staged, nil
 }
 
 // GCSListRequest is one bounded authenticated prefix inventory.
@@ -580,17 +604,14 @@ func gcsGenerationFromEvidence(evidence objectstore.TransferEvidence) (GCSGenera
 
 // Validate rejects incomplete or contradictory read ingress.
 func (r GCSReadRequest) Validate() error {
-	if r.Destination == nil {
-		return errors.Join(core.ErrObjectStoreContract, core.ErrObjectStoreDestination)
-	}
-	for _, err := range []error{r.Bucket.Validate(), r.Name.Validate(), r.SHA256.Validate()} {
+	for _, err := range []error{r.Bucket.Validate(), r.Name.Validate(), r.Integrity.Validate(), r.Destination.Validate()} {
 		if err != nil {
 			return errors.Join(core.ErrObjectStoreContract, err)
 		}
 	}
-	maximum, err := r.Maximum.Uint64()
-	if err != nil || maximum > objectstore.GoogleCloudStorageObjectMaximumBytes {
-		return errors.Join(core.ErrObjectStoreContract, core.ErrObjectStoreSize, err)
+	if r.Integrity.Length.Uint64() > objectstore.GoogleCloudStorageObjectMaximumBytes ||
+		r.Destination.ExpectedBytes != r.Integrity.Length {
+		return errors.Join(core.ErrObjectStoreContract, core.ErrObjectStoreSize)
 	}
 	return nil
 }
@@ -744,51 +765,91 @@ func streamGCSWrite(writer *storage.Writer, cancel context.CancelFunc, request g
 	}
 	if err != nil {
 		cancel()
-		_ = writer.Close()
+		closeErr := writer.Close()
 		if exact.Failure() != nil {
-			return exact.Failure()
+			return errors.Join(exact.Failure(), projectGCSAbortError(closeErr))
 		}
-		return projectGCSError(err, core.ErrObjectStoreDestination)
+		return errors.Join(projectGCSError(err, core.ErrObjectStoreDestination), projectGCSAbortError(closeErr))
 	}
 	actualDigest, actualLength, err := digest.Seal()
 	if err != nil || actualDigest != request.Integrity.SHA256 || actualLength != request.Integrity.Length {
 		cancel()
-		_ = writer.Close()
-		return errors.Join(core.ErrObjectStoreSource, core.ErrObjectStoreIntegrity, err)
+		closeErr := writer.Close()
+		return errors.Join(core.ErrObjectStoreSource, core.ErrObjectStoreIntegrity, err, projectGCSAbortError(closeErr))
 	}
 	return nil
 }
 
-// ReadGCSObject streams one exact generation into a caller-owned destination.
-func ReadGCSObject(ctx context.Context, client *GCSClient, request GCSReadRequest) (GCSObjectMetadata, error) {
-	if err := validateGCSCall(ctx, client); err != nil {
-		return GCSObjectMetadata{}, err
+func projectGCSAbortError(err error) error {
+	if err == nil {
+		return nil
 	}
-	if err := request.Validate(); err != nil {
-		return GCSObjectMetadata{}, err
-	}
+	return projectGCSError(err, core.ErrObjectStoreDestination)
+}
+
+type gcsReadSession struct {
+	reader    *storage.Reader
+	metadata  GCSObjectMetadata
+	integrity objectstore.Integrity
+}
+
+func openGCSReadSession(ctx context.Context, client *GCSClient, request GCSReadRequest) (gcsReadSession, error) {
 	object := client.client.Bucket(request.Bucket.String()).Object(request.Name.String())
 	reader, err := object.NewReader(ctx)
 	if err != nil {
-		return GCSObjectMetadata{}, projectGCSError(err, core.ErrObjectStoreSource)
+		return gcsReadSession{}, projectGCSError(err, core.ErrObjectStoreSource)
 	}
 	metadata, err := metadataFromReader(ctx, object, reader)
 	if err != nil {
 		_ = reader.Close()
-		return GCSObjectMetadata{}, err
+		return gcsReadSession{}, err
 	}
 	integrity, err := readIntegrityFromMetadata(request, metadata)
 	if err != nil {
 		_ = reader.Close()
-		return GCSObjectMetadata{}, err
+		return gcsReadSession{}, err
 	}
-	if err := streamGCSRead(reader, request.Destination, integrity); err != nil {
-		return GCSObjectMetadata{}, errors.Join(err, reader.Close())
+	return gcsReadSession{reader: reader, metadata: metadata, integrity: integrity}, nil
+}
+
+func (s gcsReadSession) stage(ctx context.Context, request filestore.StageDestinationRequest) (GCSReadResult, error) {
+	destination, err := filestore.OpenStageDestination(ctx, request)
+	if err != nil {
+		_ = s.reader.Close()
+		return GCSReadResult{}, errors.Join(core.ErrObjectStoreDestination, err)
 	}
-	if err := reader.Close(); err != nil {
-		return GCSObjectMetadata{}, projectGCSError(err, core.ErrObjectStoreSource)
+	file, err := destination.File()
+	if err != nil {
+		_ = s.reader.Close()
+		return GCSReadResult{}, errors.Join(core.ErrObjectStoreDestination, filestore.AbandonStageDestination(destination), err)
 	}
-	return metadata, nil
+	if err := streamGCSRead(s.reader, file, s.integrity); err != nil {
+		return GCSReadResult{}, errors.Join(err, s.reader.Close(), filestore.AbandonStageDestination(destination))
+	}
+	if err := s.reader.Close(); err != nil {
+		return GCSReadResult{}, errors.Join(projectGCSError(err, core.ErrObjectStoreSource), filestore.AbandonStageDestination(destination))
+	}
+	staged, err := filestore.FinishStageDestination(ctx, destination)
+	if err != nil {
+		return GCSReadResult{}, errors.Join(core.ErrObjectStoreDestination, err)
+	}
+	result := GCSReadResult{metadata: s.metadata, staged: staged}
+	return result, result.Validate()
+}
+
+// ReadGCSObject streams one exact generation into a caller-owned destination.
+func ReadGCSObject(ctx context.Context, client *GCSClient, request GCSReadRequest) (GCSReadResult, error) {
+	if err := validateGCSCall(ctx, client); err != nil {
+		return GCSReadResult{}, err
+	}
+	if err := request.Validate(); err != nil {
+		return GCSReadResult{}, err
+	}
+	session, err := openGCSReadSession(ctx, client, request)
+	if err != nil {
+		return GCSReadResult{}, err
+	}
+	return session.stage(ctx, request.Destination)
 }
 
 // ListGCSObjects streams a bounded, lexicographically ordered prefix inventory.
@@ -877,7 +938,7 @@ func sameListedGCSObject(listed, read GCSObjectMetadata) bool {
 }
 
 func streamGCSListedRead(reader *storage.Reader, destination io.Writer, listed GCSObjectMetadata) error {
-	exact, err := objectstore.NewExactReader(reader, listed.Length())
+	exact, err := objectstore.NewExactReader(newGCSExactSource(reader, listed.Length()), listed.Length())
 	if err != nil {
 		return err
 	}
@@ -970,18 +1031,14 @@ func metadataFromReader(ctx context.Context, object *storage.ObjectHandle, reade
 }
 
 func readIntegrityFromMetadata(request GCSReadRequest, metadata GCSObjectMetadata) (objectstore.Integrity, error) {
-	maximum, err := request.Maximum.Uint64()
-	if err != nil {
-		return objectstore.Integrity{}, errors.Join(core.ErrObjectStoreContract, err)
+	if metadata.Length() != request.Integrity.Length || metadata.CRC32C() != request.Integrity.CRC32C {
+		return objectstore.Integrity{}, errors.Join(core.ErrObjectStoreSize, core.ErrObjectStoreIntegrity)
 	}
-	if metadata.Length().Uint64() > maximum {
-		return objectstore.Integrity{}, core.ErrObjectStoreSize
-	}
-	return objectstore.Integrity{SHA256: request.SHA256, Length: metadata.Length(), CRC32C: metadata.CRC32C()}, nil
+	return request.Integrity, nil
 }
 
 func streamGCSRead(reader *storage.Reader, destinationWriter io.Writer, integrity objectstore.Integrity) error {
-	exact, err := objectstore.NewExactReader(reader, integrity.Length)
+	exact, err := objectstore.NewExactReader(newGCSExactSource(reader, integrity.Length), integrity.Length)
 	if err != nil {
 		return err
 	}
@@ -1007,6 +1064,26 @@ func streamGCSRead(reader *storage.Reader, destinationWriter io.Writer, integrit
 	}
 	return nil
 }
+
+type gcsExactSource struct {
+	source    io.Reader
+	remaining uint64
+}
+
+func newGCSExactSource(source io.Reader, length core.ByteLength) *gcsExactSource {
+	return &gcsExactSource{source: source, remaining: length.Uint64()}
+}
+
+func (s *gcsExactSource) Read(destination []byte) (int, error) {
+	count, err := s.source.Read(destination)
+	if count < 0 || uint64(count) > s.remaining {
+		return 0, core.ErrObjectStoreIntegrity
+	}
+	s.remaining -= uint64(count)
+	return count, err
+}
+
+func (s *gcsExactSource) RemainingBytes() uint64 { return s.remaining }
 
 // DeleteGCSObject permanently deletes one exact current generation and proves
 // that no current object remains at the name. Soft-delete buckets are refused.
@@ -1124,10 +1201,20 @@ func deleteGCSPrefix(ctx context.Context, bucket *storage.BucketHandle, prefix G
 		if deleted == maximum {
 			return deleted, errors.Join(core.ErrObjectStoreContract, core.ErrObjectStoreSize)
 		}
-		object := bucket.Object(attrs.Name).Generation(attrs.Generation).If(
-			storage.Conditions{GenerationMatch: attrs.Generation},
+		metadata, err := metadataFromGCSAttrs(attrs)
+		if err != nil {
+			return deleted, err
+		}
+		generation, err := metadata.Generation().Int64()
+		if err != nil {
+			return deleted, err
+		}
+		object := bucket.Object(metadata.Name().String()).Generation(generation).If(
+			storage.Conditions{GenerationMatch: generation},
 		)
-		if err := object.Delete(ctx); err != nil && !errors.Is(err, storage.ErrObjectNotExist) {
+		if err := object.Delete(ctx); errors.Is(err, storage.ErrObjectNotExist) {
+			continue
+		} else if err != nil {
 			return deleted, projectGCSError(err, core.ErrObjectStoreDestination)
 		}
 		deleted++

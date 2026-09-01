@@ -82,6 +82,50 @@ func TestStripeWebhookIngressLayerTriad(t *testing.T) {
 			t.Fatalf("Stripe unsigned Receive() = observation:%+v bytes:%d error:%v, want zero, 0, %v", observation, destination.Len(), gotErr, core.ErrProviderWireAuthentication)
 		}
 	})
+
+	t.Run("boundary signature time is bounded in both clock directions", func(t *testing.T) {
+		t.Parallel()
+
+		cases := []struct {
+			name          string
+			signedSeconds int64
+			wantErr       error
+		}{
+			{name: "one second before observed time is accepted", signedSeconds: 1_799_999_999},
+			{name: "exactly at future tolerance is accepted", signedSeconds: 1_800_000_300},
+			{name: "one second beyond future tolerance is refused", signedSeconds: 1_800_000_301, wantErr: core.ErrProviderWireVerification},
+			{name: "one second beyond past tolerance is refused", signedSeconds: 1_799_999_699, wantErr: core.ErrProviderWireVerification},
+		}
+		for _, tc := range cases {
+			t.Run(tc.name, func(t *testing.T) {
+				t.Parallel()
+
+				receiver, secret := stripeWebhookTestReceiver(t)
+				defer closeStripeWebhookTestReceiver(t, &receiver, &secret)
+				signedAt := stripesdk.GenerateTestSignedPayload(&stripesdk.UnsignedPayload{
+					Payload: body, Secret: "whsec_test_123", Timestamp: time.Unix(tc.signedSeconds, 0),
+				})
+				request := webhookRequest(t, "https://api.example.test/v1/stripe", body, "application/json")
+				request.Header.Set(StripeWebhookSignatureHeaderName, signedAt.Header)
+				var destination bytes.Buffer
+				observation, gotErr := receiver.Receive(StripeWebhookReceiveRequest{
+					Request: request, Destination: &destination, ObservedAt: observedAt, Tolerance: tolerance,
+				})
+				if !errors.Is(gotErr, tc.wantErr) {
+					t.Fatalf("Stripe Receive(signed at %d) error = %v, want %v", tc.signedSeconds, gotErr, tc.wantErr)
+				}
+				if tc.wantErr != nil {
+					if observation.Validate() == nil || destination.Len() != 0 {
+						t.Fatalf("Stripe refused future signature = observation:%+v bytes:%d, want zero", observation, destination.Len())
+					}
+					return
+				}
+				if observation.Validate() != nil || !bytes.Equal(destination.Bytes(), body) {
+					t.Fatalf("Stripe admitted boundary signature = observation:%+v body:%q, want valid exact body", observation, destination.Bytes())
+				}
+			})
+		}
+	})
 }
 
 func TestTwilioWebhookIngressLayerTriad(t *testing.T) {
@@ -117,6 +161,21 @@ func TestTwilioWebhookIngressLayerTriad(t *testing.T) {
 		observation, gotErr := receiver.Receive(request, &destination)
 		if !errors.Is(gotErr, core.ErrProviderWireVerification) || observation.Validate() == nil || destination.Len() != 0 {
 			t.Fatalf("Twilio mutated Receive() = observation:%+v bytes:%d error:%v, want zero, 0, %v", observation, destination.Len(), gotErr, core.ErrProviderWireVerification)
+		}
+	})
+
+	t.Run("negative repeated form field is refused because the SDK signs only its first value", func(t *testing.T) {
+		t.Parallel()
+
+		receiver, token := twilioWebhookTestReceiver(t, publicURL, TwilioWebhookRepresentationForm)
+		defer closeTwilioWebhookTestReceiver(t, &receiver, &token)
+		request := webhookRequest(t, publicURL, []byte(body+"&boolean=false"), "application/x-www-form-urlencoded")
+		request.Header.Set(TwilioWebhookSignatureHeaderName, signature)
+		var destination bytes.Buffer
+		observation, gotErr := receiver.Receive(request, &destination)
+		if !errors.Is(gotErr, core.ErrProviderWireVerification) || observation.Validate() == nil || destination.Len() != 0 {
+			t.Fatalf("Twilio repeated field Receive() = observation:%+v bytes:%d error:%v, want zero, 0, %v",
+				observation, destination.Len(), gotErr, core.ErrProviderWireVerification)
 		}
 	})
 
@@ -205,6 +264,34 @@ func TestPlunkWebhookIngressLayerTriad(t *testing.T) {
 		}
 	})
 
+	t.Run("positive printable opaque bearer punctuation authenticates exactly", func(t *testing.T) {
+		t.Parallel()
+
+		secretBytes := []byte("plunk!shared#secret%:")
+		secret, err := ParsePlunkWebhookSecret(secretBytes)
+		if err != nil {
+			t.Fatalf("ParsePlunkWebhookSecret() error = %v, want nil", err)
+		}
+		receiver, err := NewPlunkWebhookReceiver(secret, plunkWebhookMaximum(t))
+		if err != nil {
+			t.Fatalf("NewPlunkWebhookReceiver() error = %v, want nil", err)
+		}
+		defer closePlunkWebhookTestReceiver(t, &receiver, &secret)
+		body := []byte(`{"event":"opaque-secret"}`)
+		request := webhookRequest(t, "https://api.example.test/v1/plunk", body, "application/json")
+		headerName, err := exchange.StandardHeaderAuthorization.Name()
+		if err != nil {
+			t.Fatalf("StandardHeaderAuthorization.Name() error = %v, want nil", err)
+		}
+		request.Header.Set(headerName.String(), exchange.BearerAuthorizationScheme+" "+string(secretBytes))
+		var destination bytes.Buffer
+		observation, gotErr := receiver.Receive(request, &destination)
+		if gotErr != nil || observation.Provider != ProviderPlunk || !bytes.Equal(destination.Bytes(), body) {
+			t.Fatalf("Plunk opaque bearer Receive() = observation:%+v body:%q error:%v, want exact body and nil",
+				observation, destination.Bytes(), gotErr)
+		}
+	})
+
 	t.Run("negative foreign bearer is refused before body release", func(t *testing.T) {
 		t.Parallel()
 
@@ -246,7 +333,7 @@ func TestPayPalWebhookIngressLayerTriad(t *testing.T) {
 		body := []byte(`{"id":"WH-EVENT-123","event_type":"PAYMENT.CAPTURE.COMPLETED"}`)
 		request := payPalWebhookRequest(t, body, true)
 		var destination bytes.Buffer
-		observation, gotErr := receiver.Receive(request, &destination, providerOperationPolicy(t))
+		observation, gotErr := receiver.Receive(payPalWebhookReceiveRequest(t, request, &destination))
 		if gotErr != nil || verificationCalls != 1 || observation.Provider != ProviderPayPal || observation.Bytes.Uint64() != uint64(len(body)) || !bytes.Equal(destination.Bytes(), body) {
 			t.Fatalf("PayPal Receive() = calls:%d observation:%+v body:%q error:%v, want 1 and exact %d-byte PayPal body", verificationCalls, observation, destination.Bytes(), gotErr, len(body))
 		}
@@ -260,7 +347,7 @@ func TestPayPalWebhookIngressLayerTriad(t *testing.T) {
 		defer closePayPalWebhookTestReceiver(t, &receiver, &token)
 		request := payPalWebhookRequest(t, []byte(`{"id":"WH-EVENT-123"}`), true)
 		var destination bytes.Buffer
-		observation, gotErr := receiver.Receive(request, &destination, providerOperationPolicy(t))
+		observation, gotErr := receiver.Receive(payPalWebhookReceiveRequest(t, request, &destination))
 		if !errors.Is(gotErr, core.ErrProviderWireVerification) || verificationCalls != 1 || observation.Validate() == nil || destination.Len() != 0 {
 			t.Fatalf("PayPal refused Receive() = calls:%d observation:%+v bytes:%d error:%v, want 1, zero, 0, %v", verificationCalls, observation, destination.Len(), gotErr, core.ErrProviderWireVerification)
 		}
@@ -274,11 +361,96 @@ func TestPayPalWebhookIngressLayerTriad(t *testing.T) {
 		defer closePayPalWebhookTestReceiver(t, &receiver, &token)
 		request := payPalWebhookRequest(t, []byte(`{"id":"WH-EVENT-123"}`), false)
 		var destination bytes.Buffer
-		observation, gotErr := receiver.Receive(request, &destination, providerOperationPolicy(t))
+		observation, gotErr := receiver.Receive(payPalWebhookReceiveRequest(t, request, &destination))
 		if !errors.Is(gotErr, core.ErrProviderWireAuthentication) || verificationCalls != 0 || observation.Validate() == nil || destination.Len() != 0 {
 			t.Fatalf("PayPal missing-header Receive() = calls:%d observation:%+v bytes:%d error:%v, want 0, zero, 0, %v", verificationCalls, observation, destination.Len(), gotErr, core.ErrProviderWireAuthentication)
 		}
 	})
+}
+
+func TestPayPalWebhookTransmissionTimeBoundsReplayInBothDirections(t *testing.T) {
+	t.Parallel()
+
+	signed, err := temporal.ParseRFC3339("2026-08-31T20:00:00Z")
+	if err != nil {
+		t.Fatalf("temporal.ParseRFC3339(signed) error = %v, want nil", err)
+	}
+	tolerance, err := temporal.DurationFromMinutes(5)
+	if err != nil {
+		t.Fatalf("temporal.DurationFromMinutes(5) error = %v, want nil", err)
+	}
+	oneNanosecond, err := temporal.DurationFromNanoseconds(1)
+	if err != nil {
+		t.Fatalf("temporal.DurationFromNanoseconds(1) error = %v, want nil", err)
+	}
+	beyond, err := tolerance.Add(oneNanosecond)
+	if err != nil {
+		t.Fatalf("tolerance.Add(1ns) error = %v, want nil", err)
+	}
+	atPastLimit, err := signed.Add(tolerance)
+	if err != nil {
+		t.Fatalf("signed.Add(tolerance) error = %v, want nil", err)
+	}
+	pastLimitExceeded, err := signed.Add(beyond)
+	if err != nil {
+		t.Fatalf("signed.Add(tolerance+1ns) error = %v, want nil", err)
+	}
+	signedNanoseconds, err := signed.Nanoseconds()
+	if err != nil {
+		t.Fatalf("signed.Nanoseconds() error = %v, want nil", err)
+	}
+	atFutureLimit := temporal.InstantFromNanoseconds(signedNanoseconds - tolerance.Nanoseconds())
+	futureLimitExceeded := temporal.InstantFromNanoseconds(signedNanoseconds - beyond.Nanoseconds())
+
+	cases := []struct {
+		name       string
+		observedAt temporal.Instant
+		wantErr    error
+	}{
+		{name: "exact transmission instant is current", observedAt: signed},
+		{name: "exact past tolerance is current", observedAt: atPastLimit},
+		{name: "one nanosecond beyond past tolerance is stale", observedAt: pastLimitExceeded, wantErr: core.ErrProviderWireVerification},
+		{name: "exact future tolerance is current", observedAt: atFutureLimit},
+		{name: "one nanosecond beyond future tolerance is premature", observedAt: futureLimitExceeded, wantErr: core.ErrProviderWireVerification},
+	}
+	for _, tc := range cases {
+		t.Run(tc.name, func(t *testing.T) {
+			t.Parallel()
+
+			verificationCalls := uint64(0)
+			receiver, token := payPalWebhookTestReceiver(t, &verificationCalls, PayPalWebhookVerificationSuccess)
+			defer closePayPalWebhookTestReceiver(t, &receiver, &token)
+			body := []byte(`{"id":"WH-EVENT-123"}`)
+			request := payPalWebhookRequest(t, body, true)
+			var destination bytes.Buffer
+			observation, gotErr := receiver.Receive(PayPalWebhookReceiveRequest{
+				Request: request, Destination: &destination, ObservedAt: tc.observedAt,
+				Tolerance: tolerance, Policy: providerOperationPolicy(t),
+			})
+			if !errors.Is(gotErr, tc.wantErr) {
+				t.Fatalf("PayPal Receive() error = %v, want %v", gotErr, tc.wantErr)
+			}
+			if tc.wantErr != nil {
+				if verificationCalls != 0 || destination.Len() != 0 || observation.Validate() == nil {
+					t.Fatalf(
+						"PayPal stale Receive() = calls:%d observation:%+v bytes:%d, want 0, zero, 0",
+						verificationCalls,
+						observation,
+						destination.Len(),
+					)
+				}
+				return
+			}
+			if verificationCalls != 1 || !bytes.Equal(destination.Bytes(), body) {
+				t.Fatalf(
+					"PayPal current Receive() = calls:%d body:%q, want 1 and %q",
+					verificationCalls,
+					destination.Bytes(),
+					body,
+				)
+			}
+		})
+	}
 }
 
 func webhookRequest(t testing.TB, target string, body []byte, media string) *http.Request {
@@ -411,6 +583,29 @@ func payPalWebhookRequest(t testing.TB, body []byte, complete bool) *http.Reques
 	request.Header.Set(PayPalTransmissionSignatureHeaderName, "signature-123")
 	request.Header.Set(PayPalTransmissionTimeHeaderName, "2026-08-31T20:00:00Z")
 	return request
+}
+
+func payPalWebhookReceiveRequest(
+	t testing.TB,
+	request *http.Request,
+	destination io.Writer,
+) PayPalWebhookReceiveRequest {
+	t.Helper()
+
+	observedAt, err := temporal.ParseRFC3339(
+		request.Header.Get(PayPalTransmissionTimeHeaderName),
+	)
+	if err != nil {
+		observedAt = providerWebhookInstant(t, 1_788_228_800)
+	}
+	tolerance, err := temporal.DurationFromMinutes(5)
+	if err != nil {
+		t.Fatalf("temporal.DurationFromMinutes(5) error = %v, want nil", err)
+	}
+	return PayPalWebhookReceiveRequest{
+		Request: request, Destination: destination, ObservedAt: observedAt,
+		Tolerance: tolerance, Policy: providerOperationPolicy(t),
+	}
 }
 
 func payPalWebhookTestReceiver(t testing.TB, calls *uint64, status PayPalWebhookVerificationStatus) (PayPalWebhookReceiver, PayPalAccessToken) {

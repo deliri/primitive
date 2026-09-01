@@ -129,9 +129,10 @@ func TestFailedSlotCreationIsReportedAsPersistenceNotCleanup(t *testing.T) {
 	t.Parallel()
 
 	directory := t.TempDir()
-	root, err := os.OpenRoot(directory)
+	directoryPath := absolutePathForTest(t, directory)
+	root, err := filestore.OpenRoot(t.Context(), directoryPath)
 	if err != nil {
-		t.Fatalf("os.OpenRoot() error = %v, want nil", err)
+		t.Fatalf("filestore.OpenRoot() error = %v, want nil", err)
 	}
 	t.Cleanup(func() { _ = root.Close() })
 
@@ -142,7 +143,7 @@ func TestFailedSlotCreationIsReportedAsPersistenceNotCleanup(t *testing.T) {
 	prior := selectionDocument{
 		Revision: selectionRevisionCurrent, Slot: SlotA, Artifact: oldArtifact,
 	}
-	target, err := newTrialTarget(absolutePathForTest(t, directory), prior, candidate)
+	target, err := newTrialTarget(directoryPath, prior, candidate)
 	if err != nil {
 		t.Fatalf("newTrialTarget() error = %v, want nil", err)
 	}

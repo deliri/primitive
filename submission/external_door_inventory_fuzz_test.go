@@ -323,7 +323,7 @@ func fuzzSubmissionCompletionDocument(t *testing.T, data []byte, fixtures submis
 	proof, err := VerifyCompletion(CompletionExpectation{
 		Document: candidate, Request: fixtures.completion.request,
 		Grant: fixtures.completion.grantDocument, GrantKeys: fixtures.completion.grantKeys,
-		CompletionKeys: fixtures.completion.deviceKeys,
+		CompletionKeys: fixtures.completion.deviceKeys, Nonce: fixtures.completion.nonce,
 	})
 	if err != nil {
 		if !errors.Is(err, core.ErrControlPlaneContract) || proof != (VerifiedCompletion{}) {

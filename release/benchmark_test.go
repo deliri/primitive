@@ -6,7 +6,6 @@ import (
 	"testing"
 
 	"github.com/deliri/primitive/v2026/core"
-	"github.com/deliri/primitive/v2026/temporal"
 )
 
 func BenchmarkVerifyLatest(b *testing.B) {
@@ -30,8 +29,8 @@ func BenchmarkVerifyLatest(b *testing.B) {
 func BenchmarkAssessLatest(b *testing.B) {
 	fixture := newReleaseFixture(b, core.NewReleaseVersion(2026, 7, 30), 1)
 	request := AssessLatestRequest{
-		Latest:      fixture.verifiedLatest,
-		Observation: temporal.InstantFromNanoseconds(3_000),
+		Latest: fixture.verifiedLatest,
+		Time:   latestTimeEvidenceAt(b, 3_000),
 	}
 	var got LatestAssessment
 	var err error

@@ -3,6 +3,7 @@ package hostfacts
 import (
 	"context"
 	"errors"
+	"io"
 	"math"
 	"os"
 	"path/filepath"
@@ -241,5 +242,34 @@ func TestTreeWalkDepthRefusalClosesTheRejectedDirectory(t *testing.T) {
 	)
 	if !errors.Is(gotErr, core.ErrHostFactsObservation) {
 		t.Fatalf("treeWalk.descend(nil directory) error = %v, want %v", gotErr, core.ErrHostFactsObservation)
+	}
+}
+
+func TestTreeReadRetainsPartialErrorsAndBoundsEmptyProgress(t *testing.T) {
+	t.Parallel()
+
+	directory := t.TempDir()
+	if err := os.WriteFile(filepath.Join(directory, "visible-before-error"), []byte("x"), 0o600); err != nil {
+		t.Fatalf("os.WriteFile() error = %v, want nil", err)
+	}
+	entries, err := os.ReadDir(directory)
+	if err != nil || len(entries) != 1 {
+		t.Fatalf("os.ReadDir() = (%d entries, %v), want (1, nil)", len(entries), err)
+	}
+	partialErr := errors.New("directory became unreadable after a partial batch")
+	frame := treeFrame{}
+	retained, gotErr := retainTreeRead(&frame, entries, partialErr)
+	if retained || !errors.Is(gotErr, partialErr) || len(frame.entries) != 0 {
+		t.Fatalf("retainTreeRead(partial error) = (retained %t, error %v, entries %d), want (false, exact error, 0)", retained, gotErr, len(frame.entries))
+	}
+
+	for attempt := 1; attempt <= core.ReaderConsecutiveEmptyReadMaximum; attempt++ {
+		retained, gotErr = retainTreeRead(&frame, nil, nil)
+		if attempt < core.ReaderConsecutiveEmptyReadMaximum && (!retained || gotErr != nil) {
+			t.Fatalf("retainTreeRead(empty attempt %d) = (%t, %v), want (true, nil)", attempt, retained, gotErr)
+		}
+	}
+	if retained || !errors.Is(gotErr, io.ErrNoProgress) || !errors.Is(gotErr, core.ErrHostFactsObservation) {
+		t.Fatalf("retainTreeRead(empty ceiling) = (%t, %v), want typed %v", retained, gotErr, io.ErrNoProgress)
 	}
 }

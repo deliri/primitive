@@ -76,6 +76,7 @@ func FuzzCredentialedCompletionJSONSemanticAndAuthorityClosure(f *testing.F) {
 			Document: roundTrip, Request: fixture.verifiedRequest,
 			Grant: fixture.grant, GrantKeys: fixture.request.trusted,
 			Server: submissionAuthServer(t, fixture.request.trusted),
+			Nonce:  fixture.completionNonce,
 		})
 		if verifyErr != nil {
 			stableRejection := errors.Is(verifyErr, core.ErrControlPlaneResponseBinding) ||

@@ -90,22 +90,22 @@ func (c Client) VerifyRegistration(request RegistrationVerification) (VerifiedRe
 		return VerifiedRegistration{}, err
 	}
 	verified := VerifiedRegistration{
-		payload: request.Document.Payload, responseProof: responseProof,
+		payload: cloneRegistrationPayload(request.Document.Payload), responseProof: responseProof,
 		certificateProof: certificateProof, leaseProof: leaseProof,
 	}
 	return verified, verified.Validate()
 }
 
 // verifyRegistrationLease authenticates the nested Lease against the subject
-// the Lease itself names, so a valid Lease for one installation cannot be
-// carried inside another installation's response.
+// independently projected by the signed registration response. The Lease may
+// not select its own verification expectation.
 func verifyRegistrationLease(payload RegistrationPayload, trusted attest.TrustedKeys) (lease.Verified, error) {
-	header, err := payload.Lease.Decision.Header()
-	if err != nil {
-		return lease.Verified{}, registrationError(err)
+	expected := lease.Subject{
+		Offering: payload.Header.Offering, EntitlementID: payload.Entitlement,
+		DeviceID: payload.Header.Installation,
 	}
 	verified, err := lease.Verify(lease.VerifyRequest{
-		Document: payload.Lease, TrustedKeys: trusted, ExpectedSubject: header.Subject,
+		Document: payload.Lease, TrustedKeys: trusted, ExpectedSubject: expected,
 	})
 	if err != nil {
 		return lease.Verified{}, registrationError(err)
@@ -173,7 +173,7 @@ func (v VerifiedRegistration) Payload() (RegistrationPayload, error) {
 	if err := v.Validate(); err != nil {
 		return RegistrationPayload{}, err
 	}
-	return v.payload, nil
+	return cloneRegistrationPayload(v.payload), nil
 }
 
 // Lease returns the authenticated Lease, which is what Gate decides on.
@@ -193,7 +193,16 @@ func (v VerifiedRegistration) Certificate() (InstallationCertificateDocument, er
 	if v.payload.Certificate == nil {
 		return InstallationCertificateDocument{}, registrationError()
 	}
-	return *v.payload.Certificate, nil
+	return *cloneRegistrationPayload(v.payload).Certificate, nil
+}
+
+func cloneRegistrationPayload(payload RegistrationPayload) RegistrationPayload {
+	if payload.Certificate == nil {
+		return payload
+	}
+	certificate := *payload.Certificate
+	payload.Certificate = &certificate
+	return payload
 }
 
 var (

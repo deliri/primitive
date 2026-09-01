@@ -159,13 +159,13 @@ func FuzzCatalogDocumentJSONSemanticAndAuthorityClosure(f *testing.F) {
 			Document: roundTrip, Request: fixture.request, TrustedKeys: fixture.trusted,
 		})
 		if verifyErr != nil {
-			if !errors.Is(verifyErr, core.ErrChitVerification) || !catalogPayloadsEqual(verified, CatalogPayload{}) {
+			if !errors.Is(verifyErr, core.ErrChitVerification) || verified != (VerifiedCatalog{}) {
 				t.Fatalf("VerifyCatalog(fuzzed document) = (%v, %v), want zero typed verification rejection",
 					verified, verifyErr)
 			}
 			return
 		}
-		if !catalogDocumentsEqual(roundTrip, fixture.document) || !catalogPayloadsEqual(verified, fixture.payload) {
+		if !catalogDocumentsEqual(roundTrip, fixture.document) || !verifiedCatalogPayloadsEqual(verified, fixture.payload) {
 			t.Fatalf("VerifyCatalog authenticated a document other than the compiler-produced signed seed")
 		}
 	})

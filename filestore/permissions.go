@@ -2,7 +2,6 @@ package filestore
 
 import (
 	"context"
-	"errors"
 
 	"github.com/deliri/primitive/v2026/contextstate"
 )
@@ -16,14 +15,7 @@ func SetPermissions(ctx context.Context, request PermissionRequest) error {
 	if err := request.Validate(); err != nil {
 		return err
 	}
-	entry, err := request.Location.Root.Open(request.Location.Path.String())
-	if err != nil {
-		return activationError(err)
-	}
-	chmodErr := entry.Chmod(request.Mode)
-	syncErr := entry.Sync()
-	closeErr := entry.Close()
-	if err := errors.Join(chmodErr, syncErr, closeErr); err != nil {
+	if err := request.Location.Root.Chmod(request.Location.Path.String(), request.Mode); err != nil {
 		return activationError(err)
 	}
 	if err := syncParent(request.Location.Root, request.Location.Path); err != nil {

@@ -6,6 +6,7 @@ import (
 	"errors"
 	"math"
 	"testing"
+	"time"
 
 	"github.com/deliri/primitive/v2026/core"
 	"github.com/deliri/primitive/v2026/temporal"
@@ -144,7 +145,7 @@ func TestLatestLifetimeAndFreshnessBoundaries(t *testing.T) {
 		t.Run(tc.name, func(t *testing.T) {
 			t.Parallel()
 			got, err := AssessLatest(AssessLatestRequest{
-				Latest: fixture.verifiedLatest, Observation: temporal.InstantFromNanoseconds(tc.at),
+				Latest: fixture.verifiedLatest, Time: latestTimeEvidenceAt(t, tc.at),
 			})
 			if !errors.Is(err, tc.wantErr) {
 				t.Fatalf("AssessLatest(%d) error = %v, want %v", tc.at, err, tc.wantErr)
@@ -154,6 +155,83 @@ func TestLatestLifetimeAndFreshnessBoundaries(t *testing.T) {
 			}
 		})
 	}
+}
+
+func TestLatestFreshnessCannotRewindBehindDurableOrElapsedTime(t *testing.T) {
+	t.Parallel()
+
+	fixture := newReleaseFixture(t, core.NewReleaseVersion(2026, 7, 30), 1)
+	fact := fixture.verifiedLatest.Fact()
+
+	t.Run("wall after issuance cannot rewind durable high-water beyond tolerance", func(t *testing.T) {
+		t.Parallel()
+
+		timeEvidence := latestTimeEvidenceAt(t, 3_000)
+		timeEvidence.DurableHighWater = fact.ValidUntil()
+		_, gotErr := AssessLatest(AssessLatestRequest{
+			Latest: fixture.verifiedLatest, Time: timeEvidence,
+		})
+		if !errors.Is(gotErr, core.ErrReleaseLatest) {
+			t.Fatalf("AssessLatest(rewound wall) error = %v, want %v", gotErr, core.ErrReleaseLatest)
+		}
+	})
+
+	t.Run("wall after issuance is corrected to an expired durable high-water within tolerance", func(t *testing.T) {
+		t.Parallel()
+
+		observedAt := fact.ValidUntilNanoseconds(t) - int64(ReleaseClockRollbackToleranceNanoseconds)
+		timeEvidence := latestTimeEvidenceAt(t, observedAt)
+		timeEvidence.DurableHighWater = fact.ValidUntil()
+		got, gotErr := AssessLatest(AssessLatestRequest{
+			Latest: fixture.verifiedLatest, Time: timeEvidence,
+		})
+		if gotErr != nil || got.Freshness() != LatestFreshnessExpired ||
+			got.ClockState() != LatestClockCorrected || got.EffectiveAt() != fact.ValidUntil() {
+			t.Fatalf("AssessLatest(correctable wall) = (%v, %v, %v, %v), want expired, corrected, %v, nil",
+				got.Freshness(), got.ClockState(), got.EffectiveAt(), gotErr, fact.ValidUntil())
+		}
+	})
+
+	t.Run("elapsed progress advances a frozen wall observation", func(t *testing.T) {
+		t.Parallel()
+
+		started, err := temporal.NewObservation(time.Unix(0, 0).UTC())
+		if err != nil {
+			t.Fatalf("temporal.NewObservation(started) error = %v, want nil", err)
+		}
+		observed, err := temporal.NewObservation(time.Unix(0, 1_000).UTC())
+		if err != nil {
+			t.Fatalf("temporal.NewObservation(observed) error = %v, want nil", err)
+		}
+		wall := temporal.InstantFromNanoseconds(3_000)
+		started, err = started.WithWall(wall)
+		if err != nil {
+			t.Fatalf("started.WithWall() error = %v, want nil", err)
+		}
+		observed, err = observed.WithWall(wall)
+		if err != nil {
+			t.Fatalf("observed.WithWall() error = %v, want nil", err)
+		}
+		got, gotErr := AssessLatest(AssessLatestRequest{
+			Latest: fixture.verifiedLatest,
+			Time: LatestTimeEvidence{
+				StartedAt: started, ObservedAt: observed,
+				DurableHighWater: wall,
+			},
+		})
+		wantEffective := temporal.InstantFromNanoseconds(4_000)
+		if gotErr != nil || got.EffectiveAt() != wantEffective ||
+			got.ClockState() != LatestClockCorrected {
+			t.Fatalf(
+				"AssessLatest(frozen wall) = (%v, %v, %v), want (%v, %v, nil)",
+				got.EffectiveAt(),
+				got.ClockState(),
+				gotErr,
+				wantEffective,
+				LatestClockCorrected,
+			)
+		}
+	})
 }
 
 func (f LatestFact) ValidUntilNanoseconds(t *testing.T) int64 {

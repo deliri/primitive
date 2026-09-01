@@ -69,7 +69,11 @@ func TestServerRuntimeLayerTriad(t *testing.T) {
 		if err != nil {
 			t.Fatalf("net.Listen(reservation) error = %v, want nil", err)
 		}
-		defer listener.Close()
+		t.Cleanup(func() {
+			if closeErr := listener.Close(); closeErr != nil && !errors.Is(closeErr, net.ErrClosed) {
+				t.Errorf("reservation listener Close() error = %v, want nil or %v", closeErr, net.ErrClosed)
+			}
+		})
 		address := listener.Addr().String()
 		runtime, runtimeErr := exchange.NewServerRuntime(serverRuntimeConfiguration(t, address), http.NotFoundHandler())
 		if runtimeErr != nil {
@@ -121,12 +125,21 @@ func serverRuntimeConfiguration(t testing.TB, address string) exchange.ServerRun
 	return configuration
 }
 
-func waitForRuntimeReady(t testing.TB, ready <-chan struct{}) {
+func waitForRuntimeReady(t testing.TB, ready <-chan error) {
+	t.Helper()
+	if err := waitForRuntimeStart(t, ready); err != nil {
+		t.Fatalf("ServerRuntime listener acquisition error = %v, want nil", err)
+	}
+}
+
+func waitForRuntimeStart(t testing.TB, ready <-chan error) error {
 	t.Helper()
 	select {
-	case <-ready:
+	case err := <-ready:
+		return err
 	case <-time.After(10 * time.Second):
-		t.Fatal("ServerRuntime readiness fact did not arrive")
+		t.Fatalf("ServerRuntime readiness facts received = %d after %v, want 1", 0, 10*time.Second)
+		return context.DeadlineExceeded
 	}
 }
 
@@ -136,7 +149,7 @@ func waitForRuntimeExit(t testing.TB, served <-chan error) error {
 	case err := <-served:
 		return err
 	case <-time.After(10 * time.Second):
-		t.Fatal("ServerRuntime did not exit after shutdown")
+		t.Fatalf("ServerRuntime exit facts received = %d after %v, want 1", 0, 10*time.Second)
 		return context.DeadlineExceeded
 	}
 }

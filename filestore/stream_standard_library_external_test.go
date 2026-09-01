@@ -23,6 +23,7 @@ func TestStreamingAcceptsAndRejectsStandardLibraryReaderBehaviors(t *testing.T) 
 		wantNative error
 		reader     func([]byte) io.Reader
 		name       string
+		headroom   bool
 	}{
 		{
 			name:   "bytes reader may return a full bounded chunk",
@@ -33,12 +34,14 @@ func TestStreamingAcceptsAndRejectsStandardLibraryReaderBehaviors(t *testing.T) 
 			reader: func(data []byte) io.Reader { return strings.NewReader(string(data)) },
 		},
 		{
-			name:   "one-byte reader forces maximum read fragmentation",
-			reader: func(data []byte) io.Reader { return iotest.OneByteReader(bytes.NewReader(data)) },
+			name:     "one-byte reader forces maximum read fragmentation",
+			reader:   func(data []byte) io.Reader { return iotest.OneByteReader(bytes.NewReader(data)) },
+			headroom: true,
 		},
 		{
-			name:   "half reader forces repeated partial chunks",
-			reader: func(data []byte) io.Reader { return iotest.HalfReader(bytes.NewReader(data)) },
+			name:     "half reader forces repeated partial chunks",
+			reader:   func(data []byte) io.Reader { return iotest.HalfReader(bytes.NewReader(data)) },
+			headroom: true,
 		},
 		{
 			name:   "data-error reader returns final bytes with eof",
@@ -57,7 +60,8 @@ func TestStreamingAcceptsAndRejectsStandardLibraryReaderBehaviors(t *testing.T) 
 			},
 		},
 		{
-			name: "multi-reader crosses empty and nonempty source boundaries",
+			name:     "multi-reader crosses empty and nonempty source boundaries",
+			headroom: true,
 			reader: func(data []byte) io.Reader {
 				middle := len(data) / 2
 				return io.MultiReader(
@@ -144,11 +148,15 @@ func TestStreamingAcceptsAndRejectsStandardLibraryReaderBehaviors(t *testing.T) 
 
 				rootDirectory := t.TempDir()
 				root := requireTestRoot(t, rootDirectory)
+				maximum := uint64(len(payload))
+				if tc.headroom {
+					maximum++
+				}
 				gotPath, gotErr := operation.run(
 					t,
 					root,
 					tc.reader(payload),
-					uint64(len(payload)),
+					maximum,
 				)
 				if tc.wantErr != nil {
 					if !errors.Is(gotErr, tc.wantErr) ||

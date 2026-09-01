@@ -418,46 +418,42 @@ func TestNoBodyIngressLayerTriad(t *testing.T) {
 		}
 	})
 
-	t.Run("neutral a declared key route observes the real request key", func(t *testing.T) {
+	t.Run("neutral every declared key route observes the real request key", func(t *testing.T) {
 		t.Parallel()
 
-		keyRoute := exchange.RouteSemantics{
-			Method: exchange.MethodPost,
-			Replay: exchange.ReplayIdempotencyKey,
-		}
-		observed := make(chan ingressObservation, 1)
-		server := startJSONIngressServer(t, keyRoute, observed)
-		defer server.Close()
+		for _, replay := range [...]exchange.ReplayMode{
+			exchange.ReplayIdempotencyKey,
+			exchange.ReplaySingleAttemptWithIdempotencyKey,
+		} {
+			t.Run(replay.String(), func(t *testing.T) {
+				t.Parallel()
 
-		sendRawRequest(t, server, jsonIngressRequest{
-			method:         http.MethodPost,
-			idempotencyKey: "01JD-EXCHANGE-KEY",
-			body:           []byte(`{"message":"once"}`),
-		})
-		got := awaitIngressObservation(t, observed)
-		if got.err != nil || got.key != "01JD-EXCHANGE-KEY" {
-			t.Fatalf(
-				"keyed ingress = (%v, %q), want (nil, %q)",
-				got.err,
-				got.key,
-				"01JD-EXCHANGE-KEY",
-			)
-		}
+				keyRoute := exchange.RouteSemantics{Method: exchange.MethodPost, Replay: replay}
+				observed := make(chan ingressObservation, 1)
+				server := startJSONIngressServer(t, keyRoute, observed)
+				defer server.Close()
 
-		missingObserved := make(chan ingressObservation, 1)
-		missingServer := startJSONIngressServer(t, keyRoute, missingObserved)
-		defer missingServer.Close()
+				sendRawRequest(t, server, jsonIngressRequest{
+					method:         http.MethodPost,
+					idempotencyKey: "01JD-EXCHANGE-KEY",
+					body:           []byte(`{"message":"once"}`),
+				})
+				got := awaitIngressObservation(t, observed)
+				if got.err != nil || got.key != "01JD-EXCHANGE-KEY" {
+					t.Fatalf("%s ingress = (%v, %q), want (nil, %q)", replay, got.err, got.key, "01JD-EXCHANGE-KEY")
+				}
 
-		sendRawRequest(t, missingServer, jsonIngressRequest{
-			method: http.MethodPost, body: []byte(`{"message":"once"}`),
-		})
-		gotMissing := awaitIngressObservation(t, missingObserved)
-		if !errors.Is(gotMissing.err, core.ErrExchangeRequest) {
-			t.Fatalf(
-				"keyed route without a key error = %v, want %v",
-				gotMissing.err,
-				core.ErrExchangeRequest,
-			)
+				missingObserved := make(chan ingressObservation, 1)
+				missingServer := startJSONIngressServer(t, keyRoute, missingObserved)
+				defer missingServer.Close()
+				sendRawRequest(t, missingServer, jsonIngressRequest{
+					method: http.MethodPost, body: []byte(`{"message":"once"}`),
+				})
+				gotMissing := awaitIngressObservation(t, missingObserved)
+				if !errors.Is(gotMissing.err, core.ErrExchangeRequest) {
+					t.Fatalf("%s without a key error = %v, want %v", replay, gotMissing.err, core.ErrExchangeRequest)
+				}
+			})
 		}
 	})
 }

@@ -66,6 +66,7 @@ type filestoreContractInventory struct {
 	readDirectoryInput     internalFlow[readDirectoryInput]
 	visitWalkEntryInput    internalFlow[visitWalkEntryInput]
 	walkDirectoryInput     internalFlow[walkDirectoryInput]
+	rootedOpenRequest      internalFlow[rootedOpenRequest]
 }
 
 var (
@@ -78,6 +79,7 @@ var (
 	_ = filestoreContractInventory{}.readDirectoryInput
 	_ = filestoreContractInventory{}.visitWalkEntryInput
 	_ = filestoreContractInventory{}.walkDirectoryInput
+	_ = filestoreContractInventory{}.rootedOpenRequest
 )
 
 func TestFilestorePublicSurfaceIsExactRatchet(t *testing.T) {
@@ -189,6 +191,7 @@ func TestFilestorePublicSurfaceIsExactRatchet(t *testing.T) {
 		"Stage",
 		"SetPermissions",
 		"Touch",
+		"ValidateRootIdentity",
 		"Walk",
 		"Write",
 	})

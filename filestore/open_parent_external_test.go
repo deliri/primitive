@@ -54,8 +54,8 @@ func TestOpenParentNamesTheEntryInsideItsParent(t *testing.T) {
 				t.Fatalf("OpenParent(%s) path = %q, want %q", tc.suffix, location.Path.String(), tc.wantName)
 			}
 			wantRoot := filepath.Dir(filepath.Join(directory, tc.suffix))
-			if location.Root.Name() != wantRoot {
-				t.Fatalf("OpenParent(%s) root = %q, want %q", tc.suffix, location.Root.Name(), wantRoot)
+			if !rootNamesDirectory(t, location.Root, wantRoot) {
+				t.Fatalf("OpenParent(%s) root = %q, want the directory identity %q", tc.suffix, location.Root.Name(), wantRoot)
 			}
 			if err := location.Validate(); err != nil {
 				t.Fatalf("Validate() error = %v, want nil", err)

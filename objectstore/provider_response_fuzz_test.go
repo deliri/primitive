@@ -227,7 +227,7 @@ func (p gcsDownloadFuzzProvider) request(
 	query := url.Values{
 		queryGCSSignature: []string{"signature"},
 	}
-	signedFields := []string{strings.ToLower(headerHost)}
+	signedFields := []string{strings.ToLower(core.HTTPHeaderHost().String())}
 	callerHeaders := make([]SignedHeader, 0, 2)
 	if includeFirst {
 		if utf8.ValidString(first) {

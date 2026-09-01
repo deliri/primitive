@@ -39,7 +39,6 @@ type providerWireContractInventory struct {
 	twilioClient                        providerInternalFlow[twilioClient]
 	payPalClient                        providerInternalFlow[payPalClient]
 	jsonProviderRequestContract         providerInternalFlow[jsonProviderRequestContract]
-	providerURLContract                 providerInternalFlow[providerURLContract]
 	InboundObservation                  providerProtocolFact[InboundObservation]
 	providerFact                        providerInternalFlow[providerFact]
 	StripeWebhookSecret                 providerCapability[StripeWebhookSecret]
@@ -54,6 +53,7 @@ type providerWireContractInventory struct {
 	PlunkWebhookReceiver                providerCapability[PlunkWebhookReceiver]
 	plunkWebhookReceiver                providerInternalFlow[plunkWebhookReceiver]
 	PayPalWebhookReceiver               providerCapability[PayPalWebhookReceiver]
+	PayPalWebhookReceiveRequest         providerProtocolFact[PayPalWebhookReceiveRequest]
 	payPalWebhookReceiver               providerInternalFlow[payPalWebhookReceiver]
 	payPalOAuthResponse                 providerProtocolFact[payPalOAuthResponse]
 	payPalOAuthRequest                  providerInternalFlow[payPalOAuthRequest]
@@ -143,7 +143,6 @@ var (
 	_ = providerWireContractInventory{}.twilioClient
 	_ = providerWireContractInventory{}.payPalClient
 	_ = providerWireContractInventory{}.jsonProviderRequestContract
-	_ = providerWireContractInventory{}.providerURLContract
 	_ = providerWireContractInventory{}.providerFact
 	_ = providerWireContractInventory{}.stripeWebhookReceiver
 	_ = providerWireContractInventory{}.twilioWebhookReceiver

@@ -107,6 +107,54 @@ func TestOpenRegularReadFileRestoresBlockingMode(t *testing.T) {
 	}
 }
 
+func TestMutableRegularHandlesRestoreBlockingModeBeforeOwnershipTransfer(t *testing.T) {
+	t.Parallel()
+
+	cases := []struct {
+		name     string
+		existing bool
+		open     func(*testing.T, *os.Root, core.RelativePath) (*os.File, error)
+	}{
+		{name: "existing append handle", existing: true, open: func(t *testing.T, root *os.Root, path core.RelativePath) (*os.File, error) {
+			return OpenAppend(t.Context(), AppendRequest{
+				Location: Location{Root: root, Path: path}, Mode: 0o600, Append: AppendExisting,
+			})
+		}},
+		{name: "new append handle", open: func(t *testing.T, root *os.Root, path core.RelativePath) (*os.File, error) {
+			return OpenAppend(t.Context(), AppendRequest{
+				Location: Location{Root: root, Path: path}, Mode: 0o600, Append: AppendCreate,
+			})
+		}},
+		{name: "lock handle", existing: true, open: func(t *testing.T, root *os.Root, path core.RelativePath) (*os.File, error) {
+			return OpenLockFile(t.Context(), LockFileRequest{Location: Location{Root: root, Path: path}, Mode: 0o600})
+		}},
+	}
+	for _, tc := range cases {
+		t.Run(tc.name, func(t *testing.T) {
+			t.Parallel()
+			var root *os.Root
+			text := "source"
+			if tc.existing {
+				root, text = internalTestRegularFile(t, t.TempDir(), text, "payload")
+			} else {
+				root = openInternalTestRoot(t, t.TempDir())
+			}
+			path, err := core.ParseRelativePath(text)
+			if err != nil {
+				t.Fatalf("core.ParseRelativePath(%q) error = %v, want nil", text, err)
+			}
+			file, err := tc.open(t, root, path)
+			if err != nil {
+				t.Fatalf("open mutable regular handle error = %v, want nil", err)
+			}
+			defer closeInternalTestFile(t, file)
+			if flags := descriptorStatusFlags(t, file); flags&unix.O_NONBLOCK != 0 {
+				t.Fatalf("mutable regular handle status flags = %#x, want O_NONBLOCK (%#x) cleared", flags, unix.O_NONBLOCK)
+			}
+		})
+	}
+}
+
 // TestPrepareRegularReadFileKeepsDescriptorInsideSyscallConn ratchets the
 // compiler-visible mechanism that a regular-file read cannot expose
 // behaviorally. File.Fd permanently disables the handle's deadline methods;

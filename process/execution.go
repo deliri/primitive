@@ -127,12 +127,12 @@ func (e *Execution) Wait() (Result, error) {
 		return Result{}, contractError(alreadyReapedDiagnostic)
 	}
 	defer e.cancel(nil)
-	defer e.reaped.Store(true)
 	return waitCommand(waitRequest{
 		parent:      e.parent,
 		commandPath: e.commandPath,
 		prepared:    e.prepared,
 		streams:     e.streams,
 		failures:    e.failures,
+		reaped:      &e.reaped,
 	})
 }

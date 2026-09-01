@@ -26,6 +26,58 @@ type hostileInspectionReader struct {
 	failAfter int
 }
 
+type inspectionEmptyProbeReader struct {
+	data     []byte
+	position int
+	empty    bool
+}
+
+type inspectionAlwaysEmptyReader struct{ reads int }
+
+type exactUnclosedInspectionReader struct {
+	data  []byte
+	reads int
+}
+
+func (r *exactUnclosedInspectionReader) Read(destination []byte) (int, error) {
+	r.reads++
+	if r.reads != 1 {
+		panic("inspection attempted an unbounded end-of-stream probe")
+	}
+	return copy(destination, r.data), nil
+}
+
+func (r *hostileInspectionReader) RemainingBytes() uint64 {
+	return uint64(len(r.data) - r.position)
+}
+
+func (r *inspectionEmptyProbeReader) RemainingBytes() uint64 {
+	return uint64(len(r.data) - r.position)
+}
+
+func (r *inspectionAlwaysEmptyReader) Read([]byte) (int, error) {
+	r.reads++
+	return 0, nil
+}
+
+func (r *inspectionEmptyProbeReader) Read(destination []byte) (int, error) {
+	if r.position < len(r.data)-1 {
+		read := copy(destination, r.data[r.position:len(r.data)-1])
+		r.position += read
+		return read, nil
+	}
+	if !r.empty {
+		r.empty = true
+		return 0, nil
+	}
+	if r.position < len(r.data) {
+		read := copy(destination, r.data[r.position:])
+		r.position += read
+		return read, nil
+	}
+	return 0, io.EOF
+}
+
 func (r *hostileInspectionReader) Read(destination []byte) (int, error) {
 	if r.failAfter >= 0 && r.position >= r.failAfter {
 		return 0, r.err
@@ -88,6 +140,61 @@ func TestInspectStreamsExactIntegrityAcrossHostileChunkBoundaries(t *testing.T) 
 				t.Fatalf("objectstore.Inspect() = %+v, want length=%d sha256=%v blake3=%v crc32c=%v", got, tc.size, wantSHA, wantBLAKE3, wantCRC)
 			}
 		})
+	}
+}
+
+func TestInspectDoesNotTreatOneEmptyOversizeProbeAsEndOfStream(t *testing.T) {
+	t.Parallel()
+
+	reader := &inspectionEmptyProbeReader{data: []byte("xy")}
+	got, gotErr := objectstore.Inspect(t.Context(), objectstore.InspectionRequest{
+		Source: reader, MaximumBytes: mustInspectionByteCount(t, 1),
+	})
+	if got != (objectstore.Inspection{}) || !errors.Is(gotErr, core.ErrObjectStoreSize) {
+		t.Fatalf("objectstore.Inspect(empty then extra probe) = (%+v, %v), want zero and %v", got, gotErr, core.ErrObjectStoreSize)
+	}
+}
+
+func TestInspectRefusesAStalledMainStreamBeforeTheOversizeProbe(t *testing.T) {
+	t.Parallel()
+
+	reader := &inspectionAlwaysEmptyReader{}
+	got, gotErr := objectstore.Inspect(t.Context(), objectstore.InspectionRequest{
+		Source: reader, MaximumBytes: mustInspectionByteCount(t, 1),
+	})
+	if got != (objectstore.Inspection{}) ||
+		!errors.Is(gotErr, core.ErrObjectStoreSource) ||
+		!errors.Is(gotErr, io.ErrNoProgress) ||
+		reader.reads > core.ReaderConsecutiveEmptyReadMaximum {
+		t.Fatalf(
+			"objectstore.Inspect(stalled source) = (%+v, %v, reads %d), want zero, %v, and at most %d reads",
+			got,
+			gotErr,
+			reader.reads,
+			io.ErrNoProgress,
+			core.ReaderConsecutiveEmptyReadMaximum,
+		)
+	}
+}
+
+func TestInspectRefusesUnprovableExactExtentWithoutReadingPastTheBound(t *testing.T) {
+	t.Parallel()
+
+	reader := &exactUnclosedInspectionReader{data: []byte("x")}
+	got, gotErr := objectstore.Inspect(t.Context(), objectstore.InspectionRequest{
+		Source: reader, MaximumBytes: mustInspectionByteCount(t, 1),
+	})
+	if got != (objectstore.Inspection{}) ||
+		!errors.Is(gotErr, core.ErrObjectStoreSource) ||
+		!errors.Is(gotErr, io.ErrNoProgress) ||
+		reader.reads != 1 {
+		t.Fatalf(
+			"objectstore.Inspect(unclosed exact source) = (%+v, %v, reads %d), want zero, %v, and one bounded read",
+			got,
+			gotErr,
+			reader.reads,
+			io.ErrNoProgress,
+		)
 	}
 }
 
@@ -193,8 +300,6 @@ func TestInspectRefusesInvalidSizeAndSourceBoundariesWithTypedErrors(t *testing.
 		{name: "source fails after one byte below maximum", request: objectstore.InspectionRequest{Source: &hostileInspectionReader{data: []byte("x"), err: sourceFailure, failAfter: 1}, MaximumBytes: two}, wantIdentity: core.ErrObjectStoreSource, wantCause: sourceFailure},
 		{name: "source fails after thirty-one bytes below maximum", request: objectstore.InspectionRequest{Source: &hostileInspectionReader{data: bytes.Repeat([]byte("x"), 31), err: sourceFailure, failAfter: 31}, MaximumBytes: thirtyTwo}, wantIdentity: core.ErrObjectStoreSource, wantCause: sourceFailure},
 		{name: "source fails one byte below buffer maximum", request: objectstore.InspectionRequest{Source: &hostileInspectionReader{data: bytes.Repeat([]byte("x"), 32767), err: sourceFailure, failAfter: 32767}, MaximumBytes: bufferExact}, wantIdentity: core.ErrObjectStoreSource, wantCause: sourceFailure},
-		{name: "source fails during oversize probe", request: objectstore.InspectionRequest{Source: &hostileInspectionReader{data: []byte("x"), err: sourceFailure, failAfter: 1}, MaximumBytes: one}, wantIdentity: core.ErrObjectStoreSource, wantCause: sourceFailure},
-		{name: "source fails during exact-buffer oversize probe", request: objectstore.InspectionRequest{Source: &hostileInspectionReader{data: bytes.Repeat([]byte("x"), 32768), err: sourceFailure, failAfter: 32768}, MaximumBytes: bufferExact}, wantIdentity: core.ErrObjectStoreSource, wantCause: sourceFailure},
 		{name: "unexpected EOF remains a native source cause", request: objectstore.InspectionRequest{Source: &hostileInspectionReader{err: io.ErrUnexpectedEOF, failAfter: 0}, MaximumBytes: one}, wantIdentity: core.ErrObjectStoreSource, wantCause: io.ErrUnexpectedEOF},
 		{name: "closed pipe remains a native source cause", request: objectstore.InspectionRequest{Source: &hostileInspectionReader{err: io.ErrClosedPipe, failAfter: 0}, MaximumBytes: one}, wantIdentity: core.ErrObjectStoreSource, wantCause: io.ErrClosedPipe},
 		{name: "source cancellation remains a native source cause", request: objectstore.InspectionRequest{Source: &hostileInspectionReader{err: context.Canceled, failAfter: 0}, MaximumBytes: one}, wantIdentity: core.ErrObjectStoreSource, wantCause: context.Canceled},

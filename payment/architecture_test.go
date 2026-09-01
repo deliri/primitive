@@ -17,33 +17,36 @@ var paymentContractSources embed.FS
 type (
 	protocolFact[T any]      struct{}
 	capabilityWrapper[T any] struct{}
+	internalFlow[T any]      struct{}
 )
 
 type paymentContractInventory struct {
-	PaymentID           protocolFact[PaymentID]
-	ServicePeriod       protocolFact[ServicePeriod]
-	Payload             protocolFact[Payload]
-	Document            protocolFact[Document]
-	Issuance            protocolFact[Issuance]
-	Expectation         protocolFact[Expectation]
-	Verification        protocolFact[Verification]
-	Verified            capabilityWrapper[Verified]
-	Cursor              protocolFact[Cursor]
-	Selection           protocolFact[Selection]
-	Position            protocolFact[Position]
-	Query               protocolFact[Query]
-	QueryRequest        protocolFact[QueryRequest]
-	QueryPayload        protocolFact[QueryPayload]
-	QueryCommitment     protocolFact[QueryCommitment]
-	QueryDocument       protocolFact[QueryDocument]
-	QueryIssuance       protocolFact[QueryIssuance]
-	QueryVerification   protocolFact[QueryVerification]
-	VerifiedQuery       capabilityWrapper[VerifiedQuery]
-	Continuation        protocolFact[Continuation]
-	CatalogPayload      protocolFact[CatalogPayload]
-	CatalogDocument     protocolFact[CatalogDocument]
-	CatalogIssuance     protocolFact[CatalogIssuance]
-	CatalogVerification protocolFact[CatalogVerification]
+	PaymentID            protocolFact[PaymentID]
+	ServicePeriod        protocolFact[ServicePeriod]
+	Payload              protocolFact[Payload]
+	Document             protocolFact[Document]
+	Issuance             protocolFact[Issuance]
+	Expectation          protocolFact[Expectation]
+	Verification         protocolFact[Verification]
+	Verified             capabilityWrapper[Verified]
+	Cursor               protocolFact[Cursor]
+	Selection            protocolFact[Selection]
+	Position             protocolFact[Position]
+	Query                protocolFact[Query]
+	QueryRequest         protocolFact[QueryRequest]
+	QueryPayload         protocolFact[QueryPayload]
+	QueryCommitment      protocolFact[QueryCommitment]
+	QueryDocument        protocolFact[QueryDocument]
+	QueryIssuance        protocolFact[QueryIssuance]
+	QueryVerification    protocolFact[QueryVerification]
+	VerifiedQuery        capabilityWrapper[VerifiedQuery]
+	Continuation         protocolFact[Continuation]
+	CatalogPayload       protocolFact[CatalogPayload]
+	CatalogDocument      protocolFact[CatalogDocument]
+	CatalogIssuance      protocolFact[CatalogIssuance]
+	CatalogVerification  protocolFact[CatalogVerification]
+	VerifiedCatalog      capabilityWrapper[VerifiedCatalog]
+	verifiedCatalogState internalFlow[verifiedCatalogState]
 }
 
 func TestPaymentDataFlowStructInventoryRatchet(t *testing.T) {
@@ -129,3 +132,4 @@ func paymentClassifiedStructNames(t *testing.T) []string {
 }
 
 var _ = paymentContractInventory{}
+var _ = paymentContractInventory{}.verifiedCatalogState

@@ -466,7 +466,7 @@ func syncParent(root *os.Root, path core.RelativePath) error {
 }
 
 func syncDirectory(root *os.Root, path core.RelativePath) error {
-	directory, err := root.Open(path.String())
+	directory, err := openDirectory(root, path.String())
 	if err != nil {
 		return err
 	}

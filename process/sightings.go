@@ -59,8 +59,7 @@ func ObserveProcesses(ctx context.Context, visit ProcessVisit) error {
 
 // snapshotSighting builds one actionable sighting from a raw snapshot row, or
 // reports that the row is not one. A row whose identity is outside the admitted
-// domain -- the idle pseudo-process at identity zero, or a kernel identifier
-// that overflowed the signed pid domain to a negative value -- or whose image
+// domain -- the idle pseudo-process at identity zero -- or whose image
 // is not one canonical path component is dropped, because a caller can neither
 // signal nor probe what it cannot name. Keeping this decision here, platform
 // independent and testable, is what lets the drop be proven on any host rather

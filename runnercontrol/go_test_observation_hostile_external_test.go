@@ -7,6 +7,7 @@ import (
 	"fmt"
 	"math"
 	"slices"
+	"strings"
 	"testing"
 
 	"github.com/deliri/primitive/v2026/core"
@@ -20,6 +21,23 @@ type goEventFixture struct {
 	Test    string  `json:"Test,omitempty"`
 	Elapsed float64 `json:"Elapsed,omitempty"`
 	Output  string  `json:"Output,omitempty"`
+}
+
+func TestGoTestObservationCompilerWriteBoundsEveryEventWithinOneChunk(t *testing.T) {
+	t.Parallel()
+
+	compiler, err := runnercontrol.NewGoTestObservationCompiler(runnercontrol.ObservationPolicy{
+		Format: runnercontrol.ObservationGoTestJSON, ExpectedUnits: 1,
+	})
+	if err != nil {
+		t.Fatalf("NewGoTestObservationCompiler() error = %v, want nil", err)
+	}
+	first := []byte("{\"Action\":\"start\",\"Package\":\"example.test/p\"}\n")
+	oversized := append(append([]byte(nil), first...), strings.Repeat("x", runnercontrol.GoTestJSONEventMaximumBytes+1)...)
+	written, gotErr := compiler.Write(oversized)
+	if written != len(first) || !errors.Is(gotErr, core.ErrJSONContract) {
+		t.Fatalf("GoTestObservationCompiler.Write(valid event plus overflow) = (%d, %v), want (%d, %v)", written, gotErr, len(first), core.ErrJSONContract)
+	}
 }
 
 type goObservationCase struct {

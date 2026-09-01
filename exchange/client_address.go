@@ -127,7 +127,11 @@ func canonicalTrustedProxyPrefix(prefix netip.Prefix) (netip.Prefix, error) {
 		if bits < 96 {
 			return netip.Prefix{}, core.ErrExchangeContract
 		}
-		prefix = netip.PrefixFrom(address.Unmap(), bits-96)
+		unmappedBits := bits - 96
+		if unmappedBits == 0 {
+			return netip.Prefix{}, core.ErrExchangeContract
+		}
+		prefix = netip.PrefixFrom(address.Unmap(), unmappedBits)
 	}
 	prefix = prefix.Masked()
 	if !prefix.IsValid() || prefix.Addr().Zone() != "" {

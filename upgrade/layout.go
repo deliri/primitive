@@ -6,6 +6,7 @@ import (
 	"os"
 
 	"github.com/deliri/primitive/v2026/core"
+	"github.com/deliri/primitive/v2026/filestore"
 )
 
 const (
@@ -36,8 +37,7 @@ func validateRoot(root *os.Root, directory core.AbsolutePath) error {
 	if err := directory.Validate(); err != nil {
 		return contractError(diagnosticRoot, err)
 	}
-	rootPath, err := core.ParseAbsolutePath(root.Name())
-	if err != nil || rootPath != directory {
+	if err := filestore.ValidateRootIdentity(root, directory); err != nil {
 		return contractError(diagnosticRoot, err)
 	}
 	return nil

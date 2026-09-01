@@ -4,6 +4,7 @@ import (
 	"encoding/asn1"
 	"errors"
 	"testing"
+	"time"
 
 	"github.com/deliri/primitive/v2026/core"
 )
@@ -84,6 +85,29 @@ func TestTSTInfoOptionalProtocolOrderLayerTriad(t *testing.T) {
 				"parseTSTInfo(canonical) nonce/error = (%v, %v), want (set, nil)",
 				got.Nonce,
 				gotErr,
+			)
+		}
+	})
+
+	t.Run("positive declared accuracy remains attached to generation time", func(t *testing.T) {
+		t.Parallel()
+
+		oneSecond, marshalErr := asn1.Marshal(1)
+		if marshalErr != nil {
+			t.Fatalf("asn1.Marshal(1) error = %v, want nil", marshalErr)
+		}
+		accuracy := derTagged(byte(asn1.TagSequence)|derConstructed, oneSecond)
+		optional := [][]byte{accuracy, fixture.ordering, fixture.nonce, fixture.tsa}
+		parts := append(append([][]byte(nil), fixture.required...), optional...)
+		got, gotErr := parseTSTInfo(encodeTSTInfo(parts...))
+		if gotErr != nil || !got.Time.AccuracyDeclared() ||
+			got.Time.Accuracy.Nanoseconds() != int64(time.Second) {
+			t.Fatalf(
+				"parseTSTInfo(one-second accuracy) = (%d, %t, %v), want (%d, true, nil)",
+				got.Time.Accuracy.Nanoseconds(),
+				got.Time.AccuracyDeclared(),
+				gotErr,
+				int64(time.Second),
 			)
 		}
 	})

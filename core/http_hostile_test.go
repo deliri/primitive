@@ -310,6 +310,9 @@ func TestCoreHTTPHeaderConstantsAreValidated(t *testing.T) {
 		HTTPHeaderContentEncoding(),
 		HTTPHeaderAcceptEncoding(),
 		HTTPHeaderIdempotencyKey(),
+		HTTPHeaderHost(),
+		HTTPHeaderTransferEncoding(),
+		HTTPHeaderConnection(),
 	}
 	seen := make(map[string]int, len(headers))
 	for index, header := range headers {

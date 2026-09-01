@@ -10,6 +10,13 @@ import (
 	"github.com/deliri/primitive/v2026/core"
 )
 
+type rootedOpenRequest struct {
+	root *os.Root
+	path string
+	flag int
+	mode os.FileMode
+}
+
 // OpenRead opens one existing regular file for reading below a rooted
 // boundary and hands the caller the real OS handle.
 //
@@ -111,7 +118,7 @@ func OpenParent(ctx context.Context, path core.AbsolutePath) (Location, error) {
 	if err != nil {
 		return Location{}, contractError(err)
 	}
-	root, err := os.OpenRoot(parent.String())
+	root, err := openRootDirectory(parent.String())
 	if err != nil {
 		return Location{}, sourceError(err)
 	}
@@ -142,9 +149,33 @@ func OpenRoot(ctx context.Context, path core.AbsolutePath) (*os.Root, error) {
 	if err := path.Validate(); err != nil {
 		return nil, contractError(err)
 	}
-	root, err := os.OpenRoot(path.String())
+	root, err := openRootDirectory(path.String())
 	if err != nil {
 		return nil, sourceError(err)
 	}
 	return root, nil
+}
+
+// ValidateRootIdentity proves root and directory still name the same opened
+// filesystem object. Root.Name is diagnostic only: descriptor-backed roots
+// intentionally carry /proc/self/fd or /dev/fd names.
+func ValidateRootIdentity(root *os.Root, directory core.AbsolutePath) error {
+	if root == nil {
+		return contractError(errors.New("filestore root identity is absent"))
+	}
+	if err := directory.Validate(); err != nil {
+		return contractError(err)
+	}
+	rootInfo, err := root.Stat(".")
+	if err != nil {
+		return sourceError(err)
+	}
+	directoryInfo, err := os.Stat(directory.String())
+	if err != nil {
+		return sourceError(err)
+	}
+	if !os.SameFile(rootInfo, directoryInfo) {
+		return contractError(errors.New("filestore root identity differs from directory"))
+	}
+	return nil
 }

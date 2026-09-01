@@ -76,6 +76,28 @@ func TestVerifyRegistrationAcceptsOnlyAResponseToThisExactRequest(t *testing.T) 
 		}
 	})
 
+	t.Run("authenticated certificate ownership survives input and accessor mutation", func(t *testing.T) {
+		t.Parallel()
+
+		isolated := issueTestRegistration(t)
+		request := isolated.verification()
+		want := *request.Document.Payload.Certificate
+		verified, err := isolated.client(t).VerifyRegistration(request)
+		if err != nil {
+			t.Fatalf("VerifyRegistration() error = %v, want nil", err)
+		}
+		request.Document.Payload.Certificate.Body = controlplane.InstallationCertificateBody{}
+		payload, err := verified.Payload()
+		if err != nil {
+			t.Fatalf("VerifiedRegistration.Payload() error = %v, want nil", err)
+		}
+		payload.Certificate.Body = controlplane.InstallationCertificateBody{}
+		got, err := verified.Certificate()
+		if err != nil || got != want {
+			t.Fatalf("VerifiedRegistration.Certificate(after mutation) = (%v, %v), want original authenticated certificate", got, err)
+		}
+	})
+
 	t.Run("a response to another request is refused by nonce", func(t *testing.T) {
 		t.Parallel()
 

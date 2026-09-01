@@ -25,7 +25,6 @@ const (
 	headerS3ChecksumComposite  = "COMPOSITE"
 	headerS3ChecksumFullObject = "FULL_OBJECT"
 	headerGCSChecksumPrefix    = "crc32c="
-	headerHost                 = "Host"
 	headerContentDisposition   = "Content-Disposition"
 	headerRange                = "Range"
 	queryS3Signature           = "X-Amz-Signature"
@@ -178,9 +177,7 @@ func sentRequestHeaderNames(
 	}
 	var names sentHeaderNames
 	names.add(core.HTTPHeaderAcceptEncoding())
-	if err := names.addText(headerHost); err != nil {
-		return sentHeaderNames{}, err
-	}
+	names.add(core.HTTPHeaderHost())
 	if err := addAutomaticDirectionHeaders(&names, provider, direction); err != nil {
 		return sentHeaderNames{}, err
 	}

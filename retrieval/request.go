@@ -11,6 +11,7 @@ import (
 	"github.com/deliri/primitive/v2026/chit"
 	"github.com/deliri/primitive/v2026/controlwire"
 	"github.com/deliri/primitive/v2026/core"
+	"github.com/deliri/primitive/v2026/receipt"
 )
 
 const (
@@ -126,6 +127,7 @@ func (s Selection) MarshalJSON() ([]byte, error) {
 // RequestPayload is the exact chit/object request signed by one installation.
 type RequestPayload struct {
 	Build     core.BuildIdentity       `json:"build"`
+	Scope     receipt.Scope            `json:"scope"`
 	Selection Selection                `json:"selection"`
 	Nonce     controlwire.RequestNonce `json:"request_nonce"`
 	Chit      chit.ChitID              `json:"chit_id"`
@@ -133,8 +135,11 @@ type RequestPayload struct {
 }
 
 func (p RequestPayload) Validate() error {
-	if err := errors.Join(p.Build.Validate(), p.Chit.Validate(), p.Selection.Validate(), p.Revision.Validate(), p.Nonce.Validate()); err != nil {
+	if err := errors.Join(p.Build.Validate(), p.Scope.Validate(), p.Chit.Validate(), p.Selection.Validate(), p.Revision.Validate(), p.Nonce.Validate()); err != nil {
 		return contractError(err)
+	}
+	if p.Build.Offering() != p.Scope.Offering {
+		return bindingError(errors.New("retrieval request build differs from its account scope"))
 	}
 	return nil
 }

@@ -3,6 +3,7 @@ package providerwire
 import (
 	"bytes"
 	"context"
+	"crypto/subtle"
 	"errors"
 	"fmt"
 	"io"
@@ -357,27 +358,40 @@ func (r TwilioWebhookReceiver) Receive(request *http.Request, destination io.Wri
 	if err := r.Validate(); err != nil || request == nil || destination == nil {
 		return InboundObservation{}, contractError(err)
 	}
-	signedURL, err := twilioSignedRequestURL(request, r.state.publicEndpoint, r.state.representation)
+	body, err := r.authenticatedBody(request)
 	if err != nil {
 		return InboundObservation{}, err
+	}
+	return writeAuthenticatedBody(request.Context(), ProviderTwilio, destination, body)
+}
+
+func (r TwilioWebhookReceiver) authenticatedBody(request *http.Request) ([]byte, error) {
+	signedURL, err := twilioSignedRequestURL(request, r.state.publicEndpoint, r.state.representation)
+	if err != nil {
+		return nil, err
 	}
 	media, err := r.state.representation.mediaType()
 	if err != nil {
-		return InboundObservation{}, contractError(err)
+		return nil, contractError(err)
 	}
 	body, err := receiveWebhookBody(request, r.state.maximum, media)
 	if err != nil {
-		return InboundObservation{}, err
+		return nil, err
+	}
+	if r.state.representation == TwilioWebhookRepresentationForm {
+		if err := validateTwilioFormSignatureCoverage(body); err != nil {
+			return nil, err
+		}
 	}
 	signature, err := uniqueHeader(request, TwilioWebhookSignatureHeaderName, TwilioWebhookSignatureBytes)
 	if err != nil {
-		return InboundObservation{}, authenticationError(err)
+		return nil, authenticationError(err)
 	}
 	validator := twilioclient.NewRequestValidator(string(r.state.token.value))
 	if !validator.ValidateBody(signedURL, body, signature) {
-		return InboundObservation{}, verificationError(core.ErrExchangeContract)
+		return nil, verificationError(core.ErrExchangeContract)
 	}
-	return writeAuthenticatedBody(request.Context(), ProviderTwilio, destination, body)
+	return body, nil
 }
 
 type plunkWebhookReceiver struct {
@@ -420,15 +434,13 @@ func (r PlunkWebhookReceiver) Receive(request *http.Request, destination io.Writ
 	if err := r.Validate(); err != nil || request == nil || destination == nil {
 		return InboundObservation{}, contractError(err)
 	}
-	received, err := exchange.ReceiveBearerAuthorization(request)
+	received, err := receivePlunkWebhookAuthorization(request)
 	if err != nil {
 		return InboundObservation{}, authenticationError(err)
 	}
-	defer clear(received.Token)
-	want := exchange.BearerAuthorization{Token: r.state.secret.token}
-	matches, err := exchange.BearerAuthorizationMatches(received, want)
-	if err != nil || !matches {
-		return InboundObservation{}, authenticationError(err)
+	defer clear(received)
+	if subtle.ConstantTimeCompare(received, r.state.secret.token) != 1 {
+		return InboundObservation{}, authenticationError(core.ErrExchangeContract)
 	}
 	media, err := jsonMediaType()
 	if err != nil {
@@ -445,6 +457,38 @@ func (r PlunkWebhookReceiver) Receive(request *http.Request, destination io.Writ
 	}
 	observation := InboundObservation{Provider: ProviderPlunk, Bytes: stream.Bytes}
 	return observation, observation.Validate()
+}
+
+func validateTwilioFormSignatureCoverage(body []byte) error {
+	values, err := url.ParseQuery(string(body))
+	if err != nil {
+		return verificationError(err)
+	}
+	for _, entries := range values {
+		if len(entries) != 1 {
+			return verificationError(errors.New("twilio form contains a repeated field"))
+		}
+	}
+	return nil
+}
+
+func receivePlunkWebhookAuthorization(request *http.Request) ([]byte, error) {
+	name, err := exchange.StandardHeaderAuthorization.Name()
+	if err != nil {
+		return nil, err
+	}
+	value, err := uniqueHeader(request, name.String(), exchange.BearerAuthorizationHeaderMaximumBytes)
+	if err != nil {
+		return nil, err
+	}
+	scheme, tokenText, found := strings.Cut(value, " ")
+	token := []byte(tokenText)
+	if !found || !strings.EqualFold(scheme, exchange.BearerAuthorizationScheme) ||
+		!validCredentialBytes(token, PlunkWebhookSecretMinimumBytes, PlunkWebhookSecretMaximumBytes) {
+		clear(token)
+		return nil, core.ErrExchangeContract
+	}
+	return token, nil
 }
 
 func receiveWebhookBody(request *http.Request, maximum core.ByteCount, media core.HTTPMediaType) ([]byte, error) {
@@ -481,18 +525,29 @@ func validateStripeSignatureTime(header string, observed temporal.Instant, toler
 		return err
 	}
 	comparison, err := observed.Compare(signed)
-	if err != nil || comparison == core.ComparisonLess {
-		return err
-	}
-	age, err := observed.Since(signed)
 	if err != nil {
-		return err
+		return errors.Join(core.ErrProviderWireVerification, err)
+	}
+	age, err := stripeSignatureAge(observed, signed, comparison)
+	if err != nil {
+		return errors.Join(core.ErrProviderWireVerification, err)
 	}
 	ageComparison, err := age.Compare(tolerance)
 	if err != nil || ageComparison == core.ComparisonGreater {
 		return errors.Join(core.ErrProviderWireVerification, err)
 	}
 	return nil
+}
+
+func stripeSignatureAge(
+	observed temporal.Instant,
+	signed temporal.Instant,
+	comparison core.Comparison,
+) (temporal.Duration, error) {
+	if comparison == core.ComparisonLess {
+		return signed.Since(observed)
+	}
+	return observed.Since(signed)
 }
 
 func stripeSignatureInstant(header string) (temporal.Instant, error) {

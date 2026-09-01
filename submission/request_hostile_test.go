@@ -39,14 +39,14 @@ func TestSignedPayloadCanonicalOutputLayerTriad(t *testing.T) {
 	completion := newCompletionFixture(t, submissionOffering(t, 2), []byte("canonical output proof"), 0x10)
 	projection, err := IssueCompletion(CompletionIssuance{
 		Signer: completion.deviceSigner, Transfer: completion.transfer,
-		Request: completion.request, Grant: completion.grant,
+		Request: completion.request, Grant: completion.grant, Nonce: completion.nonce,
 	})
 	if err != nil {
 		t.Fatalf("IssueCompletion() setup error = %v, want nil", err)
 	}
 	projectionPayload, err := completionProjection(CompletionIssuance{
 		Signer: completion.deviceSigner, Transfer: completion.transfer,
-		Request: completion.request, Grant: completion.grant,
+		Request: completion.request, Grant: completion.grant, Nonce: completion.nonce,
 	})
 	if err != nil {
 		t.Fatalf("completionProjection() setup error = %v, want nil", err)

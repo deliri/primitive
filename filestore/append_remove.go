@@ -41,16 +41,18 @@ func createOrOpenAppend(request AppendRequest) (*os.File, error) {
 }
 
 func openExistingAppend(request AppendRequest) (*os.File, error) {
-	file, err := request.Location.Root.OpenFile(
-		request.Location.Path.String(),
-		os.O_WRONLY|os.O_APPEND,
-		0,
-	)
+	file, err := openMutableFile(rootedOpenRequest{
+		root: request.Location.Root, path: request.Location.Path.String(),
+		flag: os.O_WRONLY | os.O_APPEND,
+	})
 	if err != nil {
 		return nil, activationError(err)
 	}
 	if err := validateAppendFile(file); err != nil {
 		return nil, err
+	}
+	if err := prepareRegularReadFile(file); err != nil {
+		return nil, closeAppendFile(file, activationError(err))
 	}
 	return file, nil
 }
@@ -76,11 +78,10 @@ func RotateAppend(ctx context.Context, request RotationRequest) (*os.File, error
 }
 
 func createAppend(request AppendRequest) (*os.File, error) {
-	file, err := request.Location.Root.OpenFile(
-		request.Location.Path.String(),
-		os.O_WRONLY|os.O_APPEND|os.O_CREATE|os.O_EXCL,
-		request.Mode,
-	)
+	file, err := openMutableFile(rootedOpenRequest{
+		root: request.Location.Root, path: request.Location.Path.String(),
+		flag: os.O_WRONLY | os.O_APPEND | os.O_CREATE | os.O_EXCL, mode: request.Mode,
+	})
 	if err != nil {
 		return nil, classifyCreateError(err)
 	}
@@ -99,6 +100,9 @@ func createAppend(request AppendRequest) (*os.File, error) {
 }
 
 func prepareCreatedAppend(request AppendRequest, file *os.File) error {
+	if err := prepareRegularReadFile(file); err != nil {
+		return activationError(err)
+	}
 	if err := file.Chmod(request.Mode); err != nil {
 		return activationError(err)
 	}

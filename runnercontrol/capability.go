@@ -76,17 +76,36 @@ func (c MemberCapability) Validate() error {
 	if c.SchemaVersion != SchemaVersion {
 		return core.ErrPrimitiveContract
 	}
-	if err := errors.Join(c.SchedulingDigest.Validate(), c.Fence.Validate(), c.Request.Validate(), c.Run.Validate(), c.AdmittedRunDigest.Validate(), c.RequestedAt.Validate(), c.AdmittedAt.Validate(), c.Probe.Validate(), c.Limits.Validate(), c.Nonce.Validate(), c.ExpiresAt.Validate()); err != nil {
+	if err := c.validateFacts(); err != nil {
 		return err
 	}
+	if err := c.validateChronology(); err != nil {
+		return err
+	}
+	if err := c.validateBuildContexts(); err != nil {
+		return err
+	}
+	return c.validateFenceBinding()
+}
+
+func (c MemberCapability) validateFacts() error {
+	return errors.Join(
+		c.SchedulingDigest.Validate(), c.Fence.Validate(), c.Request.Validate(), c.Run.Validate(),
+		c.AdmittedRunDigest.Validate(), c.RequestedAt.Validate(), c.AdmittedAt.Validate(),
+		c.Probe.Validate(), c.Limits.Validate(), c.Nonce.Validate(), c.ExpiresAt.Validate(),
+	)
+}
+
+func (c MemberCapability) validateChronology() error {
 	requestAdmission, requestErr := c.RequestedAt.Compare(c.AdmittedAt)
 	admissionExpiry, expiryErr := c.AdmittedAt.Compare(c.ExpiresAt)
 	if requestErr != nil || expiryErr != nil || requestAdmission == core.ComparisonGreater || admissionExpiry == core.ComparisonGreater {
 		return errors.Join(core.ErrPrimitiveContract, requestErr, expiryErr)
 	}
-	if err := c.validateBuildContexts(); err != nil {
-		return err
-	}
+	return nil
+}
+
+func (c MemberCapability) validateFenceBinding() error {
 	if c.Probe.Environment.MachineGeneration != c.Fence.Machine.Generation {
 		return core.ErrPrimitiveContract
 	}
@@ -326,10 +345,34 @@ func validateDirectExperiment(scheduling SchedulingCapabilityDocument, member Me
 	if err := experiment.Validate(); err != nil {
 		return err
 	}
-	if experiment.Payload.Run != member.Payload.Run || experiment.Payload.Fence != member.Payload.Fence || experiment.Payload.MemberCapabilityDigest != memberDigest || experiment.Payload.Source != scheduling.Payload.Source || experiment.Payload.Execution.Subject.PolicyIdentity != scheduling.Payload.IsolationPolicy || experiment.Payload.ExpansionManifestDigest != nil || equalProbeIdentity(experiment.Payload.Probe, member.Payload.Probe) != nil {
+	if experiment.Payload.MemberCapabilityDigest != memberDigest {
 		return core.ErrPrimitiveContract
 	}
-	if experiment.Payload.Execution.Go != nil && experiment.Payload.Execution.Go.Machine.Observation != scheduling.Payload.Observation {
+	if err := validateDirectExperimentBinding(scheduling.Payload, member.Payload, experiment.Payload); err != nil {
+		return err
+	}
+	return validateDirectExperimentMachine(scheduling.Payload, experiment.Payload)
+}
+
+func validateDirectExperimentBinding(scheduling SchedulingCapability, member MemberCapability, experiment ExperimentCapability) error {
+	if experiment.Run != member.Run || experiment.Fence != member.Fence {
+		return core.ErrPrimitiveContract
+	}
+	if experiment.Source != scheduling.Source {
+		return core.ErrPrimitiveContract
+	}
+	if experiment.Execution.Subject.PolicyIdentity != scheduling.IsolationPolicy {
+		return core.ErrPrimitiveContract
+	}
+	if experiment.ExpansionManifestDigest != nil || equalProbeIdentity(experiment.Probe, member.Probe) != nil {
+		return core.ErrPrimitiveContract
+	}
+	return nil
+}
+
+func validateDirectExperimentMachine(scheduling SchedulingCapability, experiment ExperimentCapability) error {
+	goExecution := experiment.Execution.Go
+	if goExecution != nil && goExecution.Machine.Observation != scheduling.Observation {
 		return core.ErrPrimitiveContract
 	}
 	return nil

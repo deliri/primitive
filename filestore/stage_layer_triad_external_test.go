@@ -30,7 +30,7 @@ func TestStagingEffectLayerTriad(t *testing.T) {
 			Source:       iotest.HalfReader(bytes.NewReader(payload)),
 			Temporary:    filestore.Location{Root: root, Path: mustRelativePath(t, ".stage")},
 			Mode:         0o640,
-			MaximumBytes: mustByteCount(t, uint64(len(payload))),
+			MaximumBytes: mustByteCount(t, uint64(len(payload)+1)),
 		})
 		if gotErr != nil {
 			t.Fatalf("Stage() error = %v, want nil", gotErr)

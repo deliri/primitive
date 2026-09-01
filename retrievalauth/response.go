@@ -40,11 +40,13 @@ func (i ResponseIssuance) responseIssuance() controlplane.ResponseIssuance[retri
 }
 
 func (v ResponseVerification) Validate() error {
-	return v.responseVerification().Validate()
+	return v.responseVerification().ValidateForFamily(controlwire.RouteFamilyRetrievals)
 }
 
 func VerifyResponse(v ResponseVerification) (controlplane.VerifiedResponse[retrieval.GrantDocument, *retrieval.GrantDocument], error) {
-	return controlplane.VerifyResponse(v.responseVerification())
+	return controlplane.VerifyResponseForFamily(
+		v.responseVerification(), controlwire.RouteFamilyRetrievals,
+	)
 }
 
 func (v ResponseVerification) responseVerification() controlplane.ResponseVerification[retrieval.GrantDocument, *retrieval.GrantDocument] {

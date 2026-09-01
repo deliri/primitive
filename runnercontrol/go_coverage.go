@@ -1,7 +1,6 @@
 package runnercontrol
 
 import (
-	"bytes"
 	"errors"
 	"io"
 	"math"
@@ -52,36 +51,22 @@ func (c *GoCoverageCompiler) Write(data []byte) (int, error) {
 		return 0, errors.Join(core.ErrPrimitiveContract, errors.New("go coverage compiler receiver is nil"))
 	}
 	if c.failure != nil {
-		return len(data), nil
+		return 0, c.failure
 	}
-	c.pending = append(c.pending, data...)
-	if len(c.pending) > int(GoCoverageLineMaximumBytes) && !bytes.Contains(c.pending, []byte{'\n'}) {
-		c.failure = coverageFailure("go coverage line exceeds the byte ceiling")
-		c.pending = nil
-		return len(data), nil
-	}
-	if err := c.consumeLines(); err != nil {
+	written, extentFailure, err := writeBoundedLines(boundedLineWrite{
+		pending: &c.pending,
+		data:    data,
+		maximum: int(GoCoverageLineMaximumBytes),
+		consume: func(line []byte) error { return c.consumeLine(string(line)) },
+	})
+	if err != nil {
 		c.failure = err
 		c.pending = nil
-	}
-	return len(data), nil
-}
-
-func (c *GoCoverageCompiler) consumeLines() error {
-	for {
-		end := bytes.IndexByte(c.pending, '\n')
-		if end < 0 {
-			return nil
-		}
-		if end == 0 || end > int(GoCoverageLineMaximumBytes) {
-			return coverageFailure("go coverage stream contains an invalid line extent")
-		}
-		line := string(c.pending[:end])
-		c.pending = c.pending[end+1:]
-		if err := c.consumeLine(line); err != nil {
-			return err
+		if !extentFailure {
+			return len(data), nil
 		}
 	}
+	return written, err
 }
 
 func (c *GoCoverageCompiler) consumeLine(line string) error {

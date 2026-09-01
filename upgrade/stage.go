@@ -196,12 +196,21 @@ func reclaimCandidateSlot(
 	if receipt != expected {
 		return false, conflictError(diagnosticActiveTrial)
 	}
-	if verifyArtifact(ctx, root, target.slot, target.candidate) == nil {
+	state, verifyErr := inspectArtifact(ctx, root, target.slot, target.candidate)
+	switch state {
+	case artifactVerificationAuthentic:
 		return true, nil
+	case artifactVerificationAbsent:
+		return false, nil
+	case artifactVerificationInvalid:
+		return false, filestore.Remove(ctx, filestore.RemovalRequest{
+			Location: filestore.Location{Root: root, Path: target.path},
+		})
+	case artifactVerificationUnknown:
+		return false, verificationError(diagnosticCandidateBytes, verifyErr)
+	default:
+		return false, contractError(diagnosticUnknown)
 	}
-	return false, filestore.Remove(ctx, filestore.RemovalRequest{
-		Location: filestore.Location{Root: root, Path: target.path},
-	})
 }
 
 func removeTrialTemporary(

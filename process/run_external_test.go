@@ -1119,6 +1119,22 @@ func TestRunWaitDelayBoundsALingeringDescendant(t *testing.T) {
 	}
 }
 
+func TestRunRefusesGroupContainmentThatWouldDiscardSweepOwnership(t *testing.T) {
+	t.Parallel()
+
+	request := processRequest(t, "exit-0", process.Streams{
+		Stdin: bytes.NewReader(nil), Stdout: io.Discard, Stderr: io.Discard,
+	})
+	request.Containment = process.Containment{
+		Isolation: process.IsolationGroup, CancelSignal: process.CancelSignalKill,
+	}
+	got, gotErr := process.Run(t.Context(), request)
+	if !errors.Is(gotErr, core.ErrProcessContract) || got != (process.Result{}) {
+		t.Fatalf("process.Run(group containment) = (%v, %v), want zero and errors.Is %v",
+			got, gotErr, core.ErrProcessContract)
+	}
+}
+
 // TestRunCancellationTerminatesDespiteALingeringDescendant proves cancellation
 // still reaps the direct child and returns when a descendant outlives it holding
 // an inherited output descriptor. It deliberately does not assert

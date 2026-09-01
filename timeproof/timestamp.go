@@ -10,19 +10,44 @@ import (
 
 // AuthoritativeTimestamp is a proof-carrying verified RFC 3161 conclusion.
 type AuthoritativeTimestamp struct {
-	evidence   AuthorityEvidence
-	generation temporal.Instant
-	signer     core.SHA256Digest
-	serial     SerialNumber
-	policy     TimestampPolicy
+	evidence AuthorityEvidence
+	time     AuthoritativeTime
+	signer   core.SHA256Digest
+	serial   SerialNumber
+	policy   TimestampPolicy
+}
+
+// AuthoritativeTime binds the RFC 3161 nominal generation time to the
+// authority's declared maximum deviation. A zero Accuracy means the token did
+// not declare accuracy; it never means the authority proved exact time.
+type AuthoritativeTime struct {
+	Generation temporal.Instant  `json:"generation_nanoseconds"`
+	Accuracy   temporal.Duration `json:"accuracy_nanoseconds"`
+}
+
+// Validate checks the nominal generation and bounded optional accuracy.
+func (t AuthoritativeTime) Validate() error {
+	if err := t.Generation.Validate(); err != nil {
+		return contractError(err)
+	}
+	if err := t.Accuracy.Validate(); err != nil {
+		return contractError(err)
+	}
+	return nil
+}
+
+// AccuracyDeclared reports whether the authority bounded its generation-time
+// deviation. False means the uncertainty is unspecified, not zero.
+func (t AuthoritativeTime) AccuracyDeclared() bool {
+	return !t.Accuracy.IsZero()
 }
 
 type authoritativeTimestampWire struct {
-	Evidence   AuthorityEvidence `json:"evidence"`
-	Generation temporal.Instant  `json:"generation_nanoseconds"`
-	Signer     core.SHA256Digest `json:"signer_sha256"`
-	Serial     SerialNumber      `json:"serial"`
-	Policy     TimestampPolicy   `json:"policy"`
+	Evidence AuthorityEvidence `json:"evidence"`
+	Time     AuthoritativeTime `json:"time"`
+	Signer   core.SHA256Digest `json:"signer_sha256"`
+	Serial   SerialNumber      `json:"serial"`
+	Policy   TimestampPolicy   `json:"policy"`
 }
 
 type authoritativeTimestampWireJSON authoritativeTimestampWire
@@ -94,11 +119,11 @@ func authoritativeFromVerified(
 		return AuthoritativeTimestamp{}, err
 	}
 	timestamp := AuthoritativeTimestamp{
-		evidence:   evidence,
-		generation: token.GenerationTime,
-		signer:     core.NewSHA256Digest(token.SignerSHA256),
-		serial:     serial,
-		policy:     token.Policy,
+		evidence: evidence,
+		time:     token.Time,
+		signer:   core.NewSHA256Digest(token.SignerSHA256),
+		serial:   serial,
+		policy:   token.Policy,
 	}
 	if err := timestamp.Validate(); err != nil {
 		return AuthoritativeTimestamp{}, err
@@ -111,7 +136,7 @@ func (t AuthoritativeTimestamp) Validate() error {
 	if err := t.evidence.Validate(); err != nil {
 		return contractError(err)
 	}
-	if err := t.generation.Validate(); err != nil {
+	if err := t.time.Validate(); err != nil {
 		return contractError(err)
 	}
 	if err := t.signer.Validate(); err != nil {
@@ -127,9 +152,10 @@ func (t AuthoritativeTimestamp) Validate() error {
 	return nil
 }
 
-// Instant returns the verified authority generation instant.
-func (t AuthoritativeTimestamp) Instant() temporal.Instant {
-	return t.generation
+// Time returns the nominal generation time together with the authority's
+// declared uncertainty. Consumers must apply both facts to clock policy.
+func (t AuthoritativeTimestamp) Time() AuthoritativeTime {
+	return t.time
 }
 
 // Evidence returns owned proof custody with copy-returning byte accessors.
@@ -153,7 +179,7 @@ func (t AuthoritativeTimestamp) MarshalJSON() ([]byte, error) {
 		return nil, err
 	}
 	return core.EncodeValidatedJSON(authoritativeTimestampWire{
-		Evidence: t.evidence, Generation: t.generation, Signer: t.signer,
+		Evidence: t.evidence, Time: t.time, Signer: t.signer,
 		Serial: t.serial, Policy: t.policy,
 	}, core.DefaultStrictJSONLimits())
 }
@@ -188,7 +214,7 @@ func (w authoritativeTimestampWire) Validate() error {
 	if err := w.Evidence.Validate(); err != nil {
 		return err
 	}
-	if err := w.Generation.Validate(); err != nil {
+	if err := w.Time.Validate(); err != nil {
 		return err
 	}
 	if err := w.Signer.Validate(); err != nil {
@@ -204,7 +230,7 @@ func authoritativeWireMatches(
 	timestamp AuthoritativeTimestamp,
 	wire authoritativeTimestampWire,
 ) bool {
-	return timestamp.generation == wire.Generation &&
+	return timestamp.time == wire.Time &&
 		timestamp.signer == wire.Signer &&
 		timestamp.serial == wire.Serial &&
 		timestamp.policy == wire.Policy
@@ -212,6 +238,6 @@ func authoritativeWireMatches(
 
 func (t AuthoritativeTimestamp) isZero() bool {
 	return t.evidence.isZero() &&
-		!t.generation.IsSet() &&
+		t.time == (AuthoritativeTime{}) &&
 		t.policy == TimestampPolicyUnknown
 }

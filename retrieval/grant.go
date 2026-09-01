@@ -217,7 +217,9 @@ func validateIssuanceBinding(issuance GrantIssuance) error {
 	if err := errors.Join(
 		validateManifestIdentity(issuance, document, summary),
 		validateEntryRequestIdentity(issuance, addition, requestCommitment),
+		validateRequestScope(issuance.Request, document),
 		validateEntryScope(payload, document),
+		validateGrantRetention(payload, document),
 	); err != nil {
 		return err
 	}
@@ -261,6 +263,13 @@ func validateEntryScope(payload GrantPayload, document chit.Document) error {
 	return nil
 }
 
+func validateRequestScope(request RequestPayload, document chit.Document) error {
+	if request.Scope != document.Payload.Scope || request.Build.Offering() != document.Payload.Scope.Offering {
+		return bindingError(errors.New("retrieval request scope differs from authenticated chit"))
+	}
+	return nil
+}
+
 func IssueGrant(issuance GrantIssuance) (GrantProjection, error) {
 	if err := issuance.Validate(); err != nil {
 		return GrantProjection{}, err
@@ -280,6 +289,7 @@ func IssueGrant(issuance GrantIssuance) (GrantProjection, error) {
 type GrantExpectation struct {
 	Request     RequestPayload
 	Chit        chit.Verified
+	Entry       chit.VerifiedManifestEntry
 	Document    GrantDocument
 	TrustedKeys attest.TrustedKeys
 	ObservedAt  temporal.Instant
@@ -287,7 +297,7 @@ type GrantExpectation struct {
 
 func (e GrantExpectation) Validate() error {
 	if err := errors.Join(
-		e.Document.Validate(), e.Request.Validate(), e.Chit.Validate(),
+		e.Document.Validate(), e.Request.Validate(), e.Chit.Validate(), e.Entry.Validate(),
 		e.ObservedAt.Validate(), e.TrustedKeys.Validate(),
 	); err != nil {
 		return contractError(err)
@@ -408,13 +418,43 @@ func VerifyGrant(expectation GrantExpectation) (VerifiedGrant, error) {
 func validateExpectedGrantBinding(expectation GrantExpectation, payload GrantPayload) error {
 	wantRequest, requestErr := CommitRequest(expectation.Request)
 	chitDocument, chitErr := expectation.Chit.Document()
-	if errors.Join(requestErr, chitErr) != nil {
-		return bindingError(requestErr, chitErr)
+	addition, additionErr := expectation.Entry.Addition()
+	summary, summaryErr := expectation.Entry.Summary()
+	if errors.Join(requestErr, chitErr, additionErr, summaryErr) != nil {
+		return bindingError(requestErr, chitErr, additionErr, summaryErr)
 	}
-	if payload.Request != wantRequest || payload.Chit != expectation.Request.Chit ||
-		payload.Chit != chitDocument.Payload.Identity ||
-		payload.Manifest != chitDocument.Payload.Manifest.Digest {
+	if !expectedGrantRequestMatches(expectation, payload, wantRequest) ||
+		!expectedGrantEntryMatches(payload, chitDocument, addition) ||
+		!expectedGrantManifestMatches(payload, chitDocument, summary) {
 		return bindingError(errors.New("retrieval grant differs from its request or authenticated chit"))
+	}
+	if err := validateEntryScope(payload, chitDocument); err != nil {
+		return err
+	}
+	if err := validateRequestScope(expectation.Request, chitDocument); err != nil {
+		return err
+	}
+	return validateGrantRetention(payload, chitDocument)
+}
+
+func expectedGrantRequestMatches(expectation GrantExpectation, payload GrantPayload, wantRequest RequestCommitment) bool {
+	return payload.Request == wantRequest && payload.Chit == expectation.Request.Chit
+}
+
+func expectedGrantEntryMatches(payload GrantPayload, document chit.Document, addition chit.ManifestAddition) bool {
+	return payload.Chit == document.Payload.Identity && payload.Entry == addition.Entry
+}
+
+func expectedGrantManifestMatches(payload GrantPayload, document chit.Document, summary chit.ManifestSummary) bool {
+	return payload.Manifest == document.Payload.Manifest.Digest &&
+		payload.Manifest == summary.Digest &&
+		document.Payload.Manifest == summary
+}
+
+func validateGrantRetention(payload GrantPayload, document chit.Document) error {
+	order, err := payload.ExpiresAt.Compare(document.Payload.RetainUntil)
+	if err != nil || order == core.ComparisonGreater {
+		return bindingError(errors.New("retrieval grant outlives the authenticated chit"), err)
 	}
 	return nil
 }

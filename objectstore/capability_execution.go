@@ -87,14 +87,21 @@ func Upload(
 	if err != nil {
 		return Transfer{}, err
 	}
+	commitment, err := request.Capability.Commitment()
+	if err != nil {
+		return Transfer{}, err
+	}
+	var transfer Transfer
 	switch provider {
 	case ProviderAmazonS3, ProviderGoogleCloudStorage, ProviderCloudflareImages:
-		return client.upload(ctx, ordinary, provider)
+		transfer, err = client.upload(ctx, ordinary, provider)
 	case ProviderUnknown, providerLimit:
 		return Transfer{}, core.ErrObjectStoreContract
 	default:
 		return Transfer{}, core.ErrObjectStoreContract
 	}
+	transfer.capability = commitment
+	return transfer, err
 }
 
 // Download streams through the exact provider operation selected by one

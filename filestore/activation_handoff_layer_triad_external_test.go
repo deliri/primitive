@@ -210,7 +210,7 @@ func TestRecoveryHandoffLayerTriad(t *testing.T) {
 			Temporary:    mustRelativePath(t, ".stage"),
 			Mode:         0o600,
 			Install:      filestore.InstallCreate,
-			MaximumBytes: mustByteCount(t, uint64(len(payload))),
+			MaximumBytes: mustByteCount(t, uint64(len(payload)+1)),
 		})
 		if !source.swapped || source.swapErr != nil {
 			t.Fatalf("stage identity swap = swapped:%t error:%v, want true/nil", source.swapped, source.swapErr)
@@ -265,7 +265,7 @@ func TestRecoveryHandoffLayerTriad(t *testing.T) {
 			Temporary:    mustRelativePath(t, ".stage"),
 			Mode:         0o600,
 			Install:      filestore.InstallCreate,
-			MaximumBytes: mustByteCount(t, uint64(len(payload))),
+			MaximumBytes: mustByteCount(t, uint64(len(payload)+1)),
 		})
 		if !source.swapped || source.swapErr != nil {
 			t.Fatalf("stage identity swap = swapped:%t error:%v, want true/nil", source.swapped, source.swapErr)

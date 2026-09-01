@@ -12,6 +12,14 @@ func openReadFile(root *os.Root, path string) (*os.File, error) {
 	return root.Open(path)
 }
 
+func openDirectory(root *os.Root, path string) (*os.File, error) {
+	return root.Open(path)
+}
+
+func openMutableFile(request rootedOpenRequest) (*os.File, error) {
+	return request.root.OpenFile(request.path, request.flag, request.mode)
+}
+
 // prepareRegularReadFile has nothing to restore where the open was never made
 // nonblocking.
 func prepareRegularReadFile(_ *os.File) error {

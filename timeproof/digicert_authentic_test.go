@@ -31,7 +31,8 @@ func TestDigiCertVerifierLayerTriad(t *testing.T) {
 				TimestampPolicyDigiCert, AuthorityDigiCert,
 			)
 		}
-		gotNanoseconds, gotInstantErr := got.Instant().Nanoseconds()
+		gotTime := got.Time()
+		gotNanoseconds, gotInstantErr := gotTime.Generation.Nanoseconds()
 		const wantNanoseconds = int64(1785739051 * 1_000_000_000)
 		if gotInstantErr != nil || gotNanoseconds != wantNanoseconds {
 			t.Fatalf(

@@ -16,7 +16,13 @@ import (
 // child exit is a successful observation in Result, not an infrastructure
 // error.
 func Run(ctx context.Context, request Request) (Result, error) {
-	execution, err := Begin(ctx, request)
+	if err := validateRun(ctx, request); err != nil {
+		return Result{}, err
+	}
+	if request.Containment.orDefault().Isolation == IsolationGroup {
+		return Result{}, contractError("group containment requires Begin so the execution can be swept")
+	}
+	execution, err := beginValidated(ctx, request)
 	if err != nil {
 		return Result{}, err
 	}
@@ -56,14 +62,14 @@ func beginValidated(ctx context.Context, request Request) (*Execution, error) {
 		cancel(nil)
 		return nil, err
 	}
-	identity := ProcessIdentity(prepared.command.Process.Pid) // #nosec G115 -- a started child's identifier fits the platform pid domain.
-	if err := identity.Validate(); err != nil {
+	identity, identityErr := newProcessIdentity(prepared.command.Process.Pid)
+	if identityErr != nil {
 		// The child is already running on this path, so refusing the handle
 		// must not orphan it: the cancel delivers the kill and the wait reaps
 		// the corpse, because no Execution will exist to do either later.
 		cancel(nil)
 		_ = prepared.command.Wait()
-		return nil, err
+		return nil, identityErr
 	}
 	return &Execution{
 		prepared:    prepared,
@@ -106,9 +112,17 @@ func prepareCommand(
 		if command.Process == nil {
 			return os.ErrProcessDone
 		}
+		identity := ProcessIdentity(0)
+		if containment.Isolation == IsolationGroup {
+			var identityErr error
+			identity, identityErr = newProcessIdentity(command.Process.Pid)
+			if identityErr != nil {
+				return identityErr
+			}
+		}
 		err := deliverSignal(signalDelivery{
 			process:     command.Process,
-			identity:    ProcessIdentity(command.Process.Pid), // #nosec G115 -- a started child's identifier fits the platform pid domain.
+			identity:    identity,
 			containment: containment,
 			signal:      containment.CancelSignal,
 		})
@@ -136,10 +150,12 @@ type waitRequest struct {
 	prepared    preparedCommand
 	failures    *streamFailures
 	commandPath core.AbsolutePath
+	reaped      *atomic.Bool
 }
 
 func waitCommand(request waitRequest) (Result, error) {
 	waitErr := request.prepared.command.Wait()
+	request.reaped.Store(true)
 	result, resultErr := newResult(
 		request.prepared.command.ProcessState,
 		request.streams,

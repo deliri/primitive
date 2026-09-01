@@ -32,7 +32,6 @@ func TestOwnedProtocolConstantsAreParsableHeaderNames(t *testing.T) {
 		{name: "GCS generation identity", value: headerGCSGeneration},
 		{name: "Content-Range", value: headerContentRange},
 		{name: "Content-Disposition", value: headerContentDisposition},
-		{name: "Host", value: headerHost},
 		{name: "Range", value: headerRange},
 	}
 	for _, tc := range constants {
@@ -99,7 +98,9 @@ func TestOwnedHeaderSetIsExactlyTheDeclaredFields(t *testing.T) {
 		authorization.String(),
 		core.HTTPHeaderIdempotencyKey().String(),
 		headerContentRange,
-		headerHost,
+		core.HTTPHeaderHost().String(),
+		core.HTTPHeaderTransferEncoding().String(),
+		core.HTTPHeaderConnection().String(),
 		headerRange,
 		headerIfNoneMatch,
 		headerS3ChecksumCRC32C,

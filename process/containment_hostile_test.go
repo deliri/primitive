@@ -151,7 +151,7 @@ func TestContainmentValidatesBothMembers(t *testing.T) {
 	}
 }
 
-func TestProcessIdentityRejectsNonPositiveValues(t *testing.T) {
+func TestProcessIdentityAdmitsTheUnsignedWindowsPIDDomain(t *testing.T) {
 	t.Parallel()
 
 	cases := []struct {
@@ -160,11 +160,11 @@ func TestProcessIdentityRejectsNonPositiveValues(t *testing.T) {
 		identity process.ProcessIdentity
 	}{
 		{name: "zero is not a real identity", identity: 0, wantErr: core.ErrProcessContract},
-		{name: "negative one is not a real identity", identity: -1, wantErr: core.ErrProcessContract},
-		{name: "the smallest negative identity is rejected", identity: math.MinInt32, wantErr: core.ErrProcessContract},
 		{name: "one is the smallest real identity", identity: 1},
 		{name: "a typical pid is admitted", identity: 4321},
-		{name: "the largest identity is admitted", identity: math.MaxInt32},
+		{name: "the largest signed thirty-two-bit identity is admitted", identity: math.MaxInt32},
+		{name: "one above the signed boundary is admitted", identity: math.MaxInt32 + 1},
+		{name: "the largest Windows process identity is admitted", identity: math.MaxUint32},
 	}
 	for _, tc := range cases {
 		t.Run(tc.name, func(t *testing.T) {

@@ -54,7 +54,7 @@ func verifyTimestampToken(verification timestampTokenVerification) (verifiedToke
 	if err != nil {
 		return verifiedToken{}, err
 	}
-	if err := verifyTimestampSigner(token, info.GenerationTime, verification.authority); err != nil {
+	if err := verifyTimestampSigner(token, info.Time.Generation, verification.authority); err != nil {
 		return verifiedToken{}, invalidError(err)
 	}
 	if err := verifyTSAName(info.TSASubject, token.Signer); err != nil {
@@ -69,7 +69,7 @@ func verifyTimestampToken(verification timestampTokenVerification) (verifiedToke
 	signerSum := sha256.Sum256(token.Signer.Raw)
 	return verifiedToken{
 		SignerSHA256: signerSum, Serial: info.Serial, Policy: policy,
-		GenerationTime: info.GenerationTime,
+		Time: info.Time,
 	}, nil
 }
 
@@ -839,7 +839,7 @@ func parseTSTInfo(der []byte) (parsedTSTInfo, error) {
 	}
 	info := parsedTSTInfo{
 		Version: version, Policy: policy, MessageImprint: imprint,
-		Serial: serial, GenerationTime: generationTime,
+		Serial: serial, Time: AuthoritativeTime{Generation: generationTime},
 	}
 	if err := parseTSTOptionalFields(fields, &info); err != nil {
 		return parsedTSTInfo{}, err
@@ -852,7 +852,7 @@ func parseTSTInfo(der []byte) (parsedTSTInfo, error) {
 
 func parseTSTOptionalFields(fields []byte, info *parsedTSTInfo) error {
 	var err error
-	fields, err = consumeOptionalAccuracy(fields)
+	fields, err = consumeOptionalAccuracy(fields, info)
 	if err != nil {
 		return err
 	}
@@ -876,15 +876,18 @@ func parseTSTOptionalFields(fields []byte, info *parsedTSTInfo) error {
 
 func consumeOptionalAccuracy(
 	fields []byte,
+	info *parsedTSTInfo,
 ) ([]byte, error) {
 	raw, remaining, present, err := peekTSTField(fields)
 	if err != nil || !present ||
 		!isUniversal(raw, asn1.TagSequence, true) {
 		return fields, err
 	}
-	if _, err := parseAccuracy(raw); err != nil {
+	accuracy, err := parseAccuracy(raw)
+	if err != nil {
 		return nil, err
 	}
+	info.Time.Accuracy = accuracy
 	return remaining, nil
 }
 

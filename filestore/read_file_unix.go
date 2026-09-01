@@ -14,7 +14,19 @@ import (
 // runs against a handle this process already holds rather than against a path
 // another process can still swap.
 func openReadFile(root *os.Root, path string) (*os.File, error) {
-	return root.OpenFile(path, os.O_RDONLY|unix.O_NONBLOCK, 0)
+	return openNonblockingFile(rootedOpenRequest{root: root, path: path, flag: os.O_RDONLY})
+}
+
+func openDirectory(root *os.Root, path string) (*os.File, error) {
+	return root.OpenFile(path, os.O_RDONLY|unix.O_NONBLOCK|unix.O_DIRECTORY, 0)
+}
+
+func openMutableFile(request rootedOpenRequest) (*os.File, error) {
+	return openNonblockingFile(request)
+}
+
+func openNonblockingFile(request rootedOpenRequest) (*os.File, error) {
+	return request.root.OpenFile(request.path, request.flag|unix.O_NONBLOCK, request.mode)
 }
 
 // prepareRegularReadFile restores blocking semantics once the acquired handle

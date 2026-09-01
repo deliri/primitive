@@ -145,6 +145,11 @@ func (c UploadCapabilityCommitment) Validate() error {
 	return nil
 }
 
+// IsZero reports whether no upload capability commitment is present.
+func (c UploadCapabilityCommitment) IsZero() bool {
+	return c == (UploadCapabilityCommitment{})
+}
+
 // MarshalJSON emits the non-secret digest as canonical lowercase hexadecimal.
 func (c UploadCapabilityCommitment) MarshalJSON() ([]byte, error) {
 	if err := c.Validate(); err != nil {

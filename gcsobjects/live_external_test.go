@@ -9,6 +9,7 @@ import (
 	"testing"
 
 	"github.com/deliri/primitive/v2026/core"
+	"github.com/deliri/primitive/v2026/filestore"
 	"github.com/deliri/primitive/v2026/gcsobjects"
 	"github.com/deliri/primitive/v2026/objectstore"
 	"github.com/deliri/primitive/v2026/temporal"
@@ -138,29 +139,32 @@ func TestAuthenticatedGCSLifecycleUsesTheRealProviderAndProvesDeletion(t *testin
 	}
 	verifyLiveGCSObjectAbsent(t, client, bucket, wrongDigestName, core.SHA256Of(gcsLivePayload))
 
-	var downloaded bytes.Buffer
-	readMetadata, gotReadErr := gcsobjects.ReadGCSObject(context.Background(), client, gcsobjects.GCSReadRequest{
-		Bucket: bucket, Name: primaryName, Destination: &downloaded,
-		SHA256: core.SHA256Of(gcsLivePayload), Maximum: liveGCSMaximum(t, len(gcsLivePayload)),
-	})
+	readRequest := liveGCSReadRequest(t, bucket, primaryName, liveGCSIntegrity(t, gcsLivePayload))
+	readResult, gotReadErr := gcsobjects.ReadGCSObject(context.Background(), client, readRequest)
 	if gotReadErr != nil {
 		t.Fatalf("ReadGCSObject(%q) error = %v, want nil", primaryName.String(), gotReadErr)
 	}
-	if !bytes.Equal(downloaded.Bytes(), gcsLivePayload) {
+	readMetadata, metadataErr := readResult.Metadata()
+	staged, stagedErr := readResult.Staged()
+	var downloaded bytes.Buffer
+	_, readErr := filestore.Read(t.Context(), filestore.ReadRequest{
+		Destination: &downloaded, Location: readRequest.Destination.Temporary,
+		MaximumBytes: liveGCSMaximum(t, len(gcsLivePayload)+1),
+	})
+	if metadataErr != nil || stagedErr != nil || readErr != nil || !bytes.Equal(downloaded.Bytes(), gcsLivePayload) {
 		t.Fatalf("ReadGCSObject(%q) bytes = %q, want %q", primaryName.String(), downloaded.Bytes(), gcsLivePayload)
 	}
 	verifyLiveGCSMetadata(t, readMetadata, bucket, primaryName, gcsLivePayload, gcsLiveMediaContentType, gcsLiveMediaCacheControl)
+	if err := filestore.Discard(t.Context(), staged); err != nil {
+		t.Fatalf("filestore.Discard(verified GCS stage) error = %v, want nil", err)
+	}
 
-	var rejected bytes.Buffer
-	_, gotWrongReadErr := gcsobjects.ReadGCSObject(context.Background(), client, gcsobjects.GCSReadRequest{
-		Bucket: bucket, Name: primaryName, Destination: &rejected,
-		SHA256: core.SHA256Of([]byte("wrong read digest")), Maximum: liveGCSMaximum(t, len(gcsLivePayload)),
-	})
+	wrongIntegrity := liveGCSIntegrity(t, gcsLivePayload)
+	wrongIntegrity.SHA256 = core.SHA256Of([]byte("wrong read digest"))
+	wrongRequest := liveGCSReadRequest(t, bucket, primaryName, wrongIntegrity)
+	_, gotWrongReadErr := gcsobjects.ReadGCSObject(context.Background(), client, wrongRequest)
 	if !errors.Is(gotWrongReadErr, core.ErrObjectStoreIntegrity) {
 		t.Fatalf("ReadGCSObject(%q wrong checksum) error = %v, want errors.Is(..., %v)", primaryName.String(), gotWrongReadErr, core.ErrObjectStoreIntegrity)
-	}
-	if !bytes.Equal(rejected.Bytes(), gcsLivePayload) {
-		t.Fatalf("wrong-checksum read streamed bytes = %q, want %q before independent refusal", rejected.Bytes(), gcsLivePayload)
 	}
 
 	deleted, gotDeleteErr := gcsobjects.DeleteGCSObjects(context.Background(), client, gcsobjects.GCSDeleteRequest{
@@ -308,16 +312,41 @@ func verifyLiveGCSMetadata(
 
 func verifyLiveGCSObjectAbsent(t *testing.T, client *gcsobjects.GCSClient, bucket gcsobjects.GCSBucket, name gcsobjects.GCSObjectName, sha256 core.SHA256Digest) {
 	t.Helper()
-	var destination bytes.Buffer
-	_, gotReadErr := gcsobjects.ReadGCSObject(context.Background(), client, gcsobjects.GCSReadRequest{
-		Bucket: bucket, Name: name, Destination: &destination, SHA256: sha256,
-		Maximum: liveGCSMaximum(t, len(gcsLivePayload)),
-	})
+	integrity := liveGCSIntegrity(t, gcsLivePayload)
+	integrity.SHA256 = sha256
+	request := liveGCSReadRequest(t, bucket, name, integrity)
+	_, gotReadErr := gcsobjects.ReadGCSObject(context.Background(), client, request)
 	if !errors.Is(gotReadErr, core.ErrObjectStoreAbsent) {
 		t.Fatalf("ReadGCSObject(%q after refused write or purge) error = %v, want errors.Is(..., %v)", name.String(), gotReadErr, core.ErrObjectStoreAbsent)
 	}
-	if destination.Len() != 0 {
-		t.Fatalf("ReadGCSObject(%q absent) destination bytes = %d, want 0", name.String(), destination.Len())
+}
+
+func liveGCSReadRequest(
+	t *testing.T,
+	bucket gcsobjects.GCSBucket,
+	name gcsobjects.GCSObjectName,
+	integrity objectstore.Integrity,
+) gcsobjects.GCSReadRequest {
+	t.Helper()
+	absolute, err := core.ParseAbsolutePath(t.TempDir())
+	if err != nil {
+		t.Fatalf("core.ParseAbsolutePath(GCS read root) error = %v, want nil", err)
+	}
+	root, err := filestore.OpenRoot(t.Context(), absolute)
+	if err != nil {
+		t.Fatalf("filestore.OpenRoot(GCS read root) error = %v, want nil", err)
+	}
+	t.Cleanup(func() { _ = root.Close() })
+	path, err := core.ParseRelativePath("download.stage")
+	if err != nil {
+		t.Fatalf("core.ParseRelativePath(download.stage) error = %v, want nil", err)
+	}
+	return gcsobjects.GCSReadRequest{
+		Bucket: bucket, Name: name, Integrity: integrity,
+		Destination: filestore.StageDestinationRequest{
+			Temporary:     filestore.Location{Root: root, Path: path},
+			ExpectedBytes: integrity.Length, Mode: 0o600,
+		},
 	}
 }
 

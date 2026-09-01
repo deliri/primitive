@@ -16,9 +16,9 @@ const (
 	// no copied package count can drift from the enum.
 	PrimitivePackageCount = int(packageIdentityLimit - PackageCore)
 	// PrimitiveDirectImportCount is the number of admitted direct import edges.
-	PrimitiveDirectImportCount = 186
+	PrimitiveDirectImportCount = 187
 	// PrimitiveDirectTestImportCount is the number of admitted test-only edges.
-	PrimitiveDirectTestImportCount = 38
+	PrimitiveDirectTestImportCount = 37
 	// PrimitiveMaximumDirectImports caps direct sibling imports per package.
 	PrimitiveMaximumDirectImports = 10
 )
@@ -369,6 +369,7 @@ func PrimitiveArchitecture() ArchitectureCatalog {
 			{Importer: PackageRetrieval, Imported: PackageCore},
 			{Importer: PackageRetrieval, Imported: PackageFilestore},
 			{Importer: PackageRetrieval, Imported: PackageObjectStore},
+			{Importer: PackageRetrieval, Imported: PackageReceipt},
 			{Importer: PackageRetrieval, Imported: PackageTemporal},
 
 			{Importer: PackageRetrievalAuth, Imported: PackageAttest},
@@ -459,7 +460,6 @@ func PrimitiveArchitecture() ArchitectureCatalog {
 			{Importer: PackageControlWire, Imported: PackageAttest},
 			{Importer: PackageRetrievalAuth, Imported: PackageControlPlaneTest},
 			{Importer: PackageRetrieval, Imported: PackageExchange},
-			{Importer: PackageRetrieval, Imported: PackageReceipt},
 			{Importer: PackageChitAuth, Imported: PackageControlPlaneTest},
 			{Importer: PackageChitAuth, Imported: PackageAttest},
 			{Importer: PackageChitAuth, Imported: PackageReceipt},

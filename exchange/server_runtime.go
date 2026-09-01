@@ -89,7 +89,7 @@ func (c ServerRuntimeConfiguration) Validate() error {
 type ServerRuntime struct {
 	configuration ServerRuntimeConfiguration
 	server        *http.Server
-	ready         chan struct{}
+	ready         chan error
 	started       atomic.Bool
 }
 
@@ -109,7 +109,7 @@ func NewServerRuntime(configuration ServerRuntimeConfiguration, handler http.Han
 	runtime := &ServerRuntime{
 		configuration: configuration,
 		server:        server,
-		ready:         make(chan struct{}),
+		ready:         make(chan error, 1),
 	}
 	return runtime, runtime.Validate()
 }
@@ -122,8 +122,11 @@ func (r *ServerRuntime) Validate() error {
 	return r.configuration.Validate()
 }
 
-// Ready closes after the real listener is open and immediately before serving.
-func (r *ServerRuntime) Ready() <-chan struct{} {
+// Ready reports the result of each real listener acquisition attempt. A nil
+// result means the listener is open; a non-nil result is the same typed
+// transport failure Serve returns. A caller consumes one result per Serve
+// attempt before retrying a failed runtime.
+func (r *ServerRuntime) Ready() <-chan error {
 	if r == nil {
 		return nil
 	}
@@ -139,16 +142,39 @@ func (r *ServerRuntime) Serve() error {
 	if !r.started.CompareAndSwap(false, true) {
 		return core.ErrExchangeContract
 	}
+	// witness:waiver doctrine/code_form/defer_after_acquire -- net/http Server.Serve owns and closes the listener on every return.
 	listener, err := net.Listen("tcp", r.configuration.Address.String())
 	if err != nil {
-		return transportError(err)
+		r.started.Store(false)
+		result := transportError(err)
+		r.publishReady(result)
+		return result
 	}
-	close(r.ready)
+	r.publishReady(nil)
 	err = r.server.Serve(listener)
 	if errors.Is(err, http.ErrServerClosed) {
 		return nil
 	}
 	return transportError(err)
+}
+
+// publishReady replaces an unconsumed result instead of allowing a listener
+// retry to block behind stale readiness evidence. Serve is single-owner under
+// started, so at most one producer can update this one-result slot.
+func (r *ServerRuntime) publishReady(result error) {
+	select {
+	case r.ready <- result:
+		return
+	default:
+	}
+	select {
+	case <-r.ready:
+	default:
+	}
+	select {
+	case r.ready <- result:
+	default:
+	}
 }
 
 // Shutdown gracefully stops the owned HTTP server.

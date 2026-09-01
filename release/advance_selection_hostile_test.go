@@ -5,7 +5,6 @@ import (
 	"testing"
 
 	"github.com/deliri/primitive/v2026/core"
-	"github.com/deliri/primitive/v2026/temporal"
 )
 
 func TestAdvanceLatestIdentityPrecedesGeneration(t *testing.T) {
@@ -57,7 +56,7 @@ func TestEvaluateSelectionUsesClosedInstalledIdentity(t *testing.T) {
 	got, err := evaluateWithInstalled(EvaluateRequest{
 		InstalledManifest: installed.verified,
 		Latest:            cached,
-		Observation:       temporal.InstantFromNanoseconds(3_000),
+		Time:              latestTimeEvidenceAt(t, 3_000),
 	}, installed.builds[2])
 	if err != nil {
 		t.Fatalf("evaluateWithInstalled() error = %v", err)
@@ -66,7 +65,7 @@ func TestEvaluateSelectionUsesClosedInstalledIdentity(t *testing.T) {
 	if !ok {
 		t.Fatalf("Result.Available() ok = false, state = %v", got.State())
 	}
-	preparation, err := available.PrepareAt(temporal.InstantFromNanoseconds(3_001))
+	preparation, err := available.Prepare(latestTimeEvidenceAt(t, 3_001))
 	if err != nil {
 		t.Fatalf("AvailableRelease.PrepareAt() error = %v", err)
 	}
@@ -94,7 +93,7 @@ func TestEvaluateSelectionUsesClosedInstalledIdentity(t *testing.T) {
 	_, err = evaluateWithInstalled(EvaluateRequest{
 		InstalledManifest: installed.verified,
 		Latest:            cached,
-		Observation:       temporal.InstantFromNanoseconds(3_000),
+		Time:              latestTimeEvidenceAt(t, 3_000),
 	}, differentInstallation)
 	if !errors.Is(err, core.ErrReleaseConflict) {
 		t.Fatalf("evaluateWithInstalled(wrong platform identity) error = %v, want %v", err, core.ErrReleaseConflict)

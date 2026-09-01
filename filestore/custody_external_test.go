@@ -542,6 +542,33 @@ func TestOpenLockFileProducesTheHandleFilelockAccepts(t *testing.T) {
 	}
 }
 
+func TestOpenLockFileAppliesTheRequestedModeAfterCreation(t *testing.T) {
+	t.Parallel()
+
+	directory := t.TempDir()
+	root := custodyRoot(t, directory)
+	wantMode := fs.FileMode(0o666)
+	file, err := filestore.OpenLockFile(t.Context(), filestore.LockFileRequest{
+		Location: filestore.Location{Root: root, Path: custodyRelative(t, "mode.lock")},
+		Mode:     wantMode,
+	})
+	if err != nil {
+		t.Fatalf("OpenLockFile(mode.lock) error = %v, want nil", err)
+	}
+	t.Cleanup(func() {
+		if closeErr := file.Close(); closeErr != nil {
+			t.Errorf("Close(mode.lock) error = %v, want nil", closeErr)
+		}
+	})
+	info, err := file.Stat()
+	if err != nil {
+		t.Fatalf("Stat(mode.lock) error = %v, want nil", err)
+	}
+	if got := info.Mode().Perm(); got != wantMode {
+		t.Fatalf("OpenLockFile(mode.lock) mode = %04o, want %04o", got, wantMode)
+	}
+}
+
 func custodyOpenLockFile(t *testing.T, root *os.Root, name string) *os.File {
 	t.Helper()
 
