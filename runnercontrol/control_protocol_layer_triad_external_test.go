@@ -63,6 +63,21 @@ func TestAdmissionSchemaLayerTriad(t *testing.T) {
 		}
 	})
 
+	t.Run("negative request identity cannot detach from its caller nonce and origin", func(t *testing.T) {
+		t.Parallel()
+		authenticated, _ := admissionFixture(t)
+		foreignOrigin := projectstandards.OriginIdentity{Offering: core.Offering{Token: "foreign-origin"}}
+		foreignRequest, foreignErr := projectstandards.DeriveRequestIdentity(foreignOrigin, authenticated.Requested.Nonce)
+		if foreignErr != nil || foreignRequest == authenticated.Requested.Request {
+			t.Fatalf("DeriveRequestIdentity(foreign origin) = (%v, %v), want distinct valid identity", foreignRequest, foreignErr)
+		}
+		authenticated.Requested.Request = foreignRequest
+		gotErr := authenticated.Validate()
+		if !errors.Is(gotErr, core.ErrPrimitiveContract) {
+			t.Fatalf("AuthenticatedAdmissionRequest.Validate(detached request identity) error = %v, want errors.Is(..., %v)", gotErr, core.ErrPrimitiveContract)
+		}
+	})
+
 	t.Run("neutral typed refusal carries no admitted run", func(t *testing.T) {
 		t.Parallel()
 		authenticated, _ := admissionFixture(t)
@@ -156,7 +171,8 @@ func TestCleanupProofLayerTriad(t *testing.T) {
 func admissionFixture(t testing.TB) (runnercontrol.AuthenticatedAdmissionRequest, runnercontrol.AdmittedRun) {
 	t.Helper()
 	completion := experimentCompletionPayloadFixture(t, true)
-	request, requestErr := projectstandards.NewRequestIdentity(completionUUIDFixture(t))
+	nonce, nonceErr := projectstandards.NewRequestNonce(completionUUIDFixture(t))
+	request, requestErr := projectstandards.DeriveRequestIdentity(completion.Probe.Origin, nonce)
 	output, outputErr := core.NewByteCount(1 << 20)
 	artifact, artifactErr := core.NewByteCount(4 << 20)
 	duration, durationErr := temporal.DurationFromSeconds(300)
@@ -166,7 +182,7 @@ func admissionFixture(t testing.TB) (runnercontrol.AuthenticatedAdmissionRequest
 	audience, audienceErr := projectstandards.NewIdentifier("origin-runner")
 	application, applicationErr := projectstandards.NewIdentifier("runner")
 	credential, custodyErr := projectstandards.NewIdentifier("source-read-once")
-	if err := errors.Join(requestErr, outputErr, artifactErr, durationErr, sourceErr, credentialErr, deliveryErr, audienceErr, applicationErr, custodyErr); err != nil {
+	if err := errors.Join(nonceErr, requestErr, outputErr, artifactErr, durationErr, sourceErr, credentialErr, deliveryErr, audienceErr, applicationErr, custodyErr); err != nil {
 		t.Fatalf("admission fixture construction error = %v, want nil", err)
 	}
 	requestedProbe := projectstandards.RequestedProbe{
@@ -175,7 +191,7 @@ func admissionFixture(t testing.TB) (runnercontrol.AuthenticatedAdmissionRequest
 		Constraints: projectstandards.EnvironmentRequirement{MachineClass: completion.Probe.Environment.MachineClass, Fingerprint: completion.Probe.Environment.RequirementFingerprint},
 	}
 	limits := runnercontrol.RunLimits{Duration: duration, OutputBytes: output, ArtifactBytes: artifact, ArtifactCount: 8, WorkerMaximum: 4, ProcessMaximum: 64, FileMaximum: 4096, QueueDepth: 16}
-	requested := runnercontrol.RequestedRun{SchemaVersion: runnercontrol.SchemaVersion, Request: request, Probe: requestedProbe, Limits: limits, EvidencePlan: core.SHA256Of([]byte("evidence-plan")), RequestedAt: temporal.InstantFromNanoseconds(1)}
+	requested := runnercontrol.RequestedRun{SchemaVersion: runnercontrol.SchemaVersion, Request: request, Nonce: nonce, Probe: requestedProbe, Limits: limits, EvidencePlan: core.SHA256Of([]byte("evidence-plan")), RequestedAt: temporal.InstantFromNanoseconds(1)}
 	expires := temporal.InstantFromNanoseconds(100)
 	repository, repositoryErr := runnercontrol.NewRepositoryGrant(runnercontrol.RepositoryGrant{Origin: completion.Probe.Origin, Subject: completion.Probe.Subject, Repository: completion.Probe.Source.Repository, SourceAuthority: sourceAuthority, CredentialIssuer: credentialIssuer, Enabled: true, ExpiresAt: expires})
 	deliveryCredential, deliveryCredentialErr := runnercontrol.NewPeerCredential(runnercontrol.PeerCredentialGoogleCloud, core.SHA256Of([]byte("origin-workload")))

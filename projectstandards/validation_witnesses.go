@@ -10,6 +10,7 @@ var (
 	_ core.ValidatedJSONMarshaler = RepositoryIdentity{}
 	_ core.ValidatedJSONMarshaler = ProfileIdentity{}
 	_ core.ValidatedJSONMarshaler = RequestIdentity{}
+	_ core.ValidatedJSONMarshaler = RequestNonce{}
 	_ core.ValidatedJSONMarshaler = RunID{}
 	_ core.ValidatedJSONMarshaler = ExperimentID{}
 	_ core.ValidatedJSONMarshaler = ObservationID{}

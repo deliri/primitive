@@ -48,7 +48,7 @@ func TestExperimentCompletionProducerSchemaVerifierLayerTriad(t *testing.T) {
 		if issueErr != nil {
 			t.Fatalf("IssueExperimentCompletion() setup error = %v, want nil", issueErr)
 		}
-		document.Payload.CompletedAt = temporal.InstantFromNanoseconds(3_000_001)
+		document.Payload.Process.StdoutBytes = mustCompletionByteLength(t, 12)
 		if gotErr := document.Validate(); gotErr != nil {
 			t.Fatalf("mutated ExperimentCompletionDocument.Validate() error = %v, want nil so signature verification owns rejection", gotErr)
 		}
@@ -56,6 +56,15 @@ func TestExperimentCompletionProducerSchemaVerifierLayerTriad(t *testing.T) {
 		gotErr := runnercontrol.VerifyExperimentCompletion(document, trusted)
 		if !errors.Is(gotErr, core.ErrAttestVerification) {
 			t.Fatalf("VerifyExperimentCompletion(mutated completed_at) error = %v, want errors.Is(..., %v)", gotErr, core.ErrAttestVerification)
+		}
+	})
+
+	t.Run("negative completion refuses a duration that disagrees with its typed timeline", func(t *testing.T) {
+		t.Parallel()
+		payload := experimentCompletionPayloadFixture(t, true)
+		payload.Observation.Measurements.DurationNs--
+		if gotErr := payload.Validate(); !errors.Is(gotErr, core.ErrPrimitiveContract) {
+			t.Fatalf("ExperimentCompletionPayload.Validate(conflicting duration) error = %v, want errors.Is(..., %v)", gotErr, core.ErrPrimitiveContract)
 		}
 	})
 
@@ -75,6 +84,68 @@ func TestExperimentCompletionProducerSchemaVerifierLayerTriad(t *testing.T) {
 			t.Fatalf("VerifyExperimentCompletion(not-run) error = %v, want nil", gotErr)
 		}
 	})
+}
+
+func TestExperimentCompletionReturnsTypedRequestAndActionEvidence(t *testing.T) {
+	t.Parallel()
+
+	payload := goExperimentCompletionPayloadFixture(t)
+	if payload.Go == nil {
+		t.Fatal("Go completion concurrency = nil, want requested and effective execution evidence")
+	}
+	requested := payload.Go.Requested
+	effective := payload.Go.Effective
+	if requested.GOMAXPROCS != 1_000 || requested.Parallel != 1_000 || requested.PackageParallel != 1_000 {
+		t.Fatalf("Go completion requested concurrency = %+v, want exact request 1000", requested)
+	}
+	if effective.GOMAXPROCS != 4 || effective.Parallel != 4 || effective.PackageParallel != 4 {
+		t.Fatalf("Go completion effective concurrency = %+v, want acted-on machine ceiling 4", effective)
+	}
+	if payload.RequestedAt != temporal.InstantFromNanoseconds(1_000_000) || payload.AdmittedAt != temporal.InstantFromNanoseconds(1_500_000) || payload.StartedAt == nil || payload.CompletedAt != temporal.InstantFromNanoseconds(3_000_000) || payload.Observation.Measurements.DurationNs != 1_000_000 {
+		t.Fatalf("Go completion timeline = (requested %v, admitted %v, started %v, completed %v, duration %d), want exact typed lifecycle", payload.RequestedAt, payload.AdmittedAt, payload.StartedAt, payload.CompletedAt, payload.Observation.Measurements.DurationNs)
+	}
+	key, trusted := completionSignerFixture(t)
+	document, issueErr := runnercontrol.IssueExperimentCompletion(payload, key)
+	verifyErr := runnercontrol.VerifyExperimentCompletion(document, trusted)
+	if issueErr != nil || verifyErr != nil {
+		t.Fatalf("Go completion proof = (issue %v, verify %v), want nil errors", issueErr, verifyErr)
+	}
+
+	t.Run("missing acted-on Go settings cannot masquerade as a Go completion", func(t *testing.T) {
+		t.Parallel()
+		missing := goExperimentCompletionPayloadFixture(t)
+		missing.Go = nil
+		if gotErr := missing.Validate(); !errors.Is(gotErr, core.ErrPrimitiveContract) {
+			t.Fatalf("ExperimentCompletionPayload.Validate(missing Go settings) error = %v, want errors.Is(..., %v)", gotErr, core.ErrPrimitiveContract)
+		}
+	})
+}
+
+func goExperimentCompletionPayloadFixture(t testing.TB) runnercontrol.ExperimentCompletionPayload {
+	t.Helper()
+	payload := experimentCompletionPayloadFixture(t, true)
+	module, moduleErr := projectstandards.NewIdentifier("primitive")
+	observation, observationErr := projectstandards.NewMachineObservationID(completionUUIDFixture(t))
+	if err := errors.Join(moduleErr, observationErr); err != nil {
+		t.Fatalf("Go completion identity fixture error = %v, want nil", err)
+	}
+	payload.Probe.Kind = projectstandards.ProbeKindGoTest
+	payload.Probe.Target = projectstandards.ProbeTarget{
+		Kind: projectstandards.ProbeTargetGoDeclaration,
+		GoDeclaration: &projectstandards.GoDeclarationTarget{
+			Module: module, Package: mustProfileSourcePath(t, "runnercontrol"), File: mustProfileSourcePath(t, "runnercontrol/go_profile_hostile_external_test.go"), Symbol: mustProfileName(t, "TestCompileGoPlanReportsRequestedAndEffectiveConcurrency"),
+		},
+	}
+	payload.Go = &runnercontrol.GoConcurrencyResolution{
+		Profile:   runnercontrol.GoProfileAcceptance,
+		Machine:   projectstandards.MachineExecutionSettings{Observation: observation, Generation: payload.Fence.Machine.Generation, LogicalCPUCount: 4},
+		Requested: runnercontrol.GoConcurrency{GOMAXPROCS: 1_000, Parallel: 1_000, PackageParallel: 1_000, CPU: []uint16{1, 2, 4, 1_000}},
+		Effective: runnercontrol.GoConcurrency{GOMAXPROCS: 4, Parallel: 4, PackageParallel: 4, CPU: []uint16{1, 2, 4}},
+	}
+	if err := payload.Validate(); err != nil {
+		t.Fatalf("ExperimentCompletionPayload.Validate(Go fixture) error = %v, want nil", err)
+	}
+	return payload
 }
 
 func experimentCompletionPayloadFixture(t testing.TB, started bool) runnercontrol.ExperimentCompletionPayload {
@@ -117,7 +188,7 @@ func experimentCompletionPayloadFixture(t testing.TB, started bool) runnercontro
 	var result *process.ResultObservation
 	if started {
 		outcome = projectstandards.OutcomePassed
-		measurements.DurationNs = 1
+		measurements.DurationNs = 1_000_000
 		start := temporal.InstantFromNanoseconds(2_000_000)
 		startedAt = &start
 		processResult := process.ResultObservation{
@@ -139,6 +210,7 @@ func experimentCompletionPayloadFixture(t testing.TB, started bool) runnercontro
 			EnvironmentFingerprint: digest, ExecutionFingerprint: core.SHA256Of([]byte("execution")), MachineSheetDigest: digest,
 			Measurements: measurements, Artifacts: []projectstandards.ArtifactReference{},
 		},
+		RequestedAt: temporal.InstantFromNanoseconds(1_000_000), AdmittedAt: temporal.InstantFromNanoseconds(1_500_000),
 		StartedAt: startedAt, CompletedAt: temporal.InstantFromNanoseconds(3_000_000), Process: result,
 	}
 	if err := payload.Validate(); err != nil {

@@ -86,12 +86,7 @@ func FuzzRunStateRequestJSONSemanticClosure(f *testing.F) {
 }
 
 func FuzzCancellationRequestJSONSemanticClosure(f *testing.F) {
-	seed := runnercontrol.CancellationRequest{
-		SchemaVersion: runnercontrol.SchemaVersion,
-		Identity:      runnercontrol.CancellationIdentity{Digest: core.SHA256Of([]byte("cancel exact run"))},
-		Run:           runStateFixtureID(f),
-		RequestedAt:   temporal.InstantFromNanoseconds(1),
-	}
+	seed := cancellationRequestFixture(f)
 	canonical, err := seed.MarshalJSON()
 	if err != nil {
 		f.Fatalf("CancellationRequest.MarshalJSON(seed) error = %v, want nil", err)
@@ -125,6 +120,40 @@ func FuzzCancellationRequestJSONSemanticClosure(f *testing.F) {
 			t.Fatalf("CancellationRequest second canonical projection = (%q, %v), want (%q, nil)", second, err, encoded)
 		}
 	})
+}
+
+func TestCancellationRequestBindsOriginRunAndNonce(t *testing.T) {
+	t.Parallel()
+
+	baseline := cancellationRequestFixture(t)
+	mutations := []struct {
+		name   string
+		mutate func(testing.TB, *runnercontrol.CancellationRequest)
+	}{
+		{name: "foreign origin cannot reuse cancellation identity", mutate: func(_ testing.TB, request *runnercontrol.CancellationRequest) {
+			request.Coordinate.Origin = projectstandards.OriginIdentity{Offering: core.Offering{Token: "foreign-origin"}}
+		}},
+		{name: "sibling run cannot reuse cancellation identity", mutate: func(t testing.TB, request *runnercontrol.CancellationRequest) {
+			request.Coordinate.Run = runStateFixtureIDValue(t, "01890f2e-7b00-7000-8000-000000000002")
+		}},
+		{name: "different nonce cannot reuse cancellation identity", mutate: func(t testing.TB, request *runnercontrol.CancellationRequest) {
+			request.Coordinate.Nonce = requestNonceFixture(t, "01890f2e-7b00-7000-8000-000000000003")
+		}},
+	}
+	for _, mutation := range mutations {
+		t.Run(mutation.name, func(t *testing.T) {
+			t.Parallel()
+
+			got := baseline
+			mutation.mutate(t, &got)
+			if got == baseline {
+				t.Fatalf("cancellation mutation = %+v, want one changed load-bearing fact", got)
+			}
+			if gotErr := got.Validate(); !errors.Is(gotErr, core.ErrPrimitiveContract) {
+				t.Fatalf("CancellationRequest.Validate(mutated) error = %v, want errors.Is(..., %v)", gotErr, core.ErrPrimitiveContract)
+			}
+		})
+	}
 }
 
 func FuzzRunStateResponseJSONSemanticClosure(f *testing.F) {
@@ -219,11 +248,41 @@ func proveRunStateRequestCanonical(t testing.TB, got runnercontrol.RunStateReque
 }
 
 func runStateFixtureID(t testing.TB) projectstandards.RunID {
+	return runStateFixtureIDValue(t, "01890f2e-7b00-7000-8000-000000000001")
+}
+
+func runStateFixtureIDValue(t testing.TB, value string) projectstandards.RunID {
 	t.Helper()
-	uuid, uuidErr := primitiveid.ParseUUIDv7("01890f2e-7b00-7000-8000-000000000001")
+	uuid, uuidErr := primitiveid.ParseUUIDv7(value)
 	run, runErr := projectstandards.NewRunID(uuid)
 	if err := errors.Join(uuidErr, runErr); err != nil {
 		t.Fatalf("run state RunID fixture error = %v, want nil", err)
 	}
 	return run
+}
+
+func requestNonceFixture(t testing.TB, value string) projectstandards.RequestNonce {
+	t.Helper()
+	uuid, uuidErr := primitiveid.ParseUUIDv7(value)
+	nonce, nonceErr := projectstandards.NewRequestNonce(uuid)
+	if err := errors.Join(uuidErr, nonceErr); err != nil {
+		t.Fatalf("request nonce fixture error = %v, want nil", err)
+	}
+	return nonce
+}
+
+func cancellationRequestFixture(t testing.TB) runnercontrol.CancellationRequest {
+	t.Helper()
+	request, err := runnercontrol.NewCancellationRequest(
+		runnercontrol.CancellationCoordinate{
+			Origin: projectstandards.OriginIdentity{Offering: core.Offering{Token: "origin"}},
+			Run:    runStateFixtureID(t),
+			Nonce:  requestNonceFixture(t, "01890f2e-7b00-7000-8000-000000000002"),
+		},
+		temporal.InstantFromNanoseconds(1),
+	)
+	if err != nil {
+		t.Fatalf("runnercontrol.NewCancellationRequest() error = %v, want nil", err)
+	}
+	return request
 }

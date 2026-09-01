@@ -23,6 +23,7 @@ type projectStandardsJSONDoorInventory struct {
 	RepositoryIdentity         func(*RepositoryIdentity, []byte) error
 	ProfileIdentity            func(*ProfileIdentity, []byte) error
 	RequestIdentity            func(*RequestIdentity, []byte) error
+	RequestNonce               func(*RequestNonce, []byte) error
 	RunID                      func(*RunID, []byte) error
 	ExperimentID               func(*ExperimentID, []byte) error
 	ObservationID              func(*ObservationID, []byte) error
@@ -68,6 +69,7 @@ var projectStandardsJSONDoors = projectStandardsJSONDoorInventory{
 	RepositoryIdentity:         (*RepositoryIdentity).UnmarshalJSON,
 	ProfileIdentity:            (*ProfileIdentity).UnmarshalJSON,
 	RequestIdentity:            (*RequestIdentity).UnmarshalJSON,
+	RequestNonce:               (*RequestNonce).UnmarshalJSON,
 	RunID:                      (*RunID).UnmarshalJSON,
 	ExperimentID:               (*ExperimentID).UnmarshalJSON,
 	ObservationID:              (*ObservationID).UnmarshalJSON,

@@ -77,6 +77,8 @@ func (DiagnosticArtifacts) runnerControlProtocolFact()              {}
 func (ArtifactExpectation) runnerControlProtocolFact()              {}
 func (GoExperimentPlan) runnerControlProtocolFact()                 {}
 func (GoExecutionEnvironment) runnerControlProtocolFact()           {}
+func (GoConcurrency) runnerControlProtocolFact()                    {}
+func (GoConcurrencyResolution) runnerControlProtocolFact()          {}
 func (GoPlanRequest) runnerControlProtocolFact()                    {}
 func (ExperimentExecution) runnerControlProtocolFact()              {}
 func (WritableWorkspace) runnerControlProtocolFact()                {}
@@ -116,6 +118,7 @@ func (SmokePlanRequest) runnerControlProtocolFact()                 {}
 func (ToolPlan) runnerControlProtocolFact()                         {}
 func (ToolPlanRequest) runnerControlProtocolFact()                  {}
 func (CancellationIdentity) runnerControlProtocolFact()             {}
+func (CancellationCoordinate) runnerControlProtocolFact()           {}
 func (CancellationRequest) runnerControlProtocolFact()              {}
 func (CancellationResponse) runnerControlProtocolFact()             {}
 func (RunStateRequest) runnerControlProtocolFact()                  {}
@@ -297,6 +300,8 @@ var (
 	_ protocolFact = DiagnosticArtifacts{}
 	_ protocolFact = GoExperimentPlan{}
 	_ protocolFact = GoExecutionEnvironment{}
+	_ protocolFact = GoConcurrency{}
+	_ protocolFact = GoConcurrencyResolution{}
 	_ protocolFact = GoPlanRequest{}
 	_ protocolFact = ExperimentExecution{}
 	_ protocolFact = WritableWorkspace{}
@@ -335,6 +340,7 @@ var (
 	_ protocolFact = ToolPlan{}
 	_ protocolFact = ToolPlanRequest{}
 	_ protocolFact = CancellationIdentity{}
+	_ protocolFact = CancellationCoordinate{}
 	_ protocolFact = CancellationRequest{}
 	_ protocolFact = CancellationResponse{}
 	_ protocolFact = RunStateRequest{}

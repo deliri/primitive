@@ -19,6 +19,7 @@ const (
 	doorRepositoryIdentity
 	doorProfileIdentity
 	doorRequestIdentity
+	doorRequestNonce
 	doorRunID
 	doorExperimentID
 	doorObservationID
@@ -98,6 +99,10 @@ func FuzzProjectStandardsAtomicJSONDoorsSemanticClosure(f *testing.F) {
 	if requestErr != nil {
 		f.Fatalf("NewRequestIdentity(seed) error = %v, want nil", requestErr)
 	}
+	requestNonce, requestNonceErr := NewRequestNonce(uuid)
+	if requestNonceErr != nil {
+		f.Fatalf("NewRequestNonce(seed) error = %v, want nil", requestNonceErr)
+	}
 	runID, runErr := NewRunID(uuid)
 	if runErr != nil {
 		f.Fatalf("NewRunID(seed) error = %v, want nil", runErr)
@@ -111,6 +116,7 @@ func FuzzProjectStandardsAtomicJSONDoorsSemanticClosure(f *testing.F) {
 		f.Fatalf("NewObservationID(seed) error = %v, want nil", observationErr)
 	}
 	addAtomicDoorSeed(f, doorRequestIdentity, requestID)
+	addAtomicDoorSeed(f, doorRequestNonce, requestNonce)
 	addAtomicDoorSeed(f, doorRunID, runID)
 	addAtomicDoorSeed(f, doorExperimentID, experimentID)
 	addAtomicDoorSeed(f, doorObservationID, observationID)
@@ -179,6 +185,9 @@ func FuzzProjectStandardsAtomicJSONDoorsSemanticClosure(f *testing.F) {
 		case doorRequestIdentity:
 			seed, err := NewRequestIdentity(fixtureProjectStandardsUUID(t))
 			proveConstructedDoor(t, seed, err, data, (*RequestIdentity).UnmarshalJSON)
+		case doorRequestNonce:
+			seed, err := NewRequestNonce(fixtureProjectStandardsUUID(t))
+			proveConstructedDoor(t, seed, err, data, (*RequestNonce).UnmarshalJSON)
 		case doorRunID:
 			seed, err := NewRunID(fixtureProjectStandardsUUID(t))
 			proveConstructedDoor(t, seed, err, data, (*RunID).UnmarshalJSON)

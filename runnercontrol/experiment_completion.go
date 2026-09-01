@@ -31,16 +31,22 @@ type ExperimentCompletionPayload struct {
 	Fence         SchedulingFence                        `json:"fence"`
 	Members       MemberSet                              `json:"member_set"`
 	Observation   projectstandards.ExperimentObservation `json:"observation"`
+	RequestedAt   temporal.Instant                       `json:"requested_at"`
+	AdmittedAt    temporal.Instant                       `json:"admitted_at"`
 	StartedAt     *temporal.Instant                      `json:"started_at,omitempty"`
 	CompletedAt   temporal.Instant                       `json:"completed_at"`
 	Process       *process.ResultObservation             `json:"process,omitempty"`
+	Go            *GoConcurrencyResolution               `json:"go,omitempty"`
 }
 
 func (p ExperimentCompletionPayload) Validate() error {
 	if p.SchemaVersion != SchemaVersion {
 		return core.ErrPrimitiveContract
 	}
-	if err := errors.Join(p.Run.Validate(), p.Probe.Validate(), p.Fence.Validate(), p.Members.Validate(), p.Observation.Validate(), p.CompletedAt.Validate()); err != nil {
+	if err := errors.Join(p.Run.Validate(), p.Probe.Validate(), p.Fence.Validate(), p.Members.Validate(), p.Observation.Validate(), p.RequestedAt.Validate(), p.AdmittedAt.Validate(), p.CompletedAt.Validate()); err != nil {
+		return err
+	}
+	if err := p.validateTimeline(); err != nil {
 		return err
 	}
 	if err := p.validateMembership(); err != nil {
@@ -49,7 +55,66 @@ func (p ExperimentCompletionPayload) Validate() error {
 	if err := p.validateProbeBinding(); err != nil {
 		return err
 	}
+	if err := p.validateGoConcurrency(); err != nil {
+		return err
+	}
 	return p.validateExecution()
+}
+
+func (p ExperimentCompletionPayload) validateGoConcurrency() error {
+	wantGo := completionCarriesGoConcurrency(p.Probe.Kind)
+	if wantGo != (p.Go != nil) {
+		return core.ErrPrimitiveContract
+	}
+	if p.Go == nil {
+		return nil
+	}
+	if err := p.Go.Validate(); err != nil {
+		return err
+	}
+	if p.Go.Machine.Generation != p.Fence.Machine.Generation || !goProfileMatchesProbe(p.Go.Profile, p.Probe.Kind) {
+		return core.ErrPrimitiveContract
+	}
+	return nil
+}
+
+func completionCarriesGoConcurrency(kind projectstandards.ProbeKind) bool {
+	return kind >= projectstandards.ProbeKindGoTest && kind <= projectstandards.ProbeKindGoDiagnosticProfile
+}
+
+func goProfileMatchesProbe(profile GoProfileKind, kind projectstandards.ProbeKind) bool {
+	if kind == projectstandards.ProbeKindGoTest {
+		return profile == GoProfileFocused || profile == GoProfileAcceptance
+	}
+	if kind == projectstandards.ProbeKindGoRace {
+		return profile == GoProfileRace
+	}
+	if kind == projectstandards.ProbeKindGoBenchmark {
+		return profile == GoProfileBenchmark
+	}
+	if kind == projectstandards.ProbeKindGoFuzz {
+		return profile == GoProfileFuzz
+	}
+	if kind == projectstandards.ProbeKindGoDiagnosticProfile {
+		return profile == GoProfileDiagnostic
+	}
+	return false
+}
+
+func (p ExperimentCompletionPayload) validateTimeline() error {
+	requestAdmission, requestErr := p.RequestedAt.Compare(p.AdmittedAt)
+	admissionCompletion, admissionErr := p.AdmittedAt.Compare(p.CompletedAt)
+	if requestErr != nil || admissionErr != nil || requestAdmission == core.ComparisonGreater || admissionCompletion == core.ComparisonGreater {
+		return errors.Join(core.ErrPrimitiveContract, requestErr, admissionErr)
+	}
+	if p.StartedAt == nil {
+		return nil
+	}
+	admissionStart, err := p.AdmittedAt.Compare(*p.StartedAt)
+	if err != nil || admissionStart == core.ComparisonGreater {
+		return errors.Join(core.ErrPrimitiveContract, err)
+	}
+	return nil
 }
 
 func (p ExperimentCompletionPayload) validateMembership() error {
@@ -92,6 +157,14 @@ func (p ExperimentCompletionPayload) validateStartedExecution() error {
 	}
 	comparison, err := p.StartedAt.Compare(p.CompletedAt)
 	if err != nil || comparison == core.ComparisonGreater {
+		return errors.Join(core.ErrPrimitiveContract, err)
+	}
+	duration, err := p.CompletedAt.Since(*p.StartedAt)
+	if err != nil || duration.IsZero() {
+		return errors.Join(core.ErrPrimitiveContract, err)
+	}
+	durationNanoseconds, err := core.CheckedUint64FromInt64(duration.Nanoseconds())
+	if err != nil || p.Observation.Measurements.DurationNs != durationNanoseconds {
 		return errors.Join(core.ErrPrimitiveContract, err)
 	}
 	return nil

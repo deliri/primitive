@@ -91,6 +91,7 @@ func (o OptionalGitOrigin) Validate() error {
 }
 
 type RequestIdentity struct{ value primitiveid.UUIDv7 }
+type RequestNonce struct{ value primitiveid.UUIDv7 }
 type RunID struct{ value primitiveid.UUIDv7 }
 type ExperimentID struct{ value primitiveid.UUIDv7 }
 type ObservationID struct{ value primitiveid.UUIDv7 }
@@ -101,6 +102,42 @@ type MachineObservationID struct{ value primitiveid.UUIDv7 }
 func NewRequestIdentity(value primitiveid.UUIDv7) (RequestIdentity, error) {
 	candidate := RequestIdentity{value: value}
 	return candidate, candidate.Validate()
+}
+
+// NewRequestNonce admits one caller-owned stable replay coordinate. The
+// caller retains the same nonce only when retrying the exact same request.
+func NewRequestNonce(value primitiveid.UUIDv7) (RequestNonce, error) {
+	candidate := RequestNonce{value: value}
+	return candidate, candidate.Validate()
+}
+
+// DeriveRequestIdentity binds one caller-owned nonce to the exact origin that
+// accepted it. The nonce supplies the UUIDv7 time coordinate; the canonical
+// origin and nonce facts supply the remaining identity bits.
+func DeriveRequestIdentity(origin OriginIdentity, nonce RequestNonce) (RequestIdentity, error) {
+	if err := errors.Join(origin.Validate(), nonce.Validate()); err != nil {
+		return RequestIdentity{}, contractError(err)
+	}
+	canonical, err := core.MarshalCanonicalJSONDocument(struct {
+		Origin OriginIdentity `json:"origin"`
+		Nonce  RequestNonce   `json:"request_nonce"`
+	}{Origin: origin, Nonce: nonce})
+	if err != nil {
+		return RequestIdentity{}, contractError(err)
+	}
+	requestBytes, err := uuidIdentityBytes(nonce.value.String())
+	if err != nil {
+		return RequestIdentity{}, err
+	}
+	digest := sha256.Sum256(canonical)
+	copy(requestBytes[6:], digest[:10])
+	requestBytes[6] = 0x70 | (requestBytes[6] & 0x0f)
+	requestBytes[8] = 0x80 | (requestBytes[8] & 0x3f)
+	uuid, err := primitiveidFromBytes(requestBytes)
+	if err != nil {
+		return RequestIdentity{}, contractError(err)
+	}
+	return NewRequestIdentity(uuid)
 }
 
 func NewRunID(value primitiveid.UUIDv7) (RunID, error) {
@@ -205,6 +242,7 @@ func NewMachineObservationID(value primitiveid.UUIDv7) (MachineObservationID, er
 }
 
 func (i RequestIdentity) Validate() error { return validateUUIDIdentity(i.value, "request") }
+func (i RequestNonce) Validate() error    { return validateUUIDIdentity(i.value, "request nonce") }
 func (i RunID) Validate() error           { return validateUUIDIdentity(i.value, "run") }
 func (i ExperimentID) Validate() error    { return validateUUIDIdentity(i.value, "experiment") }
 func (i ObservationID) Validate() error   { return validateUUIDIdentity(i.value, "observation") }
@@ -220,6 +258,10 @@ func (i MachineObservationID) Validate() error {
 // resource names and diagnostics.
 func (i ExperimentID) String() string { return i.value.String() }
 
+// String returns the caller-owned nonce for compiler-owned replay keys and
+// diagnostics.
+func (i RequestNonce) String() string { return i.value.String() }
+
 func validateUUIDIdentity(value primitiveid.UUIDv7, kind string) error {
 	if err := value.Validate(); err != nil {
 		return contractError(errors.New("project standards "+kind+" identity is invalid"), err)
@@ -228,6 +270,9 @@ func validateUUIDIdentity(value primitiveid.UUIDv7, kind string) error {
 }
 
 func (i RequestIdentity) MarshalJSON() ([]byte, error) {
+	return marshalUUIDIdentity(i.value, i.Validate)
+}
+func (i RequestNonce) MarshalJSON() ([]byte, error) {
 	return marshalUUIDIdentity(i.value, i.Validate)
 }
 func (i RunID) MarshalJSON() ([]byte, error) { return marshalUUIDIdentity(i.value, i.Validate) }
@@ -259,6 +304,22 @@ func (i *RequestIdentity) UnmarshalJSON(data []byte) error {
 		return jsonError(err)
 	}
 	candidate, err := NewRequestIdentity(value)
+	if err != nil {
+		return jsonError(err)
+	}
+	*i = candidate
+	return nil
+}
+
+func (i *RequestNonce) UnmarshalJSON(data []byte) error {
+	if i == nil {
+		return jsonError(errors.New("nil project standards request nonce receiver"))
+	}
+	var value primitiveid.UUIDv7
+	if err := json.Unmarshal(data, &value); err != nil {
+		return jsonError(err)
+	}
+	candidate, err := NewRequestNonce(value)
 	if err != nil {
 		return jsonError(err)
 	}
@@ -369,6 +430,8 @@ func sameSubject(left, right SubjectIdentity) bool {
 var (
 	_ json.Marshaler   = RequestIdentity{}
 	_ json.Unmarshaler = (*RequestIdentity)(nil)
+	_ json.Marshaler   = RequestNonce{}
+	_ json.Unmarshaler = (*RequestNonce)(nil)
 	_ json.Marshaler   = ObservationID{}
 	_ json.Unmarshaler = (*ObservationID)(nil)
 )

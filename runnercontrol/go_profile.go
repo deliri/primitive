@@ -251,7 +251,7 @@ func (p GoExperimentPlan) validateBenchmark() error {
 	if p.Kind != projectstandards.ProbeKindGoBenchmark || p.Selector == nil {
 		return core.ErrPrimitiveContract
 	}
-	if p.BenchmarkDuration != accepted || p.Parallel != 1 || p.Diagnostics == nil {
+	if p.BenchmarkDuration != accepted || p.Parallel != 1 || p.PackageParallel != 1 || p.Diagnostics == nil {
 		return core.ErrPrimitiveContract
 	}
 	if p.Diagnostics.CPU == nil || p.Diagnostics.Memory == nil {
@@ -268,7 +268,7 @@ func (p GoExperimentPlan) validateDiagnostic() error {
 }
 
 func (p GoExperimentPlan) validateFuzz() error {
-	if p.Kind != projectstandards.ProbeKindGoFuzz || p.Selector == nil || p.Parallel != 1 {
+	if p.Kind != projectstandards.ProbeKindGoFuzz || p.Selector == nil || p.Parallel != 1 || p.PackageParallel != 1 {
 		return core.ErrPrimitiveContract
 	}
 	accepted, err := temporal.DurationFromSeconds(FuzzAcceptanceSeconds)
@@ -311,6 +311,80 @@ type GoExecutionEnvironment struct {
 	CGOEnabled bool              `json:"cgo_enabled"`
 }
 
+// GoConcurrency is one complete Go scheduler request or the exact effective
+// values Primitive acted on.
+type GoConcurrency struct {
+	GOMAXPROCS      uint16   `json:"gomaxprocs"`
+	Parallel        uint16   `json:"parallel"`
+	PackageParallel uint16   `json:"package_parallel"`
+	CPU             []uint16 `json:"cpu"`
+}
+
+func (c GoConcurrency) Validate() error {
+	if c.GOMAXPROCS == 0 || c.Parallel == 0 || c.PackageParallel == 0 || len(c.CPU) == 0 {
+		return core.ErrPrimitiveContract
+	}
+	for index, value := range c.CPU {
+		if value == 0 || (index > 0 && c.CPU[index-1] >= value) {
+			return core.ErrPrimitiveContract
+		}
+	}
+	return nil
+}
+
+// GoConcurrencyResolution retains both what the policy requested and what the
+// observed machine could execute. It is included in the signed execution
+// capability, so a resource cap remains visible in the returned evidence.
+type GoConcurrencyResolution struct {
+	Profile   GoProfileKind                             `json:"profile"`
+	Machine   projectstandards.MachineExecutionSettings `json:"machine"`
+	Requested GoConcurrency                             `json:"requested"`
+	Effective GoConcurrency                             `json:"effective"`
+}
+
+func ResolveGoConcurrency(machine projectstandards.MachineExecutionSettings, profile GoProfileKind, requested GoConcurrency) (GoConcurrencyResolution, error) {
+	if err := errors.Join(machine.Validate(), profile.Validate(), requested.Validate()); err != nil {
+		return GoConcurrencyResolution{}, err
+	}
+	effective := effectiveGoConcurrency(machine.LogicalCPUCount, profile, requested)
+	resolution := GoConcurrencyResolution{Profile: profile, Machine: machine, Requested: requested, Effective: effective}
+	return resolution, resolution.Validate()
+}
+
+func (r GoConcurrencyResolution) Validate() error {
+	if err := errors.Join(r.Profile.Validate(), r.Machine.Validate(), r.Requested.Validate(), r.Effective.Validate()); err != nil {
+		return err
+	}
+	want := effectiveGoConcurrency(r.Machine.LogicalCPUCount, r.Profile, r.Requested)
+	if r.Effective.GOMAXPROCS != want.GOMAXPROCS || r.Effective.Parallel != want.Parallel || r.Effective.PackageParallel != want.PackageParallel || !slices.Equal(r.Effective.CPU, want.CPU) {
+		return core.ErrPrimitiveContract
+	}
+	return nil
+}
+
+func effectiveGoConcurrency(limit uint16, profile GoProfileKind, requested GoConcurrency) GoConcurrency {
+	if profile == GoProfileBenchmark || profile == GoProfileFuzz {
+		return GoConcurrency{GOMAXPROCS: 1, Parallel: 1, PackageParallel: 1, CPU: []uint16{1}}
+	}
+	return GoConcurrency{
+		GOMAXPROCS:      min(requested.GOMAXPROCS, limit),
+		Parallel:        min(requested.Parallel, limit),
+		PackageParallel: min(requested.PackageParallel, limit),
+		CPU:             capGoCPU(requested.CPU, limit),
+	}
+}
+
+func capGoCPU(requested []uint16, limit uint16) []uint16 {
+	effective := make([]uint16, 0, len(requested))
+	for _, value := range requested {
+		value = min(value, limit)
+		if len(effective) == 0 || effective[len(effective)-1] != value {
+			effective = append(effective, value)
+		}
+	}
+	return effective
+}
+
 func (e GoExecutionEnvironment) Validate() error {
 	if e.GOMAXPROCS == 0 {
 		return core.ErrPrimitiveContract
@@ -324,6 +398,7 @@ type GoPlanRequest struct {
 	WorkspaceRoot     core.AbsolutePath
 	ArtifactDirectory core.RelativePath
 	Environment       GoExecutionEnvironment
+	Machine           projectstandards.MachineExecutionSettings
 	Experiment        GoExperimentPlan
 	OutputLimit       core.ByteCount
 	ArtifactLimit     core.ByteCount
@@ -333,7 +408,7 @@ type GoPlanRequest struct {
 }
 
 func (r GoPlanRequest) Validate() error {
-	if err := errors.Join(r.Command.Validate(), r.WorkingDirectory.Validate(), r.WorkspaceRoot.Validate(), r.ArtifactDirectory.Validate(), r.Environment.Validate(), r.Experiment.Validate(), r.OutputLimit.Validate(), r.ArtifactLimit.Validate(), r.WaitDelay.Validate()); err != nil {
+	if err := errors.Join(r.Command.Validate(), r.WorkingDirectory.Validate(), r.WorkspaceRoot.Validate(), r.ArtifactDirectory.Validate(), r.Environment.Validate(), r.Machine.Validate(), r.Experiment.Validate(), r.OutputLimit.Validate(), r.ArtifactLimit.Validate(), r.WaitDelay.Validate()); err != nil {
 		return err
 	}
 	if r.ExpectedUnits == 0 || r.ExpectedUnits > ExecutionAccountingUnitMaximum {
@@ -348,27 +423,43 @@ func (r GoPlanRequest) Validate() error {
 }
 
 type ExperimentExecution struct {
-	Process     process.Plan          `json:"process"`
-	Workspace   WritableWorkspace     `json:"workspace"`
-	Subject     SubjectExecution      `json:"subject"`
-	Artifacts   []ArtifactExpectation `json:"artifacts"`
-	Observation ObservationPolicy     `json:"observation"`
-	Budget      ExecutionBudget       `json:"budget"`
+	Process     process.Plan             `json:"process"`
+	Workspace   WritableWorkspace        `json:"workspace"`
+	Subject     SubjectExecution         `json:"subject"`
+	Artifacts   []ArtifactExpectation    `json:"artifacts"`
+	Observation ObservationPolicy        `json:"observation"`
+	Budget      ExecutionBudget          `json:"budget"`
+	Go          *GoConcurrencyResolution `json:"go,omitempty"`
 }
 
 func (p ExperimentExecution) Validate() error {
-	return errors.Join(p.Process.Validate(), p.Workspace.Validate(), p.Subject.Validate(p.Process, p.Workspace), p.Workspace.ValidateEnvironment(p.Process.Environment), validateArtifactExpectations(p.Artifacts), p.Observation.Validate(), p.Budget.Validate())
+	return errors.Join(p.Process.Validate(), p.Workspace.Validate(), p.Subject.Validate(p.Process, p.Workspace), p.Workspace.ValidateEnvironment(p.Process.Environment), validateArtifactExpectations(p.Artifacts), p.Observation.Validate(), p.Budget.Validate(), validateGoConcurrencyResolution(p.Go))
+}
+
+func validateGoConcurrencyResolution(resolution *GoConcurrencyResolution) error {
+	if resolution == nil {
+		return nil
+	}
+	return resolution.Validate()
 }
 
 func CompileGoPlan(request GoPlanRequest) (ExperimentExecution, error) {
 	if err := request.Validate(); err != nil {
 		return ExperimentExecution{}, err
 	}
+	resolution, err := ResolveGoConcurrency(request.Machine, request.Experiment.Profile, requestedGoConcurrency(request))
+	if err != nil {
+		return ExperimentExecution{}, err
+	}
+	effective := request.Experiment
+	effective.Parallel = resolution.Effective.Parallel
+	effective.PackageParallel = resolution.Effective.PackageParallel
+	effective.CPU = slices.Clone(resolution.Effective.CPU)
 	artifacts, paths, err := compileGoArtifacts(request)
 	if err != nil {
 		return ExperimentExecution{}, err
 	}
-	arguments, err := request.Experiment.arguments(paths)
+	arguments, err := effective.arguments(paths)
 	if err != nil {
 		return ExperimentExecution{}, err
 	}
@@ -376,19 +467,28 @@ func CompileGoPlan(request GoPlanRequest) (ExperimentExecution, error) {
 	if err != nil {
 		return ExperimentExecution{}, err
 	}
-	environment, err := goEnvironment(request.Environment)
+	environment, err := goEnvironment(request.Environment, resolution)
 	if err != nil {
 		return ExperimentExecution{}, err
 	}
-	budget, err := NewExecutionBudget(request.Experiment.Timeout, request.ExpectedUnits, request.Experiment.PackageParallel)
+	budget, err := NewExecutionBudget(request.Experiment.Timeout, request.ExpectedUnits, resolution.Effective.PackageParallel)
 	if err != nil {
 		return ExperimentExecution{}, err
 	}
 	plan := process.Plan{SchemaVersion: process.ExecutionPlanSchemaVersion, Command: request.Command, WorkingDirectory: request.WorkingDirectory, Arguments: parsedArguments, Environment: environment, OutputLimit: request.OutputLimit, WaitDelay: request.WaitDelay, Containment: process.Containment{Isolation: process.IsolationGroup, CancelSignal: process.CancelSignalTerminate}}
 	filtered := request.Experiment.Profile == GoProfileFocused || request.Experiment.Profile == GoProfileBenchmark || request.Experiment.Profile == GoProfileFuzz
 	workspace := WritableWorkspace{Root: request.WorkspaceRoot, Home: request.Environment.Home, Output: paths.output, Cache: request.Environment.Cache, Temporary: request.Environment.Temporary}
-	compiled := ExperimentExecution{Process: plan, Workspace: workspace, Subject: request.Subject, Artifacts: artifacts, Observation: ObservationPolicy{Format: ObservationGoTestJSON, ExpectedUnits: request.ExpectedUnits, Filtered: filtered}, Budget: budget}
+	compiled := ExperimentExecution{Process: plan, Workspace: workspace, Subject: request.Subject, Artifacts: artifacts, Observation: ObservationPolicy{Format: ObservationGoTestJSON, ExpectedUnits: request.ExpectedUnits, Filtered: filtered}, Budget: budget, Go: &resolution}
 	return compiled, compiled.Validate()
+}
+
+func requestedGoConcurrency(request GoPlanRequest) GoConcurrency {
+	return GoConcurrency{
+		GOMAXPROCS:      request.Environment.GOMAXPROCS,
+		Parallel:        request.Experiment.Parallel,
+		PackageParallel: request.Experiment.PackageParallel,
+		CPU:             slices.Clone(request.Experiment.CPU),
+	}
 }
 
 type compiledGoArtifactPaths struct {
@@ -567,12 +667,12 @@ func compileGoArtifact(request GoPlanRequest, name core.RelativePath, kind Artif
 	expectation := ArtifactExpectation{Kind: kind, Path: protocolPath, MediaType: core.HTTPMediaTypeOctetStream(), MaximumBytes: request.ArtifactLimit, Required: true}
 	return expectation, absolute, expectation.Validate()
 }
-func goEnvironment(e GoExecutionEnvironment) (process.Environment, error) {
+func goEnvironment(e GoExecutionEnvironment, resolution GoConcurrencyResolution) (process.Environment, error) {
 	cgo := "0"
 	if e.CGOEnabled {
 		cgo = "1"
 	}
-	values := []string{core.EnvironmentHomeName + "=" + e.Home.String(), "GOCACHE=" + e.Cache.String(), core.EnvironmentTemporaryName + "=" + e.Temporary.String(), core.EnvironmentCacheName + "=" + e.Cache.String(), "GOMAXPROCS=" + fmt.Sprintf("%d", e.GOMAXPROCS), "CGO_ENABLED=" + cgo}
+	values := []string{core.EnvironmentHomeName + "=" + e.Home.String(), "GOCACHE=" + e.Cache.String(), core.EnvironmentTemporaryName + "=" + e.Temporary.String(), core.EnvironmentCacheName + "=" + e.Cache.String(), "GOMAXPROCS=" + fmt.Sprintf("%d", resolution.Effective.GOMAXPROCS), "CGO_ENABLED=" + cgo}
 	return process.ParseExactEnvironment(values)
 }
 
@@ -584,6 +684,8 @@ var (
 	_ core.Validatable = DiagnosticArtifacts{}
 	_ core.Validatable = GoExperimentPlan{}
 	_ core.Validatable = GoExecutionEnvironment{}
+	_ core.Validatable = GoConcurrency{}
+	_ core.Validatable = GoConcurrencyResolution{}
 	_ core.Validatable = GoPlanRequest{}
 	_ core.Validatable = ExperimentExecution{}
 )

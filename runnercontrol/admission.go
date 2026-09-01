@@ -63,6 +63,7 @@ func (l RunLimits) validateCounts() error {
 type RequestedRun struct {
 	SchemaVersion uint16                           `json:"schema_version"`
 	Request       projectstandards.RequestIdentity `json:"request_id"`
+	Nonce         projectstandards.RequestNonce    `json:"request_nonce"`
 	Probe         projectstandards.RequestedProbe  `json:"requested_probe"`
 	Limits        RunLimits                        `json:"limits"`
 	EvidencePlan  core.SHA256Digest                `json:"evidence_plan_digest"`
@@ -73,7 +74,14 @@ func (r RequestedRun) Validate() error {
 	if r.SchemaVersion != SchemaVersion {
 		return core.ErrPrimitiveContract
 	}
-	return errors.Join(r.Request.Validate(), r.Probe.Validate(), r.Limits.Validate(), r.EvidencePlan.Validate(), r.RequestedAt.Validate())
+	if err := errors.Join(r.Request.Validate(), r.Nonce.Validate(), r.Probe.Validate(), r.Limits.Validate(), r.EvidencePlan.Validate(), r.RequestedAt.Validate()); err != nil {
+		return err
+	}
+	identity, err := projectstandards.DeriveRequestIdentity(r.Probe.Origin, r.Nonce)
+	if err != nil || identity != r.Request {
+		return errors.Join(core.ErrPrimitiveContract, err)
+	}
+	return nil
 }
 
 func (r RequestedRun) MarshalJSON() ([]byte, error) {

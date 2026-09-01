@@ -228,6 +228,9 @@ func (c ExperimentCapability) validateIdentityClosure() error {
 	if c.Probe.Role != projectstandards.ProbeRoleExperiment || c.Probe.Source != c.Source || c.Probe.Environment.MachineGeneration != c.Fence.Machine.Generation {
 		return core.ErrPrimitiveContract
 	}
+	if c.Execution.Go != nil && c.Execution.Go.Machine.Generation != c.Fence.Machine.Generation {
+		return core.ErrPrimitiveContract
+	}
 	if (c.Probe.Parent == nil) != (c.ExpansionManifestDigest == nil) {
 		return core.ErrPrimitiveContract
 	}

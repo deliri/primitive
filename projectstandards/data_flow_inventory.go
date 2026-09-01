@@ -22,6 +22,7 @@ func (SourceCoordinate) projectStandardsProtocolFact()            {}
 func (GitOrigin) projectStandardsProtocolFact()                   {}
 func (OptionalGitOrigin) projectStandardsProtocolFact()           {}
 func (RequestIdentity) projectStandardsProtocolFact()             {}
+func (RequestNonce) projectStandardsProtocolFact()                {}
 func (RunID) projectStandardsProtocolFact()                       {}
 func (ExperimentID) projectStandardsProtocolFact()                {}
 func (ObservationID) projectStandardsProtocolFact()               {}
@@ -91,6 +92,7 @@ func (MachineConfiguration) projectStandardsProtocolFact()        {}
 func (MachineRuntime) projectStandardsProtocolFact()              {}
 func (MachineProbeReport) projectStandardsProtocolFact()          {}
 func (MachineProbeExecution) projectStandardsProtocolFact()       {}
+func (MachineExecutionSettings) projectStandardsProtocolFact()    {}
 func (MachineChange) projectStandardsProtocolFact()               {}
 func (MachineGenerationTransition) projectStandardsProtocolFact() {}
 func (MachineQuery) projectStandardsProtocolFact()                {}

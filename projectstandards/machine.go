@@ -478,6 +478,30 @@ type MachineObservation struct {
 	Fingerprint   MachineFingerprint    `json:"fingerprint"`
 }
 
+// MachineExecutionSettings is the exact observed machine fact that bounds an
+// execution plan. The observation and generation identities make the capacity
+// decision auditable instead of treating CPU availability as ambient state.
+type MachineExecutionSettings struct {
+	Observation     MachineObservationID `json:"observation_id"`
+	Generation      MachineGenerationID  `json:"generation_id"`
+	LogicalCPUCount uint16               `json:"logical_cpu_count"`
+}
+
+func (o MachineObservation) ExecutionSettings() (MachineExecutionSettings, error) {
+	if err := o.Validate(); err != nil {
+		return MachineExecutionSettings{}, err
+	}
+	settings := MachineExecutionSettings{Observation: o.ID, Generation: o.GenerationID, LogicalCPUCount: o.Configuration.Compute.VCPU}
+	return settings, settings.Validate()
+}
+
+func (s MachineExecutionSettings) Validate() error {
+	if s.LogicalCPUCount == 0 {
+		return contractError(errors.New("project standards machine execution settings lack logical CPUs"))
+	}
+	return contractJoin(s.Observation.Validate(), s.Generation.Validate())
+}
+
 func (o MachineObservation) Validate() error {
 	if o.SchemaVersion != MachineProbeSchemaVersion {
 		return contractError(errors.New("project standards machine observation schema version is unsupported"))
@@ -646,6 +670,7 @@ func (m CurrentMachine) Digest() (core.SHA256Digest, error) {
 }
 
 var (
+	_ core.Validatable = MachineExecutionSettings{}
 	_ json.Marshaler   = MachineProbeReport{}
 	_ json.Unmarshaler = (*MachineProbeReport)(nil)
 )

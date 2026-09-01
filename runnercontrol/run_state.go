@@ -122,20 +122,64 @@ type CancellationIdentity struct {
 
 func (i CancellationIdentity) Validate() error { return i.Digest.Validate() }
 
+// CancellationCoordinate is the complete caller-owned identity of one
+// cancellation attempt. It is independent of every product and executor.
+type CancellationCoordinate struct {
+	Origin projectstandards.OriginIdentity `json:"origin"`
+	Run    projectstandards.RunID          `json:"run_id"`
+	Nonce  projectstandards.RequestNonce   `json:"request_nonce"`
+}
+
+func (c CancellationCoordinate) Validate() error {
+	return errors.Join(c.Origin.Validate(), c.Run.Validate(), c.Nonce.Validate())
+}
+
 type CancellationRequest struct {
+	Coordinate    CancellationCoordinate `json:"coordinate"`
 	SchemaVersion uint16                 `json:"schema_version"`
 	Identity      CancellationIdentity   `json:"cancellation_id"`
-	Run           projectstandards.RunID `json:"run_id"`
 	RequestedAt   temporal.Instant       `json:"requested_at"`
 }
 
 const cancellationIdempotencyNamespace = "runner-control-cancellation:"
 
+// NewCancellationRequest binds one caller nonce to the exact origin and
+// admitted run it is allowed to cancel.
+func NewCancellationRequest(coordinate CancellationCoordinate, requestedAt temporal.Instant) (CancellationRequest, error) {
+	identity, err := DeriveCancellationIdentity(coordinate)
+	if err != nil {
+		return CancellationRequest{}, err
+	}
+	request := CancellationRequest{Coordinate: coordinate, SchemaVersion: SchemaVersion, Identity: identity, RequestedAt: requestedAt}
+	return request, request.Validate()
+}
+
+// DeriveCancellationIdentity seals the complete caller-owned cancellation
+// coordinate without knowing the product or executor at either socket end.
+func DeriveCancellationIdentity(coordinate CancellationCoordinate) (CancellationIdentity, error) {
+	if err := coordinate.Validate(); err != nil {
+		return CancellationIdentity{}, errors.Join(core.ErrPrimitiveContract, err)
+	}
+	canonical, err := core.MarshalCanonicalJSONDocument(coordinate)
+	if err != nil {
+		return CancellationIdentity{}, errors.Join(core.ErrPrimitiveContract, err)
+	}
+	identity := CancellationIdentity{Digest: core.SHA256Of(canonical)}
+	return identity, identity.Validate()
+}
+
 func (r CancellationRequest) Validate() error {
 	if r.SchemaVersion != SchemaVersion {
 		return core.ErrPrimitiveContract
 	}
-	return errors.Join(r.Identity.Validate(), r.Run.Validate(), r.RequestedAt.Validate())
+	if err := errors.Join(r.Coordinate.Validate(), r.Identity.Validate(), r.RequestedAt.Validate()); err != nil {
+		return err
+	}
+	want, err := DeriveCancellationIdentity(r.Coordinate)
+	if err != nil || want != r.Identity {
+		return errors.Join(core.ErrPrimitiveContract, err, errors.New("cancellation identity is detached from its origin, run, or nonce"))
+	}
+	return nil
 }
 
 func (r CancellationRequest) IdempotencyKey() (exchange.IdempotencyKey, error) {
@@ -250,6 +294,9 @@ func (r AuthenticatedCancellationRequest) Validate() error {
 	if r.Peer.Role != PeerRoleOrigin || r.Peer.Origin == nil {
 		return core.ErrPrimitiveContract
 	}
+	if *r.Peer.Origin != r.Request.Coordinate.Origin {
+		return core.ErrPrimitiveContract
+	}
 	return nil
 }
 
@@ -338,7 +385,7 @@ func (s CancellationServer) ServeAuthenticated(writer http.ResponseWriter, reque
 	if err != nil {
 		return err
 	}
-	if response.Run != received.Body.Run || response.Identity != received.Body.Identity {
+	if response.Run != received.Body.Coordinate.Run || response.Identity != received.Body.Identity {
 		return core.ErrPrimitiveContract
 	}
 	return exchange.WriteSocketJSON(s.socket, writer, response)
