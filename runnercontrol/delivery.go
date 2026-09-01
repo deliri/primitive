@@ -267,7 +267,7 @@ func (v ObservationDeliveryVerifier) Verify(stage ObservationDeliveryStage, page
 	if payload.Origin != v.Origin || payload.Destination != v.Destination || payload.Audience != v.Audience || payload.DeliveryGrant != v.Grant {
 		return core.ErrPrimitiveContract
 	}
-	return VerifyObservationDelivery(stage.Envelope, stage.Manifest, pages, v.ControlKeys, v.RunnerKeys)
+	return VerifyObservationDelivery(ObservationDeliveryVerification{Stage: stage, Pages: pages, ControlKeys: v.ControlKeys, RunnerKeys: v.RunnerKeys})
 }
 
 type ObservationDeliveryClient struct {
@@ -312,17 +312,33 @@ type ObservationDeliveryServer struct {
 	verifier ObservationDeliveryVerifier
 }
 
-func NewObservationDeliveryServer(stage, page, commit exchange.JSONSocketContract, store ObservationDeliveryStore, verifier ObservationDeliveryVerifier) (ObservationDeliveryServer, error) {
-	if store == nil {
+type ObservationDeliveryServerConfiguration struct {
+	Stage    exchange.JSONSocketContract
+	Page     exchange.JSONSocketContract
+	Commit   exchange.JSONSocketContract
+	Store    ObservationDeliveryStore
+	Verifier ObservationDeliveryVerifier
+}
+
+func NewObservationDeliveryServer(configuration ObservationDeliveryServerConfiguration) (ObservationDeliveryServer, error) {
+	if configuration.Store == nil {
 		return ObservationDeliveryServer{}, core.ErrPrimitiveContract
 	}
-	stageSocket, stageErr := exchange.NewServerSocket(stage)
-	pageSocket, pageErr := exchange.NewServerSocket(page)
-	commitSocket, commitErr := exchange.NewServerSocket(commit)
-	if err := errors.Join(stageErr, pageErr, commitErr, verifier.Validate()); err != nil {
+	stageSocket, stageErr := exchange.NewServerSocket(configuration.Stage)
+	pageSocket, pageErr := exchange.NewServerSocket(configuration.Page)
+	commitSocket, commitErr := exchange.NewServerSocket(configuration.Commit)
+	if err := errors.Join(stageErr, pageErr, commitErr, configuration.Verifier.Validate()); err != nil {
 		return ObservationDeliveryServer{}, err
 	}
-	return ObservationDeliveryServer{stage: stageSocket, page: pageSocket, commit: commitSocket, store: store, verifier: verifier}, nil
+	return ObservationDeliveryServer{stage: stageSocket, page: pageSocket, commit: commitSocket, store: configuration.Store, verifier: configuration.Verifier}, nil
+}
+
+type deliveryReceiptWrite struct {
+	socket    exchange.ServerSocket
+	writer    http.ResponseWriter
+	receipt   ObservationDeliveryReceipt
+	run       projectstandards.RunID
+	published bool
 }
 
 func (s ObservationDeliveryServer) ServeStage(writer http.ResponseWriter, request *http.Request) error {
@@ -337,7 +353,7 @@ func (s ObservationDeliveryServer) ServeStage(writer http.ResponseWriter, reques
 	if err != nil {
 		return err
 	}
-	return writeDeliveryReceipt(s.stage, writer, receipt, received.Body.Envelope.Payload.Run, false)
+	return writeDeliveryReceipt(deliveryReceiptWrite{socket: s.stage, writer: writer, receipt: receipt, run: received.Body.Envelope.Payload.Run})
 }
 
 func (s ObservationDeliveryServer) ServePage(writer http.ResponseWriter, request *http.Request) error {
@@ -352,7 +368,7 @@ func (s ObservationDeliveryServer) ServePage(writer http.ResponseWriter, request
 	if err != nil {
 		return err
 	}
-	return writeDeliveryReceipt(s.page, writer, receipt, received.Body.Page.Run, false)
+	return writeDeliveryReceipt(deliveryReceiptWrite{socket: s.page, writer: writer, receipt: receipt, run: received.Body.Page.Run})
 }
 
 func (s ObservationDeliveryServer) ServeCommit(writer http.ResponseWriter, request *http.Request) error {
@@ -381,14 +397,14 @@ func (s ObservationDeliveryServer) ServeCommit(writer http.ResponseWriter, reque
 	if err != nil {
 		return err
 	}
-	return writeDeliveryReceipt(s.commit, writer, receipt, received.Body.Run, true)
+	return writeDeliveryReceipt(deliveryReceiptWrite{socket: s.commit, writer: writer, receipt: receipt, run: received.Body.Run, published: true})
 }
 
-func writeDeliveryReceipt(socket exchange.ServerSocket, writer http.ResponseWriter, receipt ObservationDeliveryReceipt, run projectstandards.RunID, published bool) error {
-	if err := receipt.Validate(); err != nil || receipt.Run != run || receipt.Published != published {
+func writeDeliveryReceipt(request deliveryReceiptWrite) error {
+	if err := request.receipt.Validate(); err != nil || request.receipt.Run != request.run || request.receipt.Published != request.published {
 		return errors.Join(core.ErrPrimitiveContract, err)
 	}
-	return exchange.WriteSocketJSON(socket, writer, receipt)
+	return exchange.WriteSocketJSON(request.socket, request.writer, request.receipt)
 }
 
 func ObservationDeliverySocketContract(path exchange.SocketRoutePath, requestMaximum uint64) (exchange.JSONSocketContract, error) {

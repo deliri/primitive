@@ -317,11 +317,13 @@ func (s CleanupServer) Serve(writer http.ResponseWriter, request *http.Request) 
 	if err != nil {
 		return err
 	}
-	if err := RequireRunnerPeer(request.Context(), received.Body.Payload.Fence.Machine.Machine, received.Body.Payload.Fence.Machine.Generation); err != nil {
+	payload := received.Body.Payload
+	machine := payload.Fence.Machine
+	if err := RequireRunnerPeer(request.Context(), machine.Machine, machine.Generation); err != nil {
 		return err
 	}
 	if err := VerifyCleanup(*received.Body, s.trusted); err != nil {
-		return fmt.Errorf("verify cleanup for machine %v generation %v: %w", received.Body.Payload.Fence.Machine.Machine, received.Body.Payload.Fence.Machine.Generation, err)
+		return fmt.Errorf("verify cleanup for machine %v generation %v: %w", machine.Machine, machine.Generation, err)
 	}
 	record, err := NewCleanupRecord(*received.Body)
 	if err != nil {

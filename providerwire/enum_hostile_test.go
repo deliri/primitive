@@ -22,6 +22,9 @@ func TestProviderWireClosedEnumsExhaustEveryUint8State(t *testing.T) {
 		if representation.IsValid() != wantRepresentationValid || (representation.String() != "") != wantRepresentationValid {
 			t.Fatalf("TwilioWebhookRepresentation(%d) = valid:%t text:%q, want valid:%t with matching diagnostic presence", raw, representation.IsValid(), representation.String(), wantRepresentationValid)
 		}
+		if wantRepresentationValid {
+			representation.OffWireEnum()
+		}
 
 		credentialKind := StripeCredentialKind(raw)
 		wantCredentialValid := credentialKind > StripeCredentialUnknown && credentialKind < stripeCredentialLimit

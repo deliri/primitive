@@ -5,6 +5,7 @@ import "github.com/deliri/primitive/v2026/core"
 var (
 	_ core.ValidatedJSONMarshaler = ArtifactKind(0)
 	_ core.ValidatedJSONMarshaler = PeerRole(0)
+	_ core.ValidatedJSONMarshaler = PeerCredentialKind(0)
 	_ core.ValidatedJSONMarshaler = ClaimKind(0)
 	_ core.ValidatedJSONMarshaler = CleanupOutcomeKind(0)
 	_ core.ValidatedJSONMarshaler = EvidenceBodyKind(0)

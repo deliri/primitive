@@ -316,7 +316,7 @@ func (w *retainingWriter) Write(payload []byte) (int, error) {
 func TestCopyBufferUsesTheSuppliedBufferOnlyForPlainWriters(t *testing.T) {
 	t.Parallel()
 
-	payload := bytes.Repeat([]byte("stream-witness-"), 4096)
+	payload := bytes.Repeat([]byte("stream-proof-"), 4096)
 	cases := []struct {
 		destination func() io.Writer
 		name        string

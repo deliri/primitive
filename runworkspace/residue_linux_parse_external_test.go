@@ -16,16 +16,16 @@ func TestLinuxResidueIngressLayerTriad(t *testing.T) {
 	t.Run("positive canonical process identity and mount point retain exact host facts", func(t *testing.T) {
 		t.Parallel()
 		uid, uidErr := runworkspace.ParseLinuxStatusUIDRow("Uid:\t1000\t1000\t1000\t1000")
-		mount, mountErr := runworkspace.ParseLinuxMountInfoPoint("29 23 0:26 / /var/lib/anvil/runs rw,nosuid - tmpfs tmpfs rw")
-		if uidErr != nil || uid != 1000 || mountErr != nil || mount != "/var/lib/anvil/runs" {
-			t.Fatalf("Linux residue parsers = (uid %d, uid error %v, mount %q, mount error %v), want (1000, nil, /var/lib/anvil/runs, nil)", uid, uidErr, mount, mountErr)
+		mount, mountErr := runworkspace.ParseLinuxMountInfoPoint("29 23 0:26 / /var/lib/primitive/runs rw,nosuid - tmpfs tmpfs rw")
+		if uidErr != nil || uid != 1000 || mountErr != nil || mount != "/var/lib/primitive/runs" {
+			t.Fatalf("Linux residue parsers = (uid %d, uid error %v, mount %q, mount error %v), want (1000, nil, /var/lib/primitive/runs, nil)", uid, uidErr, mount, mountErr)
 		}
 	})
 
 	t.Run("negative truncated host rows retain typed refusal identities", func(t *testing.T) {
 		t.Parallel()
 		uid, uidErr := runworkspace.ParseLinuxStatusUIDRow("Uid:\t1000")
-		mount, mountErr := runworkspace.ParseLinuxMountInfoPoint("29 23 0:26 / /var/lib/anvil/runs")
+		mount, mountErr := runworkspace.ParseLinuxMountInfoPoint("29 23 0:26 / /var/lib/primitive/runs")
 		if uid != 0 || !errors.Is(uidErr, core.ErrPrimitiveContract) || mount != "" || !errors.Is(mountErr, core.ErrPrimitiveContract) {
 			t.Fatalf("Linux residue truncated rows = (uid %d, uid error %v, mount %q, mount error %v), want zero values and errors.Is(..., %v)", uid, uidErr, mount, mountErr, core.ErrPrimitiveContract)
 		}
@@ -68,7 +68,7 @@ func FuzzLinuxStatusUIDRowSemanticClosure(f *testing.F) {
 }
 
 func FuzzLinuxMountInfoPointSemanticClosure(f *testing.F) {
-	for _, mount := range []string{"/", "/var/lib/anvil/runs", "/run/netns"} {
+	for _, mount := range []string{"/", "/var/lib/primitive/runs", "/run/netns"} {
 		f.Add("29 23 0:26 / " + mount + " rw,nosuid - tmpfs tmpfs rw")
 	}
 	for _, malformed := range []string{"", "29 23", "29 23 0:26 / relative rw - tmpfs tmpfs rw", "29 23 0:26 / /run rw tmpfs tmpfs rw"} {

@@ -7,6 +7,7 @@ import (
 	json "encoding/json/v2"
 	"errors"
 	"io"
+	"slices"
 
 	"github.com/deliri/primitive/v2026/attest"
 	"github.com/deliri/primitive/v2026/core"
@@ -38,17 +39,13 @@ func (k CleanupOutcomeKind) Validate() error {
 	return nil
 }
 
+func (k CleanupOutcomeKind) IsValid() bool { return k.Validate() == nil }
+
 func (k CleanupOutcomeKind) String() string {
-	switch k {
-	case CleanupSucceeded:
-		return "succeeded"
-	case CleanupFailed:
-		return "failed"
-	case CleanupNotApplicable:
-		return "not-applicable"
-	default:
-		return ""
+	if !k.IsValid() {
+		return invalidEnumString()
 	}
+	return []string{"", "succeeded", "failed", "not-applicable"}[k]
 }
 
 func (k CleanupOutcomeKind) MarshalJSON() ([]byte, error) {
@@ -137,17 +134,13 @@ func (k EvidenceBodyKind) Validate() error {
 	return nil
 }
 
+func (k EvidenceBodyKind) IsValid() bool { return k.Validate() == nil }
+
 func (k EvidenceBodyKind) String() string {
-	switch k {
-	case EvidenceCompletedRunner:
-		return "completed-runner"
-	case EvidenceInterruptedRunner:
-		return "interrupted-runner"
-	case EvidencePreRunnerInfrastructure:
-		return "pre-runner-infrastructure"
-	default:
-		return ""
+	if !k.IsValid() {
+		return invalidEnumString()
 	}
+	return []string{"", "completed-runner", "interrupted-runner", "pre-runner-infrastructure"}[k]
 }
 
 func (k EvidenceBodyKind) MarshalJSON() ([]byte, error) {
@@ -193,10 +186,8 @@ func (e InterruptedRunnerEvidence) Validate() error {
 			return err
 		}
 		id := e.Experiments[index].Payload.Observation.Experiment
-		for _, previous := range seen {
-			if previous == id {
-				return core.ErrPrimitiveContract
-			}
+		if slices.Contains(seen, id) {
+			return core.ErrPrimitiveContract
 		}
 		seen = append(seen, id)
 	}
@@ -534,7 +525,7 @@ func beginsNextDeliveryPage(entry ExperimentDeliveryEntry, expectedPage, expecte
 }
 
 func deliveryEntryDuplicatesEarlier(entries []ExperimentDeliveryEntry, index int) bool {
-	for previous := 0; previous < index; previous++ {
+	for previous := range index {
 		if entries[previous].Experiment == entries[index].Experiment {
 			return true
 		}
@@ -621,22 +612,45 @@ type ObservationDeliveryRepository interface {
 	StoreObservationDelivery(context.Context, ObservationEnvelope, ExperimentDeliveryManifest) error
 }
 
-func VerifyObservationDelivery(envelope ObservationEnvelope, manifest ExperimentDeliveryManifest, pages []ExperimentDeliveryPage, controlKeys, runnerKeys attest.TrustedKeys) error {
-	if err := VerifyObservationEnvelope(envelope, controlKeys); err != nil {
+type ObservationDeliveryVerification struct {
+	Stage       ObservationDeliveryStage
+	Pages       []ExperimentDeliveryPage
+	ControlKeys attest.TrustedKeys
+	RunnerKeys  attest.TrustedKeys
+}
+
+func (v ObservationDeliveryVerification) Validate() error {
+	return errors.Join(v.Stage.Validate(), v.ControlKeys.Validate(), v.RunnerKeys.Validate())
+}
+
+func VerifyObservationDelivery(verification ObservationDeliveryVerification) error {
+	if err := verification.Validate(); err != nil {
 		return err
 	}
-	if err := manifest.Validate(); err != nil || manifest.Run != envelope.Payload.Run || len(pages) != int(manifest.PageCount) {
-		return errors.Join(core.ErrPrimitiveContract, err)
+	envelope := verification.Stage.Envelope
+	manifest := verification.Stage.Manifest
+	if err := VerifyObservationEnvelope(envelope, verification.ControlKeys); err != nil {
+		return err
+	}
+	if len(verification.Pages) != int(manifest.PageCount) {
+		return core.ErrPrimitiveContract
 	}
 	digest, err := manifest.Digest()
 	if err != nil || digest != envelope.Payload.ExperimentDeliveryManifest {
 		return errors.Join(core.ErrPrimitiveContract, err)
 	}
-	documents, err := verifyDeliveryPages(manifest, pages, runnerKeys)
+	documents, err := verifyDeliveryPages(manifest, verification.Pages, verification.RunnerKeys)
 	if err != nil {
 		return err
 	}
-	return verifyEvidenceClosure(envelope.Payload.Evidence, manifest, documents, runnerKeys)
+	return (deliveryClosure{body: envelope.Payload.Evidence, manifest: manifest, documents: documents, runnerKeys: verification.RunnerKeys}).verify()
+}
+
+type deliveryClosure struct {
+	body       ObservationEvidenceBody
+	manifest   ExperimentDeliveryManifest
+	documents  []ExperimentCompletionDocument
+	runnerKeys attest.TrustedKeys
 }
 
 func verifyDeliveryPages(manifest ExperimentDeliveryManifest, pages []ExperimentDeliveryPage, runnerKeys attest.TrustedKeys) ([]ExperimentCompletionDocument, error) {
@@ -663,7 +677,8 @@ func validateDeliveryPages(manifest ExperimentDeliveryManifest, pages []Experime
 		if err := page.Validate(); err != nil {
 			return errors.Join(core.ErrPrimitiveContract, err)
 		}
-		if page.Run != manifest.Run || page.Page != uint16(pageIndex+1) {
+		pageNumber, err := core.CheckedUint16FromInt(pageIndex + 1)
+		if err != nil || page.Run != manifest.Run || page.Page != pageNumber {
 			return core.ErrPrimitiveContract
 		}
 	}
@@ -707,17 +722,17 @@ func validateDeliveryPageCoverage(manifest ExperimentDeliveryManifest, pages []E
 	return nil
 }
 
-func verifyEvidenceClosure(body ObservationEvidenceBody, manifest ExperimentDeliveryManifest, documents []ExperimentCompletionDocument, runnerKeys attest.TrustedKeys) error {
-	switch body.Kind {
+func (c deliveryClosure) verify() error {
+	switch c.body.Kind {
 	case EvidenceCompletedRunner:
-		if err := VerifyRunnerCompletion(*body.Completed, runnerKeys); err != nil {
+		if err := VerifyRunnerCompletion(*c.body.Completed, c.runnerKeys); err != nil {
 			return err
 		}
-		return verifyCompletedManifestClosure(*body.Completed, manifest)
+		return verifyCompletedManifestClosure(*c.body.Completed, c.manifest)
 	case EvidenceInterruptedRunner:
-		return verifyInterruptedEvidenceClosure(body, documents)
+		return verifyInterruptedEvidenceClosure(c.body, c.documents)
 	case EvidencePreRunnerInfrastructure:
-		if len(manifest.Entries) != 0 || len(documents) != 0 {
+		if len(c.manifest.Entries) != 0 || len(c.documents) != 0 {
 			return core.ErrPrimitiveContract
 		}
 		return nil

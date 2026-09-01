@@ -5,7 +5,6 @@ import (
 	"context"
 	json "encoding/json/v2"
 	"errors"
-	"math"
 
 	"github.com/deliri/primitive/v2026/core"
 	"github.com/deliri/primitive/v2026/filestore"
@@ -57,12 +56,62 @@ func (k FailureKind) Validate() error {
 	return nil
 }
 
+func (k FailureKind) IsValid() bool { return k.Validate() == nil }
+
+func (k FailureKind) String() string {
+	if !k.IsValid() {
+		return "invalid"
+	}
+	return []string{"", "exit", "output"}[k]
+}
+
+func (k FailureKind) MarshalJSON() ([]byte, error) {
+	if err := k.Validate(); err != nil {
+		return nil, errors.Join(core.ErrJSONContract, err)
+	}
+	return core.MarshalCanonicalJSONString(k.String())
+}
+
+func (k *FailureKind) UnmarshalJSON(data []byte) error {
+	if k == nil {
+		return errors.Join(core.ErrJSONContract, core.ErrProjectStandardsContract)
+	}
+	value, err := core.DecodeJSONStringToken(data)
+	if err != nil {
+		return errors.Join(core.ErrJSONContract, err)
+	}
+	for candidate := FailureExit; candidate < failureLimit; candidate++ {
+		if candidate.String() == value {
+			*k = candidate
+			return nil
+		}
+	}
+	return errors.Join(core.ErrJSONContract, core.ErrProjectStandardsContract)
+}
+
 type Failure struct {
 	kind       FailureKind
 	exitCode   int
 	stderrHash core.SHA256Digest
 	stderrSize core.ByteLength
 	cause      error
+}
+
+type failureInput struct {
+	kind     FailureKind
+	exitCode int
+	stderr   []byte
+	cause    error
+}
+
+type executionFactInput struct {
+	request      Request
+	scriptDigest core.SHA256Digest
+	scriptBytes  core.ByteLength
+	limit        core.ByteCount
+	result       process.Result
+	stdout       []byte
+	stderr       []byte
 }
 
 func (f Failure) Error() string                   { return "machine probe failed" }
@@ -92,11 +141,11 @@ func Collect(ctx context.Context, request Request) (projectstandards.MachineObse
 	}
 	var report projectstandards.MachineProbeReport
 	if err := json.Unmarshal(stdout, &report); err != nil {
-		return projectstandards.MachineObservation{}, newFailure(FailureOutput, 0, stderr, errors.Join(core.ErrHostFactsEvidence, err))
+		return projectstandards.MachineObservation{}, newFailure(failureInput{kind: FailureOutput, stderr: stderr, cause: errors.Join(core.ErrHostFactsEvidence, err)})
 	}
 	fingerprint, err := report.Configuration.Fingerprint()
 	if err != nil {
-		return projectstandards.MachineObservation{}, newFailure(FailureOutput, 0, stderr, errors.Join(core.ErrHostFactsEvidence, err))
+		return projectstandards.MachineObservation{}, newFailure(failureInput{kind: FailureOutput, stderr: stderr, cause: errors.Join(core.ErrHostFactsEvidence, err)})
 	}
 	observation := projectstandards.MachineObservation{
 		SchemaVersion: projectstandards.MachineProbeSchemaVersion,
@@ -105,7 +154,7 @@ func Collect(ctx context.Context, request Request) (projectstandards.MachineObse
 		Runtime: report.Runtime, Fingerprint: fingerprint,
 	}
 	if err := observation.Validate(); err != nil {
-		return projectstandards.MachineObservation{}, newFailure(FailureOutput, 0, stderr, errors.Join(core.ErrHostFactsEvidence, err))
+		return projectstandards.MachineObservation{}, newFailure(failureInput{kind: FailureOutput, stderr: stderr, cause: errors.Join(core.ErrHostFactsEvidence, err)})
 	}
 	return observation, nil
 }
@@ -116,7 +165,7 @@ func run(ctx context.Context, request Request) (projectstandards.MachineProbeExe
 		return projectstandards.MachineProbeExecution{}, nil, nil, err
 	}
 	if scriptBytes.Uint64() == 0 {
-		return projectstandards.MachineProbeExecution{}, nil, nil, newFailure(FailureOutput, 0, nil, core.ErrHostFactsEvidence)
+		return projectstandards.MachineProbeExecution{}, nil, nil, newFailure(failureInput{kind: FailureOutput, cause: core.ErrHostFactsEvidence})
 	}
 	argument, err := process.NewArgument("-s")
 	if err != nil {
@@ -136,7 +185,10 @@ func run(ctx context.Context, request Request) (projectstandards.MachineProbeExe
 	if err != nil {
 		return projectstandards.MachineProbeExecution{}, nil, nil, err
 	}
-	execution, err := executionFact(request, core.SHA256Of(script), scriptBytes, limit, result, stdout.Bytes(), stderr.Bytes())
+	execution, err := executionFact(executionFactInput{
+		request: request, scriptDigest: core.SHA256Of(script), scriptBytes: scriptBytes,
+		limit: limit, result: result, stdout: stdout.Bytes(), stderr: stderr.Bytes(),
+	})
 	if err != nil {
 		return projectstandards.MachineProbeExecution{}, nil, nil, err
 	}
@@ -165,33 +217,37 @@ func readScript(ctx context.Context, path core.AbsolutePath) ([]byte, core.ByteL
 	return script.Bytes(), count, nil
 }
 
-func executionFact(request Request, scriptDigest core.SHA256Digest, scriptBytes core.ByteLength, limit core.ByteCount, result process.Result, stdout, stderr []byte) (projectstandards.MachineProbeExecution, error) {
-	exit, err := result.ExitCode()
+func executionFact(input executionFactInput) (projectstandards.MachineProbeExecution, error) {
+	exit, err := input.result.ExitCode()
 	if err != nil {
 		return projectstandards.MachineProbeExecution{}, err
 	}
 	exitCode, err := exit.Int()
-	if err != nil || exitCode < math.MinInt32 || exitCode > math.MaxInt32 {
+	if err != nil {
+		return projectstandards.MachineProbeExecution{}, errors.Join(core.ErrHostFactsObservation, err)
+	}
+	exitCodeObservation, err := core.CheckedInt32FromInt(exitCode)
+	if err != nil {
 		return projectstandards.MachineProbeExecution{}, errors.Join(core.ErrHostFactsObservation, err)
 	}
 	if exitCode != 0 {
-		return projectstandards.MachineProbeExecution{}, newFailure(FailureExit, exitCode, stderr, core.ErrHostFactsObservation)
+		return projectstandards.MachineProbeExecution{}, newFailure(failureInput{kind: FailureExit, exitCode: exitCode, stderr: input.stderr, cause: core.ErrHostFactsObservation})
 	}
-	cpu, err := result.CPUTime()
+	cpu, err := input.result.CPUTime()
 	if err != nil {
 		return projectstandards.MachineProbeExecution{}, err
 	}
 	fact := projectstandards.MachineProbeExecution{
-		Bash: request.Bash, Script: request.Script, ScriptDigest: scriptDigest, ScriptBytes: scriptBytes, OutputLimit: limit,
-		ExitCode: int32(exitCode), CPUTime: cpu,
-		StdoutDigest: core.SHA256Of(stdout),
-		StderrDigest: core.SHA256Of(stderr),
+		Bash: input.request.Bash, Script: input.request.Script, ScriptDigest: input.scriptDigest, ScriptBytes: input.scriptBytes, OutputLimit: input.limit,
+		ExitCode: exitCodeObservation, CPUTime: cpu,
+		StdoutDigest: core.SHA256Of(input.stdout),
+		StderrDigest: core.SHA256Of(input.stderr),
 	}
-	fact.StdoutBytes, err = byteLength(stdout)
+	fact.StdoutBytes, err = byteLength(input.stdout)
 	if err != nil {
 		return projectstandards.MachineProbeExecution{}, err
 	}
-	fact.StderrBytes, err = byteLength(stderr)
+	fact.StderrBytes, err = byteLength(input.stderr)
 	if err != nil {
 		return projectstandards.MachineProbeExecution{}, err
 	}
@@ -201,12 +257,12 @@ func executionFact(request Request, scriptDigest core.SHA256Digest, scriptBytes 
 	return fact, nil
 }
 
-func newFailure(kind FailureKind, exitCode int, stderr []byte, cause error) error {
-	stderrSize, err := byteLength(stderr)
+func newFailure(input failureInput) error {
+	stderrSize, err := byteLength(input.stderr)
 	if err != nil {
 		return errors.Join(core.ErrHostFactsObservation, err)
 	}
-	failure := Failure{kind: kind, exitCode: exitCode, stderrHash: core.SHA256Of(stderr), stderrSize: stderrSize, cause: cause}
+	failure := Failure{kind: input.kind, exitCode: input.exitCode, stderrHash: core.SHA256Of(input.stderr), stderrSize: stderrSize, cause: input.cause}
 	if err := failure.Validate(); err != nil {
 		return errors.Join(core.ErrHostFactsObservation, err)
 	}

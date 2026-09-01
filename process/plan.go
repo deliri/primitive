@@ -10,7 +10,7 @@ import (
 
 const (
 	ExecutionPlanSchemaVersion    uint16 = 1
-	ExecutionPlanJSONMaximumBytes        = core.JSONDocumentMaximumBytes
+	ExecutionPlanJSONMaximumBytes        = 1 << 20
 )
 
 // Plan is the stream-free, exact execution capability carried across a

@@ -89,7 +89,10 @@ func (m Manager) extractDownloadedSource(ctx context.Context, archivePath core.R
 	if err != nil {
 		return VerifiedSource{}, errors.Join(err, removeDownloadedArchive(ctx, m, archivePath))
 	}
-	verified, acquireErr := m.AcquireSourceArchive(ctx, request.Unit, request.Grant, request.Document, request.TrustedKeys, request.ObservedAt, reader)
+	verified, acquireErr := m.AcquireSourceArchive(ctx, SourceArchiveAcquisitionRequest{
+		Unit: request.Unit, Grant: request.Grant, Document: request.Document,
+		Trusted: request.TrustedKeys, ObservedAt: request.ObservedAt, Source: reader,
+	})
 	closeErr := reader.Close()
 	removeErr := removeDownloadedArchive(ctx, m, archivePath)
 	if err := errors.Join(acquireErr, closeErr, removeErr); err != nil {

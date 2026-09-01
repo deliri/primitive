@@ -85,31 +85,31 @@ func TestBlindSubmissionLifecycleLayerTriad(t *testing.T) {
 	t.Run("offering_is_load_bearing_with_identical_keys_and_evidence", func(t *testing.T) {
 		t.Parallel()
 
-		bug := newAuthCompletionFixture(t, authCompletionFixtureRequest{
+		productAlpha := newAuthCompletionFixture(t, authCompletionFixtureRequest{
 			offering: submissionAuthOffering(t, 1), authorityByte: 0x61, deviceByte: 0x62, nonceByte: 0x63,
 		})
-		witness := newAuthCompletionFixture(t, authCompletionFixtureRequest{
+		productBeta := newAuthCompletionFixture(t, authCompletionFixtureRequest{
 			offering: submissionAuthOffering(t, 2), authorityByte: 0x61, deviceByte: 0x62, nonceByte: 0x63,
 		})
-		proveOnlyOfferingDiffers(t, bug.request.request.Payload, witness.request.request.Payload)
+		proveOnlyOfferingDiffers(t, productAlpha.request.request.Payload, productBeta.request.request.Payload)
 
 		recombined, err := Assemble(RequestAssembly{
-			Request: bug.request.request, Certificate: witness.request.certificate,
+			Request: productAlpha.request.request, Certificate: productBeta.request.certificate,
 		})
 		if !errors.Is(err, core.ErrControlPlaneResponseBinding) || recombined != (RequestDocument{}) {
 			t.Fatalf("Assemble(request and same-key foreign-offering certificate) = (%v, %v), want zero and errors.Is %v",
 				recombined, err, core.ErrControlPlaneResponseBinding)
 		}
 
-		bugDecision := blindSubmissionDecisionDocument(t, bug)
-		witnessScope, scopeErr := witness.request.certificate.Body.Scope()
+		productAlphaDecision := blindSubmissionDecisionDocument(t, productAlpha)
+		productBetaScope, scopeErr := productBeta.request.certificate.Body.Scope()
 		if scopeErr != nil {
-			t.Fatalf("Witness certificate scope error = %v, want nil", scopeErr)
+			t.Fatalf("product beta certificate scope error = %v, want nil", scopeErr)
 		}
 		rejected, err := submission.VerifyDecision(submission.DecisionExpectation{
-			Decision: bugDecision, Request: witness.request.request.Payload,
-			Account: witnessScope.Account, Offering: witnessScope.Offering,
-			ObservedAt: bug.grant.Payload.IssuedAt, TrustedKeys: witness.request.trusted,
+			Decision: productAlphaDecision, Request: productBeta.request.request.Payload,
+			Account: productBetaScope.Account, Offering: productBetaScope.Offering,
+			ObservedAt: productAlpha.grant.Payload.IssuedAt, TrustedKeys: productBeta.request.trusted,
 		})
 		if !errors.Is(err, core.ErrControlPlaneResponseBinding) || rejected != (submission.VerifiedDecision{}) {
 			t.Fatalf("VerifyDecision(same-key foreign offering) = (%v, %v), want zero and errors.Is %v",

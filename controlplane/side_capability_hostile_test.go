@@ -283,8 +283,7 @@ func TestControlplaneSideCapabilityStorageExcludesPeerAndTransportState(t *testi
 
 			gotFieldTypes := make([]reflect.Type, 0, tc.structure.NumField())
 			gotUnexportedFieldCount := 0
-			for index := range tc.structure.NumField() {
-				field := tc.structure.Field(index)
+			for field := range tc.structure.Fields() {
 				gotFieldTypes = append(gotFieldTypes, field.Type)
 				if field.PkgPath != "" {
 					gotUnexportedFieldCount++
@@ -313,8 +312,8 @@ func compilerOwnedControlplaneMethodNames(methods ...reflect.Value) []string {
 
 func exportedControlplaneMethodNames(capability reflect.Type) []string {
 	names := make([]string, 0, capability.NumMethod())
-	for index := range capability.NumMethod() {
-		names = append(names, capability.Method(index).Name)
+	for method := range capability.Methods() {
+		names = append(names, method.Name)
 	}
 	slices.Sort(names)
 	return names

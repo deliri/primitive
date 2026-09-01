@@ -30,6 +30,22 @@ type VerifiedSource struct {
 	Directories uint32
 }
 
+type SourceArchiveAcquisitionRequest struct {
+	Unit       Unit
+	Grant      runnercontrol.SourceGrant
+	Document   runnercontrol.SourceArchiveDocument
+	Trusted    attest.TrustedKeys
+	ObservedAt temporal.Instant
+	Source     io.Reader
+}
+
+func (r SourceArchiveAcquisitionRequest) Validate() error {
+	if err := errors.Join(r.Unit.Validate(), r.Grant.Validate(), r.Document.Validate(), r.Trusted.Validate(), r.ObservedAt.Validate()); err != nil || core.ReaderIsNil(r.Source) {
+		return errors.Join(core.ErrPrimitiveContract, err)
+	}
+	return validateSourceAuthorization(r.Grant, r.Document.Manifest, r.ObservedAt)
+}
+
 func (s VerifiedSource) Validate() error {
 	if s.Files+s.Directories == 0 {
 		return core.ErrPrimitiveContract
@@ -37,11 +53,11 @@ func (s VerifiedSource) Validate() error {
 	return errors.Join(s.Coordinate.Validate(), s.Checkout.Validate())
 }
 
-func (m Manager) AcquireSourceArchive(ctx context.Context, unit Unit, grant runnercontrol.SourceGrant, document runnercontrol.SourceArchiveDocument, trusted attest.TrustedKeys, observedAt temporal.Instant, source io.Reader) (verified VerifiedSource, err error) {
-	if err := m.authorizeSourceArchive(unit, grant, document, trusted, observedAt, source); err != nil {
+func (m Manager) AcquireSourceArchive(ctx context.Context, request SourceArchiveAcquisitionRequest) (verified VerifiedSource, err error) {
+	if err := m.authorizeSourceArchive(request); err != nil {
 		return VerifiedSource{}, err
 	}
-	checkout, err := m.prepareCheckout(ctx, unit)
+	checkout, err := m.prepareCheckout(ctx, request.Unit)
 	if err != nil {
 		return VerifiedSource{}, err
 	}
@@ -50,7 +66,7 @@ func (m Manager) AcquireSourceArchive(ctx context.Context, unit Unit, grant runn
 			err = errors.Join(err, filestore.RemoveTree(ctx, filestore.TreeRemovalRequest{Location: filestore.Location{Root: m.root, Path: checkout}}))
 		}
 	}()
-	extraction, err := newSourceExtraction(checkout, document, source)
+	extraction, err := newSourceExtraction(checkout, request.Document, request.Source)
 	if err != nil {
 		return VerifiedSource{}, err
 	}
@@ -60,18 +76,16 @@ func (m Manager) AcquireSourceArchive(ctx context.Context, unit Unit, grant runn
 	if err := extraction.complete(ctx, m); err != nil {
 		return VerifiedSource{}, err
 	}
-	verified = VerifiedSource{Coordinate: projectstandards.SourceCoordinate{Repository: document.Manifest.Repository, Commit: document.Manifest.Commit, Tree: document.Manifest.Tree}, Checkout: checkout, Files: extraction.fileCount, Directories: extraction.directoryCount}
+	manifest := request.Document.Manifest
+	verified = VerifiedSource{Coordinate: projectstandards.SourceCoordinate{Repository: manifest.Repository, Commit: manifest.Commit, Tree: manifest.Tree}, Checkout: checkout, Files: extraction.fileCount, Directories: extraction.directoryCount}
 	return verified, verified.Validate()
 }
 
-func (m Manager) authorizeSourceArchive(unit Unit, grant runnercontrol.SourceGrant, document runnercontrol.SourceArchiveDocument, trusted attest.TrustedKeys, observedAt temporal.Instant, source io.Reader) error {
-	if err := errors.Join(m.Validate(), unit.Validate(), grant.Validate(), document.Validate(), observedAt.Validate()); err != nil || unit.RootIdentity != m.rootIdentity || core.ReaderIsNil(source) {
+func (m Manager) authorizeSourceArchive(request SourceArchiveAcquisitionRequest) error {
+	if err := errors.Join(m.Validate(), request.Validate()); err != nil || request.Unit.RootIdentity != m.rootIdentity {
 		return errors.Join(core.ErrPrimitiveContract, err)
 	}
-	if err := validateSourceAuthorization(grant, document.Manifest, observedAt); err != nil {
-		return err
-	}
-	return runnercontrol.VerifySourceArchive(document, trusted)
+	return runnercontrol.VerifySourceArchive(request.Document, request.Trusted)
 }
 
 func (m Manager) prepareCheckout(ctx context.Context, unit Unit) (core.RelativePath, error) {
@@ -140,7 +154,7 @@ func (e *sourceExtraction) consume(ctx context.Context, manager Manager, header 
 	switch header.Typeflag {
 	case tar.TypeDir:
 		return e.consumeDirectory(ctx, manager, path, header)
-	case tar.TypeReg, tar.TypeRegA:
+	case tar.TypeReg:
 		return e.consumeFile(ctx, manager, path, header)
 	default:
 		return core.ErrPrimitiveContract
@@ -155,7 +169,7 @@ func (e *sourceExtraction) consumeDirectory(ctx context.Context, manager Manager
 		return err
 	}
 	e.directoryCount++
-	return writeTreeEntry(e.treeHash, path, 0o500, 0, core.SHA256Of(nil))
+	return writeTreeEntry(treeEntry{destination: e.treeHash, path: path, mode: 0o500, digest: core.SHA256Of(nil)})
 }
 
 func (e *sourceExtraction) consumeFile(ctx context.Context, manager Manager, path core.RelativePath, header *tar.Header) error {
@@ -164,23 +178,33 @@ func (e *sourceExtraction) consumeFile(ctx context.Context, manager Manager, pat
 		return errors.Join(core.ErrPrimitiveContract, err)
 	}
 	fileHash := sha256.New()
-	if err := e.writeFile(ctx, manager, path, header, fileHash); err != nil {
+	if err := e.writeFile(ctx, sourceFileWrite{manager: manager, path: path, header: header, fileHash: fileHash}); err != nil {
 		return err
 	}
 	mode := archiveFileMode(header)
-	if err := writeTreeEntry(e.treeHash, path, mode, uint64(header.Size), digestFromHash(fileHash)); err != nil {
+	if err := writeTreeEntry(treeEntry{destination: e.treeHash, path: path, mode: mode, size: uint64(header.Size), digest: digestFromHash(fileHash)}); err != nil {
 		return err
 	}
 	e.fileCount++
 	return filestore.SetPermissions(ctx, filestore.PermissionRequest{Location: filestore.Location{Root: manager.root, Path: path}, Mode: mode})
 }
 
-func (e *sourceExtraction) writeFile(ctx context.Context, manager Manager, path core.RelativePath, header *tar.Header, fileHash hash.Hash) error {
-	temporary, err := archiveTemporary(path, e.entryCount)
+type sourceFileWrite struct {
+	manager  Manager
+	path     core.RelativePath
+	header   *tar.Header
+	fileHash hash.Hash
+}
+
+func (e *sourceExtraction) writeFile(ctx context.Context, request sourceFileWrite) error {
+	temporary, err := archiveTemporary(request.path, e.entryCount)
 	if err != nil {
 		return err
 	}
-	writeMaximum := uint64(header.Size)
+	writeMaximum, err := core.CheckedUint64FromInt64(request.header.Size)
+	if err != nil {
+		return err
+	}
 	if writeMaximum == 0 {
 		writeMaximum = 1
 	}
@@ -188,7 +212,7 @@ func (e *sourceExtraction) writeFile(ctx context.Context, manager Manager, path 
 	if err != nil {
 		return err
 	}
-	_, err = filestore.Write(ctx, filestore.WriteRequest{Source: io.TeeReader(e.reader, fileHash), Location: filestore.Location{Root: manager.root, Path: path}, Temporary: temporary, Mode: 0o600, Install: filestore.InstallCreate, MaximumBytes: limit})
+	_, err = filestore.Write(ctx, filestore.WriteRequest{Source: io.TeeReader(e.reader, request.fileHash), Location: filestore.Location{Root: request.manager.root, Path: request.path}, Temporary: temporary, Mode: 0o600, Install: filestore.InstallCreate, MaximumBytes: limit})
 	return err
 }
 
@@ -250,28 +274,37 @@ func archiveTemporary(path core.RelativePath, index uint32) (core.RelativePath, 
 	if err != nil {
 		return core.RelativePath{}, err
 	}
-	component, err := core.ParsePathComponent(fmt.Sprintf(".anvil-stage-%08x", index))
+	component, err := core.ParsePathComponent(fmt.Sprintf(".primitive-stage-%08x", index))
 	if err != nil {
 		return core.RelativePath{}, err
 	}
 	return parent.Join(component)
 }
-func writeTreeEntry(destination hash.Hash, path core.RelativePath, mode fs.FileMode, size uint64, digest core.SHA256Digest) error {
-	digestHex, err := digest.Hex()
+
+type treeEntry struct {
+	destination hash.Hash
+	path        core.RelativePath
+	mode        fs.FileMode
+	size        uint64
+	digest      core.SHA256Digest
+}
+
+func writeTreeEntry(entry treeEntry) error {
+	digestHex, err := entry.digest.Hex()
 	if err != nil {
 		return err
 	}
-	fields := [][]byte{[]byte(path.String()), []byte(mode.String()), []byte(digestHex)}
+	fields := [][]byte{[]byte(entry.path.String()), []byte(entry.mode.String()), []byte(digestHex)}
 	var length [8]byte
-	binary.BigEndian.PutUint64(length[:], size)
+	binary.BigEndian.PutUint64(length[:], entry.size)
 	fields = append(fields, length[:])
 	for _, field := range fields {
 		var frame [8]byte
 		binary.BigEndian.PutUint64(frame[:], uint64(len(field)))
-		if _, err := destination.Write(frame[:]); err != nil {
+		if _, err := entry.destination.Write(frame[:]); err != nil {
 			return err
 		}
-		if _, err := destination.Write(field); err != nil {
+		if _, err := entry.destination.Write(field); err != nil {
 			return err
 		}
 	}

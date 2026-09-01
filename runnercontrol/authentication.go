@@ -10,6 +10,81 @@ import (
 	"github.com/deliri/primitive/v2026/projectstandards"
 )
 
+type PeerCredentialKind uint8
+
+const (
+	PeerCredentialUnknown PeerCredentialKind = iota
+	PeerCredentialMutualTLS
+	PeerCredentialGoogleCloud
+	peerCredentialLimit
+)
+
+func (k PeerCredentialKind) Validate() error {
+	if !k.IsValid() {
+		return core.ErrPrimitiveContract
+	}
+	return nil
+}
+
+func (k PeerCredentialKind) IsValid() bool {
+	return k > PeerCredentialUnknown && k < peerCredentialLimit
+}
+
+func (k PeerCredentialKind) String() string {
+	switch k {
+	case PeerCredentialMutualTLS:
+		return "mutual_tls"
+	case PeerCredentialGoogleCloud:
+		return "google_cloud"
+	default:
+		var text string
+		handleInvalidPeerCredentialKindString(&text)
+		return text
+	}
+}
+
+func handleInvalidPeerCredentialKindString(target *string) { *target = "invalid_peer_credential_kind" }
+
+func (k PeerCredentialKind) MarshalJSON() ([]byte, error) {
+	if err := k.Validate(); err != nil {
+		return nil, errors.Join(core.ErrJSONContract, err)
+	}
+	return core.MarshalCanonicalJSONString(k.String())
+}
+
+func (k *PeerCredentialKind) UnmarshalJSON(data []byte) error {
+	if k == nil {
+		return errors.Join(core.ErrJSONContract, core.ErrPrimitiveContract)
+	}
+	value, err := core.DecodeJSONStringToken(data)
+	if err != nil {
+		return err
+	}
+	switch value {
+	case "mutual_tls":
+		*k = PeerCredentialMutualTLS
+	case "google_cloud":
+		*k = PeerCredentialGoogleCloud
+	default:
+		return errors.Join(core.ErrJSONContract, core.ErrPrimitiveContract)
+	}
+	return nil
+}
+
+type PeerCredential struct {
+	Kind     PeerCredentialKind `json:"kind"`
+	Identity core.SHA256Digest  `json:"identity"`
+}
+
+func (c PeerCredential) Validate() error {
+	return errors.Join(c.Kind.Validate(), c.Identity.Validate())
+}
+
+func NewPeerCredential(kind PeerCredentialKind, identity core.SHA256Digest) (PeerCredential, error) {
+	credential := PeerCredential{Kind: kind, Identity: identity}
+	return credential, credential.Validate()
+}
+
 type PeerRole uint8
 
 const (
@@ -21,10 +96,14 @@ const (
 )
 
 func (r PeerRole) Validate() error {
-	if r <= PeerRoleUnknown || r >= peerRoleLimit {
+	if !r.IsValid() {
 		return core.ErrPrimitiveContract
 	}
 	return nil
+}
+
+func (r PeerRole) IsValid() bool {
+	return r > PeerRoleUnknown && r < peerRoleLimit
 }
 
 func (r PeerRole) String() string {
@@ -36,9 +115,13 @@ func (r PeerRole) String() string {
 	case PeerRoleControl:
 		return "control"
 	default:
-		return ""
+		var text string
+		handleInvalidPeerRoleString(&text)
+		return text
 	}
 }
+
+func handleInvalidPeerRoleString(target *string) { *target = "invalid_peer_role" }
 
 func (r PeerRole) MarshalJSON() ([]byte, error) {
 	if err := r.Validate(); err != nil {
@@ -69,15 +152,15 @@ func (r *PeerRole) UnmarshalJSON(data []byte) error {
 }
 
 type AuthenticatedPeer struct {
-	Role        PeerRole                              `json:"role"`
-	Certificate core.SHA256Digest                     `json:"certificate_digest"`
-	Origin      *projectstandards.OriginIdentity      `json:"origin,omitempty"`
-	Machine     *projectstandards.MachineID           `json:"machine_id,omitempty"`
-	Generation  *projectstandards.MachineGenerationID `json:"machine_generation_id,omitempty"`
+	Role       PeerRole                              `json:"role"`
+	Credential PeerCredential                        `json:"credential"`
+	Origin     *projectstandards.OriginIdentity      `json:"origin,omitempty"`
+	Machine    *projectstandards.MachineID           `json:"machine_id,omitempty"`
+	Generation *projectstandards.MachineGenerationID `json:"machine_generation_id,omitempty"`
 }
 
 func (p AuthenticatedPeer) Validate() error {
-	if err := errors.Join(p.Role.Validate(), p.Certificate.Validate()); err != nil {
+	if err := errors.Join(p.Role.Validate(), p.Credential.Validate()); err != nil {
 		return err
 	}
 	return p.validateRoleShape()
@@ -118,7 +201,7 @@ func (p AuthenticatedPeer) validateControlShape() error {
 }
 
 type PeerIdentityRepository interface {
-	ResolvePeer(context.Context, core.SHA256Digest, PeerRole) (AuthenticatedPeer, error)
+	ResolvePeer(context.Context, PeerCredential, PeerRole) (AuthenticatedPeer, error)
 }
 
 type RequestAuthenticator interface {
@@ -187,15 +270,18 @@ func (a MutualTLSAuthenticator) Authenticate(request *http.Request, role PeerRol
 	if certificate == nil || len(certificate.Raw) == 0 {
 		return AuthenticatedPeer{}, core.ErrPrimitiveContract
 	}
-	digest := core.SHA256Of(certificate.Raw)
-	peer, err := a.repository.ResolvePeer(request.Context(), digest, role)
+	credential, err := NewPeerCredential(PeerCredentialMutualTLS, core.SHA256Of(certificate.Raw))
+	if err != nil {
+		return AuthenticatedPeer{}, err
+	}
+	peer, err := a.repository.ResolvePeer(request.Context(), credential, role)
 	if err != nil {
 		return AuthenticatedPeer{}, err
 	}
 	if err := peer.Validate(); err != nil {
 		return AuthenticatedPeer{}, errors.Join(core.ErrPrimitiveContract, err)
 	}
-	if peer.Role != role || peer.Certificate != digest {
+	if peer.Role != role || peer.Credential != credential {
 		return AuthenticatedPeer{}, core.ErrPrimitiveContract
 	}
 	return peer, nil
@@ -219,6 +305,9 @@ func validateAuthenticationRequest(request *http.Request, repository PeerIdentit
 
 var (
 	_ core.Validatable     = PeerRoleUnknown
+	_ core.Validatable     = PeerCredentialUnknown
+	_ json.Unmarshaler     = (*PeerCredentialKind)(nil)
+	_ core.Validatable     = PeerCredential{}
 	_ json.Unmarshaler     = (*PeerRole)(nil)
 	_ core.Validatable     = AuthenticatedPeer{}
 	_ RequestAuthenticator = MutualTLSAuthenticator{}

@@ -141,7 +141,8 @@ func (c *GoTestObservationCompiler) observePackage(event goTestEventWire) error 
 		return observationFailure("go test JSON event follows a terminal package event", core.ErrJSONContract)
 	}
 	c.seen[event.Package] = struct{}{}
-	if uint32(len(c.seen)) > c.policy.ExpectedUnits {
+	seen, _, err := c.packageCounts()
+	if err != nil || seen > c.policy.ExpectedUnits {
 		return observationFailure("go test JSON stream names more packages than planned", core.ErrPrimitiveContract)
 	}
 	if event.Test != "" || !goTestTerminalAction(event.Action) {
@@ -193,7 +194,10 @@ func (c *GoTestObservationCompiler) unavailableObservation() (GoTestObservation,
 			attempt.Skipped++
 		}
 	}
-	terminal := uint32(len(c.terminal))
+	_, terminal, countErr := c.packageCounts()
+	if countErr != nil {
+		return GoTestObservation{}, observationFailure("go test terminal count exceeds its numeric ceiling", core.ErrPrimitiveContract, countErr)
+	}
 	if terminal > c.policy.ExpectedUnits {
 		return GoTestObservation{}, observationFailure("go test terminal count exceeds planned units", core.ErrPrimitiveContract)
 	}
@@ -215,9 +219,13 @@ func (c *GoTestObservationCompiler) compileAccounting(executionErr error) (proje
 			attempt.Skipped++
 		}
 	}
-	active := uint32(len(c.seen) - len(c.terminal))
-	observed := uint32(len(c.terminal)) + active
-	if err := c.validateObservedAccounting(observed, executionErr); err != nil {
+	seen, terminal, countErr := c.packageCounts()
+	if countErr != nil || terminal > seen {
+		return projectstandards.ExecutionAccounting{}, observationFailure("go test package accounting exceeds its numeric ceiling", core.ErrPrimitiveContract, countErr)
+	}
+	active := seen - terminal
+	observed := terminal + active
+	if err := c.validateObservedAccounting(observed, terminal, executionErr); err != nil {
 		return projectstandards.ExecutionAccounting{}, err
 	}
 	c.classifyInterrupted(&attempt, active, executionErr)
@@ -234,8 +242,7 @@ func newExecutionAttempt(policy ObservationPolicy) projectstandards.ExecutionAtt
 	return projectstandards.ExecutionAttempt{Sequence: 1, Planned: policy.ExpectedUnits, Cache: projectstandards.CacheDisabled, Filtered: policy.Filtered}
 }
 
-func (c *GoTestObservationCompiler) validateObservedAccounting(observed uint32, executionErr error) error {
-	terminal := uint32(len(c.terminal))
+func (c *GoTestObservationCompiler) validateObservedAccounting(observed, terminal uint32, executionErr error) error {
 	if observed > c.policy.ExpectedUnits {
 		return observationFailure("go test observed package count exceeds planned units", core.ErrPrimitiveContract)
 	}
@@ -251,6 +258,12 @@ func (c *GoTestObservationCompiler) validateObservedAccounting(observed uint32, 
 	return nil
 }
 
+func (c *GoTestObservationCompiler) packageCounts() (uint32, uint32, error) {
+	seen, seenErr := core.CheckedUint32FromInt(len(c.seen))
+	terminal, terminalErr := core.CheckedUint32FromInt(len(c.terminal))
+	return seen, terminal, errors.Join(seenErr, terminalErr)
+}
+
 func (c *GoTestObservationCompiler) classifyInterrupted(accounting *projectstandards.ExecutionAttempt, count uint32, executionErr error) {
 	if count == 0 {
 		return
@@ -259,7 +272,7 @@ func (c *GoTestObservationCompiler) classifyInterrupted(accounting *projectstand
 	case errors.Is(executionErr, context.Canceled):
 		accounting.Cancelled += count
 	case errors.Is(executionErr, context.DeadlineExceeded):
-		accounting.TimedOut += count
+		accounting.Expired += count
 	default:
 		accounting.Failed += count
 	}
@@ -328,7 +341,11 @@ func parseBenchmarkDecimal(value string) (uint64, uint8, error) {
 		if len(parts[1]) > int(projectstandards.DecimalMeasurementScaleMaximum) {
 			return 0, 0, observationFailure("go benchmark decimal precision exceeds its ceiling", core.ErrJSONContract)
 		}
-		scale = uint8(len(parts[1]))
+		parsedScale, scaleErr := core.CheckedUint8FromInt(len(parts[1]))
+		if scaleErr != nil {
+			return 0, 0, observationFailure("go benchmark decimal precision exceeds its numeric ceiling", core.ErrJSONContract, scaleErr)
+		}
+		scale = parsedScale
 	}
 	coefficient, err := strconv.ParseUint(strings.Join(parts, ""), 10, 64)
 	if err != nil {

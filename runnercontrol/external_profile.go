@@ -75,10 +75,10 @@ func (p JavaScriptTestPlan) Validate() error {
 	}
 	file := p.File.String()
 	if !strings.HasSuffix(file, ".js") && !strings.HasSuffix(file, ".jsx") && !strings.HasSuffix(file, ".ts") && !strings.HasSuffix(file, ".tsx") {
-		return errors.Join(core.ErrPrimitiveContract, errors.New("JavaScript profile target is not a JavaScript or TypeScript file"))
+		return errors.Join(core.ErrPrimitiveContract, errors.New("javascript profile target is not a javascript or typescript file"))
 	}
 	if _, err := core.ParsePathComponent(p.Report.String()); err != nil {
-		return errors.Join(core.ErrPrimitiveContract, errors.New("JavaScript JUnit report must be one compiler-owned filename"), err)
+		return errors.Join(core.ErrPrimitiveContract, errors.New("javascript junit report must be one compiler-owned filename"), err)
 	}
 	return nil
 }
@@ -98,7 +98,7 @@ func (r JavaScriptPlanRequest) Validate() error {
 		return core.ErrPrimitiveContract
 	}
 	if r.Base.Egress.Mode != EgressDenied {
-		return errors.Join(core.ErrPrimitiveContract, errors.New("JavaScript test profile must deny subject network egress"))
+		return errors.Join(core.ErrPrimitiveContract, errors.New("javascript test profile must deny subject network egress"))
 	}
 	return nil
 }

@@ -10,10 +10,10 @@ import (
 )
 
 const (
-	ExperimentCompletionSigningDomainToken = "primitive-anvil-experiment-completion-2026-1"
-	RunnerCompletionSigningDomainToken     = "primitive-anvil-runner-completion-2026-1"
-	CleanupReceiptSigningDomainToken       = "primitive-anvil-cleanup-receipt-2026-1"
-	ExpansionManifestSigningDomainToken    = "primitive-anvil-expansion-manifest-2026-1"
+	ExperimentCompletionSigningDomainToken = "primitive-runner-experiment-completion-2026-1"
+	RunnerCompletionSigningDomainToken     = "primitive-runner-completion-2026-1"
+	CleanupReceiptSigningDomainToken       = "primitive-runner-cleanup-receipt-2026-1"
+	ExpansionManifestSigningDomainToken    = "primitive-runner-expansion-manifest-2026-1"
 )
 
 type CompletionSigningDomain uint8
@@ -44,9 +44,11 @@ func (d CompletionSigningDomain) Validate() error {
 	return nil
 }
 
+func (d CompletionSigningDomain) IsValid() bool { return d.Validate() == nil }
+
 func (d CompletionSigningDomain) String() string {
 	if d.Validate() != nil {
-		return ""
+		return invalidEnumString()
 	}
 	return completionSigningDomainTokens()[d]
 }

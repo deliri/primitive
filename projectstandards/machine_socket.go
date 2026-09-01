@@ -64,7 +64,8 @@ func (r MachineResponse) Validate() error {
 	if err := contractJoin(r.Query.Validate(), r.Machine.Validate()); err != nil {
 		return err
 	}
-	if r.Query.Machine != r.Machine.Generation.Configuration.Identity.ID {
+	configuration := r.Machine.Generation.Configuration
+	if r.Query.Machine != configuration.Identity.ID {
 		return conflictError(errors.New("project standards machine response differs from query identity"))
 	}
 	return nil

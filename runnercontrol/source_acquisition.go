@@ -89,7 +89,7 @@ func (a SourceAcquisition) Validate() error {
 	if err := errors.Join(a.Fence.Validate(), a.Members.Validate(), a.Grant.Validate(), a.Document.Validate(), a.Capability.Validate(), a.Integrity.Validate(), a.ContentType.Validate(), a.Policy.Validate()); err != nil {
 		return err
 	}
-	return validateSourceAcquisitionClosure(a.Fence, a.Members, a.Grant, a.Document, a.Integrity, a.Capability)
+	return validateSourceAcquisitionClosure(a)
 }
 
 type sourceAcquisitionWire SourceAcquisition
@@ -141,15 +141,16 @@ func validateSourceProjectionClosure(p SourceAcquisitionProjection) error {
 	if err := capability.UnmarshalJSON(encoded); err != nil {
 		return err
 	}
-	return validateSourceAcquisitionClosure(p.Fence, p.Members, p.Grant, p.Document, p.Integrity, capability)
+	return validateSourceAcquisitionClosure(SourceAcquisition{Fence: p.Fence, Members: p.Members, Grant: p.Grant, Document: p.Document, Integrity: p.Integrity, Capability: capability})
 }
 
-func validateSourceAcquisitionClosure(fence SchedulingFence, members MemberSet, grant SourceGrant, document SourceArchiveDocument, integrity objectstore.Integrity, capability objectstore.DownloadCapability) error {
-	memberDigest, memberErr := members.Digest()
-	want := projectstandards.SourceCoordinate{Repository: document.Manifest.Repository, Commit: document.Manifest.Commit, Tree: document.Manifest.Tree}
-	target, targetErr := capability.Target()
-	targetGrantComparison, comparisonErr := target.ExpiresAt.Compare(grant.ExpiresAt)
-	if memberErr != nil || targetErr != nil || comparisonErr != nil || memberDigest != fence.MemberSetDigest || grant.Source != want || integrity.SHA256 != document.Manifest.ArchiveDigest || integrity.Length != document.Manifest.ArchiveBytes || targetGrantComparison == core.ComparisonGreater {
+func validateSourceAcquisitionClosure(acquisition SourceAcquisition) error {
+	memberDigest, memberErr := acquisition.Members.Digest()
+	manifest := acquisition.Document.Manifest
+	want := projectstandards.SourceCoordinate{Repository: manifest.Repository, Commit: manifest.Commit, Tree: manifest.Tree}
+	target, targetErr := acquisition.Capability.Target()
+	targetGrantComparison, comparisonErr := target.ExpiresAt.Compare(acquisition.Grant.ExpiresAt)
+	if memberErr != nil || targetErr != nil || comparisonErr != nil || memberDigest != acquisition.Fence.MemberSetDigest || acquisition.Grant.Source != want || acquisition.Integrity.SHA256 != manifest.ArchiveDigest || acquisition.Integrity.Length != manifest.ArchiveBytes || targetGrantComparison == core.ComparisonGreater {
 		return errors.Join(core.ErrPrimitiveContract, memberErr, targetErr, comparisonErr)
 	}
 	return nil

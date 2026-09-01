@@ -14,7 +14,7 @@ type junitBoundaryCase struct {
 	name      string
 	class     string
 	document  string
-	expected  uint32
+	wantUnits uint32
 	filtered  bool
 	exitError bool
 	chunk     int
@@ -38,7 +38,7 @@ func TestJUnitObservationCompilerHostileEvidenceMatrix(t *testing.T) {
 	for _, tc := range cases {
 		t.Run(tc.name, func(t *testing.T) {
 			t.Parallel()
-			policy := runnercontrol.ObservationPolicy{Format: runnercontrol.ObservationJUnitXML, ExpectedUnits: tc.expected, Filtered: tc.filtered}
+			policy := runnercontrol.ObservationPolicy{Format: runnercontrol.ObservationJUnitXML, ExpectedUnits: tc.wantUnits, Filtered: tc.filtered}
 			compiler, err := runnercontrol.NewJUnitObservationCompiler(policy)
 			if err != nil {
 				t.Fatalf("NewJUnitObservationCompiler(%s) error = %v, want nil", tc.name, err)
@@ -76,7 +76,7 @@ func junitHostileCases() []junitBoundaryCase {
 		junitSkip("valid skipped testcase remains in the denominator", "valid", skipped, 1),
 		junitSkip("valid disabled testcase remains in the denominator", "valid", disabled, 1),
 		junitPassCount("valid two passing cases close two planned units", "valid", `<testsuite><testcase name="one"/><testcase name="two"/></testsuite>`, 2, 2),
-		{name: "valid mixed outcomes preserve every distinct counter", class: "valid", document: `<testsuite><testcase name="pass"/><testcase name="fail"><failure/></testcase><testcase name="skip"><skipped/></testcase></testsuite>`, expected: 3, exitError: true, want: junitAttempt(3, 1, 1, 1, 0, false)},
+		{name: "valid mixed outcomes preserve every distinct counter", class: "valid", document: `<testsuite><testcase name="pass"/><testcase name="fail"><failure/></testcase><testcase name="skip"><skipped/></testcase></testsuite>`, wantUnits: 3, exitError: true, want: junitAttempt(3, 1, 1, 1, 0, false)},
 		junitPass("valid nested suite container does not duplicate testcase accounting", "valid", `<testsuites><testsuite name="outer"><testsuite name="inner"><testcase name="one"/></testsuite></testsuite></testsuites>`, 1),
 		junitPass("valid attributes remain diagnostic rather than accounting authority", "valid", `<testsuite tests="999" failures="999"><testcase classname="pkg" name="one" time="0.1"/></testsuite>`, 1),
 		junitPass("valid system output does not manufacture a testcase", "valid", `<testsuite><system-out>diagnostic</system-out><testcase name="one"/></testsuite>`, 1),
@@ -93,7 +93,7 @@ func junitHostileCases() []junitBoundaryCase {
 		junitReject("rejection mismatched closing element is malformed", "rejection", `<testsuite><testcase></testsuite>`, 1),
 
 		junitPass("boundary self-closing testcase is an exact passing unit", "boundary", `<testcase name="one"/>`, 1),
-		{name: "boundary one observed below two planned remains explicit not-run evidence", class: "boundary", document: pass, expected: 2, want: junitAttempt(2, 1, 0, 0, 1, false)},
+		{name: "boundary one observed below two planned remains explicit not-run evidence", class: "boundary", document: pass, wantUnits: 2, want: junitAttempt(2, 1, 0, 0, 1, false)},
 		junitPassCount("boundary exact planned count is admitted", "boundary", `<testsuite><testcase/><testcase/></testsuite>`, 2, 2),
 		junitReject("boundary one case above the denominator is refused", "boundary", `<testsuite><testcase/><testcase/><testcase/></testsuite>`, 2),
 		junitPass("boundary XML declaration is accepted without changing evidence", "boundary", `<?xml version="1.0"?><testsuite><testcase/></testsuite>`, 1),
@@ -101,12 +101,12 @@ func junitHostileCases() []junitBoundaryCase {
 		junitPass("boundary CDATA diagnostic text does not alter a passing case", "boundary", `<testsuite><testcase><![CDATA[<not-markup>]]></testcase></testsuite>`, 1),
 		junitPass("boundary processing instruction does not alter accounting", "boundary", `<testsuite><?runner exact?><testcase/></testsuite>`, 1),
 		junitPass("boundary comment does not alter accounting", "boundary", `<testsuite><!-- retained diagnostic --><testcase/></testsuite>`, 1),
-		{name: "boundary filtered policy remains visible in accounting", class: "boundary", document: pass, expected: 1, filtered: true, want: junitAttempt(1, 1, 0, 0, 0, true)},
+		{name: "boundary filtered policy remains visible in accounting", class: "boundary", document: pass, wantUnits: 1, filtered: true, want: junitAttempt(1, 1, 0, 0, 0, true)},
 		junitPassChunked("boundary one-byte chunks preserve streaming parse", "boundary", pass, 1, 1),
 		junitPassChunked("boundary token-boundary chunks preserve streaming parse", "boundary", pass, 1, 7),
-		{name: "boundary failure takes precedence over a sibling skipped marker", class: "boundary", document: `<testsuite><testcase><skipped/><failure/></testcase></testsuite>`, expected: 1, exitError: true, want: junitAttempt(1, 0, 1, 0, 0, false)},
-		{name: "boundary error takes precedence over a sibling disabled marker", class: "boundary", document: `<testsuite><testcase><disabled/><error/></testcase></testsuite>`, expected: 1, exitError: true, want: junitAttempt(1, 0, 1, 0, 0, false)},
-		{name: "boundary two skipped cases retain exact planned count", class: "boundary", document: `<testsuite><testcase><skipped/></testcase><testcase><skipped/></testcase></testsuite>`, expected: 2, want: junitAttempt(2, 0, 0, 2, 0, false)},
+		{name: "boundary failure takes precedence over a sibling skipped marker", class: "boundary", document: `<testsuite><testcase><skipped/><failure/></testcase></testsuite>`, wantUnits: 1, exitError: true, want: junitAttempt(1, 0, 1, 0, 0, false)},
+		{name: "boundary error takes precedence over a sibling disabled marker", class: "boundary", document: `<testsuite><testcase><disabled/><error/></testcase></testsuite>`, wantUnits: 1, exitError: true, want: junitAttempt(1, 0, 1, 0, 0, false)},
+		{name: "boundary two skipped cases retain exact planned count", class: "boundary", document: `<testsuite><testcase><skipped/></testcase><testcase><skipped/></testcase></testsuite>`, wantUnits: 2, want: junitAttempt(2, 0, 0, 2, 0, false)},
 		junitPass("boundary Unicode diagnostic attributes remain transportable", "boundary", `<testsuite><testcase name="測試-✓"/></testsuite>`, 1),
 		junitPass("boundary empty diagnostic elements remain neutral", "boundary", `<testsuite><properties/><system-out/><system-err/><testcase/></testsuite>`, 1),
 		junitPass("boundary failure-like prose outside testcase cannot create failure", "boundary", `<testsuite><system-out>&lt;failure/&gt;</system-out><testcase/></testsuite>`, 1),
@@ -116,11 +116,11 @@ func junitHostileCases() []junitBoundaryCase {
 }
 
 func junitPass(name, class, document string, planned uint32) junitBoundaryCase {
-	return junitBoundaryCase{name: name, class: class, document: document, expected: planned, want: junitAttempt(planned, 1, 0, 0, planned-1, false)}
+	return junitBoundaryCase{name: name, class: class, document: document, wantUnits: planned, want: junitAttempt(planned, 1, 0, 0, planned-1, false)}
 }
 
 func junitPassCount(name, class, document string, planned, passed uint32) junitBoundaryCase {
-	return junitBoundaryCase{name: name, class: class, document: document, expected: planned, want: junitAttempt(planned, passed, 0, 0, planned-passed, false)}
+	return junitBoundaryCase{name: name, class: class, document: document, wantUnits: planned, want: junitAttempt(planned, passed, 0, 0, planned-passed, false)}
 }
 
 func junitPassChunked(name, class, document string, planned uint32, chunk int) junitBoundaryCase {
@@ -130,15 +130,15 @@ func junitPassChunked(name, class, document string, planned uint32, chunk int) j
 }
 
 func junitFail(name, class, document string, planned uint32) junitBoundaryCase {
-	return junitBoundaryCase{name: name, class: class, document: document, expected: planned, exitError: true, want: junitAttempt(planned, 0, 1, 0, planned-1, false)}
+	return junitBoundaryCase{name: name, class: class, document: document, wantUnits: planned, exitError: true, want: junitAttempt(planned, 0, 1, 0, planned-1, false)}
 }
 
 func junitSkip(name, class, document string, planned uint32) junitBoundaryCase {
-	return junitBoundaryCase{name: name, class: class, document: document, expected: planned, want: junitAttempt(planned, 0, 0, 1, planned-1, false)}
+	return junitBoundaryCase{name: name, class: class, document: document, wantUnits: planned, want: junitAttempt(planned, 0, 0, 1, planned-1, false)}
 }
 
 func junitReject(name, class, document string, planned uint32) junitBoundaryCase {
-	return junitBoundaryCase{name: name, class: class, document: document, expected: planned, wantErr: core.ErrPrimitiveContract}
+	return junitBoundaryCase{name: name, class: class, document: document, wantUnits: planned, wantErr: core.ErrPrimitiveContract}
 }
 
 func junitRejectExit(name, class, document string, planned uint32, exitError bool) junitBoundaryCase {

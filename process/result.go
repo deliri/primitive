@@ -131,8 +131,12 @@ func (r Result) Observation() (ResultObservation, error) {
 	if err != nil {
 		return ResultObservation{}, err
 	}
+	exitCode, err := core.CheckedInt32FromInt(exit)
+	if err != nil {
+		return ResultObservation{}, errors.Join(core.ErrProcessContract, err)
+	}
 	observation := ResultObservation{
-		ExitCode: int32(exit), CPUTime: r.cpu,
+		ExitCode: exitCode, CPUTime: r.cpu,
 		StdinBytes: r.stdinBytes, StdoutBytes: r.stdoutBytes, StderrBytes: r.stderrBytes, PeakMemoryBytes: r.peakMemory,
 	}
 	if r.signalReported {

@@ -234,7 +234,7 @@ func validateProfiles(values []ProfileIdentity) error {
 		if err := values[index].Validate(); err != nil {
 			return err
 		}
-		for previous := 0; previous < index; previous++ {
+		for previous := range index {
 			if values[previous] == values[index] {
 				return conflictError(errors.New("project standards profile identity is duplicated"))
 			}
@@ -248,7 +248,7 @@ func validateIdentifiers(values []Identifier) error {
 		if err := values[index].Validate(); err != nil {
 			return err
 		}
-		for previous := 0; previous < index; previous++ {
+		for previous := range index {
 			if values[previous].value == values[index].value {
 				return conflictError(errors.New("project standards identifier is duplicated"))
 			}
@@ -380,12 +380,7 @@ func requestedKindsAllowed(requested, allowed []ProbeKind) bool {
 }
 
 func profileAllowed(profile ProfileIdentity, allowed []ProfileIdentity) bool {
-	for index := range allowed {
-		if profile == allowed[index] {
-			return true
-		}
-	}
-	return false
+	return slices.Contains(allowed, profile)
 }
 
 type ArtifactReference struct {
@@ -449,6 +444,7 @@ func cachePostureLabels() []string { return []string{"", "disabled", "eligible",
 func (p CachePosture) Validate() error {
 	return validateEnum(uint8(p), cachePostureLabels(), "project standards cache posture is invalid")
 }
+func (p CachePosture) IsValid() bool  { return p.Validate() == nil }
 func (p CachePosture) String() string { return enumString(uint8(p), cachePostureLabels()) }
 func (p CachePosture) MarshalJSON() ([]byte, error) {
 	return marshalEnum(uint8(p), cachePostureLabels(), "project standards cache posture is invalid")
@@ -473,7 +469,7 @@ type ExecutionAttempt struct {
 	Failed      uint32       `json:"failed"`
 	Skipped     uint32       `json:"skipped"`
 	Unavailable uint32       `json:"unavailable"`
-	TimedOut    uint32       `json:"timed_out"`
+	Expired     uint32       `json:"timed_out"`
 	Cancelled   uint32       `json:"cancelled"`
 	NotRun      uint32       `json:"not_run"`
 	Cache       CachePosture `json:"cache"`
@@ -487,7 +483,7 @@ func (a ExecutionAttempt) Validate() error {
 	if a.Sequence == 0 || a.Planned == 0 {
 		return contractError(errors.New("project standards execution attempt sequence or planned denominator is zero"))
 	}
-	total := uint64(a.Passed) + uint64(a.Failed) + uint64(a.Skipped) + uint64(a.Unavailable) + uint64(a.TimedOut) + uint64(a.Cancelled) + uint64(a.NotRun)
+	total := uint64(a.Passed) + uint64(a.Failed) + uint64(a.Skipped) + uint64(a.Unavailable) + uint64(a.Expired) + uint64(a.Cancelled) + uint64(a.NotRun)
 	if total != uint64(a.Planned) {
 		return conflictError(errors.New("project standards execution attempt outcome counts do not close against its planned denominator"))
 	}
@@ -506,7 +502,10 @@ func (a ExecutionAccounting) Validate() error {
 		if err := a.Attempts[index].Validate(); err != nil {
 			return err
 		}
-		wantSequence := uint16(index + 1)
+		wantSequence, err := core.CheckedUint16FromInt(index + 1)
+		if err != nil {
+			return contractError(err)
+		}
 		if a.Attempts[index].Sequence != wantSequence {
 			return conflictError(errors.New("project standards execution attempts are not in canonical append-only sequence"))
 		}
@@ -567,16 +566,17 @@ func validateMeasurementCollections(benchmarks []BenchmarkMeasurement, complexit
 }
 
 type SelectionObservation struct {
-	ExpansionDigest core.SHA256Digest `json:"expansion_digest"`
-	Planned         uint16            `json:"planned"`
-	Admitted        uint16            `json:"admitted"`
-	Refused         uint16            `json:"refused"`
-	Executed        uint16            `json:"executed"`
-	NotRun          uint16            `json:"not_run"`
+	ExpansionIdentity core.SHA256Digest `json:"expansion_identity"`
+	ManifestDigest    core.SHA256Digest `json:"manifest_digest"`
+	Planned           uint16            `json:"planned"`
+	Admitted          uint16            `json:"admitted"`
+	Refused           uint16            `json:"refused"`
+	Executed          uint16            `json:"executed"`
+	NotRun            uint16            `json:"not_run"`
 }
 
 func (o SelectionObservation) Validate() error {
-	if err := o.ExpansionDigest.Validate(); err != nil {
+	if err := contractJoin(o.ExpansionIdentity.Validate(), o.ManifestDigest.Validate()); err != nil {
 		return contractError(err)
 	}
 	if o.Admitted+o.Refused != o.Planned || o.Executed+o.NotRun != o.Admitted {
@@ -652,7 +652,7 @@ func validateArtifacts(values []ArtifactReference) error {
 		if err := values[index].Validate(); err != nil {
 			return err
 		}
-		for previous := 0; previous < index; previous++ {
+		for previous := range index {
 			if values[previous].Path.value == values[index].Path.value {
 				return conflictError(errors.New("project standards artifact path is duplicated"))
 			}

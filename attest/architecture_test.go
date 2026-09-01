@@ -168,7 +168,6 @@ func TestAttestProductionImportsStayOnApprovedStandardLibraryAndCoreSubstrate(t 
 		"errors",
 		"github.com/deliri/primitive/v2026/core",
 		"io",
-		"math",
 		"slices",
 		"strconv",
 		"unicode/utf8",

@@ -7,8 +7,116 @@ import (
 	"testing"
 
 	"github.com/deliri/primitive/v2026/core"
+	"github.com/deliri/primitive/v2026/process"
 	"github.com/deliri/primitive/v2026/runworkspace"
+	"github.com/deliri/primitive/v2026/temporal"
 )
+
+func TestProcessResidueSourceLayerTriad(t *testing.T) {
+	t.Parallel()
+
+	t.Run("positive eight reviewed probes populate every residue dimension exactly once", func(t *testing.T) {
+		t.Parallel()
+		working := t.TempDir()
+		probes := residueProbeFixtures(t, working, [8]string{"1", "2", "3", "4", "5", "6", "7", "8"})
+		source, sourceErr := runworkspace.NewProcessResidueSource(probes)
+		got, gotErr := source.ObserveResidue(t.Context())
+		want := runworkspace.Residue{
+			Processes: 1, ControlGroups: 2, Namespaces: 3, Mounts: 4,
+			Descriptors: 5, Sockets: 6, CredentialCustody: 7, SecretCustody: 8,
+		}
+		if sourceErr != nil || source.Validate() != nil || gotErr != nil || got != want {
+			t.Fatalf("ProcessResidueSource.ObserveResidue() = (%+v, %v), source errors (%v/%v), want (%+v, nil)", got, gotErr, sourceErr, source.Validate(), want)
+		}
+	})
+
+	t.Run("negative malformed probe output refuses the complete observation without partial residue", func(t *testing.T) {
+		t.Parallel()
+		working := t.TempDir()
+		probes := residueProbeFixtures(t, working, [8]string{"1", "2", "not-a-count", "4", "5", "6", "7", "8"})
+		if got, gotErr := runworkspace.NewProcessResidueSource(probes[:7]); !errors.Is(gotErr, core.ErrPrimitiveContract) || got.Validate() == nil {
+			t.Fatalf("NewProcessResidueSource(seven probes) = (%v, %v), want invalid zero source and errors.Is(..., %v)", got, gotErr, core.ErrPrimitiveContract)
+		}
+		source, sourceErr := runworkspace.NewProcessResidueSource(probes)
+		got, gotErr := source.ObserveResidue(t.Context())
+		if sourceErr != nil || got != (runworkspace.Residue{}) || !errors.Is(gotErr, core.ErrPrimitiveContract) {
+			t.Fatalf("ProcessResidueSource.ObserveResidue(malformed third probe) = (%+v, %v), source error %v, want zero and errors.Is(..., %v)", got, gotErr, sourceErr, core.ErrPrimitiveContract)
+		}
+	})
+
+	t.Run("neutral eight zero counts preserve an exact clean host observation", func(t *testing.T) {
+		t.Parallel()
+		working := t.TempDir()
+		probes := residueProbeFixtures(t, working, [8]string{"0", "0", "0", "0", "0", "0", "0", "0"})
+		source, sourceErr := runworkspace.NewProcessResidueSource(probes)
+		got, gotErr := source.ObserveResidue(t.Context())
+		if sourceErr != nil || gotErr != nil || got != (runworkspace.Residue{}) {
+			t.Fatalf("ProcessResidueSource.ObserveResidue(zero counts) = (%+v, %v), source error %v, want exact clean residue and nil", got, gotErr, sourceErr)
+		}
+	})
+}
+
+func FuzzResidueProbeKindJSONSemanticClosure(f *testing.F) {
+	for kind := runworkspace.ResidueProbeProcesses; kind <= runworkspace.ResidueProbeSecretCustody; kind++ {
+		encoded, err := kind.MarshalJSON()
+		if err != nil {
+			f.Fatalf("ResidueProbeKind.MarshalJSON(seed %d) error = %v, want nil", kind, err)
+		}
+		f.Add(encoded)
+	}
+	for _, malformed := range [][]byte{{}, []byte(`null`), []byte(`""`), []byte(`"future-residue"`)} {
+		f.Add(malformed)
+	}
+
+	f.Fuzz(func(t *testing.T, data []byte) {
+		before := runworkspace.ResidueProbeProcesses
+		got := before
+		gotErr := got.UnmarshalJSON(data)
+		if gotErr != nil {
+			if got != before || !errors.Is(gotErr, core.ErrJSONContract) {
+				t.Fatalf("ResidueProbeKind.UnmarshalJSON(rejected) = (%v, %v), want preserved %v and errors.Is(..., %v)", got, gotErr, before, core.ErrJSONContract)
+			}
+			return
+		}
+		if got.Validate() != nil || !got.IsValid() || got.String() == core.UnknownEnumDiagnostic {
+			t.Fatalf("ResidueProbeKind.UnmarshalJSON(accepted) = %v, want validated named enum", got)
+		}
+		encoded, encodeErr := got.MarshalJSON()
+		var roundTrip runworkspace.ResidueProbeKind
+		roundTripErr := roundTrip.UnmarshalJSON(encoded)
+		if encodeErr != nil || roundTripErr != nil || roundTrip != got {
+			t.Fatalf("ResidueProbeKind canonical closure = (%v, %v, %v), want (%v, nil, nil)", roundTrip, encodeErr, roundTripErr, got)
+		}
+	})
+}
+
+func residueProbeFixtures(t testing.TB, working string, outputs [8]string) []runworkspace.ResidueProbe {
+	t.Helper()
+	command, commandErr := core.ParseAbsolutePath("/bin/sh")
+	workingDirectory, workingErr := core.ParseAbsolutePath(working)
+	environment, environmentErr := process.ParseExactEnvironment([]string{})
+	outputLimit, outputErr := core.NewByteCount(64)
+	wait, waitErr := temporal.DurationFromMilliseconds(1000)
+	if err := errors.Join(commandErr, workingErr, environmentErr, outputErr, waitErr); err != nil {
+		t.Fatalf("residue probe execution contract setup error = %v, want nil", err)
+	}
+	probes := make([]runworkspace.ResidueProbe, len(outputs))
+	for index, output := range outputs {
+		arguments, argumentErr := process.ParseArguments([]string{"-c", "printf '%s' \"$1\"", "residue-probe", output})
+		if argumentErr != nil {
+			t.Fatalf("process.ParseArguments(residue probe %d) error = %v, want nil", index, argumentErr)
+		}
+		probes[index] = runworkspace.ResidueProbe{
+			Kind: runworkspace.ResidueProbeKind(index + 1),
+			Plan: process.Plan{
+				SchemaVersion: process.ExecutionPlanSchemaVersion, Command: command, WorkingDirectory: workingDirectory,
+				Arguments: arguments, Environment: environment, OutputLimit: outputLimit, WaitDelay: wait,
+				Containment: process.Containment{Isolation: process.IsolationDirect, CancelSignal: process.CancelSignalKill},
+			},
+		}
+	}
+	return probes
+}
 
 func TestParseResidueCountHostileEvidenceFloor(t *testing.T) {
 	t.Parallel()

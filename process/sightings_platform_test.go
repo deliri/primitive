@@ -32,9 +32,9 @@ func TestProcessSightingValidatesItsMembers(t *testing.T) {
 	if err := zero.Validate(); !errors.Is(err, core.ErrProcessContract) {
 		t.Fatalf("zero ProcessSighting.Validate() error = %v, want errors.Is %v", err, core.ErrProcessContract)
 	}
-	image, err := core.ParsePathComponent("bug")
+	image, err := core.ParsePathComponent("worker")
 	if err != nil {
-		t.Fatalf("core.ParsePathComponent(bug) error = %v, want nil", err)
+		t.Fatalf("core.ParsePathComponent(worker) error = %v, want nil", err)
 	}
 	valid := process.ProcessSighting{Identity: process.ProcessIdentity(1), Image: image}
 	if err := valid.Validate(); err != nil {

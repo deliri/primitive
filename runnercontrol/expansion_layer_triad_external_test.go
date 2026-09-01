@@ -52,6 +52,57 @@ func TestExpansionProducerSchemaVerifierLayerTriad(t *testing.T) {
 		}
 	})
 
+	t.Run("negative child-set mutation cannot retain the same manifest digest", func(t *testing.T) {
+		t.Parallel()
+		withChild := expansionManifestFixture(t, true)
+		withoutChild := expansionManifestFixture(t, false)
+		if withChild.Identity != withoutChild.Identity {
+			t.Fatalf("expansion parent identities = (%v, %v), want equal non-circular parent identity", withChild.Identity, withoutChild.Identity)
+		}
+		withDigest, withErr := withChild.Digest()
+		withoutDigest, withoutErr := withoutChild.Digest()
+		if withErr != nil || withoutErr != nil || withDigest == withoutDigest {
+			t.Fatalf("ExpansionManifest.Digest(child-set mutation) = (%v, %v, errors %v/%v), want distinct full-manifest digests", withDigest, withoutDigest, withErr, withoutErr)
+		}
+		signer, _ := completionSignerFixture(t)
+		approval := expansionApprovalSeed(t, withChild, signer)
+		got := *approval.Experiments[0].Payload.ExpansionManifestDigest
+		if got != withDigest || got == withChild.Identity {
+			t.Fatalf("experiment manifest binding = %v, want full digest %v distinct from parent identity %v", got, withDigest, withChild.Identity)
+		}
+	})
+
+	t.Run("negative parent identity cannot impersonate the full manifest digest", func(t *testing.T) {
+		t.Parallel()
+		manifest := expansionManifestFixture(t, true)
+		signer, _ := completionSignerFixture(t)
+		approval := expansionApprovalSeed(t, manifest, signer)
+		capability := approval.Experiments[0].Payload
+		capability.ExpansionManifestDigest = &manifest.Identity
+		document, issueErr := runnercontrol.IssueExperimentCapability(capability, signer)
+		approval.ManifestDigest = manifest.Identity
+		approval.Experiments = []runnercontrol.ExperimentCapabilityDocument{document}
+		if err := errors.Join(issueErr, approval.Validate()); err != nil {
+			t.Fatalf("identity-only ExpansionApproval setup error = %v, want structurally valid signed document", err)
+		}
+		got, gotErr := runnercontrol.CompileSelectionObservation(manifest, approval, 1)
+		if !errors.Is(gotErr, core.ErrPrimitiveContract) || got != (projectstandards.SelectionObservation{}) {
+			t.Fatalf("CompileSelectionObservation(identity-only approval) = (%+v, %v), want zero and errors.Is(..., %v)", got, gotErr, core.ErrPrimitiveContract)
+		}
+	})
+
+	t.Run("positive selection observation carries parent identity and full manifest digest separately", func(t *testing.T) {
+		t.Parallel()
+		manifest := expansionManifestFixture(t, true)
+		signer, _ := completionSignerFixture(t)
+		approval := expansionApprovalSeed(t, manifest, signer)
+		manifestDigest, digestErr := manifest.Digest()
+		got, gotErr := runnercontrol.CompileSelectionObservation(manifest, approval, 1)
+		if digestErr != nil || gotErr != nil || got.ExpansionIdentity != manifest.Identity || got.ManifestDigest != manifestDigest || got.ExpansionIdentity == got.ManifestDigest {
+			t.Fatalf("CompileSelectionObservation() = (%+v, %v; digest error %v), want identity %v and distinct full digest %v", got, gotErr, digestErr, manifest.Identity, manifestDigest)
+		}
+	})
+
 	t.Run("neutral selection with no discovered child retains zero accounting without inventing an experiment", func(t *testing.T) {
 		t.Parallel()
 		manifest := expansionManifestFixture(t, false)
@@ -94,7 +145,7 @@ func expansionManifestFixture(t testing.TB, includeChild bool) runnercontrol.Exp
 	t.Helper()
 	completion := experimentCompletionPayloadFixture(t, true)
 	request, requestErr := projectstandards.NewRequestIdentity(completionUUIDFixture(t))
-	module, moduleErr := projectstandards.NewIdentifier("anvil")
+	module, moduleErr := projectstandards.NewIdentifier("runner")
 	packagePath, packageErr := projectstandards.ParseSourcePath("runnercontrol")
 	filePath, fileErr := projectstandards.ParseSourcePath("runnercontrol/claim.go")
 	symbol, symbolErr := projectstandards.NewName("TestClaim")

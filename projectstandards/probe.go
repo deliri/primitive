@@ -2,6 +2,7 @@ package projectstandards
 
 import (
 	"errors"
+	"slices"
 	"strings"
 
 	"github.com/deliri/primitive/v2026/core"
@@ -483,12 +484,7 @@ func goDeclarationDescendsFromFile(child ProbeIdentity, parent *GoFileTarget) bo
 }
 
 func probeKindPresent(values []ProbeKind, want ProbeKind) bool {
-	for index := range values {
-		if values[index] == want {
-			return true
-		}
-	}
-	return false
+	return slices.Contains(values, want)
 }
 
 func contractJoin(values ...error) error {
@@ -499,7 +495,7 @@ func contractJoin(values ...error) error {
 }
 
 func duplicateProbeKind(values []ProbeKind, index int) bool {
-	for previous := 0; previous < index; previous++ {
+	for previous := range index {
 		if values[previous] == values[index] {
 			return true
 		}

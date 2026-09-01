@@ -253,8 +253,7 @@ func TestControlSocketSideCapabilitiesExcludeOppositePeerAuthority(t *testing.T)
 
 			gotFieldTypes := make([]reflect.Type, 0, tc.structure.NumField())
 			gotUnexportedFieldCount := 0
-			for index := range tc.structure.NumField() {
-				field := tc.structure.Field(index)
+			for field := range tc.structure.Fields() {
 				gotFieldTypes = append(gotFieldTypes, field.Type)
 				if field.PkgPath != "" {
 					gotUnexportedFieldCount++

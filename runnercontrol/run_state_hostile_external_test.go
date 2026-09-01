@@ -127,6 +127,78 @@ func FuzzCancellationRequestJSONSemanticClosure(f *testing.F) {
 	})
 }
 
+func FuzzRunStateResponseJSONSemanticClosure(f *testing.F) {
+	seed := runnercontrol.RunStateResponse{
+		SchemaVersion: runnercontrol.SchemaVersion, Run: runStateFixtureID(f),
+		State: runnercontrol.RunControlExecuting, UpdatedAt: temporal.InstantFromNanoseconds(2),
+	}
+	canonical, err := seed.MarshalJSON()
+	if err != nil {
+		f.Fatalf("RunStateResponse.MarshalJSON(seed) error = %v, want nil", err)
+	}
+	f.Add(canonical)
+	f.Add([]byte{})
+	f.Add([]byte(`{}`))
+
+	f.Fuzz(func(t *testing.T, data []byte) {
+		got := seed
+		gotErr := got.UnmarshalJSON(data)
+		if gotErr != nil {
+			if !errors.Is(gotErr, core.ErrJSONContract) || got != seed {
+				t.Fatalf("RunStateResponse.UnmarshalJSON(rejected) = (%+v, %v), want preserved %+v and errors.Is(..., %v)", got, gotErr, seed, core.ErrJSONContract)
+			}
+			return
+		}
+		if validationErr := got.Validate(); validationErr != nil {
+			t.Fatalf("RunStateResponse.UnmarshalJSON(accepted).Validate() error = %v, want nil", validationErr)
+		}
+		encoded, encodeErr := got.MarshalJSON()
+		var roundTrip runnercontrol.RunStateResponse
+		roundTripErr := roundTrip.UnmarshalJSON(encoded)
+		second, secondErr := roundTrip.MarshalJSON()
+		if encodeErr != nil || roundTripErr != nil || secondErr != nil || !bytes.Equal(second, encoded) {
+			t.Fatalf("RunStateResponse canonical closure = (%q, %v, %v, %v), want (%q, nil, nil, nil)", second, encodeErr, roundTripErr, secondErr, encoded)
+		}
+	})
+}
+
+func FuzzCancellationResponseJSONSemanticClosure(f *testing.F) {
+	seed := runnercontrol.CancellationResponse{
+		SchemaVersion: runnercontrol.SchemaVersion,
+		Identity:      runnercontrol.CancellationIdentity{Digest: core.SHA256Of([]byte("cancel exact run"))},
+		Run:           runStateFixtureID(f), State: runnercontrol.RunControlCancellationRequested,
+		RecordedAt: temporal.InstantFromNanoseconds(2),
+	}
+	canonical, err := seed.MarshalJSON()
+	if err != nil {
+		f.Fatalf("CancellationResponse.MarshalJSON(seed) error = %v, want nil", err)
+	}
+	f.Add(canonical)
+	f.Add([]byte{})
+	f.Add([]byte(`{}`))
+
+	f.Fuzz(func(t *testing.T, data []byte) {
+		got := seed
+		gotErr := got.UnmarshalJSON(data)
+		if gotErr != nil {
+			if !errors.Is(gotErr, core.ErrJSONContract) || got != seed {
+				t.Fatalf("CancellationResponse.UnmarshalJSON(rejected) = (%+v, %v), want preserved %+v and errors.Is(..., %v)", got, gotErr, seed, core.ErrJSONContract)
+			}
+			return
+		}
+		if validationErr := got.Validate(); validationErr != nil {
+			t.Fatalf("CancellationResponse.UnmarshalJSON(accepted).Validate() error = %v, want nil", validationErr)
+		}
+		encoded, encodeErr := got.MarshalJSON()
+		var roundTrip runnercontrol.CancellationResponse
+		roundTripErr := roundTrip.UnmarshalJSON(encoded)
+		second, secondErr := roundTrip.MarshalJSON()
+		if encodeErr != nil || roundTripErr != nil || secondErr != nil || roundTrip != got || !bytes.Equal(second, encoded) {
+			t.Fatalf("CancellationResponse canonical closure = (%+v, %q, %v, %v, %v), want (%+v, %q, nil, nil, nil)", roundTrip, second, encodeErr, roundTripErr, secondErr, got, encoded)
+		}
+	})
+}
+
 func proveRunStateRequestCanonical(t testing.TB, got runnercontrol.RunStateRequest) {
 	t.Helper()
 	if err := got.Validate(); err != nil {

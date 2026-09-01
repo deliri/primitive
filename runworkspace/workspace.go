@@ -1,4 +1,4 @@
-// Package runworkspace owns the filesystem boundary for isolated Anvil
+// Package runworkspace owns the filesystem boundary for isolated execution
 // scheduling units. Product code receives typed workspace coordinates and
 // never an ambient path or an operating-system filesystem handle.
 package runworkspace
@@ -305,7 +305,7 @@ type Residue struct {
 func (Residue) Validate() error { return nil }
 
 // ResidueSource is the Primitive-owned observation capability for non-file
-// machine state that must be clean before and after an Anvil unit.
+// machine state that must be clean before and after an execution unit.
 type ResidueSource interface {
 	ObserveResidue(context.Context) (Residue, error)
 }

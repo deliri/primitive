@@ -38,9 +38,9 @@ func TestSignedPaymentQueryLayerTriad(t *testing.T) {
 			wantKind  core.CatalogSelectionKind
 			wantLimit uint16
 		}{
-			{name: "all minimum page witness", request: signedQueryFixtureRequest{marker: 0x21, offering: paymentOffering(t, 2), pageSize: 1}, wantKind: core.CatalogSelectionAll, wantLimit: 1},
-			{name: "all one above minimum page bug", request: signedQueryFixtureRequest{marker: 0x22, offering: paymentOffering(t, 1), pageSize: 2}, wantKind: core.CatalogSelectionAll, wantLimit: 2},
-			{name: "all midpoint page peachfuzz", request: signedQueryFixtureRequest{marker: 0x23, offering: paymentOffering(t, 3), pageSize: core.CatalogPageMaximumEntries / 2}, wantKind: core.CatalogSelectionAll, wantLimit: core.CatalogPageMaximumEntries / 2},
+			{name: "all minimum page product beta", request: signedQueryFixtureRequest{marker: 0x21, offering: paymentOffering(t, 2), pageSize: 1}, wantKind: core.CatalogSelectionAll, wantLimit: 1},
+			{name: "all one above minimum page product alpha", request: signedQueryFixtureRequest{marker: 0x22, offering: paymentOffering(t, 1), pageSize: 2}, wantKind: core.CatalogSelectionAll, wantLimit: 2},
+			{name: "all midpoint page product gamma", request: signedQueryFixtureRequest{marker: 0x23, offering: paymentOffering(t, 3), pageSize: core.CatalogPageMaximumEntries / 2}, wantKind: core.CatalogSelectionAll, wantLimit: core.CatalogPageMaximumEntries / 2},
 			{name: "all one below maximum page", request: signedQueryFixtureRequest{marker: 0x24, pageSize: core.CatalogPageMaximumEntries - 1}, wantKind: core.CatalogSelectionAll, wantLimit: core.CatalogPageMaximumEntries - 1},
 			{name: "all exact maximum page", request: signedQueryFixtureRequest{marker: 0x25, pageSize: core.CatalogPageMaximumEntries}, wantKind: core.CatalogSelectionAll, wantLimit: core.CatalogPageMaximumEntries},
 			{name: "all after opaque cursor minimum page", request: signedQueryFixtureRequest{marker: 0x26, position: signedQueryAfter(t, 0x26), pageSize: 1}, wantKind: core.CatalogSelectionAll, wantLimit: 1},

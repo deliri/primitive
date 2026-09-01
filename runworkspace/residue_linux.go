@@ -24,7 +24,7 @@ const (
 )
 
 // LinuxResidueConfiguration binds the fixed host coordinates whose residue
-// can belong to an Anvil subject. It does not scan unrelated host state into
+// can belong to an isolated subject. It does not scan unrelated host state into
 // a world model.
 type LinuxResidueConfiguration struct {
 	ProcRoot             core.AbsolutePath
@@ -42,14 +42,22 @@ func (c LinuxResidueConfiguration) Validate() error {
 		return err
 	}
 	if c.ProcessUserID == 0 {
-		return errors.Join(core.ErrPrimitiveContract, errors.New("Linux residue process user ID must be nonzero"))
+		return errors.Join(core.ErrPrimitiveContract, errors.New("linux residue process user id must be nonzero"))
 	}
 	return nil
 }
 
 // LinuxResidueSource streams the live Linux process and ownership surfaces
-// under the configured, reviewed Anvil coordinates.
+// under the configured, reviewed execution coordinates.
 type LinuxResidueSource struct{ configuration LinuxResidueConfiguration }
+
+type residueCounts struct {
+	processes   uint32
+	descriptors uint32
+	sockets     uint32
+}
+
+func (residueCounts) runWorkspaceInternalFlow() {}
 
 func NewLinuxResidueSource(configuration LinuxResidueConfiguration) (LinuxResidueSource, error) {
 	if err := configuration.Validate(); err != nil {
@@ -64,17 +72,17 @@ func (s LinuxResidueSource) ObserveResidue(ctx context.Context) (Residue, error)
 	if err := s.Validate(); err != nil {
 		return Residue{}, err
 	}
-	processes, descriptors, sockets, err := s.observeSubjectProcesses(ctx)
+	processResidue, err := s.observeSubjectProcesses(ctx)
 	if err != nil {
 		return Residue{}, err
 	}
 	controlGroups, err := countPrefixedEntries(ctx, s.configuration.ControlGroupRoot, s.configuration.UnitPrefix.String())
 	if err != nil {
-		return Residue{}, fmt.Errorf("observe Anvil control-group residue: %w", err)
+		return Residue{}, fmt.Errorf("observe control-group residue: %w", err)
 	}
 	namespaces, err := countPrefixedEntries(ctx, s.configuration.NetworkNamespaceRoot, s.configuration.UnitPrefix.String())
 	if err != nil {
-		return Residue{}, fmt.Errorf("observe Anvil network-namespace residue: %w", err)
+		return Residue{}, fmt.Errorf("observe network-namespace residue: %w", err)
 	}
 	mounts, err := s.observeRunMounts(ctx)
 	if err != nil {
@@ -89,69 +97,79 @@ func (s LinuxResidueSource) ObserveResidue(ctx context.Context) (Residue, error)
 		return Residue{}, fmt.Errorf("observe secret custody residue: %w", err)
 	}
 	return Residue{
-		Processes: processes, ControlGroups: controlGroups, Namespaces: namespaces, Mounts: mounts,
-		Descriptors: descriptors, Sockets: sockets, CredentialCustody: credentials, SecretCustody: secrets,
+		Processes: processResidue.processes, ControlGroups: controlGroups, Namespaces: namespaces, Mounts: mounts,
+		Descriptors: processResidue.descriptors, Sockets: processResidue.sockets, CredentialCustody: credentials, SecretCustody: secrets,
 	}, nil
 }
 
-func (s LinuxResidueSource) observeSubjectProcesses(ctx context.Context) (uint32, uint32, uint32, error) {
+func (s LinuxResidueSource) observeSubjectProcesses(ctx context.Context) (counts residueCounts, resultErr error) {
 	directory, err := os.Open(s.configuration.ProcRoot.String())
 	if err != nil {
-		return 0, 0, 0, fmt.Errorf("open Linux process table: %w", err)
+		return residueCounts{}, fmt.Errorf("open Linux process table: %w", err)
 	}
-	var processes uint32
-	var descriptors uint32
-	var sockets uint32
+	defer func() { resultErr = errors.Join(resultErr, directory.Close()) }()
 	for {
 		if err := ctx.Err(); err != nil {
-			return 0, 0, 0, errors.Join(err, directory.Close())
+			return residueCounts{}, err
 		}
 		entries, readErr := directory.ReadDir(residueReadBatch)
 		for _, entry := range entries {
-			if !entry.IsDir() || !decimalName(entry.Name()) {
-				continue
+			contribution, observeErr := s.observeProcessEntry(ctx, entry)
+			if observeErr != nil {
+				return residueCounts{}, observeErr
 			}
-			owned, ownershipErr := s.processOwnedBySubject(entry.Name())
-			if errors.Is(ownershipErr, fs.ErrNotExist) {
-				continue
-			}
-			if ownershipErr != nil {
-				return 0, 0, 0, errors.Join(ownershipErr, directory.Close())
-			}
-			if !owned {
-				continue
-			}
-			if incrementErr := incrementResidue(&processes); incrementErr != nil {
-				return 0, 0, 0, errors.Join(incrementErr, directory.Close())
-			}
-			ownedDescriptors, ownedSockets, descriptorErr := s.observeProcessDescriptors(ctx, entry.Name())
-			if errors.Is(descriptorErr, fs.ErrNotExist) {
-				continue
-			}
-			descriptorCountErr := addResidue(&descriptors, ownedDescriptors)
-			socketCountErr := addResidue(&sockets, ownedSockets)
-			if err := errors.Join(descriptorErr, descriptorCountErr, socketCountErr); err != nil {
-				return 0, 0, 0, errors.Join(err, directory.Close())
+			if err := counts.add(contribution); err != nil {
+				return residueCounts{}, err
 			}
 		}
 		if errors.Is(readErr, io.EOF) {
 			break
 		}
 		if readErr != nil {
-			return 0, 0, 0, errors.Join(readErr, directory.Close())
+			return residueCounts{}, readErr
 		}
 	}
-	if closeErr := directory.Close(); closeErr != nil {
-		return 0, 0, 0, closeErr
-	}
-	return processes, descriptors, sockets, nil
+	return counts, nil
 }
 
-func (s LinuxResidueSource) processOwnedBySubject(processID string) (bool, error) {
+func (s LinuxResidueSource) observeProcessEntry(ctx context.Context, entry fs.DirEntry) (residueCounts, error) {
+	if !entry.IsDir() || !decimalName(entry.Name()) {
+		return residueCounts{}, nil
+	}
+	owned, err := s.processOwnedBySubject(entry.Name())
+	if errors.Is(err, fs.ErrNotExist) {
+		return residueCounts{}, nil
+	}
+	if err != nil || !owned {
+		return residueCounts{}, err
+	}
+	counts := residueCounts{processes: 1}
+	descriptors, descriptorErr := s.observeProcessDescriptors(ctx, entry.Name())
+	if errors.Is(descriptorErr, fs.ErrNotExist) {
+		return counts, nil
+	}
+	if descriptorErr != nil {
+		return residueCounts{}, descriptorErr
+	}
+	counts.descriptors = descriptors.descriptors
+	counts.sockets = descriptors.sockets
+	return counts, nil
+}
+
+func (c *residueCounts) add(other residueCounts) error {
+	return errors.Join(
+		addResidue(&c.processes, other.processes),
+		addResidue(&c.descriptors, other.descriptors),
+		addResidue(&c.sockets, other.sockets),
+	)
+}
+
+func (s LinuxResidueSource) processOwnedBySubject(processID string) (owned bool, resultErr error) {
 	status, err := os.Open(filepath.Join(s.configuration.ProcRoot.String(), processID, "status"))
 	if err != nil {
 		return false, err
 	}
+	defer func() { resultErr = errors.Join(resultErr, status.Close()) }()
 	scanner := bufio.NewScanner(status)
 	scanner.Buffer(make([]byte, 256), residueLineMaximum)
 	for scanner.Scan() {
@@ -160,76 +178,83 @@ func (s LinuxResidueSource) processOwnedBySubject(processID string) (bool, error
 			continue
 		}
 		uid, parseErr := ParseLinuxStatusUIDRow(line)
-		return uid == s.configuration.ProcessUserID, errors.Join(parseErr, status.Close())
+		return uid == s.configuration.ProcessUserID, parseErr
 	}
-	return false, errors.Join(core.ErrPrimitiveContract, scanner.Err(), status.Close(), errors.New("Linux process status has no Uid row"))
+	return false, errors.Join(core.ErrPrimitiveContract, scanner.Err(), errors.New("linux process status has no uid row"))
 }
 
-func (s LinuxResidueSource) observeProcessDescriptors(ctx context.Context, processID string) (uint32, uint32, error) {
+func (s LinuxResidueSource) observeProcessDescriptors(ctx context.Context, processID string) (counts residueCounts, resultErr error) {
 	directory, err := os.Open(filepath.Join(s.configuration.ProcRoot.String(), processID, "fd"))
 	if err != nil {
-		return 0, 0, err
+		return residueCounts{}, err
 	}
-	var descriptors uint32
-	var sockets uint32
+	defer func() { resultErr = errors.Join(resultErr, directory.Close()) }()
 	for {
 		if err := ctx.Err(); err != nil {
-			return 0, 0, errors.Join(err, directory.Close())
+			return residueCounts{}, err
 		}
 		entries, readErr := directory.ReadDir(residueReadBatch)
 		for _, entry := range entries {
-			target, linkErr := os.Readlink(filepath.Join(s.configuration.ProcRoot.String(), processID, "fd", entry.Name()))
-			if errors.Is(linkErr, fs.ErrNotExist) {
-				continue
+			contribution, observeErr := s.observeDescriptor(processID, entry.Name())
+			if observeErr != nil {
+				return residueCounts{}, observeErr
 			}
-			if linkErr != nil {
-				return 0, 0, errors.Join(linkErr, directory.Close())
-			}
-			if pathWithin(target, s.configuration.RunParent.String()) {
-				if err := incrementResidue(&descriptors); err != nil {
-					return 0, 0, errors.Join(err, directory.Close())
-				}
-			}
-			if strings.HasPrefix(target, "socket:[") {
-				if err := incrementResidue(&sockets); err != nil {
-					return 0, 0, errors.Join(err, directory.Close())
-				}
+			if err := counts.add(contribution); err != nil {
+				return residueCounts{}, err
 			}
 		}
 		if errors.Is(readErr, io.EOF) {
 			break
 		}
 		if readErr != nil {
-			return 0, 0, errors.Join(readErr, directory.Close())
+			return residueCounts{}, readErr
 		}
 	}
-	return descriptors, sockets, directory.Close()
+	return counts, nil
 }
 
-func (s LinuxResidueSource) observeRunMounts(ctx context.Context) (uint32, error) {
+func (s LinuxResidueSource) observeDescriptor(processID, descriptorName string) (residueCounts, error) {
+	target, err := os.Readlink(filepath.Join(s.configuration.ProcRoot.String(), processID, "fd", descriptorName))
+	if errors.Is(err, fs.ErrNotExist) {
+		return residueCounts{}, nil
+	}
+	if err != nil {
+		return residueCounts{}, err
+	}
+	var counts residueCounts
+	if pathWithin(target, s.configuration.RunParent.String()) {
+		counts.descriptors = 1
+	}
+	if strings.HasPrefix(target, "socket:[") {
+		counts.sockets = 1
+	}
+	return counts, nil
+}
+
+func (s LinuxResidueSource) observeRunMounts(ctx context.Context) (count uint32, resultErr error) {
 	mountInfo := filepath.Join(s.configuration.ProcRoot.String(), "self", "mountinfo")
 	file, err := os.Open(mountInfo)
 	if err != nil {
 		return 0, fmt.Errorf("open Linux mount table: %w", err)
 	}
+	defer func() { resultErr = errors.Join(resultErr, file.Close()) }()
 	scanner := bufio.NewScanner(file)
 	scanner.Buffer(make([]byte, 1024), residueLineMaximum)
-	var count uint32
 	for scanner.Scan() {
 		if err := ctx.Err(); err != nil {
-			return 0, errors.Join(err, file.Close())
+			return 0, err
 		}
 		mountPoint, parseErr := ParseLinuxMountInfoPoint(scanner.Text())
 		if parseErr != nil {
-			return 0, errors.Join(parseErr, file.Close())
+			return 0, parseErr
 		}
 		if pathWithin(mountPoint, s.configuration.RunParent.String()) {
 			if err := incrementResidue(&count); err != nil {
-				return 0, errors.Join(err, file.Close())
+				return 0, err
 			}
 		}
 	}
-	return count, errors.Join(scanner.Err(), file.Close())
+	return count, scanner.Err()
 }
 
 func countPrefixedEntries(ctx context.Context, root core.AbsolutePath, prefix string) (uint32, error) {
@@ -240,21 +265,21 @@ func countAllEntries(ctx context.Context, root core.AbsolutePath) (uint32, error
 	return countDirectoryEntries(ctx, root, func(string) bool { return true })
 }
 
-func countDirectoryEntries(ctx context.Context, root core.AbsolutePath, include func(string) bool) (uint32, error) {
+func countDirectoryEntries(ctx context.Context, root core.AbsolutePath, include func(string) bool) (count uint32, resultErr error) {
 	directory, err := os.Open(root.String())
 	if err != nil {
 		return 0, err
 	}
-	var count uint32
+	defer func() { resultErr = errors.Join(resultErr, directory.Close()) }()
 	for {
 		if err := ctx.Err(); err != nil {
-			return 0, errors.Join(err, directory.Close())
+			return 0, err
 		}
 		entries, readErr := directory.ReadDir(residueReadBatch)
 		for _, entry := range entries {
 			if include(entry.Name()) {
 				if err := incrementResidue(&count); err != nil {
-					return 0, errors.Join(err, directory.Close())
+					return 0, err
 				}
 			}
 		}
@@ -262,10 +287,10 @@ func countDirectoryEntries(ctx context.Context, root core.AbsolutePath, include 
 			break
 		}
 		if readErr != nil {
-			return 0, errors.Join(readErr, directory.Close())
+			return 0, readErr
 		}
 	}
-	return count, directory.Close()
+	return count, nil
 }
 
 func decimalName(value string) bool {
@@ -304,4 +329,5 @@ var (
 	_ core.Validatable = LinuxResidueConfiguration{}
 	_ core.Validatable = LinuxResidueSource{}
 	_ ResidueSource    = LinuxResidueSource{}
+	_ internalFlow     = residueCounts{}
 )

@@ -14,7 +14,7 @@ import (
 
 const (
 	RunStateRequestMaximumBytes  = 64 * 1024
-	RunStateResponseMaximumBytes = core.JSONDocumentMaximumBytes
+	RunStateResponseMaximumBytes = 1 << 20
 )
 
 type RunControlState uint8
@@ -40,29 +40,13 @@ func (s RunControlState) Validate() error {
 	return nil
 }
 
+func (s RunControlState) IsValid() bool { return s.Validate() == nil }
+
 func (s RunControlState) String() string {
-	switch s {
-	case RunControlQueued:
-		return "queued"
-	case RunControlStarting:
-		return "starting"
-	case RunControlReady:
-		return "ready"
-	case RunControlExecuting:
-		return "executing"
-	case RunControlCancellationRequested:
-		return "cancellation-requested"
-	case RunControlCleaning:
-		return "cleaning"
-	case RunControlDelivering:
-		return "delivering"
-	case RunControlDelivered:
-		return "delivered"
-	case RunControlInfrastructureFailed:
-		return "infrastructure-failed"
-	default:
-		return ""
+	if !s.IsValid() {
+		return invalidEnumString()
 	}
+	return []string{"", "queued", "starting", "ready", "executing", "cancellation-requested", "cleaning", "delivering", "delivered", "infrastructure-failed"}[s]
 }
 
 func (s RunControlState) MarshalJSON() ([]byte, error) {
@@ -145,6 +129,8 @@ type CancellationRequest struct {
 	RequestedAt   temporal.Instant       `json:"requested_at"`
 }
 
+const cancellationIdempotencyNamespace = "runner-control-cancellation:"
+
 func (r CancellationRequest) Validate() error {
 	if r.SchemaVersion != SchemaVersion {
 		return core.ErrPrimitiveContract
@@ -160,7 +146,7 @@ func (r CancellationRequest) IdempotencyKey() (exchange.IdempotencyKey, error) {
 	if err != nil {
 		return exchange.IdempotencyKey{}, err
 	}
-	return exchange.ParseIdempotencyKey("anvil-cancellation:" + hex)
+	return exchange.ParseIdempotencyKey(cancellationIdempotencyNamespace + hex)
 }
 
 type CancellationResponse struct {

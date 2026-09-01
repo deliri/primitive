@@ -29,15 +29,13 @@ func (p NetworkProtocol) Validate() error {
 	return nil
 }
 
+func (p NetworkProtocol) IsValid() bool { return p.Validate() == nil }
+
 func (p NetworkProtocol) String() string {
-	switch p {
-	case NetworkTCP:
-		return "tcp"
-	case NetworkUDP:
-		return "udp"
-	default:
-		return ""
+	if !p.IsValid() {
+		return invalidEnumString()
 	}
+	return []string{"", "tcp", "udp"}[p]
 }
 
 func (p NetworkProtocol) MarshalJSON() ([]byte, error) {
@@ -82,15 +80,13 @@ func (m EgressMode) Validate() error {
 	return nil
 }
 
+func (m EgressMode) IsValid() bool { return m.Validate() == nil }
+
 func (m EgressMode) String() string {
-	switch m {
-	case EgressDenied:
-		return "denied"
-	case EgressPinned:
-		return "pinned"
-	default:
-		return ""
+	if !m.IsValid() {
+		return invalidEnumString()
 	}
+	return []string{"", "denied", "pinned"}[m]
 }
 
 func (m EgressMode) MarshalJSON() ([]byte, error) {
@@ -191,7 +187,7 @@ func egressRuleLess(left, right EgressRule) bool {
 }
 
 func egressRuleDuplicatesEarlier(rules []EgressRule, index int) bool {
-	for previous := 0; previous < index; previous++ {
+	for previous := range index {
 		if rules[previous].Service == rules[index].Service && rules[previous].Port == rules[index].Port && rules[previous].Protocol == rules[index].Protocol {
 			return true
 		}
@@ -370,7 +366,7 @@ func (w ResourceWave) validateShape() error {
 }
 
 func experimentDuplicatesEarlier(experiments []projectstandards.ExperimentID, index int) bool {
-	for previous := 0; previous < index; previous++ {
+	for previous := range index {
 		if experiments[previous] == experiments[index] {
 			return true
 		}

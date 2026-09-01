@@ -34,19 +34,13 @@ func (s HeartbeatState) Validate() error {
 	return nil
 }
 
+func (s HeartbeatState) IsValid() bool { return s.Validate() == nil }
+
 func (s HeartbeatState) String() string {
-	switch s {
-	case HeartbeatReady:
-		return "ready"
-	case HeartbeatExecuting:
-		return "executing"
-	case HeartbeatDraining:
-		return "draining"
-	case HeartbeatStateUnknown:
-		return ""
-	default:
-		return ""
+	if !s.IsValid() {
+		return invalidEnumString()
 	}
+	return []string{"", "ready", "executing", "draining"}[s]
 }
 
 func (s HeartbeatState) MarshalJSON() ([]byte, error) {
@@ -96,23 +90,13 @@ func (k DirectiveKind) Validate() error {
 	return nil
 }
 
+func (k DirectiveKind) IsValid() bool { return k.Validate() == nil }
+
 func (k DirectiveKind) String() string {
-	switch k {
-	case DirectiveContinue:
-		return "continue"
-	case DirectiveCancelMember:
-		return "cancel-member"
-	case DirectiveCancelUnit:
-		return "cancel-unit"
-	case DirectiveRevokeLease:
-		return "revoke-lease"
-	case DirectiveDrain:
-		return "drain"
-	case DirectiveUnknown:
-		return ""
-	default:
-		return ""
+	if !k.IsValid() {
+		return invalidEnumString()
 	}
+	return []string{"", "continue", "cancel-member", "cancel-unit", "revoke-lease", "drain"}[k]
 }
 
 func (k DirectiveKind) MarshalJSON() ([]byte, error) {

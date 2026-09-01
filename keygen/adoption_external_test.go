@@ -110,7 +110,6 @@ func TestAdoptPrivateKeyAdmitsExactlyWhatPrivateKeyProjects(t *testing.T) {
 	}
 	cases := append([]adoptionCase(nil), validCases...)
 	for _, boundary := range invalidExtents {
-		boundary := boundary
 		cases = append(cases, adoptionCase{
 			name:    boundary.name,
 			setup:   func(*testing.T) ed25519.PrivateKey { return make(ed25519.PrivateKey, boundary.extent) },

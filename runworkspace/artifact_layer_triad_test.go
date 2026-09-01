@@ -23,6 +23,9 @@ func TestExpectedArtifactLayerTriad(t *testing.T) {
 		content := []byte("mode: atomic\nexample/file.go:1.1,1.2 1 1\n")
 		expectation := artifactExpectationFixture(t, experiment, "coverage.out", true, uint64(len(content)))
 		writeExpectedArtifact(t, root, expectation.Path, content)
+		if gotErr := manager.ValidateArtifactExpectations(experiment, []runnercontrol.ArtifactExpectation{expectation}); gotErr != nil {
+			t.Fatalf("Manager.ValidateArtifactExpectations(coverage) error = %v, want nil", gotErr)
+		}
 
 		got, present, gotErr := manager.ObserveArtifact(t.Context(), experiment, expectation)
 		if gotErr != nil || !present {
@@ -57,6 +60,9 @@ func TestExpectedArtifactLayerTriad(t *testing.T) {
 		manager, _, experiment, _ := captureFixture(t)
 		defer closeScrubManager(t, manager)
 		expectation := artifactExpectationFixture(t, experiment, "optional.trace", false, 1024)
+		if gotErr := manager.ValidateArtifactExpectations(experiment, nil); gotErr != nil {
+			t.Fatalf("Manager.ValidateArtifactExpectations(empty) error = %v, want nil", gotErr)
+		}
 
 		got, present, gotErr := manager.ObserveArtifact(t.Context(), experiment, expectation)
 		if gotErr != nil || present || got != (runworkspace.ArtifactEvidence{}) {
@@ -74,6 +80,9 @@ func TestExpectedArtifactLayerTriad(t *testing.T) {
 		}
 		expectation := artifactExpectationFixture(t, experiment, "coverage.out", false, 1024)
 		expectation.Path = foreign
+		if validationErr := manager.ValidateArtifactExpectations(experiment, []runnercontrol.ArtifactExpectation{expectation}); !errors.Is(validationErr, core.ErrPrimitiveContract) {
+			t.Fatalf("Manager.ValidateArtifactExpectations(foreign path) error = %v, want errors.Is(..., %v)", validationErr, core.ErrPrimitiveContract)
+		}
 
 		got, present, gotErr := manager.ObserveArtifact(t.Context(), experiment, expectation)
 		if !errors.Is(gotErr, core.ErrPrimitiveContract) || present || got != (runworkspace.ArtifactEvidence{}) {
@@ -111,7 +120,7 @@ func writeExpectedArtifact(t testing.TB, rootPath core.AbsolutePath, protocolPat
 	_, writeErr := filestore.Write(t.Context(), filestore.WriteRequest{Source: bytes.NewReader(content), Location: filestore.Location{Root: root, Path: path}, Temporary: temporary, Mode: fs.FileMode(0o600), Install: filestore.InstallCreate, MaximumBytes: maximum})
 	closeErr := root.Close()
 	if err := errors.Join(writeErr, closeErr); err != nil {
-		t.Fatalf("filestore.Write(expected artifact) error = %v, want nil", err)
+		t.Fatalf("filestore.Write(wanted artifact) error = %v, want nil", err)
 	}
 }
 

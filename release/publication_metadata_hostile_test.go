@@ -142,7 +142,7 @@ func TestBuildProvenanceRejectsUnverifiedTools(t *testing.T) {
 
 func provenanceBuildPlan(t *testing.T) BuildPlan {
 	t.Helper()
-	mainPackage, _ := ParseMainPackage("github.com/offGridSoft/bug/cmd/bug")
+	mainPackage, _ := ParseMainPackage("github.com/example/product/cmd/product")
 	output, _ := core.ParseRelativePath("dist")
 	commit, _ := core.ParseBuildCommit("b5c32d95d212b0a1a8cef4126e4d11ff288079ef")
 	plan, err := PrepareBuildPlan(BuildPlanRequest{

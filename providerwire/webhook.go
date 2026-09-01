@@ -525,9 +525,10 @@ func writeAuthenticatedBody(ctx context.Context, provider Provider, destination 
 	}
 	var buffer [exchange.TransferBufferBytes]byte
 	written, err := io.CopyBuffer(destination, bytes.NewReader(body), buffer[:])
-	length, lengthErr := core.NewByteLength(uint64(written))
+	writtenBytes, writtenErr := core.CheckedUint64FromInt64(written)
+	length, lengthErr := core.NewByteLength(writtenBytes)
 	observation := InboundObservation{Provider: provider, Bytes: length}
-	if err := errors.Join(err, lengthErr, contextstate.Validate(ctx)); err != nil {
+	if err := errors.Join(err, writtenErr, lengthErr, contextstate.Validate(ctx)); err != nil {
 		return observation, err
 	}
 	if written != int64(len(body)) {

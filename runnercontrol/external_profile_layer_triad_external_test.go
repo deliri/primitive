@@ -133,7 +133,7 @@ func smokePlanFixture(t testing.TB, egress runnercontrol.EgressPolicy) runnercon
 func toolPlanFixture(t testing.TB) runnercontrol.ToolPlanRequest {
 	t.Helper()
 	base := externalPlanBaseFixture(t, deniedExternalEgress())
-	base.Command = mustProfileAbsolutePath(t, "/usr/libexec/anvil-witness")
+	base.Command = mustProfileAbsolutePath(t, "/usr/libexec/fixture-tool")
 	return runnercontrol.ToolPlanRequest{Base: base, Tool: runnercontrol.ToolPlan{Timeout: mustProfileDuration(t, 60_000_000_000)}}
 }
 
@@ -147,8 +147,8 @@ func externalPlanBaseFixture(t testing.TB, egress runnercontrol.EgressPolicy) ru
 	}
 	subject.EgressPolicyIdentity = digest
 	if egress.Mode == runnercontrol.EgressPinned {
-		namespace := mustProfileAbsolutePath(t, "/run/netns/anvil-smoke")
-		controller := mustProfileAbsolutePath(t, "/usr/libexec/anvil-network")
+		namespace := mustProfileAbsolutePath(t, "/run/netns/primitive-smoke")
+		controller := mustProfileAbsolutePath(t, "/usr/libexec/primitive-network")
 		subject.NetworkNamespace = &namespace
 		subject.NetworkController = &controller
 	}

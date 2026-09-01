@@ -8,7 +8,7 @@ import (
 	"github.com/deliri/primitive/v2026/temporal"
 )
 
-const SchedulingMemberCapabilityMaximum = SchedulingMemberMaximum
+const SchedulingMemberCapabilityMaximum = 128
 
 type SchedulingCapability struct {
 	SchemaVersion    uint16                                `json:"schema_version"`
@@ -232,7 +232,7 @@ func (c ExperimentCapability) validateIdentityClosure() error {
 		return core.ErrPrimitiveContract
 	}
 	if c.ExpansionManifestDigest != nil {
-		if err := c.ExpansionManifestDigest.Validate(); err != nil || *c.ExpansionManifestDigest != c.Probe.Parent.ExpansionDigest {
+		if err := c.ExpansionManifestDigest.Validate(); err != nil {
 			return errors.Join(core.ErrPrimitiveContract, err)
 		}
 	}
@@ -248,16 +248,16 @@ func validateCapabilityExpiry(expiresAt, fenceExpiry temporal.Instant) error {
 }
 
 type SchedulingClaim struct {
-	Capability SchedulingCapability   `json:"scheduling_capability"`
-	Members    []MemberCapability     `json:"member_capabilities"`
-	Direct     []ExperimentCapability `json:"direct_experiment_capabilities"`
+	Capability SchedulingCapabilityDocument   `json:"scheduling_capability"`
+	Members    []MemberCapabilityDocument     `json:"member_capabilities"`
+	Direct     []ExperimentCapabilityDocument `json:"direct_experiment_capabilities"`
 }
 
 func (c SchedulingClaim) Validate() error {
 	if err := c.Capability.Validate(); err != nil {
 		return err
 	}
-	if len(c.Members) == 0 || len(c.Members) > SchedulingMemberCapabilityMaximum || len(c.Members) != len(c.Capability.Members.Entries) {
+	if len(c.Members) == 0 || len(c.Members) > SchedulingMemberCapabilityMaximum || len(c.Members) != len(c.Capability.Payload.Members.Entries) {
 		return core.ErrPrimitiveContract
 	}
 	if err := validateSchedulingMembers(c); err != nil {
@@ -276,7 +276,7 @@ func validateSchedulingMembers(c SchedulingClaim) error {
 		if err := member.Validate(); err != nil {
 			return err
 		}
-		if member.SchedulingDigest != digest || member.Fence != c.Capability.Fence || member.Run != c.Capability.Members.Entries[index] {
+		if member.Payload.SchedulingDigest != digest || member.Payload.Fence != c.Capability.Payload.Fence || member.Payload.Run != c.Capability.Payload.Members.Entries[index] {
 			return core.ErrPrimitiveContract
 		}
 	}
@@ -287,7 +287,7 @@ func validateDirectExperimentCapabilities(claim SchedulingClaim) error {
 	directIndex := 0
 	for memberIndex := range claim.Members {
 		member := claim.Members[memberIndex]
-		if member.Probe.Role != projectstandards.ProbeRoleExperiment {
+		if member.Payload.Probe.Role != projectstandards.ProbeRoleExperiment {
 			continue
 		}
 		if directIndex >= len(claim.Direct) {
@@ -304,7 +304,7 @@ func validateDirectExperimentCapabilities(claim SchedulingClaim) error {
 	return nil
 }
 
-func validateDirectExperiment(scheduling SchedulingCapability, member MemberCapability, experiment ExperimentCapability) error {
+func validateDirectExperiment(scheduling SchedulingCapabilityDocument, member MemberCapabilityDocument, experiment ExperimentCapabilityDocument) error {
 	memberDigest, err := member.Digest()
 	if err != nil {
 		return err
@@ -312,7 +312,7 @@ func validateDirectExperiment(scheduling SchedulingCapability, member MemberCapa
 	if err := experiment.Validate(); err != nil {
 		return err
 	}
-	if experiment.Run != member.Run || experiment.Fence != member.Fence || experiment.MemberCapabilityDigest != memberDigest || experiment.Source != scheduling.Source || experiment.Execution.Subject.PolicyIdentity != scheduling.IsolationPolicy || experiment.ExpansionManifestDigest != nil || equalProbeIdentity(experiment.Probe, member.Probe) != nil {
+	if experiment.Payload.Run != member.Payload.Run || experiment.Payload.Fence != member.Payload.Fence || experiment.Payload.MemberCapabilityDigest != memberDigest || experiment.Payload.Source != scheduling.Payload.Source || experiment.Payload.Execution.Subject.PolicyIdentity != scheduling.Payload.IsolationPolicy || experiment.Payload.ExpansionManifestDigest != nil || equalProbeIdentity(experiment.Payload.Probe, member.Payload.Probe) != nil {
 		return core.ErrPrimitiveContract
 	}
 	return nil

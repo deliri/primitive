@@ -28,15 +28,37 @@ func (k CaptureKind) Validate() error {
 	return nil
 }
 
+func (k CaptureKind) IsValid() bool { return k.Validate() == nil }
+
 func (k CaptureKind) String() string {
-	switch k {
-	case CaptureStdout:
-		return "stdout"
-	case CaptureStderr:
-		return "stderr"
-	default:
-		return ""
+	if !k.IsValid() {
+		return invalidEnumString()
 	}
+	return []string{"", "stdout", "stderr"}[k]
+}
+
+func (k CaptureKind) MarshalJSON() ([]byte, error) {
+	if err := k.Validate(); err != nil {
+		return nil, errors.Join(core.ErrJSONContract, err)
+	}
+	return core.MarshalCanonicalJSONString(k.String())
+}
+
+func (k *CaptureKind) UnmarshalJSON(data []byte) error {
+	if k == nil {
+		return errors.Join(core.ErrJSONContract, core.ErrPrimitiveContract)
+	}
+	value, err := core.DecodeJSONStringToken(data)
+	if err != nil {
+		return errors.Join(core.ErrJSONContract, err)
+	}
+	for candidate := CaptureStdout; candidate < captureKindLimit; candidate++ {
+		if candidate.String() == value {
+			*k = candidate
+			return nil
+		}
+	}
+	return errors.Join(core.ErrJSONContract, core.ErrPrimitiveContract)
 }
 
 type CaptureEvidence struct {

@@ -243,7 +243,7 @@ func (d releaseTextDoor) functionName() string {
 }
 
 func FuzzReleaseExternalTextDoorInventory(f *testing.F) {
-	mainPackage, err := ParseMainPackage("github.com/offGridSoft/witness/cmd/witness")
+	mainPackage, err := ParseMainPackage("github.com/example/product/cmd/product")
 	if err != nil {
 		f.Fatalf("ParseMainPackage(seed) error = %v, want nil", err)
 	}

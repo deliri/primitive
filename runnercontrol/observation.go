@@ -43,31 +43,38 @@ func (r ExperimentObservationRequest) Validate() error {
 			return err
 		}
 	}
-	return ValidateExperimentMeasurements(r.Capability, r.Failure, r.Process != nil, r.Measurements)
+	return validateExperimentMeasurements(measurementValidation{capability: r.Capability, failure: r.Failure, started: r.Process != nil, measurements: r.Measurements})
 }
 
-func ValidateExperimentMeasurements(capability ExperimentCapability, failure error, started bool, measurements projectstandards.ExperimentMeasurements) error {
-	if err := errors.Join(capability.Validate(), measurements.Validate()); err != nil {
+type measurementValidation struct {
+	capability   ExperimentCapability
+	failure      error
+	started      bool
+	measurements projectstandards.ExperimentMeasurements
+}
+
+func validateExperimentMeasurements(request measurementValidation) error {
+	if err := errors.Join(request.capability.Validate(), request.measurements.Validate()); err != nil {
 		return err
 	}
-	policy := capability.Execution.Observation
+	policy := request.capability.Execution.Observation
 	if policy.Format == ObservationOpaque {
-		return validateOpaqueMeasurements(capability.Execution.Artifacts, measurements)
+		return validateOpaqueMeasurements(request.capability.Execution.Artifacts, request.measurements)
 	}
 	if policy.Format == ObservationJUnitXML {
-		return validateJUnitMeasurements(capability, failure, started, measurements)
+		return validateJUnitMeasurements(request)
 	}
 	if policy.Format != ObservationGoTestJSON {
 		return core.ErrPrimitiveContract
 	}
-	return validateGoMeasurements(capability, failure, started, measurements)
+	return validateGoMeasurements(request)
 }
 
-func validateJUnitMeasurements(capability ExperimentCapability, failure error, started bool, measurements projectstandards.ExperimentMeasurements) error {
-	if err := validateGoAccounting(capability.Execution.Observation, failure, started, measurements); err != nil {
+func validateJUnitMeasurements(request measurementValidation) error {
+	if err := validateGoAccounting(request); err != nil {
 		return err
 	}
-	if len(measurements.Benchmarks) != 0 || measurements.CoverageBasisPoints != nil {
+	if len(request.measurements.Benchmarks) != 0 || request.measurements.CoverageBasisPoints != nil {
 		return core.ErrPrimitiveContract
 	}
 	return nil
@@ -85,29 +92,29 @@ func validateOpaqueMeasurements(artifacts []ArtifactExpectation, measurements pr
 	return nil
 }
 
-func validateGoMeasurements(capability ExperimentCapability, failure error, started bool, measurements projectstandards.ExperimentMeasurements) error {
-	policy := capability.Execution.Observation
-	if err := validateGoAccounting(policy, failure, started, measurements); err != nil {
+func validateGoMeasurements(request measurementValidation) error {
+	if err := validateGoAccounting(request); err != nil {
 		return err
 	}
-	if measurements.Accounting == nil {
+	if request.measurements.Accounting == nil {
 		return nil
 	}
-	if err := validateGoBenchmarks(capability.Probe.Kind, failure, measurements.Benchmarks); err != nil {
+	if err := validateGoBenchmarks(request.capability.Probe.Kind, request.failure, request.measurements.Benchmarks); err != nil {
 		return err
 	}
-	return validateGoCoverage(capability.Execution.Artifacts, failure, measurements.CoverageBasisPoints)
+	return validateGoCoverage(request.capability.Execution.Artifacts, request.failure, request.measurements.CoverageBasisPoints)
 }
 
-func validateGoAccounting(policy ObservationPolicy, failure error, started bool, measurements projectstandards.ExperimentMeasurements) error {
-	if measurements.Accounting == nil {
-		if !started && failure != nil && len(measurements.Benchmarks) == 0 {
+func validateGoAccounting(request measurementValidation) error {
+	if request.measurements.Accounting == nil {
+		if !request.started && request.failure != nil && len(request.measurements.Benchmarks) == 0 {
 			return nil
 		}
 		return core.ErrPrimitiveContract
 	}
-	accounting := measurements.Accounting
+	accounting := request.measurements.Accounting
 	latest, ok := accounting.Latest()
+	policy := request.capability.Execution.Observation
 	if !ok || latest.Planned != policy.ExpectedUnits || latest.Filtered != policy.Filtered || latest.Cache != projectstandards.CacheDisabled {
 		return core.ErrPrimitiveContract
 	}
@@ -183,7 +190,11 @@ func compileExperimentMeasurements(request ExperimentObservationRequest) (projec
 	if err != nil || duration.Nanoseconds() <= 0 {
 		return projectstandards.ExperimentMeasurements{}, errors.Join(core.ErrPrimitiveContract, err)
 	}
-	measurements.DurationNs = uint64(duration.Nanoseconds())
+	durationNanoseconds, err := core.CheckedUint64FromInt64(duration.Nanoseconds())
+	if err != nil {
+		return projectstandards.ExperimentMeasurements{}, errors.Join(core.ErrPrimitiveContract, err)
+	}
+	measurements.DurationNs = durationNanoseconds
 	measurements.PeakMemoryBytes = request.Process.PeakMemoryBytes.Uint64()
 	return measurements, nil
 }
@@ -194,7 +205,7 @@ func compileUnstartedAccounting(policy ObservationPolicy, failure error) project
 	case errors.Is(failure, context.Canceled):
 		attempt.Cancelled = 1
 	case errors.Is(failure, context.DeadlineExceeded):
-		attempt.TimedOut = 1
+		attempt.Expired = 1
 	default:
 		attempt.Failed = 1
 	}
@@ -224,8 +235,9 @@ func CompileSelectionObservation(manifest ExpansionManifest, approval ExpansionA
 	if err := errors.Join(manifest.Validate(), approval.Validate()); err != nil {
 		return projectstandards.SelectionObservation{}, err
 	}
-	if approval.Run != manifest.Run || approval.ManifestDigest != manifest.Identity {
-		return projectstandards.SelectionObservation{}, core.ErrPrimitiveContract
+	manifestDigest, err := manifest.Digest()
+	if err != nil || approval.Run != manifest.Run || approval.ManifestDigest != manifestDigest {
+		return projectstandards.SelectionObservation{}, errors.Join(core.ErrPrimitiveContract, err)
 	}
 	planned := uint32(manifest.Admitted) + uint32(manifest.Refused)
 	admitted := uint32(manifest.Admitted)
@@ -237,9 +249,16 @@ func CompileSelectionObservation(manifest ExpansionManifest, approval ExpansionA
 	if uint32(executed) > admitted {
 		return projectstandards.SelectionObservation{}, core.ErrPrimitiveContract
 	}
+	plannedCount, plannedErr := checkedUint16FromUint64(uint64(planned))
+	admittedCount, admittedErr := checkedUint16FromUint64(uint64(admitted))
+	refusedCount, refusedErr := checkedUint16FromUint64(uint64(refused))
+	notRunCount, notRunErr := checkedUint16FromUint64(uint64(admitted - uint32(executed)))
+	if err := errors.Join(plannedErr, admittedErr, refusedErr, notRunErr); err != nil {
+		return projectstandards.SelectionObservation{}, errors.Join(core.ErrPrimitiveContract, err)
+	}
 	observation := projectstandards.SelectionObservation{
-		ExpansionDigest: manifest.Identity, Planned: uint16(planned), Admitted: uint16(admitted),
-		Refused: uint16(refused), Executed: executed, NotRun: uint16(admitted - uint32(executed)),
+		ExpansionIdentity: manifest.Identity, ManifestDigest: manifestDigest, Planned: plannedCount, Admitted: admittedCount,
+		Refused: refusedCount, Executed: executed, NotRun: notRunCount,
 	}
 	return observation, observation.Validate()
 }

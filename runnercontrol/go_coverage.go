@@ -153,7 +153,11 @@ func (c *GoCoverageCompiler) Seal() (GoCoverageObservation, error) {
 	if c.mode == CoverageModeUnknown || c.lines == 0 || c.statements > math.MaxUint64/10_000 {
 		return GoCoverageObservation{}, coverageFailure("go coverage stream has no bounded statement evidence")
 	}
-	result := GoCoverageObservation{Mode: c.mode, Statements: c.statements, Covered: c.covered, BasisPoints: uint16(c.covered * 10_000 / c.statements)}
+	basisPoints, err := checkedUint16FromUint64(c.covered * 10_000 / c.statements)
+	if err != nil {
+		return GoCoverageObservation{}, coverageFailure("go coverage basis points exceed the numeric ceiling")
+	}
+	result := GoCoverageObservation{Mode: c.mode, Statements: c.statements, Covered: c.covered, BasisPoints: basisPoints}
 	return result, result.Validate()
 }
 

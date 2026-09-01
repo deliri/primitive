@@ -15,7 +15,7 @@ import (
 const (
 	SchemaVersion             uint16 = 1
 	ClaimRequestMaximumBytes         = 64 * 1024
-	ClaimResponseMaximumBytes        = core.JSONDocumentMaximumBytes
+	ClaimResponseMaximumBytes        = 1 << 20
 )
 
 type ClaimKind uint8
@@ -37,9 +37,11 @@ func (k ClaimKind) Validate() error {
 	return nil
 }
 
+func (k ClaimKind) IsValid() bool { return k.Validate() == nil }
+
 func (k ClaimKind) String() string {
 	if k.Validate() != nil {
-		return ""
+		return invalidEnumString()
 	}
 	return claimKindLabels()[k]
 }
@@ -119,10 +121,13 @@ func (r ClaimResponse) Validate() error {
 		if r.Scheduling == nil {
 			return core.ErrPrimitiveContract
 		}
-		if err := r.Scheduling.Validate(); err != nil {
+		scheduling := r.Scheduling
+		if err := scheduling.Validate(); err != nil {
 			return err
 		}
-		if r.Scheduling.Capability.Fence.Machine != r.Fence {
+		capability := scheduling.Capability.Payload
+		schedulingFence := capability.Fence.Machine
+		if schedulingFence != r.Fence {
 			return core.ErrPrimitiveContract
 		}
 		return nil

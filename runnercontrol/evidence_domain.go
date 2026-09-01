@@ -9,7 +9,7 @@ import (
 	"github.com/deliri/primitive/v2026/core"
 )
 
-const ObservationEnvelopeSigningDomainToken = "primitive-anvil-control-observation-2026-1"
+const ObservationEnvelopeSigningDomainToken = "primitive-runner-control-observation-2026-1"
 
 type EvidenceSigningDomain uint8
 
@@ -25,11 +25,12 @@ func (d EvidenceSigningDomain) Validate() error {
 	}
 	return nil
 }
+func (d EvidenceSigningDomain) IsValid() bool { return d.Validate() == nil }
 func (d EvidenceSigningDomain) String() string {
 	if d == EvidenceSigningDomainObservationV1 {
 		return ObservationEnvelopeSigningDomainToken
 	}
-	return ""
+	return invalidEnumString()
 }
 func (d EvidenceSigningDomain) MarshalText() ([]byte, error) {
 	if err := d.Validate(); err != nil {

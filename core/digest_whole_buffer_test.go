@@ -24,7 +24,7 @@ func wholeBufferHostileCases() []wholeBufferCase {
 		{name: "a nil buffer hashes like the empty buffer", data: nil},
 		{name: "one zero byte", data: []byte{0}},
 		{name: "one high byte", data: []byte{0xff}},
-		{name: "a short ascii buffer", data: []byte("witness rides primitive")},
+		{name: "a short ascii buffer", data: []byte("caller rides primitive")},
 		{name: "a buffer with embedded nulls", data: []byte("a\x00b\x00c")},
 		{name: "exactly one sha256 block", data: make([]byte, sha256.BlockSize)},
 		{name: "one byte over a block", data: make([]byte, sha256.BlockSize+1)},

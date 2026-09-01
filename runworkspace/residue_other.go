@@ -21,7 +21,7 @@ type LinuxResidueConfiguration struct {
 }
 
 func (c LinuxResidueConfiguration) Validate() error {
-	return errors.Join(core.ErrPrimitiveContract, errors.New("Linux residue observation is unavailable on this platform"))
+	return errors.Join(core.ErrPrimitiveContract, errors.New("linux residue observation is unavailable on this platform"))
 }
 
 type LinuxResidueSource struct{ configuration LinuxResidueConfiguration }

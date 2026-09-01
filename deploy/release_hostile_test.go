@@ -349,7 +349,7 @@ func fixtureProvenance(t *testing.T) release.BuildProvenance {
 		GoExecutableSHA256 core.SHA256Digest `json:"go_executable_sha256"`
 	}{
 		GoToolchain: goToolchain, GoExecutableSHA256: core.NewSHA256Digest(goDigest),
-		MainPackage: "github.com/offGridSoft/bug/cmd/bug", ModuleMode: "vendor",
+		MainPackage: "github.com/example/product/cmd/product", ModuleMode: "vendor",
 		LinkerAssignments: []struct{}{},
 	}
 	encoded, err := json.Marshal(wire)

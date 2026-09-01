@@ -26,6 +26,16 @@ type junitCompileResult struct {
 	err     error
 }
 
+type junitStreamState struct {
+	policy      ObservationPolicy
+	attempt     projectstandards.ExecutionAttempt
+	inCase      bool
+	caseFailed  bool
+	caseSkipped bool
+	observed    uint32
+	depth       int
+}
+
 // JUnitObservationCompiler streams one bounded JUnit report through the
 // standard XML decoder. The parser goroutine is owned by Seal: closing the
 // writer ends input and Seal joins the parser before returning.
@@ -96,12 +106,10 @@ func (c *JUnitObservationCompiler) Seal(executionErr error) (JUnitObservation, e
 
 func parseJUnitStream(reader io.Reader, policy ObservationPolicy) (projectstandards.ExecutionAttempt, error) {
 	decoder := xml.NewDecoder(reader)
-	attempt := projectstandards.ExecutionAttempt{Sequence: 1, Planned: policy.ExpectedUnits, Cache: projectstandards.CacheDisabled, Filtered: policy.Filtered}
-	inCase := false
-	caseFailed := false
-	caseSkipped := false
-	var observed uint32
-	depth := 0
+	state := junitStreamState{
+		policy:  policy,
+		attempt: projectstandards.ExecutionAttempt{Sequence: 1, Planned: policy.ExpectedUnits, Cache: projectstandards.CacheDisabled, Filtered: policy.Filtered},
+	}
 	for {
 		token, err := decoder.Token()
 		if errors.Is(err, io.EOF) {
@@ -110,69 +118,91 @@ func parseJUnitStream(reader io.Reader, policy ObservationPolicy) (projectstanda
 		if err != nil {
 			return projectstandards.ExecutionAttempt{}, observationFailure("JUnit XML cannot be decoded", core.ErrPrimitiveContract, err)
 		}
-		switch value := token.(type) {
-		case xml.StartElement:
-			depth++
-			if depth > JUnitXMLDepthMaximum {
-				return projectstandards.ExecutionAttempt{}, observationFailure("JUnit XML exceeds the depth ceiling", core.ErrPrimitiveContract)
-			}
-			if duplicateJUnitAttribute(value.Attr) {
-				return projectstandards.ExecutionAttempt{}, observationFailure("JUnit XML contains a duplicate attribute", core.ErrPrimitiveContract)
-			}
-			switch value.Name.Local {
-			case "testcase":
-				if inCase {
-					return projectstandards.ExecutionAttempt{}, observationFailure("JUnit XML nests testcase elements", core.ErrPrimitiveContract)
-				}
-				inCase, caseFailed, caseSkipped = true, false, false
-			case "failure", "error":
-				if inCase {
-					caseFailed = true
-				}
-			case "skipped", "disabled":
-				if inCase {
-					caseSkipped = true
-				}
-			}
-		case xml.EndElement:
-			if value.Name.Local == "testcase" {
-				if !inCase {
-					return projectstandards.ExecutionAttempt{}, observationFailure("JUnit XML closes an absent testcase", core.ErrPrimitiveContract)
-				}
-				observed++
-				if observed > policy.ExpectedUnits {
-					return projectstandards.ExecutionAttempt{}, observationFailure("JUnit XML names more test cases than planned", core.ErrPrimitiveContract)
-				}
-				switch {
-				case caseFailed:
-					attempt.Failed++
-				case caseSkipped:
-					attempt.Skipped++
-				default:
-					attempt.Passed++
-				}
-				inCase = false
-			}
-			depth--
-		case xml.CharData:
-			if len(value) > JUnitXMLTokenMaximumBytes {
-				return projectstandards.ExecutionAttempt{}, observationFailure("JUnit XML text token exceeds the byte ceiling", core.ErrPrimitiveContract)
-			}
+		if err := state.consume(token); err != nil {
+			return projectstandards.ExecutionAttempt{}, err
 		}
 	}
-	if inCase {
+	return state.finish()
+}
+
+func (s *junitStreamState) consume(token xml.Token) error {
+	switch value := token.(type) {
+	case xml.StartElement:
+		return s.consumeStart(value)
+	case xml.EndElement:
+		return s.consumeEnd(value)
+	case xml.CharData:
+		if len(value) > JUnitXMLTokenMaximumBytes {
+			return observationFailure("JUnit XML text token exceeds the byte ceiling", core.ErrPrimitiveContract)
+		}
+	}
+	return nil
+}
+
+func (s *junitStreamState) consumeStart(element xml.StartElement) error {
+	s.depth++
+	if s.depth > JUnitXMLDepthMaximum {
+		return observationFailure("JUnit XML exceeds the depth ceiling", core.ErrPrimitiveContract)
+	}
+	if duplicateJUnitAttribute(element.Attr) {
+		return observationFailure("JUnit XML contains a duplicate attribute", core.ErrPrimitiveContract)
+	}
+	switch element.Name.Local {
+	case "testcase":
+		if s.inCase {
+			return observationFailure("JUnit XML nests testcase elements", core.ErrPrimitiveContract)
+		}
+		s.inCase, s.caseFailed, s.caseSkipped = true, false, false
+	case "failure", "error":
+		s.caseFailed = s.inCase
+	case "skipped", "disabled":
+		s.caseSkipped = s.inCase
+	}
+	return nil
+}
+
+func (s *junitStreamState) consumeEnd(element xml.EndElement) error {
+	defer func() { s.depth-- }()
+	if element.Name.Local != "testcase" {
+		return nil
+	}
+	if !s.inCase {
+		return observationFailure("JUnit XML closes an absent testcase", core.ErrPrimitiveContract)
+	}
+	s.observed++
+	if s.observed > s.policy.ExpectedUnits {
+		return observationFailure("JUnit XML names more test cases than planned", core.ErrPrimitiveContract)
+	}
+	s.recordCase()
+	s.inCase = false
+	return nil
+}
+
+func (s *junitStreamState) recordCase() {
+	switch {
+	case s.caseFailed:
+		s.attempt.Failed++
+	case s.caseSkipped:
+		s.attempt.Skipped++
+	default:
+		s.attempt.Passed++
+	}
+}
+
+func (s *junitStreamState) finish() (projectstandards.ExecutionAttempt, error) {
+	if s.inCase {
 		return projectstandards.ExecutionAttempt{}, observationFailure("JUnit XML ends inside a testcase", core.ErrPrimitiveContract)
 	}
-	if observed == 0 {
+	if s.observed == 0 {
 		return projectstandards.ExecutionAttempt{}, observationFailure("JUnit XML contains no testcase evidence", core.ErrPrimitiveContract)
 	}
-	if observed < policy.ExpectedUnits {
-		attempt.NotRun = policy.ExpectedUnits - observed
+	if s.observed < s.policy.ExpectedUnits {
+		s.attempt.NotRun = s.policy.ExpectedUnits - s.observed
 	}
-	if err := attempt.Validate(); err != nil {
+	if err := s.attempt.Validate(); err != nil {
 		return projectstandards.ExecutionAttempt{}, observationFailure("JUnit accounting does not close", core.ErrPrimitiveContract, err)
 	}
-	return attempt, nil
+	return s.attempt, nil
 }
 
 func duplicateJUnitAttribute(attributes []xml.Attr) bool {

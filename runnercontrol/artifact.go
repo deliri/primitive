@@ -38,6 +38,20 @@ const (
 	artifactKindLimit
 )
 
+const (
+	artifactStdoutToken        = "stdout"
+	artifactStderrToken        = "stderr"
+	artifactCoverageToken      = "coverage"
+	artifactCPUProfileToken    = "cpu-profile"
+	artifactMemoryProfileToken = "memory-profile"
+	artifactBlockProfileToken  = "block-profile"
+	artifactMutexProfileToken  = "mutex-profile"
+	artifactTraceToken         = "trace"
+	artifactCrasherToken       = "crasher"
+	artifactReportToken        = "report"
+	artifactBinaryToken        = "binary"
+)
+
 func (k ArtifactKind) Validate() error {
 	if k <= ArtifactKindUnknown || k >= artifactKindLimit {
 		return core.ErrPrimitiveContract
@@ -45,12 +59,19 @@ func (k ArtifactKind) Validate() error {
 	return nil
 }
 
+func (k ArtifactKind) IsValid() bool { return k.Validate() == nil }
+
 func (k ArtifactKind) String() string {
-	names := [...]string{"", "stdout", "stderr", "coverage", "cpu-profile", "memory-profile", "block-profile", "mutex-profile", "trace", "crasher", "report", "binary"}
-	if k <= ArtifactKindUnknown || k >= artifactKindLimit {
+	names := [...]string{
+		"", artifactStdoutToken, artifactStderrToken, artifactCoverageToken,
+		artifactCPUProfileToken, artifactMemoryProfileToken, artifactBlockProfileToken,
+		artifactMutexProfileToken, artifactTraceToken, artifactCrasherToken,
+		artifactReportToken, artifactBinaryToken,
+	}
+	if !k.IsValid() {
 		return ""
 	}
-	return names[k]
+	return names[k] // #nosec G602 -- IsValid proves the closed enum index is within names.
 }
 
 func (k ArtifactKind) MarshalJSON() ([]byte, error) {

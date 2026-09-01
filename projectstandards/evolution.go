@@ -161,12 +161,16 @@ func ComparePackageSnapshots(before, after PackageSnapshot) (PackageEvolution, e
 	if err != nil {
 		return PackageEvolution{}, err
 	}
+	sourceUsage, err := sourceUsageChange(before.Code.SourceUsage, after.Code.SourceUsage)
+	if err != nil {
+		return PackageEvolution{}, err
+	}
 	evolution := PackageEvolution{
 		Package: before.Package.Key, Path: before.Code.Package,
 		BeforeRevision: before.Package.Revision, AfterRevision: after.Package.Revision,
 		Inventory:   inventoryChange(before.Code.Inventory, after.Code.Inventory),
 		Evidence:    evidenceChange(beforeEvidence, afterEvidence),
-		SourceUsage: sourceUsageChange(before.Code.SourceUsage, after.Code.SourceUsage),
+		SourceUsage: sourceUsage,
 	}
 	evolution.NewReviewCandidates, evolution.FormerReviewCandidates = reviewCandidateChanges(before.Code.SourceUsage, after.Code.SourceUsage)
 	if err := evolution.Validate(); err != nil {
@@ -207,7 +211,7 @@ func evidenceChange(before, after EvidenceSummary) EvidenceChange {
 	}
 }
 
-func sourceUsageChange(before, after *PackageSourceUsage) SourceUsageChange {
+func sourceUsageChange(before, after *PackageSourceUsage) (SourceUsageChange, error) {
 	change := SourceUsageChange{BeforeAvailable: before != nil, AfterAvailable: after != nil}
 	var left, right PackageSourceUsage
 	if before != nil {
@@ -222,8 +226,13 @@ func sourceUsageChange(before, after *PackageSourceUsage) SourceUsageChange {
 	change.UnresolvedDeclarations = changeCount(left.UnresolvedDeclarations, right.UnresolvedDeclarations)
 	change.TestReferencedOnly = changeCount(left.TestReferencedOnly, right.TestReferencedOnly)
 	change.NoReferenceObserved = changeCount(left.NoReferenceObserved, right.NoReferenceObserved)
-	change.ObservedConsumerPackages = changeCount(uint32(len(left.ObservedConsumerPackages)), uint32(len(right.ObservedConsumerPackages)))
-	return change
+	leftConsumers, leftErr := core.CheckedUint32FromInt(len(left.ObservedConsumerPackages))
+	rightConsumers, rightErr := core.CheckedUint32FromInt(len(right.ObservedConsumerPackages))
+	if err := errors.Join(leftErr, rightErr); err != nil {
+		return SourceUsageChange{}, contractError(err)
+	}
+	change.ObservedConsumerPackages = changeCount(leftConsumers, rightConsumers)
+	return change, nil
 }
 
 func reviewCandidateChanges(before, after *PackageSourceUsage) ([]FunctionUsage, []FunctionUsage) {

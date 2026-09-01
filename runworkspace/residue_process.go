@@ -39,27 +39,37 @@ func (k ResidueProbeKind) Validate() error {
 	return nil
 }
 
+func (k ResidueProbeKind) IsValid() bool { return k.Validate() == nil }
+
 func (k ResidueProbeKind) String() string {
-	switch k {
-	case ResidueProbeProcesses:
-		return "processes"
-	case ResidueProbeControlGroups:
-		return "control-groups"
-	case ResidueProbeNamespaces:
-		return "namespaces"
-	case ResidueProbeMounts:
-		return "mounts"
-	case ResidueProbeDescriptors:
-		return "descriptors"
-	case ResidueProbeSockets:
-		return "sockets"
-	case ResidueProbeCredentialCustody:
-		return "credential-custody"
-	case ResidueProbeSecretCustody:
-		return "secret-custody"
-	default:
-		return ""
+	if !k.IsValid() {
+		return invalidEnumString()
 	}
+	return []string{"", "processes", "control-groups", "namespaces", "mounts", "descriptors", "sockets", "credential-custody", "secret-custody"}[k]
+}
+
+func (k ResidueProbeKind) MarshalJSON() ([]byte, error) {
+	if err := k.Validate(); err != nil {
+		return nil, errors.Join(core.ErrJSONContract, err)
+	}
+	return core.MarshalCanonicalJSONString(k.String())
+}
+
+func (k *ResidueProbeKind) UnmarshalJSON(data []byte) error {
+	if k == nil {
+		return errors.Join(core.ErrJSONContract, core.ErrPrimitiveContract)
+	}
+	value, err := core.DecodeJSONStringToken(data)
+	if err != nil {
+		return errors.Join(core.ErrJSONContract, err)
+	}
+	for candidate := ResidueProbeProcesses; candidate < residueProbeKindLimit; candidate++ {
+		if candidate.String() == value {
+			*k = candidate
+			return nil
+		}
+	}
+	return errors.Join(core.ErrJSONContract, core.ErrPrimitiveContract)
 }
 
 // ResidueProbe binds one reviewed host observation command to one residue
@@ -162,17 +172,9 @@ func observeResidueCount(ctx context.Context, probe ResidueProbe) (uint32, error
 // ParseResidueCount admits the complete host-probe output grammar: one
 // canonical base-ten uint32, optionally terminated by one newline.
 func ParseResidueCount(output string) (uint32, error) {
-	if len(output) == 0 || len(output) > 11 || strings.TrimSpace(output) != strings.TrimSuffix(output, "\n") || strings.Count(output, "\n") > 1 {
-		return 0, errors.Join(core.ErrPrimitiveContract, errors.New("residue count must be one canonical unsigned decimal line"))
-	}
-	digits := strings.TrimSuffix(output, "\n")
-	if digits == "" || (len(digits) > 1 && digits[0] == '0') {
-		return 0, errors.Join(core.ErrPrimitiveContract, errors.New("residue count is empty or has a leading zero"))
-	}
-	for _, character := range digits {
-		if character < '0' || character > '9' {
-			return 0, errors.Join(core.ErrPrimitiveContract, errors.New("residue count contains a non-decimal character"))
-		}
+	digits, err := residueCountDigits(output)
+	if err != nil {
+		return 0, err
 	}
 	value, err := strconv.ParseUint(digits, 10, 32)
 	if err != nil || value > math.MaxUint32 {
@@ -181,23 +183,58 @@ func ParseResidueCount(output string) (uint32, error) {
 	return uint32(value), nil
 }
 
+func residueCountDigits(output string) (string, error) {
+	if len(output) == 0 || len(output) > 11 {
+		return "", errors.Join(core.ErrPrimitiveContract, errors.New("residue count must be one bounded unsigned decimal line"))
+	}
+	if strings.Count(output, "\n") > 1 {
+		return "", errors.Join(core.ErrPrimitiveContract, errors.New("residue count contains multiple lines"))
+	}
+	digits := strings.TrimSuffix(output, "\n")
+	if strings.Contains(digits, "\n") {
+		return "", errors.Join(core.ErrPrimitiveContract, errors.New("residue count newline is not terminal"))
+	}
+	if !canonicalDecimal(digits) {
+		return "", errors.Join(core.ErrPrimitiveContract, errors.New("residue count is not canonical unsigned decimal"))
+	}
+	return digits, nil
+}
+
+func canonicalDecimal(value string) bool {
+	if value == "" || (len(value) > 1 && value[0] == '0') {
+		return false
+	}
+	for _, character := range value {
+		if character < '0' || character > '9' {
+			return false
+		}
+	}
+	return true
+}
+
 func assignResidueCount(residue *Residue, kind ResidueProbeKind, count uint32) {
-	switch kind {
-	case ResidueProbeProcesses:
+	if kind == ResidueProbeProcesses {
 		residue.Processes = count
-	case ResidueProbeControlGroups:
+	}
+	if kind == ResidueProbeControlGroups {
 		residue.ControlGroups = count
-	case ResidueProbeNamespaces:
+	}
+	if kind == ResidueProbeNamespaces {
 		residue.Namespaces = count
-	case ResidueProbeMounts:
+	}
+	if kind == ResidueProbeMounts {
 		residue.Mounts = count
-	case ResidueProbeDescriptors:
+	}
+	if kind == ResidueProbeDescriptors {
 		residue.Descriptors = count
-	case ResidueProbeSockets:
+	}
+	if kind == ResidueProbeSockets {
 		residue.Sockets = count
-	case ResidueProbeCredentialCustody:
+	}
+	if kind == ResidueProbeCredentialCustody {
 		residue.CredentialCustody = count
-	case ResidueProbeSecretCustody:
+	}
+	if kind == ResidueProbeSecretCustody {
 		residue.SecretCustody = count
 	}
 }

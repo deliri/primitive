@@ -60,25 +60,44 @@ func PlanResourceWaves(capacity MachineResourceCapacity, reservations []Resource
 	waves := make([]ResourceWave, 0, len(reservations))
 	current := waveAccumulator{}
 	for _, reservation := range reservations {
-		if reservation.Required.Exclusive {
-			waves = appendAccumulatedWave(waves, current)
-			waves = append(waves, oneReservationWave(reservation))
-			current = waveAccumulator{}
-			continue
-		}
-		if !current.canAdd(capacity, reservation.Required) {
-			waves = appendAccumulatedWave(waves, current)
-			current = waveAccumulator{}
-		}
-		if err := current.add(reservation); err != nil {
+		var err error
+		waves, err = current.plan(waves, capacity, reservation)
+		if err != nil {
 			return nil, err
 		}
 	}
-	waves = appendAccumulatedWave(waves, current)
+	var err error
+	waves, err = appendAccumulatedWave(waves, current)
+	if err != nil {
+		return nil, err
+	}
 	for index := range waves {
 		if err := waves[index].Validate(); err != nil {
 			return nil, err
 		}
+	}
+	return waves, nil
+}
+
+func (w *waveAccumulator) plan(waves []ResourceWave, capacity MachineResourceCapacity, reservation ResourceReservation) ([]ResourceWave, error) {
+	if reservation.Required.Exclusive {
+		flushed, err := appendAccumulatedWave(waves, *w)
+		if err != nil {
+			return nil, err
+		}
+		*w = waveAccumulator{}
+		return append(flushed, oneReservationWave(reservation)), nil
+	}
+	if !w.canAdd(capacity, reservation.Required) {
+		var err error
+		waves, err = appendAccumulatedWave(waves, *w)
+		if err != nil {
+			return nil, err
+		}
+		*w = waveAccumulator{}
+	}
+	if err := w.add(reservation); err != nil {
+		return nil, err
 	}
 	return waves, nil
 }
@@ -94,7 +113,7 @@ func validateReservations(capacity MachineResourceCapacity, reservations []Resou
 		if err := reservations[index].Validate(); err != nil || !reservationFits(capacity, reservations[index].Required) {
 			return errors.Join(core.ErrPrimitiveContract, err)
 		}
-		for previous := 0; previous < index; previous++ {
+		for previous := range index {
 			if reservations[previous].Experiment == reservations[index].Experiment {
 				return core.ErrPrimitiveContract
 			}
@@ -170,14 +189,18 @@ func (w *waveAccumulator) add(reservation ResourceReservation) error {
 	return nil
 }
 
-func appendAccumulatedWave(waves []ResourceWave, accumulated waveAccumulator) []ResourceWave {
+func appendAccumulatedWave(waves []ResourceWave, accumulated waveAccumulator) ([]ResourceWave, error) {
 	if len(accumulated.experiments) == 0 {
-		return waves
+		return waves, nil
+	}
+	waveWidth, err := core.CheckedUint16FromInt(len(accumulated.experiments))
+	if err != nil {
+		return nil, errors.Join(core.ErrPrimitiveContract, err)
 	}
 	return append(waves, ResourceWave{
 		Experiments: append([]projectstandards.ExperimentID(nil), accumulated.experiments...),
-		Required:    accumulated.required, WaveWidth: uint16(len(accumulated.experiments)),
-	})
+		Required:    accumulated.required, WaveWidth: waveWidth,
+	}), nil
 }
 
 func oneReservationWave(reservation ResourceReservation) ResourceWave {

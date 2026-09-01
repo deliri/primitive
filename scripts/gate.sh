@@ -22,9 +22,9 @@ workflow_run=${GITHUB_RUN_ID:-NOT_APPLICABLE}
 workflow_attempt=${GITHUB_RUN_ATTEMPT:-NOT_APPLICABLE}
 gate_failure_status=0
 goconst_admission_maximum=15
-fuzz_budget_override_maximum=2
-fuzz_budget_override_minimum=10000
-fuzz_default_budget=100000x
+benchmark_duration=30s
+fuzz_duration=30s
+fuzz_minimize_duration=30s
 
 printf '%s\t%s\t%s\t%s\t%s\t%s\t%s\n' \
 	"gate" "command" "platform" "duration_seconds" "exit_status" "log" "sha256" \
@@ -59,6 +59,10 @@ file_sha256() {
 			return 1
 			;;
 	esac
+}
+
+file_bytes() {
+	wc -c <"$1" | tr -d ' '
 }
 
 clock_now_seconds() {
@@ -164,15 +168,57 @@ validate_target_inventory() {
 		"$target_kind" "$actual" "$minimum"
 }
 
-run_benchmark_packages() {
+run_benchmarks() {
 	benchmark_inventory=$1
-	benchmark_packages="$artifact_directory/benchmark-packages.log"
-	awk -F '\t' '!seen[$1]++ { print $1 }' "$benchmark_inventory" >"$benchmark_packages"
-	while IFS= read -r package_path; do
+	while IFS="$(printf '\t')" read -r package_path target_name; do
 		package_name=${package_path##*/}
-		run_gate "benchmark-$package_name" \
-			go test -run '^$' -bench '^Benchmark' -benchmem -count=1 -p=1 "$package_path"
-	done <"$benchmark_packages"
+		evidence_name="benchmark-$package_name-$target_name"
+		cpu_profile="$artifact_directory/$evidence_name.cpu.pprof"
+		memory_profile="$artifact_directory/$evidence_name.memory.pprof"
+		run_gate "$evidence_name" \
+			go test -run '^$' -bench "^$target_name$" -benchmem \
+			-benchtime="$benchmark_duration" -count=1 -p=1 -parallel=1 \
+			-cpuprofile="$cpu_profile" -memprofile="$memory_profile" \
+			-outputdir="$artifact_directory" \
+			"$package_path"
+		write_benchmark_report "$evidence_name" "$package_path" "$target_name" \
+			"$cpu_profile" "$memory_profile"
+	done <"$benchmark_inventory"
+}
+
+write_benchmark_report() {
+	evidence_name=$1
+	package_path=$2
+	target_name=$3
+	cpu_profile=$4
+	memory_profile=$5
+	benchmark_log="$artifact_directory/$evidence_name.log"
+	report="$artifact_directory/$evidence_name.md"
+	{
+		printf '%s\n\n' "# $target_name"
+		printf '%s\n' "- Package: \`$package_path\`"
+		printf '%s\n' "- Source revision: \`$source_revision\`"
+		printf '%s\n' "- Source tree: \`$source_tree_state\`"
+		printf '%s\n' "- Toolchain: \`$toolchain_identity\`"
+		printf '%s\n' "- Machine: \`$machine_identity\`"
+		printf '%s\n' "- Duration: \`$benchmark_duration\`"
+		printf '%s\n' "- Command: \`go test -run '^$' -bench '^$target_name$' -benchmem -benchtime=$benchmark_duration -count=1 -p=1 -parallel=1 -cpuprofile=$(basename "$cpu_profile") -memprofile=$(basename "$memory_profile") $package_path\`"
+		write_profile_report_line "CPU profile" "$cpu_profile"
+		write_profile_report_line "Memory profile" "$memory_profile"
+		printf '\n%s\n\n' '```text'
+		cat "$benchmark_log"
+		printf '%s\n' '```'
+	} >"$report"
+}
+
+write_profile_report_line() {
+	label=$1
+	profile=$2
+	if test ! -f "$profile"; then
+		printf '%s\n' "- $label: unavailable"
+		return
+	fi
+	printf '%s\n' "- $label: \`$(basename "$profile")\` ($(file_bytes "$profile") bytes, SHA-256 \`$(file_sha256 "$profile")\`)"
 }
 
 run_deadcode() {
@@ -183,45 +229,11 @@ run_fuzz_targets() {
 	fuzz_inventory=$1
 	while read -r package_path target_name; do
 		package_name=${package_path##*/}
-		fuzz_budget=$(fuzz_budget_for "$package_name" "$target_name")
 		run_gate "fuzz-$package_name-$target_name" \
 			go test -run '^$' -fuzz "^$target_name$" \
-			-fuzztime="$fuzz_budget" -parallel=1 "$package_path"
+			-fuzztime="$fuzz_duration" -fuzzminimizetime="$fuzz_minimize_duration" \
+			-count=1 -parallel=1 "$package_path"
 	done <"$fuzz_inventory"
-}
-
-fuzz_budget_for() {
-	package_name=$1
-	target_name=$2
-	budget=$(awk -F '\t' -v package_name="$package_name" -v target_name="$target_name" '
-		$1 == package_name && $2 == target_name { print $3 }
-	' scripts/fuzz_budget_overrides.tsv)
-	if test -z "$budget"; then
-		budget=$fuzz_default_budget
-	fi
-	printf '%s' "$budget"
-}
-
-validate_fuzz_budget_overrides() {
-	fuzz_inventory=$1
-	overrides="scripts/fuzz_budget_overrides.tsv"
-	if ! awk -F '\t' \
-		-v maximum="$fuzz_budget_override_maximum" \
-		-v minimum="$fuzz_budget_override_minimum" '
-		NR == FNR {
-			component_count = split($1, path, "/")
-			landed[path[component_count] SUBSEP $2] = 1
-			next
-		}
-		NF != 4 || $1 == "" || $2 == "" || $3 !~ /^[1-9][0-9]*x$/ ||
-			int($3) < minimum || $4 == "" { exit 1 }
-		!landed[$1 SUBSEP $2] || seen[$1 SUBSEP $2]++ { exit 1 }
-		END { if (FNR > maximum) exit 1 }
-	' "$fuzz_inventory" "$overrides"; then
-		printf '%s\n' "fuzz budget overrides are malformed, stale, duplicated, or exceed the ratcheted maximum" >&2
-		return 1
-	fi
-	cat "$overrides"
 }
 
 validate_goconst_findings() {
@@ -250,6 +262,15 @@ validate_goconst_findings() {
 	fi
 }
 
+
+source_revision=$(git rev-parse HEAD)
+if test -n "$(git status --porcelain)"; then
+	source_tree_state=dirty
+else
+	source_tree_state=clean
+fi
+toolchain_identity=$(go version)
+machine_identity=$(uname -a)
 
 run_gate go-version go version
 run_gate go-environment go env GOOS GOARCH GOVERSION
@@ -308,12 +329,10 @@ run_empty_output_gate dead-code run_deadcode
 run_gate benchmark-inventory discover_go_targets Benchmark
 run_gate benchmark-inventory-ratchet validate_target_inventory \
 	"$artifact_directory/benchmark-inventory.log" 51 benchmark
-run_benchmark_packages "$artifact_directory/benchmark-inventory.log"
+run_benchmarks "$artifact_directory/benchmark-inventory.log"
 run_gate fuzz-inventory discover_go_targets Fuzz
 run_gate fuzz-inventory-ratchet validate_target_inventory \
 	"$artifact_directory/fuzz-inventory.log" 30 fuzz
-run_gate fuzz-budget-overrides validate_fuzz_budget_overrides \
-	"$artifact_directory/fuzz-inventory.log"
 run_fuzz_targets "$artifact_directory/fuzz-inventory.log"
 
 if test "$gate_failure_status" -ne 0; then

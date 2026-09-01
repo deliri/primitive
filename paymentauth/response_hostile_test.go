@@ -49,9 +49,13 @@ func TestPaymentResponseVerificationLayerTriadClosesThePaymentRouteFamily(t *tes
 
 				candidate := newPaymentResponseFixtureWithMarkers(t, tc.authorityMarker, tc.deviceMarker)
 				document := issuePaymentResponseDocument(t, candidate)
-				got, gotErr := VerifyResponse(ResponseVerification{
+				verification := ResponseVerification{
 					Client: candidate.client, Document: document, Expected: candidate.expected,
-				})
+				}
+				if validationErr := verification.Validate(); validationErr != nil {
+					t.Fatalf("ResponseVerification.Validate(authentic payment family) error = %v, want nil", validationErr)
+				}
+				got, gotErr := VerifyResponse(verification)
 				if gotErr != nil {
 					t.Fatalf("VerifyResponse(authentic payment family) error = %v, want nil", gotErr)
 				}
@@ -266,6 +270,10 @@ func provePaymentResponseIssuanceRejections(t *testing.T, fixture paymentRespons
 			value := valid
 			value.Header.Family = tc.family
 			value.Assessment = acceptedPaymentResponseAssessment(t, value.Header)
+			if validationErr := value.Validate(); !errors.Is(validationErr, core.ErrControlPlaneResponseBinding) {
+				t.Fatalf("ResponseIssuance.Validate(%v family) error = %v, want errors.Is %v",
+					tc.family, validationErr, core.ErrControlPlaneResponseBinding)
+			}
 			got, gotErr := IssueResponse(value)
 			if !errors.Is(gotErr, core.ErrControlPlaneResponseDocument) ||
 				!errors.Is(gotErr, core.ErrControlPlaneResponseBinding) {
@@ -292,6 +300,9 @@ func provePaymentResponseIssuanceRejections(t *testing.T, fixture paymentRespons
 		t.Run(tc.name, func(t *testing.T) {
 			t.Parallel()
 
+			if validationErr := tc.value.Validate(); !errors.Is(validationErr, tc.want) {
+				t.Fatalf("ResponseIssuance.Validate(%s) error = %v, want errors.Is %v", tc.name, validationErr, tc.want)
+			}
 			got, gotErr := IssueResponse(tc.value)
 			if !errors.Is(gotErr, core.ErrControlPlaneResponseDocument) || !errors.Is(gotErr, tc.want) {
 				t.Fatalf("IssueResponse(%s) error = %v, want errors.Is %v/%v",
@@ -321,10 +332,11 @@ func provePaymentResponseVerificationRejections(
 	foreignDocument := issuePaymentResponseDocument(t, foreign)
 	base := ResponseVerification{Client: fixture.client, Document: document, Expected: fixture.expected}
 	cases := []struct {
-		name      string
-		value     ResponseVerification
-		want      error
-		wantField controlplane.ResponseHeaderField
+		name              string
+		value             ResponseVerification
+		want              error
+		wantValidationErr error
+		wantField         controlplane.ResponseHeaderField
 	}{
 		{name: "different request nonce names the bound fact", value: paymentResponseWithExpectation(base, func(value *controlplane.ResponseExpectation) {
 			value.RequestNonce = paymentQueryNonce(t, 0x72)
@@ -346,16 +358,16 @@ func provePaymentResponseVerificationRejections(
 		}), want: core.ErrControlPlaneProviderTimeRollback},
 		{name: "zero client cannot authenticate an otherwise valid response", value: ResponseVerification{
 			Document: document, Expected: fixture.expected,
-		}, want: core.ErrControlPlaneContract},
+		}, want: core.ErrControlPlaneContract, wantValidationErr: core.ErrControlPlaneContract},
 		{name: "foreign client refuses a valid authority response", value: ResponseVerification{
 			Client: foreign.client, Document: document, Expected: fixture.expected,
 		}, want: core.ErrAttestVerification},
 		{name: "zero document cannot acquire response proof", value: ResponseVerification{
 			Client: fixture.client, Expected: fixture.expected,
-		}, want: core.ErrControlPlaneResponseDocument},
+		}, want: core.ErrControlPlaneResponseDocument, wantValidationErr: core.ErrControlPlaneResponseDocument},
 		{name: "zero expectation cannot acquire response proof", value: ResponseVerification{
 			Client: fixture.client, Document: document,
-		}, want: core.ErrControlPlaneResponseHeader},
+		}, want: core.ErrControlPlaneResponseHeader, wantValidationErr: core.ErrControlPlaneResponseHeader},
 		{name: "foreign authority document is refused by the trusted client", value: ResponseVerification{
 			Client: fixture.client, Document: foreignDocument, Expected: foreign.expected,
 		}, want: core.ErrAttestVerification},
@@ -364,6 +376,13 @@ func provePaymentResponseVerificationRejections(
 		t.Run(tc.name, func(t *testing.T) {
 			t.Parallel()
 
+			validationErr := tc.value.Validate()
+			if tc.wantValidationErr == nil && validationErr != nil {
+				t.Fatalf("ResponseVerification.Validate(%s) error = %v, want nil before authentication", tc.name, validationErr)
+			}
+			if tc.wantValidationErr != nil && !errors.Is(validationErr, tc.wantValidationErr) {
+				t.Fatalf("ResponseVerification.Validate(%s) error = %v, want errors.Is %v", tc.name, validationErr, tc.wantValidationErr)
+			}
 			got, gotErr := VerifyResponse(tc.value)
 			if !errors.Is(gotErr, tc.want) {
 				t.Fatalf("VerifyResponse(%s) error = %v, want errors.Is %v", tc.name, gotErr, tc.want)
@@ -488,10 +507,14 @@ func issuePaymentResponseDocument(
 ) controlplane.ResponseDocument[payment.CatalogDocument, *payment.CatalogDocument] {
 	t.Helper()
 
-	projection, err := IssueResponse(ResponseIssuance{
+	issuance := ResponseIssuance{
 		Server: fixture.server, Signer: fixture.signer, Header: fixture.header,
 		Body: fixture.body, Assessment: acceptedPaymentResponseAssessment(t, fixture.header),
-	})
+	}
+	if validationErr := issuance.Validate(); validationErr != nil {
+		t.Fatalf("ResponseIssuance.Validate(fixture) error = %v, want nil", validationErr)
+	}
+	projection, err := IssueResponse(issuance)
 	if err != nil {
 		t.Fatalf("IssueResponse(fixture) error = %v, want nil", err)
 	}

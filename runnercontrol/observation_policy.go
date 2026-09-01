@@ -26,17 +26,13 @@ func (f ObservationFormat) Validate() error {
 	return nil
 }
 
+func (f ObservationFormat) IsValid() bool { return f.Validate() == nil }
+
 func (f ObservationFormat) String() string {
-	switch f {
-	case ObservationOpaque:
-		return "opaque"
-	case ObservationGoTestJSON:
-		return "go-test-json"
-	case ObservationJUnitXML:
-		return "junit-xml"
-	default:
-		return ""
+	if !f.IsValid() {
+		return invalidEnumString()
 	}
+	return []string{"", "opaque", "go-test-json", "junit-xml"}[f]
 }
 
 func (f ObservationFormat) MarshalJSON() ([]byte, error) {

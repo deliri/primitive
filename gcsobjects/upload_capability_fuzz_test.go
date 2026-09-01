@@ -8,14 +8,14 @@ import (
 )
 
 func FuzzGCSServiceAccountSemanticClosure(f *testing.F) {
-	valid, err := ParseGCSServiceAccount("media-signer@blink-kernel.iam.gserviceaccount.com")
+	valid, err := ParseGCSServiceAccount("media-signer@example-project.iam.gserviceaccount.com")
 	if err != nil {
 		f.Fatalf("ParseGCSServiceAccount(seed) error = %v, want nil", err)
 	}
 	f.Add(valid.String())
 	f.Add("")
 	f.Add("signer@example.com")
-	f.Add("Signer <signer@blink-kernel.iam.gserviceaccount.com>")
+	f.Add("Signer <signer@example-project.iam.gserviceaccount.com>")
 
 	f.Fuzz(func(t *testing.T, value string) {
 		got, gotErr := ParseGCSServiceAccount(value)

@@ -96,15 +96,15 @@ func TestValidateUpgradePairAdmitsOnlyAStrictlyNewerSameTargetBuild(t *testing.T
 			)
 		})
 	}
-	peachfuzzInstalled := buildArtifactForTest(
+	productGammaInstalled := buildArtifactForTest(
 		t, []byte("second-installed"), upgradeOffering(t, 3), installed, platform,
 	)
-	peachfuzzCandidate := buildArtifactForTest(
+	productGammaCandidate := buildArtifactForTest(
 		t, []byte("second-candidate"), upgradeOffering(t, 3),
 		core.NewReleaseVersion(2, 4, 7), platform,
 	)
-	if err := validateUpgradePair(peachfuzzInstalled, peachfuzzCandidate); err != nil {
-		t.Fatalf("validateUpgradePair(Peachfuzz) error = %v, want nil", err)
+	if err := validateUpgradePair(productGammaInstalled, productGammaCandidate); err != nil {
+		t.Fatalf("validateUpgradePair(product gamma) error = %v, want nil", err)
 	}
 
 	if err := validateUpgradePair(

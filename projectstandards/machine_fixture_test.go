@@ -19,8 +19,8 @@ func fixtureMachineProbeReport(t testing.TB) MachineProbeReport {
 		SchemaVersion: MachineProbeSchemaVersion,
 		Configuration: MachineConfiguration{
 			Identity: MachineIdentity{
-				ID: machineID, Provider: core.Offering{Token: "google-cloud"}, Project: fixtureIdentifier(t, "blink-kernel"),
-				Instance: fixtureIdentifier(t, "anvil-1"), Zone: fixtureIdentifier(t, "northamerica-northeast2-a"), MachineType: fixtureIdentifier(t, "e2-standard-4"),
+				ID: machineID, Provider: core.Offering{Token: "google-cloud"}, Project: fixtureIdentifier(t, "example-project"),
+				Instance: fixtureIdentifier(t, "runner-1"), Zone: fixtureIdentifier(t, "northamerica-northeast2-a"), MachineType: fixtureIdentifier(t, "e2-standard-4"),
 			},
 			Compute: MachineCompute{
 				CPUPlatform: fixtureName(t, "Intel Broadwell"), Processor: fixtureName(t, "Intel Xeon CPU @ 2.20 GHz"),
@@ -40,7 +40,7 @@ func fixtureMachineProbeReport(t testing.TB) MachineProbeReport {
 			},
 			Network: MachineNetwork{
 				Interface: fixtureName(t, "VirtIO Net"), NetworkTier: fixtureName(t, "Tier 1 disabled"), Addressing: fixtureName(t, "IPv4 ephemeral"),
-				VPC: fixtureIdentifier(t, "blink-kernel-test-runner"), MTU: 1460, ReceiveQueues: 4, TransmitQueues: 4,
+				VPC: fixtureIdentifier(t, "example-test-runner"), MTU: 1460, ReceiveQueues: 4, TransmitQueues: 4,
 				EgressFloorBits: 1_000_000_000, EgressCeilingBits: 10_000_000_000,
 			},
 			Lifecycle: MachineLifecycleSecurity{
@@ -76,7 +76,7 @@ func fixtureCurrentMachine(t testing.TB) CurrentMachine {
 		t.Fatalf("MachineConfiguration.Fingerprint() setup error = %v, want nil", fingerprintErr)
 	}
 	bash := fixtureAbsolutePath(t, "/bin/bash")
-	script := fixtureAbsolutePath(t, "/opt/anvil/bin/machine-probe.sh")
+	script := fixtureAbsolutePath(t, "/opt/runner/bin/machine-probe.sh")
 	outputLimit := fixtureByteCount(t, 256*1024)
 	zeroDuration, durationErr := temporal.DurationFromNanoseconds(0)
 	if durationErr != nil {
@@ -87,7 +87,7 @@ func fixtureCurrentMachine(t testing.TB) CurrentMachine {
 	observedAt := temporal.InstantFromNanoseconds(2_000_000)
 	observation := MachineObservation{
 		SchemaVersion: MachineProbeSchemaVersion, ID: observationID, GenerationID: generationID, ObservedAt: observedAt,
-		Collector: EvidenceAuthority{Offering: core.Offering{Token: "anvil"}},
+		Collector: EvidenceAuthority{Offering: core.Offering{Token: "runner"}},
 		Execution: MachineProbeExecution{
 			Bash: bash, Script: script, ScriptDigest: digest, ScriptBytes: fixtureByteLength(t, 1), OutputLimit: outputLimit, CPUTime: zeroDuration,
 			StdoutDigest: digest, StdoutBytes: fixtureByteLength(t, 1), StderrDigest: emptyDigest, StderrBytes: fixtureByteLength(t, 0),

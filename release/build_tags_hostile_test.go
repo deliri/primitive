@@ -25,7 +25,7 @@ func TestParseBuildTagPressuresConstraintWordGrammar(t *testing.T) {
 		name    string
 		in      string
 	}{
-		{name: "witness production constraint is accepted", in: "witness_production"},
+		{name: "product production constraint is accepted", in: "product_production"},
 		{name: "netgo resolver constraint is accepted", in: "netgo"},
 		{name: "osusergo resolver constraint is accepted", in: "osusergo"},
 		{name: "single lowercase letter is accepted", in: "a"},
@@ -109,9 +109,9 @@ func TestBuildTagsLayerTriadCanonicalizesTheConstraintSet(t *testing.T) {
 		wantOrder    []string
 	}{
 		{
-			name: "positive witness production set sorts into one argument",
+			name: "positive product production set sorts into one argument",
 			in:   []string{"witness_production", "netgo", "osusergo"},
-			// The Witness release constraint set is the exact reason build tags
+			// The product release constraint set is the exact reason build tags
 			// are compiler-owned; its canonical argument is pinned here.
 			wantOrder:    []string{"netgo", "osusergo", "witness_production"},
 			wantArgument: "-tags=netgo,osusergo,witness_production",
@@ -312,7 +312,7 @@ func TestBuildProvenanceSealsTheExactTagSet(t *testing.T) {
 		want string
 		in   []string
 	}{
-		{name: "positive witness constraint set survives the round trip", in: []string{"witness_production", "netgo", "osusergo"}, want: `"build_tags":["netgo","osusergo","witness_production"]`},
+		{name: "positive product constraint set survives the round trip", in: []string{"product_production", "netgo", "osusergo"}, want: `"build_tags":["netgo","osusergo","product_production"]`},
 		{name: "positive single constraint survives the round trip", in: []string{"netgo"}, want: `"build_tags":["netgo"]`},
 		{name: "neutral empty constraint set is sealed as an empty list", in: nil, want: `"build_tags":[]`},
 	}

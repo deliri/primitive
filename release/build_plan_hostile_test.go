@@ -15,14 +15,14 @@ func TestPrepareBuildPlanProjectsExactDocumentedGoArguments(t *testing.T) {
 	t.Parallel()
 
 	serverKey, err := release.NewLinkerAssignment(
-		"github.com/offGridSoft/bug/internal/release.embeddedServerKey",
+		"github.com/example/product/internal/release.embeddedServerKey",
 		"0123456789abcdef",
 	)
 	if err != nil {
 		t.Fatalf("release.NewLinkerAssignment(server key) error = %v, want nil", err)
 	}
 	releaseKey, err := release.NewLinkerAssignment(
-		"github.com/offGridSoft/bug/internal/release.embeddedReleaseKey",
+		"github.com/example/product/internal/release.embeddedReleaseKey",
 		"fedcba9876543210",
 	)
 	if err != nil {
@@ -32,7 +32,7 @@ func TestPrepareBuildPlanProjectsExactDocumentedGoArguments(t *testing.T) {
 	if err != nil {
 		t.Fatalf("release.NewLinkerAssignments() error = %v, want nil", err)
 	}
-	mainPackage, err := release.ParseMainPackage("github.com/offGridSoft/bug/cmd/bug")
+	mainPackage, err := release.ParseMainPackage("github.com/example/product/cmd/product")
 	if err != nil {
 		t.Fatalf("release.ParseMainPackage() error = %v, want nil", err)
 	}
@@ -95,7 +95,7 @@ func TestPrepareBuildPlanProjectsExactDocumentedGoArguments(t *testing.T) {
 			linkerProjection,
 			"-o",
 			wantOutput,
-			"github.com/offGridSoft/bug/cmd/bug",
+			"github.com/example/product/cmd/product",
 		}
 		linkerIndex := slices.Index(wantArguments, linkerProjection)
 		if linkerIndex < 0 || len(arguments) != len(wantArguments) {
@@ -111,8 +111,8 @@ func TestPrepareBuildPlanProjectsExactDocumentedGoArguments(t *testing.T) {
 			release.EmbeddedBuildVersionLinkSymbol,
 			release.EmbeddedBuildCommitLinkSymbol,
 			release.EmbeddedBuildPlatformLinkSymbol,
-			"github.com/offGridSoft/bug/internal/release.embeddedReleaseKey",
-			"github.com/offGridSoft/bug/internal/release.embeddedServerKey",
+			"github.com/example/product/internal/release.embeddedReleaseKey",
+			"github.com/example/product/internal/release.embeddedServerKey",
 		} {
 			if strings.Count(gotLinker, symbol+"=") != 1 {
 				t.Fatalf("release.BuildCommand(%d) linker projection contains %q %d times, want exactly once", index, symbol, strings.Count(gotLinker, symbol+"="))
@@ -208,7 +208,7 @@ func TestLinkerAssignmentsRejectAmbiguousOrPrimitiveOwnedDefinitions(t *testing.
 		symbol  string
 		value   string
 	}{
-		{name: "ordinary product variable is accepted", symbol: "github.com/offGridSoft/bug/internal/release.embeddedServerKey", value: "0123"},
+		{name: "ordinary product variable is accepted", symbol: "github.com/example/product/internal/release.embeddedServerKey", value: "0123"},
 		{name: "empty symbol is rejected", value: "0123", wantErr: core.ErrReleaseContract},
 		{name: "symbol without package separator is rejected", symbol: "embeddedServerKey", value: "0123", wantErr: core.ErrReleaseContract},
 		{name: "symbol with whitespace is rejected", symbol: "github.com/x/y.bad symbol", value: "0123", wantErr: core.ErrReleaseContract},
@@ -223,7 +223,7 @@ func TestLinkerAssignmentsRejectAmbiguousOrPrimitiveOwnedDefinitions(t *testing.
 		{name: "empty value is rejected", symbol: "github.com/x/y.value", wantErr: core.ErrReleaseContract},
 		{name: "value with whitespace is rejected", symbol: "github.com/x/y.value", value: "two values", wantErr: core.ErrReleaseContract},
 		{name: "value with assignment delimiter is rejected", symbol: "github.com/x/y.value", value: "left=right", wantErr: core.ErrReleaseContract},
-		{name: "Primitive offering stamp cannot be overridden", symbol: release.EmbeddedBuildOfferingLinkSymbol, value: "bug", wantErr: core.ErrReleaseContract},
+		{name: "Primitive offering stamp cannot be overridden", symbol: release.EmbeddedBuildOfferingLinkSymbol, value: "product", wantErr: core.ErrReleaseContract},
 		{name: "Primitive version stamp cannot be overridden", symbol: release.EmbeddedBuildVersionLinkSymbol, value: "2026.0.11", wantErr: core.ErrReleaseContract},
 		{name: "Primitive commit stamp cannot be overridden", symbol: release.EmbeddedBuildCommitLinkSymbol, value: "b5c32d95d212b0a1a8cef4126e4d11ff288079ef", wantErr: core.ErrReleaseContract},
 		{name: "Primitive platform stamp cannot be overridden", symbol: release.EmbeddedBuildPlatformLinkSymbol, value: "darwin-arm64", wantErr: core.ErrReleaseContract},
@@ -263,32 +263,32 @@ func TestMainPackageAndLinkerSetBoundEveryCommandProjection(t *testing.T) {
 		name    string
 		value   string
 	}{
-		{name: "canonical product command is accepted", value: "github.com/offGridSoft/witness/cmd/witness"},
+		{name: "canonical product command is accepted", value: "github.com/example/product/cmd/product"},
 		{name: "empty is rejected", wantErr: core.ErrReleaseContract},
-		{name: "local path is rejected", value: "./cmd/witness", wantErr: core.ErrReleaseContract},
-		{name: "absolute path is rejected", value: "/cmd/witness", wantErr: core.ErrReleaseContract},
-		{name: "single component is rejected", value: "witness", wantErr: core.ErrReleaseContract},
-		{name: "unclean path is rejected", value: "github.com/offGridSoft/../witness", wantErr: core.ErrReleaseContract},
-		{name: "shell delimiter is rejected", value: "github.com/offGridSoft/witness;run", wantErr: core.ErrReleaseContract},
+		{name: "local path is rejected", value: "./cmd/product", wantErr: core.ErrReleaseContract},
+		{name: "absolute path is rejected", value: "/cmd/product", wantErr: core.ErrReleaseContract},
+		{name: "single component is rejected", value: "product", wantErr: core.ErrReleaseContract},
+		{name: "unclean path is rejected", value: "github.com/example/../product", wantErr: core.ErrReleaseContract},
+		{name: "shell delimiter is rejected", value: "github.com/example/product;run", wantErr: core.ErrReleaseContract},
 		{name: "non ASCII path is rejected", value: "github.com/offGridSoft/witnéss", wantErr: core.ErrReleaseContract},
 		{name: "leading hyphen would reach the go command as a flag", value: "-buildmode=exe/cmd", wantErr: core.ErrReleaseContract},
 		{name: "leading hyphen without a delimiter is rejected", value: "-C/tmp", wantErr: core.ErrReleaseContract},
-		{name: "single hyphen element is rejected", value: "github.com/-/witness", wantErr: core.ErrReleaseContract},
-		{name: "interior element beginning with a hyphen is rejected", value: "github.com/-offGridSoft/witness", wantErr: core.ErrReleaseContract},
-		{name: "trailing element beginning with a hyphen is rejected", value: "github.com/offGridSoft/-witness", wantErr: core.ErrReleaseContract},
-		{name: "interior dot element is rejected", value: "github.com/.hidden/witness", wantErr: core.ErrReleaseContract},
-		{name: "element ending with a dot is rejected", value: "github.com/offGridSoft./witness", wantErr: core.ErrReleaseContract},
-		{name: "interior hyphen inside an element is accepted", value: "github.com/off-Grid-Soft/cmd-witness"},
+		{name: "single hyphen element is rejected", value: "github.com/-/product", wantErr: core.ErrReleaseContract},
+		{name: "interior element beginning with a hyphen is rejected", value: "github.com/-example/product", wantErr: core.ErrReleaseContract},
+		{name: "trailing element beginning with a hyphen is rejected", value: "github.com/example/-product", wantErr: core.ErrReleaseContract},
+		{name: "interior dot element is rejected", value: "github.com/.hidden/product", wantErr: core.ErrReleaseContract},
+		{name: "element ending with a dot is rejected", value: "github.com/example./product", wantErr: core.ErrReleaseContract},
+		{name: "interior hyphen inside an element is accepted", value: "github.com/ex-ample/cmd-product"},
 		{name: "interior dot inside an element is accepted", value: "gopkg.in/yaml.v3/cmd"},
 		{name: "underscore and tilde elements are accepted", value: "example.com/a_b/c~d"},
 		{name: "digits and version element are accepted", value: "github.com/deliri/primitive/v2026/release"},
 		{name: "two component path is accepted", value: "example.com/tool"},
-		{name: "trailing slash is rejected", value: "github.com/offGridSoft/witness/", wantErr: core.ErrReleaseContract},
-		{name: "double slash is rejected", value: "github.com//witness", wantErr: core.ErrReleaseContract},
+		{name: "trailing slash is rejected", value: "github.com/example/product/", wantErr: core.ErrReleaseContract},
+		{name: "double slash is rejected", value: "github.com//product", wantErr: core.ErrReleaseContract},
 		{name: "parent traversal element is rejected", value: "github.com/offGridSoft/../../etc", wantErr: core.ErrReleaseContract},
-		{name: "space delimiter is rejected", value: "github.com/off gridSoft/witness", wantErr: core.ErrReleaseContract},
-		{name: "newline delimiter is rejected", value: "github.com/offGridSoft/witness\n-o=/tmp/pwn", wantErr: core.ErrReleaseContract},
-		{name: "NUL byte is rejected", value: "github.com/offGridSoft/witness\x00", wantErr: core.ErrReleaseContract},
+		{name: "space delimiter is rejected", value: "github.com/ex ample/product", wantErr: core.ErrReleaseContract},
+		{name: "newline delimiter is rejected", value: "github.com/example/product\n-o=/tmp/pwn", wantErr: core.ErrReleaseContract},
+		{name: "NUL byte is rejected", value: "github.com/example/product\x00", wantErr: core.ErrReleaseContract},
 		{name: "exact maximum length is accepted", value: "github.com/" + strings.Repeat("a", 501)},
 		{name: "over maximum length is rejected", value: "github.com/" + strings.Repeat("a", 502), wantErr: core.ErrReleaseContract},
 	}
@@ -309,7 +309,7 @@ func TestMainPackageAndLinkerSetBoundEveryCommandProjection(t *testing.T) {
 	values := make([]release.LinkerAssignment, 17)
 	for index := range values {
 		assignment, err := release.NewLinkerAssignment(
-			"github.com/offGridSoft/witness/internal/release.value"+strconv.Itoa(index),
+			"github.com/example/product/internal/release.value"+strconv.Itoa(index),
 			strconv.Itoa(index+1),
 		)
 		if err != nil {
@@ -388,7 +388,7 @@ func TestGoToolchainIdentityPinsExactReleaseCompilerAcrossItsBackingDomain(t *te
 func buildPlanRequestForHostileTest(t *testing.T) release.BuildPlanRequest {
 	t.Helper()
 
-	mainPackage, err := release.ParseMainPackage("github.com/offGridSoft/bug/cmd/bug")
+	mainPackage, err := release.ParseMainPackage("github.com/example/product/cmd/product")
 	if err != nil {
 		t.Fatalf("release.ParseMainPackage() error = %v, want nil", err)
 	}

@@ -151,7 +151,7 @@ func fixtureMetadataSet(t testing.TB) MetadataSet {
 func fixtureBuildProvenance(t testing.TB) BuildProvenance {
 	t.Helper()
 	goDigest := sha256.Sum256([]byte("go tool"))
-	mainPackage, err := ParseMainPackage("github.com/offGridSoft/witness/cmd/witness")
+	mainPackage, err := ParseMainPackage("github.com/example/product/cmd/product")
 	if err != nil {
 		t.Fatalf("ParseMainPackage() error = %v", err)
 	}

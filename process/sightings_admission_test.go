@@ -18,7 +18,7 @@ func TestSnapshotSightingAdmitsOnlyActionableRows(t *testing.T) {
 		identity int32
 		wantOK   bool
 	}{
-		{name: "ordinary user process is a sighting", identity: 4321, image: "witness.exe", wantOK: true},
+		{name: "ordinary user process is a sighting", identity: 4321, image: "worker.exe", wantOK: true},
 		{name: "identity one is a sighting", identity: 1, image: "init", wantOK: true},
 		{name: "single-character image is a sighting", identity: 2, image: "a", wantOK: true},
 		{name: "image with spaces is a sighting", identity: 5, image: "Some Service Host", wantOK: true},

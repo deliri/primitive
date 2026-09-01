@@ -51,7 +51,7 @@ func TestBuildProvenanceWireFieldsRejectInvalidDomainsAndRetainSignedDigests(t *
 	t.Parallel()
 
 	plan := provenanceBuildPlan(t)
-	assignment, err := NewLinkerAssignment("github.com/offGridSoft/bug/internal/release.embeddedServerKey", "0123456789abcdef")
+	assignment, err := NewLinkerAssignment("github.com/example/product/internal/release.embeddedServerKey", "0123456789abcdef")
 	if err != nil {
 		t.Fatalf("NewLinkerAssignment() error = %v, want nil", err)
 	}

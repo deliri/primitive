@@ -37,17 +37,20 @@ func FuzzRunnerControlExternalEnumJSONSemanticClosure(f *testing.F) {
 	addEnumSeed(f, 14, runnercontrol.NetworkTCP)
 	addEnumSeed(f, 15, runnercontrol.EgressDenied)
 	addEnumSeed(f, 16, runnercontrol.EvidenceSigningDomainObservationV1)
-	addEnumSeed(f, 17, runnercontrol.CleanupSucceeded)
-	addEnumSeed(f, 18, runnercontrol.EvidenceCompletedRunner)
-	addEnumSeed(f, 19, runnercontrol.ObservationGoTestJSON)
-	addEnumSeed(f, 19, runnercontrol.ObservationJUnitXML)
-	addEnumSeed(f, 20, runnercontrol.SubjectIsolationSystemd)
-	addEnumSeed(f, 21, runnercontrol.RunControlQueued)
+	addEnumSeed(f, 17, runnercontrol.CapabilitySigningDomainSchedulingV1)
+	addEnumSeed(f, 17, runnercontrol.CapabilitySigningDomainMemberV1)
+	addEnumSeed(f, 17, runnercontrol.CapabilitySigningDomainExperimentV1)
+	addEnumSeed(f, 18, runnercontrol.CleanupSucceeded)
+	addEnumSeed(f, 19, runnercontrol.EvidenceCompletedRunner)
+	addEnumSeed(f, 20, runnercontrol.ObservationGoTestJSON)
+	addEnumSeed(f, 20, runnercontrol.ObservationJUnitXML)
+	addEnumSeed(f, 21, runnercontrol.SubjectIsolationSystemd)
+	addEnumSeed(f, 22, runnercontrol.RunControlQueued)
 	f.Add(uint8(0), []byte{})
-	f.Add(uint8(21), []byte(`"future"`))
+	f.Add(uint8(22), []byte(`"future"`))
 
 	f.Fuzz(func(t *testing.T, selector uint8, data []byte) {
-		switch selector % 22 {
+		switch selector % 23 {
 		case 0:
 			proveEnumJSONClosure(t, "HeartbeatState", runnercontrol.HeartbeatReady, data, (*runnercontrol.HeartbeatState).UnmarshalJSON)
 		case 1:
@@ -83,14 +86,16 @@ func FuzzRunnerControlExternalEnumJSONSemanticClosure(f *testing.F) {
 		case 16:
 			proveEnumJSONClosure(t, "EvidenceSigningDomain", runnercontrol.EvidenceSigningDomainObservationV1, data, (*runnercontrol.EvidenceSigningDomain).UnmarshalJSON)
 		case 17:
-			proveEnumJSONClosure(t, "CleanupOutcomeKind", runnercontrol.CleanupSucceeded, data, (*runnercontrol.CleanupOutcomeKind).UnmarshalJSON)
+			proveEnumJSONClosure(t, "CapabilitySigningDomain", runnercontrol.CapabilitySigningDomainSchedulingV1, data, (*runnercontrol.CapabilitySigningDomain).UnmarshalJSON)
 		case 18:
-			proveEnumJSONClosure(t, "EvidenceBodyKind", runnercontrol.EvidenceCompletedRunner, data, (*runnercontrol.EvidenceBodyKind).UnmarshalJSON)
+			proveEnumJSONClosure(t, "CleanupOutcomeKind", runnercontrol.CleanupSucceeded, data, (*runnercontrol.CleanupOutcomeKind).UnmarshalJSON)
 		case 19:
-			proveEnumJSONClosure(t, "ObservationFormat", runnercontrol.ObservationGoTestJSON, data, (*runnercontrol.ObservationFormat).UnmarshalJSON)
+			proveEnumJSONClosure(t, "EvidenceBodyKind", runnercontrol.EvidenceCompletedRunner, data, (*runnercontrol.EvidenceBodyKind).UnmarshalJSON)
 		case 20:
-			proveEnumJSONClosure(t, "SubjectIsolationEngine", runnercontrol.SubjectIsolationSystemd, data, (*runnercontrol.SubjectIsolationEngine).UnmarshalJSON)
+			proveEnumJSONClosure(t, "ObservationFormat", runnercontrol.ObservationGoTestJSON, data, (*runnercontrol.ObservationFormat).UnmarshalJSON)
 		case 21:
+			proveEnumJSONClosure(t, "SubjectIsolationEngine", runnercontrol.SubjectIsolationSystemd, data, (*runnercontrol.SubjectIsolationEngine).UnmarshalJSON)
+		case 22:
 			proveEnumJSONClosure(t, "RunControlState", runnercontrol.RunControlQueued, data, (*runnercontrol.RunControlState).UnmarshalJSON)
 		}
 	})

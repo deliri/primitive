@@ -58,7 +58,7 @@ func (c Code) validateComponents() error {
 		if c.Components[index].Package != c.Package {
 			return conflictError(errors.New("project standards component package differs from code package"))
 		}
-		for previous := 0; previous < index; previous++ {
+		for previous := range index {
 			if c.Components[previous].Path == c.Components[index].Path {
 				return conflictError(errors.New("project standards component path is duplicated"))
 			}
@@ -221,7 +221,7 @@ func (c ProjectCapability) Validate() error {
 		if err := c.Contributions[index].Validate(); err != nil {
 			return err
 		}
-		for previous := 0; previous < index; previous++ {
+		for previous := range index {
 			left := c.Contributions[previous]
 			right := c.Contributions[index]
 			if left.Package == right.Package && left.FeatureID == right.FeatureID {
@@ -262,7 +262,7 @@ func (e Evidence) validateSurfaces() error {
 		if err := e.Surfaces[index].Validate(); err != nil {
 			return err
 		}
-		for previous := 0; previous < index; previous++ {
+		for previous := range index {
 			if e.Surfaces[previous].ID == e.Surfaces[index].ID {
 				return conflictError(errors.New("project standards evidence surface identity is duplicated"))
 			}
@@ -301,7 +301,7 @@ func (e Evidence) validateRequests() error {
 		if err := e.Requests[index].ValidateFor(surface); err != nil {
 			return err
 		}
-		for previous := 0; previous < index; previous++ {
+		for previous := range index {
 			if e.Requests[previous].Request == e.Requests[index].Request {
 				return conflictError(errors.New("project standards request identity is duplicated"))
 			}
@@ -322,7 +322,7 @@ func (e Evidence) validateObservations() error {
 		if err := validateSelectionExpansion(e.Observations, e.Observations[index]); err != nil {
 			return err
 		}
-		for previous := 0; previous < index; previous++ {
+		for previous := range index {
 			if e.Observations[previous].Observation == e.Observations[index].Observation || e.Observations[previous].EnvelopeDigest == e.Observations[index].EnvelopeDigest {
 				return conflictError(errors.New("project standards observation identity or envelope is duplicated"))
 			}
@@ -340,7 +340,7 @@ func validateSelectionExpansion(values []ProjectStandardsObservationReference, c
 		if candidate.Request != child.Request || candidate.Kind != ObservationSelection || candidate.Selection == nil {
 			continue
 		}
-		if candidate.Selection.ExpansionDigest != child.Probe.Parent.ExpansionDigest {
+		if candidate.Selection.ExpansionIdentity != child.Probe.Parent.ExpansionDigest {
 			return conflictError(errors.New("project standards child experiment expansion differs from selection observation"))
 		}
 		return nil
@@ -392,12 +392,18 @@ func (s PackageSnapshot) Summary() (PackageSummary, error) {
 	if err != nil {
 		return PackageSummary{}, err
 	}
+	featureCount, featureErr := core.CheckedUint16FromInt(len(s.Package.Knowledge.Features))
+	componentCount, componentErr := core.CheckedUint16FromInt(len(s.Code.Components))
+	complexityCount, complexityErr := core.CheckedUint16FromInt(len(s.Package.Knowledge.Complexity))
+	if err := errors.Join(featureErr, componentErr, complexityErr); err != nil {
+		return PackageSummary{}, contractError(err)
+	}
 	return PackageSummary{
 		Key: s.Package.Key, Path: s.Package.Knowledge.Path, Title: s.Package.Knowledge.Title, Purpose: s.Package.Knowledge.Purpose,
 		Value: s.Package.Knowledge.Value, GroupID: s.Package.GroupID, Language: s.Package.Language, Runtime: s.Package.Knowledge.Runtime,
 		Changed: s.Package.Knowledge.Changed, Evidence: evidence, SourceUsage: usage,
-		FeatureCount: uint16(len(s.Package.Knowledge.Features)), ComponentCount: uint16(len(s.Code.Components)),
-		ComplexityClaimCount: uint16(len(s.Package.Knowledge.Complexity)),
+		FeatureCount: featureCount, ComponentCount: componentCount,
+		ComplexityClaimCount: complexityCount,
 	}, nil
 }
 
@@ -406,7 +412,13 @@ func (s PackageSnapshot) EvidenceSummary() (EvidenceSummary, error) {
 	if err := s.Validate(); err != nil {
 		return EvidenceSummary{}, err
 	}
-	summary := EvidenceSummary{SurfaceCount: uint16(len(s.Evidence.Surfaces)), RequestedCount: uint16(len(s.Evidence.Requests)), ObservedCount: uint16(len(s.Evidence.Observations))}
+	surfaceCount, surfaceErr := core.CheckedUint16FromInt(len(s.Evidence.Surfaces))
+	requestedCount, requestedErr := core.CheckedUint16FromInt(len(s.Evidence.Requests))
+	observedCount, observedErr := core.CheckedUint16FromInt(len(s.Evidence.Observations))
+	if err := errors.Join(surfaceErr, requestedErr, observedErr); err != nil {
+		return EvidenceSummary{}, contractError(err)
+	}
+	summary := EvidenceSummary{SurfaceCount: surfaceCount, RequestedCount: requestedCount, ObservedCount: observedCount}
 	for _, request := range s.Evidence.Requests {
 		if request.Disposition.Admitted != nil {
 			summary.AdmittedCount++
@@ -452,9 +464,15 @@ func (s *EvidenceSummary) addExperiment(observation ExperimentObservation) error
 	default:
 		return contractError(errors.New("project standards experiment summary received an outcome outside its domain"))
 	}
-	s.BenchmarkCount += uint16(len(observation.Measurements.Benchmarks))
-	s.ArtifactCount += uint16(len(observation.Artifacts))
-	s.ComplexityCaptureCount += uint16(len(observation.Measurements.Complexity))
+	benchmarks, benchmarkErr := core.CheckedUint16FromInt(len(observation.Measurements.Benchmarks))
+	artifacts, artifactErr := core.CheckedUint16FromInt(len(observation.Artifacts))
+	complexity, complexityErr := core.CheckedUint16FromInt(len(observation.Measurements.Complexity))
+	if err := errors.Join(benchmarkErr, artifactErr, complexityErr); err != nil {
+		return contractError(err)
+	}
+	s.BenchmarkCount += benchmarks
+	s.ArtifactCount += artifacts
+	s.ComplexityCaptureCount += complexity
 	return nil
 }
 
@@ -467,12 +485,16 @@ func (s PackageSnapshot) SourceUsageSummary() (*SourceUsageSummary, error) {
 		return nil, nil
 	}
 	usage := s.Code.SourceUsage
+	consumerCount, err := core.CheckedUint16FromInt(len(usage.ObservedConsumerPackages))
+	if err != nil {
+		return nil, contractError(err)
+	}
 	summary := SourceUsageSummary{
 		Generation: usage.Generation, Revision: usage.Revision, Completeness: usage.Completeness,
 		DeclarationCount: usage.DeclarationCount, ProductionReferenced: usage.ProductionReferenced,
 		RuntimeEntryPoints: usage.RuntimeEntryPoints, UnresolvedDeclarations: usage.UnresolvedDeclarations,
 		TestReferencedOnly: usage.TestReferencedOnly, NoReferenceObserved: usage.NoReferenceObserved,
-		ObservedConsumerPackages: uint16(len(usage.ObservedConsumerPackages)),
+		ObservedConsumerPackages: consumerCount,
 	}
 	return &summary, summary.Validate()
 }
@@ -671,7 +693,7 @@ func validateGroups(values []PackageGroup) error {
 		if err := values[index].Validate(); err != nil {
 			return err
 		}
-		for previous := 0; previous < index; previous++ {
+		for previous := range index {
 			if values[previous].ID == values[index].ID {
 				return conflictError(errors.New("project standards package group is duplicated"))
 			}
@@ -688,7 +710,7 @@ func validatePackageSummaries(groups []PackageGroup, values []PackageSummary) er
 		if !groupExists(groups, values[index].GroupID) {
 			return conflictError(errors.New("project standards package summary has no package group"))
 		}
-		for previous := 0; previous < index; previous++ {
+		for previous := range index {
 			if values[previous].Key == values[index].Key || values[previous].Path == values[index].Path {
 				return conflictError(errors.New("project standards package summary is duplicated"))
 			}
@@ -708,7 +730,7 @@ func validateCapabilities(features []Feature, values []ProjectCapability) error 
 		if !featureExists(features, values[index].FeatureID) {
 			return conflictError(errors.New("project standards project capability names no product feature"))
 		}
-		for previous := 0; previous < index; previous++ {
+		for previous := range index {
 			if values[previous].FeatureID == values[index].FeatureID {
 				return conflictError(errors.New("project standards project capability is duplicated"))
 			}

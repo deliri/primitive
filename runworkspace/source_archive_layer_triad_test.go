@@ -27,7 +27,7 @@ func TestSourceArchiveEffectLayerTriad(t *testing.T) {
 		defer cleanupSourceUnit(t, manager, unit)
 		archive, document, grant, trusted := sourceArchiveFixture(t, unit, []byte("package subject\n"))
 
-		got, gotErr := manager.AcquireSourceArchive(t.Context(), unit, grant, document, trusted, temporal.InstantFromNanoseconds(10), bytes.NewReader(archive))
+		got, gotErr := manager.AcquireSourceArchive(t.Context(), SourceArchiveAcquisitionRequest{Unit: unit, Grant: grant, Document: document, Trusted: trusted, ObservedAt: temporal.InstantFromNanoseconds(10), Source: bytes.NewReader(archive)})
 		if gotErr != nil || got.Coordinate != grant.Source || got.Files != 1 || got.Directories != 2 {
 			t.Fatalf("Manager.AcquireSourceArchive() = (%+v, %v), want exact coordinate, 1 file, 2 directories, nil", got, gotErr)
 		}
@@ -51,7 +51,7 @@ func TestSourceArchiveEffectLayerTriad(t *testing.T) {
 		archive, document, grant, trusted := sourceArchiveFixture(t, unit, []byte("package subject\n"))
 		archive[len(archive)/2] ^= 1
 
-		got, gotErr := manager.AcquireSourceArchive(t.Context(), unit, grant, document, trusted, temporal.InstantFromNanoseconds(10), bytes.NewReader(archive))
+		got, gotErr := manager.AcquireSourceArchive(t.Context(), SourceArchiveAcquisitionRequest{Unit: unit, Grant: grant, Document: document, Trusted: trusted, ObservedAt: temporal.InstantFromNanoseconds(10), Source: bytes.NewReader(archive)})
 		if got != (VerifiedSource{}) || !errors.Is(gotErr, core.ErrPrimitiveContract) {
 			t.Fatalf("Manager.AcquireSourceArchive(tampered) = (%+v, %v), want zero and errors.Is(..., %v)", got, gotErr, core.ErrPrimitiveContract)
 		}
@@ -72,7 +72,7 @@ func TestSourceArchiveEffectLayerTriad(t *testing.T) {
 		defer cleanupSourceUnit(t, manager, unit)
 		archive, document, grant, trusted := sourceArchiveFixture(t, unit, []byte("package subject\n"))
 
-		got, gotErr := manager.AcquireSourceArchive(t.Context(), unit, grant, document, trusted, grant.ExpiresAt, bytes.NewReader(archive))
+		got, gotErr := manager.AcquireSourceArchive(t.Context(), SourceArchiveAcquisitionRequest{Unit: unit, Grant: grant, Document: document, Trusted: trusted, ObservedAt: grant.ExpiresAt, Source: bytes.NewReader(archive)})
 		if got != (VerifiedSource{}) || !errors.Is(gotErr, core.ErrPrimitiveContract) {
 			t.Fatalf("Manager.AcquireSourceArchive(expired grant) = (%+v, %v), want zero and errors.Is(..., %v)", got, gotErr, core.ErrPrimitiveContract)
 		}
@@ -106,7 +106,7 @@ func FuzzSourceArchiveSemanticBoundary(f *testing.F) {
 			t.Fatalf("IssueSourceArchive(fuzz input) error = %v, want nil", issueErr)
 		}
 
-		got, gotErr := manager.AcquireSourceArchive(t.Context(), unit, seedGrant, document, trusted, temporal.InstantFromNanoseconds(10), bytes.NewReader(data))
+		got, gotErr := manager.AcquireSourceArchive(t.Context(), SourceArchiveAcquisitionRequest{Unit: unit, Grant: seedGrant, Document: document, Trusted: trusted, ObservedAt: temporal.InstantFromNanoseconds(10), Source: bytes.NewReader(data)})
 		if bytes.Equal(data, seedArchive) {
 			if gotErr != nil || got.Files != 1 || got.Coordinate != seedGrant.Source {
 				t.Fatalf("AcquireSourceArchive(canonical seed) = (%+v, %v), want exact verified source and nil", got, gotErr)
@@ -154,14 +154,14 @@ func cleanupSourceUnit(t testing.TB, manager Manager, unit Unit) {
 func sourceArchiveFixture(t testing.TB, unit Unit, content []byte) ([]byte, runnercontrol.SourceArchiveDocument, runnercontrol.SourceGrant, attest.TrustedKeys) {
 	t.Helper()
 	archive := sourceTarFixture(t, content)
-	repository, repositoryErr := projectstandards.NewRepositoryIdentity("github.com/offGridSoft/anvil")
+	repository, repositoryErr := projectstandards.NewRepositoryIdentity("github.com/example/project")
 	commit, commitErr := core.ParseBuildCommit("0123456789abcdef0123456789abcdef01234567")
 	checkout, checkoutErr := joinLiteral(unit.Root, "checkout")
 	directoryPath, directoryErr := archiveEntryPath(checkout, "pkg/", 8)
 	filePath, fileErr := archiveEntryPath(checkout, "pkg/main.go", 8)
 	tree := sha256.New()
-	treeDirectoryErr := writeTreeEntry(tree, directoryPath, 0o500, 0, core.SHA256Of(nil))
-	treeFileErr := writeTreeEntry(tree, filePath, 0o400, uint64(len(content)), core.SHA256Of(content))
+	treeDirectoryErr := writeTreeEntry(treeEntry{destination: tree, path: directoryPath, mode: 0o500, digest: core.SHA256Of(nil)})
+	treeFileErr := writeTreeEntry(treeEntry{destination: tree, path: filePath, mode: 0o400, size: uint64(len(content)), digest: core.SHA256Of(content)})
 	archiveBytes := sourceByteLength(t, uint64(len(archive)))
 	fileMaximum, maximumErr := core.NewByteCount(1 << 20)
 	if err := errors.Join(repositoryErr, commitErr, checkoutErr, directoryErr, fileErr, treeDirectoryErr, treeFileErr, maximumErr); err != nil {

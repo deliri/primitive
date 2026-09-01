@@ -17,7 +17,10 @@ func TestObservationDeliveryLayerTriad(t *testing.T) {
 	t.Run("positive control envelope independently closes runner signature experiment page and cleanup", func(t *testing.T) {
 		t.Parallel()
 		envelope, manifest, pages, controlKeys, runnerKeys := completedObservationDeliveryFixture(t)
-		gotErr := runnercontrol.VerifyObservationDelivery(envelope, manifest, pages, controlKeys, runnerKeys)
+		gotErr := runnercontrol.VerifyObservationDelivery(runnercontrol.ObservationDeliveryVerification{
+			Stage: runnercontrol.ObservationDeliveryStage{SchemaVersion: runnercontrol.SchemaVersion, Envelope: envelope, Manifest: manifest},
+			Pages: pages, ControlKeys: controlKeys, RunnerKeys: runnerKeys,
+		})
 		if gotErr != nil {
 			t.Fatalf("VerifyObservationDelivery(completed) error = %v, want nil", gotErr)
 		}
@@ -27,7 +30,10 @@ func TestObservationDeliveryLayerTriad(t *testing.T) {
 		t.Parallel()
 		envelope, manifest, pages, controlKeys, runnerKeys := completedObservationDeliveryFixture(t)
 		manifest.Entries[0].Digest = core.SHA256Of([]byte("forged-completion"))
-		gotErr := runnercontrol.VerifyObservationDelivery(envelope, manifest, pages, controlKeys, runnerKeys)
+		gotErr := runnercontrol.VerifyObservationDelivery(runnercontrol.ObservationDeliveryVerification{
+			Stage: runnercontrol.ObservationDeliveryStage{SchemaVersion: runnercontrol.SchemaVersion, Envelope: envelope, Manifest: manifest},
+			Pages: pages, ControlKeys: controlKeys, RunnerKeys: runnerKeys,
+		})
 		if !errors.Is(gotErr, core.ErrPrimitiveContract) {
 			t.Fatalf("VerifyObservationDelivery(forged digest) error = %v, want errors.Is(..., %v)", gotErr, core.ErrPrimitiveContract)
 		}
@@ -36,7 +42,10 @@ func TestObservationDeliveryLayerTriad(t *testing.T) {
 	t.Run("neutral pre-runner infrastructure failure carries no experiment pages or fabricated cleanup", func(t *testing.T) {
 		t.Parallel()
 		envelope, manifest, controlKeys, runnerKeys := preRunnerObservationDeliveryFixture(t)
-		gotErr := runnercontrol.VerifyObservationDelivery(envelope, manifest, nil, controlKeys, runnerKeys)
+		gotErr := runnercontrol.VerifyObservationDelivery(runnercontrol.ObservationDeliveryVerification{
+			Stage: runnercontrol.ObservationDeliveryStage{SchemaVersion: runnercontrol.SchemaVersion, Envelope: envelope, Manifest: manifest},
+			Pages: []runnercontrol.ExperimentDeliveryPage{}, ControlKeys: controlKeys, RunnerKeys: runnerKeys,
+		})
 		if gotErr != nil || manifest.PageCount != 0 || len(manifest.Entries) != 0 || envelope.Payload.Cleanup.Kind != runnercontrol.CleanupNotApplicable {
 			t.Fatalf("VerifyObservationDelivery(pre-runner) = (%v, pages %d, entries %d, cleanup %v), want nil, 0, 0, not-applicable", gotErr, manifest.PageCount, len(manifest.Entries), envelope.Payload.Cleanup.Kind)
 		}
@@ -54,11 +63,11 @@ func completedObservationDeliveryFixture(t testing.TB) (runnercontrol.Observatio
 	entry := runnercontrol.ExperimentDeliveryEntry{Experiment: experimentPayload.Observation.Experiment, Probe: experimentPayload.Probe, Digest: experimentRecord.Digest, Bytes: experimentRecord.Bytes, Page: 1, Position: 0}
 	manifest := runnercontrol.ExperimentDeliveryManifest{SchemaVersion: runnercontrol.SchemaVersion, Run: runnerPayload.Run, Entries: []runnercontrol.ExperimentDeliveryEntry{entry}, PageCount: 1}
 	manifestDigest, manifestErr := manifest.Digest()
-	cleanup := runnercontrol.CleanupOutcome{Kind: runnercontrol.CleanupSucceeded, ReceiptDigest: digestPointer(core.SHA256Of([]byte("cleanup-receipt")))}
+	cleanup := runnercontrol.CleanupOutcome{Kind: runnercontrol.CleanupSucceeded, ReceiptDigest: new(core.SHA256Of([]byte("cleanup-receipt")))}
 	cleanupDigest, cleanupErr := cleanup.Digest()
 	request, requestErr := projectstandards.NewRequestIdentity(completionUUIDFixture(t))
 	destination, destinationErr := projectstandards.NewIdentifier("origin-observation-api")
-	audience, audienceErr := projectstandards.NewIdentifier("origin-anvil")
+	audience, audienceErr := projectstandards.NewIdentifier("origin-runner")
 	if err := errors.Join(runnerIssueErr, experimentIssueErr, recordErr, manifestErr, cleanupErr, requestErr, destinationErr, audienceErr); err != nil {
 		t.Fatalf("completed observation delivery fixture error = %v, want nil", err)
 	}
@@ -88,7 +97,7 @@ func preRunnerObservationDeliveryFixture(t testing.TB) (runnercontrol.Observatio
 	cleanupDigest, cleanupErr := cleanup.Digest()
 	request, requestErr := projectstandards.NewRequestIdentity(completionUUIDFixture(t))
 	destination, destinationErr := projectstandards.NewIdentifier("origin-observation-api")
-	audience, audienceErr := projectstandards.NewIdentifier("origin-anvil")
+	audience, audienceErr := projectstandards.NewIdentifier("origin-runner")
 	stage, stageErr := projectstandards.NewIdentifier("source-acquisition")
 	if err := errors.Join(manifestErr, cleanupErr, requestErr, destinationErr, audienceErr, stageErr); err != nil {
 		t.Fatalf("pre-runner observation delivery fixture error = %v, want nil", err)
@@ -109,5 +118,3 @@ func preRunnerObservationDeliveryFixture(t testing.TB) (runnercontrol.Observatio
 	_, runnerKeys := completionSignerFixture(t)
 	return envelope, manifest, controlKeys, runnerKeys
 }
-
-func digestPointer(value core.SHA256Digest) *core.SHA256Digest { return &value }

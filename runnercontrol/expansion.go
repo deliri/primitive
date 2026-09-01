@@ -9,6 +9,7 @@ import (
 	"fmt"
 	"io"
 	"net/http"
+	"slices"
 	"strings"
 	"unicode"
 	"unicode/utf8"
@@ -23,8 +24,8 @@ const (
 	GoBuildTagMaximum                    = 64
 	GoBuildContextMaximum                = 32
 	ExpansionChildMaximum                = 256
-	ExpansionManifestMaximumBytes        = core.JSONDocumentMaximumBytes
-	ExpansionApprovalMaximumBytes        = core.JSONDocumentMaximumBytes
+	ExpansionManifestMaximumBytes        = 1 << 20
+	ExpansionApprovalMaximumBytes        = 1 << 20
 	GoASTDiscoveryIdentifier             = "primitive-go-ast"
 	GoASTDiscoveryVersion         uint32 = 1
 )
@@ -108,17 +109,12 @@ func (i GoInstrumentation) Validate() error {
 	}
 	return nil
 }
+func (i GoInstrumentation) IsValid() bool { return i.Validate() == nil }
 func (i GoInstrumentation) String() string {
-	switch i {
-	case GoInstrumentationOrdinary:
-		return "ordinary"
-	case GoInstrumentationRace:
-		return "race"
-	case GoInstrumentationDiagnostic:
-		return "diagnostic"
-	default:
-		return ""
+	if !i.IsValid() {
+		return invalidEnumString()
 	}
+	return []string{"", "ordinary", "race", "diagnostic"}[i]
 }
 func (i GoInstrumentation) MarshalJSON() ([]byte, error) {
 	if err := i.Validate(); err != nil {
@@ -158,6 +154,7 @@ func (m GoModuleMode) Validate() error {
 	}
 	return nil
 }
+func (m GoModuleMode) IsValid() bool { return m.Validate() == nil }
 func (m GoModuleMode) String() string {
 	if m == GoModuleModeModule {
 		return "module"
@@ -165,7 +162,7 @@ func (m GoModuleMode) String() string {
 	if m == GoModuleModeWorkspace {
 		return "workspace"
 	}
-	return ""
+	return invalidEnumString()
 }
 func (m GoModuleMode) MarshalJSON() ([]byte, error) {
 	if err := m.Validate(); err != nil {
@@ -359,17 +356,12 @@ func (d ExpansionDisposition) Validate() error {
 	}
 	return nil
 }
+func (d ExpansionDisposition) IsValid() bool { return d.Validate() == nil }
 func (d ExpansionDisposition) String() string {
-	switch d {
-	case ExpansionAdmitted:
-		return "admitted"
-	case ExpansionRefused:
-		return "refused"
-	case ExpansionNotApplicable:
-		return "not-applicable"
-	default:
-		return ""
+	if !d.IsValid() {
+		return invalidEnumString()
 	}
+	return []string{"", "admitted", "refused", "not-applicable"}[d]
 }
 func (d ExpansionDisposition) MarshalJSON() ([]byte, error) {
 	if err := d.Validate(); err != nil {
@@ -404,7 +396,7 @@ type ExpansionChild struct {
 }
 
 // CIExpansionChild is one compiler-owned child intent from product policy.
-// Anvil derives only the run-bound parent and experiment identity from it.
+// The caller derives only the run-bound parent and experiment identity from it.
 type CIExpansionChild struct {
 	Sequence           uint16                          `json:"sequence"`
 	Target             projectstandards.ProbeTarget    `json:"target"`
@@ -416,7 +408,7 @@ type CIExpansionChild struct {
 
 func (c CIExpansionChild) Validate() error {
 	if c.Sequence == 0 {
-		return errors.Join(core.ErrPrimitiveContract, errors.New("CI expansion child sequence is zero"))
+		return errors.Join(core.ErrPrimitiveContract, errors.New("ci expansion child sequence is zero"))
 	}
 	if err := errors.Join(c.Target.Validate(), c.Kind.Validate(), c.BuildContextDigest.Validate(), c.Disposition.Validate()); err != nil {
 		return err
@@ -488,8 +480,9 @@ func (p CIExpansionPlan) validateChildren() error {
 		if err := child.Validate(); err != nil {
 			return err
 		}
-		if child.Sequence != uint16(index+1) {
-			return errors.Join(core.ErrPrimitiveContract, errors.New("CI expansion children are not in declared sequence"))
+		sequence, err := core.CheckedUint16FromInt(index + 1)
+		if err != nil || child.Sequence != sequence {
+			return errors.Join(core.ErrPrimitiveContract, errors.New("ci expansion children are not in declared sequence"))
 		}
 		if !requestedKindContains(p.RequestedKinds, child.Kind) {
 			return core.ErrPrimitiveContract
@@ -629,15 +622,17 @@ func (m ExpansionManifest) validateRequestedKinds() error {
 }
 
 func (m ExpansionManifest) validateChildren() error {
-	var admitted, refused, notApplicable uint16
+	var counts expansionCounts
 	for index := range m.Children {
 		child := m.Children[index]
 		if err := validateExpansionChildAt(child, m, index); err != nil {
 			return err
 		}
-		admitted, refused, notApplicable = incrementExpansionCount(child.Disposition, admitted, refused, notApplicable)
+		if err := counts.increment(child.Disposition); err != nil {
+			return err
+		}
 	}
-	if admitted != m.Admitted || refused != m.Refused || notApplicable != m.NotApplicable {
+	if counts.admitted != m.Admitted || counts.refused != m.Refused || counts.notApplicable != m.NotApplicable {
 		return core.ErrPrimitiveContract
 	}
 	return nil
@@ -650,22 +645,33 @@ func validateExpansionChildAt(child ExpansionChild, manifest ExpansionManifest, 
 	if !childMatchesExpansion(child, manifest) {
 		return core.ErrPrimitiveContract
 	}
-	if child.Sequence != uint16(index+1) {
+	sequence, err := core.CheckedUint16FromInt(index + 1)
+	if err != nil || child.Sequence != sequence {
 		return errors.Join(core.ErrPrimitiveContract, errors.New("expansion children are not in execution sequence"))
 	}
 	return nil
 }
 
-func incrementExpansionCount(disposition ExpansionDisposition, admitted, refused, notApplicable uint16) (uint16, uint16, uint16) {
-	switch disposition {
-	case ExpansionAdmitted:
-		admitted++
-	case ExpansionRefused:
-		refused++
-	case ExpansionNotApplicable:
-		notApplicable++
+type expansionCounts struct {
+	admitted      uint16
+	refused       uint16
+	notApplicable uint16
+}
+
+func (c *expansionCounts) increment(disposition ExpansionDisposition) error {
+	if disposition == ExpansionAdmitted {
+		c.admitted++
+		return nil
 	}
-	return admitted, refused, notApplicable
+	if disposition == ExpansionRefused {
+		c.refused++
+		return nil
+	}
+	if disposition == ExpansionNotApplicable {
+		c.notApplicable++
+		return nil
+	}
+	return core.ErrPrimitiveContract
 }
 func childMatchesExpansion(child ExpansionChild, m ExpansionManifest) bool {
 	p := child.Probe
@@ -686,12 +692,7 @@ func childMatchesExpansionTarget(p projectstandards.ProbeIdentity, m ExpansionMa
 }
 
 func requestedKindContains(kinds []projectstandards.ProbeKind, candidate projectstandards.ProbeKind) bool {
-	for _, kind := range kinds {
-		if kind == candidate {
-			return true
-		}
-	}
-	return false
+	return slices.Contains(kinds, candidate)
 }
 func (m ExpansionManifest) identityDigest() (core.SHA256Digest, error) {
 	type identityProjection struct {
@@ -881,7 +882,7 @@ type ExpansionApproval struct {
 	ManifestDigest core.SHA256Digest               `json:"manifest_digest"`
 	Approved       bool                            `json:"approved"`
 	Refusal        *projectstandards.RefusalReason `json:"refusal,omitempty"`
-	Experiments    []ExperimentCapability          `json:"experiment_capabilities"`
+	Experiments    []ExperimentCapabilityDocument  `json:"experiment_capabilities"`
 }
 
 func (a ExpansionApproval) Validate() error {
@@ -912,12 +913,28 @@ func (a ExpansionApproval) validateApproved() error {
 	return nil
 }
 
-func validateApprovedExperiment(experiment ExperimentCapability, approval ExpansionApproval) error {
+func validateApprovedExperiment(document ExperimentCapabilityDocument, approval ExpansionApproval) error {
+	if err := document.Validate(); err != nil {
+		return errors.Join(core.ErrPrimitiveContract, err)
+	}
+	experiment := document.Payload
 	if err := experiment.Validate(); err != nil {
 		return errors.Join(core.ErrPrimitiveContract, err)
 	}
 	if experiment.Run != approval.Run || experiment.ExpansionManifestDigest == nil || *experiment.ExpansionManifestDigest != approval.ManifestDigest {
 		return core.ErrPrimitiveContract
+	}
+	return nil
+}
+
+func VerifyExpansionApproval(approval ExpansionApproval, trusted attest.TrustedKeys) error {
+	if err := approval.Validate(); err != nil {
+		return err
+	}
+	for index := range approval.Experiments {
+		if err := VerifyExperimentCapability(approval.Experiments[index], trusted); err != nil {
+			return err
+		}
 	}
 	return nil
 }
@@ -986,7 +1003,9 @@ func (s ExpansionServer) Serve(writer http.ResponseWriter, request *http.Request
 	if err != nil {
 		return err
 	}
-	if err := RequireRunnerPeer(request.Context(), received.Body.Manifest.Fence.Machine.Machine, received.Body.Manifest.Fence.Machine.Generation); err != nil {
+	manifest := received.Body.Manifest
+	machine := manifest.Fence.Machine
+	if err := RequireRunnerPeer(request.Context(), machine.Machine, machine.Generation); err != nil {
 		return err
 	}
 	if err := VerifyExpansion(*received.Body, s.trusted); err != nil {
@@ -1000,8 +1019,9 @@ func (s ExpansionServer) Serve(writer http.ResponseWriter, request *http.Request
 	if err != nil {
 		return err
 	}
-	if approval.Run != record.Document.Manifest.Run || approval.ManifestDigest != record.Document.Manifest.Identity {
-		return core.ErrPrimitiveContract
+	manifestDigest, digestErr := record.Document.Manifest.Digest()
+	if digestErr != nil || approval.Run != record.Document.Manifest.Run || approval.ManifestDigest != manifestDigest {
+		return errors.Join(core.ErrPrimitiveContract, digestErr)
 	}
 	return exchange.WriteSocketJSON(s.socket, writer, approval)
 }

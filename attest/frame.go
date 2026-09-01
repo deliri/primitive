@@ -5,7 +5,6 @@ import (
 	"crypto/sha256"
 	"encoding/binary"
 	"errors"
-	"math"
 
 	"github.com/deliri/primitive/v2026/core"
 )
@@ -69,8 +68,9 @@ func (f attestationFrame) bytes() []byte {
 }
 
 func checkedUint16FromInt(value int) (uint16, error) {
-	if value < 0 || value > math.MaxUint16 {
+	converted, err := core.CheckedUint16FromInt(value)
+	if err != nil {
 		return 0, contractError(errors.New(domainCanonicalErrorText))
 	}
-	return uint16(value), nil
+	return converted, nil
 }

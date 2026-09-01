@@ -32,9 +32,18 @@ func TestExperimentOutcomeTerminalRelationshipExhaustive(t *testing.T) {
 	}
 
 	for _, current := range cases {
-		current := current
 		t.Run(current.name, func(t *testing.T) {
 			t.Parallel()
+			mapped, mappingErr := TerminalForOutcome(current.outcome)
+			if current.outcome == OutcomeUnknown {
+				if mapped != TerminalUnknown || !errors.Is(mappingErr, core.ErrProjectStandardsContract) {
+					t.Fatalf("TerminalForOutcome(%v) = (%v, %v), want (%v, errors.Is(..., %v))",
+						current.outcome, mapped, mappingErr, TerminalUnknown, core.ErrProjectStandardsContract)
+				}
+			} else if mappingErr != nil || !experimentTerminalMatches(current.outcome, mapped) {
+				t.Fatalf("TerminalForOutcome(%v) = (%v, %v), want its admitted terminal and nil",
+					current.outcome, mapped, mappingErr)
+			}
 			got := fixtureExperimentObservationReference(t, current.outcome, current.terminal)
 			gotErr := got.Validate()
 			if current.wantErr == nil && gotErr != nil {
@@ -161,7 +170,7 @@ func fixtureAdmittedObservation(t testing.TB) (ProjectStandardsRequestReference,
 			File: fixturePath(t, "projectstandards/evidence.go"), Symbol: fixtureName(t, "TestEvidence"),
 		},
 	}
-	requirement := EnvironmentRequirement{MachineClass: fixtureIdentifier(t, "anvil-linux"), Fingerprint: digest}
+	requirement := EnvironmentRequirement{MachineClass: fixtureIdentifier(t, "runner-linux"), Fingerprint: digest}
 	generationID, generationErr := NewMachineGenerationID(uuid)
 	if generationErr != nil {
 		t.Fatalf("NewMachineGenerationID() setup error = %v, want nil", generationErr)
@@ -170,18 +179,19 @@ func fixtureAdmittedObservation(t testing.TB) (ProjectStandardsRequestReference,
 		MachineClass: requirement.MachineClass, RequirementFingerprint: requirement.Fingerprint,
 		EnvironmentFingerprint: digest, MachineGeneration: generationID, MachineSheetDigest: digest,
 	}
-	probe := ProbeIdentity{
-		Origin: OriginIdentity{Offering: core.Offering{Token: "blink-kernel"}}, Subject: subject,
-		Source: source, Role: ProbeRoleExperiment, Kind: ProbeKindGoTest, Target: target,
-		Profile: fixtureProfile(t, "acceptance"), Environment: environment,
+	origin := OriginIdentity{Offering: core.Offering{Token: "origin"}}
+	profile := fixtureProfile(t, "acceptance")
+	requested := RequestedProbe{
+		Origin: origin, Subject: subject, Source: source, Target: target,
+		Kinds: []ProbeKind{ProbeKindGoTest}, Profile: profile, Constraints: requirement,
+	}
+	probe, probeErr := AdmitRequestedProbe(requested, environment)
+	if probeErr != nil {
+		t.Fatalf("AdmitRequestedProbe(exact environment) error = %v, want nil", probeErr)
 	}
 	status, statusErr := core.ParseHTTPEndpoint("https://control.example/runs/1")
 	if statusErr != nil {
 		t.Fatalf("core.ParseHTTPEndpoint() setup error = %v, want nil", statusErr)
-	}
-	requested := RequestedProbe{
-		Origin: probe.Origin, Subject: subject, Source: source, Target: target,
-		Kinds: []ProbeKind{ProbeKindGoTest}, Profile: probe.Profile, Constraints: requirement,
 	}
 	request := ProjectStandardsRequestReference{
 		SurfaceID: fixtureIdentifier(t, "package-proof"), Request: requestID, Source: source, Requested: requested,
@@ -189,7 +199,7 @@ func fixtureAdmittedObservation(t testing.TB) (ProjectStandardsRequestReference,
 	}
 	observation := ProjectStandardsObservationReference{
 		Observation: observationID,
-		Producer:    EvidenceAuthority{Offering: core.Offering{Token: "anvil"}},
+		Producer:    EvidenceAuthority{Offering: core.Offering{Token: "runner"}},
 		Verifier:    EvidenceAuthority{Offering: core.Offering{Token: "primitive-control"}},
 		Kind:        ObservationExperiment, Request: requestID, Run: runID,
 		Source: source, EnvelopeDigest: digest, Probe: probe, Terminal: TerminalCompleted,

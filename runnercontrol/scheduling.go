@@ -4,6 +4,7 @@ import (
 	"bytes"
 	json "encoding/json/v2"
 	"errors"
+	"slices"
 
 	"github.com/deliri/primitive/v2026/core"
 	primitiveid "github.com/deliri/primitive/v2026/id"
@@ -28,17 +29,13 @@ func (k SchedulingUnitKind) Validate() error {
 	return nil
 }
 
+func (k SchedulingUnitKind) IsValid() bool { return k.Validate() == nil }
+
 func (k SchedulingUnitKind) String() string {
-	switch k {
-	case SchedulingUnitRunPlan:
-		return "run-plan"
-	case SchedulingUnitRunBatch:
-		return "run-batch"
-	case SchedulingUnitUnknown:
-		return ""
-	default:
-		return ""
+	if !k.IsValid() {
+		return invalidEnumString()
 	}
+	return []string{"", "run-plan", "run-batch"}[k]
 }
 
 func (k SchedulingUnitKind) MarshalJSON() ([]byte, error) {
@@ -105,12 +102,7 @@ func (s MemberSet) Contains(run projectstandards.RunID) bool {
 	if s.Validate() != nil || run.Validate() != nil {
 		return false
 	}
-	for _, candidate := range s.Entries {
-		if candidate == run {
-			return true
-		}
-	}
-	return false
+	return slices.Contains(s.Entries, run)
 }
 
 func (s MemberSet) Digest() (core.SHA256Digest, error) {

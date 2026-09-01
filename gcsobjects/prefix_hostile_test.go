@@ -62,7 +62,7 @@ func TestGCSLogicalDirectoryCompositionLayerTriad(t *testing.T) {
 	t.Parallel()
 
 	segments := []string{
-		"accounts", "witness", "bug", "peachfuzz", "chits", "uploads",
+		"accounts", "product-alpha", "product-beta", "product-gamma", "chits", "uploads",
 		"00000000-0007-7000-8000-000000000007", "evidence", "versions", "results.json",
 	}
 	rootSegment := parsedGCSSegment(t, segments[0])

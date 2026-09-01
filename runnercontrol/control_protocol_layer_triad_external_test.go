@@ -29,6 +29,29 @@ func TestAdmissionSchemaLayerTriad(t *testing.T) {
 		}
 	})
 
+	t.Run("positive Go file selection retains its exact package file and child policy", func(t *testing.T) {
+		t.Parallel()
+		authenticated, admitted := admissionFixture(t)
+		module, moduleErr := projectstandards.NewIdentifier("blink-kernel")
+		packagePath, packageErr := projectstandards.ParseSourcePath("api")
+		file, fileErr := projectstandards.ParseSourcePath("api/api_test.go")
+		if err := errors.Join(moduleErr, packageErr, fileErr); err != nil {
+			t.Fatalf("Go file selection target setup error = %v, want nil", err)
+		}
+		target := projectstandards.ProbeTarget{Kind: projectstandards.ProbeTargetGoFile, GoFile: &projectstandards.GoFileTarget{Module: module, Package: packagePath, File: file, ChildKinds: []projectstandards.ProbeKind{projectstandards.ProbeKindGoTest}}}
+		authenticated.Requested.Probe.Target = target
+		authenticated.Requested.Probe.Kinds = []projectstandards.ProbeKind{projectstandards.ProbeKindGoTest}
+		probe, probeErr := projectstandards.AdmitRequestedProbe(authenticated.Requested.Probe, admitted.Probe.Environment)
+		admitted.Requested = authenticated.Requested.Probe
+		admitted.Probe = probe
+		if err := errors.Join(probeErr, authenticated.Validate(), admitted.Validate()); err != nil {
+			t.Fatalf("AdmittedRun.Validate(Go file selection) error = %v, want nil", err)
+		}
+		if admitted.Probe.Kind != projectstandards.ProbeKindGoFileSelection || admitted.Probe.Target.GoFile == nil || admitted.Probe.Target.GoFile.File != file {
+			t.Fatalf("admitted Go file selection = kind %v/target %+v, want go-file-selection and %v", admitted.Probe.Kind, admitted.Probe.Target.GoFile, file)
+		}
+	})
+
 	t.Run("negative authenticated origin cannot claim another origin request", func(t *testing.T) {
 		t.Parallel()
 		authenticated, _ := admissionFixture(t)
@@ -139,9 +162,9 @@ func admissionFixture(t testing.TB) (runnercontrol.AuthenticatedAdmissionRequest
 	duration, durationErr := temporal.DurationFromSeconds(300)
 	sourceAuthority, sourceErr := core.ParseHTTPEndpoint("https://source.example.invalid/archive")
 	credentialIssuer, credentialErr := core.ParseHTTPEndpoint("https://source.example.invalid/credentials")
-	deliveryEndpoint, deliveryErr := core.ParseHTTPEndpoint("https://origin.example.invalid/v1/anvil/observations")
-	audience, audienceErr := projectstandards.NewIdentifier("origin-anvil")
-	application, applicationErr := projectstandards.NewIdentifier("anvil")
+	deliveryEndpoint, deliveryErr := core.ParseHTTPEndpoint("https://origin.example.invalid/v1/runner/observations")
+	audience, audienceErr := projectstandards.NewIdentifier("origin-runner")
+	application, applicationErr := projectstandards.NewIdentifier("runner")
 	credential, custodyErr := projectstandards.NewIdentifier("source-read-once")
 	if err := errors.Join(requestErr, outputErr, artifactErr, durationErr, sourceErr, credentialErr, deliveryErr, audienceErr, applicationErr, custodyErr); err != nil {
 		t.Fatalf("admission fixture construction error = %v, want nil", err)
@@ -155,16 +178,18 @@ func admissionFixture(t testing.TB) (runnercontrol.AuthenticatedAdmissionRequest
 	requested := runnercontrol.RequestedRun{SchemaVersion: runnercontrol.SchemaVersion, Request: request, Probe: requestedProbe, Limits: limits, EvidencePlan: core.SHA256Of([]byte("evidence-plan")), RequestedAt: temporal.InstantFromNanoseconds(1)}
 	expires := temporal.InstantFromNanoseconds(100)
 	repository, repositoryErr := runnercontrol.NewRepositoryGrant(runnercontrol.RepositoryGrant{Origin: completion.Probe.Origin, Subject: completion.Probe.Subject, Repository: completion.Probe.Source.Repository, SourceAuthority: sourceAuthority, CredentialIssuer: credentialIssuer, Enabled: true, ExpiresAt: expires})
-	delivery, grantErr := runnercontrol.NewOriginDeliveryGrant(runnercontrol.OriginDeliveryGrant{Origin: completion.Probe.Origin, Endpoint: deliveryEndpoint, TLSIdentity: core.SHA256Of([]byte("origin-tls")), Audience: audience, Application: application, Enabled: true, ExpiresAt: expires})
+	deliveryCredential, deliveryCredentialErr := runnercontrol.NewPeerCredential(runnercontrol.PeerCredentialGoogleCloud, core.SHA256Of([]byte("origin-workload")))
+	delivery, grantErr := runnercontrol.NewOriginDeliveryGrant(runnercontrol.OriginDeliveryGrant{Origin: completion.Probe.Origin, Endpoint: deliveryEndpoint, Credential: deliveryCredential, Audience: audience, Application: application, Enabled: true, ExpiresAt: expires})
 	source, sourceGrantErr := runnercontrol.NewSourceGrant(runnercontrol.SourceGrant{RepositoryGrant: repository.Identity, Source: completion.Probe.Source, Authority: sourceAuthority, Credential: credential, ExpiresAt: expires})
-	if err := errors.Join(repositoryErr, grantErr, sourceGrantErr); err != nil {
+	if err := errors.Join(repositoryErr, deliveryCredentialErr, grantErr, sourceGrantErr); err != nil {
 		t.Fatalf("admission grant fixture error = %v, want nil", err)
 	}
 	origin := completion.Probe.Origin
-	peer := runnercontrol.AuthenticatedPeer{Role: runnercontrol.PeerRoleOrigin, Certificate: core.SHA256Of([]byte("origin-certificate")), Origin: &origin}
+	peerCredential, peerCredentialErr := runnercontrol.NewPeerCredential(runnercontrol.PeerCredentialGoogleCloud, core.SHA256Of([]byte("origin-workload")))
+	peer := runnercontrol.AuthenticatedPeer{Role: runnercontrol.PeerRoleOrigin, Credential: peerCredential, Origin: &origin}
 	authenticated := runnercontrol.AuthenticatedAdmissionRequest{Peer: peer, Requested: requested}
 	admitted := runnercontrol.AdmittedRun{SchemaVersion: runnercontrol.SchemaVersion, Request: request, Run: completion.Run, Requested: requestedProbe, Probe: completion.Probe, Limits: limits, EvidencePlan: requested.EvidencePlan, Repository: repository, Delivery: delivery, Source: source, AdmittedAt: temporal.InstantFromNanoseconds(2)}
-	if err := errors.Join(authenticated.Validate(), admitted.Validate()); err != nil {
+	if err := errors.Join(peerCredentialErr, authenticated.Validate(), admitted.Validate()); err != nil {
 		t.Fatalf("admission fixture validation error = %v, want nil", err)
 	}
 	return authenticated, admitted

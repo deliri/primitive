@@ -4,7 +4,6 @@ import (
 	"bytes"
 	"crypto"
 	"errors"
-	"io"
 	"testing"
 
 	"github.com/deliri/primitive/v2026/core"
@@ -68,6 +67,12 @@ func FuzzRunnerControlExternalStructureJSONSemanticClosure(f *testing.F) {
 			proveStructureJSONClosure(t, "ObservationDeliveryReceipt", seeds.deliveryReceipt, data, (*runnercontrol.ObservationDeliveryReceipt).UnmarshalJSON)
 		case 19:
 			proveStructureJSONClosure(t, "MachineObservationReceipt", seeds.machineReceipt, data, (*runnercontrol.MachineObservationReceipt).UnmarshalJSON)
+		case 20:
+			proveStructureJSONClosure(t, "SchedulingCapability", seeds.schedulingCapability, data, (*runnercontrol.SchedulingCapability).UnmarshalJSON)
+		case 21:
+			proveStructureJSONClosure(t, "MemberCapability", seeds.memberCapability, data, (*runnercontrol.MemberCapability).UnmarshalJSON)
+		case 22:
+			proveStructureJSONClosure(t, "ExperimentCapability", seeds.experimentCapability, data, (*runnercontrol.ExperimentCapability).UnmarshalJSON)
 		}
 	})
 }
@@ -93,6 +98,9 @@ type runnerControlStructureSeeds struct {
 	artifactChunkReceipt    runnercontrol.ArtifactChunkReceipt
 	deliveryReceipt         runnercontrol.ObservationDeliveryReceipt
 	machineReceipt          runnercontrol.MachineObservationReceipt
+	schedulingCapability    runnercontrol.SchedulingCapability
+	memberCapability        runnercontrol.MemberCapability
+	experimentCapability    runnercontrol.ExperimentCapability
 	encoded                 [][]byte
 }
 
@@ -128,7 +136,7 @@ func externalStructureSeeds(t testing.TB) runnerControlStructureSeeds {
 	experimentReceipt := runnercontrol.ExperimentCompletionReceipt{SchemaVersion: runnercontrol.SchemaVersion, Run: experimentPayload.Run, Experiment: experimentPayload.Observation.Experiment, Digest: experimentRecord.Digest, Bytes: experimentRecord.Bytes}
 	runnerReceipt := runnercontrol.RunnerCompletionReceipt{SchemaVersion: runnercontrol.SchemaVersion, Run: runnerPayload.Run, Digest: runnerRecord.Digest, Bytes: runnerRecord.Bytes}
 	cleanupReceipt := runnercontrol.CleanupReceipt{SchemaVersion: runnercontrol.SchemaVersion, Fence: cleanupPayload.Fence, Digest: cleanupRecord.Digest, Bytes: cleanupRecord.Bytes}
-	expansionApproval := expansionApprovalSeed(t, expansionManifest)
+	expansionApproval := expansionApprovalSeed(t, expansionManifest, mustCompletionSigner(t))
 	artifactManifestReceipt := runnercontrol.ArtifactManifestReceipt{SchemaVersion: runnercontrol.SchemaVersion, Run: artifactManifest.Run, Digest: artifactRecord.Digest, Bytes: artifactRecord.Bytes}
 	artifactChunkReceipt := runnercontrol.ArtifactChunkReceipt{SchemaVersion: runnercontrol.SchemaVersion, Run: artifactChunk.Run, Manifest: artifactChunk.ManifestDigest, Artifact: artifactChunk.Entry.Digest, Committed: artifactChunk.Entry.Bytes, Complete: true}
 	stage, _, _ := deliveryProtocolFixture(t)
@@ -138,6 +146,7 @@ func externalStructureSeeds(t testing.TB) runnerControlStructureSeeds {
 	}
 	deliveryReceipt := runnercontrol.ObservationDeliveryReceipt{SchemaVersion: runnercontrol.SchemaVersion, Identity: deliveryIdentity, Run: stage.Envelope.Payload.Run, PagesStored: uint16(len(pages)), Published: true}
 	machineReceipt := runnercontrol.MachineObservationReceipt{SchemaVersion: runnercontrol.SchemaVersion, ObservationID: observationID, CleanDigest: core.SHA256Of([]byte("clean-state"))}
+	schedulingClaim, _ := schedulingClaimDocumentFixture(t)
 	seeds := runnerControlStructureSeeds{
 		admitted: admitted, claimRequest: claimRequest, claimResponse: claimResponse,
 		heartbeatRequest: heartbeatRequest, heartbeatResponse: heartbeatResponse, sourceRequest: sourceRequest,
@@ -146,20 +155,20 @@ func externalStructureSeeds(t testing.TB) runnerControlStructureSeeds {
 		expansionManifest: expansionManifest, expansionApproval: expansionApproval,
 		artifactManifestReceipt: artifactManifestReceipt, artifactChunkReceipt: artifactChunkReceipt,
 		deliveryReceipt: deliveryReceipt, machineReceipt: machineReceipt,
+		schedulingCapability: schedulingClaim.Capability.Payload,
+		memberCapability:     schedulingClaim.Members[0].Payload,
+		experimentCapability: schedulingClaim.Direct[0].Payload,
 	}
 	seeds.encoded = encodeStructureSeeds(t, seeds)
 	return seeds
 }
 
-func mustCompletionSigner(t testing.TB) interface {
-	Public() crypto.PublicKey
-	Sign(io.Reader, []byte, crypto.SignerOpts) ([]byte, error)
-} {
+func mustCompletionSigner(t testing.TB) crypto.Signer {
 	key, _ := completionSignerFixture(t)
 	return key
 }
 
-func expansionApprovalSeed(t testing.TB, manifest runnercontrol.ExpansionManifest) runnercontrol.ExpansionApproval {
+func expansionApprovalSeed(t testing.TB, manifest runnercontrol.ExpansionManifest, signer crypto.Signer) runnercontrol.ExpansionApproval {
 	t.Helper()
 	capability := experimentObservationRequestFixture(t).Capability
 	child := manifest.Children[0]
@@ -169,9 +178,17 @@ func expansionApprovalSeed(t testing.TB, manifest runnercontrol.ExpansionManifes
 	capability.Probe = child.Probe
 	capability.Source = manifest.Source
 	capability.BuildContextDigest = child.BuildContextDigest
-	capability.ExpansionManifestDigest = &manifest.Identity
+	manifestDigest, digestErr := manifest.Digest()
+	if digestErr != nil {
+		t.Fatalf("ExpansionManifest.Digest(approval seed) error = %v, want nil", digestErr)
+	}
+	capability.ExpansionManifestDigest = &manifestDigest
 	capability.ExpiresAt = manifest.Fence.Machine.ExpiresAt
-	approval := runnercontrol.ExpansionApproval{SchemaVersion: runnercontrol.SchemaVersion, Run: manifest.Run, ManifestDigest: manifest.Identity, Approved: true, Experiments: []runnercontrol.ExperimentCapability{capability}}
+	document, issueErr := runnercontrol.IssueExperimentCapability(capability, signer)
+	if issueErr != nil {
+		t.Fatalf("IssueExperimentCapability(expansion approval seed) error = %v, want nil", issueErr)
+	}
+	approval := runnercontrol.ExpansionApproval{SchemaVersion: runnercontrol.SchemaVersion, Run: manifest.Run, ManifestDigest: manifestDigest, Approved: true, Experiments: []runnercontrol.ExperimentCapabilityDocument{document}}
 	if err := approval.Validate(); err != nil {
 		t.Fatalf("ExpansionApproval.Validate(seed) error = %v, want nil", err)
 	}
@@ -185,6 +202,7 @@ func encodeStructureSeeds(t testing.TB, seeds runnerControlStructureSeeds) [][]b
 		seeds.sourceRequest, seeds.experimentPayload, seeds.experimentReceipt, seeds.runnerPayload, seeds.runnerReceipt,
 		seeds.cleanupPayload, seeds.cleanupReceipt, seeds.observationPayload, seeds.deliveryPage, seeds.expansionManifest,
 		seeds.expansionApproval, seeds.artifactManifestReceipt, seeds.artifactChunkReceipt, seeds.deliveryReceipt, seeds.machineReceipt,
+		seeds.schedulingCapability, seeds.memberCapability, seeds.experimentCapability,
 	}
 	encoded := make([][]byte, len(values))
 	for index := range values {

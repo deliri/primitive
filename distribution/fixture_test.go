@@ -194,7 +194,7 @@ func releaseProvenance(t testing.TB) release.BuildProvenance {
 		LinkerAssignments  []struct{}        `json:"linker_assignments"`
 		GoExecutableSHA256 core.SHA256Digest `json:"go_executable_sha256"`
 	}{
-		GoToolchain: goToolchain, MainPackage: "github.com/offGridSoft/bug/cmd/bug",
+		GoToolchain: goToolchain, MainPackage: "github.com/example/product/cmd/product",
 		ModuleMode: "vendor", LinkerAssignments: []struct{}{},
 		GoExecutableSHA256: core.NewSHA256Digest(goDigest),
 	}

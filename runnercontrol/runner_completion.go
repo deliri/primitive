@@ -20,7 +20,7 @@ import (
 const (
 	ExperimentManifestMaximumEntries     = 256
 	RunnerCompletionPayloadMaximumBytes  = 900 * 1024
-	RunnerCompletionDocumentMaximumBytes = core.JSONDocumentMaximumBytes
+	RunnerCompletionDocumentMaximumBytes = 1 << 20
 	RunnerCompletionReceiptMaximumBytes  = 16 * 1024
 )
 
@@ -69,7 +69,7 @@ func (m ExperimentManifest) Validate() error {
 		if err := m.Entries[index].Validate(); err != nil {
 			return err
 		}
-		for previous := 0; previous < index; previous++ {
+		for previous := range index {
 			if m.Entries[previous].Experiment == m.Entries[index].Experiment {
 				return core.ErrPrimitiveContract
 			}
@@ -135,7 +135,7 @@ func (c SelectionRunnerCompletion) validateSelection() error {
 
 func (c SelectionRunnerCompletion) validateExperimentFacts() error {
 	for index := range c.ExperimentFacts.Entries {
-		if !experimentMatchesSelection(c.ExperimentFacts.Entries[index].Probe, c.Probe, c.Selection.ExpansionDigest) {
+		if !experimentMatchesSelection(c.ExperimentFacts.Entries[index].Probe, c.Probe, c.Selection.ExpansionIdentity) {
 			return core.ErrPrimitiveContract
 		}
 	}
@@ -497,7 +497,9 @@ func (s RunnerCompletionServer) Serve(writer http.ResponseWriter, request *http.
 	if err != nil {
 		return err
 	}
-	if err := RequireRunnerPeer(request.Context(), received.Body.Payload.Fence.Machine.Machine, received.Body.Payload.Fence.Machine.Generation); err != nil {
+	payload := received.Body.Payload
+	machine := payload.Fence.Machine
+	if err := RequireRunnerPeer(request.Context(), machine.Machine, machine.Generation); err != nil {
 		return err
 	}
 	if err := VerifyRunnerCompletion(*received.Body, s.trusted); err != nil {

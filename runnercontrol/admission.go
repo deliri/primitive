@@ -6,6 +6,7 @@ import (
 	json "encoding/json/v2"
 	"errors"
 	"net/http"
+	"slices"
 
 	"github.com/deliri/primitive/v2026/core"
 	"github.com/deliri/primitive/v2026/exchange"
@@ -18,6 +19,7 @@ const (
 	AdmissionResponseMaximumBytes = 512 * 1024
 	RunWorkerMaximum              = 256
 	MachineSessionMaximumHours    = 10
+	admissionIdempotencyNamespace = "runner-control-request:"
 )
 
 type RunLimits struct {
@@ -109,7 +111,7 @@ func (r RequestedRun) IdempotencyKey() (exchange.IdempotencyKey, error) {
 	if err != nil {
 		return exchange.IdempotencyKey{}, err
 	}
-	return exchange.ParseIdempotencyKey("anvil-request:" + value)
+	return exchange.ParseIdempotencyKey(admissionIdempotencyNamespace + value)
 }
 
 type RepositoryGrant struct {
@@ -162,7 +164,7 @@ type OriginDeliveryGrant struct {
 	Identity    core.SHA256Digest               `json:"identity"`
 	Origin      projectstandards.OriginIdentity `json:"origin"`
 	Endpoint    core.HTTPEndpoint               `json:"endpoint"`
-	TLSIdentity core.SHA256Digest               `json:"tls_identity"`
+	Credential  PeerCredential                  `json:"credential"`
 	Audience    projectstandards.Identifier     `json:"audience"`
 	Application projectstandards.Identifier     `json:"application"`
 	Enabled     bool                            `json:"enabled"`
@@ -170,7 +172,7 @@ type OriginDeliveryGrant struct {
 }
 
 func (g OriginDeliveryGrant) Validate() error {
-	if err := errors.Join(g.Identity.Validate(), g.Origin.Validate(), g.Endpoint.Validate(), g.TLSIdentity.Validate(), g.Audience.Validate(), g.Application.Validate(), g.ExpiresAt.Validate()); err != nil {
+	if err := errors.Join(g.Identity.Validate(), g.Origin.Validate(), g.Endpoint.Validate(), g.Credential.Validate(), g.Audience.Validate(), g.Application.Validate(), g.ExpiresAt.Validate()); err != nil {
 		return err
 	}
 	if !g.Enabled || g.Endpoint.HTTPURL().Scheme != core.SchemeHTTPS {
@@ -191,13 +193,13 @@ func originDeliveryGrantDigest(g OriginDeliveryGrant) core.SHA256Digest {
 	type projection struct {
 		Origin      projectstandards.OriginIdentity `json:"origin"`
 		Endpoint    core.HTTPEndpoint               `json:"endpoint"`
-		TLSIdentity core.SHA256Digest               `json:"tls_identity"`
+		Credential  PeerCredential                  `json:"credential"`
 		Audience    projectstandards.Identifier     `json:"audience"`
 		Application projectstandards.Identifier     `json:"application"`
 		Enabled     bool                            `json:"enabled"`
 		ExpiresAt   temporal.Instant                `json:"expires_at"`
 	}
-	encoded, err := core.MarshalCanonicalJSONDocument(projection{g.Origin, g.Endpoint, g.TLSIdentity, g.Audience, g.Application, g.Enabled, g.ExpiresAt})
+	encoded, err := core.MarshalCanonicalJSONDocument(projection{g.Origin, g.Endpoint, g.Credential, g.Audience, g.Application, g.Enabled, g.ExpiresAt})
 	if err != nil {
 		return core.SHA256Digest{}
 	}
@@ -282,10 +284,11 @@ func validateProbeDescent(requested projectstandards.RequestedProbe, admitted pr
 	if !bytes.Equal(left, right) {
 		return core.ErrPrimitiveContract
 	}
-	for _, kind := range requested.Kinds {
-		if kind == admitted.Kind {
-			return nil
-		}
+	if admitted.Role == projectstandards.ProbeRoleSelection {
+		return nil
+	}
+	if slices.Contains(requested.Kinds, admitted.Kind) {
+		return nil
 	}
 	return core.ErrPrimitiveContract
 }

@@ -30,9 +30,13 @@ func newSerialNumber(value *big.Int) (SerialNumber, error) {
 		return SerialNumber{}, invalidError(nil)
 	}
 	raw := value.Bytes()
+	length, err := core.CheckedUint8FromInt(len(raw))
+	if err != nil {
+		return SerialNumber{}, invalidError(err)
+	}
 	var serial SerialNumber
 	copy(serial.value[len(serial.value)-len(raw):], raw)
-	serial.length = uint8(len(raw)) // #nosec G115 -- the bit-length gate bounds raw to serialMaximumBytes.
+	serial.length = length
 	return serial, serial.Validate()
 }
 

@@ -519,8 +519,8 @@ func TestOpenLockFileProducesTheHandleFilelockAccepts(t *testing.T) {
 
 	directory := t.TempDir()
 	root := custodyRoot(t, directory)
-	first := custodyOpenLockFile(t, root, "peachfuzz.lock")
-	second := custodyOpenLockFile(t, root, "peachfuzz.lock")
+	first := custodyOpenLockFile(t, root, "product.lock")
+	second := custodyOpenLockFile(t, root, "product.lock")
 
 	if held := custodyTakeLock(t, first); !held {
 		t.Fatal("Acquire(first) held = false, want true")

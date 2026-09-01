@@ -384,12 +384,9 @@ func validateDiscoveryKinds(kinds []projectstandards.ProbeKind) error {
 }
 
 func validDiscoveryKind(kind projectstandards.ProbeKind) bool {
-	switch kind {
-	case projectstandards.ProbeKindGoTest, projectstandards.ProbeKindGoRace, projectstandards.ProbeKindGoBenchmark, projectstandards.ProbeKindGoFuzz, projectstandards.ProbeKindGoDiagnosticProfile:
-		return true
-	default:
-		return false
-	}
+	return kind == projectstandards.ProbeKindGoTest || kind == projectstandards.ProbeKindGoRace ||
+		kind == projectstandards.ProbeKindGoBenchmark || kind == projectstandards.ProbeKindGoFuzz ||
+		kind == projectstandards.ProbeKindGoDiagnosticProfile
 }
 
 type goDeclarationCandidate struct {

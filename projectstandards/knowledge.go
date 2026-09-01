@@ -166,7 +166,7 @@ func (c AssuranceControl) Validate() error {
 		if err := c.References[index].Validate(); err != nil {
 			return err
 		}
-		for previous := 0; previous < index; previous++ {
+		for previous := range index {
 			if codeReferenceEqual(c.References[previous], c.References[index]) {
 				return conflictError(errors.New("project standards assurance reference is duplicated"))
 			}
@@ -387,7 +387,7 @@ func validateFeatures(values []Feature) error {
 		if err := values[index].Validate(); err != nil {
 			return err
 		}
-		for previous := 0; previous < index; previous++ {
+		for previous := range index {
 			if values[previous].ID == values[index].ID {
 				return conflictError(errors.New("project standards feature identity is duplicated"))
 			}
@@ -404,7 +404,7 @@ func validateUsage(values []Usage) error {
 		if err := values[index].Validate(); err != nil {
 			return err
 		}
-		for previous := 0; previous < index; previous++ {
+		for previous := range index {
 			if values[previous].ID == values[index].ID {
 				return conflictError(errors.New("project standards usage identity is duplicated"))
 			}
@@ -424,7 +424,7 @@ func validateComplexityClaims(owner SourcePath, values []ComplexityClaim) error 
 		if !pathWithin(owner, values[index].Operation.Path, true) {
 			return conflictError(errors.New("project standards complexity operation is outside its package"))
 		}
-		for previous := 0; previous < index; previous++ {
+		for previous := range index {
 			if values[previous].ID == values[index].ID {
 				return conflictError(errors.New("project standards complexity claim identity is duplicated"))
 			}

@@ -90,32 +90,32 @@ func TestCredentialedCompletionProjectionEncodeValidatedJSONHostileBindingMatrix
 		request authCompletionFixtureRequest
 	}
 	valid := []validCase{
-		{name: "witness default fixture encodes as receive-only projection"},
-		{name: "bug nonce 2 encodes as receive-only projection", request: authCompletionFixtureRequest{
+		{name: "product beta default fixture encodes as receive-only projection"},
+		{name: "product alpha nonce 2 encodes as receive-only projection", request: authCompletionFixtureRequest{
 			offering: submissionAuthOffering(t, 1), nonceByte: 0x02,
 		}},
-		{name: "peachfuzz nonce 3 encodes as receive-only projection", request: authCompletionFixtureRequest{
+		{name: "product gamma nonce 3 encodes as receive-only projection", request: authCompletionFixtureRequest{
 			offering: submissionAuthOffering(t, 3), nonceByte: 0x03,
 		}},
-		{name: "witness nonce 4 device 0x32 encodes as receive-only projection", request: authCompletionFixtureRequest{
+		{name: "product beta nonce 4 device 0x32 encodes as receive-only projection", request: authCompletionFixtureRequest{
 			nonceByte: 0x04, deviceByte: 0x32,
 		}},
-		{name: "bug nonce 5 authority 0x22 encodes as receive-only projection", request: authCompletionFixtureRequest{
+		{name: "product alpha nonce 5 authority 0x22 encodes as receive-only projection", request: authCompletionFixtureRequest{
 			offering: submissionAuthOffering(t, 1), nonceByte: 0x05, authorityByte: 0x22,
 		}},
-		{name: "peachfuzz nonce 6 encodes as receive-only projection", request: authCompletionFixtureRequest{
+		{name: "product gamma nonce 6 encodes as receive-only projection", request: authCompletionFixtureRequest{
 			offering: submissionAuthOffering(t, 3), nonceByte: 0x06,
 		}},
-		{name: "witness nonce 7 encodes as receive-only projection", request: authCompletionFixtureRequest{
+		{name: "product beta nonce 7 encodes as receive-only projection", request: authCompletionFixtureRequest{
 			nonceByte: 0x07,
 		}},
-		{name: "bug nonce 8 encodes as receive-only projection", request: authCompletionFixtureRequest{
+		{name: "product alpha nonce 8 encodes as receive-only projection", request: authCompletionFixtureRequest{
 			offering: submissionAuthOffering(t, 1), nonceByte: 0x08,
 		}},
-		{name: "peachfuzz nonce 9 encodes as receive-only projection", request: authCompletionFixtureRequest{
+		{name: "product gamma nonce 9 encodes as receive-only projection", request: authCompletionFixtureRequest{
 			offering: submissionAuthOffering(t, 3), nonceByte: 0x09,
 		}},
-		{name: "witness nonce 10 encodes as receive-only projection", request: authCompletionFixtureRequest{
+		{name: "product beta nonce 10 encodes as receive-only projection", request: authCompletionFixtureRequest{
 			nonceByte: 0x0a,
 		}},
 	}

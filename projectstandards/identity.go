@@ -147,13 +147,21 @@ func DeriveExperimentID(run RunID, probe ProbeIdentity) (ExperimentID, error) {
 
 func uuidIdentityBytes(value string) ([16]byte, error) {
 	var decoded [16]byte
-	compact := make([]byte, 0, 32)
+	var compact [32]byte
+	position := 0
 	for index := range value {
 		if value[index] != '-' {
-			compact = append(compact, value[index])
+			if position >= len(compact) {
+				return [16]byte{}, contractError(errors.New("uuid identity is oversized"))
+			}
+			compact[position] = value[index]
+			position++
 		}
 	}
-	count, err := hex.Decode(decoded[:], compact)
+	if position != len(compact) {
+		return [16]byte{}, contractError(errors.New("uuid identity has an invalid extent"))
+	}
+	count, err := hex.Decode(decoded[:], compact[:])
 	if err != nil || count != len(decoded) {
 		return [16]byte{}, contractError(err)
 	}
@@ -162,8 +170,8 @@ func uuidIdentityBytes(value string) ([16]byte, error) {
 
 func primitiveidFromBytes(value [16]byte) (primitiveid.UUIDv7, error) {
 	var encoded [36]byte
-	compact := make([]byte, 32)
-	hex.Encode(compact, value[:])
+	var compact [32]byte
+	hex.Encode(compact[:], value[:])
 	copy(encoded[0:8], compact[0:8])
 	encoded[8] = '-'
 	copy(encoded[9:13], compact[8:12])

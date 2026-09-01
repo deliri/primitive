@@ -300,14 +300,14 @@ func TestAssemblyRefusesAuthenticDocumentsForDifferentBuilds(t *testing.T) {
 		},
 	)
 	if err != nil {
-		t.Fatalf("controlplanetest.IssueInstallation(Bug) error = %v, want nil", err)
+		t.Fatalf("controlplanetest.IssueInstallation(product alpha) error = %v, want nil", err)
 	}
 	bugPayload := authRequestPayload(t, bugInstallation.Build, 0x41)
 	bugRequest, err := submission.IssueRequest(submission.RequestIssuance{
 		Payload: bugPayload, Signer: fixture.device,
 	})
 	if err != nil {
-		t.Fatalf("submission.IssueRequest(Bug) error = %v, want nil", err)
+		t.Fatalf("submission.IssueRequest(product alpha) error = %v, want nil", err)
 	}
 	document, err := Assemble(RequestAssembly{
 		Request: bugRequest, Certificate: fixture.certificate,

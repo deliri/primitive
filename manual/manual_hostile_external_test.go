@@ -239,16 +239,16 @@ func TestMachineProjectionLayerTriad(t *testing.T) {
 	}
 
 	book.Pages[0].Summary = "caller mutation"
-	if got, want := decoded.Pages[0].Summary, manual.Line("Open one bug record."); got != want {
+	if got, want := decoded.Pages[0].Summary, manual.Line("Open one issue record."); got != want {
 		t.Fatalf("projected summary after source mutation = %q, want %q", got, want)
 	}
 }
 
 func validBook(t testing.TB) manual.Book[testTopic] {
 	t.Helper()
-	return manual.Book[testTopic]{Offering: manualOfferingFixture(t, "manual-fixture"), Title: "Bug command guide", Summary: "Use this guide to understand each command before running it.", Pages: []manual.Page[testTopic]{
-		{Topic: testTopicOpen, Summary: "Open one bug record.", Usage: []manual.Line{"bug open login_auth"}, Prerequisites: []manual.Line{"Run this inside a Git repository."}, Changes: []manual.Line{"Creates one local bug record."}, Unchanged: []manual.Line{"Does not upload source code."}, Definitions: []manual.Definition{{Term: "bug record", Meaning: "A local file containing typed defect facts."}}, Examples: []manual.Line{"bug open login_auth"}, Outcome: manual.Outcome{Success: []manual.Line{"Prints the created record name."}, Refusal: []manual.Line{"Prints why no record was created."}}, Related: []testTopic{testTopicClose}},
-		{Topic: testTopicClose, Summary: "Close one proven bug record.", Usage: []manual.Line{"bug close login_auth"}, Changes: []manual.Line{"Records verified closure evidence."}, Unchanged: []manual.Line{"Does not rewrite source files."}, Examples: []manual.Line{"bug close login_auth"}, Outcome: manual.Outcome{Success: []manual.Line{"Prints the closure receipt."}, Refusal: []manual.Line{"Keeps the record open and explains why."}}, Related: []testTopic{testTopicOpen}},
+	return manual.Book[testTopic]{Offering: manualOfferingFixture(t, "manual-fixture"), Title: "Issue command guide", Summary: "Use this guide to understand each command before running it.", Pages: []manual.Page[testTopic]{
+		{Topic: testTopicOpen, Summary: "Open one issue record.", Usage: []manual.Line{"issue open login_auth"}, Prerequisites: []manual.Line{"Run this inside a Git repository."}, Changes: []manual.Line{"Creates one local issue record."}, Unchanged: []manual.Line{"Does not upload source code."}, Definitions: []manual.Definition{{Term: "issue record", Meaning: "A local file containing typed defect facts."}}, Examples: []manual.Line{"issue open login_auth"}, Outcome: manual.Outcome{Success: []manual.Line{"Prints the created record name."}, Refusal: []manual.Line{"Prints why no record was created."}}, Related: []testTopic{testTopicClose}},
+		{Topic: testTopicClose, Summary: "Close one proven issue record.", Usage: []manual.Line{"issue close login_auth"}, Changes: []manual.Line{"Records verified closure evidence."}, Unchanged: []manual.Line{"Does not rewrite source files."}, Examples: []manual.Line{"issue close login_auth"}, Outcome: manual.Outcome{Success: []manual.Line{"Prints the closure receipt."}, Refusal: []manual.Line{"Keeps the record open and explains why."}}, Related: []testTopic{testTopicOpen}},
 	}}
 }
 

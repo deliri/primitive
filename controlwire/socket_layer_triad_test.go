@@ -853,16 +853,6 @@ func socketServer(t testing.TB, support controlwire.ProtocolSupport) controlwire
 	return server
 }
 
-func authorityWithSuffix(t testing.TB, authority core.HTTPEndpoint, suffix string) core.HTTPEndpoint {
-	t.Helper()
-
-	endpoint, err := core.ParseHTTPEndpoint(authority.String() + suffix)
-	if err != nil {
-		t.Fatalf("ParseHTTPEndpoint(authority suffix) error = %v, want nil", err)
-	}
-	return endpoint
-}
-
 var (
 	_ controlwire.RoutedJSONRequest             = controlplane.RegistrationRequest{}
 	_ controlwire.AuthenticatedResponseDocument = (*controlplane.ResponseDocument[controlplane.RegistrationDocument, *controlplane.RegistrationDocument])(nil)

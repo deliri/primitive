@@ -55,7 +55,7 @@ func (r MachineBitsPerSecond) Validate() error {
 	return nil
 }
 
-// MachineToolchainKind is the closed inventory emitted by the Anvil probe.
+// MachineToolchainKind is the closed inventory emitted by a machine probe.
 type MachineToolchainKind uint8
 
 const (

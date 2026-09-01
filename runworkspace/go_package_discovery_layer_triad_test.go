@@ -30,6 +30,19 @@ func TestGoPackageDiscoveryLayerTriad(t *testing.T) {
 		if len(got.Declarations) != 2 || got.Declarations[0].File.String() != "subject/alpha_test.go" || got.Declarations[0].Declaration.Symbol.String() != "TestAlpha" || got.Declarations[1].File.String() != "subject/benchmark_test.go" || got.Declarations[1].Declaration.Symbol.String() != "BenchmarkEncode" {
 			t.Fatalf("GoPackageDiscovery declarations = %+v, want TestAlpha then BenchmarkEncode with exact source files", got.Declarations)
 		}
+		file, fileErr := projectstandards.ParseSourcePath("subject/alpha_test.go")
+		fileRequest := GoFileDiscoveryRequest{
+			Source: request.Source,
+			Target: projectstandards.GoFileTarget{
+				Module: request.Target.Module, Package: request.Target.Package, File: file,
+				ChildKinds: append([]projectstandards.ProbeKind(nil), request.Target.ChildKinds...),
+			},
+			Profile: request.Profile, Contexts: request.Contexts,
+		}
+		fileDiscovery, discoverFileErr := manager.DiscoverGoFile(t.Context(), fileRequest)
+		if err := errors.Join(fileErr, discoverFileErr); err != nil || fileDiscovery.Validate() != nil || len(fileDiscovery.Declarations) != 1 || fileDiscovery.Declarations[0].Declaration.Symbol.String() != "TestAlpha" {
+			t.Fatalf("Manager.DiscoverGoFile(alpha_test.go) = (%+v, %v), want one validated TestAlpha declaration and nil", fileDiscovery, err)
+		}
 	})
 
 	t.Run("negative malformed test file refuses the package without returning partial declarations", func(t *testing.T) {
@@ -71,9 +84,9 @@ func packageDiscoveryFixture(t *testing.T) (Manager, GoPackageDiscoveryRequest) 
 	if err := filestore.EnsureDirectory(t.Context(), filestore.DirectoryRequest{Location: filestore.Location{Root: manager.root, Path: packageRoot}, Mode: fs.FileMode(0o700)}); err != nil {
 		t.Fatalf("filestore.EnsureDirectory(package checkout) setup error = %v, want nil", err)
 	}
-	repository, repositoryErr := projectstandards.NewRepositoryIdentity("github.com/offGridSoft/anvil")
+	repository, repositoryErr := projectstandards.NewRepositoryIdentity("github.com/example/project")
 	commit, commitErr := core.ParseBuildCommit("0123456789abcdef0123456789abcdef01234567")
-	module, moduleErr := projectstandards.NewIdentifier("anvil")
+	module, moduleErr := projectstandards.NewIdentifier("project")
 	packagePath, packageErr := projectstandards.ParseSourcePath("subject")
 	profileName, profileNameErr := projectstandards.NewIdentifier("focused")
 	profile, profileErr := projectstandards.NewProfileIdentity(profileName, 1)

@@ -84,16 +84,16 @@ func experimentCompletionPayloadFixture(t testing.TB, started bool) runnercontro
 	experiment, experimentErr := projectstandards.NewExperimentID(uuid)
 	machine, machineErr := projectstandards.NewMachineID(uuid)
 	generation, generationErr := projectstandards.NewMachineGenerationID(uuid)
-	repository, repositoryErr := projectstandards.NewRepositoryIdentity("github.com/offGridSoft/anvil")
+	repository, repositoryErr := projectstandards.NewRepositoryIdentity("github.com/example/project")
 	tool, toolErr := projectstandards.NewIdentifier("go-test")
-	machineClass, machineClassErr := projectstandards.NewIdentifier("anvil-standard")
+	machineClass, machineClassErr := projectstandards.NewIdentifier("runner-standard")
 	profileName, profileNameErr := projectstandards.NewIdentifier("acceptance")
 	profile, profileErr := projectstandards.NewProfileIdentity(profileName, 1)
 	commit, commitErr := core.ParseBuildCommit("0123456789abcdef0123456789abcdef01234567")
 	if err := errors.Join(runErr, experimentErr, machineErr, generationErr, repositoryErr, toolErr, machineClassErr, profileNameErr, profileErr, commitErr); err != nil {
 		t.Fatalf("experiment completion identity fixture error = %v, want nil", err)
 	}
-	digest := core.SHA256Of([]byte("anvil-experiment-completion"))
+	digest := core.SHA256Of([]byte("runner-experiment-completion"))
 	members := runnercontrol.MemberSet{Entries: []projectstandards.RunID{run}}
 	memberDigest, memberErr := members.Digest()
 	if memberErr != nil {
@@ -101,7 +101,7 @@ func experimentCompletionPayloadFixture(t testing.TB, started bool) runnercontro
 	}
 	probe := projectstandards.ProbeIdentity{
 		Origin:  projectstandards.OriginIdentity{Offering: core.Offering{Token: "cinkin"}},
-		Subject: projectstandards.SubjectIdentity{Project: core.Offering{Token: "anvil"}, Repository: repository},
+		Subject: projectstandards.SubjectIdentity{Project: core.Offering{Token: "runner"}, Repository: repository},
 		Source:  projectstandards.SourceCoordinate{Repository: repository, Commit: commit, Tree: digest},
 		Role:    projectstandards.ProbeRoleExperiment, Kind: projectstandards.ProbeKindTool,
 		Target:  projectstandards.ProbeTarget{Kind: projectstandards.ProbeTargetTool, Tool: &projectstandards.ToolTarget{Identity: tool}},

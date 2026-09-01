@@ -181,7 +181,7 @@ func multiBenchmarkCase() goObservationCase {
 }
 
 func accounting(planned, passed, failed, skipped, unavailable, timedOut, cancelled, notRun uint32, filtered bool) projectstandards.ExecutionAccounting {
-	attempt := projectstandards.ExecutionAttempt{Sequence: 1, Planned: planned, Passed: passed, Failed: failed, Skipped: skipped, Unavailable: unavailable, TimedOut: timedOut, Cancelled: cancelled, NotRun: notRun, Cache: projectstandards.CacheDisabled, Filtered: filtered}
+	attempt := projectstandards.ExecutionAttempt{Sequence: 1, Planned: planned, Passed: passed, Failed: failed, Skipped: skipped, Unavailable: unavailable, Expired: timedOut, Cancelled: cancelled, NotRun: notRun, Cache: projectstandards.CacheDisabled, Filtered: filtered}
 	return projectstandards.ExecutionAccounting{Attempts: []projectstandards.ExecutionAttempt{attempt}}
 }
 

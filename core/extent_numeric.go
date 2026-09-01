@@ -140,6 +140,30 @@ func CheckedUint32FromInt(value int) (uint32, error) {
 	return uint32(value), nil
 }
 
+// CheckedUint16FromInt converts value or returns ErrNumericOverflow.
+func CheckedUint16FromInt(value int) (uint16, error) {
+	if value < 0 || uint64(value) > math.MaxUint16 {
+		return 0, numericOverflow("int does not fit uint16")
+	}
+	return uint16(value), nil
+}
+
+// CheckedUint8FromInt converts value or returns ErrNumericOverflow.
+func CheckedUint8FromInt(value int) (uint8, error) {
+	if value < 0 || uint64(value) > math.MaxUint8 {
+		return 0, numericOverflow("int does not fit uint8")
+	}
+	return uint8(value), nil
+}
+
+// CheckedInt32FromInt converts value or returns ErrNumericOverflow.
+func CheckedInt32FromInt(value int) (int32, error) {
+	if int64(value) < math.MinInt32 || int64(value) > math.MaxInt32 {
+		return 0, numericOverflow("int does not fit int32")
+	}
+	return int32(value), nil
+}
+
 // CheckedInt64FromUint64 converts value or returns ErrNumericOverflow.
 func CheckedInt64FromUint64(value uint64) (int64, error) {
 	if value > math.MaxInt64 {

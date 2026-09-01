@@ -28,13 +28,13 @@ func (e SubjectIsolationEngine) Validate() error {
 	return nil
 }
 
+func (e SubjectIsolationEngine) IsValid() bool { return e.Validate() == nil }
+
 func (e SubjectIsolationEngine) String() string {
-	switch e {
-	case SubjectIsolationSystemd:
-		return "systemd-transient-service"
-	default:
-		return ""
+	if !e.IsValid() {
+		return invalidEnumString()
 	}
+	return []string{"", "systemd-transient-service"}[e]
 }
 
 func (e SubjectIsolationEngine) MarshalJSON() ([]byte, error) {
@@ -82,18 +82,8 @@ func (s SubjectExecution) Validate(processPlan process.Plan, workspace WritableW
 	if err := errors.Join(s.Engine.Validate(), s.Supervisor.Validate(), s.Controller.Validate(), s.PolicyIdentity.Validate(), s.ProcessUser.Validate(), s.SourceRoot.Validate(), s.EgressPolicyIdentity.Validate(), s.ControlSocket.Validate(), s.HostCredentials.Validate(), s.SigningState.Validate(), s.ExecutableState.Validate(), processPlan.Validate(), workspace.Validate()); err != nil {
 		return err
 	}
-	if s.NetworkNamespace != nil {
-		if err := s.NetworkNamespace.Validate(); err != nil {
-			return err
-		}
-	}
-	if s.NetworkController != nil {
-		if err := s.NetworkController.Validate(); err != nil {
-			return err
-		}
-	}
-	if (s.NetworkNamespace == nil) != (s.NetworkController == nil) {
-		return errors.Join(core.ErrPrimitiveContract, errors.New("subject network namespace and Primitive controller must be configured together"))
+	if err := s.validateNetworkCoordinates(); err != nil {
+		return err
 	}
 	if s.Engine != SubjectIsolationSystemd {
 		return core.ErrPrimitiveContract
@@ -105,6 +95,23 @@ func (s SubjectExecution) Validate(processPlan process.Plan, workspace WritableW
 		return errors.Join(core.ErrPrimitiveContract, errors.New("subject network namespace overlaps the writable workspace"))
 	}
 	return s.validateDeniedPaths()
+}
+
+func (s SubjectExecution) validateNetworkCoordinates() error {
+	if s.NetworkNamespace != nil {
+		if err := s.NetworkNamespace.Validate(); err != nil {
+			return err
+		}
+	}
+	if s.NetworkController != nil {
+		if err := s.NetworkController.Validate(); err != nil {
+			return err
+		}
+	}
+	if (s.NetworkNamespace == nil) != (s.NetworkController == nil) {
+		return errors.Join(core.ErrPrimitiveContract, errors.New("subject network namespace and primitive controller must be configured together"))
+	}
+	return nil
 }
 
 func (s SubjectExecution) validateWorkspaceBoundary(processPlan process.Plan, workspace WritableWorkspace) error {
@@ -122,27 +129,52 @@ func (s SubjectExecution) validateWorkspaceBoundary(processPlan process.Plan, wo
 
 func (s SubjectExecution) validateDeniedPaths() error {
 	denied := s.deniedPaths()
-	for index := range denied {
-		if s.NetworkNamespace != nil && absolutePathsOverlap(denied[index], *s.NetworkNamespace) {
-			return errors.Join(core.ErrPrimitiveContract, errors.New("subject network namespace overlaps a denied host authority path"))
-		}
-		for previous := 0; previous < index; previous++ {
-			if absolutePathsOverlap(denied[previous], denied[index]) {
+	if err := s.validateDeniedPathSet(denied); err != nil {
+		return err
+	}
+	return s.validateNetworkDeniedPaths(denied)
+}
+
+func (s SubjectExecution) validateDeniedPathSet(denied [4]core.AbsolutePath) error {
+	for index, current := range denied {
+		for _, previous := range denied[:index] {
+			if absolutePathsOverlap(previous, current) {
 				return errors.Join(core.ErrPrimitiveContract, errors.New("subject authority paths must be distinct and non-overlapping"))
 			}
 		}
 	}
-	if s.NetworkNamespace != nil && (absolutePathsOverlap(*s.NetworkNamespace, s.SourceRoot) || absolutePathsOverlap(*s.NetworkNamespace, s.ExecutableState)) {
+	return nil
+}
+
+func (s SubjectExecution) validateNetworkDeniedPaths(denied [4]core.AbsolutePath) error {
+	if s.NetworkNamespace == nil {
+		return nil
+	}
+	if err := s.validateNetworkNamespacePaths(denied); err != nil {
+		return err
+	}
+	return s.validateNetworkControllerPaths(denied)
+}
+
+func (s SubjectExecution) validateNetworkNamespacePaths(denied [4]core.AbsolutePath) error {
+	for index := range denied {
+		if absolutePathsOverlap(denied[index], *s.NetworkNamespace) {
+			return errors.Join(core.ErrPrimitiveContract, errors.New("subject network namespace overlaps a denied host authority path"))
+		}
+	}
+	if absolutePathsOverlap(*s.NetworkNamespace, s.SourceRoot) || absolutePathsOverlap(*s.NetworkNamespace, s.ExecutableState) {
 		return errors.Join(core.ErrPrimitiveContract, errors.New("subject network namespace overlaps source or executable state"))
 	}
-	if s.NetworkController != nil {
-		if absolutePathsOverlap(*s.NetworkController, s.SourceRoot) || absolutePathsOverlap(*s.NetworkController, *s.NetworkNamespace) {
-			return errors.Join(core.ErrPrimitiveContract, errors.New("subject network controller overlaps source or namespace state"))
-		}
-		for _, denied := range denied {
-			if absolutePathsOverlap(*s.NetworkController, denied) {
-				return errors.Join(core.ErrPrimitiveContract, errors.New("subject network controller overlaps a denied host authority path"))
-			}
+	return nil
+}
+
+func (s SubjectExecution) validateNetworkControllerPaths(denied [4]core.AbsolutePath) error {
+	if absolutePathsOverlap(*s.NetworkController, s.SourceRoot) || absolutePathsOverlap(*s.NetworkController, *s.NetworkNamespace) {
+		return errors.Join(core.ErrPrimitiveContract, errors.New("subject network controller overlaps source or namespace state"))
+	}
+	for _, deniedPath := range denied {
+		if absolutePathsOverlap(*s.NetworkController, deniedPath) {
+			return errors.Join(core.ErrPrimitiveContract, errors.New("subject network controller overlaps a denied host authority path"))
 		}
 	}
 	return nil
@@ -165,7 +197,7 @@ func (s SubjectExecution) deniedPaths() [4]core.AbsolutePath {
 
 // CompileSubjectProcess lowers one signed experiment into the exact
 // systemd-run argv that creates its cgroup, namespace, filesystem, identity,
-// and resource boundary. Anvil does not interpret or widen this plan.
+// and resource boundary. The caller does not interpret or widen this plan.
 func CompileSubjectProcess(capability ExperimentCapability) (process.Plan, error) {
 	if err := capability.Validate(); err != nil {
 		return process.Plan{}, err
@@ -217,7 +249,7 @@ func compileSystemdSubjectArguments(capability ExperimentCapability) ([]string, 
 	}
 	arguments := []string{
 		"--quiet", "--wait", "--pipe", "--collect", "--service-type=exec",
-		"--unit=anvil-" + capability.Experiment.String(),
+		"--unit=" + subjectUnitName(capability.Experiment),
 		"--uid=" + capability.Execution.Subject.ProcessUser.String(),
 		"--working-directory=" + target.WorkingDirectory.String(),
 		"--property=CPUQuota=" + strconv.FormatUint(uint64(capability.Resources.CPUCount)*100, 10) + "%",

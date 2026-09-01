@@ -35,9 +35,9 @@ func TestGCSServiceAccountHostileBoundaryTable(t *testing.T) {
 		value      string
 		wantAccept bool
 	}{
-		{name: "App Engine default account is admitted", value: "blink-kernel@appspot.gserviceaccount.com", wantAccept: true},
+		{name: "App Engine default account is admitted", value: "example-project@appspot.gserviceaccount.com", wantAccept: true},
 		{name: "Compute default account is admitted", value: "123-compute@developer.gserviceaccount.com", wantAccept: true},
-		{name: "IAM account is admitted", value: "media-signer@blink-kernel.iam.gserviceaccount.com", wantAccept: true},
+		{name: "IAM account is admitted", value: "media-signer@example-project.iam.gserviceaccount.com", wantAccept: true},
 		{name: "provider managed account is admitted", value: "service-123@gcp-sa-storage.iam.gserviceaccount.com", wantAccept: true},
 		{name: "numeric principal is admitted", value: "123@project.iam.gserviceaccount.com", wantAccept: true},
 		{name: "hyphenated principal is admitted", value: "a-b-c@project.iam.gserviceaccount.com", wantAccept: true},
@@ -46,7 +46,7 @@ func TestGCSServiceAccountHostileBoundaryTable(t *testing.T) {
 		{name: "maximum mailbox local part is admitted", value: strings.Repeat("a", 64) + "@project.iam.gserviceaccount.com", wantAccept: true},
 		{name: "deep provider domain is admitted", value: "signer@one.two.three.iam.gserviceaccount.com", wantAccept: true},
 		{name: "zero value is refused"},
-		{name: "missing mailbox separator is refused", value: "blink-kernel.appspot.gserviceaccount.com"},
+		{name: "missing mailbox separator is refused", value: "example-project.appspot.gserviceaccount.com"},
 		{name: "empty local part is refused", value: "@project.iam.gserviceaccount.com"},
 		{name: "empty domain is refused", value: "signer@"},
 		{name: "foreign Google mailbox is refused", value: "signer@gmail.com"},
@@ -313,7 +313,7 @@ func gcsCapabilityIssuer(
 func gcsCapabilityRequest(t testing.TB) GCSUploadCapabilityRequest {
 	t.Helper()
 
-	bucket, err := ParseGCSBucket("blink-kernel-stage-media")
+	bucket, err := ParseGCSBucket("example-project-stage-media")
 	if err != nil {
 		t.Fatalf("ParseGCSBucket() error = %v, want nil", err)
 	}
@@ -321,7 +321,7 @@ func gcsCapabilityRequest(t testing.TB) GCSUploadCapabilityRequest {
 	if err != nil {
 		t.Fatalf("ParseGCSObjectName() error = %v, want nil", err)
 	}
-	account, err := ParseGCSServiceAccount("blink-kernel@appspot.gserviceaccount.com")
+	account, err := ParseGCSServiceAccount("example-project@appspot.gserviceaccount.com")
 	if err != nil {
 		t.Fatalf("ParseGCSServiceAccount() error = %v, want nil", err)
 	}

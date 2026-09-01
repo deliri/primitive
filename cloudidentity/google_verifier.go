@@ -19,7 +19,9 @@ const (
 	GoogleCloudIdentityCertificateMaximumBytes = 256 << 10
 	GoogleCloudIdentityTextMaximumBytes        = 1024
 	googleCloudIdentityEmailClaim              = "email"
+	googleCloudIdentityEmailVerifiedClaim      = "email_verified"
 	googleCloudIdentityBearerPrefix            = "Bearer "
+	googleCloudIdentityIssuer                  = "https://accounts.google.com"
 )
 
 // GoogleCloudVerifierConfiguration fixes the one audience accepted by a
@@ -34,17 +36,19 @@ func (c GoogleCloudVerifierConfiguration) Validate() error { return c.Audience.V
 // GoogleCloudVerifiedIdentity contains only signature-verified provider facts.
 // It grants no product permission by itself.
 type GoogleCloudVerifiedIdentity struct {
-	Audience string
-	Issuer   string
-	Subject  string
-	Email    string
-	IssuedAt temporal.Instant
-	Expires  temporal.Instant
+	Audience      string
+	Issuer        string
+	Subject       string
+	Email         string
+	EmailVerified bool
+	IssuedAt      temporal.Instant
+	Expires       temporal.Instant
 }
 
 func (i GoogleCloudVerifiedIdentity) Validate() error {
 	if !validGoogleCloudIdentityText(i.Audience) || !validGoogleCloudIdentityText(i.Issuer) ||
-		!validGoogleCloudIdentityText(i.Subject) || !validGoogleCloudIdentityText(i.Email) {
+		!validGoogleCloudIdentityText(i.Subject) || !validGoogleCloudIdentityText(i.Email) ||
+		!validGoogleCloudIdentityIssuer(i.Issuer) || !i.EmailVerified {
 		return core.ErrCloudIdentityContract
 	}
 	if err := errors.Join(i.IssuedAt.Validate(), i.Expires.Validate()); err != nil {
@@ -55,6 +59,30 @@ func (i GoogleCloudVerifiedIdentity) Validate() error {
 		return contractError(errors.Join(core.ErrCloudIdentityContract, err))
 	}
 	return nil
+}
+
+// PrincipalIdentity derives the stable OpenID Connect issuer/subject pair.
+// Google documents sub as the unique, never-reused account identifier; aud is
+// a receiving-service binding, while email is an address rather than the
+// principal key. This workload contract admits Google's current service-account
+// issuer only.
+func (i GoogleCloudVerifiedIdentity) PrincipalIdentity() (core.SHA256Digest, error) {
+	if err := i.Validate(); err != nil {
+		return core.SHA256Digest{}, err
+	}
+	projection := struct {
+		Issuer  string `json:"issuer"`
+		Subject string `json:"subject"`
+	}{Issuer: i.Issuer, Subject: i.Subject}
+	canonical, err := core.MarshalCanonicalJSONDocument(projection)
+	if err != nil {
+		return core.SHA256Digest{}, contractError(err)
+	}
+	return core.SHA256Of(canonical), nil
+}
+
+func validGoogleCloudIdentityIssuer(value string) bool {
+	return value == googleCloudIdentityIssuer
 }
 
 func validGoogleCloudIdentityText(value string) bool {
@@ -147,6 +175,10 @@ func googleCloudVerifiedIdentity(payload *idtoken.Payload) (GoogleCloudVerifiedI
 	if !ok {
 		return GoogleCloudVerifiedIdentity{}, core.ErrCloudIdentityContract
 	}
+	emailVerified, ok := payload.Claims[googleCloudIdentityEmailVerifiedClaim].(bool)
+	if !ok || !emailVerified {
+		return GoogleCloudVerifiedIdentity{}, core.ErrCloudIdentityContract
+	}
 	issuedAt, err := temporal.NewInstant(time.Unix(payload.IssuedAt, 0).UTC())
 	if err != nil {
 		return GoogleCloudVerifiedIdentity{}, contractError(err)
@@ -157,7 +189,7 @@ func googleCloudVerifiedIdentity(payload *idtoken.Payload) (GoogleCloudVerifiedI
 	}
 	identity := GoogleCloudVerifiedIdentity{
 		Audience: payload.Audience, Issuer: payload.Issuer, Subject: payload.Subject, Email: email,
-		IssuedAt: issuedAt, Expires: expires,
+		EmailVerified: emailVerified, IssuedAt: issuedAt, Expires: expires,
 	}
 	if err := identity.Validate(); err != nil {
 		return GoogleCloudVerifiedIdentity{}, err

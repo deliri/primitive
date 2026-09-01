@@ -2207,7 +2207,7 @@ func verifyProviderVersion(
 func TestDownloadProviderChecksumLayerTriad(t *testing.T) {
 	t.Parallel()
 
-	payload := bytes.Repeat([]byte("checksum-witness-"), 512)
+	payload := bytes.Repeat([]byte("checksum-proof-"), 512)
 	matching := providerChecksumBase64(t, payload)
 	divergent := providerChecksumBase64(t, append([]byte("x"), payload...))
 	cases := []struct {

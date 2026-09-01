@@ -256,15 +256,15 @@ func providerExchangeClient(t testing.TB, observation *providerRequestObservatio
 	return client
 }
 
-func readExactTestRequestBody(request *http.Request) ([]byte, error) {
+func readExactTestRequestBody(request *http.Request) (body []byte, resultErr error) {
 	if request.Body == nil {
 		return nil, nil
 	}
-	defer request.Body.Close()
+	defer func() { resultErr = errors.Join(resultErr, request.Body.Close()) }()
 	if request.ContentLength < 0 || request.ContentLength > 1<<20 {
 		return nil, core.ErrProviderWireContract
 	}
-	body := make([]byte, request.ContentLength)
+	body = make([]byte, request.ContentLength)
 	if _, err := io.ReadFull(request.Body, body); err != nil {
 		return nil, err
 	}

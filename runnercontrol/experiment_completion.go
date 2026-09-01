@@ -339,7 +339,9 @@ func (s ExperimentCompletionServer) Serve(writer http.ResponseWriter, request *h
 	if err != nil {
 		return err
 	}
-	if err := RequireRunnerPeer(request.Context(), received.Body.Payload.Fence.Machine.Machine, received.Body.Payload.Fence.Machine.Generation); err != nil {
+	payload := received.Body.Payload
+	machine := payload.Fence.Machine
+	if err := RequireRunnerPeer(request.Context(), machine.Machine, machine.Generation); err != nil {
 		return err
 	}
 	if err := VerifyExperimentCompletion(*received.Body, s.trusted); err != nil {

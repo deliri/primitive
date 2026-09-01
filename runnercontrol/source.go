@@ -18,9 +18,9 @@ const (
 	SourceArchiveDepthMaximum uint16 = 256
 )
 
-const SourceArchiveSigningDomainToken = "primitive-anvil-source-archive-2026-1"
+const SourceArchiveSigningDomainToken = "primitive-runner-source-archive-2026-1"
 
-const SourceArchiveDocumentMaximumBytes = core.JSONDocumentMaximumBytes
+const SourceArchiveDocumentMaximumBytes = 1 << 20
 
 type SourceSigningDomain uint8
 
@@ -36,11 +36,12 @@ func (d SourceSigningDomain) Validate() error {
 	}
 	return nil
 }
+func (d SourceSigningDomain) IsValid() bool { return d.Validate() == nil }
 func (d SourceSigningDomain) String() string {
 	if d == SourceSigningDomainArchiveV1 {
 		return SourceArchiveSigningDomainToken
 	}
-	return ""
+	return invalidEnumString()
 }
 func (d SourceSigningDomain) MarshalText() ([]byte, error) {
 	if err := d.Validate(); err != nil {

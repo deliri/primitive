@@ -376,6 +376,99 @@ func TestCheckedNumericConversionsPinBothSidesOfEveryBoundary(t *testing.T) {
 			}
 		})
 	}
+
+	uint16FromIntCases := []struct {
+		name    string
+		value   int
+		want    uint16
+		wantErr error
+	}{
+		{name: "minimum int overflows", value: math.MinInt, wantErr: ErrNumericOverflow},
+		{name: "negative one overflows", value: -1, wantErr: ErrNumericOverflow},
+		{name: "zero converts", value: 0},
+		{name: "one converts", value: 1, want: 1},
+		{name: "one below uint16 upper edge converts", value: math.MaxUint16 - 1, want: math.MaxUint16 - 1},
+		{name: "uint16 upper edge converts", value: math.MaxUint16, want: math.MaxUint16},
+		{name: "one above uint16 upper edge overflows", value: math.MaxUint16 + 1, wantErr: ErrNumericOverflow},
+		{name: "maximum int overflows", value: math.MaxInt, wantErr: ErrNumericOverflow},
+	}
+	for _, tc := range uint16FromIntCases {
+		t.Run("CheckedUint16FromInt "+tc.name, func(t *testing.T) {
+			t.Parallel()
+
+			got, gotErr := CheckedUint16FromInt(tc.value)
+			if !errors.Is(gotErr, tc.wantErr) || got != tc.want {
+				t.Fatalf("CheckedUint16FromInt(%d) = (%d, %v), want (%d, %v)", tc.value, got, gotErr, tc.want, tc.wantErr)
+			}
+		})
+	}
+
+	uint8Cases := []struct {
+		name    string
+		value   int
+		want    uint8
+		wantErr error
+	}{
+		{name: "minimum int overflows", value: math.MinInt, wantErr: ErrNumericOverflow},
+		{name: "negative one overflows", value: -1, wantErr: ErrNumericOverflow},
+		{name: "zero converts", value: 0},
+		{name: "one converts", value: 1, want: 1},
+		{name: "one below uint8 upper edge converts", value: math.MaxUint8 - 1, want: math.MaxUint8 - 1},
+		{name: "uint8 upper edge converts", value: math.MaxUint8, want: math.MaxUint8},
+		{name: "one above uint8 upper edge overflows", value: math.MaxUint8 + 1, wantErr: ErrNumericOverflow},
+		{name: "maximum int overflows", value: math.MaxInt, wantErr: ErrNumericOverflow},
+	}
+	for _, tc := range uint8Cases {
+		t.Run("CheckedUint8FromInt "+tc.name, func(t *testing.T) {
+			t.Parallel()
+
+			got, gotErr := CheckedUint8FromInt(tc.value)
+			if !errors.Is(gotErr, tc.wantErr) || got != tc.want {
+				t.Fatalf("CheckedUint8FromInt(%d) = (%d, %v), want (%d, %v)", tc.value, got, gotErr, tc.want, tc.wantErr)
+			}
+		})
+	}
+
+	int32Cases := []struct {
+		name    string
+		value   int
+		want    int32
+		wantErr error
+	}{
+		{name: "int32 minimum converts", value: math.MinInt32, want: math.MinInt32},
+		{name: "int32 minimum plus one converts", value: math.MinInt32 + 1, want: math.MinInt32 + 1},
+		{name: "negative one converts", value: -1, want: -1},
+		{name: "zero converts", value: 0},
+		{name: "one converts", value: 1, want: 1},
+		{name: "int32 upper edge minus one converts", value: math.MaxInt32 - 1, want: math.MaxInt32 - 1},
+		{name: "int32 upper edge converts", value: math.MaxInt32, want: math.MaxInt32},
+	}
+	if strconv.IntSize == 64 {
+		int32Cases = append(int32Cases,
+			struct {
+				name    string
+				value   int
+				want    int32
+				wantErr error
+			}{name: "one below int32 minimum overflows", value: math.MinInt32 - 1, wantErr: ErrNumericOverflow},
+			struct {
+				name    string
+				value   int
+				want    int32
+				wantErr error
+			}{name: "one above int32 upper edge overflows", value: math.MaxInt32 + 1, wantErr: ErrNumericOverflow},
+		)
+	}
+	for _, tc := range int32Cases {
+		t.Run("CheckedInt32FromInt "+tc.name, func(t *testing.T) {
+			t.Parallel()
+
+			got, gotErr := CheckedInt32FromInt(tc.value)
+			if !errors.Is(gotErr, tc.wantErr) || got != tc.want {
+				t.Fatalf("CheckedInt32FromInt(%d) = (%d, %v), want (%d, %v)", tc.value, got, gotErr, tc.want, tc.wantErr)
+			}
+		})
+	}
 }
 
 func mustByteLength(t *testing.T, value uint64) ByteLength {

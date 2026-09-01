@@ -352,7 +352,7 @@ func payPalCertificateURLOracle(value string) bool {
 		return false
 	}
 	parsed, err := url.Parse(value)
-	if err != nil || !parsed.IsAbs() || parsed.Opaque != "" || parsed.Host == "" || parsed.Hostname() == "" ||
+	if err != nil || parsed == nil || !parsed.IsAbs() || parsed.Opaque != "" || parsed.Host == "" || parsed.Hostname() == "" ||
 		parsed.User != nil || parsed.Fragment != "" || parsed.RawFragment != "" {
 		return false
 	}
@@ -371,6 +371,6 @@ func payPalLiveCertificateBindingOracle(value string) bool {
 		return false
 	}
 	parsed, err := url.Parse(value)
-	return err == nil && parsed.Scheme == "https" && parsed.Host == "api.paypal.com" && parsed.RawPath == "" &&
+	return err == nil && parsed != nil && parsed.Scheme == "https" && parsed.Host == "api.paypal.com" && parsed.RawPath == "" &&
 		parsed.RawQuery == "" && path.Clean(parsed.Path) == parsed.Path && strings.HasPrefix(parsed.Path, payPalWebhookCertificatePathPrefix)
 }

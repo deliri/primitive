@@ -1,6 +1,7 @@
 package runworkspace_test
 
 import (
+	"bytes"
 	"context"
 	"errors"
 	"io"
@@ -35,6 +36,10 @@ func TestCaptureLayerTriad(t *testing.T) {
 		}
 		if evidence.SHA256 != core.SHA256Of(content) || evidence.Bytes.Uint64() != uint64(len(content)) {
 			t.Fatalf("CaptureEvidence digest/bytes = %v/%d, want %v/%d", evidence.SHA256, evidence.Bytes.Uint64(), core.SHA256Of(content), len(content))
+		}
+		var streamed bytes.Buffer
+		if streamErr := manager.StreamCaptureEvidence(t.Context(), experiment, evidence, &streamed); streamErr != nil || !bytes.Equal(streamed.Bytes(), content) {
+			t.Fatalf("Manager.StreamCaptureEvidence(stdout) = (%q, %v), want (%q, nil)", streamed.Bytes(), streamErr, content)
 		}
 		got := readCaptureEvidence(t, root, evidence)
 		if string(got) != string(content) {
@@ -81,6 +86,10 @@ func TestCaptureLayerTriad(t *testing.T) {
 		}
 		if evidence.Bytes.Uint64() != 0 || evidence.SHA256 != core.SHA256Of(nil) {
 			t.Fatalf("empty CaptureEvidence digest/bytes = %v/%d, want %v/0", evidence.SHA256, evidence.Bytes.Uint64(), core.SHA256Of(nil))
+		}
+		var streamed bytes.Buffer
+		if streamErr := manager.StreamCaptureEvidence(t.Context(), experiment, evidence, &streamed); streamErr != nil || streamed.Len() != 0 {
+			t.Fatalf("Manager.StreamCaptureEvidence(empty stdout) = (%q, %v), want empty and nil", streamed.Bytes(), streamErr)
 		}
 		if got := readCaptureEvidence(t, root, evidence); len(got) != 0 {
 			t.Fatalf("empty capture disk bytes = %q, want empty", got)

@@ -20,8 +20,8 @@ func TestMachineProbeProductionStructsHaveCompilerVisibleDataFlowRoles(t *testin
 	if gotErr != nil {
 		t.Fatalf("machineProbeDataFlowInventory() error = %v, want nil", gotErr)
 	}
-	wantStructs := []string{"Failure", "Request"}
-	wantRoles := []string{"Failure", "Request"}
+	wantStructs := []string{"Failure", "Request", "executionFactInput", "failureInput"}
+	wantRoles := []string{"Failure", "Request", "executionFactInput", "failureInput"}
 	if !slices.Equal(gotStructs, wantStructs) || !slices.Equal(gotRoles, wantRoles) {
 		t.Fatalf("Machineprobe data-flow inventory = structs:%v roles:%v, want %v/%v", gotStructs, gotRoles, wantStructs, wantRoles)
 	}

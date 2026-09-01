@@ -381,7 +381,7 @@ func TestReleaseVerifierLayerTriadSeparatesEveryAuthority(t *testing.T) {
 	}
 }
 
-func TestPeachfuzzOfferingTraversesSignedReleasePipeline(t *testing.T) {
+func TestProductGammaOfferingTraversesSignedReleasePipeline(t *testing.T) {
 	t.Parallel()
 
 	fixture := newReleaseFixtureForOffering(
@@ -391,11 +391,11 @@ func TestPeachfuzzOfferingTraversesSignedReleasePipeline(t *testing.T) {
 		fixture.verified.Offering() != releaseOffering(t, 3) ||
 		fixture.latest.Fact.Offering() != releaseOffering(t, 3) ||
 		fixture.verifiedLatest.Manifest().Offering() != releaseOffering(t, 3) {
-		t.Fatalf("Peachfuzz offering did not survive the signed release pipeline")
+		t.Fatalf("product gamma offering did not survive the signed release pipeline")
 	}
 	for index, build := range fixture.builds {
 		if build.Offering() != releaseOffering(t, 3) {
-			t.Fatalf("Peachfuzz build %d offering = %v, want %v", index, build.Offering(), releaseOffering(t, 3))
+			t.Fatalf("product gamma build %d offering = %v, want %v", index, build.Offering(), releaseOffering(t, 3))
 		}
 	}
 }

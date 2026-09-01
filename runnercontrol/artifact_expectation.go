@@ -8,7 +8,7 @@ import (
 )
 
 // ArtifactExpectation is the compiler-owned description of one file an
-// experiment may leave for Anvil to retain. Path is rooted in the runner
+// experiment may leave for its caller to retain. Path is rooted in the runner
 // workspace, not interpreted relative to ambient process state.
 type ArtifactExpectation struct {
 	Kind         ArtifactKind                `json:"kind"`

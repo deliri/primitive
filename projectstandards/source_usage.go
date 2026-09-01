@@ -104,7 +104,7 @@ func (u FunctionUsage) Validate() error {
 		if err := u.ObservedConsumers[index].Validate(); err != nil {
 			return err
 		}
-		for previous := 0; previous < index; previous++ {
+		for previous := range index {
 			if u.ObservedConsumers[previous] == u.ObservedConsumers[index] {
 				return conflictError(errors.New("project standards function consumer is duplicated"))
 			}
@@ -127,7 +127,8 @@ func functionUsageCountsMatch(u FunctionUsage) bool {
 		return productionFunctionReference(u)
 	}
 	if u.ReferencePosture == FunctionRuntimeEntryPoint {
-		return u.ProductionReferences >= uint32(len(u.ObservedConsumers))
+		consumers, err := core.CheckedUint32FromInt(len(u.ObservedConsumers))
+		return err == nil && u.ProductionReferences >= consumers
 	}
 	return false
 }
@@ -188,7 +189,7 @@ func validateSourcePaths(values []SourcePath) error {
 		if err := values[index].Validate(); err != nil {
 			return err
 		}
-		for previous := 0; previous < index; previous++ {
+		for previous := range index {
 			if values[previous] == values[index] {
 				return conflictError(errors.New("project standards source path is duplicated"))
 			}
@@ -205,7 +206,7 @@ func validateFunctionUsages(owner SourcePath, values []FunctionUsage) error {
 		if !pathWithin(owner, values[index].Function.Path, true) {
 			return conflictError(errors.New("project standards function usage is outside its package"))
 		}
-		for previous := 0; previous < index; previous++ {
+		for previous := range index {
 			if codeReferenceEqual(values[previous].Function, values[index].Function) {
 				return conflictError(errors.New("project standards function usage is duplicated"))
 			}

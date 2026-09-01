@@ -20,8 +20,11 @@ func (MemberSet) runnerControlProtocolFact()                        {}
 func (SchedulingFence) runnerControlProtocolFact()                  {}
 func (ClaimRequest) runnerControlProtocolFact()                     {}
 func (SchedulingCapability) runnerControlProtocolFact()             {}
+func (SchedulingCapabilityDocument) runnerControlProtocolFact()     {}
 func (MemberCapability) runnerControlProtocolFact()                 {}
+func (MemberCapabilityDocument) runnerControlProtocolFact()         {}
 func (ExperimentCapability) runnerControlProtocolFact()             {}
+func (ExperimentCapabilityDocument) runnerControlProtocolFact()     {}
 func (SchedulingClaim) runnerControlProtocolFact()                  {}
 func (ClaimResponse) runnerControlProtocolFact()                    {}
 func (Directive) runnerControlProtocolFact()                        {}
@@ -117,18 +120,27 @@ func (CancellationRequest) runnerControlProtocolFact()              {}
 func (CancellationResponse) runnerControlProtocolFact()             {}
 func (RunStateRequest) runnerControlProtocolFact()                  {}
 func (RunStateResponse) runnerControlProtocolFact()                 {}
+func (ObservationDeliveryVerification) runnerControlProtocolFact()  {}
 
 func (ExperimentCompletionRecord) runnerControlSealedProjection() {}
 func (RunnerCompletionRecord) runnerControlSealedProjection()     {}
 func (CleanupRecord) runnerControlSealedProjection()              {}
 func (ArtifactManifestRecord) runnerControlSealedProjection()     {}
 func (ExpansionRecord) runnerControlSealedProjection()            {}
+func (SchedulingClaimRecord) runnerControlSealedProjection()      {}
 
 func (claimRequestWire) runnerControlInternalFlow()                       {}
 func (requestedRunWire) runnerControlInternalFlow()                       {}
 func (admittedRunWire) runnerControlInternalFlow()                        {}
 func (admissionResponseWire) runnerControlInternalFlow()                  {}
 func (claimResponseWire) runnerControlInternalFlow()                      {}
+func (schedulingCapabilityWire) runnerControlInternalFlow()               {}
+func (memberCapabilityWire) runnerControlInternalFlow()                   {}
+func (experimentCapabilityWire) runnerControlInternalFlow()               {}
+func (schedulingCapabilityDocumentWire) runnerControlInternalFlow()       {}
+func (memberCapabilityDocumentWire) runnerControlInternalFlow()           {}
+func (experimentCapabilityDocumentWire) runnerControlInternalFlow()       {}
+func (schedulingClaimWire) runnerControlInternalFlow()                    {}
 func (heartbeatRequestWire) runnerControlInternalFlow()                   {}
 func (heartbeatResponseWire) runnerControlInternalFlow()                  {}
 func (experimentCompletionPayloadWire) runnerControlInternalFlow()        {}
@@ -168,9 +180,15 @@ func (authenticatedPeerContextKey) runnerControlInternalFlow()            {}
 func (compiledGoArtifactPaths) runnerControlInternalFlow()                {}
 func (diagnosticArtifactPaths) runnerControlInternalFlow()                {}
 func (junitCompileResult) runnerControlInternalFlow()                     {}
+func (junitStreamState) runnerControlInternalFlow()                       {}
 func (externalCompilation) runnerControlInternalFlow()                    {}
 func (AuthenticatedCancellationRequest) runnerControlInternalFlow()       {}
 func (AuthenticatedRunStateRequest) runnerControlInternalFlow()           {}
+func (ObservationDeliveryServerConfiguration) runnerControlInternalFlow() {}
+func (deliveryReceiptWrite) runnerControlInternalFlow()                   {}
+func (deliveryClosure) runnerControlInternalFlow()                        {}
+func (expansionCounts) runnerControlInternalFlow()                        {}
+func (measurementValidation) runnerControlInternalFlow()                  {}
 
 func (ClaimClient) runnerControlCapabilityWrapper()                 {}
 func (AdmissionClient) runnerControlCapabilityWrapper()             {}
@@ -222,8 +240,11 @@ var (
 	_ protocolFact = SchedulingFence{}
 	_ protocolFact = ClaimRequest{}
 	_ protocolFact = SchedulingCapability{}
+	_ protocolFact = SchedulingCapabilityDocument{}
 	_ protocolFact = MemberCapability{}
+	_ protocolFact = MemberCapabilityDocument{}
 	_ protocolFact = ExperimentCapability{}
+	_ protocolFact = ExperimentCapabilityDocument{}
 	_ protocolFact = ArtifactExpectation{}
 	_ protocolFact = SchedulingClaim{}
 	_ protocolFact = ClaimResponse{}
@@ -318,18 +339,27 @@ var (
 	_ protocolFact = CancellationResponse{}
 	_ protocolFact = RunStateRequest{}
 	_ protocolFact = RunStateResponse{}
+	_ protocolFact = ObservationDeliveryVerification{}
 
 	_ sealedProjection = ExperimentCompletionRecord{}
 	_ sealedProjection = RunnerCompletionRecord{}
 	_ sealedProjection = CleanupRecord{}
 	_ sealedProjection = ArtifactManifestRecord{}
 	_ sealedProjection = ExpansionRecord{}
+	_ sealedProjection = SchedulingClaimRecord{}
 
 	_ internalFlow = claimRequestWire{}
 	_ internalFlow = requestedRunWire{}
 	_ internalFlow = admittedRunWire{}
 	_ internalFlow = admissionResponseWire{}
 	_ internalFlow = claimResponseWire{}
+	_ internalFlow = schedulingCapabilityWire{}
+	_ internalFlow = memberCapabilityWire{}
+	_ internalFlow = experimentCapabilityWire{}
+	_ internalFlow = schedulingCapabilityDocumentWire{}
+	_ internalFlow = memberCapabilityDocumentWire{}
+	_ internalFlow = experimentCapabilityDocumentWire{}
+	_ internalFlow = schedulingClaimWire{}
 	_ internalFlow = heartbeatRequestWire{}
 	_ internalFlow = heartbeatResponseWire{}
 	_ internalFlow = experimentCompletionPayloadWire{}
@@ -369,9 +399,15 @@ var (
 	_ internalFlow = compiledGoArtifactPaths{}
 	_ internalFlow = diagnosticArtifactPaths{}
 	_ internalFlow = junitCompileResult{}
+	_ internalFlow = junitStreamState{}
 	_ internalFlow = externalCompilation{}
 	_ internalFlow = AuthenticatedCancellationRequest{}
 	_ internalFlow = AuthenticatedRunStateRequest{}
+	_ internalFlow = ObservationDeliveryServerConfiguration{}
+	_ internalFlow = deliveryReceiptWrite{}
+	_ internalFlow = deliveryClosure{}
+	_ internalFlow = expansionCounts{}
+	_ internalFlow = measurementValidation{}
 
 	_ capabilityWrapper = ClaimClient{}
 	_ capabilityWrapper = AdmissionClient{}

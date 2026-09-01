@@ -143,7 +143,9 @@ func (s MachineObservationServer) Serve(writer http.ResponseWriter, request *htt
 	if err != nil {
 		return err
 	}
-	if err := RequireRunnerPeer(request.Context(), received.Body.Observation.Configuration.Identity.ID, received.Body.Observation.GenerationID); err != nil {
+	observation := received.Body.Observation
+	configuration := observation.Configuration
+	if err := RequireRunnerPeer(request.Context(), configuration.Identity.ID, observation.GenerationID); err != nil {
 		return err
 	}
 	if err := s.repository.RecordMachineObservation(request.Context(), *received.Body); err != nil {

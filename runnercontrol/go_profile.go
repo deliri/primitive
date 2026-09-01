@@ -15,7 +15,10 @@ import (
 	"github.com/deliri/primitive/v2026/temporal"
 )
 
-const BenchmarkAcceptanceSeconds uint64 = 30
+const (
+	BenchmarkAcceptanceSeconds uint64 = 30
+	FuzzAcceptanceSeconds      uint64 = 30
+)
 
 type GoProfileKind uint8
 
@@ -37,23 +40,13 @@ func (k GoProfileKind) Validate() error {
 	return nil
 }
 
+func (k GoProfileKind) IsValid() bool { return k.Validate() == nil }
+
 func (k GoProfileKind) String() string {
-	switch k {
-	case GoProfileFocused:
-		return "focused"
-	case GoProfileAcceptance:
-		return "acceptance"
-	case GoProfileRace:
-		return "race"
-	case GoProfileBenchmark:
-		return "benchmark"
-	case GoProfileDiagnostic:
-		return "diagnostic"
-	case GoProfileFuzz:
-		return "fuzz"
-	default:
-		return ""
+	if !k.IsValid() {
+		return invalidEnumString()
 	}
+	return []string{"", "focused", "acceptance", "race", "benchmark", "diagnostic", "fuzz"}[k]
 }
 
 func (k GoProfileKind) MarshalJSON() ([]byte, error) {
@@ -96,17 +89,12 @@ func (m CoverageMode) Validate() error {
 	}
 	return nil
 }
+func (m CoverageMode) IsValid() bool { return m.Validate() == nil }
 func (m CoverageMode) String() string {
-	switch m {
-	case CoverageSet:
-		return "set"
-	case CoverageCount:
-		return "count"
-	case CoverageAtomic:
-		return "atomic"
-	default:
-		return ""
+	if !m.IsValid() {
+		return invalidEnumString()
 	}
+	return []string{"", "set", "count", "atomic"}[m]
 }
 
 func (m CoverageMode) MarshalJSON() ([]byte, error) {
@@ -263,10 +251,13 @@ func (p GoExperimentPlan) validateBenchmark() error {
 	if p.Kind != projectstandards.ProbeKindGoBenchmark || p.Selector == nil {
 		return core.ErrPrimitiveContract
 	}
-	if p.BenchmarkDuration != accepted || p.Parallel != 1 {
+	if p.BenchmarkDuration != accepted || p.Parallel != 1 || p.Diagnostics == nil {
 		return core.ErrPrimitiveContract
 	}
-	return nil
+	if p.Diagnostics.CPU == nil || p.Diagnostics.Memory == nil {
+		return errors.Join(core.ErrPrimitiveContract, errors.New("benchmark evidence requires CPU and memory profiles"))
+	}
+	return p.Diagnostics.Validate()
 }
 
 func (p GoExperimentPlan) validateDiagnostic() error {
@@ -280,7 +271,11 @@ func (p GoExperimentPlan) validateFuzz() error {
 	if p.Kind != projectstandards.ProbeKindGoFuzz || p.Selector == nil || p.Parallel != 1 {
 		return core.ErrPrimitiveContract
 	}
-	if p.FuzzDuration.IsZero() || p.FuzzMinimizeDuration.IsZero() {
+	accepted, err := temporal.DurationFromSeconds(FuzzAcceptanceSeconds)
+	if err != nil {
+		return err
+	}
+	if p.FuzzDuration != accepted || p.FuzzMinimizeDuration.IsZero() {
 		return core.ErrPrimitiveContract
 	}
 	return nil
@@ -345,7 +340,7 @@ func (r GoPlanRequest) Validate() error {
 		return core.ErrPrimitiveContract
 	}
 	if r.Experiment.Profile == GoProfileRace && !r.Environment.CGOEnabled {
-		return errors.Join(core.ErrPrimitiveContract, errors.New("Go race execution requires the admitted CGO toolchain context"))
+		return errors.Join(core.ErrPrimitiveContract, errors.New("go race execution requires the admitted cgo toolchain context"))
 	}
 	_, workingErr := r.WorkingDirectory.RelativeTo(r.Subject.SourceRoot)
 	_, artifactErr := r.WorkspaceRoot.JoinRelative(r.ArtifactDirectory)
@@ -458,6 +453,8 @@ func (p GoExperimentPlan) appendProfileArguments(arguments []string, selector st
 			return nil, err
 		}
 		arguments = append(arguments, "-run=^$", "-fuzz="+selector, "-fuzztime="+fuzz.String(), "-fuzzminimizetime="+minimize.String())
+	default:
+		return nil, core.ErrPrimitiveContract
 	}
 	return arguments, nil
 }
@@ -509,9 +506,9 @@ func compileGoArtifacts(request GoPlanRequest) ([]ArtifactExpectation, compiledG
 	paths := compiledGoArtifactPaths{output: output}
 	artifacts := make([]ArtifactExpectation, 0, 6)
 	if request.Experiment.CoveragePath != nil {
-		expectation, absolute, err := compileGoArtifact(request, *request.Experiment.CoveragePath, ArtifactCoverage)
-		if err != nil {
-			return nil, compiledGoArtifactPaths{}, err
+		expectation, absolute, compileErr := compileGoArtifact(request, *request.Experiment.CoveragePath, ArtifactCoverage)
+		if compileErr != nil {
+			return nil, compiledGoArtifactPaths{}, compileErr
 		}
 		artifacts = append(artifacts, expectation)
 		paths.coverage = &absolute

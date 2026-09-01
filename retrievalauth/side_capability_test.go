@@ -15,12 +15,3 @@ func retrievalAuthServer(t testing.TB, trusted attest.TrustedKeys) controlplane.
 	}
 	return server
 }
-
-func retrievalAuthClient(t testing.TB, trusted attest.TrustedKeys) controlplane.Client {
-	t.Helper()
-	client, err := controlplane.NewClient(controlplane.ClientConfiguration{TrustedAuthorityKeys: trusted})
-	if err != nil {
-		t.Fatalf("controlplane.NewClient(retrieval authority) error = %v, want nil", err)
-	}
-	return client
-}

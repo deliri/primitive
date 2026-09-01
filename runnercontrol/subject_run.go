@@ -25,6 +25,9 @@ const (
 // When cancellation reaches a started transient service, Primitive stops the
 // exact compiler-owned unit before returning the interruption to product code.
 func RunSubject(ctx context.Context, capability ExperimentCapability, streams process.Streams) (process.Result, error) {
+	if ctx == nil {
+		return process.Result{}, errors.Join(core.ErrProcessContract, errors.New("subject context is absent"))
+	}
 	plan, err := CompileSubjectProcess(capability)
 	if err != nil {
 		return process.Result{}, err
@@ -34,15 +37,15 @@ func RunSubject(ctx context.Context, capability ExperimentCapability, streams pr
 		return process.Result{}, err
 	}
 	if err := prepareSubjectNetwork(ctx, capability); err != nil {
-		return process.Result{}, errors.Join(err, destroySubjectNetwork(capability))
+		return process.Result{}, errors.Join(err, destroySubjectNetwork(ctx, capability))
 	}
 	result, runErr := process.Run(ctx, request)
 	var stopErr error
 	if ctx == nil || ctx.Err() == nil || result.Validate() != nil {
-		return result, errors.Join(runErr, destroySubjectNetwork(capability))
+		return result, errors.Join(runErr, destroySubjectNetwork(ctx, capability))
 	}
-	stopErr = stopSubjectUnit(capability)
-	return result, errors.Join(runErr, stopErr, destroySubjectNetwork(capability))
+	stopErr = stopSubjectUnit(ctx, capability)
+	return result, errors.Join(runErr, stopErr, destroySubjectNetwork(ctx, capability))
 }
 
 func prepareSubjectNetwork(ctx context.Context, capability ExperimentCapability) error {
@@ -56,11 +59,11 @@ func prepareSubjectNetwork(ctx context.Context, capability ExperimentCapability)
 	return runSubjectNetworkController(ctx, capability, subjectNetworkPrepare, bytes.NewReader(encoded))
 }
 
-func destroySubjectNetwork(capability ExperimentCapability) error {
+func destroySubjectNetwork(parent context.Context, capability ExperimentCapability) error {
 	if capability.Resources.Egress.Mode == EgressDenied {
 		return nil
 	}
-	cleanupCtx, cancel, err := temporal.WithTimeout(temporal.TimeoutRequest{Parent: context.Background(), Duration: capability.Execution.Process.WaitDelay})
+	cleanupCtx, cancel, err := temporal.WithTimeout(temporal.TimeoutRequest{Parent: context.WithoutCancel(parent), Duration: capability.Execution.Process.WaitDelay})
 	if err != nil {
 		return fmt.Errorf("create pinned subject network cleanup context: %w", errors.Join(core.ErrProcessContract, err))
 	}
@@ -92,29 +95,25 @@ func runSubjectNetworkController(ctx context.Context, capability ExperimentCapab
 }
 
 func (o subjectNetworkOperation) String() string {
-	switch o {
-	case subjectNetworkPrepare:
+	if o == subjectNetworkPrepare {
 		return "prepare"
-	case subjectNetworkDestroy:
-		return "destroy"
-	default:
-		return "unknown"
 	}
+	if o == subjectNetworkDestroy {
+		return "destroy"
+	}
+	return invalidEnumString()
+}
+
+func (o subjectNetworkOperation) IsValid() bool {
+	return o == subjectNetworkPrepare || o == subjectNetworkDestroy
 }
 
 func subjectNetworkControllerPlan(capability ExperimentCapability, operation subjectNetworkOperation) (process.Plan, error) {
-	if capability.Execution.Subject.NetworkController == nil || capability.Execution.Subject.NetworkNamespace == nil || operation.String() == "unknown" {
-		return process.Plan{}, errors.Join(core.ErrPrimitiveContract, errors.New("pinned subject network controller is incomplete"))
-	}
-	digest, err := capability.Resources.Egress.Digest()
-	if err != nil || digest != capability.Execution.Subject.EgressPolicyIdentity {
-		return process.Plan{}, errors.Join(core.ErrPrimitiveContract, err, errors.New("pinned subject network policy digest does not match execution authority"))
-	}
-	digestHex, err := digest.Hex()
+	controller, namespace, digestHex, err := subjectNetworkControllerAuthority(capability, operation)
 	if err != nil {
 		return process.Plan{}, err
 	}
-	arguments, err := process.ParseArguments([]string{operation.String(), capability.Execution.Subject.NetworkNamespace.String(), digestHex})
+	arguments, err := process.ParseArguments([]string{operation.String(), namespace.String(), digestHex})
 	if err != nil {
 		return process.Plan{}, err
 	}
@@ -126,13 +125,13 @@ func subjectNetworkControllerPlan(capability ExperimentCapability, operation sub
 	if err != nil {
 		return process.Plan{}, err
 	}
-	workingDirectory, err := capability.Execution.Subject.NetworkController.Parent()
+	workingDirectory, err := controller.Parent()
 	if err != nil {
 		return process.Plan{}, err
 	}
 	plan := process.Plan{
 		SchemaVersion:    process.ExecutionPlanSchemaVersion,
-		Command:          *capability.Execution.Subject.NetworkController,
+		Command:          controller,
 		WorkingDirectory: workingDirectory,
 		Arguments:        arguments, Environment: environment, OutputLimit: output,
 		WaitDelay:   capability.Execution.Process.WaitDelay,
@@ -141,8 +140,24 @@ func subjectNetworkControllerPlan(capability ExperimentCapability, operation sub
 	return plan, plan.Validate()
 }
 
-func stopSubjectUnit(capability ExperimentCapability) error {
-	stopCtx, cancel, err := temporal.WithTimeout(temporal.TimeoutRequest{Parent: context.Background(), Duration: capability.Execution.Process.WaitDelay})
+func subjectNetworkControllerAuthority(capability ExperimentCapability, operation subjectNetworkOperation) (core.AbsolutePath, core.AbsolutePath, string, error) {
+	subject := capability.Execution.Subject
+	if subject.NetworkController == nil || subject.NetworkNamespace == nil || !operation.IsValid() {
+		return core.AbsolutePath{}, core.AbsolutePath{}, "", errors.Join(core.ErrPrimitiveContract, errors.New("pinned subject network controller is incomplete"))
+	}
+	digest, err := capability.Resources.Egress.Digest()
+	if err != nil || digest != subject.EgressPolicyIdentity {
+		return core.AbsolutePath{}, core.AbsolutePath{}, "", errors.Join(core.ErrPrimitiveContract, err, errors.New("pinned subject network policy digest does not match execution authority"))
+	}
+	digestHex, err := digest.Hex()
+	if err != nil {
+		return core.AbsolutePath{}, core.AbsolutePath{}, "", err
+	}
+	return *subject.NetworkController, *subject.NetworkNamespace, digestHex, nil
+}
+
+func stopSubjectUnit(parent context.Context, capability ExperimentCapability) error {
+	stopCtx, cancel, err := temporal.WithTimeout(temporal.TimeoutRequest{Parent: context.WithoutCancel(parent), Duration: capability.Execution.Process.WaitDelay})
 	if err != nil {
 		return errors.Join(core.ErrProcessContract, err)
 	}
@@ -168,7 +183,7 @@ func stopSubjectUnit(capability ExperimentCapability) error {
 }
 
 func subjectStopPlan(capability ExperimentCapability) (process.Plan, error) {
-	arguments, err := process.ParseArguments([]string{"stop", "anvil-" + capability.Experiment.String() + ".service"})
+	arguments, err := process.ParseArguments([]string{"stop", subjectUnitName(capability.Experiment) + ".service"})
 	if err != nil {
 		return process.Plan{}, err
 	}
