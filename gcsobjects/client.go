@@ -52,6 +52,8 @@ const (
 	GCSCredentialJSONMaximumBytes = 64 << 10
 	// GCSAuthenticationResponseMaximumBytes bounds provider credential exchange.
 	GCSAuthenticationResponseMaximumBytes = 64 << 10
+	gcsSDKAlternateRepresentationQuery    = "alt"
+	gcsSDKMediaRepresentation             = "media"
 )
 
 func gcsSDKResponseMethods() [7]exchange.Method {
@@ -145,7 +147,7 @@ func gcsClientOptions(ctx context.Context, config GCSClientConfig) ([]option.Cli
 	if err != nil {
 		return nil, errors.Join(core.ErrObjectStoreContract, err)
 	}
-	return []option.ClientOption{clientOption}, nil
+	return []option.ClientOption{clientOption, storage.WithJSONReads()}, nil
 }
 
 func gcsCredentialJSON(ctx context.Context, config GCSClientConfig) ([]byte, error) {
@@ -177,6 +179,21 @@ func gcsProviderResponseBoundary(method exchange.Method) (exchange.OfficialSDKRe
 	limit, err := core.NewByteCount(GCSProviderResponseMaximumBytes)
 	if err != nil {
 		return exchange.OfficialSDKResponseBoundary{}, errors.Join(core.ErrObjectStoreContract, err)
+	}
+	if method == exchange.MethodGet {
+		boundary, streamErr := exchange.NewOfficialSDKStreamingSuccessCeiling(
+			exchange.OfficialSDKStreamingSuccessCeilingRequest{
+				Method:                  method,
+				StreamQueryName:         gcsSDKAlternateRepresentationQuery,
+				StreamQueryValue:        gcsSDKMediaRepresentation,
+				AggregateRepresentation: exchange.OfficialSDKResponseRepresentationJSON,
+				AggregateMaximumBytes:   limit,
+			},
+		)
+		if streamErr != nil {
+			return exchange.OfficialSDKResponseBoundary{}, errors.Join(core.ErrObjectStoreContract, streamErr)
+		}
+		return boundary, nil
 	}
 	boundary, err := exchange.NewOfficialSDKResponseCeiling(exchange.OfficialSDKResponseCeilingRequest{
 		Method: method, Representation: exchange.OfficialSDKResponseRepresentationJSON,

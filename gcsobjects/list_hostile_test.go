@@ -69,7 +69,7 @@ func TestVisitGCSObjectsRefusesMalformedProviderEvidenceAndVisitorFailure(t *tes
 	malformed := *valid
 	malformed.Generation = 0
 	err := visitGCSObjects(&hostileGCSObjectIterator{objects: []*storage.ObjectAttrs{&malformed}}, 1, func(GCSObjectMetadata) error {
-		t.Fatal("visitor received malformed provider evidence")
+		t.Fatalf("visitor calls for generation = %d, want 0 calls for malformed provider evidence", malformed.Generation)
 		return nil
 	})
 	if !errors.Is(err, core.ErrObjectStoreContract) {

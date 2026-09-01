@@ -187,6 +187,87 @@ func TestOfficialSDKResponseBoundaryHostileConstructionMatrix(t *testing.T) {
 	runOfficialSDKBoundaryCases(t, boundaryCases)
 }
 
+func TestOfficialSDKStreamingSuccessCeilingExhaustsSingleByteQueryDomain(t *testing.T) {
+	t.Parallel()
+
+	limit, err := core.NewByteCount(1)
+	if err != nil {
+		t.Fatalf("core.NewByteCount(1) error = %v, want nil", err)
+	}
+	const admittedNames = "ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz0123456789_.-"
+	const admittedValues = "!\"$%'()*+,-./0123456789:;<>?@ABCDEFGHIJKLMNOPQRSTUVWXYZ[\\]^_`abcdefghijklmnopqrstuvwxyz{|}~"
+	for raw := 0; raw <= 255; raw++ {
+		queryByte := byte(raw)
+		nameRequest := OfficialSDKStreamingSuccessCeilingRequest{
+			Method: MethodGet, StreamQueryName: string([]byte{queryByte}), StreamQueryValue: "media",
+			AggregateRepresentation: OfficialSDKResponseRepresentationJSON, AggregateMaximumBytes: limit,
+		}
+		nameBoundary, nameErr := NewOfficialSDKStreamingSuccessCeiling(nameRequest)
+		wantName := strings.ContainsRune(admittedNames, rune(queryByte))
+		if wantName != (nameErr == nil) {
+			t.Fatalf("single-byte query name 0x%02x admission = (%v, %v), want admitted=%t", raw, nameBoundary, nameErr, wantName)
+		}
+
+		valueRequest := OfficialSDKStreamingSuccessCeilingRequest{
+			Method: MethodGet, StreamQueryName: "alt", StreamQueryValue: string([]byte{queryByte}),
+			AggregateRepresentation: OfficialSDKResponseRepresentationJSON, AggregateMaximumBytes: limit,
+		}
+		valueBoundary, valueErr := NewOfficialSDKStreamingSuccessCeiling(valueRequest)
+		wantValue := strings.ContainsRune(admittedValues, rune(queryByte))
+		if wantValue != (valueErr == nil) {
+			t.Fatalf("single-byte query value 0x%02x admission = (%v, %v), want admitted=%t", raw, valueBoundary, valueErr, wantValue)
+		}
+	}
+}
+
+func TestOfficialSDKStreamingSuccessCeilingLengthAndDependencyBoundaries(t *testing.T) {
+	t.Parallel()
+
+	limit, err := core.NewByteCount(1)
+	if err != nil {
+		t.Fatalf("core.NewByteCount(1) error = %v, want nil", err)
+	}
+	cases := []struct {
+		name       string
+		method     Method
+		queryName  string
+		queryValue string
+		maximum    core.ByteCount
+		wantErr    error
+	}{
+		{name: "one-byte query coordinates are admitted", method: MethodGet, queryName: "a", queryValue: "b", maximum: limit},
+		{name: "query name at exact ceiling is admitted", method: MethodGet, queryName: strings.Repeat("a", officialSDKQueryNameMaximumBytes), queryValue: "media", maximum: limit},
+		{name: "query name one above ceiling is refused", method: MethodGet, queryName: strings.Repeat("a", officialSDKQueryNameMaximumBytes+1), queryValue: "media", maximum: limit, wantErr: core.ErrExchangeContract},
+		{name: "query value at exact ceiling is admitted", method: MethodGet, queryName: "alt", queryValue: strings.Repeat("m", officialSDKQueryValueMaximumBytes), maximum: limit},
+		{name: "query value one above ceiling is refused", method: MethodGet, queryName: "alt", queryValue: strings.Repeat("m", officialSDKQueryValueMaximumBytes+1), maximum: limit, wantErr: core.ErrExchangeContract},
+		{name: "unknown method is refused", method: MethodUnknown, queryName: "alt", queryValue: "media", maximum: limit, wantErr: core.ErrExchangeContract},
+		{name: "future method is refused", method: Method(255), queryName: "alt", queryValue: "media", maximum: limit, wantErr: core.ErrExchangeContract},
+		{name: "missing query name is refused", method: MethodGet, queryValue: "media", maximum: limit, wantErr: core.ErrExchangeContract},
+		{name: "missing query value is refused", method: MethodGet, queryName: "alt", maximum: limit, wantErr: core.ErrExchangeContract},
+		{name: "missing aggregate maximum is refused", method: MethodGet, queryName: "alt", queryValue: "media", wantErr: core.ErrExchangeContract},
+	}
+	for _, testCase := range cases {
+		t.Run(testCase.name, func(t *testing.T) {
+			t.Parallel()
+
+			got, gotErr := NewOfficialSDKStreamingSuccessCeiling(OfficialSDKStreamingSuccessCeilingRequest{
+				Method: testCase.method, StreamQueryName: testCase.queryName, StreamQueryValue: testCase.queryValue,
+				AggregateRepresentation: OfficialSDKResponseRepresentationJSON,
+				AggregateMaximumBytes:   testCase.maximum,
+			})
+			if testCase.wantErr != nil {
+				if got != (OfficialSDKResponseBoundary{}) || !errors.Is(gotErr, testCase.wantErr) {
+					t.Fatalf("NewOfficialSDKStreamingSuccessCeiling() = (%v, %v), want zero and %v", got, gotErr, testCase.wantErr)
+				}
+				return
+			}
+			if gotErr != nil || got.Validate() != nil {
+				t.Fatalf("NewOfficialSDKStreamingSuccessCeiling() = (%v, %v), want validated boundary and nil", got, gotErr)
+			}
+		})
+	}
+}
+
 func runOfficialSDKBoundaryCases(t *testing.T, cases []officialSDKBoundaryCase) {
 	t.Helper()
 	for _, testCase := range cases {

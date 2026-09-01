@@ -13,9 +13,21 @@ import (
 	"cloud.google.com/go/secretmanager/apiv1/secretmanagerpb"
 	"github.com/deliri/primitive/v2026/contextstate"
 	"github.com/deliri/primitive/v2026/core"
+	"google.golang.org/api/option"
+	"google.golang.org/grpc"
 )
 
 var googleCRC32CTable = crc32.MakeTable(crc32.Castagnoli)
+
+const (
+	// GoogleAccessResponseEnvelopeMaximumBytes is Primitive's bounded allowance
+	// for the protobuf resource name, checksum, field framing, and transport
+	// evolution around Google's published 64-KiB secret payload maximum.
+	GoogleAccessResponseEnvelopeMaximumBytes = 4 * 1024
+	// GoogleAccessResponseMaximumBytes bounds decoding before the official SDK
+	// can allocate a complete AccessSecretVersion response.
+	GoogleAccessResponseMaximumBytes = PayloadMaximumBytes + GoogleAccessResponseEnvelopeMaximumBytes
+)
 
 // GoogleReader is a bounded authenticated capability over the official Google
 // Cloud Secret Manager SDK.
@@ -30,7 +42,9 @@ func NewGoogleReader(ctx context.Context) (*GoogleReader, error) {
 	if err := contextstate.Validate(ctx); err != nil {
 		return nil, errors.Join(core.ErrSecretStoreContract, err)
 	}
-	client, err := secretmanager.NewClient(ctx)
+	client, err := secretmanager.NewClient(ctx, option.WithGRPCDialOption(
+		grpc.WithDefaultCallOptions(grpc.MaxCallRecvMsgSize(GoogleAccessResponseMaximumBytes)),
+	))
 	if err != nil {
 		return nil, googleAccessError(err)
 	}

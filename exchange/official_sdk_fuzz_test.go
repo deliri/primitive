@@ -9,6 +9,7 @@ import (
 	"io"
 	"net"
 	"net/http"
+	"net/http/httptest"
 	"strconv"
 	"sync/atomic"
 	"testing"
@@ -253,6 +254,86 @@ func FuzzOfficialSDKResponseTransportSemanticBoundary(f *testing.F) {
 		}
 		if gotWriteErr != nil {
 			t.Fatalf("provider response write error = %v, want nil", gotWriteErr)
+		}
+	})
+}
+
+func FuzzOfficialSDKStreamingSuccessResponseSemanticBoundary(f *testing.F) {
+	canonicalJSON, err := json.Marshal(officialSDKFuzzJSONDocument{Value: "streaming-boundary"})
+	if err != nil {
+		f.Fatalf("json.Marshal(streaming boundary seed) error = %v, want nil", err)
+	}
+	for _, seed := range []struct {
+		body        []byte
+		queryClass  uint8
+		statusClass uint8
+	}{
+		{body: []byte("media bytes are not JSON"), queryClass: 0, statusClass: 0},
+		{body: make([]byte, 65), queryClass: 0, statusClass: 0},
+		{body: canonicalJSON, queryClass: 1, statusClass: 0},
+		{body: []byte("not-json"), queryClass: 1, statusClass: 0},
+		{body: canonicalJSON, queryClass: 2, statusClass: 0},
+		{body: canonicalJSON, queryClass: 3, statusClass: 0},
+		{body: canonicalJSON, queryClass: 0, statusClass: 1},
+		{body: make([]byte, 65), queryClass: 0, statusClass: 1},
+	} {
+		f.Add(seed.body, seed.queryClass, seed.statusClass)
+	}
+
+	f.Fuzz(func(t *testing.T, body []byte, queryInput uint8, statusInput uint8) {
+		if len(body) > officialSDKFuzzBodyMaximum {
+			body = body[:officialSDKFuzzBodyMaximum]
+		}
+		limit, limitErr := core.NewByteCount(64)
+		if limitErr != nil {
+			t.Fatalf("core.NewByteCount(64) error = %v, want nil", limitErr)
+		}
+		boundary, boundaryErr := exchange.NewOfficialSDKStreamingSuccessCeiling(
+			exchange.OfficialSDKStreamingSuccessCeilingRequest{
+				Method: exchange.MethodGet, StreamQueryName: "alt", StreamQueryValue: "media",
+				AggregateRepresentation: exchange.OfficialSDKResponseRepresentationJSON,
+				AggregateMaximumBytes:   limit,
+			},
+		)
+		if boundaryErr != nil || boundary.Validate() != nil {
+			t.Fatalf("streaming-success boundary = (%v, %v), want validated boundary and nil", boundary, boundaryErr)
+		}
+		queries := [...]string{"alt=media", "alt=json", "alt=media&alt=media", "projection=full"}
+		queryClass := int(queryInput) % len(queries)
+		statuses := [...]int{http.StatusOK, http.StatusInternalServerError}
+		statusClass := int(statusInput) % len(statuses)
+		status := statuses[statusClass]
+		server := httptest.NewServer(http.HandlerFunc(func(writer http.ResponseWriter, _ *http.Request) {
+			writer.WriteHeader(status)
+			_, _ = writer.Write(body)
+		}))
+		t.Cleanup(server.Close)
+		client := officialSDKClient(t, boundary)
+		response, gotErr := client.Get(server.URL + "/object?" + queries[queryClass])
+
+		wantStreaming := queryClass == 0 && statusClass == 0
+		wantBodyLimit := !wantStreaming && len(body) > 64
+		wantJSONRejection := !wantStreaming && !wantBodyLimit && len(body) != 0 && !jsontext.Value(body).IsValid()
+		if wantBodyLimit || wantJSONRejection {
+			if response != nil {
+				_ = response.Body.Close()
+			}
+			wantCause := error(core.ErrJSONContract)
+			if wantBodyLimit {
+				wantCause = core.ErrExchangeBodyLimit
+			}
+			if response != nil || !errors.Is(gotErr, core.ErrExchangeResponse) || !errors.Is(gotErr, wantCause) {
+				t.Fatalf("conditional aggregate response = (%v, %v), want nil, %v, and %v", response, gotErr, core.ErrExchangeResponse, wantCause)
+			}
+			return
+		}
+		if gotErr != nil || response == nil || response.StatusCode != status {
+			t.Fatalf("conditional streaming response = (%v, %v), want status %d and nil", response, gotErr, status)
+		}
+		gotBody, readErr := io.ReadAll(response.Body)
+		closeErr := response.Body.Close()
+		if readErr != nil || closeErr != nil || !bytes.Equal(gotBody, body) {
+			t.Fatalf("conditional streaming body = (%d bytes, %v, %v), want exact %d bytes and nil/nil", len(gotBody), readErr, closeErr, len(body))
 		}
 	})
 }

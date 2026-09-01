@@ -10,6 +10,7 @@ import (
 	"net/http/httptest"
 	"os"
 	"path/filepath"
+	"sync/atomic"
 	"testing"
 	"time"
 
@@ -27,6 +28,11 @@ type uploadServerObservation struct {
 }
 
 type downloadServerObservation struct {
+	writeErr error
+}
+
+type roundTripServerObservation struct {
+	readBody []byte
 	writeErr error
 }
 
@@ -694,6 +700,116 @@ func TestDownloadTransportLayerTriad(t *testing.T) {
 				destination.String(),
 				"preserved",
 			)
+		}
+	})
+}
+
+func TestStreamRoundTripTransportLayerTriad(t *testing.T) {
+	t.Parallel()
+
+	t.Run("positive request and response streams retain exact independent extents", func(t *testing.T) {
+		t.Parallel()
+
+		requestBody := bytes.Repeat([]byte("request-stream-"), 256)
+		responseBody := bytes.Repeat([]byte("response-stream-"), 384)
+		observed := make(chan roundTripServerObservation, 1)
+		server := httptest.NewServer(http.HandlerFunc(func(writer http.ResponseWriter, request *http.Request) {
+			body := make([]byte, len(requestBody))
+			_, readErr := io.ReadFull(request.Body, body)
+			closeErr := request.Body.Close()
+			if errors.Join(readErr, closeErr) != nil {
+				observed <- roundTripServerObservation{writeErr: errors.Join(readErr, closeErr)}
+				return
+			}
+			writer.Header().Set(core.HTTPHeaderContentType().String(), core.HTTPMediaTypeOctetStream().String())
+			writer.WriteHeader(http.StatusOK)
+			_, writeErr := writer.Write(responseBody)
+			observed <- roundTripServerObservation{readBody: body, writeErr: writeErr}
+		}))
+		defer server.Close()
+
+		var destination bytes.Buffer
+		got, gotErr := exchange.RoundTripStream(exchange.StreamRoundTripCall{
+			Context: context.Background(), Client: mustExchangeClient(t, server.Client()),
+			Request: exchange.StreamRoundTripRequest{
+				Target: mustEndpoint(t, server.URL), Source: bytes.NewReader(requestBody), Destination: &destination,
+				Semantics:          exchange.RequestSemantics{Method: exchange.MethodPost, Replay: exchange.ReplaySingleAttempt},
+				RequestContentType: core.HTTPMediaTypeOctetStream(), ExpectedResponseContentType: core.HTTPMediaTypeOctetStream(),
+				RequestContentLength: mustByteLength(t, uint64(len(requestBody))), ResponseBodyLimit: mustByteCount(t, uint64(len(responseBody))),
+				ExpectedStatus: mustHTTPStatus(t, http.StatusOK),
+			},
+			Policy: singleAttemptStreamPolicy(t),
+		})
+		if gotErr != nil || got.RequestBytes.Uint64() != uint64(len(requestBody)) || got.Metadata.Bytes.Uint64() != uint64(len(responseBody)) || !bytes.Equal(destination.Bytes(), responseBody) {
+			t.Fatalf("RoundTripStream() = response:%+v body:%d error:%v, want %d request bytes, %d exact response bytes, nil", got, destination.Len(), gotErr, len(requestBody), len(responseBody))
+		}
+		select {
+		case serverObservation := <-observed:
+			if serverObservation.writeErr != nil || !bytes.Equal(serverObservation.readBody, requestBody) {
+				t.Fatalf("RoundTripStream() server = body:%d error:%v, want exact %d-byte request and nil", len(serverObservation.readBody), serverObservation.writeErr, len(requestBody))
+			}
+		case <-time.After(testDeadlockBackstop):
+			t.Fatalf("RoundTripStream() server observation absent after %v, want one", testDeadlockBackstop)
+		}
+	})
+
+	t.Run("negative one-over response preserves bounded prefix and typed refusal", func(t *testing.T) {
+		t.Parallel()
+
+		limit := uint64(exchange.TransferBufferBytes)
+		responseBody := bytes.Repeat([]byte{0xa5}, int(limit+1))
+		observed := make(chan error, 1)
+		server := httptest.NewServer(http.HandlerFunc(func(writer http.ResponseWriter, _ *http.Request) {
+			writer.Header().Set(core.HTTPHeaderContentType().String(), core.HTTPMediaTypeOctetStream().String())
+			writer.WriteHeader(http.StatusOK)
+			_, writeErr := writer.Write(responseBody)
+			observed <- writeErr
+		}))
+		defer server.Close()
+
+		var destination bytes.Buffer
+		got, gotErr := exchange.RoundTripStream(exchange.StreamRoundTripCall{
+			Context: context.Background(), Client: mustExchangeClient(t, server.Client()),
+			Request: exchange.StreamRoundTripRequest{
+				Target: mustEndpoint(t, server.URL), Source: bytes.NewReader([]byte("x")), Destination: &destination,
+				Semantics:          exchange.RequestSemantics{Method: exchange.MethodPost, Replay: exchange.ReplaySingleAttempt},
+				RequestContentType: core.HTTPMediaTypeOctetStream(), ExpectedResponseContentType: core.HTTPMediaTypeOctetStream(),
+				RequestContentLength: mustByteLength(t, 1), ResponseBodyLimit: mustByteCount(t, limit), ExpectedStatus: mustHTTPStatus(t, http.StatusOK),
+			}, Policy: singleAttemptStreamPolicy(t),
+		})
+		if !errors.Is(gotErr, core.ErrExchangeBodyLimit) || got.RequestBytes.Uint64() != 1 || got.Metadata.Bytes.Uint64() != limit || uint64(destination.Len()) != limit || !bytes.Equal(destination.Bytes(), responseBody[:limit]) {
+			t.Fatalf("RoundTripStream(one over) = response:%+v body:%d error:%v, want 1 request byte, %d-byte prefix, %v", got, destination.Len(), gotErr, limit, core.ErrExchangeBodyLimit)
+		}
+		select {
+		case writeErr := <-observed:
+			if writeErr != nil {
+				t.Fatalf("RoundTripStream(one over) server write error = %v, want nil", writeErr)
+			}
+		case <-time.After(testDeadlockBackstop):
+			t.Fatalf("RoundTripStream(one over) server observation absent after %v, want one", testDeadlockBackstop)
+		}
+	})
+
+	t.Run("neutral cancelled context performs no request or destination write", func(t *testing.T) {
+		t.Parallel()
+
+		var calls atomic.Uint64
+		server := httptest.NewServer(http.HandlerFunc(func(http.ResponseWriter, *http.Request) { calls.Add(1) }))
+		defer server.Close()
+		ctx, cancel := context.WithCancel(context.Background())
+		cancel()
+		var destination bytes.Buffer
+		got, gotErr := exchange.RoundTripStream(exchange.StreamRoundTripCall{
+			Context: ctx, Client: mustExchangeClient(t, server.Client()),
+			Request: exchange.StreamRoundTripRequest{
+				Target: mustEndpoint(t, server.URL), Source: bytes.NewReader([]byte("x")), Destination: &destination,
+				Semantics:          exchange.RequestSemantics{Method: exchange.MethodPost, Replay: exchange.ReplaySingleAttempt},
+				RequestContentType: core.HTTPMediaTypeOctetStream(), ExpectedResponseContentType: core.HTTPMediaTypeOctetStream(),
+				RequestContentLength: mustByteLength(t, 1), ResponseBodyLimit: mustByteCount(t, 1), ExpectedStatus: mustHTTPStatus(t, http.StatusOK),
+			}, Policy: singleAttemptStreamPolicy(t),
+		})
+		if !errors.Is(gotErr, context.Canceled) || got.Validate() == nil || calls.Load() != 0 || destination.Len() != 0 {
+			t.Fatalf("RoundTripStream(cancelled) = response:%+v calls:%d bytes:%d error:%v, want zero, 0, 0, context cancellation", got, calls.Load(), destination.Len(), gotErr)
 		}
 	})
 }

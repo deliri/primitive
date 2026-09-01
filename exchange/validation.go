@@ -63,7 +63,8 @@ func (r UploadRequest) Validate() error {
 	if r.Source == nil {
 		return requestError(core.ErrExchangeContract)
 	}
-	if r.Semantics.Replay != ReplaySingleAttempt {
+	if r.Semantics.Replay != ReplaySingleAttempt &&
+		r.Semantics.Replay != ReplaySingleAttemptWithIdempotencyKey {
 		return requestError(core.ErrExchangeContract)
 	}
 	if _, err := r.ContentLength.Int64(); err != nil {
@@ -90,6 +91,33 @@ func (r DownloadRequest) Validate() error {
 	}
 	if _, err := r.ResponseBodyLimit.Int64(); err != nil {
 		return requestError(err)
+	}
+	if err := validateOptionalMediaType(r.ExpectedResponseContentType); err != nil {
+		return requestError(err)
+	}
+	return nil
+}
+
+func (r StreamRoundTripRequest) Validate() error {
+	if err := validateRequestMetadata(requestMetadata{
+		target: r.Target, semantics: r.Semantics, headers: r.Headers,
+		capture: r.CaptureHeaders, expected: r.ExpectedStatus,
+	}); err != nil {
+		return err
+	}
+	if r.Source == nil || r.Destination == nil ||
+		(r.Semantics.Replay != ReplaySingleAttempt &&
+			r.Semantics.Replay != ReplaySingleAttemptWithIdempotencyKey) {
+		return requestError(core.ErrExchangeContract)
+	}
+	if _, err := r.RequestContentLength.Int64(); err != nil {
+		return requestError(err)
+	}
+	if _, err := r.ResponseBodyLimit.Int64(); err != nil {
+		return requestError(err)
+	}
+	if err := r.RequestContentType.Validate(); err != nil {
+		return requestError(core.ErrExchangeContentType)
 	}
 	if err := validateOptionalMediaType(r.ExpectedResponseContentType); err != nil {
 		return requestError(err)

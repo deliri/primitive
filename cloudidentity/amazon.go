@@ -3,6 +3,7 @@ package cloudidentity
 import (
 	"context"
 	"encoding/xml"
+	"errors"
 	"net/url"
 	"strconv"
 	"strings"
@@ -57,13 +58,17 @@ const (
 // either is refused rather than silently resolving to whichever copy the
 // decoder read last.
 type amazonResponse struct {
-	XMLName xml.Name       `xml:"GetWebIdentityTokenResponse"`
-	Results []amazonResult `xml:"GetWebIdentityTokenResult"`
+	XMLName    xml.Name                  `xml:"GetWebIdentityTokenResponse"`
+	Results    []amazonResult            `xml:"GetWebIdentityTokenResult"`
+	Metadata   []amazonResponseMetadata  `xml:"ResponseMetadata"`
+	Unexpected []amazonUnexpectedElement `xml:",any"`
 }
 
 type amazonResult struct {
-	XMLName xml.Name             `xml:"GetWebIdentityTokenResult"`
-	Tokens  []amazonTokenElement `xml:"WebIdentityToken"`
+	XMLName     xml.Name                  `xml:"GetWebIdentityTokenResult"`
+	Tokens      []amazonTokenElement      `xml:"WebIdentityToken"`
+	Expirations []amazonExpirationElement `xml:"Expiration"`
+	Unexpected  []amazonUnexpectedElement `xml:",any"`
 }
 
 type amazonUnexpectedElement struct {
@@ -76,6 +81,24 @@ type amazonTokenElement struct {
 	Unexpected []amazonUnexpectedElement `xml:",any"`
 }
 
+type amazonExpirationElement struct {
+	XMLName    xml.Name                  `xml:"Expiration"`
+	Value      string                    `xml:",chardata"`
+	Unexpected []amazonUnexpectedElement `xml:",any"`
+}
+
+type amazonResponseMetadata struct {
+	XMLName    xml.Name                  `xml:"ResponseMetadata"`
+	RequestIDs []amazonRequestIDElement  `xml:"RequestId"`
+	Unexpected []amazonUnexpectedElement `xml:",any"`
+}
+
+type amazonRequestIDElement struct {
+	XMLName    xml.Name                  `xml:"RequestId"`
+	Value      string                    `xml:",chardata"`
+	Unexpected []amazonUnexpectedElement `xml:",any"`
+}
+
 // amazonToken projects the one token a published response carries.
 //
 // The namespace is checked because encoding/xml matches an unqualified element
@@ -83,16 +106,57 @@ type amazonTokenElement struct {
 // API version, or by no AWS API at all, satisfies a request that pinned
 // amazonVersionValue.
 func amazonToken(document amazonResponse) (string, error) {
-	if document.XMLName.Space != amazonResponseNamespace ||
-		len(document.Results) != amazonSingleElement ||
-		document.Results[0].XMLName.Space != amazonResponseNamespace ||
-		len(document.Results[0].Tokens) != amazonSingleElement ||
-		document.Results[0].Tokens[0].XMLName.Space !=
-			amazonResponseNamespace ||
-		len(document.Results[0].Tokens[0].Unexpected) != 0 {
+	if err := validateAmazonResponseEnvelope(document); err != nil {
 		return "", core.ErrCloudIdentityContract
 	}
 	return document.Results[0].Tokens[0].Value, nil
+}
+
+func validateAmazonResponseEnvelope(document amazonResponse) error {
+	if document.XMLName.Space != amazonResponseNamespace || len(document.Unexpected) != 0 ||
+		len(document.Results) != amazonSingleElement || len(document.Metadata) != amazonSingleElement {
+		return core.ErrCloudIdentityContract
+	}
+	return errors.Join(validateAmazonResult(document.Results[0]), validateAmazonResponseMetadata(document.Metadata[0]))
+}
+
+func validateAmazonResult(result amazonResult) error {
+	if result.XMLName.Space != amazonResponseNamespace || len(result.Unexpected) != 0 ||
+		len(result.Tokens) != amazonSingleElement || len(result.Expirations) != amazonSingleElement {
+		return core.ErrCloudIdentityContract
+	}
+	token := result.Tokens[0]
+	if token.XMLName.Space != amazonResponseNamespace || len(token.Unexpected) != 0 {
+		return core.ErrCloudIdentityContract
+	}
+	return validateAmazonExpiration(result.Expirations[0])
+}
+
+func validateAmazonExpiration(expiration amazonExpirationElement) error {
+	if expiration.XMLName.Space != amazonResponseNamespace || len(expiration.Unexpected) != 0 {
+		return core.ErrCloudIdentityContract
+	}
+	parsed, err := time.Parse(time.RFC3339Nano, expiration.Value)
+	if err != nil || parsed.IsZero() {
+		return errors.Join(core.ErrCloudIdentityContract, err)
+	}
+	_, offset := parsed.Zone()
+	if offset != 0 {
+		return core.ErrCloudIdentityContract
+	}
+	return nil
+}
+
+func validateAmazonResponseMetadata(metadata amazonResponseMetadata) error {
+	if metadata.XMLName.Space != amazonResponseNamespace || len(metadata.Unexpected) != 0 ||
+		len(metadata.RequestIDs) != amazonSingleElement {
+		return core.ErrCloudIdentityContract
+	}
+	requestID := metadata.RequestIDs[0]
+	if requestID.XMLName.Space != amazonResponseNamespace || requestID.Value == "" || len(requestID.Unexpected) != 0 {
+		return core.ErrCloudIdentityContract
+	}
+	return nil
 }
 
 // amazonQueryField is the closed set of query fields one signed regional STS

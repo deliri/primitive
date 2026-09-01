@@ -109,6 +109,67 @@ func TestOfficialSDKResponseTransportLayerTriad(t *testing.T) {
 	}
 }
 
+func TestOfficialSDKStreamingSuccessTransportLayerTriad(t *testing.T) {
+	t.Parallel()
+
+	cases := []struct {
+		name         string
+		query        string
+		body         string
+		status       int
+		wantErr      error
+		wantResponse bool
+	}{
+		{name: "positive exact media query leaves successful body streaming beyond aggregate ceiling", query: "alt=media", body: strings.Repeat("m", 257), status: http.StatusOK, wantResponse: true},
+		{name: "negative media query keeps provider failure bounded for SDK error decoding", query: "alt=media", body: strings.Repeat("e", 9), status: http.StatusInternalServerError, wantErr: core.ErrExchangeBodyLimit},
+		{name: "neutral JSON query remains aggregate validated response", query: "alt=json", body: `{}`, status: http.StatusOK, wantResponse: true},
+	}
+	for _, testCase := range cases {
+		t.Run(testCase.name, func(t *testing.T) {
+			t.Parallel()
+
+			server := httptest.NewServer(http.HandlerFunc(func(writer http.ResponseWriter, _ *http.Request) {
+				writer.WriteHeader(testCase.status)
+				_, _ = io.WriteString(writer, testCase.body)
+			}))
+			t.Cleanup(server.Close)
+			limit, limitErr := core.NewByteCount(8)
+			if limitErr != nil {
+				t.Fatalf("core.NewByteCount(8) error = %v, want nil", limitErr)
+			}
+			boundary, boundaryErr := exchange.NewOfficialSDKStreamingSuccessCeiling(
+				exchange.OfficialSDKStreamingSuccessCeilingRequest{
+					Method: exchange.MethodGet, StreamQueryName: "alt", StreamQueryValue: "media",
+					AggregateRepresentation: exchange.OfficialSDKResponseRepresentationJSON,
+					AggregateMaximumBytes:   limit,
+				},
+			)
+			if boundaryErr != nil {
+				t.Fatalf("exchange.NewOfficialSDKStreamingSuccessCeiling() error = %v, want nil", boundaryErr)
+			}
+			client := officialSDKClient(t, boundary)
+			response, gotErr := client.Get(server.URL + "/object?" + testCase.query)
+			if testCase.wantErr != nil {
+				if response != nil {
+					_ = response.Body.Close()
+				}
+				if response != nil || !errors.Is(gotErr, core.ErrExchangeResponse) || !errors.Is(gotErr, testCase.wantErr) {
+					t.Fatalf("streaming-success SDK response = (%v, %v), want nil, %v, and %v", response, gotErr, core.ErrExchangeResponse, testCase.wantErr)
+				}
+				return
+			}
+			if gotErr != nil || (response != nil) != testCase.wantResponse {
+				t.Fatalf("streaming-success SDK response = (%v, %v), want response=%t and nil", response, gotErr, testCase.wantResponse)
+			}
+			gotBody, readErr := io.ReadAll(response.Body)
+			closeErr := response.Body.Close()
+			if readErr != nil || closeErr != nil || string(gotBody) != testCase.body {
+				t.Fatalf("streaming-success SDK body = (%d bytes, %v, %v), want exact %d bytes and nil/nil", len(gotBody), readErr, closeErr, len(testCase.body))
+			}
+		})
+	}
+}
+
 func TestOfficialSDKHTTPClientRefusesRedirectCancellationAndTransportFailure(t *testing.T) {
 	t.Parallel()
 

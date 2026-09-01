@@ -59,6 +59,10 @@ flowchart TD
     runworkspace --> process
     runworkspace --> runnercontrol
     runworkspace --> temporal
+    providerwire[providerwire] --> contextstate
+    providerwire --> core
+    providerwire --> exchange
+    providerwire --> temporal
 
     filelock[filelock] --> core
     filelock --> contextstate

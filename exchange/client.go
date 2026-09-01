@@ -392,7 +392,8 @@ func validatePolicyForSemantics(
 	semantics RequestSemantics,
 	policy OperationPolicy,
 ) error {
-	if semantics.Replay == ReplaySingleAttempt &&
+	if (semantics.Replay == ReplaySingleAttempt ||
+		semantics.Replay == ReplaySingleAttemptWithIdempotencyKey) &&
 		policy.Retry.MaximumAttempts != 1 {
 		return requestError(core.ErrExchangeContract)
 	}

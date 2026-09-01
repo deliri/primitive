@@ -9,6 +9,43 @@ import (
 	"testing"
 )
 
+func TestGoogleReaderConstructorPinsOfficialSDKReceiveCeiling(t *testing.T) {
+	t.Parallel()
+
+	file, err := parser.ParseFile(token.NewFileSet(), "google.go", nil, parser.SkipObjectResolution)
+	if err != nil {
+		t.Fatalf("parser.ParseFile(google.go) error = %v, want nil", err)
+	}
+	var constructor *ast.FuncDecl
+	for _, declaration := range file.Decls {
+		function, ok := declaration.(*ast.FuncDecl)
+		if ok && function.Name.Name == "NewGoogleReader" {
+			constructor = function
+			break
+		}
+	}
+	if constructor == nil {
+		t.Fatal("NewGoogleReader declarations found = 0, want 1")
+	}
+	found := 0
+	ast.Inspect(constructor.Body, func(node ast.Node) bool {
+		call, ok := node.(*ast.CallExpr)
+		if !ok || len(call.Args) != 1 {
+			return true
+		}
+		selector, ok := call.Fun.(*ast.SelectorExpr)
+		argument, argumentOK := call.Args[0].(*ast.Ident)
+		if !ok || !argumentOK || selector.Sel.Name != "MaxCallRecvMsgSize" || argument.Name != "GoogleAccessResponseMaximumBytes" {
+			return true
+		}
+		found++
+		return false
+	})
+	if found != 1 {
+		t.Fatalf("NewGoogleReader official SDK receive ceiling calls = %d, want exactly 1 grpc.MaxCallRecvMsgSize(GoogleAccessResponseMaximumBytes)", found)
+	}
+}
+
 func TestProductionStructDataFlowInventory(t *testing.T) {
 	t.Parallel()
 

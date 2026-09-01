@@ -15,8 +15,10 @@ import (
 const (
 	// OfficialSDKResponseMaximumBytes is the absolute aggregate-response
 	// ceiling an official SDK may ask Exchange to hold in memory.
-	OfficialSDKResponseMaximumBytes  = 1 << 20
-	officialSDKPathAffixMaximumBytes = 16 * 1024
+	OfficialSDKResponseMaximumBytes   = 1 << 20
+	officialSDKPathAffixMaximumBytes  = 16 * 1024
+	officialSDKQueryNameMaximumBytes  = 128
+	officialSDKQueryValueMaximumBytes = 1024
 )
 
 type officialSDKResponseScope uint8
@@ -122,13 +124,16 @@ func (r *OfficialSDKResponseRepresentation) UnmarshalJSON(data []byte) error {
 // OfficialSDKResponseBoundary confines one official-SDK response without
 // replacing the SDK's provider request or decoding contract.
 type OfficialSDKResponseBoundary struct {
-	method         Method
-	prefix         string
-	suffix         string
-	limit          core.ByteCount
-	representation OfficialSDKResponseRepresentation
-	scope          officialSDKResponseScope
-	set            bool
+	method           Method
+	prefix           string
+	suffix           string
+	streamQueryName  string
+	streamQueryValue string
+	limit            core.ByteCount
+	representation   OfficialSDKResponseRepresentation
+	scope            officialSDKResponseScope
+	streamSuccess    bool
+	set              bool
 }
 
 // OfficialSDKResponseBoundaryRequest selects one method and provider path shape.
@@ -197,6 +202,48 @@ func NewOfficialSDKResponseCeiling(request OfficialSDKResponseCeilingRequest) (O
 	return request.boundary(), nil
 }
 
+// OfficialSDKStreamingSuccessCeilingRequest selects one method-wide aggregate
+// response ceiling while allowing successful responses for one exact SDK query
+// coordinate to remain streaming. Non-success responses at that coordinate are
+// still aggregated, bounded, and representation-validated for the SDK's error
+// decoder.
+type OfficialSDKStreamingSuccessCeilingRequest struct {
+	Method                  Method
+	StreamQueryName         string
+	StreamQueryValue        string
+	AggregateRepresentation OfficialSDKResponseRepresentation
+	AggregateMaximumBytes   core.ByteCount
+}
+
+// Validate rejects an invalid streaming-success response policy.
+func (r OfficialSDKStreamingSuccessCeilingRequest) Validate() error {
+	return r.boundary().Validate()
+}
+
+func (r OfficialSDKStreamingSuccessCeilingRequest) boundary() OfficialSDKResponseBoundary {
+	return OfficialSDKResponseBoundary{
+		method:           r.Method,
+		streamQueryName:  r.StreamQueryName,
+		streamQueryValue: r.StreamQueryValue,
+		limit:            r.AggregateMaximumBytes,
+		representation:   r.AggregateRepresentation,
+		scope:            officialSDKResponseScopeAllPaths,
+		streamSuccess:    true,
+		set:              true,
+	}
+}
+
+// NewOfficialSDKStreamingSuccessCeiling confines aggregate SDK responses and
+// leaves one exact successful media-style response as an owned stream.
+func NewOfficialSDKStreamingSuccessCeiling(
+	request OfficialSDKStreamingSuccessCeilingRequest,
+) (OfficialSDKResponseBoundary, error) {
+	if err := request.Validate(); err != nil {
+		return OfficialSDKResponseBoundary{}, err
+	}
+	return request.boundary(), nil
+}
+
 // Validate rejects unset, unbounded, unknown, or malformed response policy.
 func (b OfficialSDKResponseBoundary) Validate() error {
 	if err := b.validateIdentity(); err != nil {
@@ -225,6 +272,13 @@ func validateOfficialSDKResponseLimit(limit core.ByteCount) error {
 }
 
 func (b OfficialSDKResponseBoundary) validateScope() error {
+	if err := b.validatePathScope(); err != nil {
+		return err
+	}
+	return b.validateStreamingScope()
+}
+
+func (b OfficialSDKResponseBoundary) validatePathScope() error {
 	switch b.scope {
 	case officialSDKResponseScopeAllPaths:
 		if b.prefix != "" || b.suffix != "" {
@@ -240,6 +294,21 @@ func (b OfficialSDKResponseBoundary) validateScope() error {
 	return nil
 }
 
+func (b OfficialSDKResponseBoundary) validateStreamingScope() error {
+	if b.streamSuccess {
+		if b.scope != officialSDKResponseScopeAllPaths ||
+			!validOfficialSDKQueryName(b.streamQueryName) ||
+			!validOfficialSDKQueryValue(b.streamQueryValue) {
+			return core.ErrExchangeContract
+		}
+		return nil
+	}
+	if b.streamQueryName != "" || b.streamQueryValue != "" {
+		return core.ErrExchangeContract
+	}
+	return nil
+}
+
 func validOfficialSDKPathPrefix(value string) bool {
 	return len(value) > 0 && len(value) <= officialSDKPathAffixMaximumBytes &&
 		value[0] == '/' && !strings.ContainsAny(value, "?#")
@@ -248,6 +317,38 @@ func validOfficialSDKPathPrefix(value string) bool {
 func validOfficialSDKPathSuffix(value string) bool {
 	return len(value) > 0 && len(value) <= officialSDKPathAffixMaximumBytes &&
 		!strings.ContainsAny(value, "?#")
+}
+
+func validOfficialSDKQueryName(value string) bool {
+	if len(value) == 0 || len(value) > officialSDKQueryNameMaximumBytes {
+		return false
+	}
+	for index := range len(value) {
+		if !validOfficialSDKQueryNameByte(value[index]) {
+			return false
+		}
+	}
+	return true
+}
+
+func validOfficialSDKQueryNameByte(value byte) bool {
+	return value >= 'a' && value <= 'z' ||
+		value >= 'A' && value <= 'Z' ||
+		value >= '0' && value <= '9' ||
+		strings.IndexByte("_-.", value) >= 0
+}
+
+func validOfficialSDKQueryValue(value string) bool {
+	if len(value) == 0 || len(value) > officialSDKQueryValueMaximumBytes {
+		return false
+	}
+	for index := range len(value) {
+		character := value[index]
+		if character < 0x21 || character > 0x7e || character == '&' || character == '=' || character == '#' {
+			return false
+		}
+	}
+	return true
 }
 
 func (b OfficialSDKResponseBoundary) matches(request *http.Request) bool {
@@ -359,6 +460,9 @@ func (t officialSDKResponseTransport) projectResponse(
 	if !t.boundary.matches(request) || response.Body == nil {
 		return response, nil
 	}
+	if t.boundary.streamsSuccessfulResponse(request, response) {
+		return response, nil
+	}
 	payload, readErr := readOfficialSDKResponse(officialSDKResponseReadRequest{
 		request: request, response: response,
 		limit: t.boundary.limit, representation: t.boundary.representation,
@@ -372,6 +476,18 @@ func (t officialSDKResponseTransport) projectResponse(
 	}
 	response.ContentLength = int64(len(payload))
 	return response, nil
+}
+
+func (b OfficialSDKResponseBoundary) streamsSuccessfulResponse(
+	request *http.Request,
+	response *http.Response,
+) bool {
+	if !b.streamSuccess || request == nil || request.URL == nil || response == nil ||
+		response.StatusCode < http.StatusOK || response.StatusCode >= http.StatusMultipleChoices {
+		return false
+	}
+	values, ok := request.URL.Query()[b.streamQueryName]
+	return ok && len(values) == 1 && values[0] == b.streamQueryValue
 }
 
 type officialSDKResponseReadRequest struct {
@@ -432,6 +548,7 @@ var (
 	_ core.Validatable            = OfficialSDKResponseBoundary{}
 	_ core.Validatable            = OfficialSDKResponseBoundaryRequest{}
 	_ core.Validatable            = OfficialSDKResponseCeilingRequest{}
+	_ core.Validatable            = OfficialSDKStreamingSuccessCeilingRequest{}
 	_ core.Validatable            = OfficialSDKResponseTransportRequest{}
 	_ core.Validatable            = officialSDKResponseReadRequest{}
 	_ core.Validatable            = officialSDKResponseScopeUnknown

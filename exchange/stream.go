@@ -66,6 +66,14 @@ type DownloadCall struct {
 	Policy  StreamPolicy
 }
 
+// StreamRoundTripCall supplies one complete streamed request and response.
+type StreamRoundTripCall struct {
+	Context context.Context
+	Client  Client
+	Request StreamRoundTripRequest
+	Policy  StreamPolicy
+}
+
 // Upload sends one caller-owned stream exactly once. Exchange does not retain,
 // rewind, or replay the source.
 func Upload(call UploadCall) (StreamResponse, error) {
@@ -195,6 +203,118 @@ func Download(call DownloadCall) (StreamResponse, error) {
 	)
 }
 
+// RoundTripStream sends one caller-owned request stream and copies the
+// successful response into one caller-owned destination. It is structurally
+// single-attempt because Exchange cannot rewind either custody capability.
+func RoundTripStream(call StreamRoundTripCall) (StreamRoundTripResponse, error) {
+	var zero StreamRoundTripResponse
+	if err := call.Validate(); err != nil {
+		return zero, err
+	}
+	target, err := validatedTarget(call.Request.Target)
+	if err != nil {
+		return zero, err
+	}
+	operationContext, cancel, err := temporal.WithTimeout(temporal.TimeoutRequest{
+		Parent: call.Context, Duration: call.Policy.OperationTimeout,
+	})
+	if err != nil {
+		return zero, requestError(err)
+	}
+	defer cancel()
+	attemptContext, attemptCancel, err := temporal.WithTimeout(temporal.TimeoutRequest{
+		Parent: operationContext, Duration: call.Policy.AttemptTimeout,
+	})
+	if err != nil {
+		return zero, requestError(err)
+	}
+	defer attemptCancel()
+	request, err := newStreamRoundTripHTTPRequest(attemptContext, target, call.Request)
+	if err != nil {
+		return zero, err
+	}
+	client := clientForPolicy(call.Client.http, call.Policy.Redirect, target)
+	httpResponse, err := client.Do(request)
+	if err != nil {
+		return zero, errors.Join(classifyStreamTransport(streamTransportFailure{
+			attemptContext: attemptContext, operationContext: operationContext, cause: err,
+		}), closeHTTPResponse(httpResponse))
+	}
+	return finishStreamRoundTrip(attemptContext, httpResponse, call.Request, call.Policy.ErrorBodyLimit)
+}
+
+func newStreamRoundTripHTTPRequest(
+	ctx context.Context,
+	target core.HTTPEndpoint,
+	request StreamRoundTripRequest,
+) (*http.Request, error) {
+	return newUploadHTTPRequest(ctx, uploadHTTPRequest{
+		target: target,
+		request: UploadRequest{
+			Target: request.Target, Source: request.Source,
+			Semantics: request.Semantics, ContentType: request.RequestContentType,
+			Headers: request.Headers, CaptureHeaders: request.CaptureHeaders,
+			ContentLength: request.RequestContentLength, ExpectedStatus: request.ExpectedStatus,
+		},
+	})
+}
+
+func finishStreamRoundTrip(
+	ctx context.Context,
+	response *http.Response,
+	request StreamRoundTripRequest,
+	errorLimit core.ByteCount,
+) (StreamRoundTripResponse, error) {
+	var zero StreamRoundTripResponse
+	if response == nil || response.Body == nil {
+		return zero, responseError(core.ErrExchangeContract)
+	}
+	status, headers, err := streamRoundTripMetadata(response, request.CaptureHeaders)
+	result := StreamRoundTripResponse{
+		RequestBytes: request.RequestContentLength,
+		Metadata:     ResponseMetadata{Status: status, Headers: headers, Attempts: 1},
+	}
+	if err != nil {
+		return zero, errors.Join(err, closeHTTPResponse(response))
+	}
+	if status != request.ExpectedStatus {
+		drainErr := drainAndClose(streamDrainRequest{context: ctx, body: response.Body, limit: errorLimit})
+		return result, errors.Join(StatusError{status: status, expected: request.ExpectedStatus}, drainErr)
+	}
+	download := downloadResponseRequest{
+		context: ctx, response: response,
+		request: DownloadRequest{
+			Destination:                 request.Destination,
+			ExpectedResponseContentType: request.ExpectedResponseContentType,
+			ResponseBodyLimit:           request.ResponseBodyLimit,
+		},
+	}
+	if err := validateDownloadResponse(download); err != nil {
+		return result, errors.Join(err, closeResponseBody(response.Body))
+	}
+	streamResult, err := transferDownloadResponse(download, StreamResponse{Metadata: result.Metadata})
+	result.Metadata = streamResult.Metadata
+	if err != nil {
+		return result, err
+	}
+	return result, result.Validate()
+}
+
+func streamRoundTripMetadata(
+	response *http.Response,
+	capture HeaderSelection,
+) (core.HTTPStatusCode, CapturedHeaders, error) {
+	var status core.HTTPStatusCode
+	if err := status.AdmitInt(response.StatusCode); err != nil {
+		return core.HTTPStatusCode{}, CapturedHeaders{}, responseError(err)
+	}
+	headers, err := captureHeaders(response.Header, capture)
+	if err != nil {
+		return core.HTTPStatusCode{}, CapturedHeaders{}, responseError(err)
+	}
+	return status, headers, nil
+}
+
 // Validate checks the complete streaming upload operation.
 func (call UploadCall) Validate() error {
 	if err := validateCallIngress(call.Context, call.Client); err != nil {
@@ -208,6 +328,17 @@ func (call UploadCall) Validate() error {
 
 // Validate checks the complete streaming download operation.
 func (call DownloadCall) Validate() error {
+	if err := validateCallIngress(call.Context, call.Client); err != nil {
+		return err
+	}
+	if err := call.Request.Validate(); err != nil {
+		return err
+	}
+	return call.Policy.Validate()
+}
+
+// Validate checks the complete streamed request-response operation.
+func (call StreamRoundTripCall) Validate() error {
 	if err := validateCallIngress(call.Context, call.Client); err != nil {
 		return err
 	}
@@ -609,4 +740,5 @@ func classifyStreamTransport(failure streamTransportFailure) error {
 var (
 	_ core.Validatable = UploadCall{}
 	_ core.Validatable = DownloadCall{}
+	_ core.Validatable = StreamRoundTripCall{}
 )

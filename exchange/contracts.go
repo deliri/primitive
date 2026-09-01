@@ -40,6 +40,9 @@ const (
 	ReplayUnknown ReplayMode = iota
 	// ReplaySingleAttempt forbids automatic replay.
 	ReplaySingleAttempt
+	// ReplaySingleAttemptWithIdempotencyKey carries one provider replay
+	// identity while still forbidding automatic replay of caller-owned streams.
+	ReplaySingleAttemptWithIdempotencyKey
 	// ReplaySafe admits automatic replay for safe methods.
 	ReplaySafe
 	// ReplayIdempotent admits automatic replay for idempotent methods.
@@ -64,6 +67,12 @@ func replayFacts() [replayLimit]replayFact {
 				MethodPost: true, MethodPut: true,
 				MethodPatch: true, MethodDelete: true,
 				MethodOptions: true,
+			},
+		},
+		ReplaySingleAttemptWithIdempotencyKey: {
+			diagnostic: "single attempt with idempotency key",
+			methods: [methodLimit]bool{
+				MethodPost: true, MethodPatch: true,
 			},
 		},
 		ReplaySafe: {
@@ -376,7 +385,9 @@ func (s RequestSemantics) Validate() error {
 		return err
 	}
 	hasKey := !s.IdempotencyKey.IsZero()
-	if (s.Replay == ReplayIdempotencyKey) != hasKey {
+	requiresKey := s.Replay == ReplayIdempotencyKey ||
+		s.Replay == ReplaySingleAttemptWithIdempotencyKey
+	if requiresKey != hasKey {
 		return core.ErrExchangeContract
 	}
 	if hasKey {
@@ -641,6 +652,23 @@ type DownloadRequest struct {
 	ExpectedResponseContentType core.HTTPMediaType
 	Headers                     Headers
 	CaptureHeaders              HeaderSelection
+	ResponseBodyLimit           core.ByteCount
+	ExpectedStatus              core.HTTPStatusCode
+}
+
+// StreamRoundTripRequest supplies one caller-owned request stream and one
+// caller-owned response destination. The request is sent exactly once and the
+// response is copied through Exchange's fixed transfer buffer.
+type StreamRoundTripRequest struct {
+	Target                      Target
+	Source                      io.Reader
+	Destination                 io.Writer
+	Semantics                   RequestSemantics
+	RequestContentType          core.HTTPMediaType
+	ExpectedResponseContentType core.HTTPMediaType
+	Headers                     Headers
+	CaptureHeaders              HeaderSelection
+	RequestContentLength        core.ByteLength
 	ResponseBodyLimit           core.ByteCount
 	ExpectedStatus              core.HTTPStatusCode
 }

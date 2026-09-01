@@ -377,6 +377,7 @@ func bucketTestClient(t testing.TB, handler http.Handler) *GCSClient {
 	client, err := storage.NewClient(
 		context.Background(), option.WithEndpoint(server.URL+"/storage/v1/"),
 		option.WithoutAuthentication(), option.WithHTTPClient(boundedGCSTestHTTPClient(t, server.Client())),
+		storage.WithJSONReads(),
 	)
 	if err != nil {
 		t.Fatalf("storage.NewClient(test provider) error = %v, want nil", err)
@@ -392,43 +393,22 @@ func bucketTestClient(t testing.TB, handler http.Handler) *GCSClient {
 func boundedGCSTestHTTPClient(t testing.TB, client *http.Client) *http.Client {
 	t.Helper()
 
-	limit, err := core.NewByteCount(GCSProviderResponseMaximumBytes)
-	if err != nil {
-		t.Fatalf("core.NewByteCount(GCS IAM response maximum) error = %v, want nil", err)
-	}
-	getBoundary, err := exchange.NewOfficialSDKResponseBoundary(exchange.OfficialSDKResponseBoundaryRequest{
-		Method: exchange.MethodGet, PathPrefix: gcsJSONBucketPathPrefix,
-		PathSuffix:     gcsIAMPolicyPathSuffix,
-		Representation: exchange.OfficialSDKResponseRepresentationJSON,
-		MaximumBytes:   limit,
-	})
-	if err != nil {
-		t.Fatalf("exchange.NewOfficialSDKResponseBoundary() error = %v, want nil", err)
-	}
 	base := client.Transport
 	if base == nil {
 		base = http.DefaultTransport
 	}
-	transport, err := exchange.NewOfficialSDKResponseTransport(exchange.OfficialSDKResponseTransportRequest{
-		Base: base, Boundary: getBoundary,
-	})
+	boundaries, err := gcsProviderResponseBoundaries()
 	if err != nil {
-		t.Fatalf("exchange.NewOfficialSDKResponseTransport(GET) error = %v, want nil", err)
+		t.Fatalf("gcsProviderResponseBoundaries() error = %v, want nil", err)
 	}
-	putBoundary, err := exchange.NewOfficialSDKResponseBoundary(exchange.OfficialSDKResponseBoundaryRequest{
-		Method: exchange.MethodPut, PathPrefix: gcsJSONBucketPathPrefix,
-		PathSuffix:     gcsIAMPolicyPathSuffix,
-		Representation: exchange.OfficialSDKResponseRepresentationJSON,
-		MaximumBytes:   limit,
-	})
-	if err != nil {
-		t.Fatalf("exchange.NewOfficialSDKResponseBoundary(PUT) error = %v, want nil", err)
-	}
-	transport, err = exchange.NewOfficialSDKResponseTransport(exchange.OfficialSDKResponseTransportRequest{
-		Base: transport, Boundary: putBoundary,
-	})
-	if err != nil {
-		t.Fatalf("exchange.NewOfficialSDKResponseTransport(PUT) error = %v, want nil", err)
+	transport := base
+	for _, boundary := range boundaries {
+		transport, err = exchange.NewOfficialSDKResponseTransport(exchange.OfficialSDKResponseTransportRequest{
+			Base: transport, Boundary: boundary,
+		})
+		if err != nil {
+			t.Fatalf("exchange.NewOfficialSDKResponseTransport() error = %v, want nil", err)
+		}
 	}
 	bounded, err := exchange.NewOfficialSDKHTTPClient(transport)
 	if err != nil {

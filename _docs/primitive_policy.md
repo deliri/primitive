@@ -54,3 +54,4 @@ transitions. This projection is ratcheted against the compiler-owned catalog.
 | 44 | `machineprobe` | Bounded execution and typed evidence capture for one admitted machine-observation script | `projectstandards`, `core`, `filestore`, `process`, `temporal` | `id` |
 | 45 | `runnercontrol` | Typed domain-blind runner admission, execution, evidence, completion, and delivery contracts | `projectstandards`, `attest`, `core`, `exchange`, `id`, `objectstore`, `process`, `temporal` | none |
 | 46 | `runworkspace` | Owned per-run writable workspace, source acquisition, evidence retention, and cleanup effects | `projectstandards`, `attest`, `core`, `filestore`, `objectstore`, `process`, `runnercontrol`, `temporal` | `exchange`, `id` |
+| 47 | `providerwire` | Provider-authenticated domain-blind streamed HTTP plugs for Stripe, Twilio, Plunk, and PayPal | `contextstate`, `core`, `exchange`, `temporal` | none |

@@ -393,9 +393,6 @@ const (
 	// refused for a reason other than contention. Contention is a typed outcome
 	// rather than an error, so this is how a caller tells a filesystem that
 	// cannot lock at all apart from another process that is simply running.
-	// Contract violations in that package use ErrPrimitiveContract, because the
-	// identity space is one slot from its compiler-witnessed ceiling and this is
-	// the distinction a caller acts on at run time.
 	ErrFileLockUnavailable
 
 	// ErrIDContract identifies a time-ordered identifier contract violation.
@@ -406,6 +403,15 @@ const (
 	ErrSecretStorePayload
 	// ErrSecretStoreAccess identifies a provider secret-access failure.
 	ErrSecretStoreAccess
+	// ErrProviderWireContract identifies an invalid third-party protocol plug.
+	ErrProviderWireContract
+	// ErrProviderWireAuthentication identifies failed provider authentication.
+	ErrProviderWireAuthentication
+	// ErrProviderWireVerification identifies a rejected inbound provider proof.
+	ErrProviderWireVerification
+	// ErrProviderWireBinding identifies provider facts attached to the wrong
+	// authority, account, route, version, or replay identity.
+	ErrProviderWireBinding
 	errorIdentityLimit
 )
 
@@ -577,6 +583,10 @@ func errorIdentityDiagnostics() [errorIdentityLimit]errorIdentityDiagnostic {
 		{identity: ErrSecretStoreContract, text: "secret store contract violation"},
 		{identity: ErrSecretStorePayload, text: "secret store payload invalid"},
 		{identity: ErrSecretStoreAccess, text: "secret store access failed"},
+		{identity: ErrProviderWireContract, text: "provider wire contract violation"},
+		{identity: ErrProviderWireAuthentication, text: "provider wire authentication failed"},
+		{identity: ErrProviderWireVerification, text: "provider wire verification failed"},
+		{identity: ErrProviderWireBinding, text: "provider wire binding failed"},
 	}
 }
 
@@ -694,7 +704,8 @@ func errorIdentityParents(identity ErrorIdentity) errorIdentityParentSet {
 		ErrCloudIdentityContract, ErrUpgradeContract,
 		ErrLifecycleIdentityContract, ErrReceiptContract, ErrChitContract,
 		ErrRetrievalContract, ErrPaymentContract, ErrControlWireContract,
-		ErrControlPlaneContract, ErrIDContract, ErrSecretStoreContract) {
+		ErrControlPlaneContract, ErrIDContract, ErrSecretStoreContract,
+		ErrProviderWireContract) {
 		return oneErrorIdentityParent(ErrPrimitiveContract)
 	}
 	if errorIdentityIn(identity, ErrControlWireRevision, ErrControlWireNonce, ErrControlWireToken,
@@ -756,6 +767,10 @@ func errorIdentityParentsFilestoreThroughUpgrade(identity ErrorIdentity) errorId
 }
 
 func errorIdentityParentsSecretStoreThroughPayment(identity ErrorIdentity) errorIdentityParentSet {
+	if errorIdentityIn(identity, ErrProviderWireAuthentication, ErrProviderWireVerification,
+		ErrProviderWireBinding) {
+		return oneErrorIdentityParent(ErrProviderWireContract)
+	}
 	if errorIdentityIn(identity, ErrSecretStorePayload, ErrSecretStoreAccess) {
 		return oneErrorIdentityParent(ErrSecretStoreContract)
 	}

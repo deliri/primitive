@@ -68,8 +68,25 @@ func (r StreamResponse) Validate() error {
 	return r.Metadata.Validate()
 }
 
+// StreamRoundTripResponse reports both sides of one completed streamed HTTP
+// exchange. Metadata.Bytes is the received response extent.
+type StreamRoundTripResponse struct {
+	Metadata     ResponseMetadata
+	RequestBytes core.ByteLength
+}
+
+// Validate checks the completed request and response observations.
+func (r StreamRoundTripResponse) Validate() error {
+	if err := r.Metadata.Validate(); err != nil {
+		return err
+	}
+	_, err := r.RequestBytes.Int64()
+	return err
+}
+
 var (
 	_ core.Validatable = ResponseMetadata{}
 	_ core.Validatable = BoundedResponse{}
 	_ core.Validatable = StreamResponse{}
+	_ core.Validatable = StreamRoundTripResponse{}
 )

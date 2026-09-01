@@ -12,9 +12,9 @@ const (
 	// PrimitivePackagePathPrefix prefixes every Primitive package import path.
 	PrimitivePackagePathPrefix = PrimitiveModulePath + "/"
 	// PrimitivePackageCount is the number of packages in the complete catalog.
-	PrimitivePackageCount = 46
+	PrimitivePackageCount = 47
 	// PrimitiveDirectImportCount is the number of admitted direct import edges.
-	PrimitiveDirectImportCount = 179
+	PrimitiveDirectImportCount = 183
 	// PrimitiveDirectTestImportCount is the number of admitted test-only edges.
 	PrimitiveDirectTestImportCount = 38
 	// PrimitiveMaximumDirectImports caps direct sibling imports per package.
@@ -121,6 +121,8 @@ const (
 	PackageRunnerControl
 	// PackageRunWorkspace identifies owned per-run workspace and evidence effects.
 	PackageRunWorkspace
+	// PackageProviderWire identifies provider-authenticated domain-blind HTTP plugs.
+	PackageProviderWire
 	packageIdentityLimit
 )
 
@@ -230,6 +232,7 @@ func PrimitiveArchitecture() ArchitectureCatalog {
 			{Identity: PackageMachineProbe, Kind: PackageKindProduction},
 			{Identity: PackageRunnerControl, Kind: PackageKindProduction},
 			{Identity: PackageRunWorkspace, Kind: PackageKindProduction},
+			{Identity: PackageProviderWire, Kind: PackageKindProduction},
 		},
 		imports: [PrimitiveDirectImportCount]DirectImportContract{
 			{Importer: PackageAttest, Imported: PackageCore},
@@ -422,6 +425,10 @@ func PrimitiveArchitecture() ArchitectureCatalog {
 			{Importer: PackageRunWorkspace, Imported: PackageTemporal},
 			{Importer: PackageSecretStore, Imported: PackageCore},
 			{Importer: PackageSecretStore, Imported: PackageContextState},
+			{Importer: PackageProviderWire, Imported: PackageContextState},
+			{Importer: PackageProviderWire, Imported: PackageCore},
+			{Importer: PackageProviderWire, Imported: PackageExchange},
+			{Importer: PackageProviderWire, Imported: PackageTemporal},
 		},
 		testImports: [PrimitiveDirectTestImportCount]DirectTestImportContract{
 			{Importer: PackageGate, Imported: PackageAttest},
@@ -742,6 +749,7 @@ func packagePurposeTexts() [packageIdentityLimit]string {
 		PackageRunnerControl:    "Typed domain-blind runner admission, execution, evidence, completion, and delivery contracts",
 		PackageRunWorkspace:     "Owned per-run writable workspace, source acquisition, evidence retention, and cleanup effects",
 		PackageSecretStore:      "Bounded exact-version secret access through official provider SDKs",
+		PackageProviderWire:     "Provider-authenticated domain-blind streamed HTTP plugs for Stripe, Twilio, Plunk, and PayPal",
 	}
 }
 
@@ -826,6 +834,7 @@ func packageIdentityTexts() [packageIdentityLimit]string {
 		"machineprobe",
 		"runnercontrol",
 		"runworkspace",
+		"providerwire",
 	}
 }
 
