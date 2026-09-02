@@ -49,6 +49,7 @@ type Capability struct {
 	Purpose Purpose
 	Package core.PackageIdentity
 	Kind    core.PackageKind
+	Role    core.PackageRole
 }
 
 // Description returns the bounded human guidance for this capability.
@@ -111,6 +112,7 @@ func (c Catalog) Validate() error {
 		return errors.Join(core.ErrCapabilitiesContract, err)
 	}
 	count := 0
+	var roleCounts [core.PrimitivePackageCount]uint16
 	for contract := range c.architecture.Packages() {
 		capability, err := capabilityFromContract(contract)
 		if err != nil {
@@ -119,10 +121,16 @@ func (c Catalog) Validate() error {
 		if err := capability.Validate(); err != nil {
 			return err
 		}
+		roleCounts[int(contract.Role-core.PackageRoleValueContract)]++
 		count++
 	}
 	if count != core.PrimitivePackageCount {
 		return contractError("capability count contradicts the Primitive architecture")
+	}
+	for _, roleCount := range roleCounts[:int(core.PackageRoleOrchestration-core.PackageRoleValueContract)+1] {
+		if roleCount == 0 {
+			return contractError("Primitive architecture omits an admitted package role")
+		}
 	}
 	return validateEffectOwners(c)
 }
@@ -164,7 +172,7 @@ func capabilityFromContract(contract core.PackageContract) (Capability, error) {
 	if err != nil {
 		return Capability{}, err
 	}
-	capability := Capability{Package: contract.Identity, Kind: contract.Kind, Purpose: admittedPurpose}
+	capability := Capability{Package: contract.Identity, Kind: contract.Kind, Role: contract.Role, Purpose: admittedPurpose}
 	return capability, nil
 }
 
@@ -175,7 +183,7 @@ func validateEffectOwners(c Catalog) error {
 			return err
 		}
 		contract, found := c.architecture.Lookup(owner)
-		if !found || contract.Kind != core.PackageKindProduction {
+		if !found || contract.Kind != core.PackageKindProduction || contract.Role != core.PackageRoleEffectCapability {
 			return contractError("real-world effect lacks one production capability owner")
 		}
 	}

@@ -207,7 +207,11 @@ func NewSourceAcquisitionServer(contract exchange.JSONSocketContract, repository
 }
 
 func (s SourceAcquisitionServer) Serve(writer http.ResponseWriter, request *http.Request) error {
-	received, err := exchange.ReceiveSocketJSON[SourceAcquisitionRequest, *SourceAcquisitionRequest](s.socket, request)
+	call, err := exchange.NewSocketServerCall(writer, request)
+	if err != nil {
+		return err
+	}
+	received, err := exchange.ReceiveSocketJSON[SourceAcquisitionRequest, *SourceAcquisitionRequest](s.socket, call)
 	if err != nil {
 		return err
 	}
@@ -221,7 +225,7 @@ func (s SourceAcquisitionServer) Serve(writer http.ResponseWriter, request *http
 	if err := projection.Validate(); err != nil || projection.Fence != received.Body.Fence || projection.Grant.Identity != received.Body.Grant || projection.Grant.Source != received.Body.Source {
 		return errors.Join(core.ErrPrimitiveContract, err)
 	}
-	return exchange.WriteSocketJSON(s.socket, writer, projection)
+	return exchange.WriteSocketJSON(s.socket, call, projection)
 }
 
 func SourceAcquisitionSocketContract(path exchange.SocketRoutePath) (exchange.JSONSocketContract, error) {

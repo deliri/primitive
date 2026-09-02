@@ -12,13 +12,13 @@ import (
 	"testing"
 )
 
-const coreMethodContractMaximum = 192
+const coreMethodContractMaximum = 256
 
 type coreMethodContractName string
 
 type coreMethodContractInventory struct {
 	values [coreMethodContractMaximum]coreMethodContractName
-	count  uint8
+	count  uint16
 }
 
 func TestCoreJSONMarshalersHaveCompleteValidationWitnesses(t *testing.T) {

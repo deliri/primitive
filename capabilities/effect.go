@@ -27,8 +27,12 @@ const (
 	EffectSecret
 	// EffectHost covers host resource and platform observation.
 	EffectHost
+	// EffectLocking covers operating-system and filesystem-backed locking.
+	EffectLocking
 	// EffectSignal covers operating-system signal observation and shutdown.
 	EffectSignal
+	// EffectObjectStorage covers remote object observation and mutation.
+	EffectObjectStorage
 	effectLimit
 )
 
@@ -56,14 +60,16 @@ func (e Effect) String() string {
 
 func effectNames() [effectLimit]string {
 	return [...]string{
-		EffectFilesystem: "filesystem",
-		EffectProcess:    "process",
-		EffectTransport:  "transport",
-		EffectTime:       "time",
-		EffectEntropy:    "entropy",
-		EffectSecret:     "secret",
-		EffectHost:       "host",
-		EffectSignal:     "signal",
+		EffectFilesystem:    "filesystem",
+		EffectProcess:       "process",
+		EffectTransport:     "transport",
+		EffectTime:          "time",
+		EffectEntropy:       "entropy",
+		EffectSecret:        "secret",
+		EffectHost:          "host",
+		EffectLocking:       "locking",
+		EffectSignal:        "signal",
+		EffectObjectStorage: "object_storage",
 	}
 }
 
@@ -86,8 +92,12 @@ func effectOwner(effect Effect) (core.PackageIdentity, error) {
 		return core.PackageSecretStore, nil
 	case EffectHost:
 		return core.PackageHostFacts, nil
+	case EffectLocking:
+		return core.PackageFileLock, nil
 	case EffectSignal:
 		return core.PackageShutdown, nil
+	case EffectObjectStorage:
+		return core.PackageObjectStore, nil
 	default:
 		return core.PackageUnknown, errors.Join(
 			core.ErrCapabilitiesContract,

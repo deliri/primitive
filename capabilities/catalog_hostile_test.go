@@ -13,7 +13,7 @@ func TestClosedEnumDomainsRejectEveryUnknownAndFutureValue(t *testing.T) {
 
 	for raw := 0; raw <= 255; raw++ {
 		effect := Effect(raw)
-		wantEffectValid := effect >= EffectFilesystem && effect <= EffectSignal
+		wantEffectValid := effect >= EffectFilesystem && effect <= EffectObjectStorage
 		if effect.IsValid() != wantEffectValid {
 			t.Errorf("Effect(%d).IsValid() = %t, want %t", raw, effect.IsValid(), wantEffectValid)
 		}
@@ -168,7 +168,9 @@ func TestResolveExhaustsTheRealWorldEffectDomain(t *testing.T) {
 		{name: "entropy resolves only to Keygen", effect: EffectEntropy, wantOwner: core.PackageKeygen},
 		{name: "secret access resolves only to Secretstore", effect: EffectSecret, wantOwner: core.PackageSecretStore},
 		{name: "host observation resolves only to Hostfacts", effect: EffectHost, wantOwner: core.PackageHostFacts},
+		{name: "locking resolves only to Filelock", effect: EffectLocking, wantOwner: core.PackageFileLock},
 		{name: "signals resolve only to Shutdown", effect: EffectSignal, wantOwner: core.PackageShutdown},
+		{name: "object storage resolves only to Objectstore", effect: EffectObjectStorage, wantOwner: core.PackageObjectStore},
 	}
 	for _, testCase := range tests {
 		t.Run(testCase.name, func(t *testing.T) {

@@ -45,7 +45,7 @@ func fixtureCatalog(t testing.TB) Catalog {
 		Proof:      fixtureAssurance(AssuranceStageProof, AssuranceAuthorityIndependent, surfaceID, reference, fixtureText(t, "Independent observations remain distinct from product claims.")),
 	}
 	knowledge := PackageKnowledge{
-		Path: path, AuthorTitle: fixtureName(t, "About"), AuthorProblem: fixtureText(t, "Engineering knowledge otherwise fragments across products."),
+		Path: path, AuthorRole: core.PackageRoleDomainAgreement, AuthorTitle: fixtureName(t, "About"), AuthorProblem: fixtureText(t, "Engineering knowledge otherwise fragments across products."),
 		AuthorPurpose: fixtureText(t, "Provide one reusable engineering knowledge contract."), AuthorAudience: fixtureText(t, "Go products and engineering tools."),
 		AuthorValue: fixtureText(t, "Exact context and evidence can be inspected over time."), AuthorSteward: fixtureName(t, "Primitive"),
 		AuthorSubstrate: fixtureName(t, "Go standard library"), AuthorRuntime: fixtureName(t, "Go 1.27"), Changed: changed,

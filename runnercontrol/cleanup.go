@@ -313,7 +313,11 @@ func (s CleanupServer) Serve(writer http.ResponseWriter, request *http.Request) 
 	if s.repository == nil {
 		return core.ErrPrimitiveContract
 	}
-	received, err := exchange.ReceiveReplayBoundSocketJSON[CleanupDocument, *CleanupDocument](s.socket, request)
+	call, err := exchange.NewSocketServerCall(writer, request)
+	if err != nil {
+		return err
+	}
+	received, err := exchange.ReceiveReplayBoundSocketJSON[CleanupDocument, *CleanupDocument](s.socket, call)
 	if err != nil {
 		return err
 	}
@@ -333,7 +337,7 @@ func (s CleanupServer) Serve(writer http.ResponseWriter, request *http.Request) 
 		return err
 	}
 	receipt := CleanupReceipt{SchemaVersion: SchemaVersion, Fence: record.Document.Payload.Fence, Digest: record.Digest, Bytes: record.Bytes}
-	return exchange.WriteSocketJSON(s.socket, writer, receipt)
+	return exchange.WriteSocketJSON(s.socket, call, receipt)
 }
 func CleanupSocketContract(path exchange.SocketRoutePath) (exchange.JSONSocketContract, error) {
 	requestLimit, requestErr := core.NewByteCount(CleanupDocumentMaximumBytes)

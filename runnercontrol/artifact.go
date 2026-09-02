@@ -413,7 +413,11 @@ func (s ArtifactManifestServer) Serve(writer http.ResponseWriter, request *http.
 	if s.repository == nil {
 		return core.ErrPrimitiveContract
 	}
-	received, err := exchange.ReceiveReplayBoundSocketJSON[ArtifactManifest, *ArtifactManifest](s.socket, request)
+	call, err := exchange.NewSocketServerCall(writer, request)
+	if err != nil {
+		return err
+	}
+	received, err := exchange.ReceiveReplayBoundSocketJSON[ArtifactManifest, *ArtifactManifest](s.socket, call)
 	if err != nil {
 		return err
 	}
@@ -427,7 +431,7 @@ func (s ArtifactManifestServer) Serve(writer http.ResponseWriter, request *http.
 	if err := s.repository.StoreArtifactManifest(request.Context(), record); err != nil {
 		return err
 	}
-	return exchange.WriteSocketJSON(s.socket, writer, ArtifactManifestReceipt{SchemaVersion: SchemaVersion, Run: record.Manifest.Run, Digest: record.Digest, Bytes: record.Bytes})
+	return exchange.WriteSocketJSON(s.socket, call, ArtifactManifestReceipt{SchemaVersion: SchemaVersion, Run: record.Manifest.Run, Digest: record.Digest, Bytes: record.Bytes})
 }
 
 func ArtifactManifestSocketContract(path exchange.SocketRoutePath) (exchange.JSONSocketContract, error) {
@@ -507,7 +511,11 @@ func (s ArtifactServer) Serve(writer http.ResponseWriter, request *http.Request)
 	if s.repository == nil {
 		return core.ErrPrimitiveContract
 	}
-	received, err := exchange.ReceiveReplayBoundSocketJSON[ArtifactChunk, *ArtifactChunk](s.socket, request)
+	call, err := exchange.NewSocketServerCall(writer, request)
+	if err != nil {
+		return err
+	}
+	received, err := exchange.ReceiveReplayBoundSocketJSON[ArtifactChunk, *ArtifactChunk](s.socket, call)
 	if err != nil {
 		return err
 	}
@@ -521,7 +529,7 @@ func (s ArtifactServer) Serve(writer http.ResponseWriter, request *http.Request)
 	if receipt.Run != received.Body.Run || receipt.Manifest != received.Body.ManifestDigest || receipt.Artifact != received.Body.Entry.Digest || receipt.Committed.Uint64() != received.Body.Offset.Uint64()+uint64(len(received.Body.Data)) || receipt.Complete != received.Body.Final {
 		return core.ErrPrimitiveContract
 	}
-	return exchange.WriteSocketJSON(s.socket, writer, receipt)
+	return exchange.WriteSocketJSON(s.socket, call, receipt)
 }
 func ArtifactSocketContract(path exchange.SocketRoutePath) (exchange.JSONSocketContract, error) {
 	requestLimit, requestErr := core.NewByteCount(ArtifactChunkDocumentMaximumBytes)

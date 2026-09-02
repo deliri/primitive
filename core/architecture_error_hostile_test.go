@@ -61,6 +61,8 @@ func TestArchitectureCatalogRejectsEveryStructuralFailureMode(t *testing.T) {
 		{name: "future package identity exceeds closed domain", mutate: func(c *ArchitectureCatalog) { c.packages[0].Identity = packageIdentityLimit }, wantErr: ErrPrimitiveContract},
 		{name: "duplicate package identity removes one owner", mutate: func(c *ArchitectureCatalog) { c.packages[1].Identity = PackageCore }, wantErr: ErrPrimitiveContract},
 		{name: "production package marked test support", mutate: func(c *ArchitectureCatalog) { c.packages[1].Kind = PackageKindTestSupport }, wantErr: ErrPrimitiveContract},
+		{name: "package role is absent", mutate: func(c *ArchitectureCatalog) { c.packages[1].Role = PackageRoleUnknown }, wantErr: ErrPrimitiveContract},
+		{name: "package role is a future value", mutate: func(c *ArchitectureCatalog) { c.packages[1].Role = packageRoleLimit }, wantErr: ErrPrimitiveContract},
 		{name: "testserial marked production", mutate: func(c *ArchitectureCatalog) {
 			replaceArchitecturePackageKindForTest(c, PackageTestSerial, PackageKindProduction)
 		}, wantErr: ErrPrimitiveContract},
@@ -79,6 +81,28 @@ func TestArchitectureCatalogRejectsEveryStructuralFailureMode(t *testing.T) {
 				t.Fatalf("mutated ArchitectureCatalog.Validate() error = %v, want %v", gotErr, tc.wantErr)
 			}
 		})
+	}
+}
+
+func TestPackageRoleExhaustsClosedDomainAndJSON(t *testing.T) {
+	t.Parallel()
+	for raw := 0; raw <= math.MaxUint8; raw++ {
+		role := PackageRole(raw)
+		wantValid := role >= PackageRoleValueContract && role <= PackageRoleOrchestration
+		if role.IsValid() != wantValid || (role.Validate() == nil) != wantValid {
+			t.Fatalf("PackageRole(%d) = (%q, valid=%t, error=%v), want valid=%t", raw, role.String(), role.IsValid(), role.Validate(), wantValid)
+		}
+		if !wantValid {
+			continue
+		}
+		encoded, err := json.Marshal(role)
+		if err != nil {
+			t.Fatalf("json.Marshal(PackageRole(%d)) error = %v, want nil", raw, err)
+		}
+		var got PackageRole
+		if err := json.Unmarshal(encoded, &got); err != nil || got != role {
+			t.Fatalf("json.Unmarshal(PackageRole(%d)) = (%v, %v), want (%v, nil)", raw, got, err, role)
+		}
 	}
 }
 

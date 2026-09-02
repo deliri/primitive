@@ -110,7 +110,7 @@ func TestSourceFileContractHostileBoundaries(t *testing.T) {
 			got := sourceFileFixture(t)
 			got.Path = fixturePath(t, "projectstandards/ceiling_test.go")
 			got.Kind = SourceFileKindTest
-			got.Declarations = SourceFileDeclarations{TestDeclarations: SourceFileDeclarationMaximum, Benchmarks: 128, FuzzTargets: 128}
+			got.Declarations = SourceFileDeclarations{TestDeclarations: SourceFileDeclarationMaximum, Benchmarks: SourceFileDeclarationMaximum / 2, FuzzTargets: SourceFileDeclarationMaximum / 2}
 			got.Effects = SourceFileEffects{Posture: PrimitiveEffectPurePolicy}
 			return got
 		}},
@@ -319,6 +319,11 @@ func TestPackageFileCatalogCompleteObservationBoundary(t *testing.T) {
 	for index := range complete.Files {
 		complete.Files[index].Imports = &SourceFileImports{}
 	}
+	architecture, err := DerivePackageArchitecture(complete.Files)
+	if err != nil {
+		t.Fatalf("DerivePackageArchitecture(complete) error = %v, want nil", err)
+	}
+	complete.Architecture = &architecture
 	if gotErr := complete.ValidateComplete(); gotErr != nil {
 		t.Fatalf("PackageFileCatalog.ValidateComplete(complete) error = %v, want nil", gotErr)
 	}

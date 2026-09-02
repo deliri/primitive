@@ -235,6 +235,7 @@ type exchangeContractInventory struct {
 	ClientSocketConfiguration  protocolContract[ClientSocketConfiguration]
 	ClientSocket               capabilityWrapper[ClientSocket]
 	ServerSocket               capabilityWrapper[ServerSocket]
+	SocketServerCall           protocolContract[SocketServerCall]
 	ListenAddress              protocolContract[ListenAddress]
 	ServerRuntimePolicy        protocolContract[ServerRuntimePolicy]
 	ServerRuntimeConfiguration protocolContract[ServerRuntimeConfiguration]
@@ -254,6 +255,31 @@ func TestExchangeDataFlowStructInventoryRatchet(t *testing.T) {
 	want := classifiedStructNames(t)
 	if !slices.Equal(got, want) {
 		t.Fatalf("Exchange production structs = %q, want classified %q", got, want)
+	}
+}
+
+func TestSocketServerHasOnePublicAdmissionAndWriteDoor(t *testing.T) {
+	t.Parallel()
+	fileSet := token.NewFileSet()
+	file, err := parser.ParseFile(fileSet, "socket.go", nil, parser.SkipObjectResolution)
+	if err != nil {
+		t.Fatalf("parser.ParseFile(socket.go) error = %v, want nil", err)
+	}
+	got := make([]string, 0, 3)
+	for _, declaration := range file.Decls {
+		function, ok := declaration.(*ast.FuncDecl)
+		if !ok || !function.Name.IsExported() {
+			continue
+		}
+		name := function.Name.Name
+		if strings.HasPrefix(name, "Receive") && strings.Contains(name, "SocketJSON") || strings.HasPrefix(name, "Write") && strings.Contains(name, "SocketJSON") {
+			got = append(got, name)
+		}
+	}
+	sort.Strings(got)
+	want := []string{"ReceiveReplayBoundSocketJSON", "ReceiveSocketJSON", "WriteSocketJSON"}
+	if !slices.Equal(got, want) {
+		t.Fatalf("exported socket server JSON doors = %q, want %q", got, want)
 	}
 }
 

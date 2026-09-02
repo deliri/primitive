@@ -354,7 +354,11 @@ func NewCancellationServer(contract exchange.JSONSocketContract, repository Canc
 }
 
 func (s RunStateServer) ServeAuthenticated(writer http.ResponseWriter, request *http.Request, peer AuthenticatedPeer) error {
-	received, err := exchange.ReceiveSocketJSON[RunStateRequest, *RunStateRequest](s.socket, request)
+	call, err := exchange.NewSocketServerCall(writer, request)
+	if err != nil {
+		return err
+	}
+	received, err := exchange.ReceiveSocketJSON[RunStateRequest, *RunStateRequest](s.socket, call)
 	if err != nil {
 		return err
 	}
@@ -369,11 +373,15 @@ func (s RunStateServer) ServeAuthenticated(writer http.ResponseWriter, request *
 	if response.Run != received.Body.Run {
 		return core.ErrPrimitiveContract
 	}
-	return exchange.WriteSocketJSON(s.socket, writer, response)
+	return exchange.WriteSocketJSON(s.socket, call, response)
 }
 
 func (s CancellationServer) ServeAuthenticated(writer http.ResponseWriter, request *http.Request, peer AuthenticatedPeer) error {
-	received, err := exchange.ReceiveReplayBoundSocketJSON[CancellationRequest, *CancellationRequest](s.socket, request)
+	call, err := exchange.NewSocketServerCall(writer, request)
+	if err != nil {
+		return err
+	}
+	received, err := exchange.ReceiveReplayBoundSocketJSON[CancellationRequest, *CancellationRequest](s.socket, call)
 	if err != nil {
 		return err
 	}
@@ -388,7 +396,7 @@ func (s CancellationServer) ServeAuthenticated(writer http.ResponseWriter, reque
 	if response.Run != received.Body.Coordinate.Run || response.Identity != received.Body.Identity {
 		return core.ErrPrimitiveContract
 	}
-	return exchange.WriteSocketJSON(s.socket, writer, response)
+	return exchange.WriteSocketJSON(s.socket, call, response)
 }
 
 func RunStateSocketContract(path exchange.SocketRoutePath) (exchange.JSONSocketContract, error) {

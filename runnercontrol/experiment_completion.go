@@ -408,7 +408,11 @@ func (s ExperimentCompletionServer) Serve(writer http.ResponseWriter, request *h
 	if s.repository == nil {
 		return core.ErrPrimitiveContract
 	}
-	received, err := exchange.ReceiveReplayBoundSocketJSON[ExperimentCompletionDocument, *ExperimentCompletionDocument](s.socket, request)
+	call, err := exchange.NewSocketServerCall(writer, request)
+	if err != nil {
+		return err
+	}
+	received, err := exchange.ReceiveReplayBoundSocketJSON[ExperimentCompletionDocument, *ExperimentCompletionDocument](s.socket, call)
 	if err != nil {
 		return err
 	}
@@ -432,7 +436,7 @@ func (s ExperimentCompletionServer) Serve(writer http.ResponseWriter, request *h
 		Experiment: record.Document.Payload.Observation.Experiment,
 		Digest:     record.Digest, Bytes: record.Bytes,
 	}
-	return exchange.WriteSocketJSON(s.socket, writer, receipt)
+	return exchange.WriteSocketJSON(s.socket, call, receipt)
 }
 
 func ExperimentCompletionSocketContract(path exchange.SocketRoutePath) (exchange.JSONSocketContract, error) {

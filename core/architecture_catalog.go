@@ -127,6 +127,10 @@ const (
 	PackageCapabilities
 	// PackagePrimitiveProject identifies Primitive's authored project policy.
 	PackagePrimitiveProject
+	// PackageProofLedger identifies the blind append-only proof-chain agreement.
+	PackageProofLedger
+	// PackageReviewControl identifies exact-source review agreements and decisions.
+	PackageReviewControl
 	packageIdentityLimit
 )
 
@@ -154,6 +158,8 @@ type PackageContract struct {
 	Identity PackageIdentity
 	// Kind is the package's production or test-support classification.
 	Kind PackageKind
+	// Role is the package's one primary architectural responsibility.
+	Role PackageRole
 }
 
 // ArchitectureCatalog is the complete validated Primitive package-ownership catalog.
@@ -165,57 +171,59 @@ type ArchitectureCatalog struct {
 func PrimitiveArchitecture() ArchitectureCatalog {
 	return ArchitectureCatalog{
 		packages: [PrimitivePackageCount]PackageContract{
-			{Identity: PackageCore, Kind: PackageKindProduction},
-			{Identity: PackageAttest, Kind: PackageKindProduction},
-			{Identity: PackageContextState, Kind: PackageKindProduction},
-			{Identity: PackageCurrency, Kind: PackageKindProduction},
-			{Identity: PackageKeygen, Kind: PackageKindProduction},
-			{Identity: PackageTestSerial, Kind: PackageKindTestSupport},
-			{Identity: PackageFileLock, Kind: PackageKindProduction},
-			{Identity: PackageFilestore, Kind: PackageKindProduction},
-			{Identity: PackageHostFacts, Kind: PackageKindProduction},
-			{Identity: PackageTemporal, Kind: PackageKindProduction},
-			{Identity: PackageExchange, Kind: PackageKindProduction},
-			{Identity: PackageFuzzFinder, Kind: PackageKindProduction},
-			{Identity: PackageLease, Kind: PackageKindProduction},
-			{Identity: PackageGate, Kind: PackageKindProduction},
-			{Identity: PackageReceipt, Kind: PackageKindProduction},
-			{Identity: PackageControlWire, Kind: PackageKindProduction},
-			{Identity: PackageControlPlane, Kind: PackageKindProduction},
-			{Identity: PackageSubmission, Kind: PackageKindProduction},
-			{Identity: PackageSubmissionAuth, Kind: PackageKindProduction},
-			{Identity: PackageControlPlaneTest, Kind: PackageKindTestSupport},
-			{Identity: PackageProcess, Kind: PackageKindProduction},
-			{Identity: PackageGoModule, Kind: PackageKindProduction},
-			{Identity: PackageGoToolchain, Kind: PackageKindProduction},
-			{Identity: PackageRelease, Kind: PackageKindProduction},
-			{Identity: PackageShutdown, Kind: PackageKindProduction},
-			{Identity: PackageObjectStore, Kind: PackageKindProduction},
-			{Identity: PackageTimeProof, Kind: PackageKindProduction},
-			{Identity: PackageCloudIdentity, Kind: PackageKindProduction},
-			{Identity: PackageDeploy, Kind: PackageKindProduction},
-			{Identity: PackageUpgrade, Kind: PackageKindProduction},
-			{Identity: PackageGCSObjects, Kind: PackageKindProduction},
-			{Identity: PackageID, Kind: PackageKindProduction},
-			{Identity: PackageChit, Kind: PackageKindProduction},
-			{Identity: PackageChitAuth, Kind: PackageKindProduction},
-			{Identity: PackageRetrieval, Kind: PackageKindProduction},
-			{Identity: PackageRetrievalAuth, Kind: PackageKindProduction},
-			{Identity: PackagePayment, Kind: PackageKindProduction},
-			{Identity: PackagePaymentAuth, Kind: PackageKindProduction},
-			{Identity: PackageDistribution, Kind: PackageKindProduction},
-			{Identity: PackageDistributionAuth, Kind: PackageKindProduction},
-			{Identity: PackageWiring, Kind: PackageKindProduction},
-			{Identity: PackageLineIO, Kind: PackageKindProduction},
-			{Identity: PackageManual, Kind: PackageKindProduction},
-			{Identity: PackageSecretStore, Kind: PackageKindProduction},
-			{Identity: PackageProjectStandards, Kind: PackageKindProduction},
-			{Identity: PackageMachineProbe, Kind: PackageKindProduction},
-			{Identity: PackageRunnerControl, Kind: PackageKindProduction},
-			{Identity: PackageRunWorkspace, Kind: PackageKindProduction},
-			{Identity: PackageProviderWire, Kind: PackageKindProduction},
-			{Identity: PackageCapabilities, Kind: PackageKindProduction},
-			{Identity: PackagePrimitiveProject, Kind: PackageKindTestSupport},
+			{Identity: PackageCore, Kind: PackageKindProduction, Role: PackageRoleValueContract},
+			{Identity: PackageAttest, Kind: PackageKindProduction, Role: PackageRoleAuthenticationBinding},
+			{Identity: PackageContextState, Kind: PackageKindProduction, Role: PackageRoleValueContract},
+			{Identity: PackageCurrency, Kind: PackageKindProduction, Role: PackageRoleValueContract},
+			{Identity: PackageKeygen, Kind: PackageKindProduction, Role: PackageRoleEffectCapability},
+			{Identity: PackageTestSerial, Kind: PackageKindTestSupport, Role: PackageRoleValueContract},
+			{Identity: PackageFileLock, Kind: PackageKindProduction, Role: PackageRoleEffectCapability},
+			{Identity: PackageFilestore, Kind: PackageKindProduction, Role: PackageRoleEffectCapability},
+			{Identity: PackageHostFacts, Kind: PackageKindProduction, Role: PackageRoleEffectCapability},
+			{Identity: PackageTemporal, Kind: PackageKindProduction, Role: PackageRoleEffectCapability},
+			{Identity: PackageExchange, Kind: PackageKindProduction, Role: PackageRoleEffectCapability},
+			{Identity: PackageFuzzFinder, Kind: PackageKindProduction, Role: PackageRoleOrchestration},
+			{Identity: PackageLease, Kind: PackageKindProduction, Role: PackageRoleDomainAgreement},
+			{Identity: PackageGate, Kind: PackageKindProduction, Role: PackageRoleOrchestration},
+			{Identity: PackageReceipt, Kind: PackageKindProduction, Role: PackageRoleDomainAgreement},
+			{Identity: PackageControlWire, Kind: PackageKindProduction, Role: PackageRoleWireProtocol},
+			{Identity: PackageControlPlane, Kind: PackageKindProduction, Role: PackageRoleAuthenticationBinding},
+			{Identity: PackageSubmission, Kind: PackageKindProduction, Role: PackageRoleDomainAgreement},
+			{Identity: PackageSubmissionAuth, Kind: PackageKindProduction, Role: PackageRoleAuthenticationBinding},
+			{Identity: PackageControlPlaneTest, Kind: PackageKindTestSupport, Role: PackageRoleAuthenticationBinding},
+			{Identity: PackageProcess, Kind: PackageKindProduction, Role: PackageRoleEffectCapability},
+			{Identity: PackageGoModule, Kind: PackageKindProduction, Role: PackageRoleValueContract},
+			{Identity: PackageGoToolchain, Kind: PackageKindProduction, Role: PackageRoleOrchestration},
+			{Identity: PackageRelease, Kind: PackageKindProduction, Role: PackageRoleOrchestration},
+			{Identity: PackageShutdown, Kind: PackageKindProduction, Role: PackageRoleEffectCapability},
+			{Identity: PackageObjectStore, Kind: PackageKindProduction, Role: PackageRoleEffectCapability},
+			{Identity: PackageTimeProof, Kind: PackageKindProduction, Role: PackageRoleDomainAgreement},
+			{Identity: PackageCloudIdentity, Kind: PackageKindProduction, Role: PackageRoleDomainAgreement},
+			{Identity: PackageDeploy, Kind: PackageKindProduction, Role: PackageRoleOrchestration},
+			{Identity: PackageUpgrade, Kind: PackageKindProduction, Role: PackageRoleOrchestration},
+			{Identity: PackageGCSObjects, Kind: PackageKindProduction, Role: PackageRoleOrchestration},
+			{Identity: PackageID, Kind: PackageKindProduction, Role: PackageRoleValueContract},
+			{Identity: PackageChit, Kind: PackageKindProduction, Role: PackageRoleDomainAgreement},
+			{Identity: PackageChitAuth, Kind: PackageKindProduction, Role: PackageRoleAuthenticationBinding},
+			{Identity: PackageRetrieval, Kind: PackageKindProduction, Role: PackageRoleDomainAgreement},
+			{Identity: PackageRetrievalAuth, Kind: PackageKindProduction, Role: PackageRoleAuthenticationBinding},
+			{Identity: PackagePayment, Kind: PackageKindProduction, Role: PackageRoleDomainAgreement},
+			{Identity: PackagePaymentAuth, Kind: PackageKindProduction, Role: PackageRoleAuthenticationBinding},
+			{Identity: PackageDistribution, Kind: PackageKindProduction, Role: PackageRoleDomainAgreement},
+			{Identity: PackageDistributionAuth, Kind: PackageKindProduction, Role: PackageRoleAuthenticationBinding},
+			{Identity: PackageWiring, Kind: PackageKindProduction, Role: PackageRoleValueContract},
+			{Identity: PackageLineIO, Kind: PackageKindProduction, Role: PackageRoleValueContract},
+			{Identity: PackageManual, Kind: PackageKindProduction, Role: PackageRoleDomainAgreement},
+			{Identity: PackageSecretStore, Kind: PackageKindProduction, Role: PackageRoleEffectCapability},
+			{Identity: PackageProjectStandards, Kind: PackageKindProduction, Role: PackageRoleDomainAgreement},
+			{Identity: PackageMachineProbe, Kind: PackageKindProduction, Role: PackageRoleOrchestration},
+			{Identity: PackageRunnerControl, Kind: PackageKindProduction, Role: PackageRoleDomainAgreement},
+			{Identity: PackageRunWorkspace, Kind: PackageKindProduction, Role: PackageRoleOrchestration},
+			{Identity: PackageProviderWire, Kind: PackageKindProduction, Role: PackageRoleWireProtocol},
+			{Identity: PackageCapabilities, Kind: PackageKindProduction, Role: PackageRoleValueContract},
+			{Identity: PackagePrimitiveProject, Kind: PackageKindTestSupport, Role: PackageRoleOrchestration},
+			{Identity: PackageProofLedger, Kind: PackageKindProduction, Role: PackageRoleDomainAgreement},
+			{Identity: PackageReviewControl, Kind: PackageKindProduction, Role: PackageRoleDomainAgreement},
 		},
 	}
 }
@@ -382,6 +390,9 @@ func (c PackageContract) Validate() error {
 	if err := c.Kind.Validate(); err != nil {
 		return err
 	}
+	if err := c.Role.Validate(); err != nil {
+		return err
+	}
 	if c.Identity == PackageTestSerial || c.Identity == PackageControlPlaneTest || c.Identity == PackagePrimitiveProject {
 		if c.Kind != PackageKindTestSupport {
 			return architectureContractError("test-support package must be classified as test support")
@@ -455,6 +466,8 @@ func packagePurposeTexts() [packageIdentityLimit]string {
 		PackageProviderWire:     "Provider-authenticated domain-blind streamed HTTP plugs for Stripe, Twilio, Plunk, and PayPal",
 		PackageCapabilities:     "Compiler-owned discovery and exact resolution of Primitive package and real-world effect capabilities",
 		PackagePrimitiveProject: "Authored Primitive project policy expressed through the product-neutral Project Standards contract",
+		PackageProofLedger:      "Blind append-only canonical proof chains, idempotent append receipts, bounded pages, and streaming verification",
+		PackageReviewControl:    "Exact-source review packets, advisory observations, independently authorized human decisions, and review projections",
 	}
 }
 
@@ -519,6 +532,8 @@ func packageIdentityTexts() [packageIdentityLimit]string {
 		"providerwire",
 		"capabilities",
 		"primitiveproject",
+		"proofledger",
+		"reviewcontrol",
 	}
 }
 

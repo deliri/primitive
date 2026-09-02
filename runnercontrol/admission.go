@@ -432,7 +432,11 @@ func (s AdmissionServer) ServeAuthenticated(writer http.ResponseWriter, request 
 	if s.repository == nil {
 		return core.ErrPrimitiveContract
 	}
-	received, err := exchange.ReceiveReplayBoundSocketJSON[RequestedRun, *RequestedRun](s.socket, request)
+	call, err := exchange.NewSocketServerCall(writer, request)
+	if err != nil {
+		return err
+	}
+	received, err := exchange.ReceiveReplayBoundSocketJSON[RequestedRun, *RequestedRun](s.socket, call)
 	if err != nil {
 		return err
 	}
@@ -447,7 +451,7 @@ func (s AdmissionServer) ServeAuthenticated(writer http.ResponseWriter, request 
 	if response.Request != received.Body.Request {
 		return core.ErrPrimitiveContract
 	}
-	return exchange.WriteSocketJSON(s.socket, writer, response)
+	return exchange.WriteSocketJSON(s.socket, call, response)
 }
 
 func AdmissionSocketContract(path exchange.SocketRoutePath) (exchange.JSONSocketContract, error) {

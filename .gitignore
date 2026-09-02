@@ -55,3 +55,6 @@ coverage*.out
 !/evidence/
 !/evidence/**
 /evidence/.DS_Store
+
+!/.forge/
+!/.forge/**

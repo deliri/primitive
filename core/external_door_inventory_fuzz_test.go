@@ -37,6 +37,7 @@ const (
 	coreJSONDoorHTTPEndpoint
 	coreJSONDoorPackageIdentity
 	coreJSONDoorPackageKind
+	coreJSONDoorPackageRole
 	coreJSONDoorHTTPStatusCode
 	coreJSONDoorHTTPHeaderName
 	coreJSONDoorHTTPMediaType
@@ -82,6 +83,8 @@ func (d coreJSONDoor) receiverName() string {
 		return "PackageIdentity"
 	case coreJSONDoorPackageKind:
 		return "PackageKind"
+	case coreJSONDoorPackageRole:
+		return "PackageRole"
 	case coreJSONDoorHTTPStatusCode:
 		return "HTTPStatusCode"
 	case coreJSONDoorHTTPHeaderName:
@@ -130,6 +133,7 @@ type coreJSONFixtures struct {
 	publicKey       Ed25519PublicKey
 	platform        Platform
 	packageKind     PackageKind
+	packageRole     PackageRole
 	packageIdentity PackageIdentity
 	selection       CatalogSelectionKind
 	continuation    CatalogContinuationState
@@ -188,6 +192,8 @@ func FuzzCoreExternalJSONDoorInventory(f *testing.F) {
 			fuzzCoreJSONValue(t, data, fixtures.packageIdentity)
 		case coreJSONDoorPackageKind:
 			fuzzCoreJSONValue(t, data, fixtures.packageKind)
+		case coreJSONDoorPackageRole:
+			fuzzCoreJSONValue(t, data, fixtures.packageRole)
 		case coreJSONDoorHTTPStatusCode:
 			fuzzCoreJSONValue(t, data, fixtures.status)
 		case coreJSONDoorHTTPHeaderName:
@@ -575,7 +581,7 @@ func coreFixturesForFuzz(t testing.TB) coreJSONFixtures {
 		version: version, commit: commit, build: build, pageLimit: pageLimit,
 		selection: CatalogSelectionAll, position: CatalogPositionStart,
 		continuation: CatalogContinuationEnd, errorIdentity: ErrPrimitiveContract,
-		endpoint: endpoint, packageIdentity: PackageCore, packageKind: PackageKindProduction,
+		endpoint: endpoint, packageIdentity: PackageCore, packageKind: PackageKindProduction, packageRole: PackageRoleValueContract,
 		status: HTTPStatusOK(), header: header, mediaType: mediaType,
 		sha256:    SHA256Of([]byte("core fuzz digest")),
 		crc32c:    NewCRC32C(crc32.Checksum([]byte("core fuzz crc32c"), crc32.MakeTable(crc32.Castagnoli))),
@@ -601,6 +607,7 @@ func coreJSONSeedsForFuzz(t testing.TB, fixtures coreJSONFixtures) []coreJSONSee
 		coreJSONSeedForFuzz(t, coreJSONDoorHTTPEndpoint, fixtures.endpoint),
 		coreJSONSeedForFuzz(t, coreJSONDoorPackageIdentity, fixtures.packageIdentity),
 		coreJSONSeedForFuzz(t, coreJSONDoorPackageKind, fixtures.packageKind),
+		coreJSONSeedForFuzz(t, coreJSONDoorPackageRole, fixtures.packageRole),
 		coreJSONSeedForFuzz(t, coreJSONDoorHTTPStatusCode, fixtures.status),
 		coreJSONSeedForFuzz(t, coreJSONDoorHTTPHeaderName, fixtures.header),
 		coreJSONSeedForFuzz(t, coreJSONDoorHTTPMediaType, fixtures.mediaType),

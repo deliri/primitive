@@ -335,7 +335,11 @@ func (s Server) Serve(writer http.ResponseWriter, request *http.Request) error {
 	if s.service.repository == nil {
 		return contractError(errors.New("project standards server is unconstructed"))
 	}
-	received, err := exchange.ReceiveSocketJSON[Query, *Query](s.socket, request)
+	call, err := exchange.NewSocketServerCall(writer, request)
+	if err != nil {
+		return transportError(err)
+	}
+	received, err := exchange.ReceiveSocketJSON[Query, *Query](s.socket, call)
 	if err != nil {
 		return transportError(err)
 	}
@@ -343,7 +347,7 @@ func (s Server) Serve(writer http.ResponseWriter, request *http.Request) error {
 	if err != nil {
 		return err
 	}
-	if err := exchange.WriteSocketJSON(s.socket, writer, response); err != nil {
+	if err := exchange.WriteSocketJSON(s.socket, call, response); err != nil {
 		return transportError(err)
 	}
 	return nil

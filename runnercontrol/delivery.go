@@ -335,7 +335,7 @@ func NewObservationDeliveryServer(configuration ObservationDeliveryServerConfigu
 
 type deliveryReceiptWrite struct {
 	socket    exchange.ServerSocket
-	writer    http.ResponseWriter
+	call      exchange.SocketServerCall
 	receipt   ObservationDeliveryReceipt
 	run       projectstandards.RunID
 	published bool
@@ -345,7 +345,11 @@ func (s ObservationDeliveryServer) ServeStage(writer http.ResponseWriter, reques
 	if err := RequireControlPeer(request.Context()); err != nil {
 		return err
 	}
-	received, err := exchange.ReceiveReplayBoundSocketJSON[ObservationDeliveryStage, *ObservationDeliveryStage](s.stage, request)
+	call, err := exchange.NewSocketServerCall(writer, request)
+	if err != nil {
+		return err
+	}
+	received, err := exchange.ReceiveReplayBoundSocketJSON[ObservationDeliveryStage, *ObservationDeliveryStage](s.stage, call)
 	if err != nil {
 		return err
 	}
@@ -353,14 +357,18 @@ func (s ObservationDeliveryServer) ServeStage(writer http.ResponseWriter, reques
 	if err != nil {
 		return err
 	}
-	return writeDeliveryReceipt(deliveryReceiptWrite{socket: s.stage, writer: writer, receipt: receipt, run: received.Body.Envelope.Payload.Run})
+	return writeDeliveryReceipt(deliveryReceiptWrite{socket: s.stage, call: call, receipt: receipt, run: received.Body.Envelope.Payload.Run})
 }
 
 func (s ObservationDeliveryServer) ServePage(writer http.ResponseWriter, request *http.Request) error {
 	if err := RequireControlPeer(request.Context()); err != nil {
 		return err
 	}
-	received, err := exchange.ReceiveReplayBoundSocketJSON[ObservationDeliveryPageUpload, *ObservationDeliveryPageUpload](s.page, request)
+	call, err := exchange.NewSocketServerCall(writer, request)
+	if err != nil {
+		return err
+	}
+	received, err := exchange.ReceiveReplayBoundSocketJSON[ObservationDeliveryPageUpload, *ObservationDeliveryPageUpload](s.page, call)
 	if err != nil {
 		return err
 	}
@@ -368,14 +376,18 @@ func (s ObservationDeliveryServer) ServePage(writer http.ResponseWriter, request
 	if err != nil {
 		return err
 	}
-	return writeDeliveryReceipt(deliveryReceiptWrite{socket: s.page, writer: writer, receipt: receipt, run: received.Body.Page.Run})
+	return writeDeliveryReceipt(deliveryReceiptWrite{socket: s.page, call: call, receipt: receipt, run: received.Body.Page.Run})
 }
 
 func (s ObservationDeliveryServer) ServeCommit(writer http.ResponseWriter, request *http.Request) error {
 	if err := RequireControlPeer(request.Context()); err != nil {
 		return err
 	}
-	received, err := exchange.ReceiveReplayBoundSocketJSON[ObservationDeliveryCommit, *ObservationDeliveryCommit](s.commit, request)
+	call, err := exchange.NewSocketServerCall(writer, request)
+	if err != nil {
+		return err
+	}
+	received, err := exchange.ReceiveReplayBoundSocketJSON[ObservationDeliveryCommit, *ObservationDeliveryCommit](s.commit, call)
 	if err != nil {
 		return err
 	}
@@ -397,14 +409,14 @@ func (s ObservationDeliveryServer) ServeCommit(writer http.ResponseWriter, reque
 	if err != nil {
 		return err
 	}
-	return writeDeliveryReceipt(deliveryReceiptWrite{socket: s.commit, writer: writer, receipt: receipt, run: received.Body.Run, published: true})
+	return writeDeliveryReceipt(deliveryReceiptWrite{socket: s.commit, call: call, receipt: receipt, run: received.Body.Run, published: true})
 }
 
 func writeDeliveryReceipt(request deliveryReceiptWrite) error {
 	if err := request.receipt.Validate(); err != nil || request.receipt.Run != request.run || request.receipt.Published != request.published {
 		return errors.Join(core.ErrPrimitiveContract, err)
 	}
-	return exchange.WriteSocketJSON(request.socket, request.writer, request.receipt)
+	return exchange.WriteSocketJSON(request.socket, request.call, request.receipt)
 }
 
 func ObservationDeliverySocketContract(path exchange.SocketRoutePath, requestMaximum uint64) (exchange.JSONSocketContract, error) {

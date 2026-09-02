@@ -311,7 +311,11 @@ func (s HeartbeatServer) Serve(writer http.ResponseWriter, request *http.Request
 	if s.repository == nil {
 		return core.ErrPrimitiveContract
 	}
-	received, err := exchange.ReceiveSocketJSON[HeartbeatRequest, *HeartbeatRequest](s.socket, request)
+	call, err := exchange.NewSocketServerCall(writer, request)
+	if err != nil {
+		return err
+	}
+	received, err := exchange.ReceiveSocketJSON[HeartbeatRequest, *HeartbeatRequest](s.socket, call)
 	if err != nil {
 		return err
 	}
@@ -328,7 +332,7 @@ func (s HeartbeatServer) Serve(writer http.ResponseWriter, request *http.Request
 	if response.Fence != received.Body.Fence {
 		return core.ErrPrimitiveContract
 	}
-	return exchange.WriteSocketJSON(s.socket, writer, response)
+	return exchange.WriteSocketJSON(s.socket, call, response)
 }
 
 func HeartbeatSocketContract(path exchange.SocketRoutePath) (exchange.JSONSocketContract, error) {

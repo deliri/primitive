@@ -15,7 +15,7 @@ const (
 	PackageSourceFileMaximum = 65_535
 	// SourceFileDeclarationMaximum bounds test, benchmark, and fuzz declarations
 	// admitted from one source file.
-	SourceFileDeclarationMaximum = 256
+	SourceFileDeclarationMaximum = 1_024
 	// SourceEffectSiteMaximum bounds exact call sites retained for one file.
 	SourceEffectSiteMaximum = 1_024
 )
@@ -158,9 +158,10 @@ func (u PrimitiveCapabilityUse) Validate() error {
 // SourceFileDeclarations retains declarations attributable to exactly one
 // source file. TestDeclarations includes tests, benchmarks, and fuzz targets.
 type SourceFileDeclarations struct {
-	TestDeclarations uint16 `json:"test_declarations"`
-	Benchmarks       uint16 `json:"benchmarks"`
-	FuzzTargets      uint16 `json:"fuzz_targets"`
+	TestDeclarations uint16              `json:"test_declarations"`
+	Benchmarks       uint16              `json:"benchmarks"`
+	FuzzTargets      uint16              `json:"fuzz_targets"`
+	Symbols          []SourceDeclaration `json:"symbols"`
 }
 
 // SourceEffectSite is one exact syntax observation behind an effect fact.
@@ -193,11 +194,20 @@ func (s SourceEffectSite) Validate() error {
 }
 
 func (d SourceFileDeclarations) Validate() error {
-	if d.TestDeclarations > SourceFileDeclarationMaximum {
+	if d.TestDeclarations > SourceFileDeclarationMaximum || len(d.Symbols) > SourceDeclarationMaximum {
 		return contractError(errors.New("project standards source file declaration count exceeds its bound"))
 	}
 	if uint32(d.Benchmarks)+uint32(d.FuzzTargets) > uint32(d.TestDeclarations) {
 		return conflictError(errors.New("project standards source file declaration accounting does not close"))
+	}
+	for index := range d.Symbols {
+		if err := d.Symbols[index].Validate(); err != nil {
+			return err
+		}
+		if index > 0 && (d.Symbols[index-1].Line > d.Symbols[index].Line ||
+			d.Symbols[index-1].Line == d.Symbols[index].Line && d.Symbols[index-1].Column >= d.Symbols[index].Column) {
+			return conflictError(errors.New("project standards source declarations are duplicated or not in source order"))
+		}
 	}
 	return nil
 }
@@ -368,7 +378,7 @@ func (f SourceFile) ExecutesPolicyThroughPrimitive() bool {
 }
 
 func (f SourceFile) validateKind() error {
-	if f.Kind != SourceFileKindTest && f.Declarations != (SourceFileDeclarations{}) {
+	if f.Kind != SourceFileKindTest && !sourceFileTestDeclarationsEmpty(f.Declarations) {
 		return conflictError(errors.New("project standards non-test file carries test declarations"))
 	}
 	if f.Kind == SourceFileKindDocumentation && f.Language != SourceLanguageMarkdown {
@@ -378,6 +388,10 @@ func (f SourceFile) validateKind() error {
 		return conflictError(errors.New("project standards inert file carries an executable effect posture"))
 	}
 	return nil
+}
+
+func sourceFileTestDeclarationsEmpty(declarations SourceFileDeclarations) bool {
+	return declarations.TestDeclarations == 0 && declarations.Benchmarks == 0 && declarations.FuzzTargets == 0
 }
 
 func (f SourceFile) validateCapabilityScope() error {
@@ -396,8 +410,9 @@ func (f SourceFile) validateCapabilityScope() error {
 // PackageFileCatalog is an optional exact source scan for one package. Nil on
 // Code means not observed; an empty present catalog is never folded into zero.
 type PackageFileCatalog struct {
-	Package SourcePath   `json:"package"`
-	Files   []SourceFile `json:"files"`
+	Package      SourcePath                `json:"package"`
+	Files        []SourceFile              `json:"files"`
+	Architecture *PackageArchitectureFacts `json:"architecture,omitempty"`
 }
 
 func (c PackageFileCatalog) Validate() error {
@@ -418,6 +433,14 @@ func (c PackageFileCatalog) Validate() error {
 			return conflictError(errors.New("project standards source files are duplicated or not in canonical order"))
 		}
 	}
+	if c.Architecture != nil {
+		if err := c.Architecture.Validate(); err != nil {
+			return err
+		}
+		if derived := derivePackageArchitecture(c.Files); !architectureFactsEqual(*c.Architecture, derived) {
+			return conflictError(errors.New("project standards package architecture facts contradict source observations"))
+		}
+	}
 	return nil
 }
 
@@ -433,6 +456,9 @@ func (c PackageFileCatalog) ValidateComplete() error {
 		if file.Language == SourceLanguageGo && file.Imports == nil {
 			return conflictError(errors.New("project standards complete Go file catalog omits import observations"))
 		}
+	}
+	if c.Architecture == nil {
+		return conflictError(errors.New("project standards complete catalog omits package architecture facts"))
 	}
 	return nil
 }

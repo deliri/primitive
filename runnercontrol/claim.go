@@ -225,7 +225,11 @@ func (s ClaimServer) Serve(writer http.ResponseWriter, request *http.Request) er
 	if s.repository == nil {
 		return core.ErrPrimitiveContract
 	}
-	received, err := exchange.ReceiveSocketJSON[ClaimRequest, *ClaimRequest](s.socket, request)
+	call, err := exchange.NewSocketServerCall(writer, request)
+	if err != nil {
+		return err
+	}
+	received, err := exchange.ReceiveSocketJSON[ClaimRequest, *ClaimRequest](s.socket, call)
 	if err != nil {
 		return err
 	}
@@ -239,7 +243,7 @@ func (s ClaimServer) Serve(writer http.ResponseWriter, request *http.Request) er
 	if err := response.Validate(); err != nil {
 		return err
 	}
-	return exchange.WriteSocketJSON(s.socket, writer, response)
+	return exchange.WriteSocketJSON(s.socket, call, response)
 }
 
 func ClaimSocketContract(path exchange.SocketRoutePath) (exchange.JSONSocketContract, error) {

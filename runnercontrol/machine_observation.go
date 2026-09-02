@@ -139,7 +139,11 @@ func (s MachineObservationServer) Serve(writer http.ResponseWriter, request *htt
 	if s.repository == nil {
 		return core.ErrPrimitiveContract
 	}
-	received, err := exchange.ReceiveSocketJSON[MachineObservationSubmission, *MachineObservationSubmission](s.socket, request)
+	call, err := exchange.NewSocketServerCall(writer, request)
+	if err != nil {
+		return err
+	}
+	received, err := exchange.ReceiveSocketJSON[MachineObservationSubmission, *MachineObservationSubmission](s.socket, call)
 	if err != nil {
 		return err
 	}
@@ -163,7 +167,7 @@ func (s MachineObservationServer) Serve(writer http.ResponseWriter, request *htt
 	if err := receipt.Validate(); err != nil {
 		return err
 	}
-	return exchange.WriteSocketJSON(s.socket, writer, receipt)
+	return exchange.WriteSocketJSON(s.socket, call, receipt)
 }
 
 func MachineObservationSocketContract(path exchange.SocketRoutePath) (exchange.JSONSocketContract, error) {

@@ -999,7 +999,11 @@ func (s ExpansionServer) Serve(writer http.ResponseWriter, request *http.Request
 	if s.repository == nil {
 		return core.ErrPrimitiveContract
 	}
-	received, err := exchange.ReceiveReplayBoundSocketJSON[ExpansionDocument, *ExpansionDocument](s.socket, request)
+	call, err := exchange.NewSocketServerCall(writer, request)
+	if err != nil {
+		return err
+	}
+	received, err := exchange.ReceiveReplayBoundSocketJSON[ExpansionDocument, *ExpansionDocument](s.socket, call)
 	if err != nil {
 		return err
 	}
@@ -1023,7 +1027,7 @@ func (s ExpansionServer) Serve(writer http.ResponseWriter, request *http.Request
 	if digestErr != nil || approval.Run != record.Document.Manifest.Run || approval.ManifestDigest != manifestDigest {
 		return errors.Join(core.ErrPrimitiveContract, digestErr)
 	}
-	return exchange.WriteSocketJSON(s.socket, writer, approval)
+	return exchange.WriteSocketJSON(s.socket, call, approval)
 }
 func ExpansionSocketContract(path exchange.SocketRoutePath) (exchange.JSONSocketContract, error) {
 	requestLimit, requestErr := core.NewByteCount(ExpansionManifestMaximumBytes)

@@ -6,6 +6,7 @@ var (
 	_ Validatable              = ArchitectureCatalog{}
 	_ Validatable              = PackageIdentity(0)
 	_ Validatable              = PackageKind(0)
+	_ Validatable              = PackageRole(0)
 	_ Validatable              = PackageContract{}
 	_ Validatable              = StrictJSONLimits{}
 	_ Validatable              = ErrorIdentity(0)
@@ -42,6 +43,7 @@ var (
 var (
 	_ ValidatedJSONMarshaler = PackageIdentity(0)
 	_ ValidatedJSONMarshaler = PackageKind(0)
+	_ ValidatedJSONMarshaler = PackageRole(0)
 	_ ValidatedJSONMarshaler = ErrorIdentity(0)
 	_ ValidatedJSONMarshaler = ByteCount{}
 	_ ValidatedJSONMarshaler = ByteLength{}

@@ -201,6 +201,36 @@ func socketRequestSemantics(route RouteSemantics, key IdempotencyKey) (RequestSe
 // paired route.
 type ServerSocket struct{ contract JSONSocketContract }
 
+// SocketServerCall carries one HTTP ingress across the Exchange ownership
+// boundary without requiring a domain package to import net/http.
+type SocketServerCall struct {
+	request *http.Request
+	writer  http.ResponseWriter
+}
+
+// NewSocketServerCall binds the real HTTP request and response writer at the
+// Exchange boundary.
+func NewSocketServerCall(writer http.ResponseWriter, request *http.Request) (SocketServerCall, error) {
+	call := SocketServerCall{writer: writer, request: request}
+	return call, call.Validate()
+}
+
+// Validate rejects a partially populated HTTP ingress.
+func (c SocketServerCall) Validate() error {
+	if c.writer == nil || c.request == nil {
+		return core.ErrExchangeContract
+	}
+	return nil
+}
+
+// Context returns the request lifetime owned by this ingress.
+func (c SocketServerCall) Context() (context.Context, error) {
+	if err := c.Validate(); err != nil {
+		return nil, err
+	}
+	return c.request.Context(), nil
+}
+
 // NewServerSocket constructs the server side from the same contract consumed
 // by the client side.
 func NewServerSocket(contract JSONSocketContract) (ServerSocket, error) {
@@ -213,9 +243,7 @@ func NewServerSocket(contract JSONSocketContract) (ServerSocket, error) {
 // Validate rejects an unconstructed server socket.
 func (s ServerSocket) Validate() error { return s.contract.Validate() }
 
-// ReceiveSocketJSON validates the exact route and strictly decodes one typed
-// request. Replay-key routes must use ReceiveReplayBoundSocketJSON.
-func ReceiveSocketJSON[
+func receiveSocketJSON[
 	Body any,
 	BodyPtr interface {
 		*Body
@@ -233,9 +261,23 @@ func ReceiveSocketJSON[
 	})
 }
 
-// ReceiveReplayBoundSocketJSON validates the exact route and binds the real
-// HTTP replay identity to the decoded typed mutation.
-func ReceiveReplayBoundSocketJSON[
+// ReceiveSocketJSON admits one typed request through Exchange's sole public
+// server boundary. Replay-key routes must use ReceiveReplayBoundSocketJSON.
+func ReceiveSocketJSON[
+	Body any,
+	BodyPtr interface {
+		*Body
+		core.Validatable
+	},
+](socket ServerSocket, call SocketServerCall) (Received[BodyPtr], error) {
+	var zero Received[BodyPtr]
+	if err := call.Validate(); err != nil {
+		return zero, err
+	}
+	return receiveSocketJSON[Body, BodyPtr](socket, call.request)
+}
+
+func receiveReplayBoundSocketJSON[
 	Body any,
 	BodyPtr interface {
 		*Body
@@ -253,9 +295,23 @@ func ReceiveReplayBoundSocketJSON[
 	})
 }
 
-// WriteSocketJSON strictly encodes one typed response under the paired route's
-// declared success status and response bound.
-func WriteSocketJSON[Body core.ValidatedJSONMarshaler](
+// ReceiveReplayBoundSocketJSON admits one replay-bound typed mutation through
+// Exchange's sole public server boundary.
+func ReceiveReplayBoundSocketJSON[
+	Body any,
+	BodyPtr interface {
+		*Body
+		IdempotencyBound
+	},
+](socket ServerSocket, call SocketServerCall) (Received[BodyPtr], error) {
+	var zero Received[BodyPtr]
+	if err := call.Validate(); err != nil {
+		return zero, err
+	}
+	return receiveReplayBoundSocketJSON[Body, BodyPtr](socket, call.request)
+}
+
+func writeSocketJSON[Body core.ValidatedJSONMarshaler](
 	socket ServerSocket,
 	writer http.ResponseWriter,
 	body Body,
@@ -271,6 +327,19 @@ func WriteSocketJSON[Body core.ValidatedJSONMarshaler](
 		},
 		Policy: JSONWritePolicy{ResponseBodyLimit: socket.contract.ResponseBodyLimit},
 	})
+}
+
+// WriteSocketJSON emits one typed response through Exchange's sole public
+// server boundary.
+func WriteSocketJSON[Body core.ValidatedJSONMarshaler](
+	socket ServerSocket,
+	call SocketServerCall,
+	body Body,
+) error {
+	if err := call.Validate(); err != nil {
+		return err
+	}
+	return writeSocketJSON(socket, call.writer, body)
 }
 
 func validateServerSocketRequest(socket ServerSocket, request *http.Request) error {

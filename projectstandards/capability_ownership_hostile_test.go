@@ -92,7 +92,11 @@ func TestPackageFileCatalogValidateOwnershipPreservesMixedSiteEvidence(t *testin
 			Posture:        PrimitiveEffectDirectObserved,
 		},
 	}
-	catalog := PackageFileCatalog{Package: packagePath, Files: []SourceFile{file}}
+	architecture, err := DerivePackageArchitecture([]SourceFile{file})
+	if err != nil {
+		t.Fatalf("DerivePackageArchitecture(mixed file) error = %v, want nil", err)
+	}
+	catalog := PackageFileCatalog{Package: packagePath, Files: []SourceFile{file}, Architecture: &architecture}
 	if gotErr := catalog.ValidateOwnership(module, ownership); gotErr != nil {
 		t.Fatalf("PackageFileCatalog.ValidateOwnership(mixed file) error = %v, want nil", gotErr)
 	}
@@ -101,6 +105,11 @@ func TestPackageFileCatalogValidateOwnershipPreservesMixedSiteEvidence(t *testin
 	misclassified.Files = []SourceFile{file}
 	misclassified.Files[0].Effects.Direct = append(misclassified.Files[0].Effects.Direct, misclassified.Files[0].Effects.Implementation...)
 	misclassified.Files[0].Effects.Implementation = nil
+	misclassifiedArchitecture, err := DerivePackageArchitecture(misclassified.Files)
+	if err != nil {
+		t.Fatalf("DerivePackageArchitecture(misclassified) error = %v, want nil", err)
+	}
+	misclassified.Architecture = &misclassifiedArchitecture
 	if gotErr := misclassified.ValidateOwnership(module, ownership); !errors.Is(gotErr, core.ErrProjectStandardsConflict) {
 		t.Fatalf("PackageFileCatalog.ValidateOwnership(owned direct site) error = %v, want errors.Is(..., %v)", gotErr, core.ErrProjectStandardsConflict)
 	}

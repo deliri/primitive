@@ -1,6 +1,10 @@
 package projectstandards
 
-import "errors"
+import (
+	"errors"
+
+	"github.com/deliri/primitive/v2026/core"
+)
 
 const (
 	ReasonMaximum    = 32
@@ -308,6 +312,7 @@ type PackageKnowledge struct {
 	AuthorAudience            Text                  `json:"audience"`
 	AuthorPurpose             Text                  `json:"purpose"`
 	Path                      SourcePath            `json:"path"`
+	AuthorRole                core.PackageRole      `json:"role"`
 	AuthorValue               Text                  `json:"value"`
 	AuthorSteward             Name                  `json:"steward"`
 	AuthorSubstrate           Name                  `json:"substrate"`
@@ -326,7 +331,7 @@ type PackageKnowledge struct {
 }
 
 func (p PackageKnowledge) Validate() error {
-	if err := contractJoin(p.Path.Validate(), p.AuthorTitle.Validate(), p.AuthorProblem.Validate(), p.AuthorPurpose.Validate(), p.AuthorAudience.Validate(), p.AuthorValue.Validate(), p.AuthorSteward.Validate(), p.AuthorSubstrate.Validate(), p.AuthorRuntime.Validate(), p.Created.Validate(), p.Changed.Validate(), p.AuthorRemoval.Validate(), p.AuthorAssurance.Validate()); err != nil {
+	if err := contractJoin(p.Path.Validate(), p.AuthorRole.Validate(), p.AuthorTitle.Validate(), p.AuthorProblem.Validate(), p.AuthorPurpose.Validate(), p.AuthorAudience.Validate(), p.AuthorValue.Validate(), p.AuthorSteward.Validate(), p.AuthorSubstrate.Validate(), p.AuthorRuntime.Validate(), p.Created.Validate(), p.Changed.Validate(), p.AuthorRemoval.Validate(), p.AuthorAssurance.Validate()); err != nil {
 		return err
 	}
 	if err := validateKnowledgeLists(knowledgeLists{Reasons: p.AuthorReasons, Owns: p.AuthorOwns, Excludes: p.AuthorDoesNotOwn, Features: p.AuthorFeatures}); err != nil {
@@ -336,6 +341,9 @@ func (p PackageKnowledge) Validate() error {
 		return err
 	}
 	if err := validateCapabilityOwnership(p.AuthorCapabilityOwnership); err != nil {
+		return err
+	}
+	if err := validatePackageRoleOwnership(p.AuthorRole, p.AuthorCapabilityOwnership); err != nil {
 		return err
 	}
 	return validateComplexityClaims(p.Path, p.AuthorComplexity)

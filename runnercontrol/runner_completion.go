@@ -493,7 +493,11 @@ func (s RunnerCompletionServer) Serve(writer http.ResponseWriter, request *http.
 	if s.repository == nil {
 		return core.ErrPrimitiveContract
 	}
-	received, err := exchange.ReceiveReplayBoundSocketJSON[RunnerCompletionDocument, *RunnerCompletionDocument](s.socket, request)
+	call, err := exchange.NewSocketServerCall(writer, request)
+	if err != nil {
+		return err
+	}
+	received, err := exchange.ReceiveReplayBoundSocketJSON[RunnerCompletionDocument, *RunnerCompletionDocument](s.socket, call)
 	if err != nil {
 		return err
 	}
@@ -513,7 +517,7 @@ func (s RunnerCompletionServer) Serve(writer http.ResponseWriter, request *http.
 		return err
 	}
 	receipt := RunnerCompletionReceipt{SchemaVersion: SchemaVersion, Run: record.Document.Payload.Run, Digest: record.Digest, Bytes: record.Bytes}
-	return exchange.WriteSocketJSON(s.socket, writer, receipt)
+	return exchange.WriteSocketJSON(s.socket, call, receipt)
 }
 
 func RunnerCompletionSocketContract(path exchange.SocketRoutePath) (exchange.JSONSocketContract, error) {

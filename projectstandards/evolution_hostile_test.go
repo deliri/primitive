@@ -132,7 +132,7 @@ func evolutionBoundaryCases() []evolutionHostileCase {
 		{name: "boundary files increase by one", primary: evolutionClassBoundary, mutate: mutateEvolutionFilesThree, wantField: evolutionFieldFiles, wantChange: 1},
 		{name: "boundary files reach uint32 extreme", primary: evolutionClassBoundary, mutate: mutateEvolutionFilesExtreme, wantField: evolutionFieldFiles, wantChange: CountChange(math.MaxUint32 - 2)},
 		{name: "boundary test declarations reach zero", primary: evolutionClassBoundary, mutate: mutateEvolutionDeclarationsZero, wantField: evolutionFieldTestDeclarations, wantChange: -1},
-		{name: "boundary test declarations reach exact per-file maximum", primary: evolutionClassBoundary, mutate: mutateEvolutionDeclarationsExact, wantField: evolutionFieldTestDeclarations, wantChange: 255},
+		{name: "boundary test declarations reach exact per-file maximum", primary: evolutionClassBoundary, mutate: mutateEvolutionDeclarationsExact, wantField: evolutionFieldTestDeclarations, wantChange: CountChange(SourceFileDeclarationMaximum - 1)},
 		{name: "boundary test declarations exceed per-file maximum by one", primary: evolutionClassBoundary, mutate: mutateEvolutionDeclarationsAbove, wantErr: core.ErrProjectStandardsConflict},
 		{name: "boundary test declarations reach uint32 extreme", primary: evolutionClassBoundary, mutate: mutateEvolutionDeclarationsExtreme, wantErr: core.ErrProjectStandardsConflict},
 		{name: "boundary coverage remains absent", primary: evolutionClassBoundary, mutate: mutateEvolutionCoverageAbsent},
@@ -280,11 +280,11 @@ func mutateEvolutionDeclarationsZero(_ testing.TB, _ *PackageSnapshot, after *Pa
 }
 
 func mutateEvolutionDeclarationsExact(_ testing.TB, _ *PackageSnapshot, after *PackageSnapshot) {
-	after.Code.Inventory.TestDeclarations = 256
+	after.Code.Inventory.TestDeclarations = SourceFileDeclarationMaximum
 }
 
 func mutateEvolutionDeclarationsAbove(_ testing.TB, _ *PackageSnapshot, after *PackageSnapshot) {
-	after.Code.Inventory.TestDeclarations = 257
+	after.Code.Inventory.TestDeclarations = SourceFileDeclarationMaximum + 1
 }
 
 func mutateEvolutionDeclarationsExtreme(_ testing.TB, _ *PackageSnapshot, after *PackageSnapshot) {

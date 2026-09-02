@@ -53,6 +53,7 @@ type projectStandardsJSONDoorInventory struct {
 	SourceLanguage             func(*SourceLanguage, []byte) error
 	SourceFileKind             func(*SourceFileKind, []byte) error
 	SourceImportKind           func(*SourceImportKind, []byte) error
+	SourceDeclarationKind      func(*SourceDeclarationKind, []byte) error
 	PrimitiveEffectPosture     func(*PrimitiveEffectPosture, []byte) error
 	CapabilityRole             func(*CapabilityRole, []byte) error
 	ProjectRelationship        func(*ProjectRelationship, []byte) error
@@ -105,6 +106,7 @@ var projectStandardsJSONDoors = projectStandardsJSONDoorInventory{
 	SourceLanguage:             (*SourceLanguage).UnmarshalJSON,
 	SourceFileKind:             (*SourceFileKind).UnmarshalJSON,
 	SourceImportKind:           (*SourceImportKind).UnmarshalJSON,
+	SourceDeclarationKind:      (*SourceDeclarationKind).UnmarshalJSON,
 	PrimitiveEffectPosture:     (*PrimitiveEffectPosture).UnmarshalJSON,
 	CapabilityRole:             (*CapabilityRole).UnmarshalJSON,
 	ProjectRelationship:        (*ProjectRelationship).UnmarshalJSON,

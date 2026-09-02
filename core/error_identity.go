@@ -426,6 +426,38 @@ const (
 	ErrGoToolchainExecution
 	// ErrGoToolchainOutput identifies malformed or contradictory cmd/go output.
 	ErrGoToolchainOutput
+	// ErrProofLedgerContract identifies an invalid append-only proof agreement.
+	ErrProofLedgerContract
+	// ErrProofLedgerIdempotencyConflict identifies one request reused for different canonical intent.
+	ErrProofLedgerIdempotencyConflict
+	// ErrProofLedgerSequenceConflict identifies a stale or discontinuous sequence.
+	ErrProofLedgerSequenceConflict
+	// ErrProofLedgerPreviousHashMismatch identifies a broken predecessor link.
+	ErrProofLedgerPreviousHashMismatch
+	// ErrProofLedgerTampering identifies an event whose canonical hash does not match.
+	ErrProofLedgerTampering
+	// ErrProofLedgerTruncated identifies a verified prefix shorter than its declared head.
+	ErrProofLedgerTruncated
+	// ErrProofLedgerReceiptMismatch identifies a receipt that does not name its durable event.
+	ErrProofLedgerReceiptMismatch
+	// ErrProofLedgerAppendIndeterminate identifies an append whose durable outcome is unknown.
+	ErrProofLedgerAppendIndeterminate
+	// ErrReviewControlContract identifies an invalid review agreement.
+	ErrReviewControlContract
+	// ErrReviewControlStaleSource identifies source bytes that no longer match a review subject.
+	ErrReviewControlStaleSource
+	// ErrReviewControlSubjectMismatch identifies review facts for different exact source.
+	ErrReviewControlSubjectMismatch
+	// ErrReviewControlObservationMismatch identifies a decision bound to another observation.
+	ErrReviewControlObservationMismatch
+	// ErrReviewControlMissingEvidence identifies an unsatisfied review proof requirement.
+	ErrReviewControlMissingEvidence
+	// ErrReviewControlUnauthorizedAuthority identifies authority that was not independently verified.
+	ErrReviewControlUnauthorizedAuthority
+	// ErrReviewControlNonHumanAuthority identifies verified authority outside the human domain.
+	ErrReviewControlNonHumanAuthority
+	// ErrReviewControlUnsupportedEventKind identifies an event outside the closed review domain.
+	ErrReviewControlUnsupportedEventKind
 	errorIdentityLimit
 )
 
@@ -607,6 +639,22 @@ func errorIdentityDiagnostics() [errorIdentityLimit]errorIdentityDiagnostic {
 		{identity: ErrGoToolchainContract, text: "go toolchain contract violation"},
 		{identity: ErrGoToolchainExecution, text: "go toolchain execution failed"},
 		{identity: ErrGoToolchainOutput, text: "go toolchain output invalid"},
+		{identity: ErrProofLedgerContract, text: "proof ledger contract violation"},
+		{identity: ErrProofLedgerIdempotencyConflict, text: "proof ledger idempotency conflict"},
+		{identity: ErrProofLedgerSequenceConflict, text: "proof ledger sequence conflict"},
+		{identity: ErrProofLedgerPreviousHashMismatch, text: "proof ledger previous hash mismatch"},
+		{identity: ErrProofLedgerTampering, text: "proof ledger event tampering detected"},
+		{identity: ErrProofLedgerTruncated, text: "proof ledger chain truncated"},
+		{identity: ErrProofLedgerReceiptMismatch, text: "proof ledger receipt mismatch"},
+		{identity: ErrProofLedgerAppendIndeterminate, text: "proof ledger append indeterminate"},
+		{identity: ErrReviewControlContract, text: "review control contract violation"},
+		{identity: ErrReviewControlStaleSource, text: "review control source is stale"},
+		{identity: ErrReviewControlSubjectMismatch, text: "review control subject mismatch"},
+		{identity: ErrReviewControlObservationMismatch, text: "review control observation mismatch"},
+		{identity: ErrReviewControlMissingEvidence, text: "review control evidence missing"},
+		{identity: ErrReviewControlUnauthorizedAuthority, text: "review control authority unauthorized"},
+		{identity: ErrReviewControlNonHumanAuthority, text: "review control authority is not human"},
+		{identity: ErrReviewControlUnsupportedEventKind, text: "review control event kind unsupported"},
 	}
 }
 
@@ -725,11 +773,23 @@ func errorIdentityParents(identity ErrorIdentity) errorIdentityParentSet {
 		ErrLifecycleIdentityContract, ErrReceiptContract, ErrChitContract,
 		ErrRetrievalContract, ErrPaymentContract, ErrControlWireContract,
 		ErrControlPlaneContract, ErrIDContract, ErrSecretStoreContract,
-		ErrProviderWireContract, ErrCapabilitiesContract, ErrGoModuleContract, ErrGoToolchainContract) {
+		ErrProviderWireContract, ErrCapabilitiesContract, ErrGoModuleContract, ErrGoToolchainContract,
+		ErrProofLedgerContract, ErrReviewControlContract) {
 		return oneErrorIdentityParent(ErrPrimitiveContract)
 	}
 	if errorIdentityIn(identity, ErrGoToolchainExecution, ErrGoToolchainOutput) {
 		return oneErrorIdentityParent(ErrGoToolchainContract)
+	}
+	if errorIdentityIn(identity, ErrProofLedgerIdempotencyConflict, ErrProofLedgerSequenceConflict,
+		ErrProofLedgerPreviousHashMismatch, ErrProofLedgerTampering, ErrProofLedgerTruncated,
+		ErrProofLedgerReceiptMismatch, ErrProofLedgerAppendIndeterminate) {
+		return oneErrorIdentityParent(ErrProofLedgerContract)
+	}
+	if errorIdentityIn(identity, ErrReviewControlStaleSource, ErrReviewControlSubjectMismatch,
+		ErrReviewControlObservationMismatch, ErrReviewControlMissingEvidence,
+		ErrReviewControlUnauthorizedAuthority, ErrReviewControlNonHumanAuthority,
+		ErrReviewControlUnsupportedEventKind) {
+		return oneErrorIdentityParent(ErrReviewControlContract)
 	}
 	if errorIdentityIn(identity, ErrControlWireRevision, ErrControlWireNonce, ErrControlWireToken,
 		ErrControlWirePolicyCursor, ErrControlWireRoute, ErrControlWireProtocolSupport,

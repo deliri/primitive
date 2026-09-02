@@ -8,6 +8,17 @@ import (
 	"github.com/deliri/primitive/v2026/gomodule"
 )
 
+func validatePackageRoleOwnership(role core.PackageRole, ownership []CapabilityOwnership) error {
+	hasOwnership := len(ownership) > 0
+	if role == core.PackageRoleEffectCapability && !hasOwnership {
+		return conflictError(errors.New("project standards effect capability lacks authored capability ownership"))
+	}
+	if role != core.PackageRoleEffectCapability && hasOwnership {
+		return conflictError(errors.New("project standards non-effect package declares capability ownership"))
+	}
+	return nil
+}
+
 const (
 	capabilityRoleInvalidDiagnostic      = "project standards capability role is invalid"
 	projectRelationshipInvalidDiagnostic = "project standards project relationship is invalid"

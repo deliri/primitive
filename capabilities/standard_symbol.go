@@ -219,12 +219,15 @@ func effectSymbolRules() []standardSymbolRule {
 		{importPath: "runtime", effect: EffectHost, effectSelectors: []string{"CPUProfile", "GOMAXPROCS", "GOROOT", "MemProfile", "NumCPU", "NumCgoCall", "ReadMemStats", "SetCPUProfileRate", "StartTrace", "StopTrace", "ThreadCreateProfile"}},
 		{importPath: "time", effect: EffectTime, effectSelectors: []string{"After", "AfterFunc", "NewTicker", "NewTimer", "Now", "Sleep", "Tick"}, pureSelectors: []string{"Date", "FixedZone", "LoadLocationFromTZData", "Parse", "ParseDuration", "ParseInLocation", "Unix", "UnixMicro", "UnixMilli"}},
 		{importPath: "syscall", effect: EffectFilesystem, effectSelectors: syscallFilesystemSymbols()},
+		{importPath: "syscall", effect: EffectLocking, effectSelectors: syscallLockingSymbols()},
 		{importPath: "syscall", effect: EffectTransport, effectSelectors: syscallTransportSymbols()},
 		{importPath: "syscall", effect: EffectProcess, effectSelectors: syscallProcessSymbols()},
 		{importPath: "golang.org/x/sys/unix", effect: EffectFilesystem, effectSelectors: syscallFilesystemSymbols()},
+		{importPath: "golang.org/x/sys/unix", effect: EffectLocking, effectSelectors: syscallLockingSymbols()},
 		{importPath: "golang.org/x/sys/unix", effect: EffectTransport, effectSelectors: syscallTransportSymbols()},
 		{importPath: "golang.org/x/sys/unix", effect: EffectProcess, effectSelectors: syscallProcessSymbols()},
 		{importPath: "golang.org/x/sys/windows", effect: EffectFilesystem, effectSelectors: syscallFilesystemSymbols()},
+		{importPath: "golang.org/x/sys/windows", effect: EffectLocking, effectSelectors: windowsLockingSymbols()},
 		{importPath: "golang.org/x/sys/windows", effect: EffectTransport, effectSelectors: syscallTransportSymbols()},
 		{importPath: "golang.org/x/sys/windows", effect: EffectProcess, effectSelectors: syscallProcessSymbols()},
 	}
@@ -267,6 +270,14 @@ func httpPureSymbols() []string {
 
 func syscallFilesystemSymbols() []string {
 	return []string{"Access", "Chdir", "Chmod", "Chown", "Close", "Creat", "Fchmod", "Fchown", "Fstat", "Fsync", "Ftruncate", "Getcwd", "Getdents", "Lchown", "Link", "Lstat", "Mkdir", "Mkdirat", "Open", "Openat", "Pread", "Pwrite", "Read", "ReadDirent", "Readlink", "Rename", "Renameat", "Rmdir", "Stat", "Symlink", "Sync", "Truncate", "Unlink", "Unlinkat", "Write"}
+}
+
+func syscallLockingSymbols() []string {
+	return []string{"Flock"}
+}
+
+func windowsLockingSymbols() []string {
+	return []string{"LockFileEx", "UnlockFileEx"}
 }
 
 func syscallTransportSymbols() []string {
