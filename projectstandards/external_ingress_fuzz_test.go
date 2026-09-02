@@ -48,6 +48,7 @@ const (
 	doorComponentKind
 	doorSourceLanguage
 	doorSourceFileKind
+	doorSourceImportKind
 	doorPrimitiveEffectPosture
 	doorProbeRole
 	doorProbeKind
@@ -160,6 +161,7 @@ func FuzzProjectStandardsAtomicJSONDoorsSemanticClosure(f *testing.F) {
 	addEnumDoorSeeds(f, doorComponentKind, uint8(componentKindLimit), func(value uint8) ComponentKind { return ComponentKind(value) })
 	addEnumDoorSeeds(f, doorSourceLanguage, uint8(sourceLanguageLimit), func(value uint8) SourceLanguage { return SourceLanguage(value) })
 	addEnumDoorSeeds(f, doorSourceFileKind, uint8(sourceFileKindLimit), func(value uint8) SourceFileKind { return SourceFileKind(value) })
+	addEnumDoorSeeds(f, doorSourceImportKind, uint8(sourceImportKindLimit), func(value uint8) SourceImportKind { return SourceImportKind(value) })
 	addEnumDoorSeeds(f, doorPrimitiveEffectPosture, uint8(primitiveEffectPostureLimit), func(value uint8) PrimitiveEffectPosture { return PrimitiveEffectPosture(value) })
 	addEnumDoorSeeds(f, doorProbeRole, uint8(probeRoleLimit), func(value uint8) ProbeRole { return ProbeRole(value) })
 	addEnumDoorSeeds(f, doorProbeKind, uint8(probeKindLimit), func(value uint8) ProbeKind { return ProbeKind(value) })
@@ -256,6 +258,8 @@ func FuzzProjectStandardsAtomicJSONDoorsSemanticClosure(f *testing.F) {
 			proveComparableJSONClosure(t, SourceLanguageGo, data, (*SourceLanguage).UnmarshalJSON)
 		case doorSourceFileKind:
 			proveComparableJSONClosure(t, SourceFileKindProduction, data, (*SourceFileKind).UnmarshalJSON)
+		case doorSourceImportKind:
+			proveComparableJSONClosure(t, SourceImportKindProject, data, (*SourceImportKind).UnmarshalJSON)
 		case doorPrimitiveEffectPosture:
 			proveComparableJSONClosure(t, PrimitiveEffectMediated, data, (*PrimitiveEffectPosture).UnmarshalJSON)
 		case doorProbeRole:

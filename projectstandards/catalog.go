@@ -7,7 +7,7 @@ import (
 )
 
 const (
-	SchemaVersion              = 2
+	SchemaVersion              = 3
 	PackageComponentMaximum    = 64
 	PackageContributionMaximum = 32
 )

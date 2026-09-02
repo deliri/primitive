@@ -1,15 +1,16 @@
 // Package primitiveproject owns Primitive's authored project policy.
 // Observed source, execution, and evidence facts remain inputs from their
 // owning producers and are never manufactured here.
-package primitiveproject
+package primitiveproject_test
 
 import (
 	"errors"
 
+	primitivecore "github.com/deliri/primitive/v2026/core"
 	"github.com/deliri/primitive/v2026/projectstandards"
 )
 
-const projectStandardSourcePath = "primitiveproject/projectstandard.go"
+const projectStandardSourcePath = "primitiveproject/projectstandard_test.go"
 
 // ProjectStandardKnowledge returns Primitive's compiler-owned authored
 // project meaning. The caller supplies Git origins because history is an
@@ -35,7 +36,7 @@ func ProjectStandardKnowledge(created projectstandards.OptionalGitOrigin, change
 			builder.boundary("Real-world effect execution", "Filesystem, process, transport, time, entropy, secret, host, and signal interaction through their exact Primitive capability owners."),
 			builder.boundary("Product-neutral low-level contracts", "Validated values, closed enums, stable error identities, explicit limits, and protocol facts reusable across unrelated Go products."),
 			builder.boundary("Effect observations and receipts", "Typed bounded facts describing what was requested, what the available machine and provider admitted, what actually ran, and what durable result was observed."),
-			builder.boundary("Compiler-owned capability architecture", "The complete Primitive package graph, effect ownership, production and test scope, and deterministic requirement resolution derived from code."),
+			builder.boundary("Compiler-owned capability architecture", "The complete Primitive package ownership catalog, effect ownership, production and test scope, and deterministic requirement resolution derived from code."),
 		},
 		AuthorNonGoals: []projectstandards.Boundary{
 			builder.boundary("Product policy", "Primitive does not decide a product's routes, permissions, workflows, acceptance thresholds, persistence meaning, or valid domain transitions."),
@@ -55,7 +56,7 @@ func ProjectStandardKnowledge(created projectstandards.OptionalGitOrigin, change
 				ID: builder.identifier("compiler-owned-capabilities"), Title: builder.name("Compiler-owned capability catalog"),
 				Technical:        builder.text("A closed package architecture derives deterministic capability enumeration and resolves typed package or effect requirements by production or test scope."),
 				Benefit:          builder.text("Projects can discover and require the correct Primitive socket without relying on prose, copied paths, or runtime registration."),
-				ProofRequirement: builder.text("Architecture evidence must prove landed-package closure, unique effect ownership, allowed import edges, deterministic enumeration, and fail-closed resolution."),
+				ProofRequirement: builder.text("Architecture evidence must prove package identity and scope closure, unique effect ownership, deterministic enumeration, and fail-closed resolution."),
 				Delivery:         projectstandards.DeliveryDelivered,
 			},
 			{
@@ -117,4 +118,43 @@ func (b *projectStandardBuilder) reason(title, detail string) projectstandards.R
 
 func (b *projectStandardBuilder) boundary(title, detail string) projectstandards.Boundary {
 	return projectstandards.Boundary{Title: b.name(title), Detail: b.text(detail)}
+}
+
+// PackageStandardCode returns Forge's regenerated, compiler-checked file facts.
+func PackageStandardCode() (projectstandards.PackageFileCatalog, error) {
+	var generatedErr error
+	sourcePath := func(value string) projectstandards.SourcePath {
+		result, err := projectstandards.ParseSourcePath(value)
+		generatedErr = errors.Join(generatedErr, err)
+		return result
+	}
+	capability := func(value string) primitivecore.PackageIdentity {
+		result, err := primitivecore.ParsePackageIdentity(value)
+		generatedErr = errors.Join(generatedErr, err)
+		return result
+	}
+	catalog := projectstandards.PackageFileCatalog{
+		Package: sourcePath("primitiveproject"),
+		Files: []projectstandards.SourceFile{
+			{
+				Path: sourcePath("primitiveproject/projectstandard_authored_test.go"), Package: sourcePath("primitiveproject"),
+				Language: projectstandards.SourceLanguageGo, Kind: projectstandards.SourceFileKindTest, Generated: false,
+				Declarations: projectstandards.SourceFileDeclarations{TestDeclarations: 1, Benchmarks: 0, FuzzTargets: 0},
+				Effects:      projectstandards.SourceFileEffects{Posture: projectstandards.PrimitiveEffectMediated, UnresolvedSites: 0, Capabilities: []projectstandards.PrimitiveCapabilityUse{{Package: capability("temporal")}}},
+			},
+			{
+				Path: sourcePath("primitiveproject/projectstandard_test.go"), Package: sourcePath("primitiveproject"),
+				Language: projectstandards.SourceLanguageGo, Kind: projectstandards.SourceFileKindTest, Generated: false,
+				Declarations: projectstandards.SourceFileDeclarations{TestDeclarations: 0, Benchmarks: 0, FuzzTargets: 0},
+				Effects:      projectstandards.SourceFileEffects{Posture: projectstandards.PrimitiveEffectPurePolicy, UnresolvedSites: 0},
+			},
+		},
+	}
+	if generatedErr != nil {
+		return projectstandards.PackageFileCatalog{}, generatedErr
+	}
+	if err := catalog.Validate(); err != nil {
+		return projectstandards.PackageFileCatalog{}, err
+	}
+	return catalog, nil
 }

@@ -7,7 +7,6 @@ var (
 	_ Validatable              = PackageIdentity(0)
 	_ Validatable              = PackageKind(0)
 	_ Validatable              = PackageContract{}
-	_ Validatable              = DirectImportContract{}
 	_ Validatable              = StrictJSONLimits{}
 	_ Validatable              = ErrorIdentity(0)
 	_ Validatable              = Comparison(0)

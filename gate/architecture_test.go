@@ -7,11 +7,8 @@ import (
 	"os"
 	"slices"
 	"sort"
-	"strconv"
 	"strings"
 	"testing"
-
-	"github.com/deliri/primitive/v2026/core"
 )
 
 type (
@@ -31,66 +28,6 @@ type gateContractInventory struct {
 	NewWorkPermit    capability[NewWorkPermit]
 	DenialError      capability[denialError]
 	ContractError    failureDetail[ContractError]
-}
-
-// TestGateProductionImportsMatchTheCompilerOwnedCatalog projects Gate's
-// admitted production frontier from Core rather than restating it, so the
-// catalog stays the single owner of the graph.
-func TestGateProductionImportsMatchTheCompilerOwnedCatalog(t *testing.T) {
-	t.Parallel()
-
-	catalog := core.PrimitiveArchitecture()
-	var want []string
-	for contract := range catalog.DirectImports() {
-		if contract.Importer != core.PackageGate {
-			continue
-		}
-		want = append(want, mustImportPath(t, contract.Imported))
-	}
-	sort.Strings(want)
-	got := siblingImports(t, productionSources)
-	if !slices.Equal(got, want) {
-		t.Fatalf("Gate production imports = %#v, want %#v", got, want)
-	}
-}
-
-// TestGateTestImportsSpendOnlyDeclaredTestEdges proves the test sources use
-// every declared test-only edge and nothing beyond the admitted frontier. An
-// unused declared edge is a ceremonial import; an undeclared one is hidden
-// coupling.
-func TestGateTestImportsSpendOnlyDeclaredTestEdges(t *testing.T) {
-	t.Parallel()
-
-	catalog := core.PrimitiveArchitecture()
-	var admitted []string
-	for contract := range catalog.DirectImports() {
-		if contract.Importer == core.PackageGate {
-			admitted = append(admitted, mustImportPath(t, contract.Imported))
-		}
-	}
-	var declared []string
-	for contract := range catalog.DirectTestImports() {
-		if contract.Importer != core.PackageGate {
-			continue
-		}
-		declared = append(declared, mustImportPath(t, contract.Imported))
-	}
-	if len(declared) == 0 {
-		t.Fatal("Gate declared test edges = 0, want the real signed-lease proof frontier")
-	}
-	admitted = append(admitted, declared...)
-
-	got := siblingImports(t, testSources)
-	for _, gotImport := range got {
-		if !slices.Contains(admitted, gotImport) {
-			t.Errorf("Gate test import %q is undeclared coupling, admitted = %#v", gotImport, admitted)
-		}
-	}
-	for _, wantImport := range declared {
-		if !slices.Contains(got, wantImport) {
-			t.Errorf("declared test edge %q is unused ceremony, test imports = %#v", wantImport, got)
-		}
-	}
 }
 
 // TestGatePublicSurfaceStaysExactlyOneOperation ratchets the exported surface.
@@ -156,34 +93,6 @@ func (s sourceSet) admits(filename string) bool {
 	default:
 		return false
 	}
-}
-
-func siblingImports(t *testing.T, set sourceSet) []string {
-	t.Helper()
-
-	var got []string
-	for _, file := range parseSources(t, set) {
-		for _, specification := range file.Imports {
-			path, err := strconv.Unquote(specification.Path.Value)
-			if err != nil {
-				t.Fatalf(
-					"strconv.Unquote(%s) error = %v",
-					specification.Path.Value, err,
-				)
-			}
-			if !strings.HasPrefix(path, core.PrimitivePackagePathPrefix) {
-				continue
-			}
-			if path == core.PrimitivePackagePathPrefix+"gate" {
-				continue
-			}
-			if !slices.Contains(got, path) {
-				got = append(got, path)
-			}
-		}
-	}
-	sort.Strings(got)
-	return got
 }
 
 func structNames(t *testing.T, files []*ast.File) []string {
@@ -291,16 +200,6 @@ func parseSources(t *testing.T, set sourceSet) []*ast.File {
 		t.Fatalf("parsed Gate sources for set %d = 0, want at least one file", set)
 	}
 	return got
-}
-
-func mustImportPath(t *testing.T, identity core.PackageIdentity) string {
-	t.Helper()
-
-	path, err := identity.ImportPath()
-	if err != nil {
-		t.Fatalf("PackageIdentity(%v).ImportPath() error = %v, want nil", identity, err)
-	}
-	return path
 }
 
 var _ = gateContractInventory{}

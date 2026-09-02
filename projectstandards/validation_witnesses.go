@@ -34,6 +34,7 @@ var (
 	_ core.ValidatedJSONMarshaler = ComponentKind(0)
 	_ core.ValidatedJSONMarshaler = SourceLanguage(0)
 	_ core.ValidatedJSONMarshaler = SourceFileKind(0)
+	_ core.ValidatedJSONMarshaler = SourceImportKind(0)
 	_ core.ValidatedJSONMarshaler = PrimitiveEffectPosture(0)
 	_ core.ValidatedJSONMarshaler = ProbeRole(0)
 	_ core.ValidatedJSONMarshaler = ProbeKind(0)

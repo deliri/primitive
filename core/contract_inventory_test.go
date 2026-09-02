@@ -29,8 +29,6 @@ type productionStructInventory struct {
 // It is a compiler-visible wiring ratchet, not behavioral proof.
 type coreContractInventory struct {
 	PackageContract          architectureFact[PackageContract]
-	DirectImportContract     architectureFact[DirectImportContract]
-	DirectTestImportContract architectureFact[DirectTestImportContract]
 	ArchitectureCatalog      architectureFact[ArchitectureCatalog]
 	CatalogPageLimit         protocolFact[CatalogPageLimit]
 	StrictJSONLimits         protocolFact[StrictJSONLimits]

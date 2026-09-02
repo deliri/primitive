@@ -302,6 +302,26 @@ func TestPackageFileCatalogLayerTriad(t *testing.T) {
 	})
 }
 
+func TestPackageFileCatalogCompleteObservationBoundary(t *testing.T) {
+	t.Parallel()
+
+	partial := fixturePackageFileCatalog(t)
+	if gotErr := partial.Validate(); gotErr != nil {
+		t.Fatalf("PackageFileCatalog.Validate() error = %v, want nil", gotErr)
+	}
+	if gotErr := partial.ValidateComplete(); !errors.Is(gotErr, core.ErrProjectStandardsConflict) {
+		t.Fatalf("PackageFileCatalog.ValidateComplete(partial) error = %v, want %v", gotErr, core.ErrProjectStandardsConflict)
+	}
+
+	complete := fixturePackageFileCatalog(t)
+	for index := range complete.Files {
+		complete.Files[index].Imports = &SourceFileImports{}
+	}
+	if gotErr := complete.ValidateComplete(); gotErr != nil {
+		t.Fatalf("PackageFileCatalog.ValidateComplete(complete) error = %v, want nil", gotErr)
+	}
+}
+
 func TestPackageFileCatalogRejectsOrderingDuplicationAndInventoryDrift(t *testing.T) {
 	t.Parallel()
 

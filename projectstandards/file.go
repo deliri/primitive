@@ -223,11 +223,11 @@ func (e SourceFileEffects) validatePostureShape() error {
 	return nil
 }
 
-// SourceFile is the exact, generated code-facing record for one file. It owns
-// observed structure and effect posture; it does not invent authored purpose.
+// SourceFile is the exact generated structure and effect observation for one file.
 type SourceFile struct {
 	Path         SourcePath             `json:"path"`
 	Package      SourcePath             `json:"package"`
+	Imports      *SourceFileImports     `json:"imports,omitempty"`
 	Effects      SourceFileEffects      `json:"effects"`
 	Declarations SourceFileDeclarations `json:"declarations"`
 	Language     SourceLanguage         `json:"language"`
@@ -238,6 +238,11 @@ type SourceFile struct {
 func (f SourceFile) Validate() error {
 	if err := contractJoin(f.Path.Validate(), f.Package.Validate(), f.Language.Validate(), f.Kind.Validate(), f.Declarations.Validate(), f.Effects.Validate()); err != nil {
 		return err
+	}
+	if f.Imports != nil {
+		if err := f.Imports.Validate(); err != nil {
+			return err
+		}
 	}
 	if !pathWithin(f.Package, f.Path, false) {
 		return conflictError(errors.New("project standards source file is outside its package"))
@@ -287,8 +292,12 @@ func (f SourceFile) validatePrimitiveImplementation() error {
 	if f.Effects.Posture != PrimitiveEffectImplementation {
 		return nil
 	}
+	owner, err := core.ParsePackageIdentity(f.Package.String())
+	if err != nil {
+		return conflictError(errors.New("project standards Primitive implementation file has no capability owner"))
+	}
 	for _, use := range f.Effects.Capabilities {
-		if use.Package.String() != f.Package.String() {
+		if use.Package != owner {
 			return conflictError(errors.New("project standards Primitive implementation file names a different capability owner"))
 		}
 	}
@@ -318,6 +327,22 @@ func (c PackageFileCatalog) Validate() error {
 		}
 		if index > 0 && c.Files[index-1].Path.String() >= c.Files[index].Path.String() {
 			return conflictError(errors.New("project standards source files are duplicated or not in canonical order"))
+		}
+	}
+	return nil
+}
+
+// ValidateComplete proves that every Go file carries an import observation.
+// Validate permits a structurally valid partial observation; generators and
+// verifiers claiming complete source inspection use this stricter door.
+func (c PackageFileCatalog) ValidateComplete() error {
+	if err := c.Validate(); err != nil {
+		return err
+	}
+	for index := range c.Files {
+		file := c.Files[index]
+		if file.Language == SourceLanguageGo && file.Imports == nil {
+			return conflictError(errors.New("project standards complete Go file catalog omits import observations"))
 		}
 	}
 	return nil

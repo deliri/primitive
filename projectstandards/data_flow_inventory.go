@@ -42,6 +42,8 @@ func (Inventory) projectStandardsProtocolFact()                   {}
 func (PrimitiveCapabilityUse) projectStandardsProtocolFact()      {}
 func (SourceFileDeclarations) projectStandardsProtocolFact()      {}
 func (SourceFileEffects) projectStandardsProtocolFact()           {}
+func (SourceImport) projectStandardsProtocolFact()                {}
+func (SourceFileImports) projectStandardsProtocolFact()           {}
 func (SourceFile) projectStandardsProtocolFact()                  {}
 func (PackageFileCatalog) projectStandardsProtocolFact()          {}
 func (PackageKnowledge) projectStandardsProtocolFact()            {}

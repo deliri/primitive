@@ -15,12 +15,6 @@ const (
 	// Adding or removing an identity changes the catalog shape at compile time;
 	// no copied package count can drift from the enum.
 	PrimitivePackageCount = int(packageIdentityLimit - PackageCore)
-	// PrimitiveDirectImportCount is the number of admitted direct import edges.
-	PrimitiveDirectImportCount = 187
-	// PrimitiveDirectTestImportCount is the number of admitted test-only edges.
-	PrimitiveDirectTestImportCount = 37
-	// PrimitiveMaximumDirectImports caps direct sibling imports per package.
-	PrimitiveMaximumDirectImports = 10
 )
 
 // PackageIdentity is a closed identity for a package in Primitive's catalog.
@@ -158,34 +152,9 @@ type PackageContract struct {
 	Kind PackageKind
 }
 
-// DirectImportContract admits one direct importer-to-imported package edge.
-type DirectImportContract struct {
-	// Importer is the package that owns the import declaration.
-	Importer PackageIdentity
-	// Imported is the directly imported Primitive package.
-	Imported PackageIdentity
-}
-
-// DirectTestImportContract admits one test-only importer-to-imported edge.
-//
-// A test-only edge exists when a package's tests require either the real
-// substrate that produces an ingress value or the typed Testserial declaration
-// for a process-wide isolation fact. It grants no production dependency:
-// production sources that import the edge remain an undeclared production
-// edge, and a declared test edge that no test file uses is a ceremonial import
-// and equally rejected.
-type DirectTestImportContract struct {
-	// Importer is the package whose test sources own the import declaration.
-	Importer PackageIdentity
-	// Imported is the directly imported Primitive package.
-	Imported PackageIdentity
-}
-
-// ArchitectureCatalog is the complete, validated Primitive package graph.
+// ArchitectureCatalog is the complete validated Primitive package-ownership catalog.
 type ArchitectureCatalog struct {
-	packages    [PrimitivePackageCount]PackageContract
-	imports     [PrimitiveDirectImportCount]DirectImportContract
-	testImports [PrimitiveDirectTestImportCount]DirectTestImportContract
+	packages [PrimitivePackageCount]PackageContract
 }
 
 // PrimitiveArchitecture returns the complete compiler-owned package catalog.
@@ -240,265 +209,14 @@ func PrimitiveArchitecture() ArchitectureCatalog {
 			{Identity: PackageRunWorkspace, Kind: PackageKindProduction},
 			{Identity: PackageProviderWire, Kind: PackageKindProduction},
 			{Identity: PackageCapabilities, Kind: PackageKindProduction},
-			{Identity: PackagePrimitiveProject, Kind: PackageKindProduction},
-		},
-		imports: [PrimitiveDirectImportCount]DirectImportContract{
-			{Importer: PackageAttest, Imported: PackageCore},
-			{Importer: PackageContextState, Imported: PackageCore},
-			{Importer: PackageCurrency, Imported: PackageCore},
-			{Importer: PackageKeygen, Imported: PackageCore},
-			{Importer: PackageTestSerial, Imported: PackageCore},
-
-			{Importer: PackageFileLock, Imported: PackageCore},
-			{Importer: PackageFileLock, Imported: PackageContextState},
-			{Importer: PackageFilestore, Imported: PackageCore},
-			{Importer: PackageFilestore, Imported: PackageContextState},
-			{Importer: PackageFilestore, Imported: PackageTemporal},
-			{Importer: PackageHostFacts, Imported: PackageCore},
-			{Importer: PackageHostFacts, Imported: PackageContextState},
-			{Importer: PackageTemporal, Imported: PackageCore},
-			{Importer: PackageTemporal, Imported: PackageContextState},
-
-			{Importer: PackageExchange, Imported: PackageCore},
-			{Importer: PackageExchange, Imported: PackageContextState},
-			{Importer: PackageExchange, Imported: PackageKeygen},
-			{Importer: PackageExchange, Imported: PackageTemporal},
-			{Importer: PackageFuzzFinder, Imported: PackageCore},
-			{Importer: PackageFuzzFinder, Imported: PackageFilestore},
-			{Importer: PackageLease, Imported: PackageCore},
-			{Importer: PackageLease, Imported: PackageTemporal},
-			{Importer: PackageLease, Imported: PackageAttest},
-			{Importer: PackageGate, Imported: PackageCore},
-			{Importer: PackageGate, Imported: PackageLease},
-			{Importer: PackageReceipt, Imported: PackageCore},
-			{Importer: PackageReceipt, Imported: PackageAttest},
-			{Importer: PackageReceipt, Imported: PackageTemporal},
-			{Importer: PackageControlWire, Imported: PackageCore},
-			{Importer: PackageControlWire, Imported: PackageKeygen},
-			{Importer: PackageControlWire, Imported: PackageExchange},
-			{Importer: PackageControlWire, Imported: PackageTemporal},
-			{Importer: PackageControlPlane, Imported: PackageCore},
-			{Importer: PackageControlPlane, Imported: PackageControlWire},
-			{Importer: PackageControlPlane, Imported: PackageAttest},
-			{Importer: PackageControlPlane, Imported: PackageLease},
-			{Importer: PackageControlPlane, Imported: PackageTemporal},
-			{Importer: PackageControlPlane, Imported: PackageReceipt},
-			{Importer: PackageSubmission, Imported: PackageCore},
-			{Importer: PackageSubmission, Imported: PackageAttest},
-			{Importer: PackageSubmission, Imported: PackageChit},
-			{Importer: PackageSubmission, Imported: PackageControlWire},
-			{Importer: PackageSubmission, Imported: PackageID},
-			{Importer: PackageSubmission, Imported: PackageObjectStore},
-			{Importer: PackageSubmission, Imported: PackageTemporal},
-			{Importer: PackageSubmission, Imported: PackageReceipt},
-			{Importer: PackageSubmissionAuth, Imported: PackageCore},
-			{Importer: PackageSubmissionAuth, Imported: PackageAttest},
-			{Importer: PackageSubmissionAuth, Imported: PackageControlPlane},
-			{Importer: PackageSubmissionAuth, Imported: PackageControlWire},
-			{Importer: PackageSubmissionAuth, Imported: PackageSubmission},
-			{Importer: PackageSubmissionAuth, Imported: PackageChit},
-			{Importer: PackageSubmissionAuth, Imported: PackageObjectStore},
-			{Importer: PackageSubmissionAuth, Imported: PackageReceipt},
-			{Importer: PackageControlPlaneTest, Imported: PackageCore},
-			{Importer: PackageControlPlaneTest, Imported: PackageAttest},
-			{Importer: PackageControlPlaneTest, Imported: PackageControlPlane},
-			{Importer: PackageControlPlaneTest, Imported: PackageControlWire},
-			{Importer: PackageControlPlaneTest, Imported: PackageLease},
-			{Importer: PackageControlPlaneTest, Imported: PackageReceipt},
-			{Importer: PackageControlPlaneTest, Imported: PackageTemporal},
-			{Importer: PackageProcess, Imported: PackageCore},
-			{Importer: PackageProcess, Imported: PackageContextState},
-			{Importer: PackageProcess, Imported: PackageTemporal},
-			{Importer: PackageRelease, Imported: PackageCore},
-			{Importer: PackageRelease, Imported: PackageTemporal},
-			{Importer: PackageRelease, Imported: PackageAttest},
-			{Importer: PackageRelease, Imported: PackageFilestore},
-			{Importer: PackageRelease, Imported: PackageControlWire},
-			{Importer: PackageRelease, Imported: PackageKeygen},
-			{Importer: PackageRelease, Imported: PackageProcess},
-			{Importer: PackageShutdown, Imported: PackageCore},
-			{Importer: PackageShutdown, Imported: PackageContextState},
-			{Importer: PackageShutdown, Imported: PackageTemporal},
-
-			{Importer: PackageObjectStore, Imported: PackageCore},
-			{Importer: PackageObjectStore, Imported: PackageContextState},
-			{Importer: PackageObjectStore, Imported: PackageTemporal},
-			{Importer: PackageObjectStore, Imported: PackageExchange},
-			{Importer: PackageTimeProof, Imported: PackageCore},
-			{Importer: PackageTimeProof, Imported: PackageTemporal},
-			{Importer: PackageTimeProof, Imported: PackageKeygen},
-			{Importer: PackageCloudIdentity, Imported: PackageCore},
-			{Importer: PackageCloudIdentity, Imported: PackageContextState},
-			{Importer: PackageCloudIdentity, Imported: PackageTemporal},
-			{Importer: PackageCloudIdentity, Imported: PackageExchange},
-			{Importer: PackageDeploy, Imported: PackageCore},
-			{Importer: PackageDeploy, Imported: PackageObjectStore},
-			{Importer: PackageDeploy, Imported: PackageRelease},
-
-			{Importer: PackageUpgrade, Imported: PackageCore},
-			{Importer: PackageUpgrade, Imported: PackageFilestore},
-			{Importer: PackageUpgrade, Imported: PackageHostFacts},
-			{Importer: PackageUpgrade, Imported: PackageObjectStore},
-			{Importer: PackageUpgrade, Imported: PackageRelease},
-			{Importer: PackageUpgrade, Imported: PackageTemporal},
-
-			{Importer: PackageGCSObjects, Imported: PackageCore},
-			{Importer: PackageGCSObjects, Imported: PackageContextState},
-			{Importer: PackageGCSObjects, Imported: PackageTemporal},
-			{Importer: PackageGCSObjects, Imported: PackageObjectStore},
-			{Importer: PackageGCSObjects, Imported: PackageExchange},
-			{Importer: PackageGCSObjects, Imported: PackageFilestore},
-
-			{Importer: PackageID, Imported: PackageCore},
-			{Importer: PackageID, Imported: PackageTemporal},
-
-			{Importer: PackageChit, Imported: PackageAttest},
-			{Importer: PackageChit, Imported: PackageCore},
-			{Importer: PackageChit, Imported: PackageControlWire},
-			{Importer: PackageChit, Imported: PackageID},
-			{Importer: PackageChit, Imported: PackageReceipt},
-			{Importer: PackageChit, Imported: PackageTemporal},
-			{Importer: PackageChitAuth, Imported: PackageChit},
-			{Importer: PackageChitAuth, Imported: PackageControlPlane},
-			{Importer: PackageChitAuth, Imported: PackageControlWire},
-			{Importer: PackageChitAuth, Imported: PackageCore},
-
-			{Importer: PackageRetrieval, Imported: PackageAttest},
-			{Importer: PackageRetrieval, Imported: PackageChit},
-			{Importer: PackageRetrieval, Imported: PackageControlWire},
-			{Importer: PackageRetrieval, Imported: PackageCore},
-			{Importer: PackageRetrieval, Imported: PackageFilestore},
-			{Importer: PackageRetrieval, Imported: PackageObjectStore},
-			{Importer: PackageRetrieval, Imported: PackageReceipt},
-			{Importer: PackageRetrieval, Imported: PackageTemporal},
-
-			{Importer: PackageRetrievalAuth, Imported: PackageAttest},
-			{Importer: PackageRetrievalAuth, Imported: PackageControlPlane},
-			{Importer: PackageRetrievalAuth, Imported: PackageControlWire},
-			{Importer: PackageRetrievalAuth, Imported: PackageCore},
-			{Importer: PackageRetrievalAuth, Imported: PackageRetrieval},
-
-			{Importer: PackagePayment, Imported: PackageAttest},
-			{Importer: PackagePayment, Imported: PackageCore},
-			{Importer: PackagePayment, Imported: PackageControlWire},
-			{Importer: PackagePayment, Imported: PackageCurrency},
-			{Importer: PackagePayment, Imported: PackageID},
-			{Importer: PackagePayment, Imported: PackageReceipt},
-			{Importer: PackagePayment, Imported: PackageTemporal},
-			{Importer: PackagePaymentAuth, Imported: PackageControlPlane},
-			{Importer: PackagePaymentAuth, Imported: PackageControlWire},
-			{Importer: PackagePaymentAuth, Imported: PackageCore},
-			{Importer: PackagePaymentAuth, Imported: PackagePayment},
-
-			{Importer: PackageDistribution, Imported: PackageAttest},
-			{Importer: PackageDistribution, Imported: PackageControlWire},
-			{Importer: PackageDistribution, Imported: PackageCore},
-			{Importer: PackageDistribution, Imported: PackageDeploy},
-			{Importer: PackageDistribution, Imported: PackageObjectStore},
-			{Importer: PackageDistribution, Imported: PackageRelease},
-			{Importer: PackageDistribution, Imported: PackageTemporal},
-			{Importer: PackageDistribution, Imported: PackageUpgrade},
-			{Importer: PackageDistributionAuth, Imported: PackageAttest},
-			{Importer: PackageDistributionAuth, Imported: PackageControlPlane},
-			{Importer: PackageDistributionAuth, Imported: PackageControlWire},
-			{Importer: PackageDistributionAuth, Imported: PackageCore},
-			{Importer: PackageDistributionAuth, Imported: PackageDistribution},
-			{Importer: PackageDistributionAuth, Imported: PackageRelease},
-			{Importer: PackageWiring, Imported: PackageCore},
-			{Importer: PackageLineIO, Imported: PackageCore},
-			{Importer: PackageManual, Imported: PackageCore},
-			{Importer: PackageProjectStandards, Imported: PackageCapabilities},
-			{Importer: PackageProjectStandards, Imported: PackageCore},
-			{Importer: PackageProjectStandards, Imported: PackageExchange},
-			{Importer: PackageProjectStandards, Imported: PackageID},
-			{Importer: PackageProjectStandards, Imported: PackageTemporal},
-			{Importer: PackageMachineProbe, Imported: PackageProjectStandards},
-			{Importer: PackageMachineProbe, Imported: PackageCore},
-			{Importer: PackageMachineProbe, Imported: PackageFilestore},
-			{Importer: PackageMachineProbe, Imported: PackageProcess},
-			{Importer: PackageMachineProbe, Imported: PackageTemporal},
-			{Importer: PackageRunnerControl, Imported: PackageProjectStandards},
-			{Importer: PackageRunnerControl, Imported: PackageAttest},
-			{Importer: PackageRunnerControl, Imported: PackageCore},
-			{Importer: PackageRunnerControl, Imported: PackageExchange},
-			{Importer: PackageRunnerControl, Imported: PackageID},
-			{Importer: PackageRunnerControl, Imported: PackageObjectStore},
-			{Importer: PackageRunnerControl, Imported: PackageProcess},
-			{Importer: PackageRunnerControl, Imported: PackageTemporal},
-			{Importer: PackageRunWorkspace, Imported: PackageProjectStandards},
-			{Importer: PackageRunWorkspace, Imported: PackageAttest},
-			{Importer: PackageRunWorkspace, Imported: PackageCore},
-			{Importer: PackageRunWorkspace, Imported: PackageFilestore},
-			{Importer: PackageRunWorkspace, Imported: PackageObjectStore},
-			{Importer: PackageRunWorkspace, Imported: PackageProcess},
-			{Importer: PackageRunWorkspace, Imported: PackageRunnerControl},
-			{Importer: PackageRunWorkspace, Imported: PackageTemporal},
-			{Importer: PackageSecretStore, Imported: PackageCore},
-			{Importer: PackageSecretStore, Imported: PackageContextState},
-			{Importer: PackageProviderWire, Imported: PackageContextState},
-			{Importer: PackageProviderWire, Imported: PackageCore},
-			{Importer: PackageProviderWire, Imported: PackageExchange},
-			{Importer: PackageProviderWire, Imported: PackageTemporal},
-			{Importer: PackageCapabilities, Imported: PackageCore},
-			{Importer: PackagePrimitiveProject, Imported: PackageProjectStandards},
-		},
-		testImports: [PrimitiveDirectTestImportCount]DirectTestImportContract{
-			{Importer: PackageGate, Imported: PackageAttest},
-			{Importer: PackageGate, Imported: PackageTemporal},
-			{Importer: PackageFilestore, Imported: PackageFileLock},
-			{Importer: PackageProcess, Imported: PackageTestSerial},
-			{Importer: PackageDeploy, Imported: PackageAttest},
-			{Importer: PackageDeploy, Imported: PackageExchange},
-			{Importer: PackageDeploy, Imported: PackageTemporal},
-			{Importer: PackageUpgrade, Imported: PackageExchange},
-			{Importer: PackageGCSObjects, Imported: PackageTestSerial},
-			{Importer: PackageSubmissionAuth, Imported: PackageControlPlaneTest},
-			{Importer: PackageSubmissionAuth, Imported: PackageExchange},
-			{Importer: PackageSubmission, Imported: PackageExchange},
-			{Importer: PackageControlWire, Imported: PackageControlPlane},
-			{Importer: PackageControlWire, Imported: PackageControlPlaneTest},
-			{Importer: PackageControlWire, Imported: PackageAttest},
-			{Importer: PackageRetrievalAuth, Imported: PackageControlPlaneTest},
-			{Importer: PackageRetrieval, Imported: PackageExchange},
-			{Importer: PackageChitAuth, Imported: PackageControlPlaneTest},
-			{Importer: PackageChitAuth, Imported: PackageAttest},
-			{Importer: PackageChitAuth, Imported: PackageReceipt},
-			{Importer: PackageChitAuth, Imported: PackageTemporal},
-			{Importer: PackagePaymentAuth, Imported: PackageControlPlaneTest},
-			{Importer: PackagePaymentAuth, Imported: PackageAttest},
-			{Importer: PackagePaymentAuth, Imported: PackageCurrency},
-			{Importer: PackagePaymentAuth, Imported: PackageReceipt},
-			{Importer: PackagePaymentAuth, Imported: PackageTemporal},
-			{Importer: PackageDistributionAuth, Imported: PackageControlPlaneTest},
-			{Importer: PackageDistributionAuth, Imported: PackageDeploy},
-			{Importer: PackageDistributionAuth, Imported: PackageExchange},
-			{Importer: PackageDistributionAuth, Imported: PackageObjectStore},
-			{Importer: PackageDistribution, Imported: PackageExchange},
-			{Importer: PackageRelease, Imported: PackageTestSerial},
-			{Importer: PackageLineIO, Imported: PackageFilestore},
-			{Importer: PackageSecretStore, Imported: PackageProcess},
-			{Importer: PackageMachineProbe, Imported: PackageID},
-			{Importer: PackageRunWorkspace, Imported: PackageExchange},
-			{Importer: PackageRunWorkspace, Imported: PackageID},
+			{Identity: PackagePrimitiveProject, Kind: PackageKindTestSupport},
 		},
 	}
 }
 
-// Validate rejects incomplete, duplicate, cyclic, or over-coupled catalogs.
+// Validate rejects incomplete or duplicate package ownership.
 func (c ArchitectureCatalog) Validate() error {
-	if err := c.validatePackages(); err != nil {
-		return err
-	}
-	if err := c.validateDirectImports(); err != nil {
-		return err
-	}
-	if err := c.validateDirectTestImports(); err != nil {
-		return err
-	}
-	if c.hasCycle() {
-		return architectureContractError("architecture catalog contains an import cycle")
-	}
-	return c.validateImportCardinality()
+	return c.validatePackages()
 }
 
 // Packages yields every package contract in catalog order.
@@ -510,48 +228,6 @@ func (c ArchitectureCatalog) Packages() iter.Seq[PackageContract] {
 			}
 		}
 	}
-}
-
-// DirectImports yields every admitted direct import edge in catalog order.
-func (c ArchitectureCatalog) DirectImports() iter.Seq[DirectImportContract] {
-	return func(yield func(DirectImportContract) bool) {
-		for _, contract := range c.imports {
-			if !yield(contract) {
-				return
-			}
-		}
-	}
-}
-
-// DirectTestImports yields every admitted test-only edge in catalog order.
-func (c ArchitectureCatalog) DirectTestImports() iter.Seq[DirectTestImportContract] {
-	return func(yield func(DirectTestImportContract) bool) {
-		for _, contract := range c.testImports {
-			if !yield(contract) {
-				return
-			}
-		}
-	}
-}
-
-// ContainsDirectImport reports membership in the admitted production graph.
-func (c ArchitectureCatalog) ContainsDirectImport(target DirectImportContract) bool {
-	for _, contract := range c.imports {
-		if contract == target {
-			return true
-		}
-	}
-	return false
-}
-
-// ContainsDirectTestImport reports membership in the admitted test-only graph.
-func (c ArchitectureCatalog) ContainsDirectTestImport(target DirectTestImportContract) bool {
-	for _, contract := range c.testImports {
-		if contract == target {
-			return true
-		}
-	}
-	return false
 }
 
 // Lookup returns the contract for identity.
@@ -700,7 +376,7 @@ func (c PackageContract) Validate() error {
 	if err := c.Kind.Validate(); err != nil {
 		return err
 	}
-	if c.Identity == PackageTestSerial || c.Identity == PackageControlPlaneTest {
+	if c.Identity == PackageTestSerial || c.Identity == PackageControlPlaneTest || c.Identity == PackagePrimitiveProject {
 		if c.Kind != PackageKindTestSupport {
 			return architectureContractError("test-support package must be classified as test support")
 		}
@@ -772,31 +448,6 @@ func packagePurposeTexts() [packageIdentityLimit]string {
 		PackageCapabilities:     "Compiler-owned discovery and exact resolution of Primitive package and real-world effect capabilities",
 		PackagePrimitiveProject: "Authored Primitive project policy expressed through the product-neutral Project Standards contract",
 	}
-}
-
-// Validate enforces a legal direct package relationship.
-func (c DirectImportContract) Validate() error {
-	if err := c.Importer.Validate(); err != nil {
-		return err
-	}
-	if err := c.Imported.Validate(); err != nil {
-		return err
-	}
-	if c.Importer == c.Imported || c.Importer == PackageCore {
-		return architectureContractError("direct import has an invalid importer relationship")
-	}
-	return nil
-}
-
-// Validate enforces a legal test-only package relationship.
-//
-// A test edge obeys the identical relationship legality as a production edge:
-// both endpoints are admitted packages and a package never imports itself or
-// is imported by Core. Unlike a production edge, a test edge may target the
-// test-support package, because declaring test isolation is exactly what test
-// sources do.
-func (c DirectTestImportContract) Validate() error {
-	return DirectImportContract(c).Validate()
 }
 
 func packageIdentityText(identity PackageIdentity) string {
@@ -875,101 +526,6 @@ func (c ArchitectureCatalog) validatePackages() error {
 		}
 	}
 	return nil
-}
-
-func (c ArchitectureCatalog) validateDirectImports() error {
-	for index, contract := range c.imports {
-		if err := contract.Validate(); err != nil {
-			return err
-		}
-		imported, found := c.Lookup(contract.Imported)
-		if !found || imported.Kind == PackageKindTestSupport {
-			return architectureContractError("direct import targets an absent or test-support package")
-		}
-		for prior := range index {
-			if c.imports[prior] == contract {
-				return architectureContractError("architecture catalog contains a duplicate direct import")
-			}
-		}
-	}
-	return nil
-}
-
-func (c ArchitectureCatalog) validateDirectTestImports() error {
-	for index, contract := range c.testImports {
-		if err := contract.Validate(); err != nil {
-			return err
-		}
-		if _, found := c.Lookup(contract.Imported); !found {
-			return architectureContractError("direct test import targets an absent package")
-		}
-		if c.ContainsDirectImport(DirectImportContract(contract)) {
-			return architectureContractError("direct test import duplicates a production edge")
-		}
-		for prior := range index {
-			if c.testImports[prior] == contract {
-				return architectureContractError("architecture catalog contains a duplicate direct test import")
-			}
-		}
-	}
-	return nil
-}
-
-// validateImportCardinality bounds each package's total compiler-visible
-// sibling coupling. Test-only edges count against the same ceiling as
-// production edges; a package does not buy extra coupling by spending it in
-// its test sources.
-func (c ArchitectureCatalog) validateImportCardinality() error {
-	var counts [packageIdentityLimit]uint8
-	for _, contract := range c.imports {
-		counts[contract.Importer]++
-	}
-	for _, contract := range c.testImports {
-		counts[contract.Importer]++
-	}
-	for identity := PackageAttest; identity < packageIdentityLimit; identity++ {
-		if counts[identity] == 0 {
-			return architectureContractError("non-core package has no direct imports")
-		}
-		if counts[identity] > PrimitiveMaximumDirectImports {
-			return architectureContractError("package exceeds the direct import limit")
-		}
-	}
-	return nil
-}
-
-func (c ArchitectureCatalog) hasCycle() bool {
-	var visiting [packageIdentityLimit]bool
-	var visited [packageIdentityLimit]bool
-	for identity := PackageCore; identity < packageIdentityLimit; identity++ {
-		if c.packageHasCycle(identity, &visiting, &visited) {
-			return true
-		}
-	}
-	return false
-}
-
-func (c ArchitectureCatalog) packageHasCycle(
-	identity PackageIdentity,
-	visiting *[packageIdentityLimit]bool,
-	visited *[packageIdentityLimit]bool,
-) bool {
-	if visiting[identity] {
-		return true
-	}
-	if visited[identity] {
-		return false
-	}
-	visiting[identity] = true
-	for _, contract := range c.imports {
-		if contract.Importer == identity &&
-			c.packageHasCycle(contract.Imported, visiting, visited) {
-			return true
-		}
-	}
-	visiting[identity] = false
-	visited[identity] = true
-	return false
 }
 
 // ParsePackageIdentity parses one canonical package name.

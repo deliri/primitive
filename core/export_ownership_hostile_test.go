@@ -16,7 +16,7 @@ import (
 const (
 	coreExportInventoryMaximum      = 512
 	coreExportDependencyMaximum     = 32
-	coreSpecialExportAdmissionCount = 65
+	coreSpecialExportAdmissionCount = 60
 )
 
 type coreExportName string
@@ -93,14 +93,12 @@ func coherentDomainContractAdmission(name coreExportName, witness any) coreSpeci
 	}
 }
 
-// These are PLAN's compiler-owned architecture catalog, not ordinary shared
-// facts. Each name is paired with a live identifier reference, so a declaration
-// rename breaks the test build instead of changing policy through a filename.
+// These are the compiler-owned package and coherent-domain contracts, not
+// observations of the current source tree. Each name is paired with a live
+// identifier reference so declaration drift breaks the build.
 func coreSpecialExportAdmissions() [coreSpecialExportAdmissionCount]coreSpecialExportAdmission {
 	return [...]coreSpecialExportAdmission{
 		architectureCatalogAdmission("ArchitectureCatalog", ArchitectureCatalog{}),
-		architectureCatalogAdmission("DirectImportContract", DirectImportContract{}),
-		architectureCatalogAdmission("DirectTestImportContract", DirectTestImportContract{}),
 		architectureCatalogAdmission("PackageContract", PackageContract{}),
 		architectureCatalogAdmission("PackageIdentity", PackageIdentity(0)),
 		architectureCatalogAdmission("PackageKind", PackageKind(0)),
@@ -135,9 +133,6 @@ func coreSpecialExportAdmissions() [coreSpecialExportAdmissionCount]coreSpecialE
 		architectureCatalogAdmission("ParsePackageIdentity", ParsePackageIdentity),
 		architectureCatalogAdmission("PrimitiveArchitecture", PrimitiveArchitecture),
 		architectureCatalogAdmission("PrimitivePackageCount", PrimitivePackageCount),
-		architectureCatalogAdmission("PrimitiveDirectImportCount", PrimitiveDirectImportCount),
-		architectureCatalogAdmission("PrimitiveDirectTestImportCount", PrimitiveDirectTestImportCount),
-		architectureCatalogAdmission("PrimitiveMaximumDirectImports", PrimitiveMaximumDirectImports),
 		architectureCatalogAdmission("PrimitiveModulePath", PrimitiveModulePath),
 		architectureCatalogAdmission("PrimitivePackagePathPrefix", PrimitivePackagePathPrefix),
 		coherentDomainContractAdmission("SecretMaterialMaximumBytes", SecretMaterialMaximumBytes),

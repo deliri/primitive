@@ -36,7 +36,6 @@ var (
 	_ core.Validatable = lineio.BufferPolicy{}
 	_ core.Validatable = lineio.Request{}
 	_ core.Validatable = (*lineio.Scanner)(nil)
-	_                  = core.DirectImportContract{Importer: core.PackageLineIO, Imported: core.PackageCore}
 )
 
 func TestLineIOProductionStructsHaveCompilerVisibleDataFlowRoles(t *testing.T) {
