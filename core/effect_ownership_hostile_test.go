@@ -457,6 +457,7 @@ func declaredRealWorldCalls() (realWorldCallInventory, error) {
 		{owner: PackageHostFacts, substrate: realWorldSubstrateOperatingSystem, selector: "UserHomeDir", count: 1},
 		{owner: PackageProcess, substrate: realWorldSubstrateOperatingSystem, selector: "Environ", count: 1},
 		{owner: PackageProcess, substrate: realWorldSubstrateOperatingSystem, selector: "Executable", count: 1},
+		{owner: PackageProcess, substrate: realWorldSubstrateOperatingSystem, selector: "Exit", count: 1},
 		{owner: PackageProcess, substrate: realWorldSubstrateOperatingSystem, selector: "Getpid", count: 1},
 		{owner: PackageProcess, substrate: realWorldSubstrateOperatingSystem, selector: "Getwd", count: 1},
 		{owner: PackageProcess, substrate: realWorldSubstrateOperatingSystem, selector: "LookupEnv", count: 1},

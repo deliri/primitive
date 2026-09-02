@@ -1,6 +1,7 @@
 package process
 
 import (
+	"bytes"
 	"context"
 	"errors"
 	"io"
@@ -9,6 +10,38 @@ import (
 
 	"github.com/deliri/primitive/v2026/core"
 )
+
+// TestCommandStreamsRetainTwoIndependentLimitFailures is the direct helper
+// ratchet for concurrent output faults. A real child is stopped after the
+// first observed stream failure, so only this owned seam can deterministically
+// prove that two failures already delivered to the writers remain distinct.
+func TestCommandStreamsRetainTwoIndependentLimitFailures(t *testing.T) {
+	t.Parallel()
+
+	limit, err := core.NewByteCount(8)
+	if err != nil {
+		t.Fatalf("core.NewByteCount() error = %v, want nil", err)
+	}
+	ctx, cancel := context.WithCancelCause(context.Background())
+	failures := &streamFailures{cancel: cancel}
+	streams := newCommandStreams(Request{
+		Streams:     Streams{Stdin: bytes.NewReader(nil), Stdout: io.Discard, Stderr: io.Discard},
+		OutputLimit: limit,
+	}, failures)
+	if count, gotErr := streams.stdout.Write(make([]byte, 9)); count != 8 || !errors.Is(gotErr, core.ErrProcessOutputLimit) {
+		t.Fatalf("stdout bounded write = (%d, %v), want 8 and %v", count, gotErr, core.ErrProcessOutputLimit)
+	}
+	if count, gotErr := streams.stderr.Write(make([]byte, 9)); count != 8 || !errors.Is(gotErr, core.ErrProcessOutputLimit) {
+		t.Fatalf("stderr bounded write = (%d, %v), want 8 and %v", count, gotErr, core.ErrProcessOutputLimit)
+	}
+	gotErr := failures.joined()
+	if failures.values[StreamStdout] == nil || failures.values[StreamStderr] == nil || !errors.Is(gotErr, core.ErrProcessOutputLimit) {
+		t.Fatalf("joined stream failures = stdout:%v stderr:%v joined:%v, want two retained output-limit failures", failures.values[StreamStdout], failures.values[StreamStderr], gotErr)
+	}
+	if !errors.Is(context.Cause(ctx), core.ErrProcessOutputLimit) {
+		t.Fatalf("stream cancellation cause = %v, want %v", context.Cause(ctx), core.ErrProcessOutputLimit)
+	}
+}
 
 type zeroWriteRejectingDestination struct {
 	emptyWriteError error

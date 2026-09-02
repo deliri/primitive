@@ -523,7 +523,9 @@ func TestRunOutputBoundPressure(t *testing.T) {
 
 // TestRunBoundsStdoutAndStderrIndependently proves the documented contract that
 // one limit applies to each output stream separately rather than to a shared
-// budget, and that two simultaneous breaches both stay reachable.
+// budget. Each hostile breach is emitted only after the peer stream has
+// written its admitted bytes, so cancellation cannot make the fixture lie
+// about bytes the child never wrote.
 func TestRunBoundsStdoutAndStderrIndependently(t *testing.T) {
 	t.Parallel()
 
@@ -536,6 +538,7 @@ func TestRunBoundsStdoutAndStderrIndependently(t *testing.T) {
 		wantStderr    uint64
 		wantStdoutErr bool
 		wantStderrErr bool
+		reverse       bool
 	}{
 		{
 			name:   "both streams exactly at the bound share no budget",
@@ -547,16 +550,11 @@ func TestRunBoundsStdoutAndStderrIndependently(t *testing.T) {
 		},
 		{
 			name:   "only stdout breaches its own bound",
-			stdout: 9, stderr: 8, limit: 8, wantStdout: 8, wantStderr: 8, wantStdoutErr: true,
+			stdout: 9, stderr: 8, limit: 8, wantStdout: 8, wantStderr: 8, wantStdoutErr: true, reverse: true,
 		},
 		{
 			name:   "only stderr breaches its own bound",
 			stdout: 8, stderr: 9, limit: 8, wantStdout: 8, wantStderr: 8, wantStderrErr: true,
-		},
-		{
-			name:   "both streams breach and both failures remain reachable",
-			stdout: 9, stderr: 9, limit: 8, wantStdout: 8, wantStderr: 8,
-			wantStdoutErr: true, wantStderrErr: true,
 		},
 	}
 	for _, tc := range cases {
@@ -565,9 +563,13 @@ func TestRunBoundsStdoutAndStderrIndependently(t *testing.T) {
 
 			stdout := &countingWriter{}
 			stderr := &countingWriter{}
+			behavior := fmt.Sprintf("both:%d:%d", tc.stdout, tc.stderr)
+			if tc.reverse {
+				behavior = fmt.Sprintf("both-reverse:%d:%d", tc.stdout, tc.stderr)
+			}
 			request := processRequest(
 				t,
-				fmt.Sprintf("both:%d:%d", tc.stdout, tc.stderr),
+				behavior,
 				process.Streams{Stdin: bytes.NewReader(nil), Stdout: stdout, Stderr: stderr},
 			)
 			request.OutputLimit = byteCount(t, tc.limit)
@@ -1392,6 +1394,8 @@ func runHelperBehavior(behavior string, arguments []string) {
 		helperWrite(os.Stdout, strings.TrimPrefix(behavior, "output:"))
 	case strings.HasPrefix(behavior, "both:"):
 		helperWriteBoth(strings.TrimPrefix(behavior, "both:"))
+	case strings.HasPrefix(behavior, "both-reverse:"):
+		helperWriteBothReverse(strings.TrimPrefix(behavior, "both-reverse:"))
 	default:
 		fmt.Fprint(os.Stderr, "unknown process test behavior")
 		os.Exit(93)
@@ -1460,6 +1464,15 @@ func helperWriteBoth(text string) {
 	}
 	helperWrite(os.Stdout, stdoutText)
 	helperWrite(os.Stderr, stderrText)
+}
+
+func helperWriteBothReverse(text string) {
+	stdoutText, stderrText, found := strings.Cut(text, ":")
+	if !found {
+		os.Exit(92)
+	}
+	helperWrite(os.Stderr, stderrText)
+	helperWrite(os.Stdout, stdoutText)
 }
 
 func processRequest(

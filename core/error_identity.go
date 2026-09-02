@@ -418,6 +418,14 @@ const (
 	// ErrCapabilityUnavailable identifies a valid requirement for which
 	// Primitive exposes no admissible capability in the requested scope.
 	ErrCapabilityUnavailable
+	// ErrGoModuleContract identifies an invalid canonical Go module identity.
+	ErrGoModuleContract
+	// ErrGoToolchainContract identifies an invalid cmd/go capability or request.
+	ErrGoToolchainContract
+	// ErrGoToolchainExecution identifies failed bounded cmd/go execution.
+	ErrGoToolchainExecution
+	// ErrGoToolchainOutput identifies malformed or contradictory cmd/go output.
+	ErrGoToolchainOutput
 	errorIdentityLimit
 )
 
@@ -595,6 +603,10 @@ func errorIdentityDiagnostics() [errorIdentityLimit]errorIdentityDiagnostic {
 		{identity: ErrProviderWireBinding, text: "provider wire binding failed"},
 		{identity: ErrCapabilitiesContract, text: "capabilities contract violation"},
 		{identity: ErrCapabilityUnavailable, text: "primitive capability unavailable"},
+		{identity: ErrGoModuleContract, text: "go module contract violation"},
+		{identity: ErrGoToolchainContract, text: "go toolchain contract violation"},
+		{identity: ErrGoToolchainExecution, text: "go toolchain execution failed"},
+		{identity: ErrGoToolchainOutput, text: "go toolchain output invalid"},
 	}
 }
 
@@ -713,8 +725,11 @@ func errorIdentityParents(identity ErrorIdentity) errorIdentityParentSet {
 		ErrLifecycleIdentityContract, ErrReceiptContract, ErrChitContract,
 		ErrRetrievalContract, ErrPaymentContract, ErrControlWireContract,
 		ErrControlPlaneContract, ErrIDContract, ErrSecretStoreContract,
-		ErrProviderWireContract, ErrCapabilitiesContract) {
+		ErrProviderWireContract, ErrCapabilitiesContract, ErrGoModuleContract, ErrGoToolchainContract) {
 		return oneErrorIdentityParent(ErrPrimitiveContract)
+	}
+	if errorIdentityIn(identity, ErrGoToolchainExecution, ErrGoToolchainOutput) {
+		return oneErrorIdentityParent(ErrGoToolchainContract)
 	}
 	if errorIdentityIn(identity, ErrControlWireRevision, ErrControlWireNonce, ErrControlWireToken,
 		ErrControlWirePolicyCursor, ErrControlWireRoute, ErrControlWireProtocolSupport,

@@ -52,22 +52,29 @@ func TestSourceFileContractHostileBoundaries(t *testing.T) {
 			got := sourceFileFixture(t)
 			got.Package = fixturePath(t, "exchange")
 			got.Path = fixturePath(t, "exchange/client.go")
-			got.Effects.Posture = PrimitiveEffectImplementation
+			got.Effects = sourceEffectsFixture(t, PrimitiveEffectImplementation, core.PackageExchange)
 			return got
 		}},
 		{name: "valid direct filesystem bypass names Filestore as required owner", setup: func(t *testing.T) SourceFile {
 			got := sourceFileFixture(t)
-			got.Effects = SourceFileEffects{Posture: PrimitiveEffectDirectObserved, Capabilities: []PrimitiveCapabilityUse{{Package: core.PackageFilestore}}}
+			got.Effects = sourceEffectsFixture(t, PrimitiveEffectDirectObserved, core.PackageFilestore)
 			return got
 		}},
 		{name: "valid unresolved effect site remains visibly unresolved", setup: func(t *testing.T) SourceFile {
 			got := sourceFileFixture(t)
-			got.Effects = SourceFileEffects{Posture: PrimitiveEffectUnresolved, UnresolvedSites: 1}
+			got.Effects = unresolvedEffectsFixture(t, 1)
 			return got
 		}},
 		{name: "valid partial scan retains resolved capability beside unresolved site", setup: func(t *testing.T) SourceFile {
 			got := sourceFileFixture(t)
-			got.Effects = SourceFileEffects{Posture: PrimitiveEffectUnresolved, Capabilities: []PrimitiveCapabilityUse{{Package: core.PackageExchange}}, UnresolvedSites: 1}
+			got.Effects.Posture = PrimitiveEffectUnresolved
+			got.Effects.Unresolved = unresolvedEffectSites(t, 1)
+			return got
+		}},
+		{name: "valid direct bypass remains primary beside an unresolved sibling", setup: func(t *testing.T) SourceFile {
+			got := sourceFileFixture(t)
+			got.Effects = sourceEffectsFixture(t, PrimitiveEffectDirectObserved, core.PackageFilestore)
+			got.Effects.Unresolved = unresolvedEffectSites(t, 1)
 			return got
 		}},
 		{name: "valid test helper file has zero test declarations", setup: func(t *testing.T) SourceFile {
@@ -83,7 +90,7 @@ func TestSourceFileContractHostileBoundaries(t *testing.T) {
 			got.Path = fixturePath(t, "projectstandards/serial_test.go")
 			got.Kind = SourceFileKindTest
 			got.Declarations = SourceFileDeclarations{TestDeclarations: 1}
-			got.Effects.Capabilities = []PrimitiveCapabilityUse{{Package: core.PackageTestSerial}}
+			got.Effects = sourceEffectsFixture(t, PrimitiveEffectMediated, core.PackageTestSerial)
 			return got
 		}, wantVia: true},
 		{name: "valid Markdown document is effect-inert", setup: func(t *testing.T) SourceFile {
@@ -115,9 +122,9 @@ func TestSourceFileContractHostileBoundaries(t *testing.T) {
 			got.Effects = SourceFileEffects{Posture: PrimitiveEffectPurePolicy}
 			return got
 		}},
-		{name: "boundary maximum unresolved-site count remains explicit", setup: func(t *testing.T) SourceFile {
+		{name: "boundary maximum retained source sites remain explicit", setup: func(t *testing.T) SourceFile {
 			got := sourceFileFixture(t)
-			got.Effects = SourceFileEffects{Posture: PrimitiveEffectUnresolved, UnresolvedSites: math.MaxUint16}
+			got.Effects = unresolvedEffectsFixture(t, SourceEffectSiteMaximum)
 			return got
 		}},
 		{name: "boundary complete Primitive catalog is admitted for test scope", setup: func(t *testing.T) SourceFile {
@@ -125,7 +132,7 @@ func TestSourceFileContractHostileBoundaries(t *testing.T) {
 			got.Path = fixturePath(t, "projectstandards/all_capabilities_test.go")
 			got.Kind = SourceFileKindTest
 			got.Declarations = SourceFileDeclarations{TestDeclarations: 1}
-			got.Effects.Capabilities = allPrimitiveCapabilityUses(t)
+			got.Effects = mediatedEffectsForUses(t, allPrimitiveCapabilityUses(t))
 			return got
 		}, wantVia: true},
 		{name: "invalid unknown source language is rejected", setup: func(t *testing.T) SourceFile {
@@ -184,12 +191,12 @@ func TestSourceFileContractHostileBoundaries(t *testing.T) {
 		}, wantErr: core.ErrProjectStandardsConflict},
 		{name: "invalid production use of Testserial preserves typed refusal", setup: func(t *testing.T) SourceFile {
 			got := sourceFileFixture(t)
-			got.Effects.Capabilities = []PrimitiveCapabilityUse{{Package: core.PackageTestSerial}}
+			got.Effects = sourceEffectsFixture(t, PrimitiveEffectMediated, core.PackageTestSerial)
 			return got
 		}, wantErr: core.ErrCapabilityUnavailable},
 		{name: "invalid Primitive implementation names another package", setup: func(t *testing.T) SourceFile {
 			got := sourceFileFixture(t)
-			got.Effects.Posture = PrimitiveEffectImplementation
+			got.Effects = sourceEffectsFixture(t, PrimitiveEffectImplementation, core.PackageExchange)
 			return got
 		}, wantErr: core.ErrProjectStandardsConflict},
 		{name: "invalid duplicate capability cannot pad the file record", setup: func(t *testing.T) SourceFile {
@@ -209,7 +216,7 @@ func TestSourceFileContractHostileBoundaries(t *testing.T) {
 		}, wantErr: core.ErrProjectStandardsConflict},
 		{name: "invalid resolved posture cannot retain unresolved sites", setup: func(t *testing.T) SourceFile {
 			got := sourceFileFixture(t)
-			got.Effects.UnresolvedSites = 1
+			got.Effects.Unresolved = unresolvedEffectSites(t, 1)
 			return got
 		}, wantErr: core.ErrProjectStandardsConflict},
 		{name: "invalid unresolved posture requires an unresolved site", setup: func(t *testing.T) SourceFile {
@@ -384,10 +391,7 @@ func sourceFileFixture(t *testing.T) SourceFile {
 		Package:  fixturePath(t, "projectstandards"),
 		Language: SourceLanguageGo,
 		Kind:     SourceFileKindProduction,
-		Effects: SourceFileEffects{
-			Posture:      PrimitiveEffectMediated,
-			Capabilities: []PrimitiveCapabilityUse{{Package: core.PackageExchange}},
-		},
+		Effects:  sourceEffectsFixture(t, PrimitiveEffectMediated, core.PackageExchange),
 	}
 }
 
@@ -401,7 +405,7 @@ func fixturePackageFileCatalog(t *testing.T) PackageFileCatalog {
 			{
 				Path: fixturePath(t, "projectstandards/catalog.go"), Package: path,
 				Language: SourceLanguageGo, Kind: SourceFileKindProduction,
-				Effects: SourceFileEffects{Posture: PrimitiveEffectMediated, Capabilities: []PrimitiveCapabilityUse{{Package: core.PackageExchange}}},
+				Effects: sourceEffectsFixture(t, PrimitiveEffectMediated, core.PackageExchange),
 			},
 			{
 				Path: fixturePath(t, "projectstandards/catalog_test.go"), Package: path,
@@ -411,6 +415,63 @@ func fixturePackageFileCatalog(t *testing.T) PackageFileCatalog {
 			},
 		},
 	}
+}
+
+func sourceEffectsFixture(t *testing.T, posture PrimitiveEffectPosture, capability core.PackageIdentity) SourceFileEffects {
+	t.Helper()
+
+	use := PrimitiveCapabilityUse{Package: capability}
+	site := sourceEffectSiteFixture(t, &use, 1)
+	effects := SourceFileEffects{Capabilities: []PrimitiveCapabilityUse{use}, Posture: posture}
+	switch posture {
+	case PrimitiveEffectDirectObserved:
+		effects.Direct = []SourceEffectSite{site}
+	case PrimitiveEffectMediated:
+		effects.Mediated = []SourceEffectSite{site}
+	case PrimitiveEffectImplementation:
+		effects.Implementation = []SourceEffectSite{site}
+	}
+	return effects
+}
+
+func unresolvedEffectsFixture(t *testing.T, count int) SourceFileEffects {
+	t.Helper()
+
+	return SourceFileEffects{Posture: PrimitiveEffectUnresolved, Unresolved: unresolvedEffectSites(t, count)}
+}
+
+func unresolvedEffectSites(t *testing.T, count int) []SourceEffectSite {
+	t.Helper()
+
+	sites := make([]SourceEffectSite, count)
+	for index := range sites {
+		sites[index] = sourceEffectSiteFixture(t, nil, uint32(index+1))
+	}
+	return sites
+}
+
+func sourceEffectSiteFixture(t *testing.T, capability *PrimitiveCapabilityUse, line uint32) SourceEffectSite {
+	t.Helper()
+
+	selector := fixtureIdentifier(t, "Observe")
+	return SourceEffectSite{
+		Capability: capability,
+		ImportPath: fixturePath(t, "example.com/effect"),
+		Selector:   &selector,
+		Line:       line,
+		Column:     1,
+	}
+}
+
+func mediatedEffectsForUses(t *testing.T, uses []PrimitiveCapabilityUse) SourceFileEffects {
+	t.Helper()
+
+	sites := make([]SourceEffectSite, len(uses))
+	for index := range uses {
+		use := uses[index]
+		sites[index] = sourceEffectSiteFixture(t, &use, uint32(index+1))
+	}
+	return SourceFileEffects{Capabilities: uses, Mediated: sites, Posture: PrimitiveEffectMediated}
 }
 
 func allPrimitiveCapabilityUses(t *testing.T) []PrimitiveCapabilityUse {

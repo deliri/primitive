@@ -2,6 +2,7 @@ package projectstandards
 
 import (
 	"errors"
+	"slices"
 
 	"github.com/deliri/primitive/v2026/capabilities"
 	"github.com/deliri/primitive/v2026/core"
@@ -14,6 +15,8 @@ const (
 	// SourceFileDeclarationMaximum bounds test, benchmark, and fuzz declarations
 	// admitted from one source file.
 	SourceFileDeclarationMaximum = 256
+	// SourceEffectSiteMaximum bounds exact call sites retained for one file.
+	SourceEffectSiteMaximum = 1_024
 )
 
 // SourceLanguage identifies the compiler-visible source family of one file.
@@ -159,6 +162,35 @@ type SourceFileDeclarations struct {
 	FuzzTargets      uint16 `json:"fuzz_targets"`
 }
 
+// SourceEffectSite is one exact syntax observation behind an effect fact.
+// Capability may be absent only when the site is unresolved. Selector may be
+// absent for an unresolved whole-import effect such as a blank import.
+type SourceEffectSite struct {
+	Capability *PrimitiveCapabilityUse `json:"capability,omitempty"`
+	ImportPath SourcePath              `json:"import_path"`
+	Selector   *Identifier             `json:"selector,omitempty"`
+	Line       uint32                  `json:"line"`
+	Column     uint32                  `json:"column"`
+}
+
+func (s SourceEffectSite) Validate() error {
+	if err := s.ImportPath.Validate(); err != nil {
+		return err
+	}
+	if s.Line == 0 || s.Column == 0 {
+		return contractError(errors.New("project standards effect site coordinate is absent"))
+	}
+	if s.Capability != nil {
+		if err := s.Capability.Validate(); err != nil {
+			return err
+		}
+	}
+	if s.Selector != nil {
+		return s.Selector.Validate()
+	}
+	return nil
+}
+
 func (d SourceFileDeclarations) Validate() error {
 	if d.TestDeclarations > SourceFileDeclarationMaximum {
 		return contractError(errors.New("project standards source file declaration count exceeds its bound"))
@@ -171,9 +203,12 @@ func (d SourceFileDeclarations) Validate() error {
 
 // SourceFileEffects is the bounded effect analysis for one exact source file.
 type SourceFileEffects struct {
-	Capabilities    []PrimitiveCapabilityUse `json:"capabilities"`
-	UnresolvedSites uint16                   `json:"unresolved_sites"`
-	Posture         PrimitiveEffectPosture   `json:"posture"`
+	Capabilities   []PrimitiveCapabilityUse `json:"capabilities"`
+	Direct         []SourceEffectSite       `json:"direct"`
+	Mediated       []SourceEffectSite       `json:"mediated"`
+	Implementation []SourceEffectSite       `json:"implementation"`
+	Unresolved     []SourceEffectSite       `json:"unresolved"`
+	Posture        PrimitiveEffectPosture   `json:"posture"`
 }
 
 func (e SourceFileEffects) Validate() error {
@@ -184,6 +219,9 @@ func (e SourceFileEffects) Validate() error {
 		return contractError(errors.New("project standards source file capability count exceeds the Primitive catalog"))
 	}
 	if err := e.validateCapabilities(); err != nil {
+		return err
+	}
+	if err := e.validateSites(); err != nil {
 		return err
 	}
 	return e.validatePostureShape()
@@ -203,18 +241,84 @@ func (e SourceFileEffects) validateCapabilities() error {
 	return nil
 }
 
+func (e SourceFileEffects) validateSites() error {
+	total := len(e.Direct) + len(e.Mediated) + len(e.Implementation) + len(e.Unresolved)
+	if total > SourceEffectSiteMaximum {
+		return contractError(errors.New("project standards source effect site count exceeds its bound"))
+	}
+	for _, group := range [][]SourceEffectSite{e.Direct, e.Mediated, e.Implementation, e.Unresolved} {
+		for index := range group {
+			if err := group[index].Validate(); err != nil {
+				return err
+			}
+		}
+	}
+	for _, site := range append(append(append([]SourceEffectSite{}, e.Direct...), e.Mediated...), e.Implementation...) {
+		if site.Capability == nil || site.Selector == nil {
+			return conflictError(errors.New("project standards resolved effect site lacks capability or selector"))
+		}
+	}
+	return e.validateCapabilityClosure()
+}
+
+func (e SourceFileEffects) validateCapabilityClosure() error {
+	seen := make([]core.PackageIdentity, 0, len(e.Capabilities))
+	for _, group := range [][]SourceEffectSite{e.Direct, e.Mediated, e.Implementation, e.Unresolved} {
+		for _, site := range group {
+			if site.Capability == nil || slices.Contains(seen, site.Capability.Package) {
+				continue
+			}
+			seen = append(seen, site.Capability.Package)
+		}
+	}
+	if len(seen) != len(e.Capabilities) {
+		return conflictError(errors.New("project standards capability summary differs from source sites"))
+	}
+	for _, use := range e.Capabilities {
+		if !slices.Contains(seen, use.Package) {
+			return conflictError(errors.New("project standards capability summary has no source site"))
+		}
+	}
+	return nil
+}
+
+// DerivedPosture collapses the orthogonal evidence only for presentation.
+// Direct bypass evidence has precedence over unresolved evidence, so an
+// uncertain sibling call can never hide a known boundary violation.
+func (e SourceFileEffects) DerivedPosture() PrimitiveEffectPosture {
+	if len(e.Direct) > 0 {
+		return PrimitiveEffectDirectObserved
+	}
+	if len(e.Unresolved) > 0 {
+		return PrimitiveEffectUnresolved
+	}
+	if len(e.Implementation) > 0 {
+		return PrimitiveEffectImplementation
+	}
+	if len(e.Mediated) > 0 {
+		return PrimitiveEffectMediated
+	}
+	if e.Posture == PrimitiveEffectNotApplicable {
+		return PrimitiveEffectNotApplicable
+	}
+	return PrimitiveEffectPurePolicy
+}
+
 func (e SourceFileEffects) validatePostureShape() error {
+	if e.Posture != e.DerivedPosture() {
+		return conflictError(errors.New("project standards effect posture contradicts orthogonal source facts"))
+	}
 	switch e.Posture {
 	case PrimitiveEffectNotApplicable, PrimitiveEffectPurePolicy:
-		if len(e.Capabilities) != 0 || e.UnresolvedSites != 0 {
+		if len(e.Capabilities) != 0 || len(e.Direct)+len(e.Mediated)+len(e.Implementation)+len(e.Unresolved) != 0 {
 			return conflictError(errors.New("project standards effect-free posture carries effect facts"))
 		}
 	case PrimitiveEffectMediated, PrimitiveEffectImplementation, PrimitiveEffectDirectObserved:
-		if len(e.Capabilities) == 0 || e.UnresolvedSites != 0 {
+		if len(e.Capabilities) == 0 {
 			return conflictError(errors.New("project standards resolved effect posture has incomplete capability accounting"))
 		}
 	case PrimitiveEffectUnresolved:
-		if e.UnresolvedSites == 0 {
+		if len(e.Unresolved) == 0 {
 			return conflictError(errors.New("project standards unresolved effect posture has no unresolved site"))
 		}
 	default:

@@ -66,6 +66,10 @@ const (
 	PackageControlPlaneTest
 	// PackageProcess identifies the process package.
 	PackageProcess
+	// PackageGoModule identifies the canonical Go module identity package.
+	PackageGoModule
+	// PackageGoToolchain identifies bounded typed cmd/go observations.
+	PackageGoToolchain
 	// PackageRelease identifies the release package.
 	PackageRelease
 	// PackageShutdown identifies the shutdown package.
@@ -182,6 +186,8 @@ func PrimitiveArchitecture() ArchitectureCatalog {
 			{Identity: PackageSubmissionAuth, Kind: PackageKindProduction},
 			{Identity: PackageControlPlaneTest, Kind: PackageKindTestSupport},
 			{Identity: PackageProcess, Kind: PackageKindProduction},
+			{Identity: PackageGoModule, Kind: PackageKindProduction},
+			{Identity: PackageGoToolchain, Kind: PackageKindProduction},
 			{Identity: PackageRelease, Kind: PackageKindProduction},
 			{Identity: PackageShutdown, Kind: PackageKindProduction},
 			{Identity: PackageObjectStore, Kind: PackageKindProduction},
@@ -419,6 +425,8 @@ func packagePurposeTexts() [packageIdentityLimit]string {
 		PackageSubmissionAuth:   "Installation-certificate binding, device authentication, and authority reconciliation for evidence submissions",
 		PackageControlPlaneTest: "Real authority-signed installation certificate fixtures for hostile control-plane tests",
 		PackageProcess:          "Argv, environment, containment, bounded output, exit, and reaping over os/exec",
+		PackageGoModule:         "Canonical bounded Go module identity parsing, validation, and JSON",
+		PackageGoToolchain:      "Bounded typed module, build-context, package-list, and compilation observations through cmd/go",
 		PackageRelease:          "Clean repository binding, verified Go builds and process plans, bounded maintainer material exchange, executable inspection, signed tool and metadata provenance, immutable artifacts, manifests, Latest, and selection",
 		PackageShutdown:         "Signal observation and phased bounded cleanup",
 		PackageObjectStore:      "Bounded vendor-specified S3, GCS, or Cloudflare Images transfers through issued HTTPS capabilities, with integrity and provider evidence",
@@ -481,6 +489,8 @@ func packageIdentityTexts() [packageIdentityLimit]string {
 		"submissionauth",
 		"controlplanetest",
 		"process",
+		"gomodule",
+		"gotoolchain",
 		"release",
 		"shutdown",
 		"objectstore",

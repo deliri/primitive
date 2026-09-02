@@ -19,6 +19,7 @@ func (OriginIdentity) projectStandardsProtocolFact()              {}
 func (EvidenceAuthority) projectStandardsProtocolFact()           {}
 func (SubjectIdentity) projectStandardsProtocolFact()             {}
 func (SourceCoordinate) projectStandardsProtocolFact()            {}
+func (SourceEffectSite) projectStandardsProtocolFact()            {}
 func (GitOrigin) projectStandardsProtocolFact()                   {}
 func (OptionalGitOrigin) projectStandardsProtocolFact()           {}
 func (RequestIdentity) projectStandardsProtocolFact()             {}

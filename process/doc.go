@@ -23,6 +23,12 @@
 // variable in O(1) memory and preserves the difference between absence and a
 // present empty value.
 //
+// ExitCommand is the one ambient termination door. It accepts a closed
+// ExitStatus and belongs only at a package-main boundary; libraries return
+// typed failures and never terminate their host process.
+// DiscardDeviceArgument exposes the platform null device as a validated argv
+// value for compiler and linker outputs that are intentionally not retained.
+//
 // Two boundaries belong to the caller and are not defects in this package.
 //
 // Request.WaitDelay bounds only the descriptors os/exec owns. When a child

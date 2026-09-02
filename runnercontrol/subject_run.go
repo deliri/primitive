@@ -39,7 +39,7 @@ func RunSubject(ctx context.Context, capability ExperimentCapability, streams pr
 	if err := prepareSubjectNetwork(ctx, capability); err != nil {
 		return process.Result{}, errors.Join(err, destroySubjectNetwork(ctx, capability))
 	}
-	result, runErr := process.Run(ctx, request)
+	result, runErr := runSubjectGroup(ctx, request)
 	var stopErr error
 	if ctx == nil || ctx.Err() == nil || result.Validate() != nil {
 		return result, errors.Join(runErr, destroySubjectNetwork(ctx, capability))
@@ -82,7 +82,7 @@ func runSubjectNetworkController(ctx context.Context, capability ExperimentCapab
 	if err != nil {
 		return fmt.Errorf("bind subject network %s operation: %w", operation.String(), err)
 	}
-	result, runErr := process.Run(ctx, request)
+	result, runErr := runSubjectGroup(ctx, request)
 	if validationErr := result.Validate(); validationErr != nil {
 		return fmt.Errorf("subject network %s did not return a reaped controller result: %w", operation.String(), errors.Join(core.ErrProcessContract, runErr, validationErr))
 	}
@@ -170,7 +170,7 @@ func stopSubjectUnit(parent context.Context, capability ExperimentCapability) er
 	if err != nil {
 		return err
 	}
-	result, runErr := process.Run(stopCtx, request)
+	result, runErr := runSubjectGroup(stopCtx, request)
 	if result.Validate() != nil {
 		return errors.Join(core.ErrProcessContract, runErr)
 	}
@@ -180,6 +180,26 @@ func stopSubjectUnit(parent context.Context, capability ExperimentCapability) er
 		return errors.Join(core.ErrProcessContract, errors.New("subject controller did not stop the interrupted transient service"), runErr, exitErr, successErr)
 	}
 	return runErr
+}
+
+// runSubjectGroup owns the complete lifecycle of one group-contained subject
+// controller. A clean leader wait is the success path and must not sweep:
+// the transient service group may intentionally outlive its supervisor. A
+// failed wait leaves completion uncertain, so the still-owned execution
+// handle sweeps the group before the error crosses into product policy.
+func runSubjectGroup(ctx context.Context, request process.Request) (process.Result, error) {
+	if request.Containment.Isolation != process.IsolationGroup {
+		return process.Result{}, errors.Join(core.ErrProcessContract, errors.New("subject execution requires group containment"))
+	}
+	execution, err := process.Begin(ctx, request)
+	if err != nil {
+		return process.Result{}, err
+	}
+	result, waitErr := execution.Wait()
+	if waitErr == nil {
+		return result, nil
+	}
+	return result, errors.Join(waitErr, execution.Sweep())
 }
 
 func subjectStopPlan(capability ExperimentCapability) (process.Plan, error) {

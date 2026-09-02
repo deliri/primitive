@@ -102,6 +102,11 @@ const resolutionLeafFile = "resolve.go"
 // else in this package exactly as before.
 const ambientLeafFile = "ambient.go"
 
+// commandExitLeafFile is the only production file permitted to terminate the
+// calling process. Child termination remains owned by Execution and platform
+// containment leaves; ambient termination is only a package-main effect.
+const commandExitLeafFile = "command_exit.go"
+
 func isAmbientEnvironmentSelector(selector *ast.SelectorExpr) bool {
 	qualifier, ok := selector.X.(*ast.Ident)
 	if !ok || qualifier.Name != "os" {
@@ -121,6 +126,7 @@ func forbiddenPackageSelectors() []string {
 		"exec.Command",
 		"os.Clearenv",
 		"os.Environ",
+		"os.Exit",
 		"os.FindProcess",
 		"os.Getenv",
 		"os.LookupEnv",
@@ -195,7 +201,9 @@ func TestPublicOperationsAreOnlyTypedConstructionAndExecution(t *testing.T) {
 		"AmbientArguments",
 		"AmbientEnvironment",
 		"Begin",
+		"DiscardDeviceArgument",
 		"Executable",
+		"ExitCommand",
 		"LookupAmbientEnvironment",
 		"NewArgument",
 		"NewEnvironmentName",
@@ -394,6 +402,7 @@ func TestProductionStructureForbidsWorldModelsAndWholeOutputPaths(t *testing.T) 
 			case *ast.SelectorExpr:
 				if forbiddenSelector(typed) &&
 					!(typed.Sel.Name == "Signal" && slices.Contains(signalLeafFiles(), production.name)) &&
+					!(typed.Sel.Name == "Exit" && production.name == commandExitLeafFile) &&
 					!(isAmbientEnvironmentSelector(typed) && production.name == ambientLeafFile) {
 					t.Errorf(
 						"production selector %s in %s at token position %d, want streamed caller-owned output",

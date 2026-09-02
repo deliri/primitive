@@ -10,6 +10,7 @@ require (
 	github.com/stripe/stripe-go/v86 v86.4.0
 	github.com/twilio/twilio-go v1.30.9
 	github.com/zeebo/blake3 v0.2.4
+	golang.org/x/mod v0.40.0
 	golang.org/x/net v0.58.0
 	golang.org/x/oauth2 v0.36.0
 	golang.org/x/sys v0.47.0
