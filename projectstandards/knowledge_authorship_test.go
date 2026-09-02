@@ -50,6 +50,7 @@ func TestKnowledgeRecordsExposeExactAuthoredFieldPrefixes(t *testing.T) {
 				"AuthorSteward", "AuthorSubstrate", "AuthorRuntime", "AuthorRemoval",
 				"AuthorProblem", "AuthorReasons", "AuthorOwns", "AuthorDoesNotOwn",
 				"AuthorUsage", "AuthorFeatures", "AuthorComplexity", "AuthorAssurance",
+				"AuthorCapabilityOwnership",
 			},
 		},
 	}

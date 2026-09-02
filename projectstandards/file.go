@@ -6,6 +6,7 @@ import (
 
 	"github.com/deliri/primitive/v2026/capabilities"
 	"github.com/deliri/primitive/v2026/core"
+	"github.com/deliri/primitive/v2026/gomodule"
 )
 
 const (
@@ -357,7 +358,7 @@ func (f SourceFile) Validate() error {
 	if err := f.validateCapabilityScope(); err != nil {
 		return err
 	}
-	return f.validatePrimitiveImplementation()
+	return nil
 }
 
 // ExecutesPolicyThroughPrimitive reports the narrow positive contract: this
@@ -387,22 +388,6 @@ func (f SourceFile) validateCapabilityScope() error {
 	for _, use := range f.Effects.Capabilities {
 		if _, err := capabilities.Resolve(capabilities.ForPackage(scope, use.Package)); err != nil {
 			return contractError(err)
-		}
-	}
-	return nil
-}
-
-func (f SourceFile) validatePrimitiveImplementation() error {
-	if f.Effects.Posture != PrimitiveEffectImplementation {
-		return nil
-	}
-	owner, err := core.ParsePackageIdentity(f.Package.String())
-	if err != nil {
-		return conflictError(errors.New("project standards Primitive implementation file has no capability owner"))
-	}
-	for _, use := range f.Effects.Capabilities {
-		if use.Package != owner {
-			return conflictError(errors.New("project standards Primitive implementation file names a different capability owner"))
 		}
 	}
 	return nil
@@ -450,4 +435,73 @@ func (c PackageFileCatalog) ValidateComplete() error {
 		}
 	}
 	return nil
+}
+
+// ValidateOwnership proves the per-site classification against authored
+// package capability ownership. Mixed files remain valid: only implementation
+// and direct sites participate in this invariant.
+func (c PackageFileCatalog) ValidateOwnership(module gomodule.Path, ownership []CapabilityOwnership) error {
+	if err := c.ValidateComplete(); err != nil {
+		return err
+	}
+	if _, err := ResolvePackageRelationship(module, c.Package, ownership); err != nil {
+		return err
+	}
+	for _, file := range c.Files {
+		if err := validateImplementationOwnership(file.Effects.Implementation, ownership); err != nil {
+			return err
+		}
+		if file.Kind == SourceFileKindProduction {
+			if err := validateDirectOwnership(file.Effects.Direct, ownership); err != nil {
+				return err
+			}
+		}
+	}
+	return nil
+}
+
+func validateImplementationOwnership(sites []SourceEffectSite, ownership []CapabilityOwnership) error {
+	for _, site := range sites {
+		owned, err := capabilityOwnerIsDeclared(site, ownership)
+		if err != nil {
+			return err
+		}
+		if !owned {
+			return conflictError(errors.New("project standards implementation site lacks package capability ownership"))
+		}
+	}
+	return nil
+}
+
+func validateDirectOwnership(sites []SourceEffectSite, ownership []CapabilityOwnership) error {
+	for _, site := range sites {
+		owned, err := capabilityOwnerIsDeclared(site, ownership)
+		if err != nil {
+			return err
+		}
+		if owned {
+			return conflictError(errors.New("project standards owned production effect site is classified as direct"))
+		}
+	}
+	return nil
+}
+
+func capabilityOwnerIsDeclared(site SourceEffectSite, ownership []CapabilityOwnership) (bool, error) {
+	if site.Capability == nil {
+		return false, conflictError(errors.New("project standards classified effect site lacks capability owner"))
+	}
+	for _, declared := range ownership {
+		effect, err := declared.Capability.Effect()
+		if err != nil {
+			return false, err
+		}
+		match, err := capabilities.Resolve(capabilities.ForEffect(capabilities.ScopeProduction, effect))
+		if err != nil {
+			return false, err
+		}
+		if match.Capability.Package == site.Capability.Package {
+			return true, nil
+		}
+	}
+	return false, nil
 }

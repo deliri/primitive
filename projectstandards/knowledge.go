@@ -303,25 +303,26 @@ func (i Inventory) Validate() error {
 }
 
 type PackageKnowledge struct {
-	Created          OptionalGitOrigin `json:"created"`
-	Path             SourcePath        `json:"path"`
-	AuthorTitle      Name              `json:"title"`
-	AuthorPurpose    Text              `json:"purpose"`
-	AuthorAudience   Text              `json:"audience"`
-	AuthorValue      Text              `json:"value"`
-	AuthorSteward    Name              `json:"steward"`
-	AuthorSubstrate  Name              `json:"substrate"`
-	AuthorRuntime    Name              `json:"runtime"`
-	AuthorRemoval    Text              `json:"removal"`
-	AuthorProblem    Text              `json:"problem"`
-	AuthorReasons    []Reason          `json:"reasons"`
-	AuthorOwns       []Boundary        `json:"owns"`
-	AuthorDoesNotOwn []Boundary        `json:"does_not_own"`
-	AuthorUsage      []Usage           `json:"usage"`
-	AuthorFeatures   []Feature         `json:"features"`
-	AuthorComplexity []ComplexityClaim `json:"complexity_claims"`
-	AuthorAssurance  Assurance         `json:"assurance"`
-	Changed          GitOrigin         `json:"changed"`
+	Created                   OptionalGitOrigin     `json:"created"`
+	AuthorProblem             Text                  `json:"problem"`
+	AuthorAudience            Text                  `json:"audience"`
+	AuthorPurpose             Text                  `json:"purpose"`
+	Path                      SourcePath            `json:"path"`
+	AuthorValue               Text                  `json:"value"`
+	AuthorSteward             Name                  `json:"steward"`
+	AuthorSubstrate           Name                  `json:"substrate"`
+	AuthorRuntime             Name                  `json:"runtime"`
+	AuthorTitle               Name                  `json:"title"`
+	AuthorRemoval             Text                  `json:"removal"`
+	AuthorReasons             []Reason              `json:"reasons"`
+	AuthorOwns                []Boundary            `json:"owns"`
+	AuthorDoesNotOwn          []Boundary            `json:"does_not_own"`
+	AuthorUsage               []Usage               `json:"usage"`
+	AuthorFeatures            []Feature             `json:"features"`
+	AuthorComplexity          []ComplexityClaim     `json:"complexity_claims"`
+	AuthorCapabilityOwnership []CapabilityOwnership `json:"capability_ownership"`
+	AuthorAssurance           Assurance             `json:"assurance"`
+	Changed                   GitOrigin             `json:"changed"`
 }
 
 func (p PackageKnowledge) Validate() error {
@@ -332,6 +333,9 @@ func (p PackageKnowledge) Validate() error {
 		return err
 	}
 	if err := validateUsage(p.AuthorUsage); err != nil {
+		return err
+	}
+	if err := validateCapabilityOwnership(p.AuthorCapabilityOwnership); err != nil {
 		return err
 	}
 	return validateComplexityClaims(p.Path, p.AuthorComplexity)

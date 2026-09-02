@@ -194,11 +194,6 @@ func TestSourceFileContractHostileBoundaries(t *testing.T) {
 			got.Effects = sourceEffectsFixture(t, PrimitiveEffectMediated, core.PackageTestSerial)
 			return got
 		}, wantErr: core.ErrCapabilityUnavailable},
-		{name: "invalid Primitive implementation names another package", setup: func(t *testing.T) SourceFile {
-			got := sourceFileFixture(t)
-			got.Effects = sourceEffectsFixture(t, PrimitiveEffectImplementation, core.PackageExchange)
-			return got
-		}, wantErr: core.ErrProjectStandardsConflict},
 		{name: "invalid duplicate capability cannot pad the file record", setup: func(t *testing.T) SourceFile {
 			got := sourceFileFixture(t)
 			got.Effects.Capabilities = append(got.Effects.Capabilities, PrimitiveCapabilityUse{Package: core.PackageExchange})

@@ -48,6 +48,7 @@ func (SourceFileImports) projectStandardsProtocolFact()           {}
 func (SourceFile) projectStandardsProtocolFact()                  {}
 func (PackageFileCatalog) projectStandardsProtocolFact()          {}
 func (PackageKnowledge) projectStandardsProtocolFact()            {}
+func (CapabilityOwnership) projectStandardsProtocolFact()         {}
 func (ComplexityBound) projectStandardsProtocolFact()             {}
 func (ComplexityInput) projectStandardsProtocolFact()             {}
 func (ComplexityAssumption) projectStandardsProtocolFact()        {}

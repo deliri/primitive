@@ -50,6 +50,8 @@ const (
 	doorSourceFileKind
 	doorSourceImportKind
 	doorPrimitiveEffectPosture
+	doorCapabilityRole
+	doorProjectRelationship
 	doorProbeRole
 	doorProbeKind
 	doorProbeTargetKind
@@ -163,6 +165,8 @@ func FuzzProjectStandardsAtomicJSONDoorsSemanticClosure(f *testing.F) {
 	addEnumDoorSeeds(f, doorSourceFileKind, uint8(sourceFileKindLimit), func(value uint8) SourceFileKind { return SourceFileKind(value) })
 	addEnumDoorSeeds(f, doorSourceImportKind, uint8(sourceImportKindLimit), func(value uint8) SourceImportKind { return SourceImportKind(value) })
 	addEnumDoorSeeds(f, doorPrimitiveEffectPosture, uint8(primitiveEffectPostureLimit), func(value uint8) PrimitiveEffectPosture { return PrimitiveEffectPosture(value) })
+	addEnumDoorSeeds(f, doorCapabilityRole, uint8(capabilityRoleLimit), func(value uint8) CapabilityRole { return CapabilityRole(value) })
+	addEnumDoorSeeds(f, doorProjectRelationship, uint8(projectRelationshipLimit), func(value uint8) ProjectRelationship { return ProjectRelationship(value) })
 	addEnumDoorSeeds(f, doorProbeRole, uint8(probeRoleLimit), func(value uint8) ProbeRole { return ProbeRole(value) })
 	addEnumDoorSeeds(f, doorProbeKind, uint8(probeKindLimit), func(value uint8) ProbeKind { return ProbeKind(value) })
 	addEnumDoorSeeds(f, doorProbeTargetKind, uint8(probeTargetLimit), func(value uint8) ProbeTargetKind { return ProbeTargetKind(value) })
@@ -262,6 +266,10 @@ func FuzzProjectStandardsAtomicJSONDoorsSemanticClosure(f *testing.F) {
 			proveComparableJSONClosure(t, SourceImportKindProject, data, (*SourceImportKind).UnmarshalJSON)
 		case doorPrimitiveEffectPosture:
 			proveComparableJSONClosure(t, PrimitiveEffectMediated, data, (*PrimitiveEffectPosture).UnmarshalJSON)
+		case doorCapabilityRole:
+			proveComparableJSONClosure(t, CapabilityRolePrimitiveImplementation, data, (*CapabilityRole).UnmarshalJSON)
+		case doorProjectRelationship:
+			proveComparableJSONClosure(t, ProjectRelationshipPrimitive, data, (*ProjectRelationship).UnmarshalJSON)
 		case doorProbeRole:
 			proveComparableJSONClosure(t, ProbeRoleSelection, data, (*ProbeRole).UnmarshalJSON)
 		case doorProbeKind:

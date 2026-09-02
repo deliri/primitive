@@ -114,7 +114,7 @@ func (v ToolchainVersion) Validate() error {
 	if len(v.value) < len("go1.0") || len(v.value) > toolchainVersionMaximumBytes || !strings.HasPrefix(v.value, "go1.") {
 		return contractError("toolchain version is not canonical")
 	}
-	for _, component := range strings.Split(v.value[len("go1."):], ".") {
+	for component := range strings.SplitSeq(v.value[len("go1."):], ".") {
 		if err := validateVersionComponent(component); err != nil {
 			return err
 		}
