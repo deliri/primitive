@@ -8,7 +8,6 @@ import (
 	"encoding/asn1"
 	"encoding/pem"
 	"math/big"
-	"sync"
 	"time"
 
 	"github.com/deliri/primitive/v2026/core"
@@ -40,13 +39,13 @@ func authorityRegistry(authority Authority) (authorityContract, error) {
 	switch authority {
 	case AuthorityFreeTSA:
 		endpointText = freeTSAEndpointText
-		root, err = freeTSARoot()
-		policyOID = freeTSAPolicyOID
+		root, err = loadFreeTSARoot()
+		policyOID = freeTSAPolicyOID()
 		policy = TimestampPolicyFreeTSA
 	case AuthorityDigiCert:
 		endpointText = digiCertEndpointText
-		root, err = digiCertRoot()
-		policyOID = digiCertPolicyOID
+		root, err = loadDigiCertRoot()
+		policyOID = digiCertPolicyOID()
 		policy = TimestampPolicyDigiCert
 	default:
 		return authorityContract{}, contractError(nil)
@@ -63,11 +62,6 @@ func authorityRegistry(authority Authority) (authorityContract, error) {
 	}, nil
 }
 
-// freeTSARoot decodes and re-proves the pinned anchor once per process. The
-// anchor is a compile-time fact, so repeating the parse and the self-signature
-// check on every validation would buy no additional guarantee.
-var freeTSARoot = sync.OnceValues(loadFreeTSARoot)
-
 func loadFreeTSARoot() (*x509.Certificate, error) {
 	root, err := loadEmbeddedRoot("trust_anchors/freetsa_root.pem")
 	if err != nil {
@@ -78,11 +72,6 @@ func loadFreeTSARoot() (*x509.Certificate, error) {
 	}
 	return root, nil
 }
-
-// digiCertRoot decodes and re-proves the reviewed DigiCert root once per
-// process. Verification never delegates authority identity to the host trust
-// store, whose contents vary by machine and time.
-var digiCertRoot = sync.OnceValues(loadDigiCertRoot)
 
 func loadDigiCertRoot() (*x509.Certificate, error) {
 	root, err := loadEmbeddedRoot(

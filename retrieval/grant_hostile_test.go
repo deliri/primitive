@@ -213,7 +213,7 @@ func TestGrantIssuanceLayerTriad(t *testing.T) {
 			{name: "zero authenticated chit", mutate: func(value *GrantIssuance) { value.Chit = chit.Verified{} }, wantErr: core.ErrRetrievalContract},
 			{name: "zero authenticated request", mutate: func(value *GrantIssuance) { value.Request = RequestPayload{} }, wantErr: core.ErrRetrievalContract},
 			{name: "request account differs from authenticated chit", mutate: func(value *GrantIssuance) {
-				value.Request.Scope.Account = retrievalLifecycleIdentity(t, 0x99, receipt.NewAccountIdentity)
+				value.Request.Scope.Principal = retrievalLifecycleIdentity(t, 0x99, receipt.NewPrincipalIdentity)
 			}, wantErr: core.ErrRetrievalBinding},
 			{name: "entry from another authenticated manifest", mutate: func(value *GrantIssuance) { value.Entry = other.membership }, wantErr: core.ErrRetrievalBinding},
 			{name: "same entry proven under an expanded foreign manifest", mutate: func(value *GrantIssuance) { value.Entry = expandedMembership }, wantErr: core.ErrRetrievalBinding},

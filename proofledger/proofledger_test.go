@@ -125,12 +125,12 @@ func fixtureEvent(t testing.TB, head Head, index int, payload uint8) Envelope[le
 	return got
 }
 
-func fixtureReceiptDocument(t testing.TB, event Envelope[ledgerTestPayload]) ReceiptDocument {
+func fixtureReceiptDocument(t testing.TB, event Envelope[ledgerTestPayload]) AppendReceiptDocument {
 	t.Helper()
 	signer, producer := fixtureSigner(t, 2)
-	document, err := IssueReceipt(ReceiptIssuance[ledgerTestPayload]{Event: event, Producer: producer, Signer: signer})
+	document, err := IssueAppendReceipt(AppendReceiptIssuance[ledgerTestPayload]{Event: event, Producer: producer, Signer: signer})
 	if err != nil {
-		t.Fatalf("IssueReceipt() error = %v, want nil", err)
+		t.Fatalf("IssueAppendReceipt() error = %v, want nil", err)
 	}
 	return document
 }
@@ -243,15 +243,15 @@ func (e Envelope[P]) HashHex(t testing.TB) string {
 
 type memoryEntry struct {
 	digest  core.SHA256Digest
-	receipt ReceiptDocument
+	receipt AppendReceiptDocument
 }
 type memoryAppender struct {
-	events   []Envelope[ledgerTestPayload]
 	replays  map[string]memoryEntry
+	events   []Envelope[ledgerTestPayload]
 	signer   ed25519.PrivateKey
-	producer core.Ed25519PublicKey
 	ids      []EventIdentity
 	instants []temporal.Instant
+	producer core.Ed25519PublicKey
 }
 
 func newMemoryAppender(t testing.TB) *memoryAppender {
@@ -259,53 +259,53 @@ func newMemoryAppender(t testing.TB) *memoryAppender {
 	signer, producer := fixtureSigner(t, 2)
 	return &memoryAppender{replays: make(map[string]memoryEntry), signer: signer, producer: producer, ids: []EventIdentity{fixtureEventIdentity(t, 0), fixtureEventIdentity(t, 1)}, instants: []temporal.Instant{fixtureInstant(t, 1), fixtureInstant(t, 2)}}
 }
-func (m *memoryAppender) Append(ctx context.Context, intent AppendIntent[ledgerTestPayload]) (ReceiptDocument, error) {
+func (m *memoryAppender) Append(ctx context.Context, intent AppendIntent[ledgerTestPayload]) (AppendReceiptDocument, error) {
 	if err := ctx.Err(); err != nil {
-		return ReceiptDocument{}, err
+		return AppendReceiptDocument{}, err
 	}
 	digest, err := intent.Digest()
 	if err != nil {
-		return ReceiptDocument{}, err
+		return AppendReceiptDocument{}, err
 	}
 	key := intent.Request.String()
 	if prior, ok := m.replays[key]; ok {
 		if prior.digest != digest {
-			return ReceiptDocument{}, core.ErrProofLedgerIdempotencyConflict
+			return AppendReceiptDocument{}, core.ErrProofLedgerIdempotencyConflict
 		}
 		return prior.receipt, nil
 	}
 	current, err := NewGenesisHead(intent.Ledger)
 	if err != nil {
-		return ReceiptDocument{}, err
+		return AppendReceiptDocument{}, err
 	}
 	if len(m.events) > 0 {
 		current = m.events[len(m.events)-1].Head()
 	}
 	if err := ValidateAppendHead(intent, current); err != nil {
-		return ReceiptDocument{}, err
+		return AppendReceiptDocument{}, err
 	}
 	event, err := NewEnvelope(Issue[ledgerTestPayload]{Intent: intent, Event: m.ids[len(m.events)], RecordedAt: m.instants[len(m.events)]})
 	if err != nil {
-		return ReceiptDocument{}, err
+		return AppendReceiptDocument{}, err
 	}
-	receipt, err := IssueReceipt(ReceiptIssuance[ledgerTestPayload]{Event: event, Producer: m.producer, Signer: m.signer})
+	receipt, err := IssueAppendReceipt(AppendReceiptIssuance[ledgerTestPayload]{Event: event, Producer: m.producer, Signer: m.signer})
 	if err != nil {
-		return ReceiptDocument{}, err
+		return AppendReceiptDocument{}, err
 	}
 	m.events = append(m.events, event)
 	m.replays[key] = memoryEntry{digest: digest, receipt: receipt}
 	return receipt, nil
 }
-func (m *memoryAppender) Resolve(ctx context.Context, request ResolveRequest) (ReceiptDocument, error) {
+func (m *memoryAppender) Resolve(ctx context.Context, request ResolveRequest) (AppendReceiptDocument, error) {
 	if err := errors.Join(ctx.Err(), request.Validate()); err != nil {
-		return ReceiptDocument{}, err
+		return AppendReceiptDocument{}, err
 	}
 	entry, ok := m.replays[request.Request.String()]
 	if !ok {
-		return ReceiptDocument{}, core.ErrProofLedgerAppendIndeterminate
+		return AppendReceiptDocument{}, core.ErrProofLedgerAppendIndeterminate
 	}
 	if entry.receipt.Receipt.Ledger != request.Ledger {
-		return ReceiptDocument{}, core.ErrProofLedgerAppendIndeterminate
+		return AppendReceiptDocument{}, core.ErrProofLedgerAppendIndeterminate
 	}
 	return entry.receipt, nil
 }
@@ -474,37 +474,37 @@ func TestProofLedgerReceiptAttestationLayerTriad(t *testing.T) {
 
 	t.Run("positive exact event and producer signature verify", func(t *testing.T) {
 		t.Parallel()
-		verified, gotErr := VerifyReceiptDocument(ReceiptVerification[ledgerTestPayload]{Event: event, Document: document, TrustedKeys: trusted})
+		verified, gotErr := VerifyAppendReceiptDocument(AppendReceiptVerification[ledgerTestPayload]{Event: event, Document: document, TrustedKeys: trusted})
 		if gotErr != nil {
-			t.Fatalf("VerifyReceiptDocument() error = %v, want nil", gotErr)
+			t.Fatalf("VerifyAppendReceiptDocument() error = %v, want nil", gotErr)
 		}
 		got, gotErr := verified.Document()
 		if gotErr != nil || got != document {
-			t.Fatalf("VerifiedReceipt.Document() = (%+v, %v), want (%+v, nil)", got, gotErr, document)
+			t.Fatalf("VerifiedAppendReceipt.Document() = (%+v, %v), want (%+v, nil)", got, gotErr, document)
 		}
 	})
 	t.Run("negative event mutation cannot reuse signed receipt", func(t *testing.T) {
 		t.Parallel()
 		changed := fixtureEvent(t, genesis, 0, 2)
-		_, gotErr := VerifyReceiptDocument(ReceiptVerification[ledgerTestPayload]{Event: changed, Document: document, TrustedKeys: trusted})
-		if !errors.Is(gotErr, core.ErrProofLedgerReceiptMismatch) {
-			t.Fatalf("VerifyReceiptDocument(changed event) error = %v, want %v", gotErr, core.ErrProofLedgerReceiptMismatch)
+		_, gotErr := VerifyAppendReceiptDocument(AppendReceiptVerification[ledgerTestPayload]{Event: changed, Document: document, TrustedKeys: trusted})
+		if !errors.Is(gotErr, core.ErrProofLedgerAppendReceiptMismatch) {
+			t.Fatalf("VerifyAppendReceiptDocument(changed event) error = %v, want %v", gotErr, core.ErrProofLedgerAppendReceiptMismatch)
 		}
 	})
 	t.Run("negative claimed producer must match the signing authority", func(t *testing.T) {
 		t.Parallel()
 		signer, _ := fixtureSigner(t, 2)
-		got, gotErr := IssueReceipt(ReceiptIssuance[ledgerTestPayload]{Event: event, Producer: fixtureKey(t, 3), Signer: signer})
-		if !errors.Is(gotErr, core.ErrProofLedgerReceiptMismatch) || got != (ReceiptDocument{}) {
-			t.Fatalf("IssueReceipt(mismatched producer) = (%+v, %v), want zero and %v", got, gotErr, core.ErrProofLedgerReceiptMismatch)
+		got, gotErr := IssueAppendReceipt(AppendReceiptIssuance[ledgerTestPayload]{Event: event, Producer: fixtureKey(t, 3), Signer: signer})
+		if !errors.Is(gotErr, core.ErrProofLedgerAppendReceiptMismatch) || got != (AppendReceiptDocument{}) {
+			t.Fatalf("IssueAppendReceipt(mismatched producer) = (%+v, %v), want zero and %v", got, gotErr, core.ErrProofLedgerAppendReceiptMismatch)
 		}
 	})
 	t.Run("neutral untrusted producer never becomes verified", func(t *testing.T) {
 		t.Parallel()
 		trustedOther := fixtureTrustedKeys(t, fixtureKey(t, 3))
-		got, gotErr := VerifyReceiptDocument(ReceiptVerification[ledgerTestPayload]{Event: event, Document: document, TrustedKeys: trustedOther})
-		if !errors.Is(gotErr, core.ErrProofLedgerReceiptMismatch) || got != (VerifiedReceipt{}) {
-			t.Fatalf("VerifyReceiptDocument(untrusted) = (%+v, %v), want zero and %v", got, gotErr, core.ErrProofLedgerReceiptMismatch)
+		got, gotErr := VerifyAppendReceiptDocument(AppendReceiptVerification[ledgerTestPayload]{Event: event, Document: document, TrustedKeys: trustedOther})
+		if !errors.Is(gotErr, core.ErrProofLedgerAppendReceiptMismatch) || got != (VerifiedAppendReceipt{}) {
+			t.Fatalf("VerifyAppendReceiptDocument(untrusted) = (%+v, %v), want zero and %v", got, gotErr, core.ErrProofLedgerAppendReceiptMismatch)
 		}
 	})
 }
@@ -518,19 +518,19 @@ func TestReceiptDocumentEncodedExtentBoundary(t *testing.T) {
 	document := fixtureReceiptDocument(t, fixtureEvent(t, genesis, 0, 1))
 	canonical, err := document.MarshalJSON()
 	if err != nil {
-		t.Fatalf("ReceiptDocument.MarshalJSON() error = %v, want nil", err)
+		t.Fatalf("AppendReceiptDocument.MarshalJSON() error = %v, want nil", err)
 	}
-	spacesAtMaximum := bytes.Repeat([]byte{' '}, ReceiptDocumentJSONMaximumBytes-len(canonical))
+	spacesAtMaximum := bytes.Repeat([]byte{' '}, AppendReceiptDocumentJSONMaximumBytes-len(canonical))
 	atMaximum := append(spacesAtMaximum, canonical...)
 	oneAbove := append([]byte{' '}, atMaximum...)
 
-	got := ReceiptDocument{}
+	got := AppendReceiptDocument{}
 	if gotErr := got.UnmarshalJSON(atMaximum); gotErr != nil || got != document {
-		t.Fatalf("ReceiptDocument.UnmarshalJSON(at maximum) = (%+v, %v), want (%+v, nil)", got, gotErr, document)
+		t.Fatalf("AppendReceiptDocument.UnmarshalJSON(at maximum) = (%+v, %v), want (%+v, nil)", got, gotErr, document)
 	}
 	got = document
 	if gotErr := got.UnmarshalJSON(oneAbove); !errors.Is(gotErr, core.ErrJSONContract) || got != document {
-		t.Fatalf("ReceiptDocument.UnmarshalJSON(one above maximum) = (%+v, %v), want preserved and %v", got, gotErr, core.ErrJSONContract)
+		t.Fatalf("AppendReceiptDocument.UnmarshalJSON(one above maximum) = (%+v, %v), want preserved and %v", got, gotErr, core.ErrJSONContract)
 	}
 }
 
@@ -577,19 +577,19 @@ func BenchmarkProofLedgerReceiptVerification(b *testing.B) {
 	event := fixtureEvent(b, genesis, 0, 1)
 	document := fixtureReceiptDocument(b, event)
 	trusted := fixtureTrustedKeys(b, document.Receipt.Producer)
-	verification := ReceiptVerification[ledgerTestPayload]{Event: event, Document: document, TrustedKeys: trusted}
+	verification := AppendReceiptVerification[ledgerTestPayload]{Event: event, Document: document, TrustedKeys: trusted}
 	b.ReportAllocs()
 	b.ResetTimer()
-	var sink VerifiedReceipt
+	var sink VerifiedAppendReceipt
 	var err error
 	for range b.N {
-		sink, err = VerifyReceiptDocument(verification)
+		sink, err = VerifyAppendReceiptDocument(verification)
 		if err != nil {
-			b.Fatalf("VerifyReceiptDocument() error = %v, want nil", err)
+			b.Fatalf("VerifyAppendReceiptDocument() error = %v, want nil", err)
 		}
 	}
 	if err := sink.Validate(); err != nil {
-		b.Fatalf("VerifiedReceipt.Validate() error = %v, want nil", err)
+		b.Fatalf("VerifiedAppendReceipt.Validate() error = %v, want nil", err)
 	}
 }
 

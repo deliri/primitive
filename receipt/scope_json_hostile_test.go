@@ -20,7 +20,7 @@ func TestWatermarkScopeStrictJSONHostileMatrix(t *testing.T) {
 	t.Parallel()
 
 	fixture := newReceiptFixture(t, 230)
-	scope := Scope{Account: fixture.account, Offering: fixture.offering}
+	scope := Scope{Principal: fixture.principal, Offering: fixture.offering}
 	canonical, err := json.Marshal(scope)
 	if err != nil {
 		t.Fatalf("json.Marshal(Scope) error = %v, want nil", err)
@@ -35,9 +35,9 @@ func TestWatermarkScopeStrictJSONHostileMatrix(t *testing.T) {
 		t.Fatalf("json.Unmarshal(canonical scope) = (%v, %v), want exact scope and nil", decoded, err)
 	}
 	reordered, err := json.Marshal(struct {
-		Offering *core.Offering   `json:"offering"`
-		Account  *AccountIdentity `json:"account_identity"`
-	}{Offering: &fixture.offering, Account: &fixture.account})
+		Offering  *core.Offering     `json:"offering"`
+		Principal *PrincipalIdentity `json:"principal_identity"`
+	}{Offering: &fixture.offering, Principal: &fixture.principal})
 	if err != nil {
 		t.Fatalf("json.Marshal(reordered scope) error = %v, want nil", err)
 	}
@@ -61,16 +61,16 @@ func TestWatermarkScopeStrictJSONHostileMatrix(t *testing.T) {
 		{name: "truncation is rejected", data: canonical[:len(canonical)-1]},
 		{name: "trailing document is rejected", data: append(append([]byte{}, canonical...), []byte("{}")...)},
 		{name: "wrong top-level type is rejected", data: []byte("[]")},
-		{name: "unknown member is rejected", data: bytes.Replace(canonical, []byte(`"account_identity":`), []byte(`"unknown":0,"account_identity":`), 1)},
-		{name: "duplicate account is rejected", data: bytes.Replace(canonical, []byte(`"account_identity":`), []byte(`"account_identity":"`+fixture.account.String()+`","account_identity":`), 1)},
-		{name: "missing offering is rejected", data: []byte(`{"account_identity":"` + fixture.account.String() + `"}`)},
-		{name: "missing account is rejected", data: []byte(`{"offering":"` + fixture.offering.String() + `"}`)},
-		{name: "zero account text is rejected", data: []byte(`{"account_identity":"` + strings.Repeat("0", LifecycleIdentityHexBytes) + `","offering":"` + fixture.offering.String() + `"}`)},
-		{name: "uppercase account hex is rejected", data: []byte(`{"account_identity":"` + strings.ToUpper(fixture.account.String()) + `","offering":"` + fixture.offering.String() + `"}`)},
-		{name: "account of the wrong width is rejected", data: []byte(`{"account_identity":"00","offering":"` + fixture.offering.String() + `"}`)},
-		{name: "numeric account is rejected", data: []byte(`{"account_identity":1,"offering":"` + fixture.offering.String() + `"}`)},
+		{name: "unknown member is rejected", data: bytes.Replace(canonical, []byte(`"principal_identity":`), []byte(`"unknown":0,"principal_identity":`), 1)},
+		{name: "duplicate principal is rejected", data: bytes.Replace(canonical, []byte(`"principal_identity":`), []byte(`"principal_identity":"`+fixture.principal.String()+`","principal_identity":`), 1)},
+		{name: "missing offering is rejected", data: []byte(`{"principal_identity":"` + fixture.principal.String() + `"}`)},
+		{name: "missing principal is rejected", data: []byte(`{"offering":"` + fixture.offering.String() + `"}`)},
+		{name: "zero principal text is rejected", data: []byte(`{"principal_identity":"` + strings.Repeat("0", LifecycleIdentityHexBytes) + `","offering":"` + fixture.offering.String() + `"}`)},
+		{name: "uppercase principal hex is rejected", data: []byte(`{"principal_identity":"` + strings.ToUpper(fixture.principal.String()) + `","offering":"` + fixture.offering.String() + `"}`)},
+		{name: "principal of the wrong width is rejected", data: []byte(`{"principal_identity":"00","offering":"` + fixture.offering.String() + `"}`)},
+		{name: "numeric principal is rejected", data: []byte(`{"principal_identity":1,"offering":"` + fixture.offering.String() + `"}`)},
 		{name: "invalid UTF-8 is rejected", data: []byte{'{', '"', 0xff, '"', ':', '1', '}'}},
-		{name: "nesting bomb is rejected", data: []byte(`{"account_identity":{"nested":{"deeper":{}}}}`)},
+		{name: "nesting bomb is rejected", data: []byte(`{"principal_identity":{"nested":{"deeper":{}}}}`)},
 		{name: "one above byte bound is rejected", data: bytes.Repeat([]byte{' '}, scopeCanonicalJSONMaximumBytes+scopeJSONWhitespaceAllowance+1)},
 	}
 	for _, tc := range hostileCases {
@@ -89,7 +89,7 @@ func TestWatermarkScopeStrictJSONHostileMatrix(t *testing.T) {
 		t.Fatalf("nil Scope.UnmarshalJSON() error = %v, want %v", gotErr, core.ErrJSONContract)
 	}
 	for _, incomplete := range []Scope{
-		{}, {Account: fixture.account}, {Offering: fixture.offering},
+		{}, {Principal: fixture.principal}, {Offering: fixture.offering},
 	} {
 		if _, gotErr := incomplete.MarshalJSON(); !errors.Is(gotErr, core.ErrReceiptContract) {
 			t.Fatalf("incomplete Scope.MarshalJSON() error = %v, want %v",
@@ -105,7 +105,7 @@ func TestWatermarkNominalConstructorsAndValidationMatrix(t *testing.T) {
 	t.Parallel()
 
 	fixture := newReceiptFixture(t, 61)
-	scope := Scope{Account: fixture.account, Offering: fixture.offering}
+	scope := Scope{Principal: fixture.principal, Offering: fixture.offering}
 	complete := watermarkFixture(t, scope, 4, "validation")
 
 	if _, gotErr := NewCursorDigest(core.SHA256Digest{}); !errors.Is(gotErr, core.ErrReceiptContract) {
@@ -136,7 +136,7 @@ func TestWatermarkNominalConstructorsAndValidationMatrix(t *testing.T) {
 		{name: "wholly unset watermark is rejected", watermark: Watermark{}, wantErr: core.ErrReceiptContract},
 		{name: "unset revision is rejected", watermark: from(func(v *Watermark) { v.Revision = RevisionUnknown }), wantErr: core.ErrReceiptContract},
 		{name: "future revision is rejected", watermark: from(func(v *Watermark) { v.Revision = Revision(math.MaxUint8) }), wantErr: core.ErrReceiptContract},
-		{name: "unset scope account is rejected", watermark: from(func(v *Watermark) { v.Scope.Account = AccountIdentity{} }), wantErr: core.ErrReceiptContract},
+		{name: "unset scope principal is rejected", watermark: from(func(v *Watermark) { v.Scope.Principal = PrincipalIdentity{} }), wantErr: core.ErrReceiptContract},
 		{name: "unset scope offering is rejected", watermark: from(func(v *Watermark) { v.Scope.Offering = core.Offering{} }), wantErr: core.ErrReceiptContract},
 		{name: "unset generation is rejected", watermark: from(func(v *Watermark) { v.Generation = Generation{} }), wantErr: core.ErrReceiptContract},
 		{name: "unset cursor digest is rejected", watermark: from(func(v *Watermark) { v.CursorDigest = CursorDigest{} }), wantErr: core.ErrReceiptContract},
@@ -189,7 +189,7 @@ func TestSealedRejectionDiagnosticsAreStableAndNonSensitive(t *testing.T) {
 		name string
 		want string
 	}{
-		{name: "scope mismatch", err: newScopeMismatch(ScopeFieldAccount), want: core.ErrReceiptScope.Error()},
+		{name: "scope mismatch", err: newScopeMismatch(ScopeFieldPrincipal), want: core.ErrReceiptScope.Error()},
 		{name: "watermark conflict", err: conflictError(ConflictReasonCursorUnchanged), want: core.ErrReceiptConflict.Error()},
 	}
 	for _, tc := range cases {

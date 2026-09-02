@@ -17,13 +17,13 @@ const (
 // trusted control boundary. The authority compiles it from closed policy;
 // the runner supplies only its owned streams before execution.
 type Plan struct {
-	SchemaVersion    uint16
 	Command          core.AbsolutePath
 	WorkingDirectory core.AbsolutePath
 	Arguments        []Argument
 	Environment      Environment
 	OutputLimit      core.ByteCount
 	WaitDelay        temporal.Duration
+	SchemaVersion    uint16
 	Containment      Containment
 }
 
@@ -71,15 +71,15 @@ func (p Plan) Bind(streams Streams) (Request, error) {
 }
 
 type planWire struct {
-	SchemaVersion    uint16            `json:"schema_version"`
 	Command          core.AbsolutePath `json:"command"`
 	WorkingDirectory core.AbsolutePath `json:"working_directory"`
+	Isolation        string            `json:"isolation"`
+	CancelSignal     string            `json:"cancel_signal"`
 	Arguments        []string          `json:"arguments"`
 	Environment      []string          `json:"environment"`
 	OutputLimit      core.ByteCount    `json:"output_limit"`
 	WaitDelay        temporal.Duration `json:"wait_delay"`
-	Isolation        string            `json:"isolation"`
-	CancelSignal     string            `json:"cancel_signal"`
+	SchemaVersion    uint16            `json:"schema_version"`
 }
 
 func (p Plan) MarshalJSON() ([]byte, error) {

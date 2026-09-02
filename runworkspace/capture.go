@@ -9,7 +9,8 @@ import (
 
 	"github.com/deliri/primitive/v2026/core"
 	"github.com/deliri/primitive/v2026/filestore"
-	"github.com/deliri/primitive/v2026/projectstandards"
+	"github.com/deliri/primitive/v2026/process"
+	"github.com/deliri/primitive/v2026/standard"
 )
 
 type CaptureKind uint8
@@ -34,7 +35,7 @@ func (k CaptureKind) String() string {
 	if !k.IsValid() {
 		return invalidEnumString()
 	}
-	return []string{"", "stdout", "stderr"}[k]
+	return []string{"", process.StreamStdout.String(), process.StreamStderr.String()}[k]
 }
 
 func (k CaptureKind) MarshalJSON() ([]byte, error) {
@@ -50,7 +51,7 @@ func (k *CaptureKind) UnmarshalJSON(data []byte) error {
 	}
 	value, err := core.DecodeJSONStringToken(data)
 	if err != nil {
-		return errors.Join(core.ErrJSONContract, err)
+		return errors.Join(core.ErrJSONContract, core.ErrPrimitiveContract, err)
 	}
 	for candidate := CaptureStdout; candidate < captureKindLimit; candidate++ {
 		if candidate.String() == value {
@@ -62,11 +63,11 @@ func (k *CaptureKind) UnmarshalJSON(data []byte) error {
 }
 
 type CaptureEvidence struct {
-	Experiment projectstandards.ExperimentID
-	Kind       CaptureKind
 	Path       core.RelativePath
-	SHA256     core.SHA256Digest
 	Bytes      core.ByteLength
+	SHA256     core.SHA256Digest
+	Experiment standard.ExperimentID
+	Kind       CaptureKind
 }
 
 func (e CaptureEvidence) Validate() error {
@@ -76,10 +77,10 @@ func (e CaptureEvidence) Validate() error {
 type Capture struct {
 	root       *os.Root
 	file       *os.File
-	experiment projectstandards.ExperimentID
-	kind       CaptureKind
-	path       core.RelativePath
 	digest     *core.DigestWriter
+	path       core.RelativePath
+	experiment standard.ExperimentID
+	kind       CaptureKind
 	sealed     bool
 }
 
@@ -153,7 +154,7 @@ func (m Manager) validateCaptureEvidenceStream(workspace Experiment, evidence Ca
 	return core.NewByteCount(maximum)
 }
 
-func captureName(experiment projectstandards.ExperimentID, kind CaptureKind) (core.PathComponent, error) {
+func captureName(experiment standard.ExperimentID, kind CaptureKind) (core.PathComponent, error) {
 	encoded, err := experiment.MarshalJSON()
 	if err != nil {
 		return core.PathComponent{}, err

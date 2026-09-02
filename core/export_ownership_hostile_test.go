@@ -17,6 +17,7 @@ const (
 	coreExportInventoryMaximum      = 512
 	coreExportDependencyMaximum     = 32
 	coreSpecialExportAdmissionCount = 60
+	coreProviderExportContractCount = 46
 )
 
 type coreExportName string
@@ -46,6 +47,12 @@ type coreSpecialExportAdmission struct {
 }
 
 type coreSpecialExportAdmissionReason uint8
+
+type coreProviderExportContract struct {
+	witness  any
+	name     coreExportName
+	consumer PackageIdentity
+}
 
 const (
 	coreSpecialExportAdmissionReasonUnknown coreSpecialExportAdmissionReason = iota
@@ -118,14 +125,14 @@ func coreSpecialExportAdmissions() [coreSpecialExportAdmissionCount]coreSpecialE
 		architectureCatalogAdmission("PackageExchange", PackageExchange),
 		architectureCatalogAdmission("PackageFuzzFinder", PackageFuzzFinder),
 		architectureCatalogAdmission("PackageLease", PackageLease),
-		architectureCatalogAdmission("PackageGate", PackageGate),
 		architectureCatalogAdmission("PackageReceipt", PackageReceipt),
 		architectureCatalogAdmission("PackageProcess", PackageProcess),
 		architectureCatalogAdmission("PackageRelease", PackageRelease),
 		architectureCatalogAdmission("PackageShutdown", PackageShutdown),
 		architectureCatalogAdmission("PackageObjectStore", PackageObjectStore),
 		architectureCatalogAdmission("PackageTimeProof", PackageTimeProof),
-		architectureCatalogAdmission("PackageCloudIdentity", PackageCloudIdentity),
+		architectureCatalogAdmission("PackageGoogleIdentity", PackageGoogleIdentity),
+		architectureCatalogAdmission("PackageAWSIdentity", PackageAWSIdentity),
 		architectureCatalogAdmission("PackageUpgrade", PackageUpgrade),
 		architectureCatalogAdmission("PackageWiring", PackageWiring),
 		architectureCatalogAdmission("PackageLineIO", PackageLineIO),
@@ -161,6 +168,61 @@ func coreSpecialExportAdmissions() [coreSpecialExportAdmissionCount]coreSpecialE
 	}
 }
 
+// Provider facts are Core-owned so independently implemented client and server
+// sides compile against one provider-specific contract. Each fact remains
+// isolated to exactly its named provider family: coincidentally equal limits or
+// wire spellings must never create cross-provider coupling.
+func coreProviderExportContracts() [coreProviderExportContractCount]coreProviderExportContract {
+	return [...]coreProviderExportContract{
+		{name: "StripeAPIHost", witness: StripeAPIHost, consumer: PackageStripe},
+		{name: "StripeAPIVersion", witness: StripeAPIVersion, consumer: PackageStripe},
+		{name: "StripeVersionHeaderName", witness: StripeVersionHeaderName, consumer: PackageStripe},
+		{name: "StripeIdempotencyKeyMaximumBytes", witness: StripeIdempotencyKeyMaximumBytes, consumer: PackageStripe},
+		{name: "StripeCredentialMinimumBytes", witness: StripeCredentialMinimumBytes, consumer: PackageStripe},
+		{name: "StripeCredentialCustodyMaximumBytes", witness: StripeCredentialCustodyMaximumBytes, consumer: PackageStripe},
+		{name: "StripeWebhookSecretMinimumBytes", witness: StripeWebhookSecretMinimumBytes, consumer: PackageStripe},
+		{name: "StripeWebhookSecretCustodyMaximumBytes", witness: StripeWebhookSecretCustodyMaximumBytes, consumer: PackageStripe},
+		{name: "StripeWebhookCustodyMaximumBytes", witness: StripeWebhookCustodyMaximumBytes, consumer: PackageStripe},
+		{name: "StripeWebhookSignatureHeaderName", witness: StripeWebhookSignatureHeaderName, consumer: PackageStripe},
+		{name: "StripeWebhookSignatureMaximumBytes", witness: StripeWebhookSignatureMaximumBytes, consumer: PackageStripe},
+		{name: "PayPalLiveAPIHost", witness: PayPalLiveAPIHost, consumer: PackagePayPal},
+		{name: "PayPalSandboxAPIHost", witness: PayPalSandboxAPIHost, consumer: PackagePayPal},
+		{name: "PayPalRequestIDHeaderName", witness: PayPalRequestIDHeaderName, consumer: PackagePayPal},
+		{name: "PayPalRequestIDMaximumBytes", witness: PayPalRequestIDMaximumBytes, consumer: PackagePayPal},
+		{name: "PayPalAccessTokenCustodyMaximumBytes", witness: PayPalAccessTokenCustodyMaximumBytes, consumer: PackagePayPal},
+		{name: "PayPalClientIDCustodyMaximumBytes", witness: PayPalClientIDCustodyMaximumBytes, consumer: PackagePayPal},
+		{name: "PayPalClientSecretCustodyMaximumBytes", witness: PayPalClientSecretCustodyMaximumBytes, consumer: PackagePayPal},
+		{name: "PayPalWebhookEventCustodyMaximumBytes", witness: PayPalWebhookEventCustodyMaximumBytes, consumer: PackagePayPal},
+		{name: "PayPalWebhookIDMaximumBytes", witness: PayPalWebhookIDMaximumBytes, consumer: PackagePayPal},
+		{name: "PayPalAuthAlgorithmMaximumBytes", witness: PayPalAuthAlgorithmMaximumBytes, consumer: PackagePayPal},
+		{name: "PayPalCertificateURLMaximumBytes", witness: PayPalCertificateURLMaximumBytes, consumer: PackagePayPal},
+		{name: "PayPalTransmissionIDMaximumBytes", witness: PayPalTransmissionIDMaximumBytes, consumer: PackagePayPal},
+		{name: "PayPalTransmissionSignatureMaximumBytes", witness: PayPalTransmissionSignatureMaximumBytes, consumer: PackagePayPal},
+		{name: "PayPalTransmissionTimeMaximumBytes", witness: PayPalTransmissionTimeMaximumBytes, consumer: PackagePayPal},
+		{name: "PayPalAuthAlgorithmHeaderName", witness: PayPalAuthAlgorithmHeaderName, consumer: PackagePayPal},
+		{name: "PayPalCertificateURLHeaderName", witness: PayPalCertificateURLHeaderName, consumer: PackagePayPal},
+		{name: "PayPalTransmissionIDHeaderName", witness: PayPalTransmissionIDHeaderName, consumer: PackagePayPal},
+		{name: "PayPalTransmissionSignatureHeaderName", witness: PayPalTransmissionSignatureHeaderName, consumer: PackagePayPal},
+		{name: "PayPalTransmissionTimeHeaderName", witness: PayPalTransmissionTimeHeaderName, consumer: PackagePayPal},
+		{name: "PayPalLiveCertificateHost", witness: PayPalLiveCertificateHost, consumer: PackagePayPal},
+		{name: "PayPalSandboxCertificateHost", witness: PayPalSandboxCertificateHost, consumer: PackagePayPal},
+		{name: "TwilioAPIHost", witness: TwilioAPIHost, consumer: PackageTwilio},
+		{name: "TwilioAPIKeySecretCustodyMaximumBytes", witness: TwilioAPIKeySecretCustodyMaximumBytes, consumer: PackageTwilio},
+		{name: "TwilioAuthTokenCustodyMaximumBytes", witness: TwilioAuthTokenCustodyMaximumBytes, consumer: PackageTwilio},
+		{name: "TwilioWebhookCustodyMaximumBytes", witness: TwilioWebhookCustodyMaximumBytes, consumer: PackageTwilio},
+		{name: "TwilioWebhookSignatureHeaderName", witness: TwilioWebhookSignatureHeaderName, consumer: PackageTwilio},
+		{name: "TwilioWebhookSignatureBytes", witness: TwilioWebhookSignatureBytes, consumer: PackageTwilio},
+		{name: "TwilioWebhookBodySHA256QueryName", witness: TwilioWebhookBodySHA256QueryName, consumer: PackageTwilio},
+		{name: "PlunkAPIHost", witness: PlunkAPIHost, consumer: PackagePlunk},
+		{name: "PlunkIdempotencyKeyMaximumBytes", witness: PlunkIdempotencyKeyMaximumBytes, consumer: PackagePlunk},
+		{name: "PlunkCredentialMinimumBytes", witness: PlunkCredentialMinimumBytes, consumer: PackagePlunk},
+		{name: "PlunkCredentialCustodyMaximumBytes", witness: PlunkCredentialCustodyMaximumBytes, consumer: PackagePlunk},
+		{name: "PlunkWebhookSecretMinimumBytes", witness: PlunkWebhookSecretMinimumBytes, consumer: PackagePlunk},
+		{name: "PlunkWebhookSecretCustodyMaximumBytes", witness: PlunkWebhookSecretCustodyMaximumBytes, consumer: PackagePlunk},
+		{name: "PlunkWebhookCustodyMaximumBytes", witness: PlunkWebhookCustodyMaximumBytes, consumer: PackagePlunk},
+	}
+}
+
 func TestCoreTopLevelExportsHaveTwoNamedPrimitiveConsumers(t *testing.T) {
 	t.Parallel()
 
@@ -190,8 +252,35 @@ func TestCoreTopLevelExportsHaveTwoNamedPrimitiveConsumers(t *testing.T) {
 			}
 		}
 	}
+	providerContracts := coreProviderExportContracts()
+	for index, providerContract := range providerContracts {
+		if providerContract.witness == nil {
+			t.Errorf("Core provider contract %s has no compiler witness", providerContract.name)
+		}
+		contract, ok := exports.Lookup(providerContract.name)
+		if !ok {
+			t.Errorf("Core provider contract %s names no production export", providerContract.name)
+			continue
+		}
+		if err := providerContract.consumer.Validate(); err != nil {
+			t.Errorf("Core provider contract %s consumer error = %v, want nil", providerContract.name, err)
+		}
+		for prior := range index {
+			if providerContracts[prior].name == providerContract.name {
+				t.Errorf("Core provider contract %s is duplicated", providerContract.name)
+			}
+		}
+		gotConsumers := contract.ConsumerIdentities()
+		wantConsumers := []PackageIdentity{providerContract.consumer}
+		if !slices.Equal(gotConsumers, wantConsumers) {
+			t.Errorf("Core provider contract %s consumers = %v, want %v", providerContract.name, gotConsumers, wantConsumers)
+		}
+	}
 	for _, contract := range exports.Values() {
 		if coreExportIsSpeciallyAdmitted(admissions, contract.name) {
+			continue
+		}
+		if coreExportIsProviderContract(providerContracts, contract.name) {
 			continue
 		}
 		if contract.stableErr {
@@ -211,6 +300,15 @@ func TestCoreTopLevelExportsHaveTwoNamedPrimitiveConsumers(t *testing.T) {
 		}
 		t.Errorf("Core export %s has %d named Primitive consumers %v, want at least 2", contract.name, len(consumers), consumers)
 	}
+}
+
+func coreExportIsProviderContract(
+	contracts [coreProviderExportContractCount]coreProviderExportContract,
+	name coreExportName,
+) bool {
+	return slices.ContainsFunc(contracts[:], func(contract coreProviderExportContract) bool {
+		return contract.name == name && contract.witness != nil && contract.consumer.Validate() == nil
+	})
 }
 
 func TestTypedDomainMemberConsumerProjectionDoesNotLaunderUntypedExports(t *testing.T) {

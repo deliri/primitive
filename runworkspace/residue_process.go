@@ -61,7 +61,7 @@ func (k *ResidueProbeKind) UnmarshalJSON(data []byte) error {
 	}
 	value, err := core.DecodeJSONStringToken(data)
 	if err != nil {
-		return errors.Join(core.ErrJSONContract, err)
+		return errors.Join(core.ErrJSONContract, core.ErrPrimitiveContract, err)
 	}
 	for candidate := ResidueProbeProcesses; candidate < residueProbeKindLimit; candidate++ {
 		if candidate.String() == value {
@@ -76,8 +76,8 @@ func (k *ResidueProbeKind) UnmarshalJSON(data []byte) error {
 // dimension. The process contract owns its executable, exact argv,
 // environment, working directory, output ceiling, and cancellation behavior.
 type ResidueProbe struct {
-	Kind ResidueProbeKind
 	Plan process.Plan
+	Kind ResidueProbeKind
 }
 
 func (p ResidueProbe) Validate() error {

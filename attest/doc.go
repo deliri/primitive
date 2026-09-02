@@ -9,4 +9,7 @@
 // protocol's signatures and another's. That text is the protocol owner's
 // namespace: two owners that choose the same text produce interchangeable
 // frames, and attest cannot detect it.
+//
+// Attest is the sole Primitive owner of signing, trusted-key verification,
+// canonical signature framing, and proof-carrying authenticated results.
 package attest

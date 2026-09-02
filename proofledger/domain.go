@@ -9,62 +9,62 @@ import (
 	"github.com/deliri/primitive/v2026/core"
 )
 
-const ReceiptSigningDomainV1Token = "primitive-proof-ledger-receipt-2026-1"
+const AppendReceiptSigningDomainV1Token = "primitive-proof-ledger-append-receipt-2026-1"
 
-type ReceiptSigningDomain uint8
+type AppendReceiptSigningDomain uint8
 
 const (
-	ReceiptSigningDomainUnknown ReceiptSigningDomain = iota
-	ReceiptSigningDomainV1
-	receiptSigningDomainLimit
+	AppendReceiptSigningDomainUnknown AppendReceiptSigningDomain = iota
+	AppendReceiptSigningDomainV1
+	appendReceiptSigningDomainLimit
 )
 
-func (d ReceiptSigningDomain) Validate() error {
-	if d != ReceiptSigningDomainV1 {
-		return contractError(errors.New("proof ledger receipt signing domain is invalid"))
+func (d AppendReceiptSigningDomain) Validate() error {
+	if d != AppendReceiptSigningDomainV1 {
+		return contractError(errors.New("proof ledger append receipt signing domain is invalid"))
 	}
 	return nil
 }
 
-func (d ReceiptSigningDomain) IsValid() bool { return d.Validate() == nil }
+func (d AppendReceiptSigningDomain) IsValid() bool { return d.Validate() == nil }
 
-func (d ReceiptSigningDomain) String() string {
-	if d == ReceiptSigningDomainV1 {
-		return ReceiptSigningDomainV1Token
+func (d AppendReceiptSigningDomain) String() string {
+	if d == AppendReceiptSigningDomainV1 {
+		return AppendReceiptSigningDomainV1Token
 	}
 	return ""
 }
 
-func (d ReceiptSigningDomain) MarshalText() ([]byte, error) {
+func (d AppendReceiptSigningDomain) MarshalText() ([]byte, error) {
 	if err := d.Validate(); err != nil {
 		return nil, err
 	}
 	return []byte(d.String()), nil
 }
 
-func (ReceiptSigningDomain) ParseCanonicalText(text []byte) (ReceiptSigningDomain, error) {
-	if len(text) > attest.SigningDomainMaximumBytes || string(text) != ReceiptSigningDomainV1Token {
-		return ReceiptSigningDomainUnknown, contractError(errors.New("proof ledger receipt signing domain text is unsupported"))
+func (AppendReceiptSigningDomain) ParseCanonicalText(text []byte) (AppendReceiptSigningDomain, error) {
+	if len(text) > attest.SigningDomainMaximumBytes || string(text) != AppendReceiptSigningDomainV1Token {
+		return AppendReceiptSigningDomainUnknown, contractError(errors.New("proof ledger append receipt signing domain text is unsupported"))
 	}
-	return ReceiptSigningDomainV1, nil
+	return AppendReceiptSigningDomainV1, nil
 }
 
-func (d ReceiptSigningDomain) MarshalJSON() ([]byte, error) {
+func (d AppendReceiptSigningDomain) MarshalJSON() ([]byte, error) {
 	if err := d.Validate(); err != nil {
 		return nil, jsonError(err)
 	}
 	return core.MarshalCanonicalJSONString(d.String())
 }
 
-func (d *ReceiptSigningDomain) UnmarshalJSON(data []byte) error {
+func (d *AppendReceiptSigningDomain) UnmarshalJSON(data []byte) error {
 	if d == nil {
-		return jsonError(errors.New("nil proof ledger receipt signing domain receiver"))
+		return jsonError(errors.New("nil proof ledger append receipt signing domain receiver"))
 	}
 	value, err := core.DecodeJSONStringToken(data)
 	if err != nil {
 		return jsonError(err)
 	}
-	parsed, err := ReceiptSigningDomainUnknown.ParseCanonicalText([]byte(value))
+	parsed, err := AppendReceiptSigningDomainUnknown.ParseCanonicalText([]byte(value))
 	if err != nil {
 		return jsonError(err)
 	}
@@ -72,11 +72,11 @@ func (d *ReceiptSigningDomain) UnmarshalJSON(data []byte) error {
 	return nil
 }
 
-type receiptSigningDomainWitness[D attest.SigningDomain[D]] [0]D
+type appendReceiptSigningDomainWitness[D attest.SigningDomain[D]] [0]D
 
 var (
-	_ core.ValidatedJSONMarshaler = ReceiptSigningDomain(0)
-	_ encoding.TextMarshaler      = ReceiptSigningDomain(0)
-	_ json.Unmarshaler            = (*ReceiptSigningDomain)(nil)
-	_                             = receiptSigningDomainWitness[ReceiptSigningDomain]{}
+	_ core.ValidatedJSONMarshaler = AppendReceiptSigningDomain(0)
+	_ encoding.TextMarshaler      = AppendReceiptSigningDomain(0)
+	_ json.Unmarshaler            = (*AppendReceiptSigningDomain)(nil)
+	_                             = appendReceiptSigningDomainWitness[AppendReceiptSigningDomain]{}
 )

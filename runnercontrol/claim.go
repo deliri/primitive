@@ -4,11 +4,10 @@ import (
 	"context"
 	json "encoding/json/v2"
 	"errors"
-	"net/http"
 
 	"github.com/deliri/primitive/v2026/core"
 	"github.com/deliri/primitive/v2026/exchange"
-	"github.com/deliri/primitive/v2026/projectstandards"
+	"github.com/deliri/primitive/v2026/standard"
 	"github.com/deliri/primitive/v2026/temporal"
 )
 
@@ -28,7 +27,7 @@ const (
 	claimKindLimit
 )
 
-func claimKindLabels() []string { return []string{"", "wait", "execute", "drain"} }
+func claimKindLabels() []string { return []string{"", "wait_for_capacity", "execute", "drain_runner"} }
 
 func (k ClaimKind) Validate() error {
 	if k <= ClaimKindUnknown || k >= claimKindLimit {
@@ -72,10 +71,10 @@ func (k *ClaimKind) UnmarshalJSON(data []byte) error {
 
 // MachineFence is the control-owned authority for one observed machine generation.
 type MachineFence struct {
-	Machine    projectstandards.MachineID           `json:"machine_id"`
-	Generation projectstandards.MachineGenerationID `json:"generation_id"`
-	Epoch      uint64                               `json:"epoch"`
-	ExpiresAt  temporal.Instant                     `json:"expires_at"`
+	Machine    standard.MachineID           `json:"machine_id"`
+	Generation standard.MachineGenerationID `json:"generation_id"`
+	Epoch      uint64                       `json:"epoch"`
+	ExpiresAt  temporal.Instant             `json:"expires_at"`
 }
 
 func (f MachineFence) Validate() error {
@@ -89,11 +88,11 @@ func (f MachineFence) Validate() error {
 }
 
 type ClaimRequest struct {
-	SchemaVersion uint16                                `json:"schema_version"`
-	Machine       projectstandards.MachineID            `json:"machine_id"`
-	Generation    projectstandards.MachineGenerationID  `json:"generation_id"`
-	Observation   projectstandards.MachineObservationID `json:"observation_id"`
-	RequestedAt   temporal.Instant                      `json:"requested_at"`
+	SchemaVersion uint16                        `json:"schema_version"`
+	Machine       standard.MachineID            `json:"machine_id"`
+	Generation    standard.MachineGenerationID  `json:"generation_id"`
+	Observation   standard.MachineObservationID `json:"observation_id"`
+	RequestedAt   temporal.Instant              `json:"requested_at"`
 }
 
 func (r ClaimRequest) Validate() error {
@@ -104,10 +103,10 @@ func (r ClaimRequest) Validate() error {
 }
 
 type ClaimResponse struct {
+	Scheduling    *SchedulingClaim `json:"scheduling,omitempty"`
+	Fence         MachineFence     `json:"fence"`
 	SchemaVersion uint16           `json:"schema_version"`
 	Kind          ClaimKind        `json:"kind"`
-	Fence         MachineFence     `json:"fence"`
-	Scheduling    *SchedulingClaim `json:"scheduling,omitempty"`
 }
 
 func (r ClaimResponse) Validate() error {
@@ -206,8 +205,8 @@ func (c ClaimClient) Claim(ctx context.Context, request ClaimRequest) (exchange.
 }
 
 type ClaimServer struct {
-	socket     exchange.ServerSocket
 	repository ClaimRepository
+	socket     exchange.ServerSocket
 }
 
 func NewClaimServer(contract exchange.JSONSocketContract, repository ClaimRepository) (ClaimServer, error) {
@@ -221,11 +220,11 @@ func NewClaimServer(contract exchange.JSONSocketContract, repository ClaimReposi
 	return ClaimServer{socket: socket, repository: repository}, nil
 }
 
-func (s ClaimServer) Serve(writer http.ResponseWriter, request *http.Request) error {
+func (s ClaimServer) Serve(call exchange.SocketServerCall) error {
 	if s.repository == nil {
 		return core.ErrPrimitiveContract
 	}
-	call, err := exchange.NewSocketServerCall(writer, request)
+	ctx, err := call.Context()
 	if err != nil {
 		return err
 	}
@@ -233,10 +232,10 @@ func (s ClaimServer) Serve(writer http.ResponseWriter, request *http.Request) er
 	if err != nil {
 		return err
 	}
-	if err := RequireRunnerPeer(request.Context(), received.Body.Machine, received.Body.Generation); err != nil {
+	if err := RequireRunnerPeer(ctx, received.Body.Machine, received.Body.Generation); err != nil {
 		return err
 	}
-	response, err := s.repository.Claim(request.Context(), *received.Body)
+	response, err := s.repository.Claim(ctx, *received.Body)
 	if err != nil {
 		return err
 	}

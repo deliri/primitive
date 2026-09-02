@@ -9,8 +9,8 @@ import (
 
 	"github.com/deliri/primitive/v2026/core"
 	primitiveid "github.com/deliri/primitive/v2026/id"
-	"github.com/deliri/primitive/v2026/projectstandards"
 	"github.com/deliri/primitive/v2026/runnercontrol"
+	"github.com/deliri/primitive/v2026/standard"
 )
 
 func TestPlanResourceWavesHostileBoundaries(t *testing.T) {
@@ -19,13 +19,13 @@ func TestPlanResourceWavesHostileBoundaries(t *testing.T) {
 	defaultCapacity := resourceCapacity(t, 4, 400, 40, 400, 4)
 	defaultRequirement := resourceRequirement(t, 1, 50, 5, 50, false)
 	cases := []struct {
-		name       string
-		capacity   runnercontrol.MachineResourceCapacity
-		required   []runnercontrol.ResourceRequirement
-		duplicate  bool
-		wantWidths []uint16
 		wantErr    error
+		name       string
 		why        string
+		required   []runnercontrol.ResourceRequirement
+		wantWidths []uint16
+		capacity   runnercontrol.MachineResourceCapacity
+		duplicate  bool
 	}{
 		{name: "one ordinary reservation owns one non-vacuous wave", capacity: defaultCapacity, required: repeatRequirement(defaultRequirement, 1), wantWidths: []uint16{1}, why: "the smallest admitted plan must remain executable"},
 		{name: "two compatible reservations pack in admitted order", capacity: defaultCapacity, required: repeatRequirement(defaultRequirement, 2), wantWidths: []uint16{2}, why: "compatible work should use the rented machine"},
@@ -89,7 +89,7 @@ func TestPlanResourceWavesHostileBoundaries(t *testing.T) {
 				t.Fatalf("PlanResourceWaves(%s) error = %v, want nil; case exists because %s", tc.name, gotErr, tc.why)
 			}
 			gotWidths := make([]uint16, len(got))
-			var gotExperiments []projectstandards.ExperimentID
+			var gotExperiments []standard.ExperimentID
 			for index := range got {
 				gotWidths[index] = got[index].WaveWidth
 				gotExperiments = append(gotExperiments, got[index].Experiments...)
@@ -97,7 +97,7 @@ func TestPlanResourceWavesHostileBoundaries(t *testing.T) {
 			if !slices.Equal(gotWidths, tc.wantWidths) {
 				t.Fatalf("PlanResourceWaves(%s) wave widths = %v, want %v; case exists because %s", tc.name, gotWidths, tc.wantWidths, tc.why)
 			}
-			wantExperiments := make([]projectstandards.ExperimentID, len(reservations))
+			wantExperiments := make([]standard.ExperimentID, len(reservations))
 			for index := range reservations {
 				wantExperiments[index] = reservations[index].Experiment
 			}
@@ -155,9 +155,9 @@ func resourceReservations(t testing.TB, requirements []runnercontrol.ResourceReq
 		if err != nil {
 			t.Fatalf("id.ParseUUIDv7(%q) setup error = %v, want nil", text, err)
 		}
-		experiment, err := projectstandards.NewExperimentID(uuid)
+		experiment, err := standard.NewExperimentID(uuid)
 		if err != nil {
-			t.Fatalf("projectstandards.NewExperimentID(%q) setup error = %v, want nil", text, err)
+			t.Fatalf("standard.NewExperimentID(%q) setup error = %v, want nil", text, err)
 		}
 		got[index] = runnercontrol.ResourceReservation{Experiment: experiment, Required: requirements[index]}
 	}

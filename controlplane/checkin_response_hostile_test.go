@@ -166,7 +166,7 @@ func TestVerifyCheckInResponseAcceptsOnlyAnAnswerToThisExactCheckIn(t *testing.T
 		t.Parallel()
 
 		request := issued.verification()
-		request.Window.Units = append([]controlplane.WorkUnitCount(nil), request.Window.Units...)
+		request.Window.Units = append([]controlplane.UsageCount(nil), request.Window.Units...)
 		request.Window.Outcomes = append([]controlplane.OutcomeCount(nil), request.Window.Outcomes...)
 		request.Window.Units[0].Count++
 		request.Window.Outcomes[0].Count++
@@ -211,9 +211,9 @@ func TestVerifyCheckInResponseAcceptsOnlyAnAnswerToThisExactCheckIn(t *testing.T
 		t.Parallel()
 
 		request := issued.verification()
-		other, err := receipt.ParseAccountIdentity(checkInResponseOtherAccountHex)
+		other, err := receipt.ParsePrincipalIdentity(checkInResponseOtherAccountHex)
 		if err != nil {
-			t.Fatalf("ParseAccountIdentity() error = %v, want nil", err)
+			t.Fatalf("ParsePrincipalIdentity() error = %v, want nil", err)
 		}
 		request.Expected.Account = other
 
@@ -383,7 +383,7 @@ func TestIssueCheckInResponseRefusesEveryPayloadValidateRefuses(t *testing.T) {
 			name: "an unset account binds no customer",
 			want: core.ErrControlPlaneCheckInResponse,
 			mutate: func(payload *controlplane.CheckInResponsePayload) {
-				payload.Header.Account = receipt.AccountIdentity{}
+				payload.Header.Account = receipt.PrincipalIdentity{}
 			},
 		},
 		{

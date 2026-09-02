@@ -272,7 +272,7 @@ func (v VerifiedCheckIn) Request() (CheckInRequest, error) {
 }
 
 func cloneCheckInRequest(request CheckInRequest) CheckInRequest {
-	request.Payload.Window.Units = append([]WorkUnitCount(nil), request.Payload.Window.Units...)
+	request.Payload.Window.Units = append([]UsageCount(nil), request.Payload.Window.Units...)
 	request.Payload.Window.Outcomes = append([]OutcomeCount(nil), request.Payload.Window.Outcomes...)
 	return request
 }

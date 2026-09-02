@@ -8,25 +8,27 @@ import (
 	"testing"
 
 	"github.com/deliri/primitive/v2026/core"
+	"github.com/deliri/primitive/v2026/hostfacts"
 	"github.com/deliri/primitive/v2026/process"
 	"github.com/deliri/primitive/v2026/temporal"
 )
 
 const commandExitChildArgument = "--primitive-command-exit="
 
-func TestExitStatusClosedDomain(t *testing.T) {
+func TestCommandExitCodePortableDomain(t *testing.T) {
 	t.Parallel()
 
 	cases := []struct {
 		name     string
-		status   process.ExitStatus
 		wantCode int
+		status   process.CommandExitCode
 		wantErr  bool
 	}{
-		{name: "success maps to platform code zero", status: process.ExitStatusSuccess, wantCode: 0},
-		{name: "failure maps to platform code one", status: process.ExitStatusFailure, wantCode: 1},
-		{name: "unknown next status is refused", status: process.ExitStatus(3), wantErr: true},
-		{name: "maximum representation is refused", status: process.ExitStatus(^uint8(0)), wantErr: true},
+		{name: "success maps to platform code zero", status: process.CommandExitCodeSuccess, wantCode: 0},
+		{name: "failure maps to platform code one", status: process.CommandExitCodeFailure, wantCode: 1},
+		{name: "maximum portable code is accepted", status: process.CommandExitCodeMaximum, wantCode: int(process.CommandExitCodeMaximum)},
+		{name: "one above portable maximum is refused", status: process.CommandExitCodeMaximum + 1, wantErr: true},
+		{name: "maximum representation is refused", status: process.CommandExitCode(^uint8(0)), wantErr: true},
 	}
 	for _, tc := range cases {
 		t.Run(tc.name, func(t *testing.T) {
@@ -34,27 +36,28 @@ func TestExitStatusClosedDomain(t *testing.T) {
 
 			gotCode, gotErr := tc.status.Code()
 			if (gotErr != nil) != tc.wantErr {
-				t.Fatalf("ExitStatus.Code() error = %v, want error %t", gotErr, tc.wantErr)
+				t.Fatalf("CommandExitCode.Code() error = %v, want error %t", gotErr, tc.wantErr)
 			}
 			if tc.wantErr {
 				if !errors.Is(gotErr, core.ErrProcessContract) || gotCode == 0 {
-					t.Fatalf("ExitStatus.Code() = (%d, %v), want nonzero and errors.Is(..., %v)", gotCode, gotErr, core.ErrProcessContract)
+					t.Fatalf("CommandExitCode.Code() = (%d, %v), want nonzero and errors.Is(..., %v)", gotCode, gotErr, core.ErrProcessContract)
 				}
 				return
 			}
 			if gotCode != tc.wantCode {
-				t.Fatalf("ExitStatus.Code() = %d, want %d", gotCode, tc.wantCode)
+				t.Fatalf("CommandExitCode.Code() = %d, want %d", gotCode, tc.wantCode)
 			}
 		})
 	}
 }
 
 func TestExitCommandProductionPath(t *testing.T) {
+	t.Parallel()
+
 	if status, child := commandExitChildStatus(t); child {
 		process.ExitCommand(status)
 		t.Fatalf("process.ExitCommand(%v) returned, want process termination", status)
 	}
-	t.Parallel()
 
 	cases := []struct {
 		name     string
@@ -84,7 +87,7 @@ func TestExitCommandProductionPath(t *testing.T) {
 	}
 }
 
-func commandExitChildStatus(t *testing.T) (process.ExitStatus, bool) {
+func commandExitChildStatus(t *testing.T) (process.CommandExitCode, bool) {
 	t.Helper()
 
 	arguments, err := process.AmbientArguments()
@@ -98,24 +101,24 @@ func commandExitChildStatus(t *testing.T) (process.ExitStatus, bool) {
 		}
 		switch value {
 		case commandExitChildArgument + "success":
-			return process.ExitStatusSuccess, true
+			return process.CommandExitCodeSuccess, true
 		case commandExitChildArgument + "failure":
-			return process.ExitStatusFailure, true
+			return process.CommandExitCodeFailure, true
 		}
 	}
-	return process.ExitStatusUnknown, false
+	return process.CommandExitCodeFailure, false
 }
 
 func runCommandExitChild(t *testing.T, status string) process.Result {
 	t.Helper()
 
-	executable, err := process.Executable()
+	executable, err := hostfacts.Executable()
 	if err != nil {
-		t.Fatalf("process.Executable() error = %v, want nil", err)
+		t.Fatalf("hostfacts.Executable() error = %v, want nil", err)
 	}
-	directory, err := process.WorkingDirectory()
+	directory, err := hostfacts.WorkingDirectory()
 	if err != nil {
-		t.Fatalf("process.WorkingDirectory() error = %v, want nil", err)
+		t.Fatalf("hostfacts.WorkingDirectory() error = %v, want nil", err)
 	}
 	arguments, err := process.ParseArguments([]string{
 		"-test.run=^TestExitCommandProductionPath$",
@@ -125,9 +128,9 @@ func runCommandExitChild(t *testing.T, status string) process.Result {
 	if err != nil {
 		t.Fatalf("process.ParseArguments() error = %v, want nil", err)
 	}
-	environment, err := process.AmbientEnvironment()
+	environment, err := hostfacts.AmbientEnvironment()
 	if err != nil {
-		t.Fatalf("process.AmbientEnvironment() error = %v, want nil", err)
+		t.Fatalf("hostfacts.AmbientEnvironment() error = %v, want nil", err)
 	}
 	maximum, err := core.NewByteCount(4096)
 	if err != nil {

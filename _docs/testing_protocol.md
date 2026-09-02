@@ -45,6 +45,8 @@ at the call site and state the exact failure class being accepted.
 | `test/compiler-driven` | must | review | Keep the compiler in charge; clean break over compat shims |
 | `test/evidence` | must | review | Tests must prove a behavior that can fail |
 | `test/red-green-slice` | must | review | Every slice has a red state or a named ratchet reason |
+| `test/execution-accounting` | must | tool | Exact revision, scope, command, cache posture, attempts, skips, and exit status are evidence |
+| `test/independent-acceptance` | must | tool | A claim or local green run cannot issue its own acceptance receipt |
 | `test/isolation/tempdir` | must | lint | Filesystem-mutating tests own a tempdir per parallel unit |
 | `test/parallel/default` | should | lint | Tests parallelize by default; serial cases need a waiver |
 | `test/sync/no-sleep` | must | lint | Synchronize on facts, not on `time.Sleep` |
@@ -68,6 +70,7 @@ at the call site and state the exact failure class being accepted.
 | `test/repeat-policy` | must | review | `RepeatCount` is tests-only; tools/benchmarks/fuzz run once per phase |
 | `test/budget-divergence` | must | review | Effective/configured budget ratio is a contract, not a side effect |
 | `test/benchmarks` | must | review | Measure one thing, report allocs, run serial+last, manifest covers evidence |
+| `test/benchmark-integrity` | must | review | Benchmark work is observable, fixed, comparable, and cannot be optimized away |
 | `test/fuzz-boundary` | must | review | Every external ingress has semantic fuzz proof; evidence covered by manifest |
 | `test/ledger-chain` | must | review | Ledger tests prove the real chain |
 | `protocol/typed-boundary` | must | lint | Protocol payloads are typed structs and enums |
@@ -90,6 +93,9 @@ Review-only rules are still rules.
 For every new or changed test, reviewers must ask:
 
 - What behavior would fail red before the fix?
+- Which exact committed revision and complete command produced the evidence?
+- Was the run filtered, cached, retried, skipped, or partially unavailable,
+  and are those facts retained instead of folded into success?
 - Which production contract is being ratcheted: parser, validator, classifier,
   fold, writer, manifest, verifier, reporter, CLI, or doctrine?
 - Does the test own filesystem mutations with `t.TempDir()` in the test or
@@ -116,6 +122,8 @@ For every new or changed test, reviewers must ask:
   data-flow inventory and classified into an intentional role?
 - If old tests support a deleted legacy path, were they upgraded to the new
   contract instead of kept as compatibility ballast?
+- Is acceptance issued by an independent authority rather than by the claimant
+  or the process that authored the change?
 
 ## Compiler-Driven Testing
 
@@ -234,6 +242,83 @@ Unacceptable slice shapes:
 
 When a slice intentionally stops short, name the remaining gap in the commit or
 review note. "Out of scope" must identify the next proof surface, not hide it.
+
+A red-state claim is auditable only when it identifies the exact production
+revision or deliberate semantic mutation that fails. A screenshot, remembered
+local failure, or prose statement that the test "would have failed" is not a
+red state. For a pure ratchet over already-correct production, name the
+previously unpinned invariant and demonstrate that a one-fact mutation of that
+invariant makes the test fail. The mutation is discarded after the check; its
+identity and result remain in the evidence receipt.
+
+## Execution Accounting
+
+`id: test/execution-accounting`
+
+`level: must`
+
+`enforcement: tool`
+
+Test evidence is the complete execution fact, not selected terminal output.
+
+Every evidence-producing run must retain:
+
+- the exact committed revision and a clean/dirty source-tree fact
+- the complete argument vector and working package scope
+- the toolchain identity and relevant typed environment/profile identity
+- whether the Go test cache was eligible, bypassed, or used
+- every attempt in order, including the first failure and later retry results
+- passed, failed, skipped, unavailable, timed-out, and not-run counts as
+  separate facts
+- the process exit status and cancellation or signal cause
+- hashes and byte counts for retained stdout, stderr, profiles, and reports
+
+A filtered run proves only its declared filter. `go test ./pkg -run X` cannot
+close `./pkg`, and `go test ./...` cannot be represented when packages were
+removed from the discovered set. A cached success may be useful developer
+feedback, but an acceptance receipt must execute the selected scope with cache
+reuse disabled and record that posture.
+
+Retries are append-only evidence. A later pass does not erase, replace, or
+average away an earlier failure. If policy permits retry, the final verdict
+must expose the attempt sequence and the instability classification. A harness
+that runs until green, discards failed output, rewrites counts, or reports only
+the last attempt is falsifying evidence.
+
+Skipped, unavailable, timed-out, cancelled, and not-run are never synonyms for
+passed. They may produce an explicit non-accepting verdict, but they must not
+reduce the denominator or disappear from the report. Setup failure before the
+first test is still a failed execution fact, not an empty successful suite.
+
+## Independent Acceptance
+
+`id: test/independent-acceptance`
+
+`level: must`
+
+`enforcement: tool`
+
+A completion claim cannot issue the receipt that accepts itself.
+
+The author, agent, workstation, or API process that proposes a source revision
+may run local tests and attach those facts, but acceptance requires an
+independent execution or verifier authority operating on the exact committed
+revision. The authority must derive its verdict from retained execution facts
+and validate the receipt before persistence.
+
+Required separation:
+
+- the claim identifies what is believed complete and the exact source commit
+- the runner independently obtains or verifies those committed bytes
+- the verifier checks scope, command, exit, counts, artifacts, and revision
+  binding rather than trusting claimant prose
+- the durable store accepts only a validated typed receipt
+- missing, conflicting, partial, or unverifiable evidence fails closed
+
+An agent saying "done," a developer's local green terminal, a CI badge, or a
+human checkbox may initiate review. None is an acceptance receipt by itself.
+The same service may coordinate the workflow, but the claim and proof must
+remain distinct typed records with independently checkable identities.
 
 ## Isolation
 
@@ -1622,16 +1707,71 @@ Required shape:
 Pattern:
 
 ```go
+var benchmarkEnvelopeSink []byte
+
 func BenchmarkEncodeEnvelope(b *testing.B) {
 	record := fixtureEnvelope()
 	b.ReportAllocs()
 	b.ResetTimer()
 
 	for range b.N {
-		_, _ = Encode(record)
+		got, err := Encode(record)
+		if err != nil {
+			b.Fatalf("Encode() error = %v, want nil", err)
+		}
+		benchmarkEnvelopeSink = got
+	}
+	if len(benchmarkEnvelopeSink) == 0 {
+		b.Fatal("Encode() result is empty, want a non-vacuous envelope")
 	}
 }
 ```
+
+## Benchmark Integrity
+
+`id: test/benchmark-integrity`
+
+`level: must`
+
+`enforcement: review`
+
+A benchmark must prove that the intended work happened before its numbers can
+be used as evidence.
+
+Required:
+
+- the timed operation's result is observed through a package-owned sink,
+  validation, or independently checked post-loop fact so the compiler cannot
+  remove the work
+- setup produces a fixed, declared workload and the benchmark checks that the
+  workload is non-vacuous before timing
+- comparison runs use the same benchmark identity, input size, toolchain,
+  machine profile, power posture, and concurrency unless the changed dimension
+  is the subject of the experiment
+- accepted Anvil benchmark evidence uses a 30-second benchmark duration and
+  records the effective duration; shorter exploratory runs are informative,
+  not acceptance evidence
+- CPU and memory profiles come from the same exact revision and benchmark
+  configuration as the reported measurements
+- the receipt retains sample counts, allocation counts, bytes, duration,
+  machine identity, and artifact digests rather than only a summarized delta
+- a claimed improvement reports the baseline and candidate distributions; one
+  favorable sample is not a trend
+
+Forbidden:
+
+- discarding the result when the compiler may prove the call has no observable
+  effect
+- changing input size, concurrency, setup, machine, or toolchain while
+  presenting the result as a code-only comparison
+- selecting the best attempt and hiding the remaining samples
+- treating wall-clock noise as a regression while stable allocation or CPU
+  evidence points to runner contention
+- publishing percentages without the absolute baseline and candidate values
+
+The acceptance question is not "is the number attractive?" It is "did these
+exact bytes perform this exact work under a comparable profile, and can the
+profiles explain the change?"
 
 ## Fuzz Tests
 

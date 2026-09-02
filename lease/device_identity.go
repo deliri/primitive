@@ -10,7 +10,7 @@ import (
 // The identity is the first IdentifierBytes of SHA-256 over all
 // ed25519.PublicKeySize key bytes, in key order, with no prefix, salt, or
 // separator. Every key byte is covered. The derivation is pure, total over set
-// keys, and stable: it is the durable identity OGS registers, and it appears
+// keys, and stable: it is the durable identity an issuer registers, and it appears
 // inside signed decision subjects, so any change to these bytes retires every
 // registered installation.
 //

@@ -24,8 +24,6 @@ type (
 
 type timeproofContractInventory struct {
 	TimestampChainRequest      internalFlow[timestampChainRequest]
-	TimestampTokenVerification internalFlow[timestampTokenVerification]
-	TSTBindingVerification     internalFlow[tstBindingVerification]
 	MessageImprint             protocolFact[messageImprint]
 	TimestampRequestFields     internalFlow[timestampRequestFields]
 	CMSEncapsulatedContent     protocolFact[cmsEncapsulatedContent]
@@ -35,20 +33,22 @@ type timeproofContractInventory struct {
 	ParsedToken                internalFlow[parsedToken]
 	CMSSignerInfo              protocolFact[cmsSignerInfo]
 	ParsedSignedData           internalFlow[parsedSignedData]
-	AuthorityContract          internalFlow[authorityContract]
-	TimestampPolicyContract    internalFlow[timestampPolicyContract]
 	RefusalStatusFact          protocolFact[refusalStatusFact]
+	TimestampPolicyContract    internalFlow[timestampPolicyContract]
+	AuthorityContract          internalFlow[authorityContract]
 	ParsedTSTInfo              internalFlow[parsedTSTInfo]
 	VerifiedToken              internalFlow[verifiedToken]
 	RequestWire                wireProjection[requestWire]
+	TimestampTokenVerification internalFlow[timestampTokenVerification]
 	AuthorityEvidence          sealedProjection[AuthorityEvidence]
 	AuthorityEvidenceInput     internalFlow[authorityEvidenceInput]
 	AuthorityEvidenceWire      wireProjection[authorityEvidenceWire]
 	Request                    sealedProjection[Request]
+	TSTBindingVerification     internalFlow[tstBindingVerification]
 	VerifyRequest              operationRequest[VerifyRequest]
 	AuthoritativeTimestamp     sealedProjection[AuthoritativeTimestamp]
-	AuthoritativeTime          protocolFact[AuthoritativeTime]
 	AuthoritativeTimestampWire wireProjection[authoritativeTimestampWire]
+	AuthoritativeTime          protocolFact[AuthoritativeTime]
 	AccuracyWire               protocolFact[accuracyWire]
 	AuthorityConclusion        protocolFact[authorityConclusion]
 	Refusal                    sealedProjection[Refusal]
@@ -98,7 +98,6 @@ func TestTimeproofProductionStructsHaveCompilerVisibleDataFlowRoles(
 		"math/big",
 		"strconv",
 		"strings",
-		"sync",
 		"time",
 	}
 	if !slices.Equal(gotImports, wantImports) {

@@ -86,7 +86,7 @@ func FuzzReceiveBasicAuthorizationSemanticClosure(f *testing.F) {
 			t.Fatalf("http.NewRequest() error = %v, want nil", err)
 		}
 		request.Header.Set(headerName.String(), value)
-		got, gotErr := exchange.ReceiveBasicAuthorization(exchange.BasicAuthorizationReceiveCall{Request: request})
+		got, gotErr := exchange.ReceiveBasicAuthorization(socketServerCall(t, request))
 		if gotErr != nil {
 			if !errors.Is(gotErr, core.ErrExchangeRequest) || !errors.Is(gotErr, core.ErrExchangeContract) ||
 				got.Identity != "" || got.Secret != nil {
@@ -110,7 +110,7 @@ func FuzzReceiveBasicAuthorizationSemanticClosure(f *testing.F) {
 			t.Fatalf("http.NewRequest(round trip) error = %v, want nil", err)
 		}
 		roundTripRequest.Header.Set(headerName.String(), projectedValue)
-		roundTrip, err := exchange.ReceiveBasicAuthorization(exchange.BasicAuthorizationReceiveCall{Request: roundTripRequest})
+		roundTrip, err := exchange.ReceiveBasicAuthorization(socketServerCall(t, roundTripRequest))
 		if err != nil || roundTrip.Identity != got.Identity || !bytes.Equal(roundTrip.Secret, got.Secret) {
 			t.Fatalf("Basic authorization canonical round trip = (%v, %v), want (%v, nil)", roundTrip, err, got)
 		}

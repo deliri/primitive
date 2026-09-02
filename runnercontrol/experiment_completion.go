@@ -8,13 +8,12 @@ import (
 	"errors"
 	"fmt"
 	"io"
-	"net/http"
 
 	"github.com/deliri/primitive/v2026/attest"
 	"github.com/deliri/primitive/v2026/core"
 	"github.com/deliri/primitive/v2026/exchange"
 	"github.com/deliri/primitive/v2026/process"
-	"github.com/deliri/primitive/v2026/projectstandards"
+	"github.com/deliri/primitive/v2026/standard"
 	"github.com/deliri/primitive/v2026/temporal"
 )
 
@@ -25,18 +24,18 @@ const (
 )
 
 type ExperimentCompletionPayload struct {
-	SchemaVersion uint16                                 `json:"schema_version"`
-	Run           projectstandards.RunID                 `json:"run_id"`
-	Probe         projectstandards.ProbeIdentity         `json:"probe"`
-	Fence         SchedulingFence                        `json:"fence"`
-	Members       MemberSet                              `json:"member_set"`
-	Observation   projectstandards.ExperimentObservation `json:"observation"`
-	RequestedAt   temporal.Instant                       `json:"requested_at"`
-	AdmittedAt    temporal.Instant                       `json:"admitted_at"`
-	StartedAt     *temporal.Instant                      `json:"started_at,omitempty"`
-	CompletedAt   temporal.Instant                       `json:"completed_at"`
-	Process       *process.ResultObservation             `json:"process,omitempty"`
-	Go            *GoConcurrencyResolution               `json:"go,omitempty"`
+	Probe         standard.ProbeIdentity         `json:"probe"`
+	StartedAt     *temporal.Instant              `json:"started_at,omitempty"`
+	Process       *process.ResultObservation     `json:"process,omitempty"`
+	Go            *GoConcurrencyResolution       `json:"go,omitempty"`
+	Members       MemberSet                      `json:"member_set"`
+	Observation   standard.ExperimentObservation `json:"observation"`
+	Fence         SchedulingFence                `json:"fence"`
+	RequestedAt   temporal.Instant               `json:"requested_at"`
+	AdmittedAt    temporal.Instant               `json:"admitted_at"`
+	CompletedAt   temporal.Instant               `json:"completed_at"`
+	SchemaVersion uint16                         `json:"schema_version"`
+	Run           standard.RunID                 `json:"run_id"`
 }
 
 func (p ExperimentCompletionPayload) Validate() error {
@@ -78,24 +77,24 @@ func (p ExperimentCompletionPayload) validateGoConcurrency() error {
 	return nil
 }
 
-func completionCarriesGoConcurrency(kind projectstandards.ProbeKind) bool {
-	return kind >= projectstandards.ProbeKindGoTest && kind <= projectstandards.ProbeKindGoDiagnosticProfile
+func completionCarriesGoConcurrency(kind standard.ProbeKind) bool {
+	return kind >= standard.ProbeKindGoTest && kind <= standard.ProbeKindGoDiagnosticProfile
 }
 
-func goProfileMatchesProbe(profile GoProfileKind, kind projectstandards.ProbeKind) bool {
-	if kind == projectstandards.ProbeKindGoTest {
+func goProfileMatchesProbe(profile GoProfileKind, kind standard.ProbeKind) bool {
+	if kind == standard.ProbeKindGoTest {
 		return profile == GoProfileFocused || profile == GoProfileAcceptance
 	}
-	if kind == projectstandards.ProbeKindGoRace {
+	if kind == standard.ProbeKindGoRace {
 		return profile == GoProfileRace
 	}
-	if kind == projectstandards.ProbeKindGoBenchmark {
+	if kind == standard.ProbeKindGoBenchmark {
 		return profile == GoProfileBenchmark
 	}
-	if kind == projectstandards.ProbeKindGoFuzz {
+	if kind == standard.ProbeKindGoFuzz {
 		return profile == GoProfileFuzz
 	}
-	if kind == projectstandards.ProbeKindGoDiagnosticProfile {
+	if kind == standard.ProbeKindGoDiagnosticProfile {
 		return profile == GoProfileDiagnostic
 	}
 	return false
@@ -129,7 +128,7 @@ func (p ExperimentCompletionPayload) validateMembership() error {
 }
 
 func (p ExperimentCompletionPayload) validateProbeBinding() error {
-	if p.Probe.Role != projectstandards.ProbeRoleExperiment || p.Probe.Environment.MachineGeneration != p.Fence.Machine.Generation {
+	if p.Probe.Role != standard.ProbeRoleExperiment || p.Probe.Environment.MachineGeneration != p.Fence.Machine.Generation {
 		return core.ErrPrimitiveContract
 	}
 	if p.Observation.EnvironmentFingerprint != p.Probe.Environment.EnvironmentFingerprint || p.Observation.MachineSheetDigest != p.Probe.Environment.MachineSheetDigest {
@@ -299,10 +298,10 @@ func VerifyExperimentCompletion(document ExperimentCompletionDocument, trusted a
 }
 
 type ExperimentCompletionRecord struct {
-	Document  ExperimentCompletionDocument
 	Canonical []byte
-	Digest    core.SHA256Digest
+	Document  ExperimentCompletionDocument
 	Bytes     core.ByteLength
+	Digest    core.SHA256Digest
 }
 
 func NewExperimentCompletionRecord(document ExperimentCompletionDocument) (ExperimentCompletionRecord, error) {
@@ -330,11 +329,11 @@ func (r ExperimentCompletionRecord) Validate() error {
 }
 
 type ExperimentCompletionReceipt struct {
-	SchemaVersion uint16                        `json:"schema_version"`
-	Run           projectstandards.RunID        `json:"run_id"`
-	Experiment    projectstandards.ExperimentID `json:"experiment_id"`
-	Digest        core.SHA256Digest             `json:"document_digest"`
-	Bytes         core.ByteLength               `json:"document_bytes"`
+	SchemaVersion uint16                `json:"schema_version"`
+	Run           standard.RunID        `json:"run_id"`
+	Experiment    standard.ExperimentID `json:"experiment_id"`
+	Digest        core.SHA256Digest     `json:"document_digest"`
+	Bytes         core.ByteLength       `json:"document_bytes"`
 }
 
 func (r ExperimentCompletionReceipt) Validate() error {
@@ -388,8 +387,8 @@ func (c ExperimentCompletionClient) Submit(ctx context.Context, document Experim
 }
 
 type ExperimentCompletionServer struct {
-	socket     exchange.ServerSocket
 	repository ExperimentCompletionRepository
+	socket     exchange.ServerSocket
 	trusted    attest.TrustedKeys
 }
 
@@ -404,11 +403,11 @@ func NewExperimentCompletionServer(contract exchange.JSONSocketContract, reposit
 	return ExperimentCompletionServer{socket: socket, repository: repository, trusted: trusted}, nil
 }
 
-func (s ExperimentCompletionServer) Serve(writer http.ResponseWriter, request *http.Request) error {
+func (s ExperimentCompletionServer) Serve(call exchange.SocketServerCall) error {
 	if s.repository == nil {
 		return core.ErrPrimitiveContract
 	}
-	call, err := exchange.NewSocketServerCall(writer, request)
+	ctx, err := call.Context()
 	if err != nil {
 		return err
 	}
@@ -418,7 +417,7 @@ func (s ExperimentCompletionServer) Serve(writer http.ResponseWriter, request *h
 	}
 	payload := received.Body.Payload
 	machine := payload.Fence.Machine
-	if err := RequireRunnerPeer(request.Context(), machine.Machine, machine.Generation); err != nil {
+	if err := RequireRunnerPeer(ctx, machine.Machine, machine.Generation); err != nil {
 		return err
 	}
 	if err := VerifyExperimentCompletion(*received.Body, s.trusted); err != nil {
@@ -428,7 +427,7 @@ func (s ExperimentCompletionServer) Serve(writer http.ResponseWriter, request *h
 	if err != nil {
 		return err
 	}
-	if err := s.repository.StoreExperimentCompletion(request.Context(), record); err != nil {
+	if err := s.repository.StoreExperimentCompletion(ctx, record); err != nil {
 		return err
 	}
 	receipt := ExperimentCompletionReceipt{

@@ -7,8 +7,8 @@ import (
 	"testing"
 
 	"github.com/deliri/primitive/v2026/core"
-	"github.com/deliri/primitive/v2026/projectstandards"
 	"github.com/deliri/primitive/v2026/runnercontrol"
+	"github.com/deliri/primitive/v2026/standard"
 	"github.com/deliri/primitive/v2026/temporal"
 )
 
@@ -78,30 +78,30 @@ func FuzzRunnerControlExternalStructureJSONSemanticClosure(f *testing.F) {
 }
 
 type runnerControlStructureSeeds struct {
-	admitted                runnercontrol.AdmittedRun
-	claimRequest            runnercontrol.ClaimRequest
-	claimResponse           runnercontrol.ClaimResponse
-	heartbeatRequest        runnercontrol.HeartbeatRequest
-	heartbeatResponse       runnercontrol.HeartbeatResponse
-	sourceRequest           runnercontrol.SourceAcquisitionRequest
-	experimentPayload       runnercontrol.ExperimentCompletionPayload
-	experimentReceipt       runnercontrol.ExperimentCompletionReceipt
-	runnerPayload           runnercontrol.RunnerCompletionPayload
-	runnerReceipt           runnercontrol.RunnerCompletionReceipt
-	cleanupPayload          runnercontrol.CleanupPayload
-	cleanupReceipt          runnercontrol.CleanupReceipt
-	observationPayload      runnercontrol.ObservationEnvelopePayload
+	encoded                 [][]byte
 	deliveryPage            runnercontrol.ExperimentDeliveryPage
-	expansionManifest       runnercontrol.ExpansionManifest
+	claimResponse           runnercontrol.ClaimResponse
 	expansionApproval       runnercontrol.ExpansionApproval
-	artifactManifestReceipt runnercontrol.ArtifactManifestReceipt
-	artifactChunkReceipt    runnercontrol.ArtifactChunkReceipt
-	deliveryReceipt         runnercontrol.ObservationDeliveryReceipt
-	machineReceipt          runnercontrol.MachineObservationReceipt
+	heartbeatResponse       runnercontrol.HeartbeatResponse
+	heartbeatRequest        runnercontrol.HeartbeatRequest
+	sourceRequest           runnercontrol.SourceAcquisitionRequest
+	runnerPayload           runnercontrol.RunnerCompletionPayload
+	admitted                runnercontrol.AdmittedRun
+	observationPayload      runnercontrol.ObservationEnvelopePayload
+	expansionManifest       runnercontrol.ExpansionManifest
+	experimentPayload       runnercontrol.ExperimentCompletionPayload
+	cleanupPayload          runnercontrol.CleanupPayload
+	experimentCapability    runnercontrol.ExperimentCapability
 	schedulingCapability    runnercontrol.SchedulingCapability
 	memberCapability        runnercontrol.MemberCapability
-	experimentCapability    runnercontrol.ExperimentCapability
-	encoded                 [][]byte
+	cleanupReceipt          runnercontrol.CleanupReceipt
+	artifactChunkReceipt    runnercontrol.ArtifactChunkReceipt
+	experimentReceipt       runnercontrol.ExperimentCompletionReceipt
+	claimRequest            runnercontrol.ClaimRequest
+	artifactManifestReceipt runnercontrol.ArtifactManifestReceipt
+	runnerReceipt           runnercontrol.RunnerCompletionReceipt
+	deliveryReceipt         runnercontrol.ObservationDeliveryReceipt
+	machineReceipt          runnercontrol.MachineObservationReceipt
 }
 
 func externalStructureSeeds(t testing.TB) runnerControlStructureSeeds {
@@ -114,7 +114,7 @@ func externalStructureSeeds(t testing.TB) runnerControlStructureSeeds {
 	expansionManifest := expansionManifestFixture(t, true)
 	artifactManifest, artifactChunk := artifactFixture(t, []byte("receipt-evidence"))
 	artifactRecord, artifactErr := runnercontrol.NewArtifactManifestRecord(artifactManifest)
-	observationID, observationErr := projectstandards.NewMachineObservationID(completionUUIDFixture(t))
+	observationID, observationErr := standard.NewMachineObservationID(completionUUIDFixture(t))
 	if err := errors.Join(artifactErr, observationErr); err != nil {
 		t.Fatalf("external structure seed identity error = %v, want nil", err)
 	}
@@ -130,7 +130,7 @@ func externalStructureSeeds(t testing.TB) runnerControlStructureSeeds {
 	fence := experimentPayload.Fence.Machine
 	claimRequest := runnercontrol.ClaimRequest{SchemaVersion: runnercontrol.SchemaVersion, Machine: fence.Machine, Generation: fence.Generation, Observation: observationID, RequestedAt: temporal.InstantFromNanoseconds(1)}
 	claimResponse := runnercontrol.ClaimResponse{SchemaVersion: runnercontrol.SchemaVersion, Kind: runnercontrol.ClaimWait, Fence: fence}
-	heartbeatRequest := runnercontrol.HeartbeatRequest{SchemaVersion: runnercontrol.SchemaVersion, Observation: observationID, Fence: fence, State: runnercontrol.HeartbeatReady, ActiveRuns: []projectstandards.RunID{}, ObservedAt: temporal.InstantFromNanoseconds(1)}
+	heartbeatRequest := runnercontrol.HeartbeatRequest{SchemaVersion: runnercontrol.SchemaVersion, Observation: observationID, Fence: fence, State: runnercontrol.HeartbeatReady, ActiveRuns: []standard.RunID{}, ObservedAt: temporal.InstantFromNanoseconds(1)}
 	heartbeatResponse := runnercontrol.HeartbeatResponse{SchemaVersion: runnercontrol.SchemaVersion, Fence: fence, Directive: runnercontrol.Directive{Kind: runnercontrol.DirectiveContinue}, NextAt: temporal.InstantFromNanoseconds(2)}
 	sourceRequest := runnercontrol.SourceAcquisitionRequest{SchemaVersion: runnercontrol.SchemaVersion, Fence: experimentPayload.Fence, Members: experimentPayload.Members, Source: experimentPayload.Probe.Source, Grant: runnercontrol.SourceGrantIdentity{Digest: core.SHA256Of([]byte("source-grant"))}, RequestedAt: temporal.InstantFromNanoseconds(1)}
 	experimentReceipt := runnercontrol.ExperimentCompletionReceipt{SchemaVersion: runnercontrol.SchemaVersion, Run: experimentPayload.Run, Experiment: experimentPayload.Observation.Experiment, Digest: experimentRecord.Digest, Bytes: experimentRecord.Bytes}
@@ -172,9 +172,9 @@ func expansionApprovalSeed(t testing.TB, manifest runnercontrol.ExpansionManifes
 	t.Helper()
 	capability := experimentObservationRequestFixture(t).Capability
 	child := manifest.Children[0]
-	observation, observationErr := projectstandards.NewMachineObservationID(completionUUIDFixture(t))
+	observation, observationErr := standard.NewMachineObservationID(completionUUIDFixture(t))
 	resolution, resolutionErr := runnercontrol.ResolveGoConcurrency(
-		projectstandards.MachineExecutionSettings{Observation: observation, Generation: manifest.Fence.Machine.Generation, LogicalCPUCount: 1},
+		standard.MachineExecutionSettings{Observation: observation, Generation: manifest.Fence.Machine.Generation, LogicalCPUCount: 1},
 		runnercontrol.GoProfileFocused,
 		runnercontrol.GoConcurrency{GOMAXPROCS: 1, Parallel: 1, PackageParallel: 1, CPU: []uint16{1}},
 	)

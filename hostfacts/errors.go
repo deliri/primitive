@@ -19,7 +19,6 @@ const (
 	OperationCgroupMembership
 	OperationCgroupMount
 	OperationCgroupLimit
-	OperationTreeWalk
 	OperationGoOOMBanner
 	OperationTerminalGeometry
 	OperationDiskRotation
@@ -36,7 +35,6 @@ func operationLabels() [operationLimit]string {
 		OperationCgroupMembership: "cgroup membership",
 		OperationCgroupMount:      "cgroup mount",
 		OperationCgroupLimit:      "cgroup limit",
-		OperationTreeWalk:         "tree walk",
 		OperationGoOOMBanner:      "go OOM banner",
 		OperationTerminalGeometry: "terminal geometry",
 		OperationDiskRotation:     "disk rotation",

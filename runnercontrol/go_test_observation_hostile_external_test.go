@@ -11,16 +11,16 @@ import (
 	"testing"
 
 	"github.com/deliri/primitive/v2026/core"
-	"github.com/deliri/primitive/v2026/projectstandards"
 	"github.com/deliri/primitive/v2026/runnercontrol"
+	"github.com/deliri/primitive/v2026/standard"
 )
 
 type goEventFixture struct {
 	Action  string  `json:"Action"`
 	Package string  `json:"Package,omitempty"`
 	Test    string  `json:"Test,omitempty"`
-	Elapsed float64 `json:"Elapsed,omitempty"`
 	Output  string  `json:"Output,omitempty"`
+	Elapsed float64 `json:"Elapsed,omitempty"`
 }
 
 func TestGoTestObservationCompilerWriteBoundsEveryEventWithinOneChunk(t *testing.T) {
@@ -41,15 +41,15 @@ func TestGoTestObservationCompilerWriteBoundsEveryEventWithinOneChunk(t *testing
 }
 
 type goObservationCase struct {
+	executionErr    error
+	wantErr         error
+	setup           func(testing.TB) [][]byte
 	name            string
 	class           string
-	policy          runnercontrol.ObservationPolicy
-	setup           func(testing.TB) [][]byte
-	executionErr    error
-	wantAccounting  projectstandards.ExecutionAccounting
+	wantAccounting  standard.ExecutionAccounting
+	wantNanoseconds standard.DecimalMeasurement
 	wantBenchmarks  int
-	wantNanoseconds projectstandards.DecimalMeasurement
-	wantErr         error
+	policy          runnercontrol.ObservationPolicy
 }
 
 func TestGoTestObservationCompilerHostileEvidenceMatrix(t *testing.T) {
@@ -118,9 +118,9 @@ func goObservationCases() []goObservationCase {
 		observationCase("test terminal does not double count package terminal", "valid", events(event("run", "example.com/tests", "TestOne", ""), event("pass", "example.com/tests", "TestOne", ""), event("pass", "example.com/tests", "", "")), nil, pass),
 		observationCase("pause and continue do not invent terminal evidence", "valid", events(event("pause", "example.com/pause", "TestOne", ""), event("cont", "example.com/pause", "TestOne", ""), event("pass", "example.com/pause", "", "")), nil, pass),
 		observationCase("ordinary output does not invent measurements", "valid", events(event("output", "example.com/output", "", "diagnostic line\n"), event("pass", "example.com/output", "", "")), nil, pass),
-		benchmarkCase("integer benchmark result retains allocations", "valid", "BenchmarkEncode-8 1000 125 ns/op 64 B/op 2 allocs/op\n", projectstandards.DecimalMeasurement{Coefficient: 125}),
-		benchmarkCase("decimal benchmark result stays exact", "valid", "BenchmarkEncode-8 1000 125.75 ns/op 64 B/op 2 allocs/op\n", projectstandards.DecimalMeasurement{Coefficient: 12575, Scale: 2}),
-		benchmarkCase("extra throughput metric does not hide required metrics", "valid", "BenchmarkEncode-8 1000 125 ns/op 12.5 MB/s 64 B/op 2 allocs/op\n", projectstandards.DecimalMeasurement{Coefficient: 125}),
+		benchmarkCase("integer benchmark result retains allocations", "valid", "BenchmarkEncode-8 1000 125 ns/op 64 B/op 2 allocs/op\n", standard.DecimalMeasurement{Coefficient: 125}),
+		benchmarkCase("decimal benchmark result stays exact", "valid", "BenchmarkEncode-8 1000 125.75 ns/op 64 B/op 2 allocs/op\n", standard.DecimalMeasurement{Coefficient: 12575, Scale: 2}),
+		benchmarkCase("extra throughput metric does not hide required metrics", "valid", "BenchmarkEncode-8 1000 125 ns/op 12.5 MB/s 64 B/op 2 allocs/op\n", standard.DecimalMeasurement{Coefficient: 125}),
 	}
 	rejections := []goObservationCase{
 		observationCase("empty JSON event is refused", "rejection", rawChunks([]byte("\n")), nil, unavailable, core.ErrJSONContract),
@@ -158,17 +158,17 @@ func boundaryObservationCases() []goObservationCase {
 		observationCase("setup failure before first event retains one failed unit", "boundary", rawChunks(nil), errors.New("setup failed"), failed),
 		observationCaseWithPolicy("unstarted units remain not-run after cancellation", "boundary", policy(2, false), events(event("start", "example.com/a", "", "")), context.Canceled, accounting(2, 0, 0, 0, 0, 0, 1, 1, false)),
 		observationCase("test skip does not replace package pass", "boundary", events(event("skip", "example.com/p", "TestOptional", ""), event("pass", "example.com/p", "", "")), nil, pass),
-		benchmarkCase("zero bytes per operation is valid evidence", "boundary", "BenchmarkZeroBytes-8 1 1 ns/op 0 B/op 1 allocs/op\n", projectstandards.DecimalMeasurement{Coefficient: 1}),
-		benchmarkCase("zero allocations per operation is valid evidence", "boundary", "BenchmarkZeroAllocs-8 1 1 ns/op 8 B/op 0 allocs/op\n", projectstandards.DecimalMeasurement{Coefficient: 1}),
-		benchmarkCase("maximum iteration count is retained without overflow", "boundary", fmt.Sprintf("BenchmarkMaximum-8 %d 1 ns/op 0 B/op 0 allocs/op\n", uint64(math.MaxUint64)), projectstandards.DecimalMeasurement{Coefficient: 1}),
-		benchmarkCase("nine decimal places meet the precision ceiling", "boundary", "BenchmarkPrecision-8 1 1.123456789 ns/op 0 B/op 0 allocs/op\n", projectstandards.DecimalMeasurement{Coefficient: 1123456789, Scale: 9}),
-		benchmarkCase("decimal trailing zeroes normalize canonically", "boundary", "BenchmarkCanonical-8 1 1.2300 ns/op 0 B/op 0 allocs/op\n", projectstandards.DecimalMeasurement{Coefficient: 123, Scale: 2}),
+		benchmarkCase("zero bytes per operation is valid evidence", "boundary", "BenchmarkZeroBytes-8 1 1 ns/op 0 B/op 1 allocs/op\n", standard.DecimalMeasurement{Coefficient: 1}),
+		benchmarkCase("zero allocations per operation is valid evidence", "boundary", "BenchmarkZeroAllocs-8 1 1 ns/op 8 B/op 0 allocs/op\n", standard.DecimalMeasurement{Coefficient: 1}),
+		benchmarkCase("maximum iteration count is retained without overflow", "boundary", fmt.Sprintf("BenchmarkMaximum-8 %d 1 ns/op 0 B/op 0 allocs/op\n", uint64(math.MaxUint64)), standard.DecimalMeasurement{Coefficient: 1}),
+		benchmarkCase("nine decimal places meet the precision ceiling", "boundary", "BenchmarkPrecision-8 1 1.123456789 ns/op 0 B/op 0 allocs/op\n", standard.DecimalMeasurement{Coefficient: 1123456789, Scale: 9}),
+		benchmarkCase("decimal trailing zeroes normalize canonically", "boundary", "BenchmarkCanonical-8 1 1.2300 ns/op 0 B/op 0 allocs/op\n", standard.DecimalMeasurement{Coefficient: 123, Scale: 2}),
 		multiBenchmarkCase(),
 		observationCase("malformed suffix cannot erase an earlier terminal", "boundary", appendSuffix(events(event("pass", "example.com/p", "", "")), []byte("{\n")), nil, pass, core.ErrJSONContract),
 	}
 }
 
-func observationCase(name, class string, setup func(testing.TB) [][]byte, executionErr error, want projectstandards.ExecutionAccounting, wantErr ...error) goObservationCase {
+func observationCase(name, class string, setup func(testing.TB) [][]byte, executionErr error, want standard.ExecutionAccounting, wantErr ...error) goObservationCase {
 	var expectedErr error
 	if len(wantErr) == 1 {
 		expectedErr = wantErr[0]
@@ -176,11 +176,11 @@ func observationCase(name, class string, setup func(testing.TB) [][]byte, execut
 	return goObservationCase{name: name, class: class, policy: policy(1, false), setup: setup, executionErr: executionErr, wantAccounting: want, wantErr: expectedErr}
 }
 
-func observationCaseWithPolicy(name, class string, observationPolicy runnercontrol.ObservationPolicy, setup func(testing.TB) [][]byte, executionErr error, want projectstandards.ExecutionAccounting) goObservationCase {
+func observationCaseWithPolicy(name, class string, observationPolicy runnercontrol.ObservationPolicy, setup func(testing.TB) [][]byte, executionErr error, want standard.ExecutionAccounting) goObservationCase {
 	return goObservationCase{name: name, class: class, policy: observationPolicy, setup: setup, executionErr: executionErr, wantAccounting: want}
 }
 
-func benchmarkCase(name, class, output string, nanoseconds projectstandards.DecimalMeasurement) goObservationCase {
+func benchmarkCase(name, class, output string, nanoseconds standard.DecimalMeasurement) goObservationCase {
 	result := observationCase(name, class, events(event("output", "example.com/bench", "BenchmarkEvidence", output), event("pass", "example.com/bench", "", "")), nil, accounting(1, 1, 0, 0, 0, 0, 0, 0, false))
 	result.wantBenchmarks = 1
 	result.wantNanoseconds = nanoseconds
@@ -194,13 +194,13 @@ func multiBenchmarkCase() goObservationCase {
 		event("pass", "example.com/bench", "", ""),
 	), nil, accounting(1, 1, 0, 0, 0, 0, 0, 0, false))
 	result.wantBenchmarks = 2
-	result.wantNanoseconds = projectstandards.DecimalMeasurement{Coefficient: 1}
+	result.wantNanoseconds = standard.DecimalMeasurement{Coefficient: 1}
 	return result
 }
 
-func accounting(planned, passed, failed, skipped, unavailable, timedOut, cancelled, notRun uint32, filtered bool) projectstandards.ExecutionAccounting {
-	attempt := projectstandards.ExecutionAttempt{Sequence: 1, Planned: planned, Passed: passed, Failed: failed, Skipped: skipped, Unavailable: unavailable, Expired: timedOut, Cancelled: cancelled, NotRun: notRun, Cache: projectstandards.CacheDisabled, Filtered: filtered}
-	return projectstandards.ExecutionAccounting{Attempts: []projectstandards.ExecutionAttempt{attempt}}
+func accounting(planned, passed, failed, skipped, unavailable, timedOut, cancelled, notRun uint32, filtered bool) standard.ExecutionAccounting {
+	attempt := standard.ExecutionAttempt{Sequence: 1, Planned: planned, Passed: passed, Failed: failed, Skipped: skipped, Unavailable: unavailable, Expired: timedOut, Cancelled: cancelled, NotRun: notRun, Cache: standard.CacheDisabled, Filtered: filtered}
+	return standard.ExecutionAccounting{Attempts: []standard.ExecutionAttempt{attempt}}
 }
 
 func policy(expected uint32, filtered bool) runnercontrol.ObservationPolicy {

@@ -17,4 +17,10 @@
 // Canonical member order is owned by pointer-only wire structures, never by
 // the declaration order of the exported types. Signed bytes therefore stay
 // fixed while memory layout stays free to change.
+//
+// Receipt owns the identity and monotonic projection of accepted evidence. It
+// delegates all signing and authentication to Attest and stores only an opaque
+// accepted-history digest; it does not calculate or replay an append-only
+// chain. Proofledger owns that separate mechanism and names its durable result
+// AppendReceipt so the two contracts cannot be mistaken for one identity.
 package receipt

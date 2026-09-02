@@ -26,9 +26,9 @@ func TestGCSBucketPublicReadRequestValidateRefusesUnsetBucket(t *testing.T) {
 
 	bucket := parsedGCSBucket(t, gcsProviderBucketText)
 	cases := []struct {
+		wantErr error
 		name    string
 		request GCSBucketPublicReadRequest
-		wantErr error
 	}{
 		{name: "positive request names one validated bucket", request: GCSBucketPublicReadRequest{Bucket: bucket}},
 		{name: "negative zero request refuses an unset bucket", request: GCSBucketPublicReadRequest{}, wantErr: core.ErrObjectStoreContract},
@@ -78,9 +78,9 @@ func TestGCSBucketPublicReadGrantContractLayerTriadRejectsUnsealedEvidence(t *te
 
 	bucket := parsedGCSBucket(t, gcsProviderBucketText)
 	cases := []struct {
+		wantErr error
 		name    string
 		grant   GCSBucketPublicReadGrant
-		wantErr error
 	}{
 		{name: "neutral zero grant is unsealed and refused", wantErr: core.ErrObjectStoreContract},
 		{name: "positive sealed unchanged grant is admitted", grant: GCSBucketPublicReadGrant{bucket: bucket, change: GCSBucketPublicReadUnchanged, set: true}},
@@ -101,17 +101,17 @@ func TestGCSBucketPublicReadGrantContractLayerTriadRejectsUnsealedEvidence(t *te
 }
 
 type gcsPublicReadProviderCase struct {
+	wantErr          error
 	name             string
+	wantCauseErrors  []error
 	initial          gcsPublicReadProviderResponse
 	set              gcsPublicReadProviderResponse
 	confirmed        gcsPublicReadProviderResponse
-	wantChange       GCSBucketPublicReadChange
-	wantErr          error
-	wantCauseErrors  []error
 	wantProviderCode int
-	wantRuntimeCause bool
 	wantPolicyGets   int64
 	wantPolicySets   int64
+	wantChange       GCSBucketPublicReadChange
+	wantRuntimeCause bool
 }
 
 type gcsPublicReadProviderResponseKind uint8
@@ -128,10 +128,10 @@ const (
 )
 
 type gcsPublicReadProviderResponse struct {
-	kind   gcsPublicReadProviderResponseKind
+	raw    string
 	policy storageapi.Policy
 	status int
-	raw    string
+	kind   gcsPublicReadProviderResponseKind
 }
 
 func gcsProviderPolicy(policy storageapi.Policy) gcsPublicReadProviderResponse {
@@ -317,10 +317,10 @@ func TestGCSBucketPublicReadProviderResponseExtentRefusesOneByteAboveTheOwnedMax
 		t.Fatalf("json.Marshal(provider policy) error = %v, want nil", gotMarshalErr)
 	}
 	cases := []struct {
+		wantErr    error
 		name       string
 		response   []byte
 		wantChange GCSBucketPublicReadChange
-		wantErr    error
 	}{
 		{name: "one byte below response maximum remains admissible", response: paddedGCSPolicyResponse(t, canonical, GCSProviderResponseMaximumBytes-1), wantChange: GCSBucketPublicReadUnchanged},
 		{name: "exact response maximum remains admissible", response: paddedGCSPolicyResponse(t, canonical, GCSProviderResponseMaximumBytes), wantChange: GCSBucketPublicReadUnchanged},
@@ -411,13 +411,13 @@ func TestGCSBucketPublicReadRefusesInvalidIngressBeforeProviderCalls(t *testing.
 	t.Parallel()
 
 	cases := []struct {
+		wantErr      error
 		name         string
 		nilClient    bool
 		nilContext   bool
 		canceled     bool
 		closedClient bool
 		zeroRequest  bool
-		wantErr      error
 	}{
 		{name: "zero request", zeroRequest: true, wantErr: core.ErrObjectStoreContract},
 		{name: "nil client", nilClient: true, wantErr: core.ErrObjectStoreContract},
@@ -465,11 +465,11 @@ func TestGCSBucketPublicReadRefusesInvalidIngressBeforeProviderCalls(t *testing.
 
 type gcsPublicReadProvider struct {
 	t        testing.TB
+	written  storageapi.Policy
 	testCase gcsPublicReadProviderCase
 	gets     atomic.Int64
 	sets     atomic.Int64
 	mu       sync.Mutex
-	written  storageapi.Policy
 }
 
 func (p *gcsPublicReadProvider) ServeHTTP(writer http.ResponseWriter, incoming *http.Request) {

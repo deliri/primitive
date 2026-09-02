@@ -7,19 +7,17 @@ import (
 	"context"
 	"errors"
 	"fmt"
-	"io"
 	"io/fs"
 	"math"
-	"os"
 	"path/filepath"
 	"strings"
 
 	"github.com/deliri/primitive/v2026/core"
+	"github.com/deliri/primitive/v2026/filestore"
 )
 
 const (
 	residueHostEntryMaximum = 1 << 16
-	residueReadBatch        = 128
 	residueLineMaximum      = 64 * 1024
 )
 
@@ -103,41 +101,33 @@ func (s LinuxResidueSource) ObserveResidue(ctx context.Context) (Residue, error)
 }
 
 func (s LinuxResidueSource) observeSubjectProcesses(ctx context.Context) (counts residueCounts, resultErr error) {
-	directory, err := os.Open(s.configuration.ProcRoot.String())
+	location, err := filestore.OpenParent(ctx, s.configuration.ProcRoot)
 	if err != nil {
 		return residueCounts{}, fmt.Errorf("open Linux process table: %w", err)
 	}
-	defer func() { resultErr = errors.Join(resultErr, directory.Close()) }()
-	emptyReads := 0
-	for {
-		if err := ctx.Err(); err != nil {
-			return residueCounts{}, err
-		}
-		entries, readErr := readResidueDirectoryBatch(directory, &emptyReads)
-		for _, entry := range entries {
-			contribution, observeErr := s.observeProcessEntry(ctx, entry)
+	defer func() { resultErr = errors.Join(resultErr, location.Root.Close()) }()
+	walkErr := filestore.Walk(ctx, filestore.WalkRequest{
+		Location: location,
+		Order:    filestore.WalkOrderNative,
+		Visit: func(entry filestore.WalkEntry) (filestore.WalkDirective, error) {
+			contribution, observeErr := s.observeProcessEntry(ctx, location, entry)
 			if observeErr != nil {
-				return residueCounts{}, observeErr
+				return filestore.WalkDirectiveUnknown, observeErr
 			}
 			if err := counts.add(contribution); err != nil {
-				return residueCounts{}, err
+				return filestore.WalkDirectiveUnknown, err
 			}
-		}
-		if errors.Is(readErr, io.EOF) {
-			break
-		}
-		if readErr != nil {
-			return residueCounts{}, readErr
-		}
-	}
-	return counts, nil
+			return filestore.WalkSkipDirectory, nil
+		},
+	})
+	return counts, walkErr
 }
 
-func (s LinuxResidueSource) observeProcessEntry(ctx context.Context, entry fs.DirEntry) (residueCounts, error) {
-	if !entry.IsDir() || !decimalName(entry.Name()) {
+func (s LinuxResidueSource) observeProcessEntry(ctx context.Context, proc filestore.Location, entry filestore.WalkEntry) (residueCounts, error) {
+	if !entry.Entry.IsDir() || !decimalName(entry.Entry.Name()) {
 		return residueCounts{}, nil
 	}
-	owned, err := s.processOwnedBySubject(entry.Name())
+	owned, err := s.processOwnedBySubject(ctx, proc, entry.Entry.Name())
 	if errors.Is(err, fs.ErrNotExist) {
 		return residueCounts{}, nil
 	}
@@ -145,7 +135,7 @@ func (s LinuxResidueSource) observeProcessEntry(ctx context.Context, entry fs.Di
 		return residueCounts{}, err
 	}
 	counts := residueCounts{processes: 1}
-	descriptors, descriptorErr := s.observeProcessDescriptors(ctx, entry.Name())
+	descriptors, descriptorErr := s.observeProcessDescriptors(ctx, proc, entry.Entry.Name())
 	if errors.Is(descriptorErr, fs.ErrNotExist) {
 		return counts, nil
 	}
@@ -165,8 +155,12 @@ func (c *residueCounts) add(other residueCounts) error {
 	)
 }
 
-func (s LinuxResidueSource) processOwnedBySubject(processID string) (owned bool, resultErr error) {
-	status, err := os.Open(filepath.Join(s.configuration.ProcRoot.String(), processID, "status"))
+func (s LinuxResidueSource) processOwnedBySubject(ctx context.Context, proc filestore.Location, processID string) (owned bool, resultErr error) {
+	statusPath, err := proc.Path.Resolve(processID, "status")
+	if err != nil {
+		return false, err
+	}
+	status, err := filestore.OpenRead(ctx, filestore.ReadHandleRequest{Location: filestore.Location{Root: proc.Root, Path: statusPath}})
 	if err != nil {
 		return false, err
 	}
@@ -175,7 +169,7 @@ func (s LinuxResidueSource) processOwnedBySubject(processID string) (owned bool,
 	scanner.Buffer(make([]byte, 256), residueLineMaximum)
 	for scanner.Scan() {
 		line := scanner.Text()
-		if !strings.HasPrefix(line, "Uid:") {
+		if !strings.HasPrefix(line, linuxUIDFieldPrefix) {
 			continue
 		}
 		uid, parseErr := ParseLinuxStatusUIDRow(line)
@@ -184,39 +178,35 @@ func (s LinuxResidueSource) processOwnedBySubject(processID string) (owned bool,
 	return false, errors.Join(core.ErrPrimitiveContract, scanner.Err(), errors.New("linux process status has no uid row"))
 }
 
-func (s LinuxResidueSource) observeProcessDescriptors(ctx context.Context, processID string) (counts residueCounts, resultErr error) {
-	directory, err := os.Open(filepath.Join(s.configuration.ProcRoot.String(), processID, "fd"))
+func (s LinuxResidueSource) observeProcessDescriptors(ctx context.Context, proc filestore.Location, processID string) (residueCounts, error) {
+	descriptorPath, err := proc.Path.Resolve(processID, "fd")
 	if err != nil {
 		return residueCounts{}, err
 	}
-	defer func() { resultErr = errors.Join(resultErr, directory.Close()) }()
-	emptyReads := 0
-	for {
-		if err := ctx.Err(); err != nil {
-			return residueCounts{}, err
-		}
-		entries, readErr := readResidueDirectoryBatch(directory, &emptyReads)
-		for _, entry := range entries {
-			contribution, observeErr := s.observeDescriptor(processID, entry.Name())
+	var counts residueCounts
+	walkErr := filestore.Walk(ctx, filestore.WalkRequest{
+		Location: filestore.Location{Root: proc.Root, Path: descriptorPath},
+		Order:    filestore.WalkOrderNative,
+		Visit: func(entry filestore.WalkEntry) (filestore.WalkDirective, error) {
+			contribution, observeErr := s.observeDescriptor(ctx, proc, processID, entry.Entry.Name())
 			if observeErr != nil {
-				return residueCounts{}, observeErr
+				return filestore.WalkDirectiveUnknown, observeErr
 			}
 			if err := counts.add(contribution); err != nil {
-				return residueCounts{}, err
+				return filestore.WalkDirectiveUnknown, err
 			}
-		}
-		if errors.Is(readErr, io.EOF) {
-			break
-		}
-		if readErr != nil {
-			return residueCounts{}, readErr
-		}
-	}
-	return counts, nil
+			return filestore.WalkSkipDirectory, nil
+		},
+	})
+	return counts, walkErr
 }
 
-func (s LinuxResidueSource) observeDescriptor(processID, descriptorName string) (residueCounts, error) {
-	target, err := os.Readlink(filepath.Join(s.configuration.ProcRoot.String(), processID, "fd", descriptorName))
+func (s LinuxResidueSource) observeDescriptor(ctx context.Context, proc filestore.Location, processID, descriptorName string) (residueCounts, error) {
+	descriptorPath, err := proc.Path.Resolve(processID, "fd", descriptorName)
+	if err != nil {
+		return residueCounts{}, err
+	}
+	target, err := filestore.ReadSymbolicLink(ctx, filestore.Location{Root: proc.Root, Path: descriptorPath})
 	if errors.Is(err, fs.ErrNotExist) {
 		return residueCounts{}, nil
 	}
@@ -224,20 +214,28 @@ func (s LinuxResidueSource) observeDescriptor(processID, descriptorName string) 
 		return residueCounts{}, err
 	}
 	var counts residueCounts
-	if pathWithin(target, s.configuration.RunParent.String()) {
+	if pathWithin(target.String(), s.configuration.RunParent.String()) {
 		counts.descriptors = 1
 	}
-	if strings.HasPrefix(target, "socket:[") {
+	if strings.HasPrefix(target.String(), "socket:[") {
 		counts.sockets = 1
 	}
 	return counts, nil
 }
 
 func (s LinuxResidueSource) observeRunMounts(ctx context.Context) (count uint32, resultErr error) {
-	mountInfo := filepath.Join(s.configuration.ProcRoot.String(), "self", "mountinfo")
-	file, err := os.Open(mountInfo)
+	mountInfo, err := s.configuration.ProcRoot.Resolve("self", "mountinfo")
 	if err != nil {
-		return 0, fmt.Errorf("open Linux mount table: %w", err)
+		return 0, err
+	}
+	location, err := filestore.OpenParent(ctx, mountInfo)
+	if err != nil {
+		return 0, fmt.Errorf(openLinuxMountTableDiagnostic, err)
+	}
+	defer func() { resultErr = errors.Join(resultErr, location.Root.Close()) }()
+	file, err := filestore.OpenRead(ctx, filestore.ReadHandleRequest{Location: location})
+	if err != nil {
+		return 0, fmt.Errorf(openLinuxMountTableDiagnostic, err)
 	}
 	defer func() { resultErr = errors.Join(resultErr, file.Close()) }()
 	scanner := bufio.NewScanner(file)
@@ -268,45 +266,24 @@ func countAllEntries(ctx context.Context, root core.AbsolutePath) (uint32, error
 }
 
 func countDirectoryEntries(ctx context.Context, root core.AbsolutePath, include func(string) bool) (count uint32, resultErr error) {
-	directory, err := os.Open(root.String())
+	location, err := filestore.OpenParent(ctx, root)
 	if err != nil {
 		return 0, err
 	}
-	defer func() { resultErr = errors.Join(resultErr, directory.Close()) }()
-	emptyReads := 0
-	for {
-		if err := ctx.Err(); err != nil {
-			return 0, err
-		}
-		entries, readErr := readResidueDirectoryBatch(directory, &emptyReads)
-		for _, entry := range entries {
-			if include(entry.Name()) {
+	defer func() { resultErr = errors.Join(resultErr, location.Root.Close()) }()
+	walkErr := filestore.Walk(ctx, filestore.WalkRequest{
+		Location: location,
+		Order:    filestore.WalkOrderNative,
+		Visit: func(entry filestore.WalkEntry) (filestore.WalkDirective, error) {
+			if include(entry.Entry.Name()) {
 				if err := incrementResidue(&count); err != nil {
-					return 0, err
+					return filestore.WalkDirectiveUnknown, err
 				}
 			}
-		}
-		if errors.Is(readErr, io.EOF) {
-			break
-		}
-		if readErr != nil {
-			return 0, readErr
-		}
-	}
-	return count, nil
-}
-
-func readResidueDirectoryBatch(directory *os.File, emptyReads *int) ([]fs.DirEntry, error) {
-	entries, err := directory.ReadDir(residueReadBatch)
-	if len(entries) != 0 || err != nil {
-		*emptyReads = 0
-		return entries, err
-	}
-	*emptyReads++
-	if *emptyReads >= core.ReaderConsecutiveEmptyReadMaximum {
-		return nil, io.ErrNoProgress
-	}
-	return nil, nil
+			return filestore.WalkSkipDirectory, nil
+		},
+	})
+	return count, walkErr
 }
 
 func decimalName(value string) bool {
@@ -322,7 +299,7 @@ func decimalName(value string) bool {
 }
 
 func pathWithin(value, root string) bool {
-	return value == root || strings.HasPrefix(value, root+string(os.PathSeparator))
+	return value == root || strings.HasPrefix(value, root+string(filepath.Separator))
 }
 
 func incrementResidue(value *uint32) error {

@@ -3,21 +3,26 @@ package core
 import (
 	"errors"
 	"mime"
-	"net/http"
 	"net/textproto"
 	"strconv"
 	"strings"
 )
 
 const (
-	httpMediaTypeOctetStreamText = "application/octet-stream"
-	httpMediaTypeSyntaxErrorText = "HTTP media type syntax is invalid"
-	httpStatusRangeErrorText     = "HTTP status code is outside 100..599"
+	canonicalHTTPMediaTypeFormURLEncodedText = "application/x-www-form-urlencoded"
+	canonicalHTTPMediaTypeJSONText           = "application/json"
+	httpMediaTypeOctetStreamText             = "application/octet-stream"
+	httpMediaTypeSyntaxErrorText             = "HTTP media type syntax is invalid"
+	httpStatusRangeErrorText                 = "HTTP status code is outside 100..599"
 	// httpHeaderNameMaximumBytes bounds a parsed field name.
 	httpHeaderNameMaximumBytes = 256
 	// httpMediaTypeMaximumBytes bounds a complete media type with parameters.
 	httpMediaTypeMaximumBytes = 4096
 )
+
+// CredentialedCompletionDocumentSyntaxBytes is the exact structural overhead
+// of a completion document bound beside one installation certificate.
+const CredentialedCompletionDocumentSyntaxBytes = len(`{"completion":,"certificate":}`)
 
 const (
 	// httpStatusCodeMinimum is the first syntactically valid status code.
@@ -40,6 +45,14 @@ const (
 	httpStatusServerErrorMinimum = 500
 	// httpStatusCodeMaximum is the last syntactically valid status code.
 	httpStatusCodeMaximum = 599
+	// Named status values keep shared HTTP protocol meaning compiler-owned
+	// without making core depend on Exchange's transport implementation.
+	httpStatusOKValue                 = 200
+	httpStatusNoContentValue          = 204
+	httpStatusNotModifiedValue        = 304
+	httpStatusNotFoundValue           = 404
+	httpStatusConflictValue           = 409
+	httpStatusPreconditionFailedValue = 412
 )
 
 // HTTPStatusCode is an integer in the inclusive range 100 through 599.
@@ -108,14 +121,14 @@ func (s HTTPStatusCode) IsServerError() bool {
 }
 
 // IsNotFound reports the exact 404 resource-absence status.
-func (s HTTPStatusCode) IsNotFound() bool { return s.value == http.StatusNotFound }
+func (s HTTPStatusCode) IsNotFound() bool { return s.value == httpStatusNotFoundValue }
 
 // IsConflict reports the exact 409 state-conflict status.
-func (s HTTPStatusCode) IsConflict() bool { return s.value == http.StatusConflict }
+func (s HTTPStatusCode) IsConflict() bool { return s.value == httpStatusConflictValue }
 
 // IsPreconditionFailed reports the exact 412 precondition refusal status.
 func (s HTTPStatusCode) IsPreconditionFailed() bool {
-	return s.value == http.StatusPreconditionFailed
+	return s.value == httpStatusPreconditionFailedValue
 }
 
 // PermitsResponseBody reports whether the status alone permits a response body.
@@ -124,8 +137,8 @@ func (s HTTPStatusCode) IsPreconditionFailed() bool {
 // HTTP operation owner's decision.
 func (s HTTPStatusCode) PermitsResponseBody() bool {
 	return s.value > httpStatusInformationalMaximum &&
-		s.value != http.StatusNoContent &&
-		s.value != http.StatusNotModified
+		s.value != httpStatusNoContentValue &&
+		s.value != httpStatusNotModifiedValue
 }
 
 // MarshalJSON emits the status as a canonical JSON integer.
@@ -158,7 +171,7 @@ func (s *HTTPStatusCode) UnmarshalJSON(data []byte) error {
 // caller that accepts exactly one response shape names as its expected
 // status.
 func HTTPStatusOK() HTTPStatusCode {
-	return HTTPStatusCode{value: http.StatusOK}
+	return HTTPStatusCode{value: httpStatusOKValue}
 }
 
 // HTTPHeaderName is a canonical MIME-style HTTP field name.
@@ -367,6 +380,16 @@ func (m *HTTPMediaType) UnmarshalJSON(data []byte) error {
 	}
 	*m = decoded
 	return nil
+}
+
+// HTTPMediaTypeJSON returns canonical application/json.
+func HTTPMediaTypeJSON() HTTPMediaType {
+	return HTTPMediaType{value: canonicalHTTPMediaTypeJSONText}
+}
+
+// HTTPMediaTypeFormURLEncoded returns canonical form-urlencoded media.
+func HTTPMediaTypeFormURLEncoded() HTTPMediaType {
+	return HTTPMediaType{value: canonicalHTTPMediaTypeFormURLEncodedText}
 }
 
 // HTTPMediaTypeOctetStream returns canonical application/octet-stream.

@@ -25,13 +25,15 @@ const (
 	generalNameDirectoryNameTag = 4
 )
 
-// freeTSAPolicyOID is the single source of the reviewed FreeTSA policy
-// identity. TimestampPolicy projects its canonical token from this value.
-var freeTSAPolicyOID = asn1.ObjectIdentifier{1, 2, 3, 4, 1}
+// freeTSAPolicyOID returns the reviewed FreeTSA policy identity without
+// exposing shared mutable slice storage.
+func freeTSAPolicyOID() asn1.ObjectIdentifier { return asn1.ObjectIdentifier{1, 2, 3, 4, 1} }
 
-// digiCertPolicyOID is the single source of the reviewed DigiCert policy
-// identity observed in the provider's signed RFC 3161 response.
-var digiCertPolicyOID = asn1.ObjectIdentifier{2, 16, 840, 1, 114412, 7, 1}
+// digiCertPolicyOID returns the reviewed DigiCert policy identity observed in
+// the provider's signed RFC 3161 response without shared mutable slice storage.
+func digiCertPolicyOID() asn1.ObjectIdentifier {
+	return asn1.ObjectIdentifier{2, 16, 840, 1, 114412, 7, 1}
+}
 
 type timestampPolicyContract struct {
 	oid       asn1.ObjectIdentifier

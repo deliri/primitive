@@ -17,18 +17,18 @@ const (
 )
 
 type RequestDocument struct {
-	Request     chit.QueryDocument                           `json:"request"`
 	Certificate controlplane.InstallationCertificateDocument `json:"certificate"`
+	Request     chit.QueryDocument                           `json:"request"`
 }
 
 type RequestAssembly struct {
-	Request     chit.QueryDocument
 	Certificate controlplane.InstallationCertificateDocument
+	Request     chit.QueryDocument
 }
 
 type Verification struct {
-	Server   controlplane.Server
 	Document RequestDocument
+	Server   controlplane.Server
 }
 
 type Verified struct {

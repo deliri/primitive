@@ -251,9 +251,9 @@ func proveChitResponseIssuanceRejections(t *testing.T, fixture chitResponseFixtu
 		})
 	}
 	cases := []struct {
+		want  error
 		name  string
 		value ResponseIssuance
-		want  error
 	}{
 		{name: "zero server capability cannot issue a response", value: zeroServer, want: core.ErrControlPlaneContract},
 		{name: "nil authority signer cannot issue a response", value: nilSigner, want: core.ErrAttestContract},
@@ -296,10 +296,10 @@ func proveChitResponseVerificationRejections(
 	foreignDocument := issueChitResponseDocument(t, foreign)
 	base := ResponseVerification{Client: fixture.client, Document: document, Expected: fixture.expected}
 	cases := []struct {
-		name              string
-		value             ResponseVerification
 		want              error
 		wantValidationErr error
+		name              string
+		value             ResponseVerification
 		wantField         controlplane.ResponseHeaderField
 	}{
 		{name: "different request nonce names the bound fact", value: chitResponseWithExpectation(base, func(value *controlplane.ResponseExpectation) {

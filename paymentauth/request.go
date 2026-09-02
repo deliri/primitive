@@ -27,8 +27,8 @@ type RequestAssembly struct {
 }
 
 type Verification struct {
-	Server   controlplane.Server
 	Document RequestDocument
+	Server   controlplane.Server
 }
 
 type Verified struct {

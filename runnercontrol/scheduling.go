@@ -8,7 +8,7 @@ import (
 
 	"github.com/deliri/primitive/v2026/core"
 	primitiveid "github.com/deliri/primitive/v2026/id"
-	"github.com/deliri/primitive/v2026/projectstandards"
+	"github.com/deliri/primitive/v2026/standard"
 )
 
 const SchedulingMemberMaximum = 256
@@ -35,7 +35,7 @@ func (k SchedulingUnitKind) String() string {
 	if !k.IsValid() {
 		return invalidEnumString()
 	}
-	return []string{"", "run-plan", "run-batch"}[k]
+	return []string{"", scheduleRunPlanText, scheduleRunBatchText}[k]
 }
 
 func (k SchedulingUnitKind) MarshalJSON() ([]byte, error) {
@@ -54,9 +54,9 @@ func (k *SchedulingUnitKind) UnmarshalJSON(data []byte) error {
 		return err
 	}
 	switch value {
-	case "run-plan":
+	case scheduleRunPlanText:
 		*k = SchedulingUnitRunPlan
-	case "run-batch":
+	case scheduleRunBatchText:
 		*k = SchedulingUnitRunBatch
 	default:
 		return errors.Join(core.ErrJSONContract, core.ErrPrimitiveContract)
@@ -74,7 +74,7 @@ func (i SchedulingUnitIdentity) Validate() error {
 }
 
 type MemberSet struct {
-	Entries []projectstandards.RunID `json:"entries"`
+	Entries []standard.RunID `json:"entries"`
 }
 
 func (s MemberSet) Validate() error {
@@ -98,7 +98,7 @@ func (s MemberSet) Validate() error {
 	return nil
 }
 
-func (s MemberSet) Contains(run projectstandards.RunID) bool {
+func (s MemberSet) Contains(run standard.RunID) bool {
 	if s.Validate() != nil || run.Validate() != nil {
 		return false
 	}

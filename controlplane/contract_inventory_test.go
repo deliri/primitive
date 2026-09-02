@@ -45,7 +45,7 @@ type controlplaneContractInventory struct {
 	CheckInResponsePayload            controlplaneProtocolFact[CheckInResponsePayload]
 	CheckInResponseDocument           controlplaneProtocolFact[CheckInResponseDocument]
 	UsageWatermark                    controlplaneProtocolFact[UsageWatermark]
-	WorkUnitCount                     controlplaneProtocolFact[WorkUnitCount]
+	UsageCount                        controlplaneProtocolFact[UsageCount]
 	OutcomeCount                      controlplaneProtocolFact[OutcomeCount]
 	UsageWindow                       controlplaneProtocolFact[UsageWindow]
 	ResponseCommitment                controlplaneProtocolFact[ResponseCommitment]

@@ -23,10 +23,10 @@ func TestParseListenAddressHostileBoundaries(t *testing.T) {
 	t.Parallel()
 
 	cases := []struct {
+		wantErr   error
 		name      string
 		text      string
 		wantText  string
-		wantErr   error
 		caseClass listenAddressCaseClass
 	}{
 		{name: "valid IPv4 loopback service port", text: "127.0.0.1:8080", wantText: "127.0.0.1:8080", caseClass: listenAddressClassValid},

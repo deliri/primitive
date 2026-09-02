@@ -208,19 +208,19 @@ func (p TrustedProxyPrefixes) String() string {
 	return projection.String()
 }
 
-// ClientAddressRequest binds one real net/http request to one explicit
+// ClientAddressRequest binds one Exchange-owned HTTP call to one explicit
 // authority decision. Trusted prefixes are required only in trusted-proxy
 // mode and forbidden in every other mode.
 type ClientAddressRequest struct {
-	Request        *http.Request
+	Call           SocketServerCall
 	TrustedProxies TrustedProxyPrefixes
 	Authority      ClientAddressAuthority
 }
 
 // Validate rejects incomplete and contradictory address-resolution policy.
 func (r ClientAddressRequest) Validate() error {
-	if r.Request == nil {
-		return requestError(core.ErrExchangeContract)
+	if err := r.Call.Validate(); err != nil {
+		return requestError(err)
 	}
 	if err := r.Authority.Validate(); err != nil {
 		return requestError(err)
@@ -254,16 +254,17 @@ func ResolveClientAddress(call ClientAddressRequest) (ClientAddress, error) {
 	if err := call.Validate(); err != nil {
 		return ClientAddress{}, err
 	}
-	peer, err := parseClientAddress(call.Request.RemoteAddr)
+	request := call.Call.request
+	peer, err := parseClientAddress(request.RemoteAddr)
 	if err != nil {
 		return ClientAddress{}, requestError(err)
 	}
 	address := peer
 	switch call.Authority {
 	case ClientAddressAuthorityTrustedProxy:
-		address = resolveTrustedProxyAddress(call.Request, peer, call.TrustedProxies)
+		address = resolveTrustedProxyAddress(request, peer, call.TrustedProxies)
 	case ClientAddressAuthorityGoogleCloud:
-		address = resolveGoogleCloudAddress(call.Request, peer)
+		address = resolveGoogleCloudAddress(request, peer)
 	case ClientAddressAuthorityPeer:
 	default:
 		return ClientAddress{}, requestError(core.ErrExchangeContract)

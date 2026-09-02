@@ -545,6 +545,12 @@ func TestEvaluateInstalledLayerTriad(t *testing.T) {
 		if !ok {
 			t.Fatalf("EvaluateInstalled(newer).Available() ok = false")
 		}
+		latest, err := available.Latest()
+		if err != nil || latest.Validate() != nil ||
+			latest.Fact().Identity() != candidate.verifiedLatest.Fact().Identity() ||
+			latest.Manifest().Identity() != candidate.verifiedLatest.Manifest().Identity() {
+			t.Fatalf("AvailableRelease.Latest() = (%v, %v), want exact authenticated candidate", latest.Fact().Identity(), err)
+		}
 		preparation, err := available.Prepare(latestTimeEvidenceAt(t, 4_000))
 		if err != nil {
 			t.Fatalf("AvailableRelease.PrepareAt() error = %v", err)
@@ -724,6 +730,9 @@ func TestZeroValueCapabilitiesRefuseEveryAccessor(t *testing.T) {
 	}
 	if _, err := (AvailableRelease{}).Summary(); !errors.Is(err, core.ErrReleaseVerification) {
 		t.Fatalf("AvailableRelease{}.Summary() error = %v, want %v", err, core.ErrReleaseVerification)
+	}
+	if _, err := (AvailableRelease{}).Latest(); !errors.Is(err, core.ErrReleaseVerification) {
+		t.Fatalf("AvailableRelease{}.Latest() error = %v, want %v", err, core.ErrReleaseVerification)
 	}
 	if _, err := (PreparedRelease{}).Artifact(); !errors.Is(err, core.ErrReleaseVerification) {
 		t.Fatalf("PreparedRelease{}.Artifact() error = %v, want %v", err, core.ErrReleaseVerification)

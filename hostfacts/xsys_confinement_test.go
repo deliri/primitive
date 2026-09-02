@@ -12,17 +12,14 @@ import (
 // golang.org/x/sys escape. Section 8.4 of the policy requires the escape to
 // live in build-tagged leaf files that a structural ratchet names, so the
 // exception stays visible instead of spreading; before this test the package
-// had ten escape files and nothing that would go red when an eleventh
-// appeared in an untagged file.
+// had a growing escape set and nothing that would go red when another
+// untagged file joined it.
 func platformEscapeLeafFiles() map[string]bool {
 	return map[string]bool{
-		"device_darwin.go":          true,
-		"device_linux.go":           true,
 		"disk_darwin.go":            true,
 		"disk_linux.go":             true,
 		"physical_memory_darwin.go": true,
 		"physical_memory_linux.go":  true,
-		"root_unix.go":              true,
 		"root_windows.go":           true,
 		"storage_linux.go":          true,
 		"terminal_unix.go":          true,

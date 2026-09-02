@@ -19,15 +19,16 @@ import (
 	"time"
 
 	"github.com/deliri/primitive/v2026/core"
+	"github.com/deliri/primitive/v2026/hostfacts"
 	"github.com/deliri/primitive/v2026/process"
 )
 
 func TestWorkingDirectoryFeedsARealRun(t *testing.T) {
 	t.Parallel()
 
-	directory, err := process.WorkingDirectory()
+	directory, err := hostfacts.WorkingDirectory()
 	if err != nil {
-		t.Fatalf("process.WorkingDirectory() error = %v, want nil", err)
+		t.Fatalf("hostfacts.WorkingDirectory() error = %v, want nil", err)
 	}
 	if err := directory.Validate(); err != nil {
 		t.Fatalf("WorkingDirectory().Validate() error = %v, want nil", err)

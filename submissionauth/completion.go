@@ -12,12 +12,11 @@ import (
 )
 
 const (
-	completionDocumentSyntaxBytes = len(`{"completion":,"certificate":}`)
 	// CompletionDocumentJSONMaximumBytes bounds one credentialed upload
 	// completion, including bounded insignificant outer whitespace.
 	CompletionDocumentJSONMaximumBytes = submission.CompletionDocumentJSONMaximumBytes +
 		controlplane.InstallationCertificateDocumentJSONMaximumBytes +
-		completionDocumentSyntaxBytes + core.CredentialedDocumentWhitespaceMaximumBytes
+		core.CredentialedCompletionDocumentSyntaxBytes + core.CredentialedDocumentWhitespaceMaximumBytes
 )
 
 // CompletionDocument carries one device-signed provider completion beside the
@@ -51,11 +50,11 @@ type CompletionProjectionAssembly struct {
 // CompletionVerification supplies the authenticated original request, exact
 // grant, and authority keys used for both certificate and grant verification.
 type CompletionVerification struct {
-	Server    controlplane.Server
-	GrantKeys attest.TrustedKeys
 	Grant     submission.GrantDocument
 	Document  CompletionDocument
 	Request   Verified
+	Server    controlplane.Server
+	GrantKeys attest.TrustedKeys
 	Nonce     controlwire.RequestNonce
 }
 

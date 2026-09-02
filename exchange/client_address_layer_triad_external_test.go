@@ -189,9 +189,9 @@ func TestClientAddressResolutionLayerTriad(t *testing.T) {
 	for _, tc := range tests {
 		t.Run(tc.name, func(t *testing.T) {
 			t.Parallel()
-			call := clientAddressCall(tc.remote, tc.forwarded, tc.authority, tc.proxies)
+			call := clientAddressCall(t, tc.remote, tc.forwarded, tc.authority, tc.proxies)
 			if tc.absentRequest {
-				call.Request = nil
+				call.Call = exchange.SocketServerCall{}
 			}
 			got, gotErr := exchange.ResolveClientAddress(call)
 			if tc.wantErr != nil {
@@ -249,7 +249,7 @@ func FuzzClientAddressResolutionSemanticClosure(f *testing.F) {
 		if useTrustedPrefixes {
 			proxies = mustTrustedProxyPrefixes(t, "10.0.0.0/8,2001:db8:ffff::/48")
 		}
-		call := clientAddressCall(remote, []string{forwarded}, authority, proxies)
+		call := clientAddressCall(t, remote, []string{forwarded}, authority, proxies)
 		got, gotErr := exchange.ResolveClientAddress(call)
 		if gotErr != nil {
 			if !errors.Is(gotErr, core.ErrExchangeContract) && !errors.Is(gotErr, core.ErrExchangeRequest) {
@@ -349,14 +349,15 @@ func independentCanonicalAddress(address netip.Addr) (netip.Addr, bool) {
 	return address.Unmap(), true
 }
 
-func clientAddressCall(remote string, forwarded []string, authority exchange.ClientAddressAuthority, proxies exchange.TrustedProxyPrefixes) exchange.ClientAddressRequest {
+func clientAddressCall(t *testing.T, remote string, forwarded []string, authority exchange.ClientAddressAuthority, proxies exchange.TrustedProxyPrefixes) exchange.ClientAddressRequest {
+	t.Helper()
 	request := httptest.NewRequest(http.MethodGet, "https://example.test/", nil)
 	request.RemoteAddr = remote
 	request.Header.Del(exchange.StandardHeaderForwardedFor.String())
 	for _, value := range forwarded {
 		request.Header.Add(exchange.StandardHeaderForwardedFor.String(), value)
 	}
-	return exchange.ClientAddressRequest{Request: request, Authority: authority, TrustedProxies: proxies}
+	return exchange.ClientAddressRequest{Call: socketServerCall(t, request), Authority: authority, TrustedProxies: proxies}
 }
 
 func mustTrustedProxyPrefixes(t *testing.T, raw string) exchange.TrustedProxyPrefixes {

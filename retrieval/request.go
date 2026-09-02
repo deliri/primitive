@@ -126,8 +126,8 @@ func (s Selection) MarshalJSON() ([]byte, error) {
 
 // RequestPayload is the exact chit/object request signed by one installation.
 type RequestPayload struct {
-	Build     core.BuildIdentity       `json:"build"`
 	Scope     receipt.Scope            `json:"scope"`
+	Build     core.BuildIdentity       `json:"build"`
 	Selection Selection                `json:"selection"`
 	Nonce     controlwire.RequestNonce `json:"request_nonce"`
 	Chit      chit.ChitID              `json:"chit_id"`

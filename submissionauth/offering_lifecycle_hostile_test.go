@@ -49,7 +49,7 @@ func TestBlindSubmissionLifecycleLayerTriad(t *testing.T) {
 		}
 		decision, err := submission.VerifyDecision(submission.DecisionExpectation{
 			Decision: decisionDocument, Request: authenticated.Request.Payload,
-			Account: scope.Account, Offering: scope.Offering,
+			Scope:      scope,
 			ObservedAt: fixture.grant.Payload.IssuedAt, TrustedKeys: fixture.request.trusted,
 		})
 		if err != nil {
@@ -108,7 +108,7 @@ func TestBlindSubmissionLifecycleLayerTriad(t *testing.T) {
 		}
 		rejected, err := submission.VerifyDecision(submission.DecisionExpectation{
 			Decision: productAlphaDecision, Request: productBeta.request.request.Payload,
-			Account: productBetaScope.Account, Offering: productBetaScope.Offering,
+			Scope:      productBetaScope,
 			ObservedAt: productAlpha.grant.Payload.IssuedAt, TrustedKeys: productBeta.request.trusted,
 		})
 		if !errors.Is(err, core.ErrControlPlaneResponseBinding) || rejected != (submission.VerifiedDecision{}) {

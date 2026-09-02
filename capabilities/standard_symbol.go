@@ -91,9 +91,9 @@ func (s StandardSymbol) Validate() error {
 // net/http.ServeFile, which touches both transport and filesystem.
 type StandardSymbolFact struct {
 	Symbol      StandardSymbol
+	Secondary   []Effect
 	Disposition StandardSymbolDisposition
 	Effect      Effect
-	Secondary   []Effect
 }
 
 func (f StandardSymbolFact) Validate() error {
@@ -198,38 +198,41 @@ func standardSymbolRules() []standardSymbolRule {
 
 func effectSymbolRules() []standardSymbolRule {
 	return []standardSymbolRule{
-		{importPath: "flag", effect: EffectProcess, effectSelectors: []string{"Parse"}, pureSelectors: []string{"Arg", "Args", "NArg", "NFlag", "NewFlagSet", "PrintDefaults", "UnquoteUsage", "Visit", "VisitAll"}},
+		{importPath: "flag", effect: EffectProcess, effectSelectors: []string{symbolParse}, pureSelectors: []string{"Arg", "Args", "NArg", "NFlag", "NewFlagSet", "PrintDefaults", "UnquoteUsage", "Visit", "VisitAll"}},
 		{importPath: "fmt", pureSelectors: []string{"Errorf", "Sprint", "Sprintf", "Sprintln"}},
 		{importPath: "go/parser", effect: EffectFilesystem, effectSelectors: []string{"ParseDir"}, pureSelectors: []string{"ParseExpr"}, contextualSelectors: []string{"ParseFile", "ParseExprFrom"}},
-		{importPath: "io", pureSelectors: []string{"LimitReader", "MultiReader", "MultiWriter", "NewOffsetWriter", "NewSectionReader", "NopCloser", "Pipe", "TeeReader"}},
+		{importPath: "io", pureSelectors: []string{"LimitReader", "MultiReader", "MultiWriter", "NewOffsetWriter", "NewSectionReader", symbolNopCloser, symbolPipe, "TeeReader"}},
 		{importPath: "io/fs", pureSelectors: []string{"FileMode"}},
 		{importPath: "path/filepath", effect: EffectFilesystem, effectSelectors: []string{"Abs", "EvalSymlinks", "Glob", "Walk", "WalkDir"}, pureSelectors: []string{"Base", "Clean", "Dir", "Ext", "FromSlash", "IsAbs", "IsLocal", "Join", "Localize", "Match", "Rel", "Split", "SplitList", "ToSlash", "VolumeName"}},
-		{importPath: "text/template", effect: EffectFilesystem, effectSelectors: []string{"ParseFiles", "ParseGlob"}, pureSelectors: []string{"New", "Must"}},
+		{importPath: "text/template", effect: EffectFilesystem, effectSelectors: []string{"ParseFiles", "ParseGlob"}, pureSelectors: []string{symbolNew, "Must"}},
 		{importPath: "os", effect: EffectFilesystem, effectSelectors: osFilesystemSymbols(), pureSelectors: []string{"DevNull"}},
 		{importPath: "os", effect: EffectHost, effectSelectors: osHostSymbols()},
-		{importPath: "os", effect: EffectProcess, effectSelectors: []string{"Exit", "FindProcess", "Getpid", "Getppid", "StartProcess"}},
+		{importPath: "os", effect: EffectProcess, effectSelectors: []string{symbolExit, "FindProcess", symbolGetpid, symbolGetppid, symbolStartProcess}},
 		{importPath: "os/exec", effect: EffectProcess, defaultDisposition: StandardSymbolEffect},
 		{importPath: "os/signal", effect: EffectSignal, defaultDisposition: StandardSymbolEffect},
 		{importPath: "crypto/rand", effect: EffectEntropy, defaultDisposition: StandardSymbolEffect},
-		{importPath: "math/rand", effect: EffectEntropy, defaultDisposition: StandardSymbolEffect, pureSelectors: []string{"New", "NewSource", "Zipf"}},
-		{importPath: "math/rand/v2", effect: EffectEntropy, defaultDisposition: StandardSymbolEffect, pureSelectors: []string{"New", "NewPCG", "NewChaCha8", "Zipf"}},
-		{importPath: "io/ioutil", effect: EffectFilesystem, effectSelectors: []string{"ReadDir", "ReadFile", "TempDir", "TempFile", "WriteFile"}, pureSelectors: []string{"ReadAll", "NopCloser"}},
-		{importPath: "net", effect: EffectTransport, effectSelectors: netEffectSymbols(), pureSelectors: []string{"CIDRMask", "IPv4", "IPv4Mask", "JoinHostPort", "ParseCIDR", "ParseIP", "Pipe", "ResolveUnixAddr", "SplitHostPort"}},
-		{importPath: "net/http", effect: EffectTransport, effectSelectors: httpEffectSymbols(), pureSelectors: httpPureSymbols(), secondary: EffectFilesystem, secondarySelectors: []string{"ServeFile", "ServeFileFS"}},
+		{importPath: "math/rand", effect: EffectEntropy, defaultDisposition: StandardSymbolEffect, pureSelectors: []string{symbolNew, "NewSource", symbolZipf}},
+		{importPath: "math/rand/v2", effect: EffectEntropy, defaultDisposition: StandardSymbolEffect, pureSelectors: []string{symbolNew, "NewPCG", "NewChaCha8", symbolZipf}},
+		{importPath: "io/ioutil", effect: EffectFilesystem, effectSelectors: []string{symbolReadDir, symbolReadFile, "TempDir", "TempFile", symbolWriteFile}, pureSelectors: []string{"ReadAll", symbolNopCloser}},
+		{importPath: "net", effect: EffectTransport, effectSelectors: netEffectSymbols(), pureSelectors: []string{"CIDRMask", "IPv4", "IPv4Mask", "JoinHostPort", "ParseCIDR", "ParseIP", symbolPipe, "ResolveUnixAddr", "SplitHostPort"}},
+		{importPath: "net/http", effect: EffectTransport, effectSelectors: httpEffectSymbols(), pureSelectors: httpPureSymbols(), secondary: EffectFilesystem, secondarySelectors: []string{symbolServeFile, symbolServeFileFS}},
 		{importPath: "runtime", effect: EffectHost, effectSelectors: []string{"CPUProfile", "GOMAXPROCS", "GOROOT", "MemProfile", "NumCPU", "NumCgoCall", "ReadMemStats", "SetCPUProfileRate", "StartTrace", "StopTrace", "ThreadCreateProfile"}},
-		{importPath: "time", effect: EffectTime, effectSelectors: []string{"After", "AfterFunc", "NewTicker", "NewTimer", "Now", "Sleep", "Tick"}, pureSelectors: []string{"Date", "FixedZone", "LoadLocationFromTZData", "Parse", "ParseDuration", "ParseInLocation", "Unix", "UnixMicro", "UnixMilli"}},
-		{importPath: "syscall", effect: EffectFilesystem, effectSelectors: syscallFilesystemSymbols()},
-		{importPath: "syscall", effect: EffectLocking, effectSelectors: syscallLockingSymbols()},
-		{importPath: "syscall", effect: EffectTransport, effectSelectors: syscallTransportSymbols()},
-		{importPath: "syscall", effect: EffectProcess, effectSelectors: syscallProcessSymbols()},
-		{importPath: "golang.org/x/sys/unix", effect: EffectFilesystem, effectSelectors: syscallFilesystemSymbols()},
-		{importPath: "golang.org/x/sys/unix", effect: EffectLocking, effectSelectors: syscallLockingSymbols()},
-		{importPath: "golang.org/x/sys/unix", effect: EffectTransport, effectSelectors: syscallTransportSymbols()},
-		{importPath: "golang.org/x/sys/unix", effect: EffectProcess, effectSelectors: syscallProcessSymbols()},
-		{importPath: "golang.org/x/sys/windows", effect: EffectFilesystem, effectSelectors: syscallFilesystemSymbols()},
-		{importPath: "golang.org/x/sys/windows", effect: EffectLocking, effectSelectors: windowsLockingSymbols()},
-		{importPath: "golang.org/x/sys/windows", effect: EffectTransport, effectSelectors: syscallTransportSymbols()},
-		{importPath: "golang.org/x/sys/windows", effect: EffectProcess, effectSelectors: syscallProcessSymbols()},
+		{importPath: timeContractText, effect: EffectTime, effectSelectors: []string{"After", "AfterFunc", "NewTicker", "NewTimer", "Now", "Sleep", "Tick"}, pureSelectors: []string{"Date", "FixedZone", "LoadLocationFromTZData", symbolParse, "ParseDuration", "ParseInLocation", "Unix", "UnixMicro", "UnixMilli"}},
+		{importPath: standardPackageSyscall, effect: EffectFilesystem, effectSelectors: syscallFilesystemSymbols()},
+		{importPath: standardPackageSyscall, effect: EffectLocking, effectSelectors: syscallLockingSymbols()},
+		{importPath: standardPackageSyscall, effect: EffectTransport, effectSelectors: syscallTransportSymbols()},
+		{importPath: standardPackageSyscall, effect: EffectProcess, effectSelectors: syscallProcessSymbols()},
+		{importPath: unixPackagePath, effect: EffectFilesystem, effectSelectors: syscallFilesystemSymbols()},
+		{importPath: unixPackagePath, effect: EffectHost, effectSelectors: unixHostSymbols()},
+		{importPath: unixPackagePath, effect: EffectLocking, effectSelectors: syscallLockingSymbols()},
+		{importPath: unixPackagePath, effect: EffectTransport, effectSelectors: syscallTransportSymbols()},
+		{importPath: unixPackagePath, effect: EffectProcess, effectSelectors: syscallProcessSymbols()},
+		{importPath: windowsPackagePath, effect: EffectFilesystem, effectSelectors: syscallFilesystemSymbols()},
+		{importPath: windowsPackagePath, effect: EffectFilesystem, effectSelectors: windowsFilesystemSymbols()},
+		{importPath: windowsPackagePath, effect: EffectHost, effectSelectors: windowsHostSymbols()},
+		{importPath: windowsPackagePath, effect: EffectLocking, effectSelectors: windowsLockingSymbols()},
+		{importPath: windowsPackagePath, effect: EffectTransport, effectSelectors: syscallTransportSymbols()},
+		{importPath: windowsPackagePath, effect: EffectProcess, effectSelectors: syscallProcessSymbols()},
 	}
 }
 
@@ -239,7 +242,7 @@ func purePackageRules() []standardSymbolRule {
 		"encoding", "encoding/base64", "encoding/binary", "encoding/csv", "encoding/hex", "encoding/json", "encoding/xml",
 		"errors", "go/ast", "go/format", "go/token", "hash", "hash/crc32", "hash/crc64", "hash/fnv",
 		"maps", "math", "math/big", "net/netip", "net/url", "path", "reflect", "regexp", "slices", "sort",
-		"strconv", "strings", "sync", "sync/atomic", "testing", "text/scanner", "text/tabwriter", "unicode", "unicode/utf8",
+		"strconv", "strings", "sync", "sync/atomic", testingPackagePath, "text/scanner", "text/tabwriter", "unicode", "unicode/utf8",
 	}
 	rules := make([]standardSymbolRule, len(paths))
 	for index, path := range paths {
@@ -249,7 +252,7 @@ func purePackageRules() []standardSymbolRule {
 }
 
 func osFilesystemSymbols() []string {
-	return []string{"Chdir", "Chmod", "Chown", "Create", "CreateTemp", "Lchown", "Link", "Mkdir", "MkdirAll", "MkdirTemp", "Open", "OpenFile", "ReadDir", "ReadFile", "Readlink", "Remove", "RemoveAll", "Rename", "Symlink", "Truncate", "WriteFile"}
+	return []string{symbolChdir, symbolChmod, symbolChown, "Create", "CreateTemp", symbolLchown, symbolLink, symbolLstat, symbolMkdir, "MkdirAll", "MkdirTemp", symbolOpen, "OpenFile", "OpenRoot", symbolReadDir, symbolReadFile, symbolReadlink, "Remove", "RemoveAll", symbolRename, symbolStat, symbolSymlink, symbolTruncate, symbolWriteFile}
 }
 
 func osHostSymbols() []string {
@@ -257,11 +260,11 @@ func osHostSymbols() []string {
 }
 
 func netEffectSymbols() []string {
-	return []string{"Dial", "DialIP", "DialTCP", "DialUDP", "DialUnix", "Listen", "ListenIP", "ListenMulticastUDP", "ListenPacket", "ListenTCP", "ListenUDP", "ListenUnix", "LookupAddr", "LookupCNAME", "LookupHost", "LookupIP", "LookupMX", "LookupNS", "LookupPort", "LookupSRV", "LookupTXT", "ResolveIPAddr", "ResolveTCPAddr", "ResolveUDPAddr"}
+	return []string{"Dial", "DialIP", "DialTCP", "DialUDP", "DialUnix", symbolListen, "ListenIP", "ListenMulticastUDP", "ListenPacket", "ListenTCP", "ListenUDP", "ListenUnix", "LookupAddr", "LookupCNAME", "LookupHost", "LookupIP", "LookupMX", "LookupNS", "LookupPort", "LookupSRV", "LookupTXT", "ResolveIPAddr", "ResolveTCPAddr", "ResolveUDPAddr"}
 }
 
 func httpEffectSymbols() []string {
-	return []string{"Error", "Get", "Head", "ListenAndServe", "ListenAndServeTLS", "NotFound", "Post", "PostForm", "Redirect", "Serve", "ServeContent", "ServeFile", "ServeFileFS", "ServeTLS", "SetCookie"}
+	return []string{"Error", "Get", "Head", "ListenAndServe", "ListenAndServeTLS", "NotFound", "Post", "PostForm", "Redirect", "Serve", "ServeContent", symbolServeFile, symbolServeFileFS, "ServeTLS", "SetCookie"}
 }
 
 func httpPureSymbols() []string {
@@ -269,7 +272,19 @@ func httpPureSymbols() []string {
 }
 
 func syscallFilesystemSymbols() []string {
-	return []string{"Access", "Chdir", "Chmod", "Chown", "Close", "Creat", "Fchmod", "Fchown", "Fstat", "Fsync", "Ftruncate", "Getcwd", "Getdents", "Lchown", "Link", "Lstat", "Mkdir", "Mkdirat", "Open", "Openat", "Pread", "Pwrite", "Read", "ReadDirent", "Readlink", "Rename", "Renameat", "Rmdir", "Stat", "Symlink", "Sync", "Truncate", "Unlink", "Unlinkat", "Write"}
+	return []string{"Access", symbolChdir, symbolChmod, symbolChown, "Close", "Creat", "Dup", "Fchmod", "Fchown", "Fstat", "Fstatat", "Fsync", "Ftruncate", "Getcwd", "Getdents", symbolLchown, symbolLink, symbolLstat, symbolMkdir, "Mkdirat", symbolOpen, "Openat", "Pread", "Pwrite", "Read", "ReadDirent", symbolReadlink, symbolRename, "Renameat", "Rmdir", symbolStat, symbolSymlink, "Sync", symbolTruncate, "Unlink", "Unlinkat", "Write"}
+}
+
+func unixHostSymbols() []string {
+	return []string{"Fstatfs", "IoctlGetWinsize", "Statfs", "SysctlUint64", "Sysinfo"}
+}
+
+func windowsFilesystemSymbols() []string {
+	return []string{"GetFileInformationByHandle"}
+}
+
+func windowsHostSymbols() []string {
+	return []string{"GetConsoleScreenBufferInfo", "GetDiskFreeSpaceEx", "GetFinalPathNameByHandle"}
 }
 
 func syscallLockingSymbols() []string {
@@ -281,9 +296,9 @@ func windowsLockingSymbols() []string {
 }
 
 func syscallTransportSymbols() []string {
-	return []string{"Accept", "Bind", "Connect", "Getpeername", "Getsockname", "GetsockoptInt", "Listen", "Recvfrom", "Sendto", "SetsockoptInt", "Shutdown", "Socket", "Socketpair"}
+	return []string{"Accept", "Bind", "Connect", "Getpeername", "Getsockname", "GetsockoptInt", symbolListen, "Recvfrom", "Sendto", "SetsockoptInt", "Shutdown", "Socket", "Socketpair"}
 }
 
 func syscallProcessSymbols() []string {
-	return []string{"Exec", "Exit", "ForkExec", "Getpid", "Getppid", "Kill", "StartProcess", "Wait4"}
+	return []string{"Exec", symbolExit, "ForkExec", symbolGetpid, symbolGetppid, "Kill", symbolStartProcess, "Wait4"}
 }

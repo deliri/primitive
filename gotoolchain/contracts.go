@@ -50,7 +50,7 @@ func (m WorkspaceMode) String() string {
 	}
 	return [...]string{
 		WorkspaceModeAmbient:  "ambient",
-		WorkspaceModeDisabled: "disabled",
+		WorkspaceModeDisabled: "workspace_disabled",
 	}[m]
 }
 
@@ -111,10 +111,10 @@ func ParseToolchainVersion(value string) (ToolchainVersion, error) {
 }
 
 func (v ToolchainVersion) Validate() error {
-	if len(v.value) < len("go1.0") || len(v.value) > toolchainVersionMaximumBytes || !strings.HasPrefix(v.value, "go1.") {
+	if len(v.value) < len("go1.0") || len(v.value) > toolchainVersionMaximumBytes || !strings.HasPrefix(v.value, goVersionPrefix) {
 		return contractError("toolchain version is not canonical")
 	}
-	for component := range strings.SplitSeq(v.value[len("go1."):], ".") {
+	for component := range strings.SplitSeq(v.value[len(goVersionPrefix):], ".") {
 		if err := validateVersionComponent(component); err != nil {
 			return err
 		}
@@ -143,8 +143,8 @@ func (v ToolchainVersion) String() string {
 
 // BuildContext is the cmd/go-selected host build context.
 type BuildContext struct {
-	Platform   core.Platform
 	Toolchain  ToolchainVersion
+	Platform   core.Platform
 	CGOEnabled bool
 }
 
@@ -180,9 +180,9 @@ func (n PackageName) String() string {
 
 // Package is one complete package observation from cmd/go.
 type Package struct {
+	Module     *gomodule.Path
 	ImportPath gomodule.ImportPath
 	Name       PackageName
-	Module     *gomodule.Path
 	Standard   bool
 }
 

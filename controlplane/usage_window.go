@@ -1,7 +1,6 @@
 package controlplane
 
 import (
-	json "encoding/json/v2"
 	"errors"
 	"math"
 	"strconv"
@@ -13,16 +12,16 @@ import (
 const (
 	// UsageWindowJSONMaximumBytes bounds one reported usage window.
 	UsageWindowJSONMaximumBytes = 32 << 10
-	// WorkUnitClassMaximum is the highest work-unit class ordinal a product may
+	// UsageClassMaximum is the highest opaque usage-class ordinal a peer may
 	// report, and therefore also the longest legal unit list: the classes are
 	// closed and the list is strictly ascending, so a longer one repeats a class.
-	WorkUnitClassMaximum = 32
+	UsageClassMaximum = 32
 	// OutcomeClassMaximum is the same ceiling for result classes.
 	OutcomeClassMaximum = 32
 )
 
-// WorkUnitClass names one kind of work an installation performed, as an ordinal
-// this package deliberately cannot interpret.
+// UsageClass names one kind of metered activity, as an ordinal this package
+// deliberately cannot interpret.
 //
 // The authority validates the ordinal's range, the window it falls in, and the
 // arithmetic between the counts. It never learns what a class means. Which
@@ -34,11 +33,11 @@ const (
 // keeping one reader per country. A named class here would write one product's
 // vocabulary into a contract both ends share, and every product after it would
 // have to add its own.
-type WorkUnitClass uint8
+type UsageClass uint8
 
-// NewWorkUnitClass admits one work-unit class ordinal.
-func NewWorkUnitClass(ordinal uint8) (WorkUnitClass, error) {
-	class := WorkUnitClass(ordinal)
+// NewUsageClass admits one usage-class ordinal.
+func NewUsageClass(ordinal uint8) (UsageClass, error) {
+	class := UsageClass(ordinal)
 	if err := class.Validate(); err != nil {
 		return 0, err
 	}
@@ -46,19 +45,19 @@ func NewWorkUnitClass(ordinal uint8) (WorkUnitClass, error) {
 }
 
 // Validate rejects the unset ordinal and every ordinal above the ceiling.
-func (c WorkUnitClass) Validate() error {
-	if c == 0 || c > WorkUnitClassMaximum {
+func (c UsageClass) Validate() error {
+	if c == 0 || c > UsageClassMaximum {
 		return usageWindowError()
 	}
 	return nil
 }
 
 // IsValid reports whether c is an admitted class ordinal.
-func (c WorkUnitClass) IsValid() bool { return c.Validate() == nil }
+func (c UsageClass) IsValid() bool { return c.Validate() == nil }
 
 // String renders the opaque ordinal for diagnostics. A number is all either
 // end knows about a class, so a number is all either end may print.
-func (c WorkUnitClass) String() string {
+func (c UsageClass) String() string {
 	if !c.IsValid() {
 		return core.UnknownEnumDiagnostic
 	}
@@ -68,7 +67,7 @@ func (c WorkUnitClass) String() string {
 // MarshalJSON emits the canonical decimal ordinal and refuses an inadmissible
 // class, the same bytes the bare integer produced before the contract was
 // explicit.
-func (c WorkUnitClass) MarshalJSON() ([]byte, error) {
+func (c UsageClass) MarshalJSON() ([]byte, error) {
 	if err := c.Validate(); err != nil {
 		return nil, jsonError(err)
 	}
@@ -77,7 +76,7 @@ func (c WorkUnitClass) MarshalJSON() ([]byte, error) {
 
 // UnmarshalJSON accepts only the canonical decimal spelling of an admitted
 // ordinal and leaves c unchanged on every rejection.
-func (c *WorkUnitClass) UnmarshalJSON(data []byte) error {
+func (c *UsageClass) UnmarshalJSON(data []byte) error {
 	if c == nil {
 		return jsonError(usageWindowError())
 	}
@@ -85,7 +84,7 @@ func (c *WorkUnitClass) UnmarshalJSON(data []byte) error {
 	if err != nil || strconv.FormatUint(value, 10) != string(data) {
 		return jsonError(usageWindowError(err))
 	}
-	candidate := WorkUnitClass(value)
+	candidate := UsageClass(value)
 	if err := candidate.Validate(); err != nil {
 		return jsonError(err)
 	}
@@ -117,7 +116,7 @@ func (c OutcomeClass) Validate() error {
 // IsValid reports whether c is an admitted class ordinal.
 func (c OutcomeClass) IsValid() bool { return c.Validate() == nil }
 
-// String renders the opaque ordinal for diagnostics, exactly as WorkUnitClass
+// String renders the opaque ordinal for diagnostics, exactly as UsageClass
 // does and for the same reason.
 func (c OutcomeClass) String() string {
 	if !c.IsValid() {
@@ -153,15 +152,15 @@ func (c *OutcomeClass) UnmarshalJSON(data []byte) error {
 	return nil
 }
 
-// WorkUnitCount is one class of work and how many units of it ran.
-type WorkUnitCount struct {
-	Class WorkUnitClass `json:"class"`
-	Count uint64        `json:"count"`
+// UsageCount is one opaque activity class and its metered count.
+type UsageCount struct {
+	Class UsageClass `json:"class"`
+	Count uint64     `json:"count"`
 }
 
 // Validate rejects an inadmissible class and a zero count. A class that did no
 // work is absent from the list rather than reported as having done none.
-func (c WorkUnitCount) Validate() error {
+func (c UsageCount) Validate() error {
 	if err := c.Class.Validate(); err != nil {
 		return usageWindowError(err)
 	}
@@ -201,7 +200,7 @@ func (c OutcomeCount) Validate() error {
 // carrying a product's own counters would be a shape only that product could
 // fill and only an authority that already knew that product could read.
 type UsageWindow struct {
-	Units     []WorkUnitCount         `json:"units"`
+	Units     []UsageCount            `json:"units"`
 	Outcomes  []OutcomeCount          `json:"outcomes"`
 	Bounds    temporal.IntervalBounds `json:"bounds"`
 	Freshness temporal.Instant        `json:"freshness"`
@@ -221,7 +220,7 @@ type usageWindowBoundsWire struct {
 }
 
 type usageWindowWire struct {
-	Units     []WorkUnitCount       `json:"units"`
+	Units     []UsageCount          `json:"units"`
 	Outcomes  []OutcomeCount        `json:"outcomes"`
 	Bounds    usageWindowBoundsWire `json:"bounds"`
 	Freshness temporal.Instant      `json:"freshness"`
@@ -253,7 +252,7 @@ func (w UsageWindow) Validate() error {
 	if err := validateUsageFreshness(w.Bounds, w.Freshness); err != nil {
 		return err
 	}
-	units, err := validateWorkUnitCounts(w.Units)
+	units, err := validateUsageCounts(w.Units)
 	if err != nil {
 		return err
 	}
@@ -277,16 +276,16 @@ func validateUsageTotals(units, outcomes uint64) error {
 	return nil
 }
 
-// validateWorkUnitCounts requires strictly ascending classes, so a repeated
+// validateUsageCounts requires strictly ascending classes, so a repeated
 // class is a decode failure rather than a silent double count, and returns the
 // total units reported.
 //
 // The walk needs no length bound of its own. Classes are closed at
-// WorkUnitClassMaximum and must strictly increase, so entry number
-// WorkUnitClassMaximum plus one cannot hold an admissible class whatever the
+// UsageClassMaximum and must strictly increase, so entry number
+// UsageClassMaximum plus one cannot hold an admissible class whatever the
 // caller sends: the walk returns by then however long the list is. A separate
 // length check would read as the bound while never being the branch that fires.
-func validateWorkUnitCounts(counts []WorkUnitCount) (uint64, error) {
+func validateUsageCounts(counts []UsageCount) (uint64, error) {
 	var total uint64
 	for index, count := range counts {
 		if err := count.Validate(); err != nil {
@@ -355,19 +354,3 @@ func (w *UsageWindow) UnmarshalJSON(data []byte) error {
 	*w = candidate
 	return nil
 }
-
-var (
-	_ core.Validatable = WorkUnitClass(0)
-	_ core.Validatable = OutcomeClass(0)
-	_ core.Validatable = WorkUnitCount{}
-	_ core.Validatable = OutcomeCount{}
-	_ core.Validatable = UsageWindow{}
-
-	_ core.ValidatedJSONMarshaler = UsageWindow{}
-	_ core.ValidatedJSONMarshaler = WorkUnitClass(0)
-	_ core.ValidatedJSONMarshaler = OutcomeClass(0)
-
-	_ json.Unmarshaler = (*UsageWindow)(nil)
-	_ json.Unmarshaler = (*WorkUnitClass)(nil)
-	_ json.Unmarshaler = (*OutcomeClass)(nil)
-)

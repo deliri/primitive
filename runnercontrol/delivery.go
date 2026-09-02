@@ -5,12 +5,11 @@ import (
 	json "encoding/json/v2"
 	"errors"
 	"fmt"
-	"net/http"
 
 	"github.com/deliri/primitive/v2026/attest"
 	"github.com/deliri/primitive/v2026/core"
 	"github.com/deliri/primitive/v2026/exchange"
-	"github.com/deliri/primitive/v2026/projectstandards"
+	"github.com/deliri/primitive/v2026/standard"
 )
 
 const ObservationDeliveryReceiptMaximumBytes = 32 * 1024
@@ -25,9 +24,9 @@ func (i ObservationDeliveryIdentity) Validate() error {
 }
 
 type ObservationDeliveryStage struct {
-	SchemaVersion uint16                     `json:"schema_version"`
-	Envelope      ObservationEnvelope        `json:"envelope"`
 	Manifest      ExperimentDeliveryManifest `json:"manifest"`
+	Envelope      ObservationEnvelope        `json:"envelope"`
+	SchemaVersion uint16                     `json:"schema_version"`
 }
 
 func (s ObservationDeliveryStage) Validate() error {
@@ -101,9 +100,9 @@ func (s *ObservationDeliveryStage) UnmarshalJSON(data []byte) error {
 }
 
 type ObservationDeliveryPageUpload struct {
+	Page          ExperimentDeliveryPage      `json:"page"`
 	SchemaVersion uint16                      `json:"schema_version"`
 	Identity      ObservationDeliveryIdentity `json:"identity"`
-	Page          ExperimentDeliveryPage      `json:"page"`
 }
 
 func (u ObservationDeliveryPageUpload) Validate() error {
@@ -152,7 +151,7 @@ func (u *ObservationDeliveryPageUpload) UnmarshalJSON(data []byte) error {
 type ObservationDeliveryCommit struct {
 	SchemaVersion uint16                      `json:"schema_version"`
 	Identity      ObservationDeliveryIdentity `json:"identity"`
-	Run           projectstandards.RunID      `json:"run_id"`
+	Run           standard.RunID              `json:"run_id"`
 	PageCount     uint16                      `json:"page_count"`
 }
 
@@ -202,7 +201,7 @@ func (c *ObservationDeliveryCommit) UnmarshalJSON(data []byte) error {
 type ObservationDeliveryReceipt struct {
 	SchemaVersion uint16                      `json:"schema_version"`
 	Identity      ObservationDeliveryIdentity `json:"identity"`
-	Run           projectstandards.RunID      `json:"run_id"`
+	Run           standard.RunID              `json:"run_id"`
 	PagesStored   uint16                      `json:"pages_stored"`
 	Published     bool                        `json:"published"`
 }
@@ -247,9 +246,9 @@ type ObservationDeliveryStore interface {
 }
 
 type ObservationDeliveryVerifier struct {
-	Origin      projectstandards.OriginIdentity
-	Destination projectstandards.Identifier
-	Audience    projectstandards.Identifier
+	Origin      standard.OriginIdentity
+	Destination standard.Identifier
+	Audience    standard.Identifier
 	Grant       core.SHA256Digest
 	ControlKeys attest.TrustedKeys
 	RunnerKeys  attest.TrustedKeys
@@ -334,82 +333,89 @@ func NewObservationDeliveryServer(configuration ObservationDeliveryServerConfigu
 }
 
 type deliveryReceiptWrite struct {
-	socket    exchange.ServerSocket
 	call      exchange.SocketServerCall
+	socket    exchange.ServerSocket
 	receipt   ObservationDeliveryReceipt
-	run       projectstandards.RunID
+	run       standard.RunID
 	published bool
 }
 
-func (s ObservationDeliveryServer) ServeStage(writer http.ResponseWriter, request *http.Request) error {
-	if err := RequireControlPeer(request.Context()); err != nil {
+func (s ObservationDeliveryServer) ServeStage(call exchange.SocketServerCall) error {
+	ctx, err := call.Context()
+	if err != nil {
 		return err
 	}
-	call, err := exchange.NewSocketServerCall(writer, request)
-	if err != nil {
+	if err := RequireControlPeer(ctx); err != nil {
 		return err
 	}
 	received, err := exchange.ReceiveReplayBoundSocketJSON[ObservationDeliveryStage, *ObservationDeliveryStage](s.stage, call)
 	if err != nil {
 		return err
 	}
-	receipt, err := s.store.StageObservation(request.Context(), *received.Body)
+	receipt, err := s.store.StageObservation(ctx, *received.Body)
 	if err != nil {
 		return err
 	}
 	return writeDeliveryReceipt(deliveryReceiptWrite{socket: s.stage, call: call, receipt: receipt, run: received.Body.Envelope.Payload.Run})
 }
 
-func (s ObservationDeliveryServer) ServePage(writer http.ResponseWriter, request *http.Request) error {
-	if err := RequireControlPeer(request.Context()); err != nil {
+func (s ObservationDeliveryServer) ServePage(call exchange.SocketServerCall) error {
+	ctx, err := call.Context()
+	if err != nil {
 		return err
 	}
-	call, err := exchange.NewSocketServerCall(writer, request)
-	if err != nil {
+	if err := RequireControlPeer(ctx); err != nil {
 		return err
 	}
 	received, err := exchange.ReceiveReplayBoundSocketJSON[ObservationDeliveryPageUpload, *ObservationDeliveryPageUpload](s.page, call)
 	if err != nil {
 		return err
 	}
-	receipt, err := s.store.StageExperimentPage(request.Context(), *received.Body)
+	receipt, err := s.store.StageExperimentPage(ctx, *received.Body)
 	if err != nil {
 		return err
 	}
 	return writeDeliveryReceipt(deliveryReceiptWrite{socket: s.page, call: call, receipt: receipt, run: received.Body.Page.Run})
 }
 
-func (s ObservationDeliveryServer) ServeCommit(writer http.ResponseWriter, request *http.Request) error {
-	if err := RequireControlPeer(request.Context()); err != nil {
+func (s ObservationDeliveryServer) ServeCommit(call exchange.SocketServerCall) error {
+	ctx, err := call.Context()
+	if err != nil {
 		return err
 	}
-	call, err := exchange.NewSocketServerCall(writer, request)
-	if err != nil {
+	if err := RequireControlPeer(ctx); err != nil {
 		return err
 	}
 	received, err := exchange.ReceiveReplayBoundSocketJSON[ObservationDeliveryCommit, *ObservationDeliveryCommit](s.commit, call)
 	if err != nil {
 		return err
 	}
-	stage, pages, err := s.store.LoadStagedObservation(request.Context(), *received.Body)
+	stage, pages, err := s.store.LoadStagedObservation(ctx, *received.Body)
 	if err != nil {
 		return err
 	}
-	if len(pages) != int(received.Body.PageCount) || stage.Envelope.Payload.Run != received.Body.Run {
-		return core.ErrPrimitiveContract
-	}
-	identity, err := stage.Identity()
-	if err != nil || identity != received.Body.Identity {
-		return errors.Join(core.ErrPrimitiveContract, err)
+	if err := validateStagedObservation(*received.Body, stage, pages); err != nil {
+		return err
 	}
 	if err := s.verifier.Verify(stage, pages); err != nil {
 		return err
 	}
-	receipt, err := s.store.PublishObservation(request.Context(), *received.Body)
+	receipt, err := s.store.PublishObservation(ctx, *received.Body)
 	if err != nil {
 		return err
 	}
 	return writeDeliveryReceipt(deliveryReceiptWrite{socket: s.commit, call: call, receipt: receipt, run: received.Body.Run, published: true})
+}
+
+func validateStagedObservation(commit ObservationDeliveryCommit, stage ObservationDeliveryStage, pages []ExperimentDeliveryPage) error {
+	if len(pages) != int(commit.PageCount) || stage.Envelope.Payload.Run != commit.Run {
+		return core.ErrPrimitiveContract
+	}
+	identity, err := stage.Identity()
+	if err != nil || identity != commit.Identity {
+		return errors.Join(core.ErrPrimitiveContract, err)
+	}
+	return nil
 }
 
 func writeDeliveryReceipt(request deliveryReceiptWrite) error {

@@ -7,10 +7,12 @@ package controlplane
 // that reports a binding failure must agree on it. Two literals could be
 // corrected one at a time and nothing in the build would notice.
 //
-// Account and offering are not restated here. They name facts other packages
-// also carry, so Core owns them and this package borrows the same value rather
-// than writing a second copy that happens to match today.
+// Offering is not restated here. It names the same fact in another package, so
+// Core owns it and this package borrows that value. Account currently belongs
+// only to this control-plane protocol and remains local rather than pretending
+// to be a shared contract.
 const (
+	protocolMemberAccount           = "account"
 	protocolMemberBuild             = "build"
 	protocolMemberRevision          = "revision"
 	protocolMemberRouteFamily       = "route_family"

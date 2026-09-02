@@ -13,6 +13,7 @@ import (
 	"testing"
 
 	"github.com/deliri/primitive/v2026/core"
+	"github.com/deliri/primitive/v2026/receipt"
 	"github.com/deliri/primitive/v2026/temporal"
 )
 
@@ -298,7 +299,7 @@ func fuzzSubmissionDecisionDocument(t *testing.T, data []byte, fixtures submissi
 	}
 	proof, err := VerifyDecision(DecisionExpectation{
 		Decision: candidate, Request: fixtures.grant.request,
-		Account: fixtures.reuse.account, Offering: fixtures.reuse.offering,
+		Scope:       receipt.Scope{Principal: fixtures.reuse.account, Offering: fixtures.reuse.offering},
 		ObservedAt:  temporal.InstantFromNanoseconds(testGrantIssuedAt),
 		TrustedKeys: fixtures.grant.trusted,
 	})

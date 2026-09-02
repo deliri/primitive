@@ -105,7 +105,7 @@ func (s *EntrySequence) UnmarshalJSON(data []byte) error {
 	return nil
 }
 
-// ManifestEntry is one customer-visible object in a logical uploaded version.
+// ManifestEntry is one consumer-visible object in a logical uploaded version.
 // Name is a product-owned safe display path, never an inferred local path.
 type ManifestEntry struct {
 	Name        EntryName                `json:"name"`

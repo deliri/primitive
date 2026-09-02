@@ -17,15 +17,15 @@ const ResponseHeaderJSONMaximumBytes = 2 << 10
 // control-plane response carries. A response signature must cover this header
 // and its complete body together, never one without the other.
 type ResponseHeader struct {
-	Offering     core.Offering            `json:"offering"`
-	Policy       controlwire.PolicyCursor `json:"policy"`
-	ProviderTime temporal.Instant         `json:"provider_time"`
-	RequestNonce controlwire.RequestNonce `json:"request_nonce"`
-	Account      receipt.AccountIdentity  `json:"account"`
-	Installation lease.DeviceID           `json:"installation"`
-	Revision     controlwire.Revision     `json:"revision"`
-	Family       controlwire.RouteFamily  `json:"route_family"`
-	Status       ProductStatus            `json:"status"`
+	Offering     core.Offering             `json:"offering"`
+	Policy       controlwire.PolicyCursor  `json:"policy"`
+	ProviderTime temporal.Instant          `json:"provider_time"`
+	RequestNonce controlwire.RequestNonce  `json:"request_nonce"`
+	Account      receipt.PrincipalIdentity `json:"account"`
+	Installation lease.DeviceID            `json:"installation"`
+	Revision     controlwire.Revision      `json:"revision"`
+	Family       controlwire.RouteFamily   `json:"route_family"`
+	Status       ProductStatus             `json:"status"`
 }
 
 type responseHeaderWire ResponseHeader
@@ -39,7 +39,7 @@ type ResponseExpectation struct {
 	Offering          core.Offering
 	PriorProviderTime temporal.Instant
 	RequestNonce      controlwire.RequestNonce
-	Account           receipt.AccountIdentity
+	Account           receipt.PrincipalIdentity
 	Installation      lease.DeviceID
 	Revision          controlwire.Revision
 	Family            controlwire.RouteFamily
@@ -65,7 +65,7 @@ func responseHeaderFieldTokens() [responseHeaderFieldLimit]string {
 	return [...]string{
 		ResponseHeaderFieldUnknown:      "",
 		ResponseHeaderFieldRequestNonce: protocolMemberRequestNonce,
-		ResponseHeaderFieldAccount:      core.ProtocolMemberAccount,
+		ResponseHeaderFieldAccount:      protocolMemberAccount,
 		ResponseHeaderFieldInstallation: protocolMemberInstallation,
 		ResponseHeaderFieldRevision:     protocolMemberRevision,
 		ResponseHeaderFieldRouteFamily:  protocolMemberRouteFamily,

@@ -127,7 +127,7 @@ func newCursor(value core.SHA256Digest) (Cursor, error) {
 
 // CursorFor closes one exact Chit identity into the opaque position used after
 // that entry. The identity is the catalog ordering key; custody-state changes
-// therefore do not invalidate a customer's position.
+// therefore do not invalidate a consumer's position.
 func CursorFor(identity ChitID) (Cursor, error) {
 	if err := identity.Validate(); err != nil {
 		return Cursor{}, contractError(err)

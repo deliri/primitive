@@ -27,17 +27,17 @@ func TestEvidenceOwnedValidationHostileMatrix(t *testing.T) {
 	}{
 		{name: "exact header is admitted", value: document.Payload.Header},
 		{name: "header without identity is rejected", value: func() Header { v := document.Payload.Header; v.Identity = ReceiptID{}; return v }(), wantErr: core.ErrReceiptContract},
-		{name: "header without account is rejected", value: func() Header { v := document.Payload.Header; v.Account = AccountIdentity{}; return v }(), wantErr: core.ErrReceiptContract},
+		{name: "header without principal is rejected", value: func() Header { v := document.Payload.Header; v.Principal = PrincipalIdentity{}; return v }(), wantErr: core.ErrReceiptContract},
 		{name: "header without offering is rejected", value: func() Header { v := document.Payload.Header; v.Offering = core.Offering{}; return v }(), wantErr: core.ErrReceiptContract},
 		{name: "header without revision is rejected", value: func() Header { v := document.Payload.Header; v.Revision = RevisionUnknown; return v }(), wantErr: core.ErrReceiptContract},
 		{name: "header without occurrence is rejected", value: func() Header { v := document.Payload.Header; v.OccurredAt = temporal.Instant{}; return v }(), wantErr: core.ErrReceiptContract},
 		{name: "exact expectation is admitted", value: fixture.expectation},
-		{name: "expectation without account is rejected", value: func() EvidenceExpectation { v := fixture.expectation; v.Account = AccountIdentity{}; return v }(), wantErr: core.ErrReceiptContract},
+		{name: "expectation without principal is rejected", value: func() EvidenceExpectation { v := fixture.expectation; v.Principal = PrincipalIdentity{}; return v }(), wantErr: core.ErrReceiptContract},
 		{name: "expectation without offering is rejected", value: func() EvidenceExpectation { v := fixture.expectation; v.Offering = core.Offering{}; return v }(), wantErr: core.ErrReceiptContract},
-		{name: "expectation without body is rejected", value: EvidenceExpectation{Account: fixture.account, Offering: fixture.offering}, wantErr: core.ErrReceiptContract},
-		{name: "exact scope is admitted", value: Scope{Account: fixture.account, Offering: fixture.offering}},
-		{name: "scope without account is rejected", value: Scope{Offering: fixture.offering}, wantErr: core.ErrReceiptContract},
-		{name: "scope without offering is rejected", value: Scope{Account: fixture.account}, wantErr: core.ErrReceiptContract},
+		{name: "expectation without body is rejected", value: EvidenceExpectation{Principal: fixture.principal, Offering: fixture.offering}, wantErr: core.ErrReceiptContract},
+		{name: "exact scope is admitted", value: Scope{Principal: fixture.principal, Offering: fixture.offering}},
+		{name: "scope without principal is rejected", value: Scope{Offering: fixture.offering}, wantErr: core.ErrReceiptContract},
+		{name: "scope without offering is rejected", value: Scope{Principal: fixture.principal}, wantErr: core.ErrReceiptContract},
 		{name: "valid scope mismatch is admitted", value: scopeMismatch{field: ScopeFieldObject}},
 		{name: "unset scope mismatch is rejected", value: scopeMismatch{}, wantErr: core.ErrReceiptContract},
 		{name: "future scope mismatch is rejected", value: scopeMismatch{field: ScopeField(math.MaxUint8)}, wantErr: core.ErrReceiptContract},
@@ -64,7 +64,7 @@ func TestEvidenceRequestIngressHostileMatrix(t *testing.T) {
 	fixture := newReceiptFixture(t, 220)
 	document := issueFixture(t, fixture)
 	issue := IssueEvidenceRequest{
-		Identity: fixture.receipt, Account: fixture.account, Offering: fixture.offering,
+		Identity: fixture.receipt, Principal: fixture.principal, Offering: fixture.offering,
 		OccurredAt: fixture.occurredAt, Body: fixture.body, Key: fixture.private,
 	}
 	invalidKey := append(ed25519.PrivateKey(nil), fixture.private[:len(fixture.private)-1]...)
@@ -75,7 +75,7 @@ func TestEvidenceRequestIngressHostileMatrix(t *testing.T) {
 	}{
 		{name: "complete request signs", request: issue},
 		{name: "unset identity is rejected", request: func() IssueEvidenceRequest { v := issue; v.Identity = ReceiptID{}; return v }(), wantErr: core.ErrReceiptContract},
-		{name: "unset account is rejected", request: func() IssueEvidenceRequest { v := issue; v.Account = AccountIdentity{}; return v }(), wantErr: core.ErrReceiptContract},
+		{name: "unset principal is rejected", request: func() IssueEvidenceRequest { v := issue; v.Principal = PrincipalIdentity{}; return v }(), wantErr: core.ErrReceiptContract},
 		{name: "unset offering is rejected", request: func() IssueEvidenceRequest { v := issue; v.Offering = core.Offering{}; return v }(), wantErr: core.ErrReceiptContract},
 		{name: "unset occurrence is rejected", request: func() IssueEvidenceRequest { v := issue; v.OccurredAt = temporal.Instant{}; return v }(), wantErr: core.ErrReceiptContract},
 		{name: "unset body is rejected", request: func() IssueEvidenceRequest { v := issue; v.Body = EvidenceBody{}; return v }(), wantErr: core.ErrReceiptContract},

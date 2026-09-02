@@ -8,7 +8,7 @@ import (
 
 	"github.com/deliri/primitive/v2026/core"
 	"github.com/deliri/primitive/v2026/process"
-	"github.com/deliri/primitive/v2026/projectstandards"
+	"github.com/deliri/primitive/v2026/standard"
 )
 
 // SubjectIsolationEngine is the closed host boundary Primitive may compile.
@@ -63,19 +63,19 @@ func (e *SubjectIsolationEngine) UnmarshalJSON(data []byte) error {
 // centrally reviewed policy identity. Each host authority path is explicit so
 // a subject capability cannot omit one protection behind an untyped list.
 type SubjectExecution struct {
-	Engine               SubjectIsolationEngine      `json:"engine"`
-	Supervisor           core.AbsolutePath           `json:"supervisor"`
-	Controller           core.AbsolutePath           `json:"controller"`
-	PolicyIdentity       core.SHA256Digest           `json:"policy_identity"`
-	ProcessUser          projectstandards.Identifier `json:"process_user"`
-	SourceRoot           core.AbsolutePath           `json:"source_root"`
-	EgressPolicyIdentity core.SHA256Digest           `json:"egress_policy_identity"`
-	NetworkNamespace     *core.AbsolutePath          `json:"network_namespace,omitempty"`
-	NetworkController    *core.AbsolutePath          `json:"network_controller,omitempty"`
-	ControlSocket        core.AbsolutePath           `json:"control_socket"`
-	HostCredentials      core.AbsolutePath           `json:"host_credentials"`
-	SigningState         core.AbsolutePath           `json:"signing_state"`
-	ExecutableState      core.AbsolutePath           `json:"executable_state"`
+	NetworkNamespace     *core.AbsolutePath     `json:"network_namespace,omitempty"`
+	NetworkController    *core.AbsolutePath     `json:"network_controller,omitempty"`
+	HostCredentials      core.AbsolutePath      `json:"host_credentials"`
+	Supervisor           core.AbsolutePath      `json:"supervisor"`
+	Controller           core.AbsolutePath      `json:"controller"`
+	ExecutableState      core.AbsolutePath      `json:"executable_state"`
+	ProcessUser          standard.Identifier    `json:"process_user"`
+	SourceRoot           core.AbsolutePath      `json:"source_root"`
+	SigningState         core.AbsolutePath      `json:"signing_state"`
+	ControlSocket        core.AbsolutePath      `json:"control_socket"`
+	PolicyIdentity       core.SHA256Digest      `json:"policy_identity"`
+	EgressPolicyIdentity core.SHA256Digest      `json:"egress_policy_identity"`
+	Engine               SubjectIsolationEngine `json:"engine"`
 }
 
 func (s SubjectExecution) Validate(processPlan process.Plan, workspace WritableWorkspace) error {

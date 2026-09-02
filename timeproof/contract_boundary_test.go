@@ -250,16 +250,16 @@ func signingTimeAttribute(t testing.TB, values ...time.Time) cmsAttribute {
 		}
 		raws = append(raws, rawValueFromDER(t, encoded))
 	}
-	return cmsAttribute{Type: oidSigningTime, Values: raws}
+	return cmsAttribute{Type: oidSigningTime(), Values: raws}
 }
 
 func TestSigningTimeAttributeShapeTable(t *testing.T) {
 	t.Parallel()
 
 	when := time.Date(2026, time.July, 25, 1, 23, 43, 0, time.UTC)
-	contentType := cmsAttribute{Type: oidContentType}
+	contentType := cmsAttribute{Type: oidContentType()}
 	notATime := cmsAttribute{
-		Type:   oidSigningTime,
+		Type:   oidSigningTime(),
 		Values: []asn1.RawValue{{Class: asn1.ClassUniversal, Tag: asn1.TagInteger, FullBytes: []byte{0x02, 0x01, 0x01}}},
 	}
 	cases := []struct {
@@ -461,7 +461,7 @@ func signingCertificateV2AttributeWithAlgorithm(
 		certificates,
 	)
 	return cmsAttribute{
-		Type:   oidSigningCertificateV2,
+		Type:   oidSigningCertificateV2(),
 		Values: []asn1.RawValue{rawValueFromDER(t, value)},
 	}
 }
@@ -606,12 +606,12 @@ func TestSigningCertificateAttributeClosure(t *testing.T) {
 	if err != nil {
 		t.Fatalf("parseTimestampToken(authentic) error = %v, want nil", err)
 	}
-	v1, v1Count := countAttribute(token.Attributes, oidSigningCertificate)
+	v1, v1Count := countAttribute(token.Attributes, oidSigningCertificate())
 	if v1Count != 1 {
 		t.Fatalf("authentic SigningCertificate count = %d, want 1", v1Count)
 	}
 	v2 := signingCertificateV2Attribute(t, token.Signer)
-	sha256OID, err := asn1.Marshal(oidSHA256)
+	sha256OID, err := asn1.Marshal(oidSHA256())
 	if err != nil {
 		t.Fatalf("asn1.Marshal(SHA-256 OID) error = %v, want nil", err)
 	}
@@ -816,17 +816,17 @@ func TestAuthorityRegistryClosure(t *testing.T) {
 	}
 }
 
-func TestFreeTSATrustAnchorPin(t *testing.T) {
+func TestFreeTSATrustAnchorIsFreshlyParsedAndPinned(t *testing.T) {
 	t.Parallel()
 
-	root, err := freeTSARoot()
+	root, err := loadFreeTSARoot()
 	if err != nil {
-		t.Fatalf("freeTSARoot() error = %v, want nil", err)
+		t.Fatalf("loadFreeTSARoot() error = %v, want nil", err)
 	}
-	again, err := freeTSARoot()
-	if err != nil || again != root {
+	again, err := loadFreeTSARoot()
+	if err != nil || again == root || !bytes.Equal(again.Raw, root.Raw) {
 		t.Fatalf(
-			"freeTSARoot() second call = (%p, %v), want the one cached anchor %p",
+			"loadFreeTSARoot() second call = (%p, %v), want a fresh parse of anchor %p",
 			again,
 			err,
 			root,

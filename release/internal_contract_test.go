@@ -305,7 +305,7 @@ func TestEvaluateObtainsInstalledIdentityOnlyFromReleaseEmbedding(t *testing.T) 
 			})
 		}
 	}
-	wantFields := []string{"InstalledManifest", "Latest", "Time"}
+	wantFields := []string{"Time", "InstalledManifest", "Latest"}
 	if !slices.Equal(requestFields, wantFields) {
 		t.Fatalf("EvaluateRequest fields = %v, want %v", requestFields, wantFields)
 	}

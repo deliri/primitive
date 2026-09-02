@@ -395,7 +395,7 @@ func contentTypeForRole(
 	case role >= release.PublicationRoleWindowsAMD64 && role <= release.PublicationRoleLinuxARM64:
 		return core.HTTPMediaTypeOctetStream(), nil
 	case role == release.PublicationRoleManifest:
-		return core.ParseHTTPMediaType("application/json")
+		return core.HTTPMediaTypeJSON(), nil
 	case role >= release.PublicationRoleDependencies && role <= release.PublicationRoleReleaseNotes:
 		asset, ok := manifest.Metadata().At(int(role - release.PublicationRoleDependencies))
 		if !ok {

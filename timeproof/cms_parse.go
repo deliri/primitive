@@ -77,7 +77,7 @@ func verifyTimestampToken(verification timestampTokenVerification) (verifiedToke
 // encoding. CMS signingTime is the purported signature-operation time; RFC
 // 5652 does not require it to equal RFC 3161 genTime.
 func validateSigningTimeAttribute(attributes []cmsAttribute) error {
-	signingTime, count := countAttribute(attributes, oidSigningTime)
+	signingTime, count := countAttribute(attributes, oidSigningTime())
 	if count == 0 {
 		return nil
 	}
@@ -288,7 +288,7 @@ func failureCodesFromBits(bits asn1.BitString) ([]RefusalCode, error) {
 
 func parseTimestampToken(der []byte) (parsedToken, error) {
 	contentType, explicitContent, err := parseContentInfo(der)
-	if err != nil || !contentType.Equal(oidSignedData) {
+	if err != nil || !contentType.Equal(oidSignedData()) {
 		return parsedToken{}, invalidError(err)
 	}
 	signed, err := parseSignedData(explicitContent)
@@ -321,7 +321,7 @@ func parseTimestampToken(der []byte) (parsedToken, error) {
 // and the only signer identifier accepted here is issuerAndSerialNumber, which
 // fixes SignerInfo at version 1.
 func validSignedTokenShape(signed parsedSignedData) bool {
-	return signed.Content.ContentType.Equal(oidTSTInfo) &&
+	return signed.Content.ContentType.Equal(oidTSTInfo()) &&
 		len(signed.Signers) == signerMaximumCount &&
 		signed.Version == cmsSignedDataVersion &&
 		signed.Signers[0].Version == cmsSignerInfoVersion
@@ -365,17 +365,17 @@ func signatureDigestMatches(signer cmsSignerInfo) bool {
 	signature := signer.SignatureAlgorithm.Algorithm
 	digest := signer.DigestAlgorithm.Algorithm
 	switch {
-	case signature.Equal(oidRSAEncryption):
-		return digest.Equal(oidSHA256) || digest.Equal(oidSHA384) ||
-			digest.Equal(oidSHA512)
-	case signature.Equal(oidECDSAWithSHA256), signature.Equal(oidSHA256WithRSA):
-		return digest.Equal(oidSHA256)
-	case signature.Equal(oidECDSAWithSHA384), signature.Equal(oidSHA384WithRSA):
-		return digest.Equal(oidSHA384)
-	case signature.Equal(oidECDSAWithSHA512), signature.Equal(oidSHA512WithRSA):
-		return digest.Equal(oidSHA512)
-	case signature.Equal(oidEd25519):
-		return digest.Equal(oidSHA256) || digest.Equal(oidSHA384) || digest.Equal(oidSHA512)
+	case signature.Equal(oidRSAEncryption()):
+		return digest.Equal(oidSHA256()) || digest.Equal(oidSHA384()) ||
+			digest.Equal(oidSHA512())
+	case signature.Equal(oidECDSAWithSHA256()), signature.Equal(oidSHA256WithRSA()):
+		return digest.Equal(oidSHA256())
+	case signature.Equal(oidECDSAWithSHA384()), signature.Equal(oidSHA384WithRSA()):
+		return digest.Equal(oidSHA384())
+	case signature.Equal(oidECDSAWithSHA512()), signature.Equal(oidSHA512WithRSA()):
+		return digest.Equal(oidSHA512())
+	case signature.Equal(oidEd25519()):
+		return digest.Equal(oidSHA256()) || digest.Equal(oidSHA384()) || digest.Equal(oidSHA512())
 	default:
 		return false
 	}
@@ -695,14 +695,14 @@ func parseSignedAttributes(raw asn1.RawValue) ([]cmsAttribute, error) {
 }
 
 func verifyRequiredSignedAttributes(attributes []cmsAttribute, signer cmsSignerInfo, content []byte) error {
-	contentType, err := uniqueAttribute(attributes, oidContentType)
+	contentType, err := uniqueAttribute(attributes, oidContentType())
 	if err != nil {
 		return invalidError(err)
 	}
 	if err := validateContentTypeAttribute(contentType); err != nil {
 		return err
 	}
-	messageDigest, err := uniqueAttribute(attributes, oidMessageDigest)
+	messageDigest, err := uniqueAttribute(attributes, oidMessageDigest())
 	if err != nil {
 		return invalidError(err)
 	}
@@ -715,7 +715,7 @@ func validateContentTypeAttribute(attribute cmsAttribute) error {
 	}
 	var got asn1.ObjectIdentifier
 	trailing, err := asn1.Unmarshal(attribute.Values[0].FullBytes, &got)
-	if err != nil || len(trailing) != 0 || !got.Equal(oidTSTInfo) {
+	if err != nil || len(trailing) != 0 || !got.Equal(oidTSTInfo()) {
 		return invalidError(err)
 	}
 	return nil
@@ -758,13 +758,13 @@ func verifySignerSignature(signer cmsSignerInfo, certificate *x509.Certificate) 
 
 func digestForOID(oid asn1.ObjectIdentifier, content []byte) ([]byte, error) {
 	switch {
-	case oid.Equal(oidSHA256):
+	case oid.Equal(oidSHA256()):
 		sum := sha256.Sum256(content)
 		return sum[:], nil
-	case oid.Equal(oidSHA384):
+	case oid.Equal(oidSHA384()):
 		sum := sha512.Sum384(content)
 		return sum[:], nil
-	case oid.Equal(oidSHA512):
+	case oid.Equal(oidSHA512()):
 		sum := sha512.Sum512(content)
 		return sum[:], nil
 	default:
@@ -775,15 +775,15 @@ func digestForOID(oid asn1.ObjectIdentifier, content []byte) ([]byte, error) {
 func signatureAlgorithmForSigner(
 	signer cmsSignerInfo,
 ) (x509.SignatureAlgorithm, error) {
-	if !signer.SignatureAlgorithm.Algorithm.Equal(oidRSAEncryption) {
+	if !signer.SignatureAlgorithm.Algorithm.Equal(oidRSAEncryption()) {
 		return signatureAlgorithmForOID(signer.SignatureAlgorithm.Algorithm)
 	}
 	switch {
-	case signer.DigestAlgorithm.Algorithm.Equal(oidSHA256):
+	case signer.DigestAlgorithm.Algorithm.Equal(oidSHA256()):
 		return x509.SHA256WithRSA, nil
-	case signer.DigestAlgorithm.Algorithm.Equal(oidSHA384):
+	case signer.DigestAlgorithm.Algorithm.Equal(oidSHA384()):
 		return x509.SHA384WithRSA, nil
-	case signer.DigestAlgorithm.Algorithm.Equal(oidSHA512):
+	case signer.DigestAlgorithm.Algorithm.Equal(oidSHA512()):
 		return x509.SHA512WithRSA, nil
 	default:
 		return x509.UnknownSignatureAlgorithm, invalidError(nil)
@@ -792,19 +792,19 @@ func signatureAlgorithmForSigner(
 
 func signatureAlgorithmForOID(oid asn1.ObjectIdentifier) (x509.SignatureAlgorithm, error) {
 	switch {
-	case oid.Equal(oidECDSAWithSHA256):
+	case oid.Equal(oidECDSAWithSHA256()):
 		return x509.ECDSAWithSHA256, nil
-	case oid.Equal(oidECDSAWithSHA384):
+	case oid.Equal(oidECDSAWithSHA384()):
 		return x509.ECDSAWithSHA384, nil
-	case oid.Equal(oidECDSAWithSHA512):
+	case oid.Equal(oidECDSAWithSHA512()):
 		return x509.ECDSAWithSHA512, nil
-	case oid.Equal(oidSHA256WithRSA):
+	case oid.Equal(oidSHA256WithRSA()):
 		return x509.SHA256WithRSA, nil
-	case oid.Equal(oidSHA384WithRSA):
+	case oid.Equal(oidSHA384WithRSA()):
 		return x509.SHA384WithRSA, nil
-	case oid.Equal(oidSHA512WithRSA):
+	case oid.Equal(oidSHA512WithRSA()):
 		return x509.SHA512WithRSA, nil
-	case oid.Equal(oidEd25519):
+	case oid.Equal(oidEd25519()):
 		return x509.PureEd25519, nil
 	default:
 		return x509.UnknownSignatureAlgorithm, invalidError(nil)
@@ -1061,7 +1061,7 @@ func verifyTSTBinding(verification tstBindingVerification) (TimestampPolicy, err
 	if err != nil || !info.Policy.Equal(policy.oid) {
 		return TimestampPolicyUnknown, invalidError(err)
 	}
-	if !info.MessageImprint.HashAlgorithm.Algorithm.Equal(oidSHA256) ||
+	if !info.MessageImprint.HashAlgorithm.Algorithm.Equal(oidSHA256()) ||
 		len(info.MessageImprint.HashedMessage) != sha256.Size {
 		return TimestampPolicyUnknown, invalidError(nil)
 	}

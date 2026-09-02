@@ -49,6 +49,44 @@ func TestServerRuntimeLayerTriad(t *testing.T) {
 		}
 	})
 
+	t.Run("positive preopened listener transfers exactly once and closes idempotently", func(t *testing.T) {
+		t.Parallel()
+
+		address := availableLoopbackAddress(t)
+		configuration := serverRuntimeConfiguration(t, address)
+		listener, listenErr := exchange.Listen(configuration.Address)
+		if listenErr != nil {
+			t.Fatalf("exchange.Listen() error = %v, want nil", listenErr)
+		}
+		runtime, runtimeErr := exchange.NewServerRuntime(configuration, http.HandlerFunc(func(writer http.ResponseWriter, _ *http.Request) {
+			writer.WriteHeader(http.StatusNoContent)
+		}))
+		if runtimeErr != nil {
+			t.Fatalf("exchange.NewServerRuntime() error = %v, want nil", runtimeErr)
+		}
+		served := make(chan error, 1)
+		go func() { served <- runtime.ServeListener(listener) }()
+		waitForRuntimeReady(t, runtime.Ready())
+		response, requestErr := http.Get("http://" + address)
+		if requestErr != nil {
+			t.Fatalf("http.Get(preopened listener) error = %v, want nil", requestErr)
+		}
+		_, readErr := io.Copy(io.Discard, response.Body)
+		closeErr := response.Body.Close()
+		if readErr != nil || closeErr != nil || response.StatusCode != http.StatusNoContent {
+			t.Fatalf("preopened listener response = (status %d, read %v, close %v), want (204, nil, nil)", response.StatusCode, readErr, closeErr)
+		}
+		if gotErr := runtime.Shutdown(t.Context()); gotErr != nil {
+			t.Fatalf("ServerRuntime.Shutdown() error = %v, want nil", gotErr)
+		}
+		if gotErr := waitForRuntimeExit(t, served); gotErr != nil {
+			t.Fatalf("ServerRuntime.ServeListener() error = %v, want nil", gotErr)
+		}
+		if gotErr := listener.Close(); gotErr != nil {
+			t.Fatalf("ServerListener.Close(after shutdown) error = %v, want nil", gotErr)
+		}
+	})
+
 	t.Run("negative invalid address creates no runtime", func(t *testing.T) {
 		t.Parallel()
 
@@ -59,6 +97,30 @@ func TestServerRuntimeLayerTriad(t *testing.T) {
 		_, gotErr := exchange.NewServerRuntime(exchange.ServerRuntimeConfiguration{}, http.NotFoundHandler())
 		if !errors.Is(gotErr, core.ErrExchangeContract) {
 			t.Fatalf("exchange.NewServerRuntime(zero configuration) error = %v, want %v", gotErr, core.ErrExchangeContract)
+		}
+	})
+
+	t.Run("negative invalid transferred listener publishes one refusal for each serve attempt", func(t *testing.T) {
+		t.Parallel()
+
+		runtime, runtimeErr := exchange.NewServerRuntime(
+			serverRuntimeConfiguration(t, availableLoopbackAddress(t)),
+			http.NotFoundHandler(),
+		)
+		if runtimeErr != nil {
+			t.Fatalf("exchange.NewServerRuntime() error = %v, want nil", runtimeErr)
+		}
+		for attempt := 1; attempt <= 2; attempt++ {
+			gotErr := runtime.ServeListener(nil)
+			readyErr := waitForRuntimeStart(t, runtime.Ready())
+			if !errors.Is(gotErr, core.ErrExchangeContract) || !errors.Is(readyErr, core.ErrExchangeContract) {
+				t.Fatalf("ServeListener(nil) attempt %d = (serve %v, ready %v), want %v from both", attempt, gotErr, readyErr, core.ErrExchangeContract)
+			}
+			select {
+			case extra := <-runtime.Ready():
+				t.Fatalf("ServeListener(nil) attempt %d extra readiness = %v, want exactly one result", attempt, extra)
+			default:
+			}
 		}
 	})
 

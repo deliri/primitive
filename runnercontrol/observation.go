@@ -6,20 +6,20 @@ import (
 
 	"github.com/deliri/primitive/v2026/core"
 	"github.com/deliri/primitive/v2026/process"
-	"github.com/deliri/primitive/v2026/projectstandards"
+	"github.com/deliri/primitive/v2026/standard"
 	"github.com/deliri/primitive/v2026/temporal"
 )
 
 // ExperimentObservationRequest is the typed handoff from domain-blind
 // execution into Primitive-owned evidence policy.
 type ExperimentObservationRequest struct {
+	Failure      error
+	Process      *process.ResultObservation
+	Artifacts    []standard.ArtifactReference
+	Measurements standard.ExperimentMeasurements
 	Capability   ExperimentCapability
 	BeganAt      temporal.Instant
 	CompletedAt  temporal.Instant
-	Process      *process.ResultObservation
-	Failure      error
-	Artifacts    []projectstandards.ArtifactReference
-	Measurements projectstandards.ExperimentMeasurements
 }
 
 func (r ExperimentObservationRequest) Validate() error {
@@ -47,10 +47,10 @@ func (r ExperimentObservationRequest) Validate() error {
 }
 
 type measurementValidation struct {
-	capability   ExperimentCapability
 	failure      error
+	measurements standard.ExperimentMeasurements
+	capability   ExperimentCapability
 	started      bool
-	measurements projectstandards.ExperimentMeasurements
 }
 
 func validateExperimentMeasurements(request measurementValidation) error {
@@ -80,7 +80,7 @@ func validateJUnitMeasurements(request measurementValidation) error {
 	return nil
 }
 
-func validateOpaqueMeasurements(artifacts []ArtifactExpectation, measurements projectstandards.ExperimentMeasurements) error {
+func validateOpaqueMeasurements(artifacts []ArtifactExpectation, measurements standard.ExperimentMeasurements) error {
 	if measurements.Accounting != nil || len(measurements.Benchmarks) != 0 || measurements.CoverageBasisPoints != nil {
 		return core.ErrPrimitiveContract
 	}
@@ -115,17 +115,17 @@ func validateGoAccounting(request measurementValidation) error {
 	accounting := request.measurements.Accounting
 	latest, ok := accounting.Latest()
 	policy := request.capability.Execution.Observation
-	if !ok || latest.Planned != policy.ExpectedUnits || latest.Filtered != policy.Filtered || latest.Cache != projectstandards.CacheDisabled {
+	if !ok || latest.Planned != policy.ExpectedUnits || latest.Filtered != policy.Filtered || latest.Cache != standard.CacheDisabled {
 		return core.ErrPrimitiveContract
 	}
 	return nil
 }
 
-func validateGoBenchmarks(kind projectstandards.ProbeKind, failure error, benchmarks []projectstandards.BenchmarkMeasurement) error {
-	if kind != projectstandards.ProbeKindGoBenchmark && len(benchmarks) != 0 {
+func validateGoBenchmarks(kind standard.ProbeKind, failure error, benchmarks []standard.BenchmarkMeasurement) error {
+	if kind != standard.ProbeKindGoBenchmark && len(benchmarks) != 0 {
 		return core.ErrPrimitiveContract
 	}
-	if kind == projectstandards.ProbeKindGoBenchmark && failure == nil && len(benchmarks) == 0 {
+	if kind == standard.ProbeKindGoBenchmark && failure == nil && len(benchmarks) == 0 {
 		return core.ErrPrimitiveContract
 	}
 	return nil
@@ -153,32 +153,32 @@ func artifactKindCount(artifacts []ArtifactExpectation, kind ArtifactKind) uint1
 	return count
 }
 
-func CompileExperimentObservation(request ExperimentObservationRequest) (projectstandards.ExperimentObservation, error) {
+func CompileExperimentObservation(request ExperimentObservationRequest) (standard.ExperimentObservation, error) {
 	if err := request.Validate(); err != nil {
-		return projectstandards.ExperimentObservation{}, err
+		return standard.ExperimentObservation{}, err
 	}
 	execution, err := request.Capability.Digest()
 	if err != nil {
-		return projectstandards.ExperimentObservation{}, err
+		return standard.ExperimentObservation{}, err
 	}
 	measurements, err := compileExperimentMeasurements(request)
 	if err != nil {
-		return projectstandards.ExperimentObservation{}, err
+		return standard.ExperimentObservation{}, err
 	}
-	observation := projectstandards.ExperimentObservation{
+	observation := standard.ExperimentObservation{
 		Experiment: request.Capability.Experiment, Started: request.Process != nil,
 		Outcome:                compileExperimentOutcome(request.Process, request.Failure),
 		EnvironmentFingerprint: request.Capability.Probe.Environment.EnvironmentFingerprint,
 		ExecutionFingerprint:   execution, MachineSheetDigest: request.Capability.Probe.Environment.MachineSheetDigest,
-		Measurements: measurements, Artifacts: append([]projectstandards.ArtifactReference(nil), request.Artifacts...),
+		Measurements: measurements, Artifacts: append([]standard.ArtifactReference(nil), request.Artifacts...),
 	}
 	return observation, observation.Validate()
 }
 
-func compileExperimentMeasurements(request ExperimentObservationRequest) (projectstandards.ExperimentMeasurements, error) {
+func compileExperimentMeasurements(request ExperimentObservationRequest) (standard.ExperimentMeasurements, error) {
 	measurements := request.Measurements
-	measurements.Benchmarks = append([]projectstandards.BenchmarkMeasurement(nil), request.Measurements.Benchmarks...)
-	measurements.Complexity = append([]projectstandards.ComplexityCapture(nil), request.Measurements.Complexity...)
+	measurements.Benchmarks = append([]standard.BenchmarkMeasurement(nil), request.Measurements.Benchmarks...)
+	measurements.Complexity = append([]standard.ComplexityCapture(nil), request.Measurements.Complexity...)
 	if request.Process == nil {
 		if (request.Capability.Execution.Observation.Format == ObservationGoTestJSON || request.Capability.Execution.Observation.Format == ObservationJUnitXML) && measurements.Accounting == nil {
 			accounting := compileUnstartedAccounting(request.Capability.Execution.Observation, request.Failure)
@@ -188,19 +188,19 @@ func compileExperimentMeasurements(request ExperimentObservationRequest) (projec
 	}
 	duration, err := request.CompletedAt.Since(request.BeganAt)
 	if err != nil || duration.Nanoseconds() <= 0 {
-		return projectstandards.ExperimentMeasurements{}, errors.Join(core.ErrPrimitiveContract, err)
+		return standard.ExperimentMeasurements{}, errors.Join(core.ErrPrimitiveContract, err)
 	}
 	durationNanoseconds, err := core.CheckedUint64FromInt64(duration.Nanoseconds())
 	if err != nil {
-		return projectstandards.ExperimentMeasurements{}, errors.Join(core.ErrPrimitiveContract, err)
+		return standard.ExperimentMeasurements{}, errors.Join(core.ErrPrimitiveContract, err)
 	}
 	measurements.DurationNs = durationNanoseconds
 	measurements.PeakMemoryBytes = request.Process.PeakMemoryBytes.Uint64()
 	return measurements, nil
 }
 
-func compileUnstartedAccounting(policy ObservationPolicy, failure error) projectstandards.ExecutionAccounting {
-	attempt := projectstandards.ExecutionAttempt{Sequence: 1, Planned: policy.ExpectedUnits, Cache: projectstandards.CacheDisabled, Filtered: policy.Filtered, NotRun: policy.ExpectedUnits - 1}
+func compileUnstartedAccounting(policy ObservationPolicy, failure error) standard.ExecutionAccounting {
+	attempt := standard.ExecutionAttempt{Sequence: 1, Planned: policy.ExpectedUnits, Cache: standard.CacheDisabled, Filtered: policy.Filtered, NotRun: policy.ExpectedUnits - 1}
 	switch {
 	case errors.Is(failure, context.Canceled):
 		attempt.Cancelled = 1
@@ -209,35 +209,35 @@ func compileUnstartedAccounting(policy ObservationPolicy, failure error) project
 	default:
 		attempt.Failed = 1
 	}
-	return projectstandards.ExecutionAccounting{Attempts: []projectstandards.ExecutionAttempt{attempt}}
+	return standard.ExecutionAccounting{Attempts: []standard.ExecutionAttempt{attempt}}
 }
 
-func compileExperimentOutcome(result *process.ResultObservation, failure error) projectstandards.Outcome {
+func compileExperimentOutcome(result *process.ResultObservation, failure error) standard.Outcome {
 	if errors.Is(failure, context.Canceled) {
-		return projectstandards.OutcomeCancelled
+		return standard.OutcomeCancelled
 	}
 	if errors.Is(failure, context.DeadlineExceeded) {
-		return projectstandards.OutcomeTimedOut
+		return standard.OutcomeTimedOut
 	}
 	if result == nil {
-		return projectstandards.OutcomeSetupFailed
+		return standard.OutcomeSetupFailed
 	}
 	if failure != nil {
-		return projectstandards.OutcomeFailed
+		return standard.OutcomeFailed
 	}
 	if result.ExitCode == 0 {
-		return projectstandards.OutcomePassed
+		return standard.OutcomePassed
 	}
-	return projectstandards.OutcomeFailed
+	return standard.OutcomeFailed
 }
 
-func CompileSelectionObservation(manifest ExpansionManifest, approval ExpansionApproval, executed uint16) (projectstandards.SelectionObservation, error) {
+func CompileSelectionObservation(manifest ExpansionManifest, approval ExpansionApproval, executed uint16) (standard.SelectionObservation, error) {
 	if err := errors.Join(manifest.Validate(), approval.Validate()); err != nil {
-		return projectstandards.SelectionObservation{}, err
+		return standard.SelectionObservation{}, err
 	}
 	manifestDigest, err := manifest.Digest()
 	if err != nil || approval.Run != manifest.Run || approval.ManifestDigest != manifestDigest {
-		return projectstandards.SelectionObservation{}, errors.Join(core.ErrPrimitiveContract, err)
+		return standard.SelectionObservation{}, errors.Join(core.ErrPrimitiveContract, err)
 	}
 	planned := uint32(manifest.Admitted) + uint32(manifest.Refused)
 	admitted := uint32(manifest.Admitted)
@@ -247,16 +247,16 @@ func CompileSelectionObservation(manifest ExpansionManifest, approval ExpansionA
 		refused = planned
 	}
 	if uint32(executed) > admitted {
-		return projectstandards.SelectionObservation{}, core.ErrPrimitiveContract
+		return standard.SelectionObservation{}, core.ErrPrimitiveContract
 	}
 	plannedCount, plannedErr := checkedUint16FromUint64(uint64(planned))
 	admittedCount, admittedErr := checkedUint16FromUint64(uint64(admitted))
 	refusedCount, refusedErr := checkedUint16FromUint64(uint64(refused))
 	notRunCount, notRunErr := checkedUint16FromUint64(uint64(admitted - uint32(executed)))
 	if err := errors.Join(plannedErr, admittedErr, refusedErr, notRunErr); err != nil {
-		return projectstandards.SelectionObservation{}, errors.Join(core.ErrPrimitiveContract, err)
+		return standard.SelectionObservation{}, errors.Join(core.ErrPrimitiveContract, err)
 	}
-	observation := projectstandards.SelectionObservation{
+	observation := standard.SelectionObservation{
 		ExpansionIdentity: manifest.Identity, ManifestDigest: manifestDigest, Planned: plannedCount, Admitted: admittedCount,
 		Refused: refusedCount, Executed: executed, NotRun: notRunCount,
 	}

@@ -25,15 +25,15 @@ const (
 )
 
 type executionBudgetCase struct {
+	wantErr        error
 	name           string
 	class          string
 	configuredNs   int64
+	wantMultiplier uint64
 	units          uint32
 	parallel       uint16
 	mutation       budgetMutation
-	wantMultiplier uint64
 	wantReport     bool
-	wantErr        error
 }
 
 func TestExecutionBudgetHostileEvidenceMatrix(t *testing.T) {

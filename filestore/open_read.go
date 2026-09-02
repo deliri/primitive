@@ -46,6 +46,38 @@ func OpenRead(ctx context.Context, request ReadHandleRequest) (*os.File, error) 
 	)
 }
 
+// OpenUpdate opens one existing regular file below a rooted boundary for
+// caller-owned reading and in-place updates. The caller owns and must close the
+// returned handle. Filestore verifies the opened object is regular before the
+// handle can be used, so consumers do not reopen the namespace with os.OpenFile.
+func OpenUpdate(ctx context.Context, request UpdateHandleRequest) (*os.File, error) {
+	if err := contextstate.Validate(ctx); err != nil {
+		return nil, err
+	}
+	if err := request.Validate(); err != nil {
+		return nil, err
+	}
+	file, err := openMutableFile(rootedOpenRequest{
+		root: request.Location.Root,
+		path: request.Location.Path.String(),
+		flag: os.O_RDWR,
+	})
+	if err != nil {
+		return nil, activationError(err)
+	}
+	info, err := file.Stat()
+	if err != nil {
+		return nil, closeReadFile(file, activationError(err))
+	}
+	if !info.Mode().IsRegular() {
+		return nil, closeReadFile(file, activationError(fs.ErrInvalid))
+	}
+	if err := prepareRegularReadFile(file); err != nil {
+		return nil, closeReadFile(file, activationError(err))
+	}
+	return file, nil
+}
+
 // OpenStagedRead reopens the exact inode named by one StagedFile receipt. It
 // returns the real Go file only after rechecking the receipt before and after
 // open, closing the namespace race without introducing a reader wrapper.

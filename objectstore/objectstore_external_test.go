@@ -208,7 +208,7 @@ func TestVendorSpecExhaustiveDomain(t *testing.T) {
 				objectstore.AmazonS3PutObjectMaximumBytes,
 			),
 			DownloadMaximum: mustByteLength(t,
-				objectstore.AmazonS3ObjectMaximumBytes,
+				objectstore.AmazonS3SingleGetObjectMaximumBytes,
 			),
 		},
 		objectstore.ProviderGoogleCloudStorage: {

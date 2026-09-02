@@ -157,7 +157,7 @@ const (
 func signalSetLabels() [signalSetLimit]string {
 	return [...]string{
 		SignalSetInteractive:       "interactive",
-		SignalSetStandard:          "standard",
+		SignalSetStandard:          "standard-signals",
 		SignalSetTerminalLifecycle: "terminal-lifecycle",
 	}
 }
@@ -237,7 +237,7 @@ const (
 
 func graceExpiryActionLabels() [graceExpiryActionLimit]string {
 	return [...]string{
-		GraceExpiryDisabled: "disabled",
+		GraceExpiryDisabled: "grace_expiry_disabled",
 		GraceExpiryEscalate: escalateLabel,
 	}
 }

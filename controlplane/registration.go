@@ -160,12 +160,12 @@ func (r *RegistrationRequest) UnmarshalJSON(data []byte) error {
 // InstallationCertificateBody is the signed statement that one device key
 // belongs to one entitlement under one account.
 type InstallationCertificateBody struct {
-	Subject   lease.Subject           `json:"subject"`
-	Build     core.BuildIdentity      `json:"build"`
-	IssuedAt  temporal.Instant        `json:"issued_at"`
-	DeviceKey core.Ed25519PublicKey   `json:"device_public_key"`
-	Account   receipt.AccountIdentity `json:"account"`
-	Revision  controlwire.Revision    `json:"revision"`
+	Subject   lease.Subject             `json:"subject"`
+	Build     core.BuildIdentity        `json:"build"`
+	IssuedAt  temporal.Instant          `json:"issued_at"`
+	DeviceKey core.Ed25519PublicKey     `json:"device_public_key"`
+	Account   receipt.PrincipalIdentity `json:"account"`
+	Revision  controlwire.Revision      `json:"revision"`
 }
 
 // InstallationCertificateDocument is the certificate body with its signature.

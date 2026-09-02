@@ -6,10 +6,7 @@ import (
 	"github.com/deliri/primitive/v2026/core"
 )
 
-const (
-	jsonMediaTypeText      = "application/json"
-	plainTextMediaTypeText = "text/plain"
-)
+const plainTextMediaTypeText = "text/plain"
 
 // StandardMediaType is Exchange's closed set of compiler-owned standard
 // representation facts. Product-specific vendor types remain caller-owned.
@@ -25,7 +22,7 @@ const (
 func standardMediaTypeFacts() [standardMediaTypeLimit]string {
 	return [...]string{
 		StandardMediaTypeUnknown:   "",
-		StandardMediaTypeJSON:      jsonMediaTypeText,
+		StandardMediaTypeJSON:      core.HTTPMediaTypeJSON().String(),
 		StandardMediaTypePlainText: plainTextMediaTypeText,
 	}
 }

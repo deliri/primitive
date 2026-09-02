@@ -1,11 +1,14 @@
 package exchange
 
 import (
+	"bytes"
 	json "encoding/json/v2"
 	"errors"
 	"go/ast"
+	"go/format"
 	"go/parser"
 	"go/token"
+	"net/http"
 	"net/http/httptest"
 	"os"
 	"path/filepath"
@@ -73,8 +76,9 @@ func TestInventoryDocumentDrivesTheRealJSONWritePath(t *testing.T) {
 		t.Parallel()
 
 		recorder := httptest.NewRecorder()
+		serverCall := SocketServerCall{writer: recorder, request: httptest.NewRequest(http.MethodGet, "/", nil)}
 		writeErr := WriteJSON(JSONWriteCall[inventoryDocument]{
-			Writer: recorder,
+			Call: serverCall,
 			Response: ServerJSONResponse[inventoryDocument]{
 				Body:   inventoryDocument{Name: "inventory"},
 				Status: status,
@@ -100,8 +104,9 @@ func TestInventoryDocumentDrivesTheRealJSONWritePath(t *testing.T) {
 		t.Parallel()
 
 		recorder := httptest.NewRecorder()
+		serverCall := SocketServerCall{writer: recorder, request: httptest.NewRequest(http.MethodGet, "/", nil)}
 		call := JSONWriteCall[inventoryDocument]{
-			Writer: recorder,
+			Call: serverCall,
 			Response: ServerJSONResponse[inventoryDocument]{
 				Body:   inventoryDocument{},
 				Status: status,
@@ -126,8 +131,9 @@ func TestInventoryDocumentDrivesTheRealJSONWritePath(t *testing.T) {
 type exchangeContractInventory struct {
 	StatusError                               typedFailure[StatusError]
 	RetryExhaustedError                       typedFailure[RetryExhaustedError]
+	ServerErrorResponse                       protocolContract[ServerErrorResponse]
+	ServerRedirectResponse                    protocolContract[ServerRedirectResponse]
 	BasicAuthorizationRequest                 protocolContract[BasicAuthorizationRequest]
-	BasicAuthorizationReceiveCall             protocolContract[BasicAuthorizationReceiveCall]
 	BearerAuthorization                       protocolContract[BearerAuthorization]
 	OfficialSDKResponseBoundary               protocolContract[OfficialSDKResponseBoundary]
 	OfficialSDKResponseBoundaryRequest        protocolContract[OfficialSDKResponseBoundaryRequest]
@@ -239,6 +245,7 @@ type exchangeContractInventory struct {
 	ListenAddress              protocolContract[ListenAddress]
 	ServerRuntimePolicy        protocolContract[ServerRuntimePolicy]
 	ServerRuntimeConfiguration protocolContract[ServerRuntimeConfiguration]
+	ServerListener             capabilityWrapper[ServerListener]
 	ServerRuntime              capabilityWrapper[ServerRuntime]
 
 	ResponseMetadata        protocolContract[ResponseMetadata]
@@ -281,6 +288,69 @@ func TestSocketServerHasOnePublicAdmissionAndWriteDoor(t *testing.T) {
 	if !slices.Equal(got, want) {
 		t.Fatalf("exported socket server JSON doors = %q, want %q", got, want)
 	}
+}
+
+func TestSocketServerCallIsOnlyPublicRawHTTPAdmission(t *testing.T) {
+	t.Parallel()
+
+	entries, err := os.ReadDir(".")
+	if err != nil {
+		t.Fatalf("os.ReadDir(.) error = %v, want nil", err)
+	}
+	gotFunctions := make([]string, 0, 1)
+	gotFields := make([]string, 0)
+	fileSet := token.NewFileSet()
+	for _, entry := range entries {
+		if entry.IsDir() || !strings.HasSuffix(entry.Name(), ".go") || strings.HasSuffix(entry.Name(), "_test.go") {
+			continue
+		}
+		file, parseErr := parser.ParseFile(fileSet, filepath.Clean(entry.Name()), nil, parser.SkipObjectResolution)
+		if parseErr != nil {
+			t.Fatalf("parser.ParseFile(%q) error = %v, want nil", entry.Name(), parseErr)
+		}
+		for _, declaration := range file.Decls {
+			switch typed := declaration.(type) {
+			case *ast.FuncDecl:
+				if typed.Recv == nil && typed.Name.IsExported() && rawHTTPType(fileSet, typed.Type) {
+					gotFunctions = append(gotFunctions, typed.Name.Name)
+				}
+			case *ast.GenDecl:
+				for _, specification := range typed.Specs {
+					typeSpecification, ok := specification.(*ast.TypeSpec)
+					if !ok || !typeSpecification.Name.IsExported() {
+						continue
+					}
+					structure, ok := typeSpecification.Type.(*ast.StructType)
+					if !ok {
+						continue
+					}
+					if typeSpecification.Name.Name == "SocketServerCall" {
+						continue
+					}
+					for _, field := range structure.Fields.List {
+						if rawHTTPType(fileSet, field.Type) {
+							gotFields = append(gotFields, typeSpecification.Name.Name)
+						}
+					}
+				}
+			}
+		}
+	}
+	sort.Strings(gotFunctions)
+	sort.Strings(gotFields)
+	wantFunctions := []string{"NewSocketServerCall"}
+	if !slices.Equal(gotFunctions, wantFunctions) || len(gotFields) != 0 {
+		t.Fatalf("public raw HTTP functions/struct fields = (%q, %q), want (%q, none)", gotFunctions, gotFields, wantFunctions)
+	}
+}
+
+func rawHTTPType(fileSet *token.FileSet, expression ast.Expr) bool {
+	var encoded bytes.Buffer
+	if err := format.Node(&encoded, fileSet, expression); err != nil {
+		return false
+	}
+	value := encoded.String()
+	return strings.Contains(value, "*http.Request") || strings.Contains(value, "http.ResponseWriter")
 }
 
 func productionStructNames(t *testing.T) []string {

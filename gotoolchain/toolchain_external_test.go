@@ -7,7 +7,7 @@ import (
 
 	"github.com/deliri/primitive/v2026/core"
 	"github.com/deliri/primitive/v2026/gotoolchain"
-	"github.com/deliri/primitive/v2026/process"
+	"github.com/deliri/primitive/v2026/hostfacts"
 )
 
 func TestCapabilityProductionPathLayerTriad(t *testing.T) {
@@ -24,9 +24,9 @@ func TestCapabilityProductionPathLayerTriad(t *testing.T) {
 	if err != nil {
 		t.Fatalf("gotoolchain.Open() error = %v, want nil", err)
 	}
-	directory, err := process.WorkingDirectory()
+	directory, err := hostfacts.WorkingDirectory()
 	if err != nil {
-		t.Fatalf("process.WorkingDirectory() error = %v, want nil", err)
+		t.Fatalf("hostfacts.WorkingDirectory() error = %v, want nil", err)
 	}
 	directory, err = directory.Parent()
 	if err != nil {
@@ -105,6 +105,30 @@ func TestCapabilityProductionPathLayerTriad(t *testing.T) {
 
 func TestCompilerScalarsRejectUnknownAndPreserveCanonicalValues(t *testing.T) {
 	t.Parallel()
+
+	workspaceModes := []struct {
+		name       string
+		wantString string
+		value      gotoolchain.WorkspaceMode
+		wantValid  bool
+	}{
+		{name: "zero mode is outside the compiler-owned domain", value: gotoolchain.WorkspaceModeUnknown, wantString: core.UnknownEnumDiagnostic},
+		{name: "ambient mode preserves cmd go workspace discovery", value: gotoolchain.WorkspaceModeAmbient, wantValid: true, wantString: "ambient"},
+		{name: "disabled mode seals cmd go away from ambient workspaces", value: gotoolchain.WorkspaceModeDisabled, wantValid: true, wantString: "workspace_disabled"},
+		{name: "next mode is refused instead of becoming future policy", value: gotoolchain.WorkspaceModeDisabled + 1, wantString: core.UnknownEnumDiagnostic},
+		{name: "maximum uint8 mode cannot enter the closed domain", value: gotoolchain.WorkspaceMode(^uint8(0)), wantString: core.UnknownEnumDiagnostic},
+	}
+	for _, tc := range workspaceModes {
+		t.Run(tc.name, func(t *testing.T) {
+			t.Parallel()
+
+			gotErr := tc.value.Validate()
+			if tc.value.IsValid() != tc.wantValid || (gotErr == nil) != tc.wantValid || tc.value.String() != tc.wantString {
+				t.Fatalf("WorkspaceMode(%d) valid/error/string = (%t, %v, %q), want (%t, matching error posture, %q)", tc.value, tc.value.IsValid(), gotErr, tc.value.String(), tc.wantValid, tc.wantString)
+			}
+			tc.value.OffWireEnum()
+		})
+	}
 
 	versions := []struct {
 		name    string

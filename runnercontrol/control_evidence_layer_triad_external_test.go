@@ -6,8 +6,8 @@ import (
 
 	"github.com/deliri/primitive/v2026/attest"
 	"github.com/deliri/primitive/v2026/core"
-	"github.com/deliri/primitive/v2026/projectstandards"
 	"github.com/deliri/primitive/v2026/runnercontrol"
+	"github.com/deliri/primitive/v2026/standard"
 	"github.com/deliri/primitive/v2026/temporal"
 )
 
@@ -65,9 +65,9 @@ func completedObservationDeliveryFixture(t testing.TB) (runnercontrol.Observatio
 	manifestDigest, manifestErr := manifest.Digest()
 	cleanup := runnercontrol.CleanupOutcome{Kind: runnercontrol.CleanupSucceeded, ReceiptDigest: new(core.SHA256Of([]byte("cleanup-receipt")))}
 	cleanupDigest, cleanupErr := cleanup.Digest()
-	request, requestErr := projectstandards.NewRequestIdentity(completionUUIDFixture(t))
-	destination, destinationErr := projectstandards.NewIdentifier("origin-observation-api")
-	audience, audienceErr := projectstandards.NewIdentifier("origin-runner")
+	request, requestErr := standard.NewRequestIdentity(completionUUIDFixture(t))
+	destination, destinationErr := standard.NewIdentifier("origin-observation-api")
+	audience, audienceErr := standard.NewIdentifier("origin-runner")
 	if err := errors.Join(runnerIssueErr, experimentIssueErr, recordErr, manifestErr, cleanupErr, requestErr, destinationErr, audienceErr); err != nil {
 		t.Fatalf("completed observation delivery fixture error = %v, want nil", err)
 	}
@@ -76,7 +76,7 @@ func completedObservationDeliveryFixture(t testing.TB) (runnercontrol.Observatio
 		AdmissionDigest: core.SHA256Of([]byte("admission")), Fence: runnerPayload.Fence, Members: runnerPayload.Members,
 		Cleanup: cleanup, CleanupDigest: cleanupDigest, Origin: experimentPayload.Probe.Origin,
 		DeliveryGrant: core.SHA256Of([]byte("delivery-grant")), Destination: destination, Audience: audience,
-		Terminal: projectstandards.TerminalCompleted, CapturedAt: temporal.InstantFromNanoseconds(5), ExperimentDeliveryManifest: manifestDigest,
+		Terminal: standard.TerminalCompleted, CapturedAt: temporal.InstantFromNanoseconds(5), ExperimentDeliveryManifest: manifestDigest,
 		Evidence: runnercontrol.ObservationEvidenceBody{Kind: runnercontrol.EvidenceCompletedRunner, Completed: &runnerDocument},
 	}
 	controlKey, controlKeys := completionSignerFixture(t)
@@ -95,10 +95,10 @@ func preRunnerObservationDeliveryFixture(t testing.TB) (runnercontrol.Observatio
 	manifestDigest, manifestErr := manifest.Digest()
 	cleanup := runnercontrol.CleanupOutcome{Kind: runnercontrol.CleanupNotApplicable}
 	cleanupDigest, cleanupErr := cleanup.Digest()
-	request, requestErr := projectstandards.NewRequestIdentity(completionUUIDFixture(t))
-	destination, destinationErr := projectstandards.NewIdentifier("origin-observation-api")
-	audience, audienceErr := projectstandards.NewIdentifier("origin-runner")
-	stage, stageErr := projectstandards.NewIdentifier("source-acquisition")
+	request, requestErr := standard.NewRequestIdentity(completionUUIDFixture(t))
+	destination, destinationErr := standard.NewIdentifier("origin-observation-api")
+	audience, audienceErr := standard.NewIdentifier("origin-runner")
+	stage, stageErr := standard.NewIdentifier("source-acquisition")
 	if err := errors.Join(manifestErr, cleanupErr, requestErr, destinationErr, audienceErr, stageErr); err != nil {
 		t.Fatalf("pre-runner observation delivery fixture error = %v, want nil", err)
 	}
@@ -107,7 +107,7 @@ func preRunnerObservationDeliveryFixture(t testing.TB) (runnercontrol.Observatio
 		AdmissionDigest: core.SHA256Of([]byte("admission")), Fence: completion.Fence, Members: completion.Members,
 		Cleanup: cleanup, CleanupDigest: cleanupDigest, Origin: completion.Probe.Origin,
 		DeliveryGrant: core.SHA256Of([]byte("delivery-grant")), Destination: destination, Audience: audience,
-		Terminal: projectstandards.TerminalUnavailable, CapturedAt: temporal.InstantFromNanoseconds(5), ExperimentDeliveryManifest: manifestDigest,
+		Terminal: standard.TerminalUnavailable, CapturedAt: temporal.InstantFromNanoseconds(5), ExperimentDeliveryManifest: manifestDigest,
 		Evidence: runnercontrol.ObservationEvidenceBody{Kind: runnercontrol.EvidencePreRunnerInfrastructure, PreRunner: &runnercontrol.PreRunnerEvidence{Stage: stage, Failure: core.ErrFilestoreSource}},
 	}
 	controlKey, controlKeys := completionSignerFixture(t)

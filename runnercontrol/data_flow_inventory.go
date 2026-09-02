@@ -65,11 +65,7 @@ func (ExpansionDocument) runnerControlProtocolFact()                {}
 func (ExpansionApproval) runnerControlProtocolFact()                {}
 func (EgressRule) runnerControlProtocolFact()                       {}
 func (EgressPolicy) runnerControlProtocolFact()                     {}
-func (IsolationPolicy) runnerControlProtocolFact()                  {}
 func (SubjectExecution) runnerControlProtocolFact()                 {}
-func (SecretMemoryPolicy) runnerControlProtocolFact()               {}
-func (MachineSessionBudget) runnerControlProtocolFact()             {}
-func (BatchSessionBudget) runnerControlProtocolFact()               {}
 func (ResourceRequirement) runnerControlProtocolFact()              {}
 func (ResourceWave) runnerControlProtocolFact()                     {}
 func (ExecutionBudget) runnerControlProtocolFact()                  {}
@@ -113,8 +109,8 @@ func (ExternalExecutionEnvironment) runnerControlProtocolFact()     {}
 func (ExternalPlanBase) runnerControlProtocolFact()                 {}
 func (JavaScriptTestPlan) runnerControlProtocolFact()               {}
 func (JavaScriptPlanRequest) runnerControlProtocolFact()            {}
-func (SmokePlan) runnerControlProtocolFact()                        {}
-func (SmokePlanRequest) runnerControlProtocolFact()                 {}
+func (SuitePlan) runnerControlProtocolFact()                        {}
+func (SuitePlanRequest) runnerControlProtocolFact()                 {}
 func (ToolPlan) runnerControlProtocolFact()                         {}
 func (ToolPlanRequest) runnerControlProtocolFact()                  {}
 func (CancellationIdentity) runnerControlProtocolFact()             {}
@@ -290,11 +286,7 @@ var (
 	_ protocolFact = ExpansionApproval{}
 	_ protocolFact = EgressRule{}
 	_ protocolFact = EgressPolicy{}
-	_ protocolFact = IsolationPolicy{}
 	_ protocolFact = SubjectExecution{}
-	_ protocolFact = SecretMemoryPolicy{}
-	_ protocolFact = MachineSessionBudget{}
-	_ protocolFact = BatchSessionBudget{}
 	_ protocolFact = ResourceRequirement{}
 	_ protocolFact = ResourceWave{}
 	_ protocolFact = ExecutionBudget{}
@@ -336,8 +328,8 @@ var (
 	_ protocolFact = ExternalPlanBase{}
 	_ protocolFact = JavaScriptTestPlan{}
 	_ protocolFact = JavaScriptPlanRequest{}
-	_ protocolFact = SmokePlan{}
-	_ protocolFact = SmokePlanRequest{}
+	_ protocolFact = SuitePlan{}
+	_ protocolFact = SuitePlanRequest{}
 	_ protocolFact = ToolPlan{}
 	_ protocolFact = ToolPlanRequest{}
 	_ protocolFact = CancellationIdentity{}

@@ -56,8 +56,8 @@ type boundedCopyRequest struct {
 	destination io.Writer
 	source      io.Reader
 	maximum     core.ByteCount
-	kind        streamDestination
 	knownExtent uint64
+	kind        streamDestination
 	extentKnown bool
 }
 
@@ -82,9 +82,6 @@ func copyBounded(request boundedCopyRequest) (core.ByteLength, error) {
 		}
 		limit := nextReadSize(maximumBytes, total)
 		count, readErr, validationErr := readBoundedChunk(request.ctx, request.source, buffer, limit)
-		if validationErr != nil {
-			return finishStream(total, validationErr)
-		}
 		if count > 0 {
 			emptyReads = 0
 			written, writeErr := writeFull(request.destination, buffer[:count])
@@ -96,7 +93,10 @@ func copyBounded(request boundedCopyRequest) (core.ByteLength, error) {
 			emptyReads++
 		}
 		if readErr != nil {
-			return finishRead(total, readErr)
+			return finishRead(request, total, readErr)
+		}
+		if validationErr != nil {
+			return finishStream(total, validationErr)
 		}
 		if emptyReads >= core.ReaderConsecutiveEmptyReadMaximum {
 			return finishStream(total, sourceError(io.ErrNoProgress))
@@ -106,10 +106,7 @@ func copyBounded(request boundedCopyRequest) (core.ByteLength, error) {
 
 func proveBoundedSourceEnd(request boundedCopyRequest, maximum uint64) error {
 	if request.extentKnown {
-		if request.knownExtent == maximum {
-			return nil
-		}
-		return sizeError(errors.New(streamSourceOverflowDiagnostic))
+		return probeBoundedSourceEnd(request)
 	}
 	remaining, ok := request.source.(remainingByteReader)
 	if ok {
@@ -129,6 +126,24 @@ func proveBoundedSourceEnd(request boundedCopyRequest, maximum uint64) error {
 		return classifyRemainingBytes(section.Size() - position)
 	}
 	return sourceError(errors.New("filestore source end cannot be proven without blocking"))
+}
+
+func probeBoundedSourceEnd(request boundedCopyRequest) error {
+	var probe [1]byte
+	count, readErr, validationErr := readBoundedChunk(request.ctx, request.source, probe[:], len(probe))
+	if count > 0 {
+		return errors.Join(sizeError(errors.New(streamSourceOverflowDiagnostic)), readErr)
+	}
+	if readErr != nil {
+		if errors.Is(readErr, io.EOF) {
+			return nil
+		}
+		return sourceError(readErr)
+	}
+	if validationErr != nil {
+		return validationErr
+	}
+	return sourceError(errors.New("filestore source end cannot be proven after an empty read"))
 }
 
 func classifyRemainingBytes(remaining int64) error {
@@ -169,11 +184,14 @@ func readBoundedChunk(
 	limit int,
 ) (int, error, error) {
 	count, err := source.Read(buffer[:limit])
-	if contextErr := contextstate.Validate(ctx); contextErr != nil {
-		return 0, nil, contextErr
-	}
 	if count < 0 || count > limit {
 		return 0, nil, sourceError(errors.New("filestore source returned an invalid byte count"))
+	}
+	if err != nil {
+		return count, err, nil
+	}
+	if contextErr := contextstate.Validate(ctx); contextErr != nil {
+		return count, nil, contextErr
 	}
 	return count, err, nil
 }
@@ -205,8 +223,11 @@ func writeFull(destination io.Writer, data []byte) (int, error) {
 	return total, nil
 }
 
-func finishRead(total uint64, err error) (core.ByteLength, error) {
+func finishRead(request boundedCopyRequest, total uint64, err error) (core.ByteLength, error) {
 	if errors.Is(err, io.EOF) {
+		if request.extentKnown && total < request.knownExtent {
+			return finishStream(total, sourceError(io.ErrUnexpectedEOF))
+		}
 		return finishStream(total, nil)
 	}
 	return finishStream(total, sourceError(err))

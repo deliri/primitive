@@ -463,6 +463,26 @@ func (e Environment) Strings() ([]string, error) {
 	return e.project(), nil
 }
 
+// With returns one exact environment whose value for variable.Name is
+// variable.Value. The operating system's own environment-name identity is
+// authoritative, including case folding on platforms where names are not
+// case-sensitive. Ambient inheritance must first be observed through
+// hostfacts.AmbientEnvironment so the resulting child environment is exact.
+func (e Environment) With(variable EnvironmentVariable) (Environment, error) {
+	if err := e.Validate(); err != nil {
+		return Environment{}, err
+	}
+	if e.Mode != EnvironmentModeExact {
+		return Environment{}, contractError("environment replacement requires exact variables")
+	}
+	if err := variable.Validate(); err != nil {
+		return Environment{}, err
+	}
+	projected := append(e.project(), variable.Name.text()+"="+variable.Value.text())
+	command := exec.Cmd{Env: projected}
+	return ParseExactEnvironment(command.Environ())
+}
+
 // Streams are the caller-owned byte streams for one direct child.
 type Streams struct {
 	Stdin  io.Reader

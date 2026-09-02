@@ -66,6 +66,7 @@ func productionImportAllowlist() []string {
 		"os",
 		"os/exec",
 		"reflect",
+		"strconv",
 		"strings",
 		"sync",
 		"sync/atomic",
@@ -96,24 +97,10 @@ func signalLeafFiles() []string {
 // looked a name up on its own.
 const resolutionLeafFile = "resolve.go"
 
-// ambientLeafFile is the one production file permitted the whole-environment
-// read: AmbientEnvironment owns the calling process's inherited set so no
-// consumer reads os.Environ itself, and the selector stays banned everywhere
-// else in this package exactly as before.
-const ambientLeafFile = "ambient.go"
-
 // commandExitLeafFile is the only production file permitted to terminate the
 // calling process. Child termination remains owned by Execution and platform
 // containment leaves; ambient termination is only a package-main effect.
 const commandExitLeafFile = "command_exit.go"
-
-func isAmbientEnvironmentSelector(selector *ast.SelectorExpr) bool {
-	qualifier, ok := selector.X.(*ast.Ident)
-	if !ok || qualifier.Name != "os" {
-		return false
-	}
-	return selector.Sel.Name == "Environ" || selector.Sel.Name == "LookupEnv"
-}
 
 // forbiddenPackageSelectors are package-qualified substrate calls that would
 // move ownership out of this package: an unsupervised command, a raw process
@@ -199,12 +186,9 @@ func TestPublicOperationsAreOnlyTypedConstructionAndExecution(t *testing.T) {
 	want := []string{
 		"Alive",
 		"AmbientArguments",
-		"AmbientEnvironment",
 		"Begin",
 		"DiscardDeviceArgument",
-		"Executable",
 		"ExitCommand",
-		"LookupAmbientEnvironment",
 		"NewArgument",
 		"NewEnvironmentName",
 		"NewEnvironmentValue",
@@ -218,7 +202,6 @@ func TestPublicOperationsAreOnlyTypedConstructionAndExecution(t *testing.T) {
 		"Run",
 		"Self",
 		"StandardStreams",
-		"WorkingDirectory",
 	}
 	if !slices.Equal(got, want) {
 		t.Fatalf("exported Process operations = %q, want exactly %q", got, want)
@@ -362,26 +345,6 @@ func TestOnlyTheResolutionLeafConsultsPath(t *testing.T) {
 	}
 }
 
-func TestAmbientEnvironmentEffectLeafIsExact(t *testing.T) {
-	t.Parallel()
-
-	var got []string
-	for _, production := range productionFiles(t) {
-		ast.Inspect(production.file, func(node ast.Node) bool {
-			selector, ok := node.(*ast.SelectorExpr)
-			if ok && isAmbientEnvironmentSelector(selector) {
-				got = append(got, production.name+"."+selector.Sel.Name)
-			}
-			return true
-		})
-	}
-	slices.Sort(got)
-	want := []string{ambientLeafFile + ".Environ", ambientLeafFile + ".LookupEnv"}
-	if !slices.Equal(got, want) {
-		t.Fatalf("production ambient-environment effects = %q, want exactly %q", got, want)
-	}
-}
-
 func TestProductionStructureForbidsWorldModelsAndWholeOutputPaths(t *testing.T) {
 	t.Parallel()
 
@@ -402,8 +365,7 @@ func TestProductionStructureForbidsWorldModelsAndWholeOutputPaths(t *testing.T) 
 			case *ast.SelectorExpr:
 				if forbiddenSelector(typed) &&
 					!(typed.Sel.Name == "Signal" && slices.Contains(signalLeafFiles(), production.name)) &&
-					!(typed.Sel.Name == "Exit" && production.name == commandExitLeafFile) &&
-					!(isAmbientEnvironmentSelector(typed) && production.name == ambientLeafFile) {
+					!(typed.Sel.Name == "Exit" && production.name == commandExitLeafFile) {
 					t.Errorf(
 						"production selector %s in %s at token position %d, want streamed caller-owned output",
 						typed.Sel.Name,

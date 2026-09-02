@@ -295,8 +295,8 @@ type retrievalEvidenceRequest struct {
 func retrievalManifestAddition(t testing.TB, request retrievalEvidenceRequest) (chit.ManifestAddition, receipt.Scope) {
 	t.Helper()
 	scope := receipt.Scope{
-		Account:  retrievalLifecycleIdentity(t, 0x21, receipt.NewAccountIdentity),
-		Offering: retrievalOfferingIdentity(t, retrievalOffering(t, 2)),
+		Principal: retrievalLifecycleIdentity(t, 0x21, receipt.NewPrincipalIdentity),
+		Offering:  retrievalOfferingIdentity(t, retrievalOffering(t, 2)),
 	}
 	extent, err := core.NewByteLength(uint64(len(request.Payload)))
 	if err != nil {
@@ -308,7 +308,7 @@ func retrievalManifestAddition(t testing.TB, request retrievalEvidenceRequest) (
 		t.Fatalf("receipt.NewReceiptID() error = %v, want nil", err)
 	}
 	evidence, err := receipt.IssueEvidence(receipt.IssueEvidenceRequest{
-		Key: request.Private, Identity: receiptID, Account: scope.Account, Offering: scope.Offering,
+		Key: request.Private, Identity: receiptID, Principal: scope.Principal, Offering: scope.Offering,
 		OccurredAt: temporal.InstantFromNanoseconds(retrievalGrantIssuedAt),
 		Body: receipt.EvidenceBody{
 			Extent: extent, SHA256: core.SHA256Of(request.Payload),
@@ -322,7 +322,7 @@ func retrievalManifestAddition(t testing.TB, request retrievalEvidenceRequest) (
 	}
 	verified, err := receipt.VerifyEvidence(receipt.VerifyEvidenceRequest{
 		Document: evidence, TrustedKeys: request.Trusted,
-		Expected: receipt.EvidenceExpectation{Account: scope.Account, Offering: scope.Offering, Body: evidence.Payload.Body},
+		Expected: receipt.EvidenceExpectation{Principal: scope.Principal, Offering: scope.Offering, Body: evidence.Payload.Body},
 	})
 	if err != nil {
 		t.Fatalf("receipt.VerifyEvidence() error = %v, want nil", err)

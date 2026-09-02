@@ -288,7 +288,7 @@ func TestPreparedRequestWireOrderAndBinding(t *testing.T) {
 	}
 	wantDigest, _ := fixture.digest.Bytes()
 	if gotVersion != 1 ||
-		!gotImprint.HashAlgorithm.Algorithm.Equal(oidSHA256) ||
+		!gotImprint.HashAlgorithm.Algorithm.Equal(oidSHA256()) ||
 		!bytes.Equal(gotImprint.HashedMessage, wantDigest[:]) ||
 		gotNonce == nil ||
 		!fixture.request.Nonce().matches(gotNonce) ||

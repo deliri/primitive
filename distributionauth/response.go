@@ -11,17 +11,17 @@ import (
 )
 
 type MaterialResponseIssuance struct {
-	Server     controlplane.Server
 	Signer     crypto.Signer
 	Header     controlplane.ResponseHeader
 	Body       release.MaterialResponse
+	Server     controlplane.Server
 	Assessment controlwire.ProtocolAssessment
 }
 
 type MaterialResponseVerification struct {
-	Client   controlplane.Client
 	Expected controlplane.ResponseExpectation
 	Document controlplane.ResponseDocument[release.MaterialResponse, *release.MaterialResponse]
+	Client   controlplane.Client
 }
 
 func (i MaterialResponseIssuance) Validate() error {
@@ -57,17 +57,17 @@ func (v MaterialResponseVerification) responseVerification() controlplane.Respon
 }
 
 type PublicationResponseIssuance struct {
-	Server     controlplane.Server
 	Signer     crypto.Signer
 	Header     controlplane.ResponseHeader
 	Body       distribution.PublicationGrantProjection
+	Server     controlplane.Server
 	Assessment controlwire.ProtocolAssessment
 }
 
 type PublicationResponseVerification struct {
-	Client   controlplane.Client
 	Expected controlplane.ResponseExpectation
 	Document controlplane.ResponseDocument[distribution.PublicationGrantDocument, *distribution.PublicationGrantDocument]
+	Client   controlplane.Client
 }
 
 func (i PublicationResponseIssuance) Validate() error {
@@ -103,17 +103,17 @@ func (v PublicationResponseVerification) responseVerification() controlplane.Res
 }
 
 type PublicationCompletionResponseIssuance struct {
-	Server     controlplane.Server
 	Signer     crypto.Signer
 	Header     controlplane.ResponseHeader
 	Body       release.LatestDocument
+	Server     controlplane.Server
 	Assessment controlwire.ProtocolAssessment
 }
 
 type PublicationCompletionResponseVerification struct {
-	Client   controlplane.Client
 	Expected controlplane.ResponseExpectation
 	Document controlplane.ResponseDocument[release.LatestDocument, *release.LatestDocument]
+	Client   controlplane.Client
 }
 
 func (i PublicationCompletionResponseIssuance) Validate() error {
@@ -153,17 +153,17 @@ func (v PublicationCompletionResponseVerification) responseVerification() contro
 }
 
 type UpdateResponseIssuance struct {
-	Server     controlplane.Server
 	Signer     crypto.Signer
 	Header     controlplane.ResponseHeader
 	Body       distribution.UpdateResponseDocument
+	Server     controlplane.Server
 	Assessment controlwire.ProtocolAssessment
 }
 
 type UpdateResponseVerification struct {
-	Client   controlplane.Client
 	Expected controlplane.ResponseExpectation
 	Document controlplane.ResponseDocument[distribution.UpdateResponseDocument, *distribution.UpdateResponseDocument]
+	Client   controlplane.Client
 }
 
 func (i UpdateResponseIssuance) Validate() error {
@@ -199,17 +199,17 @@ func (v UpdateResponseVerification) responseVerification() controlplane.Response
 }
 
 type UpgradeResponseIssuance struct {
-	Server     controlplane.Server
 	Signer     crypto.Signer
 	Header     controlplane.ResponseHeader
 	Body       distribution.UpgradeGrantProjection
+	Server     controlplane.Server
 	Assessment controlwire.ProtocolAssessment
 }
 
 type UpgradeResponseVerification struct {
-	Client   controlplane.Client
 	Expected controlplane.ResponseExpectation
 	Document controlplane.ResponseDocument[distribution.UpgradeGrantDocument, *distribution.UpgradeGrantDocument]
+	Client   controlplane.Client
 }
 
 func (i UpgradeResponseIssuance) Validate() error {

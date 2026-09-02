@@ -16,10 +16,10 @@ const (
 )
 
 type GoCoverageObservation struct {
-	Mode        CoverageMode `json:"mode"`
 	Statements  uint64       `json:"statements"`
 	Covered     uint64       `json:"covered"`
 	BasisPoints uint16       `json:"basis_points"`
+	Mode        CoverageMode `json:"mode"`
 }
 
 func (o GoCoverageObservation) Validate() error {
@@ -36,19 +36,19 @@ func (o GoCoverageObservation) Validate() error {
 }
 
 type GoCoverageCompiler struct {
+	failure    error
 	pending    []byte
-	mode       CoverageMode
-	lines      uint32
 	statements uint64
 	covered    uint64
-	failure    error
+	lines      uint32
+	mode       CoverageMode
 }
 
 func NewGoCoverageCompiler() *GoCoverageCompiler { return &GoCoverageCompiler{} }
 
 func (c *GoCoverageCompiler) Write(data []byte) (int, error) {
 	if c == nil {
-		return 0, errors.Join(core.ErrPrimitiveContract, errors.New("go coverage compiler receiver is nil"))
+		return 0, errors.Join(core.ErrPrimitiveContract, errors.New(goCoverageCompilerNilDiagnostic))
 	}
 	if c.failure != nil {
 		return 0, c.failure
@@ -121,7 +121,7 @@ func (c *GoCoverageCompiler) accumulateCoverage(statements, count uint64) error 
 
 func (c *GoCoverageCompiler) Seal() (GoCoverageObservation, error) {
 	if c == nil {
-		return GoCoverageObservation{}, errors.Join(core.ErrPrimitiveContract, errors.New("go coverage compiler receiver is nil"))
+		return GoCoverageObservation{}, errors.Join(core.ErrPrimitiveContract, errors.New(goCoverageCompilerNilDiagnostic))
 	}
 	if c.failure != nil {
 		return GoCoverageObservation{}, c.failure
@@ -147,10 +147,10 @@ func (c *GoCoverageCompiler) Seal() (GoCoverageObservation, error) {
 }
 
 func parseCoverageMode(line string) (CoverageMode, error) {
-	if !strings.HasPrefix(line, "mode: ") {
+	if !strings.HasPrefix(line, coverageModePrefix) {
 		return CoverageModeUnknown, coverageFailure("go coverage stream is missing its canonical mode header")
 	}
-	value := strings.TrimPrefix(line, "mode: ")
+	value := strings.TrimPrefix(line, coverageModePrefix)
 	for mode := CoverageModeUnknown + 1; mode < coverageModeLimit; mode++ {
 		if mode.String() == value {
 			return mode, nil

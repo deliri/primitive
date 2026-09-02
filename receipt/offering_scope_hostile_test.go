@@ -16,8 +16,8 @@ func TestScopeOfferingLayerTriad(t *testing.T) {
 
 	t.Run("positive opaque offering survives canonical scope closure", func(t *testing.T) {
 		t.Parallel()
-		got, gotErr := ScopeFor(fixture.account, fixture.offering)
-		want := Scope{Account: fixture.account, Offering: fixture.offering}
+		got, gotErr := ScopeFor(fixture.principal, fixture.offering)
+		want := Scope{Principal: fixture.principal, Offering: fixture.offering}
 		if gotErr != nil || got != want {
 			t.Fatalf("ScopeFor(positive) = (%+v, %v), want (%+v, nil)", got, gotErr, want)
 		}
@@ -38,19 +38,19 @@ func TestScopeOfferingLayerTriad(t *testing.T) {
 	t.Run("negative invalid owner facts refuse without a partial scope", func(t *testing.T) {
 		t.Parallel()
 		cases := []struct {
-			wantErr  error
-			name     string
-			offering core.Offering
-			account  AccountIdentity
+			wantErr   error
+			name      string
+			offering  core.Offering
+			principal PrincipalIdentity
 		}{
-			{name: "unset account", offering: fixture.offering, wantErr: core.ErrLifecycleIdentityContract},
-			{name: "unset offering", account: fixture.account, wantErr: core.ErrPrimitiveContract},
-			{name: "noncanonical offering", account: fixture.account, offering: core.Offering{Token: "Receipt"}, wantErr: core.ErrPrimitiveContract},
+			{name: "unset principal", offering: fixture.offering, wantErr: core.ErrLifecycleIdentityContract},
+			{name: "unset offering", principal: fixture.principal, wantErr: core.ErrPrimitiveContract},
+			{name: "noncanonical offering", principal: fixture.principal, offering: core.Offering{Token: "Receipt"}, wantErr: core.ErrPrimitiveContract},
 		}
 		for _, tc := range cases {
 			t.Run(tc.name, func(t *testing.T) {
 				t.Parallel()
-				got, gotErr := ScopeFor(tc.account, tc.offering)
+				got, gotErr := ScopeFor(tc.principal, tc.offering)
 				if !errors.Is(gotErr, core.ErrReceiptContract) || !errors.Is(gotErr, tc.wantErr) || got != (Scope{}) {
 					t.Fatalf("ScopeFor(%s) = (%+v, %v), want zero with %v and %v", tc.name, got, gotErr, core.ErrReceiptContract, tc.wantErr)
 				}
@@ -61,8 +61,8 @@ func TestScopeOfferingLayerTriad(t *testing.T) {
 	t.Run("neutral Primitive preserves identity without interpreting product vocabulary", func(t *testing.T) {
 		t.Parallel()
 		other := offeringFixture(t, 39)
-		first, firstErr := ScopeFor(fixture.account, fixture.offering)
-		second, secondErr := ScopeFor(fixture.account, other)
+		first, firstErr := ScopeFor(fixture.principal, fixture.offering)
+		second, secondErr := ScopeFor(fixture.principal, other)
 		if firstErr != nil || secondErr != nil || first == second ||
 			first.Offering != fixture.offering || second.Offering != other {
 			t.Fatalf("opaque ScopeFor neutral pair = (%+v/%v, %+v/%v), want distinct exact offerings", first, firstErr, second, secondErr)

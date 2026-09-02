@@ -140,7 +140,7 @@ func TestReplayBoundJSONRefusesHeaderBodyIdentityDivergence(t *testing.T) {
 				replayBoundDocument,
 				*replayBoundDocument,
 			](exchange.JSONReceiveCall{
-				Request: request,
+				Call: socketServerCall(t, request),
 				Route: exchange.RouteSemantics{
 					Method: exchange.MethodPost,
 					Replay: exchange.ReplayIdempotencyKey,
@@ -232,10 +232,10 @@ func TestSendReplayBoundJSONRefusesIdentityDivergenceBeforeNetwork(t *testing.T)
 			t.Parallel()
 
 			var requests atomic.Uint64
-			server := httptest.NewServer(http.HandlerFunc(func(writer http.ResponseWriter, _ *http.Request) {
+			server := httptest.NewServer(http.HandlerFunc(func(writer http.ResponseWriter, request *http.Request) {
 				requests.Add(1)
 				writeErr := exchange.WriteJSON(exchange.JSONWriteCall[replayBoundResponse]{
-					Writer: writer,
+					Call: socketServerCallFrom(t, writer, request),
 					Response: exchange.ServerJSONResponse[replayBoundResponse]{
 						Status: core.HTTPStatusOK(), Body: replayBoundResponse{Accepted: true},
 					},

@@ -104,11 +104,11 @@ func TestRequestValidationExhaustsValidPolicyProductAndHostileBoundaries(t *test
 	t.Parallel()
 
 	cases := []struct {
+		wantErr     error
 		name        string
 		withFile    bool
 		exclusivity filelock.Exclusivity
 		patience    filelock.Patience
-		wantErr     error
 	}{
 		{name: "exclusive immediate policy is admitted", withFile: true, exclusivity: filelock.Exclusive, patience: filelock.Immediate},
 		{name: "exclusive blocking policy is admitted", withFile: true, exclusivity: filelock.Exclusive, patience: filelock.Blocking},

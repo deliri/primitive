@@ -10,7 +10,7 @@ var (
 	_ core.ValidatedJSONMarshaler = Header{}
 	_ core.ValidatedJSONMarshaler = EvidencePayload{}
 	_ core.ValidatedJSONMarshaler = EvidenceDocument{}
-	_ core.ValidatedJSONMarshaler = AccountIdentity{}
+	_ core.ValidatedJSONMarshaler = PrincipalIdentity{}
 	_ core.ValidatedJSONMarshaler = SubmissionIdentity{}
 	_ core.ValidatedJSONMarshaler = ObjectIdentity{}
 	_ core.ValidatedJSONMarshaler = CursorDigest{}

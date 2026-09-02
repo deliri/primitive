@@ -10,17 +10,17 @@ import (
 )
 
 type ResponseIssuance struct {
-	Server     controlplane.Server
 	Signer     crypto.Signer
 	Header     controlplane.ResponseHeader
 	Body       retrieval.GrantProjection
+	Server     controlplane.Server
 	Assessment controlwire.ProtocolAssessment
 }
 
 type ResponseVerification struct {
-	Client   controlplane.Client
 	Expected controlplane.ResponseExpectation
 	Document controlplane.ResponseDocument[retrieval.GrantDocument, *retrieval.GrantDocument]
+	Client   controlplane.Client
 }
 
 func (i ResponseIssuance) Validate() error {

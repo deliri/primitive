@@ -78,9 +78,9 @@ func TestRetrievalAuthAssemblyLayerTriad(t *testing.T) {
 		other := newRetrievalAuthFixture(t, retrievalAuthFixtureRequest{
 			Offering: retrievalAuthOffering(t, 1), AuthorityByte: 0x51, DeviceByte: 0x52, NonceByte: 0x53,
 		})
-		otherAccount := fixture.document.Request.Payload.Scope.Account
+		otherAccount := fixture.document.Request.Payload.Scope.Principal
 		if err := otherAccount.UnmarshalJSON([]byte(`"99999999999999999999999999999999"`)); err != nil {
-			t.Fatalf("AccountIdentity.UnmarshalJSON() error = %v, want nil", err)
+			t.Fatalf("PrincipalIdentity.UnmarshalJSON() error = %v, want nil", err)
 		}
 		cases := []struct {
 			wantErr error
@@ -98,7 +98,7 @@ func TestRetrievalAuthAssemblyLayerTriad(t *testing.T) {
 			}, wantErr: core.ErrRetrievalContract},
 			{name: "request build belongs to another offering", mutate: func(value *RequestAssembly) { value.Request = other.request }, wantErr: core.ErrRetrievalBinding},
 			{name: "request account scope differs from certificate", mutate: func(value *RequestAssembly) {
-				value.Request.Payload.Scope.Account = otherAccount
+				value.Request.Payload.Scope.Principal = otherAccount
 			}, wantErr: core.ErrRetrievalBinding},
 			{name: "certificate build belongs to another offering", mutate: func(value *RequestAssembly) { value.Certificate = other.certificate }, wantErr: core.ErrRetrievalBinding},
 			{name: "request build absent", mutate: func(value *RequestAssembly) { value.Request.Payload.Build = core.BuildIdentity{} }, wantErr: core.ErrRetrievalContract},

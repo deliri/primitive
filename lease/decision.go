@@ -87,7 +87,7 @@ func (h Header) Validate() error {
 	return nil
 }
 
-// Grant is an exact usable lease timeline selected by OGS.
+// Grant is an exact usable lease timeline selected by the issuer.
 type Grant struct {
 	NotBefore    temporal.Instant `json:"not_before"`
 	ContactAfter temporal.Instant `json:"contact_after"`

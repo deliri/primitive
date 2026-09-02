@@ -35,8 +35,8 @@ type RequestAssembly struct {
 // Verification carries one authority capability and one untrusted credentialed
 // request into authentication.
 type Verification struct {
-	Server   controlplane.Server
 	Document RequestDocument
+	Server   controlplane.Server
 }
 
 // Verified proves the authority certificate authenticated before its device

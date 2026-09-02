@@ -9,7 +9,7 @@ import (
 )
 
 const (
-	// LifecycleIdentityBytes is the fixed width of account, submission, and
+	// LifecycleIdentityBytes is the fixed width of principal, submission, and
 	// object identities.
 	LifecycleIdentityBytes = 16
 	// LifecycleIdentityHexBytes is the canonical hexadecimal text width.
@@ -20,14 +20,14 @@ type lifecycleIdentity struct {
 	value [LifecycleIdentityBytes]byte
 }
 
-type accountIdentityDomain uint8
+type principalIdentityDomain uint8
 type submissionIdentityDomain uint8
 type objectIdentityDomain uint8
 
-// AccountIdentity identifies one customer account.
-type AccountIdentity struct {
+// PrincipalIdentity identifies one opaque consumer-owned namespace principal.
+type PrincipalIdentity struct {
 	value lifecycleIdentity
-	_     accountIdentityDomain
+	_     principalIdentityDomain
 }
 
 // SubmissionIdentity identifies one submitted input.
@@ -100,52 +100,52 @@ func unmarshalLifecycleIdentity(data []byte) (lifecycleIdentity, error) {
 	return decoded, nil
 }
 
-// NewAccountIdentity constructs an account identity from its exact bytes.
-func NewAccountIdentity(value [LifecycleIdentityBytes]byte) (AccountIdentity, error) {
+// NewPrincipalIdentity constructs a principal identity from its exact bytes.
+func NewPrincipalIdentity(value [LifecycleIdentityBytes]byte) (PrincipalIdentity, error) {
 	identity, err := newLifecycleIdentity(value)
 	if err != nil {
-		return AccountIdentity{}, err
+		return PrincipalIdentity{}, err
 	}
-	return AccountIdentity{value: identity}, nil
+	return PrincipalIdentity{value: identity}, nil
 }
 
-// ParseAccountIdentity accepts canonical lowercase hexadecimal.
-func ParseAccountIdentity(value string) (AccountIdentity, error) {
+// ParsePrincipalIdentity accepts canonical lowercase hexadecimal.
+func ParsePrincipalIdentity(value string) (PrincipalIdentity, error) {
 	identity, err := parseLifecycleIdentity(value)
 	if err != nil {
-		return AccountIdentity{}, err
+		return PrincipalIdentity{}, err
 	}
-	return AccountIdentity{value: identity}, nil
+	return PrincipalIdentity{value: identity}, nil
 }
 
 // Validate rejects the unset identity.
-func (i AccountIdentity) Validate() error { return i.value.validate() }
+func (i PrincipalIdentity) Validate() error { return i.value.validate() }
 
 // String returns canonical lowercase hexadecimal, or empty text when unset.
-func (i AccountIdentity) String() string { return i.value.string() }
+func (i PrincipalIdentity) String() string { return i.value.string() }
 
 // MarshalJSON emits canonical lowercase hexadecimal.
-func (i AccountIdentity) MarshalJSON() ([]byte, error) {
+func (i PrincipalIdentity) MarshalJSON() ([]byte, error) {
 	return marshalLifecycleIdentity(i.value)
 }
 
-// UnmarshalJSON accepts one canonical account identity without mutating on failure.
-func (i *AccountIdentity) UnmarshalJSON(data []byte) error {
+// UnmarshalJSON accepts one canonical principal identity without mutating on failure.
+func (i *PrincipalIdentity) UnmarshalJSON(data []byte) error {
 	if i == nil {
-		return jsonError(lifecycleIdentityError("nil account identity receiver"))
+		return jsonError(lifecycleIdentityError("nil principal identity receiver"))
 	}
 	value, err := unmarshalLifecycleIdentity(data)
 	if err != nil {
 		return err
 	}
-	*i = AccountIdentity{value: value}
+	*i = PrincipalIdentity{value: value}
 	return nil
 }
 
-// ScopeFor derives the exact receipt namespace for one signed account and
-// Primitive offering.
-func ScopeFor(account AccountIdentity, offering core.Offering) (Scope, error) {
-	scope := Scope{Account: account, Offering: offering}
+// ScopeFor derives the exact receipt namespace for one opaque principal and
+// offering. The consumer decides what the principal represents.
+func ScopeFor(principal PrincipalIdentity, offering core.Offering) (Scope, error) {
+	scope := Scope{Principal: principal, Offering: offering}
 	if err := scope.Validate(); err != nil {
 		return Scope{}, err
 	}

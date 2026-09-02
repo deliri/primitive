@@ -83,12 +83,10 @@ const (
 	ErrManualContract
 	// ErrManualWrite identifies failed human or machine manual output.
 	ErrManualWrite
-	// ErrProjectStandardsContract identifies invalid reusable About knowledge or evidence.
-	ErrProjectStandardsContract
-	// ErrProjectStandardsConflict identifies internally valid About facts that contradict.
-	ErrProjectStandardsConflict
-	// ErrProjectStandardsTransport identifies a failed About client/server exchange.
-	ErrProjectStandardsTransport
+	// ErrStandardContract identifies invalid shared project-standard facts.
+	ErrStandardContract
+	// ErrStandardConflict identifies internally valid standard facts that contradict.
+	ErrStandardConflict
 
 	// ErrCurrencyContract identifies a currency contract violation.
 	ErrCurrencyContract
@@ -138,8 +136,6 @@ const (
 	ErrHostFactsEvidence
 	// ErrDiskCapacityUnsupported identifies unsupported disk-capacity observation.
 	ErrDiskCapacityUnsupported
-	// ErrTreeMeasurementUnsupported identifies unsupported tree measurement.
-	ErrTreeMeasurementUnsupported
 	// ErrDiskFloorReached identifies insufficient available disk capacity.
 	ErrDiskFloorReached
 	// ErrMemoryLimitReached identifies reached Go-managed-memory pressure.
@@ -194,11 +190,6 @@ const (
 	ErrLeaseScope
 	// ErrLeaseClock identifies a local clock contradiction.
 	ErrLeaseClock
-
-	// ErrGateContract identifies a new-work Gate contract violation.
-	ErrGateContract
-	// ErrGateDenied identifies an authentic Lease state that denies new work.
-	ErrGateDenied
 
 	// ErrProcessContract identifies a process contract violation.
 	ErrProcessContract
@@ -278,8 +269,10 @@ const (
 	ErrTimeProofRefused
 	// ErrTimeProofInvalid identifies evidence that failed verification.
 	ErrTimeProofInvalid
-	// ErrCloudIdentityContract identifies a cloud-identity violation.
-	ErrCloudIdentityContract
+	// ErrGoogleIdentityContract identifies a Google identity violation.
+	ErrGoogleIdentityContract
+	// ErrAWSIdentityContract identifies an AWS identity violation.
+	ErrAWSIdentityContract
 	// ErrUpgradeContract identifies an upgrade contract violation.
 	ErrUpgradeContract
 	// ErrUpgradeDownload identifies a candidate download failure.
@@ -403,15 +396,38 @@ const (
 	ErrSecretStorePayload
 	// ErrSecretStoreAccess identifies a provider secret-access failure.
 	ErrSecretStoreAccess
-	// ErrProviderWireContract identifies an invalid third-party protocol plug.
-	ErrProviderWireContract
-	// ErrProviderWireAuthentication identifies failed provider authentication.
-	ErrProviderWireAuthentication
-	// ErrProviderWireVerification identifies a rejected inbound provider proof.
-	ErrProviderWireVerification
-	// ErrProviderWireBinding identifies provider facts attached to the wrong
-	// authority, account, route, version, or replay identity.
-	ErrProviderWireBinding
+	// ErrStripeContract identifies an invalid Stripe provider agreement.
+	ErrStripeContract
+	// ErrStripeAuthentication identifies invalid Stripe credential projection.
+	ErrStripeAuthentication
+	// ErrStripeVerification identifies rejected Stripe-authenticated evidence.
+	ErrStripeVerification
+	// ErrStripeBinding identifies Stripe facts attached to the wrong authority or route.
+	ErrStripeBinding
+	// ErrPayPalContract identifies an invalid PayPal provider agreement.
+	ErrPayPalContract
+	// ErrPayPalAuthentication identifies invalid PayPal credential projection.
+	ErrPayPalAuthentication
+	// ErrPayPalVerification identifies rejected PayPal-authenticated evidence.
+	ErrPayPalVerification
+	// ErrPayPalBinding identifies PayPal facts attached to the wrong authority or route.
+	ErrPayPalBinding
+	// ErrTwilioContract identifies an invalid Twilio provider agreement.
+	ErrTwilioContract
+	// ErrTwilioAuthentication identifies invalid Twilio credential projection.
+	ErrTwilioAuthentication
+	// ErrTwilioVerification identifies rejected Twilio-authenticated evidence.
+	ErrTwilioVerification
+	// ErrTwilioBinding identifies Twilio facts attached to the wrong account or route.
+	ErrTwilioBinding
+	// ErrPlunkContract identifies an invalid Plunk provider agreement.
+	ErrPlunkContract
+	// ErrPlunkAuthentication identifies invalid Plunk credential projection.
+	ErrPlunkAuthentication
+	// ErrPlunkVerification identifies rejected Plunk-authenticated evidence.
+	ErrPlunkVerification
+	// ErrPlunkBinding identifies Plunk facts attached to the wrong authority or route.
+	ErrPlunkBinding
 	// ErrCapabilitiesContract identifies an invalid capability catalog,
 	// requirement, or match.
 	ErrCapabilitiesContract
@@ -438,26 +454,10 @@ const (
 	ErrProofLedgerTampering
 	// ErrProofLedgerTruncated identifies a verified prefix shorter than its declared head.
 	ErrProofLedgerTruncated
-	// ErrProofLedgerReceiptMismatch identifies a receipt that does not name its durable event.
-	ErrProofLedgerReceiptMismatch
+	// ErrProofLedgerAppendReceiptMismatch identifies an append receipt that does not name its durable event.
+	ErrProofLedgerAppendReceiptMismatch
 	// ErrProofLedgerAppendIndeterminate identifies an append whose durable outcome is unknown.
 	ErrProofLedgerAppendIndeterminate
-	// ErrReviewControlContract identifies an invalid review agreement.
-	ErrReviewControlContract
-	// ErrReviewControlStaleSource identifies source bytes that no longer match a review subject.
-	ErrReviewControlStaleSource
-	// ErrReviewControlSubjectMismatch identifies review facts for different exact source.
-	ErrReviewControlSubjectMismatch
-	// ErrReviewControlObservationMismatch identifies a decision bound to another observation.
-	ErrReviewControlObservationMismatch
-	// ErrReviewControlMissingEvidence identifies an unsatisfied review proof requirement.
-	ErrReviewControlMissingEvidence
-	// ErrReviewControlUnauthorizedAuthority identifies authority that was not independently verified.
-	ErrReviewControlUnauthorizedAuthority
-	// ErrReviewControlNonHumanAuthority identifies verified authority outside the human domain.
-	ErrReviewControlNonHumanAuthority
-	// ErrReviewControlUnsupportedEventKind identifies an event outside the closed review domain.
-	ErrReviewControlUnsupportedEventKind
 	errorIdentityLimit
 )
 
@@ -491,9 +491,8 @@ func errorIdentityDiagnostics() [errorIdentityLimit]errorIdentityDiagnostic {
 		{identity: ErrLineIOScan, text: "line scan failed"},
 		{identity: ErrManualContract, text: "manual contract violation"},
 		{identity: ErrManualWrite, text: "manual write failed"},
-		{identity: ErrProjectStandardsContract, text: "project standards contract violation"},
-		{identity: ErrProjectStandardsConflict, text: "project standards facts conflict"},
-		{identity: ErrProjectStandardsTransport, text: "project standards transport failed"},
+		{identity: ErrStandardContract, text: "standard contract violation"},
+		{identity: ErrStandardConflict, text: "standard facts conflict"},
 		{identity: ErrCurrencyContract, text: "currency contract violation"},
 		{identity: ErrCurrencyMismatch, text: "currency mismatch"},
 		{identity: ErrCurrencyOverflow, text: "currency overflow"},
@@ -516,7 +515,6 @@ func errorIdentityDiagnostics() [errorIdentityLimit]errorIdentityDiagnostic {
 		{identity: ErrHostFactsPressure, text: "host facts pressure reached"},
 		{identity: ErrHostFactsEvidence, text: "host facts evidence invalid"},
 		{identity: ErrDiskCapacityUnsupported, text: "disk capacity observation unsupported"},
-		{identity: ErrTreeMeasurementUnsupported, text: "tree measurement unsupported"},
 		{identity: ErrDiskFloorReached, text: "disk floor reached"},
 		{identity: ErrMemoryLimitReached, text: "memory limit reached"},
 		{identity: ErrTemporalContract, text: "temporal contract violation"},
@@ -541,8 +539,6 @@ func errorIdentityDiagnostics() [errorIdentityLimit]errorIdentityDiagnostic {
 		{identity: ErrLeaseConflict, text: "lease identity conflict"},
 		{identity: ErrLeaseScope, text: "lease subject mismatch"},
 		{identity: ErrLeaseClock, text: "lease clock contradiction"},
-		{identity: ErrGateContract, text: "gate contract violation"},
-		{identity: ErrGateDenied, text: "gate denied new work"},
 		{identity: ErrProcessContract, text: "process contract violation"},
 		{identity: ErrProcessStart, text: "process start failed"},
 		{identity: ErrProcessStream, text: "process stream failed"},
@@ -578,7 +574,8 @@ func errorIdentityDiagnostics() [errorIdentityLimit]errorIdentityDiagnostic {
 		{identity: ErrTimeProofContract, text: "time proof contract violation"},
 		{identity: ErrTimeProofRefused, text: "time proof authority refused"},
 		{identity: ErrTimeProofInvalid, text: "time proof evidence invalid"},
-		{identity: ErrCloudIdentityContract, text: "cloud identity contract violation"},
+		{identity: ErrGoogleIdentityContract, text: "google identity contract violation"},
+		{identity: ErrAWSIdentityContract, text: "AWS identity contract violation"},
 		{identity: ErrUpgradeContract, text: "upgrade contract violation"},
 		{identity: ErrUpgradeDownload, text: "upgrade candidate download failed"},
 		{identity: ErrUpgradeCapacity, text: "upgrade candidate capacity rejected"},
@@ -629,10 +626,22 @@ func errorIdentityDiagnostics() [errorIdentityLimit]errorIdentityDiagnostic {
 		{identity: ErrSecretStoreContract, text: "secret store contract violation"},
 		{identity: ErrSecretStorePayload, text: "secret store payload invalid"},
 		{identity: ErrSecretStoreAccess, text: "secret store access failed"},
-		{identity: ErrProviderWireContract, text: "provider wire contract violation"},
-		{identity: ErrProviderWireAuthentication, text: "provider wire authentication failed"},
-		{identity: ErrProviderWireVerification, text: "provider wire verification failed"},
-		{identity: ErrProviderWireBinding, text: "provider wire binding failed"},
+		{identity: ErrStripeContract, text: "stripe contract violation"},
+		{identity: ErrStripeAuthentication, text: "stripe authentication failed"},
+		{identity: ErrStripeVerification, text: "stripe verification failed"},
+		{identity: ErrStripeBinding, text: "stripe binding failed"},
+		{identity: ErrPayPalContract, text: "paypal contract violation"},
+		{identity: ErrPayPalAuthentication, text: "paypal authentication failed"},
+		{identity: ErrPayPalVerification, text: "paypal verification failed"},
+		{identity: ErrPayPalBinding, text: "paypal binding failed"},
+		{identity: ErrTwilioContract, text: "twilio contract violation"},
+		{identity: ErrTwilioAuthentication, text: "twilio authentication failed"},
+		{identity: ErrTwilioVerification, text: "twilio verification failed"},
+		{identity: ErrTwilioBinding, text: "twilio binding failed"},
+		{identity: ErrPlunkContract, text: "plunk contract violation"},
+		{identity: ErrPlunkAuthentication, text: "plunk authentication failed"},
+		{identity: ErrPlunkVerification, text: "plunk verification failed"},
+		{identity: ErrPlunkBinding, text: "plunk binding failed"},
 		{identity: ErrCapabilitiesContract, text: "capabilities contract violation"},
 		{identity: ErrCapabilityUnavailable, text: "primitive capability unavailable"},
 		{identity: ErrGoModuleContract, text: "go module contract violation"},
@@ -645,16 +654,8 @@ func errorIdentityDiagnostics() [errorIdentityLimit]errorIdentityDiagnostic {
 		{identity: ErrProofLedgerPreviousHashMismatch, text: "proof ledger previous hash mismatch"},
 		{identity: ErrProofLedgerTampering, text: "proof ledger event tampering detected"},
 		{identity: ErrProofLedgerTruncated, text: "proof ledger chain truncated"},
-		{identity: ErrProofLedgerReceiptMismatch, text: "proof ledger receipt mismatch"},
+		{identity: ErrProofLedgerAppendReceiptMismatch, text: "proof ledger append receipt mismatch"},
 		{identity: ErrProofLedgerAppendIndeterminate, text: "proof ledger append indeterminate"},
-		{identity: ErrReviewControlContract, text: "review control contract violation"},
-		{identity: ErrReviewControlStaleSource, text: "review control source is stale"},
-		{identity: ErrReviewControlSubjectMismatch, text: "review control subject mismatch"},
-		{identity: ErrReviewControlObservationMismatch, text: "review control observation mismatch"},
-		{identity: ErrReviewControlMissingEvidence, text: "review control evidence missing"},
-		{identity: ErrReviewControlUnauthorizedAuthority, text: "review control authority unauthorized"},
-		{identity: ErrReviewControlNonHumanAuthority, text: "review control authority is not human"},
-		{identity: ErrReviewControlUnsupportedEventKind, text: "review control event kind unsupported"},
 	}
 }
 
@@ -761,20 +762,21 @@ func errorIdentityParents(identity ErrorIdentity) errorIdentityParentSet {
 	}
 	if errorIdentityIn(identity, ErrJSONContract, ErrNumericOverflow, ErrSecretMaterialAllZero,
 		ErrAttestContract,
-		ErrContextStateContract, ErrLineIOContract, ErrManualContract, ErrProjectStandardsContract, ErrCurrencyContract,
+		ErrContextStateContract, ErrLineIOContract, ErrManualContract, ErrStandardContract, ErrCurrencyContract,
 		ErrKeygenContract, ErrTestIsolationContract, ErrFilestoreContract,
 		ErrTemporalContract, ErrExchangeContract,
-		ErrFuzzFinderContract, ErrLeaseContract, ErrGateContract,
+		ErrFuzzFinderContract, ErrLeaseContract,
 		ErrProcessContract,
 		ErrReleaseContract, ErrDeployContract,
 		ErrDistributionContract,
 		ErrShutdownContract, ErrObjectStoreContract, ErrTimeProofContract,
-		ErrCloudIdentityContract, ErrUpgradeContract,
+		ErrGoogleIdentityContract, ErrAWSIdentityContract, ErrUpgradeContract,
 		ErrLifecycleIdentityContract, ErrReceiptContract, ErrChitContract,
 		ErrRetrievalContract, ErrPaymentContract, ErrControlWireContract,
 		ErrControlPlaneContract, ErrIDContract, ErrSecretStoreContract,
-		ErrProviderWireContract, ErrCapabilitiesContract, ErrGoModuleContract, ErrGoToolchainContract,
-		ErrProofLedgerContract, ErrReviewControlContract) {
+		ErrStripeContract, ErrPayPalContract, ErrTwilioContract, ErrPlunkContract,
+		ErrCapabilitiesContract, ErrGoModuleContract, ErrGoToolchainContract,
+		ErrProofLedgerContract) {
 		return oneErrorIdentityParent(ErrPrimitiveContract)
 	}
 	if errorIdentityIn(identity, ErrGoToolchainExecution, ErrGoToolchainOutput) {
@@ -782,14 +784,8 @@ func errorIdentityParents(identity ErrorIdentity) errorIdentityParentSet {
 	}
 	if errorIdentityIn(identity, ErrProofLedgerIdempotencyConflict, ErrProofLedgerSequenceConflict,
 		ErrProofLedgerPreviousHashMismatch, ErrProofLedgerTampering, ErrProofLedgerTruncated,
-		ErrProofLedgerReceiptMismatch, ErrProofLedgerAppendIndeterminate) {
+		ErrProofLedgerAppendReceiptMismatch, ErrProofLedgerAppendIndeterminate) {
 		return oneErrorIdentityParent(ErrProofLedgerContract)
-	}
-	if errorIdentityIn(identity, ErrReviewControlStaleSource, ErrReviewControlSubjectMismatch,
-		ErrReviewControlObservationMismatch, ErrReviewControlMissingEvidence,
-		ErrReviewControlUnauthorizedAuthority, ErrReviewControlNonHumanAuthority,
-		ErrReviewControlUnsupportedEventKind) {
-		return oneErrorIdentityParent(ErrReviewControlContract)
 	}
 	if errorIdentityIn(identity, ErrControlWireRevision, ErrControlWireNonce, ErrControlWireToken,
 		ErrControlWirePolicyCursor, ErrControlWireRoute, ErrControlWireProtocolSupport,
@@ -805,13 +801,13 @@ func errorIdentityParents(identity ErrorIdentity) errorIdentityParentSet {
 		return errorIdentityParentsControlExchange(identity)
 	}
 	if errorIdentityIn(identity, ErrAttestVerification, ErrNilContext, ErrContextObservation,
-		ErrLineIOScan, ErrManualWrite, ErrProjectStandardsConflict, ErrProjectStandardsTransport,
+		ErrLineIOScan, ErrManualWrite, ErrStandardConflict,
 		ErrCurrencyMismatch, ErrCurrencyDecimal, ErrCurrencyOverflow, ErrKeygenEntropy) {
 		return errorIdentityParentsAttestThroughLineIO(identity)
 	}
 	if errorIdentityIn(identity, ErrHostFacts, ErrHostFactsContract, ErrHostFactsObservation,
 		ErrHostFactsUnsupported, ErrHostFactsPressure, ErrHostFactsEvidence,
-		ErrDiskCapacityUnsupported, ErrTreeMeasurementUnsupported,
+		ErrDiskCapacityUnsupported,
 		ErrDiskFloorReached, ErrMemoryLimitReached) {
 		return errorIdentityParentsHostFacts(identity)
 	}
@@ -853,9 +849,8 @@ func errorIdentityParentsSecretStoreThroughPayment(identity ErrorIdentity) error
 	if identity == ErrCapabilityUnavailable {
 		return oneErrorIdentityParent(ErrCapabilitiesContract)
 	}
-	if errorIdentityIn(identity, ErrProviderWireAuthentication, ErrProviderWireVerification,
-		ErrProviderWireBinding) {
-		return oneErrorIdentityParent(ErrProviderWireContract)
+	if providerParent := errorIdentityProviderParent(identity); providerParent != ErrUnknown {
+		return oneErrorIdentityParent(providerParent)
 	}
 	if errorIdentityIn(identity, ErrSecretStorePayload, ErrSecretStoreAccess) {
 		return oneErrorIdentityParent(ErrSecretStoreContract)
@@ -876,6 +871,22 @@ func errorIdentityParentsSecretStoreThroughPayment(identity ErrorIdentity) error
 	return errorIdentityParentsFuzzFinderThroughObjectStore(identity)
 }
 
+func errorIdentityProviderParent(identity ErrorIdentity) ErrorIdentity {
+	if errorIdentityIn(identity, ErrStripeAuthentication, ErrStripeVerification, ErrStripeBinding) {
+		return ErrStripeContract
+	}
+	if errorIdentityIn(identity, ErrPayPalAuthentication, ErrPayPalVerification, ErrPayPalBinding) {
+		return ErrPayPalContract
+	}
+	if errorIdentityIn(identity, ErrTwilioAuthentication, ErrTwilioVerification, ErrTwilioBinding) {
+		return ErrTwilioContract
+	}
+	if errorIdentityIn(identity, ErrPlunkAuthentication, ErrPlunkVerification, ErrPlunkBinding) {
+		return ErrPlunkContract
+	}
+	return ErrUnknown
+}
+
 func errorIdentityParentsHostFacts(identity ErrorIdentity) errorIdentityParentSet {
 	if identity == ErrHostFacts {
 		return errorIdentityParentSet{}
@@ -887,7 +898,7 @@ func errorIdentityParentsHostFacts(identity ErrorIdentity) errorIdentityParentSe
 		ErrHostFactsEvidence) {
 		return oneErrorIdentityParent(ErrHostFacts)
 	}
-	if errorIdentityIn(identity, ErrDiskCapacityUnsupported, ErrTreeMeasurementUnsupported) {
+	if identity == ErrDiskCapacityUnsupported {
 		return oneErrorIdentityParent(ErrHostFactsUnsupported)
 	}
 	if errorIdentityIn(identity, ErrDiskFloorReached, ErrMemoryLimitReached) {
@@ -909,8 +920,8 @@ func errorIdentityParentsAttestThroughLineIO(identity ErrorIdentity) errorIdenti
 	if identity == ErrManualWrite {
 		return oneErrorIdentityParent(ErrManualContract)
 	}
-	if errorIdentityIn(identity, ErrProjectStandardsConflict, ErrProjectStandardsTransport) {
-		return oneErrorIdentityParent(ErrProjectStandardsContract)
+	if identity == ErrStandardConflict {
+		return oneErrorIdentityParent(ErrStandardContract)
 	}
 	if errorIdentityIn(identity, ErrCurrencyMismatch, ErrCurrencyDecimal) {
 		return oneErrorIdentityParent(ErrCurrencyContract)
@@ -955,9 +966,6 @@ func errorIdentityParentsFuzzFinderThroughObjectStore(identity ErrorIdentity) er
 	if errorIdentityIn(identity, ErrLeaseVerification, ErrLeaseRollback, ErrLeaseConflict,
 		ErrLeaseScope, ErrLeaseClock) {
 		return oneErrorIdentityParent(ErrLeaseContract)
-	}
-	if identity == ErrGateDenied {
-		return oneErrorIdentityParent(ErrGateContract)
 	}
 	if errorIdentityIn(identity, ErrProcessStart, ErrProcessStream, ErrProcessWait,
 		ErrProcessObservation, ErrProcessUnsupported) {

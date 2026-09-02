@@ -9,7 +9,7 @@ import (
 )
 
 const (
-	// EntryNameMaximumBytes bounds one portable customer-visible manifest name.
+	// EntryNameMaximumBytes bounds one portable consumer-visible manifest name.
 	EntryNameMaximumBytes = 4096
 	// EntryNameMaximumComponents bounds slash-delimited logical nesting.
 	EntryNameMaximumComponents = 256

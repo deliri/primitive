@@ -36,9 +36,9 @@ const (
 	ProductStatusActive
 	// ProductStatusPaymentRetry is a payment failure inside its grace period.
 	ProductStatusPaymentRetry
-	// ProductStatusReadOnly may inspect existing records but start no new work.
+	// ProductStatusReadOnly admits only consumer-defined read operations.
 	ProductStatusReadOnly
-	// ProductStatusStopped has passed grace and starts no new work.
+	// ProductStatusStopped has passed grace and admits no paid operations.
 	ProductStatusStopped
 	// ProductStatusUpgradeRequired runs a build the authority no longer accepts.
 	ProductStatusUpgradeRequired
@@ -91,8 +91,9 @@ func ParseProductStatus(value string) (ProductStatus, error) {
 
 // AdmitsGrant reports whether a signed Lease grant is consistent with s.
 //
-// This is the consistency rule, not the gate. Gate decides whether new work may
-// begin, and it decides that from the authenticated Lease assessment alone.
+// This is an authenticated-document consistency rule, not product permission.
+// Each consumer decides what operations its authenticated Lease assessment
+// permits.
 // What this answers is narrower and comes first: an authority must never issue
 // a grant alongside a status that contradicts it, so a document pairing the two
 // is either an authority bug or a forgery, and it is refused rather than acted
@@ -116,10 +117,10 @@ func (s ProductStatus) AdmitsGrant() bool {
 // reason a customer can act on: stopped, upgrade-required, or read-only.
 //
 // The rule is deliberately offering blind. What read-only means to a given
-// product, whether anything remains readable once new work stops, is product
+// product, whether anything remains readable once paid operations stop, is product
 // meaning, and meaning stays with the product that owns it: the authority
 // names the status without knowing what it describes, exactly as it validates
-// work-unit classes without knowing what they count. A product for which
+// usage classes without knowing what they count. A product for which
 // read-only describes nothing simply never issues it, and that policy lives
 // with the issuer and the product, never in this shared validator.
 func (s ProductStatus) ValidateOutcome(outcome lease.Outcome) error {

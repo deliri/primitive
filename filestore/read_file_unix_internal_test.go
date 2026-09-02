@@ -111,9 +111,9 @@ func TestMutableRegularHandlesRestoreBlockingModeBeforeOwnershipTransfer(t *test
 	t.Parallel()
 
 	cases := []struct {
+		open     func(*testing.T, *os.Root, core.RelativePath) (*os.File, error)
 		name     string
 		existing bool
-		open     func(*testing.T, *os.Root, core.RelativePath) (*os.File, error)
 	}{
 		{name: "existing append handle", existing: true, open: func(t *testing.T, root *os.Root, path core.RelativePath) (*os.File, error) {
 			return OpenAppend(t.Context(), AppendRequest{

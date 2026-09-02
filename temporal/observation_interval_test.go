@@ -124,9 +124,9 @@ func TestObservationRejectsEveryUnusableCarrierBeforeProjection(t *testing.T) {
 	validValue := time.Unix(0, 7).UTC()
 	validWall := InstantFromNanoseconds(7)
 	cases := []struct {
-		observation Observation
 		wantErr     error
 		name        string
+		observation Observation
 	}{
 		{name: "zero observation has neither carrier nor wall", wantErr: core.ErrTemporalContract},
 		{name: "wall without a representable Go carrier is rejected", observation: Observation{wall: validWall}, wantErr: core.ErrTemporalOverflow},

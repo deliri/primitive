@@ -8,7 +8,6 @@ import (
 	"errors"
 	"fmt"
 	"io"
-	"net/http"
 
 	"github.com/deliri/primitive/v2026/attest"
 	"github.com/deliri/primitive/v2026/core"
@@ -56,13 +55,13 @@ func (s CleanMachineState) Validate() error {
 }
 
 type CleanupPayload struct {
-	SchemaVersion uint16                  `json:"schema_version"`
-	Fence         SchedulingFence         `json:"fence"`
 	Members       MemberSet               `json:"member_set"`
-	WorkspaceRoot core.SHA256Digest       `json:"workspace_root"`
+	Fence         SchedulingFence         `json:"fence"`
 	Before        MachineStateObservation `json:"before"`
 	After         CleanMachineState       `json:"after"`
 	CompletedAt   temporal.Instant        `json:"completed_at"`
+	SchemaVersion uint16                  `json:"schema_version"`
+	WorkspaceRoot core.SHA256Digest       `json:"workspace_root"`
 }
 
 func (p CleanupPayload) Validate() error {
@@ -210,10 +209,10 @@ func VerifyCleanup(document CleanupDocument, trusted attest.TrustedKeys) error {
 }
 
 type CleanupRecord struct {
-	Document  CleanupDocument
 	Canonical []byte
-	Digest    core.SHA256Digest
+	Document  CleanupDocument
 	Bytes     core.ByteLength
+	Digest    core.SHA256Digest
 }
 
 func NewCleanupRecord(document CleanupDocument) (CleanupRecord, error) {
@@ -240,10 +239,10 @@ func (r CleanupRecord) Validate() error {
 }
 
 type CleanupReceipt struct {
-	SchemaVersion uint16            `json:"schema_version"`
 	Fence         SchedulingFence   `json:"fence"`
-	Digest        core.SHA256Digest `json:"document_digest"`
 	Bytes         core.ByteLength   `json:"document_bytes"`
+	SchemaVersion uint16            `json:"schema_version"`
+	Digest        core.SHA256Digest `json:"document_digest"`
 }
 
 func (r CleanupReceipt) Validate() error {
@@ -294,8 +293,8 @@ func (c CleanupClient) Submit(ctx context.Context, document CleanupDocument) (ex
 }
 
 type CleanupServer struct {
-	socket     exchange.ServerSocket
 	repository CleanupRepository
+	socket     exchange.ServerSocket
 	trusted    attest.TrustedKeys
 }
 
@@ -309,11 +308,11 @@ func NewCleanupServer(contract exchange.JSONSocketContract, repository CleanupRe
 	}
 	return CleanupServer{socket: socket, repository: repository, trusted: trusted}, nil
 }
-func (s CleanupServer) Serve(writer http.ResponseWriter, request *http.Request) error {
+func (s CleanupServer) Serve(call exchange.SocketServerCall) error {
 	if s.repository == nil {
 		return core.ErrPrimitiveContract
 	}
-	call, err := exchange.NewSocketServerCall(writer, request)
+	ctx, err := call.Context()
 	if err != nil {
 		return err
 	}
@@ -323,7 +322,7 @@ func (s CleanupServer) Serve(writer http.ResponseWriter, request *http.Request) 
 	}
 	payload := received.Body.Payload
 	machine := payload.Fence.Machine
-	if err := RequireRunnerPeer(request.Context(), machine.Machine, machine.Generation); err != nil {
+	if err := RequireRunnerPeer(ctx, machine.Machine, machine.Generation); err != nil {
 		return err
 	}
 	if err := VerifyCleanup(*received.Body, s.trusted); err != nil {
@@ -333,7 +332,7 @@ func (s CleanupServer) Serve(writer http.ResponseWriter, request *http.Request) 
 	if err != nil {
 		return err
 	}
-	if err := s.repository.StoreCleanup(request.Context(), record); err != nil {
+	if err := s.repository.StoreCleanup(ctx, record); err != nil {
 		return err
 	}
 	receipt := CleanupReceipt{SchemaVersion: SchemaVersion, Fence: record.Document.Payload.Fence, Digest: record.Digest, Bytes: record.Bytes}

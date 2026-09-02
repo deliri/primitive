@@ -4,25 +4,25 @@ import (
 	"errors"
 
 	"github.com/deliri/primitive/v2026/core"
-	"github.com/deliri/primitive/v2026/projectstandards"
+	"github.com/deliri/primitive/v2026/standard"
 	"github.com/deliri/primitive/v2026/temporal"
 )
 
 const SchedulingMemberCapabilityMaximum = 128
 
 type SchedulingCapability struct {
-	SchemaVersion    uint16                                `json:"schema_version"`
-	Observation      projectstandards.MachineObservationID `json:"machine_observation_id"`
-	Fence            SchedulingFence                       `json:"fence"`
-	Members          MemberSet                             `json:"members"`
-	Source           projectstandards.SourceCoordinate     `json:"source"`
-	SourceGrant      SourceGrantIdentity                   `json:"source_grant"`
-	RepositoryGrant  core.SHA256Digest                     `json:"repository_grant"`
-	DeliveryGrant    core.SHA256Digest                     `json:"delivery_grant"`
-	IsolationPolicy  core.SHA256Digest                     `json:"isolation_policy"`
-	AggregateBudget  temporal.Duration                     `json:"aggregate_budget"`
-	AbsoluteDeadline temporal.Instant                      `json:"absolute_deadline"`
-	ExpiresAt        temporal.Instant                      `json:"expires_at"`
+	Members          MemberSet                     `json:"members"`
+	Source           standard.SourceCoordinate     `json:"source"`
+	Fence            SchedulingFence               `json:"fence"`
+	AbsoluteDeadline temporal.Instant              `json:"absolute_deadline"`
+	ExpiresAt        temporal.Instant              `json:"expires_at"`
+	AggregateBudget  temporal.Duration             `json:"aggregate_budget"`
+	SchemaVersion    uint16                        `json:"schema_version"`
+	SourceGrant      SourceGrantIdentity           `json:"source_grant"`
+	RepositoryGrant  core.SHA256Digest             `json:"repository_grant"`
+	DeliveryGrant    core.SHA256Digest             `json:"delivery_grant"`
+	IsolationPolicy  core.SHA256Digest             `json:"isolation_policy"`
+	Observation      standard.MachineObservationID `json:"machine_observation_id"`
 }
 
 func (c SchedulingCapability) Validate() error {
@@ -56,20 +56,20 @@ func (c SchedulingCapability) Digest() (core.SHA256Digest, error) {
 }
 
 type MemberCapability struct {
-	SchemaVersion     uint16                           `json:"schema_version"`
-	SchedulingDigest  core.SHA256Digest                `json:"scheduling_digest"`
-	Fence             SchedulingFence                  `json:"fence"`
-	Request           projectstandards.RequestIdentity `json:"request_id"`
-	Run               projectstandards.RunID           `json:"run_id"`
-	AdmittedRunDigest core.SHA256Digest                `json:"admitted_run_digest"`
-	RequestedAt       temporal.Instant                 `json:"requested_at"`
-	AdmittedAt        temporal.Instant                 `json:"admitted_at"`
-	Probe             projectstandards.ProbeIdentity   `json:"probe"`
-	Limits            RunLimits                        `json:"limits"`
-	BuildContexts     *GoBuildContextSet               `json:"build_contexts,omitempty"`
-	CIExpansion       *CIExpansionPlan                 `json:"ci_expansion,omitempty"`
-	Nonce             core.SHA256Digest                `json:"nonce"`
-	ExpiresAt         temporal.Instant                 `json:"expires_at"`
+	CIExpansion       *CIExpansionPlan         `json:"ci_expansion,omitempty"`
+	BuildContexts     *GoBuildContextSet       `json:"build_contexts,omitempty"`
+	Probe             standard.ProbeIdentity   `json:"probe"`
+	Fence             SchedulingFence          `json:"fence"`
+	Limits            RunLimits                `json:"limits"`
+	AdmittedAt        temporal.Instant         `json:"admitted_at"`
+	RequestedAt       temporal.Instant         `json:"requested_at"`
+	ExpiresAt         temporal.Instant         `json:"expires_at"`
+	SchemaVersion     uint16                   `json:"schema_version"`
+	AdmittedRunDigest core.SHA256Digest        `json:"admitted_run_digest"`
+	SchedulingDigest  core.SHA256Digest        `json:"scheduling_digest"`
+	Nonce             core.SHA256Digest        `json:"nonce"`
+	Run               standard.RunID           `json:"run_id"`
+	Request           standard.RequestIdentity `json:"request_id"`
 }
 
 func (c MemberCapability) Validate() error {
@@ -117,7 +117,7 @@ func (c MemberCapability) validateFenceBinding() error {
 }
 
 func (c MemberCapability) validateBuildContexts() error {
-	if c.Probe.Role != projectstandards.ProbeRoleSelection {
+	if c.Probe.Role != standard.ProbeRoleSelection {
 		if c.BuildContexts != nil || c.CIExpansion != nil {
 			return core.ErrPrimitiveContract
 		}
@@ -129,7 +129,7 @@ func (c MemberCapability) validateBuildContexts() error {
 	if err := c.BuildContexts.Validate(); err != nil {
 		return err
 	}
-	if c.Probe.Kind == projectstandards.ProbeKindCISelection {
+	if c.Probe.Kind == standard.ProbeKindCISelection {
 		return c.validateCIExpansion()
 	}
 	if c.CIExpansion != nil {
@@ -156,8 +156,8 @@ func (c MemberCapability) validateCIExpansion() error {
 	return nil
 }
 
-func validateSelectionBuildContexts(probe projectstandards.ProbeIdentity, contexts GoBuildContextSet) error {
-	var kinds []projectstandards.ProbeKind
+func validateSelectionBuildContexts(probe standard.ProbeIdentity, contexts GoBuildContextSet) error {
+	var kinds []standard.ProbeKind
 	if probe.Target.GoFile != nil {
 		kinds = probe.Target.GoFile.ChildKinds
 	}
@@ -190,18 +190,18 @@ func (c MemberCapability) Digest() (core.SHA256Digest, error) {
 }
 
 type ExperimentCapability struct {
-	SchemaVersion           uint16                            `json:"schema_version"`
-	MemberCapabilityDigest  core.SHA256Digest                 `json:"member_capability_digest"`
-	Fence                   SchedulingFence                   `json:"fence"`
-	Run                     projectstandards.RunID            `json:"run_id"`
-	Experiment              projectstandards.ExperimentID     `json:"experiment_id"`
-	Probe                   projectstandards.ProbeIdentity    `json:"probe"`
-	Source                  projectstandards.SourceCoordinate `json:"source"`
-	Execution               ExperimentExecution               `json:"execution"`
-	Resources               ResourceRequirement               `json:"resources"`
-	BuildContextDigest      core.SHA256Digest                 `json:"build_context_digest"`
-	ExpansionManifestDigest *core.SHA256Digest                `json:"expansion_manifest_digest,omitempty"`
-	ExpiresAt               temporal.Instant                  `json:"expires_at"`
+	ExpansionManifestDigest *core.SHA256Digest        `json:"expansion_manifest_digest,omitempty"`
+	Execution               ExperimentExecution       `json:"execution"`
+	Resources               ResourceRequirement       `json:"resources"`
+	Source                  standard.SourceCoordinate `json:"source"`
+	Probe                   standard.ProbeIdentity    `json:"probe"`
+	Fence                   SchedulingFence           `json:"fence"`
+	ExpiresAt               temporal.Instant          `json:"expires_at"`
+	SchemaVersion           uint16                    `json:"schema_version"`
+	MemberCapabilityDigest  core.SHA256Digest         `json:"member_capability_digest"`
+	BuildContextDigest      core.SHA256Digest         `json:"build_context_digest"`
+	Run                     standard.RunID            `json:"run_id"`
+	Experiment              standard.ExperimentID     `json:"experiment_id"`
 }
 
 // Digest binds the exact experiment execution contract, including its fence,
@@ -251,7 +251,7 @@ func (c ExperimentCapability) validateEgressClosure() error {
 }
 
 func (c ExperimentCapability) validateIdentityClosure() error {
-	if c.Probe.Role != projectstandards.ProbeRoleExperiment || c.Probe.Source != c.Source || c.Probe.Environment.MachineGeneration != c.Fence.Machine.Generation {
+	if c.Probe.Role != standard.ProbeRoleExperiment || c.Probe.Source != c.Source || c.Probe.Environment.MachineGeneration != c.Fence.Machine.Generation {
 		return core.ErrPrimitiveContract
 	}
 	wantGo := completionCarriesGoConcurrency(c.Probe.Kind)
@@ -281,9 +281,9 @@ func validateCapabilityExpiry(expiresAt, fenceExpiry temporal.Instant) error {
 }
 
 type SchedulingClaim struct {
-	Capability SchedulingCapabilityDocument   `json:"scheduling_capability"`
 	Members    []MemberCapabilityDocument     `json:"member_capabilities"`
 	Direct     []ExperimentCapabilityDocument `json:"direct_experiment_capabilities"`
+	Capability SchedulingCapabilityDocument   `json:"scheduling_capability"`
 }
 
 func (c SchedulingClaim) Validate() error {
@@ -320,7 +320,7 @@ func validateDirectExperimentCapabilities(claim SchedulingClaim) error {
 	directIndex := 0
 	for memberIndex := range claim.Members {
 		member := claim.Members[memberIndex]
-		if member.Payload.Probe.Role != projectstandards.ProbeRoleExperiment {
+		if member.Payload.Probe.Role != standard.ProbeRoleExperiment {
 			continue
 		}
 		if directIndex >= len(claim.Direct) {

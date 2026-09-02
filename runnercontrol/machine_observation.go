@@ -4,11 +4,10 @@ import (
 	"context"
 	json "encoding/json/v2"
 	"errors"
-	"net/http"
 
 	"github.com/deliri/primitive/v2026/core"
 	"github.com/deliri/primitive/v2026/exchange"
-	"github.com/deliri/primitive/v2026/projectstandards"
+	"github.com/deliri/primitive/v2026/standard"
 )
 
 const (
@@ -19,9 +18,9 @@ const (
 // MachineObservationSubmission binds the Primitive-produced machine sheet to
 // the clean fixed-workspace proof that made this generation eligible to claim.
 type MachineObservationSubmission struct {
-	SchemaVersion uint16                              `json:"schema_version"`
-	Observation   projectstandards.MachineObservation `json:"observation"`
-	Clean         CleanMachineState                   `json:"clean_machine_state"`
+	Observation   standard.MachineObservation `json:"observation"`
+	Clean         CleanMachineState           `json:"clean_machine_state"`
+	SchemaVersion uint16                      `json:"schema_version"`
 }
 
 func (s MachineObservationSubmission) Validate() error {
@@ -39,9 +38,9 @@ func (s MachineObservationSubmission) Validate() error {
 }
 
 type MachineObservationReceipt struct {
-	SchemaVersion uint16                                `json:"schema_version"`
-	ObservationID projectstandards.MachineObservationID `json:"observation_id"`
-	CleanDigest   core.SHA256Digest                     `json:"clean_machine_state_digest"`
+	SchemaVersion uint16                        `json:"schema_version"`
+	ObservationID standard.MachineObservationID `json:"observation_id"`
+	CleanDigest   core.SHA256Digest             `json:"clean_machine_state_digest"`
 }
 
 func (r MachineObservationReceipt) Validate() error {
@@ -120,8 +119,8 @@ func (c MachineObservationClient) Submit(ctx context.Context, submission Machine
 }
 
 type MachineObservationServer struct {
-	socket     exchange.ServerSocket
 	repository MachineObservationRepository
+	socket     exchange.ServerSocket
 }
 
 func NewMachineObservationServer(contract exchange.JSONSocketContract, repository MachineObservationRepository) (MachineObservationServer, error) {
@@ -135,11 +134,11 @@ func NewMachineObservationServer(contract exchange.JSONSocketContract, repositor
 	return MachineObservationServer{socket: socket, repository: repository}, nil
 }
 
-func (s MachineObservationServer) Serve(writer http.ResponseWriter, request *http.Request) error {
+func (s MachineObservationServer) Serve(call exchange.SocketServerCall) error {
 	if s.repository == nil {
 		return core.ErrPrimitiveContract
 	}
-	call, err := exchange.NewSocketServerCall(writer, request)
+	ctx, err := call.Context()
 	if err != nil {
 		return err
 	}
@@ -149,10 +148,10 @@ func (s MachineObservationServer) Serve(writer http.ResponseWriter, request *htt
 	}
 	observation := received.Body.Observation
 	configuration := observation.Configuration
-	if err := RequireRunnerPeer(request.Context(), configuration.Identity.ID, observation.GenerationID); err != nil {
+	if err := RequireRunnerPeer(ctx, configuration.Identity.ID, observation.GenerationID); err != nil {
 		return err
 	}
-	if err := s.repository.RecordMachineObservation(request.Context(), *received.Body); err != nil {
+	if err := s.repository.RecordMachineObservation(ctx, *received.Body); err != nil {
 		return err
 	}
 	cleanBytes, err := core.MarshalCanonicalJSONDocument(received.Body.Clean)
@@ -173,8 +172,7 @@ func (s MachineObservationServer) Serve(writer http.ResponseWriter, request *htt
 func MachineObservationSocketContract(path exchange.SocketRoutePath) (exchange.JSONSocketContract, error) {
 	requestLimit, requestErr := core.NewByteCount(MachineObservationRequestMaximumBytes)
 	responseLimit, responseErr := core.NewByteCount(MachineObservationResponseMaximumBytes)
-	var status core.HTTPStatusCode
-	statusErr := status.AdmitInt(http.StatusAccepted)
+	status, statusErr := exchange.HTTPStatusAccepted()
 	if err := errors.Join(path.Validate(), requestErr, responseErr, statusErr); err != nil {
 		return exchange.JSONSocketContract{}, err
 	}

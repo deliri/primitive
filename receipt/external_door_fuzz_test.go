@@ -17,7 +17,7 @@ const (
 	receiptJSONDoorHeader
 	receiptJSONDoorEvidencePayload
 	receiptJSONDoorEvidenceDocument
-	receiptJSONDoorAccountIdentity
+	receiptJSONDoorPrincipalIdentity
 	receiptJSONDoorSubmissionIdentity
 	receiptJSONDoorObjectIdentity
 	receiptJSONDoorRevision
@@ -40,8 +40,8 @@ func (d receiptJSONDoor) receiverName() string {
 		return "EvidencePayload"
 	case receiptJSONDoorEvidenceDocument:
 		return "EvidenceDocument"
-	case receiptJSONDoorAccountIdentity:
-		return "AccountIdentity"
+	case receiptJSONDoorPrincipalIdentity:
+		return "PrincipalIdentity"
 	case receiptJSONDoorSubmissionIdentity:
 		return "SubmissionIdentity"
 	case receiptJSONDoorObjectIdentity:
@@ -78,7 +78,7 @@ type receiptJSONDoorFixtures struct {
 	generation Generation
 	chain      ChainHash
 	cursor     CursorDigest
-	account    AccountIdentity
+	principal  PrincipalIdentity
 	receipt    ReceiptID
 	object     ObjectIdentity
 	submission SubmissionIdentity
@@ -113,8 +113,8 @@ func FuzzReceiptExternalJSONDoorInventory(f *testing.F) {
 			fuzzReceiptJSONValue(t, data, fixtures.payload)
 		case receiptJSONDoorEvidenceDocument:
 			fuzzReceiptEvidenceDocument(t, data, fixtures)
-		case receiptJSONDoorAccountIdentity:
-			fuzzReceiptJSONValue(t, data, fixtures.account)
+		case receiptJSONDoorPrincipalIdentity:
+			fuzzReceiptJSONValue(t, data, fixtures.principal)
 		case receiptJSONDoorSubmissionIdentity:
 			fuzzReceiptJSONValue(t, data, fixtures.submission)
 		case receiptJSONDoorObjectIdentity:
@@ -145,7 +145,7 @@ type receiptTextDoor uint8
 
 const (
 	receiptTextDoorUnknown receiptTextDoor = iota
-	receiptTextDoorAccountIdentity
+	receiptTextDoorPrincipalIdentity
 	receiptTextDoorSubmissionIdentity
 	receiptTextDoorObjectIdentity
 	receiptTextDoorReceiptID
@@ -154,8 +154,8 @@ const (
 
 func (d receiptTextDoor) functionName() string {
 	switch d {
-	case receiptTextDoorAccountIdentity:
-		return "ParseAccountIdentity"
+	case receiptTextDoorPrincipalIdentity:
+		return "ParsePrincipalIdentity"
 	case receiptTextDoorSubmissionIdentity:
 		return "ParseSubmissionIdentity"
 	case receiptTextDoorObjectIdentity:
@@ -171,7 +171,7 @@ func (d receiptTextDoor) functionName() string {
 
 func FuzzReceiptExternalTextDoorInventory(f *testing.F) {
 	fixture := newReceiptFixture(f, 151)
-	f.Add(uint8(receiptTextDoorAccountIdentity), fixture.account.String())
+	f.Add(uint8(receiptTextDoorPrincipalIdentity), fixture.principal.String())
 	f.Add(uint8(receiptTextDoorSubmissionIdentity), fixture.submission.String())
 	f.Add(uint8(receiptTextDoorObjectIdentity), fixture.object.String())
 	f.Add(uint8(receiptTextDoorReceiptID), fixture.receipt.String())
@@ -181,8 +181,8 @@ func FuzzReceiptExternalTextDoorInventory(f *testing.F) {
 
 	f.Fuzz(func(t *testing.T, rawDoor uint8, value string) {
 		switch receiptTextDoor(rawDoor) {
-		case receiptTextDoorAccountIdentity:
-			got, err := ParseAccountIdentity(value)
+		case receiptTextDoorPrincipalIdentity:
+			got, err := ParsePrincipalIdentity(value)
 			fuzzReceiptTextOutcome(t, receiptTextOutcome{
 				input: value, projection: got.String(), err: err,
 				validate: got.Validate,
@@ -280,9 +280,9 @@ func fuzzReceiptEvidenceDocument(
 	proof, err := VerifyEvidence(VerifyEvidenceRequest{
 		Document: candidate, TrustedKeys: fixtures.fixture.trusted,
 		Expected: EvidenceExpectation{
-			Account:  candidate.Payload.Header.Account,
-			Offering: candidate.Payload.Header.Offering,
-			Body:     candidate.Payload.Body,
+			Principal: candidate.Payload.Header.Principal,
+			Offering:  candidate.Payload.Header.Offering,
+			Body:      candidate.Payload.Body,
 		},
 	})
 	if err != nil {
@@ -302,12 +302,12 @@ func receiptJSONFixturesForFuzz(t testing.TB) receiptJSONDoorFixtures {
 
 	fixture := newReceiptFixture(t, 152)
 	document := issueFixture(t, fixture)
-	scope := Scope{Account: fixture.account, Offering: fixture.offering}
+	scope := Scope{Principal: fixture.principal, Offering: fixture.offering}
 	watermark := watermarkFixture(t, scope, 1, "fuzz")
 	return receiptJSONDoorFixtures{
 		body: document.Payload.Body, header: document.Payload.Header,
 		payload: document.Payload, document: document,
-		account:    fixture.account,
+		principal:  fixture.principal,
 		submission: fixture.submission, object: fixture.object,
 		revision: RevisionV1, receipt: fixture.receipt,
 		generation: watermark.Generation, cursor: watermark.CursorDigest,
@@ -327,7 +327,7 @@ func receiptJSONSeedsForFuzz(
 		receiptJSONSeedForFuzz(t, receiptJSONDoorHeader, fixtures.header),
 		receiptJSONSeedForFuzz(t, receiptJSONDoorEvidencePayload, fixtures.payload),
 		receiptJSONSeedForFuzz(t, receiptJSONDoorEvidenceDocument, fixtures.document),
-		receiptJSONSeedForFuzz(t, receiptJSONDoorAccountIdentity, fixtures.account),
+		receiptJSONSeedForFuzz(t, receiptJSONDoorPrincipalIdentity, fixtures.principal),
 		receiptJSONSeedForFuzz(t, receiptJSONDoorSubmissionIdentity, fixtures.submission),
 		receiptJSONSeedForFuzz(t, receiptJSONDoorObjectIdentity, fixtures.object),
 		receiptJSONSeedForFuzz(t, receiptJSONDoorRevision, fixtures.revision),

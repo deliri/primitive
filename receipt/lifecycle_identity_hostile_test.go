@@ -26,12 +26,12 @@ func TestLifecycleIdentityLayerTriad(t *testing.T) {
 	}
 	cases := []identityCase{
 		{
-			name: "account",
+			name: "principal",
 			construct: func(value [LifecycleIdentityBytes]byte) (core.Validatable, error) {
-				return NewAccountIdentity(value)
+				return NewPrincipalIdentity(value)
 			},
 			parse: func(value string) (core.Validatable, error) {
-				return ParseAccountIdentity(value)
+				return ParsePrincipalIdentity(value)
 			},
 		},
 		{
@@ -89,9 +89,9 @@ func TestLifecycleIdentityLayerTriad(t *testing.T) {
 		})
 	}
 
-	_, err := ParseAccountIdentity(strings.Repeat("z", LifecycleIdentityHexBytes))
+	_, err := ParsePrincipalIdentity(strings.Repeat("z", LifecycleIdentityHexBytes))
 	if _, ok := errors.AsType[hex.InvalidByteError](err); !ok {
-		t.Fatalf("ParseAccountIdentity(non-hex) error = %v, want native hex.InvalidByteError", err)
+		t.Fatalf("ParsePrincipalIdentity(non-hex) error = %v, want native hex.InvalidByteError", err)
 	}
 }
 
@@ -99,7 +99,7 @@ func TestLifecycleIdentityNominalAndJSONBoundaries(t *testing.T) {
 	t.Parallel()
 
 	types := []reflect.Type{
-		reflect.TypeFor[AccountIdentity](),
+		reflect.TypeFor[PrincipalIdentity](),
 		reflect.TypeFor[SubmissionIdentity](),
 		reflect.TypeFor[ObjectIdentity](),
 	}
@@ -124,16 +124,16 @@ func TestLifecycleIdentityNominalAndJSONBoundaries(t *testing.T) {
 	}
 	cases := []identityJSONCase{
 		{
-			name: "account",
+			name: "principal",
 			construct: func(value [LifecycleIdentityBytes]byte) (lifecycleJSONIdentity, error) {
-				return NewAccountIdentity(value)
+				return NewPrincipalIdentity(value)
 			},
 			unmarshal: func(seed lifecycleJSONIdentity, data []byte) (lifecycleJSONIdentity, error) {
-				value := seed.(AccountIdentity)
+				value := seed.(PrincipalIdentity)
 				return value, value.UnmarshalJSON(data)
 			},
 			nilUnmarshal: func(data []byte) error {
-				var value *AccountIdentity
+				var value *PrincipalIdentity
 				return value.UnmarshalJSON(data)
 			},
 		},

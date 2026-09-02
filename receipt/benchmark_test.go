@@ -25,7 +25,7 @@ func BenchmarkVerifyEvidence(b *testing.B) {
 
 func BenchmarkAdvanceWatermark(b *testing.B) {
 	fixture := newReceiptFixture(b, 170)
-	scope := Scope{Account: fixture.account, Offering: fixture.offering}
+	scope := Scope{Principal: fixture.principal, Offering: fixture.offering}
 	request := AdvanceWatermarkRequest{
 		Current:   watermarkFixture(b, scope, 1, "benchmark-current"),
 		Candidate: watermarkFixture(b, scope, 2, "benchmark-candidate"),

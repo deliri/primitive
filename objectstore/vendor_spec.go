@@ -9,12 +9,18 @@ import (
 
 const (
 	// AmazonS3PutObjectMaximumBytes is the single PutObject extent ceiling.
+	// Source: https://docs.aws.amazon.com/AmazonS3/latest/userguide/upload-objects.html
 	AmazonS3PutObjectMaximumBytes uint64 = 5 * 1024 * 1024 * 1024
-	// AmazonS3ObjectMaximumBytes is the complete S3 object extent ceiling.
-	AmazonS3ObjectMaximumBytes uint64 = 5 * 1024 * 1024 * 1024 * 1024
+	// AmazonS3SingleGetObjectMaximumBytes is the single GetObject extent
+	// ceiling. Larger S3 objects require concurrent ranged requests, which this
+	// narrow whole-object operation does not implement.
+	// Source: https://docs.aws.amazon.com/AmazonS3/latest/userguide/download-objects.html
+	AmazonS3SingleGetObjectMaximumBytes uint64 = 5 * 1024 * 1024 * 1024 * 1024
 	// AmazonS3VersionIDMaximumBytes is the published UTF-8 version-ID ceiling.
+	// Source: https://docs.aws.amazon.com/AmazonS3/latest/userguide/versioning-workflows.html#version-ids
 	AmazonS3VersionIDMaximumBytes = 1024
 	// GoogleCloudStorageObjectMaximumBytes is the Cloud Storage object ceiling.
+	// Source: https://cloud.google.com/storage/quotas#objects
 	GoogleCloudStorageObjectMaximumBytes uint64 = 5 * 1024 * 1024 * 1024 * 1024
 	// CloudflareImagesUploadMaximumBytes is the hosted-image upload ceiling.
 	CloudflareImagesUploadMaximumBytes uint64 = 10_000_000
@@ -383,7 +389,7 @@ func vendorSpecs() ([providerLimit]VendorSpec, error) {
 	if err != nil {
 		return [providerLimit]VendorSpec{}, err
 	}
-	amazonDownload, err := core.NewByteLength(AmazonS3ObjectMaximumBytes)
+	amazonDownload, err := core.NewByteLength(AmazonS3SingleGetObjectMaximumBytes)
 	if err != nil {
 		return [providerLimit]VendorSpec{}, err
 	}

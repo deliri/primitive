@@ -19,8 +19,8 @@ func (r *exactReaderEmptySource) Read([]byte) (int, error) {
 }
 
 type exactReaderUnclosedSource struct {
-	reads int
 	data  []byte
+	reads int
 }
 
 func (r *exactReaderUnclosedSource) Read(destination []byte) (int, error) {

@@ -41,7 +41,7 @@ type ScopeField uint8
 
 const (
 	ScopeFieldUnknown ScopeField = iota
-	ScopeFieldAccount
+	ScopeFieldPrincipal
 	ScopeFieldOffering
 	ScopeFieldSubmission
 	ScopeFieldObject
@@ -66,7 +66,7 @@ type ConflictReason uint8
 
 const (
 	ConflictReasonUnknown ConflictReason = iota
-	// ConflictReasonScope reports a candidate from a different account or offering.
+	// ConflictReasonScope reports a candidate from a different principal or offering.
 	ConflictReasonScope
 	// ConflictReasonReplayDivergence reports an equal generation whose facts differ.
 	ConflictReasonReplayDivergence
@@ -90,7 +90,7 @@ func revisionDiagnostics() [revisionLimit]string {
 func scopeFieldDiagnostics() [scopeFieldLimit]string {
 	return [...]string{
 		unknownText,
-		core.ProtocolMemberAccount,
+		"principal",
 		core.ProtocolMemberOffering,
 		"submission",
 		"object",

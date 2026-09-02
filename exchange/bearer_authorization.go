@@ -5,7 +5,6 @@ import (
 	"errors"
 	"fmt"
 	"io"
-	"net/http"
 	"strings"
 
 	"github.com/deliri/primitive/v2026/core"
@@ -33,8 +32,11 @@ func (a BearerAuthorization) Validate() error {
 		return core.ErrExchangeContract
 	}
 	padding := false
-	for _, value := range a.Token {
+	for index, value := range a.Token {
 		if value == '=' {
+			if index == 0 {
+				return core.ErrExchangeContract
+			}
 			padding = true
 			continue
 		}
@@ -69,20 +71,28 @@ func NewBearerAuthorizationHeader(authorization BearerAuthorization) (Header, er
 
 // ReceiveBearerAuthorization returns one copied token from an exact standard
 // Authorization header. The caller owns and clears the returned bytes.
-func ReceiveBearerAuthorization(request *http.Request) (BearerAuthorization, error) {
+func ReceiveBearerAuthorization(call SocketServerCall) (BearerAuthorization, error) {
 	var zero BearerAuthorization
-	if request == nil {
-		return zero, requestError(core.ErrExchangeContract)
+	if err := call.Validate(); err != nil {
+		return zero, requestError(err)
 	}
 	name, err := StandardHeaderAuthorization.Name()
 	if err != nil {
 		return zero, requestError(err)
 	}
-	values := request.Header.Values(name.String())
-	if len(values) != 1 || len(values[0]) > BearerAuthorizationHeaderMaximumBytes {
-		return zero, requestError(core.ErrExchangeContract)
+	maximum, err := core.NewByteCount(uint64(BearerAuthorizationHeaderMaximumBytes))
+	if err != nil {
+		return zero, requestError(err)
 	}
-	scheme, tokenText, found := strings.Cut(values[0], " ")
+	value, err := call.UniqueHeader(name, maximum)
+	if err != nil {
+		return zero, requestError(err)
+	}
+	header, err := value.Value()
+	if err != nil {
+		return zero, requestError(err)
+	}
+	scheme, tokenText, found := strings.Cut(header, " ")
 	if !found || !strings.EqualFold(scheme, BearerAuthorizationScheme) {
 		return zero, requestError(core.ErrExchangeContract)
 	}

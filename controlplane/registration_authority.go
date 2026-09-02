@@ -52,7 +52,7 @@ type VerifiedRegistrationAuthority struct {
 type RegistrationCertificateIssuance struct {
 	Registration VerifiedRegistrationAuthority
 	IssuedAt     temporal.Instant
-	Account      receipt.AccountIdentity
+	Account      receipt.PrincipalIdentity
 	Entitlement  lease.EntitlementID
 }
 

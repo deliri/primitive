@@ -9,7 +9,7 @@ import (
 
 const (
 	scopeCanonicalJSONMaximumBytes = len(
-		`{"account_identity":"","offering":}`,
+		`{"principal_identity":"","offering":}`,
 	) + LifecycleIdentityHexBytes + core.OfferingCanonicalJSONMaximumBytes
 	// WatermarkCanonicalJSONMaximumBytes is the exact compact watermark bound.
 	WatermarkCanonicalJSONMaximumBytes = len(
@@ -111,15 +111,15 @@ func (h *ChainHash) UnmarshalJSON(data []byte) error {
 	return nil
 }
 
-// Scope is the exact account and offering sequence namespace.
+// Scope is the exact opaque-principal and offering sequence namespace.
 type Scope struct {
-	Offering core.Offering   `json:"offering"`
-	Account  AccountIdentity `json:"account_identity"`
+	Offering  core.Offering     `json:"offering"`
+	Principal PrincipalIdentity `json:"principal_identity"`
 }
 
 func (s Scope) Validate() error {
-	if err := s.Account.Validate(); err != nil {
-		return contractError(errors.New("watermark account is invalid"), err)
+	if err := s.Principal.Validate(); err != nil {
+		return contractError(errors.New("watermark principal is invalid"), err)
 	}
 	if err := s.Offering.Validate(); err != nil {
 		return contractError(errors.New("watermark offering is invalid"), err)
@@ -132,7 +132,7 @@ func (s Scope) MarshalJSON() ([]byte, error) {
 	if err := s.Validate(); err != nil {
 		return nil, jsonError(err)
 	}
-	encoded, err := json.Marshal(scopeWire{Account: &s.Account, Offering: &s.Offering})
+	encoded, err := json.Marshal(scopeWire{Principal: &s.Principal, Offering: &s.Offering})
 	if err != nil || len(encoded) > scopeCanonicalJSONMaximumBytes {
 		return nil, jsonError(errors.New("watermark scope encoding exceeded its bound"), err)
 	}
@@ -155,10 +155,10 @@ func (s *Scope) UnmarshalJSON(data []byte) error {
 	if err != nil {
 		return jsonError(err)
 	}
-	if wire.Account == nil || wire.Offering == nil {
+	if wire.Principal == nil || wire.Offering == nil {
 		return jsonError(errors.New("watermark scope omits a required field"))
 	}
-	candidate := Scope{Account: *wire.Account, Offering: *wire.Offering}
+	candidate := Scope{Principal: *wire.Principal, Offering: *wire.Offering}
 	if err := candidate.Validate(); err != nil {
 		return jsonError(err)
 	}
@@ -189,8 +189,8 @@ type watermarkWire struct {
 
 // scopeWire fixes the canonical member order of the nested scope object.
 type scopeWire struct {
-	Account  *AccountIdentity `json:"account_identity"`
-	Offering *core.Offering   `json:"offering"`
+	Principal *PrincipalIdentity `json:"principal_identity"`
+	Offering  *core.Offering     `json:"offering"`
 }
 
 // WatermarkRequest carries exact initial watermark facts.

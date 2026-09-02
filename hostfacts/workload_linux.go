@@ -5,10 +5,10 @@ package hostfacts
 import (
 	"context"
 	"errors"
-	"os"
 
 	"github.com/deliri/primitive/v2026/contextstate"
 	"github.com/deliri/primitive/v2026/core"
+	"github.com/deliri/primitive/v2026/filestore"
 )
 
 const (
@@ -113,20 +113,32 @@ func scanVirtualLines(
 	if err := request.Validate(); err != nil {
 		return err
 	}
-	closed := false
-	file, err := os.Open(request.Path.String())
+	location, err := filestore.OpenParent(ctx, request.Path)
 	if err != nil {
 		return err
 	}
+	closedRoot := false
 	defer func() {
-		if !closed {
+		if !closedRoot {
+			_ = location.Root.Close()
+		}
+	}()
+	file, err := filestore.OpenRead(ctx, filestore.ReadHandleRequest{Location: location})
+	if err != nil {
+		return errors.Join(err, location.Root.Close())
+	}
+	closedFile := false
+	defer func() {
+		if !closedFile {
 			_ = file.Close()
 		}
 	}()
 	scanErr := (boundedLineScan{
 		reader: file, maximum: request.MaximumBytes, visit: visit,
 	}).run(ctx)
-	closeErr := file.Close()
-	closed = true
-	return errors.Join(scanErr, closeErr)
+	fileCloseErr := file.Close()
+	closedFile = true
+	rootCloseErr := location.Root.Close()
+	closedRoot = true
+	return errors.Join(scanErr, fileCloseErr, rootCloseErr)
 }

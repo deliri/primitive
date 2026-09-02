@@ -10,6 +10,15 @@ import (
 	"github.com/deliri/primitive/v2026/core"
 )
 
+const SocketRequestTargetMaximumBytes = 16 * 1024
+
+// HTTPStatusAccepted returns net/http's canonical 202 status through the
+// compiler-owned status contract.
+func HTTPStatusAccepted() (core.HTTPStatusCode, error) {
+	var status core.HTTPStatusCode
+	return status, status.AdmitInt(http.StatusAccepted)
+}
+
 const SocketRoutePathMaximumBytes = 2 * 1024
 
 // SocketRoutePath is one canonical absolute HTTP route path. Products own the
@@ -54,10 +63,10 @@ func validParsedSocketRoutePath(parsed *url.URL, value string) bool {
 // exact request and response structures; Primitive owns framing and effects.
 type JSONSocketContract struct {
 	Path              SocketRoutePath
-	Route             RouteSemantics
 	RequestBodyLimit  core.ByteCount
 	ResponseBodyLimit core.ByteCount
 	SuccessStatus     core.HTTPStatusCode
+	Route             RouteSemantics
 }
 
 // Validate closes the complete paired route contract.
@@ -81,12 +90,12 @@ func (c JSONSocketContract) Validate() error {
 // paired route. Target includes the product-owned authority and the exact path
 // named by Contract.
 type ClientSocketConfiguration struct {
-	Client         Client
 	Target         Target
+	Client         Client
 	Headers        Headers
 	CaptureHeaders HeaderSelection
-	Operation      OperationPolicy
 	Contract       JSONSocketContract
+	Operation      OperationPolicy
 }
 
 // Validate closes the client side before a network operation can begin.
@@ -231,6 +240,113 @@ func (c SocketServerCall) Context() (context.Context, error) {
 	return c.request.Context(), nil
 }
 
+// WithContext derives one call carrying domain-authenticated context while
+// retaining Exchange ownership of the underlying HTTP request and writer.
+func (c SocketServerCall) WithContext(ctx context.Context) (SocketServerCall, error) {
+	if err := c.Validate(); err != nil || ctx == nil {
+		return SocketServerCall{}, errors.Join(core.ErrExchangeContract, err)
+	}
+	call := SocketServerCall{request: c.request.WithContext(ctx), writer: c.writer}
+	return call, call.Validate()
+}
+
+// ServeHTTP continues one standard-library handler chain with the exact
+// request and writer sealed into this call. Authentication and other boundary
+// packages can derive a call with typed context without exposing or rebuilding
+// either raw HTTP value.
+func (c SocketServerCall) ServeHTTP(next http.Handler) error {
+	if err := c.Validate(); err != nil || next == nil {
+		return errors.Join(core.ErrExchangeContract, err)
+	}
+	next.ServeHTTP(c.writer, c.request)
+	return nil
+}
+
+// VerifiedClientCertificateDigest returns the SHA-256 identity of the leaf
+// certificate admitted by net/http's verified mutual-TLS chain.
+func (c SocketServerCall) VerifiedClientCertificateDigest() (core.SHA256Digest, error) {
+	if err := c.Validate(); err != nil {
+		return core.SHA256Digest{}, err
+	}
+	tlsState := c.request.TLS
+	if tlsState == nil || len(tlsState.VerifiedChains) == 0 || len(tlsState.VerifiedChains[0]) == 0 {
+		return core.SHA256Digest{}, core.ErrExchangeContract
+	}
+	certificate := tlsState.VerifiedChains[0][0]
+	if certificate == nil || len(certificate.Raw) == 0 {
+		return core.SHA256Digest{}, core.ErrExchangeContract
+	}
+	return core.SHA256Of(certificate.Raw), nil
+}
+
+// UniqueHeader admits one bounded, exactly-once HTTP field from the bound
+// request. Header storage and duplicate handling remain Exchange mechanics.
+func (c SocketServerCall) UniqueHeader(name core.HTTPHeaderName, maximum core.ByteCount) (HeaderValue, error) {
+	if err := c.Validate(); err != nil {
+		return HeaderValue{}, err
+	}
+	if err := name.Validate(); err != nil {
+		return HeaderValue{}, errors.Join(core.ErrExchangeContract, err)
+	}
+	limit, err := maximum.Int64()
+	if err != nil {
+		return HeaderValue{}, errors.Join(core.ErrExchangeContract, err)
+	}
+	values := c.request.Header.Values(name.String())
+	if len(values) != 1 || len(values[0]) == 0 || int64(len(values[0])) > limit {
+		return HeaderValue{}, core.ErrExchangeContract
+	}
+	value, err := NewHeaderValue(values[0])
+	if err != nil {
+		return HeaderValue{}, err
+	}
+	return value, nil
+}
+
+// MatchesEndpointPath reports whether the observed escaped path is exactly
+// the path bound into a configured public endpoint.
+func (c SocketServerCall) MatchesEndpointPath(endpoint core.HTTPEndpoint) (bool, error) {
+	if err := c.Validate(); err != nil {
+		return false, err
+	}
+	if err := endpoint.Validate(); err != nil {
+		return false, errors.Join(core.ErrExchangeContract, err)
+	}
+	public := endpoint.HTTPURL()
+	return c.request.URL != nil && c.request.URL.Path == public.Path && c.request.URL.RawPath == public.RawPath, nil
+}
+
+// RawQuery returns the bounded, exact encoded query observed on the request.
+func (c SocketServerCall) RawQuery() (string, error) {
+	if err := c.Validate(); err != nil {
+		return "", err
+	}
+	if c.request.URL == nil || len(c.request.URL.RawQuery) > SocketRequestTargetMaximumBytes {
+		return "", core.ErrExchangeContract
+	}
+	return c.request.URL.RawQuery, nil
+}
+
+func validateSocketCallPath(call SocketServerCall, path SocketRoutePath) error {
+	if err := path.Validate(); err != nil {
+		return err
+	}
+	request := call.request
+	if request.URL == nil || request.URL.Path != path.String() || request.URL.RawPath != "" || request.URL.RawQuery != "" || request.URL.ForceQuery {
+		return core.ErrExchangeContract
+	}
+	return nil
+}
+
+// ValidateSocketCallPath proves that a bound call addresses one exact
+// compiler-owned route without exposing the raw HTTP target.
+func ValidateSocketCallPath(call SocketServerCall, path SocketRoutePath) error {
+	if err := call.Validate(); err != nil {
+		return err
+	}
+	return validateSocketCallPath(call, path)
+}
+
 // NewServerSocket constructs the server side from the same contract consumed
 // by the client side.
 func NewServerSocket(contract JSONSocketContract) (ServerSocket, error) {
@@ -249,15 +365,18 @@ func receiveSocketJSON[
 		*Body
 		core.Validatable
 	},
-](socket ServerSocket, request *http.Request) (Received[BodyPtr], error) {
+](socket ServerSocket, call SocketServerCall) (Received[BodyPtr], error) {
 	var zero Received[BodyPtr]
-	if err := validateServerSocketRequest(socket, request); err != nil || socket.contract.Route.Replay == ReplayIdempotencyKey {
+	if err := call.Validate(); err != nil {
+		return zero, err
+	}
+	if err := validateServerSocketRequest(socket, call.request); err != nil || socket.contract.Route.Replay == ReplayIdempotencyKey {
 		return zero, errors.Join(core.ErrExchangeContract, err)
 	}
 	return ReceiveJSON[Body, BodyPtr](JSONReceiveCall{
-		Request: request,
-		Route:   socket.contract.Route,
-		Policy:  ServerPolicy{RequestBodyLimit: socket.contract.RequestBodyLimit},
+		Call:   call,
+		Route:  socket.contract.Route,
+		Policy: ServerPolicy{RequestBodyLimit: socket.contract.RequestBodyLimit},
 	})
 }
 
@@ -274,7 +393,7 @@ func ReceiveSocketJSON[
 	if err := call.Validate(); err != nil {
 		return zero, err
 	}
-	return receiveSocketJSON[Body, BodyPtr](socket, call.request)
+	return receiveSocketJSON[Body, BodyPtr](socket, call)
 }
 
 func receiveReplayBoundSocketJSON[
@@ -283,15 +402,18 @@ func receiveReplayBoundSocketJSON[
 		*Body
 		IdempotencyBound
 	},
-](socket ServerSocket, request *http.Request) (Received[BodyPtr], error) {
+](socket ServerSocket, call SocketServerCall) (Received[BodyPtr], error) {
 	var zero Received[BodyPtr]
-	if err := validateServerSocketRequest(socket, request); err != nil || socket.contract.Route.Replay != ReplayIdempotencyKey {
+	if err := call.Validate(); err != nil {
+		return zero, err
+	}
+	if err := validateServerSocketRequest(socket, call.request); err != nil || socket.contract.Route.Replay != ReplayIdempotencyKey {
 		return zero, errors.Join(core.ErrExchangeContract, err)
 	}
 	return ReceiveReplayBoundJSON[Body, BodyPtr](JSONReceiveCall{
-		Request: request,
-		Route:   socket.contract.Route,
-		Policy:  ServerPolicy{RequestBodyLimit: socket.contract.RequestBodyLimit},
+		Call:   call,
+		Route:  socket.contract.Route,
+		Policy: ServerPolicy{RequestBodyLimit: socket.contract.RequestBodyLimit},
 	})
 }
 
@@ -308,19 +430,19 @@ func ReceiveReplayBoundSocketJSON[
 	if err := call.Validate(); err != nil {
 		return zero, err
 	}
-	return receiveReplayBoundSocketJSON[Body, BodyPtr](socket, call.request)
+	return receiveReplayBoundSocketJSON[Body, BodyPtr](socket, call)
 }
 
 func writeSocketJSON[Body core.ValidatedJSONMarshaler](
 	socket ServerSocket,
-	writer http.ResponseWriter,
+	call SocketServerCall,
 	body Body,
 ) error {
-	if err := socket.Validate(); err != nil {
+	if err := errors.Join(socket.Validate(), call.Validate()); err != nil {
 		return err
 	}
 	return WriteJSON(JSONWriteCall[Body]{
-		Writer: writer,
+		Call: call,
 		Response: ServerJSONResponse[Body]{
 			Body:   body,
 			Status: socket.contract.SuccessStatus,
@@ -339,7 +461,7 @@ func WriteSocketJSON[Body core.ValidatedJSONMarshaler](
 	if err := call.Validate(); err != nil {
 		return err
 	}
-	return writeSocketJSON(socket, call.writer, body)
+	return writeSocketJSON(socket, call, body)
 }
 
 func validateServerSocketRequest(socket ServerSocket, request *http.Request) error {

@@ -20,13 +20,13 @@ const (
 )
 
 type officialSDKBoundaryCase struct {
+	wantErr     error
 	name        string
-	constructor officialSDKBoundaryConstructor
-	method      Method
 	prefix      string
 	suffix      string
 	limit       uint64
-	wantErr     error
+	constructor officialSDKBoundaryConstructor
+	method      Method
 }
 
 func TestOfficialSDKResponseTransportConstructionRefusesEveryUnsetDependency(t *testing.T) {
@@ -44,9 +44,9 @@ func TestOfficialSDKResponseTransportConstructionRefusesEveryUnsetDependency(t *
 		t.Fatalf("NewOfficialSDKResponseCeiling() error = %v, want nil", boundaryErr)
 	}
 	cases := []struct {
+		wantErr error
 		name    string
 		request OfficialSDKResponseTransportRequest
-		wantErr error
 	}{
 		{name: "positive standard transport and validated boundary are admitted", request: OfficialSDKResponseTransportRequest{Base: http.DefaultTransport, Boundary: boundary}},
 		{name: "negative nil transport is refused", request: OfficialSDKResponseTransportRequest{Boundary: boundary}, wantErr: core.ErrExchangeContract},
@@ -228,12 +228,12 @@ func TestOfficialSDKStreamingSuccessCeilingLengthAndDependencyBoundaries(t *test
 		t.Fatalf("core.NewByteCount(1) error = %v, want nil", err)
 	}
 	cases := []struct {
+		wantErr    error
 		name       string
-		method     Method
 		queryName  string
 		queryValue string
 		maximum    core.ByteCount
-		wantErr    error
+		method     Method
 	}{
 		{name: "one-byte query coordinates are admitted", method: MethodGet, queryName: "a", queryValue: "b", maximum: limit},
 		{name: "query name at exact ceiling is admitted", method: MethodGet, queryName: strings.Repeat("a", officialSDKQueryNameMaximumBytes), queryValue: "media", maximum: limit},

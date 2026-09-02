@@ -41,9 +41,10 @@ func TestBoundedByteTransportLayerTriad(t *testing.T) {
 			writer http.ResponseWriter,
 			request *http.Request,
 		) {
+			call := socketServerCallFrom(t, writer, request)
 			received, receiveErr := exchange.ReceiveBounded(
 				exchange.BoundedReceiveCall{
-					Request: request,
+					Call: call,
 					Route: exchange.RouteSemantics{
 						Method: exchange.MethodPost,
 						Replay: exchange.ReplaySingleAttempt,
@@ -56,8 +57,7 @@ func TestBoundedByteTransportLayerTriad(t *testing.T) {
 			if receiveErr == nil {
 				writeErr = exchange.WriteBounded(
 					exchange.BoundedWriteCall{
-						Context: request.Context(),
-						Writer:  writer,
+						Call: call,
 						Response: exchange.ServerBoundedResponse{
 							Body:        received.Body,
 							ContentType: core.HTTPMediaTypeOctetStream(),
@@ -207,9 +207,10 @@ func TestBoundedByteTransportLayerTriad(t *testing.T) {
 			writer http.ResponseWriter,
 			request *http.Request,
 		) {
+			call := socketServerCallFrom(t, writer, request)
 			received, receiveErr := exchange.ReceiveBounded(
 				exchange.BoundedReceiveCall{
-					Request: request,
+					Call: call,
 					Route: exchange.RouteSemantics{
 						Method: exchange.MethodPost,
 						Replay: exchange.ReplaySingleAttempt,
@@ -219,8 +220,7 @@ func TestBoundedByteTransportLayerTriad(t *testing.T) {
 				},
 			)
 			writeErr := exchange.WriteBounded(exchange.BoundedWriteCall{
-				Context: request.Context(),
-				Writer:  writer,
+				Call: call,
 				Response: exchange.ServerBoundedResponse{
 					Body:        []byte{},
 					ContentType: core.HTTPMediaTypeOctetStream(),

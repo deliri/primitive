@@ -6,8 +6,8 @@ import (
 	"testing"
 
 	"github.com/deliri/primitive/v2026/core"
-	"github.com/deliri/primitive/v2026/projectstandards"
 	"github.com/deliri/primitive/v2026/runnercontrol"
+	"github.com/deliri/primitive/v2026/standard"
 	"github.com/deliri/primitive/v2026/temporal"
 )
 
@@ -59,7 +59,7 @@ func TestRunnerCompletionProducerSchemaVerifierLayerTriad(t *testing.T) {
 		if gotErr != nil {
 			t.Fatalf("IssueRunnerCompletion(pre-source) error = %v, want nil", gotErr)
 		}
-		if got.Payload.Selection != nil || got.Payload.DirectExperiment != nil || got.Payload.PreSource == nil || got.Payload.Terminal == projectstandards.TerminalCompleted {
+		if got.Payload.Selection != nil || got.Payload.DirectExperiment != nil || got.Payload.PreSource == nil || got.Payload.Terminal == standard.TerminalCompleted {
 			t.Fatalf("pre-source runner completion = (selection %v, direct %v, pre-source %v, terminal %v), want nil, nil, present, non-completed", got.Payload.Selection, got.Payload.DirectExperiment, got.Payload.PreSource, got.Payload.Terminal)
 		}
 		if gotErr := runnercontrol.VerifyRunnerCompletion(got, trusted); gotErr != nil {
@@ -75,7 +75,7 @@ func TestRunnerCompletionProducerSchemaVerifierLayerTriad(t *testing.T) {
 		if issueErr != nil {
 			t.Fatalf("IssueRunnerCompletion() setup error = %v, want nil", issueErr)
 		}
-		document.Payload.Terminal = projectstandards.TerminalFailed
+		document.Payload.Terminal = standard.TerminalFailed
 		if gotErr := document.Validate(); gotErr != nil {
 			t.Fatalf("mutated RunnerCompletionDocument.Validate() error = %v, want nil so signature verification owns rejection", gotErr)
 		}
@@ -105,7 +105,7 @@ func directRunnerCompletionPayloadFixture(t testing.TB) runnercontrol.RunnerComp
 		SchemaVersion: runnercontrol.SchemaVersion, Run: experimentPayload.Run,
 		AdmittedIntentDigest: core.SHA256Of([]byte("admitted-intent")),
 		SourceGrant:          runnercontrol.SourceGrantIdentity{Digest: core.SHA256Of([]byte("source-grant"))},
-		Fence:                experimentPayload.Fence, Members: experimentPayload.Members, Terminal: projectstandards.TerminalCompleted,
+		Fence:                experimentPayload.Fence, Members: experimentPayload.Members, Terminal: standard.TerminalCompleted,
 		BeganAt: temporal.InstantFromNanoseconds(1_000_000), CompletedAt: temporal.InstantFromNanoseconds(4_000_000),
 		ArtifactManifestDigest: core.SHA256Of(nil),
 		DirectExperiment: &runnercontrol.DirectExperimentRunnerCompletion{
@@ -124,7 +124,7 @@ func preSourceRunnerCompletionPayloadFixture(t testing.TB) runnercontrol.RunnerC
 	payload := runnercontrol.RunnerCompletionPayload{
 		SchemaVersion: runnercontrol.SchemaVersion, Run: direct.Run,
 		AdmittedIntentDigest: direct.AdmittedIntentDigest, SourceGrant: direct.SourceGrant,
-		Fence: direct.Fence, Members: direct.Members, Terminal: projectstandards.TerminalUnavailable,
+		Fence: direct.Fence, Members: direct.Members, Terminal: standard.TerminalUnavailable,
 		BeganAt: direct.BeganAt, CompletedAt: direct.CompletedAt,
 		ArtifactManifestDigest: core.SHA256Of(nil),
 		PreSource: &runnercontrol.PreSourceRunnerCompletion{

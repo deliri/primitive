@@ -92,7 +92,7 @@ func TestDeclaredExtentNeverReplacesTheBodyLimit(t *testing.T) {
 			request.ContentLength = testCase.declaredBytes
 
 			got, gotErr := exchange.ReceiveBounded(exchange.BoundedReceiveCall{
-				Request:             request,
+				Call:                socketServerCall(t, request),
 				Route:               route,
 				Policy:              policy,
 				ExpectedContentType: core.HTTPMediaTypeOctetStream(),

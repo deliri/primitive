@@ -11,17 +11,17 @@ import (
 )
 
 type SubmissionResponseIssuance struct {
-	Server     controlplane.Server
 	Signer     crypto.Signer
 	Body       submission.DecisionProjection
 	Header     controlplane.ResponseHeader
+	Server     controlplane.Server
 	Assessment controlwire.ProtocolAssessment
 }
 
 type SubmissionResponseVerification struct {
-	Client   controlplane.Client
 	Expected controlplane.ResponseExpectation
 	Document controlplane.ResponseDocument[submission.DecisionDocument, *submission.DecisionDocument]
+	Client   controlplane.Client
 }
 
 func (i SubmissionResponseIssuance) Validate() error {
@@ -57,17 +57,17 @@ func (v SubmissionResponseVerification) responseVerification() controlplane.Resp
 }
 
 type CompletionResponseIssuance struct {
-	Server     controlplane.Server
 	Signer     crypto.Signer
 	Header     controlplane.ResponseHeader
 	Body       chit.Document
+	Server     controlplane.Server
 	Assessment controlwire.ProtocolAssessment
 }
 
 type CompletionResponseVerification struct {
-	Client   controlplane.Client
 	Expected controlplane.ResponseExpectation
 	Document controlplane.ResponseDocument[chit.Document, *chit.Document]
+	Client   controlplane.Client
 }
 
 func (i CompletionResponseIssuance) Validate() error {

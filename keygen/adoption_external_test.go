@@ -69,10 +69,10 @@ func TestAdoptPrivateKeyAdmitsExactlyWhatPrivateKeyProjects(t *testing.T) {
 	t.Parallel()
 
 	type adoptionCase struct {
-		name       string
-		setup      func(*testing.T) ed25519.PrivateKey
 		wantErr    error
 		wantSource error
+		setup      func(*testing.T) ed25519.PrivateKey
+		name       string
 	}
 	validCases := []adoptionCase{
 		{name: "production private projection is readopted", setup: projectedPrivateKeyFixture},

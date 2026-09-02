@@ -135,9 +135,9 @@ func TestVerifyInstallationCertificateRefusesEveryUnauthenticInput(t *testing.T)
 			want: core.ErrAttestVerification,
 			mutate: func(t *testing.T, document *controlplane.InstallationCertificateDocument) attest.TrustedKeys {
 				t.Helper()
-				account, err := receipt.ParseAccountIdentity(checkInResponseOtherAccountHex)
+				account, err := receipt.ParsePrincipalIdentity(checkInResponseOtherAccountHex)
 				if err != nil {
-					t.Fatalf("receipt.ParseAccountIdentity() error = %v, want nil", err)
+					t.Fatalf("receipt.ParsePrincipalIdentity() error = %v, want nil", err)
 				}
 				document.Body.Account = account
 				return issueTestRegistration(t).trusted

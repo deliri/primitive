@@ -325,7 +325,7 @@ func (p AbsolutePath) JoinRelative(relative RelativePath) (AbsolutePath, error) 
 // re-parse, and filepath.Abs asks the kernel for a working directory, so an
 // ingress that should be pure text arithmetic becomes a hidden real-world
 // touch. Here the caller supplies the base, usually
-// process.WorkingDirectory, and resolution is exactly lexical: absolute text
+// hostfacts.WorkingDirectory, and resolution is exactly lexical: absolute text
 // is cleaned and admitted as itself, everything else is cleaned and admitted
 // against the base, with climbs clamped at the filesystem root by the same
 // rule the kernel uses. Empty text is refused rather than silently meaning

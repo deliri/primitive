@@ -5,8 +5,8 @@ import (
 	"testing"
 
 	"github.com/deliri/primitive/v2026/core"
-	"github.com/deliri/primitive/v2026/projectstandards"
 	"github.com/deliri/primitive/v2026/runnercontrol"
+	"github.com/deliri/primitive/v2026/standard"
 )
 
 func TestGoBuildContextDiscoveryHostileBoundaries(t *testing.T) {
@@ -14,12 +14,12 @@ func TestGoBuildContextDiscoveryHostileBoundaries(t *testing.T) {
 
 	type contextMutation func(testing.TB, *runnercontrol.GoBuildContext)
 	cases := []struct {
+		wantErr error
+		mutate  contextMutation
 		name    string
 		file    string
 		header  string
-		mutate  contextMutation
 		want    bool
-		wantErr error
 	}{
 		{name: "valid unconstrained test file is visible", file: "subject_test.go", want: true},
 		{name: "valid linux constraint matches admitted linux", file: "subject_test.go", header: "//go:build linux\n", want: true},
@@ -71,9 +71,9 @@ func TestGoBuildContextDiscoveryHostileBoundaries(t *testing.T) {
 			if tc.mutate != nil {
 				tc.mutate(t, &context)
 			}
-			file, err := projectstandards.ParseSourcePath(tc.file)
+			file, err := standard.ParseSourcePath(tc.file)
 			if err != nil {
-				t.Fatalf("projectstandards.ParseSourcePath(%q) setup error = %v, want nil", tc.file, err)
+				t.Fatalf("standard.ParseSourcePath(%q) setup error = %v, want nil", tc.file, err)
 			}
 			source := []byte(tc.header + "package subject\n")
 			got, gotErr := matchGoFileContext(source, file, context)
@@ -92,9 +92,9 @@ func TestGoBuildContextDiscoveryHostileBoundaries(t *testing.T) {
 
 func goBuildContextFixture(t testing.TB) runnercontrol.GoBuildContext {
 	t.Helper()
-	toolchain, toolchainErr := projectstandards.NewIdentifier("go1-27-0")
+	toolchain, toolchainErr := standard.NewIdentifier("go1-27-0")
 	release, releaseErr := runnercontrol.NewGoBuildTag("go1.27")
-	module, moduleErr := projectstandards.ParseSourcePath("module")
+	module, moduleErr := standard.ParseSourcePath("module")
 	if err := errors.Join(toolchainErr, releaseErr, moduleErr); err != nil {
 		t.Fatalf("GoBuildContext fixture identity error = %v, want nil", err)
 	}

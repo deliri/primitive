@@ -78,9 +78,9 @@ func (r Received[Body]) Validate() error {
 
 // JSONReceiveCall supplies one body-only server receive boundary.
 type JSONReceiveCall struct {
-	Request *http.Request
-	Route   RouteSemantics
-	Policy  ServerPolicy
+	Call   SocketServerCall
+	Route  RouteSemantics
+	Policy ServerPolicy
 }
 
 // JSONProjector completes a decoded wire structure with typed state from the
@@ -91,7 +91,7 @@ type JSONProjector[
 		*Body
 		core.Validatable
 	},
-] func(context.Context, *http.Request, BodyPtr) error
+] func(context.Context, SocketServerCall, BodyPtr) error
 
 // ProjectedJSONReceiveCall supplies one strict decode/project/validate
 // boundary. Project must be non-nil.
@@ -102,7 +102,7 @@ type ProjectedJSONReceiveCall[
 		core.Validatable
 	},
 ] struct {
-	Request *http.Request
+	Call    SocketServerCall
 	Project JSONProjector[Body, BodyPtr]
 	Policy  ServerPolicy
 	Route   RouteSemantics
@@ -110,19 +110,22 @@ type ProjectedJSONReceiveCall[
 
 // NoBodyReceiveCall supplies one server boundary that forbids a body.
 type NoBodyReceiveCall struct {
-	Request *http.Request
-	Route   RouteSemantics
+	Call  SocketServerCall
+	Route RouteSemantics
 }
 
 // Validate checks one strict JSON server receive boundary before reading.
 func (call JSONReceiveCall) Validate() error {
-	if err := validateServerIngress(call.Request, call.Route); err != nil {
+	if err := call.Call.Validate(); err != nil {
+		return requestError(err)
+	}
+	if err := validateServerIngress(call.Call.request, call.Route); err != nil {
 		return err
 	}
 	if err := call.Policy.Validate(); err != nil {
 		return requestError(err)
 	}
-	return validateJSONRequestMetadata(call.Request)
+	return validateJSONRequestMetadata(call.Call.request)
 }
 
 // Validate checks one projected strict JSON server receive boundary.
@@ -131,15 +134,16 @@ func (call ProjectedJSONReceiveCall[Body, BodyPtr]) Validate() error {
 		return requestError(core.ErrExchangeContract)
 	}
 	return JSONReceiveCall{
-		Request: call.Request,
-		Route:   call.Route,
-		Policy:  call.Policy,
+		Call: call.Call, Route: call.Route, Policy: call.Policy,
 	}.Validate()
 }
 
 // Validate checks one body-absent server receive boundary.
 func (call NoBodyReceiveCall) Validate() error {
-	return validateServerIngress(call.Request, call.Route)
+	if err := call.Call.Validate(); err != nil {
+		return requestError(err)
+	}
+	return validateServerIngress(call.Call.request, call.Route)
 }
 
 // ReceiveJSON reads, closes, strictly decodes, and validates one request body.
@@ -151,7 +155,7 @@ func ReceiveJSON[
 	},
 ](call JSONReceiveCall) (Received[BodyPtr], error) {
 	return executeRequestBodyOperation(
-		call.Request,
+		call.Call.request,
 		func() (Received[BodyPtr], error) {
 			return receiveJSON[Body, BodyPtr](call)
 		},
@@ -231,7 +235,7 @@ func ReceiveProjectedJSON[
 	error,
 ) {
 	return executeRequestBodyOperation(
-		call.Request,
+		call.Call.request,
 		func() (Received[BodyPtr], error) {
 			return receiveProjectedJSON(call)
 		},
@@ -254,7 +258,7 @@ func receiveProjectedJSON[
 	}
 	data, key, err := receiveValidatedJSONDocument(
 		JSONReceiveCall{
-			Request: call.Request, Route: call.Route, Policy: call.Policy,
+			Call: call.Call, Route: call.Route, Policy: call.Policy,
 		},
 	)
 	if err != nil {
@@ -268,9 +272,13 @@ func receiveProjectedJSON[
 		return zero, requestError(err)
 	}
 	bodyPtr := BodyPtr(&body)
+	requestContext, err := call.Call.Context()
+	if err != nil {
+		return zero, requestError(err)
+	}
 	if err := projectReceivedBody(
 		projectionRequest[Body, BodyPtr]{
-			context: call.Request.Context(), request: call.Request,
+			context: requestContext, call: call.Call,
 			body: bodyPtr, project: call.Project,
 		},
 	); err != nil {
@@ -291,7 +299,7 @@ type projectionRequest[
 	},
 ] struct {
 	context context.Context
-	request *http.Request
+	call    SocketServerCall
 	body    BodyPtr
 	project JSONProjector[Body, BodyPtr]
 }
@@ -308,7 +316,7 @@ func projectReceivedBody[
 			err = requestError(core.ErrExchangeContract)
 		}
 	}()
-	if err := input.project(input.context, input.request, input.body); err != nil {
+	if err := input.project(input.context, input.call, input.body); err != nil {
 		return requestError(err)
 	}
 	if err := input.body.Validate(); err != nil {
@@ -323,7 +331,7 @@ func ReceiveNoBody(
 	call NoBodyReceiveCall,
 ) (Received[NoBody], error) {
 	return executeRequestBodyOperation(
-		call.Request,
+		call.Call.request,
 		func() (Received[NoBody], error) {
 			return receiveNoBody(call)
 		},
@@ -334,14 +342,15 @@ func receiveNoBody(call NoBodyReceiveCall) (Received[NoBody], error) {
 	if err := call.Validate(); err != nil {
 		return Received[NoBody]{}, err
 	}
-	if requestCarriesBody(call.Request) {
+	request := call.Call.request
+	if requestCarriesBody(request) {
 		return Received[NoBody]{}, requestError(core.ErrExchangeContract)
 	}
-	key, err := receiveIdempotencyKey(call.Request, call.Route)
+	key, err := receiveIdempotencyKey(request, call.Route)
 	if err != nil {
 		return Received[NoBody]{}, err
 	}
-	if err := refuseRequestBody(call.Request); err != nil {
+	if err := refuseRequestBody(request); err != nil {
 		return Received[NoBody]{}, err
 	}
 	received := Received[NoBody]{
@@ -353,20 +362,21 @@ func receiveNoBody(call NoBodyReceiveCall) (Received[NoBody], error) {
 func receiveValidatedJSONDocument(
 	call JSONReceiveCall,
 ) ([]byte, IdempotencyKey, error) {
-	key, err := receiveIdempotencyKey(call.Request, call.Route)
+	request := call.Call.request
+	key, err := receiveIdempotencyKey(request, call.Route)
 	if err != nil {
 		return nil, IdempotencyKey{}, err
 	}
 	declared, err := admittedBodyLength(
-		call.Request.ContentLength,
+		request.ContentLength,
 		call.Policy.RequestBodyLimit,
 	)
 	if err != nil {
 		return nil, IdempotencyKey{}, requestError(err)
 	}
 	data, readErr := readBoundedBody(boundedBodyRead{
-		context:  call.Request.Context(),
-		source:   call.Request.Body,
+		context:  request.Context(),
+		source:   request.Body,
 		declared: declared,
 		limit:    call.Policy.RequestBodyLimit,
 	})
@@ -583,20 +593,20 @@ func (r ServerNoBodyResponse) Validate() error {
 
 // JSONWriteCall supplies one complete typed JSON response effect.
 type JSONWriteCall[Body core.ValidatedJSONMarshaler] struct {
-	Writer   http.ResponseWriter
+	Call     SocketServerCall
 	Response ServerJSONResponse[Body]
 	Policy   JSONWritePolicy
 }
 
 // NoBodyWriteCall supplies one complete body-absent response effect.
 type NoBodyWriteCall struct {
-	Writer   http.ResponseWriter
+	Call     SocketServerCall
 	Response ServerNoBodyResponse
 }
 
 // Validate checks one complete typed JSON response effect.
 func (call JSONWriteCall[Body]) Validate() error {
-	if call.Writer == nil {
+	if err := call.Call.Validate(); err != nil {
 		return responseError(core.ErrExchangeContract)
 	}
 	if err := call.Response.Validate(); err != nil {
@@ -610,7 +620,7 @@ func (call JSONWriteCall[Body]) Validate() error {
 
 // Validate checks one complete body-absent response effect.
 func (call NoBodyWriteCall) Validate() error {
-	if call.Writer == nil {
+	if err := call.Call.Validate(); err != nil {
 		return responseError(core.ErrExchangeContract)
 	}
 	return call.Response.Validate()
@@ -632,7 +642,7 @@ func WriteJSON[
 	}
 	return writeJSONBytes(
 		jsonWriteRequest{
-			writer: call.Writer, body: body,
+			writer: call.Call.writer, body: body,
 			headers: call.Response.Headers, status: call.Response.Status,
 		},
 	)
@@ -691,13 +701,14 @@ func writeJSONBytes(request jsonWriteRequest) error {
 
 func writeNoBodyResponse(call NoBodyWriteCall) error {
 	return executeResponseWriterOperation(func() error {
-		applyResponseHeaders(call.Writer.Header(), call.Response.Headers)
-		call.Writer.Header().Set(
+		writer := call.Call.writer
+		applyResponseHeaders(writer.Header(), call.Response.Headers)
+		writer.Header().Set(
 			core.HTTPHeaderContentLength().String(),
 			strconv.Itoa(0),
 		)
 		status, _ := call.Response.Status.Int()
-		call.Writer.WriteHeader(status)
+		writer.WriteHeader(status)
 		return nil
 	})
 }

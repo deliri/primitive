@@ -369,7 +369,7 @@ func TestChitIssuanceLayerTriad(t *testing.T) {
 			{name: "chit identity changed", mutate: func(value *Payload) { value.Identity = other.identity }},
 			{name: "collection identity changed", mutate: func(value *Payload) { value.Collection = other.document.Payload.Collection }},
 			{name: "partition changed", mutate: func(value *Payload) { value.Partition = other.document.Payload.Partition }},
-			{name: "account scope changed", mutate: func(value *Payload) { value.Scope.Account = other.scope.Account }},
+			{name: "account scope changed", mutate: func(value *Payload) { value.Scope.Principal = other.scope.Principal }},
 			{name: "offering scope changed", mutate: func(value *Payload) { value.Scope.Offering = other.scope.Offering }},
 			{name: "manifest closure changed", mutate: func(value *Payload) { value.Manifest = other.summary }},
 			{name: "acceptance instant moved forward", mutate: func(value *Payload) { value.AcceptedAt = temporal.InstantFromNanoseconds(83) }},
@@ -671,7 +671,7 @@ func chitEvidenceEntryFixture(
 	}
 	evidence, err := receipt.IssueEvidence(receipt.IssueEvidenceRequest{
 		Key: request.Private, Identity: receiptID,
-		Account: request.Scope.Account, Offering: request.Scope.Offering,
+		Principal: request.Scope.Principal, Offering: request.Scope.Offering,
 		OccurredAt: temporal.InstantFromNanoseconds(int64(request.Marker)),
 		Body: receipt.EvidenceBody{
 			Extent: extent, SHA256: core.SHA256Of(payload),
@@ -685,7 +685,7 @@ func chitEvidenceEntryFixture(
 	verified, err := receipt.VerifyEvidence(receipt.VerifyEvidenceRequest{
 		Document: evidence, TrustedKeys: request.Trusted,
 		Expected: receipt.EvidenceExpectation{
-			Account: request.Scope.Account, Offering: request.Scope.Offering,
+			Principal: request.Scope.Principal, Offering: request.Scope.Offering,
 			Body: evidence.Payload.Body,
 		},
 	})
@@ -739,8 +739,8 @@ func chitSigningFixture(t testing.TB, marker byte) (ed25519.PrivateKey, attest.T
 func chitScopeFixture(t testing.TB, marker byte) receipt.Scope {
 	t.Helper()
 	return receipt.Scope{
-		Account:  mustLifecycleIdentity(t, marker, receipt.NewAccountIdentity),
-		Offering: mustOfferingIdentity(t, marker+1),
+		Principal: mustLifecycleIdentity(t, marker, receipt.NewPrincipalIdentity),
+		Offering:  mustOfferingIdentity(t, marker+1),
 	}
 }
 

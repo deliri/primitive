@@ -32,7 +32,6 @@ func TestHostfactsOffWireEnumsExhaustClosedDomains(t *testing.T) {
 				OperationCgroupMembership,
 				OperationCgroupMount,
 				OperationCgroupLimit,
-				OperationTreeWalk,
 				OperationGoOOMBanner,
 				OperationTerminalGeometry,
 				OperationDiskRotation,
@@ -66,12 +65,6 @@ func TestHostfactsOffWireEnumsExhaustClosedDomains(t *testing.T) {
 				MemoryPressureDisabled,
 				MemoryPressureHealthy,
 				MemoryPressureReached,
-			})
-		}},
-		{name: "missing path policies reject every unadmitted uint8 value", run: func(t *testing.T) {
-			proveHostfactsOffWireEnum(t, func(raw uint8) MissingPathPolicy { return MissingPathPolicy(raw) }, []MissingPathPolicy{
-				MissingPathReject,
-				MissingPathIsEmpty,
 			})
 		}},
 		{name: "workload limit states reject every unadmitted uint8 value", run: func(t *testing.T) {

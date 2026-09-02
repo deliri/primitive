@@ -32,9 +32,9 @@ const (
 type gcsCredentialFileCase struct {
 	name       string
 	content    []byte
+	wantErrors []error
 	shape      gcsCredentialFileShape
 	cancelled  bool
-	wantErrors []error
 }
 
 // TestGCSCredentialFileIngressHostileBoundaryMatrix is a direct ratchet for

@@ -8,20 +8,20 @@ import (
 
 	"github.com/deliri/primitive/v2026/core"
 	"github.com/deliri/primitive/v2026/filestore"
-	"github.com/deliri/primitive/v2026/projectstandards"
 	"github.com/deliri/primitive/v2026/runnercontrol"
+	"github.com/deliri/primitive/v2026/standard"
 )
 
 // ArtifactEvidence is a filestore-observed experiment file. The expectation
 // remains the authority for kind, path, media type, and byte ceiling; these
 // fields are repeated here only as the signed observation of the exact file.
 type ArtifactEvidence struct {
-	Experiment projectstandards.ExperimentID
-	Kind       runnercontrol.ArtifactKind
 	Path       core.RelativePath
 	MediaType  core.HTTPMediaType
-	SHA256     core.SHA256Digest
 	Bytes      core.ByteLength
+	SHA256     core.SHA256Digest
+	Experiment standard.ExperimentID
+	Kind       runnercontrol.ArtifactKind
 }
 
 func (e ArtifactEvidence) Validate() error {
@@ -79,7 +79,7 @@ func (m Manager) ValidateArtifactExpectations(workspace Experiment, expectations
 	return nil
 }
 
-func artifactNativePath(path projectstandards.SourcePath) (core.RelativePath, error) {
+func artifactNativePath(path standard.SourcePath) (core.RelativePath, error) {
 	if err := path.Validate(); err != nil {
 		return core.RelativePath{}, err
 	}

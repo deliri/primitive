@@ -47,10 +47,16 @@ func TestRoutedSocketExecutesProductionRequestAndAuthenticatedResponse(t *testin
 	observed := make(chan socketObservation, 1)
 	authorityServer := socketServer(t, fixture.support)
 	server := httptest.NewServer(http.HandlerFunc(func(writer http.ResponseWriter, request *http.Request) {
+		call, callErr := exchange.NewSocketServerCall(writer, request)
+		if callErr != nil {
+			observed <- socketObservation{err: callErr}
+			writer.WriteHeader(http.StatusBadRequest)
+			return
+		}
 		received, receiveErr := controlwire.ReceiveRoutedJSON[
 			controlplane.RegistrationRequest,
 			*controlplane.RegistrationRequest,
-		](controlwire.AuthorityJSONReceiveCall{Request: request, Route: route, Server: authorityServer})
+		](controlwire.AuthorityJSONReceiveCall{Call: call, Route: route, Server: authorityServer})
 		observation := socketObservation{
 			method: request.Method,
 			path:   request.URL.Path,
@@ -66,7 +72,7 @@ func TestRoutedSocketExecutesProductionRequestAndAuthenticatedResponse(t *testin
 			writer.WriteHeader(http.StatusBadRequest)
 			return
 		}
-		if writeErr := controlwire.WriteControlJSON(controlwire.ControlJSONWriteCall[controlplane.ResponseProjection[controlplane.RegistrationDocument]]{Writer: writer, Body: fixture.response, Server: authorityServer}); writeErr != nil {
+		if writeErr := controlwire.WriteControlJSON(controlwire.ControlJSONWriteCall[controlplane.ResponseProjection[controlplane.RegistrationDocument]]{Call: call, Body: fixture.response, Server: authorityServer}); writeErr != nil {
 			t.Errorf("WriteControlJSON() error = %v, want nil", writeErr)
 		}
 	}))
@@ -147,7 +153,7 @@ func TestRegistrationAuthorityRunsThroughTheRealControlWireReceiver(t *testing.T
 		controlplane.RegistrationRequest,
 		*controlplane.RegistrationRequest,
 	](controlwire.AuthorityJSONReceiveCall{
-		Request: httpRequest, Route: route, Server: socketServer(t, fixture.support),
+		Call: fixtureSocketServerCall(t, httpRequest), Route: route, Server: socketServer(t, fixture.support),
 	})
 	if err != nil {
 		t.Fatalf("ReceiveRoutedJSON() error = %v, want nil", err)
@@ -199,7 +205,7 @@ func TestRoutedSocketReturnsUpgradeAssessmentBesideAnUnsupportedValidatedRequest
 	received, err := controlwire.ReceiveRoutedJSON[
 		controlplane.RegistrationRequest,
 		*controlplane.RegistrationRequest,
-	](controlwire.AuthorityJSONReceiveCall{Request: request, Route: route, Server: socketServer(t, support)})
+	](controlwire.AuthorityJSONReceiveCall{Call: fixtureSocketServerCall(t, request), Route: route, Server: socketServer(t, support)})
 	capability, capabilityErr := route.ProtocolCapability(fixture.request.ControlRevision())
 	if err != nil || capabilityErr != nil || received.Validate() != nil || received.Body == nil ||
 		received.Assessment.Capability != capability ||
@@ -329,7 +335,7 @@ func TestRoutedSocketAuthorityAcceptsTenProductionRequestRepresentations(t *test
 			got, gotErr := controlwire.ReceiveRoutedJSON[
 				controlplane.RegistrationRequest,
 				*controlplane.RegistrationRequest,
-			](controlwire.AuthorityJSONReceiveCall{Request: request, Route: route, Server: socketServer(t, fixture.support)})
+			](controlwire.AuthorityJSONReceiveCall{Call: fixtureSocketServerCall(t, request), Route: route, Server: socketServer(t, fixture.support)})
 			if gotErr != nil || got.Body == nil || got.Body.Validate() != nil ||
 				got.IdempotencyKey.String() != wantKey.String() ||
 				got.Replay.Validate() != nil ||
@@ -541,7 +547,7 @@ func TestRoutedSocketAuthorityRejectsThirtyThreeExternalRequestBoundaries(t *tes
 			got, receiveErr := controlwire.ReceiveRoutedJSON[
 				controlplane.RegistrationRequest,
 				*controlplane.RegistrationRequest,
-			](controlwire.AuthorityJSONReceiveCall{Request: tc.build(), Route: route, Server: socketServer(t, fixture.support)})
+			](controlwire.AuthorityJSONReceiveCall{Call: fixtureSocketServerCall(t, tc.build()), Route: route, Server: socketServer(t, fixture.support)})
 			if got.Body != nil || !got.IdempotencyKey.IsZero() || got.Replay != (controlwire.ReplayIdentity{}) {
 				t.Fatalf("rejected receive = %+v, want zero result", got)
 			}
@@ -606,7 +612,7 @@ func FuzzRoutedSocketAuthoritySemanticClosure(f *testing.F) {
 		got, receiveErr := controlwire.ReceiveRoutedJSON[
 			controlplane.RegistrationRequest,
 			*controlplane.RegistrationRequest,
-		](controlwire.AuthorityJSONReceiveCall{Request: fuzzRequest(input), Route: route, Server: socketServer(t, fixture.support)})
+		](controlwire.AuthorityJSONReceiveCall{Call: fixtureSocketServerCall(t, fuzzRequest(input)), Route: route, Server: socketServer(t, fixture.support)})
 		oracle := receiveOracle(receiveOracleInput{
 			document: document, key: key, pathMode: modes[0],
 			methodMode: modes[1], contentMode: modes[2], route: route, bodyLimit: bodyLimit,
@@ -851,6 +857,19 @@ func socketServer(t testing.TB, support controlwire.ProtocolSupport) controlwire
 		t.Fatalf("controlwire.NewServer() error = %v, want nil", err)
 	}
 	return server
+}
+
+func fixtureSocketServerCall(t testing.TB, request *http.Request) exchange.SocketServerCall {
+	t.Helper()
+	if request == nil {
+		return exchange.SocketServerCall{}
+	}
+
+	call, err := exchange.NewSocketServerCall(httptest.NewRecorder(), request)
+	if err != nil {
+		t.Fatalf("exchange.NewSocketServerCall() setup error = %v, want nil", err)
+	}
+	return call
 }
 
 var (

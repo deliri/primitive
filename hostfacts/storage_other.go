@@ -14,8 +14,8 @@ import (
 // rotation interface. The refusal contract stays uniform across platforms;
 // only the answer differs. A platform whose root capability cannot open at
 // all has nothing to validate with, and answers unsupported directly.
-func observeDiskRotation(_ context.Context, directory core.AbsolutePath) (DiskRotation, error) {
-	root, err := openRoot(directory.String())
+func observeDiskRotation(ctx context.Context, directory core.AbsolutePath) (DiskRotation, error) {
+	root, err := openRoot(ctx, directory)
 	if errors.Is(err, core.ErrHostFactsUnsupported) {
 		return DiskRotationUnsupported, nil
 	}

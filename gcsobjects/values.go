@@ -13,18 +13,28 @@ import (
 
 const (
 	// GCSBucketMinimumBytes is the provider's minimum bucket-name extent.
+	// Source: https://cloud.google.com/storage/docs/buckets#naming
 	GCSBucketMinimumBytes = 3
 	// GCSBucketMaximumBytes is the provider's maximum dotted bucket-name extent.
+	// Source: https://cloud.google.com/storage/docs/buckets#naming
 	GCSBucketMaximumBytes = 222
 	// GCSBucketComponentMaximumBytes bounds each DNS-shaped component.
+	// Source: https://cloud.google.com/storage/docs/buckets#naming
 	GCSBucketComponentMaximumBytes = 63
 	// GCSObjectNameMaximumBytes is the flat-namespace object-name ceiling.
+	// Source: https://cloud.google.com/storage/docs/objects#naming
 	GCSObjectNameMaximumBytes = 1024
-	// GCSCacheControlMaximumBytes bounds response cache policy metadata.
+	// GCSCacheControlMaximumBytes is Primitive's custody ceiling for response
+	// cache policy metadata; Google publishes the property but no field extent.
+	// Source: https://cloud.google.com/storage/docs/metadata#cache-control
 	GCSCacheControlMaximumBytes = 1024
-	// GCSDeleteMaximumObjects is the largest bounded destructive sweep.
+	// GCSDeleteMaximumObjects is Primitive's largest bounded destructive sweep;
+	// it is not a Google request limit because the SDK deletes one object per call.
+	// Source: https://cloud.google.com/storage/docs/deleting-objects#storage-delete-object-go
 	GCSDeleteMaximumObjects = 10_000
-	// GCSListMaximumObjects is the largest bounded object inventory.
+	// GCSListMaximumObjects is Primitive's visitor-call custody ceiling; Google
+	// paginates provider listings and publishes no whole-inventory maximum.
+	// Source: https://cloud.google.com/storage/docs/listing-objects#storage-list-objects-go
 	GCSListMaximumObjects = 10_000
 )
 

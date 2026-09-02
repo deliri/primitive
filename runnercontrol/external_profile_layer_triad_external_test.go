@@ -6,8 +6,8 @@ import (
 	"testing"
 
 	"github.com/deliri/primitive/v2026/core"
-	"github.com/deliri/primitive/v2026/projectstandards"
 	"github.com/deliri/primitive/v2026/runnercontrol"
+	"github.com/deliri/primitive/v2026/standard"
 )
 
 func TestJavaScriptProfileCompilerLayerTriad(t *testing.T) {
@@ -44,35 +44,35 @@ func TestJavaScriptProfileCompilerLayerTriad(t *testing.T) {
 	})
 }
 
-func TestSmokeProfileCompilerLayerTriad(t *testing.T) {
+func TestSuiteProfileCompilerLayerTriad(t *testing.T) {
 	t.Parallel()
 
 	t.Run("positive pinned smoke suite binds the reviewed network policy and exact suite", func(t *testing.T) {
 		t.Parallel()
-		request := smokePlanFixture(t, pinnedSmokeEgress(t))
-		got, gotErr := runnercontrol.CompileSmokePlan(request)
+		request := suitePlanFixture(t, pinnedSuiteEgress(t))
+		got, gotErr := runnercontrol.CompileSuitePlan(request)
 		arguments := planArguments(t, got.Process)
 		if gotErr != nil || !slices.Equal(arguments, []string{"--suite=public-api"}) || got.Subject.NetworkNamespace == nil || got.Subject.NetworkController == nil {
-			t.Fatalf("CompileSmokePlan(pinned suite) = (arguments %q, namespace %v, controller %v, error %v), want ([--suite=public-api], prepared namespace/controller, nil)", arguments, got.Subject.NetworkNamespace, got.Subject.NetworkController, gotErr)
+			t.Fatalf("CompileSuitePlan(pinned suite) = (arguments %q, namespace %v, controller %v, error %v), want ([--suite=public-api], prepared namespace/controller, nil)", arguments, got.Subject.NetworkNamespace, got.Subject.NetworkController, gotErr)
 		}
 	})
 
 	t.Run("negative changed egress policy cannot reuse subject execution authority", func(t *testing.T) {
 		t.Parallel()
-		request := smokePlanFixture(t, pinnedSmokeEgress(t))
+		request := suitePlanFixture(t, pinnedSuiteEgress(t))
 		request.Base.Egress = deniedExternalEgress()
-		got, gotErr := runnercontrol.CompileSmokePlan(request)
+		got, gotErr := runnercontrol.CompileSuitePlan(request)
 		if !errors.Is(gotErr, core.ErrPrimitiveContract) || got.Process.SchemaVersion != 0 {
-			t.Fatalf("CompileSmokePlan(changed egress) = (%+v, %v), want zero and errors.Is(..., %v)", got, gotErr, core.ErrPrimitiveContract)
+			t.Fatalf("CompileSuitePlan(changed egress) = (%+v, %v), want zero and errors.Is(..., %v)", got, gotErr, core.ErrPrimitiveContract)
 		}
 	})
 
 	t.Run("neutral smoke suite with no admitted services retains deny-all egress", func(t *testing.T) {
 		t.Parallel()
-		request := smokePlanFixture(t, deniedExternalEgress())
-		got, gotErr := runnercontrol.CompileSmokePlan(request)
+		request := suitePlanFixture(t, deniedExternalEgress())
+		got, gotErr := runnercontrol.CompileSuitePlan(request)
 		if gotErr != nil || got.Subject.NetworkNamespace != nil || len(got.Artifacts) != 0 || got.Observation.Format != runnercontrol.ObservationOpaque {
-			t.Fatalf("CompileSmokePlan(no services) = (namespace %v, artifacts %d, observation %v, error %v), want (nil, 0, opaque, nil)", got.Subject.NetworkNamespace, len(got.Artifacts), got.Observation.Format, gotErr)
+			t.Fatalf("CompileSuitePlan(no services) = (namespace %v, artifacts %d, observation %v, error %v), want (nil, 0, opaque, nil)", got.Subject.NetworkNamespace, len(got.Artifacts), got.Observation.Format, gotErr)
 		}
 	})
 }
@@ -93,7 +93,7 @@ func TestToolProfileCompilerLayerTriad(t *testing.T) {
 	t.Run("negative tool cannot receive pinned network authority", func(t *testing.T) {
 		t.Parallel()
 		request := toolPlanFixture(t)
-		request.Base = externalPlanBaseFixture(t, pinnedSmokeEgress(t))
+		request.Base = externalPlanBaseFixture(t, pinnedSuiteEgress(t))
 		got, gotErr := runnercontrol.CompileToolPlan(request)
 		if !errors.Is(gotErr, core.ErrPrimitiveContract) || got.Process.SchemaVersion != 0 {
 			t.Fatalf("CompileToolPlan(pinned egress) = (%+v, %v), want zero and errors.Is(..., %v)", got, gotErr, core.ErrPrimitiveContract)
@@ -121,13 +121,13 @@ func javaScriptPlanFixture(t testing.TB) runnercontrol.JavaScriptPlanRequest {
 	}
 }
 
-func smokePlanFixture(t testing.TB, egress runnercontrol.EgressPolicy) runnercontrol.SmokePlanRequest {
+func suitePlanFixture(t testing.TB, egress runnercontrol.EgressPolicy) runnercontrol.SuitePlanRequest {
 	t.Helper()
-	suite, err := projectstandards.NewIdentifier("public-api")
+	suite, err := standard.NewIdentifier("public-api")
 	if err != nil {
-		t.Fatalf("projectstandards.NewIdentifier(smoke suite) error = %v, want nil", err)
+		t.Fatalf("standard.NewIdentifier(smoke suite) error = %v, want nil", err)
 	}
-	return runnercontrol.SmokePlanRequest{Base: externalPlanBaseFixture(t, egress), Smoke: runnercontrol.SmokePlan{Suite: suite, Timeout: mustProfileDuration(t, 120_000_000_000)}}
+	return runnercontrol.SuitePlanRequest{Base: externalPlanBaseFixture(t, egress), Suite: runnercontrol.SuitePlan{Suite: suite, Timeout: mustProfileDuration(t, 120_000_000_000)}}
 }
 
 func toolPlanFixture(t testing.TB) runnercontrol.ToolPlanRequest {
@@ -166,9 +166,9 @@ func deniedExternalEgress() runnercontrol.EgressPolicy {
 	return runnercontrol.EgressPolicy{Mode: runnercontrol.EgressDenied, Rules: []runnercontrol.EgressRule{}, DNSPolicy: core.SHA256Of([]byte("deny-all-dns"))}
 }
 
-func pinnedSmokeEgress(t testing.TB) runnercontrol.EgressPolicy {
+func pinnedSuiteEgress(t testing.TB) runnercontrol.EgressPolicy {
 	t.Helper()
-	service, serviceErr := projectstandards.NewIdentifier("public-api")
+	service, serviceErr := standard.NewIdentifier("public-api")
 	endpoint, endpointErr := core.ParseHTTPEndpoint("https://api.example.test")
 	if err := errors.Join(serviceErr, endpointErr); err != nil {
 		t.Fatalf("pinned smoke egress fixture error = %v, want nil", err)

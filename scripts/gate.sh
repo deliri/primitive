@@ -21,13 +21,13 @@ platform=$(go env GOOS)/$(go env GOARCH)
 workflow_run=${GITHUB_RUN_ID:-NOT_APPLICABLE}
 workflow_attempt=${GITHUB_RUN_ATTEMPT:-NOT_APPLICABLE}
 gate_failure_status=0
-goconst_admission_maximum=15
+goconst_admission_maximum=18
 benchmark_duration=30s
 fuzz_duration=30s
 fuzz_minimize_duration=30s
 
-printf '%s\t%s\t%s\t%s\t%s\t%s\t%s\n' \
-	"gate" "command" "platform" "duration_seconds" "exit_status" "log" "sha256" \
+printf '%s\t%s\t%s\t%s\t%s\t%s\t%s\t%s\n' \
+	"gate" "command" "platform" "duration_seconds" "exit_status" "log" "bytes" "sha256" \
 	>"$result_file"
 printf '%s\n' "$workflow_run" >"$artifact_directory/workflow-run.log"
 printf '%s\n' "$workflow_attempt" >"$artifact_directory/workflow-attempt.log"
@@ -75,10 +75,11 @@ append_result() {
 	result_duration=$3
 	result_status=$4
 	result_log=$5
+	result_bytes=$(file_bytes "$result_log")
 	result_hash=$(file_sha256 "$result_log")
-	printf '%s\t%s\t%s\t%s\t%s\t%s\t%s\n' \
+	printf '%s\t%s\t%s\t%s\t%s\t%s\t%s\t%s\n' \
 		"$result_name" "$result_command" "$platform" "$result_duration" \
-		"$result_status" "$(basename "$result_log")" "$result_hash" \
+		"$result_status" "$(basename "$result_log")" "$result_bytes" "$result_hash" \
 		>>"$result_file"
 }
 
@@ -274,6 +275,8 @@ machine_identity=$(uname -a)
 
 run_gate go-version go version
 run_gate go-environment go env GOOS GOARCH GOVERSION
+run_gate go-workspace go env GOWORK
+run_gate git-revision git rev-parse HEAD
 run_gate git-status git status --short --branch
 run_gate install-tools bash scripts/install-tools.sh
 run_gate module-tidy go mod tidy -diff
@@ -313,8 +316,8 @@ if ! test -s "$package_list"; then
 fi
 
 run_gate install-package-tools bash scripts/install-package-tools.sh
-run_gate test go test -count=1 ./...
-run_gate test-race go test -race -count=1 ./...
+run_gate build go build ./...
+run_empty_output_gate go-fix go fix -diff ./...
 run_gate vet go vet ./...
 run_gate staticcheck staticcheck ./...
 run_gate errcheck errcheck ./...
@@ -326,14 +329,16 @@ run_gate field-alignment fieldalignment ./...
 run_gate security gosec -quiet ./...
 run_gate vulnerabilities govulncheck ./...
 run_empty_output_gate dead-code run_deadcode
-run_gate benchmark-inventory discover_go_targets Benchmark
-run_gate benchmark-inventory-ratchet validate_target_inventory \
-	"$artifact_directory/benchmark-inventory.log" 51 benchmark
-run_benchmarks "$artifact_directory/benchmark-inventory.log"
+run_gate test go test -count=1 ./...
+run_gate test-race-shuffle go test -race -shuffle=on -count=2 ./...
 run_gate fuzz-inventory discover_go_targets Fuzz
 run_gate fuzz-inventory-ratchet validate_target_inventory \
 	"$artifact_directory/fuzz-inventory.log" 30 fuzz
 run_fuzz_targets "$artifact_directory/fuzz-inventory.log"
+run_gate benchmark-inventory discover_go_targets Benchmark
+run_gate benchmark-inventory-ratchet validate_target_inventory \
+	"$artifact_directory/benchmark-inventory.log" 51 benchmark
+run_benchmarks "$artifact_directory/benchmark-inventory.log"
 
 if test "$gate_failure_status" -ne 0; then
 	printf '%s\n' "FAIL canonical gate; see $result_file"

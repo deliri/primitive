@@ -11,15 +11,15 @@ import (
 )
 
 type coverageCase struct {
+	wantErr      error
+	wantWriteErr error
+	setup        func() [][]byte
 	name         string
 	class        string
-	setup        func() [][]byte
-	wantMode     runnercontrol.CoverageMode
 	wantTotal    uint64
 	wantCovered  uint64
 	wantBasis    uint16
-	wantErr      error
-	wantWriteErr error
+	wantMode     runnercontrol.CoverageMode
 }
 
 func TestGoCoverageCompilerHostileEvidenceMatrix(t *testing.T) {

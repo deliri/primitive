@@ -10,9 +10,9 @@ import (
 	"github.com/deliri/primitive/v2026/core"
 	"github.com/deliri/primitive/v2026/filestore"
 	primitiveid "github.com/deliri/primitive/v2026/id"
-	"github.com/deliri/primitive/v2026/projectstandards"
 	"github.com/deliri/primitive/v2026/runnercontrol"
 	"github.com/deliri/primitive/v2026/runworkspace"
+	"github.com/deliri/primitive/v2026/standard"
 )
 
 func TestCaptureLayerTriad(t *testing.T) {
@@ -112,8 +112,8 @@ func captureFixture(t *testing.T) (runworkspace.Manager, runworkspace.Member, ru
 		t.Fatalf("id.ParseUUIDv7() setup error = %v, want nil", err)
 	}
 	unit, err := manager.CreateUnit(context.Background(), runnercontrol.SchedulingUnitIdentity{Kind: runnercontrol.SchedulingUnitRunPlan, Identity: uuid})
-	run, runErr := projectstandards.NewRunID(uuid)
-	experimentID, experimentErr := projectstandards.NewExperimentID(uuid)
+	run, runErr := standard.NewRunID(uuid)
+	experimentID, experimentErr := standard.NewExperimentID(uuid)
 	if err := errors.Join(err, runErr, experimentErr); err != nil {
 		t.Fatalf("capture identity and unit setup error = %v, want nil", err)
 	}

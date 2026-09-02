@@ -60,8 +60,8 @@ func (f *ObservationFormat) UnmarshalJSON(data []byte) error {
 }
 
 type ObservationPolicy struct {
-	Format        ObservationFormat `json:"format"`
 	ExpectedUnits uint32            `json:"expected_units"`
+	Format        ObservationFormat `json:"format"`
 	Filtered      bool              `json:"filtered"`
 }
 

@@ -60,7 +60,7 @@ func (r CompletionReconciliationRequest) Validate() error {
 	body := reconciliationEvidenceBody(request, r.Submission, r.Object)
 	if err := (receipt.IssueEvidenceRequest{
 		Key: r.Key, Body: body, OccurredAt: occurredAt, Identity: r.Receipt,
-		Account: scope.Account, Offering: scope.Offering,
+		Principal: scope.Principal, Offering: scope.Offering,
 	}).Validate(); err != nil {
 		return contractError(err)
 	}
@@ -88,14 +88,14 @@ func ReconcileCompletion(request CompletionReconciliationRequest) (ReconciledCom
 	body := reconciliationEvidenceBody(original, request.Submission, request.Object)
 	document, err := receipt.IssueEvidence(receipt.IssueEvidenceRequest{
 		Key: request.Key, Body: body, OccurredAt: occurredAt, Identity: request.Receipt,
-		Account: scope.Account, Offering: scope.Offering,
+		Principal: scope.Principal, Offering: scope.Offering,
 	})
 	if err != nil {
 		return ReconciledCompletion{}, contractError(err)
 	}
 	evidence, err := receipt.VerifyEvidence(receipt.VerifyEvidenceRequest{
 		Document: document, TrustedKeys: request.TrustedKeys,
-		Expected: receipt.EvidenceExpectation{Account: scope.Account, Offering: scope.Offering, Body: body},
+		Expected: receipt.EvidenceExpectation{Principal: scope.Principal, Offering: scope.Offering, Body: body},
 	})
 	if err != nil {
 		return ReconciledCompletion{}, contractError(err)
@@ -215,7 +215,7 @@ func (r ReconciledCompletion) validateReceiptDocument(
 		return contractError(err)
 	}
 	if header.Identity != r.receipt || body != r.body ||
-		header.Account != r.scope.Account || header.Offering != r.scope.Offering ||
+		header.Principal != r.scope.Principal || header.Offering != r.scope.Offering ||
 		header.OccurredAt != occurredAt || body.Extent != r.request.Declaration.Extent ||
 		body.SHA256 != r.request.Declaration.SHA256 || body.CRC32C != r.request.Declaration.CRC32C {
 		return bindingError()

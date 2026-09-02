@@ -87,7 +87,7 @@ func TestCanonicalMemberOrderIsPinnedIndependentlyOfMemoryLayout(t *testing.T) {
 	document := issueFixture(t, fixture)
 	watermark := watermarkFixture(
 		t,
-		Scope{Account: fixture.account, Offering: fixture.offering},
+		Scope{Principal: fixture.principal, Offering: fixture.offering},
 		1,
 		"wire-order",
 	)
@@ -108,7 +108,7 @@ func TestCanonicalMemberOrderIsPinnedIndependentlyOfMemoryLayout(t *testing.T) {
 			name:  "signed header",
 			value: document.Payload.Header,
 			want: []string{
-				"receipt_identity", "account_identity", "offering",
+				"receipt_identity", "principal_identity", "offering",
 				"revision", "occurred_at_nanoseconds",
 			},
 		},
@@ -117,7 +117,7 @@ func TestCanonicalMemberOrderIsPinnedIndependentlyOfMemoryLayout(t *testing.T) {
 			value: document.Payload,
 			want: []string{
 				"header",
-				"receipt_identity", "account_identity", "offering",
+				"receipt_identity", "principal_identity", "offering",
 				"revision", "occurred_at_nanoseconds",
 				"body",
 				"submission_identity", "object_identity", "extent_bytes",
@@ -127,14 +127,14 @@ func TestCanonicalMemberOrderIsPinnedIndependentlyOfMemoryLayout(t *testing.T) {
 		{
 			name:  "durable watermark scope",
 			value: watermark.Scope,
-			want:  []string{"account_identity", "offering"},
+			want:  []string{"principal_identity", "offering"},
 		},
 		{
 			name:  "durable watermark",
 			value: watermark,
 			want: []string{
 				"revision",
-				"scope", "account_identity", "offering",
+				"scope", "principal_identity", "offering",
 				"generation", "cursor_digest", "chain_hash",
 			},
 		},
@@ -144,7 +144,7 @@ func TestCanonicalMemberOrderIsPinnedIndependentlyOfMemoryLayout(t *testing.T) {
 			want: []string{
 				"payload",
 				"header",
-				"receipt_identity", "account_identity", "offering",
+				"receipt_identity", "principal_identity", "offering",
 				"revision", "occurred_at_nanoseconds",
 				"body",
 				"submission_identity", "object_identity", "extent_bytes",
@@ -183,7 +183,7 @@ func TestSignedPayloadBytesStayByteExact(t *testing.T) {
 		t.Fatalf("EvidencePayload.MarshalJSON() error = %v, want nil", err)
 	}
 	want := `{"header":{"receipt_identity":"ff000000000000000000000000000000",` +
-		`"account_identity":"fb000000000000000000000000000000",` +
+		`"principal_identity":"fb000000000000000000000000000000",` +
 		`"offering":"receipt-fixture-fc",` +
 		`"revision":"v1","occurred_at_nanoseconds":"250"},` +
 		`"body":{"submission_identity":"fd000000000000000000000000000000",` +

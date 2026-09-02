@@ -8,6 +8,6 @@ var (
 	_ core.ValidatedJSONMarshaler = Sequence(0)
 	_ core.ValidatedJSONMarshaler = Position(0)
 	_ core.ValidatedJSONMarshaler = PageLimit{}
-	_ core.ValidatedJSONMarshaler = Receipt{}
-	_ core.ValidatedJSONMarshaler = ReceiptDocument{}
+	_ core.ValidatedJSONMarshaler = AppendReceipt{}
+	_ core.ValidatedJSONMarshaler = AppendReceiptDocument{}
 )

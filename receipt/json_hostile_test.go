@@ -125,7 +125,7 @@ func TestEvidenceCanonicalMaximaAreAttainable(t *testing.T) {
 	maximumBody.Extent = mustByteLength(t, math.MaxInt64)
 	payload := EvidencePayload{
 		Header: Header{
-			Identity: identity, Account: fixture.account, Offering: maximumOffering,
+			Identity: identity, Principal: fixture.principal, Offering: maximumOffering,
 			Revision: RevisionV1, OccurredAt: temporal.InstantFromNanoseconds(math.MinInt64),
 		},
 		Body: maximumBody,
@@ -138,7 +138,7 @@ func TestEvidenceCanonicalMaximaAreAttainable(t *testing.T) {
 		t.Fatalf("maximum payload extent = %d, want %d", len(payloadJSON), EvidencePayloadCanonicalJSONMaximumBytes)
 	}
 	document, err := IssueEvidence(IssueEvidenceRequest{
-		Identity: identity, Account: fixture.account, Offering: maximumOffering,
+		Identity: identity, Principal: fixture.principal, Offering: maximumOffering,
 		OccurredAt: payload.Header.OccurredAt, Body: maximumBody, Key: fixture.private,
 	})
 	if err != nil {
@@ -206,7 +206,7 @@ func TestSealedReceiptResultsRejectInternalContradictions(t *testing.T) {
 	if err != nil {
 		t.Fatalf("VerifyEvidence() error = %v, want nil", err)
 	}
-	scope := Scope{Account: fixture.account, Offering: fixture.offering}
+	scope := Scope{Principal: fixture.principal, Offering: fixture.offering}
 	watermark := watermarkFixture(t, scope, 2, "sealed")
 	// wantErr is the oracle. A test that reads its own case name to decide the
 	// expected outcome silently changes behavior on any rename.
@@ -248,7 +248,7 @@ func TestSealedReceiptAccessorsRefuseRatherThanReturnSilentZeros(t *testing.T) {
 	fixture := newReceiptFixture(t, 145)
 	document := issueFixture(t, fixture)
 	watermark := watermarkFixture(
-		t, Scope{Account: fixture.account, Offering: fixture.offering}, 2, "accessor",
+		t, Scope{Principal: fixture.principal, Offering: fixture.offering}, 2, "accessor",
 	)
 	forgedEvidence := VerifiedEvidence{document: document}
 	forgedAdvance := AdvanceResult{watermark: watermark}
@@ -281,7 +281,7 @@ func TestWatermarkPersistenceJSONLayerTriad(t *testing.T) {
 	t.Parallel()
 
 	fixture := newReceiptFixture(t, 180)
-	scope := Scope{Account: fixture.account, Offering: maximumOfferingFixture(t)}
+	scope := Scope{Principal: fixture.principal, Offering: maximumOfferingFixture(t)}
 	maximum := watermarkFixture(t, scope, math.MaxUint64, "maximum")
 	canonical, err := json.Marshal(maximum)
 	if err != nil {
@@ -333,7 +333,7 @@ func TestWatermarkNominalDigestJSONBoundaries(t *testing.T) {
 	fixture := newReceiptFixture(t, 190)
 	watermark := watermarkFixture(
 		t,
-		Scope{Account: fixture.account, Offering: fixture.offering},
+		Scope{Principal: fixture.principal, Offering: fixture.offering},
 		1,
 		"digest-json",
 	)

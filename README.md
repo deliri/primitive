@@ -20,7 +20,7 @@ and easier to compose. The real substrate still does the work.
 
 Run `forge project info refresh` from the repository root. Forge inspects the
 current Go tree with compiler-backed source analysis, refreshes each package's
-`projectstandard_test.go` functions, and emits the bounded project projection
+`standard_test.go` functions, and emits the bounded project projection
 under `.forge/`.
 
 Primitive owns package identities, effect ownership, schemas, and validation.

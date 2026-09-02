@@ -32,8 +32,8 @@ type downloadServerObservation struct {
 }
 
 type roundTripServerObservation struct {
-	readBody []byte
 	writeErr error
+	readBody []byte
 }
 
 func TestUploadTransportLayerTriad(t *testing.T) {
@@ -56,10 +56,11 @@ func TestUploadTransportLayerTriad(t *testing.T) {
 			writer http.ResponseWriter,
 			request *http.Request,
 		) {
+			serverCall := socketServerCallFrom(t, writer, request)
 			destination := sha256.New()
 			received, receiveErr := exchange.ReceiveStream(
 				exchange.StreamReceiveCall{
-					Request:     request,
+					Call:        serverCall,
 					Destination: destination,
 					Route: exchange.RouteSemantics{
 						Method: exchange.MethodPut,
@@ -77,7 +78,7 @@ func TestUploadTransportLayerTriad(t *testing.T) {
 			if receiveErr == nil {
 				observation.writeErr = exchange.WriteNoBody(
 					exchange.NoBodyWriteCall{
-						Writer: writer,
+						Call: serverCall,
 						Response: exchange.ServerNoBodyResponse{
 							Status: created,
 						},
@@ -159,9 +160,10 @@ func TestUploadTransportLayerTriad(t *testing.T) {
 			writer http.ResponseWriter,
 			request *http.Request,
 		) {
+			serverCall := socketServerCallFrom(t, writer, request)
 			received, receiveErr := exchange.ReceiveStream(
 				exchange.StreamReceiveCall{
-					Request:     request,
+					Call:        serverCall,
 					Destination: io.Discard,
 					Route: exchange.RouteSemantics{
 						Method: exchange.MethodPut,
@@ -177,7 +179,7 @@ func TestUploadTransportLayerTriad(t *testing.T) {
 			}
 			if receiveErr == nil {
 				_ = exchange.WriteNoBody(exchange.NoBodyWriteCall{
-					Writer: writer,
+					Call: serverCall,
 					Response: exchange.ServerNoBodyResponse{
 						Status: created,
 					},
@@ -228,9 +230,10 @@ func TestUploadTransportLayerTriad(t *testing.T) {
 			writer http.ResponseWriter,
 			request *http.Request,
 		) {
+			serverCall := socketServerCallFrom(t, writer, request)
 			received, receiveErr := exchange.ReceiveStream(
 				exchange.StreamReceiveCall{
-					Request:     request,
+					Call:        serverCall,
 					Destination: io.Discard,
 					Route: exchange.RouteSemantics{
 						Method: exchange.MethodPut,
@@ -241,7 +244,7 @@ func TestUploadTransportLayerTriad(t *testing.T) {
 				},
 			)
 			writeErr := exchange.WriteNoBody(exchange.NoBodyWriteCall{
-				Writer: writer,
+				Call: serverCall,
 				Response: exchange.ServerNoBodyResponse{
 					Status: created,
 				},
@@ -466,6 +469,7 @@ func TestDownloadTransportLayerTriad(t *testing.T) {
 			writer http.ResponseWriter,
 			request *http.Request,
 		) {
+			serverCall := socketServerCallFrom(t, writer, request)
 			source, openErr := os.Open(sourcePath)
 			if openErr != nil {
 				observed <- downloadServerObservation{writeErr: openErr}
@@ -477,8 +481,7 @@ func TestDownloadTransportLayerTriad(t *testing.T) {
 				testLargeTransferBytes,
 			)
 			writeErr := exchange.WriteStream(exchange.StreamWriteCall{
-				Context: request.Context(),
-				Writer:  writer,
+				Call: serverCall,
 				Response: exchange.ServerStreamResponse{
 					Source:        section,
 					ContentLength: mustByteLength(t, testLargeTransferBytes),
@@ -630,9 +633,9 @@ func TestDownloadTransportLayerTriad(t *testing.T) {
 			writer http.ResponseWriter,
 			request *http.Request,
 		) {
+			serverCall := socketServerCallFrom(t, writer, request)
 			_ = exchange.WriteStream(exchange.StreamWriteCall{
-				Context: request.Context(),
-				Writer:  writer,
+				Call: serverCall,
 				Response: exchange.ServerStreamResponse{
 					Source:        bytes.NewReader(nil),
 					ContentLength: mustByteLength(t, 0),

@@ -13,9 +13,9 @@ func TestPartitionConstructionPressuresTheCompleteZeroBoundary(t *testing.T) {
 	t.Parallel()
 
 	type partitionCase struct {
+		wantErr error
 		name    string
 		raw     [core.SHA256DigestBytes]byte
-		wantErr error
 	}
 	cases := []partitionCase{{
 		name: "all zero commitment is the sole refused typed value", wantErr: core.ErrChitContract,
@@ -65,11 +65,11 @@ func TestPartitionJSONHostileTablePreservesTheReceiverAndCanonicalClosure(t *tes
 	}
 
 	type partitionCase struct {
+		wantErr      error
+		wantCauseErr error
 		name         string
 		encoded      []byte
 		want         Partition
-		wantErr      error
-		wantCauseErr error
 	}
 	cases := make([]partitionCase, 0, 40)
 	for marker := byte(1); marker <= 10; marker++ {

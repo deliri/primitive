@@ -5,14 +5,14 @@ import (
 	"errors"
 
 	"github.com/deliri/primitive/v2026/core"
-	"github.com/deliri/primitive/v2026/projectstandards"
+	"github.com/deliri/primitive/v2026/standard"
 )
 
 type MachineResourceCapacity struct {
-	CPUCount       uint16         `json:"cpu_count"`
 	MemoryBytes    core.ByteCount `json:"memory_bytes"`
-	ProcessMaximum uint16         `json:"process_maximum"`
 	FileMaximum    uint32         `json:"file_maximum"`
+	CPUCount       uint16         `json:"cpu_count"`
+	ProcessMaximum uint16         `json:"process_maximum"`
 	WaveMaximum    uint16         `json:"wave_maximum"`
 }
 
@@ -28,22 +28,8 @@ func (c MachineResourceCapacity) Validate() error {
 }
 
 type ResourceReservation struct {
-	Experiment projectstandards.ExperimentID `json:"experiment_id"`
-	Required   ResourceRequirement           `json:"required"`
-}
-
-func PlanExperimentWaves(capacity MachineResourceCapacity, experiments []ExperimentCapability) ([]ResourceWave, error) {
-	if len(experiments) == 0 || len(experiments) > SchedulingMemberMaximum {
-		return nil, core.ErrPrimitiveContract
-	}
-	reservations := make([]ResourceReservation, len(experiments))
-	for index := range experiments {
-		if err := experiments[index].Validate(); err != nil {
-			return nil, err
-		}
-		reservations[index] = ResourceReservation{Experiment: experiments[index].Experiment, Required: experiments[index].Resources}
-	}
-	return PlanResourceWaves(capacity, reservations)
+	Required   ResourceRequirement   `json:"required"`
+	Experiment standard.ExperimentID `json:"experiment_id"`
 }
 
 func (r ResourceReservation) Validate() error {
@@ -135,7 +121,7 @@ func reservationFits(capacity MachineResourceCapacity, required ResourceRequirem
 }
 
 type waveAccumulator struct {
-	experiments []projectstandards.ExperimentID
+	experiments []standard.ExperimentID
 	required    ResourceRequirement
 }
 
@@ -198,13 +184,13 @@ func appendAccumulatedWave(waves []ResourceWave, accumulated waveAccumulator) ([
 		return nil, errors.Join(core.ErrPrimitiveContract, err)
 	}
 	return append(waves, ResourceWave{
-		Experiments: append([]projectstandards.ExperimentID(nil), accumulated.experiments...),
+		Experiments: append([]standard.ExperimentID(nil), accumulated.experiments...),
 		Required:    accumulated.required, WaveWidth: waveWidth,
 	}), nil
 }
 
 func oneReservationWave(reservation ResourceReservation) ResourceWave {
-	return ResourceWave{Experiments: []projectstandards.ExperimentID{reservation.Experiment}, Required: reservation.Required, WaveWidth: 1}
+	return ResourceWave{Experiments: []standard.ExperimentID{reservation.Experiment}, Required: reservation.Required, WaveWidth: 1}
 }
 
 func sameEgress(left, right EgressPolicy) bool {

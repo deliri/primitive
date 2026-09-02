@@ -6,7 +6,7 @@ import (
 	"io"
 
 	"github.com/deliri/primitive/v2026/core"
-	"github.com/deliri/primitive/v2026/projectstandards"
+	"github.com/deliri/primitive/v2026/standard"
 )
 
 const (
@@ -16,19 +16,19 @@ const (
 )
 
 type JUnitObservation struct {
-	Accounting projectstandards.ExecutionAccounting `json:"accounting"`
+	Accounting standard.ExecutionAccounting `json:"accounting"`
 }
 
 func (o JUnitObservation) Validate() error { return o.Accounting.Validate() }
 
 type junitCompileResult struct {
-	attempt projectstandards.ExecutionAttempt
 	err     error
+	attempt standard.ExecutionAttempt
 }
 
 type junitStreamState struct {
 	policy      ObservationPolicy
-	attempt     projectstandards.ExecutionAttempt
+	attempt     standard.ExecutionAttempt
 	inCase      bool
 	caseFailed  bool
 	caseSkipped bool
@@ -41,12 +41,12 @@ type junitStreamState struct {
 // closes successful input, while Abort closes abandoned input. Both join the
 // parser before returning.
 type JUnitObservationCompiler struct {
-	policy  ObservationPolicy
+	failure error
 	writer  *io.PipeWriter
 	done    <-chan junitCompileResult
-	sealed  bool
 	bytes   uint64
-	failure error
+	policy  ObservationPolicy
+	sealed  bool
 }
 
 func NewJUnitObservationCompiler(policy ObservationPolicy) (*JUnitObservationCompiler, error) {
@@ -109,7 +109,7 @@ func (c *JUnitObservationCompiler) Seal(executionErr error) (JUnitObservation, e
 	if (executionErr == nil) != (result.attempt.Failed == 0) {
 		return unavailableJUnitObservation(c.policy), observationFailure("JUnit terminal counts disagree with the process exit", core.ErrPrimitiveContract, executionErr)
 	}
-	observation := JUnitObservation{Accounting: projectstandards.ExecutionAccounting{Attempts: []projectstandards.ExecutionAttempt{result.attempt}}}
+	observation := JUnitObservation{Accounting: standard.ExecutionAccounting{Attempts: []standard.ExecutionAttempt{result.attempt}}}
 	return observation, observation.Validate()
 }
 
@@ -125,11 +125,11 @@ func (c *JUnitObservationCompiler) Abort() {
 	<-c.done
 }
 
-func parseJUnitStream(reader io.Reader, policy ObservationPolicy) (projectstandards.ExecutionAttempt, error) {
+func parseJUnitStream(reader io.Reader, policy ObservationPolicy) (standard.ExecutionAttempt, error) {
 	decoder := xml.NewDecoder(reader)
 	state := junitStreamState{
 		policy:  policy,
-		attempt: projectstandards.ExecutionAttempt{Sequence: 1, Planned: policy.ExpectedUnits, Cache: projectstandards.CacheDisabled, Filtered: policy.Filtered},
+		attempt: standard.ExecutionAttempt{Sequence: 1, Planned: policy.ExpectedUnits, Cache: standard.CacheDisabled, Filtered: policy.Filtered},
 	}
 	for {
 		token, err := decoder.Token()
@@ -137,10 +137,10 @@ func parseJUnitStream(reader io.Reader, policy ObservationPolicy) (projectstanda
 			break
 		}
 		if err != nil {
-			return projectstandards.ExecutionAttempt{}, observationFailure("JUnit XML cannot be decoded", core.ErrPrimitiveContract, err)
+			return standard.ExecutionAttempt{}, observationFailure("JUnit XML cannot be decoded", core.ErrPrimitiveContract, err)
 		}
 		if err := state.consume(token); err != nil {
-			return projectstandards.ExecutionAttempt{}, err
+			return standard.ExecutionAttempt{}, err
 		}
 	}
 	return state.finish()
@@ -169,7 +169,7 @@ func (s *junitStreamState) consumeStart(element xml.StartElement) error {
 		return observationFailure("JUnit XML contains a duplicate attribute", core.ErrPrimitiveContract)
 	}
 	switch element.Name.Local {
-	case "testcase":
+	case junitTestCaseElementText:
 		if s.inCase {
 			return observationFailure("JUnit XML nests testcase elements", core.ErrPrimitiveContract)
 		}
@@ -184,7 +184,7 @@ func (s *junitStreamState) consumeStart(element xml.StartElement) error {
 
 func (s *junitStreamState) consumeEnd(element xml.EndElement) error {
 	defer func() { s.depth-- }()
-	if element.Name.Local != "testcase" {
+	if element.Name.Local != junitTestCaseElementText {
 		return nil
 	}
 	if !s.inCase {
@@ -210,18 +210,18 @@ func (s *junitStreamState) recordCase() {
 	}
 }
 
-func (s *junitStreamState) finish() (projectstandards.ExecutionAttempt, error) {
+func (s *junitStreamState) finish() (standard.ExecutionAttempt, error) {
 	if s.inCase {
-		return projectstandards.ExecutionAttempt{}, observationFailure("JUnit XML ends inside a testcase", core.ErrPrimitiveContract)
+		return standard.ExecutionAttempt{}, observationFailure("JUnit XML ends inside a testcase", core.ErrPrimitiveContract)
 	}
 	if s.observed == 0 {
-		return projectstandards.ExecutionAttempt{}, observationFailure("JUnit XML contains no testcase evidence", core.ErrPrimitiveContract)
+		return standard.ExecutionAttempt{}, observationFailure("JUnit XML contains no testcase evidence", core.ErrPrimitiveContract)
 	}
 	if s.observed < s.policy.ExpectedUnits {
 		s.attempt.NotRun = s.policy.ExpectedUnits - s.observed
 	}
 	if err := s.attempt.Validate(); err != nil {
-		return projectstandards.ExecutionAttempt{}, observationFailure("JUnit accounting does not close", core.ErrPrimitiveContract, err)
+		return standard.ExecutionAttempt{}, observationFailure("JUnit accounting does not close", core.ErrPrimitiveContract, err)
 	}
 	return s.attempt, nil
 }
@@ -238,7 +238,7 @@ func duplicateJUnitAttribute(attributes []xml.Attr) bool {
 }
 
 func unavailableJUnitObservation(policy ObservationPolicy) JUnitObservation {
-	return JUnitObservation{Accounting: projectstandards.ExecutionAccounting{Attempts: []projectstandards.ExecutionAttempt{{Sequence: 1, Planned: policy.ExpectedUnits, Unavailable: policy.ExpectedUnits, Cache: projectstandards.CacheDisabled, Filtered: policy.Filtered}}}}
+	return JUnitObservation{Accounting: standard.ExecutionAccounting{Attempts: []standard.ExecutionAttempt{{Sequence: 1, Planned: policy.ExpectedUnits, Unavailable: policy.ExpectedUnits, Cache: standard.CacheDisabled, Filtered: policy.Filtered}}}}
 }
 
 var (

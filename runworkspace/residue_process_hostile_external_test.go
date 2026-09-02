@@ -122,10 +122,10 @@ func TestParseResidueCountHostileEvidenceFloor(t *testing.T) {
 	t.Parallel()
 
 	cases := []struct {
+		wantErr error
 		name    string
 		input   string
 		want    uint32
-		wantErr error
 	}{
 		{name: "valid zero is the neutral residue count", input: "0", want: 0},
 		{name: "valid one is the first non-clean residue count", input: "1", want: 1},
@@ -209,6 +209,45 @@ func FuzzParseResidueCountSemanticClosure(f *testing.F) {
 		roundTrip, roundTripErr := runworkspace.ParseResidueCount(canonical)
 		if roundTripErr != nil || roundTrip != got {
 			t.Fatalf("ParseResidueCount canonical closure for %q = (%d, %v), want (%d, nil)", input, roundTrip, roundTripErr, got)
+		}
+	})
+}
+
+func FuzzCaptureKindJSONSemanticClosure(f *testing.F) {
+	for _, kind := range []runworkspace.CaptureKind{runworkspace.CaptureStdout, runworkspace.CaptureStderr} {
+		encoded, err := kind.MarshalJSON()
+		if err != nil {
+			f.Fatalf("CaptureKind.MarshalJSON(seed %d) error = %v, want nil", kind, err)
+		}
+		f.Add(encoded)
+	}
+	for _, malformed := range [][]byte{{}, []byte(`null`), []byte(`""`), []byte(`"future-capture"`)} {
+		f.Add(malformed)
+	}
+
+	f.Fuzz(func(t *testing.T, data []byte) {
+		before := runworkspace.CaptureStdout
+		got := before
+		gotErr := got.UnmarshalJSON(data)
+		if gotErr != nil {
+			if got != before || !errors.Is(gotErr, core.ErrJSONContract) || !errors.Is(gotErr, core.ErrPrimitiveContract) {
+				t.Fatalf("CaptureKind.UnmarshalJSON(rejected) = (%v, %v), want preserved %v and joined %v/%v",
+					got, gotErr, before, core.ErrJSONContract, core.ErrPrimitiveContract)
+			}
+			return
+		}
+		if err := got.Validate(); err != nil {
+			t.Fatalf("CaptureKind.UnmarshalJSON(accepted).Validate() error = %v, want nil", err)
+		}
+		encoded, encodeErr := got.MarshalJSON()
+		var roundTrip runworkspace.CaptureKind
+		roundTripErr := roundTrip.UnmarshalJSON(encoded)
+		if encodeErr != nil || roundTripErr != nil || roundTrip != got {
+			t.Fatalf("CaptureKind canonical closure = (%v, %v, %v), want (%v, nil, nil)", roundTrip, encodeErr, roundTripErr, got)
+		}
+		second, secondErr := roundTrip.MarshalJSON()
+		if secondErr != nil || string(second) != string(encoded) {
+			t.Fatalf("CaptureKind second canonical projection = (%q, %v), want (%q, nil)", second, secondErr, encoded)
 		}
 	})
 }

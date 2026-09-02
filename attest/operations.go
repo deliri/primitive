@@ -3,10 +3,10 @@ package attest
 import (
 	"crypto"
 	"crypto/ed25519"
-	"crypto/rand"
 	"errors"
 
 	"github.com/deliri/primitive/v2026/core"
+	"github.com/deliri/primitive/v2026/keygen"
 )
 
 // Sign seals one bounded typed canonical body.
@@ -58,7 +58,7 @@ func signFrame(capability *signingCapability, frame attestationFrame) (Signature
 	defer clear(input[:])
 	signer := capability.signer
 	rawSignature, err := guardedCall(func() ([]byte, error) {
-		return signer.Sign(rand.Reader, input[:count], crypto.Hash(0))
+		return signer.Sign(keygen.NewEntropyReader(), input[:count], crypto.Hash(0))
 	})
 	if err != nil {
 		return Signature{}, contractError(err)

@@ -24,7 +24,7 @@ type receiptFixture struct {
 	trusted     attest.TrustedKeys
 	body        EvidenceBody
 	occurredAt  temporal.Instant
-	account     AccountIdentity
+	principal   PrincipalIdentity
 	submission  SubmissionIdentity
 	object      ObjectIdentity
 	receipt     ReceiptID
@@ -42,7 +42,7 @@ func newReceiptFixture(t testing.TB, marker byte) receiptFixture {
 	if err != nil {
 		t.Fatalf("attest.NewTrustedKeys() error = %v, want nil", err)
 	}
-	account := lifecycleFixture(t, marker+1, NewAccountIdentity)
+	principal := lifecycleFixture(t, marker+1, NewPrincipalIdentity)
 	offering := offeringFixture(t, marker+2)
 	submission := lifecycleFixture(t, marker+3, NewSubmissionIdentity)
 	object := lifecycleFixture(t, marker+4, NewObjectIdentity)
@@ -62,10 +62,10 @@ func newReceiptFixture(t testing.TB, marker byte) receiptFixture {
 		CRC32C:     core.NewCRC32C(crc32.Checksum(payload, crc32.MakeTable(crc32.Castagnoli))),
 	}
 	expectation := EvidenceExpectation{
-		Account: account, Offering: offering, Body: body,
+		Principal: principal, Offering: offering, Body: body,
 	}
 	return receiptFixture{
-		private: private, trusted: trusted, account: account, offering: offering,
+		private: private, trusted: trusted, principal: principal, offering: offering,
 		submission: submission, object: object, receipt: receipt, body: body,
 		occurredAt: occurredAt, expectation: expectation,
 	}
@@ -107,7 +107,7 @@ func lifecycleFixture[T core.Validatable](
 func issueFixture(t testing.TB, fixture receiptFixture) EvidenceDocument {
 	t.Helper()
 	document, err := IssueEvidence(IssueEvidenceRequest{
-		Identity: fixture.receipt, Account: fixture.account,
+		Identity: fixture.receipt, Principal: fixture.principal,
 		Offering: fixture.offering, OccurredAt: fixture.occurredAt,
 		Body: fixture.body, Key: fixture.private,
 	})
@@ -289,7 +289,7 @@ func TestEvidenceVerificationMutationMatrix(t *testing.T) {
 		{name: "occurrence mutation is verification failure", trusted: fixture.trusted, wantExpectation: fixture.expectation, want: core.ErrReceiptVerification, mutate: func(v *EvidenceDocument) { v.Payload.Header.OccurredAt = other.occurredAt }},
 		{name: "body extent mutation is verification failure", trusted: fixture.trusted, wantExpectation: fixture.expectation, want: core.ErrReceiptVerification, mutate: func(v *EvidenceDocument) { v.Payload.Body.Extent = mustByteLength(t, 2) }},
 		{name: "signature mutation is verification failure", trusted: fixture.trusted, wantExpectation: fixture.expectation, want: core.ErrReceiptVerification, mutate: func(v *EvidenceDocument) { v.Attestation.Signature = attest.Signature{} }},
-		{name: "account mismatch is typed scope failure", trusted: fixture.trusted, wantExpectation: func() EvidenceExpectation { v := fixture.expectation; v.Account = other.account; return v }(), want: core.ErrReceiptScope, wantField: ScopeFieldAccount},
+		{name: "principal mismatch is typed scope failure", trusted: fixture.trusted, wantExpectation: func() EvidenceExpectation { v := fixture.expectation; v.Principal = other.principal; return v }(), want: core.ErrReceiptScope, wantField: ScopeFieldPrincipal},
 		{name: "offering mismatch is typed scope failure", trusted: fixture.trusted, wantExpectation: func() EvidenceExpectation { v := fixture.expectation; v.Offering = other.offering; return v }(), want: core.ErrReceiptScope, wantField: ScopeFieldOffering},
 		{name: "submission mismatch is typed scope failure", trusted: fixture.trusted, wantExpectation: func() EvidenceExpectation { v := fixture.expectation; v.Body.Submission = other.submission; return v }(), want: core.ErrReceiptScope, wantField: ScopeFieldSubmission},
 		{name: "object mismatch is typed scope failure", trusted: fixture.trusted, wantExpectation: func() EvidenceExpectation { v := fixture.expectation; v.Body.Object = other.object; return v }(), want: core.ErrReceiptScope, wantField: ScopeFieldObject},
@@ -332,7 +332,7 @@ func TestWatermarkAdvanceLayerTriad(t *testing.T) {
 	t.Parallel()
 
 	fixture := newReceiptFixture(t, 50)
-	scope := Scope{Account: fixture.account, Offering: fixture.offering}
+	scope := Scope{Principal: fixture.principal, Offering: fixture.offering}
 	current := watermarkFixture(t, scope, 2, "current")
 	next := watermarkFixture(t, scope, 3, "next")
 
@@ -361,7 +361,7 @@ func TestWatermarkAdvanceHostileMatrix(t *testing.T) {
 
 	fixture := newReceiptFixture(t, 60)
 	other := newReceiptFixture(t, 70)
-	scope := Scope{Account: fixture.account, Offering: fixture.offering}
+	scope := Scope{Principal: fixture.principal, Offering: fixture.offering}
 	first := watermarkFixture(t, scope, 1, "first")
 	current := watermarkFixture(t, scope, 2, "current")
 	next := watermarkFixture(t, scope, 3, "next")
@@ -398,10 +398,10 @@ func TestWatermarkAdvanceHostileMatrix(t *testing.T) {
 		{name: "higher generation with stale cursor conflicts", current: current, candidate: from(next, func(v *Watermark) { v.CursorDigest = current.CursorDigest }), want: core.ErrReceiptConflict, wantReason: ConflictReasonCursorUnchanged},
 		{name: "higher generation with stale chain conflicts", current: current, candidate: from(next, func(v *Watermark) { v.ChainHash = current.ChainHash }), want: core.ErrReceiptConflict, wantReason: ConflictReasonChainUnchanged},
 		{name: "higher generation reusing both closures reports the cursor first", current: current, candidate: from(next, func(v *Watermark) { v.CursorDigest = current.CursorDigest; v.ChainHash = current.ChainHash }), want: core.ErrReceiptConflict, wantReason: ConflictReasonCursorUnchanged},
-		{name: "foreign account conflicts before generation", current: next, candidate: watermarkFixture(t, Scope{Account: other.account, Offering: fixture.offering}, 1, "foreign-account"), want: core.ErrReceiptConflict, wantReason: ConflictReasonScope},
-		{name: "foreign offering conflicts before generation", current: next, candidate: watermarkFixture(t, Scope{Account: fixture.account, Offering: other.offering}, 1, "foreign-offering"), want: core.ErrReceiptConflict, wantReason: ConflictReasonScope},
-		{name: "foreign scope outranks an otherwise valid advance", current: current, candidate: watermarkFixture(t, Scope{Account: other.account, Offering: other.offering}, 3, "foreign-both"), want: core.ErrReceiptConflict, wantReason: ConflictReasonScope},
-		{name: "foreign scope outranks a rollback", current: far, candidate: watermarkFixture(t, Scope{Account: other.account, Offering: fixture.offering}, 1, "foreign-rollback"), want: core.ErrReceiptConflict, wantReason: ConflictReasonScope},
+		{name: "foreign principal conflicts before generation", current: next, candidate: watermarkFixture(t, Scope{Principal: other.principal, Offering: fixture.offering}, 1, "foreign-principal"), want: core.ErrReceiptConflict, wantReason: ConflictReasonScope},
+		{name: "foreign offering conflicts before generation", current: next, candidate: watermarkFixture(t, Scope{Principal: fixture.principal, Offering: other.offering}, 1, "foreign-offering"), want: core.ErrReceiptConflict, wantReason: ConflictReasonScope},
+		{name: "foreign scope outranks an otherwise valid advance", current: current, candidate: watermarkFixture(t, Scope{Principal: other.principal, Offering: other.offering}, 3, "foreign-both"), want: core.ErrReceiptConflict, wantReason: ConflictReasonScope},
+		{name: "foreign scope outranks a rollback", current: far, candidate: watermarkFixture(t, Scope{Principal: other.principal, Offering: fixture.offering}, 1, "foreign-rollback"), want: core.ErrReceiptConflict, wantReason: ConflictReasonScope},
 		{name: "zero current is contract failure", candidate: next, want: core.ErrReceiptContract},
 		{name: "zero candidate is contract failure", current: current, want: core.ErrReceiptContract},
 		{name: "both zero is contract failure", want: core.ErrReceiptContract},
@@ -533,7 +533,7 @@ func TestReceiptEnumLabelsAreExactAndDistinct(t *testing.T) {
 	}{
 		{name: "revision v1", value: RevisionV1, want: "v1"},
 		{name: "domain evidence v1", value: DomainEvidenceV1, want: evidenceDomainToken},
-		{name: "scope field account", value: ScopeFieldAccount, want: "account"},
+		{name: "scope field principal", value: ScopeFieldPrincipal, want: "principal"},
 		{name: "scope field offering", value: ScopeFieldOffering, want: "offering"},
 		{name: "scope field submission", value: ScopeFieldSubmission, want: "submission"},
 		{name: "scope field object", value: ScopeFieldObject, want: "object"},

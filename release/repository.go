@@ -6,7 +6,6 @@ import (
 	"errors"
 	"io"
 	"io/fs"
-	"math"
 	"os"
 	"strings"
 
@@ -18,35 +17,39 @@ import (
 
 const (
 	repositoryGitOutputMaximumBytes = 4 << 10
-	repositoryGitEnvironmentPrefix  = "GIT_"
-	repositoryGitRevParse           = "rev-parse"
-	repositoryGitVerify             = "--verify"
-	repositoryGitHead               = "HEAD"
-	repositoryGitPathFormatAbsolute = "--path-format=absolute"
-	repositoryGitPath               = "--git-path"
-	repositoryGitInfoAttributes     = "info/attributes"
-	repositoryGitStatus             = "status"
-	repositoryGitPorcelainV1        = "--porcelain=v1"
-	repositoryGitUntrackedAll       = "--untracked-files=all"
-	repositoryGitIgnoredMatching    = "--ignored=matching"
-	repositoryGitSubmodulesNone     = "--ignore-submodules=none"
-	repositoryGitListFiles          = "ls-files"
-	repositoryGitVerboseFlags       = "-v"
-	repositoryGitNullTerminate      = "-z"
-	repositoryGitArgumentSeparator  = "--"
-	repositoryGitNoOptionalLocks    = "--no-optional-locks"
-	repositoryGitConfigOverride     = "-c"
-	repositoryGitNoAttributesFile   = "core.attributesFile="
-	repositoryGitNoFsmonitor        = "core.fsmonitor=false"
-	repositoryGitRespectFileMode    = "core.fileMode=true"
-	repositoryGitTrustCTime         = "core.trustctime=true"
-	repositoryGitDefaultStat        = "core.checkStat=default"
-	repositoryGitNoIgnoreStat       = "core.ignoreStat=false"
-	repositoryGitConfigNoSystem     = "GIT_CONFIG_NOSYSTEM=1"
-	repositoryGitConfigGlobal       = "GIT_CONFIG_GLOBAL="
-	repositoryGitAttributesNoSystem = "GIT_ATTR_NOSYSTEM=1"
-	repositoryGitOptionalLocksOff   = "GIT_OPTIONAL_LOCKS=0"
-	repositoryGitTerminalPromptOff  = "GIT_TERMINAL_PROMPT=0"
+	// repositoryGitIndexOutputMaximumBytes bounds the streamed tracked-file
+	// flag observation. The parser remains O(1), but an endless producer is
+	// still unbounded work and therefore cannot use a numeric type ceiling.
+	repositoryGitIndexOutputMaximumBytes = 256 << 20
+	repositoryGitEnvironmentPrefix       = "GIT_"
+	repositoryGitRevParse                = "rev-parse"
+	repositoryGitVerify                  = "--verify"
+	repositoryGitHead                    = "HEAD"
+	repositoryGitPathFormatAbsolute      = "--path-format=absolute"
+	repositoryGitPath                    = "--git-path"
+	repositoryGitInfoAttributes          = "info/attributes"
+	repositoryGitStatus                  = "status"
+	repositoryGitPorcelainV1             = "--porcelain=v1"
+	repositoryGitUntrackedAll            = "--untracked-files=all"
+	repositoryGitIgnoredMatching         = "--ignored=matching"
+	repositoryGitSubmodulesNone          = "--ignore-submodules=none"
+	repositoryGitListFiles               = "ls-files"
+	repositoryGitVerboseFlags            = "-v"
+	repositoryGitNullTerminate           = "-z"
+	repositoryGitArgumentSeparator       = "--"
+	repositoryGitNoOptionalLocks         = "--no-optional-locks"
+	repositoryGitConfigOverride          = "-c"
+	repositoryGitNoAttributesFile        = "core.attributesFile="
+	repositoryGitNoFsmonitor             = "core.fsmonitor=false"
+	repositoryGitRespectFileMode         = "core.fileMode=true"
+	repositoryGitTrustCTime              = "core.trustctime=true"
+	repositoryGitDefaultStat             = "core.checkStat=default"
+	repositoryGitNoIgnoreStat            = "core.ignoreStat=false"
+	repositoryGitConfigNoSystem          = "GIT_CONFIG_NOSYSTEM=1"
+	repositoryGitConfigGlobal            = "GIT_CONFIG_GLOBAL="
+	repositoryGitAttributesNoSystem      = "GIT_ATTR_NOSYSTEM=1"
+	repositoryGitOptionalLocksOff        = "GIT_OPTIONAL_LOCKS=0"
+	repositoryGitTerminalPromptOff       = "GIT_TERMINAL_PROMPT=0"
 )
 
 // repositoryGitPolicyArguments neutralize repository-local settings that can
@@ -78,7 +81,7 @@ func (p repositoryGitOutputPolicy) maximumBytes() (uint64, error) {
 	case repositoryGitOutputProbe:
 		return repositoryGitOutputMaximumBytes, nil
 	case repositoryGitOutputIndex:
-		return math.MaxInt64, nil
+		return repositoryGitIndexOutputMaximumBytes, nil
 	default:
 		return 0, contractError(errors.New("repository Git output policy is invalid"))
 	}

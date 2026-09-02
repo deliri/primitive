@@ -5,11 +5,10 @@ import (
 	json "encoding/json/v2"
 	"errors"
 	"fmt"
-	"net/http"
 
 	"github.com/deliri/primitive/v2026/core"
 	"github.com/deliri/primitive/v2026/exchange"
-	"github.com/deliri/primitive/v2026/projectstandards"
+	"github.com/deliri/primitive/v2026/standard"
 )
 
 const (
@@ -34,6 +33,7 @@ const (
 	ArtifactTrace
 	ArtifactCrasher
 	ArtifactReport
+	ArtifactSnapshot
 	ArtifactBinary
 	artifactKindLimit
 )
@@ -49,6 +49,7 @@ const (
 	artifactTraceToken         = "trace"
 	artifactCrasherToken       = "crasher"
 	artifactReportToken        = "report"
+	artifactSnapshotToken      = "snapshot"
 	artifactBinaryToken        = "binary"
 )
 
@@ -66,7 +67,7 @@ func (k ArtifactKind) String() string {
 		"", artifactStdoutToken, artifactStderrToken, artifactCoverageToken,
 		artifactCPUProfileToken, artifactMemoryProfileToken, artifactBlockProfileToken,
 		artifactMutexProfileToken, artifactTraceToken, artifactCrasherToken,
-		artifactReportToken, artifactBinaryToken,
+		artifactReportToken, artifactSnapshotToken, artifactBinaryToken,
 	}
 	if !k.IsValid() {
 		return ""
@@ -99,12 +100,12 @@ func (k *ArtifactKind) UnmarshalJSON(data []byte) error {
 }
 
 type ArtifactManifestEntry struct {
-	Kind       ArtifactKind                   `json:"kind"`
-	Path       projectstandards.SourcePath    `json:"path"`
-	MediaType  core.HTTPMediaType             `json:"media_type"`
-	Digest     core.SHA256Digest              `json:"digest"`
-	Bytes      core.ByteLength                `json:"bytes"`
-	Experiment *projectstandards.ExperimentID `json:"experiment_id,omitempty"`
+	Experiment *standard.ExperimentID `json:"experiment_id,omitempty"`
+	Path       standard.SourcePath    `json:"path"`
+	MediaType  core.HTTPMediaType     `json:"media_type"`
+	Bytes      core.ByteLength        `json:"bytes"`
+	Digest     core.SHA256Digest      `json:"digest"`
+	Kind       ArtifactKind           `json:"kind"`
 }
 
 func (e ArtifactManifestEntry) Validate() error {
@@ -118,12 +119,12 @@ func (e ArtifactManifestEntry) Validate() error {
 }
 
 type ArtifactManifest struct {
-	SchemaVersion uint16                  `json:"schema_version"`
-	Run           projectstandards.RunID  `json:"run_id"`
-	Fence         SchedulingFence         `json:"fence"`
 	Members       MemberSet               `json:"member_set"`
 	Entries       []ArtifactManifestEntry `json:"entries"`
+	Fence         SchedulingFence         `json:"fence"`
 	TotalBytes    core.ByteLength         `json:"total_bytes"`
+	SchemaVersion uint16                  `json:"schema_version"`
+	Run           standard.RunID          `json:"run_id"`
 }
 
 func (m ArtifactManifest) Validate() error {
@@ -209,15 +210,15 @@ func (m *ArtifactManifest) UnmarshalJSON(data []byte) error {
 }
 
 type ArtifactChunk struct {
-	SchemaVersion  uint16                 `json:"schema_version"`
-	Run            projectstandards.RunID `json:"run_id"`
-	Fence          SchedulingFence        `json:"fence"`
-	Members        MemberSet              `json:"member_set"`
-	ManifestDigest core.SHA256Digest      `json:"manifest_digest"`
-	Entry          ArtifactManifestEntry  `json:"entry"`
-	Offset         core.ByteLength        `json:"offset"`
-	Data           []byte                 `json:"data"`
-	Final          bool                   `json:"final"`
+	Members        MemberSet             `json:"member_set"`
+	Data           []byte                `json:"data"`
+	Entry          ArtifactManifestEntry `json:"entry"`
+	Fence          SchedulingFence       `json:"fence"`
+	Offset         core.ByteLength       `json:"offset"`
+	SchemaVersion  uint16                `json:"schema_version"`
+	ManifestDigest core.SHA256Digest     `json:"manifest_digest"`
+	Run            standard.RunID        `json:"run_id"`
+	Final          bool                  `json:"final"`
 }
 
 func (c ArtifactChunk) Validate() error {
@@ -241,7 +242,7 @@ func (c ArtifactChunk) validateExtent() error {
 	return nil
 }
 
-func validateMemberBinding(members MemberSet, fence SchedulingFence, run projectstandards.RunID) error {
+func validateMemberBinding(members MemberSet, fence SchedulingFence, run standard.RunID) error {
 	digest, err := members.Digest()
 	if err != nil {
 		return errors.Join(core.ErrPrimitiveContract, err)
@@ -297,19 +298,19 @@ func (c *ArtifactChunk) UnmarshalJSON(data []byte) error {
 }
 
 type ArtifactChunkReceipt struct {
-	SchemaVersion uint16                 `json:"schema_version"`
-	Run           projectstandards.RunID `json:"run_id"`
-	Manifest      core.SHA256Digest      `json:"manifest_digest"`
-	Artifact      core.SHA256Digest      `json:"artifact_digest"`
-	Committed     core.ByteLength        `json:"committed_bytes"`
-	Complete      bool                   `json:"complete"`
+	Committed     core.ByteLength   `json:"committed_bytes"`
+	SchemaVersion uint16            `json:"schema_version"`
+	Manifest      core.SHA256Digest `json:"manifest_digest"`
+	Artifact      core.SHA256Digest `json:"artifact_digest"`
+	Run           standard.RunID    `json:"run_id"`
+	Complete      bool              `json:"complete"`
 }
 
 type ArtifactManifestReceipt struct {
-	SchemaVersion uint16                 `json:"schema_version"`
-	Run           projectstandards.RunID `json:"run_id"`
-	Digest        core.SHA256Digest      `json:"manifest_digest"`
-	Bytes         core.ByteLength        `json:"manifest_bytes"`
+	SchemaVersion uint16            `json:"schema_version"`
+	Run           standard.RunID    `json:"run_id"`
+	Digest        core.SHA256Digest `json:"manifest_digest"`
+	Bytes         core.ByteLength   `json:"manifest_bytes"`
 }
 
 func (r ArtifactManifestReceipt) Validate() error {
@@ -345,10 +346,10 @@ func (r *ArtifactManifestReceipt) UnmarshalJSON(data []byte) error {
 }
 
 type ArtifactManifestRecord struct {
-	Manifest  ArtifactManifest
 	Canonical []byte
-	Digest    core.SHA256Digest
+	Manifest  ArtifactManifest
 	Bytes     core.ByteLength
+	Digest    core.SHA256Digest
 }
 
 func NewArtifactManifestRecord(manifest ArtifactManifest) (ArtifactManifestRecord, error) {
@@ -394,8 +395,8 @@ func (c ArtifactManifestClient) Submit(ctx context.Context, manifest ArtifactMan
 }
 
 type ArtifactManifestServer struct {
-	socket     exchange.ServerSocket
 	repository ArtifactManifestRepository
+	socket     exchange.ServerSocket
 }
 
 func NewArtifactManifestServer(contract exchange.JSONSocketContract, repository ArtifactManifestRepository) (ArtifactManifestServer, error) {
@@ -409,11 +410,11 @@ func NewArtifactManifestServer(contract exchange.JSONSocketContract, repository 
 	return ArtifactManifestServer{socket: socket, repository: repository}, nil
 }
 
-func (s ArtifactManifestServer) Serve(writer http.ResponseWriter, request *http.Request) error {
+func (s ArtifactManifestServer) Serve(call exchange.SocketServerCall) error {
 	if s.repository == nil {
 		return core.ErrPrimitiveContract
 	}
-	call, err := exchange.NewSocketServerCall(writer, request)
+	ctx, err := call.Context()
 	if err != nil {
 		return err
 	}
@@ -421,14 +422,14 @@ func (s ArtifactManifestServer) Serve(writer http.ResponseWriter, request *http.
 	if err != nil {
 		return err
 	}
-	if err := RequireRunnerPeer(request.Context(), received.Body.Fence.Machine.Machine, received.Body.Fence.Machine.Generation); err != nil {
+	if err := RequireRunnerPeer(ctx, received.Body.Fence.Machine.Machine, received.Body.Fence.Machine.Generation); err != nil {
 		return err
 	}
 	record, err := NewArtifactManifestRecord(*received.Body)
 	if err != nil {
 		return err
 	}
-	if err := s.repository.StoreArtifactManifest(request.Context(), record); err != nil {
+	if err := s.repository.StoreArtifactManifest(ctx, record); err != nil {
 		return err
 	}
 	return exchange.WriteSocketJSON(s.socket, call, ArtifactManifestReceipt{SchemaVersion: SchemaVersion, Run: record.Manifest.Run, Digest: record.Digest, Bytes: record.Bytes})
@@ -493,8 +494,8 @@ func (c ArtifactClient) Submit(ctx context.Context, chunk ArtifactChunk) (exchan
 }
 
 type ArtifactServer struct {
-	socket     exchange.ServerSocket
 	repository ArtifactChunkRepository
+	socket     exchange.ServerSocket
 }
 
 func NewArtifactServer(contract exchange.JSONSocketContract, repository ArtifactChunkRepository) (ArtifactServer, error) {
@@ -507,11 +508,11 @@ func NewArtifactServer(contract exchange.JSONSocketContract, repository Artifact
 	}
 	return ArtifactServer{socket: socket, repository: repository}, nil
 }
-func (s ArtifactServer) Serve(writer http.ResponseWriter, request *http.Request) error {
+func (s ArtifactServer) Serve(call exchange.SocketServerCall) error {
 	if s.repository == nil {
 		return core.ErrPrimitiveContract
 	}
-	call, err := exchange.NewSocketServerCall(writer, request)
+	ctx, err := call.Context()
 	if err != nil {
 		return err
 	}
@@ -519,17 +520,24 @@ func (s ArtifactServer) Serve(writer http.ResponseWriter, request *http.Request)
 	if err != nil {
 		return err
 	}
-	if err := RequireRunnerPeer(request.Context(), received.Body.Fence.Machine.Machine, received.Body.Fence.Machine.Generation); err != nil {
+	if err := RequireRunnerPeer(ctx, received.Body.Fence.Machine.Machine, received.Body.Fence.Machine.Generation); err != nil {
 		return err
 	}
-	receipt, err := s.repository.StoreArtifactChunk(request.Context(), *received.Body)
+	receipt, err := s.repository.StoreArtifactChunk(ctx, *received.Body)
 	if err != nil {
 		return err
 	}
-	if receipt.Run != received.Body.Run || receipt.Manifest != received.Body.ManifestDigest || receipt.Artifact != received.Body.Entry.Digest || receipt.Committed.Uint64() != received.Body.Offset.Uint64()+uint64(len(received.Body.Data)) || receipt.Complete != received.Body.Final {
-		return core.ErrPrimitiveContract
+	if err := validateArtifactChunkReceipt(*received.Body, receipt); err != nil {
+		return err
 	}
 	return exchange.WriteSocketJSON(s.socket, call, receipt)
+}
+
+func validateArtifactChunkReceipt(chunk ArtifactChunk, receipt ArtifactChunkReceipt) error {
+	if receipt.Run != chunk.Run || receipt.Manifest != chunk.ManifestDigest || receipt.Artifact != chunk.Entry.Digest || receipt.Committed.Uint64() != chunk.Offset.Uint64()+uint64(len(chunk.Data)) || receipt.Complete != chunk.Final {
+		return core.ErrPrimitiveContract
+	}
+	return nil
 }
 func ArtifactSocketContract(path exchange.SocketRoutePath) (exchange.JSONSocketContract, error) {
 	requestLimit, requestErr := core.NewByteCount(ArtifactChunkDocumentMaximumBytes)
@@ -550,7 +558,7 @@ func ArtifactChunkMatchesEntry(chunk ArtifactChunk, entry ArtifactManifestEntry)
 	}
 	return true
 }
-func equalOptionalExperiment(left, right *projectstandards.ExperimentID) bool {
+func equalOptionalExperiment(left, right *standard.ExperimentID) bool {
 	if left == nil || right == nil {
 		return left == nil && right == nil
 	}

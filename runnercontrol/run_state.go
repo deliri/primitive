@@ -4,11 +4,10 @@ import (
 	"context"
 	json "encoding/json/v2"
 	"errors"
-	"net/http"
 
 	"github.com/deliri/primitive/v2026/core"
 	"github.com/deliri/primitive/v2026/exchange"
-	"github.com/deliri/primitive/v2026/projectstandards"
+	"github.com/deliri/primitive/v2026/standard"
 	"github.com/deliri/primitive/v2026/temporal"
 )
 
@@ -46,7 +45,7 @@ func (s RunControlState) String() string {
 	if !s.IsValid() {
 		return invalidEnumString()
 	}
-	return []string{"", "queued", "starting", "ready", "executing", "cancellation-requested", "cleaning", "delivering", "delivered", "infrastructure-failed"}[s]
+	return []string{"", "queued", "starting", machineReadyStateText, machineExecutingStateText, "cancellation-requested", "cleaning", "delivering", runDeliveredStateText, "infrastructure-failed"}[s]
 }
 
 func (s RunControlState) MarshalJSON() ([]byte, error) {
@@ -74,9 +73,9 @@ func (s *RunControlState) UnmarshalJSON(data []byte) error {
 }
 
 type RunStateRequest struct {
-	SchemaVersion uint16                 `json:"schema_version"`
-	Run           projectstandards.RunID `json:"run_id"`
-	RequestedAt   temporal.Instant       `json:"requested_at"`
+	SchemaVersion uint16           `json:"schema_version"`
+	Run           standard.RunID   `json:"run_id"`
+	RequestedAt   temporal.Instant `json:"requested_at"`
 }
 
 func (r RunStateRequest) Validate() error {
@@ -87,11 +86,11 @@ func (r RunStateRequest) Validate() error {
 }
 
 type RunStateResponse struct {
-	SchemaVersion uint16                 `json:"schema_version"`
-	Run           projectstandards.RunID `json:"run_id"`
-	State         RunControlState        `json:"state"`
-	UpdatedAt     temporal.Instant       `json:"updated_at"`
-	Observation   *ObservationEnvelope   `json:"observation,omitempty"`
+	Observation   *ObservationEnvelope `json:"observation,omitempty"`
+	UpdatedAt     temporal.Instant     `json:"updated_at"`
+	SchemaVersion uint16               `json:"schema_version"`
+	Run           standard.RunID       `json:"run_id"`
+	State         RunControlState      `json:"state"`
 }
 
 func (r RunStateResponse) Validate() error {
@@ -125,9 +124,9 @@ func (i CancellationIdentity) Validate() error { return i.Digest.Validate() }
 // CancellationCoordinate is the complete caller-owned identity of one
 // cancellation attempt. It is independent of every product and executor.
 type CancellationCoordinate struct {
-	Origin projectstandards.OriginIdentity `json:"origin"`
-	Run    projectstandards.RunID          `json:"run_id"`
-	Nonce  projectstandards.RequestNonce   `json:"request_nonce"`
+	Origin standard.OriginIdentity `json:"origin"`
+	Run    standard.RunID          `json:"run_id"`
+	Nonce  standard.RequestNonce   `json:"request_nonce"`
 }
 
 func (c CancellationCoordinate) Validate() error {
@@ -194,11 +193,11 @@ func (r CancellationRequest) IdempotencyKey() (exchange.IdempotencyKey, error) {
 }
 
 type CancellationResponse struct {
-	SchemaVersion uint16                 `json:"schema_version"`
-	Identity      CancellationIdentity   `json:"cancellation_id"`
-	Run           projectstandards.RunID `json:"run_id"`
-	State         RunControlState        `json:"state"`
-	RecordedAt    temporal.Instant       `json:"recorded_at"`
+	SchemaVersion uint16               `json:"schema_version"`
+	Identity      CancellationIdentity `json:"cancellation_id"`
+	Run           standard.RunID       `json:"run_id"`
+	State         RunControlState      `json:"state"`
+	RecordedAt    temporal.Instant     `json:"recorded_at"`
 }
 
 func (r CancellationResponse) Validate() error {
@@ -311,12 +310,12 @@ type CancellationRepository interface {
 type RunStateClient struct{ socket exchange.ClientSocket }
 type CancellationClient struct{ socket exchange.ClientSocket }
 type RunStateServer struct {
-	socket     exchange.ServerSocket
 	repository RunStateRepository
+	socket     exchange.ServerSocket
 }
 type CancellationServer struct {
-	socket     exchange.ServerSocket
 	repository CancellationRepository
+	socket     exchange.ServerSocket
 }
 
 func NewRunStateClient(configuration exchange.ClientSocketConfiguration) (RunStateClient, error) {
@@ -353,8 +352,8 @@ func NewCancellationServer(contract exchange.JSONSocketContract, repository Canc
 	return CancellationServer{socket: socket, repository: repository}, err
 }
 
-func (s RunStateServer) ServeAuthenticated(writer http.ResponseWriter, request *http.Request, peer AuthenticatedPeer) error {
-	call, err := exchange.NewSocketServerCall(writer, request)
+func (s RunStateServer) ServeAuthenticated(call exchange.SocketServerCall, peer AuthenticatedPeer) error {
+	ctx, err := call.Context()
 	if err != nil {
 		return err
 	}
@@ -366,7 +365,7 @@ func (s RunStateServer) ServeAuthenticated(writer http.ResponseWriter, request *
 	if err := authenticated.Validate(); err != nil {
 		return err
 	}
-	response, err := s.repository.RunState(request.Context(), authenticated)
+	response, err := s.repository.RunState(ctx, authenticated)
 	if err != nil {
 		return err
 	}
@@ -376,8 +375,8 @@ func (s RunStateServer) ServeAuthenticated(writer http.ResponseWriter, request *
 	return exchange.WriteSocketJSON(s.socket, call, response)
 }
 
-func (s CancellationServer) ServeAuthenticated(writer http.ResponseWriter, request *http.Request, peer AuthenticatedPeer) error {
-	call, err := exchange.NewSocketServerCall(writer, request)
+func (s CancellationServer) ServeAuthenticated(call exchange.SocketServerCall, peer AuthenticatedPeer) error {
+	ctx, err := call.Context()
 	if err != nil {
 		return err
 	}
@@ -389,7 +388,7 @@ func (s CancellationServer) ServeAuthenticated(writer http.ResponseWriter, reque
 	if err := authenticated.Validate(); err != nil {
 		return err
 	}
-	response, err := s.repository.Cancel(request.Context(), authenticated)
+	response, err := s.repository.Cancel(ctx, authenticated)
 	if err != nil {
 		return err
 	}

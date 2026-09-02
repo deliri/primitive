@@ -49,7 +49,7 @@ func TestAssessDiskUsesHeldRootAndSeparatesPolicyFromObservationFailures(t *test
 		}
 	})
 
-	t.Run("negative symlink root is contract failure without observation identity", func(t *testing.T) {
+	t.Run("negative symlink root is an exact failed filesystem observation", func(t *testing.T) {
 		t.Parallel()
 
 		parent := t.TempDir()
@@ -65,10 +65,10 @@ func TestAssessDiskUsesHeldRootAndSeparatesPolicyFromObservationFailures(t *test
 			Directory: mustAbsolutePathForHostfactsTest(t, link),
 		})
 		if got != (DiskAssessment{}) ||
-			!errors.Is(gotErr, core.ErrHostFactsContract) ||
-			errors.Is(gotErr, core.ErrHostFactsObservation) {
+			!errors.Is(gotErr, core.ErrHostFactsObservation) ||
+			!errors.Is(gotErr, core.ErrFilestoreSource) {
 			t.Fatalf(
-				"AssessDisk(symlink root) = (%v, %v), want zero contract failure without observation identity",
+				"AssessDisk(symlink root) = (%v, %v), want zero observation preserving the Filestore source identity",
 				got,
 				gotErr,
 			)
@@ -287,7 +287,6 @@ func TestOperationDiagnosticStringExhaustsTheClosedDomain(t *testing.T) {
 		{name: "cgroup membership", operation: OperationCgroupMembership, want: "cgroup membership"},
 		{name: "cgroup mount", operation: OperationCgroupMount, want: "cgroup mount"},
 		{name: "cgroup limit", operation: OperationCgroupLimit, want: "cgroup limit"},
-		{name: "tree walk", operation: OperationTreeWalk, want: "tree walk"},
 		{name: "go OOM banner", operation: OperationGoOOMBanner, want: "go OOM banner"},
 		{name: "future operation", operation: Operation(255), want: "unknown"},
 	}

@@ -6,50 +6,17 @@ import (
 	"io"
 	"io/fs"
 	"net/http"
-	"sync"
 
 	"github.com/deliri/primitive/v2026/contextstate"
 	"github.com/deliri/primitive/v2026/core"
 	"github.com/deliri/primitive/v2026/temporal"
 )
 
-// transferBuffer is one fixed streaming extent. Reuse across transfers rests on
-// two contracts that the type system cannot enforce, so both are stated here and
-// ratcheted by the package's internal tests.
-//
-// First, io.Writer forbids an implementation from retaining the slice it is
-// given. A destination that retains it would observe a later transfer's bytes
-// through a buffer this one no longer owns.
-//
-// Second, releaseTransferBuffer is the only path back into the pool, because the
-// scrub lives there. A direct Put would leave one transfer's bytes resident for
-// the next acquirer.
-//
+// transferBuffer is one operation-owned fixed streaming extent.
 // io.CopyBuffer documents that it ignores the supplied buffer when the source
 // implements io.WriterTo or the destination implements io.ReaderFrom, so a
 // destination such as io.Discard or bytes.Buffer never reads this extent.
 type transferBuffer [TransferBufferBytes]byte
-
-var transferBuffers = sync.Pool{
-	New: func() any {
-		return new(transferBuffer)
-	},
-}
-
-func acquireTransferBuffer() *transferBuffer {
-	return transferBuffers.Get().(*transferBuffer)
-}
-
-// releaseTransferBuffer scrubs the complete extent before returning it, so no
-// acquirer can read the bytes of the transfer that released it.
-func releaseTransferBuffer(buffer *transferBuffer) {
-	scrubTransferBuffer(buffer)
-	transferBuffers.Put(buffer)
-}
-
-func scrubTransferBuffer(buffer *transferBuffer) {
-	clear(buffer[:])
-}
 
 // UploadCall supplies one complete streaming upload.
 type UploadCall struct {
@@ -730,8 +697,7 @@ func copyDownload(
 		R: progress,
 		N: limit,
 	}
-	buffer := acquireTransferBuffer()
-	defer releaseTransferBuffer(buffer)
+	var buffer transferBuffer
 	count, err := io.CopyBuffer(
 		request.destination,
 		limited,

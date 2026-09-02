@@ -224,7 +224,7 @@ func TestErrorIdentityExhaustsClosedDomainAndParentDecisions(t *testing.T) {
 			switch identity {
 			case ErrHostFacts, ErrHostFactsObservation, ErrHostFactsUnsupported,
 				ErrHostFactsPressure, ErrHostFactsEvidence,
-				ErrDiskCapacityUnsupported, ErrTreeMeasurementUnsupported,
+				ErrDiskCapacityUnsupported,
 				ErrDiskFloorReached, ErrMemoryLimitReached,
 				ErrFileLockUnavailable:
 				// An unlockable filesystem is an environmental fact like an
@@ -252,7 +252,6 @@ func TestErrorIdentityExhaustsClosedDomainAndParentDecisions(t *testing.T) {
 		{name: "currency mismatch remains currency family", produced: ErrCurrencyMismatch, wantMatch: ErrCurrencyContract, wantReject: ErrNumericOverflow},
 		{name: "indeterminate activation is activation failure", produced: ErrFilestoreActivationIndeterminate, wantMatch: ErrFilestoreActivation, wantReject: ErrFilestoreCleanup},
 		{name: "disk pressure is host facts pressure not contract", produced: ErrDiskFloorReached, wantMatch: ErrHostFactsPressure, wantReject: ErrHostFactsContract},
-		{name: "tree unsupported is host facts unsupported not observation", produced: ErrTreeMeasurementUnsupported, wantMatch: ErrHostFactsUnsupported, wantReject: ErrHostFactsObservation},
 		{name: "exchange transport is exchange family", produced: ErrExchangeTransport, wantMatch: ErrExchangeContract, wantReject: ErrExchangeResponse},
 		{name: "object absence is objectstore family", produced: ErrObjectStoreAbsent, wantMatch: ErrObjectStoreContract, wantReject: ErrObjectStoreIntegrity},
 	}

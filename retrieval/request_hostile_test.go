@@ -454,8 +454,8 @@ func newRetrievalRequestFixture(
 		payload: RequestPayload{
 			Build: build, Chit: mustRetrievalChitID(t, retrievalFixtureChitA),
 			Scope: receipt.Scope{
-				Account:  retrievalLifecycleIdentity(t, 0x21, receipt.NewAccountIdentity),
-				Offering: build.Offering(),
+				Principal: retrievalLifecycleIdentity(t, 0x21, receipt.NewPrincipalIdentity),
+				Offering:  build.Offering(),
 			},
 			Selection: request.Selection, Revision: controlwire.Revision2026V1, Nonce: nonce,
 		},

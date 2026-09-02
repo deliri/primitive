@@ -13,8 +13,6 @@ package core
 // shared vocabulary and must keep its own literal, so this set never becomes a
 // bag of coincidentally equal strings.
 const (
-	// ProtocolMemberAccount names the paying account a fact is scoped to.
-	ProtocolMemberAccount = "account"
 	// ProtocolMemberOffering names the product an account holds.
 	ProtocolMemberOffering = "offering"
 )

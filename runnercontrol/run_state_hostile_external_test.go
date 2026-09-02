@@ -7,8 +7,8 @@ import (
 
 	"github.com/deliri/primitive/v2026/core"
 	primitiveid "github.com/deliri/primitive/v2026/id"
-	"github.com/deliri/primitive/v2026/projectstandards"
 	"github.com/deliri/primitive/v2026/runnercontrol"
+	"github.com/deliri/primitive/v2026/standard"
 	"github.com/deliri/primitive/v2026/temporal"
 )
 
@@ -17,8 +17,8 @@ func TestRunControlStateExhaustsClosedDomainAndObservationBoundary(t *testing.T)
 
 	cases := []struct {
 		name      string
-		state     runnercontrol.RunControlState
 		wantLabel string
+		state     runnercontrol.RunControlState
 		wantValid bool
 	}{
 		{name: "unknown state is outside the protocol", state: runnercontrol.RunControlStateUnknown},
@@ -127,11 +127,11 @@ func TestCancellationRequestBindsOriginRunAndNonce(t *testing.T) {
 
 	baseline := cancellationRequestFixture(t)
 	mutations := []struct {
-		name   string
 		mutate func(testing.TB, *runnercontrol.CancellationRequest)
+		name   string
 	}{
 		{name: "foreign origin cannot reuse cancellation identity", mutate: func(_ testing.TB, request *runnercontrol.CancellationRequest) {
-			request.Coordinate.Origin = projectstandards.OriginIdentity{Offering: core.Offering{Token: "foreign-origin"}}
+			request.Coordinate.Origin = standard.OriginIdentity{Offering: core.Offering{Token: "foreign-origin"}}
 		}},
 		{name: "sibling run cannot reuse cancellation identity", mutate: func(t testing.TB, request *runnercontrol.CancellationRequest) {
 			request.Coordinate.Run = runStateFixtureIDValue(t, "01890f2e-7b00-7000-8000-000000000002")
@@ -247,24 +247,24 @@ func proveRunStateRequestCanonical(t testing.TB, got runnercontrol.RunStateReque
 	}
 }
 
-func runStateFixtureID(t testing.TB) projectstandards.RunID {
+func runStateFixtureID(t testing.TB) standard.RunID {
 	return runStateFixtureIDValue(t, "01890f2e-7b00-7000-8000-000000000001")
 }
 
-func runStateFixtureIDValue(t testing.TB, value string) projectstandards.RunID {
+func runStateFixtureIDValue(t testing.TB, value string) standard.RunID {
 	t.Helper()
 	uuid, uuidErr := primitiveid.ParseUUIDv7(value)
-	run, runErr := projectstandards.NewRunID(uuid)
+	run, runErr := standard.NewRunID(uuid)
 	if err := errors.Join(uuidErr, runErr); err != nil {
 		t.Fatalf("run state RunID fixture error = %v, want nil", err)
 	}
 	return run
 }
 
-func requestNonceFixture(t testing.TB, value string) projectstandards.RequestNonce {
+func requestNonceFixture(t testing.TB, value string) standard.RequestNonce {
 	t.Helper()
 	uuid, uuidErr := primitiveid.ParseUUIDv7(value)
-	nonce, nonceErr := projectstandards.NewRequestNonce(uuid)
+	nonce, nonceErr := standard.NewRequestNonce(uuid)
 	if err := errors.Join(uuidErr, nonceErr); err != nil {
 		t.Fatalf("request nonce fixture error = %v, want nil", err)
 	}
@@ -275,7 +275,7 @@ func cancellationRequestFixture(t testing.TB) runnercontrol.CancellationRequest 
 	t.Helper()
 	request, err := runnercontrol.NewCancellationRequest(
 		runnercontrol.CancellationCoordinate{
-			Origin: projectstandards.OriginIdentity{Offering: core.Offering{Token: "origin"}},
+			Origin: standard.OriginIdentity{Offering: core.Offering{Token: "origin"}},
 			Run:    runStateFixtureID(t),
 			Nonce:  requestNonceFixture(t, "01890f2e-7b00-7000-8000-000000000002"),
 		},

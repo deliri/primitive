@@ -327,8 +327,8 @@ func TestTickerCapabilityExhaustsUnsetRepresentations(t *testing.T) {
 	t.Parallel()
 
 	cases := []struct {
-		name  string
 		value *temporal.Ticker
+		name  string
 	}{
 		{name: "nil ticker pointer is unset"},
 		{name: "allocated zero ticker is unset", value: new(temporal.Ticker)},

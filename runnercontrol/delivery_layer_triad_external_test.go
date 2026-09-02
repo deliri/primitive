@@ -5,8 +5,8 @@ import (
 	"testing"
 
 	"github.com/deliri/primitive/v2026/core"
-	"github.com/deliri/primitive/v2026/projectstandards"
 	"github.com/deliri/primitive/v2026/runnercontrol"
+	"github.com/deliri/primitive/v2026/standard"
 )
 
 func TestObservationDeliveryProtocolLayerTriad(t *testing.T) {
@@ -28,9 +28,9 @@ func TestObservationDeliveryProtocolLayerTriad(t *testing.T) {
 	t.Run("negative destination substitution is rejected before publication", func(t *testing.T) {
 		t.Parallel()
 		stage, pages, verifier := deliveryProtocolFixture(t)
-		foreign, foreignErr := projectstandards.NewIdentifier("foreign-origin-api")
+		foreign, foreignErr := standard.NewIdentifier("foreign-origin-api")
 		if foreignErr != nil {
-			t.Fatalf("projectstandards.NewIdentifier(foreign destination) error = %v, want nil", foreignErr)
+			t.Fatalf("standard.NewIdentifier(foreign destination) error = %v, want nil", foreignErr)
 		}
 		verifier.Destination = foreign
 		gotErr := verifier.Verify(stage, pages)

@@ -5,12 +5,11 @@ import (
 	"context"
 	json "encoding/json/v2"
 	"errors"
-	"net/http"
 	"slices"
 
 	"github.com/deliri/primitive/v2026/core"
 	"github.com/deliri/primitive/v2026/exchange"
-	"github.com/deliri/primitive/v2026/projectstandards"
+	"github.com/deliri/primitive/v2026/standard"
 	"github.com/deliri/primitive/v2026/temporal"
 )
 
@@ -48,7 +47,7 @@ func (l RunLimits) Validate() error {
 }
 
 func (l RunLimits) validateCounts() error {
-	if l.ArtifactCount == 0 || l.ArtifactCount > projectstandards.ArtifactReferenceMaximum {
+	if l.ArtifactCount == 0 || l.ArtifactCount > standard.ArtifactReferenceMaximum {
 		return core.ErrPrimitiveContract
 	}
 	if l.WorkerMaximum == 0 || l.WorkerMaximum > RunWorkerMaximum {
@@ -61,13 +60,13 @@ func (l RunLimits) validateCounts() error {
 }
 
 type RequestedRun struct {
-	SchemaVersion uint16                           `json:"schema_version"`
-	Request       projectstandards.RequestIdentity `json:"request_id"`
-	Nonce         projectstandards.RequestNonce    `json:"request_nonce"`
-	Probe         projectstandards.RequestedProbe  `json:"requested_probe"`
-	Limits        RunLimits                        `json:"limits"`
-	EvidencePlan  core.SHA256Digest                `json:"evidence_plan_digest"`
-	RequestedAt   temporal.Instant                 `json:"requested_at"`
+	Probe         standard.RequestedProbe  `json:"requested_probe"`
+	Limits        RunLimits                `json:"limits"`
+	RequestedAt   temporal.Instant         `json:"requested_at"`
+	SchemaVersion uint16                   `json:"schema_version"`
+	EvidencePlan  core.SHA256Digest        `json:"evidence_plan_digest"`
+	Request       standard.RequestIdentity `json:"request_id"`
+	Nonce         standard.RequestNonce    `json:"request_nonce"`
 }
 
 func (r RequestedRun) Validate() error {
@@ -77,7 +76,7 @@ func (r RequestedRun) Validate() error {
 	if err := errors.Join(r.Request.Validate(), r.Nonce.Validate(), r.Probe.Validate(), r.Limits.Validate(), r.EvidencePlan.Validate(), r.RequestedAt.Validate()); err != nil {
 		return err
 	}
-	identity, err := projectstandards.DeriveRequestIdentity(r.Probe.Origin, r.Nonce)
+	identity, err := standard.DeriveRequestIdentity(r.Probe.Origin, r.Nonce)
 	if err != nil || identity != r.Request {
 		return errors.Join(core.ErrPrimitiveContract, err)
 	}
@@ -123,14 +122,14 @@ func (r RequestedRun) IdempotencyKey() (exchange.IdempotencyKey, error) {
 }
 
 type RepositoryGrant struct {
-	Identity         core.SHA256Digest                   `json:"identity"`
-	Origin           projectstandards.OriginIdentity     `json:"origin"`
-	Subject          projectstandards.SubjectIdentity    `json:"subject"`
-	Repository       projectstandards.RepositoryIdentity `json:"repository"`
-	SourceAuthority  core.HTTPEndpoint                   `json:"source_authority"`
-	CredentialIssuer core.HTTPEndpoint                   `json:"credential_issuer"`
-	Enabled          bool                                `json:"enabled"`
-	ExpiresAt        temporal.Instant                    `json:"expires_at"`
+	Subject          standard.SubjectIdentity    `json:"subject"`
+	Origin           standard.OriginIdentity     `json:"origin"`
+	Repository       standard.RepositoryIdentity `json:"repository"`
+	SourceAuthority  core.HTTPEndpoint           `json:"source_authority"`
+	CredentialIssuer core.HTTPEndpoint           `json:"credential_issuer"`
+	ExpiresAt        temporal.Instant            `json:"expires_at"`
+	Identity         core.SHA256Digest           `json:"identity"`
+	Enabled          bool                        `json:"enabled"`
 }
 
 func (g RepositoryGrant) Validate() error {
@@ -153,13 +152,13 @@ func NewRepositoryGrant(grant RepositoryGrant) (RepositoryGrant, error) {
 
 func repositoryGrantDigest(g RepositoryGrant) core.SHA256Digest {
 	type projection struct {
-		Origin           projectstandards.OriginIdentity     `json:"origin"`
-		Subject          projectstandards.SubjectIdentity    `json:"subject"`
-		Repository       projectstandards.RepositoryIdentity `json:"repository"`
-		SourceAuthority  core.HTTPEndpoint                   `json:"source_authority"`
-		CredentialIssuer core.HTTPEndpoint                   `json:"credential_issuer"`
-		Enabled          bool                                `json:"enabled"`
-		ExpiresAt        temporal.Instant                    `json:"expires_at"`
+		Origin           standard.OriginIdentity     `json:"origin"`
+		Subject          standard.SubjectIdentity    `json:"subject"`
+		Repository       standard.RepositoryIdentity `json:"repository"`
+		SourceAuthority  core.HTTPEndpoint           `json:"source_authority"`
+		CredentialIssuer core.HTTPEndpoint           `json:"credential_issuer"`
+		Enabled          bool                        `json:"enabled"`
+		ExpiresAt        temporal.Instant            `json:"expires_at"`
 	}
 	encoded, err := core.MarshalCanonicalJSONDocument(projection{g.Origin, g.Subject, g.Repository, g.SourceAuthority, g.CredentialIssuer, g.Enabled, g.ExpiresAt})
 	if err != nil {
@@ -169,14 +168,14 @@ func repositoryGrantDigest(g RepositoryGrant) core.SHA256Digest {
 }
 
 type OriginDeliveryGrant struct {
-	Identity    core.SHA256Digest               `json:"identity"`
-	Origin      projectstandards.OriginIdentity `json:"origin"`
-	Endpoint    core.HTTPEndpoint               `json:"endpoint"`
-	Credential  PeerCredential                  `json:"credential"`
-	Audience    projectstandards.Identifier     `json:"audience"`
-	Application projectstandards.Identifier     `json:"application"`
-	Enabled     bool                            `json:"enabled"`
-	ExpiresAt   temporal.Instant                `json:"expires_at"`
+	Origin      standard.OriginIdentity `json:"origin"`
+	Audience    standard.Identifier     `json:"audience"`
+	Application standard.Identifier     `json:"application"`
+	Endpoint    core.HTTPEndpoint       `json:"endpoint"`
+	ExpiresAt   temporal.Instant        `json:"expires_at"`
+	Credential  PeerCredential          `json:"credential"`
+	Identity    core.SHA256Digest       `json:"identity"`
+	Enabled     bool                    `json:"enabled"`
 }
 
 func (g OriginDeliveryGrant) Validate() error {
@@ -199,15 +198,23 @@ func NewOriginDeliveryGrant(grant OriginDeliveryGrant) (OriginDeliveryGrant, err
 
 func originDeliveryGrantDigest(g OriginDeliveryGrant) core.SHA256Digest {
 	type projection struct {
-		Origin      projectstandards.OriginIdentity `json:"origin"`
-		Endpoint    core.HTTPEndpoint               `json:"endpoint"`
-		Credential  PeerCredential                  `json:"credential"`
-		Audience    projectstandards.Identifier     `json:"audience"`
-		Application projectstandards.Identifier     `json:"application"`
-		Enabled     bool                            `json:"enabled"`
-		ExpiresAt   temporal.Instant                `json:"expires_at"`
+		Origin      standard.OriginIdentity `json:"origin"`
+		Audience    standard.Identifier     `json:"audience"`
+		Application standard.Identifier     `json:"application"`
+		Endpoint    core.HTTPEndpoint       `json:"endpoint"`
+		ExpiresAt   temporal.Instant        `json:"expires_at"`
+		Credential  PeerCredential          `json:"credential"`
+		Enabled     bool                    `json:"enabled"`
 	}
-	encoded, err := core.MarshalCanonicalJSONDocument(projection{g.Origin, g.Endpoint, g.Credential, g.Audience, g.Application, g.Enabled, g.ExpiresAt})
+	encoded, err := core.MarshalCanonicalJSONDocument(projection{
+		Origin:      g.Origin,
+		Audience:    g.Audience,
+		Application: g.Application,
+		Endpoint:    g.Endpoint,
+		ExpiresAt:   g.ExpiresAt,
+		Credential:  g.Credential,
+		Enabled:     g.Enabled,
+	})
 	if err != nil {
 		return core.SHA256Digest{}
 	}
@@ -215,12 +222,12 @@ func originDeliveryGrantDigest(g OriginDeliveryGrant) core.SHA256Digest {
 }
 
 type SourceGrant struct {
-	Identity        SourceGrantIdentity               `json:"identity"`
-	RepositoryGrant core.SHA256Digest                 `json:"repository_grant"`
-	Source          projectstandards.SourceCoordinate `json:"source"`
-	Authority       core.HTTPEndpoint                 `json:"authority"`
-	Credential      projectstandards.Identifier       `json:"credential_custody"`
-	ExpiresAt       temporal.Instant                  `json:"expires_at"`
+	Credential      standard.Identifier       `json:"credential_custody"`
+	Authority       core.HTTPEndpoint         `json:"authority"`
+	Source          standard.SourceCoordinate `json:"source"`
+	ExpiresAt       temporal.Instant          `json:"expires_at"`
+	Identity        SourceGrantIdentity       `json:"identity"`
+	RepositoryGrant core.SHA256Digest         `json:"repository_grant"`
 }
 
 func (g SourceGrant) Validate() error {
@@ -239,17 +246,17 @@ func NewSourceGrant(grant SourceGrant) (SourceGrant, error) {
 }
 
 type AdmittedRun struct {
-	SchemaVersion uint16                           `json:"schema_version"`
-	Request       projectstandards.RequestIdentity `json:"request_id"`
-	Run           projectstandards.RunID           `json:"run_id"`
-	Requested     projectstandards.RequestedProbe  `json:"requested_probe"`
-	Probe         projectstandards.ProbeIdentity   `json:"admitted_probe"`
-	Limits        RunLimits                        `json:"limits"`
-	EvidencePlan  core.SHA256Digest                `json:"evidence_plan_digest"`
-	Repository    RepositoryGrant                  `json:"repository_grant"`
-	Delivery      OriginDeliveryGrant              `json:"origin_delivery_grant"`
-	Source        SourceGrant                      `json:"source_grant"`
-	AdmittedAt    temporal.Instant                 `json:"admitted_at"`
+	Repository    RepositoryGrant          `json:"repository_grant"`
+	Requested     standard.RequestedProbe  `json:"requested_probe"`
+	Delivery      OriginDeliveryGrant      `json:"origin_delivery_grant"`
+	Probe         standard.ProbeIdentity   `json:"admitted_probe"`
+	Source        SourceGrant              `json:"source_grant"`
+	Limits        RunLimits                `json:"limits"`
+	AdmittedAt    temporal.Instant         `json:"admitted_at"`
+	SchemaVersion uint16                   `json:"schema_version"`
+	EvidencePlan  core.SHA256Digest        `json:"evidence_plan_digest"`
+	Request       standard.RequestIdentity `json:"request_id"`
+	Run           standard.RunID           `json:"run_id"`
 }
 
 func (r AdmittedRun) Validate() error {
@@ -267,11 +274,11 @@ func (r AdmittedRun) Validate() error {
 
 func sourceGrantDigest(grant SourceGrant) core.SHA256Digest {
 	type identityInput struct {
-		RepositoryGrant core.SHA256Digest                 `json:"repository_grant"`
-		Source          projectstandards.SourceCoordinate `json:"source"`
-		Authority       core.HTTPEndpoint                 `json:"authority"`
-		Credential      projectstandards.Identifier       `json:"credential_custody"`
-		ExpiresAt       temporal.Instant                  `json:"expires_at"`
+		Credential      standard.Identifier       `json:"credential_custody"`
+		Authority       core.HTTPEndpoint         `json:"authority"`
+		Source          standard.SourceCoordinate `json:"source"`
+		ExpiresAt       temporal.Instant          `json:"expires_at"`
+		RepositoryGrant core.SHA256Digest         `json:"repository_grant"`
 	}
 	encoded, err := core.MarshalCanonicalJSONDocument(identityInput{RepositoryGrant: grant.RepositoryGrant, Source: grant.Source, Authority: grant.Authority, Credential: grant.Credential, ExpiresAt: grant.ExpiresAt})
 	if err != nil {
@@ -280,7 +287,7 @@ func sourceGrantDigest(grant SourceGrant) core.SHA256Digest {
 	return core.SHA256Of(encoded)
 }
 
-func validateProbeDescent(requested projectstandards.RequestedProbe, admitted projectstandards.ProbeIdentity) error {
+func validateProbeDescent(requested standard.RequestedProbe, admitted standard.ProbeIdentity) error {
 	if !probeDescentScalarsMatch(requested, admitted) {
 		return core.ErrPrimitiveContract
 	}
@@ -292,7 +299,7 @@ func validateProbeDescent(requested projectstandards.RequestedProbe, admitted pr
 	if !bytes.Equal(left, right) {
 		return core.ErrPrimitiveContract
 	}
-	if admitted.Role == projectstandards.ProbeRoleSelection {
+	if admitted.Role == standard.ProbeRoleSelection {
 		return nil
 	}
 	if slices.Contains(requested.Kinds, admitted.Kind) {
@@ -301,15 +308,15 @@ func validateProbeDescent(requested projectstandards.RequestedProbe, admitted pr
 	return core.ErrPrimitiveContract
 }
 
-func probeDescentScalarsMatch(requested projectstandards.RequestedProbe, admitted projectstandards.ProbeIdentity) bool {
+func probeDescentScalarsMatch(requested standard.RequestedProbe, admitted standard.ProbeIdentity) bool {
 	return admitted.Origin == requested.Origin && admitted.Subject == requested.Subject && admitted.Source == requested.Source && admitted.Profile == requested.Profile && admitted.Environment.Satisfies(requested.Constraints)
 }
 
 type AdmissionResponse struct {
-	SchemaVersion uint16                           `json:"schema_version"`
-	Request       projectstandards.RequestIdentity `json:"request_id"`
-	Admitted      *AdmittedRun                     `json:"admitted,omitempty"`
-	Refusal       *projectstandards.RefusalReason  `json:"refusal,omitempty"`
+	Admitted      *AdmittedRun             `json:"admitted,omitempty"`
+	Refusal       *standard.RefusalReason  `json:"refusal,omitempty"`
+	SchemaVersion uint16                   `json:"schema_version"`
+	Request       standard.RequestIdentity `json:"request_id"`
 }
 
 func (r AdmissionResponse) Validate() error {
@@ -409,8 +416,8 @@ func (c AdmissionClient) Submit(ctx context.Context, request RequestedRun) (exch
 }
 
 type AdmissionServer struct {
-	socket     exchange.ServerSocket
 	repository AdmissionRepository
+	socket     exchange.ServerSocket
 }
 
 func NewAdmissionServer(contract exchange.JSONSocketContract, repository AdmissionRepository) (AdmissionServer, error) {
@@ -424,15 +431,15 @@ func NewAdmissionServer(contract exchange.JSONSocketContract, repository Admissi
 	return AdmissionServer{socket: socket, repository: repository}, nil
 }
 
-func (s AdmissionServer) Serve(writer http.ResponseWriter, request *http.Request) error {
+func (s AdmissionServer) Serve(exchange.SocketServerCall) error {
 	return core.ErrPrimitiveContract
 }
 
-func (s AdmissionServer) ServeAuthenticated(writer http.ResponseWriter, request *http.Request, peer AuthenticatedPeer) error {
+func (s AdmissionServer) ServeAuthenticated(call exchange.SocketServerCall, peer AuthenticatedPeer) error {
 	if s.repository == nil {
 		return core.ErrPrimitiveContract
 	}
-	call, err := exchange.NewSocketServerCall(writer, request)
+	ctx, err := call.Context()
 	if err != nil {
 		return err
 	}
@@ -444,7 +451,7 @@ func (s AdmissionServer) ServeAuthenticated(writer http.ResponseWriter, request 
 	if err := authenticated.Validate(); err != nil {
 		return err
 	}
-	response, err := s.repository.Admit(request.Context(), authenticated)
+	response, err := s.repository.Admit(ctx, authenticated)
 	if err != nil {
 		return err
 	}
@@ -457,8 +464,7 @@ func (s AdmissionServer) ServeAuthenticated(writer http.ResponseWriter, request 
 func AdmissionSocketContract(path exchange.SocketRoutePath) (exchange.JSONSocketContract, error) {
 	requestLimit, requestErr := core.NewByteCount(AdmissionRequestMaximumBytes)
 	responseLimit, responseErr := core.NewByteCount(AdmissionResponseMaximumBytes)
-	var accepted core.HTTPStatusCode
-	statusErr := accepted.AdmitInt(http.StatusAccepted)
+	accepted, statusErr := exchange.HTTPStatusAccepted()
 	if err := errors.Join(path.Validate(), requestErr, responseErr, statusErr); err != nil {
 		return exchange.JSONSocketContract{}, err
 	}

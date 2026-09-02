@@ -145,17 +145,16 @@ func UploadDecision(grant GrantProjection) (DecisionProjection, error) {
 // declaration an authority must prove before it may disclose accepted-object
 // evidence instead of issuing a fresh upload grant.
 type ReuseDecisionRequest struct {
-	Offering    core.Offering
+	Scope       receipt.Scope
 	Declaration Declaration
 	Evidence    receipt.EvidenceDocument
 	TrustedKeys attest.TrustedKeys
-	Account     receipt.AccountIdentity
 }
 
 func (r ReuseDecisionRequest) Validate() error {
 	if err := errors.Join(
 		r.Evidence.Validate(), r.Declaration.Validate(), r.TrustedKeys.Validate(),
-		r.Account.Validate(), r.Offering.Validate(),
+		r.Scope.Validate(),
 	); err != nil {
 		return contractError(err)
 	}
@@ -234,17 +233,16 @@ func (p DecisionProjection) marshalJSON() ([]byte, error) {
 // existence oracle.
 type DecisionExpectation struct {
 	Decision    DecisionDocument
-	Offering    core.Offering
+	Scope       receipt.Scope
 	Request     RequestPayload
 	TrustedKeys attest.TrustedKeys
 	ObservedAt  temporal.Instant
-	Account     receipt.AccountIdentity
 }
 
 func (e DecisionExpectation) Validate() error {
 	if err := errors.Join(
-		e.Decision.Validate(), e.Request.Validate(), e.Account.Validate(),
-		e.Offering.Validate(), e.ObservedAt.Validate(), e.TrustedKeys.Validate(),
+		e.Decision.Validate(), e.Request.Validate(), e.Scope.Validate(),
+		e.ObservedAt.Validate(), e.TrustedKeys.Validate(),
 	); err != nil {
 		return contractError(err)
 	}
@@ -284,8 +282,7 @@ func verifyReuseDecision(expectation DecisionExpectation) (VerifiedDecision, err
 	evidence := *expectation.Decision.Evidence
 	verifiedEvidence, err := verifyReuseEvidence(ReuseDecisionRequest{
 		Evidence: evidence, Declaration: expectation.Request.Declaration,
-		TrustedKeys: expectation.TrustedKeys, Account: expectation.Account,
-		Offering: expectation.Offering,
+		TrustedKeys: expectation.TrustedKeys, Scope: expectation.Scope,
 	})
 	if err != nil {
 		return VerifiedDecision{}, err
@@ -302,7 +299,7 @@ func verifyReuseEvidence(request ReuseDecisionRequest) (receipt.VerifiedEvidence
 	verified, err := receipt.VerifyEvidence(receipt.VerifyEvidenceRequest{
 		Document: request.Evidence, TrustedKeys: request.TrustedKeys,
 		Expected: receipt.EvidenceExpectation{
-			Account: request.Account, Offering: request.Offering, Body: body,
+			Principal: request.Scope.Principal, Offering: request.Scope.Offering, Body: body,
 		},
 	})
 	if err != nil {

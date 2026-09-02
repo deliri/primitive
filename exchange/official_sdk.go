@@ -124,12 +124,12 @@ func (r *OfficialSDKResponseRepresentation) UnmarshalJSON(data []byte) error {
 // OfficialSDKResponseBoundary confines one official-SDK response without
 // replacing the SDK's provider request or decoding contract.
 type OfficialSDKResponseBoundary struct {
-	method           Method
 	prefix           string
 	suffix           string
 	streamQueryName  string
 	streamQueryValue string
 	limit            core.ByteCount
+	method           Method
 	representation   OfficialSDKResponseRepresentation
 	scope            officialSDKResponseScope
 	streamSuccess    bool
@@ -138,11 +138,11 @@ type OfficialSDKResponseBoundary struct {
 
 // OfficialSDKResponseBoundaryRequest selects one method and provider path shape.
 type OfficialSDKResponseBoundaryRequest struct {
-	Method         Method
 	PathPrefix     string
 	PathSuffix     string
-	Representation OfficialSDKResponseRepresentation
 	MaximumBytes   core.ByteCount
+	Method         Method
+	Representation OfficialSDKResponseRepresentation
 }
 
 // Validate rejects an invalid selected-path response boundary request.
@@ -208,11 +208,11 @@ func NewOfficialSDKResponseCeiling(request OfficialSDKResponseCeilingRequest) (O
 // still aggregated, bounded, and representation-validated for the SDK's error
 // decoder.
 type OfficialSDKStreamingSuccessCeilingRequest struct {
-	Method                  Method
 	StreamQueryName         string
 	StreamQueryValue        string
-	AggregateRepresentation OfficialSDKResponseRepresentation
 	AggregateMaximumBytes   core.ByteCount
+	Method                  Method
+	AggregateRepresentation OfficialSDKResponseRepresentation
 }
 
 // Validate rejects an invalid streaming-success response policy.
@@ -379,7 +379,7 @@ func officialSDKPathSuffixMatches(path, suffix string) bool {
 		return false
 	}
 	start := len(path) - len(suffix)
-	return start == 0 || strings.HasPrefix(suffix, "/") || path[start-1] == '/'
+	return start == 0 || strings.HasPrefix(suffix, "/") || strings.HasPrefix(suffix, ":") || path[start-1] == '/'
 }
 
 // OfficialSDKResponseTransportRequest binds one standard HTTP transport to

@@ -49,8 +49,6 @@ const (
 	PackageFuzzFinder
 	// PackageLease identifies the lease package.
 	PackageLease
-	// PackageGate identifies the new-work authorization package.
-	PackageGate
 	// PackageReceipt identifies authenticated accepted-evidence facts and watermarks.
 	PackageReceipt
 	// PackageControlWire identifies the shared control-wire scalar package.
@@ -78,8 +76,10 @@ const (
 	PackageObjectStore
 	// PackageTimeProof identifies the time-proof package.
 	PackageTimeProof
-	// PackageCloudIdentity identifies the cloud-identity package.
-	PackageCloudIdentity
+	// PackageGoogleIdentity identifies the Google identity package.
+	PackageGoogleIdentity
+	// PackageAWSIdentity identifies the AWS identity package.
+	PackageAWSIdentity
 	// PackageDeploy identifies exact release publication to GCS.
 	PackageDeploy
 	// PackageUpgrade identifies the upgrade package.
@@ -113,24 +113,28 @@ const (
 	PackageManual
 	// PackageSecretStore identifies bounded secret-provider access.
 	PackageSecretStore
-	// PackageProjectStandards identifies reusable project/package knowledge and evidence projection.
-	PackageProjectStandards
+	// PackageStandard identifies the shared compiler-visible Go project bar.
+	PackageStandard
 	// PackageMachineProbe identifies bounded execution of one admitted machine probe.
 	PackageMachineProbe
 	// PackageRunnerControl identifies typed domain-blind runner control contracts.
 	PackageRunnerControl
 	// PackageRunWorkspace identifies owned per-run workspace and evidence effects.
 	PackageRunWorkspace
-	// PackageProviderWire identifies provider-authenticated domain-blind HTTP plugs.
-	PackageProviderWire
+	// PackageStripe identifies Stripe-authenticated HTTP and webhook contracts.
+	PackageStripe
+	// PackagePayPal identifies PayPal OAuth, HTTP, and webhook contracts.
+	PackagePayPal
+	// PackageTwilio identifies Twilio-authenticated HTTP and webhook contracts.
+	PackageTwilio
+	// PackagePlunk identifies Plunk-authenticated HTTP and webhook contracts.
+	PackagePlunk
 	// PackageCapabilities identifies the compiler-owned Primitive capability catalog.
 	PackageCapabilities
 	// PackagePrimitiveProject identifies Primitive's authored project policy.
 	PackagePrimitiveProject
 	// PackageProofLedger identifies the blind append-only proof-chain agreement.
 	PackageProofLedger
-	// PackageReviewControl identifies exact-source review agreements and decisions.
-	PackageReviewControl
 	packageIdentityLimit
 )
 
@@ -184,7 +188,6 @@ func PrimitiveArchitecture() ArchitectureCatalog {
 			{Identity: PackageExchange, Kind: PackageKindProduction, Role: PackageRoleEffectCapability},
 			{Identity: PackageFuzzFinder, Kind: PackageKindProduction, Role: PackageRoleOrchestration},
 			{Identity: PackageLease, Kind: PackageKindProduction, Role: PackageRoleDomainAgreement},
-			{Identity: PackageGate, Kind: PackageKindProduction, Role: PackageRoleOrchestration},
 			{Identity: PackageReceipt, Kind: PackageKindProduction, Role: PackageRoleDomainAgreement},
 			{Identity: PackageControlWire, Kind: PackageKindProduction, Role: PackageRoleWireProtocol},
 			{Identity: PackageControlPlane, Kind: PackageKindProduction, Role: PackageRoleAuthenticationBinding},
@@ -198,7 +201,8 @@ func PrimitiveArchitecture() ArchitectureCatalog {
 			{Identity: PackageShutdown, Kind: PackageKindProduction, Role: PackageRoleEffectCapability},
 			{Identity: PackageObjectStore, Kind: PackageKindProduction, Role: PackageRoleEffectCapability},
 			{Identity: PackageTimeProof, Kind: PackageKindProduction, Role: PackageRoleDomainAgreement},
-			{Identity: PackageCloudIdentity, Kind: PackageKindProduction, Role: PackageRoleDomainAgreement},
+			{Identity: PackageGoogleIdentity, Kind: PackageKindProduction, Role: PackageRoleDomainAgreement},
+			{Identity: PackageAWSIdentity, Kind: PackageKindProduction, Role: PackageRoleDomainAgreement},
 			{Identity: PackageDeploy, Kind: PackageKindProduction, Role: PackageRoleOrchestration},
 			{Identity: PackageUpgrade, Kind: PackageKindProduction, Role: PackageRoleOrchestration},
 			{Identity: PackageGCSObjects, Kind: PackageKindProduction, Role: PackageRoleOrchestration},
@@ -213,17 +217,19 @@ func PrimitiveArchitecture() ArchitectureCatalog {
 			{Identity: PackageDistributionAuth, Kind: PackageKindProduction, Role: PackageRoleAuthenticationBinding},
 			{Identity: PackageWiring, Kind: PackageKindProduction, Role: PackageRoleValueContract},
 			{Identity: PackageLineIO, Kind: PackageKindProduction, Role: PackageRoleValueContract},
-			{Identity: PackageManual, Kind: PackageKindProduction, Role: PackageRoleDomainAgreement},
+			{Identity: PackageManual, Kind: PackageKindProduction, Role: PackageRoleValueContract},
 			{Identity: PackageSecretStore, Kind: PackageKindProduction, Role: PackageRoleEffectCapability},
-			{Identity: PackageProjectStandards, Kind: PackageKindProduction, Role: PackageRoleDomainAgreement},
+			{Identity: PackageStandard, Kind: PackageKindProduction, Role: PackageRoleValueContract},
 			{Identity: PackageMachineProbe, Kind: PackageKindProduction, Role: PackageRoleOrchestration},
 			{Identity: PackageRunnerControl, Kind: PackageKindProduction, Role: PackageRoleDomainAgreement},
 			{Identity: PackageRunWorkspace, Kind: PackageKindProduction, Role: PackageRoleOrchestration},
-			{Identity: PackageProviderWire, Kind: PackageKindProduction, Role: PackageRoleWireProtocol},
+			{Identity: PackageStripe, Kind: PackageKindProduction, Role: PackageRoleWireProtocol},
+			{Identity: PackagePayPal, Kind: PackageKindProduction, Role: PackageRoleWireProtocol},
+			{Identity: PackageTwilio, Kind: PackageKindProduction, Role: PackageRoleWireProtocol},
+			{Identity: PackagePlunk, Kind: PackageKindProduction, Role: PackageRoleWireProtocol},
 			{Identity: PackageCapabilities, Kind: PackageKindProduction, Role: PackageRoleValueContract},
-			{Identity: PackagePrimitiveProject, Kind: PackageKindTestSupport, Role: PackageRoleOrchestration},
+			{Identity: PackagePrimitiveProject, Kind: PackageKindTestSupport, Role: PackageRoleValueContract},
 			{Identity: PackageProofLedger, Kind: PackageKindProduction, Role: PackageRoleDomainAgreement},
-			{Identity: PackageReviewControl, Kind: PackageKindProduction, Role: PackageRoleDomainAgreement},
 		},
 	}
 }
@@ -423,12 +429,11 @@ func packagePurposeTexts() [packageIdentityLimit]string {
 		PackageTestSerial:       "Test-only isolation declaration and analyzer contract",
 		PackageFileLock:         "One advisory whole-file lock on one already-open file",
 		PackageFilestore:        "Rooted OS handles, confinement, inspection, durability, activation, append rotation, rename, and recovery",
-		PackageHostFacts:        "Host disk, memory, cgroup, tree, and OOM observations",
+		PackageHostFacts:        "Host disk, memory, cgroup, terminal, process-ambient, and OOM observations",
 		PackageTemporal:         "Time, duration, arithmetic, persistence, waits, and tickers",
 		PackageExchange:         "Bounded client and server boundary policy over net/http",
 		PackageFuzzFinder:       "Bounded classification and observation of Go-generated fuzz artifacts",
 		PackageLease:            "Signed lease timeline, assessment, renewal, and monotonic advance",
-		PackageGate:             "Pure CLI-side new-work authorization over one authentic Lease assessment",
 		PackageReceipt:          "Authenticated accepted-evidence facts and fixed-size monotonic watermarks",
 		PackageControlWire:      "Shared control-wire facts and paired authenticated socket with request-owner body limits",
 		PackageControlPlane:     "Signed control-plane request and response documents, their binding to one exact request, product status, and usage watermark",
@@ -442,7 +447,8 @@ func packagePurposeTexts() [packageIdentityLimit]string {
 		PackageShutdown:         "Signal observation and phased bounded cleanup",
 		PackageObjectStore:      "Bounded vendor-specified S3, GCS, or Cloudflare Images transfers through issued HTTPS capabilities, with integrity and provider evidence",
 		PackageTimeProof:        "RFC 3161 request construction, response verification, and replay",
-		PackageCloudIdentity:    "Bounded Google Cloud identity-token and OAuth access-token or AWS identity-token acquisition with redacted disclosure",
+		PackageGoogleIdentity:   "Bounded Google Cloud identity-token and OAuth access-token acquisition, verification, and redacted disclosure",
+		PackageAWSIdentity:      "Bounded regional AWS STS identity-token acquisition with redacted disclosure",
 		PackageDeploy:           "Exact create-only GCS publication of one authenticated release and its metadata",
 		PackageUpgrade:          "Crash-recoverable installation, activation, startup truth, rollback, and recovery",
 		PackageGCSObjects:       "Authenticated Google Cloud Storage bucket provisioning and public-read IAM, typed logical namespace composition, create-only writes, IAM-signed short-lived upload and whole-object retrieval capabilities, exact-generation observation, digest-bound reads, and generation-matched permanent deletion through official SDKs over Exchange",
@@ -458,16 +464,18 @@ func packagePurposeTexts() [packageIdentityLimit]string {
 		PackageWiring:           "Bounded immutable runtime component graphs with exact Primitive-door declarations",
 		PackageLineIO:           "Bounded line scanning over one io.Reader through Go bufio.Scanner and bufio.ScanLines",
 		PackageManual:           "Bounded validated human text and stable machine JSON manuals from one product-owned typed book",
-		PackageProjectStandards: "Validated project, package, and file knowledge with exact Primitive-effect posture, evidence references, deterministic reports, and bounded exchange",
+		PackageStandard:         "Validated project, package, and source-file facts with exact effect posture, evidence references, and deterministic bounded reports",
 		PackageMachineProbe:     "Bounded execution and typed evidence capture for one admitted machine-observation script",
 		PackageRunnerControl:    "Typed domain-blind runner admission, execution, evidence, completion, and delivery contracts",
 		PackageRunWorkspace:     "Owned per-run writable workspace, source acquisition, evidence retention, and cleanup effects",
 		PackageSecretStore:      "Bounded exact-version secret access through official provider SDKs",
-		PackageProviderWire:     "Provider-authenticated domain-blind streamed HTTP plugs for Stripe, Twilio, Plunk, and PayPal",
+		PackageStripe:           "Stripe-authenticated domain-blind streamed HTTP and verified webhook boundaries",
+		PackagePayPal:           "PayPal OAuth, authenticated streamed HTTP, and verified webhook boundaries",
+		PackageTwilio:           "Twilio-authenticated account-bound HTTP and verified webhook boundaries",
+		PackagePlunk:            "Plunk-authenticated streamed HTTP and bearer-authenticated webhook boundaries",
 		PackageCapabilities:     "Compiler-owned discovery and exact resolution of Primitive package and real-world effect capabilities",
-		PackagePrimitiveProject: "Authored Primitive project policy expressed through the product-neutral Project Standards contract",
+		PackagePrimitiveProject: "Authored Primitive project knowledge expressed through the product-neutral standard contract",
 		PackageProofLedger:      "Blind append-only canonical proof chains, idempotent append receipts, bounded pages, and streaming verification",
-		PackageReviewControl:    "Exact-source review packets, advisory observations, independently authorized human decisions, and review projections",
 	}
 }
 
@@ -494,7 +502,6 @@ func packageIdentityTexts() [packageIdentityLimit]string {
 		"exchange",
 		"fuzzfinder",
 		"lease",
-		"gate",
 		"receipt",
 		"controlwire",
 		"controlplane",
@@ -508,7 +515,8 @@ func packageIdentityTexts() [packageIdentityLimit]string {
 		"shutdown",
 		"objectstore",
 		"timeproof",
-		"cloudidentity",
+		"googleidentity",
+		"awsidentity",
 		"deploy",
 		"upgrade",
 		"gcsobjects",
@@ -525,15 +533,17 @@ func packageIdentityTexts() [packageIdentityLimit]string {
 		"lineio",
 		"manual",
 		"secretstore",
-		"projectstandards",
+		"standard",
 		"machineprobe",
 		"runnercontrol",
 		"runworkspace",
-		"providerwire",
+		"stripe",
+		"paypal",
+		"twilio",
+		"plunk",
 		"capabilities",
 		"primitiveproject",
 		"proofledger",
-		"reviewcontrol",
 	}
 }
 

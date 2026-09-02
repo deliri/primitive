@@ -43,11 +43,12 @@ func TestJSONTransportLayerTriad(t *testing.T) {
 			writer http.ResponseWriter,
 			request *http.Request,
 		) {
+			serverCall := socketServerCallFrom(t, writer, request)
 			received, receiveErr := exchange.ReceiveJSON[
 				transportDocument,
 				*transportDocument,
 			](exchange.JSONReceiveCall{
-				Request: request,
+				Call: serverCall,
 				Route: exchange.RouteSemantics{
 					Method: exchange.MethodPost,
 					Replay: exchange.ReplaySingleAttempt,
@@ -65,7 +66,7 @@ func TestJSONTransportLayerTriad(t *testing.T) {
 				observation.message = received.Body.Message
 				observation.writeErr = exchange.WriteJSON(
 					exchange.JSONWriteCall[transportDocument]{
-						Writer: writer,
+						Call: serverCall,
 						Response: exchange.ServerJSONResponse[transportDocument]{
 							Body: transportDocument{Message: "accepted"},
 							Headers: exchange.ResponseHeaders{
@@ -305,9 +306,10 @@ func TestJSONTransportLayerTriad(t *testing.T) {
 			writer http.ResponseWriter,
 			request *http.Request,
 		) {
+			serverCall := socketServerCallFrom(t, writer, request)
 			_, receiveErr := exchange.ReceiveNoBody(
 				exchange.NoBodyReceiveCall{
-					Request: request,
+					Call: serverCall,
 					Route: exchange.RouteSemantics{
 						Method: exchange.MethodGet,
 						Replay: exchange.ReplaySingleAttempt,
@@ -316,7 +318,7 @@ func TestJSONTransportLayerTriad(t *testing.T) {
 			)
 			writeErr := exchange.WriteJSON(
 				exchange.JSONWriteCall[transportDocument]{
-					Writer: writer,
+					Call: serverCall,
 					Response: exchange.ServerJSONResponse[transportDocument]{
 						Body:   transportDocument{Message: "body absent"},
 						Status: ok,

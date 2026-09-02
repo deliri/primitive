@@ -1,0 +1,92 @@
+package googleidentity
+
+import (
+	"context"
+	"errors"
+
+	"github.com/deliri/primitive/v2026/core"
+	"github.com/deliri/primitive/v2026/exchange"
+)
+
+// acquisitionCall is one bounded provider acquisition. Each entry point states
+// its own target, headers, and response bound, so nothing here selects a
+// provider or infers one bound from another.
+type acquisitionCall struct {
+	context        context.Context
+	client         Client
+	headers        exchange.Headers
+	responseHeader core.HTTPHeaderName
+	target         core.HTTPEndpoint
+	responseLimit  core.ByteCount
+	policy         Policy
+}
+
+// Validate closes the complete call at the execution boundary, immediately
+// before the outbound effect.
+func (c acquisitionCall) Validate() error {
+	return errors.Join(
+		c.client.Validate(),
+		c.target.Validate(),
+		c.responseHeader.Validate(),
+		c.responseLimit.Validate(),
+		c.policy.Validate(),
+		c.headers.Validate(),
+	)
+}
+
+func acquire(call acquisitionCall) (exchange.BoundedResponse, error) {
+	if err := call.Validate(); err != nil {
+		return exchange.BoundedResponse{}, contractError(err)
+	}
+	// Google metadata answers one acquisition with exactly 200 OK; every
+	// other status is refused by Exchange.
+	status := core.HTTPStatusOK()
+	response, err := exchange.SendNoBodyBounded(exchange.NoBodyBoundedCall{
+		Context: call.context,
+		Client:  call.client.exchange,
+		Request: exchange.NoBodyBoundedRequest{
+			Target: call.target,
+			Semantics: exchange.RequestSemantics{
+				Method: exchange.MethodGet,
+				Replay: exchange.ReplaySingleAttempt,
+			},
+			Headers:        call.headers,
+			CaptureHeaders: exchange.HeaderSelection{Names: []core.HTTPHeaderName{call.responseHeader}},
+			ExpectedStatus: status,
+		},
+		Policy: exchange.NoBodyBoundedPolicy{
+			Operation:         call.policy.exchange(),
+			ResponseBodyLimit: call.responseLimit,
+		},
+	})
+	if err != nil {
+		return response, contractError(err)
+	}
+	if err := validateMetadataResponseHeader(response.Metadata.Headers, call.responseHeader); err != nil {
+		return exchange.BoundedResponse{}, err
+	}
+	return response, nil
+}
+
+func validateMetadataResponseHeader(headers exchange.CapturedHeaders, name core.HTTPHeaderName) error {
+	if len(headers.Values) != 1 || headers.Values[0].Name != name || len(headers.Values[0].Values) != 1 {
+		return core.ErrGoogleIdentityContract
+	}
+	value, err := headers.Values[0].Values[0].Value()
+	if err != nil {
+		return contractError(err)
+	}
+	if value != googleMetadataHeaderValue {
+		return core.ErrGoogleIdentityContract
+	}
+	return nil
+}
+
+// validateAcquisition is the one ingress gate both entry points cross. It
+// reports every defect at once so a caller holding two invalid values does not
+// have to fix them one round trip at a time.
+func validateAcquisition(client Client, request core.Validatable) error {
+	return errors.Join(client.Validate(), request.Validate())
+}
+
+var _ core.Validatable = acquisitionCall{}

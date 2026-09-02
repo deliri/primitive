@@ -362,10 +362,10 @@ func VerifySchedulingClaim(claim SchedulingClaim, trusted attest.TrustedKeys) er
 }
 
 type SchedulingClaimRecord struct {
-	Claim     SchedulingClaim
 	Canonical []byte
-	Digest    core.SHA256Digest
+	Claim     SchedulingClaim
 	Bytes     core.ByteLength
+	Digest    core.SHA256Digest
 }
 
 func NewSchedulingClaimRecord(claim SchedulingClaim) (SchedulingClaimRecord, error) {

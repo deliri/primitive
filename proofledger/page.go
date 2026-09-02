@@ -15,10 +15,10 @@ type PageRequest struct {
 }
 
 type Page[P CanonicalPayload] struct {
-	After  Head          `json:"after"`
-	Limit  PageLimit     `json:"limit"`
 	Events []Envelope[P] `json:"events"`
+	After  Head          `json:"after"`
 	Next   Head          `json:"next"`
+	Limit  PageLimit     `json:"limit"`
 	More   bool          `json:"more"`
 }
 
@@ -40,28 +40,46 @@ func (p Page[P]) Validate() error {
 	if err != nil {
 		return err
 	}
-	if len(p.Events) > int(limit) || p.After.Ledger != p.Next.Ledger || p.More && len(p.Events) != int(limit) {
-		return errors.Join(core.ErrProofLedgerSequenceConflict, contractError())
+	if err := p.validatePageShape(limit); err != nil {
+		return err
 	}
 	verifier, err := NewVerifier[P](p.After)
 	if err != nil {
 		return err
 	}
+	if err := p.observeEvents(&verifier); err != nil {
+		return err
+	}
+	if err := p.validateContinuation(verifier); err != nil {
+		return err
+	}
+	return p.validateEncodedSize()
+}
+
+func (p Page[P]) validatePageShape(limit uint16) error {
+	if len(p.Events) > int(limit) || p.After.Ledger != p.Next.Ledger || p.More && len(p.Events) != int(limit) {
+		return errors.Join(core.ErrProofLedgerSequenceConflict, contractError())
+	}
+	return nil
+}
+
+func (p Page[P]) observeEvents(verifier *Verifier[P]) error {
 	for index := range p.Events {
 		if err := verifier.Observe(p.Events[index]); err != nil {
 			return err
 		}
 	}
+	return nil
+}
+
+func (p Page[P]) validateContinuation(verifier Verifier[P]) error {
 	if len(p.Events) == 0 {
 		if p.Next != p.After || p.More {
 			return errors.Join(core.ErrProofLedgerSequenceConflict, contractError())
 		}
-		return p.validateEncodedSize()
+		return nil
 	}
-	if err := p.validateNonempty(verifier); err != nil {
-		return err
-	}
-	return p.validateEncodedSize()
+	return p.validateNonempty(verifier)
 }
 
 type pageWire[P CanonicalPayload] Page[P]
@@ -130,8 +148,8 @@ func nextSequence(previous Position) (Sequence, error) {
 }
 
 type Appender[P CanonicalPayload] interface {
-	Append(context.Context, AppendIntent[P]) (ReceiptDocument, error)
-	Resolve(context.Context, ResolveRequest) (ReceiptDocument, error)
+	Append(context.Context, AppendIntent[P]) (AppendReceiptDocument, error)
+	Resolve(context.Context, ResolveRequest) (AppendReceiptDocument, error)
 }
 
 type ResolveRequest struct {

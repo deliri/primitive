@@ -37,11 +37,13 @@ func TestPublicOperationsAreExactIntentEntryPoints(t *testing.T) {
 	}
 	slices.Sort(got)
 	want := []string{
+		"AmbientEnvironment",
 		"AssessDisk",
 		"AssessGoMemory",
 		"ClassifyGoOOMBanner",
 		"CurrentPlatform",
-		"MeasureTree",
+		"Executable",
+		"LookupAmbientEnvironment",
 		"NewPercent",
 		"ObserveDiskRotation",
 		"ObserveEffectiveWorkloadMemoryLimit",
@@ -49,10 +51,14 @@ func TestPublicOperationsAreExactIntentEntryPoints(t *testing.T) {
 		"ObserveLogicalCPUCount",
 		"ObservePhysicalMemory",
 		"ObserveTerminalGeometry",
+		"ResolveWorkingPath",
+		"SetAmbientEnvironment",
 		"TemporaryDirectory",
+		"UnsetAmbientEnvironment",
 		"UserCacheDirectory",
 		"UserConfigDirectory",
 		"UserHomeDirectory",
+		"WorkingDirectory",
 	}
 	if !slices.Equal(got, want) {
 		t.Fatalf("exported Hostfacts operations = %q, want exactly %q", got, want)
@@ -104,17 +110,16 @@ func productionStructRole(name string) (string, bool) {
 	case "Failure":
 		return "typed error context", true
 	case "DiskPressurePolicy", "DiskAssessmentRequest", "DiskRotationRequest",
-		"GoMemoryPressurePolicy", "GoMemoryAssessmentRequest", "TreeUsageRequest",
+		"GoMemoryPressurePolicy", "GoMemoryAssessmentRequest",
 		"GoOOMBannerRequest", "TerminalGeometryRequest":
 		return "public execution ingress", true
 	case "DiskCapacity", "DiskAssessment", "GoMemorySnapshot",
-		"GoMemoryAssessment", "Hostname", "LogicalCPUCount", "PhysicalMemory", "WorkloadMemoryLimit", "TreeUsage",
+		"GoMemoryAssessment", "Hostname", "LogicalCPUCount", "PhysicalMemory", "WorkloadMemoryLimit",
 		"GoOOMBannerEvidence", "Percent", "RegularFileCount", "TerminalGeometry":
 		return "validated immutable observation or policy fact", true
 	case "goOOMBannerWire":
 		return "bounded persistence projection", true
-	case "bannerMatcher", "bannerCursor", "oomScanner", "treeEntry", "treeFrame",
-		"treeAccumulator", "treeWalk":
+	case "bannerMatcher", "bannerCursor", "oomScanner":
 		return "internal bounded streaming flow", true
 	case "cgroupMembership", "cgroupMount", "cgroupMountSelection", "cgroupLimitFold",
 		"cgroupLevelLimit", "cgroupLevelRequest", "virtualFileRequest", "boundedLineScan":

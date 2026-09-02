@@ -23,8 +23,8 @@ const (
 // RequestPayload is the exact declaration one installed build signs.
 type RequestPayload struct {
 	Build       core.BuildIdentity       `json:"build"`
-	Manifest    ManifestIntent           `json:"manifest"`
 	Declaration Declaration              `json:"declaration"`
+	Manifest    ManifestIntent           `json:"manifest"`
 	Nonce       controlwire.RequestNonce `json:"request_nonce"`
 	Revision    controlwire.Revision     `json:"revision"`
 }

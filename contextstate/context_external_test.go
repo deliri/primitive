@@ -114,10 +114,10 @@ type contextFixture struct {
 type observationOperation func(context.Context) (contextstate.State, error)
 
 type observationCase struct {
-	makeFixture contextFixtureFactory
-	name        string
-	operation   observationOperation
 	wantErr     error
+	makeFixture contextFixtureFactory
+	operation   observationOperation
+	name        string
 	wantState   contextstate.State
 }
 

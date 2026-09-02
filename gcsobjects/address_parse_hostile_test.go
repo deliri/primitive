@@ -9,11 +9,11 @@ import (
 )
 
 type objectAddressParseCase struct {
+	wantErr    error
 	name       string
 	value      string
 	wantBucket string
 	wantObject string
-	wantErr    error
 }
 
 func TestParseObjectAddressConfinesCanonicalGCSIdentity(t *testing.T) {

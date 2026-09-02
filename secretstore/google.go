@@ -17,8 +17,6 @@ import (
 	"google.golang.org/grpc"
 )
 
-var googleCRC32CTable = crc32.MakeTable(crc32.Castagnoli)
-
 const (
 	// GoogleAccessResponseEnvelopeMaximumBytes is Primitive's bounded allowance
 	// for the protobuf resource name, checksum, field framing, and transport
@@ -134,7 +132,7 @@ func validateGooglePayload(payload []byte, checksum *int64) error {
 		return payloadError("Google Secret Manager response payload contract is invalid")
 	}
 	value := *checksum
-	if value < 0 || value > math.MaxUint32 || uint32(value) != crc32.Checksum(payload, googleCRC32CTable) {
+	if value < 0 || value > math.MaxUint32 || uint32(value) != crc32.Checksum(payload, crc32.MakeTable(crc32.Castagnoli)) {
 		return payloadError("Google Secret Manager response checksum is invalid")
 	}
 	return nil

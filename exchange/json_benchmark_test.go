@@ -170,20 +170,21 @@ func BenchmarkServerJSONBoundary(b *testing.B) {
 
 			for range b.N {
 				writer.Reset()
+				serverCall := socketServerCallFrom(b, writer, newJSONBenchmarkRequest(b, encoded))
 				received, receiveErr := exchange.ReceiveJSON[
 					transportDocument,
 					*transportDocument,
 				](exchange.JSONReceiveCall{
-					Request: newJSONBenchmarkRequest(b, encoded),
-					Route:   route,
-					Policy:  readPolicy,
+					Call:   serverCall,
+					Route:  route,
+					Policy: readPolicy,
 				})
 				if receiveErr != nil {
 					b.Fatalf("ReceiveJSON() error = %v, want nil", receiveErr)
 				}
 				writeErr := exchange.WriteJSON(
 					exchange.JSONWriteCall[transportDocument]{
-						Writer: writer,
+						Call: serverCall,
 						Response: exchange.ServerJSONResponse[transportDocument]{
 							Body:   *received.Body,
 							Status: ok,
@@ -255,20 +256,21 @@ func BenchmarkServerJSONBoundaryByLimit(b *testing.B) {
 
 			for range b.N {
 				writer.Reset()
+				serverCall := socketServerCallFrom(b, writer, newJSONBenchmarkRequest(b, encoded))
 				received, receiveErr := exchange.ReceiveJSON[
 					transportDocument,
 					*transportDocument,
 				](exchange.JSONReceiveCall{
-					Request: newJSONBenchmarkRequest(b, encoded),
-					Route:   route,
-					Policy:  readPolicy,
+					Call:   serverCall,
+					Route:  route,
+					Policy: readPolicy,
 				})
 				if receiveErr != nil {
 					b.Fatalf("ReceiveJSON() error = %v, want nil", receiveErr)
 				}
 				writeErr := exchange.WriteJSON(
 					exchange.JSONWriteCall[transportDocument]{
-						Writer: writer,
+						Call: serverCall,
 						Response: exchange.ServerJSONResponse[transportDocument]{
 							Body:   *received.Body,
 							Status: ok,
@@ -312,20 +314,21 @@ func BenchmarkServerJSONBoundaryParallel(b *testing.B) {
 		for pb.Next() {
 			didRun = true
 			writer.Reset()
+			serverCall := socketServerCallFrom(b, writer, newJSONBenchmarkRequest(b, encoded))
 			received, receiveErr := exchange.ReceiveJSON[
 				transportDocument,
 				*transportDocument,
 			](exchange.JSONReceiveCall{
-				Request: newJSONBenchmarkRequest(b, encoded),
-				Route:   route,
-				Policy:  readPolicy,
+				Call:   serverCall,
+				Route:  route,
+				Policy: readPolicy,
 			})
 			if receiveErr != nil {
 				b.Fatalf("ReceiveJSON() error = %v, want nil", receiveErr)
 			}
 			writeErr := exchange.WriteJSON(
 				exchange.JSONWriteCall[transportDocument]{
-					Writer: writer,
+					Call: serverCall,
 					Response: exchange.ServerJSONResponse[transportDocument]{
 						Body:   *received.Body,
 						Status: ok,
@@ -364,13 +367,14 @@ func BenchmarkJSONRoundTripOverLoopbackParallel(b *testing.B) {
 		writer http.ResponseWriter,
 		request *http.Request,
 	) {
+		serverCall := socketServerCallFrom(b, writer, request)
 		received, receiveErr := exchange.ReceiveJSON[
 			transportDocument,
 			*transportDocument,
 		](exchange.JSONReceiveCall{
-			Request: request,
-			Route:   route,
-			Policy:  readPolicy,
+			Call:   serverCall,
+			Route:  route,
+			Policy: readPolicy,
 		})
 		if receiveErr != nil {
 			http.Error(writer, "receive", http.StatusBadRequest)
@@ -378,7 +382,7 @@ func BenchmarkJSONRoundTripOverLoopbackParallel(b *testing.B) {
 		}
 		if writeErr := exchange.WriteJSON(
 			exchange.JSONWriteCall[transportDocument]{
-				Writer: writer,
+				Call: serverCall,
 				Response: exchange.ServerJSONResponse[transportDocument]{
 					Body:   *received.Body,
 					Status: ok,

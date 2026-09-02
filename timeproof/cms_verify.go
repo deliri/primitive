@@ -112,7 +112,7 @@ func verifyTimestampCertificatePolicy(certificate *x509.Certificate, generationT
 		len(certificate.ExtKeyUsage) != 1 ||
 		certificate.ExtKeyUsage[0] != x509.ExtKeyUsageTimeStamping ||
 		len(certificate.UnknownExtKeyUsage) != 0 ||
-		!criticalExtension(certificate, oidExtendedKeyUsage) {
+		!criticalExtension(certificate, oidExtendedKeyUsage()) {
 		return invalidError(nil)
 	}
 	return nil
@@ -128,8 +128,8 @@ func criticalExtension(certificate *x509.Certificate, oid asn1.ObjectIdentifier)
 }
 
 func verifySigningCertificateAttribute(attributes []cmsAttribute, signer *x509.Certificate) error {
-	v1, v1Count := countAttribute(attributes, oidSigningCertificate)
-	v2, v2Count := countAttribute(attributes, oidSigningCertificateV2)
+	v1, v1Count := countAttribute(attributes, oidSigningCertificate())
+	v2, v2Count := countAttribute(attributes, oidSigningCertificateV2())
 	if signer == nil || v1Count+v2Count == 0 ||
 		v1Count > 1 || v2Count > 1 {
 		return invalidError(nil)
@@ -205,7 +205,7 @@ func verifySigningCertificateV2(attribute cmsAttribute, signer *x509.Certificate
 }
 
 func consumeESSV2Hash(fields []byte) (asn1.ObjectIdentifier, asn1.RawValue, []byte, error) {
-	hashOID := oidSHA256
+	hashOID := oidSHA256()
 	first, remaining, err := consumeRaw(fields)
 	if err != nil {
 		return nil, asn1.RawValue{}, nil, invalidError(err)
@@ -220,7 +220,7 @@ func consumeESSV2Hash(fields []byte) (asn1.ObjectIdentifier, asn1.RawValue, []by
 	// RFC 5035 defines SHA-256 as ESSCertIDv2's DEFAULT. DER requires a
 	// sequence component equal to its default to be omitted, so an explicit
 	// SHA-256 AlgorithmIdentifier is an alternate spelling of the omitted form.
-	if algorithm.Algorithm.Equal(oidSHA256) {
+	if algorithm.Algorithm.Equal(oidSHA256()) {
 		return nil, asn1.RawValue{}, nil, invalidError(nil)
 	}
 	hashRaw, remaining, err := consumeRaw(remaining)
@@ -265,13 +265,13 @@ func signingCertificateID(attribute cmsAttribute) (asn1.RawValue, error) {
 
 func certificateDigest(oid asn1.ObjectIdentifier, raw []byte) ([]byte, error) {
 	switch {
-	case oid.Equal(oidSHA256):
+	case oid.Equal(oidSHA256()):
 		sum := sha256.Sum256(raw)
 		return sum[:], nil
-	case oid.Equal(oidSHA384):
+	case oid.Equal(oidSHA384()):
 		sum := sha512.Sum384(raw)
 		return sum[:], nil
-	case oid.Equal(oidSHA512):
+	case oid.Equal(oidSHA512()):
 		sum := sha512.Sum512(raw)
 		return sum[:], nil
 	default:

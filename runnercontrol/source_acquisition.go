@@ -4,12 +4,11 @@ import (
 	"context"
 	json "encoding/json/v2"
 	"errors"
-	"net/http"
 
 	"github.com/deliri/primitive/v2026/core"
 	"github.com/deliri/primitive/v2026/exchange"
 	"github.com/deliri/primitive/v2026/objectstore"
-	"github.com/deliri/primitive/v2026/projectstandards"
+	"github.com/deliri/primitive/v2026/standard"
 	"github.com/deliri/primitive/v2026/temporal"
 )
 
@@ -19,12 +18,12 @@ const (
 )
 
 type SourceAcquisitionRequest struct {
-	SchemaVersion uint16                            `json:"schema_version"`
-	Fence         SchedulingFence                   `json:"fence"`
-	Members       MemberSet                         `json:"member_set"`
-	Source        projectstandards.SourceCoordinate `json:"source"`
-	Grant         SourceGrantIdentity               `json:"source_grant"`
-	RequestedAt   temporal.Instant                  `json:"requested_at"`
+	Members       MemberSet                 `json:"member_set"`
+	Source        standard.SourceCoordinate `json:"source"`
+	Fence         SchedulingFence           `json:"fence"`
+	RequestedAt   temporal.Instant          `json:"requested_at"`
+	SchemaVersion uint16                    `json:"schema_version"`
+	Grant         SourceGrantIdentity       `json:"source_grant"`
 }
 
 func (r SourceAcquisitionRequest) Validate() error {
@@ -71,15 +70,15 @@ func (r *SourceAcquisitionRequest) UnmarshalJSON(data []byte) error {
 }
 
 type SourceAcquisition struct {
-	SchemaVersion uint16                         `json:"schema_version"`
-	Fence         SchedulingFence                `json:"fence"`
+	ContentType   core.HTTPMediaType             `json:"content_type"`
 	Members       MemberSet                      `json:"member_set"`
 	Grant         SourceGrant                    `json:"source_grant"`
-	Document      SourceArchiveDocument          `json:"source_archive"`
 	Capability    objectstore.DownloadCapability `json:"download_capability"`
+	Document      SourceArchiveDocument          `json:"source_archive"`
+	Fence         SchedulingFence                `json:"fence"`
 	Integrity     objectstore.Integrity          `json:"integrity"`
-	ContentType   core.HTTPMediaType             `json:"content_type"`
 	Policy        objectstore.Policy             `json:"policy"`
+	SchemaVersion uint16                         `json:"schema_version"`
 }
 
 func (a SourceAcquisition) Validate() error {
@@ -111,15 +110,15 @@ func (a *SourceAcquisition) UnmarshalJSON(data []byte) error {
 }
 
 type SourceAcquisitionProjection struct {
-	SchemaVersion uint16                                   `json:"schema_version"`
-	Fence         SchedulingFence                          `json:"fence"`
+	ContentType   core.HTTPMediaType                       `json:"content_type"`
 	Members       MemberSet                                `json:"member_set"`
 	Grant         SourceGrant                              `json:"source_grant"`
-	Document      SourceArchiveDocument                    `json:"source_archive"`
 	Capability    objectstore.DownloadCapabilityProjection `json:"download_capability"`
+	Document      SourceArchiveDocument                    `json:"source_archive"`
+	Fence         SchedulingFence                          `json:"fence"`
 	Integrity     objectstore.Integrity                    `json:"integrity"`
-	ContentType   core.HTTPMediaType                       `json:"content_type"`
 	Policy        objectstore.Policy                       `json:"policy"`
+	SchemaVersion uint16                                   `json:"schema_version"`
 }
 
 func (p SourceAcquisitionProjection) Validate() error {
@@ -147,7 +146,7 @@ func validateSourceProjectionClosure(p SourceAcquisitionProjection) error {
 func validateSourceAcquisitionClosure(acquisition SourceAcquisition) error {
 	memberDigest, memberErr := acquisition.Members.Digest()
 	manifest := acquisition.Document.Manifest
-	want := projectstandards.SourceCoordinate{Repository: manifest.Repository, Commit: manifest.Commit, Tree: manifest.Tree}
+	want := standard.SourceCoordinate{Repository: manifest.Repository, Commit: manifest.Commit, Tree: manifest.Tree}
 	target, targetErr := acquisition.Capability.Target()
 	targetGrantComparison, comparisonErr := target.ExpiresAt.Compare(acquisition.Grant.ExpiresAt)
 	if memberErr != nil || targetErr != nil || comparisonErr != nil || memberDigest != acquisition.Fence.MemberSetDigest || acquisition.Grant.Source != want || acquisition.Integrity.SHA256 != manifest.ArchiveDigest || acquisition.Integrity.Length != manifest.ArchiveBytes || targetGrantComparison == core.ComparisonGreater {
@@ -163,6 +162,17 @@ func (p SourceAcquisitionProjection) MarshalJSON() ([]byte, error) {
 		return nil, errors.Join(core.ErrJSONContract, err)
 	}
 	return core.MarshalCanonicalJSONDocument(sourceAcquisitionProjectionWire(p))
+}
+
+// ValidateJSONProjection proves that the exact issue-only bytes are admitted
+// by the distinct receive-only SourceAcquisition contract. The embedded
+// download capability intentionally cannot decode back into its issuer type.
+func (p SourceAcquisitionProjection) ValidateJSONProjection(encoded []byte, limits core.StrictJSONLimits) error {
+	return core.ValidateReceiveOnlyJSONProjection[
+		SourceAcquisitionProjection,
+		SourceAcquisition,
+		*SourceAcquisition,
+	](p, encoded, limits)
 }
 
 type SourceAcquisitionRepository interface {
@@ -191,8 +201,8 @@ func (c SourceAcquisitionClient) Acquire(ctx context.Context, request SourceAcqu
 }
 
 type SourceAcquisitionServer struct {
-	socket     exchange.ServerSocket
 	repository SourceAcquisitionRepository
+	socket     exchange.ServerSocket
 }
 
 func NewSourceAcquisitionServer(contract exchange.JSONSocketContract, repository SourceAcquisitionRepository) (SourceAcquisitionServer, error) {
@@ -206,8 +216,8 @@ func NewSourceAcquisitionServer(contract exchange.JSONSocketContract, repository
 	return SourceAcquisitionServer{socket: socket, repository: repository}, nil
 }
 
-func (s SourceAcquisitionServer) Serve(writer http.ResponseWriter, request *http.Request) error {
-	call, err := exchange.NewSocketServerCall(writer, request)
+func (s SourceAcquisitionServer) Serve(call exchange.SocketServerCall) error {
+	ctx, err := call.Context()
 	if err != nil {
 		return err
 	}
@@ -215,10 +225,10 @@ func (s SourceAcquisitionServer) Serve(writer http.ResponseWriter, request *http
 	if err != nil {
 		return err
 	}
-	if err := RequireRunnerPeer(request.Context(), received.Body.Fence.Machine.Machine, received.Body.Fence.Machine.Generation); err != nil {
+	if err := RequireRunnerPeer(ctx, received.Body.Fence.Machine.Machine, received.Body.Fence.Machine.Generation); err != nil {
 		return err
 	}
-	projection, err := s.repository.AcquireSource(request.Context(), *received.Body)
+	projection, err := s.repository.AcquireSource(ctx, *received.Body)
 	if err != nil {
 		return err
 	}
@@ -239,9 +249,10 @@ func SourceAcquisitionSocketContract(path exchange.SocketRoutePath) (exchange.JS
 }
 
 var (
-	_ core.ValidatedJSONMarshaler = SourceAcquisitionRequest{}
-	_ json.Unmarshaler            = (*SourceAcquisitionRequest)(nil)
-	_ core.Validatable            = SourceAcquisition{}
-	_ json.Unmarshaler            = (*SourceAcquisition)(nil)
-	_ core.ValidatedJSONMarshaler = SourceAcquisitionProjection{}
+	_ core.ValidatedJSONMarshaler  = SourceAcquisitionRequest{}
+	_ json.Unmarshaler             = (*SourceAcquisitionRequest)(nil)
+	_ core.Validatable             = SourceAcquisition{}
+	_ json.Unmarshaler             = (*SourceAcquisition)(nil)
+	_ core.ValidatedJSONMarshaler  = SourceAcquisitionProjection{}
+	_ core.ValidatedJSONProjection = SourceAcquisitionProjection{}
 )

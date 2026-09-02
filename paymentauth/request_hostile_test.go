@@ -56,8 +56,8 @@ func proveCredentialedPaymentQueryVerificationAdmissions(t *testing.T) {
 
 	cases := []struct {
 		name          string
-		request       paymentQueryFixtureRequest
 		wantOffering  core.Offering
+		request       paymentQueryFixtureRequest
 		wantSelection payment.Selection
 	}{
 		{name: "minimum opaque offering with all selection", request: paymentQueryFixtureRequest{
@@ -266,11 +266,11 @@ func TestCredentialedPaymentQueryJSONEnforcesTenValidTenRejectAndTwentyBoundaryC
 	duplicateRequest := append(bytes.Clone(encoded[:len(encoded)-1]), []byte(`,"request":null}`)...)
 	duplicateCertificate := append(bytes.Clone(encoded[:len(encoded)-1]), []byte(`,"certificate":null}`)...)
 	cases := []struct {
+		wantErr      error
 		name         string
 		data         []byte
 		receiver     RequestDocument
 		wantDocument RequestDocument
-		wantErr      error
 	}{
 		{name: "valid canonical production projection", data: encoded, wantDocument: fixture.document},
 		{name: "valid reordered typed members", data: reordered, wantDocument: fixture.document},
@@ -406,12 +406,12 @@ func standardPaymentQueryFixtureRequest(t testing.TB) paymentQueryFixtureRequest
 func paymentQueryDocumentWithAccount(
 	t testing.TB,
 	fixture paymentQueryFixture,
-	account receipt.AccountIdentity,
+	account receipt.PrincipalIdentity,
 ) payment.QueryDocument {
 	t.Helper()
 
 	payload := fixture.payload
-	payload.Query.Scope.Account = account
+	payload.Query.Scope.Principal = account
 	document, err := payment.IssueQuery(payment.QueryIssuance{Signer: fixture.device, Payload: payload})
 	if err != nil {
 		t.Fatalf("payment.IssueQuery(other account) error = %v, want nil", err)
@@ -479,16 +479,16 @@ func paymentQueryOffering(t testing.TB, offering core.Offering) core.Offering {
 	return offering
 }
 
-func paymentQueryAccount(t testing.TB, marker byte) receipt.AccountIdentity {
+func paymentQueryAccount(t testing.TB, marker byte) receipt.PrincipalIdentity {
 	t.Helper()
 
 	raw := [receipt.LifecycleIdentityBytes]byte{}
 	for index := range raw {
 		raw[index] = marker
 	}
-	identity, err := receipt.NewAccountIdentity(raw)
+	identity, err := receipt.NewPrincipalIdentity(raw)
 	if err != nil {
-		t.Fatalf("receipt.NewAccountIdentity() error = %v, want nil", err)
+		t.Fatalf("receipt.NewPrincipalIdentity() error = %v, want nil", err)
 	}
 	return identity
 }

@@ -49,9 +49,9 @@ func FuzzEvidenceDocumentJSON(f *testing.F) {
 		verified, verifyErr := VerifyEvidence(VerifyEvidenceRequest{
 			Document: roundTrip, TrustedKeys: fixture.trusted,
 			Expected: EvidenceExpectation{
-				Account:  roundTrip.Payload.Header.Account,
-				Offering: roundTrip.Payload.Header.Offering,
-				Body:     roundTrip.Payload.Body,
+				Principal: roundTrip.Payload.Header.Principal,
+				Offering:  roundTrip.Payload.Header.Offering,
+				Body:      roundTrip.Payload.Body,
 			},
 		})
 		if verifyErr != nil {

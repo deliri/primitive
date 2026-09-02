@@ -122,7 +122,7 @@ func (p TimestampPolicy) String() string {
 }
 
 func timestampPolicyTokens() [timestampPolicyLimit]string {
-	return [...]string{"", freeTSAPolicyOID.String(), digiCertPolicyOID.String()}
+	return [...]string{"", freeTSAPolicyOID().String(), digiCertPolicyOID().String()}
 }
 
 // WireEnum declares that TimestampPolicy crosses persistence boundaries.

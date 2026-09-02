@@ -189,7 +189,7 @@ func buildRequest(digest core.SHA256Digest, nonce Nonce) ([]byte, error) {
 	}
 	imprint := messageImprint{
 		HashAlgorithm: pkix.AlgorithmIdentifier{
-			Algorithm:  oidSHA256,
+			Algorithm:  oidSHA256(),
 			Parameters: asn1.RawValue{Tag: asn1.TagNull},
 		},
 		HashedMessage: raw[:],

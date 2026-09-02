@@ -174,8 +174,8 @@ type GrantIssuance struct {
 	Capability objectstore.DownloadCapabilityProjection
 	Request    RequestPayload
 	Entry      chit.VerifiedManifestEntry
-	Chit       chit.Verified
 	Payload    GrantPayload
+	Chit       chit.Verified
 }
 
 func (i GrantIssuance) Validate() error {
@@ -256,7 +256,7 @@ func validateEntryRequestIdentity(
 
 func validateEntryScope(payload GrantPayload, document chit.Document) error {
 	header := payload.Entry.Evidence.Payload.Header
-	if header.Account != document.Payload.Scope.Account ||
+	if header.Principal != document.Payload.Scope.Principal ||
 		header.Offering != document.Payload.Scope.Offering {
 		return bindingError(errors.New("retrieval entry scope differs from authenticated chit"))
 	}

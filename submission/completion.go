@@ -58,11 +58,11 @@ type CompletionIssuance struct {
 // and the two independently selected trust sets used by an authority.
 type CompletionExpectation struct {
 	Request        RequestPayload
-	Nonce          controlwire.RequestNonce
 	Grant          GrantDocument
 	Document       CompletionDocument
 	GrantKeys      attest.TrustedKeys
 	CompletionKeys attest.TrustedKeys
+	Nonce          controlwire.RequestNonce
 }
 
 // VerifiedCompletion is the authenticated exact provider evidence safe for an

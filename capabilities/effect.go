@@ -1,10 +1,6 @@
 package capabilities
 
-import (
-	"errors"
-
-	"github.com/deliri/primitive/v2026/core"
-)
+import "github.com/deliri/primitive/v2026/core"
 
 // Effect identifies a real-world boundary that product policy must reach
 // through Primitive rather than implement independently.
@@ -61,9 +57,9 @@ func (e Effect) String() string {
 func effectNames() [effectLimit]string {
 	return [...]string{
 		EffectFilesystem:    "filesystem",
-		EffectProcess:       "process",
+		EffectProcess:       core.PackageProcess.String(),
 		EffectTransport:     "transport",
-		EffectTime:          "time",
+		EffectTime:          timeContractText,
 		EffectEntropy:       "entropy",
 		EffectSecret:        "secret",
 		EffectHost:          "host",
@@ -77,32 +73,25 @@ func effectOwner(effect Effect) (core.PackageIdentity, error) {
 	if err := effect.Validate(); err != nil {
 		return core.PackageUnknown, err
 	}
-	switch effect {
-	case EffectFilesystem:
-		return core.PackageFilestore, nil
-	case EffectProcess:
-		return core.PackageProcess, nil
-	case EffectTransport:
-		return core.PackageExchange, nil
-	case EffectTime:
-		return core.PackageTemporal, nil
-	case EffectEntropy:
-		return core.PackageKeygen, nil
-	case EffectSecret:
-		return core.PackageSecretStore, nil
-	case EffectHost:
-		return core.PackageHostFacts, nil
-	case EffectLocking:
-		return core.PackageFileLock, nil
-	case EffectSignal:
-		return core.PackageShutdown, nil
-	case EffectObjectStorage:
-		return core.PackageObjectStore, nil
-	default:
-		return core.PackageUnknown, errors.Join(
-			core.ErrCapabilitiesContract,
-			errors.New("validated effect has no capability owner"),
-		)
+	owner := effectOwners()[effect]
+	if owner == core.PackageUnknown {
+		return core.PackageUnknown, contractError("validated effect has no capability owner")
+	}
+	return owner, nil
+}
+
+func effectOwners() [effectLimit]core.PackageIdentity {
+	return [...]core.PackageIdentity{
+		EffectFilesystem:    core.PackageFilestore,
+		EffectProcess:       core.PackageProcess,
+		EffectTransport:     core.PackageExchange,
+		EffectTime:          core.PackageTemporal,
+		EffectEntropy:       core.PackageKeygen,
+		EffectSecret:        core.PackageSecretStore,
+		EffectHost:          core.PackageHostFacts,
+		EffectLocking:       core.PackageFileLock,
+		EffectSignal:        core.PackageShutdown,
+		EffectObjectStorage: core.PackageObjectStore,
 	}
 }
 

@@ -18,13 +18,12 @@
 // as success. Registry and force-drain policy above one child stay with the
 // caller.
 //
-// AmbientEnvironment admits the complete inherited environment when a caller
-// must filter it for a child. LookupAmbientEnvironment observes one exact
-// variable in O(1) memory and preserves the difference between absence and a
-// present empty value.
+// Ambient process arguments and standard streams remain process facts.
+// Executable path, working directory, and environment are host observations
+// supplied by hostfacts and admitted into this package's typed request values.
 //
-// ExitCommand is the one ambient termination door. It accepts a closed
-// ExitStatus and belongs only at a package-main boundary; libraries return
+// ExitCommand is the one ambient termination door. It accepts a bounded
+// CommandExitCode selected by caller policy and belongs only at a package-main boundary; libraries return
 // typed failures and never terminate their host process.
 // DiscardDeviceArgument exposes the platform null device as a validated argv
 // value for compiler and linker outputs that are intentionally not retained.

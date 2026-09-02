@@ -13,16 +13,16 @@ import (
 )
 
 type SourceDownloadRequest struct {
-	Unit        Unit
+	Client      objectstore.Client
+	ContentType core.HTTPMediaType
 	Grant       runnercontrol.SourceGrant
+	Capability  objectstore.DownloadCapability
+	Unit        Unit
 	Document    runnercontrol.SourceArchiveDocument
 	TrustedKeys attest.TrustedKeys
-	ObservedAt  temporal.Instant
-	Client      objectstore.Client
-	Capability  objectstore.DownloadCapability
 	Integrity   objectstore.Integrity
-	ContentType core.HTTPMediaType
 	Policy      objectstore.Policy
+	ObservedAt  temporal.Instant
 }
 
 func (r SourceDownloadRequest) Validate() error {

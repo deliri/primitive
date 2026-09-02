@@ -19,7 +19,7 @@ type uploadCallFixture struct {
 	content  []byte
 	request  RequestPayload
 	trusted  attest.TrustedKeys
-	account  receipt.AccountIdentity
+	account  receipt.PrincipalIdentity
 }
 
 func TestVerifiedDecisionUploadCallLayerTriad(t *testing.T) {
@@ -215,7 +215,7 @@ func verifyDecisionProjection(t *testing.T, input decisionProjectionFixture) Ver
 
 	decision, err := VerifyDecision(DecisionExpectation{
 		Decision: decodeDecisionProjection(t, input.Projection), Request: input.Fixture.request,
-		Account: input.Fixture.account, Offering: input.Fixture.offering,
+		Scope:       receipt.Scope{Principal: input.Fixture.account, Offering: input.Fixture.offering},
 		ObservedAt:  temporal.InstantFromNanoseconds(testGrantIssuedAt),
 		TrustedKeys: input.Fixture.trusted,
 	})

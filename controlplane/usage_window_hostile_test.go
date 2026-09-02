@@ -25,7 +25,7 @@ const (
 // Every table row that does not name bounds or freshness gets the same interval,
 // so the row's name is the whole difference.
 func testWindow(
-	units []controlplane.WorkUnitCount,
+	units []controlplane.UsageCount,
 	outcomes []controlplane.OutcomeCount,
 ) controlplane.UsageWindow {
 	return controlplane.UsageWindow{
@@ -41,11 +41,11 @@ func testWindow(
 
 // unitsOf builds an ascending unit list from ordinal/count pairs written as one
 // flat sequence, so a table row states its list on one line.
-func unitsOf(pairs ...uint64) []controlplane.WorkUnitCount {
-	counts := make([]controlplane.WorkUnitCount, 0, len(pairs)/2)
+func unitsOf(pairs ...uint64) []controlplane.UsageCount {
+	counts := make([]controlplane.UsageCount, 0, len(pairs)/2)
 	for index := 0; index+1 < len(pairs); index += 2 {
-		counts = append(counts, controlplane.WorkUnitCount{
-			Class: controlplane.WorkUnitClass(pairs[index]), Count: pairs[index+1],
+		counts = append(counts, controlplane.UsageCount{
+			Class: controlplane.UsageClass(pairs[index]), Count: pairs[index+1],
 		})
 	}
 	return counts
@@ -64,10 +64,10 @@ func outcomesOf(pairs ...uint64) []controlplane.OutcomeCount {
 // repeatedUnits returns a list that repeats one class, so the ordering rule must
 // refuse it at the second entry however long it is. It is how the table proves
 // the walk is bounded by the contract rather than by a length check.
-func repeatedUnits(entries int) []controlplane.WorkUnitCount {
-	counts := make([]controlplane.WorkUnitCount, entries)
+func repeatedUnits(entries int) []controlplane.UsageCount {
+	counts := make([]controlplane.UsageCount, entries)
 	for index := range counts {
-		counts[index] = controlplane.WorkUnitCount{Class: 1, Count: 1}
+		counts[index] = controlplane.UsageCount{Class: 1, Count: 1}
 	}
 	return counts
 }
@@ -82,11 +82,11 @@ func repeatedOutcomes(entries int) []controlplane.OutcomeCount {
 
 // fullUnitLadder returns one unit of every admitted class, which is the longest
 // legal list: the classes are closed and the list is strictly ascending.
-func fullUnitLadder() []controlplane.WorkUnitCount {
-	counts := make([]controlplane.WorkUnitCount, 0, controlplane.WorkUnitClassMaximum)
-	for ordinal := 1; ordinal <= controlplane.WorkUnitClassMaximum; ordinal++ {
-		counts = append(counts, controlplane.WorkUnitCount{
-			Class: controlplane.WorkUnitClass(ordinal), Count: 1,
+func fullUnitLadder() []controlplane.UsageCount {
+	counts := make([]controlplane.UsageCount, 0, controlplane.UsageClassMaximum)
+	for ordinal := 1; ordinal <= controlplane.UsageClassMaximum; ordinal++ {
+		counts = append(counts, controlplane.UsageCount{
+			Class: controlplane.UsageClass(ordinal), Count: 1,
 		})
 	}
 	return counts
@@ -129,7 +129,7 @@ func TestUsageWindowValidateAtEveryBoundary(t *testing.T) {
 		},
 		{
 			name:   "empty lists report the same nothing as absent lists",
-			window: testWindow([]controlplane.WorkUnitCount{}, []controlplane.OutcomeCount{}),
+			window: testWindow([]controlplane.UsageCount{}, []controlplane.OutcomeCount{}),
 		},
 		{
 			name:   "the lowest class ordinal is admitted",
@@ -138,7 +138,7 @@ func TestUsageWindowValidateAtEveryBoundary(t *testing.T) {
 		{
 			name: "the highest class ordinal is admitted",
 			window: testWindow(
-				unitsOf(controlplane.WorkUnitClassMaximum, 3),
+				unitsOf(controlplane.UsageClassMaximum, 3),
 				outcomesOf(controlplane.OutcomeClassMaximum, 3),
 			),
 		},
@@ -194,7 +194,7 @@ func TestUsageWindowValidateAtEveryBoundary(t *testing.T) {
 		},
 		{
 			name:    "one unit class above the ceiling is refused",
-			window:  testWindow(unitsOf(controlplane.WorkUnitClassMaximum+1, 1), outcomesOf(1, 1)),
+			window:  testWindow(unitsOf(controlplane.UsageClassMaximum+1, 1), outcomesOf(1, 1)),
 			wantErr: core.ErrControlPlaneUsageWindow,
 		},
 		{
@@ -253,8 +253,8 @@ func TestUsageWindowValidateAtEveryBoundary(t *testing.T) {
 		{
 			name: "one unit entry past the class ladder has to repeat a class and is refused",
 			window: testWindow(
-				append(fullUnitLadder(), controlplane.WorkUnitCount{Class: 1, Count: 1}),
-				outcomesOf(1, controlplane.WorkUnitClassMaximum+1),
+				append(fullUnitLadder(), controlplane.UsageCount{Class: 1, Count: 1}),
+				outcomesOf(1, controlplane.UsageClassMaximum+1),
 			),
 			wantErr: core.ErrControlPlaneUsageWindow,
 		},
@@ -410,14 +410,14 @@ func TestTheClassLadderIsTheOnlyBoundOnAnAcceptedUnitList(t *testing.T) {
 
 	// Far above the ceiling, so a relaxed ordering rule ends this test with a
 	// failure rather than with a hang.
-	const runaway = 4 * controlplane.WorkUnitClassMaximum
+	const runaway = 4 * controlplane.UsageClassMaximum
 
-	units := make([]controlplane.WorkUnitCount, 0, runaway)
+	units := make([]controlplane.UsageCount, 0, runaway)
 	for len(units) < runaway {
-		candidate := make([]controlplane.WorkUnitCount, len(units), len(units)+1)
+		candidate := make([]controlplane.UsageCount, len(units), len(units)+1)
 		copy(candidate, units)
-		candidate = append(candidate, controlplane.WorkUnitCount{
-			Class: controlplane.WorkUnitClass(len(units) + 1), Count: 1,
+		candidate = append(candidate, controlplane.UsageCount{
+			Class: controlplane.UsageClass(len(units) + 1), Count: 1,
 		})
 		window := testWindow(candidate, outcomesOf(1, uint64(len(candidate))))
 		if window.Validate() != nil {
@@ -425,7 +425,7 @@ func TestTheClassLadderIsTheOnlyBoundOnAnAcceptedUnitList(t *testing.T) {
 		}
 		units = candidate
 	}
-	if got, want := len(units), controlplane.WorkUnitClassMaximum; got != want {
+	if got, want := len(units), controlplane.UsageClassMaximum; got != want {
 		t.Fatalf("longest accepted unit list = %d entries, want the class ladder %d", got, want)
 	}
 }
@@ -499,7 +499,7 @@ func TestUsageWindowRoundTripCanonicalizesAbsentAndEmptyLists(t *testing.T) {
 		},
 		{
 			name:   "empty lists render as empty arrays",
-			window: testWindow([]controlplane.WorkUnitCount{}, []controlplane.OutcomeCount{}),
+			window: testWindow([]controlplane.UsageCount{}, []controlplane.OutcomeCount{}),
 			want:   `{"units":[],"outcomes":[],"bounds":{"start":"10","end":"20"},"freshness":"20"}`,
 		},
 		{
@@ -541,32 +541,32 @@ func TestUsageWindowRoundTripCanonicalizesAbsentAndEmptyLists(t *testing.T) {
 	}
 }
 
-// TestNewWorkUnitClassAdmitsExactlyTheOrdinalsValidateAdmits proves the door and
+// TestNewUsageClassAdmitsExactlyTheOrdinalsValidateAdmits proves the door and
 // the gate agree over the complete input space of the type.
 //
 // A bare conversion is how a caller obtains one of these without the
 // constructor, so the constructor has to refuse everything the type refuses,
 // over every value a byte can hold.
-func TestNewWorkUnitClassAdmitsExactlyTheOrdinalsValidateAdmits(t *testing.T) {
+func TestNewUsageClassAdmitsExactlyTheOrdinalsValidateAdmits(t *testing.T) {
 	t.Parallel()
 
 	for ordinal := 0; ordinal <= maximumByteOrdinal; ordinal++ {
-		want := ordinal >= 1 && ordinal <= controlplane.WorkUnitClassMaximum
-		class, err := controlplane.NewWorkUnitClass(uint8(ordinal))
+		want := ordinal >= 1 && ordinal <= controlplane.UsageClassMaximum
+		class, err := controlplane.NewUsageClass(uint8(ordinal))
 		if got := err == nil; got != want {
-			t.Fatalf("NewWorkUnitClass(%d) error = %v, want admitted %t", ordinal, err, want)
+			t.Fatalf("NewUsageClass(%d) error = %v, want admitted %t", ordinal, err, want)
 		}
-		if got := controlplane.WorkUnitClass(ordinal).IsValid(); got != want {
-			t.Fatalf("WorkUnitClass(%d).IsValid() = %t, want %t", ordinal, got, want)
+		if got := controlplane.UsageClass(ordinal).IsValid(); got != want {
+			t.Fatalf("UsageClass(%d).IsValid() = %t, want %t", ordinal, got, want)
 		}
 		// An admitted ordinal comes back unchanged; a refused one comes back as
 		// the zero class rather than as the value that was refused.
-		wantClass := controlplane.WorkUnitClass(0)
+		wantClass := controlplane.UsageClass(0)
 		if want {
-			wantClass = controlplane.WorkUnitClass(ordinal)
+			wantClass = controlplane.UsageClass(ordinal)
 		}
 		if class != wantClass {
-			t.Fatalf("NewWorkUnitClass(%d) = %d, want %d", ordinal, class, wantClass)
+			t.Fatalf("NewUsageClass(%d) = %d, want %d", ordinal, class, wantClass)
 		}
 	}
 }

@@ -14,7 +14,7 @@ import (
 )
 
 const (
-	fixtureAccountIdentity     = "11111111111111111111111111111111"
+	fixturePrincipalIdentity   = "11111111111111111111111111111111"
 	fixtureEntitlementIdentity = "22222222222222222222222222222222"
 	fixtureBuildCommit         = "bbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbb"
 	fixtureIssuedAtNanoseconds = int64(1_700_000_000_000_000_000)
@@ -140,7 +140,7 @@ func fixtureCertificateBody(
 	if err != nil {
 		return controlplane.InstallationCertificateBody{}, errors.Join(core.ErrPrimitiveContract, err)
 	}
-	account, err := receipt.ParseAccountIdentity(fixtureAccountIdentity)
+	account, err := receipt.ParsePrincipalIdentity(fixturePrincipalIdentity)
 	if err != nil {
 		return controlplane.InstallationCertificateBody{}, errors.Join(core.ErrPrimitiveContract, err)
 	}

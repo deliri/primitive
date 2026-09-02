@@ -3,7 +3,6 @@ package hostfacts
 import (
 	"context"
 	"errors"
-	"io/fs"
 	"runtime"
 	"runtime/debug"
 
@@ -20,7 +19,7 @@ func AssessDisk(ctx context.Context, request DiskAssessmentRequest) (DiskAssessm
 	if err := request.Validate(); err != nil {
 		return DiskAssessment{}, err
 	}
-	root, err := openRoot(request.Directory.String())
+	root, err := openRoot(ctx, request.Directory)
 	if err != nil {
 		return DiskAssessment{}, failRootOpen(OperationOpenRoot, diskOpenIdentity(), err)
 	}
@@ -96,37 +95,6 @@ func AssessGoMemory(request GoMemoryAssessmentRequest) (GoMemoryAssessment, erro
 // mounted ancestors. Other operating systems return an Unsupported result.
 func ObserveEffectiveWorkloadMemoryLimit(ctx context.Context) (WorkloadMemoryLimit, error) {
 	return observeEffectiveWorkloadMemoryLimit(ctx)
-}
-
-// MeasureTree measures logical regular-file extent and count beneath one held
-// root without following links, reparse points, or crossing volumes.
-func MeasureTree(ctx context.Context, request TreeUsageRequest) (TreeUsage, error) {
-	if err := contextstate.Validate(ctx); err != nil {
-		return TreeUsage{}, err
-	}
-	if err := request.Validate(); err != nil {
-		return TreeUsage{}, err
-	}
-	root, err := openRoot(request.Root.String())
-	if errors.Is(err, fs.ErrNotExist) && request.MissingPolicy == MissingPathIsEmpty {
-		usage, closeErr := (treeAccumulator{}).close()
-		if closeErr != nil {
-			return TreeUsage{}, closeErr
-		}
-		return usage, usage.Validate()
-	}
-	if err != nil {
-		return TreeUsage{}, failRootOpen(OperationOpenRoot, treeOpenIdentity(), err)
-	}
-	usage, walkErr := walkTree(ctx, root)
-	if err := errors.Join(walkErr, root.close()); err != nil {
-		identity := core.ErrHostFactsObservation
-		if errors.Is(walkErr, core.ErrTreeMeasurementUnsupported) {
-			identity = core.ErrTreeMeasurementUnsupported
-		}
-		return TreeUsage{}, fail(OperationTreeWalk, identity, err)
-	}
-	return usage, usage.Validate()
 }
 
 // ClassifyGoOOMBanner consumes exactly the declared bounded extent and reports

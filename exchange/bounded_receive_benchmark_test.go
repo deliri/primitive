@@ -65,7 +65,7 @@ func BenchmarkBoundedReceiveByDeclaredExtent(b *testing.B) {
 				}
 				received, err := exchange.ReceiveBounded(
 					exchange.BoundedReceiveCall{
-						Request:             request,
+						Call:                socketServerCall(b, request),
 						Route:               route,
 						Policy:              policy,
 						ExpectedContentType: core.HTTPMediaTypeOctetStream(),

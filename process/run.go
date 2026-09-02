@@ -149,8 +149,8 @@ type waitRequest struct {
 	parent      context.Context
 	prepared    preparedCommand
 	failures    *streamFailures
-	commandPath core.AbsolutePath
 	reaped      *atomic.Bool
+	commandPath core.AbsolutePath
 }
 
 func waitCommand(request waitRequest) (Result, error) {

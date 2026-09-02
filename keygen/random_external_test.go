@@ -30,9 +30,9 @@ func TestRandomTokenRequestAdmitsOnlyBoundedSizes(t *testing.T) {
 	}
 
 	invalidSizes := []struct {
+		wantErr error
 		name    string
 		size    uint64
-		wantErr error
 	}{
 		{name: "one above ceiling is rejected", size: keygen.RandomTokenMaximumBytes + 1, wantErr: core.ErrKeygenContract},
 		{name: "two above ceiling are rejected", size: keygen.RandomTokenMaximumBytes + 2, wantErr: core.ErrKeygenContract},

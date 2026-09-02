@@ -7,7 +7,7 @@ import (
 
 	"github.com/deliri/primitive/v2026/core"
 	"github.com/deliri/primitive/v2026/process"
-	"github.com/deliri/primitive/v2026/projectstandards"
+	"github.com/deliri/primitive/v2026/standard"
 	"github.com/deliri/primitive/v2026/temporal"
 )
 
@@ -24,17 +24,17 @@ func (e ExternalExecutionEnvironment) Validate() error {
 }
 
 // ExternalPlanBase contains only the effect coordinates shared by the closed
-// JavaScript, smoke, and tool profile compilers. It contains no argument bag.
+// JavaScript, named-suite, and tool profile compilers. It contains no argument bag.
 type ExternalPlanBase struct {
+	Environment      ExternalExecutionEnvironment
 	Command          core.AbsolutePath
 	WorkingDirectory core.AbsolutePath
 	WorkspaceRoot    core.AbsolutePath
 	OutputDirectory  core.RelativePath
-	Environment      ExternalExecutionEnvironment
+	Egress           EgressPolicy
+	Subject          SubjectExecution
 	OutputLimit      core.ByteCount
 	WaitDelay        temporal.Duration
-	Subject          SubjectExecution
-	Egress           EgressPolicy
 }
 
 func (b ExternalPlanBase) Validate() error {
@@ -59,11 +59,11 @@ func (b ExternalPlanBase) Validate() error {
 }
 
 type JavaScriptTestPlan struct {
-	File        projectstandards.SourcePath
+	File        standard.SourcePath
+	Report      core.RelativePath
 	Timeout     temporal.Duration
 	Concurrency uint16
 	RepeatCount uint16
-	Report      core.RelativePath
 }
 
 func (p JavaScriptTestPlan) Validate() error {
@@ -84,8 +84,8 @@ func (p JavaScriptTestPlan) Validate() error {
 }
 
 type JavaScriptPlanRequest struct {
-	Base          ExternalPlanBase
 	Test          JavaScriptTestPlan
+	Base          ExternalPlanBase
 	ArtifactLimit core.ByteCount
 	ExpectedUnits uint32
 }
@@ -103,12 +103,12 @@ func (r JavaScriptPlanRequest) Validate() error {
 	return nil
 }
 
-type SmokePlan struct {
-	Suite   projectstandards.Identifier
+type SuitePlan struct {
+	Suite   standard.Identifier
 	Timeout temporal.Duration
 }
 
-func (p SmokePlan) Validate() error {
+func (p SuitePlan) Validate() error {
 	if err := errors.Join(p.Suite.Validate(), p.Timeout.Validate()); err != nil {
 		return err
 	}
@@ -118,17 +118,17 @@ func (p SmokePlan) Validate() error {
 	return nil
 }
 
-type SmokePlanRequest struct {
+type SuitePlanRequest struct {
+	Suite SuitePlan
 	Base  ExternalPlanBase
-	Smoke SmokePlan
 }
 
-func (r SmokePlanRequest) Validate() error {
-	if err := errors.Join(r.Base.Validate(), r.Smoke.Validate()); err != nil {
+func (r SuitePlanRequest) Validate() error {
+	if err := errors.Join(r.Base.Validate(), r.Suite.Validate()); err != nil {
 		return err
 	}
 	if r.Base.Egress.Mode != EgressDenied && r.Base.Egress.Mode != EgressPinned {
-		return errors.Join(core.ErrPrimitiveContract, errors.New("smoke profile egress mode is outside the closed policy"))
+		return errors.Join(core.ErrPrimitiveContract, errors.New("named-suite profile egress mode is outside the closed policy"))
 	}
 	return nil
 }
@@ -184,7 +184,7 @@ func CompileJavaScriptPlan(request JavaScriptPlanRequest) (ExperimentExecution, 
 	})
 }
 
-func CompileSmokePlan(request SmokePlanRequest) (ExperimentExecution, error) {
+func CompileSuitePlan(request SuitePlanRequest) (ExperimentExecution, error) {
 	if err := request.Validate(); err != nil {
 		return ExperimentExecution{}, err
 	}
@@ -193,8 +193,8 @@ func CompileSmokePlan(request SmokePlanRequest) (ExperimentExecution, error) {
 		return ExperimentExecution{}, err
 	}
 	return compileExternalExecution(externalCompilation{
-		base: request.Base, timeout: request.Smoke.Timeout,
-		arguments: []string{"--suite=" + request.Smoke.Suite.String()}, parallel: 1, expectedUnits: 1,
+		base: request.Base, timeout: request.Suite.Timeout,
+		arguments: []string{"--suite=" + request.Suite.Suite.String()}, parallel: 1, expectedUnits: 1,
 		workspaceOutput: output, artifacts: []ArtifactExpectation{}, observation: ObservationPolicy{Format: ObservationOpaque},
 	})
 }
@@ -214,14 +214,14 @@ func CompileToolPlan(request ToolPlanRequest) (ExperimentExecution, error) {
 }
 
 type externalCompilation struct {
+	workspaceOutput core.AbsolutePath
+	arguments       []string
+	artifacts       []ArtifactExpectation
 	base            ExternalPlanBase
 	timeout         temporal.Duration
-	arguments       []string
-	parallel        uint16
-	expectedUnits   uint32
-	workspaceOutput core.AbsolutePath
-	artifacts       []ArtifactExpectation
 	observation     ObservationPolicy
+	expectedUnits   uint32
+	parallel        uint16
 }
 
 func compileExternalExecution(compilation externalCompilation) (ExperimentExecution, error) {
@@ -252,7 +252,7 @@ func compileJavaScriptReport(request JavaScriptPlanRequest) (core.AbsolutePath, 
 	name, nameErr := core.ParsePathComponent(request.Test.Report.String())
 	relative, relativeErr := request.Base.OutputDirectory.Join(name)
 	report, reportErr := request.Base.WorkspaceRoot.JoinRelative(relative)
-	protocolPath, protocolErr := projectstandards.ParseSourcePath(relative.String())
+	protocolPath, protocolErr := standard.ParseSourcePath(relative.String())
 	mediaType, mediaErr := core.ParseHTTPMediaType("application/xml")
 	if err := errors.Join(outputErr, nameErr, relativeErr, reportErr, protocolErr, mediaErr); err != nil {
 		return core.AbsolutePath{}, core.AbsolutePath{}, ArtifactExpectation{}, err
@@ -276,8 +276,8 @@ var (
 	_ core.Validatable = ExternalPlanBase{}
 	_ core.Validatable = JavaScriptTestPlan{}
 	_ core.Validatable = JavaScriptPlanRequest{}
-	_ core.Validatable = SmokePlan{}
-	_ core.Validatable = SmokePlanRequest{}
+	_ core.Validatable = SuitePlan{}
+	_ core.Validatable = SuitePlanRequest{}
 	_ core.Validatable = ToolPlan{}
 	_ core.Validatable = ToolPlanRequest{}
 )

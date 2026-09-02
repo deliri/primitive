@@ -12,8 +12,8 @@ import (
 	"github.com/deliri/primitive/v2026/core"
 	"github.com/deliri/primitive/v2026/filestore"
 	primitiveid "github.com/deliri/primitive/v2026/id"
-	"github.com/deliri/primitive/v2026/projectstandards"
 	"github.com/deliri/primitive/v2026/runnercontrol"
+	"github.com/deliri/primitive/v2026/standard"
 	"github.com/deliri/primitive/v2026/temporal"
 )
 
@@ -154,7 +154,7 @@ func cleanupSourceUnit(t testing.TB, manager Manager, unit Unit) {
 func sourceArchiveFixture(t testing.TB, unit Unit, content []byte) ([]byte, runnercontrol.SourceArchiveDocument, runnercontrol.SourceGrant, attest.TrustedKeys) {
 	t.Helper()
 	archive := sourceTarFixture(t, content)
-	repository, repositoryErr := projectstandards.NewRepositoryIdentity("github.com/example/project")
+	repository, repositoryErr := standard.NewRepositoryIdentity("github.com/example/project")
 	commit, commitErr := core.ParseBuildCommit("0123456789abcdef0123456789abcdef01234567")
 	checkout, checkoutErr := joinLiteral(unit.Root, "checkout")
 	directoryPath, directoryErr := archiveEntryPath(checkout, "pkg/", 8)
@@ -167,12 +167,12 @@ func sourceArchiveFixture(t testing.TB, unit Unit, content []byte) ([]byte, runn
 	if err := errors.Join(repositoryErr, commitErr, checkoutErr, directoryErr, fileErr, treeDirectoryErr, treeFileErr, maximumErr); err != nil {
 		t.Fatalf("source archive manifest fixture error = %v, want nil", err)
 	}
-	coordinate := projectstandards.SourceCoordinate{Repository: repository, Commit: commit, Tree: digestFromHash(tree)}
+	coordinate := standard.SourceCoordinate{Repository: repository, Commit: commit, Tree: digestFromHash(tree)}
 	manifest := runnercontrol.SourceArchiveManifest{SchemaVersion: runnercontrol.SchemaVersion, Repository: repository, Commit: commit, Tree: coordinate.Tree, ArchiveDigest: core.SHA256Of(archive), ArchiveBytes: archiveBytes, EntryMaximum: 4, DepthMaximum: 8, FileMaximumBytes: fileMaximum, IssuedAt: temporal.InstantFromNanoseconds(1), ExpiresAt: temporal.InstantFromNanoseconds(100)}
 	key, trusted := sourceSignerFixture(t)
 	document, documentErr := runnercontrol.IssueSourceArchive(manifest, key)
 	authority, authorityErr := core.ParseHTTPEndpoint("https://source.example.invalid/archive")
-	credential, credentialErr := projectstandards.NewIdentifier("source-read-once")
+	credential, credentialErr := standard.NewIdentifier("source-read-once")
 	grant, grantErr := runnercontrol.NewSourceGrant(runnercontrol.SourceGrant{RepositoryGrant: core.SHA256Of([]byte("repository-grant")), Source: coordinate, Authority: authority, Credential: credential, ExpiresAt: temporal.InstantFromNanoseconds(100)})
 	if err := errors.Join(documentErr, authorityErr, credentialErr, grantErr); err != nil {
 		t.Fatalf("source archive authorization fixture error = %v, want nil", err)

@@ -43,6 +43,36 @@ func NewStandardClient() (Client, error) {
 	return NewClient(&http.Client{})
 }
 
+// WithoutProxy derives an immutable client whose standard transport connects
+// directly. The caller's client and transport remain unchanged. Opaque custom
+// RoundTrippers are refused because Exchange cannot prove that they bypass
+// ambient or internally configured proxies.
+func (c Client) WithoutProxy() (Client, error) {
+	if err := c.Validate(); err != nil {
+		return Client{}, err
+	}
+	transport, err := directHTTPTransport(c.http.Transport)
+	if err != nil {
+		return Client{}, err
+	}
+	client := *c.http
+	client.Transport = transport
+	return NewClient(&client)
+}
+
+func directHTTPTransport(roundTripper http.RoundTripper) (*http.Transport, error) {
+	if roundTripper == nil {
+		roundTripper = http.DefaultTransport
+	}
+	transport, ok := roundTripper.(*http.Transport)
+	if !ok || transport == nil {
+		return nil, core.ErrExchangeContract
+	}
+	owned := transport.Clone()
+	owned.Proxy = nil
+	return owned, nil
+}
+
 // NewSessionClient produces a standard client backed by Go's real cookie jar.
 // The jar owns cookie matching and session state; Exchange continues to own
 // operation timing, replay, redirect, and body policy per call.

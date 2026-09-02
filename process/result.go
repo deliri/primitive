@@ -94,13 +94,13 @@ type Result struct {
 // ResultObservation is the durable, stream-free projection of one reaped
 // direct child. It retains exact exit, CPU, byte, and signal facts.
 type ResultObservation struct {
-	ExitCode          int32             `json:"exit_code"`
+	TerminationSignal *SignalNumber     `json:"termination_signal,omitempty"`
 	CPUTime           temporal.Duration `json:"cpu_time_nanoseconds"`
 	StdinBytes        core.ByteLength   `json:"stdin_bytes"`
 	StdoutBytes       core.ByteLength   `json:"stdout_bytes"`
 	StderrBytes       core.ByteLength   `json:"stderr_bytes"`
 	PeakMemoryBytes   core.ByteLength   `json:"peak_memory_bytes"`
-	TerminationSignal *SignalNumber     `json:"termination_signal,omitempty"`
+	ExitCode          int32             `json:"exit_code"`
 }
 
 func (o ResultObservation) Validate() error {

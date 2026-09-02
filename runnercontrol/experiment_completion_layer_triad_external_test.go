@@ -11,8 +11,8 @@ import (
 	"github.com/deliri/primitive/v2026/core"
 	primitiveid "github.com/deliri/primitive/v2026/id"
 	"github.com/deliri/primitive/v2026/process"
-	"github.com/deliri/primitive/v2026/projectstandards"
 	"github.com/deliri/primitive/v2026/runnercontrol"
+	"github.com/deliri/primitive/v2026/standard"
 	"github.com/deliri/primitive/v2026/temporal"
 )
 
@@ -124,21 +124,21 @@ func TestExperimentCompletionReturnsTypedRequestAndActionEvidence(t *testing.T) 
 func goExperimentCompletionPayloadFixture(t testing.TB) runnercontrol.ExperimentCompletionPayload {
 	t.Helper()
 	payload := experimentCompletionPayloadFixture(t, true)
-	module, moduleErr := projectstandards.NewIdentifier("primitive")
-	observation, observationErr := projectstandards.NewMachineObservationID(completionUUIDFixture(t))
+	module, moduleErr := standard.NewIdentifier("primitive")
+	observation, observationErr := standard.NewMachineObservationID(completionUUIDFixture(t))
 	if err := errors.Join(moduleErr, observationErr); err != nil {
 		t.Fatalf("Go completion identity fixture error = %v, want nil", err)
 	}
-	payload.Probe.Kind = projectstandards.ProbeKindGoTest
-	payload.Probe.Target = projectstandards.ProbeTarget{
-		Kind: projectstandards.ProbeTargetGoDeclaration,
-		GoDeclaration: &projectstandards.GoDeclarationTarget{
+	payload.Probe.Kind = standard.ProbeKindGoTest
+	payload.Probe.Target = standard.ProbeTarget{
+		Kind: standard.ProbeTargetGoDeclaration,
+		GoDeclaration: &standard.GoDeclarationTarget{
 			Module: module, Package: mustProfileSourcePath(t, "runnercontrol"), File: mustProfileSourcePath(t, "runnercontrol/go_profile_hostile_external_test.go"), Symbol: mustProfileName(t, "TestCompileGoPlanReportsRequestedAndEffectiveConcurrency"),
 		},
 	}
 	payload.Go = &runnercontrol.GoConcurrencyResolution{
 		Profile:   runnercontrol.GoProfileAcceptance,
-		Machine:   projectstandards.MachineExecutionSettings{Observation: observation, Generation: payload.Fence.Machine.Generation, LogicalCPUCount: 4},
+		Machine:   standard.MachineExecutionSettings{Observation: observation, Generation: payload.Fence.Machine.Generation, LogicalCPUCount: 4},
 		Requested: runnercontrol.GoConcurrency{GOMAXPROCS: 1_000, Parallel: 1_000, PackageParallel: 1_000, CPU: []uint16{1, 2, 4, 1_000}},
 		Effective: runnercontrol.GoConcurrency{GOMAXPROCS: 4, Parallel: 4, PackageParallel: 4, CPU: []uint16{1, 2, 4}},
 	}
@@ -151,43 +151,43 @@ func goExperimentCompletionPayloadFixture(t testing.TB) runnercontrol.Experiment
 func experimentCompletionPayloadFixture(t testing.TB, started bool) runnercontrol.ExperimentCompletionPayload {
 	t.Helper()
 	uuid := completionUUIDFixture(t)
-	run, runErr := projectstandards.NewRunID(uuid)
-	experiment, experimentErr := projectstandards.NewExperimentID(uuid)
-	machine, machineErr := projectstandards.NewMachineID(uuid)
-	generation, generationErr := projectstandards.NewMachineGenerationID(uuid)
-	repository, repositoryErr := projectstandards.NewRepositoryIdentity("github.com/example/project")
-	tool, toolErr := projectstandards.NewIdentifier("go-test")
-	machineClass, machineClassErr := projectstandards.NewIdentifier("runner-standard")
-	profileName, profileNameErr := projectstandards.NewIdentifier("acceptance")
-	profile, profileErr := projectstandards.NewProfileIdentity(profileName, 1)
+	run, runErr := standard.NewRunID(uuid)
+	experiment, experimentErr := standard.NewExperimentID(uuid)
+	machine, machineErr := standard.NewMachineID(uuid)
+	generation, generationErr := standard.NewMachineGenerationID(uuid)
+	repository, repositoryErr := standard.NewRepositoryIdentity("github.com/example/project")
+	tool, toolErr := standard.NewIdentifier("go-test")
+	machineClass, machineClassErr := standard.NewIdentifier("runner-standard")
+	profileName, profileNameErr := standard.NewIdentifier("acceptance")
+	profile, profileErr := standard.NewProfileIdentity(profileName, 1)
 	commit, commitErr := core.ParseBuildCommit("0123456789abcdef0123456789abcdef01234567")
 	if err := errors.Join(runErr, experimentErr, machineErr, generationErr, repositoryErr, toolErr, machineClassErr, profileNameErr, profileErr, commitErr); err != nil {
 		t.Fatalf("experiment completion identity fixture error = %v, want nil", err)
 	}
 	digest := core.SHA256Of([]byte("runner-experiment-completion"))
-	members := runnercontrol.MemberSet{Entries: []projectstandards.RunID{run}}
+	members := runnercontrol.MemberSet{Entries: []standard.RunID{run}}
 	memberDigest, memberErr := members.Digest()
 	if memberErr != nil {
 		t.Fatalf("MemberSet.Digest() completion fixture error = %v, want nil", memberErr)
 	}
-	probe := projectstandards.ProbeIdentity{
-		Origin:  projectstandards.OriginIdentity{Offering: core.Offering{Token: "cinkin"}},
-		Subject: projectstandards.SubjectIdentity{Project: core.Offering{Token: "runner"}, Repository: repository},
-		Source:  projectstandards.SourceCoordinate{Repository: repository, Commit: commit, Tree: digest},
-		Role:    projectstandards.ProbeRoleExperiment, Kind: projectstandards.ProbeKindTool,
-		Target:  projectstandards.ProbeTarget{Kind: projectstandards.ProbeTargetTool, Tool: &projectstandards.ToolTarget{Identity: tool}},
+	probe := standard.ProbeIdentity{
+		Origin:  standard.OriginIdentity{Offering: core.Offering{Token: "cinkin"}},
+		Subject: standard.SubjectIdentity{Project: core.Offering{Token: "runner"}, Repository: repository},
+		Source:  standard.SourceCoordinate{Repository: repository, Commit: commit, Tree: digest},
+		Role:    standard.ProbeRoleExperiment, Kind: standard.ProbeKindTool,
+		Target:  standard.ProbeTarget{Kind: standard.ProbeTargetTool, Tool: &standard.ToolTarget{Identity: tool}},
 		Profile: profile,
-		Environment: projectstandards.AdmittedEnvironment{
+		Environment: standard.AdmittedEnvironment{
 			MachineClass: machineClass, RequirementFingerprint: digest,
 			EnvironmentFingerprint: digest, MachineGeneration: generation, MachineSheetDigest: digest,
 		},
 	}
-	outcome := projectstandards.OutcomeNotRun
-	measurements := projectstandards.ExperimentMeasurements{Benchmarks: []projectstandards.BenchmarkMeasurement{}, Complexity: []projectstandards.ComplexityCapture{}}
+	outcome := standard.OutcomeNotRun
+	measurements := standard.ExperimentMeasurements{Benchmarks: []standard.BenchmarkMeasurement{}, Complexity: []standard.ComplexityCapture{}}
 	var startedAt *temporal.Instant
 	var result *process.ResultObservation
 	if started {
-		outcome = projectstandards.OutcomePassed
+		outcome = standard.OutcomePassed
 		measurements.DurationNs = 1_000_000
 		start := temporal.InstantFromNanoseconds(2_000_000)
 		startedAt = &start
@@ -205,10 +205,10 @@ func experimentCompletionPayloadFixture(t testing.TB, started bool) runnercontro
 			Unit:            runnercontrol.SchedulingUnitIdentity{Kind: runnercontrol.SchedulingUnitRunPlan, Identity: uuid},
 			MemberSetDigest: memberDigest,
 		},
-		Observation: projectstandards.ExperimentObservation{
+		Observation: standard.ExperimentObservation{
 			Experiment: experiment, Started: started, Outcome: outcome,
 			EnvironmentFingerprint: digest, ExecutionFingerprint: core.SHA256Of([]byte("execution")), MachineSheetDigest: digest,
-			Measurements: measurements, Artifacts: []projectstandards.ArtifactReference{},
+			Measurements: measurements, Artifacts: []standard.ArtifactReference{},
 		},
 		RequestedAt: temporal.InstantFromNanoseconds(1_000_000), AdmittedAt: temporal.InstantFromNanoseconds(1_500_000),
 		StartedAt: startedAt, CompletedAt: temporal.InstantFromNanoseconds(3_000_000), Process: result,

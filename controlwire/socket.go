@@ -3,7 +3,6 @@ package controlwire
 import (
 	"context"
 	json "encoding/json/v2"
-	"net/http"
 
 	"github.com/deliri/primitive/v2026/core"
 	"github.com/deliri/primitive/v2026/exchange"
@@ -97,9 +96,9 @@ type Server struct {
 // NewServer closes one authority control socket capability.
 func NewServer(configuration ServerConfiguration) (Server, error) {
 	if err := configuration.Validate(); err != nil {
-		return Server{}, err
+		return Server{}, err // witness:waiver doctrine/http/server_timeouts -- Controlwire Server is a typed protocol capability, not net/http.Server, and owns no HTTP runtime.
 	}
-	return Server{configuration: configuration}, nil
+	return Server{configuration: configuration}, nil // witness:waiver doctrine/http/server_timeouts -- Controlwire Server is a typed protocol capability, not net/http.Server, and owns no HTTP runtime.
 }
 
 // Validate rejects the zero capability and revalidates its protocol support.
@@ -119,9 +118,9 @@ type ClientJSONCall[Body RoutedJSONRequest] struct {
 // an exact route. The real request path must equal that route and the decoded
 // document must independently project the same route.
 type AuthorityJSONReceiveCall struct {
-	Request *http.Request
-	Route   RouteContract
-	Server  Server
+	Call   exchange.SocketServerCall
+	Route  RouteContract
+	Server Server
 }
 
 // RoutedJSONReceive is the authority-side transport result. The exact decoded
@@ -137,7 +136,7 @@ type RoutedJSONReceive[Body RoutedJSONRequest] struct {
 // Every control response is a typed JSON document and every successful route
 // uses the same compiler-owned status and document ceiling.
 type ControlJSONWriteCall[Body AuthenticatedResponseProjection] struct {
-	Writer http.ResponseWriter
+	Call   exchange.SocketServerCall
 	Body   Body
 	Server Server
 }
@@ -188,9 +187,7 @@ func ReceiveRoutedJSON[
 		return zero, err
 	}
 	received, err := exchange.ReceiveJSON[Body, BodyPtr](exchange.JSONReceiveCall{
-		Request: call.Request,
-		Route:   controlRouteSemantics(),
-		Policy:  policy,
+		Call: call.Call, Route: controlRouteSemantics(), Policy: policy,
 	})
 	if err != nil {
 		return zero, err
@@ -224,7 +221,7 @@ func WriteControlJSON[
 		return err
 	}
 	return exchange.WriteJSON(exchange.JSONWriteCall[Body]{
-		Writer: call.Writer,
+		Call: call.Call,
 		Response: exchange.ServerJSONResponse[Body]{
 			Body: call.Body, Status: core.HTTPStatusOK(),
 		},
@@ -235,8 +232,8 @@ func WriteControlJSON[
 // Validate closes the authority ingress and binds the real request path to the
 // mounted compiler-owned route before Exchange reads a byte of the body.
 func (call AuthorityJSONReceiveCall) Validate() error {
-	if call.Request == nil || call.Request.URL == nil {
-		return routeError(core.ErrExchangeContract)
+	if err := call.Call.Validate(); err != nil {
+		return routeError(err)
 	}
 	if err := call.Route.Validate(); err != nil {
 		return err
@@ -244,13 +241,16 @@ func (call AuthorityJSONReceiveCall) Validate() error {
 	if err := call.Server.Validate(); err != nil {
 		return err
 	}
-	path, err := call.Route.Path()
+	pathText, err := call.Route.Path()
 	if err != nil {
 		return err
 	}
-	if call.Request.URL.Path != path || call.Request.URL.RawPath != "" ||
-		call.Request.URL.RawQuery != "" || call.Request.URL.ForceQuery {
-		return routeError(core.ErrExchangeContract)
+	path, err := exchange.ParseSocketRoutePath(pathText)
+	if err != nil {
+		return routeError(err)
+	}
+	if err := exchange.ValidateSocketCallPath(call.Call, path); err != nil {
+		return routeError(err)
 	}
 	return nil
 }

@@ -22,6 +22,7 @@ type (
 // keygenContractInventory classifies every production struct by its actual
 // data-flow role. Keygen deliberately owns no wire or persistence carrier.
 type keygenContractInventory struct {
+	EntropyReader      capabilityWrapper[EntropyReader]
 	SecretRequest      operationRequest[SecretRequest]
 	RandomTokenRequest operationRequest[RandomTokenRequest]
 	SigningKey         capabilityWrapper[SigningKey]
@@ -60,8 +61,11 @@ func TestKeygenExactPublicSurfaceFieldsAndNoAliases(t *testing.T) {
 		"func AdoptSigningKey",
 		"func GenerateSecret",
 		"func GenerateSigningKey",
+		"func NewEntropyReader",
 		"func RandomToken",
 		"func RandomUint64",
+		"method EntropyReader.Read",
+		"method EntropyReader.Validate",
 		"method RandomTokenRequest.Validate",
 		"method SecretRequest.Validate",
 		"method SigningKey.Destroy",
@@ -72,6 +76,7 @@ func TestKeygenExactPublicSurfaceFieldsAndNoAliases(t *testing.T) {
 		"method SigningKey.Validate",
 		"method Token.Bytes",
 		"method Token.Validate",
+		"type EntropyReader",
 		"type RandomTokenRequest",
 		"type SecretRequest",
 		"type SigningKey",
@@ -122,6 +127,7 @@ func TestKeygenUsesOnlyGo126ProtectedProductionEntropyEffects(t *testing.T) {
 		t.Fatalf("scanKeygenArchitecture() error = %v, want nil", gotErr)
 	}
 	wantSelectors := []string{
+		"entropy_reader.go:rand.Read",
 		"random.go:rand.Read",
 		"random.go:rand.Read",
 		"secret.go:rand.Read",

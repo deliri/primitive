@@ -13,7 +13,9 @@ import (
 
 	"github.com/deliri/primitive/v2026/core"
 	"github.com/deliri/primitive/v2026/gomodule"
+	"github.com/deliri/primitive/v2026/hostfacts"
 	"github.com/deliri/primitive/v2026/process"
+	"github.com/deliri/primitive/v2026/standard"
 )
 
 // Capability is one resolved cmd/go execution boundary.
@@ -36,7 +38,7 @@ func Open(ctx context.Context, configuration Configuration) (Capability, error) 
 	if err != nil {
 		return Capability{}, errors.Join(core.ErrGoToolchainExecution, err)
 	}
-	environment, err := process.AmbientEnvironment()
+	environment, err := hostfacts.AmbientEnvironment()
 	if err != nil {
 		return Capability{}, errors.Join(core.ErrGoToolchainExecution, err)
 	}
@@ -62,7 +64,7 @@ func (c Capability) ObserveModule(ctx context.Context, request ObservationReques
 	if err := errors.Join(c.Validate(), request.Validate()); err != nil {
 		return gomodule.Path{}, errors.Join(core.ErrGoToolchainContract, err)
 	}
-	output, _, err := c.execute(ctx, request.WorkingDirectory, "list", "-m", "-f={{.Path}}")
+	output, _, err := c.execute(ctx, request.WorkingDirectory, goListSubcommand, "-m", "-f={{.Path}}")
 	if err != nil {
 		return gomodule.Path{}, err
 	}
@@ -82,7 +84,7 @@ func (c Capability) ObserveBuildContext(ctx context.Context, request Observation
 	if err := errors.Join(c.Validate(), request.Validate()); err != nil {
 		return BuildContext{}, errors.Join(core.ErrGoToolchainContract, err)
 	}
-	output, _, err := c.execute(ctx, request.WorkingDirectory, "env", "-json", "GOOS", "GOARCH", "GOVERSION", "CGO_ENABLED")
+	output, _, err := c.execute(ctx, request.WorkingDirectory, "env", standard.GoJSONOutputArgument, "GOOS", "GOARCH", "GOVERSION", "CGO_ENABLED")
 	if err != nil {
 		return BuildContext{}, err
 	}
@@ -94,7 +96,7 @@ func (c Capability) ListPackages(ctx context.Context, request ListRequest) (Pack
 	if err := errors.Join(c.Validate(), request.Validate()); err != nil {
 		return PackageCatalog{}, errors.Join(core.ErrGoToolchainContract, err)
 	}
-	arguments := []string{"list", "-json"}
+	arguments := []string{goListSubcommand, standard.GoJSONOutputArgument}
 	if request.Dependencies {
 		arguments = append(arguments, "-deps")
 	}
@@ -119,7 +121,7 @@ func (c Capability) CompilePackage(ctx context.Context, request CompileRequest) 
 	if err != nil {
 		return Compilation{}, errors.Join(core.ErrGoToolchainContract, err)
 	}
-	_, result, err := c.execute(ctx, request.WorkingDirectory, "test", "-c", "-o", discardValue, request.Pattern)
+	_, result, err := c.execute(ctx, request.WorkingDirectory, standard.GoTestText, "-c", "-o", discardValue, request.Pattern)
 	if err != nil {
 		return Compilation{}, err
 	}
@@ -199,12 +201,12 @@ func decodeBuildContext(data []byte) (BuildContext, error) {
 }
 
 type packageWire struct {
+	Error      *struct{}   `json:"Error"`
+	Module     *moduleWire `json:"Module"`
 	ImportPath string      `json:"ImportPath"`
 	Name       string      `json:"Name"`
 	Standard   bool        `json:"Standard"`
 	Incomplete bool        `json:"Incomplete"`
-	Error      *struct{}   `json:"Error"`
-	Module     *moduleWire `json:"Module"`
 }
 
 type moduleWire struct {

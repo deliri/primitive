@@ -1,6 +1,6 @@
 module github.com/deliri/primitive/v2026
 
-go 1.27.0
+go 1.27.1
 
 require (
 	cloud.google.com/go/auth v0.23.2

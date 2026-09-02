@@ -70,11 +70,11 @@ func TestCapabilityDocumentExternalIngressHostileBoundaries(t *testing.T) {
 	}
 
 	cases := []struct {
-		name    string
-		wire    []byte
 		decode  decodeCapabilityDocument
-		wantErr bool
+		name    string
 		why     string
+		wire    []byte
+		wantErr bool
 	}{
 		{name: "canonical scheduling document is admitted", wire: scheduling, decode: decodeScheduling, why: "canonical framing floor"},
 		{name: "surrounding JSON whitespace remains semantically neutral", wire: append(append([]byte(" \n"), scheduling...), '\t'), decode: decodeScheduling, why: "permitted JSON whitespace boundary"},
@@ -120,8 +120,8 @@ func TestCapabilitySigningDomainExhaustive(t *testing.T) {
 
 	cases := []struct {
 		name    string
-		domain  runnercontrol.CapabilitySigningDomain
 		want    string
+		domain  runnercontrol.CapabilitySigningDomain
 		wantErr bool
 	}{
 		{name: "scheduling domain is the lowest valid arm", domain: runnercontrol.CapabilitySigningDomainSchedulingV1, want: runnercontrol.SchedulingCapabilitySigningDomainToken},

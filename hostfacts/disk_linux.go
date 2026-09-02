@@ -8,8 +8,12 @@ import (
 )
 
 func (r *platformRoot) diskCapacity() (DiskCapacity, error) {
+	file, err := r.directory.File()
+	if err != nil {
+		return DiskCapacity{}, err
+	}
 	var stat unix.Statfs_t
-	if err := unix.Fstatfs(r.fd, &stat); err != nil {
+	if err := unix.Fstatfs(int(file.Fd()), &stat); err != nil {
 		return DiskCapacity{}, err
 	}
 	fragmentBytes := stat.Frsize

@@ -54,13 +54,14 @@ func startJSONIngressServer(
 		writer http.ResponseWriter,
 		request *http.Request,
 	) {
+		serverCall := socketServerCallFrom(t, writer, request)
 		received, receiveErr := exchange.ReceiveJSON[
 			transportDocument,
 			*transportDocument,
 		](exchange.JSONReceiveCall{
-			Request: request,
-			Route:   route,
-			Policy:  policy,
+			Call:   serverCall,
+			Route:  route,
+			Policy: policy,
 		})
 		observation := ingressObservation{err: receiveErr}
 		if receiveErr == nil {
@@ -341,8 +342,9 @@ func TestNoBodyIngressLayerTriad(t *testing.T) {
 			writer http.ResponseWriter,
 			request *http.Request,
 		) {
+			serverCall := socketServerCallFrom(t, writer, request)
 			received, receiveErr := exchange.ReceiveNoBody(
-				exchange.NoBodyReceiveCall{Request: request, Route: route},
+				exchange.NoBodyReceiveCall{Call: serverCall, Route: route},
 			)
 			observed <- ingressObservation{
 				err: receiveErr, key: received.IdempotencyKey.String(),
@@ -476,9 +478,10 @@ func TestStreamIngressBoundLayerTriad(t *testing.T) {
 			writer http.ResponseWriter,
 			request *http.Request,
 		) {
+			serverCall := socketServerCallFrom(t, writer, request)
 			received, receiveErr := exchange.ReceiveStream(
 				exchange.StreamReceiveCall{
-					Request:             request,
+					Call:                serverCall,
 					Destination:         destination,
 					Route:               exchange.RouteSemantics{Method: exchange.MethodPut, Replay: exchange.ReplaySingleAttempt},
 					Policy:              policy,

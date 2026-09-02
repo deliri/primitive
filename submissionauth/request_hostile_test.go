@@ -260,9 +260,9 @@ func TestCredentialedRequestLayerTriadRefusesEveryAuthorityAndDeviceSubstitution
 		t.Fatalf("partition-substituted RequestDocument.Validate() error = %v, want nil", err)
 	}
 	cases := []struct {
+		wantErr error
 		name    string
 		request Verification
-		wantErr error
 	}{
 		{name: "authority trust belongs to another signer", request: Verification{
 			Document: fixture.document, Server: submissionAuthServer(t, otherAuthorityTrust),

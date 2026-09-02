@@ -26,6 +26,8 @@ type architectureScan struct {
 	primitiveImports []string
 }
 
+const heldDirectoryCloseMethodName = "HeldDirectory.Close"
+
 // filestoreContractInventory classifies every production struct by its real
 // role. The generic arguments make every inventory entry compiler-visible.
 type filestoreContractInventory struct {
@@ -33,6 +35,7 @@ type filestoreContractInventory struct {
 	DirectoryRequest        validatedRequest[DirectoryRequest]
 	ReadRequest             validatedRequest[ReadRequest]
 	ReadHandleRequest       validatedRequest[ReadHandleRequest]
+	UpdateHandleRequest     validatedRequest[UpdateHandleRequest]
 	RenameRequest           validatedRequest[RenameRequest]
 	WriteRequest            validatedRequest[WriteRequest]
 	StageRequest            validatedRequest[StageRequest]
@@ -52,6 +55,9 @@ type filestoreContractInventory struct {
 	TreeRemovalRequest      validatedRequest[TreeRemovalRequest]
 	WalkRequest             validatedRequest[WalkRequest]
 	WalkEntry               streamedObservation[WalkEntry]
+	SymbolicLinkTarget      streamedObservation[SymbolicLinkTarget]
+	FilesystemIdentity      streamedObservation[FilesystemIdentity]
+	HeldDirectory           capabilityWrapper[HeldDirectory]
 	// One observation of a path, made before any effect and carrying no
 	// capability over it.
 	Inspection             streamedObservation[Inspection]
@@ -135,6 +141,8 @@ func TestFilestorePublicSurfaceIsExactRatchet(t *testing.T) {
 		"DirectoryRequest",
 		"DirectoryEntryMaximum",
 		"DurabilityRequest",
+		"FilesystemIdentity",
+		"HeldDirectory",
 		"HeldStanding",
 		"Ownership",
 		"Allocation",
@@ -142,6 +150,7 @@ func TestFilestorePublicSurfaceIsExactRatchet(t *testing.T) {
 		"PermissionRequest",
 		"LockFileRequest",
 		"TouchRequest",
+		"UpdateHandleRequest",
 		"InstallMode",
 		"Inspection",
 		"Location",
@@ -156,6 +165,7 @@ func TestFilestorePublicSurfaceIsExactRatchet(t *testing.T) {
 		"StageDestination",
 		"StageDestinationRequest",
 		"StagedFile",
+		"SymbolicLinkTarget",
 		"TreeRemovalRequest",
 		"WalkDirective",
 		"WalkEntry",
@@ -176,13 +186,16 @@ func TestFilestorePublicSurfaceIsExactRatchet(t *testing.T) {
 		"ObserveHeldStanding",
 		"ObserveSharing",
 		"OpenAppend",
+		"OpenDirectory",
 		"OpenLockFile",
 		"OpenParent",
 		"OpenRead",
 		"OpenRoot",
 		"OpenStagedRead",
 		"OpenStageDestination",
+		"OpenUpdate",
 		"Read",
+		"ReadSymbolicLink",
 		"Recover",
 		"Remove",
 		"RemoveTree",
@@ -218,6 +231,7 @@ func TestFilestorePublicSurfaceIsExactRatchet(t *testing.T) {
 		"SharingAvailable",
 		"SharingHeld",
 		"SharingUnknown",
+		"SymbolicLinkTargetMaximumBytes",
 		"WalkContinue",
 		"WalkDirectiveUnknown",
 		"WalkOrderLexical",
@@ -245,8 +259,15 @@ func TestFilestorePublicSurfaceIsExactRatchet(t *testing.T) {
 		"HeldStanding.OffWireEnum",
 		"HeldStanding.String",
 		"HeldStanding.Validate",
+		heldDirectoryCloseMethodName,
+		"HeldDirectory.File",
+		"HeldDirectory.Filesystem",
+		"HeldDirectory.Validate",
+		"FilesystemIdentity.Uint64",
+		"FilesystemIdentity.Validate",
 		"LockFileRequest.Validate",
 		"TouchRequest.Validate",
+		"UpdateHandleRequest.Validate",
 		"Inspection.Allocation",
 		"Inspection.Kind",
 		"Inspection.Ownership",
@@ -282,6 +303,8 @@ func TestFilestorePublicSurfaceIsExactRatchet(t *testing.T) {
 		"Sharing.OffWireEnum",
 		"Sharing.String",
 		"Sharing.Validate",
+		"SymbolicLinkTarget.String",
+		"SymbolicLinkTarget.Validate",
 		"StageRequest.Validate",
 		"StageDestination.File",
 		"StageDestination.Validate",
@@ -304,12 +327,9 @@ func TestFilestorePublicSurfaceIsExactRatchet(t *testing.T) {
 	})
 }
 
-// TestOnlyTheOwnerIdentityLeafNamesThePlatformStatusStructure proves the
-// scoped import is exactly one file wide. A second file naming syscall would
-// mean a platform detail had started spreading through the package, which is
-// the reason the blanket ban existed before owner identity needed the one
-// assertion the standard library offers no other route to.
-func TestOnlyTheOwnerIdentityLeafNamesThePlatformStatusStructure(t *testing.T) {
+// TestOnlyNamedPlatformLeavesNamePlatformStatusStructures proves the scoped
+// imports stay confined to the exact leaves that interpret FileInfo.Sys.
+func TestOnlyNamedPlatformLeavesNamePlatformStatusStructures(t *testing.T) {
 	t.Parallel()
 
 	naming := make([]string, 0)
@@ -324,7 +344,7 @@ func TestOnlyTheOwnerIdentityLeafNamesThePlatformStatusStructure(t *testing.T) {
 			}
 		}
 	}
-	requireExactNames(t, "production files naming syscall", naming, []string{ownerIdentityLeafFile})
+	requireExactNames(t, "production files naming syscall", naming, platformStatusLeafFileNames())
 }
 
 // TestNoProductionFileInvokesASyscall is the rule the scoped import rests on,
@@ -488,14 +508,12 @@ func violate() {
 	})
 }
 
-// ownerIdentityLeafFile is the one production file permitted to name the
-// platform status structure. Owner identifiers exist nowhere else in the
-// standard library: fs.FileInfo.Sys returns an `any`, and reading it is a type
-// assertion on a value Lstat already returned, not a call. What must never
-// exist is a syscall invocation, which would be an unrooted path access or a
-// second observation of an entry that may have changed; scanProductionArchitecture
-// rejects one in every file including this leaf.
-const ownerIdentityLeafFile = "attributes_unix.go"
+// platformStatusLeafFiles are the exact leaves permitted to interpret the
+// platform structures already returned through fs.FileInfo.Sys. Neither may
+// invoke syscall; TestNoProductionFileInvokesASyscall preserves that rule.
+func platformStatusLeafFileNames() []string {
+	return []string{"attributes_unix.go", "held_directory_windows.go"}
+}
 
 func scanProductionArchitecture(files []productionFile) (architectureScan, error) {
 	primitiveImports := make(map[string]struct{})
@@ -519,7 +537,7 @@ func scanProductionArchitecture(files []productionFile) (architectureScan, error
 	for _, production := range files {
 		file := production.file
 		importNames := make(map[string]string)
-		if production.name != ownerIdentityLeafFile {
+		if !slices.Contains(platformStatusLeafFileNames(), production.name) {
 			forbiddenImports["syscall"] = struct{}{}
 		} else {
 			delete(forbiddenImports, "syscall")
@@ -580,10 +598,13 @@ func scanProductionArchitecture(files []productionFile) (architectureScan, error
 					}
 					switch value.Name.Name {
 					case "Close", "Read", "ReadAt", "Seek", "Stat", "Sync", "Write", "WriteAt":
+						method := receiverName(value.Recv.List[0].Type) + "." + value.Name.Name
+						if method == heldDirectoryCloseMethodName {
+							return true
+						}
 						violations = append(
 							violations,
-							receiverName(value.Recv.List[0].Type)+"."+value.Name.Name+
-								": forbidden file-lookalike method",
+							method+": forbidden file-lookalike method",
 						)
 					}
 				}

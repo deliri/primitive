@@ -4,11 +4,10 @@ import (
 	"context"
 	json "encoding/json/v2"
 	"errors"
-	"net/http"
 
 	"github.com/deliri/primitive/v2026/core"
 	"github.com/deliri/primitive/v2026/exchange"
-	"github.com/deliri/primitive/v2026/projectstandards"
+	"github.com/deliri/primitive/v2026/standard"
 	"github.com/deliri/primitive/v2026/temporal"
 )
 
@@ -40,7 +39,7 @@ func (s HeartbeatState) String() string {
 	if !s.IsValid() {
 		return invalidEnumString()
 	}
-	return []string{"", "ready", "executing", "draining"}[s]
+	return []string{"", machineReadyStateText, machineExecutingStateText, machineDrainingStateText}[s]
 }
 
 func (s HeartbeatState) MarshalJSON() ([]byte, error) {
@@ -59,11 +58,11 @@ func (s *HeartbeatState) UnmarshalJSON(data []byte) error {
 		return err
 	}
 	switch value {
-	case "ready":
+	case machineReadyStateText:
 		*s = HeartbeatReady
-	case "executing":
+	case machineExecutingStateText:
 		*s = HeartbeatExecuting
-	case "draining":
+	case machineDrainingStateText:
 		*s = HeartbeatDraining
 	default:
 		return errors.Join(core.ErrJSONContract, core.ErrPrimitiveContract)
@@ -96,7 +95,7 @@ func (k DirectiveKind) String() string {
 	if !k.IsValid() {
 		return invalidEnumString()
 	}
-	return []string{"", "continue", "cancel-member", "cancel-unit", "revoke-lease", "drain"}[k]
+	return []string{"", heartbeatContinueActionText, heartbeatCancelMemberActionText, heartbeatCancelUnitActionText, heartbeatRevokeLeaseActionText, heartbeatDrainActionText}[k]
 }
 
 func (k DirectiveKind) MarshalJSON() ([]byte, error) {
@@ -115,15 +114,15 @@ func (k *DirectiveKind) UnmarshalJSON(data []byte) error {
 		return err
 	}
 	switch value {
-	case "continue":
+	case heartbeatContinueActionText:
 		*k = DirectiveContinue
-	case "cancel-member":
+	case heartbeatCancelMemberActionText:
 		*k = DirectiveCancelMember
-	case "cancel-unit":
+	case heartbeatCancelUnitActionText:
 		*k = DirectiveCancelUnit
-	case "revoke-lease":
+	case heartbeatRevokeLeaseActionText:
 		*k = DirectiveRevokeLease
-	case "drain":
+	case heartbeatDrainActionText:
 		*k = DirectiveDrain
 	default:
 		return errors.Join(core.ErrJSONContract, core.ErrPrimitiveContract)
@@ -132,8 +131,8 @@ func (k *DirectiveKind) UnmarshalJSON(data []byte) error {
 }
 
 type Directive struct {
-	Kind DirectiveKind           `json:"kind"`
-	Run  *projectstandards.RunID `json:"run_id,omitempty"`
+	Run  *standard.RunID `json:"run_id,omitempty"`
+	Kind DirectiveKind   `json:"kind"`
 }
 
 func (d Directive) Validate() error {
@@ -153,14 +152,14 @@ func (d Directive) Validate() error {
 }
 
 type HeartbeatRequest struct {
-	SchemaVersion uint16                                `json:"schema_version"`
-	Observation   projectstandards.MachineObservationID `json:"observation_id"`
-	Fence         MachineFence                          `json:"fence"`
-	Scheduling    *SchedulingFence                      `json:"scheduling_fence,omitempty"`
-	Members       *MemberSet                            `json:"member_set,omitempty"`
-	State         HeartbeatState                        `json:"state"`
-	ActiveRuns    []projectstandards.RunID              `json:"active_run_ids,omitempty"`
-	ObservedAt    temporal.Instant                      `json:"observed_at"`
+	Scheduling    *SchedulingFence              `json:"scheduling_fence,omitempty"`
+	Members       *MemberSet                    `json:"member_set,omitempty"`
+	ActiveRuns    []standard.RunID              `json:"active_run_ids,omitempty"`
+	Fence         MachineFence                  `json:"fence"`
+	ObservedAt    temporal.Instant              `json:"observed_at"`
+	SchemaVersion uint16                        `json:"schema_version"`
+	Observation   standard.MachineObservationID `json:"observation_id"`
+	State         HeartbeatState                `json:"state"`
 }
 
 func (r HeartbeatRequest) Validate() error {
@@ -193,7 +192,7 @@ func (r HeartbeatRequest) validateExecuting() error {
 	return nil
 }
 
-func activeRunsAreCanonicalMembers(active []projectstandards.RunID, members MemberSet) bool {
+func activeRunsAreCanonicalMembers(active []standard.RunID, members MemberSet) bool {
 	memberIndex := 0
 	for index := range active {
 		if active[index].Validate() != nil {
@@ -211,10 +210,10 @@ func activeRunsAreCanonicalMembers(active []projectstandards.RunID, members Memb
 }
 
 type HeartbeatResponse struct {
-	SchemaVersion uint16           `json:"schema_version"`
-	Fence         MachineFence     `json:"fence"`
 	Directive     Directive        `json:"directive"`
+	Fence         MachineFence     `json:"fence"`
 	NextAt        temporal.Instant `json:"next_at"`
+	SchemaVersion uint16           `json:"schema_version"`
 }
 
 func (r HeartbeatResponse) Validate() error {
@@ -292,8 +291,8 @@ func (c HeartbeatClient) Heartbeat(ctx context.Context, request HeartbeatRequest
 }
 
 type HeartbeatServer struct {
-	socket     exchange.ServerSocket
 	repository HeartbeatRepository
+	socket     exchange.ServerSocket
 }
 
 func NewHeartbeatServer(contract exchange.JSONSocketContract, repository HeartbeatRepository) (HeartbeatServer, error) {
@@ -307,11 +306,11 @@ func NewHeartbeatServer(contract exchange.JSONSocketContract, repository Heartbe
 	return HeartbeatServer{socket: socket, repository: repository}, nil
 }
 
-func (s HeartbeatServer) Serve(writer http.ResponseWriter, request *http.Request) error {
+func (s HeartbeatServer) Serve(call exchange.SocketServerCall) error {
 	if s.repository == nil {
 		return core.ErrPrimitiveContract
 	}
-	call, err := exchange.NewSocketServerCall(writer, request)
+	ctx, err := call.Context()
 	if err != nil {
 		return err
 	}
@@ -319,10 +318,10 @@ func (s HeartbeatServer) Serve(writer http.ResponseWriter, request *http.Request
 	if err != nil {
 		return err
 	}
-	if err := RequireRunnerPeer(request.Context(), received.Body.Fence.Machine, received.Body.Fence.Generation); err != nil {
+	if err := RequireRunnerPeer(ctx, received.Body.Fence.Machine, received.Body.Fence.Generation); err != nil {
 		return err
 	}
-	response, err := s.repository.Heartbeat(request.Context(), *received.Body)
+	response, err := s.repository.Heartbeat(ctx, *received.Body)
 	if err != nil {
 		return err
 	}

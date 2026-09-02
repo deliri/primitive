@@ -47,10 +47,14 @@ func NewGCSClient(ctx context.Context, config GCSClientConfig) (*GCSClient, erro
 }
 
 const (
-	// GCSCredentialJSONMaximumBytes bounds one service-account credential file
-	// before its bytes enter Google's authentication SDK.
+	// GCSCredentialJSONMaximumBytes is Primitive's custody ceiling for one
+	// service-account credential file before it enters Google's authentication SDK.
+	// Source: https://cloud.google.com/iam/docs/keys-create-delete#creating
 	GCSCredentialJSONMaximumBytes = 64 << 10
-	// GCSAuthenticationResponseMaximumBytes bounds provider credential exchange.
+	// GCSAuthenticationResponseMaximumBytes is Primitive's custody ceiling for
+	// one provider credential exchange; Google publishes the token shape but no
+	// aggregate response extent.
+	// Source: https://cloud.google.com/iam/docs/reference/credentials/rest/v1/projects.serviceAccounts/generateAccessToken
 	GCSAuthenticationResponseMaximumBytes = 64 << 10
 	gcsSDKAlternateRepresentationQuery    = "alt"
 	gcsSDKMediaRepresentation             = "media"
@@ -296,7 +300,9 @@ func CreateBucket(
 
 const (
 	// GCSProviderResponseMaximumBytes bounds one complete provider response
-	// before an official Google SDK decodes it.
+	// before an official Google SDK decodes it. This is Primitive's custody
+	// ceiling; Google publishes error shapes but no aggregate response extent.
+	// Source: https://cloud.google.com/storage/docs/json_api/v1/status-codes
 	GCSProviderResponseMaximumBytes              = 1 << 20
 	gcsPublicReadRole               iam.RoleName = "roles/storage.legacyObjectReader"
 	gcsJSONBucketPathPrefix                      = "/storage/v1/b/"
@@ -520,17 +526,17 @@ type gcsWrite struct {
 
 // GCSReadRequest is exact authenticated object egress.
 type GCSReadRequest struct {
-	Destination filestore.StageDestinationRequest
 	Bucket      GCSBucket
 	Name        GCSObjectName
+	Destination filestore.StageDestinationRequest
 	Integrity   objectstore.Integrity
 }
 
 // GCSReadResult transfers ownership of one integrity-verified local stage and
 // the exact provider metadata that produced it.
 type GCSReadResult struct {
-	metadata GCSObjectMetadata
 	staged   filestore.StagedFile
+	metadata GCSObjectMetadata
 }
 
 func (r GCSReadResult) Validate() error {

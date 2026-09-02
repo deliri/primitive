@@ -25,7 +25,7 @@ type receiptContractInventory struct {
 	scopeMismatch           receiptFailureDetail[scopeMismatch]
 	watermarkConflict       receiptFailureDetail[watermarkConflict]
 	lifecycleIdentity       receiptInternalFlow[lifecycleIdentity]
-	AccountIdentity         receiptProtocolFact[AccountIdentity]
+	PrincipalIdentity       receiptProtocolFact[PrincipalIdentity]
 	SubmissionIdentity      receiptProtocolFact[SubmissionIdentity]
 	ObjectIdentity          receiptProtocolFact[ObjectIdentity]
 	ReceiptID               receiptProtocolFact[ReceiptID]
@@ -75,9 +75,10 @@ func TestReceiptExternalIngressFuzzInventoryMatchesProduction(t *testing.T) {
 	}
 
 	gotText := []string{
-		"ParseAccountIdentity", "ParseObjectIdentity",
+		"ParsePrincipalIdentity", "ParseObjectIdentity",
 		"ParseReceiptID", "ParseSubmissionIdentity",
 	}
+	slices.Sort(gotText)
 	var wantText []string
 	for door := receiptTextDoorUnknown + 1; door < receiptTextDoorLimit; door++ {
 		name := door.functionName()

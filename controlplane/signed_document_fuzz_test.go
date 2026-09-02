@@ -528,11 +528,11 @@ func alternateBuild(t testing.TB, current core.BuildIdentity) core.BuildIdentity
 	return alternate
 }
 
-func foreignAccount(t testing.TB) receipt.AccountIdentity {
+func foreignAccount(t testing.TB) receipt.PrincipalIdentity {
 	t.Helper()
-	account, err := receipt.ParseAccountIdentity(checkInResponseOtherAccountHex)
+	account, err := receipt.ParsePrincipalIdentity(checkInResponseOtherAccountHex)
 	if err != nil {
-		t.Fatalf("ParseAccountIdentity(foreign) error = %v, want nil", err)
+		t.Fatalf("ParsePrincipalIdentity(foreign) error = %v, want nil", err)
 	}
 	return account
 }

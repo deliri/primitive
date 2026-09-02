@@ -31,10 +31,10 @@ type ResponseCommitment struct {
 
 // ResponseIssuance is the authority input for one authenticated response.
 type ResponseIssuance[Body core.ValidatedJSONMarshaler] struct {
-	Server     Server
 	Signer     crypto.Signer
 	Body       Body
 	Header     ResponseHeader
+	Server     Server
 	Assessment controlwire.ProtocolAssessment
 }
 
@@ -42,9 +42,9 @@ type ResponseIssuance[Body core.ValidatedJSONMarshaler] struct {
 // refusal. It deliberately carries no product body: an incompatible client
 // must never be asked to decode facts from a contract it cannot speak.
 type UpgradeRequiredIssuance struct {
-	Server     Server
 	Signer     crypto.Signer
 	Header     ResponseHeader
+	Server     Server
 	Assessment controlwire.ProtocolAssessment
 }
 
@@ -82,9 +82,9 @@ type ResponseVerification[
 		json.Unmarshaler
 	},
 ] struct {
-	Client   Client
 	Expected ResponseExpectation
 	Document ResponseDocument[Body, BodyPtr]
+	Client   Client
 }
 
 // VerifiedResponse is the only path that exposes an authenticated product

@@ -8,21 +8,21 @@ import (
 	"strings"
 
 	"github.com/deliri/primitive/v2026/core"
-	"github.com/deliri/primitive/v2026/projectstandards"
+	"github.com/deliri/primitive/v2026/standard"
 )
 
 const GoTestJSONEventMaximumBytes = 1 << 20
 
 type GoTestObservation struct {
-	Accounting projectstandards.ExecutionAccounting    `json:"accounting"`
-	Benchmarks []projectstandards.BenchmarkMeasurement `json:"benchmarks"`
+	Accounting standard.ExecutionAccounting    `json:"accounting"`
+	Benchmarks []standard.BenchmarkMeasurement `json:"benchmarks"`
 }
 
 func (o GoTestObservation) Validate() error {
 	if err := o.Accounting.Validate(); err != nil {
 		return err
 	}
-	if len(o.Benchmarks) > projectstandards.BenchmarkMeasurementMaximum {
+	if len(o.Benchmarks) > standard.BenchmarkMeasurementMaximum {
 		return core.ErrPrimitiveContract
 	}
 	for index := range o.Benchmarks {
@@ -38,20 +38,20 @@ type goTestEventWire struct {
 	Action      string  `json:"Action"`
 	Package     string  `json:"Package"`
 	Test        string  `json:"Test"`
-	Elapsed     float64 `json:"Elapsed"`
 	Output      string  `json:"Output"`
 	FailedBuild string  `json:"FailedBuild"`
+	Elapsed     float64 `json:"Elapsed"`
 }
 
 // GoTestObservationCompiler consumes the exact stdout emitted by go test
 // -json. It retains bounded state only for planned package units.
 type GoTestObservationCompiler struct {
-	policy     ObservationPolicy
-	pending    []byte
+	failure    error
 	seen       map[string]struct{}
 	terminal   map[string]string
-	benchmarks []projectstandards.BenchmarkMeasurement
-	failure    error
+	pending    []byte
+	benchmarks []standard.BenchmarkMeasurement
+	policy     ObservationPolicy
 }
 
 func NewGoTestObservationCompiler(policy ObservationPolicy) (*GoTestObservationCompiler, error) {
@@ -61,12 +61,12 @@ func NewGoTestObservationCompiler(policy ObservationPolicy) (*GoTestObservationC
 	if policy.Format != ObservationGoTestJSON {
 		return nil, observationFailure("go test observation compiler requires go-test-json format", core.ErrPrimitiveContract)
 	}
-	return &GoTestObservationCompiler{policy: policy, seen: make(map[string]struct{}), terminal: make(map[string]string), benchmarks: []projectstandards.BenchmarkMeasurement{}}, nil
+	return &GoTestObservationCompiler{policy: policy, seen: make(map[string]struct{}), terminal: make(map[string]string), benchmarks: []standard.BenchmarkMeasurement{}}, nil
 }
 
 func (c *GoTestObservationCompiler) Write(data []byte) (int, error) {
 	if c == nil {
-		return 0, observationFailure("go test observation compiler receiver is nil", core.ErrPrimitiveContract)
+		return 0, observationFailure(goTestObservationCompilerNilDiagnostic, core.ErrPrimitiveContract)
 	}
 	if c.failure != nil {
 		return 0, c.failure
@@ -101,12 +101,12 @@ func (c *GoTestObservationCompiler) consumeEvent(line []byte) error {
 	if err := c.observePackage(event); err != nil {
 		return err
 	}
-	if event.Action == "output" && strings.Contains(event.Output, " ns/op") {
+	if event.Action == goTestOutputActionText && strings.Contains(event.Output, " ns/op") {
 		measurement, measurementErr := parseGoBenchmarkMeasurement(event.Output)
 		if measurementErr != nil {
 			return measurementErr
 		}
-		if len(c.benchmarks) >= projectstandards.BenchmarkMeasurementMaximum {
+		if len(c.benchmarks) >= standard.BenchmarkMeasurementMaximum {
 			return observationFailure("go benchmark measurement count exceeds its ceiling", core.ErrPrimitiveContract)
 		}
 		c.benchmarks = append(c.benchmarks, measurement)
@@ -132,7 +132,7 @@ func (c *GoTestObservationCompiler) observePackage(event goTestEventWire) error 
 
 func (c *GoTestObservationCompiler) Seal(executionErr error) (GoTestObservation, error) {
 	if c == nil {
-		return GoTestObservation{}, observationFailure("go test observation compiler receiver is nil", core.ErrPrimitiveContract)
+		return GoTestObservation{}, observationFailure(goTestObservationCompilerNilDiagnostic, core.ErrPrimitiveContract)
 	}
 	if c.failure != nil {
 		result, err := c.unavailableObservation()
@@ -156,7 +156,7 @@ func (c *GoTestObservationCompiler) Seal(executionErr error) (GoTestObservation,
 		result, validationErr := c.unavailableObservation()
 		return result, errors.Join(err, validationErr)
 	}
-	result := GoTestObservation{Accounting: accounting, Benchmarks: append([]projectstandards.BenchmarkMeasurement(nil), c.benchmarks...)}
+	result := GoTestObservation{Accounting: accounting, Benchmarks: append([]standard.BenchmarkMeasurement(nil), c.benchmarks...)}
 	return result, result.Validate()
 }
 
@@ -164,11 +164,11 @@ func (c *GoTestObservationCompiler) unavailableObservation() (GoTestObservation,
 	attempt := newExecutionAttempt(c.policy)
 	for _, action := range c.terminal {
 		switch action {
-		case "pass":
+		case goTestPassActionText:
 			attempt.Passed++
-		case "fail":
+		case goTestFailActionText:
 			attempt.Failed++
-		case "skip":
+		case goTestSkipActionText:
 			attempt.Skipped++
 		}
 	}
@@ -180,31 +180,31 @@ func (c *GoTestObservationCompiler) unavailableObservation() (GoTestObservation,
 		return GoTestObservation{}, observationFailure("go test terminal count exceeds planned units", core.ErrPrimitiveContract)
 	}
 	attempt.Unavailable = c.policy.ExpectedUnits - terminal
-	accounting := projectstandards.ExecutionAccounting{Attempts: []projectstandards.ExecutionAttempt{attempt}}
-	result := GoTestObservation{Accounting: accounting, Benchmarks: append([]projectstandards.BenchmarkMeasurement(nil), c.benchmarks...)}
+	accounting := standard.ExecutionAccounting{Attempts: []standard.ExecutionAttempt{attempt}}
+	result := GoTestObservation{Accounting: accounting, Benchmarks: append([]standard.BenchmarkMeasurement(nil), c.benchmarks...)}
 	return result, result.Validate()
 }
 
-func (c *GoTestObservationCompiler) compileAccounting(executionErr error) (projectstandards.ExecutionAccounting, error) {
+func (c *GoTestObservationCompiler) compileAccounting(executionErr error) (standard.ExecutionAccounting, error) {
 	attempt := newExecutionAttempt(c.policy)
 	for _, action := range c.terminal {
 		switch action {
-		case "pass":
+		case goTestPassActionText:
 			attempt.Passed++
-		case "fail":
+		case goTestFailActionText:
 			attempt.Failed++
-		case "skip":
+		case goTestSkipActionText:
 			attempt.Skipped++
 		}
 	}
 	seen, terminal, countErr := c.packageCounts()
 	if countErr != nil || terminal > seen {
-		return projectstandards.ExecutionAccounting{}, observationFailure("go test package accounting exceeds its numeric ceiling", core.ErrPrimitiveContract, countErr)
+		return standard.ExecutionAccounting{}, observationFailure("go test package accounting exceeds its numeric ceiling", core.ErrPrimitiveContract, countErr)
 	}
 	active := seen - terminal
 	observed := terminal + active
 	if err := c.validateObservedAccounting(observed, terminal, executionErr); err != nil {
-		return projectstandards.ExecutionAccounting{}, err
+		return standard.ExecutionAccounting{}, err
 	}
 	c.classifyInterrupted(&attempt, active, executionErr)
 	attempt.NotRun = c.policy.ExpectedUnits - observed
@@ -212,12 +212,12 @@ func (c *GoTestObservationCompiler) compileAccounting(executionErr error) (proje
 		attempt.NotRun--
 		c.classifyInterrupted(&attempt, 1, executionErr)
 	}
-	accounting := projectstandards.ExecutionAccounting{Attempts: []projectstandards.ExecutionAttempt{attempt}}
+	accounting := standard.ExecutionAccounting{Attempts: []standard.ExecutionAttempt{attempt}}
 	return accounting, accounting.Validate()
 }
 
-func newExecutionAttempt(policy ObservationPolicy) projectstandards.ExecutionAttempt {
-	return projectstandards.ExecutionAttempt{Sequence: 1, Planned: policy.ExpectedUnits, Cache: projectstandards.CacheDisabled, Filtered: policy.Filtered}
+func newExecutionAttempt(policy ObservationPolicy) standard.ExecutionAttempt {
+	return standard.ExecutionAttempt{Sequence: 1, Planned: policy.ExpectedUnits, Cache: standard.CacheDisabled, Filtered: policy.Filtered}
 }
 
 func (c *GoTestObservationCompiler) validateObservedAccounting(observed, terminal uint32, executionErr error) error {
@@ -242,7 +242,7 @@ func (c *GoTestObservationCompiler) packageCounts() (uint32, uint32, error) {
 	return seen, terminal, errors.Join(seenErr, terminalErr)
 }
 
-func (c *GoTestObservationCompiler) classifyInterrupted(accounting *projectstandards.ExecutionAttempt, count uint32, executionErr error) {
+func (c *GoTestObservationCompiler) classifyInterrupted(accounting *standard.ExecutionAttempt, count uint32, executionErr error) {
 	if count == 0 {
 		return
 	}
@@ -258,7 +258,7 @@ func (c *GoTestObservationCompiler) classifyInterrupted(accounting *projectstand
 
 func goTestActionKnown(action string) bool {
 	switch action {
-	case "start", "run", "pause", "cont", "pass", "bench", "fail", "output", "skip":
+	case "start", "run", "pause", "cont", goTestPassActionText, "bench", goTestFailActionText, goTestOutputActionText, goTestSkipActionText:
 		return true
 	default:
 		return false
@@ -266,46 +266,46 @@ func goTestActionKnown(action string) bool {
 }
 
 func goTestTerminalAction(action string) bool {
-	return action == "pass" || action == "fail" || action == "skip"
+	return action == goTestPassActionText || action == goTestFailActionText || action == goTestSkipActionText
 }
 
-func parseGoBenchmarkMeasurement(output string) (projectstandards.BenchmarkMeasurement, error) {
+func parseGoBenchmarkMeasurement(output string) (standard.BenchmarkMeasurement, error) {
 	fields := strings.Fields(output)
 	if len(fields) < 8 {
-		return projectstandards.BenchmarkMeasurement{}, observationFailure("go benchmark result is incomplete", core.ErrJSONContract)
+		return standard.BenchmarkMeasurement{}, observationFailure("go benchmark result is incomplete", core.ErrJSONContract)
 	}
-	name, err := projectstandards.NewName(fields[0])
+	name, err := standard.NewName(fields[0])
 	if err != nil {
-		return projectstandards.BenchmarkMeasurement{}, observationFailure("go benchmark name is invalid", core.ErrJSONContract, err)
+		return standard.BenchmarkMeasurement{}, observationFailure("go benchmark name is invalid", core.ErrJSONContract, err)
 	}
 	iterations, err := strconv.ParseUint(fields[1], 10, 64)
 	if err != nil || iterations == 0 {
-		return projectstandards.BenchmarkMeasurement{}, observationFailure("go benchmark iteration count is invalid", core.ErrJSONContract, err)
+		return standard.BenchmarkMeasurement{}, observationFailure("go benchmark iteration count is invalid", core.ErrJSONContract, err)
 	}
 	nanoseconds, nanosecondsErr := benchmarkDecimal(fields, "ns/op")
 	bytesPerOp, bytesErr := benchmarkInteger(fields, "B/op")
 	allocations, allocationsErr := benchmarkInteger(fields, "allocs/op")
 	if err := errors.Join(nanosecondsErr, bytesErr, allocationsErr); err != nil {
-		return projectstandards.BenchmarkMeasurement{}, err
+		return standard.BenchmarkMeasurement{}, err
 	}
-	measurement := projectstandards.BenchmarkMeasurement{Name: name, Iterations: iterations, NanosecondsPerOp: nanoseconds, BytesPerOp: bytesPerOp, AllocationsPerOp: allocations}
+	measurement := standard.BenchmarkMeasurement{Name: name, Iterations: iterations, NanosecondsPerOp: nanoseconds, BytesPerOp: bytesPerOp, AllocationsPerOp: allocations}
 	return measurement, measurement.Validate()
 }
 
-func benchmarkDecimal(fields []string, unit string) (projectstandards.DecimalMeasurement, error) {
+func benchmarkDecimal(fields []string, unit string) (standard.DecimalMeasurement, error) {
 	value, ok := benchmarkField(fields, unit)
 	if !ok {
-		return projectstandards.DecimalMeasurement{}, observationFailure("go benchmark result is missing "+unit, core.ErrJSONContract)
+		return standard.DecimalMeasurement{}, observationFailure("go benchmark result is missing "+unit, core.ErrJSONContract)
 	}
 	coefficient, scale, err := parseBenchmarkDecimal(value)
 	if err != nil {
-		return projectstandards.DecimalMeasurement{}, err
+		return standard.DecimalMeasurement{}, err
 	}
 	for scale > 0 && coefficient%10 == 0 {
 		coefficient /= 10
 		scale--
 	}
-	result := projectstandards.DecimalMeasurement{Coefficient: coefficient, Scale: scale}
+	result := standard.DecimalMeasurement{Coefficient: coefficient, Scale: scale}
 	return result, result.Validate()
 }
 
@@ -316,7 +316,7 @@ func parseBenchmarkDecimal(value string) (uint64, uint8, error) {
 	}
 	scale := uint8(0)
 	if len(parts) == 2 {
-		if len(parts[1]) > int(projectstandards.DecimalMeasurementScaleMaximum) {
+		if len(parts[1]) > int(standard.DecimalMeasurementScaleMaximum) {
 			return 0, 0, observationFailure("go benchmark decimal precision exceeds its ceiling", core.ErrJSONContract)
 		}
 		parsedScale, scaleErr := core.CheckedUint8FromInt(len(parts[1]))

@@ -3,7 +3,6 @@ package controlwire_test
 import (
 	"context"
 	"errors"
-	"net/http"
 	"reflect"
 	"slices"
 	"testing"
@@ -17,8 +16,8 @@ import (
 type clientCapabilityCase struct {
 	name            string
 	authority       string
-	withoutExchange bool
 	wantErr         []error
+	withoutExchange bool
 	wantValid       bool
 }
 
@@ -231,18 +230,18 @@ func TestControlSocketSideCapabilitiesExcludeOppositePeerAuthority(t *testing.T)
 			wantFieldTypes: []reflect.Type{contextType, requestType, reflect.TypeFor[controlwire.Client]()},
 		},
 		{
-			name:      "server receive call carries request route and server capability only",
+			name:      "server receive call carries bound Exchange ingress route and server capability only",
 			structure: reflect.TypeFor[controlwire.AuthorityJSONReceiveCall](),
 			wantFieldTypes: []reflect.Type{
-				reflect.TypeFor[*http.Request](), reflect.TypeFor[controlwire.RouteContract](),
+				reflect.TypeFor[exchange.SocketServerCall](), reflect.TypeFor[controlwire.RouteContract](),
 				reflect.TypeFor[controlwire.Server](),
 			},
 		},
 		{
-			name:      "server write call carries writer body and server capability only",
+			name:      "server write call carries bound Exchange ingress body and server capability only",
 			structure: reflect.TypeFor[controlwire.ControlJSONWriteCall[controlplane.ResponseProjection[controlplane.RegistrationDocument]]](),
 			wantFieldTypes: []reflect.Type{
-				reflect.TypeFor[http.ResponseWriter](), responseType, reflect.TypeFor[controlwire.Server](),
+				reflect.TypeFor[exchange.SocketServerCall](), responseType, reflect.TypeFor[controlwire.Server](),
 			},
 		},
 	}

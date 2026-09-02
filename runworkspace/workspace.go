@@ -14,8 +14,8 @@ import (
 	"github.com/deliri/primitive/v2026/core"
 	"github.com/deliri/primitive/v2026/filestore"
 	"github.com/deliri/primitive/v2026/process"
-	"github.com/deliri/primitive/v2026/projectstandards"
 	"github.com/deliri/primitive/v2026/runnercontrol"
+	"github.com/deliri/primitive/v2026/standard"
 	"github.com/deliri/primitive/v2026/temporal"
 )
 
@@ -73,10 +73,10 @@ func (m Manager) Close() error {
 }
 
 type Unit struct {
-	Identity     runnercontrol.SchedulingUnitIdentity
 	Root         core.RelativePath
 	Checkout     core.RelativePath
 	RootIdentity core.SHA256Digest
+	Identity     runnercontrol.SchedulingUnitIdentity
 }
 
 func (u Unit) Validate() error {
@@ -107,22 +107,22 @@ func (m Manager) CreateUnit(ctx context.Context, identity runnercontrol.Scheduli
 }
 
 type Member struct {
-	Run  projectstandards.RunID
 	Root core.RelativePath
+	Run  standard.RunID
 }
 
 func (m Member) Validate() error {
 	return errors.Join(m.Run.Validate(), m.Root.Validate())
 }
 
-func (m Member) Experiment(identity projectstandards.ExperimentID) (Experiment, error) {
+func (m Member) Experiment(identity standard.ExperimentID) (Experiment, error) {
 	if err := errors.Join(m.Validate(), identity.Validate()); err != nil {
 		return Experiment{}, err
 	}
 	return resolveExperiment(m, identity)
 }
 
-func (m Manager) CreateMember(ctx context.Context, unit Unit, run projectstandards.RunID) (Member, error) {
+func (m Manager) CreateMember(ctx context.Context, unit Unit, run standard.RunID) (Member, error) {
 	if err := errors.Join(m.Validate(), unit.Validate(), run.Validate()); err != nil || unit.RootIdentity != m.rootIdentity {
 		return Member{}, errors.Join(core.ErrPrimitiveContract, err)
 	}
@@ -139,7 +139,7 @@ func (m Manager) CreateMember(ctx context.Context, unit Unit, run projectstandar
 		return Member{}, err
 	}
 	member := Member{Run: run, Root: root}
-	experiments, err := joinLiteral(root, "experiments")
+	experiments, err := joinLiteral(root, workspaceExperimentsDirectoryName)
 	if err != nil {
 		return Member{}, err
 	}
@@ -150,20 +150,20 @@ func (m Manager) CreateMember(ctx context.Context, unit Unit, run projectstandar
 }
 
 type Experiment struct {
-	Run       projectstandards.RunID
-	Identity  projectstandards.ExperimentID
 	Root      core.RelativePath
 	Home      core.RelativePath
 	Output    core.RelativePath
 	Cache     core.RelativePath
 	Temporary core.RelativePath
+	Run       standard.RunID
+	Identity  standard.ExperimentID
 }
 
 func (e Experiment) Validate() error {
 	return errors.Join(e.Run.Validate(), e.Identity.Validate(), e.Root.Validate(), e.Home.Validate(), e.Output.Validate(), e.Cache.Validate(), e.Temporary.Validate())
 }
 
-func (m Manager) CreateExperiment(ctx context.Context, member Member, identity projectstandards.ExperimentID) (Experiment, error) {
+func (m Manager) CreateExperiment(ctx context.Context, member Member, identity standard.ExperimentID) (Experiment, error) {
 	if err := errors.Join(m.Validate(), member.Validate(), identity.Validate()); err != nil {
 		return Experiment{}, err
 	}
@@ -172,13 +172,13 @@ func (m Manager) CreateExperiment(ctx context.Context, member Member, identity p
 		return Experiment{}, err
 	}
 	directories := [...]struct {
-		label       string
 		destination *core.RelativePath
+		label       string
 	}{
-		{label: "home", destination: &experiment.Home},
-		{label: "output", destination: &experiment.Output},
-		{label: "cache", destination: &experiment.Cache},
-		{label: "tmp", destination: &experiment.Temporary},
+		{label: workspaceHomeDirectoryName, destination: &experiment.Home},
+		{label: workspaceOutputDirectoryName, destination: &experiment.Output},
+		{label: workspaceCacheDirectoryName, destination: &experiment.Cache},
+		{label: workspaceTemporaryDirectoryName, destination: &experiment.Temporary},
 	}
 	for _, directory := range directories {
 		path, joinErr := joinLiteral(experiment.Root, directory.label)
@@ -193,7 +193,7 @@ func (m Manager) CreateExperiment(ctx context.Context, member Member, identity p
 	return experiment, experiment.Validate()
 }
 
-func (m Manager) ResolveExperiment(member Member, identity projectstandards.ExperimentID) (Experiment, error) {
+func (m Manager) ResolveExperiment(member Member, identity standard.ExperimentID) (Experiment, error) {
 	if err := errors.Join(m.Validate(), member.Validate(), identity.Validate()); err != nil {
 		return Experiment{}, err
 	}
@@ -232,8 +232,8 @@ func (m Manager) ValidateWritableWorkspace(workspace Experiment, binding runnerc
 	return nil
 }
 
-func resolveExperiment(member Member, identity projectstandards.ExperimentID) (Experiment, error) {
-	experiments, err := joinLiteral(member.Root, "experiments")
+func resolveExperiment(member Member, identity standard.ExperimentID) (Experiment, error) {
+	experiments, err := joinLiteral(member.Root, workspaceExperimentsDirectoryName)
 	if err != nil {
 		return Experiment{}, err
 	}
@@ -247,9 +247,14 @@ func resolveExperiment(member Member, identity projectstandards.ExperimentID) (E
 	}
 	experiment := Experiment{Run: member.Run, Identity: identity, Root: root}
 	for _, directory := range []struct {
-		label       string
 		destination *core.RelativePath
-	}{{"home", &experiment.Home}, {"output", &experiment.Output}, {"cache", &experiment.Cache}, {"tmp", &experiment.Temporary}} {
+		label       string
+	}{
+		{destination: &experiment.Home, label: workspaceHomeDirectoryName},
+		{destination: &experiment.Output, label: workspaceOutputDirectoryName},
+		{destination: &experiment.Cache, label: workspaceCacheDirectoryName},
+		{destination: &experiment.Temporary, label: workspaceTemporaryDirectoryName},
+	} {
 		path, joinErr := joinLiteral(root, directory.label)
 		if joinErr != nil {
 			return Experiment{}, joinErr
@@ -259,7 +264,7 @@ func resolveExperiment(member Member, identity projectstandards.ExperimentID) (E
 	return experiment, experiment.Validate()
 }
 
-func runPathComponent(run projectstandards.RunID) (core.PathComponent, error) {
+func runPathComponent(run standard.RunID) (core.PathComponent, error) {
 	encoded, err := run.MarshalJSON()
 	if err != nil {
 		return core.PathComponent{}, err
@@ -271,7 +276,7 @@ func runPathComponent(run projectstandards.RunID) (core.PathComponent, error) {
 	return core.ParsePathComponent(value)
 }
 
-func experimentPathComponent(experiment projectstandards.ExperimentID) (core.PathComponent, error) {
+func experimentPathComponent(experiment standard.ExperimentID) (core.PathComponent, error) {
 	encoded, err := experiment.MarshalJSON()
 	if err != nil {
 		return core.PathComponent{}, err

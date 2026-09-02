@@ -14,7 +14,7 @@ import (
 
 const (
 	evidenceHeaderCanonicalJSONMaximumBytes = len(
-		`{"receipt_identity":"","account_identity":"","offering":,"revision":"","occurred_at_nanoseconds":""}`,
+		`{"receipt_identity":"","principal_identity":"","offering":,"revision":"","occurred_at_nanoseconds":""}`,
 	) + ReceiptIDHexBytes + LifecycleIdentityHexBytes + core.OfferingCanonicalJSONMaximumBytes + len("v1") + 20
 	evidenceBodyCanonicalJSONMaximumBytes = len(
 		`{"submission_identity":"","object_identity":"","extent_bytes":,"sha256":"","crc32c":""}`,
@@ -53,11 +53,11 @@ type EvidenceBody struct {
 
 // Header identifies one signed evidence fact and its scope.
 type Header struct {
-	Offering   core.Offering    `json:"offering"`
-	OccurredAt temporal.Instant `json:"occurred_at_nanoseconds"`
-	Identity   ReceiptID        `json:"receipt_identity"`
-	Account    AccountIdentity  `json:"account_identity"`
-	Revision   Revision         `json:"revision"`
+	Offering   core.Offering     `json:"offering"`
+	OccurredAt temporal.Instant  `json:"occurred_at_nanoseconds"`
+	Identity   ReceiptID         `json:"receipt_identity"`
+	Principal  PrincipalIdentity `json:"principal_identity"`
+	Revision   Revision          `json:"revision"`
 }
 
 // EvidencePayload is the canonical typed body signed through Attest.
@@ -79,14 +79,14 @@ type IssueEvidenceRequest struct {
 	Body       EvidenceBody
 	OccurredAt temporal.Instant
 	Identity   ReceiptID
-	Account    AccountIdentity
+	Principal  PrincipalIdentity
 }
 
 // EvidenceExpectation is the exact scope and integrity a caller will accept.
 type EvidenceExpectation struct {
-	Offering core.Offering
-	Body     EvidenceBody
-	Account  AccountIdentity
+	Offering  core.Offering
+	Body      EvidenceBody
+	Principal PrincipalIdentity
 }
 
 // VerifyEvidenceRequest carries untrusted evidence, caller trust, and intent.
@@ -137,8 +137,8 @@ func (h Header) Validate() error {
 	if err := h.Identity.Validate(); err != nil {
 		return contractError(errors.New("evidence identity is invalid"), err)
 	}
-	if err := h.Account.Validate(); err != nil {
-		return contractError(errors.New("evidence account is invalid"), err)
+	if err := h.Principal.Validate(); err != nil {
+		return contractError(errors.New("evidence principal is invalid"), err)
 	}
 	if err := h.Offering.Validate(); err != nil {
 		return contractError(errors.New("evidence offering is invalid"), err)
@@ -193,7 +193,7 @@ func (d EvidenceDocument) Validate() error {
 func (r IssueEvidenceRequest) payload() EvidencePayload {
 	return EvidencePayload{
 		Header: Header{
-			Identity: r.Identity, Account: r.Account, Offering: r.Offering,
+			Identity: r.Identity, Principal: r.Principal, Offering: r.Offering,
 			Revision: RevisionV1, OccurredAt: r.OccurredAt,
 		},
 		Body: r.Body,
@@ -232,8 +232,8 @@ func IssueEvidence(request IssueEvidenceRequest) (EvidenceDocument, error) {
 }
 
 func (e EvidenceExpectation) Validate() error {
-	if err := e.Account.Validate(); err != nil {
-		return contractError(errors.New("expected account is invalid"), err)
+	if err := e.Principal.Validate(); err != nil {
+		return contractError(errors.New("expected principal is invalid"), err)
 	}
 	if err := e.Offering.Validate(); err != nil {
 		return contractError(errors.New("expected offering is invalid"), err)
@@ -281,8 +281,8 @@ func VerifyEvidence(request VerifyEvidenceRequest) (VerifiedEvidence, error) {
 
 func compareExpectation(payload EvidencePayload, expected EvidenceExpectation) error {
 	switch {
-	case payload.Header.Account != expected.Account:
-		return newScopeMismatch(ScopeFieldAccount)
+	case payload.Header.Principal != expected.Principal:
+		return newScopeMismatch(ScopeFieldPrincipal)
 	case payload.Header.Offering != expected.Offering:
 		return newScopeMismatch(ScopeFieldOffering)
 	case payload.Body.Submission != expected.Body.Submission:
@@ -398,11 +398,11 @@ func (b *EvidenceBody) UnmarshalJSON(data []byte) error {
 // directions. Every member is a pointer, so no layout optimizer can reorder the
 // signed contract.
 type headerWire struct {
-	Identity   *ReceiptID        `json:"receipt_identity"`
-	Account    *AccountIdentity  `json:"account_identity"`
-	Offering   *core.Offering    `json:"offering"`
-	Revision   *Revision         `json:"revision"`
-	OccurredAt *temporal.Instant `json:"occurred_at_nanoseconds"`
+	Identity   *ReceiptID         `json:"receipt_identity"`
+	Principal  *PrincipalIdentity `json:"principal_identity"`
+	Offering   *core.Offering     `json:"offering"`
+	Revision   *Revision          `json:"revision"`
+	OccurredAt *temporal.Instant  `json:"occurred_at_nanoseconds"`
 }
 
 func (h Header) MarshalJSON() ([]byte, error) {
@@ -410,7 +410,7 @@ func (h Header) MarshalJSON() ([]byte, error) {
 		return nil, jsonError(err)
 	}
 	encoded, err := json.Marshal(headerWire{
-		Identity: &h.Identity, Account: &h.Account, Offering: &h.Offering,
+		Identity: &h.Identity, Principal: &h.Principal, Offering: &h.Offering,
 		Revision: &h.Revision, OccurredAt: &h.OccurredAt,
 	})
 	if err != nil || len(encoded) > evidenceHeaderCanonicalJSONMaximumBytes {
@@ -434,12 +434,12 @@ func (h *Header) UnmarshalJSON(data []byte) error {
 	if err != nil {
 		return jsonError(err)
 	}
-	if wire.Identity == nil || wire.Account == nil || wire.Offering == nil ||
+	if wire.Identity == nil || wire.Principal == nil || wire.Offering == nil ||
 		wire.Revision == nil || wire.OccurredAt == nil {
 		return jsonError(errors.New("evidence header omits a required field"))
 	}
 	candidate := Header{
-		Identity: *wire.Identity, Account: *wire.Account, Offering: *wire.Offering,
+		Identity: *wire.Identity, Principal: *wire.Principal, Offering: *wire.Offering,
 		Revision: *wire.Revision, OccurredAt: *wire.OccurredAt,
 	}
 	if err := candidate.Validate(); err != nil {

@@ -46,9 +46,10 @@ func BenchmarkUpload10MiBFileOverLoopback(b *testing.B) {
 		writer http.ResponseWriter,
 		request *http.Request,
 	) {
+		serverCall := socketServerCallFrom(b, writer, request)
 		received, receiveErr := exchange.ReceiveStream(
 			exchange.StreamReceiveCall{
-				Request:     request,
+				Call:        serverCall,
 				Destination: io.Discard,
 				Route: exchange.RouteSemantics{
 					Method: exchange.MethodPut,
@@ -62,7 +63,7 @@ func BenchmarkUpload10MiBFileOverLoopback(b *testing.B) {
 		if receiveErr == nil {
 			writeErr = exchange.WriteNoBody(
 				exchange.NoBodyWriteCall{
-					Writer: writer,
+					Call: serverCall,
 					Response: exchange.ServerNoBodyResponse{
 						Status: created,
 					},
@@ -153,6 +154,7 @@ func BenchmarkDownload10MiBFileOverLoopback(b *testing.B) {
 		writer http.ResponseWriter,
 		request *http.Request,
 	) {
+		serverCall := socketServerCallFrom(b, writer, request)
 		section := io.NewSectionReader(
 			source,
 			0,
@@ -160,8 +162,7 @@ func BenchmarkDownload10MiBFileOverLoopback(b *testing.B) {
 		)
 		writeErr := exchange.WriteStream(
 			exchange.StreamWriteCall{
-				Context: request.Context(),
-				Writer:  writer,
+				Call: serverCall,
 				Response: exchange.ServerStreamResponse{
 					Source:        section,
 					ContentLength: mustByteLength(b, testLargeTransferBytes),

@@ -124,9 +124,9 @@ func selectionStateLabels() [selectionLimit]string {
 }
 
 type EvaluateRequest struct {
+	Time              LatestTimeEvidence
 	InstalledManifest VerifiedManifest
 	Latest            CachedLatest
-	Time              LatestTimeEvidence
 }
 
 // Validate proves the complete installed-selection ingress.
@@ -346,6 +346,16 @@ func (a AvailableRelease) Summary() (AvailableSummary, error) {
 		ValidUntil: a.assessment.ValidUntil(),
 	}
 	return summary, summary.Validate()
+}
+
+// Latest returns the authenticated latest-release fact carried by this
+// available selection. Consumers use it to produce and durably ratchet their
+// own time evidence before asking Primitive to prepare an upgrade.
+func (a AvailableRelease) Latest() (VerifiedLatest, error) {
+	if err := a.Validate(); err != nil {
+		return VerifiedLatest{}, err
+	}
+	return a.latest, nil
 }
 
 func validateAvailableBindings(a AvailableRelease) error {
@@ -654,12 +664,12 @@ func sealSelection(candidate Selection) (Selection, error) {
 
 // PreparedRelease is the authenticated handoff consumed by Upgrade.
 type PreparedRelease struct {
+	time              LatestTimeEvidence
 	artifact          Artifact
 	candidateManifest VerifiedManifest
 	installedManifest VerifiedManifest
 	latest            VerifiedLatest
 	assessment        LatestAssessment
-	time              LatestTimeEvidence
 	valid             bool
 }
 

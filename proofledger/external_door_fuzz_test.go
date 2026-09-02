@@ -70,7 +70,7 @@ func FuzzProofLedgerExternalJSONDoorsSemanticClosure(f *testing.F) {
 	addProofLedgerJSONSeed(f, proofLedgerJSONDoorPageLimit, limit)
 	addProofLedgerJSONSeed(f, proofLedgerJSONDoorReceipt, document.Receipt)
 	addProofLedgerJSONSeed(f, proofLedgerJSONDoorReceiptDocument, document)
-	addProofLedgerJSONSeed(f, proofLedgerJSONDoorSigningDomain, ReceiptSigningDomainV1)
+	addProofLedgerJSONSeed(f, proofLedgerJSONDoorSigningDomain, AppendReceiptSigningDomainV1)
 	addProofLedgerJSONSeed(f, proofLedgerJSONDoorPosition, genesis.Sequence)
 	f.Add(proofLedgerJSONDoorSequence, []byte{})
 	f.Add(proofLedgerJSONDoorReceiptDocument, []byte(`{}`))
@@ -86,11 +86,11 @@ func FuzzProofLedgerExternalJSONDoorsSemanticClosure(f *testing.F) {
 		case proofLedgerJSONDoorPageLimit:
 			proveProofLedgerJSONDoor[PageLimit, *PageLimit](t, data, limit)
 		case proofLedgerJSONDoorReceipt:
-			proveProofLedgerJSONDoor[Receipt, *Receipt](t, data, document.Receipt)
+			proveProofLedgerJSONDoor[AppendReceipt, *AppendReceipt](t, data, document.Receipt)
 		case proofLedgerJSONDoorReceiptDocument:
-			proveProofLedgerJSONDoor[ReceiptDocument, *ReceiptDocument](t, data, document)
+			proveProofLedgerJSONDoor[AppendReceiptDocument, *AppendReceiptDocument](t, data, document)
 		case proofLedgerJSONDoorSigningDomain:
-			proveProofLedgerJSONDoor[ReceiptSigningDomain, *ReceiptSigningDomain](t, data, ReceiptSigningDomainV1)
+			proveProofLedgerJSONDoor[AppendReceiptSigningDomain, *AppendReceiptSigningDomain](t, data, AppendReceiptSigningDomainV1)
 		case proofLedgerJSONDoorPosition:
 			proveProofLedgerJSONDoor[Position, *Position](t, data, genesis.Sequence)
 		}

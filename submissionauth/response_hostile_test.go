@@ -80,7 +80,7 @@ func TestSubmissionDecisionResponseLayerTriadAuthenticatesRefusesAndKeepsNeutral
 		t.Fatalf("InstallationCertificateBody.Scope() error = %v, want nil", err)
 	}
 	decision, err := submission.VerifyDecision(submission.DecisionExpectation{
-		Decision: gotBody, Request: request, Account: scope.Account, Offering: scope.Offering,
+		Decision: gotBody, Request: request, Scope: scope,
 		ObservedAt: fixture.grant.Payload.IssuedAt, TrustedKeys: fixture.request.trusted,
 	})
 	if err != nil {

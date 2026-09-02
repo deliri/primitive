@@ -11,7 +11,7 @@ import (
 
 	"github.com/deliri/primitive/v2026/attest"
 	"github.com/deliri/primitive/v2026/core"
-	"github.com/deliri/primitive/v2026/projectstandards"
+	"github.com/deliri/primitive/v2026/standard"
 	"github.com/deliri/primitive/v2026/temporal"
 )
 
@@ -45,7 +45,7 @@ func (k CleanupOutcomeKind) String() string {
 	if !k.IsValid() {
 		return invalidEnumString()
 	}
-	return []string{"", "succeeded", "failed", "not-applicable"}[k]
+	return []string{"", "cleanup_succeeded", "cleanup_failed", evidenceNotApplicableText}[k]
 }
 
 func (k CleanupOutcomeKind) MarshalJSON() ([]byte, error) {
@@ -73,9 +73,9 @@ func (k *CleanupOutcomeKind) UnmarshalJSON(data []byte) error {
 }
 
 type CleanupOutcome struct {
-	Kind          CleanupOutcomeKind  `json:"kind"`
 	ReceiptDigest *core.SHA256Digest  `json:"receipt_digest,omitempty"`
 	Failure       *core.ErrorIdentity `json:"failure,omitempty"`
+	Kind          CleanupOutcomeKind  `json:"kind"`
 }
 
 func (o CleanupOutcome) Validate() error {
@@ -168,9 +168,9 @@ func (k *EvidenceBodyKind) UnmarshalJSON(data []byte) error {
 }
 
 type InterruptedRunnerEvidence struct {
-	Interruption           core.ErrorIdentity             `json:"interruption"`
-	Experiments            []ExperimentCompletionDocument `json:"retained_experiments"`
 	ArtifactManifestDigest *core.SHA256Digest             `json:"artifact_manifest_digest,omitempty"`
+	Experiments            []ExperimentCompletionDocument `json:"retained_experiments"`
+	Interruption           core.ErrorIdentity             `json:"interruption"`
 }
 
 func (e InterruptedRunnerEvidence) Validate() error {
@@ -180,7 +180,7 @@ func (e InterruptedRunnerEvidence) Validate() error {
 	if len(e.Experiments) > RetainedExperimentMaximum {
 		return core.ErrPrimitiveContract
 	}
-	seen := make([]projectstandards.ExperimentID, 0, len(e.Experiments))
+	seen := make([]standard.ExperimentID, 0, len(e.Experiments))
 	for index := range e.Experiments {
 		if err := e.Experiments[index].Validate(); err != nil {
 			return err
@@ -198,8 +198,8 @@ func (e InterruptedRunnerEvidence) Validate() error {
 }
 
 type PreRunnerEvidence struct {
-	Stage   projectstandards.Identifier `json:"stage"`
-	Failure core.ErrorIdentity          `json:"failure"`
+	Stage   standard.Identifier `json:"stage"`
+	Failure core.ErrorIdentity  `json:"failure"`
 }
 
 func (e PreRunnerEvidence) Validate() error {
@@ -207,10 +207,10 @@ func (e PreRunnerEvidence) Validate() error {
 }
 
 type ObservationEvidenceBody struct {
-	Kind        EvidenceBodyKind           `json:"kind"`
 	Completed   *RunnerCompletionDocument  `json:"completed,omitempty"`
 	Interrupted *InterruptedRunnerEvidence `json:"interrupted,omitempty"`
 	PreRunner   *PreRunnerEvidence         `json:"pre_runner,omitempty"`
+	Kind        EvidenceBodyKind           `json:"kind"`
 }
 
 func (b ObservationEvidenceBody) Validate() error {
@@ -252,22 +252,22 @@ func (b ObservationEvidenceBody) validateSelectedBody() error {
 }
 
 type ObservationEnvelopePayload struct {
-	SchemaVersion              uint16                           `json:"schema_version"`
-	Request                    projectstandards.RequestIdentity `json:"request_id"`
-	Run                        projectstandards.RunID           `json:"run_id"`
-	AdmissionDigest            core.SHA256Digest                `json:"admission_digest"`
-	Fence                      SchedulingFence                  `json:"fence"`
-	Members                    MemberSet                        `json:"member_set"`
-	Cleanup                    CleanupOutcome                   `json:"cleanup"`
-	CleanupDigest              core.SHA256Digest                `json:"cleanup_digest"`
-	Origin                     projectstandards.OriginIdentity  `json:"origin"`
-	DeliveryGrant              core.SHA256Digest                `json:"delivery_grant"`
-	Destination                projectstandards.Identifier      `json:"destination"`
-	Audience                   projectstandards.Identifier      `json:"audience"`
-	Terminal                   projectstandards.TerminalState   `json:"terminal"`
-	CapturedAt                 temporal.Instant                 `json:"captured_at"`
-	ExperimentDeliveryManifest core.SHA256Digest                `json:"experiment_delivery_manifest"`
-	Evidence                   ObservationEvidenceBody          `json:"evidence"`
+	Evidence                   ObservationEvidenceBody  `json:"evidence"`
+	Cleanup                    CleanupOutcome           `json:"cleanup"`
+	Audience                   standard.Identifier      `json:"audience"`
+	Destination                standard.Identifier      `json:"destination"`
+	Origin                     standard.OriginIdentity  `json:"origin"`
+	Members                    MemberSet                `json:"member_set"`
+	Fence                      SchedulingFence          `json:"fence"`
+	CapturedAt                 temporal.Instant         `json:"captured_at"`
+	SchemaVersion              uint16                   `json:"schema_version"`
+	CleanupDigest              core.SHA256Digest        `json:"cleanup_digest"`
+	DeliveryGrant              core.SHA256Digest        `json:"delivery_grant"`
+	AdmissionDigest            core.SHA256Digest        `json:"admission_digest"`
+	ExperimentDeliveryManifest core.SHA256Digest        `json:"experiment_delivery_manifest"`
+	Run                        standard.RunID           `json:"run_id"`
+	Request                    standard.RequestIdentity `json:"request_id"`
+	Terminal                   standard.TerminalState   `json:"terminal"`
 }
 
 func (p ObservationEnvelopePayload) Validate() error {
@@ -299,10 +299,10 @@ func (p ObservationEnvelopePayload) validateOwnedValues() error {
 }
 
 func (p ObservationEnvelopePayload) validateTerminalClosure() error {
-	if p.Evidence.Kind != EvidenceCompletedRunner && p.Terminal == projectstandards.TerminalCompleted {
+	if p.Evidence.Kind != EvidenceCompletedRunner && p.Terminal == standard.TerminalCompleted {
 		return core.ErrPrimitiveContract
 	}
-	if p.Cleanup.Kind != CleanupSucceeded && p.Terminal == projectstandards.TerminalCompleted {
+	if p.Cleanup.Kind != CleanupSucceeded && p.Terminal == standard.TerminalCompleted {
 		return core.ErrPrimitiveContract
 	}
 	return nil
@@ -447,12 +447,12 @@ func VerifyObservationEnvelope(document ObservationEnvelope, trusted attest.Trus
 }
 
 type ExperimentDeliveryEntry struct {
-	Experiment projectstandards.ExperimentID  `json:"experiment_id"`
-	Probe      projectstandards.ProbeIdentity `json:"probe"`
-	Digest     core.SHA256Digest              `json:"digest"`
-	Bytes      core.ByteLength                `json:"bytes"`
-	Page       uint16                         `json:"page"`
-	Position   uint16                         `json:"position"`
+	Probe      standard.ProbeIdentity `json:"probe"`
+	Bytes      core.ByteLength        `json:"bytes"`
+	Page       uint16                 `json:"page"`
+	Position   uint16                 `json:"position"`
+	Digest     core.SHA256Digest      `json:"digest"`
+	Experiment standard.ExperimentID  `json:"experiment_id"`
 }
 
 func (e ExperimentDeliveryEntry) Validate() error {
@@ -463,10 +463,10 @@ func (e ExperimentDeliveryEntry) Validate() error {
 }
 
 type ExperimentDeliveryManifest struct {
-	SchemaVersion uint16                    `json:"schema_version"`
-	Run           projectstandards.RunID    `json:"run_id"`
 	Entries       []ExperimentDeliveryEntry `json:"entries"`
+	SchemaVersion uint16                    `json:"schema_version"`
 	PageCount     uint16                    `json:"page_count"`
+	Run           standard.RunID            `json:"run_id"`
 }
 
 func (m ExperimentDeliveryManifest) Validate() error {
@@ -558,10 +558,10 @@ func (m ExperimentDeliveryManifest) Digest() (core.SHA256Digest, error) {
 }
 
 type ExperimentDeliveryPage struct {
-	SchemaVersion uint16                         `json:"schema_version"`
-	Run           projectstandards.RunID         `json:"run_id"`
-	Page          uint16                         `json:"page"`
 	Documents     []ExperimentCompletionDocument `json:"documents"`
+	SchemaVersion uint16                         `json:"schema_version"`
+	Page          uint16                         `json:"page"`
+	Run           standard.RunID                 `json:"run_id"`
 }
 
 func (p ExperimentDeliveryPage) Validate() error {
@@ -613,8 +613,8 @@ type ObservationDeliveryRepository interface {
 }
 
 type ObservationDeliveryVerification struct {
-	Stage       ObservationDeliveryStage
 	Pages       []ExperimentDeliveryPage
+	Stage       ObservationDeliveryStage
 	ControlKeys attest.TrustedKeys
 	RunnerKeys  attest.TrustedKeys
 }
@@ -648,8 +648,8 @@ func VerifyObservationDelivery(verification ObservationDeliveryVerification) err
 
 type deliveryClosure struct {
 	body       ObservationEvidenceBody
-	manifest   ExperimentDeliveryManifest
 	documents  []ExperimentCompletionDocument
+	manifest   ExperimentDeliveryManifest
 	runnerKeys attest.TrustedKeys
 }
 

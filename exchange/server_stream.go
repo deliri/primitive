@@ -40,7 +40,7 @@ func (p ServerStreamPolicy) Validate() error {
 
 // BoundedReceiveCall supplies one aggregate byte server boundary.
 type BoundedReceiveCall struct {
-	Request             *http.Request
+	Call                SocketServerCall
 	ExpectedContentType core.HTTPMediaType
 	Policy              ServerBoundedPolicy
 	Route               RouteSemantics
@@ -49,7 +49,7 @@ type BoundedReceiveCall struct {
 // StreamReceiveCall supplies one O(1)-memory server receive boundary.
 type StreamReceiveCall struct {
 	Destination         io.Writer
-	Request             *http.Request
+	Call                SocketServerCall
 	ExpectedContentType core.HTTPMediaType
 	Policy              ServerStreamPolicy
 	Route               RouteSemantics
@@ -89,7 +89,7 @@ func ReceiveBounded(
 	call BoundedReceiveCall,
 ) (ReceivedBytes, error) {
 	return executeRequestBodyOperation(
-		call.Request,
+		call.Call.request,
 		func() (ReceivedBytes, error) {
 			return receiveBounded(call)
 		},
@@ -100,20 +100,21 @@ func receiveBounded(call BoundedReceiveCall) (ReceivedBytes, error) {
 	if err := call.Validate(); err != nil {
 		return ReceivedBytes{}, err
 	}
-	key, err := receiveIdempotencyKey(call.Request, call.Route)
+	request := call.Call.request
+	key, err := receiveIdempotencyKey(request, call.Route)
 	if err != nil {
 		return ReceivedBytes{}, err
 	}
 	declared, err := admittedBodyLength(
-		call.Request.ContentLength,
+		request.ContentLength,
 		call.Policy.RequestBodyLimit,
 	)
 	if err != nil {
 		return ReceivedBytes{}, requestError(err)
 	}
 	body, readErr := readBoundedBody(boundedBodyRead{
-		context:  call.Request.Context(),
-		source:   call.Request.Body,
+		context:  request.Context(),
+		source:   request.Body,
 		declared: declared,
 		limit:    call.Policy.RequestBodyLimit,
 	})
@@ -131,7 +132,7 @@ func ReceiveStream(
 	call StreamReceiveCall,
 ) (ReceivedStream, error) {
 	return executeRequestBodyOperation(
-		call.Request,
+		call.Call.request,
 		func() (ReceivedStream, error) {
 			return receiveStream(call)
 		},
@@ -142,20 +143,21 @@ func receiveStream(call StreamReceiveCall) (ReceivedStream, error) {
 	if err := call.Validate(); err != nil {
 		return ReceivedStream{}, err
 	}
-	key, err := receiveIdempotencyKey(call.Request, call.Route)
+	request := call.Call.request
+	key, err := receiveIdempotencyKey(request, call.Route)
 	if err != nil {
 		return ReceivedStream{}, err
 	}
 	if _, err := admittedBodyLength(
-		call.Request.ContentLength,
+		request.ContentLength,
 		call.Policy.RequestBodyLimit,
 	); err != nil {
 		return ReceivedStream{}, requestError(err)
 	}
 	bytes, copyErr := copyDownload(
 		downloadCopyRequest{
-			context: call.Request.Context(),
-			source:  call.Request.Body, destination: call.Destination,
+			context: request.Context(),
+			source:  request.Body, destination: call.Destination,
 			limit: call.Policy.RequestBodyLimit,
 		},
 	)
@@ -171,7 +173,10 @@ func receiveStream(call StreamReceiveCall) (ReceivedStream, error) {
 
 // Validate checks one aggregate byte server receive boundary.
 func (call BoundedReceiveCall) Validate() error {
-	if err := validateServerIngress(call.Request, call.Route); err != nil {
+	if err := call.Call.Validate(); err != nil {
+		return requestError(err)
+	}
+	if err := validateServerIngress(call.Call.request, call.Route); err != nil {
 		return err
 	}
 	if err := call.Policy.Validate(); err != nil {
@@ -179,7 +184,7 @@ func (call BoundedReceiveCall) Validate() error {
 	}
 	return validateRawRequestMetadata(
 		rawRequestMetadata{
-			request:             call.Request,
+			request:             call.Call.request,
 			expectedContentType: call.ExpectedContentType,
 		},
 	)
@@ -190,7 +195,10 @@ func (call StreamReceiveCall) Validate() error {
 	if call.Destination == nil {
 		return requestError(core.ErrExchangeContract)
 	}
-	if err := validateServerIngress(call.Request, call.Route); err != nil {
+	if err := call.Call.Validate(); err != nil {
+		return requestError(err)
+	}
+	if err := validateServerIngress(call.Call.request, call.Route); err != nil {
 		return err
 	}
 	if err := call.Policy.Validate(); err != nil {
@@ -198,7 +206,7 @@ func (call StreamReceiveCall) Validate() error {
 	}
 	return validateRawRequestMetadata(
 		rawRequestMetadata{
-			request:             call.Request,
+			request:             call.Call.request,
 			expectedContentType: call.ExpectedContentType,
 		},
 	)
@@ -310,17 +318,20 @@ func (r ServerStreamResponse) Validate() error {
 
 // StreamWriteCall supplies one complete raw streaming response effect.
 type StreamWriteCall struct {
-	Context  context.Context
-	Writer   http.ResponseWriter
+	Call     SocketServerCall
 	Response ServerStreamResponse
 }
 
 // Validate checks one complete streaming response effect.
 func (call StreamWriteCall) Validate() error {
-	if call.Writer == nil {
+	if err := call.Call.Validate(); err != nil {
 		return responseError(core.ErrExchangeContract)
 	}
-	if err := contextstate.Validate(call.Context); err != nil {
+	ctx, err := call.Call.Context()
+	if err != nil {
+		return responseError(err)
+	}
+	if err := contextstate.Validate(ctx); err != nil {
 		return responseError(err)
 	}
 	return call.Response.Validate()
@@ -336,26 +347,31 @@ func WriteStream(call StreamWriteCall) error {
 
 func writeServerStream(call StreamWriteCall) error {
 	return executeResponseWriterOperation(func() error {
-		applyResponseHeaders(call.Writer.Header(), call.Response.Headers)
-		call.Writer.Header().Set(
+		writer := call.Call.writer
+		applyResponseHeaders(writer.Header(), call.Response.Headers)
+		writer.Header().Set(
 			core.HTTPHeaderContentType().String(),
 			call.Response.ContentType.String(),
 		)
 		length, _ := call.Response.ContentLength.Int64()
-		call.Writer.Header().Set(
+		writer.Header().Set(
 			core.HTTPHeaderContentLength().String(),
 			strconv.FormatInt(length, 10),
 		)
 		status, _ := call.Response.Status.Int()
-		call.Writer.WriteHeader(status)
+		writer.WriteHeader(status)
 		return writeExactStream(call)
 	})
 }
 
 func writeExactStream(call StreamWriteCall) error {
+	ctx, err := call.Call.Context()
+	if err != nil {
+		return responseError(err)
+	}
 	length := call.Response.ContentLength.Uint64()
 	if length == 0 {
-		return probeEmptyResponseSource(call.Context, call.Response.Source)
+		return probeEmptyResponseSource(ctx, call.Response.Source)
 	}
 	limit, err := core.NewByteCount(length)
 	if err != nil {
@@ -363,8 +379,8 @@ func writeExactStream(call StreamWriteCall) error {
 	}
 	written, copyErr := copyDownload(
 		downloadCopyRequest{
-			context: call.Context, source: call.Response.Source,
-			destination: call.Writer, limit: limit,
+			context: ctx, source: call.Response.Source,
+			destination: call.Call.writer, limit: limit,
 		},
 	)
 	if copyErr != nil {
@@ -436,17 +452,20 @@ func (r ServerBoundedResponse) Validate() error {
 
 // BoundedWriteCall supplies one complete aggregate byte response effect.
 type BoundedWriteCall struct {
-	Context  context.Context
-	Writer   http.ResponseWriter
+	Call     SocketServerCall
 	Response ServerBoundedResponse
 }
 
 // Validate checks one complete aggregate byte response effect.
 func (call BoundedWriteCall) Validate() error {
-	if call.Writer == nil {
+	if err := call.Call.Validate(); err != nil {
 		return responseError(core.ErrExchangeContract)
 	}
-	if err := contextstate.Validate(call.Context); err != nil {
+	ctx, err := call.Call.Context()
+	if err != nil {
+		return responseError(err)
+	}
+	if err := contextstate.Validate(ctx); err != nil {
 		return responseError(err)
 	}
 	return call.Response.Validate()
@@ -462,18 +481,19 @@ func WriteBounded(call BoundedWriteCall) error {
 
 func writeServerBounded(call BoundedWriteCall) error {
 	return executeResponseWriterOperation(func() error {
-		applyResponseHeaders(call.Writer.Header(), call.Response.Headers)
-		call.Writer.Header().Set(
+		writer := call.Call.writer
+		applyResponseHeaders(writer.Header(), call.Response.Headers)
+		writer.Header().Set(
 			core.HTTPHeaderContentType().String(),
 			call.Response.ContentType.String(),
 		)
-		call.Writer.Header().Set(
+		writer.Header().Set(
 			core.HTTPHeaderContentLength().String(),
 			strconv.Itoa(len(call.Response.Body)),
 		)
 		status, _ := call.Response.Status.Int()
-		call.Writer.WriteHeader(status)
-		written, writeErr := call.Writer.Write(call.Response.Body)
+		writer.WriteHeader(status)
+		written, writeErr := writer.Write(call.Response.Body)
 		if writeErr != nil {
 			return errors.Join(
 				core.ErrExchangeResponse,

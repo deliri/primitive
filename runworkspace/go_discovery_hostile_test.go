@@ -7,22 +7,22 @@ import (
 	"testing"
 
 	"github.com/deliri/primitive/v2026/core"
-	"github.com/deliri/primitive/v2026/projectstandards"
+	"github.com/deliri/primitive/v2026/standard"
 )
 
 func TestParseGoDeclarationsHostileBoundaries(t *testing.T) {
 	t.Parallel()
 
-	allKinds := []projectstandards.ProbeKind{projectstandards.ProbeKindGoTest, projectstandards.ProbeKindGoRace, projectstandards.ProbeKindGoBenchmark, projectstandards.ProbeKindGoFuzz, projectstandards.ProbeKindGoDiagnosticProfile}
-	goTest := []projectstandards.ProbeKind{projectstandards.ProbeKindGoTest}
-	benchmark := []projectstandards.ProbeKind{projectstandards.ProbeKindGoBenchmark}
-	fuzz := []projectstandards.ProbeKind{projectstandards.ProbeKindGoFuzz}
+	allKinds := []standard.ProbeKind{standard.ProbeKindGoTest, standard.ProbeKindGoRace, standard.ProbeKindGoBenchmark, standard.ProbeKindGoFuzz, standard.ProbeKindGoDiagnosticProfile}
+	goTest := []standard.ProbeKind{standard.ProbeKindGoTest}
+	benchmark := []standard.ProbeKind{standard.ProbeKindGoBenchmark}
+	fuzz := []standard.ProbeKind{standard.ProbeKindGoFuzz}
 	cases := []struct {
-		name    string
-		setup   func() []byte
-		kinds   []projectstandards.ProbeKind
-		want    []string
 		wantErr error
+		setup   func() []byte
+		name    string
+		kinds   []standard.ProbeKind
+		want    []string
 	}{
 		{name: "valid uppercase test declaration is admitted", setup: sourceFixture("func TestAlpha(t *testing.T) {}"), kinds: goTest, want: []string{"go_test:TestAlpha"}},
 		{name: "valid numeric test suffix is admitted", setup: sourceFixture("func Test1(t *testing.T) {}"), kinds: goTest, want: []string{"go_test:Test1"}},
@@ -31,20 +31,20 @@ func TestParseGoDeclarationsHostileBoundaries(t *testing.T) {
 		{name: "valid fuzz declaration is admitted", setup: sourceFixture("func FuzzDecode(f *testing.F) {}"), kinds: fuzz, want: []string{"go_fuzz:FuzzDecode"}},
 		{name: "valid example with output oracle is admitted", setup: sourceFixture("func ExampleEncode() {\n// Output: encoded\n}"), kinds: goTest, want: []string{"go_test:ExampleEncode"}},
 		{name: "valid example with unordered output oracle is admitted", setup: sourceFixture("func ExampleMap() {\n// Unordered output: values\n}"), kinds: goTest, want: []string{"go_test:ExampleMap"}},
-		{name: "valid race projection creates distinct child kind", setup: sourceFixture("func TestRace(t *testing.T) {}"), kinds: []projectstandards.ProbeKind{projectstandards.ProbeKindGoRace}, want: []string{"go_race:TestRace"}},
-		{name: "valid diagnostic projection creates distinct child kind", setup: sourceFixture("func TestProfile(t *testing.T) {}"), kinds: []projectstandards.ProbeKind{projectstandards.ProbeKindGoDiagnosticProfile}, want: []string{"go_diagnostic_profile:TestProfile"}},
-		{name: "valid mixed declarations are sorted by kind then symbol", setup: sourceFixture("func BenchmarkZ(b *testing.B) {}\nfunc TestZ(t *testing.T) {}\nfunc TestA(t *testing.T) {}"), kinds: []projectstandards.ProbeKind{projectstandards.ProbeKindGoTest, projectstandards.ProbeKindGoBenchmark}, want: []string{"go_test:TestA", "go_test:TestZ", "go_benchmark:BenchmarkZ"}},
+		{name: "valid race projection creates distinct child kind", setup: sourceFixture("func TestRace(t *testing.T) {}"), kinds: []standard.ProbeKind{standard.ProbeKindGoRace}, want: []string{"go_race:TestRace"}},
+		{name: "valid diagnostic projection creates distinct child kind", setup: sourceFixture("func TestProfile(t *testing.T) {}"), kinds: []standard.ProbeKind{standard.ProbeKindGoDiagnosticProfile}, want: []string{"go_diagnostic_profile:TestProfile"}},
+		{name: "valid mixed declarations are sorted by kind then symbol", setup: sourceFixture("func BenchmarkZ(b *testing.B) {}\nfunc TestZ(t *testing.T) {}\nfunc TestA(t *testing.T) {}"), kinds: []standard.ProbeKind{standard.ProbeKindGoTest, standard.ProbeKindGoBenchmark}, want: []string{"go_test:TestA", "go_test:TestZ", "go_benchmark:BenchmarkZ"}},
 
 		{name: "reject empty external source", setup: func() []byte { return nil }, kinds: goTest, wantErr: core.ErrPrimitiveContract},
 		{name: "reject invalid UTF8 source", setup: func() []byte { return []byte("package p\n\xff") }, kinds: goTest, wantErr: core.ErrPrimitiveContract},
 		{name: "reject truncated function body", setup: sourceFixture("func TestBroken(t *testing.T) {"), kinds: goTest, wantErr: core.ErrPrimitiveContract},
 		{name: "reject missing package clause", setup: func() []byte { return []byte("func TestNoPackage(t *testing.T) {}") }, kinds: goTest, wantErr: core.ErrPrimitiveContract},
 		{name: "reject absent requested kind set", setup: sourceFixture("func TestAlpha(t *testing.T) {}"), kinds: nil, wantErr: core.ErrPrimitiveContract},
-		{name: "reject duplicate requested kinds", setup: sourceFixture("func TestAlpha(t *testing.T) {}"), kinds: []projectstandards.ProbeKind{projectstandards.ProbeKindGoTest, projectstandards.ProbeKindGoTest}, wantErr: core.ErrPrimitiveContract},
-		{name: "reject reversed requested kinds", setup: sourceFixture("func TestAlpha(t *testing.T) {}"), kinds: []projectstandards.ProbeKind{projectstandards.ProbeKindGoBenchmark, projectstandards.ProbeKindGoTest}, wantErr: core.ErrPrimitiveContract},
-		{name: "reject unknown future requested kind", setup: sourceFixture("func TestAlpha(t *testing.T) {}"), kinds: []projectstandards.ProbeKind{projectstandards.ProbeKind(255)}, wantErr: core.ErrPrimitiveContract},
-		{name: "reject selection kind as a child", setup: sourceFixture("func TestAlpha(t *testing.T) {}"), kinds: []projectstandards.ProbeKind{projectstandards.ProbeKindGoFileSelection}, wantErr: core.ErrPrimitiveContract},
-		{name: "reject JavaScript kind at Go discovery boundary", setup: sourceFixture("func TestAlpha(t *testing.T) {}"), kinds: []projectstandards.ProbeKind{projectstandards.ProbeKindJavaScriptTest}, wantErr: core.ErrPrimitiveContract},
+		{name: "reject duplicate requested kinds", setup: sourceFixture("func TestAlpha(t *testing.T) {}"), kinds: []standard.ProbeKind{standard.ProbeKindGoTest, standard.ProbeKindGoTest}, wantErr: core.ErrPrimitiveContract},
+		{name: "reject reversed requested kinds", setup: sourceFixture("func TestAlpha(t *testing.T) {}"), kinds: []standard.ProbeKind{standard.ProbeKindGoBenchmark, standard.ProbeKindGoTest}, wantErr: core.ErrPrimitiveContract},
+		{name: "reject unknown future requested kind", setup: sourceFixture("func TestAlpha(t *testing.T) {}"), kinds: []standard.ProbeKind{standard.ProbeKind(255)}, wantErr: core.ErrPrimitiveContract},
+		{name: "reject selection kind as a child", setup: sourceFixture("func TestAlpha(t *testing.T) {}"), kinds: []standard.ProbeKind{standard.ProbeKindGoFileSelection}, wantErr: core.ErrPrimitiveContract},
+		{name: "reject JavaScript kind at Go discovery boundary", setup: sourceFixture("func TestAlpha(t *testing.T) {}"), kinds: []standard.ProbeKind{standard.ProbeKindJavaScriptTest}, wantErr: core.ErrPrimitiveContract},
 
 		{name: "boundary package with no executable declaration is neutral", setup: sourceFixture("var Value = 1"), kinds: allKinds, want: []string{}},
 		{name: "boundary exact Test prefix is admitted", setup: sourceFixture("func Test(t *testing.T) {}"), kinds: goTest, want: []string{"go_test:Test"}},
@@ -90,7 +90,7 @@ func FuzzParseGoDeclarationsSemanticClosure(f *testing.F) {
 	f.Add([]byte("package p\nfunc ExampleSeed() {\n// Output: seed\n}"))
 	f.Add([]byte("package p"))
 	f.Add([]byte{})
-	kinds := []projectstandards.ProbeKind{projectstandards.ProbeKindGoTest, projectstandards.ProbeKindGoRace, projectstandards.ProbeKindGoBenchmark, projectstandards.ProbeKindGoFuzz, projectstandards.ProbeKindGoDiagnosticProfile}
+	kinds := []standard.ProbeKind{standard.ProbeKindGoTest, standard.ProbeKindGoRace, standard.ProbeKindGoBenchmark, standard.ProbeKindGoFuzz, standard.ProbeKindGoDiagnosticProfile}
 	f.Fuzz(func(t *testing.T, source []byte) {
 		got, gotErr := ParseGoDeclarations(source, kinds)
 		if gotErr != nil {

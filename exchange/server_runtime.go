@@ -28,12 +28,66 @@ func ParseListenAddress(value string) (ListenAddress, error) {
 	return address, nil
 }
 
-// Validate rejects zero, unspecified, or portless listener addresses.
+// Validate rejects zero, portless, and unspecified listener addresses. An
+// unspecified host binds every local address and must never be inferred from
+// an omitted host.
 func (a ListenAddress) Validate() error {
 	if !a.value.IsValid() || a.value.Addr().IsUnspecified() || a.value.Port() == 0 {
 		return core.ErrExchangeContract
 	}
 	return nil
+}
+
+// ServerListener is one already-open TCP listener. It keeps the standard
+// listener private to Exchange while allowing a product to prove port
+// acquisition before it constructs the rest of its boot graph.
+type ServerListener struct {
+	listener net.Listener
+	address  ListenAddress
+	claimed  atomic.Bool
+}
+
+// Listen opens one exact TCP listener. The caller owns the returned capability
+// until it transfers the capability to ServerRuntime or closes it.
+func Listen(address ListenAddress) (*ServerListener, error) {
+	if err := address.Validate(); err != nil {
+		return nil, err
+	}
+	// witness:waiver doctrine/code_form/defer_after_acquire -- the returned ServerListener transfers exact listener ownership to its caller.
+	listener, err := net.Listen("tcp", address.String())
+	if err != nil {
+		return nil, transportError(err)
+	}
+	return &ServerListener{address: address, listener: listener}, nil
+}
+
+// Validate rejects a zero or partially constructed listener capability.
+func (l *ServerListener) Validate() error {
+	if l == nil || l.listener == nil {
+		return core.ErrExchangeContract
+	}
+	return l.address.Validate()
+}
+
+// Close closes the owned listener and normalizes an already-closed socket.
+func (l *ServerListener) Close() error {
+	if err := l.Validate(); err != nil {
+		return err
+	}
+	if err := l.listener.Close(); err != nil && !errors.Is(err, net.ErrClosed) {
+		return transportError(err)
+	}
+	return nil
+}
+
+func (l *ServerListener) take() (net.Listener, error) {
+	if err := l.Validate(); err != nil {
+		return nil, err
+	}
+	if !l.claimed.CompareAndSwap(false, true) {
+		return nil, core.ErrExchangeContract
+	}
+	return l.listener, nil
 }
 
 // String returns the admitted address or an empty string for an invalid value.
@@ -87,9 +141,9 @@ func (c ServerRuntimeConfiguration) Validate() error {
 
 // ServerRuntime owns one standard-library HTTP server and listener.
 type ServerRuntime struct {
-	configuration ServerRuntimeConfiguration
 	server        *http.Server
 	ready         chan error
+	configuration ServerRuntimeConfiguration
 	started       atomic.Bool
 }
 
@@ -142,16 +196,41 @@ func (r *ServerRuntime) Serve() error {
 	if !r.started.CompareAndSwap(false, true) {
 		return core.ErrExchangeContract
 	}
-	// witness:waiver doctrine/code_form/defer_after_acquire -- net/http Server.Serve owns and closes the listener on every return.
-	listener, err := net.Listen("tcp", r.configuration.Address.String())
+	listener, err := Listen(r.configuration.Address)
 	if err != nil {
 		r.started.Store(false)
-		result := transportError(err)
-		r.publishReady(result)
-		return result
+		r.publishReady(err)
+		return err
+	}
+	return r.serveListener(listener)
+}
+
+// ServeListener transfers one pre-opened listener into the runtime and serves
+// until Shutdown completes or the listener fails.
+func (r *ServerRuntime) ServeListener(listener *ServerListener) error {
+	if err := r.Validate(); err != nil {
+		return err
+	}
+	if !r.started.CompareAndSwap(false, true) {
+		return core.ErrExchangeContract
+	}
+	if err := listener.Validate(); err != nil {
+		r.started.Store(false)
+		r.publishReady(err)
+		return err
+	}
+	return r.serveListener(listener)
+}
+
+func (r *ServerRuntime) serveListener(listener *ServerListener) error {
+	owned, err := listener.take()
+	if err != nil {
+		r.started.Store(false)
+		r.publishReady(err)
+		return err
 	}
 	r.publishReady(nil)
-	err = r.server.Serve(listener)
+	err = r.server.Serve(owned)
 	if errors.Is(err, http.ErrServerClosed) {
 		return nil
 	}
@@ -223,6 +302,7 @@ func serverHeaderBytes(count core.ByteCount) (int, error) {
 
 var (
 	_ core.Validatable = ListenAddress{}
+	_ core.Validatable = (*ServerListener)(nil)
 	_ core.Validatable = ServerRuntimePolicy{}
 	_ core.Validatable = ServerRuntimeConfiguration{}
 	_ core.Validatable = (*ServerRuntime)(nil)

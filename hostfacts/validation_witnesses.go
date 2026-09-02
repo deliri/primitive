@@ -31,11 +31,6 @@ var (
 	_ core.Validatable = WorkloadMemoryLimitSource(0)
 	_ core.Validatable = WorkloadMemoryLimit{}
 
-	_ core.Validatable = MissingPathPolicy(0)
-	_ core.Validatable = TreeUsageRequest{}
-	_ core.Validatable = RegularFileCount{}
-	_ core.Validatable = TreeUsage{}
-
 	_ core.Validatable = TerminalColumns(0)
 	_ core.Validatable = TerminalAttachment(0)
 	_ core.Validatable = TerminalGeometryRequest{}
@@ -54,7 +49,6 @@ var (
 	_ core.OffWireEnum = MemoryPressureUnknown
 	_ core.OffWireEnum = WorkloadMemoryLimitUnknown
 	_ core.OffWireEnum = WorkloadMemoryLimitSourceUnknown
-	_ core.OffWireEnum = MissingPathUnknown
 	_ core.OffWireEnum = TerminalAttachmentUnknown
 	_ core.OffWireEnum = TerminalColumns(0)
 

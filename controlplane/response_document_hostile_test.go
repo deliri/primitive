@@ -137,7 +137,7 @@ func TestAuthenticatedResponseProducerRejectsIndependentInvalidInputs(t *testing
 			value.Header.RequestNonce = controlwire.RequestNonce{}
 		}, want: core.ErrControlPlaneResponseHeader},
 		{name: "zero account is rejected", mutate: func(value *controlplane.ResponseIssuance[controlplane.RegistrationDocument]) {
-			value.Header.Account = receipt.AccountIdentity{}
+			value.Header.Account = receipt.PrincipalIdentity{}
 		}, want: core.ErrControlPlaneResponseHeader},
 		{name: "zero installation is rejected", mutate: func(value *controlplane.ResponseIssuance[controlplane.RegistrationDocument]) {
 			value.Header.Installation = lease.DeviceID{}
@@ -269,7 +269,7 @@ func TestAuthenticatedResponseDecoderRejectsEveryCrossResponseFactSubstitution(t
 		{name: "authority time from another signed response", mutate: responseProviderTimeMutation(1_700_000_000_000_000_001)},
 		{name: "request nonce from another signed response", mutate: func(t testing.TB, header *controlplane.ResponseHeader) { header.RequestNonce = otherRequestNonce(t) }},
 		{name: "account from another signed response", mutate: func(t testing.TB, header *controlplane.ResponseHeader) {
-			header.Account = responseAccountIdentity(t, 0xa3)
+			header.Account = responsePrincipalIdentity(t, 0xa3)
 		}},
 		{name: "installation from another signed response", mutate: func(t testing.TB, header *controlplane.ResponseHeader) {
 			header.Installation = responseDeviceID(t, 0xb4)
@@ -331,7 +331,7 @@ func TestAuthenticatedResponseVerifierNamesEveryBoundFactAndTrustFailure(t *test
 
 	fixture := authenticatedResponseForTest(t, 51)
 	document := decodeAuthenticatedResponse(t, fixture.canonical)
-	otherAccount := responseAccountIdentity(t, 0xa1)
+	otherAccount := responsePrincipalIdentity(t, 0xa1)
 	otherInstallation := responseDeviceID(t, 0xb2)
 	_, untrustedSigner := testSigningKey(t, 52)
 	untrustedProjection, err := controlplane.IssueResponse(controlplane.ResponseIssuance[controlplane.RegistrationDocument]{
@@ -953,16 +953,16 @@ func responseVerificationWithExpectation(
 	return controlplane.ResponseVerification[controlplane.RegistrationDocument, *controlplane.RegistrationDocument]{Client: fixture.client, Document: document, Expected: expected}
 }
 
-func responseAccountIdentity(t testing.TB, fill byte) receipt.AccountIdentity {
+func responsePrincipalIdentity(t testing.TB, fill byte) receipt.PrincipalIdentity {
 	t.Helper()
 
 	var raw [receipt.LifecycleIdentityBytes]byte
 	for index := range raw {
 		raw[index] = fill
 	}
-	identity, err := receipt.NewAccountIdentity(raw)
+	identity, err := receipt.NewPrincipalIdentity(raw)
 	if err != nil {
-		t.Fatalf("NewAccountIdentity() error = %v, want nil", err)
+		t.Fatalf("NewPrincipalIdentity() error = %v, want nil", err)
 	}
 	return identity
 }

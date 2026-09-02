@@ -6,6 +6,7 @@ package capabilities
 import (
 	"errors"
 	"iter"
+	"slices"
 
 	"github.com/deliri/primitive/v2026/core"
 )
@@ -127,10 +128,8 @@ func (c Catalog) Validate() error {
 	if count != core.PrimitivePackageCount {
 		return contractError("capability count contradicts the Primitive architecture")
 	}
-	for _, roleCount := range roleCounts[:int(core.PackageRoleOrchestration-core.PackageRoleValueContract)+1] {
-		if roleCount == 0 {
-			return contractError("Primitive architecture omits an admitted package role")
-		}
+	if slices.Contains(roleCounts[:int(core.PackageRoleOrchestration-core.PackageRoleValueContract)+1], 0) {
+		return contractError("Primitive architecture omits an admitted package role")
 	}
 	return validateEffectOwners(c)
 }

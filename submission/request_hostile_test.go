@@ -176,9 +176,9 @@ func TestRequestAuthenticationLayerTriadRefusesEveryValidFactSubstitution(t *tes
 	partitionMutation := original
 	partitionMutation.Manifest.Partition = submissionPartition(t, 0x52)
 	cases := []struct {
+		wantErr error
 		name    string
 		payload RequestPayload
-		wantErr error
 	}{
 		{
 			name: "different object integrity and extent",

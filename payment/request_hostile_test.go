@@ -87,7 +87,7 @@ func TestSignedPaymentQueryLayerTriad(t *testing.T) {
 			{name: "trusted keys absent", mutate: func(value *QueryVerification) { value.TrustedKeys = attest.TrustedKeys{} }, want: core.ErrPaymentContract},
 			{name: "foreign signing key", mutate: func(value *QueryVerification) { value.TrustedKeys = other.trusted }, want: core.ErrPaymentVerification},
 			{name: "scope account changed after signing", mutate: func(value *QueryVerification) {
-				value.Document.Payload.Query.Scope.Account = other.payload.Query.Scope.Account
+				value.Document.Payload.Query.Scope.Principal = other.payload.Query.Scope.Principal
 			}, want: core.ErrPaymentVerification},
 			{name: "scope offering changed after signing", mutate: func(value *QueryVerification) {
 				value.Document.Payload.Query.Scope.Offering = other.payload.Query.Scope.Offering

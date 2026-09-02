@@ -25,10 +25,10 @@ func TestPageLimitExhaustsItsCompleteUint16Domain(t *testing.T) {
 func TestSequencePressuresZeroOneMaximumAndCanonicalRepresentation(t *testing.T) {
 	t.Parallel()
 	cases := []struct {
+		wantErr  error
 		name     string
 		value    uint64
 		wantNext uint64
-		wantErr  error
 	}{
 		{name: "zero is outside the sequence domain", value: 0, wantErr: core.ErrProofLedgerContract},
 		{name: "first sequence advances to second", value: 1, wantNext: 2},
@@ -80,8 +80,8 @@ func TestEnvelopeHashCommitsEveryLoadBearingFactWithOneFactMutationPairs(t *test
 		t.Fatalf("NewLedgerIdentity(other) error = %v, want nil", err)
 	}
 	cases := []struct {
-		name   string
 		mutate func(*Issue[ledgerTestPayload])
+		name   string
 	}{
 		{name: "ledger identity changes commitment", mutate: func(i *Issue[ledgerTestPayload]) {
 			i.Intent.Ledger = otherLedger
@@ -119,9 +119,9 @@ func TestEnvelopeValidateRejectsEveryMissingOrContradictoryFact(t *testing.T) {
 	}
 	baseline := fixtureEvent(t, genesis, 0, 1)
 	cases := []struct {
-		name    string
-		mutate  func(*Envelope[ledgerTestPayload])
 		wantErr error
+		mutate  func(*Envelope[ledgerTestPayload])
+		name    string
 	}{
 		{name: "missing ledger identity", mutate: func(e *Envelope[ledgerTestPayload]) { e.Ledger = LedgerIdentity{} }, wantErr: core.ErrProofLedgerContract},
 		{name: "missing event identity", mutate: func(e *Envelope[ledgerTestPayload]) { e.Event = EventIdentity{} }, wantErr: core.ErrProofLedgerContract},
@@ -155,22 +155,22 @@ func TestReceiptRejectsLaterSequenceWithGenesisPredecessor(t *testing.T) {
 	}
 	first := fixtureEvent(t, genesis, 0, 1)
 	second := fixtureEvent(t, first.Head(), 1, 2)
-	receipt, err := NewReceipt(second, fixtureKey(t, 2))
+	receipt, err := NewAppendReceipt(second, fixtureKey(t, 2))
 	if err != nil {
-		t.Fatalf("NewReceipt(second) error = %v, want nil", err)
+		t.Fatalf("NewAppendReceipt(second) error = %v, want nil", err)
 	}
 	mutated := receipt
 	mutated.PreviousHash = GenesisHash()
 	if gotErr := mutated.Validate(); !errors.Is(gotErr, core.ErrProofLedgerPreviousHashMismatch) {
-		t.Fatalf("Receipt.Validate(sequence two with genesis predecessor) error = %v, want %v", gotErr, core.ErrProofLedgerPreviousHashMismatch)
+		t.Fatalf("AppendReceipt.Validate(sequence two with genesis predecessor) error = %v, want %v", gotErr, core.ErrProofLedgerPreviousHashMismatch)
 	}
-	encoded, err := core.MarshalCanonicalJSONDocument(receiptWire(mutated))
+	encoded, err := core.MarshalCanonicalJSONDocument(appendReceiptWire(mutated))
 	if err != nil {
 		t.Fatalf("MarshalCanonicalJSONDocument(mutated receipt) error = %v, want nil", err)
 	}
 	preserved := receipt
 	if gotErr := preserved.UnmarshalJSON(encoded); !errors.Is(gotErr, core.ErrProofLedgerPreviousHashMismatch) || !errors.Is(gotErr, core.ErrJSONContract) || preserved != receipt {
-		t.Fatalf("Receipt.UnmarshalJSON(sequence two with genesis predecessor) = (%+v, %v), want preserved and both %v and %v", preserved, gotErr, core.ErrProofLedgerPreviousHashMismatch, core.ErrJSONContract)
+		t.Fatalf("AppendReceipt.UnmarshalJSON(sequence two with genesis predecessor) = (%+v, %v), want preserved and both %v and %v", preserved, gotErr, core.ErrProofLedgerPreviousHashMismatch, core.ErrJSONContract)
 	}
 }
 

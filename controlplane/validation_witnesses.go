@@ -18,18 +18,29 @@ var (
 	_ core.Validatable = UsageWatermark{}
 	_ core.Validatable = ResponseHeader{}
 	_ core.Validatable = ResponseExpectation{}
+	_ core.Validatable = UsageClass(0)
+	_ core.Validatable = OutcomeClass(0)
+	_ core.Validatable = UsageCount{}
+	_ core.Validatable = OutcomeCount{}
+	_ core.Validatable = UsageWindow{}
 
 	_ core.ValidatedJSONMarshaler = ProductStatus(ProductStatusInvalid)
 	_ core.ValidatedJSONMarshaler = SigningDomain(SigningDomainUnknown)
 	_ core.ValidatedJSONMarshaler = ResponseHeaderField(ResponseHeaderFieldUnknown)
 	_ core.ValidatedJSONMarshaler = UsageWatermark{}
 	_ core.ValidatedJSONMarshaler = ResponseHeader{}
+	_ core.ValidatedJSONMarshaler = UsageClass(0)
+	_ core.ValidatedJSONMarshaler = OutcomeClass(0)
+	_ core.ValidatedJSONMarshaler = UsageWindow{}
 
 	_ json.Unmarshaler = (*ProductStatus)(nil)
 	_ json.Unmarshaler = (*SigningDomain)(nil)
 	_ json.Unmarshaler = (*ResponseHeaderField)(nil)
 	_ json.Unmarshaler = (*UsageWatermark)(nil)
 	_ json.Unmarshaler = (*ResponseHeader)(nil)
+	_ json.Unmarshaler = (*UsageClass)(nil)
+	_ json.Unmarshaler = (*OutcomeClass)(nil)
+	_ json.Unmarshaler = (*UsageWindow)(nil)
 
 	// The signing domain also travels as text, because Attest covers the domain
 	// text itself inside the signature. The JSON and text spellings are the same

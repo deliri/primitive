@@ -8,6 +8,7 @@ import (
 	"testing"
 
 	"github.com/deliri/primitive/v2026/core"
+	"github.com/deliri/primitive/v2026/hostfacts"
 	"github.com/deliri/primitive/v2026/process"
 	"github.com/deliri/primitive/v2026/secretstore"
 	"google.golang.org/grpc/codes"
@@ -73,12 +74,12 @@ func liveEnvironmentValue(t *testing.T, value string) string {
 	if err != nil {
 		t.Fatalf("process.NewEnvironmentName(%q) error = %v, want nil", value, err)
 	}
-	lookup, err := process.LookupAmbientEnvironment(name)
+	lookup, err := hostfacts.LookupAmbientEnvironment(name)
 	if err != nil {
-		t.Fatalf("process.LookupAmbientEnvironment(%q) error = %v, want nil", value, err)
+		t.Fatalf("hostfacts.LookupAmbientEnvironment(%q) error = %v, want nil", value, err)
 	}
 	if lookup.Presence != process.EnvironmentPresencePresent {
-		t.Fatalf("process.LookupAmbientEnvironment(%q).Presence = %v, want %v", value, lookup.Presence, process.EnvironmentPresencePresent)
+		t.Fatalf("hostfacts.LookupAmbientEnvironment(%q).Presence = %v, want %v", value, lookup.Presence, process.EnvironmentPresencePresent)
 	}
 	result, err := lookup.Value.Value()
 	if err != nil {

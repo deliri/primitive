@@ -12,8 +12,8 @@ import (
 
 	"github.com/deliri/primitive/v2026/core"
 	"github.com/deliri/primitive/v2026/process"
-	"github.com/deliri/primitive/v2026/projectstandards"
 	"github.com/deliri/primitive/v2026/runnercontrol"
+	"github.com/deliri/primitive/v2026/standard"
 )
 
 func TestRunSubjectProcessLifecycleLayerTriad(t *testing.T) {
@@ -116,7 +116,7 @@ func runnableSubjectCapability(t testing.TB, supervisor string) runnercontrol.Ex
 func pinnedNetworkSubjectCapability(t testing.TB) runnercontrol.ExperimentCapability {
 	t.Helper()
 	capability := runnableSubjectCapability(t, "/usr/bin/true")
-	service, serviceErr := projectstandards.NewIdentifier("subject-api")
+	service, serviceErr := standard.NewIdentifier("subject-api")
 	endpoint, endpointErr := core.ParseHTTPEndpoint("https://127.0.0.1:8443")
 	if err := errors.Join(serviceErr, endpointErr); err != nil {
 		t.Fatalf("pinned subject network fixture error = %v, want nil", err)
@@ -144,8 +144,8 @@ func pinnedNetworkSubjectCapability(t testing.TB) runnercontrol.ExperimentCapabi
 }
 
 type subjectCancellationWriter struct {
-	once   sync.Once
 	cancel context.CancelFunc
+	once   sync.Once
 }
 
 func (w *subjectCancellationWriter) Write(data []byte) (int, error) {

@@ -6,6 +6,7 @@ import (
 	"io/fs"
 	"os"
 	"path/filepath"
+	"strings"
 
 	"github.com/deliri/primitive/v2026/core"
 	"github.com/deliri/primitive/v2026/temporal"
@@ -15,12 +16,35 @@ const (
 	targetEqualsTemporaryDiagnostic = "filestore target equals its temporary path"
 	crossDirectoryDiagnostic        = "filestore target and temporary must share a directory"
 	createModeDiagnostic            = "create"
+	// SymbolicLinkTargetMaximumBytes bounds one observed link target without
+	// assuming it is a path; procfs also exposes handles such as socket:[inode].
+	SymbolicLinkTargetMaximumBytes = 64 << 10
 )
 
 // Location names one path through one real OS root capability.
 type Location struct {
 	Root *os.Root
 	Path core.RelativePath
+}
+
+// SymbolicLinkTarget is one bounded target observed without following its
+// symbolic link. Its bytes are not interpreted as a filesystem path.
+type SymbolicLinkTarget struct{ value string }
+
+// Validate rejects an absent, unbounded, or NUL-carrying link target.
+func (t SymbolicLinkTarget) Validate() error {
+	if len(t.value) == 0 || len(t.value) > SymbolicLinkTargetMaximumBytes || strings.IndexByte(t.value, 0) >= 0 {
+		return contractError(errors.New("filestore symbolic-link target is invalid"))
+	}
+	return nil
+}
+
+// String returns the exact observed target, or empty text for an invalid value.
+func (t SymbolicLinkTarget) String() string {
+	if t.Validate() != nil {
+		return ""
+	}
+	return t.value
 }
 
 // Validate rejects an unset root or path.
@@ -146,6 +170,21 @@ func (r ReadHandleRequest) Validate() error {
 	return r.Location.Validate()
 }
 
+// UpdateHandleRequest names one existing regular file to open for bounded
+// caller-owned read/update work. The caller chooses the byte transformation;
+// Filestore owns only the rooted namespace acquisition and regular-file gate.
+type UpdateHandleRequest struct {
+	Location Location
+}
+
+// Validate rejects an invalid or non-mutable location.
+func (r UpdateHandleRequest) Validate() error {
+	if err := r.Location.Validate(); err != nil {
+		return err
+	}
+	return validateMutablePath(r.Location.Path)
+}
+
 // TouchRequest stamps one existing regular file with a custody instant.
 type TouchRequest struct {
 	Location   Location
@@ -177,7 +216,7 @@ type DurabilityRequest struct {
 }
 
 // Validate rejects an invalid location or one naming the rooted entry itself,
-// which has no parent inside the capability to prove anything projectstandards.
+// which has no parent inside the capability to prove anything standard.
 func (r DurabilityRequest) Validate() error {
 	if err := r.Location.Validate(); err != nil {
 		return err
@@ -708,10 +747,12 @@ func validateTemporary(target, temporary core.RelativePath) error {
 
 var (
 	_ core.Validatable = Location{}
+	_ core.Validatable = SymbolicLinkTarget{}
 	_ core.Validatable = InstallMode(0)
 	_ core.Validatable = DirectoryRequest{}
 	_ core.Validatable = ReadRequest{}
 	_ core.Validatable = ReadHandleRequest{}
+	_ core.Validatable = UpdateHandleRequest{}
 	_ core.Validatable = RenameRequest{}
 	_ core.Validatable = WriteRequest{}
 	_ core.Validatable = StageRequest{}

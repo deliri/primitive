@@ -147,9 +147,9 @@ func issueTestCertificate(
 ) controlplane.InstallationCertificateDocument {
 	t.Helper()
 
-	account, err := receipt.ParseAccountIdentity(checkInAccountHex)
+	account, err := receipt.ParsePrincipalIdentity(checkInAccountHex)
 	if err != nil {
-		t.Fatalf("ParseAccountIdentity() error = %v, want nil", err)
+		t.Fatalf("ParsePrincipalIdentity() error = %v, want nil", err)
 	}
 	body := controlplane.InstallationCertificateBody{
 		IssuedAt: testInstant(t, checkInIssuedAt), Build: build, Revision: revision,

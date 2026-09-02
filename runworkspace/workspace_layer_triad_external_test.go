@@ -8,9 +8,9 @@ import (
 	"github.com/deliri/primitive/v2026/core"
 	primitiveid "github.com/deliri/primitive/v2026/id"
 	"github.com/deliri/primitive/v2026/process"
-	"github.com/deliri/primitive/v2026/projectstandards"
 	"github.com/deliri/primitive/v2026/runnercontrol"
 	"github.com/deliri/primitive/v2026/runworkspace"
+	"github.com/deliri/primitive/v2026/standard"
 	"github.com/deliri/primitive/v2026/temporal"
 )
 
@@ -151,23 +151,23 @@ func TestWorkspaceEffectLayerTriad(t *testing.T) {
 	})
 }
 
-func workspaceExperimentIdentity(t testing.TB) projectstandards.ExperimentID {
+func workspaceExperimentIdentity(t testing.TB) standard.ExperimentID {
 	t.Helper()
 	uuid, err := primitiveid.ParseUUIDv7("01890f2e-7b00-7000-8000-000000000002")
 	if err != nil {
 		t.Fatalf("id.ParseUUIDv7(experiment) setup error = %v, want nil", err)
 	}
-	identity, err := projectstandards.NewExperimentID(uuid)
+	identity, err := standard.NewExperimentID(uuid)
 	if err != nil {
-		t.Fatalf("projectstandards.NewExperimentID() setup error = %v, want nil", err)
+		t.Fatalf("standard.NewExperimentID() setup error = %v, want nil", err)
 	}
 	return identity
 }
 
-func workspaceIdentities(t testing.TB) (runnercontrol.SchedulingUnitIdentity, projectstandards.RunID) {
+func workspaceIdentities(t testing.TB) (runnercontrol.SchedulingUnitIdentity, standard.RunID) {
 	t.Helper()
 	uuid, uuidErr := primitiveid.ParseUUIDv7("01890f2e-7b00-7000-8000-000000000001")
-	run, runErr := projectstandards.NewRunID(uuid)
+	run, runErr := standard.NewRunID(uuid)
 	if err := errors.Join(uuidErr, runErr); err != nil {
 		t.Fatalf("workspace identity fixture error = %v, want nil", err)
 	}

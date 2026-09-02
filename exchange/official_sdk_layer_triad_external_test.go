@@ -26,13 +26,13 @@ func TestOfficialSDKResponseTransportLayerTriad(t *testing.T) {
 	selectedBody := strings.Repeat("s", 128)
 	neutralBody := strings.Repeat("n", 256)
 	cases := []struct {
+		wantErr       error
 		name          string
 		path          string
-		limit         uint64
 		wantBody      string
-		wantErr       error
-		wantResponse  bool
+		limit         uint64
 		wantCallDelta int64
+		wantResponse  bool
 	}{
 		{name: "positive selected response at exact ceiling is released intact", path: selectedPath, limit: uint64(len(selectedBody)), wantBody: selectedBody, wantResponse: true, wantCallDelta: 1},
 		{name: "negative selected response above ceiling is refused without partial response", path: selectedPath, limit: uint64(len(selectedBody) - 1), wantErr: core.ErrExchangeBodyLimit, wantCallDelta: 1},
@@ -111,15 +111,48 @@ func TestOfficialSDKResponseTransportLayerTriad(t *testing.T) {
 	}
 }
 
+func TestOfficialSDKColonActionSuffixAppliesSelectedResponseCeiling(t *testing.T) {
+	t.Parallel()
+
+	server := httptest.NewServer(http.HandlerFunc(func(writer http.ResponseWriter, _ *http.Request) {
+		_, _ = io.WriteString(writer, "oversized")
+	}))
+	t.Cleanup(server.Close)
+	limit, limitErr := core.NewByteCount(1)
+	if limitErr != nil {
+		t.Fatalf("core.NewByteCount(1) error = %v, want nil", limitErr)
+	}
+	boundary, boundaryErr := exchange.NewOfficialSDKResponseBoundary(exchange.OfficialSDKResponseBoundaryRequest{
+		Method: exchange.MethodPost, PathPrefix: "/v1/accounts/", PathSuffix: ":signBlob",
+		Representation: exchange.OfficialSDKResponseRepresentationBinary,
+		MaximumBytes:   limit,
+	})
+	if boundaryErr != nil {
+		t.Fatalf("exchange.NewOfficialSDKResponseBoundary(:signBlob) error = %v, want nil", boundaryErr)
+	}
+	client := officialSDKClient(t, boundary)
+	request, requestErr := http.NewRequestWithContext(t.Context(), http.MethodPost, server.URL+"/v1/accounts/123:signBlob", nil)
+	if requestErr != nil {
+		t.Fatalf("http.NewRequestWithContext(:signBlob) error = %v, want nil", requestErr)
+	}
+	response, gotErr := client.Do(request)
+	if response != nil {
+		_ = response.Body.Close()
+	}
+	if response != nil || !errors.Is(gotErr, core.ErrExchangeResponse) || !errors.Is(gotErr, core.ErrExchangeBodyLimit) {
+		t.Fatalf("official SDK :signBlob response = (%v, %v), want nil, %v, and %v", response, gotErr, core.ErrExchangeResponse, core.ErrExchangeBodyLimit)
+	}
+}
+
 func TestOfficialSDKStreamingSuccessTransportLayerTriad(t *testing.T) {
 	t.Parallel()
 
 	cases := []struct {
+		wantErr      error
 		name         string
 		query        string
 		body         string
 		status       int
-		wantErr      error
 		wantResponse bool
 	}{
 		{name: "positive exact media query leaves successful body streaming beyond aggregate ceiling", query: "alt=media", body: strings.Repeat("m", 257), status: http.StatusOK, wantResponse: true},

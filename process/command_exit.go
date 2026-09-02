@@ -2,71 +2,66 @@ package process
 
 import (
 	"os"
+	"strconv"
 
 	"github.com/deliri/primitive/v2026/core"
 )
 
-// ExitStatus is the closed result of one command boundary. It deliberately
-// carries only success or failure: richer operational failures are reported
-// before the command reaches this final ambient effect.
-type ExitStatus uint8
+// CommandExitCode is one portable process exit code selected by caller-owned
+// command policy. Primitive owns only the bounded termination mechanism; it
+// does not interpret why a product selected a particular nonzero code.
+type CommandExitCode uint8
 
 const (
-	// ExitStatusUnknown is outside the admitted command-exit domain.
-	ExitStatusUnknown ExitStatus = iota
-	// ExitStatusSuccess terminates a command successfully.
-	ExitStatusSuccess
-	// ExitStatusFailure terminates a command unsuccessfully.
-	ExitStatusFailure
+	// CommandExitCodeSuccess is the portable successful command result.
+	CommandExitCodeSuccess CommandExitCode = 0
+	// CommandExitCodeFailure is the portable generic unsuccessful result.
+	CommandExitCodeFailure CommandExitCode = 1
+	// CommandExitCodeMaximum is the highest portable product-selected code.
+	// Values above 125 are reserved by common shells for termination facts.
+	CommandExitCodeMaximum CommandExitCode = 125
 )
 
-// Validate rejects values outside the closed command-exit domain.
-func (s ExitStatus) Validate() error {
-	if s != ExitStatusSuccess && s != ExitStatusFailure {
-		return contractError("command exit status is outside the admitted domain")
+// Validate rejects values outside the portable command-exit domain.
+func (c CommandExitCode) Validate() error {
+	if c > CommandExitCodeMaximum {
+		return contractError("command exit code is outside the portable domain")
 	}
 	return nil
 }
 
-// IsValid reports whether s belongs to the closed command-exit domain.
-func (s ExitStatus) IsValid() bool { return s.Validate() == nil }
+// IsValid reports whether c belongs to the portable command-exit domain.
+func (c CommandExitCode) IsValid() bool { return c.Validate() == nil }
 
-// OffWireEnum marks ExitStatus as a compiler-only enum.
-func (ExitStatus) OffWireEnum() {}
+// OffWireEnum declares that CommandExitCode is an OS-facing numeric value,
+// not a serialized protocol enum.
+func (CommandExitCode) OffWireEnum() {}
 
-// String returns the stable command-boundary identity of a valid status.
-func (s ExitStatus) String() string {
-	if !s.IsValid() {
+// String returns the decimal OS-facing representation of a valid code.
+func (c CommandExitCode) String() string {
+	if !c.IsValid() {
 		return core.UnknownEnumDiagnostic
 	}
-	if s == ExitStatusSuccess {
-		return "success"
-	}
-	return "failure"
+	return strconv.FormatUint(uint64(c), 10)
 }
 
-var _ core.OffWireEnum = ExitStatusUnknown
-
 // Code returns the platform exit code owned by this status.
-func (s ExitStatus) Code() (int, error) {
-	if err := s.Validate(); err != nil {
+func (c CommandExitCode) Code() (int, error) {
+	if err := c.Validate(); err != nil {
 		return 1, err
 	}
-	if s == ExitStatusSuccess {
-		return 0, nil
-	}
-	return 1, nil
+	return int(c), nil
 }
 
 // ExitCommand terminates the calling command with status. This ambient effect
 // belongs only at a package-main boundary after all cleanup and diagnostics
 // have completed; libraries return typed errors instead.
 //
-// An invalid status fails closed as ExitStatusFailure. It cannot be returned
+// An invalid code fails closed as CommandExitCodeFailure. It cannot be returned
 // as an error because a command-exit door does not return after accepting its
 // input.
-func ExitCommand(status ExitStatus) {
-	code, err := status.Code()
+func ExitCommand(exit CommandExitCode) {
+	code, err := exit.Code()
 	if err != nil {
 		code = 1
 	}

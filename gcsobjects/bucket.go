@@ -9,10 +9,14 @@ import (
 
 const (
 	// GCSProjectIDMinimumBytes is Google's minimum project-ID extent.
+	// Source: https://cloud.google.com/resource-manager/docs/creating-managing-projects#identifying_projects
 	GCSProjectIDMinimumBytes = 6
 	// GCSProjectIDMaximumBytes is Google's maximum project-ID extent.
+	// Source: https://cloud.google.com/resource-manager/docs/creating-managing-projects#identifying_projects
 	GCSProjectIDMaximumBytes = 30
-	// GCSLocationMaximumBytes bounds one provider location token admitted for provisioning.
+	// GCSLocationMaximumBytes is Primitive's custody ceiling for one provider
+	// location token; Google publishes the available values rather than a wire extent.
+	// Source: https://cloud.google.com/storage/docs/locations
 	GCSLocationMaximumBytes = 63
 )
 
@@ -205,7 +209,7 @@ func (c GCSBucketPublicReadChange) String() string {
 }
 
 func gcsBucketPublicReadChangeDiagnostics() [gcsBucketPublicReadChangeLimit]string {
-	return [...]string{"", "unchanged", "granted"}
+	return [...]string{"", "public_read_unchanged", "public_read_granted"}
 }
 
 // OffWireEnum declares GCSBucketPublicReadChange as provider execution state.

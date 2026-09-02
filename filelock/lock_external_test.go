@@ -258,10 +258,10 @@ func TestContextIngressRefusesTerminalStateBeforeLockMutation(t *testing.T) {
 	defer stopExpired()
 
 	cases := []struct {
-		name      string
-		operation contextGateOperation
 		ctx       context.Context
 		wantErr   error
+		name      string
+		operation contextGateOperation
 	}{
 		{name: "acquire refuses nil context before taking a lock", operation: contextGateAcquire, wantErr: core.ErrNilContext},
 		{name: "acquire refuses cancelled context before taking a lock", operation: contextGateAcquire, ctx: cancelled, wantErr: context.Canceled},

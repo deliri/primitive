@@ -1037,8 +1037,8 @@ func paymentSigningFixture(t testing.TB, marker byte) (ed25519.PrivateKey, attes
 func paymentScopeFixture(t testing.TB, marker byte) receipt.Scope {
 	t.Helper()
 	return receipt.Scope{
-		Account:  mustPaymentLifecycleIdentity(t, marker, receipt.NewAccountIdentity),
-		Offering: mustPaymentOfferingIdentity(t, marker+1),
+		Principal: mustPaymentLifecycleIdentity(t, marker, receipt.NewPrincipalIdentity),
+		Offering:  mustPaymentOfferingIdentity(t, marker+1),
 	}
 }
 

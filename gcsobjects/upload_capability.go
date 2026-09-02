@@ -16,14 +16,18 @@ import (
 )
 
 const (
-	// GCSServiceAccountMaximumBytes is the documented Internet mailbox ceiling
-	// applied to one Google service-account principal.
+	// GCSServiceAccountMaximumBytes is Primitive's mailbox custody ceiling
+	// applied to one documented Google service-account principal form.
+	// Source: https://cloud.google.com/iam/docs/service-account-overview#service_account_names
 	GCSServiceAccountMaximumBytes = 254
 	// GCSCapabilityMaximumDays is the provider's V4 signed URL lifetime
 	// ceiling in exact 24-hour days.
+	// Source: https://cloud.google.com/storage/docs/access-control/signed-urls#overview
 	GCSCapabilityMaximumDays uint64 = 7
-	// GCSSignatureMaximumBytes bounds one decoded provider signature before it
-	// can become bearer material.
+	// GCSSignatureMaximumBytes is Primitive's custody ceiling for one decoded
+	// provider signature before it can become bearer material; Google publishes
+	// the signing operation but no aggregate signature extent.
+	// Source: https://cloud.google.com/iam/docs/reference/credentials/rest/v1/projects.serviceAccounts/signBlob
 	GCSSignatureMaximumBytes = 1024
 	// GCSSignatureMaximumEncodedBytes is the canonical base64 ceiling for one
 	// provider signature.

@@ -210,11 +210,11 @@ func (l gcsPublicReadLingerListener) Accept() (net.Conn, error) {
 
 type gcsPublicReadFuzzProvider struct {
 	t       testing.TB
+	written storageapi.Policy
 	initial []byte
 	gets    atomic.Int64
 	sets    atomic.Int64
 	mu      sync.Mutex
-	written storageapi.Policy
 }
 
 func (p *gcsPublicReadFuzzProvider) ServeHTTP(writer http.ResponseWriter, incoming *http.Request) {

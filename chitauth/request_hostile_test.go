@@ -55,8 +55,8 @@ func proveCredentialedChitQueryVerificationAdmissions(t *testing.T) {
 
 	cases := []struct {
 		name          string
-		request       queryFixtureRequest
 		wantOffering  core.Offering
+		request       queryFixtureRequest
 		wantSelection chit.Selection
 	}{
 		{name: "minimum opaque offering with all selection", request: queryFixtureRequest{
@@ -255,8 +255,8 @@ func TestCredentialedChitQueryJSONEnforcesTenValidTenRejectAndTwentyBoundaryCase
 		t.Fatalf("RequestDocument.MarshalJSON() error = %v, want nil", err)
 	}
 	reordered, err := json.Marshal(struct {
-		Request     chit.QueryDocument                           `json:"request"`
 		Certificate controlplane.InstallationCertificateDocument `json:"certificate"`
+		Request     chit.QueryDocument                           `json:"request"`
 	}{Request: fixture.document.Request, Certificate: fixture.document.Certificate})
 	if err != nil {
 		t.Fatalf("json.Marshal(reordered request) error = %v, want nil", err)
@@ -269,11 +269,11 @@ func TestCredentialedChitQueryJSONEnforcesTenValidTenRejectAndTwentyBoundaryCase
 	duplicateRequest := append(bytes.Clone(encoded[:len(encoded)-1]), []byte(`,"request":null}`)...)
 	duplicateCertificate := append(bytes.Clone(encoded[:len(encoded)-1]), []byte(`,"certificate":null}`)...)
 	cases := []struct {
+		wantErr      error
 		name         string
 		data         []byte
 		receiver     RequestDocument
 		wantDocument RequestDocument
-		wantErr      error
 	}{
 		{name: "valid canonical production projection", data: encoded, wantDocument: fixture.document},
 		{name: "valid reordered typed members", data: reordered, wantDocument: fixture.document},
@@ -418,11 +418,11 @@ func queryPartition(t testing.TB, marker byte) chit.Partition {
 	return partition
 }
 
-func queryDocumentWithAccount(t testing.TB, fixture queryFixture, account receipt.AccountIdentity) chit.QueryDocument {
+func queryDocumentWithAccount(t testing.TB, fixture queryFixture, account receipt.PrincipalIdentity) chit.QueryDocument {
 	t.Helper()
 
 	payload := fixture.payload
-	payload.Query.Scope.Account = account
+	payload.Query.Scope.Principal = account
 	document, err := chit.IssueQuery(chit.QueryIssuance{Signer: fixture.device, Payload: payload})
 	if err != nil {
 		t.Fatalf("chit.IssueQuery(other account) error = %v, want nil", err)
@@ -486,16 +486,16 @@ func queryOffering(t testing.TB, offering core.Offering) core.Offering {
 	return offering
 }
 
-func queryAccount(t testing.TB, marker byte) receipt.AccountIdentity {
+func queryAccount(t testing.TB, marker byte) receipt.PrincipalIdentity {
 	t.Helper()
 
 	raw := [receipt.LifecycleIdentityBytes]byte{}
 	for index := range raw {
 		raw[index] = marker
 	}
-	identity, err := receipt.NewAccountIdentity(raw)
+	identity, err := receipt.NewPrincipalIdentity(raw)
 	if err != nil {
-		t.Fatalf("receipt.NewAccountIdentity() error = %v, want nil", err)
+		t.Fatalf("receipt.NewPrincipalIdentity() error = %v, want nil", err)
 	}
 	return identity
 }

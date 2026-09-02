@@ -124,11 +124,11 @@ func TestCatalogPartitionLayerTriadExhaustsMatchingForeignAndEmptyRelations(t *t
 	)
 
 	type partitionRelationCase struct {
+		wantErr      error
 		name         string
 		entryCount   int
 		foreignIndex int
 		relation     partitionRelation
-		wantErr      error
 	}
 	cases := []partitionRelationCase{{
 		name: "neutral empty partition emits no invented custody evidence", relation: partitionRelationEmpty,

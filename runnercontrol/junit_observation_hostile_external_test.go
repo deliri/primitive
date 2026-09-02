@@ -6,20 +6,20 @@ import (
 	"testing"
 
 	"github.com/deliri/primitive/v2026/core"
-	"github.com/deliri/primitive/v2026/projectstandards"
 	"github.com/deliri/primitive/v2026/runnercontrol"
+	"github.com/deliri/primitive/v2026/standard"
 )
 
 type junitBoundaryCase struct {
+	wantErr   error
 	name      string
 	class     string
 	document  string
+	chunk     int
+	want      standard.ExecutionAttempt
 	wantUnits uint32
 	filtered  bool
 	exitError bool
-	chunk     int
-	want      projectstandards.ExecutionAttempt
-	wantErr   error
 }
 
 func TestJUnitObservationCompilerHostileEvidenceMatrix(t *testing.T) {
@@ -183,8 +183,8 @@ func junitRejectExit(name, class, document string, planned uint32, exitError boo
 	return result
 }
 
-func junitAttempt(planned, passed, failed, skipped, notRun uint32, filtered bool) projectstandards.ExecutionAttempt {
-	return projectstandards.ExecutionAttempt{Sequence: 1, Planned: planned, Passed: passed, Failed: failed, Skipped: skipped, NotRun: notRun, Cache: projectstandards.CacheDisabled, Filtered: filtered}
+func junitAttempt(planned, passed, failed, skipped, notRun uint32, filtered bool) standard.ExecutionAttempt {
+	return standard.ExecutionAttempt{Sequence: 1, Planned: planned, Passed: passed, Failed: failed, Skipped: skipped, NotRun: notRun, Cache: standard.CacheDisabled, Filtered: filtered}
 }
 
 func nestedJUnit(depth int, inner string) string {

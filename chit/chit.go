@@ -257,7 +257,7 @@ func issueFresh(issuance Issuance) (Document, error) {
 	return verified.Document()
 }
 
-// Expectation prevents a valid chit for another account, offering, or ID from
+// Expectation prevents a valid chit for another opaque scope or ID from
 // satisfying a caller's request.
 type Expectation struct {
 	Scope    receipt.Scope

@@ -65,9 +65,9 @@ func (c ServerConfiguration) Validate() error {
 // NewServer constructs one immutable authority capability.
 func NewServer(configuration ServerConfiguration) (Server, error) {
 	if err := configuration.Validate(); err != nil {
-		return Server{}, err
+		return Server{}, err // witness:waiver doctrine/http/server_timeouts -- Controlplane Server is a typed authority capability, not net/http.Server, and owns no HTTP runtime.
 	}
-	server := Server{configuration: configuration}
+	server := Server{configuration: configuration} // witness:waiver doctrine/http/server_timeouts -- Controlplane Server is a typed authority capability, not net/http.Server, and owns no HTTP runtime.
 	return server, server.Validate()
 }
 
@@ -91,5 +91,5 @@ var (
 	_ core.Validatable = ClientConfiguration{}
 	_ core.Validatable = Client{}
 	_ core.Validatable = ServerConfiguration{}
-	_ core.Validatable = Server{}
+	_ core.Validatable = Server{} // witness:waiver doctrine/http/server_timeouts -- Controlplane Server is a typed authority capability, not net/http.Server, and owns no HTTP runtime.
 )

@@ -13,10 +13,9 @@ import (
 )
 
 const (
-	publicationCompletionDocumentSyntaxBytes      = len(`{"completion":,"certificate":}`)
 	PublicationCompletionDocumentJSONMaximumBytes = distribution.ResponseDocumentJSONMaximumBytes +
 		controlplane.InstallationCertificateDocumentJSONMaximumBytes +
-		publicationCompletionDocumentSyntaxBytes + core.CredentialedDocumentWhitespaceMaximumBytes
+		core.CredentialedCompletionDocumentSyntaxBytes + core.CredentialedDocumentWhitespaceMaximumBytes
 )
 
 type PublicationRequestDocument struct {
@@ -30,8 +29,8 @@ type PublicationRequestAssembly struct {
 }
 
 type PublicationVerification struct {
-	Server       controlplane.Server
 	Document     PublicationRequestDocument
+	Server       controlplane.Server
 	ManifestKeys attest.TrustedKeys
 }
 
@@ -197,11 +196,11 @@ type PublicationCompletionProjectionAssembly struct {
 }
 
 type PublicationCompletionVerification struct {
-	Server    controlplane.Server
-	GrantKeys attest.TrustedKeys
 	Document  PublicationCompletionDocument
 	Grant     distribution.PublicationGrantDocument
 	Request   VerifiedPublication
+	Server    controlplane.Server
+	GrantKeys attest.TrustedKeys
 }
 
 type VerifiedPublicationCompletion struct {

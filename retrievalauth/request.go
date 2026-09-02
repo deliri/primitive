@@ -109,8 +109,8 @@ func (d *RequestDocument) UnmarshalJSON(data []byte) error {
 }
 
 type Verification struct {
-	Server   controlplane.Server
 	Document RequestDocument
+	Server   controlplane.Server
 }
 
 func (v Verification) Validate() error {

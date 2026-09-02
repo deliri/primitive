@@ -71,13 +71,13 @@ func FuzzUsageDispositionExternalDecoders(f *testing.F) {
 	})
 }
 
-func FuzzWorkUnitClassExternalDecoders(f *testing.F) {
-	fuzzEnumExternalDoor(f, enumExternalDoor[controlplane.WorkUnitClass]{
-		Values:   fuzzValidWorkUnitClasses(),
-		Validate: func(value controlplane.WorkUnitClass) error { return value.Validate() },
-		String:   func(value controlplane.WorkUnitClass) string { return value.String() },
-		Marshal:  func(value controlplane.WorkUnitClass) ([]byte, error) { return value.MarshalJSON() },
-		Unmarshal: func(value *controlplane.WorkUnitClass, data []byte) error {
+func FuzzUsageClassExternalDecoders(f *testing.F) {
+	fuzzEnumExternalDoor(f, enumExternalDoor[controlplane.UsageClass]{
+		Values:   fuzzValidUsageClasses(),
+		Validate: func(value controlplane.UsageClass) error { return value.Validate() },
+		String:   func(value controlplane.UsageClass) string { return value.String() },
+		Marshal:  func(value controlplane.UsageClass) ([]byte, error) { return value.MarshalJSON() },
+		Unmarshal: func(value *controlplane.UsageClass, data []byte) error {
 			return value.UnmarshalJSON(data)
 		},
 		WantError: core.ErrControlPlaneUsageWindow,
@@ -231,10 +231,10 @@ func fuzzValidUsageDispositions() []controlplane.UsageDisposition {
 	return values
 }
 
-func fuzzValidWorkUnitClasses() []controlplane.WorkUnitClass {
-	values := make([]controlplane.WorkUnitClass, 0, 15)
+func fuzzValidUsageClasses() []controlplane.UsageClass {
+	values := make([]controlplane.UsageClass, 0, 15)
 	for raw := 0; raw <= 255; raw++ {
-		value := controlplane.WorkUnitClass(raw)
+		value := controlplane.UsageClass(raw)
 		if value.Validate() == nil {
 			values = append(values, value)
 		}

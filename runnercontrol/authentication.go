@@ -4,10 +4,10 @@ import (
 	"context"
 	json "encoding/json/v2"
 	"errors"
-	"net/http"
 
 	"github.com/deliri/primitive/v2026/core"
-	"github.com/deliri/primitive/v2026/projectstandards"
+	"github.com/deliri/primitive/v2026/exchange"
+	"github.com/deliri/primitive/v2026/standard"
 )
 
 type PeerCredentialKind uint8
@@ -33,9 +33,9 @@ func (k PeerCredentialKind) IsValid() bool {
 func (k PeerCredentialKind) String() string {
 	switch k {
 	case PeerCredentialMutualTLS:
-		return "mutual_tls"
+		return authenticationMutualTLSText
 	case PeerCredentialGoogleCloud:
-		return "google_cloud"
+		return authenticationGoogleCloudText
 	default:
 		var text string
 		handleInvalidPeerCredentialKindString(&text)
@@ -61,9 +61,9 @@ func (k *PeerCredentialKind) UnmarshalJSON(data []byte) error {
 		return err
 	}
 	switch value {
-	case "mutual_tls":
+	case authenticationMutualTLSText:
 		*k = PeerCredentialMutualTLS
-	case "google_cloud":
+	case authenticationGoogleCloudText:
 		*k = PeerCredentialGoogleCloud
 	default:
 		return errors.Join(core.ErrJSONContract, core.ErrPrimitiveContract)
@@ -109,11 +109,11 @@ func (r PeerRole) IsValid() bool {
 func (r PeerRole) String() string {
 	switch r {
 	case PeerRoleOrigin:
-		return "origin"
+		return authenticationOriginRoleText
 	case PeerRoleRunner:
-		return "runner"
+		return authenticationRunnerRoleText
 	case PeerRoleControl:
-		return "control"
+		return authenticationControlRoleText
 	default:
 		var text string
 		handleInvalidPeerRoleString(&text)
@@ -139,11 +139,11 @@ func (r *PeerRole) UnmarshalJSON(data []byte) error {
 		return err
 	}
 	switch value {
-	case "origin":
+	case authenticationOriginRoleText:
 		*r = PeerRoleOrigin
-	case "runner":
+	case authenticationRunnerRoleText:
 		*r = PeerRoleRunner
-	case "control":
+	case authenticationControlRoleText:
 		*r = PeerRoleControl
 	default:
 		return errors.Join(core.ErrJSONContract, core.ErrPrimitiveContract)
@@ -152,11 +152,11 @@ func (r *PeerRole) UnmarshalJSON(data []byte) error {
 }
 
 type AuthenticatedPeer struct {
-	Role       PeerRole                              `json:"role"`
-	Credential PeerCredential                        `json:"credential"`
-	Origin     *projectstandards.OriginIdentity      `json:"origin,omitempty"`
-	Machine    *projectstandards.MachineID           `json:"machine_id,omitempty"`
-	Generation *projectstandards.MachineGenerationID `json:"machine_generation_id,omitempty"`
+	Origin     *standard.OriginIdentity      `json:"origin,omitempty"`
+	Machine    *standard.MachineID           `json:"machine_id,omitempty"`
+	Generation *standard.MachineGenerationID `json:"machine_generation_id,omitempty"`
+	Credential PeerCredential                `json:"credential"`
+	Role       PeerRole                      `json:"role"`
 }
 
 func (p AuthenticatedPeer) Validate() error {
@@ -205,21 +205,22 @@ type PeerIdentityRepository interface {
 }
 
 type RequestAuthenticator interface {
-	Authenticate(*http.Request, PeerRole) (AuthenticatedPeer, error)
+	Authenticate(exchange.SocketServerCall, PeerRole) (AuthenticatedPeer, error)
 }
 
 type MutualTLSAuthenticator struct{ repository PeerIdentityRepository }
 
 type authenticatedPeerContextKey struct{}
 
-func BindAuthenticatedPeer(request *http.Request, peer AuthenticatedPeer) (*http.Request, error) {
-	if request == nil {
-		return nil, core.ErrPrimitiveContract
-	}
+func BindAuthenticatedPeer(call exchange.SocketServerCall, peer AuthenticatedPeer) (exchange.SocketServerCall, error) {
 	if err := peer.Validate(); err != nil {
-		return nil, err
+		return exchange.SocketServerCall{}, err
 	}
-	return request.WithContext(context.WithValue(request.Context(), authenticatedPeerContextKey{}, peer)), nil
+	ctx, err := call.Context()
+	if err != nil {
+		return exchange.SocketServerCall{}, err
+	}
+	return call.WithContext(context.WithValue(ctx, authenticatedPeerContextKey{}, peer))
 }
 
 func AuthenticatedPeerFromContext(ctx context.Context) (AuthenticatedPeer, error) {
@@ -233,7 +234,7 @@ func AuthenticatedPeerFromContext(ctx context.Context) (AuthenticatedPeer, error
 	return peer, peer.Validate()
 }
 
-func RequireRunnerPeer(ctx context.Context, machine projectstandards.MachineID, generation projectstandards.MachineGenerationID) error {
+func RequireRunnerPeer(ctx context.Context, machine standard.MachineID, generation standard.MachineGenerationID) error {
 	peer, err := AuthenticatedPeerFromContext(ctx)
 	if err != nil {
 		return err
@@ -262,19 +263,23 @@ func NewMutualTLSAuthenticator(repository PeerIdentityRepository) (MutualTLSAuth
 	return MutualTLSAuthenticator{repository: repository}, nil
 }
 
-func (a MutualTLSAuthenticator) Authenticate(request *http.Request, role PeerRole) (AuthenticatedPeer, error) {
-	if err := validateAuthenticationRequest(request, a.repository, role); err != nil {
+func (a MutualTLSAuthenticator) Authenticate(call exchange.SocketServerCall, role PeerRole) (AuthenticatedPeer, error) {
+	if err := validateAuthenticationRequest(call, a.repository, role); err != nil {
 		return AuthenticatedPeer{}, err
 	}
-	certificate := request.TLS.VerifiedChains[0][0]
-	if certificate == nil || len(certificate.Raw) == 0 {
-		return AuthenticatedPeer{}, core.ErrPrimitiveContract
+	digest, err := call.VerifiedClientCertificateDigest()
+	if err != nil {
+		return AuthenticatedPeer{}, errors.Join(core.ErrPrimitiveContract, err)
 	}
-	credential, err := NewPeerCredential(PeerCredentialMutualTLS, core.SHA256Of(certificate.Raw))
+	credential, err := NewPeerCredential(PeerCredentialMutualTLS, digest)
 	if err != nil {
 		return AuthenticatedPeer{}, err
 	}
-	peer, err := a.repository.ResolvePeer(request.Context(), credential, role)
+	ctx, err := call.Context()
+	if err != nil {
+		return AuthenticatedPeer{}, err
+	}
+	peer, err := a.repository.ResolvePeer(ctx, credential, role)
 	if err != nil {
 		return AuthenticatedPeer{}, err
 	}
@@ -287,17 +292,17 @@ func (a MutualTLSAuthenticator) Authenticate(request *http.Request, role PeerRol
 	return peer, nil
 }
 
-func validateAuthenticationRequest(request *http.Request, repository PeerIdentityRepository, role PeerRole) error {
-	if request == nil || repository == nil {
+func validateAuthenticationRequest(call exchange.SocketServerCall, repository PeerIdentityRepository, role PeerRole) error {
+	if repository == nil {
 		return core.ErrPrimitiveContract
+	}
+	if err := call.Validate(); err != nil {
+		return errors.Join(core.ErrPrimitiveContract, err)
 	}
 	if err := role.Validate(); err != nil {
 		return core.ErrPrimitiveContract
 	}
-	if request.TLS == nil || len(request.TLS.VerifiedChains) == 0 {
-		return core.ErrPrimitiveContract
-	}
-	if len(request.TLS.VerifiedChains[0]) == 0 {
+	if _, err := call.VerifiedClientCertificateDigest(); err != nil {
 		return core.ErrPrimitiveContract
 	}
 	return nil

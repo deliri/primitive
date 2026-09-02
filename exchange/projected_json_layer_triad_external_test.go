@@ -32,13 +32,13 @@ func TestProjectedJSONReceiveLayerTriad(t *testing.T) {
 			projectedTransportDocument,
 			*projectedTransportDocument,
 		]{
-			Request: request,
+			Call: socketServerCall(t, request),
 			Project: func(
 				_ context.Context,
-				gotRequest *http.Request,
+				gotCall exchange.SocketServerCall,
 				body *projectedTransportDocument,
 			) error {
-				if gotRequest.Method != exchange.MethodPost.String() {
+				if err := gotCall.Validate(); err != nil {
 					return core.ErrExchangeContract
 				}
 				body.Method = exchange.MethodPost
@@ -80,10 +80,10 @@ func TestProjectedJSONReceiveLayerTriad(t *testing.T) {
 			projectedTransportDocument,
 			*projectedTransportDocument,
 		]{
-			Request: request,
+			Call: socketServerCall(t, request),
 			Project: func(
 				context.Context,
-				*http.Request,
+				exchange.SocketServerCall,
 				*projectedTransportDocument,
 			) error {
 				return core.ErrPrimitiveContract
@@ -150,7 +150,7 @@ func TestProjectedJSONReceiveLayerTriad(t *testing.T) {
 			projectedTransportDocument,
 			*projectedTransportDocument,
 		]{
-			Request: request,
+			Call: socketServerCall(t, request),
 			Policy: exchange.ServerPolicy{
 				RequestBodyLimit: mustByteCount(t, 4*1024),
 			},
@@ -193,10 +193,10 @@ func TestProjectedJSONReceiveLayerTriad(t *testing.T) {
 			projectedTransportDocument,
 			*projectedTransportDocument,
 		]{
-			Request: request,
+			Call: socketServerCall(t, request),
 			Project: func(
 				context.Context,
-				*http.Request,
+				exchange.SocketServerCall,
 				*projectedTransportDocument,
 			) error {
 				projectCalls.Add(1)

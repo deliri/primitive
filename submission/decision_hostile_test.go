@@ -24,7 +24,7 @@ type reuseEvidenceFixture struct {
 	declaration Declaration
 	evidence    receipt.EvidenceDocument
 	trusted     attest.TrustedKeys
-	account     receipt.AccountIdentity
+	account     receipt.PrincipalIdentity
 }
 
 func TestSubmissionDecisionAuthenticatesUploadAndScopedReuseArms(t *testing.T) {
@@ -64,7 +64,7 @@ func TestSubmissionDecisionAuthenticatesUploadAndScopedReuseArms(t *testing.T) {
 			}
 			verified, err := VerifyDecision(DecisionExpectation{
 				Decision: document, Request: grant.request,
-				Account: reuse.account, Offering: reuse.offering,
+				Scope:       receipt.Scope{Principal: reuse.account, Offering: reuse.offering},
 				ObservedAt:  temporal.InstantFromNanoseconds(testGrantIssuedAt),
 				TrustedKeys: grant.trusted,
 			})
@@ -106,7 +106,7 @@ func TestSubmissionReuseDecisionRefusesCrossTenantAndIntegrityOracleProbes(t *te
 	})
 	if got, gotErr := VerifyDecision(DecisionExpectation{
 		Decision: document, Request: grant.request,
-		Account: other.account, Offering: other.offering,
+		Scope:       receipt.Scope{Principal: other.account, Offering: other.offering},
 		ObservedAt:  temporal.InstantFromNanoseconds(testGrantIssuedAt),
 		TrustedKeys: grant.trusted,
 	}); !errors.Is(gotErr, core.ErrReceiptScope) || got != (VerifiedDecision{}) {
@@ -118,7 +118,7 @@ func TestSubmissionReuseDecisionRefusesCrossTenantAndIntegrityOracleProbes(t *te
 	differentRequest.Declaration = testDeclaration(t, []byte{0x7f})
 	if got, gotErr := VerifyDecision(DecisionExpectation{
 		Decision: document, Request: differentRequest,
-		Account: reuse.account, Offering: reuse.offering,
+		Scope:       receipt.Scope{Principal: reuse.account, Offering: reuse.offering},
 		ObservedAt:  temporal.InstantFromNanoseconds(testGrantIssuedAt),
 		TrustedKeys: grant.trusted,
 	}); !errors.Is(gotErr, core.ErrControlPlaneResponseBinding) || got != (VerifiedDecision{}) {
@@ -157,7 +157,7 @@ func TestReuseDecisionAuthorityBoundaryRefusesEveryForeignOrUnauthenticatedCandi
 	differentCRC := reuse.declaration
 	differentCRC.CRC32C = core.NewCRC32C(1)
 	tampered := reuse.evidence
-	tampered.Payload.Header.Account = other.account
+	tampered.Payload.Header.Principal = other.account
 	cases := []struct {
 		wantErr   error
 		name      string
@@ -177,12 +177,12 @@ func TestReuseDecisionAuthorityBoundaryRefusesEveryForeignOrUnauthenticatedCandi
 		}(), wantErr: core.ErrControlPlaneContract},
 		{name: "zero account", request: func() ReuseDecisionRequest {
 			value := reuseDecisionRequest(reuse)
-			value.Account = receipt.AccountIdentity{}
+			value.Scope.Principal = receipt.PrincipalIdentity{}
 			return value
 		}(), wantErr: core.ErrControlPlaneContract},
 		{name: "zero offering", request: func() ReuseDecisionRequest {
 			value := reuseDecisionRequest(reuse)
-			value.Offering = core.Offering{}
+			value.Scope.Offering = core.Offering{}
 			return value
 		}(), wantErr: core.ErrControlPlaneContract},
 		{name: "zero trust", request: func() ReuseDecisionRequest {
@@ -192,23 +192,23 @@ func TestReuseDecisionAuthorityBoundaryRefusesEveryForeignOrUnauthenticatedCandi
 		}(), wantErr: core.ErrControlPlaneContract},
 		{name: "foreign account with identical digests", request: func() ReuseDecisionRequest {
 			value := reuseDecisionRequest(reuse)
-			value.Account = other.account
+			value.Scope.Principal = other.account
 			return value
-		}(), wantErr: core.ErrReceiptScope, wantField: receipt.ScopeFieldAccount},
+		}(), wantErr: core.ErrReceiptScope, wantField: receipt.ScopeFieldPrincipal},
 		{name: "foreign account with foreign digest", request: func() ReuseDecisionRequest {
 			value := reuseDecisionRequest(reuse)
-			value.Account = other.account
+			value.Scope.Principal = other.account
 			value.Declaration = differentSHA
 			return value
-		}(), wantErr: core.ErrReceiptScope, wantField: receipt.ScopeFieldAccount},
+		}(), wantErr: core.ErrReceiptScope, wantField: receipt.ScopeFieldPrincipal},
 		{name: "foreign offering with identical digests", request: func() ReuseDecisionRequest {
 			value := reuseDecisionRequest(reuse)
-			value.Offering = foreignOffering
+			value.Scope.Offering = foreignOffering
 			return value
 		}(), wantErr: core.ErrReceiptScope, wantField: receipt.ScopeFieldOffering},
 		{name: "foreign offering with foreign digest", request: func() ReuseDecisionRequest {
 			value := reuseDecisionRequest(reuse)
-			value.Offering = foreignOffering
+			value.Scope.Offering = foreignOffering
 			value.Declaration = differentCRC
 			return value
 		}(), wantErr: core.ErrReceiptScope, wantField: receipt.ScopeFieldOffering},
@@ -240,7 +240,7 @@ func TestReuseDecisionAuthorityBoundaryRefusesEveryForeignOrUnauthenticatedCandi
 		{name: "tampered signed account", request: func() ReuseDecisionRequest {
 			value := reuseDecisionRequest(reuse)
 			value.Evidence = tampered
-			value.Account = other.account
+			value.Scope.Principal = other.account
 			return value
 		}(), wantErr: core.ErrReceiptVerification},
 		{name: "unrelated trust set", request: func() ReuseDecisionRequest {
@@ -296,8 +296,9 @@ func TestReuseDecisionAuthorityBoundaryAdmitsTenExactSameScopeCandidates(t *test
 			}
 			document := decodeDecisionProjection(t, projection)
 			verified, gotErr := VerifyDecision(DecisionExpectation{
-				Decision: document, Request: grant.request, Account: reuse.account,
-				Offering: reuse.offering, ObservedAt: temporal.InstantFromNanoseconds(testGrantIssuedAt),
+				Decision: document, Request: grant.request,
+				Scope:       receipt.Scope{Principal: reuse.account, Offering: reuse.offering},
+				ObservedAt:  temporal.InstantFromNanoseconds(testGrantIssuedAt),
 				TrustedKeys: reuse.trusted,
 			})
 			if gotErr != nil || verified.Validate() != nil {
@@ -395,7 +396,7 @@ func newReuseEvidenceFixture(
 ) reuseEvidenceFixture {
 	t.Helper()
 
-	account := submissionLifecycleIdentity(t, request.ScopeByte, receipt.NewAccountIdentity)
+	account := submissionLifecycleIdentity(t, request.ScopeByte, receipt.NewPrincipalIdentity)
 	offering := submissionOffering(t, 2)
 	submission := submissionLifecycleIdentity(t, request.ScopeByte+2, receipt.NewSubmissionIdentity)
 	object := submissionLifecycleIdentity(t, request.ScopeByte+3, receipt.NewObjectIdentity)
@@ -413,7 +414,7 @@ func newReuseEvidenceFixture(
 		t.Fatalf("attest.NewTrustedKeys() error = %v, want nil", err)
 	}
 	document, err := receipt.IssueEvidence(receipt.IssueEvidenceRequest{
-		Key: private, Identity: identity, Account: account, Offering: offering,
+		Key: private, Identity: identity, Principal: account, Offering: offering,
 		OccurredAt: temporal.InstantFromNanoseconds(testGrantIssuedAt),
 		Body: receipt.EvidenceBody{
 			Extent:     request.Request.Declaration.Extent,
@@ -458,7 +459,8 @@ func mustUploadDecision(t *testing.T, grant GrantProjection) DecisionProjection 
 func reuseDecisionRequest(fixture reuseEvidenceFixture) ReuseDecisionRequest {
 	return ReuseDecisionRequest{
 		Evidence: fixture.evidence, Declaration: fixture.declaration,
-		Account: fixture.account, Offering: fixture.offering, TrustedKeys: fixture.trusted,
+		Scope:       receipt.Scope{Principal: fixture.account, Offering: fixture.offering},
+		TrustedKeys: fixture.trusted,
 	}
 }
 

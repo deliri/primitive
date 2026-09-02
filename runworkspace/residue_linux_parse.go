@@ -12,10 +12,10 @@ import (
 // returns its real-user identity. Effective, saved, and filesystem identities
 // remain required so truncated rows cannot be mistaken for authority.
 func ParseLinuxStatusUIDRow(line string) (uint32, error) {
-	if !strings.HasPrefix(line, "Uid:") {
+	if !strings.HasPrefix(line, linuxUIDFieldPrefix) {
 		return 0, errors.Join(core.ErrPrimitiveContract, errors.New("linux process status row is not uid"))
 	}
-	fields := strings.Fields(strings.TrimPrefix(line, "Uid:"))
+	fields := strings.Fields(strings.TrimPrefix(line, linuxUIDFieldPrefix))
 	if len(fields) != 4 {
 		return 0, errors.Join(core.ErrPrimitiveContract, errors.New("linux process uid row does not contain four identities"))
 	}

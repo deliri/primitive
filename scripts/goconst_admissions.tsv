@@ -1,15 +1,18 @@
 advanced	Release advance state and Lease decision state are distinct closed domains.
-available	Filestore sharing observation and Release selection state are distinct closed domains.
+available	Filestore sharing observation, Release selection state, and Standard source visibility are distinct closed domains.
 crc32c	Receipt checksum evidence and Objectstore vendor checksum policy are distinct protocol facts.
 download	Objectstore transfer direction and Upgrade failure phase are distinct closed domains.
 expired	Release availability and Lease assessment are distinct closed domains.
 exact	Process path mode and Controlwire replay disposition are distinct closed domains.
 failed	Shutdown step outcome and Upgrade trial outcome are distinct closed domains.
 generation receiver is nil	Lease generation and Release latest generation own distinct receiver contracts.
+json	Twilio webhook representation and Exchange official-SDK response scope are distinct closed domains.
 not-yet-valid	Release availability and Lease assessment are distinct closed domains.
 object	Core JSON container syntax and Receipt subject kind are distinct protocol facts.
 present	Process path presence and Release selection are distinct closed domains.
 replay	Receipt evidence kind and Release availability state are distinct closed domains.
 revision receiver is nil	Lease and Release revisions own distinct receiver contracts.
+standard	Standard machine provisioning and the Core Standard package identity are distinct closed domains.
+start	Process failure phase and Runnercontrol Go test action are distinct closed domains.
 submission	Core package identity and Receipt evidence kind are distinct compiler-owned domains.
 unlimited	Host workload capacity and cgroup limit observations are distinct closed domains.

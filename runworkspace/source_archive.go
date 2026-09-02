@@ -18,25 +18,25 @@ import (
 	"github.com/deliri/primitive/v2026/core"
 	"github.com/deliri/primitive/v2026/filestore"
 	"github.com/deliri/primitive/v2026/objectstore"
-	"github.com/deliri/primitive/v2026/projectstandards"
 	"github.com/deliri/primitive/v2026/runnercontrol"
+	"github.com/deliri/primitive/v2026/standard"
 	"github.com/deliri/primitive/v2026/temporal"
 )
 
 type VerifiedSource struct {
-	Coordinate  projectstandards.SourceCoordinate
 	Checkout    core.RelativePath
+	Coordinate  standard.SourceCoordinate
 	Files       uint32
 	Directories uint32
 }
 
 type SourceArchiveAcquisitionRequest struct {
-	Unit       Unit
+	Source     io.Reader
 	Grant      runnercontrol.SourceGrant
+	Unit       Unit
 	Document   runnercontrol.SourceArchiveDocument
 	Trusted    attest.TrustedKeys
 	ObservedAt temporal.Instant
-	Source     io.Reader
 }
 
 func (r SourceArchiveAcquisitionRequest) Validate() error {
@@ -77,7 +77,7 @@ func (m Manager) AcquireSourceArchive(ctx context.Context, request SourceArchive
 		return VerifiedSource{}, err
 	}
 	manifest := request.Document.Manifest
-	verified = VerifiedSource{Coordinate: projectstandards.SourceCoordinate{Repository: manifest.Repository, Commit: manifest.Commit, Tree: manifest.Tree}, Checkout: checkout, Files: extraction.fileCount, Directories: extraction.directoryCount}
+	verified = VerifiedSource{Coordinate: standard.SourceCoordinate{Repository: manifest.Repository, Commit: manifest.Commit, Tree: manifest.Tree}, Checkout: checkout, Files: extraction.fileCount, Directories: extraction.directoryCount}
 	return verified, verified.Validate()
 }
 
@@ -101,16 +101,16 @@ func (m Manager) prepareCheckout(ctx context.Context, unit Unit) (core.RelativeP
 }
 
 type sourceExtraction struct {
-	checkout       core.RelativePath
-	document       runnercontrol.SourceArchiveDocument
-	exact          *objectstore.ExactReader
 	archive        io.Reader
-	reader         *tar.Reader
 	archiveHash    hash.Hash
 	treeHash       hash.Hash
+	exact          *objectstore.ExactReader
+	reader         *tar.Reader
+	checkout       core.RelativePath
+	previous       string
+	document       runnercontrol.SourceArchiveDocument
 	fileCount      uint32
 	directoryCount uint32
-	previous       string
 	entryCount     uint32
 }
 
@@ -192,10 +192,10 @@ func (e *sourceExtraction) consumeFile(ctx context.Context, manager Manager, pat
 }
 
 type sourceFileWrite struct {
-	manager  Manager
-	path     core.RelativePath
-	header   *tar.Header
 	fileHash hash.Hash
+	header   *tar.Header
+	path     core.RelativePath
+	manager  Manager
 }
 
 func (e *sourceExtraction) writeFile(ctx context.Context, request sourceFileWrite) error {
@@ -239,7 +239,7 @@ func (e *sourceExtraction) complete(ctx context.Context, manager Manager) error 
 }
 
 func validateSourceAuthorization(grant runnercontrol.SourceGrant, manifest runnercontrol.SourceArchiveManifest, observedAt temporal.Instant) error {
-	want := projectstandards.SourceCoordinate{Repository: manifest.Repository, Commit: manifest.Commit, Tree: manifest.Tree}
+	want := standard.SourceCoordinate{Repository: manifest.Repository, Commit: manifest.Commit, Tree: manifest.Tree}
 	if grant.Source != want {
 		return core.ErrPrimitiveContract
 	}
@@ -261,7 +261,7 @@ func archiveEntryPath(checkout core.RelativePath, name string, depthMaximum uint
 	if depth > int(depthMaximum) {
 		return core.RelativePath{}, core.ErrPrimitiveContract
 	}
-	relative, err := core.ParseRelativePath(trimmed)
+	relative, err := core.ParseRelativePath(filepath.FromSlash(trimmed))
 	if err != nil || relative.String() == "." {
 		return core.RelativePath{}, errors.Join(core.ErrPrimitiveContract, err)
 	}
@@ -286,8 +286,8 @@ func archiveTemporary(path core.RelativePath, index uint32) (core.RelativePath, 
 type treeEntry struct {
 	destination hash.Hash
 	path        core.RelativePath
-	mode        fs.FileMode
 	size        uint64
+	mode        fs.FileMode
 	digest      core.SHA256Digest
 }
 

@@ -9,7 +9,7 @@ import (
 
 const specificSelectionPaginationDiagnostic = "specific chit selection cannot be paginated"
 
-// Selection is the exact all-or-one customer catalog selection.
+// Selection is the exact all-or-one consumer catalog selection.
 type Selection struct {
 	Chit ChitID                    `json:"chit_id"`
 	Kind core.CatalogSelectionKind `json:"kind"`
@@ -120,7 +120,7 @@ type Query struct {
 	Limit     core.CatalogPageLimit `json:"limit"`
 }
 
-// QueryRequest is the constructor boundary for one customer catalog query.
+// QueryRequest is the constructor boundary for one consumer catalog query.
 // PageSize is immediately closed into Core's nominal page limit.
 type QueryRequest struct {
 	Scope     receipt.Scope

@@ -8,8 +8,8 @@ import (
 )
 
 type AssessLatestRequest struct {
-	Latest VerifiedLatest
 	Time   LatestTimeEvidence
+	Latest VerifiedLatest
 }
 
 // LatestTimeEvidence supplies real Temporal observations and the consumer's

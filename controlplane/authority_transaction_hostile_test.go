@@ -551,9 +551,9 @@ func TestPrepareCheckInResponseRefusesEverySubstitutedAuthorityFact(t *testing.T
 			preparation.Header.RequestNonce = otherRequestNonce(t)
 		}, want: core.ErrControlPlaneResponseBinding},
 		{name: "another account cannot receive this installation commit", mutate: func(t *testing.T, preparation *controlplane.CheckInResponsePreparation, _ issuedCheckIn) {
-			account, err := receipt.ParseAccountIdentity(checkInResponseOtherAccountHex)
+			account, err := receipt.ParsePrincipalIdentity(checkInResponseOtherAccountHex)
 			if err != nil {
-				t.Fatalf("ParseAccountIdentity() error = %v, want nil", err)
+				t.Fatalf("ParsePrincipalIdentity() error = %v, want nil", err)
 			}
 			preparation.Header.Account = account
 		}, want: core.ErrControlPlaneResponseBinding},

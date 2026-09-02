@@ -188,7 +188,7 @@ func TestReceiveBasicAuthorizationHostileBoundaryMatrix(t *testing.T) {
 			if request != nil {
 				before = slices.Clone(request.Header.Values(headerName.String()))
 			}
-			got, gotErr := exchange.ReceiveBasicAuthorization(exchange.BasicAuthorizationReceiveCall{Request: request})
+			got, gotErr := exchange.ReceiveBasicAuthorization(socketServerCall(t, request))
 			if !errors.Is(gotErr, tc.wantErr) {
 				t.Fatalf("ReceiveBasicAuthorization() error = %v, want %v", gotErr, tc.wantErr)
 			}

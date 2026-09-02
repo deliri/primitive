@@ -77,7 +77,7 @@ func unmarshalIdentifier(data []byte) (identifier, error) {
 	return value, nil
 }
 
-// EntitlementID is one opaque OGS entitlement identity.
+// EntitlementID is one opaque issuer-owned entitlement identity.
 type EntitlementID struct {
 	value identifier
 }

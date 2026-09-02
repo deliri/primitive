@@ -23,11 +23,11 @@ type Head struct {
 }
 
 type AppendIntent[P CanonicalPayload] struct {
-	Request      controlwire.RequestNonce `json:"request"`
-	Ledger       LedgerIdentity           `json:"ledger"`
-	ExpectedHead Head                     `json:"expected_head"`
-	Actor        core.Ed25519PublicKey    `json:"actor"`
 	Payload      P                        `json:"payload"`
+	ExpectedHead Head                     `json:"expected_head"`
+	Request      controlwire.RequestNonce `json:"request"`
+	Actor        core.Ed25519PublicKey    `json:"actor"`
+	Ledger       LedgerIdentity           `json:"ledger"`
 }
 
 type Issue[P CanonicalPayload] struct {
@@ -37,29 +37,42 @@ type Issue[P CanonicalPayload] struct {
 }
 
 type Envelope[P CanonicalPayload] struct {
-	Ledger       LedgerIdentity           `json:"ledger"`
-	Event        EventIdentity            `json:"event"`
-	Request      controlwire.RequestNonce `json:"request"`
+	Payload      P                        `json:"payload"`
+	RecordedAt   temporal.Instant         `json:"recorded_at"`
 	Sequence     Sequence                 `json:"sequence"`
+	Request      controlwire.RequestNonce `json:"request"`
 	PreviousHash core.SHA256Digest        `json:"previous_hash"`
 	Hash         core.SHA256Digest        `json:"hash"`
 	Actor        core.Ed25519PublicKey    `json:"actor"`
-	RecordedAt   temporal.Instant         `json:"recorded_at"`
-	Payload      P                        `json:"payload"`
+	Ledger       LedgerIdentity           `json:"ledger"`
+	Event        EventIdentity            `json:"event"`
 }
 
 type eventCommitment[P CanonicalPayload] struct {
-	Ledger       LedgerIdentity           `json:"ledger"`
-	Event        EventIdentity            `json:"event"`
-	Request      controlwire.RequestNonce `json:"request"`
+	Payload      P                        `json:"payload"`
+	RecordedAt   temporal.Instant         `json:"recorded_at"`
 	Sequence     Sequence                 `json:"sequence"`
+	Request      controlwire.RequestNonce `json:"request"`
 	PreviousHash core.SHA256Digest        `json:"previous_hash"`
 	Actor        core.Ed25519PublicKey    `json:"actor"`
-	RecordedAt   temporal.Instant         `json:"recorded_at"`
-	Payload      P                        `json:"payload"`
+	Ledger       LedgerIdentity           `json:"ledger"`
+	Event        EventIdentity            `json:"event"`
 }
 
 type envelopeWire[P CanonicalPayload] Envelope[P]
+
+func proofLedgerJSONLimits(maximum uint64) (core.StrictJSONLimits, error) {
+	encodedMaximum, err := core.NewByteCount(maximum)
+	if err != nil {
+		return core.StrictJSONLimits{}, jsonError(err)
+	}
+	limits := core.DefaultStrictJSONLimits()
+	limits.DocumentMaximumBytes = encodedMaximum
+	if err := limits.Validate(); err != nil {
+		return core.StrictJSONLimits{}, jsonError(err)
+	}
+	return limits, nil
+}
 
 func NewGenesisHead(ledger LedgerIdentity) (Head, error) {
 	head := Head{Ledger: ledger, Hash: GenesisHash()}
@@ -203,7 +216,11 @@ func DecodeEnvelope[P CanonicalPayload, PPtr interface {
 	core.Validatable
 	json.Unmarshaler
 }](data []byte) (Envelope[P], error) {
-	wire, err := core.DecodeStrictJSONStructure[envelopeWire[P]](data, core.DefaultStrictJSONLimits())
+	limits, err := proofLedgerJSONLimits(EventJSONMaximumBytes)
+	if err != nil {
+		return Envelope[P]{}, err
+	}
+	wire, err := core.DecodeStrictJSONStructure[envelopeWire[P]](data, limits)
 	if err != nil {
 		return Envelope[P]{}, jsonError(err)
 	}

@@ -2,7 +2,6 @@ package exchange_test
 
 import (
 	"bytes"
-	"context"
 	"errors"
 	"io"
 	"net/http"
@@ -214,7 +213,7 @@ func TestResponseStatusBodyOwnershipLayerTriad(t *testing.T) {
 		} {
 			recorder := httptest.NewRecorder()
 			gotErr := exchange.WriteJSON(exchange.JSONWriteCall[transportDocument]{
-				Writer: recorder,
+				Call: socketServerCallFrom(t, recorder, httptest.NewRequest(http.MethodGet, "/", nil)),
 				Response: exchange.ServerJSONResponse[transportDocument]{
 					Body:   transportDocument{Message: "written"},
 					Status: mustHTTPStatus(t, status),
@@ -248,7 +247,7 @@ func TestResponseStatusBodyOwnershipLayerTriad(t *testing.T) {
 		} {
 			recorder := httptest.NewRecorder()
 			gotErr := exchange.WriteJSON(exchange.JSONWriteCall[transportDocument]{
-				Writer: recorder,
+				Call: socketServerCallFrom(t, recorder, httptest.NewRequest(http.MethodGet, "/", nil)),
 				Response: exchange.ServerJSONResponse[transportDocument]{
 					Body:   transportDocument{Message: "forbidden"},
 					Status: mustHTTPStatus(t, status),
@@ -278,7 +277,7 @@ func TestResponseStatusBodyOwnershipLayerTriad(t *testing.T) {
 
 		recorder := httptest.NewRecorder()
 		gotErr := exchange.WriteNoBody(exchange.NoBodyWriteCall{
-			Writer: recorder,
+			Call: socketServerCallFrom(t, recorder, httptest.NewRequest(http.MethodGet, "/", nil)),
 			Response: exchange.ServerNoBodyResponse{
 				Status: mustHTTPStatus(t, http.StatusNoContent),
 			},
@@ -312,7 +311,6 @@ func TestResponseStatusBodyOwnershipLayerTriad(t *testing.T) {
 			},
 		})
 		streamErr := exchange.WriteStream(exchange.StreamWriteCall{
-			Context: context.Background(),
 			Response: exchange.ServerStreamResponse{
 				Source:        bytes.NewReader(nil),
 				ContentLength: mustByteLength(t, 0),
@@ -400,8 +398,7 @@ func TestStreamEgressExactExtentLayerTriad(t *testing.T) {
 				request *http.Request,
 			) {
 				observed <- exchange.WriteStream(exchange.StreamWriteCall{
-					Context: request.Context(),
-					Writer:  writer,
+					Call: socketServerCallFrom(t, writer, request),
 					Response: exchange.ServerStreamResponse{
 						Source:        bytes.NewReader(payload),
 						ContentLength: mustByteLength(t, tc.declaredLength),

@@ -378,10 +378,10 @@ func TestCheckedNumericConversionsPinBothSidesOfEveryBoundary(t *testing.T) {
 	}
 
 	uint16FromIntCases := []struct {
+		wantErr error
 		name    string
 		value   int
 		want    uint16
-		wantErr error
 	}{
 		{name: "minimum int overflows", value: math.MinInt, wantErr: ErrNumericOverflow},
 		{name: "negative one overflows", value: -1, wantErr: ErrNumericOverflow},
@@ -404,10 +404,10 @@ func TestCheckedNumericConversionsPinBothSidesOfEveryBoundary(t *testing.T) {
 	}
 
 	uint8Cases := []struct {
+		wantErr error
 		name    string
 		value   int
 		want    uint8
-		wantErr error
 	}{
 		{name: "minimum int overflows", value: math.MinInt, wantErr: ErrNumericOverflow},
 		{name: "negative one overflows", value: -1, wantErr: ErrNumericOverflow},
@@ -430,10 +430,10 @@ func TestCheckedNumericConversionsPinBothSidesOfEveryBoundary(t *testing.T) {
 	}
 
 	int32Cases := []struct {
+		wantErr error
 		name    string
 		value   int
 		want    int32
-		wantErr error
 	}{
 		{name: "int32 minimum converts", value: math.MinInt32, want: math.MinInt32},
 		{name: "int32 minimum plus one converts", value: math.MinInt32 + 1, want: math.MinInt32 + 1},
@@ -446,16 +446,16 @@ func TestCheckedNumericConversionsPinBothSidesOfEveryBoundary(t *testing.T) {
 	if strconv.IntSize == 64 {
 		int32Cases = append(int32Cases,
 			struct {
+				wantErr error
 				name    string
 				value   int
 				want    int32
-				wantErr error
 			}{name: "one below int32 minimum overflows", value: math.MinInt32 - 1, wantErr: ErrNumericOverflow},
 			struct {
+				wantErr error
 				name    string
 				value   int
 				want    int32
-				wantErr error
 			}{name: "one above int32 upper edge overflows", value: math.MaxInt32 + 1, wantErr: ErrNumericOverflow},
 		)
 	}
