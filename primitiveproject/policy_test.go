@@ -1,16 +1,16 @@
-// Package primitiveproject owns Primitive's authored project policy.
-// Observed source, execution, and evidence facts remain inputs from their
-// owning producers and are never manufactured here.
+// Package primitiveproject_test owns Primitive's authored project policy.
 package primitiveproject_test
 
 import (
 	"errors"
+	"testing"
 
 	primitivecore "github.com/deliri/primitive/v2026/core"
 	"github.com/deliri/primitive/v2026/projectstandards"
+	"github.com/deliri/primitive/v2026/temporal"
 )
 
-const projectStandardSourcePath = "primitiveproject/projectstandard_test.go"
+const projectStandardSourcePath = "primitiveproject/policy_test.go"
 
 // ProjectStandardKnowledge returns Primitive's compiler-owned authored
 // project meaning. The caller supplies Git origins because history is an
@@ -120,41 +120,26 @@ func (b *projectStandardBuilder) boundary(title, detail string) projectstandards
 	return projectstandards.Boundary{Title: b.name(title), Detail: b.text(detail)}
 }
 
-// PackageStandardCode returns Forge's regenerated, compiler-checked file facts.
-func PackageStandardCode() (projectstandards.PackageFileCatalog, error) {
-	var generatedErr error
-	sourcePath := func(value string) projectstandards.SourcePath {
-		result, err := projectstandards.ParseSourcePath(value)
-		generatedErr = errors.Join(generatedErr, err)
-		return result
+func TestProjectStandardKnowledgeClosesAuthoredMeaning(t *testing.T) {
+	t.Parallel()
+
+	commit, err := primitivecore.ParseBuildCommit("0123456789abcdef0123456789abcdef01234567")
+	if err != nil {
+		t.Fatalf("ParseBuildCommit() error = %v, want nil", err)
 	}
-	capability := func(value string) primitivecore.PackageIdentity {
-		result, err := primitivecore.ParsePackageIdentity(value)
-		generatedErr = errors.Join(generatedErr, err)
-		return result
+	changed := projectstandards.GitOrigin{
+		Commit: commit,
+		At:     temporal.InstantFromNanoseconds(1_767_225_600_000_000_000),
 	}
-	catalog := projectstandards.PackageFileCatalog{
-		Package: sourcePath("primitiveproject"),
-		Files: []projectstandards.SourceFile{
-			{
-				Path: sourcePath("primitiveproject/projectstandard_authored_test.go"), Package: sourcePath("primitiveproject"),
-				Language: projectstandards.SourceLanguageGo, Kind: projectstandards.SourceFileKindTest, Generated: false,
-				Declarations: projectstandards.SourceFileDeclarations{TestDeclarations: 1, Benchmarks: 0, FuzzTargets: 0},
-				Effects:      projectstandards.SourceFileEffects{Posture: projectstandards.PrimitiveEffectMediated, UnresolvedSites: 0, Capabilities: []projectstandards.PrimitiveCapabilityUse{{Package: capability("temporal")}}},
-			},
-			{
-				Path: sourcePath("primitiveproject/projectstandard_test.go"), Package: sourcePath("primitiveproject"),
-				Language: projectstandards.SourceLanguageGo, Kind: projectstandards.SourceFileKindTest, Generated: false,
-				Declarations: projectstandards.SourceFileDeclarations{TestDeclarations: 0, Benchmarks: 0, FuzzTargets: 0},
-				Effects:      projectstandards.SourceFileEffects{Posture: projectstandards.PrimitiveEffectPurePolicy, UnresolvedSites: 0},
-			},
-		},
+	knowledge, err := ProjectStandardKnowledge(projectstandards.OptionalGitOrigin{}, changed)
+	if err != nil {
+		t.Fatalf("ProjectStandardKnowledge() error = %v, want nil", err)
 	}
-	if generatedErr != nil {
-		return projectstandards.PackageFileCatalog{}, generatedErr
+	wantPath, err := projectstandards.ParseSourcePath(projectStandardSourcePath)
+	if err != nil {
+		t.Fatalf("ParseSourcePath() error = %v, want nil", err)
 	}
-	if err := catalog.Validate(); err != nil {
-		return projectstandards.PackageFileCatalog{}, err
+	if knowledge.Changed != changed || knowledge.SourcePath != wantPath {
+		t.Fatalf("ProductKnowledge changed/path = (%v, %v), want (%v, %v)", knowledge.Changed, knowledge.SourcePath, changed, wantPath)
 	}
-	return catalog, nil
 }
