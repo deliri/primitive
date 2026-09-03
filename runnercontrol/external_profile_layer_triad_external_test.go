@@ -7,7 +7,7 @@ import (
 
 	"github.com/deliri/primitive/v2026/core"
 	"github.com/deliri/primitive/v2026/runnercontrol"
-	"github.com/deliri/primitive/v2026/standard"
+	"github.com/deliri/primitive/v2026/runprotocol"
 )
 
 func TestJavaScriptProfileCompilerLayerTriad(t *testing.T) {
@@ -123,9 +123,9 @@ func javaScriptPlanFixture(t testing.TB) runnercontrol.JavaScriptPlanRequest {
 
 func suitePlanFixture(t testing.TB, egress runnercontrol.EgressPolicy) runnercontrol.SuitePlanRequest {
 	t.Helper()
-	suite, err := standard.NewIdentifier("public-api")
+	suite, err := runprotocol.NewIdentifier("public-api")
 	if err != nil {
-		t.Fatalf("standard.NewIdentifier(smoke suite) error = %v, want nil", err)
+		t.Fatalf("runprotocol.NewIdentifier(smoke suite) error = %v, want nil", err)
 	}
 	return runnercontrol.SuitePlanRequest{Base: externalPlanBaseFixture(t, egress), Suite: runnercontrol.SuitePlan{Suite: suite, Timeout: mustProfileDuration(t, 120_000_000_000)}}
 }
@@ -168,7 +168,7 @@ func deniedExternalEgress() runnercontrol.EgressPolicy {
 
 func pinnedSuiteEgress(t testing.TB) runnercontrol.EgressPolicy {
 	t.Helper()
-	service, serviceErr := standard.NewIdentifier("public-api")
+	service, serviceErr := runprotocol.NewIdentifier("public-api")
 	endpoint, endpointErr := core.ParseHTTPEndpoint("https://api.example.test")
 	if err := errors.Join(serviceErr, endpointErr); err != nil {
 		t.Fatalf("pinned smoke egress fixture error = %v, want nil", err)

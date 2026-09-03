@@ -216,7 +216,7 @@ type DurabilityRequest struct {
 }
 
 // Validate rejects an invalid location or one naming the rooted entry itself,
-// which has no parent inside the capability to prove anything standard.
+// which has no parent inside the capability to prove anything runprotocol.
 func (r DurabilityRequest) Validate() error {
 	if err := r.Location.Validate(); err != nil {
 		return err

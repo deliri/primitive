@@ -7,7 +7,7 @@ import (
 
 	"github.com/deliri/primitive/v2026/core"
 	"github.com/deliri/primitive/v2026/runnercontrol"
-	"github.com/deliri/primitive/v2026/standard"
+	"github.com/deliri/primitive/v2026/runprotocol"
 )
 
 type junitBoundaryCase struct {
@@ -16,7 +16,7 @@ type junitBoundaryCase struct {
 	class     string
 	document  string
 	chunk     int
-	want      standard.ExecutionAttempt
+	want      runprotocol.ExecutionAttempt
 	wantUnits uint32
 	filtered  bool
 	exitError bool
@@ -183,8 +183,8 @@ func junitRejectExit(name, class, document string, planned uint32, exitError boo
 	return result
 }
 
-func junitAttempt(planned, passed, failed, skipped, notRun uint32, filtered bool) standard.ExecutionAttempt {
-	return standard.ExecutionAttempt{Sequence: 1, Planned: planned, Passed: passed, Failed: failed, Skipped: skipped, NotRun: notRun, Cache: standard.CacheDisabled, Filtered: filtered}
+func junitAttempt(planned, passed, failed, skipped, notRun uint32, filtered bool) runprotocol.ExecutionAttempt {
+	return runprotocol.ExecutionAttempt{Sequence: 1, Planned: planned, Passed: passed, Failed: failed, Skipped: skipped, NotRun: notRun, Cache: runprotocol.CacheDisabled, Filtered: filtered}
 }
 
 func nestedJUnit(depth int, inner string) string {

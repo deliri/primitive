@@ -19,13 +19,13 @@ import (
 	"github.com/deliri/primitive/v2026/filestore"
 	"github.com/deliri/primitive/v2026/objectstore"
 	"github.com/deliri/primitive/v2026/runnercontrol"
-	"github.com/deliri/primitive/v2026/standard"
+	"github.com/deliri/primitive/v2026/runprotocol"
 	"github.com/deliri/primitive/v2026/temporal"
 )
 
 type VerifiedSource struct {
 	Checkout    core.RelativePath
-	Coordinate  standard.SourceCoordinate
+	Coordinate  runprotocol.SourceCoordinate
 	Files       uint32
 	Directories uint32
 }
@@ -77,7 +77,7 @@ func (m Manager) AcquireSourceArchive(ctx context.Context, request SourceArchive
 		return VerifiedSource{}, err
 	}
 	manifest := request.Document.Manifest
-	verified = VerifiedSource{Coordinate: standard.SourceCoordinate{Repository: manifest.Repository, Commit: manifest.Commit, Tree: manifest.Tree}, Checkout: checkout, Files: extraction.fileCount, Directories: extraction.directoryCount}
+	verified = VerifiedSource{Coordinate: runprotocol.SourceCoordinate{Repository: manifest.Repository, Commit: manifest.Commit, Tree: manifest.Tree}, Checkout: checkout, Files: extraction.fileCount, Directories: extraction.directoryCount}
 	return verified, verified.Validate()
 }
 
@@ -239,7 +239,7 @@ func (e *sourceExtraction) complete(ctx context.Context, manager Manager) error 
 }
 
 func validateSourceAuthorization(grant runnercontrol.SourceGrant, manifest runnercontrol.SourceArchiveManifest, observedAt temporal.Instant) error {
-	want := standard.SourceCoordinate{Repository: manifest.Repository, Commit: manifest.Commit, Tree: manifest.Tree}
+	want := runprotocol.SourceCoordinate{Repository: manifest.Repository, Commit: manifest.Commit, Tree: manifest.Tree}
 	if grant.Source != want {
 		return core.ErrPrimitiveContract
 	}
@@ -253,7 +253,7 @@ func validateSourceAuthorization(grant runnercontrol.SourceGrant, manifest runne
 }
 
 func archiveEntryPath(checkout core.RelativePath, name string, depthMaximum uint16) (core.RelativePath, error) {
-	if name == "" || strings.HasPrefix(name, "./") || strings.HasPrefix(name, "/") {
+	if name == "" || strings.HasPrefix(name, "./") || strings.HasPrefix(name, "/") || strings.ContainsRune(name, '\\') {
 		return core.RelativePath{}, core.ErrPrimitiveContract
 	}
 	trimmed := strings.TrimSuffix(name, "/")

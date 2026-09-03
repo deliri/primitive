@@ -11,50 +11,12 @@ import (
 	"github.com/deliri/primitive/v2026/core"
 )
 
-const purposeMaximumBytes = 4096
-
-// Purpose is a bounded human explanation attached to a compiler-owned package
-// identity. It helps a caller choose; it is never the matching key.
-type Purpose struct {
-	value string
-}
-
-// newPurpose admits compiler-owned descriptive text. Purpose is human guidance
-// only; package identity and effect enums remain the matching authority.
-func newPurpose(value string) (Purpose, error) {
-	purpose := Purpose{value: value}
-	if err := purpose.Validate(); err != nil {
-		return Purpose{}, err
-	}
-	return purpose, nil
-}
-
-// Validate rejects absent or unbounded purpose text.
-func (p Purpose) Validate() error {
-	if len(p.value) == 0 || len(p.value) > purposeMaximumBytes {
-		return contractError("capability purpose is absent or exceeds its bound")
-	}
-	return nil
-}
-
-// String returns the admitted descriptive text or an empty string when invalid.
-func (p Purpose) String() string {
-	if p.Validate() != nil {
-		return ""
-	}
-	return p.value
-}
-
 // Capability describes one actual Primitive package.
 type Capability struct {
-	Purpose Purpose
 	Package core.PackageIdentity
 	Kind    core.PackageKind
 	Role    core.PackageRole
 }
-
-// Description returns the bounded human guidance for this capability.
-func (c Capability) Description() Purpose { return c.Purpose }
 
 // Validate binds the capability to the authoritative Primitive architecture.
 func (c Capability) Validate() error {
@@ -63,9 +25,6 @@ func (c Capability) Validate() error {
 	}
 	if err := c.Kind.Validate(); err != nil {
 		return errors.Join(core.ErrCapabilitiesContract, err)
-	}
-	if err := c.Purpose.Validate(); err != nil {
-		return err
 	}
 	want, err := capabilityFor(c.Package)
 	if err != nil {
@@ -163,15 +122,7 @@ func capabilityFromContract(contract core.PackageContract) (Capability, error) {
 	if err := contract.Validate(); err != nil {
 		return Capability{}, errors.Join(core.ErrCapabilitiesContract, err)
 	}
-	purpose, err := contract.Identity.Purpose()
-	if err != nil {
-		return Capability{}, errors.Join(core.ErrCapabilitiesContract, err)
-	}
-	admittedPurpose, err := newPurpose(purpose)
-	if err != nil {
-		return Capability{}, err
-	}
-	capability := Capability{Package: contract.Identity, Kind: contract.Kind, Role: contract.Role, Purpose: admittedPurpose}
+	capability := Capability{Package: contract.Identity, Kind: contract.Kind, Role: contract.Role}
 	return capability, nil
 }
 

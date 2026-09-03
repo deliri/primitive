@@ -10,7 +10,7 @@ import (
 	"github.com/deliri/primitive/v2026/filestore"
 	"github.com/deliri/primitive/v2026/runnercontrol"
 	"github.com/deliri/primitive/v2026/runworkspace"
-	"github.com/deliri/primitive/v2026/standard"
+	"github.com/deliri/primitive/v2026/runprotocol"
 )
 
 func TestExpectedArtifactLayerTriad(t *testing.T) {
@@ -74,9 +74,9 @@ func TestExpectedArtifactLayerTriad(t *testing.T) {
 		t.Parallel()
 		manager, _, experiment, _ := captureFixture(t)
 		defer closeScrubManager(t, manager)
-		foreign, err := standard.ParseSourcePath("foreign/coverage.out")
+		foreign, err := runprotocol.ParseSourcePath("foreign/coverage.out")
 		if err != nil {
-			t.Fatalf("standard.ParseSourcePath(foreign artifact) setup error = %v, want nil", err)
+			t.Fatalf("runprotocol.ParseSourcePath(foreign artifact) setup error = %v, want nil", err)
 		}
 		expectation := artifactExpectationFixture(t, experiment, "coverage.out", false, 1024)
 		expectation.Path = foreign
@@ -95,7 +95,7 @@ func artifactExpectationFixture(t testing.TB, experiment runworkspace.Experiment
 	t.Helper()
 	component, componentErr := core.ParsePathComponent(name)
 	path, pathErr := experiment.Output.Join(component)
-	protocolPath, protocolPathErr := standard.ParseSourcePath(path.String())
+	protocolPath, protocolPathErr := runprotocol.ParseSourcePath(path.String())
 	limit, limitErr := core.NewByteCount(maximum)
 	if err := errors.Join(componentErr, pathErr, protocolPathErr, limitErr); err != nil {
 		t.Fatalf("artifact expectation %q setup error = %v, want nil", name, err)
@@ -103,7 +103,7 @@ func artifactExpectationFixture(t testing.TB, experiment runworkspace.Experiment
 	return runnercontrol.ArtifactExpectation{Kind: runnercontrol.ArtifactCoverage, Path: protocolPath, MediaType: core.HTTPMediaTypeOctetStream(), MaximumBytes: limit, Required: required}
 }
 
-func writeExpectedArtifact(t testing.TB, rootPath core.AbsolutePath, protocolPath standard.SourcePath, content []byte) {
+func writeExpectedArtifact(t testing.TB, rootPath core.AbsolutePath, protocolPath runprotocol.SourcePath, content []byte) {
 	t.Helper()
 	path, pathErr := core.ParseRelativePath(protocolPath.String())
 	root, rootErr := filestore.OpenRoot(t.Context(), rootPath)

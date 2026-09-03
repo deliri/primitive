@@ -12,7 +12,7 @@ import (
 	primitiveid "github.com/deliri/primitive/v2026/id"
 	"github.com/deliri/primitive/v2026/process"
 	"github.com/deliri/primitive/v2026/runnercontrol"
-	"github.com/deliri/primitive/v2026/standard"
+	"github.com/deliri/primitive/v2026/runprotocol"
 	"github.com/deliri/primitive/v2026/temporal"
 )
 
@@ -91,7 +91,7 @@ func TestExpansionApprovalCapabilitySignatureLayerTriad(t *testing.T) {
 		if digestErr != nil {
 			t.Fatalf("ExpansionManifest.Digest(refusal) error = %v, want nil", digestErr)
 		}
-		refusal := standard.RefusalBudget
+		refusal := runprotocol.RefusalBudget
 		approval := runnercontrol.ExpansionApproval{
 			SchemaVersion:  runnercontrol.SchemaVersion,
 			Run:            manifest.Run,
@@ -186,10 +186,10 @@ func schedulingClaimDocumentFixture(t testing.TB) (runnercontrol.SchedulingClaim
 	t.Helper()
 	completion := experimentCompletionPayloadFixture(t, true)
 	signer, trusted := completionSignerFixture(t)
-	observation, observationErr := standard.NewMachineObservationID(capabilityUUID(t, 30))
+	observation, observationErr := runprotocol.NewMachineObservationID(capabilityUUID(t, 30))
 	request := capabilityRequestIdentity(t, 31)
 	if observationErr != nil {
-		t.Fatalf("standard.NewMachineObservationID(capability fixture) error = %v, want nil", observationErr)
+		t.Fatalf("runprotocol.NewMachineObservationID(capability fixture) error = %v, want nil", observationErr)
 	}
 	digest := core.SHA256Of([]byte("scheduling capability contract"))
 	schedulingPayload := runnercontrol.SchedulingCapability{
@@ -248,7 +248,7 @@ func capabilityExecution(t testing.TB) runnercontrol.ExperimentExecution {
 	environment, environmentErr := process.ParseExactEnvironment([]string{
 		core.EnvironmentHomeName + "=" + workspace.Home.String(), core.EnvironmentTemporaryName + "=" + workspace.Temporary.String(), core.EnvironmentCacheName + "=" + workspace.Cache.String(),
 	})
-	user, userErr := standard.NewIdentifier("isolated-subject")
+	user, userErr := runprotocol.NewIdentifier("isolated-subject")
 	if err := errors.Join(argumentsErr, environmentErr, userErr); err != nil {
 		t.Fatalf("capability execution fixture setup error = %v, want nil", err)
 	}
@@ -306,11 +306,11 @@ func foreignSchedulingTrustedKeys(t testing.TB) attest.TrustedKeys {
 	return trusted
 }
 
-func capabilityRequestIdentity(t testing.TB, value int) standard.RequestIdentity {
+func capabilityRequestIdentity(t testing.TB, value int) runprotocol.RequestIdentity {
 	t.Helper()
-	got, err := standard.NewRequestIdentity(capabilityUUID(t, value))
+	got, err := runprotocol.NewRequestIdentity(capabilityUUID(t, value))
 	if err != nil {
-		t.Fatalf("standard.NewRequestIdentity(%d) error = %v, want nil", value, err)
+		t.Fatalf("runprotocol.NewRequestIdentity(%d) error = %v, want nil", value, err)
 	}
 	return got
 }

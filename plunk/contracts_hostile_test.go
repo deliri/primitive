@@ -50,4 +50,8 @@ func TestWebhookSecretHasIndependentNominalBound(t *testing.T) {
 	if !errors.Is(err, core.ErrPlunkContract) {
 		t.Fatalf("ParseWebhookSecret(one above maximum) error = %v, want %v", err, core.ErrPlunkContract)
 	}
+	got, err := ParseWebhookSecret([]byte("plunk!shared"))
+	if !errors.Is(err, core.ErrPlunkContract) || got.Validate() == nil {
+		t.Fatalf("ParseWebhookSecret(non-bearer punctuation) = (%v, %v), want rejected with %v", got, err, core.ErrPlunkContract)
+	}
 }

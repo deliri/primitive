@@ -8,7 +8,7 @@ import (
 
 	"github.com/deliri/primitive/v2026/core"
 	"github.com/deliri/primitive/v2026/runnercontrol"
-	"github.com/deliri/primitive/v2026/standard"
+	"github.com/deliri/primitive/v2026/runprotocol"
 	"github.com/deliri/primitive/v2026/temporal"
 )
 
@@ -114,7 +114,7 @@ func externalStructureSeeds(t testing.TB) runnerControlStructureSeeds {
 	expansionManifest := expansionManifestFixture(t, true)
 	artifactManifest, artifactChunk := artifactFixture(t, []byte("receipt-evidence"))
 	artifactRecord, artifactErr := runnercontrol.NewArtifactManifestRecord(artifactManifest)
-	observationID, observationErr := standard.NewMachineObservationID(completionUUIDFixture(t))
+	observationID, observationErr := runprotocol.NewMachineObservationID(completionUUIDFixture(t))
 	if err := errors.Join(artifactErr, observationErr); err != nil {
 		t.Fatalf("external structure seed identity error = %v, want nil", err)
 	}
@@ -130,7 +130,7 @@ func externalStructureSeeds(t testing.TB) runnerControlStructureSeeds {
 	fence := experimentPayload.Fence.Machine
 	claimRequest := runnercontrol.ClaimRequest{SchemaVersion: runnercontrol.SchemaVersion, Machine: fence.Machine, Generation: fence.Generation, Observation: observationID, RequestedAt: temporal.InstantFromNanoseconds(1)}
 	claimResponse := runnercontrol.ClaimResponse{SchemaVersion: runnercontrol.SchemaVersion, Kind: runnercontrol.ClaimWait, Fence: fence}
-	heartbeatRequest := runnercontrol.HeartbeatRequest{SchemaVersion: runnercontrol.SchemaVersion, Observation: observationID, Fence: fence, State: runnercontrol.HeartbeatReady, ActiveRuns: []standard.RunID{}, ObservedAt: temporal.InstantFromNanoseconds(1)}
+	heartbeatRequest := runnercontrol.HeartbeatRequest{SchemaVersion: runnercontrol.SchemaVersion, Observation: observationID, Fence: fence, State: runnercontrol.HeartbeatReady, ActiveRuns: []runprotocol.RunID{}, ObservedAt: temporal.InstantFromNanoseconds(1)}
 	heartbeatResponse := runnercontrol.HeartbeatResponse{SchemaVersion: runnercontrol.SchemaVersion, Fence: fence, Directive: runnercontrol.Directive{Kind: runnercontrol.DirectiveContinue}, NextAt: temporal.InstantFromNanoseconds(2)}
 	sourceRequest := runnercontrol.SourceAcquisitionRequest{SchemaVersion: runnercontrol.SchemaVersion, Fence: experimentPayload.Fence, Members: experimentPayload.Members, Source: experimentPayload.Probe.Source, Grant: runnercontrol.SourceGrantIdentity{Digest: core.SHA256Of([]byte("source-grant"))}, RequestedAt: temporal.InstantFromNanoseconds(1)}
 	experimentReceipt := runnercontrol.ExperimentCompletionReceipt{SchemaVersion: runnercontrol.SchemaVersion, Run: experimentPayload.Run, Experiment: experimentPayload.Observation.Experiment, Digest: experimentRecord.Digest, Bytes: experimentRecord.Bytes}
@@ -172,9 +172,9 @@ func expansionApprovalSeed(t testing.TB, manifest runnercontrol.ExpansionManifes
 	t.Helper()
 	capability := experimentObservationRequestFixture(t).Capability
 	child := manifest.Children[0]
-	observation, observationErr := standard.NewMachineObservationID(completionUUIDFixture(t))
+	observation, observationErr := runprotocol.NewMachineObservationID(completionUUIDFixture(t))
 	resolution, resolutionErr := runnercontrol.ResolveGoConcurrency(
-		standard.MachineExecutionSettings{Observation: observation, Generation: manifest.Fence.Machine.Generation, LogicalCPUCount: 1},
+		runprotocol.MachineExecutionSettings{Observation: observation, Generation: manifest.Fence.Machine.Generation, LogicalCPUCount: 1},
 		runnercontrol.GoProfileFocused,
 		runnercontrol.GoConcurrency{GOMAXPROCS: 1, Parallel: 1, PackageParallel: 1, CPU: []uint16{1}},
 	)

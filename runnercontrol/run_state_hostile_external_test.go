@@ -8,7 +8,7 @@ import (
 	"github.com/deliri/primitive/v2026/core"
 	primitiveid "github.com/deliri/primitive/v2026/id"
 	"github.com/deliri/primitive/v2026/runnercontrol"
-	"github.com/deliri/primitive/v2026/standard"
+	"github.com/deliri/primitive/v2026/runprotocol"
 	"github.com/deliri/primitive/v2026/temporal"
 )
 
@@ -131,7 +131,7 @@ func TestCancellationRequestBindsOriginRunAndNonce(t *testing.T) {
 		name   string
 	}{
 		{name: "foreign origin cannot reuse cancellation identity", mutate: func(_ testing.TB, request *runnercontrol.CancellationRequest) {
-			request.Coordinate.Origin = standard.OriginIdentity{Offering: core.Offering{Token: "foreign-origin"}}
+			request.Coordinate.Origin = runprotocol.OriginIdentity{Offering: core.Offering{Token: "foreign-origin"}}
 		}},
 		{name: "sibling run cannot reuse cancellation identity", mutate: func(t testing.TB, request *runnercontrol.CancellationRequest) {
 			request.Coordinate.Run = runStateFixtureIDValue(t, "01890f2e-7b00-7000-8000-000000000002")
@@ -247,24 +247,24 @@ func proveRunStateRequestCanonical(t testing.TB, got runnercontrol.RunStateReque
 	}
 }
 
-func runStateFixtureID(t testing.TB) standard.RunID {
+func runStateFixtureID(t testing.TB) runprotocol.RunID {
 	return runStateFixtureIDValue(t, "01890f2e-7b00-7000-8000-000000000001")
 }
 
-func runStateFixtureIDValue(t testing.TB, value string) standard.RunID {
+func runStateFixtureIDValue(t testing.TB, value string) runprotocol.RunID {
 	t.Helper()
 	uuid, uuidErr := primitiveid.ParseUUIDv7(value)
-	run, runErr := standard.NewRunID(uuid)
+	run, runErr := runprotocol.NewRunID(uuid)
 	if err := errors.Join(uuidErr, runErr); err != nil {
 		t.Fatalf("run state RunID fixture error = %v, want nil", err)
 	}
 	return run
 }
 
-func requestNonceFixture(t testing.TB, value string) standard.RequestNonce {
+func requestNonceFixture(t testing.TB, value string) runprotocol.RequestNonce {
 	t.Helper()
 	uuid, uuidErr := primitiveid.ParseUUIDv7(value)
-	nonce, nonceErr := standard.NewRequestNonce(uuid)
+	nonce, nonceErr := runprotocol.NewRequestNonce(uuid)
 	if err := errors.Join(uuidErr, nonceErr); err != nil {
 		t.Fatalf("request nonce fixture error = %v, want nil", err)
 	}
@@ -275,7 +275,7 @@ func cancellationRequestFixture(t testing.TB) runnercontrol.CancellationRequest 
 	t.Helper()
 	request, err := runnercontrol.NewCancellationRequest(
 		runnercontrol.CancellationCoordinate{
-			Origin: standard.OriginIdentity{Offering: core.Offering{Token: "origin"}},
+			Origin: runprotocol.OriginIdentity{Offering: core.Offering{Token: "origin"}},
 			Run:    runStateFixtureID(t),
 			Nonce:  requestNonceFixture(t, "01890f2e-7b00-7000-8000-000000000002"),
 		},

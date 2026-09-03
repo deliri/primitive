@@ -16,7 +16,7 @@ import (
 	"github.com/deliri/primitive/v2026/attest"
 	"github.com/deliri/primitive/v2026/core"
 	"github.com/deliri/primitive/v2026/exchange"
-	"github.com/deliri/primitive/v2026/standard"
+	"github.com/deliri/primitive/v2026/runprotocol"
 )
 
 const (
@@ -40,7 +40,7 @@ func NewGoBuildTag(value string) (GoBuildTag, error) {
 }
 
 func (t GoBuildTag) Validate() error {
-	if t.value == "" || len(t.value) > standard.IdentifierMaximumBytes {
+	if t.value == "" || len(t.value) > runprotocol.IdentifierMaximumBytes {
 		return core.ErrPrimitiveContract
 	}
 	if strings.ContainsAny(t.value, " \t\r\n,\"'`") || !validGoBuildTagRunes(t.value) {
@@ -113,7 +113,7 @@ func (i GoInstrumentation) String() string {
 	if !i.IsValid() {
 		return invalidEnumString()
 	}
-	return []string{"", "ordinary", standard.GoRaceText, diagnosticArtifactText}[i]
+	return []string{"", "ordinary", runprotocol.GoRaceText, diagnosticArtifactText}[i]
 }
 func (i GoInstrumentation) MarshalJSON() ([]byte, error) {
 	if err := i.Validate(); err != nil {
@@ -189,9 +189,9 @@ func (m *GoModuleMode) UnmarshalJSON(data []byte) error {
 }
 
 type GoBuildContext struct {
-	ArchitectureFeature *standard.Identifier `json:"architecture_feature,omitempty"`
-	Toolchain           standard.Identifier  `json:"toolchain"`
-	ModuleRoot          standard.SourcePath  `json:"module_root"`
+	ArchitectureFeature *runprotocol.Identifier `json:"architecture_feature,omitempty"`
+	Toolchain           runprotocol.Identifier  `json:"toolchain"`
+	ModuleRoot          runprotocol.SourcePath  `json:"module_root"`
 	ReleaseTags         []GoBuildTag         `json:"release_tags"`
 	BuildTags           []GoBuildTag         `json:"build_tags"`
 	GOExperiment        []GoBuildTag         `json:"goexperiment"`
@@ -239,7 +239,7 @@ func validateCanonicalGoBuildTags(values []GoBuildTag) error {
 	}
 	return nil
 }
-func validateCanonicalIdentifiers(values []standard.Identifier) error {
+func validateCanonicalIdentifiers(values []runprotocol.Identifier) error {
 	var previous []byte
 	for index := range values {
 		if err := values[index].Validate(); err != nil {
@@ -268,10 +268,10 @@ func (c GoBuildContext) Digest() (core.SHA256Digest, error) {
 }
 
 type GoBuildContextEntry struct {
-	Profile standard.ProfileIdentity `json:"profile"`
+	Profile runprotocol.ProfileIdentity `json:"profile"`
 	Context GoBuildContext           `json:"context"`
 	Digest  core.SHA256Digest        `json:"digest"`
-	Kind    standard.ProbeKind       `json:"kind"`
+	Kind    runprotocol.ProbeKind       `json:"kind"`
 }
 
 func (e GoBuildContextEntry) Validate() error {
@@ -279,7 +279,7 @@ func (e GoBuildContextEntry) Validate() error {
 		return err
 	}
 	role, err := e.Kind.Role()
-	if err != nil || role != standard.ProbeRoleExperiment {
+	if err != nil || role != runprotocol.ProbeRoleExperiment {
 		return errors.Join(core.ErrPrimitiveContract, err)
 	}
 	digest, err := e.Context.Digest()
@@ -303,8 +303,8 @@ func (s GoBuildContextSet) Validate() error {
 			return err
 		}
 		key, err := core.MarshalCanonicalJSONDocument(struct {
-			Profile standard.ProfileIdentity `json:"profile"`
-			Kind    standard.ProbeKind       `json:"kind"`
+			Profile runprotocol.ProfileIdentity `json:"profile"`
+			Kind    runprotocol.ProbeKind       `json:"kind"`
 		}{Profile: s.Entries[index].Profile, Kind: s.Entries[index].Kind})
 		if err != nil {
 			return err
@@ -327,7 +327,7 @@ func (s GoBuildContextSet) Digest() (core.SHA256Digest, error) {
 	return core.SHA256Of(encoded), nil
 }
 
-func (s GoBuildContextSet) Find(kind standard.ProbeKind, profile standard.ProfileIdentity) (GoBuildContextEntry, bool) {
+func (s GoBuildContextSet) Find(kind runprotocol.ProbeKind, profile runprotocol.ProfileIdentity) (GoBuildContextEntry, bool) {
 	if s.Validate() != nil || kind.Validate() != nil || profile.Validate() != nil {
 		return GoBuildContextEntry{}, false
 	}
@@ -386,9 +386,9 @@ func (d *ExpansionDisposition) UnmarshalJSON(data []byte) error {
 }
 
 type ExpansionChild struct {
-	Experiment         *standard.ExperimentID  `json:"experiment_id,omitempty"`
-	Refusal            *standard.RefusalReason `json:"refusal,omitempty"`
-	Probe              standard.ProbeIdentity  `json:"probe"`
+	Experiment         *runprotocol.ExperimentID  `json:"experiment_id,omitempty"`
+	Refusal            *runprotocol.RefusalReason `json:"refusal,omitempty"`
+	Probe              runprotocol.ProbeIdentity  `json:"probe"`
 	Sequence           uint16                  `json:"sequence"`
 	BuildContextDigest core.SHA256Digest       `json:"build_context_digest"`
 	Disposition        ExpansionDisposition    `json:"disposition"`
@@ -397,11 +397,11 @@ type ExpansionChild struct {
 // CIExpansionChild is one compiler-owned child intent from product policy.
 // The caller derives only the run-bound parent and experiment identity from it.
 type CIExpansionChild struct {
-	Refusal            *standard.RefusalReason `json:"refusal,omitempty"`
-	Target             standard.ProbeTarget    `json:"target"`
+	Refusal            *runprotocol.RefusalReason `json:"refusal,omitempty"`
+	Target             runprotocol.ProbeTarget    `json:"target"`
 	Sequence           uint16                  `json:"sequence"`
 	BuildContextDigest core.SHA256Digest       `json:"build_context_digest"`
-	Kind               standard.ProbeKind      `json:"kind"`
+	Kind               runprotocol.ProbeKind      `json:"kind"`
 	Disposition        ExpansionDisposition    `json:"disposition"`
 }
 
@@ -413,7 +413,7 @@ func (c CIExpansionChild) Validate() error {
 		return err
 	}
 	role, err := c.Kind.Role()
-	if err != nil || role != standard.ProbeRoleExperiment {
+	if err != nil || role != runprotocol.ProbeRoleExperiment {
 		return errors.Join(core.ErrPrimitiveContract, err)
 	}
 	switch c.Disposition {
@@ -433,9 +433,9 @@ func (c CIExpansionChild) Validate() error {
 }
 
 type CIExpansionPlan struct {
-	Identity         standard.Identifier  `json:"identity"`
-	Discovery        standard.Identifier  `json:"discovery"`
-	RequestedKinds   []standard.ProbeKind `json:"requested_kinds"`
+	Identity         runprotocol.Identifier  `json:"identity"`
+	Discovery        runprotocol.Identifier  `json:"discovery"`
+	RequestedKinds   []runprotocol.ProbeKind `json:"requested_kinds"`
 	Children         []CIExpansionChild   `json:"children"`
 	DiscoveryVersion uint32               `json:"discovery_version"`
 	SchemaVersion    uint16               `json:"schema_version"`
@@ -445,7 +445,7 @@ func (p CIExpansionPlan) Validate() error {
 	if p.SchemaVersion != SchemaVersion || p.DiscoveryVersion == 0 || len(p.RequestedKinds) == 0 {
 		return core.ErrPrimitiveContract
 	}
-	if len(p.RequestedKinds) > standard.ProbeKindMaximum || len(p.Children) > ExpansionChildMaximum {
+	if len(p.RequestedKinds) > runprotocol.ProbeKindMaximum || len(p.Children) > ExpansionChildMaximum {
 		return core.ErrPrimitiveContract
 	}
 	if err := errors.Join(p.Identity.Validate(), p.Discovery.Validate()); err != nil {
@@ -457,13 +457,13 @@ func (p CIExpansionPlan) Validate() error {
 	return p.validateChildren()
 }
 
-func validateCIRequestedKinds(kinds []standard.ProbeKind) error {
+func validateCIRequestedKinds(kinds []runprotocol.ProbeKind) error {
 	for index := range kinds {
 		if err := kinds[index].Validate(); err != nil {
 			return err
 		}
 		role, err := kinds[index].Role()
-		if err != nil || role != standard.ProbeRoleExperiment {
+		if err != nil || role != runprotocol.ProbeRoleExperiment {
 			return errors.Join(core.ErrPrimitiveContract, err)
 		}
 		if index > 0 && kinds[index-1] >= kinds[index] {
@@ -497,7 +497,7 @@ func (c ExpansionChild) Validate() error {
 	if err := errors.Join(c.Probe.Validate(), c.BuildContextDigest.Validate(), c.Disposition.Validate()); err != nil {
 		return err
 	}
-	if c.Probe.Role != standard.ProbeRoleExperiment || c.Probe.Parent == nil {
+	if c.Probe.Role != runprotocol.ProbeRoleExperiment || c.Probe.Parent == nil {
 		return core.ErrPrimitiveContract
 	}
 	return c.validateDisposition()
@@ -526,13 +526,13 @@ func (c ExpansionChild) validateDisposition() error {
 }
 
 type ExpansionManifest struct {
-	Discovery        standard.Identifier       `json:"discovery"`
+	Discovery        runprotocol.Identifier       `json:"discovery"`
 	Children         []ExpansionChild          `json:"children"`
 	Members          MemberSet                 `json:"member_set"`
 	Contexts         GoBuildContextSet         `json:"contexts"`
-	RequestedKinds   []standard.ProbeKind      `json:"requested_kinds"`
-	Source           standard.SourceCoordinate `json:"source"`
-	Parent           standard.ProbeIdentity    `json:"parent"`
+	RequestedKinds   []runprotocol.ProbeKind      `json:"requested_kinds"`
+	Source           runprotocol.SourceCoordinate `json:"source"`
+	Parent           runprotocol.ProbeIdentity    `json:"parent"`
 	Fence            SchedulingFence           `json:"fence"`
 	DiscoveryVersion uint32                    `json:"discovery_version"`
 	SchemaVersion    uint16                    `json:"schema_version"`
@@ -540,8 +540,8 @@ type ExpansionManifest struct {
 	Refused          uint16                    `json:"refused"`
 	NotApplicable    uint16                    `json:"not_applicable"`
 	Identity         core.SHA256Digest         `json:"identity"`
-	Request          standard.RequestIdentity  `json:"request_id"`
-	Run              standard.RunID            `json:"run_id"`
+	Request          runprotocol.RequestIdentity  `json:"request_id"`
+	Run              runprotocol.RunID            `json:"run_id"`
 }
 
 func (m ExpansionManifest) Validate() error {
@@ -577,7 +577,7 @@ func (m ExpansionManifest) validateHeader() error {
 	if err := m.validateSelectionParent(); err != nil {
 		return err
 	}
-	if len(m.RequestedKinds) == 0 || len(m.RequestedKinds) > standard.ProbeKindMaximum {
+	if len(m.RequestedKinds) == 0 || len(m.RequestedKinds) > runprotocol.ProbeKindMaximum {
 		return core.ErrPrimitiveContract
 	}
 	return nil
@@ -598,7 +598,7 @@ func (m ExpansionManifest) validateBindings() error {
 }
 
 func (m ExpansionManifest) validateSelectionParent() error {
-	if m.Parent.Role != standard.ProbeRoleSelection || m.Parent.Source != m.Source {
+	if m.Parent.Role != runprotocol.ProbeRoleSelection || m.Parent.Source != m.Source {
 		return core.ErrPrimitiveContract
 	}
 	return nil
@@ -680,31 +680,31 @@ func childMatchesExpansion(child ExpansionChild, m ExpansionManifest) bool {
 	return requestedKindContains(m.RequestedKinds, p.Kind)
 }
 
-func childMatchesExpansionScalars(p standard.ProbeIdentity, m ExpansionManifest) bool {
+func childMatchesExpansionScalars(p runprotocol.ProbeIdentity, m ExpansionManifest) bool {
 	return p.Origin == m.Parent.Origin && p.Subject == m.Parent.Subject && p.Source == m.Source && p.Profile == m.Parent.Profile && p.Environment == m.Parent.Environment && p.Parent.Request == m.Request && p.Parent.Kind == m.Parent.Kind && p.Parent.ExpansionDigest == m.Identity
 }
 
-func childMatchesExpansionTarget(p standard.ProbeIdentity, m ExpansionManifest) bool {
+func childMatchesExpansionTarget(p runprotocol.ProbeIdentity, m ExpansionManifest) bool {
 	left, leftErr := core.MarshalCanonicalJSONDocument(p.Parent.Target)
 	right, rightErr := core.MarshalCanonicalJSONDocument(m.Parent.Target)
 	return leftErr == nil && rightErr == nil && bytes.Equal(left, right)
 }
 
-func requestedKindContains(kinds []standard.ProbeKind, candidate standard.ProbeKind) bool {
+func requestedKindContains(kinds []runprotocol.ProbeKind, candidate runprotocol.ProbeKind) bool {
 	return slices.Contains(kinds, candidate)
 }
 func (m ExpansionManifest) identityDigest() (core.SHA256Digest, error) {
 	type identityProjection struct {
-		Discovery        standard.Identifier       `json:"discovery"`
+		Discovery        runprotocol.Identifier       `json:"discovery"`
 		Members          MemberSet                 `json:"member_set"`
-		RequestedKinds   []standard.ProbeKind      `json:"requested_kinds"`
+		RequestedKinds   []runprotocol.ProbeKind      `json:"requested_kinds"`
 		Contexts         GoBuildContextSet         `json:"contexts"`
-		Source           standard.SourceCoordinate `json:"source"`
-		Parent           standard.ProbeIdentity    `json:"parent"`
+		Source           runprotocol.SourceCoordinate `json:"source"`
+		Parent           runprotocol.ProbeIdentity    `json:"parent"`
 		Fence            SchedulingFence           `json:"fence"`
 		DiscoveryVersion uint32                    `json:"discovery_version"`
-		Request          standard.RequestIdentity  `json:"request_id"`
-		Run              standard.RunID            `json:"run_id"`
+		Request          runprotocol.RequestIdentity  `json:"request_id"`
+		Run              runprotocol.RunID            `json:"run_id"`
 	}
 	parent := m.Parent
 	encoded, err := core.MarshalCanonicalJSONDocument(identityProjection{
@@ -887,11 +887,11 @@ func (r ExpansionRecord) Validate() error {
 }
 
 type ExpansionApproval struct {
-	Refusal        *standard.RefusalReason        `json:"refusal,omitempty"`
+	Refusal        *runprotocol.RefusalReason        `json:"refusal,omitempty"`
 	Experiments    []ExperimentCapabilityDocument `json:"experiment_capabilities"`
 	SchemaVersion  uint16                         `json:"schema_version"`
 	ManifestDigest core.SHA256Digest              `json:"manifest_digest"`
-	Run            standard.RunID                 `json:"run_id"`
+	Run            runprotocol.RunID                 `json:"run_id"`
 	Approved       bool                           `json:"approved"`
 }
 

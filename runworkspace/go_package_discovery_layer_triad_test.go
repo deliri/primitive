@@ -10,7 +10,7 @@ import (
 	"github.com/deliri/primitive/v2026/filestore"
 	primitiveid "github.com/deliri/primitive/v2026/id"
 	"github.com/deliri/primitive/v2026/runnercontrol"
-	"github.com/deliri/primitive/v2026/standard"
+	"github.com/deliri/primitive/v2026/runprotocol"
 )
 
 func TestGoPackageDiscoveryLayerTriad(t *testing.T) {
@@ -30,12 +30,12 @@ func TestGoPackageDiscoveryLayerTriad(t *testing.T) {
 		if len(got.Declarations) != 2 || got.Declarations[0].File.String() != "subject/alpha_test.go" || got.Declarations[0].Declaration.Symbol.String() != "TestAlpha" || got.Declarations[1].File.String() != "subject/benchmark_test.go" || got.Declarations[1].Declaration.Symbol.String() != "BenchmarkEncode" {
 			t.Fatalf("GoPackageDiscovery declarations = %+v, want TestAlpha then BenchmarkEncode with exact source files", got.Declarations)
 		}
-		file, fileErr := standard.ParseSourcePath("subject/alpha_test.go")
+		file, fileErr := runprotocol.ParseSourcePath("subject/alpha_test.go")
 		fileRequest := GoFileDiscoveryRequest{
 			Source: request.Source,
-			Target: standard.GoFileTarget{
+			Target: runprotocol.GoFileTarget{
 				Module: request.Target.Module, Package: request.Target.Package, File: file,
-				ChildKinds: append([]standard.ProbeKind(nil), request.Target.ChildKinds...),
+				ChildKinds: append([]runprotocol.ProbeKind(nil), request.Target.ChildKinds...),
 			},
 			Profile: request.Profile, Contexts: request.Contexts,
 		}
@@ -53,7 +53,7 @@ func TestGoPackageDiscoveryLayerTriad(t *testing.T) {
 		writePackageSource(t, manager, request.Source, "broken_test.go", "package subject\nfunc TestBroken(")
 
 		got, gotErr := manager.DiscoverGoPackage(t.Context(), request)
-		if !errors.Is(gotErr, core.ErrPrimitiveContract) || got.Package != (standard.SourcePath{}) || len(got.Declarations) != 0 {
+		if !errors.Is(gotErr, core.ErrPrimitiveContract) || got.Package != (runprotocol.SourcePath{}) || len(got.Declarations) != 0 {
 			t.Fatalf("Manager.DiscoverGoPackage(malformed sibling) = (%+v, %v), want zero and errors.Is(..., %v)", got, gotErr, core.ErrPrimitiveContract)
 		}
 	})
@@ -84,26 +84,26 @@ func packageDiscoveryFixture(t *testing.T) (Manager, GoPackageDiscoveryRequest) 
 	if err := filestore.EnsureDirectory(t.Context(), filestore.DirectoryRequest{Location: filestore.Location{Root: manager.root, Path: packageRoot}, Mode: fs.FileMode(0o700)}); err != nil {
 		t.Fatalf("filestore.EnsureDirectory(package checkout) setup error = %v, want nil", err)
 	}
-	repository, repositoryErr := standard.NewRepositoryIdentity("github.com/example/project")
+	repository, repositoryErr := runprotocol.NewRepositoryIdentity("github.com/example/project")
 	commit, commitErr := core.ParseBuildCommit("0123456789abcdef0123456789abcdef01234567")
-	module, moduleErr := standard.NewIdentifier("project")
-	packagePath, packageErr := standard.ParseSourcePath("subject")
-	profileName, profileNameErr := standard.NewIdentifier("focused")
-	profile, profileErr := standard.NewProfileIdentity(profileName, 1)
+	module, moduleErr := runprotocol.NewIdentifier("project")
+	packagePath, packageErr := runprotocol.ParseSourcePath("subject")
+	profileName, profileNameErr := runprotocol.NewIdentifier("focused")
+	profile, profileErr := runprotocol.NewProfileIdentity(profileName, 1)
 	context := goBuildContextFixture(t)
 	contextDigest, contextErr := context.Digest()
 	if err := errors.Join(repositoryErr, commitErr, moduleErr, packageErr, profileNameErr, profileErr, contextErr); err != nil {
 		t.Fatalf("Go package discovery contract setup error = %v, want nil", err)
 	}
-	target := standard.GoPackageTarget{Module: module, Package: packagePath, ChildKinds: []standard.ProbeKind{standard.ProbeKindGoTest, standard.ProbeKindGoBenchmark}}
+	target := runprotocol.GoPackageTarget{Module: module, Package: packagePath, ChildKinds: []runprotocol.ProbeKind{runprotocol.ProbeKindGoTest, runprotocol.ProbeKindGoBenchmark}}
 	benchmarkContext := context
 	benchmarkDigest, benchmarkErr := benchmarkContext.Digest()
 	contexts := runnercontrol.GoBuildContextSet{Entries: []runnercontrol.GoBuildContextEntry{
-		{Kind: standard.ProbeKindGoBenchmark, Profile: profile, Context: benchmarkContext, Digest: benchmarkDigest},
-		{Kind: standard.ProbeKindGoTest, Profile: profile, Context: context, Digest: contextDigest},
+		{Kind: runprotocol.ProbeKindGoBenchmark, Profile: profile, Context: benchmarkContext, Digest: benchmarkDigest},
+		{Kind: runprotocol.ProbeKindGoTest, Profile: profile, Context: context, Digest: contextDigest},
 	}}
 	request := GoPackageDiscoveryRequest{
-		Source: VerifiedSource{Coordinate: standard.SourceCoordinate{Repository: repository, Commit: commit, Tree: core.SHA256Of([]byte("package-tree"))}, Checkout: checkout, Files: 1, Directories: 1},
+		Source: VerifiedSource{Coordinate: runprotocol.SourceCoordinate{Repository: repository, Commit: commit, Tree: core.SHA256Of([]byte("package-tree"))}, Checkout: checkout, Files: 1, Directories: 1},
 		Target: target, Profile: profile, Contexts: contexts,
 	}
 	if err := errors.Join(benchmarkErr, request.Validate()); err != nil {

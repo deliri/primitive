@@ -2,7 +2,6 @@ package capabilities
 
 import (
 	"errors"
-	"strings"
 	"testing"
 
 	"github.com/deliri/primitive/v2026/core"
@@ -43,52 +42,6 @@ func TestClosedEnumDomainsRejectEveryUnknownAndFutureValue(t *testing.T) {
 		if !wantScopeValid && scope.String() != core.UnknownEnumDiagnostic {
 			t.Errorf("Scope(%d).String() = %q, want %q", raw, scope.String(), core.UnknownEnumDiagnostic)
 		}
-	}
-}
-
-func TestPurposeBoundariesAreExactAndBounded(t *testing.T) {
-	t.Parallel()
-
-	tests := []struct {
-		name    string
-		value   string
-		wantErr bool
-	}{
-		{name: "empty purpose is rejected", wantErr: true},
-		{name: "one byte purpose is admitted", value: "x"},
-		{name: "exact maximum purpose is admitted", value: strings.Repeat("x", purposeMaximumBytes)},
-		{
-			name:    "one byte above maximum purpose is rejected",
-			value:   strings.Repeat("x", purposeMaximumBytes+1),
-			wantErr: true,
-		},
-	}
-	for _, testCase := range tests {
-		t.Run(testCase.name, func(t *testing.T) {
-			t.Parallel()
-
-			got, gotErr := newPurpose(testCase.value)
-			if testCase.wantErr {
-				if !errors.Is(gotErr, core.ErrCapabilitiesContract) || got != (Purpose{}) {
-					t.Fatalf(
-						"newPurpose(%d bytes) = (%d bytes, %v), want empty and errors.Is(..., %v)",
-						len(testCase.value),
-						len(got.String()),
-						gotErr,
-						core.ErrCapabilitiesContract,
-					)
-				}
-				return
-			}
-			if gotErr != nil || got.String() != testCase.value {
-				t.Fatalf(
-					"newPurpose(%d bytes) = (%d bytes, %v), want identical value and nil",
-					len(testCase.value),
-					len(got.String()),
-					gotErr,
-				)
-			}
-		})
 	}
 }
 
@@ -429,13 +382,13 @@ func TestMatchValidationRejectsContradictoryResolutionEvidence(t *testing.T) {
 			wantErr: core.ErrCapabilityUnavailable,
 		},
 		{
-			name: "purpose drift invalidates an otherwise matching capability",
+			name: "compiler role drift invalidates an otherwise matching capability",
 			match: Match{
 				Requirement: filesystem.Requirement,
 				Capability: Capability{
 					Package: core.PackageFilestore,
 					Kind:    core.PackageKindProduction,
-					Purpose: Purpose{value: "invented second description"},
+					Role:    core.PackageRoleValueContract,
 				},
 			},
 		},

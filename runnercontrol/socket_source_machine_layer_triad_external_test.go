@@ -12,7 +12,7 @@ import (
 	"github.com/deliri/primitive/v2026/exchange"
 	"github.com/deliri/primitive/v2026/objectstore"
 	"github.com/deliri/primitive/v2026/runnercontrol"
-	"github.com/deliri/primitive/v2026/standard"
+	"github.com/deliri/primitive/v2026/runprotocol"
 	"github.com/deliri/primitive/v2026/temporal"
 )
 
@@ -220,47 +220,47 @@ func sourceProjectionTargetFixture(t testing.TB, projection runnercontrol.Source
 func machineObservationSubmissionFixture(t testing.TB) runnercontrol.MachineObservationSubmission {
 	t.Helper()
 	uuid := completionUUIDFixture(t)
-	machineID, machineErr := standard.NewMachineID(uuid)
-	observationID, observationErr := standard.NewMachineObservationID(uuid)
-	generationID, generationErr := standard.NewMachineGenerationID(uuid)
+	machineID, machineErr := runprotocol.NewMachineID(uuid)
+	observationID, observationErr := runprotocol.NewMachineObservationID(uuid)
+	generationID, generationErr := runprotocol.NewMachineGenerationID(uuid)
 	digest := core.NewSHA256Digest([core.SHA256DigestBytes]byte{1})
-	configuration := standard.MachineConfiguration{
-		Identity: standard.MachineIdentity{
+	configuration := runprotocol.MachineConfiguration{
+		Identity: runprotocol.MachineIdentity{
 			ID: machineID, Provider: core.Offering{Token: "fixture-provider"}, Project: machineIdentifierFixture(t, "project"),
 			Instance: machineIdentifierFixture(t, "machine"), Zone: machineIdentifierFixture(t, "zone"), MachineType: machineIdentifierFixture(t, "class"),
 		},
-		Compute: standard.MachineCompute{
+		Compute: runprotocol.MachineCompute{
 			CPUPlatform: mustProfileName(t, "cpu"), Processor: mustProfileName(t, "processor"), Architecture: mustProfileName(t, "amd64"), Virtualization: mustProfileName(t, "virtual"),
 			VCPU: 2, Sockets: 1, CoresPerSocket: 1, ThreadsPerCore: 2, NUMANodes: 1,
 			MemoryConfiguredBytes: mustProfileByteCount(t, 1024), MemoryGuestBytes: mustProfileByteCount(t, 1024),
 		},
-		System: standard.MachineSystem{
+		System: runprotocol.MachineSystem{
 			OperatingSystem: mustProfileName(t, "linux"), OperatingSystemVersion: mustProfileName(t, "1"),
 			OperatingSystemImage: mustProfileName(t, "image"), Kernel: mustProfileName(t, "kernel"),
 		},
-		Storage: standard.MachineStorage{
+		Storage: runprotocol.MachineStorage{
 			BootDiskType: mustProfileName(t, "disk"), Interface: mustProfileName(t, "interface"), Filesystem: mustProfileName(t, "filesystem"),
 			PhysicalBlockBytes: mustProfileByteCount(t, 4096), CapacityBytes: mustProfileByteCount(t, 4096),
 			BaselineIOPS: 1, BaselineReadBytes: 1, InstanceCeilingIOPS: 1, InstanceCeilingReadBytes: 1,
 			SwapBytes: mustCompletionByteLength(t, 0),
 		},
-		Network: standard.MachineNetwork{
+		Network: runprotocol.MachineNetwork{
 			Interface: mustProfileName(t, "network"), NetworkTier: mustProfileName(t, "tier"), Addressing: mustProfileName(t, "addressing"), VPC: machineIdentifierFixture(t, "vpc"),
 			MTU: 1500, ReceiveQueues: 1, TransmitQueues: 1, EgressFloorBits: 1, EgressCeilingBits: 1,
 		},
-		Lifecycle:  standard.MachineLifecycleSecurity{ProvisioningModel: standard.MachineProvisioningStandard, HostMaintenance: standard.MachineMaintenanceMigrate},
-		Toolchains: []standard.MachineToolchain{{Tool: standard.MachineToolchainGo, Version: mustProfileName(t, "go1.27"), Platform: mustProfileName(t, "linux/amd64"), InstallMode: standard.MachineInstallModeInstalled, ExecutableSHA256: digest}},
+		Lifecycle:  runprotocol.MachineLifecycleSecurity{ProvisioningModel: runprotocol.MachineProvisioningStandard, HostMaintenance: runprotocol.MachineMaintenanceMigrate},
+		Toolchains: []runprotocol.MachineToolchain{{Tool: runprotocol.MachineToolchainGo, Version: mustProfileName(t, "go1.27"), Platform: mustProfileName(t, "linux/amd64"), InstallMode: runprotocol.MachineInstallModeInstalled, ExecutableSHA256: digest}},
 	}
 	fingerprint, fingerprintErr := configuration.Fingerprint()
-	observation := standard.MachineObservation{
-		SchemaVersion: standard.MachineProbeSchemaVersion, ID: observationID, GenerationID: generationID,
-		ObservedAt: temporal.InstantFromNanoseconds(10), Collector: standard.EvidenceAuthority{Offering: core.Offering{Token: "runner"}},
+	observation := runprotocol.MachineObservation{
+		SchemaVersion: runprotocol.MachineProbeSchemaVersion, ID: observationID, GenerationID: generationID,
+		ObservedAt: temporal.InstantFromNanoseconds(10), Collector: runprotocol.EvidenceAuthority{Offering: core.Offering{Token: "runner"}},
 		Configuration: configuration, Fingerprint: fingerprint,
-		Runtime: standard.MachineRuntime{
+		Runtime: runprotocol.MachineRuntime{
 			BootID: machineIdentifierFixture(t, "boot"), Address: mustProfileName(t, "127.0.0.1"), Uptime: mustProfileDuration(t, 1),
 			MemoryAvailableBytes: mustCompletionByteLength(t, 512), DiskAvailableBytes: mustCompletionByteLength(t, 2048),
 		},
-		Execution: standard.MachineProbeExecution{
+		Execution: runprotocol.MachineProbeExecution{
 			Bash: mustProfileAbsolutePath(t, "/bin/sh"), Script: mustProfileAbsolutePath(t, "/runner/probe.sh"),
 			ScriptBytes: mustCompletionByteLength(t, 1), OutputLimit: mustProfileByteCount(t, 1024), CPUTime: mustProfileDuration(t, 1),
 			StdoutBytes: mustCompletionByteLength(t, 1), StderrBytes: mustCompletionByteLength(t, 0),
@@ -275,11 +275,11 @@ func machineObservationSubmissionFixture(t testing.TB) runnercontrol.MachineObse
 	return submission
 }
 
-func machineIdentifierFixture(t testing.TB, value string) standard.Identifier {
+func machineIdentifierFixture(t testing.TB, value string) runprotocol.Identifier {
 	t.Helper()
-	identifier, err := standard.NewIdentifier(value)
+	identifier, err := runprotocol.NewIdentifier(value)
 	if err != nil {
-		t.Fatalf("standard.NewIdentifier(%q) error = %v, want nil", value, err)
+		t.Fatalf("runprotocol.NewIdentifier(%q) error = %v, want nil", value, err)
 	}
 	return identifier
 }

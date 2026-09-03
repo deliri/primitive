@@ -9,7 +9,7 @@ import (
 
 	"github.com/deliri/primitive/v2026/attest"
 	"github.com/deliri/primitive/v2026/core"
-	"github.com/deliri/primitive/v2026/standard"
+	"github.com/deliri/primitive/v2026/runprotocol"
 	"github.com/deliri/primitive/v2026/temporal"
 )
 
@@ -78,7 +78,7 @@ func (d *SourceSigningDomain) UnmarshalJSON(data []byte) error {
 }
 
 type SourceArchiveManifest struct {
-	Repository       standard.RepositoryIdentity `json:"repository"`
+	Repository       runprotocol.RepositoryIdentity `json:"repository"`
 	IssuedAt         temporal.Instant            `json:"issued_at"`
 	ExpiresAt        temporal.Instant            `json:"expires_at"`
 	ArchiveBytes     core.ByteLength             `json:"archive_bytes"`

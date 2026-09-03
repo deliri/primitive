@@ -201,7 +201,7 @@ func NewUploadCapabilityProjection(
 // uploadCapabilityWire is the private exact wire temporary shared by the
 // nominal issuer projection and receiver. Every required member is a pointer
 // so receiver-side absence is refused explicitly rather than arriving as a
-// zero value that a later check would have to guess standard. Headers is optional
+// zero value that a later check would have to guess runprotocol. Headers is optional
 // on receipt; the issuer emits the canonical empty array.
 type uploadCapabilityWire struct {
 	Provider  *string                      `json:"provider"`

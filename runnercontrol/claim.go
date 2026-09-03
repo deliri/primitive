@@ -7,7 +7,7 @@ import (
 
 	"github.com/deliri/primitive/v2026/core"
 	"github.com/deliri/primitive/v2026/exchange"
-	"github.com/deliri/primitive/v2026/standard"
+	"github.com/deliri/primitive/v2026/runprotocol"
 	"github.com/deliri/primitive/v2026/temporal"
 )
 
@@ -71,8 +71,8 @@ func (k *ClaimKind) UnmarshalJSON(data []byte) error {
 
 // MachineFence is the control-owned authority for one observed machine generation.
 type MachineFence struct {
-	Machine    standard.MachineID           `json:"machine_id"`
-	Generation standard.MachineGenerationID `json:"generation_id"`
+	Machine    runprotocol.MachineID           `json:"machine_id"`
+	Generation runprotocol.MachineGenerationID `json:"generation_id"`
 	Epoch      uint64                       `json:"epoch"`
 	ExpiresAt  temporal.Instant             `json:"expires_at"`
 }
@@ -89,9 +89,9 @@ func (f MachineFence) Validate() error {
 
 type ClaimRequest struct {
 	SchemaVersion uint16                        `json:"schema_version"`
-	Machine       standard.MachineID            `json:"machine_id"`
-	Generation    standard.MachineGenerationID  `json:"generation_id"`
-	Observation   standard.MachineObservationID `json:"observation_id"`
+	Machine       runprotocol.MachineID            `json:"machine_id"`
+	Generation    runprotocol.MachineGenerationID  `json:"generation_id"`
+	Observation   runprotocol.MachineObservationID `json:"observation_id"`
 	RequestedAt   temporal.Instant              `json:"requested_at"`
 }
 

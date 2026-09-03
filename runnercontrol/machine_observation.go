@@ -7,7 +7,7 @@ import (
 
 	"github.com/deliri/primitive/v2026/core"
 	"github.com/deliri/primitive/v2026/exchange"
-	"github.com/deliri/primitive/v2026/standard"
+	"github.com/deliri/primitive/v2026/runprotocol"
 )
 
 const (
@@ -18,7 +18,7 @@ const (
 // MachineObservationSubmission binds the Primitive-produced machine sheet to
 // the clean fixed-workspace proof that made this generation eligible to claim.
 type MachineObservationSubmission struct {
-	Observation   standard.MachineObservation `json:"observation"`
+	Observation   runprotocol.MachineObservation `json:"observation"`
 	Clean         CleanMachineState           `json:"clean_machine_state"`
 	SchemaVersion uint16                      `json:"schema_version"`
 }
@@ -39,7 +39,7 @@ func (s MachineObservationSubmission) Validate() error {
 
 type MachineObservationReceipt struct {
 	SchemaVersion uint16                        `json:"schema_version"`
-	ObservationID standard.MachineObservationID `json:"observation_id"`
+	ObservationID runprotocol.MachineObservationID `json:"observation_id"`
 	CleanDigest   core.SHA256Digest             `json:"clean_machine_state_digest"`
 }
 

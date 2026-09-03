@@ -7,7 +7,6 @@ type sealedProjection interface{ capabilitiesSealedProjection() }
 
 func (Capability) capabilitiesProtocolFact()  {}
 func (Identity) capabilitiesProtocolFact()    {}
-func (Purpose) capabilitiesProtocolFact()     {}
 func (Requirement) capabilitiesProtocolFact() {}
 func (Match) capabilitiesSealedProjection()   {}
 func (Catalog) capabilitiesSealedProjection() {}

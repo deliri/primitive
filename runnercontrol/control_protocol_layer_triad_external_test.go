@@ -7,7 +7,7 @@ import (
 
 	"github.com/deliri/primitive/v2026/core"
 	"github.com/deliri/primitive/v2026/runnercontrol"
-	"github.com/deliri/primitive/v2026/standard"
+	"github.com/deliri/primitive/v2026/runprotocol"
 	"github.com/deliri/primitive/v2026/temporal"
 )
 
@@ -32,22 +32,22 @@ func TestAdmissionSchemaLayerTriad(t *testing.T) {
 	t.Run("positive Go file selection retains its exact package file and child policy", func(t *testing.T) {
 		t.Parallel()
 		authenticated, admitted := admissionFixture(t)
-		module, moduleErr := standard.NewIdentifier("blink-kernel")
-		packagePath, packageErr := standard.ParseSourcePath("api")
-		file, fileErr := standard.ParseSourcePath("api/api_test.go")
+		module, moduleErr := runprotocol.NewIdentifier("blink-kernel")
+		packagePath, packageErr := runprotocol.ParseSourcePath("api")
+		file, fileErr := runprotocol.ParseSourcePath("api/api_test.go")
 		if err := errors.Join(moduleErr, packageErr, fileErr); err != nil {
 			t.Fatalf("Go file selection target setup error = %v, want nil", err)
 		}
-		target := standard.ProbeTarget{Kind: standard.ProbeTargetGoFile, GoFile: &standard.GoFileTarget{Module: module, Package: packagePath, File: file, ChildKinds: []standard.ProbeKind{standard.ProbeKindGoTest}}}
+		target := runprotocol.ProbeTarget{Kind: runprotocol.ProbeTargetGoFile, GoFile: &runprotocol.GoFileTarget{Module: module, Package: packagePath, File: file, ChildKinds: []runprotocol.ProbeKind{runprotocol.ProbeKindGoTest}}}
 		authenticated.Requested.Probe.Target = target
-		authenticated.Requested.Probe.Kinds = []standard.ProbeKind{standard.ProbeKindGoTest}
-		probe, probeErr := standard.AdmitRequestedProbe(authenticated.Requested.Probe, admitted.Probe.Environment)
+		authenticated.Requested.Probe.Kinds = []runprotocol.ProbeKind{runprotocol.ProbeKindGoTest}
+		probe, probeErr := runprotocol.AdmitRequestedProbe(authenticated.Requested.Probe, admitted.Probe.Environment)
 		admitted.Requested = authenticated.Requested.Probe
 		admitted.Probe = probe
 		if err := errors.Join(probeErr, authenticated.Validate(), admitted.Validate()); err != nil {
 			t.Fatalf("AdmittedRun.Validate(Go file selection) error = %v, want nil", err)
 		}
-		if admitted.Probe.Kind != standard.ProbeKindGoFileSelection || admitted.Probe.Target.GoFile == nil || admitted.Probe.Target.GoFile.File != file {
+		if admitted.Probe.Kind != runprotocol.ProbeKindGoFileSelection || admitted.Probe.Target.GoFile == nil || admitted.Probe.Target.GoFile.File != file {
 			t.Fatalf("admitted Go file selection = kind %v/target %+v, want go-file-selection and %v", admitted.Probe.Kind, admitted.Probe.Target.GoFile, file)
 		}
 	})
@@ -55,7 +55,7 @@ func TestAdmissionSchemaLayerTriad(t *testing.T) {
 	t.Run("negative authenticated origin cannot claim another origin request", func(t *testing.T) {
 		t.Parallel()
 		authenticated, _ := admissionFixture(t)
-		foreign := standard.OriginIdentity{Offering: core.Offering{Token: "forge"}}
+		foreign := runprotocol.OriginIdentity{Offering: core.Offering{Token: "forge"}}
 		authenticated.Peer.Origin = &foreign
 		gotErr := authenticated.Validate()
 		if !errors.Is(gotErr, core.ErrPrimitiveContract) {
@@ -66,8 +66,8 @@ func TestAdmissionSchemaLayerTriad(t *testing.T) {
 	t.Run("negative request identity cannot detach from its caller nonce and origin", func(t *testing.T) {
 		t.Parallel()
 		authenticated, _ := admissionFixture(t)
-		foreignOrigin := standard.OriginIdentity{Offering: core.Offering{Token: "foreign-origin"}}
-		foreignRequest, foreignErr := standard.DeriveRequestIdentity(foreignOrigin, authenticated.Requested.Nonce)
+		foreignOrigin := runprotocol.OriginIdentity{Offering: core.Offering{Token: "foreign-origin"}}
+		foreignRequest, foreignErr := runprotocol.DeriveRequestIdentity(foreignOrigin, authenticated.Requested.Nonce)
 		if foreignErr != nil || foreignRequest == authenticated.Requested.Request {
 			t.Fatalf("DeriveRequestIdentity(foreign origin) = (%v, %v), want distinct valid identity", foreignRequest, foreignErr)
 		}
@@ -81,7 +81,7 @@ func TestAdmissionSchemaLayerTriad(t *testing.T) {
 	t.Run("neutral typed refusal carries no admitted run", func(t *testing.T) {
 		t.Parallel()
 		authenticated, _ := admissionFixture(t)
-		refusal := standard.RefusalUnauthorized
+		refusal := runprotocol.RefusalUnauthorized
 		response := runnercontrol.AdmissionResponse{SchemaVersion: runnercontrol.SchemaVersion, Request: authenticated.Requested.Request, Refusal: &refusal}
 		if gotErr := response.Validate(); gotErr != nil || response.Admitted != nil {
 			t.Fatalf("AdmissionResponse.Validate(refusal) = (%v, admitted %v), want nil and no admitted run", gotErr, response.Admitted)
@@ -171,24 +171,24 @@ func TestCleanupProofLayerTriad(t *testing.T) {
 func admissionFixture(t testing.TB) (runnercontrol.AuthenticatedAdmissionRequest, runnercontrol.AdmittedRun) {
 	t.Helper()
 	completion := experimentCompletionPayloadFixture(t, true)
-	nonce, nonceErr := standard.NewRequestNonce(completionUUIDFixture(t))
-	request, requestErr := standard.DeriveRequestIdentity(completion.Probe.Origin, nonce)
+	nonce, nonceErr := runprotocol.NewRequestNonce(completionUUIDFixture(t))
+	request, requestErr := runprotocol.DeriveRequestIdentity(completion.Probe.Origin, nonce)
 	output, outputErr := core.NewByteCount(1 << 20)
 	artifact, artifactErr := core.NewByteCount(4 << 20)
 	duration, durationErr := temporal.DurationFromSeconds(300)
 	sourceAuthority, sourceErr := core.ParseHTTPEndpoint("https://source.example.invalid/archive")
 	credentialIssuer, credentialErr := core.ParseHTTPEndpoint("https://source.example.invalid/credentials")
 	deliveryEndpoint, deliveryErr := core.ParseHTTPEndpoint("https://origin.example.invalid/v1/runner/observations")
-	audience, audienceErr := standard.NewIdentifier("origin-runner")
-	application, applicationErr := standard.NewIdentifier("runner")
-	credential, custodyErr := standard.NewIdentifier("source-read-once")
+	audience, audienceErr := runprotocol.NewIdentifier("origin-runner")
+	application, applicationErr := runprotocol.NewIdentifier("runner")
+	credential, custodyErr := runprotocol.NewIdentifier("source-read-once")
 	if err := errors.Join(nonceErr, requestErr, outputErr, artifactErr, durationErr, sourceErr, credentialErr, deliveryErr, audienceErr, applicationErr, custodyErr); err != nil {
 		t.Fatalf("admission fixture construction error = %v, want nil", err)
 	}
-	requestedProbe := standard.RequestedProbe{
+	requestedProbe := runprotocol.RequestedProbe{
 		Origin: completion.Probe.Origin, Subject: completion.Probe.Subject, Source: completion.Probe.Source,
-		Target: completion.Probe.Target, Kinds: []standard.ProbeKind{completion.Probe.Kind}, Profile: completion.Probe.Profile,
-		Constraints: standard.EnvironmentRequirement{MachineClass: completion.Probe.Environment.MachineClass, Fingerprint: completion.Probe.Environment.RequirementFingerprint},
+		Target: completion.Probe.Target, Kinds: []runprotocol.ProbeKind{completion.Probe.Kind}, Profile: completion.Probe.Profile,
+		Constraints: runprotocol.EnvironmentRequirement{MachineClass: completion.Probe.Environment.MachineClass, Fingerprint: completion.Probe.Environment.RequirementFingerprint},
 	}
 	limits := runnercontrol.RunLimits{Duration: duration, OutputBytes: output, ArtifactBytes: artifact, ArtifactCount: 8, WorkerMaximum: 4, ProcessMaximum: 64, FileMaximum: 4096, QueueDepth: 16}
 	requested := runnercontrol.RequestedRun{SchemaVersion: runnercontrol.SchemaVersion, Request: request, Nonce: nonce, Probe: requestedProbe, Limits: limits, EvidencePlan: core.SHA256Of([]byte("evidence-plan")), RequestedAt: temporal.InstantFromNanoseconds(1)}
@@ -214,7 +214,7 @@ func admissionFixture(t testing.TB) (runnercontrol.AuthenticatedAdmissionRequest
 func artifactFixture(t testing.TB, data []byte) (runnercontrol.ArtifactManifest, runnercontrol.ArtifactChunk) {
 	t.Helper()
 	payload := experimentCompletionPayloadFixture(t, true)
-	path, pathErr := standard.ParseSourcePath("experiments/stdout.jsonl")
+	path, pathErr := runprotocol.ParseSourcePath("experiments/stdout.jsonl")
 	mediaType, mediaErr := core.ParseHTTPMediaType("application/jsonl")
 	extent, extentErr := core.NewByteLength(uint64(len(data)))
 	offset, offsetErr := core.NewByteLength(0)

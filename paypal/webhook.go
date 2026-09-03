@@ -3,6 +3,7 @@ package paypal
 import (
 	"bytes"
 	"context"
+	"encoding/base64"
 	jsontext "encoding/json/jsontext"
 	json "encoding/json/v2"
 	"errors"
@@ -538,7 +539,15 @@ func ParsePayPalTransmissionSignature(value string) (PayPalTransmissionSignature
 }
 
 func (v PayPalTransmissionSignature) Validate() error {
-	return validatePayPalTransmissionMember(string(v), core.PayPalTransmissionSignatureMaximumBytes)
+	value := string(v)
+	if len(value) == 0 || len(value) > core.PayPalTransmissionSignatureMaximumBytes {
+		return core.ErrPayPalContract
+	}
+	var decoded [core.PayPalTransmissionSignatureMaximumBytes]byte
+	if _, err := base64.StdEncoding.Decode(decoded[:], []byte(value)); err != nil {
+		return errors.Join(core.ErrPayPalContract, err)
+	}
+	return nil
 }
 
 func (v PayPalTransmissionSignature) String() string {

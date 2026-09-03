@@ -7,7 +7,7 @@ import (
 
 	"github.com/deliri/primitive/v2026/core"
 	"github.com/deliri/primitive/v2026/exchange"
-	"github.com/deliri/primitive/v2026/standard"
+	"github.com/deliri/primitive/v2026/runprotocol"
 )
 
 type PeerCredentialKind uint8
@@ -152,9 +152,9 @@ func (r *PeerRole) UnmarshalJSON(data []byte) error {
 }
 
 type AuthenticatedPeer struct {
-	Origin     *standard.OriginIdentity      `json:"origin,omitempty"`
-	Machine    *standard.MachineID           `json:"machine_id,omitempty"`
-	Generation *standard.MachineGenerationID `json:"machine_generation_id,omitempty"`
+	Origin     *runprotocol.OriginIdentity      `json:"origin,omitempty"`
+	Machine    *runprotocol.MachineID           `json:"machine_id,omitempty"`
+	Generation *runprotocol.MachineGenerationID `json:"machine_generation_id,omitempty"`
 	Credential PeerCredential                `json:"credential"`
 	Role       PeerRole                      `json:"role"`
 }
@@ -234,7 +234,7 @@ func AuthenticatedPeerFromContext(ctx context.Context) (AuthenticatedPeer, error
 	return peer, peer.Validate()
 }
 
-func RequireRunnerPeer(ctx context.Context, machine standard.MachineID, generation standard.MachineGenerationID) error {
+func RequireRunnerPeer(ctx context.Context, machine runprotocol.MachineID, generation runprotocol.MachineGenerationID) error {
 	peer, err := AuthenticatedPeerFromContext(ctx)
 	if err != nil {
 		return err

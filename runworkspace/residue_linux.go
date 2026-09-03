@@ -101,11 +101,16 @@ func (s LinuxResidueSource) ObserveResidue(ctx context.Context) (Residue, error)
 }
 
 func (s LinuxResidueSource) observeSubjectProcesses(ctx context.Context) (counts residueCounts, resultErr error) {
-	location, err := filestore.OpenParent(ctx, s.configuration.ProcRoot)
+	rootPath, err := core.ParseRelativePath(".")
 	if err != nil {
 		return residueCounts{}, fmt.Errorf("open Linux process table: %w", err)
 	}
-	defer func() { resultErr = errors.Join(resultErr, location.Root.Close()) }()
+	root, err := filestore.OpenRoot(ctx, s.configuration.ProcRoot)
+	if err != nil {
+		return residueCounts{}, fmt.Errorf("open Linux process table: %w", err)
+	}
+	defer func() { resultErr = errors.Join(resultErr, root.Close()) }()
+	location := filestore.Location{Root: root, Path: rootPath}
 	walkErr := filestore.Walk(ctx, filestore.WalkRequest{
 		Location: location,
 		Order:    filestore.WalkOrderNative,

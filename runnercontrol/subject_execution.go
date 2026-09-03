@@ -8,7 +8,7 @@ import (
 
 	"github.com/deliri/primitive/v2026/core"
 	"github.com/deliri/primitive/v2026/process"
-	"github.com/deliri/primitive/v2026/standard"
+	"github.com/deliri/primitive/v2026/runprotocol"
 )
 
 // SubjectIsolationEngine is the closed host boundary Primitive may compile.
@@ -69,7 +69,7 @@ type SubjectExecution struct {
 	Supervisor           core.AbsolutePath      `json:"supervisor"`
 	Controller           core.AbsolutePath      `json:"controller"`
 	ExecutableState      core.AbsolutePath      `json:"executable_state"`
-	ProcessUser          standard.Identifier    `json:"process_user"`
+	ProcessUser          runprotocol.Identifier    `json:"process_user"`
 	SourceRoot           core.AbsolutePath      `json:"source_root"`
 	SigningState         core.AbsolutePath      `json:"signing_state"`
 	ControlSocket        core.AbsolutePath      `json:"control_socket"`

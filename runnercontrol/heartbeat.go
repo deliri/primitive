@@ -7,7 +7,7 @@ import (
 
 	"github.com/deliri/primitive/v2026/core"
 	"github.com/deliri/primitive/v2026/exchange"
-	"github.com/deliri/primitive/v2026/standard"
+	"github.com/deliri/primitive/v2026/runprotocol"
 	"github.com/deliri/primitive/v2026/temporal"
 )
 
@@ -131,7 +131,7 @@ func (k *DirectiveKind) UnmarshalJSON(data []byte) error {
 }
 
 type Directive struct {
-	Run  *standard.RunID `json:"run_id,omitempty"`
+	Run  *runprotocol.RunID `json:"run_id,omitempty"`
 	Kind DirectiveKind   `json:"kind"`
 }
 
@@ -154,11 +154,11 @@ func (d Directive) Validate() error {
 type HeartbeatRequest struct {
 	Scheduling    *SchedulingFence              `json:"scheduling_fence,omitempty"`
 	Members       *MemberSet                    `json:"member_set,omitempty"`
-	ActiveRuns    []standard.RunID              `json:"active_run_ids,omitempty"`
+	ActiveRuns    []runprotocol.RunID              `json:"active_run_ids,omitempty"`
 	Fence         MachineFence                  `json:"fence"`
 	ObservedAt    temporal.Instant              `json:"observed_at"`
 	SchemaVersion uint16                        `json:"schema_version"`
-	Observation   standard.MachineObservationID `json:"observation_id"`
+	Observation   runprotocol.MachineObservationID `json:"observation_id"`
 	State         HeartbeatState                `json:"state"`
 }
 
@@ -192,7 +192,7 @@ func (r HeartbeatRequest) validateExecuting() error {
 	return nil
 }
 
-func activeRunsAreCanonicalMembers(active []standard.RunID, members MemberSet) bool {
+func activeRunsAreCanonicalMembers(active []runprotocol.RunID, members MemberSet) bool {
 	memberIndex := 0
 	for index := range active {
 		if active[index].Validate() != nil {

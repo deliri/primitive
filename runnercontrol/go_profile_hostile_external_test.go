@@ -10,7 +10,7 @@ import (
 	"github.com/deliri/primitive/v2026/core"
 	"github.com/deliri/primitive/v2026/process"
 	"github.com/deliri/primitive/v2026/runnercontrol"
-	"github.com/deliri/primitive/v2026/standard"
+	"github.com/deliri/primitive/v2026/runprotocol"
 	"github.com/deliri/primitive/v2026/temporal"
 )
 
@@ -122,9 +122,9 @@ func baseAcceptanceGoPlanRequest(t testing.TB) runnercontrol.GoPlanRequest {
 	t.Helper()
 	zero := mustProfileDuration(t, 0)
 	plan := runnercontrol.GoExperimentPlan{
-		Profile: runnercontrol.GoProfileAcceptance, Kind: standard.ProbeKindGoTest, Package: mustProfileSourcePath(t, "internal/subject"),
+		Profile: runnercontrol.GoProfileAcceptance, Kind: runprotocol.ProbeKindGoTest, Package: mustProfileSourcePath(t, "internal/subject"),
 		Timeout: mustProfileDuration(t, 60_000_000_000), ShuffleSeed: 17, Parallel: 4, PackageParallel: 2, RepeatCount: runnercontrol.ExecutionRepeatCount,
-		CPU: []uint16{1, 2, 4}, Tags: []standard.Identifier{}, BenchmarkDuration: zero, FuzzDuration: zero, FuzzMinimizeDuration: zero,
+		CPU: []uint16{1, 2, 4}, Tags: []runprotocol.Identifier{}, BenchmarkDuration: zero, FuzzDuration: zero, FuzzMinimizeDuration: zero,
 	}
 	return goPlanRequestFixture(t, plan)
 }
@@ -132,7 +132,7 @@ func baseAcceptanceGoPlanRequest(t testing.TB) runnercontrol.GoPlanRequest {
 func goPlanSupplementalCases() []goPlanBoundaryCase {
 	return []goPlanBoundaryCase{
 		{name: "valid anchored selector quotes regular expression metacharacters", class: "valid", mutate: func(r *runnercontrol.GoPlanRequest) {
-			selector, _ := standard.NewName("TestA+B")
+			selector, _ := runprotocol.NewName("TestA+B")
 			r.Experiment.Selector = &selector
 		}, wantFlag: "-run=^TestA\\+B$"},
 		{name: "valid set coverage retains its compiler-owned mode", class: "valid", mutate: addCoverage(runnercontrol.CoverageSet), wantFlag: "-covermode=set"},
@@ -168,22 +168,22 @@ func goPlanSupplementalCases() []goPlanBoundaryCase {
 		{name: "boundary duplicate CPU entry is refused", class: "boundary", mutate: func(r *runnercontrol.GoPlanRequest) { r.Experiment.CPU = []uint16{1, 1} }, wantErr: core.ErrPrimitiveContract},
 		{name: "boundary descending CPU entries are refused", class: "boundary", mutate: func(r *runnercontrol.GoPlanRequest) { r.Experiment.CPU = []uint16{2, 1} }, wantErr: core.ErrPrimitiveContract},
 		{name: "boundary one canonical build tag is emitted exactly", class: "boundary", mutate: func(r *runnercontrol.GoPlanRequest) {
-			tag, _ := standard.NewIdentifier("integration")
-			r.Experiment.Tags = []standard.Identifier{tag}
+			tag, _ := runprotocol.NewIdentifier("integration")
+			r.Experiment.Tags = []runprotocol.Identifier{tag}
 		}, wantFlag: "-tags=integration"},
 		{name: "boundary two canonical build tags preserve declared order", class: "boundary", mutate: func(r *runnercontrol.GoPlanRequest) {
-			first, _ := standard.NewIdentifier("alpha")
-			second, _ := standard.NewIdentifier("omega")
-			r.Experiment.Tags = []standard.Identifier{first, second}
+			first, _ := runprotocol.NewIdentifier("alpha")
+			second, _ := runprotocol.NewIdentifier("omega")
+			r.Experiment.Tags = []runprotocol.Identifier{first, second}
 		}, wantFlag: "-tags=alpha,omega"},
 		{name: "boundary duplicate build tags are refused", class: "boundary", mutate: func(r *runnercontrol.GoPlanRequest) {
-			tag, _ := standard.NewIdentifier("same")
-			r.Experiment.Tags = []standard.Identifier{tag, tag}
+			tag, _ := runprotocol.NewIdentifier("same")
+			r.Experiment.Tags = []runprotocol.Identifier{tag, tag}
 		}, wantErr: core.ErrPrimitiveContract},
 		{name: "boundary descending build tags are refused", class: "boundary", mutate: func(r *runnercontrol.GoPlanRequest) {
-			first, _ := standard.NewIdentifier("zeta")
-			second, _ := standard.NewIdentifier("alpha")
-			r.Experiment.Tags = []standard.Identifier{first, second}
+			first, _ := runprotocol.NewIdentifier("zeta")
+			second, _ := runprotocol.NewIdentifier("alpha")
+			r.Experiment.Tags = []runprotocol.Identifier{first, second}
 		}, wantErr: core.ErrPrimitiveContract},
 		{name: "boundary one hundred one effective waves are refused", class: "boundary", mutate: func(r *runnercontrol.GoPlanRequest) { r.ExpectedUnits = 202; r.Experiment.PackageParallel = 2 }, wantErr: core.ErrPrimitiveContract},
 	}
@@ -199,7 +199,7 @@ func addCoverage(mode runnercontrol.CoverageMode) func(*runnercontrol.GoPlanRequ
 
 func configureAllDiagnostics(request *runnercontrol.GoPlanRequest) {
 	request.Experiment.Profile = runnercontrol.GoProfileDiagnostic
-	request.Experiment.Kind = standard.ProbeKindGoDiagnosticProfile
+	request.Experiment.Kind = runprotocol.ProbeKindGoDiagnosticProfile
 	paths := make([]core.RelativePath, 5)
 	for index, value := range []string{"cpu.pprof", "memory.pprof", "block.pprof", "mutex.pprof", "trace.out"} {
 		paths[index], _ = core.ParseRelativePath(value)
@@ -226,7 +226,7 @@ func TestCompileGoPlanExhaustsProfileVariantsAndRefusalEdges(t *testing.T) {
 		wantErr         error
 		coverage        *runnercontrol.CoverageMode
 		coveragePath    *core.RelativePath
-		selector        *standard.Name
+		selector        *runprotocol.Name
 		diagnostics     *runnercontrol.DiagnosticArtifacts
 		name            string
 		wantFlags       []string
@@ -235,28 +235,28 @@ func TestCompileGoPlanExhaustsProfileVariantsAndRefusalEdges(t *testing.T) {
 		minimize        temporal.Duration
 		packageParallel uint16
 		parallel        uint16
-		kind            standard.ProbeKind
+		kind            runprotocol.ProbeKind
 		disableCGO      bool
 		profile         runnercontrol.GoProfileKind
 	}{
-		{name: "focused profile pins one exact test selector", profile: runnercontrol.GoProfileFocused, kind: standard.ProbeKindGoTest, selector: &selector, parallel: 4, benchmark: zeroDuration, fuzz: zeroDuration, minimize: zeroDuration, wantFlags: []string{"-run=^TestBoundary$"}},
-		{name: "acceptance profile runs one uncached package sweep", profile: runnercontrol.GoProfileAcceptance, kind: standard.ProbeKindGoTest, parallel: 4, benchmark: zeroDuration, fuzz: zeroDuration, minimize: zeroDuration},
-		{name: "race profile preserves atomic coverage and race instrumentation", profile: runnercontrol.GoProfileRace, kind: standard.ProbeKindGoRace, parallel: 2, coverage: &coverage, coveragePath: &coveragePath, benchmark: zeroDuration, fuzz: zeroDuration, minimize: zeroDuration, wantFlags: []string{"-race", "-covermode=atomic", "-coverprofile=/workspace/artifacts/coverage.out"}},
-		{name: "benchmark profile is serial for thirty seconds with CPU and memory proof", profile: runnercontrol.GoProfileBenchmark, kind: standard.ProbeKindGoBenchmark, selector: &selector, parallel: 1, packageParallel: 1, benchmark: benchmarkDuration, fuzz: zeroDuration, minimize: zeroDuration, diagnostics: benchmarkDiagnostics, wantFlags: []string{"-run=^$", "-bench=^TestBoundary$", "-benchmem", "-benchtime=30s", "-cpuprofile=/workspace/artifacts/cpu.pprof", "-memprofile=/workspace/artifacts/memory.pprof"}},
-		{name: "diagnostic profile projects the requested CPU evidence path", profile: runnercontrol.GoProfileDiagnostic, kind: standard.ProbeKindGoDiagnosticProfile, parallel: 1, benchmark: zeroDuration, fuzz: zeroDuration, minimize: zeroDuration, diagnostics: &runnercontrol.DiagnosticArtifacts{CPU: &cpuProfile}, wantFlags: []string{"-cpuprofile=/workspace/artifacts/cpu.pprof"}},
-		{name: "fuzz profile is serial for the accepted thirty seconds", profile: runnercontrol.GoProfileFuzz, kind: standard.ProbeKindGoFuzz, selector: &selector, parallel: 1, packageParallel: 1, benchmark: zeroDuration, fuzz: fuzzDuration, minimize: minimizeDuration, wantFlags: []string{"-run=^$", "-fuzz=^TestBoundary$", "-fuzztime=30s", "-fuzzminimizetime=5s"}},
-		{name: "focused profile refuses a missing selector", profile: runnercontrol.GoProfileFocused, kind: standard.ProbeKindGoTest, parallel: 4, benchmark: zeroDuration, fuzz: zeroDuration, minimize: zeroDuration, wantErr: core.ErrPrimitiveContract},
-		{name: "race profile refuses ordinary test kind", profile: runnercontrol.GoProfileRace, kind: standard.ProbeKindGoTest, parallel: 2, benchmark: zeroDuration, fuzz: zeroDuration, minimize: zeroDuration, wantErr: core.ErrPrimitiveContract},
-		{name: "race profile refuses a machine context without CGO", profile: runnercontrol.GoProfileRace, kind: standard.ProbeKindGoRace, parallel: 2, benchmark: zeroDuration, fuzz: zeroDuration, minimize: zeroDuration, disableCGO: true, wantErr: core.ErrPrimitiveContract},
-		{name: "benchmark profile refuses parallel execution", profile: runnercontrol.GoProfileBenchmark, kind: standard.ProbeKindGoBenchmark, selector: &selector, parallel: 2, packageParallel: 1, benchmark: benchmarkDuration, fuzz: zeroDuration, minimize: zeroDuration, diagnostics: benchmarkDiagnostics, wantErr: core.ErrPrimitiveContract},
-		{name: "benchmark profile refuses parallel package execution", profile: runnercontrol.GoProfileBenchmark, kind: standard.ProbeKindGoBenchmark, selector: &selector, parallel: 1, packageParallel: 2, benchmark: benchmarkDuration, fuzz: zeroDuration, minimize: zeroDuration, diagnostics: benchmarkDiagnostics, wantErr: core.ErrPrimitiveContract},
-		{name: "benchmark profile refuses exploratory duration as acceptance evidence", profile: runnercontrol.GoProfileBenchmark, kind: standard.ProbeKindGoBenchmark, selector: &selector, parallel: 1, packageParallel: 1, benchmark: exploratoryDuration, fuzz: zeroDuration, minimize: zeroDuration, diagnostics: benchmarkDiagnostics, wantErr: core.ErrPrimitiveContract},
-		{name: "benchmark profile refuses missing CPU and memory evidence", profile: runnercontrol.GoProfileBenchmark, kind: standard.ProbeKindGoBenchmark, selector: &selector, parallel: 1, packageParallel: 1, benchmark: benchmarkDuration, fuzz: zeroDuration, minimize: zeroDuration, wantErr: core.ErrPrimitiveContract},
-		{name: "benchmark profile refuses CPU-only evidence", profile: runnercontrol.GoProfileBenchmark, kind: standard.ProbeKindGoBenchmark, selector: &selector, parallel: 1, packageParallel: 1, benchmark: benchmarkDuration, fuzz: zeroDuration, minimize: zeroDuration, diagnostics: &runnercontrol.DiagnosticArtifacts{CPU: &cpuProfile}, wantErr: core.ErrPrimitiveContract},
-		{name: "fuzz profile refuses a zero search budget", profile: runnercontrol.GoProfileFuzz, kind: standard.ProbeKindGoFuzz, selector: &selector, parallel: 1, packageParallel: 1, benchmark: zeroDuration, fuzz: zeroDuration, minimize: minimizeDuration, wantErr: core.ErrPrimitiveContract},
-		{name: "fuzz profile refuses an exploratory ten second search budget", profile: runnercontrol.GoProfileFuzz, kind: standard.ProbeKindGoFuzz, selector: &selector, parallel: 1, packageParallel: 1, benchmark: zeroDuration, fuzz: exploratoryDuration, minimize: minimizeDuration, wantErr: core.ErrPrimitiveContract},
-		{name: "fuzz profile refuses parallel package execution", profile: runnercontrol.GoProfileFuzz, kind: standard.ProbeKindGoFuzz, selector: &selector, parallel: 1, packageParallel: 2, benchmark: zeroDuration, fuzz: fuzzDuration, minimize: minimizeDuration, wantErr: core.ErrPrimitiveContract},
-		{name: "diagnostic profile refuses an absent artifact contract", profile: runnercontrol.GoProfileDiagnostic, kind: standard.ProbeKindGoDiagnosticProfile, parallel: 1, benchmark: zeroDuration, fuzz: zeroDuration, minimize: zeroDuration, wantErr: core.ErrPrimitiveContract},
+		{name: "focused profile pins one exact test selector", profile: runnercontrol.GoProfileFocused, kind: runprotocol.ProbeKindGoTest, selector: &selector, parallel: 4, benchmark: zeroDuration, fuzz: zeroDuration, minimize: zeroDuration, wantFlags: []string{"-run=^TestBoundary$"}},
+		{name: "acceptance profile runs one uncached package sweep", profile: runnercontrol.GoProfileAcceptance, kind: runprotocol.ProbeKindGoTest, parallel: 4, benchmark: zeroDuration, fuzz: zeroDuration, minimize: zeroDuration},
+		{name: "race profile preserves atomic coverage and race instrumentation", profile: runnercontrol.GoProfileRace, kind: runprotocol.ProbeKindGoRace, parallel: 2, coverage: &coverage, coveragePath: &coveragePath, benchmark: zeroDuration, fuzz: zeroDuration, minimize: zeroDuration, wantFlags: []string{"-race", "-covermode=atomic", "-coverprofile=/workspace/artifacts/coverage.out"}},
+		{name: "benchmark profile is serial for thirty seconds with CPU and memory proof", profile: runnercontrol.GoProfileBenchmark, kind: runprotocol.ProbeKindGoBenchmark, selector: &selector, parallel: 1, packageParallel: 1, benchmark: benchmarkDuration, fuzz: zeroDuration, minimize: zeroDuration, diagnostics: benchmarkDiagnostics, wantFlags: []string{"-run=^$", "-bench=^TestBoundary$", "-benchmem", "-benchtime=30s", "-cpuprofile=/workspace/artifacts/cpu.pprof", "-memprofile=/workspace/artifacts/memory.pprof"}},
+		{name: "diagnostic profile projects the requested CPU evidence path", profile: runnercontrol.GoProfileDiagnostic, kind: runprotocol.ProbeKindGoDiagnosticProfile, parallel: 1, benchmark: zeroDuration, fuzz: zeroDuration, minimize: zeroDuration, diagnostics: &runnercontrol.DiagnosticArtifacts{CPU: &cpuProfile}, wantFlags: []string{"-cpuprofile=/workspace/artifacts/cpu.pprof"}},
+		{name: "fuzz profile is serial for the accepted thirty seconds", profile: runnercontrol.GoProfileFuzz, kind: runprotocol.ProbeKindGoFuzz, selector: &selector, parallel: 1, packageParallel: 1, benchmark: zeroDuration, fuzz: fuzzDuration, minimize: minimizeDuration, wantFlags: []string{"-run=^$", "-fuzz=^TestBoundary$", "-fuzztime=30s", "-fuzzminimizetime=5s"}},
+		{name: "focused profile refuses a missing selector", profile: runnercontrol.GoProfileFocused, kind: runprotocol.ProbeKindGoTest, parallel: 4, benchmark: zeroDuration, fuzz: zeroDuration, minimize: zeroDuration, wantErr: core.ErrPrimitiveContract},
+		{name: "race profile refuses ordinary test kind", profile: runnercontrol.GoProfileRace, kind: runprotocol.ProbeKindGoTest, parallel: 2, benchmark: zeroDuration, fuzz: zeroDuration, minimize: zeroDuration, wantErr: core.ErrPrimitiveContract},
+		{name: "race profile refuses a machine context without CGO", profile: runnercontrol.GoProfileRace, kind: runprotocol.ProbeKindGoRace, parallel: 2, benchmark: zeroDuration, fuzz: zeroDuration, minimize: zeroDuration, disableCGO: true, wantErr: core.ErrPrimitiveContract},
+		{name: "benchmark profile refuses parallel execution", profile: runnercontrol.GoProfileBenchmark, kind: runprotocol.ProbeKindGoBenchmark, selector: &selector, parallel: 2, packageParallel: 1, benchmark: benchmarkDuration, fuzz: zeroDuration, minimize: zeroDuration, diagnostics: benchmarkDiagnostics, wantErr: core.ErrPrimitiveContract},
+		{name: "benchmark profile refuses parallel package execution", profile: runnercontrol.GoProfileBenchmark, kind: runprotocol.ProbeKindGoBenchmark, selector: &selector, parallel: 1, packageParallel: 2, benchmark: benchmarkDuration, fuzz: zeroDuration, minimize: zeroDuration, diagnostics: benchmarkDiagnostics, wantErr: core.ErrPrimitiveContract},
+		{name: "benchmark profile refuses exploratory duration as acceptance evidence", profile: runnercontrol.GoProfileBenchmark, kind: runprotocol.ProbeKindGoBenchmark, selector: &selector, parallel: 1, packageParallel: 1, benchmark: exploratoryDuration, fuzz: zeroDuration, minimize: zeroDuration, diagnostics: benchmarkDiagnostics, wantErr: core.ErrPrimitiveContract},
+		{name: "benchmark profile refuses missing CPU and memory evidence", profile: runnercontrol.GoProfileBenchmark, kind: runprotocol.ProbeKindGoBenchmark, selector: &selector, parallel: 1, packageParallel: 1, benchmark: benchmarkDuration, fuzz: zeroDuration, minimize: zeroDuration, wantErr: core.ErrPrimitiveContract},
+		{name: "benchmark profile refuses CPU-only evidence", profile: runnercontrol.GoProfileBenchmark, kind: runprotocol.ProbeKindGoBenchmark, selector: &selector, parallel: 1, packageParallel: 1, benchmark: benchmarkDuration, fuzz: zeroDuration, minimize: zeroDuration, diagnostics: &runnercontrol.DiagnosticArtifacts{CPU: &cpuProfile}, wantErr: core.ErrPrimitiveContract},
+		{name: "fuzz profile refuses a zero search budget", profile: runnercontrol.GoProfileFuzz, kind: runprotocol.ProbeKindGoFuzz, selector: &selector, parallel: 1, packageParallel: 1, benchmark: zeroDuration, fuzz: zeroDuration, minimize: minimizeDuration, wantErr: core.ErrPrimitiveContract},
+		{name: "fuzz profile refuses an exploratory ten second search budget", profile: runnercontrol.GoProfileFuzz, kind: runprotocol.ProbeKindGoFuzz, selector: &selector, parallel: 1, packageParallel: 1, benchmark: zeroDuration, fuzz: exploratoryDuration, minimize: minimizeDuration, wantErr: core.ErrPrimitiveContract},
+		{name: "fuzz profile refuses parallel package execution", profile: runnercontrol.GoProfileFuzz, kind: runprotocol.ProbeKindGoFuzz, selector: &selector, parallel: 1, packageParallel: 2, benchmark: zeroDuration, fuzz: fuzzDuration, minimize: minimizeDuration, wantErr: core.ErrPrimitiveContract},
+		{name: "diagnostic profile refuses an absent artifact contract", profile: runnercontrol.GoProfileDiagnostic, kind: runprotocol.ProbeKindGoDiagnosticProfile, parallel: 1, benchmark: zeroDuration, fuzz: zeroDuration, minimize: zeroDuration, wantErr: core.ErrPrimitiveContract},
 	}
 
 	for _, tc := range cases {
@@ -268,7 +268,7 @@ func TestCompileGoPlanExhaustsProfileVariantsAndRefusalEdges(t *testing.T) {
 			}
 			request := goPlanRequestFixture(t, runnercontrol.GoExperimentPlan{
 				Profile: tc.profile, Kind: tc.kind, Package: mustProfileSourcePath(t, "internal/subject"), Selector: tc.selector,
-				Timeout: mustProfileDuration(t, 60_000_000_000), ShuffleSeed: 8675309, Parallel: tc.parallel, PackageParallel: packageParallel, RepeatCount: runnercontrol.ExecutionRepeatCount, CPU: []uint16{1, 2, 4}, Tags: []standard.Identifier{},
+				Timeout: mustProfileDuration(t, 60_000_000_000), ShuffleSeed: 8675309, Parallel: tc.parallel, PackageParallel: packageParallel, RepeatCount: runnercontrol.ExecutionRepeatCount, CPU: []uint16{1, 2, 4}, Tags: []runprotocol.Identifier{},
 				Coverage: tc.coverage, CoveragePath: tc.coveragePath, BenchmarkDuration: tc.benchmark, FuzzDuration: tc.fuzz, FuzzMinimizeDuration: tc.minimize, Diagnostics: tc.diagnostics,
 			})
 			if tc.disableCGO {
@@ -345,7 +345,7 @@ func TestCompileSubjectProcessLayerTriad(t *testing.T) {
 	t.Run("negative pinned egress is refused without a Primitive-prepared network namespace", func(t *testing.T) {
 		t.Parallel()
 		capability := experimentObservationRequestFixture(t).Capability
-		service, serviceErr := standard.NewIdentifier("subject-api")
+		service, serviceErr := runprotocol.NewIdentifier("subject-api")
 		endpoint, endpointErr := core.ParseHTTPEndpoint("https://127.0.0.1:8443")
 		if err := errors.Join(serviceErr, endpointErr); err != nil {
 			t.Fatalf("pinned egress fixture error = %v, want nil", err)
@@ -368,7 +368,7 @@ func TestCompileSubjectProcessLayerTriad(t *testing.T) {
 	t.Run("positive pinned egress enters only the Primitive-prepared namespace bound by policy digest", func(t *testing.T) {
 		t.Parallel()
 		capability := experimentObservationRequestFixture(t).Capability
-		service, serviceErr := standard.NewIdentifier("subject-api")
+		service, serviceErr := runprotocol.NewIdentifier("subject-api")
 		endpoint, endpointErr := core.ParseHTTPEndpoint("https://127.0.0.1:8443")
 		if err := errors.Join(serviceErr, endpointErr); err != nil {
 			t.Fatalf("pinned namespace fixture error = %v, want nil", err)
@@ -413,15 +413,15 @@ func goPlanRequestFixture(t testing.TB, experiment runnercontrol.GoExperimentPla
 	t.Helper()
 	sourceRoot := mustProfileAbsolutePath(t, "/source")
 	uuid := capabilityUUID(t, 41)
-	observation, observationErr := standard.NewMachineObservationID(uuid)
-	generation, generationErr := standard.NewMachineGenerationID(uuid)
+	observation, observationErr := runprotocol.NewMachineObservationID(uuid)
+	generation, generationErr := runprotocol.NewMachineGenerationID(uuid)
 	if err := errors.Join(observationErr, generationErr); err != nil {
 		t.Fatalf("machine execution settings fixture error = %v, want nil", err)
 	}
 	return runnercontrol.GoPlanRequest{
 		Command: mustProfileAbsolutePath(t, "/usr/local/go/bin/go"), WorkingDirectory: sourceRoot, WorkspaceRoot: mustProfileAbsolutePath(t, "/workspace"), ArtifactDirectory: mustProfileRelativePath(t, "artifacts"),
 		Environment: runnercontrol.GoExecutionEnvironment{Home: mustProfileAbsolutePath(t, "/workspace/home"), Cache: mustProfileAbsolutePath(t, "/workspace/cache"), Temporary: mustProfileAbsolutePath(t, "/workspace/tmp"), GOMAXPROCS: 4, CGOEnabled: experiment.Profile == runnercontrol.GoProfileRace},
-		Machine:     standard.MachineExecutionSettings{Observation: observation, Generation: generation, LogicalCPUCount: 4},
+		Machine:     runprotocol.MachineExecutionSettings{Observation: observation, Generation: generation, LogicalCPUCount: 4},
 		Experiment:  experiment, OutputLimit: mustProfileByteCount(t, 8<<20), ArtifactLimit: mustProfileByteCount(t, 64<<20), ExpectedUnits: 1, WaitDelay: mustProfileDuration(t, 5_000_000_000),
 		Subject: subjectExecutionFixture(t, sourceRoot),
 	}
@@ -429,9 +429,9 @@ func goPlanRequestFixture(t testing.TB, experiment runnercontrol.GoExperimentPla
 
 func subjectExecutionFixture(t testing.TB, sourceRoot core.AbsolutePath) runnercontrol.SubjectExecution {
 	t.Helper()
-	user, userErr := standard.NewIdentifier("isolated-subject")
+	user, userErr := runprotocol.NewIdentifier("isolated-subject")
 	if userErr != nil {
-		t.Fatalf("standard.NewIdentifier(subject user) error = %v, want nil", userErr)
+		t.Fatalf("runprotocol.NewIdentifier(subject user) error = %v, want nil", userErr)
 	}
 	egress := runnercontrol.EgressPolicy{Mode: runnercontrol.EgressDenied, DNSPolicy: core.SHA256Of([]byte("deny-all-dns"))}
 	egressIdentity, egressErr := egress.Digest()
@@ -460,20 +460,20 @@ func planArguments(t testing.TB, plan process.Plan) []string {
 	return got
 }
 
-func mustProfileName(t testing.TB, value string) standard.Name {
+func mustProfileName(t testing.TB, value string) runprotocol.Name {
 	t.Helper()
-	got, err := standard.NewName(value)
+	got, err := runprotocol.NewName(value)
 	if err != nil {
-		t.Fatalf("standard.NewName(%q) profile fixture error = %v, want nil", value, err)
+		t.Fatalf("runprotocol.NewName(%q) profile fixture error = %v, want nil", value, err)
 	}
 	return got
 }
 
-func mustProfileSourcePath(t testing.TB, value string) standard.SourcePath {
+func mustProfileSourcePath(t testing.TB, value string) runprotocol.SourcePath {
 	t.Helper()
-	got, err := standard.ParseSourcePath(value)
+	got, err := runprotocol.ParseSourcePath(value)
 	if err != nil {
-		t.Fatalf("standard.ParseSourcePath(%q) profile fixture error = %v, want nil", value, err)
+		t.Fatalf("runprotocol.ParseSourcePath(%q) profile fixture error = %v, want nil", value, err)
 	}
 	return got
 }

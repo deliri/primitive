@@ -10,7 +10,7 @@ import (
 	"github.com/deliri/primitive/v2026/core"
 	"github.com/deliri/primitive/v2026/filestore"
 	"github.com/deliri/primitive/v2026/process"
-	"github.com/deliri/primitive/v2026/standard"
+	"github.com/deliri/primitive/v2026/runprotocol"
 )
 
 type CaptureKind uint8
@@ -66,7 +66,7 @@ type CaptureEvidence struct {
 	Path       core.RelativePath
 	Bytes      core.ByteLength
 	SHA256     core.SHA256Digest
-	Experiment standard.ExperimentID
+	Experiment runprotocol.ExperimentID
 	Kind       CaptureKind
 }
 
@@ -79,7 +79,7 @@ type Capture struct {
 	file       *os.File
 	digest     *core.DigestWriter
 	path       core.RelativePath
-	experiment standard.ExperimentID
+	experiment runprotocol.ExperimentID
 	kind       CaptureKind
 	sealed     bool
 }
@@ -154,7 +154,7 @@ func (m Manager) validateCaptureEvidenceStream(workspace Experiment, evidence Ca
 	return core.NewByteCount(maximum)
 }
 
-func captureName(experiment standard.ExperimentID, kind CaptureKind) (core.PathComponent, error) {
+func captureName(experiment runprotocol.ExperimentID, kind CaptureKind) (core.PathComponent, error) {
 	encoded, err := experiment.MarshalJSON()
 	if err != nil {
 		return core.PathComponent{}, err

@@ -9,7 +9,7 @@ import (
 
 	"github.com/deliri/primitive/v2026/core"
 	"github.com/deliri/primitive/v2026/exchange"
-	"github.com/deliri/primitive/v2026/standard"
+	"github.com/deliri/primitive/v2026/runprotocol"
 	"github.com/deliri/primitive/v2026/temporal"
 )
 
@@ -47,7 +47,7 @@ func (l RunLimits) Validate() error {
 }
 
 func (l RunLimits) validateCounts() error {
-	if l.ArtifactCount == 0 || l.ArtifactCount > standard.ArtifactReferenceMaximum {
+	if l.ArtifactCount == 0 || l.ArtifactCount > runprotocol.ArtifactReferenceMaximum {
 		return core.ErrPrimitiveContract
 	}
 	if l.WorkerMaximum == 0 || l.WorkerMaximum > RunWorkerMaximum {
@@ -60,13 +60,13 @@ func (l RunLimits) validateCounts() error {
 }
 
 type RequestedRun struct {
-	Probe         standard.RequestedProbe  `json:"requested_probe"`
+	Probe         runprotocol.RequestedProbe  `json:"requested_probe"`
 	Limits        RunLimits                `json:"limits"`
 	RequestedAt   temporal.Instant         `json:"requested_at"`
 	SchemaVersion uint16                   `json:"schema_version"`
 	EvidencePlan  core.SHA256Digest        `json:"evidence_plan_digest"`
-	Request       standard.RequestIdentity `json:"request_id"`
-	Nonce         standard.RequestNonce    `json:"request_nonce"`
+	Request       runprotocol.RequestIdentity `json:"request_id"`
+	Nonce         runprotocol.RequestNonce    `json:"request_nonce"`
 }
 
 func (r RequestedRun) Validate() error {
@@ -76,7 +76,7 @@ func (r RequestedRun) Validate() error {
 	if err := errors.Join(r.Request.Validate(), r.Nonce.Validate(), r.Probe.Validate(), r.Limits.Validate(), r.EvidencePlan.Validate(), r.RequestedAt.Validate()); err != nil {
 		return err
 	}
-	identity, err := standard.DeriveRequestIdentity(r.Probe.Origin, r.Nonce)
+	identity, err := runprotocol.DeriveRequestIdentity(r.Probe.Origin, r.Nonce)
 	if err != nil || identity != r.Request {
 		return errors.Join(core.ErrPrimitiveContract, err)
 	}
@@ -122,9 +122,9 @@ func (r RequestedRun) IdempotencyKey() (exchange.IdempotencyKey, error) {
 }
 
 type RepositoryGrant struct {
-	Subject          standard.SubjectIdentity    `json:"subject"`
-	Origin           standard.OriginIdentity     `json:"origin"`
-	Repository       standard.RepositoryIdentity `json:"repository"`
+	Subject          runprotocol.SubjectIdentity    `json:"subject"`
+	Origin           runprotocol.OriginIdentity     `json:"origin"`
+	Repository       runprotocol.RepositoryIdentity `json:"repository"`
 	SourceAuthority  core.HTTPEndpoint           `json:"source_authority"`
 	CredentialIssuer core.HTTPEndpoint           `json:"credential_issuer"`
 	ExpiresAt        temporal.Instant            `json:"expires_at"`
@@ -152,9 +152,9 @@ func NewRepositoryGrant(grant RepositoryGrant) (RepositoryGrant, error) {
 
 func repositoryGrantDigest(g RepositoryGrant) core.SHA256Digest {
 	type projection struct {
-		Origin           standard.OriginIdentity     `json:"origin"`
-		Subject          standard.SubjectIdentity    `json:"subject"`
-		Repository       standard.RepositoryIdentity `json:"repository"`
+		Origin           runprotocol.OriginIdentity     `json:"origin"`
+		Subject          runprotocol.SubjectIdentity    `json:"subject"`
+		Repository       runprotocol.RepositoryIdentity `json:"repository"`
 		SourceAuthority  core.HTTPEndpoint           `json:"source_authority"`
 		CredentialIssuer core.HTTPEndpoint           `json:"credential_issuer"`
 		Enabled          bool                        `json:"enabled"`
@@ -168,9 +168,9 @@ func repositoryGrantDigest(g RepositoryGrant) core.SHA256Digest {
 }
 
 type OriginDeliveryGrant struct {
-	Origin      standard.OriginIdentity `json:"origin"`
-	Audience    standard.Identifier     `json:"audience"`
-	Application standard.Identifier     `json:"application"`
+	Origin      runprotocol.OriginIdentity `json:"origin"`
+	Audience    runprotocol.Identifier     `json:"audience"`
+	Application runprotocol.Identifier     `json:"application"`
 	Endpoint    core.HTTPEndpoint       `json:"endpoint"`
 	ExpiresAt   temporal.Instant        `json:"expires_at"`
 	Credential  PeerCredential          `json:"credential"`
@@ -198,9 +198,9 @@ func NewOriginDeliveryGrant(grant OriginDeliveryGrant) (OriginDeliveryGrant, err
 
 func originDeliveryGrantDigest(g OriginDeliveryGrant) core.SHA256Digest {
 	type projection struct {
-		Origin      standard.OriginIdentity `json:"origin"`
-		Audience    standard.Identifier     `json:"audience"`
-		Application standard.Identifier     `json:"application"`
+		Origin      runprotocol.OriginIdentity `json:"origin"`
+		Audience    runprotocol.Identifier     `json:"audience"`
+		Application runprotocol.Identifier     `json:"application"`
 		Endpoint    core.HTTPEndpoint       `json:"endpoint"`
 		ExpiresAt   temporal.Instant        `json:"expires_at"`
 		Credential  PeerCredential          `json:"credential"`
@@ -222,9 +222,9 @@ func originDeliveryGrantDigest(g OriginDeliveryGrant) core.SHA256Digest {
 }
 
 type SourceGrant struct {
-	Credential      standard.Identifier       `json:"credential_custody"`
+	Credential      runprotocol.Identifier       `json:"credential_custody"`
 	Authority       core.HTTPEndpoint         `json:"authority"`
-	Source          standard.SourceCoordinate `json:"source"`
+	Source          runprotocol.SourceCoordinate `json:"source"`
 	ExpiresAt       temporal.Instant          `json:"expires_at"`
 	Identity        SourceGrantIdentity       `json:"identity"`
 	RepositoryGrant core.SHA256Digest         `json:"repository_grant"`
@@ -247,16 +247,16 @@ func NewSourceGrant(grant SourceGrant) (SourceGrant, error) {
 
 type AdmittedRun struct {
 	Repository    RepositoryGrant          `json:"repository_grant"`
-	Requested     standard.RequestedProbe  `json:"requested_probe"`
+	Requested     runprotocol.RequestedProbe  `json:"requested_probe"`
 	Delivery      OriginDeliveryGrant      `json:"origin_delivery_grant"`
-	Probe         standard.ProbeIdentity   `json:"admitted_probe"`
+	Probe         runprotocol.ProbeIdentity   `json:"admitted_probe"`
 	Source        SourceGrant              `json:"source_grant"`
 	Limits        RunLimits                `json:"limits"`
 	AdmittedAt    temporal.Instant         `json:"admitted_at"`
 	SchemaVersion uint16                   `json:"schema_version"`
 	EvidencePlan  core.SHA256Digest        `json:"evidence_plan_digest"`
-	Request       standard.RequestIdentity `json:"request_id"`
-	Run           standard.RunID           `json:"run_id"`
+	Request       runprotocol.RequestIdentity `json:"request_id"`
+	Run           runprotocol.RunID           `json:"run_id"`
 }
 
 func (r AdmittedRun) Validate() error {
@@ -274,9 +274,9 @@ func (r AdmittedRun) Validate() error {
 
 func sourceGrantDigest(grant SourceGrant) core.SHA256Digest {
 	type identityInput struct {
-		Credential      standard.Identifier       `json:"credential_custody"`
+		Credential      runprotocol.Identifier       `json:"credential_custody"`
 		Authority       core.HTTPEndpoint         `json:"authority"`
-		Source          standard.SourceCoordinate `json:"source"`
+		Source          runprotocol.SourceCoordinate `json:"source"`
 		ExpiresAt       temporal.Instant          `json:"expires_at"`
 		RepositoryGrant core.SHA256Digest         `json:"repository_grant"`
 	}
@@ -287,7 +287,7 @@ func sourceGrantDigest(grant SourceGrant) core.SHA256Digest {
 	return core.SHA256Of(encoded)
 }
 
-func validateProbeDescent(requested standard.RequestedProbe, admitted standard.ProbeIdentity) error {
+func validateProbeDescent(requested runprotocol.RequestedProbe, admitted runprotocol.ProbeIdentity) error {
 	if !probeDescentScalarsMatch(requested, admitted) {
 		return core.ErrPrimitiveContract
 	}
@@ -299,7 +299,7 @@ func validateProbeDescent(requested standard.RequestedProbe, admitted standard.P
 	if !bytes.Equal(left, right) {
 		return core.ErrPrimitiveContract
 	}
-	if admitted.Role == standard.ProbeRoleSelection {
+	if admitted.Role == runprotocol.ProbeRoleSelection {
 		return nil
 	}
 	if slices.Contains(requested.Kinds, admitted.Kind) {
@@ -308,15 +308,15 @@ func validateProbeDescent(requested standard.RequestedProbe, admitted standard.P
 	return core.ErrPrimitiveContract
 }
 
-func probeDescentScalarsMatch(requested standard.RequestedProbe, admitted standard.ProbeIdentity) bool {
+func probeDescentScalarsMatch(requested runprotocol.RequestedProbe, admitted runprotocol.ProbeIdentity) bool {
 	return admitted.Origin == requested.Origin && admitted.Subject == requested.Subject && admitted.Source == requested.Source && admitted.Profile == requested.Profile && admitted.Environment.Satisfies(requested.Constraints)
 }
 
 type AdmissionResponse struct {
 	Admitted      *AdmittedRun             `json:"admitted,omitempty"`
-	Refusal       *standard.RefusalReason  `json:"refusal,omitempty"`
+	Refusal       *runprotocol.RefusalReason  `json:"refusal,omitempty"`
 	SchemaVersion uint16                   `json:"schema_version"`
-	Request       standard.RequestIdentity `json:"request_id"`
+	Request       runprotocol.RequestIdentity `json:"request_id"`
 }
 
 func (r AdmissionResponse) Validate() error {

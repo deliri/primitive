@@ -83,10 +83,25 @@ const (
 	ErrManualContract
 	// ErrManualWrite identifies failed human or machine manual output.
 	ErrManualWrite
-	// ErrStandardContract identifies invalid shared project-standard facts.
-	ErrStandardContract
-	// ErrStandardConflict identifies internally valid standard facts that contradict.
-	ErrStandardConflict
+	// ErrRunProtocolContract identifies an invalid independent-run agreement.
+	ErrRunProtocolContract
+	// ErrRunProtocolConflict identifies individually valid run facts that contradict.
+	ErrRunProtocolConflict
+	// ErrSourceClaimContract identifies an invalid human-authored source claim.
+	ErrSourceClaimContract
+	// ErrSourceClaimConflict identifies individually valid source claims that
+	// contradict or collide inside one authored set.
+	ErrSourceClaimConflict
+	// ErrSourceObservationContract identifies invalid compiler-derived source facts.
+	ErrSourceObservationContract
+	// ErrSourceObservationConflict identifies individually valid observations
+	// that disagree about one source subject or membership edge.
+	ErrSourceObservationConflict
+	// ErrSourceProofContract identifies an invalid claim-to-observation proof.
+	ErrSourceProofContract
+	// ErrSourceProofConflict identifies proof facts that disagree with their
+	// claim, revision, requirement, or derived outcome.
+	ErrSourceProofConflict
 
 	// ErrCurrencyContract identifies a currency contract violation.
 	ErrCurrencyContract
@@ -491,8 +506,14 @@ func errorIdentityDiagnostics() [errorIdentityLimit]errorIdentityDiagnostic {
 		{identity: ErrLineIOScan, text: "line scan failed"},
 		{identity: ErrManualContract, text: "manual contract violation"},
 		{identity: ErrManualWrite, text: "manual write failed"},
-		{identity: ErrStandardContract, text: "standard contract violation"},
-		{identity: ErrStandardConflict, text: "standard facts conflict"},
+		{identity: ErrRunProtocolContract, text: "run protocol contract violation"},
+		{identity: ErrRunProtocolConflict, text: "run protocol facts conflict"},
+		{identity: ErrSourceClaimContract, text: "source claim contract violation"},
+		{identity: ErrSourceClaimConflict, text: "source claims conflict"},
+		{identity: ErrSourceObservationContract, text: "source observation contract violation"},
+		{identity: ErrSourceObservationConflict, text: "source observations conflict"},
+		{identity: ErrSourceProofContract, text: "source proof contract violation"},
+		{identity: ErrSourceProofConflict, text: "source proof facts conflict"},
 		{identity: ErrCurrencyContract, text: "currency contract violation"},
 		{identity: ErrCurrencyMismatch, text: "currency mismatch"},
 		{identity: ErrCurrencyOverflow, text: "currency overflow"},
@@ -762,7 +783,7 @@ func errorIdentityParents(identity ErrorIdentity) errorIdentityParentSet {
 	}
 	if errorIdentityIn(identity, ErrJSONContract, ErrNumericOverflow, ErrSecretMaterialAllZero,
 		ErrAttestContract,
-		ErrContextStateContract, ErrLineIOContract, ErrManualContract, ErrStandardContract, ErrCurrencyContract,
+		ErrContextStateContract, ErrLineIOContract, ErrManualContract, ErrRunProtocolContract, ErrSourceClaimContract, ErrSourceObservationContract, ErrSourceProofContract, ErrCurrencyContract,
 		ErrKeygenContract, ErrTestIsolationContract, ErrFilestoreContract,
 		ErrTemporalContract, ErrExchangeContract,
 		ErrFuzzFinderContract, ErrLeaseContract,
@@ -801,7 +822,7 @@ func errorIdentityParents(identity ErrorIdentity) errorIdentityParentSet {
 		return errorIdentityParentsControlExchange(identity)
 	}
 	if errorIdentityIn(identity, ErrAttestVerification, ErrNilContext, ErrContextObservation,
-		ErrLineIOScan, ErrManualWrite, ErrStandardConflict,
+		ErrLineIOScan, ErrManualWrite, ErrRunProtocolConflict, ErrSourceClaimConflict, ErrSourceObservationConflict, ErrSourceProofConflict,
 		ErrCurrencyMismatch, ErrCurrencyDecimal, ErrCurrencyOverflow, ErrKeygenEntropy) {
 		return errorIdentityParentsAttestThroughLineIO(identity)
 	}
@@ -920,8 +941,17 @@ func errorIdentityParentsAttestThroughLineIO(identity ErrorIdentity) errorIdenti
 	if identity == ErrManualWrite {
 		return oneErrorIdentityParent(ErrManualContract)
 	}
-	if identity == ErrStandardConflict {
-		return oneErrorIdentityParent(ErrStandardContract)
+	if identity == ErrRunProtocolConflict {
+		return oneErrorIdentityParent(ErrRunProtocolContract)
+	}
+	if identity == ErrSourceClaimConflict {
+		return oneErrorIdentityParent(ErrSourceClaimContract)
+	}
+	if identity == ErrSourceObservationConflict {
+		return oneErrorIdentityParent(ErrSourceObservationContract)
+	}
+	if identity == ErrSourceProofConflict {
+		return oneErrorIdentityParent(ErrSourceProofContract)
 	}
 	if errorIdentityIn(identity, ErrCurrencyMismatch, ErrCurrencyDecimal) {
 		return oneErrorIdentityParent(ErrCurrencyContract)

@@ -8,7 +8,7 @@ import (
 	"github.com/deliri/primitive/v2026/core"
 	primitiveid "github.com/deliri/primitive/v2026/id"
 	"github.com/deliri/primitive/v2026/runnercontrol"
-	"github.com/deliri/primitive/v2026/standard"
+	"github.com/deliri/primitive/v2026/runprotocol"
 )
 
 func TestExpansionProducerSchemaVerifierLayerTriad(t *testing.T) {
@@ -38,7 +38,7 @@ func TestExpansionProducerSchemaVerifierLayerTriad(t *testing.T) {
 			t.Fatalf("IssueExpansion() setup error = %v, want nil", issueErr)
 		}
 		mutatedUUID, uuidErr := primitiveid.ParseUUIDv7("01890f2e-7b00-7000-8000-000000000002")
-		mutatedExperiment, experimentErr := standard.NewExperimentID(mutatedUUID)
+		mutatedExperiment, experimentErr := runprotocol.NewExperimentID(mutatedUUID)
 		if err := errors.Join(uuidErr, experimentErr); err != nil {
 			t.Fatalf("expansion mutation fixture error = %v, want nil", err)
 		}
@@ -86,7 +86,7 @@ func TestExpansionProducerSchemaVerifierLayerTriad(t *testing.T) {
 			t.Fatalf("identity-only ExpansionApproval setup error = %v, want structurally valid signed document", err)
 		}
 		got, gotErr := runnercontrol.CompileSelectionObservation(manifest, approval, 1)
-		if !errors.Is(gotErr, core.ErrPrimitiveContract) || got != (standard.SelectionObservation{}) {
+		if !errors.Is(gotErr, core.ErrPrimitiveContract) || got != (runprotocol.SelectionObservation{}) {
 			t.Fatalf("CompileSelectionObservation(identity-only approval) = (%+v, %v), want zero and errors.Is(..., %v)", got, gotErr, core.ErrPrimitiveContract)
 		}
 	})
@@ -144,30 +144,30 @@ func FuzzExpansionDocumentSemanticClosure(f *testing.F) {
 func expansionManifestFixture(t testing.TB, includeChild bool) runnercontrol.ExpansionManifest {
 	t.Helper()
 	completion := experimentCompletionPayloadFixture(t, true)
-	request, requestErr := standard.NewRequestIdentity(completionUUIDFixture(t))
-	module, moduleErr := standard.NewIdentifier("runner")
-	packagePath, packageErr := standard.ParseSourcePath("runnercontrol")
-	filePath, fileErr := standard.ParseSourcePath("runnercontrol/claim.go")
-	symbol, symbolErr := standard.NewName("TestClaim")
-	toolchain, toolchainErr := standard.NewIdentifier("go1-27-0")
+	request, requestErr := runprotocol.NewRequestIdentity(completionUUIDFixture(t))
+	module, moduleErr := runprotocol.NewIdentifier("runner")
+	packagePath, packageErr := runprotocol.ParseSourcePath("runnercontrol")
+	filePath, fileErr := runprotocol.ParseSourcePath("runnercontrol/claim.go")
+	symbol, symbolErr := runprotocol.NewName("TestClaim")
+	toolchain, toolchainErr := runprotocol.NewIdentifier("go1-27-0")
 	releaseTag, releaseErr := runnercontrol.NewGoBuildTag("go1.27")
-	discovery, discoveryErr := standard.NewIdentifier("go-ast-discovery")
-	moduleRoot, rootErr := standard.ParseSourcePath("module")
+	discovery, discoveryErr := runprotocol.NewIdentifier("go-ast-discovery")
+	moduleRoot, rootErr := runprotocol.ParseSourcePath("module")
 	if err := errors.Join(requestErr, moduleErr, packageErr, fileErr, symbolErr, toolchainErr, releaseErr, discoveryErr, rootErr); err != nil {
 		t.Fatalf("expansion identity fixture error = %v, want nil", err)
 	}
-	parentTarget := standard.ProbeTarget{Kind: standard.ProbeTargetGoPackage, GoPackage: &standard.GoPackageTarget{Module: module, Package: packagePath, ChildKinds: []standard.ProbeKind{standard.ProbeKindGoTest}}}
-	parent := standard.ProbeIdentity{Origin: completion.Probe.Origin, Subject: completion.Probe.Subject, Source: completion.Probe.Source, Role: standard.ProbeRoleSelection, Kind: standard.ProbeKindGoPackageSelection, Target: parentTarget, Profile: completion.Probe.Profile, Environment: completion.Probe.Environment}
+	parentTarget := runprotocol.ProbeTarget{Kind: runprotocol.ProbeTargetGoPackage, GoPackage: &runprotocol.GoPackageTarget{Module: module, Package: packagePath, ChildKinds: []runprotocol.ProbeKind{runprotocol.ProbeKindGoTest}}}
+	parent := runprotocol.ProbeIdentity{Origin: completion.Probe.Origin, Subject: completion.Probe.Subject, Source: completion.Probe.Source, Role: runprotocol.ProbeRoleSelection, Kind: runprotocol.ProbeKindGoPackageSelection, Target: parentTarget, Profile: completion.Probe.Profile, Environment: completion.Probe.Environment}
 	context := runnercontrol.GoBuildContext{Toolchain: toolchain, ReleaseTags: []runnercontrol.GoBuildTag{releaseTag}, GOOS: core.OperatingSystemLinux, GOARCH: core.CPUArchitectureAMD64, CGOEnabled: false, BuildTags: []runnercontrol.GoBuildTag{}, Instrumentation: runnercontrol.GoInstrumentationOrdinary, GOExperiment: []runnercontrol.GoBuildTag{}, ModuleMode: runnercontrol.GoModuleModeModule, ModuleRoot: moduleRoot, OtherInputs: core.SHA256Of([]byte("go-build-inputs"))}
 	contextDigest, contextErr := context.Digest()
-	contexts := runnercontrol.GoBuildContextSet{Entries: []runnercontrol.GoBuildContextEntry{{Kind: standard.ProbeKindGoTest, Profile: completion.Probe.Profile, Context: context, Digest: contextDigest}}}
-	manifest := runnercontrol.ExpansionManifest{SchemaVersion: runnercontrol.SchemaVersion, Request: request, Run: completion.Run, Fence: completion.Fence, Members: completion.Members, Parent: parent, Source: completion.Probe.Source, Discovery: discovery, DiscoveryVersion: 1, RequestedKinds: []standard.ProbeKind{standard.ProbeKindGoTest}, Contexts: contexts, Children: []runnercontrol.ExpansionChild{}}
+	contexts := runnercontrol.GoBuildContextSet{Entries: []runnercontrol.GoBuildContextEntry{{Kind: runprotocol.ProbeKindGoTest, Profile: completion.Probe.Profile, Context: context, Digest: contextDigest}}}
+	manifest := runnercontrol.ExpansionManifest{SchemaVersion: runnercontrol.SchemaVersion, Request: request, Run: completion.Run, Fence: completion.Fence, Members: completion.Members, Parent: parent, Source: completion.Probe.Source, Discovery: discovery, DiscoveryVersion: 1, RequestedKinds: []runprotocol.ProbeKind{runprotocol.ProbeKindGoTest}, Contexts: contexts, Children: []runnercontrol.ExpansionChild{}}
 	identity, identityErr := runnercontrol.CalculateExpansionIdentity(manifest)
 	manifest.Identity = identity
 	if includeChild {
-		selectionParent := standard.SelectionParent{Request: request, Kind: parent.Kind, Target: parent.Target, ExpansionDigest: identity}
-		childTarget := standard.ProbeTarget{Kind: standard.ProbeTargetGoDeclaration, GoDeclaration: &standard.GoDeclarationTarget{Module: module, Package: packagePath, File: filePath, Symbol: symbol}}
-		childProbe := standard.ProbeIdentity{Origin: parent.Origin, Subject: parent.Subject, Source: parent.Source, Role: standard.ProbeRoleExperiment, Kind: standard.ProbeKindGoTest, Target: childTarget, Profile: parent.Profile, Environment: parent.Environment, Parent: &selectionParent}
+		selectionParent := runprotocol.SelectionParent{Request: request, Kind: parent.Kind, Target: parent.Target, ExpansionDigest: identity}
+		childTarget := runprotocol.ProbeTarget{Kind: runprotocol.ProbeTargetGoDeclaration, GoDeclaration: &runprotocol.GoDeclarationTarget{Module: module, Package: packagePath, File: filePath, Symbol: symbol}}
+		childProbe := runprotocol.ProbeIdentity{Origin: parent.Origin, Subject: parent.Subject, Source: parent.Source, Role: runprotocol.ProbeRoleExperiment, Kind: runprotocol.ProbeKindGoTest, Target: childTarget, Profile: parent.Profile, Environment: parent.Environment, Parent: &selectionParent}
 		experiment := completion.Observation.Experiment
 		manifest.Children = []runnercontrol.ExpansionChild{{Sequence: 1, Probe: childProbe, BuildContextDigest: contextDigest, Disposition: runnercontrol.ExpansionAdmitted, Experiment: &experiment}}
 		manifest.Admitted = 1

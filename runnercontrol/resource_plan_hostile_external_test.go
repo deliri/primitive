@@ -10,7 +10,7 @@ import (
 	"github.com/deliri/primitive/v2026/core"
 	primitiveid "github.com/deliri/primitive/v2026/id"
 	"github.com/deliri/primitive/v2026/runnercontrol"
-	"github.com/deliri/primitive/v2026/standard"
+	"github.com/deliri/primitive/v2026/runprotocol"
 )
 
 func TestPlanResourceWavesHostileBoundaries(t *testing.T) {
@@ -89,7 +89,7 @@ func TestPlanResourceWavesHostileBoundaries(t *testing.T) {
 				t.Fatalf("PlanResourceWaves(%s) error = %v, want nil; case exists because %s", tc.name, gotErr, tc.why)
 			}
 			gotWidths := make([]uint16, len(got))
-			var gotExperiments []standard.ExperimentID
+			var gotExperiments []runprotocol.ExperimentID
 			for index := range got {
 				gotWidths[index] = got[index].WaveWidth
 				gotExperiments = append(gotExperiments, got[index].Experiments...)
@@ -97,7 +97,7 @@ func TestPlanResourceWavesHostileBoundaries(t *testing.T) {
 			if !slices.Equal(gotWidths, tc.wantWidths) {
 				t.Fatalf("PlanResourceWaves(%s) wave widths = %v, want %v; case exists because %s", tc.name, gotWidths, tc.wantWidths, tc.why)
 			}
-			wantExperiments := make([]standard.ExperimentID, len(reservations))
+			wantExperiments := make([]runprotocol.ExperimentID, len(reservations))
 			for index := range reservations {
 				wantExperiments[index] = reservations[index].Experiment
 			}
@@ -155,9 +155,9 @@ func resourceReservations(t testing.TB, requirements []runnercontrol.ResourceReq
 		if err != nil {
 			t.Fatalf("id.ParseUUIDv7(%q) setup error = %v, want nil", text, err)
 		}
-		experiment, err := standard.NewExperimentID(uuid)
+		experiment, err := runprotocol.NewExperimentID(uuid)
 		if err != nil {
-			t.Fatalf("standard.NewExperimentID(%q) setup error = %v, want nil", text, err)
+			t.Fatalf("runprotocol.NewExperimentID(%q) setup error = %v, want nil", text, err)
 		}
 		got[index] = runnercontrol.ResourceReservation{Experiment: experiment, Required: requirements[index]}
 	}

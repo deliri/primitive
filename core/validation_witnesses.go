@@ -22,6 +22,10 @@ var (
 	_ Validatable              = SecretMaterial{}
 	_ Validatable              = PathComponent{}
 	_ Validatable              = AbsolutePath{}
+	_ Validatable              = SourcePath{}
+	_ Validatable              = RepositoryIdentity{}
+	_ Validatable              = SourceSubjectKind(0)
+	_ Validatable              = SourceSubject{}
 	_ Validatable              = HTTPEndpoint{}
 	_ Validatable              = HTTPStatusCode{}
 	_ Validatable              = HTTPHeaderName{}
@@ -53,6 +57,10 @@ var (
 	_ ValidatedJSONMarshaler = SecretMaterial{}
 	_ ValidatedJSONMarshaler = PathComponent{}
 	_ ValidatedJSONMarshaler = AbsolutePath{}
+	_ ValidatedJSONMarshaler = SourcePath{}
+	_ ValidatedJSONMarshaler = RepositoryIdentity{}
+	_ ValidatedJSONMarshaler = SourceSubjectKind(0)
+	_ ValidatedJSONMarshaler = SourceSubject{}
 	_ ValidatedJSONMarshaler = HTTPEndpoint{}
 	_ ValidatedJSONMarshaler = HTTPStatusCode{}
 	_ ValidatedJSONMarshaler = HTTPHeaderName{}

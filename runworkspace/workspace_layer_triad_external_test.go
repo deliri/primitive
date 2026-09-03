@@ -10,7 +10,7 @@ import (
 	"github.com/deliri/primitive/v2026/process"
 	"github.com/deliri/primitive/v2026/runnercontrol"
 	"github.com/deliri/primitive/v2026/runworkspace"
-	"github.com/deliri/primitive/v2026/standard"
+	"github.com/deliri/primitive/v2026/runprotocol"
 	"github.com/deliri/primitive/v2026/temporal"
 )
 
@@ -151,23 +151,23 @@ func TestWorkspaceEffectLayerTriad(t *testing.T) {
 	})
 }
 
-func workspaceExperimentIdentity(t testing.TB) standard.ExperimentID {
+func workspaceExperimentIdentity(t testing.TB) runprotocol.ExperimentID {
 	t.Helper()
 	uuid, err := primitiveid.ParseUUIDv7("01890f2e-7b00-7000-8000-000000000002")
 	if err != nil {
 		t.Fatalf("id.ParseUUIDv7(experiment) setup error = %v, want nil", err)
 	}
-	identity, err := standard.NewExperimentID(uuid)
+	identity, err := runprotocol.NewExperimentID(uuid)
 	if err != nil {
-		t.Fatalf("standard.NewExperimentID() setup error = %v, want nil", err)
+		t.Fatalf("runprotocol.NewExperimentID() setup error = %v, want nil", err)
 	}
 	return identity
 }
 
-func workspaceIdentities(t testing.TB) (runnercontrol.SchedulingUnitIdentity, standard.RunID) {
+func workspaceIdentities(t testing.TB) (runnercontrol.SchedulingUnitIdentity, runprotocol.RunID) {
 	t.Helper()
 	uuid, uuidErr := primitiveid.ParseUUIDv7("01890f2e-7b00-7000-8000-000000000001")
-	run, runErr := standard.NewRunID(uuid)
+	run, runErr := runprotocol.NewRunID(uuid)
 	if err := errors.Join(uuidErr, runErr); err != nil {
 		t.Fatalf("workspace identity fixture error = %v, want nil", err)
 	}

@@ -64,10 +64,11 @@ const (
 	// BasicAuthorizationIdentityMaximumBytes bounds one Basic identity.
 	BasicAuthorizationIdentityMaximumBytes = 255
 	// BasicAuthorizationSecretMaximumBytes bounds one Basic secret.
-	BasicAuthorizationSecretMaximumBytes = 1024
-	basicAuthorizationScheme             = "Basic "
-	basicAuthorizationRawMaximumBytes    = BasicAuthorizationIdentityMaximumBytes + 1 + BasicAuthorizationSecretMaximumBytes
-	basicAuthorizationBase64MaximumBytes = (basicAuthorizationRawMaximumBytes + 2) / 3 * 4
+	BasicAuthorizationSecretMaximumBytes  = 1024
+	basicAuthorizationScheme              = "Basic "
+	basicAuthorizationRawMaximumBytes     = BasicAuthorizationIdentityMaximumBytes + 1 + BasicAuthorizationSecretMaximumBytes
+	basicAuthorizationBase64MaximumBytes  = (basicAuthorizationRawMaximumBytes + 2) / 3 * 4
+	basicAuthorizationDecodedMaximumBytes = basicAuthorizationBase64MaximumBytes / 4 * 3
 	// BasicAuthorizationHeaderMaximumBytes bounds the complete encoded value.
 	BasicAuthorizationHeaderMaximumBytes = len(basicAuthorizationScheme) + basicAuthorizationBase64MaximumBytes
 )
@@ -177,7 +178,7 @@ func parseBasicAuthorizationValue(value string) (string, string, bool) {
 	if len(encoded) == 0 || len(encoded) > basicAuthorizationBase64MaximumBytes {
 		return "", "", false
 	}
-	var decodedStorage [basicAuthorizationRawMaximumBytes]byte
+	var decodedStorage [basicAuthorizationDecodedMaximumBytes]byte
 	decoded := decodedStorage[:]
 	count, err := base64.StdEncoding.Decode(decoded, []byte(encoded))
 	if err != nil {

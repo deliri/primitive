@@ -13,7 +13,7 @@ import (
 	"github.com/deliri/primitive/v2026/core"
 	"github.com/deliri/primitive/v2026/exchange"
 	"github.com/deliri/primitive/v2026/process"
-	"github.com/deliri/primitive/v2026/standard"
+	"github.com/deliri/primitive/v2026/runprotocol"
 	"github.com/deliri/primitive/v2026/temporal"
 )
 
@@ -24,18 +24,18 @@ const (
 )
 
 type ExperimentCompletionPayload struct {
-	Probe         standard.ProbeIdentity         `json:"probe"`
+	Probe         runprotocol.ProbeIdentity         `json:"probe"`
 	StartedAt     *temporal.Instant              `json:"started_at,omitempty"`
 	Process       *process.ResultObservation     `json:"process,omitempty"`
 	Go            *GoConcurrencyResolution       `json:"go,omitempty"`
 	Members       MemberSet                      `json:"member_set"`
-	Observation   standard.ExperimentObservation `json:"observation"`
+	Observation   runprotocol.ExperimentObservation `json:"observation"`
 	Fence         SchedulingFence                `json:"fence"`
 	RequestedAt   temporal.Instant               `json:"requested_at"`
 	AdmittedAt    temporal.Instant               `json:"admitted_at"`
 	CompletedAt   temporal.Instant               `json:"completed_at"`
 	SchemaVersion uint16                         `json:"schema_version"`
-	Run           standard.RunID                 `json:"run_id"`
+	Run           runprotocol.RunID                 `json:"run_id"`
 }
 
 func (p ExperimentCompletionPayload) Validate() error {
@@ -77,24 +77,24 @@ func (p ExperimentCompletionPayload) validateGoConcurrency() error {
 	return nil
 }
 
-func completionCarriesGoConcurrency(kind standard.ProbeKind) bool {
-	return kind >= standard.ProbeKindGoTest && kind <= standard.ProbeKindGoDiagnosticProfile
+func completionCarriesGoConcurrency(kind runprotocol.ProbeKind) bool {
+	return kind >= runprotocol.ProbeKindGoTest && kind <= runprotocol.ProbeKindGoDiagnosticProfile
 }
 
-func goProfileMatchesProbe(profile GoProfileKind, kind standard.ProbeKind) bool {
-	if kind == standard.ProbeKindGoTest {
+func goProfileMatchesProbe(profile GoProfileKind, kind runprotocol.ProbeKind) bool {
+	if kind == runprotocol.ProbeKindGoTest {
 		return profile == GoProfileFocused || profile == GoProfileAcceptance
 	}
-	if kind == standard.ProbeKindGoRace {
+	if kind == runprotocol.ProbeKindGoRace {
 		return profile == GoProfileRace
 	}
-	if kind == standard.ProbeKindGoBenchmark {
+	if kind == runprotocol.ProbeKindGoBenchmark {
 		return profile == GoProfileBenchmark
 	}
-	if kind == standard.ProbeKindGoFuzz {
+	if kind == runprotocol.ProbeKindGoFuzz {
 		return profile == GoProfileFuzz
 	}
-	if kind == standard.ProbeKindGoDiagnosticProfile {
+	if kind == runprotocol.ProbeKindGoDiagnosticProfile {
 		return profile == GoProfileDiagnostic
 	}
 	return false
@@ -128,7 +128,7 @@ func (p ExperimentCompletionPayload) validateMembership() error {
 }
 
 func (p ExperimentCompletionPayload) validateProbeBinding() error {
-	if p.Probe.Role != standard.ProbeRoleExperiment || p.Probe.Environment.MachineGeneration != p.Fence.Machine.Generation {
+	if p.Probe.Role != runprotocol.ProbeRoleExperiment || p.Probe.Environment.MachineGeneration != p.Fence.Machine.Generation {
 		return core.ErrPrimitiveContract
 	}
 	if p.Observation.EnvironmentFingerprint != p.Probe.Environment.EnvironmentFingerprint || p.Observation.MachineSheetDigest != p.Probe.Environment.MachineSheetDigest {
@@ -330,8 +330,8 @@ func (r ExperimentCompletionRecord) Validate() error {
 
 type ExperimentCompletionReceipt struct {
 	SchemaVersion uint16                `json:"schema_version"`
-	Run           standard.RunID        `json:"run_id"`
-	Experiment    standard.ExperimentID `json:"experiment_id"`
+	Run           runprotocol.RunID        `json:"run_id"`
+	Experiment    runprotocol.ExperimentID `json:"experiment_id"`
 	Digest        core.SHA256Digest     `json:"document_digest"`
 	Bytes         core.ByteLength       `json:"document_bytes"`
 }

@@ -48,6 +48,10 @@ const (
 	coreJSONDoorByteLength
 	coreJSONDoorPathComponent
 	coreJSONDoorAbsolutePath
+	coreJSONDoorSourcePath
+	coreJSONDoorRepositoryIdentity
+	coreJSONDoorSourceSubjectKind
+	coreJSONDoorSourceSubject
 	coreJSONDoorLimit
 )
 
@@ -105,6 +109,14 @@ func (d coreJSONDoor) receiverName() string {
 		return "PathComponent"
 	case coreJSONDoorAbsolutePath:
 		return "AbsolutePath"
+	case coreJSONDoorSourcePath:
+		return "SourcePath"
+	case coreJSONDoorRepositoryIdentity:
+		return "RepositoryIdentity"
+	case coreJSONDoorSourceSubjectKind:
+		return "SourceSubjectKind"
+	case coreJSONDoorSourceSubject:
+		return "SourceSubject"
 	case coreJSONDoorUnknown, coreJSONDoorLimit:
 		return ""
 	default:
@@ -115,6 +127,10 @@ func (d coreJSONDoor) receiverName() string {
 type coreJSONFixtures struct {
 	relativePath    RelativePath
 	absolutePath    AbsolutePath
+	sourcePath      SourcePath
+	repository      RepositoryIdentity
+	subjectKind     SourceSubjectKind
+	subject         SourceSubject
 	component       PathComponent
 	mediaType       HTTPMediaType
 	header          HTTPHeaderName
@@ -214,6 +230,14 @@ func FuzzCoreExternalJSONDoorInventory(f *testing.F) {
 			fuzzCoreJSONValue(t, data, fixtures.component)
 		case coreJSONDoorAbsolutePath:
 			fuzzCoreJSONValue(t, data, fixtures.absolutePath)
+		case coreJSONDoorSourcePath:
+			fuzzCoreJSONValue(t, data, fixtures.sourcePath)
+		case coreJSONDoorRepositoryIdentity:
+			fuzzCoreJSONValue(t, data, fixtures.repository)
+		case coreJSONDoorSourceSubjectKind:
+			fuzzCoreJSONValue(t, data, fixtures.subjectKind)
+		case coreJSONDoorSourceSubject:
+			fuzzCoreJSONValue(t, data, fixtures.subject)
 		case coreJSONDoorUnknown, coreJSONDoorLimit:
 			return
 		default:
@@ -575,6 +599,18 @@ func coreFixturesForFuzz(t testing.TB) coreJSONFixtures {
 	if err != nil {
 		t.Fatalf("ParseRelativePath(seed) error = %v, want nil", err)
 	}
+	sourcePath, err := ParseSourcePath("source/file.go")
+	if err != nil {
+		t.Fatalf("ParseSourcePath(seed) error = %v, want nil", err)
+	}
+	repository, err := NewRepositoryIdentity("example.com/owner/project")
+	if err != nil {
+		t.Fatalf("NewRepositoryIdentity(seed) error = %v, want nil", err)
+	}
+	subject, err := NewSourceSubject(SourceSubjectFile, sourcePath)
+	if err != nil {
+		t.Fatalf("NewSourceSubject(seed) error = %v, want nil", err)
+	}
 	return coreJSONFixtures{
 		platform: platform, operatingSystem: OperatingSystemDarwin,
 		architecture: CPUArchitectureARM64, offering: offering,
@@ -587,6 +623,7 @@ func coreFixturesForFuzz(t testing.TB) coreJSONFixtures {
 		crc32c:    NewCRC32C(crc32.Checksum([]byte("core fuzz crc32c"), crc32.MakeTable(crc32.Castagnoli))),
 		publicKey: publicKey, byteCount: byteCount, byteLength: byteLength,
 		component: component, absolutePath: absolute, relativePath: relative,
+		sourcePath: sourcePath, repository: repository, subjectKind: SourceSubjectFile, subject: subject,
 	}
 }
 
@@ -618,6 +655,10 @@ func coreJSONSeedsForFuzz(t testing.TB, fixtures coreJSONFixtures) []coreJSONSee
 		coreJSONSeedForFuzz(t, coreJSONDoorByteLength, fixtures.byteLength),
 		coreJSONSeedForFuzz(t, coreJSONDoorPathComponent, fixtures.component),
 		coreJSONSeedForFuzz(t, coreJSONDoorAbsolutePath, fixtures.absolutePath),
+		coreJSONSeedForFuzz(t, coreJSONDoorSourcePath, fixtures.sourcePath),
+		coreJSONSeedForFuzz(t, coreJSONDoorRepositoryIdentity, fixtures.repository),
+		coreJSONSeedForFuzz(t, coreJSONDoorSourceSubjectKind, fixtures.subjectKind),
+		coreJSONSeedForFuzz(t, coreJSONDoorSourceSubject, fixtures.subject),
 	}
 	seeds = append(seeds, coreJSONSeedForFuzz(t, coreJSONDoorOffering, fixtures.offering))
 	return seeds

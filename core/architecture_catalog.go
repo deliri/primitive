@@ -113,8 +113,14 @@ const (
 	PackageManual
 	// PackageSecretStore identifies bounded secret-provider access.
 	PackageSecretStore
-	// PackageStandard identifies the shared compiler-visible Go project bar.
-	PackageStandard
+	// PackageRunProtocol identifies the shared independent-run agreement.
+	PackageRunProtocol
+	// PackageSourceClaim identifies human-authored offline source claims.
+	PackageSourceClaim
+	// PackageSourceObservation identifies compiler-derived source observations.
+	PackageSourceObservation
+	// PackageSourceProof identifies claim-to-observation proof results.
+	PackageSourceProof
 	// PackageMachineProbe identifies bounded execution of one admitted machine probe.
 	PackageMachineProbe
 	// PackageRunnerControl identifies typed domain-blind runner control contracts.
@@ -131,8 +137,6 @@ const (
 	PackagePlunk
 	// PackageCapabilities identifies the compiler-owned Primitive capability catalog.
 	PackageCapabilities
-	// PackagePrimitiveProject identifies Primitive's authored project policy.
-	PackagePrimitiveProject
 	// PackageProofLedger identifies the blind append-only proof-chain agreement.
 	PackageProofLedger
 	packageIdentityLimit
@@ -219,7 +223,10 @@ func PrimitiveArchitecture() ArchitectureCatalog {
 			{Identity: PackageLineIO, Kind: PackageKindProduction, Role: PackageRoleValueContract},
 			{Identity: PackageManual, Kind: PackageKindProduction, Role: PackageRoleValueContract},
 			{Identity: PackageSecretStore, Kind: PackageKindProduction, Role: PackageRoleEffectCapability},
-			{Identity: PackageStandard, Kind: PackageKindProduction, Role: PackageRoleValueContract},
+			{Identity: PackageRunProtocol, Kind: PackageKindProduction, Role: PackageRoleDomainAgreement},
+			{Identity: PackageSourceClaim, Kind: PackageKindProduction, Role: PackageRoleValueContract},
+			{Identity: PackageSourceObservation, Kind: PackageKindProduction, Role: PackageRoleValueContract},
+			{Identity: PackageSourceProof, Kind: PackageKindProduction, Role: PackageRoleValueContract},
 			{Identity: PackageMachineProbe, Kind: PackageKindProduction, Role: PackageRoleOrchestration},
 			{Identity: PackageRunnerControl, Kind: PackageKindProduction, Role: PackageRoleDomainAgreement},
 			{Identity: PackageRunWorkspace, Kind: PackageKindProduction, Role: PackageRoleOrchestration},
@@ -228,7 +235,6 @@ func PrimitiveArchitecture() ArchitectureCatalog {
 			{Identity: PackageTwilio, Kind: PackageKindProduction, Role: PackageRoleWireProtocol},
 			{Identity: PackagePlunk, Kind: PackageKindProduction, Role: PackageRoleWireProtocol},
 			{Identity: PackageCapabilities, Kind: PackageKindProduction, Role: PackageRoleValueContract},
-			{Identity: PackagePrimitiveProject, Kind: PackageKindTestSupport, Role: PackageRoleValueContract},
 			{Identity: PackageProofLedger, Kind: PackageKindProduction, Role: PackageRoleDomainAgreement},
 		},
 	}
@@ -283,14 +289,6 @@ func (p PackageIdentity) Name() (string, error) {
 		return "", err
 	}
 	return packageIdentityText(p), nil
-}
-
-// Purpose returns the compiler-owned statement of what the package provides.
-func (p PackageIdentity) Purpose() (string, error) {
-	if err := p.Validate(); err != nil {
-		return "", err
-	}
-	return packagePurposeText(p), nil
 }
 
 // MarshalJSON emits the canonical package name as a JSON string.
@@ -390,16 +388,13 @@ func (c PackageContract) Validate() error {
 	if err := c.Identity.Validate(); err != nil {
 		return err
 	}
-	if packagePurposeText(c.Identity) == "" {
-		return architectureContractError("package purpose is missing from the compiler catalog")
-	}
 	if err := c.Kind.Validate(); err != nil {
 		return err
 	}
 	if err := c.Role.Validate(); err != nil {
 		return err
 	}
-	if c.Identity == PackageTestSerial || c.Identity == PackageControlPlaneTest || c.Identity == PackagePrimitiveProject {
+	if c.Identity == PackageTestSerial || c.Identity == PackageControlPlaneTest {
 		if c.Kind != PackageKindTestSupport {
 			return architectureContractError("test-support package must be classified as test support")
 		}
@@ -409,74 +404,6 @@ func (c PackageContract) Validate() error {
 		return architectureContractError("non-test package must be classified as production")
 	}
 	return nil
-}
-
-func packagePurposeText(identity PackageIdentity) string {
-	if identity >= packageIdentityLimit {
-		return ""
-	}
-	return packagePurposeTexts()[identity]
-}
-
-// #nosec G101 -- this catalog contains package-purpose prose, not credentials.
-func packagePurposeTexts() [packageIdentityLimit]string {
-	return [...]string{
-		PackageCore:             "Shared nominal values, errors, paths, protocol facts, numeric and encoding contracts",
-		PackageAttest:           "Canonical Ed25519 envelopes and proof-carrying verification",
-		PackageContextState:     "Nil-safe context ingress and terminal observation",
-		PackageCurrency:         "Exact minor-unit values, arithmetic, ordering, and decimal projection",
-		PackageKeygen:           "Exact secret and Ed25519 key generation",
-		PackageTestSerial:       "Test-only isolation declaration and analyzer contract",
-		PackageFileLock:         "One advisory whole-file lock on one already-open file",
-		PackageFilestore:        "Rooted OS handles, confinement, inspection, durability, activation, append rotation, rename, and recovery",
-		PackageHostFacts:        "Host disk, memory, cgroup, terminal, process-ambient, and OOM observations",
-		PackageTemporal:         "Time, duration, arithmetic, persistence, waits, and tickers",
-		PackageExchange:         "Bounded client and server boundary policy over net/http",
-		PackageFuzzFinder:       "Bounded classification and observation of Go-generated fuzz artifacts",
-		PackageLease:            "Signed lease timeline, assessment, renewal, and monotonic advance",
-		PackageReceipt:          "Authenticated accepted-evidence facts and fixed-size monotonic watermarks",
-		PackageControlWire:      "Shared control-wire facts and paired authenticated socket with request-owner body limits",
-		PackageControlPlane:     "Signed control-plane request and response documents, their binding to one exact request, product status, and usage watermark",
-		PackageSubmission:       "Authenticated evidence declarations, authority upload grants, and device-signed provider completion evidence bound to one exact request",
-		PackageSubmissionAuth:   "Installation-certificate binding, device authentication, and authority reconciliation for evidence submissions",
-		PackageControlPlaneTest: "Real authority-signed installation certificate fixtures for hostile control-plane tests",
-		PackageProcess:          "Argv, environment, containment, bounded output, exit, and reaping over os/exec",
-		PackageGoModule:         "Canonical bounded Go module identity parsing, validation, and JSON",
-		PackageGoToolchain:      "Bounded typed module, build-context, package-list, and compilation observations through cmd/go",
-		PackageRelease:          "Clean repository binding, verified Go builds and process plans, bounded maintainer material exchange, executable inspection, signed tool and metadata provenance, immutable artifacts, manifests, Latest, and selection",
-		PackageShutdown:         "Signal observation and phased bounded cleanup",
-		PackageObjectStore:      "Bounded vendor-specified S3, GCS, or Cloudflare Images transfers through issued HTTPS capabilities, with integrity and provider evidence",
-		PackageTimeProof:        "RFC 3161 request construction, response verification, and replay",
-		PackageGoogleIdentity:   "Bounded Google Cloud identity-token and OAuth access-token acquisition, verification, and redacted disclosure",
-		PackageAWSIdentity:      "Bounded regional AWS STS identity-token acquisition with redacted disclosure",
-		PackageDeploy:           "Exact create-only GCS publication of one authenticated release and its metadata",
-		PackageUpgrade:          "Crash-recoverable installation, activation, startup truth, rollback, and recovery",
-		PackageGCSObjects:       "Authenticated Google Cloud Storage bucket provisioning and public-read IAM, typed logical namespace composition, create-only writes, IAM-signed short-lived upload and whole-object retrieval capabilities, exact-generation observation, digest-bound reads, and generation-matched permanent deletion through official SDKs over Exchange",
-		PackageID:               "Standard-library-backed UUIDv7 and canonical ULID time-ordered identifiers from one observed instant and caller-supplied entropy",
-		PackageChit:             "Authority-signed immutable custody tickets, streaming manifest closure, bounded catalogs, and device-signed catalog queries",
-		PackageChitAuth:         "Installation-certificate binding and device authentication for one chit catalog query",
-		PackageRetrieval:        "Device-signed exact-object requests, authority-signed expiring download capabilities bound to authenticated chit manifests, and atomic exact-file retrieval execution",
-		PackageRetrievalAuth:    "Installation-certificate binding and device authentication for one evidence-retrieval request",
-		PackagePayment:          "Authority-signed exact payment receipts, bounded catalogs, and device-signed catalog queries",
-		PackagePaymentAuth:      "Installation-certificate binding and device authentication for one payment catalog query",
-		PackageDistribution:     "Signed product-neutral release publication, update discovery, and exact upgrade-download agreements",
-		PackageDistributionAuth: "Authenticated release-material responses plus installation-certificate binding and device authentication for publication, update, and upgrade requests",
-		PackageWiring:           "Bounded immutable runtime component graphs with exact Primitive-door declarations",
-		PackageLineIO:           "Bounded line scanning over one io.Reader through Go bufio.Scanner and bufio.ScanLines",
-		PackageManual:           "Bounded validated human text and stable machine JSON manuals from one product-owned typed book",
-		PackageStandard:         "Validated project, package, and source-file facts with exact effect posture, evidence references, and deterministic bounded reports",
-		PackageMachineProbe:     "Bounded execution and typed evidence capture for one admitted machine-observation script",
-		PackageRunnerControl:    "Typed domain-blind runner admission, execution, evidence, completion, and delivery contracts",
-		PackageRunWorkspace:     "Owned per-run writable workspace, source acquisition, evidence retention, and cleanup effects",
-		PackageSecretStore:      "Bounded exact-version secret access through official provider SDKs",
-		PackageStripe:           "Stripe-authenticated domain-blind streamed HTTP and verified webhook boundaries",
-		PackagePayPal:           "PayPal OAuth, authenticated streamed HTTP, and verified webhook boundaries",
-		PackageTwilio:           "Twilio-authenticated account-bound HTTP and verified webhook boundaries",
-		PackagePlunk:            "Plunk-authenticated streamed HTTP and bearer-authenticated webhook boundaries",
-		PackageCapabilities:     "Compiler-owned discovery and exact resolution of Primitive package and real-world effect capabilities",
-		PackagePrimitiveProject: "Authored Primitive project knowledge expressed through the product-neutral standard contract",
-		PackageProofLedger:      "Blind append-only canonical proof chains, idempotent append receipts, bounded pages, and streaming verification",
-	}
 }
 
 func packageIdentityText(identity PackageIdentity) string {
@@ -533,7 +460,10 @@ func packageIdentityTexts() [packageIdentityLimit]string {
 		"lineio",
 		"manual",
 		"secretstore",
-		"standard",
+		"runprotocol",
+		"sourceclaim",
+		"sourceobservation",
+		"sourceproof",
 		"machineprobe",
 		"runnercontrol",
 		"runworkspace",
@@ -542,7 +472,6 @@ func packageIdentityTexts() [packageIdentityLimit]string {
 		"twilio",
 		"plunk",
 		"capabilities",
-		"primitiveproject",
 		"proofledger",
 	}
 }

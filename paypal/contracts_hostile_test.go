@@ -64,6 +64,26 @@ func TestPublishedWebhookFieldLimits(t *testing.T) {
 	}
 }
 
+func TestTransmissionSignatureAdmitsEveryStandardBase64LeadingClass(t *testing.T) {
+	t.Parallel()
+
+	for _, testCase := range []struct {
+		name  string
+		value string
+	}{
+		{name: "plus begins a standard base64 signature", value: "+AAA"},
+		{name: "slash begins a standard base64 signature", value: "/AAA"},
+	} {
+		t.Run(testCase.name, func(t *testing.T) {
+			t.Parallel()
+			got, gotErr := ParsePayPalTransmissionSignature(testCase.value)
+			if gotErr != nil || got.String() != testCase.value {
+				t.Fatalf("ParsePayPalTransmissionSignature(%q) = (%q, %v), want exact signature and nil", testCase.value, got.String(), gotErr)
+			}
+		})
+	}
+}
+
 func TestPublishedRequestIDLimitRemainsNominal(t *testing.T) {
 	t.Parallel()
 	if core.PayPalRequestIDMaximumBytes != 38 {

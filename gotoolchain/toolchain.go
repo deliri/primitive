@@ -15,7 +15,7 @@ import (
 	"github.com/deliri/primitive/v2026/gomodule"
 	"github.com/deliri/primitive/v2026/hostfacts"
 	"github.com/deliri/primitive/v2026/process"
-	"github.com/deliri/primitive/v2026/standard"
+	"github.com/deliri/primitive/v2026/runprotocol"
 )
 
 // Capability is one resolved cmd/go execution boundary.
@@ -84,7 +84,7 @@ func (c Capability) ObserveBuildContext(ctx context.Context, request Observation
 	if err := errors.Join(c.Validate(), request.Validate()); err != nil {
 		return BuildContext{}, errors.Join(core.ErrGoToolchainContract, err)
 	}
-	output, _, err := c.execute(ctx, request.WorkingDirectory, "env", standard.GoJSONOutputArgument, "GOOS", "GOARCH", "GOVERSION", "CGO_ENABLED")
+	output, _, err := c.execute(ctx, request.WorkingDirectory, "env", runprotocol.GoJSONOutputArgument, "GOOS", "GOARCH", "GOVERSION", "CGO_ENABLED")
 	if err != nil {
 		return BuildContext{}, err
 	}
@@ -96,7 +96,7 @@ func (c Capability) ListPackages(ctx context.Context, request ListRequest) (Pack
 	if err := errors.Join(c.Validate(), request.Validate()); err != nil {
 		return PackageCatalog{}, errors.Join(core.ErrGoToolchainContract, err)
 	}
-	arguments := []string{goListSubcommand, standard.GoJSONOutputArgument}
+	arguments := []string{goListSubcommand, runprotocol.GoJSONOutputArgument}
 	if request.Dependencies {
 		arguments = append(arguments, "-deps")
 	}
@@ -121,7 +121,7 @@ func (c Capability) CompilePackage(ctx context.Context, request CompileRequest) 
 	if err != nil {
 		return Compilation{}, errors.Join(core.ErrGoToolchainContract, err)
 	}
-	_, result, err := c.execute(ctx, request.WorkingDirectory, standard.GoTestText, "-c", "-o", discardValue, request.Pattern)
+	_, result, err := c.execute(ctx, request.WorkingDirectory, runprotocol.GoTestText, "-c", "-o", discardValue, request.Pattern)
 	if err != nil {
 		return Compilation{}, err
 	}

@@ -7,7 +7,7 @@ import (
 
 	"github.com/deliri/primitive/v2026/core"
 	"github.com/deliri/primitive/v2026/process"
-	"github.com/deliri/primitive/v2026/standard"
+	"github.com/deliri/primitive/v2026/runprotocol"
 	"github.com/deliri/primitive/v2026/temporal"
 )
 
@@ -59,7 +59,7 @@ func (b ExternalPlanBase) Validate() error {
 }
 
 type JavaScriptTestPlan struct {
-	File        standard.SourcePath
+	File        runprotocol.SourcePath
 	Report      core.RelativePath
 	Timeout     temporal.Duration
 	Concurrency uint16
@@ -104,7 +104,7 @@ func (r JavaScriptPlanRequest) Validate() error {
 }
 
 type SuitePlan struct {
-	Suite   standard.Identifier
+	Suite   runprotocol.Identifier
 	Timeout temporal.Duration
 }
 
@@ -252,7 +252,7 @@ func compileJavaScriptReport(request JavaScriptPlanRequest) (core.AbsolutePath, 
 	name, nameErr := core.ParsePathComponent(request.Test.Report.String())
 	relative, relativeErr := request.Base.OutputDirectory.Join(name)
 	report, reportErr := request.Base.WorkspaceRoot.JoinRelative(relative)
-	protocolPath, protocolErr := standard.ParseSourcePath(relative.String())
+	protocolPath, protocolErr := runprotocol.ParseSourcePath(relative.String())
 	mediaType, mediaErr := core.ParseHTTPMediaType("application/xml")
 	if err := errors.Join(outputErr, nameErr, relativeErr, reportErr, protocolErr, mediaErr); err != nil {
 		return core.AbsolutePath{}, core.AbsolutePath{}, ArtifactExpectation{}, err

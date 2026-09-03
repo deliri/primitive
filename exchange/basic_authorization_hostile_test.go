@@ -161,6 +161,7 @@ func TestReceiveBasicAuthorizationHostileBoundaryMatrix(t *testing.T) {
 		{name: "decoded empty secret is rejected", setup: raw(encoded([]byte("operator:"))), wantErr: core.ErrExchangeRequest},
 		{name: "identity one above byte ceiling is rejected", setup: raw(encoded([]byte(strings.Repeat("i", exchange.BasicAuthorizationIdentityMaximumBytes+1) + ":secret"))), wantErr: core.ErrExchangeRequest},
 		{name: "secret one above byte ceiling is rejected", setup: raw(encoded([]byte("operator:" + strings.Repeat("s", exchange.BasicAuthorizationSecretMaximumBytes+1)))), wantErr: core.ErrExchangeRequest},
+		{name: "unpadded base64 at the exact header ceiling is rejected without decoder overflow", setup: raw("Basic " + strings.Repeat("A", exchange.BasicAuthorizationHeaderMaximumBytes-len("Basic "))), wantErr: core.ErrExchangeRequest},
 		{name: "header one above compiler ceiling is rejected before decode", setup: raw(strings.Repeat("A", exchange.BasicAuthorizationHeaderMaximumBytes+1)), wantErr: core.ErrExchangeRequest},
 		{name: "duplicate identical headers are rejected", setup: raw(encoded([]byte("operator:secret")), encoded([]byte("operator:secret"))), wantErr: core.ErrExchangeRequest},
 		{name: "duplicate conflicting headers are rejected", setup: raw(encoded([]byte("operator:secret")), encoded([]byte("other:secret"))), wantErr: core.ErrExchangeRequest},

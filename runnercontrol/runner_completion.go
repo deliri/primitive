@@ -12,7 +12,7 @@ import (
 	"github.com/deliri/primitive/v2026/attest"
 	"github.com/deliri/primitive/v2026/core"
 	"github.com/deliri/primitive/v2026/exchange"
-	"github.com/deliri/primitive/v2026/standard"
+	"github.com/deliri/primitive/v2026/runprotocol"
 	"github.com/deliri/primitive/v2026/temporal"
 )
 
@@ -30,7 +30,7 @@ type SourceGrantIdentity struct {
 func (i SourceGrantIdentity) Validate() error { return i.Digest.Validate() }
 
 type AttemptedSource struct {
-	Repository standard.RepositoryIdentity `json:"repository"`
+	Repository runprotocol.RepositoryIdentity `json:"repository"`
 	Commit     core.BuildCommit            `json:"commit"`
 }
 
@@ -39,18 +39,18 @@ func (s AttemptedSource) Validate() error {
 }
 
 type ExperimentManifestEntry struct {
-	Probe                  standard.ProbeIdentity `json:"probe"`
+	Probe                  runprotocol.ProbeIdentity `json:"probe"`
 	CompletionBytes        core.ByteLength        `json:"completion_bytes"`
 	CompletionDigest       core.SHA256Digest      `json:"completion_digest"`
 	ArtifactManifestDigest core.SHA256Digest      `json:"artifact_manifest_digest"`
-	Experiment             standard.ExperimentID  `json:"experiment_id"`
+	Experiment             runprotocol.ExperimentID  `json:"experiment_id"`
 }
 
 func (e ExperimentManifestEntry) Validate() error {
 	if err := errors.Join(e.Experiment.Validate(), e.Probe.Validate(), e.CompletionDigest.Validate(), e.CompletionBytes.Validate(), e.ArtifactManifestDigest.Validate()); err != nil {
 		return err
 	}
-	if e.Probe.Role != standard.ProbeRoleExperiment {
+	if e.Probe.Role != runprotocol.ProbeRoleExperiment {
 		return core.ErrPrimitiveContract
 	}
 	return nil
@@ -87,18 +87,18 @@ func (c PreSourceRunnerCompletion) Validate() error {
 }
 
 type SelectionRunnerCompletion struct {
-	Selection       *standard.SelectionObservation `json:"selection,omitempty"`
+	Selection       *runprotocol.SelectionObservation `json:"selection,omitempty"`
 	Failure         *core.ErrorIdentity            `json:"failure,omitempty"`
 	ExperimentFacts *ExperimentManifest            `json:"experiment_manifest,omitempty"`
-	Source          standard.SourceCoordinate      `json:"source"`
-	Probe           standard.ProbeIdentity         `json:"probe"`
+	Source          runprotocol.SourceCoordinate      `json:"source"`
+	Probe           runprotocol.ProbeIdentity         `json:"probe"`
 }
 
 func (c SelectionRunnerCompletion) Validate() error {
 	if err := errors.Join(c.Source.Validate(), c.Probe.Validate()); err != nil {
 		return err
 	}
-	if c.Probe.Role != standard.ProbeRoleSelection || c.Probe.Source != c.Source {
+	if c.Probe.Role != runprotocol.ProbeRoleSelection || c.Probe.Source != c.Source {
 		return core.ErrPrimitiveContract
 	}
 	if (c.Selection == nil) == (c.Failure == nil) {
@@ -142,8 +142,8 @@ func (c SelectionRunnerCompletion) validateExperimentFacts() error {
 }
 
 type DirectExperimentRunnerCompletion struct {
-	Source     standard.SourceCoordinate `json:"source"`
-	Probe      standard.ProbeIdentity    `json:"probe"`
+	Source     runprotocol.SourceCoordinate `json:"source"`
+	Probe      runprotocol.ProbeIdentity    `json:"probe"`
 	Experiment ExperimentManifestEntry   `json:"experiment"`
 }
 
@@ -151,13 +151,13 @@ func (c DirectExperimentRunnerCompletion) Validate() error {
 	if err := errors.Join(c.Source.Validate(), c.Probe.Validate(), c.Experiment.Validate()); err != nil {
 		return err
 	}
-	if c.Probe.Role != standard.ProbeRoleExperiment || c.Probe.Source != c.Source {
+	if c.Probe.Role != runprotocol.ProbeRoleExperiment || c.Probe.Source != c.Source {
 		return core.ErrPrimitiveContract
 	}
 	return equalProbeIdentity(c.Probe, c.Experiment.Probe)
 }
 
-func experimentMatchesSelection(child, selection standard.ProbeIdentity, expansion core.SHA256Digest) bool {
+func experimentMatchesSelection(child, selection runprotocol.ProbeIdentity, expansion core.SHA256Digest) bool {
 	if !experimentMatchesSelectionScalars(child, selection) {
 		return false
 	}
@@ -169,14 +169,14 @@ func experimentMatchesSelection(child, selection standard.ProbeIdentity, expansi
 	return leftErr == nil && rightErr == nil && bytes.Equal(left, right)
 }
 
-func experimentMatchesSelectionScalars(child, selection standard.ProbeIdentity) bool {
+func experimentMatchesSelectionScalars(child, selection runprotocol.ProbeIdentity) bool {
 	if child.Parent == nil {
 		return false
 	}
 	return child.Origin == selection.Origin && child.Subject == selection.Subject && child.Source == selection.Source && child.Profile == selection.Profile && child.Environment == selection.Environment
 }
 
-func equalProbeIdentity(left, right standard.ProbeIdentity) error {
+func equalProbeIdentity(left, right runprotocol.ProbeIdentity) error {
 	leftBytes, leftErr := core.MarshalCanonicalJSONDocument(left)
 	rightBytes, rightErr := core.MarshalCanonicalJSONDocument(right)
 	if leftErr != nil || rightErr != nil || !bytes.Equal(leftBytes, rightBytes) {
@@ -197,8 +197,8 @@ type RunnerCompletionPayload struct {
 	ArtifactManifestDigest core.SHA256Digest                 `json:"artifact_manifest_digest"`
 	SourceGrant            SourceGrantIdentity               `json:"source_grant"`
 	AdmittedIntentDigest   core.SHA256Digest                 `json:"admitted_intent_digest"`
-	Run                    standard.RunID                    `json:"run_id"`
-	Terminal               standard.TerminalState            `json:"terminal"`
+	Run                    runprotocol.RunID                    `json:"run_id"`
+	Terminal               runprotocol.TerminalState            `json:"terminal"`
 }
 
 func (p RunnerCompletionPayload) Validate() error {
@@ -234,7 +234,7 @@ func (p RunnerCompletionPayload) validateMembership() error {
 
 func (p RunnerCompletionPayload) validateVariant() error {
 	if p.PreSource != nil {
-		if p.Terminal == standard.TerminalCompleted {
+		if p.Terminal == runprotocol.TerminalCompleted {
 			return core.ErrPrimitiveContract
 		}
 		return p.PreSource.Validate()
@@ -416,7 +416,7 @@ func (r RunnerCompletionRecord) Validate() error {
 
 type RunnerCompletionReceipt struct {
 	SchemaVersion uint16            `json:"schema_version"`
-	Run           standard.RunID    `json:"run_id"`
+	Run           runprotocol.RunID    `json:"run_id"`
 	Digest        core.SHA256Digest `json:"document_digest"`
 	Bytes         core.ByteLength   `json:"document_bytes"`
 }

@@ -8,7 +8,7 @@ import (
 	"github.com/deliri/primitive/v2026/core"
 	"github.com/deliri/primitive/v2026/exchange"
 	"github.com/deliri/primitive/v2026/objectstore"
-	"github.com/deliri/primitive/v2026/standard"
+	"github.com/deliri/primitive/v2026/runprotocol"
 	"github.com/deliri/primitive/v2026/temporal"
 )
 
@@ -19,7 +19,7 @@ const (
 
 type SourceAcquisitionRequest struct {
 	Members       MemberSet                 `json:"member_set"`
-	Source        standard.SourceCoordinate `json:"source"`
+	Source        runprotocol.SourceCoordinate `json:"source"`
 	Fence         SchedulingFence           `json:"fence"`
 	RequestedAt   temporal.Instant          `json:"requested_at"`
 	SchemaVersion uint16                    `json:"schema_version"`
@@ -146,7 +146,7 @@ func validateSourceProjectionClosure(p SourceAcquisitionProjection) error {
 func validateSourceAcquisitionClosure(acquisition SourceAcquisition) error {
 	memberDigest, memberErr := acquisition.Members.Digest()
 	manifest := acquisition.Document.Manifest
-	want := standard.SourceCoordinate{Repository: manifest.Repository, Commit: manifest.Commit, Tree: manifest.Tree}
+	want := runprotocol.SourceCoordinate{Repository: manifest.Repository, Commit: manifest.Commit, Tree: manifest.Tree}
 	target, targetErr := acquisition.Capability.Target()
 	targetGrantComparison, comparisonErr := target.ExpiresAt.Compare(acquisition.Grant.ExpiresAt)
 	if memberErr != nil || targetErr != nil || comparisonErr != nil || memberDigest != acquisition.Fence.MemberSetDigest || acquisition.Grant.Source != want || acquisition.Integrity.SHA256 != manifest.ArchiveDigest || acquisition.Integrity.Length != manifest.ArchiveBytes || targetGrantComparison == core.ComparisonGreater {

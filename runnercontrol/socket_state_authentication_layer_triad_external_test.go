@@ -12,7 +12,7 @@ import (
 	"github.com/deliri/primitive/v2026/core"
 	"github.com/deliri/primitive/v2026/exchange"
 	"github.com/deliri/primitive/v2026/runnercontrol"
-	"github.com/deliri/primitive/v2026/standard"
+	"github.com/deliri/primitive/v2026/runprotocol"
 	"github.com/deliri/primitive/v2026/temporal"
 )
 
@@ -108,7 +108,7 @@ func TestRunStateAndCancellationSocketProductionPathLayerTriad(t *testing.T) {
 		t.Parallel()
 
 		request := cancellationRequestFixture(t)
-		foreign := standard.OriginIdentity{Offering: core.Offering{Token: "foreign-origin"}}
+		foreign := runprotocol.OriginIdentity{Offering: core.Offering{Token: "foreign-origin"}}
 		peer := originPeerFixture(t, foreign)
 		calls := 0
 		repository := cancellationRepositoryFunc(func(context.Context, runnercontrol.AuthenticatedCancellationRequest) (runnercontrol.CancellationResponse, error) {
@@ -246,7 +246,7 @@ func (f peerIdentityRepositoryFunc) ResolvePeer(ctx context.Context, credential 
 	return f(ctx, credential, role)
 }
 
-func originPeerFixture(t testing.TB, origin standard.OriginIdentity) runnercontrol.AuthenticatedPeer {
+func originPeerFixture(t testing.TB, origin runprotocol.OriginIdentity) runnercontrol.AuthenticatedPeer {
 	t.Helper()
 	credential, credentialErr := runnercontrol.NewPeerCredential(runnercontrol.PeerCredentialMutualTLS, core.SHA256Of([]byte("origin-certificate")))
 	peer := runnercontrol.AuthenticatedPeer{Role: runnercontrol.PeerRoleOrigin, Credential: credential, Origin: &origin}

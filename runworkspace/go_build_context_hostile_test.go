@@ -6,7 +6,7 @@ import (
 
 	"github.com/deliri/primitive/v2026/core"
 	"github.com/deliri/primitive/v2026/runnercontrol"
-	"github.com/deliri/primitive/v2026/standard"
+	"github.com/deliri/primitive/v2026/runprotocol"
 )
 
 func TestGoBuildContextDiscoveryHostileBoundaries(t *testing.T) {
@@ -71,9 +71,9 @@ func TestGoBuildContextDiscoveryHostileBoundaries(t *testing.T) {
 			if tc.mutate != nil {
 				tc.mutate(t, &context)
 			}
-			file, err := standard.ParseSourcePath(tc.file)
+			file, err := runprotocol.ParseSourcePath(tc.file)
 			if err != nil {
-				t.Fatalf("standard.ParseSourcePath(%q) setup error = %v, want nil", tc.file, err)
+				t.Fatalf("runprotocol.ParseSourcePath(%q) setup error = %v, want nil", tc.file, err)
 			}
 			source := []byte(tc.header + "package subject\n")
 			got, gotErr := matchGoFileContext(source, file, context)
@@ -92,9 +92,9 @@ func TestGoBuildContextDiscoveryHostileBoundaries(t *testing.T) {
 
 func goBuildContextFixture(t testing.TB) runnercontrol.GoBuildContext {
 	t.Helper()
-	toolchain, toolchainErr := standard.NewIdentifier("go1-27-0")
+	toolchain, toolchainErr := runprotocol.NewIdentifier("go1-27-0")
 	release, releaseErr := runnercontrol.NewGoBuildTag("go1.27")
-	module, moduleErr := standard.ParseSourcePath("module")
+	module, moduleErr := runprotocol.ParseSourcePath("module")
 	if err := errors.Join(toolchainErr, releaseErr, moduleErr); err != nil {
 		t.Fatalf("GoBuildContext fixture identity error = %v, want nil", err)
 	}

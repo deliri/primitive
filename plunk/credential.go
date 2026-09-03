@@ -1,10 +1,12 @@
 package plunk
 
 import (
+	"errors"
 	"fmt"
 	"io"
 
 	"github.com/deliri/primitive/v2026/core"
+	"github.com/deliri/primitive/v2026/exchange"
 	"github.com/deliri/primitive/v2026/secretstore"
 )
 
@@ -69,8 +71,11 @@ func WebhookSecretFromSecret(value secretstore.Value) (WebhookSecret, error) {
 }
 
 func (s WebhookSecret) Validate() error {
-	if !validVisibleASCII(s.value, core.PlunkWebhookSecretMinimumBytes, core.PlunkWebhookSecretCustodyMaximumBytes) {
+	if len(s.value) < core.PlunkWebhookSecretMinimumBytes || len(s.value) > core.PlunkWebhookSecretCustodyMaximumBytes {
 		return core.ErrPlunkContract
+	}
+	if err := (exchange.BearerAuthorization{Token: s.value}).Validate(); err != nil {
+		return errors.Join(core.ErrPlunkContract, err)
 	}
 	return nil
 }

@@ -15,7 +15,7 @@ import (
 	"github.com/deliri/primitive/v2026/filestore"
 	"github.com/deliri/primitive/v2026/process"
 	"github.com/deliri/primitive/v2026/runnercontrol"
-	"github.com/deliri/primitive/v2026/standard"
+	"github.com/deliri/primitive/v2026/runprotocol"
 	"github.com/deliri/primitive/v2026/temporal"
 )
 
@@ -108,21 +108,21 @@ func (m Manager) CreateUnit(ctx context.Context, identity runnercontrol.Scheduli
 
 type Member struct {
 	Root core.RelativePath
-	Run  standard.RunID
+	Run  runprotocol.RunID
 }
 
 func (m Member) Validate() error {
 	return errors.Join(m.Run.Validate(), m.Root.Validate())
 }
 
-func (m Member) Experiment(identity standard.ExperimentID) (Experiment, error) {
+func (m Member) Experiment(identity runprotocol.ExperimentID) (Experiment, error) {
 	if err := errors.Join(m.Validate(), identity.Validate()); err != nil {
 		return Experiment{}, err
 	}
 	return resolveExperiment(m, identity)
 }
 
-func (m Manager) CreateMember(ctx context.Context, unit Unit, run standard.RunID) (Member, error) {
+func (m Manager) CreateMember(ctx context.Context, unit Unit, run runprotocol.RunID) (Member, error) {
 	if err := errors.Join(m.Validate(), unit.Validate(), run.Validate()); err != nil || unit.RootIdentity != m.rootIdentity {
 		return Member{}, errors.Join(core.ErrPrimitiveContract, err)
 	}
@@ -155,15 +155,15 @@ type Experiment struct {
 	Output    core.RelativePath
 	Cache     core.RelativePath
 	Temporary core.RelativePath
-	Run       standard.RunID
-	Identity  standard.ExperimentID
+	Run       runprotocol.RunID
+	Identity  runprotocol.ExperimentID
 }
 
 func (e Experiment) Validate() error {
 	return errors.Join(e.Run.Validate(), e.Identity.Validate(), e.Root.Validate(), e.Home.Validate(), e.Output.Validate(), e.Cache.Validate(), e.Temporary.Validate())
 }
 
-func (m Manager) CreateExperiment(ctx context.Context, member Member, identity standard.ExperimentID) (Experiment, error) {
+func (m Manager) CreateExperiment(ctx context.Context, member Member, identity runprotocol.ExperimentID) (Experiment, error) {
 	if err := errors.Join(m.Validate(), member.Validate(), identity.Validate()); err != nil {
 		return Experiment{}, err
 	}
@@ -193,7 +193,7 @@ func (m Manager) CreateExperiment(ctx context.Context, member Member, identity s
 	return experiment, experiment.Validate()
 }
 
-func (m Manager) ResolveExperiment(member Member, identity standard.ExperimentID) (Experiment, error) {
+func (m Manager) ResolveExperiment(member Member, identity runprotocol.ExperimentID) (Experiment, error) {
 	if err := errors.Join(m.Validate(), member.Validate(), identity.Validate()); err != nil {
 		return Experiment{}, err
 	}
@@ -232,7 +232,7 @@ func (m Manager) ValidateWritableWorkspace(workspace Experiment, binding runnerc
 	return nil
 }
 
-func resolveExperiment(member Member, identity standard.ExperimentID) (Experiment, error) {
+func resolveExperiment(member Member, identity runprotocol.ExperimentID) (Experiment, error) {
 	experiments, err := joinLiteral(member.Root, workspaceExperimentsDirectoryName)
 	if err != nil {
 		return Experiment{}, err
@@ -264,7 +264,7 @@ func resolveExperiment(member Member, identity standard.ExperimentID) (Experimen
 	return experiment, experiment.Validate()
 }
 
-func runPathComponent(run standard.RunID) (core.PathComponent, error) {
+func runPathComponent(run runprotocol.RunID) (core.PathComponent, error) {
 	encoded, err := run.MarshalJSON()
 	if err != nil {
 		return core.PathComponent{}, err
@@ -276,7 +276,7 @@ func runPathComponent(run standard.RunID) (core.PathComponent, error) {
 	return core.ParsePathComponent(value)
 }
 
-func experimentPathComponent(experiment standard.ExperimentID) (core.PathComponent, error) {
+func experimentPathComponent(experiment runprotocol.ExperimentID) (core.PathComponent, error) {
 	encoded, err := experiment.MarshalJSON()
 	if err != nil {
 		return core.PathComponent{}, err

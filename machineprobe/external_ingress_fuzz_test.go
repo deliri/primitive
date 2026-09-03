@@ -34,10 +34,10 @@ func FuzzFailureKindJSONSemanticClosure(f *testing.F) {
 		gotErr := got.UnmarshalJSON(data)
 		if gotErr != nil {
 			if !errors.Is(gotErr, core.ErrJSONContract) ||
-				!errors.Is(gotErr, core.ErrStandardContract) ||
+				!errors.Is(gotErr, core.ErrRunProtocolContract) ||
 				got != original {
 				t.Fatalf("FailureKind.UnmarshalJSON(rejected) = (%v, %v), want (%v, joined %v and %v)",
-					got, gotErr, original, core.ErrJSONContract, core.ErrStandardContract)
+					got, gotErr, original, core.ErrJSONContract, core.ErrRunProtocolContract)
 			}
 			return
 		}

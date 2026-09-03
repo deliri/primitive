@@ -7,7 +7,7 @@ import (
 
 	"github.com/deliri/primitive/v2026/core"
 	"github.com/deliri/primitive/v2026/exchange"
-	"github.com/deliri/primitive/v2026/standard"
+	"github.com/deliri/primitive/v2026/runprotocol"
 	"github.com/deliri/primitive/v2026/temporal"
 )
 
@@ -74,7 +74,7 @@ func (s *RunControlState) UnmarshalJSON(data []byte) error {
 
 type RunStateRequest struct {
 	SchemaVersion uint16           `json:"schema_version"`
-	Run           standard.RunID   `json:"run_id"`
+	Run           runprotocol.RunID   `json:"run_id"`
 	RequestedAt   temporal.Instant `json:"requested_at"`
 }
 
@@ -89,7 +89,7 @@ type RunStateResponse struct {
 	Observation   *ObservationEnvelope `json:"observation,omitempty"`
 	UpdatedAt     temporal.Instant     `json:"updated_at"`
 	SchemaVersion uint16               `json:"schema_version"`
-	Run           standard.RunID       `json:"run_id"`
+	Run           runprotocol.RunID       `json:"run_id"`
 	State         RunControlState      `json:"state"`
 }
 
@@ -124,9 +124,9 @@ func (i CancellationIdentity) Validate() error { return i.Digest.Validate() }
 // CancellationCoordinate is the complete caller-owned identity of one
 // cancellation attempt. It is independent of every product and executor.
 type CancellationCoordinate struct {
-	Origin standard.OriginIdentity `json:"origin"`
-	Run    standard.RunID          `json:"run_id"`
-	Nonce  standard.RequestNonce   `json:"request_nonce"`
+	Origin runprotocol.OriginIdentity `json:"origin"`
+	Run    runprotocol.RunID          `json:"run_id"`
+	Nonce  runprotocol.RequestNonce   `json:"request_nonce"`
 }
 
 func (c CancellationCoordinate) Validate() error {
@@ -195,7 +195,7 @@ func (r CancellationRequest) IdempotencyKey() (exchange.IdempotencyKey, error) {
 type CancellationResponse struct {
 	SchemaVersion uint16               `json:"schema_version"`
 	Identity      CancellationIdentity `json:"cancellation_id"`
-	Run           standard.RunID       `json:"run_id"`
+	Run           runprotocol.RunID       `json:"run_id"`
 	State         RunControlState      `json:"state"`
 	RecordedAt    temporal.Instant     `json:"recorded_at"`
 }

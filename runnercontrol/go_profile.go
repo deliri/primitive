@@ -11,7 +11,7 @@ import (
 
 	"github.com/deliri/primitive/v2026/core"
 	"github.com/deliri/primitive/v2026/process"
-	"github.com/deliri/primitive/v2026/standard"
+	"github.com/deliri/primitive/v2026/runprotocol"
 	"github.com/deliri/primitive/v2026/temporal"
 )
 
@@ -46,7 +46,7 @@ func (k GoProfileKind) String() string {
 	if !k.IsValid() {
 		return invalidEnumString()
 	}
-	return []string{"", "focused", "acceptance", standard.GoRaceText, "benchmark", diagnosticArtifactText, "fuzz"}[k]
+	return []string{"", "focused", "acceptance", runprotocol.GoRaceText, "benchmark", diagnosticArtifactText, "fuzz"}[k]
 }
 
 func (k GoProfileKind) MarshalJSON() ([]byte, error) {
@@ -147,12 +147,12 @@ func (a DiagnosticArtifacts) Validate() error {
 
 type GoExperimentPlan struct {
 	Diagnostics          *DiagnosticArtifacts  `json:"diagnostics,omitempty"`
-	Selector             *standard.Name        `json:"selector,omitempty"`
+	Selector             *runprotocol.Name        `json:"selector,omitempty"`
 	CoveragePath         *core.RelativePath    `json:"coverage_path,omitempty"`
 	Coverage             *CoverageMode         `json:"coverage_mode,omitempty"`
-	Package              standard.SourcePath   `json:"package"`
+	Package              runprotocol.SourcePath   `json:"package"`
 	CPU                  []uint16              `json:"cpu"`
-	Tags                 []standard.Identifier `json:"tags"`
+	Tags                 []runprotocol.Identifier `json:"tags"`
 	Timeout              temporal.Duration     `json:"timeout"`
 	ShuffleSeed          uint64                `json:"shuffle_seed"`
 	BenchmarkDuration    temporal.Duration     `json:"benchmark_duration"`
@@ -162,7 +162,7 @@ type GoExperimentPlan struct {
 	PackageParallel      uint16                `json:"package_parallel"`
 	Parallel             uint16                `json:"parallel"`
 	Profile              GoProfileKind         `json:"profile"`
-	Kind                 standard.ProbeKind    `json:"kind"`
+	Kind                 runprotocol.ProbeKind    `json:"kind"`
 }
 
 func (p GoExperimentPlan) Validate() error {
@@ -214,9 +214,9 @@ func (p GoExperimentPlan) validateProfileShape() error {
 	case GoProfileFocused:
 		return p.validateFocused()
 	case GoProfileAcceptance:
-		return requireGoKind(p.Kind, standard.ProbeKindGoTest)
+		return requireGoKind(p.Kind, runprotocol.ProbeKindGoTest)
 	case GoProfileRace:
-		return requireGoKind(p.Kind, standard.ProbeKindGoRace)
+		return requireGoKind(p.Kind, runprotocol.ProbeKindGoRace)
 	case GoProfileBenchmark:
 		return p.validateBenchmark()
 	case GoProfileDiagnostic:
@@ -230,13 +230,13 @@ func (p GoExperimentPlan) validateProfileShape() error {
 }
 
 func (p GoExperimentPlan) validateFocused() error {
-	if p.Kind != standard.ProbeKindGoTest || p.Selector == nil {
+	if p.Kind != runprotocol.ProbeKindGoTest || p.Selector == nil {
 		return core.ErrPrimitiveContract
 	}
 	return nil
 }
 
-func requireGoKind(got, want standard.ProbeKind) error {
+func requireGoKind(got, want runprotocol.ProbeKind) error {
 	if got != want {
 		return core.ErrPrimitiveContract
 	}
@@ -248,7 +248,7 @@ func (p GoExperimentPlan) validateBenchmark() error {
 	if err != nil {
 		return err
 	}
-	if p.Kind != standard.ProbeKindGoBenchmark || p.Selector == nil {
+	if p.Kind != runprotocol.ProbeKindGoBenchmark || p.Selector == nil {
 		return core.ErrPrimitiveContract
 	}
 	if p.BenchmarkDuration != accepted || p.Parallel != 1 || p.PackageParallel != 1 || p.Diagnostics == nil {
@@ -261,14 +261,14 @@ func (p GoExperimentPlan) validateBenchmark() error {
 }
 
 func (p GoExperimentPlan) validateDiagnostic() error {
-	if p.Kind != standard.ProbeKindGoDiagnosticProfile || p.Diagnostics == nil {
+	if p.Kind != runprotocol.ProbeKindGoDiagnosticProfile || p.Diagnostics == nil {
 		return core.ErrPrimitiveContract
 	}
 	return p.Diagnostics.Validate()
 }
 
 func (p GoExperimentPlan) validateFuzz() error {
-	if p.Kind != standard.ProbeKindGoFuzz || p.Selector == nil || p.Parallel != 1 || p.PackageParallel != 1 {
+	if p.Kind != runprotocol.ProbeKindGoFuzz || p.Selector == nil || p.Parallel != 1 || p.PackageParallel != 1 {
 		return core.ErrPrimitiveContract
 	}
 	accepted, err := temporal.DurationFromSeconds(FuzzAcceptanceSeconds)
@@ -338,11 +338,11 @@ func (c GoConcurrency) Validate() error {
 type GoConcurrencyResolution struct {
 	Requested GoConcurrency                     `json:"requested"`
 	Effective GoConcurrency                     `json:"effective"`
-	Machine   standard.MachineExecutionSettings `json:"machine"`
+	Machine   runprotocol.MachineExecutionSettings `json:"machine"`
 	Profile   GoProfileKind                     `json:"profile"`
 }
 
-func ResolveGoConcurrency(machine standard.MachineExecutionSettings, profile GoProfileKind, requested GoConcurrency) (GoConcurrencyResolution, error) {
+func ResolveGoConcurrency(machine runprotocol.MachineExecutionSettings, profile GoProfileKind, requested GoConcurrency) (GoConcurrencyResolution, error) {
 	if err := errors.Join(machine.Validate(), profile.Validate(), requested.Validate()); err != nil {
 		return GoConcurrencyResolution{}, err
 	}
@@ -404,7 +404,7 @@ type GoPlanRequest struct {
 	ArtifactLimit     core.ByteCount
 	WaitDelay         temporal.Duration
 	ExpectedUnits     uint32
-	Machine           standard.MachineExecutionSettings
+	Machine           runprotocol.MachineExecutionSettings
 }
 
 func (r GoPlanRequest) Validate() error {
@@ -513,7 +513,7 @@ func (p GoExperimentPlan) arguments(paths compiledGoArtifactPaths) ([]string, er
 	if err != nil {
 		return nil, err
 	}
-	arguments := []string{standard.GoTestText, p.Package.String(), standard.GoJSONOutputArgument, "-count=" + strconv.FormatUint(uint64(p.RepeatCount), 10), "-fullpath", "-outputdir=" + paths.output.String(), "-timeout=" + timeout.String(), "-shuffle=" + strconv.FormatUint(p.ShuffleSeed, 10), "-p=" + strconv.FormatUint(uint64(p.PackageParallel), 10), "-parallel=" + strconv.FormatUint(uint64(p.Parallel), 10), "-cpu=" + joinCPU(p.CPU)}
+	arguments := []string{runprotocol.GoTestText, p.Package.String(), runprotocol.GoJSONOutputArgument, "-count=" + strconv.FormatUint(uint64(p.RepeatCount), 10), "-fullpath", "-outputdir=" + paths.output.String(), "-timeout=" + timeout.String(), "-shuffle=" + strconv.FormatUint(p.ShuffleSeed, 10), "-p=" + strconv.FormatUint(uint64(p.PackageParallel), 10), "-parallel=" + strconv.FormatUint(uint64(p.Parallel), 10), "-cpu=" + joinCPU(p.CPU)}
 	selector := p.selectorArgument()
 	arguments, err = p.appendProfileArguments(arguments, selector)
 	if err != nil {
@@ -672,7 +672,7 @@ func compileGoArtifact(request GoPlanRequest, name core.RelativePath, kind Artif
 	if err != nil {
 		return ArtifactExpectation{}, core.AbsolutePath{}, err
 	}
-	protocolPath, err := standard.ParseSourcePath(path.String())
+	protocolPath, err := runprotocol.ParseSourcePath(path.String())
 	if err != nil {
 		return ArtifactExpectation{}, core.AbsolutePath{}, err
 	}

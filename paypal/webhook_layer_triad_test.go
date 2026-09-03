@@ -130,7 +130,7 @@ func payPalIncomingWebhookRequest(t testing.TB, body []byte, complete bool) *htt
 	}
 	request.Header.Set(core.PayPalCertificateURLHeaderName, "https://api.paypal.com/v1/notifications/certs/CERT123")
 	request.Header.Set(core.PayPalTransmissionIDHeaderName, "transmission-123")
-	request.Header.Set(core.PayPalTransmissionSignatureHeaderName, "signature-123")
+	request.Header.Set(core.PayPalTransmissionSignatureHeaderName, "c2lnbmF0dXJlLTEyMw==")
 	request.Header.Set(core.PayPalTransmissionTimeHeaderName, "2026-09-02T12:00:00Z")
 	return request
 }

@@ -13,7 +13,7 @@ import (
 	primitiveid "github.com/deliri/primitive/v2026/id"
 	"github.com/deliri/primitive/v2026/machineprobe"
 	"github.com/deliri/primitive/v2026/process"
-	"github.com/deliri/primitive/v2026/standard"
+	"github.com/deliri/primitive/v2026/runprotocol"
 	"github.com/deliri/primitive/v2026/temporal"
 )
 
@@ -114,7 +114,7 @@ func exactProbeScript(t testing.TB, size uint64) []byte {
 	return append(prefix, suffix...)
 }
 
-func isZeroObservation(got standard.MachineObservation) bool {
+func isZeroObservation(got runprotocol.MachineObservation) bool {
 	return got.SchemaVersion == 0 &&
 		got.Configuration.Toolchains == nil &&
 		got.Execution.StdoutBytes.Uint64() == 0
@@ -150,8 +150,8 @@ func writeProbeFixture(t *testing.T, directory string, script []byte) machinepro
 		t.Fatalf("process.Resolve(bash) setup error = %v, want nil", err)
 	}
 	uuid := mustUUID(t)
-	observationID, observationErr := standard.NewMachineObservationID(uuid)
-	generationID, generationErr := standard.NewMachineGenerationID(uuid)
+	observationID, observationErr := runprotocol.NewMachineObservationID(uuid)
+	generationID, generationErr := runprotocol.NewMachineGenerationID(uuid)
 	if err := errors.Join(observationErr, generationErr); err != nil {
 		t.Fatalf("machine probe identity setup error = %v, want nil", err)
 	}
@@ -161,7 +161,7 @@ func writeProbeFixture(t *testing.T, directory string, script []byte) machinepro
 	}
 	return machineprobe.Request{
 		ObservationID: observationID, GenerationID: generationID, ObservedAt: temporal.InstantFromNanoseconds(2_000_000),
-		Collector: standard.EvidenceAuthority{Offering: core.Offering{Token: "runner"}}, Bash: bash,
+		Collector: runprotocol.EvidenceAuthority{Offering: core.Offering{Token: "runner"}}, Bash: bash,
 		Script:           mustAbsolutePath(t, filepath.Join(directory, "machine-probe.sh")),
 		WorkingDirectory: rootPath, Environment: process.Environment{Mode: process.EnvironmentModeExact, Variables: []process.EnvironmentVariable{}}, WaitDelay: waitDelay,
 	}
@@ -183,25 +183,25 @@ func validProbeScript(testing.TB) []byte {
 	return []byte("#!/bin/bash\nexec /bin/cat -- report.json\n")
 }
 
-func machineReport(t testing.TB) standard.MachineProbeReport {
+func machineReport(t testing.TB) runprotocol.MachineProbeReport {
 	t.Helper()
-	machineID, err := standard.NewMachineID(mustUUID(t))
+	machineID, err := runprotocol.NewMachineID(mustUUID(t))
 	if err != nil {
-		t.Fatalf("standard.NewMachineID() setup error = %v, want nil", err)
+		t.Fatalf("runprotocol.NewMachineID() setup error = %v, want nil", err)
 	}
 	digest := core.NewSHA256Digest([core.SHA256DigestBytes]byte{1})
-	return standard.MachineProbeReport{
-		SchemaVersion: standard.MachineProbeSchemaVersion,
-		Configuration: standard.MachineConfiguration{
-			Identity:   standard.MachineIdentity{ID: machineID, Provider: core.Offering{Token: "google-cloud"}, Project: mustIdentifier(t, "example-project"), Instance: mustIdentifier(t, "runner-1"), Zone: mustIdentifier(t, "northamerica-northeast2-a"), MachineType: mustIdentifier(t, "e2-standard-4")},
-			Compute:    standard.MachineCompute{CPUPlatform: mustName(t, "Intel Broadwell"), Processor: mustName(t, "Intel Xeon"), Architecture: mustName(t, "x86_64"), Virtualization: mustName(t, "Google virtualization"), VCPU: 4, Sockets: 1, CoresPerSocket: 2, ThreadsPerCore: 2, NUMANodes: 1, MemoryConfiguredBytes: mustByteCount(t, 16<<30), MemoryGuestBytes: mustByteCount(t, 15<<30)},
-			System:     standard.MachineSystem{OperatingSystem: mustName(t, "Ubuntu"), OperatingSystemVersion: mustName(t, "24.04.4 LTS"), OperatingSystemImage: mustName(t, "ubuntu-2404"), Kernel: mustName(t, "6.17.0-gcp")},
-			Storage:    standard.MachineStorage{BootDiskType: mustName(t, "Balanced Persistent Disk"), Interface: mustName(t, "SCSI"), Filesystem: mustName(t, "ext4"), PhysicalBlockBytes: mustByteCount(t, 4096), CapacityBytes: mustByteCount(t, 30<<30), BaselineIOPS: 3000, BaselineReadBytes: 140 << 20, InstanceCeilingIOPS: 15_000, InstanceCeilingReadBytes: 240 << 20, SwapBytes: mustByteLength(t, 0)},
-			Network:    standard.MachineNetwork{Interface: mustName(t, "VirtIO Net"), NetworkTier: mustName(t, "Tier 1 disabled"), Addressing: mustName(t, "IPv4 ephemeral"), VPC: mustIdentifier(t, "example-test-runner"), MTU: 1460, ReceiveQueues: 4, TransmitQueues: 4, EgressFloorBits: 1_000_000_000, EgressCeilingBits: 10_000_000_000},
-			Lifecycle:  standard.MachineLifecycleSecurity{ProvisioningModel: standard.MachineProvisioningStandard, StoppedWhenIdle: true, HostMaintenance: standard.MachineMaintenanceMigrate, SecureBoot: true, VirtualTPM: true, IntegrityMonitoring: true},
-			Toolchains: []standard.MachineToolchain{{Tool: standard.MachineToolchainGo, Version: mustName(t, "go1.27.0"), Platform: mustName(t, "linux/amd64"), InstallMode: standard.MachineInstallModeInstalled, ExecutableSHA256: digest}},
+	return runprotocol.MachineProbeReport{
+		SchemaVersion: runprotocol.MachineProbeSchemaVersion,
+		Configuration: runprotocol.MachineConfiguration{
+			Identity:   runprotocol.MachineIdentity{ID: machineID, Provider: core.Offering{Token: "google-cloud"}, Project: mustIdentifier(t, "example-project"), Instance: mustIdentifier(t, "runner-1"), Zone: mustIdentifier(t, "northamerica-northeast2-a"), MachineType: mustIdentifier(t, "e2-standard-4")},
+			Compute:    runprotocol.MachineCompute{CPUPlatform: mustName(t, "Intel Broadwell"), Processor: mustName(t, "Intel Xeon"), Architecture: mustName(t, "x86_64"), Virtualization: mustName(t, "Google virtualization"), VCPU: 4, Sockets: 1, CoresPerSocket: 2, ThreadsPerCore: 2, NUMANodes: 1, MemoryConfiguredBytes: mustByteCount(t, 16<<30), MemoryGuestBytes: mustByteCount(t, 15<<30)},
+			System:     runprotocol.MachineSystem{OperatingSystem: mustName(t, "Ubuntu"), OperatingSystemVersion: mustName(t, "24.04.4 LTS"), OperatingSystemImage: mustName(t, "ubuntu-2404"), Kernel: mustName(t, "6.17.0-gcp")},
+			Storage:    runprotocol.MachineStorage{BootDiskType: mustName(t, "Balanced Persistent Disk"), Interface: mustName(t, "SCSI"), Filesystem: mustName(t, "ext4"), PhysicalBlockBytes: mustByteCount(t, 4096), CapacityBytes: mustByteCount(t, 30<<30), BaselineIOPS: 3000, BaselineReadBytes: 140 << 20, InstanceCeilingIOPS: 15_000, InstanceCeilingReadBytes: 240 << 20, SwapBytes: mustByteLength(t, 0)},
+			Network:    runprotocol.MachineNetwork{Interface: mustName(t, "VirtIO Net"), NetworkTier: mustName(t, "Tier 1 disabled"), Addressing: mustName(t, "IPv4 ephemeral"), VPC: mustIdentifier(t, "example-test-runner"), MTU: 1460, ReceiveQueues: 4, TransmitQueues: 4, EgressFloorBits: 1_000_000_000, EgressCeilingBits: 10_000_000_000},
+			Lifecycle:  runprotocol.MachineLifecycleSecurity{ProvisioningModel: runprotocol.MachineProvisioningStandard, StoppedWhenIdle: true, HostMaintenance: runprotocol.MachineMaintenanceMigrate, SecureBoot: true, VirtualTPM: true, IntegrityMonitoring: true},
+			Toolchains: []runprotocol.MachineToolchain{{Tool: runprotocol.MachineToolchainGo, Version: mustName(t, "go1.27.0"), Platform: mustName(t, "linux/amd64"), InstallMode: runprotocol.MachineInstallModeInstalled, ExecutableSHA256: digest}},
 		},
-		Runtime: standard.MachineRuntime{BootID: mustIdentifier(t, "4c9b6f78-79d0-442b-bd8f-1dcbbcc9c68f"), Uptime: mustDuration(t, 60), MemoryAvailableBytes: mustByteLength(t, 14<<30), DiskAvailableBytes: mustByteLength(t, 24<<30), Address: mustName(t, "10.42.0.4")},
+		Runtime: runprotocol.MachineRuntime{BootID: mustIdentifier(t, "4c9b6f78-79d0-442b-bd8f-1dcbbcc9c68f"), Uptime: mustDuration(t, 60), MemoryAvailableBytes: mustByteLength(t, 14<<30), DiskAvailableBytes: mustByteLength(t, 24<<30), Address: mustName(t, "10.42.0.4")},
 	}
 }
 
@@ -214,19 +214,19 @@ func mustUUID(t testing.TB) primitiveid.UUIDv7 {
 	return got
 }
 
-func mustIdentifier(t testing.TB, value string) standard.Identifier {
+func mustIdentifier(t testing.TB, value string) runprotocol.Identifier {
 	t.Helper()
-	got, err := standard.NewIdentifier(value)
+	got, err := runprotocol.NewIdentifier(value)
 	if err != nil {
-		t.Fatalf("standard.NewIdentifier(%q) setup error = %v, want nil", value, err)
+		t.Fatalf("runprotocol.NewIdentifier(%q) setup error = %v, want nil", value, err)
 	}
 	return got
 }
-func mustName(t testing.TB, value string) standard.Name {
+func mustName(t testing.TB, value string) runprotocol.Name {
 	t.Helper()
-	got, err := standard.NewName(value)
+	got, err := runprotocol.NewName(value)
 	if err != nil {
-		t.Fatalf("standard.NewName(%q) setup error = %v, want nil", value, err)
+		t.Fatalf("runprotocol.NewName(%q) setup error = %v, want nil", value, err)
 	}
 	return got
 }

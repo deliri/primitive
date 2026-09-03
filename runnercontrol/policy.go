@@ -6,7 +6,7 @@ import (
 	"fmt"
 
 	"github.com/deliri/primitive/v2026/core"
-	"github.com/deliri/primitive/v2026/standard"
+	"github.com/deliri/primitive/v2026/runprotocol"
 )
 
 const NetworkRuleMaximum = 32
@@ -114,7 +114,7 @@ func (m *EgressMode) UnmarshalJSON(data []byte) error {
 }
 
 type EgressRule struct {
-	Service     standard.Identifier `json:"service"`
+	Service     runprotocol.Identifier `json:"service"`
 	Endpoint    core.HTTPEndpoint   `json:"endpoint"`
 	Protocol    NetworkProtocol     `json:"protocol"`
 	Port        uint16              `json:"port"`
@@ -214,7 +214,7 @@ func (r ResourceRequirement) Validate() error {
 }
 
 type ResourceWave struct {
-	Experiments []standard.ExperimentID `json:"experiments"`
+	Experiments []runprotocol.ExperimentID `json:"experiments"`
 	Required    ResourceRequirement     `json:"required"`
 	WaveWidth   uint16                  `json:"wave_width"`
 }
@@ -250,7 +250,7 @@ func (w ResourceWave) validateShape() error {
 	return nil
 }
 
-func experimentDuplicatesEarlier(experiments []standard.ExperimentID, index int) bool {
+func experimentDuplicatesEarlier(experiments []runprotocol.ExperimentID, index int) bool {
 	for previous := range index {
 		if experiments[previous] == experiments[index] {
 			return true

@@ -6,7 +6,7 @@ import (
 	"io"
 
 	"github.com/deliri/primitive/v2026/core"
-	"github.com/deliri/primitive/v2026/standard"
+	"github.com/deliri/primitive/v2026/runprotocol"
 )
 
 const (
@@ -16,19 +16,19 @@ const (
 )
 
 type JUnitObservation struct {
-	Accounting standard.ExecutionAccounting `json:"accounting"`
+	Accounting runprotocol.ExecutionAccounting `json:"accounting"`
 }
 
 func (o JUnitObservation) Validate() error { return o.Accounting.Validate() }
 
 type junitCompileResult struct {
 	err     error
-	attempt standard.ExecutionAttempt
+	attempt runprotocol.ExecutionAttempt
 }
 
 type junitStreamState struct {
 	policy      ObservationPolicy
-	attempt     standard.ExecutionAttempt
+	attempt     runprotocol.ExecutionAttempt
 	inCase      bool
 	caseFailed  bool
 	caseSkipped bool
@@ -109,7 +109,7 @@ func (c *JUnitObservationCompiler) Seal(executionErr error) (JUnitObservation, e
 	if (executionErr == nil) != (result.attempt.Failed == 0) {
 		return unavailableJUnitObservation(c.policy), observationFailure("JUnit terminal counts disagree with the process exit", core.ErrPrimitiveContract, executionErr)
 	}
-	observation := JUnitObservation{Accounting: standard.ExecutionAccounting{Attempts: []standard.ExecutionAttempt{result.attempt}}}
+	observation := JUnitObservation{Accounting: runprotocol.ExecutionAccounting{Attempts: []runprotocol.ExecutionAttempt{result.attempt}}}
 	return observation, observation.Validate()
 }
 
@@ -125,11 +125,11 @@ func (c *JUnitObservationCompiler) Abort() {
 	<-c.done
 }
 
-func parseJUnitStream(reader io.Reader, policy ObservationPolicy) (standard.ExecutionAttempt, error) {
+func parseJUnitStream(reader io.Reader, policy ObservationPolicy) (runprotocol.ExecutionAttempt, error) {
 	decoder := xml.NewDecoder(reader)
 	state := junitStreamState{
 		policy:  policy,
-		attempt: standard.ExecutionAttempt{Sequence: 1, Planned: policy.ExpectedUnits, Cache: standard.CacheDisabled, Filtered: policy.Filtered},
+		attempt: runprotocol.ExecutionAttempt{Sequence: 1, Planned: policy.ExpectedUnits, Cache: runprotocol.CacheDisabled, Filtered: policy.Filtered},
 	}
 	for {
 		token, err := decoder.Token()
@@ -137,10 +137,10 @@ func parseJUnitStream(reader io.Reader, policy ObservationPolicy) (standard.Exec
 			break
 		}
 		if err != nil {
-			return standard.ExecutionAttempt{}, observationFailure("JUnit XML cannot be decoded", core.ErrPrimitiveContract, err)
+			return runprotocol.ExecutionAttempt{}, observationFailure("JUnit XML cannot be decoded", core.ErrPrimitiveContract, err)
 		}
 		if err := state.consume(token); err != nil {
-			return standard.ExecutionAttempt{}, err
+			return runprotocol.ExecutionAttempt{}, err
 		}
 	}
 	return state.finish()
@@ -210,18 +210,18 @@ func (s *junitStreamState) recordCase() {
 	}
 }
 
-func (s *junitStreamState) finish() (standard.ExecutionAttempt, error) {
+func (s *junitStreamState) finish() (runprotocol.ExecutionAttempt, error) {
 	if s.inCase {
-		return standard.ExecutionAttempt{}, observationFailure("JUnit XML ends inside a testcase", core.ErrPrimitiveContract)
+		return runprotocol.ExecutionAttempt{}, observationFailure("JUnit XML ends inside a testcase", core.ErrPrimitiveContract)
 	}
 	if s.observed == 0 {
-		return standard.ExecutionAttempt{}, observationFailure("JUnit XML contains no testcase evidence", core.ErrPrimitiveContract)
+		return runprotocol.ExecutionAttempt{}, observationFailure("JUnit XML contains no testcase evidence", core.ErrPrimitiveContract)
 	}
 	if s.observed < s.policy.ExpectedUnits {
 		s.attempt.NotRun = s.policy.ExpectedUnits - s.observed
 	}
 	if err := s.attempt.Validate(); err != nil {
-		return standard.ExecutionAttempt{}, observationFailure("JUnit accounting does not close", core.ErrPrimitiveContract, err)
+		return runprotocol.ExecutionAttempt{}, observationFailure("JUnit accounting does not close", core.ErrPrimitiveContract, err)
 	}
 	return s.attempt, nil
 }
@@ -238,7 +238,7 @@ func duplicateJUnitAttribute(attributes []xml.Attr) bool {
 }
 
 func unavailableJUnitObservation(policy ObservationPolicy) JUnitObservation {
-	return JUnitObservation{Accounting: standard.ExecutionAccounting{Attempts: []standard.ExecutionAttempt{{Sequence: 1, Planned: policy.ExpectedUnits, Unavailable: policy.ExpectedUnits, Cache: standard.CacheDisabled, Filtered: policy.Filtered}}}}
+	return JUnitObservation{Accounting: runprotocol.ExecutionAccounting{Attempts: []runprotocol.ExecutionAttempt{{Sequence: 1, Planned: policy.ExpectedUnits, Unavailable: policy.ExpectedUnits, Cache: runprotocol.CacheDisabled, Filtered: policy.Filtered}}}}
 }
 
 var (

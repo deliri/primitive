@@ -1,0 +1,138 @@
+package claims
+
+func emitPackageClaimSpecsSThroughZ(emit func(packageClaimSpec) bool) bool {
+	specs := [...]packageClaimSpec{
+		{
+			path: "secretstore", title: "Exact-version secret access",
+			problem:  "Secret lookup through ambient environment or provider SDKs leaks provider types, mutable latest-version semantics, and sensitive diagnostics into callers.",
+			solution: "Secretstore isolates official provider clients and returns bounded redacted material for one exact requested secret version.",
+			benefit:  "Consumers cross one auditable secret effect boundary without learning provider storage mechanics.",
+			removal:  "Remove Secretstore when no consumer reads external secrets or another single owner supplies the complete exact-version contract.",
+			owns:     "Secretstore owns provider client construction, exact-version lookup, byte bounds, secret custody, redaction, and cleanup.",
+			excludes: "It does not choose secret names, rotate values, cache material, define authorization, or expose a generic provider object model.",
+		},
+		{
+			path: "shutdown", title: "Bounded shutdown mechanics",
+			problem:  "Signal handling and cleanup order become racy when packages install global handlers, detach goroutines, or guess shutdown timing.",
+			solution: "Shutdown supplies typed signal observation and deterministic phased cleanup with explicit cooperative budgets and owned lifetimes.",
+			benefit:  "Services share one predictable termination mechanism while each product chooses its cleanup work and escalation policy.",
+			removal:  "Remove Shutdown when no process needs shared signal and bounded phased-cleanup mechanics beyond the standard library.",
+			owns:     "Shutdown owns one signal subscription, cancellation cause, escalation observation, phase ordering, budgets, and cleanup result accounting.",
+			excludes: "It does not exit the process, force callbacks, invent cleanup tasks, persist state, or decide product availability policy.",
+		},
+		{
+			path: "sourceclaim", title: "Human-authored source claims",
+			problem:  "Compiler facts can show what code is but cannot explain why it exists, what value it creates, or when it should be removed.",
+			solution: "Sourceclaim defines streamed atomic project, package, and file explanations with explicit boundaries and typed proof requirements.",
+			benefit:  "Large repositories gain inspectable human intent without mixing prose into generated source observations.",
+			removal:  "Remove Sourceclaim when maintainers no longer need human reasons for source or another shared typed claim agreement replaces it.",
+			owns:     "Sourceclaim owns claim shape, stable identity, canonical streaming, human narratives, ownership boundaries, and proof requirement modes.",
+			excludes: "It does not inspect code, synthesize reasons, execute tests, prove itself, retain history, or decide product acceptance.",
+		},
+		{
+			path: "sourceobservation", title: "Compiler-derived source observations",
+			problem:  "Source explanations cannot be checked against vague file lists, generated catalogs, or observations that invent purpose.",
+			solution: "Sourceobservation records exact-revision file bytes, digests, build selections, declarations, imports, effects, references, and membership.",
+			benefit:  "Offline tools can produce a lossless mechanical map from files to packages to project using bounded streaming verification.",
+			removal:  "Remove Sourceobservation when no offline source tool needs this shared mechanical fact agreement.",
+			owns:     "Sourceobservation owns typed mechanical source facts, canonical membership indexes, digest binding, and exact cardinality rollups.",
+			excludes: "It does not explain why code exists, judge value, run evidence phases, store history, or decide whether a claim is true.",
+		},
+		{
+			path: "sourceproof", title: "Claim-to-evidence proof results",
+			problem:  "A package-level pass bit hides contradicted, stale, missing, unavailable, and human-only parts of many independent source claims.",
+			solution: "Sourceproof binds every atomic claim requirement to independently retained evidence and preserves each closed requirement state without inventing a claim-level verdict.",
+			benefit:  "Repository rollups stay lossless and a claimant cannot turn its own assertion into acceptance.",
+			removal:  "Remove Sourceproof when source claims are no longer verified or another shared agreement preserves the same per-requirement evidence chain.",
+			owns:     "Sourceproof owns evidence references, authority separation, revision binding, requirement results, state derivation, and streaming summaries.",
+			excludes: "It does not author claims, inspect source, execute evidence, store results, issue human approval, or define product completion.",
+		},
+		{
+			path: "stripe", title: "Isolated Stripe provider socket",
+			problem:  "Stripe credentials, request authentication, response limits, and webhook signature tolerance use provider rules that should not leak into product billing code.",
+			solution: "Stripe owns the exact credential, authenticated HTTP, bounded response, signed-header parsing, and webhook verification mechanics.",
+			benefit:  "Products consume typed verified provider facts without sharing policy or coupling Stripe rules to another payment provider.",
+			removal:  "Remove Stripe when no product integrates Stripe or the provider boundary is wholly replaced.",
+			owns:     "Stripe owns Stripe-specific keys, hosts, headers, request signing, response validation, timestamp extraction, and webhook HMAC verification.",
+			excludes: "It does not interpret payment meaning, choose tolerance policy for products, store billing state, or grant entitlements.",
+		},
+		{
+			path: "submission", title: "Authenticated evidence submission agreement",
+			problem:  "An upload capability can be misapplied unless it is tied to the exact evidence declaration, request, lifetime, retention promise, and authority.",
+			solution: "Submission authenticates a declaration and binds one authority-issued upload capability to that exact intent.",
+			benefit:  "Installed products can submit blind evidence without Primitive inspecting it or deciding commercial admission.",
+			removal:  "Remove Submission when no independently installed product requests authority-bound evidence upload capabilities.",
+			owns:     "Submission owns declaration and request shape, signature binding, capability commitment, lifetime, and retention agreement.",
+			excludes: "It does not inspect evidence, decide plans, create cloud objects, perform transfer, or accept custody.",
+		},
+		{
+			path: "submissionauth", title: "Authenticated submission requests",
+			problem:  "A signed evidence submission is not attributable until its device key is bound to an authority-issued installation certificate.",
+			solution: "Submissionauth verifies the installation credential and authenticates one Submission request with the nominated device key.",
+			benefit:  "Capability issuance receives one exact identity chain without duplicating Controlplane or Submission verification.",
+			removal:  "Remove Submissionauth when submissions no longer cross an installation-authenticated boundary.",
+			owns:     "Submissionauth owns the mechanical installation-certificate, device-key, and request-signature binding.",
+			excludes: "It does not decide submission admission, issue upload capabilities, transfer evidence, or own account policy.",
+		},
+		{
+			path: "temporal", title: "Typed time values and effects",
+			problem:  "Raw time values mix units, permit invalid ranges, hide wall-clock acquisition, and encourage policy to call time.Now directly.",
+			solution: "Temporal provides exact nanosecond values, durations, instants, caller-controlled clocks, timers, and bounded context-aware waits.",
+			benefit:  "Products receive time as typed data and tests remain deterministic while Go time semantics stay recognizable.",
+			removal:  "Remove a Temporal type or effect when Go supplies its complete nominal validation and ownership contract directly.",
+			owns:     "Temporal owns time-value validation, unit-safe arithmetic, wall-time observation, and thin timer and context effects.",
+			excludes: "It does not define business deadlines, retry schedules, lease policy, chronology meaning, or hidden global clocks.",
+		},
+		{
+			path: "testserial", title: "Typed serial-test declarations",
+			problem:  "A comment explaining why a test is serial cannot be validated, executed, or broken when its process-wide hazard changes.",
+			solution: "Testserial validates a compiler-owned isolation declaration at the serial test call site.",
+			benefit:  "Intentional nonparallelism remains machine-checkable without pretending the helper itself provides mutual exclusion.",
+			removal:  "Remove Testserial when Go testing or the doctrine linter natively accepts the same typed hazard declaration.",
+			owns:     "Testserial owns test-only validation of exact hazard and scope declarations required by doctrine tooling.",
+			excludes: "It does not lock resources, schedule tests, serialize goroutines, or excuse unowned mutable state.",
+		},
+		{
+			path: "timeproof", title: "Verified RFC 3161 time evidence",
+			problem:  "A local clock assertion cannot prove that specific bytes existed by an independently attested time.",
+			solution: "Timeproof prepares bounded timestamp requests and verifies RFC 3161 CMS evidence against closed authorities and trust anchors.",
+			benefit:  "Consumers retain cryptographic time evidence without implementing ASN.1, CMS, digest, and trust validation themselves.",
+			removal:  "Remove Timeproof when no consumer needs RFC 3161 evidence or another owner replaces the complete verification boundary.",
+			owns:     "Timeproof owns timestamp request shape, supported authority identities, response bounds, CMS parsing, digest binding, and verification.",
+			excludes: "It does not transport requests, generate entropy, read clocks, persist evidence, or decide what the timestamp proves for a product.",
+		},
+		{
+			path: "twilio", title: "Isolated Twilio provider socket",
+			problem:  "Twilio credentials, API exchange, and official webhook signature rules should not be copied into messaging products or conflated with other providers.",
+			solution: "Twilio owns bounded authenticated HTTP mechanics and official-SDK webhook authentication with typed provider errors.",
+			benefit:  "Products receive verified provider facts through one isolated socket while message meaning remains outside Primitive.",
+			removal:  "Remove Twilio when no product integrates Twilio or the provider boundary is wholly replaced.",
+			owns:     "Twilio owns Twilio-specific account credentials, authorization, hosts, request and response bounds, and webhook signature verification.",
+			excludes: "It does not interpret messages, choose recipients, store conversations, retry product actions, or grant product authority.",
+		},
+		{
+			path: "upgrade", title: "Authenticated atomic binary upgrade",
+			problem:  "An installed tool can corrupt itself when download, staging, trials, promotion, and rollback slot identity are not one exact bounded sequence.",
+			solution: "Upgrade stages a verified Release into the unselected slot, exposes it for caller-owned trials, and atomically promotes only a typed passing report.",
+			benefit:  "CLI products reuse safe streaming installation mechanics while retaining their own consent, test, and rollout policy.",
+			removal:  "Remove Upgrade when no installed tool self-upgrades through the two-slot release contract.",
+			owns:     "Upgrade owns artifact staging, integrity verification, fixed-slot paths, trial command exposure, atomic selection, and former-slot cleanup.",
+			excludes: "It does not choose arguments, define test success, request consent, submit tickets, schedule work, retry, or own release authority.",
+		},
+		{
+			path: "wiring", title: "Bounded component-graph proof",
+			problem:  "Runtime composition can hide duplicate providers, missing dependencies, and cycles behind constructors or mutable registries.",
+			solution: "Wiring validates a bounded typed component graph and derives deterministic construction order without executing components.",
+			benefit:  "Process assembly becomes inspectable and reproducible without a dependency-injection runtime or universal service model.",
+			removal:  "Remove Wiring when no consumer needs shared static component-graph validation beyond direct construction.",
+			owns:     "Wiring owns component and dependency identities, graph bounds, duplicate and cycle refusal, and deterministic order.",
+			excludes: "It does not instantiate services, discover plugins, store global state, supervise lifetimes, or define product architecture.",
+		},
+	}
+	for _, spec := range specs {
+		if !emit(spec) {
+			return false
+		}
+	}
+	return true
+}

@@ -9,7 +9,7 @@ import (
 	"github.com/deliri/primitive/v2026/attest"
 	"github.com/deliri/primitive/v2026/core"
 	"github.com/deliri/primitive/v2026/exchange"
-	"github.com/deliri/primitive/v2026/standard"
+	"github.com/deliri/primitive/v2026/runprotocol"
 )
 
 const ObservationDeliveryReceiptMaximumBytes = 32 * 1024
@@ -151,7 +151,7 @@ func (u *ObservationDeliveryPageUpload) UnmarshalJSON(data []byte) error {
 type ObservationDeliveryCommit struct {
 	SchemaVersion uint16                      `json:"schema_version"`
 	Identity      ObservationDeliveryIdentity `json:"identity"`
-	Run           standard.RunID              `json:"run_id"`
+	Run           runprotocol.RunID              `json:"run_id"`
 	PageCount     uint16                      `json:"page_count"`
 }
 
@@ -201,7 +201,7 @@ func (c *ObservationDeliveryCommit) UnmarshalJSON(data []byte) error {
 type ObservationDeliveryReceipt struct {
 	SchemaVersion uint16                      `json:"schema_version"`
 	Identity      ObservationDeliveryIdentity `json:"identity"`
-	Run           standard.RunID              `json:"run_id"`
+	Run           runprotocol.RunID              `json:"run_id"`
 	PagesStored   uint16                      `json:"pages_stored"`
 	Published     bool                        `json:"published"`
 }
@@ -246,9 +246,9 @@ type ObservationDeliveryStore interface {
 }
 
 type ObservationDeliveryVerifier struct {
-	Origin      standard.OriginIdentity
-	Destination standard.Identifier
-	Audience    standard.Identifier
+	Origin      runprotocol.OriginIdentity
+	Destination runprotocol.Identifier
+	Audience    runprotocol.Identifier
 	Grant       core.SHA256Digest
 	ControlKeys attest.TrustedKeys
 	RunnerKeys  attest.TrustedKeys
@@ -336,7 +336,7 @@ type deliveryReceiptWrite struct {
 	call      exchange.SocketServerCall
 	socket    exchange.ServerSocket
 	receipt   ObservationDeliveryReceipt
-	run       standard.RunID
+	run       runprotocol.RunID
 	published bool
 }
 

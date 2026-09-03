@@ -19,7 +19,7 @@ import (
 	"github.com/deliri/primitive/v2026/core"
 	"github.com/deliri/primitive/v2026/filestore"
 	"github.com/deliri/primitive/v2026/runnercontrol"
-	"github.com/deliri/primitive/v2026/standard"
+	"github.com/deliri/primitive/v2026/runprotocol"
 )
 
 const GoDiscoverySourceMaximumBytes = 4 * 1024 * 1024
@@ -30,22 +30,22 @@ const (
 )
 
 type GoDeclaration struct {
-	Symbol standard.Name
-	Kind   standard.ProbeKind
+	Symbol runprotocol.Name
+	Kind   runprotocol.ProbeKind
 }
 
 func (d GoDeclaration) Validate() error {
 	if err := errors.Join(d.Kind.Validate(), d.Symbol.Validate()); err != nil {
 		return err
 	}
-	if d.Kind != standard.ProbeKindGoTest && d.Kind != standard.ProbeKindGoRace && d.Kind != standard.ProbeKindGoBenchmark && d.Kind != standard.ProbeKindGoFuzz && d.Kind != standard.ProbeKindGoDiagnosticProfile {
+	if d.Kind != runprotocol.ProbeKindGoTest && d.Kind != runprotocol.ProbeKindGoRace && d.Kind != runprotocol.ProbeKindGoBenchmark && d.Kind != runprotocol.ProbeKindGoFuzz && d.Kind != runprotocol.ProbeKindGoDiagnosticProfile {
 		return core.ErrPrimitiveContract
 	}
 	return nil
 }
 
 type GoDiscovery struct {
-	File         standard.SourcePath
+	File         runprotocol.SourcePath
 	Declarations []GoDiscoveredDeclaration
 }
 
@@ -59,8 +59,8 @@ func (d GoDiscoveredDeclaration) Validate() error {
 }
 
 type GoFileDiscoveryRequest struct {
-	Target   standard.GoFileTarget
-	Profile  standard.ProfileIdentity
+	Target   runprotocol.GoFileTarget
+	Profile  runprotocol.ProfileIdentity
 	Contexts runnercontrol.GoBuildContextSet
 	Source   VerifiedSource
 }
@@ -81,7 +81,7 @@ func (r GoFileDiscoveryRequest) Validate() error {
 }
 
 type GoPackageDiscoveredDeclaration struct {
-	File               standard.SourcePath
+	File               runprotocol.SourcePath
 	Declaration        GoDeclaration
 	BuildContextDigest core.SHA256Digest
 }
@@ -91,7 +91,7 @@ func (d GoPackageDiscoveredDeclaration) Validate() error {
 }
 
 type GoPackageDiscovery struct {
-	Package      standard.SourcePath
+	Package      runprotocol.SourcePath
 	Declarations []GoPackageDiscoveredDeclaration
 }
 
@@ -111,8 +111,8 @@ func (d GoPackageDiscovery) Validate() error {
 }
 
 type GoPackageDiscoveryRequest struct {
-	Target   standard.GoPackageTarget
-	Profile  standard.ProfileIdentity
+	Target   runprotocol.GoPackageTarget
+	Profile  runprotocol.ProfileIdentity
 	Contexts runnercontrol.GoBuildContextSet
 	Source   VerifiedSource
 }
@@ -184,7 +184,7 @@ func (m Manager) DiscoverGoPackage(ctx context.Context, request GoPackageDiscove
 			if entry.Entry.IsDir() {
 				return filestore.WalkSkipDirectory, nil
 			}
-			if !strings.HasSuffix(entry.Entry.Name(), standard.GoTestFileSuffix) {
+			if !strings.HasSuffix(entry.Entry.Name(), runprotocol.GoTestFileSuffix) {
 				return filestore.WalkContinue, nil
 			}
 			files++
@@ -205,7 +205,7 @@ func (m Manager) DiscoverGoPackage(ctx context.Context, request GoPackageDiscove
 }
 
 func (m Manager) discoverGoPackageFile(ctx context.Context, request GoPackageDiscoveryRequest, entry filestore.WalkEntry) ([]GoPackageDiscoveredDeclaration, error) {
-	file, err := standard.ParseSourcePath(filepath.Join(request.Target.Package.String(), entry.Entry.Name()))
+	file, err := runprotocol.ParseSourcePath(filepath.Join(request.Target.Package.String(), entry.Entry.Name()))
 	if err != nil {
 		return nil, err
 	}
@@ -215,7 +215,7 @@ func (m Manager) discoverGoPackageFile(ctx context.Context, request GoPackageDis
 	}
 	fileRequest := GoFileDiscoveryRequest{
 		Source:  request.Source,
-		Target:  standard.GoFileTarget{Module: request.Target.Module, Package: request.Target.Package, File: file, ChildKinds: append([]standard.ProbeKind(nil), request.Target.ChildKinds...)},
+		Target:  runprotocol.GoFileTarget{Module: request.Target.Module, Package: request.Target.Package, File: file, ChildKinds: append([]runprotocol.ProbeKind(nil), request.Target.ChildKinds...)},
 		Profile: request.Profile, Contexts: request.Contexts,
 	}
 	found, err := discoverGoFileContexts(content, fileRequest)
@@ -255,7 +255,7 @@ func discoverGoFileContexts(source []byte, request GoFileDiscoveryRequest) ([]Go
 		if !matches {
 			continue
 		}
-		found, err := ParseGoDeclarations(source, []standard.ProbeKind{kind})
+		found, err := ParseGoDeclarations(source, []runprotocol.ProbeKind{kind})
 		if err != nil {
 			return nil, err
 		}
@@ -283,7 +283,7 @@ func goPackageDeclarationLess(left, right GoPackageDiscoveredDeclaration) bool {
 	return goDeclarationLess(left.Declaration, right.Declaration)
 }
 
-func matchGoFileContext(source []byte, file standard.SourcePath, context runnercontrol.GoBuildContext) (bool, error) {
+func matchGoFileContext(source []byte, file runprotocol.SourcePath, context runnercontrol.GoBuildContext) (bool, error) {
 	if len(source) == 0 || len(source) > GoDiscoverySourceMaximumBytes {
 		return false, core.ErrPrimitiveContract
 	}
@@ -318,14 +318,14 @@ func goToolTags(context runnercontrol.GoBuildContext) []string {
 		values[index] = "goexperiment." + experiments[index]
 	}
 	if context.Instrumentation == runnercontrol.GoInstrumentationRace {
-		values = append(values, standard.GoRaceText)
+		values = append(values, runprotocol.GoRaceText)
 	}
 	return values
 }
 
 // ParseGoDeclarations admits one bounded external Go source file and returns
 // only declarations the Go test harness can execute under the requested kinds.
-func ParseGoDeclarations(source []byte, requested []standard.ProbeKind) ([]GoDeclaration, error) {
+func ParseGoDeclarations(source []byte, requested []runprotocol.ProbeKind) ([]GoDeclaration, error) {
 	if len(source) == 0 || len(source) > GoDiscoverySourceMaximumBytes {
 		return nil, core.ErrPrimitiveContract
 	}
@@ -339,7 +339,7 @@ func ParseGoDeclarations(source []byte, requested []standard.ProbeKind) ([]GoDec
 	return discoverGoDeclarations(parsed, requested)
 }
 
-func discoverGoDeclarations(parsed *ast.File, requested []standard.ProbeKind) ([]GoDeclaration, error) {
+func discoverGoDeclarations(parsed *ast.File, requested []runprotocol.ProbeKind) ([]GoDeclaration, error) {
 	declarations := make([]GoDeclaration, 0)
 	for _, declaration := range parsed.Decls {
 		function, ok := declaration.(*ast.FuncDecl)
@@ -354,7 +354,7 @@ func discoverGoDeclarations(parsed *ast.File, requested []standard.ProbeKind) ([
 			if !discoveryKindSupports(base, kind) {
 				continue
 			}
-			name, nameErr := standard.NewName(function.Name.Name)
+			name, nameErr := runprotocol.NewName(function.Name.Name)
 			if nameErr != nil {
 				return nil, nameErr
 			}
@@ -368,8 +368,8 @@ func discoverGoDeclarations(parsed *ast.File, requested []standard.ProbeKind) ([
 	return declarations, nil
 }
 
-func validateDiscoveryKinds(kinds []standard.ProbeKind) error {
-	if len(kinds) == 0 || len(kinds) > standard.ProbeKindMaximum {
+func validateDiscoveryKinds(kinds []runprotocol.ProbeKind) error {
+	if len(kinds) == 0 || len(kinds) > runprotocol.ProbeKindMaximum {
 		return core.ErrPrimitiveContract
 	}
 	for index, kind := range kinds {
@@ -383,35 +383,35 @@ func validateDiscoveryKinds(kinds []standard.ProbeKind) error {
 	return nil
 }
 
-func validDiscoveryKind(kind standard.ProbeKind) bool {
-	return kind == standard.ProbeKindGoTest || kind == standard.ProbeKindGoRace ||
-		kind == standard.ProbeKindGoBenchmark || kind == standard.ProbeKindGoFuzz ||
-		kind == standard.ProbeKindGoDiagnosticProfile
+func validDiscoveryKind(kind runprotocol.ProbeKind) bool {
+	return kind == runprotocol.ProbeKindGoTest || kind == runprotocol.ProbeKindGoRace ||
+		kind == runprotocol.ProbeKindGoBenchmark || kind == runprotocol.ProbeKindGoFuzz ||
+		kind == runprotocol.ProbeKindGoDiagnosticProfile
 }
 
 type goDeclarationCandidate struct {
 	prefix    string
 	parameter string
-	kind      standard.ProbeKind
+	kind      runprotocol.ProbeKind
 	example   bool
 }
 
-func executableGoDeclaration(function *ast.FuncDecl, comments []*ast.CommentGroup) (standard.ProbeKind, bool) {
+func executableGoDeclaration(function *ast.FuncDecl, comments []*ast.CommentGroup) (runprotocol.ProbeKind, bool) {
 	if function == nil || function.Recv != nil || function.Type.TypeParams != nil || function.Name == nil {
-		return standard.ProbeKindUnknown, false
+		return runprotocol.ProbeKindUnknown, false
 	}
 	candidates := [...]goDeclarationCandidate{
-		{prefix: "Test", parameter: "T", kind: standard.ProbeKindGoTest},
-		{prefix: "Benchmark", parameter: "B", kind: standard.ProbeKindGoBenchmark},
-		{prefix: "Fuzz", parameter: "F", kind: standard.ProbeKindGoFuzz},
-		{prefix: "Example", kind: standard.ProbeKindGoTest, example: true},
+		{prefix: "Test", parameter: "T", kind: runprotocol.ProbeKindGoTest},
+		{prefix: "Benchmark", parameter: "B", kind: runprotocol.ProbeKindGoBenchmark},
+		{prefix: "Fuzz", parameter: "F", kind: runprotocol.ProbeKindGoFuzz},
+		{prefix: "Example", kind: runprotocol.ProbeKindGoTest, example: true},
 	}
 	for _, candidate := range candidates {
 		if declarationMatches(function, comments, candidate) {
 			return candidate.kind, true
 		}
 	}
-	return standard.ProbeKindUnknown, false
+	return runprotocol.ProbeKindUnknown, false
 }
 
 func declarationMatches(function *ast.FuncDecl, comments []*ast.CommentGroup, candidate goDeclarationCandidate) bool {
@@ -474,11 +474,11 @@ func exampleHasOutput(function *ast.FuncDecl, comments []*ast.CommentGroup) bool
 	return false
 }
 
-func discoveryKindSupports(base, requested standard.ProbeKind) bool {
+func discoveryKindSupports(base, requested runprotocol.ProbeKind) bool {
 	if base == requested {
 		return true
 	}
-	return base == standard.ProbeKindGoTest && (requested == standard.ProbeKindGoRace || requested == standard.ProbeKindGoDiagnosticProfile)
+	return base == runprotocol.ProbeKindGoTest && (requested == runprotocol.ProbeKindGoRace || requested == runprotocol.ProbeKindGoDiagnosticProfile)
 }
 
 func goDeclarationLess(left, right GoDeclaration) bool {

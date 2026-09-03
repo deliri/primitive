@@ -5,7 +5,7 @@ import (
 	"errors"
 
 	"github.com/deliri/primitive/v2026/core"
-	"github.com/deliri/primitive/v2026/standard"
+	"github.com/deliri/primitive/v2026/runprotocol"
 )
 
 type MachineResourceCapacity struct {
@@ -29,7 +29,7 @@ func (c MachineResourceCapacity) Validate() error {
 
 type ResourceReservation struct {
 	Required   ResourceRequirement   `json:"required"`
-	Experiment standard.ExperimentID `json:"experiment_id"`
+	Experiment runprotocol.ExperimentID `json:"experiment_id"`
 }
 
 func (r ResourceReservation) Validate() error {
@@ -121,7 +121,7 @@ func reservationFits(capacity MachineResourceCapacity, required ResourceRequirem
 }
 
 type waveAccumulator struct {
-	experiments []standard.ExperimentID
+	experiments []runprotocol.ExperimentID
 	required    ResourceRequirement
 }
 
@@ -184,13 +184,13 @@ func appendAccumulatedWave(waves []ResourceWave, accumulated waveAccumulator) ([
 		return nil, errors.Join(core.ErrPrimitiveContract, err)
 	}
 	return append(waves, ResourceWave{
-		Experiments: append([]standard.ExperimentID(nil), accumulated.experiments...),
+		Experiments: append([]runprotocol.ExperimentID(nil), accumulated.experiments...),
 		Required:    accumulated.required, WaveWidth: waveWidth,
 	}), nil
 }
 
 func oneReservationWave(reservation ResourceReservation) ResourceWave {
-	return ResourceWave{Experiments: []standard.ExperimentID{reservation.Experiment}, Required: reservation.Required, WaveWidth: 1}
+	return ResourceWave{Experiments: []runprotocol.ExperimentID{reservation.Experiment}, Required: reservation.Required, WaveWidth: 1}
 }
 
 func sameEgress(left, right EgressPolicy) bool {

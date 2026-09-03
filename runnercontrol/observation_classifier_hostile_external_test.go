@@ -8,11 +8,11 @@ import (
 	"github.com/deliri/primitive/v2026/core"
 	"github.com/deliri/primitive/v2026/process"
 	"github.com/deliri/primitive/v2026/runnercontrol"
-	"github.com/deliri/primitive/v2026/standard"
+	"github.com/deliri/primitive/v2026/runprotocol"
 	"github.com/deliri/primitive/v2026/temporal"
 )
 
-var benchmarkExperimentObservationSink standard.ExperimentObservation
+var benchmarkExperimentObservationSink runprotocol.ExperimentObservation
 
 func BenchmarkCompileExperimentObservation(b *testing.B) {
 	request := experimentObservationRequestFixture(b)
@@ -43,17 +43,17 @@ func TestExperimentObservationClassifierExhaustsExecutionStateDomain(t *testing.
 		failure     error
 		process     *process.ResultObservation
 		name        string
-		wantOutcome standard.Outcome
+		wantOutcome runprotocol.Outcome
 		wantStarted bool
 	}{
-		{name: "reaped zero exit is passed", process: base.Process, wantOutcome: standard.OutcomePassed, wantStarted: true},
-		{name: "reaped nonzero exit is failed", process: &nonzeroExit, failure: core.ErrProcessWait, wantOutcome: standard.OutcomeFailed, wantStarted: true},
-		{name: "reaped zero exit with evidence refusal is failed", process: base.Process, failure: core.ErrPrimitiveContract, wantOutcome: standard.OutcomeFailed, wantStarted: true},
-		{name: "pre-start cancellation is cancelled", failure: context.Canceled, wantOutcome: standard.OutcomeCancelled},
-		{name: "post-start cancellation retains started evidence", process: base.Process, failure: context.Canceled, wantOutcome: standard.OutcomeCancelled, wantStarted: true},
-		{name: "pre-start deadline is timed out", failure: context.DeadlineExceeded, wantOutcome: standard.OutcomeTimedOut},
-		{name: "post-start deadline retains started evidence", process: base.Process, failure: context.DeadlineExceeded, wantOutcome: standard.OutcomeTimedOut, wantStarted: true},
-		{name: "other pre-start failure is setup failed", failure: core.ErrProcessStart, wantOutcome: standard.OutcomeSetupFailed},
+		{name: "reaped zero exit is passed", process: base.Process, wantOutcome: runprotocol.OutcomePassed, wantStarted: true},
+		{name: "reaped nonzero exit is failed", process: &nonzeroExit, failure: core.ErrProcessWait, wantOutcome: runprotocol.OutcomeFailed, wantStarted: true},
+		{name: "reaped zero exit with evidence refusal is failed", process: base.Process, failure: core.ErrPrimitiveContract, wantOutcome: runprotocol.OutcomeFailed, wantStarted: true},
+		{name: "pre-start cancellation is cancelled", failure: context.Canceled, wantOutcome: runprotocol.OutcomeCancelled},
+		{name: "post-start cancellation retains started evidence", process: base.Process, failure: context.Canceled, wantOutcome: runprotocol.OutcomeCancelled, wantStarted: true},
+		{name: "pre-start deadline is timed out", failure: context.DeadlineExceeded, wantOutcome: runprotocol.OutcomeTimedOut},
+		{name: "post-start deadline retains started evidence", process: base.Process, failure: context.DeadlineExceeded, wantOutcome: runprotocol.OutcomeTimedOut, wantStarted: true},
+		{name: "other pre-start failure is setup failed", failure: core.ErrProcessStart, wantOutcome: runprotocol.OutcomeSetupFailed},
 	}
 	for _, tc := range cases {
 		t.Run(tc.name, func(t *testing.T) {
@@ -147,7 +147,7 @@ func experimentObservationRequestFixture(t testing.TB) runnercontrol.ExperimentO
 	}
 	return runnercontrol.ExperimentObservationRequest{
 		Capability: capability, BeganAt: *payload.StartedAt, CompletedAt: payload.CompletedAt,
-		Process: payload.Process, Artifacts: []standard.ArtifactReference{},
+		Process: payload.Process, Artifacts: []runprotocol.ArtifactReference{},
 	}
 }
 

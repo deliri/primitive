@@ -11,7 +11,7 @@ import (
 
 	"github.com/deliri/primitive/v2026/attest"
 	"github.com/deliri/primitive/v2026/core"
-	"github.com/deliri/primitive/v2026/standard"
+	"github.com/deliri/primitive/v2026/runprotocol"
 	"github.com/deliri/primitive/v2026/temporal"
 )
 
@@ -180,7 +180,7 @@ func (e InterruptedRunnerEvidence) Validate() error {
 	if len(e.Experiments) > RetainedExperimentMaximum {
 		return core.ErrPrimitiveContract
 	}
-	seen := make([]standard.ExperimentID, 0, len(e.Experiments))
+	seen := make([]runprotocol.ExperimentID, 0, len(e.Experiments))
 	for index := range e.Experiments {
 		if err := e.Experiments[index].Validate(); err != nil {
 			return err
@@ -198,7 +198,7 @@ func (e InterruptedRunnerEvidence) Validate() error {
 }
 
 type PreRunnerEvidence struct {
-	Stage   standard.Identifier `json:"stage"`
+	Stage   runprotocol.Identifier `json:"stage"`
 	Failure core.ErrorIdentity  `json:"failure"`
 }
 
@@ -254,9 +254,9 @@ func (b ObservationEvidenceBody) validateSelectedBody() error {
 type ObservationEnvelopePayload struct {
 	Evidence                   ObservationEvidenceBody  `json:"evidence"`
 	Cleanup                    CleanupOutcome           `json:"cleanup"`
-	Audience                   standard.Identifier      `json:"audience"`
-	Destination                standard.Identifier      `json:"destination"`
-	Origin                     standard.OriginIdentity  `json:"origin"`
+	Audience                   runprotocol.Identifier      `json:"audience"`
+	Destination                runprotocol.Identifier      `json:"destination"`
+	Origin                     runprotocol.OriginIdentity  `json:"origin"`
 	Members                    MemberSet                `json:"member_set"`
 	Fence                      SchedulingFence          `json:"fence"`
 	CapturedAt                 temporal.Instant         `json:"captured_at"`
@@ -265,9 +265,9 @@ type ObservationEnvelopePayload struct {
 	DeliveryGrant              core.SHA256Digest        `json:"delivery_grant"`
 	AdmissionDigest            core.SHA256Digest        `json:"admission_digest"`
 	ExperimentDeliveryManifest core.SHA256Digest        `json:"experiment_delivery_manifest"`
-	Run                        standard.RunID           `json:"run_id"`
-	Request                    standard.RequestIdentity `json:"request_id"`
-	Terminal                   standard.TerminalState   `json:"terminal"`
+	Run                        runprotocol.RunID           `json:"run_id"`
+	Request                    runprotocol.RequestIdentity `json:"request_id"`
+	Terminal                   runprotocol.TerminalState   `json:"terminal"`
 }
 
 func (p ObservationEnvelopePayload) Validate() error {
@@ -299,10 +299,10 @@ func (p ObservationEnvelopePayload) validateOwnedValues() error {
 }
 
 func (p ObservationEnvelopePayload) validateTerminalClosure() error {
-	if p.Evidence.Kind != EvidenceCompletedRunner && p.Terminal == standard.TerminalCompleted {
+	if p.Evidence.Kind != EvidenceCompletedRunner && p.Terminal == runprotocol.TerminalCompleted {
 		return core.ErrPrimitiveContract
 	}
-	if p.Cleanup.Kind != CleanupSucceeded && p.Terminal == standard.TerminalCompleted {
+	if p.Cleanup.Kind != CleanupSucceeded && p.Terminal == runprotocol.TerminalCompleted {
 		return core.ErrPrimitiveContract
 	}
 	return nil
@@ -447,12 +447,12 @@ func VerifyObservationEnvelope(document ObservationEnvelope, trusted attest.Trus
 }
 
 type ExperimentDeliveryEntry struct {
-	Probe      standard.ProbeIdentity `json:"probe"`
+	Probe      runprotocol.ProbeIdentity `json:"probe"`
 	Bytes      core.ByteLength        `json:"bytes"`
 	Page       uint16                 `json:"page"`
 	Position   uint16                 `json:"position"`
 	Digest     core.SHA256Digest      `json:"digest"`
-	Experiment standard.ExperimentID  `json:"experiment_id"`
+	Experiment runprotocol.ExperimentID  `json:"experiment_id"`
 }
 
 func (e ExperimentDeliveryEntry) Validate() error {
@@ -466,7 +466,7 @@ type ExperimentDeliveryManifest struct {
 	Entries       []ExperimentDeliveryEntry `json:"entries"`
 	SchemaVersion uint16                    `json:"schema_version"`
 	PageCount     uint16                    `json:"page_count"`
-	Run           standard.RunID            `json:"run_id"`
+	Run           runprotocol.RunID            `json:"run_id"`
 }
 
 func (m ExperimentDeliveryManifest) Validate() error {
@@ -561,7 +561,7 @@ type ExperimentDeliveryPage struct {
 	Documents     []ExperimentCompletionDocument `json:"documents"`
 	SchemaVersion uint16                         `json:"schema_version"`
 	Page          uint16                         `json:"page"`
-	Run           standard.RunID                 `json:"run_id"`
+	Run           runprotocol.RunID                 `json:"run_id"`
 }
 
 func (p ExperimentDeliveryPage) Validate() error {

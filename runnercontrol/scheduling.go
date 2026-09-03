@@ -8,7 +8,7 @@ import (
 
 	"github.com/deliri/primitive/v2026/core"
 	primitiveid "github.com/deliri/primitive/v2026/id"
-	"github.com/deliri/primitive/v2026/standard"
+	"github.com/deliri/primitive/v2026/runprotocol"
 )
 
 const SchedulingMemberMaximum = 256
@@ -74,7 +74,7 @@ func (i SchedulingUnitIdentity) Validate() error {
 }
 
 type MemberSet struct {
-	Entries []standard.RunID `json:"entries"`
+	Entries []runprotocol.RunID `json:"entries"`
 }
 
 func (s MemberSet) Validate() error {
@@ -98,7 +98,7 @@ func (s MemberSet) Validate() error {
 	return nil
 }
 
-func (s MemberSet) Contains(run standard.RunID) bool {
+func (s MemberSet) Contains(run runprotocol.RunID) bool {
 	if s.Validate() != nil || run.Validate() != nil {
 		return false
 	}

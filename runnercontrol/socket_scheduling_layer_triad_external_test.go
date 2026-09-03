@@ -11,7 +11,7 @@ import (
 	"github.com/deliri/primitive/v2026/core"
 	"github.com/deliri/primitive/v2026/exchange"
 	"github.com/deliri/primitive/v2026/runnercontrol"
-	"github.com/deliri/primitive/v2026/standard"
+	"github.com/deliri/primitive/v2026/runprotocol"
 	"github.com/deliri/primitive/v2026/temporal"
 )
 
@@ -201,7 +201,7 @@ func runnerControlSocketRouteFixture(t testing.TB, value string) exchange.Socket
 	return path
 }
 
-func runnerPeerFixture(t testing.TB, machine standard.MachineID, generation standard.MachineGenerationID) runnercontrol.AuthenticatedPeer {
+func runnerPeerFixture(t testing.TB, machine runprotocol.MachineID, generation runprotocol.MachineGenerationID) runnercontrol.AuthenticatedPeer {
 	t.Helper()
 
 	credential, credentialErr := runnercontrol.NewPeerCredential(runnercontrol.PeerCredentialMutualTLS, core.SHA256Of([]byte("runner-certificate")))

@@ -8,7 +8,7 @@ import (
 
 	"github.com/deliri/primitive/v2026/core"
 	"github.com/deliri/primitive/v2026/exchange"
-	"github.com/deliri/primitive/v2026/standard"
+	"github.com/deliri/primitive/v2026/runprotocol"
 )
 
 const (
@@ -100,8 +100,8 @@ func (k *ArtifactKind) UnmarshalJSON(data []byte) error {
 }
 
 type ArtifactManifestEntry struct {
-	Experiment *standard.ExperimentID `json:"experiment_id,omitempty"`
-	Path       standard.SourcePath    `json:"path"`
+	Experiment *runprotocol.ExperimentID `json:"experiment_id,omitempty"`
+	Path       runprotocol.SourcePath    `json:"path"`
 	MediaType  core.HTTPMediaType     `json:"media_type"`
 	Bytes      core.ByteLength        `json:"bytes"`
 	Digest     core.SHA256Digest      `json:"digest"`
@@ -124,7 +124,7 @@ type ArtifactManifest struct {
 	Fence         SchedulingFence         `json:"fence"`
 	TotalBytes    core.ByteLength         `json:"total_bytes"`
 	SchemaVersion uint16                  `json:"schema_version"`
-	Run           standard.RunID          `json:"run_id"`
+	Run           runprotocol.RunID          `json:"run_id"`
 }
 
 func (m ArtifactManifest) Validate() error {
@@ -217,7 +217,7 @@ type ArtifactChunk struct {
 	Offset         core.ByteLength       `json:"offset"`
 	SchemaVersion  uint16                `json:"schema_version"`
 	ManifestDigest core.SHA256Digest     `json:"manifest_digest"`
-	Run            standard.RunID        `json:"run_id"`
+	Run            runprotocol.RunID        `json:"run_id"`
 	Final          bool                  `json:"final"`
 }
 
@@ -242,7 +242,7 @@ func (c ArtifactChunk) validateExtent() error {
 	return nil
 }
 
-func validateMemberBinding(members MemberSet, fence SchedulingFence, run standard.RunID) error {
+func validateMemberBinding(members MemberSet, fence SchedulingFence, run runprotocol.RunID) error {
 	digest, err := members.Digest()
 	if err != nil {
 		return errors.Join(core.ErrPrimitiveContract, err)
@@ -302,13 +302,13 @@ type ArtifactChunkReceipt struct {
 	SchemaVersion uint16            `json:"schema_version"`
 	Manifest      core.SHA256Digest `json:"manifest_digest"`
 	Artifact      core.SHA256Digest `json:"artifact_digest"`
-	Run           standard.RunID    `json:"run_id"`
+	Run           runprotocol.RunID    `json:"run_id"`
 	Complete      bool              `json:"complete"`
 }
 
 type ArtifactManifestReceipt struct {
 	SchemaVersion uint16            `json:"schema_version"`
-	Run           standard.RunID    `json:"run_id"`
+	Run           runprotocol.RunID    `json:"run_id"`
 	Digest        core.SHA256Digest `json:"manifest_digest"`
 	Bytes         core.ByteLength   `json:"manifest_bytes"`
 }
@@ -558,7 +558,7 @@ func ArtifactChunkMatchesEntry(chunk ArtifactChunk, entry ArtifactManifestEntry)
 	}
 	return true
 }
-func equalOptionalExperiment(left, right *standard.ExperimentID) bool {
+func equalOptionalExperiment(left, right *runprotocol.ExperimentID) bool {
 	if left == nil || right == nil {
 		return left == nil && right == nil
 	}

@@ -1,4 +1,4 @@
-# Primitive 2026.1.0 Architecture Upgrade
+# Primitive 2026.1.1 Architecture Upgrade
 
 This is the ordered implementation checklist for the breaking Primitive
 upgrade. Work proceeds from the first unchecked item downward. Later phases do
@@ -8,9 +8,15 @@ Compiler-owned Go contracts are authoritative. This file records reviewed
 intent, migration order, and completion evidence; it is not a second runtime
 truth source.
 
-The release constant advanced from `v2026.0.172` to `v2026.1.0` after explicit
-approval to bump and publish. Deployment, installation, and consumer migration
-remain separate operations.
+The release constant advanced from `v2026.0.172` to `v2026.1.0`, and that tag
+already identifies base revision `520cf65aa04fd215b2271c13fe4a7d602b245d9d`.
+The current post-tag redesign must receive a new unused version after review;
+an existing immutable tag must never be moved to different bytes. Deployment,
+installation, and consumer migration remain separate operations.
+
+The reviewed next version is `v2026.1.1`. The compiler-owned release constant
+now names it; commit, tag, publication, and consumer adoption remain pending
+their separate review and evidence steps.
 
 ## Execution rules
 
@@ -41,7 +47,8 @@ remain separate operations.
 - [x] Production closure and test/evidence-source closure are separate. Phase
   10 closes production source. Phase 11 upgrades every affected test, fuzz,
   benchmark, fixture, inventory, companion, and generated projection. Phase 12
-  is the first phase that executes those sources and records run evidence.
+  records only the explicitly selected release checks; broad tests, race runs,
+  fuzzing, and benchmarks are not part of this release checkpoint.
 - [x] When an item spans repositories, it closes only after every named
   repository has been inspected and every discovered violation is either
   removed in that item or assigned to a later explicit checkbox in this file.
@@ -78,42 +85,35 @@ remain separate operations.
   observation, authentication, independent verification, human authority,
   durable append, and receipt are separate typed facts.
 
-## Phase 1 — `standard`: the shared Go project bar
+## Phase 1 — `runprotocol`: the independent execution agreement
 
-`standard` is the compiler-visible bar applied to every Go repository,
-including Primitive. It is not a service, runner, product, workflow, or Forge
-feature. Forge observes and projects it.
+The former `standard` name hid two unrelated jobs: explaining source and
+exchanging exact run facts. The current `runprotocol` package owns only the
+second job. It is the shared bounded agreement between an independent
+requester and execution authority; it is not Hammer, Anvil, a runner, a
+history store, product policy, or source documentation.
 
-- [x] Complete the clean-break rename to `standard` across Primitive, Forge,
-  Blink Kernel, Bug, Witness, Peachfuzz, imports, identifiers, compiler
-  function contracts, companion filenames, diagnostics, documentation, and
-  `.forge` projections.
-- [x] Remove every obsolete package path and name. Do not retain an alias or
-  transitional import path.
-- [x] Keep the shared hierarchy centered on project identity, package identity
-  and primary role, source-file identity, exact source coordinates,
-  declarations, imports, dependency edges, effect facts, and bounded evidence
-  references.
-- [x] Classify `standard` as a value-contract package, not a bidirectional
-  deployed-peer agreement, and update authored package roles and fixtures.
-- [x] Rename `ProductKnowledge` to `ProjectKnowledge`; this package describes a
-  repository project and must not invent a product plugged into Primitive.
-- [x] Keep evidence facts in `standard` only when they define the common bar a
-  repository must meet. Move operational runner lifecycle and effects to
-  `runnercontrol`, `machineprobe`, and `runworkspace` without duplicate DTOs.
-- [x] Remove the project/package query service, HTTP client/server, machine
-  query service, and their transport error identity. A standard has no socket
-  or deployed peer.
-- [x] Keep deterministic report projection as a pure bounded `io.Writer`
-  operation; presentation and web routing remain consumer-owned.
-- [x] Remove Forge and other consumer names from `standard` production source.
-  Consumers may call the package, but the shared bar remains blind to them.
-- [x] Update `core` package identities, purposes, paths, error identities, and
-  parent relationships to name the current architecture only.
-- [x] Keep companion regeneration out of the contract-bootstrap phase.
-  Forge must first be able to classify the final production tree without a
-  direct-effect, role, or ownership contradiction; Phase 11 then regenerates
-  every companion once from the completed production and test source.
+- [x] Rename `standard` to `runprotocol` throughout Primitive in one clean
+  break, including imports, package identities, error identities, diagnostics,
+  fixtures, and compiler-visible inventories.
+- [x] Remove every obsolete `standard` package path and name without an alias,
+  forwarding wrapper, duplicate wire shape, or transitional import.
+- [x] Keep request, admission, source coordinate, machine identity, execution
+  accounting, exact attempts, artifacts, observations, terminal state, and
+  independently checkable authorities in `runprotocol`.
+- [x] Keep runner lifecycle and real effects in `runnercontrol`,
+  `machineprobe`, and `runworkspace`; `runprotocol` executes nothing and stores
+  no time-based history.
+- [x] Remove human purpose, problem, benefit, report placement, delivery story,
+  complexity claims, and pass/fail complexity judgments from `runprotocol`.
+  Raw scaling samples remain mechanical run observations.
+- [x] Keep source explanation and source inspection out of `runprotocol`.
+  Phase 11.5 owns their separate `sourceclaim`, `sourceobservation`, and
+  `sourceproof` agreements.
+- [x] Update `core` to retain package identity, kind, and architectural role
+  without embedding a human-purpose paragraph in the compiler catalog.
+- [x] Defer all consumer-repository migration until Primitive v2026.1.1 is
+  reviewed, published, and imported by the separately upgraded consumer.
 
 ## Phase 2 — Package architecture contracts
 
@@ -122,7 +122,7 @@ feature. Forge observes and projects it.
   orchestration roles.
 - [x] Define zero-value behavior, canonical JSON, strict decoding, and
   validation for every role.
-- [x] Add one hand-authored primary role to `PackageStandardKnowledge`.
+- [x] Add one hand-authored primary role to every `core.PackageContract`.
 - [x] Preserve orthogonal generated facts for contracts owned, authentication
   bindings, capabilities consumed, capabilities implemented, wire documents,
   dependencies, and observed effect sites.
@@ -132,9 +132,9 @@ feature. Forge observes and projects it.
   role tables, unknown-future-value rejection, and validation witnesses.
 - [x] Classify every current Primitive package by one reviewed primary role in
   `core.PrimitiveArchitecture()`. The closed catalog names exactly the current
-  55 non-fixture source packages; pure local `manual` projection and authored
-  `primitiveproject` policy are value contracts, not deployed-peer agreements
-  or orchestration.
+  production and compiler-classified test-support packages; `manual` is a
+  value contract and the offline `_hammer/claims` package is deliberately
+  outside ordinary Go package discovery.
 - [x] Keep generated orthogonal facts derived rather than hand-maintained.
   Their one final source-only refresh belongs in Phase 11 after direct-effect
   and package-boundary contradictions have been removed.
@@ -178,8 +178,8 @@ feature. Forge observes and projects it.
 
 ## Phase 4 — Single-owner effects
 
-- [x] Establish `capabilities` and `standard.CapabilityOwnership` as the
-  compiler-owned effect catalog.
+- [x] Establish `capabilities` as the compiler-owned effect catalog derived
+  from `core.PrimitiveArchitecture()`.
 - [x] Cover filesystem, transport, process, temporal, entropy, host, secrets,
   locking, shutdown, and object storage.
 - [x] Make standard-library-symbol ownership a Primitive contract rather than
@@ -418,7 +418,14 @@ blind Primitive `lease.Assessment`; Primitive's package catalog and error tree
 no longer advertise Gate. The remaining opaque metering agreement also uses
 `UsageClass` and `UsageCount` rather than claiming to understand Work units.
 
-## Phase 9 — Forge observation and projection
+## Phase 9 — Superseded Forge prototype record
+
+Ordering correction: this section records an earlier Forge prototype against
+the former `standard` model. It is historical context, not current completion
+evidence and not authorization to touch Forge. The generated Primitive output
+from the accidental later Forge invocation has been removed. Forge will be
+renamed and upgraded as Hammer only after the current Primitive release is
+reviewed, committed, and published.
 
 - [x] Make Forge read the authored primary package role independently from
   generated source facts.
@@ -450,7 +457,14 @@ and claimed implementation sites remain direct until the later independent
 compiler evidence phase validates them. The compiler-backed observer remains a
 separate Phase 12 capability and is not reachable from regeneration.
 
-## Phase 10 — Consumer adoption and Blink-owned Work
+## Phase 10 — Superseded consumer prototype record
+
+Ordering correction: the consumer notes below describe work attempted before
+Primitive's breaking contract was final. They do not close current Blink
+Kernel, Bug, Witness, Peachfuzz, or Forge/Hammer migration, and none of those
+repositories is in scope for this Primitive worktree. Each consumer must later
+import the published Primitive version and be reviewed on its own exact
+revision.
 
 Phase 10 is an ordered multi-repository migration. Complete each numbered
 surface from top to bottom. Primitive remains the one shared module for blind
@@ -817,7 +831,7 @@ file projections, and one schema-version-5 project projection. No
 companion-rollback path remains. The refresh did not execute a companion, run a
 test, or issue evidence.
 
-Phase 11 Primitive source result: proof-ledger, receipt, release, Standard, and
+Phase 11 Primitive source result: proof-ledger, receipt, release, runprotocol, and
 the isolated provider families retain package-owned byte ceilings, strict
 non-mutating decoders, typed errors, validation witnesses, external-door
 inventories, hostile tables, semantic fuzz targets, layer-triad tests, and
@@ -832,9 +846,9 @@ run.
 
 The Phase 11 source claim was a checkpoint, not acceptance. A later hostile
 review found the following load-bearing defects. They are source-closure work
-and must be fixed and ratcheted before Phase 12 executes any gate. Forge-owned
-companions and project metadata are deliberately deferred until Primitive
-`v2026.1.0` is published and Forge has upgraded to that breaking contract.
+and must be fixed and ratcheted before Phase 12 executes any gate. Offline
+Hammer artifacts are deliberately deferred until Primitive `v2026.1.1` is
+published and Hammer consumes that agreement.
 
 - [x] Make `paypal.PayPalAccessGrant.Validate` reject a zero lifetime with the
   PayPal contract identity; a nil diagnostic cause must never erase a typed
@@ -858,9 +872,10 @@ companions and project metadata are deliberately deferred until Primitive
 - [x] Synchronize the repository-local testing protocol with the current
   34-rule evidence doctrine, including execution accounting, independent
   acceptance, and benchmark integrity.
-- [x] Keep Forge generation out of Primitive source closure; Primitive must be
-  completed, reviewed, released as `v2026.1.0`, and consumed by an upgraded
-  Forge before Forge may regenerate companions or `.forge` metadata here.
+- [x] Keep Hammer application out of Primitive source closure; Primitive must
+  be completed, reviewed, released as `v2026.1.1`, and consumed by Hammer
+  before Hammer may compile offline `.hammer` artifacts here. Hammer must not
+  inject generated declarations into Primitive packages.
 
 ### Phase 11.2 — Reopened hostile boundary defects
 
@@ -895,7 +910,7 @@ not gate exceptions.
 
 - [x] Remove all 55 premature, untracked Forge `standard_test.go` companions;
   Forge-owned package knowledge cannot be emitted or accepted before Forge is
-  upgraded to published Primitive `v2026.1.0`.
+  replaced by Hammer consuming published Primitive `v2026.1.1`.
 - [x] Remove unwired runner-control isolation/session model structs and the
   unused experiment-to-reservation convenience path instead of preserving dead
   public API as compatibility ballast.
@@ -923,21 +938,164 @@ not gate exceptions.
   Twilio structural ratchets with the reviewed clean-break source shape rather
   than weakening or deleting the ratchets.
 
-## Phase 12 — Final validation and evidence run
+### Phase 11.4 — Post-publication hostile boundary repair
+
+Primitive `v2026.1.0` was published at
+`520cf65aa04fd215b2271c13fe4a7d602b245d9d`. A subsequent hostile review found
+five additional mechanical defects. Focused regression tests were first run
+against that production revision with the new test source in the dirty tree:
+the Basic boundary panicked, PayPal rejected both standard Base64 leading
+symbols, Plunk admitted an unusable secret, the archive admitted the
+cross-platform backslash path, and the compiler-visible Linux root ratchet
+observed `OpenParent` instead of `OpenRoot`.
+
+- [x] Size Basic authentication decode custody for the complete admitted
+  encoded ceiling so an unauthenticated exact-ceiling header is refused rather
+  than panicking the server.
+- [x] Validate PayPal transmission signatures as bounded standard Base64 and
+  admit signatures beginning with `+` or `/`.
+- [x] Refuse Plunk webhook secrets that cannot cross the package's RFC 6750
+  Bearer boundary, preserving both Plunk and Exchange typed identities.
+- [x] Root Linux residue process observation at the configured `ProcRoot`
+  capability itself so a `status` link cannot reach a sibling beneath `/` or
+  any broader parent root.
+- [x] Refuse backslashes in canonical source-archive member names so Windows
+  cannot reinterpret a one-component wire name as a depth-ceiling bypass.
+- [x] Retain focused hostile tests for all five defects. On Darwin/arm64 with
+  Go 1.27.1, the exact affected tests passed uncached; the Linux behavior test
+  remains build-tagged for a Linux runner, its `OpenRoot`/no-`OpenParent`
+  invariant passed through a narrow AST ratchet, and the Windows runworkspace
+  test binary compiled successfully to `/dev/null`. No Forge command, broad
+  package sweep, fuzz target, benchmark, or final gate was run for this repair.
+
+### Phase 11.5 — Split authored source claims from mechanical proof
+
+The former `standard` package combined three different authorities: people
+explaining why source exists, a compiler observing what source is, and a
+verifier deciding whether the two agree. That combination made generated code
+look authored, made one package description stand in for many independent
+reasons, and prevented missing intent from remaining visibly missing.
+
+Primitive owns the reusable source-transparency agreements and blind
+mechanics. Each repository owns its human-authored claim content. Hammer is
+the offline tool that discovers that content, compiles and evaluates the
+agreements, derives findings under Hammer policy, and manages its artifacts;
+none of those parts participates in the inspected product's runtime.
+
+- [x] Replace the mixed `standard` source-management model with three narrow
+  agreements: `sourceclaim`, `sourceobservation`, and `sourceproof`.
+- [x] Make claims plural and atomic at project, package, and file scope. One
+  subject owns a canonically ordered stream of claims with no claim-count
+  quota; every claim has a stable identity,
+  one problem, one solution, one benefit, explicit ownership and non-ownership
+  boundaries, removal conditions, and typed proof requirements.
+- [x] Keep authored claims in one repository-owned offline Go package rather
+  than injecting imports or fixed declarations into every product package.
+  Normal builds and `go test ./...` must not compile this package; Hammer
+  compiles it explicitly when operating offline.
+- [x] Permit a large subject such as Primitive to spread authored claims across
+  several files in that offline package while requiring one compiler-visible
+  stream entrypoint that closes the complete sequence without duplicate or
+  missing claim identities and reports project, package, file, subject, and
+  total claim cardinality.
+- [x] Make the arrangement bootstrap-safe when Hammer is applied to Primitive:
+  the offline claims package may import Primitive's claim agreement, but no
+  Primitive production package imports its own claim projection and no package
+  receives a generated identifier that can collide with product source.
+- [x] Keep observations entirely mechanical: exact bytes, digest, language,
+  generated state, build selection, declarations, imports, effects,
+  references, package membership, and source revision. Observations never
+  invent purpose or value.
+- [x] Bind proofs one claim at a time. Proof states are closed and preserve
+  proven, contradicted, unproven, stale, unavailable, and human-review-required
+  outcomes rather than compressing a subject into one pass/fail bit.
+- [x] Make package and project rollups lossless: summary counts may be derived,
+  but every atomic claim, observation, proof result, and child digest remains
+  independently addressable. Replace the remaining `Package.Files`,
+  `Project.Files`, and `Project.Packages` one-document slices with streamed
+  canonical membership indexes carrying exact `uint64` counts and digests;
+  Core's 1,024-item strict-JSON array ceiling must not become a repository-size
+  ceiling.
+- [x] Separate independent execution evidence from source-transparency
+  contracts; a compiler observation is not test acceptance, the author of a
+  claim cannot verify the result that binds that claim, and Primitive does not
+  choose an overall claim verdict from its per-requirement proof states.
+- [x] Keep Hammer complementary to Anvil: Hammer inventories test, race, fuzz,
+  benchmark, and tool targets and binds their exact-revision receipt digests;
+  Anvil or another independent authority executes those phases and owns its
+  durable time-based run view. Hammer never becomes a runner or a second
+  Firestore history.
+- [x] Remove the obsolete mixed package and update real Primitive call sites in
+  one clean break. Do not retain aliases, compatibility wrappers, duplicate
+  JSON shapes, or a generated source catalog.
+- [x] Add focused hostile tests for bounds, duplicate identities, missing
+  membership, destination failure that a producer tries to ignore,
+  parent/subpackage ordering, revision drift, intrinsic proof-state/evidence
+  contradictions, and lossless rollups. Broad gates, fuzz phases, and
+  benchmarks remain deferred until every production slice is complete.
+- [x] Inventory every public JSON ingress in `core`, `sourceclaim`,
+  `sourceobservation`, and `sourceproof`, and add compiler-owned canonical
+  seeds plus semantic closure targets that prove typed refusal, unchanged
+  receivers, validation after acceptance, and canonical fixed points. The
+  inventories were run narrowly; no timed fuzz campaign was run.
+
+Phase 11.5 progress: Primitive now owns three independent agreements. The
+repository-authored `_hammer/claims` package emits five project claims and at
+least one human claim for each of the 57 compiler-cataloged packages. That is
+a current cardinality report, not a maximum: new reasons add claims without a
+Primitive quota. Ordinary package discovery excludes `_hammer`; an offline
+Hammer invocation compiles it explicitly. `sourceobservation` retains exact
+repository and revision identities plus file, package, project, declaration,
+test, benchmark, fuzz-target, import, effect, reference, build-context, byte,
+and digest facts without inventing purpose. Package and project membership is
+a canonical JSON-lines stream commitment with exact `uint64` cardinality,
+byte length, and SHA-256 digest. File membership carries its package coordinate
+and orders by package then path, so normal parent/subpackage layouts retain
+exact cross-index equality without a repository-sized merge heap. Claim and
+proof-result streams carry the same count/digest/byte accounting, so
+separately retained records also have one complete-set commitment.
+Repositories are not capped by one JSON array and each child remains
+independently resolvable. `sourceproof` joins each claim
+requirement to independent source, test, race, benchmark, fuzz, tool, or
+human-review evidence and keeps every requirement result addressable while
+deriving O(1)-memory accounting. It deliberately does not synthesize the
+claim-level verdict or a precedence lattice; Hammer owns that evaluation
+policy and all findings.
+
+No source-transparency package imports Runnercontrol, Witness, Anvil, a cloud
+database, or a time-history model. `runprotocol` separately carries execution
+facts and raw scaling samples but no source claim, report placement, delivery
+story, or complexity judgment. Anvil remains an optional independent executor
+and durable time-based view; a local project can use the source agreements
+without Anvil.
+
+## Phase 12 — Requested release checks
 
 This phase begins only after Phases 1 through 11 have no unchecked production
-or test-source migration task. Runs are append-only evidence: failures,
-retries, skips, cache posture, dirty state, and unavailable work remain visible.
+or test-source migration task. The user selected a deliberately narrow release
+checkpoint: `go fix`, `go vet`, `go build`, `witness-lint`, `errcheck`,
+`deadcode`, and `staticcheck`. These local checks do not issue an independent
+acceptance receipt.
 
 Validation is repository-ordered. Primitive completes every applicable Phase
-12 check and its retained evidence before Forge or any consuming repository is
-validated further. Consumer compile findings may remain recorded, but they do
-not interrupt or reorder Primitive closure.
+12 check and its retained evidence before Hammer or any consuming repository
+is validated further. Consumer compile findings may remain recorded, but they
+do not interrupt or reorder Primitive closure.
+
+Preliminary source check after Phase 11.5: from working directory
+`/Users/d/code/primitive`, dirty base revision
+`520cf65aa04fd215b2271c13fe4a7d602b245d9d`, with 133 changed or untracked
+paths and `go version go1.27.1 darwin/arm64`, one uncached production command
+`go build ./...` exited 0. It produced no retained stdout or stderr artifact
+and is therefore a local compile check, not an acceptance receipt and not a
+reason to check a Phase 12 evidence item. Ordinary discovery excluded the
+offline `_hammer/claims` package as designed.
 
 A Forge refresh was mistakenly invoked in Primitive before this ordering was
 made explicit. Its output is not Primitive acceptance evidence and must not be
-used to close any Phase 12 item. Forge will not run again until Primitive
-`v2026.1.0` is published and Forge itself has been upgraded to consume it.
+used to close any Phase 12 item. Forge will not run again. Its successor,
+Hammer, may be applied here only after Primitive `v2026.1.1` is published and
+Hammer has been independently implemented and reviewed against it.
 
 Superseded attempt 1 ran `./scripts/gate.sh
 .artifacts/gates/primitive-phase12-20260902` from the dirty tree at revision
@@ -997,52 +1155,49 @@ Go 1.27.1 and the release compiler contract therefore changed. Its successful
 results cannot certify the new compiler-bound source; the partial evidence is
 retained and the unexecuted phases remain explicitly not run.
 
-Primitive is now pinned to exact Go 1.27.1 in `go.mod`, the shared workspace
-declaration, and Release's closed compiler identity. `go version` reported
-`go1.27.1 darwin/arm64`, and the exact release-toolchain ratchet passed
-uncached. This focused diagnostic proof does not replace the eventual final
-evidence run. Fuzz and benchmark execution remains deferred until that final
-run so exploratory validation does not consume the evidence budget or wall
-clock.
+Primitive is pinned to exact Go 1.27.1 in `go.mod`, the shared workspace
+declaration, and Release's closed compiler identity. On the dirty tree based at
+`520cf65aa04fd215b2271c13fe4a7d602b245d9d`, from
+`/Users/d/code/primitive`, `go version` reported `go1.27.1 darwin/arm64`.
 
-- [ ] Record exact revision, clean/dirty tree state, complete command, working
-  directory and package scope, toolchain, environment/profile identity, cache
-  posture, attempts, skips, unavailable and not-run counts, exit status,
-  signals, artifact paths, hashes, and byte counts for every run.
-- [x] Run production formatting and verify no unexpected diff.
-- [ ] Run the production-only build for Primitive through the shared workspace.
-- [ ] Run `go fix ./...` and review every semantic change.
-- [ ] Run `go vet ./...` and standard-version checks.
-- [ ] Run `fieldalignment`, `gocyclo`, `goconst`, `nilaway`, `errcheck`,
-  `staticcheck`, `deadcode`, `govulncheck`, `gosec`, `sentinel`, and
-  `witness-lint` with reviewed typed exceptions only.
-- [ ] Run `go test -count=1 ./...` with cache reuse disabled in Primitive.
-- [ ] Run `go test -race -shuffle=on -count=2 ./...` in Primitive.
-- [ ] Run configured fuzz targets once per fuzz phase and benchmarks once,
-  serially and last, retaining crashers, profiles, stdout, stderr, and manifests
-  according to the testing protocol.
-- [ ] Independently verify ledger chains, evidence manifests, exact source
-  binding, and acceptance receipts. Forge projections are excluded until the
-  post-publication Forge upgrade.
-- [ ] Confirm every checked task above is supported by current source or exact
-  retained evidence rather than prose or remembered terminal output.
+- [x] Run `gofmt` on the files changed by the final doctrine repair and run
+  `git diff --check`; both completed without an error.
+- [x] Run `go fix ./...`; exit status 0.
+- [x] Run `go vet ./...`; exit status 0.
+- [x] Run `go build ./...`; exit status 0.
+- [x] Run `witness-lint ./...`; exit status 0 with 12 declared waivers and 7
+  findings covered by those existing waivers.
+- [x] Run `errcheck ./...`; exit status 0.
+- [x] Run `deadcode -test ./...`; exit status 0.
+- [x] Run `staticcheck ./...`; exit status 0.
+- [x] Record that no final all-package test, race/shuffle run, fuzz phase,
+  benchmark phase, Forge/Hammer invocation, vulnerability scan, security scan,
+  coupling scan, complexity scan, field-alignment scan, or independent
+  acceptance run was requested or executed for this checkpoint.
+- [x] Retain the earlier superseded gate attempts above as historical facts;
+  none is represented as evidence for the final Go 1.27.1 source tree.
 
 ## Phase 13 — Review and release
 
-- [ ] Present the complete changed-file list, removed paths, contract and
+- [x] Present the complete changed-file list, removed paths, contract and
   ownership changes, generated artifacts, exact validation, failed attempts,
   skipped or unavailable work, remaining limitations, and consumer migration
   requirements for explicit review.
 - [x] Obtain explicit user approval for the reviewed slice before committing.
-- [ ] After approval, set the release constant to `v2026.1.0` and create one
-  coherent clean Primitive checkpoint without running Forge.
-- [ ] Publish Primitive `v2026.1.0` to GitHub only after the exact committed
+- [x] Select the next unused release version, `v2026.1.1`, and update the
+  compiler-owned release constant without moving the existing `v2026.1.0`
+  tag.
+- [x] After approval, create one coherent clean Primitive checkpoint without
+  running Hammer or Forge.
+- [ ] Publish Primitive `v2026.1.1` to GitHub only after the exact committed
   revision has its required independent evidence and explicit authorization.
-- [ ] Move to Forge only after Primitive publication, upgrade Forge to the
-  breaking `v2026.1.0` contract, and prove Forge against that version.
-- [ ] Return to Primitive only after Forge is upgraded, then regenerate and
-  verify Primitive's Forge-owned companions and `.forge` projection.
-- [ ] Only after Primitive and Forge are complete, and with explicit
+- [ ] Move to Hammer only after Primitive publication, implement Hammer
+  against published Primitive `v2026.1.1`, and prove Hammer against that exact
+  module version without a local replacement.
+- [ ] Apply the completed Hammer offline to Primitive only after Hammer is
+  independently reviewed; retain `.hammer` artifacts outside product runtime
+  and never inject generated declarations into Primitive packages.
+- [ ] Only after Primitive and Hammer are complete, and with explicit
   consumer-version authorization, update Bug, Witness, and Peachfuzz to the
   published module, regenerate each complete vendor tree from its module
   graph, and verify no obsolete Primitive package or version remains in

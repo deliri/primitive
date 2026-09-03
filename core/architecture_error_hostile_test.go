@@ -66,9 +66,6 @@ func TestArchitectureCatalogRejectsEveryStructuralFailureMode(t *testing.T) {
 		{name: "testserial marked production", mutate: func(c *ArchitectureCatalog) {
 			replaceArchitecturePackageKindForTest(c, PackageTestSerial, PackageKindProduction)
 		}, wantErr: ErrPrimitiveContract},
-		{name: "primitive project policy marked production", mutate: func(c *ArchitectureCatalog) {
-			replaceArchitecturePackageKindForTest(c, PackagePrimitiveProject, PackageKindProduction)
-		}, wantErr: ErrPrimitiveContract},
 	}
 	for _, tc := range cases {
 		t.Run(tc.name, func(t *testing.T) {
