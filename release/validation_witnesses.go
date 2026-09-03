@@ -7,7 +7,7 @@ import (
 )
 
 var (
-	_ core.Validatable = PrimitiveVersion
+	_ core.Validatable = ReleaseTag()
 	_ core.Validatable = AdvanceLatestRequest{}
 	_ core.Validatable = ArtifactRequest{}
 	_ core.Validatable = ArtifactSetRequest{}

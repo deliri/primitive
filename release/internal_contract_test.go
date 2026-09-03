@@ -213,7 +213,6 @@ func TestPublicOperationsAreExactReleaseIntent(t *testing.T) {
 		"ObserveBuildDependencies",
 		"ParseBuildTag",
 		"ParseMainPackage",
-		"ParseProjectVersion",
 		"PrepareBuildPlan",
 		"PrepareBuildProcess",
 		"PublicationRoleAt",
@@ -248,7 +247,7 @@ func TestExternalIngressFuzzInventoryMatchesEveryPublicDecoder(t *testing.T) {
 		t.Fatalf("public JSON receivers = %v, fuzz inventory = %v", gotJSON, wantJSON)
 	}
 
-	gotText := []string{"ParseBuildTag", "ParseMainPackage", "ParseProjectVersion"}
+	gotText := []string{"ParseBuildTag", "ParseMainPackage"}
 	var wantText []string
 	for door := releaseTextDoorUnknown + 1; door < releaseTextDoorLimit; door++ {
 		name := door.functionName()

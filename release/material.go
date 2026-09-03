@@ -10,6 +10,7 @@ import (
 	"github.com/deliri/primitive/v2026/controlwire"
 	"github.com/deliri/primitive/v2026/core"
 	"github.com/deliri/primitive/v2026/keygen"
+	"github.com/deliri/primitive/v2026/projectversion"
 )
 
 // MaterialRequest asks a release authority for the exact secret capabilities
@@ -17,7 +18,7 @@ import (
 // transport is deliberately outside this fact: Cloudidentity and Exchange own
 // that execution on both sides.
 type MaterialRequest struct {
-	Primitive ProjectVersion           `json:"primitive"`
+	Primitive projectversion.Tag       `json:"primitive"`
 	Offering  core.Offering            `json:"offering"`
 	Version   core.ReleaseVersion      `json:"version"`
 	Commit    core.BuildCommit         `json:"commit"`
@@ -31,7 +32,7 @@ type materialRequestWire struct {
 	Offering  *core.Offering            `json:"offering"`
 	Nonce     *controlwire.RequestNonce `json:"nonce"`
 	Revision  *controlwire.Revision     `json:"revision"`
-	Primitive *ProjectVersion           `json:"primitive"`
+	Primitive *projectversion.Tag       `json:"primitive"`
 }
 
 type MaterialRequestInput struct {
@@ -45,7 +46,7 @@ func NewMaterialRequest(input MaterialRequestInput) (MaterialRequest, error) {
 	request := MaterialRequest{
 		Version: input.Version, Commit: input.Commit, Offering: input.Offering,
 		Nonce: input.Nonce, Revision: controlwire.Revision2026V1,
-		Primitive: PrimitiveVersion,
+		Primitive: ReleaseTag(),
 	}
 	return request, request.Validate()
 }
@@ -57,7 +58,7 @@ func (r MaterialRequest) Validate() error {
 	); err != nil {
 		return contractError(err)
 	}
-	if r.Primitive != PrimitiveVersion {
+	if r.Primitive != ReleaseTag() {
 		return contractError(errors.New("release material names a different Primitive version"))
 	}
 	return nil

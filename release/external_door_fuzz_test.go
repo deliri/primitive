@@ -220,7 +220,6 @@ type releaseTextDoor uint8
 
 const (
 	releaseTextDoorUnknown releaseTextDoor = iota
-	releaseTextDoorProjectVersion
 	releaseTextDoorMainPackage
 	releaseTextDoorBuildTag
 	releaseTextDoorLimit
@@ -228,8 +227,6 @@ const (
 
 func (d releaseTextDoor) functionName() string {
 	switch d {
-	case releaseTextDoorProjectVersion:
-		return "ParseProjectVersion"
 	case releaseTextDoorMainPackage:
 		return "ParseMainPackage"
 	case releaseTextDoorBuildTag:
@@ -250,7 +247,6 @@ func FuzzReleaseExternalTextDoorInventory(f *testing.F) {
 	if err != nil {
 		f.Fatalf("ParseBuildTag(seed) error = %v, want nil", err)
 	}
-	f.Add(uint8(releaseTextDoorProjectVersion), PrimitiveVersion.String())
 	f.Add(uint8(releaseTextDoorMainPackage), mainPackage.String())
 	f.Add(uint8(releaseTextDoorBuildTag), buildTag.String())
 	for _, hostile := range []string{"", " ", "\x00", "\xff", "-flag", "a,b"} {
@@ -259,16 +255,6 @@ func FuzzReleaseExternalTextDoorInventory(f *testing.F) {
 
 	f.Fuzz(func(t *testing.T, rawDoor uint8, value string) {
 		switch releaseTextDoor(rawDoor) {
-		case releaseTextDoorProjectVersion:
-			got, gotErr := ParseProjectVersion(value)
-			if gotErr != nil {
-				requireReleaseTextRefusal(t, gotErr, got.String())
-				return
-			}
-			if got.Validate() != nil || got.String() != value || got != PrimitiveVersion {
-				t.Fatalf("ParseProjectVersion(%q) = (%v, %v), want exact current compiler version",
-					value, got, gotErr)
-			}
 		case releaseTextDoorMainPackage:
 			got, gotErr := ParseMainPackage(value)
 			if gotErr != nil {
