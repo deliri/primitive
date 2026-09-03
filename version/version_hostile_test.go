@@ -16,17 +16,24 @@ import (
 func TestReleaseDerivesVersionTextTagAndOrderingFromCompass(t *testing.T) {
 	t.Parallel()
 
-	current := releaseFromCoordinates(t, 2026, 1, 3)
-	if got, want := current.Version(), core.NewReleaseVersion(2026, 1, 3); got != want {
+	configuration, err := compass.Current()
+	if err != nil {
+		t.Fatalf("compass.Current() error = %v, want nil", err)
+	}
+	current, err := version.FromProject(configuration.Project)
+	if err != nil {
+		t.Fatalf("version.FromProject(Current.Project) error = %v, want nil", err)
+	}
+	if got, want := current.Version(), core.NewReleaseVersion(2026, 1, 4); got != want {
 		t.Fatalf("Release.Version() = %v, want %v", got, want)
 	}
-	if got, want := current.String(), "2026.1.3"; got != want {
+	if got, want := current.String(), "2026.1.4"; got != want {
 		t.Fatalf("Release.String() = %q, want %q", got, want)
 	}
-	if got, want := current.Tag().String(), "v2026.1.3"; got != want {
+	if got, want := current.Tag().String(), "v2026.1.4"; got != want {
 		t.Fatalf("Release.Tag().String() = %q, want %q", got, want)
 	}
-	next := releaseFromCoordinates(t, 2026, 1, 4)
+	next := releaseFromCoordinates(t, 2026, 1, 5)
 	comparison, err := current.Compare(next)
 	if err != nil || comparison != core.ComparisonLess {
 		t.Fatalf("Release.Compare(next patch) = (%v, %v), want (%v, nil)", comparison, err, core.ComparisonLess)

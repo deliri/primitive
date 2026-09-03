@@ -104,8 +104,8 @@ func TestCurrentCompassProducesPrimitiveProject(t *testing.T) {
 	t.Parallel()
 
 	got, gotErr := compass.Current()
-	if gotErr != nil || got.Validate() != nil || got.Project.Name.String() != "Primitive" || got.Project.Release != (compass.ReleaseCoordinates{Major: 2026, Minor: 1, Patch: 3}) {
-		t.Fatalf("Current() = (%+v, %v), want validated Primitive 2026.1.3", got, gotErr)
+	if gotErr != nil || got.Validate() != nil || got.Project.Name.String() != "Primitive" || got.Project.Release != (compass.ReleaseCoordinates{Major: 2026, Minor: 1, Patch: 4}) {
+		t.Fatalf("Current() = (%+v, %v), want validated Primitive 2026.1.4", got, gotErr)
 	}
 }
 
