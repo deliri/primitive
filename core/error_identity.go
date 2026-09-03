@@ -221,6 +221,8 @@ const (
 	// ErrProcessUnsupported identifies an unsupported process operation.
 	ErrProcessUnsupported
 
+	// ErrCompassContract identifies a rejected project configuration declaration.
+	ErrCompassContract
 	// ErrReleaseContract identifies a release contract violation.
 	ErrReleaseContract
 	// ErrReleaseManifest identifies a rejected release manifest.
@@ -567,6 +569,7 @@ func errorIdentityDiagnostics() [errorIdentityLimit]errorIdentityDiagnostic {
 		{identity: ErrProcessWait, text: "process wait failed"},
 		{identity: ErrProcessObservation, text: "process observation failed"},
 		{identity: ErrProcessUnsupported, text: "process operation unsupported on this host"},
+		{identity: ErrCompassContract, text: "compass contract violation"},
 		{identity: ErrReleaseContract, text: "release contract violation"},
 		{identity: ErrReleaseManifest, text: "release manifest rejected"},
 		{identity: ErrReleaseVerification, text: "release verification failed"},
@@ -788,6 +791,7 @@ func errorIdentityParents(identity ErrorIdentity) errorIdentityParentSet {
 		ErrTemporalContract, ErrExchangeContract,
 		ErrFuzzFinderContract, ErrLeaseContract,
 		ErrProcessContract,
+		ErrCompassContract,
 		ErrReleaseContract, ErrDeployContract,
 		ErrDistributionContract,
 		ErrShutdownContract, ErrObjectStoreContract, ErrTimeProofContract,

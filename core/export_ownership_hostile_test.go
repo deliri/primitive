@@ -16,7 +16,7 @@ import (
 const (
 	coreExportInventoryMaximum      = 512
 	coreExportDependencyMaximum     = 32
-	coreSpecialExportAdmissionCount = 60
+	coreSpecialExportAdmissionCount = 68
 	coreProviderExportContractCount = 46
 )
 
@@ -112,6 +112,14 @@ func coreSpecialExportAdmissions() [coreSpecialExportAdmissionCount]coreSpecialE
 		architectureCatalogAdmission("PackageKindUnknown", PackageKindUnknown),
 		architectureCatalogAdmission("PackageKindProduction", PackageKindProduction),
 		architectureCatalogAdmission("PackageKindTestSupport", PackageKindTestSupport),
+		architectureCatalogAdmission("PackageRole", PackageRole(0)),
+		architectureCatalogAdmission("PackageRoleUnknown", PackageRoleUnknown),
+		architectureCatalogAdmission("PackageRoleValueContract", PackageRoleValueContract),
+		architectureCatalogAdmission("PackageRoleDomainAgreement", PackageRoleDomainAgreement),
+		architectureCatalogAdmission("PackageRoleAuthenticationBinding", PackageRoleAuthenticationBinding),
+		architectureCatalogAdmission("PackageRoleEffectCapability", PackageRoleEffectCapability),
+		architectureCatalogAdmission("PackageRoleWireProtocol", PackageRoleWireProtocol),
+		architectureCatalogAdmission("PackageRoleOrchestration", PackageRoleOrchestration),
 		architectureCatalogAdmission("PackageUnknown", PackageUnknown),
 		architectureCatalogAdmission("PackageCore", PackageCore),
 		architectureCatalogAdmission("PackageAttest", PackageAttest),

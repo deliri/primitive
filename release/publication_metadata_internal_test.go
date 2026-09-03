@@ -7,6 +7,7 @@ import (
 	"go/ast"
 	"go/parser"
 	"go/token"
+	"slices"
 	"strings"
 	"testing"
 
@@ -85,7 +86,7 @@ func TestBuildProvenanceWireFieldsRejectInvalidDomainsAndRetainSignedDigests(t *
 		mutate  func(*buildProvenanceWire)
 		name    string
 	}{
-		{name: "go toolchain version substitution is rejected", mutate: func(w *buildProvenanceWire) { w.GoToolchain = "go1.27.1" }, wantErr: core.ErrJSONContract},
+		{name: "go toolchain version substitution is rejected", mutate: func(w *buildProvenanceWire) { w.GoToolchain = "go1.27.0" }, wantErr: core.ErrJSONContract},
 		{name: "flag shaped main package substitution is rejected", mutate: func(w *buildProvenanceWire) { w.MainPackage = "-buildmode=exe/cmd" }, wantErr: core.ErrJSONContract},
 		{name: "module mode substitution is rejected", mutate: func(w *buildProvenanceWire) { w.ModuleMode = "mod" }, wantErr: core.ErrJSONContract},
 		{name: "linker symbol substitution is rejected", mutate: func(w *buildProvenanceWire) { w.LinkerAssignments[0].Symbol = "-ldflags/y.Value" }, wantErr: core.ErrJSONContract},
@@ -102,6 +103,9 @@ func TestBuildProvenanceWireFieldsRejectInvalidDomainsAndRetainSignedDigests(t *
 			candidate := wire
 			candidate.LinkerAssignments = append([]linkerAssignmentWire(nil), wire.LinkerAssignments...)
 			tc.mutate(&candidate)
+			if buildProvenanceWireEqual(candidate, wire) {
+				t.Fatalf("%s mutation changed no load-bearing wire fact", tc.name)
+			}
 			encoded, err := json.Marshal(candidate)
 			if err != nil {
 				t.Fatalf("json.Marshal(mutated BuildProvenance) error = %v, want nil", err)
@@ -125,6 +129,15 @@ func TestBuildProvenanceWireFieldsRejectInvalidDomainsAndRetainSignedDigests(t *
 			}
 		})
 	}
+}
+
+func buildProvenanceWireEqual(left, right buildProvenanceWire) bool {
+	return left.GoToolchain == right.GoToolchain &&
+		left.MainPackage == right.MainPackage &&
+		left.ModuleMode == right.ModuleMode &&
+		left.GoExecutableSHA256 == right.GoExecutableSHA256 &&
+		slices.Equal(left.BuildTags, right.BuildTags) &&
+		slices.Equal(left.LinkerAssignments, right.LinkerAssignments)
 }
 
 // TestBuildProvenanceHistoricalValidationDoesNotConsultCurrentSelectors is a

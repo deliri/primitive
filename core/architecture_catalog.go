@@ -68,6 +68,10 @@ const (
 	PackageGoModule
 	// PackageGoToolchain identifies bounded typed cmd/go observations.
 	PackageGoToolchain
+	// PackageCompass identifies reusable project-configuration declarations and decoding.
+	PackageCompass
+	// PackageVersion identifies project release coordinates and canonical Git tags.
+	PackageVersion
 	// PackageRelease identifies the release package.
 	PackageRelease
 	// PackageShutdown identifies the shutdown package.
@@ -201,6 +205,8 @@ func PrimitiveArchitecture() ArchitectureCatalog {
 			{Identity: PackageProcess, Kind: PackageKindProduction, Role: PackageRoleEffectCapability},
 			{Identity: PackageGoModule, Kind: PackageKindProduction, Role: PackageRoleValueContract},
 			{Identity: PackageGoToolchain, Kind: PackageKindProduction, Role: PackageRoleOrchestration},
+			{Identity: PackageCompass, Kind: PackageKindProduction, Role: PackageRoleValueContract},
+			{Identity: PackageVersion, Kind: PackageKindProduction, Role: PackageRoleValueContract},
 			{Identity: PackageRelease, Kind: PackageKindProduction, Role: PackageRoleOrchestration},
 			{Identity: PackageShutdown, Kind: PackageKindProduction, Role: PackageRoleEffectCapability},
 			{Identity: PackageObjectStore, Kind: PackageKindProduction, Role: PackageRoleEffectCapability},
@@ -438,6 +444,8 @@ func packageIdentityTexts() [packageIdentityLimit]string {
 		"process",
 		"gomodule",
 		"gotoolchain",
+		"compass",
+		"version",
 		"release",
 		"shutdown",
 		"objectstore",

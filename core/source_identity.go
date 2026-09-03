@@ -9,10 +9,8 @@ import (
 )
 
 const (
-	// SourcePathMaximumBytes bounds one slash-canonical repository path.
-	SourcePathMaximumBytes = 1024
-	// RepositoryIdentityMaximumBytes bounds one opaque repository coordinate.
-	RepositoryIdentityMaximumBytes = 512
+	sourcePathMaximumBytes         = 1024
+	repositoryIdentityMaximumBytes = 512
 )
 
 // SourcePath is one slash-canonical path relative to a repository root. The
@@ -45,7 +43,7 @@ func NewRepositoryIdentity(value string) (RepositoryIdentity, error) {
 // repository paths.
 func (p SourcePath) Validate() error {
 	value := p.value
-	if len(value) == 0 || len(value) > SourcePathMaximumBytes || !utf8.ValidString(value) || strings.TrimSpace(value) != value {
+	if len(value) == 0 || len(value) > sourcePathMaximumBytes || !utf8.ValidString(value) || strings.TrimSpace(value) != value {
 		return sourceIdentityError("source path text is invalid")
 	}
 	if value != path.Clean(value) || strings.HasPrefix(value, "/") || strings.HasSuffix(value, "/") || strings.ContainsAny(value, "\\\x00\r\n") {
@@ -61,7 +59,7 @@ func (p SourcePath) Validate() error {
 // repository identities.
 func (r RepositoryIdentity) Validate() error {
 	value := r.value
-	if len(value) == 0 || len(value) > RepositoryIdentityMaximumBytes || !utf8.ValidString(value) || strings.TrimSpace(value) != value {
+	if len(value) == 0 || len(value) > repositoryIdentityMaximumBytes || !utf8.ValidString(value) || strings.TrimSpace(value) != value {
 		return sourceIdentityError("repository identity text is invalid")
 	}
 	for _, current := range value {
@@ -145,9 +143,13 @@ func (r *RepositoryIdentity) UnmarshalJSON(data []byte) error {
 type SourceSubjectKind uint8
 
 const (
+	// SourceSubjectUnknown is the invalid zero source-subject kind.
 	SourceSubjectUnknown SourceSubjectKind = iota
+	// SourceSubjectProject identifies the complete source project.
 	SourceSubjectProject
+	// SourceSubjectPackage identifies one Go package in the source project.
 	SourceSubjectPackage
+	// SourceSubjectFile identifies one file in the source project.
 	SourceSubjectFile
 	sourceSubjectLimit
 )
@@ -206,7 +208,9 @@ func (k *SourceSubjectKind) UnmarshalJSON(data []byte) error {
 // SourceSubject identifies one project, package, or file without assigning it
 // human meaning.
 type SourceSubject struct {
-	Path SourcePath        `json:"path"`
+	// Path is the slash-canonical coordinate within the repository.
+	Path SourcePath `json:"path"`
+	// Kind states whether Path names the project, a package, or a file.
 	Kind SourceSubjectKind `json:"kind"`
 }
 

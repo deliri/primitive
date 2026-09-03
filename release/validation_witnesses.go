@@ -4,10 +4,11 @@ import (
 	"fmt"
 
 	"github.com/deliri/primitive/v2026/core"
+	"github.com/deliri/primitive/v2026/version"
 )
 
 var (
-	_ core.Validatable = ReleaseTag()
+	_ core.Validatable = version.Tag{}
 	_ core.Validatable = AdvanceLatestRequest{}
 	_ core.Validatable = ArtifactRequest{}
 	_ core.Validatable = ArtifactSetRequest{}

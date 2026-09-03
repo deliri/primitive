@@ -1,0 +1,12 @@
+{
+  "project": {
+    "name": "Primitive",
+    "module": "github.com/deliri/primitive/v2026",
+    "repository": "deliri/primitive",
+    "release": {
+      "major": 2026,
+      "minor": 1,
+      "patch": 3
+    }
+  }
+}

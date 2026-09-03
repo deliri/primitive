@@ -16,10 +16,10 @@ func TestDeriveExperimentIDBindsCanonicalRunAndProbe(t *testing.T) {
 	if firstErr != nil || secondErr != nil || first != second {
 		t.Fatalf("DeriveExperimentID(same typed child) = (%v, %v) then (%v, %v), want one stable identity", first, firstErr, second, secondErr)
 	}
-	// The package path is load-bearing identity material. The clean rename from
-	// The clean break to runprotocol intentionally changes this one fixture while
-	// the projection above prevents field alignment from changing it again.
-	const wantCanonicalIdentity = "01890f2e-7b00-7fa9-934e-075aa0b6400b"
+	// The package path is load-bearing identity material. The clean break from
+	// standard to runprotocol intentionally changed this fixture while the
+	// projection above prevents field alignment from changing it again.
+	const wantCanonicalIdentity = "01890f2e-7b00-7405-99d4-469c9b692640"
 	if first.String() != wantCanonicalIdentity {
 		t.Fatalf("DeriveExperimentID(canonical fixture) = %q, want %q", first.String(), wantCanonicalIdentity)
 	}
