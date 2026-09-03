@@ -17,7 +17,7 @@ const (
 	coreExportInventoryMaximum      = 512
 	coreExportDependencyMaximum     = 32
 	coreSpecialExportAdmissionCount = 68
-	coreProviderExportContractCount = 46
+	coreProviderExportContractCount = 60
 )
 
 type coreExportName string
@@ -228,6 +228,20 @@ func coreProviderExportContracts() [coreProviderExportContractCount]coreProvider
 		{name: "PlunkWebhookSecretMinimumBytes", witness: PlunkWebhookSecretMinimumBytes, consumer: PackagePlunk},
 		{name: "PlunkWebhookSecretCustodyMaximumBytes", witness: PlunkWebhookSecretCustodyMaximumBytes, consumer: PackagePlunk},
 		{name: "PlunkWebhookCustodyMaximumBytes", witness: PlunkWebhookCustodyMaximumBytes, consumer: PackagePlunk},
+		{name: "GitHubAPIHost", witness: GitHubAPIHost, consumer: PackageGitHub},
+		{name: "GitHubAPIVersion", witness: GitHubAPIVersion, consumer: PackageGitHub},
+		{name: "GitHubTagPageMaximumEntries", witness: GitHubTagPageMaximumEntries, consumer: PackageGitHub},
+		{name: "GitHubRecursiveTreeMaximumEntries", witness: GitHubRecursiveTreeMaximumEntries, consumer: PackageGitHub},
+		{name: "GitHubRecursiveTreeMaximumBytes", witness: GitHubRecursiveTreeMaximumBytes, consumer: PackageGitHub},
+		{name: "GitHubContentsInlineMaximumBytes", witness: GitHubContentsInlineMaximumBytes, consumer: PackageGitHub},
+		{name: "GitHubAppJWTMaximumLifetimeSeconds", witness: GitHubAppJWTMaximumLifetimeSeconds, consumer: PackageGitHub},
+		{name: "GitHubAppJWTClockSkewSeconds", witness: GitHubAppJWTClockSkewSeconds, consumer: PackageGitHub},
+		{name: "GitHubAppPrivateKeyCustodyMaximumBytes", witness: GitHubAppPrivateKeyCustodyMaximumBytes, consumer: PackageGitHub},
+		{name: "GitHubInstallationTokenResponseCustodyMaximumBytes", witness: GitHubInstallationTokenResponseCustodyMaximumBytes, consumer: PackageGitHub},
+		{name: "GitHubCommitResponseCustodyMaximumBytes", witness: GitHubCommitResponseCustodyMaximumBytes, consumer: PackageGitHub},
+		{name: "GitHubTagPageResponseCustodyMaximumBytes", witness: GitHubTagPageResponseCustodyMaximumBytes, consumer: PackageGitHub},
+		{name: "GitHubContentsResponseCustodyMaximumBytes", witness: GitHubContentsResponseCustodyMaximumBytes, consumer: PackageGitHub},
+		{name: "GitHubOperationCustodyTimeoutSeconds", witness: GitHubOperationCustodyTimeoutSeconds, consumer: PackageGitHub},
 	}
 }
 

@@ -445,6 +445,16 @@ const (
 	ErrPlunkVerification
 	// ErrPlunkBinding identifies Plunk facts attached to the wrong authority or route.
 	ErrPlunkBinding
+	// ErrGitHubContract identifies an invalid GitHub provider agreement.
+	ErrGitHubContract
+	// ErrGitHubAuthentication identifies invalid GitHub credential projection.
+	ErrGitHubAuthentication
+	// ErrGitHubResponse identifies a malformed or contradictory GitHub observation.
+	ErrGitHubResponse
+	// ErrGitHubBinding identifies GitHub facts attached to the wrong repository, revision, or route.
+	ErrGitHubBinding
+	// ErrGitHubNotFound identifies an absent GitHub repository object.
+	ErrGitHubNotFound
 	// ErrCapabilitiesContract identifies an invalid capability catalog,
 	// requirement, or match.
 	ErrCapabilitiesContract
@@ -666,6 +676,11 @@ func errorIdentityDiagnostics() [errorIdentityLimit]errorIdentityDiagnostic {
 		{identity: ErrPlunkAuthentication, text: "plunk authentication failed"},
 		{identity: ErrPlunkVerification, text: "plunk verification failed"},
 		{identity: ErrPlunkBinding, text: "plunk binding failed"},
+		{identity: ErrGitHubContract, text: "github contract violation"},
+		{identity: ErrGitHubAuthentication, text: "github authentication failed"},
+		{identity: ErrGitHubResponse, text: "github response invalid"},
+		{identity: ErrGitHubBinding, text: "github binding failed"},
+		{identity: ErrGitHubNotFound, text: "github object not found"},
 		{identity: ErrCapabilitiesContract, text: "capabilities contract violation"},
 		{identity: ErrCapabilityUnavailable, text: "primitive capability unavailable"},
 		{identity: ErrGoModuleContract, text: "go module contract violation"},
@@ -799,7 +814,7 @@ func errorIdentityParents(identity ErrorIdentity) errorIdentityParentSet {
 		ErrLifecycleIdentityContract, ErrReceiptContract, ErrChitContract,
 		ErrRetrievalContract, ErrPaymentContract, ErrControlWireContract,
 		ErrControlPlaneContract, ErrIDContract, ErrSecretStoreContract,
-		ErrStripeContract, ErrPayPalContract, ErrTwilioContract, ErrPlunkContract,
+		ErrStripeContract, ErrPayPalContract, ErrTwilioContract, ErrPlunkContract, ErrGitHubContract,
 		ErrCapabilitiesContract, ErrGoModuleContract, ErrGoToolchainContract,
 		ErrProofLedgerContract) {
 		return oneErrorIdentityParent(ErrPrimitiveContract)
@@ -908,6 +923,9 @@ func errorIdentityProviderParent(identity ErrorIdentity) ErrorIdentity {
 	}
 	if errorIdentityIn(identity, ErrPlunkAuthentication, ErrPlunkVerification, ErrPlunkBinding) {
 		return ErrPlunkContract
+	}
+	if errorIdentityIn(identity, ErrGitHubAuthentication, ErrGitHubResponse, ErrGitHubBinding, ErrGitHubNotFound) {
+		return ErrGitHubContract
 	}
 	return ErrUnknown
 }

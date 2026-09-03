@@ -56,5 +56,5 @@ coverage*.out
 !/evidence/**
 /evidence/.DS_Store
 
-!/.forge/
-!/.forge/**
+# Superseded Forge projections are not source or evidence.
+/.forge/

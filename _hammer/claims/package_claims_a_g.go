@@ -174,6 +174,15 @@ func emitPackageClaimSpecsAThroughG(emit func(packageClaimSpec) bool) bool {
 			excludes: "It does not own product object meaning, retention policy, customer authorization, or generic multi-provider storage.",
 		},
 		{
+			path: "github", title: "Isolated GitHub source socket",
+			problem:  "GitHub App authentication, repository routes, pagination, response limits, and source observations become inconsistent when products implement them independently.",
+			solution: "GitHub owns exact GitHub credentials, authenticated bounded exchange, tag and head observations, bounded file reads, and streaming recursive trees.",
+			benefit:  "Products consume the same compiler-visible provider facts while retaining all policy about releases, packages, code meaning, and user experience.",
+			removal:  "Remove GitHub when no product integrates GitHub or the provider boundary is wholly replaced.",
+			owns:     "GitHub owns GitHub-specific authentication, headers, routes, pagination, provider limits, strict projection, streaming, and typed observations.",
+			excludes: "It does not select releases, classify packages or files, allow repositories, build source stories, persist UI caches, or decide what completion means.",
+		},
+		{
 			path: "gomodule", title: "Canonical Go module identities",
 			problem:  "Products and tools otherwise copy cmd/go path grammar or treat distinct module and package identities as arbitrary strings.",
 			solution: "Gomodule owns validated canonical module paths and package import paths.",

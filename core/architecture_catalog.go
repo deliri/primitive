@@ -143,6 +143,8 @@ const (
 	PackageCapabilities
 	// PackageProofLedger identifies the blind append-only proof-chain agreement.
 	PackageProofLedger
+	// PackageGitHub identifies GitHub-authenticated source and repository contracts.
+	PackageGitHub
 	packageIdentityLimit
 )
 
@@ -242,6 +244,7 @@ func PrimitiveArchitecture() ArchitectureCatalog {
 			{Identity: PackagePlunk, Kind: PackageKindProduction, Role: PackageRoleWireProtocol},
 			{Identity: PackageCapabilities, Kind: PackageKindProduction, Role: PackageRoleValueContract},
 			{Identity: PackageProofLedger, Kind: PackageKindProduction, Role: PackageRoleDomainAgreement},
+			{Identity: PackageGitHub, Kind: PackageKindProduction, Role: PackageRoleWireProtocol},
 		},
 	}
 }
@@ -481,6 +484,7 @@ func packageIdentityTexts() [packageIdentityLimit]string {
 		"plunk",
 		"capabilities",
 		"proofledger",
+		"github",
 	}
 }
 
