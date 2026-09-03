@@ -24,16 +24,26 @@ func TestReleaseDerivesVersionTextTagAndOrderingFromCompass(t *testing.T) {
 	if err != nil {
 		t.Fatalf("version.FromProject(Current.Project) error = %v, want nil", err)
 	}
-	if got, want := current.Version(), core.NewReleaseVersion(2026, 1, 4); got != want {
+	wantVersion := core.NewReleaseVersion(
+		configuration.Project.Release.Major,
+		configuration.Project.Release.Minor,
+		configuration.Project.Release.Patch,
+	)
+	if got, want := current.Version(), wantVersion; got != want {
 		t.Fatalf("Release.Version() = %v, want %v", got, want)
 	}
-	if got, want := current.String(), "2026.1.4"; got != want {
+	if got, want := current.String(), wantVersion.String(); got != want {
 		t.Fatalf("Release.String() = %q, want %q", got, want)
 	}
-	if got, want := current.Tag().String(), "v2026.1.4"; got != want {
+	if got, want := current.Tag().String(), "v"+wantVersion.String(); got != want {
 		t.Fatalf("Release.Tag().String() = %q, want %q", got, want)
 	}
-	next := releaseFromCoordinates(t, 2026, 1, 5)
+	next := releaseFromCoordinates(
+		t,
+		configuration.Project.Release.Major,
+		configuration.Project.Release.Minor,
+		configuration.Project.Release.Patch+1,
+	)
 	comparison, err := current.Compare(next)
 	if err != nil || comparison != core.ComparisonLess {
 		t.Fatalf("Release.Compare(next patch) = (%v, %v), want (%v, nil)", comparison, err, core.ComparisonLess)

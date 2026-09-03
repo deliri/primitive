@@ -7,10 +7,20 @@ import (
 	"errors"
 	"math"
 	"net/url"
+	"strconv"
 	"strings"
 
 	"github.com/deliri/primitive/v2026/core"
 	"github.com/deliri/primitive/v2026/exchange"
+)
+
+const (
+	githubLinkNextRelation = `rel="next"`
+	// GitHub documents Link targets using its canonical numeric repository
+	// resource path even when the initiating request used owner/name.
+	// Source: https://docs.github.com/en/rest/using-the-rest-api/using-pagination-in-the-rest-api
+	githubRepositoryResourcePathPrefix = "/repositories/"
+	githubTagsPathSuffix               = "/tags"
 )
 
 type tagCommitWire struct {
@@ -122,23 +132,56 @@ func (c Client) nextTagPage(headers exchange.CapturedHeaders, request TagPageReq
 			return 0, responseError(err)
 		}
 		next := request.Page + 1
-		target, err := c.target(repositoryPath(request.Repository)+"/tags", queryPage(next))
-		if err != nil {
-			return 0, err
-		}
-		want := "<" + target.String() + `>; rel="next"`
 		for entry := range strings.SplitSeq(value, ",") {
 			candidate := strings.TrimSpace(entry)
-			if candidate == want {
-				return next, nil
+			if !strings.Contains(candidate, githubLinkNextRelation) {
+				continue
 			}
-			if strings.Contains(candidate, `rel="next"`) {
-				return 0, core.ErrGitHubBinding
+			if err := c.validateNextTagLink(candidate, request.Repository, next); err != nil {
+				return 0, err
 			}
+			return next, nil
 		}
 		return 0, nil
 	}
 	return 0, nil
+}
+
+func (c Client) validateNextTagLink(candidate string, repository Repository, next uint32) error {
+	const suffix = `>; rel="next"`
+	if !strings.HasPrefix(candidate, "<") || !strings.HasSuffix(candidate, suffix) {
+		return core.ErrGitHubBinding
+	}
+	parsed, err := url.Parse(strings.TrimSuffix(strings.TrimPrefix(candidate, "<"), suffix))
+	if err != nil {
+		return bindingError(err)
+	}
+	authority := c.state.authority.HTTPURL()
+	if parsed.Scheme != authority.Scheme || parsed.Host != authority.Host || parsed.User != nil || parsed.Fragment != "" {
+		return core.ErrGitHubBinding
+	}
+	query, err := url.ParseQuery(parsed.RawQuery)
+	if err != nil || query.Encode() != queryPage(next).Encode() {
+		return core.ErrGitHubBinding
+	}
+	expectedPath := repositoryPath(repository) + githubTagsPathSuffix
+	if parsed.Path == expectedPath || validGitHubRepositoryResourceTagsPath(parsed.Path) {
+		return nil
+	}
+	return core.ErrGitHubBinding
+}
+
+func validGitHubRepositoryResourceTagsPath(path string) bool {
+	resource, found := strings.CutPrefix(path, githubRepositoryResourcePathPrefix)
+	if !found {
+		return false
+	}
+	identifier, found := strings.CutSuffix(resource, githubTagsPathSuffix)
+	if !found || identifier == "" || strings.Contains(identifier, "/") {
+		return false
+	}
+	value, err := strconv.ParseUint(identifier, 10, 64)
+	return err == nil && value != 0
 }
 
 // ReadHead observes the first commit returned by GitHub's repository commit

@@ -115,7 +115,9 @@ func TestGitHubTagAndHeadTransportLayerTriad(t *testing.T) {
 		server = httptest.NewServer(http.HandlerFunc(func(writer http.ResponseWriter, incoming *http.Request) {
 			switch incoming.URL.Path {
 			case "/repos/owner/repository/tags":
-				next := server.URL + "/repos/owner/repository/tags?page=2&per_page=100"
+				// GitHub emits its numeric repository resource path in real Link
+				// headers even when the request used the owner/name path.
+				next := server.URL + "/repositories/1315532978/tags?per_page=100&page=2"
 				writer.Header().Set(headerLink, "<"+next+`>; rel="next"`)
 				writeJSON(t, writer, []tagWire{{Name: "anything-product-owned", Commit: tagCommitWire{SHA: commit.String()}}}, http.StatusOK)
 			case "/repos/owner/repository/commits":
