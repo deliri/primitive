@@ -3,6 +3,7 @@ package runnercontrol_test
 import (
 	"context"
 	"errors"
+	"sync/atomic"
 	"testing"
 
 	"github.com/deliri/primitive/v2026/core"
@@ -22,11 +23,12 @@ func TestObservationDeliverySocketProductionPathLayerTriad(t *testing.T) {
 			t.Fatalf("delivery socket fixture = (identity %v, pages %d), want nil and one page", identityErr, len(pages))
 		}
 		store := &observationDeliveryStoreFixture{identity: identity}
+		authority := &observedObservationDeliveryVerificationAuthority{verifier: verifier}
 		stageContract := observationDeliverySocketContractFixture(t, "/runner/delivery/stage")
 		pageContract := observationDeliverySocketContractFixture(t, "/runner/delivery/page")
 		commitContract := observationDeliverySocketContractFixture(t, "/runner/delivery/commit")
 		boundary, err := runnercontrol.NewObservationDeliveryServer(runnercontrol.ObservationDeliveryServerConfiguration{
-			Stage: stageContract, Page: pageContract, Commit: commitContract, Store: store, Verifier: verifier,
+			Stage: stageContract, Page: pageContract, Commit: commitContract, Store: store, Verifier: authority,
 		})
 		if err != nil {
 			t.Fatalf("runnercontrol.NewObservationDeliveryServer() error = %v, want nil", err)
@@ -66,8 +68,8 @@ func TestObservationDeliverySocketProductionPathLayerTriad(t *testing.T) {
 		if serverErr := waitRunnerControlSocketServer(t, commitResult); serverErr != nil {
 			t.Fatalf("ObservationDeliveryServer.ServeCommit() error = %v, want nil", serverErr)
 		}
-		if store.stage.Envelope.Payload.Run != stage.Envelope.Payload.Run || len(store.pages) != 1 || store.publishCount != 1 {
-			t.Fatalf("delivery store state = (run %v, pages %d, publishes %d), want (%v, 1, 1)", store.stage.Envelope.Payload.Run, len(store.pages), store.publishCount, stage.Envelope.Payload.Run)
+		if store.stage.Envelope.Payload.Run != stage.Envelope.Payload.Run || len(store.pages) != 1 || store.publishCount != 1 || authority.calls.Load() != 1 {
+			t.Fatalf("delivery state = (run %v, pages %d, publishes %d, verifications %d), want (%v, 1, 1, 1)", store.stage.Envelope.Payload.Run, len(store.pages), store.publishCount, authority.calls.Load(), stage.Envelope.Payload.Run)
 		}
 	})
 
@@ -81,6 +83,18 @@ func TestObservationDeliverySocketProductionPathLayerTriad(t *testing.T) {
 		})
 		if !errors.Is(gotErr, core.ErrPrimitiveContract) {
 			t.Fatalf("NewObservationDeliveryServer(no store) error = %v, want errors.Is(..., %v)", gotErr, core.ErrPrimitiveContract)
+		}
+	})
+
+	t.Run("negative missing verification authority constructs no delivery boundary", func(t *testing.T) {
+		t.Parallel()
+
+		contract := observationDeliverySocketContractFixture(t, "/runner/delivery/missing-verifier")
+		_, gotErr := runnercontrol.NewObservationDeliveryServer(runnercontrol.ObservationDeliveryServerConfiguration{
+			Stage: contract, Page: contract, Commit: contract, Store: &observationDeliveryStoreFixture{},
+		})
+		if !errors.Is(gotErr, core.ErrPrimitiveContract) {
+			t.Fatalf("NewObservationDeliveryServer(no verification authority) error = %v, want errors.Is(..., %v)", gotErr, core.ErrPrimitiveContract)
 		}
 	})
 
@@ -135,6 +149,26 @@ func TestObservationDeliverySocketProductionPathLayerTriad(t *testing.T) {
 			t.Fatalf("ObservationDeliveryServer.ServeCommit(zero-page) error = %v, want nil", serverErr)
 		}
 	})
+}
+
+type observedObservationDeliveryVerificationAuthority struct {
+	verifier runnercontrol.ObservationDeliveryVerifier
+	calls    atomic.Uint64
+}
+
+func (a *observedObservationDeliveryVerificationAuthority) Validate() error {
+	if a == nil {
+		return core.ErrPrimitiveContract
+	}
+	return a.verifier.Validate()
+}
+
+func (a *observedObservationDeliveryVerificationAuthority) Verify(stage runnercontrol.ObservationDeliveryStage, pages []runnercontrol.ExperimentDeliveryPage) error {
+	if a == nil {
+		return core.ErrPrimitiveContract
+	}
+	a.calls.Add(1)
+	return a.verifier.Verify(stage, pages)
 }
 
 type observationDeliveryStoreFixture struct {

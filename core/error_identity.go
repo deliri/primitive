@@ -975,6 +975,10 @@ func errorIdentityParentsAttestThroughLineIO(identity ErrorIdentity) errorIdenti
 	if identity == ErrManualWrite {
 		return oneErrorIdentityParent(ErrManualContract)
 	}
+	return errorIdentityParentsRunProtocolThroughKeygen(identity)
+}
+
+func errorIdentityParentsRunProtocolThroughKeygen(identity ErrorIdentity) errorIdentityParentSet {
 	if identity == ErrRunProtocolConflict {
 		return oneErrorIdentityParent(ErrRunProtocolContract)
 	}

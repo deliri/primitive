@@ -71,6 +71,35 @@ func TestGitWorktreeLayerTriad(t *testing.T) {
 	})
 }
 
+func TestWorktreeSelectionCompilerDomain(t *testing.T) {
+	t.Parallel()
+
+	WorktreeSelectionUnknown.OffWireEnum()
+	cases := []struct {
+		name      string
+		value     WorktreeSelection
+		wantValid bool
+	}{
+		{name: "zero value is outside the closed domain", value: WorktreeSelectionUnknown},
+		{name: "tracked and repository unignored is the only admitted selection", value: WorktreeSelectionTrackedAndUnignored, wantValid: true},
+		{name: "next value cannot silently extend selection policy", value: WorktreeSelectionTrackedAndUnignored + 1},
+		{name: "maximum representation cannot enter the closed domain", value: WorktreeSelection(^uint8(0))},
+	}
+	for _, tc := range cases {
+		t.Run(tc.name, func(t *testing.T) {
+			t.Parallel()
+
+			gotErr := tc.value.Validate()
+			gotValid := tc.value.IsValid()
+			gotText := tc.value.String()
+			gotCanonical := gotText != "" && gotText != core.UnknownEnumDiagnostic
+			if (gotErr == nil) != tc.wantValid || gotValid != tc.wantValid || gotCanonical != tc.wantValid {
+				t.Fatalf("WorktreeSelection(%d) error/valid/canonical = (%v, %t, %q), want valid %t", tc.value, gotErr, gotValid, gotText, tc.wantValid)
+			}
+		})
+	}
+}
+
 func TestWorktreeEntryWriterPressuresExternalGitPathStream(t *testing.T) {
 	t.Parallel()
 

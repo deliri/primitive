@@ -12,10 +12,10 @@ import (
 // workspace, not interpreted relative to ambient process state.
 type ArtifactExpectation struct {
 	Path         runprotocol.SourcePath `json:"path"`
-	MediaType    core.HTTPMediaType  `json:"media_type"`
-	MaximumBytes core.ByteCount      `json:"maximum_bytes"`
-	Kind         ArtifactKind        `json:"kind"`
-	Required     bool                `json:"required"`
+	MediaType    core.HTTPMediaType     `json:"media_type"`
+	MaximumBytes core.ByteCount         `json:"maximum_bytes"`
+	Kind         ArtifactKind           `json:"kind"`
+	Required     bool                   `json:"required"`
 }
 
 func (e ArtifactExpectation) Validate() error {

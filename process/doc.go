@@ -22,8 +22,7 @@
 // Executable path, working directory, and environment are host observations
 // supplied by hostfacts and admitted into this package's typed request values.
 //
-// ExitCommand is the one ambient termination door. It accepts a bounded
-// CommandExitCode selected by caller policy and belongs only at a package-main boundary; libraries return
+// Ambient termination belongs directly in package main; libraries return
 // typed failures and never terminate their host process.
 // DiscardDeviceArgument exposes the platform null device as a validated argv
 // value for compiler and linker outputs that are intentionally not retained.

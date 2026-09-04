@@ -199,7 +199,7 @@ func (e InterruptedRunnerEvidence) Validate() error {
 
 type PreRunnerEvidence struct {
 	Stage   runprotocol.Identifier `json:"stage"`
-	Failure core.ErrorIdentity  `json:"failure"`
+	Failure core.ErrorIdentity     `json:"failure"`
 }
 
 func (e PreRunnerEvidence) Validate() error {
@@ -252,19 +252,19 @@ func (b ObservationEvidenceBody) validateSelectedBody() error {
 }
 
 type ObservationEnvelopePayload struct {
-	Evidence                   ObservationEvidenceBody  `json:"evidence"`
-	Cleanup                    CleanupOutcome           `json:"cleanup"`
+	Evidence                   ObservationEvidenceBody     `json:"evidence"`
+	Cleanup                    CleanupOutcome              `json:"cleanup"`
 	Audience                   runprotocol.Identifier      `json:"audience"`
 	Destination                runprotocol.Identifier      `json:"destination"`
 	Origin                     runprotocol.OriginIdentity  `json:"origin"`
-	Members                    MemberSet                `json:"member_set"`
-	Fence                      SchedulingFence          `json:"fence"`
-	CapturedAt                 temporal.Instant         `json:"captured_at"`
-	SchemaVersion              uint16                   `json:"schema_version"`
-	CleanupDigest              core.SHA256Digest        `json:"cleanup_digest"`
-	DeliveryGrant              core.SHA256Digest        `json:"delivery_grant"`
-	AdmissionDigest            core.SHA256Digest        `json:"admission_digest"`
-	ExperimentDeliveryManifest core.SHA256Digest        `json:"experiment_delivery_manifest"`
+	Members                    MemberSet                   `json:"member_set"`
+	Fence                      SchedulingFence             `json:"fence"`
+	CapturedAt                 temporal.Instant            `json:"captured_at"`
+	SchemaVersion              uint16                      `json:"schema_version"`
+	CleanupDigest              core.SHA256Digest           `json:"cleanup_digest"`
+	DeliveryGrant              core.SHA256Digest           `json:"delivery_grant"`
+	AdmissionDigest            core.SHA256Digest           `json:"admission_digest"`
+	ExperimentDeliveryManifest core.SHA256Digest           `json:"experiment_delivery_manifest"`
 	Run                        runprotocol.RunID           `json:"run_id"`
 	Request                    runprotocol.RequestIdentity `json:"request_id"`
 	Terminal                   runprotocol.TerminalState   `json:"terminal"`
@@ -448,10 +448,10 @@ func VerifyObservationEnvelope(document ObservationEnvelope, trusted attest.Trus
 
 type ExperimentDeliveryEntry struct {
 	Probe      runprotocol.ProbeIdentity `json:"probe"`
-	Bytes      core.ByteLength        `json:"bytes"`
-	Page       uint16                 `json:"page"`
-	Position   uint16                 `json:"position"`
-	Digest     core.SHA256Digest      `json:"digest"`
+	Bytes      core.ByteLength           `json:"bytes"`
+	Page       uint16                    `json:"page"`
+	Position   uint16                    `json:"position"`
+	Digest     core.SHA256Digest         `json:"digest"`
 	Experiment runprotocol.ExperimentID  `json:"experiment_id"`
 }
 
@@ -466,7 +466,7 @@ type ExperimentDeliveryManifest struct {
 	Entries       []ExperimentDeliveryEntry `json:"entries"`
 	SchemaVersion uint16                    `json:"schema_version"`
 	PageCount     uint16                    `json:"page_count"`
-	Run           runprotocol.RunID            `json:"run_id"`
+	Run           runprotocol.RunID         `json:"run_id"`
 }
 
 func (m ExperimentDeliveryManifest) Validate() error {
@@ -561,7 +561,7 @@ type ExperimentDeliveryPage struct {
 	Documents     []ExperimentCompletionDocument `json:"documents"`
 	SchemaVersion uint16                         `json:"schema_version"`
 	Page          uint16                         `json:"page"`
-	Run           runprotocol.RunID                 `json:"run_id"`
+	Run           runprotocol.RunID              `json:"run_id"`
 }
 
 func (p ExperimentDeliveryPage) Validate() error {

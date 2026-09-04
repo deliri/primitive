@@ -49,16 +49,27 @@ type ServerListener struct {
 
 // Listen opens one exact TCP listener. The caller owns the returned capability
 // until it transfers the capability to ServerRuntime or closes it.
-func Listen(address ListenAddress) (*ServerListener, error) {
+func Listen(address ListenAddress) (owned *ServerListener, resultErr error) {
 	if err := address.Validate(); err != nil {
 		return nil, err
 	}
-	// witness:waiver doctrine/code_form/defer_after_acquire -- the returned ServerListener transfers exact listener ownership to its caller.
 	listener, err := net.Listen("tcp", address.String())
 	if err != nil {
 		return nil, transportError(err)
 	}
-	return &ServerListener{address: address, listener: listener}, nil
+	defer func() {
+		if owned != nil {
+			return
+		}
+		if closeErr := listener.Close(); closeErr != nil {
+			resultErr = errors.Join(resultErr, transportError(closeErr))
+		}
+	}()
+	candidate := &ServerListener{address: address, listener: listener}
+	if err := candidate.Validate(); err != nil {
+		return nil, err
+	}
+	return candidate, nil
 }
 
 // Validate rejects a zero or partially constructed listener capability.

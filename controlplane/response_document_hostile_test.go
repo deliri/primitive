@@ -27,7 +27,7 @@ type authenticatedResponseFixture struct {
 	body      controlplane.RegistrationDocument
 	trusted   attest.TrustedKeys
 	client    controlplane.Client
-	server    controlplane.Server
+	server    controlplane.Authority
 }
 
 type responseValidCase struct {

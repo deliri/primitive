@@ -72,7 +72,7 @@ func TestUpgradeRequiredIssuanceRejectsEveryIndependentContractFailure(t *testin
 		mutate func(*controlplane.UpgradeRequiredIssuance)
 		name   string
 	}{
-		{name: "zero server capability", mutate: func(value *controlplane.UpgradeRequiredIssuance) { value.Server = controlplane.Server{} }, want: core.ErrControlPlaneContract},
+		{name: "zero server capability", mutate: func(value *controlplane.UpgradeRequiredIssuance) { value.Server = controlplane.Authority{} }, want: core.ErrControlPlaneContract},
 		{name: "nil signer", mutate: func(value *controlplane.UpgradeRequiredIssuance) { value.Signer = nil }, want: core.ErrAttestContract},
 		{name: "zero header", mutate: func(value *controlplane.UpgradeRequiredIssuance) { value.Header = controlplane.ResponseHeader{} }, want: core.ErrControlPlaneResponseHeader},
 		{name: "zero revision", mutate: func(value *controlplane.UpgradeRequiredIssuance) { value.Header.Revision = controlwire.RevisionUnknown }, want: core.ErrControlPlaneResponseHeader},

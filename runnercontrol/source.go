@@ -79,16 +79,16 @@ func (d *SourceSigningDomain) UnmarshalJSON(data []byte) error {
 
 type SourceArchiveManifest struct {
 	Repository       runprotocol.RepositoryIdentity `json:"repository"`
-	IssuedAt         temporal.Instant            `json:"issued_at"`
-	ExpiresAt        temporal.Instant            `json:"expires_at"`
-	ArchiveBytes     core.ByteLength             `json:"archive_bytes"`
-	FileMaximumBytes core.ByteCount              `json:"file_maximum_bytes"`
-	EntryMaximum     uint32                      `json:"entry_maximum"`
-	SchemaVersion    uint16                      `json:"schema_version"`
-	DepthMaximum     uint16                      `json:"depth_maximum"`
-	Commit           core.BuildCommit            `json:"commit"`
-	Tree             core.SHA256Digest           `json:"tree_digest"`
-	ArchiveDigest    core.SHA256Digest           `json:"archive_digest"`
+	IssuedAt         temporal.Instant               `json:"issued_at"`
+	ExpiresAt        temporal.Instant               `json:"expires_at"`
+	ArchiveBytes     core.ByteLength                `json:"archive_bytes"`
+	FileMaximumBytes core.ByteCount                 `json:"file_maximum_bytes"`
+	EntryMaximum     uint32                         `json:"entry_maximum"`
+	SchemaVersion    uint16                         `json:"schema_version"`
+	DepthMaximum     uint16                         `json:"depth_maximum"`
+	Commit           core.BuildCommit               `json:"commit"`
+	Tree             core.SHA256Digest              `json:"tree_digest"`
+	ArchiveDigest    core.SHA256Digest              `json:"archive_digest"`
 }
 
 func (m SourceArchiveManifest) Validate() error {

@@ -376,7 +376,7 @@ func TestCredentialedCompletionLayerTriadRefusesCrossInstallationAndAgreementSub
 			value.Grant = submission.GrantDocument{}
 		}, want: core.ErrControlPlaneContract},
 		{name: "authority trust absent", mutate: func(value *CompletionVerification) {
-			value.Server = controlplane.Server{}
+			value.Server = controlplane.Authority{}
 		}, want: core.ErrControlPlaneContract},
 		{name: "other installation certificate", mutate: func(value *CompletionVerification) {
 			value.Document.Certificate = other.request.certificate

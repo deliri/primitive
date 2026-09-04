@@ -10,6 +10,7 @@ import (
 	"go/types"
 	"io"
 	"os"
+	"path/filepath"
 	"sort"
 	"strings"
 
@@ -184,8 +185,15 @@ func analysisExportLookup(metadata *packages.Package, exports map[string]string)
 		if exportPath == "" {
 			return nil, errors.New("compiler export is unavailable for " + path)
 		}
-		return os.Open(exportPath)
+		return openAnalysisExport(exportPath)
 	}
+}
+
+func openAnalysisExport(path string) (io.ReadCloser, error) {
+	if !filepath.IsAbs(path) {
+		return nil, errors.New("compiler export path is not absolute")
+	}
+	return os.OpenInRoot(filepath.Dir(path), filepath.Base(path))
 }
 
 func analysisGoVersion(metadata *packages.Package) string {

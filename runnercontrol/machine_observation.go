@@ -19,8 +19,8 @@ const (
 // the clean fixed-workspace proof that made this generation eligible to claim.
 type MachineObservationSubmission struct {
 	Observation   runprotocol.MachineObservation `json:"observation"`
-	Clean         CleanMachineState           `json:"clean_machine_state"`
-	SchemaVersion uint16                      `json:"schema_version"`
+	Clean         CleanMachineState              `json:"clean_machine_state"`
+	SchemaVersion uint16                         `json:"schema_version"`
 }
 
 func (s MachineObservationSubmission) Validate() error {
@@ -38,9 +38,9 @@ func (s MachineObservationSubmission) Validate() error {
 }
 
 type MachineObservationReceipt struct {
-	SchemaVersion uint16                        `json:"schema_version"`
+	SchemaVersion uint16                           `json:"schema_version"`
 	ObservationID runprotocol.MachineObservationID `json:"observation_id"`
-	CleanDigest   core.SHA256Digest             `json:"clean_machine_state_digest"`
+	CleanDigest   core.SHA256Digest                `json:"clean_machine_state_digest"`
 }
 
 func (r MachineObservationReceipt) Validate() error {

@@ -31,7 +31,7 @@ type paymentQueryFixture struct {
 	document RequestDocument
 	trusted  attest.TrustedKeys
 	client   controlplane.Client
-	server   controlplane.Server
+	server   controlplane.Authority
 }
 
 func TestCredentialedPaymentQueryVerificationLayerTriadAuthenticatesOnlyTheBoundDeviceRequest(t *testing.T) {
@@ -180,7 +180,7 @@ func proveCredentialedPaymentQueryVerificationRejections(t *testing.T) {
 		want     error
 		name     string
 		document RequestDocument
-		server   controlplane.Server
+		server   controlplane.Authority
 	}{
 		{name: "zero document", server: base.server, want: core.ErrControlPlaneContract},
 		{name: "zero server capability", document: base.document, want: core.ErrControlPlaneContract},
@@ -384,9 +384,9 @@ func newPaymentQueryFixture(t testing.TB, request paymentQueryFixtureRequest) pa
 	if err != nil {
 		t.Fatalf("controlplane.NewClient() error = %v, want nil", err)
 	}
-	server, err := controlplane.NewServer(controlplane.ServerConfiguration{TrustedAuthorityKeys: trusted})
+	server, err := controlplane.NewAuthority(controlplane.AuthorityConfiguration{TrustedAuthorityKeys: trusted})
 	if err != nil {
-		t.Fatalf("controlplane.NewServer() error = %v, want nil", err)
+		t.Fatalf("controlplane.NewAuthority() error = %v, want nil", err)
 	}
 	return paymentQueryFixture{
 		document: document, payload: payload, trusted: trusted, device: installation.DevicePrivate,

@@ -49,7 +49,7 @@ func (i issuedCheckInResponse) client(t testing.TB) controlplane.Client {
 	return testControlplaneClient(t, i.trusted)
 }
 
-func (i issuedCheckInResponse) server(t testing.TB) controlplane.Server {
+func (i issuedCheckInResponse) server(t testing.TB) controlplane.Authority {
 	t.Helper()
 	return testControlplaneServer(t, i.trusted)
 }
@@ -94,7 +94,7 @@ func issueTestCheckInResponse(t testing.TB) issuedCheckInResponse {
 	server := testControlplaneServer(t, trusted)
 	document, err := server.IssueCheckInResponse(payload, signer)
 	if err != nil {
-		t.Fatalf("Server.IssueCheckInResponse() error = %v, want nil", err)
+		t.Fatalf("Authority.IssueCheckInResponse() error = %v, want nil", err)
 	}
 	return issuedCheckInResponse{
 		signer: signer, document: document, trusted: trusted,

@@ -192,15 +192,15 @@ type GoBuildContext struct {
 	ArchitectureFeature *runprotocol.Identifier `json:"architecture_feature,omitempty"`
 	Toolchain           runprotocol.Identifier  `json:"toolchain"`
 	ModuleRoot          runprotocol.SourcePath  `json:"module_root"`
-	ReleaseTags         []GoBuildTag         `json:"release_tags"`
-	BuildTags           []GoBuildTag         `json:"build_tags"`
-	GOExperiment        []GoBuildTag         `json:"goexperiment"`
-	OtherInputs         core.SHA256Digest    `json:"other_inputs_digest"`
-	GOOS                core.OperatingSystem `json:"goos"`
-	GOARCH              core.CPUArchitecture `json:"goarch"`
-	CGOEnabled          bool                 `json:"cgo_enabled"`
-	Instrumentation     GoInstrumentation    `json:"instrumentation"`
-	ModuleMode          GoModuleMode         `json:"module_mode"`
+	ReleaseTags         []GoBuildTag            `json:"release_tags"`
+	BuildTags           []GoBuildTag            `json:"build_tags"`
+	GOExperiment        []GoBuildTag            `json:"goexperiment"`
+	OtherInputs         core.SHA256Digest       `json:"other_inputs_digest"`
+	GOOS                core.OperatingSystem    `json:"goos"`
+	GOARCH              core.CPUArchitecture    `json:"goarch"`
+	CGOEnabled          bool                    `json:"cgo_enabled"`
+	Instrumentation     GoInstrumentation       `json:"instrumentation"`
+	ModuleMode          GoModuleMode            `json:"module_mode"`
 }
 
 func (c GoBuildContext) Validate() error {
@@ -269,8 +269,8 @@ func (c GoBuildContext) Digest() (core.SHA256Digest, error) {
 
 type GoBuildContextEntry struct {
 	Profile runprotocol.ProfileIdentity `json:"profile"`
-	Context GoBuildContext           `json:"context"`
-	Digest  core.SHA256Digest        `json:"digest"`
+	Context GoBuildContext              `json:"context"`
+	Digest  core.SHA256Digest           `json:"digest"`
 	Kind    runprotocol.ProbeKind       `json:"kind"`
 }
 
@@ -389,9 +389,9 @@ type ExpansionChild struct {
 	Experiment         *runprotocol.ExperimentID  `json:"experiment_id,omitempty"`
 	Refusal            *runprotocol.RefusalReason `json:"refusal,omitempty"`
 	Probe              runprotocol.ProbeIdentity  `json:"probe"`
-	Sequence           uint16                  `json:"sequence"`
-	BuildContextDigest core.SHA256Digest       `json:"build_context_digest"`
-	Disposition        ExpansionDisposition    `json:"disposition"`
+	Sequence           uint16                     `json:"sequence"`
+	BuildContextDigest core.SHA256Digest          `json:"build_context_digest"`
+	Disposition        ExpansionDisposition       `json:"disposition"`
 }
 
 // CIExpansionChild is one compiler-owned child intent from product policy.
@@ -399,10 +399,10 @@ type ExpansionChild struct {
 type CIExpansionChild struct {
 	Refusal            *runprotocol.RefusalReason `json:"refusal,omitempty"`
 	Target             runprotocol.ProbeTarget    `json:"target"`
-	Sequence           uint16                  `json:"sequence"`
-	BuildContextDigest core.SHA256Digest       `json:"build_context_digest"`
+	Sequence           uint16                     `json:"sequence"`
+	BuildContextDigest core.SHA256Digest          `json:"build_context_digest"`
 	Kind               runprotocol.ProbeKind      `json:"kind"`
-	Disposition        ExpansionDisposition    `json:"disposition"`
+	Disposition        ExpansionDisposition       `json:"disposition"`
 }
 
 func (c CIExpansionChild) Validate() error {
@@ -436,9 +436,9 @@ type CIExpansionPlan struct {
 	Identity         runprotocol.Identifier  `json:"identity"`
 	Discovery        runprotocol.Identifier  `json:"discovery"`
 	RequestedKinds   []runprotocol.ProbeKind `json:"requested_kinds"`
-	Children         []CIExpansionChild   `json:"children"`
-	DiscoveryVersion uint32               `json:"discovery_version"`
-	SchemaVersion    uint16               `json:"schema_version"`
+	Children         []CIExpansionChild      `json:"children"`
+	DiscoveryVersion uint32                  `json:"discovery_version"`
+	SchemaVersion    uint16                  `json:"schema_version"`
 }
 
 func (p CIExpansionPlan) Validate() error {
@@ -527,19 +527,19 @@ func (c ExpansionChild) validateDisposition() error {
 
 type ExpansionManifest struct {
 	Discovery        runprotocol.Identifier       `json:"discovery"`
-	Children         []ExpansionChild          `json:"children"`
-	Members          MemberSet                 `json:"member_set"`
-	Contexts         GoBuildContextSet         `json:"contexts"`
+	Children         []ExpansionChild             `json:"children"`
+	Members          MemberSet                    `json:"member_set"`
+	Contexts         GoBuildContextSet            `json:"contexts"`
 	RequestedKinds   []runprotocol.ProbeKind      `json:"requested_kinds"`
 	Source           runprotocol.SourceCoordinate `json:"source"`
 	Parent           runprotocol.ProbeIdentity    `json:"parent"`
-	Fence            SchedulingFence           `json:"fence"`
-	DiscoveryVersion uint32                    `json:"discovery_version"`
-	SchemaVersion    uint16                    `json:"schema_version"`
-	Admitted         uint16                    `json:"admitted"`
-	Refused          uint16                    `json:"refused"`
-	NotApplicable    uint16                    `json:"not_applicable"`
-	Identity         core.SHA256Digest         `json:"identity"`
+	Fence            SchedulingFence              `json:"fence"`
+	DiscoveryVersion uint32                       `json:"discovery_version"`
+	SchemaVersion    uint16                       `json:"schema_version"`
+	Admitted         uint16                       `json:"admitted"`
+	Refused          uint16                       `json:"refused"`
+	NotApplicable    uint16                       `json:"not_applicable"`
+	Identity         core.SHA256Digest            `json:"identity"`
 	Request          runprotocol.RequestIdentity  `json:"request_id"`
 	Run              runprotocol.RunID            `json:"run_id"`
 }
@@ -696,13 +696,13 @@ func requestedKindContains(kinds []runprotocol.ProbeKind, candidate runprotocol.
 func (m ExpansionManifest) identityDigest() (core.SHA256Digest, error) {
 	type identityProjection struct {
 		Discovery        runprotocol.Identifier       `json:"discovery"`
-		Members          MemberSet                 `json:"member_set"`
+		Members          MemberSet                    `json:"member_set"`
 		RequestedKinds   []runprotocol.ProbeKind      `json:"requested_kinds"`
-		Contexts         GoBuildContextSet         `json:"contexts"`
+		Contexts         GoBuildContextSet            `json:"contexts"`
 		Source           runprotocol.SourceCoordinate `json:"source"`
 		Parent           runprotocol.ProbeIdentity    `json:"parent"`
-		Fence            SchedulingFence           `json:"fence"`
-		DiscoveryVersion uint32                    `json:"discovery_version"`
+		Fence            SchedulingFence              `json:"fence"`
+		DiscoveryVersion uint32                       `json:"discovery_version"`
 		Request          runprotocol.RequestIdentity  `json:"request_id"`
 		Run              runprotocol.RunID            `json:"run_id"`
 	}
@@ -887,11 +887,11 @@ func (r ExpansionRecord) Validate() error {
 }
 
 type ExpansionApproval struct {
-	Refusal        *runprotocol.RefusalReason        `json:"refusal,omitempty"`
+	Refusal        *runprotocol.RefusalReason     `json:"refusal,omitempty"`
 	Experiments    []ExperimentCapabilityDocument `json:"experiment_capabilities"`
 	SchemaVersion  uint16                         `json:"schema_version"`
 	ManifestDigest core.SHA256Digest              `json:"manifest_digest"`
-	Run            runprotocol.RunID                 `json:"run_id"`
+	Run            runprotocol.RunID              `json:"run_id"`
 	Approved       bool                           `json:"approved"`
 }
 

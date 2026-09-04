@@ -28,7 +28,7 @@ func (c MachineResourceCapacity) Validate() error {
 }
 
 type ResourceReservation struct {
-	Required   ResourceRequirement   `json:"required"`
+	Required   ResourceRequirement      `json:"required"`
 	Experiment runprotocol.ExperimentID `json:"experiment_id"`
 }
 

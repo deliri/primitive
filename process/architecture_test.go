@@ -66,7 +66,6 @@ func productionImportAllowlist() []string {
 		"os",
 		"os/exec",
 		"reflect",
-		"strconv",
 		"strings",
 		"sync",
 		"sync/atomic",
@@ -96,11 +95,6 @@ func signalLeafFiles() []string {
 // inside the execution path, which is what a caller would get if Run ever
 // looked a name up on its own.
 const resolutionLeafFile = "resolve.go"
-
-// commandExitLeafFile is the only production file permitted to terminate the
-// calling process. Child termination remains owned by Execution and platform
-// containment leaves; ambient termination is only a package-main effect.
-const commandExitLeafFile = "command_exit.go"
 
 // forbiddenPackageSelectors are package-qualified substrate calls that would
 // move ownership out of this package: an unsupervised command, a raw process
@@ -188,7 +182,6 @@ func TestPublicOperationsAreOnlyTypedConstructionAndExecution(t *testing.T) {
 		"AmbientArguments",
 		"Begin",
 		"DiscardDeviceArgument",
-		"ExitCommand",
 		"NewArgument",
 		"NewEnvironmentName",
 		"NewEnvironmentValue",
@@ -364,8 +357,7 @@ func TestProductionStructureForbidsWorldModelsAndWholeOutputPaths(t *testing.T) 
 				)
 			case *ast.SelectorExpr:
 				if forbiddenSelector(typed) &&
-					!(typed.Sel.Name == "Signal" && slices.Contains(signalLeafFiles(), production.name)) &&
-					!(typed.Sel.Name == "Exit" && production.name == commandExitLeafFile) {
+					!(typed.Sel.Name == "Signal" && slices.Contains(signalLeafFiles(), production.name)) {
 					t.Errorf(
 						"production selector %s in %s at token position %d, want streamed caller-owned output",
 						typed.Sel.Name,

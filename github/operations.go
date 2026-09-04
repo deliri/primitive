@@ -156,19 +156,33 @@ func (c Client) validateNextTagLink(candidate string, repository Repository, nex
 	if err != nil {
 		return bindingError(err)
 	}
-	authority := c.state.authority.HTTPURL()
-	if parsed.Scheme != authority.Scheme || parsed.Host != authority.Host || parsed.User != nil || parsed.Fragment != "" {
+	if !c.matchesAuthority(parsed) {
 		return core.ErrGitHubBinding
 	}
+	if err := validateNextTagQuery(parsed, next); err != nil {
+		return err
+	}
+	if !matchesTagPagePath(parsed.Path, repository) {
+		return core.ErrGitHubBinding
+	}
+	return nil
+}
+
+func (c Client) matchesAuthority(parsed *url.URL) bool {
+	authority := c.state.authority.HTTPURL()
+	return parsed.Scheme == authority.Scheme && parsed.Host == authority.Host && parsed.User == nil && parsed.Fragment == ""
+}
+
+func validateNextTagQuery(parsed *url.URL, next uint32) error {
 	query, err := url.ParseQuery(parsed.RawQuery)
 	if err != nil || query.Encode() != queryPage(next).Encode() {
 		return core.ErrGitHubBinding
 	}
-	expectedPath := repositoryPath(repository) + githubTagsPathSuffix
-	if parsed.Path == expectedPath || validGitHubRepositoryResourceTagsPath(parsed.Path) {
-		return nil
-	}
-	return core.ErrGitHubBinding
+	return nil
+}
+
+func matchesTagPagePath(candidate string, repository Repository) bool {
+	return candidate == repositoryPath(repository)+githubTagsPathSuffix || validGitHubRepositoryResourceTagsPath(candidate)
 }
 
 func validGitHubRepositoryResourceTagsPath(path string) bool {

@@ -30,7 +30,7 @@ type PublicationRequestAssembly struct {
 
 type PublicationVerification struct {
 	Document     PublicationRequestDocument
-	Server       controlplane.Server
+	Server       controlplane.Authority
 	ManifestKeys attest.TrustedKeys
 }
 
@@ -199,7 +199,7 @@ type PublicationCompletionVerification struct {
 	Document  PublicationCompletionDocument
 	Grant     distribution.PublicationGrantDocument
 	Request   VerifiedPublication
-	Server    controlplane.Server
+	Server    controlplane.Authority
 	GrantKeys attest.TrustedKeys
 }
 

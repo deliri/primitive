@@ -102,10 +102,10 @@ func (k *ArtifactKind) UnmarshalJSON(data []byte) error {
 type ArtifactManifestEntry struct {
 	Experiment *runprotocol.ExperimentID `json:"experiment_id,omitempty"`
 	Path       runprotocol.SourcePath    `json:"path"`
-	MediaType  core.HTTPMediaType     `json:"media_type"`
-	Bytes      core.ByteLength        `json:"bytes"`
-	Digest     core.SHA256Digest      `json:"digest"`
-	Kind       ArtifactKind           `json:"kind"`
+	MediaType  core.HTTPMediaType        `json:"media_type"`
+	Bytes      core.ByteLength           `json:"bytes"`
+	Digest     core.SHA256Digest         `json:"digest"`
+	Kind       ArtifactKind              `json:"kind"`
 }
 
 func (e ArtifactManifestEntry) Validate() error {
@@ -124,7 +124,7 @@ type ArtifactManifest struct {
 	Fence         SchedulingFence         `json:"fence"`
 	TotalBytes    core.ByteLength         `json:"total_bytes"`
 	SchemaVersion uint16                  `json:"schema_version"`
-	Run           runprotocol.RunID          `json:"run_id"`
+	Run           runprotocol.RunID       `json:"run_id"`
 }
 
 func (m ArtifactManifest) Validate() error {
@@ -217,7 +217,7 @@ type ArtifactChunk struct {
 	Offset         core.ByteLength       `json:"offset"`
 	SchemaVersion  uint16                `json:"schema_version"`
 	ManifestDigest core.SHA256Digest     `json:"manifest_digest"`
-	Run            runprotocol.RunID        `json:"run_id"`
+	Run            runprotocol.RunID     `json:"run_id"`
 	Final          bool                  `json:"final"`
 }
 
@@ -302,13 +302,13 @@ type ArtifactChunkReceipt struct {
 	SchemaVersion uint16            `json:"schema_version"`
 	Manifest      core.SHA256Digest `json:"manifest_digest"`
 	Artifact      core.SHA256Digest `json:"artifact_digest"`
-	Run           runprotocol.RunID    `json:"run_id"`
+	Run           runprotocol.RunID `json:"run_id"`
 	Complete      bool              `json:"complete"`
 }
 
 type ArtifactManifestReceipt struct {
 	SchemaVersion uint16            `json:"schema_version"`
-	Run           runprotocol.RunID    `json:"run_id"`
+	Run           runprotocol.RunID `json:"run_id"`
 	Digest        core.SHA256Digest `json:"manifest_digest"`
 	Bytes         core.ByteLength   `json:"manifest_bytes"`
 }

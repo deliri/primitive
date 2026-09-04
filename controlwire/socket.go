@@ -73,37 +73,37 @@ func (c Client) Validate() error {
 	return c.configuration.Validate()
 }
 
-// ServerConfiguration binds the authority side of the control socket to its
+// AuthorityConfiguration binds the authority side of the control socket to its
 // exact supported protocol set. It carries no client transport or authority
 // endpoint.
-type ServerConfiguration struct {
+type AuthorityConfiguration struct {
 	Support ProtocolSupport
 }
 
 // Validate closes the authority-side protocol dependency.
-func (c ServerConfiguration) Validate() error {
+func (c AuthorityConfiguration) Validate() error {
 	if err := c.Support.Validate(); err != nil {
 		return contractError(err)
 	}
 	return nil
 }
 
-// Server is the opaque authority capability for the paired control socket.
-type Server struct {
-	configuration ServerConfiguration
+// Authority is the opaque authority capability for the paired control socket.
+type Authority struct {
+	configuration AuthorityConfiguration
 }
 
-// NewServer closes one authority control socket capability.
-func NewServer(configuration ServerConfiguration) (Server, error) {
+// NewAuthority closes one authority control socket capability.
+func NewAuthority(configuration AuthorityConfiguration) (Authority, error) {
 	if err := configuration.Validate(); err != nil {
-		return Server{}, err // witness:waiver doctrine/http/server_timeouts -- Controlwire Server is a typed protocol capability, not net/http.Server, and owns no HTTP runtime.
+		return Authority{}, err
 	}
-	return Server{configuration: configuration}, nil // witness:waiver doctrine/http/server_timeouts -- Controlwire Server is a typed protocol capability, not net/http.Server, and owns no HTTP runtime.
+	return Authority{configuration: configuration}, nil
 }
 
 // Validate rejects the zero capability and revalidates its protocol support.
-func (s Server) Validate() error {
-	return s.configuration.Validate()
+func (a Authority) Validate() error {
+	return a.configuration.Validate()
 }
 
 // ClientJSONCall is one complete client-side control exchange. Authority must
@@ -118,9 +118,9 @@ type ClientJSONCall[Body RoutedJSONRequest] struct {
 // an exact route. The real request path must equal that route and the decoded
 // document must independently project the same route.
 type AuthorityJSONReceiveCall struct {
-	Call   exchange.SocketServerCall
-	Route  RouteContract
-	Server Server
+	Call      exchange.SocketServerCall
+	Route     RouteContract
+	Authority Authority
 }
 
 // RoutedJSONReceive is the authority-side transport result. The exact decoded
@@ -136,9 +136,9 @@ type RoutedJSONReceive[Body RoutedJSONRequest] struct {
 // Every control response is a typed JSON document and every successful route
 // uses the same compiler-owned status and document ceiling.
 type ControlJSONWriteCall[Body AuthenticatedResponseProjection] struct {
-	Call   exchange.SocketServerCall
-	Body   Body
-	Server Server
+	Call      exchange.SocketServerCall
+	Body      Body
+	Authority Authority
 }
 
 // SendRoutedJSON executes one request against the route and nonce projected by
@@ -199,7 +199,7 @@ func ReceiveRoutedJSON[
 	if err != nil {
 		return zero, err
 	}
-	assessment, err := assessReceivedProtocol(call.Server.configuration.Support, received.Body)
+	assessment, err := assessReceivedProtocol(call.Authority.configuration.Support, received.Body)
 	if err != nil {
 		return zero, err
 	}
@@ -213,7 +213,7 @@ func ReceiveRoutedJSON[
 func WriteControlJSON[
 	Body AuthenticatedResponseProjection,
 ](call ControlJSONWriteCall[Body]) error {
-	if err := call.Server.Validate(); err != nil {
+	if err := call.Authority.Validate(); err != nil {
 		return err
 	}
 	policy, err := controlJSONWritePolicy()
@@ -238,7 +238,7 @@ func (call AuthorityJSONReceiveCall) Validate() error {
 	if err := call.Route.Validate(); err != nil {
 		return err
 	}
-	if err := call.Server.Validate(); err != nil {
+	if err := call.Authority.Validate(); err != nil {
 		return err
 	}
 	pathText, err := call.Route.Path()

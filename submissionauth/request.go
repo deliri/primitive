@@ -36,7 +36,7 @@ type RequestAssembly struct {
 // request into authentication.
 type Verification struct {
 	Document RequestDocument
-	Server   controlplane.Server
+	Server   controlplane.Authority
 }
 
 // Verified proves the authority certificate authenticated before its device

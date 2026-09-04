@@ -53,7 +53,7 @@ type CompletionVerification struct {
 	Grant     submission.GrantDocument
 	Document  CompletionDocument
 	Request   Verified
-	Server    controlplane.Server
+	Server    controlplane.Authority
 	GrantKeys attest.TrustedKeys
 	Nonce     controlwire.RequestNonce
 }

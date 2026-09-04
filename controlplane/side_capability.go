@@ -20,16 +20,16 @@ type Client struct {
 	configuration ClientConfiguration
 }
 
-// ServerConfiguration names the authority keys a control service trusts when
+// AuthorityConfiguration names the authority keys a control service trusts when
 // it authenticates credentials and requests presented by installed tools.
-type ServerConfiguration struct {
+type AuthorityConfiguration struct {
 	TrustedAuthorityKeys attest.TrustedKeys
 }
 
-// Server is the authority half of the shared control-plane agreement. It owns
+// Authority is the authority half of the shared control-plane agreement. It owns
 // no account, persistence, product, or transport policy.
-type Server struct {
-	configuration ServerConfiguration
+type Authority struct {
+	configuration AuthorityConfiguration
 }
 
 // Validate closes the installed tool's trust configuration.
@@ -55,25 +55,25 @@ func (c Client) Validate() error {
 }
 
 // Validate closes the authority's trust configuration.
-func (c ServerConfiguration) Validate() error {
+func (c AuthorityConfiguration) Validate() error {
 	if err := c.TrustedAuthorityKeys.Validate(); err != nil {
 		return capabilityError(err)
 	}
 	return nil
 }
 
-// NewServer constructs one immutable authority capability.
-func NewServer(configuration ServerConfiguration) (Server, error) {
+// NewAuthority constructs one immutable authority capability.
+func NewAuthority(configuration AuthorityConfiguration) (Authority, error) {
 	if err := configuration.Validate(); err != nil {
-		return Server{}, err // witness:waiver doctrine/http/server_timeouts -- Controlplane Server is a typed authority capability, not net/http.Server, and owns no HTTP runtime.
+		return Authority{}, err
 	}
-	server := Server{configuration: configuration} // witness:waiver doctrine/http/server_timeouts -- Controlplane Server is a typed authority capability, not net/http.Server, and owns no HTTP runtime.
-	return server, server.Validate()
+	authority := Authority{configuration: configuration}
+	return authority, authority.Validate()
 }
 
-// Validate proves the server still owns a complete trust configuration.
-func (s Server) Validate() error {
-	return s.configuration.Validate()
+// Validate proves the authority still owns a complete trust configuration.
+func (a Authority) Validate() error {
+	return a.configuration.Validate()
 }
 
 func capabilityError(causes ...error) error {
@@ -90,6 +90,6 @@ func capabilityError(causes ...error) error {
 var (
 	_ core.Validatable = ClientConfiguration{}
 	_ core.Validatable = Client{}
-	_ core.Validatable = ServerConfiguration{}
-	_ core.Validatable = Server{} // witness:waiver doctrine/http/server_timeouts -- Controlplane Server is a typed authority capability, not net/http.Server, and owns no HTTP runtime.
+	_ core.Validatable = AuthorityConfiguration{}
+	_ core.Validatable = Authority{}
 )

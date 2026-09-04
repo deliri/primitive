@@ -138,7 +138,7 @@ func TestCredentialedPublicationRequestRefusesEveryAuthorityDeviceBuildAndManife
 	for _, tc := range cases {
 		t.Run(tc.name, func(t *testing.T) {
 			t.Parallel()
-			var server controlplane.Server
+			var server controlplane.Authority
 			if tc.authority.Validate() == nil {
 				server = distributionAuthServer(t, tc.authority)
 			}
@@ -235,7 +235,7 @@ func TestCredentialedPublicationCompletionRefusesEveryCrossRequestAndCrossAuthor
 	for _, tc := range cases {
 		t.Run(tc.name, func(t *testing.T) {
 			t.Parallel()
-			var server controlplane.Server
+			var server controlplane.Authority
 			if tc.trusted.Validate() == nil {
 				server = distributionAuthServer(t, tc.trusted)
 			}

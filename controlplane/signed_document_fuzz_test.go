@@ -105,7 +105,7 @@ func registrationVerificationProbe(
 
 func checkInVerificationProbe(
 	issued issuedCheckIn,
-	server controlplane.Server,
+	server controlplane.Authority,
 ) verificationLayerProbe {
 	return verificationLayerProbe{
 		name: "check-in certificate then device signature",
@@ -127,7 +127,7 @@ func checkInVerificationProbe(
 			return err
 		},
 		neutral: func() error {
-			_, err := (controlplane.Server{}).VerifyCheckIn(controlplane.CheckInVerification{})
+			_, err := (controlplane.Authority{}).VerifyCheckIn(controlplane.CheckInVerification{})
 			return err
 		},
 	}

@@ -231,7 +231,7 @@ func (v CheckInVerification) Validate() error {
 
 // VerifyCheckIn authenticates the authority-issued credential first, then uses
 // the exact device key it names as the sole authority for the request.
-func (s Server) VerifyCheckIn(verification CheckInVerification) (VerifiedCheckIn, error) {
+func (s Authority) VerifyCheckIn(verification CheckInVerification) (VerifiedCheckIn, error) {
 	if err := s.Validate(); err != nil {
 		return VerifiedCheckIn{}, checkInError(err)
 	}

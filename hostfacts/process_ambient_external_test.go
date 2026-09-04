@@ -93,25 +93,6 @@ func TestLookupAmbientEnvironmentDistinguishesAbsentEmptyAndValue(t *testing.T) 
 		t.Fatalf("LookupAmbientEnvironment(present value) = %+v/%q error:%v, want present ambient-value", present, presentValue, valueErr)
 	}
 
-	setValue, err := process.NewEnvironmentValue("primitive-owned-value")
-	if err != nil {
-		t.Fatalf("process.NewEnvironmentValue() error = %v, want nil", err)
-	}
-	if err := hostfacts.SetAmbientEnvironment(name, setValue); err != nil {
-		t.Fatalf("SetAmbientEnvironment() error = %v, want nil", err)
-	}
-	set, err := hostfacts.LookupAmbientEnvironment(name)
-	setText, valueErr := set.Value.Value()
-	if err != nil || valueErr != nil || set.Presence != process.EnvironmentPresencePresent || setText != "primitive-owned-value" {
-		t.Fatalf("LookupAmbientEnvironment(set) = %+v/%q errors:%v/%v, want present Primitive-owned value", set, setText, err, valueErr)
-	}
-	if err := hostfacts.UnsetAmbientEnvironment(name); err != nil {
-		t.Fatalf("UnsetAmbientEnvironment() error = %v, want nil", err)
-	}
-	absent, err := hostfacts.LookupAmbientEnvironment(name)
-	if err != nil || absent.Presence != process.EnvironmentPresenceAbsent || absent.Value != (process.EnvironmentValue{}) {
-		t.Fatalf("LookupAmbientEnvironment(absent) = %+v error:%v, want absent zero value", absent, err)
-	}
 }
 
 func TestLookupAmbientEnvironmentRejectsZeroNameBeforeObservation(t *testing.T) {

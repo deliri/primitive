@@ -24,7 +24,7 @@ type socketFixture struct {
 	request           controlplane.RegistrationRequest
 	response          controlplane.ResponseProjection[controlplane.RegistrationDocument]
 	support           controlwire.ProtocolSupport
-	authority         controlplane.Server
+	authority         controlplane.Authority
 }
 
 type socketObservation struct {
@@ -56,7 +56,7 @@ func TestRoutedSocketExecutesProductionRequestAndAuthenticatedResponse(t *testin
 		received, receiveErr := controlwire.ReceiveRoutedJSON[
 			controlplane.RegistrationRequest,
 			*controlplane.RegistrationRequest,
-		](controlwire.AuthorityJSONReceiveCall{Call: call, Route: route, Server: authorityServer})
+		](controlwire.AuthorityJSONReceiveCall{Call: call, Route: route, Authority: authorityServer})
 		observation := socketObservation{
 			method: request.Method,
 			path:   request.URL.Path,
@@ -72,7 +72,7 @@ func TestRoutedSocketExecutesProductionRequestAndAuthenticatedResponse(t *testin
 			writer.WriteHeader(http.StatusBadRequest)
 			return
 		}
-		if writeErr := controlwire.WriteControlJSON(controlwire.ControlJSONWriteCall[controlplane.ResponseProjection[controlplane.RegistrationDocument]]{Call: call, Body: fixture.response, Server: authorityServer}); writeErr != nil {
+		if writeErr := controlwire.WriteControlJSON(controlwire.ControlJSONWriteCall[controlplane.ResponseProjection[controlplane.RegistrationDocument]]{Call: call, Body: fixture.response, Authority: authorityServer}); writeErr != nil {
 			t.Errorf("WriteControlJSON() error = %v, want nil", writeErr)
 		}
 	}))
@@ -153,7 +153,7 @@ func TestRegistrationAuthorityRunsThroughTheRealControlWireReceiver(t *testing.T
 		controlplane.RegistrationRequest,
 		*controlplane.RegistrationRequest,
 	](controlwire.AuthorityJSONReceiveCall{
-		Call: fixtureSocketServerCall(t, httpRequest), Route: route, Server: socketServer(t, fixture.support),
+		Call: fixtureSocketServerCall(t, httpRequest), Route: route, Authority: socketServer(t, fixture.support),
 	})
 	if err != nil {
 		t.Fatalf("ReceiveRoutedJSON() error = %v, want nil", err)
@@ -205,7 +205,7 @@ func TestRoutedSocketReturnsUpgradeAssessmentBesideAnUnsupportedValidatedRequest
 	received, err := controlwire.ReceiveRoutedJSON[
 		controlplane.RegistrationRequest,
 		*controlplane.RegistrationRequest,
-	](controlwire.AuthorityJSONReceiveCall{Call: fixtureSocketServerCall(t, request), Route: route, Server: socketServer(t, support)})
+	](controlwire.AuthorityJSONReceiveCall{Call: fixtureSocketServerCall(t, request), Route: route, Authority: socketServer(t, support)})
 	capability, capabilityErr := route.ProtocolCapability(fixture.request.ControlRevision())
 	if err != nil || capabilityErr != nil || received.Validate() != nil || received.Body == nil ||
 		received.Assessment.Capability != capability ||
@@ -335,7 +335,7 @@ func TestRoutedSocketAuthorityAcceptsTenProductionRequestRepresentations(t *test
 			got, gotErr := controlwire.ReceiveRoutedJSON[
 				controlplane.RegistrationRequest,
 				*controlplane.RegistrationRequest,
-			](controlwire.AuthorityJSONReceiveCall{Call: fixtureSocketServerCall(t, request), Route: route, Server: socketServer(t, fixture.support)})
+			](controlwire.AuthorityJSONReceiveCall{Call: fixtureSocketServerCall(t, request), Route: route, Authority: socketServer(t, fixture.support)})
 			if gotErr != nil || got.Body == nil || got.Body.Validate() != nil ||
 				got.IdempotencyKey.String() != wantKey.String() ||
 				got.Replay.Validate() != nil ||
@@ -547,7 +547,7 @@ func TestRoutedSocketAuthorityRejectsThirtyThreeExternalRequestBoundaries(t *tes
 			got, receiveErr := controlwire.ReceiveRoutedJSON[
 				controlplane.RegistrationRequest,
 				*controlplane.RegistrationRequest,
-			](controlwire.AuthorityJSONReceiveCall{Call: fixtureSocketServerCall(t, tc.build()), Route: route, Server: socketServer(t, fixture.support)})
+			](controlwire.AuthorityJSONReceiveCall{Call: fixtureSocketServerCall(t, tc.build()), Route: route, Authority: socketServer(t, fixture.support)})
 			if got.Body != nil || !got.IdempotencyKey.IsZero() || got.Replay != (controlwire.ReplayIdentity{}) {
 				t.Fatalf("rejected receive = %+v, want zero result", got)
 			}
@@ -612,7 +612,7 @@ func FuzzRoutedSocketAuthoritySemanticClosure(f *testing.F) {
 		got, receiveErr := controlwire.ReceiveRoutedJSON[
 			controlplane.RegistrationRequest,
 			*controlplane.RegistrationRequest,
-		](controlwire.AuthorityJSONReceiveCall{Call: fixtureSocketServerCall(t, fuzzRequest(input)), Route: route, Server: socketServer(t, fixture.support)})
+		](controlwire.AuthorityJSONReceiveCall{Call: fixtureSocketServerCall(t, fuzzRequest(input)), Route: route, Authority: socketServer(t, fixture.support)})
 		oracle := receiveOracle(receiveOracleInput{
 			document: document, key: key, pathMode: modes[0],
 			methodMode: modes[1], contentMode: modes[2], route: route, bodyLimit: bodyLimit,
@@ -763,9 +763,9 @@ func productionSocketFixture(t testing.TB) socketFixture {
 	if err != nil {
 		t.Fatalf("attest.NewTrustedKeys(authority) error = %v, want nil", err)
 	}
-	authority, err := controlplane.NewServer(controlplane.ServerConfiguration{TrustedAuthorityKeys: trusted})
+	authority, err := controlplane.NewAuthority(controlplane.AuthorityConfiguration{TrustedAuthorityKeys: trusted})
 	if err != nil {
-		t.Fatalf("controlplane.NewServer(authority) error = %v, want nil", err)
+		t.Fatalf("controlplane.NewAuthority(authority) error = %v, want nil", err)
 	}
 	tokenBytes := [controlwire.RegistrationTokenBytes]byte{1}
 	token, err := controlwire.NewRegistrationToken(tokenBytes)
@@ -849,12 +849,12 @@ func socketClient(
 	return client
 }
 
-func socketServer(t testing.TB, support controlwire.ProtocolSupport) controlwire.Server {
+func socketServer(t testing.TB, support controlwire.ProtocolSupport) controlwire.Authority {
 	t.Helper()
 
-	server, err := controlwire.NewServer(controlwire.ServerConfiguration{Support: support})
+	server, err := controlwire.NewAuthority(controlwire.AuthorityConfiguration{Support: support})
 	if err != nil {
-		t.Fatalf("controlwire.NewServer() error = %v, want nil", err)
+		t.Fatalf("controlwire.NewAuthority() error = %v, want nil", err)
 	}
 	return server
 }

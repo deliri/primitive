@@ -61,10 +61,10 @@ func (l RunLimits) validateCounts() error {
 
 type RequestedRun struct {
 	Probe         runprotocol.RequestedProbe  `json:"requested_probe"`
-	Limits        RunLimits                `json:"limits"`
-	RequestedAt   temporal.Instant         `json:"requested_at"`
-	SchemaVersion uint16                   `json:"schema_version"`
-	EvidencePlan  core.SHA256Digest        `json:"evidence_plan_digest"`
+	Limits        RunLimits                   `json:"limits"`
+	RequestedAt   temporal.Instant            `json:"requested_at"`
+	SchemaVersion uint16                      `json:"schema_version"`
+	EvidencePlan  core.SHA256Digest           `json:"evidence_plan_digest"`
 	Request       runprotocol.RequestIdentity `json:"request_id"`
 	Nonce         runprotocol.RequestNonce    `json:"request_nonce"`
 }
@@ -125,11 +125,11 @@ type RepositoryGrant struct {
 	Subject          runprotocol.SubjectIdentity    `json:"subject"`
 	Origin           runprotocol.OriginIdentity     `json:"origin"`
 	Repository       runprotocol.RepositoryIdentity `json:"repository"`
-	SourceAuthority  core.HTTPEndpoint           `json:"source_authority"`
-	CredentialIssuer core.HTTPEndpoint           `json:"credential_issuer"`
-	ExpiresAt        temporal.Instant            `json:"expires_at"`
-	Identity         core.SHA256Digest           `json:"identity"`
-	Enabled          bool                        `json:"enabled"`
+	SourceAuthority  core.HTTPEndpoint              `json:"source_authority"`
+	CredentialIssuer core.HTTPEndpoint              `json:"credential_issuer"`
+	ExpiresAt        temporal.Instant               `json:"expires_at"`
+	Identity         core.SHA256Digest              `json:"identity"`
+	Enabled          bool                           `json:"enabled"`
 }
 
 func (g RepositoryGrant) Validate() error {
@@ -155,10 +155,10 @@ func repositoryGrantDigest(g RepositoryGrant) core.SHA256Digest {
 		Origin           runprotocol.OriginIdentity     `json:"origin"`
 		Subject          runprotocol.SubjectIdentity    `json:"subject"`
 		Repository       runprotocol.RepositoryIdentity `json:"repository"`
-		SourceAuthority  core.HTTPEndpoint           `json:"source_authority"`
-		CredentialIssuer core.HTTPEndpoint           `json:"credential_issuer"`
-		Enabled          bool                        `json:"enabled"`
-		ExpiresAt        temporal.Instant            `json:"expires_at"`
+		SourceAuthority  core.HTTPEndpoint              `json:"source_authority"`
+		CredentialIssuer core.HTTPEndpoint              `json:"credential_issuer"`
+		Enabled          bool                           `json:"enabled"`
+		ExpiresAt        temporal.Instant               `json:"expires_at"`
 	}
 	encoded, err := core.MarshalCanonicalJSONDocument(projection{g.Origin, g.Subject, g.Repository, g.SourceAuthority, g.CredentialIssuer, g.Enabled, g.ExpiresAt})
 	if err != nil {
@@ -171,11 +171,11 @@ type OriginDeliveryGrant struct {
 	Origin      runprotocol.OriginIdentity `json:"origin"`
 	Audience    runprotocol.Identifier     `json:"audience"`
 	Application runprotocol.Identifier     `json:"application"`
-	Endpoint    core.HTTPEndpoint       `json:"endpoint"`
-	ExpiresAt   temporal.Instant        `json:"expires_at"`
-	Credential  PeerCredential          `json:"credential"`
-	Identity    core.SHA256Digest       `json:"identity"`
-	Enabled     bool                    `json:"enabled"`
+	Endpoint    core.HTTPEndpoint          `json:"endpoint"`
+	ExpiresAt   temporal.Instant           `json:"expires_at"`
+	Credential  PeerCredential             `json:"credential"`
+	Identity    core.SHA256Digest          `json:"identity"`
+	Enabled     bool                       `json:"enabled"`
 }
 
 func (g OriginDeliveryGrant) Validate() error {
@@ -201,10 +201,10 @@ func originDeliveryGrantDigest(g OriginDeliveryGrant) core.SHA256Digest {
 		Origin      runprotocol.OriginIdentity `json:"origin"`
 		Audience    runprotocol.Identifier     `json:"audience"`
 		Application runprotocol.Identifier     `json:"application"`
-		Endpoint    core.HTTPEndpoint       `json:"endpoint"`
-		ExpiresAt   temporal.Instant        `json:"expires_at"`
-		Credential  PeerCredential          `json:"credential"`
-		Enabled     bool                    `json:"enabled"`
+		Endpoint    core.HTTPEndpoint          `json:"endpoint"`
+		ExpiresAt   temporal.Instant           `json:"expires_at"`
+		Credential  PeerCredential             `json:"credential"`
+		Enabled     bool                       `json:"enabled"`
 	}
 	encoded, err := core.MarshalCanonicalJSONDocument(projection{
 		Origin:      g.Origin,
@@ -223,11 +223,11 @@ func originDeliveryGrantDigest(g OriginDeliveryGrant) core.SHA256Digest {
 
 type SourceGrant struct {
 	Credential      runprotocol.Identifier       `json:"credential_custody"`
-	Authority       core.HTTPEndpoint         `json:"authority"`
+	Authority       core.HTTPEndpoint            `json:"authority"`
 	Source          runprotocol.SourceCoordinate `json:"source"`
-	ExpiresAt       temporal.Instant          `json:"expires_at"`
-	Identity        SourceGrantIdentity       `json:"identity"`
-	RepositoryGrant core.SHA256Digest         `json:"repository_grant"`
+	ExpiresAt       temporal.Instant             `json:"expires_at"`
+	Identity        SourceGrantIdentity          `json:"identity"`
+	RepositoryGrant core.SHA256Digest            `json:"repository_grant"`
 }
 
 func (g SourceGrant) Validate() error {
@@ -246,15 +246,15 @@ func NewSourceGrant(grant SourceGrant) (SourceGrant, error) {
 }
 
 type AdmittedRun struct {
-	Repository    RepositoryGrant          `json:"repository_grant"`
+	Repository    RepositoryGrant             `json:"repository_grant"`
 	Requested     runprotocol.RequestedProbe  `json:"requested_probe"`
-	Delivery      OriginDeliveryGrant      `json:"origin_delivery_grant"`
+	Delivery      OriginDeliveryGrant         `json:"origin_delivery_grant"`
 	Probe         runprotocol.ProbeIdentity   `json:"admitted_probe"`
-	Source        SourceGrant              `json:"source_grant"`
-	Limits        RunLimits                `json:"limits"`
-	AdmittedAt    temporal.Instant         `json:"admitted_at"`
-	SchemaVersion uint16                   `json:"schema_version"`
-	EvidencePlan  core.SHA256Digest        `json:"evidence_plan_digest"`
+	Source        SourceGrant                 `json:"source_grant"`
+	Limits        RunLimits                   `json:"limits"`
+	AdmittedAt    temporal.Instant            `json:"admitted_at"`
+	SchemaVersion uint16                      `json:"schema_version"`
+	EvidencePlan  core.SHA256Digest           `json:"evidence_plan_digest"`
 	Request       runprotocol.RequestIdentity `json:"request_id"`
 	Run           runprotocol.RunID           `json:"run_id"`
 }
@@ -275,10 +275,10 @@ func (r AdmittedRun) Validate() error {
 func sourceGrantDigest(grant SourceGrant) core.SHA256Digest {
 	type identityInput struct {
 		Credential      runprotocol.Identifier       `json:"credential_custody"`
-		Authority       core.HTTPEndpoint         `json:"authority"`
+		Authority       core.HTTPEndpoint            `json:"authority"`
 		Source          runprotocol.SourceCoordinate `json:"source"`
-		ExpiresAt       temporal.Instant          `json:"expires_at"`
-		RepositoryGrant core.SHA256Digest         `json:"repository_grant"`
+		ExpiresAt       temporal.Instant             `json:"expires_at"`
+		RepositoryGrant core.SHA256Digest            `json:"repository_grant"`
 	}
 	encoded, err := core.MarshalCanonicalJSONDocument(identityInput{RepositoryGrant: grant.RepositoryGrant, Source: grant.Source, Authority: grant.Authority, Credential: grant.Credential, ExpiresAt: grant.ExpiresAt})
 	if err != nil {
@@ -313,9 +313,9 @@ func probeDescentScalarsMatch(requested runprotocol.RequestedProbe, admitted run
 }
 
 type AdmissionResponse struct {
-	Admitted      *AdmittedRun             `json:"admitted,omitempty"`
+	Admitted      *AdmittedRun                `json:"admitted,omitempty"`
 	Refusal       *runprotocol.RefusalReason  `json:"refusal,omitempty"`
-	SchemaVersion uint16                   `json:"schema_version"`
+	SchemaVersion uint16                      `json:"schema_version"`
 	Request       runprotocol.RequestIdentity `json:"request_id"`
 }
 

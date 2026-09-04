@@ -163,27 +163,27 @@ func TestControlSocketServerCapabilityLayerTriad(t *testing.T) {
 		if supportErr != nil {
 			t.Fatalf("controlwire.PublishedProtocolSupport() error = %v, want nil", supportErr)
 		}
-		got, gotErr := controlwire.NewServer(controlwire.ServerConfiguration{Support: support})
+		got, gotErr := controlwire.NewAuthority(controlwire.AuthorityConfiguration{Support: support})
 		if gotErr != nil || got.Validate() != nil {
-			t.Fatalf("controlwire.NewServer(published) = (%+v, %v), want validated server and nil", got, gotErr)
+			t.Fatalf("controlwire.NewAuthority(published) = (%+v, %v), want validated server and nil", got, gotErr)
 		}
 	})
 
 	t.Run("negative zero support cannot become an authority capability", func(t *testing.T) {
 		t.Parallel()
 
-		got, gotErr := controlwire.NewServer(controlwire.ServerConfiguration{})
-		if got != (controlwire.Server{}) || !errors.Is(gotErr, core.ErrControlWireContract) {
-			t.Fatalf("controlwire.NewServer(zero support) = (%+v, %v), want zero and %v", got, gotErr, core.ErrControlWireContract)
+		got, gotErr := controlwire.NewAuthority(controlwire.AuthorityConfiguration{})
+		if got != (controlwire.Authority{}) || !errors.Is(gotErr, core.ErrControlWireContract) {
+			t.Fatalf("controlwire.NewAuthority(zero support) = (%+v, %v), want zero and %v", got, gotErr, core.ErrControlWireContract)
 		}
 	})
 
 	t.Run("neutral zero server carries no protocol authority", func(t *testing.T) {
 		t.Parallel()
 
-		var got controlwire.Server
+		var got controlwire.Authority
 		if gotValidateErr := got.Validate(); !errors.Is(gotValidateErr, core.ErrControlWireContract) {
-			t.Fatalf("zero Server.Validate() error = %v, want %v", gotValidateErr, core.ErrControlWireContract)
+			t.Fatalf("zero Authority.Validate() error = %v, want %v", gotValidateErr, core.ErrControlWireContract)
 		}
 	})
 }
@@ -215,13 +215,13 @@ func TestControlSocketSideCapabilitiesExcludeOppositePeerAuthority(t *testing.T)
 		},
 		{
 			name:           "server configuration owns only published protocol support",
-			structure:      reflect.TypeFor[controlwire.ServerConfiguration](),
+			structure:      reflect.TypeFor[controlwire.AuthorityConfiguration](),
 			wantFieldTypes: []reflect.Type{reflect.TypeFor[controlwire.ProtocolSupport]()},
 		},
 		{
 			name:                     "opaque server closes exactly one private server configuration",
-			structure:                reflect.TypeFor[controlwire.Server](),
-			wantFieldTypes:           []reflect.Type{reflect.TypeFor[controlwire.ServerConfiguration]()},
+			structure:                reflect.TypeFor[controlwire.Authority](),
+			wantFieldTypes:           []reflect.Type{reflect.TypeFor[controlwire.AuthorityConfiguration]()},
 			wantUnexportedFieldCount: 1,
 		},
 		{
@@ -234,14 +234,14 @@ func TestControlSocketSideCapabilitiesExcludeOppositePeerAuthority(t *testing.T)
 			structure: reflect.TypeFor[controlwire.AuthorityJSONReceiveCall](),
 			wantFieldTypes: []reflect.Type{
 				reflect.TypeFor[exchange.SocketServerCall](), reflect.TypeFor[controlwire.RouteContract](),
-				reflect.TypeFor[controlwire.Server](),
+				reflect.TypeFor[controlwire.Authority](),
 			},
 		},
 		{
 			name:      "server write call carries bound Exchange ingress body and server capability only",
 			structure: reflect.TypeFor[controlwire.ControlJSONWriteCall[controlplane.ResponseProjection[controlplane.RegistrationDocument]]](),
 			wantFieldTypes: []reflect.Type{
-				reflect.TypeFor[exchange.SocketServerCall](), responseType, reflect.TypeFor[controlwire.Server](),
+				reflect.TypeFor[exchange.SocketServerCall](), responseType, reflect.TypeFor[controlwire.Authority](),
 			},
 		},
 	}

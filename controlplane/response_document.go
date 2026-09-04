@@ -34,7 +34,7 @@ type ResponseIssuance[Body core.ValidatedJSONMarshaler] struct {
 	Signer     crypto.Signer
 	Body       Body
 	Header     ResponseHeader
-	Server     Server
+	Server     Authority
 	Assessment controlwire.ProtocolAssessment
 }
 
@@ -44,7 +44,7 @@ type ResponseIssuance[Body core.ValidatedJSONMarshaler] struct {
 type UpgradeRequiredIssuance struct {
 	Signer     crypto.Signer
 	Header     ResponseHeader
-	Server     Server
+	Server     Authority
 	Assessment controlwire.ProtocolAssessment
 }
 

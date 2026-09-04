@@ -14,7 +14,7 @@ type SubmissionResponseIssuance struct {
 	Signer     crypto.Signer
 	Body       submission.DecisionProjection
 	Header     controlplane.ResponseHeader
-	Server     controlplane.Server
+	Server     controlplane.Authority
 	Assessment controlwire.ProtocolAssessment
 }
 
@@ -60,7 +60,7 @@ type CompletionResponseIssuance struct {
 	Signer     crypto.Signer
 	Header     controlplane.ResponseHeader
 	Body       chit.Document
-	Server     controlplane.Server
+	Server     controlplane.Authority
 	Assessment controlwire.ProtocolAssessment
 }
 

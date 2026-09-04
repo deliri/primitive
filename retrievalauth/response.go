@@ -13,7 +13,7 @@ type ResponseIssuance struct {
 	Signer     crypto.Signer
 	Header     controlplane.ResponseHeader
 	Body       retrieval.GrantProjection
-	Server     controlplane.Server
+	Server     controlplane.Authority
 	Assessment controlwire.ProtocolAssessment
 }
 

@@ -115,10 +115,10 @@ func (m *EgressMode) UnmarshalJSON(data []byte) error {
 
 type EgressRule struct {
 	Service     runprotocol.Identifier `json:"service"`
-	Endpoint    core.HTTPEndpoint   `json:"endpoint"`
-	Protocol    NetworkProtocol     `json:"protocol"`
-	Port        uint16              `json:"port"`
-	Certificate core.SHA256Digest   `json:"certificate"`
+	Endpoint    core.HTTPEndpoint      `json:"endpoint"`
+	Protocol    NetworkProtocol        `json:"protocol"`
+	Port        uint16                 `json:"port"`
+	Certificate core.SHA256Digest      `json:"certificate"`
 }
 
 func (r EgressRule) Validate() error {
@@ -215,8 +215,8 @@ func (r ResourceRequirement) Validate() error {
 
 type ResourceWave struct {
 	Experiments []runprotocol.ExperimentID `json:"experiments"`
-	Required    ResourceRequirement     `json:"required"`
-	WaveWidth   uint16                  `json:"wave_width"`
+	Required    ResourceRequirement        `json:"required"`
+	WaveWidth   uint16                     `json:"wave_width"`
 }
 
 func (w ResourceWave) Validate() error {

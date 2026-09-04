@@ -132,7 +132,7 @@ func (k *DirectiveKind) UnmarshalJSON(data []byte) error {
 
 type Directive struct {
 	Run  *runprotocol.RunID `json:"run_id,omitempty"`
-	Kind DirectiveKind   `json:"kind"`
+	Kind DirectiveKind      `json:"kind"`
 }
 
 func (d Directive) Validate() error {
@@ -152,14 +152,14 @@ func (d Directive) Validate() error {
 }
 
 type HeartbeatRequest struct {
-	Scheduling    *SchedulingFence              `json:"scheduling_fence,omitempty"`
-	Members       *MemberSet                    `json:"member_set,omitempty"`
+	Scheduling    *SchedulingFence                 `json:"scheduling_fence,omitempty"`
+	Members       *MemberSet                       `json:"member_set,omitempty"`
 	ActiveRuns    []runprotocol.RunID              `json:"active_run_ids,omitempty"`
-	Fence         MachineFence                  `json:"fence"`
-	ObservedAt    temporal.Instant              `json:"observed_at"`
-	SchemaVersion uint16                        `json:"schema_version"`
+	Fence         MachineFence                     `json:"fence"`
+	ObservedAt    temporal.Instant                 `json:"observed_at"`
+	SchemaVersion uint16                           `json:"schema_version"`
 	Observation   runprotocol.MachineObservationID `json:"observation_id"`
-	State         HeartbeatState                `json:"state"`
+	State         HeartbeatState                   `json:"state"`
 }
 
 func (r HeartbeatRequest) Validate() error {

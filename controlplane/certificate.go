@@ -74,7 +74,7 @@ func (c Client) VerifyInstallationCertificate(
 
 // VerifyInstallationCertificate authenticates a credential presented to the
 // authority using only the server's configured trust roots.
-func (s Server) VerifyInstallationCertificate(
+func (s Authority) VerifyInstallationCertificate(
 	certificate InstallationCertificateDocument,
 ) (VerifiedInstallationCertificate, error) {
 	if err := s.Validate(); err != nil {

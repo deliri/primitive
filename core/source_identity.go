@@ -46,16 +46,28 @@ func NewRepositoryIdentity(value string) (RepositoryIdentity, error) {
 // repository paths.
 func (p SourcePath) Validate() error {
 	value := p.value
-	if len(value) == 0 || len(value) > SourcePathMaximumBytes || !utf8.ValidString(value) || strings.TrimSpace(value) != value {
+	if !validSourcePathText(value) {
 		return sourceIdentityError("source path text is invalid")
 	}
-	if value != path.Clean(value) || strings.HasPrefix(value, "/") || strings.HasSuffix(value, "/") || strings.ContainsAny(value, "\\\x00\r\n") {
+	if !slashCanonicalSourcePath(value) {
 		return sourceIdentityError("source path is not slash-canonical")
 	}
-	if value == ".." || strings.HasPrefix(value, "../") || strings.Contains(value, "/../") {
+	if sourcePathEscapesRepository(value) {
 		return sourceIdentityError("source path escapes its repository")
 	}
 	return nil
+}
+
+func validSourcePathText(value string) bool {
+	return len(value) != 0 && len(value) <= SourcePathMaximumBytes && utf8.ValidString(value) && strings.TrimSpace(value) == value
+}
+
+func slashCanonicalSourcePath(value string) bool {
+	return value == path.Clean(value) && !strings.HasPrefix(value, "/") && !strings.HasSuffix(value, "/") && !strings.ContainsAny(value, "\\\x00\r\n")
+}
+
+func sourcePathEscapesRepository(value string) bool {
+	return value == ".." || strings.HasPrefix(value, "../") || strings.Contains(value, "/../")
 }
 
 // Validate refuses empty, padded, whitespace-bearing, or control-bearing

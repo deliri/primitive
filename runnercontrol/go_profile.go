@@ -146,22 +146,22 @@ func (a DiagnosticArtifacts) Validate() error {
 }
 
 type GoExperimentPlan struct {
-	Diagnostics          *DiagnosticArtifacts  `json:"diagnostics,omitempty"`
+	Diagnostics          *DiagnosticArtifacts     `json:"diagnostics,omitempty"`
 	Selector             *runprotocol.Name        `json:"selector,omitempty"`
-	CoveragePath         *core.RelativePath    `json:"coverage_path,omitempty"`
-	Coverage             *CoverageMode         `json:"coverage_mode,omitempty"`
+	CoveragePath         *core.RelativePath       `json:"coverage_path,omitempty"`
+	Coverage             *CoverageMode            `json:"coverage_mode,omitempty"`
 	Package              runprotocol.SourcePath   `json:"package"`
-	CPU                  []uint16              `json:"cpu"`
+	CPU                  []uint16                 `json:"cpu"`
 	Tags                 []runprotocol.Identifier `json:"tags"`
-	Timeout              temporal.Duration     `json:"timeout"`
-	ShuffleSeed          uint64                `json:"shuffle_seed"`
-	BenchmarkDuration    temporal.Duration     `json:"benchmark_duration"`
-	FuzzDuration         temporal.Duration     `json:"fuzz_duration"`
-	FuzzMinimizeDuration temporal.Duration     `json:"fuzz_minimize_duration"`
-	RepeatCount          uint16                `json:"repeat_count"`
-	PackageParallel      uint16                `json:"package_parallel"`
-	Parallel             uint16                `json:"parallel"`
-	Profile              GoProfileKind         `json:"profile"`
+	Timeout              temporal.Duration        `json:"timeout"`
+	ShuffleSeed          uint64                   `json:"shuffle_seed"`
+	BenchmarkDuration    temporal.Duration        `json:"benchmark_duration"`
+	FuzzDuration         temporal.Duration        `json:"fuzz_duration"`
+	FuzzMinimizeDuration temporal.Duration        `json:"fuzz_minimize_duration"`
+	RepeatCount          uint16                   `json:"repeat_count"`
+	PackageParallel      uint16                   `json:"package_parallel"`
+	Parallel             uint16                   `json:"parallel"`
+	Profile              GoProfileKind            `json:"profile"`
 	Kind                 runprotocol.ProbeKind    `json:"kind"`
 }
 
@@ -336,10 +336,10 @@ func (c GoConcurrency) Validate() error {
 // observed machine could execute. It is included in the signed execution
 // capability, so a resource cap remains visible in the returned evidence.
 type GoConcurrencyResolution struct {
-	Requested GoConcurrency                     `json:"requested"`
-	Effective GoConcurrency                     `json:"effective"`
+	Requested GoConcurrency                        `json:"requested"`
+	Effective GoConcurrency                        `json:"effective"`
 	Machine   runprotocol.MachineExecutionSettings `json:"machine"`
-	Profile   GoProfileKind                     `json:"profile"`
+	Profile   GoProfileKind                        `json:"profile"`
 }
 
 func ResolveGoConcurrency(machine runprotocol.MachineExecutionSettings, profile GoProfileKind, requested GoConcurrency) (GoConcurrencyResolution, error) {

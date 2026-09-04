@@ -26,7 +26,7 @@ type paymentResponseFixture struct {
 	body     payment.CatalogDocument
 	trusted  attest.TrustedKeys
 	client   controlplane.Client
-	server   controlplane.Server
+	server   controlplane.Authority
 }
 
 type paymentResponseIdentityCase struct {
@@ -241,7 +241,7 @@ func provePaymentResponseIssuanceRejections(t *testing.T, fixture paymentRespons
 		Body: fixture.body, Assessment: acceptedPaymentResponseAssessment(t, fixture.header),
 	}
 	zeroServer := valid
-	zeroServer.Server = controlplane.Server{}
+	zeroServer.Server = controlplane.Authority{}
 	nilSigner := valid
 	nilSigner.Signer = nil
 	zeroBody := valid

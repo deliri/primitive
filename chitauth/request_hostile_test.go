@@ -30,7 +30,7 @@ type queryFixture struct {
 	payload  chit.QueryPayload
 	document RequestDocument
 	client   controlplane.Client
-	server   controlplane.Server
+	server   controlplane.Authority
 }
 
 func TestCredentialedChitQueryVerificationLayerTriadAuthenticatesOnlyTheBoundDeviceRequest(t *testing.T) {
@@ -182,7 +182,7 @@ func proveCredentialedChitQueryVerificationRejections(t *testing.T) {
 		want     error
 		name     string
 		document RequestDocument
-		server   controlplane.Server
+		server   controlplane.Authority
 	}{
 		{name: "zero document", server: base.server, want: core.ErrControlPlaneContract},
 		{name: "zero server capability", document: base.document, want: core.ErrControlPlaneContract},
@@ -386,9 +386,9 @@ func newQueryFixture(t testing.TB, request queryFixtureRequest) queryFixture {
 	if err != nil {
 		t.Fatalf("controlplane.NewClient() error = %v, want nil", err)
 	}
-	server, err := controlplane.NewServer(controlplane.ServerConfiguration{TrustedAuthorityKeys: trusted})
+	server, err := controlplane.NewAuthority(controlplane.AuthorityConfiguration{TrustedAuthorityKeys: trusted})
 	if err != nil {
-		t.Fatalf("controlplane.NewServer() error = %v, want nil", err)
+		t.Fatalf("controlplane.NewAuthority() error = %v, want nil", err)
 	}
 	return queryFixture{
 		document: document, payload: payload, device: installation.DevicePrivate,

@@ -73,9 +73,9 @@ func (s *RunControlState) UnmarshalJSON(data []byte) error {
 }
 
 type RunStateRequest struct {
-	SchemaVersion uint16           `json:"schema_version"`
-	Run           runprotocol.RunID   `json:"run_id"`
-	RequestedAt   temporal.Instant `json:"requested_at"`
+	SchemaVersion uint16            `json:"schema_version"`
+	Run           runprotocol.RunID `json:"run_id"`
+	RequestedAt   temporal.Instant  `json:"requested_at"`
 }
 
 func (r RunStateRequest) Validate() error {
@@ -89,7 +89,7 @@ type RunStateResponse struct {
 	Observation   *ObservationEnvelope `json:"observation,omitempty"`
 	UpdatedAt     temporal.Instant     `json:"updated_at"`
 	SchemaVersion uint16               `json:"schema_version"`
-	Run           runprotocol.RunID       `json:"run_id"`
+	Run           runprotocol.RunID    `json:"run_id"`
 	State         RunControlState      `json:"state"`
 }
 
@@ -195,7 +195,7 @@ func (r CancellationRequest) IdempotencyKey() (exchange.IdempotencyKey, error) {
 type CancellationResponse struct {
 	SchemaVersion uint16               `json:"schema_version"`
 	Identity      CancellationIdentity `json:"cancellation_id"`
-	Run           runprotocol.RunID       `json:"run_id"`
+	Run           runprotocol.RunID    `json:"run_id"`
 	State         RunControlState      `json:"state"`
 	RecordedAt    temporal.Instant     `json:"recorded_at"`
 }

@@ -46,7 +46,7 @@ func issueTestRegistration(t testing.TB) issuedRegistration {
 
 	document, err := server.IssueRegistration(payload, signer)
 	if err != nil {
-		t.Fatalf("Server.IssueRegistration() error = %v, want nil", err)
+		t.Fatalf("Authority.IssueRegistration() error = %v, want nil", err)
 	}
 	return issuedRegistration{
 		document:    document,
@@ -134,7 +134,7 @@ func resignLease(t testing.TB, document lease.Document, signer ed25519.PrivateKe
 
 func resignCertificate(
 	t testing.TB,
-	server controlplane.Server,
+	server controlplane.Authority,
 	document *controlplane.InstallationCertificateDocument,
 	signer ed25519.PrivateKey,
 ) *controlplane.InstallationCertificateDocument {
@@ -145,7 +145,7 @@ func resignCertificate(
 	}
 	resigned, err := server.IssueInstallationCertificate(document.Body, signer)
 	if err != nil {
-		t.Fatalf("Server.IssueInstallationCertificate() error = %v, want nil", err)
+		t.Fatalf("Authority.IssueInstallationCertificate() error = %v, want nil", err)
 	}
 	return &resigned
 }
@@ -162,14 +162,14 @@ func testControlplaneClient(t testing.TB, trusted attest.TrustedKeys) controlpla
 	return client
 }
 
-func testControlplaneServer(t testing.TB, trusted attest.TrustedKeys) controlplane.Server {
+func testControlplaneServer(t testing.TB, trusted attest.TrustedKeys) controlplane.Authority {
 	t.Helper()
 
-	server, err := controlplane.NewServer(controlplane.ServerConfiguration{
+	server, err := controlplane.NewAuthority(controlplane.AuthorityConfiguration{
 		TrustedAuthorityKeys: trusted,
 	})
 	if err != nil {
-		t.Fatalf("controlplane.NewServer() error = %v, want nil", err)
+		t.Fatalf("controlplane.NewAuthority() error = %v, want nil", err)
 	}
 	return server
 }

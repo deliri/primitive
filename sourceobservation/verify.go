@@ -121,13 +121,24 @@ func (v packageVerifier) verify(reference PackageReference) error {
 	if err := observed.Validate(); err != nil {
 		return err
 	}
+	if err := verifyResolvedPackage(v.project, reference, observed); err != nil {
+		return err
+	}
+	return v.verifyPackageFiles(observed)
+}
+
+func verifyResolvedPackage(project Project, reference PackageReference, observed Package) error {
 	digest, err := observed.ObservationDigest()
 	if err != nil {
 		return err
 	}
-	if observed.Repository != v.project.Repository || observed.Path != reference.Path || observed.Revision != v.project.Revision || digest != reference.ObservationDigest {
+	if observed.Repository != project.Repository || observed.Path != reference.Path || observed.Revision != project.Revision || digest != reference.ObservationDigest {
 		return conflictError(errors.New("source observation resolved package differs from its project reference"))
 	}
+	return nil
+}
+
+func (v packageVerifier) verifyPackageFiles(observed Package) error {
 	fileVerifier := packageFileVerifier{
 		ctx: v.ctx, project: v.project, packagePath: observed.Path,
 		resolver: v.resolver, allFiles: v.allFiles,
@@ -241,6 +252,13 @@ func verifyResolvedFile(project Project, reference FileReference, file File) err
 	if err := file.Validate(); err != nil {
 		return err
 	}
+	if err := verifyResolvedFileIdentity(project, reference, file); err != nil {
+		return err
+	}
+	return verifyResolvedFileContexts(project, file)
+}
+
+func verifyResolvedFileIdentity(project Project, reference FileReference, file File) error {
 	digest, err := file.ObservationDigest()
 	if err != nil {
 		return err
@@ -251,6 +269,10 @@ func verifyResolvedFile(project Project, reference FileReference, file File) err
 	if !samePackageCoordinate(file.Package, reference.Package) {
 		return conflictError(errors.New("source observation resolved file package differs from its file reference"))
 	}
+	return nil
+}
+
+func verifyResolvedFileContexts(project Project, file File) error {
 	if len(file.Selections) != len(project.Contexts) {
 		return conflictError(errors.New("source observation file does not account for every project build context"))
 	}

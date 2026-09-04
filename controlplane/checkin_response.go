@@ -309,7 +309,7 @@ func (d *CheckInResponseDocument) UnmarshalJSON(data []byte) error {
 // IssueCheckInResponse signs one validated response payload. It is the
 // authority half of the exchange and is exercised by every client test, so the
 // bytes a client verifies are produced by the same code a server runs.
-func (s Server) IssueCheckInResponse(payload CheckInResponsePayload, key ed25519.PrivateKey) (CheckInResponseDocument, error) {
+func (s Authority) IssueCheckInResponse(payload CheckInResponsePayload, key ed25519.PrivateKey) (CheckInResponseDocument, error) {
 	if err := s.Validate(); err != nil {
 		return CheckInResponseDocument{}, checkInResponseError(err)
 	}

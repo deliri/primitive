@@ -25,16 +25,16 @@ const (
 
 type ExperimentCompletionPayload struct {
 	Probe         runprotocol.ProbeIdentity         `json:"probe"`
-	StartedAt     *temporal.Instant              `json:"started_at,omitempty"`
-	Process       *process.ResultObservation     `json:"process,omitempty"`
-	Go            *GoConcurrencyResolution       `json:"go,omitempty"`
-	Members       MemberSet                      `json:"member_set"`
+	StartedAt     *temporal.Instant                 `json:"started_at,omitempty"`
+	Process       *process.ResultObservation        `json:"process,omitempty"`
+	Go            *GoConcurrencyResolution          `json:"go,omitempty"`
+	Members       MemberSet                         `json:"member_set"`
 	Observation   runprotocol.ExperimentObservation `json:"observation"`
-	Fence         SchedulingFence                `json:"fence"`
-	RequestedAt   temporal.Instant               `json:"requested_at"`
-	AdmittedAt    temporal.Instant               `json:"admitted_at"`
-	CompletedAt   temporal.Instant               `json:"completed_at"`
-	SchemaVersion uint16                         `json:"schema_version"`
+	Fence         SchedulingFence                   `json:"fence"`
+	RequestedAt   temporal.Instant                  `json:"requested_at"`
+	AdmittedAt    temporal.Instant                  `json:"admitted_at"`
+	CompletedAt   temporal.Instant                  `json:"completed_at"`
+	SchemaVersion uint16                            `json:"schema_version"`
 	Run           runprotocol.RunID                 `json:"run_id"`
 }
 
@@ -329,11 +329,11 @@ func (r ExperimentCompletionRecord) Validate() error {
 }
 
 type ExperimentCompletionReceipt struct {
-	SchemaVersion uint16                `json:"schema_version"`
+	SchemaVersion uint16                   `json:"schema_version"`
 	Run           runprotocol.RunID        `json:"run_id"`
 	Experiment    runprotocol.ExperimentID `json:"experiment_id"`
-	Digest        core.SHA256Digest     `json:"document_digest"`
-	Bytes         core.ByteLength       `json:"document_bytes"`
+	Digest        core.SHA256Digest        `json:"document_digest"`
+	Bytes         core.ByteLength          `json:"document_bytes"`
 }
 
 func (r ExperimentCompletionReceipt) Validate() error {

@@ -169,7 +169,7 @@ func TestRetrievalAuthVerificationLayerTriad(t *testing.T) {
 		}{
 			{name: "zero verification", mutate: func(value *Verification) { *value = Verification{} }, wantErr: core.ErrRetrievalContract},
 			{name: "document absent", mutate: func(value *Verification) { value.Document = RequestDocument{} }, wantErr: core.ErrRetrievalContract},
-			{name: "trusted authority absent", mutate: func(value *Verification) { value.Server = controlplane.Server{} }, wantErr: core.ErrRetrievalContract},
+			{name: "trusted authority absent", mutate: func(value *Verification) { value.Server = controlplane.Authority{} }, wantErr: core.ErrRetrievalContract},
 			{name: "different authority trust set", mutate: func(value *Verification) { value.Server = retrievalAuthServer(t, otherAuthority.trusted) }, wantErr: core.ErrAttestVerification},
 			{name: "authentic certificate names another device", mutate: func(value *Verification) { value.Document.Certificate = otherDevice.certificate }, wantErr: core.ErrAttestVerification},
 			{name: "request nonce substituted after signing", mutate: func(value *Verification) { value.Document.Request.Payload.Nonce = otherNonce.request.Payload.Nonce }, wantErr: core.ErrAttestVerification},

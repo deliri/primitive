@@ -18,14 +18,7 @@ const (
 	// paths not excluded by repository-owned .gitignore files. Ambient global
 	// excludes and repository-private info/exclude state do not participate.
 	WorktreeSelectionTrackedAndUnignored
-	worktreeSelectionLimit
 )
-
-func worktreeSelectionTexts() [worktreeSelectionLimit]string {
-	return [...]string{
-		WorktreeSelectionTrackedAndUnignored: "tracked-and-repository-unignored",
-	}
-}
 
 func (s WorktreeSelection) Validate() error {
 	if s != WorktreeSelectionTrackedAndUnignored {
@@ -39,8 +32,8 @@ func (s WorktreeSelection) IsValid() bool { return s.Validate() == nil }
 func (WorktreeSelection) OffWireEnum() {}
 
 func (s WorktreeSelection) String() string {
-	if s.IsValid() {
-		return worktreeSelectionTexts()[s]
+	if s == WorktreeSelectionTrackedAndUnignored {
+		return "tracked-and-repository-unignored"
 	}
 	return core.UnknownEnumDiagnostic
 }

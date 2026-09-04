@@ -28,7 +28,7 @@ type UpdateRequestAssembly struct {
 
 type UpdateVerification struct {
 	Document UpdateRequestDocument
-	Server   controlplane.Server
+	Server   controlplane.Authority
 }
 
 type VerifiedUpdate struct {
@@ -49,7 +49,7 @@ type UpgradeRequestAssembly struct {
 
 type UpgradeVerification struct {
 	Document UpgradeRequestDocument
-	Server   controlplane.Server
+	Server   controlplane.Authority
 }
 
 type VerifiedUpgrade struct {

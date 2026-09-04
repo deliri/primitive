@@ -7,11 +7,11 @@ import (
 	"github.com/deliri/primitive/v2026/controlplane"
 )
 
-func distributionAuthServer(t testing.TB, trusted attest.TrustedKeys) controlplane.Server {
+func distributionAuthServer(t testing.TB, trusted attest.TrustedKeys) controlplane.Authority {
 	t.Helper()
-	server, err := controlplane.NewServer(controlplane.ServerConfiguration{TrustedAuthorityKeys: trusted})
+	server, err := controlplane.NewAuthority(controlplane.AuthorityConfiguration{TrustedAuthorityKeys: trusted})
 	if err != nil {
-		t.Fatalf("controlplane.NewServer(distribution authority) error = %v, want nil", err)
+		t.Fatalf("controlplane.NewAuthority(distribution authority) error = %v, want nil", err)
 	}
 	return server
 }

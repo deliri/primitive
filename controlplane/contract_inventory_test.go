@@ -30,8 +30,8 @@ type (
 type controlplaneContractInventory struct {
 	ClientConfiguration               controlplaneClientInput[ClientConfiguration]
 	Client                            controlplaneClientCapability[Client]
-	ServerConfiguration               controlplaneServerInput[ServerConfiguration]
-	Server                            controlplaneServerCapability[Server]
+	AuthorityConfiguration            controlplaneServerInput[AuthorityConfiguration]
+	Authority                         controlplaneServerCapability[Authority]
 	RegistrationRequest               controlplaneProtocolFact[RegistrationRequest]
 	RegistrationIdentity              controlplaneProtocolFact[RegistrationIdentity]
 	InstallationCertificateBody       controlplaneProtocolFact[InstallationCertificateBody]

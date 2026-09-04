@@ -14,7 +14,7 @@ type MaterialResponseIssuance struct {
 	Signer     crypto.Signer
 	Header     controlplane.ResponseHeader
 	Body       release.MaterialResponse
-	Server     controlplane.Server
+	Server     controlplane.Authority
 	Assessment controlwire.ProtocolAssessment
 }
 
@@ -60,7 +60,7 @@ type PublicationResponseIssuance struct {
 	Signer     crypto.Signer
 	Header     controlplane.ResponseHeader
 	Body       distribution.PublicationGrantProjection
-	Server     controlplane.Server
+	Server     controlplane.Authority
 	Assessment controlwire.ProtocolAssessment
 }
 
@@ -106,7 +106,7 @@ type PublicationCompletionResponseIssuance struct {
 	Signer     crypto.Signer
 	Header     controlplane.ResponseHeader
 	Body       release.LatestDocument
-	Server     controlplane.Server
+	Server     controlplane.Authority
 	Assessment controlwire.ProtocolAssessment
 }
 
@@ -156,7 +156,7 @@ type UpdateResponseIssuance struct {
 	Signer     crypto.Signer
 	Header     controlplane.ResponseHeader
 	Body       distribution.UpdateResponseDocument
-	Server     controlplane.Server
+	Server     controlplane.Authority
 	Assessment controlwire.ProtocolAssessment
 }
 
@@ -202,7 +202,7 @@ type UpgradeResponseIssuance struct {
 	Signer     crypto.Signer
 	Header     controlplane.ResponseHeader
 	Body       distribution.UpgradeGrantProjection
-	Server     controlplane.Server
+	Server     controlplane.Authority
 	Assessment controlwire.ProtocolAssessment
 }
 

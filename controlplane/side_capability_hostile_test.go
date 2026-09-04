@@ -31,7 +31,7 @@ func TestControlplaneSideCapabilitiesExhaustEveryReachableConfigurationState(t *
 		t.Fatalf("attest.NewTrustedKeys() error = %v, want nil", err)
 	}
 	clientConfiguration := controlplane.ClientConfiguration{TrustedAuthorityKeys: trusted}
-	serverConfiguration := controlplane.ServerConfiguration{TrustedAuthorityKeys: trusted}
+	serverConfiguration := controlplane.AuthorityConfiguration{TrustedAuthorityKeys: trusted}
 	cases := []controlplaneCapabilityStateCase{
 		{
 			name: "valid client configuration retains one closed authority set",
@@ -80,30 +80,30 @@ func TestControlplaneSideCapabilitiesExhaustEveryReachableConfigurationState(t *
 		{
 			name: "valid server constructor returns one usable capability",
 			run: func() (bool, error) {
-				got, gotErr := controlplane.NewServer(serverConfiguration)
-				return got != (controlplane.Server{}), errors.Join(gotErr, got.Validate())
+				got, gotErr := controlplane.NewAuthority(serverConfiguration)
+				return got != (controlplane.Authority{}), errors.Join(gotErr, got.Validate())
 			},
 			wantValid: true,
 		},
 		{
 			name: "zero server configuration is rejected before construction",
 			run: func() (bool, error) {
-				return false, (controlplane.ServerConfiguration{}).Validate()
+				return false, (controlplane.AuthorityConfiguration{}).Validate()
 			},
 			wantErr: []error{core.ErrControlPlaneContract, core.ErrAttestContract},
 		},
 		{
 			name: "zero server configuration cannot mint a partial capability",
 			run: func() (bool, error) {
-				got, gotErr := controlplane.NewServer(controlplane.ServerConfiguration{})
-				return got != (controlplane.Server{}), gotErr
+				got, gotErr := controlplane.NewAuthority(controlplane.AuthorityConfiguration{})
+				return got != (controlplane.Authority{}), gotErr
 			},
 			wantErr: []error{core.ErrControlPlaneContract, core.ErrAttestContract},
 		},
 		{
 			name: "zero server capability carries no authority",
 			run: func() (bool, error) {
-				return false, (controlplane.Server{}).Validate()
+				return false, (controlplane.Authority{}).Validate()
 			},
 			wantErr: []error{core.ErrControlPlaneContract, core.ErrAttestContract},
 		},
@@ -146,17 +146,17 @@ func TestControlplaneSideCapabilitiesPermitOnlyTheirPeerOperations(t *testing.T)
 		reflect.ValueOf(controlplane.Client.VerifyRegistration),
 	)
 	serverMethods := compilerOwnedControlplaneMethodNames(
-		reflect.ValueOf(controlplane.Server.CommitCheckIn),
-		reflect.ValueOf(controlplane.Server.IssueCheckInResponse),
-		reflect.ValueOf(controlplane.Server.IssueCommittedCheckInResponse),
-		reflect.ValueOf(controlplane.Server.IssueInstallationCertificate),
-		reflect.ValueOf(controlplane.Server.IssueRegisteredInstallation),
-		reflect.ValueOf(controlplane.Server.IssueRegistration),
-		reflect.ValueOf(controlplane.Server.PrepareCheckInResponse),
-		reflect.ValueOf(controlplane.Server.Validate),
-		reflect.ValueOf(controlplane.Server.VerifyCheckIn),
-		reflect.ValueOf(controlplane.Server.VerifyInstallationCertificate),
-		reflect.ValueOf(controlplane.Server.VerifyRegistrationAuthority),
+		reflect.ValueOf(controlplane.Authority.CommitCheckIn),
+		reflect.ValueOf(controlplane.Authority.IssueCheckInResponse),
+		reflect.ValueOf(controlplane.Authority.IssueCommittedCheckInResponse),
+		reflect.ValueOf(controlplane.Authority.IssueInstallationCertificate),
+		reflect.ValueOf(controlplane.Authority.IssueRegisteredInstallation),
+		reflect.ValueOf(controlplane.Authority.IssueRegistration),
+		reflect.ValueOf(controlplane.Authority.PrepareCheckInResponse),
+		reflect.ValueOf(controlplane.Authority.Validate),
+		reflect.ValueOf(controlplane.Authority.VerifyCheckIn),
+		reflect.ValueOf(controlplane.Authority.VerifyInstallationCertificate),
+		reflect.ValueOf(controlplane.Authority.VerifyRegistrationAuthority),
 	)
 	cases := []struct {
 		name        string
@@ -164,7 +164,7 @@ func TestControlplaneSideCapabilitiesPermitOnlyTheirPeerOperations(t *testing.T)
 		wantMethods []string
 	}{
 		{name: "installed client cannot issue authority decisions", capability: reflect.TypeFor[controlplane.Client](), wantMethods: clientMethods},
-		{name: "authority server cannot initiate installed-client operations", capability: reflect.TypeFor[controlplane.Server](), wantMethods: serverMethods},
+		{name: "authority server cannot initiate installed-client operations", capability: reflect.TypeFor[controlplane.Authority](), wantMethods: serverMethods},
 	}
 
 	for _, tc := range cases {
@@ -194,7 +194,7 @@ func TestControlplaneSideCapabilitiesBindRealAuthoritySignaturesWithoutCrossSide
 	body := issueTestRegistration(t).document.Payload.Certificate.Body
 	document, err := server.IssueInstallationCertificate(body, authoritySigner)
 	if err != nil {
-		t.Fatalf("Server.IssueInstallationCertificate() error = %v, want nil", err)
+		t.Fatalf("Authority.IssueInstallationCertificate() error = %v, want nil", err)
 	}
 	lowerProof, err := attest.Verify(attest.VerifyRequest[controlplane.SigningDomain]{
 		Body: document.Body, Envelope: document.Attestation, TrustedKeys: authorityTrust,
@@ -230,7 +230,7 @@ func TestControlplaneSideCapabilitiesBindRealAuthoritySignaturesWithoutCrossSide
 			return (controlplane.Client{}).VerifyInstallationCertificate(document)
 		}, wantErr: []error{core.ErrControlPlaneRegistration, core.ErrControlPlaneContract}},
 		{name: "zero server cannot authenticate any document", verify: func() (controlplane.VerifiedInstallationCertificate, error) {
-			return (controlplane.Server{}).VerifyInstallationCertificate(document)
+			return (controlplane.Authority{}).VerifyInstallationCertificate(document)
 		}, wantErr: []error{core.ErrControlPlaneRegistration, core.ErrControlPlaneContract}},
 	}
 
@@ -273,8 +273,8 @@ func TestControlplaneSideCapabilityStorageExcludesPeerAndTransportState(t *testi
 	}{
 		{name: "client configuration owns only authority trust", structure: reflect.TypeFor[controlplane.ClientConfiguration](), wantFieldTypes: []reflect.Type{trustedKeysType}},
 		{name: "opaque client closes exactly one private client configuration", structure: reflect.TypeFor[controlplane.Client](), wantFieldTypes: []reflect.Type{reflect.TypeFor[controlplane.ClientConfiguration]()}, wantUnexportedFieldCount: 1},
-		{name: "server configuration owns only authority trust", structure: reflect.TypeFor[controlplane.ServerConfiguration](), wantFieldTypes: []reflect.Type{trustedKeysType}},
-		{name: "opaque server closes exactly one private server configuration", structure: reflect.TypeFor[controlplane.Server](), wantFieldTypes: []reflect.Type{reflect.TypeFor[controlplane.ServerConfiguration]()}, wantUnexportedFieldCount: 1},
+		{name: "server configuration owns only authority trust", structure: reflect.TypeFor[controlplane.AuthorityConfiguration](), wantFieldTypes: []reflect.Type{trustedKeysType}},
+		{name: "opaque server closes exactly one private server configuration", structure: reflect.TypeFor[controlplane.Authority](), wantFieldTypes: []reflect.Type{reflect.TypeFor[controlplane.AuthorityConfiguration]()}, wantUnexportedFieldCount: 1},
 	}
 
 	for _, tc := range cases {

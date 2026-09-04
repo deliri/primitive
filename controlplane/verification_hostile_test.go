@@ -34,7 +34,7 @@ func (i issuedRegistration) client(t testing.TB) controlplane.Client {
 	return testControlplaneClient(t, i.trusted)
 }
 
-func (i issuedRegistration) server(t testing.TB) controlplane.Server {
+func (i issuedRegistration) server(t testing.TB) controlplane.Authority {
 	t.Helper()
 	return testControlplaneServer(t, i.trusted)
 }

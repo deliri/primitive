@@ -21,7 +21,7 @@ type chitResponseFixture struct {
 	header   controlplane.ResponseHeader
 	body     chit.CatalogDocument
 	client   controlplane.Client
-	server   controlplane.Server
+	server   controlplane.Authority
 }
 
 type chitResponseIdentityCase struct {
@@ -204,7 +204,7 @@ func proveChitResponseIssuanceRejections(t *testing.T, fixture chitResponseFixtu
 		Body: fixture.body, Assessment: acceptedChitResponseAssessment(t, fixture.header),
 	}
 	zeroServer := valid
-	zeroServer.Server = controlplane.Server{}
+	zeroServer.Server = controlplane.Authority{}
 	nilSigner := valid
 	nilSigner.Signer = nil
 	zeroBody := valid

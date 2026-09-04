@@ -91,7 +91,7 @@ func IssueInstallation(request InstallationRequest) (Installation, error) {
 	if err != nil {
 		return Installation{}, errors.Join(core.ErrPrimitiveContract, err)
 	}
-	server, err := controlplane.NewServer(controlplane.ServerConfiguration{
+	server, err := controlplane.NewAuthority(controlplane.AuthorityConfiguration{
 		TrustedAuthorityKeys: trusted,
 	})
 	if err != nil {

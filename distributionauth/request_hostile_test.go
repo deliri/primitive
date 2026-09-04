@@ -226,7 +226,7 @@ func TestCredentialedDistributionRequestVerificationLayerTriadRefusesDeviceAutho
 		t.Run(tc.name, func(t *testing.T) {
 			t.Parallel()
 
-			var server controlplane.Server
+			var server controlplane.Authority
 			if tc.trusted.Validate() == nil {
 				server = distributionAuthServer(t, tc.trusted)
 			}
@@ -258,7 +258,7 @@ func TestCredentialedDistributionRequestVerificationLayerTriadRefusesDeviceAutho
 		t.Run(tc.name, func(t *testing.T) {
 			t.Parallel()
 
-			var server controlplane.Server
+			var server controlplane.Authority
 			if tc.trusted.Validate() == nil {
 				server = distributionAuthServer(t, tc.trusted)
 			}

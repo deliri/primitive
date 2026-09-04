@@ -31,7 +31,7 @@ func (i SourceGrantIdentity) Validate() error { return i.Digest.Validate() }
 
 type AttemptedSource struct {
 	Repository runprotocol.RepositoryIdentity `json:"repository"`
-	Commit     core.BuildCommit            `json:"commit"`
+	Commit     core.BuildCommit               `json:"commit"`
 }
 
 func (s AttemptedSource) Validate() error {
@@ -40,9 +40,9 @@ func (s AttemptedSource) Validate() error {
 
 type ExperimentManifestEntry struct {
 	Probe                  runprotocol.ProbeIdentity `json:"probe"`
-	CompletionBytes        core.ByteLength        `json:"completion_bytes"`
-	CompletionDigest       core.SHA256Digest      `json:"completion_digest"`
-	ArtifactManifestDigest core.SHA256Digest      `json:"artifact_manifest_digest"`
+	CompletionBytes        core.ByteLength           `json:"completion_bytes"`
+	CompletionDigest       core.SHA256Digest         `json:"completion_digest"`
+	ArtifactManifestDigest core.SHA256Digest         `json:"artifact_manifest_digest"`
 	Experiment             runprotocol.ExperimentID  `json:"experiment_id"`
 }
 
@@ -88,8 +88,8 @@ func (c PreSourceRunnerCompletion) Validate() error {
 
 type SelectionRunnerCompletion struct {
 	Selection       *runprotocol.SelectionObservation `json:"selection,omitempty"`
-	Failure         *core.ErrorIdentity            `json:"failure,omitempty"`
-	ExperimentFacts *ExperimentManifest            `json:"experiment_manifest,omitempty"`
+	Failure         *core.ErrorIdentity               `json:"failure,omitempty"`
+	ExperimentFacts *ExperimentManifest               `json:"experiment_manifest,omitempty"`
 	Source          runprotocol.SourceCoordinate      `json:"source"`
 	Probe           runprotocol.ProbeIdentity         `json:"probe"`
 }
@@ -144,7 +144,7 @@ func (c SelectionRunnerCompletion) validateExperimentFacts() error {
 type DirectExperimentRunnerCompletion struct {
 	Source     runprotocol.SourceCoordinate `json:"source"`
 	Probe      runprotocol.ProbeIdentity    `json:"probe"`
-	Experiment ExperimentManifestEntry   `json:"experiment"`
+	Experiment ExperimentManifestEntry      `json:"experiment"`
 }
 
 func (c DirectExperimentRunnerCompletion) Validate() error {
@@ -197,8 +197,8 @@ type RunnerCompletionPayload struct {
 	ArtifactManifestDigest core.SHA256Digest                 `json:"artifact_manifest_digest"`
 	SourceGrant            SourceGrantIdentity               `json:"source_grant"`
 	AdmittedIntentDigest   core.SHA256Digest                 `json:"admitted_intent_digest"`
-	Run                    runprotocol.RunID                    `json:"run_id"`
-	Terminal               runprotocol.TerminalState            `json:"terminal"`
+	Run                    runprotocol.RunID                 `json:"run_id"`
+	Terminal               runprotocol.TerminalState         `json:"terminal"`
 }
 
 func (p RunnerCompletionPayload) Validate() error {
@@ -416,7 +416,7 @@ func (r RunnerCompletionRecord) Validate() error {
 
 type RunnerCompletionReceipt struct {
 	SchemaVersion uint16            `json:"schema_version"`
-	Run           runprotocol.RunID    `json:"run_id"`
+	Run           runprotocol.RunID `json:"run_id"`
 	Digest        core.SHA256Digest `json:"document_digest"`
 	Bytes         core.ByteLength   `json:"document_bytes"`
 }

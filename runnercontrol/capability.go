@@ -11,17 +11,17 @@ import (
 const SchedulingMemberCapabilityMaximum = 128
 
 type SchedulingCapability struct {
-	Members          MemberSet                     `json:"members"`
+	Members          MemberSet                        `json:"members"`
 	Source           runprotocol.SourceCoordinate     `json:"source"`
-	Fence            SchedulingFence               `json:"fence"`
-	AbsoluteDeadline temporal.Instant              `json:"absolute_deadline"`
-	ExpiresAt        temporal.Instant              `json:"expires_at"`
-	AggregateBudget  temporal.Duration             `json:"aggregate_budget"`
-	SchemaVersion    uint16                        `json:"schema_version"`
-	SourceGrant      SourceGrantIdentity           `json:"source_grant"`
-	RepositoryGrant  core.SHA256Digest             `json:"repository_grant"`
-	DeliveryGrant    core.SHA256Digest             `json:"delivery_grant"`
-	IsolationPolicy  core.SHA256Digest             `json:"isolation_policy"`
+	Fence            SchedulingFence                  `json:"fence"`
+	AbsoluteDeadline temporal.Instant                 `json:"absolute_deadline"`
+	ExpiresAt        temporal.Instant                 `json:"expires_at"`
+	AggregateBudget  temporal.Duration                `json:"aggregate_budget"`
+	SchemaVersion    uint16                           `json:"schema_version"`
+	SourceGrant      SourceGrantIdentity              `json:"source_grant"`
+	RepositoryGrant  core.SHA256Digest                `json:"repository_grant"`
+	DeliveryGrant    core.SHA256Digest                `json:"delivery_grant"`
+	IsolationPolicy  core.SHA256Digest                `json:"isolation_policy"`
 	Observation      runprotocol.MachineObservationID `json:"machine_observation_id"`
 }
 
@@ -56,18 +56,18 @@ func (c SchedulingCapability) Digest() (core.SHA256Digest, error) {
 }
 
 type MemberCapability struct {
-	CIExpansion       *CIExpansionPlan         `json:"ci_expansion,omitempty"`
-	BuildContexts     *GoBuildContextSet       `json:"build_contexts,omitempty"`
+	CIExpansion       *CIExpansionPlan            `json:"ci_expansion,omitempty"`
+	BuildContexts     *GoBuildContextSet          `json:"build_contexts,omitempty"`
 	Probe             runprotocol.ProbeIdentity   `json:"probe"`
-	Fence             SchedulingFence          `json:"fence"`
-	Limits            RunLimits                `json:"limits"`
-	AdmittedAt        temporal.Instant         `json:"admitted_at"`
-	RequestedAt       temporal.Instant         `json:"requested_at"`
-	ExpiresAt         temporal.Instant         `json:"expires_at"`
-	SchemaVersion     uint16                   `json:"schema_version"`
-	AdmittedRunDigest core.SHA256Digest        `json:"admitted_run_digest"`
-	SchedulingDigest  core.SHA256Digest        `json:"scheduling_digest"`
-	Nonce             core.SHA256Digest        `json:"nonce"`
+	Fence             SchedulingFence             `json:"fence"`
+	Limits            RunLimits                   `json:"limits"`
+	AdmittedAt        temporal.Instant            `json:"admitted_at"`
+	RequestedAt       temporal.Instant            `json:"requested_at"`
+	ExpiresAt         temporal.Instant            `json:"expires_at"`
+	SchemaVersion     uint16                      `json:"schema_version"`
+	AdmittedRunDigest core.SHA256Digest           `json:"admitted_run_digest"`
+	SchedulingDigest  core.SHA256Digest           `json:"scheduling_digest"`
+	Nonce             core.SHA256Digest           `json:"nonce"`
 	Run               runprotocol.RunID           `json:"run_id"`
 	Request           runprotocol.RequestIdentity `json:"request_id"`
 }
@@ -190,16 +190,16 @@ func (c MemberCapability) Digest() (core.SHA256Digest, error) {
 }
 
 type ExperimentCapability struct {
-	ExpansionManifestDigest *core.SHA256Digest        `json:"expansion_manifest_digest,omitempty"`
-	Execution               ExperimentExecution       `json:"execution"`
-	Resources               ResourceRequirement       `json:"resources"`
+	ExpansionManifestDigest *core.SHA256Digest           `json:"expansion_manifest_digest,omitempty"`
+	Execution               ExperimentExecution          `json:"execution"`
+	Resources               ResourceRequirement          `json:"resources"`
 	Source                  runprotocol.SourceCoordinate `json:"source"`
 	Probe                   runprotocol.ProbeIdentity    `json:"probe"`
-	Fence                   SchedulingFence           `json:"fence"`
-	ExpiresAt               temporal.Instant          `json:"expires_at"`
-	SchemaVersion           uint16                    `json:"schema_version"`
-	MemberCapabilityDigest  core.SHA256Digest         `json:"member_capability_digest"`
-	BuildContextDigest      core.SHA256Digest         `json:"build_context_digest"`
+	Fence                   SchedulingFence              `json:"fence"`
+	ExpiresAt               temporal.Instant             `json:"expires_at"`
+	SchemaVersion           uint16                       `json:"schema_version"`
+	MemberCapabilityDigest  core.SHA256Digest            `json:"member_capability_digest"`
+	BuildContextDigest      core.SHA256Digest            `json:"build_context_digest"`
 	Run                     runprotocol.RunID            `json:"run_id"`
 	Experiment              runprotocol.ExperimentID     `json:"experiment_id"`
 }

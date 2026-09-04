@@ -18,12 +18,12 @@ const (
 )
 
 type SourceAcquisitionRequest struct {
-	Members       MemberSet                 `json:"member_set"`
+	Members       MemberSet                    `json:"member_set"`
 	Source        runprotocol.SourceCoordinate `json:"source"`
-	Fence         SchedulingFence           `json:"fence"`
-	RequestedAt   temporal.Instant          `json:"requested_at"`
-	SchemaVersion uint16                    `json:"schema_version"`
-	Grant         SourceGrantIdentity       `json:"source_grant"`
+	Fence         SchedulingFence              `json:"fence"`
+	RequestedAt   temporal.Instant             `json:"requested_at"`
+	SchemaVersion uint16                       `json:"schema_version"`
+	Grant         SourceGrantIdentity          `json:"source_grant"`
 }
 
 func (r SourceAcquisitionRequest) Validate() error {

@@ -346,7 +346,7 @@ func (d *InstallationCertificateDocument) UnmarshalJSON(data []byte) error {
 }
 
 // IssueInstallationCertificate signs one validated certificate body.
-func (s Server) IssueInstallationCertificate(
+func (s Authority) IssueInstallationCertificate(
 	body InstallationCertificateBody,
 	signer crypto.Signer,
 ) (InstallationCertificateDocument, error) {
@@ -616,7 +616,7 @@ func (d *RegistrationDocument) UnmarshalJSON(data []byte) error {
 }
 
 // IssueRegistration signs one validated registration payload.
-func (s Server) IssueRegistration(
+func (s Authority) IssueRegistration(
 	payload RegistrationPayload,
 	signer crypto.Signer,
 ) (RegistrationDocument, error) {

@@ -155,8 +155,8 @@ type AuthenticatedPeer struct {
 	Origin     *runprotocol.OriginIdentity      `json:"origin,omitempty"`
 	Machine    *runprotocol.MachineID           `json:"machine_id,omitempty"`
 	Generation *runprotocol.MachineGenerationID `json:"machine_generation_id,omitempty"`
-	Credential PeerCredential                `json:"credential"`
-	Role       PeerRole                      `json:"role"`
+	Credential PeerCredential                   `json:"credential"`
+	Role       PeerRole                         `json:"role"`
 }
 
 func (p AuthenticatedPeer) Validate() error {

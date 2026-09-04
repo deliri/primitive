@@ -151,7 +151,7 @@ func (u *ObservationDeliveryPageUpload) UnmarshalJSON(data []byte) error {
 type ObservationDeliveryCommit struct {
 	SchemaVersion uint16                      `json:"schema_version"`
 	Identity      ObservationDeliveryIdentity `json:"identity"`
-	Run           runprotocol.RunID              `json:"run_id"`
+	Run           runprotocol.RunID           `json:"run_id"`
 	PageCount     uint16                      `json:"page_count"`
 }
 
@@ -201,7 +201,7 @@ func (c *ObservationDeliveryCommit) UnmarshalJSON(data []byte) error {
 type ObservationDeliveryReceipt struct {
 	SchemaVersion uint16                      `json:"schema_version"`
 	Identity      ObservationDeliveryIdentity `json:"identity"`
-	Run           runprotocol.RunID              `json:"run_id"`
+	Run           runprotocol.RunID           `json:"run_id"`
 	PagesStored   uint16                      `json:"pages_stored"`
 	Published     bool                        `json:"published"`
 }
@@ -254,6 +254,16 @@ type ObservationDeliveryVerifier struct {
 	RunnerKeys  attest.TrustedKeys
 }
 
+// ObservationDeliveryVerificationAuthority verifies one complete staged
+// delivery. Long-lived servers accept the capability instead of freezing one
+// grant into their process configuration because grants are issued per run.
+// The authority remains blind to product meaning: it receives only the shared
+// typed delivery agreement and returns its verification result.
+type ObservationDeliveryVerificationAuthority interface {
+	core.Validatable
+	Verify(ObservationDeliveryStage, []ExperimentDeliveryPage) error
+}
+
 func (v ObservationDeliveryVerifier) Validate() error {
 	return errors.Join(v.Origin.Validate(), v.Destination.Validate(), v.Audience.Validate(), v.Grant.Validate(), v.ControlKeys.Validate(), v.RunnerKeys.Validate())
 }
@@ -304,23 +314,23 @@ func (c ObservationDeliveryClient) Commit(ctx context.Context, request Observati
 }
 
 type ObservationDeliveryServer struct {
+	store    ObservationDeliveryStore
+	verifier ObservationDeliveryVerificationAuthority
 	stage    exchange.ServerSocket
 	page     exchange.ServerSocket
 	commit   exchange.ServerSocket
-	store    ObservationDeliveryStore
-	verifier ObservationDeliveryVerifier
 }
 
 type ObservationDeliveryServerConfiguration struct {
+	Store    ObservationDeliveryStore
+	Verifier ObservationDeliveryVerificationAuthority
 	Stage    exchange.JSONSocketContract
 	Page     exchange.JSONSocketContract
 	Commit   exchange.JSONSocketContract
-	Store    ObservationDeliveryStore
-	Verifier ObservationDeliveryVerifier
 }
 
 func NewObservationDeliveryServer(configuration ObservationDeliveryServerConfiguration) (ObservationDeliveryServer, error) {
-	if configuration.Store == nil {
+	if configuration.Store == nil || configuration.Verifier == nil {
 		return ObservationDeliveryServer{}, core.ErrPrimitiveContract
 	}
 	stageSocket, stageErr := exchange.NewServerSocket(configuration.Stage)
@@ -436,17 +446,18 @@ func ObservationDeliverySocketContract(path exchange.SocketRoutePath, requestMax
 }
 
 var (
-	_ core.Validatable            = ObservationDeliveryIdentity{}
-	_ core.ValidatedJSONMarshaler = ObservationDeliveryStage{}
-	_ json.Unmarshaler            = (*ObservationDeliveryStage)(nil)
-	_ exchange.IdempotencyBound   = ObservationDeliveryStage{}
-	_ core.ValidatedJSONMarshaler = ObservationDeliveryPageUpload{}
-	_ json.Unmarshaler            = (*ObservationDeliveryPageUpload)(nil)
-	_ exchange.IdempotencyBound   = ObservationDeliveryPageUpload{}
-	_ core.ValidatedJSONMarshaler = ObservationDeliveryCommit{}
-	_ json.Unmarshaler            = (*ObservationDeliveryCommit)(nil)
-	_ exchange.IdempotencyBound   = ObservationDeliveryCommit{}
-	_ core.ValidatedJSONMarshaler = ObservationDeliveryReceipt{}
-	_ json.Unmarshaler            = (*ObservationDeliveryReceipt)(nil)
-	_ core.Validatable            = ObservationDeliveryVerifier{}
+	_ core.Validatable                         = ObservationDeliveryIdentity{}
+	_ core.ValidatedJSONMarshaler              = ObservationDeliveryStage{}
+	_ json.Unmarshaler                         = (*ObservationDeliveryStage)(nil)
+	_ exchange.IdempotencyBound                = ObservationDeliveryStage{}
+	_ core.ValidatedJSONMarshaler              = ObservationDeliveryPageUpload{}
+	_ json.Unmarshaler                         = (*ObservationDeliveryPageUpload)(nil)
+	_ exchange.IdempotencyBound                = ObservationDeliveryPageUpload{}
+	_ core.ValidatedJSONMarshaler              = ObservationDeliveryCommit{}
+	_ json.Unmarshaler                         = (*ObservationDeliveryCommit)(nil)
+	_ exchange.IdempotencyBound                = ObservationDeliveryCommit{}
+	_ core.ValidatedJSONMarshaler              = ObservationDeliveryReceipt{}
+	_ json.Unmarshaler                         = (*ObservationDeliveryReceipt)(nil)
+	_ core.Validatable                         = ObservationDeliveryVerifier{}
+	_ ObservationDeliveryVerificationAuthority = ObservationDeliveryVerifier{}
 )

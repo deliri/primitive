@@ -101,7 +101,7 @@ func (i issuedCheckIn) client(t testing.TB) controlplane.Client {
 	return testControlplaneClient(t, i.trusted)
 }
 
-func (i issuedCheckIn) server(t testing.TB) controlplane.Server {
+func (i issuedCheckIn) server(t testing.TB) controlplane.Authority {
 	t.Helper()
 	return testControlplaneServer(t, i.trusted)
 }
@@ -138,7 +138,7 @@ func testBuildForOffering(t testing.TB, offering core.Offering) core.BuildIdenti
 
 func issueTestCertificate(
 	t testing.TB,
-	server controlplane.Server,
+	server controlplane.Authority,
 	subject lease.Subject,
 	build core.BuildIdentity,
 	revision controlwire.Revision,
@@ -157,7 +157,7 @@ func issueTestCertificate(
 	}
 	certificate, err := server.IssueInstallationCertificate(body, authority)
 	if err != nil {
-		t.Fatalf("Server.IssueInstallationCertificate() error = %v, want nil", err)
+		t.Fatalf("Authority.IssueInstallationCertificate() error = %v, want nil", err)
 	}
 	return certificate
 }
@@ -405,7 +405,7 @@ func TestCheckInRefusesEveryTamperedFact(t *testing.T) {
 			if testCase.trusted != nil {
 				trusted = testCase.trusted(t)
 			}
-			server, serverErr := controlplane.NewServer(controlplane.ServerConfiguration{
+			server, serverErr := controlplane.NewAuthority(controlplane.AuthorityConfiguration{
 				TrustedAuthorityKeys: trusted,
 			})
 			verified, err := server.VerifyCheckIn(controlplane.CheckInVerification{

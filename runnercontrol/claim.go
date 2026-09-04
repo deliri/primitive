@@ -73,8 +73,8 @@ func (k *ClaimKind) UnmarshalJSON(data []byte) error {
 type MachineFence struct {
 	Machine    runprotocol.MachineID           `json:"machine_id"`
 	Generation runprotocol.MachineGenerationID `json:"generation_id"`
-	Epoch      uint64                       `json:"epoch"`
-	ExpiresAt  temporal.Instant             `json:"expires_at"`
+	Epoch      uint64                          `json:"epoch"`
+	ExpiresAt  temporal.Instant                `json:"expires_at"`
 }
 
 func (f MachineFence) Validate() error {
@@ -88,11 +88,11 @@ func (f MachineFence) Validate() error {
 }
 
 type ClaimRequest struct {
-	SchemaVersion uint16                        `json:"schema_version"`
+	SchemaVersion uint16                           `json:"schema_version"`
 	Machine       runprotocol.MachineID            `json:"machine_id"`
 	Generation    runprotocol.MachineGenerationID  `json:"generation_id"`
 	Observation   runprotocol.MachineObservationID `json:"observation_id"`
-	RequestedAt   temporal.Instant              `json:"requested_at"`
+	RequestedAt   temporal.Instant                 `json:"requested_at"`
 }
 
 func (r ClaimRequest) Validate() error {

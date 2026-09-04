@@ -62,7 +62,7 @@ func (r CheckInCommitRequest) Validate() error {
 // advances once, is the exact window already committed, or conflicts with a
 // different authoritative watermark. It allocates no history and owns no
 // persistence mechanism.
-func (s Server) CommitCheckIn(request CheckInCommitRequest) (VerifiedCheckInCommit, error) {
+func (s Authority) CommitCheckIn(request CheckInCommitRequest) (VerifiedCheckInCommit, error) {
 	if err := s.Validate(); err != nil {
 		return VerifiedCheckInCommit{}, checkInError(err)
 	}
@@ -162,7 +162,7 @@ func (p CheckInResponsePreparation) Validate() error {
 
 // PrepareCheckInResponse derives the only disposition and watermark the
 // authenticated usage transaction permits, then closes the complete payload.
-func (s Server) PrepareCheckInResponse(
+func (s Authority) PrepareCheckInResponse(
 	preparation CheckInResponsePreparation,
 ) (CheckInResponsePayload, error) {
 	if err := s.Validate(); err != nil {
@@ -190,7 +190,7 @@ func prepareCheckInResponse(
 // IssueCommittedCheckInResponse signs the response derived from one verified
 // authority commit. It is the direct server-side counterpart to the installed
 // client's VerifyCheckInResponse.
-func (s Server) IssueCommittedCheckInResponse(
+func (s Authority) IssueCommittedCheckInResponse(
 	preparation CheckInResponsePreparation,
 	key ed25519.PrivateKey,
 ) (CheckInResponseDocument, error) {
