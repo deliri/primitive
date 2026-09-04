@@ -80,12 +80,12 @@ func (m PackageMembership) Validate() error {
 type Package struct {
 	Repository core.RepositoryIdentity `json:"repository"`
 	Path       core.SourcePath         `json:"path"`
-	Revision   core.BuildCommit        `json:"revision"`
+	Snapshot   core.SourceSnapshot     `json:"snapshot"`
 	Files      FileMembership          `json:"files"`
 }
 
 func (p Package) Validate() error {
-	if err := contractJoin(p.Repository.Validate(), p.Path.Validate(), p.Revision.Validate(), p.Files.Validate()); err != nil {
+	if err := contractJoin(p.Repository.Validate(), p.Path.Validate(), p.Snapshot.Validate(), p.Files.Validate()); err != nil {
 		return err
 	}
 	if p.Files.Count == 0 {
@@ -94,21 +94,20 @@ func (p Package) Validate() error {
 	return nil
 }
 
-// Project is the exact-revision index over separately retained observations.
-// Dirty reports whether inspected bytes differed from Revision. Files and
-// Packages are stream commitments, not materialized project inventories.
+// Project is the exact-snapshot index over separately retained observations.
+// Files and Packages are stream commitments, not materialized project
+// inventories.
 type Project struct {
 	Repository core.RepositoryIdentity `json:"repository"`
-	Revision   core.BuildCommit        `json:"revision"`
+	Snapshot   core.SourceSnapshot     `json:"snapshot"`
 	Toolchain  Toolchain               `json:"toolchain"`
 	Contexts   []BuildContext          `json:"build_contexts"`
 	Files      FileMembership          `json:"files"`
 	Packages   PackageMembership       `json:"packages"`
-	Dirty      bool                    `json:"dirty"`
 }
 
 func (p Project) Validate() error {
-	if err := contractJoin(p.Repository.Validate(), p.Revision.Validate(), p.Toolchain.Validate(), p.Files.Validate(), p.Packages.Validate()); err != nil {
+	if err := contractJoin(p.Repository.Validate(), p.Snapshot.Validate(), p.Toolchain.Validate(), p.Files.Validate(), p.Packages.Validate()); err != nil {
 		return err
 	}
 	if len(p.Contexts) == 0 || p.Files.Count == 0 {

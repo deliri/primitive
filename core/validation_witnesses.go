@@ -24,6 +24,8 @@ var (
 	_ Validatable              = AbsolutePath{}
 	_ Validatable              = SourcePath{}
 	_ Validatable              = RepositoryIdentity{}
+	_ Validatable              = SourceSnapshot{}
+	_ encoding.TextUnmarshaler = (*SourceSnapshot)(nil)
 	_ Validatable              = SourceSubjectKind(0)
 	_ Validatable              = SourceSubject{}
 	_ Validatable              = HTTPEndpoint{}
@@ -59,6 +61,7 @@ var (
 	_ ValidatedJSONMarshaler = AbsolutePath{}
 	_ ValidatedJSONMarshaler = SourcePath{}
 	_ ValidatedJSONMarshaler = RepositoryIdentity{}
+	_ ValidatedJSONMarshaler = SourceSnapshot{}
 	_ ValidatedJSONMarshaler = SourceSubjectKind(0)
 	_ ValidatedJSONMarshaler = SourceSubject{}
 	_ ValidatedJSONMarshaler = HTTPEndpoint{}

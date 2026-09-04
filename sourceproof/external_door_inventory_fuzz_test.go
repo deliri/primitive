@@ -93,6 +93,18 @@ type proofJSONValue interface {
 	MarshalJSON() ([]byte, error)
 }
 
+func TestSourceProofWireUsesSnapshotWithoutGitRevision(t *testing.T) {
+	t.Parallel()
+
+	result, _ := proofResultForFuzz(t)
+	document, gotErr := result.MarshalJSON()
+	gotSnapshot := bytes.Contains(document, []byte(`"snapshot":`))
+	gotRevision := bytes.Contains(document, []byte(`"revision":`))
+	if gotErr != nil || !gotSnapshot || gotRevision {
+		t.Fatalf("source proof wire fields = snapshot:%t revision:%t error:%v, want true/false/nil", gotSnapshot, gotRevision, gotErr)
+	}
+}
+
 func fuzzProofJSONDoor[T proofJSONValue](t *testing.T, data []byte, seed T) {
 	t.Helper()
 	before, err := seed.MarshalJSON()
@@ -191,7 +203,7 @@ func proofResultForFuzz(t testing.TB) (sourceproof.Result, sourceproof.Summary) 
 	t.Helper()
 	subject := proofSubject(t, core.SourceSubjectPackage, "exchange")
 	claim := proofClaim(t, subject)
-	result := proofResult(t, claim, proofCommit(t, "0123456789abcdef0123456789abcdef01234567"), sourceproof.StateHumanReviewRequired, nil)
+	result := proofResult(t, claim, proofSnapshot(t, "0123456789abcdef0123456789abcdef0123456789abcdef0123456789abcdef"), sourceproof.StateHumanReviewRequired, nil)
 	if err := result.ValidateAgainst(claim); err != nil {
 		t.Fatalf("sourceproof.Result(seed).ValidateAgainst() error = %v, want nil", err)
 	}

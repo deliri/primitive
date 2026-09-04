@@ -24,9 +24,9 @@ func TestResultRejectsClaimAuthorIssuingItsOwnProof(t *testing.T) {
 		t.Fatalf("core.NewSourceSubject(package) error = %v, want nil", subjectErr)
 	}
 	claim := proofClaim(t, subject)
-	commit, commitErr := core.ParseBuildCommit("0123456789abcdef0123456789abcdef01234567")
-	if commitErr != nil {
-		t.Fatalf("core.ParseBuildCommit() error = %v, want nil", commitErr)
+	snapshot := proofSnapshot(t, "0123456789abcdef0123456789abcdef0123456789abcdef0123456789abcdef")
+	if snapshot.Validate() != nil {
+		t.Fatalf("core.SourceSnapshot.Validate() error = %v, want nil", snapshot.Validate())
 	}
 	claimDigest, claimDigestErr := claim.Digest()
 	if claimDigestErr != nil {
@@ -36,7 +36,7 @@ func TestResultRejectsClaimAuthorIssuingItsOwnProof(t *testing.T) {
 		Claim:       claim.ID,
 		Subject:     claim.Subject,
 		ClaimDigest: claimDigest,
-		Revision:    commit,
+		Snapshot:    snapshot,
 		Verifier:    claim.Author,
 		Requirements: []sourceproof.RequirementResult{{
 			Requirement: claim.Requirements[0].ID,
@@ -50,7 +50,7 @@ func TestResultRejectsClaimAuthorIssuingItsOwnProof(t *testing.T) {
 	}
 }
 
-func TestResultPreservesEveryProofStateAndRevisionMeaning(t *testing.T) {
+func TestResultPreservesEveryProofStateAndSnapshotMeaning(t *testing.T) {
 	t.Parallel()
 
 	path, pathErr := core.ParseSourcePath("exchange")
@@ -62,24 +62,24 @@ func TestResultPreservesEveryProofStateAndRevisionMeaning(t *testing.T) {
 		t.Fatalf("core.NewSourceSubject(package) error = %v, want nil", subjectErr)
 	}
 	claim := proofClaim(t, subject)
-	current := proofCommit(t, "0123456789abcdef0123456789abcdef01234567")
-	older := proofCommit(t, "fedcba9876543210fedcba9876543210fedcba98")
+	current := proofSnapshot(t, "0123456789abcdef0123456789abcdef0123456789abcdef0123456789abcdef")
+	older := proofSnapshot(t, "fedcba9876543210fedcba9876543210fedcba9876543210fedcba9876543210")
 
 	cases := []struct {
 		state            sourceproof.State
-		evidenceRevision core.BuildCommit
+		evidenceSnapshot core.SourceSnapshot
 		withEvidence     bool
 		wantErr          error
 		name             string
 	}{
-		{name: "proven result cites current revision", state: sourceproof.StateProven, evidenceRevision: current, withEvidence: true},
-		{name: "contradicted result cites current counterevidence", state: sourceproof.StateContradicted, evidenceRevision: current, withEvidence: true},
+		{name: "proven result cites current snapshot", state: sourceproof.StateProven, evidenceSnapshot: current, withEvidence: true},
+		{name: "contradicted result cites current counterevidence", state: sourceproof.StateContradicted, evidenceSnapshot: current, withEvidence: true},
 		{name: "unproven result preserves absence of proof", state: sourceproof.StateUnproven},
-		{name: "stale result preserves older revision", state: sourceproof.StateStale, evidenceRevision: older, withEvidence: true},
+		{name: "stale result preserves older snapshot", state: sourceproof.StateStale, evidenceSnapshot: older, withEvidence: true},
 		{name: "unavailable result preserves unavailable evidence", state: sourceproof.StateUnavailable},
 		{name: "human review remains explicitly required", state: sourceproof.StateHumanReviewRequired},
-		{name: "proven result cannot cite older revision", state: sourceproof.StateProven, evidenceRevision: older, withEvidence: true, wantErr: core.ErrSourceProofConflict},
-		{name: "stale result cannot cite current revision", state: sourceproof.StateStale, evidenceRevision: current, withEvidence: true, wantErr: core.ErrSourceProofConflict},
+		{name: "proven result cannot cite older snapshot", state: sourceproof.StateProven, evidenceSnapshot: older, withEvidence: true, wantErr: core.ErrSourceProofConflict},
+		{name: "stale result cannot cite current snapshot", state: sourceproof.StateStale, evidenceSnapshot: current, withEvidence: true, wantErr: core.ErrSourceProofConflict},
 	}
 
 	for _, tc := range cases {
@@ -88,7 +88,7 @@ func TestResultPreservesEveryProofStateAndRevisionMeaning(t *testing.T) {
 
 			var evidence []sourceproof.EvidenceReference
 			if tc.withEvidence {
-				evidence = []sourceproof.EvidenceReference{proofEvidence(t, claim.Subject, tc.evidenceRevision)}
+				evidence = []sourceproof.EvidenceReference{proofEvidence(t, claim.Subject, tc.evidenceSnapshot)}
 			}
 			result := proofResult(t, claim, current, tc.state, evidence)
 			gotErr := result.ValidateAgainst(claim)
@@ -103,7 +103,7 @@ func TestResultRejectsClaimDigestAndRequirementAccountingDrift(t *testing.T) {
 	t.Parallel()
 
 	claim := proofClaim(t, proofSubject(t, core.SourceSubjectPackage, "exchange"))
-	commit := proofCommit(t, "0123456789abcdef0123456789abcdef01234567")
+	snapshot := proofSnapshot(t, "0123456789abcdef0123456789abcdef0123456789abcdef0123456789abcdef")
 
 	cases := []struct {
 		mutate  func(*sourceproof.Result)
@@ -130,7 +130,7 @@ func TestResultRejectsClaimDigestAndRequirementAccountingDrift(t *testing.T) {
 		t.Run(tc.name, func(t *testing.T) {
 			t.Parallel()
 
-			result := proofResult(t, claim, commit, sourceproof.StateHumanReviewRequired, nil)
+			result := proofResult(t, claim, snapshot, sourceproof.StateHumanReviewRequired, nil)
 			tc.mutate(&result)
 			gotErr := result.ValidateAgainst(claim)
 			if !errors.Is(gotErr, tc.wantErr) {
@@ -144,8 +144,8 @@ func TestRequirementResultRejectsIntrinsicStateEvidenceContradictions(t *testing
 	t.Parallel()
 
 	requirement := proofID(t, "human-value-review")
-	revision := proofCommit(t, "0123456789abcdef0123456789abcdef01234567")
-	evidence := []sourceproof.EvidenceReference{proofEvidence(t, proofSubject(t, core.SourceSubjectPackage, "exchange"), revision)}
+	snapshot := proofSnapshot(t, "0123456789abcdef0123456789abcdef0123456789abcdef0123456789abcdef")
+	evidence := []sourceproof.EvidenceReference{proofEvidence(t, proofSubject(t, core.SourceSubjectPackage, "exchange"), snapshot)}
 	cases := []struct {
 		name    string
 		result  sourceproof.RequirementResult
@@ -221,10 +221,10 @@ func TestProofStreamForwardsEveryAtomicResultAndDerivesLosslessRollup(t *testing
 		proofClaimWithID(t, packageSubject, "package-boundary"),
 		proofClaimWithID(t, file, "file-boundary"),
 	}
-	commit := proofCommit(t, "0123456789abcdef0123456789abcdef01234567")
+	snapshot := proofSnapshot(t, "0123456789abcdef0123456789abcdef0123456789abcdef0123456789abcdef")
 	resolver := proofResultResolver{results: make(map[proofResultKey]sourceproof.Result, len(claims))}
 	for _, claim := range claims {
-		resolver.results[proofResultKey{subject: claim.Subject, claim: claim.ID}] = proofResult(t, claim, commit, sourceproof.StateHumanReviewRequired, nil)
+		resolver.results[proofResultKey{subject: claim.Subject, claim: claim.ID}] = proofResult(t, claim, snapshot, sourceproof.StateHumanReviewRequired, nil)
 	}
 	var gotClaims []sourceclaim.ID
 	wantStream := core.NewDigestWriter()
@@ -308,7 +308,7 @@ func proofClaimWithID(t testing.TB, subject core.SourceSubject, identity string)
 	}
 }
 
-func proofResult(t testing.TB, claim sourceclaim.Claim, revision core.BuildCommit, state sourceproof.State, evidence []sourceproof.EvidenceReference) sourceproof.Result {
+func proofResult(t testing.TB, claim sourceclaim.Claim, snapshot core.SourceSnapshot, state sourceproof.State, evidence []sourceproof.EvidenceReference) sourceproof.Result {
 	t.Helper()
 
 	digest, err := claim.Digest()
@@ -316,16 +316,16 @@ func proofResult(t testing.TB, claim sourceclaim.Claim, revision core.BuildCommi
 		t.Fatalf("Claim.Digest() error = %v, want nil", err)
 	}
 	return sourceproof.Result{
-		Claim: claim.ID, Subject: claim.Subject, ClaimDigest: digest, Revision: revision,
+		Claim: claim.ID, Subject: claim.Subject, ClaimDigest: digest, Snapshot: snapshot,
 		Verifier:     proofAuthority(t, 2),
 		Requirements: []sourceproof.RequirementResult{{Requirement: claim.Requirements[0].ID, Evidence: evidence, State: state}},
 	}
 }
 
-func proofEvidence(t testing.TB, subject core.SourceSubject, revision core.BuildCommit) sourceproof.EvidenceReference {
+func proofEvidence(t testing.TB, subject core.SourceSubject, snapshot core.SourceSnapshot) sourceproof.EvidenceReference {
 	t.Helper()
 	return sourceproof.EvidenceReference{
-		Subject: subject, Digest: core.SHA256Of([]byte("review receipt")), Revision: revision,
+		Subject: subject, Digest: core.SHA256Of([]byte("review receipt")), Snapshot: snapshot,
 		Authority: proofAuthority(t, 3), Kind: sourceproof.EvidenceHumanReviewReceipt,
 	}
 }
@@ -340,13 +340,9 @@ func proofSubject(t testing.TB, kind core.SourceSubjectKind, value string) core.
 	return subject
 }
 
-func proofCommit(t testing.TB, value string) core.BuildCommit {
+func proofSnapshot(t testing.TB, value string) core.SourceSnapshot {
 	t.Helper()
-	commit, err := core.ParseBuildCommit(value)
-	if err != nil {
-		t.Fatalf("core.ParseBuildCommit(%q) error = %v, want nil", value, err)
-	}
-	return commit
+	return core.SourceSnapshot{Digest: core.SHA256Of([]byte(value))}
 }
 
 func proofAuthority(t testing.TB, value byte) core.Ed25519PublicKey {

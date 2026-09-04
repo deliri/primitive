@@ -84,12 +84,12 @@ func TestProjectVerificationLayerTriadClosesSeparatelyRetainedObservations(t *te
 			wantErr: core.ErrSourceObservationConflict,
 		},
 		{
-			name: "negative package observation from another revision is stale",
+			name: "negative package observation from another snapshot is stale",
 			setup: func(t testing.TB) (sourceobservation.Project, observationResolver) {
 				project, resolver := packagedObservationFixture(t, true)
 				path := observedPath(t, "exchange")
 				packageObservation := resolver.packages[path]
-				packageObservation.Revision = observedOtherCommit(t)
+				packageObservation.Snapshot = observedOtherSnapshot(t)
 				resolver.packages[path] = packageObservation
 				return project, resolver
 			},
@@ -108,12 +108,12 @@ func TestProjectVerificationLayerTriadClosesSeparatelyRetainedObservations(t *te
 			wantErr: core.ErrSourceObservationConflict,
 		},
 		{
-			name: "negative file observation from another revision is stale",
+			name: "negative file observation from another snapshot is stale",
 			setup: func(t testing.TB) (sourceobservation.Project, observationResolver) {
 				project, resolver := rootObservationFixture(t)
 				path := observedPath(t, "README.md")
 				file := resolver.files[path]
-				file.Revision = observedOtherCommit(t)
+				file.Snapshot = observedOtherSnapshot(t)
 				resolver.files[path] = file
 				return project, resolver
 			},
@@ -166,13 +166,13 @@ func TestProjectVerificationAcceptsParentAndChildPackagesWithoutGlobalPathMerge(
 	childFile := observedFile(t, "foo/bar/x.go", &childPath, buildContext.ID, nil)
 	parentFileReference := observedFileReference(t, parentFile)
 	childFileReference := observedFileReference(t, childFile)
-	commit := observedCommit(t)
+	snapshot := observedSnapshot(t)
 	parent := sourceobservation.Package{
-		Repository: observedRepository(t), Path: parentPath, Revision: commit,
+		Repository: observedRepository(t), Path: parentPath, Snapshot: snapshot,
 		Files: observedFileMembership(t, []sourceobservation.FileReference{parentFileReference}),
 	}
 	child := sourceobservation.Package{
-		Repository: observedRepository(t), Path: childPath, Revision: commit,
+		Repository: observedRepository(t), Path: childPath, Snapshot: snapshot,
 		Files: observedFileMembership(t, []sourceobservation.FileReference{childFileReference}),
 	}
 	parentDigest, parentDigestErr := parent.ObservationDigest()
@@ -185,7 +185,7 @@ func TestProjectVerificationAcceptsParentAndChildPackagesWithoutGlobalPathMerge(
 		{Path: parentPath, ObservationDigest: parentDigest},
 		{Path: childPath, ObservationDigest: childDigest},
 	}
-	project := observedProject(t, commit, buildContext, projectFiles, projectPackages)
+	project := observedProject(t, snapshot, buildContext, projectFiles, projectPackages)
 	resolver := observationResolver{
 		files: map[core.SourcePath]sourceobservation.File{
 			parentFile.Path: parentFile,
@@ -231,16 +231,16 @@ func packagedObservationFixture(t testing.TB, includeSecond bool) (sourceobserva
 	if includeSecond {
 		packageFiles = append(packageFiles, secondReference)
 	}
-	commit := observedCommit(t)
+	snapshot := observedSnapshot(t)
 	packageMembership := observedFileMembership(t, packageFiles)
-	packageObservation := sourceobservation.Package{Repository: observedRepository(t), Path: packagePath, Revision: commit, Files: packageMembership}
+	packageObservation := sourceobservation.Package{Repository: observedRepository(t), Path: packagePath, Snapshot: snapshot, Files: packageMembership}
 	packageDigest, packageDigestErr := packageObservation.ObservationDigest()
 	if packageDigestErr != nil {
 		t.Fatalf("Package.ObservationDigest() error = %v, want nil", packageDigestErr)
 	}
 	projectFiles := []sourceobservation.FileReference{firstReference, secondReference}
 	projectPackages := []sourceobservation.PackageReference{{Path: packagePath, ObservationDigest: packageDigest}}
-	project := observedProject(t, commit, context, projectFiles, projectPackages)
+	project := observedProject(t, snapshot, context, projectFiles, projectPackages)
 	resolver := observationResolver{
 		files:           map[core.SourcePath]sourceobservation.File{first.Path: first, second.Path: second},
 		packages:        map[core.SourcePath]sourceobservation.Package{packagePath: packageObservation},
@@ -257,14 +257,14 @@ func rootObservationFixture(t testing.TB) (sourceobservation.Project, observatio
 	context := observationContext(t)
 	file := observedFile(t, "README.md", nil, context.ID, nil)
 	reference := observedFileReference(t, file)
-	project := observedProject(t, observedCommit(t), context, []sourceobservation.FileReference{reference}, nil)
+	project := observedProject(t, observedSnapshot(t), context, []sourceobservation.FileReference{reference}, nil)
 	return project, observationResolver{
 		files: map[core.SourcePath]sourceobservation.File{file.Path: file}, packages: map[core.SourcePath]sourceobservation.Package{},
 		projectFiles: []sourceobservation.FileReference{reference}, packageFiles: map[core.SourcePath][]sourceobservation.FileReference{},
 	}
 }
 
-func observedProject(t testing.TB, commit core.BuildCommit, buildContext sourceobservation.BuildContext, files []sourceobservation.FileReference, packages []sourceobservation.PackageReference) sourceobservation.Project {
+func observedProject(t testing.TB, snapshot core.SourceSnapshot, buildContext sourceobservation.BuildContext, files []sourceobservation.FileReference, packages []sourceobservation.PackageReference) sourceobservation.Project {
 	t.Helper()
 
 	repository := observedRepository(t)
@@ -273,7 +273,7 @@ func observedProject(t testing.TB, commit core.BuildCommit, buildContext sourceo
 		t.Fatalf("project observation identity setup error = %v, want nil", toolchainErr)
 	}
 	return sourceobservation.Project{
-		Repository: repository, Revision: commit, Toolchain: toolchain,
+		Repository: repository, Snapshot: snapshot, Toolchain: toolchain,
 		Contexts: []sourceobservation.BuildContext{buildContext},
 		Files:    observedFileMembership(t, files), Packages: observedPackageMembership(t, packages),
 	}
@@ -292,7 +292,7 @@ func observedFile(t testing.TB, path string, packagePath *core.SourcePath, conte
 		t.Fatalf("file observation fixture error = %v, want nil", err)
 	}
 	return sourceobservation.File{
-		Repository: observedRepository(t), Path: parsedPath, Package: packagePath, Revision: observedCommit(t), SourceDigest: core.SHA256Of([]byte(path)), Bytes: extent,
+		Repository: observedRepository(t), Path: parsedPath, Package: packagePath, Snapshot: observedSnapshot(t), SourceDigest: core.SHA256Of([]byte(path)), Bytes: extent,
 		Language: language, Generated: sourceobservation.GeneratedAuthored,
 		Selections:   []sourceobservation.BuildSelection{{Context: contextID, State: sourceobservation.SelectionIncluded}},
 		Declarations: declarations, Imports: []sourceobservation.Import{}, Effects: []sourceobservation.Effect{}, References: []sourceobservation.Reference{},
@@ -375,22 +375,12 @@ func observationContext(t testing.TB) sourceobservation.BuildContext {
 	return sourceobservation.BuildContext{ID: id, GOOS: goos, GOARCH: goarch, Tags: []sourceobservation.Symbol{}}
 }
 
-func observedCommit(t testing.TB) core.BuildCommit {
+func observedSnapshot(t testing.TB) core.SourceSnapshot {
 	t.Helper()
-
-	got, err := core.ParseBuildCommit("0123456789abcdef0123456789abcdef01234567")
-	if err != nil {
-		t.Fatalf("core.ParseBuildCommit() error = %v, want nil", err)
-	}
-	return got
+	return core.SourceSnapshot{Digest: core.SHA256Of([]byte("current source snapshot"))}
 }
 
-func observedOtherCommit(t testing.TB) core.BuildCommit {
+func observedOtherSnapshot(t testing.TB) core.SourceSnapshot {
 	t.Helper()
-
-	got, err := core.ParseBuildCommit("fedcba9876543210fedcba9876543210fedcba98")
-	if err != nil {
-		t.Fatalf("core.ParseBuildCommit(other) error = %v, want nil", err)
-	}
-	return got
+	return core.SourceSnapshot{Digest: core.SHA256Of([]byte("other source snapshot"))}
 }

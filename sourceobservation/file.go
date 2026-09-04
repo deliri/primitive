@@ -79,7 +79,7 @@ type File struct {
 	Repository   core.RepositoryIdentity `json:"repository"`
 	Path         core.SourcePath         `json:"path"`
 	Package      *core.SourcePath        `json:"package,omitempty"`
-	Revision     core.BuildCommit        `json:"revision"`
+	Snapshot     core.SourceSnapshot     `json:"snapshot"`
 	SourceDigest core.SHA256Digest       `json:"source_digest"`
 	Bytes        core.ByteLength         `json:"bytes"`
 	Language     Language                `json:"language"`
@@ -92,7 +92,7 @@ type File struct {
 }
 
 func (f File) Validate() error {
-	if err := contractJoin(f.Repository.Validate(), f.Path.Validate(), f.Revision.Validate(), f.SourceDigest.Validate(), f.Bytes.Validate(), f.Language.Validate(), f.Generated.Validate()); err != nil {
+	if err := contractJoin(f.Repository.Validate(), f.Path.Validate(), f.Snapshot.Validate(), f.SourceDigest.Validate(), f.Bytes.Validate(), f.Language.Validate(), f.Generated.Validate()); err != nil {
 		return err
 	}
 	if f.Package != nil {

@@ -18,7 +18,7 @@ type (
 	productionStructName     string
 )
 
-const coreProductionStructMaximum = 43
+const coreProductionStructMaximum = 44
 
 type productionStructInventory struct {
 	names [coreProductionStructMaximum]productionStructName
@@ -53,6 +53,7 @@ type coreContractInventory struct {
 	RelativePath             protocolFact[RelativePath]
 	SourcePath               protocolFact[SourcePath]
 	RepositoryIdentity       protocolFact[RepositoryIdentity]
+	SourceSnapshot           protocolFact[SourceSnapshot]
 	SourceSubject            protocolFact[SourceSubject]
 	HTTPStatusCode           protocolFact[HTTPStatusCode]
 	HTTPHeaderName           protocolFact[HTTPHeaderName]

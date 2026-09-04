@@ -24,6 +24,14 @@ type SourcePath struct{ value string }
 // validates its transport shape without interpreting provider ownership.
 type RepositoryIdentity struct{ value string }
 
+// SourceSnapshot is the exact SHA-256 identity of one admitted source byte
+// set. It is deliberately distinct from BuildCommit: a source snapshot need
+// not be a Git object or belong to any version-control system.
+type SourceSnapshot struct {
+	// Digest is the SHA-256 commitment to the complete admitted source stream.
+	Digest SHA256Digest
+}
+
 // ParseSourcePath admits one operating-system-independent repository path.
 func ParseSourcePath(value string) (SourcePath, error) {
 	candidate := SourcePath{value: value}
@@ -85,6 +93,14 @@ func (r RepositoryIdentity) Validate() error {
 	return nil
 }
 
+// Validate refuses an unset snapshot digest.
+func (s SourceSnapshot) Validate() error {
+	if err := s.Digest.Validate(); err != nil {
+		return sourceIdentityError(err.Error())
+	}
+	return nil
+}
+
 // String returns canonical source-path text, or empty text when invalid.
 func (p SourcePath) String() string {
 	if p.Validate() != nil {
@@ -99,6 +115,16 @@ func (r RepositoryIdentity) String() string {
 		return ""
 	}
 	return r.value
+}
+
+// String returns the canonical lowercase SHA-256 identity, or empty text for
+// an invalid value.
+func (s SourceSnapshot) String() string {
+	value, err := s.Digest.Hex()
+	if err != nil {
+		return ""
+	}
+	return value
 }
 
 // MarshalJSON emits one canonical source path.
@@ -150,6 +176,46 @@ func (r *RepositoryIdentity) UnmarshalJSON(data []byte) error {
 		return errors.Join(ErrJSONContract, err)
 	}
 	*r = parsed
+	return nil
+}
+
+// MarshalJSON emits one canonical source snapshot.
+func (s SourceSnapshot) MarshalJSON() ([]byte, error) {
+	if err := s.Validate(); err != nil {
+		return nil, errors.Join(ErrJSONContract, err)
+	}
+	return MarshalCanonicalJSONString(s.String())
+}
+
+// UnmarshalJSON admits one canonical source snapshot without mutating the
+// receiver on rejection.
+func (s *SourceSnapshot) UnmarshalJSON(data []byte) error {
+	if s == nil {
+		return errors.Join(ErrJSONContract, sourceIdentityError("source snapshot receiver is nil"))
+	}
+	value, err := DecodeJSONStringToken(data)
+	if err != nil {
+		return err
+	}
+	var digest SHA256Digest
+	if err := digest.UnmarshalText([]byte(value)); err != nil {
+		return errors.Join(ErrJSONContract, err)
+	}
+	*s = SourceSnapshot{Digest: digest}
+	return nil
+}
+
+// UnmarshalText admits one canonical source snapshot without mutating the
+// receiver on rejection.
+func (s *SourceSnapshot) UnmarshalText(text []byte) error {
+	if s == nil {
+		return sourceIdentityError("source snapshot receiver is nil")
+	}
+	var digest SHA256Digest
+	if err := digest.UnmarshalText(text); err != nil {
+		return err
+	}
+	*s = SourceSnapshot{Digest: digest}
 	return nil
 }
 

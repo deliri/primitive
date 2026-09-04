@@ -174,6 +174,33 @@ type observationJSONValue interface {
 	MarshalJSON() ([]byte, error)
 }
 
+func TestSourceObservationWireUsesSnapshotWithoutGitState(t *testing.T) {
+	t.Parallel()
+
+	fixtures := observationFixturesForFuzz(t)
+	cases := []struct {
+		name  string
+		value observationJSONValue
+	}{
+		{name: "file binds to exact source snapshot", value: fixtures.file},
+		{name: "package binds to exact source snapshot", value: fixtures.packageValue},
+		{name: "project binds to exact source snapshot", value: fixtures.project},
+	}
+	for _, tc := range cases {
+		t.Run(tc.name, func(t *testing.T) {
+			t.Parallel()
+
+			document, gotErr := tc.value.MarshalJSON()
+			gotSnapshot := bytes.Contains(document, []byte(`"snapshot":`))
+			gotRevision := bytes.Contains(document, []byte(`"revision":`))
+			gotDirty := bytes.Contains(document, []byte(`"dirty":`))
+			if gotErr != nil || !gotSnapshot || gotRevision || gotDirty {
+				t.Fatalf("source observation wire fields = snapshot:%t revision:%t dirty:%t error:%v, want true/false/false/nil", gotSnapshot, gotRevision, gotDirty, gotErr)
+			}
+		})
+	}
+}
+
 func fuzzObservationJSONDoor[T observationJSONValue](t *testing.T, data []byte, seed T) {
 	t.Helper()
 	before, err := seed.MarshalJSON()

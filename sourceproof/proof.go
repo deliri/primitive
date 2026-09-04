@@ -86,13 +86,13 @@ func (k EvidenceKind) String() string {
 type EvidenceReference struct {
 	Subject   core.SourceSubject    `json:"subject"`
 	Digest    core.SHA256Digest     `json:"digest"`
-	Revision  core.BuildCommit      `json:"revision"`
+	Snapshot  core.SourceSnapshot   `json:"snapshot"`
 	Authority core.Ed25519PublicKey `json:"authority"`
 	Kind      EvidenceKind          `json:"kind"`
 }
 
 func (r EvidenceReference) Validate() error {
-	return contractJoin(r.Subject.Validate(), r.Digest.Validate(), r.Revision.Validate(), r.Authority.Validate(), r.Kind.Validate())
+	return contractJoin(r.Subject.Validate(), r.Digest.Validate(), r.Snapshot.Validate(), r.Authority.Validate(), r.Kind.Validate())
 }
 
 // RequirementResult retains the exact outcome for one typed claim
@@ -113,7 +113,7 @@ func (r RequirementResult) Validate() error {
 	return r.validateIntrinsicStateEvidence()
 }
 
-func (r RequirementResult) ValidateAgainst(requirement sourceclaim.Requirement, revision core.BuildCommit, subject core.SourceSubject) error {
+func (r RequirementResult) ValidateAgainst(requirement sourceclaim.Requirement, snapshot core.SourceSnapshot, subject core.SourceSubject) error {
 	if err := contractJoin(r.Validate(), requirement.Validate()); err != nil {
 		return err
 	}
@@ -123,18 +123,18 @@ func (r RequirementResult) ValidateAgainst(requirement sourceclaim.Requirement, 
 	if err := validateEvidence(r.Evidence); err != nil {
 		return err
 	}
-	if err := r.validateRevisions(revision); err != nil {
+	if err := r.validateSnapshots(snapshot); err != nil {
 		return err
 	}
 	return r.validateMode(requirement, subject)
 }
 
-func (r RequirementResult) validateRevisions(revision core.BuildCommit) error {
+func (r RequirementResult) validateSnapshots(snapshot core.SourceSnapshot) error {
 	for _, evidence := range r.Evidence {
-		if r.State == StateStale && evidence.Revision == revision {
-			return conflictError(errors.New("source proof stale state cites current-revision evidence"))
+		if r.State == StateStale && evidence.Snapshot == snapshot {
+			return conflictError(errors.New("source proof stale state cites current-snapshot evidence"))
 		}
-		if r.State != StateStale && evidence.Revision != revision {
+		if r.State != StateStale && evidence.Snapshot != snapshot {
 			return conflictError(errors.New("source proof current state cites stale evidence"))
 		}
 	}
@@ -224,7 +224,7 @@ type Result struct {
 	Claim        sourceclaim.ID        `json:"claim"`
 	Subject      core.SourceSubject    `json:"subject"`
 	ClaimDigest  core.SHA256Digest     `json:"claim_digest"`
-	Revision     core.BuildCommit      `json:"revision"`
+	Snapshot     core.SourceSnapshot   `json:"snapshot"`
 	Verifier     core.Ed25519PublicKey `json:"verifier"`
 	Requirements []RequirementResult   `json:"requirements"`
 }
@@ -233,7 +233,7 @@ type Result struct {
 // adds the independently supplied authored claim and proves structural
 // agreement; product acceptance remains outside this package.
 func (r Result) Validate() error {
-	if err := contractJoin(r.Claim.Validate(), r.Subject.Validate(), r.ClaimDigest.Validate(), r.Revision.Validate(), r.Verifier.Validate()); err != nil {
+	if err := contractJoin(r.Claim.Validate(), r.Subject.Validate(), r.ClaimDigest.Validate(), r.Snapshot.Validate(), r.Verifier.Validate()); err != nil {
 		return err
 	}
 	if len(r.Requirements) == 0 {
@@ -273,7 +273,7 @@ func (r Result) ValidateAgainst(claim sourceclaim.Claim) error {
 		return conflictError(errors.New("source proof requirement accounting does not close"))
 	}
 	for index := range r.Requirements {
-		if err := r.Requirements[index].ValidateAgainst(claim.Requirements[index], r.Revision, claim.Subject); err != nil {
+		if err := r.Requirements[index].ValidateAgainst(claim.Requirements[index], r.Snapshot, claim.Subject); err != nil {
 			return err
 		}
 	}
@@ -328,8 +328,8 @@ func compareEvidenceReferences(left, right EvidenceReference) (int, error) {
 	if leftDigest != rightDigest {
 		return compareString(leftDigest, rightDigest), nil
 	}
-	if left.Revision != right.Revision {
-		return compareString(left.Revision.String(), right.Revision.String()), nil
+	if left.Snapshot != right.Snapshot {
+		return compareString(left.Snapshot.String(), right.Snapshot.String()), nil
 	}
 	if left.Kind != right.Kind {
 		return compareUint8(uint8(left.Kind), uint8(right.Kind)), nil

@@ -132,7 +132,7 @@ func verifyResolvedPackage(project Project, reference PackageReference, observed
 	if err != nil {
 		return err
 	}
-	if observed.Repository != project.Repository || observed.Path != reference.Path || observed.Revision != project.Revision || digest != reference.ObservationDigest {
+	if observed.Repository != project.Repository || observed.Path != reference.Path || observed.Snapshot != project.Snapshot || digest != reference.ObservationDigest {
 		return conflictError(errors.New("source observation resolved package differs from its project reference"))
 	}
 	return nil
@@ -263,7 +263,7 @@ func verifyResolvedFileIdentity(project Project, reference FileReference, file F
 	if err != nil {
 		return err
 	}
-	if file.Repository != project.Repository || file.Path != reference.Path || file.Revision != project.Revision || digest != reference.ObservationDigest {
+	if file.Repository != project.Repository || file.Path != reference.Path || file.Snapshot != project.Snapshot || digest != reference.ObservationDigest {
 		return conflictError(errors.New("source observation resolved file differs from its project reference"))
 	}
 	if !samePackageCoordinate(file.Package, reference.Package) {

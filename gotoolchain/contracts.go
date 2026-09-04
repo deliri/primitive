@@ -89,14 +89,22 @@ func (l Limits) Validate() error {
 	return nil
 }
 
-// Configuration selects the ambient workspace posture and execution limits.
+// Configuration selects the ambient workspace posture, optional source
+// overlay, and execution limits.
 type Configuration struct {
-	Workspace WorkspaceMode
-	Limits    Limits
+	Workspace     WorkspaceMode
+	SourceOverlay *SourceOverlay
+	Limits        Limits
 }
 
 func (c Configuration) Validate() error {
-	return errors.Join(c.Workspace.Validate(), c.Limits.Validate())
+	if err := errors.Join(c.Workspace.Validate(), c.Limits.Validate()); err != nil {
+		return err
+	}
+	if c.SourceOverlay != nil {
+		return c.SourceOverlay.Validate()
+	}
+	return nil
 }
 
 // ToolchainVersion is one bounded cmd/go version token.

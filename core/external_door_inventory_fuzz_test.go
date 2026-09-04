@@ -50,6 +50,7 @@ const (
 	coreJSONDoorAbsolutePath
 	coreJSONDoorSourcePath
 	coreJSONDoorRepositoryIdentity
+	coreJSONDoorSourceSnapshot
 	coreJSONDoorSourceSubjectKind
 	coreJSONDoorSourceSubject
 	coreJSONDoorLimit
@@ -113,6 +114,8 @@ func (d coreJSONDoor) receiverName() string {
 		return "SourcePath"
 	case coreJSONDoorRepositoryIdentity:
 		return "RepositoryIdentity"
+	case coreJSONDoorSourceSnapshot:
+		return "SourceSnapshot"
 	case coreJSONDoorSourceSubjectKind:
 		return "SourceSubjectKind"
 	case coreJSONDoorSourceSubject:
@@ -129,6 +132,7 @@ type coreJSONFixtures struct {
 	absolutePath    AbsolutePath
 	sourcePath      SourcePath
 	repository      RepositoryIdentity
+	snapshot        SourceSnapshot
 	subjectKind     SourceSubjectKind
 	subject         SourceSubject
 	component       PathComponent
@@ -234,6 +238,8 @@ func FuzzCoreExternalJSONDoorInventory(f *testing.F) {
 			fuzzCoreJSONValue(t, data, fixtures.sourcePath)
 		case coreJSONDoorRepositoryIdentity:
 			fuzzCoreJSONValue(t, data, fixtures.repository)
+		case coreJSONDoorSourceSnapshot:
+			fuzzCoreJSONValue(t, data, fixtures.snapshot)
 		case coreJSONDoorSourceSubjectKind:
 			fuzzCoreJSONValue(t, data, fixtures.subjectKind)
 		case coreJSONDoorSourceSubject:
@@ -257,6 +263,7 @@ const (
 	coreTextDoorCRC32C
 	coreTextDoorEd25519PublicKey
 	coreTextDoorBuildCommit
+	coreTextDoorSourceSnapshot
 	coreTextDoorHTTPEndpoint
 	coreTextDoorPackageIdentity
 	coreTextDoorHTTPHeaderName
@@ -311,6 +318,16 @@ func FuzzCoreExternalTextDoorInventory(f *testing.F) {
 			fuzzCoreParseOutcome(t, coreParseOutcomeFor(coreParseRequest[BuildCommit]{
 				input: value, value: got, err: err, requiresExact: true, parse: ParseBuildCommit,
 			}))
+		case coreTextDoorSourceSnapshot:
+			fuzzCoreTextUnmarshal(t, coreTextDecodeRequest[SourceSnapshot]{
+				text: []byte(value), seed: fixtures.snapshot,
+				projection: func(got SourceSnapshot) (string, error) {
+					if err := got.Validate(); err != nil {
+						return "", err
+					}
+					return got.String(), nil
+				},
+			})
 		case coreTextDoorHTTPEndpoint:
 			got, err := ParseHTTPEndpoint(value)
 			fuzzCoreParseOutcome(t, coreParseOutcomeFor(coreParseRequest[HTTPEndpoint]{
@@ -528,6 +545,7 @@ func coreTextSeedsForFuzz(t testing.TB, fixtures coreJSONFixtures) []coreTextSee
 		{door: coreTextDoorCRC32C, text: crc32cText},
 		{door: coreTextDoorEd25519PublicKey, text: publicKeyText},
 		{door: coreTextDoorBuildCommit, text: fixtures.commit.String()},
+		{door: coreTextDoorSourceSnapshot, text: fixtures.snapshot.String()},
 		{door: coreTextDoorHTTPEndpoint, text: fixtures.endpoint.String()},
 		{door: coreTextDoorPackageIdentity, text: fixtures.packageIdentity.String()},
 		{door: coreTextDoorHTTPHeaderName, text: fixtures.header.String()},
@@ -607,6 +625,7 @@ func coreFixturesForFuzz(t testing.TB) coreJSONFixtures {
 	if err != nil {
 		t.Fatalf("NewRepositoryIdentity(seed) error = %v, want nil", err)
 	}
+	snapshot := SourceSnapshot{Digest: SHA256Of([]byte("core source snapshot fuzz seed"))}
 	subject, err := NewSourceSubject(SourceSubjectFile, sourcePath)
 	if err != nil {
 		t.Fatalf("NewSourceSubject(seed) error = %v, want nil", err)
@@ -623,7 +642,8 @@ func coreFixturesForFuzz(t testing.TB) coreJSONFixtures {
 		crc32c:    NewCRC32C(crc32.Checksum([]byte("core fuzz crc32c"), crc32.MakeTable(crc32.Castagnoli))),
 		publicKey: publicKey, byteCount: byteCount, byteLength: byteLength,
 		component: component, absolutePath: absolute, relativePath: relative,
-		sourcePath: sourcePath, repository: repository, subjectKind: SourceSubjectFile, subject: subject,
+		sourcePath: sourcePath, repository: repository, snapshot: snapshot,
+		subjectKind: SourceSubjectFile, subject: subject,
 	}
 }
 
@@ -657,6 +677,7 @@ func coreJSONSeedsForFuzz(t testing.TB, fixtures coreJSONFixtures) []coreJSONSee
 		coreJSONSeedForFuzz(t, coreJSONDoorAbsolutePath, fixtures.absolutePath),
 		coreJSONSeedForFuzz(t, coreJSONDoorSourcePath, fixtures.sourcePath),
 		coreJSONSeedForFuzz(t, coreJSONDoorRepositoryIdentity, fixtures.repository),
+		coreJSONSeedForFuzz(t, coreJSONDoorSourceSnapshot, fixtures.snapshot),
 		coreJSONSeedForFuzz(t, coreJSONDoorSourceSubjectKind, fixtures.subjectKind),
 		coreJSONSeedForFuzz(t, coreJSONDoorSourceSubject, fixtures.subject),
 	}
