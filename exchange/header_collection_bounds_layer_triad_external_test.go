@@ -250,6 +250,7 @@ func TestClosedModeDomainLayerTriad(t *testing.T) {
 		}
 		redirects := [...]exchange.RedirectMode{
 			exchange.RedirectReject,
+			exchange.RedirectObserve,
 			exchange.RedirectSameOrigin,
 		}
 		for _, redirect := range redirects {

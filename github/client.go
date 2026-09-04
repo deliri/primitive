@@ -17,6 +17,7 @@ const (
 	apiAuthority     = "https://" + core.GitHubAPIHost
 	headerAPIVersion = "X-GitHub-Api-Version"
 	headerLink       = "Link"
+	headerLocation   = "Location"
 	headerUserAgent  = "User-Agent"
 )
 

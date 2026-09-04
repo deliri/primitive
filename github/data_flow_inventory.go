@@ -11,16 +11,18 @@ func (Reference) githubSealedValue()      {}
 func (AppID) githubSealedValue()          {}
 func (InstallationID) githubSealedValue() {}
 
-func (Tag) githubProtocolFact()             {}
-func (TagPageRequest) githubProtocolFact()  {}
-func (TagPage) githubProtocolFact()         {}
-func (HeadRequest) githubProtocolFact()     {}
-func (HeadObservation) githubProtocolFact() {}
-func (FileRequest) githubProtocolFact()     {}
-func (FileObservation) githubProtocolFact() {}
-func (TreeEntry) githubProtocolFact()       {}
-func (TreeRequest) githubProtocolFact()     {}
-func (TreeObservation) githubProtocolFact() {}
+func (Tag) githubProtocolFact()                   {}
+func (TagPageRequest) githubProtocolFact()        {}
+func (TagPage) githubProtocolFact()               {}
+func (HeadRequest) githubProtocolFact()           {}
+func (HeadObservation) githubProtocolFact()       {}
+func (FileRequest) githubProtocolFact()           {}
+func (FileObservation) githubProtocolFact()       {}
+func (TarArchiveRequest) githubProtocolFact()     {}
+func (TarArchiveObservation) githubProtocolFact() {}
+func (TreeEntry) githubProtocolFact()             {}
+func (TreeRequest) githubProtocolFact()           {}
+func (TreeObservation) githubProtocolFact()       {}
 
 func (credentialState) githubInternalFlow()    {}
 func (installationToken) githubInternalFlow()  {}
@@ -40,6 +42,7 @@ func (treeDecodeState) githubInternalFlow()    {}
 func (treeDownloadResult) githubInternalFlow() {}
 func (treeDownloadCall) githubInternalFlow()   {}
 func (treeDecoder) githubInternalFlow()        {}
+func (archiveDestination) githubInternalFlow() {}
 
 func (AppCredential) githubCapabilityWrapper() {}
 func (Client) githubCapabilityWrapper()        {}
@@ -57,6 +60,8 @@ var (
 	_ protocolFact      = HeadObservation{}
 	_ protocolFact      = FileRequest{}
 	_ protocolFact      = FileObservation{}
+	_ protocolFact      = TarArchiveRequest{}
+	_ protocolFact      = TarArchiveObservation{}
 	_ protocolFact      = TreeEntry{}
 	_ protocolFact      = TreeRequest{}
 	_ protocolFact      = TreeObservation{}
@@ -78,6 +83,7 @@ var (
 	_ internalFlow      = treeDownloadResult{}
 	_ internalFlow      = treeDownloadCall{}
 	_ internalFlow      = treeDecoder{}
+	_ internalFlow      = archiveDestination{}
 	_ capabilityWrapper = AppCredential{}
 	_ capabilityWrapper = Client{}
 )

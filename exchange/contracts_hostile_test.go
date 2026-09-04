@@ -217,6 +217,15 @@ func TestOperationPolicyLayerTriad(t *testing.T) {
 				},
 			},
 			{
+				name: "observe redirect returns the first response without a hop budget",
+				policy: exchange.OperationPolicy{
+					OperationTimeout: fiveNanoseconds,
+					AttemptTimeout:   fiveNanoseconds,
+					Retry:            exchange.RetryPolicy{MaximumAttempts: 1},
+					Redirect:         exchange.RedirectPolicy{Mode: exchange.RedirectObserve},
+				},
+			},
+			{
 				name: "maximum temporal budget remains representable",
 				policy: exchange.OperationPolicy{
 					OperationTimeout: maximumDuration,
@@ -291,6 +300,7 @@ func TestOperationPolicyLayerTriad(t *testing.T) {
 			{name: "Retry-After beyond total wait is rejected", policy: exchange.OperationPolicy{OperationTimeout: fiveNanoseconds, AttemptTimeout: oneNanosecond, Retry: exchange.RetryPolicy{BaseDelay: oneNanosecond, MaximumDelay: fiveNanoseconds, MaximumJitter: oneNanosecond, MaximumRetryAfter: fiveNanoseconds, MaximumWait: oneNanosecond, MaximumAttempts: 2}, Redirect: exchange.RedirectPolicy{Mode: exchange.RedirectReject}}},
 			{name: "unknown redirect mode is rejected", policy: exchange.OperationPolicy{OperationTimeout: fiveNanoseconds, AttemptTimeout: oneNanosecond, Retry: validRetry, Redirect: exchange.RedirectPolicy{Mode: exchange.RedirectMode(math.MaxUint8)}}},
 			{name: "reject redirect mode refuses a hop budget", policy: exchange.OperationPolicy{OperationTimeout: fiveNanoseconds, AttemptTimeout: oneNanosecond, Retry: validRetry, Redirect: exchange.RedirectPolicy{Mode: exchange.RedirectReject, MaximumHops: 1}}},
+			{name: "observe redirect mode refuses a hop budget", policy: exchange.OperationPolicy{OperationTimeout: fiveNanoseconds, AttemptTimeout: oneNanosecond, Retry: validRetry, Redirect: exchange.RedirectPolicy{Mode: exchange.RedirectObserve, MaximumHops: 1}}},
 			{name: "same-origin redirect requires a hop budget", policy: exchange.OperationPolicy{OperationTimeout: fiveNanoseconds, AttemptTimeout: oneNanosecond, Retry: validRetry, Redirect: exchange.RedirectPolicy{Mode: exchange.RedirectSameOrigin}}},
 		}
 		for _, tc := range cases {

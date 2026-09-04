@@ -10,6 +10,7 @@ import (
 	"time"
 
 	"github.com/deliri/primitive/v2026/core"
+	"github.com/deliri/primitive/v2026/exchange"
 	"github.com/deliri/primitive/v2026/temporal"
 )
 
@@ -39,6 +40,46 @@ func TestGitHubExternalIngressHasSemanticFuzzTargets(t *testing.T) {
 	_ = externalIngressFuzzContract[func(io.Reader, uint64, TreeVisitor) (uint64, error), func(*testing.F)]{
 		Door: decodeTree, Fuzz: FuzzDecodeGitHubTreeSemanticClosure,
 	}
+	_ = externalIngressFuzzContract[func(exchange.CapturedHeaders, core.HTTPHeaderName) (core.HTTPEndpoint, error), func(*testing.F)]{
+		Door: archiveLocation, Fuzz: FuzzGitHubArchiveLocationSemanticClosure,
+	}
+}
+
+func FuzzGitHubArchiveLocationSemanticClosure(f *testing.F) {
+	location, err := core.ParseHTTPHeaderName(headerLocation)
+	if err != nil {
+		f.Fatalf("core.ParseHTTPHeaderName(Location) error = %v, want nil", err)
+	}
+	canonical, err := core.ParseHTTPEndpoint("https://objects.example.test/temporary/archive")
+	if err != nil {
+		f.Fatalf("core.ParseHTTPEndpoint(seed) error = %v, want nil", err)
+	}
+	f.Add(canonical.String())
+	f.Add("http://objects.example.test/archive")
+	f.Add("")
+	f.Fuzz(func(t *testing.T, raw string) {
+		value, valueErr := exchange.NewHeaderValue(raw)
+		if valueErr != nil {
+			return
+		}
+		headers := exchange.CapturedHeaders{Values: []exchange.Header{{
+			Name: location, Values: []exchange.HeaderValue{value},
+		}}}
+		got, gotErr := archiveLocation(headers, location)
+		if gotErr != nil {
+			if !errors.Is(gotErr, core.ErrGitHubBinding) || got != (core.HTTPEndpoint{}) {
+				t.Fatalf("archiveLocation(rejected) = (%v, %v), want zero and %v", got, gotErr, core.ErrGitHubBinding)
+			}
+			return
+		}
+		if err := got.Validate(); err != nil || got.String() != raw {
+			t.Fatalf("archiveLocation(accepted) = (%v, %v), want exact validated %q", got, err, raw)
+		}
+		roundTrip, err := core.ParseHTTPEndpoint(got.String())
+		if err != nil || roundTrip != got {
+			t.Fatalf("archive location canonical round trip = (%v, %v), want (%v, nil)", roundTrip, err, got)
+		}
+	})
 }
 
 func FuzzDecodeGitHubTagPageSemanticClosure(f *testing.F) {

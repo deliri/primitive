@@ -313,6 +313,49 @@ func TestRetryTransportLayerTriad(t *testing.T) {
 func TestRedirectTransportLayerTriad(t *testing.T) {
 	t.Parallel()
 
+	t.Run("positive observe returns the first redirect and never transmits to its target", func(t *testing.T) {
+		t.Parallel()
+
+		var targetCalls atomic.Uint64
+		target := httptest.NewServer(http.HandlerFunc(func(writer http.ResponseWriter, _ *http.Request) {
+			targetCalls.Add(1)
+			writer.WriteHeader(http.StatusOK)
+		}))
+		defer target.Close()
+		origin := httptest.NewServer(http.HandlerFunc(func(writer http.ResponseWriter, _ *http.Request) {
+			writer.Header().Set(locationHeaderName, target.URL)
+			writer.WriteHeader(http.StatusFound)
+		}))
+		defer origin.Close()
+
+		location := mustHeaderName(t, locationHeaderName)
+		policy := singleAttemptOperationPolicy(t)
+		policy.Redirect = exchange.RedirectPolicy{Mode: exchange.RedirectObserve}
+		got, gotErr := exchange.SendNoBodyBounded(exchange.NoBodyBoundedCall{
+			Context: context.Background(),
+			Client:  mustExchangeClient(t, origin.Client()),
+			Request: exchange.NoBodyBoundedRequest{
+				Target: mustEndpoint(t, origin.URL),
+				Semantics: exchange.RequestSemantics{
+					Method: exchange.MethodGet,
+					Replay: exchange.ReplaySingleAttempt,
+				},
+				CaptureHeaders: exchange.HeaderSelection{Names: []core.HTTPHeaderName{location}},
+				ExpectedStatus: mustHTTPStatus(t, http.StatusFound),
+			},
+			Policy: exchange.NoBodyBoundedPolicy{
+				Operation:         policy,
+				ResponseBodyLimit: mustByteCount(t, 4*1024),
+			},
+		})
+		if gotErr != nil || got.Metadata.Status != mustHTTPStatus(t, http.StatusFound) || len(got.Metadata.Headers.Values) != 1 {
+			t.Fatalf("observed redirect = (%+v, %v), want one 302 Location response and nil", got, gotErr)
+		}
+		if targetCalls.Load() != 0 {
+			t.Fatalf("observed redirect target calls = %d, want 0", targetCalls.Load())
+		}
+	})
+
 	t.Run("positive relative same-origin redirect preserves method and caller client", func(t *testing.T) {
 		t.Parallel()
 

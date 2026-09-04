@@ -127,6 +127,9 @@ const (
 	RedirectUnknown RedirectMode = iota
 	// RedirectReject rejects every redirect.
 	RedirectReject
+	// RedirectObserve returns the first redirect response to the caller without
+	// following it. The caller owns interpretation of the captured Location.
+	RedirectObserve
 	// RedirectSameOrigin permits redirects within one normalized origin only
 	// when net/http preserves the typed request method.
 	RedirectSameOrigin
@@ -141,6 +144,7 @@ func redirectFacts() [redirectLimit]redirectFact {
 	return [...]redirectFact{
 		RedirectUnknown:    {},
 		RedirectReject:     {diagnostic: "reject"},
+		RedirectObserve:    {diagnostic: "observe"},
 		RedirectSameOrigin: {diagnostic: "same origin"},
 	}
 }
@@ -182,7 +186,7 @@ func (p RedirectPolicy) Validate() error {
 	if err := p.Mode.Validate(); err != nil {
 		return err
 	}
-	if (p.Mode == RedirectReject) != (p.MaximumHops == 0) {
+	if (p.Mode == RedirectSameOrigin) != (p.MaximumHops > 0) {
 		return core.ErrExchangeContract
 	}
 	return nil

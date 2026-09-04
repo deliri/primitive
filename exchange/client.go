@@ -1205,6 +1205,9 @@ func redirectChecker(
 	policy redirectCheckRequest,
 ) func(*http.Request, []*http.Request) error {
 	return func(request *http.Request, via []*http.Request) error {
+		if policy.policy.Mode == RedirectObserve {
+			return http.ErrUseLastResponse
+		}
 		if policy.policy.Mode == RedirectReject {
 			return core.ErrExchangeRedirect
 		}

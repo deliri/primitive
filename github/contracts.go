@@ -2,6 +2,7 @@ package github
 
 import (
 	"errors"
+	"io"
 	"strings"
 	"unicode"
 	"unicode/utf8"
@@ -14,6 +15,11 @@ const (
 	referenceCustodyMaximumBytes   = 1024
 	userAgentCustodyMaximumBytes   = 256
 	minimumTreeRequestEntryMaximum = 1
+	// TarArchiveMaximumBytes is Primitive's hard ceiling for one streamed
+	// repository archive. GitHub publishes no archive-size maximum, so products
+	// may only tighten this one-gibibyte mechanical custody limit.
+	// Provider contract: https://docs.github.com/en/rest/repos/contents?apiVersion=2026-03-10#download-a-repository-archive-tar
+	TarArchiveMaximumBytes = 1 << 30
 )
 
 // Repository is one GitHub owner and repository-name pair. Primitive validates
@@ -245,6 +251,85 @@ type FileObservation struct {
 	SHA256     core.SHA256Digest
 }
 
+// ArchiveTransferState closes the mechanical outcome of one streamed archive
+// transfer. An incomplete observation accounts for every byte accepted by the
+// caller's destination before the typed transfer failure.
+type ArchiveTransferState uint8
+
+const (
+	ArchiveTransferUnknown ArchiveTransferState = iota
+	ArchiveTransferIncomplete
+	ArchiveTransferComplete
+	archiveTransferStateLimit
+)
+
+// Validate rejects unknown and future transfer states until admitted here.
+func (s ArchiveTransferState) Validate() error {
+	if s <= ArchiveTransferUnknown || s >= archiveTransferStateLimit {
+		return core.ErrGitHubResponse
+	}
+	return nil
+}
+
+// IsValid reports whether the state belongs to the closed domain.
+func (s ArchiveTransferState) IsValid() bool { return s.Validate() == nil }
+
+// String returns a diagnostic projection, never provider wire text.
+func (s ArchiveTransferState) String() string {
+	if !s.IsValid() {
+		return core.UnknownEnumDiagnostic
+	}
+	return [...]string{"", "incomplete", "complete"}[s]
+}
+
+// OffWireEnum declares the state as a typed observation, not provider wire text.
+func (ArchiveTransferState) OffWireEnum() {}
+
+// TarArchiveRequest streams one tar archive for an immutable commit into a
+// caller-owned destination. MaximumBytes is product policy and may only
+// tighten Primitive's mechanical archive custody ceiling.
+type TarArchiveRequest struct {
+	Destination  io.Writer
+	Repository   Repository
+	MaximumBytes core.ByteCount
+	Commit       core.BuildCommit
+}
+
+// Validate checks the complete exact-source transfer request.
+func (r TarArchiveRequest) Validate() error {
+	if err := errors.Join(r.Repository.Validate(), r.Commit.Validate(), r.MaximumBytes.Validate()); err != nil || r.Destination == nil {
+		return contractError(err)
+	}
+	maximum, err := r.MaximumBytes.Uint64()
+	if err != nil || maximum > TarArchiveMaximumBytes {
+		return core.ErrGitHubContract
+	}
+	return nil
+}
+
+// TarArchiveObservation binds the bytes accepted by the destination to the
+// exact requested repository and commit. Incomplete observations accompany a
+// non-nil transfer error and preserve partial-result accounting.
+type TarArchiveObservation struct {
+	Repository Repository
+	Commit     core.BuildCommit
+	SHA256     core.SHA256Digest
+	Length     core.ByteLength
+	State      ArchiveTransferState
+}
+
+// Validate checks coordinate, digest, extent, and transfer-state ownership.
+func (o TarArchiveObservation) Validate() error {
+	if err := errors.Join(o.Repository.Validate(), o.Commit.Validate(), o.SHA256.Validate(), o.Length.Validate(), o.State.Validate()); err != nil {
+		return responseError(err)
+	}
+	if o.Length.Uint64() > TarArchiveMaximumBytes ||
+		(o.State == ArchiveTransferComplete && o.Length.Uint64() == 0) {
+		return core.ErrGitHubResponse
+	}
+	return nil
+}
+
 // Validate proves coordinate binding, length, digest, and provider ceiling.
 func (o FileObservation) Validate() error {
 	if err := errors.Join(o.Repository.Validate(), o.Commit.Validate(), o.Path.Validate(), o.Length.Validate(), o.SHA256.Validate()); err != nil {
@@ -358,6 +443,10 @@ var (
 	_ core.Validatable = HeadObservation{}
 	_ core.Validatable = FileRequest{}
 	_ core.Validatable = FileObservation{}
+	_ core.Validatable = ArchiveTransferState(0)
+	_ core.OffWireEnum = ArchiveTransferState(0)
+	_ core.Validatable = TarArchiveRequest{}
+	_ core.Validatable = TarArchiveObservation{}
 	_ core.Validatable = TreeEntryKind(0)
 	_ core.Validatable = TreeEntry{}
 	_ core.Validatable = TreeRequest{}
