@@ -35,7 +35,7 @@ const (
 )
 
 const (
-	realWorldImportOwnerMaximum        = 11
+	realWorldImportOwnerMaximum        = 12
 	realWorldImportUseMaximum          = 64
 	realWorldCallUseMaximum            = 128
 	realWorldOperatingSystemPath       = "os"
@@ -405,7 +405,7 @@ func declaredRealWorldImports() (realWorldImportInventory, error) {
 	contracts := []realWorldImportContract{
 		realWorldImportOwners(realWorldSubstrateOperatingSystem,
 			PackageCore, PackageDistribution, PackageFileLock, PackageFilestore, PackageHostFacts,
-			PackageGoToolchain, PackageProcess, PackageRelease, PackageRunWorkspace, PackageShutdown, PackageUpgrade),
+			PackageGoToolchain, PackageGitRepo, PackageProcess, PackageRelease, PackageRunWorkspace, PackageShutdown, PackageUpgrade),
 		realWorldImportOwners(realWorldSubstrateProcessExecution, PackageProcess),
 		realWorldImportOwners(realWorldSubstrateOperatingSystemSignal, PackageShutdown),
 		realWorldImportOwners(realWorldSubstrateHTTP, PackageExchange),

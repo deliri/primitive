@@ -17,7 +17,7 @@ const (
 	coreExportInventoryMaximum      = 512
 	coreExportDependencyMaximum     = 32
 	coreSpecialExportAdmissionCount = 68
-	coreProviderExportContractCount = 60
+	coreProviderExportContractCount = 61
 )
 
 type coreExportName string
@@ -182,6 +182,7 @@ func coreSpecialExportAdmissions() [coreSpecialExportAdmissionCount]coreSpecialE
 // wire spellings must never create cross-provider coupling.
 func coreProviderExportContracts() [coreProviderExportContractCount]coreProviderExportContract {
 	return [...]coreProviderExportContract{
+		{name: "SourcePathMaximumBytes", witness: SourcePathMaximumBytes, consumer: PackageGitRepo},
 		{name: "StripeAPIHost", witness: StripeAPIHost, consumer: PackageStripe},
 		{name: "StripeAPIVersion", witness: StripeAPIVersion, consumer: PackageStripe},
 		{name: "StripeVersionHeaderName", witness: StripeVersionHeaderName, consumer: PackageStripe},

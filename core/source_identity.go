@@ -9,7 +9,10 @@ import (
 )
 
 const (
-	sourcePathMaximumBytes         = 1024
+	// SourcePathMaximumBytes is the exact encoded byte ceiling for one
+	// repository-relative source identity. Providers use this compiler-owned
+	// value while incrementally decoding path streams.
+	SourcePathMaximumBytes         = 1024
 	repositoryIdentityMaximumBytes = 512
 )
 
@@ -43,7 +46,7 @@ func NewRepositoryIdentity(value string) (RepositoryIdentity, error) {
 // repository paths.
 func (p SourcePath) Validate() error {
 	value := p.value
-	if len(value) == 0 || len(value) > sourcePathMaximumBytes || !utf8.ValidString(value) || strings.TrimSpace(value) != value {
+	if len(value) == 0 || len(value) > SourcePathMaximumBytes || !utf8.ValidString(value) || strings.TrimSpace(value) != value {
 		return sourceIdentityError("source path text is invalid")
 	}
 	if value != path.Clean(value) || strings.HasPrefix(value, "/") || strings.HasSuffix(value, "/") || strings.ContainsAny(value, "\\\x00\r\n") {

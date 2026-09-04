@@ -183,6 +183,15 @@ func emitPackageClaimSpecsAThroughG(emit func(packageClaimSpec) bool) bool {
 			excludes: "It does not select releases, classify packages or files, allow repositories, build source stories, persist UI caches, or decide what completion means.",
 		},
 		{
+			path: "gitrepo", title: "Streaming local Git observation",
+			problem:  "Offline tools otherwise copy Git arguments, inherit ambient ignore configuration, or load a repository-wide path model before they can apply their own source policy.",
+			solution: "Gitrepo resolves Git, fixes its mechanical environment, and streams validated tracked and repository-unignored paths with exact accounting.",
+			benefit:  "Tools receive one bounded typed local-repository observation while retaining every decision about admission, classification, ordering, and meaning.",
+			removal:  "Remove Gitrepo when Go or Git exposes the same typed streaming worktree observation directly.",
+			owns:     "Gitrepo owns Git command resolution, exact noninteractive environment mechanics, repository-owned ignore execution, streaming path decoding, cancellation, and byte and entry accounting.",
+			excludes: "It does not decide which files matter, classify generated content, sort a product projection, inspect code, interpret history, persist findings, or define completion.",
+		},
+		{
 			path: "gomodule", title: "Canonical Go module identities",
 			problem:  "Products and tools otherwise copy cmd/go path grammar or treat distinct module and package identities as arbitrary strings.",
 			solution: "Gomodule owns validated canonical module paths and package import paths.",

@@ -469,6 +469,12 @@ const (
 	ErrGoToolchainExecution
 	// ErrGoToolchainOutput identifies malformed or contradictory cmd/go output.
 	ErrGoToolchainOutput
+	// ErrGitRepositoryContract identifies an invalid Git repository capability or request.
+	ErrGitRepositoryContract
+	// ErrGitRepositoryExecution identifies failed Git repository observation.
+	ErrGitRepositoryExecution
+	// ErrGitRepositoryOutput identifies malformed or contradictory Git output.
+	ErrGitRepositoryOutput
 	// ErrProofLedgerContract identifies an invalid append-only proof agreement.
 	ErrProofLedgerContract
 	// ErrProofLedgerIdempotencyConflict identifies one request reused for different canonical intent.
@@ -687,6 +693,9 @@ func errorIdentityDiagnostics() [errorIdentityLimit]errorIdentityDiagnostic {
 		{identity: ErrGoToolchainContract, text: "go toolchain contract violation"},
 		{identity: ErrGoToolchainExecution, text: "go toolchain execution failed"},
 		{identity: ErrGoToolchainOutput, text: "go toolchain output invalid"},
+		{identity: ErrGitRepositoryContract, text: "git repository contract violation"},
+		{identity: ErrGitRepositoryExecution, text: "git repository execution failed"},
+		{identity: ErrGitRepositoryOutput, text: "git repository output invalid"},
 		{identity: ErrProofLedgerContract, text: "proof ledger contract violation"},
 		{identity: ErrProofLedgerIdempotencyConflict, text: "proof ledger idempotency conflict"},
 		{identity: ErrProofLedgerSequenceConflict, text: "proof ledger sequence conflict"},
@@ -815,12 +824,15 @@ func errorIdentityParents(identity ErrorIdentity) errorIdentityParentSet {
 		ErrRetrievalContract, ErrPaymentContract, ErrControlWireContract,
 		ErrControlPlaneContract, ErrIDContract, ErrSecretStoreContract,
 		ErrStripeContract, ErrPayPalContract, ErrTwilioContract, ErrPlunkContract, ErrGitHubContract,
-		ErrCapabilitiesContract, ErrGoModuleContract, ErrGoToolchainContract,
+		ErrCapabilitiesContract, ErrGoModuleContract, ErrGoToolchainContract, ErrGitRepositoryContract,
 		ErrProofLedgerContract) {
 		return oneErrorIdentityParent(ErrPrimitiveContract)
 	}
 	if errorIdentityIn(identity, ErrGoToolchainExecution, ErrGoToolchainOutput) {
 		return oneErrorIdentityParent(ErrGoToolchainContract)
+	}
+	if errorIdentityIn(identity, ErrGitRepositoryExecution, ErrGitRepositoryOutput) {
+		return oneErrorIdentityParent(ErrGitRepositoryContract)
 	}
 	if errorIdentityIn(identity, ErrProofLedgerIdempotencyConflict, ErrProofLedgerSequenceConflict,
 		ErrProofLedgerPreviousHashMismatch, ErrProofLedgerTampering, ErrProofLedgerTruncated,
