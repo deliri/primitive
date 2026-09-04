@@ -7,6 +7,9 @@ import (
 	json "encoding/json/v2"
 	"errors"
 	"fmt"
+	"go/ast"
+	"go/parser"
+	"go/token"
 	"io"
 	"slices"
 	"strings"
@@ -16,6 +19,7 @@ import (
 	"github.com/deliri/primitive/v2026/hostfacts"
 	"github.com/deliri/primitive/v2026/process"
 	"github.com/deliri/primitive/v2026/runprotocol"
+	"golang.org/x/tools/go/packages"
 )
 
 // Capability is one resolved cmd/go execution boundary.
@@ -127,6 +131,65 @@ func (c Capability) CompilePackage(ctx context.Context, request CompileRequest) 
 	}
 	compilation := Compilation{Result: result}
 	return compilation, compilation.Validate()
+}
+
+// AnalyzePackage loads one exact compilation unit through the Go team's
+// packages driver. The returned syntax, objects, selections, and types are the
+// compiler's ephemeral in-process facts; callers own only their deterministic
+// projection and must not retain or mutate the package graph as product state.
+func (c Capability) AnalyzePackage(ctx context.Context, request AnalysisRequest) (PackageAnalysis, error) {
+	if ctx == nil {
+		return PackageAnalysis{}, errors.Join(core.ErrGoToolchainContract, errors.New("package analysis context is nil"))
+	}
+	if err := errors.Join(c.Validate(), request.Validate()); err != nil {
+		return PackageAnalysis{}, errors.Join(core.ErrGoToolchainContract, err)
+	}
+	if err := ctx.Err(); err != nil {
+		return PackageAnalysis{}, errors.Join(core.ErrGoToolchainExecution, err)
+	}
+	environment, err := c.environment.Strings()
+	if err != nil {
+		return PackageAnalysis{}, errors.Join(core.ErrGoToolchainContract, err)
+	}
+	loaded, err := packages.Load(&packages.Config{
+		Context: ctx,
+		Mode: packages.NeedName | packages.NeedFiles | packages.NeedCompiledGoFiles |
+			packages.NeedTypes | packages.NeedSyntax | packages.NeedTypesInfo,
+		Dir: request.WorkingDirectory.String(), Env: environment, Tests: request.IncludeTests,
+		BuildFlags: []string{goModuleReadOnly}, ParseFile: analysisParser(request.SyntaxExclusions),
+	}, request.Package.String())
+	if err != nil {
+		return PackageAnalysis{}, errors.Join(core.ErrGoToolchainExecution, ctx.Err(), err)
+	}
+	return admitAnalyzedPackage(loaded, request)
+}
+
+func admitAnalyzedPackage(loaded []*packages.Package, request AnalysisRequest) (PackageAnalysis, error) {
+	state := AnalysisStateComplete
+	if len(request.SyntaxExclusions) != 0 {
+		state = AnalysisStatePartial
+	}
+	analysis := PackageAnalysis{
+		WorkingDirectory: request.WorkingDirectory, Package: request.Package, IncludeTests: request.IncludeTests, State: state,
+		SyntaxExclusions: slices.Clone(request.SyntaxExclusions), Units: loaded,
+	}
+	if err := analysis.Validate(); err != nil {
+		return PackageAnalysis{}, outputError("package analysis is incomplete", err)
+	}
+	return analysis, nil
+}
+
+func analysisParser(exclusions []core.AbsolutePath) func(*token.FileSet, string, []byte) (*ast.File, error) {
+	return func(files *token.FileSet, filename string, source []byte) (*ast.File, error) {
+		flags := parser.SkipObjectResolution
+		index, excluded := slices.BinarySearchFunc(exclusions, filename, func(path core.AbsolutePath, target string) int {
+			return strings.Compare(path.String(), target)
+		})
+		if excluded && index < len(exclusions) {
+			flags |= parser.PackageClauseOnly
+		}
+		return parser.ParseFile(files, filename, source, flags)
+	}
 }
 
 func (c Capability) execute(ctx context.Context, directory core.AbsolutePath, values ...string) ([]byte, process.Result, error) {

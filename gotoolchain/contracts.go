@@ -3,12 +3,14 @@ package gotoolchain
 import (
 	"errors"
 	"go/token"
+	"path/filepath"
 	"strings"
 
 	"github.com/deliri/primitive/v2026/core"
 	"github.com/deliri/primitive/v2026/gomodule"
 	"github.com/deliri/primitive/v2026/process"
 	"github.com/deliri/primitive/v2026/temporal"
+	"golang.org/x/tools/go/packages"
 )
 
 const (
@@ -258,6 +260,131 @@ type CompileRequest struct {
 
 func (r CompileRequest) Validate() error {
 	return ListRequest{WorkingDirectory: r.WorkingDirectory, Pattern: r.Pattern}.Validate()
+}
+
+// AnalysisRequest identifies one exact package whose compiler-owned syntax,
+// object, selection, and type facts are required. Package is an import path,
+// not a cmd/go pattern. IncludeTests asks cmd/go for the package's ordinary,
+// internal-test, external-test, and synthetic test-main compilation units.
+type AnalysisRequest struct {
+	WorkingDirectory core.AbsolutePath
+	Package          gomodule.ImportPath
+	IncludeTests     bool
+	SyntaxExclusions []core.AbsolutePath
+}
+
+func (r AnalysisRequest) Validate() error {
+	if err := errors.Join(r.WorkingDirectory.Validate(), r.Package.Validate()); err != nil {
+		return errors.Join(core.ErrGoToolchainContract, err)
+	}
+	return validateAnalysisSyntaxExclusions(r.WorkingDirectory, r.SyntaxExclusions)
+}
+
+// AnalysisState states whether a package graph contains every compiler-selected
+// syntax tree or deliberately omits exact caller-owned generated sources.
+type AnalysisState uint8
+
+const (
+	AnalysisStateUnknown AnalysisState = iota
+	AnalysisStateComplete
+	AnalysisStatePartial
+	analysisStateLimit
+)
+
+func (s AnalysisState) Validate() error {
+	if s <= AnalysisStateUnknown || s >= analysisStateLimit {
+		return contractError("package analysis state is outside the admitted domain")
+	}
+	return nil
+}
+
+func (s AnalysisState) IsValid() bool { return s.Validate() == nil }
+
+func (s AnalysisState) String() string {
+	if !s.IsValid() {
+		return core.UnknownEnumDiagnostic
+	}
+	return [...]string{"", "complete", "partial"}[s]
+}
+
+func (AnalysisState) OffWireEnum() {}
+
+// PackageAnalysis is the ephemeral compiler graph for one exact package.
+// Units are Go-team package objects, not a persisted protocol or product
+// model. Callers project the facts they own and then release this graph.
+type PackageAnalysis struct {
+	WorkingDirectory core.AbsolutePath
+	Package          gomodule.ImportPath
+	IncludeTests     bool
+	State            AnalysisState
+	SyntaxExclusions []core.AbsolutePath
+	Units            []*packages.Package
+}
+
+// Validate rejects incomplete, ill-typed, or unrelated compilation units.
+func (a PackageAnalysis) Validate() error {
+	if err := errors.Join(a.WorkingDirectory.Validate(), a.Package.Validate(), a.State.Validate()); err != nil {
+		return errors.Join(core.ErrGoToolchainContract, err)
+	}
+	if err := validateAnalysisSyntaxExclusions(a.WorkingDirectory, a.SyntaxExclusions); err != nil {
+		return err
+	}
+	if (a.State == AnalysisStateComplete) != (len(a.SyntaxExclusions) == 0) {
+		return contractError("package analysis completeness disagrees with syntax exclusions")
+	}
+	if len(a.Units) == 0 || (!a.IncludeTests && len(a.Units) != 1) {
+		return contractError("package analysis unit count is inconsistent with its request")
+	}
+	return validateAnalysisUnits(a.Units, a.Package, a.State)
+}
+
+func validateAnalysisUnits(units []*packages.Package, requested gomodule.ImportPath, state AnalysisState) error {
+	foundPackage := false
+	for _, unit := range units {
+		if err := validateAnalysisUnit(unit, state); err != nil {
+			return err
+		}
+		foundPackage = foundPackage || unit.PkgPath == requested.String()
+	}
+	if !foundPackage {
+		return contractError("package analysis does not contain its requested package")
+	}
+	return nil
+}
+
+func validateAnalysisUnit(unit *packages.Package, state AnalysisState) error {
+	if unit == nil || unit.Types == nil || unit.TypesInfo == nil || unit.Fset == nil {
+		return contractError("package analysis contains an incomplete compilation unit")
+	}
+	if state == AnalysisStateComplete && (unit.IllTyped || len(unit.Errors) != 0) {
+		return contractError("complete package analysis contains compiler errors")
+	}
+	if len(unit.Syntax) != len(unit.CompiledGoFiles) {
+		return contractError("package analysis syntax and file membership disagree")
+	}
+	return nil
+}
+
+func validateAnalysisSyntaxExclusions(root core.AbsolutePath, exclusions []core.AbsolutePath) error {
+	if err := root.Validate(); err != nil {
+		return errors.Join(core.ErrGoToolchainContract, err)
+	}
+	previous := ""
+	for index := range exclusions {
+		if err := exclusions[index].Validate(); err != nil {
+			return errors.Join(core.ErrGoToolchainContract, err)
+		}
+		current := exclusions[index].String()
+		relative, err := exclusions[index].RelativeTo(root)
+		if err != nil || relative.String() == "." || filepath.Ext(relative.String()) != ".go" {
+			return contractError("analysis syntax exclusion is outside the package root or not Go source")
+		}
+		if index > 0 && previous >= current {
+			return contractError("analysis syntax exclusions are duplicate or noncanonical")
+		}
+		previous = current
+	}
+	return nil
 }
 
 // Compilation is the validated exact process evidence from one successful compile.

@@ -3,9 +3,13 @@ package gotoolchain_test
 import (
 	"context"
 	"errors"
+	"go/ast"
+	"go/types"
+	"path/filepath"
 	"testing"
 
 	"github.com/deliri/primitive/v2026/core"
+	"github.com/deliri/primitive/v2026/gomodule"
 	"github.com/deliri/primitive/v2026/gotoolchain"
 	"github.com/deliri/primitive/v2026/hostfacts"
 )
@@ -68,6 +72,26 @@ func TestCapabilityProductionPathLayerTriad(t *testing.T) {
 		if err := compilation.Validate(); err != nil {
 			t.Fatalf("Compilation.Validate() error = %v, want nil", err)
 		}
+		packagePath, pathErr := gomodule.ParseImportPath(core.PrimitiveModulePath + "/gotoolchain")
+		if pathErr != nil {
+			t.Fatalf("gomodule.ParseImportPath(gotoolchain) error = %v, want nil", pathErr)
+		}
+		analysis, analysisErr := capability.AnalyzePackage(context.Background(), gotoolchain.AnalysisRequest{
+			WorkingDirectory: directory,
+			Package:          packagePath,
+			IncludeTests:     true,
+		})
+		if analysisErr != nil {
+			t.Fatalf("Capability.AnalyzePackage() error = %v, want nil", analysisErr)
+		}
+		gotDeclaration := analysisHasDeclaration(analysis, "Capability")
+		if !gotDeclaration {
+			t.Fatalf("Capability.AnalyzePackage() type scope has Capability = %t, want true", gotDeclaration)
+		}
+		gotPackageFunction, gotMethodSelection := analysisHasCompilerObjects(analysis)
+		if !gotPackageFunction || !gotMethodSelection {
+			t.Fatalf("Capability.AnalyzePackage() objects = package-function:%t method-selection:%t, want both true", gotPackageFunction, gotMethodSelection)
+		}
 	})
 
 	t.Run("negative flag-shaped package operands are refused before cmd go", func(t *testing.T) {
@@ -82,12 +106,87 @@ func TestCapabilityProductionPathLayerTriad(t *testing.T) {
 		}
 	})
 
+	t.Run("positive exact generated exclusion keeps authored compiler objects with explicit partial state", func(t *testing.T) {
+		t.Parallel()
+
+		packagePath, pathErr := gomodule.ParseImportPath(core.PrimitiveModulePath + "/gotoolchain/testdata/analysisgenerated")
+		excluded, excludedErr := directory.ResolveText("gotoolchain/testdata/analysisgenerated/generated.go")
+		if err := errors.Join(pathErr, excludedErr); err != nil {
+			t.Fatalf("generated analysis coordinates error = %v, want nil", err)
+		}
+		analysis, analysisErr := capability.AnalyzePackage(context.Background(), gotoolchain.AnalysisRequest{
+			WorkingDirectory: directory,
+			Package:          packagePath,
+			SyntaxExclusions: []core.AbsolutePath{excluded},
+		})
+		if analysisErr != nil {
+			t.Fatalf("Capability.AnalyzePackage(generated exclusion) error = %v, want nil partial graph", analysisErr)
+		}
+		if analysis.State != gotoolchain.AnalysisStatePartial || len(analysis.SyntaxExclusions) != 1 || analysis.SyntaxExclusions[0] != excluded {
+			t.Fatalf("generated exclusion analysis = state:%s exclusions:%v, want partial and exact path", analysis.State, analysis.SyntaxExclusions)
+		}
+		gotAuthoredObject := analysisFileHasCompilerObject(analysis, "authored.go", "os", "Open")
+		if !gotAuthoredObject {
+			t.Fatalf("generated exclusion authored.go compiler-resolved os.Open = %t, want true", gotAuthoredObject)
+		}
+		gotGeneratedPackageClauseOnly := analysisFileHasPackageClauseOnly(analysis, "generated.go")
+		if !gotGeneratedPackageClauseOnly {
+			t.Fatalf("generated exclusion generated.go package-clause-only syntax = %t, want true", gotGeneratedPackageClauseOnly)
+		}
+	})
+
 	t.Run("negative absent package pattern is refused before cmd go", func(t *testing.T) {
 		t.Parallel()
 
 		got, gotErr := capability.ListPackages(context.Background(), gotoolchain.ListRequest{WorkingDirectory: directory})
 		if !errors.Is(gotErr, core.ErrGoToolchainContract) || len(got.Packages) != 0 {
 			t.Fatalf("Capability.ListPackages(absent pattern) = (%v, %v), want zero and errors.Is(..., %v)", got, gotErr, core.ErrGoToolchainContract)
+		}
+	})
+
+	t.Run("negative ill typed package returns typed compiler output refusal", func(t *testing.T) {
+		t.Parallel()
+
+		packagePath, pathErr := gomodule.ParseImportPath(core.PrimitiveModulePath + "/gotoolchain/testdata/analysisbroken")
+		if pathErr != nil {
+			t.Fatalf("gomodule.ParseImportPath(analysisbroken) error = %v, want nil", pathErr)
+		}
+		got, gotErr := capability.AnalyzePackage(context.Background(), gotoolchain.AnalysisRequest{WorkingDirectory: directory, Package: packagePath})
+		if !errors.Is(gotErr, core.ErrGoToolchainOutput) || len(got.Units) != 0 {
+			t.Fatalf("Capability.AnalyzePackage(ill typed) = (%v units, %v), want zero and errors.Is(..., %v)", len(got.Units), gotErr, core.ErrGoToolchainOutput)
+		}
+	})
+
+	t.Run("negative syntax exclusions cannot escape the declared analysis root", func(t *testing.T) {
+		t.Parallel()
+
+		packagePath, pathErr := gomodule.ParseImportPath(core.PrimitiveModulePath + "/gotoolchain")
+		foreignRoot, rootErr := core.ParseAbsolutePath(t.TempDir())
+		foreign, foreignErr := foreignRoot.ResolveText("foreign.go")
+		if err := errors.Join(pathErr, rootErr, foreignErr); err != nil {
+			t.Fatalf("foreign analysis coordinates error = %v, want nil", err)
+		}
+		got, gotErr := capability.AnalyzePackage(context.Background(), gotoolchain.AnalysisRequest{
+			WorkingDirectory: directory, Package: packagePath, SyntaxExclusions: []core.AbsolutePath{foreign},
+		})
+		if !errors.Is(gotErr, core.ErrGoToolchainContract) || len(got.Units) != 0 {
+			t.Fatalf("Capability.AnalyzePackage(foreign exclusion) = (%d units, %v), want zero and errors.Is(..., %v)", len(got.Units), gotErr, core.ErrGoToolchainContract)
+		}
+	})
+
+	t.Run("negative syntax exclusions admit only Go source", func(t *testing.T) {
+		t.Parallel()
+
+		packagePath, pathErr := gomodule.ParseImportPath(core.PrimitiveModulePath + "/gotoolchain")
+		nonGo, nonGoErr := directory.ResolveText("go.mod")
+		if err := errors.Join(pathErr, nonGoErr); err != nil {
+			t.Fatalf("non-Go analysis coordinates error = %v, want nil", err)
+		}
+		got, gotErr := capability.AnalyzePackage(context.Background(), gotoolchain.AnalysisRequest{
+			WorkingDirectory: directory, Package: packagePath, SyntaxExclusions: []core.AbsolutePath{nonGo},
+		})
+		if !errors.Is(gotErr, core.ErrGoToolchainContract) || len(got.Units) != 0 {
+			t.Fatalf("Capability.AnalyzePackage(non-Go exclusion) = (%d units, %v), want zero and errors.Is(..., %v)", len(got.Units), gotErr, core.ErrGoToolchainContract)
 		}
 	})
 
@@ -100,7 +199,87 @@ func TestCapabilityProductionPathLayerTriad(t *testing.T) {
 		if !errors.Is(gotErr, context.Canceled) || !errors.Is(gotErr, core.ErrGoToolchainExecution) || got.String() != "" {
 			t.Fatalf("Capability.ObserveModule(cancelled) = (%q, %v), want zero with context.Canceled and %v", got.String(), gotErr, core.ErrGoToolchainExecution)
 		}
+		packagePath, pathErr := gomodule.ParseImportPath(core.PrimitiveModulePath + "/gotoolchain")
+		if pathErr != nil {
+			t.Fatalf("gomodule.ParseImportPath(gotoolchain) error = %v, want nil", pathErr)
+		}
+		analysis, analysisErr := capability.AnalyzePackage(ctx, gotoolchain.AnalysisRequest{WorkingDirectory: directory, Package: packagePath})
+		if !errors.Is(analysisErr, context.Canceled) || !errors.Is(analysisErr, core.ErrGoToolchainExecution) || len(analysis.Units) != 0 {
+			t.Fatalf("Capability.AnalyzePackage(cancelled) = (%v units, %v), want zero with context.Canceled and %v", len(analysis.Units), analysisErr, core.ErrGoToolchainExecution)
+		}
 	})
+}
+
+func analysisHasDeclaration(analysis gotoolchain.PackageAnalysis, name string) bool {
+	for _, unit := range analysis.Units {
+		if unit.PkgPath == analysis.Package.String() && unit.Types.Scope().Lookup(name) != nil {
+			return true
+		}
+	}
+	return false
+}
+
+func analysisHasCompilerObjects(analysis gotoolchain.PackageAnalysis) (bool, bool) {
+	packageFunction := false
+	methodSelection := false
+	for _, unit := range analysis.Units {
+		for _, file := range unit.Syntax {
+			ast.Inspect(file, func(node ast.Node) bool {
+				selector, ok := node.(*ast.SelectorExpr)
+				if !ok {
+					return true
+				}
+				if object, ok := unit.TypesInfo.Uses[selector.Sel].(*types.Func); ok && compilerObjectIsProcess(object, "Resolve") {
+					packageFunction = true
+				}
+				selection := unit.TypesInfo.Selections[selector]
+				if selection != nil && compilerObjectIsProcess(selection.Obj(), "Strings") {
+					methodSelection = true
+				}
+				return true
+			})
+		}
+	}
+	return packageFunction, methodSelection
+}
+
+func compilerObjectIsProcess(object types.Object, wantName string) bool {
+	return object != nil && object.Pkg() != nil && object.Pkg().Path() == core.PrimitiveModulePath+"/process" && object.Name() == wantName
+}
+
+func analysisFileHasCompilerObject(analysis gotoolchain.PackageAnalysis, fileName, packagePath, objectName string) bool {
+	for _, unit := range analysis.Units {
+		for index, file := range unit.Syntax {
+			if filepath.Base(unit.CompiledGoFiles[index]) != fileName {
+				continue
+			}
+			found := false
+			ast.Inspect(file, func(node ast.Node) bool {
+				selector, ok := node.(*ast.SelectorExpr)
+				if !ok {
+					return true
+				}
+				object, ok := unit.TypesInfo.Uses[selector.Sel].(*types.Func)
+				found = found || ok && object.Pkg() != nil && object.Pkg().Path() == packagePath && object.Name() == objectName
+				return !found
+			})
+			if found {
+				return true
+			}
+		}
+	}
+	return false
+}
+
+func analysisFileHasPackageClauseOnly(analysis gotoolchain.PackageAnalysis, fileName string) bool {
+	for _, unit := range analysis.Units {
+		for index, file := range unit.Syntax {
+			if filepath.Base(unit.CompiledGoFiles[index]) == fileName && len(file.Decls) == 0 {
+				return true
+			}
+		}
+	}
+	return false
 }
 
 func TestCompilerScalarsRejectUnknownAndPreserveCanonicalValues(t *testing.T) {
