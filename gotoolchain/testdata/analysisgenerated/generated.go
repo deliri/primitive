@@ -2,4 +2,6 @@
 
 package analysisgenerated
 
-const generatedValue = 1
+type Generated struct{}
+
+func (Generated) Method() {}

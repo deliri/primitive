@@ -3,6 +3,6 @@ package analysisgenerated
 import "os"
 
 func Open() {
-	_ = generatedValue
+	Generated{}.Method()
 	_, _ = os.Open("fixture")
 }

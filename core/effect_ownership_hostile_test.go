@@ -35,7 +35,7 @@ const (
 )
 
 const (
-	realWorldImportOwnerMaximum        = 10
+	realWorldImportOwnerMaximum        = 11
 	realWorldImportUseMaximum          = 64
 	realWorldCallUseMaximum            = 128
 	realWorldOperatingSystemPath       = "os"
@@ -405,7 +405,7 @@ func declaredRealWorldImports() (realWorldImportInventory, error) {
 	contracts := []realWorldImportContract{
 		realWorldImportOwners(realWorldSubstrateOperatingSystem,
 			PackageCore, PackageDistribution, PackageFileLock, PackageFilestore, PackageHostFacts,
-			PackageProcess, PackageRelease, PackageRunWorkspace, PackageShutdown, PackageUpgrade),
+			PackageGoToolchain, PackageProcess, PackageRelease, PackageRunWorkspace, PackageShutdown, PackageUpgrade),
 		realWorldImportOwners(realWorldSubstrateProcessExecution, PackageProcess),
 		realWorldImportOwners(realWorldSubstrateOperatingSystemSignal, PackageShutdown),
 		realWorldImportOwners(realWorldSubstrateHTTP, PackageExchange),
@@ -455,6 +455,7 @@ func declaredRealWorldCalls() (realWorldCallInventory, error) {
 		{owner: PackageHostFacts, substrate: realWorldSubstrateOperatingSystem, selector: "UserCacheDir", count: 1},
 		{owner: PackageHostFacts, substrate: realWorldSubstrateOperatingSystem, selector: "UserConfigDir", count: 1},
 		{owner: PackageHostFacts, substrate: realWorldSubstrateOperatingSystem, selector: "UserHomeDir", count: 1},
+		{owner: PackageGoToolchain, substrate: realWorldSubstrateOperatingSystem, selector: "Open", count: 1},
 		{owner: PackageProcess, substrate: realWorldSubstrateOperatingSystem, selector: "Exit", count: 1},
 		{owner: PackageProcess, substrate: realWorldSubstrateOperatingSystem, selector: "Getpid", count: 1},
 		{owner: PackageProcess, substrate: realWorldSubstrateProcessExecution, selector: "CommandContext", count: 1},

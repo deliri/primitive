@@ -7,9 +7,6 @@ import (
 	json "encoding/json/v2"
 	"errors"
 	"fmt"
-	"go/ast"
-	"go/parser"
-	"go/token"
 	"io"
 	"slices"
 	"strings"
@@ -133,10 +130,10 @@ func (c Capability) CompilePackage(ctx context.Context, request CompileRequest) 
 	return compilation, compilation.Validate()
 }
 
-// AnalyzePackage loads one exact compilation unit through the Go team's
-// packages driver. The returned syntax, objects, selections, and types are the
-// compiler's ephemeral in-process facts; callers own only their deterministic
-// projection and must not retain or mutate the package graph as product state.
+// AnalyzePackage discovers one exact package through the Go team's packages
+// driver, then parses and type-checks its requested units sequentially from
+// compiler export data. The returned syntax, objects, selections, and types are
+// ephemeral; callers own only their deterministic projection.
 func (c Capability) AnalyzePackage(ctx context.Context, request AnalysisRequest) (PackageAnalysis, error) {
 	if ctx == nil {
 		return PackageAnalysis{}, errors.Join(core.ErrGoToolchainContract, errors.New("package analysis context is nil"))
@@ -154,42 +151,15 @@ func (c Capability) AnalyzePackage(ctx context.Context, request AnalysisRequest)
 	loaded, err := packages.Load(&packages.Config{
 		Context: ctx,
 		Mode: packages.NeedName | packages.NeedFiles | packages.NeedCompiledGoFiles |
-			packages.NeedTypes | packages.NeedSyntax | packages.NeedTypesInfo,
+			packages.NeedImports | packages.NeedDeps | packages.NeedExportFile |
+			packages.NeedTypesSizes | packages.NeedForTest | packages.NeedModule,
 		Dir: request.WorkingDirectory.String(), Env: environment, Tests: request.IncludeTests,
-		BuildFlags: []string{goModuleReadOnly}, ParseFile: analysisParser(request.SyntaxExclusions),
+		BuildFlags: []string{goModuleReadOnly},
 	}, request.Package.String())
 	if err != nil {
 		return PackageAnalysis{}, errors.Join(core.ErrGoToolchainExecution, ctx.Err(), err)
 	}
-	return admitAnalyzedPackage(loaded, request)
-}
-
-func admitAnalyzedPackage(loaded []*packages.Package, request AnalysisRequest) (PackageAnalysis, error) {
-	state := AnalysisStateComplete
-	if len(request.SyntaxExclusions) != 0 {
-		state = AnalysisStatePartial
-	}
-	analysis := PackageAnalysis{
-		WorkingDirectory: request.WorkingDirectory, Package: request.Package, IncludeTests: request.IncludeTests, State: state,
-		SyntaxExclusions: slices.Clone(request.SyntaxExclusions), Units: loaded,
-	}
-	if err := analysis.Validate(); err != nil {
-		return PackageAnalysis{}, outputError("package analysis is incomplete", err)
-	}
-	return analysis, nil
-}
-
-func analysisParser(exclusions []core.AbsolutePath) func(*token.FileSet, string, []byte) (*ast.File, error) {
-	return func(files *token.FileSet, filename string, source []byte) (*ast.File, error) {
-		flags := parser.SkipObjectResolution
-		index, excluded := slices.BinarySearchFunc(exclusions, filename, func(path core.AbsolutePath, target string) int {
-			return strings.Compare(path.String(), target)
-		})
-		if excluded && index < len(exclusions) {
-			flags |= parser.PackageClauseOnly
-		}
-		return parser.ParseFile(files, filename, source, flags)
-	}
+	return compilePackageAnalysis(ctx, loaded, request)
 }
 
 func (c Capability) execute(ctx context.Context, directory core.AbsolutePath, values ...string) ([]byte, process.Result, error) {

@@ -7,7 +7,6 @@ type capabilityWrapper interface{ goToolchainCapabilityWrapper() }
 
 func (ToolchainVersion) goToolchainSealedValue() {}
 func (PackageName) goToolchainSealedValue()      {}
-func (AnalysisState) goToolchainSealedValue()    {}
 
 func (Limits) goToolchainProtocolFact()             {}
 func (Configuration) goToolchainProtocolFact()      {}
@@ -30,7 +29,6 @@ func (Capability) goToolchainCapabilityWrapper() {}
 var (
 	_ sealedValue       = ToolchainVersion{}
 	_ sealedValue       = PackageName{}
-	_ sealedValue       = AnalysisStateUnknown
 	_ protocolFact      = Limits{}
 	_ protocolFact      = Configuration{}
 	_ protocolFact      = BuildContext{}
