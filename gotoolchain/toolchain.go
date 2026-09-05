@@ -39,7 +39,7 @@ func Open(ctx context.Context, configuration Configuration) (Capability, error) 
 	if err != nil {
 		return Capability{}, errors.Join(core.ErrGoToolchainExecution, err)
 	}
-	environment, err := hostfacts.AmbientEnvironment()
+	environment, err := captureEnvironment(configuration.Environment)
 	if err != nil {
 		return Capability{}, errors.Join(core.ErrGoToolchainExecution, err)
 	}
@@ -49,11 +49,19 @@ func Open(ctx context.Context, configuration Configuration) (Capability, error) 
 			return Capability{}, err
 		}
 	}
+	configuration.Environment = &environment
 	capability := Capability{command: command, environment: environment, configuration: configuration}
 	if err := capability.Validate(); err != nil {
 		return Capability{}, err
 	}
 	return capability, nil
+}
+
+func captureEnvironment(supplied *process.Environment) (process.Environment, error) {
+	if supplied == nil {
+		return hostfacts.AmbientEnvironment()
+	}
+	return process.Environment{Mode: supplied.Mode, Variables: slices.Clone(supplied.Variables)}, nil
 }
 
 func (c Capability) Validate() error {
@@ -148,17 +156,13 @@ func (c Capability) AnalyzePackage(ctx context.Context, request AnalysisRequest)
 	if err != nil {
 		return PackageAnalysis{}, errors.Join(core.ErrGoToolchainContract, err)
 	}
-	buildFlags, err := c.analysisBuildFlags()
-	if err != nil {
-		return PackageAnalysis{}, err
-	}
 	loaded, err := packages.Load(&packages.Config{
 		Context: ctx,
 		Mode: packages.NeedName | packages.NeedFiles | packages.NeedCompiledGoFiles |
 			packages.NeedImports | packages.NeedDeps | packages.NeedExportFile |
 			packages.NeedTypesSizes | packages.NeedForTest | packages.NeedModule,
 		Dir: request.WorkingDirectory.String(), Env: environment, Tests: request.IncludeTests,
-		BuildFlags: buildFlags,
+		BuildFlags: []string{goModuleReadOnly},
 	}, request.Package.String())
 	if err != nil {
 		return PackageAnalysis{}, errors.Join(core.ErrGoToolchainExecution, ctx.Err(), err)
@@ -167,7 +171,7 @@ func (c Capability) AnalyzePackage(ctx context.Context, request AnalysisRequest)
 }
 
 func (c Capability) execute(ctx context.Context, directory core.AbsolutePath, values ...string) ([]byte, process.Result, error) {
-	arguments, err := c.commandArguments(values)
+	arguments, err := process.ParseArguments(values)
 	if err != nil {
 		return nil, process.Result{}, errors.Join(core.ErrGoToolchainContract, err)
 	}
@@ -196,41 +200,6 @@ func (c Capability) execute(ctx context.Context, directory core.AbsolutePath, va
 		return nil, result, executionError(diagnostic)
 	}
 	return bytes.Clone(stdout.Bytes()), result, nil
-}
-
-func (c Capability) commandArguments(values []string) ([]process.Argument, error) {
-	if c.configuration.SourceOverlay == nil || len(values) == 0 ||
-		(values[0] != goListSubcommand && values[0] != runprotocol.GoTestText) {
-		return process.ParseArguments(values)
-	}
-	overlay, err := c.configuration.SourceOverlay.Argument()
-	if err != nil {
-		return nil, err
-	}
-	value, err := overlay.Value()
-	if err != nil {
-		return nil, errors.Join(core.ErrGoToolchainContract, err)
-	}
-	projected := make([]string, 0, len(values)+1)
-	projected = append(projected, values[0], value)
-	projected = append(projected, values[1:]...)
-	return process.ParseArguments(projected)
-}
-
-func (c Capability) analysisBuildFlags() ([]string, error) {
-	flags := []string{goModuleReadOnly}
-	if c.configuration.SourceOverlay == nil {
-		return flags, nil
-	}
-	overlay, err := c.configuration.SourceOverlay.Argument()
-	if err != nil {
-		return nil, err
-	}
-	value, err := overlay.Value()
-	if err != nil {
-		return nil, errors.Join(core.ErrGoToolchainContract, err)
-	}
-	return append(flags, value), nil
 }
 
 func runToolchainGroup(ctx context.Context, request process.Request) (process.Result, error) {

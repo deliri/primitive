@@ -18,6 +18,11 @@ import (
 	"golang.org/x/tools/go/packages"
 )
 
+// Test variants must not share concurrently checked named types. Go 1.27.1
+// with x/tools v0.49.0 races inside Named.unpack during LoadSyntax(Tests:true).
+// Like Go's unitchecker, use compiler-selected files and export data, with a
+// separate checker and importer for each unit. Keep the real race regression
+// before reconsidering this boundary when the toolchain changes.
 func compilePackageAnalysis(ctx context.Context, loaded []*packages.Package, request AnalysisRequest) (PackageAnalysis, error) {
 	metadata := selectAnalysisMetadata(loaded, request.Package.String(), request.IncludeTests)
 	if len(metadata) == 0 {

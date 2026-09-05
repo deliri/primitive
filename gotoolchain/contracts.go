@@ -3,6 +3,7 @@ package gotoolchain
 import (
 	"errors"
 	"go/token"
+	"go/version"
 	"strings"
 
 	"github.com/deliri/primitive/v2026/core"
@@ -89,20 +90,26 @@ func (l Limits) Validate() error {
 	return nil
 }
 
-// Configuration selects the ambient workspace posture, optional source
-// overlay, and execution limits.
+// Configuration selects workspace posture, execution limits
+// and optional caller-owned environment. Nil Environment captures the ambient
+// environment at Open; a supplied environment must be exact and is copied.
 type Configuration struct {
-	SourceOverlay *SourceOverlay
-	Limits        Limits
-	Workspace     WorkspaceMode
+	Environment *process.Environment
+	Limits      Limits
+	Workspace   WorkspaceMode
 }
 
 func (c Configuration) Validate() error {
 	if err := errors.Join(c.Workspace.Validate(), c.Limits.Validate()); err != nil {
 		return err
 	}
-	if c.SourceOverlay != nil {
-		return c.SourceOverlay.Validate()
+	if c.Environment != nil {
+		if err := c.Environment.Validate(); err != nil {
+			return errors.Join(core.ErrGoToolchainContract, err)
+		}
+		if c.Environment.Mode != process.EnvironmentModeExact {
+			return contractError("supplied compiler environment must be exact")
+		}
 	}
 	return nil
 }
@@ -120,7 +127,7 @@ func ParseToolchainVersion(value string) (ToolchainVersion, error) {
 }
 
 func (v ToolchainVersion) Validate() error {
-	if len(v.value) < len("go1.0") || len(v.value) > toolchainVersionMaximumBytes || !strings.HasPrefix(v.value, goVersionPrefix) {
+	if len(v.value) > toolchainVersionMaximumBytes || !strings.HasPrefix(v.value, goVersionPrefix) || !version.IsValid(v.value) {
 		return contractError("toolchain version is not canonical")
 	}
 	for component := range strings.SplitSeq(v.value[len(goVersionPrefix):], ".") {
@@ -305,15 +312,20 @@ func (a PackageAnalysis) Validate() error {
 	if len(a.Units) == 0 || (!a.IncludeTests && len(a.Units) != 1) {
 		return contractError("package analysis unit count is inconsistent with its request")
 	}
-	return validateAnalysisUnits(a.Units, a.Package)
+	return validateAnalysisUnits(a.Units, a.Package, a.IncludeTests)
 }
 
-func validateAnalysisUnits(units []*packages.Package, requested gomodule.ImportPath) error {
+func validateAnalysisUnits(units []*packages.Package, requested gomodule.ImportPath, includeTests bool) error {
 	foundPackage := false
+	previous := ""
 	for _, unit := range units {
 		if err := validateAnalysisUnit(unit); err != nil {
 			return err
 		}
+		if !analysisMetadataMatches(unit, requested.String(), includeTests) || unit.ID <= previous {
+			return contractError("package analysis units are foreign, duplicated, or unordered")
+		}
+		previous = unit.ID
 		foundPackage = foundPackage || unit.PkgPath == requested.String()
 	}
 	if !foundPackage {
