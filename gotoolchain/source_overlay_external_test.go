@@ -79,6 +79,44 @@ func TestSourceOverlayCompilerBoundaryLayerTriad(t *testing.T) {
 		}
 	})
 
+	t.Run("positive replacement makes cmd go consume the exact backing bytes", func(t *testing.T) {
+		t.Parallel()
+
+		projectDirectory := t.TempDir()
+		scratchDirectory := t.TempDir()
+		backingDirectory := t.TempDir()
+		fixture := writeOverlayModule(t, projectDirectory)
+		backing := filepath.Join(backingDirectory, "visible.go")
+		if err := os.WriteFile(backing, []byte("package fixture\n\nconst Visible = true\n"), 0o600); err != nil {
+			t.Fatalf("os.WriteFile(replacement backing) error = %v, want nil", err)
+		}
+		if err := os.WriteFile(fixture.visible.String(), []byte("package fixture\n\nfunc Broken(\n"), 0o600); err != nil {
+			t.Fatalf("os.WriteFile(live source mutation) error = %v, want nil", err)
+		}
+		overlay, err := gotoolchain.OpenSourceOverlay(t.Context(), gotoolchain.SourceOverlayRequest{
+			Directory: mustOverlayAbsolutePath(t, scratchDirectory),
+			Mappings: func(emit gotoolchain.EmitSourceOverlayMapping) error {
+				if err := emit(gotoolchain.SourceOverlayMapping{Path: fixture.broken, Action: gotoolchain.SourceOverlayDelete}); err != nil {
+					return err
+				}
+				return emit(gotoolchain.SourceOverlayMapping{
+					Path: fixture.visible, Backing: mustOverlayAbsolutePath(t, backing), Action: gotoolchain.SourceOverlayReplace,
+				})
+			},
+		})
+		if err != nil {
+			t.Fatalf("gotoolchain.OpenSourceOverlay(replacement) error = %v, want nil", err)
+		}
+		capability := openToolchainWithOverlay(t, &overlay)
+		got, gotErr := capability.CompilePackage(t.Context(), gotoolchain.CompileRequest{WorkingDirectory: fixture.root, Pattern: "./..."})
+		if gotErr != nil || got == (gotoolchain.Compilation{}) {
+			t.Fatalf("Capability.CompilePackage(replaced source) = (%v, %v), want nonzero and nil", got, gotErr)
+		}
+		if err := overlay.Close(); err != nil {
+			t.Fatalf("SourceOverlay.Close(replacement) error = %v, want nil", err)
+		}
+	})
+
 	t.Run("negative duplicate deletion cannot create an ambiguous overlay", func(t *testing.T) {
 		t.Parallel()
 
@@ -87,8 +125,8 @@ func TestSourceOverlayCompilerBoundaryLayerTriad(t *testing.T) {
 		fixture := writeOverlayModule(t, projectDirectory)
 		overlay, gotErr := gotoolchain.OpenSourceOverlay(t.Context(), gotoolchain.SourceOverlayRequest{
 			Directory: mustOverlayAbsolutePath(t, scratchDirectory),
-			Deletions: func(emit gotoolchain.EmitSourceOverlayDeletion) error {
-				deletion := gotoolchain.SourceOverlayDeletion{Path: fixture.broken}
+			Mappings: func(emit gotoolchain.EmitSourceOverlayMapping) error {
+				deletion := gotoolchain.SourceOverlayMapping{Path: fixture.broken, Action: gotoolchain.SourceOverlayDelete}
 				if err := emit(deletion); err != nil {
 					return err
 				}
@@ -111,11 +149,11 @@ func TestSourceOverlayCompilerBoundaryLayerTriad(t *testing.T) {
 		earlier := fixture.broken
 		overlay, gotErr := gotoolchain.OpenSourceOverlay(t.Context(), gotoolchain.SourceOverlayRequest{
 			Directory: mustOverlayAbsolutePath(t, scratchDirectory),
-			Deletions: func(emit gotoolchain.EmitSourceOverlayDeletion) error {
-				if err := emit(gotoolchain.SourceOverlayDeletion{Path: later}); err != nil {
+			Mappings: func(emit gotoolchain.EmitSourceOverlayMapping) error {
+				if err := emit(gotoolchain.SourceOverlayMapping{Path: later, Action: gotoolchain.SourceOverlayDelete}); err != nil {
 					return err
 				}
-				return emit(gotoolchain.SourceOverlayDeletion{Path: earlier})
+				return emit(gotoolchain.SourceOverlayMapping{Path: earlier, Action: gotoolchain.SourceOverlayDelete})
 			},
 		})
 		if !errors.Is(gotErr, core.ErrGoToolchainContract) || overlay != (gotoolchain.SourceOverlay{}) {
@@ -132,7 +170,7 @@ func TestSourceOverlayCompilerBoundaryLayerTriad(t *testing.T) {
 		cancel()
 		overlay, gotErr := gotoolchain.OpenSourceOverlay(ctx, gotoolchain.SourceOverlayRequest{
 			Directory: mustOverlayAbsolutePath(t, scratchDirectory),
-			Deletions: func(gotoolchain.EmitSourceOverlayDeletion) error { return nil },
+			Mappings:  func(gotoolchain.EmitSourceOverlayMapping) error { return nil },
 		})
 		if !errors.Is(gotErr, context.Canceled) || !errors.Is(gotErr, core.ErrGoToolchainExecution) || overlay != (gotoolchain.SourceOverlay{}) {
 			t.Fatalf("OpenSourceOverlay(cancelled) = (%v, %v), want zero, %v, and %v", overlay, gotErr, context.Canceled, core.ErrGoToolchainExecution)
@@ -149,8 +187,8 @@ func TestSourceOverlayCompilerBoundaryLayerTriad(t *testing.T) {
 		first := openDeletionOverlay(t, scratchDirectory, fixture.broken)
 		second, gotErr := gotoolchain.OpenSourceOverlay(t.Context(), gotoolchain.SourceOverlayRequest{
 			Directory: mustOverlayAbsolutePath(t, scratchDirectory),
-			Deletions: func(emit gotoolchain.EmitSourceOverlayDeletion) error {
-				return emit(gotoolchain.SourceOverlayDeletion{Path: fixture.broken})
+			Mappings: func(emit gotoolchain.EmitSourceOverlayMapping) error {
+				return emit(gotoolchain.SourceOverlayMapping{Path: fixture.broken, Action: gotoolchain.SourceOverlayDelete})
 			},
 		})
 		if !errors.Is(gotErr, core.ErrGoToolchainExecution) || second != (gotoolchain.SourceOverlay{}) {
@@ -171,13 +209,13 @@ func TestSourceOverlayCompilerBoundaryLayerTriad(t *testing.T) {
 		requireOverlayScratchEmpty(t, scratchDirectory)
 	})
 
-	t.Run("negative empty deletion stream cannot fabricate a no-op overlay", func(t *testing.T) {
+	t.Run("negative empty mapping stream cannot fabricate a no-op overlay", func(t *testing.T) {
 		t.Parallel()
 
 		scratchDirectory := t.TempDir()
 		overlay, gotErr := gotoolchain.OpenSourceOverlay(t.Context(), gotoolchain.SourceOverlayRequest{
 			Directory: mustOverlayAbsolutePath(t, scratchDirectory),
-			Deletions: func(gotoolchain.EmitSourceOverlayDeletion) error { return nil },
+			Mappings:  func(gotoolchain.EmitSourceOverlayMapping) error { return nil },
 		})
 		if !errors.Is(gotErr, core.ErrGoToolchainContract) || overlay != (gotoolchain.SourceOverlay{}) {
 			t.Fatalf("OpenSourceOverlay(empty) = (%v, %v), want zero and %v", overlay, gotErr, core.ErrGoToolchainContract)
@@ -191,12 +229,12 @@ func TestSourceOverlayCompilerBoundaryLayerTriad(t *testing.T) {
 		scratchDirectory := t.TempDir()
 		overlay, gotErr := gotoolchain.OpenSourceOverlay(t.Context(), gotoolchain.SourceOverlayRequest{
 			Directory: mustOverlayAbsolutePath(t, scratchDirectory),
-			Deletions: func(emit gotoolchain.EmitSourceOverlayDeletion) error {
-				return emit(gotoolchain.SourceOverlayDeletion{})
+			Mappings: func(emit gotoolchain.EmitSourceOverlayMapping) error {
+				return emit(gotoolchain.SourceOverlayMapping{})
 			},
 		})
 		if !errors.Is(gotErr, core.ErrGoToolchainContract) || overlay != (gotoolchain.SourceOverlay{}) {
-			t.Fatalf("OpenSourceOverlay(zero deletion) = (%v, %v), want zero and %v", overlay, gotErr, core.ErrGoToolchainContract)
+			t.Fatalf("OpenSourceOverlay(zero mapping) = (%v, %v), want zero and %v", overlay, gotErr, core.ErrGoToolchainContract)
 		}
 		requireOverlayScratchEmpty(t, scratchDirectory)
 	})
@@ -217,11 +255,50 @@ func TestSourceOverlayCompilerBoundaryLayerTriad(t *testing.T) {
 	})
 }
 
+func TestSourceOverlayMappingClosedContract(t *testing.T) {
+	t.Parallel()
+
+	root := t.TempDir()
+	path := mustOverlayAbsolutePath(t, filepath.Join(root, "source.go"))
+	backing := mustOverlayAbsolutePath(t, filepath.Join(root, "backing.go"))
+	cases := []struct {
+		name       string
+		mapping    gotoolchain.SourceOverlayMapping
+		wantAction string
+		wantErr    bool
+	}{
+		{name: "delete requires no backing path", mapping: gotoolchain.SourceOverlayMapping{Path: path, Action: gotoolchain.SourceOverlayDelete}, wantAction: "delete"},
+		{name: "replace requires a distinct absolute backing path", mapping: gotoolchain.SourceOverlayMapping{Path: path, Backing: backing, Action: gotoolchain.SourceOverlayReplace}, wantAction: "replace"},
+		{name: "unknown action is refused", mapping: gotoolchain.SourceOverlayMapping{Path: path}, wantErr: true},
+		{name: "future action is refused", mapping: gotoolchain.SourceOverlayMapping{Path: path, Action: gotoolchain.SourceOverlayAction(255)}, wantErr: true},
+		{name: "delete with backing is contradictory", mapping: gotoolchain.SourceOverlayMapping{Path: path, Backing: backing, Action: gotoolchain.SourceOverlayDelete}, wantAction: "delete", wantErr: true},
+		{name: "replace without backing is incomplete", mapping: gotoolchain.SourceOverlayMapping{Path: path, Action: gotoolchain.SourceOverlayReplace}, wantAction: "replace", wantErr: true},
+		{name: "replacement of a path by itself is a no-op", mapping: gotoolchain.SourceOverlayMapping{Path: path, Backing: path, Action: gotoolchain.SourceOverlayReplace}, wantAction: "replace", wantErr: true},
+	}
+	for _, tc := range cases {
+		t.Run(tc.name, func(t *testing.T) {
+			t.Parallel()
+			gotErr := tc.mapping.Validate()
+			if (gotErr != nil) != tc.wantErr {
+				t.Fatalf("SourceOverlayMapping.Validate() error = %v, want error %t", gotErr, tc.wantErr)
+			}
+			if gotErr != nil && !errors.Is(gotErr, core.ErrGoToolchainContract) {
+				t.Fatalf("SourceOverlayMapping.Validate() error = %v, want %v", gotErr, core.ErrGoToolchainContract)
+			}
+			gotAction := tc.mapping.Action.String()
+			if gotAction != tc.wantAction && !(tc.wantAction == "" && gotAction == core.UnknownEnumDiagnostic) {
+				t.Fatalf("SourceOverlayAction.String() = %q, want %q", gotAction, tc.wantAction)
+			}
+		})
+	}
+}
+
 const overlayFixtureModule = "example.com/primitive-overlay-fixture"
 
 type overlayModuleFixture struct {
-	root   core.AbsolutePath
-	broken core.AbsolutePath
+	root    core.AbsolutePath
+	broken  core.AbsolutePath
+	visible core.AbsolutePath
 }
 
 func writeOverlayModule(t testing.TB, directory string) overlayModuleFixture {
@@ -244,15 +321,19 @@ func writeOverlayModule(t testing.TB, directory string) overlayModuleFixture {
 		t.Fatalf("filepath.EvalSymlinks(module root) error = %v, want nil", err)
 	}
 	root := mustOverlayAbsolutePath(t, observedDirectory)
-	return overlayModuleFixture{root: root, broken: mustOverlayAbsolutePath(t, filepath.Join(root.String(), "broken.go"))}
+	return overlayModuleFixture{
+		root:    root,
+		broken:  mustOverlayAbsolutePath(t, filepath.Join(root.String(), "broken.go")),
+		visible: mustOverlayAbsolutePath(t, filepath.Join(root.String(), "visible.go")),
+	}
 }
 
 func openDeletionOverlay(t testing.TB, directory string, deleted core.AbsolutePath) gotoolchain.SourceOverlay {
 	t.Helper()
 	overlay, err := gotoolchain.OpenSourceOverlay(t.Context(), gotoolchain.SourceOverlayRequest{
 		Directory: mustOverlayAbsolutePath(t, directory),
-		Deletions: func(emit gotoolchain.EmitSourceOverlayDeletion) error {
-			return emit(gotoolchain.SourceOverlayDeletion{Path: deleted})
+		Mappings: func(emit gotoolchain.EmitSourceOverlayMapping) error {
+			return emit(gotoolchain.SourceOverlayMapping{Path: deleted, Action: gotoolchain.SourceOverlayDelete})
 		},
 	})
 	if err != nil {

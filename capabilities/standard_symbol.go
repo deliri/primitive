@@ -21,10 +21,12 @@ const (
 	StandardSymbolContextual
 	// StandardSymbolEffect performs a Primitive-owned real-world effect.
 	StandardSymbolEffect
+	// StandardSymbolUnresolved is an admitted outcome with no claimed effect knowledge.
+	StandardSymbolUnresolved
 )
 
 func (d StandardSymbolDisposition) Validate() error {
-	if d < StandardSymbolPure || d > StandardSymbolEffect {
+	if d < StandardSymbolPure || d > StandardSymbolUnresolved {
 		return contractError("standard symbol disposition is outside the admitted domain")
 	}
 	return nil
@@ -32,9 +34,6 @@ func (d StandardSymbolDisposition) Validate() error {
 
 // IsValid reports whether d belongs to the closed disposition domain.
 func (d StandardSymbolDisposition) IsValid() bool { return d.Validate() == nil }
-
-// OffWireEnum marks StandardSymbolDisposition as a compiler-only enum.
-func (StandardSymbolDisposition) OffWireEnum() {}
 
 // String returns the stable doctrine identity of a valid disposition.
 func (d StandardSymbolDisposition) String() string {
@@ -45,10 +44,9 @@ func (d StandardSymbolDisposition) String() string {
 		StandardSymbolPure:       "pure",
 		StandardSymbolContextual: "contextual",
 		StandardSymbolEffect:     "effect",
+		StandardSymbolUnresolved: "unresolved",
 	}[d]
 }
-
-var _ core.OffWireEnum = StandardSymbolUnknown
 
 // SymbolName is one compiler-admitted Go selector.
 type SymbolName struct{ value string }
@@ -80,81 +78,73 @@ func (n SymbolName) String() string {
 type StandardSymbol struct {
 	ImportPath gomodule.ImportPath
 	Selector   SymbolName
+	// Receiver is absent for package functions and names the compiler-resolved
+	// declaring type for methods. It never names a caller's variable or alias.
+	Receiver *SymbolName
 }
 
 func (s StandardSymbol) Validate() error {
-	return errors.Join(s.ImportPath.Validate(), s.Selector.Validate())
+	err := errors.Join(s.ImportPath.Validate(), s.Selector.Validate())
+	if s.Receiver != nil {
+		err = errors.Join(err, s.Receiver.Validate())
+	}
+	return err
 }
 
 // StandardSymbolFact is Primitive's ownership fact for one observed symbol.
 // Secondary contains additional owners for composite helpers such as
 // net/http.ServeFile, which touches both transport and filesystem.
 type StandardSymbolFact struct {
-	Symbol      StandardSymbol
-	Secondary   []Effect
-	Disposition StandardSymbolDisposition
-	Effect      Effect
+	Symbol StandardSymbol
+	Classification
 }
 
 func (f StandardSymbolFact) Validate() error {
-	if err := f.Symbol.Validate(); err != nil {
-		return errors.Join(core.ErrCapabilitiesContract, err)
-	}
-	if f.Disposition == StandardSymbolUnknown {
-		return f.validateEffectFree()
-	}
-	if err := f.Disposition.Validate(); err != nil {
-		return errors.Join(core.ErrCapabilitiesContract, err)
-	}
-	if f.Disposition != StandardSymbolEffect {
-		return f.validateEffectFree()
-	}
-	if err := f.Effect.Validate(); err != nil {
-		return err
-	}
-	return f.validateSecondaryEffects()
-}
-
-func (f StandardSymbolFact) validateEffectFree() error {
-	if f.Effect != EffectUnknown || len(f.Secondary) != 0 {
-		return contractError("effect-free standard symbol carries effect ownership")
-	}
-	return nil
-}
-
-func (f StandardSymbolFact) validateSecondaryEffects() error {
-	for index := range f.Secondary {
-		if err := f.Secondary[index].Validate(); err != nil || f.Secondary[index] == f.Effect {
-			return contractError("standard symbol secondary effect is invalid or duplicate")
-		}
-		for previous := range index {
-			if f.Secondary[previous] == f.Secondary[index] {
-				return contractError("standard symbol secondary effect is duplicated")
-			}
-		}
-	}
-	return nil
+	return errors.Join(f.Symbol.Validate(), f.Classification.Validate())
 }
 
 // ResolveStandardSymbol returns Primitive's compiled ownership fact. An
-// unlisted valid symbol returns StandardSymbolUnknown with nil error so the
+// unlisted valid symbol returns StandardSymbolUnresolved with nil error so the
 // syntax inspector can retain it as unresolved rather than invent ownership.
 func ResolveStandardSymbol(symbol StandardSymbol) (StandardSymbolFact, error) {
 	if err := symbol.Validate(); err != nil {
 		return StandardSymbolFact{}, errors.Join(core.ErrCapabilitiesContract, err)
 	}
+	fact, err := resolveSymbolRules(symbol)
+	if err != nil {
+		return StandardSymbolFact{}, err
+	}
+	fact.Operation, err = fact.Replacement()
+	if err != nil {
+		return StandardSymbolFact{}, err
+	}
+	return fact, fact.Validate()
+}
+
+func resolveSymbolRules(symbol StandardSymbol) (StandardSymbolFact, error) {
+	if symbol.Receiver != nil {
+		return resolveStandardMethod(symbol)
+	}
+	return resolveFunctionRules(symbol, standardSymbolRules())
+}
+
+func resolveFunctionRules(symbol StandardSymbol, rules []standardSymbolRule) (StandardSymbolFact, error) {
+	result := StandardSymbolFact{Symbol: symbol, Disposition: StandardSymbolUnresolved}
 	path := symbol.ImportPath.String()
 	selector := symbol.Selector.String()
-	for _, rule := range standardSymbolRules() {
+	for _, rule := range rules {
 		if rule.importPath != path {
 			continue
 		}
 		fact, err := rule.resolve(symbol, selector)
-		if err != nil || fact.Disposition != StandardSymbolUnknown {
-			return fact, err
+		if err != nil {
+			return StandardSymbolFact{}, err
+		}
+		if err := mergeClassification(&result.Classification, fact.Classification); err != nil {
+			return StandardSymbolFact{}, err
 		}
 	}
-	return StandardSymbolFact{Symbol: symbol, Disposition: StandardSymbolUnknown}, nil
+	return result, result.Validate()
 }
 
 type standardSymbolRule struct {
@@ -163,21 +153,26 @@ type standardSymbolRule struct {
 	pureSelectors       []string
 	contextualSelectors []string
 	secondarySelectors  []string
-	defaultDisposition  StandardSymbolDisposition
 	effect              Effect
 	secondary           Effect
 }
 
 func (r standardSymbolRule) resolve(symbol StandardSymbol, selector string) (StandardSymbolFact, error) {
-	disposition := r.defaultDisposition
-	if slices.Contains(r.effectSelectors, selector) {
-		disposition = StandardSymbolEffect
+	disposition := StandardSymbolUnresolved
+	groups := []struct {
+		selectors   []string
+		disposition StandardSymbolDisposition
+	}{
+		{r.effectSelectors, StandardSymbolEffect}, {r.pureSelectors, StandardSymbolPure}, {r.contextualSelectors, StandardSymbolContextual},
 	}
-	if slices.Contains(r.pureSelectors, selector) {
-		disposition = StandardSymbolPure
-	}
-	if slices.Contains(r.contextualSelectors, selector) {
-		disposition = StandardSymbolContextual
+	for _, group := range groups {
+		if !slices.Contains(group.selectors, selector) {
+			continue
+		}
+		if disposition != StandardSymbolUnresolved {
+			return StandardSymbolFact{}, contractError("symbol has contradictory dispositions")
+		}
+		disposition = group.disposition
 	}
 	fact := StandardSymbolFact{Symbol: symbol, Disposition: disposition}
 	if disposition == StandardSymbolEffect {
@@ -186,9 +181,7 @@ func (r standardSymbolRule) resolve(symbol StandardSymbol, selector string) (Sta
 			fact.Secondary = []Effect{r.secondary}
 		}
 	}
-	if disposition == StandardSymbolUnknown {
-		return fact, nil
-	}
+
 	return fact, fact.Validate()
 }
 
@@ -198,26 +191,27 @@ func standardSymbolRules() []standardSymbolRule {
 
 func effectSymbolRules() []standardSymbolRule {
 	return []standardSymbolRule{
-		{importPath: "flag", effect: EffectProcess, effectSelectors: []string{symbolParse}, pureSelectors: []string{"Arg", "Args", "NArg", "NFlag", "NewFlagSet", "PrintDefaults", "UnquoteUsage", "Visit", "VisitAll"}},
-		{importPath: "fmt", pureSelectors: []string{"Errorf", "Sprint", "Sprintf", "Sprintln"}},
+		{importPath: "flag", effect: EffectProcess, effectSelectors: []string{symbolParse}, pureSelectors: []string{"Arg", "Args", "NArg", "NFlag", "NewFlagSet", "UnquoteUsage", "Visit", "VisitAll"}},
+		{importPath: "fmt", contextualSelectors: []string{"Errorf", "Sprint", "Sprintf", "Sprintln", "Fprint", "Fprintf", "Fprintln", "Fscan", "Fscanf", "Fscanln", "Print", "Printf", "Println", "Scan", "Scanf", "Scanln"}},
 		{importPath: "go/parser", effect: EffectFilesystem, effectSelectors: []string{"ParseDir"}, pureSelectors: []string{"ParseExpr"}, contextualSelectors: []string{"ParseFile", "ParseExprFrom"}},
 		{importPath: "io", pureSelectors: []string{"LimitReader", "MultiReader", "MultiWriter", "NewOffsetWriter", "NewSectionReader", symbolNopCloser, symbolPipe, "TeeReader"}},
 		{importPath: "io/fs", pureSelectors: []string{"FileMode"}},
-		{importPath: "path/filepath", effect: EffectFilesystem, effectSelectors: []string{"Abs", "EvalSymlinks", "Glob", "Walk", "WalkDir"}, pureSelectors: []string{"Base", "Clean", "Dir", "Ext", "FromSlash", "IsAbs", "IsLocal", "Join", "Localize", "Match", "Rel", "Split", "SplitList", "ToSlash", "VolumeName"}},
+		{importPath: "path/filepath", effect: EffectFilesystem, effectSelectors: []string{"Abs", "EvalSymlinks", "Glob", "Walk", "WalkDir"}, pureSelectors: []string{"Base", "Clean", "Dir", "Ext", "FromSlash", "IsAbs", "IsLocal", symbolJoin, "Localize", "Match", "Rel", "Split", "SplitList", "ToSlash", "VolumeName"}},
 		{importPath: "text/template", effect: EffectFilesystem, effectSelectors: []string{"ParseFiles", "ParseGlob"}, pureSelectors: []string{symbolNew, "Must"}},
 		{importPath: "os", effect: EffectFilesystem, effectSelectors: osFilesystemSymbols(), pureSelectors: []string{"DevNull"}},
 		{importPath: "os", effect: EffectHost, effectSelectors: osHostSymbols()},
-		{importPath: "os", effect: EffectProcess, effectSelectors: []string{symbolExit, "FindProcess", symbolGetpid, symbolGetppid, symbolStartProcess}},
-		{importPath: "os/exec", effect: EffectProcess, defaultDisposition: StandardSymbolEffect},
-		{importPath: "os/signal", effect: EffectSignal, defaultDisposition: StandardSymbolEffect},
-		{importPath: "crypto/rand", effect: EffectEntropy, defaultDisposition: StandardSymbolEffect},
-		{importPath: "math/rand", effect: EffectEntropy, defaultDisposition: StandardSymbolEffect, pureSelectors: []string{symbolNew, "NewSource", symbolZipf}},
-		{importPath: "math/rand/v2", effect: EffectEntropy, defaultDisposition: StandardSymbolEffect, pureSelectors: []string{symbolNew, "NewPCG", "NewChaCha8", symbolZipf}},
-		{importPath: "io/ioutil", effect: EffectFilesystem, effectSelectors: []string{symbolReadDir, symbolReadFile, "TempDir", "TempFile", symbolWriteFile}, pureSelectors: []string{"ReadAll", symbolNopCloser}},
+		{importPath: "os", effect: EffectProcess, effectSelectors: []string{symbolExit, "FindProcess", symbolGetpid, symbolGetppid, symbolStartProcess, symbolPipe}},
+		{importPath: catalogOsExec, effect: EffectProcess, effectSelectors: []string{"Command", "CommandContext", "LookPath"}},
+		{importPath: "os/signal", effect: EffectSignal, effectSelectors: []string{"Ignore", "Ignored", "Notify", "NotifyContext", symbolReset, symbolStop}},
+		{importPath: "crypto/rand", effect: EffectEntropy, effectSelectors: []string{symbolRead, "Int", "Prime", "Text"}},
+		{importPath: catalogMathRand, effect: EffectEntropy, effectSelectors: []string{symbolExpFloat64, symbolFloat32, symbolFloat64, "Int", symbolInt31, symbolInt31n, symbolInt63, symbolInt63n, symbolIntn, symbolNormFloat64, symbolPerm, symbolRead, symbolSeed, symbolShuffle, symbolUint32, symbolUint64}, pureSelectors: []string{symbolNew, "NewSource", symbolZipf}},
+		{importPath: catalogMathRandV2, effect: EffectEntropy, effectSelectors: []string{symbolExpFloat64, symbolFloat32, symbolFloat64, "Int", symbolInt32, symbolInt32N, symbolInt64, symbolInt64N, symbolIntN, symbolNormFloat64, symbolPerm, symbolShuffle, symbolUint, symbolUint32, symbolUint32N, symbolUint64, symbolUint64N, symbolUintN, "N"}, pureSelectors: []string{symbolNew, "NewPCG", "NewChaCha8", symbolZipf}},
+		{importPath: "io/ioutil", effect: EffectFilesystem, effectSelectors: []string{symbolReadDir, symbolReadFile, symbolTempDir, "TempFile", symbolWriteFile}, pureSelectors: []string{symbolNopCloser}, contextualSelectors: []string{"ReadAll"}},
 		{importPath: "net", effect: EffectTransport, effectSelectors: netEffectSymbols(), pureSelectors: []string{"CIDRMask", "IPv4", "IPv4Mask", "JoinHostPort", "ParseCIDR", "ParseIP", symbolPipe, "ResolveUnixAddr", "SplitHostPort"}},
-		{importPath: "net/http", effect: EffectTransport, effectSelectors: httpEffectSymbols(), pureSelectors: httpPureSymbols(), secondary: EffectFilesystem, secondarySelectors: []string{symbolServeFile, symbolServeFileFS}},
+		{importPath: catalogNetHttp, effect: EffectTransport, effectSelectors: httpEffectSymbols(), pureSelectors: httpPureSymbols(), secondary: EffectFilesystem, secondarySelectors: []string{symbolServeFile, symbolServeFileFS}},
 		{importPath: "runtime", effect: EffectHost, effectSelectors: []string{"CPUProfile", "GOMAXPROCS", "GOROOT", "MemProfile", "NumCPU", "NumCgoCall", "ReadMemStats", "SetCPUProfileRate", "StartTrace", "StopTrace", "ThreadCreateProfile"}},
-		{importPath: timeContractText, effect: EffectTime, effectSelectors: []string{"After", "AfterFunc", "NewTicker", "NewTimer", "Now", "Sleep", "Tick"}, pureSelectors: []string{"Date", "FixedZone", "LoadLocationFromTZData", symbolParse, "ParseDuration", "ParseInLocation", "Unix", "UnixMicro", "UnixMilli"}},
+		{importPath: timeContractText, effect: EffectTime, effectSelectors: []string{"Since", "Until", symbolAfter, symbolAfterFunc, "NewTicker", "NewTimer", "Now", "Sleep", "Tick"}, pureSelectors: []string{symbolDate, "FixedZone", "LoadLocationFromTZData", symbolParse, "ParseDuration", "ParseInLocation", symbolUnix, "UnixMicro", "UnixMilli"}},
+		{importPath: timeContractText, effect: EffectHost, effectSelectors: []string{"LoadLocation"}},
 		{importPath: standardPackageSyscall, effect: EffectFilesystem, effectSelectors: syscallFilesystemSymbols()},
 		{importPath: standardPackageSyscall, effect: EffectLocking, effectSelectors: syscallLockingSymbols()},
 		{importPath: standardPackageSyscall, effect: EffectTransport, effectSelectors: syscallTransportSymbols()},
@@ -236,35 +230,33 @@ func effectSymbolRules() []standardSymbolRule {
 	}
 }
 
+// Only explicitly reviewed functions classify; package membership is not proof.
 func purePackageRules() []standardSymbolRule {
-	paths := []string{
-		"bytes", "cmp", "context", "crypto", "crypto/md5", "crypto/sha1", "crypto/sha256", "crypto/sha512",
-		"encoding", "encoding/base64", "encoding/binary", "encoding/csv", "encoding/hex", "encoding/json", "encoding/xml",
-		"errors", "go/ast", "go/format", "go/token", "hash", "hash/crc32", "hash/crc64", "hash/fnv",
-		"maps", "math", "math/big", "net/netip", "net/url", "path", "reflect", "regexp", "slices", "sort",
-		"strconv", "strings", "sync", "sync/atomic", testingPackagePath, "text/scanner", "text/tabwriter", "unicode", "unicode/utf8",
+	return []standardSymbolRule{
+		{importPath: standardPackageBuiltin, pureSelectors: []string{"append", "cap", "clear", "complex", "copy", "delete", "imag", "len", "make", "max", "min", "new", "real", "recover"}, contextualSelectors: []string{"close", "panic", "print", "println"}},
+		{importPath: "crypto/sha256", pureSelectors: []string{"New", "New224", "Sum224", "Sum256"}},
+		{importPath: "crypto/sha512", pureSelectors: []string{"New", "New384", "New512_224", "New512_256", "Sum384", "Sum512", "Sum512_224", "Sum512_256"}},
+		{importPath: "context", pureSelectors: []string{"Background", "TODO", "WithValue", "WithoutCancel"}, contextualSelectors: []string{"WithCancel", "WithCancelCause", "WithDeadline", "WithDeadlineCause", "WithTimeout", "WithTimeoutCause", symbolAfterFunc, "Cause"}},
+		{importPath: "errors", pureSelectors: []string{"New", symbolJoin}, contextualSelectors: []string{"Is", "As", "AsType", "Unwrap"}},
+		{importPath: "encoding/json", contextualSelectors: []string{"Marshal", "MarshalIndent", "Unmarshal"}, pureSelectors: []string{"Valid", "NewDecoder", "NewEncoder"}},
+		{importPath: "reflect", pureSelectors: []string{"TypeOf", "TypeFor", "ValueOf"}},
 	}
-	rules := make([]standardSymbolRule, len(paths))
-	for index, path := range paths {
-		rules[index] = standardSymbolRule{importPath: path, defaultDisposition: StandardSymbolPure}
-	}
-	return rules
 }
 
 func osFilesystemSymbols() []string {
-	return []string{symbolChdir, symbolChmod, symbolChown, "Create", "CreateTemp", symbolLchown, symbolLink, symbolLstat, symbolMkdir, "MkdirAll", "MkdirTemp", symbolOpen, "OpenFile", "OpenRoot", symbolReadDir, symbolReadFile, symbolReadlink, "Remove", "RemoveAll", symbolRename, symbolStat, symbolSymlink, symbolTruncate, symbolWriteFile}
+	return []string{symbolChdir, symbolChmod, symbolChown, "CopyFS", symbolChtimes, "OpenInRoot", symbolCreate, "CreateTemp", symbolLchown, symbolLink, symbolLstat, symbolMkdir, symbolMkdirAll, "MkdirTemp", symbolOpen, symbolOpenFile, symbolOpenRoot, symbolReadDir, symbolReadFile, symbolReadlink, symbolRemove, symbolRemoveAll, symbolRename, symbolStat, symbolSymlink, symbolTruncate, symbolWriteFile}
 }
 
 func osHostSymbols() []string {
-	return []string{"Clearenv", "Environ", "Executable", "ExpandEnv", "Getenv", "Getpagesize", "Getuid", "Geteuid", "Getgid", "Getegid", "Getgroups", "Getwd", "Hostname", "LookupEnv", "Setenv", "Unsetenv", "UserCacheDir", "UserConfigDir", "UserHomeDir"}
+	return []string{symbolTempDir, "Clearenv", symbolEnviron, "Executable", "ExpandEnv", "Getenv", "Getpagesize", "Getuid", "Geteuid", "Getgid", "Getegid", "Getgroups", "Getwd", "Hostname", "LookupEnv", "Setenv", "Unsetenv", "UserCacheDir", "UserConfigDir", "UserHomeDir"}
 }
 
 func netEffectSymbols() []string {
-	return []string{"Dial", "DialIP", "DialTCP", "DialUDP", "DialUnix", symbolListen, "ListenIP", "ListenMulticastUDP", "ListenPacket", "ListenTCP", "ListenUDP", "ListenUnix", "LookupAddr", "LookupCNAME", "LookupHost", "LookupIP", "LookupMX", "LookupNS", "LookupPort", "LookupSRV", "LookupTXT", "ResolveIPAddr", "ResolveTCPAddr", "ResolveUDPAddr"}
+	return []string{"DialTimeout", "FileConn", "FileListener", "FilePacketConn", "ListenUnixgram", symbolDial, symbolDialIP, symbolDialTCP, symbolDialUDP, symbolDialUnix, symbolListen, "ListenIP", "ListenMulticastUDP", symbolListenPacket, "ListenTCP", "ListenUDP", "ListenUnix", "LookupAddr", "LookupCNAME", "LookupHost", "LookupIP", "LookupMX", "LookupNS", "LookupPort", "LookupSRV", "LookupTXT", "ResolveIPAddr", "ResolveTCPAddr", "ResolveUDPAddr"}
 }
 
 func httpEffectSymbols() []string {
-	return []string{"Error", "Get", "Head", "ListenAndServe", "ListenAndServeTLS", "NotFound", "Post", "PostForm", "Redirect", "Serve", "ServeContent", symbolServeFile, symbolServeFileFS, "ServeTLS", "SetCookie"}
+	return []string{symbolError, "Get", symbolHead, symbolListenAndServe, symbolListenAndServeTLS, "NotFound", symbolPost, symbolPostForm, "Redirect", symbolServe, "ServeContent", symbolServeFile, symbolServeFileFS, symbolServeTLS, "SetCookie"}
 }
 
 func httpPureSymbols() []string {
@@ -272,7 +264,7 @@ func httpPureSymbols() []string {
 }
 
 func syscallFilesystemSymbols() []string {
-	return []string{"Access", symbolChdir, symbolChmod, symbolChown, "Close", "Creat", "Dup", "Fchmod", "Fchown", "Fstat", "Fstatat", "Fsync", "Ftruncate", "Getcwd", "Getdents", symbolLchown, symbolLink, symbolLstat, symbolMkdir, "Mkdirat", symbolOpen, "Openat", "Pread", "Pwrite", "Read", "ReadDirent", symbolReadlink, symbolRename, "Renameat", "Rmdir", symbolStat, symbolSymlink, "Sync", symbolTruncate, "Unlink", "Unlinkat", "Write"}
+	return []string{"Mkfifo", "Access", symbolChdir, symbolChmod, symbolChown, symbolClose, "Creat", "Dup", "Fchmod", "Fchown", "Fstat", "Fstatat", "Fsync", "Ftruncate", "Getcwd", "Getdents", symbolLchown, symbolLink, symbolLstat, symbolMkdir, "Mkdirat", symbolOpen, "Openat", "Pread", "Pwrite", symbolRead, "ReadDirent", symbolReadlink, symbolRename, "Renameat", "Rmdir", symbolStat, symbolSymlink, symbolSync, symbolTruncate, "Unlink", "Unlinkat", symbolWrite}
 }
 
 func unixHostSymbols() []string {
@@ -296,9 +288,9 @@ func windowsLockingSymbols() []string {
 }
 
 func syscallTransportSymbols() []string {
-	return []string{"Accept", "Bind", "Connect", "Getpeername", "Getsockname", "GetsockoptInt", symbolListen, "Recvfrom", "Sendto", "SetsockoptInt", "Shutdown", "Socket", "Socketpair"}
+	return []string{symbolAccept, "Bind", "Connect", "Getpeername", "Getsockname", "GetsockoptInt", symbolListen, "Recvfrom", "Sendto", "SetsockoptInt", symbolShutdown, "Socket", "Socketpair"}
 }
 
 func syscallProcessSymbols() []string {
-	return []string{"Exec", symbolExit, "ForkExec", symbolGetpid, symbolGetppid, "Kill", symbolStartProcess, "Wait4"}
+	return []string{"Exec", symbolExit, "ForkExec", symbolGetpid, symbolGetppid, symbolKill, symbolStartProcess, "Wait4"}
 }

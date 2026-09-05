@@ -14,48 +14,105 @@ import (
 
 const (
 	// Source: https://go.dev/cmd/go/#hdr-Compile_packages_and_dependencies
-	// cmd/go defines -overlay as a build flag whose JSON Replace map uses an
-	// empty backing path to make the named disk path absent.
+	// cmd/go defines -overlay as a build flag whose JSON Replace map points an
+	// absolute source path at an absolute backing path, or at an empty path to
+	// make the source absent.
 	goOverlayFlag           = "-overlay"
 	goOverlayDocumentPrefix = `{"Replace":{`
 	goOverlayDocumentSuffix = `}}`
 	goOverlayDeletedValue   = `""`
 	goOverlayFilename       = "overlay.json"
 	goOverlayBufferBytes    = 64 << 10
+	goOverlayActionInvalid  = "source overlay action is invalid"
 )
 
-// SourceOverlayDeletion names one absolute disk path that cmd/go must observe
-// as absent. Primitive owns only this filesystem projection, not why a caller
-// rejected the path.
-type SourceOverlayDeletion struct {
-	Path core.AbsolutePath
-}
+// SourceOverlayAction is the closed cmd/go filesystem projection domain.
+type SourceOverlayAction uint8
 
-// Validate refuses an unset or relative deletion path.
-func (d SourceOverlayDeletion) Validate() error {
-	if err := d.Path.Validate(); err != nil {
-		return errors.Join(core.ErrGoToolchainContract, err)
+const (
+	SourceOverlayActionUnknown SourceOverlayAction = iota
+	SourceOverlayDelete
+	SourceOverlayReplace
+	sourceOverlayActionLimit
+)
+
+// Validate refuses unknown or future overlay actions.
+func (a SourceOverlayAction) Validate() error {
+	if a <= SourceOverlayActionUnknown || a >= sourceOverlayActionLimit {
+		return contractError(goOverlayActionInvalid)
 	}
 	return nil
 }
 
-// EmitSourceOverlayDeletion emits one deletion in canonical path order.
-type EmitSourceOverlayDeletion func(SourceOverlayDeletion) error
+// IsValid reports whether a belongs to the closed overlay-action domain.
+func (a SourceOverlayAction) IsValid() bool { return a.Validate() == nil }
 
-// StreamSourceOverlayDeletions streams a complete canonical deletion set.
-type StreamSourceOverlayDeletions func(EmitSourceOverlayDeletion) error
+// OffWireEnum marks SourceOverlayAction as a compiler-only enum.
+func (SourceOverlayAction) OffWireEnum() {}
 
-// SourceOverlayRequest supplies a caller-owned directory and the complete
-// canonical deletion stream. Primitive creates only its one owned file.
-type SourceOverlayRequest struct {
-	Directory core.AbsolutePath
-	Deletions StreamSourceOverlayDeletions
+// String returns the stable execution identity of a valid overlay action.
+func (a SourceOverlayAction) String() string {
+	if !a.IsValid() {
+		return core.UnknownEnumDiagnostic
+	}
+	return [...]string{
+		SourceOverlayDelete:  "delete",
+		SourceOverlayReplace: "replace",
+	}[a]
 }
 
-// Validate refuses an unset directory or deletion stream.
+var _ core.OffWireEnum = SourceOverlayActionUnknown
+
+// SourceOverlayMapping names one absolute cmd/go source path and its exact
+// projection. Delete requires a zero Backing path; Replace requires a distinct
+// absolute Backing path. Primitive owns the mechanics, not why the caller made
+// the projection.
+type SourceOverlayMapping struct {
+	Path    core.AbsolutePath
+	Backing core.AbsolutePath
+	Action  SourceOverlayAction
+}
+
+// Validate refuses ambiguous, unset, relative, or no-op mappings.
+func (m SourceOverlayMapping) Validate() error {
+	if err := errors.Join(m.Path.Validate(), m.Action.Validate()); err != nil {
+		return errors.Join(core.ErrGoToolchainContract, err)
+	}
+	switch m.Action {
+	case SourceOverlayDelete:
+		if m.Backing != (core.AbsolutePath{}) {
+			return contractError("source overlay deletion has a backing path")
+		}
+	case SourceOverlayReplace:
+		if err := m.Backing.Validate(); err != nil {
+			return errors.Join(core.ErrGoToolchainContract, err)
+		}
+		if m.Backing == m.Path {
+			return contractError("source overlay replacement is a no-op")
+		}
+	default:
+		return contractError(goOverlayActionInvalid)
+	}
+	return nil
+}
+
+// EmitSourceOverlayMapping emits one mapping in canonical source-path order.
+type EmitSourceOverlayMapping func(SourceOverlayMapping) error
+
+// StreamSourceOverlayMappings streams a complete canonical mapping set.
+type StreamSourceOverlayMappings func(EmitSourceOverlayMapping) error
+
+// SourceOverlayRequest supplies a caller-owned directory and the complete
+// canonical mapping stream. Primitive creates only its one owned file.
+type SourceOverlayRequest struct {
+	Mappings  StreamSourceOverlayMappings
+	Directory core.AbsolutePath
+}
+
+// Validate refuses an unset directory or mapping stream.
 func (r SourceOverlayRequest) Validate() error {
-	if r.Deletions == nil {
-		return contractError("source overlay deletion stream is nil")
+	if r.Mappings == nil {
+		return contractError("source overlay mapping stream is nil")
 	}
 	if err := r.Directory.Validate(); err != nil {
 		return errors.Join(core.ErrGoToolchainContract, err)
@@ -71,17 +128,18 @@ type SourceOverlay struct {
 }
 
 // sourceOverlayEncoder is the bounded internal flow state needed to project a
-// canonical deletion stream. It retains only the preceding path and count.
+// canonical mapping stream. It retains only the preceding path and count.
 type sourceOverlayEncoder struct {
 	ctx      context.Context
+	err      error
 	writer   *bufio.Writer
 	previous string
 	count    uint64
-	err      error
 }
 
-// OpenSourceOverlay streams a nonempty, unique, canonically ordered deletion
-// set to the caller-owned directory without materializing the set in memory.
+// OpenSourceOverlay streams a nonempty, unique, canonically ordered mapping
+// set (deletions or replacements) to the caller-owned directory without
+// materializing the set in memory.
 func OpenSourceOverlay(ctx context.Context, request SourceOverlayRequest) (SourceOverlay, error) {
 	if ctx == nil {
 		return SourceOverlay{}, contractError("source overlay context is nil")
@@ -97,7 +155,7 @@ func OpenSourceOverlay(ctx context.Context, request SourceOverlayRequest) (Sourc
 		return SourceOverlay{}, errors.Join(core.ErrGoToolchainContract, err)
 	}
 	overlay := SourceOverlay{path: path, directory: request.Directory}
-	if err := overlay.write(ctx, request.Deletions); err != nil {
+	if err := overlay.write(ctx, request.Mappings); err != nil {
 		return SourceOverlay{}, err
 	}
 	return overlay, nil
@@ -147,7 +205,7 @@ func removeOverlayPath(path string) error {
 	return err
 }
 
-func (o SourceOverlay) write(ctx context.Context, stream StreamSourceOverlayDeletions) error {
+func (o SourceOverlay) write(ctx context.Context, stream StreamSourceOverlayMappings) error {
 	file, err := os.OpenFile(o.path.String(), os.O_WRONLY|os.O_CREATE|os.O_EXCL, 0o600)
 	if err != nil {
 		return errors.Join(core.ErrGoToolchainExecution, err)
@@ -165,7 +223,7 @@ func (o SourceOverlay) write(ctx context.Context, stream StreamSourceOverlayDele
 	return nil
 }
 
-func writeSourceOverlay(ctx context.Context, writer *bufio.Writer, stream StreamSourceOverlayDeletions) error {
+func writeSourceOverlay(ctx context.Context, writer *bufio.Writer, stream StreamSourceOverlayMappings) error {
 	if _, err := writer.WriteString(goOverlayDocumentPrefix); err != nil {
 		return err
 	}
@@ -177,41 +235,66 @@ func writeSourceOverlay(ctx context.Context, writer *bufio.Writer, stream Stream
 	return encoder.finish()
 }
 
-func (e *sourceOverlayEncoder) emit(deletion SourceOverlayDeletion) error {
+func (e *sourceOverlayEncoder) emit(mapping SourceOverlayMapping) error {
 	if e.err != nil {
 		return e.err
 	}
-	e.err = e.writeDeletion(deletion)
+	e.err = e.writeMapping(mapping)
 	return e.err
 }
 
-func (e *sourceOverlayEncoder) writeDeletion(deletion SourceOverlayDeletion) error {
+func (e *sourceOverlayEncoder) writeMapping(mapping SourceOverlayMapping) error {
 	if err := e.ctx.Err(); err != nil {
 		return errors.Join(core.ErrGoToolchainExecution, err)
 	}
-	if err := deletion.Validate(); err != nil {
+	if err := mapping.Validate(); err != nil {
 		return err
 	}
-	current := deletion.Path.String()
+	current := mapping.Path.String()
 	if e.previous != "" && e.previous >= current {
-		return contractError("source overlay deletions are duplicated or not canonical")
+		return contractError("source overlay mappings are duplicated or not canonical")
 	}
 	key, err := core.MarshalCanonicalJSONString(current)
 	if err != nil {
 		return errors.Join(core.ErrGoToolchainContract, err)
 	}
+	value, err := sourceOverlayMappingValue(mapping)
+	if err != nil {
+		return err
+	}
+	if err := e.writeMappingPair(key, value); err != nil {
+		return err
+	}
+	e.previous = current
+	e.count++
+	return nil
+}
+
+func (e *sourceOverlayEncoder) writeMappingPair(key, value []byte) error {
 	if err := e.writeSeparator(); err != nil {
 		return err
 	}
 	if _, err := e.writer.Write(key); err != nil {
 		return err
 	}
-	if _, err := e.writer.WriteString(":" + goOverlayDeletedValue); err != nil {
+	if err := e.writer.WriteByte(':'); err != nil {
 		return err
 	}
-	e.previous = current
-	e.count++
+	if _, err := e.writer.Write(value); err != nil {
+		return err
+	}
 	return nil
+}
+
+func sourceOverlayMappingValue(mapping SourceOverlayMapping) ([]byte, error) {
+	if mapping.Action == SourceOverlayDelete {
+		return []byte(goOverlayDeletedValue), nil
+	}
+	value, err := core.MarshalCanonicalJSONString(mapping.Backing.String())
+	if err != nil {
+		return nil, errors.Join(core.ErrGoToolchainContract, err)
+	}
+	return value, nil
 }
 
 func (e *sourceOverlayEncoder) writeSeparator() error {
@@ -223,7 +306,7 @@ func (e *sourceOverlayEncoder) writeSeparator() error {
 
 func (e *sourceOverlayEncoder) finish() error {
 	if e.count == 0 {
-		return contractError("source overlay deletion stream is empty")
+		return contractError("source overlay mapping stream is empty")
 	}
 	if err := e.ctx.Err(); err != nil {
 		return errors.Join(core.ErrGoToolchainExecution, err)

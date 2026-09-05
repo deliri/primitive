@@ -1,6 +1,8 @@
 package capabilities
 
 import (
+	"errors"
+	"github.com/deliri/primitive/v2026/core"
 	"testing"
 
 	"github.com/deliri/primitive/v2026/gomodule"
@@ -25,10 +27,21 @@ func TestStandardSymbolOwnershipLayerTriad(t *testing.T) {
 		{name: "positive time Now belongs to time", importPath: "time", selector: "Now", want: StandardSymbolEffect, wantEffect: EffectTime},
 		{name: "positive syscall Flock belongs to locking", importPath: "syscall", selector: "Flock", want: StandardSymbolEffect, wantEffect: EffectLocking},
 		{name: "positive unix Flock belongs to locking", importPath: "golang.org/x/sys/unix", selector: "Flock", want: StandardSymbolEffect, wantEffect: EffectLocking},
+
+		{name: "directory copy belongs to filesystem", importPath: "os", selector: "CopyFS", want: StandardSymbolEffect, wantEffect: EffectFilesystem},
+		{name: "file timestamps belong to filesystem", importPath: "os", selector: "Chtimes", want: StandardSymbolEffect, wantEffect: EffectFilesystem},
+		{name: "rooted open belongs to filesystem", importPath: "os", selector: "OpenInRoot", want: StandardSymbolEffect, wantEffect: EffectFilesystem},
+		{name: "pipe creation belongs to process", importPath: "os", selector: "Pipe", want: StandardSymbolEffect, wantEffect: EffectProcess},
+		{name: "temporary directory selection observes host configuration", importPath: "os", selector: "TempDir", want: StandardSymbolEffect, wantEffect: EffectHost},
+		{name: "elapsed time observes current time", importPath: "time", selector: "Since", want: StandardSymbolEffect, wantEffect: EffectTime},
+		{name: "remaining time observes current time", importPath: "time", selector: "Until", want: StandardSymbolEffect, wantEffect: EffectTime},
+		{name: "timezone lookup observes host data", importPath: "time", selector: "LoadLocation", want: StandardSymbolEffect, wantEffect: EffectHost},
+		{name: "command construction can search executable paths", importPath: "os/exec", selector: "Command", want: StandardSymbolEffect, wantEffect: EffectProcess},
+		{name: "future process function is not assumed effectful", importPath: "os/exec", selector: "FutureCommand", want: StandardSymbolUnresolved},
 		{name: "negative parser file requires syntax context", importPath: "go/parser", selector: "ParseFile", want: StandardSymbolContextual},
 		{name: "neutral filepath Join is pure", importPath: "path/filepath", selector: "Join", want: StandardSymbolPure},
 		{name: "neutral SHA256 Sum256 is pure by package", importPath: "crypto/sha256", selector: "Sum256", want: StandardSymbolPure},
-		{name: "negative unknown os selector remains unresolved", importPath: "os", selector: "FutureEffect", want: StandardSymbolUnknown},
+		{name: "negative unknown os selector remains unresolved", importPath: "os", selector: "FutureEffect", want: StandardSymbolUnresolved},
 	}
 	for _, tc := range cases {
 		t.Run(tc.name, func(t *testing.T) {
@@ -105,6 +118,66 @@ func TestStandardSymbolOwnershipMutationPairsChangeTheResolvedFact(t *testing.T)
 		if baseline.Disposition != StandardSymbolEffect || baseline.Effect != EffectTransport ||
 			mutated.Disposition != StandardSymbolPure || mutated.Effect != EffectUnknown {
 			t.Fatalf("selector mutation facts = (%v/%v, %v/%v), want effect/transport and pure/unknown", baseline.Disposition, baseline.Effect, mutated.Disposition, mutated.Effect)
+		}
+	})
+}
+
+func TestStandardSymbolReceiverOwnershipLayerTriad(t *testing.T) {
+	t.Parallel()
+	cases := []struct {
+		name, imported, receiver, selector string
+		want                               StandardSymbolDisposition
+		effect                             Effect
+	}{
+		{"file close is a filesystem effect", "os", "File", "Close", StandardSymbolEffect, EffectFilesystem},
+		{"file name is a pure coordinate", "os", "File", "Name", StandardSymbolPure, EffectUnknown},
+		{"unknown receiver cannot inherit the function classification", "os", "FutureFile", "ReadFile", StandardSymbolUnresolved, EffectUnknown},
+		{"root metadata is a filesystem effect", "os", "Root", "Stat", StandardSymbolEffect, EffectFilesystem},
+		{"process wait owns process observation", "os", "Process", "Wait", StandardSymbolEffect, EffectProcess},
+		{"command run owns execution", "os/exec", "Cmd", "Run", StandardSymbolEffect, EffectProcess},
+		{"command environment owns host observation", "os/exec", "Cmd", "Environ", StandardSymbolEffect, EffectHost},
+		{"command rendering does not execute", "os/exec", "Cmd", "String", StandardSymbolPure, EffectUnknown},
+		{"HTTP client performs transport", "net/http", "Client", "Do", StandardSymbolEffect, EffectTransport},
+		{"HTTP header formatting is pure", "net/http", "Header", "Get", StandardSymbolPure, EffectUnknown},
+		{"connection write performs transport", "net", "Conn", "Write", StandardSymbolEffect, EffectTransport},
+		{"timer stop changes the clock facility", "time", "Timer", "Stop", StandardSymbolEffect, EffectTime},
+		{"time formatting is pure", "time", "Time", "String", StandardSymbolPure, EffectUnknown},
+		{"descriptor control owns the host boundary", "syscall", "RawConn", "Control", StandardSymbolEffect, EffectHost},
+		{"unknown method stays unknown", "os", "File", "FutureMethod", StandardSymbolUnresolved, EffectUnknown},
+	}
+	for _, tc := range cases {
+		t.Run(tc.name, func(t *testing.T) {
+			t.Parallel()
+			imported, importErr := gomodule.ParseImportPath(tc.imported)
+			receiver, receiverErr := ParseSymbolName(tc.receiver)
+			selector, selectorErr := ParseSymbolName(tc.selector)
+			if err := errors.Join(importErr, receiverErr, selectorErr); err != nil {
+				t.Fatalf("symbol fixture error = %v, want nil", err)
+			}
+			request := StandardSymbol{ImportPath: imported, Selector: selector, Receiver: &receiver}
+			got, err := ResolveStandardSymbol(request)
+			if err != nil || got.Disposition != tc.want || got.Effect != tc.effect || len(got.Secondary) != 0 {
+				t.Fatalf("ResolveStandardSymbol(%s.%s.%s) = (%v/%v, %v), want (%v/%v, nil)", tc.imported, tc.receiver, tc.selector, got.Disposition, got.Effect, err, tc.want, tc.effect)
+			}
+			if err := got.Validate(); err != nil {
+				t.Fatalf("resolved fact Validate() error = %v, want nil", err)
+			}
+		})
+	}
+	t.Run("present zero receiver is refused", func(t *testing.T) {
+		t.Parallel()
+		imported, err := gomodule.ParseImportPath("os")
+		if err != nil {
+			t.Fatal(err)
+		}
+		selector, err := ParseSymbolName("Open")
+		if err != nil {
+			t.Fatal(err)
+		}
+		receiver := SymbolName{}
+		got, err := ResolveStandardSymbol(StandardSymbol{ImportPath: imported, Selector: selector, Receiver: &receiver})
+		if !errors.Is(err, core.ErrCapabilitiesContract) || got.Disposition != StandardSymbolUnknown || got.Effect != EffectUnknown || len(got.Secondary) != 0 {
+			t.Fatalf("ResolveStandardSymbol(zero receiver) = (%v, %v), want zero and %v", got, err, core.ErrCapabilitiesContract)
 		}
 	})
 }

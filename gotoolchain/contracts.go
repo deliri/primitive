@@ -92,9 +92,9 @@ func (l Limits) Validate() error {
 // Configuration selects the ambient workspace posture, optional source
 // overlay, and execution limits.
 type Configuration struct {
-	Workspace     WorkspaceMode
 	SourceOverlay *SourceOverlay
 	Limits        Limits
+	Workspace     WorkspaceMode
 }
 
 func (c Configuration) Validate() error {
@@ -293,8 +293,8 @@ func (r AnalysisRequest) Validate() error {
 type PackageAnalysis struct {
 	WorkingDirectory core.AbsolutePath
 	Package          gomodule.ImportPath
-	IncludeTests     bool
 	Units            []*packages.Package
+	IncludeTests     bool
 }
 
 // Validate rejects incomplete, ill-typed, or unrelated compilation units.

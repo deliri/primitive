@@ -5,6 +5,7 @@ import (
 	"errors"
 	"strings"
 
+	"github.com/deliri/primitive/v2026/capabilities"
 	"github.com/deliri/primitive/v2026/core"
 )
 
@@ -53,15 +54,19 @@ func (e Effect) Validate() error {
 }
 
 type Reference struct {
-	From   Symbol        `json:"from"`
-	To     Symbol        `json:"to"`
-	Import *ImportPath   `json:"import,omitempty"`
-	Kind   ReferenceKind `json:"kind"`
-	Line   uint32        `json:"line"`
-	Column uint32        `json:"column"`
+	Call   *capabilities.Classification `json:"call,omitempty"`
+	From   Symbol                       `json:"from"`
+	To     Symbol                       `json:"to"`
+	Import *ImportPath                  `json:"import,omitempty"`
+	Kind   ReferenceKind                `json:"kind"`
+	Line   uint32                       `json:"line"`
+	Column uint32                       `json:"column"`
 }
 
 func (r Reference) Validate() error {
+	if err := r.validateCall(); err != nil {
+		return err
+	}
 	if r.Line == 0 || r.Column == 0 {
 		return contractError(errors.New("source observation reference position is unset"))
 	}
@@ -74,8 +79,24 @@ func (r Reference) Validate() error {
 	return nil
 }
 
+func (r Reference) validateCall() error {
+	if (r.Kind == ReferenceCall || r.Kind == ReferenceDynamicCall) != (r.Call != nil) {
+		return conflictError(errors.New("call reference classification is missing or misplaced"))
+	}
+	if r.Call != nil {
+		if err := r.Call.Validate(); err != nil {
+			return contractError(err)
+		}
+	}
+	if r.Kind == ReferenceDynamicCall && r.Call.Disposition != capabilities.StandardSymbolUnresolved {
+		return conflictError(errors.New("dynamic call claims a resolved classification"))
+	}
+	return nil
+}
+
 // File records one exact source file without retaining its content bytes.
 type File struct {
+	Calls        CallCoverage            `json:"calls"`
 	Repository   core.RepositoryIdentity `json:"repository"`
 	Path         core.SourcePath         `json:"path"`
 	Package      *core.SourcePath        `json:"package,omitempty"`
@@ -92,6 +113,9 @@ type File struct {
 }
 
 func (f File) Validate() error {
+	if err := f.Calls.Validate(); err != nil {
+		return err
+	}
 	if err := contractJoin(f.Repository.Validate(), f.Path.Validate(), f.Snapshot.Validate(), f.SourceDigest.Validate(), f.Bytes.Validate(), f.Language.Validate(), f.Generated.Validate()); err != nil {
 		return err
 	}
@@ -118,7 +142,7 @@ func validateSelections(values []BuildSelection) error {
 			return err
 		}
 		if index > 0 && values[index-1].Context.String() >= values[index].Context.String() {
-			return conflictError(errors.New("source observation build contexts are duplicated or not canonical"))
+			return conflictError(errors.New(catalogSourceObservationBuildContextsAreDuplicatedOrNotCanonical))
 		}
 	}
 	return nil

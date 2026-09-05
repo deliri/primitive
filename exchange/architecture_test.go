@@ -129,6 +129,9 @@ func TestInventoryDocumentDrivesTheRealJSONWritePath(t *testing.T) {
 // exchangeContractInventory classifies every production struct by its real
 // data-flow role. Field names deliberately equal the classified type names.
 type exchangeContractInventory struct {
+	ResponseBufferRequest                     protocolContract[ResponseBufferRequest]
+	ResponseBufferResult                      protocolContract[ResponseBufferResult]
+	responseBuffer                            capabilityWrapper[responseBuffer]
 	StatusError                               typedFailure[StatusError]
 	RetryExhaustedError                       typedFailure[RetryExhaustedError]
 	ServerErrorResponse                       protocolContract[ServerErrorResponse]
@@ -465,3 +468,5 @@ var (
 	_                             = exchangeContractInventory{}.jsonWriteRequest
 	_                             = exchangeContractInventory{}.rawRequestMetadata
 )
+
+var _ = exchangeContractInventory{}.responseBuffer

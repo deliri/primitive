@@ -4,6 +4,8 @@ package capabilities
 // selector shared by multiple standard packages remains one mechanical symbol
 // spelling rather than copied text.
 const (
+	standardPackageBuiltin = "builtin"
+	symbolError            = "Error"
 	standardPackageSyscall = "syscall"
 	testingPackagePath     = "testing"
 	timeContractText       = "time"

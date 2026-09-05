@@ -14,6 +14,7 @@ import (
 
 	json "encoding/json/v2"
 
+	"github.com/deliri/primitive/v2026/capabilities"
 	"github.com/deliri/primitive/v2026/core"
 	"github.com/deliri/primitive/v2026/sourceobservation"
 )
@@ -40,11 +41,14 @@ const (
 	observationJSONDoorPackage
 	observationJSONDoorProject
 	observationJSONDoorSummary
+	observationJSONDoorCallCoverageState
 	observationJSONDoorLimit
 )
 
 func (d observationJSONDoor) receiverName() string {
 	switch d {
+	case observationJSONDoorCallCoverageState:
+		return "CallCoverageState"
 	case observationJSONDoorContextID:
 		return "ContextID"
 	case observationJSONDoorLanguage:
@@ -125,6 +129,8 @@ func FuzzSourceObservationExternalJSONDoorInventory(f *testing.F) {
 
 	f.Fuzz(func(t *testing.T, rawDoor uint8, data []byte) {
 		switch observationJSONDoor(rawDoor) {
+		case observationJSONDoorCallCoverageState:
+			fuzzObservationJSONDoor(t, data, sourceobservation.CallCoverageObserved)
 		case observationJSONDoorContextID:
 			fuzzObservationJSONDoor(t, data, fixtures.contextID)
 		case observationJSONDoorLanguage:
@@ -306,6 +312,13 @@ func observationFixturesForFuzz(t testing.TB) observationJSONFixtures {
 	packageValue := resolver.packages[packagePath]
 	filePath := observedPath(t, "exchange/client_test.go")
 	file := resolver.files[filePath]
+	file.Calls = sourceobservation.CallCoverage{State: sourceobservation.CallCoveragePartial, Unresolved: 1}
+	from, fromErr := sourceobservation.NewSymbol("call")
+	to, toErr := sourceobservation.NewSymbol("callback")
+	if err := errors.Join(fromErr, toErr); err != nil {
+		t.Fatal(err)
+	}
+	file.References = []sourceobservation.Reference{{From: from, To: to, Kind: sourceobservation.ReferenceDynamicCall, Line: 1, Column: 1, Call: &capabilities.Classification{Disposition: capabilities.StandardSymbolUnresolved}}}
 	fileReference := observedFileReference(t, file)
 	packageDigest, err := packageValue.ObservationDigest()
 	if err != nil {
@@ -344,6 +357,9 @@ func observationFixturesForFuzz(t testing.TB) observationJSONFixtures {
 func observationJSONSeedsForFuzz(t testing.TB, fixtures observationJSONFixtures) []observationJSONSeed {
 	t.Helper()
 	return []observationJSONSeed{
+		observationJSONSeedForFuzz(t, observationJSONDoorCallCoverageState, sourceobservation.CallCoverageUnobserved),
+		observationJSONSeedForFuzz(t, observationJSONDoorCallCoverageState, sourceobservation.CallCoveragePartial),
+		observationJSONSeedForFuzz(t, observationJSONDoorCallCoverageState, sourceobservation.CallCoverageObserved),
 		observationJSONSeedForFuzz(t, observationJSONDoorContextID, fixtures.contextID),
 		observationJSONSeedForFuzz(t, observationJSONDoorLanguage, fixtures.language),
 		observationJSONSeedForFuzz(t, observationJSONDoorSymbol, fixtures.symbol),

@@ -37,7 +37,7 @@ func validateBuildContexts(values []BuildContext) error {
 			return err
 		}
 		if index > 0 && values[index-1].ID.String() >= values[index].ID.String() {
-			return conflictError(errors.New("source observation build contexts are duplicated or not canonical"))
+			return conflictError(errors.New(catalogSourceObservationBuildContextsAreDuplicatedOrNotCanonical))
 		}
 	}
 	return nil

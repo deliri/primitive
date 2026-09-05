@@ -15,3 +15,29 @@ var (
 	_ protocolFact     = Capability{}
 	_ sealedProjection = Match{}
 )
+
+// Symbol contracts and their deterministic catalog rules are classified here.
+func (SymbolName) capabilitiesProtocolFact()             {}
+func (StandardSymbol) capabilitiesProtocolFact()         {}
+func (StandardSymbolFact) capabilitiesSealedProjection() {}
+
+type internalFlow interface{ capabilitiesInternalFlow() }
+
+func (standardSymbolRule) capabilitiesInternalFlow() {}
+func (standardMethodRule) capabilitiesInternalFlow() {}
+
+var (
+	_ protocolFact     = SymbolName{}
+	_ protocolFact     = StandardSymbol{}
+	_ sealedProjection = StandardSymbolFact{}
+	_ internalFlow     = standardSymbolRule{}
+	_ internalFlow     = standardMethodRule{}
+)
+
+func (Classification) capabilitiesSealedProjection() {}
+func (classificationWire) capabilitiesProtocolFact() {}
+
+var (
+	_ sealedProjection = Classification{}
+	_ protocolFact     = classificationWire{}
+)

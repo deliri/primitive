@@ -29,9 +29,12 @@ const (
 // authorized for a capability.
 type GoogleCloudVerifierConfiguration struct {
 	Audience Audience
+	Client   exchange.Client
 }
 
-func (c GoogleCloudVerifierConfiguration) Validate() error { return c.Audience.Validate() }
+func (c GoogleCloudVerifierConfiguration) Validate() error {
+	return errors.Join(c.Audience.Validate(), c.Client.Validate())
+}
 
 // GoogleCloudVerifiedIdentity contains only signature-verified provider facts.
 // It grants no product permission by itself.
@@ -111,7 +114,7 @@ func NewGoogleCloudVerifier(ctx context.Context, configuration GoogleCloudVerifi
 	if err != nil {
 		return GoogleCloudVerifier{}, contractError(err)
 	}
-	transport, err := exchange.NewStandardOfficialSDKResponseTransport(boundary)
+	transport, err := configuration.Client.OfficialSDKResponseTransport(boundary)
 	if err != nil {
 		return GoogleCloudVerifier{}, contractError(err)
 	}
@@ -162,6 +165,9 @@ func googleCloudIdentityToken(authorization string) (string, error) {
 	}
 	value := authorization[len(googleCloudIdentityBearerPrefix):]
 	if err := validateBearerTokenValue(value); err != nil {
+		return "", err
+	}
+	if err := validateGoogleCloudJWTHeader(value); err != nil {
 		return "", err
 	}
 	return value, nil

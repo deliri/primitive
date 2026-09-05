@@ -112,6 +112,8 @@ const (
 	ReferencePackage
 	ReferenceExternal
 	ReferenceDynamic
+	ReferenceCall
+	ReferenceDynamicCall
 	referenceKindLimit
 )
 
@@ -127,7 +129,7 @@ func (k ReferenceKind) IsValid() bool {
 }
 
 func referenceKindTokens() [referenceKindLimit]string {
-	return [...]string{"", "package", "external", "dynamic"}
+	return [...]string{"", "package", "external", "dynamic", "call", "dynamic-call"}
 }
 
 func (k ReferenceKind) String() string {
@@ -138,7 +140,7 @@ func (k ReferenceKind) String() string {
 }
 
 type sourceEnum interface {
-	GeneratedState | SelectionState | DeclarationKind | ReferenceKind
+	GeneratedState | SelectionState | DeclarationKind | ReferenceKind | CallCoverageState
 	Validate() error
 	String() string
 }

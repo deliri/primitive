@@ -10,6 +10,7 @@ func (Policy) googleIdentityProtocolFact()                           {}
 func (IdentityTokenRequest) googleIdentityProtocolFact()             {}
 func (GoogleCloudAccessTokenRequest) googleIdentityProtocolFact()    {}
 func (GoogleCloudVerifierConfiguration) googleIdentityProtocolFact() {}
+func (googleCloudJWTHeader) googleIdentityProtocolFact()             {}
 
 func (GoogleCloudVerifiedIdentity) googleIdentitySealedProjection() {}
 

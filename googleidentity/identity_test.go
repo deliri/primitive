@@ -271,6 +271,7 @@ func TestLayerTriadGoogleAccessTokenRealHTTP(t *testing.T) {
 }
 
 type googleExternalDoorInventory struct {
+	Verify                        func(GoogleCloudVerifier, context.Context, string) (GoogleCloudVerifiedIdentity, error)
 	AcquireGoogleCloud            func(context.Context, Client, IdentityTokenRequest) (Token, error)
 	AcquireGoogleCloudAccessToken func(context.Context, Client, GoogleCloudAccessTokenRequest) (AccessToken, error)
 	NewGoogleCloudVerifier        func(context.Context, GoogleCloudVerifierConfiguration) (GoogleCloudVerifier, error)
@@ -278,7 +279,7 @@ type googleExternalDoorInventory struct {
 	ParseGoogleCloudCommandOutput func([]byte) (Token, error)
 }
 
-var googleExternalDoors = googleExternalDoorInventory{AcquireGoogleCloud: AcquireGoogleCloud, AcquireGoogleCloudAccessToken: AcquireGoogleCloudAccessToken, NewGoogleCloudVerifier: NewGoogleCloudVerifier, ParseAudience: ParseAudience, ParseGoogleCloudCommandOutput: ParseGoogleCloudCommandOutput}
+var googleExternalDoors = googleExternalDoorInventory{Verify: GoogleCloudVerifier.Verify, AcquireGoogleCloud: AcquireGoogleCloud, AcquireGoogleCloudAccessToken: AcquireGoogleCloudAccessToken, NewGoogleCloudVerifier: NewGoogleCloudVerifier, ParseAudience: ParseAudience, ParseGoogleCloudCommandOutput: ParseGoogleCloudCommandOutput}
 
 func TestGoogleExternalDoorInventoryMatchesProduction(t *testing.T) {
 	t.Parallel()
@@ -313,10 +314,16 @@ func scanGoogleExternalDoors(root string) ([]string, error) {
 		}
 		ast.Inspect(file, func(node ast.Node) bool {
 			declaration, ok := node.(*ast.FuncDecl)
-			if !ok || declaration.Recv != nil {
+			if !ok {
 				return true
 			}
 			name := declaration.Name.Name
+			if declaration.Recv != nil {
+				if name == "Verify" && googleIdentityReceiverName(declaration.Recv.List[0].Type) == "GoogleCloudVerifier" {
+					doors = append(doors, name)
+				}
+				return false
+			}
 			if strings.HasPrefix(name, "Acquire") || strings.HasPrefix(name, "Parse") || name == "NewGoogleCloudVerifier" {
 				doors = append(doors, name)
 			}
