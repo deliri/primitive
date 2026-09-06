@@ -15,7 +15,7 @@ const (
 	googleMetadataHeaderValue  = "Google"
 	googleAudienceQueryName    = "audience"
 	googleFormatQueryName      = "format"
-	googleFormatStandardValue  = "standard"
+	googleFormatFullValue      = "full"
 )
 
 type googleProtocolContracts struct {
@@ -48,8 +48,8 @@ func googleContracts() (googleProtocolContracts, error) {
 
 // AcquireGoogleCloud obtains one opaque identity-token bearer from Google
 // Cloud's metadata service for the exact requested audience. It explicitly
-// requests the standard format: the common contract identifies the attached
-// service account and does not promise Google-specific VM or project claims.
+// requests the full format so Google includes the attached service account's
+// verified email, which GoogleCloudVerifier requires to establish identity.
 func AcquireGoogleCloud(
 	ctx context.Context,
 	client Client,
@@ -103,7 +103,7 @@ func googleCloudTarget(
 	target := base.HTTPURL()
 	query := target.Query()
 	query.Set(googleAudienceQueryName, audience.String())
-	query.Set(googleFormatQueryName, googleFormatStandardValue)
+	query.Set(googleFormatQueryName, googleFormatFullValue)
 	target.RawQuery = query.Encode()
 	endpoint, err := core.ParseHTTPEndpoint(target.String())
 	if err != nil {

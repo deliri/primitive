@@ -2,7 +2,9 @@ package googleidentity
 
 import (
 	"errors"
+	"io"
 	"math"
+	"net/http"
 	"strings"
 	"testing"
 	"testing/synctest"
@@ -10,8 +12,8 @@ import (
 	"github.com/deliri/primitive/v2026/core"
 )
 
-// Every row enters Verify with bytes signed by a real RSA key, or with an
-// explicit mutation of those bytes. Certificate acquisition is real local TLS.
+// Signed documents cross AcquireGoogleCloud before Verify; malformed bearer
+// framing enters Verify directly. Certificate acquisition is real local TLS.
 // No row constructs the verifier's output or substitutes its signature check.
 func TestGoogleCloudVerifierSignedIngressHostile(t *testing.T) {
 	t.Parallel()
@@ -84,6 +86,28 @@ func TestGoogleCloudVerifierSignedIngressHostile(t *testing.T) {
 					}
 				}
 				bearer := provider.sign(t, header, claims, tc.foreign)
+				if tc.mutate == nil {
+					client := googleTestClient(t, http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+						if r.URL.Query().Get(googleFormatQueryName) != googleFormatFullValue {
+							t.Errorf("metadata format = %q, want %q", r.URL.Query().Get(googleFormatQueryName), googleFormatFullValue)
+						}
+						w.Header().Set(googleMetadataHeaderName, googleMetadataHeaderValue)
+						_, _ = io.WriteString(w, strings.TrimPrefix(bearer, bearerPrefix))
+					}))
+					audience, err := ParseAudience(verifierTestAudience)
+					if err != nil {
+						t.Fatalf("ParseAudience() error = %v, want nil", err)
+					}
+					token, err := AcquireGoogleCloud(t.Context(), client, IdentityTokenRequest{Audience: audience, Policy: mustGooglePolicy(t)})
+					if err != nil {
+						t.Fatalf("AcquireGoogleCloud() error = %v, want nil before verification", err)
+					}
+					acquired, err := token.BearerValue()
+					if err != nil || acquired != bearer {
+						t.Fatalf("acquired signed document = (equal %t, %v), want unchanged signed facts and nil", acquired == bearer, err)
+					}
+					bearer = acquired
+				}
 				if tc.mutate != nil {
 					before := bearer
 					bearer = tc.mutate(bearer)
