@@ -124,8 +124,10 @@ func compileAnalysisUnit(metadata *packages.Package, exports map[string]string) 
 		Sizes:     metadata.TypesSizes,
 		GoVersion: analysisGoVersion(metadata),
 	}
-	typedPackage, err := configuration.Check(metadata.PkgPath, fset, syntax, information)
-	if err != nil {
+	// A test-only directory has a valid empty production package. Its name
+	// comes from cmd/go even when there is no production AST to declare it.
+	typedPackage := types.NewPackage(metadata.PkgPath, metadata.Name)
+	if err := types.NewChecker(&configuration, fset, typedPackage, information).Files(syntax); err != nil {
 		return nil, err
 	}
 	return &packages.Package{
@@ -138,7 +140,7 @@ func compileAnalysisUnit(metadata *packages.Package, exports map[string]string) 
 }
 
 func validateAnalysisMetadata(metadata *packages.Package) error {
-	if metadata == nil || metadata.Name == "" || metadata.PkgPath == "" || len(metadata.CompiledGoFiles) == 0 {
+	if metadata == nil || metadata.Name == "" || metadata.PkgPath == "" {
 		return errors.New("compiler metadata is incomplete")
 	}
 	if len(metadata.Errors) != 0 {
