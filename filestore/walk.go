@@ -145,10 +145,15 @@ func readLexicalDirectoryEntries(input readDirectoryInput) error {
 }
 
 func readLexicalDirectoryBatch(input readDirectoryInput, maximum int) ([]fs.DirEntry, error) {
-	entries := make([]fs.DirEntry, 0, maximum+1)
+	// The ceiling is an admission limit, not a reservation. Grow with the
+	// observed directory and read only enough to prove a ceiling violation.
+	entries := make([]fs.DirEntry, 0, min(maximum+1, walkDirectoryBatchEntries))
 	emptyReads := 0
 	for len(entries) <= maximum {
-		batch, err := input.directory.ReadDir(maximum + 1 - len(entries))
+		if err := contextstate.Validate(input.ctx); err != nil {
+			return nil, err
+		}
+		batch, err := input.directory.ReadDir(min(maximum+1-len(entries), walkDirectoryBatchEntries))
 		entries = append(entries, batch...)
 		if len(batch) == 0 && err == nil {
 			emptyReads++

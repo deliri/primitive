@@ -57,7 +57,7 @@ func TestWalkReplacementStandingLayerTriad(t *testing.T) {
 	t.Run("negative directory replaced by symlink refuses before foreign descent", func(t *testing.T) {
 		t.Parallel()
 
-		fixture := newWalkReplacementFixture(t, []byte(walkReplacementOriginalContents))
+		fixture := newWalkReplacementFixture(t, t.TempDir(), []byte(walkReplacementOriginalContents))
 		var gotPaths []core.RelativePath
 		gotErr := filestore.Walk(t.Context(), filestore.WalkRequest{
 			Location: filestore.Location{Root: fixture.root, Path: fixture.walk},
@@ -83,7 +83,7 @@ func TestWalkReplacementStandingLayerTriad(t *testing.T) {
 	t.Run("neutral skipped directory is never reopened after replacement", func(t *testing.T) {
 		t.Parallel()
 
-		fixture := newWalkReplacementFixture(t, []byte(walkReplacementOriginalContents))
+		fixture := newWalkReplacementFixture(t, t.TempDir(), []byte(walkReplacementOriginalContents))
 		var gotPaths []core.RelativePath
 		gotErr := filestore.Walk(t.Context(), filestore.WalkRequest{
 			Location: filestore.Location{Root: fixture.root, Path: fixture.walk},
@@ -123,10 +123,9 @@ const (
 	walkReplacementMutationLimit
 )
 
-func newWalkReplacementFixture(t *testing.T, original []byte) walkReplacementFixture {
+func newWalkReplacementFixture(t *testing.T, rootDirectory string, original []byte) walkReplacementFixture {
 	t.Helper()
 
-	rootDirectory := t.TempDir()
 	walk := mustRelativePath(t, "walk")
 	branch := mustRelativePath(t, filepath.Join(walk.String(), "branch"))
 	held := mustRelativePath(t, filepath.Join(walk.String(), "held"))
@@ -222,7 +221,7 @@ func FuzzWalkReplacementStandingSemanticClosure(f *testing.F) {
 		}
 		mutation := walkReplacementMutation(selector>>1) % walkReplacementMutationLimit
 		skipEntry := selector&1 == 1
-		fixture := newWalkReplacementFixture(t, contents)
+		fixture := newWalkReplacementFixture(t, t.TempDir(), contents)
 		var gotPaths []core.RelativePath
 		gotErr := filestore.Walk(t.Context(), filestore.WalkRequest{
 			Location: filestore.Location{Root: fixture.root, Path: fixture.walk},
