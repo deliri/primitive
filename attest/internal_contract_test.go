@@ -219,12 +219,10 @@ type internalTestDomain struct {
 	text string
 }
 
-func (d internalTestDomain) Validate() error {
-	if !validDomainText([]byte(d.text)) {
-		return contractError(errors.New(domainCanonicalErrorText))
-	}
-	return nil
-}
+// The owner deliberately admits every representation. The production domain
+// boundary must enforce its grammar; calling that same validator here would
+// reject bad input in the fixture before the boundary under test sees it.
+func (internalTestDomain) Validate() error { return nil }
 
 func (d internalTestDomain) MarshalText() ([]byte, error) {
 	return []byte(d.text), nil

@@ -58,9 +58,9 @@ func TestSignPublicMatchesIndependentEd25519FrameOracleAndFixedVector(t *testing
 	}
 }
 
-func independentAttestationFrame(
+func independentAttestationFrame[D attest.SigningDomain[D]](
 	t testing.TB,
-	envelope attest.Envelope[testDomain],
+	envelope attest.Envelope[D],
 ) []byte {
 	t.Helper()
 	domain, gotDomainErr := envelope.Domain.MarshalText()
@@ -79,8 +79,17 @@ func independentAttestationFrame(
 	if gotBodyDigestErr != nil {
 		t.Fatalf("SHA256Digest.Bytes() error = %v, want nil", gotBodyDigestErr)
 	}
-	frame := []byte("primitive-attestation-2026")
-	frame = append(frame, 0)
+	// The independent fixed vector owns the expected framing prefix. Avoid
+	// copying the production protocol literal into a second test contract.
+	vector, vectorErr := hex.DecodeString(fixedVectorFrameHex)
+	if vectorErr != nil {
+		t.Fatalf("fixed vector decoding error = %v, want nil", vectorErr)
+	}
+	separator := bytes.IndexByte(vector, 0)
+	if separator < 0 {
+		t.Fatalf("fixed vector separator index = %d, want non-negative", separator)
+	}
+	frame := bytes.Clone(vector[:separator+1])
 	frame = binary.BigEndian.AppendUint16(frame, uint16(len(domain)))
 	frame = append(frame, domain...)
 	frame = append(frame, publicKey...)

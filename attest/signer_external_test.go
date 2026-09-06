@@ -31,6 +31,7 @@ const (
 )
 
 type externalSignerObservation struct {
+	signCalls   int
 	frameExtent int
 	hash        crypto.Hash
 	randomSet   bool
@@ -65,6 +66,7 @@ func (s externalSigner) Sign(
 	opts crypto.SignerOpts,
 ) ([]byte, error) {
 	if s.observation != nil {
+		s.observation.signCalls++
 		s.observation.frameExtent = len(frame)
 		s.observation.hash = opts.HashFunc()
 		s.observation.randomSet = random != nil
@@ -92,24 +94,25 @@ func TestSignPublicStandardSignerBoundaryMatrix(t *testing.T) {
 	t.Parallel()
 
 	cases := []struct {
-		wantErr    error
-		wantNative error
-		name       string
-		mode       externalSignerMode
+		wantErr       error
+		wantNative    error
+		name          string
+		mode          externalSignerMode
+		wantSignCalls int
 	}{
-		{name: "standard signer seals", mode: externalSignerValid},
+		{name: "standard signer seals", wantSignCalls: 1, mode: externalSignerValid},
 		{name: "public callback panic rejects", mode: externalSignerPublicPanic, wantErr: core.ErrAttestContract},
 		{name: "non ed25519 public key rejects", mode: externalSignerPublicWrongType, wantErr: core.ErrAttestContract},
 		{name: "short ed25519 public key rejects", mode: externalSignerPublicShort, wantErr: core.ErrAttestContract},
 		{name: "long ed25519 public key rejects", mode: externalSignerPublicLong, wantErr: core.ErrAttestContract},
-		{name: "different public key rejects signature", mode: externalSignerPublicDifferent, wantErr: core.ErrAttestContract},
-		{name: "provider error remains reachable", mode: externalSignerSignError, wantErr: core.ErrAttestContract, wantNative: fixtureErrorSign},
-		{name: "provider panic rejects", mode: externalSignerSignPanic, wantErr: core.ErrAttestContract},
-		{name: "nil signature rejects", mode: externalSignerSignatureNil, wantErr: core.ErrAttestContract},
-		{name: "short signature rejects", mode: externalSignerSignatureShort, wantErr: core.ErrAttestContract},
-		{name: "long signature rejects", mode: externalSignerSignatureLong, wantErr: core.ErrAttestContract},
-		{name: "corrupt exact signature rejects", mode: externalSignerSignatureCorrupt, wantErr: core.ErrAttestContract},
-		{name: "provider frame mutation rejects", mode: externalSignerMutatesFrame, wantErr: core.ErrAttestContract},
+		{name: "different public key rejects signature", wantSignCalls: 1, mode: externalSignerPublicDifferent, wantErr: core.ErrAttestContract},
+		{name: "provider error remains reachable", wantSignCalls: 1, mode: externalSignerSignError, wantErr: core.ErrAttestContract, wantNative: fixtureErrorSign},
+		{name: "provider panic rejects", wantSignCalls: 1, mode: externalSignerSignPanic, wantErr: core.ErrAttestContract},
+		{name: "nil signature rejects", wantSignCalls: 1, mode: externalSignerSignatureNil, wantErr: core.ErrAttestContract},
+		{name: "short signature rejects", wantSignCalls: 1, mode: externalSignerSignatureShort, wantErr: core.ErrAttestContract},
+		{name: "long signature rejects", wantSignCalls: 1, mode: externalSignerSignatureLong, wantErr: core.ErrAttestContract},
+		{name: "corrupt exact signature rejects", wantSignCalls: 1, mode: externalSignerSignatureCorrupt, wantErr: core.ErrAttestContract},
+		{name: "provider frame mutation rejects", wantSignCalls: 1, mode: externalSignerMutatesFrame, wantErr: core.ErrAttestContract},
 	}
 	for _, tc := range cases {
 		t.Run(tc.name, func(t *testing.T) {
@@ -130,6 +133,9 @@ func TestSignPublicStandardSignerBoundaryMatrix(t *testing.T) {
 			}
 			if tc.wantNative != nil && !errors.Is(gotErr, tc.wantNative) {
 				t.Fatalf("attest.Sign() native error = %v, want %v", gotErr, tc.wantNative)
+			}
+			if observation.signCalls != tc.wantSignCalls {
+				t.Fatalf("provider signing callbacks = %d, want %d", observation.signCalls, tc.wantSignCalls)
 			}
 			if tc.wantErr != nil {
 				if gotEnvelope != (attest.Envelope[testDomain]{}) {

@@ -2,6 +2,7 @@ package attest_test
 
 import (
 	"bytes"
+	"crypto/ed25519"
 	"encoding/hex"
 	json "encoding/json/v2"
 	"errors"
@@ -20,11 +21,16 @@ func TestEnvelopeJSONPublicNormalizationMatrix(t *testing.T) {
 	t.Parallel()
 
 	canonical := canonicalEnvelopeJSONFixture(t)
+	wantFacts, admitted := envelopeJSONOracle(canonical)
+	if !admitted {
+		t.Fatalf("canonical fixture admission = %t, want true", admitted)
+	}
 	cases := []struct {
-		makeInput envelopeJSONFixture
-		name      string
+		makeInput     envelopeJSONFixture
+		name          string
+		wantUnchanged bool
 	}{
-		{name: "canonical projection closes", makeInput: cloneJSONFixture},
+		{name: "canonical projection closes", makeInput: cloneJSONFixture, wantUnchanged: true},
 		{name: "leading whitespace normalizes", makeInput: prefixJSONFixture(" \n\t")},
 		{name: "trailing whitespace normalizes", makeInput: suffixJSONFixture("\r\n ")},
 		{name: "surrounding whitespace normalizes", makeInput: surroundJSONFixture("\n ", "\t")},
@@ -40,11 +46,15 @@ func TestEnvelopeJSONPublicNormalizationMatrix(t *testing.T) {
 			t.Parallel()
 
 			input := tc.makeInput(t, canonical)
+			if got := bytes.Equal(input, canonical); got != tc.wantUnchanged {
+				t.Fatalf("normalization fixture unchanged = %t, want %t", got, tc.wantUnchanged)
+			}
 			var gotEnvelope attest.Envelope[testDomain]
 			gotErr := gotEnvelope.UnmarshalJSON(input)
 			if gotErr != nil {
 				t.Fatalf("Envelope.UnmarshalJSON() error = %v, want nil", gotErr)
 			}
+			envelopeMatchesJSONFacts(t, gotEnvelope, wantFacts)
 			if gotErr := gotEnvelope.Validate(); gotErr != nil {
 				t.Fatalf("Envelope.Validate() error = %v, want nil", gotErr)
 			}
@@ -362,15 +372,15 @@ func TestSignatureJSONPublicCanonicalBoundaryMatrix(t *testing.T) {
 		name      string
 	}{
 		{name: "standard library signature closes", makeInput: signedSignatureJSONFixture("signature-valid-standard", []byte("x"))},
-		{name: "different key signature closes", makeInput: signedSignatureJSONFixture("signature-valid-other", []byte("x"))},
-		{name: "different body signature closes", makeInput: signedSignatureJSONFixture("signature-valid-standard", []byte("y"))},
+		{name: "only first signature byte set survives projection", makeInput: hexadecimalSignatureJSONFixture("ff" + strings.Repeat("00", ed25519.SignatureSize-1))},
+		{name: "only last signature byte set survives projection", makeInput: hexadecimalSignatureJSONFixture(strings.Repeat("00", ed25519.SignatureSize-1) + "ff")},
 		{name: "leading whitespace normalizes", makeInput: decoratedSignatureJSONFixture(" \n", "")},
 		{name: "trailing whitespace normalizes", makeInput: decoratedSignatureJSONFixture("", "\t ")},
 		{name: "surrounding whitespace normalizes", makeInput: decoratedSignatureJSONFixture("\n", "\r\n")},
 		{name: "equivalent lowercase escape normalizes", makeInput: escapedSignatureJSONFixture},
-		{name: "all zero structural signature closes", makeInput: hexadecimalSignatureJSONFixture(strings.Repeat("0", 128))},
-		{name: "all maximum structural signature closes", makeInput: hexadecimalSignatureJSONFixture(strings.Repeat("f", 128))},
-		{name: "alternating structural signature closes", makeInput: hexadecimalSignatureJSONFixture(strings.Repeat("01", 64))},
+		{name: "all zero structural signature closes", makeInput: hexadecimalSignatureJSONFixture(strings.Repeat("0", hex.EncodedLen(ed25519.SignatureSize)))},
+		{name: "all maximum structural signature closes", makeInput: hexadecimalSignatureJSONFixture(strings.Repeat("f", hex.EncodedLen(ed25519.SignatureSize)))},
+		{name: "alternating structural signature closes", makeInput: hexadecimalSignatureJSONFixture(strings.Repeat("01", ed25519.SignatureSize))},
 	}
 	for _, tc := range cases {
 		t.Run(tc.name, func(t *testing.T) {
@@ -385,6 +395,14 @@ func TestSignatureJSONPublicCanonicalBoundaryMatrix(t *testing.T) {
 			gotHex, gotHexErr := gotSignature.Hex()
 			if gotHexErr != nil || gotHex != wantHex {
 				t.Fatalf("Signature.Hex() = (%q, %v), want (%q, nil)", gotHex, gotHexErr, wantHex)
+			}
+			wantBytes, err := hex.DecodeString(wantHex)
+			if err != nil {
+				t.Fatalf("signature fixture hex error = %v, want nil", err)
+			}
+			gotBytes, err := gotSignature.Bytes()
+			if err != nil || !bytes.Equal(gotBytes[:], wantBytes) {
+				t.Fatalf("Signature.Bytes() = (%x, %v), want %x", gotBytes, err, wantBytes)
 			}
 			gotCanonical, gotMarshalErr := gotSignature.MarshalJSON()
 			if gotMarshalErr != nil {
@@ -421,11 +439,11 @@ func TestSignatureJSONPublicHostileReceiverPreservationMatrix(t *testing.T) {
 		{name: "object rejects", input: []byte("{}")},
 		{name: "empty string rejects", input: []byte(`""`)},
 		{name: "one hexadecimal digit rejects", input: []byte(`"0"`)},
-		{name: "one byte short rejects", input: []byte(`"` + strings.Repeat("0", 126) + `"`)},
-		{name: "one hexadecimal character short rejects", input: []byte(`"` + strings.Repeat("0", 127) + `"`)},
-		{name: "one hexadecimal character long rejects", input: []byte(`"` + strings.Repeat("0", 129) + `"`)},
-		{name: "one byte long rejects", input: []byte(`"` + strings.Repeat("0", 130) + `"`)},
-		{name: "nonhexadecimal rejects", input: []byte(`"` + strings.Repeat("g", 128) + `"`)},
+		{name: "one byte short rejects", input: []byte(`"` + strings.Repeat("0", hex.EncodedLen(ed25519.SignatureSize)-2) + `"`)},
+		{name: "one hexadecimal character short rejects", input: []byte(`"` + strings.Repeat("0", hex.EncodedLen(ed25519.SignatureSize)-1) + `"`)},
+		{name: "one hexadecimal character long rejects", input: []byte(`"` + strings.Repeat("0", hex.EncodedLen(ed25519.SignatureSize)+1) + `"`)},
+		{name: "one byte long rejects", input: []byte(`"` + strings.Repeat("0", hex.EncodedLen(ed25519.SignatureSize)+2) + `"`)},
+		{name: "nonhexadecimal rejects", input: []byte(`"` + strings.Repeat("g", hex.EncodedLen(ed25519.SignatureSize)) + `"`)},
 		{name: "uppercase rejects", input: bytes.ToUpper(originalJSON)},
 		{name: "trailing value rejects", input: append(bytes.Clone(originalJSON), []byte(" 0")...)},
 	}
@@ -435,7 +453,7 @@ func TestSignatureJSONPublicHostileReceiverPreservationMatrix(t *testing.T) {
 
 			gotSignature := originalEnvelope.Signature
 			gotErr := gotSignature.UnmarshalJSON(tc.input)
-			if !errors.Is(gotErr, core.ErrJSONContract) {
+			if !errors.Is(gotErr, core.ErrJSONContract) || !errors.Is(gotErr, core.ErrAttestContract) {
 				t.Fatalf("Signature.UnmarshalJSON() error = %v, want %v", gotErr, core.ErrJSONContract)
 			}
 			if gotSignature != originalEnvelope.Signature {
@@ -573,7 +591,7 @@ func TestJSONPublicNilReceiverBoundary(t *testing.T) {
 			name: "nil signature receiver rejects",
 			run: func() error {
 				var receiver *attest.Signature
-				return receiver.UnmarshalJSON([]byte(`"` + strings.Repeat("0", 128) + `"`))
+				return receiver.UnmarshalJSON([]byte(`"` + strings.Repeat("0", hex.EncodedLen(ed25519.SignatureSize)) + `"`))
 			},
 		},
 	}
@@ -1035,4 +1053,60 @@ func marshalJSONFixture[T any](t testing.TB, value T) []byte {
 		t.Fatalf("json.Marshal(fixture) error = %v, want nil", err)
 	}
 	return encoded
+}
+
+func TestSignatureZeroValueCannotExposeOrProjectEvidence(t *testing.T) {
+	t.Parallel()
+	var signature attest.Signature
+	if err := signature.Validate(); !errors.Is(err, core.ErrAttestContract) {
+		t.Fatalf("zero Signature.Validate() error = %v, want %v", err, core.ErrAttestContract)
+	}
+	raw, err := signature.Bytes()
+	if !errors.Is(err, core.ErrAttestContract) || raw != ([ed25519.SignatureSize]byte{}) {
+		t.Fatalf("zero Signature.Bytes() = (%x, %v), want zero bytes and %v", raw, err, core.ErrAttestContract)
+	}
+	text, err := signature.Hex()
+	if !errors.Is(err, core.ErrAttestContract) || text != "" {
+		t.Fatalf("zero Signature.Hex() = (%q, %v), want empty and %v", text, err, core.ErrAttestContract)
+	}
+	encoded, err := signature.MarshalJSON()
+	if !errors.Is(err, core.ErrAttestContract) || !errors.Is(err, core.ErrJSONContract) || encoded != nil {
+		t.Fatalf("zero Signature.MarshalJSON() = (%q, %v), want nil and typed JSON/attest refusal", encoded, err)
+	}
+}
+
+func TestSignatureJSONDocumentExtentIncludesWhitespace(t *testing.T) {
+	t.Parallel()
+	original := mustSignature(t, strings.Repeat("a5", ed25519.SignatureSize))
+	encoded, err := original.MarshalJSON()
+	if err != nil {
+		t.Fatalf("signature fixture encoding error = %v, want nil", err)
+	}
+	for _, tc := range []struct {
+		name    string
+		extent  int
+		wantErr error
+	}{
+		{name: "one byte below shared JSON document cap", extent: core.JSONDocumentMaximumBytes - 1},
+		{name: "exact shared JSON document cap", extent: core.JSONDocumentMaximumBytes},
+		{name: "one byte above shared JSON document cap", extent: core.JSONDocumentMaximumBytes + 1, wantErr: core.ErrJSONContract},
+	} {
+		t.Run(tc.name, func(t *testing.T) {
+			t.Parallel()
+			input := append(bytes.Clone(encoded), bytes.Repeat([]byte{' '}, tc.extent-len(encoded))...)
+			got := mustSignature(t, strings.Repeat("5a", ed25519.SignatureSize))
+			before := got
+			err := got.UnmarshalJSON(input)
+			if !errors.Is(err, tc.wantErr) {
+				t.Fatalf("Signature.UnmarshalJSON(%d bytes) error = %v, want %v", len(input), err, tc.wantErr)
+			}
+			want := original
+			if tc.wantErr != nil {
+				want = before
+			}
+			if got != want {
+				t.Fatalf("signature after bounded input = %+v, want %+v", got, want)
+			}
+		})
+	}
 }

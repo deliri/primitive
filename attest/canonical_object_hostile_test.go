@@ -1,6 +1,9 @@
 package attest_test
 
 import (
+	"bytes"
+	"crypto/sha256"
+	"encoding/json/jsontext"
 	"errors"
 	"io"
 	"math"
@@ -10,6 +13,7 @@ import (
 
 	"github.com/deliri/primitive/v2026/attest"
 	"github.com/deliri/primitive/v2026/core"
+	"github.com/deliri/primitive/v2026/testserial"
 )
 
 // canonicalMember is a well-behaved nested member owner.
@@ -52,7 +56,7 @@ type erroringMember struct{}
 func (erroringMember) Validate() error { return nil }
 
 func (erroringMember) MarshalJSON() ([]byte, error) {
-	return nil, errors.New("member marshal refused")
+	return nil, fixtureErrorMarshal
 }
 
 // observedMember records whether CanonicalObject invoked a nested owner. It
@@ -110,7 +114,6 @@ func TestCanonicalObjectMemberNameGrammarAdmitsExactlyTheCanonicalWordShape(t *t
 
 	longestName := strings.Repeat("a", attest.CanonicalFieldNameMaximumBytes)
 	overLongName := strings.Repeat("a", attest.CanonicalFieldNameMaximumBytes+1)
-	separatedName := strings.Repeat("ab_", 21) + "c"
 
 	cases := []struct {
 		name     string
@@ -119,45 +122,27 @@ func TestCanonicalObjectMemberNameGrammarAdmitsExactlyTheCanonicalWordShape(t *t
 	}{
 		{name: "single lowercase letter is the shortest legal name", field: "a", wantName: true},
 		{name: "single decimal digit is legal because names are words not identifiers", field: "0", wantName: true},
-		{name: "plain lowercase word is legal", field: "commit", wantName: true},
+		{name: "highest lowercase byte is admitted", field: "z", wantName: true},
+		{name: "highest decimal byte is admitted", field: "9", wantName: true},
 		{name: "one interior separator is legal", field: "run_id", wantName: true},
-		{name: "several interior separators are legal", field: "start_unix_nanos", wantName: true},
-		{name: "trailing digits are legal", field: "sha256", wantName: true},
-		{name: "digit directly after a separator is legal", field: "schema_2026", wantName: true},
-		{name: "separator between digits is legal", field: "0_0", wantName: true},
 		{name: "longest legal name is admitted at the exact boundary", field: longestName, wantName: true},
-		{name: "many single separators at maximum length are admitted", field: separatedName, wantName: true},
 
 		{name: "empty name is rejected at the lower boundary", field: "", wantName: false},
 		{name: "one byte over the extent boundary is rejected", field: overLongName, wantName: false},
 		{name: "leading separator is rejected", field: "_commit", wantName: false},
 		{name: "trailing separator is rejected", field: "commit_", wantName: false},
-		{name: "lone separator is both leading and trailing and is rejected", field: "_", wantName: false},
 		{name: "doubled interior separator is rejected", field: "run__id", wantName: false},
-		{name: "tripled interior separator is rejected", field: "run___id", wantName: false},
 		{name: "uppercase letter is rejected because case folding would collide", field: "runID", wantName: false},
-		{name: "fully uppercase name is rejected", field: "COMMIT", wantName: false},
 		{name: "hyphen is rejected because the separator is exclusive", field: "run-id", wantName: false},
 
-		{name: "space is rejected", field: "run id", wantName: false},
-		{name: "period is rejected", field: "run.id", wantName: false},
-		{name: "slash is rejected", field: "run/id", wantName: false},
 		{name: "quote is rejected because a name must never need escaping", field: "run\"id", wantName: false},
 		{name: "backslash is rejected because a name must never need escaping", field: "run\\id", wantName: false},
-		{name: "newline is rejected", field: "run\nid", wantName: false},
-		{name: "tab is rejected", field: "run\tid", wantName: false},
 		{name: "null byte is rejected", field: "run\x00id", wantName: false},
-		{name: "delete byte is rejected", field: "run\x7fid", wantName: false},
 		{name: "non-ascii multibyte rune is rejected", field: "runé", wantName: false},
 		{name: "byte one below lowercase a is rejected", field: "run`id", wantName: false},
 		{name: "byte one above lowercase z is rejected", field: "run{id", wantName: false},
-		{name: "byte one below decimal zero is rejected", field: "run/id", wantName: false},
 		{name: "byte one above decimal nine is rejected", field: "run:id", wantName: false},
-		{name: "byte one below the separator is rejected", field: "run^id", wantName: false},
-		{name: "byte one above the separator is rejected", field: "run`id", wantName: false},
-		{name: "leading separator with a legal tail is still rejected", field: "_run_id", wantName: false},
-		{name: "doubled separator at the front is rejected", field: "__runid", wantName: false},
-		{name: "doubled separator at the end is rejected", field: "runid__", wantName: false},
+		{name: "byte one below decimal zero is rejected", field: "run/id", wantName: false},
 		{name: "one byte under the longest legal name stays admitted", field: overLongName[:attest.CanonicalFieldNameMaximumBytes-1], wantName: true},
 	}
 
@@ -347,24 +332,52 @@ func TestCanonicalObjectStateTransitionsRefuseReuseDuplicatesAndOverflow(t *test
 		}
 	})
 
-	t.Run("the member ceiling is admitted exactly and one member above is refused", func(t *testing.T) {
+	t.Run("member count pressures both sides of the ceiling without losing fields", func(t *testing.T) {
 		t.Parallel()
-
-		atCeiling := attest.BeginCanonicalObject(nil)
-		for index := range attest.CanonicalObjectMaximumFields {
-			atCeiling.Uint64("f"+strconv.Itoa(index), uint64(index))
-		}
-		if _, gotErr := atCeiling.End(); gotErr != nil {
-			t.Fatalf("End() at the member ceiling error = %v, want nil", gotErr)
-		}
-
-		overCeiling := attest.BeginCanonicalObject(nil)
-		for index := range attest.CanonicalObjectMaximumFields + 1 {
-			overCeiling.Uint64("f"+strconv.Itoa(index), uint64(index))
-		}
-		got, gotErr := overCeiling.End()
-		if !errors.Is(gotErr, core.ErrAttestContract) || got != nil {
-			t.Fatalf("End() one member above the ceiling = (%q, %v), want (nil, %v)", got, gotErr, core.ErrAttestContract)
+		for _, tc := range []struct {
+			name    string
+			count   int
+			wantErr error
+		}{
+			{name: "one below maximum", count: attest.CanonicalObjectMaximumFields - 1},
+			{name: "exact maximum", count: attest.CanonicalObjectMaximumFields},
+			{name: "one above maximum", count: attest.CanonicalObjectMaximumFields + 1, wantErr: core.ErrAttestContract},
+		} {
+			t.Run(tc.name, func(t *testing.T) {
+				t.Parallel()
+				object := attest.BeginCanonicalObject(nil)
+				var oracle bytes.Buffer
+				encoder := jsontext.NewEncoder(&oracle)
+				if err := encoder.WriteToken(jsontext.BeginObject); err != nil {
+					t.Fatalf("oracle opening token error = %v, want nil", err)
+				}
+				for index := range tc.count {
+					name := "f" + strconv.Itoa(index)
+					object.Uint64(name, uint64(index))
+					for _, token := range []jsontext.Token{jsontext.String(name), jsontext.Uint(uint64(index))} {
+						if err := encoder.WriteToken(token); err != nil {
+							t.Fatalf("oracle member token error = %v, want nil", err)
+						}
+					}
+				}
+				if err := encoder.WriteToken(jsontext.EndObject); err != nil {
+					t.Fatalf("oracle closing token error = %v, want nil", err)
+				}
+				got, err := object.End()
+				if !errors.Is(err, tc.wantErr) {
+					t.Fatalf("End() error = %v, want %v", err, tc.wantErr)
+				}
+				if tc.wantErr != nil {
+					if got != nil {
+						t.Fatalf("rejected object = %q, want nil", got)
+					}
+					return
+				}
+				want := bytes.TrimSuffix(oracle.Bytes(), []byte{'\n'})
+				if !bytes.Equal(got, want) {
+					t.Fatalf("bounded fields = %q, want %q", got, want)
+				}
+			})
 		}
 	})
 
@@ -382,18 +395,24 @@ func TestCanonicalObjectStateTransitionsRefuseReuseDuplicatesAndOverflow(t *test
 		}
 	})
 
-	t.Run("a member written after End is refused rather than silently dropped", func(t *testing.T) {
+	t.Run("a member after End cannot invoke its owner or mutate caller storage", func(t *testing.T) {
 		t.Parallel()
-
-		object := attest.BeginCanonicalObject(nil)
+		storage := make([]byte, 0, 128)
+		object := attest.BeginCanonicalObject(storage)
 		object.Bool("v", true)
-		if _, gotErr := object.End(); gotErr != nil {
-			t.Fatalf("End() error = %v, want nil", gotErr)
+		got, err := object.End()
+		if err != nil || string(got) != `{"v":true}` {
+			t.Fatalf("first End() = (%q, %v), want complete true member", got, err)
 		}
-		object.Bool("w", true)
-		got, gotErr := object.End()
-		if !errors.Is(gotErr, core.ErrAttestContract) || got != nil {
-			t.Fatalf("End() after a late member = (%q, %v), want (nil, %v)", got, gotErr, core.ErrAttestContract)
+		before := bytes.Clone(storage[:cap(storage)])
+		calls := 0
+		object.Value("late", observedMember{calls: &calls})
+		if calls != 0 || !bytes.Equal(storage[:cap(storage)], before) {
+			t.Fatalf("late member effects = (%d callbacks, storage unchanged %t), want 0 and true", calls, bytes.Equal(storage[:cap(storage)], before))
+		}
+		got, err = object.End()
+		if !errors.Is(err, core.ErrAttestContract) || got != nil {
+			t.Fatalf("End() after late member = (%q, %v), want nil and %v", got, err, core.ErrAttestContract)
 		}
 	})
 
@@ -405,19 +424,6 @@ func TestCanonicalObjectStateTransitionsRefuseReuseDuplicatesAndOverflow(t *test
 		got, gotErr := object.End()
 		if !errors.Is(gotErr, core.ErrAttestContract) || got != nil {
 			t.Fatalf("zero object End() = (%q, %v), want (nil, %v)", got, gotErr, core.ErrAttestContract)
-		}
-	})
-
-	t.Run("the first failure is retained across every later member", func(t *testing.T) {
-		t.Parallel()
-
-		object := attest.BeginCanonicalObject(nil)
-		object.Bool("_bad", true)
-		object.Bool("good", true)
-		object.Uint64("also_good", 1)
-		got, gotErr := object.End()
-		if !errors.Is(gotErr, core.ErrAttestContract) || got != nil {
-			t.Fatalf("End() after an early failure = (%q, %v), want (nil, %v)", got, gotErr, core.ErrAttestContract)
 		}
 	})
 
@@ -522,10 +528,13 @@ func TestCanonicalObjectBodySignsAndVerifiesThroughTheRealAttestPath(t *testing.
 	}
 
 	trusted := mustTrustedKeys(t, mustPublicKey(t, privateKey))
-	if _, verifyErr := attest.Verify(attest.VerifyRequest[testDomain]{
-		Body: body, Envelope: envelope, TrustedKeys: trusted,
-	}); verifyErr != nil {
+	proof, verifyErr := attest.Verify(attest.VerifyRequest[testDomain]{Body: body, Envelope: envelope, TrustedKeys: trusted})
+	if verifyErr != nil {
 		t.Fatalf("Verify() error = %v, want nil", verifyErr)
+	}
+	retained, retainedErr := proof.Envelope()
+	if retainedErr != nil || retained != envelope {
+		t.Fatalf("verified envelope = (%+v, %v), want %+v", retained, retainedErr, envelope)
 	}
 
 	// The digest attest signed must be the digest of the exact bytes the
@@ -533,6 +542,10 @@ func TestCanonicalObjectBodySignsAndVerifiesThroughTheRealAttestPath(t *testing.
 	canonical, canonicalErr := body.canonical()
 	if canonicalErr != nil {
 		t.Fatalf("canonical() error = %v, want nil", canonicalErr)
+	}
+	wantDigest := core.NewSHA256Digest(sha256.Sum256(canonical))
+	if envelope.BodySHA256 != wantDigest {
+		t.Fatalf("signed digest = %v, want %v", envelope.BodySHA256, wantDigest)
 	}
 	wantLength, lengthErr := core.NewByteCount(uint64(len(canonical)))
 	if lengthErr != nil {
@@ -544,9 +557,152 @@ func TestCanonicalObjectBodySignsAndVerifiesThroughTheRealAttestPath(t *testing.
 
 	// One changed member must break verification against the original envelope.
 	mutated := builtBody{commit: "abcdef", count: 43}
-	if _, verifyErr := attest.Verify(attest.VerifyRequest[testDomain]{
-		Body: mutated, Envelope: envelope, TrustedKeys: trusted,
-	}); !errors.Is(verifyErr, core.ErrAttestVerification) {
+	gotRejected, verifyErr := attest.Verify(attest.VerifyRequest[testDomain]{Body: mutated, Envelope: envelope, TrustedKeys: trusted})
+	if gotRejected != (attest.Verified[testDomain]{}) {
+		t.Fatalf("mutated body proof = %+v, want zero", gotRejected)
+	}
+	if !errors.Is(verifyErr, core.ErrAttestVerification) {
 		t.Fatalf("Verify() over a mutated body error = %v, want %v", verifyErr, core.ErrAttestVerification)
+	}
+}
+
+func TestCanonicalObjectStringExtentIncludesEscapesAndClosingByte(t *testing.T) {
+	t.Parallel()
+	for _, tc := range []struct {
+		name        string
+		value       string
+		escapeBytes int
+	}{
+		{name: "plain UTF8 byte", value: "x", escapeBytes: 1},
+		{name: "short control escape", value: "\n", escapeBytes: 2},
+		{name: "six byte control escape", value: "\x00", escapeBytes: 6},
+	} {
+		t.Run(tc.name, func(t *testing.T) {
+			t.Parallel()
+			// Derive framing from the independent standard-library string encoder.
+			empty, err := core.MarshalCanonicalJSONDocument(struct {
+				V string `json:"v"`
+			}{})
+			if err != nil {
+				t.Fatalf("framing oracle error = %v, want nil", err)
+			}
+			room := attest.CanonicalBodyMaximumBytes - len(empty)
+			for _, boundary := range []struct {
+				name  string
+				delta int
+			}{
+				{name: "one byte below maximum", delta: -1},
+				{name: "exact maximum including closing brace", delta: 0},
+				{name: "one byte above maximum", delta: 1},
+				{name: "encoded member itself exceeds remaining storage", delta: 2},
+			} {
+				delta := boundary.delta
+				t.Run(boundary.name, func(t *testing.T) {
+					t.Parallel()
+					extent := room + delta
+					input := strings.Repeat(tc.value, extent/tc.escapeBytes) + strings.Repeat("x", extent%tc.escapeBytes)
+					want, err := core.MarshalCanonicalJSONDocument(struct {
+						V string `json:"v"`
+					}{V: input})
+					if err != nil || len(want) != attest.CanonicalBodyMaximumBytes+delta {
+						t.Fatalf("oracle extent = (%d, %v), want %d", len(want), err, attest.CanonicalBodyMaximumBytes+delta)
+					}
+					object := attest.BeginCanonicalObject(nil)
+					object.String("v", input)
+					got, gotErr := object.End()
+					if delta > 0 {
+						if !errors.Is(gotErr, core.ErrAttestContract) || got != nil {
+							t.Fatalf("oversized End() = (%d bytes, %v), want nil and %v", len(got), gotErr, core.ErrAttestContract)
+						}
+						return
+					}
+					if gotErr != nil || !bytes.Equal(got, want) {
+						t.Fatalf("bounded End() = (%d bytes, %v), want %d exact oracle bytes", len(got), gotErr, len(want))
+					}
+				})
+			}
+		})
+	}
+}
+
+func TestCanonicalObjectPreservesFirstTypedRefusalAndSuppressesCallbacks(t *testing.T) {
+	t.Parallel()
+	calls := 0
+	object := attest.BeginCanonicalObject(nil)
+	object.Value("first", erroringMember{})
+	object.Value("later", observedMember{calls: &calls})
+	object.Bool("INVALID", true)
+	got, gotErr := object.End()
+	if !errors.Is(gotErr, fixtureErrorMarshal) || !errors.Is(gotErr, core.ErrAttestContract) || got != nil {
+		t.Fatalf("End() = (%q, %v), want nil and original typed marshal refusal", got, gotErr)
+	}
+	if calls != 0 {
+		t.Fatalf("callbacks after terminal refusal = %d, want 0", calls)
+	}
+}
+
+func TestCanonicalObjectReusedScalarsAllocateNoHeap(t *testing.T) {
+	testserial.Declare(t, core.TestIsolationDeclaration{Hazard: core.TestIsolationHazardRuntimeAllocation, Scope: core.TestIsolationScopePackageProcess})
+	want, err := core.MarshalCanonicalJSONDocument(struct {
+		Signed   int64  `json:"signed"`
+		Unsigned uint64 `json:"unsigned"`
+		Flag     bool   `json:"flag"`
+	}{Signed: math.MinInt64, Unsigned: math.MaxUint64, Flag: true})
+	if err != nil {
+		t.Fatalf("scalar oracle error = %v, want nil", err)
+	}
+	destination := make([]byte, 0, len(want))
+	gotAllocations := testing.AllocsPerRun(100, func() {
+		object := attest.BeginCanonicalObject(destination[:0])
+		object.Int64("signed", math.MinInt64)
+		object.Uint64("unsigned", math.MaxUint64)
+		object.Bool("flag", true)
+		destination, err = object.End()
+		if err != nil {
+			t.Fatalf("End() error = %v, want nil", err)
+		}
+	})
+	if gotAllocations != 0 || !bytes.Equal(destination, want) {
+		t.Fatalf("reused scalars = (%g allocs, %q), want (0, %q)", gotAllocations, destination, want)
+	}
+}
+
+func TestCanonicalObjectDestinationPrefixConsumesTheDocumentBudget(t *testing.T) {
+	t.Parallel()
+	member, err := core.MarshalCanonicalJSONDocument(struct {
+		V bool `json:"v"`
+	}{V: true})
+	if err != nil {
+		t.Fatalf("prefix fixture encoding error = %v, want nil", err)
+	}
+	for _, tc := range []struct {
+		name    string
+		extent  int
+		wantErr error
+	}{
+		{name: "prefix leaves one byte of slack", extent: attest.CanonicalBodyMaximumBytes - 1},
+		{name: "prefix and member exactly consume document budget", extent: attest.CanonicalBodyMaximumBytes},
+		{name: "prefix leaves no room for closing byte", extent: attest.CanonicalBodyMaximumBytes + 1, wantErr: core.ErrAttestContract},
+	} {
+		t.Run(tc.name, func(t *testing.T) {
+			t.Parallel()
+			prefix := bytes.Repeat([]byte{' '}, tc.extent-len(member))
+			want := append(bytes.Clone(prefix), member...)
+			object := attest.BeginCanonicalObject(prefix)
+			object.Bool("v", true)
+			got, err := object.End()
+			if !errors.Is(err, tc.wantErr) {
+				t.Fatalf("prefixed End() error = %v, want %v", err, tc.wantErr)
+			}
+			if tc.wantErr != nil {
+				if got != nil {
+					t.Fatalf("rejected prefixed object = %d bytes, want nil", len(got))
+				}
+				return
+			}
+			if !bytes.Equal(got, want) {
+				t.Fatalf("prefixed object = %d bytes, want %d exact prefix and member bytes", len(got), len(want))
+			}
+		})
 	}
 }

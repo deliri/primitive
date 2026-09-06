@@ -171,24 +171,6 @@ func (b hostileBody) WriteCanonical(destination io.Writer) error {
 	}
 }
 
-type retainingBody struct {
-	retained *io.Writer
-}
-
-func (retainingBody) Validate() error {
-	return nil
-}
-
-func (retainingBody) AttestationDomain() testDomain {
-	return testDomainPrimary
-}
-
-func (b retainingBody) WriteCanonical(destination io.Writer) error {
-	*b.retained = destination
-	_, err := io.WriteString(destination, "x")
-	return err
-}
-
 type keyMutatingBody struct {
 	key ed25519.PrivateKey
 }

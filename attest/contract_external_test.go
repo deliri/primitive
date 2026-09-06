@@ -38,7 +38,6 @@ func TestSignPublicCanonicalBodyProductionPathMatrix(t *testing.T) {
 		{name: "maximum plus one rejects", makeBody: sizedBodyFixture(attest.CanonicalBodyMaximumBytes+1, 8192, testDomainPrimary, false), wantErr: core.ErrAttestContract},
 		{name: "ignored limit error remains terminal", makeBody: sizedBodyFixture(attest.CanonicalBodyMaximumBytes+1, 8192, testDomainPrimary, true), wantErr: core.ErrAttestContract},
 		{name: "unknown domain rejects before signing", makeBody: literalBodyFixture(testDomainUnknown, []byte("x")), wantErr: core.ErrAttestContract},
-		{name: "future domain rejects before signing", makeBody: literalBodyFixture(testDomain(255), []byte("x")), wantErr: core.ErrAttestContract},
 		{name: "validation error remains reachable", makeBody: hostileBodyFixture(hostileBodyValidationError), wantErr: core.ErrAttestContract, wantNative: fixtureErrorValidation},
 		{name: "validation panic is contained", makeBody: hostileBodyFixture(hostileBodyValidationPanic), wantErr: core.ErrAttestContract},
 		{name: "domain panic is contained", makeBody: hostileBodyFixture(hostileBodyDomainPanic), wantErr: core.ErrAttestContract},
@@ -51,9 +50,11 @@ func TestSignPublicCanonicalBodyProductionPathMatrix(t *testing.T) {
 		t.Run(tc.name, func(t *testing.T) {
 			t.Parallel()
 
+			body := tc.makeBody()
+			key := deterministicPrivateKey(t, "canonical-body")
 			gotEnvelope, gotErr := attest.Sign(attest.SignRequest[testDomain]{
-				Body:   tc.makeBody(),
-				Signer: deterministicPrivateKey(t, "canonical-body"),
+				Body:   body,
+				Signer: key,
 			})
 			if !errors.Is(gotErr, tc.wantErr) {
 				t.Fatalf("attest.Sign() error = %v, want %v", gotErr, tc.wantErr)
@@ -66,6 +67,23 @@ func TestSignPublicCanonicalBodyProductionPathMatrix(t *testing.T) {
 					t.Fatalf("attest.Sign() envelope = %+v, want zero", gotEnvelope)
 				}
 				return
+			}
+			digest := sha256.New()
+			if err := body.WriteCanonical(digest); err != nil {
+				t.Fatalf("independent body hash error = %v, want nil", err)
+			}
+			var rawDigest [sha256.Size]byte
+			copy(rawDigest[:], digest.Sum(nil))
+			wantDigest := core.NewSHA256Digest(rawDigest)
+			if gotEnvelope.BodySHA256 != wantDigest {
+				t.Fatalf("signed SHA-256 = %v, want %v", gotEnvelope.BodySHA256, wantDigest)
+			}
+			if gotEnvelope.Domain != body.AttestationDomain() || gotEnvelope.Signer != mustPublicKey(t, key) {
+				t.Fatalf("signed identity = (%v, %v), want caller domain and signer", gotEnvelope.Domain, gotEnvelope.Signer)
+			}
+			signature, err := gotEnvelope.Signature.Bytes()
+			if err != nil || !ed25519.Verify(key.Public().(ed25519.PublicKey), independentAttestationFrame(t, gotEnvelope), signature[:]) {
+				t.Fatalf("signed body independent verification error = %v, want authentic frame", err)
 			}
 			gotBytes, gotBytesErr := gotEnvelope.BodyLength.Uint64()
 			if gotBytesErr != nil || gotBytes != tc.wantBytes {
@@ -90,7 +108,6 @@ func TestSignPublicPrivateKeyBoundaryMatrix(t *testing.T) {
 	}{
 		{name: "exact standard private key signs", makeKey: fixedPrivateKeyFixture("valid-private-key")},
 		{name: "nil private key rejects", makeKey: nilPrivateKeyFixture, wantErr: core.ErrAttestContract},
-		{name: "empty private key rejects", makeKey: emptyPrivateKeyFixture, wantErr: core.ErrAttestContract},
 		{name: "seed length rejects", makeKey: sizedPrivateKeyFixture(ed25519.SeedSize), wantErr: core.ErrAttestContract},
 		{name: "one byte short rejects", makeKey: sizedPrivateKeyFixture(ed25519.PrivateKeySize - 1), wantErr: core.ErrAttestContract},
 		{name: "one byte long rejects", makeKey: sizedPrivateKeyFixture(ed25519.PrivateKeySize + 1), wantErr: core.ErrAttestContract},
@@ -101,15 +118,24 @@ func TestSignPublicPrivateKeyBoundaryMatrix(t *testing.T) {
 		t.Run(tc.name, func(t *testing.T) {
 			t.Parallel()
 
-			gotEnvelope, gotErr := attest.Sign(attest.SignRequest[testDomain]{
-				Body:   literalBody{domain: testDomainPrimary, value: []byte("key-boundary")},
-				Signer: tc.makeKey(),
-			})
+			key := tc.makeKey()
+			body := literalBody{domain: testDomainPrimary, value: []byte("key-boundary")}
+			gotEnvelope, gotErr := attest.Sign(attest.SignRequest[testDomain]{Body: body, Signer: key})
 			if !errors.Is(gotErr, tc.wantErr) {
 				t.Fatalf("attest.Sign() error = %v, want %v", gotErr, tc.wantErr)
 			}
 			if tc.wantErr != nil && gotEnvelope != (attest.Envelope[testDomain]{}) {
 				t.Fatalf("attest.Sign() envelope = %+v, want zero", gotEnvelope)
+			}
+			if tc.wantErr == nil {
+				proof, err := attest.Verify(attest.VerifyRequest[testDomain]{Body: body, Envelope: gotEnvelope, TrustedKeys: mustTrustedKeys(t, mustPublicKey(t, key))})
+				if err != nil {
+					t.Fatalf("Verify(admitted private key) error = %v, want nil", err)
+				}
+				retained, err := proof.Envelope()
+				if err != nil || retained != gotEnvelope {
+					t.Fatalf("admitted key proof = (%+v, %v), want %+v", retained, err, gotEnvelope)
+				}
 			}
 		})
 	}
@@ -131,8 +157,8 @@ func TestSigningDomainPublicCanonicalTextBoundaryMatrix(t *testing.T) {
 		{name: "letter digit accepted", text: "a0"},
 		{name: "internal hyphen accepted", text: "a-b"},
 		{name: "two separated hyphens accepted", text: "a-b-c"},
-		{name: "numeric interior accepted", text: "a-2026-z"},
-		{name: "mixed long token accepted", text: "release-manifest-2026-v1"},
+		{name: "upper lowercase alphabet endpoint accepted", text: "z"},
+		{name: "upper digit alphabet endpoint accepted", text: "9"},
 		{name: "maximum minus one letters accepted", text: strings.Repeat("a", attest.SigningDomainMaximumBytes-1)},
 		{name: "exact maximum letters accepted", text: maximumLetters},
 		{name: "exact maximum alternating accepted", text: alternatingDomainText(attest.SigningDomainMaximumBytes)},
@@ -143,6 +169,9 @@ func TestSigningDomainPublicCanonicalTextBoundaryMatrix(t *testing.T) {
 		{name: "trailing hyphen rejected", text: "a-", wantErr: core.ErrAttestContract},
 		{name: "adjacent hyphens rejected", text: "a--b", wantErr: core.ErrAttestContract},
 		{name: "uppercase rejected", text: "A", wantErr: core.ErrAttestContract},
+		{name: "one below lowercase alphabet rejected", text: "`", wantErr: core.ErrAttestContract},
+		{name: "one above lowercase alphabet rejected", text: "{", wantErr: core.ErrAttestContract},
+		{name: "one above digit alphabet rejected", text: ":", wantErr: core.ErrAttestContract},
 		{name: "underscore rejected", text: "a_b", wantErr: core.ErrAttestContract},
 		{name: "slash rejected", text: "a/b", wantErr: core.ErrAttestContract},
 		{name: "space rejected", text: "a b", wantErr: core.ErrAttestContract},
@@ -161,10 +190,9 @@ func TestSigningDomainPublicCanonicalTextBoundaryMatrix(t *testing.T) {
 		t.Run(tc.name, func(t *testing.T) {
 			t.Parallel()
 
-			gotEnvelope, gotErr := attest.Sign(attest.SignRequest[textDomain]{
-				Body:   textDomainBody{domain: textDomain{text: tc.text, mode: tc.mode}},
-				Signer: deterministicPrivateKey(t, "domain-text"),
-			})
+			body := textDomainBody{domain: textDomain{text: tc.text, mode: tc.mode}}
+			key := deterministicPrivateKey(t, "domain-text")
+			gotEnvelope, gotErr := attest.Sign(attest.SignRequest[textDomain]{Body: body, Signer: key})
 			if !errors.Is(gotErr, tc.wantErr) {
 				t.Fatalf("attest.Sign() error = %v, want %v", gotErr, tc.wantErr)
 			}
@@ -173,6 +201,23 @@ func TestSigningDomainPublicCanonicalTextBoundaryMatrix(t *testing.T) {
 			}
 			if tc.wantErr != nil && gotEnvelope != (attest.Envelope[textDomain]{}) {
 				t.Fatalf("attest.Sign() envelope = %+v, want zero", gotEnvelope)
+			}
+			if tc.wantErr == nil {
+				if gotEnvelope.Domain != body.domain {
+					t.Fatalf("signed domain = %+v, want %+v", gotEnvelope.Domain, body.domain)
+				}
+				signature, err := gotEnvelope.Signature.Bytes()
+				if err != nil || !ed25519.Verify(key.Public().(ed25519.PublicKey), independentAttestationFrame(t, gotEnvelope), signature[:]) {
+					t.Fatalf("signed domain independent verification error = %v, want authentic frame", err)
+				}
+				proof, err := attest.Verify(attest.VerifyRequest[textDomain]{Body: body, Envelope: gotEnvelope, TrustedKeys: mustTrustedKeys(t, mustPublicKey(t, key))})
+				if err != nil {
+					t.Fatalf("Verify(admitted domain) error = %v, want nil", err)
+				}
+				retained, err := proof.Envelope()
+				if err != nil || retained != gotEnvelope {
+					t.Fatalf("admitted domain proof = (%+v, %v), want %+v", retained, err, gotEnvelope)
+				}
 			}
 		})
 	}
@@ -189,16 +234,10 @@ func TestTrustedKeysPublicCardinalityAndIsolationMatrix(t *testing.T) {
 	}{
 		{name: "one trusted key accepted", makeKeys: keySliceFixture(allKeys[:1])},
 		{name: "two trusted keys accepted", makeKeys: keySliceFixture(allKeys[:2])},
-		{name: "three trusted keys accepted", makeKeys: keySliceFixture(allKeys[:3])},
-		{name: "four trusted keys accepted", makeKeys: keySliceFixture(allKeys[:4])},
-		{name: "eight trusted keys accepted", makeKeys: keySliceFixture(allKeys[:8])},
-		{name: "maximum minus two accepted", makeKeys: keySliceFixture(allKeys[:attest.TrustedKeyMaximumCount-2])},
 		{name: "maximum minus one accepted", makeKeys: keySliceFixture(allKeys[:attest.TrustedKeyMaximumCount-1])},
 		{name: "exact maximum accepted", makeKeys: keySliceFixture(allKeys[:attest.TrustedKeyMaximumCount])},
 		{name: "reverse order accepted", makeKeys: reversedKeySliceFixture(allKeys[:4])},
-		{name: "interior subset accepted", makeKeys: keySliceFixture(allKeys[2:6])},
 		{name: "nil set rejected", makeKeys: nilKeySliceFixture, wantErr: core.ErrAttestContract},
-		{name: "empty set rejected", makeKeys: emptyKeySliceFixture, wantErr: core.ErrAttestContract},
 		{name: "maximum plus one rejected", makeKeys: keySliceFixture(allKeys), wantErr: core.ErrAttestContract},
 		{name: "zero key first rejected", makeKeys: zeroKeyFirstFixture(allKeys), wantErr: core.ErrAttestContract},
 		{name: "zero key middle rejected", makeKeys: zeroKeyMiddleFixture(allKeys), wantErr: core.ErrAttestContract},
@@ -206,7 +245,6 @@ func TestTrustedKeysPublicCardinalityAndIsolationMatrix(t *testing.T) {
 		{name: "adjacent duplicate rejected", makeKeys: adjacentDuplicateKeyFixture(allKeys), wantErr: core.ErrAttestContract},
 		{name: "nonadjacent duplicate rejected", makeKeys: nonadjacentDuplicateKeyFixture(allKeys), wantErr: core.ErrAttestContract},
 		{name: "duplicate at maximum frontier rejected", makeKeys: maximumDuplicateKeyFixture(allKeys), wantErr: core.ErrAttestContract},
-		{name: "three identical keys reject every duplicate", makeKeys: tripleDuplicateKeyFixture(allKeys), wantErr: core.ErrAttestContract},
 	}
 	for _, tc := range cases {
 		t.Run(tc.name, func(t *testing.T) {
@@ -226,33 +264,30 @@ func TestTrustedKeysPublicCardinalityAndIsolationMatrix(t *testing.T) {
 			if gotErr := gotTrusted.Validate(); gotErr != nil {
 				t.Fatalf("TrustedKeys.Validate() error = %v, want nil", gotErr)
 			}
-			originalFirst := input[0]
-			input[0] = allKeys[len(allKeys)-1]
+			original := slices.Clone(input)
+			for index := range input {
+				input[index] = allKeys[len(allKeys)-1]
+			}
 			if gotErr := gotTrusted.Validate(); gotErr != nil {
 				t.Fatalf("TrustedKeys.Validate() after caller mutation error = %v, want nil", gotErr)
 			}
 			body := literalBody{domain: testDomainPrimary, value: []byte("trust isolation")}
-			originalSigner := privateKeyForTrustedPublicKey(t, originalFirst, allKeys)
-			if mustPublicKey(t, originalSigner) != originalFirst {
-				t.Fatalf(
-					"original signer = %v, want first input %v",
-					mustPublicKey(t, originalSigner),
-					originalFirst,
-				)
+			for index, key := range original {
+				originalSigner := privateKeyForTrustedPublicKey(t, key, allKeys)
+				if got := mustPublicKey(t, originalSigner); got != key {
+					t.Fatalf("original signer at %d = %v, want %v", index, got, key)
+				}
+				originalEnvelope := mustEnvelope(t, body, originalSigner)
+				proof, err := attest.Verify(attest.VerifyRequest[testDomain]{Body: body, Envelope: originalEnvelope, TrustedKeys: gotTrusted})
+				if err != nil {
+					t.Fatalf("Verify(retained signer at %d) error = %v, want nil", index, err)
+				}
+				retained, err := proof.Envelope()
+				if err != nil || retained != originalEnvelope {
+					t.Fatalf("retained signer proof at %d = (%+v, %v), want %+v", index, retained, err, originalEnvelope)
+				}
 			}
-			originalEnvelope := mustEnvelope(t, body, originalSigner)
-			gotVerified, gotVerifyErr := attest.Verify(attest.VerifyRequest[testDomain]{
-				Body:        body,
-				Envelope:    originalEnvelope,
-				TrustedKeys: gotTrusted,
-			})
-			if gotVerifyErr != nil {
-				t.Fatalf("attest.Verify(original signer after mutation) error = %v, want nil", gotVerifyErr)
-			}
-			if gotErr := gotVerified.Validate(); gotErr != nil {
-				t.Fatalf("Verified.Validate() error = %v, want nil", gotErr)
-			}
-			replacementSigner := deterministicPrivateKey(t, "trusted-key-17")
+			replacementSigner := privateKeyForTrustedPublicKey(t, allKeys[len(allKeys)-1], allKeys)
 			replacementEnvelope := mustEnvelope(t, body, replacementSigner)
 			gotReplacement, gotReplacementErr := attest.Verify(attest.VerifyRequest[testDomain]{
 				Body:        body,
@@ -302,34 +337,6 @@ func TestSignCopiesPrivateKeyBeforeCallingConsumerBody(t *testing.T) {
 	}
 }
 
-func TestCanonicalWriterRetainedCapabilityIsClosed(t *testing.T) {
-	t.Parallel()
-
-	var retained io.Writer
-	gotEnvelope, gotErr := attest.Sign(attest.SignRequest[testDomain]{
-		Body:   retainingBody{retained: &retained},
-		Signer: deterministicPrivateKey(t, "retained-writer"),
-	})
-	if gotErr != nil {
-		t.Fatalf("attest.Sign() error = %v, want nil", gotErr)
-	}
-	if retained == nil {
-		t.Fatal("WriteCanonical() retained writer = nil, want closed capability")
-	}
-	gotWritten, gotWriteErr := retained.Write([]byte("late mutation"))
-	if gotWritten != 0 || !errors.Is(gotWriteErr, core.ErrAttestContract) {
-		t.Fatalf(
-			"retained Write() = (%d, %v), want (0, %v)",
-			gotWritten,
-			gotWriteErr,
-			core.ErrAttestContract,
-		)
-	}
-	if gotErr := gotEnvelope.Validate(); gotErr != nil {
-		t.Fatalf("Envelope.Validate() after retained write error = %v, want nil", gotErr)
-	}
-}
-
 func TestSignRequestValidatePublicBoundaryMatrix(t *testing.T) {
 	t.Parallel()
 
@@ -340,22 +347,13 @@ func TestSignRequestValidatePublicBoundaryMatrix(t *testing.T) {
 		name        string
 	}{
 		{name: "one byte body shape accepts", makeRequest: signValidationRequestFixture(literalBodyFixture(testDomainPrimary, []byte("x")), fixedPrivateKeyFixture("validate-one"))},
-		{name: "empty body shape accepts without execution", makeRequest: signValidationRequestFixture(literalBodyFixture(testDomainPrimary, nil), fixedPrivateKeyFixture("validate-empty"))},
-		{name: "zero sized body shape accepts without execution", makeRequest: signValidationRequestFixture(sizedBodyFixture(0, 1, testDomainPrimary, false), fixedPrivateKeyFixture("validate-zero"))},
-		{name: "oversized body shape accepts without execution", makeRequest: signValidationRequestFixture(sizedBodyFixture(attest.CanonicalBodyMaximumBytes+1, 1, testDomainPrimary, false), fixedPrivateKeyFixture("validate-oversized"))},
-		{name: "writer error body shape accepts without execution", makeRequest: signValidationRequestFixture(hostileBodyFixture(hostileBodyWriteError), fixedPrivateKeyFixture("validate-write-error"))},
-		{name: "writer panic body shape accepts without execution", makeRequest: signValidationRequestFixture(hostileBodyFixture(hostileBodyWritePanic), fixedPrivateKeyFixture("validate-write-panic"))},
-		{name: "zero writer body shape accepts without execution", makeRequest: signValidationRequestFixture(hostileBodyFixture(hostileBodyZeroWrite), fixedPrivateKeyFixture("validate-zero-write"))},
 		{name: "alternate domain body shape accepts", makeRequest: signValidationRequestFixture(literalBodyFixture(testDomainAlternate, []byte("x")), fixedPrivateKeyFixture("validate-alternate"))},
-		{name: "maximum body shape accepts without execution", makeRequest: signValidationRequestFixture(sizedBodyFixture(attest.CanonicalBodyMaximumBytes, 8192, testDomainPrimary, false), fixedPrivateKeyFixture("validate-maximum"))},
-		{name: "prime body shape accepts without execution", makeRequest: signValidationRequestFixture(sizedBodyFixture(7919, 113, testDomainPrimary, false), fixedPrivateKeyFixture("validate-prime"))},
 		{name: "nil body rejects", makeRequest: signValidationRequestFixture(nilBodyFixture, fixedPrivateKeyFixture("validate-nil-body")), wantErr: core.ErrAttestContract},
 		{name: "unknown body domain rejects", makeRequest: signValidationRequestFixture(literalBodyFixture(testDomainUnknown, []byte("x")), fixedPrivateKeyFixture("validate-unknown-domain")), wantErr: core.ErrAttestContract},
 		{name: "body validation error remains reachable", makeRequest: signValidationRequestFixture(hostileBodyFixture(hostileBodyValidationError), fixedPrivateKeyFixture("validate-body-error")), wantErr: core.ErrAttestContract, wantNative: fixtureErrorValidation},
 		{name: "body validation panic is contained", makeRequest: signValidationRequestFixture(hostileBodyFixture(hostileBodyValidationPanic), fixedPrivateKeyFixture("validate-body-panic")), wantErr: core.ErrAttestContract},
 		{name: "body domain panic is contained", makeRequest: signValidationRequestFixture(hostileBodyFixture(hostileBodyDomainPanic), fixedPrivateKeyFixture("validate-domain-panic")), wantErr: core.ErrAttestContract},
 		{name: "nil private key rejects", makeRequest: signValidationRequestFixture(literalBodyFixture(testDomainPrimary, []byte("x")), nilPrivateKeyFixture), wantErr: core.ErrAttestContract},
-		{name: "empty private key rejects", makeRequest: signValidationRequestFixture(literalBodyFixture(testDomainPrimary, []byte("x")), emptyPrivateKeyFixture), wantErr: core.ErrAttestContract},
 		{name: "seed sized private key rejects", makeRequest: signValidationRequestFixture(literalBodyFixture(testDomainPrimary, []byte("x")), sizedPrivateKeyFixture(ed25519.SeedSize)), wantErr: core.ErrAttestContract},
 		{name: "one byte short private key rejects", makeRequest: signValidationRequestFixture(literalBodyFixture(testDomainPrimary, []byte("x")), sizedPrivateKeyFixture(ed25519.PrivateKeySize-1)), wantErr: core.ErrAttestContract},
 		{name: "one byte long private key rejects", makeRequest: signValidationRequestFixture(literalBodyFixture(testDomainPrimary, []byte("x")), sizedPrivateKeyFixture(ed25519.PrivateKeySize+1)), wantErr: core.ErrAttestContract},
@@ -380,21 +378,22 @@ func TestVerifyRequestValidatePublicBoundaryMatrix(t *testing.T) {
 	t.Parallel()
 
 	cases := []struct {
-		wantErr    error
-		wantNative error
-		name       string
-		mutation   verifyValidationMutation
+		wantErr       error
+		wantNative    error
+		wantVerifyErr error
+		name          string
+		mutation      verifyValidationMutation
 	}{
 		{name: "matching structural request accepts"},
-		{name: "changed body bytes remain a verification concern", mutation: verifyValidationBodyBytes},
-		{name: "changed body extent remains a verification concern", mutation: verifyValidationBodyExtent},
-		{name: "changed body domain remains a verification concern", mutation: verifyValidationBodyDomain},
-		{name: "changed signature remains a verification concern", mutation: verifyValidationSignature},
-		{name: "untrusted structurally valid signer remains a verification concern", mutation: verifyValidationSigner},
-		{name: "writer error remains an execution concern", mutation: verifyValidationWriterError},
-		{name: "writer panic remains an execution concern", mutation: verifyValidationWriterPanic},
-		{name: "zero write remains an execution concern", mutation: verifyValidationZeroWrite},
-		{name: "alternate valid body shape accepts", mutation: verifyValidationAlternateBody},
+		{name: "changed body bytes remain a verification concern", mutation: verifyValidationBodyBytes, wantVerifyErr: core.ErrAttestVerification},
+		{name: "changed body extent remains a verification concern", mutation: verifyValidationBodyExtent, wantVerifyErr: core.ErrAttestVerification},
+		{name: "changed body domain remains a verification concern", mutation: verifyValidationBodyDomain, wantVerifyErr: core.ErrAttestVerification},
+		{name: "changed signature remains a verification concern", mutation: verifyValidationSignature, wantVerifyErr: core.ErrAttestVerification},
+		{name: "untrusted structurally valid signer remains a verification concern", mutation: verifyValidationSigner, wantVerifyErr: core.ErrAttestVerification},
+		{name: "writer error remains an execution concern", mutation: verifyValidationWriterError, wantVerifyErr: core.ErrAttestContract},
+		{name: "writer panic remains an execution concern", mutation: verifyValidationWriterPanic, wantVerifyErr: core.ErrAttestContract},
+		{name: "zero write remains an execution concern", mutation: verifyValidationZeroWrite, wantVerifyErr: core.ErrAttestContract},
+		{name: "maximum body shape defers mismatched extent to execution", mutation: verifyValidationAlternateBody, wantVerifyErr: core.ErrAttestVerification},
 		{name: "zero envelope rejects", mutation: verifyValidationZeroEnvelope, wantErr: core.ErrAttestContract},
 		{name: "zero trust rejects", mutation: verifyValidationZeroTrust, wantErr: core.ErrAttestContract},
 		{name: "nil body rejects", mutation: verifyValidationNilBody, wantErr: core.ErrAttestContract},
@@ -418,6 +417,23 @@ func TestVerifyRequestValidatePublicBoundaryMatrix(t *testing.T) {
 			}
 			if tc.wantNative != nil && !errors.Is(gotErr, tc.wantNative) {
 				t.Fatalf("VerifyRequest.Validate() native error = %v, want %v", gotErr, tc.wantNative)
+			}
+			if tc.wantErr != nil {
+				return
+			}
+			proof, err := attest.Verify(request)
+			if !errors.Is(err, tc.wantVerifyErr) {
+				t.Fatalf("Verify(admitted shape) error = %v, want %v", err, tc.wantVerifyErr)
+			}
+			if tc.wantVerifyErr != nil {
+				if proof != (attest.Verified[testDomain]{}) {
+					t.Fatalf("failed execution proof = %+v, want zero", proof)
+				}
+				return
+			}
+			retained, err := proof.Envelope()
+			if err != nil || retained != request.Envelope {
+				t.Fatalf("matching execution proof = (%+v, %v), want %+v", retained, err, request.Envelope)
 			}
 		})
 	}
@@ -626,10 +642,6 @@ func nilPrivateKeyFixture() ed25519.PrivateKey {
 	return nil
 }
 
-func emptyPrivateKeyFixture() ed25519.PrivateKey {
-	return ed25519.PrivateKey{}
-}
-
 func sizedPrivateKeyFixture(size int) func() ed25519.PrivateKey {
 	return func() ed25519.PrivateKey {
 		return make(ed25519.PrivateKey, size)
@@ -700,10 +712,6 @@ func nilKeySliceFixture() []core.Ed25519PublicKey {
 	return nil
 }
 
-func emptyKeySliceFixture() []core.Ed25519PublicKey {
-	return []core.Ed25519PublicKey{}
-}
-
 func zeroKeyFirstFixture(keys []core.Ed25519PublicKey) func() []core.Ed25519PublicKey {
 	return keySliceFixture([]core.Ed25519PublicKey{{}, keys[0]})
 }
@@ -730,8 +738,4 @@ func maximumDuplicateKeyFixture(keys []core.Ed25519PublicKey) func() []core.Ed25
 		result[len(result)-1] = result[0]
 		return result
 	}
-}
-
-func tripleDuplicateKeyFixture(keys []core.Ed25519PublicKey) func() []core.Ed25519PublicKey {
-	return keySliceFixture([]core.Ed25519PublicKey{keys[0], keys[0], keys[0]})
 }

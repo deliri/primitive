@@ -3,6 +3,8 @@ package attest
 import (
 	"bytes"
 	"crypto/ed25519"
+	"encoding/hex"
+	json "encoding/json/v2"
 	"errors"
 	"reflect"
 	"slices"
@@ -31,7 +33,6 @@ func FuzzSignatureExternalJSONDoor(f *testing.F) {
 	for _, seed := range [][]byte{
 		canonical,
 		nil,
-		{},
 		[]byte(`null`),
 		[]byte(`""`),
 		[]byte(`{}`),
@@ -41,12 +42,25 @@ func FuzzSignatureExternalJSONDoor(f *testing.F) {
 	} {
 		f.Add(seed)
 	}
+	for _, extent := range []int{core.JSONDocumentMaximumBytes - 1, core.JSONDocumentMaximumBytes, core.JSONDocumentMaximumBytes + 1} {
+		f.Add(append(bytes.Clone(canonical), bytes.Repeat([]byte{' '}, extent-len(canonical))...))
+	}
 
 	f.Fuzz(func(t *testing.T, data []byte) {
+		var inputText string
+		oracleErr := error(core.ErrJSONContract)
+		if len(data) <= core.JSONDocumentMaximumBytes {
+			oracleErr = json.Unmarshal(data, &inputText)
+		}
+		decoded, hexErr := hex.DecodeString(inputText)
+		wantAdmitted := len(data) <= core.JSONDocumentMaximumBytes && oracleErr == nil && hexErr == nil && len(decoded) == ed25519.SignatureSize && hex.EncodeToString(decoded) == inputText
 		var gotFresh Signature
 		gotFreshErr := attestExternalJSONDoors.Signature(&gotFresh, data)
 		gotPopulated := survivor
 		gotPopulatedErr := attestExternalJSONDoors.Signature(&gotPopulated, data)
+		if (gotFreshErr == nil) != wantAdmitted || (gotPopulatedErr == nil) != wantAdmitted {
+			t.Fatalf("Signature.UnmarshalJSON() errors = (%v, %v), want admission %t from JSON/hex oracle", gotFreshErr, gotPopulatedErr, wantAdmitted)
+		}
 		if gotFreshErr != nil || gotPopulatedErr != nil {
 			if !errors.Is(gotFreshErr, core.ErrJSONContract) ||
 				!errors.Is(gotFreshErr, core.ErrAttestContract) ||
@@ -73,6 +87,10 @@ func FuzzSignatureExternalJSONDoor(f *testing.F) {
 		}
 		if gotErr := gotFresh.Validate(); gotErr != nil {
 			t.Fatalf("Signature.UnmarshalJSON(accepted).Validate() error = %v, want nil", gotErr)
+		}
+		gotBytes, gotBytesErr := gotFresh.Bytes()
+		if gotBytesErr != nil || !bytes.Equal(gotBytes[:], decoded) {
+			t.Fatalf("signature bytes = (%x, %v), want decoded input %x", gotBytes, gotBytesErr, decoded)
 		}
 		encoded, gotErr := gotFresh.MarshalJSON()
 		if gotErr != nil {

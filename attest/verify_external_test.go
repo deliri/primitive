@@ -66,6 +66,16 @@ func TestVerifyPublicProductionPathHostileMatrix(t *testing.T) {
 			t.Parallel()
 
 			gotRequest := verificationFixture(t, tc.body, tc.domain, tc.trustedIndex)
+			if tc.mutation != verifyMutationNone {
+				baseline, err := attest.Verify(gotRequest)
+				if err != nil {
+					t.Fatalf("Verify(before mutation) error = %v, want nil", err)
+				}
+				retained, err := baseline.Envelope()
+				if err != nil || retained != gotRequest.Envelope {
+					t.Fatalf("baseline proof = (%+v, %v), want %+v", retained, err, gotRequest.Envelope)
+				}
+			}
 			applyVerifyMutation(t, &gotRequest, tc.mutation)
 			gotVerified, gotErr := attest.Verify(gotRequest)
 			if !errors.Is(gotErr, tc.wantErr) {

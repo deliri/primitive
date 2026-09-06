@@ -1,0 +1,4 @@
+# Local execution bundle: raw logs, profiles, overlays, and matching binaries.
+# The package-level reports record the commands, results, and this location.
+*
+!.gitignore

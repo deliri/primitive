@@ -34,7 +34,13 @@ func FuzzEnvelopeJSONSemanticClosure(f *testing.F) {
 	canonicalTrust := mustTrustedKeys(f, mustPublicKey(f, canonicalSigner))
 	f.Add(canonical)
 	f.Add([]byte{})
-	f.Add([]byte(`{"domain":"test-primary-2026"}`))
+	f.Add(removeSignerFixture(f, canonical))
+	f.Add(duplicateDomainFixture(f, canonical))
+	f.Add(uppercaseSignatureFixture(f, canonical))
+	f.Add(suffixJSONFixture(" {}")(f, canonical))
+	for _, extent := range []int{attest.EnvelopeJSONMaximumBytes - 1, attest.EnvelopeJSONMaximumBytes, attest.EnvelopeJSONMaximumBytes + 1} {
+		f.Add(append(bytes.Clone(canonical), bytes.Repeat([]byte(" "), extent-len(canonical))...))
+	}
 	f.Add(append(bytes.Clone(canonical), 0))
 	f.Add(reverseEnvelopeMembersFixture(f, canonical))
 
@@ -48,6 +54,13 @@ func FuzzEnvelopeJSONSemanticClosure(f *testing.F) {
 		gotFreshErr := gotFresh.UnmarshalJSON(data)
 		gotPopulated := original
 		gotPopulatedErr := gotPopulated.UnmarshalJSON(data)
+		wantFacts, wantAdmitted := envelopeJSONOracle(data)
+		if (gotFreshErr == nil) != wantAdmitted || (gotPopulatedErr == nil) != wantAdmitted {
+			t.Fatalf("envelope admission errors = (%v, %v), want independent admission %t", gotFreshErr, gotPopulatedErr, wantAdmitted)
+		}
+		if len(data) <= attest.EnvelopeJSONMaximumBytes && bytes.Equal(bytes.TrimSpace(data), canonical) && (gotFreshErr != nil || gotPopulatedErr != nil) {
+			t.Fatalf("genuinely signed canonical seed rejected: (%v, %v)", gotFreshErr, gotPopulatedErr)
+		}
 		if gotFreshErr != nil || gotPopulatedErr != nil {
 			if !errors.Is(gotFreshErr, core.ErrJSONContract) ||
 				!errors.Is(gotPopulatedErr, core.ErrJSONContract) {
@@ -80,6 +93,7 @@ func FuzzEnvelopeJSONSemanticClosure(f *testing.F) {
 		if gotFresh != gotPopulated {
 			t.Fatalf("Envelope.UnmarshalJSON(accepted) receivers = (%+v, %+v), want equal", gotFresh, gotPopulated)
 		}
+		envelopeMatchesJSONFacts(t, gotFresh, wantFacts)
 		if gotErr := gotFresh.Validate(); gotErr != nil {
 			t.Fatalf("Envelope.UnmarshalJSON() accepted invalid envelope: %v", gotErr)
 		}
@@ -154,6 +168,14 @@ func FuzzVerifyRejectsEveryIndependentlyMutatedSignedField(f *testing.F) {
 			Body:        copyLiteralBody(originalBody),
 			Envelope:    envelope,
 			TrustedKeys: mustTrustedKeys(t, mustPublicKey(t, signer)),
+		}
+		baseline, baselineErr := attest.Verify(request)
+		if baselineErr != nil {
+			t.Fatalf("Verify(before mutation) error = %v, want nil", baselineErr)
+		}
+		baselineEnvelope, baselineErr := baseline.Envelope()
+		if baselineErr != nil || baselineEnvelope != envelope {
+			t.Fatalf("baseline proof = (%+v, %v), want %+v", baselineEnvelope, baselineErr, envelope)
 		}
 		applySignedFieldMutation(t, &request, mutation)
 		proveSignedFieldMutationReachedIndependentOracle(t, originalBody, envelope, request, mutation)
