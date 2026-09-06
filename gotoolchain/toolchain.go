@@ -16,7 +16,6 @@ import (
 	"github.com/deliri/primitive/v2026/hostfacts"
 	"github.com/deliri/primitive/v2026/process"
 	"github.com/deliri/primitive/v2026/runprotocol"
-	"golang.org/x/tools/go/packages"
 )
 
 // Capability is one resolved cmd/go execution boundary.
@@ -107,7 +106,7 @@ func (c Capability) ListPackages(ctx context.Context, request ListRequest) (Pack
 	}
 	arguments := []string{goListSubcommand, runprotocol.GoJSONOutputArgument}
 	if request.Dependencies {
-		arguments = append(arguments, "-deps")
+		arguments = append(arguments, goDependenciesArgument)
 	}
 	arguments = append(arguments, "--", request.Pattern)
 	output, _, err := c.execute(ctx, request.WorkingDirectory, arguments...)
@@ -138,8 +137,8 @@ func (c Capability) CompilePackage(ctx context.Context, request CompileRequest) 
 	return compilation, compilation.Validate()
 }
 
-// AnalyzePackage discovers one exact package through the Go team's packages
-// driver, then parses and type-checks its requested units sequentially from
+// AnalyzePackage discovers one exact package through the contained cmd/go
+// process, then parses and type-checks its requested units sequentially from
 // compiler export data. The returned syntax, objects, selections, and types are
 // ephemeral; callers own only their deterministic projection.
 func (c Capability) AnalyzePackage(ctx context.Context, request AnalysisRequest) (PackageAnalysis, error) {
@@ -152,21 +151,11 @@ func (c Capability) AnalyzePackage(ctx context.Context, request AnalysisRequest)
 	if err := ctx.Err(); err != nil {
 		return PackageAnalysis{}, errors.Join(core.ErrGoToolchainExecution, err)
 	}
-	environment, err := c.environment.Strings()
+	loaded, err := c.loadAnalysisMetadata(ctx, request)
 	if err != nil {
-		return PackageAnalysis{}, errors.Join(core.ErrGoToolchainContract, err)
+		return PackageAnalysis{}, err
 	}
-	loaded, err := packages.Load(&packages.Config{
-		Context: ctx,
-		Mode: packages.NeedName | packages.NeedFiles | packages.NeedCompiledGoFiles |
-			packages.NeedImports | packages.NeedDeps | packages.NeedExportFile |
-			packages.NeedTypesSizes | packages.NeedForTest | packages.NeedModule,
-		Dir: request.WorkingDirectory.String(), Env: environment, Tests: request.IncludeTests,
-		BuildFlags: []string{goModuleReadOnly},
-	}, request.Package.String())
-	if err != nil {
-		return PackageAnalysis{}, errors.Join(core.ErrGoToolchainExecution, ctx.Err(), err)
-	}
+
 	return compilePackageAnalysis(ctx, loaded, request)
 }
 

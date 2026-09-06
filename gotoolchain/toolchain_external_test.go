@@ -195,7 +195,7 @@ func analysisHasCompilerObjects(analysis gotoolchain.PackageAnalysis) (bool, boo
 					packageFunction = true
 				}
 				selection := unit.TypesInfo.Selections[selector]
-				if selection != nil && compilerObjectIsProcess(selection.Obj(), "Strings") {
+				if selection != nil && compilerObjectIsProcess(selection.Obj(), "Wait") {
 					methodSelection = true
 				}
 				return true
