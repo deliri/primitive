@@ -16,6 +16,12 @@ type Classification struct {
 	Effect      Effect
 }
 
+var (
+	_ core.ValidatedJSONMarshaler = Classification{}
+	_ core.ValidatedJSONMarshaler = StandardSymbolDisposition(0)
+	_ core.ValidatedJSONMarshaler = Operation(0)
+)
+
 func (c Classification) Validate() error {
 	if err := errors.Join(c.Disposition.Validate(), c.Operation.Validate()); err != nil {
 		return err

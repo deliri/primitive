@@ -16,6 +16,8 @@ const (
 
 type googleCloudSigningAlgorithm uint8
 
+var _ core.ValidatedJSONMarshaler = googleCloudSigningAlgorithm(0)
+
 const (
 	googleCloudSigningAlgorithmUnknown googleCloudSigningAlgorithm = iota
 	googleCloudSigningAlgorithmRS256

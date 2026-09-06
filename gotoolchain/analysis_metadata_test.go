@@ -35,6 +35,14 @@ func TestAnalysisMetadataGraphLayerTriad(t *testing.T) {
 		wantImports, wantErrors           int
 		wantName, wantForTest, wantExport string
 	}{
+		{name: "cgo pseudo-import has no ordinary dependency unit", mutate: func(w *analysisPackageWire) []analysisPackageWire {
+			w.Imports = []string{goCgoImportPath}
+			return nil
+		}},
+		{name: "cgo pseudo-import cannot hide a missing ordinary dependency", mutate: func(w *analysisPackageWire) []analysisPackageWire {
+			w.Imports = []string{goCgoImportPath, "missing"}
+			return nil
+		}, wantErr: core.ErrGoToolchainOutput},
 		{name: "compiler package name is retained", mutate: func(w *analysisPackageWire) []analysisPackageWire { w.Name = "renamed"; return nil }, wantName: "renamed"},
 		{name: "test owner is retained independently of logical path", mutate: func(w *analysisPackageWire) []analysisPackageWire { w.ForTest = w.ImportPath; return nil }, wantForTest: "example.com/metadata"},
 		{name: "compiler export location is retained", mutate: func(w *analysisPackageWire) []analysisPackageWire { w.Export = "/compiler/export.a"; return nil }, wantExport: "/compiler/export.a"},

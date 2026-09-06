@@ -25,6 +25,7 @@ var (
 	_ core.ValidatedJSONMarshaler = EffectName{}
 	_ core.ValidatedJSONMarshaler = Toolchain{}
 	_ core.ValidatedJSONMarshaler = GeneratedState(0)
+	_ core.ValidatedJSONMarshaler = CallCoverageState(0)
 	_ core.ValidatedJSONMarshaler = SelectionState(0)
 	_ core.ValidatedJSONMarshaler = DeclarationKind(0)
 	_ core.ValidatedJSONMarshaler = ReferenceKind(0)

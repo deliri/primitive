@@ -20,6 +20,10 @@ import (
 // one package's dependency closure is the only aggregate admitted here.
 const analysisJSONFields = "-json=Dir,ImportPath,Name,ForTest,Export,Module,GoFiles,CompiledGoFiles,Imports,ImportMap,Error,Incomplete"
 
+// cmd/go retains this pseudo-import in Imports without creating a dependency
+// package for it. Compilation consumes cgo's transformed Go files instead.
+const goCgoImportPath = "C"
+
 type analysisPackageWire struct {
 	Dir             string             `json:"Dir"`
 	ImportPath      string             `json:"ImportPath"`
@@ -156,6 +160,9 @@ func absoluteAnalysisFiles(directory string, files []string) ([]string, error) {
 
 func linkAnalysisImports(unit *packages.Package, wire analysisPackageWire, byID map[string]*packages.Package) error {
 	for _, identity := range wire.Imports {
+		if identity == goCgoImportPath {
+			continue
+		}
 		target := byID[identity]
 		if target == nil {
 			if wire.Incomplete {
