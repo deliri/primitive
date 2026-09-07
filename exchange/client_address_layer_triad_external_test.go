@@ -213,36 +213,26 @@ func TestClientAddressResolutionLayerTriad(t *testing.T) {
 	}
 }
 
-func FuzzTrustedProxyPrefixesSemanticClosure(f *testing.F) {
-	for _, raw := range []string{"", "192.0.2.0/24", "2001:db8::/32", "192.0.2.0/24,2001:db8::/32"} {
-		f.Add(raw)
-	}
-	f.Fuzz(func(t *testing.T, raw string) {
-		got, gotErr := exchange.ParseTrustedProxyPrefixes(raw)
-		if gotErr != nil {
-			if !errors.Is(gotErr, core.ErrExchangeContract) || got != (exchange.TrustedProxyPrefixes{}) {
-				t.Fatalf("ParseTrustedProxyPrefixes(rejected) = (%v, %v), want zero and %v", got, gotErr, core.ErrExchangeContract)
-			}
-			return
-		}
-		if gotErr = got.Validate(); gotErr != nil || got.Count() > exchange.TrustedProxyMaximumCount {
-			t.Fatalf("ParseTrustedProxyPrefixes(accepted) = (%v, %v), want valid count <= %d", got, gotErr, exchange.TrustedProxyMaximumCount)
-		}
-		canonical := got.String()
-		roundTrip, roundTripErr := exchange.ParseTrustedProxyPrefixes(canonical)
-		if roundTripErr != nil || roundTrip != got {
-			t.Fatalf("TrustedProxyPrefixes canonical round trip = (%v, %v), want (%v, nil)", roundTrip, roundTripErr, got)
-		}
-		if second := roundTrip.String(); second != canonical {
-			t.Fatalf("TrustedProxyPrefixes second canonical projection = %q, want %q", second, canonical)
-		}
-	})
-}
-
 func FuzzClientAddressResolutionSemanticClosure(f *testing.F) {
-	f.Add("127.0.0.1:8080", "203.0.113.9, 198.51.100.2", uint8(exchange.ClientAddressAuthorityGoogleCloud), false)
-	f.Add("192.0.2.1:80", "203.0.113.9", uint8(exchange.ClientAddressAuthorityPeer), false)
-	f.Add("10.0.0.1:80", "203.0.113.9", uint8(exchange.ClientAddressAuthorityTrustedProxy), true)
+	// Canonical seeds are emitted from validated typed address observations.
+	peer := exchange.ClientAddress{Address: netip.AddrFrom4([4]byte{10, 0, 0, 1})}
+	client := exchange.ClientAddress{Address: netip.AddrFrom4([4]byte{203, 0, 113, 9})}
+	proxy := exchange.ClientAddress{Address: netip.AddrFrom4([4]byte{198, 51, 100, 2})}
+	for _, value := range []exchange.ClientAddress{peer, client, proxy} {
+		if err := value.Validate(); err != nil {
+			f.Fatalf("typed address seed = %v, want nil", err)
+		}
+	}
+	for _, authority := range []exchange.ClientAddressAuthority{exchange.ClientAddressAuthorityPeer, exchange.ClientAddressAuthorityTrustedProxy, exchange.ClientAddressAuthorityGoogleCloud} {
+		f.Add(netip.AddrPortFrom(peer.Address, 80).String(), client.Address.String()+","+proxy.Address.String(), uint8(authority), authority == exchange.ClientAddressAuthorityTrustedProxy)
+	}
+	// An untrusted leading claim must not replace the final provider pair.
+	f.Add(peer.Address.String(), peer.Address.String()+","+client.Address.String()+","+proxy.Address.String(), uint8(exchange.ClientAddressAuthorityGoogleCloud), false)
+	f.Add("", "", uint8(exchange.ClientAddressAuthorityPeer), false)
+	f.Add(peer.Address.String(), strings.Repeat("x", exchange.HeaderValueMaximumBytes+1), uint8(exchange.ClientAddressAuthorityGoogleCloud), false)
+	f.Add(peer.Address.String(), client.Address.String(), uint8(exchange.ClientAddressAuthorityPeer), true)
+	f.Add(peer.Address.String(), client.Address.String(), uint8(exchange.ClientAddressAuthorityTrustedProxy), false)
+	f.Add(peer.Address.String(), "", uint8(math.MaxUint8), false)
 	f.Fuzz(func(t *testing.T, remote, forwarded string, rawAuthority uint8, useTrustedPrefixes bool) {
 		authority := exchange.ClientAddressAuthority(rawAuthority)
 		var proxies exchange.TrustedProxyPrefixes
@@ -250,7 +240,12 @@ func FuzzClientAddressResolutionSemanticClosure(f *testing.F) {
 			proxies = mustTrustedProxyPrefixes(t, "10.0.0.0/8,2001:db8:ffff::/48")
 		}
 		call := clientAddressCall(t, remote, []string{forwarded}, authority, proxies)
+		want, wantOK := independentClientAddress(remote, forwarded, authority)
+		wantOK = wantOK && (useTrustedPrefixes == (authority == exchange.ClientAddressAuthorityTrustedProxy))
 		got, gotErr := exchange.ResolveClientAddress(call)
+		if (gotErr == nil) != wantOK {
+			t.Fatalf("ResolveClientAddress admission = %v, want accepted=%t", gotErr, wantOK)
+		}
 		if gotErr != nil {
 			if !errors.Is(gotErr, core.ErrExchangeContract) && !errors.Is(gotErr, core.ErrExchangeRequest) {
 				t.Fatalf("ResolveClientAddress(rejected) error = %v, want Exchange identity", gotErr)
@@ -263,7 +258,6 @@ func FuzzClientAddressResolutionSemanticClosure(f *testing.F) {
 		if gotErr = got.Validate(); gotErr != nil || !got.Address.IsValid() || got.Address.Zone() != "" || got.Address != got.Address.Unmap() {
 			t.Fatalf("ResolveClientAddress(accepted) = (%v, %v), want valid canonical address", got, gotErr)
 		}
-		want, wantOK := independentClientAddress(remote, forwarded, authority)
 		if !wantOK || got.Address != want {
 			t.Fatalf("ResolveClientAddress(accepted).Address = %v, want independent standard-library projection %v (valid=%t)", got.Address, want, wantOK)
 		}

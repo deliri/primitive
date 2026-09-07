@@ -1,0 +1,19 @@
+{
+  "reason": "Final mechanical-boundary audit added signature document byte-cap seeds and caller-prefix byte-cap rows. Package tests are boundary-tests; mutation proofs are mutations-boundary.json. Changed signature fuzz target precedes serial profiled benchmarks. No gates.",
+  "benchmark_seconds": 30,
+  "fuzz_seconds": 30,
+  "parallel": 1,
+  "count": 1,
+  "benchmarks": [
+    "BenchmarkCanonicalObjectReusedScalarBuffer",
+    "BenchmarkSignCanonicalBody64KiB",
+    "BenchmarkSignCanonicalBodyMaximum",
+    "BenchmarkVerifyCanonicalBody64KiB",
+    "BenchmarkVerifyCanonicalBodyMaximum",
+    "BenchmarkEnvelopeMarshalJSON",
+    "BenchmarkEnvelopeUnmarshalJSON"
+  ],
+  "fuzz": [
+    "FuzzSignatureExternalJSONDoor"
+  ]
+}

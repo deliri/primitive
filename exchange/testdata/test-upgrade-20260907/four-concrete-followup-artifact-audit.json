@@ -1,0 +1,1028 @@
+{
+  "scope": "Author-side integrity for the four concrete follow-up issues; not package-wide protocol or independent release acceptance. Includes failed build attempts and the initially surviving address mutation. Current review documents are hashed after reconciliation. Consumer compile is a linkage check, not a full consumer test run.",
+  "start_record": "address-fuzz-independent-admission-seeds.json",
+  "records": [
+    {
+      "label": "address-fuzz-independent-admission-seeds",
+      "record": {
+        "path": "exchange/testdata/test-upgrade-20260907/address-fuzz-independent-admission-seeds.json",
+        "bytes": 82740,
+        "sha256": "0e3e6bf802adbe87ec202ae424b6adfd7225158e5531f7027fc09cfc7219ef2b"
+      },
+      "exit_status": 0,
+      "checked_refs": 263,
+      "faults": [],
+      "missing_requested_artifacts": [],
+      "sources_changed_during_run": []
+    },
+    {
+      "label": "aggregate-timing-abba-1-before-analysis-cpu",
+      "record": {
+        "path": "exchange/testdata/test-upgrade-20260907/aggregate-timing-abba-1-before-analysis-cpu.json",
+        "bytes": 84792,
+        "sha256": "2132910505f3f77b71eee18a7b359146a99cd4bece9efa1166587825d1b33d1c"
+      },
+      "exit_status": 0,
+      "checked_refs": 269,
+      "faults": [],
+      "missing_requested_artifacts": [],
+      "sources_changed_during_run": []
+    },
+    {
+      "label": "aggregate-timing-abba-1-before-analysis-mem",
+      "record": {
+        "path": "exchange/testdata/test-upgrade-20260907/aggregate-timing-abba-1-before-analysis-mem.json",
+        "bytes": 84813,
+        "sha256": "fe3dcc990251f1e4e1a32d567a02537958f5b0f1d7711c833599ead3ad7b7d2a"
+      },
+      "exit_status": 0,
+      "checked_refs": 269,
+      "faults": [],
+      "missing_requested_artifacts": [],
+      "sources_changed_during_run": []
+    },
+    {
+      "label": "aggregate-timing-abba-1-before",
+      "record": {
+        "path": "exchange/testdata/test-upgrade-20260907/aggregate-timing-abba-1-before.json",
+        "bytes": 84906,
+        "sha256": "327823f240ae0bbc8fc24af36045413a8fc7fb27d25f33eb0a09ddb2bc1263cc"
+      },
+      "exit_status": 0,
+      "checked_refs": 268,
+      "faults": [],
+      "missing_requested_artifacts": [],
+      "sources_changed_during_run": []
+    },
+    {
+      "label": "aggregate-timing-abba-2-after-analysis-cpu",
+      "record": {
+        "path": "exchange/testdata/test-upgrade-20260907/aggregate-timing-abba-2-after-analysis-cpu.json",
+        "bytes": 84785,
+        "sha256": "557dc2b2570e52984381872b90a546ac46faf200de1c0515fa6afaf02ac39890"
+      },
+      "exit_status": 0,
+      "checked_refs": 269,
+      "faults": [],
+      "missing_requested_artifacts": [],
+      "sources_changed_during_run": []
+    },
+    {
+      "label": "aggregate-timing-abba-2-after-analysis-mem",
+      "record": {
+        "path": "exchange/testdata/test-upgrade-20260907/aggregate-timing-abba-2-after-analysis-mem.json",
+        "bytes": 84806,
+        "sha256": "f93badae46be9882d2e6cf648eea681e569619bd8f85dee84b5ab2a34eeab319"
+      },
+      "exit_status": 0,
+      "checked_refs": 269,
+      "faults": [],
+      "missing_requested_artifacts": [],
+      "sources_changed_during_run": []
+    },
+    {
+      "label": "aggregate-timing-abba-2-after",
+      "record": {
+        "path": "exchange/testdata/test-upgrade-20260907/aggregate-timing-abba-2-after.json",
+        "bytes": 84894,
+        "sha256": "75a308573073280a53ecb1d99361820bdb604863e1c664fec6c1b32a3398f397"
+      },
+      "exit_status": 0,
+      "checked_refs": 268,
+      "faults": [],
+      "missing_requested_artifacts": [],
+      "sources_changed_during_run": []
+    },
+    {
+      "label": "aggregate-timing-abba-3-after-analysis-cpu",
+      "record": {
+        "path": "exchange/testdata/test-upgrade-20260907/aggregate-timing-abba-3-after-analysis-cpu.json",
+        "bytes": 84787,
+        "sha256": "81856bc3d8f4c56761f6d5d8cb2403a51abd58686a075192605887bfe44ae0d3"
+      },
+      "exit_status": 0,
+      "checked_refs": 269,
+      "faults": [],
+      "missing_requested_artifacts": [],
+      "sources_changed_during_run": []
+    },
+    {
+      "label": "aggregate-timing-abba-3-after-analysis-mem",
+      "record": {
+        "path": "exchange/testdata/test-upgrade-20260907/aggregate-timing-abba-3-after-analysis-mem.json",
+        "bytes": 84807,
+        "sha256": "262c70c7be023e2c856d59790dfe1227e6bdadc5540e59925f0b2168044eba4f"
+      },
+      "exit_status": 0,
+      "checked_refs": 269,
+      "faults": [],
+      "missing_requested_artifacts": [],
+      "sources_changed_during_run": []
+    },
+    {
+      "label": "aggregate-timing-abba-3-after",
+      "record": {
+        "path": "exchange/testdata/test-upgrade-20260907/aggregate-timing-abba-3-after.json",
+        "bytes": 84894,
+        "sha256": "fd4372868a673c3f2b1f8d79a776d5c0b12af825dd6fa64aa4b1c16fc155a83a"
+      },
+      "exit_status": 0,
+      "checked_refs": 268,
+      "faults": [],
+      "missing_requested_artifacts": [],
+      "sources_changed_during_run": []
+    },
+    {
+      "label": "aggregate-timing-abba-4-before-analysis-cpu",
+      "record": {
+        "path": "exchange/testdata/test-upgrade-20260907/aggregate-timing-abba-4-before-analysis-cpu.json",
+        "bytes": 84793,
+        "sha256": "546d54b31895f4a861f79788b1ffbb1ab3a07fcd1ab9184ae74f03aa52121cc5"
+      },
+      "exit_status": 0,
+      "checked_refs": 269,
+      "faults": [],
+      "missing_requested_artifacts": [],
+      "sources_changed_during_run": []
+    },
+    {
+      "label": "aggregate-timing-abba-4-before-analysis-mem",
+      "record": {
+        "path": "exchange/testdata/test-upgrade-20260907/aggregate-timing-abba-4-before-analysis-mem.json",
+        "bytes": 84813,
+        "sha256": "98162525e09d459a26d9e1865d254f2af84c02042240053a9b7c931f27033ee3"
+      },
+      "exit_status": 0,
+      "checked_refs": 269,
+      "faults": [],
+      "missing_requested_artifacts": [],
+      "sources_changed_during_run": []
+    },
+    {
+      "label": "aggregate-timing-abba-4-before",
+      "record": {
+        "path": "exchange/testdata/test-upgrade-20260907/aggregate-timing-abba-4-before.json",
+        "bytes": 84906,
+        "sha256": "1be72b5eed1b7021855336587deb22c840963e17d505d732d36621fd03a061cb"
+      },
+      "exit_status": 0,
+      "checked_refs": 268,
+      "faults": [],
+      "missing_requested_artifacts": [],
+      "sources_changed_during_run": []
+    },
+    {
+      "label": "exact-status-agreement-domain",
+      "record": {
+        "path": "exchange/testdata/test-upgrade-20260907/exact-status-agreement-domain.json",
+        "bytes": 84585,
+        "sha256": "ec6e76eed54741d76e1b3652dc4b08dd257d31c47023823f5d5bbc138c3e04ae"
+      },
+      "exit_status": 0,
+      "checked_refs": 269,
+      "faults": [],
+      "missing_requested_artifacts": [],
+      "sources_changed_during_run": []
+    },
+    {
+      "label": "exchange-address-oracle-checkpoint-14",
+      "record": {
+        "path": "exchange/testdata/test-upgrade-20260907/exchange-address-oracle-checkpoint-14.json",
+        "bytes": 82653,
+        "sha256": "78f2a288c1273e7a6122b1a15b0bbd80e3e8e63e35f84b9a3808332de5464a7f"
+      },
+      "exit_status": 0,
+      "checked_refs": 263,
+      "faults": [],
+      "missing_requested_artifacts": [],
+      "sources_changed_during_run": []
+    },
+    {
+      "label": "exchange-final-four-gap-checkpoint-16",
+      "record": {
+        "path": "exchange/testdata/test-upgrade-20260907/exchange-final-four-gap-checkpoint-16.json",
+        "bytes": 84569,
+        "sha256": "8e3668c32f21a4ceefcc2cc160a3a4ac02211ba5efcf0882b62254a3c7b8439c"
+      },
+      "exit_status": 0,
+      "checked_refs": 269,
+      "faults": [],
+      "missing_requested_artifacts": [],
+      "sources_changed_during_run": []
+    },
+    {
+      "label": "exchange-four-gap-candidate-checkpoint-15",
+      "record": {
+        "path": "exchange/testdata/test-upgrade-20260907/exchange-four-gap-candidate-checkpoint-15.json",
+        "bytes": 84259,
+        "sha256": "8b7a925adfbe44ccb2cf7d461184c68288885f45ac6db9aba6d32ff3e94d613a"
+      },
+      "exit_status": 0,
+      "checked_refs": 268,
+      "faults": [],
+      "missing_requested_artifacts": [],
+      "sources_changed_during_run": []
+    },
+    {
+      "label": "exchange-four-gap-review-checkpoint-17",
+      "record": {
+        "path": "exchange/testdata/test-upgrade-20260907/exchange-four-gap-review-checkpoint-17.json",
+        "bytes": 84572,
+        "sha256": "e6aab1cd586d0e9670891750580ab0de6b58d422389b6cc5b9aa8790ca270bab"
+      },
+      "exit_status": 0,
+      "checked_refs": 269,
+      "faults": [],
+      "missing_requested_artifacts": [],
+      "sources_changed_during_run": []
+    },
+    {
+      "label": "exchange-upload-affected-consumer-compile",
+      "record": {
+        "path": "exchange/testdata/test-upgrade-20260907/exchange-upload-affected-consumer-compile.json",
+        "bytes": 84598,
+        "sha256": "0f2083aa582940c8cd349b3cd5a42547932b54f1fd51c4a37b64f8efc1fd01cd"
+      },
+      "exit_status": 0,
+      "checked_refs": 269,
+      "faults": [],
+      "missing_requested_artifacts": [],
+      "sources_changed_during_run": []
+    },
+    {
+      "label": "exhaustive-handoff-cancellation-invariants",
+      "record": {
+        "path": "exchange/testdata/test-upgrade-20260907/exhaustive-handoff-cancellation-invariants.json",
+        "bytes": 84005,
+        "sha256": "c7e6c430bf902ca770b84d1353a9b8a06f76d8ab5e5f92d86f7c7594d6feccec"
+      },
+      "exit_status": 0,
+      "checked_refs": 267,
+      "faults": [],
+      "missing_requested_artifacts": [],
+      "sources_changed_during_run": []
+    },
+    {
+      "label": "four-gap-final-benchmark-aggregate-binary-analysis-cpu",
+      "record": {
+        "path": "exchange/testdata/test-upgrade-20260907/four-gap-final-benchmark-aggregate-binary-analysis-cpu.json",
+        "bytes": 84859,
+        "sha256": "d2a6cda8370946bd2f45fb96c2d95288e553a162afada29368ec60e2c07a16c8"
+      },
+      "exit_status": 0,
+      "checked_refs": 269,
+      "faults": [],
+      "missing_requested_artifacts": [],
+      "sources_changed_during_run": []
+    },
+    {
+      "label": "four-gap-final-benchmark-aggregate-binary-analysis-mem",
+      "record": {
+        "path": "exchange/testdata/test-upgrade-20260907/four-gap-final-benchmark-aggregate-binary-analysis-mem.json",
+        "bytes": 84879,
+        "sha256": "aee7763b4695b192f899b2d1167b4fb155ba016a143226b882f2f1b44bd9b721"
+      },
+      "exit_status": 0,
+      "checked_refs": 269,
+      "faults": [],
+      "missing_requested_artifacts": [],
+      "sources_changed_during_run": []
+    },
+    {
+      "label": "four-gap-final-benchmark-aggregate-binary",
+      "record": {
+        "path": "exchange/testdata/test-upgrade-20260907/four-gap-final-benchmark-aggregate-binary.json",
+        "bytes": 85812,
+        "sha256": "a88c9f1f59916a3baf39da1a30ff4dad07934416911a149f0fc22dd824f5868a"
+      },
+      "exit_status": 0,
+      "checked_refs": 272,
+      "faults": [],
+      "missing_requested_artifacts": [],
+      "sources_changed_during_run": []
+    },
+    {
+      "label": "four-gap-final-benchmark-aggregate-cancel-analysis-cpu",
+      "record": {
+        "path": "exchange/testdata/test-upgrade-20260907/four-gap-final-benchmark-aggregate-cancel-analysis-cpu.json",
+        "bytes": 84859,
+        "sha256": "c092d89d4a74d6da312ca42f995a1ffa26c9d8ea0a4c662fd1fd7ba6607550d0"
+      },
+      "exit_status": 0,
+      "checked_refs": 269,
+      "faults": [],
+      "missing_requested_artifacts": [],
+      "sources_changed_during_run": []
+    },
+    {
+      "label": "four-gap-final-benchmark-aggregate-cancel-analysis-mem",
+      "record": {
+        "path": "exchange/testdata/test-upgrade-20260907/four-gap-final-benchmark-aggregate-cancel-analysis-mem.json",
+        "bytes": 84878,
+        "sha256": "18b17118f011776b6d3edeaf3aa1da738652e1af79d804bf1059387dddc9562b"
+      },
+      "exit_status": 0,
+      "checked_refs": 269,
+      "faults": [],
+      "missing_requested_artifacts": [],
+      "sources_changed_during_run": []
+    },
+    {
+      "label": "four-gap-final-benchmark-aggregate-cancel",
+      "record": {
+        "path": "exchange/testdata/test-upgrade-20260907/four-gap-final-benchmark-aggregate-cancel.json",
+        "bytes": 85822,
+        "sha256": "6265dafcb72d7f88047d9641c3907cb5f03615a5d7ea3c2fd514ad9f6a002518"
+      },
+      "exit_status": 0,
+      "checked_refs": 272,
+      "faults": [],
+      "missing_requested_artifacts": [],
+      "sources_changed_during_run": []
+    },
+    {
+      "label": "four-gap-final-benchmark-upload-loopback-analysis-cpu",
+      "record": {
+        "path": "exchange/testdata/test-upgrade-20260907/four-gap-final-benchmark-upload-loopback-analysis-cpu.json",
+        "bytes": 84853,
+        "sha256": "f9095b1b1a52e57403f289c08fcb17e0cc8987ee91974d4edf143c87e206ec65"
+      },
+      "exit_status": 0,
+      "checked_refs": 269,
+      "faults": [],
+      "missing_requested_artifacts": [],
+      "sources_changed_during_run": []
+    },
+    {
+      "label": "four-gap-final-benchmark-upload-loopback-analysis-mem",
+      "record": {
+        "path": "exchange/testdata/test-upgrade-20260907/four-gap-final-benchmark-upload-loopback-analysis-mem.json",
+        "bytes": 84873,
+        "sha256": "1ae3ff03751a3077f852a9e70a17434d3ff7b5d2ee70035d81ebea77d76e9945"
+      },
+      "exit_status": 0,
+      "checked_refs": 269,
+      "faults": [],
+      "missing_requested_artifacts": [],
+      "sources_changed_during_run": []
+    },
+    {
+      "label": "four-gap-final-benchmark-upload-loopback",
+      "record": {
+        "path": "exchange/testdata/test-upgrade-20260907/four-gap-final-benchmark-upload-loopback.json",
+        "bytes": 85779,
+        "sha256": "d64eded9db374603008d8431a4b2adbcae3571fa2923881357c4bd9b67abba66"
+      },
+      "exit_status": 0,
+      "checked_refs": 272,
+      "faults": [],
+      "missing_requested_artifacts": [],
+      "sources_changed_during_run": []
+    },
+    {
+      "label": "four-gap-final-fuzz-client-address",
+      "record": {
+        "path": "exchange/testdata/test-upgrade-20260907/four-gap-final-fuzz-client-address.json",
+        "bytes": 84667,
+        "sha256": "b11a4f54400e5e4474302619592c821ef46865d22aa79683af07575197c4e538"
+      },
+      "exit_status": 0,
+      "checked_refs": 269,
+      "faults": [],
+      "missing_requested_artifacts": [],
+      "sources_changed_during_run": []
+    },
+    {
+      "label": "four-gap-final-fuzz-trusted-prefix",
+      "record": {
+        "path": "exchange/testdata/test-upgrade-20260907/four-gap-final-fuzz-trusted-prefix.json",
+        "bytes": 84663,
+        "sha256": "fd8c1c6705f4a2a7b745078cab558058e8512776ce8a27da340924ca447005c4"
+      },
+      "exit_status": 0,
+      "checked_refs": 269,
+      "faults": [],
+      "missing_requested_artifacts": [],
+      "sources_changed_during_run": []
+    },
+    {
+      "label": "four-gap-final-fuzz-upload-declaration",
+      "record": {
+        "path": "exchange/testdata/test-upgrade-20260907/four-gap-final-fuzz-upload-declaration.json",
+        "bytes": 84677,
+        "sha256": "08ffe1769b2960ab35a7123761afffe82f78c9c783d7eb7e87f4a93eb54446db"
+      },
+      "exit_status": 0,
+      "checked_refs": 269,
+      "faults": [],
+      "missing_requested_artifacts": [],
+      "sources_changed_during_run": []
+    },
+    {
+      "label": "green-exhaustive-handoff-domains",
+      "record": {
+        "path": "exchange/testdata/test-upgrade-20260907/green-exhaustive-handoff-domains.json",
+        "bytes": 83965,
+        "sha256": "ad6dad68d2896bbbb03b2c1ab9a5830b2a0a578202a95ccc155a27163d00d93f"
+      },
+      "exit_status": 0,
+      "checked_refs": 267,
+      "faults": [],
+      "missing_requested_artifacts": [],
+      "sources_changed_during_run": []
+    },
+    {
+      "label": "green-upload-declaration",
+      "record": {
+        "path": "exchange/testdata/test-upgrade-20260907/green-upload-declaration.json",
+        "bytes": 83283,
+        "sha256": "a62c8dcffee742f0980d96f9d04b3a273e6bb17276b35f18fd0656344f011cca"
+      },
+      "exit_status": 0,
+      "checked_refs": 265,
+      "faults": [],
+      "missing_requested_artifacts": [],
+      "sources_changed_during_run": []
+    },
+    {
+      "label": "mutation-address-refuse-all",
+      "record": {
+        "path": "exchange/testdata/test-upgrade-20260907/mutation-address-refuse-all.json",
+        "bytes": 83713,
+        "sha256": "d3992acf6a6e012d53b64fcb8dcf038c7abd67e63981cce3ec4abdf21f3d7b27"
+      },
+      "exit_status": 1,
+      "checked_refs": 265,
+      "faults": [],
+      "missing_requested_artifacts": [],
+      "sources_changed_during_run": []
+    },
+    {
+      "label": "mutation-address-substitute-valid-peer",
+      "record": {
+        "path": "exchange/testdata/test-upgrade-20260907/mutation-address-substitute-valid-peer.json",
+        "bytes": 83790,
+        "sha256": "49e3f08ad9f5103d6a6aba628ff115afebd8880765c55588e34df1cbd3d35b3b"
+      },
+      "exit_status": 1,
+      "checked_refs": 265,
+      "faults": [],
+      "missing_requested_artifacts": [],
+      "sources_changed_during_run": []
+    },
+    {
+      "label": "mutation-address-trust-leftmost-corrected-seed",
+      "record": {
+        "path": "exchange/testdata/test-upgrade-20260907/mutation-address-trust-leftmost-corrected-seed.json",
+        "bytes": 83800,
+        "sha256": "d7123d3016c50c62d77512d5b2c949858e554a9b37d1b63033431bc2c86a80b1"
+      },
+      "exit_status": 1,
+      "checked_refs": 265,
+      "faults": [],
+      "missing_requested_artifacts": [],
+      "sources_changed_during_run": []
+    },
+    {
+      "label": "mutation-address-trust-leftmost",
+      "record": {
+        "path": "exchange/testdata/test-upgrade-20260907/mutation-address-trust-leftmost.json",
+        "bytes": 83740,
+        "sha256": "d4066a0aa11864590a20bee21fc725910ea69ce2113ce1de4cf0cb3d1df6c58b"
+      },
+      "exit_status": 0,
+      "checked_refs": 265,
+      "faults": [],
+      "missing_requested_artifacts": [],
+      "sources_changed_during_run": []
+    },
+    {
+      "label": "mutation-aggregate-erases-status-conflict",
+      "record": {
+        "path": "exchange/testdata/test-upgrade-20260907/mutation-aggregate-erases-status-conflict.json",
+        "bytes": 85400,
+        "sha256": "910bb1ecb04bf6ec63f91723aec3f74489f4d7a4fa57de02a35111560d07cf3e"
+      },
+      "exit_status": 1,
+      "checked_refs": 270,
+      "faults": [],
+      "missing_requested_artifacts": [],
+      "sources_changed_during_run": []
+    },
+    {
+      "label": "mutation-aggregate-exhausts-one-too-early",
+      "record": {
+        "path": "exchange/testdata/test-upgrade-20260907/mutation-aggregate-exhausts-one-too-early.json",
+        "bytes": 85400,
+        "sha256": "081912f6d4869e0e3312e03104d33d6e2f1a859d30ff7c393aff4685368ca641"
+      },
+      "exit_status": 1,
+      "checked_refs": 270,
+      "faults": [],
+      "missing_requested_artifacts": [],
+      "sources_changed_during_run": []
+    },
+    {
+      "label": "mutation-aggregate-hardcodes-success-status",
+      "record": {
+        "path": "exchange/testdata/test-upgrade-20260907/mutation-aggregate-hardcodes-success-status.json",
+        "bytes": 85725,
+        "sha256": "73805933946a6955a72de1d2fcc66d384733672eccb9d39b469aafadd5b43271"
+      },
+      "exit_status": 1,
+      "checked_refs": 271,
+      "faults": [],
+      "missing_requested_artifacts": [],
+      "sources_changed_during_run": []
+    },
+    {
+      "label": "mutation-aggregate-retries-request-refusal",
+      "record": {
+        "path": "exchange/testdata/test-upgrade-20260907/mutation-aggregate-retries-request-refusal.json",
+        "bytes": 85403,
+        "sha256": "849a90b6eda57dee9095ec2cc7d3d64c294cb0151abeadb975cfea7bbc0c03be"
+      },
+      "exit_status": 1,
+      "checked_refs": 270,
+      "faults": [],
+      "missing_requested_artifacts": [],
+      "sources_changed_during_run": []
+    },
+    {
+      "label": "mutation-download-hardcodes-success-status",
+      "record": {
+        "path": "exchange/testdata/test-upgrade-20260907/mutation-download-hardcodes-success-status.json",
+        "bytes": 85717,
+        "sha256": "58501b94dcab1e4282d850e35eb77590d6dafb67798b09e6e07aac7100c94cac"
+      },
+      "exit_status": 1,
+      "checked_refs": 271,
+      "faults": [],
+      "missing_requested_artifacts": [],
+      "sources_changed_during_run": []
+    },
+    {
+      "label": "mutation-final-aggregate-erases-status-conflict",
+      "record": {
+        "path": "exchange/testdata/test-upgrade-20260907/mutation-final-aggregate-erases-status-conflict.json",
+        "bytes": 85751,
+        "sha256": "bf4a8a2546fc0bd68234075c4829280abda704a23ff8cb494387fd700544e93c"
+      },
+      "exit_status": 1,
+      "checked_refs": 271,
+      "faults": [],
+      "missing_requested_artifacts": [],
+      "sources_changed_during_run": []
+    },
+    {
+      "label": "mutation-final-aggregate-exhausts-one-too-early",
+      "record": {
+        "path": "exchange/testdata/test-upgrade-20260907/mutation-final-aggregate-exhausts-one-too-early.json",
+        "bytes": 85751,
+        "sha256": "4b285c2ce861a9e846b73d91892cff09498690d86d58159a7f3eafba308323ff"
+      },
+      "exit_status": 1,
+      "checked_refs": 271,
+      "faults": [],
+      "missing_requested_artifacts": [],
+      "sources_changed_during_run": []
+    },
+    {
+      "label": "mutation-final-aggregate-hardcodes-success-status",
+      "record": {
+        "path": "exchange/testdata/test-upgrade-20260907/mutation-final-aggregate-hardcodes-success-status.json",
+        "bytes": 85765,
+        "sha256": "67591584c9ccd16e2fb0d9ccd6484fedd887b5f94839f0b23e53889018ced09a"
+      },
+      "exit_status": 1,
+      "checked_refs": 271,
+      "faults": [],
+      "missing_requested_artifacts": [],
+      "sources_changed_during_run": []
+    },
+    {
+      "label": "mutation-final-aggregate-retries-request-refusal",
+      "record": {
+        "path": "exchange/testdata/test-upgrade-20260907/mutation-final-aggregate-retries-request-refusal.json",
+        "bytes": 85755,
+        "sha256": "2f72d25735d5a2c92bcbdeb450b03ce2e0fba7ed8ad327df98999896d210298f"
+      },
+      "exit_status": 1,
+      "checked_refs": 271,
+      "faults": [],
+      "missing_requested_artifacts": [],
+      "sources_changed_during_run": []
+    },
+    {
+      "label": "mutation-final-download-hardcodes-success-status",
+      "record": {
+        "path": "exchange/testdata/test-upgrade-20260907/mutation-final-download-hardcodes-success-status.json",
+        "bytes": 85758,
+        "sha256": "8998c555a2bc380de88ab9606334e16f4f578ed6530a3ef5f49a2cfd80252fa2"
+      },
+      "exit_status": 1,
+      "checked_refs": 271,
+      "faults": [],
+      "missing_requested_artifacts": [],
+      "sources_changed_during_run": []
+    },
+    {
+      "label": "mutation-final-status-retries-unpublished-client-error",
+      "record": {
+        "path": "exchange/testdata/test-upgrade-20260907/mutation-final-status-retries-unpublished-client-error.json",
+        "bytes": 85799,
+        "sha256": "061a2b51af52c5ad5c0ea6f89954f33ddee00bfb32b1cb7f1cd1aa5211ac9808"
+      },
+      "exit_status": 1,
+      "checked_refs": 271,
+      "faults": [],
+      "missing_requested_artifacts": [],
+      "sources_changed_during_run": []
+    },
+    {
+      "label": "mutation-final-stream-cancel-erases-joined-facts",
+      "record": {
+        "path": "exchange/testdata/test-upgrade-20260907/mutation-final-stream-cancel-erases-joined-facts.json",
+        "bytes": 85771,
+        "sha256": "bd5f8f2fd60d8c426d8dbf9c2094878840522203e6f93e9d30c36975835b53fa"
+      },
+      "exit_status": 1,
+      "checked_refs": 271,
+      "faults": [],
+      "missing_requested_artifacts": [],
+      "sources_changed_during_run": []
+    },
+    {
+      "label": "mutation-final-stream-ignores-terminal-refusal",
+      "record": {
+        "path": "exchange/testdata/test-upgrade-20260907/mutation-final-stream-ignores-terminal-refusal.json",
+        "bytes": 85756,
+        "sha256": "d8a6004201c03f53c556673afe22e6123db42fc1547788d11d1d734353a2ad3c"
+      },
+      "exit_status": 1,
+      "checked_refs": 271,
+      "faults": [],
+      "missing_requested_artifacts": [],
+      "sources_changed_during_run": []
+    },
+    {
+      "label": "mutation-final-stream-neutral-invents-retry",
+      "record": {
+        "path": "exchange/testdata/test-upgrade-20260907/mutation-final-stream-neutral-invents-retry.json",
+        "bytes": 85735,
+        "sha256": "b7e100f0ee73259f7d2860821c1eca085b3bd4772da2c3d182ab6e22dfb0a9c3"
+      },
+      "exit_status": 1,
+      "checked_refs": 271,
+      "faults": [],
+      "missing_requested_artifacts": [],
+      "sources_changed_during_run": []
+    },
+    {
+      "label": "mutation-prefix-invent-empty-success",
+      "record": {
+        "path": "exchange/testdata/test-upgrade-20260907/mutation-prefix-invent-empty-success.json",
+        "bytes": 83774,
+        "sha256": "6e18f2eb3a5f646f85aba1f028d4da0e27194600be0d205485fa2a5fd73ca581"
+      },
+      "exit_status": 1,
+      "checked_refs": 265,
+      "faults": [],
+      "missing_requested_artifacts": [],
+      "sources_changed_during_run": []
+    },
+    {
+      "label": "mutation-prefix-refuse-all",
+      "record": {
+        "path": "exchange/testdata/test-upgrade-20260907/mutation-prefix-refuse-all.json",
+        "bytes": 83702,
+        "sha256": "c5cb32dae9704b3f12ac850ee2dee8b6f72f0cbef3eb5b5be193b703da4a3a9b"
+      },
+      "exit_status": 1,
+      "checked_refs": 265,
+      "faults": [],
+      "missing_requested_artifacts": [],
+      "sources_changed_during_run": []
+    },
+    {
+      "label": "mutation-prefix-substitute-valid-network",
+      "record": {
+        "path": "exchange/testdata/test-upgrade-20260907/mutation-prefix-substitute-valid-network.json",
+        "bytes": 83801,
+        "sha256": "8a93f6eb360acfd8e9321adaad77b9b9f5845dc4870e85f2d9c66cc01652ec36"
+      },
+      "exit_status": 1,
+      "checked_refs": 265,
+      "faults": [],
+      "missing_requested_artifacts": [],
+      "sources_changed_during_run": []
+    },
+    {
+      "label": "mutation-roundtrip-loses-declaration",
+      "record": {
+        "path": "exchange/testdata/test-upgrade-20260907/mutation-roundtrip-loses-declaration.json",
+        "bytes": 84692,
+        "sha256": "c717f35d4773306d02f5fe20a9dae46057eff5e0e8da6e8f3a076911cf9cc62d"
+      },
+      "exit_status": 1,
+      "checked_refs": 268,
+      "faults": [],
+      "missing_requested_artifacts": [],
+      "sources_changed_during_run": []
+    },
+    {
+      "label": "mutation-roundtrip-refuses-every-response",
+      "record": {
+        "path": "exchange/testdata/test-upgrade-20260907/mutation-roundtrip-refuses-every-response.json",
+        "bytes": 84728,
+        "sha256": "5c46ab2f7afcd37a2cc9e7a5c6c7c025cbb5dc77f8e8791f88a0466dc0c2d3b1"
+      },
+      "exit_status": 1,
+      "checked_refs": 268,
+      "faults": [],
+      "missing_requested_artifacts": [],
+      "sources_changed_during_run": []
+    },
+    {
+      "label": "mutation-status-retries-unpublished-client-error",
+      "record": {
+        "path": "exchange/testdata/test-upgrade-20260907/mutation-status-retries-unpublished-client-error.json",
+        "bytes": 85448,
+        "sha256": "b49ca574734a681d7e14b6460110e6289c36af3d8fabeca01875bea1c79ebfc2"
+      },
+      "exit_status": 1,
+      "checked_refs": 270,
+      "faults": [],
+      "missing_requested_artifacts": [],
+      "sources_changed_during_run": []
+    },
+    {
+      "label": "mutation-stream-absence-ignores-declaration",
+      "record": {
+        "path": "exchange/testdata/test-upgrade-20260907/mutation-stream-absence-ignores-declaration.json",
+        "bytes": 85717,
+        "sha256": "6c00f32e00838c2c730bbd525431dfa69a631d1e8fc842df058f4b1a0998dc73"
+      },
+      "exit_status": 1,
+      "checked_refs": 271,
+      "faults": [],
+      "missing_requested_artifacts": [],
+      "sources_changed_during_run": []
+    },
+    {
+      "label": "mutation-stream-cancel-erases-joined-facts",
+      "record": {
+        "path": "exchange/testdata/test-upgrade-20260907/mutation-stream-cancel-erases-joined-facts.json",
+        "bytes": 85420,
+        "sha256": "1405692107859b6d75fe95956b973217c3375f4d959facdd2624dd6ac75beddc"
+      },
+      "exit_status": 1,
+      "checked_refs": 270,
+      "faults": [],
+      "missing_requested_artifacts": [],
+      "sources_changed_during_run": []
+    },
+    {
+      "label": "mutation-stream-ignores-terminal-refusal",
+      "record": {
+        "path": "exchange/testdata/test-upgrade-20260907/mutation-stream-ignores-terminal-refusal.json",
+        "bytes": 85406,
+        "sha256": "2079ca8498425d1e66afacb173c0bcbb51dbba1c900c890ac0570caaaa55687f"
+      },
+      "exit_status": 1,
+      "checked_refs": 270,
+      "faults": [],
+      "missing_requested_artifacts": [],
+      "sources_changed_during_run": []
+    },
+    {
+      "label": "mutation-stream-neutral-invents-retry",
+      "record": {
+        "path": "exchange/testdata/test-upgrade-20260907/mutation-stream-neutral-invents-retry.json",
+        "bytes": 85383,
+        "sha256": "92acaf705a6522c72d559bc797be69837de530aafee67ffebe59298556661f05"
+      },
+      "exit_status": 1,
+      "checked_refs": 270,
+      "faults": [],
+      "missing_requested_artifacts": [],
+      "sources_changed_during_run": []
+    },
+    {
+      "label": "mutation-upload-claims-declared-as-observed",
+      "record": {
+        "path": "exchange/testdata/test-upgrade-20260907/mutation-upload-claims-declared-as-observed.json",
+        "bytes": 84741,
+        "sha256": "7606341ec7cd7766f27788918f26a6c6aa24b9db6f6fb084cb48efe168e32470"
+      },
+      "exit_status": 1,
+      "checked_refs": 268,
+      "faults": [],
+      "missing_requested_artifacts": [],
+      "sources_changed_during_run": []
+    },
+    {
+      "label": "mutation-upload-loses-declaration",
+      "record": {
+        "path": "exchange/testdata/test-upgrade-20260907/mutation-upload-loses-declaration.json",
+        "bytes": 84671,
+        "sha256": "5fd1448f0ce9ddc33d83f8b498c1d3afc33ff7ad6f6d59bed55a3e2d18965407"
+      },
+      "exit_status": 1,
+      "checked_refs": 268,
+      "faults": [],
+      "missing_requested_artifacts": [],
+      "sources_changed_during_run": []
+    },
+    {
+      "label": "mutation-upload-refuses-every-response",
+      "record": {
+        "path": "exchange/testdata/test-upgrade-20260907/mutation-upload-refuses-every-response.json",
+        "bytes": 84706,
+        "sha256": "cc4152a28271420b4a3c609028c75a147cb2406ea39fcdd114db995300babb84"
+      },
+      "exit_status": 1,
+      "checked_refs": 268,
+      "faults": [],
+      "missing_requested_artifacts": [],
+      "sources_changed_during_run": []
+    },
+    {
+      "label": "mutation-upload-steals-source-close",
+      "record": {
+        "path": "exchange/testdata/test-upgrade-20260907/mutation-upload-steals-source-close.json",
+        "bytes": 84686,
+        "sha256": "52340cb4afe8d83ee4addd59e0c75a235e666db594cdc121c5e7ac062161b1e6"
+      },
+      "exit_status": 1,
+      "checked_refs": 268,
+      "faults": [],
+      "missing_requested_artifacts": [],
+      "sources_changed_during_run": []
+    },
+    {
+      "label": "red-exhaustive-handoff-domains",
+      "record": {
+        "path": "exchange/testdata/test-upgrade-20260907/red-exhaustive-handoff-domains.json",
+        "bytes": 83957,
+        "sha256": "6efbcc56ebaf6746b732288cec829a09b1f12ff2bd0cc1bc0ab61520c9430c4b"
+      },
+      "exit_status": 1,
+      "checked_refs": 267,
+      "faults": [],
+      "missing_requested_artifacts": [],
+      "sources_changed_during_run": []
+    },
+    {
+      "label": "red-upload-declared-is-not-observed-02",
+      "record": {
+        "path": "exchange/testdata/test-upgrade-20260907/red-upload-declared-is-not-observed-02.json",
+        "bytes": 83323,
+        "sha256": "ef22c39c3e2cbdcf3fa52181ef693103a6a8ab8bc58251559928bce1eef61f28"
+      },
+      "exit_status": 1,
+      "checked_refs": 265,
+      "faults": [],
+      "missing_requested_artifacts": [],
+      "sources_changed_during_run": []
+    },
+    {
+      "label": "red-upload-declared-is-not-observed",
+      "record": {
+        "path": "exchange/testdata/test-upgrade-20260907/red-upload-declared-is-not-observed.json",
+        "bytes": 83312,
+        "sha256": "0c79ba21fc85629fae0c961545bfc3da056ff08174d11cf82efa0530b769ea92"
+      },
+      "exit_status": 1,
+      "checked_refs": 265,
+      "faults": [],
+      "missing_requested_artifacts": [],
+      "sources_changed_during_run": []
+    },
+    {
+      "label": "stream-declaration-handoff-proof",
+      "record": {
+        "path": "exchange/testdata/test-upgrade-20260907/stream-declaration-handoff-proof.json",
+        "bytes": 84582,
+        "sha256": "2e6d784f0ea361cfcaf9bff9e19604bcd0fba9599f4d7e472d2171716b225f1b"
+      },
+      "exit_status": 0,
+      "checked_refs": 269,
+      "faults": [],
+      "missing_requested_artifacts": [],
+      "sources_changed_during_run": []
+    },
+    {
+      "label": "upload-both-doors-declaration-seeds",
+      "record": {
+        "path": "exchange/testdata/test-upgrade-20260907/upload-both-doors-declaration-seeds.json",
+        "bytes": 83677,
+        "sha256": "b19d1682e5a1cbb7bcb9a3858b6862cdd03046278a77efa3d70d2c30ca1ce744"
+      },
+      "exit_status": 0,
+      "checked_refs": 266,
+      "faults": [],
+      "missing_requested_artifacts": [],
+      "sources_changed_during_run": []
+    }
+  ],
+  "supporting_artifacts": [
+    {
+      "path": "exchange/upgrade_review.md",
+      "bytes": 31974,
+      "sha256": "048f17e9826da0b933f8b2fb26654f3a8143393ba942ed57b4c25f49b5c5b4a5"
+    },
+    {
+      "path": "exchange/handoff_matrix_review.md",
+      "bytes": 3791,
+      "sha256": "856955214ce58cfe35f33df2dee7c815b66e61db33bd967a64ca23c17814ea5c"
+    },
+    {
+      "path": "exchange/testdata/test-upgrade-20260907/manual-review-progress.json",
+      "bytes": 36645,
+      "sha256": "6f82804a144dbae2e0d63e0ccba4c0f59aa32ac588ed002802ce55dbc9f22aa9"
+    },
+    {
+      "path": "exchange/testdata/test-upgrade-20260907/go-request-write-source.json",
+      "bytes": 571,
+      "sha256": "258107e994527f15b18f59e4fb948a58644abbeb31eaefca97cab7053a1ee993"
+    },
+    {
+      "path": "exchange/testdata/test-upgrade-20260907/exchange-address-fuzz-upgrade.py",
+      "bytes": 2430,
+      "sha256": "2261bb258bf5b85f2936e63065039729f3b45575de66e89d1cc8f334d8ce0901"
+    },
+    {
+      "path": "exchange/testdata/test-upgrade-20260907/exchange-address-mutations.py",
+      "bytes": 2756,
+      "sha256": "d848bc29f1addec71104aa3ec1705776c2aa92fb9af72c492ee3777719f64a0c"
+    },
+    {
+      "path": "exchange/testdata/test-upgrade-20260907/exchange-exact-status-domain.py",
+      "bytes": 1858,
+      "sha256": "3c54eb2be23b58826310598dc494dd16558cf2d9788dc2f5e2aef947a2b64df6"
+    },
+    {
+      "path": "exchange/testdata/test-upgrade-20260907/exchange-upload-declaration-mutations.py",
+      "bytes": 2530,
+      "sha256": "7287b48f4fc0b4a294baf160fd3f6fd096df405017b30482410931ca6fb74d4c"
+    },
+    {
+      "path": "exchange/testdata/test-upgrade-20260907/exchange-four-gap-final-validation.py",
+      "bytes": 2372,
+      "sha256": "1bb6325d2e518390bcd04e951f4ee5cc6b0deb1d9aa3febdb69706d88b992b3d"
+    },
+    {
+      "path": "exchange/testdata/test-upgrade-20260907/exchange-status-agreement-mutations.py",
+      "bytes": 1983,
+      "sha256": "b53e009e619e15d137f1d4a48e51a84400dfd3e0c04188e0b606880ce85ec89d"
+    },
+    {
+      "path": "exchange/testdata/test-upgrade-20260907/exchange-handoff-domain-mutations.py",
+      "bytes": 2428,
+      "sha256": "9ba9ba92e7c93d530760329130985ca21cefabfc52125dba7c64250eb47ae9e3"
+    },
+    {
+      "path": "exchange/testdata/test-upgrade-20260907/exchange-aggregate-timing-recheck.py",
+      "bytes": 1797,
+      "sha256": "ca77548a5882760bc0516ef7d76c32d4f3ec5759fd05222a874807003eab672b"
+    },
+    {
+      "path": "exchange/testdata/test-upgrade-20260907/aggregate-timing-abba-plan.json",
+      "bytes": 4513,
+      "sha256": "64ae9ad8f3d286468fac33c1d015c933cac2a29c327c3b94d20d286c632e800b"
+    },
+    {
+      "path": "exchange/testdata/test-upgrade-20260907/four-gap-final-validation-plan.json",
+      "bytes": 10652,
+      "sha256": "8eceb4bf4aa329055c49eba542b06c7b5aa61d3f6d5923119aba05bad70f31cb"
+    },
+    {
+      "path": "exchange/testdata/test-upgrade-20260907/address-semantic-mutation-results.json",
+      "bytes": 2449,
+      "sha256": "7fd90fb64e84e995ed49800f8ac33aec72065f44995e48d4d5e6fd376ca2fdf3"
+    },
+    {
+      "path": "exchange/testdata/test-upgrade-20260907/upload-declaration-mutation-results.json",
+      "bytes": 4019,
+      "sha256": "a6e28490bbe7bf0e16b41f0b269ca5331538e532a29ee11f634c911541a59338"
+    },
+    {
+      "path": "exchange/testdata/test-upgrade-20260907/handoff-domain-mutation-results.json",
+      "bytes": 367765,
+      "sha256": "e40f78b72d1943d5b45a739f27f740e5181ebc8475d3ce8baae7692dc135cf02"
+    },
+    {
+      "path": "exchange/testdata/test-upgrade-20260907/exact-status-agreement-mutation-results.json",
+      "bytes": 630901,
+      "sha256": "c05437e615262e2c0d8dc5fc509e21aabf47964f0b083c46d435cfb4ffb71365"
+    },
+    {
+      "path": "exchange/testdata/test-upgrade-20260907/final-handoff-mutation-results.json",
+      "bytes": 1816,
+      "sha256": "ad2eb8b17da55013791198c17809f519ff4283f2cc65b4062db01815452eae5b"
+    }
+  ],
+  "go_source_snapshot_fault": null,
+  "flagged_records": 0
+}

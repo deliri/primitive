@@ -112,7 +112,7 @@ func benchmarkInspectBuiltArtifactRealExecutable(b *testing.B, padding int64) {
 	b.ReportAllocs()
 	b.SetBytes(info.Size())
 	b.ResetTimer()
-	for range b.N {
+	for b.Loop() {
 		artifact, err := release.InspectBuiltArtifact(b.Context(), request)
 		if err != nil || artifact.Validate() != nil || artifact.Build() != build {
 			b.Fatalf("release.InspectBuiltArtifact() = (%v, %v), want exact valid artifact", artifact, err)

@@ -173,7 +173,10 @@ func privateKeyFromSeed(seed [ed25519.SeedSize]byte) ed25519.PrivateKey {
 
 func privateKeyWithForgedPublic(seed [ed25519.SeedSize]byte, fill byte) ed25519.PrivateKey {
 	private := privateKeyFromSeed(seed)
-	for index := ed25519.SeedSize; index < len(private); index++ {
+	for index := range len(private) {
+		if index < ed25519.SeedSize {
+			continue
+		}
 		private[index] = fill
 	}
 	return private

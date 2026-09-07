@@ -1,0 +1,92 @@
+[
+  {
+    "label": "replay-cancel-drops-producer",
+    "before": "return false, errors.Join(terminal, cause)",
+    "after": "return false, terminal",
+    "outcome": "killed inside fuzz callback",
+    "failed_callbacks": [
+      "FuzzReplayStreamPreservesDownloadObservation/seed#1",
+      "FuzzReplayStreamPreservesDownloadObservation/seed#3",
+      "FuzzReplayStreamPreservesDownloadObservation/seed#4",
+      "FuzzReplayStreamPreservesDownloadObservation/seed#6",
+      "FuzzReplayStreamPreservesDownloadObservation/seed#8",
+      "FuzzReplayStreamPreservesDownloadObservation/seed#9",
+      "FuzzReplayStreamPreservesDownloadObservation/seed#11"
+    ],
+    "evidence": "mutation-replay-cancel-drops-producer.json"
+  },
+  {
+    "label": "replay-cancel-loses-precedence",
+    "before": "if terminal := terminalOperationError(ctx); terminal != nil {",
+    "after": "if terminal := terminalOperationError(ctx); terminal != nil && false {",
+    "outcome": "killed inside fuzz callback",
+    "failed_callbacks": [
+      "FuzzReplayStreamPreservesDownloadObservation/seed#1",
+      "FuzzReplayStreamPreservesDownloadObservation/seed#3",
+      "FuzzReplayStreamPreservesDownloadObservation/seed#4",
+      "FuzzReplayStreamPreservesDownloadObservation/seed#6",
+      "FuzzReplayStreamPreservesDownloadObservation/seed#8",
+      "FuzzReplayStreamPreservesDownloadObservation/seed#9",
+      "FuzzReplayStreamPreservesDownloadObservation/seed#11"
+    ],
+    "evidence": "mutation-replay-cancel-loses-precedence.json"
+  },
+  {
+    "label": "replay-substitutes-valid-byte-count",
+    "before": "response.Metadata.Attempts = attempts",
+    "after": "response.Metadata.Attempts = attempts\n\tresponse.Metadata.Bytes = core.ByteLength{}",
+    "outcome": "killed inside fuzz callback",
+    "failed_callbacks": [
+      "FuzzReplayStreamPreservesDownloadObservation/seed#0",
+      "FuzzReplayStreamPreservesDownloadObservation/seed#1",
+      "FuzzReplayStreamPreservesDownloadObservation/seed#2",
+      "FuzzReplayStreamPreservesDownloadObservation/seed#6",
+      "FuzzReplayStreamPreservesDownloadObservation/seed#7",
+      "FuzzReplayStreamPreservesDownloadObservation/seed#9",
+      "FuzzReplayStreamPreservesDownloadObservation/seed#10"
+    ],
+    "evidence": "mutation-replay-substitutes-valid-byte-count.json"
+  },
+  {
+    "label": "replay-invents-extra-attempt",
+    "before": "response.Metadata.Attempts = attempts",
+    "after": "response.Metadata.Attempts = attempts + 1",
+    "outcome": "killed inside fuzz callback",
+    "failed_callbacks": [
+      "FuzzReplayStreamPreservesDownloadObservation/seed#0",
+      "FuzzReplayStreamPreservesDownloadObservation/seed#1",
+      "FuzzReplayStreamPreservesDownloadObservation/seed#2",
+      "FuzzReplayStreamPreservesDownloadObservation/seed#4",
+      "FuzzReplayStreamPreservesDownloadObservation/seed#5",
+      "FuzzReplayStreamPreservesDownloadObservation/seed#6",
+      "FuzzReplayStreamPreservesDownloadObservation/seed#7",
+      "FuzzReplayStreamPreservesDownloadObservation/seed#8",
+      "FuzzReplayStreamPreservesDownloadObservation/seed#9",
+      "FuzzReplayStreamPreservesDownloadObservation/seed#10",
+      "FuzzReplayStreamPreservesDownloadObservation/seed#11",
+      "FuzzReplayStreamPreservesDownloadObservation/seed#12"
+    ],
+    "evidence": "mutation-replay-invents-extra-attempt.json"
+  },
+  {
+    "label": "replay-refuses-every-observation",
+    "before": "response.Metadata.Attempts = attempts",
+    "after": "if attempts != 0 { return StreamResponse{}, requestError(core.ErrExchangeContract) }\n\tresponse.Metadata.Attempts = attempts",
+    "outcome": "killed inside fuzz callback",
+    "failed_callbacks": [
+      "FuzzReplayStreamPreservesDownloadObservation/seed#0",
+      "FuzzReplayStreamPreservesDownloadObservation/seed#1",
+      "FuzzReplayStreamPreservesDownloadObservation/seed#2",
+      "FuzzReplayStreamPreservesDownloadObservation/seed#4",
+      "FuzzReplayStreamPreservesDownloadObservation/seed#5",
+      "FuzzReplayStreamPreservesDownloadObservation/seed#6",
+      "FuzzReplayStreamPreservesDownloadObservation/seed#7",
+      "FuzzReplayStreamPreservesDownloadObservation/seed#8",
+      "FuzzReplayStreamPreservesDownloadObservation/seed#9",
+      "FuzzReplayStreamPreservesDownloadObservation/seed#10",
+      "FuzzReplayStreamPreservesDownloadObservation/seed#11",
+      "FuzzReplayStreamPreservesDownloadObservation/seed#12"
+    ],
+    "evidence": "mutation-replay-refuses-every-observation.json"
+  }
+]

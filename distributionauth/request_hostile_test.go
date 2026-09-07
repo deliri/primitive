@@ -634,7 +634,7 @@ func distributionAuthPadJSON(encoded []byte, length int) []byte {
 		return nil
 	}
 	padded := make([]byte, length)
-	for index := 0; index < length-len(encoded); index++ {
+	for index := range length - len(encoded) {
 		padded[index] = ' '
 	}
 	copy(padded[length-len(encoded):], encoded)

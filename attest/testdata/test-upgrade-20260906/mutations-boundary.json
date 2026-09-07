@@ -1,0 +1,20 @@
+[
+  {
+    "name": "prefix-byte-ceiling",
+    "source": "/Users/d/code/primitive/attest/canonical_object.go",
+    "before": "if len(o.buffer) >= CanonicalBodyMaximumBytes {",
+    "after": "if len(o.buffer) > CanonicalBodyMaximumBytes {",
+    "test_filter": "TestCanonicalObjectDestinationPrefixConsumesTheDocumentBudget",
+    "killed": true,
+    "exit_status": 1
+  },
+  {
+    "name": "signature-whitespace-ceiling",
+    "source": "/Users/d/code/primitive/attest/signature.go",
+    "before": "core.DecodeJSONStringToken(data)",
+    "after": "core.DecodeJSONStringToken([]byte(strings.TrimSpace(string(data))))",
+    "test_filter": "TestSignatureJSONDocumentExtentIncludesWhitespace",
+    "killed": true,
+    "exit_status": 1
+  }
+]

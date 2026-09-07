@@ -6,6 +6,7 @@ import (
 	"net/http"
 	"net/url"
 	"path"
+	"slices"
 
 	"github.com/deliri/primitive/v2026/core"
 )
@@ -100,12 +101,12 @@ type ClientSocketConfiguration struct {
 
 // Validate closes the client side before a network operation can begin.
 func (c ClientSocketConfiguration) Validate() error {
-	if c.Target == nil {
-		return core.ErrExchangeContract
+	target, err := validatedTarget(c.Target)
+	if err != nil {
+		return err
 	}
 	if err := errors.Join(
 		c.Client.Validate(),
-		c.Target.Validate(),
 		c.Headers.Validate(),
 		c.CaptureHeaders.Validate(),
 		c.Operation.Validate(),
@@ -113,7 +114,7 @@ func (c ClientSocketConfiguration) Validate() error {
 	); err != nil {
 		return errors.Join(core.ErrExchangeContract, err)
 	}
-	return validateSocketTarget(c.Target, c.Contract.Path)
+	return validateSocketTarget(target, c.Contract.Path)
 }
 
 // ClientSocket is a sealed domain-blind client capability for one exact
@@ -122,9 +123,20 @@ type ClientSocket struct{ configuration ClientSocketConfiguration }
 
 // NewClientSocket constructs one paired-route client capability.
 func NewClientSocket(configuration ClientSocketConfiguration) (ClientSocket, error) {
+	target, err := validatedTarget(configuration.Target)
+	if err != nil {
+		return ClientSocket{}, err
+	}
+	configuration.Target = target
 	if err := configuration.Validate(); err != nil {
 		return ClientSocket{}, err
 	}
+	configuration.Headers.Values = slices.Clone(configuration.Headers.Values)
+	for index := range configuration.Headers.Values {
+		header := &configuration.Headers.Values[index]
+		header.Values = slices.Clone(header.Values)
+	}
+	configuration.CaptureHeaders.Names = slices.Clone(configuration.CaptureHeaders.Names)
 	return ClientSocket{configuration: configuration}, nil
 }
 
@@ -161,15 +173,23 @@ func SendReplayBoundSocketJSON[
 	if err := socket.Validate(); err != nil || socket.configuration.Contract.Route.Replay != ReplayIdempotencyKey {
 		return zero, errors.Join(core.ErrExchangeContract, err)
 	}
-	key, err := request.IdempotencyKey()
-	if err != nil {
+	if err := validateCallIngress(ctx, socket.configuration.Client); err != nil {
+		return zero, err
+	}
+	if err := validateCallerValue(request); err != nil {
 		return zero, requestError(err)
+	}
+	key, err := observedIdempotencyKey(request)
+	if err != nil {
+		return zero, err
 	}
 	semantics, err := socketRequestSemantics(socket.configuration.Contract.Route, key)
 	if err != nil {
 		return zero, err
 	}
-	return SendReplayBoundJSON[Request, Response](socketJSONCall(ctx, socket, request, semantics))
+	// The socket constructs semantics from this exact observation. Re-entering
+	// the caller-supplied-key lane would invoke the same projection twice.
+	return SendJSON[Request, Response](socketJSONCall(ctx, socket, request, semantics))
 }
 
 func socketJSONCall[Request core.ValidatedJSONMarshaler](
@@ -221,13 +241,28 @@ type SocketServerCall struct {
 // Exchange boundary.
 func NewSocketServerCall(writer http.ResponseWriter, request *http.Request) (SocketServerCall, error) {
 	call := SocketServerCall{writer: writer, request: request}
-	return call, call.Validate()
+	if err := call.Validate(); err != nil {
+		return SocketServerCall{}, err
+	}
+	return call, nil
 }
 
 // Validate rejects a partially populated HTTP ingress.
 func (c SocketServerCall) Validate() error {
 	if responseWriterIsNil(c.writer) || c.request == nil {
 		return core.ErrExchangeContract
+	}
+	return nil
+}
+
+// validateWrite admits the effect's capabilities and current request lifetime.
+// Cancellation is an Exchange observation carrying Go's original cause.
+func (c SocketServerCall) validateWrite() error {
+	if err := c.Validate(); err != nil {
+		return responseError(err)
+	}
+	if err := exchangeContextError(c.request.Context()); err != nil {
+		return responseError(err)
 	}
 	return nil
 }
@@ -373,7 +408,7 @@ func receiveSocketJSON[
 	if err := validateServerSocketRequest(socket, call.request); err != nil || socket.contract.Route.Replay == ReplayIdempotencyKey {
 		return zero, errors.Join(core.ErrExchangeContract, err)
 	}
-	return ReceiveJSON[Body, BodyPtr](JSONReceiveCall{
+	return receiveJSON[Body, BodyPtr](JSONReceiveCall{
 		Call:   call,
 		Route:  socket.contract.Route,
 		Policy: ServerPolicy{RequestBodyLimit: socket.contract.RequestBodyLimit},
@@ -389,11 +424,9 @@ func ReceiveSocketJSON[
 		core.Validatable
 	},
 ](socket ServerSocket, call SocketServerCall) (Received[BodyPtr], error) {
-	var zero Received[BodyPtr]
-	if err := call.Validate(); err != nil {
-		return zero, err
-	}
-	return receiveSocketJSON[Body, BodyPtr](socket, call)
+	return executeReceivedBodyOperation(call.request, func() (Received[BodyPtr], error) {
+		return receiveSocketJSON[Body, BodyPtr](socket, call)
+	})
 }
 
 func receiveReplayBoundSocketJSON[
@@ -410,7 +443,7 @@ func receiveReplayBoundSocketJSON[
 	if err := validateServerSocketRequest(socket, call.request); err != nil || socket.contract.Route.Replay != ReplayIdempotencyKey {
 		return zero, errors.Join(core.ErrExchangeContract, err)
 	}
-	return ReceiveReplayBoundJSON[Body, BodyPtr](JSONReceiveCall{
+	return receiveReplayBoundJSON[Body, BodyPtr](JSONReceiveCall{
 		Call:   call,
 		Route:  socket.contract.Route,
 		Policy: ServerPolicy{RequestBodyLimit: socket.contract.RequestBodyLimit},
@@ -426,11 +459,9 @@ func ReceiveReplayBoundSocketJSON[
 		IdempotencyBound
 	},
 ](socket ServerSocket, call SocketServerCall) (Received[BodyPtr], error) {
-	var zero Received[BodyPtr]
-	if err := call.Validate(); err != nil {
-		return zero, err
-	}
-	return receiveReplayBoundSocketJSON[Body, BodyPtr](socket, call)
+	return executeReceivedBodyOperation(call.request, func() (Received[BodyPtr], error) {
+		return receiveReplayBoundSocketJSON[Body, BodyPtr](socket, call)
+	})
 }
 
 func writeSocketJSON[Body core.ValidatedJSONMarshaler](
@@ -474,7 +505,7 @@ func validateServerSocketRequest(socket ServerSocket, request *http.Request) err
 	return nil
 }
 
-func validateSocketTarget(target Target, route SocketRoutePath) error {
+func validateSocketTarget(target core.HTTPEndpoint, route SocketRoutePath) error {
 	urlValue := target.HTTPURL()
 	if urlValue.Path != route.String() || urlValue.RawPath != "" || urlValue.RawQuery != "" || urlValue.ForceQuery || urlValue.Fragment != "" {
 		return core.ErrExchangeContract

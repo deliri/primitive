@@ -1,0 +1,20 @@
+{
+  "reason": "Row and oracle review found masked assertions after the earlier measurements. Changed semantic fuzz targets rerun; benchmarks run serially last on the reviewed source. Gates deferred until the complete package sweep by user instruction.",
+  "benchmark_seconds": 30,
+  "fuzz_seconds": 30,
+  "parallel": 1,
+  "count": 1,
+  "benchmarks": [
+    "BenchmarkCanonicalObjectReusedScalarBuffer",
+    "BenchmarkSignCanonicalBody64KiB",
+    "BenchmarkSignCanonicalBodyMaximum",
+    "BenchmarkVerifyCanonicalBody64KiB",
+    "BenchmarkVerifyCanonicalBodyMaximum",
+    "BenchmarkEnvelopeMarshalJSON",
+    "BenchmarkEnvelopeUnmarshalJSON"
+  ],
+  "fuzz": [
+    "FuzzEnvelopeJSONSemanticClosure",
+    "FuzzCanonicalObjectNestedMember"
+  ]
+}

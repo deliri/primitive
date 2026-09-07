@@ -1,0 +1,78 @@
+{
+  "configured_total_seconds": 120,
+  "execution": "serial targets after current runtime package tests, runtime before/after profiles and profile-informed Go ListenTCP comparison; two bounded Go fuzz workers per target",
+  "workloads": [
+    {
+      "label": "fuzz-runtime-auth-bearer-token",
+      "target": "FuzzBearerAuthorizationTokenSemanticClosure",
+      "argv": [
+        "go",
+        "test",
+        "-json",
+        "-count=1",
+        "-run=^$",
+        "-fuzz=^FuzzBearerAuthorizationTokenSemanticClosure$",
+        "-fuzztime=30s",
+        "-parallel=2",
+        "-timeout=2m",
+        "./exchange"
+      ],
+      "configured_seconds": 30,
+      "workers": 2
+    },
+    {
+      "label": "fuzz-runtime-auth-bearer-receive",
+      "target": "FuzzReceiveBearerAuthorizationSemanticClosure",
+      "argv": [
+        "go",
+        "test",
+        "-json",
+        "-count=1",
+        "-run=^$",
+        "-fuzz=^FuzzReceiveBearerAuthorizationSemanticClosure$",
+        "-fuzztime=30s",
+        "-parallel=2",
+        "-timeout=2m",
+        "./exchange"
+      ],
+      "configured_seconds": 30,
+      "workers": 2
+    },
+    {
+      "label": "fuzz-runtime-auth-runtime-configuration",
+      "target": "FuzzServerRuntimeConfigurationAdmission",
+      "argv": [
+        "go",
+        "test",
+        "-json",
+        "-count=1",
+        "-run=^$",
+        "-fuzz=^FuzzServerRuntimeConfigurationAdmission$",
+        "-fuzztime=30s",
+        "-parallel=2",
+        "-timeout=2m",
+        "./exchange"
+      ],
+      "configured_seconds": 30,
+      "workers": 2
+    },
+    {
+      "label": "fuzz-runtime-auth-listen-current-port-policy",
+      "target": "FuzzParseListenAddressSemanticClosure",
+      "argv": [
+        "go",
+        "test",
+        "-json",
+        "-count=1",
+        "-run=^$",
+        "-fuzz=^FuzzParseListenAddressSemanticClosure$",
+        "-fuzztime=30s",
+        "-parallel=2",
+        "-timeout=2m",
+        "./exchange"
+      ],
+      "configured_seconds": 30,
+      "workers": 2
+    }
+  ]
+}

@@ -1,0 +1,60 @@
+{
+  "configured_total_seconds": 90,
+  "execution": "serial targets after checkpoint-05 tests and header profiles/control recheck; two bounded Go fuzz workers per target",
+  "workloads": [
+    {
+      "label": "fuzz-september-capture-headers",
+      "target": "FuzzCapturedHeadersPreserveExactSelection",
+      "argv": [
+        "go",
+        "test",
+        "-json",
+        "-count=1",
+        "-run=^$",
+        "-fuzz=^FuzzCapturedHeadersPreserveExactSelection$",
+        "-fuzztime=30s",
+        "-parallel=2",
+        "-timeout=2m",
+        "./exchange"
+      ],
+      "configured_seconds": 30,
+      "workers": 2
+    },
+    {
+      "label": "fuzz-september-header-value",
+      "target": "FuzzHeaderValueMatchesNetHTTPAndExchangeBounds",
+      "argv": [
+        "go",
+        "test",
+        "-json",
+        "-count=1",
+        "-run=^$",
+        "-fuzz=^FuzzHeaderValueMatchesNetHTTPAndExchangeBounds$",
+        "-fuzztime=30s",
+        "-parallel=2",
+        "-timeout=2m",
+        "./exchange"
+      ],
+      "configured_seconds": 30,
+      "workers": 2
+    },
+    {
+      "label": "fuzz-september-receive-stream-custody",
+      "target": "FuzzReceiveStreamCustodySemanticClosure",
+      "argv": [
+        "go",
+        "test",
+        "-json",
+        "-count=1",
+        "-run=^$",
+        "-fuzz=^FuzzReceiveStreamCustodySemanticClosure$",
+        "-fuzztime=30s",
+        "-parallel=2",
+        "-timeout=2m",
+        "./exchange"
+      ],
+      "configured_seconds": 30,
+      "workers": 2
+    }
+  ]
+}

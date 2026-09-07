@@ -1,0 +1,400 @@
+{
+  "scope": "capabilities only",
+  "reason_for_frozen_baseline": "Original production and unchanged benchmark fixtures measured against a fixed final test tree; earlier baseline phase allowed ongoing test authoring. Preserve all earlier attempts.",
+  "plan": [
+    {
+      "label": "frozen-before-identity",
+      "argv": [
+        "go",
+        "test",
+        "-overlay=/Users/d/code/primitive/capabilities/testdata/test-upgrade-20260907/frozen-baseline.overlay.json",
+        "-run=^$",
+        "-bench=^BenchmarkParseIdentity$",
+        "-benchmem",
+        "-benchtime=30s",
+        "-count=1",
+        "-p=1",
+        "-parallel=1",
+        "-cpuprofile=/Users/d/code/primitive/capabilities/testdata/test-upgrade-20260907/frozen-before-identity.cpu.pprof",
+        "-memprofile=/Users/d/code/primitive/capabilities/testdata/test-upgrade-20260907/frozen-before-identity.mem.pprof",
+        "-o=/Users/d/code/primitive/capabilities/testdata/test-upgrade-20260907/frozen-before-identity.test",
+        "./capabilities"
+      ]
+    },
+    {
+      "label": "frozen-before-catalog",
+      "argv": [
+        "go",
+        "test",
+        "-overlay=/Users/d/code/primitive/capabilities/testdata/test-upgrade-20260907/frozen-baseline.overlay.json",
+        "-run=^$",
+        "-bench=^BenchmarkCatalogAll$",
+        "-benchmem",
+        "-benchtime=30s",
+        "-count=1",
+        "-p=1",
+        "-parallel=1",
+        "-cpuprofile=/Users/d/code/primitive/capabilities/testdata/test-upgrade-20260907/frozen-before-catalog.cpu.pprof",
+        "-memprofile=/Users/d/code/primitive/capabilities/testdata/test-upgrade-20260907/frozen-before-catalog.mem.pprof",
+        "-o=/Users/d/code/primitive/capabilities/testdata/test-upgrade-20260907/frozen-before-catalog.test",
+        "./capabilities"
+      ]
+    },
+    {
+      "label": "frozen-before-effect",
+      "argv": [
+        "go",
+        "test",
+        "-overlay=/Users/d/code/primitive/capabilities/testdata/test-upgrade-20260907/frozen-baseline.overlay.json",
+        "-run=^$",
+        "-bench=^BenchmarkResolveEffect$",
+        "-benchmem",
+        "-benchtime=30s",
+        "-count=1",
+        "-p=1",
+        "-parallel=1",
+        "-cpuprofile=/Users/d/code/primitive/capabilities/testdata/test-upgrade-20260907/frozen-before-effect.cpu.pprof",
+        "-memprofile=/Users/d/code/primitive/capabilities/testdata/test-upgrade-20260907/frozen-before-effect.mem.pprof",
+        "-o=/Users/d/code/primitive/capabilities/testdata/test-upgrade-20260907/frozen-before-effect.test",
+        "./capabilities"
+      ]
+    },
+    {
+      "label": "frozen-before-function",
+      "argv": [
+        "go",
+        "test",
+        "-overlay=/Users/d/code/primitive/capabilities/testdata/test-upgrade-20260907/frozen-baseline.overlay.json",
+        "-run=^$",
+        "-bench=^BenchmarkResolveStandardFunction$",
+        "-benchmem",
+        "-benchtime=30s",
+        "-count=1",
+        "-p=1",
+        "-parallel=1",
+        "-cpuprofile=/Users/d/code/primitive/capabilities/testdata/test-upgrade-20260907/frozen-before-function.cpu.pprof",
+        "-memprofile=/Users/d/code/primitive/capabilities/testdata/test-upgrade-20260907/frozen-before-function.mem.pprof",
+        "-o=/Users/d/code/primitive/capabilities/testdata/test-upgrade-20260907/frozen-before-function.test",
+        "./capabilities"
+      ]
+    },
+    {
+      "label": "frozen-before-method",
+      "argv": [
+        "go",
+        "test",
+        "-overlay=/Users/d/code/primitive/capabilities/testdata/test-upgrade-20260907/frozen-baseline.overlay.json",
+        "-run=^$",
+        "-bench=^BenchmarkResolveStandardMethod$",
+        "-benchmem",
+        "-benchtime=30s",
+        "-count=1",
+        "-p=1",
+        "-parallel=1",
+        "-cpuprofile=/Users/d/code/primitive/capabilities/testdata/test-upgrade-20260907/frozen-before-method.cpu.pprof",
+        "-memprofile=/Users/d/code/primitive/capabilities/testdata/test-upgrade-20260907/frozen-before-method.mem.pprof",
+        "-o=/Users/d/code/primitive/capabilities/testdata/test-upgrade-20260907/frozen-before-method.test",
+        "./capabilities"
+      ]
+    },
+    {
+      "label": "frozen-before-unresolved",
+      "argv": [
+        "go",
+        "test",
+        "-overlay=/Users/d/code/primitive/capabilities/testdata/test-upgrade-20260907/frozen-baseline.overlay.json",
+        "-run=^$",
+        "-bench=^BenchmarkResolveStandardUnresolved$",
+        "-benchmem",
+        "-benchtime=30s",
+        "-count=1",
+        "-p=1",
+        "-parallel=1",
+        "-cpuprofile=/Users/d/code/primitive/capabilities/testdata/test-upgrade-20260907/frozen-before-unresolved.cpu.pprof",
+        "-memprofile=/Users/d/code/primitive/capabilities/testdata/test-upgrade-20260907/frozen-before-unresolved.mem.pprof",
+        "-o=/Users/d/code/primitive/capabilities/testdata/test-upgrade-20260907/frozen-before-unresolved.test",
+        "./capabilities"
+      ]
+    },
+    {
+      "label": "frozen-before-json-maximum",
+      "argv": [
+        "go",
+        "test",
+        "-overlay=/Users/d/code/primitive/capabilities/testdata/test-upgrade-20260907/frozen-baseline.overlay.json",
+        "-run=^$",
+        "-bench=^BenchmarkClassificationJSONMaximum$",
+        "-benchmem",
+        "-benchtime=30s",
+        "-count=1",
+        "-p=1",
+        "-parallel=1",
+        "-cpuprofile=/Users/d/code/primitive/capabilities/testdata/test-upgrade-20260907/frozen-before-json-maximum.cpu.pprof",
+        "-memprofile=/Users/d/code/primitive/capabilities/testdata/test-upgrade-20260907/frozen-before-json-maximum.mem.pprof",
+        "-o=/Users/d/code/primitive/capabilities/testdata/test-upgrade-20260907/frozen-before-json-maximum.test",
+        "./capabilities"
+      ]
+    },
+    {
+      "label": "after-identity",
+      "argv": [
+        "go",
+        "test",
+        "-run=^$",
+        "-bench=^BenchmarkParseIdentity$",
+        "-benchmem",
+        "-benchtime=30s",
+        "-count=1",
+        "-p=1",
+        "-parallel=1",
+        "-cpuprofile=/Users/d/code/primitive/capabilities/testdata/test-upgrade-20260907/after-identity.cpu.pprof",
+        "-memprofile=/Users/d/code/primitive/capabilities/testdata/test-upgrade-20260907/after-identity.mem.pprof",
+        "-o=/Users/d/code/primitive/capabilities/testdata/test-upgrade-20260907/after-identity.test",
+        "./capabilities"
+      ]
+    },
+    {
+      "label": "after-catalog",
+      "argv": [
+        "go",
+        "test",
+        "-run=^$",
+        "-bench=^BenchmarkCatalogAll$",
+        "-benchmem",
+        "-benchtime=30s",
+        "-count=1",
+        "-p=1",
+        "-parallel=1",
+        "-cpuprofile=/Users/d/code/primitive/capabilities/testdata/test-upgrade-20260907/after-catalog.cpu.pprof",
+        "-memprofile=/Users/d/code/primitive/capabilities/testdata/test-upgrade-20260907/after-catalog.mem.pprof",
+        "-o=/Users/d/code/primitive/capabilities/testdata/test-upgrade-20260907/after-catalog.test",
+        "./capabilities"
+      ]
+    },
+    {
+      "label": "after-effect",
+      "argv": [
+        "go",
+        "test",
+        "-run=^$",
+        "-bench=^BenchmarkResolveEffect$",
+        "-benchmem",
+        "-benchtime=30s",
+        "-count=1",
+        "-p=1",
+        "-parallel=1",
+        "-cpuprofile=/Users/d/code/primitive/capabilities/testdata/test-upgrade-20260907/after-effect.cpu.pprof",
+        "-memprofile=/Users/d/code/primitive/capabilities/testdata/test-upgrade-20260907/after-effect.mem.pprof",
+        "-o=/Users/d/code/primitive/capabilities/testdata/test-upgrade-20260907/after-effect.test",
+        "./capabilities"
+      ]
+    },
+    {
+      "label": "after-function",
+      "argv": [
+        "go",
+        "test",
+        "-run=^$",
+        "-bench=^BenchmarkResolveStandardFunction$",
+        "-benchmem",
+        "-benchtime=30s",
+        "-count=1",
+        "-p=1",
+        "-parallel=1",
+        "-cpuprofile=/Users/d/code/primitive/capabilities/testdata/test-upgrade-20260907/after-function.cpu.pprof",
+        "-memprofile=/Users/d/code/primitive/capabilities/testdata/test-upgrade-20260907/after-function.mem.pprof",
+        "-o=/Users/d/code/primitive/capabilities/testdata/test-upgrade-20260907/after-function.test",
+        "./capabilities"
+      ]
+    },
+    {
+      "label": "after-method",
+      "argv": [
+        "go",
+        "test",
+        "-run=^$",
+        "-bench=^BenchmarkResolveStandardMethod$",
+        "-benchmem",
+        "-benchtime=30s",
+        "-count=1",
+        "-p=1",
+        "-parallel=1",
+        "-cpuprofile=/Users/d/code/primitive/capabilities/testdata/test-upgrade-20260907/after-method.cpu.pprof",
+        "-memprofile=/Users/d/code/primitive/capabilities/testdata/test-upgrade-20260907/after-method.mem.pprof",
+        "-o=/Users/d/code/primitive/capabilities/testdata/test-upgrade-20260907/after-method.test",
+        "./capabilities"
+      ]
+    },
+    {
+      "label": "after-unresolved",
+      "argv": [
+        "go",
+        "test",
+        "-run=^$",
+        "-bench=^BenchmarkResolveStandardUnresolved$",
+        "-benchmem",
+        "-benchtime=30s",
+        "-count=1",
+        "-p=1",
+        "-parallel=1",
+        "-cpuprofile=/Users/d/code/primitive/capabilities/testdata/test-upgrade-20260907/after-unresolved.cpu.pprof",
+        "-memprofile=/Users/d/code/primitive/capabilities/testdata/test-upgrade-20260907/after-unresolved.mem.pprof",
+        "-o=/Users/d/code/primitive/capabilities/testdata/test-upgrade-20260907/after-unresolved.test",
+        "./capabilities"
+      ]
+    },
+    {
+      "label": "after-json-maximum",
+      "argv": [
+        "go",
+        "test",
+        "-run=^$",
+        "-bench=^BenchmarkClassificationJSONMaximum$",
+        "-benchmem",
+        "-benchtime=30s",
+        "-count=1",
+        "-p=1",
+        "-parallel=1",
+        "-cpuprofile=/Users/d/code/primitive/capabilities/testdata/test-upgrade-20260907/after-json-maximum.cpu.pprof",
+        "-memprofile=/Users/d/code/primitive/capabilities/testdata/test-upgrade-20260907/after-json-maximum.mem.pprof",
+        "-o=/Users/d/code/primitive/capabilities/testdata/test-upgrade-20260907/after-json-maximum.test",
+        "./capabilities"
+      ]
+    },
+    {
+      "label": "fuzz-FuzzClassificationJSONSemanticClosure",
+      "argv": [
+        "go",
+        "test",
+        "-run=^$",
+        "-fuzz=^FuzzClassificationJSONSemanticClosure$",
+        "-fuzztime=30s",
+        "-fuzzminimizetime=1s",
+        "-parallel=1",
+        "-count=1",
+        "-o=/Users/d/code/primitive/capabilities/testdata/test-upgrade-20260907/fuzz-FuzzClassificationJSONSemanticClosure.test",
+        "./capabilities"
+      ]
+    },
+    {
+      "label": "fuzz-FuzzStandardSymbolDispositionJSONSemanticClosure",
+      "argv": [
+        "go",
+        "test",
+        "-run=^$",
+        "-fuzz=^FuzzStandardSymbolDispositionJSONSemanticClosure$",
+        "-fuzztime=30s",
+        "-fuzzminimizetime=1s",
+        "-parallel=1",
+        "-count=1",
+        "-o=/Users/d/code/primitive/capabilities/testdata/test-upgrade-20260907/fuzz-FuzzStandardSymbolDispositionJSONSemanticClosure.test",
+        "./capabilities"
+      ]
+    },
+    {
+      "label": "fuzz-FuzzIdentityJSONSemanticClosure",
+      "argv": [
+        "go",
+        "test",
+        "-run=^$",
+        "-fuzz=^FuzzIdentityJSONSemanticClosure$",
+        "-fuzztime=30s",
+        "-fuzzminimizetime=1s",
+        "-parallel=1",
+        "-count=1",
+        "-o=/Users/d/code/primitive/capabilities/testdata/test-upgrade-20260907/fuzz-FuzzIdentityJSONSemanticClosure.test",
+        "./capabilities"
+      ]
+    },
+    {
+      "label": "fuzz-FuzzOperationJSONSemanticClosure",
+      "argv": [
+        "go",
+        "test",
+        "-run=^$",
+        "-fuzz=^FuzzOperationJSONSemanticClosure$",
+        "-fuzztime=30s",
+        "-fuzzminimizetime=1s",
+        "-parallel=1",
+        "-count=1",
+        "-o=/Users/d/code/primitive/capabilities/testdata/test-upgrade-20260907/fuzz-FuzzOperationJSONSemanticClosure.test",
+        "./capabilities"
+      ]
+    },
+    {
+      "label": "fuzz-FuzzParseIdentityExactDomain",
+      "argv": [
+        "go",
+        "test",
+        "-run=^$",
+        "-fuzz=^FuzzParseIdentityExactDomain$",
+        "-fuzztime=30s",
+        "-fuzzminimizetime=1s",
+        "-parallel=1",
+        "-count=1",
+        "-o=/Users/d/code/primitive/capabilities/testdata/test-upgrade-20260907/fuzz-FuzzParseIdentityExactDomain.test",
+        "./capabilities"
+      ]
+    },
+    {
+      "label": "fuzz-FuzzSymbolNameGoIdentifier",
+      "argv": [
+        "go",
+        "test",
+        "-run=^$",
+        "-fuzz=^FuzzSymbolNameGoIdentifier$",
+        "-fuzztime=30s",
+        "-fuzzminimizetime=1s",
+        "-parallel=1",
+        "-count=1",
+        "-o=/Users/d/code/primitive/capabilities/testdata/test-upgrade-20260907/fuzz-FuzzSymbolNameGoIdentifier.test",
+        "./capabilities"
+      ]
+    },
+    {
+      "label": "fuzz-FuzzClassificationTypedProjection",
+      "argv": [
+        "go",
+        "test",
+        "-run=^$",
+        "-fuzz=^FuzzClassificationTypedProjection$",
+        "-fuzztime=30s",
+        "-fuzzminimizetime=1s",
+        "-parallel=1",
+        "-count=1",
+        "-o=/Users/d/code/primitive/capabilities/testdata/test-upgrade-20260907/fuzz-FuzzClassificationTypedProjection.test",
+        "./capabilities"
+      ]
+    },
+    {
+      "label": "fuzz-FuzzResolveRequirementExactOwnership",
+      "argv": [
+        "go",
+        "test",
+        "-run=^$",
+        "-fuzz=^FuzzResolveRequirementExactOwnership$",
+        "-fuzztime=30s",
+        "-fuzzminimizetime=1s",
+        "-parallel=1",
+        "-count=1",
+        "-o=/Users/d/code/primitive/capabilities/testdata/test-upgrade-20260907/fuzz-FuzzResolveRequirementExactOwnership.test",
+        "./capabilities"
+      ]
+    },
+    {
+      "label": "fuzz-FuzzStandardSymbolNamespaceClosure",
+      "argv": [
+        "go",
+        "test",
+        "-run=^$",
+        "-fuzz=^FuzzStandardSymbolNamespaceClosure$",
+        "-fuzztime=30s",
+        "-fuzzminimizetime=1s",
+        "-parallel=1",
+        "-count=1",
+        "-o=/Users/d/code/primitive/capabilities/testdata/test-upgrade-20260907/fuzz-FuzzStandardSymbolNamespaceClosure.test",
+        "./capabilities"
+      ]
+    }
+  ]
+}

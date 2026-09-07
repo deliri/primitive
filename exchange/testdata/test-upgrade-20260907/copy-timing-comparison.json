@@ -1,0 +1,43 @@
+{
+  "runs": [
+    {
+      "label": "timing-repair-reference-1",
+      "iterations": 273420,
+      "ns_per_op": 198106.0,
+      "bytes_per_op": 34488,
+      "allocations_per_op": 71,
+      "configured_seconds": 30,
+      "command_elapsed_seconds": 78.51967599999625
+    },
+    {
+      "label": "timing-repair-repaired-1",
+      "iterations": 1000000,
+      "ns_per_op": 33732.0,
+      "bytes_per_op": 1721,
+      "allocations_per_op": 71,
+      "configured_seconds": 30,
+      "command_elapsed_seconds": 52.23165412500384
+    },
+    {
+      "label": "timing-repair-repaired-2",
+      "iterations": 4290116,
+      "ns_per_op": 7831.0,
+      "bytes_per_op": 1721,
+      "allocations_per_op": 71,
+      "configured_seconds": 30,
+      "command_elapsed_seconds": 39.5603805409919
+    },
+    {
+      "label": "timing-repair-reference-2",
+      "iterations": 2115768,
+      "ns_per_op": 17245.0,
+      "bytes_per_op": 34488,
+      "allocations_per_op": 71,
+      "configured_seconds": 30,
+      "command_elapsed_seconds": 45.02238949999446
+    }
+  ],
+  "configured_total_seconds": 120,
+  "command_total_seconds": 215.33410016598646,
+  "interpretation": "Both reversed-order matched pairs improved after io.Copy delegation. Stable allocation changed from 34488 to 1721 B/op, 71 allocations unchanged. Timing samples remain highly variable: these runs establish no reproducible candidate slowdown, but do not establish the historical slowdown cause or a general speedup distribution. Full Exchange performance acceptance remains pending."
+}

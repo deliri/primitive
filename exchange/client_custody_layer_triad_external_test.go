@@ -295,7 +295,7 @@ func TestCallerClientImmutabilityLayerTriad(t *testing.T) {
 		}
 		want := observeClientCustody(client)
 		exchangeClient := mustExchangeClient(t, client)
-		for attempt := 1; attempt <= 3; attempt++ {
+		for attempt := range 3 {
 			_, gotErr := exchange.SendNoBodyBounded(
 				exchange.NoBodyBoundedCall{
 					Context: context.Background(),
@@ -316,12 +316,12 @@ func TestCallerClientImmutabilityLayerTriad(t *testing.T) {
 				},
 			)
 			if gotErr != nil {
-				t.Fatalf("repeated operation %d error = %v, want nil", attempt, gotErr)
+				t.Fatalf("repeated operation %d error = %v, want nil", attempt+1, gotErr)
 			}
 			if gotCustody := observeClientCustody(client); gotCustody != want {
 				t.Fatalf(
 					"caller http.Client custody after operation %d = %+v, want unchanged %+v",
-					attempt,
+					attempt+1,
 					gotCustody,
 					want,
 				)

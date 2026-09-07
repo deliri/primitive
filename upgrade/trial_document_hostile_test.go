@@ -119,7 +119,10 @@ func encodedFieldValue(
 	}
 	valueStart := start + len(field)
 	depth := 0
-	for index := valueStart; index < len(document); index++ {
+	for index := range len(document) {
+		if index < valueStart {
+			continue
+		}
 		switch document[index] {
 		case '{':
 			depth++

@@ -500,7 +500,7 @@ func paymentQueryJSONAtLength(t testing.TB, encoded []byte, length int) []byte {
 		t.Fatalf("requested JSON boundary length = %d, want at least canonical length %d", length, len(encoded))
 	}
 	padded := make([]byte, length)
-	for index := 0; index < length-len(encoded); index++ {
+	for index := range length - len(encoded) {
 		padded[index] = ' '
 	}
 	copy(padded[length-len(encoded):], encoded)

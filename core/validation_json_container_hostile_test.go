@@ -34,7 +34,7 @@ func TestStrictJSONContainerKindExhaustsBackingDomain(t *testing.T) {
 
 	labels := strictJSONContainerKindLabels()
 	admittedLabels := make(map[string]strictJSONContainerKind, len(labels))
-	for raw := 0; raw <= math.MaxUint8; raw++ {
+	for raw := range math.MaxUint8 + 1 {
 		kind := strictJSONContainerKind(raw)
 		wantAdmitted := kind == strictJSONContainerObject || kind == strictJSONContainerArray
 		gotErr := kind.Validate()

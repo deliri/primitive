@@ -16,23 +16,23 @@ const (
 )
 
 type valueState struct {
-	bytes     [PayloadMaximumBytes]byte
+	bytes     []byte
 	mu        sync.RWMutex
-	extent    int
 	destroyed bool
 }
 
 // Value is bounded secret material whose copies share destruction state.
 type Value struct{ state *valueState }
 
-// NewValue copies one admitted payload into fixed-capacity secret custody.
+// NewValue copies one admitted payload into exact-size secret custody.
+// PayloadMaximumBytes is an admission ceiling, not a reservation.
 func NewValue(payload []byte) (Value, error) {
 	if err := validatePayload(payload); err != nil {
 		return Value{}, err
 	}
-	state := &valueState{extent: len(payload)}
-	copy(state.bytes[:], payload)
-	return Value{state: state}, nil
+	owned := make([]byte, len(payload))
+	copy(owned, payload)
+	return Value{state: &valueState{bytes: owned}}, nil
 }
 
 func validatePayload(payload []byte) error {
@@ -66,8 +66,8 @@ func (v Value) CopyBytes() ([]byte, error) {
 	if !valueStateValid(v.state) {
 		return nil, errors.Join(core.ErrSecretStorePayload, core.ErrSecretStoreContract)
 	}
-	result := make([]byte, v.state.extent)
-	copy(result, v.state.bytes[:v.state.extent])
+	result := make([]byte, len(v.state.bytes))
+	copy(result, v.state.bytes)
 	return result, nil
 }
 
@@ -79,10 +79,10 @@ func (v Value) Text() (string, error) {
 	}
 	v.state.mu.RLock()
 	defer v.state.mu.RUnlock()
-	if !valueStateValid(v.state) || !utf8.Valid(v.state.bytes[:v.state.extent]) {
+	if !valueStateValid(v.state) || !utf8.Valid(v.state.bytes) {
 		return "", errors.Join(core.ErrSecretStorePayload, core.ErrSecretStoreContract)
 	}
-	return string(v.state.bytes[:v.state.extent]), nil
+	return string(v.state.bytes), nil
 }
 
 // Destroy clears the shared payload. Repeated destruction is a no-op.
@@ -95,8 +95,8 @@ func (v Value) Destroy() error {
 	if v.state.destroyed {
 		return nil
 	}
-	clear(v.state.bytes[:])
-	v.state.extent = 0
+	clear(v.state.bytes)
+	v.state.bytes = nil
 	v.state.destroyed = true
 	return nil
 }
@@ -107,5 +107,5 @@ func (v Value) Format(state fmt.State, _ rune) {
 }
 
 func valueStateValid(state *valueState) bool {
-	return !state.destroyed && state.extent >= 0 && state.extent <= PayloadMaximumBytes
+	return !state.destroyed && len(state.bytes) <= PayloadMaximumBytes
 }

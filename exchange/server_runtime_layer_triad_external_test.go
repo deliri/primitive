@@ -1,11 +1,12 @@
 package exchange_test
 
 import (
-	"context"
+	"bytes"
 	"errors"
-	"io"
-	"net"
 	"net/http"
+	"net/netip"
+	"sync/atomic"
+	"syscall"
 	"testing"
 	"time"
 
@@ -16,148 +17,270 @@ import (
 
 func TestServerRuntimeLayerTriad(t *testing.T) {
 	t.Parallel()
-
-	t.Run("positive owned listener serves and shuts down cleanly", func(t *testing.T) {
-		t.Parallel()
-
-		address := availableLoopbackAddress(t)
-		configuration := serverRuntimeConfiguration(t, address)
-		runtime, err := exchange.NewServerRuntime(configuration, http.HandlerFunc(func(writer http.ResponseWriter, _ *http.Request) {
-			writer.WriteHeader(http.StatusNoContent)
-		}))
-		if err != nil {
-			t.Fatalf("exchange.NewServerRuntime() error = %v, want nil", err)
-		}
-		served := make(chan error, 1)
-		go func() { served <- runtime.Serve() }()
-		waitForRuntimeReady(t, runtime.Ready())
-
-		response, requestErr := http.Get("http://" + address)
-		if requestErr != nil {
-			t.Fatalf("http.Get(owned listener) error = %v, want nil", requestErr)
-		}
-		_, readErr := io.Copy(io.Discard, response.Body)
-		closeErr := response.Body.Close()
-		if readErr != nil || closeErr != nil || response.StatusCode != http.StatusNoContent {
-			t.Fatalf("owned listener response = (status %d, read %v, close %v), want (204, nil, nil)", response.StatusCode, readErr, closeErr)
-		}
-		if err := runtime.Shutdown(t.Context()); err != nil {
-			t.Fatalf("ServerRuntime.Shutdown() error = %v, want nil", err)
-		}
-		if err := waitForRuntimeExit(t, served); err != nil {
-			t.Fatalf("ServerRuntime.Serve() error = %v, want nil after shutdown", err)
-		}
-	})
-
-	t.Run("positive preopened listener transfers exactly once and closes idempotently", func(t *testing.T) {
-		t.Parallel()
-
-		address := availableLoopbackAddress(t)
-		configuration := serverRuntimeConfiguration(t, address)
-		listener, listenErr := exchange.Listen(configuration.Address)
-		if listenErr != nil {
-			t.Fatalf("exchange.Listen() error = %v, want nil", listenErr)
-		}
-		runtime, runtimeErr := exchange.NewServerRuntime(configuration, http.HandlerFunc(func(writer http.ResponseWriter, _ *http.Request) {
-			writer.WriteHeader(http.StatusNoContent)
-		}))
-		if runtimeErr != nil {
-			t.Fatalf("exchange.NewServerRuntime() error = %v, want nil", runtimeErr)
-		}
-		served := make(chan error, 1)
-		go func() { served <- runtime.ServeListener(listener) }()
-		waitForRuntimeReady(t, runtime.Ready())
-		response, requestErr := http.Get("http://" + address)
-		if requestErr != nil {
-			t.Fatalf("http.Get(preopened listener) error = %v, want nil", requestErr)
-		}
-		_, readErr := io.Copy(io.Discard, response.Body)
-		closeErr := response.Body.Close()
-		if readErr != nil || closeErr != nil || response.StatusCode != http.StatusNoContent {
-			t.Fatalf("preopened listener response = (status %d, read %v, close %v), want (204, nil, nil)", response.StatusCode, readErr, closeErr)
-		}
-		if gotErr := runtime.Shutdown(t.Context()); gotErr != nil {
-			t.Fatalf("ServerRuntime.Shutdown() error = %v, want nil", gotErr)
-		}
-		if gotErr := waitForRuntimeExit(t, served); gotErr != nil {
-			t.Fatalf("ServerRuntime.ServeListener() error = %v, want nil", gotErr)
-		}
-		if gotErr := listener.Close(); gotErr != nil {
-			t.Fatalf("ServerListener.Close(after shutdown) error = %v, want nil", gotErr)
-		}
-	})
-
-	t.Run("negative invalid address creates no runtime", func(t *testing.T) {
-		t.Parallel()
-
-		address, addressErr := exchange.ParseListenAddress("0.0.0.0:8080")
-		if !errors.Is(addressErr, core.ErrExchangeContract) || address != (exchange.ListenAddress{}) {
-			t.Fatalf("exchange.ParseListenAddress(unspecified) = (%v, %v), want zero and %v", address, addressErr, core.ErrExchangeContract)
-		}
-		_, gotErr := exchange.NewServerRuntime(exchange.ServerRuntimeConfiguration{}, http.NotFoundHandler())
-		if !errors.Is(gotErr, core.ErrExchangeContract) {
-			t.Fatalf("exchange.NewServerRuntime(zero configuration) error = %v, want %v", gotErr, core.ErrExchangeContract)
-		}
-	})
-
-	t.Run("negative invalid transferred listener publishes one refusal for each serve attempt", func(t *testing.T) {
-		t.Parallel()
-
-		runtime, runtimeErr := exchange.NewServerRuntime(
-			serverRuntimeConfiguration(t, availableLoopbackAddress(t)),
-			http.NotFoundHandler(),
-		)
-		if runtimeErr != nil {
-			t.Fatalf("exchange.NewServerRuntime() error = %v, want nil", runtimeErr)
-		}
-		for attempt := 1; attempt <= 2; attempt++ {
-			gotErr := runtime.ServeListener(nil)
-			readyErr := waitForRuntimeStart(t, runtime.Ready())
-			if !errors.Is(gotErr, core.ErrExchangeContract) || !errors.Is(readyErr, core.ErrExchangeContract) {
-				t.Fatalf("ServeListener(nil) attempt %d = (serve %v, ready %v), want %v from both", attempt, gotErr, readyErr, core.ErrExchangeContract)
+	ipv4 := netip.AddrFrom4([4]byte{127, 0, 0, 1})
+	cases := []struct {
+		name           string
+		address        string
+		wantHost       netip.Addr
+		preopen        bool
+		configureBound bool
+		forceClose     bool
+		dormant        bool
+		wantRequests   int64
+		maximumHeader  uint64
+	}{
+		{name: "Go allocated listener serves exact binary bytes and drains", address: "127.0.0.1:0", wantHost: ipv4, wantRequests: 1},
+		{name: "portable header ceiling leaves Go read allowance representable", address: "127.0.0.1:0", wantHost: ipv4, wantRequests: 1, maximumHeader: core.HTTPServerHeaderMaximumBytes},
+		{name: "preopened socket retains exact acquisition through transfer", address: "127.0.0.1:0", wantHost: ipv4, preopen: true, wantRequests: 1},
+		{name: "observed bound address satisfies an allocated listener agreement", address: "127.0.0.1:0", wantHost: ipv4, preopen: true, configureBound: true, wantRequests: 1},
+		{name: "Go IPv4 mapping cannot lose the original transfer agreement", address: "[::ffff:127.0.0.1]:0", wantHost: ipv4, preopen: true, wantRequests: 1},
+		{name: "IPv6 allocation retains the bound address family", address: "[::1]:0", wantHost: netip.IPv6Loopback(), preopen: true, wantRequests: 1},
+		{name: "immediate Go close terminates the owned serving goroutine", address: "127.0.0.1:0", wantHost: ipv4, preopen: true, forceClose: true, wantRequests: 1},
+		{name: "neutral dormant construction cannot acquire an occupied socket", address: "127.0.0.1:0", wantHost: ipv4, preopen: true, configureBound: true, dormant: true},
+	}
+	for _, tc := range cases {
+		t.Run(tc.name, func(t *testing.T) {
+			t.Parallel()
+			configuration := serverRuntimeConfiguration(t, tc.address)
+			if tc.maximumHeader != 0 {
+				configuration.Policy.MaximumHeaderBytes = mustByteCount(t, tc.maximumHeader)
+			}
+			var listener *exchange.ServerListener
+			var bound exchange.ListenAddress
+			if tc.preopen {
+				var err error
+				listener, err = exchange.Listen(configuration.Address)
+				if err != nil {
+					t.Fatalf("listener acquisition = %v, want nil", err)
+				}
+				t.Cleanup(func() {
+					if err := listener.Close(); err != nil {
+						t.Errorf("listener cleanup = %v, want nil", err)
+					}
+				})
+				bound, err = listener.Address()
+				if err != nil {
+					t.Fatalf("listener address = %v, want nil", err)
+				}
+				if tc.configureBound {
+					configuration.Address = bound
+				}
+			}
+			payload := []byte{0x00, 0xff}
+			var requests atomic.Int64
+			handled := make(chan error, 1)
+			handler := http.HandlerFunc(func(writer http.ResponseWriter, request *http.Request) {
+				requests.Add(1)
+				call, err := exchange.NewSocketServerCall(writer, request)
+				if err == nil {
+					err = exchange.WriteBounded(exchange.BoundedWriteCall{Call: call, Response: exchange.ServerBoundedResponse{Body: payload, ContentType: core.HTTPMediaTypeOctetStream(), Status: core.HTTPStatusOK()}})
+				}
+				select {
+				case handled <- err:
+				default:
+				}
+			})
+			runtime, err := exchange.NewServerRuntime(configuration, handler)
+			if err != nil {
+				t.Fatalf("runtime construction = %v, want nil", err)
+			}
+			t.Cleanup(func() {
+				if err := runtime.Close(); err != nil {
+					t.Errorf("runtime cleanup = %v, want nil", err)
+				}
+			})
+			if got, err := runtime.Address(); !errors.Is(err, core.ErrExchangeContract) || got != (exchange.ListenAddress{}) {
+				t.Fatalf("dormant address = (%v,%v), want zero and contract refusal", got, err)
 			}
 			select {
 			case extra := <-runtime.Ready():
-				t.Fatalf("ServeListener(nil) attempt %d extra readiness = %v, want exactly one result", attempt, extra)
+				t.Fatalf("dormant acquisition = %v, want none", extra)
 			default:
 			}
-		}
-	})
-
-	t.Run("neutral construction opens no listener and rejects shutdown before serve", func(t *testing.T) {
-		t.Parallel()
-
-		listener, err := net.Listen("tcp", "127.0.0.1:0")
-		if err != nil {
-			t.Fatalf("net.Listen(reservation) error = %v, want nil", err)
-		}
-		t.Cleanup(func() {
-			if closeErr := listener.Close(); closeErr != nil && !errors.Is(closeErr, net.ErrClosed) {
-				t.Errorf("reservation listener Close() error = %v, want nil or %v", closeErr, net.ErrClosed)
+			if tc.dormant {
+				if err := runtime.Shutdown(t.Context()); !errors.Is(err, core.ErrExchangeContract) {
+					t.Fatalf("dormant graceful shutdown = %v, want contract refusal", err)
+				}
+				if err := runtime.Close(); err != nil {
+					t.Fatalf("dormant Go close = %v, want nil", err)
+				}
+				if requests.Load() != tc.wantRequests {
+					t.Fatalf("dormant requests = %d, want %d", requests.Load(), tc.wantRequests)
+				}
+				return
+			}
+			backstop := exchangeFixtureBackstop(t, 10*time.Second)
+			done := make(chan struct{})
+			var serveErr error
+			t.Cleanup(func() {
+				if err := runtime.Close(); err != nil {
+					t.Errorf("serving owner close = %v, want nil", err)
+				}
+				if listener != nil {
+					if err := listener.Close(); err != nil {
+						t.Errorf("listener backstop close = %v, want nil", err)
+					}
+				}
+				select {
+				case <-done:
+				case <-backstop:
+					t.Error("owned serving goroutine did not exit after close")
+				}
+			})
+			go func() {
+				if tc.preopen {
+					serveErr = runtime.ServeListener(listener)
+				} else {
+					serveErr = runtime.Serve()
+				}
+				close(done)
+			}()
+			select {
+			case readyErr := <-runtime.Ready():
+				if readyErr != nil {
+					t.Fatalf("acquisition result = %v, want nil", readyErr)
+				}
+			case <-backstop:
+				t.Fatal("listener acquisition did not finish")
+			}
+			observed, err := runtime.Address()
+			if err != nil {
+				t.Fatalf("runtime bound address = %v, want nil", err)
+			}
+			standard, err := netip.ParseAddrPort(observed.String())
+			if err != nil || standard.Port() == 0 || standard.Addr() != tc.wantHost {
+				t.Fatalf("bound address = (%v,%v), want exact loopback and allocated port", standard, err)
+			}
+			if tc.preopen && observed != bound {
+				t.Fatalf("transferred address = %v, want acquired %v", observed, bound)
+			}
+			if err := runtime.Serve(); !errors.Is(err, core.ErrExchangeContract) {
+				t.Fatalf("duplicate serve = %v, want contract refusal", err)
+			}
+			select {
+			case extra := <-runtime.Ready():
+				t.Fatalf("duplicate serve invented acquisition %v", extra)
+			default:
+			}
+			transport := &http.Transport{Proxy: nil}
+			t.Cleanup(transport.CloseIdleConnections)
+			client := mustExchangeClient(t, &http.Client{Transport: transport})
+			response, err := exchange.SendNoBodyBounded(exchange.NoBodyBoundedCall{
+				Context: t.Context(), Client: client,
+				Request: exchange.NoBodyBoundedRequest{Target: mustEndpoint(t, "http://"+observed.String()+"/"), Semantics: exchange.RequestSemantics{Method: exchange.MethodGet, Replay: exchange.ReplaySingleAttempt}, ExpectedStatus: core.HTTPStatusOK(), ExpectedResponseContentType: core.HTTPMediaTypeOctetStream()},
+				Policy:  exchange.NoBodyBoundedPolicy{Operation: singleAttemptOperationPolicy(t), ResponseBodyLimit: mustByteCount(t, uint64(len(payload)))},
+			})
+			if err != nil || !bytes.Equal(response.Body, payload) || response.Metadata.Bytes.Uint64() != uint64(len(payload)) || response.Metadata.Attempts != 1 || response.Metadata.Status != core.HTTPStatusOK() {
+				t.Fatalf("runtime exchange = (%x,%+v,%v), want exact binary body, status and one attempt", response.Body, response.Metadata, err)
+			}
+			select {
+			case err := <-handled:
+				if err != nil {
+					t.Fatalf("server write = %v, want nil", err)
+				}
+			case <-backstop:
+				t.Fatal("server handler did not publish its completed write")
+			}
+			if tc.forceClose {
+				err = runtime.Close()
+			} else {
+				err = runtime.Shutdown(t.Context())
+			}
+			if err != nil {
+				t.Fatalf("server stop = %v, want nil", err)
+			}
+			select {
+			case <-done:
+			case <-backstop:
+				t.Fatal("server stop did not end its serving goroutine")
+			}
+			if serveErr != nil || requests.Load() != tc.wantRequests {
+				t.Fatalf("serve result/requests = (%v,%d), want (nil,%d)", serveErr, requests.Load(), tc.wantRequests)
+			}
+			if retained, err := runtime.Address(); err != nil || retained != observed {
+				t.Fatalf("closed runtime acquisition = (%v,%v), want (%v,nil)", retained, err, observed)
 			}
 		})
-		address := listener.Addr().String()
-		runtime, runtimeErr := exchange.NewServerRuntime(serverRuntimeConfiguration(t, address), http.NotFoundHandler())
-		if runtimeErr != nil {
-			t.Fatalf("exchange.NewServerRuntime(dormant) error = %v, want nil", runtimeErr)
-		}
-		if gotErr := runtime.Shutdown(t.Context()); !errors.Is(gotErr, core.ErrExchangeContract) {
-			t.Fatalf("ServerRuntime.Shutdown(before Serve) error = %v, want %v", gotErr, core.ErrExchangeContract)
-		}
-	})
+	}
 }
 
-func availableLoopbackAddress(t testing.TB) string {
-	t.Helper()
-	listener, err := net.Listen("tcp", "127.0.0.1:0")
-	if err != nil {
-		t.Fatalf("net.Listen(loopback allocation) error = %v, want nil", err)
+func TestServerRuntimeAdmissionRefusalTable(t *testing.T) {
+	t.Parallel()
+	cases := []struct {
+		name                          string
+		missingHandler, missingPolicy bool
+	}{
+		{name: "absent handler cannot select Go global default mux", missingHandler: true},
+		{name: "zero bounds cannot create a server", missingPolicy: true},
 	}
-	address := listener.Addr().String()
-	if err := listener.Close(); err != nil {
-		t.Fatalf("listener.Close(loopback allocation) error = %v, want nil", err)
+	for _, tc := range cases {
+		t.Run(tc.name, func(t *testing.T) {
+			t.Parallel()
+			configuration := serverRuntimeConfiguration(t, "127.0.0.1:0")
+			var handler http.Handler = http.NotFoundHandler()
+			if tc.missingHandler {
+				handler = nil
+			}
+			if tc.missingPolicy {
+				configuration.Policy = exchange.ServerRuntimePolicy{}
+			}
+			got, err := exchange.NewServerRuntime(configuration, handler)
+			if !errors.Is(err, core.ErrExchangeContract) || got != nil {
+				t.Fatalf("runtime admission = (%v,%v), want nil capability and contract refusal", got, err)
+			}
+		})
 	}
-	return address
+}
+
+func TestServerRuntimeInvalidTransferPreservesRetryAndAbsence(t *testing.T) {
+	t.Parallel()
+	cases := []struct {
+		name         string
+		inputs       []*exchange.ServerListener
+		wantAttempts int
+	}{
+		{name: "absent and zero capabilities cannot acquire or consume a runtime", inputs: []*exchange.ServerListener{nil, {}}, wantAttempts: 2},
+	}
+	for _, tc := range cases {
+		t.Run(tc.name, func(t *testing.T) {
+			t.Parallel()
+			runtime, err := exchange.NewServerRuntime(serverRuntimeConfiguration(t, "127.0.0.1:0"), http.NotFoundHandler())
+			if err != nil {
+				t.Fatalf("runtime fixture = %v, want nil", err)
+			}
+			t.Cleanup(func() {
+				if err := runtime.Close(); err != nil {
+					t.Errorf("runtime cleanup = %v, want nil", err)
+				}
+			})
+			attempts := 0
+			for _, input := range tc.inputs {
+				attempts++
+				if err := runtime.ServeListener(input); !errors.Is(err, core.ErrExchangeContract) {
+					t.Fatalf("invalid transfer = %v, want contract refusal", err)
+				}
+				select {
+				case readyErr := <-runtime.Ready():
+					if !errors.Is(readyErr, core.ErrExchangeContract) {
+						t.Fatalf("refused acquisition = %v, want contract refusal", readyErr)
+					}
+				default:
+					t.Fatal("completed refusal omitted its acquisition result")
+				}
+				select {
+				case extra := <-runtime.Ready():
+					t.Fatalf("extra acquisition result = %v, want none", extra)
+				default:
+				}
+				if got, err := runtime.Address(); !errors.Is(err, core.ErrExchangeContract) || got != (exchange.ListenAddress{}) {
+					t.Fatalf("invalid transfer address = (%v,%v), want zero and contract refusal", got, err)
+				}
+			}
+			if attempts != tc.wantAttempts {
+				t.Fatalf("admission attempts = %d, want %d", attempts, tc.wantAttempts)
+			}
+		})
+	}
 }
 
 func serverRuntimeConfiguration(t testing.TB, address string) exchange.ServerRuntimeConfiguration {
@@ -187,31 +310,102 @@ func serverRuntimeConfiguration(t testing.TB, address string) exchange.ServerRun
 	return configuration
 }
 
-func waitForRuntimeReady(t testing.TB, ready <-chan error) {
-	t.Helper()
-	if err := waitForRuntimeStart(t, ready); err != nil {
-		t.Fatalf("ServerRuntime listener acquisition error = %v, want nil", err)
+func TestServerRuntimeOccupiedAddressRecoversByOwnedTransfer(t *testing.T) {
+	t.Parallel()
+	cases := []struct {
+		name                   string
+		attempts, wantRefusals int
+	}{
+		{name: "repeated Go bind refusals preserve custody for later exact transfer", attempts: 2, wantRefusals: 2},
 	}
-}
-
-func waitForRuntimeStart(t testing.TB, ready <-chan error) error {
-	t.Helper()
-	select {
-	case err := <-ready:
-		return err
-	case <-time.After(10 * time.Second):
-		t.Fatalf("ServerRuntime readiness facts received = %d after %v, want 1", 0, 10*time.Second)
-		return context.DeadlineExceeded
-	}
-}
-
-func waitForRuntimeExit(t testing.TB, served <-chan error) error {
-	t.Helper()
-	select {
-	case err := <-served:
-		return err
-	case <-time.After(10 * time.Second):
-		t.Fatalf("ServerRuntime exit facts received = %d after %v, want 1", 0, 10*time.Second)
-		return context.DeadlineExceeded
+	for _, tc := range cases {
+		t.Run(tc.name, func(t *testing.T) {
+			t.Parallel()
+			configuration := serverRuntimeConfiguration(t, "127.0.0.1:0")
+			listener, err := exchange.Listen(configuration.Address)
+			if err != nil {
+				t.Fatalf("occupied listener fixture = %v, want nil", err)
+			}
+			t.Cleanup(func() {
+				if err := listener.Close(); err != nil {
+					t.Errorf("listener cleanup = %v, want nil", err)
+				}
+			})
+			address, err := listener.Address()
+			if err != nil {
+				t.Fatalf("occupied address = %v, want nil", err)
+			}
+			configuration.Address = address
+			runtime, err := exchange.NewServerRuntime(configuration, http.NotFoundHandler())
+			if err != nil {
+				t.Fatalf("runtime fixture = %v, want nil", err)
+			}
+			t.Cleanup(func() {
+				if err := runtime.Close(); err != nil {
+					t.Errorf("runtime cleanup = %v, want nil", err)
+				}
+			})
+			refusals := 0
+			for range tc.attempts {
+				gotErr := runtime.Serve()
+				if !errors.Is(gotErr, core.ErrExchangeTransport) || !errors.Is(gotErr, syscall.EADDRINUSE) {
+					t.Fatalf("occupied bind = %v, want Exchange transport and Go address-in-use identity", gotErr)
+				}
+				select {
+				case readyErr := <-runtime.Ready():
+					if !errors.Is(readyErr, core.ErrExchangeTransport) || !errors.Is(readyErr, syscall.EADDRINUSE) {
+						t.Fatalf("occupied readiness = %v, want typed bind refusal", readyErr)
+					}
+				default:
+					t.Fatal("completed bind refusal omitted readiness")
+				}
+				if got, err := runtime.Address(); got != (exchange.ListenAddress{}) || !errors.Is(err, core.ErrExchangeContract) {
+					t.Fatalf("failed bind address = (%v,%v), want absent", got, err)
+				}
+				refusals++
+			}
+			if refusals != tc.wantRefusals {
+				t.Fatalf("bind refusals = %d, want %d", refusals, tc.wantRefusals)
+			}
+			backstop := exchangeFixtureBackstop(t, 10*time.Second)
+			done := make(chan struct{})
+			var serveErr error
+			t.Cleanup(func() {
+				if err := runtime.Close(); err != nil {
+					t.Errorf("server owner close = %v, want nil", err)
+				}
+				if err := listener.Close(); err != nil {
+					t.Errorf("listener backstop = %v, want nil", err)
+				}
+				select {
+				case <-done:
+				case <-backstop:
+					t.Error("recovered serving goroutine did not exit")
+				}
+			})
+			go func() { serveErr = runtime.ServeListener(listener); close(done) }()
+			select {
+			case readyErr := <-runtime.Ready():
+				if readyErr != nil {
+					t.Fatalf("recovered transfer = %v, want nil", readyErr)
+				}
+			case <-backstop:
+				t.Fatal("recovered transfer omitted readiness")
+			}
+			if got, err := runtime.Address(); err != nil || got != address {
+				t.Fatalf("recovered address = (%v,%v), want exact acquired %v", got, err, address)
+			}
+			if err := runtime.Shutdown(t.Context()); err != nil {
+				t.Fatalf("recovered shutdown = %v, want nil", err)
+			}
+			select {
+			case <-done:
+			case <-backstop:
+				t.Fatal("recovered serving goroutine did not exit")
+			}
+			if serveErr != nil {
+				t.Fatalf("recovered serve = %v, want nil", serveErr)
+			}
+		})
 	}
 }

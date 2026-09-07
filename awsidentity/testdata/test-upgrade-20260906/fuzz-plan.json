@@ -1,0 +1,39 @@
+{
+  "duration": "30s",
+  "parallel": 1,
+  "cache": "Go default fuzz cache; separate from -count=1 test-cache bypass",
+  "targets": [
+    [
+      "./awsidentity",
+      "FuzzAWSAudienceExactUTF8"
+    ],
+    [
+      "./awsidentity",
+      "FuzzAWSRequestAudienceBinding"
+    ],
+    [
+      "./awsidentity",
+      "FuzzAWSRequestQueryClosure"
+    ],
+    [
+      "./awsidentity",
+      "FuzzAWSAcquireTokenProjection"
+    ],
+    [
+      "./awsidentity",
+      "FuzzAWSAcquireProviderEnvelopeMutations"
+    ],
+    [
+      "./awsidentity",
+      "FuzzAWSProviderResponseSemanticClosure"
+    ],
+    [
+      "./temporal",
+      "FuzzCompactUTCExactTime"
+    ],
+    [
+      "./temporal",
+      "FuzzRFC3339UTCExactOffset"
+    ]
+  ]
+}

@@ -281,8 +281,8 @@ func TestReuseDecisionAuthorityBoundaryRefusesEveryForeignOrUnauthenticatedCandi
 func TestReuseDecisionAuthorityBoundaryAdmitsTenExactSameScopeCandidates(t *testing.T) {
 	t.Parallel()
 
-	for extent := 1; extent <= 10; extent++ {
-		extent := extent
+	for index := range 10 {
+		extent := index + 1
 		t.Run("exact extent "+strconv.Itoa(extent), func(t *testing.T) {
 			t.Parallel()
 			grant := newGrantFixture(t, grantFixtureRequest{content: bytes.Repeat([]byte{byte(extent)}, extent)})

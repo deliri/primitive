@@ -27,7 +27,7 @@ func TestCustodyStateExhaustsItsByteDomainAndCanonicalJSON(t *testing.T) {
 	t.Parallel()
 
 	admitted := 0
-	for value := 0; value <= 255; value++ {
+	for value := range 256 {
 		state := CustodyState(value)
 		encoded, marshalErr := state.MarshalJSON()
 		if state.IsValid() {
@@ -204,42 +204,43 @@ func TestCatalogPaginationLayerTriadClosesTailOrderAndRequestedLimit(t *testing.
 		t.Parallel()
 
 		prior := Cursor{}
-		for count := 1; count <= len(entries); count++ {
-			pageEntries := append([]CatalogEntry(nil), entries[:count]...)
+		for count := range len(entries) {
+			page := count + 1
+			pageEntries := append([]CatalogEntry(nil), entries[:page]...)
 			cursor, err := CursorFor(pageEntries[len(pageEntries)-1].Chit.Payload.Identity)
 			if err != nil {
-				t.Fatalf("CursorFor(page tail %d) error = %v, want nil", count, err)
+				t.Fatalf("CursorFor(page tail %d) error = %v, want nil", page, err)
 			}
 			framed := CatalogCursorCommitmentDomain + string([]byte{CatalogCursorFrameSeparator}) +
 				pageEntries[len(pageEntries)-1].Chit.Payload.Identity.String()
 			wantDigest := core.NewSHA256Digest(sha256.Sum256([]byte(framed)))
-			if cursor.value != wantDigest || (count > 1 && cursor == prior) {
+			if cursor.value != wantDigest || (page > 1 && cursor == prior) {
 				t.Fatalf("CursorFor(page tail %d) = (%v, distinct %t), want (%v, true)",
-					count, cursor, cursor != prior, wantDigest)
+					page, cursor, cursor != prior, wantDigest)
 			}
 			prior = cursor
 
 			continuation, err := More(cursor)
 			if err != nil {
-				t.Fatalf("More(page tail %d) error = %v, want nil", count, err)
+				t.Fatalf("More(page tail %d) error = %v, want nil", page, err)
 			}
 			request := fixture.request
-			request.Query.Limit = catalogPageLimitFixture(t, uint16(count))
+			request.Query.Limit = catalogPageLimitFixture(t, uint16(page))
 			commitment, err := CommitQuery(request)
 			if err != nil {
-				t.Fatalf("CommitQuery(page %d) error = %v, want nil", count, err)
+				t.Fatalf("CommitQuery(page %d) error = %v, want nil", page, err)
 			}
 			payload := fixture.payload
 			payload.Entries, payload.Request, payload.Continuation = pageEntries, commitment, continuation
 			document, err := IssueCatalog(CatalogIssuance{Signer: fixture.private, Payload: payload})
 			if err != nil {
-				t.Fatalf("IssueCatalog(page %d) error = %v, want nil", count, err)
+				t.Fatalf("IssueCatalog(page %d) error = %v, want nil", page, err)
 			}
 			got, gotErr := VerifyCatalog(CatalogVerification{
 				Document: document, Request: request, TrustedKeys: fixture.trusted,
 			})
 			if gotErr != nil || !verifiedCatalogPayloadsEqual(got, payload) {
-				t.Fatalf("VerifyCatalog(page %d) = (%v, %v), want exact payload and nil", count, got, gotErr)
+				t.Fatalf("VerifyCatalog(page %d) = (%v, %v), want exact payload and nil", page, got, gotErr)
 			}
 		}
 	})
@@ -636,7 +637,8 @@ func catalogHistoryEntries(t testing.TB, fixture catalogFixture, count int) []Ca
 	t.Helper()
 
 	entries := make([]CatalogEntry, 0, count)
-	for index := count - 1; index >= 0; index-- {
+	for step := range count {
+		index := count - 1 - step
 		payload := fixture.payload.Entries[0].Chit.Payload
 		payload.Identity = mustChitID(t, byte(index%251)+1, int64(1_000+index))
 		payload.Version = mustVersion(t, uint64(index+1))

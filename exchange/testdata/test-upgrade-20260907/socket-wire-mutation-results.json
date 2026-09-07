@@ -1,0 +1,14 @@
+[
+  {
+    "phase": "prior-test",
+    "outcome": "survived",
+    "evidence": "mutation-socket-body-substitution-prior-test.json",
+    "mutation": "Replace request with changed in actual validated JSON body: distinct same-length valid payload, no classification or extent change."
+  },
+  {
+    "phase": "upgraded-test",
+    "outcome": "killed by test",
+    "evidence": "mutation-socket-body-substitution-upgraded-test.json",
+    "mutation": "Replace request with changed in actual validated JSON body: distinct same-length valid payload, no classification or extent change."
+  }
+]

@@ -1,0 +1,697 @@
+{
+  "executions": [
+    {
+      "execution": "after-catalog.json",
+      "exit_status": 0,
+      "test_events": {
+        "pass": 0,
+        "fail": 0,
+        "skip": 0
+      }
+    },
+    {
+      "execution": "after-effect.json",
+      "exit_status": 0,
+      "test_events": {
+        "pass": 0,
+        "fail": 0,
+        "skip": 0
+      }
+    },
+    {
+      "execution": "after-function.json",
+      "exit_status": 0,
+      "test_events": {
+        "pass": 0,
+        "fail": 0,
+        "skip": 0
+      }
+    },
+    {
+      "execution": "after-identity.json",
+      "exit_status": 0,
+      "test_events": {
+        "pass": 0,
+        "fail": 0,
+        "skip": 0
+      }
+    },
+    {
+      "execution": "after-json-maximum.json",
+      "exit_status": 0,
+      "test_events": {
+        "pass": 0,
+        "fail": 0,
+        "skip": 0
+      }
+    },
+    {
+      "execution": "after-method.json",
+      "exit_status": 0,
+      "test_events": {
+        "pass": 0,
+        "fail": 0,
+        "skip": 0
+      }
+    },
+    {
+      "execution": "after-unresolved.json",
+      "exit_status": 0,
+      "test_events": {
+        "pass": 0,
+        "fail": 0,
+        "skip": 0
+      }
+    },
+    {
+      "execution": "baseline-ClassificationJSONMaximum.json",
+      "exit_status": 0,
+      "test_events": {
+        "pass": 0,
+        "fail": 0,
+        "skip": 0
+      }
+    },
+    {
+      "execution": "baseline-ResolveEffect.json",
+      "exit_status": 0,
+      "test_events": {
+        "pass": 0,
+        "fail": 0,
+        "skip": 0
+      }
+    },
+    {
+      "execution": "baseline-ResolveStandardFunction.json",
+      "exit_status": 0,
+      "test_events": {
+        "pass": 0,
+        "fail": 0,
+        "skip": 0
+      }
+    },
+    {
+      "execution": "baseline-ResolveStandardMethod.json",
+      "exit_status": 0,
+      "test_events": {
+        "pass": 0,
+        "fail": 0,
+        "skip": 0
+      }
+    },
+    {
+      "execution": "baseline-ResolveStandardUnresolved.json",
+      "exit_status": 0,
+      "test_events": {
+        "pass": 0,
+        "fail": 0,
+        "skip": 0
+      }
+    },
+    {
+      "execution": "baseline-catalog.json",
+      "exit_status": 0,
+      "test_events": {
+        "pass": 0,
+        "fail": 0,
+        "skip": 0
+      }
+    },
+    {
+      "execution": "baseline-identity.json",
+      "exit_status": 0,
+      "test_events": {
+        "pass": 0,
+        "fail": 0,
+        "skip": 0
+      }
+    },
+    {
+      "execution": "baseline-tests.json",
+      "exit_status": 0,
+      "test_events": {
+        "pass": 142,
+        "fail": 0,
+        "skip": 0
+      }
+    },
+    {
+      "execution": "boundary-green.json",
+      "exit_status": 0,
+      "test_events": {
+        "pass": 1011,
+        "fail": 0,
+        "skip": 0
+      }
+    },
+    {
+      "execution": "closed-source-tests.json",
+      "exit_status": 0,
+      "test_events": {
+        "pass": 11426,
+        "fail": 0,
+        "skip": 0
+      }
+    },
+    {
+      "execution": "commit-after-catalog.json",
+      "exit_status": 0,
+      "test_events": {
+        "pass": 0,
+        "fail": 0,
+        "skip": 0
+      }
+    },
+    {
+      "execution": "commit-after-effect.json",
+      "exit_status": 0,
+      "test_events": {
+        "pass": 0,
+        "fail": 0,
+        "skip": 0
+      }
+    },
+    {
+      "execution": "commit-after-function.json",
+      "exit_status": 0,
+      "test_events": {
+        "pass": 0,
+        "fail": 0,
+        "skip": 0
+      }
+    },
+    {
+      "execution": "commit-after-identity.json",
+      "exit_status": 0,
+      "test_events": {
+        "pass": 0,
+        "fail": 0,
+        "skip": 0
+      }
+    },
+    {
+      "execution": "commit-after-json-maximum.json",
+      "exit_status": 0,
+      "test_events": {
+        "pass": 0,
+        "fail": 0,
+        "skip": 0
+      }
+    },
+    {
+      "execution": "commit-after-method.json",
+      "exit_status": 0,
+      "test_events": {
+        "pass": 0,
+        "fail": 0,
+        "skip": 0
+      }
+    },
+    {
+      "execution": "commit-after-unresolved.json",
+      "exit_status": 0,
+      "test_events": {
+        "pass": 0,
+        "fail": 0,
+        "skip": 0
+      }
+    },
+    {
+      "execution": "commit-source-tests.json",
+      "exit_status": 0,
+      "test_events": {
+        "pass": 11426,
+        "fail": 0,
+        "skip": 0
+      }
+    },
+    {
+      "execution": "final-tests.json",
+      "exit_status": 0,
+      "test_events": {
+        "pass": 11426,
+        "fail": 0,
+        "skip": 0
+      }
+    },
+    {
+      "execution": "first-green.json",
+      "exit_status": 0,
+      "test_events": {
+        "pass": 828,
+        "fail": 0,
+        "skip": 0
+      }
+    },
+    {
+      "execution": "frozen-before-catalog.json",
+      "exit_status": 0,
+      "test_events": {
+        "pass": 0,
+        "fail": 0,
+        "skip": 0
+      }
+    },
+    {
+      "execution": "frozen-before-effect.json",
+      "exit_status": 0,
+      "test_events": {
+        "pass": 0,
+        "fail": 0,
+        "skip": 0
+      }
+    },
+    {
+      "execution": "frozen-before-function.json",
+      "exit_status": 0,
+      "test_events": {
+        "pass": 0,
+        "fail": 0,
+        "skip": 0
+      }
+    },
+    {
+      "execution": "frozen-before-identity.json",
+      "exit_status": 0,
+      "test_events": {
+        "pass": 0,
+        "fail": 0,
+        "skip": 0
+      }
+    },
+    {
+      "execution": "frozen-before-json-maximum.json",
+      "exit_status": 0,
+      "test_events": {
+        "pass": 0,
+        "fail": 0,
+        "skip": 0
+      }
+    },
+    {
+      "execution": "frozen-before-method.json",
+      "exit_status": 0,
+      "test_events": {
+        "pass": 0,
+        "fail": 0,
+        "skip": 0
+      }
+    },
+    {
+      "execution": "frozen-before-unresolved.json",
+      "exit_status": 0,
+      "test_events": {
+        "pass": 0,
+        "fail": 0,
+        "skip": 0
+      }
+    },
+    {
+      "execution": "fuzz-FuzzClassificationJSONSemanticClosure.json",
+      "exit_status": 0,
+      "test_events": {
+        "pass": 0,
+        "fail": 0,
+        "skip": 0
+      }
+    },
+    {
+      "execution": "fuzz-FuzzClassificationTypedProjection.json",
+      "exit_status": 0,
+      "test_events": {
+        "pass": 0,
+        "fail": 0,
+        "skip": 0
+      }
+    },
+    {
+      "execution": "fuzz-FuzzIdentityJSONSemanticClosure.json",
+      "exit_status": 0,
+      "test_events": {
+        "pass": 0,
+        "fail": 0,
+        "skip": 0
+      }
+    },
+    {
+      "execution": "fuzz-FuzzOperationJSONSemanticClosure.json",
+      "exit_status": 0,
+      "test_events": {
+        "pass": 0,
+        "fail": 0,
+        "skip": 0
+      }
+    },
+    {
+      "execution": "fuzz-FuzzParseIdentityExactDomain.json",
+      "exit_status": 0,
+      "test_events": {
+        "pass": 0,
+        "fail": 0,
+        "skip": 0
+      }
+    },
+    {
+      "execution": "fuzz-FuzzResolveRequirementExactOwnership.json",
+      "exit_status": 0,
+      "test_events": {
+        "pass": 0,
+        "fail": 0,
+        "skip": 0
+      }
+    },
+    {
+      "execution": "fuzz-FuzzStandardSymbolDispositionJSONSemanticClosure.json",
+      "exit_status": 0,
+      "test_events": {
+        "pass": 0,
+        "fail": 0,
+        "skip": 0
+      }
+    },
+    {
+      "execution": "fuzz-FuzzStandardSymbolNamespaceClosure.json",
+      "exit_status": 0,
+      "test_events": {
+        "pass": 0,
+        "fail": 0,
+        "skip": 0
+      }
+    },
+    {
+      "execution": "fuzz-FuzzSymbolNameGoIdentifier.json",
+      "exit_status": 0,
+      "test_events": {
+        "pass": 0,
+        "fail": 0,
+        "skip": 0
+      }
+    },
+    {
+      "execution": "ingress-error-red.json",
+      "exit_status": 1,
+      "test_events": {
+        "pass": 66,
+        "fail": 21,
+        "skip": 0
+      }
+    },
+    {
+      "execution": "mutation-conflict-first-wins.json",
+      "exit_status": 1,
+      "test_events": {
+        "pass": 0,
+        "fail": 2,
+        "skip": 0
+      }
+    },
+    {
+      "execution": "mutation-contradictory-operation.json",
+      "exit_status": 1,
+      "test_events": {
+        "pass": 2,
+        "fail": 3,
+        "skip": 0
+      }
+    },
+    {
+      "execution": "mutation-contradictory-owner.json",
+      "exit_status": 1,
+      "test_events": {
+        "pass": 0,
+        "fail": 5,
+        "skip": 0
+      }
+    },
+    {
+      "execution": "mutation-disposition-substitution.json",
+      "exit_status": 1,
+      "test_events": {
+        "pass": 3,
+        "fail": 4,
+        "skip": 0
+      }
+    },
+    {
+      "execution": "mutation-duplicate-secondary.json",
+      "exit_status": 1,
+      "test_events": {
+        "pass": 0,
+        "fail": 1,
+        "skip": 0
+      }
+    },
+    {
+      "execution": "mutation-forged-ownership.json",
+      "exit_status": 1,
+      "test_events": {
+        "pass": 0,
+        "fail": 11,
+        "skip": 0
+      }
+    },
+    {
+      "execution": "mutation-identity-substitution.json",
+      "exit_status": 1,
+      "test_events": {
+        "pass": 4,
+        "fail": 10,
+        "skip": 0
+      }
+    },
+    {
+      "execution": "mutation-iterator-truncates.json",
+      "exit_status": 1,
+      "test_events": {
+        "pass": 0,
+        "fail": 1,
+        "skip": 0
+      }
+    },
+    {
+      "execution": "mutation-json-limit-bypass.json",
+      "exit_status": 1,
+      "test_events": {
+        "pass": 0,
+        "fail": 1,
+        "skip": 0
+      }
+    },
+    {
+      "execution": "mutation-lost-result-identity.json",
+      "exit_status": 1,
+      "test_events": {
+        "pass": 0,
+        "fail": 3,
+        "skip": 0
+      }
+    },
+    {
+      "execution": "mutation-lost-symbol-identity.json",
+      "exit_status": 1,
+      "test_events": {
+        "pass": 1,
+        "fail": 3,
+        "skip": 0
+      }
+    },
+    {
+      "execution": "mutation-namespace-leak.json",
+      "exit_status": 1,
+      "test_events": {
+        "pass": 20,
+        "fail": 2,
+        "skip": 0
+      }
+    },
+    {
+      "execution": "mutation-operation-substitution.json",
+      "exit_status": 1,
+      "test_events": {
+        "pass": 3,
+        "fail": 5,
+        "skip": 0
+      }
+    },
+    {
+      "execution": "mutation-secondary-dropped.json",
+      "exit_status": 1,
+      "test_events": {
+        "pass": 7,
+        "fail": 2,
+        "skip": 0
+      }
+    },
+    {
+      "execution": "ownership-red.json",
+      "exit_status": 1,
+      "test_events": {
+        "pass": 0,
+        "fail": 16,
+        "skip": 0
+      }
+    },
+    {
+      "execution": "pre-profile-tests.json",
+      "exit_status": 0,
+      "test_events": {
+        "pass": 11424,
+        "fail": 0,
+        "skip": 0
+      }
+    }
+  ],
+  "benchmarks": [
+    {
+      "execution": "after-catalog.json",
+      "result": "BenchmarkCatalogAll-10    \t 9416809\t      3711 ns/op\t       0 B/op\t       0 allocs/op"
+    },
+    {
+      "execution": "after-effect.json",
+      "result": "BenchmarkResolveEffect-10    \t 1995213\t     25203 ns/op\t       0 B/op\t       0 allocs/op"
+    },
+    {
+      "execution": "after-function.json",
+      "result": "BenchmarkResolveStandardFunction-10    \t 1637524\t     23560 ns/op\t   23761 B/op\t      65 allocs/op"
+    },
+    {
+      "execution": "after-identity.json",
+      "result": "BenchmarkParseIdentity-10    \t367609171\t        84.29 ns/op\t       0 B/op\t       0 allocs/op"
+    },
+    {
+      "execution": "after-json-maximum.json",
+      "result": "BenchmarkClassificationJSONMaximum-10    \t 1670770\t     22047 ns/op\t   8.16 MB/s\t    1411 B/op\t      44 allocs/op"
+    },
+    {
+      "execution": "after-method.json",
+      "result": "BenchmarkResolveStandardMethod-10    \t 1319658\t     43100 ns/op\t    8080 B/op\t      58 allocs/op"
+    },
+    {
+      "execution": "after-unresolved.json",
+      "result": "BenchmarkResolveStandardUnresolved-10    \t  307945\t    120007 ns/op\t   23760 B/op\t      64 allocs/op"
+    },
+    {
+      "execution": "baseline-ClassificationJSONMaximum.json",
+      "result": "BenchmarkClassificationJSONMaximum-10    \t 1856072\t     18219 ns/op\t   9.88 MB/s\t    1412 B/op\t      44 allocs/op"
+    },
+    {
+      "execution": "baseline-ResolveEffect.json",
+      "result": "BenchmarkResolveEffect-10    \t   50292\t   1154480 ns/op\t       1 B/op\t       0 allocs/op"
+    },
+    {
+      "execution": "baseline-ResolveStandardFunction.json",
+      "result": "BenchmarkResolveStandardFunction-10    \t 2250112\t     18978 ns/op\t   23761 B/op\t      65 allocs/op"
+    },
+    {
+      "execution": "baseline-ResolveStandardMethod.json",
+      "result": "BenchmarkResolveStandardMethod-10    \t 1308751\t     41094 ns/op\t    8080 B/op\t      58 allocs/op"
+    },
+    {
+      "execution": "baseline-ResolveStandardUnresolved.json",
+      "result": "BenchmarkResolveStandardUnresolved-10    \t 1656488\t     39363 ns/op\t   23760 B/op\t      64 allocs/op"
+    },
+    {
+      "execution": "baseline-catalog.json",
+      "result": "BenchmarkCatalogAll-10    \t   90112\t    373237 ns/op\t       0 B/op\t       0 allocs/op"
+    },
+    {
+      "execution": "baseline-identity.json",
+      "result": "BenchmarkParseIdentity-10    \t628525921\t        47.75 ns/op\t       0 B/op\t       0 allocs/op"
+    },
+    {
+      "execution": "commit-after-catalog.json",
+      "result": "BenchmarkCatalogAll-10    \t14265090\t      2470 ns/op\t       0 B/op\t       0 allocs/op"
+    },
+    {
+      "execution": "commit-after-effect.json",
+      "result": "BenchmarkResolveEffect-10    \t 4191916\t      8664 ns/op\t       0 B/op\t       0 allocs/op"
+    },
+    {
+      "execution": "commit-after-function.json",
+      "result": "BenchmarkResolveStandardFunction-10    \t 3759333\t      9058 ns/op\t   23761 B/op\t      65 allocs/op"
+    },
+    {
+      "execution": "commit-after-identity.json",
+      "result": "BenchmarkParseIdentity-10    \t1000000000\t        17.17 ns/op\t       0 B/op\t       0 allocs/op"
+    },
+    {
+      "execution": "commit-after-json-maximum.json",
+      "result": "BenchmarkClassificationJSONMaximum-10    \t 8050752\t      4353 ns/op\t  41.35 MB/s\t    1411 B/op\t      44 allocs/op"
+    },
+    {
+      "execution": "commit-after-method.json",
+      "result": "BenchmarkResolveStandardMethod-10    \t 2663920\t     13402 ns/op\t    8080 B/op\t      58 allocs/op"
+    },
+    {
+      "execution": "commit-after-unresolved.json",
+      "result": "BenchmarkResolveStandardUnresolved-10    \t 4591132\t      7662 ns/op\t   23760 B/op\t      64 allocs/op"
+    },
+    {
+      "execution": "frozen-before-catalog.json",
+      "result": "BenchmarkCatalogAll-10    \t  470845\t     77486 ns/op\t       0 B/op\t       0 allocs/op"
+    },
+    {
+      "execution": "frozen-before-effect.json",
+      "result": "BenchmarkResolveEffect-10    \t  221320\t    156361 ns/op\t       0 B/op\t       0 allocs/op"
+    },
+    {
+      "execution": "frozen-before-function.json",
+      "result": "BenchmarkResolveStandardFunction-10    \t 4141272\t      8290 ns/op\t   23761 B/op\t      65 allocs/op"
+    },
+    {
+      "execution": "frozen-before-identity.json",
+      "result": "BenchmarkParseIdentity-10    \t1000000000\t        17.01 ns/op\t       0 B/op\t       0 allocs/op"
+    },
+    {
+      "execution": "frozen-before-json-maximum.json",
+      "result": "BenchmarkClassificationJSONMaximum-10    \t 2542255\t     13878 ns/op\t  12.97 MB/s\t    1412 B/op\t      44 allocs/op"
+    },
+    {
+      "execution": "frozen-before-method.json",
+      "result": "BenchmarkResolveStandardMethod-10    \t 2234470\t     19703 ns/op\t    8080 B/op\t      58 allocs/op"
+    },
+    {
+      "execution": "frozen-before-unresolved.json",
+      "result": "BenchmarkResolveStandardUnresolved-10    \t 2162228\t     19318 ns/op\t   23760 B/op\t      64 allocs/op"
+    }
+  ],
+  "fuzz": [
+    {
+      "execution": "fuzz-FuzzClassificationJSONSemanticClosure.json",
+      "reported_executions": 42551
+    },
+    {
+      "execution": "fuzz-FuzzClassificationTypedProjection.json",
+      "reported_executions": 308853
+    },
+    {
+      "execution": "fuzz-FuzzIdentityJSONSemanticClosure.json",
+      "reported_executions": 153343
+    },
+    {
+      "execution": "fuzz-FuzzOperationJSONSemanticClosure.json",
+      "reported_executions": 300886
+    },
+    {
+      "execution": "fuzz-FuzzParseIdentityExactDomain.json",
+      "reported_executions": 360183
+    },
+    {
+      "execution": "fuzz-FuzzResolveRequirementExactOwnership.json",
+      "reported_executions": 61750
+    },
+    {
+      "execution": "fuzz-FuzzStandardSymbolDispositionJSONSemanticClosure.json",
+      "reported_executions": 110120
+    },
+    {
+      "execution": "fuzz-FuzzStandardSymbolNamespaceClosure.json",
+      "reported_executions": 166005
+    },
+    {
+      "execution": "fuzz-FuzzSymbolNameGoIdentifier.json",
+      "reported_executions": 362164
+    }
+  ],
+  "reported_fuzz_executions": 1865855
+}

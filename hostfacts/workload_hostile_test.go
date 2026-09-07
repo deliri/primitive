@@ -239,7 +239,7 @@ func TestCgroupLimitTokenHostileBoundaryTable(t *testing.T) {
 func TestCgroupLevelLimitExhaustsDeclarationCombinations(t *testing.T) {
 	t.Parallel()
 	unknown := cgroupLevelLimitStateUnknown.String()
-	for raw := 0; raw <= math.MaxUint8; raw++ {
+	for raw := range math.MaxUint8 + 1 {
 		state := cgroupLevelLimitState(raw)
 		admitted := state == cgroupLevelLimitAbsent ||
 			state == cgroupLevelLimitFinite ||
@@ -698,5 +698,69 @@ func cgroupV2MountForTest(t *testing.T, root string) cgroupMount {
 		root:       "/",
 		mountPoint: mustAbsolutePathForHostfactsTest(t, root),
 		source:     WorkloadMemoryLimitSourceCgroupV2,
+	}
+}
+
+func TestReadBoundedValueAllocationLayerTriad(t *testing.T) {
+	t.Parallel()
+	for _, tc := range []struct {
+		name    string
+		payload []byte
+		maximum uint64
+		wantErr error
+	}{
+		{name: "neutral empty value reserves only the stream batch", maximum: virtualFileMaximumBytes},
+		{name: "positive sparse token does not reserve the one-mebibyte ceiling", payload: []byte("max\n"), maximum: virtualFileMaximumBytes},
+		{name: "one below stream batch preserves every byte", payload: bytes.Repeat([]byte{'x'}, streamBufferBytes-1), maximum: virtualFileMaximumBytes},
+		{name: "exact stream batch preserves every byte", payload: bytes.Repeat([]byte{'x'}, streamBufferBytes), maximum: virtualFileMaximumBytes},
+		{name: "one above stream batch grows with observed bytes", payload: bytes.Repeat([]byte{'x'}, streamBufferBytes+1), maximum: virtualFileMaximumBytes},
+		{name: "native reader failure preserves identity", payload: []byte("x"), maximum: virtualFileMaximumBytes, wantErr: io.ErrUnexpectedEOF},
+		{name: "cancelled reader returns no retained bytes", payload: []byte("x"), maximum: virtualFileMaximumBytes, wantErr: context.Canceled},
+	} {
+		t.Run(tc.name, func(t *testing.T) {
+			t.Parallel()
+			ctx, cancel := context.WithCancel(t.Context())
+			defer cancel()
+			var source io.Reader = bytes.NewReader(tc.payload)
+			if tc.wantErr != nil && errors.Is(tc.wantErr, io.ErrUnexpectedEOF) {
+				source = errorReader{err: io.ErrUnexpectedEOF}
+			}
+			if tc.wantErr != nil && errors.Is(tc.wantErr, context.Canceled) {
+				cancel()
+			}
+			got, err := readBoundedValue(ctx, source, tc.maximum)
+			if !errors.Is(err, tc.wantErr) {
+				t.Fatalf("readBoundedValue() error = %v, want %v", err, tc.wantErr)
+			}
+			if tc.wantErr != nil {
+				if got != nil {
+					t.Fatalf("rejected value = %q, want nil", got)
+				}
+				return
+			}
+			if !bytes.Equal(got, tc.payload) {
+				t.Fatalf("readBoundedValue() = %d bytes, want exact payload %d", len(got), len(tc.payload))
+			}
+			if cap(got) > 4*max(len(tc.payload), streamBufferBytes) {
+				t.Fatalf("value capacity = %d for %d bytes, want bounded growth not the %d ceiling", cap(got), len(tc.payload), tc.maximum)
+			}
+		})
+	}
+}
+
+func BenchmarkReadBoundedValueSparse(b *testing.B) {
+	payload := []byte("max\n")
+	var wantErr error
+	b.ReportAllocs()
+	var last []byte
+	for b.Loop() {
+		got, err := readBoundedValue(b.Context(), bytes.NewReader(payload), virtualFileMaximumBytes)
+		if !errors.Is(err, wantErr) || !bytes.Equal(got, payload) {
+			b.Fatalf("readBoundedValue() = %q/%v, want %q and %v", got, err, payload, wantErr)
+		}
+		last = got
+	}
+	if cap(last) > 4*streamBufferBytes {
+		b.Fatalf("sparse value capacity = %d, want stream-batch growth", cap(last))
 	}
 }

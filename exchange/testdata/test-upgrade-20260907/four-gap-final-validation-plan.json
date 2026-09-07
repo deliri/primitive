@@ -1,0 +1,316 @@
+{
+  "order": "After full Exchange checkpoint 16 and affected-consumer compile. All benchmarks, profile analysis, then fuzz; serial invocations. No source edits during execution.",
+  "benchmark_configured_seconds": 90,
+  "fuzz_configured_seconds": 90,
+  "runs": [
+    {
+      "label": "four-gap-final-benchmark-aggregate-binary",
+      "stage": "benchmark",
+      "configured_seconds": 30,
+      "argv": [
+        "go",
+        "test",
+        "-run=^$",
+        "-bench=^BenchmarkAggregateCompletedAttemptHandoff$/^binary_complete$",
+        "-benchmem",
+        "-benchtime=30s",
+        "-count=1",
+        "-cpu=1",
+        "-p=1",
+        "-parallel=1",
+        "-timeout=3m",
+        "-cpuprofile=/Users/d/code/primitive/exchange/testdata/test-upgrade-20260907/four-gap-final-benchmark-aggregate-binary.cpu.pprof",
+        "-memprofile=/Users/d/code/primitive/exchange/testdata/test-upgrade-20260907/four-gap-final-benchmark-aggregate-binary.mem.pprof",
+        "-o=/Users/d/code/primitive/exchange/testdata/test-upgrade-20260907/four-gap-final-benchmark-aggregate-binary.test",
+        "./exchange"
+      ]
+    },
+    {
+      "label": "four-gap-final-benchmark-aggregate-cancel",
+      "stage": "benchmark",
+      "configured_seconds": 30,
+      "argv": [
+        "go",
+        "test",
+        "-run=^$",
+        "-bench=^BenchmarkAggregateCompletedAttemptHandoff$/^cancel_after_native_close$",
+        "-benchmem",
+        "-benchtime=30s",
+        "-count=1",
+        "-cpu=1",
+        "-p=1",
+        "-parallel=1",
+        "-timeout=3m",
+        "-cpuprofile=/Users/d/code/primitive/exchange/testdata/test-upgrade-20260907/four-gap-final-benchmark-aggregate-cancel.cpu.pprof",
+        "-memprofile=/Users/d/code/primitive/exchange/testdata/test-upgrade-20260907/four-gap-final-benchmark-aggregate-cancel.mem.pprof",
+        "-o=/Users/d/code/primitive/exchange/testdata/test-upgrade-20260907/four-gap-final-benchmark-aggregate-cancel.test",
+        "./exchange"
+      ]
+    },
+    {
+      "label": "four-gap-final-benchmark-upload-loopback",
+      "stage": "benchmark",
+      "configured_seconds": 30,
+      "argv": [
+        "go",
+        "test",
+        "-run=^$",
+        "-bench=^BenchmarkUpload10MiBFileOverLoopback$",
+        "-benchmem",
+        "-benchtime=30s",
+        "-count=1",
+        "-cpu=1",
+        "-p=1",
+        "-parallel=1",
+        "-timeout=3m",
+        "-cpuprofile=/Users/d/code/primitive/exchange/testdata/test-upgrade-20260907/four-gap-final-benchmark-upload-loopback.cpu.pprof",
+        "-memprofile=/Users/d/code/primitive/exchange/testdata/test-upgrade-20260907/four-gap-final-benchmark-upload-loopback.mem.pprof",
+        "-o=/Users/d/code/primitive/exchange/testdata/test-upgrade-20260907/four-gap-final-benchmark-upload-loopback.test",
+        "./exchange"
+      ]
+    },
+    {
+      "label": "aggregate-timing-abba-1-before-analysis-cpu",
+      "stage": "profile-analysis",
+      "argv": [
+        "go",
+        "tool",
+        "pprof",
+        "-top",
+        "-nodecount=15",
+        "/Users/d/code/primitive/exchange/testdata/test-upgrade-20260907/aggregate-timing-abba-1-before.test",
+        "/Users/d/code/primitive/exchange/testdata/test-upgrade-20260907/aggregate-timing-abba-1-before.cpu.pprof"
+      ]
+    },
+    {
+      "label": "aggregate-timing-abba-1-before-analysis-mem",
+      "stage": "profile-analysis",
+      "argv": [
+        "go",
+        "tool",
+        "pprof",
+        "-top",
+        "-nodecount=15",
+        "-alloc_space",
+        "/Users/d/code/primitive/exchange/testdata/test-upgrade-20260907/aggregate-timing-abba-1-before.test",
+        "/Users/d/code/primitive/exchange/testdata/test-upgrade-20260907/aggregate-timing-abba-1-before.mem.pprof"
+      ]
+    },
+    {
+      "label": "aggregate-timing-abba-2-after-analysis-cpu",
+      "stage": "profile-analysis",
+      "argv": [
+        "go",
+        "tool",
+        "pprof",
+        "-top",
+        "-nodecount=15",
+        "/Users/d/code/primitive/exchange/testdata/test-upgrade-20260907/aggregate-timing-abba-2-after.test",
+        "/Users/d/code/primitive/exchange/testdata/test-upgrade-20260907/aggregate-timing-abba-2-after.cpu.pprof"
+      ]
+    },
+    {
+      "label": "aggregate-timing-abba-2-after-analysis-mem",
+      "stage": "profile-analysis",
+      "argv": [
+        "go",
+        "tool",
+        "pprof",
+        "-top",
+        "-nodecount=15",
+        "-alloc_space",
+        "/Users/d/code/primitive/exchange/testdata/test-upgrade-20260907/aggregate-timing-abba-2-after.test",
+        "/Users/d/code/primitive/exchange/testdata/test-upgrade-20260907/aggregate-timing-abba-2-after.mem.pprof"
+      ]
+    },
+    {
+      "label": "aggregate-timing-abba-3-after-analysis-cpu",
+      "stage": "profile-analysis",
+      "argv": [
+        "go",
+        "tool",
+        "pprof",
+        "-top",
+        "-nodecount=15",
+        "/Users/d/code/primitive/exchange/testdata/test-upgrade-20260907/aggregate-timing-abba-3-after.test",
+        "/Users/d/code/primitive/exchange/testdata/test-upgrade-20260907/aggregate-timing-abba-3-after.cpu.pprof"
+      ]
+    },
+    {
+      "label": "aggregate-timing-abba-3-after-analysis-mem",
+      "stage": "profile-analysis",
+      "argv": [
+        "go",
+        "tool",
+        "pprof",
+        "-top",
+        "-nodecount=15",
+        "-alloc_space",
+        "/Users/d/code/primitive/exchange/testdata/test-upgrade-20260907/aggregate-timing-abba-3-after.test",
+        "/Users/d/code/primitive/exchange/testdata/test-upgrade-20260907/aggregate-timing-abba-3-after.mem.pprof"
+      ]
+    },
+    {
+      "label": "aggregate-timing-abba-4-before-analysis-cpu",
+      "stage": "profile-analysis",
+      "argv": [
+        "go",
+        "tool",
+        "pprof",
+        "-top",
+        "-nodecount=15",
+        "/Users/d/code/primitive/exchange/testdata/test-upgrade-20260907/aggregate-timing-abba-4-before.test",
+        "/Users/d/code/primitive/exchange/testdata/test-upgrade-20260907/aggregate-timing-abba-4-before.cpu.pprof"
+      ]
+    },
+    {
+      "label": "aggregate-timing-abba-4-before-analysis-mem",
+      "stage": "profile-analysis",
+      "argv": [
+        "go",
+        "tool",
+        "pprof",
+        "-top",
+        "-nodecount=15",
+        "-alloc_space",
+        "/Users/d/code/primitive/exchange/testdata/test-upgrade-20260907/aggregate-timing-abba-4-before.test",
+        "/Users/d/code/primitive/exchange/testdata/test-upgrade-20260907/aggregate-timing-abba-4-before.mem.pprof"
+      ]
+    },
+    {
+      "label": "four-gap-final-benchmark-aggregate-binary-analysis-cpu",
+      "stage": "profile-analysis",
+      "argv": [
+        "go",
+        "tool",
+        "pprof",
+        "-top",
+        "-nodecount=15",
+        "/Users/d/code/primitive/exchange/testdata/test-upgrade-20260907/four-gap-final-benchmark-aggregate-binary.test",
+        "/Users/d/code/primitive/exchange/testdata/test-upgrade-20260907/four-gap-final-benchmark-aggregate-binary.cpu.pprof"
+      ]
+    },
+    {
+      "label": "four-gap-final-benchmark-aggregate-binary-analysis-mem",
+      "stage": "profile-analysis",
+      "argv": [
+        "go",
+        "tool",
+        "pprof",
+        "-top",
+        "-nodecount=15",
+        "-alloc_space",
+        "/Users/d/code/primitive/exchange/testdata/test-upgrade-20260907/four-gap-final-benchmark-aggregate-binary.test",
+        "/Users/d/code/primitive/exchange/testdata/test-upgrade-20260907/four-gap-final-benchmark-aggregate-binary.mem.pprof"
+      ]
+    },
+    {
+      "label": "four-gap-final-benchmark-aggregate-cancel-analysis-cpu",
+      "stage": "profile-analysis",
+      "argv": [
+        "go",
+        "tool",
+        "pprof",
+        "-top",
+        "-nodecount=15",
+        "/Users/d/code/primitive/exchange/testdata/test-upgrade-20260907/four-gap-final-benchmark-aggregate-cancel.test",
+        "/Users/d/code/primitive/exchange/testdata/test-upgrade-20260907/four-gap-final-benchmark-aggregate-cancel.cpu.pprof"
+      ]
+    },
+    {
+      "label": "four-gap-final-benchmark-aggregate-cancel-analysis-mem",
+      "stage": "profile-analysis",
+      "argv": [
+        "go",
+        "tool",
+        "pprof",
+        "-top",
+        "-nodecount=15",
+        "-alloc_space",
+        "/Users/d/code/primitive/exchange/testdata/test-upgrade-20260907/four-gap-final-benchmark-aggregate-cancel.test",
+        "/Users/d/code/primitive/exchange/testdata/test-upgrade-20260907/four-gap-final-benchmark-aggregate-cancel.mem.pprof"
+      ]
+    },
+    {
+      "label": "four-gap-final-benchmark-upload-loopback-analysis-cpu",
+      "stage": "profile-analysis",
+      "argv": [
+        "go",
+        "tool",
+        "pprof",
+        "-top",
+        "-nodecount=15",
+        "/Users/d/code/primitive/exchange/testdata/test-upgrade-20260907/four-gap-final-benchmark-upload-loopback.test",
+        "/Users/d/code/primitive/exchange/testdata/test-upgrade-20260907/four-gap-final-benchmark-upload-loopback.cpu.pprof"
+      ]
+    },
+    {
+      "label": "four-gap-final-benchmark-upload-loopback-analysis-mem",
+      "stage": "profile-analysis",
+      "argv": [
+        "go",
+        "tool",
+        "pprof",
+        "-top",
+        "-nodecount=15",
+        "-alloc_space",
+        "/Users/d/code/primitive/exchange/testdata/test-upgrade-20260907/four-gap-final-benchmark-upload-loopback.test",
+        "/Users/d/code/primitive/exchange/testdata/test-upgrade-20260907/four-gap-final-benchmark-upload-loopback.mem.pprof"
+      ]
+    },
+    {
+      "label": "four-gap-final-fuzz-trusted-prefix",
+      "stage": "fuzz",
+      "configured_seconds": 30,
+      "workers": 2,
+      "argv": [
+        "go",
+        "test",
+        "-json",
+        "-count=1",
+        "-run=^$",
+        "-fuzz=^FuzzTrustedProxyPrefixesSemanticClosure$",
+        "-fuzztime=30s",
+        "-parallel=2",
+        "-timeout=2m",
+        "./exchange"
+      ]
+    },
+    {
+      "label": "four-gap-final-fuzz-client-address",
+      "stage": "fuzz",
+      "configured_seconds": 30,
+      "workers": 2,
+      "argv": [
+        "go",
+        "test",
+        "-json",
+        "-count=1",
+        "-run=^$",
+        "-fuzz=^FuzzClientAddressResolutionSemanticClosure$",
+        "-fuzztime=30s",
+        "-parallel=2",
+        "-timeout=2m",
+        "./exchange"
+      ]
+    },
+    {
+      "label": "four-gap-final-fuzz-upload-declaration",
+      "stage": "fuzz",
+      "configured_seconds": 30,
+      "workers": 2,
+      "argv": [
+        "go",
+        "test",
+        "-json",
+        "-count=1",
+        "-run=^$",
+        "-fuzz=^FuzzUploadResponseDeclarationCustody$",
+        "-fuzztime=30s",
+        "-parallel=2",
+        "-timeout=2m",
+        "./exchange"
+      ]
+    }
+  ]
+}

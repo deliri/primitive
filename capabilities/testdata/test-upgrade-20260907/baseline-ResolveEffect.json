@@ -1,0 +1,190 @@
+{
+  "label": "baseline-ResolveEffect",
+  "argv": [
+    "go",
+    "test",
+    "-run=^$",
+    "-bench=^BenchmarkResolveEffect$",
+    "-benchmem",
+    "-benchtime=30s",
+    "-count=1",
+    "-p=1",
+    "-parallel=1",
+    "-cpuprofile=capabilities/testdata/test-upgrade-20260907/baseline-ResolveEffect.cpu.pprof",
+    "-memprofile=capabilities/testdata/test-upgrade-20260907/baseline-ResolveEffect.mem.pprof",
+    "-o=capabilities/testdata/test-upgrade-20260907/baseline-ResolveEffect.test",
+    "./capabilities"
+  ],
+  "cwd": "/Users/d/code/primitive",
+  "revision": "bcc6942166507094cfb52406b19c5c40c9694223",
+  "tree": "dirty",
+  "toolchain": "go version go1.27.1 darwin/arm64",
+  "environment": "darwin\narm64\n\n\n/Users/d/code/go.work\n\n\n1",
+  "machine": "Darwin Ases-MacBook-Pro.local 25.6.0 Darwin Kernel Version 25.6.0: Fri Jul 31 19:18:49 PDT 2026; root:xnu-12377.161.14~5/RELEASE_ARM64_T6000 arm64",
+  "power": "Now drawing from 'AC Power'\n -InternalBattery-0 (id=22413411)\t80%; AC attached; not charging present: true",
+  "cache": "bypassed for go test by -count=1",
+  "started": "2026-09-07T03:26:09.510332+00:00",
+  "sources": [
+    {
+      "path": "capabilities/benchmark_external_test.go",
+      "bytes": 963,
+      "sha256": "9429841980aea78e67ae68c136b8c24ad3cc496321a2dbf5fd2c007cc9cc4f94"
+    },
+    {
+      "path": "capabilities/benchmark_test.go",
+      "bytes": 2639,
+      "sha256": "e6da510fcadb498d381df62e06179f00a6d6a80abc120b5f1bbfe9c2a8b1c9d5"
+    },
+    {
+      "path": "capabilities/catalog.go",
+      "bytes": 4733,
+      "sha256": "695c1ad0c78b4f946579f29878f489189850b3940ac827766b3ea2f23d4ec190"
+    },
+    {
+      "path": "capabilities/catalog_hostile_test.go",
+      "bytes": 14149,
+      "sha256": "36f1765932ecf2203f9721ca8935a1a5674d1b0c250375150f4f86f06e3aacab"
+    },
+    {
+      "path": "capabilities/catalog_strings.go",
+      "bytes": 5809,
+      "sha256": "d73a50ead9b449250369088facc9e58e0087b8b607a0cb3a33efc3faed89489b"
+    },
+    {
+      "path": "capabilities/classification.go",
+      "bytes": 4977,
+      "sha256": "0cd7cb69900a80ec8c4478ccdb8a4acd82c768761f7463c18226c1f0a7fd272c"
+    },
+    {
+      "path": "capabilities/classification_test.go",
+      "bytes": 5691,
+      "sha256": "b7bd331fcb35b1089c0e585da6a9a5f9325e33d9b20a479ac6d68f3cb27338a0"
+    },
+    {
+      "path": "capabilities/compiler_methods_test.go",
+      "bytes": 2784,
+      "sha256": "b8fcac26f5e8b6f8ceb6cb7702b3ee744297d9feecd4044d4b383f7d1a641df3"
+    },
+    {
+      "path": "capabilities/compiler_strings.go",
+      "bytes": 1377,
+      "sha256": "da30b810d2f7d8764c3f5bfd44f2ec9179651516bf4d87f17b55d60483cce627"
+    },
+    {
+      "path": "capabilities/data_flow_inventory.go",
+      "bytes": 1452,
+      "sha256": "6713baee8fda920b592bf3fb506bc7c25d901aed826db82bc768d8d47ef6c966"
+    },
+    {
+      "path": "capabilities/data_flow_inventory_test.go",
+      "bytes": 1286,
+      "sha256": "255c87593df5210489adbcd00efd3e4181bc18d17750af7c8e8b7a1b5df3c815"
+    },
+    {
+      "path": "capabilities/effect.go",
+      "bytes": 3151,
+      "sha256": "1f254526f1238fbb02a70c5b575fdfd5177e2a6435a57764038e58990b2b21c1"
+    },
+    {
+      "path": "capabilities/identity.go",
+      "bytes": 2299,
+      "sha256": "038b11eb369ad224fde74b4e22f2eb5957851391ddbed0c7f3b84c60202c66e7"
+    },
+    {
+      "path": "capabilities/identity_hostile_test.go",
+      "bytes": 2327,
+      "sha256": "fc21e36aa398aecdaaf77d090bbb5eb248b56bb84e4a84dc131c4e53804c9423"
+    },
+    {
+      "path": "capabilities/operation.go",
+      "bytes": 6029,
+      "sha256": "779963b30538b439bcf3eb8b18dddc84aa212631e52af69f9fcd971a7a7747d0"
+    },
+    {
+      "path": "capabilities/operation_test.go",
+      "bytes": 4600,
+      "sha256": "f75a48a29bc352d058b3bb00558f4168c72234d2381b22b3220036d4f809bba7"
+    },
+    {
+      "path": "capabilities/ownership_boundary_test.go",
+      "bytes": 2910,
+      "sha256": "0ad6abf8d6a46b7b14f2248146f1e34b8d9c58894aaa10effcc1b4f5cc910e87"
+    },
+    {
+      "path": "capabilities/requirement.go",
+      "bytes": 6222,
+      "sha256": "8e5445c6870412f96fefde7387a0acfea5cee17fe1e00125e60e40a39f7b0c59"
+    },
+    {
+      "path": "capabilities/standard_method.go",
+      "bytes": 11902,
+      "sha256": "f87e096934abf7f3d22a8818526e459af940fadd8d461a4576d0d5703d9a89b0"
+    },
+    {
+      "path": "capabilities/standard_symbol.go",
+      "bytes": 16284,
+      "sha256": "29ccf5c2fe0c277bb1c6b84305e4971eb9887139fc0086850a542a4f353bc239"
+    },
+    {
+      "path": "capabilities/standard_symbol_hostile_test.go",
+      "bytes": 10568,
+      "sha256": "37b1537ed063d74767c79aaaeadee8990e0c45ce72e0fa87d1e97b6029077717"
+    },
+    {
+      "path": "go.mod",
+      "bytes": 3127,
+      "sha256": "fb645c6e4ee8e917c39f9c1732638142362452d43617ec22a1901fc9ca04c1d4"
+    },
+    {
+      "path": "go.sum",
+      "bytes": 15894,
+      "sha256": "607fa748df5c86058fd0c13a1b63c2fbaa7cea5c2229dabef79614715e3c27a0"
+    },
+    {
+      "path": "_docs/testing_protocol.md",
+      "bytes": 84440,
+      "sha256": "dd83cd7f62c172092546dab6b7c7d5c59753b5e8ae784631a94cff4d6d48126c"
+    }
+  ],
+  "overlays": [],
+  "source_snapshot_directory": "capabilities/testdata/test-upgrade-20260907/baseline-ResolveEffect-source",
+  "exit_status": 0,
+  "elapsed_seconds": 60.996174250001786,
+  "artifacts": [
+    {
+      "path": "capabilities/testdata/test-upgrade-20260907/baseline-ResolveEffect.stdout.txt",
+      "bytes": 251,
+      "sha256": "3e2c08e1f3a2acb628a7178c1813adf28a7f34b8cbd5117984e863284a186aa6"
+    },
+    {
+      "path": "capabilities/testdata/test-upgrade-20260907/baseline-ResolveEffect.stderr.txt",
+      "bytes": 0,
+      "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+    },
+    {
+      "path": "capabilities/testdata/test-upgrade-20260907/baseline-ResolveEffect.git-status.txt",
+      "bytes": 9905,
+      "sha256": "9785e90cd997e70ea55255053e9f891acba2e5026a13454a0b0f791a5ef6b80c"
+    },
+    {
+      "path": "capabilities/testdata/test-upgrade-20260907/baseline-ResolveEffect.cpu.pprof",
+      "bytes": 4764,
+      "sha256": "0f8db70b2fba2ec42231bf2bd460de7d3eac5cbb1aa718da7064a53f6080fc1b"
+    },
+    {
+      "path": "capabilities/testdata/test-upgrade-20260907/baseline-ResolveEffect.mem.pprof",
+      "bytes": 2241,
+      "sha256": "16a3531099f79eece76bc4e01393d653e4927210efa728163e77e9fac1418648"
+    },
+    {
+      "path": "capabilities/testdata/test-upgrade-20260907/baseline-ResolveEffect.test",
+      "bytes": 10251762,
+      "sha256": "f3c2f579a149977a99dc2e83ff69396c1dfc03a994dc1ac4b55471e388c6ca3c"
+    }
+  ],
+  "test_events": {
+    "pass": 0,
+    "fail": 0,
+    "skip": 0
+  }
+}

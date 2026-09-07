@@ -22,7 +22,7 @@ func TestStateValidateExhaustsUnderlyingDomain(t *testing.T) {
 		contextstate.StateCancelled,
 		contextstate.StateDeadlineExceeded,
 	}
-	for raw := uint16(0); raw <= math.MaxUint8; raw++ {
+	for raw := range uint16(math.MaxUint8) + 1 {
 		state := contextstate.State(raw)
 		gotErr := state.Validate()
 		wantValid := slices.Contains(admitted[:], state)
@@ -62,7 +62,7 @@ func TestStateStringIsClosedOverTheAdmittedDomain(t *testing.T) {
 		t.Fatalf("zero State.String() = %q, want non-empty", unknown)
 	}
 	var admitted []string
-	for raw := uint16(0); raw <= math.MaxUint8; raw++ {
+	for raw := range uint16(math.MaxUint8) + 1 {
 		state := contextstate.State(raw)
 		got := state.String()
 		if got == "" {

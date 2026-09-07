@@ -1,0 +1,80 @@
+[
+  {
+    "label": "server-runtime-before-dormant_construction-analysis-cpu",
+    "argv": [
+      "go",
+      "tool",
+      "pprof",
+      "-top",
+      "-cum",
+      "-nodecount=15",
+      "/Users/d/code/primitive/exchange/testdata/test-upgrade-20260907/server-runtime-before-dormant_construction.test",
+      "/Users/d/code/primitive/exchange/testdata/test-upgrade-20260907/server-runtime-before-dormant_construction.cpu.pprof"
+    ]
+  },
+  {
+    "label": "server-runtime-before-dormant_construction-analysis-mem",
+    "argv": [
+      "go",
+      "tool",
+      "pprof",
+      "-top",
+      "-alloc_space",
+      "-nodecount=15",
+      "/Users/d/code/primitive/exchange/testdata/test-upgrade-20260907/server-runtime-before-dormant_construction.test",
+      "/Users/d/code/primitive/exchange/testdata/test-upgrade-20260907/server-runtime-before-dormant_construction.mem.pprof"
+    ]
+  },
+  {
+    "label": "server-runtime-after-dormant_construction-analysis-cpu",
+    "argv": [
+      "go",
+      "tool",
+      "pprof",
+      "-top",
+      "-cum",
+      "-nodecount=15",
+      "/Users/d/code/primitive/exchange/testdata/test-upgrade-20260907/server-runtime-after-dormant_construction.test",
+      "/Users/d/code/primitive/exchange/testdata/test-upgrade-20260907/server-runtime-after-dormant_construction.cpu.pprof"
+    ]
+  },
+  {
+    "label": "server-runtime-after-dormant_construction-analysis-mem",
+    "argv": [
+      "go",
+      "tool",
+      "pprof",
+      "-top",
+      "-alloc_space",
+      "-nodecount=15",
+      "/Users/d/code/primitive/exchange/testdata/test-upgrade-20260907/server-runtime-after-dormant_construction.test",
+      "/Users/d/code/primitive/exchange/testdata/test-upgrade-20260907/server-runtime-after-dormant_construction.mem.pprof"
+    ]
+  },
+  {
+    "label": "server-runtime-after-os_allocated_listener_acquire_close-analysis-cpu",
+    "argv": [
+      "go",
+      "tool",
+      "pprof",
+      "-top",
+      "-cum",
+      "-nodecount=15",
+      "/Users/d/code/primitive/exchange/testdata/test-upgrade-20260907/server-runtime-after-os_allocated_listener_acquire_close.test",
+      "/Users/d/code/primitive/exchange/testdata/test-upgrade-20260907/server-runtime-after-os_allocated_listener_acquire_close.cpu.pprof"
+    ]
+  },
+  {
+    "label": "server-runtime-after-os_allocated_listener_acquire_close-analysis-mem",
+    "argv": [
+      "go",
+      "tool",
+      "pprof",
+      "-top",
+      "-alloc_space",
+      "-nodecount=15",
+      "/Users/d/code/primitive/exchange/testdata/test-upgrade-20260907/server-runtime-after-os_allocated_listener_acquire_close.test",
+      "/Users/d/code/primitive/exchange/testdata/test-upgrade-20260907/server-runtime-after-os_allocated_listener_acquire_close.mem.pprof"
+    ]
+  }
+]

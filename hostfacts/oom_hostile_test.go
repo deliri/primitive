@@ -84,7 +84,10 @@ func TestGoOOMBannerEverySplitPositionPreservesPresence(t *testing.T) {
 	t.Parallel()
 
 	for _, banner := range []string{GoOOMPlainBanner, GoOOMPrefixedBanner} {
-		for split := 1; split < len(banner); split++ {
+		for split := range len(banner) {
+			if split < 1 {
+				continue
+			}
 			reader := io.MultiReader(
 				bytes.NewReader([]byte(banner[:split])),
 				bytes.NewReader([]byte(banner[split:])),
@@ -246,7 +249,7 @@ func TestGoOOMBannerEvidenceJSONHostileTable(t *testing.T) {
 func TestGoOOMBannerStateJSONExhaustsClosedDomain(t *testing.T) {
 	t.Parallel()
 
-	for raw := 0; raw <= 255; raw++ {
+	for raw := range 256 {
 		state := GoOOMBannerState(raw)
 		wire, gotErr := state.MarshalJSON()
 		wantValid := state == GoOOMBannerAbsent || state == GoOOMBannerPresent

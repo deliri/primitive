@@ -1,0 +1,108 @@
+[
+  {
+    "label": "bearer-constructor-refuses-all",
+    "before": "func NewBearerAuthorizationHeader(authorization BearerAuthorization) (Header, error) {",
+    "after": "func NewBearerAuthorizationHeader(authorization BearerAuthorization) (Header, error) {\n if len(authorization.Token) > 0 { return Header{}, core.ErrExchangeContract }",
+    "outcome": "killed inside fuzz callback",
+    "failed_callbacks": [
+      "FuzzBearerAuthorizationTokenSemanticClosure/seed#0",
+      "FuzzBearerAuthorizationTokenSemanticClosure/seed#1",
+      "FuzzBearerAuthorizationTokenSemanticClosure/seed#2",
+      "FuzzBearerAuthorizationTokenSemanticClosure/seed#6",
+      "FuzzBearerAuthorizationTokenSemanticClosure/seed#7",
+      "FuzzBearerAuthorizationTokenSemanticClosure/seed#9"
+    ],
+    "evidence": "mutation-bearer-constructor-refuses-all.json"
+  },
+  {
+    "label": "bearer-constructor-substitutes-valid-token",
+    "before": "BearerAuthorizationScheme + \" \" + string(authorization.Token)",
+    "after": "BearerAuthorizationScheme + \" Z\"",
+    "outcome": "killed inside fuzz callback",
+    "failed_callbacks": [
+      "FuzzBearerAuthorizationTokenSemanticClosure/seed#0",
+      "FuzzBearerAuthorizationTokenSemanticClosure/seed#1",
+      "FuzzBearerAuthorizationTokenSemanticClosure/seed#2",
+      "FuzzBearerAuthorizationTokenSemanticClosure/seed#6",
+      "FuzzBearerAuthorizationTokenSemanticClosure/seed#7",
+      "FuzzBearerAuthorizationTokenSemanticClosure/seed#9"
+    ],
+    "evidence": "mutation-bearer-constructor-substitutes-valid-token.json"
+  },
+  {
+    "label": "bearer-match-refuses-all",
+    "before": "subtle.ConstantTimeCompare(left.Token, right.Token) == 1",
+    "after": "subtle.ConstantTimeCompare(left.Token, right.Token) == 2",
+    "outcome": "killed inside fuzz callback",
+    "failed_callbacks": [
+      "FuzzBearerAuthorizationTokenSemanticClosure/seed#0",
+      "FuzzBearerAuthorizationTokenSemanticClosure/seed#1",
+      "FuzzBearerAuthorizationTokenSemanticClosure/seed#2"
+    ],
+    "evidence": "mutation-bearer-match-refuses-all.json"
+  },
+  {
+    "label": "bearer-match-authenticates-unequal",
+    "before": "subtle.ConstantTimeCompare(left.Token, right.Token) == 1",
+    "after": "subtle.ConstantTimeCompare(left.Token, right.Token) >= 0",
+    "outcome": "killed inside fuzz callback",
+    "failed_callbacks": [
+      "FuzzBearerAuthorizationTokenSemanticClosure/seed#6",
+      "FuzzBearerAuthorizationTokenSemanticClosure/seed#7"
+    ],
+    "evidence": "mutation-bearer-match-authenticates-unequal.json"
+  },
+  {
+    "label": "bearer-receive-refuses-all",
+    "before": "var zero BearerAuthorization",
+    "after": "var zero BearerAuthorization\n if call.Validate() == nil { return zero, requestError(core.ErrExchangeContract) }",
+    "outcome": "killed inside fuzz callback",
+    "failed_callbacks": [
+      "FuzzReceiveBearerAuthorizationSemanticClosure/seed#0",
+      "FuzzReceiveBearerAuthorizationSemanticClosure/seed#1",
+      "FuzzReceiveBearerAuthorizationSemanticClosure/seed#2",
+      "FuzzReceiveBearerAuthorizationSemanticClosure/seed#3",
+      "FuzzReceiveBearerAuthorizationSemanticClosure/seed#4",
+      "FuzzReceiveBearerAuthorizationSemanticClosure/seed#5"
+    ],
+    "evidence": "mutation-bearer-receive-refuses-all.json"
+  },
+  {
+    "label": "bearer-receive-substitutes-valid-token",
+    "before": "token := []byte(tokenText)",
+    "after": "token := []byte(\"Z\")\n _ = tokenText",
+    "outcome": "killed inside fuzz callback",
+    "failed_callbacks": [
+      "FuzzReceiveBearerAuthorizationSemanticClosure/seed#0",
+      "FuzzReceiveBearerAuthorizationSemanticClosure/seed#1",
+      "FuzzReceiveBearerAuthorizationSemanticClosure/seed#2",
+      "FuzzReceiveBearerAuthorizationSemanticClosure/seed#3",
+      "FuzzReceiveBearerAuthorizationSemanticClosure/seed#4",
+      "FuzzReceiveBearerAuthorizationSemanticClosure/seed#5",
+      "FuzzReceiveBearerAuthorizationSemanticClosure/seed#7",
+      "FuzzReceiveBearerAuthorizationSemanticClosure/seed#8",
+      "FuzzReceiveBearerAuthorizationSemanticClosure/seed#9"
+    ],
+    "evidence": "mutation-bearer-receive-substitutes-valid-token.json"
+  },
+  {
+    "label": "bearer-token-resumes-after-padding",
+    "before": "if padding || !bearerTokenByte(value)",
+    "after": "if false && padding || !bearerTokenByte(value)",
+    "outcome": "killed inside fuzz callback",
+    "failed_callbacks": [
+      "FuzzBearerAuthorizationTokenSemanticClosure/seed#5"
+    ],
+    "evidence": "mutation-bearer-token-resumes-after-padding.json"
+  },
+  {
+    "label": "bearer-token-admits-overflow",
+    "before": "len(a.Token) > BearerAuthorizationTokenMaximumBytes",
+    "after": "len(a.Token) > 2*BearerAuthorizationTokenMaximumBytes",
+    "outcome": "killed inside fuzz callback",
+    "failed_callbacks": [
+      "FuzzBearerAuthorizationTokenSemanticClosure/seed#10"
+    ],
+    "evidence": "mutation-bearer-token-admits-overflow.json"
+  }
+]

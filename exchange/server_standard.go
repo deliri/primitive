@@ -2,6 +2,7 @@ package exchange
 
 import (
 	"errors"
+	"io"
 	"net/http"
 	"net/url"
 
@@ -33,7 +34,7 @@ func (r ServerErrorResponse) Validate() error {
 
 // Error writes the standard-library HTTP error shape through Exchange.
 func Error(call SocketServerCall, response ServerErrorResponse) error {
-	if err := call.Validate(); err != nil {
+	if err := call.validateWrite(); err != nil {
 		return err
 	}
 	if err := response.Validate(); err != nil {
@@ -41,19 +42,21 @@ func Error(call SocketServerCall, response ServerErrorResponse) error {
 	}
 	status, _ := response.Status.Int()
 	return executeResponseWriterOperation(func() error {
-		http.Error(call.writer, response.Message, status)
-		return nil
+		writer := &observedStandardResponseWriter{ResponseWriter: call.writer}
+		http.Error(writer, response.Message, status)
+		return writer.err
 	})
 }
 
 // NotFound writes net/http's canonical 404 response through Exchange.
 func NotFound(call SocketServerCall) error {
-	if err := call.Validate(); err != nil {
+	if err := call.validateWrite(); err != nil {
 		return err
 	}
 	return executeResponseWriterOperation(func() error {
-		http.NotFound(call.writer, call.request)
-		return nil
+		writer := &observedStandardResponseWriter{ResponseWriter: call.writer}
+		http.NotFound(writer, call.request)
+		return writer.err
 	})
 }
 
@@ -78,7 +81,7 @@ func (r ServerRedirectResponse) Validate() error {
 
 // Redirect writes a standard-library redirect through Exchange.
 func Redirect(call SocketServerCall, response ServerRedirectResponse) error {
-	if err := call.Validate(); err != nil {
+	if err := call.validateWrite(); err != nil {
 		return err
 	}
 	if err := response.Validate(); err != nil {
@@ -86,15 +89,41 @@ func Redirect(call SocketServerCall, response ServerRedirectResponse) error {
 	}
 	status, _ := response.Status.Int()
 	return executeResponseWriterOperation(func() error {
-		http.Redirect(call.writer, call.request, response.Location, status)
-		return nil
+		writer := &observedStandardResponseWriter{ResponseWriter: call.writer}
+		http.Redirect(writer, call.request, response.Location, status)
+		return writer.err
 	})
+}
+
+// Go's standard response helpers return no error. Observe their writes without
+// replacing their rendering or header mechanics.
+type observedStandardResponseWriter struct {
+	http.ResponseWriter
+	err error
+}
+
+func (w *observedStandardResponseWriter) Write(payload []byte) (int, error) {
+	if w.err != nil {
+		return 0, w.err
+	}
+	count, err := w.ResponseWriter.Write(payload)
+	if count < 0 || count > len(payload) {
+		count = 0
+		err = errors.Join(core.ErrExchangeContract, err)
+	}
+	if count != len(payload) && err == nil {
+		err = io.ErrShortWrite
+	}
+	if err != nil {
+		w.err = errors.Join(core.ErrExchangeResponse, core.ErrExchangeWrite, err)
+	}
+	return count, w.err
 }
 
 // SetCookie appends one validated Set-Cookie response field. The Go cookie
 // remains recognizable; Exchange owns only validation and the wire write.
 func SetCookie(call SocketServerCall, cookie http.Cookie) error {
-	if err := call.Validate(); err != nil {
+	if err := call.validateWrite(); err != nil {
 		return err
 	}
 	if err := cookie.Valid(); err != nil {

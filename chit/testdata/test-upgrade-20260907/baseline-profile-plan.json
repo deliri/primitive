@@ -1,0 +1,77 @@
+{
+  "scope": "original chit sources; no source edits during capture",
+  "plan": [
+    {
+      "label": "baseline-ManifestAccumulatorStreaming128",
+      "argv": [
+        "go",
+        "test",
+        "-run=^$",
+        "-bench=^BenchmarkManifestAccumulatorStreaming128$",
+        "-benchmem",
+        "-benchtime=30s",
+        "-count=1",
+        "-p=1",
+        "-parallel=1",
+        "-cpuprofile=/Users/d/code/primitive/chit/testdata/test-upgrade-20260907/baseline-ManifestAccumulatorStreaming128.cpu.pprof",
+        "-memprofile=/Users/d/code/primitive/chit/testdata/test-upgrade-20260907/baseline-ManifestAccumulatorStreaming128.mem.pprof",
+        "-o=/Users/d/code/primitive/chit/testdata/test-upgrade-20260907/baseline-ManifestAccumulatorStreaming128.test",
+        "./chit"
+      ]
+    },
+    {
+      "label": "baseline-ManifestAccumulatorStreaming4096",
+      "argv": [
+        "go",
+        "test",
+        "-run=^$",
+        "-bench=^BenchmarkManifestAccumulatorStreaming4096$",
+        "-benchmem",
+        "-benchtime=30s",
+        "-count=1",
+        "-p=1",
+        "-parallel=1",
+        "-cpuprofile=/Users/d/code/primitive/chit/testdata/test-upgrade-20260907/baseline-ManifestAccumulatorStreaming4096.cpu.pprof",
+        "-memprofile=/Users/d/code/primitive/chit/testdata/test-upgrade-20260907/baseline-ManifestAccumulatorStreaming4096.mem.pprof",
+        "-o=/Users/d/code/primitive/chit/testdata/test-upgrade-20260907/baseline-ManifestAccumulatorStreaming4096.test",
+        "./chit"
+      ]
+    },
+    {
+      "label": "baseline-VerifyCatalogPageOne",
+      "argv": [
+        "go",
+        "test",
+        "-run=^$",
+        "-bench=^BenchmarkVerifyCatalogPageOne$",
+        "-benchmem",
+        "-benchtime=30s",
+        "-count=1",
+        "-p=1",
+        "-parallel=1",
+        "-cpuprofile=/Users/d/code/primitive/chit/testdata/test-upgrade-20260907/baseline-VerifyCatalogPageOne.cpu.pprof",
+        "-memprofile=/Users/d/code/primitive/chit/testdata/test-upgrade-20260907/baseline-VerifyCatalogPageOne.mem.pprof",
+        "-o=/Users/d/code/primitive/chit/testdata/test-upgrade-20260907/baseline-VerifyCatalogPageOne.test",
+        "./chit"
+      ]
+    },
+    {
+      "label": "baseline-VerifyCatalogPageMaximum",
+      "argv": [
+        "go",
+        "test",
+        "-run=^$",
+        "-bench=^BenchmarkVerifyCatalogPageMaximum$",
+        "-benchmem",
+        "-benchtime=30s",
+        "-count=1",
+        "-p=1",
+        "-parallel=1",
+        "-cpuprofile=/Users/d/code/primitive/chit/testdata/test-upgrade-20260907/baseline-VerifyCatalogPageMaximum.cpu.pprof",
+        "-memprofile=/Users/d/code/primitive/chit/testdata/test-upgrade-20260907/baseline-VerifyCatalogPageMaximum.mem.pprof",
+        "-o=/Users/d/code/primitive/chit/testdata/test-upgrade-20260907/baseline-VerifyCatalogPageMaximum.test",
+        "./chit"
+      ]
+    }
+  ]
+}

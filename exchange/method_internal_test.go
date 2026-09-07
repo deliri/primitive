@@ -12,7 +12,7 @@ import (
 func TestMethodExhaustsClosedDomain(t *testing.T) {
 	t.Parallel()
 
-	for raw := 0; raw <= math.MaxUint8; raw++ {
+	for raw := range math.MaxUint8 + 1 {
 		method := Method(raw)
 		gotErr := method.Validate()
 		wantValid := method > MethodUnknown && method < methodLimit

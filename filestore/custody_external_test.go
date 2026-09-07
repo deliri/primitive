@@ -803,14 +803,14 @@ func TestCustodyDurableWriterLayerTriad(t *testing.T) {
 			Location:   filestore.Location{Root: root, Path: custodyRelative(t, "object")},
 			ModifiedAt: custodyInstant(t, want),
 		}
-		for attempt := 1; attempt <= 3; attempt++ {
+		for attempt := range 3 {
 			if err := filestore.Touch(t.Context(), request); err != nil {
-				t.Fatalf("Touch(attempt %d) error = %v, want nil", attempt, err)
+				t.Fatalf("Touch(attempt %d) error = %v, want nil", attempt+1, err)
 			}
 			if err := filestore.ConfirmDurable(t.Context(), filestore.DurabilityRequest{
 				Location: filestore.Location{Root: root, Path: custodyRelative(t, "object")},
 			}); err != nil {
-				t.Fatalf("ConfirmDurable(attempt %d) error = %v, want nil", attempt, err)
+				t.Fatalf("ConfirmDurable(attempt %d) error = %v, want nil", attempt+1, err)
 			}
 		}
 		if got := custodyObservedStamp(t, custodyAbsolute(t, directory, "object")); !got.Equal(want) {

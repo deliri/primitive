@@ -126,7 +126,7 @@ func TestGCSNamespaceExhaustsEntireByteDomain(t *testing.T) {
 	t.Parallel()
 
 	admitted := 0
-	for value := 0; value <= 255; value++ {
+	for value := range 256 {
 		namespace := GCSNamespace(value)
 		if namespace.Validate() != nil {
 			if namespace.IsValid() || namespace.String() != "" {

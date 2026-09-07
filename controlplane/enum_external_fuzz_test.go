@@ -189,7 +189,7 @@ func enumForText[T comparable](door enumExternalDoor[T], text string) (T, bool) 
 
 func fuzzValidSigningDomains() []controlplane.SigningDomain {
 	values := make([]controlplane.SigningDomain, 0, 4)
-	for raw := 0; raw <= 255; raw++ {
+	for raw := range 256 {
 		value := controlplane.SigningDomain(raw)
 		if value.Validate() == nil {
 			values = append(values, value)
@@ -200,7 +200,7 @@ func fuzzValidSigningDomains() []controlplane.SigningDomain {
 
 func fuzzValidProductStatuses() []controlplane.ProductStatus {
 	values := make([]controlplane.ProductStatus, 0, 6)
-	for raw := 0; raw <= 255; raw++ {
+	for raw := range 256 {
 		value := controlplane.ProductStatus(raw)
 		if value.Validate() == nil {
 			values = append(values, value)
@@ -211,7 +211,7 @@ func fuzzValidProductStatuses() []controlplane.ProductStatus {
 
 func fuzzValidResponseHeaderFields() []controlplane.ResponseHeaderField {
 	values := make([]controlplane.ResponseHeaderField, 0, 5)
-	for raw := 0; raw <= 255; raw++ {
+	for raw := range 256 {
 		value := controlplane.ResponseHeaderField(raw)
 		if value.Validate() == nil {
 			values = append(values, value)
@@ -222,7 +222,7 @@ func fuzzValidResponseHeaderFields() []controlplane.ResponseHeaderField {
 
 func fuzzValidUsageDispositions() []controlplane.UsageDisposition {
 	values := make([]controlplane.UsageDisposition, 0, 3)
-	for raw := 0; raw <= 255; raw++ {
+	for raw := range 256 {
 		value := controlplane.UsageDisposition(raw)
 		if value.Validate() == nil {
 			values = append(values, value)
@@ -233,7 +233,7 @@ func fuzzValidUsageDispositions() []controlplane.UsageDisposition {
 
 func fuzzValidUsageClasses() []controlplane.UsageClass {
 	values := make([]controlplane.UsageClass, 0, 15)
-	for raw := 0; raw <= 255; raw++ {
+	for raw := range 256 {
 		value := controlplane.UsageClass(raw)
 		if value.Validate() == nil {
 			values = append(values, value)
@@ -244,7 +244,7 @@ func fuzzValidUsageClasses() []controlplane.UsageClass {
 
 func fuzzValidOutcomeClasses() []controlplane.OutcomeClass {
 	values := make([]controlplane.OutcomeClass, 0, 15)
-	for raw := 0; raw <= 255; raw++ {
+	for raw := range 256 {
 		value := controlplane.OutcomeClass(raw)
 		if value.Validate() == nil {
 			values = append(values, value)

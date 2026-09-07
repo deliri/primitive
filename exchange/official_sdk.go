@@ -6,6 +6,7 @@ import (
 	"errors"
 	"io"
 	"net/http"
+	"net/url"
 	"strings"
 
 	"github.com/deliri/primitive/v2026/contextstate"
@@ -505,7 +506,11 @@ func (b OfficialSDKResponseBoundary) streamsSuccessfulResponse(
 		response.StatusCode < http.StatusOK || response.StatusCode >= http.StatusMultipleChoices {
 		return false
 	}
-	values, ok := request.URL.Query()[b.streamQueryName]
+	query, err := url.ParseQuery(request.URL.RawQuery)
+	if err != nil {
+		return false
+	}
+	values, ok := query[b.streamQueryName]
 	return ok && len(values) == 1 && values[0] == b.streamQueryValue
 }
 

@@ -1,0 +1,72 @@
+[
+  {
+    "label": "binding-native-cause-discarded",
+    "production_file": "contracts.go",
+    "occurrence_count": 2,
+    "replaced_occurrences": 1,
+    "before": "return IdempotencyKey{}, requestError(errors.Join(core.ErrExchangeIdempotencyBinding, err))",
+    "after": "return IdempotencyKey{}, requestError(core.ErrExchangeIdempotencyBinding)",
+    "outcome": "killed by test",
+    "evidence": "mutation-binding-native-cause-discarded.json"
+  },
+  {
+    "label": "binding-unset-key-admitted",
+    "production_file": "contracts.go",
+    "occurrence_count": 1,
+    "replaced_occurrences": 1,
+    "before": "if err := key.Validate(); err != nil {\n\t\treturn IdempotencyKey{}, requestError(errors.Join(core.ErrExchangeIdempotencyBinding, err))\n\t}",
+    "after": "",
+    "outcome": "killed by test",
+    "evidence": "mutation-binding-unset-key-admitted.json"
+  },
+  {
+    "label": "binding-callback-panic-escapes",
+    "production_file": "contracts.go",
+    "occurrence_count": 1,
+    "replaced_occurrences": 1,
+    "before": "err = requestError(core.ErrExchangeIdempotencyBinding)",
+    "after": "panic(core.ErrExchangeIdempotencyBinding)",
+    "outcome": "killed by test",
+    "evidence": "mutation-binding-callback-panic-escapes.json"
+  },
+  {
+    "label": "receive-close-failure-leaks-result",
+    "production_file": "server.go",
+    "occurrence_count": 1,
+    "replaced_occurrences": 1,
+    "before": "received, err := executeRequestBodyOperation(request, operation)\n\tif err != nil {\n\t\treturn Received[Body]{}, err",
+    "after": "received, err := executeRequestBodyOperation(request, operation)\n\tif err != nil {\n\t\treturn received, err",
+    "outcome": "killed by test",
+    "evidence": "mutation-receive-close-failure-leaks-result.json"
+  },
+  {
+    "label": "socket-refusal-skips-close",
+    "production_file": "socket.go",
+    "occurrence_count": 1,
+    "replaced_occurrences": 1,
+    "before": "return executeReceivedBodyOperation(call.request, func() (Received[BodyPtr], error) {\n\t\treturn receiveSocketJSON[Body, BodyPtr](socket, call)\n\t})",
+    "after": "return receiveSocketJSON[Body, BodyPtr](socket, call)",
+    "outcome": "killed by test",
+    "evidence": "mutation-socket-refusal-skips-close.json"
+  },
+  {
+    "label": "constructor-retains-partial-capability",
+    "production_file": "socket.go",
+    "occurrence_count": 1,
+    "replaced_occurrences": 1,
+    "before": "return SocketServerCall{}, err\n\t}\n\treturn call, nil",
+    "after": "return call, err\n\t}\n\treturn call, nil",
+    "outcome": "killed by test",
+    "evidence": "mutation-constructor-retains-partial-capability.json"
+  },
+  {
+    "label": "no-body-close-failure-leaks-key",
+    "production_file": "server.go",
+    "occurrence_count": 1,
+    "replaced_occurrences": 1,
+    "before": ") (Received[NoBody], error) {\n\treturn executeReceivedBodyOperation(",
+    "after": ") (Received[NoBody], error) {\n\treturn executeRequestBodyOperation(",
+    "outcome": "killed by test",
+    "evidence": "mutation-no-body-close-failure-leaks-key.json"
+  }
+]

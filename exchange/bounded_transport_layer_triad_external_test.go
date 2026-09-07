@@ -8,7 +8,6 @@ import (
 	"net/http/httptest"
 	"sync/atomic"
 	"testing"
-	"time"
 
 	"github.com/deliri/primitive/v2026/core"
 	"github.com/deliri/primitive/v2026/exchange"
@@ -133,7 +132,7 @@ func TestBoundedByteTransportLayerTriad(t *testing.T) {
 					core.HTTPMediaTypeOctetStream(),
 				)
 			}
-		case <-time.After(testDeadlockBackstop):
+		case <-exchangeFixtureBackstop(t, testDeadlockBackstop):
 			t.Fatalf(
 				"bounded server observation = absent after %v, want one completed observation",
 				testDeadlockBackstop,
@@ -289,7 +288,7 @@ func TestBoundedByteTransportLayerTriad(t *testing.T) {
 					core.HTTPMediaTypeOctetStream(),
 				)
 			}
-		case <-time.After(testDeadlockBackstop):
+		case <-exchangeFixtureBackstop(t, testDeadlockBackstop):
 			t.Fatalf(
 				"empty bounded server observation = absent after %v, want one completed observation",
 				testDeadlockBackstop,

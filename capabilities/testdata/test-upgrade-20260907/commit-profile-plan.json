@@ -1,0 +1,131 @@
+{
+  "reason": "Final local error-context constant ownership correction; profiles bind exact final production source.",
+  "plan": [
+    {
+      "label": "commit-after-identity",
+      "argv": [
+        "go",
+        "test",
+        "-run=^$",
+        "-bench=^BenchmarkParseIdentity$",
+        "-benchmem",
+        "-benchtime=30s",
+        "-count=1",
+        "-p=1",
+        "-parallel=1",
+        "-cpuprofile=/Users/d/code/primitive/capabilities/testdata/test-upgrade-20260907/commit-after-identity.cpu.pprof",
+        "-memprofile=/Users/d/code/primitive/capabilities/testdata/test-upgrade-20260907/commit-after-identity.mem.pprof",
+        "-o=/Users/d/code/primitive/capabilities/testdata/test-upgrade-20260907/commit-after-identity.test",
+        "./capabilities"
+      ]
+    },
+    {
+      "label": "commit-after-catalog",
+      "argv": [
+        "go",
+        "test",
+        "-run=^$",
+        "-bench=^BenchmarkCatalogAll$",
+        "-benchmem",
+        "-benchtime=30s",
+        "-count=1",
+        "-p=1",
+        "-parallel=1",
+        "-cpuprofile=/Users/d/code/primitive/capabilities/testdata/test-upgrade-20260907/commit-after-catalog.cpu.pprof",
+        "-memprofile=/Users/d/code/primitive/capabilities/testdata/test-upgrade-20260907/commit-after-catalog.mem.pprof",
+        "-o=/Users/d/code/primitive/capabilities/testdata/test-upgrade-20260907/commit-after-catalog.test",
+        "./capabilities"
+      ]
+    },
+    {
+      "label": "commit-after-effect",
+      "argv": [
+        "go",
+        "test",
+        "-run=^$",
+        "-bench=^BenchmarkResolveEffect$",
+        "-benchmem",
+        "-benchtime=30s",
+        "-count=1",
+        "-p=1",
+        "-parallel=1",
+        "-cpuprofile=/Users/d/code/primitive/capabilities/testdata/test-upgrade-20260907/commit-after-effect.cpu.pprof",
+        "-memprofile=/Users/d/code/primitive/capabilities/testdata/test-upgrade-20260907/commit-after-effect.mem.pprof",
+        "-o=/Users/d/code/primitive/capabilities/testdata/test-upgrade-20260907/commit-after-effect.test",
+        "./capabilities"
+      ]
+    },
+    {
+      "label": "commit-after-function",
+      "argv": [
+        "go",
+        "test",
+        "-run=^$",
+        "-bench=^BenchmarkResolveStandardFunction$",
+        "-benchmem",
+        "-benchtime=30s",
+        "-count=1",
+        "-p=1",
+        "-parallel=1",
+        "-cpuprofile=/Users/d/code/primitive/capabilities/testdata/test-upgrade-20260907/commit-after-function.cpu.pprof",
+        "-memprofile=/Users/d/code/primitive/capabilities/testdata/test-upgrade-20260907/commit-after-function.mem.pprof",
+        "-o=/Users/d/code/primitive/capabilities/testdata/test-upgrade-20260907/commit-after-function.test",
+        "./capabilities"
+      ]
+    },
+    {
+      "label": "commit-after-method",
+      "argv": [
+        "go",
+        "test",
+        "-run=^$",
+        "-bench=^BenchmarkResolveStandardMethod$",
+        "-benchmem",
+        "-benchtime=30s",
+        "-count=1",
+        "-p=1",
+        "-parallel=1",
+        "-cpuprofile=/Users/d/code/primitive/capabilities/testdata/test-upgrade-20260907/commit-after-method.cpu.pprof",
+        "-memprofile=/Users/d/code/primitive/capabilities/testdata/test-upgrade-20260907/commit-after-method.mem.pprof",
+        "-o=/Users/d/code/primitive/capabilities/testdata/test-upgrade-20260907/commit-after-method.test",
+        "./capabilities"
+      ]
+    },
+    {
+      "label": "commit-after-unresolved",
+      "argv": [
+        "go",
+        "test",
+        "-run=^$",
+        "-bench=^BenchmarkResolveStandardUnresolved$",
+        "-benchmem",
+        "-benchtime=30s",
+        "-count=1",
+        "-p=1",
+        "-parallel=1",
+        "-cpuprofile=/Users/d/code/primitive/capabilities/testdata/test-upgrade-20260907/commit-after-unresolved.cpu.pprof",
+        "-memprofile=/Users/d/code/primitive/capabilities/testdata/test-upgrade-20260907/commit-after-unresolved.mem.pprof",
+        "-o=/Users/d/code/primitive/capabilities/testdata/test-upgrade-20260907/commit-after-unresolved.test",
+        "./capabilities"
+      ]
+    },
+    {
+      "label": "commit-after-json-maximum",
+      "argv": [
+        "go",
+        "test",
+        "-run=^$",
+        "-bench=^BenchmarkClassificationJSONMaximum$",
+        "-benchmem",
+        "-benchtime=30s",
+        "-count=1",
+        "-p=1",
+        "-parallel=1",
+        "-cpuprofile=/Users/d/code/primitive/capabilities/testdata/test-upgrade-20260907/commit-after-json-maximum.cpu.pprof",
+        "-memprofile=/Users/d/code/primitive/capabilities/testdata/test-upgrade-20260907/commit-after-json-maximum.mem.pprof",
+        "-o=/Users/d/code/primitive/capabilities/testdata/test-upgrade-20260907/commit-after-json-maximum.test",
+        "./capabilities"
+      ]
+    }
+  ]
+}

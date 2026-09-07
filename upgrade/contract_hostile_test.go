@@ -283,7 +283,7 @@ func TestSlotProjectionsRefuseEveryValueOutsideTheClosedDomain(t *testing.T) {
 
 	directory := absolutePathForTest(t, t.TempDir())
 	build := artifactForTest(t, []byte("candidate"), 2).Build()
-	for raw := 0; raw <= 255; raw++ {
+	for raw := range 256 {
 		slot := Slot(raw)
 		if slot.IsValid() {
 			continue

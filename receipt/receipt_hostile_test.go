@@ -447,7 +447,10 @@ func TestWatermarkAdvanceHostileMatrix(t *testing.T) {
 			}
 		})
 	}
-	for reason := ConflictReasonUnknown + 1; reason < conflictReasonLimit; reason++ {
+	for reason := range conflictReasonLimit {
+		if reason < ConflictReasonUnknown+1 {
+			continue
+		}
 		if !coveredReasons[reason] {
 			t.Errorf("ConflictReason %v has no behaviorally reachable advance case", reason)
 		}
@@ -490,7 +493,7 @@ func watermarkFixture(t testing.TB, scope Scope, generation uint64, marker strin
 func TestReceiptClosedEnumsExhaustBackingDomain(t *testing.T) {
 	t.Parallel()
 
-	for raw := 0; raw <= math.MaxUint8; raw++ {
+	for raw := range math.MaxUint8 + 1 {
 		revision := Revision(raw)
 		wantRevision := revision == RevisionV1
 		if revision.IsValid() != wantRevision || (revision.String() != "") != wantRevision {

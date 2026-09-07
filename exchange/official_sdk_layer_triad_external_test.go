@@ -330,7 +330,7 @@ func TestOfficialSDKHTTPClientRefusesRedirectCancellationAndTransportFailure(t *
 		select {
 		case <-started:
 			cancel()
-		case <-time.After(officialSDKTestTimeout):
+		case <-exchangeFixtureBackstop(t, officialSDKTestTimeout):
 			cancel()
 			t.Fatal("provider body read started = false, want true before timeout")
 		}
@@ -345,7 +345,7 @@ func TestOfficialSDKHTTPClientRefusesRedirectCancellationAndTransportFailure(t *
 				!errors.Is(got.err, context.Canceled) {
 				t.Fatalf("in-flight cancelled SDK exchange = (%v, %v), want nil plus typed and native cancellation identities", got.response, got.err)
 			}
-		case <-time.After(officialSDKTestTimeout):
+		case <-exchangeFixtureBackstop(t, officialSDKTestTimeout):
 			cancel()
 			t.Fatal("cancelled provider body read returned = false, want true before timeout")
 		}

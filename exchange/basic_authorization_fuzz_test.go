@@ -2,9 +2,13 @@ package exchange_test
 
 import (
 	"bytes"
+	json "encoding/json/v2"
 	"errors"
 	"net/http"
+	"strings"
 	"testing"
+	"unicode"
+	"unicode/utf8"
 
 	"github.com/deliri/primitive/v2026/core"
 	"github.com/deliri/primitive/v2026/exchange"
@@ -26,14 +30,26 @@ func FuzzBasicAuthorizationIdentityJSONSemanticClosure(f *testing.F) {
 	f.Add([]byte(`"identity\n"`))
 
 	f.Fuzz(func(t *testing.T, data []byte) {
+		if len(data) > core.JSONDocumentMaximumBytes+1 {
+			return
+		}
+		var decoded *string
+		var wantAccepted bool
+		if len(data) <= core.JSONDocumentMaximumBytes {
+			decodeErr := json.Unmarshal(data, &decoded)
+			wantAccepted = decodeErr == nil && decoded != nil && basicIdentityInputAdmitted(*decoded)
+		}
 		got := seed
 		before := got
 		gotErr := got.UnmarshalJSON(data)
-		if gotErr != nil {
-			if !errors.Is(gotErr, core.ErrJSONContract) || got != before {
+		if !wantAccepted {
+			if !errors.Is(gotErr, core.ErrJSONContract) || !errors.Is(gotErr, core.ErrExchangeContract) || got != before {
 				t.Fatalf("BasicAuthorizationIdentity.UnmarshalJSON(rejected) = (%v, %v), want preserved and %v", got, gotErr, core.ErrJSONContract)
 			}
 			return
+		}
+		if gotErr != nil || got.String() != *decoded {
+			t.Fatalf("identity JSON input projection = (%q, %v), want (%q, nil)", got.String(), gotErr, *decoded)
 		}
 		if err := got.Validate(); err != nil {
 			t.Fatalf("BasicAuthorizationIdentity.UnmarshalJSON(accepted).Validate() error = %v, want nil", err)
@@ -81,18 +97,31 @@ func FuzzReceiveBasicAuthorizationSemanticClosure(f *testing.F) {
 		f.Fatalf("StandardHeaderAuthorization.Name() error = %v, want nil", err)
 	}
 	f.Fuzz(func(t *testing.T, value string) {
+		if len(value) > exchange.BasicAuthorizationHeaderMaximumBytes+1 {
+			return
+		}
 		request, err := http.NewRequest(http.MethodGet, "https://example.invalid", nil)
 		if err != nil {
 			t.Fatalf("http.NewRequest() error = %v, want nil", err)
 		}
 		request.Header.Set(headerName.String(), value)
+		// Go owns Basic syntax and base64. The independent input predicate
+		// adds only Primitive's nominal credential and HTTP field bounds.
+		wantIdentity, wantSecret, standardAccepted := request.BasicAuth()
+		wantAccepted := standardAccepted && len(value) <= exchange.BasicAuthorizationHeaderMaximumBytes &&
+			strings.IndexFunc(value, func(r rune) bool { return r < ' ' && r != '\t' || r == 0x7f }) < 0 &&
+			basicIdentityInputAdmitted(wantIdentity) && len(wantSecret) > 0 && len(wantSecret) <= exchange.BasicAuthorizationSecretMaximumBytes &&
+			utf8.ValidString(wantSecret) && strings.IndexFunc(wantSecret, unicode.IsControl) < 0
 		got, gotErr := exchange.ReceiveBasicAuthorization(socketServerCall(t, request))
-		if gotErr != nil {
+		if !wantAccepted {
 			if !errors.Is(gotErr, core.ErrExchangeRequest) || !errors.Is(gotErr, core.ErrExchangeContract) ||
 				got.Identity != "" || got.Secret != nil {
 				t.Fatalf("ReceiveBasicAuthorization(rejected) = (%v, %v), want zero and typed request contract rejection", got, gotErr)
 			}
 			return
+		}
+		if gotErr != nil || got.Identity.String() != wantIdentity || string(got.Secret) != wantSecret {
+			t.Fatalf("ReceiveBasicAuthorization() identity/secret/error = (%q, %q, %v), want (%q, %q, nil)", got.Identity.String(), got.Secret, gotErr, wantIdentity, wantSecret)
 		}
 		if err := got.Validate(); err != nil {
 			t.Fatalf("ReceiveBasicAuthorization(accepted).Validate() error = %v, want nil", err)
@@ -115,4 +144,11 @@ func FuzzReceiveBasicAuthorizationSemanticClosure(f *testing.F) {
 			t.Fatalf("Basic authorization canonical round trip = (%v, %v), want (%v, nil)", roundTrip, err, got)
 		}
 	})
+}
+
+// Input-only oracle: no Exchange constructor or validator can decide its own
+// acceptance. Unicode grammar is owned by Go; byte bounds are typed constants.
+func basicIdentityInputAdmitted(value string) bool {
+	return len(value) > 0 && len(value) <= exchange.BasicAuthorizationIdentityMaximumBytes &&
+		utf8.ValidString(value) && !strings.ContainsRune(value, ':') && strings.IndexFunc(value, unicode.IsControl) < 0
 }

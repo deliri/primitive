@@ -168,7 +168,7 @@ func BenchmarkServerJSONBoundary(b *testing.B) {
 			b.SetBytes(int64(2 * len(encoded)))
 			b.ResetTimer()
 
-			for range b.N {
+			for b.Loop() {
 				writer.Reset()
 				serverCall := socketServerCallFrom(b, writer, newJSONBenchmarkRequest(b, encoded))
 				received, receiveErr := exchange.ReceiveJSON[
@@ -216,7 +216,7 @@ func BenchmarkRequestConstructionControl(b *testing.B) {
 	b.ReportAllocs()
 	b.ResetTimer()
 
-	for range b.N {
+	for b.Loop() {
 		if request := newJSONBenchmarkRequest(b, encoded); request == nil {
 			b.Fatal("newJSONBenchmarkRequest() = nil, want non-nil")
 		}
@@ -254,7 +254,7 @@ func BenchmarkServerJSONBoundaryByLimit(b *testing.B) {
 			b.ReportAllocs()
 			b.ResetTimer()
 
-			for range b.N {
+			for b.Loop() {
 				writer.Reset()
 				serverCall := socketServerCallFrom(b, writer, newJSONBenchmarkRequest(b, encoded))
 				received, receiveErr := exchange.ReceiveJSON[

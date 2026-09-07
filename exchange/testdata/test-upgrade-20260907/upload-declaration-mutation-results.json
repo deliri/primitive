@@ -1,0 +1,98 @@
+[
+  {
+    "label": "upload-claims-declared-as-observed",
+    "outcome": "killed inside fuzz callback",
+    "failed_callbacks": [
+      "FuzzUploadResponseDeclarationCustody/seed#1",
+      "FuzzUploadResponseDeclarationCustody/seed#2",
+      "FuzzUploadResponseDeclarationCustody/seed#3",
+      "FuzzUploadResponseDeclarationCustody/seed#4",
+      "FuzzUploadResponseDeclarationCustody/seed#5",
+      "FuzzUploadResponseDeclarationCustody/seed#6",
+      "FuzzUploadResponseDeclarationCustody/seed#7",
+      "FuzzUploadResponseDeclarationCustody/seed#8"
+    ],
+    "record": "mutation-upload-claims-declared-as-observed.json"
+  },
+  {
+    "label": "upload-loses-declaration",
+    "outcome": "killed inside fuzz callback",
+    "failed_callbacks": [
+      "FuzzUploadResponseDeclarationCustody/seed#1",
+      "FuzzUploadResponseDeclarationCustody/seed#2",
+      "FuzzUploadResponseDeclarationCustody/seed#3",
+      "FuzzUploadResponseDeclarationCustody/seed#4",
+      "FuzzUploadResponseDeclarationCustody/seed#5",
+      "FuzzUploadResponseDeclarationCustody/seed#6",
+      "FuzzUploadResponseDeclarationCustody/seed#7",
+      "FuzzUploadResponseDeclarationCustody/seed#8"
+    ],
+    "record": "mutation-upload-loses-declaration.json"
+  },
+  {
+    "label": "roundtrip-loses-declaration",
+    "outcome": "killed inside fuzz callback",
+    "failed_callbacks": [
+      "FuzzUploadResponseDeclarationCustody/seed#1",
+      "FuzzUploadResponseDeclarationCustody/seed#2",
+      "FuzzUploadResponseDeclarationCustody/seed#3",
+      "FuzzUploadResponseDeclarationCustody/seed#4",
+      "FuzzUploadResponseDeclarationCustody/seed#5",
+      "FuzzUploadResponseDeclarationCustody/seed#6",
+      "FuzzUploadResponseDeclarationCustody/seed#7",
+      "FuzzUploadResponseDeclarationCustody/seed#8"
+    ],
+    "record": "mutation-roundtrip-loses-declaration.json"
+  },
+  {
+    "label": "upload-refuses-every-response",
+    "outcome": "killed inside fuzz callback",
+    "failed_callbacks": [
+      "FuzzUploadResponseDeclarationCustody/seed#0",
+      "FuzzUploadResponseDeclarationCustody/seed#1",
+      "FuzzUploadResponseDeclarationCustody/seed#2",
+      "FuzzUploadResponseDeclarationCustody/seed#3",
+      "FuzzUploadResponseDeclarationCustody/seed#4",
+      "FuzzUploadResponseDeclarationCustody/seed#5",
+      "FuzzUploadResponseDeclarationCustody/seed#6",
+      "FuzzUploadResponseDeclarationCustody/seed#7",
+      "FuzzUploadResponseDeclarationCustody/seed#8",
+      "FuzzUploadResponseDeclarationCustody/seed#9"
+    ],
+    "record": "mutation-upload-refuses-every-response.json"
+  },
+  {
+    "label": "roundtrip-refuses-every-response",
+    "outcome": "killed inside fuzz callback",
+    "failed_callbacks": [
+      "FuzzUploadResponseDeclarationCustody/seed#0",
+      "FuzzUploadResponseDeclarationCustody/seed#1",
+      "FuzzUploadResponseDeclarationCustody/seed#2",
+      "FuzzUploadResponseDeclarationCustody/seed#3",
+      "FuzzUploadResponseDeclarationCustody/seed#4",
+      "FuzzUploadResponseDeclarationCustody/seed#5",
+      "FuzzUploadResponseDeclarationCustody/seed#6",
+      "FuzzUploadResponseDeclarationCustody/seed#7",
+      "FuzzUploadResponseDeclarationCustody/seed#8",
+      "FuzzUploadResponseDeclarationCustody/seed#9"
+    ],
+    "record": "mutation-roundtrip-refuses-every-response.json"
+  },
+  {
+    "label": "upload-steals-source-close",
+    "outcome": "killed inside fuzz callback",
+    "failed_callbacks": [
+      "FuzzUploadResponseDeclarationCustody/seed#0",
+      "FuzzUploadResponseDeclarationCustody/seed#1",
+      "FuzzUploadResponseDeclarationCustody/seed#2",
+      "FuzzUploadResponseDeclarationCustody/seed#3",
+      "FuzzUploadResponseDeclarationCustody/seed#4",
+      "FuzzUploadResponseDeclarationCustody/seed#5",
+      "FuzzUploadResponseDeclarationCustody/seed#6",
+      "FuzzUploadResponseDeclarationCustody/seed#7",
+      "FuzzUploadResponseDeclarationCustody/seed#8",
+      "FuzzUploadResponseDeclarationCustody/seed#9"
+    ],
+    "record": "mutation-upload-steals-source-close.json"
+  }
+]

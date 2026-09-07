@@ -1,0 +1,28 @@
+{
+  "reference": "server-runtime-after-os_allocated_listener_acquire_close.json",
+  "configured_seconds": 30,
+  "reason": "Go ListenTCP accepts the already validated numeric address without resolver traversal; benchmark source unchanged.",
+  "run": {
+    "label": "server-runtime-typed-go-listener",
+    "phase": "profile-informed numeric Go API refinement",
+    "argv": [
+      "go",
+      "test",
+      "-run=^$",
+      "-bench=^BenchmarkServerRuntimeBoundary$/^os_allocated_listener_acquire_close$",
+      "-benchmem",
+      "-benchtime=30s",
+      "-count=1",
+      "-cpu=1",
+      "-p=1",
+      "-parallel=1",
+      "-timeout=3m",
+      "-cpuprofile=/Users/d/code/primitive/exchange/testdata/test-upgrade-20260907/server-runtime-typed-go-listener.cpu.pprof",
+      "-memprofile=/Users/d/code/primitive/exchange/testdata/test-upgrade-20260907/server-runtime-typed-go-listener.mem.pprof",
+      "-o=/Users/d/code/primitive/exchange/testdata/test-upgrade-20260907/server-runtime-typed-go-listener.test",
+      "./exchange"
+    ],
+    "configured_seconds": 30,
+    "expected_exit": 0
+  }
+}

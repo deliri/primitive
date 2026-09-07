@@ -1,0 +1,18 @@
+{
+  "label": "fuzz-aggregate-completed-producer-cause",
+  "configured_seconds": 30,
+  "workers": 2,
+  "sequence": "after focused mutation controls, full Exchange checkpoint 13, aggregate comparative benchmarks and CPU/memory analysis",
+  "argv": [
+    "go",
+    "test",
+    "-json",
+    "-count=1",
+    "-run=^$",
+    "-fuzz=^FuzzBoundedClientsPreserveCompletedProducerCause$",
+    "-fuzztime=30s",
+    "-parallel=2",
+    "-timeout=2m",
+    "./exchange"
+  ]
+}

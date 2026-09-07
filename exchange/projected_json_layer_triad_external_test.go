@@ -6,7 +6,6 @@ import (
 	"errors"
 	"io/fs"
 	"net/http"
-	"os"
 	"path/filepath"
 	"sync/atomic"
 	"testing"
@@ -117,16 +116,12 @@ func TestProjectedJSONReceiveLayerTriad(t *testing.T) {
 		t.Parallel()
 
 		bodyPath := filepath.Join(t.TempDir(), "request.json")
-		if gotErr := os.WriteFile(
-			bodyPath,
-			[]byte(`{"message":"candidate"}`),
-			0o600,
-		); gotErr != nil {
-			t.Fatalf("os.WriteFile(%q) setup error = %v, want nil", bodyPath, gotErr)
+		if gotErr := writeExchangeFixtureFile(t, bodyPath, []byte(`{"message":"candidate"}`)); gotErr != nil {
+			t.Fatalf("Filestore fixture write(%q) setup error = %v, want nil", bodyPath, gotErr)
 		}
-		body, gotErr := os.Open(bodyPath)
+		body, gotErr := openExchangeFixtureFile(t, bodyPath)
 		if gotErr != nil {
-			t.Fatalf("os.Open(%q) setup error = %v, want nil", bodyPath, gotErr)
+			t.Fatalf("Filestore fixture open(%q) setup error = %v, want nil", bodyPath, gotErr)
 		}
 		target := mustEndpoint(t, "http://example.test/exchange")
 		request, gotErr := http.NewRequestWithContext(

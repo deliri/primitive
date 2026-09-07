@@ -677,8 +677,8 @@ func TestUploadCapabilityBoundsItsReceivedExtents(t *testing.T) {
 		signed := make([]string, 0, SignedHeaderMaximumCount+4)
 		signed = append(signed, "host", "x-goog-hash", "x-goog-if-generation-match")
 		wire := make([]string, 0, SignedHeaderMaximumCount+1)
-		for index := 1; index <= SignedHeaderMaximumCount+1; index++ {
-			name := fmt.Sprintf("x-goog-meta-f%02d", index)
+		for index := range SignedHeaderMaximumCount + 1 {
+			name := fmt.Sprintf("x-goog-meta-f%02d", index+1)
 			signed = append(signed, name)
 			wire = append(wire, fmt.Sprintf(`{"name":%q,"value":"v"}`, name))
 		}

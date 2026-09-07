@@ -183,7 +183,10 @@ func TestIsolationDeclarationCombinationMatrix(t *testing.T) {
 func TestIsolationAnalyzerIdentifiersExhaustClosedDomainsAndRejectLookalikes(t *testing.T) {
 	t.Parallel()
 
-	for hazard := TestIsolationHazardProcessEnvironment; hazard < testIsolationHazardLimit; hazard++ {
+	for hazard := range testIsolationHazardLimit {
+		if hazard < TestIsolationHazardProcessEnvironment {
+			continue
+		}
 		identifier := hazard.GoIdentifier()
 		if identifier == "" {
 			t.Fatalf("TestIsolationHazard(%d).GoIdentifier() = empty, want exact identifier", hazard)
@@ -199,7 +202,10 @@ func TestIsolationAnalyzerIdentifiersExhaustClosedDomainsAndRejectLookalikes(t *
 			)
 		}
 	}
-	for scope := TestIsolationScopeSiblingTable; scope < testIsolationScopeLimit; scope++ {
+	for scope := range testIsolationScopeLimit {
+		if scope < TestIsolationScopeSiblingTable {
+			continue
+		}
 		identifier := scope.GoIdentifier()
 		if identifier == "" {
 			t.Fatalf("TestIsolationScope(%d).GoIdentifier() = empty, want exact identifier", scope)

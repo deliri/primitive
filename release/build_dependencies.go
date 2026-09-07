@@ -4,6 +4,7 @@ import (
 	"encoding/base64"
 	json "encoding/json/v2"
 	"errors"
+	"slices"
 	"sort"
 	"strings"
 	"unicode/utf8"
@@ -211,8 +212,7 @@ type BuildDependencies struct {
 }
 
 type buildDependencyStorage struct {
-	modules [BuildDependencyMaximumCount]BuildDependency
-	count   int
+	modules []BuildDependency
 }
 
 func newBuildDependencies(
@@ -223,12 +223,11 @@ func newBuildDependencies(
 	if len(modules) > BuildDependencyMaximumCount {
 		return BuildDependencies{}, contractError(errors.New(buildDependencyCountDiagnostic))
 	}
-	ordered := append([]BuildDependency(nil), modules...)
+	ordered := slices.Clone(modules)
 	sort.Slice(ordered, func(left, right int) bool {
 		return ordered[left].path.value < ordered[right].path.value
 	})
-	storage := &buildDependencyStorage{count: len(ordered)}
-	copy(storage.modules[:], ordered)
+	storage := &buildDependencyStorage{modules: ordered}
 	value := BuildDependencies{storage: storage, main: main, goToolchain: toolchain, valid: true}
 	if err := value.Validate(); err != nil {
 		return BuildDependencies{}, err
@@ -237,8 +236,7 @@ func newBuildDependencies(
 }
 
 func (d BuildDependencies) Validate() error {
-	if !d.valid || d.storage == nil ||
-		d.storage.count < 0 || d.storage.count > len(d.storage.modules) {
+	if !d.valid || d.storage == nil || len(d.storage.modules) > BuildDependencyMaximumCount {
 		return contractError(errors.New("build dependencies are unset or outside storage bounds"))
 	}
 	for _, err := range [...]error{d.main.Validate(), d.goToolchain.Validate()} {
@@ -250,17 +248,12 @@ func (d BuildDependencies) Validate() error {
 }
 
 func (d BuildDependencies) validateModules() error {
-	for index, module := range d.storage.modules[:d.storage.count] {
+	for index, module := range d.storage.modules {
 		if err := module.Validate(); err != nil {
 			return err
 		}
 		if module.path == d.main || index > 0 && d.storage.modules[index-1].path.value >= module.path.value {
 			return contractError(errors.New("build dependencies are not distinct and path-sorted"))
-		}
-	}
-	for _, padding := range d.storage.modules[d.storage.count:] {
-		if padding != (BuildDependency{}) {
-			return contractError(errors.New("build dependency padding is nonzero"))
 		}
 	}
 	return nil
@@ -289,8 +282,8 @@ func (d BuildDependencies) MarshalJSON() ([]byte, error) {
 	if err != nil {
 		return nil, err
 	}
-	modules := make([]buildDependencyWire, d.storage.count)
-	for index, module := range d.storage.modules[:d.storage.count] {
+	modules := make([]buildDependencyWire, len(d.storage.modules))
+	for index, module := range d.storage.modules {
 		modules[index] = buildDependencyWire{
 			Path: module.path.value, Version: module.version.value, Sum: module.sum.String(),
 		}
@@ -353,10 +346,10 @@ func (d BuildDependencies) Count() int {
 	if d.Validate() != nil {
 		return 0
 	}
-	return d.storage.count
+	return len(d.storage.modules)
 }
 func (d BuildDependencies) At(index int) (BuildDependency, bool) {
-	if d.Validate() != nil || index < 0 || index >= d.storage.count {
+	if d.Validate() != nil || index < 0 || index >= len(d.storage.modules) {
 		return BuildDependency{}, false
 	}
 	return d.storage.modules[index], true

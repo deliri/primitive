@@ -79,7 +79,10 @@ func TestIdentifierJSONHostilePressure(t *testing.T) {
 		t.Fatalf("json.Marshal() error = %v, want nil", err)
 	}
 	uppercase := append([]byte(nil), canonical...)
-	for index := 1; index < len(uppercase)-1; index++ {
+	for index := range len(uppercase) - 1 {
+		if index < 1 {
+			continue
+		}
 		if uppercase[index] >= 'a' && uppercase[index] <= 'f' {
 			uppercase[index] -= 'a' - 'A'
 		}
@@ -296,7 +299,7 @@ func runEnumJSONPressure[T comparable](t *testing.T, contract enumJSONPressure[T
 func checkRevisionDomain(t *testing.T) {
 	t.Helper()
 
-	for value := uint16(0); value <= math.MaxUint8; value++ {
+	for value := range uint16(math.MaxUint8) + 1 {
 		revision := lease.Revision(value)
 		want := value == uint16(lease.RevisionV1)
 		if revision.IsValid() != want {
@@ -317,7 +320,7 @@ func checkOutcomeDomain(t *testing.T) {
 		lease.OutcomeRefusal,
 		lease.OutcomeRevocation,
 	}
-	for value := uint16(0); value <= math.MaxUint8; value++ {
+	for value := range uint16(math.MaxUint8) + 1 {
 		outcome := lease.Outcome(value)
 		want := slices.Contains(valid, outcome)
 		if outcome.IsValid() != want {
@@ -350,7 +353,7 @@ func checkRevocationReasonDomain(t *testing.T) {
 			t.Errorf("lease.ParseRevocationReason(%q) = (%v, %v), want (%v, nil)", value.String(), parsed, err, value)
 		}
 	}
-	for value := uint16(0); value <= math.MaxUint8; value++ {
+	for value := range uint16(math.MaxUint8) + 1 {
 		revocation := lease.RevocationReason(value)
 		want := slices.Contains(revocationReasons, revocation)
 		if revocation.IsValid() != want {

@@ -1673,8 +1673,8 @@ func manyArguments(count int) []string {
 // admits, proving argv lowering is byte transparent rather than text shaped.
 func allNonNULBytes() string {
 	raw := make([]byte, 0, 255)
-	for value := 1; value <= 255; value++ {
-		raw = append(raw, byte(value))
+	for value := range 255 {
+		raw = append(raw, byte(value+1))
 	}
 	return string(raw)
 }

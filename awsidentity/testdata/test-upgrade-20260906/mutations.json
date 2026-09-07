@@ -1,0 +1,227 @@
+[
+  {
+    "name": "audience-limit",
+    "path": "awsidentity/contracts.go",
+    "original": "len(value) > AudienceMaximumBytes",
+    "replacement": "len(value) > AudienceMaximumBytes+1",
+    "execution": "mutation-audience-limit.json",
+    "killed": true,
+    "exit_status": 1
+  },
+  {
+    "name": "audience-utf8",
+    "path": "awsidentity/contracts.go",
+    "original": "!utf8.ValidString(value)",
+    "replacement": "false && !utf8.ValidString(value)",
+    "execution": "mutation-audience-utf8.json",
+    "killed": true,
+    "exit_status": 1
+  },
+  {
+    "name": "policy-retry",
+    "path": "awsidentity/contracts.go",
+    "original": "MaximumAttempts: 1",
+    "replacement": "MaximumAttempts: 2",
+    "execution": "mutation-policy-retry.json",
+    "killed": true,
+    "exit_status": 1
+  },
+  {
+    "name": "policy-redirect",
+    "path": "awsidentity/contracts.go",
+    "original": "Mode: exchange.RedirectReject",
+    "replacement": "Mode: exchange.RedirectObserve",
+    "execution": "mutation-policy-redirect.json",
+    "killed": true,
+    "exit_status": 1
+  },
+  {
+    "name": "request-redaction",
+    "path": "awsidentity/contracts.go",
+    "original": "io.WriteString(state, core.RedactedValueText)",
+    "replacement": "io.WriteString(state, \"leaked capability\")",
+    "execution": "mutation-request-redaction.json",
+    "killed": true,
+    "exit_status": 1
+  },
+  {
+    "name": "query-parse-error",
+    "path": "awsidentity/identity_token.go",
+    "original": "if err != nil {\n\t\treturn contractError(err)\n\t}\n\tif !validAmazonActionQuery",
+    "replacement": "if false && err != nil {\n\t\treturn contractError(err)\n\t}\n\tif !validAmazonActionQuery",
+    "execution": "mutation-query-parse-error.json",
+    "killed": true,
+    "exit_status": 1
+  },
+  {
+    "name": "audience-binding",
+    "path": "awsidentity/identity_token.go",
+    "original": "exactQueryValue(query, amazonAudienceQuery, audience.String())",
+    "replacement": "(audience.String() != \"\")",
+    "execution": "mutation-audience-binding.json",
+    "killed": true,
+    "exit_status": 1
+  },
+  {
+    "name": "query-duplicate",
+    "path": "awsidentity/identity_token.go",
+    "original": "len(values) != 1",
+    "replacement": "len(values) < 1",
+    "execution": "mutation-query-duplicate.json",
+    "killed": true,
+    "exit_status": 1
+  },
+  {
+    "name": "credential-region",
+    "path": "awsidentity/identity_token.go",
+    "original": "parts[2] == region",
+    "replacement": "parts[2] != \"\"",
+    "execution": "mutation-credential-region.json",
+    "killed": true,
+    "exit_status": 1
+  },
+  {
+    "name": "expiry-ceiling",
+    "path": "awsidentity/identity_token.go",
+    "original": "seconds <= amazonSignedURLMaximumSecs",
+    "replacement": "seconds <= amazonSignedURLMaximumSecs+1",
+    "execution": "mutation-expiry-ceiling.json",
+    "killed": true,
+    "exit_status": 1
+  },
+  {
+    "name": "result-namespace",
+    "path": "awsidentity/identity_token.go",
+    "original": "result.XMLName.Space != amazonResponseNamespace",
+    "replacement": "false && result.XMLName.Space != amazonResponseNamespace",
+    "execution": "mutation-result-namespace.json",
+    "killed": true,
+    "exit_status": 1
+  },
+  {
+    "name": "metadata-cardinality",
+    "path": "awsidentity/identity_token.go",
+    "original": "len(metadata.RequestIDs) != amazonSingleElement",
+    "replacement": "len(metadata.RequestIDs) < amazonSingleElement",
+    "execution": "mutation-metadata-cardinality.json",
+    "killed": true,
+    "exit_status": 1
+  },
+  {
+    "name": "token-cardinality",
+    "path": "awsidentity/identity_token.go",
+    "original": "len(result.Tokens) != amazonSingleElement",
+    "replacement": "len(result.Tokens) < amazonSingleElement",
+    "execution": "mutation-token-cardinality.json",
+    "killed": true,
+    "exit_status": 1
+  },
+  {
+    "name": "token-limit",
+    "path": "awsidentity/token.go",
+    "original": "len(value) > TokenMaximumBytes",
+    "replacement": "len(value) > TokenMaximumBytes+1",
+    "execution": "mutation-token-limit.json",
+    "killed": true,
+    "exit_status": 1
+  },
+  {
+    "name": "token-padding",
+    "path": "awsidentity/token.go",
+    "original": "if padding || !bearerTokenByte(value[index])",
+    "replacement": "if false && padding || !bearerTokenByte(value[index])",
+    "execution": "mutation-token-padding.json",
+    "killed": true,
+    "exit_status": 1
+  },
+  {
+    "name": "token-alphabet",
+    "path": "awsidentity/token.go",
+    "original": "case '-', '.', '_', '~', '+', '/':",
+    "replacement": "case '-', '.', '_', '~', '+', '/', ':':",
+    "execution": "mutation-token-alphabet.json",
+    "killed": true,
+    "exit_status": 1
+  },
+  {
+    "name": "token-disclosure",
+    "path": "awsidentity/token.go",
+    "original": "return bearerPrefix + *t.value, nil",
+    "replacement": "return bearerPrefix + \"foreign\", nil",
+    "execution": "mutation-token-disclosure.json",
+    "killed": true,
+    "exit_status": 1
+  },
+  {
+    "name": "token-redaction",
+    "path": "awsidentity/token.go",
+    "original": "io.WriteString(state, core.RedactedValueText)",
+    "replacement": "io.WriteString(state, \"leaked bearer\")",
+    "execution": "mutation-token-redaction.json",
+    "killed": true,
+    "exit_status": 1
+  },
+  {
+    "name": "response-byte-limit",
+    "path": "awsidentity/identity_token.go",
+    "original": "core.NewByteCount(AmazonResponseMaximumBytes)",
+    "replacement": "core.NewByteCount(AmazonResponseMaximumBytes+1)",
+    "execution": "mutation-response-byte-limit.json",
+    "killed": true,
+    "exit_status": 1
+  },
+  {
+    "name": "xml-tail",
+    "path": "awsidentity/response_xml.go",
+    "original": "if !errors.Is(err, io.EOF)",
+    "replacement": "if false && !errors.Is(err, io.EOF)",
+    "execution": "mutation-xml-tail.json",
+    "killed": true,
+    "exit_status": 1
+  },
+  {
+    "name": "utc-offset",
+    "path": "temporal/utc_text.go",
+    "original": "if !strings.HasSuffix(value, \"Z\")",
+    "replacement": "if false && !strings.HasSuffix(value, \"Z\")",
+    "execution": "mutation-utc-offset.json",
+    "killed": true,
+    "exit_status": 1
+  },
+  {
+    "name": "compact-fraction",
+    "path": "temporal/utc_text.go",
+    "original": "if value.Nanosecond() != 0",
+    "replacement": "if false && value.Nanosecond() != 0",
+    "execution": "mutation-compact-fraction.json",
+    "killed": true,
+    "exit_status": 1
+  },
+  {
+    "name": "raw-xml-fuzz-tail",
+    "path": "awsidentity/response_xml.go",
+    "original": "if !errors.Is(err, io.EOF)",
+    "replacement": "if false && !errors.Is(err, io.EOF)",
+    "execution": "mutation-raw-xml-fuzz-tail.json",
+    "killed": true,
+    "exit_status": 1
+  },
+  {
+    "name": "json-capability-export",
+    "path": "awsidentity/token.go",
+    "original": "type Token struct{ value *string }",
+    "replacement": "type Token struct{ value *string; Exposed string }",
+    "execution": "mutation-json-capability-export.json",
+    "killed": true,
+    "exit_status": 1
+  },
+  {
+    "name": "compact-exact-instant",
+    "path": "temporal/utc_text.go",
+    "original": "instant, err := NewInstant(parsed)",
+    "replacement": "instant, err := NewInstant(parsed.Add(time.Second))",
+    "execution": "mutation-compact-exact-instant.json",
+    "killed": true,
+    "exit_status": 1
+  }
+]

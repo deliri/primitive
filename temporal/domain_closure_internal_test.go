@@ -17,7 +17,10 @@ func TestEveryAdmittedPrecisionHasACompleteFact(t *testing.T) {
 
 	var diagnostics [precisionLimit]string
 	previousMagnitude := int64(0)
-	for value := PrecisionNanosecond; value < precisionLimit; value++ {
+	for value := range precisionLimit {
+		if value < PrecisionNanosecond {
+			continue
+		}
 		if gotErr := value.Validate(); gotErr != nil {
 			t.Fatalf("Precision(%d).Validate() error = %v, want nil for an admitted member", value, gotErr)
 		}
@@ -29,7 +32,10 @@ func TestEveryAdmittedPrecisionHasACompleteFact(t *testing.T) {
 				diagnostic,
 			)
 		}
-		for prior := PrecisionNanosecond; prior < value; prior++ {
+		for prior := range value {
+			if prior < PrecisionNanosecond {
+				continue
+			}
 			if diagnostic == diagnostics[prior] {
 				t.Fatalf(
 					"Precision(%d).String() = %q, which duplicates Precision(%d)",
@@ -98,7 +104,7 @@ func TestPrecisionMagnitudesMatchTheDeclaredPackageConstants(t *testing.T) {
 func TestPrecisionAdmissionAgreesAcrossItsWholeBackingType(t *testing.T) {
 	t.Parallel()
 
-	for backing := 0; backing <= math.MaxUint8; backing++ {
+	for backing := range math.MaxUint8 + 1 {
 		value := Precision(backing)
 		admitted := value.Validate() == nil
 		if got := value.IsValid(); got != admitted {

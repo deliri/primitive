@@ -51,7 +51,10 @@ func TestEveryAdmittedComparisonHasADistinctDiagnostic(t *testing.T) {
 	t.Parallel()
 
 	var diagnostics [comparisonLimit]string
-	for value := ComparisonLess; value < comparisonLimit; value++ {
+	for value := range comparisonLimit {
+		if value < ComparisonLess {
+			continue
+		}
 		if gotErr := value.Validate(); gotErr != nil {
 			t.Fatalf("Comparison(%d).Validate() error = %v, want nil for an admitted member", value, gotErr)
 		}
@@ -63,7 +66,10 @@ func TestEveryAdmittedComparisonHasADistinctDiagnostic(t *testing.T) {
 				diagnostic,
 			)
 		}
-		for prior := ComparisonLess; prior < value; prior++ {
+		for prior := range value {
+			if prior < ComparisonLess {
+				continue
+			}
 			if diagnostic == diagnostics[prior] {
 				t.Fatalf(
 					"Comparison(%d).String() = %q, which duplicates Comparison(%d)",

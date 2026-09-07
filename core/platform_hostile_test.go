@@ -11,7 +11,7 @@ import (
 func TestPlatformExhaustsClosedDomainAndJSONBoundary(t *testing.T) {
 	t.Parallel()
 
-	for raw := 0; raw <= math.MaxUint8; raw++ {
+	for raw := range math.MaxUint8 + 1 {
 		operatingSystem := OperatingSystem(raw)
 		wantOperatingSystem := operatingSystem > operatingSystemUnknown && operatingSystem < operatingSystemLimit
 		provePlatformEnumValue(t, raw, operatingSystem.IsValid(), operatingSystem.Validate(), wantOperatingSystem)
@@ -21,8 +21,14 @@ func TestPlatformExhaustsClosedDomainAndJSONBoundary(t *testing.T) {
 		provePlatformEnumValue(t, raw, architecture.IsValid(), architecture.Validate(), wantArchitecture)
 	}
 
-	for operatingSystem := OperatingSystemDarwin; operatingSystem < operatingSystemLimit; operatingSystem++ {
-		for architecture := CPUArchitectureAMD64; architecture < cpuArchitectureLimit; architecture++ {
+	for operatingSystem := range operatingSystemLimit {
+		if operatingSystem < OperatingSystemDarwin {
+			continue
+		}
+		for architecture := range cpuArchitectureLimit {
+			if architecture < CPUArchitectureAMD64 {
+				continue
+			}
 			platform := Platform{OperatingSystem: operatingSystem, Architecture: architecture}
 			if err := platform.Validate(); err != nil {
 				t.Fatalf("Platform{%v, %v}.Validate() error = %v, want nil", operatingSystem, architecture, err)

@@ -8,10 +8,8 @@ import (
 	"io"
 	"net/http"
 	"net/http/httptest"
-	"os"
 	"path/filepath"
 	"testing"
-	"time"
 
 	"github.com/deliri/primitive/v2026/core"
 	"github.com/deliri/primitive/v2026/exchange"
@@ -23,6 +21,7 @@ const testJSONIngressLimitBytes = 128
 // request. It is filled inside the handler and read by the client goroutine.
 type ingressObservation struct {
 	err     error
+	body    *transportDocument
 	message string
 	key     string
 	bytes   uint64
@@ -63,10 +62,9 @@ func startJSONIngressServer(
 			Route:  route,
 			Policy: policy,
 		})
-		observation := ingressObservation{err: receiveErr}
-		if receiveErr == nil {
+		observation := ingressObservation{err: receiveErr, body: received.Body, key: received.IdempotencyKey.String()}
+		if received.Body != nil {
 			observation.message = received.Body.Message
-			observation.key = received.IdempotencyKey.String()
 		}
 		observed <- observation
 		writer.WriteHeader(http.StatusOK)
@@ -143,7 +141,7 @@ func awaitIngressObservation(
 	select {
 	case observation := <-observed:
 		return observation
-	case <-time.After(testDeadlockBackstop):
+	case <-exchangeFixtureBackstop(t, testDeadlockBackstop):
 		t.Fatalf(
 			"server ingress observation = absent after %v, want one completed observation",
 			testDeadlockBackstop,
@@ -318,12 +316,12 @@ func TestJSONIngressGuardHostileTable(t *testing.T) {
 				)
 			}
 			if tc.wantErr != nil {
-				if got.message != "" || got.key != "" {
+				if got.body != nil || got.message != "" || got.key != "" {
 					t.Fatalf("refused ingress leaked = %+v, want zero", got)
 				}
 				return
 			}
-			if got.message != tc.wantMessage {
+			if got.body == nil || got.message != tc.wantMessage {
 				t.Fatalf("received message = %q, want %q", got.message, tc.wantMessage)
 			}
 		})
@@ -501,9 +499,9 @@ func TestStreamIngressBoundLayerTriad(t *testing.T) {
 		body := bytes.Repeat([]byte{0x11, 0x22, 0x33, 0x44}, limit/4)
 		want := sha256.Sum256(body)
 		path := filepath.Join(t.TempDir(), "received.bin")
-		destination, gotCreateErr := os.Create(path)
+		destination, gotCreateErr := createExchangeFixtureFile(t, path)
 		if gotCreateErr != nil {
-			t.Fatalf("os.Create(%q) setup error = %v, want nil", path, gotCreateErr)
+			t.Fatalf("Filestore fixture create(%q) setup error = %v, want nil", path, gotCreateErr)
 		}
 		observed := make(chan ingressObservation, 1)
 		server := newServer(t, destination, observed)

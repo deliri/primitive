@@ -13,7 +13,7 @@ import (
 
 func TestPageLimitExhaustsItsCompleteUint16Domain(t *testing.T) {
 	t.Parallel()
-	for raw := 0; raw <= math.MaxUint16; raw++ {
+	for raw := range math.MaxUint16 + 1 {
 		got, gotErr := NewPageLimit(uint16(raw))
 		wantValid := raw >= 1 && raw <= PageEventMaximum
 		if (gotErr == nil) != wantValid || (got.Validate() == nil) != wantValid {

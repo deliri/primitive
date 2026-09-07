@@ -1,0 +1,92 @@
+{
+  "reason": "User explicitly requested fixing unresolved timing regression. The installed Go io.Copy now chooses scratch size and ReaderFrom fast paths; reference restores exact pre-header-fix client.go and stream.go source snapshots. Two paired passes with reversed order bracket observed host load variation; same current benchmark and dependencies, all profiles captured together, no concurrent benchmark runs. Earlier results remain retained.",
+  "configured_total_seconds": 120,
+  "workloads": [
+    {
+      "label": "timing-repair-reference-1",
+      "argv": [
+        "go",
+        "test",
+        "-overlay=/Users/d/code/primitive/exchange/testdata/test-upgrade-20260907/timing-repair-reference-overlay.json",
+        "-run=^$",
+        "-bench=^BenchmarkAggregateHeaderValueAdmission$/^at_limit$",
+        "-benchmem",
+        "-benchtime=30s",
+        "-count=1",
+        "-cpu=1",
+        "-p=1",
+        "-parallel=1",
+        "-timeout=3m",
+        "-cpuprofile=/Users/d/code/primitive/exchange/testdata/test-upgrade-20260907/timing-repair-reference-1.cpu.pprof",
+        "-memprofile=/Users/d/code/primitive/exchange/testdata/test-upgrade-20260907/timing-repair-reference-1.mem.pprof",
+        "-o=/Users/d/code/primitive/exchange/testdata/test-upgrade-20260907/timing-repair-reference-1.test",
+        "./exchange"
+      ],
+      "configured_seconds": 30
+    },
+    {
+      "label": "timing-repair-repaired-1",
+      "argv": [
+        "go",
+        "test",
+        "-run=^$",
+        "-bench=^BenchmarkAggregateHeaderValueAdmission$/^at_limit$",
+        "-benchmem",
+        "-benchtime=30s",
+        "-count=1",
+        "-cpu=1",
+        "-p=1",
+        "-parallel=1",
+        "-timeout=3m",
+        "-cpuprofile=/Users/d/code/primitive/exchange/testdata/test-upgrade-20260907/timing-repair-repaired-1.cpu.pprof",
+        "-memprofile=/Users/d/code/primitive/exchange/testdata/test-upgrade-20260907/timing-repair-repaired-1.mem.pprof",
+        "-o=/Users/d/code/primitive/exchange/testdata/test-upgrade-20260907/timing-repair-repaired-1.test",
+        "./exchange"
+      ],
+      "configured_seconds": 30
+    },
+    {
+      "label": "timing-repair-repaired-2",
+      "argv": [
+        "go",
+        "test",
+        "-run=^$",
+        "-bench=^BenchmarkAggregateHeaderValueAdmission$/^at_limit$",
+        "-benchmem",
+        "-benchtime=30s",
+        "-count=1",
+        "-cpu=1",
+        "-p=1",
+        "-parallel=1",
+        "-timeout=3m",
+        "-cpuprofile=/Users/d/code/primitive/exchange/testdata/test-upgrade-20260907/timing-repair-repaired-2.cpu.pprof",
+        "-memprofile=/Users/d/code/primitive/exchange/testdata/test-upgrade-20260907/timing-repair-repaired-2.mem.pprof",
+        "-o=/Users/d/code/primitive/exchange/testdata/test-upgrade-20260907/timing-repair-repaired-2.test",
+        "./exchange"
+      ],
+      "configured_seconds": 30
+    },
+    {
+      "label": "timing-repair-reference-2",
+      "argv": [
+        "go",
+        "test",
+        "-overlay=/Users/d/code/primitive/exchange/testdata/test-upgrade-20260907/timing-repair-reference-overlay.json",
+        "-run=^$",
+        "-bench=^BenchmarkAggregateHeaderValueAdmission$/^at_limit$",
+        "-benchmem",
+        "-benchtime=30s",
+        "-count=1",
+        "-cpu=1",
+        "-p=1",
+        "-parallel=1",
+        "-timeout=3m",
+        "-cpuprofile=/Users/d/code/primitive/exchange/testdata/test-upgrade-20260907/timing-repair-reference-2.cpu.pprof",
+        "-memprofile=/Users/d/code/primitive/exchange/testdata/test-upgrade-20260907/timing-repair-reference-2.mem.pprof",
+        "-o=/Users/d/code/primitive/exchange/testdata/test-upgrade-20260907/timing-repair-reference-2.test",
+        "./exchange"
+      ],
+      "configured_seconds": 30
+    }
+  ]
+}

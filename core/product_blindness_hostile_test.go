@@ -98,7 +98,7 @@ func TestPrimitiveConsumerNameMatcherLayerTriad(t *testing.T) {
 func TestPackageCapabilityClosedDomainIsCompilerOwned(t *testing.T) {
 	t.Parallel()
 
-	for raw := 0; raw <= math.MaxUint8; raw++ {
+	for raw := range math.MaxUint8 + 1 {
 		got := PackageCapability(raw)
 		gotErr := got.Validate()
 		wantValid := got == PackageCapabilityProcessExecution

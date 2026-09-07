@@ -1,0 +1,19 @@
+{
+  "kind": "local artifact consistency check; not independent acceptance",
+  "manifest": {
+    "bytes": 583598,
+    "sha256": "150b09a5b464de49787762764b88bf039dc2852241d182ecd6ecfb0aff6625b9"
+  },
+  "files_checked": 3007,
+  "bytes_checked": 429948651,
+  "missing": 0,
+  "extra": 0,
+  "duplicate_paths": 0,
+  "hash_mismatches": 0,
+  "profiled_executions": 20,
+  "raw_profiles": 40,
+  "profile_analysis_commands": 60,
+  "fuzz_targets": 8,
+  "fuzz_reported_executions": 2128356,
+  "deliberate_mutations_killed": 25
+}

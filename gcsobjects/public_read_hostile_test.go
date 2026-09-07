@@ -49,7 +49,7 @@ func TestGCSBucketPublicReadRequestValidateRefusesUnsetBucket(t *testing.T) {
 func TestGCSBucketPublicReadChangeExhaustsEveryUint8State(t *testing.T) {
 	t.Parallel()
 
-	for raw := 0; raw <= 255; raw++ {
+	for raw := range 256 {
 		change := GCSBucketPublicReadChange(raw)
 		wantValid := change == GCSBucketPublicReadUnchanged || change == GCSBucketPublicReadGranted
 		gotErr := change.Validate()

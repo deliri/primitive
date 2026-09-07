@@ -1,0 +1,197 @@
+{
+  "scope": "Only the named session/header slice, not the final whole Exchange evidence manifest. Failed build attempts and deliberate mutation failures are retained.",
+  "records": [
+    {
+      "label": "session-constructor-and-cookie-ratchet",
+      "record": "session-constructor-and-cookie-ratchet.json",
+      "exit_status": 1,
+      "artifact_faults": []
+    },
+    {
+      "label": "session-constructor-and-cookie-ratchet-v2",
+      "record": "session-constructor-and-cookie-ratchet-v2.json",
+      "exit_status": 0,
+      "artifact_faults": []
+    },
+    {
+      "label": "session-before-dependencies",
+      "record": "session-before-dependencies.json",
+      "exit_status": 0,
+      "artifact_faults": []
+    },
+    {
+      "label": "session-after-dependencies",
+      "record": "session-after-dependencies.json",
+      "exit_status": 0,
+      "artifact_faults": []
+    },
+    {
+      "label": "red-header-capture-count-and-custody",
+      "record": "red-header-capture-count-and-custody.json",
+      "exit_status": 1,
+      "artifact_faults": []
+    },
+    {
+      "label": "red-header-capture-count-and-custody-v2",
+      "record": "red-header-capture-count-and-custody-v2.json",
+      "exit_status": 1,
+      "artifact_faults": []
+    },
+    {
+      "label": "green-header-capture-and-semantic-seeds",
+      "record": "green-header-capture-and-semantic-seeds.json",
+      "exit_status": 1,
+      "artifact_faults": []
+    },
+    {
+      "label": "green-header-capture-and-semantic-seeds-v2",
+      "record": "green-header-capture-and-semantic-seeds-v2.json",
+      "exit_status": 0,
+      "artifact_faults": []
+    },
+    {
+      "label": "exchange-protocol-correction-checkpoint-05",
+      "record": "exchange-protocol-correction-checkpoint-05.json",
+      "exit_status": 0,
+      "artifact_faults": []
+    },
+    {
+      "label": "exchange-session-header-test-dependencies",
+      "record": "exchange-session-header-test-dependencies.json",
+      "exit_status": 0,
+      "artifact_faults": []
+    },
+    {
+      "label": "header-capture-before-at_limit",
+      "record": "header-capture-before-at_limit.json",
+      "exit_status": 0,
+      "artifact_faults": []
+    },
+    {
+      "label": "header-capture-before-above_limit",
+      "record": "header-capture-before-above_limit.json",
+      "exit_status": 0,
+      "artifact_faults": []
+    },
+    {
+      "label": "header-capture-before-excess_4096",
+      "record": "header-capture-before-excess_4096.json",
+      "exit_status": 0,
+      "artifact_faults": []
+    },
+    {
+      "label": "header-capture-after-at_limit",
+      "record": "header-capture-after-at_limit.json",
+      "exit_status": 0,
+      "artifact_faults": []
+    },
+    {
+      "label": "header-capture-after-above_limit",
+      "record": "header-capture-after-above_limit.json",
+      "exit_status": 0,
+      "artifact_faults": []
+    },
+    {
+      "label": "header-capture-after-excess_4096",
+      "record": "header-capture-after-excess_4096.json",
+      "exit_status": 0,
+      "artifact_faults": []
+    },
+    {
+      "label": "header-capture-control-recheck-before",
+      "record": "header-capture-control-recheck-before.json",
+      "exit_status": 0,
+      "artifact_faults": []
+    },
+    {
+      "label": "header-capture-control-recheck-after",
+      "record": "header-capture-control-recheck-after.json",
+      "exit_status": 0,
+      "artifact_faults": []
+    },
+    {
+      "label": "fuzz-september-capture-headers",
+      "record": "fuzz-september-capture-headers.json",
+      "exit_status": 0,
+      "artifact_faults": []
+    },
+    {
+      "label": "fuzz-september-header-value",
+      "record": "fuzz-september-header-value.json",
+      "exit_status": 0,
+      "artifact_faults": []
+    },
+    {
+      "label": "fuzz-september-receive-stream-custody",
+      "record": "fuzz-september-receive-stream-custody.json",
+      "exit_status": 0,
+      "artifact_faults": []
+    },
+    {
+      "label": "mutation-session-drop-authority",
+      "record": "mutation-session-drop-authority.json",
+      "exit_status": 1,
+      "artifact_faults": []
+    },
+    {
+      "label": "mutation-session-admit-absent-authority",
+      "record": "mutation-session-admit-absent-authority.json",
+      "exit_status": 1,
+      "artifact_faults": []
+    },
+    {
+      "label": "mutation-session-admit-typed-nil",
+      "record": "mutation-session-admit-typed-nil.json",
+      "exit_status": 1,
+      "artifact_faults": []
+    },
+    {
+      "label": "mutation-session-refuse-present-empty-slice",
+      "record": "mutation-session-refuse-present-empty-slice.json",
+      "exit_status": 1,
+      "artifact_faults": []
+    },
+    {
+      "label": "mutation-session-discard-cookie-state",
+      "record": "mutation-session-discard-cookie-state.json",
+      "exit_status": 1,
+      "artifact_faults": []
+    },
+    {
+      "label": "mutation-session-refuse-all",
+      "record": "mutation-session-refuse-all.json",
+      "exit_status": 1,
+      "artifact_faults": []
+    },
+    {
+      "label": "mutation-capture-drop-count-admission",
+      "record": "mutation-capture-drop-count-admission.json",
+      "exit_status": 1,
+      "artifact_faults": []
+    },
+    {
+      "label": "mutation-capture-refuse-exact-ceiling",
+      "record": "mutation-capture-refuse-exact-ceiling.json",
+      "exit_status": 1,
+      "artifact_faults": []
+    },
+    {
+      "label": "mutation-capture-return-invalid-prefix",
+      "record": "mutation-capture-return-invalid-prefix.json",
+      "exit_status": 1,
+      "artifact_faults": []
+    },
+    {
+      "label": "mutation-capture-substitute-valid-value",
+      "record": "mutation-capture-substitute-valid-value.json",
+      "exit_status": 1,
+      "artifact_faults": []
+    },
+    {
+      "label": "mutation-capture-refuse-all-values",
+      "record": "mutation-capture-refuse-all-values.json",
+      "exit_status": 1,
+      "artifact_faults": []
+    }
+  ]
+}

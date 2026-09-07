@@ -1,0 +1,43 @@
+{
+  "protocol_path": "_docs/testing_protocol.md",
+  "sha256": "dd83cd7f62c172092546dab6b7c7d5c59753b5e8ae784631a94cff4d6d48126c",
+  "lines": 2214,
+  "read_in_full": true,
+  "ranges_read": [
+    [
+      1,
+      360
+    ],
+    [
+      361,
+      740
+    ],
+    [
+      741,
+      1120
+    ],
+    [
+      1121,
+      1510
+    ],
+    [
+      1511,
+      1870
+    ],
+    [
+      1871,
+      2240
+    ]
+  ],
+  "active_package": "exchange",
+  "review_required_before_commit_or_filestore": true,
+  "baseline_source_files": 77,
+  "source_scope": [
+    "contextstate",
+    "core",
+    "exchange",
+    "keygen",
+    "temporal"
+  ],
+  "go_version": "go version go1.27.1 darwin/arm64"
+}

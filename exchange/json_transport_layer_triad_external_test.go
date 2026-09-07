@@ -7,7 +7,6 @@ import (
 	"net/http/httptest"
 	"strings"
 	"testing"
-	"time"
 
 	"github.com/deliri/primitive/v2026/core"
 	"github.com/deliri/primitive/v2026/exchange"
@@ -161,7 +160,7 @@ func TestJSONTransportLayerTriad(t *testing.T) {
 			if serverGot.contentLength <= 0 {
 				t.Fatalf("server ContentLength = %d, want positive typed JSON body", serverGot.contentLength)
 			}
-		case <-time.After(testDeadlockBackstop):
+		case <-exchangeFixtureBackstop(t, testDeadlockBackstop):
 			t.Fatalf(
 				"JSON server observation = absent after %v, want one completed observation",
 				testDeadlockBackstop,
@@ -371,7 +370,7 @@ func TestJSONTransportLayerTriad(t *testing.T) {
 			if serverGot.contentLength != 0 {
 				t.Fatalf("body-absent request ContentLength = %d, want 0", serverGot.contentLength)
 			}
-		case <-time.After(testDeadlockBackstop):
+		case <-exchangeFixtureBackstop(t, testDeadlockBackstop):
 			t.Fatalf(
 				"body-absent server observation = absent after %v, want one completed observation",
 				testDeadlockBackstop,

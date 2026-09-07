@@ -1,0 +1,50 @@
+{
+  "runs": [
+    {
+      "label": "replay-handoff-before-binary_success",
+      "exit_status": 0,
+      "configured_seconds": 30,
+      "command_elapsed_seconds": 50.01961183399544,
+      "measurement": {
+        "iterations": 936274,
+        "ns_per_op": 39939.0,
+        "bytes_per_op": 4184,
+        "allocations_per_op": 46
+      }
+    },
+    {
+      "label": "replay-handoff-before-cancelled_native_read_failure",
+      "exit_status": 1,
+      "configured_seconds": 30,
+      "command_elapsed_seconds": 5.610792666004272,
+      "measurement": null
+    },
+    {
+      "label": "replay-handoff-after-binary_success",
+      "exit_status": 0,
+      "configured_seconds": 30,
+      "command_elapsed_seconds": 52.48674616700737,
+      "measurement": {
+        "iterations": 328053,
+        "ns_per_op": 99931.0,
+        "bytes_per_op": 4184,
+        "allocations_per_op": 46
+      }
+    },
+    {
+      "label": "replay-handoff-after-cancelled_native_read_failure",
+      "exit_status": 0,
+      "configured_seconds": 30,
+      "command_elapsed_seconds": 38.418197499995586,
+      "measurement": {
+        "iterations": 1000000,
+        "ns_per_op": 30085.0,
+        "bytes_per_op": 4392,
+        "allocations_per_op": 54
+      }
+    }
+  ],
+  "configured_seconds": 120,
+  "command_seconds": 146.53534816700267,
+  "interpretation": "The old cancelled native-failure path fails the benchmark semantic check and has no valid performance baseline. Success control allocations are identical (4184 B/op, 46 allocs/op); timings 39939 and 99931 ns/op are single noisy samples, not evidence of a code speedup or regression. Candidate cancellation path: 30085 ns/op, 4392 B/op, 54 allocs/op. All requested profiles retained, including the failed old benchmark."
+}

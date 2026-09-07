@@ -6,7 +6,6 @@ import (
 	"errors"
 	"io"
 	"net/http"
-	"net/http/cookiejar"
 	"strconv"
 	"strings"
 
@@ -14,7 +13,6 @@ import (
 	"github.com/deliri/primitive/v2026/core"
 	"github.com/deliri/primitive/v2026/keygen"
 	"github.com/deliri/primitive/v2026/temporal"
-	"golang.org/x/net/publicsuffix"
 )
 
 // Client is a validated reference to the caller-owned real net/http client.
@@ -71,17 +69,6 @@ func directHTTPTransport(roundTripper http.RoundTripper) (*http.Transport, error
 	owned := transport.Clone()
 	owned.Proxy = nil
 	return owned, nil
-}
-
-// NewSessionClient produces a standard client backed by Go's real cookie jar.
-// The jar owns cookie matching and session state; Exchange continues to own
-// operation timing, replay, redirect, and body policy per call.
-func NewSessionClient() (Client, error) {
-	jar, err := cookiejar.New(&cookiejar.Options{PublicSuffixList: publicsuffix.List})
-	if err != nil {
-		return Client{}, errors.Join(core.ErrExchangeContract, err)
-	}
-	return NewClient(&http.Client{Jar: jar})
 }
 
 // Validate rejects an unset client or a competing client-wide timeout.
@@ -224,9 +211,9 @@ func SendReplayBoundJSON[
 	if err := call.Validate(); err != nil {
 		return zero, err
 	}
-	key, err := call.Request.Body.IdempotencyKey()
+	key, err := observedIdempotencyKey(call.Request.Body)
 	if err != nil {
-		return zero, requestError(errors.Join(core.ErrExchangeIdempotencyBinding, err))
+		return zero, err
 	}
 	if key != call.Request.Semantics.IdempotencyKey {
 		return zero, requestError(core.ErrExchangeIdempotencyBinding)
@@ -607,6 +594,7 @@ func executeAggregateAttempt(input aggregateAttempt) (attemptResponse, error) {
 		if terminal := terminalOperationError(attemptContext); terminal != nil {
 			return zero, errors.Join(
 				terminal,
+				err,
 				closeHTTPResponse(response),
 			)
 		}
@@ -940,10 +928,16 @@ func captureHeaders(
 		})
 	}
 	result := CapturedHeaders{Values: values}
-	return result, result.Validate()
+	if err := result.Validate(); err != nil {
+		return CapturedHeaders{}, err
+	}
+	return result, nil
 }
 
 func headerValues(values []string) ([]HeaderValue, error) {
+	if len(values) > HeaderValueMaximumCount {
+		return nil, core.ErrExchangeContract
+	}
 	result := make([]HeaderValue, len(values))
 	for index, value := range values {
 		parsed, err := NewHeaderValue(value)
@@ -977,7 +971,8 @@ func classifyAggregateAttempt(
 	result aggregateAttemptResult,
 ) (attemptDisposition, error) {
 	if contextErr := terminalOperationError(result.operationContext); contextErr != nil {
-		return attemptComplete, contextErr
+		// Stop future effects without discarding a completed producer refusal.
+		return attemptComplete, errors.Join(contextErr, result.cause)
 	}
 	if result.cause != nil {
 		return classifyAggregateCause(result)
@@ -999,6 +994,8 @@ func classifyAggregateCause(
 ) (attemptDisposition, error) {
 	switch {
 	case errors.Is(result.cause, core.ErrExchangeCancelled):
+		return attemptComplete, result.cause
+	case errors.Is(result.cause, core.ErrExchangeRequest):
 		return attemptComplete, result.cause
 	case errors.Is(result.cause, core.ErrExchangeRedirect):
 		return attemptComplete, result.cause

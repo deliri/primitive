@@ -4,12 +4,13 @@ import (
 	"bytes"
 	"errors"
 	"fmt"
+	"net/http"
+	"net/http/httptest"
 	"strings"
 	"testing"
 
 	"github.com/deliri/primitive/v2026/core"
 	"github.com/deliri/primitive/v2026/exchange"
-	"golang.org/x/net/http/httpguts"
 )
 
 // FuzzHeaderValueMatchesNetHTTPAndExchangeBounds uses Go's independent HTTP
@@ -33,12 +34,16 @@ func FuzzHeaderValueMatchesNetHTTPAndExchangeBounds(f *testing.F) {
 	}
 
 	f.Fuzz(func(t *testing.T, data []byte) {
+		if len(data) > exchange.HeaderValueMaximumBytes+1 {
+			return
+		}
 		value, gotErr := exchange.NewHeaderValue(string(data))
-		standardAccepted := httpguts.ValidHeaderFieldValue(string(data))
+		standardAccepted := goHeaderGrammarAccepts(t, string(data))
 		wantAccepted := len(data) <= exchange.HeaderValueMaximumBytes && standardAccepted
 
 		rendered := fmt.Sprintf("%v|%+v|%#v|%s|%q", value, value, value, value, value)
-		if strings.Count(rendered, core.RedactedValueText) != 5 {
+		wantRendered := strings.Repeat(core.RedactedValueText+"|", 4) + core.RedactedValueText
+		if rendered != wantRendered {
 			t.Fatalf("HeaderValue formatting disclosed an external value: %q", rendered)
 		}
 		if wantAccepted {
@@ -124,4 +129,35 @@ func TestHeaderValueRedactsEveryFormattingPath(t *testing.T) {
 			}
 		})
 	}
+}
+
+// Go validates HTTP fields before invoking a registered protocol transport.
+// This reaches the installed standard library's real grammar without opening a
+// socket or importing x/net's separately versioned implementation. The fixture
+// returns a unique sentinel only when Go actually crosses that validation wall.
+var errGoHeaderGrammarAccepted = errors.New("Go header grammar admitted request")
+
+func goHeaderGrammarAccepts(t testing.TB, value string) bool {
+	t.Helper()
+	const scheme = "http"
+	calls := 0
+	transport := &http.Transport{}
+	transport.RegisterProtocol(scheme, bindingTransport(func(*http.Request) (*http.Response, error) {
+		calls++
+		return nil, errGoHeaderGrammarAccepted
+	}))
+	request := httptest.NewRequest(http.MethodGet, scheme+"://header-oracle.invalid/", nil)
+	request.Header.Set(core.HTTPHeaderAccept().String(), value)
+	response, err := transport.RoundTrip(request)
+	if response != nil {
+		if response.Body != nil {
+			_ = response.Body.Close()
+		}
+		t.Fatalf("Go grammar fixture returned response %v, want nil", response)
+	}
+	admitted := errors.Is(err, errGoHeaderGrammarAccepted)
+	if err == nil || calls > 1 || (calls == 1) != admitted {
+		t.Fatalf("Go grammar fixture calls/error = (%d, %v), want one admission sentinel or pre-dispatch refusal", calls, err)
+	}
+	return admitted
 }

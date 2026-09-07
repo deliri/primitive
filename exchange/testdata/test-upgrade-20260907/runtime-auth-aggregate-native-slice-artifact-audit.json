@@ -1,0 +1,661 @@
+{
+  "scope": "Author-side artifact integrity only; selected runtime, bearer, aggregate and native-transport records not named in earlier scoped audits. Failed builds, oracle errors and semantic failures remain included. Does not certify package completeness or independent acceptance.",
+  "records": [
+    {
+      "label": "aggregate-handoff-after-binary_complete-analysis-cpu",
+      "exit_status": 0,
+      "checked_refs": 262,
+      "faults": [],
+      "missing_requested_artifacts": [],
+      "sources_changed_during_run": []
+    },
+    {
+      "label": "aggregate-handoff-after-binary_complete-analysis-mem",
+      "exit_status": 0,
+      "checked_refs": 262,
+      "faults": [],
+      "missing_requested_artifacts": [],
+      "sources_changed_during_run": []
+    },
+    {
+      "label": "aggregate-handoff-after-binary_complete",
+      "exit_status": 0,
+      "checked_refs": 264,
+      "faults": [],
+      "missing_requested_artifacts": [],
+      "sources_changed_during_run": []
+    },
+    {
+      "label": "aggregate-handoff-after-cancel_after_native_close-analysis-cpu",
+      "exit_status": 0,
+      "checked_refs": 262,
+      "faults": [],
+      "missing_requested_artifacts": [],
+      "sources_changed_during_run": []
+    },
+    {
+      "label": "aggregate-handoff-after-cancel_after_native_close-analysis-mem",
+      "exit_status": 0,
+      "checked_refs": 262,
+      "faults": [],
+      "missing_requested_artifacts": [],
+      "sources_changed_during_run": []
+    },
+    {
+      "label": "aggregate-handoff-after-cancel_after_native_close",
+      "exit_status": 0,
+      "checked_refs": 264,
+      "faults": [],
+      "missing_requested_artifacts": [],
+      "sources_changed_during_run": []
+    },
+    {
+      "label": "aggregate-handoff-before-binary_complete-analysis-cpu",
+      "exit_status": 0,
+      "checked_refs": 262,
+      "faults": [],
+      "missing_requested_artifacts": [],
+      "sources_changed_during_run": []
+    },
+    {
+      "label": "aggregate-handoff-before-binary_complete-analysis-mem",
+      "exit_status": 0,
+      "checked_refs": 262,
+      "faults": [],
+      "missing_requested_artifacts": [],
+      "sources_changed_during_run": []
+    },
+    {
+      "label": "aggregate-handoff-before-binary_complete",
+      "exit_status": 0,
+      "checked_refs": 263,
+      "faults": [],
+      "missing_requested_artifacts": [],
+      "sources_changed_during_run": []
+    },
+    {
+      "label": "aggregate-handoff-before-cancel_after_native_close",
+      "exit_status": 1,
+      "checked_refs": 263,
+      "faults": [],
+      "missing_requested_artifacts": [],
+      "sources_changed_during_run": []
+    },
+    {
+      "label": "bearer-grammar-custody-semantic-ratchet",
+      "exit_status": 0,
+      "checked_refs": 252,
+      "faults": [],
+      "missing_requested_artifacts": [],
+      "sources_changed_during_run": []
+    },
+    {
+      "label": "bearer-header-cardinality-and-custody-ratchet",
+      "exit_status": 0,
+      "checked_refs": 252,
+      "faults": [],
+      "missing_requested_artifacts": [],
+      "sources_changed_during_run": []
+    },
+    {
+      "label": "context-budget-real-http-and-virtual-deadline",
+      "exit_status": 0,
+      "checked_refs": 262,
+      "faults": [],
+      "missing_requested_artifacts": [],
+      "sources_changed_during_run": []
+    },
+    {
+      "label": "exchange-aggregate-cause-checkpoint-12",
+      "exit_status": 0,
+      "checked_refs": 261,
+      "faults": [],
+      "missing_requested_artifacts": [],
+      "sources_changed_during_run": []
+    },
+    {
+      "label": "exchange-auth-runtime-baseline-checkpoint-10",
+      "exit_status": 0,
+      "checked_refs": 254,
+      "faults": [],
+      "missing_requested_artifacts": [],
+      "sources_changed_during_run": []
+    },
+    {
+      "label": "exchange-native-cause-and-deterministic-time-checkpoint-13",
+      "exit_status": 0,
+      "checked_refs": 262,
+      "faults": [],
+      "missing_requested_artifacts": [],
+      "sources_changed_during_run": []
+    },
+    {
+      "label": "exchange-runtime-protocol-checkpoint-11",
+      "exit_status": 0,
+      "checked_refs": 258,
+      "faults": [],
+      "missing_requested_artifacts": [],
+      "sources_changed_during_run": []
+    },
+    {
+      "label": "fuzz-aggregate-completed-producer-cause",
+      "exit_status": 0,
+      "checked_refs": 262,
+      "faults": [],
+      "missing_requested_artifacts": [],
+      "sources_changed_during_run": []
+    },
+    {
+      "label": "fuzz-runtime-auth-bearer-receive",
+      "exit_status": 0,
+      "checked_refs": 258,
+      "faults": [],
+      "missing_requested_artifacts": [],
+      "sources_changed_during_run": []
+    },
+    {
+      "label": "fuzz-runtime-auth-bearer-token",
+      "exit_status": 0,
+      "checked_refs": 258,
+      "faults": [],
+      "missing_requested_artifacts": [],
+      "sources_changed_during_run": []
+    },
+    {
+      "label": "fuzz-runtime-auth-listen-current-port-policy",
+      "exit_status": 0,
+      "checked_refs": 258,
+      "faults": [],
+      "missing_requested_artifacts": [],
+      "sources_changed_during_run": []
+    },
+    {
+      "label": "fuzz-runtime-auth-runtime-configuration",
+      "exit_status": 0,
+      "checked_refs": 258,
+      "faults": [],
+      "missing_requested_artifacts": [],
+      "sources_changed_during_run": []
+    },
+    {
+      "label": "green-aggregate-completed-cause-cancellation",
+      "exit_status": 0,
+      "checked_refs": 261,
+      "faults": [],
+      "missing_requested_artifacts": [],
+      "sources_changed_during_run": []
+    },
+    {
+      "label": "green-aggregate-stream-failure-custody",
+      "exit_status": 0,
+      "checked_refs": 141,
+      "faults": [],
+      "missing_requested_artifacts": [],
+      "sources_changed_during_run": []
+    },
+    {
+      "label": "green-http-native-transport-cancellation",
+      "exit_status": 0,
+      "checked_refs": 262,
+      "faults": [],
+      "missing_requested_artifacts": [],
+      "sources_changed_during_run": []
+    },
+    {
+      "label": "http-native-attempt-deadline-go-bubble",
+      "exit_status": 0,
+      "checked_refs": 262,
+      "faults": [],
+      "missing_requested_artifacts": [],
+      "sources_changed_during_run": []
+    },
+    {
+      "label": "mutation-aggregate-body-door-refuses-all",
+      "exit_status": 1,
+      "checked_refs": 263,
+      "faults": [],
+      "missing_requested_artifacts": [],
+      "sources_changed_during_run": []
+    },
+    {
+      "label": "mutation-aggregate-classifier-drops-completed-cause",
+      "exit_status": 1,
+      "checked_refs": 263,
+      "faults": [],
+      "missing_requested_artifacts": [],
+      "sources_changed_during_run": []
+    },
+    {
+      "label": "mutation-aggregate-native-cause-erased-at-deadline",
+      "exit_status": 1,
+      "checked_refs": 264,
+      "faults": [],
+      "missing_requested_artifacts": [],
+      "sources_changed_during_run": []
+    },
+    {
+      "label": "mutation-aggregate-no-body-door-refuses-all",
+      "exit_status": 1,
+      "checked_refs": 263,
+      "faults": [],
+      "missing_requested_artifacts": [],
+      "sources_changed_during_run": []
+    },
+    {
+      "label": "mutation-aggregate-observer-invents-attempt",
+      "exit_status": 1,
+      "checked_refs": 263,
+      "faults": [],
+      "missing_requested_artifacts": [],
+      "sources_changed_during_run": []
+    },
+    {
+      "label": "mutation-aggregate-producer-substitutes-valid-bytes",
+      "exit_status": 1,
+      "checked_refs": 263,
+      "faults": [],
+      "missing_requested_artifacts": [],
+      "sources_changed_during_run": []
+    },
+    {
+      "label": "mutation-bearer-constructor-refuses-all",
+      "exit_status": 1,
+      "checked_refs": 254,
+      "faults": [],
+      "missing_requested_artifacts": [],
+      "sources_changed_during_run": []
+    },
+    {
+      "label": "mutation-bearer-constructor-substitutes-valid-token",
+      "exit_status": 1,
+      "checked_refs": 254,
+      "faults": [],
+      "missing_requested_artifacts": [],
+      "sources_changed_during_run": []
+    },
+    {
+      "label": "mutation-bearer-match-authenticates-unequal",
+      "exit_status": 1,
+      "checked_refs": 254,
+      "faults": [],
+      "missing_requested_artifacts": [],
+      "sources_changed_during_run": []
+    },
+    {
+      "label": "mutation-bearer-match-refuses-all",
+      "exit_status": 1,
+      "checked_refs": 254,
+      "faults": [],
+      "missing_requested_artifacts": [],
+      "sources_changed_during_run": []
+    },
+    {
+      "label": "mutation-bearer-receive-refuses-all",
+      "exit_status": 1,
+      "checked_refs": 254,
+      "faults": [],
+      "missing_requested_artifacts": [],
+      "sources_changed_during_run": []
+    },
+    {
+      "label": "mutation-bearer-receive-substitutes-valid-token",
+      "exit_status": 1,
+      "checked_refs": 254,
+      "faults": [],
+      "missing_requested_artifacts": [],
+      "sources_changed_during_run": []
+    },
+    {
+      "label": "mutation-bearer-token-admits-overflow",
+      "exit_status": 1,
+      "checked_refs": 254,
+      "faults": [],
+      "missing_requested_artifacts": [],
+      "sources_changed_during_run": []
+    },
+    {
+      "label": "mutation-bearer-token-resumes-after-padding",
+      "exit_status": 1,
+      "checked_refs": 254,
+      "faults": [],
+      "missing_requested_artifacts": [],
+      "sources_changed_during_run": []
+    },
+    {
+      "label": "mutation-binding-native-cause-discarded",
+      "exit_status": 1,
+      "checked_refs": 139,
+      "faults": [],
+      "missing_requested_artifacts": [],
+      "sources_changed_during_run": []
+    },
+    {
+      "label": "mutation-runtime-close-uses-canceled-graceful-drain",
+      "exit_status": 1,
+      "checked_refs": 260,
+      "faults": [],
+      "missing_requested_artifacts": [],
+      "sources_changed_during_run": []
+    },
+    {
+      "label": "mutation-runtime-constructor-refuses-all",
+      "exit_status": 1,
+      "checked_refs": 260,
+      "faults": [],
+      "missing_requested_artifacts": [],
+      "sources_changed_during_run": []
+    },
+    {
+      "label": "mutation-runtime-header-truncates-valid-limit",
+      "exit_status": 1,
+      "checked_refs": 260,
+      "faults": [],
+      "missing_requested_artifacts": [],
+      "sources_changed_during_run": []
+    },
+    {
+      "label": "mutation-runtime-invents-dormant-acquisition",
+      "exit_status": 1,
+      "checked_refs": 260,
+      "faults": [],
+      "missing_requested_artifacts": [],
+      "sources_changed_during_run": []
+    },
+    {
+      "label": "mutation-runtime-owning-policy-drops-header-refusal",
+      "exit_status": 1,
+      "checked_refs": 260,
+      "faults": [],
+      "missing_requested_artifacts": [],
+      "sources_changed_during_run": []
+    },
+    {
+      "label": "mutation-runtime-shutdown-erases-native-cancellation",
+      "exit_status": 1,
+      "checked_refs": 260,
+      "faults": [],
+      "missing_requested_artifacts": [],
+      "sources_changed_during_run": []
+    },
+    {
+      "label": "mutation-runtime-swaps-go-read-timeouts",
+      "exit_status": 1,
+      "checked_refs": 260,
+      "faults": [],
+      "missing_requested_artifacts": [],
+      "sources_changed_during_run": []
+    },
+    {
+      "label": "mutation-runtime-table-constructor-refuses-all",
+      "exit_status": 1,
+      "checked_refs": 260,
+      "faults": [],
+      "missing_requested_artifacts": [],
+      "sources_changed_during_run": []
+    },
+    {
+      "label": "mutation-runtime-table-header-truncates-valid-limit",
+      "exit_status": 1,
+      "checked_refs": 260,
+      "faults": [],
+      "missing_requested_artifacts": [],
+      "sources_changed_during_run": []
+    },
+    {
+      "label": "mutation-runtime-table-owning-policy-drops-header-refusal",
+      "exit_status": 1,
+      "checked_refs": 260,
+      "faults": [],
+      "missing_requested_artifacts": [],
+      "sources_changed_during_run": []
+    },
+    {
+      "label": "mutation-runtime-table-swaps-go-read-timeouts",
+      "exit_status": 1,
+      "checked_refs": 260,
+      "faults": [],
+      "missing_requested_artifacts": [],
+      "sources_changed_during_run": []
+    },
+    {
+      "label": "mutation-runtime-table-zero-timeout-admitted",
+      "exit_status": 1,
+      "checked_refs": 260,
+      "faults": [],
+      "missing_requested_artifacts": [],
+      "sources_changed_during_run": []
+    },
+    {
+      "label": "mutation-runtime-zero-timeout-admitted",
+      "exit_status": 1,
+      "checked_refs": 260,
+      "faults": [],
+      "missing_requested_artifacts": [],
+      "sources_changed_during_run": []
+    },
+    {
+      "label": "mutation-stream-native-cause-erased-at-attempt-deadline",
+      "exit_status": 1,
+      "checked_refs": 264,
+      "faults": [],
+      "missing_requested_artifacts": [],
+      "sources_changed_during_run": []
+    },
+    {
+      "label": "mutation-stream-native-cause-erased-at-operation-cancel",
+      "exit_status": 1,
+      "checked_refs": 264,
+      "faults": [],
+      "missing_requested_artifacts": [],
+      "sources_changed_during_run": []
+    },
+    {
+      "label": "red-aggregate-both-public-cause-fuzz-seeds",
+      "exit_status": 1,
+      "checked_refs": 261,
+      "faults": [],
+      "missing_requested_artifacts": [],
+      "sources_changed_during_run": []
+    },
+    {
+      "label": "red-aggregate-completed-cause-cancellation",
+      "exit_status": 1,
+      "checked_refs": 259,
+      "faults": [],
+      "missing_requested_artifacts": [],
+      "sources_changed_during_run": []
+    },
+    {
+      "label": "red-aggregate-public-cause-fuzz-seeds-02",
+      "exit_status": 1,
+      "checked_refs": 261,
+      "faults": [],
+      "missing_requested_artifacts": [],
+      "sources_changed_during_run": []
+    },
+    {
+      "label": "red-aggregate-public-cause-fuzz-seeds",
+      "exit_status": 1,
+      "checked_refs": 261,
+      "faults": [],
+      "missing_requested_artifacts": [],
+      "sources_changed_during_run": []
+    },
+    {
+      "label": "red-aggregate-stream-failure-custody",
+      "exit_status": 1,
+      "checked_refs": 141,
+      "faults": [],
+      "missing_requested_artifacts": [],
+      "sources_changed_during_run": []
+    },
+    {
+      "label": "red-http-native-transport-cancellation-02",
+      "exit_status": 1,
+      "checked_refs": 262,
+      "faults": [],
+      "missing_requested_artifacts": [],
+      "sources_changed_during_run": []
+    },
+    {
+      "label": "red-http-native-transport-cancellation",
+      "exit_status": 1,
+      "checked_refs": 262,
+      "faults": [],
+      "missing_requested_artifacts": [],
+      "sources_changed_during_run": []
+    },
+    {
+      "label": "server-active-native-cause-and-absence",
+      "exit_status": 0,
+      "checked_refs": 258,
+      "faults": [],
+      "missing_requested_artifacts": [],
+      "sources_changed_during_run": []
+    },
+    {
+      "label": "server-runtime-after-dormant_construction-analysis-cpu",
+      "exit_status": 0,
+      "checked_refs": 258,
+      "faults": [],
+      "missing_requested_artifacts": [],
+      "sources_changed_during_run": []
+    },
+    {
+      "label": "server-runtime-after-dormant_construction-analysis-mem",
+      "exit_status": 0,
+      "checked_refs": 258,
+      "faults": [],
+      "missing_requested_artifacts": [],
+      "sources_changed_during_run": []
+    },
+    {
+      "label": "server-runtime-after-dormant_construction",
+      "exit_status": 0,
+      "checked_refs": 261,
+      "faults": [],
+      "missing_requested_artifacts": [],
+      "sources_changed_during_run": []
+    },
+    {
+      "label": "server-runtime-after-os_allocated_listener_acquire_close-analysis-cpu",
+      "exit_status": 0,
+      "checked_refs": 258,
+      "faults": [],
+      "missing_requested_artifacts": [],
+      "sources_changed_during_run": []
+    },
+    {
+      "label": "server-runtime-after-os_allocated_listener_acquire_close-analysis-mem",
+      "exit_status": 0,
+      "checked_refs": 258,
+      "faults": [],
+      "missing_requested_artifacts": [],
+      "sources_changed_during_run": []
+    },
+    {
+      "label": "server-runtime-after-os_allocated_listener_acquire_close",
+      "exit_status": 0,
+      "checked_refs": 261,
+      "faults": [],
+      "missing_requested_artifacts": [],
+      "sources_changed_during_run": []
+    },
+    {
+      "label": "server-runtime-before-dormant_construction-analysis-cpu",
+      "exit_status": 0,
+      "checked_refs": 258,
+      "faults": [],
+      "missing_requested_artifacts": [],
+      "sources_changed_during_run": []
+    },
+    {
+      "label": "server-runtime-before-dormant_construction-analysis-mem",
+      "exit_status": 0,
+      "checked_refs": 258,
+      "faults": [],
+      "missing_requested_artifacts": [],
+      "sources_changed_during_run": []
+    },
+    {
+      "label": "server-runtime-before-dormant_construction",
+      "exit_status": 0,
+      "checked_refs": 256,
+      "faults": [],
+      "missing_requested_artifacts": [],
+      "sources_changed_during_run": []
+    },
+    {
+      "label": "server-runtime-before-os_allocated_listener_acquire_close",
+      "exit_status": 1,
+      "checked_refs": 256,
+      "faults": [],
+      "missing_requested_artifacts": [],
+      "sources_changed_during_run": []
+    },
+    {
+      "label": "server-runtime-complete-local-checkpoint",
+      "exit_status": 0,
+      "checked_refs": 258,
+      "faults": [],
+      "missing_requested_artifacts": [],
+      "sources_changed_during_run": []
+    },
+    {
+      "label": "server-runtime-configuration-semantic-seeds",
+      "exit_status": 0,
+      "checked_refs": 255,
+      "faults": [],
+      "missing_requested_artifacts": [],
+      "sources_changed_during_run": []
+    },
+    {
+      "label": "server-runtime-go-typed-listener-checkpoint",
+      "exit_status": 0,
+      "checked_refs": 258,
+      "faults": [],
+      "missing_requested_artifacts": [],
+      "sources_changed_during_run": []
+    },
+    {
+      "label": "server-runtime-mapped-ipv6-and-recovery-ratchet",
+      "exit_status": 0,
+      "checked_refs": 254,
+      "faults": [],
+      "missing_requested_artifacts": [],
+      "sources_changed_during_run": []
+    },
+    {
+      "label": "server-runtime-owned-lifetime-ratchet",
+      "exit_status": 0,
+      "checked_refs": 254,
+      "faults": [],
+      "missing_requested_artifacts": [],
+      "sources_changed_during_run": []
+    },
+    {
+      "label": "server-runtime-typed-go-listener-analysis-cpu",
+      "exit_status": 0,
+      "checked_refs": 258,
+      "faults": [],
+      "missing_requested_artifacts": [],
+      "sources_changed_during_run": []
+    },
+    {
+      "label": "server-runtime-typed-go-listener-analysis-mem",
+      "exit_status": 0,
+      "checked_refs": 258,
+      "faults": [],
+      "missing_requested_artifacts": [],
+      "sources_changed_during_run": []
+    },
+    {
+      "label": "server-runtime-typed-go-listener",
+      "exit_status": 0,
+      "checked_refs": 261,
+      "faults": [],
+      "missing_requested_artifacts": [],
+      "sources_changed_during_run": []
+    }
+  ]
+}

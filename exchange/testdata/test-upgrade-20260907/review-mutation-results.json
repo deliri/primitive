@@ -1,0 +1,66 @@
+[
+  {
+    "label": "review-read-cancel-discards-count",
+    "production_file": "exchange/stream.go",
+    "before": "if err := contextAfterTransfer(r.context); err != nil {\n\t\treturn count, err",
+    "after": "if err := contextAfterTransfer(r.context); err != nil {\n\t\treturn 0, err",
+    "outcome": "killed by test",
+    "evidence": "mutation-review-read-cancel-discards-count.json"
+  },
+  {
+    "label": "review-unknown-file-refused",
+    "production_file": "exchange/stream.go",
+    "before": "if err != nil || info == nil || !info.Mode().IsRegular() {\n\t\treturn 0, false, nil",
+    "after": "if err != nil || info == nil || !info.Mode().IsRegular() {\n\t\treturn 0, true, fs.ErrInvalid",
+    "outcome": "killed by test",
+    "evidence": "mutation-review-unknown-file-refused.json"
+  },
+  {
+    "label": "review-socket-reprojects-key",
+    "production_file": "exchange/socket.go",
+    "before": "return SendJSON[Request, Response](socketJSONCall(ctx, socket, request, semantics))\n}\n\nfunc socketJSONCall",
+    "after": "return SendReplayBoundJSON[Request, Response](socketJSONCall(ctx, socket, request, semantics))\n}\n\nfunc socketJSONCall",
+    "outcome": "killed by test",
+    "evidence": "mutation-review-socket-reprojects-key.json"
+  },
+  {
+    "label": "review-socket-skips-context",
+    "production_file": "exchange/socket.go",
+    "before": "if err := validateCallIngress(ctx, socket.configuration.Client); err != nil {",
+    "after": "if err := validateCallIngress(ctx, socket.configuration.Client); false {",
+    "outcome": "killed by test",
+    "evidence": "mutation-review-socket-skips-context.json"
+  },
+  {
+    "label": "review-socket-projects-invalid-body",
+    "production_file": "exchange/socket.go",
+    "before": "if err := validateCallerValue(request); err != nil {",
+    "after": "if err := validateCallerValue(request); false {",
+    "outcome": "killed by test",
+    "evidence": "mutation-review-socket-projects-invalid-body.json"
+  },
+  {
+    "label": "review-write-panic-loses-prefix",
+    "production_file": "exchange/stream.go",
+    "before": "streamCopyDestination(request.destination),",
+    "after": "request.destination,",
+    "outcome": "killed by test",
+    "evidence": "mutation-review-write-panic-loses-prefix.json"
+  },
+  {
+    "label": "pipe-refusal-still-opens-endpoints",
+    "production_file": "filestore/pipe.go",
+    "before": "if err := contextstate.Validate(ctx); err != nil {",
+    "after": "if err := contextstate.Validate(ctx); false {",
+    "outcome": "killed by test",
+    "evidence": "mutation-pipe-refusal-still-opens-endpoints.json"
+  },
+  {
+    "label": "pipe-alias-admission",
+    "production_file": "filestore/pipe.go",
+    "before": " || p.Reader == p.Writer",
+    "after": "",
+    "outcome": "killed by test",
+    "evidence": "mutation-pipe-alias-admission.json"
+  }
+]

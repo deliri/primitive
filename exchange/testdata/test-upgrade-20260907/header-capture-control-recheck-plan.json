@@ -1,0 +1,49 @@
+{
+  "reason": "Unresolved accepted-control timing divergence: 9700 to 136018 ns/op with identical 34488 B/op and 71 allocs/op; CPU profile sample/wall fraction changed from 84.15% to 9.01%. One explicit matched serial recheck; original results retained. Before uses exact snapshotted pre-fix client.go and both runs use the current identical benchmark/test harness.",
+  "configured_total_seconds": 60,
+  "workloads": [
+    {
+      "label": "header-capture-control-recheck-before",
+      "argv": [
+        "go",
+        "test",
+        "-overlay=/Users/d/code/primitive/exchange/testdata/test-upgrade-20260907/header-capture-control-recheck-overlay.json",
+        "-run=^$",
+        "-bench=^BenchmarkAggregateHeaderValueAdmission$/^at_limit$",
+        "-benchmem",
+        "-benchtime=30s",
+        "-count=1",
+        "-cpu=1",
+        "-p=1",
+        "-parallel=1",
+        "-timeout=3m",
+        "-cpuprofile=/Users/d/code/primitive/exchange/testdata/test-upgrade-20260907/header-capture-control-recheck-before.cpu.pprof",
+        "-memprofile=/Users/d/code/primitive/exchange/testdata/test-upgrade-20260907/header-capture-control-recheck-before.mem.pprof",
+        "-o=/Users/d/code/primitive/exchange/testdata/test-upgrade-20260907/header-capture-control-recheck-before.test",
+        "./exchange"
+      ],
+      "configured_seconds": 30
+    },
+    {
+      "label": "header-capture-control-recheck-after",
+      "argv": [
+        "go",
+        "test",
+        "-run=^$",
+        "-bench=^BenchmarkAggregateHeaderValueAdmission$/^at_limit$",
+        "-benchmem",
+        "-benchtime=30s",
+        "-count=1",
+        "-cpu=1",
+        "-p=1",
+        "-parallel=1",
+        "-timeout=3m",
+        "-cpuprofile=/Users/d/code/primitive/exchange/testdata/test-upgrade-20260907/header-capture-control-recheck-after.cpu.pprof",
+        "-memprofile=/Users/d/code/primitive/exchange/testdata/test-upgrade-20260907/header-capture-control-recheck-after.mem.pprof",
+        "-o=/Users/d/code/primitive/exchange/testdata/test-upgrade-20260907/header-capture-control-recheck-after.test",
+        "./exchange"
+      ],
+      "configured_seconds": 30
+    }
+  ]
+}

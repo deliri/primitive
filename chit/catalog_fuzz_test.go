@@ -9,7 +9,10 @@ import (
 )
 
 func FuzzCustodyStateJSONSemanticClosure(f *testing.F) {
-	for state := CustodyStateUnknown + 1; state < custodyStateLimit; state++ {
+	for state := range custodyStateLimit {
+		if state < CustodyStateUnknown+1 {
+			continue
+		}
 		encoded, err := state.MarshalJSON()
 		if err != nil {
 			f.Fatalf("CustodyState(%d).MarshalJSON(seed) error = %v, want nil", state, err)

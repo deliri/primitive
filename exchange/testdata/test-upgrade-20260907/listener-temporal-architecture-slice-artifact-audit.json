@@ -1,0 +1,149 @@
+{
+  "scope": "Listener wildcard, Temporal fixture, and source-matcher slices only. Author-side integrity audit; not independent acceptance or final package manifest.",
+  "records": [
+    {
+      "label": "red-listen-host-go-wildcard-parity",
+      "exit_status": 1,
+      "checked_refs": 249,
+      "faults": []
+    },
+    {
+      "label": "green-listen-host-go-wildcard-parity",
+      "exit_status": 0,
+      "checked_refs": 249,
+      "faults": []
+    },
+    {
+      "label": "listen-address-go-policy-and-grammar",
+      "exit_status": 0,
+      "checked_refs": 249,
+      "faults": []
+    },
+    {
+      "label": "listen-address-independent-parser-seeds",
+      "exit_status": 0,
+      "checked_refs": 250,
+      "faults": []
+    },
+    {
+      "label": "exchange-listener-temporal-checkpoint-08",
+      "exit_status": 0,
+      "checked_refs": 251,
+      "faults": []
+    },
+    {
+      "label": "fuzz-listen-address-go-interpretation",
+      "exit_status": 0,
+      "checked_refs": 250,
+      "faults": []
+    },
+    {
+      "label": "red-http-architecture-bindings",
+      "exit_status": 1,
+      "checked_refs": 247,
+      "faults": []
+    },
+    {
+      "label": "green-http-architecture-bindings",
+      "exit_status": 0,
+      "checked_refs": 247,
+      "faults": []
+    },
+    {
+      "label": "red-http-architecture-generic-scope",
+      "exit_status": 1,
+      "checked_refs": 250,
+      "faults": []
+    },
+    {
+      "label": "green-http-architecture-generic-scope",
+      "exit_status": 0,
+      "checked_refs": 250,
+      "faults": []
+    },
+    {
+      "label": "mutation-listen-keeps-mapped-wildcard",
+      "exit_status": 1,
+      "checked_refs": 252,
+      "faults": []
+    },
+    {
+      "label": "mutation-listen-keeps-zoned-wildcard",
+      "exit_status": 1,
+      "checked_refs": 252,
+      "faults": []
+    },
+    {
+      "label": "mutation-listen-refuses-all-valid-literals",
+      "exit_status": 1,
+      "checked_refs": 252,
+      "faults": []
+    },
+    {
+      "label": "mutation-listen-substitutes-valid-host",
+      "exit_status": 1,
+      "checked_refs": 252,
+      "faults": []
+    },
+    {
+      "label": "mutation-listen-admits-port-zero",
+      "exit_status": 1,
+      "checked_refs": 252,
+      "faults": []
+    },
+    {
+      "label": "mutation-listen-silently-trims-input",
+      "exit_status": 1,
+      "checked_refs": 252,
+      "faults": []
+    },
+    {
+      "label": "mutation-architecture-ignores-function-scope",
+      "exit_status": 1,
+      "checked_refs": 252,
+      "faults": []
+    },
+    {
+      "label": "mutation-architecture-inherits-caller-scope",
+      "exit_status": 1,
+      "checked_refs": 252,
+      "faults": []
+    },
+    {
+      "label": "mutation-architecture-ignores-carrier-parameters",
+      "exit_status": 1,
+      "checked_refs": 252,
+      "faults": []
+    },
+    {
+      "label": "mutation-architecture-uses-caller-imports",
+      "exit_status": 1,
+      "checked_refs": 252,
+      "faults": []
+    },
+    {
+      "label": "mutation-architecture-skips-alias-carriers",
+      "exit_status": 1,
+      "checked_refs": 252,
+      "faults": []
+    },
+    {
+      "label": "mutation-architecture-classifies-neutral-cycle-as-http",
+      "exit_status": 1,
+      "checked_refs": 252,
+      "faults": []
+    },
+    {
+      "label": "mutation-architecture-interprets-parameter-label-as-type",
+      "exit_status": 0,
+      "checked_refs": 252,
+      "faults": []
+    },
+    {
+      "label": "mutation-architecture-interprets-function-parameter-label-v2",
+      "exit_status": 1,
+      "checked_refs": 252,
+      "faults": []
+    }
+  ]
+}

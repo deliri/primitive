@@ -24,7 +24,10 @@ func TestEveryAdmittedCodeHasACompleteDefinitionRow(t *testing.T) {
 	t.Parallel()
 
 	var tokens [codeLimit]string
-	for code := CodeUSD; code < codeLimit; code++ {
+	for code := range codeLimit {
+		if code < CodeUSD {
+			continue
+		}
 		if gotErr := code.Validate(); gotErr != nil {
 			t.Fatalf("Code(%d).Validate() error = %v, want nil for an admitted code", code, gotErr)
 		}
@@ -33,7 +36,10 @@ func TestEveryAdmittedCodeHasACompleteDefinitionRow(t *testing.T) {
 		if token == "" {
 			t.Fatalf("Code(%d).String() = empty, want a canonical token; its definition row is missing", code)
 		}
-		for prior := CodeUSD; prior < code; prior++ {
+		for prior := range code {
+			if prior < CodeUSD {
+				continue
+			}
 			if token == tokens[prior] {
 				t.Fatalf("Code(%d).String() = %q, which duplicates Code(%d)", code, token, prior)
 			}
@@ -118,7 +124,10 @@ func TestDecimalMaximumBytesIsTheObservedCeilingAcrossTheClosedDomain(t *testing
 	}
 
 	widest := 0
-	for code := CodeUSD; code < codeLimit; code++ {
+	for code := range codeLimit {
+		if code < CodeUSD {
+			continue
+		}
 		for _, tc := range extremes {
 			amount, gotNewErr := New(code, tc.minorUnits)
 			if gotNewErr != nil {

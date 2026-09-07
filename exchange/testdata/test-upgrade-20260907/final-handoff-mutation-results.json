@@ -1,0 +1,56 @@
+[
+  {
+    "mutation": "aggregate-retries-request-refusal",
+    "record": "mutation-final-aggregate-retries-request-refusal.json",
+    "outcome": "killed in final matrix",
+    "failed_row_count": 4
+  },
+  {
+    "mutation": "aggregate-exhausts-one-too-early",
+    "record": "mutation-final-aggregate-exhausts-one-too-early.json",
+    "outcome": "killed in final matrix",
+    "failed_row_count": 210
+  },
+  {
+    "mutation": "aggregate-erases-status-conflict",
+    "record": "mutation-final-aggregate-erases-status-conflict.json",
+    "outcome": "killed in final matrix",
+    "failed_row_count": 2000
+  },
+  {
+    "mutation": "status-retries-unpublished-client-error",
+    "record": "mutation-final-status-retries-unpublished-client-error.json",
+    "outcome": "killed in final matrix",
+    "failed_row_count": 6
+  },
+  {
+    "mutation": "stream-neutral-invents-retry",
+    "record": "mutation-final-stream-neutral-invents-retry.json",
+    "outcome": "killed in final matrix",
+    "failed_row_count": 500
+  },
+  {
+    "mutation": "stream-ignores-terminal-refusal",
+    "record": "mutation-final-stream-ignores-terminal-refusal.json",
+    "outcome": "killed in final matrix",
+    "failed_row_count": 108
+  },
+  {
+    "mutation": "stream-cancel-erases-joined-facts",
+    "record": "mutation-final-stream-cancel-erases-joined-facts.json",
+    "outcome": "killed in final matrix",
+    "failed_row_count": 628
+  },
+  {
+    "mutation": "aggregate-hardcodes-success-status",
+    "record": "mutation-final-aggregate-hardcodes-success-status.json",
+    "outcome": "killed in final matrix",
+    "failed_row_count": 2000
+  },
+  {
+    "mutation": "download-hardcodes-success-status",
+    "record": "mutation-final-download-hardcodes-success-status.json",
+    "outcome": "killed in final matrix",
+    "failed_row_count": 1000
+  }
+]

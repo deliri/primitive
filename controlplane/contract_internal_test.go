@@ -24,7 +24,10 @@ func TestSigningDomainSatisfiesTheAttestSigningDomainContract(t *testing.T) {
 func TestSigningDomainParsesEveryTextItRenders(t *testing.T) {
 	t.Parallel()
 
-	for domain := SigningDomainUnknown + 1; domain < signingDomainLimit; domain++ {
+	for domain := range signingDomainLimit {
+		if domain < SigningDomainUnknown+1 {
+			continue
+		}
 		text, err := domain.MarshalText()
 		if err != nil {
 			t.Fatalf("MarshalText() for domain %d error = %v, want nil", domain, err)
@@ -46,7 +49,10 @@ func TestSigningDomainTokensAreDistinct(t *testing.T) {
 	t.Parallel()
 
 	seen := make(map[string]SigningDomain, signingDomainLimit)
-	for domain := SigningDomainUnknown + 1; domain < signingDomainLimit; domain++ {
+	for domain := range signingDomainLimit {
+		if domain < SigningDomainUnknown+1 {
+			continue
+		}
 		token := signingDomainTokens()[domain]
 		if token == "" {
 			t.Fatalf("domain %d has no canonical text, want one", domain)
@@ -68,7 +74,10 @@ func TestSigningDomainTokensAreDistinct(t *testing.T) {
 func TestAttestSigningDomainBoundAdmitsEveryPublishedText(t *testing.T) {
 	t.Parallel()
 
-	for domain := SigningDomainUnknown + 1; domain < signingDomainLimit; domain++ {
+	for domain := range signingDomainLimit {
+		if domain < SigningDomainUnknown+1 {
+			continue
+		}
 		if got := len(signingDomainTokens()[domain]); got > attest.SigningDomainMaximumBytes {
 			t.Fatalf("domain %v text length = %d, want at most %d",
 				domain, got, attest.SigningDomainMaximumBytes)

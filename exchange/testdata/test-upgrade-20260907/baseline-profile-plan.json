@@ -1,0 +1,265 @@
+{
+  "phase": "original source and original fixtures; 13 serial workload invocations, 390 configured benchmark seconds before calibration/setup",
+  "workloads": [
+    {
+      "label": "baseline-json-128",
+      "argv": [
+        "go",
+        "test",
+        "-run=^$",
+        "-bench=^BenchmarkServerJSONBoundary$/^128B$",
+        "-benchmem",
+        "-benchtime=30s",
+        "-count=1",
+        "-p=1",
+        "-parallel=1",
+        "-timeout=20m",
+        "-cpuprofile=exchange/testdata/test-upgrade-20260907/baseline-json-128.cpu.pprof",
+        "-memprofile=exchange/testdata/test-upgrade-20260907/baseline-json-128.mem.pprof",
+        "-o=exchange/testdata/test-upgrade-20260907/baseline-json-128.test",
+        "./exchange"
+      ],
+      "requested_benchmark_seconds": 30
+    },
+    {
+      "label": "baseline-json-1024",
+      "argv": [
+        "go",
+        "test",
+        "-run=^$",
+        "-bench=^BenchmarkServerJSONBoundary$/^1KiB$",
+        "-benchmem",
+        "-benchtime=30s",
+        "-count=1",
+        "-p=1",
+        "-parallel=1",
+        "-timeout=20m",
+        "-cpuprofile=exchange/testdata/test-upgrade-20260907/baseline-json-1024.cpu.pprof",
+        "-memprofile=exchange/testdata/test-upgrade-20260907/baseline-json-1024.mem.pprof",
+        "-o=exchange/testdata/test-upgrade-20260907/baseline-json-1024.test",
+        "./exchange"
+      ],
+      "requested_benchmark_seconds": 30
+    },
+    {
+      "label": "baseline-json-8192",
+      "argv": [
+        "go",
+        "test",
+        "-run=^$",
+        "-bench=^BenchmarkServerJSONBoundary$/^8KiB$",
+        "-benchmem",
+        "-benchtime=30s",
+        "-count=1",
+        "-p=1",
+        "-parallel=1",
+        "-timeout=20m",
+        "-cpuprofile=exchange/testdata/test-upgrade-20260907/baseline-json-8192.cpu.pprof",
+        "-memprofile=exchange/testdata/test-upgrade-20260907/baseline-json-8192.mem.pprof",
+        "-o=exchange/testdata/test-upgrade-20260907/baseline-json-8192.test",
+        "./exchange"
+      ],
+      "requested_benchmark_seconds": 30
+    },
+    {
+      "label": "baseline-request-control",
+      "argv": [
+        "go",
+        "test",
+        "-run=^$",
+        "-bench=^BenchmarkRequestConstructionControl$",
+        "-benchmem",
+        "-benchtime=30s",
+        "-count=1",
+        "-p=1",
+        "-parallel=1",
+        "-timeout=20m",
+        "-cpuprofile=exchange/testdata/test-upgrade-20260907/baseline-request-control.cpu.pprof",
+        "-memprofile=exchange/testdata/test-upgrade-20260907/baseline-request-control.mem.pprof",
+        "-o=exchange/testdata/test-upgrade-20260907/baseline-request-control.test",
+        "./exchange"
+      ],
+      "requested_benchmark_seconds": 30
+    },
+    {
+      "label": "baseline-json-limit1024",
+      "argv": [
+        "go",
+        "test",
+        "-run=^$",
+        "-bench=^BenchmarkServerJSONBoundaryByLimit$/^limit1KiB$",
+        "-benchmem",
+        "-benchtime=30s",
+        "-count=1",
+        "-p=1",
+        "-parallel=1",
+        "-timeout=20m",
+        "-cpuprofile=exchange/testdata/test-upgrade-20260907/baseline-json-limit1024.cpu.pprof",
+        "-memprofile=exchange/testdata/test-upgrade-20260907/baseline-json-limit1024.mem.pprof",
+        "-o=exchange/testdata/test-upgrade-20260907/baseline-json-limit1024.test",
+        "./exchange"
+      ],
+      "requested_benchmark_seconds": 30
+    },
+    {
+      "label": "baseline-json-limit65536",
+      "argv": [
+        "go",
+        "test",
+        "-run=^$",
+        "-bench=^BenchmarkServerJSONBoundaryByLimit$/^limit64KiB$",
+        "-benchmem",
+        "-benchtime=30s",
+        "-count=1",
+        "-p=1",
+        "-parallel=1",
+        "-timeout=20m",
+        "-cpuprofile=exchange/testdata/test-upgrade-20260907/baseline-json-limit65536.cpu.pprof",
+        "-memprofile=exchange/testdata/test-upgrade-20260907/baseline-json-limit65536.mem.pprof",
+        "-o=exchange/testdata/test-upgrade-20260907/baseline-json-limit65536.test",
+        "./exchange"
+      ],
+      "requested_benchmark_seconds": 30
+    },
+    {
+      "label": "baseline-json-limit1048576",
+      "argv": [
+        "go",
+        "test",
+        "-run=^$",
+        "-bench=^BenchmarkServerJSONBoundaryByLimit$/^limit1MiB$",
+        "-benchmem",
+        "-benchtime=30s",
+        "-count=1",
+        "-p=1",
+        "-parallel=1",
+        "-timeout=20m",
+        "-cpuprofile=exchange/testdata/test-upgrade-20260907/baseline-json-limit1048576.cpu.pprof",
+        "-memprofile=exchange/testdata/test-upgrade-20260907/baseline-json-limit1048576.mem.pprof",
+        "-o=exchange/testdata/test-upgrade-20260907/baseline-json-limit1048576.test",
+        "./exchange"
+      ],
+      "requested_benchmark_seconds": 30
+    },
+    {
+      "label": "baseline-bounded-declared",
+      "argv": [
+        "go",
+        "test",
+        "-run=^$",
+        "-bench=^BenchmarkBoundedReceiveByDeclaredExtent$/^declared_extent$",
+        "-benchmem",
+        "-benchtime=30s",
+        "-count=1",
+        "-p=1",
+        "-parallel=1",
+        "-timeout=20m",
+        "-cpuprofile=exchange/testdata/test-upgrade-20260907/baseline-bounded-declared.cpu.pprof",
+        "-memprofile=exchange/testdata/test-upgrade-20260907/baseline-bounded-declared.mem.pprof",
+        "-o=exchange/testdata/test-upgrade-20260907/baseline-bounded-declared.test",
+        "./exchange"
+      ],
+      "requested_benchmark_seconds": 30
+    },
+    {
+      "label": "baseline-bounded-undeclared",
+      "argv": [
+        "go",
+        "test",
+        "-run=^$",
+        "-bench=^BenchmarkBoundedReceiveByDeclaredExtent$/^undeclared_extent$",
+        "-benchmem",
+        "-benchtime=30s",
+        "-count=1",
+        "-p=1",
+        "-parallel=1",
+        "-timeout=20m",
+        "-cpuprofile=exchange/testdata/test-upgrade-20260907/baseline-bounded-undeclared.cpu.pprof",
+        "-memprofile=exchange/testdata/test-upgrade-20260907/baseline-bounded-undeclared.mem.pprof",
+        "-o=exchange/testdata/test-upgrade-20260907/baseline-bounded-undeclared.test",
+        "./exchange"
+      ],
+      "requested_benchmark_seconds": 30
+    },
+    {
+      "label": "baseline-upload-10MiB",
+      "argv": [
+        "go",
+        "test",
+        "-run=^$",
+        "-bench=^BenchmarkUpload10MiBFileOverLoopback$",
+        "-benchmem",
+        "-benchtime=30s",
+        "-count=1",
+        "-p=1",
+        "-parallel=1",
+        "-timeout=20m",
+        "-cpuprofile=exchange/testdata/test-upgrade-20260907/baseline-upload-10MiB.cpu.pprof",
+        "-memprofile=exchange/testdata/test-upgrade-20260907/baseline-upload-10MiB.mem.pprof",
+        "-o=exchange/testdata/test-upgrade-20260907/baseline-upload-10MiB.test",
+        "./exchange"
+      ],
+      "requested_benchmark_seconds": 30
+    },
+    {
+      "label": "baseline-download-10MiB",
+      "argv": [
+        "go",
+        "test",
+        "-run=^$",
+        "-bench=^BenchmarkDownload10MiBFileOverLoopback$",
+        "-benchmem",
+        "-benchtime=30s",
+        "-count=1",
+        "-p=1",
+        "-parallel=1",
+        "-timeout=20m",
+        "-cpuprofile=exchange/testdata/test-upgrade-20260907/baseline-download-10MiB.cpu.pprof",
+        "-memprofile=exchange/testdata/test-upgrade-20260907/baseline-download-10MiB.mem.pprof",
+        "-o=exchange/testdata/test-upgrade-20260907/baseline-download-10MiB.test",
+        "./exchange"
+      ],
+      "requested_benchmark_seconds": 30
+    },
+    {
+      "label": "baseline-json-parallel",
+      "argv": [
+        "go",
+        "test",
+        "-run=^$",
+        "-bench=^BenchmarkServerJSONBoundaryParallel$",
+        "-benchmem",
+        "-benchtime=30s",
+        "-count=1",
+        "-p=1",
+        "-parallel=1",
+        "-timeout=20m",
+        "-cpuprofile=exchange/testdata/test-upgrade-20260907/baseline-json-parallel.cpu.pprof",
+        "-memprofile=exchange/testdata/test-upgrade-20260907/baseline-json-parallel.mem.pprof",
+        "-o=exchange/testdata/test-upgrade-20260907/baseline-json-parallel.test",
+        "./exchange"
+      ],
+      "requested_benchmark_seconds": 30
+    },
+    {
+      "label": "baseline-json-loopback-parallel",
+      "argv": [
+        "go",
+        "test",
+        "-run=^$",
+        "-bench=^BenchmarkJSONRoundTripOverLoopbackParallel$",
+        "-benchmem",
+        "-benchtime=30s",
+        "-count=1",
+        "-p=1",
+        "-parallel=1",
+        "-timeout=20m",
+        "-cpuprofile=exchange/testdata/test-upgrade-20260907/baseline-json-loopback-parallel.cpu.pprof",
+        "-memprofile=exchange/testdata/test-upgrade-20260907/baseline-json-loopback-parallel.mem.pprof",
+        "-o=exchange/testdata/test-upgrade-20260907/baseline-json-loopback-parallel.test",
+        "./exchange"
+      ],
+      "requested_benchmark_seconds": 30
+    }
+  ]
+}

@@ -1,0 +1,47 @@
+[
+  {
+    "name": "terminal-callbacks",
+    "source": "/Users/d/code/primitive/attest/canonical_object.go",
+    "before": "if o.err != nil {\n\t\treturn false\n\t}",
+    "after": "if false && o.err != nil {\n\t\treturn false\n\t}",
+    "test_filter": "TestCanonicalObjectPreservesFirstTypedRefusalAndSuppressesCallbacks",
+    "killed": true,
+    "exit_status": 1
+  },
+  {
+    "name": "domain-admission",
+    "source": "/Users/d/code/primitive/attest/domain.go",
+    "before": "if !validDomainText(text) {",
+    "after": "if false && !validDomainText(text) {",
+    "test_filter": "FuzzSigningDomainAdmission",
+    "killed": true,
+    "exit_status": 1
+  },
+  {
+    "name": "private-key-consistency",
+    "source": "/Users/d/code/primitive/attest/key.go",
+    "before": "if subtle.ConstantTimeCompare(copied[:], derived) != 1 {",
+    "after": "if false && subtle.ConstantTimeCompare(copied[:], derived) != 1 {",
+    "test_filter": "FuzzSignLocalPrivateKey",
+    "killed": true,
+    "exit_status": 1
+  },
+  {
+    "name": "nested-json",
+    "source": "/Users/d/code/primitive/attest/canonical_object.go",
+    "before": "return encoded, validateCanonicalMemberEncoding(encoded)",
+    "after": "return encoded, nil",
+    "test_filter": "FuzzCanonicalObjectNestedMember",
+    "killed": true,
+    "exit_status": 1
+  },
+  {
+    "name": "scalar-allocation",
+    "source": "/Users/d/code/primitive/attest/canonical_object.go",
+    "before": "return o.buffer, nil",
+    "after": "return bytes.Clone(o.buffer), nil",
+    "test_filter": "TestCanonicalObjectReusedScalarsAllocateNoHeap",
+    "killed": true,
+    "exit_status": 1
+  }
+]

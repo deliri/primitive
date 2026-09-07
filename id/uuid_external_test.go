@@ -17,7 +17,7 @@ func testEntropy() []byte {
 	return []byte{0, 0, 0, 0, 0, 0, 0, 0, 0, 1, 0, 0, 0, 0, 0, 0}
 }
 
-func testRequest(t *testing.T, milliseconds int64, entropy []byte) id.Request {
+func testRequest(t testing.TB, milliseconds int64, entropy []byte) id.Request {
 	t.Helper()
 	observation, err := temporal.NewObservation(time.UnixMilli(milliseconds))
 	if err != nil {
@@ -101,7 +101,10 @@ func TestNewUUIDv7IsPureAndConsumesExactlyTenEntropyBytes(t *testing.T) {
 		t.Fatalf("NewUUIDv7 minted %v then %v from one request, want pure construction", first, second)
 	}
 	tailDiffers := testEntropy()
-	for index := 10; index < len(tailDiffers); index++ {
+	for index := range len(tailDiffers) {
+		if index < 10 {
+			continue
+		}
 		tailDiffers[index] = 0x99
 	}
 	third, err := id.NewUUIDv7(testRequest(t, 1, tailDiffers))
@@ -399,7 +402,7 @@ func TestUUIDv7AppendTextIntoSufficientCapacityDoesNotAllocate(t *testing.T) {
 	destination := make([]byte, 0, 64)
 	result := testing.Benchmark(func(b *testing.B) {
 		b.ReportAllocs()
-		for range b.N {
+		for b.Loop() {
 			appended, appendErr := value.AppendText(destination[:0])
 			if appendErr != nil || len(appended) == 0 {
 				b.Fatalf("UUIDv7.AppendText() = (%d bytes, %v), want the spelling and nil", len(appended), appendErr)

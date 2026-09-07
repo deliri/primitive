@@ -1,0 +1,177 @@
+[
+  {
+    "label": "listen-address-before-concrete_ipv4-cpu-analysis",
+    "argv": [
+      "go",
+      "tool",
+      "pprof",
+      "-top",
+      "-nodecount=12",
+      "/Users/d/code/primitive/exchange/testdata/test-upgrade-20260907/listen-address-before-concrete_ipv4.test",
+      "/Users/d/code/primitive/exchange/testdata/test-upgrade-20260907/listen-address-before-concrete_ipv4.cpu.pprof"
+    ]
+  },
+  {
+    "label": "listen-address-before-concrete_ipv4-mem-analysis",
+    "argv": [
+      "go",
+      "tool",
+      "pprof",
+      "-top",
+      "-nodecount=12",
+      "-alloc_space",
+      "/Users/d/code/primitive/exchange/testdata/test-upgrade-20260907/listen-address-before-concrete_ipv4.test",
+      "/Users/d/code/primitive/exchange/testdata/test-upgrade-20260907/listen-address-before-concrete_ipv4.mem.pprof"
+    ]
+  },
+  {
+    "label": "listen-address-after-concrete_ipv4-cpu-analysis",
+    "argv": [
+      "go",
+      "tool",
+      "pprof",
+      "-top",
+      "-nodecount=12",
+      "/Users/d/code/primitive/exchange/testdata/test-upgrade-20260907/listen-address-after-concrete_ipv4.test",
+      "/Users/d/code/primitive/exchange/testdata/test-upgrade-20260907/listen-address-after-concrete_ipv4.cpu.pprof"
+    ]
+  },
+  {
+    "label": "listen-address-after-concrete_ipv4-mem-analysis",
+    "argv": [
+      "go",
+      "tool",
+      "pprof",
+      "-top",
+      "-nodecount=12",
+      "-alloc_space",
+      "/Users/d/code/primitive/exchange/testdata/test-upgrade-20260907/listen-address-after-concrete_ipv4.test",
+      "/Users/d/code/primitive/exchange/testdata/test-upgrade-20260907/listen-address-after-concrete_ipv4.mem.pprof"
+    ]
+  },
+  {
+    "label": "listen-address-before-concrete_mapped_ipv4-cpu-analysis",
+    "argv": [
+      "go",
+      "tool",
+      "pprof",
+      "-top",
+      "-nodecount=12",
+      "/Users/d/code/primitive/exchange/testdata/test-upgrade-20260907/listen-address-before-concrete_mapped_ipv4.test",
+      "/Users/d/code/primitive/exchange/testdata/test-upgrade-20260907/listen-address-before-concrete_mapped_ipv4.cpu.pprof"
+    ]
+  },
+  {
+    "label": "listen-address-before-concrete_mapped_ipv4-mem-analysis",
+    "argv": [
+      "go",
+      "tool",
+      "pprof",
+      "-top",
+      "-nodecount=12",
+      "-alloc_space",
+      "/Users/d/code/primitive/exchange/testdata/test-upgrade-20260907/listen-address-before-concrete_mapped_ipv4.test",
+      "/Users/d/code/primitive/exchange/testdata/test-upgrade-20260907/listen-address-before-concrete_mapped_ipv4.mem.pprof"
+    ]
+  },
+  {
+    "label": "listen-address-after-concrete_mapped_ipv4-cpu-analysis",
+    "argv": [
+      "go",
+      "tool",
+      "pprof",
+      "-top",
+      "-nodecount=12",
+      "/Users/d/code/primitive/exchange/testdata/test-upgrade-20260907/listen-address-after-concrete_mapped_ipv4.test",
+      "/Users/d/code/primitive/exchange/testdata/test-upgrade-20260907/listen-address-after-concrete_mapped_ipv4.cpu.pprof"
+    ]
+  },
+  {
+    "label": "listen-address-after-concrete_mapped_ipv4-mem-analysis",
+    "argv": [
+      "go",
+      "tool",
+      "pprof",
+      "-top",
+      "-nodecount=12",
+      "-alloc_space",
+      "/Users/d/code/primitive/exchange/testdata/test-upgrade-20260907/listen-address-after-concrete_mapped_ipv4.test",
+      "/Users/d/code/primitive/exchange/testdata/test-upgrade-20260907/listen-address-after-concrete_mapped_ipv4.mem.pprof"
+    ]
+  },
+  {
+    "label": "listen-address-after-mapped_wildcard-cpu-analysis",
+    "argv": [
+      "go",
+      "tool",
+      "pprof",
+      "-top",
+      "-nodecount=12",
+      "/Users/d/code/primitive/exchange/testdata/test-upgrade-20260907/listen-address-after-mapped_wildcard.test",
+      "/Users/d/code/primitive/exchange/testdata/test-upgrade-20260907/listen-address-after-mapped_wildcard.cpu.pprof"
+    ]
+  },
+  {
+    "label": "listen-address-after-mapped_wildcard-mem-analysis",
+    "argv": [
+      "go",
+      "tool",
+      "pprof",
+      "-top",
+      "-nodecount=12",
+      "-alloc_space",
+      "/Users/d/code/primitive/exchange/testdata/test-upgrade-20260907/listen-address-after-mapped_wildcard.test",
+      "/Users/d/code/primitive/exchange/testdata/test-upgrade-20260907/listen-address-after-mapped_wildcard.mem.pprof"
+    ]
+  },
+  {
+    "label": "listen-address-after-zoned_wildcard-cpu-analysis",
+    "argv": [
+      "go",
+      "tool",
+      "pprof",
+      "-top",
+      "-nodecount=12",
+      "/Users/d/code/primitive/exchange/testdata/test-upgrade-20260907/listen-address-after-zoned_wildcard.test",
+      "/Users/d/code/primitive/exchange/testdata/test-upgrade-20260907/listen-address-after-zoned_wildcard.cpu.pprof"
+    ]
+  },
+  {
+    "label": "listen-address-after-zoned_wildcard-mem-analysis",
+    "argv": [
+      "go",
+      "tool",
+      "pprof",
+      "-top",
+      "-nodecount=12",
+      "-alloc_space",
+      "/Users/d/code/primitive/exchange/testdata/test-upgrade-20260907/listen-address-after-zoned_wildcard.test",
+      "/Users/d/code/primitive/exchange/testdata/test-upgrade-20260907/listen-address-after-zoned_wildcard.mem.pprof"
+    ]
+  },
+  {
+    "label": "listen-address-after-zoned_mapped_wildcard-cpu-analysis",
+    "argv": [
+      "go",
+      "tool",
+      "pprof",
+      "-top",
+      "-nodecount=12",
+      "/Users/d/code/primitive/exchange/testdata/test-upgrade-20260907/listen-address-after-zoned_mapped_wildcard.test",
+      "/Users/d/code/primitive/exchange/testdata/test-upgrade-20260907/listen-address-after-zoned_mapped_wildcard.cpu.pprof"
+    ]
+  },
+  {
+    "label": "listen-address-after-zoned_mapped_wildcard-mem-analysis",
+    "argv": [
+      "go",
+      "tool",
+      "pprof",
+      "-top",
+      "-nodecount=12",
+      "-alloc_space",
+      "/Users/d/code/primitive/exchange/testdata/test-upgrade-20260907/listen-address-after-zoned_mapped_wildcard.test",
+      "/Users/d/code/primitive/exchange/testdata/test-upgrade-20260907/listen-address-after-zoned_mapped_wildcard.mem.pprof"
+    ]
+  }
+]

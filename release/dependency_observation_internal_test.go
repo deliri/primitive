@@ -64,7 +64,7 @@ func TestDecodeBuildDependenciesLayerTriadPressuresGoListProtocol(t *testing.T) 
 				if !errors.Is(err, tc.wantErr) {
 					t.Fatalf("decodeBuildDependencies() error = %v, want errors.Is(..., %v)", err, tc.wantErr)
 				}
-				if *observed != (dependencyObservation{}) {
+				if observed.main != (GoModulePath{}) || len(observed.modules) != 0 {
 					t.Fatalf("decodeBuildDependencies() = %v, want zero facts on rejection", *observed)
 				}
 				return
@@ -72,10 +72,13 @@ func TestDecodeBuildDependenciesLayerTriadPressuresGoListProtocol(t *testing.T) 
 			if err != nil {
 				t.Fatalf("decodeBuildDependencies() error = %v, want nil", err)
 			}
-			if observed.main.String() != tc.wantMain || observed.count != tc.wantCount {
-				t.Fatalf("decodeBuildDependencies() = (%q, %d modules), want (%q, %d)", observed.main.String(), observed.count, tc.wantMain, tc.wantCount)
+			if observed.main.String() != tc.wantMain || len(observed.modules) != tc.wantCount {
+				t.Fatalf("decodeBuildDependencies() = (%q, %d modules), want (%q, %d)", observed.main.String(), len(observed.modules), tc.wantMain, tc.wantCount)
 			}
-			for index := 1; index < observed.count; index++ {
+			for index := range len(observed.modules) {
+				if index < 1 {
+					continue
+				}
 				if observed.modules[index-1].Path().String() >= observed.modules[index].Path().String() {
 					t.Fatalf("module slots %d and %d are not path-sorted", index-1, index)
 				}
@@ -101,16 +104,16 @@ func TestDecodeBuildDependenciesReplacesThePriorTargetObservation(t *testing.T) 
 	if err := decodeBuildDependencies(strings.NewReader(first), observed); err != nil {
 		t.Fatalf("decodeBuildDependencies(first target) error = %v, want nil", err)
 	}
-	if observed.count != 1 {
-		t.Fatalf("first target module count = %d, want 1", observed.count)
+	if len(observed.modules) != 1 {
+		t.Fatalf("first target module count = %d, want 1", len(observed.modules))
 	}
 	second := goListPackageFixture(mainPath, "", "", true)
 	if err := decodeBuildDependencies(strings.NewReader(second), observed); err != nil {
 		t.Fatalf("decodeBuildDependencies(second target) error = %v, want nil", err)
 	}
-	if observed.main.String() != mainPath || observed.count != 0 {
+	if observed.main.String() != mainPath || len(observed.modules) != 0 {
 		t.Fatalf("second target observation = (%q, %d modules), want (%q, 0)",
-			observed.main.String(), observed.count, mainPath)
+			observed.main.String(), len(observed.modules), mainPath)
 	}
 }
 

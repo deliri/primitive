@@ -243,7 +243,10 @@ func addAtomicDoorSeed[T comparableRunProtocolJSON](f *testing.F, door runProtoc
 
 func addEnumDoorSeeds[T comparableRunProtocolJSON](f *testing.F, door runProtocolJSONDoor, limit uint8, construct func(uint8) T) {
 	f.Helper()
-	for value := uint8(1); value < limit; value++ {
+	for value := range limit {
+		if value < uint8(1) {
+			continue
+		}
 		addAtomicDoorSeed(f, door, construct(value))
 	}
 }

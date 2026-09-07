@@ -1,0 +1,89 @@
+{
+  "scope": "Copy/timing slice only; author-side integrity check, not independent acceptance or whole-package manifest.",
+  "records": [
+    {
+      "label": "copy-dispatch-before-ratchet",
+      "exit_status": 1,
+      "checked_refs": 247,
+      "faults": []
+    },
+    {
+      "label": "copy-dispatch-before-ratchet-v2",
+      "exit_status": 0,
+      "checked_refs": 247,
+      "faults": []
+    },
+    {
+      "label": "exchange-copy-stdlib-checkpoint-06",
+      "exit_status": 0,
+      "checked_refs": 248,
+      "faults": []
+    },
+    {
+      "label": "fuzz-copy-stdlib-receive-stream-custody",
+      "exit_status": 0,
+      "checked_refs": 247,
+      "faults": []
+    },
+    {
+      "label": "timing-repair-final-allocation-analysis",
+      "exit_status": 0,
+      "checked_refs": 247,
+      "faults": []
+    },
+    {
+      "label": "timing-repair-final-cpu-analysis",
+      "exit_status": 0,
+      "checked_refs": 247,
+      "faults": []
+    },
+    {
+      "label": "timing-repair-reference-1",
+      "exit_status": 0,
+      "checked_refs": 253,
+      "faults": []
+    },
+    {
+      "label": "timing-repair-repaired-1",
+      "exit_status": 0,
+      "checked_refs": 250,
+      "faults": []
+    },
+    {
+      "label": "timing-repair-repaired-2",
+      "exit_status": 0,
+      "checked_refs": 250,
+      "faults": []
+    },
+    {
+      "label": "timing-repair-reference-2",
+      "exit_status": 0,
+      "checked_refs": 253,
+      "faults": []
+    },
+    {
+      "label": "mutation-copy-hide-readerfrom",
+      "exit_status": 1,
+      "checked_refs": 249,
+      "faults": []
+    },
+    {
+      "label": "mutation-copy-bypass-limit",
+      "exit_status": 1,
+      "checked_refs": 249,
+      "faults": []
+    },
+    {
+      "label": "mutation-copy-bypass-accounting-reader",
+      "exit_status": 1,
+      "checked_refs": 249,
+      "faults": []
+    },
+    {
+      "label": "mutation-copy-drop-acknowledged-count",
+      "exit_status": 1,
+      "checked_refs": 249,
+      "faults": []
+    }
+  ]
+}

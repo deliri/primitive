@@ -784,7 +784,10 @@ func TestCoreExternalIngressFuzzInventoryMatchesProduction(t *testing.T) {
 		t.Fatalf("coreExportedJSONReceiverNames() error = %v, want nil", err)
 	}
 	var wantJSON []string
-	for door := coreJSONDoorUnknown + 1; door < coreJSONDoorLimit; door++ {
+	for door := range coreJSONDoorLimit {
+		if door < coreJSONDoorUnknown+1 {
+			continue
+		}
 		wantJSON = append(wantJSON, door.receiverName())
 	}
 	slices.Sort(wantJSON)

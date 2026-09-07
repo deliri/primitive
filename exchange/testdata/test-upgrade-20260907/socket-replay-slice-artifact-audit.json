@@ -1,0 +1,113 @@
+{
+  "scope": "Socket-wire and replay-cancellation slices only. Author-side integrity audit; not independent acceptance or final package manifest.",
+  "records": [
+    {
+      "label": "socket-custody-exact-wire-ratchet",
+      "exit_status": 0,
+      "checked_refs": 247,
+      "faults": []
+    },
+    {
+      "label": "mutation-socket-body-substitution-prior-test",
+      "exit_status": 0,
+      "checked_refs": 250,
+      "faults": []
+    },
+    {
+      "label": "mutation-socket-body-substitution-upgraded-test",
+      "exit_status": 1,
+      "checked_refs": 249,
+      "faults": []
+    },
+    {
+      "label": "red-replay-handoff-cancellation-causes",
+      "exit_status": 1,
+      "checked_refs": 247,
+      "faults": []
+    },
+    {
+      "label": "green-replay-handoff-cancellation-causes",
+      "exit_status": 0,
+      "checked_refs": 247,
+      "faults": []
+    },
+    {
+      "label": "replay-producer-fuzz-semantic-seeds",
+      "exit_status": 1,
+      "checked_refs": 248,
+      "faults": []
+    },
+    {
+      "label": "replay-producer-fuzz-semantic-seeds-v2",
+      "exit_status": 0,
+      "checked_refs": 248,
+      "faults": []
+    },
+    {
+      "label": "exchange-replay-socket-checkpoint-07",
+      "exit_status": 0,
+      "checked_refs": 250,
+      "faults": []
+    },
+    {
+      "label": "fuzz-replay-download-observation",
+      "exit_status": 0,
+      "checked_refs": 249,
+      "faults": []
+    },
+    {
+      "label": "mutation-replay-cancel-drops-producer",
+      "exit_status": 1,
+      "checked_refs": 250,
+      "faults": []
+    },
+    {
+      "label": "mutation-replay-cancel-loses-precedence",
+      "exit_status": 1,
+      "checked_refs": 250,
+      "faults": []
+    },
+    {
+      "label": "mutation-replay-substitutes-valid-byte-count",
+      "exit_status": 1,
+      "checked_refs": 250,
+      "faults": []
+    },
+    {
+      "label": "mutation-replay-invents-extra-attempt",
+      "exit_status": 1,
+      "checked_refs": 250,
+      "faults": []
+    },
+    {
+      "label": "mutation-replay-refuses-every-observation",
+      "exit_status": 1,
+      "checked_refs": 250,
+      "faults": []
+    },
+    {
+      "label": "replay-handoff-before-binary_success",
+      "exit_status": 0,
+      "checked_refs": 254,
+      "faults": []
+    },
+    {
+      "label": "replay-handoff-before-cancelled_native_read_failure",
+      "exit_status": 1,
+      "checked_refs": 254,
+      "faults": []
+    },
+    {
+      "label": "replay-handoff-after-binary_success",
+      "exit_status": 0,
+      "checked_refs": 252,
+      "faults": []
+    },
+    {
+      "label": "replay-handoff-after-cancelled_native_read_failure",
+      "exit_status": 0,
+      "checked_refs": 252,
+      "faults": []
+    }
+  ]
+}

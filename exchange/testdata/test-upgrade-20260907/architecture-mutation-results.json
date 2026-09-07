@@ -1,0 +1,83 @@
+[
+  {
+    "label": "architecture-ignores-function-scope",
+    "before": "!slices.Contains(scope.shadowed, typed.Name) && rawHTTPIdentifier",
+    "after": "rawHTTPIdentifier",
+    "outcome": "killed by fixture verdict",
+    "failed_rows": [
+      "TestRawHTTPArchitectureBindingTable/generic_carrier_parameter_shadows_a_package_raw_alias",
+      "TestRawHTTPArchitectureBindingTable/function_type_parameter_shadows_a_dot_imported_request",
+      "TestRawHTTPArchitectureBindingTable/generic_carrier_parameter_shadows_a_dot_imported_writer",
+      "TestRawHTTPArchitectureBindingTable/function_type_parameter_shadows_a_package_raw_alias",
+      "TestRawHTTPArchitectureBindingTable/cross-file_generic_declaration_owns_its_parameter_scope"
+    ],
+    "evidence": "mutation-architecture-ignores-function-scope.json"
+  },
+  {
+    "label": "architecture-inherits-caller-scope",
+    "before": "rawHTTPTypeScope{visiting: append(scope.visiting, specification)}",
+    "after": "rawHTTPTypeScope{visiting: append(scope.visiting, specification), shadowed: scope.shadowed}",
+    "outcome": "killed by fixture verdict",
+    "failed_rows": [
+      "TestRawHTTPArchitectureBindingTable/caller_type_parameter_cannot_alter_a_package_carrier_binding"
+    ],
+    "evidence": "mutation-architecture-inherits-caller-scope.json"
+  },
+  {
+    "label": "architecture-ignores-carrier-parameters",
+    "before": "declarationScope.withTypeParameters(specification.TypeParams)",
+    "after": "declarationScope",
+    "outcome": "killed by fixture verdict",
+    "failed_rows": [
+      "TestRawHTTPArchitectureBindingTable/generic_carrier_parameter_shadows_a_package_raw_alias",
+      "TestRawHTTPArchitectureBindingTable/cross-file_generic_declaration_owns_its_parameter_scope",
+      "TestRawHTTPArchitectureBindingTable/generic_carrier_parameter_shadows_a_dot_imported_writer"
+    ],
+    "evidence": "mutation-architecture-ignores-carrier-parameters.json"
+  },
+  {
+    "label": "architecture-uses-caller-imports",
+    "before": "rawHTTPType(binding.file, specification.Type, bindings,",
+    "after": "rawHTTPType(file, specification.Type, bindings,",
+    "outcome": "killed by fixture verdict",
+    "failed_rows": [
+      "TestRawHTTPArchitectureBindingTable/cross-file_alias_resolves_imports_at_its_declaration"
+    ],
+    "evidence": "mutation-architecture-uses-caller-imports.json"
+  },
+  {
+    "label": "architecture-skips-alias-carriers",
+    "before": "return rawHTTPType(binding.file, specification.Type, bindings, declarationScope.withTypeParameters(specification.TypeParams))",
+    "after": "_ = declarationScope\n\t\treturn false",
+    "outcome": "killed by fixture verdict",
+    "failed_rows": [
+      "TestRawHTTPArchitectureBindingTable/caller_type_parameter_cannot_alter_a_package_carrier_binding",
+      "TestRawHTTPArchitectureBindingTable/parameter_scope_cannot_hide_a_distinct_raw_field",
+      "TestRawHTTPArchitectureBindingTable/cross-file_alias_resolves_imports_at_its_declaration",
+      "TestRawHTTPArchitectureBindingTable/named_embedded_carrier_cannot_hide_raw_request",
+      "TestRawHTTPArchitectureBindingTable/recursive_carrier_still_exposes_its_raw_writer_sibling",
+      "TestRawHTTPArchitectureBindingTable/chained_aliases_preserve_original_package_ownership",
+      "TestRawHTTPArchitectureBindingTable/defined_request_carrier_cannot_hide_raw_ownership",
+      "TestRawHTTPArchitectureBindingTable/pointer_alias_cannot_hide_raw_ownership"
+    ],
+    "evidence": "mutation-architecture-skips-alias-carriers.json"
+  },
+  {
+    "label": "architecture-classifies-neutral-cycle-as-http",
+    "before": "if slices.Contains(scope.visiting, specification) {\n\t\t\treturn false",
+    "after": "if slices.Contains(scope.visiting, specification) {\n\t\t\treturn true",
+    "outcome": "killed by fixture verdict",
+    "failed_rows": [
+      "TestRawHTTPArchitectureBindingTable/neutral_recursive_carrier_without_raw_HTTP_terminates"
+    ],
+    "evidence": "mutation-architecture-classifies-neutral-cycle-as-http.json"
+  },
+  {
+    "label": "architecture-interprets-parameter-label-as-type",
+    "before": "found = rawHTTPType(file, typed.Type, bindings, scope)\n\t\t\treturn false\n\t\tcase *ast.ArrayType:",
+    "after": "for _, name := range typed.Names {\n\t\t\t\tif rawHTTPIdentifier(file, name.Name, bindings, scope) { found = true; return false }\n\t\t\t}\n\t\t\tfound = rawHTTPType(file, typed.Type, bindings, scope)\n\t\t\treturn false\n\t\tcase *ast.ArrayType:",
+    "outcome": "survived",
+    "failed_rows": [],
+    "evidence": "mutation-architecture-interprets-parameter-label-as-type.json"
+  }
+]

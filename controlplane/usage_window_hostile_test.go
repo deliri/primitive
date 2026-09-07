@@ -84,9 +84,9 @@ func repeatedOutcomes(entries int) []controlplane.OutcomeCount {
 // legal list: the classes are closed and the list is strictly ascending.
 func fullUnitLadder() []controlplane.UsageCount {
 	counts := make([]controlplane.UsageCount, 0, controlplane.UsageClassMaximum)
-	for ordinal := 1; ordinal <= controlplane.UsageClassMaximum; ordinal++ {
+	for ordinal := range controlplane.UsageClassMaximum {
 		counts = append(counts, controlplane.UsageCount{
-			Class: controlplane.UsageClass(ordinal), Count: 1,
+			Class: controlplane.UsageClass(ordinal + 1), Count: 1,
 		})
 	}
 	return counts
@@ -94,9 +94,9 @@ func fullUnitLadder() []controlplane.UsageCount {
 
 func fullOutcomeLadder() []controlplane.OutcomeCount {
 	counts := make([]controlplane.OutcomeCount, 0, controlplane.OutcomeClassMaximum)
-	for ordinal := 1; ordinal <= controlplane.OutcomeClassMaximum; ordinal++ {
+	for ordinal := range controlplane.OutcomeClassMaximum {
 		counts = append(counts, controlplane.OutcomeCount{
-			Class: controlplane.OutcomeClass(ordinal), Count: 1,
+			Class: controlplane.OutcomeClass(ordinal + 1), Count: 1,
 		})
 	}
 	return counts
@@ -550,7 +550,7 @@ func TestUsageWindowRoundTripCanonicalizesAbsentAndEmptyLists(t *testing.T) {
 func TestNewUsageClassAdmitsExactlyTheOrdinalsValidateAdmits(t *testing.T) {
 	t.Parallel()
 
-	for ordinal := 0; ordinal <= maximumByteOrdinal; ordinal++ {
+	for ordinal := range maximumByteOrdinal + 1 {
 		want := ordinal >= 1 && ordinal <= controlplane.UsageClassMaximum
 		class, err := controlplane.NewUsageClass(uint8(ordinal))
 		if got := err == nil; got != want {
@@ -576,7 +576,7 @@ func TestNewUsageClassAdmitsExactlyTheOrdinalsValidateAdmits(t *testing.T) {
 func TestNewOutcomeClassAdmitsExactlyTheOrdinalsValidateAdmits(t *testing.T) {
 	t.Parallel()
 
-	for ordinal := 0; ordinal <= maximumByteOrdinal; ordinal++ {
+	for ordinal := range maximumByteOrdinal + 1 {
 		want := ordinal >= 1 && ordinal <= controlplane.OutcomeClassMaximum
 		class, err := controlplane.NewOutcomeClass(uint8(ordinal))
 		if got := err == nil; got != want {

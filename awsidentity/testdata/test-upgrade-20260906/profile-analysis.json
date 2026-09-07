@@ -1,0 +1,942 @@
+[
+  {
+    "execution": "after-temporal-RFC3339.json",
+    "argv": [
+      "go",
+      "tool",
+      "pprof",
+      "-top",
+      "-nodecount=15",
+      "/Users/d/code/primitive/awsidentity/testdata/test-upgrade-20260906/after-temporal-RFC3339.test",
+      "/Users/d/code/primitive/awsidentity/testdata/test-upgrade-20260906/after-temporal-RFC3339.cpu.pprof"
+    ],
+    "exit_status": 0,
+    "stdout": "after-temporal-RFC3339.cpu.top.txt",
+    "stderr": "after-temporal-RFC3339.cpu.top.stderr.txt"
+  },
+  {
+    "execution": "after-temporal-RFC3339.json",
+    "argv": [
+      "go",
+      "tool",
+      "pprof",
+      "-top",
+      "-nodecount=15",
+      "-alloc_space",
+      "/Users/d/code/primitive/awsidentity/testdata/test-upgrade-20260906/after-temporal-RFC3339.test",
+      "/Users/d/code/primitive/awsidentity/testdata/test-upgrade-20260906/after-temporal-RFC3339.mem.pprof"
+    ],
+    "exit_status": 0,
+    "stdout": "after-temporal-RFC3339.alloc-space.top.txt",
+    "stderr": "after-temporal-RFC3339.alloc-space.top.stderr.txt"
+  },
+  {
+    "execution": "after-temporal-RFC3339.json",
+    "argv": [
+      "go",
+      "tool",
+      "pprof",
+      "-top",
+      "-nodecount=15",
+      "-alloc_objects",
+      "/Users/d/code/primitive/awsidentity/testdata/test-upgrade-20260906/after-temporal-RFC3339.test",
+      "/Users/d/code/primitive/awsidentity/testdata/test-upgrade-20260906/after-temporal-RFC3339.mem.pprof"
+    ],
+    "exit_status": 0,
+    "stdout": "after-temporal-RFC3339.alloc-objects.top.txt",
+    "stderr": "after-temporal-RFC3339.alloc-objects.top.stderr.txt"
+  },
+  {
+    "execution": "after-temporal-UTC.json",
+    "argv": [
+      "go",
+      "tool",
+      "pprof",
+      "-top",
+      "-nodecount=15",
+      "/Users/d/code/primitive/awsidentity/testdata/test-upgrade-20260906/after-temporal-UTC.test",
+      "/Users/d/code/primitive/awsidentity/testdata/test-upgrade-20260906/after-temporal-UTC.cpu.pprof"
+    ],
+    "exit_status": 0,
+    "stdout": "after-temporal-UTC.cpu.top.txt",
+    "stderr": "after-temporal-UTC.cpu.top.stderr.txt"
+  },
+  {
+    "execution": "after-temporal-UTC.json",
+    "argv": [
+      "go",
+      "tool",
+      "pprof",
+      "-top",
+      "-nodecount=15",
+      "-alloc_space",
+      "/Users/d/code/primitive/awsidentity/testdata/test-upgrade-20260906/after-temporal-UTC.test",
+      "/Users/d/code/primitive/awsidentity/testdata/test-upgrade-20260906/after-temporal-UTC.mem.pprof"
+    ],
+    "exit_status": 0,
+    "stdout": "after-temporal-UTC.alloc-space.top.txt",
+    "stderr": "after-temporal-UTC.alloc-space.top.stderr.txt"
+  },
+  {
+    "execution": "after-temporal-UTC.json",
+    "argv": [
+      "go",
+      "tool",
+      "pprof",
+      "-top",
+      "-nodecount=15",
+      "-alloc_objects",
+      "/Users/d/code/primitive/awsidentity/testdata/test-upgrade-20260906/after-temporal-UTC.test",
+      "/Users/d/code/primitive/awsidentity/testdata/test-upgrade-20260906/after-temporal-UTC.mem.pprof"
+    ],
+    "exit_status": 0,
+    "stdout": "after-temporal-UTC.alloc-objects.top.txt",
+    "stderr": "after-temporal-UTC.alloc-objects.top.stderr.txt"
+  },
+  {
+    "execution": "after-temporal-compact.json",
+    "argv": [
+      "go",
+      "tool",
+      "pprof",
+      "-top",
+      "-nodecount=15",
+      "/Users/d/code/primitive/awsidentity/testdata/test-upgrade-20260906/after-temporal-compact.test",
+      "/Users/d/code/primitive/awsidentity/testdata/test-upgrade-20260906/after-temporal-compact.cpu.pprof"
+    ],
+    "exit_status": 0,
+    "stdout": "after-temporal-compact.cpu.top.txt",
+    "stderr": "after-temporal-compact.cpu.top.stderr.txt"
+  },
+  {
+    "execution": "after-temporal-compact.json",
+    "argv": [
+      "go",
+      "tool",
+      "pprof",
+      "-top",
+      "-nodecount=15",
+      "-alloc_space",
+      "/Users/d/code/primitive/awsidentity/testdata/test-upgrade-20260906/after-temporal-compact.test",
+      "/Users/d/code/primitive/awsidentity/testdata/test-upgrade-20260906/after-temporal-compact.mem.pprof"
+    ],
+    "exit_status": 0,
+    "stdout": "after-temporal-compact.alloc-space.top.txt",
+    "stderr": "after-temporal-compact.alloc-space.top.stderr.txt"
+  },
+  {
+    "execution": "after-temporal-compact.json",
+    "argv": [
+      "go",
+      "tool",
+      "pprof",
+      "-top",
+      "-nodecount=15",
+      "-alloc_objects",
+      "/Users/d/code/primitive/awsidentity/testdata/test-upgrade-20260906/after-temporal-compact.test",
+      "/Users/d/code/primitive/awsidentity/testdata/test-upgrade-20260906/after-temporal-compact.mem.pprof"
+    ],
+    "exit_status": 0,
+    "stdout": "after-temporal-compact.alloc-objects.top.txt",
+    "stderr": "after-temporal-compact.alloc-objects.top.stderr.txt"
+  },
+  {
+    "execution": "baseline-BenchmarkParseAudience.json",
+    "argv": [
+      "go",
+      "tool",
+      "pprof",
+      "-top",
+      "-nodecount=15",
+      "/Users/d/code/primitive/awsidentity/testdata/test-upgrade-20260906/baseline-BenchmarkParseAudience.test",
+      "/Users/d/code/primitive/awsidentity/testdata/test-upgrade-20260906/baseline-BenchmarkParseAudience.cpu.pprof"
+    ],
+    "exit_status": 0,
+    "stdout": "baseline-BenchmarkParseAudience.cpu.top.txt",
+    "stderr": "baseline-BenchmarkParseAudience.cpu.top.stderr.txt"
+  },
+  {
+    "execution": "baseline-BenchmarkParseAudience.json",
+    "argv": [
+      "go",
+      "tool",
+      "pprof",
+      "-top",
+      "-nodecount=15",
+      "-alloc_space",
+      "/Users/d/code/primitive/awsidentity/testdata/test-upgrade-20260906/baseline-BenchmarkParseAudience.test",
+      "/Users/d/code/primitive/awsidentity/testdata/test-upgrade-20260906/baseline-BenchmarkParseAudience.mem.pprof"
+    ],
+    "exit_status": 0,
+    "stdout": "baseline-BenchmarkParseAudience.alloc-space.top.txt",
+    "stderr": "baseline-BenchmarkParseAudience.alloc-space.top.stderr.txt"
+  },
+  {
+    "execution": "baseline-BenchmarkParseAudience.json",
+    "argv": [
+      "go",
+      "tool",
+      "pprof",
+      "-top",
+      "-nodecount=15",
+      "-alloc_objects",
+      "/Users/d/code/primitive/awsidentity/testdata/test-upgrade-20260906/baseline-BenchmarkParseAudience.test",
+      "/Users/d/code/primitive/awsidentity/testdata/test-upgrade-20260906/baseline-BenchmarkParseAudience.mem.pprof"
+    ],
+    "exit_status": 0,
+    "stdout": "baseline-BenchmarkParseAudience.alloc-objects.top.txt",
+    "stderr": "baseline-BenchmarkParseAudience.alloc-objects.top.stderr.txt"
+  },
+  {
+    "execution": "baseline-temporal-RFC3339.json",
+    "argv": [
+      "go",
+      "tool",
+      "pprof",
+      "-top",
+      "-nodecount=15",
+      "/Users/d/code/primitive/awsidentity/testdata/test-upgrade-20260906/baseline-temporal-RFC3339.test",
+      "/Users/d/code/primitive/awsidentity/testdata/test-upgrade-20260906/baseline-temporal-RFC3339.cpu.pprof"
+    ],
+    "exit_status": 0,
+    "stdout": "baseline-temporal-RFC3339.cpu.top.txt",
+    "stderr": "baseline-temporal-RFC3339.cpu.top.stderr.txt"
+  },
+  {
+    "execution": "baseline-temporal-RFC3339.json",
+    "argv": [
+      "go",
+      "tool",
+      "pprof",
+      "-top",
+      "-nodecount=15",
+      "-alloc_space",
+      "/Users/d/code/primitive/awsidentity/testdata/test-upgrade-20260906/baseline-temporal-RFC3339.test",
+      "/Users/d/code/primitive/awsidentity/testdata/test-upgrade-20260906/baseline-temporal-RFC3339.mem.pprof"
+    ],
+    "exit_status": 0,
+    "stdout": "baseline-temporal-RFC3339.alloc-space.top.txt",
+    "stderr": "baseline-temporal-RFC3339.alloc-space.top.stderr.txt"
+  },
+  {
+    "execution": "baseline-temporal-RFC3339.json",
+    "argv": [
+      "go",
+      "tool",
+      "pprof",
+      "-top",
+      "-nodecount=15",
+      "-alloc_objects",
+      "/Users/d/code/primitive/awsidentity/testdata/test-upgrade-20260906/baseline-temporal-RFC3339.test",
+      "/Users/d/code/primitive/awsidentity/testdata/test-upgrade-20260906/baseline-temporal-RFC3339.mem.pprof"
+    ],
+    "exit_status": 0,
+    "stdout": "baseline-temporal-RFC3339.alloc-objects.top.txt",
+    "stderr": "baseline-temporal-RFC3339.alloc-objects.top.stderr.txt"
+  },
+  {
+    "execution": "proposed-after-acquire-seam.json",
+    "argv": [
+      "go",
+      "tool",
+      "pprof",
+      "-top",
+      "-nodecount=15",
+      "/Users/d/code/primitive/awsidentity/testdata/test-upgrade-20260906/proposed-after-acquire-seam.test",
+      "/Users/d/code/primitive/awsidentity/testdata/test-upgrade-20260906/proposed-after-acquire-seam.cpu.pprof"
+    ],
+    "exit_status": 0,
+    "stdout": "proposed-after-acquire-seam.cpu.top.txt",
+    "stderr": "proposed-after-acquire-seam.cpu.top.stderr.txt"
+  },
+  {
+    "execution": "proposed-after-acquire-seam.json",
+    "argv": [
+      "go",
+      "tool",
+      "pprof",
+      "-top",
+      "-nodecount=15",
+      "-alloc_space",
+      "/Users/d/code/primitive/awsidentity/testdata/test-upgrade-20260906/proposed-after-acquire-seam.test",
+      "/Users/d/code/primitive/awsidentity/testdata/test-upgrade-20260906/proposed-after-acquire-seam.mem.pprof"
+    ],
+    "exit_status": 0,
+    "stdout": "proposed-after-acquire-seam.alloc-space.top.txt",
+    "stderr": "proposed-after-acquire-seam.alloc-space.top.stderr.txt"
+  },
+  {
+    "execution": "proposed-after-acquire-seam.json",
+    "argv": [
+      "go",
+      "tool",
+      "pprof",
+      "-top",
+      "-nodecount=15",
+      "-alloc_objects",
+      "/Users/d/code/primitive/awsidentity/testdata/test-upgrade-20260906/proposed-after-acquire-seam.test",
+      "/Users/d/code/primitive/awsidentity/testdata/test-upgrade-20260906/proposed-after-acquire-seam.mem.pprof"
+    ],
+    "exit_status": 0,
+    "stdout": "proposed-after-acquire-seam.alloc-objects.top.txt",
+    "stderr": "proposed-after-acquire-seam.alloc-objects.top.stderr.txt"
+  },
+  {
+    "execution": "proposed-after-audience-max.json",
+    "argv": [
+      "go",
+      "tool",
+      "pprof",
+      "-top",
+      "-nodecount=15",
+      "/Users/d/code/primitive/awsidentity/testdata/test-upgrade-20260906/proposed-after-audience-max.test",
+      "/Users/d/code/primitive/awsidentity/testdata/test-upgrade-20260906/proposed-after-audience-max.cpu.pprof"
+    ],
+    "exit_status": 0,
+    "stdout": "proposed-after-audience-max.cpu.top.txt",
+    "stderr": "proposed-after-audience-max.cpu.top.stderr.txt"
+  },
+  {
+    "execution": "proposed-after-audience-max.json",
+    "argv": [
+      "go",
+      "tool",
+      "pprof",
+      "-top",
+      "-nodecount=15",
+      "-alloc_space",
+      "/Users/d/code/primitive/awsidentity/testdata/test-upgrade-20260906/proposed-after-audience-max.test",
+      "/Users/d/code/primitive/awsidentity/testdata/test-upgrade-20260906/proposed-after-audience-max.mem.pprof"
+    ],
+    "exit_status": 0,
+    "stdout": "proposed-after-audience-max.alloc-space.top.txt",
+    "stderr": "proposed-after-audience-max.alloc-space.top.stderr.txt"
+  },
+  {
+    "execution": "proposed-after-audience-max.json",
+    "argv": [
+      "go",
+      "tool",
+      "pprof",
+      "-top",
+      "-nodecount=15",
+      "-alloc_objects",
+      "/Users/d/code/primitive/awsidentity/testdata/test-upgrade-20260906/proposed-after-audience-max.test",
+      "/Users/d/code/primitive/awsidentity/testdata/test-upgrade-20260906/proposed-after-audience-max.mem.pprof"
+    ],
+    "exit_status": 0,
+    "stdout": "proposed-after-audience-max.alloc-objects.top.txt",
+    "stderr": "proposed-after-audience-max.alloc-objects.top.stderr.txt"
+  },
+  {
+    "execution": "proposed-after-audience.json",
+    "argv": [
+      "go",
+      "tool",
+      "pprof",
+      "-top",
+      "-nodecount=15",
+      "/Users/d/code/primitive/awsidentity/testdata/test-upgrade-20260906/proposed-after-audience.test",
+      "/Users/d/code/primitive/awsidentity/testdata/test-upgrade-20260906/proposed-after-audience.cpu.pprof"
+    ],
+    "exit_status": 0,
+    "stdout": "proposed-after-audience.cpu.top.txt",
+    "stderr": "proposed-after-audience.cpu.top.stderr.txt"
+  },
+  {
+    "execution": "proposed-after-audience.json",
+    "argv": [
+      "go",
+      "tool",
+      "pprof",
+      "-top",
+      "-nodecount=15",
+      "-alloc_space",
+      "/Users/d/code/primitive/awsidentity/testdata/test-upgrade-20260906/proposed-after-audience.test",
+      "/Users/d/code/primitive/awsidentity/testdata/test-upgrade-20260906/proposed-after-audience.mem.pprof"
+    ],
+    "exit_status": 0,
+    "stdout": "proposed-after-audience.alloc-space.top.txt",
+    "stderr": "proposed-after-audience.alloc-space.top.stderr.txt"
+  },
+  {
+    "execution": "proposed-after-audience.json",
+    "argv": [
+      "go",
+      "tool",
+      "pprof",
+      "-top",
+      "-nodecount=15",
+      "-alloc_objects",
+      "/Users/d/code/primitive/awsidentity/testdata/test-upgrade-20260906/proposed-after-audience.test",
+      "/Users/d/code/primitive/awsidentity/testdata/test-upgrade-20260906/proposed-after-audience.mem.pprof"
+    ],
+    "exit_status": 0,
+    "stdout": "proposed-after-audience.alloc-objects.top.txt",
+    "stderr": "proposed-after-audience.alloc-objects.top.stderr.txt"
+  },
+  {
+    "execution": "proposed-after-bearer-max.json",
+    "argv": [
+      "go",
+      "tool",
+      "pprof",
+      "-top",
+      "-nodecount=15",
+      "/Users/d/code/primitive/awsidentity/testdata/test-upgrade-20260906/proposed-after-bearer-max.test",
+      "/Users/d/code/primitive/awsidentity/testdata/test-upgrade-20260906/proposed-after-bearer-max.cpu.pprof"
+    ],
+    "exit_status": 0,
+    "stdout": "proposed-after-bearer-max.cpu.top.txt",
+    "stderr": "proposed-after-bearer-max.cpu.top.stderr.txt"
+  },
+  {
+    "execution": "proposed-after-bearer-max.json",
+    "argv": [
+      "go",
+      "tool",
+      "pprof",
+      "-top",
+      "-nodecount=15",
+      "-alloc_space",
+      "/Users/d/code/primitive/awsidentity/testdata/test-upgrade-20260906/proposed-after-bearer-max.test",
+      "/Users/d/code/primitive/awsidentity/testdata/test-upgrade-20260906/proposed-after-bearer-max.mem.pprof"
+    ],
+    "exit_status": 0,
+    "stdout": "proposed-after-bearer-max.alloc-space.top.txt",
+    "stderr": "proposed-after-bearer-max.alloc-space.top.stderr.txt"
+  },
+  {
+    "execution": "proposed-after-bearer-max.json",
+    "argv": [
+      "go",
+      "tool",
+      "pprof",
+      "-top",
+      "-nodecount=15",
+      "-alloc_objects",
+      "/Users/d/code/primitive/awsidentity/testdata/test-upgrade-20260906/proposed-after-bearer-max.test",
+      "/Users/d/code/primitive/awsidentity/testdata/test-upgrade-20260906/proposed-after-bearer-max.mem.pprof"
+    ],
+    "exit_status": 0,
+    "stdout": "proposed-after-bearer-max.alloc-objects.top.txt",
+    "stderr": "proposed-after-bearer-max.alloc-objects.top.stderr.txt"
+  },
+  {
+    "execution": "proposed-after-bearer-min.json",
+    "argv": [
+      "go",
+      "tool",
+      "pprof",
+      "-top",
+      "-nodecount=15",
+      "/Users/d/code/primitive/awsidentity/testdata/test-upgrade-20260906/proposed-after-bearer-min.test",
+      "/Users/d/code/primitive/awsidentity/testdata/test-upgrade-20260906/proposed-after-bearer-min.cpu.pprof"
+    ],
+    "exit_status": 0,
+    "stdout": "proposed-after-bearer-min.cpu.top.txt",
+    "stderr": "proposed-after-bearer-min.cpu.top.stderr.txt"
+  },
+  {
+    "execution": "proposed-after-bearer-min.json",
+    "argv": [
+      "go",
+      "tool",
+      "pprof",
+      "-top",
+      "-nodecount=15",
+      "-alloc_space",
+      "/Users/d/code/primitive/awsidentity/testdata/test-upgrade-20260906/proposed-after-bearer-min.test",
+      "/Users/d/code/primitive/awsidentity/testdata/test-upgrade-20260906/proposed-after-bearer-min.mem.pprof"
+    ],
+    "exit_status": 0,
+    "stdout": "proposed-after-bearer-min.alloc-space.top.txt",
+    "stderr": "proposed-after-bearer-min.alloc-space.top.stderr.txt"
+  },
+  {
+    "execution": "proposed-after-bearer-min.json",
+    "argv": [
+      "go",
+      "tool",
+      "pprof",
+      "-top",
+      "-nodecount=15",
+      "-alloc_objects",
+      "/Users/d/code/primitive/awsidentity/testdata/test-upgrade-20260906/proposed-after-bearer-min.test",
+      "/Users/d/code/primitive/awsidentity/testdata/test-upgrade-20260906/proposed-after-bearer-min.mem.pprof"
+    ],
+    "exit_status": 0,
+    "stdout": "proposed-after-bearer-min.alloc-objects.top.txt",
+    "stderr": "proposed-after-bearer-min.alloc-objects.top.stderr.txt"
+  },
+  {
+    "execution": "proposed-after-request.json",
+    "argv": [
+      "go",
+      "tool",
+      "pprof",
+      "-top",
+      "-nodecount=15",
+      "/Users/d/code/primitive/awsidentity/testdata/test-upgrade-20260906/proposed-after-request.test",
+      "/Users/d/code/primitive/awsidentity/testdata/test-upgrade-20260906/proposed-after-request.cpu.pprof"
+    ],
+    "exit_status": 0,
+    "stdout": "proposed-after-request.cpu.top.txt",
+    "stderr": "proposed-after-request.cpu.top.stderr.txt"
+  },
+  {
+    "execution": "proposed-after-request.json",
+    "argv": [
+      "go",
+      "tool",
+      "pprof",
+      "-top",
+      "-nodecount=15",
+      "-alloc_space",
+      "/Users/d/code/primitive/awsidentity/testdata/test-upgrade-20260906/proposed-after-request.test",
+      "/Users/d/code/primitive/awsidentity/testdata/test-upgrade-20260906/proposed-after-request.mem.pprof"
+    ],
+    "exit_status": 0,
+    "stdout": "proposed-after-request.alloc-space.top.txt",
+    "stderr": "proposed-after-request.alloc-space.top.stderr.txt"
+  },
+  {
+    "execution": "proposed-after-request.json",
+    "argv": [
+      "go",
+      "tool",
+      "pprof",
+      "-top",
+      "-nodecount=15",
+      "-alloc_objects",
+      "/Users/d/code/primitive/awsidentity/testdata/test-upgrade-20260906/proposed-after-request.test",
+      "/Users/d/code/primitive/awsidentity/testdata/test-upgrade-20260906/proposed-after-request.mem.pprof"
+    ],
+    "exit_status": 0,
+    "stdout": "proposed-after-request.alloc-objects.top.txt",
+    "stderr": "proposed-after-request.alloc-objects.top.stderr.txt"
+  },
+  {
+    "execution": "proposed-after-xml-max.json",
+    "argv": [
+      "go",
+      "tool",
+      "pprof",
+      "-top",
+      "-nodecount=15",
+      "/Users/d/code/primitive/awsidentity/testdata/test-upgrade-20260906/proposed-after-xml-max.test",
+      "/Users/d/code/primitive/awsidentity/testdata/test-upgrade-20260906/proposed-after-xml-max.cpu.pprof"
+    ],
+    "exit_status": 0,
+    "stdout": "proposed-after-xml-max.cpu.top.txt",
+    "stderr": "proposed-after-xml-max.cpu.top.stderr.txt"
+  },
+  {
+    "execution": "proposed-after-xml-max.json",
+    "argv": [
+      "go",
+      "tool",
+      "pprof",
+      "-top",
+      "-nodecount=15",
+      "-alloc_space",
+      "/Users/d/code/primitive/awsidentity/testdata/test-upgrade-20260906/proposed-after-xml-max.test",
+      "/Users/d/code/primitive/awsidentity/testdata/test-upgrade-20260906/proposed-after-xml-max.mem.pprof"
+    ],
+    "exit_status": 0,
+    "stdout": "proposed-after-xml-max.alloc-space.top.txt",
+    "stderr": "proposed-after-xml-max.alloc-space.top.stderr.txt"
+  },
+  {
+    "execution": "proposed-after-xml-max.json",
+    "argv": [
+      "go",
+      "tool",
+      "pprof",
+      "-top",
+      "-nodecount=15",
+      "-alloc_objects",
+      "/Users/d/code/primitive/awsidentity/testdata/test-upgrade-20260906/proposed-after-xml-max.test",
+      "/Users/d/code/primitive/awsidentity/testdata/test-upgrade-20260906/proposed-after-xml-max.mem.pprof"
+    ],
+    "exit_status": 0,
+    "stdout": "proposed-after-xml-max.alloc-objects.top.txt",
+    "stderr": "proposed-after-xml-max.alloc-objects.top.stderr.txt"
+  },
+  {
+    "execution": "proposed-after-xml-min.json",
+    "argv": [
+      "go",
+      "tool",
+      "pprof",
+      "-top",
+      "-nodecount=15",
+      "/Users/d/code/primitive/awsidentity/testdata/test-upgrade-20260906/proposed-after-xml-min.test",
+      "/Users/d/code/primitive/awsidentity/testdata/test-upgrade-20260906/proposed-after-xml-min.cpu.pprof"
+    ],
+    "exit_status": 0,
+    "stdout": "proposed-after-xml-min.cpu.top.txt",
+    "stderr": "proposed-after-xml-min.cpu.top.stderr.txt"
+  },
+  {
+    "execution": "proposed-after-xml-min.json",
+    "argv": [
+      "go",
+      "tool",
+      "pprof",
+      "-top",
+      "-nodecount=15",
+      "-alloc_space",
+      "/Users/d/code/primitive/awsidentity/testdata/test-upgrade-20260906/proposed-after-xml-min.test",
+      "/Users/d/code/primitive/awsidentity/testdata/test-upgrade-20260906/proposed-after-xml-min.mem.pprof"
+    ],
+    "exit_status": 0,
+    "stdout": "proposed-after-xml-min.alloc-space.top.txt",
+    "stderr": "proposed-after-xml-min.alloc-space.top.stderr.txt"
+  },
+  {
+    "execution": "proposed-after-xml-min.json",
+    "argv": [
+      "go",
+      "tool",
+      "pprof",
+      "-top",
+      "-nodecount=15",
+      "-alloc_objects",
+      "/Users/d/code/primitive/awsidentity/testdata/test-upgrade-20260906/proposed-after-xml-min.test",
+      "/Users/d/code/primitive/awsidentity/testdata/test-upgrade-20260906/proposed-after-xml-min.mem.pprof"
+    ],
+    "exit_status": 0,
+    "stdout": "proposed-after-xml-min.alloc-objects.top.txt",
+    "stderr": "proposed-after-xml-min.alloc-objects.top.stderr.txt"
+  },
+  {
+    "execution": "reconstructed-baseline-acquire-seam.json",
+    "argv": [
+      "go",
+      "tool",
+      "pprof",
+      "-top",
+      "-nodecount=15",
+      "/Users/d/code/primitive/awsidentity/testdata/test-upgrade-20260906/reconstructed-baseline-acquire-seam.test",
+      "/Users/d/code/primitive/awsidentity/testdata/test-upgrade-20260906/reconstructed-baseline-acquire-seam.cpu.pprof"
+    ],
+    "exit_status": 0,
+    "stdout": "reconstructed-baseline-acquire-seam.cpu.top.txt",
+    "stderr": "reconstructed-baseline-acquire-seam.cpu.top.stderr.txt"
+  },
+  {
+    "execution": "reconstructed-baseline-acquire-seam.json",
+    "argv": [
+      "go",
+      "tool",
+      "pprof",
+      "-top",
+      "-nodecount=15",
+      "-alloc_space",
+      "/Users/d/code/primitive/awsidentity/testdata/test-upgrade-20260906/reconstructed-baseline-acquire-seam.test",
+      "/Users/d/code/primitive/awsidentity/testdata/test-upgrade-20260906/reconstructed-baseline-acquire-seam.mem.pprof"
+    ],
+    "exit_status": 0,
+    "stdout": "reconstructed-baseline-acquire-seam.alloc-space.top.txt",
+    "stderr": "reconstructed-baseline-acquire-seam.alloc-space.top.stderr.txt"
+  },
+  {
+    "execution": "reconstructed-baseline-acquire-seam.json",
+    "argv": [
+      "go",
+      "tool",
+      "pprof",
+      "-top",
+      "-nodecount=15",
+      "-alloc_objects",
+      "/Users/d/code/primitive/awsidentity/testdata/test-upgrade-20260906/reconstructed-baseline-acquire-seam.test",
+      "/Users/d/code/primitive/awsidentity/testdata/test-upgrade-20260906/reconstructed-baseline-acquire-seam.mem.pprof"
+    ],
+    "exit_status": 0,
+    "stdout": "reconstructed-baseline-acquire-seam.alloc-objects.top.txt",
+    "stderr": "reconstructed-baseline-acquire-seam.alloc-objects.top.stderr.txt"
+  },
+  {
+    "execution": "reconstructed-baseline-audience-max.json",
+    "argv": [
+      "go",
+      "tool",
+      "pprof",
+      "-top",
+      "-nodecount=15",
+      "/Users/d/code/primitive/awsidentity/testdata/test-upgrade-20260906/reconstructed-baseline-audience-max.test",
+      "/Users/d/code/primitive/awsidentity/testdata/test-upgrade-20260906/reconstructed-baseline-audience-max.cpu.pprof"
+    ],
+    "exit_status": 0,
+    "stdout": "reconstructed-baseline-audience-max.cpu.top.txt",
+    "stderr": "reconstructed-baseline-audience-max.cpu.top.stderr.txt"
+  },
+  {
+    "execution": "reconstructed-baseline-audience-max.json",
+    "argv": [
+      "go",
+      "tool",
+      "pprof",
+      "-top",
+      "-nodecount=15",
+      "-alloc_space",
+      "/Users/d/code/primitive/awsidentity/testdata/test-upgrade-20260906/reconstructed-baseline-audience-max.test",
+      "/Users/d/code/primitive/awsidentity/testdata/test-upgrade-20260906/reconstructed-baseline-audience-max.mem.pprof"
+    ],
+    "exit_status": 0,
+    "stdout": "reconstructed-baseline-audience-max.alloc-space.top.txt",
+    "stderr": "reconstructed-baseline-audience-max.alloc-space.top.stderr.txt"
+  },
+  {
+    "execution": "reconstructed-baseline-audience-max.json",
+    "argv": [
+      "go",
+      "tool",
+      "pprof",
+      "-top",
+      "-nodecount=15",
+      "-alloc_objects",
+      "/Users/d/code/primitive/awsidentity/testdata/test-upgrade-20260906/reconstructed-baseline-audience-max.test",
+      "/Users/d/code/primitive/awsidentity/testdata/test-upgrade-20260906/reconstructed-baseline-audience-max.mem.pprof"
+    ],
+    "exit_status": 0,
+    "stdout": "reconstructed-baseline-audience-max.alloc-objects.top.txt",
+    "stderr": "reconstructed-baseline-audience-max.alloc-objects.top.stderr.txt"
+  },
+  {
+    "execution": "reconstructed-baseline-bearer-max.json",
+    "argv": [
+      "go",
+      "tool",
+      "pprof",
+      "-top",
+      "-nodecount=15",
+      "/Users/d/code/primitive/awsidentity/testdata/test-upgrade-20260906/reconstructed-baseline-bearer-max.test",
+      "/Users/d/code/primitive/awsidentity/testdata/test-upgrade-20260906/reconstructed-baseline-bearer-max.cpu.pprof"
+    ],
+    "exit_status": 0,
+    "stdout": "reconstructed-baseline-bearer-max.cpu.top.txt",
+    "stderr": "reconstructed-baseline-bearer-max.cpu.top.stderr.txt"
+  },
+  {
+    "execution": "reconstructed-baseline-bearer-max.json",
+    "argv": [
+      "go",
+      "tool",
+      "pprof",
+      "-top",
+      "-nodecount=15",
+      "-alloc_space",
+      "/Users/d/code/primitive/awsidentity/testdata/test-upgrade-20260906/reconstructed-baseline-bearer-max.test",
+      "/Users/d/code/primitive/awsidentity/testdata/test-upgrade-20260906/reconstructed-baseline-bearer-max.mem.pprof"
+    ],
+    "exit_status": 0,
+    "stdout": "reconstructed-baseline-bearer-max.alloc-space.top.txt",
+    "stderr": "reconstructed-baseline-bearer-max.alloc-space.top.stderr.txt"
+  },
+  {
+    "execution": "reconstructed-baseline-bearer-max.json",
+    "argv": [
+      "go",
+      "tool",
+      "pprof",
+      "-top",
+      "-nodecount=15",
+      "-alloc_objects",
+      "/Users/d/code/primitive/awsidentity/testdata/test-upgrade-20260906/reconstructed-baseline-bearer-max.test",
+      "/Users/d/code/primitive/awsidentity/testdata/test-upgrade-20260906/reconstructed-baseline-bearer-max.mem.pprof"
+    ],
+    "exit_status": 0,
+    "stdout": "reconstructed-baseline-bearer-max.alloc-objects.top.txt",
+    "stderr": "reconstructed-baseline-bearer-max.alloc-objects.top.stderr.txt"
+  },
+  {
+    "execution": "reconstructed-baseline-bearer-min.json",
+    "argv": [
+      "go",
+      "tool",
+      "pprof",
+      "-top",
+      "-nodecount=15",
+      "/Users/d/code/primitive/awsidentity/testdata/test-upgrade-20260906/reconstructed-baseline-bearer-min.test",
+      "/Users/d/code/primitive/awsidentity/testdata/test-upgrade-20260906/reconstructed-baseline-bearer-min.cpu.pprof"
+    ],
+    "exit_status": 0,
+    "stdout": "reconstructed-baseline-bearer-min.cpu.top.txt",
+    "stderr": "reconstructed-baseline-bearer-min.cpu.top.stderr.txt"
+  },
+  {
+    "execution": "reconstructed-baseline-bearer-min.json",
+    "argv": [
+      "go",
+      "tool",
+      "pprof",
+      "-top",
+      "-nodecount=15",
+      "-alloc_space",
+      "/Users/d/code/primitive/awsidentity/testdata/test-upgrade-20260906/reconstructed-baseline-bearer-min.test",
+      "/Users/d/code/primitive/awsidentity/testdata/test-upgrade-20260906/reconstructed-baseline-bearer-min.mem.pprof"
+    ],
+    "exit_status": 0,
+    "stdout": "reconstructed-baseline-bearer-min.alloc-space.top.txt",
+    "stderr": "reconstructed-baseline-bearer-min.alloc-space.top.stderr.txt"
+  },
+  {
+    "execution": "reconstructed-baseline-bearer-min.json",
+    "argv": [
+      "go",
+      "tool",
+      "pprof",
+      "-top",
+      "-nodecount=15",
+      "-alloc_objects",
+      "/Users/d/code/primitive/awsidentity/testdata/test-upgrade-20260906/reconstructed-baseline-bearer-min.test",
+      "/Users/d/code/primitive/awsidentity/testdata/test-upgrade-20260906/reconstructed-baseline-bearer-min.mem.pprof"
+    ],
+    "exit_status": 0,
+    "stdout": "reconstructed-baseline-bearer-min.alloc-objects.top.txt",
+    "stderr": "reconstructed-baseline-bearer-min.alloc-objects.top.stderr.txt"
+  },
+  {
+    "execution": "reconstructed-baseline-request.json",
+    "argv": [
+      "go",
+      "tool",
+      "pprof",
+      "-top",
+      "-nodecount=15",
+      "/Users/d/code/primitive/awsidentity/testdata/test-upgrade-20260906/reconstructed-baseline-request.test",
+      "/Users/d/code/primitive/awsidentity/testdata/test-upgrade-20260906/reconstructed-baseline-request.cpu.pprof"
+    ],
+    "exit_status": 0,
+    "stdout": "reconstructed-baseline-request.cpu.top.txt",
+    "stderr": "reconstructed-baseline-request.cpu.top.stderr.txt"
+  },
+  {
+    "execution": "reconstructed-baseline-request.json",
+    "argv": [
+      "go",
+      "tool",
+      "pprof",
+      "-top",
+      "-nodecount=15",
+      "-alloc_space",
+      "/Users/d/code/primitive/awsidentity/testdata/test-upgrade-20260906/reconstructed-baseline-request.test",
+      "/Users/d/code/primitive/awsidentity/testdata/test-upgrade-20260906/reconstructed-baseline-request.mem.pprof"
+    ],
+    "exit_status": 0,
+    "stdout": "reconstructed-baseline-request.alloc-space.top.txt",
+    "stderr": "reconstructed-baseline-request.alloc-space.top.stderr.txt"
+  },
+  {
+    "execution": "reconstructed-baseline-request.json",
+    "argv": [
+      "go",
+      "tool",
+      "pprof",
+      "-top",
+      "-nodecount=15",
+      "-alloc_objects",
+      "/Users/d/code/primitive/awsidentity/testdata/test-upgrade-20260906/reconstructed-baseline-request.test",
+      "/Users/d/code/primitive/awsidentity/testdata/test-upgrade-20260906/reconstructed-baseline-request.mem.pprof"
+    ],
+    "exit_status": 0,
+    "stdout": "reconstructed-baseline-request.alloc-objects.top.txt",
+    "stderr": "reconstructed-baseline-request.alloc-objects.top.stderr.txt"
+  },
+  {
+    "execution": "reconstructed-baseline-xml-max.json",
+    "argv": [
+      "go",
+      "tool",
+      "pprof",
+      "-top",
+      "-nodecount=15",
+      "/Users/d/code/primitive/awsidentity/testdata/test-upgrade-20260906/reconstructed-baseline-xml-max.test",
+      "/Users/d/code/primitive/awsidentity/testdata/test-upgrade-20260906/reconstructed-baseline-xml-max.cpu.pprof"
+    ],
+    "exit_status": 0,
+    "stdout": "reconstructed-baseline-xml-max.cpu.top.txt",
+    "stderr": "reconstructed-baseline-xml-max.cpu.top.stderr.txt"
+  },
+  {
+    "execution": "reconstructed-baseline-xml-max.json",
+    "argv": [
+      "go",
+      "tool",
+      "pprof",
+      "-top",
+      "-nodecount=15",
+      "-alloc_space",
+      "/Users/d/code/primitive/awsidentity/testdata/test-upgrade-20260906/reconstructed-baseline-xml-max.test",
+      "/Users/d/code/primitive/awsidentity/testdata/test-upgrade-20260906/reconstructed-baseline-xml-max.mem.pprof"
+    ],
+    "exit_status": 0,
+    "stdout": "reconstructed-baseline-xml-max.alloc-space.top.txt",
+    "stderr": "reconstructed-baseline-xml-max.alloc-space.top.stderr.txt"
+  },
+  {
+    "execution": "reconstructed-baseline-xml-max.json",
+    "argv": [
+      "go",
+      "tool",
+      "pprof",
+      "-top",
+      "-nodecount=15",
+      "-alloc_objects",
+      "/Users/d/code/primitive/awsidentity/testdata/test-upgrade-20260906/reconstructed-baseline-xml-max.test",
+      "/Users/d/code/primitive/awsidentity/testdata/test-upgrade-20260906/reconstructed-baseline-xml-max.mem.pprof"
+    ],
+    "exit_status": 0,
+    "stdout": "reconstructed-baseline-xml-max.alloc-objects.top.txt",
+    "stderr": "reconstructed-baseline-xml-max.alloc-objects.top.stderr.txt"
+  },
+  {
+    "execution": "reconstructed-baseline-xml-min.json",
+    "argv": [
+      "go",
+      "tool",
+      "pprof",
+      "-top",
+      "-nodecount=15",
+      "/Users/d/code/primitive/awsidentity/testdata/test-upgrade-20260906/reconstructed-baseline-xml-min.test",
+      "/Users/d/code/primitive/awsidentity/testdata/test-upgrade-20260906/reconstructed-baseline-xml-min.cpu.pprof"
+    ],
+    "exit_status": 0,
+    "stdout": "reconstructed-baseline-xml-min.cpu.top.txt",
+    "stderr": "reconstructed-baseline-xml-min.cpu.top.stderr.txt"
+  },
+  {
+    "execution": "reconstructed-baseline-xml-min.json",
+    "argv": [
+      "go",
+      "tool",
+      "pprof",
+      "-top",
+      "-nodecount=15",
+      "-alloc_space",
+      "/Users/d/code/primitive/awsidentity/testdata/test-upgrade-20260906/reconstructed-baseline-xml-min.test",
+      "/Users/d/code/primitive/awsidentity/testdata/test-upgrade-20260906/reconstructed-baseline-xml-min.mem.pprof"
+    ],
+    "exit_status": 0,
+    "stdout": "reconstructed-baseline-xml-min.alloc-space.top.txt",
+    "stderr": "reconstructed-baseline-xml-min.alloc-space.top.stderr.txt"
+  },
+  {
+    "execution": "reconstructed-baseline-xml-min.json",
+    "argv": [
+      "go",
+      "tool",
+      "pprof",
+      "-top",
+      "-nodecount=15",
+      "-alloc_objects",
+      "/Users/d/code/primitive/awsidentity/testdata/test-upgrade-20260906/reconstructed-baseline-xml-min.test",
+      "/Users/d/code/primitive/awsidentity/testdata/test-upgrade-20260906/reconstructed-baseline-xml-min.mem.pprof"
+    ],
+    "exit_status": 0,
+    "stdout": "reconstructed-baseline-xml-min.alloc-objects.top.txt",
+    "stderr": "reconstructed-baseline-xml-min.alloc-objects.top.stderr.txt"
+  }
+]

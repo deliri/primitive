@@ -1,0 +1,13 @@
+{
+  "observed_at": "2026-09-07 02:46:14 UTC",
+  "command": [
+    "ps",
+    "-A",
+    "-o",
+    "pid,pcpu,comm",
+    "-r"
+  ],
+  "selection": "first 18 lines",
+  "exit_status": 0,
+  "stdout": "  PID  %CPU COMM\n24175 158.9 /usr/local/go/pkg/tool/darwin_arm64/compile\n 4293 124.3 /Applications/Brave Browser.app/Contents/Frameworks/Brave Browser Framework.framework/Versions/152.1.94.119/Helpers/Brave Browser Helper (Renderer).app/Contents/MacOS/Brave Browser Helper (Renderer)\n24230  56.8 go\n24223  45.0 go\n24226  41.9 go\n24280  36.8 /usr/local/go/bin/go\n21712  34.6 /var/folders/lk/5qcmysnd6hl5yw7nz84k_b4h0000gn/T/go-build20067167/b832/local.test\n24274  33.8 /usr/local/go/pkg/tool/darwin_arm64/compile\n24278  33.7 go\n24298  31.0 /usr/local/go/pkg/tool/darwin_arm64/compile\n  401  31.0 /System/Library/PrivateFrameworks/SkyLight.framework/Resources/WindowServer\n24266  29.7 /usr/local/go/bin/go\n  332  29.2 /System/Library/Frameworks/CoreServices.framework/Versions/A/Frameworks/FSEvents.framework/Versions/A/Support/fseventsd\n  663  23.4 /Applications/cmux.app/Contents/MacOS/cmux\n24293  19.9 /usr/local/go/pkg/tool/darwin_arm64/compile\n23827  19.6 /var/folders/lk/5qcmysnd6hl5yw7nz84k_b4h0000gn/T/go-build3647766207/b001/awsidentity.test\n24308  12.9 /usr/local/go/pkg/tool/darwin_arm64/compile\n"
+}

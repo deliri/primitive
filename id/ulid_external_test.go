@@ -90,7 +90,10 @@ func TestNewULIDIsPureAndConsumesExactlyTenEntropyBytes(t *testing.T) {
 		t.Fatalf("NewULID minted %v then %v from one request, want pure construction", first, second)
 	}
 	tailDiffers := testEntropy()
-	for index := 10; index < len(tailDiffers); index++ {
+	for index := range len(tailDiffers) {
+		if index < 10 {
+			continue
+		}
 		tailDiffers[index] = 0x99
 	}
 	third, err := id.NewULID(testRequest(t, 1, tailDiffers))
@@ -375,7 +378,7 @@ func TestULIDAppendTextIntoSufficientCapacityDoesNotAllocate(t *testing.T) {
 	destination := make([]byte, 0, 64)
 	result := testing.Benchmark(func(b *testing.B) {
 		b.ReportAllocs()
-		for range b.N {
+		for b.Loop() {
 			appended, appendErr := value.AppendText(destination[:0])
 			if appendErr != nil || len(appended) == 0 {
 				b.Fatalf("ULID.AppendText() = (%d bytes, %v), want the spelling and nil", len(appended), appendErr)

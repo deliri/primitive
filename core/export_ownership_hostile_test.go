@@ -607,7 +607,10 @@ func connectDirectConsumerTypeDependencies(exports *coreExportInventory) {
 			if !ok {
 				continue
 			}
-			for identity := PackageCore; identity < packageIdentityLimit; identity++ {
+			for identity := range packageIdentityLimit {
+				if identity < PackageCore {
+					continue
+				}
 				if source.directConsumers[identity] {
 					dependency.consumers[identity] = true
 				}
@@ -631,7 +634,10 @@ func connectTypedDomainMemberConsumers(exports *coreExportInventory) {
 		if !ok {
 			continue
 		}
-		for identity := PackageCore; identity < packageIdentityLimit; identity++ {
+		for identity := range packageIdentityLimit {
+			if identity < PackageCore {
+				continue
+			}
 			if domain.consumers[identity] {
 				member.consumers[identity] = true
 			}
@@ -852,7 +858,10 @@ func (c *coreExportConsumerContract) Dependencies() []coreExportName {
 
 func (c coreExportConsumerContract) ConsumerIdentities() []PackageIdentity {
 	consumers := make([]PackageIdentity, 0, PrimitivePackageCount)
-	for identity := PackageCore; identity < packageIdentityLimit; identity++ {
+	for identity := range packageIdentityLimit {
+		if identity < PackageCore {
+			continue
+		}
 		if c.consumers[identity] {
 			consumers = append(consumers, identity)
 		}
@@ -868,7 +877,10 @@ func (i coreExportInventory) hasErrorDecision(contract coreExportConsumerContrac
 	if slices.Contains(contract.errorDecisions[:], true) {
 		return true
 	}
-	for identity := PackageCore; identity < packageIdentityLimit; identity++ {
+	for identity := range packageIdentityLimit {
+		if identity < PackageCore {
+			continue
+		}
 		if contract.consumers[identity] && i.packageErrorDecisions[identity] {
 			return true
 		}

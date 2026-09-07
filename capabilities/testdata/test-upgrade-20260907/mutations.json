@@ -1,0 +1,128 @@
+[
+  {
+    "name": "forged-ownership",
+    "file": "catalog.go",
+    "old": "owner == c.Package && c.Validate() == nil",
+    "new": "owner == c.Package",
+    "selected": "^TestOwnershipRejectsForgedCapabilityFields$",
+    "execution": "mutation-forged-ownership.json",
+    "killed": true
+  },
+  {
+    "name": "contradictory-owner",
+    "file": "operation.go",
+    "old": "operation != OperationUnavailable && owner != f.Effect",
+    "new": "operation != OperationUnavailable && false && owner != f.Effect",
+    "selected": "^TestReplacementRejectsContradictoryEffect$",
+    "execution": "mutation-contradictory-owner.json",
+    "killed": true
+  },
+  {
+    "name": "contradictory-operation",
+    "file": "operation.go",
+    "old": "f.Operation != OperationUnavailable && f.Operation != operation",
+    "new": "f.Operation != OperationUnavailable && false && f.Operation != operation",
+    "selected": "^TestReplacementRejectsContradictoryEffect$",
+    "execution": "mutation-contradictory-operation.json",
+    "killed": true
+  },
+  {
+    "name": "lost-symbol-identity",
+    "file": "standard_symbol.go",
+    "old": "return errors.Join(core.ErrCapabilitiesContract, err)\n\t}\n\treturn nil",
+    "new": "return err\n\t}\n\treturn nil",
+    "selected": "^TestSymbolContractsPreserveCrossPackageErrorIdentity$",
+    "execution": "mutation-lost-symbol-identity.json",
+    "killed": true
+  },
+  {
+    "name": "lost-result-identity",
+    "file": "operation.go",
+    "old": "return errors.Join(core.ErrCapabilitiesContract, err)\n\t}\n\tif c.Function.Receiver",
+    "new": "return err\n\t}\n\tif c.Function.Receiver",
+    "selected": "^TestOperationContractBoundaryMutations$/filestore.Read/missing_result_package$",
+    "execution": "mutation-lost-result-identity.json",
+    "killed": true
+  },
+  {
+    "name": "iterator-truncates",
+    "file": "catalog.go",
+    "old": "if err != nil || !yield(capability) {",
+    "new": "if err != nil || !yield(capability) || true {",
+    "selected": "^TestCatalogIteratorExactPrefixAndZero$",
+    "execution": "mutation-iterator-truncates.json",
+    "killed": true
+  },
+  {
+    "name": "identity-substitution",
+    "file": "identity.go",
+    "old": "*i = candidate",
+    "new": "*i = Identity{effect: EffectFilesystem}\n _ = candidate",
+    "selected": "^FuzzIdentityJSONSemanticClosure$",
+    "execution": "mutation-identity-substitution.json",
+    "killed": true
+  },
+  {
+    "name": "operation-substitution",
+    "file": "operation.go",
+    "old": "*o = candidate",
+    "new": "*o = OperationUnavailable",
+    "selected": "^FuzzOperationJSONSemanticClosure$",
+    "execution": "mutation-operation-substitution.json",
+    "killed": true
+  },
+  {
+    "name": "disposition-substitution",
+    "file": "classification.go",
+    "old": "*d = candidate",
+    "new": "*d = StandardSymbolPure",
+    "selected": "^FuzzStandardSymbolDispositionJSONSemanticClosure$",
+    "execution": "mutation-disposition-substitution.json",
+    "killed": true
+  },
+  {
+    "name": "secondary-dropped",
+    "file": "classification.go",
+    "old": "candidate.Secondary = append(candidate.Secondary, effect)",
+    "new": "_ = effect",
+    "selected": "^FuzzClassificationJSONSemanticClosure$",
+    "execution": "mutation-secondary-dropped.json",
+    "killed": true
+  },
+  {
+    "name": "duplicate-secondary",
+    "file": "classification.go",
+    "old": "value == c.Effect || slices.Contains(c.Secondary[:index], value)",
+    "new": "value == c.Effect || false && slices.Contains(c.Secondary[:index], value)",
+    "selected": "^TestClassificationOperationAndSecondaryContradictions$",
+    "execution": "mutation-duplicate-secondary.json",
+    "killed": true
+  },
+  {
+    "name": "conflict-first-wins",
+    "file": "classification.go",
+    "old": "return contractError(\"symbol has contradictory catalog rules\")",
+    "new": "return nil",
+    "selected": "^TestRuleProducerClassifierHandoff$/class_0_left_3_right_4$",
+    "execution": "mutation-conflict-first-wins.json",
+    "killed": true
+  },
+  {
+    "name": "namespace-leak",
+    "file": "standard_symbol.go",
+    "old": "if rule.importPath != path {",
+    "new": "if false && rule.importPath != path {",
+    "selected": "^FuzzStandardSymbolNamespaceClosure$",
+    "execution": "mutation-namespace-leak.json",
+    "killed": true
+  },
+  {
+    "name": "json-limit-bypass",
+    "file": "classification.go",
+    "old": "if len(data) > ClassificationJSONMaximumBytes {",
+    "new": "if false && len(data) > ClassificationJSONMaximumBytes {",
+    "selected": "^TestClassificationJSONExtentAndAtomicity$",
+    "execution": "mutation-json-limit-bypass.json",
+    "killed": true
+  }
+]

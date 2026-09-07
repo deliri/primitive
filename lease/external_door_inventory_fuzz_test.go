@@ -377,7 +377,10 @@ func TestLeaseExternalIngressFuzzInventoryMatchesProduction(t *testing.T) {
 		t.Fatalf("leaseExportedJSONReceiverNames() error = %v, want nil", err)
 	}
 	var wantJSON []string
-	for door := leaseJSONDoorUnknown + 1; door < leaseJSONDoorLimit; door++ {
+	for door := range leaseJSONDoorLimit {
+		if door < leaseJSONDoorUnknown+1 {
+			continue
+		}
 		wantJSON = append(wantJSON, door.receiverName())
 	}
 	slices.Sort(wantJSON)
@@ -389,7 +392,10 @@ func TestLeaseExternalIngressFuzzInventoryMatchesProduction(t *testing.T) {
 		"ParseRevision", "ParseRevocationReason",
 	}
 	var wantText []string
-	for door := leaseTextDoorUnknown + 1; door < leaseTextDoorLimit; door++ {
+	for door := range leaseTextDoorLimit {
+		if door < leaseTextDoorUnknown+1 {
+			continue
+		}
 		wantText = append(wantText, door.functionName())
 	}
 	slices.Sort(wantText)

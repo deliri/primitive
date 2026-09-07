@@ -1,0 +1,50 @@
+[
+  {
+    "label": "session-drop-authority",
+    "production_file": "exchange/session_client.go",
+    "before": "cookiejar.New(&cookiejar.Options{PublicSuffixList: request.PublicSuffixList})",
+    "after": "cookiejar.New(nil)",
+    "outcome": "killed by test",
+    "evidence": "mutation-session-drop-authority.json"
+  },
+  {
+    "label": "session-admit-absent-authority",
+    "production_file": "exchange/session_client.go",
+    "before": "if r.PublicSuffixList == nil {\n\t\treturn core.ErrExchangeContract",
+    "after": "if r.PublicSuffixList == nil {\n\t\treturn nil",
+    "outcome": "killed by test",
+    "evidence": "mutation-session-admit-absent-authority.json"
+  },
+  {
+    "label": "session-admit-typed-nil",
+    "production_file": "exchange/session_client.go",
+    "before": "if value.IsNil() {",
+    "after": "if false && value.IsNil() {",
+    "outcome": "killed by test",
+    "evidence": "mutation-session-admit-typed-nil.json"
+  },
+  {
+    "label": "session-refuse-present-empty-slice",
+    "production_file": "exchange/session_client.go",
+    "before": "if value.IsNil() {",
+    "after": "if value.IsNil() || (value.Kind() == reflect.Slice && value.Len() == 0) {",
+    "outcome": "killed by test",
+    "evidence": "mutation-session-refuse-present-empty-slice.json"
+  },
+  {
+    "label": "session-discard-cookie-state",
+    "production_file": "exchange/session_client.go",
+    "before": "return NewClient(&http.Client{Jar: jar})",
+    "after": "_ = jar\n\treturn NewClient(&http.Client{})",
+    "outcome": "killed by test",
+    "evidence": "mutation-session-discard-cookie-state.json"
+  },
+  {
+    "label": "session-refuse-all",
+    "production_file": "exchange/session_client.go",
+    "before": "func NewSessionClient(request SessionClientRequest) (Client, error) {",
+    "after": "func NewSessionClient(request SessionClientRequest) (Client, error) {\n\treturn Client{}, core.ErrExchangeContract",
+    "outcome": "killed by test",
+    "evidence": "mutation-session-refuse-all.json"
+  }
+]

@@ -45,7 +45,7 @@ func TestCatalogPageLimitHostileBoundaries(t *testing.T) {
 func TestCatalogEnumsExhaustivelyCloseEveryUint8Value(t *testing.T) {
 	t.Parallel()
 
-	for raw := 0; raw <= math.MaxUint8; raw++ {
+	for raw := range math.MaxUint8 + 1 {
 		selection := CatalogSelectionKind(raw)
 		wantSelection := selection == CatalogSelectionAll || selection == CatalogSelectionSpecific
 		proveCatalogEnumValue(t, selection, wantSelection)

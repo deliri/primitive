@@ -1,0 +1,34 @@
+[
+  {
+    "label": "standard-header-valid-substitution",
+    "production_file": "standard_header.go",
+    "before": "StandardHeaderAuthorization: authorizationHeaderNameText,",
+    "after": "StandardHeaderAuthorization: cacheControlHeaderNameText,",
+    "outcome": "killed by test",
+    "evidence": "mutation-standard-header-valid-substitution.json"
+  },
+  {
+    "label": "standard-media-valid-substitution",
+    "production_file": "media_type.go",
+    "before": "StandardMediaTypePlainText: plainTextMediaTypeText,",
+    "after": "StandardMediaTypePlainText: core.HTTPMediaTypeJSON().String(),",
+    "outcome": "killed by test",
+    "evidence": "mutation-standard-media-valid-substitution.json"
+  },
+  {
+    "label": "standard-header-refuse-all",
+    "production_file": "standard_header.go",
+    "before": "func (h StandardHeader) Validate() error {",
+    "after": "func (h StandardHeader) Validate() error {\n\treturn core.ErrExchangeContract",
+    "outcome": "killed by test",
+    "evidence": "mutation-standard-header-refuse-all.json"
+  },
+  {
+    "label": "standard-media-refuse-all",
+    "production_file": "media_type.go",
+    "before": "func (m StandardMediaType) Validate() error {",
+    "after": "func (m StandardMediaType) Validate() error {\n\treturn core.ErrExchangeContract",
+    "outcome": "killed by test",
+    "evidence": "mutation-standard-media-refuse-all.json"
+  }
+]

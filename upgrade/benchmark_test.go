@@ -37,7 +37,7 @@ func benchmarkStageCandidateStreaming(b *testing.B, size int) {
 	b.ReportAllocs()
 	b.SetBytes(int64(size))
 	b.ResetTimer()
-	for range b.N {
+	for b.Loop() {
 		if err := prepareCandidateSlot(b.Context(), root, target); err != nil {
 			b.Fatalf("prepareCandidateSlot() error = %v, want nil", err)
 		}
@@ -75,7 +75,7 @@ func BenchmarkResolvePrimaryFourKiB(b *testing.B) {
 	b.ReportAllocs()
 	b.SetBytes(int64(len(data)))
 	b.ResetTimer()
-	for range b.N {
+	for b.Loop() {
 		if _, err := ResolvePrimary(b.Context(), request); err != nil {
 			b.Fatalf("ResolvePrimary() error = %v, want nil", err)
 		}

@@ -482,3 +482,59 @@ func FuzzNewValueSemanticClosure(f *testing.F) {
 		}
 	})
 }
+
+func TestNewValueSparseDoesNotReserveProviderCeiling(t *testing.T) {
+	t.Parallel()
+	payload := []byte("ordinary-password!")
+	got, err := NewValue(payload)
+	if !errors.Is(err, nil) {
+		t.Fatalf("NewValue() error = %v, want nil", err)
+	}
+	t.Cleanup(func() {
+		if destroyErr := got.Destroy(); destroyErr != nil {
+			t.Error(destroyErr)
+		}
+	})
+	copied, copyErr := got.CopyBytes()
+	if copyErr != nil || !bytes.Equal(copied, payload) {
+		t.Fatalf("Value.CopyBytes() = (%q, %v), want exact payload", copied, copyErr)
+	}
+	if cap(copied) > 4*len(payload) {
+		t.Fatalf("CopyBytes capacity = %d for %d-byte payload, want exact-size custody", cap(copied), len(payload))
+	}
+}
+
+func BenchmarkNewValueSparse(b *testing.B) {
+	payload := []byte("ordinary-password!")
+	var wantErr error
+	b.ReportAllocs()
+	for b.Loop() {
+		got, err := NewValue(payload)
+		if !errors.Is(err, wantErr) {
+			b.Fatalf("NewValue() error = %v, want %v", err, wantErr)
+		}
+		copied, copyErr := got.CopyBytes()
+		if !errors.Is(copyErr, wantErr) || !bytes.Equal(copied, payload) {
+			b.Fatalf("Value.CopyBytes() = (%q, %v), want exact payload", copied, copyErr)
+		}
+		if err := got.Destroy(); err != nil {
+			b.Fatalf("Value.Destroy() error = %v, want nil", err)
+		}
+	}
+}
+
+func BenchmarkNewValueMaximum(b *testing.B) {
+	payload := bytes.Repeat([]byte{'a'}, PayloadMaximumBytes)
+	var wantErr error
+	b.ReportAllocs()
+	b.SetBytes(int64(len(payload)))
+	for b.Loop() {
+		got, err := NewValue(payload)
+		if !errors.Is(err, wantErr) {
+			b.Fatalf("NewValue() error = %v, want %v", err, wantErr)
+		}
+		if err := got.Destroy(); err != nil {
+			b.Fatalf("Value.Destroy() error = %v, want nil", err)
+		}
+	}
+}

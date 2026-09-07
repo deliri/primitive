@@ -1,0 +1,131 @@
+{
+  "label": "boundary-tests-attempt-2",
+  "argv": [
+    "go",
+    "test",
+    "-json",
+    "-count=1",
+    "-run=^Test(AWSAudience|AWSToken|AWSPolicy|AWSZero|AWSAcquire|AWSRequestInput|AWSRequestEvery|AWSRequestCredential|AWSRequestEndpoint|AWSRequestRevalidates|AWSQuery|LayerTriad)",
+    "./awsidentity"
+  ],
+  "cwd": "/Users/d/code/primitive",
+  "revision": "f265ac401e0a56d74252496eb25275fae41dd618",
+  "tree": "dirty",
+  "toolchain": "go version go1.27.1 darwin/arm64",
+  "environment": "darwin\narm64\n\n\n/Users/d/code/go.work",
+  "machine": "Darwin Ases-MacBook-Pro.local 25.6.0 Darwin Kernel Version 25.6.0: Fri Jul 31 19:18:49 PDT 2026; root:xnu-12377.161.14~5/RELEASE_ARM64_T6000 arm64",
+  "power": "Now drawing from 'AC Power'\n -InternalBattery-0 (id=22413411)\t80%; AC attached; not charging present: true",
+  "cache": "bypassed for go test by -count=1",
+  "started": "2026-09-07T02:11:44.722198+00:00",
+  "sources": [
+    {
+      "path": "awsidentity/acquire.go",
+      "bytes": 1408,
+      "sha256": "d1d52c8f4b65b5ed5d312e3c10b2ab919dc0a44b4442c0f5cf1866fe6124a504"
+    },
+    {
+      "path": "awsidentity/architecture_test.go",
+      "bytes": 2539,
+      "sha256": "0ee8b01d2ebbe08e90c4685c422e0de1315bbfbfd43a7db00c609a9767ffe2b6"
+    },
+    {
+      "path": "awsidentity/benchmark_external_test.go",
+      "bytes": 551,
+      "sha256": "6a31083ca3ebeabc72e66d53082c1176324856defcb47124efba74bac51fc583"
+    },
+    {
+      "path": "awsidentity/contracts.go",
+      "bytes": 5247,
+      "sha256": "9810d6c24fbc7a7b91970aac90c60f3aaba1bd526676e7aa0764fafb442a681b"
+    },
+    {
+      "path": "awsidentity/contracts_hostile_test.go",
+      "bytes": 10740,
+      "sha256": "69c211234fcceddead4edd62bc3f00332609d9af092cc30886685cdb6d0a75a8"
+    },
+    {
+      "path": "awsidentity/data_flow_inventory.go",
+      "bytes": 1240,
+      "sha256": "7227918b54a3650436ad3d678bfae0faee421bcf40c24b9b8b960bfba6be45f9"
+    },
+    {
+      "path": "awsidentity/doc.go",
+      "bytes": 452,
+      "sha256": "112e28ccd832a7c808c940ede171a12e59f58721ecc56bc0b7c8f43081421ad5"
+    },
+    {
+      "path": "awsidentity/errors.go",
+      "bytes": 668,
+      "sha256": "9d39dd9b88d1bb660aedccaf1da724538ac96e9427200046a9d5e6feb6606714"
+    },
+    {
+      "path": "awsidentity/identity_test.go",
+      "bytes": 12576,
+      "sha256": "9950576ef0937250f53a0c06c7ec98d09cbf621ff8f7bbc478846730b264049d"
+    },
+    {
+      "path": "awsidentity/identity_token.go",
+      "bytes": 14988,
+      "sha256": "824413e99796c2a00a88cbde9681ddb0f56fbc15cabb34005a4681c1a4f77d2b"
+    },
+    {
+      "path": "awsidentity/provider_hostile_test.go",
+      "bytes": 19346,
+      "sha256": "3f78e49adb6ff1e8f6a3c0f33fffc995b8159c1fb2d86d7369f505c8283530ec"
+    },
+    {
+      "path": "awsidentity/query_regression_test.go",
+      "bytes": 1556,
+      "sha256": "16075b908c8e2c24ff05301ca276e9d1279dd486bccee644147bb541876b2edc"
+    },
+    {
+      "path": "awsidentity/request_hostile_test.go",
+      "bytes": 12881,
+      "sha256": "5be1bdcd4d1d9efb4aedcbd8e04418304724dca526f7abbaf7031572ff91dcb3"
+    },
+    {
+      "path": "awsidentity/token.go",
+      "bytes": 1751,
+      "sha256": "284193a7b47d00c49a6d8e58280d6b7b547325af06962616f4e8f91dc5033407"
+    },
+    {
+      "path": "go.mod",
+      "bytes": 3127,
+      "sha256": "fb645c6e4ee8e917c39f9c1732638142362452d43617ec22a1901fc9ca04c1d4"
+    },
+    {
+      "path": "go.sum",
+      "bytes": 15894,
+      "sha256": "607fa748df5c86058fd0c13a1b63c2fbaa7cea5c2229dabef79614715e3c27a0"
+    },
+    {
+      "path": "_docs/testing_protocol.md",
+      "bytes": 84440,
+      "sha256": "dd83cd7f62c172092546dab6b7c7d5c59753b5e8ae784631a94cff4d6d48126c"
+    }
+  ],
+  "exit_status": 1,
+  "elapsed_seconds": 3.732852750021266,
+  "artifacts": [
+    {
+      "path": "awsidentity/testdata/test-upgrade-20260906/boundary-tests-attempt-2.stdout.txt",
+      "bytes": 1485762,
+      "sha256": "767048cab7da68d4c670633b208c4bf16df9c8f2624112bf94dfc2e1d550ee73"
+    },
+    {
+      "path": "awsidentity/testdata/test-upgrade-20260906/boundary-tests-attempt-2.stderr.txt",
+      "bytes": 0,
+      "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+    },
+    {
+      "path": "awsidentity/testdata/test-upgrade-20260906/boundary-tests-attempt-2.git-status.txt",
+      "bytes": 10132,
+      "sha256": "553f6b428a3ad61aacb469239c2ff8fa11472dd85e84bb76b558e31f06866692"
+    }
+  ],
+  "test_events": {
+    "pass": 766,
+    "fail": 27,
+    "skip": 0
+  }
+}

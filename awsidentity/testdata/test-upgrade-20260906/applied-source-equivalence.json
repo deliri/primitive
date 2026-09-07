@@ -1,0 +1,16 @@
+{
+  "equal": true,
+  "bindings": [
+    {
+      "path": "awsidentity/identity_token.go",
+      "profiled_source": "awsidentity/testdata/test-upgrade-20260906/proposed-source/identity_token.go",
+      "sha256": "f2bdf4f90327a8f104e551b1d703e90dc59bfeaffdd8d48fb28aea336efe8eda"
+    },
+    {
+      "path": "awsidentity/response_xml.go",
+      "profiled_source": "awsidentity/testdata/test-upgrade-20260906/proposed-source/response_xml.go",
+      "sha256": "983e175916f5371c74ae66e8fbddd666490c41e104db5d8fc43499f3b7e583dc"
+    }
+  ],
+  "verification": "applied-final-tests.json"
+}

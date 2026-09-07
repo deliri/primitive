@@ -1206,7 +1206,10 @@ func TestEveryDiagnosticCarriesDistinctNonEmptyText(t *testing.T) {
 	t.Parallel()
 
 	seen := make(map[string]diagnostic, diagnosticLimit)
-	for value := diagnosticUnknown + 1; value < diagnosticLimit; value++ {
+	for value := range diagnosticLimit {
+		if value < diagnosticUnknown+1 {
+			continue
+		}
 		text := value.Error()
 		if text == "" || text == diagnosticTexts()[diagnosticUnknown] {
 			t.Fatalf("diagnostic(%d) text = %q, want its own non-empty rejection",

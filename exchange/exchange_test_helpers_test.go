@@ -1,6 +1,7 @@
 package exchange_test
 
 import (
+	"context"
 	json "encoding/json/v2"
 	"errors"
 	"net/http"
@@ -17,6 +18,25 @@ const (
 	testAttemptTimeoutMilliseconds   = 30_000
 	testDeadlockBackstop             = 60 * time.Second
 )
+
+// exchangeFixtureBackstop supplies only a deadlock backstop, never proof of
+// elapsed work. Like time.After it remains usable during test teardown; the
+// test owns cancellation of Temporal's standard context timer.
+func exchangeFixtureBackstop(t testing.TB, limit time.Duration) <-chan struct{} {
+	t.Helper()
+	duration, err := temporal.NewDuration(limit)
+	if err != nil {
+		t.Fatalf("backstop duration = %v, want nil", err)
+	}
+	ctx, cancel, err := temporal.WithTimeout(temporal.TimeoutRequest{
+		Parent: context.WithoutCancel(t.Context()), Duration: duration,
+	})
+	if err != nil {
+		t.Fatalf("Temporal backstop construction = %v, want nil", err)
+	}
+	t.Cleanup(cancel)
+	return ctx.Done()
+}
 
 // errTransportDocumentContract is the test-owned identity the example document
 // returns from Validate. It lets ingress and response tests prove a rejection

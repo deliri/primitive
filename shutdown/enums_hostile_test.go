@@ -59,7 +59,7 @@ func exhaustEnum[T ~uint8](t *testing.T, contract enumContract[T]) {
 	t.Helper()
 
 	labels := make(map[string]T)
-	for raw := 0; raw <= 255; raw++ {
+	for raw := range 256 {
 		value := T(raw)
 		wantValid := value >= contract.first && value < contract.limit
 		gotValid := contract.valid(value)

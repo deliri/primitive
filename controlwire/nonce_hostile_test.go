@@ -189,24 +189,24 @@ func TestGenerateRequestNonceProducesDistinctValidNonces(t *testing.T) {
 
 	const draws = 64
 	seen := make(map[string]struct{}, draws)
-	for draw := 1; draw <= draws; draw++ {
+	for draw := range draws {
 		nonce, err := controlwire.GenerateRequestNonce()
 		if err != nil {
-			t.Fatalf("GenerateRequestNonce() draw %d error = %v, want nil", draw, err)
+			t.Fatalf("GenerateRequestNonce() draw %d error = %v, want nil", draw+1, err)
 		}
 		if err := nonce.Validate(); err != nil {
-			t.Fatalf("GenerateRequestNonce() draw %d produced an invalid nonce: %v", draw, err)
+			t.Fatalf("GenerateRequestNonce() draw %d produced an invalid nonce: %v", draw+1, err)
 		}
 		text := nonce.String()
 		if len(text) != 2*core.SHA256DigestBytes {
-			t.Fatalf("GenerateRequestNonce() draw %d text width = %d, want %d", draw, len(text), 2*core.SHA256DigestBytes)
+			t.Fatalf("GenerateRequestNonce() draw %d text width = %d, want %d", draw+1, len(text), 2*core.SHA256DigestBytes)
 		}
 		if _, repeated := seen[text]; repeated {
-			t.Fatalf("GenerateRequestNonce() draw %d repeated a prior nonce", draw)
+			t.Fatalf("GenerateRequestNonce() draw %d repeated a prior nonce", draw+1)
 		}
 		seen[text] = struct{}{}
 		if _, err := controlwire.ParseRequestNonce(text); err != nil {
-			t.Fatalf("GenerateRequestNonce() draw %d produced unparseable text %q: %v", draw, text, err)
+			t.Fatalf("GenerateRequestNonce() draw %d produced unparseable text %q: %v", draw+1, text, err)
 		}
 	}
 }

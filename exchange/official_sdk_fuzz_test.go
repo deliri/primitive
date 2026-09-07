@@ -13,7 +13,6 @@ import (
 	"strconv"
 	"sync/atomic"
 	"testing"
-	"time"
 
 	"github.com/deliri/primitive/v2026/core"
 	"github.com/deliri/primitive/v2026/exchange"
@@ -198,7 +197,7 @@ func FuzzOfficialSDKResponseTransportSemanticBoundary(f *testing.F) {
 		var gotWriteErr error
 		select {
 		case gotWriteErr = <-writeResults:
-		case <-time.After(officialSDKTestTimeout):
+		case <-exchangeFixtureBackstop(t, officialSDKTestTimeout):
 			t.Fatal("provider response write completed = false, want true before timeout")
 		}
 		if gotCalls := calls.Load(); gotCalls != 1 {
@@ -357,7 +356,7 @@ func officialSDKFuzzHTTPServer(t testing.TB, handler http.Handler) string {
 			if closeErr != nil || (!errors.Is(serveErr, http.ErrServerClosed) && !errors.Is(serveErr, net.ErrClosed)) {
 				t.Errorf("loopback SDK provider shutdown = (%v, %v), want nil and closed-server identity", closeErr, serveErr)
 			}
-		case <-time.After(officialSDKTestTimeout):
+		case <-exchangeFixtureBackstop(t, officialSDKTestTimeout):
 			t.Errorf("loopback SDK provider shutdown completed = false, want true before timeout")
 		}
 	})

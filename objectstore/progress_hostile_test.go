@@ -58,7 +58,7 @@ func TestTransferProgressSchemaLayerTriad(t *testing.T) {
 
 		zero := progressLength(t, 0)
 		one := progressLength(t, 1)
-		for raw := 0; raw <= int(^uint8(0)); raw++ {
+		for raw := range 256 {
 			direction := Direction(raw)
 			got, gotErr := newTransferProgress(direction, one, zero)
 			if direction == DirectionUpload || direction == DirectionDownload {

@@ -13,7 +13,7 @@ import (
 func TestSigningDomainExhaustsBackingDomainAndCanonicalProjection(t *testing.T) {
 	t.Parallel()
 
-	for raw := 0; raw <= 255; raw++ {
+	for raw := range 256 {
 		domain := retrieval.SigningDomain(raw)
 		wantValid := domain == retrieval.SigningDomainRequestV1 || domain == retrieval.SigningDomainGrantV1
 		gotErr := domain.Validate()

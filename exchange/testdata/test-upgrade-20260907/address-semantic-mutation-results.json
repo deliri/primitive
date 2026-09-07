@@ -1,0 +1,67 @@
+[
+  {
+    "label": "prefix-refuse-all",
+    "outcome": "killed inside fuzz callback",
+    "failed_callbacks": [
+      "FuzzTrustedProxyPrefixesSemanticClosure/seed#0",
+      "FuzzTrustedProxyPrefixesSemanticClosure/seed#1",
+      "FuzzTrustedProxyPrefixesSemanticClosure/seed#2",
+      "FuzzTrustedProxyPrefixesSemanticClosure/seed#3",
+      "FuzzTrustedProxyPrefixesSemanticClosure/seed#7",
+      "FuzzTrustedProxyPrefixesSemanticClosure/seed#8",
+      "FuzzTrustedProxyPrefixesSemanticClosure/seed#9",
+      "FuzzTrustedProxyPrefixesSemanticClosure/seed#11",
+      "FuzzTrustedProxyPrefixesSemanticClosure/seed#12"
+    ],
+    "record": "mutation-prefix-refuse-all.json"
+  },
+  {
+    "label": "prefix-substitute-valid-network",
+    "outcome": "killed inside fuzz callback",
+    "failed_callbacks": [
+      "FuzzTrustedProxyPrefixesSemanticClosure/seed#1",
+      "FuzzTrustedProxyPrefixesSemanticClosure/seed#2",
+      "FuzzTrustedProxyPrefixesSemanticClosure/seed#3",
+      "FuzzTrustedProxyPrefixesSemanticClosure/seed#7",
+      "FuzzTrustedProxyPrefixesSemanticClosure/seed#8",
+      "FuzzTrustedProxyPrefixesSemanticClosure/seed#9"
+    ],
+    "record": "mutation-prefix-substitute-valid-network.json"
+  },
+  {
+    "label": "prefix-invent-empty-success",
+    "outcome": "killed inside fuzz callback",
+    "failed_callbacks": [
+      "FuzzTrustedProxyPrefixesSemanticClosure/seed#13"
+    ],
+    "record": "mutation-prefix-invent-empty-success.json"
+  },
+  {
+    "label": "address-refuse-all",
+    "outcome": "killed inside fuzz callback",
+    "failed_callbacks": [
+      "FuzzClientAddressResolutionSemanticClosure/seed#0",
+      "FuzzClientAddressResolutionSemanticClosure/seed#1",
+      "FuzzClientAddressResolutionSemanticClosure/seed#2",
+      "FuzzClientAddressResolutionSemanticClosure/seed#4"
+    ],
+    "record": "mutation-address-refuse-all.json"
+  },
+  {
+    "label": "address-substitute-valid-peer",
+    "outcome": "killed inside fuzz callback",
+    "failed_callbacks": [
+      "FuzzClientAddressResolutionSemanticClosure/seed#0",
+      "FuzzClientAddressResolutionSemanticClosure/seed#1",
+      "FuzzClientAddressResolutionSemanticClosure/seed#2",
+      "FuzzClientAddressResolutionSemanticClosure/seed#4"
+    ],
+    "record": "mutation-address-substitute-valid-peer.json"
+  },
+  {
+    "label": "address-trust-leftmost",
+    "outcome": "survived",
+    "failed_callbacks": [],
+    "record": "mutation-address-trust-leftmost.json"
+  }
+]

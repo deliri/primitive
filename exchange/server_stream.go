@@ -7,7 +7,6 @@ import (
 	"net/http"
 	"strconv"
 
-	"github.com/deliri/primitive/v2026/contextstate"
 	"github.com/deliri/primitive/v2026/core"
 )
 
@@ -70,7 +69,9 @@ func (r ReceivedBytes) Validate() error {
 	return r.IdempotencyKey.Validate()
 }
 
-// ReceivedStream reports one completed server-side stream.
+// ReceivedStream reports a server-side transfer. Bytes retains the destination's
+// acknowledged count beside a transfer error. A panicking destination call has
+// no returned count and cannot establish the extent of that call's effects.
 type ReceivedStream struct {
 	IdempotencyKey IdempotencyKey
 	Bytes          core.ByteLength
@@ -88,7 +89,7 @@ func (r ReceivedStream) Validate() error {
 func ReceiveBounded(
 	call BoundedReceiveCall,
 ) (ReceivedBytes, error) {
-	return executeRequestBodyOperation(
+	return executeReceivedBodyOperation(
 		call.Call.request,
 		func() (ReceivedBytes, error) {
 			return receiveBounded(call)
@@ -324,15 +325,8 @@ type StreamWriteCall struct {
 
 // Validate checks one complete streaming response effect.
 func (call StreamWriteCall) Validate() error {
-	if err := call.Call.Validate(); err != nil {
-		return responseError(core.ErrExchangeContract)
-	}
-	ctx, err := call.Call.Context()
-	if err != nil {
-		return responseError(err)
-	}
-	if err := contextstate.Validate(ctx); err != nil {
-		return responseError(err)
+	if err := call.Call.validateWrite(); err != nil {
+		return err
 	}
 	return call.Response.Validate()
 }
@@ -458,15 +452,8 @@ type BoundedWriteCall struct {
 
 // Validate checks one complete aggregate byte response effect.
 func (call BoundedWriteCall) Validate() error {
-	if err := call.Call.Validate(); err != nil {
-		return responseError(core.ErrExchangeContract)
-	}
-	ctx, err := call.Call.Context()
-	if err != nil {
-		return responseError(err)
-	}
-	if err := contextstate.Validate(ctx); err != nil {
-		return responseError(err)
+	if err := call.Call.validateWrite(); err != nil {
+		return err
 	}
 	return call.Response.Validate()
 }

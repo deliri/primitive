@@ -2,6 +2,7 @@ package release
 
 import (
 	json "encoding/json/v2"
+	"errors"
 	"runtime"
 	"testing"
 
@@ -70,4 +71,58 @@ func BenchmarkLatestDocumentJSON(b *testing.B) {
 	}
 	runtime.KeepAlive(got)
 	runtime.KeepAlive(err)
+}
+
+func BenchmarkBuildDependenciesUnmarshalSparse(b *testing.B) {
+	encoded := mustDependencyDocument(b, 1)
+	var wantErr error
+	b.ReportAllocs()
+	var last BuildDependencies
+	for b.Loop() {
+		var got BuildDependencies
+		err := got.UnmarshalJSON(encoded)
+		if !errors.Is(err, wantErr) {
+			b.Fatalf("BuildDependencies.UnmarshalJSON(sparse) error = %v, want %v", err, wantErr)
+		}
+		last = got
+	}
+	if last.Count() != 1 {
+		b.Fatalf("BuildDependencies.UnmarshalJSON(sparse).Count() = %d, want 1", last.Count())
+	}
+}
+
+func BenchmarkBuildDependenciesUnmarshalMaximum(b *testing.B) {
+	encoded := mustDependencyDocument(b, BuildDependencyMaximumCount)
+	var wantErr error
+	b.ReportAllocs()
+	var last BuildDependencies
+	for b.Loop() {
+		var got BuildDependencies
+		err := got.UnmarshalJSON(encoded)
+		if !errors.Is(err, wantErr) {
+			b.Fatalf("BuildDependencies.UnmarshalJSON(maximum) error = %v, want %v", err, wantErr)
+		}
+		last = got
+	}
+	if last.Count() != BuildDependencyMaximumCount {
+		b.Fatalf("BuildDependencies.UnmarshalJSON(maximum).Count() = %d, want %d", last.Count(), BuildDependencyMaximumCount)
+	}
+}
+
+func mustDependencyDocument(b *testing.B, count int) []byte {
+	b.Helper()
+
+	value, err := newBuildDependencies(
+		mustModulePath(b, testMainModule),
+		CurrentGoToolchain(),
+		numberedModules(b, count),
+	)
+	if err != nil {
+		b.Fatalf("newBuildDependencies(%d) error = %v, want nil", count, err)
+	}
+	encoded, err := value.MarshalJSON()
+	if err != nil {
+		b.Fatalf("BuildDependencies.MarshalJSON(%d) error = %v, want nil", count, err)
+	}
+	return encoded
 }

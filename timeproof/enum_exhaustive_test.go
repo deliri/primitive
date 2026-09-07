@@ -11,7 +11,7 @@ import (
 func TestAuthorityAndTimestampPolicyExhaustBackingDomains(t *testing.T) {
 	t.Parallel()
 
-	for raw := 0; raw <= 255; raw++ {
+	for raw := range 256 {
 		authority := Authority(raw)
 		wantAuthority := authority == AuthorityFreeTSA || authority == AuthorityDigiCert
 		gotAuthorityErr := authority.Validate()

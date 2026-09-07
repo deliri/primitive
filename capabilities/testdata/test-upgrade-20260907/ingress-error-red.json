@@ -1,0 +1,193 @@
+{
+  "label": "ingress-error-red",
+  "argv": [
+    "go",
+    "test",
+    "-json",
+    "-count=1",
+    "-run=TestSymbolContractsPreserveCrossPackageErrorIdentity|TestOperationContractBoundaryMutations|TestClassificationHostileJSONDocuments|TestCatalogIteratorExactPrefixAndZero",
+    "./capabilities"
+  ],
+  "cwd": "/Users/d/code/primitive",
+  "revision": "bcc6942166507094cfb52406b19c5c40c9694223",
+  "tree": "dirty",
+  "toolchain": "go version go1.27.1 darwin/arm64",
+  "environment": "darwin\narm64\n\n\n/Users/d/code/go.work\n\n\n1",
+  "machine": "Darwin Ases-MacBook-Pro.local 25.6.0 Darwin Kernel Version 25.6.0: Fri Jul 31 19:18:49 PDT 2026; root:xnu-12377.161.14~5/RELEASE_ARM64_T6000 arm64",
+  "power": "Now drawing from 'AC Power'\n -InternalBattery-0 (id=22413411)\t80%; AC attached; not charging present: true",
+  "cache": "bypassed for go test by -count=1",
+  "started": "2026-09-07T03:35:10.448685+00:00",
+  "sources": [
+    {
+      "path": "capabilities/benchmark_external_test.go",
+      "bytes": 963,
+      "sha256": "9429841980aea78e67ae68c136b8c24ad3cc496321a2dbf5fd2c007cc9cc4f94"
+    },
+    {
+      "path": "capabilities/benchmark_test.go",
+      "bytes": 2639,
+      "sha256": "e6da510fcadb498d381df62e06179f00a6d6a80abc120b5f1bbfe9c2a8b1c9d5"
+    },
+    {
+      "path": "capabilities/catalog.go",
+      "bytes": 5022,
+      "sha256": "58a9e63b8248ffc1985d9c47d8b8cc638cca295d754d42fac6ddace14e795a4e"
+    },
+    {
+      "path": "capabilities/catalog_hostile_test.go",
+      "bytes": 14149,
+      "sha256": "36f1765932ecf2203f9721ca8935a1a5674d1b0c250375150f4f86f06e3aacab"
+    },
+    {
+      "path": "capabilities/catalog_strings.go",
+      "bytes": 5809,
+      "sha256": "d73a50ead9b449250369088facc9e58e0087b8b607a0cb3a33efc3faed89489b"
+    },
+    {
+      "path": "capabilities/classification.go",
+      "bytes": 4977,
+      "sha256": "0cd7cb69900a80ec8c4478ccdb8a4acd82c768761f7463c18226c1f0a7fd272c"
+    },
+    {
+      "path": "capabilities/classification_boundary_test.go",
+      "bytes": 5587,
+      "sha256": "85b55649749f5deb9e6070501956331632ed686c11f2aa29376205fb5d618ace"
+    },
+    {
+      "path": "capabilities/classification_test.go",
+      "bytes": 6148,
+      "sha256": "54e7f1ffeb6bc00d6bd7889be9292dd92c458b75f9762550b8f89606b3ba3bd9"
+    },
+    {
+      "path": "capabilities/classifier_handoff_test.go",
+      "bytes": 4857,
+      "sha256": "bc865074fd2fc3daa0f48466779185f97db4685f08a640fa13905f1ed989f196"
+    },
+    {
+      "path": "capabilities/compiler_methods_test.go",
+      "bytes": 2784,
+      "sha256": "b8fcac26f5e8b6f8ceb6cb7702b3ee744297d9feecd4044d4b383f7d1a641df3"
+    },
+    {
+      "path": "capabilities/compiler_strings.go",
+      "bytes": 1377,
+      "sha256": "da30b810d2f7d8764c3f5bfd44f2ec9179651516bf4d87f17b55d60483cce627"
+    },
+    {
+      "path": "capabilities/contract_ingress_test.go",
+      "bytes": 4949,
+      "sha256": "507f2f16fc10418ed00fb85665f353072e34fc2c8d0f04ba60763875219cc2a3"
+    },
+    {
+      "path": "capabilities/data_flow_inventory.go",
+      "bytes": 1452,
+      "sha256": "6713baee8fda920b592bf3fb506bc7c25d901aed826db82bc768d8d47ef6c966"
+    },
+    {
+      "path": "capabilities/data_flow_inventory_test.go",
+      "bytes": 1286,
+      "sha256": "255c87593df5210489adbcd00efd3e4181bc18d17750af7c8e8b7a1b5df3c815"
+    },
+    {
+      "path": "capabilities/effect.go",
+      "bytes": 3151,
+      "sha256": "1f254526f1238fbb02a70c5b575fdfd5177e2a6435a57764038e58990b2b21c1"
+    },
+    {
+      "path": "capabilities/identity.go",
+      "bytes": 2299,
+      "sha256": "038b11eb369ad224fde74b4e22f2eb5957851391ddbed0c7f3b84c60202c66e7"
+    },
+    {
+      "path": "capabilities/identity_hostile_test.go",
+      "bytes": 2557,
+      "sha256": "fb940b91b24e47f2cd3d2e5640c06911a919c93f78eb9998e96c39752e7062b3"
+    },
+    {
+      "path": "capabilities/json_boundary_test.go",
+      "bytes": 6879,
+      "sha256": "86d59dde5b5c8fd30ca0d618ed71ef2e1b46fe5ebcbee4ac78f7ce760866aa4d"
+    },
+    {
+      "path": "capabilities/operation.go",
+      "bytes": 6543,
+      "sha256": "278489d6f97af000161dcdefad7e52b91a1f061ebfaf602744885178218a8b2c"
+    },
+    {
+      "path": "capabilities/operation_test.go",
+      "bytes": 4825,
+      "sha256": "ddc438361731c63fc1795a07ce784766c3fff4d5ac98d047917400fcae42f8cd"
+    },
+    {
+      "path": "capabilities/ownership_boundary_test.go",
+      "bytes": 2910,
+      "sha256": "0ad6abf8d6a46b7b14f2248146f1e34b8d9c58894aaa10effcc1b4f5cc910e87"
+    },
+    {
+      "path": "capabilities/requirement.go",
+      "bytes": 6222,
+      "sha256": "8e5445c6870412f96fefde7387a0acfea5cee17fe1e00125e60e40a39f7b0c59"
+    },
+    {
+      "path": "capabilities/semantic_oracle_test.go",
+      "bytes": 8041,
+      "sha256": "cc0e3a648de199e744899d91c8d4ce660becd35c71246a4b5a02f8a81142d320"
+    },
+    {
+      "path": "capabilities/standard_method.go",
+      "bytes": 11902,
+      "sha256": "f87e096934abf7f3d22a8818526e459af940fadd8d461a4576d0d5703d9a89b0"
+    },
+    {
+      "path": "capabilities/standard_symbol.go",
+      "bytes": 16284,
+      "sha256": "29ccf5c2fe0c277bb1c6b84305e4971eb9887139fc0086850a542a4f353bc239"
+    },
+    {
+      "path": "capabilities/standard_symbol_hostile_test.go",
+      "bytes": 10568,
+      "sha256": "37b1537ed063d74767c79aaaeadee8990e0c45ce72e0fa87d1e97b6029077717"
+    },
+    {
+      "path": "go.mod",
+      "bytes": 3127,
+      "sha256": "fb645c6e4ee8e917c39f9c1732638142362452d43617ec22a1901fc9ca04c1d4"
+    },
+    {
+      "path": "go.sum",
+      "bytes": 15894,
+      "sha256": "607fa748df5c86058fd0c13a1b63c2fbaa7cea5c2229dabef79614715e3c27a0"
+    },
+    {
+      "path": "_docs/testing_protocol.md",
+      "bytes": 84440,
+      "sha256": "dd83cd7f62c172092546dab6b7c7d5c59753b5e8ae784631a94cff4d6d48126c"
+    }
+  ],
+  "overlays": [],
+  "source_snapshot_directory": "capabilities/testdata/test-upgrade-20260907/ingress-error-red-source",
+  "exit_status": 1,
+  "elapsed_seconds": 8.781220583012328,
+  "artifacts": [
+    {
+      "path": "capabilities/testdata/test-upgrade-20260907/ingress-error-red.stdout.txt",
+      "bytes": 192930,
+      "sha256": "a345be960437d98ed2d8e4ca56cb5d629911e6debaebf9e6ee5d6848ba4cff06"
+    },
+    {
+      "path": "capabilities/testdata/test-upgrade-20260907/ingress-error-red.stderr.txt",
+      "bytes": 0,
+      "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+    },
+    {
+      "path": "capabilities/testdata/test-upgrade-20260907/ingress-error-red.git-status.txt",
+      "bytes": 10171,
+      "sha256": "488101b9ed0bbb08aed193bb8a730f852133bb99b3859dac5da6131fe71f6e5a"
+    }
+  ],
+  "test_events": {
+    "pass": 66,
+    "fail": 21,
+    "skip": 0
+  }
+}

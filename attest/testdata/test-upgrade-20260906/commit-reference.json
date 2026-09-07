@@ -1,0 +1,7 @@
+{
+  "commit": "f265ac401e0a56d74252496eb25275fae41dd618",
+  "scope": "attest tests and benchmark reports only",
+  "source_match": "Committed attest Go files match boundary-tests and final benchmark source hashes.",
+  "gates": "Deferred until complete package sweep by user instruction.",
+  "independent_acceptance": false
+}

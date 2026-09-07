@@ -1,0 +1,237 @@
+{
+  "label": "boundary-BenchmarkEnvelopeUnmarshalJSON-cpu-top",
+  "argv": [
+    "go",
+    "tool",
+    "pprof",
+    "-top",
+    "-nodecount=12",
+    "attest/testdata/test-upgrade-20260906/boundary-BenchmarkEnvelopeUnmarshalJSON.test",
+    "attest/testdata/test-upgrade-20260906/boundary-BenchmarkEnvelopeUnmarshalJSON.cpu.pprof"
+  ],
+  "cwd": "/Users/d/code/primitive",
+  "revision": "8db3ace7a4353a09e81cb8da846f232a10bfbd8c",
+  "tree": "dirty",
+  "toolchain": "go version go1.27.1 darwin/arm64",
+  "environment": "darwin\narm64\n\n\n/Users/d/code/go.work",
+  "machine": "Darwin Ases-MacBook-Pro.local 25.6.0 Darwin Kernel Version 25.6.0: Fri Jul 31 19:18:49 PDT 2026; root:xnu-12377.161.14~5/RELEASE_ARM64_T6000 arm64",
+  "power": "Now drawing from 'AC Power'\n -InternalBattery-0 (id=22413411)\t80%; AC attached; not charging present: true",
+  "cache": "bypassed for go test by -count=1",
+  "started": "2026-09-06T22:08:52.882282+00:00",
+  "sources": [
+    {
+      "path": "attest/architecture_test.go",
+      "bytes": 18011,
+      "sha256": "df29da82ff80423619b738a6df14308eb269c6c2357cda6b87c20922f8d076f6"
+    },
+    {
+      "path": "attest/benchmark_external_test.go",
+      "bytes": 6105,
+      "sha256": "5fe769f9d114bbd062043e2e12675c8421c0fe5ac228605e923cdf4f608fde9e"
+    },
+    {
+      "path": "attest/canonical.go",
+      "bytes": 3875,
+      "sha256": "c0c97f4f3796d4bcffda3c6ddf135c3525e571ec0a2c356662248d5753c623c3"
+    },
+    {
+      "path": "attest/canonical_object.go",
+      "bytes": 10943,
+      "sha256": "fb97de37235a86c0e2957811b420dfb8e772ed7c8b737b281d05cdd3a0dcf5ef"
+    },
+    {
+      "path": "attest/canonical_object_fuzz_external_test.go",
+      "bytes": 4609,
+      "sha256": "d208cac72ac172afe789a38ce0f359081c6083a5c867511e3455e059137ab696"
+    },
+    {
+      "path": "attest/canonical_object_hostile_test.go",
+      "bytes": 27336,
+      "sha256": "beb55716e1001f36689467fb585755f6e6320cf66815b95c708ca68411d6c247"
+    },
+    {
+      "path": "attest/contract_external_test.go",
+      "bytes": 32829,
+      "sha256": "afde806194cc6a2e3766b8b78c765d7d8ab72131038d33f31f2253006c64d65b"
+    },
+    {
+      "path": "attest/contracts.go",
+      "bytes": 3202,
+      "sha256": "1f1e1ecd8477faf23311ab7cc02018d16b1ad03f4ed60a58c0a4a90034b29d05"
+    },
+    {
+      "path": "attest/doc.go",
+      "bytes": 814,
+      "sha256": "a764a8cb20aa9695c6ca5715393a3009fac7789547fb118056e67f6df3698a03"
+    },
+    {
+      "path": "attest/domain.go",
+      "bytes": 3013,
+      "sha256": "be94f5010ac279f9f25e6e5b6be3bed0eee1031208133f4795607c01f6bd9026"
+    },
+    {
+      "path": "attest/envelope.go",
+      "bytes": 4310,
+      "sha256": "980bdcbd29da643baa4a9f131cc11bb4092fc15688ce696ad4e1cb9f9bc6479d"
+    },
+    {
+      "path": "attest/errors.go",
+      "bytes": 3727,
+      "sha256": "bec8d0e01cf20471e1874e058bbe2cb1cc7ea56696126bc4075daf02676e676d"
+    },
+    {
+      "path": "attest/execution_hostile_external_test.go",
+      "bytes": 5442,
+      "sha256": "1f19a8eb047a354e87c65a8ce0cd141a6ec04078dd0f23269d289bff016c2b25"
+    },
+    {
+      "path": "attest/fixtures_external_test.go",
+      "bytes": 6307,
+      "sha256": "c71bee2592df4427dd3c07cb6602ff57673e1b2879bef37900670d3d1aab5011"
+    },
+    {
+      "path": "attest/frame.go",
+      "bytes": 2230,
+      "sha256": "7902a4d97b7fdad0e5cda46159c4e8906a611cb8112dda65224c95980566ce95"
+    },
+    {
+      "path": "attest/fuzz_external_test.go",
+      "bytes": 10125,
+      "sha256": "a8ca1c90833d1eca06259d598f291b2485870d5e4d6643d4b9b5221c15ba465d"
+    },
+    {
+      "path": "attest/guard.go",
+      "bytes": 423,
+      "sha256": "98998fa695e1550411df71c1b633fcfc6bc6bcdd56525a3f77d6f4f2ee0b2c66"
+    },
+    {
+      "path": "attest/identity_separation_external_test.go",
+      "bytes": 6036,
+      "sha256": "c5a5378eb6c571d12cd0c28d387576abac7b3bf448364e2c7e14c190e879c018"
+    },
+    {
+      "path": "attest/ingress_fuzz_external_test.go",
+      "bytes": 11013,
+      "sha256": "98427f9ff8628b35bf1a849da3293727d6e7be5e3aa63953778a6322628132a1"
+    },
+    {
+      "path": "attest/internal_contract_test.go",
+      "bytes": 16894,
+      "sha256": "1a346b59321bf2a193ed301bbd2074d2efea983c2ce6a4199d33b1e8e8cf1aa3"
+    },
+    {
+      "path": "attest/json_external_test.go",
+      "bytes": 39114,
+      "sha256": "6fc021d055f734b90889dec9d4a7c25322b575f77811dc92060eeadc652b82a8"
+    },
+    {
+      "path": "attest/json_oracle_external_test.go",
+      "bytes": 5112,
+      "sha256": "67fe282b14121c6807b3aa6b17df6506c61dbe3f3a2e48df4a9a4af52e48f757"
+    },
+    {
+      "path": "attest/key.go",
+      "bytes": 932,
+      "sha256": "4e8f18efdd5628ed6b6d7df23f2120f9df1937af64d7afd47bfbf4709ebbc747"
+    },
+    {
+      "path": "attest/layer_triad_external_test.go",
+      "bytes": 5689,
+      "sha256": "13bfb2b273a7b714369452299d9407d567463755c07dfc1b721624ddcdbd33a9"
+    },
+    {
+      "path": "attest/nested_boundary_external_test.go",
+      "bytes": 4662,
+      "sha256": "9c44dad3b11a8f90b69a67d29aa1582aecf418aa45dfef38ac082cebe856883b"
+    },
+    {
+      "path": "attest/operations.go",
+      "bytes": 5034,
+      "sha256": "aae0c7494c5698cd638621c49c4913de1e1636da455e0cdf2bc17138c3ac62e4"
+    },
+    {
+      "path": "attest/signature.go",
+      "bytes": 2055,
+      "sha256": "8803d334486b05fd7bac98836c90401e38489b09f2a8642efe18da932457fca4"
+    },
+    {
+      "path": "attest/signature_external_fuzz_test.go",
+      "bytes": 5318,
+      "sha256": "f5d1dd2730851cc6567bae4fe4d5fcf90715ef9f07361d3eae3df35845007aab"
+    },
+    {
+      "path": "attest/signer.go",
+      "bytes": 1752,
+      "sha256": "3dc355f1a44a483a73a829bea417e85e8d66670a78a63e28518c8ade22819e0a"
+    },
+    {
+      "path": "attest/signer_external_test.go",
+      "bytes": 7717,
+      "sha256": "1b3c49318ef4be76b40c032e736f08d7ff54adb6d276ca99e25262ed8fb5a955"
+    },
+    {
+      "path": "attest/stdlib_oracle_external_test.go",
+      "bytes": 3531,
+      "sha256": "ca0b2a6a14370ef742beb0bb13cf27f05861c2f2dafb9c287a7328e6561ab5e0"
+    },
+    {
+      "path": "attest/trusted.go",
+      "bytes": 2735,
+      "sha256": "fd61c9f637bcac84cbccdd31b65f9c206748d1ca51549f82b3d403d8c25f8bbb"
+    },
+    {
+      "path": "attest/trusted_fuzz_test.go",
+      "bytes": 2873,
+      "sha256": "3eb85e2aa1da6b61db84519aad38f7fc4d086e98614cee8a2511aa1519524f03"
+    },
+    {
+      "path": "attest/validation_witnesses.go",
+      "bytes": 165,
+      "sha256": "db23cfa0c4ff9b4f63d9bdc38bd95fbb6850a66d8b898699fc28f4eecade2272"
+    },
+    {
+      "path": "attest/verify_external_test.go",
+      "bytes": 10210,
+      "sha256": "9451c882b946fe1d6a3b0f2857dd49cfedf08355fda6679b1d06e902da5082c3"
+    },
+    {
+      "path": "go.mod",
+      "bytes": 3127,
+      "sha256": "fb645c6e4ee8e917c39f9c1732638142362452d43617ec22a1901fc9ca04c1d4"
+    },
+    {
+      "path": "go.sum",
+      "bytes": 15894,
+      "sha256": "607fa748df5c86058fd0c13a1b63c2fbaa7cea5c2229dabef79614715e3c27a0"
+    },
+    {
+      "path": "_docs/testing_protocol.md",
+      "bytes": 84440,
+      "sha256": "dd83cd7f62c172092546dab6b7c7d5c59753b5e8ae784631a94cff4d6d48126c"
+    }
+  ],
+  "exit_status": 0,
+  "elapsed_seconds": 0.13507449999451637,
+  "artifacts": [
+    {
+      "path": "attest/testdata/test-upgrade-20260906/boundary-BenchmarkEnvelopeUnmarshalJSON-cpu-top.stdout.txt",
+      "bytes": 1239,
+      "sha256": "9cb570c36d52fc76eaf6c94957db91ac920def6b7a4268c1eda940338e48a9bc"
+    },
+    {
+      "path": "attest/testdata/test-upgrade-20260906/boundary-BenchmarkEnvelopeUnmarshalJSON-cpu-top.stderr.txt",
+      "bytes": 0,
+      "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+    },
+    {
+      "path": "attest/testdata/test-upgrade-20260906/boundary-BenchmarkEnvelopeUnmarshalJSON-cpu-top.git-status.txt",
+      "bytes": 10719,
+      "sha256": "da5204c2da5c5914ba7e90227886fbe476ce28fd430c1322a433f4d62b319745"
+    }
+  ],
+  "test_events": {
+    "pass": 0,
+    "fail": 0,
+    "skip": 0
+  }
+}

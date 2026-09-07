@@ -656,11 +656,26 @@ func readVirtualValue(
 }
 
 func readBoundedValue(ctx context.Context, reader io.Reader, maximum uint64) ([]byte, error) {
-	storage := make([]byte, maximum+1)
+	// The ceiling is an admission limit, not a reservation. Grow with the
+	// observed bytes and keep one spare to prove a ceiling violation.
+	if maximum != uint64(int(maximum)) {
+		return nil, core.ErrHostFactsObservation
+	}
+	maximumInt := int(maximum)
+	storage := make([]byte, min(maximumInt+1, streamBufferBytes))
 	written, emptyReads := 0, 0
 	for {
 		if err := contextstate.Validate(ctx); err != nil {
 			return nil, err
+		}
+		if written == len(storage) {
+			next := min(len(storage)*2, maximumInt+1)
+			if next <= len(storage) {
+				return nil, core.ErrHostFactsObservation
+			}
+			grown := make([]byte, next)
+			copy(grown, storage)
+			storage = grown
 		}
 		count, readErr := reader.Read(storage[written:])
 		if err := validateReadCount(count, len(storage)-written); err != nil {
@@ -673,7 +688,10 @@ func readBoundedValue(ctx context.Context, reader io.Reader, maximum uint64) ([]
 		}
 		emptyReads = nextEmptyReads(emptyReads, count)
 		if done, err := finishValueRead(readErr); done {
-			return storage[:written], err
+			if err != nil {
+				return nil, err
+			}
+			return storage[:written], nil
 		}
 		if emptyReads >= core.ReaderConsecutiveEmptyReadMaximum {
 			return nil, io.ErrNoProgress

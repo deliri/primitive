@@ -37,7 +37,7 @@ func benchmarkManifestAccumulatorStreaming(b *testing.B, objects uint64) {
 	b.ReportAllocs()
 	b.SetBytes(canonicalBytes)
 	b.ResetTimer()
-	for range b.N {
+	for b.Loop() {
 		accumulator := NewManifestAccumulator()
 		for sequence := uint64(1); sequence <= objects; sequence++ {
 			entrySequence, err := NewEntrySequence(sequence)
@@ -95,7 +95,7 @@ func benchmarkVerifyCatalogPage(b *testing.B, entries int) {
 	b.ReportAllocs()
 	b.SetBytes(int64(len(canonical)))
 	b.ResetTimer()
-	for range b.N {
+	for b.Loop() {
 		got, err := VerifyCatalog(verification)
 		payload, payloadErr := got.Payload()
 		if err != nil || payloadErr != nil || len(payload.Entries) != entries {

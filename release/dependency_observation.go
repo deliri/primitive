@@ -6,6 +6,7 @@ import (
 	json "encoding/json/v2"
 	"errors"
 	"io"
+	"slices"
 	"sort"
 
 	"encoding/json/jsontext"
@@ -75,8 +76,7 @@ type goListPackageWire struct {
 
 type dependencyObservation struct {
 	main    GoModulePath
-	modules [BuildDependencyMaximumCount]BuildDependency
-	count   int
+	modules []BuildDependency
 }
 
 type dependencyProcessOutcome struct {
@@ -112,12 +112,12 @@ func ObserveBuildDependencies(
 			return BuildDependencies{}, err
 		}
 	}
-	modules := append([]BuildDependency(nil), combined.modules[:combined.count]...)
+	modules := slices.Clone(combined.modules)
 	return newBuildDependencies(combined.main, request.Tools.GoToolchain(), modules)
 }
 
 // observeBuildCommandDependencies fills observed with one target's closure. The
-// fixed observation storage is reused across targets, so every failure path
+// observation storage is reused across targets, so every failure path
 // leaves it zeroed rather than partially populated.
 func observeBuildCommandDependencies(
 	ctx context.Context,
@@ -305,21 +305,19 @@ func (o *dependencyObservation) addPackageModule(moduleWire goListModuleWire) er
 }
 
 func (o *dependencyObservation) addModule(module BuildDependency) error {
-	index := sort.Search(o.count, func(index int) bool {
+	index := sort.Search(len(o.modules), func(index int) bool {
 		return o.modules[index].path.value >= module.path.value
 	})
-	if index < o.count && o.modules[index].path == module.path {
+	if index < len(o.modules) && o.modules[index].path == module.path {
 		if o.modules[index] != module {
 			return contractError(errors.New("go module facts conflict across packages"))
 		}
 		return nil
 	}
-	if o.count >= len(o.modules) {
+	if len(o.modules) >= BuildDependencyMaximumCount {
 		return contractError(errors.New(buildDependencyCountDiagnostic))
 	}
-	copy(o.modules[index+1:o.count+1], o.modules[index:o.count])
-	o.modules[index] = module
-	o.count++
+	o.modules = slices.Insert(o.modules, index, module)
 	return nil
 }
 
@@ -330,7 +328,7 @@ func (o *dependencyObservation) merge(other *dependencyObservation) error {
 	if o.main != other.main {
 		return contractError(errors.New("target dependency closures have different main modules"))
 	}
-	for _, module := range other.modules[:other.count] {
+	for _, module := range other.modules {
 		if err := o.addModule(module); err != nil {
 			return err
 		}

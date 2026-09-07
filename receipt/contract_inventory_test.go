@@ -62,7 +62,10 @@ func TestReceiptExternalIngressFuzzInventoryMatchesProduction(t *testing.T) {
 		t.Fatalf("receiptExportedJSONReceiverNames() error = %v, want nil", err)
 	}
 	var wantJSON []string
-	for door := receiptJSONDoorUnknown + 1; door < receiptJSONDoorLimit; door++ {
+	for door := range receiptJSONDoorLimit {
+		if door < receiptJSONDoorUnknown+1 {
+			continue
+		}
 		name := door.receiverName()
 		if name == "" {
 			t.Fatalf("receipt JSON fuzz door %d has no compiler-visible receiver", door)
@@ -80,7 +83,10 @@ func TestReceiptExternalIngressFuzzInventoryMatchesProduction(t *testing.T) {
 	}
 	slices.Sort(gotText)
 	var wantText []string
-	for door := receiptTextDoorUnknown + 1; door < receiptTextDoorLimit; door++ {
+	for door := range receiptTextDoorLimit {
+		if door < receiptTextDoorUnknown+1 {
+			continue
+		}
 		name := door.functionName()
 		if name == "" {
 			t.Fatalf("receipt text fuzz door %d has no compiler-visible function", door)

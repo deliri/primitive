@@ -98,7 +98,7 @@ func TestDiagnosticLabelsAreExhaustiveAndClosed(t *testing.T) {
 			t.Parallel()
 
 			seen := make(map[string]uint8, len(tc.known))
-			for value := 0; value <= math.MaxUint8; value++ {
+			for value := range math.MaxUint8 + 1 {
 				member := uint8(value)
 				want, known := tc.known[member]
 				if !known {

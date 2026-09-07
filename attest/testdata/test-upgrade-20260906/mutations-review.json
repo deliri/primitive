@@ -1,0 +1,56 @@
+[
+  {
+    "name": "review-domain-fixture",
+    "source": "/Users/d/code/primitive/attest/domain.go",
+    "before": "if !validDomainText(text) {",
+    "after": "if false && !validDomainText(text) {",
+    "test_filter": "TestCanonicalDomainRoundTripEnforcesSelfReference",
+    "killed": true,
+    "exit_status": 1
+  },
+  {
+    "name": "review-nested-oracle",
+    "source": "/Users/d/code/primitive/attest/canonical_object.go",
+    "before": "return encoded, validateCanonicalMemberEncoding(encoded)",
+    "after": "return encoded, nil",
+    "test_filter": "FuzzCanonicalObjectNestedMember",
+    "killed": true,
+    "exit_status": 1
+  },
+  {
+    "name": "review-closed-member",
+    "source": "/Users/d/code/primitive/attest/canonical_object.go",
+    "before": "if !o.opened || o.closed {",
+    "after": "if !o.opened {",
+    "test_filter": "TestCanonicalObjectStateTransitionsRefuseReuseDuplicatesAndOverflow/a_member_after_End",
+    "killed": true,
+    "exit_status": 1
+  },
+  {
+    "name": "review-decoded-signature",
+    "source": "/Users/d/code/primitive/attest/signature.go",
+    "before": "copy(signature.value[:], value)",
+    "after": "copy(signature.value[:], value)\n signature.value[ed25519.SignatureSize-1] = 0",
+    "test_filter": "TestSignatureJSONPublicCanonicalBoundaryMatrix",
+    "killed": true,
+    "exit_status": 1
+  },
+  {
+    "name": "review-envelope-oracle",
+    "source": "/Users/d/code/primitive/attest/envelope.go",
+    "before": "*e = candidate",
+    "after": "candidate.BodyLength, _ = core.NewByteCount(1)\n *e = candidate",
+    "test_filter": "FuzzEnvelopeJSONSemanticClosure",
+    "killed": true,
+    "exit_status": 1
+  },
+  {
+    "name": "review-signature-separation",
+    "source": "/Users/d/code/primitive/attest/operations.go",
+    "before": "Signature:  signature,",
+    "after": "Signature:  Signature{set:true},",
+    "test_filter": "TestSignPublicDeterminismAndSeparationMatrix",
+    "killed": true,
+    "exit_status": 1
+  }
+]

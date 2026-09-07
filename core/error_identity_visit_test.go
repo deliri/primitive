@@ -22,12 +22,18 @@ func TestErrorIdentityVisitSetCoversTheWholeClosedDomain(t *testing.T) {
 	}
 
 	var visited errorIdentityVisitSet
-	for identity := ErrUnknown + 1; identity < errorIdentityLimit; identity++ {
+	for identity := range errorIdentityLimit {
+		if identity < ErrUnknown+1 {
+			continue
+		}
 		if !visited.mark(identity) {
 			t.Fatalf("mark(%d) = false on its first visit, want true", int(identity))
 		}
 	}
-	for identity := ErrUnknown + 1; identity < errorIdentityLimit; identity++ {
+	for identity := range errorIdentityLimit {
+		if identity < ErrUnknown+1 {
+			continue
+		}
 		if visited.mark(identity) {
 			t.Fatalf("mark(%d) = true on its second visit, want false", int(identity))
 		}

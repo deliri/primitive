@@ -1,0 +1,70 @@
+{
+  "phase": "before",
+  "configured_total_seconds": 90,
+  "execution": "three serial leaves; CPU and memory profiles together in each invocation; fixed Go CPU count 1",
+  "workloads": [
+    {
+      "label": "header-capture-before-at_limit",
+      "argv": [
+        "go",
+        "test",
+        "-run=^$",
+        "-bench=^BenchmarkAggregateHeaderValueAdmission$/^at_limit$",
+        "-benchmem",
+        "-benchtime=30s",
+        "-count=1",
+        "-cpu=1",
+        "-p=1",
+        "-parallel=1",
+        "-timeout=3m",
+        "-cpuprofile=/Users/d/code/primitive/exchange/testdata/test-upgrade-20260907/header-capture-before-at_limit.cpu.pprof",
+        "-memprofile=/Users/d/code/primitive/exchange/testdata/test-upgrade-20260907/header-capture-before-at_limit.mem.pprof",
+        "-o=/Users/d/code/primitive/exchange/testdata/test-upgrade-20260907/header-capture-before-at_limit.test",
+        "./exchange"
+      ],
+      "configured_seconds": 30
+    },
+    {
+      "label": "header-capture-before-above_limit",
+      "argv": [
+        "go",
+        "test",
+        "-run=^$",
+        "-bench=^BenchmarkAggregateHeaderValueAdmission$/^above_limit$",
+        "-benchmem",
+        "-benchtime=30s",
+        "-count=1",
+        "-cpu=1",
+        "-p=1",
+        "-parallel=1",
+        "-timeout=3m",
+        "-cpuprofile=/Users/d/code/primitive/exchange/testdata/test-upgrade-20260907/header-capture-before-above_limit.cpu.pprof",
+        "-memprofile=/Users/d/code/primitive/exchange/testdata/test-upgrade-20260907/header-capture-before-above_limit.mem.pprof",
+        "-o=/Users/d/code/primitive/exchange/testdata/test-upgrade-20260907/header-capture-before-above_limit.test",
+        "./exchange"
+      ],
+      "configured_seconds": 30
+    },
+    {
+      "label": "header-capture-before-excess_4096",
+      "argv": [
+        "go",
+        "test",
+        "-run=^$",
+        "-bench=^BenchmarkAggregateHeaderValueAdmission$/^excess_4096$",
+        "-benchmem",
+        "-benchtime=30s",
+        "-count=1",
+        "-cpu=1",
+        "-p=1",
+        "-parallel=1",
+        "-timeout=3m",
+        "-cpuprofile=/Users/d/code/primitive/exchange/testdata/test-upgrade-20260907/header-capture-before-excess_4096.cpu.pprof",
+        "-memprofile=/Users/d/code/primitive/exchange/testdata/test-upgrade-20260907/header-capture-before-excess_4096.mem.pprof",
+        "-o=/Users/d/code/primitive/exchange/testdata/test-upgrade-20260907/header-capture-before-excess_4096.test",
+        "./exchange"
+      ],
+      "configured_seconds": 30
+    }
+  ]
+}

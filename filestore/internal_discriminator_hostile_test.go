@@ -51,7 +51,7 @@ func TestInternalDiscriminatorsRefuseUnknownInsteadOfSelectingBehavior(t *testin
 func TestInternalDiscriminatorDomainsExhaustBackingType(t *testing.T) {
 	t.Parallel()
 
-	for raw := 0; raw <= math.MaxUint8; raw++ {
+	for raw := range math.MaxUint8 + 1 {
 		destination := streamDestination(raw)
 		wantDestination := destination == streamDestinationCaller ||
 			destination == streamDestinationFile

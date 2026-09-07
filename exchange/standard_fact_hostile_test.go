@@ -1,154 +1,110 @@
-package exchange_test
+package exchange
 
 import (
 	"errors"
+	"fmt"
 	"math"
 	"mime"
 	"net/http"
-	"slices"
 	"testing"
 
 	"github.com/deliri/primitive/v2026/core"
-	"github.com/deliri/primitive/v2026/exchange"
 )
 
 func TestStandardHeaderExhaustsCompleteByteDomain(t *testing.T) {
 	t.Parallel()
-
-	valid := []exchange.StandardHeader{
-		exchange.StandardHeaderAuthorization,
-		exchange.StandardHeaderCacheControl,
-		exchange.StandardHeaderForwardedFor,
-		exchange.StandardHeaderRetryAfter,
+	// This exhausts a byte-backed enum; the rejected ordinals are one domain
+	// class, not 252 earned rows toward a parser or classifier quota. Expected
+	// names bind to the owning constants, independently of the enum's lookup.
+	type headerCase struct {
+		name      string
+		input     StandardHeader
+		wantName  string
+		wantValid bool
+		wantErr   error
 	}
-	seen := make([]string, 0, len(valid))
-	for value := range math.MaxUint8 + 1 {
-		header := exchange.StandardHeader(value)
-		wantValid := slices.Contains(valid, header)
-		name, admitted := requireStandardHeaderDomainValue(t, header, wantValid)
-		if admitted {
-			requireDistinctStandardFact(t, value, name, seen)
-			seen = append(seen, name)
-		}
+	cases := [math.MaxUint8 + 1]headerCase{}
+	for ordinal := range cases {
+		cases[ordinal] = headerCase{name: fmt.Sprintf("unpublished header ordinal %d cannot acquire a field name", ordinal), input: StandardHeader(ordinal), wantErr: core.ErrExchangeContract}
 	}
-	if len(seen) != len(valid) {
-		t.Fatalf("distinct valid standard headers = %d, want %d", len(seen), len(valid))
+	cases[StandardHeaderAuthorization] = headerCase{name: "authorization cannot become another valid header", input: StandardHeaderAuthorization, wantName: authorizationHeaderNameText, wantValid: true}
+	cases[StandardHeaderCacheControl] = headerCase{name: "cache policy cannot become another valid header", input: StandardHeaderCacheControl, wantName: cacheControlHeaderNameText, wantValid: true}
+	cases[StandardHeaderForwardedFor] = headerCase{name: "forwarding identity cannot become another valid header", input: StandardHeaderForwardedFor, wantName: forwardedForHeaderNameText, wantValid: true}
+	cases[StandardHeaderRetryAfter] = headerCase{name: "retry timing cannot become another valid header", input: StandardHeaderRetryAfter, wantName: retryAfterHeaderNameText, wantValid: true}
+	for _, tc := range cases {
+		t.Run(tc.name, func(t *testing.T) {
+			t.Parallel()
+			gotErr := tc.input.Validate()
+			gotName, gotNameErr := tc.input.Name()
+			if !errors.Is(gotErr, tc.wantErr) || !errors.Is(gotNameErr, tc.wantErr) || tc.input.IsValid() != tc.wantValid {
+				t.Fatalf("header validation/projection/validity = (%v, %v, %t), want (%v, %v, %t)", gotErr, gotNameErr, tc.input.IsValid(), tc.wantErr, tc.wantErr, tc.wantValid)
+			}
+			if gotName.String() != tc.wantName || tc.input.String() != tc.wantName {
+				t.Fatalf("header nominal/diagnostic = (%q, %q), want (%q, %q)", gotName.String(), tc.input.String(), tc.wantName, tc.wantName)
+			}
+			if !tc.wantValid {
+				if gotName != (core.HTTPHeaderName{}) {
+					t.Fatalf("refused header capability = %+v, want exact zero", gotName)
+				}
+				return
+			}
+			if err := gotName.Validate(); err != nil {
+				t.Fatalf("admitted header nominal validation = %v, want nil", err)
+			}
+			const value = "exact admitted value"
+			fields := make(http.Header)
+			fields.Set(gotName.String(), value)
+			if got := fields.Get(tc.wantName); got != value || len(fields) != 1 || http.CanonicalHeaderKey(gotName.String()) != tc.wantName {
+				t.Fatalf("Go header handoff = (%q, %v), want one canonical %q field carrying %q", got, fields, tc.wantName, value)
+			}
+		})
 	}
-}
-
-func requireStandardHeaderDomainValue(t *testing.T, header exchange.StandardHeader, wantValid bool) (string, bool) {
-	t.Helper()
-
-	if got := header.IsValid(); got != wantValid {
-		t.Fatalf("StandardHeader(%d).IsValid() = %t, want %t", header, got, wantValid)
-	}
-	name, gotErr := header.Name()
-	if !wantValid {
-		if !errors.Is(gotErr, core.ErrExchangeContract) || name != (core.HTTPHeaderName{}) || header.String() != "" {
-			t.Fatalf("invalid StandardHeader(%d) projection = (%q, %v), want zero and %v", header, name.String(), gotErr, core.ErrExchangeContract)
-		}
-		return "", false
-	}
-	if gotErr != nil || name.String() != header.String() {
-		t.Fatalf("StandardHeader(%d).Name() = (%q, %v), want (%q, nil)", header, name.String(), gotErr, header.String())
-	}
-	var offWire core.OffWireEnum = header
-	offWire.OffWireEnum()
-	return name.String(), true
 }
 
 func TestStandardMediaTypeExhaustsCompleteByteDomain(t *testing.T) {
 	t.Parallel()
-
-	valid := []exchange.StandardMediaType{
-		exchange.StandardMediaTypeJSON,
-		exchange.StandardMediaTypePlainText,
+	type mediaCase struct {
+		name      string
+		input     StandardMediaType
+		wantName  string
+		wantValid bool
+		wantErr   error
 	}
-	seen := make([]string, 0, len(valid))
-	for value := range math.MaxUint8 + 1 {
-		media := exchange.StandardMediaType(value)
-		wantValid := slices.Contains(valid, media)
-		name, admitted := requireStandardMediaDomainValue(t, media, wantValid)
-		if admitted {
-			requireDistinctStandardFact(t, value, name, seen)
-			seen = append(seen, name)
-		}
+	cases := [math.MaxUint8 + 1]mediaCase{}
+	for ordinal := range cases {
+		cases[ordinal] = mediaCase{name: fmt.Sprintf("unpublished media ordinal %d cannot acquire a representation", ordinal), input: StandardMediaType(ordinal), wantErr: core.ErrExchangeContract}
 	}
-	if len(seen) != len(valid) {
-		t.Fatalf("distinct valid standard media types = %d, want %d", len(seen), len(valid))
-	}
-}
-
-func requireStandardMediaDomainValue(t *testing.T, media exchange.StandardMediaType, wantValid bool) (string, bool) {
-	t.Helper()
-
-	if got := media.IsValid(); got != wantValid {
-		t.Fatalf("StandardMediaType(%d).IsValid() = %t, want %t", media, got, wantValid)
-	}
-	projected, gotErr := media.HTTPMediaType()
-	if !wantValid {
-		if !errors.Is(gotErr, core.ErrExchangeContract) || projected != (core.HTTPMediaType{}) || media.String() != "" {
-			t.Fatalf("invalid StandardMediaType(%d) projection = (%q, %v), want zero and %v", media, projected.String(), gotErr, core.ErrExchangeContract)
-		}
-		return "", false
-	}
-	if gotErr != nil || projected.String() != media.String() {
-		t.Fatalf("StandardMediaType(%d).HTTPMediaType() = (%q, %v), want (%q, nil)", media, projected.String(), gotErr, media.String())
-	}
-	var offWire core.OffWireEnum = media
-	offWire.OffWireEnum()
-	return projected.String(), true
-}
-
-func requireDistinctStandardFact(t *testing.T, value int, name string, seen []string) {
-	t.Helper()
-
-	if slices.Contains(seen, name) {
-		t.Fatalf("standard fact %d duplicates canonical projection %q", value, name)
-	}
-}
-
-func TestStandardHTTPFactsReachRealStandardLibraryHandoffs(t *testing.T) {
-	t.Parallel()
-
-	headerCases := []exchange.StandardHeader{
-		exchange.StandardHeaderAuthorization,
-		exchange.StandardHeaderCacheControl,
-		exchange.StandardHeaderForwardedFor,
-		exchange.StandardHeaderRetryAfter,
-	}
-	for _, header := range headerCases {
-		t.Run(header.String(), func(t *testing.T) {
+	cases[StandardMediaTypeJSON] = mediaCase{name: "JSON cannot be substituted with valid plain text", input: StandardMediaTypeJSON, wantName: core.HTTPMediaTypeJSON().String(), wantValid: true}
+	cases[StandardMediaTypePlainText] = mediaCase{name: "plain text cannot be substituted with valid JSON", input: StandardMediaTypePlainText, wantName: plainTextMediaTypeText, wantValid: true}
+	for _, tc := range cases {
+		t.Run(tc.name, func(t *testing.T) {
 			t.Parallel()
-
-			name, gotErr := header.Name()
-			if gotErr != nil {
-				t.Fatalf("StandardHeader.Name() error = %v, want nil", gotErr)
+			gotErr := tc.input.Validate()
+			gotMedia, gotMediaErr := tc.input.HTTPMediaType()
+			if !errors.Is(gotErr, tc.wantErr) || !errors.Is(gotMediaErr, tc.wantErr) || tc.input.IsValid() != tc.wantValid {
+				t.Fatalf("media validation/projection/validity = (%v, %v, %t), want (%v, %v, %t)", gotErr, gotMediaErr, tc.input.IsValid(), tc.wantErr, tc.wantErr, tc.wantValid)
 			}
-			fields := make(http.Header)
-			fields.Set(name.String(), "exact-value")
-			if got := fields.Get(header.String()); got != "exact-value" {
-				t.Fatalf("http.Header.Get(%q) = %q, want %q", header.String(), got, "exact-value")
+			if gotMedia.String() != tc.wantName || tc.input.String() != tc.wantName {
+				t.Fatalf("media nominal/diagnostic = (%q, %q), want (%q, %q)", gotMedia.String(), tc.input.String(), tc.wantName, tc.wantName)
 			}
-		})
-	}
-
-	mediaCases := []exchange.StandardMediaType{
-		exchange.StandardMediaTypeJSON,
-		exchange.StandardMediaTypePlainText,
-	}
-	for _, media := range mediaCases {
-		t.Run(media.String(), func(t *testing.T) {
-			t.Parallel()
-
-			projected, gotErr := media.HTTPMediaType()
-			if gotErr != nil {
-				t.Fatalf("StandardMediaType.HTTPMediaType() error = %v, want nil", gotErr)
+			if !tc.wantValid {
+				if gotMedia != (core.HTTPMediaType{}) {
+					t.Fatalf("refused media capability = %+v, want exact zero", gotMedia)
+				}
+				return
 			}
-			base, parameters, gotParseErr := mime.ParseMediaType(projected.String())
-			if gotParseErr != nil || base != media.String() || len(parameters) != 0 {
-				t.Fatalf("mime.ParseMediaType(%q) = (%q, %v, %v), want (%q, empty, nil)", projected.String(), base, parameters, gotParseErr, media.String())
+			if err := gotMedia.Validate(); err != nil {
+				t.Fatalf("admitted media nominal validation = %v, want nil", err)
+			}
+			base, parameters, err := mime.ParseMediaType(gotMedia.String())
+			if err != nil || base != tc.wantName || len(parameters) != 0 {
+				t.Fatalf("Go media handoff = (%q, %v, %v), want (%q, no parameters, nil)", base, parameters, err, tc.wantName)
 			}
 		})
 	}
 }
+
+var (
+	_ core.OffWireEnum = StandardHeaderUnknown
+	_ core.OffWireEnum = StandardMediaTypeUnknown
+)

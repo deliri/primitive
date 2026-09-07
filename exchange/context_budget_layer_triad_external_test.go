@@ -1,10 +1,11 @@
 package exchange_test
 
 import (
-	"context"
+	"bytes"
 	"errors"
 	"net/http"
 	"net/http/httptest"
+	"strconv"
 	"sync/atomic"
 	"testing"
 	"time"
@@ -13,169 +14,101 @@ import (
 	"github.com/deliri/primitive/v2026/exchange"
 )
 
+// Deadline expiration is proved with Go's virtual clock in
+// TestHTTPTransportFailureHandoffTable. These rows exercise actual loopback
+// HTTP and prove the local positive/refusal/neutral response-accounting triad.
 func TestContextBudgetLayerTriad(t *testing.T) {
 	t.Parallel()
-
-	t.Run("positive active context completes inside both typed budgets", func(t *testing.T) {
-		t.Parallel()
-
-		ok := mustHTTPStatus(t, http.StatusOK)
-		server := httptest.NewServer(http.HandlerFunc(func(
-			writer http.ResponseWriter,
-			_ *http.Request,
-		) {
-			writer.Header().Set(
-				core.HTTPHeaderContentType().String(),
-				mustHTTPMediaType(t, "text/plain").String(),
-			)
-			writer.WriteHeader(http.StatusOK)
-			_, _ = writer.Write([]byte("inside budget"))
-		}))
-		defer server.Close()
-
-		got, gotErr := exchange.SendNoBodyBounded(
-			exchange.NoBodyBoundedCall{
-				Context: context.Background(),
-				Client:  mustExchangeClient(t, server.Client()),
-				Request: exchange.NoBodyBoundedRequest{
-					Target: mustEndpoint(t, server.URL),
-					Semantics: exchange.RequestSemantics{
-						Method: exchange.MethodGet,
-						Replay: exchange.ReplaySingleAttempt,
-					},
-					ExpectedResponseContentType: mustHTTPMediaType(t, "text/plain"),
-					ExpectedStatus:              ok,
-				},
-				Policy: exchange.NoBodyBoundedPolicy{
-					Operation:         singleAttemptOperationPolicy(t),
-					ResponseBodyLimit: mustByteCount(t, 4*1024),
-				},
-			},
-		)
-		if gotErr != nil || string(got.Body) != "inside budget" {
-			t.Fatalf(
-				"bounded active-context result = (%q, %v), want (%q, nil)",
-				got.Body,
-				gotErr,
-				"inside budget",
-			)
-		}
-	})
-
-	t.Run("negative attempt deadline cancels the real HTTP request and handler", func(t *testing.T) {
-		t.Parallel()
-
-		handlerDone := make(chan error, 1)
-		server := httptest.NewServer(http.HandlerFunc(func(
-			_ http.ResponseWriter,
-			request *http.Request,
-		) {
-			<-request.Context().Done()
-			handlerDone <- request.Context().Err()
-		}))
-		defer server.Close()
-
-		ok := mustHTTPStatus(t, http.StatusOK)
-		policy := singleAttemptOperationPolicy(t)
-		policy.OperationTimeout = mustDurationMilliseconds(t, 5_000)
-		// Five milliseconds let the deadline fire before a race-instrumented
-		// request reached the real handler, making "handler was cancelled"
-		// impossible to observe. One second still proves the attempt budget owns
-		// cancellation while leaving enough ingress margin under the full gate.
-		policy.AttemptTimeout = mustDurationMilliseconds(t, 1_000)
-		got, gotErr := exchange.SendNoBodyBounded(
-			exchange.NoBodyBoundedCall{
-				Context: context.Background(),
-				Client:  mustExchangeClient(t, server.Client()),
-				Request: exchange.NoBodyBoundedRequest{
-					Target: mustEndpoint(t, server.URL),
-					Semantics: exchange.RequestSemantics{
-						Method: exchange.MethodGet,
-						Replay: exchange.ReplaySingleAttempt,
-					},
-					ExpectedStatus: ok,
-				},
-				Policy: exchange.NoBodyBoundedPolicy{
-					Operation:         policy,
-					ResponseBodyLimit: mustByteCount(t, 4*1024),
-				},
-			},
-		)
-		if !errors.Is(gotErr, core.ErrExchangeCancelled) ||
-			!errors.Is(gotErr, context.DeadlineExceeded) {
-			t.Fatalf(
-				"attempt deadline error = %v, want %v and %v",
-				gotErr,
-				core.ErrExchangeCancelled,
-				context.DeadlineExceeded,
-			)
-		}
-		if got.Metadata.Attempts != 0 || len(got.Body) != 0 {
-			t.Fatalf("attempt deadline response = %+v, want zero", got)
-		}
-		select {
-		case gotHandlerErr := <-handlerDone:
-			if !errors.Is(gotHandlerErr, context.Canceled) {
-				t.Fatalf("handler context error = %v, want %v", gotHandlerErr, context.Canceled)
+	cases := []struct {
+		name             string
+		payload          []byte
+		method           exchange.Method
+		maximum          uint64
+		zeroPolicy       bool
+		wantBody         []byte
+		wantCalls        uint64
+		wantAttempts     uint64
+		wantStatus       core.HTTPStatusCode
+		wantHeaderLength uint64
+		wantErr          error
+	}{
+		{name: "exact response ceiling retains binary bytes over real HTTP", payload: []byte{0, 0xff}, method: exchange.MethodGet, maximum: 2, wantBody: []byte{0, 0xff}, wantCalls: 1, wantAttempts: 1, wantStatus: core.HTTPStatusOK(), wantHeaderLength: 2},
+		{name: "one above response ceiling withholds body but retains HTTP facts", payload: []byte{0, 0xff}, method: exchange.MethodGet, maximum: 1, wantCalls: 1, wantAttempts: 1, wantStatus: core.HTTPStatusOK(), wantHeaderLength: 2, wantErr: core.ErrExchangeBodyLimit},
+		{name: "empty successful HTTP response seals zero bytes without inventing body", method: exchange.MethodGet, maximum: 1, wantCalls: 1, wantAttempts: 1, wantStatus: core.HTTPStatusOK()},
+		{name: "HEAD retains declared extent without claiming transferred response bytes", payload: []byte{0, 0xff}, method: exchange.MethodHead, maximum: 2, wantCalls: 1, wantAttempts: 1, wantStatus: core.HTTPStatusOK(), wantHeaderLength: 2},
+		{name: "zero operation budget refuses before network execution", payload: []byte{0, 0xff}, method: exchange.MethodGet, maximum: 2, zeroPolicy: true, wantErr: core.ErrExchangeContract},
+	}
+	for _, tc := range cases {
+		t.Run(tc.name, func(t *testing.T) {
+			t.Parallel()
+			var calls atomic.Uint64
+			handled := make(chan error, 1)
+			server := httptest.NewServer(http.HandlerFunc(func(writer http.ResponseWriter, request *http.Request) {
+				calls.Add(1)
+				call, err := exchange.NewSocketServerCall(writer, request)
+				if err == nil {
+					err = exchange.WriteBounded(exchange.BoundedWriteCall{Call: call, Response: exchange.ServerBoundedResponse{Body: tc.payload, ContentType: core.HTTPMediaTypeOctetStream(), Status: core.HTTPStatusOK()}})
+				}
+				select {
+				case handled <- err:
+				default:
+				}
+			}))
+			t.Cleanup(func() {
+				server.CloseClientConnections()
+				server.Close()
+				if got := calls.Load(); got != tc.wantCalls {
+					t.Errorf("final server effects = %d, want %d", got, tc.wantCalls)
+				}
+			})
+			client := server.Client()
+			t.Cleanup(client.CloseIdleConnections)
+			policy := singleAttemptOperationPolicy(t)
+			policy.OperationTimeout = mustDurationMilliseconds(t, 10_000)
+			policy.AttemptTimeout = mustDurationMilliseconds(t, 10_000)
+			if tc.zeroPolicy {
+				policy = exchange.OperationPolicy{}
 			}
-		case <-time.After(testDeadlockBackstop):
-			t.Fatalf(
-				"attempt-deadline handler completion = absent after %v, want context-bound exit",
-				testDeadlockBackstop,
-			)
-		}
-	})
-
-	t.Run("neutral pre-cancelled context transmits no request", func(t *testing.T) {
-		t.Parallel()
-
-		var calls atomic.Uint64
-		server := httptest.NewServer(http.HandlerFunc(func(
-			writer http.ResponseWriter,
-			_ *http.Request,
-		) {
-			calls.Add(1)
-			writer.WriteHeader(http.StatusOK)
-		}))
-		defer server.Close()
-
-		ctx, cancel := context.WithCancel(context.Background())
-		cancel()
-		ok := mustHTTPStatus(t, http.StatusOK)
-		got, gotErr := exchange.SendNoBodyBounded(
-			exchange.NoBodyBoundedCall{
-				Context: ctx,
-				Client:  mustExchangeClient(t, server.Client()),
-				Request: exchange.NoBodyBoundedRequest{
-					Target: mustEndpoint(t, server.URL),
-					Semantics: exchange.RequestSemantics{
-						Method: exchange.MethodGet,
-						Replay: exchange.ReplaySingleAttempt,
-					},
-					ExpectedStatus: ok,
-				},
-				Policy: exchange.NoBodyBoundedPolicy{
-					Operation:         singleAttemptOperationPolicy(t),
-					ResponseBodyLimit: mustByteCount(t, 4*1024),
-				},
-			},
-		)
-		if !errors.Is(gotErr, core.ErrExchangeRequest) ||
-			!errors.Is(gotErr, core.ErrExchangeCancelled) ||
-			!errors.Is(gotErr, context.Canceled) {
-			t.Fatalf(
-				"pre-cancelled ingress error = %v, want %v, %v, and %v",
-				gotErr,
-				core.ErrExchangeRequest,
-				core.ErrExchangeCancelled,
-				context.Canceled,
-			)
-		}
-		if calls.Load() != 0 {
-			t.Fatalf("pre-cancelled server calls = %d, want 0", calls.Load())
-		}
-		if got.Metadata.Attempts != 0 || len(got.Body) != 0 {
-			t.Fatalf("pre-cancelled response = %+v, want zero", got)
-		}
-	})
+			got, gotErr := exchange.SendNoBodyBounded(exchange.NoBodyBoundedCall{
+				Context: t.Context(), Client: mustExchangeClient(t, client),
+				Request: exchange.NoBodyBoundedRequest{Target: mustEndpoint(t, server.URL), Semantics: exchange.RequestSemantics{Method: tc.method, Replay: exchange.ReplaySingleAttempt}, ExpectedStatus: core.HTTPStatusOK(), ExpectedResponseContentType: core.HTTPMediaTypeOctetStream(), CaptureHeaders: exchange.HeaderSelection{Names: []core.HTTPHeaderName{core.HTTPHeaderContentLength()}}},
+				Policy:  exchange.NoBodyBoundedPolicy{Operation: policy, ResponseBodyLimit: mustByteCount(t, tc.maximum)},
+			})
+			if !errors.Is(gotErr, tc.wantErr) {
+				t.Fatalf("HTTP result error = %v, want %v", gotErr, tc.wantErr)
+			}
+			if !bytes.Equal(got.Body, tc.wantBody) || (tc.wantBody == nil && got.Body != nil) || got.Metadata.Bytes.Uint64() != uint64(len(tc.wantBody)) || got.Metadata.Attempts != tc.wantAttempts || got.Metadata.Status != tc.wantStatus {
+				t.Fatalf("HTTP response = (%x,%+v), want body %x, status %v and %d attempts", got.Body, got.Metadata, tc.wantBody, tc.wantStatus, tc.wantAttempts)
+			}
+			if tc.wantCalls == 0 {
+				if got.Metadata.Headers.Values != nil {
+					t.Fatalf("unexecuted header evidence = %v, want nil", got.Metadata.Headers.Values)
+				}
+				select {
+				case event := <-handled:
+					t.Fatalf("unexecuted handler emitted %v, want no event", event)
+				default:
+				}
+				return
+			}
+			if err := got.Validate(); err != nil {
+				t.Fatalf("retained HTTP observation validation = %v, want nil", err)
+			}
+			if len(got.Metadata.Headers.Values) != 1 || got.Metadata.Headers.Values[0].Name != core.HTTPHeaderContentLength() || len(got.Metadata.Headers.Values[0].Values) != 1 {
+				t.Fatalf("captured extent = %v, want exactly one Content-Length", got.Metadata.Headers.Values)
+			}
+			value, err := got.Metadata.Headers.Values[0].Values[0].Value()
+			if err != nil || value != strconv.FormatUint(tc.wantHeaderLength, 10) {
+				t.Fatalf("declared extent = (%q,%v), want %d", value, err, tc.wantHeaderLength)
+			}
+			select {
+			case err := <-handled:
+				if err != nil {
+					t.Fatalf("server write error = %v, want nil", err)
+				}
+			case <-exchangeFixtureBackstop(t, 10*time.Second):
+				t.Fatal("server write completion absent, want completed handler")
+			}
+		})
+	}
 }

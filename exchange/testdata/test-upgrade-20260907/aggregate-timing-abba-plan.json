@@ -1,0 +1,102 @@
+{
+  "reason": "Resolve the single-pair success-control timing disparity using identical original before/after client snapshots, unchanged benchmark, reversed execution order, same toolchain/machine/concurrency, serial 30-second runs with both profiles. Retain all samples.",
+  "configured_seconds": 120,
+  "runs": [
+    {
+      "label": "aggregate-timing-abba-1-before",
+      "phase": "before",
+      "client_source_sha256": "9ca9c86d89f14d6c04d8a3b05f48babb27d74c17e02e330d1409213b37025809",
+      "argv": [
+        "go",
+        "test",
+        "-run=^$",
+        "-bench=^BenchmarkAggregateCompletedAttemptHandoff$/^binary_complete$",
+        "-benchmem",
+        "-benchtime=30s",
+        "-count=1",
+        "-cpu=1",
+        "-p=1",
+        "-parallel=1",
+        "-timeout=3m",
+        "-overlay=/Users/d/code/primitive/exchange/testdata/test-upgrade-20260907/timing-recheck/aggregate-timing-abba-1-before/overlay.json",
+        "-cpuprofile=/Users/d/code/primitive/exchange/testdata/test-upgrade-20260907/aggregate-timing-abba-1-before.cpu.pprof",
+        "-memprofile=/Users/d/code/primitive/exchange/testdata/test-upgrade-20260907/aggregate-timing-abba-1-before.mem.pprof",
+        "-o=/Users/d/code/primitive/exchange/testdata/test-upgrade-20260907/aggregate-timing-abba-1-before.test",
+        "./exchange"
+      ],
+      "configured_seconds": 30
+    },
+    {
+      "label": "aggregate-timing-abba-2-after",
+      "phase": "after",
+      "client_source_sha256": "639612680253c5cc05caa4b151270a7580f0bd65b3f9ffbae300826c5bdbd49a",
+      "argv": [
+        "go",
+        "test",
+        "-run=^$",
+        "-bench=^BenchmarkAggregateCompletedAttemptHandoff$/^binary_complete$",
+        "-benchmem",
+        "-benchtime=30s",
+        "-count=1",
+        "-cpu=1",
+        "-p=1",
+        "-parallel=1",
+        "-timeout=3m",
+        "-overlay=/Users/d/code/primitive/exchange/testdata/test-upgrade-20260907/timing-recheck/aggregate-timing-abba-2-after/overlay.json",
+        "-cpuprofile=/Users/d/code/primitive/exchange/testdata/test-upgrade-20260907/aggregate-timing-abba-2-after.cpu.pprof",
+        "-memprofile=/Users/d/code/primitive/exchange/testdata/test-upgrade-20260907/aggregate-timing-abba-2-after.mem.pprof",
+        "-o=/Users/d/code/primitive/exchange/testdata/test-upgrade-20260907/aggregate-timing-abba-2-after.test",
+        "./exchange"
+      ],
+      "configured_seconds": 30
+    },
+    {
+      "label": "aggregate-timing-abba-3-after",
+      "phase": "after",
+      "client_source_sha256": "639612680253c5cc05caa4b151270a7580f0bd65b3f9ffbae300826c5bdbd49a",
+      "argv": [
+        "go",
+        "test",
+        "-run=^$",
+        "-bench=^BenchmarkAggregateCompletedAttemptHandoff$/^binary_complete$",
+        "-benchmem",
+        "-benchtime=30s",
+        "-count=1",
+        "-cpu=1",
+        "-p=1",
+        "-parallel=1",
+        "-timeout=3m",
+        "-overlay=/Users/d/code/primitive/exchange/testdata/test-upgrade-20260907/timing-recheck/aggregate-timing-abba-3-after/overlay.json",
+        "-cpuprofile=/Users/d/code/primitive/exchange/testdata/test-upgrade-20260907/aggregate-timing-abba-3-after.cpu.pprof",
+        "-memprofile=/Users/d/code/primitive/exchange/testdata/test-upgrade-20260907/aggregate-timing-abba-3-after.mem.pprof",
+        "-o=/Users/d/code/primitive/exchange/testdata/test-upgrade-20260907/aggregate-timing-abba-3-after.test",
+        "./exchange"
+      ],
+      "configured_seconds": 30
+    },
+    {
+      "label": "aggregate-timing-abba-4-before",
+      "phase": "before",
+      "client_source_sha256": "9ca9c86d89f14d6c04d8a3b05f48babb27d74c17e02e330d1409213b37025809",
+      "argv": [
+        "go",
+        "test",
+        "-run=^$",
+        "-bench=^BenchmarkAggregateCompletedAttemptHandoff$/^binary_complete$",
+        "-benchmem",
+        "-benchtime=30s",
+        "-count=1",
+        "-cpu=1",
+        "-p=1",
+        "-parallel=1",
+        "-timeout=3m",
+        "-overlay=/Users/d/code/primitive/exchange/testdata/test-upgrade-20260907/timing-recheck/aggregate-timing-abba-4-before/overlay.json",
+        "-cpuprofile=/Users/d/code/primitive/exchange/testdata/test-upgrade-20260907/aggregate-timing-abba-4-before.cpu.pprof",
+        "-memprofile=/Users/d/code/primitive/exchange/testdata/test-upgrade-20260907/aggregate-timing-abba-4-before.mem.pprof",
+        "-o=/Users/d/code/primitive/exchange/testdata/test-upgrade-20260907/aggregate-timing-abba-4-before.test",
+        "./exchange"
+      ],
+      "configured_seconds": 30
+    }
+  ]
+}

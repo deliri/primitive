@@ -308,7 +308,7 @@ func TestDecisionTaggedUnionRejectsContradictoryWireBodies(t *testing.T) {
 func TestOffWireDomainsExhaustAllUnderlyingValues(t *testing.T) {
 	t.Parallel()
 
-	for value := uint16(0); value <= 255; value++ {
+	for value := range uint16(256) {
 		state := State(value)
 		wantState := state > StateUnknown && state < stateLimit
 		if state.IsValid() != wantState {

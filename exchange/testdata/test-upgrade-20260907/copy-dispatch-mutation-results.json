@@ -1,0 +1,30 @@
+[
+  {
+    "label": "copy-hide-readerfrom",
+    "before": "if _, ok := destination.(io.ReaderFrom); ok {\n\t\treturn destination",
+    "after": "if _, ok := destination.(io.ReaderFrom); ok {\n\t\treturn observedStreamWriter{destination: destination}",
+    "outcome": "killed by test",
+    "evidence": "mutation-copy-hide-readerfrom.json"
+  },
+  {
+    "label": "copy-bypass-limit",
+    "before": "streamCopyDestination(request.destination),\n\t\tlimited,",
+    "after": "streamCopyDestination(request.destination),\n\t\tlimited.R,",
+    "outcome": "killed by test",
+    "evidence": "mutation-copy-bypass-limit.json"
+  },
+  {
+    "label": "copy-bypass-accounting-reader",
+    "before": "streamCopyDestination(request.destination),\n\t\tlimited,",
+    "after": "streamCopyDestination(request.destination),\n\t\trequest.source,",
+    "outcome": "killed by test",
+    "evidence": "mutation-copy-bypass-accounting-reader.json"
+  },
+  {
+    "label": "copy-drop-acknowledged-count",
+    "before": "written, conversionErr := core.CheckedUint64FromInt64(count)",
+    "after": "written, conversionErr := core.CheckedUint64FromInt64(count)\n\twritten = 0",
+    "outcome": "killed by test",
+    "evidence": "mutation-copy-drop-acknowledged-count.json"
+  }
+]

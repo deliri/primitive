@@ -11,7 +11,7 @@ import (
 func TestClosedDomainsExhaustEveryBackingValue(t *testing.T) {
 	t.Parallel()
 
-	for raw := 0; raw <= 255; raw++ {
+	for raw := range 256 {
 		slot := Slot(raw)
 		wantSlot := slot == SlotA || slot == SlotB
 		if slot.IsValid() != wantSlot ||

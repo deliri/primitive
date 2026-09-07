@@ -50,7 +50,7 @@ func (i *BasicAuthorizationIdentity) UnmarshalJSON(data []byte) error {
 	}
 	value, err := core.DecodeJSONStringToken(data)
 	if err != nil {
-		return err
+		return errors.Join(core.ErrExchangeContract, err)
 	}
 	identity, err := ParseBasicAuthorizationIdentity(value)
 	if err != nil {

@@ -1,0 +1,112 @@
+[
+  {
+    "label": "aggregate-classifier-drops-completed-cause",
+    "before": "return attemptComplete, errors.Join(contextErr, result.cause)",
+    "after": "return attemptComplete, contextErr",
+    "outcome": "killed inside fuzz callback",
+    "failed_callbacks": [
+      "FuzzBoundedClientsPreserveCompletedProducerCause/seed#6",
+      "FuzzBoundedClientsPreserveCompletedProducerCause/seed#8",
+      "FuzzBoundedClientsPreserveCompletedProducerCause/seed#9",
+      "FuzzBoundedClientsPreserveCompletedProducerCause/seed#10",
+      "FuzzBoundedClientsPreserveCompletedProducerCause/seed#11",
+      "FuzzBoundedClientsPreserveCompletedProducerCause/seed#15",
+      "FuzzBoundedClientsPreserveCompletedProducerCause/seed#16"
+    ],
+    "evidence": "mutation-aggregate-classifier-drops-completed-cause.json"
+  },
+  {
+    "label": "aggregate-producer-substitutes-valid-bytes",
+    "before": "return destination.storage, nil",
+    "after": "if len(destination.storage)>0 { destination.storage[0] ^= 0xff }; return destination.storage, nil",
+    "outcome": "killed inside fuzz callback",
+    "failed_callbacks": [
+      "FuzzBoundedClientsPreserveCompletedProducerCause/seed#2",
+      "FuzzBoundedClientsPreserveCompletedProducerCause/seed#3",
+      "FuzzBoundedClientsPreserveCompletedProducerCause/seed#4",
+      "FuzzBoundedClientsPreserveCompletedProducerCause/seed#7",
+      "FuzzBoundedClientsPreserveCompletedProducerCause/seed#8",
+      "FuzzBoundedClientsPreserveCompletedProducerCause/seed#12",
+      "FuzzBoundedClientsPreserveCompletedProducerCause/seed#13"
+    ],
+    "evidence": "mutation-aggregate-producer-substitutes-valid-bytes.json"
+  },
+  {
+    "label": "aggregate-no-body-door-refuses-all",
+    "before": "func SendNoBodyBounded(\n\tcall NoBodyBoundedCall,\n) (BoundedResponse, error) {",
+    "after": "func SendNoBodyBounded(\n\tcall NoBodyBoundedCall,\n) (BoundedResponse, error) {\n return BoundedResponse{}, core.ErrExchangeRequest",
+    "outcome": "killed inside fuzz callback",
+    "failed_callbacks": [
+      "FuzzBoundedClientsPreserveCompletedProducerCause/seed#0",
+      "FuzzBoundedClientsPreserveCompletedProducerCause/seed#1",
+      "FuzzBoundedClientsPreserveCompletedProducerCause/seed#2",
+      "FuzzBoundedClientsPreserveCompletedProducerCause/seed#3",
+      "FuzzBoundedClientsPreserveCompletedProducerCause/seed#4",
+      "FuzzBoundedClientsPreserveCompletedProducerCause/seed#5",
+      "FuzzBoundedClientsPreserveCompletedProducerCause/seed#6",
+      "FuzzBoundedClientsPreserveCompletedProducerCause/seed#7",
+      "FuzzBoundedClientsPreserveCompletedProducerCause/seed#8",
+      "FuzzBoundedClientsPreserveCompletedProducerCause/seed#9",
+      "FuzzBoundedClientsPreserveCompletedProducerCause/seed#10",
+      "FuzzBoundedClientsPreserveCompletedProducerCause/seed#11",
+      "FuzzBoundedClientsPreserveCompletedProducerCause/seed#12",
+      "FuzzBoundedClientsPreserveCompletedProducerCause/seed#13",
+      "FuzzBoundedClientsPreserveCompletedProducerCause/seed#14",
+      "FuzzBoundedClientsPreserveCompletedProducerCause/seed#15",
+      "FuzzBoundedClientsPreserveCompletedProducerCause/seed#16"
+    ],
+    "evidence": "mutation-aggregate-no-body-door-refuses-all.json"
+  },
+  {
+    "label": "aggregate-body-door-refuses-all",
+    "before": "func SendBounded(call BoundedCall) (BoundedResponse, error) {",
+    "after": "func SendBounded(call BoundedCall) (BoundedResponse, error) {\n return BoundedResponse{}, core.ErrExchangeRequest",
+    "outcome": "killed inside fuzz callback",
+    "failed_callbacks": [
+      "FuzzBoundedClientsPreserveCompletedProducerCause/seed#0",
+      "FuzzBoundedClientsPreserveCompletedProducerCause/seed#1",
+      "FuzzBoundedClientsPreserveCompletedProducerCause/seed#2",
+      "FuzzBoundedClientsPreserveCompletedProducerCause/seed#3",
+      "FuzzBoundedClientsPreserveCompletedProducerCause/seed#4",
+      "FuzzBoundedClientsPreserveCompletedProducerCause/seed#5",
+      "FuzzBoundedClientsPreserveCompletedProducerCause/seed#6",
+      "FuzzBoundedClientsPreserveCompletedProducerCause/seed#7",
+      "FuzzBoundedClientsPreserveCompletedProducerCause/seed#8",
+      "FuzzBoundedClientsPreserveCompletedProducerCause/seed#9",
+      "FuzzBoundedClientsPreserveCompletedProducerCause/seed#10",
+      "FuzzBoundedClientsPreserveCompletedProducerCause/seed#11",
+      "FuzzBoundedClientsPreserveCompletedProducerCause/seed#12",
+      "FuzzBoundedClientsPreserveCompletedProducerCause/seed#13",
+      "FuzzBoundedClientsPreserveCompletedProducerCause/seed#14",
+      "FuzzBoundedClientsPreserveCompletedProducerCause/seed#15",
+      "FuzzBoundedClientsPreserveCompletedProducerCause/seed#16"
+    ],
+    "evidence": "mutation-aggregate-body-door-refuses-all.json"
+  },
+  {
+    "label": "aggregate-observer-invents-attempt",
+    "before": "Attempts: attempts,",
+    "after": "Attempts: attempts+1,",
+    "outcome": "killed inside fuzz callback",
+    "failed_callbacks": [
+      "FuzzBoundedClientsPreserveCompletedProducerCause/seed#0",
+      "FuzzBoundedClientsPreserveCompletedProducerCause/seed#1",
+      "FuzzBoundedClientsPreserveCompletedProducerCause/seed#2",
+      "FuzzBoundedClientsPreserveCompletedProducerCause/seed#3",
+      "FuzzBoundedClientsPreserveCompletedProducerCause/seed#4",
+      "FuzzBoundedClientsPreserveCompletedProducerCause/seed#5",
+      "FuzzBoundedClientsPreserveCompletedProducerCause/seed#6",
+      "FuzzBoundedClientsPreserveCompletedProducerCause/seed#7",
+      "FuzzBoundedClientsPreserveCompletedProducerCause/seed#8",
+      "FuzzBoundedClientsPreserveCompletedProducerCause/seed#9",
+      "FuzzBoundedClientsPreserveCompletedProducerCause/seed#10",
+      "FuzzBoundedClientsPreserveCompletedProducerCause/seed#11",
+      "FuzzBoundedClientsPreserveCompletedProducerCause/seed#12",
+      "FuzzBoundedClientsPreserveCompletedProducerCause/seed#13",
+      "FuzzBoundedClientsPreserveCompletedProducerCause/seed#14",
+      "FuzzBoundedClientsPreserveCompletedProducerCause/seed#15",
+      "FuzzBoundedClientsPreserveCompletedProducerCause/seed#16"
+    ],
+    "evidence": "mutation-aggregate-observer-invents-attempt.json"
+  }
+]

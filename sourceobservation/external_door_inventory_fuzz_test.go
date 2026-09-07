@@ -258,7 +258,10 @@ func TestSourceObservationExternalIngressFuzzInventoryMatchesProduction(t *testi
 		t.Fatalf("observationExportedJSONReceiverNames() error = %v, want nil", err)
 	}
 	var want []string
-	for door := observationJSONDoorUnknown + 1; door < observationJSONDoorLimit; door++ {
+	for door := range observationJSONDoorLimit {
+		if door < observationJSONDoorUnknown+1 {
+			continue
+		}
 		want = append(want, door.receiverName())
 	}
 	slices.Sort(want)

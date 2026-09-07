@@ -12,12 +12,6 @@ import (
 	"github.com/deliri/primitive/v2026/temporal"
 )
 
-// transferBuffer is one operation-owned fixed streaming extent.
-// io.CopyBuffer documents that it ignores the supplied buffer when the source
-// implements io.WriterTo or the destination implements io.ReaderFrom, so a
-// destination such as io.Discard or bytes.Buffer never reads this extent.
-type transferBuffer [TransferBufferBytes]byte
-
 // UploadCall supplies one complete streaming upload.
 type UploadCall struct {
 	Context context.Context
@@ -239,8 +233,8 @@ func finishStreamRoundTrip(
 	}
 	status, headers, err := streamRoundTripMetadata(response, request.CaptureHeaders)
 	result := StreamRoundTripResponse{
-		RequestBytes: request.RequestContentLength,
-		Metadata:     ResponseMetadata{Status: status, Headers: headers, Attempts: 1},
+		DeclaredRequestBytes: request.RequestContentLength,
+		Metadata:             ResponseMetadata{Status: status, Headers: headers, Attempts: 1},
 	}
 	if err != nil {
 		return zero, errors.Join(err, closeHTTPResponse(response))
@@ -409,14 +403,16 @@ func uploadSectionExtent(section *io.SectionReader) (int64, bool, error) {
 }
 
 func uploadFileExtent(file uploadFileReader) (int64, bool, error) {
+	info, err := file.Stat()
+	if err != nil || info == nil || !info.Mode().IsRegular() {
+		return 0, false, nil
+	}
 	position, err := file.Seek(0, io.SeekCurrent)
 	if err != nil {
-		return 0, true, err
+		return 0, false, nil
 	}
-	info, err := file.Stat()
-	if err != nil {
-		return 0, true, err
-	}
+	// Only a regular file with an observed cursor supplies extent evidence.
+	// Pipes and devices remain ordinary readers owned by Go's transport.
 	return uploadInt64Extent(info.Size() - position)
 }
 
@@ -481,10 +477,9 @@ func finishUploadResponse(
 	metadata := ResponseMetadata{
 		Status:   status,
 		Headers:  headers,
-		Bytes:    input.request.ContentLength,
 		Attempts: 1,
 	}
-	response := StreamResponse{Metadata: metadata}
+	response := StreamResponse{Metadata: metadata, DeclaredRequestBytes: input.request.ContentLength}
 	if err := response.Validate(); err != nil {
 		closeErr := closeResponseBody(input.response.Body)
 		return zero, errors.Join(err, closeErr)
@@ -637,7 +632,7 @@ type downloadCopyRequest struct {
 }
 
 // progressReader adds only Primitive's bounded cancellation and no-progress
-// policy around a caller-controlled reader. io.CopyBuffer and io.ReadFull stay
+// policy around a caller-controlled reader. io.Copy and io.ReadFull stay
 // the sole owners of streaming and exact-read mechanics.
 type progressReader struct {
 	context    context.Context
@@ -645,11 +640,37 @@ type progressReader struct {
 	emptyReads int
 }
 
-func (r *progressReader) Read(buffer []byte) (int, error) {
+// observedStreamWriter contains a broken Write at that individual call so
+// io.Copy can retain the count from earlier acknowledged writes. A
+// panicking call has supplied no count; its unreported effects are unknown.
+type observedStreamWriter struct{ destination io.Writer }
+
+func (w observedStreamWriter) Write(p []byte) (count int, err error) {
+	defer func() {
+		if recover() != nil {
+			count, err = 0, core.ErrExchangeContract
+		}
+	}()
+	return w.destination.Write(p)
+}
+
+func streamCopyDestination(destination io.Writer) io.Writer {
+	if _, ok := destination.(io.ReaderFrom); ok {
+		return destination
+	}
+	return observedStreamWriter{destination: destination}
+}
+
+func (r *progressReader) Read(buffer []byte) (count int, readErr error) {
+	defer func() {
+		if recover() != nil {
+			count, readErr = 0, core.ErrExchangeContract
+		}
+	}()
 	if err := contextAfterTransfer(r.context); err != nil {
 		return 0, err
 	}
-	count, readErr := r.source.Read(buffer)
+	count, readErr = r.source.Read(buffer)
 	if count < 0 || count > len(buffer) {
 		return 0, core.ErrExchangeContract
 	}
@@ -661,7 +682,7 @@ func (r *progressReader) Read(buffer []byte) (int, error) {
 		return count, readErr
 	}
 	if err := contextAfterTransfer(r.context); err != nil {
-		return 0, err
+		return count, err
 	}
 	if count > 0 {
 		r.emptyReads = 0
@@ -697,11 +718,11 @@ func copyDownload(
 		R: progress,
 		N: limit,
 	}
-	var buffer transferBuffer
-	count, err := io.CopyBuffer(
-		request.destination,
+	// Go selects ReaderFrom before allocating scratch and sizes its ordinary
+	// copy buffer to LimitedReader.N when the admitted extent is small.
+	count, err := io.Copy(
+		streamCopyDestination(request.destination),
 		limited,
-		buffer[:],
 	)
 	written, conversionErr := core.CheckedUint64FromInt64(count)
 	if conversionErr != nil {
@@ -755,12 +776,12 @@ func classifyStreamTransport(failure streamTransportFailure) error {
 	if terminal := terminalOperationError(
 		failure.operationContext,
 	); terminal != nil {
-		return terminal
+		return errors.Join(terminal, failure.cause)
 	}
 	if terminal := terminalOperationError(
 		failure.attemptContext,
 	); terminal != nil {
-		return terminal
+		return errors.Join(terminal, failure.cause)
 	}
 	if errors.Is(failure.cause, core.ErrExchangeRedirect) {
 		return errors.Join(core.ErrExchangeRedirect, failure.cause)

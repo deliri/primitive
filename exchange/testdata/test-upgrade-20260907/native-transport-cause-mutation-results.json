@@ -1,0 +1,52 @@
+[
+  {
+    "label": "aggregate-native-cause-erased-at-deadline",
+    "before": "\t\t\t\tterminal,\n\t\t\t\terr,\n\t\t\t\tcloseHTTPResponse(response),",
+    "after": "\t\t\t\tterminal,\n\t\t\t\tcloseHTTPResponse(response),",
+    "occurrence": 0,
+    "outcome": "killed in public-door table",
+    "failed_rows": [
+      "TestHTTPTransportFailureHandoffTable/SendNoBodyBounded/one_above_minimum_attempt_deadline_is_not_rounded_to_its_neighbor",
+      "TestHTTPTransportFailureHandoffTable/SendNoBodyBounded/cancellation_cannot_erase_the_same_completed_closed_pipe_failure",
+      "TestHTTPTransportFailureHandoffTable/SendNoBodyBounded/minimum_attempt_deadline_retains_native_error_while_operation_remains_live",
+      "TestHTTPTransportFailureHandoffTable/SendNoBodyBounded/cancellation_cannot_erase_typed_connection_reset_evidence",
+      "TestHTTPTransportFailureHandoffTable/SendBounded/minimum_attempt_deadline_retains_native_error_while_operation_remains_live",
+      "TestHTTPTransportFailureHandoffTable/SendBounded/one_above_minimum_attempt_deadline_is_not_rounded_to_its_neighbor",
+      "TestHTTPTransportFailureHandoffTable/SendBounded/cancellation_cannot_erase_typed_connection_reset_evidence",
+      "TestHTTPTransportFailureHandoffTable/SendBounded/cancellation_cannot_erase_the_same_completed_closed_pipe_failure"
+    ],
+    "evidence": "mutation-aggregate-native-cause-erased-at-deadline.json"
+  },
+  {
+    "label": "stream-native-cause-erased-at-operation-cancel",
+    "before": "return errors.Join(terminal, failure.cause)",
+    "after": "return terminal",
+    "occurrence": 0,
+    "outcome": "killed in public-door table",
+    "failed_rows": [
+      "TestHTTPTransportFailureHandoffTable/RoundTripStream/cancellation_cannot_erase_typed_connection_reset_evidence",
+      "TestHTTPTransportFailureHandoffTable/RoundTripStream/cancellation_cannot_erase_the_same_completed_closed_pipe_failure",
+      "TestHTTPTransportFailureHandoffTable/Download/cancellation_cannot_erase_typed_connection_reset_evidence",
+      "TestHTTPTransportFailureHandoffTable/Download/cancellation_cannot_erase_the_same_completed_closed_pipe_failure",
+      "TestHTTPTransportFailureHandoffTable/Upload/cancellation_cannot_erase_the_same_completed_closed_pipe_failure",
+      "TestHTTPTransportFailureHandoffTable/Upload/cancellation_cannot_erase_typed_connection_reset_evidence"
+    ],
+    "evidence": "mutation-stream-native-cause-erased-at-operation-cancel.json"
+  },
+  {
+    "label": "stream-native-cause-erased-at-attempt-deadline",
+    "before": "return errors.Join(terminal, failure.cause)",
+    "after": "return terminal",
+    "occurrence": 1,
+    "outcome": "killed in public-door table",
+    "failed_rows": [
+      "TestHTTPTransportFailureHandoffTable/Download/one_above_minimum_attempt_deadline_is_not_rounded_to_its_neighbor",
+      "TestHTTPTransportFailureHandoffTable/Upload/one_above_minimum_attempt_deadline_is_not_rounded_to_its_neighbor",
+      "TestHTTPTransportFailureHandoffTable/Upload/minimum_attempt_deadline_retains_native_error_while_operation_remains_live",
+      "TestHTTPTransportFailureHandoffTable/Download/minimum_attempt_deadline_retains_native_error_while_operation_remains_live",
+      "TestHTTPTransportFailureHandoffTable/RoundTripStream/minimum_attempt_deadline_retains_native_error_while_operation_remains_live",
+      "TestHTTPTransportFailureHandoffTable/RoundTripStream/one_above_minimum_attempt_deadline_is_not_rounded_to_its_neighbor"
+    ],
+    "evidence": "mutation-stream-native-cause-erased-at-attempt-deadline.json"
+  }
+]

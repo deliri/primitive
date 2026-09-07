@@ -1,0 +1,98 @@
+{
+  "scope": "Dormant Go HTTP server construction and actual Go/OS zero-port listener acquisition/close; identical benchmark source in both phases. Old zero-port refusal fails the semantic check and has no valid performance baseline.",
+  "configured_seconds": 120,
+  "runs": [
+    {
+      "label": "server-runtime-before-dormant_construction",
+      "phase": "before",
+      "argv": [
+        "go",
+        "test",
+        "-run=^$",
+        "-bench=^BenchmarkServerRuntimeBoundary$/^dormant_construction$",
+        "-benchmem",
+        "-benchtime=30s",
+        "-count=1",
+        "-cpu=1",
+        "-p=1",
+        "-parallel=1",
+        "-timeout=3m",
+        "-cpuprofile=/Users/d/code/primitive/exchange/testdata/test-upgrade-20260907/server-runtime-before-dormant_construction.cpu.pprof",
+        "-memprofile=/Users/d/code/primitive/exchange/testdata/test-upgrade-20260907/server-runtime-before-dormant_construction.mem.pprof",
+        "-o=/Users/d/code/primitive/exchange/testdata/test-upgrade-20260907/server-runtime-before-dormant_construction.test",
+        "./exchange"
+      ],
+      "configured_seconds": 30,
+      "expected_exit": 0
+    },
+    {
+      "label": "server-runtime-before-os_allocated_listener_acquire_close",
+      "phase": "before",
+      "argv": [
+        "go",
+        "test",
+        "-run=^$",
+        "-bench=^BenchmarkServerRuntimeBoundary$/^os_allocated_listener_acquire_close$",
+        "-benchmem",
+        "-benchtime=30s",
+        "-count=1",
+        "-cpu=1",
+        "-p=1",
+        "-parallel=1",
+        "-timeout=3m",
+        "-cpuprofile=/Users/d/code/primitive/exchange/testdata/test-upgrade-20260907/server-runtime-before-os_allocated_listener_acquire_close.cpu.pprof",
+        "-memprofile=/Users/d/code/primitive/exchange/testdata/test-upgrade-20260907/server-runtime-before-os_allocated_listener_acquire_close.mem.pprof",
+        "-o=/Users/d/code/primitive/exchange/testdata/test-upgrade-20260907/server-runtime-before-os_allocated_listener_acquire_close.test",
+        "./exchange"
+      ],
+      "configured_seconds": 30,
+      "expected_exit": 1
+    },
+    {
+      "label": "server-runtime-after-dormant_construction",
+      "phase": "after",
+      "argv": [
+        "go",
+        "test",
+        "-run=^$",
+        "-bench=^BenchmarkServerRuntimeBoundary$/^dormant_construction$",
+        "-benchmem",
+        "-benchtime=30s",
+        "-count=1",
+        "-cpu=1",
+        "-p=1",
+        "-parallel=1",
+        "-timeout=3m",
+        "-cpuprofile=/Users/d/code/primitive/exchange/testdata/test-upgrade-20260907/server-runtime-after-dormant_construction.cpu.pprof",
+        "-memprofile=/Users/d/code/primitive/exchange/testdata/test-upgrade-20260907/server-runtime-after-dormant_construction.mem.pprof",
+        "-o=/Users/d/code/primitive/exchange/testdata/test-upgrade-20260907/server-runtime-after-dormant_construction.test",
+        "./exchange"
+      ],
+      "configured_seconds": 30,
+      "expected_exit": 0
+    },
+    {
+      "label": "server-runtime-after-os_allocated_listener_acquire_close",
+      "phase": "after",
+      "argv": [
+        "go",
+        "test",
+        "-run=^$",
+        "-bench=^BenchmarkServerRuntimeBoundary$/^os_allocated_listener_acquire_close$",
+        "-benchmem",
+        "-benchtime=30s",
+        "-count=1",
+        "-cpu=1",
+        "-p=1",
+        "-parallel=1",
+        "-timeout=3m",
+        "-cpuprofile=/Users/d/code/primitive/exchange/testdata/test-upgrade-20260907/server-runtime-after-os_allocated_listener_acquire_close.cpu.pprof",
+        "-memprofile=/Users/d/code/primitive/exchange/testdata/test-upgrade-20260907/server-runtime-after-os_allocated_listener_acquire_close.mem.pprof",
+        "-o=/Users/d/code/primitive/exchange/testdata/test-upgrade-20260907/server-runtime-after-os_allocated_listener_acquire_close.test",
+        "./exchange"
+      ],
+      "configured_seconds": 30,
+      "expected_exit": 0
+    }
+  ]
+}

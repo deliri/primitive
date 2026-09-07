@@ -1,0 +1,179 @@
+{
+  "commit": "bcc6942166507094cfb52406b19c5c40c9694223",
+  "execution": "applied-final-tests.json",
+  "sources": [
+    {
+      "path": "awsidentity/acquire.go",
+      "matches_tested_source": true
+    },
+    {
+      "path": "awsidentity/architecture_test.go",
+      "matches_tested_source": true
+    },
+    {
+      "path": "awsidentity/benchmark_external_test.go",
+      "matches_tested_source": true
+    },
+    {
+      "path": "awsidentity/benchmark_test.go",
+      "matches_tested_source": true
+    },
+    {
+      "path": "awsidentity/contracts.go",
+      "matches_tested_source": true
+    },
+    {
+      "path": "awsidentity/contracts_hostile_test.go",
+      "matches_tested_source": true
+    },
+    {
+      "path": "awsidentity/data_flow_inventory.go",
+      "matches_tested_source": true
+    },
+    {
+      "path": "awsidentity/doc.go",
+      "matches_tested_source": true
+    },
+    {
+      "path": "awsidentity/errors.go",
+      "matches_tested_source": true
+    },
+    {
+      "path": "awsidentity/identity_test.go",
+      "matches_tested_source": true
+    },
+    {
+      "path": "awsidentity/identity_token.go",
+      "matches_tested_source": true
+    },
+    {
+      "path": "awsidentity/ingress_effect_test.go",
+      "matches_tested_source": true
+    },
+    {
+      "path": "awsidentity/provider_hostile_test.go",
+      "matches_tested_source": true
+    },
+    {
+      "path": "awsidentity/query_regression_test.go",
+      "matches_tested_source": true
+    },
+    {
+      "path": "awsidentity/request_hostile_test.go",
+      "matches_tested_source": true
+    },
+    {
+      "path": "awsidentity/request_ingress_test.go",
+      "matches_tested_source": true
+    },
+    {
+      "path": "awsidentity/response_xml.go",
+      "matches_tested_source": true
+    },
+    {
+      "path": "awsidentity/semantic_fuzz_test.go",
+      "matches_tested_source": true
+    },
+    {
+      "path": "awsidentity/token.go",
+      "matches_tested_source": true
+    },
+    {
+      "path": "awsidentity/xml_framing_test.go",
+      "matches_tested_source": true
+    },
+    {
+      "path": "temporal/aggregate.go",
+      "matches_tested_source": true
+    },
+    {
+      "path": "temporal/aggregate_persistence_external_test.go",
+      "matches_tested_source": true
+    },
+    {
+      "path": "temporal/architecture_test.go",
+      "matches_tested_source": true
+    },
+    {
+      "path": "temporal/benchmark_external_test.go",
+      "matches_tested_source": true
+    },
+    {
+      "path": "temporal/contracts.go",
+      "matches_tested_source": true
+    },
+    {
+      "path": "temporal/doc.go",
+      "matches_tested_source": true
+    },
+    {
+      "path": "temporal/domain_closure_internal_test.go",
+      "matches_tested_source": false
+    },
+    {
+      "path": "temporal/duration.go",
+      "matches_tested_source": true
+    },
+    {
+      "path": "temporal/effects.go",
+      "matches_tested_source": true
+    },
+    {
+      "path": "temporal/effects_external_test.go",
+      "matches_tested_source": true
+    },
+    {
+      "path": "temporal/errors.go",
+      "matches_tested_source": true
+    },
+    {
+      "path": "temporal/external_ingress_inventory_test.go",
+      "matches_tested_source": true
+    },
+    {
+      "path": "temporal/instant.go",
+      "matches_tested_source": true
+    },
+    {
+      "path": "temporal/instant_text_external_test.go",
+      "matches_tested_source": true
+    },
+    {
+      "path": "temporal/interval.go",
+      "matches_tested_source": true
+    },
+    {
+      "path": "temporal/numeric.go",
+      "matches_tested_source": true
+    },
+    {
+      "path": "temporal/numeric_external_test.go",
+      "matches_tested_source": true
+    },
+    {
+      "path": "temporal/observation.go",
+      "matches_tested_source": true
+    },
+    {
+      "path": "temporal/observation_interval_test.go",
+      "matches_tested_source": true
+    },
+    {
+      "path": "temporal/persistence.go",
+      "matches_tested_source": true
+    },
+    {
+      "path": "temporal/utc_text.go",
+      "matches_tested_source": true
+    },
+    {
+      "path": "temporal/utc_text_external_test.go",
+      "matches_tested_source": true
+    },
+    {
+      "path": "temporal/value_external_test.go",
+      "matches_tested_source": true
+    }
+  ],
+  "note": "Preexisting temporal/domain_closure_internal_test.go changes were exercised but excluded from this package commit."
+}

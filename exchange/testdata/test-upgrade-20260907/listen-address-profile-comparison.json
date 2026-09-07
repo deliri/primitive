@@ -1,0 +1,117 @@
+{
+  "scope": "Public literal parsing, admission, validation, and canonical projection; no DNS or listener effects.",
+  "runs": [
+    {
+      "label": "listen-address-before-concrete_ipv4",
+      "exit_status": 0,
+      "configured_seconds": 30,
+      "command_elapsed_seconds": 43.34181537499535,
+      "measurement": {
+        "iterations": 480563780,
+        "ns_per_op": 85.42,
+        "bytes_per_op": 16,
+        "allocations_per_op": 1
+      }
+    },
+    {
+      "label": "listen-address-before-concrete_mapped_ipv4",
+      "exit_status": 0,
+      "configured_seconds": 30,
+      "command_elapsed_seconds": 49.19130491698161,
+      "measurement": {
+        "iterations": 359910734,
+        "ns_per_op": 133.6,
+        "bytes_per_op": 24,
+        "allocations_per_op": 1
+      }
+    },
+    {
+      "label": "listen-address-before-mapped_wildcard",
+      "exit_status": 1,
+      "configured_seconds": 30,
+      "command_elapsed_seconds": 1.6528115419787355,
+      "measurement": null
+    },
+    {
+      "label": "listen-address-before-zoned_wildcard",
+      "exit_status": 1,
+      "configured_seconds": 30,
+      "command_elapsed_seconds": 1.8358781250135507,
+      "measurement": null
+    },
+    {
+      "label": "listen-address-before-zoned_mapped_wildcard",
+      "exit_status": 1,
+      "configured_seconds": 30,
+      "command_elapsed_seconds": 1.092325792007614,
+      "measurement": null
+    },
+    {
+      "label": "listen-address-after-concrete_ipv4",
+      "exit_status": 0,
+      "configured_seconds": 30,
+      "command_elapsed_seconds": 41.953609832999064,
+      "measurement": {
+        "iterations": 418534018,
+        "ns_per_op": 97.56,
+        "bytes_per_op": 16,
+        "allocations_per_op": 1
+      }
+    },
+    {
+      "label": "listen-address-after-concrete_mapped_ipv4",
+      "exit_status": 0,
+      "configured_seconds": 30,
+      "command_elapsed_seconds": 37.44508325000061,
+      "measurement": {
+        "iterations": 334530464,
+        "ns_per_op": 108.7,
+        "bytes_per_op": 24,
+        "allocations_per_op": 1
+      }
+    },
+    {
+      "label": "listen-address-after-mapped_wildcard",
+      "exit_status": 0,
+      "configured_seconds": 30,
+      "command_elapsed_seconds": 44.24038487501093,
+      "measurement": {
+        "iterations": 521863179,
+        "ns_per_op": 81.13,
+        "bytes_per_op": 0,
+        "allocations_per_op": 0
+      }
+    },
+    {
+      "label": "listen-address-after-zoned_wildcard",
+      "exit_status": 0,
+      "configured_seconds": 30,
+      "command_elapsed_seconds": 37.32132066600025,
+      "measurement": {
+        "iterations": 431130938,
+        "ns_per_op": 83.29,
+        "bytes_per_op": 0,
+        "allocations_per_op": 0
+      }
+    },
+    {
+      "label": "listen-address-after-zoned_mapped_wildcard",
+      "exit_status": 0,
+      "configured_seconds": 30,
+      "command_elapsed_seconds": 36.7890814160055,
+      "measurement": {
+        "iterations": 316894491,
+        "ns_per_op": 111.9,
+        "bytes_per_op": 0,
+        "allocations_per_op": 0
+      }
+    }
+  ],
+  "configured_seconds": 300,
+  "command_seconds": 294.8636157909932,
+  "interpretation": "The three old wildcard paths fail semantic checks and have no valid performance baseline. Accepted controls retain one allocation for canonical projection, 16 bytes for IPv4 and 24 bytes for mapped IPv4. Single variable timing samples do not establish an optimization or regression. Current wildcard refusals are measured only after their correctness repair.",
+  "excluded_harness_attempt": {
+    "record": "listen-address-benchmark-semantic-check.json",
+    "reason": "One-iteration semantic smoke run omitted CPU/memory profiles. It is retained as a procedural miss and is excluded from performance evidence. The ten comparative benchmark invocations all pass both profile flags and use 30-second leaf configuration."
+  }
+}

@@ -1,0 +1,188 @@
+{
+  "label": "baseline-tests",
+  "argv": [
+    "go",
+    "test",
+    "-json",
+    "-count=1",
+    "-coverprofile=chit/testdata/test-upgrade-20260907/baseline.coverage",
+    "./chit"
+  ],
+  "cwd": "/Users/d/code/primitive",
+  "revision": "d7401f58d16fd50f4c4821800f96fe8ad50961b9",
+  "tree": "dirty",
+  "toolchain": "go version go1.27.1 darwin/arm64",
+  "environment": "darwin\narm64\n\n\n/Users/d/code/go.work\n\n\n1",
+  "machine": "Darwin Ases-MacBook-Pro.local 25.6.0 Darwin Kernel Version 25.6.0: Fri Jul 31 19:18:49 PDT 2026; root:xnu-12377.161.14~5/RELEASE_ARM64_T6000 arm64",
+  "power": "Now drawing from 'AC Power'\n -InternalBattery-0 (id=22413411)\t80%; AC attached; not charging present: true",
+  "cache": "bypassed for go test by -count=1",
+  "started": "2026-09-07T04:08:12.111409+00:00",
+  "sources": [
+    {
+      "path": "chit/architecture_test.go",
+      "bytes": 4929,
+      "sha256": "aefc8f420f586dc7e6ef7cde7ad3eb11d1cc787468602a75631f9cc5a24b620c"
+    },
+    {
+      "path": "chit/benchmark_test.go",
+      "bytes": 3274,
+      "sha256": "9a925eeaca66e6747dde70c21540675e8c048575bd5092b84a5b63ce0722e79e"
+    },
+    {
+      "path": "chit/catalog.go",
+      "bytes": 16279,
+      "sha256": "37518fbd5a05e3275336d069f9e61ea4d143f3a0d3652a5a8f70c07d5e639e77"
+    },
+    {
+      "path": "chit/catalog_fuzz_test.go",
+      "bytes": 6229,
+      "sha256": "eea5aedcfc4e4fd732c0e44650490033b1e807b1a3968527ad2f4016731c7741"
+    },
+    {
+      "path": "chit/catalog_hostile_test.go",
+      "bytes": 28141,
+      "sha256": "bc6599b281b5fc08fc712cfca5f2664d878171a1e1315e9af8b4cc0a87efcb0c"
+    },
+    {
+      "path": "chit/chit.go",
+      "bytes": 9557,
+      "sha256": "86a9658327ec911dd0504af8aae1b7ae48270d4ca6d58e9d367ee833dc1f0bbd"
+    },
+    {
+      "path": "chit/chit_hostile_test.go",
+      "bytes": 35038,
+      "sha256": "6cca6fb33186712aeb902c1979194cf5f3845e7ec5e735ea06e64a242b4df558"
+    },
+    {
+      "path": "chit/doc.go",
+      "bytes": 506,
+      "sha256": "7b4d443a3cf80dc7a8affbccaae3baef4b027c9476daf0d67ebb466a3c69bf1e"
+    },
+    {
+      "path": "chit/domain.go",
+      "bytes": 2919,
+      "sha256": "b6ddef22f9e8c7cad5a06097dabc2551eae84ea34826c0737bd84b550e086d01"
+    },
+    {
+      "path": "chit/entry_name.go",
+      "bytes": 3018,
+      "sha256": "dd72aafbcd7313b82a5e5b6a67e7f70ed5fe0a935903ad2c940da8e0bfa30854"
+    },
+    {
+      "path": "chit/entry_name_hostile_test.go",
+      "bytes": 6413,
+      "sha256": "369bb88da359eb534807c2aca5cd3fb1df82ae902acf54859bb35ff3032e4614"
+    },
+    {
+      "path": "chit/errors.go",
+      "bytes": 557,
+      "sha256": "e8f353cdf47b4b4250470a66d56c05fdd5533ebce4e399ddab0db008676a5334"
+    },
+    {
+      "path": "chit/external_door_inventory_fuzz_test.go",
+      "bytes": 15282,
+      "sha256": "6e2a2eb8ed7a02ecfe74075d41fd811c884b62acee9b5be2d52611663eda2522"
+    },
+    {
+      "path": "chit/identity.go",
+      "bytes": 3099,
+      "sha256": "bf51f4e29dae2c37f146084885ce773e5a599248ac83a6dfb94ca2fcbba4e69e"
+    },
+    {
+      "path": "chit/identity_fuzz_test.go",
+      "bytes": 2767,
+      "sha256": "26e9369bb22b59afab9a8abb3917dcaf5aafc9c20200c7f1a67764d92ec531f6"
+    },
+    {
+      "path": "chit/manifest.go",
+      "bytes": 12354,
+      "sha256": "62f744eb1eb9078c02613522c9ca82a14cefdaaa15a4a7f87b2f203352327c2c"
+    },
+    {
+      "path": "chit/numeric_fuzz_test.go",
+      "bytes": 3098,
+      "sha256": "445274c24f78956609c8c8088b485135144c362097c8757967e94acc77695225"
+    },
+    {
+      "path": "chit/offering_fixture_test.go",
+      "bytes": 363,
+      "sha256": "ddefa53d43f5e54414c04ac4e2ad9e4761ba1e8b29707532292f14fdae6e9bab"
+    },
+    {
+      "path": "chit/partition.go",
+      "bytes": 1894,
+      "sha256": "17e86d4e481dd7020f3a8e3e04d93ffb59dff710200bd0014835a8136a5ff73a"
+    },
+    {
+      "path": "chit/partition_hostile_test.go",
+      "bytes": 6975,
+      "sha256": "7e14de5b9c396489cf284df50d410ae3eea1c03b9c54e770c944e7da4c4857d7"
+    },
+    {
+      "path": "chit/query.go",
+      "bytes": 5838,
+      "sha256": "02857491d13074b052cf23c17b90e852b0430dc85b6f5d29950028ce6178657e"
+    },
+    {
+      "path": "chit/request.go",
+      "bytes": 8056,
+      "sha256": "1eacf7f1876caba068461c4c44f2b7641a81a913bac695ebddd7202740576e85"
+    },
+    {
+      "path": "chit/request_fuzz_test.go",
+      "bytes": 3740,
+      "sha256": "61d63e2a5b1f971a39276ebed354909e890fae25b75f1efb751caab5e7ef69ae"
+    },
+    {
+      "path": "chit/request_hostile_test.go",
+      "bytes": 18125,
+      "sha256": "0c3eb49da5f34b3b6ec026d4264dadd27f01c130d2a6dd958971edc4c3a3acd2"
+    },
+    {
+      "path": "go.mod",
+      "bytes": 3127,
+      "sha256": "fb645c6e4ee8e917c39f9c1732638142362452d43617ec22a1901fc9ca04c1d4"
+    },
+    {
+      "path": "go.sum",
+      "bytes": 15894,
+      "sha256": "607fa748df5c86058fd0c13a1b63c2fbaa7cea5c2229dabef79614715e3c27a0"
+    },
+    {
+      "path": "_docs/testing_protocol.md",
+      "bytes": 84440,
+      "sha256": "dd83cd7f62c172092546dab6b7c7d5c59753b5e8ae784631a94cff4d6d48126c"
+    }
+  ],
+  "overlays": [],
+  "source_snapshot_directory": "chit/testdata/test-upgrade-20260907/baseline-tests-source",
+  "exit_status": 0,
+  "elapsed_seconds": 1.2711265419784468,
+  "artifacts": [
+    {
+      "path": "chit/testdata/test-upgrade-20260907/baseline-tests.stdout.txt",
+      "bytes": 876567,
+      "sha256": "2785a2c18a7e094f4c695a17e0bd412e41e45fbea0fb8849228f788a131eab8f"
+    },
+    {
+      "path": "chit/testdata/test-upgrade-20260907/baseline-tests.stderr.txt",
+      "bytes": 0,
+      "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+    },
+    {
+      "path": "chit/testdata/test-upgrade-20260907/baseline-tests.git-status.txt",
+      "bytes": 9550,
+      "sha256": "7381c6738255399cdd659e1358f40c80865c0e913a9e56562a7de5178679cd6b"
+    },
+    {
+      "path": "chit/testdata/test-upgrade-20260907/baseline.coverage",
+      "bytes": 45880,
+      "sha256": "96e8916e8421c966ae535d66bc52e5444e9a48f05c612d49d8276d1ce8d6e125"
+    }
+  ],
+  "test_events": {
+    "pass": 448,
+    "fail": 0,
+    "skip": 0
+  }
+}

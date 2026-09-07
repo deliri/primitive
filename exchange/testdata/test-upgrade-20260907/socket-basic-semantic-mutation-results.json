@@ -1,0 +1,82 @@
+[
+  {
+    "label": "socket-borrowed-target-retained",
+    "production_file": "socket.go",
+    "occurrence_count": 1,
+    "replaced_occurrences": 1,
+    "before": "configuration.Target = target",
+    "after": "_ = target",
+    "outcome": "killed by test",
+    "evidence": "mutation-socket-borrowed-target-retained.json"
+  },
+  {
+    "label": "socket-borrowed-header-list-retained",
+    "production_file": "socket.go",
+    "occurrence_count": 1,
+    "replaced_occurrences": 1,
+    "before": "configuration.Headers.Values = slices.Clone(configuration.Headers.Values)",
+    "after": "",
+    "outcome": "killed by test",
+    "evidence": "mutation-socket-borrowed-header-list-retained.json"
+  },
+  {
+    "label": "socket-borrowed-header-values-retained",
+    "production_file": "socket.go",
+    "occurrence_count": 1,
+    "replaced_occurrences": 1,
+    "before": "header.Values = slices.Clone(header.Values)",
+    "after": "_ = header",
+    "outcome": "killed by test",
+    "evidence": "mutation-socket-borrowed-header-values-retained.json"
+  },
+  {
+    "label": "socket-borrowed-capture-retained",
+    "production_file": "socket.go",
+    "occurrence_count": 1,
+    "replaced_occurrences": 1,
+    "before": "configuration.CaptureHeaders.Names = slices.Clone(configuration.CaptureHeaders.Names)",
+    "after": "",
+    "outcome": "killed by test",
+    "evidence": "mutation-socket-borrowed-capture-retained.json"
+  },
+  {
+    "label": "basic-json-refuse-all",
+    "production_file": "basic_authorization.go",
+    "occurrence_count": 1,
+    "replaced_occurrences": 1,
+    "before": "value, err := core.DecodeJSONStringToken(data)",
+    "after": "return errors.Join(core.ErrJSONContract, core.ErrExchangeContract)\n\tvalue, err := core.DecodeJSONStringToken(data)",
+    "outcome": "killed by test",
+    "evidence": "mutation-basic-json-refuse-all.json"
+  },
+  {
+    "label": "basic-json-valid-substitution",
+    "production_file": "basic_authorization.go",
+    "occurrence_count": 1,
+    "replaced_occurrences": 1,
+    "before": "*i = identity",
+    "after": "_ = identity\n\t*i = \"substituted\"",
+    "outcome": "killed by test",
+    "evidence": "mutation-basic-json-valid-substitution.json"
+  },
+  {
+    "label": "basic-receive-valid-substitution",
+    "production_file": "basic_authorization.go",
+    "occurrence_count": 1,
+    "replaced_occurrences": 1,
+    "before": "identity, err := ParseBasicAuthorizationIdentity(identityText)",
+    "after": "identityText = \"substituted\"\n\tidentity, err := ParseBasicAuthorizationIdentity(identityText)",
+    "outcome": "killed by test",
+    "evidence": "mutation-basic-receive-valid-substitution.json"
+  },
+  {
+    "label": "basic-receive-refuse-all",
+    "production_file": "basic_authorization.go",
+    "occurrence_count": 1,
+    "replaced_occurrences": 1,
+    "before": "var zero BasicAuthorizationRequest",
+    "after": "var zero BasicAuthorizationRequest\n\treturn zero, requestError(core.ErrExchangeContract)",
+    "outcome": "killed by test",
+    "evidence": "mutation-basic-receive-refuse-all.json"
+  }
+]

@@ -58,21 +58,32 @@ func (r BoundedResponse) Validate() error {
 	return nil
 }
 
-// StreamResponse reports a completed streaming transfer.
+// StreamResponse reports one streaming HTTP response. For Download,
+// Metadata.Bytes counts bytes acknowledged by the destination. For Upload,
+// Metadata.Bytes is zero: Go's HTTP response does not prove request-body delivery.
+// DeclaredRequestBytes retains Upload's declared request extent, never a peer
+// acknowledgement. Download leaves it zero.
 type StreamResponse struct {
-	Metadata ResponseMetadata
+	Metadata             ResponseMetadata
+	DeclaredRequestBytes core.ByteLength
 }
 
 // Validate checks the completed transfer metadata.
 func (r StreamResponse) Validate() error {
-	return r.Metadata.Validate()
+	if err := r.Metadata.Validate(); err != nil {
+		return err
+	}
+	_, err := r.DeclaredRequestBytes.Int64()
+	return err
 }
 
 // StreamRoundTripResponse reports both sides of one completed streamed HTTP
 // exchange. Metadata.Bytes is the received response extent.
+// DeclaredRequestBytes is the requested upload extent, not proof of delivery;
+// Go may return an early response before consuming the request body.
 type StreamRoundTripResponse struct {
-	Metadata     ResponseMetadata
-	RequestBytes core.ByteLength
+	Metadata             ResponseMetadata
+	DeclaredRequestBytes core.ByteLength
 }
 
 // Validate checks the completed request and response observations.
@@ -80,7 +91,7 @@ func (r StreamRoundTripResponse) Validate() error {
 	if err := r.Metadata.Validate(); err != nil {
 		return err
 	}
-	_, err := r.RequestBytes.Int64()
+	_, err := r.DeclaredRequestBytes.Int64()
 	return err
 }
 

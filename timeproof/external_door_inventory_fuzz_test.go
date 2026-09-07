@@ -266,7 +266,10 @@ func TestTimeproofExternalIngressFuzzInventoryMatchesProduction(t *testing.T) {
 		t.Fatalf("timeproofExportedJSONReceiverNames() error = %v, want nil", err)
 	}
 	var wantJSON []string
-	for door := timeproofJSONDoorUnknown + 1; door < timeproofJSONDoorLimit; door++ {
+	for door := range timeproofJSONDoorLimit {
+		if door < timeproofJSONDoorUnknown+1 {
+			continue
+		}
 		wantJSON = append(wantJSON, door.receiverName())
 	}
 	slices.Sort(wantJSON)

@@ -349,7 +349,10 @@ func TestPaymentExternalIngressFuzzInventoryMatchesProduction(t *testing.T) {
 		t.Fatalf("paymentExportedJSONReceiverNames() error = %v, want nil", err)
 	}
 	var wantJSON []string
-	for door := paymentJSONDoorUnknown + 1; door < paymentJSONDoorLimit; door++ {
+	for door := range paymentJSONDoorLimit {
+		if door < paymentJSONDoorUnknown+1 {
+			continue
+		}
 		wantJSON = append(wantJSON, door.receiverName())
 	}
 	slices.Sort(wantJSON)

@@ -1,0 +1,51 @@
+[
+  {
+    "label": "stream-fuzz-count-substitution",
+    "production_file": "exchange/server_stream.go",
+    "before": "receivedBytes, lengthErr := core.NewByteLength(bytes)",
+    "after": "receivedBytes, lengthErr := core.NewByteLength(bytes)\n\treceivedBytes = core.ByteLength{}",
+    "outcome": "killed inside fuzz callback",
+    "failed_seed_callbacks": [
+      "FuzzReceiveStreamCustodySemanticClosure/seed#0",
+      "FuzzReceiveStreamCustodySemanticClosure/seed#1",
+      "FuzzReceiveStreamCustodySemanticClosure/seed#2",
+      "FuzzReceiveStreamCustodySemanticClosure/seed#4",
+      "FuzzReceiveStreamCustodySemanticClosure/seed#5",
+      "FuzzReceiveStreamCustodySemanticClosure/seed#6"
+    ],
+    "evidence": "mutation-stream-fuzz-count-substitution.json"
+  },
+  {
+    "label": "stream-fuzz-refuse-all",
+    "production_file": "exchange/server_stream.go",
+    "before": "func receiveStream(call StreamReceiveCall) (ReceivedStream, error) {",
+    "after": "func receiveStream(call StreamReceiveCall) (ReceivedStream, error) {\n\treturn ReceivedStream{}, requestError(core.ErrExchangeContract)",
+    "outcome": "killed inside fuzz callback",
+    "failed_seed_callbacks": [
+      "FuzzReceiveStreamCustodySemanticClosure/seed#0",
+      "FuzzReceiveStreamCustodySemanticClosure/seed#1",
+      "FuzzReceiveStreamCustodySemanticClosure/seed#2",
+      "FuzzReceiveStreamCustodySemanticClosure/seed#4",
+      "FuzzReceiveStreamCustodySemanticClosure/seed#5",
+      "FuzzReceiveStreamCustodySemanticClosure/seed#6",
+      "FuzzReceiveStreamCustodySemanticClosure/seed#7",
+      "FuzzReceiveStreamCustodySemanticClosure/seed#8"
+    ],
+    "evidence": "mutation-stream-fuzz-refuse-all.json"
+  },
+  {
+    "label": "stream-fuzz-drop-transfer-refusal",
+    "production_file": "exchange/server_stream.go",
+    "before": "return received, asRequestReadError(err)",
+    "after": "return received, nil",
+    "outcome": "killed inside fuzz callback",
+    "failed_seed_callbacks": [
+      "FuzzReceiveStreamCustodySemanticClosure/seed#1",
+      "FuzzReceiveStreamCustodySemanticClosure/seed#4",
+      "FuzzReceiveStreamCustodySemanticClosure/seed#5",
+      "FuzzReceiveStreamCustodySemanticClosure/seed#6",
+      "FuzzReceiveStreamCustodySemanticClosure/seed#7"
+    ],
+    "evidence": "mutation-stream-fuzz-drop-transfer-refusal.json"
+  }
+]

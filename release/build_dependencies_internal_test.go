@@ -3,6 +3,7 @@ package release
 import (
 	json "encoding/json/v2"
 	"errors"
+	"slices"
 	"strconv"
 	"strings"
 	"testing"
@@ -440,7 +441,7 @@ func TestDependencyObservationMergeUnionsTargetClosures(t *testing.T) {
 				if !errors.Is(err, tc.wantErr) {
 					t.Fatalf("merge() error = %v, want errors.Is(..., %v)", err, core.ErrReleaseContract)
 				}
-				if *left != before {
+				if left.main != before.main || !slices.Equal(left.modules, before.modules) {
 					t.Fatalf("merge() mutated the left closure on rejection")
 				}
 				return
@@ -448,9 +449,9 @@ func TestDependencyObservationMergeUnionsTargetClosures(t *testing.T) {
 			if err != nil {
 				t.Fatalf("merge() error = %v, want nil", err)
 			}
-			if left.main.String() != tc.wantMain || left.count != len(tc.wantOrder) {
+			if left.main.String() != tc.wantMain || len(left.modules) != len(tc.wantOrder) {
 				t.Fatalf("merge() = (%q, %d modules), want (%q, %d)",
-					left.main.String(), left.count, tc.wantMain, len(tc.wantOrder))
+					left.main.String(), len(left.modules), tc.wantMain, len(tc.wantOrder))
 			}
 			for index, want := range tc.wantOrder {
 				if got := left.modules[index].Path().String(); got != want {
@@ -496,8 +497,8 @@ func TestDependencyObservationRejectsClosuresPastItsBound(t *testing.T) {
 			if err != nil {
 				t.Fatalf("addModule() error = %v, want nil", err)
 			}
-			if observed.count != tc.count {
-				t.Fatalf("observed module count = %d, want %d", observed.count, tc.count)
+			if len(observed.modules) != tc.count {
+				t.Fatalf("observed module count = %d, want %d", len(observed.modules), tc.count)
 			}
 		})
 	}

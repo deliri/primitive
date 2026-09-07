@@ -83,7 +83,7 @@ func TestOfficialSDKHTTPClientRefusesNilTransport(t *testing.T) {
 func TestOfficialSDKResponseRepresentationExhaustsEveryUint8State(t *testing.T) {
 	t.Parallel()
 
-	for raw := 0; raw <= 255; raw++ {
+	for raw := range 256 {
 		representation := OfficialSDKResponseRepresentation(raw)
 		gotErr := representation.Validate()
 		var wantErr error = core.ErrExchangeContract
@@ -196,7 +196,7 @@ func TestOfficialSDKStreamingSuccessCeilingExhaustsSingleByteQueryDomain(t *test
 	}
 	const admittedNames = "ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz0123456789_.-"
 	const admittedValues = "!\"$%'()*+,-./0123456789:;<>?@ABCDEFGHIJKLMNOPQRSTUVWXYZ[\\]^_`abcdefghijklmnopqrstuvwxyz{|}~"
-	for raw := 0; raw <= 255; raw++ {
+	for raw := range 256 {
 		queryByte := byte(raw)
 		nameRequest := OfficialSDKStreamingSuccessCeilingRequest{
 			Method: MethodGet, StreamQueryName: string([]byte{queryByte}), StreamQueryValue: "media",

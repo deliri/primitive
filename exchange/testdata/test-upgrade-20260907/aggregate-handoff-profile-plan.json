@@ -1,0 +1,98 @@
+{
+  "configured_seconds": 120,
+  "scope": "Real aggregate producer and classifier with Go client and in-memory RoundTripper. One fixed binary response. Before cancellation path must fail its semantic check; no performance baseline for that path.",
+  "runs": [
+    {
+      "label": "aggregate-handoff-before-binary_complete",
+      "phase": "before",
+      "argv": [
+        "go",
+        "test",
+        "-run=^$",
+        "-bench=^BenchmarkAggregateCompletedAttemptHandoff$/^binary_complete$",
+        "-benchmem",
+        "-benchtime=30s",
+        "-count=1",
+        "-cpu=1",
+        "-p=1",
+        "-parallel=1",
+        "-timeout=3m",
+        "-cpuprofile=/Users/d/code/primitive/exchange/testdata/test-upgrade-20260907/aggregate-handoff-before-binary_complete.cpu.pprof",
+        "-memprofile=/Users/d/code/primitive/exchange/testdata/test-upgrade-20260907/aggregate-handoff-before-binary_complete.mem.pprof",
+        "-o=/Users/d/code/primitive/exchange/testdata/test-upgrade-20260907/aggregate-handoff-before-binary_complete.test",
+        "./exchange"
+      ],
+      "configured_seconds": 30,
+      "expected_exit": 0
+    },
+    {
+      "label": "aggregate-handoff-before-cancel_after_native_close",
+      "phase": "before",
+      "argv": [
+        "go",
+        "test",
+        "-run=^$",
+        "-bench=^BenchmarkAggregateCompletedAttemptHandoff$/^cancel_after_native_close$",
+        "-benchmem",
+        "-benchtime=30s",
+        "-count=1",
+        "-cpu=1",
+        "-p=1",
+        "-parallel=1",
+        "-timeout=3m",
+        "-cpuprofile=/Users/d/code/primitive/exchange/testdata/test-upgrade-20260907/aggregate-handoff-before-cancel_after_native_close.cpu.pprof",
+        "-memprofile=/Users/d/code/primitive/exchange/testdata/test-upgrade-20260907/aggregate-handoff-before-cancel_after_native_close.mem.pprof",
+        "-o=/Users/d/code/primitive/exchange/testdata/test-upgrade-20260907/aggregate-handoff-before-cancel_after_native_close.test",
+        "./exchange"
+      ],
+      "configured_seconds": 30,
+      "expected_exit": 1
+    },
+    {
+      "label": "aggregate-handoff-after-binary_complete",
+      "phase": "after",
+      "argv": [
+        "go",
+        "test",
+        "-run=^$",
+        "-bench=^BenchmarkAggregateCompletedAttemptHandoff$/^binary_complete$",
+        "-benchmem",
+        "-benchtime=30s",
+        "-count=1",
+        "-cpu=1",
+        "-p=1",
+        "-parallel=1",
+        "-timeout=3m",
+        "-cpuprofile=/Users/d/code/primitive/exchange/testdata/test-upgrade-20260907/aggregate-handoff-after-binary_complete.cpu.pprof",
+        "-memprofile=/Users/d/code/primitive/exchange/testdata/test-upgrade-20260907/aggregate-handoff-after-binary_complete.mem.pprof",
+        "-o=/Users/d/code/primitive/exchange/testdata/test-upgrade-20260907/aggregate-handoff-after-binary_complete.test",
+        "./exchange"
+      ],
+      "configured_seconds": 30,
+      "expected_exit": 0
+    },
+    {
+      "label": "aggregate-handoff-after-cancel_after_native_close",
+      "phase": "after",
+      "argv": [
+        "go",
+        "test",
+        "-run=^$",
+        "-bench=^BenchmarkAggregateCompletedAttemptHandoff$/^cancel_after_native_close$",
+        "-benchmem",
+        "-benchtime=30s",
+        "-count=1",
+        "-cpu=1",
+        "-p=1",
+        "-parallel=1",
+        "-timeout=3m",
+        "-cpuprofile=/Users/d/code/primitive/exchange/testdata/test-upgrade-20260907/aggregate-handoff-after-cancel_after_native_close.cpu.pprof",
+        "-memprofile=/Users/d/code/primitive/exchange/testdata/test-upgrade-20260907/aggregate-handoff-after-cancel_after_native_close.mem.pprof",
+        "-o=/Users/d/code/primitive/exchange/testdata/test-upgrade-20260907/aggregate-handoff-after-cancel_after_native_close.test",
+        "./exchange"
+      ],
+      "configured_seconds": 30,
+      "expected_exit": 0
+    }
+  ]
+}

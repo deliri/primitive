@@ -1,0 +1,72 @@
+[
+  {
+    "label": "standard-write-error-discarded",
+    "production_file": "server_standard.go",
+    "occurrence_count": 3,
+    "replaced_occurrences": 1,
+    "before": "return writer.err",
+    "after": "return nil",
+    "outcome": "killed by test",
+    "evidence": "mutation-standard-write-error-discarded.json"
+  },
+  {
+    "label": "standard-short-write-accepted",
+    "production_file": "server_standard.go",
+    "occurrence_count": 1,
+    "replaced_occurrences": 1,
+    "before": "if count != len(payload) && err == nil {",
+    "after": "if count != len(payload) && err != nil {",
+    "outcome": "killed by test",
+    "evidence": "mutation-standard-short-write-accepted.json"
+  },
+  {
+    "label": "sdk-malformed-query-accepted",
+    "production_file": "official_sdk.go",
+    "occurrence_count": 1,
+    "replaced_occurrences": 1,
+    "before": "query, err := url.ParseQuery(request.URL.RawQuery)\n\tif err != nil {\n\t\treturn false\n\t}",
+    "after": "query, _ := url.ParseQuery(request.URL.RawQuery)",
+    "outcome": "killed by test",
+    "evidence": "mutation-sdk-malformed-query-accepted.json"
+  },
+  {
+    "label": "stream-body-limit-retry",
+    "production_file": "stream_replay.go",
+    "occurrence_count": 1,
+    "replaced_occurrences": 1,
+    "before": "errors.Is(cause, core.ErrExchangeBodyLimit) ||\n\t\t",
+    "after": "",
+    "outcome": "killed by test",
+    "evidence": "mutation-stream-body-limit-retry.json"
+  },
+  {
+    "label": "stream-attempt-count-not-retained",
+    "production_file": "stream_replay.go",
+    "occurrence_count": 1,
+    "replaced_occurrences": 1,
+    "before": "response.Metadata.Attempts = attempts",
+    "after": "response.Metadata.Attempts = 1",
+    "outcome": "killed by test",
+    "evidence": "mutation-stream-attempt-count-not-retained.json"
+  },
+  {
+    "label": "stream-invalid-count-repaired",
+    "production_file": "stream_replay.go",
+    "occurrence_count": 1,
+    "replaced_occurrences": 1,
+    "before": "if response.Metadata.Attempts != 1 {",
+    "after": "response.Metadata.Attempts = 1\n\tif response.Metadata.Attempts != 1 {",
+    "outcome": "killed by test",
+    "evidence": "mutation-stream-invalid-count-repaired.json"
+  },
+  {
+    "label": "inventory-label-hides-wrong-binding",
+    "production_file": "architecture_test.go",
+    "occurrence_count": 1,
+    "replaced_occurrences": 1,
+    "before": "Header                 protocolContract[Header]",
+    "after": "Header                 protocolContract[HeaderValue]",
+    "outcome": "killed by test",
+    "evidence": "mutation-inventory-label-hides-wrong-binding.json"
+  }
+]

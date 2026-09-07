@@ -156,9 +156,9 @@ func TestRegisterNamesEveryRejectionClassDistinctly(t *testing.T) {
 		if err != nil {
 			t.Fatalf("NewPlan() error = %v, want nil", err)
 		}
-		for raw := 1; raw <= MaximumSteps; raw++ {
-			if err := plan.Register(validStep(t, uint16(raw), PhaseDrain, one)); err != nil {
-				t.Fatalf("Register(step %d of %d) error = %v, want nil", raw, MaximumSteps, err)
+		for raw := range MaximumSteps {
+			if err := plan.Register(validStep(t, uint16(raw+1), PhaseDrain, one)); err != nil {
+				t.Fatalf("Register(step %d of %d) error = %v, want nil", raw+1, MaximumSteps, err)
 			}
 		}
 		requireRejection(t, plan.Register(validStep(t, MaximumSteps+1, PhaseDrain, one)),
@@ -277,7 +277,10 @@ func TestStepResultRejectsEveryOutcomeFailureMismatch(t *testing.T) {
 	}
 	id := stepIDForTest(t, 1)
 
-	for outcome := StepOutcomeCompleted; outcome < stepOutcomeLimit; outcome++ {
+	for outcome := range stepOutcomeLimit {
+		if outcome < StepOutcomeCompleted {
+			continue
+		}
 		identity, carries := identities[outcome]
 		t.Run("outcome "+outcome.String()+" admits only its own identity", func(t *testing.T) {
 			t.Parallel()

@@ -536,7 +536,7 @@ func TestResponseHeaderFieldNamesExactlyTheBoundFacts(t *testing.T) {
 func TestResponseHeaderFieldRefusesEveryValueOutsideTheDomain(t *testing.T) {
 	t.Parallel()
 
-	for value := 0; value <= maximumByteOrdinal; value++ {
+	for value := range maximumByteOrdinal + 1 {
 		field := controlplane.ResponseHeaderField(value)
 		if field.IsValid() {
 			continue
@@ -615,7 +615,7 @@ func TestUsageDispositionClosesItsEntireByteDomain(t *testing.T) {
 		controlplane.UsageDispositionConflict: false,
 	}
 	seenTokens := map[string]controlplane.UsageDisposition{}
-	for value := 0; value <= 255; value++ {
+	for value := range 256 {
 		disposition := controlplane.UsageDisposition(value)
 		wantAdvance, member := wantAdvances[disposition]
 		if !member {

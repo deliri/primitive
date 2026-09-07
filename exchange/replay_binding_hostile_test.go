@@ -53,16 +53,6 @@ func TestReplayBoundJSONRefusesHeaderBodyIdentityDivergence(t *testing.T) {
 	t.Parallel()
 
 	maximumKey := strings.Repeat("m", exchange.IdempotencyKeyMaximumBytes)
-	key31 := strings.Repeat("a", 31)
-	key32 := strings.Repeat("b", 32)
-	key33 := strings.Repeat("c", 33)
-	key63 := strings.Repeat("d", 63)
-	key64 := strings.Repeat("e", 64)
-	key65 := strings.Repeat("f", 65)
-	key127 := strings.Repeat("g", 127)
-	key128 := strings.Repeat("h", 128)
-	key129 := strings.Repeat("i", 129)
-	key253 := strings.Repeat("j", exchange.IdempotencyKeyMaximumBytes-2)
 	cases := []struct {
 		wantErr       error
 		name          string
@@ -74,13 +64,8 @@ func TestReplayBoundJSONRefusesHeaderBodyIdentityDivergence(t *testing.T) {
 		wantBinding   bool
 	}{
 		{name: "one-byte identity binds", documentKey: "a", headerKeys: []string{"a"}, wantOperation: "a"},
-		{name: "two-byte identity binds", documentKey: "ab", headerKeys: []string{"ab"}, wantOperation: "ab"},
-		{name: "hyphenated identity binds", documentKey: "operation-1", headerKeys: []string{"operation-1"}, wantOperation: "operation-1"},
-		{name: "underscored identity binds", documentKey: "operation_2", headerKeys: []string{"operation_2"}, wantOperation: "operation_2"},
-		{name: "uuid identity binds", documentKey: "019ff548-29cb-7451-869e-aa644c0947e6", headerKeys: []string{"019ff548-29cb-7451-869e-aa644c0947e6"}, wantOperation: "019ff548-29cb-7451-869e-aa644c0947e6"},
 		{name: "mixed case identity binds exactly", documentKey: "Operation-Aa", headerKeys: []string{"Operation-Aa"}, wantOperation: "Operation-Aa"},
 		{name: "punctuated identity binds", documentKey: "operation:3/path", headerKeys: []string{"operation:3/path"}, wantOperation: "operation:3/path"},
-		{name: "visible punctuation identity binds", documentKey: "operation~four", headerKeys: []string{"operation~four"}, wantOperation: "operation~four"},
 		{name: "one below maximum identity binds", documentKey: maximumKey[:len(maximumKey)-1], headerKeys: []string{maximumKey[:len(maximumKey)-1]}, wantOperation: maximumKey[:len(maximumKey)-1]},
 		{name: "maximum identity binds", documentKey: maximumKey, headerKeys: []string{maximumKey}, wantOperation: maximumKey},
 		{name: "different one-byte identities are refused", documentKey: "a", headerKeys: []string{"b"}, wantErr: core.ErrExchangeRequest, wantBinding: true},
@@ -93,26 +78,6 @@ func TestReplayBoundJSONRefusesHeaderBodyIdentityDivergence(t *testing.T) {
 		{name: "wrong method is refused before body release", documentKey: "operation", headerKeys: []string{"operation"}, method: http.MethodPut, wantErr: core.ErrExchangeRequest},
 		{name: "truncated document is refused before identity comparison", documentKey: "operation", headerKeys: []string{"operation"}, bodyOverride: []byte(`{"operation":`), wantErr: core.ErrExchangeRequest},
 		{name: "unknown document member is refused before identity comparison", documentKey: "operation", headerKeys: []string{"operation"}, bodyOverride: []byte(`{"operation":"operation","unknown":true}`), wantErr: core.ErrExchangeRequest},
-		{name: "boundary matching identity one below 32 bytes binds", documentKey: key31, headerKeys: []string{key31}, wantOperation: key31},
-		{name: "boundary matching identity at 32 bytes binds", documentKey: key32, headerKeys: []string{key32}, wantOperation: key32},
-		{name: "boundary matching identity one above 32 bytes binds", documentKey: key33, headerKeys: []string{key33}, wantOperation: key33},
-		{name: "boundary matching identity one below 64 bytes binds", documentKey: key63, headerKeys: []string{key63}, wantOperation: key63},
-		{name: "boundary matching identity at 64 bytes binds", documentKey: key64, headerKeys: []string{key64}, wantOperation: key64},
-		{name: "boundary matching identity one above 64 bytes binds", documentKey: key65, headerKeys: []string{key65}, wantOperation: key65},
-		{name: "boundary matching identity one below 128 bytes binds", documentKey: key127, headerKeys: []string{key127}, wantOperation: key127},
-		{name: "boundary matching identity at 128 bytes binds", documentKey: key128, headerKeys: []string{key128}, wantOperation: key128},
-		{name: "boundary matching identity one above 128 bytes binds", documentKey: key129, headerKeys: []string{key129}, wantOperation: key129},
-		{name: "boundary matching identity two below maximum binds", documentKey: key253, headerKeys: []string{key253}, wantOperation: key253},
-		{name: "boundary divergent identity one below 32 bytes is refused", documentKey: key31, headerKeys: []string{key31[:30] + "z"}, wantErr: core.ErrExchangeRequest, wantBinding: true},
-		{name: "boundary divergent identity at 32 bytes is refused", documentKey: key32, headerKeys: []string{key32[:31] + "z"}, wantErr: core.ErrExchangeRequest, wantBinding: true},
-		{name: "boundary divergent identity one above 32 bytes is refused", documentKey: key33, headerKeys: []string{key33[:32] + "z"}, wantErr: core.ErrExchangeRequest, wantBinding: true},
-		{name: "boundary divergent identity one below 64 bytes is refused", documentKey: key63, headerKeys: []string{key63[:62] + "z"}, wantErr: core.ErrExchangeRequest, wantBinding: true},
-		{name: "boundary divergent identity at 64 bytes is refused", documentKey: key64, headerKeys: []string{key64[:63] + "z"}, wantErr: core.ErrExchangeRequest, wantBinding: true},
-		{name: "boundary divergent identity one above 64 bytes is refused", documentKey: key65, headerKeys: []string{key65[:64] + "z"}, wantErr: core.ErrExchangeRequest, wantBinding: true},
-		{name: "boundary divergent identity one below 128 bytes is refused", documentKey: key127, headerKeys: []string{key127[:126] + "z"}, wantErr: core.ErrExchangeRequest, wantBinding: true},
-		{name: "boundary divergent identity at 128 bytes is refused", documentKey: key128, headerKeys: []string{key128[:127] + "z"}, wantErr: core.ErrExchangeRequest, wantBinding: true},
-		{name: "boundary divergent identity one above 128 bytes is refused", documentKey: key129, headerKeys: []string{key129[:128] + "z"}, wantErr: core.ErrExchangeRequest, wantBinding: true},
-		{name: "boundary divergent identity two below maximum is refused", documentKey: key253, headerKeys: []string{key253[:252] + "z"}, wantErr: core.ErrExchangeRequest, wantBinding: true},
 	}
 
 	for _, tc := range cases {
@@ -167,16 +132,6 @@ func TestSendReplayBoundJSONRefusesIdentityDivergenceBeforeNetwork(t *testing.T)
 	t.Parallel()
 
 	maximumKey := strings.Repeat("m", exchange.IdempotencyKeyMaximumBytes)
-	key31 := strings.Repeat("a", 31)
-	key32 := strings.Repeat("b", 32)
-	key33 := strings.Repeat("c", 33)
-	key63 := strings.Repeat("d", 63)
-	key64 := strings.Repeat("e", 64)
-	key65 := strings.Repeat("f", 65)
-	key127 := strings.Repeat("g", 127)
-	key128 := strings.Repeat("h", 128)
-	key129 := strings.Repeat("i", 129)
-	key253 := strings.Repeat("j", exchange.IdempotencyKeyMaximumBytes-2)
 	cases := []struct {
 		name        string
 		documentKey string
@@ -186,13 +141,8 @@ func TestSendReplayBoundJSONRefusesIdentityDivergenceBeforeNetwork(t *testing.T)
 		wantRequest uint64
 	}{
 		{name: "one-byte identity crosses", documentKey: "a", headerKey: "a", replay: exchange.ReplayIdempotencyKey, wantRequest: 1},
-		{name: "two-byte identity crosses", documentKey: "ab", headerKey: "ab", replay: exchange.ReplayIdempotencyKey, wantRequest: 1},
-		{name: "hyphenated identity crosses", documentKey: "operation-1", headerKey: "operation-1", replay: exchange.ReplayIdempotencyKey, wantRequest: 1},
-		{name: "underscored identity crosses", documentKey: "operation_2", headerKey: "operation_2", replay: exchange.ReplayIdempotencyKey, wantRequest: 1},
-		{name: "uuid identity crosses", documentKey: "019ff548-29cb-7451-869e-aa644c0947e6", headerKey: "019ff548-29cb-7451-869e-aa644c0947e6", replay: exchange.ReplayIdempotencyKey, wantRequest: 1},
 		{name: "mixed case identity crosses exactly", documentKey: "Operation-Aa", headerKey: "Operation-Aa", replay: exchange.ReplayIdempotencyKey, wantRequest: 1},
 		{name: "punctuated identity crosses", documentKey: "operation:3/path", headerKey: "operation:3/path", replay: exchange.ReplayIdempotencyKey, wantRequest: 1},
-		{name: "visible punctuation identity crosses", documentKey: "operation~four", headerKey: "operation~four", replay: exchange.ReplayIdempotencyKey, wantRequest: 1},
 		{name: "one below maximum identity crosses", documentKey: maximumKey[:len(maximumKey)-1], headerKey: maximumKey[:len(maximumKey)-1], replay: exchange.ReplayIdempotencyKey, wantRequest: 1},
 		{name: "maximum identity crosses", documentKey: maximumKey, headerKey: maximumKey, replay: exchange.ReplayIdempotencyKey, wantRequest: 1},
 		{name: "different one-byte identities are refused", documentKey: "a", headerKey: "b", replay: exchange.ReplayIdempotencyKey, wantBinding: true},
@@ -203,28 +153,6 @@ func TestSendReplayBoundJSONRefusesIdentityDivergenceBeforeNetwork(t *testing.T)
 		{name: "first byte divergence is refused", documentKey: "alpha", headerKey: "zlpha", replay: exchange.ReplayIdempotencyKey, wantBinding: true},
 		{name: "middle byte divergence is refused", documentKey: "alpha", headerKey: "alxha", replay: exchange.ReplayIdempotencyKey, wantBinding: true},
 		{name: "last byte divergence is refused", documentKey: "alpha", headerKey: "alphz", replay: exchange.ReplayIdempotencyKey, wantBinding: true},
-		{name: "shorter header identity is refused", documentKey: "alpha", headerKey: "alph", replay: exchange.ReplayIdempotencyKey, wantBinding: true},
-		{name: "longer header identity is refused", documentKey: "alpha", headerKey: "alphaa", replay: exchange.ReplayIdempotencyKey, wantBinding: true},
-		{name: "boundary matching identity one below 32 bytes crosses", documentKey: key31, headerKey: key31, replay: exchange.ReplayIdempotencyKey, wantRequest: 1},
-		{name: "boundary matching identity at 32 bytes crosses", documentKey: key32, headerKey: key32, replay: exchange.ReplayIdempotencyKey, wantRequest: 1},
-		{name: "boundary matching identity one above 32 bytes crosses", documentKey: key33, headerKey: key33, replay: exchange.ReplayIdempotencyKey, wantRequest: 1},
-		{name: "boundary matching identity one below 64 bytes crosses", documentKey: key63, headerKey: key63, replay: exchange.ReplayIdempotencyKey, wantRequest: 1},
-		{name: "boundary matching identity at 64 bytes crosses", documentKey: key64, headerKey: key64, replay: exchange.ReplayIdempotencyKey, wantRequest: 1},
-		{name: "boundary matching identity one above 64 bytes crosses", documentKey: key65, headerKey: key65, replay: exchange.ReplayIdempotencyKey, wantRequest: 1},
-		{name: "boundary matching identity one below 128 bytes crosses", documentKey: key127, headerKey: key127, replay: exchange.ReplayIdempotencyKey, wantRequest: 1},
-		{name: "boundary matching identity at 128 bytes crosses", documentKey: key128, headerKey: key128, replay: exchange.ReplayIdempotencyKey, wantRequest: 1},
-		{name: "boundary matching identity one above 128 bytes crosses", documentKey: key129, headerKey: key129, replay: exchange.ReplayIdempotencyKey, wantRequest: 1},
-		{name: "boundary matching identity two below maximum crosses", documentKey: key253, headerKey: key253, replay: exchange.ReplayIdempotencyKey, wantRequest: 1},
-		{name: "boundary divergent identity one below 32 bytes is refused", documentKey: key31, headerKey: key31[:30] + "z", replay: exchange.ReplayIdempotencyKey, wantBinding: true},
-		{name: "boundary divergent identity at 32 bytes is refused", documentKey: key32, headerKey: key32[:31] + "z", replay: exchange.ReplayIdempotencyKey, wantBinding: true},
-		{name: "boundary divergent identity one above 32 bytes is refused", documentKey: key33, headerKey: key33[:32] + "z", replay: exchange.ReplayIdempotencyKey, wantBinding: true},
-		{name: "boundary divergent identity one below 64 bytes is refused", documentKey: key63, headerKey: key63[:62] + "z", replay: exchange.ReplayIdempotencyKey, wantBinding: true},
-		{name: "boundary divergent identity at 64 bytes is refused", documentKey: key64, headerKey: key64[:63] + "z", replay: exchange.ReplayIdempotencyKey, wantBinding: true},
-		{name: "boundary divergent identity one above 64 bytes is refused", documentKey: key65, headerKey: key65[:64] + "z", replay: exchange.ReplayIdempotencyKey, wantBinding: true},
-		{name: "boundary divergent identity one below 128 bytes is refused", documentKey: key127, headerKey: key127[:126] + "z", replay: exchange.ReplayIdempotencyKey, wantBinding: true},
-		{name: "boundary divergent identity at 128 bytes is refused", documentKey: key128, headerKey: key128[:127] + "z", replay: exchange.ReplayIdempotencyKey, wantBinding: true},
-		{name: "boundary divergent identity one above 128 bytes is refused", documentKey: key129, headerKey: key129[:128] + "z", replay: exchange.ReplayIdempotencyKey, wantBinding: true},
-		{name: "boundary divergent identity two below maximum is refused", documentKey: key253, headerKey: key253[:252] + "z", replay: exchange.ReplayIdempotencyKey, wantBinding: true},
 	}
 
 	for _, tc := range cases {

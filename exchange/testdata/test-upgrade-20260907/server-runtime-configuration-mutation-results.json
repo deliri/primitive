@@ -1,0 +1,108 @@
+[
+  {
+    "label": "runtime-constructor-refuses-all",
+    "before": "if handler == nil {",
+    "after": "if handler != nil || handler == nil {",
+    "outcome": "killed inside fuzz callback",
+    "failed_callbacks": [
+      "FuzzServerRuntimeConfigurationAdmission/seed#0",
+      "FuzzServerRuntimeConfigurationAdmission/seed#2",
+      "FuzzServerRuntimeConfigurationAdmission/seed#3",
+      "FuzzServerRuntimeConfigurationAdmission/seed#5",
+      "FuzzServerRuntimeConfigurationAdmission/seed#6",
+      "FuzzServerRuntimeConfigurationAdmission/seed#8",
+      "FuzzServerRuntimeConfigurationAdmission/seed#9",
+      "FuzzServerRuntimeConfigurationAdmission/seed#11",
+      "FuzzServerRuntimeConfigurationAdmission/seed#12",
+      "FuzzServerRuntimeConfigurationAdmission/seed#14",
+      "FuzzServerRuntimeConfigurationAdmission/seed#15",
+      "FuzzServerRuntimeConfigurationAdmission/seed#16"
+    ],
+    "evidence": "mutation-runtime-constructor-refuses-all.json"
+  },
+  {
+    "label": "runtime-header-truncates-valid-limit",
+    "before": "MaxHeaderBytes:    headerBytes,",
+    "after": "MaxHeaderBytes:    headerBytes - 1,",
+    "outcome": "killed inside fuzz callback",
+    "failed_callbacks": [
+      "FuzzServerRuntimeConfigurationAdmission/seed#0",
+      "FuzzServerRuntimeConfigurationAdmission/seed#2",
+      "FuzzServerRuntimeConfigurationAdmission/seed#3",
+      "FuzzServerRuntimeConfigurationAdmission/seed#5",
+      "FuzzServerRuntimeConfigurationAdmission/seed#6",
+      "FuzzServerRuntimeConfigurationAdmission/seed#8",
+      "FuzzServerRuntimeConfigurationAdmission/seed#9",
+      "FuzzServerRuntimeConfigurationAdmission/seed#11",
+      "FuzzServerRuntimeConfigurationAdmission/seed#12",
+      "FuzzServerRuntimeConfigurationAdmission/seed#14",
+      "FuzzServerRuntimeConfigurationAdmission/seed#15",
+      "FuzzServerRuntimeConfigurationAdmission/seed#16"
+    ],
+    "evidence": "mutation-runtime-header-truncates-valid-limit.json"
+  },
+  {
+    "label": "runtime-swaps-go-read-timeouts",
+    "before": "ReadHeaderTimeout: readHeaderTimeout,\n\t\tReadTimeout:       readTimeout,",
+    "after": "ReadHeaderTimeout: readTimeout,\n\t\tReadTimeout:       readHeaderTimeout,",
+    "outcome": "killed inside fuzz callback",
+    "failed_callbacks": [
+      "FuzzServerRuntimeConfigurationAdmission/seed#2",
+      "FuzzServerRuntimeConfigurationAdmission/seed#3",
+      "FuzzServerRuntimeConfigurationAdmission/seed#5",
+      "FuzzServerRuntimeConfigurationAdmission/seed#6",
+      "FuzzServerRuntimeConfigurationAdmission/seed#14",
+      "FuzzServerRuntimeConfigurationAdmission/seed#15",
+      "FuzzServerRuntimeConfigurationAdmission/seed#16"
+    ],
+    "evidence": "mutation-runtime-swaps-go-read-timeouts.json"
+  },
+  {
+    "label": "runtime-zero-timeout-admitted",
+    "before": "if p.ReadHeaderTimeout.IsZero() || p.ReadTimeout.IsZero() || p.WriteTimeout.IsZero() || p.IdleTimeout.IsZero() {",
+    "after": "if false {",
+    "outcome": "killed inside fuzz callback",
+    "failed_callbacks": [
+      "FuzzServerRuntimeConfigurationAdmission/seed#1",
+      "FuzzServerRuntimeConfigurationAdmission/seed#4",
+      "FuzzServerRuntimeConfigurationAdmission/seed#7",
+      "FuzzServerRuntimeConfigurationAdmission/seed#10"
+    ],
+    "evidence": "mutation-runtime-zero-timeout-admitted.json"
+  },
+  {
+    "label": "runtime-owning-policy-drops-header-refusal",
+    "before": "\t\theaderErr,",
+    "after": "\t\tfunc() error { _ = headerErr; return nil }(),",
+    "outcome": "killed inside fuzz callback",
+    "failed_callbacks": [
+      "FuzzServerRuntimeConfigurationAdmission/seed#13",
+      "FuzzServerRuntimeConfigurationAdmission/seed#17",
+      "FuzzServerRuntimeConfigurationAdmission/seed#18",
+      "FuzzServerRuntimeConfigurationAdmission/seed#19",
+      "FuzzServerRuntimeConfigurationAdmission/seed#20"
+    ],
+    "evidence": "mutation-runtime-owning-policy-drops-header-refusal.json"
+  },
+  {
+    "label": "runtime-invents-dormant-acquisition",
+    "before": "ready:         make(chan error, 1),",
+    "after": "ready:         func() chan error { c := make(chan error, 1); c <- nil; return c }(),",
+    "outcome": "killed inside fuzz callback",
+    "failed_callbacks": [
+      "FuzzServerRuntimeConfigurationAdmission/seed#0",
+      "FuzzServerRuntimeConfigurationAdmission/seed#2",
+      "FuzzServerRuntimeConfigurationAdmission/seed#3",
+      "FuzzServerRuntimeConfigurationAdmission/seed#5",
+      "FuzzServerRuntimeConfigurationAdmission/seed#6",
+      "FuzzServerRuntimeConfigurationAdmission/seed#8",
+      "FuzzServerRuntimeConfigurationAdmission/seed#9",
+      "FuzzServerRuntimeConfigurationAdmission/seed#11",
+      "FuzzServerRuntimeConfigurationAdmission/seed#12",
+      "FuzzServerRuntimeConfigurationAdmission/seed#14",
+      "FuzzServerRuntimeConfigurationAdmission/seed#15",
+      "FuzzServerRuntimeConfigurationAdmission/seed#16"
+    ],
+    "evidence": "mutation-runtime-invents-dormant-acquisition.json"
+  }
+]

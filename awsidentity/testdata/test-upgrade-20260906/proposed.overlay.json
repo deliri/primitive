@@ -1,0 +1,6 @@
+{
+  "Replace": {
+    "/Users/d/code/primitive/awsidentity/identity_token.go": "/Users/d/code/primitive/awsidentity/testdata/test-upgrade-20260906/proposed-source/identity_token.go",
+    "/Users/d/code/primitive/awsidentity/response_xml.go": "/Users/d/code/primitive/awsidentity/testdata/test-upgrade-20260906/proposed-source/response_xml.go"
+  }
+}

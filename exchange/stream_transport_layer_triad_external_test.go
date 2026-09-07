@@ -8,11 +8,9 @@ import (
 	"io"
 	"net/http"
 	"net/http/httptest"
-	"os"
 	"path/filepath"
 	"sync/atomic"
 	"testing"
-	"time"
 
 	"github.com/deliri/primitive/v2026/core"
 	"github.com/deliri/primitive/v2026/exchange"
@@ -89,9 +87,9 @@ func TestUploadTransportLayerTriad(t *testing.T) {
 		}))
 		defer server.Close()
 
-		source, gotOpenErr := os.Open(sourcePath)
+		source, gotOpenErr := openExchangeFixtureFile(t, sourcePath)
 		if gotOpenErr != nil {
-			t.Fatalf("os.Open(%q) error = %v, want nil", sourcePath, gotOpenErr)
+			t.Fatalf("Filestore fixture open(%q) error = %v, want nil", sourcePath, gotOpenErr)
 		}
 		got, gotErr := exchange.Upload(
 			exchange.UploadCall{
@@ -115,7 +113,7 @@ func TestUploadTransportLayerTriad(t *testing.T) {
 		if gotErr != nil || gotCloseErr != nil {
 			t.Fatalf("exchange.Upload()/source.Close() errors = (%v, %v), want (nil, nil)", gotErr, gotCloseErr)
 		}
-		if got.Metadata.Bytes.Uint64() != testLargeTransferBytes ||
+		if got.DeclaredRequestBytes.Uint64() != testLargeTransferBytes ||
 			got.Metadata.Attempts != 1 ||
 			got.Metadata.Status != created {
 			t.Fatalf(
@@ -140,7 +138,7 @@ func TestUploadTransportLayerTriad(t *testing.T) {
 			if serverGot.digest != wantDigest {
 				t.Fatalf("server SHA256 = %x, want source SHA256 %x", serverGot.digest, wantDigest)
 			}
-		case <-time.After(testDeadlockBackstop):
+		case <-exchangeFixtureBackstop(t, testDeadlockBackstop):
 			t.Fatalf(
 				"upload server observation = absent after %v, want one completed observation",
 				testDeadlockBackstop,
@@ -212,7 +210,7 @@ func TestUploadTransportLayerTriad(t *testing.T) {
 			t.Fatalf("exchange.Upload(truncated source) error = %v, want %v", gotErr, core.ErrExchangeContract)
 		}
 		if got.Metadata.Attempts != 0 ||
-			got.Metadata.Bytes.Uint64() != 0 ||
+			got.DeclaredRequestBytes.Uint64() != 0 ||
 			len(got.Metadata.Headers.Values) != 0 {
 			t.Fatalf("exchange.Upload(truncated source) response = %+v, want zero", got)
 		}
@@ -279,7 +277,7 @@ func TestUploadTransportLayerTriad(t *testing.T) {
 		if !errors.Is(gotErr, core.ErrExchangeContract) {
 			t.Fatalf("exchange.Upload(zero extent with remaining source) error = %v, want %v", gotErr, core.ErrExchangeContract)
 		}
-		if got.Metadata.Attempts != 0 || got.Metadata.Bytes.Uint64() != 0 ||
+		if got.Metadata.Attempts != 0 || got.DeclaredRequestBytes.Uint64() != 0 ||
 			len(got.Metadata.Headers.Values) != 0 || source.Len() != 1 {
 			t.Fatalf(
 				"zero upload response/source remaining = (%v, %d), want (zero, 1)",
@@ -334,11 +332,11 @@ func TestUploadMetadataIsValidatedNotStamped(t *testing.T) {
 		if gotValidateErr := got.Validate(); gotValidateErr != nil {
 			t.Fatalf("returned exchange.StreamResponse.Validate() = %v, want nil", gotValidateErr)
 		}
-		if got.Metadata.Attempts != 1 || got.Metadata.Bytes.Uint64() != extent {
+		if got.Metadata.Attempts != 1 || got.DeclaredRequestBytes.Uint64() != extent {
 			t.Fatalf(
 				"unexpected-status metadata attempts/bytes = (%d, %d), want (1, %d)",
 				got.Metadata.Attempts,
-				got.Metadata.Bytes.Uint64(),
+				got.DeclaredRequestBytes.Uint64(),
 				extent,
 			)
 		}
@@ -380,7 +378,7 @@ func TestUploadMetadataIsValidatedNotStamped(t *testing.T) {
 				core.ErrExchangeResponse,
 			)
 		}
-		if got.Metadata.Attempts != 0 || got.Metadata.Bytes.Uint64() != 0 ||
+		if got.Metadata.Attempts != 0 || got.DeclaredRequestBytes.Uint64() != 0 ||
 			len(got.Metadata.Headers.Values) != 0 {
 			t.Fatalf("invalid-status upload response = %+v, want zero", got)
 		}
@@ -443,7 +441,7 @@ func TestUploadMetadataIsValidatedNotStamped(t *testing.T) {
 			)
 		}
 		if got.Metadata.Attempts != 0 ||
-			got.Metadata.Bytes.Uint64() != 0 ||
+			got.DeclaredRequestBytes.Uint64() != 0 ||
 			len(got.Metadata.Headers.Values) != 0 ||
 			got.Metadata.Status != (core.HTTPStatusCode{}) {
 			t.Fatalf("invalid-metadata upload response = %+v, want zero", got)
@@ -470,7 +468,7 @@ func TestDownloadTransportLayerTriad(t *testing.T) {
 			request *http.Request,
 		) {
 			serverCall := socketServerCallFrom(t, writer, request)
-			source, openErr := os.Open(sourcePath)
+			source, openErr := openExchangeFixtureFile(t, sourcePath)
 			if openErr != nil {
 				observed <- downloadServerObservation{writeErr: openErr}
 				return
@@ -496,9 +494,9 @@ func TestDownloadTransportLayerTriad(t *testing.T) {
 		}))
 		defer server.Close()
 
-		destination, gotCreateErr := os.Create(destinationPath)
+		destination, gotCreateErr := createExchangeFixtureFile(t, destinationPath)
 		if gotCreateErr != nil {
-			t.Fatalf("os.Create(%q) error = %v, want nil", destinationPath, gotCreateErr)
+			t.Fatalf("Filestore fixture create(%q) error = %v, want nil", destinationPath, gotCreateErr)
 		}
 		got, gotErr := exchange.Download(exchange.DownloadCall{
 			Context: context.Background(),
@@ -520,7 +518,7 @@ func TestDownloadTransportLayerTriad(t *testing.T) {
 		var serverGot downloadServerObservation
 		select {
 		case serverGot = <-observed:
-		case <-time.After(testDeadlockBackstop):
+		case <-exchangeFixtureBackstop(t, testDeadlockBackstop):
 			t.Fatalf(
 				"download server observation = absent after %v, want one completed observation",
 				testDeadlockBackstop,
@@ -617,7 +615,7 @@ func TestDownloadTransportLayerTriad(t *testing.T) {
 			if serverGot.writeErr != nil {
 				t.Fatalf("one-over server write error = %v, want nil", serverGot.writeErr)
 			}
-		case <-time.After(testDeadlockBackstop):
+		case <-exchangeFixtureBackstop(t, testDeadlockBackstop):
 			t.Fatalf(
 				"one-over download server observation = absent after %v, want one completed observation",
 				testDeadlockBackstop,
@@ -713,7 +711,7 @@ func TestStreamRoundTripTransportLayerTriad(t *testing.T) {
 			},
 			Policy: singleAttemptStreamPolicy(t),
 		})
-		if gotErr != nil || got.RequestBytes.Uint64() != uint64(len(requestBody)) || got.Metadata.Bytes.Uint64() != uint64(len(responseBody)) || !bytes.Equal(destination.Bytes(), responseBody) {
+		if gotErr != nil || got.DeclaredRequestBytes.Uint64() != uint64(len(requestBody)) || got.Metadata.Bytes.Uint64() != uint64(len(responseBody)) || !bytes.Equal(destination.Bytes(), responseBody) {
 			t.Fatalf("RoundTripStream() = response:%+v body:%d error:%v, want %d request bytes, %d exact response bytes, nil", got, destination.Len(), gotErr, len(requestBody), len(responseBody))
 		}
 		select {
@@ -721,7 +719,7 @@ func TestStreamRoundTripTransportLayerTriad(t *testing.T) {
 			if serverObservation.writeErr != nil || !bytes.Equal(serverObservation.readBody, requestBody) {
 				t.Fatalf("RoundTripStream() server = body:%d error:%v, want exact %d-byte request and nil", len(serverObservation.readBody), serverObservation.writeErr, len(requestBody))
 			}
-		case <-time.After(testDeadlockBackstop):
+		case <-exchangeFixtureBackstop(t, testDeadlockBackstop):
 			t.Fatalf("RoundTripStream() server observation absent after %v, want one", testDeadlockBackstop)
 		}
 	})
@@ -750,7 +748,7 @@ func TestStreamRoundTripTransportLayerTriad(t *testing.T) {
 				RequestContentLength: mustByteLength(t, 1), ResponseBodyLimit: mustByteCount(t, limit), ExpectedStatus: mustHTTPStatus(t, http.StatusOK),
 			}, Policy: singleAttemptStreamPolicy(t),
 		})
-		if !errors.Is(gotErr, core.ErrExchangeBodyLimit) || got.RequestBytes.Uint64() != 1 || got.Metadata.Bytes.Uint64() != limit || uint64(destination.Len()) != limit || !bytes.Equal(destination.Bytes(), responseBody[:limit]) {
+		if !errors.Is(gotErr, core.ErrExchangeBodyLimit) || got.DeclaredRequestBytes.Uint64() != 1 || got.Metadata.Bytes.Uint64() != limit || uint64(destination.Len()) != limit || !bytes.Equal(destination.Bytes(), responseBody[:limit]) {
 			t.Fatalf("RoundTripStream(one over) = response:%+v body:%d error:%v, want 1 request byte, %d-byte prefix, %v", got, destination.Len(), gotErr, limit, core.ErrExchangeBodyLimit)
 		}
 		select {
@@ -758,7 +756,7 @@ func TestStreamRoundTripTransportLayerTriad(t *testing.T) {
 			if writeErr != nil {
 				t.Fatalf("RoundTripStream(one over) server write error = %v, want nil", writeErr)
 			}
-		case <-time.After(testDeadlockBackstop):
+		case <-exchangeFixtureBackstop(t, testDeadlockBackstop):
 			t.Fatalf("RoundTripStream(one over) server observation absent after %v, want one", testDeadlockBackstop)
 		}
 	})
@@ -790,9 +788,9 @@ func TestStreamRoundTripTransportLayerTriad(t *testing.T) {
 func writeDeterministicFile(t testing.TB, path string, size uint64) {
 	t.Helper()
 
-	file, gotCreateErr := os.Create(path)
+	file, gotCreateErr := createExchangeFixtureFile(t, path)
 	if gotCreateErr != nil {
-		t.Fatalf("os.Create(%q) setup error = %v, want nil", path, gotCreateErr)
+		t.Fatalf("Filestore fixture create(%q) setup error = %v, want nil", path, gotCreateErr)
 	}
 	var pattern [exchange.TransferBufferBytes]byte
 	for index := range pattern {
@@ -823,9 +821,9 @@ func writeDeterministicFile(t testing.TB, path string, size uint64) {
 func sha256File(t *testing.T, path string) [sha256.Size]byte {
 	t.Helper()
 
-	file, gotOpenErr := os.Open(path)
+	file, gotOpenErr := openExchangeFixtureFile(t, path)
 	if gotOpenErr != nil {
-		t.Fatalf("os.Open(%q) digest setup error = %v, want nil", path, gotOpenErr)
+		t.Fatalf("Filestore fixture open(%q) digest setup error = %v, want nil", path, gotOpenErr)
 	}
 	digest := sha256.New()
 	gotBytes, gotCopyErr := io.Copy(digest, file)

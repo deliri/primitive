@@ -1,0 +1,1738 @@
+[
+  {
+    "argv": [
+      "go",
+      "tool",
+      "pprof",
+      "-top",
+      "-nodecount=15",
+      "/Users/d/code/primitive/capabilities/testdata/test-upgrade-20260907/baseline-ClassificationJSONMaximum.test",
+      "/Users/d/code/primitive/capabilities/testdata/test-upgrade-20260907/baseline-ClassificationJSONMaximum.cpu.pprof"
+    ],
+    "exit_status": 0,
+    "stdout": {
+      "path": "baseline-ClassificationJSONMaximum.cpu.top.txt",
+      "sha256": "65976767d84e4868c76c8acdb5eaafd76d2650602a6154a55412f144ec408936"
+    },
+    "stderr": {
+      "path": "baseline-ClassificationJSONMaximum.cpu.stderr.txt",
+      "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+    }
+  },
+  {
+    "argv": [
+      "go",
+      "tool",
+      "pprof",
+      "-top",
+      "-nodecount=15",
+      "-alloc_space",
+      "/Users/d/code/primitive/capabilities/testdata/test-upgrade-20260907/baseline-ClassificationJSONMaximum.test",
+      "/Users/d/code/primitive/capabilities/testdata/test-upgrade-20260907/baseline-ClassificationJSONMaximum.mem.pprof"
+    ],
+    "exit_status": 0,
+    "stdout": {
+      "path": "baseline-ClassificationJSONMaximum.alloc-space.top.txt",
+      "sha256": "f2b7e17b0b7b886db65f34a6c4c86c241c56a1893fdd4bea59eeaa6e85af5076"
+    },
+    "stderr": {
+      "path": "baseline-ClassificationJSONMaximum.alloc-space.stderr.txt",
+      "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+    }
+  },
+  {
+    "argv": [
+      "go",
+      "tool",
+      "pprof",
+      "-top",
+      "-nodecount=15",
+      "-alloc_objects",
+      "/Users/d/code/primitive/capabilities/testdata/test-upgrade-20260907/baseline-ClassificationJSONMaximum.test",
+      "/Users/d/code/primitive/capabilities/testdata/test-upgrade-20260907/baseline-ClassificationJSONMaximum.mem.pprof"
+    ],
+    "exit_status": 0,
+    "stdout": {
+      "path": "baseline-ClassificationJSONMaximum.alloc-objects.top.txt",
+      "sha256": "bdb32f700aa87fceb21314c18eebb8f4ccdfd6b5a1fa6b2ade336d246cda35c4"
+    },
+    "stderr": {
+      "path": "baseline-ClassificationJSONMaximum.alloc-objects.stderr.txt",
+      "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+    }
+  },
+  {
+    "argv": [
+      "go",
+      "tool",
+      "pprof",
+      "-top",
+      "-nodecount=15",
+      "/Users/d/code/primitive/capabilities/testdata/test-upgrade-20260907/baseline-ResolveEffect.test",
+      "/Users/d/code/primitive/capabilities/testdata/test-upgrade-20260907/baseline-ResolveEffect.cpu.pprof"
+    ],
+    "exit_status": 0,
+    "stdout": {
+      "path": "baseline-ResolveEffect.cpu.top.txt",
+      "sha256": "dc538fdc4fef9f1743dc2de9a49c607f19f8b69d10b93d86c1c7b6571da5f1fa"
+    },
+    "stderr": {
+      "path": "baseline-ResolveEffect.cpu.stderr.txt",
+      "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+    }
+  },
+  {
+    "argv": [
+      "go",
+      "tool",
+      "pprof",
+      "-top",
+      "-nodecount=15",
+      "-alloc_space",
+      "/Users/d/code/primitive/capabilities/testdata/test-upgrade-20260907/baseline-ResolveEffect.test",
+      "/Users/d/code/primitive/capabilities/testdata/test-upgrade-20260907/baseline-ResolveEffect.mem.pprof"
+    ],
+    "exit_status": 0,
+    "stdout": {
+      "path": "baseline-ResolveEffect.alloc-space.top.txt",
+      "sha256": "8b0087e2027b74c7b610dbc406ca41ab7a83eb3c2890c738f6fc499e62d1c269"
+    },
+    "stderr": {
+      "path": "baseline-ResolveEffect.alloc-space.stderr.txt",
+      "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+    }
+  },
+  {
+    "argv": [
+      "go",
+      "tool",
+      "pprof",
+      "-top",
+      "-nodecount=15",
+      "-alloc_objects",
+      "/Users/d/code/primitive/capabilities/testdata/test-upgrade-20260907/baseline-ResolveEffect.test",
+      "/Users/d/code/primitive/capabilities/testdata/test-upgrade-20260907/baseline-ResolveEffect.mem.pprof"
+    ],
+    "exit_status": 0,
+    "stdout": {
+      "path": "baseline-ResolveEffect.alloc-objects.top.txt",
+      "sha256": "43191818d3f655f9cd1670cf77c38bafc945ab585aa90473426ba012497d4e20"
+    },
+    "stderr": {
+      "path": "baseline-ResolveEffect.alloc-objects.stderr.txt",
+      "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+    }
+  },
+  {
+    "argv": [
+      "go",
+      "tool",
+      "pprof",
+      "-top",
+      "-nodecount=15",
+      "/Users/d/code/primitive/capabilities/testdata/test-upgrade-20260907/baseline-ResolveStandardFunction.test",
+      "/Users/d/code/primitive/capabilities/testdata/test-upgrade-20260907/baseline-ResolveStandardFunction.cpu.pprof"
+    ],
+    "exit_status": 0,
+    "stdout": {
+      "path": "baseline-ResolveStandardFunction.cpu.top.txt",
+      "sha256": "e5a92f4a00e19042f042f3f01da5087070ae1cbfca4bf4c0ee3be28967c4fba8"
+    },
+    "stderr": {
+      "path": "baseline-ResolveStandardFunction.cpu.stderr.txt",
+      "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+    }
+  },
+  {
+    "argv": [
+      "go",
+      "tool",
+      "pprof",
+      "-top",
+      "-nodecount=15",
+      "-alloc_space",
+      "/Users/d/code/primitive/capabilities/testdata/test-upgrade-20260907/baseline-ResolveStandardFunction.test",
+      "/Users/d/code/primitive/capabilities/testdata/test-upgrade-20260907/baseline-ResolveStandardFunction.mem.pprof"
+    ],
+    "exit_status": 0,
+    "stdout": {
+      "path": "baseline-ResolveStandardFunction.alloc-space.top.txt",
+      "sha256": "c41b2f400c99dc95ef0e5a3f0da844891ef61fa35602e137b17d06063c6643c7"
+    },
+    "stderr": {
+      "path": "baseline-ResolveStandardFunction.alloc-space.stderr.txt",
+      "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+    }
+  },
+  {
+    "argv": [
+      "go",
+      "tool",
+      "pprof",
+      "-top",
+      "-nodecount=15",
+      "-alloc_objects",
+      "/Users/d/code/primitive/capabilities/testdata/test-upgrade-20260907/baseline-ResolveStandardFunction.test",
+      "/Users/d/code/primitive/capabilities/testdata/test-upgrade-20260907/baseline-ResolveStandardFunction.mem.pprof"
+    ],
+    "exit_status": 0,
+    "stdout": {
+      "path": "baseline-ResolveStandardFunction.alloc-objects.top.txt",
+      "sha256": "4041e003d8266729f6d40bbe6e2195419f230f406b3c934c4ce469daba1f064b"
+    },
+    "stderr": {
+      "path": "baseline-ResolveStandardFunction.alloc-objects.stderr.txt",
+      "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+    }
+  },
+  {
+    "argv": [
+      "go",
+      "tool",
+      "pprof",
+      "-top",
+      "-nodecount=15",
+      "/Users/d/code/primitive/capabilities/testdata/test-upgrade-20260907/baseline-ResolveStandardMethod.test",
+      "/Users/d/code/primitive/capabilities/testdata/test-upgrade-20260907/baseline-ResolveStandardMethod.cpu.pprof"
+    ],
+    "exit_status": 0,
+    "stdout": {
+      "path": "baseline-ResolveStandardMethod.cpu.top.txt",
+      "sha256": "f0b0f6698b525e7bc29a1c3cff527ceafcee60ed29e7e8500cdfa54a9db53795"
+    },
+    "stderr": {
+      "path": "baseline-ResolveStandardMethod.cpu.stderr.txt",
+      "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+    }
+  },
+  {
+    "argv": [
+      "go",
+      "tool",
+      "pprof",
+      "-top",
+      "-nodecount=15",
+      "-alloc_space",
+      "/Users/d/code/primitive/capabilities/testdata/test-upgrade-20260907/baseline-ResolveStandardMethod.test",
+      "/Users/d/code/primitive/capabilities/testdata/test-upgrade-20260907/baseline-ResolveStandardMethod.mem.pprof"
+    ],
+    "exit_status": 0,
+    "stdout": {
+      "path": "baseline-ResolveStandardMethod.alloc-space.top.txt",
+      "sha256": "a18b03203975d35e05be672b48fb9e6de0927b87a1e74f24a139298a81fc5feb"
+    },
+    "stderr": {
+      "path": "baseline-ResolveStandardMethod.alloc-space.stderr.txt",
+      "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+    }
+  },
+  {
+    "argv": [
+      "go",
+      "tool",
+      "pprof",
+      "-top",
+      "-nodecount=15",
+      "-alloc_objects",
+      "/Users/d/code/primitive/capabilities/testdata/test-upgrade-20260907/baseline-ResolveStandardMethod.test",
+      "/Users/d/code/primitive/capabilities/testdata/test-upgrade-20260907/baseline-ResolveStandardMethod.mem.pprof"
+    ],
+    "exit_status": 0,
+    "stdout": {
+      "path": "baseline-ResolveStandardMethod.alloc-objects.top.txt",
+      "sha256": "7f71391612af4d3ff9d51cbad45724c911c17ea8e7e22e2a9583b6fb8f4b8613"
+    },
+    "stderr": {
+      "path": "baseline-ResolveStandardMethod.alloc-objects.stderr.txt",
+      "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+    }
+  },
+  {
+    "argv": [
+      "go",
+      "tool",
+      "pprof",
+      "-top",
+      "-nodecount=15",
+      "/Users/d/code/primitive/capabilities/testdata/test-upgrade-20260907/baseline-ResolveStandardUnresolved.test",
+      "/Users/d/code/primitive/capabilities/testdata/test-upgrade-20260907/baseline-ResolveStandardUnresolved.cpu.pprof"
+    ],
+    "exit_status": 0,
+    "stdout": {
+      "path": "baseline-ResolveStandardUnresolved.cpu.top.txt",
+      "sha256": "bddf087e43227c6927cf1a755701efaa7be95d1ad01bb897f13cc9f557e7e4cb"
+    },
+    "stderr": {
+      "path": "baseline-ResolveStandardUnresolved.cpu.stderr.txt",
+      "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+    }
+  },
+  {
+    "argv": [
+      "go",
+      "tool",
+      "pprof",
+      "-top",
+      "-nodecount=15",
+      "-alloc_space",
+      "/Users/d/code/primitive/capabilities/testdata/test-upgrade-20260907/baseline-ResolveStandardUnresolved.test",
+      "/Users/d/code/primitive/capabilities/testdata/test-upgrade-20260907/baseline-ResolveStandardUnresolved.mem.pprof"
+    ],
+    "exit_status": 0,
+    "stdout": {
+      "path": "baseline-ResolveStandardUnresolved.alloc-space.top.txt",
+      "sha256": "ea4d0c04be66951ff93cbe73bce1e1d7bc768a2a87c3e829ca9c746d6bf28baa"
+    },
+    "stderr": {
+      "path": "baseline-ResolveStandardUnresolved.alloc-space.stderr.txt",
+      "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+    }
+  },
+  {
+    "argv": [
+      "go",
+      "tool",
+      "pprof",
+      "-top",
+      "-nodecount=15",
+      "-alloc_objects",
+      "/Users/d/code/primitive/capabilities/testdata/test-upgrade-20260907/baseline-ResolveStandardUnresolved.test",
+      "/Users/d/code/primitive/capabilities/testdata/test-upgrade-20260907/baseline-ResolveStandardUnresolved.mem.pprof"
+    ],
+    "exit_status": 0,
+    "stdout": {
+      "path": "baseline-ResolveStandardUnresolved.alloc-objects.top.txt",
+      "sha256": "821700e3ab68f45f16439970e7b9cabfafd7a5c4de2f2651efed31f77239e355"
+    },
+    "stderr": {
+      "path": "baseline-ResolveStandardUnresolved.alloc-objects.stderr.txt",
+      "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+    }
+  },
+  {
+    "argv": [
+      "go",
+      "tool",
+      "pprof",
+      "-top",
+      "-nodecount=15",
+      "/Users/d/code/primitive/capabilities/testdata/test-upgrade-20260907/baseline-catalog.test",
+      "/Users/d/code/primitive/capabilities/testdata/test-upgrade-20260907/baseline-catalog.cpu.pprof"
+    ],
+    "exit_status": 0,
+    "stdout": {
+      "path": "baseline-catalog.cpu.top.txt",
+      "sha256": "f5bb1bb0471c7005ab521136d7c4bae215c5c1090c772d688eb325ea1a3a83ff"
+    },
+    "stderr": {
+      "path": "baseline-catalog.cpu.stderr.txt",
+      "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+    }
+  },
+  {
+    "argv": [
+      "go",
+      "tool",
+      "pprof",
+      "-top",
+      "-nodecount=15",
+      "-alloc_space",
+      "/Users/d/code/primitive/capabilities/testdata/test-upgrade-20260907/baseline-catalog.test",
+      "/Users/d/code/primitive/capabilities/testdata/test-upgrade-20260907/baseline-catalog.mem.pprof"
+    ],
+    "exit_status": 0,
+    "stdout": {
+      "path": "baseline-catalog.alloc-space.top.txt",
+      "sha256": "68958786985b4e1d264478de1e27fc90a6ee4c5bc38b4e7175df275a9d7cdeac"
+    },
+    "stderr": {
+      "path": "baseline-catalog.alloc-space.stderr.txt",
+      "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+    }
+  },
+  {
+    "argv": [
+      "go",
+      "tool",
+      "pprof",
+      "-top",
+      "-nodecount=15",
+      "-alloc_objects",
+      "/Users/d/code/primitive/capabilities/testdata/test-upgrade-20260907/baseline-catalog.test",
+      "/Users/d/code/primitive/capabilities/testdata/test-upgrade-20260907/baseline-catalog.mem.pprof"
+    ],
+    "exit_status": 0,
+    "stdout": {
+      "path": "baseline-catalog.alloc-objects.top.txt",
+      "sha256": "984ad68a8360938d9cc7934d575fb3a663b79904a4f5a0d81e998ff304ca96ec"
+    },
+    "stderr": {
+      "path": "baseline-catalog.alloc-objects.stderr.txt",
+      "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+    }
+  },
+  {
+    "argv": [
+      "go",
+      "tool",
+      "pprof",
+      "-top",
+      "-nodecount=15",
+      "/Users/d/code/primitive/capabilities/testdata/test-upgrade-20260907/baseline-identity.test",
+      "/Users/d/code/primitive/capabilities/testdata/test-upgrade-20260907/baseline-identity.cpu.pprof"
+    ],
+    "exit_status": 0,
+    "stdout": {
+      "path": "baseline-identity.cpu.top.txt",
+      "sha256": "315f4fb4e2b43f779af8b7fd3219e16c7436b0e18fd51708c97547c8436a4431"
+    },
+    "stderr": {
+      "path": "baseline-identity.cpu.stderr.txt",
+      "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+    }
+  },
+  {
+    "argv": [
+      "go",
+      "tool",
+      "pprof",
+      "-top",
+      "-nodecount=15",
+      "-alloc_space",
+      "/Users/d/code/primitive/capabilities/testdata/test-upgrade-20260907/baseline-identity.test",
+      "/Users/d/code/primitive/capabilities/testdata/test-upgrade-20260907/baseline-identity.mem.pprof"
+    ],
+    "exit_status": 0,
+    "stdout": {
+      "path": "baseline-identity.alloc-space.top.txt",
+      "sha256": "589463d74a55ed89bbaf3b64534b4d8ed393864647cdbc6fd17ab456c6a0c3ef"
+    },
+    "stderr": {
+      "path": "baseline-identity.alloc-space.stderr.txt",
+      "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+    }
+  },
+  {
+    "argv": [
+      "go",
+      "tool",
+      "pprof",
+      "-top",
+      "-nodecount=15",
+      "-alloc_objects",
+      "/Users/d/code/primitive/capabilities/testdata/test-upgrade-20260907/baseline-identity.test",
+      "/Users/d/code/primitive/capabilities/testdata/test-upgrade-20260907/baseline-identity.mem.pprof"
+    ],
+    "exit_status": 0,
+    "stdout": {
+      "path": "baseline-identity.alloc-objects.top.txt",
+      "sha256": "a9dd8274b2c4c19fa1d51950c2b5205d335550a54e93a8b0e597ca697d14bf1a"
+    },
+    "stderr": {
+      "path": "baseline-identity.alloc-objects.stderr.txt",
+      "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+    }
+  },
+  {
+    "argv": [
+      "go",
+      "tool",
+      "pprof",
+      "-top",
+      "-nodecount=15",
+      "/Users/d/code/primitive/capabilities/testdata/test-upgrade-20260907/after-catalog.test",
+      "/Users/d/code/primitive/capabilities/testdata/test-upgrade-20260907/after-catalog.cpu.pprof"
+    ],
+    "exit_status": 0,
+    "stdout": {
+      "path": "after-catalog.cpu.top.txt",
+      "sha256": "f97c32f5ba04f0c4c17cbd1ff30f5a4ec6cf50f86de432e499f2232772718cc2"
+    },
+    "stderr": {
+      "path": "after-catalog.cpu.stderr.txt",
+      "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+    }
+  },
+  {
+    "argv": [
+      "go",
+      "tool",
+      "pprof",
+      "-top",
+      "-nodecount=15",
+      "-alloc_space",
+      "/Users/d/code/primitive/capabilities/testdata/test-upgrade-20260907/after-catalog.test",
+      "/Users/d/code/primitive/capabilities/testdata/test-upgrade-20260907/after-catalog.mem.pprof"
+    ],
+    "exit_status": 0,
+    "stdout": {
+      "path": "after-catalog.alloc-space.top.txt",
+      "sha256": "3b5a7c1a356fa07b92edc1c32ccd37d8324ec069c4573382c4c8e79c8e625393"
+    },
+    "stderr": {
+      "path": "after-catalog.alloc-space.stderr.txt",
+      "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+    }
+  },
+  {
+    "argv": [
+      "go",
+      "tool",
+      "pprof",
+      "-top",
+      "-nodecount=15",
+      "-alloc_objects",
+      "/Users/d/code/primitive/capabilities/testdata/test-upgrade-20260907/after-catalog.test",
+      "/Users/d/code/primitive/capabilities/testdata/test-upgrade-20260907/after-catalog.mem.pprof"
+    ],
+    "exit_status": 0,
+    "stdout": {
+      "path": "after-catalog.alloc-objects.top.txt",
+      "sha256": "612d6b5f3abe5d5800ccc77aa07f02c747868ff1fed0f323f427d6e2440fb91e"
+    },
+    "stderr": {
+      "path": "after-catalog.alloc-objects.stderr.txt",
+      "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+    }
+  },
+  {
+    "argv": [
+      "go",
+      "tool",
+      "pprof",
+      "-top",
+      "-nodecount=15",
+      "/Users/d/code/primitive/capabilities/testdata/test-upgrade-20260907/after-effect.test",
+      "/Users/d/code/primitive/capabilities/testdata/test-upgrade-20260907/after-effect.cpu.pprof"
+    ],
+    "exit_status": 0,
+    "stdout": {
+      "path": "after-effect.cpu.top.txt",
+      "sha256": "1ef7c5af5e5a42ff8a792a7614a84b0ded30b631cbc990b56229e7d200ef4de1"
+    },
+    "stderr": {
+      "path": "after-effect.cpu.stderr.txt",
+      "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+    }
+  },
+  {
+    "argv": [
+      "go",
+      "tool",
+      "pprof",
+      "-top",
+      "-nodecount=15",
+      "-alloc_space",
+      "/Users/d/code/primitive/capabilities/testdata/test-upgrade-20260907/after-effect.test",
+      "/Users/d/code/primitive/capabilities/testdata/test-upgrade-20260907/after-effect.mem.pprof"
+    ],
+    "exit_status": 0,
+    "stdout": {
+      "path": "after-effect.alloc-space.top.txt",
+      "sha256": "7c8739b79f7d813ab23c4191c817f40f44b3402aa570966dddd0baf3135a8c00"
+    },
+    "stderr": {
+      "path": "after-effect.alloc-space.stderr.txt",
+      "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+    }
+  },
+  {
+    "argv": [
+      "go",
+      "tool",
+      "pprof",
+      "-top",
+      "-nodecount=15",
+      "-alloc_objects",
+      "/Users/d/code/primitive/capabilities/testdata/test-upgrade-20260907/after-effect.test",
+      "/Users/d/code/primitive/capabilities/testdata/test-upgrade-20260907/after-effect.mem.pprof"
+    ],
+    "exit_status": 0,
+    "stdout": {
+      "path": "after-effect.alloc-objects.top.txt",
+      "sha256": "4a75f300eac8a55cf1843830df56fc834f1c59453af2efde159396eb79720550"
+    },
+    "stderr": {
+      "path": "after-effect.alloc-objects.stderr.txt",
+      "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+    }
+  },
+  {
+    "argv": [
+      "go",
+      "tool",
+      "pprof",
+      "-top",
+      "-nodecount=15",
+      "/Users/d/code/primitive/capabilities/testdata/test-upgrade-20260907/after-function.test",
+      "/Users/d/code/primitive/capabilities/testdata/test-upgrade-20260907/after-function.cpu.pprof"
+    ],
+    "exit_status": 0,
+    "stdout": {
+      "path": "after-function.cpu.top.txt",
+      "sha256": "4efc0992b4b4fce8e5791d8430646a4ce2a80db7dff5ef87d8251d4969ba12a5"
+    },
+    "stderr": {
+      "path": "after-function.cpu.stderr.txt",
+      "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+    }
+  },
+  {
+    "argv": [
+      "go",
+      "tool",
+      "pprof",
+      "-top",
+      "-nodecount=15",
+      "-alloc_space",
+      "/Users/d/code/primitive/capabilities/testdata/test-upgrade-20260907/after-function.test",
+      "/Users/d/code/primitive/capabilities/testdata/test-upgrade-20260907/after-function.mem.pprof"
+    ],
+    "exit_status": 0,
+    "stdout": {
+      "path": "after-function.alloc-space.top.txt",
+      "sha256": "3a0a9467fd5fb995837bc8b16605807e7cdbedc399896b1501441a6f3605f7a6"
+    },
+    "stderr": {
+      "path": "after-function.alloc-space.stderr.txt",
+      "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+    }
+  },
+  {
+    "argv": [
+      "go",
+      "tool",
+      "pprof",
+      "-top",
+      "-nodecount=15",
+      "-alloc_objects",
+      "/Users/d/code/primitive/capabilities/testdata/test-upgrade-20260907/after-function.test",
+      "/Users/d/code/primitive/capabilities/testdata/test-upgrade-20260907/after-function.mem.pprof"
+    ],
+    "exit_status": 0,
+    "stdout": {
+      "path": "after-function.alloc-objects.top.txt",
+      "sha256": "cef403bd560112d1df5524342aaaa106c1101d4c7f6d1190e8f80d633b10f6ca"
+    },
+    "stderr": {
+      "path": "after-function.alloc-objects.stderr.txt",
+      "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+    }
+  },
+  {
+    "argv": [
+      "go",
+      "tool",
+      "pprof",
+      "-top",
+      "-nodecount=15",
+      "/Users/d/code/primitive/capabilities/testdata/test-upgrade-20260907/after-identity.test",
+      "/Users/d/code/primitive/capabilities/testdata/test-upgrade-20260907/after-identity.cpu.pprof"
+    ],
+    "exit_status": 0,
+    "stdout": {
+      "path": "after-identity.cpu.top.txt",
+      "sha256": "6b6420182f479a1de9cebd0bc81d516ceb397c74192849c341648719e7bed439"
+    },
+    "stderr": {
+      "path": "after-identity.cpu.stderr.txt",
+      "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+    }
+  },
+  {
+    "argv": [
+      "go",
+      "tool",
+      "pprof",
+      "-top",
+      "-nodecount=15",
+      "-alloc_space",
+      "/Users/d/code/primitive/capabilities/testdata/test-upgrade-20260907/after-identity.test",
+      "/Users/d/code/primitive/capabilities/testdata/test-upgrade-20260907/after-identity.mem.pprof"
+    ],
+    "exit_status": 0,
+    "stdout": {
+      "path": "after-identity.alloc-space.top.txt",
+      "sha256": "f3e3c653b7d1c583f0f55fbf68da4498a6dcef7b38cffeb54ab11c1574e4d64f"
+    },
+    "stderr": {
+      "path": "after-identity.alloc-space.stderr.txt",
+      "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+    }
+  },
+  {
+    "argv": [
+      "go",
+      "tool",
+      "pprof",
+      "-top",
+      "-nodecount=15",
+      "-alloc_objects",
+      "/Users/d/code/primitive/capabilities/testdata/test-upgrade-20260907/after-identity.test",
+      "/Users/d/code/primitive/capabilities/testdata/test-upgrade-20260907/after-identity.mem.pprof"
+    ],
+    "exit_status": 0,
+    "stdout": {
+      "path": "after-identity.alloc-objects.top.txt",
+      "sha256": "c26853f72095ed869129eb2b450e22b311aec5aea551948c6d0fde1f1faaf073"
+    },
+    "stderr": {
+      "path": "after-identity.alloc-objects.stderr.txt",
+      "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+    }
+  },
+  {
+    "argv": [
+      "go",
+      "tool",
+      "pprof",
+      "-top",
+      "-nodecount=15",
+      "/Users/d/code/primitive/capabilities/testdata/test-upgrade-20260907/after-json-maximum.test",
+      "/Users/d/code/primitive/capabilities/testdata/test-upgrade-20260907/after-json-maximum.cpu.pprof"
+    ],
+    "exit_status": 0,
+    "stdout": {
+      "path": "after-json-maximum.cpu.top.txt",
+      "sha256": "3383dcca324ea01b6097522cb3593d140ca3ca9ca6b75377e48189bafbffc1e4"
+    },
+    "stderr": {
+      "path": "after-json-maximum.cpu.stderr.txt",
+      "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+    }
+  },
+  {
+    "argv": [
+      "go",
+      "tool",
+      "pprof",
+      "-top",
+      "-nodecount=15",
+      "-alloc_space",
+      "/Users/d/code/primitive/capabilities/testdata/test-upgrade-20260907/after-json-maximum.test",
+      "/Users/d/code/primitive/capabilities/testdata/test-upgrade-20260907/after-json-maximum.mem.pprof"
+    ],
+    "exit_status": 0,
+    "stdout": {
+      "path": "after-json-maximum.alloc-space.top.txt",
+      "sha256": "7ce6680cb1d1377fa78cee5e40d4c24a26b4c755aecf42e740bb4db396f29ea4"
+    },
+    "stderr": {
+      "path": "after-json-maximum.alloc-space.stderr.txt",
+      "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+    }
+  },
+  {
+    "argv": [
+      "go",
+      "tool",
+      "pprof",
+      "-top",
+      "-nodecount=15",
+      "-alloc_objects",
+      "/Users/d/code/primitive/capabilities/testdata/test-upgrade-20260907/after-json-maximum.test",
+      "/Users/d/code/primitive/capabilities/testdata/test-upgrade-20260907/after-json-maximum.mem.pprof"
+    ],
+    "exit_status": 0,
+    "stdout": {
+      "path": "after-json-maximum.alloc-objects.top.txt",
+      "sha256": "57fc593e19b289c26ca44ee109d7bd706c3ebb89ad6bfd817c7c38cc9dc013fb"
+    },
+    "stderr": {
+      "path": "after-json-maximum.alloc-objects.stderr.txt",
+      "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+    }
+  },
+  {
+    "argv": [
+      "go",
+      "tool",
+      "pprof",
+      "-top",
+      "-nodecount=15",
+      "/Users/d/code/primitive/capabilities/testdata/test-upgrade-20260907/after-method.test",
+      "/Users/d/code/primitive/capabilities/testdata/test-upgrade-20260907/after-method.cpu.pprof"
+    ],
+    "exit_status": 0,
+    "stdout": {
+      "path": "after-method.cpu.top.txt",
+      "sha256": "29df92edd10686db57d8e83df3fd35264d8cf277f1ec36fef13ba3137ed31ca6"
+    },
+    "stderr": {
+      "path": "after-method.cpu.stderr.txt",
+      "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+    }
+  },
+  {
+    "argv": [
+      "go",
+      "tool",
+      "pprof",
+      "-top",
+      "-nodecount=15",
+      "-alloc_space",
+      "/Users/d/code/primitive/capabilities/testdata/test-upgrade-20260907/after-method.test",
+      "/Users/d/code/primitive/capabilities/testdata/test-upgrade-20260907/after-method.mem.pprof"
+    ],
+    "exit_status": 0,
+    "stdout": {
+      "path": "after-method.alloc-space.top.txt",
+      "sha256": "bd461964324bdcb789240c6684e8db659a84b88edb39cf99cd12e69f4448a8aa"
+    },
+    "stderr": {
+      "path": "after-method.alloc-space.stderr.txt",
+      "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+    }
+  },
+  {
+    "argv": [
+      "go",
+      "tool",
+      "pprof",
+      "-top",
+      "-nodecount=15",
+      "-alloc_objects",
+      "/Users/d/code/primitive/capabilities/testdata/test-upgrade-20260907/after-method.test",
+      "/Users/d/code/primitive/capabilities/testdata/test-upgrade-20260907/after-method.mem.pprof"
+    ],
+    "exit_status": 0,
+    "stdout": {
+      "path": "after-method.alloc-objects.top.txt",
+      "sha256": "acf25e12a4f9dc1e78a85bc41842ac0734f69628f51451d7914497d33ef23db9"
+    },
+    "stderr": {
+      "path": "after-method.alloc-objects.stderr.txt",
+      "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+    }
+  },
+  {
+    "argv": [
+      "go",
+      "tool",
+      "pprof",
+      "-top",
+      "-nodecount=15",
+      "/Users/d/code/primitive/capabilities/testdata/test-upgrade-20260907/after-unresolved.test",
+      "/Users/d/code/primitive/capabilities/testdata/test-upgrade-20260907/after-unresolved.cpu.pprof"
+    ],
+    "exit_status": 0,
+    "stdout": {
+      "path": "after-unresolved.cpu.top.txt",
+      "sha256": "0d0320dc4d8b0a5aa769294c16118eeaaf676da174a75fb85e3e5ff1bed211dd"
+    },
+    "stderr": {
+      "path": "after-unresolved.cpu.stderr.txt",
+      "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+    }
+  },
+  {
+    "argv": [
+      "go",
+      "tool",
+      "pprof",
+      "-top",
+      "-nodecount=15",
+      "-alloc_space",
+      "/Users/d/code/primitive/capabilities/testdata/test-upgrade-20260907/after-unresolved.test",
+      "/Users/d/code/primitive/capabilities/testdata/test-upgrade-20260907/after-unresolved.mem.pprof"
+    ],
+    "exit_status": 0,
+    "stdout": {
+      "path": "after-unresolved.alloc-space.top.txt",
+      "sha256": "7d7103d211011a491413c614b68173a890cfd51e965d59cce5999eae70a28fbc"
+    },
+    "stderr": {
+      "path": "after-unresolved.alloc-space.stderr.txt",
+      "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+    }
+  },
+  {
+    "argv": [
+      "go",
+      "tool",
+      "pprof",
+      "-top",
+      "-nodecount=15",
+      "-alloc_objects",
+      "/Users/d/code/primitive/capabilities/testdata/test-upgrade-20260907/after-unresolved.test",
+      "/Users/d/code/primitive/capabilities/testdata/test-upgrade-20260907/after-unresolved.mem.pprof"
+    ],
+    "exit_status": 0,
+    "stdout": {
+      "path": "after-unresolved.alloc-objects.top.txt",
+      "sha256": "17b10f6842b8fa685a4e69c5f8ce2c9c8aaec897055f46a4e0e4603766f94e22"
+    },
+    "stderr": {
+      "path": "after-unresolved.alloc-objects.stderr.txt",
+      "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+    }
+  },
+  {
+    "argv": [
+      "go",
+      "tool",
+      "pprof",
+      "-top",
+      "-nodecount=15",
+      "/Users/d/code/primitive/capabilities/testdata/test-upgrade-20260907/frozen-before-catalog.test",
+      "/Users/d/code/primitive/capabilities/testdata/test-upgrade-20260907/frozen-before-catalog.cpu.pprof"
+    ],
+    "exit_status": 0,
+    "stdout": {
+      "path": "frozen-before-catalog.cpu.top.txt",
+      "sha256": "f0e5614096d7e0be0de6f3d7bd03b43acd70613f938d159a04e8bfab7b3dee60"
+    },
+    "stderr": {
+      "path": "frozen-before-catalog.cpu.stderr.txt",
+      "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+    }
+  },
+  {
+    "argv": [
+      "go",
+      "tool",
+      "pprof",
+      "-top",
+      "-nodecount=15",
+      "-alloc_space",
+      "/Users/d/code/primitive/capabilities/testdata/test-upgrade-20260907/frozen-before-catalog.test",
+      "/Users/d/code/primitive/capabilities/testdata/test-upgrade-20260907/frozen-before-catalog.mem.pprof"
+    ],
+    "exit_status": 0,
+    "stdout": {
+      "path": "frozen-before-catalog.alloc-space.top.txt",
+      "sha256": "b200e9c85a796d576b649cdd59e1b8e5ed2efab2e427465dd30ca8ba629368a1"
+    },
+    "stderr": {
+      "path": "frozen-before-catalog.alloc-space.stderr.txt",
+      "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+    }
+  },
+  {
+    "argv": [
+      "go",
+      "tool",
+      "pprof",
+      "-top",
+      "-nodecount=15",
+      "-alloc_objects",
+      "/Users/d/code/primitive/capabilities/testdata/test-upgrade-20260907/frozen-before-catalog.test",
+      "/Users/d/code/primitive/capabilities/testdata/test-upgrade-20260907/frozen-before-catalog.mem.pprof"
+    ],
+    "exit_status": 0,
+    "stdout": {
+      "path": "frozen-before-catalog.alloc-objects.top.txt",
+      "sha256": "7232e6542c32876021e0a579b7e44bfc4de52a99bd39b696032dcde67df809e1"
+    },
+    "stderr": {
+      "path": "frozen-before-catalog.alloc-objects.stderr.txt",
+      "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+    }
+  },
+  {
+    "argv": [
+      "go",
+      "tool",
+      "pprof",
+      "-top",
+      "-nodecount=15",
+      "/Users/d/code/primitive/capabilities/testdata/test-upgrade-20260907/frozen-before-effect.test",
+      "/Users/d/code/primitive/capabilities/testdata/test-upgrade-20260907/frozen-before-effect.cpu.pprof"
+    ],
+    "exit_status": 0,
+    "stdout": {
+      "path": "frozen-before-effect.cpu.top.txt",
+      "sha256": "22dd482cc2f02a5a546e248aa1680d270c7cf59232a62a2a6610bfce9eef907c"
+    },
+    "stderr": {
+      "path": "frozen-before-effect.cpu.stderr.txt",
+      "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+    }
+  },
+  {
+    "argv": [
+      "go",
+      "tool",
+      "pprof",
+      "-top",
+      "-nodecount=15",
+      "-alloc_space",
+      "/Users/d/code/primitive/capabilities/testdata/test-upgrade-20260907/frozen-before-effect.test",
+      "/Users/d/code/primitive/capabilities/testdata/test-upgrade-20260907/frozen-before-effect.mem.pprof"
+    ],
+    "exit_status": 0,
+    "stdout": {
+      "path": "frozen-before-effect.alloc-space.top.txt",
+      "sha256": "2251fe27acb026d6cf51ef24c13cc2e1de0bc204c854b5312604cdb57f517fbb"
+    },
+    "stderr": {
+      "path": "frozen-before-effect.alloc-space.stderr.txt",
+      "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+    }
+  },
+  {
+    "argv": [
+      "go",
+      "tool",
+      "pprof",
+      "-top",
+      "-nodecount=15",
+      "-alloc_objects",
+      "/Users/d/code/primitive/capabilities/testdata/test-upgrade-20260907/frozen-before-effect.test",
+      "/Users/d/code/primitive/capabilities/testdata/test-upgrade-20260907/frozen-before-effect.mem.pprof"
+    ],
+    "exit_status": 0,
+    "stdout": {
+      "path": "frozen-before-effect.alloc-objects.top.txt",
+      "sha256": "eeec87e25968acbe6dadf535ae2aeda457aefaa279414329f91a5678c9a38bde"
+    },
+    "stderr": {
+      "path": "frozen-before-effect.alloc-objects.stderr.txt",
+      "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+    }
+  },
+  {
+    "argv": [
+      "go",
+      "tool",
+      "pprof",
+      "-top",
+      "-nodecount=15",
+      "/Users/d/code/primitive/capabilities/testdata/test-upgrade-20260907/frozen-before-function.test",
+      "/Users/d/code/primitive/capabilities/testdata/test-upgrade-20260907/frozen-before-function.cpu.pprof"
+    ],
+    "exit_status": 0,
+    "stdout": {
+      "path": "frozen-before-function.cpu.top.txt",
+      "sha256": "ab9a7a6b68b04d1eb39e778cf42f1b946fef89e872373cd37a7e682f2b3470a6"
+    },
+    "stderr": {
+      "path": "frozen-before-function.cpu.stderr.txt",
+      "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+    }
+  },
+  {
+    "argv": [
+      "go",
+      "tool",
+      "pprof",
+      "-top",
+      "-nodecount=15",
+      "-alloc_space",
+      "/Users/d/code/primitive/capabilities/testdata/test-upgrade-20260907/frozen-before-function.test",
+      "/Users/d/code/primitive/capabilities/testdata/test-upgrade-20260907/frozen-before-function.mem.pprof"
+    ],
+    "exit_status": 0,
+    "stdout": {
+      "path": "frozen-before-function.alloc-space.top.txt",
+      "sha256": "5d7636dbd750ca6fae28ceca9dee2540d140479f72a0873d24bc7b25a0b90d03"
+    },
+    "stderr": {
+      "path": "frozen-before-function.alloc-space.stderr.txt",
+      "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+    }
+  },
+  {
+    "argv": [
+      "go",
+      "tool",
+      "pprof",
+      "-top",
+      "-nodecount=15",
+      "-alloc_objects",
+      "/Users/d/code/primitive/capabilities/testdata/test-upgrade-20260907/frozen-before-function.test",
+      "/Users/d/code/primitive/capabilities/testdata/test-upgrade-20260907/frozen-before-function.mem.pprof"
+    ],
+    "exit_status": 0,
+    "stdout": {
+      "path": "frozen-before-function.alloc-objects.top.txt",
+      "sha256": "c0f2e86feedb391931dd7f8fdf546d58a1f234d60fd34a568e2541a1a07c1daa"
+    },
+    "stderr": {
+      "path": "frozen-before-function.alloc-objects.stderr.txt",
+      "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+    }
+  },
+  {
+    "argv": [
+      "go",
+      "tool",
+      "pprof",
+      "-top",
+      "-nodecount=15",
+      "/Users/d/code/primitive/capabilities/testdata/test-upgrade-20260907/frozen-before-identity.test",
+      "/Users/d/code/primitive/capabilities/testdata/test-upgrade-20260907/frozen-before-identity.cpu.pprof"
+    ],
+    "exit_status": 0,
+    "stdout": {
+      "path": "frozen-before-identity.cpu.top.txt",
+      "sha256": "9559fa96c7aba76dfc5aa4f155945d33f80c7f9f6332ccb591d9d0e3137de2ea"
+    },
+    "stderr": {
+      "path": "frozen-before-identity.cpu.stderr.txt",
+      "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+    }
+  },
+  {
+    "argv": [
+      "go",
+      "tool",
+      "pprof",
+      "-top",
+      "-nodecount=15",
+      "-alloc_space",
+      "/Users/d/code/primitive/capabilities/testdata/test-upgrade-20260907/frozen-before-identity.test",
+      "/Users/d/code/primitive/capabilities/testdata/test-upgrade-20260907/frozen-before-identity.mem.pprof"
+    ],
+    "exit_status": 0,
+    "stdout": {
+      "path": "frozen-before-identity.alloc-space.top.txt",
+      "sha256": "ee0eac0073cd779dfc13d2e81a85d81fd90d86fdccac577d33b2edbc1776906a"
+    },
+    "stderr": {
+      "path": "frozen-before-identity.alloc-space.stderr.txt",
+      "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+    }
+  },
+  {
+    "argv": [
+      "go",
+      "tool",
+      "pprof",
+      "-top",
+      "-nodecount=15",
+      "-alloc_objects",
+      "/Users/d/code/primitive/capabilities/testdata/test-upgrade-20260907/frozen-before-identity.test",
+      "/Users/d/code/primitive/capabilities/testdata/test-upgrade-20260907/frozen-before-identity.mem.pprof"
+    ],
+    "exit_status": 0,
+    "stdout": {
+      "path": "frozen-before-identity.alloc-objects.top.txt",
+      "sha256": "6c54550f166a23ccbc2c9e2480ec1353139cb6469b507dc902c448566c7e34d6"
+    },
+    "stderr": {
+      "path": "frozen-before-identity.alloc-objects.stderr.txt",
+      "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+    }
+  },
+  {
+    "argv": [
+      "go",
+      "tool",
+      "pprof",
+      "-top",
+      "-nodecount=15",
+      "/Users/d/code/primitive/capabilities/testdata/test-upgrade-20260907/frozen-before-json-maximum.test",
+      "/Users/d/code/primitive/capabilities/testdata/test-upgrade-20260907/frozen-before-json-maximum.cpu.pprof"
+    ],
+    "exit_status": 0,
+    "stdout": {
+      "path": "frozen-before-json-maximum.cpu.top.txt",
+      "sha256": "0968061919aef81c99c9ebe3f139d64ea6556620341b9a110a0cb4513e1bc609"
+    },
+    "stderr": {
+      "path": "frozen-before-json-maximum.cpu.stderr.txt",
+      "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+    }
+  },
+  {
+    "argv": [
+      "go",
+      "tool",
+      "pprof",
+      "-top",
+      "-nodecount=15",
+      "-alloc_space",
+      "/Users/d/code/primitive/capabilities/testdata/test-upgrade-20260907/frozen-before-json-maximum.test",
+      "/Users/d/code/primitive/capabilities/testdata/test-upgrade-20260907/frozen-before-json-maximum.mem.pprof"
+    ],
+    "exit_status": 0,
+    "stdout": {
+      "path": "frozen-before-json-maximum.alloc-space.top.txt",
+      "sha256": "2a050f9b6c6c53cf334ccc35621712dacc84ec1688503e538210094403b31eb2"
+    },
+    "stderr": {
+      "path": "frozen-before-json-maximum.alloc-space.stderr.txt",
+      "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+    }
+  },
+  {
+    "argv": [
+      "go",
+      "tool",
+      "pprof",
+      "-top",
+      "-nodecount=15",
+      "-alloc_objects",
+      "/Users/d/code/primitive/capabilities/testdata/test-upgrade-20260907/frozen-before-json-maximum.test",
+      "/Users/d/code/primitive/capabilities/testdata/test-upgrade-20260907/frozen-before-json-maximum.mem.pprof"
+    ],
+    "exit_status": 0,
+    "stdout": {
+      "path": "frozen-before-json-maximum.alloc-objects.top.txt",
+      "sha256": "62d5ea4b119966a4c857b4ac8e2f4621c80dcbf393a28adec0759a58c20610e8"
+    },
+    "stderr": {
+      "path": "frozen-before-json-maximum.alloc-objects.stderr.txt",
+      "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+    }
+  },
+  {
+    "argv": [
+      "go",
+      "tool",
+      "pprof",
+      "-top",
+      "-nodecount=15",
+      "/Users/d/code/primitive/capabilities/testdata/test-upgrade-20260907/frozen-before-method.test",
+      "/Users/d/code/primitive/capabilities/testdata/test-upgrade-20260907/frozen-before-method.cpu.pprof"
+    ],
+    "exit_status": 0,
+    "stdout": {
+      "path": "frozen-before-method.cpu.top.txt",
+      "sha256": "cacf6afcae0bd0a2314f90a1826c9f3145aa267b3132bf340bcc8fb7ea45552b"
+    },
+    "stderr": {
+      "path": "frozen-before-method.cpu.stderr.txt",
+      "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+    }
+  },
+  {
+    "argv": [
+      "go",
+      "tool",
+      "pprof",
+      "-top",
+      "-nodecount=15",
+      "-alloc_space",
+      "/Users/d/code/primitive/capabilities/testdata/test-upgrade-20260907/frozen-before-method.test",
+      "/Users/d/code/primitive/capabilities/testdata/test-upgrade-20260907/frozen-before-method.mem.pprof"
+    ],
+    "exit_status": 0,
+    "stdout": {
+      "path": "frozen-before-method.alloc-space.top.txt",
+      "sha256": "a1840152f9a2f73273d530e54e501b768b24a1d84393c05c593320bade450afc"
+    },
+    "stderr": {
+      "path": "frozen-before-method.alloc-space.stderr.txt",
+      "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+    }
+  },
+  {
+    "argv": [
+      "go",
+      "tool",
+      "pprof",
+      "-top",
+      "-nodecount=15",
+      "-alloc_objects",
+      "/Users/d/code/primitive/capabilities/testdata/test-upgrade-20260907/frozen-before-method.test",
+      "/Users/d/code/primitive/capabilities/testdata/test-upgrade-20260907/frozen-before-method.mem.pprof"
+    ],
+    "exit_status": 0,
+    "stdout": {
+      "path": "frozen-before-method.alloc-objects.top.txt",
+      "sha256": "2f84ea504a49df536234b00100924110e0877acf3cb682229717a5d68db4c742"
+    },
+    "stderr": {
+      "path": "frozen-before-method.alloc-objects.stderr.txt",
+      "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+    }
+  },
+  {
+    "argv": [
+      "go",
+      "tool",
+      "pprof",
+      "-top",
+      "-nodecount=15",
+      "/Users/d/code/primitive/capabilities/testdata/test-upgrade-20260907/frozen-before-unresolved.test",
+      "/Users/d/code/primitive/capabilities/testdata/test-upgrade-20260907/frozen-before-unresolved.cpu.pprof"
+    ],
+    "exit_status": 0,
+    "stdout": {
+      "path": "frozen-before-unresolved.cpu.top.txt",
+      "sha256": "7186eb2b101323302378f188e617ff607696d6e453032f114ef8c80db370eb0e"
+    },
+    "stderr": {
+      "path": "frozen-before-unresolved.cpu.stderr.txt",
+      "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+    }
+  },
+  {
+    "argv": [
+      "go",
+      "tool",
+      "pprof",
+      "-top",
+      "-nodecount=15",
+      "-alloc_space",
+      "/Users/d/code/primitive/capabilities/testdata/test-upgrade-20260907/frozen-before-unresolved.test",
+      "/Users/d/code/primitive/capabilities/testdata/test-upgrade-20260907/frozen-before-unresolved.mem.pprof"
+    ],
+    "exit_status": 0,
+    "stdout": {
+      "path": "frozen-before-unresolved.alloc-space.top.txt",
+      "sha256": "5f261134e1341a8564b0a665cc2ec9aa54e2b8413297b82fe6618c166189aabf"
+    },
+    "stderr": {
+      "path": "frozen-before-unresolved.alloc-space.stderr.txt",
+      "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+    }
+  },
+  {
+    "argv": [
+      "go",
+      "tool",
+      "pprof",
+      "-top",
+      "-nodecount=15",
+      "-alloc_objects",
+      "/Users/d/code/primitive/capabilities/testdata/test-upgrade-20260907/frozen-before-unresolved.test",
+      "/Users/d/code/primitive/capabilities/testdata/test-upgrade-20260907/frozen-before-unresolved.mem.pprof"
+    ],
+    "exit_status": 0,
+    "stdout": {
+      "path": "frozen-before-unresolved.alloc-objects.top.txt",
+      "sha256": "8ebff7504597a23c5e1c5ec00dfd085ff0704cf862a02d59c623e39f700262e7"
+    },
+    "stderr": {
+      "path": "frozen-before-unresolved.alloc-objects.stderr.txt",
+      "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+    }
+  },
+  {
+    "argv": [
+      "go",
+      "tool",
+      "pprof",
+      "-top",
+      "-nodecount=15",
+      "/Users/d/code/primitive/capabilities/testdata/test-upgrade-20260907/commit-after-catalog.test",
+      "/Users/d/code/primitive/capabilities/testdata/test-upgrade-20260907/commit-after-catalog.cpu.pprof"
+    ],
+    "exit_status": 0,
+    "stdout": {
+      "path": "commit-after-catalog.cpu.top.txt",
+      "sha256": "751471d13fa18b2afc7c147a1d2f3af5266efe484b3bdb305bcd617dd2dbed33"
+    },
+    "stderr": {
+      "path": "commit-after-catalog.cpu.stderr.txt",
+      "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+    }
+  },
+  {
+    "argv": [
+      "go",
+      "tool",
+      "pprof",
+      "-top",
+      "-nodecount=15",
+      "-alloc_space",
+      "/Users/d/code/primitive/capabilities/testdata/test-upgrade-20260907/commit-after-catalog.test",
+      "/Users/d/code/primitive/capabilities/testdata/test-upgrade-20260907/commit-after-catalog.mem.pprof"
+    ],
+    "exit_status": 0,
+    "stdout": {
+      "path": "commit-after-catalog.alloc-space.top.txt",
+      "sha256": "d41de73b78ca96474d5410e2012e210ad94b4ba7f0feea73460013dd133cc143"
+    },
+    "stderr": {
+      "path": "commit-after-catalog.alloc-space.stderr.txt",
+      "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+    }
+  },
+  {
+    "argv": [
+      "go",
+      "tool",
+      "pprof",
+      "-top",
+      "-nodecount=15",
+      "-alloc_objects",
+      "/Users/d/code/primitive/capabilities/testdata/test-upgrade-20260907/commit-after-catalog.test",
+      "/Users/d/code/primitive/capabilities/testdata/test-upgrade-20260907/commit-after-catalog.mem.pprof"
+    ],
+    "exit_status": 0,
+    "stdout": {
+      "path": "commit-after-catalog.alloc-objects.top.txt",
+      "sha256": "17a31751fa204eec79469903a1970173ef036761eb98a2d170de098707de3dcf"
+    },
+    "stderr": {
+      "path": "commit-after-catalog.alloc-objects.stderr.txt",
+      "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+    }
+  },
+  {
+    "argv": [
+      "go",
+      "tool",
+      "pprof",
+      "-top",
+      "-nodecount=15",
+      "/Users/d/code/primitive/capabilities/testdata/test-upgrade-20260907/commit-after-effect.test",
+      "/Users/d/code/primitive/capabilities/testdata/test-upgrade-20260907/commit-after-effect.cpu.pprof"
+    ],
+    "exit_status": 0,
+    "stdout": {
+      "path": "commit-after-effect.cpu.top.txt",
+      "sha256": "e68803e96015dbed368ab6d40e0e88c755c9c93c5864c6160d5bc29a72a66574"
+    },
+    "stderr": {
+      "path": "commit-after-effect.cpu.stderr.txt",
+      "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+    }
+  },
+  {
+    "argv": [
+      "go",
+      "tool",
+      "pprof",
+      "-top",
+      "-nodecount=15",
+      "-alloc_space",
+      "/Users/d/code/primitive/capabilities/testdata/test-upgrade-20260907/commit-after-effect.test",
+      "/Users/d/code/primitive/capabilities/testdata/test-upgrade-20260907/commit-after-effect.mem.pprof"
+    ],
+    "exit_status": 0,
+    "stdout": {
+      "path": "commit-after-effect.alloc-space.top.txt",
+      "sha256": "79e765e99674c09e28da5a0bb815aa6c259d32fee3f27b95de944cdd3d5881c7"
+    },
+    "stderr": {
+      "path": "commit-after-effect.alloc-space.stderr.txt",
+      "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+    }
+  },
+  {
+    "argv": [
+      "go",
+      "tool",
+      "pprof",
+      "-top",
+      "-nodecount=15",
+      "-alloc_objects",
+      "/Users/d/code/primitive/capabilities/testdata/test-upgrade-20260907/commit-after-effect.test",
+      "/Users/d/code/primitive/capabilities/testdata/test-upgrade-20260907/commit-after-effect.mem.pprof"
+    ],
+    "exit_status": 0,
+    "stdout": {
+      "path": "commit-after-effect.alloc-objects.top.txt",
+      "sha256": "b482c295103d89cf33294e5f2a7e63810d1b940307c392855f1c01a08cbc5941"
+    },
+    "stderr": {
+      "path": "commit-after-effect.alloc-objects.stderr.txt",
+      "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+    }
+  },
+  {
+    "argv": [
+      "go",
+      "tool",
+      "pprof",
+      "-top",
+      "-nodecount=15",
+      "/Users/d/code/primitive/capabilities/testdata/test-upgrade-20260907/commit-after-function.test",
+      "/Users/d/code/primitive/capabilities/testdata/test-upgrade-20260907/commit-after-function.cpu.pprof"
+    ],
+    "exit_status": 0,
+    "stdout": {
+      "path": "commit-after-function.cpu.top.txt",
+      "sha256": "21afe852e31f8ae43467c059d733943d4a1d1ef677f75cdf18ef6523805994bd"
+    },
+    "stderr": {
+      "path": "commit-after-function.cpu.stderr.txt",
+      "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+    }
+  },
+  {
+    "argv": [
+      "go",
+      "tool",
+      "pprof",
+      "-top",
+      "-nodecount=15",
+      "-alloc_space",
+      "/Users/d/code/primitive/capabilities/testdata/test-upgrade-20260907/commit-after-function.test",
+      "/Users/d/code/primitive/capabilities/testdata/test-upgrade-20260907/commit-after-function.mem.pprof"
+    ],
+    "exit_status": 0,
+    "stdout": {
+      "path": "commit-after-function.alloc-space.top.txt",
+      "sha256": "ab7d5cda2ca6f2f7144d9a04a3adb22cce84b85979ea969176ed218dad58f436"
+    },
+    "stderr": {
+      "path": "commit-after-function.alloc-space.stderr.txt",
+      "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+    }
+  },
+  {
+    "argv": [
+      "go",
+      "tool",
+      "pprof",
+      "-top",
+      "-nodecount=15",
+      "-alloc_objects",
+      "/Users/d/code/primitive/capabilities/testdata/test-upgrade-20260907/commit-after-function.test",
+      "/Users/d/code/primitive/capabilities/testdata/test-upgrade-20260907/commit-after-function.mem.pprof"
+    ],
+    "exit_status": 0,
+    "stdout": {
+      "path": "commit-after-function.alloc-objects.top.txt",
+      "sha256": "dff6f3cd8226cfcc52109fe4fc1c38900cef2f21c0bbc0488215408930e6ee43"
+    },
+    "stderr": {
+      "path": "commit-after-function.alloc-objects.stderr.txt",
+      "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+    }
+  },
+  {
+    "argv": [
+      "go",
+      "tool",
+      "pprof",
+      "-top",
+      "-nodecount=15",
+      "/Users/d/code/primitive/capabilities/testdata/test-upgrade-20260907/commit-after-identity.test",
+      "/Users/d/code/primitive/capabilities/testdata/test-upgrade-20260907/commit-after-identity.cpu.pprof"
+    ],
+    "exit_status": 0,
+    "stdout": {
+      "path": "commit-after-identity.cpu.top.txt",
+      "sha256": "db1365178a400a2de37048361b4c6cfe010d868c6f6cb02c9d595523b5488f46"
+    },
+    "stderr": {
+      "path": "commit-after-identity.cpu.stderr.txt",
+      "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+    }
+  },
+  {
+    "argv": [
+      "go",
+      "tool",
+      "pprof",
+      "-top",
+      "-nodecount=15",
+      "-alloc_space",
+      "/Users/d/code/primitive/capabilities/testdata/test-upgrade-20260907/commit-after-identity.test",
+      "/Users/d/code/primitive/capabilities/testdata/test-upgrade-20260907/commit-after-identity.mem.pprof"
+    ],
+    "exit_status": 0,
+    "stdout": {
+      "path": "commit-after-identity.alloc-space.top.txt",
+      "sha256": "fa9e51d20c1cd6610351a0adf6677f700877ee22d4fdd60dc29bd1762e902032"
+    },
+    "stderr": {
+      "path": "commit-after-identity.alloc-space.stderr.txt",
+      "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+    }
+  },
+  {
+    "argv": [
+      "go",
+      "tool",
+      "pprof",
+      "-top",
+      "-nodecount=15",
+      "-alloc_objects",
+      "/Users/d/code/primitive/capabilities/testdata/test-upgrade-20260907/commit-after-identity.test",
+      "/Users/d/code/primitive/capabilities/testdata/test-upgrade-20260907/commit-after-identity.mem.pprof"
+    ],
+    "exit_status": 0,
+    "stdout": {
+      "path": "commit-after-identity.alloc-objects.top.txt",
+      "sha256": "40cd9ac7b2a3e56d13fd78df51b24ea19ec6b8b3210544896d4b27f7d60c34ed"
+    },
+    "stderr": {
+      "path": "commit-after-identity.alloc-objects.stderr.txt",
+      "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+    }
+  },
+  {
+    "argv": [
+      "go",
+      "tool",
+      "pprof",
+      "-top",
+      "-nodecount=15",
+      "/Users/d/code/primitive/capabilities/testdata/test-upgrade-20260907/commit-after-json-maximum.test",
+      "/Users/d/code/primitive/capabilities/testdata/test-upgrade-20260907/commit-after-json-maximum.cpu.pprof"
+    ],
+    "exit_status": 0,
+    "stdout": {
+      "path": "commit-after-json-maximum.cpu.top.txt",
+      "sha256": "40c74bc96941b80a2be81d2f6460693cb3613623b20c4304b3a59e934a6bd036"
+    },
+    "stderr": {
+      "path": "commit-after-json-maximum.cpu.stderr.txt",
+      "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+    }
+  },
+  {
+    "argv": [
+      "go",
+      "tool",
+      "pprof",
+      "-top",
+      "-nodecount=15",
+      "-alloc_space",
+      "/Users/d/code/primitive/capabilities/testdata/test-upgrade-20260907/commit-after-json-maximum.test",
+      "/Users/d/code/primitive/capabilities/testdata/test-upgrade-20260907/commit-after-json-maximum.mem.pprof"
+    ],
+    "exit_status": 0,
+    "stdout": {
+      "path": "commit-after-json-maximum.alloc-space.top.txt",
+      "sha256": "8345cdc9e3c8e5e2c3778f026b86bc8d340ff27d1d0afdb7b0723ed7481fd0d9"
+    },
+    "stderr": {
+      "path": "commit-after-json-maximum.alloc-space.stderr.txt",
+      "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+    }
+  },
+  {
+    "argv": [
+      "go",
+      "tool",
+      "pprof",
+      "-top",
+      "-nodecount=15",
+      "-alloc_objects",
+      "/Users/d/code/primitive/capabilities/testdata/test-upgrade-20260907/commit-after-json-maximum.test",
+      "/Users/d/code/primitive/capabilities/testdata/test-upgrade-20260907/commit-after-json-maximum.mem.pprof"
+    ],
+    "exit_status": 0,
+    "stdout": {
+      "path": "commit-after-json-maximum.alloc-objects.top.txt",
+      "sha256": "6c4460d134f02cf5491bba4b3d84856cb7f57b6eccef73133d010e798929314c"
+    },
+    "stderr": {
+      "path": "commit-after-json-maximum.alloc-objects.stderr.txt",
+      "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+    }
+  },
+  {
+    "argv": [
+      "go",
+      "tool",
+      "pprof",
+      "-top",
+      "-nodecount=15",
+      "/Users/d/code/primitive/capabilities/testdata/test-upgrade-20260907/commit-after-method.test",
+      "/Users/d/code/primitive/capabilities/testdata/test-upgrade-20260907/commit-after-method.cpu.pprof"
+    ],
+    "exit_status": 0,
+    "stdout": {
+      "path": "commit-after-method.cpu.top.txt",
+      "sha256": "57a2a39f5a7109d8a224702ec0bd575f358ee019a31e5f162b108b9af9fa6f0f"
+    },
+    "stderr": {
+      "path": "commit-after-method.cpu.stderr.txt",
+      "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+    }
+  },
+  {
+    "argv": [
+      "go",
+      "tool",
+      "pprof",
+      "-top",
+      "-nodecount=15",
+      "-alloc_space",
+      "/Users/d/code/primitive/capabilities/testdata/test-upgrade-20260907/commit-after-method.test",
+      "/Users/d/code/primitive/capabilities/testdata/test-upgrade-20260907/commit-after-method.mem.pprof"
+    ],
+    "exit_status": 0,
+    "stdout": {
+      "path": "commit-after-method.alloc-space.top.txt",
+      "sha256": "24c4e6952d6447d16a95e3bf4b8c03441f8749a693e85861aa485826c8fe150d"
+    },
+    "stderr": {
+      "path": "commit-after-method.alloc-space.stderr.txt",
+      "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+    }
+  },
+  {
+    "argv": [
+      "go",
+      "tool",
+      "pprof",
+      "-top",
+      "-nodecount=15",
+      "-alloc_objects",
+      "/Users/d/code/primitive/capabilities/testdata/test-upgrade-20260907/commit-after-method.test",
+      "/Users/d/code/primitive/capabilities/testdata/test-upgrade-20260907/commit-after-method.mem.pprof"
+    ],
+    "exit_status": 0,
+    "stdout": {
+      "path": "commit-after-method.alloc-objects.top.txt",
+      "sha256": "a56ea1882eee968b41c04cacbf8f28dd04ac05aafd2d3d514e328ca9f5ab6719"
+    },
+    "stderr": {
+      "path": "commit-after-method.alloc-objects.stderr.txt",
+      "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+    }
+  },
+  {
+    "argv": [
+      "go",
+      "tool",
+      "pprof",
+      "-top",
+      "-nodecount=15",
+      "/Users/d/code/primitive/capabilities/testdata/test-upgrade-20260907/commit-after-unresolved.test",
+      "/Users/d/code/primitive/capabilities/testdata/test-upgrade-20260907/commit-after-unresolved.cpu.pprof"
+    ],
+    "exit_status": 0,
+    "stdout": {
+      "path": "commit-after-unresolved.cpu.top.txt",
+      "sha256": "55d088a5a3ba5374a13653daf729b999d77f1804d846f3a007d36717db908045"
+    },
+    "stderr": {
+      "path": "commit-after-unresolved.cpu.stderr.txt",
+      "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+    }
+  },
+  {
+    "argv": [
+      "go",
+      "tool",
+      "pprof",
+      "-top",
+      "-nodecount=15",
+      "-alloc_space",
+      "/Users/d/code/primitive/capabilities/testdata/test-upgrade-20260907/commit-after-unresolved.test",
+      "/Users/d/code/primitive/capabilities/testdata/test-upgrade-20260907/commit-after-unresolved.mem.pprof"
+    ],
+    "exit_status": 0,
+    "stdout": {
+      "path": "commit-after-unresolved.alloc-space.top.txt",
+      "sha256": "43f9c5da577aa3d5f90aaeb1606123d78b3b97ea2013ccb0e2a1488b0f9eae0b"
+    },
+    "stderr": {
+      "path": "commit-after-unresolved.alloc-space.stderr.txt",
+      "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+    }
+  },
+  {
+    "argv": [
+      "go",
+      "tool",
+      "pprof",
+      "-top",
+      "-nodecount=15",
+      "-alloc_objects",
+      "/Users/d/code/primitive/capabilities/testdata/test-upgrade-20260907/commit-after-unresolved.test",
+      "/Users/d/code/primitive/capabilities/testdata/test-upgrade-20260907/commit-after-unresolved.mem.pprof"
+    ],
+    "exit_status": 0,
+    "stdout": {
+      "path": "commit-after-unresolved.alloc-objects.top.txt",
+      "sha256": "9019b983520157604d53fb3888dcb0ae7714e2f82ca381374692be01e4c2f74e"
+    },
+    "stderr": {
+      "path": "commit-after-unresolved.alloc-objects.stderr.txt",
+      "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+    }
+  }
+]

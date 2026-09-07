@@ -71,7 +71,7 @@ func TestHTTPStatusCodeSemanticSchemaLayerTriad(t *testing.T) {
 	t.Run("negative every other uint16 value refuses with identity and preserves the receiver", func(t *testing.T) {
 		t.Parallel()
 
-		for raw := 0; raw <= math.MaxUint16; raw++ {
+		for raw := range math.MaxUint16 + 1 {
 			if raw >= httpStatusCodeMinimum && raw <= httpStatusCodeMaximum {
 				continue
 			}

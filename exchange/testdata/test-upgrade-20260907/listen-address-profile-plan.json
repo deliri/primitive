@@ -1,0 +1,233 @@
+{
+  "scope": "Public literal parsing, admission, validation, and canonical projection; no DNS or listener effects.",
+  "comparison": "Same current benchmark and sources except exact pre-fix server_runtime.go snapshot. Three old wildcard-admission workloads must fail semantic checks and have no valid performance baseline; every attempt and requested profile is retained.",
+  "configured_total_seconds": 300,
+  "execution": "Serial after checkpoint-09 tests; CPU and memory profiles passed together in each invocation.",
+  "workloads": [
+    {
+      "label": "listen-address-before-concrete_ipv4",
+      "argv": [
+        "go",
+        "test",
+        "-overlay=/Users/d/code/primitive/exchange/testdata/test-upgrade-20260907/listen-address-before-overlay.json",
+        "-run=^$",
+        "-bench=^BenchmarkListenAddressAdmission$/^concrete_ipv4$",
+        "-benchmem",
+        "-benchtime=30s",
+        "-count=1",
+        "-cpu=1",
+        "-p=1",
+        "-parallel=1",
+        "-timeout=3m",
+        "-cpuprofile=/Users/d/code/primitive/exchange/testdata/test-upgrade-20260907/listen-address-before-concrete_ipv4.cpu.pprof",
+        "-memprofile=/Users/d/code/primitive/exchange/testdata/test-upgrade-20260907/listen-address-before-concrete_ipv4.mem.pprof",
+        "-o=/Users/d/code/primitive/exchange/testdata/test-upgrade-20260907/listen-address-before-concrete_ipv4.test",
+        "./exchange"
+      ],
+      "configured_seconds": 30,
+      "expected_exit": 0
+    },
+    {
+      "label": "listen-address-before-concrete_mapped_ipv4",
+      "argv": [
+        "go",
+        "test",
+        "-overlay=/Users/d/code/primitive/exchange/testdata/test-upgrade-20260907/listen-address-before-overlay.json",
+        "-run=^$",
+        "-bench=^BenchmarkListenAddressAdmission$/^concrete_mapped_ipv4$",
+        "-benchmem",
+        "-benchtime=30s",
+        "-count=1",
+        "-cpu=1",
+        "-p=1",
+        "-parallel=1",
+        "-timeout=3m",
+        "-cpuprofile=/Users/d/code/primitive/exchange/testdata/test-upgrade-20260907/listen-address-before-concrete_mapped_ipv4.cpu.pprof",
+        "-memprofile=/Users/d/code/primitive/exchange/testdata/test-upgrade-20260907/listen-address-before-concrete_mapped_ipv4.mem.pprof",
+        "-o=/Users/d/code/primitive/exchange/testdata/test-upgrade-20260907/listen-address-before-concrete_mapped_ipv4.test",
+        "./exchange"
+      ],
+      "configured_seconds": 30,
+      "expected_exit": 0
+    },
+    {
+      "label": "listen-address-before-mapped_wildcard",
+      "argv": [
+        "go",
+        "test",
+        "-overlay=/Users/d/code/primitive/exchange/testdata/test-upgrade-20260907/listen-address-before-overlay.json",
+        "-run=^$",
+        "-bench=^BenchmarkListenAddressAdmission$/^mapped_wildcard$",
+        "-benchmem",
+        "-benchtime=30s",
+        "-count=1",
+        "-cpu=1",
+        "-p=1",
+        "-parallel=1",
+        "-timeout=3m",
+        "-cpuprofile=/Users/d/code/primitive/exchange/testdata/test-upgrade-20260907/listen-address-before-mapped_wildcard.cpu.pprof",
+        "-memprofile=/Users/d/code/primitive/exchange/testdata/test-upgrade-20260907/listen-address-before-mapped_wildcard.mem.pprof",
+        "-o=/Users/d/code/primitive/exchange/testdata/test-upgrade-20260907/listen-address-before-mapped_wildcard.test",
+        "./exchange"
+      ],
+      "configured_seconds": 30,
+      "expected_exit": 1
+    },
+    {
+      "label": "listen-address-before-zoned_wildcard",
+      "argv": [
+        "go",
+        "test",
+        "-overlay=/Users/d/code/primitive/exchange/testdata/test-upgrade-20260907/listen-address-before-overlay.json",
+        "-run=^$",
+        "-bench=^BenchmarkListenAddressAdmission$/^zoned_wildcard$",
+        "-benchmem",
+        "-benchtime=30s",
+        "-count=1",
+        "-cpu=1",
+        "-p=1",
+        "-parallel=1",
+        "-timeout=3m",
+        "-cpuprofile=/Users/d/code/primitive/exchange/testdata/test-upgrade-20260907/listen-address-before-zoned_wildcard.cpu.pprof",
+        "-memprofile=/Users/d/code/primitive/exchange/testdata/test-upgrade-20260907/listen-address-before-zoned_wildcard.mem.pprof",
+        "-o=/Users/d/code/primitive/exchange/testdata/test-upgrade-20260907/listen-address-before-zoned_wildcard.test",
+        "./exchange"
+      ],
+      "configured_seconds": 30,
+      "expected_exit": 1
+    },
+    {
+      "label": "listen-address-before-zoned_mapped_wildcard",
+      "argv": [
+        "go",
+        "test",
+        "-overlay=/Users/d/code/primitive/exchange/testdata/test-upgrade-20260907/listen-address-before-overlay.json",
+        "-run=^$",
+        "-bench=^BenchmarkListenAddressAdmission$/^zoned_mapped_wildcard$",
+        "-benchmem",
+        "-benchtime=30s",
+        "-count=1",
+        "-cpu=1",
+        "-p=1",
+        "-parallel=1",
+        "-timeout=3m",
+        "-cpuprofile=/Users/d/code/primitive/exchange/testdata/test-upgrade-20260907/listen-address-before-zoned_mapped_wildcard.cpu.pprof",
+        "-memprofile=/Users/d/code/primitive/exchange/testdata/test-upgrade-20260907/listen-address-before-zoned_mapped_wildcard.mem.pprof",
+        "-o=/Users/d/code/primitive/exchange/testdata/test-upgrade-20260907/listen-address-before-zoned_mapped_wildcard.test",
+        "./exchange"
+      ],
+      "configured_seconds": 30,
+      "expected_exit": 1
+    },
+    {
+      "label": "listen-address-after-concrete_ipv4",
+      "argv": [
+        "go",
+        "test",
+        "-run=^$",
+        "-bench=^BenchmarkListenAddressAdmission$/^concrete_ipv4$",
+        "-benchmem",
+        "-benchtime=30s",
+        "-count=1",
+        "-cpu=1",
+        "-p=1",
+        "-parallel=1",
+        "-timeout=3m",
+        "-cpuprofile=/Users/d/code/primitive/exchange/testdata/test-upgrade-20260907/listen-address-after-concrete_ipv4.cpu.pprof",
+        "-memprofile=/Users/d/code/primitive/exchange/testdata/test-upgrade-20260907/listen-address-after-concrete_ipv4.mem.pprof",
+        "-o=/Users/d/code/primitive/exchange/testdata/test-upgrade-20260907/listen-address-after-concrete_ipv4.test",
+        "./exchange"
+      ],
+      "configured_seconds": 30,
+      "expected_exit": 0
+    },
+    {
+      "label": "listen-address-after-concrete_mapped_ipv4",
+      "argv": [
+        "go",
+        "test",
+        "-run=^$",
+        "-bench=^BenchmarkListenAddressAdmission$/^concrete_mapped_ipv4$",
+        "-benchmem",
+        "-benchtime=30s",
+        "-count=1",
+        "-cpu=1",
+        "-p=1",
+        "-parallel=1",
+        "-timeout=3m",
+        "-cpuprofile=/Users/d/code/primitive/exchange/testdata/test-upgrade-20260907/listen-address-after-concrete_mapped_ipv4.cpu.pprof",
+        "-memprofile=/Users/d/code/primitive/exchange/testdata/test-upgrade-20260907/listen-address-after-concrete_mapped_ipv4.mem.pprof",
+        "-o=/Users/d/code/primitive/exchange/testdata/test-upgrade-20260907/listen-address-after-concrete_mapped_ipv4.test",
+        "./exchange"
+      ],
+      "configured_seconds": 30,
+      "expected_exit": 0
+    },
+    {
+      "label": "listen-address-after-mapped_wildcard",
+      "argv": [
+        "go",
+        "test",
+        "-run=^$",
+        "-bench=^BenchmarkListenAddressAdmission$/^mapped_wildcard$",
+        "-benchmem",
+        "-benchtime=30s",
+        "-count=1",
+        "-cpu=1",
+        "-p=1",
+        "-parallel=1",
+        "-timeout=3m",
+        "-cpuprofile=/Users/d/code/primitive/exchange/testdata/test-upgrade-20260907/listen-address-after-mapped_wildcard.cpu.pprof",
+        "-memprofile=/Users/d/code/primitive/exchange/testdata/test-upgrade-20260907/listen-address-after-mapped_wildcard.mem.pprof",
+        "-o=/Users/d/code/primitive/exchange/testdata/test-upgrade-20260907/listen-address-after-mapped_wildcard.test",
+        "./exchange"
+      ],
+      "configured_seconds": 30,
+      "expected_exit": 0
+    },
+    {
+      "label": "listen-address-after-zoned_wildcard",
+      "argv": [
+        "go",
+        "test",
+        "-run=^$",
+        "-bench=^BenchmarkListenAddressAdmission$/^zoned_wildcard$",
+        "-benchmem",
+        "-benchtime=30s",
+        "-count=1",
+        "-cpu=1",
+        "-p=1",
+        "-parallel=1",
+        "-timeout=3m",
+        "-cpuprofile=/Users/d/code/primitive/exchange/testdata/test-upgrade-20260907/listen-address-after-zoned_wildcard.cpu.pprof",
+        "-memprofile=/Users/d/code/primitive/exchange/testdata/test-upgrade-20260907/listen-address-after-zoned_wildcard.mem.pprof",
+        "-o=/Users/d/code/primitive/exchange/testdata/test-upgrade-20260907/listen-address-after-zoned_wildcard.test",
+        "./exchange"
+      ],
+      "configured_seconds": 30,
+      "expected_exit": 0
+    },
+    {
+      "label": "listen-address-after-zoned_mapped_wildcard",
+      "argv": [
+        "go",
+        "test",
+        "-run=^$",
+        "-bench=^BenchmarkListenAddressAdmission$/^zoned_mapped_wildcard$",
+        "-benchmem",
+        "-benchtime=30s",
+        "-count=1",
+        "-cpu=1",
+        "-p=1",
+        "-parallel=1",
+        "-timeout=3m",
+        "-cpuprofile=/Users/d/code/primitive/exchange/testdata/test-upgrade-20260907/listen-address-after-zoned_mapped_wildcard.cpu.pprof",
+        "-memprofile=/Users/d/code/primitive/exchange/testdata/test-upgrade-20260907/listen-address-after-zoned_mapped_wildcard.mem.pprof",
+        "-o=/Users/d/code/primitive/exchange/testdata/test-upgrade-20260907/listen-address-after-zoned_mapped_wildcard.test",
+        "./exchange"
+      ],
+      "configured_seconds": 30,
+      "expected_exit": 0
+    }
+  ]
+}

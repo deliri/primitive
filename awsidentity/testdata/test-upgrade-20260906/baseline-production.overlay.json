@@ -1,0 +1,11 @@
+{
+  "Replace": {
+    "/Users/d/code/primitive/awsidentity/acquire.go": "/Users/d/code/primitive/awsidentity/testdata/test-upgrade-20260906/baseline-source/acquire.go",
+    "/Users/d/code/primitive/awsidentity/identity_token.go": "/Users/d/code/primitive/awsidentity/testdata/test-upgrade-20260906/baseline-source/identity_token.go",
+    "/Users/d/code/primitive/awsidentity/token.go": "/Users/d/code/primitive/awsidentity/testdata/test-upgrade-20260906/baseline-source/token.go",
+    "/Users/d/code/primitive/awsidentity/data_flow_inventory.go": "/Users/d/code/primitive/awsidentity/testdata/test-upgrade-20260906/baseline-source/data_flow_inventory.go",
+    "/Users/d/code/primitive/awsidentity/contracts.go": "/Users/d/code/primitive/awsidentity/testdata/test-upgrade-20260906/baseline-source/contracts.go",
+    "/Users/d/code/primitive/awsidentity/doc.go": "/Users/d/code/primitive/awsidentity/testdata/test-upgrade-20260906/baseline-source/doc.go",
+    "/Users/d/code/primitive/awsidentity/errors.go": "/Users/d/code/primitive/awsidentity/testdata/test-upgrade-20260906/baseline-source/errors.go"
+  }
+}

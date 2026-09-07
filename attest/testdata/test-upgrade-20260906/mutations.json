@@ -1,0 +1,74 @@
+[
+  {
+    "name": "scalar-value",
+    "source": "/Users/d/code/primitive/attest/canonical_object.go",
+    "before": "if value {",
+    "after": "if !value {",
+    "test_filter": "FuzzCanonicalObjectEmitsStrictlyDecodableAndStableDocuments",
+    "killed": true,
+    "exit_status": 1
+  },
+  {
+    "name": "digest-binding",
+    "source": "/Users/d/code/primitive/attest/canonical.go",
+    "before": "prepared.digest = digest",
+    "after": "prepared.digest = core.NewSHA256Digest([32]byte{})\n _ = digest",
+    "test_filter": "TestSignPublicCanonicalBodyProductionPathMatrix|TestCanonicalObjectBodySignsAndVerifiesThroughTheRealAttestPath",
+    "killed": true,
+    "exit_status": 1
+  },
+  {
+    "name": "trusted-copy",
+    "source": "/Users/d/code/primitive/attest/trusted.go",
+    "before": "copy(trusted.keys[:], request.Keys)",
+    "after": "copy(trusted.keys[:], request.Keys[:len(request.Keys)-1])",
+    "test_filter": "FuzzTrustedKeysExternalAdmission",
+    "killed": true,
+    "exit_status": 1
+  },
+  {
+    "name": "signature-verifier",
+    "source": "/Users/d/code/primitive/attest/operations.go",
+    "before": "if !ed25519.Verify(publicKey, frame.bytes(), signature[:]) {",
+    "after": "if false && !ed25519.Verify(publicKey, frame.bytes(), signature[:]) {",
+    "test_filter": "FuzzVerifyRejectsEveryIndependentlyMutatedSignedField",
+    "killed": true,
+    "exit_status": 1
+  },
+  {
+    "name": "writer-closure",
+    "source": "/Users/d/code/primitive/attest/canonical.go",
+    "before": "w.closed = true",
+    "after": "w.closed = false",
+    "test_filter": "TestSignCanonicalWriterTerminalExitMatrix",
+    "killed": true,
+    "exit_status": 1
+  },
+  {
+    "name": "first-refusal",
+    "source": "/Users/d/code/primitive/attest/canonical_object.go",
+    "before": "if o.err == nil {",
+    "after": "if true {",
+    "test_filter": "TestCanonicalObjectPreservesFirstTypedRefusalAndSuppressesCallbacks",
+    "killed": false,
+    "exit_status": 0
+  },
+  {
+    "name": "provider-verification",
+    "source": "/Users/d/code/primitive/attest/operations.go",
+    "before": "if !ed25519.Verify(publicKey, frame.bytes(), signatureBytes[:]) {",
+    "after": "if false && !ed25519.Verify(publicKey, frame.bytes(), signatureBytes[:]) {",
+    "test_filter": "FuzzSignExternalSignerResponse",
+    "killed": true,
+    "exit_status": 1
+  },
+  {
+    "name": "signature-bytes",
+    "source": "/Users/d/code/primitive/attest/signature.go",
+    "before": "copy(signature.value[:], value)",
+    "after": "copy(signature.value[:], value)\n signature.value[0] ^= 1",
+    "test_filter": "FuzzSignatureExternalJSONDoor",
+    "killed": true,
+    "exit_status": 1
+  }
+]

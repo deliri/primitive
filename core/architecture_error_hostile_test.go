@@ -83,7 +83,7 @@ func TestArchitectureCatalogRejectsEveryStructuralFailureMode(t *testing.T) {
 
 func TestPackageRoleExhaustsClosedDomainAndJSON(t *testing.T) {
 	t.Parallel()
-	for raw := 0; raw <= math.MaxUint8; raw++ {
+	for raw := range math.MaxUint8 + 1 {
 		role := PackageRole(raw)
 		wantValid := role >= PackageRoleValueContract && role <= PackageRoleOrchestration
 		if role.IsValid() != wantValid || (role.Validate() == nil) != wantValid {
@@ -119,7 +119,7 @@ func replaceArchitecturePackageKindForTest(
 func TestPackageIdentityExhaustsClosedDomain(t *testing.T) {
 	t.Parallel()
 
-	for raw := 0; raw <= math.MaxUint8; raw++ {
+	for raw := range math.MaxUint8 + 1 {
 		identity := PackageIdentity(raw)
 		gotErr := identity.Validate()
 		wantValid := identity > PackageUnknown && identity < packageIdentityLimit
@@ -156,7 +156,7 @@ func TestPackageIdentityExhaustsClosedDomain(t *testing.T) {
 func TestPackageKindExhaustsClosedDomainAndJSON(t *testing.T) {
 	t.Parallel()
 
-	for raw := 0; raw <= math.MaxUint8; raw++ {
+	for raw := range math.MaxUint8 + 1 {
 		kind := PackageKind(raw)
 		gotValid := kind.IsValid()
 		wantValid := kind == PackageKindProduction || kind == PackageKindTestSupport
@@ -181,7 +181,7 @@ func TestPackageKindExhaustsClosedDomainAndJSON(t *testing.T) {
 func TestErrorIdentityExhaustsClosedDomainAndParentDecisions(t *testing.T) {
 	t.Parallel()
 
-	for raw := 0; raw <= math.MaxUint16; raw++ {
+	for raw := range math.MaxUint16 + 1 {
 		identity := ErrorIdentity(raw)
 		gotErr := identity.Validate()
 		wantValid := identity > ErrUnknown && identity < errorIdentityLimit
@@ -196,7 +196,7 @@ func TestErrorIdentityExhaustsClosedDomainAndParentDecisions(t *testing.T) {
 			if parents.countValues() > errorIdentityMaximumParents {
 				t.Fatalf("errorIdentityParents(%d).countValues() = %d, want <= %d", raw, parents.countValues(), errorIdentityMaximumParents)
 			}
-			for index := 0; index < parents.countValues(); index++ {
+			for index := range parents.countValues() {
 				parent, ok := parents.at(index)
 				if !ok {
 					t.Fatalf("errorIdentityParents(%d).at(%d) failed inside reported count", raw, index)
@@ -204,7 +204,7 @@ func TestErrorIdentityExhaustsClosedDomainAndParentDecisions(t *testing.T) {
 				if gotParentErr := parent.Validate(); gotParentErr != nil {
 					t.Fatalf("errorIdentityParents(%d).at(%d).Validate() error = %v, want nil", raw, index, gotParentErr)
 				}
-				for prior := 0; prior < index; prior++ {
+				for prior := range index {
 					priorParent, priorOK := parents.at(prior)
 					if !priorOK {
 						t.Fatalf("errorIdentityParents(%d).at(%d) failed inside reported count", raw, prior)
@@ -272,8 +272,14 @@ func TestErrorIdentityExhaustsClosedDomainAndParentDecisions(t *testing.T) {
 func TestErrorIdentityMatchesEveryClosedDomainPair(t *testing.T) {
 	t.Parallel()
 
-	for produced := ErrPrimitiveContract; produced < errorIdentityLimit; produced++ {
-		for target := ErrPrimitiveContract; target < errorIdentityLimit; target++ {
+	for produced := range errorIdentityLimit {
+		if produced < ErrPrimitiveContract {
+			continue
+		}
+		for target := range errorIdentityLimit {
+			if target < ErrPrimitiveContract {
+				continue
+			}
 			var visited [errorIdentityLimit]bool
 			want := referenceErrorIdentityMatch(produced, target, &visited)
 			if got := produced.Matches(target); got != want {
@@ -296,7 +302,7 @@ func referenceErrorIdentityMatch(
 	}
 	visited[produced] = true
 	parents := errorIdentityParents(produced)
-	for index := 0; index < parents.countValues(); index++ {
+	for index := range parents.countValues() {
 		parent, ok := parents.at(index)
 		if ok && referenceErrorIdentityMatch(parent, target, visited) {
 			return true
@@ -309,12 +315,18 @@ func TestErrorIdentityStableTextAndJSONExhaustClosedDomain(t *testing.T) {
 	t.Parallel()
 
 	var texts [errorIdentityLimit]string
-	for identity := ErrPrimitiveContract; identity < errorIdentityLimit; identity++ {
+	for identity := range errorIdentityLimit {
+		if identity < ErrPrimitiveContract {
+			continue
+		}
 		text := identity.String()
 		if text == "" || text == unknownErrorIdentityText {
 			t.Fatalf("ErrorIdentity(%d).String() = %q, want admitted stable text", identity, text)
 		}
-		for prior := ErrPrimitiveContract; prior < identity; prior++ {
+		for prior := range identity {
+			if prior < ErrPrimitiveContract {
+				continue
+			}
 			if text == texts[prior] {
 				t.Fatalf(
 					"ErrorIdentity(%d).String() duplicates ErrorIdentity(%d) text %q",

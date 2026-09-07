@@ -409,7 +409,10 @@ func TestChitExternalIngressFuzzInventoryMatchesProduction(t *testing.T) {
 		t.Fatalf("chitExportedJSONReceiverNames() error = %v, want nil", err)
 	}
 	var wantJSON []string
-	for door := chitJSONDoorUnknown + 1; door < chitJSONDoorLimit; door++ {
+	for door := range chitJSONDoorLimit {
+		if door < chitJSONDoorUnknown+1 {
+			continue
+		}
 		wantJSON = append(wantJSON, door.receiverName())
 	}
 	slices.Sort(wantJSON)

@@ -1,0 +1,14 @@
+[
+  {
+    "label": "architecture-interprets-function-parameter-label-v2",
+    "before": "for _, field := range list.List {\n\t\t\t\t\tif rawHTTPType",
+    "after": "for _, field := range list.List {\n\t\t\t\t\tfor _, name := range field.Names { if rawHTTPIdentifier(file, name.Name, bindings, child) { found = true; return false } }\n\t\t\t\t\tif rawHTTPType",
+    "outcome": "killed by fixture verdict",
+    "failed_rows": [
+      "TestRawHTTPArchitectureBindingTable/function_type_parameter_shadows_a_package_raw_alias",
+      "TestRawHTTPArchitectureBindingTable/function_type_parameter_shadows_a_dot_imported_request",
+      "TestRawHTTPArchitectureBindingTable/neutral_parameter_name_cannot_impersonate_dot-imported_type"
+    ],
+    "evidence": "mutation-architecture-interprets-function-parameter-label-v2.json"
+  }
+]

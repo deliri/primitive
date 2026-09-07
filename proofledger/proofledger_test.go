@@ -561,7 +561,7 @@ func BenchmarkProofLedgerEventHash(b *testing.B) {
 	b.ResetTimer()
 	var sink Envelope[ledgerTestPayload]
 	var err error
-	for range b.N {
+	for b.Loop() {
 		sink, err = NewEnvelope(issue)
 		if err != nil {
 			b.Fatalf("NewEnvelope() error = %v, want nil", err)
@@ -582,7 +582,7 @@ func BenchmarkProofLedgerReceiptVerification(b *testing.B) {
 	b.ResetTimer()
 	var sink VerifiedAppendReceipt
 	var err error
-	for range b.N {
+	for b.Loop() {
 		sink, err = VerifyAppendReceiptDocument(verification)
 		if err != nil {
 			b.Fatalf("VerifyAppendReceiptDocument() error = %v, want nil", err)
@@ -603,7 +603,7 @@ func BenchmarkProofLedgerStreamingChainReplayPerEvent(b *testing.B) {
 	b.ReportMetric(float64(len(events)), "events/op")
 	b.ResetTimer()
 	var sink Head
-	for range b.N {
+	for b.Loop() {
 		verifier, err := NewVerifier[ledgerTestPayload](genesis)
 		if err != nil {
 			b.Fatalf("NewVerifier() error = %v, want nil", err)

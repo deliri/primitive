@@ -107,7 +107,7 @@ func proveHostfactsOffWireEnum[T hostfactsOffWireEnum](
 	for _, value := range admitted {
 		wantAdmitted[value] = struct{}{}
 	}
-	for raw := uint16(0); raw <= math.MaxUint8; raw++ {
+	for raw := range uint16(math.MaxUint8) + 1 {
 		value := fromRaw(uint8(raw))
 		_, wantValid := wantAdmitted[value]
 		gotErr := value.Validate()

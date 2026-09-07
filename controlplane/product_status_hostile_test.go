@@ -93,7 +93,7 @@ func TestReadOnlyRefusalIsOfferingBlind(t *testing.T) {
 func TestProductStatusRefusesEveryValueOutsideTheClosedSet(t *testing.T) {
 	t.Parallel()
 
-	for value := 0; value <= maximumByteOrdinal; value++ {
+	for value := range maximumByteOrdinal + 1 {
 		status := controlplane.ProductStatus(value)
 		if status.IsValid() {
 			continue

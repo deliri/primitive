@@ -5,13 +5,12 @@ import (
 	json "encoding/json/v2"
 	"errors"
 	"go/ast"
-	"go/format"
 	"go/parser"
 	"go/token"
 	"net/http"
 	"net/http/httptest"
-	"os"
 	"path/filepath"
+	"reflect"
 	"slices"
 	"sort"
 	"strconv"
@@ -19,6 +18,7 @@ import (
 	"testing"
 
 	"github.com/deliri/primitive/v2026/core"
+	"github.com/deliri/primitive/v2026/filestore"
 )
 
 type (
@@ -27,6 +27,17 @@ type (
 	capabilityWrapper[T any] struct{}
 	typedFailure[T any]      struct{}
 )
+
+// The marker supplies the referenced Go type. A field's label cannot stand in
+// for the contract the compiler actually bound to that field.
+type inventoryTypeBinding interface {
+	classifiedType() reflect.Type
+}
+
+func (protocolContract[T]) classifiedType() reflect.Type  { return reflect.TypeFor[T]() }
+func (internalFlow[T]) classifiedType() reflect.Type      { return reflect.TypeFor[T]() }
+func (capabilityWrapper[T]) classifiedType() reflect.Type { return reflect.TypeFor[T]() }
+func (typedFailure[T]) classifiedType() reflect.Type      { return reflect.TypeFor[T]() }
 
 // inventoryDocument is the caller-supplied document the generic server and
 // client contracts are instantiated with throughout the inventory below.
@@ -127,7 +138,8 @@ func TestInventoryDocumentDrivesTheRealJSONWritePath(t *testing.T) {
 }
 
 // exchangeContractInventory classifies every production struct by its real
-// data-flow role. Field names deliberately equal the classified type names.
+// data-flow role. Membership comes from compiler-bound marker types; field
+// names are labels only.
 type exchangeContractInventory struct {
 	ResponseBufferRequest                     protocolContract[ResponseBufferRequest]
 	ResponseBufferResult                      protocolContract[ResponseBufferResult]
@@ -136,6 +148,7 @@ type exchangeContractInventory struct {
 	RetryExhaustedError                       typedFailure[RetryExhaustedError]
 	ServerErrorResponse                       protocolContract[ServerErrorResponse]
 	ServerRedirectResponse                    protocolContract[ServerRedirectResponse]
+	observedStandardResponseWriter            capabilityWrapper[observedStandardResponseWriter]
 	BasicAuthorizationRequest                 protocolContract[BasicAuthorizationRequest]
 	BearerAuthorization                       protocolContract[BearerAuthorization]
 	OfficialSDKResponseBoundary               protocolContract[OfficialSDKResponseBoundary]
@@ -176,11 +189,12 @@ type exchangeContractInventory struct {
 	DownloadRequest        protocolContract[DownloadRequest]
 	StreamRoundTripRequest protocolContract[StreamRoundTripRequest]
 
-	Client            capabilityWrapper[Client]
-	JSONCall          protocolContract[JSONCall[inventoryDocument]]
-	NoBodyJSONCall    protocolContract[NoBodyJSONCall]
-	BoundedCall       protocolContract[BoundedCall]
-	NoBodyBoundedCall protocolContract[NoBodyBoundedCall]
+	Client               capabilityWrapper[Client]
+	SessionClientRequest protocolContract[SessionClientRequest]
+	JSONCall             protocolContract[JSONCall[inventoryDocument]]
+	NoBodyJSONCall       protocolContract[NoBodyJSONCall]
+	BoundedCall          protocolContract[BoundedCall]
+	NoBodyBoundedCall    protocolContract[NoBodyBoundedCall]
 
 	aggregateRequest               internalFlow[aggregateRequest]
 	aggregateCall                  internalFlow[aggregateCall]
@@ -208,6 +222,7 @@ type exchangeContractInventory struct {
 	boundedBodyDestination  internalFlow[boundedBodyDestination]
 	downloadCopyRequest     internalFlow[downloadCopyRequest]
 	progressReader          internalFlow[progressReader]
+	observedStreamWriter    capabilityWrapper[observedStreamWriter]
 	streamTransportFailure  internalFlow[streamTransportFailure]
 	declaredBodyLength      internalFlow[declaredBodyLength]
 	httpContentCoding       internalFlow[httpContentCoding]
@@ -271,9 +286,14 @@ func TestExchangeDataFlowStructInventoryRatchet(t *testing.T) {
 func TestSocketServerHasOnePublicAdmissionAndWriteDoor(t *testing.T) {
 	t.Parallel()
 	fileSet := token.NewFileSet()
-	file, err := parser.ParseFile(fileSet, "socket.go", nil, parser.SkipObjectResolution)
-	if err != nil {
-		t.Fatalf("parser.ParseFile(socket.go) error = %v, want nil", err)
+	var file *ast.File
+	for _, source := range exchangeArchitectureSources(t, fileSet) {
+		if source.name == "socket.go" {
+			file = source.syntax
+		}
+	}
+	if file == nil {
+		t.Fatal("socket.go source is absent")
 	}
 	got := make([]string, 0, 3)
 	for _, declaration := range file.Decls {
@@ -296,25 +316,17 @@ func TestSocketServerHasOnePublicAdmissionAndWriteDoor(t *testing.T) {
 func TestSocketServerCallIsOnlyPublicRawHTTPAdmission(t *testing.T) {
 	t.Parallel()
 
-	entries, err := os.ReadDir(".")
-	if err != nil {
-		t.Fatalf("os.ReadDir(.) error = %v, want nil", err)
-	}
 	gotFunctions := make([]string, 0, 1)
 	gotFields := make([]string, 0)
 	fileSet := token.NewFileSet()
-	for _, entry := range entries {
-		if entry.IsDir() || !strings.HasSuffix(entry.Name(), ".go") || strings.HasSuffix(entry.Name(), "_test.go") {
-			continue
-		}
-		file, parseErr := parser.ParseFile(fileSet, filepath.Clean(entry.Name()), nil, parser.SkipObjectResolution)
-		if parseErr != nil {
-			t.Fatalf("parser.ParseFile(%q) error = %v, want nil", entry.Name(), parseErr)
-		}
+	sources := exchangeArchitectureSources(t, fileSet)
+	bindings := rawHTTPBindings(sources)
+	for _, source := range sources {
+		file := source.syntax
 		for _, declaration := range file.Decls {
 			switch typed := declaration.(type) {
 			case *ast.FuncDecl:
-				if typed.Recv == nil && typed.Name.IsExported() && rawHTTPType(fileSet, typed.Type) {
+				if typed.Recv == nil && typed.Name.IsExported() && rawHTTPType(file, typed.Type, bindings, rawHTTPTypeScope{}) {
 					gotFunctions = append(gotFunctions, typed.Name.Name)
 				}
 			case *ast.GenDecl:
@@ -331,7 +343,7 @@ func TestSocketServerCallIsOnlyPublicRawHTTPAdmission(t *testing.T) {
 						continue
 					}
 					for _, field := range structure.Fields.List {
-						if rawHTTPType(fileSet, field.Type) {
+						if rawHTTPType(file, field.Type, bindings, (rawHTTPTypeScope{}).withTypeParameters(typeSpecification.TypeParams)) {
 							gotFields = append(gotFields, typeSpecification.Name.Name)
 						}
 					}
@@ -347,39 +359,13 @@ func TestSocketServerCallIsOnlyPublicRawHTTPAdmission(t *testing.T) {
 	}
 }
 
-func rawHTTPType(fileSet *token.FileSet, expression ast.Expr) bool {
-	var encoded bytes.Buffer
-	if err := format.Node(&encoded, fileSet, expression); err != nil {
-		return false
-	}
-	value := encoded.String()
-	return strings.Contains(value, "*http.Request") || strings.Contains(value, "http.ResponseWriter")
-}
-
 func productionStructNames(t *testing.T) []string {
 	t.Helper()
 
-	entries, err := os.ReadDir(".")
-	if err != nil {
-		t.Fatalf("os.ReadDir(.) error = %v, want nil", err)
-	}
 	names := make([]string, 0)
 	fileSet := token.NewFileSet()
-	for _, entry := range entries {
-		if entry.IsDir() ||
-			!strings.HasSuffix(entry.Name(), ".go") ||
-			strings.HasSuffix(entry.Name(), "_test.go") {
-			continue
-		}
-		file, parseErr := parser.ParseFile(
-			fileSet,
-			filepath.Clean(entry.Name()),
-			nil,
-			parser.SkipObjectResolution,
-		)
-		if parseErr != nil {
-			t.Fatalf("parser.ParseFile(%q) error = %v, want nil", entry.Name(), parseErr)
-		}
+	for _, source := range exchangeArchitectureSources(t, fileSet) {
+		file := source.syntax
 		ast.Inspect(file, func(node ast.Node) bool {
 			specification, ok := node.(*ast.TypeSpec)
 			if !ok {
@@ -397,40 +383,87 @@ func productionStructNames(t *testing.T) []string {
 
 func classifiedStructNames(t *testing.T) []string {
 	t.Helper()
-
-	fileSet := token.NewFileSet()
-	file, err := parser.ParseFile(
-		fileSet,
-		"architecture_test.go",
-		nil,
-		parser.SkipObjectResolution,
-	)
+	got, err := boundInventoryStructNames(reflect.TypeFor[exchangeContractInventory]())
 	if err != nil {
-		t.Fatalf("parser.ParseFile(architecture_test.go) error = %v, want nil", err)
+		t.Fatalf("bound inventory error = %v, want nil", err)
 	}
-	for _, declaration := range file.Decls {
-		generic, ok := declaration.(*ast.GenDecl)
-		if !ok || generic.Tok != token.TYPE {
-			continue
+	return got
+}
+
+func boundInventoryStructNames(inventory reflect.Type) ([]string, error) {
+	if inventory == nil || inventory.Kind() != reflect.Struct {
+		return nil, core.ErrExchangeContract
+	}
+	names := make([]string, 0, inventory.NumField())
+	for index := range inventory.NumField() {
+		field := inventory.Field(index)
+		binding, ok := reflect.Zero(field.Type).Interface().(inventoryTypeBinding)
+		if !ok {
+			return nil, core.ErrExchangeContract
 		}
-		for _, raw := range generic.Specs {
-			specification := raw.(*ast.TypeSpec)
-			if specification.Name.Name != "exchangeContractInventory" {
-				continue
-			}
-			structure := specification.Type.(*ast.StructType)
-			names := make([]string, 0, len(structure.Fields.List))
-			for _, field := range structure.Fields.List {
-				for _, name := range field.Names {
-					names = append(names, name.Name)
-				}
-			}
-			sort.Strings(names)
-			return names
+		bound := binding.classifiedType()
+		if bound.Kind() != reflect.Struct || bound.PkgPath() != reflect.TypeFor[Client]().PkgPath() || bound.Name() == "" {
+			return nil, core.ErrExchangeContract
+		}
+		name, _, _ := strings.Cut(bound.Name(), "[")
+		names = append(names, name)
+	}
+	slices.Sort(names)
+	for index := 1; index < len(names); index++ {
+		if names[index] == names[index-1] {
+			return nil, core.ErrExchangeContract
 		}
 	}
-	t.Fatal("exchangeContractInventory declarations found = 0, want 1")
-	return nil
+	return names, nil
+}
+
+func TestInventoryBindingUsesCompilerTypesTable(t *testing.T) {
+	t.Parallel()
+	cases := []struct {
+		name    string
+		input   reflect.Type
+		want    []string
+		wantErr error
+	}{
+		{name: "misleading field label cannot replace referenced protocol type", input: reflect.TypeFor[struct {
+			Header protocolContract[StreamResponse]
+		}](), want: []string{"StreamResponse"}},
+		{name: "instantiated generic binds the actual generic declaration", input: reflect.TypeFor[struct {
+			Misleading protocolContract[JSONRequest[inventoryDocument]]
+		}](), want: []string{"JSONRequest"}},
+		{name: "capability role retains its compiler-bound type", input: reflect.TypeFor[struct{ Misleading capabilityWrapper[Client] }](), want: []string{"Client"}},
+		{name: "internal flow role retains its compiler-bound type", input: reflect.TypeFor[struct{ Misleading internalFlow[retryProgress] }](), want: []string{"retryProgress"}},
+		{name: "typed failure role retains its compiler-bound type", input: reflect.TypeFor[struct{ Misleading typedFailure[StatusError] }](), want: []string{"StatusError"}},
+		{name: "distinct bindings are ordered independently of field labels", input: reflect.TypeFor[struct {
+			A internalFlow[retryProgress]
+			Z capabilityWrapper[Client]
+		}](), want: []string{"Client", "retryProgress"}},
+		{name: "duplicate referenced type cannot hide behind distinct labels", input: reflect.TypeFor[struct {
+			A protocolContract[Header]
+			B protocolContract[Header]
+		}](), wantErr: core.ErrExchangeContract},
+		{name: "plain field without classification cannot enter inventory", input: reflect.TypeFor[struct{ A Header }](), wantErr: core.ErrExchangeContract},
+		{name: "foreign package struct cannot substitute for local contract", input: reflect.TypeFor[struct {
+			A protocolContract[http.Response]
+		}](), wantErr: core.ErrExchangeContract},
+		{name: "pointer binding cannot classify a struct declaration", input: reflect.TypeFor[struct{ A capabilityWrapper[*Client] }](), wantErr: core.ErrExchangeContract},
+		{name: "anonymous shape cannot substitute for named contract", input: reflect.TypeFor[struct{ A protocolContract[struct{}] }](), wantErr: core.ErrExchangeContract},
+		{name: "nonstruct input cannot masquerade as inventory", input: reflect.TypeFor[int](), wantErr: core.ErrExchangeContract},
+		{name: "missing inventory type is refused", wantErr: core.ErrExchangeContract},
+		{name: "empty inventory invents no classified structs", input: reflect.TypeFor[struct{}](), want: []string{}},
+	}
+	for _, tc := range cases {
+		t.Run(tc.name, func(t *testing.T) {
+			t.Parallel()
+			got, gotErr := boundInventoryStructNames(tc.input)
+			if !errors.Is(gotErr, tc.wantErr) || !slices.Equal(got, tc.want) {
+				t.Fatalf("bound inventory = %q/%v, want %q/%v", got, gotErr, tc.want, tc.wantErr)
+			}
+			if tc.wantErr != nil && got != nil {
+				t.Fatalf("refused inventory = %q, want nil", got)
+			}
+		})
+	}
 }
 
 var (
@@ -470,3 +503,68 @@ var (
 )
 
 var _ = exchangeContractInventory{}.responseBuffer
+
+type exchangeArchitectureSource struct {
+	name   string
+	syntax *ast.File
+}
+
+// Setup reads the source through Filestore before handing bytes to Go's AST
+// parser. Parsing needs the whole source; the per-file extent remains bounded.
+func exchangeArchitectureSources(t testing.TB, fileSet *token.FileSet) []exchangeArchitectureSource {
+	t.Helper()
+	directory, err := filepath.Abs(".")
+	if err != nil {
+		t.Fatalf("source directory setup error = %v, want nil", err)
+	}
+	absolute, err := core.ParseAbsolutePath(directory)
+	if err != nil {
+		t.Fatalf("source directory admission error = %v, want nil", err)
+	}
+	root, err := filestore.OpenRoot(t.Context(), absolute)
+	if err != nil {
+		t.Fatalf("source root admission error = %v, want nil", err)
+	}
+	defer func() {
+		if err := root.Close(); err != nil {
+			t.Errorf("source root close error = %v, want nil", err)
+		}
+	}()
+	path, err := core.ParseRelativePath(".")
+	if err != nil {
+		t.Fatalf("source root path admission error = %v, want nil", err)
+	}
+	const sourceMaximumBytes = 1 << 20
+	limit, err := core.NewByteCount(sourceMaximumBytes)
+	if err != nil {
+		t.Fatalf("source limit admission error = %v, want nil", err)
+	}
+	var sources []exchangeArchitectureSource
+	err = filestore.Walk(t.Context(), filestore.WalkRequest{
+		Location: filestore.Location{Root: root, Path: path}, Order: filestore.WalkOrderNative,
+		Visit: func(entry filestore.WalkEntry) (filestore.WalkDirective, error) {
+			if entry.Entry.IsDir() {
+				return filestore.WalkSkipDirectory, nil
+			}
+			name := entry.Path.String()
+			if !strings.HasSuffix(name, ".go") || strings.HasSuffix(name, "_test.go") {
+				return filestore.WalkContinue, nil
+			}
+			var data bytes.Buffer
+			_, err := filestore.Read(t.Context(), filestore.ReadRequest{Location: filestore.Location{Root: root, Path: entry.Path}, Destination: &data, MaximumBytes: limit})
+			if err != nil {
+				return filestore.WalkContinue, err
+			}
+			syntax, err := parser.ParseFile(fileSet, name, data.Bytes(), parser.SkipObjectResolution)
+			if err != nil {
+				return filestore.WalkContinue, err
+			}
+			sources = append(sources, exchangeArchitectureSource{name: name, syntax: syntax})
+			return filestore.WalkContinue, nil
+		},
+	})
+	if err != nil {
+		t.Fatalf("source traversal/parse error = %v, want nil", err)
+	}
+	return sources
+}

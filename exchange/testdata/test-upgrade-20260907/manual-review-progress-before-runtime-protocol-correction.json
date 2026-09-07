@@ -1,0 +1,541 @@
+{
+  "production_read_in_full": [
+    "exchange/basic_authorization.go",
+    "exchange/bearer_authorization.go",
+    "exchange/body_extent.go",
+    "exchange/client.go",
+    "exchange/client_address.go",
+    "exchange/content_coding.go",
+    "exchange/contracts.go",
+    "exchange/doc.go",
+    "exchange/errors.go",
+    "exchange/media_type.go",
+    "exchange/method.go",
+    "exchange/official_sdk.go",
+    "exchange/official_sdk_client.go",
+    "exchange/response_buffer.go",
+    "exchange/results.go",
+    "exchange/server.go",
+    "exchange/server_runtime.go",
+    "exchange/server_standard.go",
+    "exchange/server_stream.go",
+    "exchange/socket.go",
+    "exchange/standard_header.go",
+    "exchange/stream.go",
+    "exchange/stream_replay.go",
+    "exchange/validation.go"
+  ],
+  "tests_read_in_full": [
+    "architecture_test.go",
+    "basic_authorization_fuzz_test.go",
+    "basic_authorization_hostile_test.go",
+    "bearer_authorization_hostile_test.go",
+    "body_extent_fuzz_internal_test.go",
+    "bounded_body_capacity_hostile_test.go",
+    "bounded_receive_benchmark_test.go",
+    "bounded_transport_layer_triad_external_test.go",
+    "byte_length_test.go",
+    "client_address_layer_triad_external_test.go",
+    "client_custody_layer_triad_external_test.go",
+    "client_internal_test.go",
+    "client_no_proxy_internal_test.go",
+    "content_coding_internal_test.go",
+    "context_budget_layer_triad_external_test.go",
+    "contracts_hostile_test.go",
+    "declared_extent_hostile_test.go",
+    "exchange_test_helpers_test.go",
+    "header_collection_bounds_layer_triad_external_test.go",
+    "header_grammar_layer_triad_external_test.go",
+    "header_value_fuzz_test.go",
+    "header_value_test_support_external_test.go",
+    "http_facts_test.go",
+    "json_benchmark_test.go",
+    "json_transport_layer_triad_external_test.go",
+    "listen_address_wildcard_external_test.go",
+    "method_internal_test.go",
+    "official_sdk_client_test.go",
+    "official_sdk_fuzz_test.go",
+    "official_sdk_hostile_test.go",
+    "official_sdk_layer_triad_external_test.go",
+    "projected_json_layer_triad_external_test.go",
+    "replay_binding_hostile_test.go",
+    "request_validation_layer_triad_external_test.go",
+    "response_buffer_test.go",
+    "retry_redirect_layer_triad_external_test.go",
+    "server_egress_layer_triad_external_test.go",
+    "server_ingress_layer_triad_external_test.go",
+    "server_runtime_hostile_external_test.go",
+    "server_runtime_internal_test.go",
+    "server_runtime_layer_triad_external_test.go",
+    "server_standard_layer_triad_external_test.go",
+    "session_client_test.go",
+    "socket_external_test_helpers_test.go",
+    "socket_pair_layer_triad_external_test.go",
+    "socket_server_call_layer_triad_external_test.go",
+    "standard_fact_hostile_test.go",
+    "stream_benchmark_test.go",
+    "stream_internal_test.go",
+    "stream_replay_internal_test.go",
+    "stream_transport_layer_triad_external_test.go"
+  ],
+  "no_go_source_edits_yet": false,
+  "profile_findings": [
+    "Original JSON128 workload: 45647 B/op and 96 allocations; allocation profile attributed 71.98% to copyDownload. Its 64 KiB policy still allows Go scratch allocation; small-limit header-control results do not prove this original JSON workload repaired.",
+    "Header4096 refusal: 98448 B/4102 allocations before, 144 B/5 after. Accepted64 original controls retain variable historical timings; exact causal attribution remains unproven.",
+    "Go io.Copy repair: reversed-order reference/candidate pairs both improved; accepted64 allocation reduced from 34488 to 1721 B/op. Reference timing itself varied widely; no precise whole-package speedup is claimed.",
+    "Replay before-cancellation workload fails its semantic check; no valid baseline. Success control allocations unchanged at 4184 B/46, variable timings do not prove a regression or speedup."
+  ],
+  "known_test_gaps": [
+    "Complete public external-door to compiler-bound semantic fuzz inventory remains open.",
+    "Complete producer/classifier matrices and cross-case invariants remain open; current stream table has 30 regression rows, not 50 primary-class cases.",
+    "Basic identity/authorization parser and byte output need the remaining independent fuzz and hostile constructor/Marshal/nil receiver audit.",
+    "Bearer Matches has ad hoc assertions; receive test needs exact zero refusal; bearer semantic fuzz coverage remains open.",
+    "All LayerTriad tests still need the earned-row and genuine-neutral audit, including existing standard-response, ingress, context and stream cases.",
+    "HTTP source matcher now has alias/generic scope fixtures and semantic mutations; public methods and stand-alone non-struct exported aliases still need an exposure audit.",
+    "Runtime fixtures release an ephemeral port before reopening it; goroutine cancellation and joining on failure paths remain incomplete.",
+    "Complete benchmark harness integrity, fair comparisons, loopback port-exhaustion investigation and final artifact reconciliation remain open.",
+    "Trusted-proxy, TLS proof and response-buffer failure seams remain in the production/test sweep."
+  ],
+  "production_modified": [
+    "basic_authorization.go",
+    "client.go",
+    "contracts.go",
+    "official_sdk.go",
+    "response_buffer.go",
+    "server.go",
+    "server_runtime.go",
+    "server_standard.go",
+    "server_stream.go",
+    "session_client.go",
+    "socket.go",
+    "stream.go",
+    "stream_replay.go"
+  ],
+  "user_correction": {
+    "protocol_reread_in_full": true,
+    "sha256": "dd83cd7f62c172092546dab6b7c7d5c59753b5e8ae784631a94cff4d6d48126c",
+    "ranges_read": [
+      [
+        1,
+        370
+      ],
+      [
+        371,
+        740
+      ],
+      [
+        741,
+        1110
+      ],
+      [
+        1111,
+        1480
+      ],
+      [
+        1481,
+        1850
+      ],
+      [
+        1851,
+        2240
+      ]
+    ],
+    "violation": "Added banned assertReplayHandoffStatus helper and computed replay expectations in the executor instead of table; original 64-row cartesian table was not the required primary-class matrix.",
+    "correction": "Removed assertion helper; direct table comparisons; explicit want fields for replay and SDK; 20 named retry regression rows replace generated matrix. Complete matrix is still open.",
+    "timestamp": "2026-09-07T04:55:58.916791+00:00"
+  },
+  "package_complete": false,
+  "inventory_binding_upgrade": "Compiler-bound marker classifiedType reflection replaces field-name inventory membership. Raw HTTP matcher now resolves actual import/type/generic scope; complete external door inventory and remaining public exposure scan are still open.",
+  "custody_binding_work": {
+    "red_records": [
+      "red-replay-binding-callback",
+      "red-socket-server-constructor-zero",
+      "red-server-receive-custody",
+      "red-client-socket-custody-v2"
+    ],
+    "build_failure_records": [
+      "red-client-socket-custody"
+    ],
+    "green_records": [
+      "green-replay-binding-callback",
+      "green-server-receive-custody",
+      "custody-ingress-focused-tests",
+      "green-client-socket-custody"
+    ],
+    "mutations": "custody-binding-mutation-results.json",
+    "scope_complete": false,
+    "remaining": "Complete earned table/matrix audit, semantic fuzz door bindings, source matcher ratchet, callback/constructor admission expansion, profiles and final benchmarks."
+  },
+  "protocol_reread_20260907_user_correction": {
+    "lines": 2214,
+    "ranges": [
+      [
+        1,
+        370
+      ],
+      [
+        371,
+        740
+      ],
+      [
+        741,
+        1110
+      ],
+      [
+        1111,
+        1480
+      ],
+      [
+        1481,
+        1850
+      ],
+      [
+        1851,
+        2214
+      ]
+    ],
+    "sha256": "dd83cd7f62c172092546dab6b7c7d5c59753b5e8ae784631a94cff4d6d48126c",
+    "time": "2026-09-07T06:44:25.661039+00:00",
+    "violations_found": [
+      "Duplicate socket callback rows varied behavior the fixed production path never invokes.",
+      "New accounting test declarations omitted LayerTriad.",
+      "Pipe broken-read-end assertion accepted any os.PathError rather than the native cause.",
+      "Older standard-fact tests hid assertions in helpers and compared production projections to each other.",
+      "Older refusal cases are labelled neutral; those labels do not establish neutrality."
+    ],
+    "corrections": [
+      "Removed five redundant socket projection rows and added a plain-lane zero-binding observation.",
+      "Named local stream/file/socket/pipe accounting LayerTriad tests.",
+      "Pipe test now compares errors.Is to an independent os.Pipe control native cause on this platform.",
+      "Rewrote complete StandardHeader and StandardMediaType byte-domain tables with owning constant oracles and direct checks."
+    ],
+    "remaining": "Complete package-wide earned-row, matrix, per-layer neutrality, external-door semantic fuzz, benchmark, and manifest audit is still required."
+  },
+  "review_11be9f67": {
+    "source": "/var/folders/lk/5qcmysnd6hl5yw7nz84k_b4h0000gn/T/grok-d/grok-review-11be9f67.md",
+    "read_cancellation": "Preserve valid returned count beside post-read cancellation; excess probe still wins when it observed a byte.",
+    "file_source": "Only regular file Stat plus successful current-position Seek proves extent; OS pipe stays an ordinary Go transport reader.",
+    "socket_key": "Validate context/body before one observed key; call SendJSON with semantics built from that key.",
+    "writer_panic": "Contain each plain Write panic inside io.CopyBuffer so earlier acknowledged counts survive. Effects of a call that panics before reporting a count remain unknown. ReaderFrom remains the Go dispatch; no claim to infer unreported effects.",
+    "regression_evidence": [
+      "red-review-read-cancellation",
+      "red-review-upload-os-source-v2",
+      "red-review-socket-key-projection",
+      "red-review-stream-writer-custody-v2"
+    ],
+    "corrected_tables_green": "corrected-review-layer-triads",
+    "mutation_results": "review-mutation-results.json",
+    "baseline_benchmark_comparison_not_yet_run": true
+  },
+  "filestore_dependency_slice": {
+    "authorized": "User requires Filestore for files/directories and confirmed it is next; narrow OpenPipe capability added for Exchange regression.",
+    "changes": [
+      "filestore/pipe.go",
+      "filestore/pipe_external_test.go",
+      "filestore/architecture_test.go"
+    ],
+    "integration": "Exchange fixture file acquisition/creation and architecture source traversal/read use Filestore. Real os.File handles retain their documented caller ownership.",
+    "evidence": "filestore-pipe-and-exchange-custody",
+    "not_a_filestore_package_upgrade": true
+  },
+  "standard_fact_ratchet": {
+    "green": "standard-fact-independent-table-ratchet",
+    "mutations": "standard-fact-mutation-results.json",
+    "proof": "Complete byte domain, direct table assertions, owning literal constants independent of enum lookup, real Go Header/mime handoffs. Rejected ordinals count as one equivalence class, not 252 earned rows."
+  },
+  "stream_receive_fuzz_ratchet": {
+    "target": "FuzzReceiveStreamCustodySemanticClosure",
+    "seed_execution": "stream-custody-semantic-seeds",
+    "mutations": "stream-fuzz-mutation-results.json",
+    "sustained_fuzz_run": true,
+    "proof": "Real WriteStream seed; public ReceiveStream; exact source-prefix/count/custody/error/no-response-effects oracle. Deliberate count substitution, refuse-all, and dropped transfer refusal must fail inside seed callbacks, not setup.",
+    "latest_sustained_evidence": "fuzz-copy-stdlib-receive-stream-custody.json"
+  },
+  "session_stdlib_upgrade": {
+    "constructor": "NewSessionClient(SessionClientRequest{PublicSuffixList: callerOwnedGoList})",
+    "ownership": "Go concrete cookiejar.Jar owns mechanics; caller supplies cookiejar.PublicSuffixList authority and its updates/concurrency safety; capability presence validation cannot certify the domain database.",
+    "consumer_scan": "No non-vendor consumers found invoking exchange.NewSessionClient; Blink Kernel owns a separate transport.NewSessionClient.",
+    "before_dependencies": "session-before-dependencies.json",
+    "after_dependencies": "session-after-dependencies.json",
+    "tests": "session-constructor-and-cookie-ratchet-v2.json",
+    "discarded_build_attempt": "session-constructor-and-cookie-ratchet.json",
+    "mutations": "session-mutation-results.json",
+    "package_complete": false,
+    "scope": "Removed production x/net/publicsuffix import. Header fuzz x/net/httpguts import also replaced with installed Go Transport registered-protocol grammar oracle; full test dependency closure still to verify.",
+    "test_dependency_closure": "exchange-session-header-test-dependencies.json: Exchange production closure has only stdlib plus Primitive core/contextstate/keygen/temporal. Tests transitively reach x/sys/unix through Filestore; full Filestore upgrade is next."
+  },
+  "header_capture_upgrade": {
+    "authoritative_red": "red-header-capture-count-and-custody-v2.json",
+    "discarded_build_attempts": [
+      "red-header-capture-count-and-custody.json",
+      "green-header-capture-and-semantic-seeds.json"
+    ],
+    "green": "green-header-capture-and-semantic-seeds-v2.json",
+    "findings": [
+      "headerValues accepted and allocated arbitrary repeated value counts before owning Header validation",
+      "captureHeaders returned invalid or partial captured fields alongside validation refusal"
+    ],
+    "profile_basis": "header-capture-before-excess-allocation-analysis.json: 99.82% allocation space in NewHeaderValue/headerValues for 4096-value refusal",
+    "before_plan": "header-capture-before-profile-plan.json",
+    "after_plan_pending": false,
+    "semantic_fuzz_target": "FuzzCapturedHeadersPreserveExactSelection",
+    "sustained_fuzz_pending": false,
+    "mutation_results": "header-capture-mutation-results.json",
+    "after_plan": "header-capture-after-profile-plan.json",
+    "fuzz_plan": "header-stream-fuzz-plan.json",
+    "comparison": "header-capture-comparison.json",
+    "timing_regression_unresolved": false,
+    "control_recheck": "header-capture-control-recheck-plan.json",
+    "current_package_checkpoint": "exchange-protocol-correction-checkpoint-05.json",
+    "statement_coverage_percent": 83.9,
+    "artifact_audit": "session-header-slice-artifact-audit.json",
+    "timing_followup": "copy-timing-comparison.json supersedes the candidate performance observation; original samples and unresolved historical attribution retained.",
+    "timing_historical_cause_unresolved": true,
+    "timing_acceptance_scope": "Only the small-limit accepted64 repair is locally verified by reversed-order paired profiles; full package benchmark acceptance remains open."
+  },
+  "timing_repair_in_progress": {
+    "user_request": "fix unresolved timing regression",
+    "production_change": "copyDownload delegates buffer selection and ReaderFrom dispatch to io.Copy; removes unconditional 32 KiB allocation, preserves LimitedReader and progress/count/panic/cancellation boundaries.",
+    "profile_basis": "95.08% flat allocation space in copyDownload for accepted 64-value control with empty one-byte-limited body.",
+    "before_semantic_ratchet": "copy-dispatch-before-ratchet-v2.json",
+    "discarded_fixture_expectation": "copy-dispatch-before-ratchet.json expected Exchange identity where private helper returns owning Core ByteCount identity; corrected to ErrPrimitiveContract.",
+    "whole_package_tests": "exchange-copy-stdlib-checkpoint-06.json",
+    "coverage_percent": 83.9,
+    "mutations": "copy-dispatch-mutation-results.json",
+    "benchmark_plan": "timing-repair-profile-plan.json",
+    "host_observation": "timing-repair-host-observation.json",
+    "status": "Local copy repair verification complete: whole-package checkpoint, four killed mutations, reversed-order paired profiles, post-change sustained stream fuzz. Historical timing attribution and full-package performance acceptance remain unproven.",
+    "comparison": "copy-timing-comparison.json",
+    "artifact_audit": "copy-timing-slice-artifact-audit.json",
+    "post_change_fuzz": "fuzz-copy-stdlib-receive-stream-custody.json",
+    "fuzz_executions": 490701,
+    "fuzz_configured_seconds": 30,
+    "fuzz_effective_seconds": 30.08
+  },
+  "http_architecture_binding_upgrade": {
+    "red": "red-http-architecture-bindings.json",
+    "green": "green-http-architecture-bindings.json",
+    "changes": "Compiler-referenced stdlib type identities, actual import ownership, declaration-file imports for aliases, named carriers, recursion termination, field/tag separation.",
+    "remaining": "Generic scope and seven semantic matcher mutations now verified; see architecture_binding_upgrade. Public methods and stand-alone non-struct aliases remain to audit."
+  },
+  "socket_wire_upgrade": {
+    "test": "TestClientSocketCustodyLayerTriad",
+    "change": "Two distinct explicit input documents instead of executing wantCalls; exact bounded request-body bytes, method, content type and extent checked per call.",
+    "ratchet": "Same-length valid body substitution survives old table and fails upgraded table.",
+    "evidence": "socket-wire-mutation-results.json"
+  },
+  "replay_cancellation_upgrade": {
+    "production": "One errors.Join preserves the existing producer cause when operation cancellation stops future attempts. No new runtime, scheduler or product state.",
+    "red": "red-replay-handoff-cancellation-causes.json",
+    "red_leaf_failures": 8,
+    "finding_count": 1,
+    "green": "green-replay-handoff-cancellation-causes.json",
+    "current_table": "TestReplayStreamDownloadHandoffLayerTriad",
+    "table_scope": "30 real Download-to-ReplayStream regression/status/cancellation rows. Still not the complete 50-case matrix.",
+    "fuzz_target": "FuzzReplayStreamPreservesDownloadObservation",
+    "fuzz_scope": "Bounded payload/ceiling, OK vs service-unavailable, normal/read-failure/close-failure, handoff cancellation; one-attempt replay policy. Other status, retry-schedule, mixed fault, header, and forged callback facts remain separate proof surfaces.",
+    "fuzz_evidence": "fuzz-replay-download-observation.json",
+    "fuzz_executions": 63202,
+    "fuzz_configured_seconds": 30,
+    "fuzz_effective_seconds": 30.18,
+    "fixture_failure": "replay-producer-fuzz-semantic-seeds.json incorrectly treated ErrExchangeContract as disjoint from its core-owned response/body-limit children; fixed oracle in v2, not a production regression.",
+    "mutations": "replay-observation-mutation-results.json",
+    "benchmark_comparison": "replay-handoff-comparison.json",
+    "package_checkpoint": "exchange-replay-socket-checkpoint-07.json",
+    "statement_coverage_percent": 84.0,
+    "artifact_audit": "socket-replay-slice-artifact-audit.json"
+  },
+  "external_review_29d08724": {
+    "path": "review-29d08724.md",
+    "finding": "Reviewer reports no issues in the traced paths.",
+    "scope": "Review text is retained; it is not independently executed package acceptance and does not close remaining sweep gaps."
+  },
+  "listener_wildcard_upgrade": {
+    "production": "Validate strips zones and unmaps IPv4 for the wildcard check only; admitted Go address stays exact. No custom parser, listener, or address allocator.",
+    "red": "red-listen-host-go-wildcard-parity.json",
+    "red_leaf_failures": 3,
+    "finding_count": 1,
+    "tables": {
+      "TestListenAddressHostInterpretationMatchesGo": 14,
+      "TestListenAddressGoLiteralGrammarTable": 21
+    },
+    "count_caveat": "Policy and Go grammar forwarding rows replace a padded 40-row counter. These are bounded earned branches, not a claim of an exhaustive address input domain.",
+    "mutations": "listen-address-mutation-results.json",
+    "killed_callback_mutations": 6,
+    "fuzz_target": "FuzzParseListenAddressSemanticClosure",
+    "production_projected_seeds": 2,
+    "total_seeds": 12,
+    "fuzz": "fuzz-listen-address-go-interpretation.json",
+    "executions": 247066,
+    "configured_seconds": 30,
+    "effective_seconds": 31.06,
+    "limits": "Oracle input bounded at 4096 bytes; no production zone byte limit or new zero-port admission policy was introduced.",
+    "benchmarks": "listen-address-profile-comparison.json",
+    "profile_analysis": "listen-address-profile-analysis-plan.json",
+    "post_profile_fuzz": "fuzz-listen-address-after-profiles.json",
+    "artifact_audit": "listener-profiles-slice-artifact-audit.json",
+    "post_profile_fuzz_executions": 506031,
+    "post_profile_fuzz_configured_seconds": 30,
+    "profile_interpretation": "Accepted canonical-string allocation remains Go netip.AddrPort.String (99.94% IPv4 / 99.95% mapped allocation space). Fixed wildcard literals measure zero steady-state allocations; zone interning is warmed by calibration, not a claim about first-use or distinct-zone costs. Go parser/formatter, validation, assertion and runtime CPU costs retained.",
+    "port_policy_superseded": "Server runtime slice now admits zero port as explicit Go allocation intent; acquired capabilities must carry a nonzero observed port. Earlier nonzero-port evidence remains historical and is superseded for that one contract."
+  },
+  "temporal_fixture_upgrade": {
+    "change": "17 explicit time.After backstops in eight Exchange test files now use existing Temporal.WithTimeout. Owned cancellation is registered at each test boundary; WithoutCancel preserves the backstop through test teardown.",
+    "scope": "Explicit timing execution sweep, not completion of goroutine ownership or all fixture cleanup.",
+    "package_checkpoint": "exchange-listener-temporal-checkpoint-08.json",
+    "statement_coverage_percent": 84.0
+  },
+  "architecture_binding_upgrade": {
+    "table": "TestRawHTTPArchitectureBindingTable",
+    "rows": 33,
+    "generic_red_leaf_failures": 5,
+    "production_regressions": 0,
+    "green": "green-http-architecture-generic-scope.json",
+    "mutations": [
+      "architecture-mutation-results.json",
+      "architecture-mutation-v2-results.json"
+    ],
+    "killed_semantic_mutations": 7,
+    "surviving_attempt": "The first parameter-label mutation targeted ast.Field, which function signatures deliberately bypass. Its survival is retained; the second mutation of the actual function-signature path is killed. No production defect was inferred from the incorrect mutation placement.",
+    "scope": "Narrow test-only source ownership guard using Go AST; compilation remains Go-owned. Public methods and stand-alone non-struct aliases still require a complete surface audit."
+  },
+  "finding_review_status": [
+    {
+      "finding": "SDK streaming bypass uses URL.Query, which can drop malformed pairs; prove limit cannot be bypassed with valid coordinate plus malformed query.",
+      "status": "specific defect repaired with retained red/green evidence; broader package proof remains open",
+      "evidence": [
+        "red-sdk-query-custody.json",
+        "green-sdk-query-custody.json"
+      ]
+    },
+    {
+      "finding": "ReplayStream status classification precedes terminal causes; prove joined retryable StatusError plus body limit/request/cancellation cause stops.",
+      "status": "specific defect repaired with retained red/green evidence; broader package proof remains open",
+      "evidence": [
+        "red-stream-replay-handoff.json",
+        "green-stream-replay-handoff.json"
+      ]
+    },
+    {
+      "finding": "ReplayStream stamps Attempts before validating response; prove invalid callback observation cannot be upgraded into valid evidence.",
+      "status": "specific defect repaired with retained red/green evidence; broader package proof remains open",
+      "evidence": [
+        "red-stream-replay-handoff.json",
+        "green-stream-replay-handoff.json"
+      ]
+    },
+    {
+      "finding": "Standard Error/NotFound/Redirect wrappers ignore Write error because stdlib functions return no error; retain stdlib rendering with an observed writer.",
+      "status": "specific defect repaired with retained red/green evidence; broader package proof remains open",
+      "evidence": [
+        "red-standard-write-observation-v2.json",
+        "green-standard-write-observation.json"
+      ]
+    },
+    {
+      "finding": "ClientSocket stores borrowed config slices and calls Target.HTTPURL repeatedly; prove exact configured route cannot change under callback or later caller mutation.",
+      "status": "specific defect repaired with retained red/green evidence; broader package proof remains open",
+      "evidence": [
+        "red-client-socket-custody-v2.json",
+        "green-client-socket-custody.json"
+      ]
+    },
+    {
+      "finding": "Header capture allocates len(values) before enforcing HeaderValueMaximumCount.",
+      "status": "specific defect repaired with retained red/green evidence; broader package proof remains open",
+      "evidence": [
+        "red-header-capture-count-and-custody-v2.json",
+        "green-header-capture-and-semantic-seeds-v2.json"
+      ]
+    },
+    {
+      "finding": "Basic identity JSON refusal drops local Exchange identity on Go/core decoding error.",
+      "status": "specific defect repaired with retained red/green evidence; broader package proof remains open",
+      "evidence": [
+        "red-basic-json-identity-table.json",
+        "green-basic-json-semantic-boundary.json"
+      ]
+    },
+    {
+      "finding": "NewSocketServerCall returns partially populated capability beside error.",
+      "status": "specific defect repaired with retained red/green evidence; broader package proof remains open",
+      "evidence": [
+        "red-socket-server-constructor-zero.json",
+        "green-server-receive-custody.json"
+      ]
+    },
+    {
+      "finding": "WriteJSON/WriteNoBody lack context checks present in bounded/stream writes; prove canceled call effect suppression.",
+      "status": "specific defect repaired with retained red/green evidence; broader package proof remains open",
+      "evidence": [
+        "red-server-write-admission-v4.json",
+        "green-server-write-admission.json"
+      ]
+    },
+    {
+      "finding": "BufferResponse merges sealed headers into preexisting destination rather than defining framing collision ownership; examine preexisting header drift, callback panic, destination write error identity and partial receipt.",
+      "status": "specific defect repaired with retained red/green evidence; broader package proof remains open",
+      "evidence": [
+        "red-response-buffer-release.json",
+        "green-response-buffer-release.json"
+      ]
+    },
+    {
+      "finding": "Stream Upload/RoundTrip receipt stamps declared request extent; prove actual source read and early-response contract before claiming transmitted bytes.",
+      "status": "open; not yet proven"
+    },
+    {
+      "finding": "Socket receive wrappers refuse before centralized body close on route mismatch; examine owned body closure on all ingress exits.",
+      "status": "receive-custody regression slice repaired; all exit paths still require the package-wide audit",
+      "evidence": [
+        "red-server-receive-custody.json",
+        "green-server-receive-custody.json"
+      ]
+    },
+    {
+      "finding": "Typed nil reader/writer/handler/transport admission varies across public boundaries; exact checks should remain narrow stdlib capability validation.",
+      "status": "open; not yet proven"
+    }
+  ],
+  "reconciliation": {
+    "prior_record": "manual-review-progress-before-reconciliation.json",
+    "scope": "Corrects stale open/fixed labels without deleting historical records or broadening acceptance claims.",
+    "latest_package_checkpoint": "exchange-listener-architecture-checkpoint-09.json"
+  },
+  "bearer_upgrade": {
+    "production_changed": false,
+    "ratchets": [
+      "bearer-grammar-custody-semantic-ratchet.json",
+      "bearer-header-cardinality-and-custody-ratchet.json"
+    ],
+    "mutations": "bearer-mutation-results.json",
+    "killed_inside_callbacks": 8,
+    "targets": [
+      "FuzzBearerAuthorizationTokenSemanticClosure",
+      "FuzzReceiveBearerAuthorizationSemanticClosure"
+    ],
+    "sustained_fuzz_pending": true,
+    "benchmark_coverage_pending": true,
+    "scope": "Full byte alphabet at each token grammar state, extent thresholds, exact header/token ownership, zero refusal, redaction, exact validated comparisons, and receive cardinality. Final package sweep still open."
+  },
+  "server_runtime_upgrade": {
+    "status": "in progress",
+    "production": "Go owns zero-port allocation; listener stores requested and actual addresses. Transfer validates agreement and rejects a closed capability. Runtime exposes observed Address and delegates Close to Go HTTP server.",
+    "red": [
+      "red-server-listener-agreement-and-zero-port.json",
+      "red-server-closed-listener-transfer.json"
+    ],
+    "green": [
+      "green-server-listener-agreement-and-zero-port.json",
+      "server-runtime-owned-lifetime-ratchet.json"
+    ],
+    "before_profiles": "server-runtime-profile-plan.json",
+    "before_constructor": {
+      "ns_per_op": 1094,
+      "bytes_per_op": 544,
+      "allocations_per_op": 4
+    },
+    "before_zero_port": "semantic refusal; no valid performance baseline",
+    "remaining": "Mapped/IPv6/recovery proof, nil and schema admission, semantic fuzz, mutations, after profiles, artifact audit."
+  }
+}

@@ -12,10 +12,12 @@ import (
 	"github.com/deliri/primitive/v2026/temporal"
 )
 
-// ListenAddress is one exact TCP address owned by a server listener.
+// ListenAddress is one concrete TCP host and port. In a listen request, port
+// zero asks Go and the operating system to allocate the port. An acquired
+// ServerListener reports the actual nonzero bound address separately.
 type ListenAddress struct{ value netip.AddrPort }
 
-// ParseListenAddress admits one concrete address with a nonzero port.
+// ParseListenAddress admits one concrete host and Go TCP port intent.
 func ParseListenAddress(value string) (ListenAddress, error) {
 	parsed, err := netip.ParseAddrPort(value)
 	if err != nil {
@@ -28,11 +30,11 @@ func ParseListenAddress(value string) (ListenAddress, error) {
 	return address, nil
 }
 
-// Validate rejects zero, portless, and unspecified listener addresses. An
-// unspecified host binds every local address and must never be inferred from
-// an omitted host.
+// Validate rejects absent, portless, and unspecified listener addresses. Match
+// Go's TCP wildcard interpretation: a zone or IPv4 mapping cannot make an
+// unspecified host concrete. Keep the caller's admitted address unchanged.
 func (a ListenAddress) Validate() error {
-	if !a.value.IsValid() || a.value.Addr().IsUnspecified() || a.value.Port() == 0 {
+	if !a.value.IsValid() || a.value.Addr().WithZone("").Unmap().IsUnspecified() {
 		return core.ErrExchangeContract
 	}
 	return nil
@@ -42,9 +44,10 @@ func (a ListenAddress) Validate() error {
 // listener private to Exchange while allowing a product to prove port
 // acquisition before it constructs the rest of its boot graph.
 type ServerListener struct {
-	listener net.Listener
-	address  ListenAddress
-	claimed  atomic.Bool
+	listener  net.Listener
+	requested ListenAddress
+	address   ListenAddress
+	claimed   atomic.Bool
 }
 
 // Listen opens one exact TCP listener. The caller owns the returned capability
@@ -53,7 +56,7 @@ func Listen(address ListenAddress) (owned *ServerListener, resultErr error) {
 	if err := address.Validate(); err != nil {
 		return nil, err
 	}
-	listener, err := net.Listen("tcp", address.String())
+	listener, err := net.ListenTCP("tcp", net.TCPAddrFromAddrPort(address.value))
 	if err != nil {
 		return nil, transportError(err)
 	}
@@ -65,7 +68,11 @@ func Listen(address ListenAddress) (owned *ServerListener, resultErr error) {
 			resultErr = errors.Join(resultErr, transportError(closeErr))
 		}
 	}()
-	candidate := &ServerListener{address: address, listener: listener}
+	bound, err := ParseListenAddress(listener.Addr().String())
+	if err != nil {
+		return nil, err
+	}
+	candidate := &ServerListener{requested: address, address: bound, listener: listener}
 	if err := candidate.Validate(); err != nil {
 		return nil, err
 	}
@@ -77,7 +84,23 @@ func (l *ServerListener) Validate() error {
 	if l == nil || l.listener == nil {
 		return core.ErrExchangeContract
 	}
-	return l.address.Validate()
+	if err := errors.Join(l.requested.Validate(), l.address.Validate()); err != nil {
+		return err
+	}
+	if l.address.value.Port() == 0 {
+		return core.ErrExchangeContract
+	}
+	return nil
+}
+
+// Address returns the exact address observed from Go's acquired listener,
+// including the port allocated for a zero-port request. Closing the listener
+// does not erase this acquisition fact.
+func (l *ServerListener) Address() (ListenAddress, error) {
+	if err := l.Validate(); err != nil {
+		return ListenAddress{}, err
+	}
+	return l.address, nil
 }
 
 // Close closes the owned listener and normalizes an already-closed socket.
@@ -85,6 +108,7 @@ func (l *ServerListener) Close() error {
 	if err := l.Validate(); err != nil {
 		return err
 	}
+	l.claimed.Store(true)
 	if err := l.listener.Close(); err != nil && !errors.Is(err, net.ErrClosed) {
 		return transportError(err)
 	}
@@ -120,12 +144,13 @@ type ServerRuntimePolicy struct {
 
 // Validate rejects unset time and size bounds.
 func (p ServerRuntimePolicy) Validate() error {
+	_, headerErr := serverHeaderBytes(p.MaximumHeaderBytes)
 	if err := errors.Join(
 		p.ReadHeaderTimeout.Validate(),
 		p.ReadTimeout.Validate(),
 		p.WriteTimeout.Validate(),
 		p.IdleTimeout.Validate(),
-		p.MaximumHeaderBytes.Validate(),
+		headerErr,
 	); err != nil {
 		return errors.Join(core.ErrExchangeContract, err)
 	}
@@ -156,6 +181,7 @@ type ServerRuntime struct {
 	ready         chan error
 	configuration ServerRuntimeConfiguration
 	started       atomic.Bool
+	bound         atomic.Pointer[ServerListener]
 }
 
 // NewServerRuntime constructs a dormant runtime without opening files or a
@@ -217,7 +243,8 @@ func (r *ServerRuntime) Serve() error {
 }
 
 // ServeListener transfers one pre-opened listener into the runtime and serves
-// until Shutdown completes or the listener fails.
+// until Shutdown completes or the listener fails. Configuration must name
+// either its exact original listen intent or its actual bound address.
 func (r *ServerRuntime) ServeListener(listener *ServerListener) error {
 	if err := r.Validate(); err != nil {
 		return err
@@ -225,12 +252,22 @@ func (r *ServerRuntime) ServeListener(listener *ServerListener) error {
 	if !r.started.CompareAndSwap(false, true) {
 		return core.ErrExchangeContract
 	}
-	if err := listener.Validate(); err != nil {
+	if err := listener.admitConfiguration(r.configuration.Address); err != nil {
 		r.started.Store(false)
 		r.publishReady(err)
 		return err
 	}
 	return r.serveListener(listener)
+}
+
+func (l *ServerListener) admitConfiguration(address ListenAddress) error {
+	if err := l.Validate(); err != nil {
+		return err
+	}
+	if address != l.requested && address != l.address {
+		return core.ErrExchangeContract
+	}
+	return nil
 }
 
 func (r *ServerRuntime) serveListener(listener *ServerListener) error {
@@ -240,12 +277,36 @@ func (r *ServerRuntime) serveListener(listener *ServerListener) error {
 		r.publishReady(err)
 		return err
 	}
+	r.bound.Store(listener)
 	r.publishReady(nil)
 	err = r.server.Serve(owned)
 	if errors.Is(err, http.ErrServerClosed) {
 		return nil
 	}
 	return transportError(err)
+}
+
+// Address returns the exact listener acquisition fact after Ready reports nil.
+// It refuses before acquisition; shutdown preserves the observed address.
+func (r *ServerRuntime) Address() (ListenAddress, error) {
+	if err := r.Validate(); err != nil {
+		return ListenAddress{}, err
+	}
+	return r.bound.Load().Address()
+}
+
+// Close delegates immediate listener and connection shutdown to Go. It is
+// also valid for a dormant server. Call Shutdown for graceful draining first
+// when that is the caller's policy. Hijacked connections remain caller-owned,
+// exactly as documented by net/http.Server.Close.
+func (r *ServerRuntime) Close() error {
+	if err := r.Validate(); err != nil {
+		return err
+	}
+	if err := r.server.Close(); err != nil {
+		return transportError(err)
+	}
+	return nil
 }
 
 // publishReady replaces an unconsumed result instead of allowing a listener
@@ -305,7 +366,7 @@ func newHTTPServer(policy ServerRuntimePolicy, handler http.Handler) (*http.Serv
 
 func serverHeaderBytes(count core.ByteCount) (int, error) {
 	value, err := count.Uint64()
-	if err != nil || value > uint64(^uint(0)>>1) {
+	if err != nil || value > uint64(core.HTTPServerHeaderMaximumBytes) {
 		return 0, errors.Join(core.ErrExchangeContract, err)
 	}
 	return int(value), nil

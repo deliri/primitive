@@ -1,0 +1,18 @@
+{
+  "files": 2232,
+  "bytes": 527257948,
+  "missing": 0,
+  "extra": 0,
+  "duplicate_paths": 0,
+  "hash_mismatches": 0,
+  "benchmark_executions": 28,
+  "raw_profiles": 56,
+  "profile_analyses": 84,
+  "fuzz_targets": 9,
+  "reported_fuzz_executions": 1865855,
+  "deliberate_faults_killed": 14,
+  "manifest": {
+    "bytes": 431840,
+    "sha256": "08b4d8e41f0086790648e5da21504821b49effeacc19bcab1bb38f1c8c42e3e1"
+  }
+}

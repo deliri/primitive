@@ -1,0 +1,308 @@
+{
+  "label": "mutation-compact-fraction",
+  "argv": [
+    "go",
+    "test",
+    "-overlay=/Users/d/code/primitive/awsidentity/testdata/test-upgrade-20260906/mutations/compact-fraction/overlay.json",
+    "-json",
+    "-count=1",
+    "-run=^(TestCompactUTCRefusesFractionalPrecisionLoss)$",
+    "./temporal"
+  ],
+  "cwd": "/Users/d/code/primitive",
+  "revision": "f265ac401e0a56d74252496eb25275fae41dd618",
+  "tree": "dirty",
+  "toolchain": "go version go1.27.1 darwin/arm64",
+  "environment": "darwin\narm64\n\n\n/Users/d/code/go.work\n\n\n1",
+  "machine": "Darwin Ases-MacBook-Pro.local 25.6.0 Darwin Kernel Version 25.6.0: Fri Jul 31 19:18:49 PDT 2026; root:xnu-12377.161.14~5/RELEASE_ARM64_T6000 arm64",
+  "power": "Now drawing from 'AC Power'\n -InternalBattery-0 (id=22413411)\t80%; AC attached; not charging present: true",
+  "cache": "bypassed for go test by -count=1",
+  "started": "2026-09-07T02:33:38.767379+00:00",
+  "sources": [
+    {
+      "path": "awsidentity/acquire.go",
+      "bytes": 1408,
+      "sha256": "d1d52c8f4b65b5ed5d312e3c10b2ab919dc0a44b4442c0f5cf1866fe6124a504"
+    },
+    {
+      "path": "awsidentity/architecture_test.go",
+      "bytes": 7806,
+      "sha256": "f3fb83c913706964efb6e4c5635458a2cca1600f707e6750175114620cbf8dfb"
+    },
+    {
+      "path": "awsidentity/benchmark_external_test.go",
+      "bytes": 551,
+      "sha256": "6a31083ca3ebeabc72e66d53082c1176324856defcb47124efba74bac51fc583"
+    },
+    {
+      "path": "awsidentity/benchmark_test.go",
+      "bytes": 4124,
+      "sha256": "7968a5377fcf46dd384fc81768cf77257e4eaba73d724596c13280a8b05b0a1b"
+    },
+    {
+      "path": "awsidentity/contracts.go",
+      "bytes": 5247,
+      "sha256": "9810d6c24fbc7a7b91970aac90c60f3aaba1bd526676e7aa0764fafb442a681b"
+    },
+    {
+      "path": "awsidentity/contracts_hostile_test.go",
+      "bytes": 10740,
+      "sha256": "69c211234fcceddead4edd62bc3f00332609d9af092cc30886685cdb6d0a75a8"
+    },
+    {
+      "path": "awsidentity/data_flow_inventory.go",
+      "bytes": 1240,
+      "sha256": "7227918b54a3650436ad3d678bfae0faee421bcf40c24b9b8b960bfba6be45f9"
+    },
+    {
+      "path": "awsidentity/doc.go",
+      "bytes": 452,
+      "sha256": "112e28ccd832a7c808c940ede171a12e59f58721ecc56bc0b7c8f43081421ad5"
+    },
+    {
+      "path": "awsidentity/errors.go",
+      "bytes": 668,
+      "sha256": "9d39dd9b88d1bb660aedccaf1da724538ac96e9427200046a9d5e6feb6606714"
+    },
+    {
+      "path": "awsidentity/identity_test.go",
+      "bytes": 15572,
+      "sha256": "f70b37fe67344ebc00a7421243cd12ee007f76e407a94e523b1c82e7cfdeac0a"
+    },
+    {
+      "path": "awsidentity/identity_token.go",
+      "bytes": 14779,
+      "sha256": "997fa1adbf26efcf53ea3217988f21c68bd8fde849ffa8d805045e2b33109a89"
+    },
+    {
+      "path": "awsidentity/ingress_effect_test.go",
+      "bytes": 2660,
+      "sha256": "9473b863f010fd25598918440a44e6ffe7bb5a987a68d8829d1fe4aa590dbfe1"
+    },
+    {
+      "path": "awsidentity/provider_hostile_test.go",
+      "bytes": 20898,
+      "sha256": "39f46e0fb11c7e8f28cb167e691955a74b63dcd3ec2ffb2f7ec10595894e3433"
+    },
+    {
+      "path": "awsidentity/query_regression_test.go",
+      "bytes": 1556,
+      "sha256": "16075b908c8e2c24ff05301ca276e9d1279dd486bccee644147bb541876b2edc"
+    },
+    {
+      "path": "awsidentity/request_hostile_test.go",
+      "bytes": 12881,
+      "sha256": "5be1bdcd4d1d9efb4aedcbd8e04418304724dca526f7abbaf7031572ff91dcb3"
+    },
+    {
+      "path": "awsidentity/request_ingress_test.go",
+      "bytes": 3518,
+      "sha256": "305b23ed3b95b06b5c2e33da2e5d8225cde8efa04c2fdd1df2cf40988a6d6878"
+    },
+    {
+      "path": "awsidentity/semantic_fuzz_test.go",
+      "bytes": 8698,
+      "sha256": "7c89933eb7c5bc0dae0b1b0af1395d9da3d53f1e0cf97187503cb98aeae372a9"
+    },
+    {
+      "path": "awsidentity/token.go",
+      "bytes": 1751,
+      "sha256": "284193a7b47d00c49a6d8e58280d6b7b547325af06962616f4e8f91dc5033407"
+    },
+    {
+      "path": "awsidentity/xml_framing_test.go",
+      "bytes": 2224,
+      "sha256": "bde535db6078951c06fd5795f25e2297539e619e45bf222dd7c49544d9c2c325"
+    },
+    {
+      "path": "temporal/aggregate.go",
+      "bytes": 5631,
+      "sha256": "2a9033480073c9d5794a5ae69d6f6b0892ee49999edb8181078689b672a5b011"
+    },
+    {
+      "path": "temporal/aggregate_persistence_external_test.go",
+      "bytes": 27277,
+      "sha256": "1333f52e47b34fe4f723a1b1c2c0659de4bec0a9276ebab62405460f214f6df1"
+    },
+    {
+      "path": "temporal/architecture_test.go",
+      "bytes": 20548,
+      "sha256": "38d17f44c2f4cbc93b58c42055e74420ce4bd03bbf6e97005e50ae4a49bcade8"
+    },
+    {
+      "path": "temporal/benchmark_external_test.go",
+      "bytes": 1130,
+      "sha256": "3a2cfd9e4cbd4d929acc82b3c8fd144f44cf3ece13c75268437b9b7d3410e68c"
+    },
+    {
+      "path": "temporal/contracts.go",
+      "bytes": 5966,
+      "sha256": "9e306c6edc5023dc9f1cf0d8ab4026d59f31327d49ffd498cbf9bfd5b2985de2"
+    },
+    {
+      "path": "temporal/doc.go",
+      "bytes": 151,
+      "sha256": "302bcf4ae6585da2e99f9e274c40f8bbf46ea86515749821d780eedc787c29e6"
+    },
+    {
+      "path": "temporal/domain_closure_internal_test.go",
+      "bytes": 6224,
+      "sha256": "03f9508f3847967432170122cfdbd175e07216876ff4e9d3d5ce3e76ca0ab651"
+    },
+    {
+      "path": "temporal/duration.go",
+      "bytes": 5374,
+      "sha256": "69b26f1e4d4a73b2d6ee0e6aac64ccdbe76b6d6da07283a06e28e16f2daf731c"
+    },
+    {
+      "path": "temporal/effects.go",
+      "bytes": 6125,
+      "sha256": "a2a689c809075700a8bd7bb2e9b15b161a7e7eeddfdce36645afe1a628139b14"
+    },
+    {
+      "path": "temporal/effects_external_test.go",
+      "bytes": 12226,
+      "sha256": "85ad57ebf2092b167159046f46ae6309da4ecf1fe367129adae8176ed99df2b6"
+    },
+    {
+      "path": "temporal/errors.go",
+      "bytes": 607,
+      "sha256": "616cd613b1a7aaba9fa76febb118f2fe1e454a4e7192bae9d32c89d75bfb54fa"
+    },
+    {
+      "path": "temporal/external_ingress_inventory_test.go",
+      "bytes": 2117,
+      "sha256": "31c3304507c40fea763e59389007620dde8a355269360c790366255e1fa01b39"
+    },
+    {
+      "path": "temporal/instant.go",
+      "bytes": 9433,
+      "sha256": "8eab9bc4ee8a6426f52ab87fe9dc3f9b2db08b6547d1c1c50ef3daa50cbfebf9"
+    },
+    {
+      "path": "temporal/instant_text_external_test.go",
+      "bytes": 9060,
+      "sha256": "970a3029f44f3d72fcf1c61bdf8bd31a92e9ef57504a3a80416ab5aadb0c971f"
+    },
+    {
+      "path": "temporal/interval.go",
+      "bytes": 4052,
+      "sha256": "5aaaaedd1a87dc4df0863a0bb5228dca4f3f3ebace6e32acc14fe3b473aecc62"
+    },
+    {
+      "path": "temporal/numeric.go",
+      "bytes": 4973,
+      "sha256": "b29b5342d17a5935def6830c49934b30d70f4d39d24f2146bb6261e45092e28e"
+    },
+    {
+      "path": "temporal/numeric_external_test.go",
+      "bytes": 23891,
+      "sha256": "ac1affd3edf3481305096926bc16188bfa81b7f6fa0f87f9c4124b50f203f52e"
+    },
+    {
+      "path": "temporal/observation.go",
+      "bytes": 2738,
+      "sha256": "b3f52155660d7e091a6e869e3b80886fa8d0d312230a0bcbc78d9a3a4965f797"
+    },
+    {
+      "path": "temporal/observation_interval_test.go",
+      "bytes": 14145,
+      "sha256": "98611ba7f028693d42ae8507757fbd99fe0047574958e8cbd7e008a48e715b97"
+    },
+    {
+      "path": "temporal/persistence.go",
+      "bytes": 2018,
+      "sha256": "12915f84c680b0226fa739332a0aa841b162bd6041317b9574d77ed52551a996"
+    },
+    {
+      "path": "temporal/utc_text.go",
+      "bytes": 1966,
+      "sha256": "f01e8d4dfcc27421e9f7272062995c83cbc94329da4f848923bd7bf49adcfe3e"
+    },
+    {
+      "path": "temporal/utc_text_external_test.go",
+      "bytes": 11909,
+      "sha256": "fb3a5a8f9907cca2b96c8d0a617fa943345243afa5699d34b0eea2d2c3d68db2"
+    },
+    {
+      "path": "temporal/value_external_test.go",
+      "bytes": 23418,
+      "sha256": "f0440f60f5d4887c0aafbf1a1487e7f7984b660c3f2d37e1292b189ff9d05238"
+    },
+    {
+      "path": "go.mod",
+      "bytes": 3127,
+      "sha256": "fb645c6e4ee8e917c39f9c1732638142362452d43617ec22a1901fc9ca04c1d4"
+    },
+    {
+      "path": "go.sum",
+      "bytes": 15894,
+      "sha256": "607fa748df5c86058fd0c13a1b63c2fbaa7cea5c2229dabef79614715e3c27a0"
+    },
+    {
+      "path": "_docs/testing_protocol.md",
+      "bytes": 84440,
+      "sha256": "dd83cd7f62c172092546dab6b7c7d5c59753b5e8ae784631a94cff4d6d48126c"
+    }
+  ],
+  "overlays": [
+    {
+      "manifest": {
+        "path": "awsidentity/testdata/test-upgrade-20260906/mutations/compact-fraction/overlay.json",
+        "bytes": 509,
+        "sha256": "b17a8df51e6da15b76523c0b846926c9c69285fe45797ee74ab76b39a9abd967"
+      },
+      "sources": [
+        {
+          "virtual_path": "/Users/d/code/primitive/awsidentity/identity_token.go",
+          "source": {
+            "path": "awsidentity/testdata/test-upgrade-20260906/proposed-source/identity_token.go",
+            "bytes": 14856,
+            "sha256": "f2bdf4f90327a8f104e551b1d703e90dc59bfeaffdd8d48fb28aea336efe8eda"
+          }
+        },
+        {
+          "virtual_path": "/Users/d/code/primitive/awsidentity/response_xml.go",
+          "source": {
+            "path": "awsidentity/testdata/test-upgrade-20260906/proposed-source/response_xml.go",
+            "bytes": 1450,
+            "sha256": "983e175916f5371c74ae66e8fbddd666490c41e104db5d8fc43499f3b7e583dc"
+          }
+        },
+        {
+          "virtual_path": "/Users/d/code/primitive/temporal/utc_text.go",
+          "source": {
+            "path": "awsidentity/testdata/test-upgrade-20260906/mutations/compact-fraction/utc_text.go",
+            "bytes": 1975,
+            "sha256": "31d19aa35940d287d015ac3011a97a36ccb4b7c73d82156f5001ff988466aae7"
+          }
+        }
+      ]
+    }
+  ],
+  "source_snapshot_directory": "awsidentity/testdata/test-upgrade-20260906/mutation-compact-fraction-source",
+  "exit_status": 1,
+  "elapsed_seconds": 1.8475885420048144,
+  "artifacts": [
+    {
+      "path": "awsidentity/testdata/test-upgrade-20260906/mutation-compact-fraction.stdout.txt",
+      "bytes": 15695,
+      "sha256": "5b2888f1503f183c96cf36e60f52a7de81e47984ba4f6360b7e0943948df69d7"
+    },
+    {
+      "path": "awsidentity/testdata/test-upgrade-20260906/mutation-compact-fraction.stderr.txt",
+      "bytes": 0,
+      "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+    },
+    {
+      "path": "awsidentity/testdata/test-upgrade-20260906/mutation-compact-fraction.git-status.txt",
+      "bytes": 10525,
+      "sha256": "7462dba33f5174ca5221673b98dc7f9651b90992446dbbe96e33d1b325a3c664"
+    }
+  ],
+  "test_events": {
+    "pass": 2,
+    "fail": 5,
+    "skip": 0
+  }
+}

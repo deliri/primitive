@@ -1,0 +1,58 @@
+[
+  {
+    "label": "capture-drop-count-admission",
+    "before": "if len(values) > HeaderValueMaximumCount {",
+    "after": "if false && len(values) > HeaderValueMaximumCount {",
+    "outcome": "killed by test",
+    "failed_leaf_tests": [
+      "TestHeaderValueConversionBoundaries/negative_one_above_ceiling_is_refused_before_projection"
+    ],
+    "evidence": "mutation-capture-drop-count-admission.json"
+  },
+  {
+    "label": "capture-refuse-exact-ceiling",
+    "before": "if len(values) > HeaderValueMaximumCount {",
+    "after": "if len(values) >= HeaderValueMaximumCount {",
+    "outcome": "killed inside seed callback",
+    "failed_leaf_tests": [
+      "FuzzCapturedHeadersPreserveExactSelection/seed#1"
+    ],
+    "evidence": "mutation-capture-refuse-exact-ceiling.json"
+  },
+  {
+    "label": "capture-return-invalid-prefix",
+    "before": "if err := result.Validate(); err != nil {\n\t\treturn CapturedHeaders{}, err",
+    "after": "if err := result.Validate(); err != nil {\n\t\treturn result, err",
+    "outcome": "killed by test",
+    "failed_leaf_tests": [
+      "TestHeaderCaptureCustodyLayerTriad/negative_duplicate_selection_cannot_produce_an_invalid_capture"
+    ],
+    "evidence": "mutation-capture-return-invalid-prefix.json"
+  },
+  {
+    "label": "capture-substitute-valid-value",
+    "before": "result[index] = parsed",
+    "after": "if index == 0 { parsed, _ = NewHeaderValue(\"substituted-value\") }; result[index] = parsed",
+    "outcome": "killed inside seed callback",
+    "failed_leaf_tests": [
+      "FuzzCapturedHeadersPreserveExactSelection/seed#0",
+      "FuzzCapturedHeadersPreserveExactSelection/seed#1",
+      "FuzzCapturedHeadersPreserveExactSelection/seed#6",
+      "FuzzCapturedHeadersPreserveExactSelection/seed#7"
+    ],
+    "evidence": "mutation-capture-substitute-valid-value.json"
+  },
+  {
+    "label": "capture-refuse-all-values",
+    "before": "func headerValues(values []string) ([]HeaderValue, error) {",
+    "after": "func headerValues(values []string) ([]HeaderValue, error) {\n\treturn nil, core.ErrExchangeContract",
+    "outcome": "killed inside seed callback",
+    "failed_leaf_tests": [
+      "FuzzCapturedHeadersPreserveExactSelection/seed#0",
+      "FuzzCapturedHeadersPreserveExactSelection/seed#1",
+      "FuzzCapturedHeadersPreserveExactSelection/seed#6",
+      "FuzzCapturedHeadersPreserveExactSelection/seed#7"
+    ],
+    "evidence": "mutation-capture-refuse-all-values.json"
+  }
+]

@@ -71,10 +71,7 @@ func ReplayStream(call StreamReplayCall) (StreamResponse, error) {
 	for progress.attempts < call.Policy.Retry.MaximumAttempts {
 		progress.attempts++
 		response, attemptErr := call.Attempt(operationContext, progress.attempts)
-		if attemptErr == nil {
-			response.Metadata.Attempts = progress.attempts
-			attemptErr = response.Validate()
-		}
+		response, attemptErr = admitStreamAttemptResponse(response, attemptErr, progress.attempts)
 		retry, decisionErr := replayStreamDecision(operationContext, attemptErr)
 		if !retry {
 			return response, decisionErr
@@ -92,6 +89,31 @@ func ReplayStream(call StreamReplayCall) (StreamResponse, error) {
 	return zero, RetryExhaustedError{cause: core.ErrExchangeTransport, attempts: progress.attempts}
 }
 
+// The callback supplies a single-attempt observation. Validate it before adding
+// the replay owner's attempt count, including on a failed transfer. A refusal
+// without an observation remains absent, rather than acquiring invented facts.
+func admitStreamAttemptResponse(response StreamResponse, cause error, attempts uint64) (StreamResponse, error) {
+	if cause != nil && absentStreamObservation(response) {
+		return response, cause
+	}
+	if response.Metadata.Attempts != 1 {
+		return StreamResponse{}, errors.Join(cause, requestError(core.ErrExchangeContract))
+	}
+	if err := response.Validate(); err != nil {
+		return StreamResponse{}, errors.Join(cause, requestError(errors.Join(core.ErrExchangeContract, err)))
+	}
+	response.Metadata.Attempts = attempts
+	return response, cause
+}
+
+func absentStreamObservation(response StreamResponse) bool {
+	return response.Metadata.Attempts == 0 &&
+		response.Metadata.Status == (core.HTTPStatusCode{}) &&
+		response.Metadata.Bytes == (core.ByteLength{}) &&
+		response.DeclaredRequestBytes == (core.ByteLength{}) &&
+		response.Metadata.Headers.Values == nil
+}
+
 var (
 	_ core.Validatable = StreamReplayPolicy{}
 	_ core.Validatable = StreamReplayCall{}
@@ -99,22 +121,28 @@ var (
 
 func replayStreamDecision(ctx context.Context, cause error) (bool, error) {
 	if terminal := terminalOperationError(ctx); terminal != nil {
-		return false, terminal
+		// Cancellation stops future effects; it cannot erase the failure
+		// already observed by the completed attempt.
+		return false, errors.Join(terminal, cause)
 	}
 	if cause == nil {
 		return false, nil
+	}
+	if terminalStreamReplayCause(cause) {
+		return false, cause
 	}
 	status, ok := errors.AsType[StatusError](cause)
 	if ok {
 		return retryableStatus(status.Status()), cause
 	}
-	if errors.Is(cause, core.ErrExchangeCancelled) ||
+	return errors.Is(cause, core.ErrExchangeTransport) ||
+		errors.Is(cause, core.ErrExchangeResponse), cause
+}
+
+func terminalStreamReplayCause(cause error) bool {
+	return errors.Is(cause, core.ErrExchangeCancelled) ||
 		errors.Is(cause, core.ErrExchangeRequest) ||
 		errors.Is(cause, core.ErrExchangeRedirect) ||
 		errors.Is(cause, core.ErrExchangeBodyLimit) ||
-		errors.Is(cause, core.ErrExchangeContentType) {
-		return false, cause
-	}
-	return errors.Is(cause, core.ErrExchangeTransport) ||
-		errors.Is(cause, core.ErrExchangeResponse), cause
+		errors.Is(cause, core.ErrExchangeContentType)
 }

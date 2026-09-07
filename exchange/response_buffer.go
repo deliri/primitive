@@ -10,6 +10,7 @@ import (
 	"strconv"
 	"strings"
 
+	"github.com/deliri/primitive/v2026/contextstate"
 	"github.com/deliri/primitive/v2026/core"
 )
 
@@ -84,7 +85,7 @@ func BufferResponse(ctx context.Context, request ResponseBufferRequest) (Respons
 	if err := request.Validate(); err != nil {
 		return ResponseBufferResult{}, err
 	}
-	if err := ctx.Err(); err != nil {
+	if err := contextstate.Validate(ctx); err != nil {
 		return ResponseBufferResult{}, err
 	}
 	maximum, err := request.BodyMaximum.Uint64()
@@ -92,19 +93,23 @@ func BufferResponse(ctx context.Context, request ResponseBufferRequest) (Respons
 		return ResponseBufferResult{}, err
 	}
 	buffer := &responseBuffer{header: make(http.Header), maximum: int(maximum)}
-	if err := errors.Join(request.Serve(SocketServerCall{writer: buffer, request: request.Call.request.WithContext(ctx)}), buffer.failure, ctx.Err()); err != nil {
+	if err := buffer.serve(ctx, request); err != nil {
 		return ResponseBufferResult{}, err
 	}
 	if buffer.status == 0 {
 		buffer.WriteHeader(http.StatusOK)
 	}
-	if err := errors.Join(buffer.failure, buffer.validateExtent(request.Call.request.Method)); err != nil {
+	if err := buffer.failure; err != nil {
 		return ResponseBufferResult{}, err
 	}
-	if request.Call.request.Method == http.MethodHead {
-		buffer.body = nil
-	}
-	return buffer.release(ctx, request.Call.writer)
+	return buffer.release(ctx, request.Call.writer, request.Call.request.Method)
+}
+
+func (b *responseBuffer) serve(ctx context.Context, request ResponseBufferRequest) error {
+	return executeResponseWriterOperation(func() error {
+		call := SocketServerCall{writer: b, request: request.Call.request.WithContext(ctx)}
+		return errors.Join(request.Serve(call), b.failure, contextstate.Validate(ctx))
+	})
 }
 
 func (b *responseBuffer) Header() http.Header { return b.header }
@@ -213,8 +218,8 @@ func (b *responseBuffer) validateExtent(method string) error {
 	return nil
 }
 
-func (b *responseBuffer) release(ctx context.Context, destination http.ResponseWriter) (ResponseBufferResult, error) {
-	if err := ctx.Err(); err != nil {
+func (b *responseBuffer) release(ctx context.Context, destination http.ResponseWriter, method string) (ResponseBufferResult, error) {
+	if err := contextstate.Validate(ctx); err != nil {
 		return ResponseBufferResult{}, err
 	}
 	var status core.HTTPStatusCode
@@ -222,7 +227,11 @@ func (b *responseBuffer) release(ctx context.Context, destination http.ResponseW
 	if err != nil {
 		return ResponseBufferResult{}, responseError(err)
 	}
-	maps.Copy(destination.Header(), b.sealed)
+	header := destination.Header()
+	if err := b.prepareRelease(header, method); err != nil {
+		return ResponseBufferResult{}, err
+	}
+	maps.Copy(header, b.sealed)
 	destination.WriteHeader(b.status)
 	result := ResponseBufferResult{Status: status, Committed: true}
 	if len(b.body) == 0 {
@@ -230,13 +239,38 @@ func (b *responseBuffer) release(ctx context.Context, destination http.ResponseW
 	}
 	count, writeErr := destination.Write(b.body)
 	if count < 0 || count > len(b.body) {
-		return result, errors.Join(core.ErrExchangeResponse, io.ErrShortWrite, writeErr)
+		return result, errors.Join(core.ErrExchangeResponse, core.ErrExchangeWrite, io.ErrShortWrite, writeErr)
 	}
 	result.Bytes, err = core.NewByteLength(uint64(count))
 	if count != len(b.body) {
 		writeErr = errors.Join(writeErr, io.ErrShortWrite)
 	}
+	if writeErr != nil {
+		writeErr = errors.Join(core.ErrExchangeResponse, core.ErrExchangeWrite, writeErr)
+	}
 	return result, errors.Join(err, writeErr, result.Validate())
+}
+
+// Outer middleware fields and buffered fields form the actual HTTP response.
+// Validate that complete framing before changing the destination or suppressing
+// a generated HEAD body whose extent still needs to be proved.
+func (b *responseBuffer) prepareRelease(destination http.Header, method string) error {
+	merged := destination.Clone()
+	if merged == nil {
+		merged = make(http.Header)
+	}
+	maps.Copy(merged, b.sealed)
+	if err := validateBufferedHeaders(merged); err != nil {
+		return err
+	}
+	b.sealed = merged
+	if err := b.validateExtent(method); err != nil {
+		return err
+	}
+	if method == http.MethodHead {
+		b.body = nil
+	}
+	return nil
 }
 
 var _ http.ResponseWriter = (*responseBuffer)(nil)

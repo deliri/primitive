@@ -100,7 +100,10 @@ func TestAuthorityRefusalLayerTriad(t *testing.T) {
 	t.Run("positive every non-granting status reaches the caller typed", func(t *testing.T) {
 		t.Parallel()
 
-		for status := RefusalStatusGranted; status < refusalStatusLimit; status++ {
+		for status := range refusalStatusLimit {
+			if status < RefusalStatusGranted {
+				continue
+			}
 			if status.granted() {
 				continue
 			}
@@ -153,7 +156,10 @@ func TestAuthorityRefusalLayerTriad(t *testing.T) {
 		if err != nil {
 			t.Fatalf("refusalMaximumRFCBit() error = %v, want nil", err)
 		}
-		for code := RefusalCodeBadAlgorithm; code < refusalCodeLimit; code++ {
+		for code := range refusalCodeLimit {
+			if code < RefusalCodeBadAlgorithm {
+				continue
+			}
 			bit, bitErr := code.rfcBit()
 			if bitErr != nil {
 				t.Fatalf("RefusalCode(%v).rfcBit() error = %v, want nil", code, bitErr)
@@ -195,7 +201,10 @@ func TestAuthorityRefusalLayerTriad(t *testing.T) {
 		}
 		bits := make([]int, 0, refusalMaximumCodeCount)
 		want := make([]RefusalCode, 0, refusalMaximumCodeCount)
-		for code := RefusalCodeBadAlgorithm; code < refusalCodeLimit; code++ {
+		for code := range refusalCodeLimit {
+			if code < RefusalCodeBadAlgorithm {
+				continue
+			}
 			bit, bitErr := code.rfcBit()
 			if bitErr != nil {
 				t.Fatalf("RefusalCode(%v).rfcBit() error = %v, want nil", code, bitErr)
@@ -487,7 +496,10 @@ func TestRefusalStatusClosedEnumMapping(t *testing.T) {
 	t.Parallel()
 
 	seen := make(map[int]RefusalStatus, refusalStatusLimit)
-	for status := RefusalStatusGranted; status < refusalStatusLimit; status++ {
+	for status := range refusalStatusLimit {
+		if status < RefusalStatusGranted {
+			continue
+		}
 		if err := status.Validate(); err != nil || !status.IsValid() {
 			t.Fatalf(
 				"RefusalStatus(%d) validation = (%v, %t), want (nil, true)",
@@ -576,7 +588,10 @@ func TestRefusalCodeClosedEnumMapping(t *testing.T) {
 
 	seen := make(map[uint8]RefusalCode, refusalMaximumCodeCount)
 	count := 0
-	for code := RefusalCodeBadAlgorithm; code < refusalCodeLimit; code++ {
+	for code := range refusalCodeLimit {
+		if code < RefusalCodeBadAlgorithm {
+			continue
+		}
 		count++
 		if err := code.Validate(); err != nil || !code.IsValid() {
 			t.Fatalf(

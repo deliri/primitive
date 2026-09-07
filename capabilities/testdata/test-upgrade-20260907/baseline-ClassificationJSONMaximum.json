@@ -1,0 +1,205 @@
+{
+  "label": "baseline-ClassificationJSONMaximum",
+  "argv": [
+    "go",
+    "test",
+    "-run=^$",
+    "-bench=^BenchmarkClassificationJSONMaximum$",
+    "-benchmem",
+    "-benchtime=30s",
+    "-count=1",
+    "-p=1",
+    "-parallel=1",
+    "-cpuprofile=capabilities/testdata/test-upgrade-20260907/baseline-ClassificationJSONMaximum.cpu.pprof",
+    "-memprofile=capabilities/testdata/test-upgrade-20260907/baseline-ClassificationJSONMaximum.mem.pprof",
+    "-o=capabilities/testdata/test-upgrade-20260907/baseline-ClassificationJSONMaximum.test",
+    "./capabilities"
+  ],
+  "cwd": "/Users/d/code/primitive",
+  "revision": "bcc6942166507094cfb52406b19c5c40c9694223",
+  "tree": "dirty",
+  "toolchain": "go version go1.27.1 darwin/arm64",
+  "environment": "darwin\narm64\n\n\n/Users/d/code/go.work\n\n\n1",
+  "machine": "Darwin Ases-MacBook-Pro.local 25.6.0 Darwin Kernel Version 25.6.0: Fri Jul 31 19:18:49 PDT 2026; root:xnu-12377.161.14~5/RELEASE_ARM64_T6000 arm64",
+  "power": "Now drawing from 'AC Power'\n -InternalBattery-0 (id=22413411)\t80%; AC attached; not charging present: true",
+  "cache": "bypassed for go test by -count=1",
+  "started": "2026-09-07T03:30:08.353896+00:00",
+  "sources": [
+    {
+      "path": "capabilities/benchmark_external_test.go",
+      "bytes": 963,
+      "sha256": "9429841980aea78e67ae68c136b8c24ad3cc496321a2dbf5fd2c007cc9cc4f94"
+    },
+    {
+      "path": "capabilities/benchmark_test.go",
+      "bytes": 2639,
+      "sha256": "e6da510fcadb498d381df62e06179f00a6d6a80abc120b5f1bbfe9c2a8b1c9d5"
+    },
+    {
+      "path": "capabilities/catalog.go",
+      "bytes": 4733,
+      "sha256": "695c1ad0c78b4f946579f29878f489189850b3940ac827766b3ea2f23d4ec190"
+    },
+    {
+      "path": "capabilities/catalog_hostile_test.go",
+      "bytes": 14149,
+      "sha256": "36f1765932ecf2203f9721ca8935a1a5674d1b0c250375150f4f86f06e3aacab"
+    },
+    {
+      "path": "capabilities/catalog_strings.go",
+      "bytes": 5809,
+      "sha256": "d73a50ead9b449250369088facc9e58e0087b8b607a0cb3a33efc3faed89489b"
+    },
+    {
+      "path": "capabilities/classification.go",
+      "bytes": 4977,
+      "sha256": "0cd7cb69900a80ec8c4478ccdb8a4acd82c768761f7463c18226c1f0a7fd272c"
+    },
+    {
+      "path": "capabilities/classification_boundary_test.go",
+      "bytes": 5587,
+      "sha256": "85b55649749f5deb9e6070501956331632ed686c11f2aa29376205fb5d618ace"
+    },
+    {
+      "path": "capabilities/classification_test.go",
+      "bytes": 5920,
+      "sha256": "5404a524dc5e7857bbc91cc4318783640417b4cbd2af1079f1a90a21ff19ff1b"
+    },
+    {
+      "path": "capabilities/classifier_handoff_test.go",
+      "bytes": 4857,
+      "sha256": "bc865074fd2fc3daa0f48466779185f97db4685f08a640fa13905f1ed989f196"
+    },
+    {
+      "path": "capabilities/compiler_methods_test.go",
+      "bytes": 2784,
+      "sha256": "b8fcac26f5e8b6f8ceb6cb7702b3ee744297d9feecd4044d4b383f7d1a641df3"
+    },
+    {
+      "path": "capabilities/compiler_strings.go",
+      "bytes": 1377,
+      "sha256": "da30b810d2f7d8764c3f5bfd44f2ec9179651516bf4d87f17b55d60483cce627"
+    },
+    {
+      "path": "capabilities/data_flow_inventory.go",
+      "bytes": 1452,
+      "sha256": "6713baee8fda920b592bf3fb506bc7c25d901aed826db82bc768d8d47ef6c966"
+    },
+    {
+      "path": "capabilities/data_flow_inventory_test.go",
+      "bytes": 1286,
+      "sha256": "255c87593df5210489adbcd00efd3e4181bc18d17750af7c8e8b7a1b5df3c815"
+    },
+    {
+      "path": "capabilities/effect.go",
+      "bytes": 3151,
+      "sha256": "1f254526f1238fbb02a70c5b575fdfd5177e2a6435a57764038e58990b2b21c1"
+    },
+    {
+      "path": "capabilities/identity.go",
+      "bytes": 2299,
+      "sha256": "038b11eb369ad224fde74b4e22f2eb5957851391ddbed0c7f3b84c60202c66e7"
+    },
+    {
+      "path": "capabilities/identity_hostile_test.go",
+      "bytes": 2557,
+      "sha256": "fb940b91b24e47f2cd3d2e5640c06911a919c93f78eb9998e96c39752e7062b3"
+    },
+    {
+      "path": "capabilities/operation.go",
+      "bytes": 6029,
+      "sha256": "779963b30538b439bcf3eb8b18dddc84aa212631e52af69f9fcd971a7a7747d0"
+    },
+    {
+      "path": "capabilities/operation_test.go",
+      "bytes": 4825,
+      "sha256": "ddc438361731c63fc1795a07ce784766c3fff4d5ac98d047917400fcae42f8cd"
+    },
+    {
+      "path": "capabilities/ownership_boundary_test.go",
+      "bytes": 2910,
+      "sha256": "0ad6abf8d6a46b7b14f2248146f1e34b8d9c58894aaa10effcc1b4f5cc910e87"
+    },
+    {
+      "path": "capabilities/requirement.go",
+      "bytes": 6222,
+      "sha256": "8e5445c6870412f96fefde7387a0acfea5cee17fe1e00125e60e40a39f7b0c59"
+    },
+    {
+      "path": "capabilities/semantic_oracle_test.go",
+      "bytes": 5106,
+      "sha256": "2f4cfb6903f0752df46419a524fe4eea9f5227da5a28566159d445c029b6d009"
+    },
+    {
+      "path": "capabilities/standard_method.go",
+      "bytes": 11902,
+      "sha256": "f87e096934abf7f3d22a8818526e459af940fadd8d461a4576d0d5703d9a89b0"
+    },
+    {
+      "path": "capabilities/standard_symbol.go",
+      "bytes": 16284,
+      "sha256": "29ccf5c2fe0c277bb1c6b84305e4971eb9887139fc0086850a542a4f353bc239"
+    },
+    {
+      "path": "capabilities/standard_symbol_hostile_test.go",
+      "bytes": 10568,
+      "sha256": "37b1537ed063d74767c79aaaeadee8990e0c45ce72e0fa87d1e97b6029077717"
+    },
+    {
+      "path": "go.mod",
+      "bytes": 3127,
+      "sha256": "fb645c6e4ee8e917c39f9c1732638142362452d43617ec22a1901fc9ca04c1d4"
+    },
+    {
+      "path": "go.sum",
+      "bytes": 15894,
+      "sha256": "607fa748df5c86058fd0c13a1b63c2fbaa7cea5c2229dabef79614715e3c27a0"
+    },
+    {
+      "path": "_docs/testing_protocol.md",
+      "bytes": 84440,
+      "sha256": "dd83cd7f62c172092546dab6b7c7d5c59753b5e8ae784631a94cff4d6d48126c"
+    }
+  ],
+  "overlays": [],
+  "source_snapshot_directory": "capabilities/testdata/test-upgrade-20260907/baseline-ClassificationJSONMaximum-source",
+  "exit_status": 0,
+  "elapsed_seconds": 44.1886431669991,
+  "artifacts": [
+    {
+      "path": "capabilities/testdata/test-upgrade-20260907/baseline-ClassificationJSONMaximum.stdout.txt",
+      "bytes": 276,
+      "sha256": "614af40cf495c76242eaed1d726508ae3f948f37a5ebbae4e1df41f1d2615610"
+    },
+    {
+      "path": "capabilities/testdata/test-upgrade-20260907/baseline-ClassificationJSONMaximum.stderr.txt",
+      "bytes": 0,
+      "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+    },
+    {
+      "path": "capabilities/testdata/test-upgrade-20260907/baseline-ClassificationJSONMaximum.git-status.txt",
+      "bytes": 10036,
+      "sha256": "2057e75f1ca2a7a1dff3cac6a83d3e1e46894448bfcf3a32a6882be9afa59609"
+    },
+    {
+      "path": "capabilities/testdata/test-upgrade-20260907/baseline-ClassificationJSONMaximum.cpu.pprof",
+      "bytes": 25729,
+      "sha256": "9de09bb1082a9eafd9fccfdbb738e018548d7b9d0d4ca98ed58c6f94faedd5b5"
+    },
+    {
+      "path": "capabilities/testdata/test-upgrade-20260907/baseline-ClassificationJSONMaximum.mem.pprof",
+      "bytes": 6255,
+      "sha256": "230f188f6aa6076bbbf73a54841522a5fc96c07cb1c8ee52e229ba94d84a6a9e"
+    },
+    {
+      "path": "capabilities/testdata/test-upgrade-20260907/baseline-ClassificationJSONMaximum.test",
+      "bytes": 10305042,
+      "sha256": "0b7fe65e30debd8ee71daf078e9eb2a9a88c9f7f316bb83fd4887da074b09c8f"
+    }
+  ],
+  "test_events": {
+    "pass": 0,
+    "fail": 0,
+    "skip": 0
+  }
+}

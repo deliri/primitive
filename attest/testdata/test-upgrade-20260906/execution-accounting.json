@@ -1,0 +1,869 @@
+{
+  "scope": "./attest",
+  "final_test_record": "boundary-tests.json",
+  "final_test_events": {
+    "pass": 626,
+    "fail": 0,
+    "skip": 0
+  },
+  "all_attempts": [
+    {
+      "label": "baseline-BenchmarkCanonicalObjectReusedScalarBuffer",
+      "exit_status": 0,
+      "test_events": {
+        "pass": 0,
+        "fail": 0,
+        "skip": 0
+      }
+    },
+    {
+      "label": "baseline-BenchmarkSignCanonicalBody64KiB",
+      "exit_status": 0,
+      "test_events": {
+        "pass": 0,
+        "fail": 0,
+        "skip": 0
+      }
+    },
+    {
+      "label": "baseline-BenchmarkSignCanonicalBodyMaximum",
+      "exit_status": 0,
+      "test_events": {
+        "pass": 0,
+        "fail": 0,
+        "skip": 0
+      }
+    },
+    {
+      "label": "baseline-sign64-cpu",
+      "exit_status": 0,
+      "test_events": {
+        "pass": 0,
+        "fail": 0,
+        "skip": 0
+      }
+    },
+    {
+      "label": "baseline-sign64-memory",
+      "exit_status": 0,
+      "test_events": {
+        "pass": 0,
+        "fail": 0,
+        "skip": 0
+      }
+    },
+    {
+      "label": "baseline-signmax-memory",
+      "exit_status": 0,
+      "test_events": {
+        "pass": 0,
+        "fail": 0,
+        "skip": 0
+      }
+    },
+    {
+      "label": "baseline-staticcheck",
+      "exit_status": 0,
+      "test_events": {
+        "pass": 0,
+        "fail": 0,
+        "skip": 0
+      }
+    },
+    {
+      "label": "baseline-tests",
+      "exit_status": 0,
+      "test_events": {
+        "pass": 489,
+        "fail": 0,
+        "skip": 0
+      }
+    },
+    {
+      "label": "baseline-vet",
+      "exit_status": 0,
+      "test_events": {
+        "pass": 0,
+        "fail": 0,
+        "skip": 0
+      }
+    },
+    {
+      "label": "baseline-witness-lint",
+      "exit_status": 0,
+      "test_events": {
+        "pass": 0,
+        "fail": 0,
+        "skip": 0
+      }
+    },
+    {
+      "label": "boundary-BenchmarkCanonicalObjectReusedScalarBuffer-cpu-top",
+      "exit_status": 0,
+      "test_events": {
+        "pass": 0,
+        "fail": 0,
+        "skip": 0
+      }
+    },
+    {
+      "label": "boundary-BenchmarkCanonicalObjectReusedScalarBuffer-mem-top",
+      "exit_status": 0,
+      "test_events": {
+        "pass": 0,
+        "fail": 0,
+        "skip": 0
+      }
+    },
+    {
+      "label": "boundary-BenchmarkCanonicalObjectReusedScalarBuffer",
+      "exit_status": 0,
+      "test_events": {
+        "pass": 0,
+        "fail": 0,
+        "skip": 0
+      }
+    },
+    {
+      "label": "boundary-BenchmarkEnvelopeMarshalJSON-cpu-top",
+      "exit_status": 0,
+      "test_events": {
+        "pass": 0,
+        "fail": 0,
+        "skip": 0
+      }
+    },
+    {
+      "label": "boundary-BenchmarkEnvelopeMarshalJSON-mem-top",
+      "exit_status": 0,
+      "test_events": {
+        "pass": 0,
+        "fail": 0,
+        "skip": 0
+      }
+    },
+    {
+      "label": "boundary-BenchmarkEnvelopeMarshalJSON",
+      "exit_status": 0,
+      "test_events": {
+        "pass": 0,
+        "fail": 0,
+        "skip": 0
+      }
+    },
+    {
+      "label": "boundary-BenchmarkEnvelopeUnmarshalJSON-cpu-top",
+      "exit_status": 0,
+      "test_events": {
+        "pass": 0,
+        "fail": 0,
+        "skip": 0
+      }
+    },
+    {
+      "label": "boundary-BenchmarkEnvelopeUnmarshalJSON-mem-top",
+      "exit_status": 0,
+      "test_events": {
+        "pass": 0,
+        "fail": 0,
+        "skip": 0
+      }
+    },
+    {
+      "label": "boundary-BenchmarkEnvelopeUnmarshalJSON",
+      "exit_status": 0,
+      "test_events": {
+        "pass": 0,
+        "fail": 0,
+        "skip": 0
+      }
+    },
+    {
+      "label": "boundary-BenchmarkSignCanonicalBody64KiB-cpu-top",
+      "exit_status": 0,
+      "test_events": {
+        "pass": 0,
+        "fail": 0,
+        "skip": 0
+      }
+    },
+    {
+      "label": "boundary-BenchmarkSignCanonicalBody64KiB-mem-top",
+      "exit_status": 0,
+      "test_events": {
+        "pass": 0,
+        "fail": 0,
+        "skip": 0
+      }
+    },
+    {
+      "label": "boundary-BenchmarkSignCanonicalBody64KiB",
+      "exit_status": 0,
+      "test_events": {
+        "pass": 0,
+        "fail": 0,
+        "skip": 0
+      }
+    },
+    {
+      "label": "boundary-BenchmarkSignCanonicalBodyMaximum-cpu-top",
+      "exit_status": 0,
+      "test_events": {
+        "pass": 0,
+        "fail": 0,
+        "skip": 0
+      }
+    },
+    {
+      "label": "boundary-BenchmarkSignCanonicalBodyMaximum-mem-top",
+      "exit_status": 0,
+      "test_events": {
+        "pass": 0,
+        "fail": 0,
+        "skip": 0
+      }
+    },
+    {
+      "label": "boundary-BenchmarkSignCanonicalBodyMaximum",
+      "exit_status": 0,
+      "test_events": {
+        "pass": 0,
+        "fail": 0,
+        "skip": 0
+      }
+    },
+    {
+      "label": "boundary-BenchmarkVerifyCanonicalBody64KiB-cpu-top",
+      "exit_status": 0,
+      "test_events": {
+        "pass": 0,
+        "fail": 0,
+        "skip": 0
+      }
+    },
+    {
+      "label": "boundary-BenchmarkVerifyCanonicalBody64KiB-mem-top",
+      "exit_status": 0,
+      "test_events": {
+        "pass": 0,
+        "fail": 0,
+        "skip": 0
+      }
+    },
+    {
+      "label": "boundary-BenchmarkVerifyCanonicalBody64KiB",
+      "exit_status": 0,
+      "test_events": {
+        "pass": 0,
+        "fail": 0,
+        "skip": 0
+      }
+    },
+    {
+      "label": "boundary-BenchmarkVerifyCanonicalBodyMaximum-cpu-top",
+      "exit_status": 0,
+      "test_events": {
+        "pass": 0,
+        "fail": 0,
+        "skip": 0
+      }
+    },
+    {
+      "label": "boundary-BenchmarkVerifyCanonicalBodyMaximum-mem-top",
+      "exit_status": 0,
+      "test_events": {
+        "pass": 0,
+        "fail": 0,
+        "skip": 0
+      }
+    },
+    {
+      "label": "boundary-BenchmarkVerifyCanonicalBodyMaximum",
+      "exit_status": 0,
+      "test_events": {
+        "pass": 0,
+        "fail": 0,
+        "skip": 0
+      }
+    },
+    {
+      "label": "boundary-FuzzSignatureExternalJSONDoor",
+      "exit_status": 0,
+      "test_events": {
+        "pass": 0,
+        "fail": 0,
+        "skip": 0
+      }
+    },
+    {
+      "label": "boundary-tests",
+      "exit_status": 0,
+      "test_events": {
+        "pass": 626,
+        "fail": 0,
+        "skip": 0
+      }
+    },
+    {
+      "label": "candidate-BenchmarkCanonicalObjectReusedScalarBuffer",
+      "exit_status": 0,
+      "test_events": {
+        "pass": 0,
+        "fail": 0,
+        "skip": 0
+      }
+    },
+    {
+      "label": "candidate-BenchmarkEnvelopeMarshalJSON",
+      "exit_status": 0,
+      "test_events": {
+        "pass": 0,
+        "fail": 0,
+        "skip": 0
+      }
+    },
+    {
+      "label": "candidate-BenchmarkEnvelopeUnmarshalJSON",
+      "exit_status": 0,
+      "test_events": {
+        "pass": 0,
+        "fail": 0,
+        "skip": 0
+      }
+    },
+    {
+      "label": "candidate-BenchmarkSignCanonicalBody64KiB",
+      "exit_status": 0,
+      "test_events": {
+        "pass": 0,
+        "fail": 0,
+        "skip": 0
+      }
+    },
+    {
+      "label": "candidate-BenchmarkSignCanonicalBodyMaximum",
+      "exit_status": 0,
+      "test_events": {
+        "pass": 0,
+        "fail": 0,
+        "skip": 0
+      }
+    },
+    {
+      "label": "candidate-BenchmarkVerifyCanonicalBody64KiB",
+      "exit_status": 0,
+      "test_events": {
+        "pass": 0,
+        "fail": 0,
+        "skip": 0
+      }
+    },
+    {
+      "label": "candidate-BenchmarkVerifyCanonicalBodyMaximum",
+      "exit_status": 0,
+      "test_events": {
+        "pass": 0,
+        "fail": 0,
+        "skip": 0
+      }
+    },
+    {
+      "label": "candidate-FuzzCanonicalObjectEmitsStrictlyDecodableAndStableDocuments",
+      "exit_status": 0,
+      "test_events": {
+        "pass": 0,
+        "fail": 0,
+        "skip": 0
+      }
+    },
+    {
+      "label": "candidate-FuzzCanonicalObjectNestedMember",
+      "exit_status": 0,
+      "test_events": {
+        "pass": 0,
+        "fail": 0,
+        "skip": 0
+      }
+    },
+    {
+      "label": "candidate-FuzzEnvelopeJSONSemanticClosure",
+      "exit_status": 0,
+      "test_events": {
+        "pass": 0,
+        "fail": 0,
+        "skip": 0
+      }
+    },
+    {
+      "label": "candidate-FuzzSignCanonicalBodyStreaming",
+      "exit_status": 0,
+      "test_events": {
+        "pass": 0,
+        "fail": 0,
+        "skip": 0
+      }
+    },
+    {
+      "label": "candidate-FuzzSignExternalSignerResponse",
+      "exit_status": 0,
+      "test_events": {
+        "pass": 0,
+        "fail": 0,
+        "skip": 0
+      }
+    },
+    {
+      "label": "candidate-FuzzSignLocalPrivateKey",
+      "exit_status": 0,
+      "test_events": {
+        "pass": 0,
+        "fail": 0,
+        "skip": 0
+      }
+    },
+    {
+      "label": "candidate-FuzzSignatureExternalJSONDoor",
+      "exit_status": 0,
+      "test_events": {
+        "pass": 0,
+        "fail": 0,
+        "skip": 0
+      }
+    },
+    {
+      "label": "candidate-FuzzSigningDomainAdmission",
+      "exit_status": 0,
+      "test_events": {
+        "pass": 0,
+        "fail": 0,
+        "skip": 0
+      }
+    },
+    {
+      "label": "candidate-FuzzTrustedKeysExternalAdmission",
+      "exit_status": 0,
+      "test_events": {
+        "pass": 0,
+        "fail": 0,
+        "skip": 0
+      }
+    },
+    {
+      "label": "candidate-FuzzVerifyRejectsEveryIndependentlyMutatedSignedField",
+      "exit_status": 0,
+      "test_events": {
+        "pass": 0,
+        "fail": 0,
+        "skip": 0
+      }
+    },
+    {
+      "label": "candidate-staticcheck",
+      "exit_status": 0,
+      "test_events": {
+        "pass": 0,
+        "fail": 0,
+        "skip": 0
+      }
+    },
+    {
+      "label": "candidate-tests",
+      "exit_status": 0,
+      "test_events": {
+        "pass": 536,
+        "fail": 0,
+        "skip": 0
+      }
+    },
+    {
+      "label": "candidate-vet",
+      "exit_status": 0,
+      "test_events": {
+        "pass": 0,
+        "fail": 0,
+        "skip": 0
+      }
+    },
+    {
+      "label": "candidate-witness-lint",
+      "exit_status": 1,
+      "test_events": {
+        "pass": 0,
+        "fail": 0,
+        "skip": 0
+      }
+    },
+    {
+      "label": "final-race",
+      "exit_status": 0,
+      "test_events": {
+        "pass": 1082,
+        "fail": 0,
+        "skip": 0
+      }
+    },
+    {
+      "label": "final-staticcheck",
+      "exit_status": 0,
+      "test_events": {
+        "pass": 0,
+        "fail": 0,
+        "skip": 0
+      }
+    },
+    {
+      "label": "final-tests",
+      "exit_status": 0,
+      "test_events": {
+        "pass": 541,
+        "fail": 0,
+        "skip": 0
+      }
+    },
+    {
+      "label": "final-vet",
+      "exit_status": 0,
+      "test_events": {
+        "pass": 0,
+        "fail": 0,
+        "skip": 0
+      }
+    },
+    {
+      "label": "final-witness-lint",
+      "exit_status": 0,
+      "test_events": {
+        "pass": 0,
+        "fail": 0,
+        "skip": 0
+      }
+    },
+    {
+      "label": "mutation-digest-binding",
+      "exit_status": 1,
+      "test_events": {
+        "pass": 11,
+        "fail": 12,
+        "skip": 0
+      }
+    },
+    {
+      "label": "mutation-domain-admission",
+      "exit_status": 1,
+      "test_events": {
+        "pass": 3,
+        "fail": 6,
+        "skip": 0
+      }
+    },
+    {
+      "label": "mutation-first-refusal",
+      "exit_status": 0,
+      "test_events": {
+        "pass": 1,
+        "fail": 0,
+        "skip": 0
+      }
+    },
+    {
+      "label": "mutation-nested-json",
+      "exit_status": 1,
+      "test_events": {
+        "pass": 2,
+        "fail": 6,
+        "skip": 0
+      }
+    },
+    {
+      "label": "mutation-prefix-byte-ceiling",
+      "exit_status": 1,
+      "test_events": {
+        "pass": 2,
+        "fail": 2,
+        "skip": 0
+      }
+    },
+    {
+      "label": "mutation-private-key-consistency",
+      "exit_status": 1,
+      "test_events": {
+        "pass": 5,
+        "fail": 2,
+        "skip": 0
+      }
+    },
+    {
+      "label": "mutation-provider-verification",
+      "exit_status": 1,
+      "test_events": {
+        "pass": 4,
+        "fail": 2,
+        "skip": 0
+      }
+    },
+    {
+      "label": "mutation-review-closed-member",
+      "exit_status": 1,
+      "test_events": {
+        "pass": 0,
+        "fail": 2,
+        "skip": 0
+      }
+    },
+    {
+      "label": "mutation-review-decoded-signature",
+      "exit_status": 1,
+      "test_events": {
+        "pass": 5,
+        "fail": 6,
+        "skip": 0
+      }
+    },
+    {
+      "label": "mutation-review-domain-fixture",
+      "exit_status": 1,
+      "test_events": {
+        "pass": 6,
+        "fail": 13,
+        "skip": 0
+      }
+    },
+    {
+      "label": "mutation-review-envelope-oracle",
+      "exit_status": 1,
+      "test_events": {
+        "pass": 7,
+        "fail": 5,
+        "skip": 0
+      }
+    },
+    {
+      "label": "mutation-review-nested-oracle",
+      "exit_status": 1,
+      "test_events": {
+        "pass": 21,
+        "fail": 18,
+        "skip": 0
+      }
+    },
+    {
+      "label": "mutation-review-signature-separation",
+      "exit_status": 1,
+      "test_events": {
+        "pass": 0,
+        "fail": 5,
+        "skip": 0
+      }
+    },
+    {
+      "label": "mutation-scalar-allocation",
+      "exit_status": 1,
+      "test_events": {
+        "pass": 0,
+        "fail": 1,
+        "skip": 0
+      }
+    },
+    {
+      "label": "mutation-scalar-value",
+      "exit_status": 1,
+      "test_events": {
+        "pass": 6,
+        "fail": 6,
+        "skip": 0
+      }
+    },
+    {
+      "label": "mutation-signature-bytes",
+      "exit_status": 1,
+      "test_events": {
+        "pass": 7,
+        "fail": 2,
+        "skip": 0
+      }
+    },
+    {
+      "label": "mutation-signature-verifier",
+      "exit_status": 1,
+      "test_events": {
+        "pass": 4,
+        "fail": 3,
+        "skip": 0
+      }
+    },
+    {
+      "label": "mutation-signature-whitespace-ceiling",
+      "exit_status": 1,
+      "test_events": {
+        "pass": 2,
+        "fail": 2,
+        "skip": 0
+      }
+    },
+    {
+      "label": "mutation-terminal-callbacks",
+      "exit_status": 1,
+      "test_events": {
+        "pass": 0,
+        "fail": 1,
+        "skip": 0
+      }
+    },
+    {
+      "label": "mutation-trusted-copy",
+      "exit_status": 1,
+      "test_events": {
+        "pass": 5,
+        "fail": 17,
+        "skip": 0
+      }
+    },
+    {
+      "label": "mutation-writer-closure",
+      "exit_status": 1,
+      "test_events": {
+        "pass": 2,
+        "fail": 3,
+        "skip": 0
+      }
+    },
+    {
+      "label": "review-json-oracles",
+      "exit_status": 0,
+      "test_events": {
+        "pass": 621,
+        "fail": 0,
+        "skip": 0
+      }
+    },
+    {
+      "label": "review-package-tests",
+      "exit_status": 0,
+      "test_events": {
+        "pass": 550,
+        "fail": 0,
+        "skip": 0
+      }
+    },
+    {
+      "label": "reviewed-BenchmarkCanonicalObjectReusedScalarBuffer",
+      "exit_status": 0,
+      "test_events": {
+        "pass": 0,
+        "fail": 0,
+        "skip": 0
+      }
+    },
+    {
+      "label": "reviewed-BenchmarkEnvelopeMarshalJSON",
+      "exit_status": 0,
+      "test_events": {
+        "pass": 0,
+        "fail": 0,
+        "skip": 0
+      }
+    },
+    {
+      "label": "reviewed-BenchmarkEnvelopeUnmarshalJSON",
+      "exit_status": 0,
+      "test_events": {
+        "pass": 0,
+        "fail": 0,
+        "skip": 0
+      }
+    },
+    {
+      "label": "reviewed-BenchmarkSignCanonicalBody64KiB",
+      "exit_status": 0,
+      "test_events": {
+        "pass": 0,
+        "fail": 0,
+        "skip": 0
+      }
+    },
+    {
+      "label": "reviewed-BenchmarkSignCanonicalBodyMaximum",
+      "exit_status": 0,
+      "test_events": {
+        "pass": 0,
+        "fail": 0,
+        "skip": 0
+      }
+    },
+    {
+      "label": "reviewed-BenchmarkVerifyCanonicalBody64KiB",
+      "exit_status": 0,
+      "test_events": {
+        "pass": 0,
+        "fail": 0,
+        "skip": 0
+      }
+    },
+    {
+      "label": "reviewed-BenchmarkVerifyCanonicalBodyMaximum",
+      "exit_status": 0,
+      "test_events": {
+        "pass": 0,
+        "fail": 0,
+        "skip": 0
+      }
+    },
+    {
+      "label": "reviewed-FuzzCanonicalObjectNestedMember",
+      "exit_status": 0,
+      "test_events": {
+        "pass": 0,
+        "fail": 0,
+        "skip": 0
+      }
+    },
+    {
+      "label": "reviewed-FuzzEnvelopeJSONSemanticClosure",
+      "exit_status": 0,
+      "test_events": {
+        "pass": 0,
+        "fail": 0,
+        "skip": 0
+      }
+    },
+    {
+      "label": "reviewed-tests",
+      "exit_status": 0,
+      "test_events": {
+        "pass": 615,
+        "fail": 0,
+        "skip": 0
+      }
+    },
+    {
+      "label": "upgrade-first-tests",
+      "exit_status": 0,
+      "test_events": {
+        "pass": 513,
+        "fail": 0,
+        "skip": 0
+      }
+    },
+    {
+      "label": "upgrade-hostile-tests",
+      "exit_status": 0,
+      "test_events": {
+        "pass": 516,
+        "fail": 0,
+        "skip": 0
+      }
+    },
+    {
+      "label": "upgrade-ingress-tests",
+      "exit_status": 0,
+      "test_events": {
+        "pass": 536,
+        "fail": 0,
+        "skip": 0
+      }
+    }
+  ],
+  "gates": "Further gates deferred by user until every package is upgraded. Earlier gate-tool and race results are historical only.",
+  "acceptance": "Local execution facts, not an independent acceptance receipt.",
+  "production_changes": false
+}

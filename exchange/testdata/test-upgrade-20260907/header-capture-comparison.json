@@ -1,0 +1,65 @@
+{
+  "runs": [
+    {
+      "label": "header-capture-before-at_limit",
+      "iterations": 3590144,
+      "ns_per_op": 9700.0,
+      "bytes_per_op": 34488,
+      "allocations_per_op": 71,
+      "command_elapsed_seconds": 36.31308683301904,
+      "configured_seconds": 30
+    },
+    {
+      "label": "header-capture-before-above_limit",
+      "iterations": 13683013,
+      "ns_per_op": 2936.0,
+      "bytes_per_op": 1760,
+      "allocations_per_op": 71,
+      "command_elapsed_seconds": 41.3925427919894,
+      "configured_seconds": 30
+    },
+    {
+      "label": "header-capture-before-excess_4096",
+      "iterations": 225865,
+      "ns_per_op": 421399.0,
+      "bytes_per_op": 98448,
+      "allocations_per_op": 4102,
+      "command_elapsed_seconds": 98.1821877080074,
+      "configured_seconds": 30
+    },
+    {
+      "label": "header-capture-after-at_limit",
+      "iterations": 228316,
+      "ns_per_op": 136018.0,
+      "bytes_per_op": 34488,
+      "allocations_per_op": 71,
+      "command_elapsed_seconds": 35.791278125019744,
+      "configured_seconds": 30
+    },
+    {
+      "label": "header-capture-after-above_limit",
+      "iterations": 32183593,
+      "ns_per_op": 1167.0,
+      "bytes_per_op": 144,
+      "allocations_per_op": 5,
+      "command_elapsed_seconds": 41.89757066598395,
+      "configured_seconds": 30
+    },
+    {
+      "label": "header-capture-after-excess_4096",
+      "iterations": 97770715,
+      "ns_per_op": 345.1,
+      "bytes_per_op": 144,
+      "allocations_per_op": 5,
+      "command_elapsed_seconds": 38.39405316702323,
+      "configured_seconds": 30
+    }
+  ],
+  "interpretation": "Refused response allocation is now constant for 65 and 4096 input values. Accepted allocation unchanged. Accepted timing slowdown persists in one explicit matched recheck; cause unresolved, no timing regression clearance or speedup claim.",
+  "control_recheck": {
+    "before_ns_per_op": 18389,
+    "after_ns_per_op": 107119,
+    "bytes_per_op_both": 34488,
+    "allocations_per_op_both": 71
+  }
+}

@@ -158,8 +158,8 @@ func TestPlanMaximumRegistrationConcurrentAndOneShot(t *testing.T) {
 	}
 	var accepted atomic.Uint32
 	var group sync.WaitGroup
-	for raw := 1; raw <= MaximumSteps*2; raw++ {
-		id := stepIDForTest(t, uint16(raw))
+	for raw := range MaximumSteps * 2 {
+		id := stepIDForTest(t, uint16(raw+1))
 		group.Go(func() {
 			err := plan.Register(Step{
 				ID: id, Phase: PhaseDrain, Budget: budget,
@@ -278,7 +278,10 @@ func TestShutdownRunAccountingLayerTriadAccountsForStartedAndSkippedSteps(t *tes
 			t.Fatal(err)
 		}
 		report, runErr := plan.Run(t.Context())
-		for index := uint8(0); index < report.Count(); index++ {
+		for index := range report.Count() {
+			if index < uint8(0) {
+				continue
+			}
 			result, ok := report.Result(index)
 			if !ok || result.Outcome() != StepOutcomeTotalBudgetExceeded ||
 				!errors.Is(result.Failure(), core.ErrShutdownTotalTimeout) {

@@ -721,7 +721,10 @@ func TestAuthorityRegistryClosure(t *testing.T) {
 	t.Parallel()
 
 	count := 0
-	for authority := AuthorityUnknown + 1; authority < authorityLimit; authority++ {
+	for authority := range authorityLimit {
+		if authority < AuthorityUnknown+1 {
+			continue
+		}
 		count++
 		if err := authority.Validate(); err != nil {
 			t.Fatalf("Authority(%d).Validate() error = %v, want nil", authority, err)
@@ -792,7 +795,10 @@ func TestAuthorityRegistryClosure(t *testing.T) {
 		}
 	}
 
-	for policy := TimestampPolicyUnknown + 1; policy < timestampPolicyLimit; policy++ {
+	for policy := range timestampPolicyLimit {
+		if policy < TimestampPolicyUnknown+1 {
+			continue
+		}
 		if err := policy.Validate(); err != nil || policy.String() == "" {
 			t.Fatalf(
 				"TimestampPolicy(%d) validate/token = (%v, %q), want (nil, canonical)",

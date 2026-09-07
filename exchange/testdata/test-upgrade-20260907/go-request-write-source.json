@@ -1,0 +1,7 @@
+{
+  "source": "/usr/local/go/src/net/http/request.go",
+  "snapshot": "exchange/testdata/test-upgrade-20260907/source-blobs/c3257079994b4e4f74f01cef72508919983ba31f91fcf599d348e9d52cec1540",
+  "sha256": "c3257079994b4e4f74f01cef72508919983ba31f91fcf599d348e9d52cec1540",
+  "bytes": 51543,
+  "relevance": "Go Request.write can close a request body and return nil when waitForContinue returns false, without writing the body. WroteRequest(nil) is therefore not proof that the declared request extent was sent. Production keeps Go transport and file fast paths unchanged."
+}

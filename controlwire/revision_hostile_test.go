@@ -19,7 +19,7 @@ import (
 func TestRevisionValidateExhaustsTheClosedDomain(t *testing.T) {
 	t.Parallel()
 
-	for candidate := 0; candidate <= 255; candidate++ {
+	for candidate := range 256 {
 		revision := controlwire.Revision(candidate)
 		wantValid := revision == controlwire.Revision2026V1
 		if got := revision.IsValid(); got != wantValid {
@@ -53,7 +53,7 @@ func TestRevisionStringIsEmptyOutsideTheDomain(t *testing.T) {
 	if got, want := controlwire.Revision2026V1.String(), controlwire.Revision2026V1Token; got != want {
 		t.Fatalf("Revision2026V1.String() = %q, want %q", got, want)
 	}
-	for candidate := 0; candidate <= 255; candidate++ {
+	for candidate := range 256 {
 		revision := controlwire.Revision(candidate)
 		if revision == controlwire.Revision2026V1 {
 			continue

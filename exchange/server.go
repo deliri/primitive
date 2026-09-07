@@ -154,7 +154,7 @@ func ReceiveJSON[
 		core.Validatable
 	},
 ](call JSONReceiveCall) (Received[BodyPtr], error) {
-	return executeRequestBodyOperation(
+	return executeReceivedBodyOperation(
 		call.Call.request,
 		func() (Received[BodyPtr], error) {
 			return receiveJSON[Body, BodyPtr](call)
@@ -172,17 +172,26 @@ func ReceiveReplayBoundJSON[
 		IdempotencyBound
 	},
 ](call JSONReceiveCall) (Received[BodyPtr], error) {
+	return executeReceivedBodyOperation(call.Call.request, func() (Received[BodyPtr], error) {
+		return receiveReplayBoundJSON[Body, BodyPtr](call)
+	})
+}
+
+func receiveReplayBoundJSON[
+	Body any,
+	BodyPtr interface {
+		*Body
+		IdempotencyBound
+	},
+](call JSONReceiveCall) (Received[BodyPtr], error) {
 	var zero Received[BodyPtr]
-	received, err := ReceiveJSON[Body, BodyPtr](call)
+	received, err := receiveJSON[Body, BodyPtr](call)
 	if err != nil {
 		return zero, err
 	}
-	key, err := received.Body.IdempotencyKey()
+	key, err := observedIdempotencyKey(received.Body)
 	if err != nil {
-		return zero, requestError(errors.Join(
-			core.ErrExchangeIdempotencyBinding,
-			err,
-		))
+		return zero, err
 	}
 	if key != received.IdempotencyKey {
 		return zero, requestError(
@@ -234,7 +243,7 @@ func ReceiveProjectedJSON[
 	Received[BodyPtr],
 	error,
 ) {
-	return executeRequestBodyOperation(
+	return executeReceivedBodyOperation(
 		call.Call.request,
 		func() (Received[BodyPtr], error) {
 			return receiveProjectedJSON(call)
@@ -330,12 +339,27 @@ func projectReceivedBody[
 func ReceiveNoBody(
 	call NoBodyReceiveCall,
 ) (Received[NoBody], error) {
-	return executeRequestBodyOperation(
+	return executeReceivedBodyOperation(
 		call.Call.request,
 		func() (Received[NoBody], error) {
 			return receiveNoBody(call)
 		},
 	)
+}
+
+// A typed document is published only after owned input custody has ended.
+// Stream observations use executeRequestBodyOperation directly because partial
+// writes are real effects that must remain observable alongside a refusal.
+func executeReceivedBodyOperation[Result core.Validatable](
+	request *http.Request,
+	operation func() (Result, error),
+) (Result, error) {
+	received, err := executeRequestBodyOperation(request, operation)
+	if err != nil {
+		var zero Result
+		return zero, err
+	}
+	return received, nil
 }
 
 func receiveNoBody(call NoBodyReceiveCall) (Received[NoBody], error) {
@@ -606,8 +630,8 @@ type NoBodyWriteCall struct {
 
 // Validate checks one complete typed JSON response effect.
 func (call JSONWriteCall[Body]) Validate() error {
-	if err := call.Call.Validate(); err != nil {
-		return responseError(core.ErrExchangeContract)
+	if err := call.Call.validateWrite(); err != nil {
+		return err
 	}
 	if err := call.Response.Validate(); err != nil {
 		return err
@@ -620,8 +644,8 @@ func (call JSONWriteCall[Body]) Validate() error {
 
 // Validate checks one complete body-absent response effect.
 func (call NoBodyWriteCall) Validate() error {
-	if err := call.Call.Validate(); err != nil {
-		return responseError(core.ErrExchangeContract)
+	if err := call.Call.validateWrite(); err != nil {
+		return err
 	}
 	return call.Response.Validate()
 }
@@ -639,6 +663,9 @@ func WriteJSON[
 	)
 	if err != nil {
 		return responseError(err)
+	}
+	if err := call.Call.validateWrite(); err != nil {
+		return err
 	}
 	return writeJSONBytes(
 		jsonWriteRequest{

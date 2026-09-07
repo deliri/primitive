@@ -262,7 +262,7 @@ func BenchmarkDeriveCombinedMaximumRuntimeGraph(b *testing.B) {
 	request := wiringMaximumRequest()
 	b.ReportAllocs()
 	b.ResetTimer()
-	for range b.N {
+	for b.Loop() {
 		manifest, err := Derive(request)
 		if err != nil || manifest.Count() != ComponentMaximum {
 			b.Fatalf("Derive(combined maximum) = count %d error %v", manifest.Count(), err)
@@ -331,7 +331,10 @@ func wiringMaximumRequest() Request[wiringTestIdentity] {
 		identity := wiringTestIdentity(index + 1)
 		lastDependency := min(index+1+DependencyMaximum, len(definitions))
 		dependencies := make([]wiringTestIdentity, 0, lastDependency-index-1)
-		for dependencyIndex := index + 1; dependencyIndex < lastDependency; dependencyIndex++ {
+		for dependencyIndex := range lastDependency {
+			if dependencyIndex < index+1 {
+				continue
+			}
 			dependencies = append(dependencies, wiringTestIdentity(dependencyIndex+1))
 		}
 		definitions[index] = Definition[wiringTestIdentity]{

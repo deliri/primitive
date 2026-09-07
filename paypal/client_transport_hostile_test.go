@@ -147,7 +147,7 @@ func TestSandboxRequestValidationDefersHostBindingToSandboxClient(t *testing.T) 
 	t.Cleanup(func() { _ = errors.Join(provider.Close(), live.Close(), token.Close()) })
 	liveResponse, liveCallErr := live.RoundTrip(t.Context(), Request{Stream: request}, payPalTransportPolicy(t))
 	if liveResponse.Stream.Metadata.Attempts != 0 || liveResponse.Stream.Metadata.Bytes.Uint64() != 0 ||
-		len(liveResponse.Stream.Metadata.Headers.Values) != 0 || liveResponse.Stream.RequestBytes.Uint64() != 0 ||
+		len(liveResponse.Stream.Metadata.Headers.Values) != 0 || liveResponse.Stream.DeclaredRequestBytes.Uint64() != 0 ||
 		!errors.Is(liveCallErr, core.ErrPayPalBinding) || calls != 0 {
 		t.Fatalf("live RoundTrip(sandbox target) = (response %v, error %v, calls %d), want zero, %v, 0", liveResponse, liveCallErr, calls, core.ErrPayPalBinding)
 	}

@@ -1,0 +1,1330 @@
+{
+  "executions": [
+    {
+      "execution": "after-temporal-RFC3339.json",
+      "label": "after-temporal-RFC3339",
+      "exit_status": 0,
+      "test_events": {
+        "pass": 0,
+        "fail": 0,
+        "skip": 0
+      },
+      "package_events": {
+        "pass": 0,
+        "fail": 0,
+        "skip": 0
+      },
+      "build_failure_events": 0,
+      "signal": null
+    },
+    {
+      "execution": "after-temporal-UTC.json",
+      "label": "after-temporal-UTC",
+      "exit_status": 0,
+      "test_events": {
+        "pass": 0,
+        "fail": 0,
+        "skip": 0
+      },
+      "package_events": {
+        "pass": 0,
+        "fail": 0,
+        "skip": 0
+      },
+      "build_failure_events": 0,
+      "signal": null
+    },
+    {
+      "execution": "after-temporal-compact.json",
+      "label": "after-temporal-compact",
+      "exit_status": 0,
+      "test_events": {
+        "pass": 0,
+        "fail": 0,
+        "skip": 0
+      },
+      "package_events": {
+        "pass": 0,
+        "fail": 0,
+        "skip": 0
+      },
+      "build_failure_events": 0,
+      "signal": null
+    },
+    {
+      "execution": "applied-final-tests.json",
+      "label": "applied-final-tests",
+      "exit_status": 0,
+      "test_events": {
+        "pass": 1567,
+        "fail": 0,
+        "skip": 0
+      },
+      "package_events": {
+        "pass": 2,
+        "fail": 0,
+        "skip": 0
+      },
+      "build_failure_events": 0,
+      "signal": null
+    },
+    {
+      "execution": "baseline-BenchmarkParseAudience.json",
+      "label": "baseline-BenchmarkParseAudience",
+      "exit_status": 0,
+      "test_events": {
+        "pass": 0,
+        "fail": 0,
+        "skip": 0
+      },
+      "package_events": {
+        "pass": 0,
+        "fail": 0,
+        "skip": 0
+      },
+      "build_failure_events": 0,
+      "signal": null
+    },
+    {
+      "execution": "baseline-temporal-RFC3339.json",
+      "label": "baseline-temporal-RFC3339",
+      "exit_status": 0,
+      "test_events": {
+        "pass": 0,
+        "fail": 0,
+        "skip": 0
+      },
+      "package_events": {
+        "pass": 0,
+        "fail": 0,
+        "skip": 0
+      },
+      "build_failure_events": 0,
+      "signal": null
+    },
+    {
+      "execution": "baseline-tests.json",
+      "label": "baseline-tests",
+      "exit_status": 0,
+      "test_events": {
+        "pass": 54,
+        "fail": 0,
+        "skip": 0
+      },
+      "package_events": {
+        "pass": 1,
+        "fail": 0,
+        "skip": 0
+      },
+      "build_failure_events": 0,
+      "signal": null
+    },
+    {
+      "execution": "boundary-tests-attempt-1.json",
+      "label": "boundary-tests-attempt-1",
+      "exit_status": 1,
+      "test_events": {
+        "pass": 423,
+        "fail": 27,
+        "skip": 0
+      },
+      "package_events": {
+        "pass": 0,
+        "fail": 1,
+        "skip": 0
+      },
+      "build_failure_events": 0,
+      "signal": null
+    },
+    {
+      "execution": "boundary-tests-attempt-2.json",
+      "label": "boundary-tests-attempt-2",
+      "exit_status": 1,
+      "test_events": {
+        "pass": 766,
+        "fail": 27,
+        "skip": 0
+      },
+      "package_events": {
+        "pass": 0,
+        "fail": 1,
+        "skip": 0
+      },
+      "build_failure_events": 0,
+      "signal": null
+    },
+    {
+      "execution": "fuzz-FuzzAWSAcquireProviderEnvelopeMutations.json",
+      "label": "fuzz-FuzzAWSAcquireProviderEnvelopeMutations",
+      "exit_status": 0,
+      "test_events": {
+        "pass": 0,
+        "fail": 0,
+        "skip": 0
+      },
+      "package_events": {
+        "pass": 0,
+        "fail": 0,
+        "skip": 0
+      },
+      "build_failure_events": 0,
+      "signal": null
+    },
+    {
+      "execution": "fuzz-FuzzAWSAcquireTokenProjection.json",
+      "label": "fuzz-FuzzAWSAcquireTokenProjection",
+      "exit_status": 0,
+      "test_events": {
+        "pass": 0,
+        "fail": 0,
+        "skip": 0
+      },
+      "package_events": {
+        "pass": 0,
+        "fail": 0,
+        "skip": 0
+      },
+      "build_failure_events": 0,
+      "signal": null
+    },
+    {
+      "execution": "fuzz-FuzzAWSAudienceExactUTF8.json",
+      "label": "fuzz-FuzzAWSAudienceExactUTF8",
+      "exit_status": 0,
+      "test_events": {
+        "pass": 0,
+        "fail": 0,
+        "skip": 0
+      },
+      "package_events": {
+        "pass": 0,
+        "fail": 0,
+        "skip": 0
+      },
+      "build_failure_events": 0,
+      "signal": null
+    },
+    {
+      "execution": "fuzz-FuzzAWSProviderResponseSemanticClosure.json",
+      "label": "fuzz-FuzzAWSProviderResponseSemanticClosure",
+      "exit_status": 0,
+      "test_events": {
+        "pass": 0,
+        "fail": 0,
+        "skip": 0
+      },
+      "package_events": {
+        "pass": 0,
+        "fail": 0,
+        "skip": 0
+      },
+      "build_failure_events": 0,
+      "signal": null
+    },
+    {
+      "execution": "fuzz-FuzzAWSRequestAudienceBinding.json",
+      "label": "fuzz-FuzzAWSRequestAudienceBinding",
+      "exit_status": 0,
+      "test_events": {
+        "pass": 0,
+        "fail": 0,
+        "skip": 0
+      },
+      "package_events": {
+        "pass": 0,
+        "fail": 0,
+        "skip": 0
+      },
+      "build_failure_events": 0,
+      "signal": null
+    },
+    {
+      "execution": "fuzz-FuzzAWSRequestQueryClosure.json",
+      "label": "fuzz-FuzzAWSRequestQueryClosure",
+      "exit_status": 0,
+      "test_events": {
+        "pass": 0,
+        "fail": 0,
+        "skip": 0
+      },
+      "package_events": {
+        "pass": 0,
+        "fail": 0,
+        "skip": 0
+      },
+      "build_failure_events": 0,
+      "signal": null
+    },
+    {
+      "execution": "fuzz-FuzzCompactUTCExactTime.json",
+      "label": "fuzz-FuzzCompactUTCExactTime",
+      "exit_status": 0,
+      "test_events": {
+        "pass": 0,
+        "fail": 0,
+        "skip": 0
+      },
+      "package_events": {
+        "pass": 0,
+        "fail": 0,
+        "skip": 0
+      },
+      "build_failure_events": 0,
+      "signal": null
+    },
+    {
+      "execution": "fuzz-FuzzRFC3339UTCExactOffset.json",
+      "label": "fuzz-FuzzRFC3339UTCExactOffset",
+      "exit_status": 0,
+      "test_events": {
+        "pass": 0,
+        "fail": 0,
+        "skip": 0
+      },
+      "package_events": {
+        "pass": 0,
+        "fail": 0,
+        "skip": 0
+      },
+      "build_failure_events": 0,
+      "signal": null
+    },
+    {
+      "execution": "malformed-query-red.json",
+      "label": "malformed-query-red",
+      "exit_status": 1,
+      "test_events": {
+        "pass": 0,
+        "fail": 5,
+        "skip": 0
+      },
+      "package_events": {
+        "pass": 0,
+        "fail": 1,
+        "skip": 0
+      },
+      "build_failure_events": 0,
+      "signal": null
+    },
+    {
+      "execution": "mutation-audience-binding.json",
+      "label": "mutation-audience-binding",
+      "exit_status": 1,
+      "test_events": {
+        "pass": 67,
+        "fail": 3,
+        "skip": 0
+      },
+      "package_events": {
+        "pass": 0,
+        "fail": 1,
+        "skip": 0
+      },
+      "build_failure_events": 0,
+      "signal": null
+    },
+    {
+      "execution": "mutation-audience-limit.json",
+      "label": "mutation-audience-limit",
+      "exit_status": 1,
+      "test_events": {
+        "pass": 17,
+        "fail": 3,
+        "skip": 0
+      },
+      "package_events": {
+        "pass": 0,
+        "fail": 1,
+        "skip": 0
+      },
+      "build_failure_events": 0,
+      "signal": null
+    },
+    {
+      "execution": "mutation-audience-utf8.json",
+      "label": "mutation-audience-utf8",
+      "exit_status": 1,
+      "test_events": {
+        "pass": 13,
+        "fail": 7,
+        "skip": 0
+      },
+      "package_events": {
+        "pass": 0,
+        "fail": 1,
+        "skip": 0
+      },
+      "build_failure_events": 0,
+      "signal": null
+    },
+    {
+      "execution": "mutation-compact-exact-instant.json",
+      "label": "mutation-compact-exact-instant",
+      "exit_status": 1,
+      "test_events": {
+        "pass": 27,
+        "fail": 14,
+        "skip": 0
+      },
+      "package_events": {
+        "pass": 0,
+        "fail": 1,
+        "skip": 0
+      },
+      "build_failure_events": 0,
+      "signal": null
+    },
+    {
+      "execution": "mutation-compact-fraction.json",
+      "label": "mutation-compact-fraction",
+      "exit_status": 1,
+      "test_events": {
+        "pass": 2,
+        "fail": 5,
+        "skip": 0
+      },
+      "package_events": {
+        "pass": 0,
+        "fail": 1,
+        "skip": 0
+      },
+      "build_failure_events": 0,
+      "signal": null
+    },
+    {
+      "execution": "mutation-credential-region.json",
+      "label": "mutation-credential-region",
+      "exit_status": 1,
+      "test_events": {
+        "pass": 27,
+        "fail": 2,
+        "skip": 0
+      },
+      "package_events": {
+        "pass": 0,
+        "fail": 1,
+        "skip": 0
+      },
+      "build_failure_events": 0,
+      "signal": null
+    },
+    {
+      "execution": "mutation-expiry-ceiling.json",
+      "label": "mutation-expiry-ceiling",
+      "exit_status": 1,
+      "test_events": {
+        "pass": 27,
+        "fail": 2,
+        "skip": 0
+      },
+      "package_events": {
+        "pass": 0,
+        "fail": 1,
+        "skip": 0
+      },
+      "build_failure_events": 0,
+      "signal": null
+    },
+    {
+      "execution": "mutation-json-capability-export.json",
+      "label": "mutation-json-capability-export",
+      "exit_status": 1,
+      "test_events": {
+        "pass": 0,
+        "fail": 1,
+        "skip": 0
+      },
+      "package_events": {
+        "pass": 0,
+        "fail": 1,
+        "skip": 0
+      },
+      "build_failure_events": 0,
+      "signal": null
+    },
+    {
+      "execution": "mutation-metadata-cardinality.json",
+      "label": "mutation-metadata-cardinality",
+      "exit_status": 1,
+      "test_events": {
+        "pass": 48,
+        "fail": 2,
+        "skip": 0
+      },
+      "package_events": {
+        "pass": 0,
+        "fail": 1,
+        "skip": 0
+      },
+      "build_failure_events": 0,
+      "signal": null
+    },
+    {
+      "execution": "mutation-policy-redirect.json",
+      "label": "mutation-policy-redirect",
+      "exit_status": 1,
+      "test_events": {
+        "pass": 0,
+        "fail": 10,
+        "skip": 0
+      },
+      "package_events": {
+        "pass": 0,
+        "fail": 1,
+        "skip": 0
+      },
+      "build_failure_events": 0,
+      "signal": null
+    },
+    {
+      "execution": "mutation-policy-retry.json",
+      "label": "mutation-policy-retry",
+      "exit_status": 1,
+      "test_events": {
+        "pass": 0,
+        "fail": 10,
+        "skip": 0
+      },
+      "package_events": {
+        "pass": 0,
+        "fail": 1,
+        "skip": 0
+      },
+      "build_failure_events": 0,
+      "signal": null
+    },
+    {
+      "execution": "mutation-query-duplicate.json",
+      "label": "mutation-query-duplicate",
+      "exit_status": 1,
+      "test_events": {
+        "pass": 24,
+        "fail": 13,
+        "skip": 0
+      },
+      "package_events": {
+        "pass": 0,
+        "fail": 1,
+        "skip": 0
+      },
+      "build_failure_events": 0,
+      "signal": null
+    },
+    {
+      "execution": "mutation-query-parse-error.json",
+      "label": "mutation-query-parse-error",
+      "exit_status": 1,
+      "test_events": {
+        "pass": 0,
+        "fail": 5,
+        "skip": 0
+      },
+      "package_events": {
+        "pass": 0,
+        "fail": 1,
+        "skip": 0
+      },
+      "build_failure_events": 0,
+      "signal": null
+    },
+    {
+      "execution": "mutation-raw-xml-fuzz-tail.json",
+      "label": "mutation-raw-xml-fuzz-tail",
+      "exit_status": 1,
+      "test_events": {
+        "pass": 4,
+        "fail": 3,
+        "skip": 0
+      },
+      "package_events": {
+        "pass": 0,
+        "fail": 1,
+        "skip": 0
+      },
+      "build_failure_events": 0,
+      "signal": null
+    },
+    {
+      "execution": "mutation-request-redaction.json",
+      "label": "mutation-request-redaction",
+      "exit_status": 1,
+      "test_events": {
+        "pass": 0,
+        "fail": 10,
+        "skip": 0
+      },
+      "package_events": {
+        "pass": 0,
+        "fail": 1,
+        "skip": 0
+      },
+      "build_failure_events": 0,
+      "signal": null
+    },
+    {
+      "execution": "mutation-response-byte-limit.json",
+      "label": "mutation-response-byte-limit",
+      "exit_status": 1,
+      "test_events": {
+        "pass": 4,
+        "fail": 5,
+        "skip": 0
+      },
+      "package_events": {
+        "pass": 0,
+        "fail": 1,
+        "skip": 0
+      },
+      "build_failure_events": 0,
+      "signal": null
+    },
+    {
+      "execution": "mutation-result-namespace.json",
+      "label": "mutation-result-namespace",
+      "exit_status": 1,
+      "test_events": {
+        "pass": 48,
+        "fail": 2,
+        "skip": 0
+      },
+      "package_events": {
+        "pass": 0,
+        "fail": 1,
+        "skip": 0
+      },
+      "build_failure_events": 0,
+      "signal": null
+    },
+    {
+      "execution": "mutation-token-alphabet.json",
+      "label": "mutation-token-alphabet",
+      "exit_status": 1,
+      "test_events": {
+        "pass": 294,
+        "fail": 3,
+        "skip": 0
+      },
+      "package_events": {
+        "pass": 0,
+        "fail": 1,
+        "skip": 0
+      },
+      "build_failure_events": 0,
+      "signal": null
+    },
+    {
+      "execution": "mutation-token-cardinality.json",
+      "label": "mutation-token-cardinality",
+      "exit_status": 1,
+      "test_events": {
+        "pass": 47,
+        "fail": 3,
+        "skip": 0
+      },
+      "package_events": {
+        "pass": 0,
+        "fail": 1,
+        "skip": 0
+      },
+      "build_failure_events": 0,
+      "signal": null
+    },
+    {
+      "execution": "mutation-token-disclosure.json",
+      "label": "mutation-token-disclosure",
+      "exit_status": 1,
+      "test_events": {
+        "pass": 37,
+        "fail": 13,
+        "skip": 0
+      },
+      "package_events": {
+        "pass": 0,
+        "fail": 1,
+        "skip": 0
+      },
+      "build_failure_events": 0,
+      "signal": null
+    },
+    {
+      "execution": "mutation-token-limit.json",
+      "label": "mutation-token-limit",
+      "exit_status": 1,
+      "test_events": {
+        "pass": 294,
+        "fail": 3,
+        "skip": 0
+      },
+      "package_events": {
+        "pass": 0,
+        "fail": 1,
+        "skip": 0
+      },
+      "build_failure_events": 0,
+      "signal": null
+    },
+    {
+      "execution": "mutation-token-padding.json",
+      "label": "mutation-token-padding",
+      "exit_status": 1,
+      "test_events": {
+        "pass": 294,
+        "fail": 3,
+        "skip": 0
+      },
+      "package_events": {
+        "pass": 0,
+        "fail": 1,
+        "skip": 0
+      },
+      "build_failure_events": 0,
+      "signal": null
+    },
+    {
+      "execution": "mutation-token-redaction.json",
+      "label": "mutation-token-redaction",
+      "exit_status": 1,
+      "test_events": {
+        "pass": 0,
+        "fail": 10,
+        "skip": 0
+      },
+      "package_events": {
+        "pass": 0,
+        "fail": 1,
+        "skip": 0
+      },
+      "build_failure_events": 0,
+      "signal": null
+    },
+    {
+      "execution": "mutation-utc-offset.json",
+      "label": "mutation-utc-offset",
+      "exit_status": 1,
+      "test_events": {
+        "pass": 19,
+        "fail": 6,
+        "skip": 0
+      },
+      "package_events": {
+        "pass": 0,
+        "fail": 1,
+        "skip": 0
+      },
+      "build_failure_events": 0,
+      "signal": null
+    },
+    {
+      "execution": "mutation-xml-tail.json",
+      "label": "mutation-xml-tail",
+      "exit_status": 1,
+      "test_events": {
+        "pass": 5,
+        "fail": 6,
+        "skip": 0
+      },
+      "package_events": {
+        "pass": 0,
+        "fail": 1,
+        "skip": 0
+      },
+      "build_failure_events": 0,
+      "signal": null
+    },
+    {
+      "execution": "proposed-after-acquire-seam.json",
+      "label": "proposed-after-acquire-seam",
+      "exit_status": 0,
+      "test_events": {
+        "pass": 0,
+        "fail": 0,
+        "skip": 0
+      },
+      "package_events": {
+        "pass": 0,
+        "fail": 0,
+        "skip": 0
+      },
+      "build_failure_events": 0,
+      "signal": null
+    },
+    {
+      "execution": "proposed-after-audience-max.json",
+      "label": "proposed-after-audience-max",
+      "exit_status": 0,
+      "test_events": {
+        "pass": 0,
+        "fail": 0,
+        "skip": 0
+      },
+      "package_events": {
+        "pass": 0,
+        "fail": 0,
+        "skip": 0
+      },
+      "build_failure_events": 0,
+      "signal": null
+    },
+    {
+      "execution": "proposed-after-audience.json",
+      "label": "proposed-after-audience",
+      "exit_status": 0,
+      "test_events": {
+        "pass": 0,
+        "fail": 0,
+        "skip": 0
+      },
+      "package_events": {
+        "pass": 0,
+        "fail": 0,
+        "skip": 0
+      },
+      "build_failure_events": 0,
+      "signal": null
+    },
+    {
+      "execution": "proposed-after-bearer-max.json",
+      "label": "proposed-after-bearer-max",
+      "exit_status": 0,
+      "test_events": {
+        "pass": 0,
+        "fail": 0,
+        "skip": 0
+      },
+      "package_events": {
+        "pass": 0,
+        "fail": 0,
+        "skip": 0
+      },
+      "build_failure_events": 0,
+      "signal": null
+    },
+    {
+      "execution": "proposed-after-bearer-min.json",
+      "label": "proposed-after-bearer-min",
+      "exit_status": 0,
+      "test_events": {
+        "pass": 0,
+        "fail": 0,
+        "skip": 0
+      },
+      "package_events": {
+        "pass": 0,
+        "fail": 0,
+        "skip": 0
+      },
+      "build_failure_events": 0,
+      "signal": null
+    },
+    {
+      "execution": "proposed-after-request.json",
+      "label": "proposed-after-request",
+      "exit_status": 0,
+      "test_events": {
+        "pass": 0,
+        "fail": 0,
+        "skip": 0
+      },
+      "package_events": {
+        "pass": 0,
+        "fail": 0,
+        "skip": 0
+      },
+      "build_failure_events": 0,
+      "signal": null
+    },
+    {
+      "execution": "proposed-after-xml-max.json",
+      "label": "proposed-after-xml-max",
+      "exit_status": 0,
+      "test_events": {
+        "pass": 0,
+        "fail": 0,
+        "skip": 0
+      },
+      "package_events": {
+        "pass": 0,
+        "fail": 0,
+        "skip": 0
+      },
+      "build_failure_events": 0,
+      "signal": null
+    },
+    {
+      "execution": "proposed-after-xml-min.json",
+      "label": "proposed-after-xml-min",
+      "exit_status": 0,
+      "test_events": {
+        "pass": 0,
+        "fail": 0,
+        "skip": 0
+      },
+      "package_events": {
+        "pass": 0,
+        "fail": 0,
+        "skip": 0
+      },
+      "build_failure_events": 0,
+      "signal": null
+    },
+    {
+      "execution": "proposed-final-tests.json",
+      "label": "proposed-final-tests",
+      "exit_status": 0,
+      "test_events": {
+        "pass": 1546,
+        "fail": 0,
+        "skip": 0
+      },
+      "package_events": {
+        "pass": 2,
+        "fail": 0,
+        "skip": 0
+      },
+      "build_failure_events": 0,
+      "signal": null
+    },
+    {
+      "execution": "proposed-fixes-review-tests.json",
+      "label": "proposed-fixes-review-tests",
+      "exit_status": 0,
+      "test_events": {
+        "pass": 1524,
+        "fail": 0,
+        "skip": 0
+      },
+      "package_events": {
+        "pass": 2,
+        "fail": 0,
+        "skip": 0
+      },
+      "build_failure_events": 0,
+      "signal": null
+    },
+    {
+      "execution": "proposed-full-tests-attempt-2.json",
+      "label": "proposed-full-tests-attempt-2",
+      "exit_status": 1,
+      "test_events": {
+        "pass": 601,
+        "fail": 0,
+        "skip": 0
+      },
+      "package_events": {
+        "pass": 1,
+        "fail": 1,
+        "skip": 0
+      },
+      "build_failure_events": 1,
+      "signal": null
+    },
+    {
+      "execution": "proposed-full-tests-attempt-3.json",
+      "label": "proposed-full-tests-attempt-3",
+      "exit_status": 1,
+      "test_events": {
+        "pass": 1543,
+        "fail": 1,
+        "skip": 0
+      },
+      "package_events": {
+        "pass": 1,
+        "fail": 1,
+        "skip": 0
+      },
+      "build_failure_events": 0,
+      "signal": null
+    },
+    {
+      "execution": "proposed-full-tests-attempt-4.json",
+      "label": "proposed-full-tests-attempt-4",
+      "exit_status": 0,
+      "test_events": {
+        "pass": 1544,
+        "fail": 0,
+        "skip": 0
+      },
+      "package_events": {
+        "pass": 2,
+        "fail": 0,
+        "skip": 0
+      },
+      "build_failure_events": 0,
+      "signal": null
+    },
+    {
+      "execution": "provider-fixture-correction.json",
+      "label": "provider-fixture-correction",
+      "exit_status": 0,
+      "test_events": {
+        "pass": 72,
+        "fail": 0,
+        "skip": 0
+      },
+      "package_events": {
+        "pass": 1,
+        "fail": 0,
+        "skip": 0
+      },
+      "build_failure_events": 0,
+      "signal": null
+    },
+    {
+      "execution": "reconstructed-baseline-acquire-seam.json",
+      "label": "reconstructed-baseline-acquire-seam",
+      "exit_status": 0,
+      "test_events": {
+        "pass": 0,
+        "fail": 0,
+        "skip": 0
+      },
+      "package_events": {
+        "pass": 0,
+        "fail": 0,
+        "skip": 0
+      },
+      "build_failure_events": 0,
+      "signal": null
+    },
+    {
+      "execution": "reconstructed-baseline-audience-max.json",
+      "label": "reconstructed-baseline-audience-max",
+      "exit_status": 0,
+      "test_events": {
+        "pass": 0,
+        "fail": 0,
+        "skip": 0
+      },
+      "package_events": {
+        "pass": 0,
+        "fail": 0,
+        "skip": 0
+      },
+      "build_failure_events": 0,
+      "signal": null
+    },
+    {
+      "execution": "reconstructed-baseline-bearer-max.json",
+      "label": "reconstructed-baseline-bearer-max",
+      "exit_status": 0,
+      "test_events": {
+        "pass": 0,
+        "fail": 0,
+        "skip": 0
+      },
+      "package_events": {
+        "pass": 0,
+        "fail": 0,
+        "skip": 0
+      },
+      "build_failure_events": 0,
+      "signal": null
+    },
+    {
+      "execution": "reconstructed-baseline-bearer-min.json",
+      "label": "reconstructed-baseline-bearer-min",
+      "exit_status": 0,
+      "test_events": {
+        "pass": 0,
+        "fail": 0,
+        "skip": 0
+      },
+      "package_events": {
+        "pass": 0,
+        "fail": 0,
+        "skip": 0
+      },
+      "build_failure_events": 0,
+      "signal": null
+    },
+    {
+      "execution": "reconstructed-baseline-request.json",
+      "label": "reconstructed-baseline-request",
+      "exit_status": 0,
+      "test_events": {
+        "pass": 0,
+        "fail": 0,
+        "skip": 0
+      },
+      "package_events": {
+        "pass": 0,
+        "fail": 0,
+        "skip": 0
+      },
+      "build_failure_events": 0,
+      "signal": null
+    },
+    {
+      "execution": "reconstructed-baseline-xml-max.json",
+      "label": "reconstructed-baseline-xml-max",
+      "exit_status": 0,
+      "test_events": {
+        "pass": 0,
+        "fail": 0,
+        "skip": 0
+      },
+      "package_events": {
+        "pass": 0,
+        "fail": 0,
+        "skip": 0
+      },
+      "build_failure_events": 0,
+      "signal": null
+    },
+    {
+      "execution": "reconstructed-baseline-xml-min.json",
+      "label": "reconstructed-baseline-xml-min",
+      "exit_status": 0,
+      "test_events": {
+        "pass": 0,
+        "fail": 0,
+        "skip": 0
+      },
+      "package_events": {
+        "pass": 0,
+        "fail": 0,
+        "skip": 0
+      },
+      "build_failure_events": 0,
+      "signal": null
+    },
+    {
+      "execution": "review-final-proposed-tests.json",
+      "label": "review-final-proposed-tests",
+      "exit_status": 0,
+      "test_events": {
+        "pass": 1567,
+        "fail": 0,
+        "skip": 0
+      },
+      "package_events": {
+        "pass": 2,
+        "fail": 0,
+        "skip": 0
+      },
+      "build_failure_events": 0,
+      "signal": null
+    },
+    {
+      "execution": "review-final-working-tree-tests.json",
+      "label": "review-final-working-tree-tests",
+      "exit_status": 1,
+      "test_events": {
+        "pass": 945,
+        "fail": 21,
+        "skip": 0
+      },
+      "package_events": {
+        "pass": 0,
+        "fail": 1,
+        "skip": 0
+      },
+      "build_failure_events": 0,
+      "signal": null
+    },
+    {
+      "execution": "temporal-integration-tests-attempt-1.json",
+      "label": "temporal-integration-tests-attempt-1",
+      "exit_status": 1,
+      "test_events": {
+        "pass": 888,
+        "fail": 9,
+        "skip": 0
+      },
+      "package_events": {
+        "pass": 0,
+        "fail": 2,
+        "skip": 0
+      },
+      "build_failure_events": 1,
+      "signal": null
+    },
+    {
+      "execution": "temporal-tests-attempt-2.json",
+      "label": "temporal-tests-attempt-2",
+      "exit_status": 1,
+      "test_events": {
+        "pass": 600,
+        "fail": 1,
+        "skip": 0
+      },
+      "package_events": {
+        "pass": 0,
+        "fail": 1,
+        "skip": 0
+      },
+      "build_failure_events": 0,
+      "signal": null
+    },
+    {
+      "execution": "temporal-tests-attempt-3.json",
+      "label": "temporal-tests-attempt-3",
+      "exit_status": 0,
+      "test_events": {
+        "pass": 601,
+        "fail": 0,
+        "skip": 0
+      },
+      "package_events": {
+        "pass": 1,
+        "fail": 0,
+        "skip": 0
+      },
+      "build_failure_events": 0,
+      "signal": null
+    },
+    {
+      "execution": "tls-and-ingress-upgrade.json",
+      "label": "tls-and-ingress-upgrade",
+      "exit_status": 0,
+      "test_events": {
+        "pass": 19,
+        "fail": 0,
+        "skip": 0
+      },
+      "package_events": {
+        "pass": 1,
+        "fail": 0,
+        "skip": 0
+      },
+      "build_failure_events": 0,
+      "signal": null
+    },
+    {
+      "execution": "xml-framing-red.json",
+      "label": "xml-framing-red",
+      "exit_status": 1,
+      "test_events": {
+        "pass": 4,
+        "fail": 7,
+        "skip": 0
+      },
+      "package_events": {
+        "pass": 0,
+        "fail": 1,
+        "skip": 0
+      },
+      "build_failure_events": 0,
+      "signal": null
+    }
+  ],
+  "profiled": [
+    {
+      "execution": "after-temporal-RFC3339.json",
+      "result": "BenchmarkParseRFC3339Canonical-10    \t291139624\t       127.3 ns/op\t       0 B/op\t       0 allocs/op"
+    },
+    {
+      "execution": "after-temporal-UTC.json",
+      "result": "BenchmarkParseRFC3339UTC-10    \t334252494\t       122.5 ns/op\t       0 B/op\t       0 allocs/op"
+    },
+    {
+      "execution": "after-temporal-compact.json",
+      "result": "BenchmarkParseCompactUTC-10    \t148595119\t       244.0 ns/op\t      16 B/op\t       1 allocs/op"
+    },
+    {
+      "execution": "baseline-BenchmarkParseAudience.json",
+      "result": "BenchmarkParseAudience-10    \t1000000000\t        22.43 ns/op\t       0 B/op\t       0 allocs/op"
+    },
+    {
+      "execution": "baseline-temporal-RFC3339.json",
+      "result": "BenchmarkParseRFC3339Canonical-10    \t210391178\t       151.0 ns/op\t       0 B/op\t       0 allocs/op"
+    },
+    {
+      "execution": "proposed-after-acquire-seam.json",
+      "result": "BenchmarkAWSAcquireTransportSeam-10    \t   78747\t    398065 ns/op\t  42.60 MB/s\t  126085 B/op\t     153 allocs/op"
+    },
+    {
+      "execution": "proposed-after-audience-max.json",
+      "result": "BenchmarkAWSAudienceMaximum-10    \t1000000000\t        57.78 ns/op\t       0 B/op\t       0 allocs/op"
+    },
+    {
+      "execution": "proposed-after-audience.json",
+      "result": "BenchmarkParseAudience-10    \t1000000000\t        33.15 ns/op\t       0 B/op\t       0 allocs/op"
+    },
+    {
+      "execution": "proposed-after-bearer-max.json",
+      "result": "BenchmarkAWSBearerDisclosure/maximum-10         \t  637869\t     59975 ns/op\t 273.18 MB/s\t   18432 B/op\t       1 allocs/op"
+    },
+    {
+      "execution": "proposed-after-bearer-min.json",
+      "result": "BenchmarkAWSBearerDisclosure/minimum-10         \t1000000000\t        55.16 ns/op\t  18.13 MB/s\t       8 B/op\t       1 allocs/op"
+    },
+    {
+      "execution": "proposed-after-request.json",
+      "result": "BenchmarkAWSNewRequest-10    \t 3622798\t      8359 ns/op\t    2816 B/op\t      42 allocs/op"
+    },
+    {
+      "execution": "proposed-after-xml-max.json",
+      "result": "BenchmarkAWSProviderXML/maximum-10         \t   96282\t    469300 ns/op\t  36.14 MB/s\t   69771 B/op\t     100 allocs/op"
+    },
+    {
+      "execution": "proposed-after-xml-min.json",
+      "result": "BenchmarkAWSProviderXML/minimum-10         \t 2071971\t     20762 ns/op\t  27.74 MB/s\t    4376 B/op\t      91 allocs/op"
+    },
+    {
+      "execution": "reconstructed-baseline-acquire-seam.json",
+      "result": "BenchmarkAWSAcquireTransportSeam-10    \t   69837\t    499249 ns/op\t  33.97 MB/s\t  126549 B/op\t     156 allocs/op"
+    },
+    {
+      "execution": "reconstructed-baseline-audience-max.json",
+      "result": "BenchmarkAWSAudienceMaximum-10    \t182056947\t       220.8 ns/op\t       0 B/op\t       0 allocs/op"
+    },
+    {
+      "execution": "reconstructed-baseline-bearer-max.json",
+      "result": "BenchmarkAWSBearerDisclosure/maximum-10         \t 1222182\t     31033 ns/op\t 527.96 MB/s\t   18432 B/op\t       1 allocs/op"
+    },
+    {
+      "execution": "reconstructed-baseline-bearer-min.json",
+      "result": "BenchmarkAWSBearerDisclosure/minimum-10         \t387911308\t        77.34 ns/op\t  12.93 MB/s\t       8 B/op\t       1 allocs/op"
+    },
+    {
+      "execution": "reconstructed-baseline-request.json",
+      "result": "BenchmarkAWSNewRequest-10    \t 1000000\t     37315 ns/op\t    3616 B/op\t      46 allocs/op"
+    },
+    {
+      "execution": "reconstructed-baseline-xml-max.json",
+      "result": "BenchmarkAWSProviderXML/maximum-10         \t   65606\t    483065 ns/op\t  35.11 MB/s\t   69836 B/op\t     101 allocs/op"
+    },
+    {
+      "execution": "reconstructed-baseline-xml-min.json",
+      "result": "BenchmarkAWSProviderXML/minimum-10         \t  887036\t     38460 ns/op\t  14.98 MB/s\t    4440 B/op\t      92 allocs/op"
+    }
+  ],
+  "fuzz": [
+    {
+      "execution": "fuzz-FuzzAWSAcquireProviderEnvelopeMutations.json",
+      "reported_executions": 106017
+    },
+    {
+      "execution": "fuzz-FuzzAWSAcquireTokenProjection.json",
+      "reported_executions": 13121
+    },
+    {
+      "execution": "fuzz-FuzzAWSAudienceExactUTF8.json",
+      "reported_executions": 221623
+    },
+    {
+      "execution": "fuzz-FuzzAWSProviderResponseSemanticClosure.json",
+      "reported_executions": 91419
+    },
+    {
+      "execution": "fuzz-FuzzAWSRequestAudienceBinding.json",
+      "reported_executions": 147064
+    },
+    {
+      "execution": "fuzz-FuzzAWSRequestQueryClosure.json",
+      "reported_executions": 208656
+    },
+    {
+      "execution": "fuzz-FuzzCompactUTCExactTime.json",
+      "reported_executions": 620861
+    },
+    {
+      "execution": "fuzz-FuzzRFC3339UTCExactOffset.json",
+      "reported_executions": 719595
+    }
+  ],
+  "fuzz_reported_executions": 2128356,
+  "checked_artifact_references": 285,
+  "acceptance": "local review only; no independent acceptance"
+}

@@ -1,0 +1,11 @@
+{
+  "reason": "One compiler-visible owner for repeated local error context. Shared stable error identity remains core.ErrCapabilitiesContract.",
+  "files": [
+    "capabilities/catalog.go",
+    "capabilities/catalog_strings.go"
+  ],
+  "prior_context": "capability contradicts the Primitive architecture",
+  "behavior": "Literal-to-constant substitution; no changed branches, values, APIs, benchmark fixtures or fuzz callbacks.",
+  "verification": "commit-source-tests.json",
+  "profiles": "commit-after-*"
+}

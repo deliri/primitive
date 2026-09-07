@@ -1,0 +1,167 @@
+{
+  "scope": "Author-side listener profile/fuzz integrity audit only, not final package manifest or independent acceptance.",
+  "records": [
+    {
+      "label": "listen-address-before-concrete_ipv4",
+      "exit_status": 0,
+      "checked_refs": 256,
+      "faults": []
+    },
+    {
+      "label": "listen-address-before-concrete_mapped_ipv4",
+      "exit_status": 0,
+      "checked_refs": 256,
+      "faults": []
+    },
+    {
+      "label": "listen-address-before-mapped_wildcard",
+      "exit_status": 1,
+      "checked_refs": 256,
+      "faults": []
+    },
+    {
+      "label": "listen-address-before-zoned_wildcard",
+      "exit_status": 1,
+      "checked_refs": 256,
+      "faults": []
+    },
+    {
+      "label": "listen-address-before-zoned_mapped_wildcard",
+      "exit_status": 1,
+      "checked_refs": 256,
+      "faults": []
+    },
+    {
+      "label": "listen-address-after-concrete_ipv4",
+      "exit_status": 0,
+      "checked_refs": 254,
+      "faults": []
+    },
+    {
+      "label": "listen-address-after-concrete_mapped_ipv4",
+      "exit_status": 0,
+      "checked_refs": 254,
+      "faults": []
+    },
+    {
+      "label": "listen-address-after-mapped_wildcard",
+      "exit_status": 0,
+      "checked_refs": 254,
+      "faults": []
+    },
+    {
+      "label": "listen-address-after-zoned_wildcard",
+      "exit_status": 0,
+      "checked_refs": 254,
+      "faults": []
+    },
+    {
+      "label": "listen-address-after-zoned_mapped_wildcard",
+      "exit_status": 0,
+      "checked_refs": 254,
+      "faults": []
+    },
+    {
+      "label": "listen-address-benchmark-semantic-check",
+      "exit_status": 0,
+      "checked_refs": 251,
+      "faults": []
+    },
+    {
+      "label": "exchange-listener-architecture-checkpoint-09",
+      "exit_status": 0,
+      "checked_refs": 252,
+      "faults": []
+    },
+    {
+      "label": "fuzz-listen-address-after-profiles",
+      "exit_status": 0,
+      "checked_refs": 251,
+      "faults": []
+    },
+    {
+      "label": "listen-address-before-concrete_ipv4-cpu-analysis",
+      "exit_status": 0,
+      "checked_refs": 251,
+      "faults": []
+    },
+    {
+      "label": "listen-address-before-concrete_ipv4-mem-analysis",
+      "exit_status": 0,
+      "checked_refs": 251,
+      "faults": []
+    },
+    {
+      "label": "listen-address-after-concrete_ipv4-cpu-analysis",
+      "exit_status": 0,
+      "checked_refs": 251,
+      "faults": []
+    },
+    {
+      "label": "listen-address-after-concrete_ipv4-mem-analysis",
+      "exit_status": 0,
+      "checked_refs": 251,
+      "faults": []
+    },
+    {
+      "label": "listen-address-before-concrete_mapped_ipv4-cpu-analysis",
+      "exit_status": 0,
+      "checked_refs": 251,
+      "faults": []
+    },
+    {
+      "label": "listen-address-before-concrete_mapped_ipv4-mem-analysis",
+      "exit_status": 0,
+      "checked_refs": 251,
+      "faults": []
+    },
+    {
+      "label": "listen-address-after-concrete_mapped_ipv4-cpu-analysis",
+      "exit_status": 0,
+      "checked_refs": 251,
+      "faults": []
+    },
+    {
+      "label": "listen-address-after-concrete_mapped_ipv4-mem-analysis",
+      "exit_status": 0,
+      "checked_refs": 251,
+      "faults": []
+    },
+    {
+      "label": "listen-address-after-mapped_wildcard-cpu-analysis",
+      "exit_status": 0,
+      "checked_refs": 251,
+      "faults": []
+    },
+    {
+      "label": "listen-address-after-mapped_wildcard-mem-analysis",
+      "exit_status": 0,
+      "checked_refs": 251,
+      "faults": []
+    },
+    {
+      "label": "listen-address-after-zoned_wildcard-cpu-analysis",
+      "exit_status": 0,
+      "checked_refs": 251,
+      "faults": []
+    },
+    {
+      "label": "listen-address-after-zoned_wildcard-mem-analysis",
+      "exit_status": 0,
+      "checked_refs": 251,
+      "faults": []
+    },
+    {
+      "label": "listen-address-after-zoned_mapped_wildcard-cpu-analysis",
+      "exit_status": 0,
+      "checked_refs": 251,
+      "faults": []
+    },
+    {
+      "label": "listen-address-after-zoned_mapped_wildcard-mem-analysis",
+      "exit_status": 0,
+      "checked_refs": 251,
+      "faults": []
+    }
+  ]
+}

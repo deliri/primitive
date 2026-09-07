@@ -441,7 +441,10 @@ func TestControlwireExternalIngressFuzzInventoryMatchesProduction(t *testing.T) 
 		t.Fatalf("controlwireExportedJSONReceiverNames() error = %v, want nil", err)
 	}
 	var wantJSON []string
-	for door := controlwireJSONDoorUnknown + 1; door < controlwireJSONDoorLimit; door++ {
+	for door := range controlwireJSONDoorLimit {
+		if door < controlwireJSONDoorUnknown+1 {
+			continue
+		}
 		wantJSON = append(wantJSON, door.receiverName())
 	}
 	slices.Sort(wantJSON)

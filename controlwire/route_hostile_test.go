@@ -20,7 +20,7 @@ func TestRouteFamilyClosesItsEntireByteDomain(t *testing.T) {
 
 	seen := map[string]RouteFamily{}
 	admitted := 0
-	for value := 0; value <= 255; value++ {
+	for value := range 256 {
 		family := RouteFamily(value)
 		if err := family.Validate(); err != nil {
 			if family.IsValid() {

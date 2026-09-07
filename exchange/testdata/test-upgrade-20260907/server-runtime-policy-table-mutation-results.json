@@ -1,0 +1,105 @@
+[
+  {
+    "label": "runtime-table-constructor-refuses-all",
+    "before": "if handler == nil {",
+    "after": "if handler != nil || handler == nil {",
+    "outcome": "killed in policy table",
+    "failed_callbacks": [
+      "TestServerRuntimePolicyProjectionBoundaryTable/header_read/maximum_cannot_overflow_during_Go_projection",
+      "TestServerRuntimePolicyProjectionBoundaryTable/header_read/below_maximum_retains_its_final_nanosecond",
+      "TestServerRuntimeHeaderExtentBoundaryTable/one_above_minimum_cannot_round_down",
+      "TestServerRuntimeHeaderExtentBoundaryTable/portable_ceiling_remains_exact",
+      "TestServerRuntimeHeaderExtentBoundaryTable/smallest_positive_extent_remains_exact",
+      "TestServerRuntimePolicyProjectionBoundaryTable/keepalive_idle/below_maximum_retains_its_final_nanosecond",
+      "TestServerRuntimePolicyProjectionBoundaryTable/keepalive_idle/smallest_positive_timeout_cannot_round_to_unbounded",
+      "TestServerRuntimePolicyProjectionBoundaryTable/keepalive_idle/maximum_cannot_overflow_during_Go_projection",
+      "TestServerRuntimePolicyProjectionBoundaryTable/keepalive_idle/one_above_minimum_cannot_round_to_its_neighbor",
+      "TestServerRuntimePolicyProjectionBoundaryTable/keepalive_idle",
+      "TestServerRuntimePolicyProjectionBoundaryTable/header_read/smallest_positive_timeout_cannot_round_to_unbounded",
+      "TestServerRuntimePolicyProjectionBoundaryTable/whole_request_read/one_above_minimum_cannot_round_to_its_neighbor",
+      "TestServerRuntimePolicyProjectionBoundaryTable/whole_request_read/smallest_positive_timeout_cannot_round_to_unbounded",
+      "TestServerRuntimePolicyProjectionBoundaryTable/whole_request_read/below_maximum_retains_its_final_nanosecond",
+      "TestServerRuntimePolicyProjectionBoundaryTable/header_read/one_above_minimum_cannot_round_to_its_neighbor",
+      "TestServerRuntimePolicyProjectionBoundaryTable/header_read",
+      "TestServerRuntimePolicyProjectionBoundaryTable/response_write/maximum_cannot_overflow_during_Go_projection",
+      "TestServerRuntimePolicyProjectionBoundaryTable/response_write/below_maximum_retains_its_final_nanosecond",
+      "TestServerRuntimePolicyProjectionBoundaryTable/response_write/one_above_minimum_cannot_round_to_its_neighbor",
+      "TestServerRuntimePolicyProjectionBoundaryTable/response_write/smallest_positive_timeout_cannot_round_to_unbounded",
+      "TestServerRuntimePolicyProjectionBoundaryTable/response_write",
+      "TestServerRuntimePolicyProjectionBoundaryTable/whole_request_read/maximum_cannot_overflow_during_Go_projection",
+      "TestServerRuntimePolicyProjectionBoundaryTable/whole_request_read",
+      "TestServerRuntimeHeaderExtentBoundaryTable/one_below_portable_ceiling_remains_exact"
+    ],
+    "evidence": "mutation-runtime-table-constructor-refuses-all.json"
+  },
+  {
+    "label": "runtime-table-header-truncates-valid-limit",
+    "before": "MaxHeaderBytes:    headerBytes,",
+    "after": "MaxHeaderBytes:    headerBytes - 1,",
+    "outcome": "killed in policy table",
+    "failed_callbacks": [
+      "TestServerRuntimeHeaderExtentBoundaryTable/one_below_portable_ceiling_remains_exact",
+      "TestServerRuntimeHeaderExtentBoundaryTable/one_above_minimum_cannot_round_down",
+      "TestServerRuntimeHeaderExtentBoundaryTable/portable_ceiling_remains_exact",
+      "TestServerRuntimeHeaderExtentBoundaryTable/smallest_positive_extent_remains_exact"
+    ],
+    "evidence": "mutation-runtime-table-header-truncates-valid-limit.json"
+  },
+  {
+    "label": "runtime-table-swaps-go-read-timeouts",
+    "before": "ReadHeaderTimeout: readHeaderTimeout,\n\t\tReadTimeout:       readTimeout,",
+    "after": "ReadHeaderTimeout: readTimeout,\n\t\tReadTimeout:       readHeaderTimeout,",
+    "outcome": "killed in policy table",
+    "failed_callbacks": [
+      "TestServerRuntimePolicyProjectionBoundaryTable/header_read/smallest_positive_timeout_cannot_round_to_unbounded",
+      "TestServerRuntimePolicyProjectionBoundaryTable/keepalive_idle/maximum_cannot_overflow_during_Go_projection",
+      "TestServerRuntimePolicyProjectionBoundaryTable/keepalive_idle/below_maximum_retains_its_final_nanosecond",
+      "TestServerRuntimePolicyProjectionBoundaryTable/header_read/below_maximum_retains_its_final_nanosecond",
+      "TestServerRuntimePolicyProjectionBoundaryTable/header_read/maximum_cannot_overflow_during_Go_projection",
+      "TestServerRuntimePolicyProjectionBoundaryTable/whole_request_read/maximum_cannot_overflow_during_Go_projection",
+      "TestServerRuntimePolicyProjectionBoundaryTable/whole_request_read/one_above_minimum_cannot_round_to_its_neighbor",
+      "TestServerRuntimePolicyProjectionBoundaryTable/whole_request_read/below_maximum_retains_its_final_nanosecond",
+      "TestServerRuntimePolicyProjectionBoundaryTable/header_read/one_above_minimum_cannot_round_to_its_neighbor",
+      "TestServerRuntimePolicyProjectionBoundaryTable/header_read",
+      "TestServerRuntimePolicyProjectionBoundaryTable/whole_request_read/smallest_positive_timeout_cannot_round_to_unbounded",
+      "TestServerRuntimePolicyProjectionBoundaryTable/whole_request_read",
+      "TestServerRuntimePolicyProjectionBoundaryTable/keepalive_idle/one_above_minimum_cannot_round_to_its_neighbor",
+      "TestServerRuntimePolicyProjectionBoundaryTable/keepalive_idle/smallest_positive_timeout_cannot_round_to_unbounded",
+      "TestServerRuntimePolicyProjectionBoundaryTable/keepalive_idle",
+      "TestServerRuntimePolicyProjectionBoundaryTable/response_write/smallest_positive_timeout_cannot_round_to_unbounded",
+      "TestServerRuntimePolicyProjectionBoundaryTable/response_write/maximum_cannot_overflow_during_Go_projection",
+      "TestServerRuntimePolicyProjectionBoundaryTable/response_write/below_maximum_retains_its_final_nanosecond",
+      "TestServerRuntimePolicyProjectionBoundaryTable/response_write/one_above_minimum_cannot_round_to_its_neighbor",
+      "TestServerRuntimePolicyProjectionBoundaryTable/response_write"
+    ],
+    "evidence": "mutation-runtime-table-swaps-go-read-timeouts.json"
+  },
+  {
+    "label": "runtime-table-zero-timeout-admitted",
+    "before": "if p.ReadHeaderTimeout.IsZero() || p.ReadTimeout.IsZero() || p.WriteTimeout.IsZero() || p.IdleTimeout.IsZero() {",
+    "after": "if false {",
+    "outcome": "killed in policy table",
+    "failed_callbacks": [
+      "TestServerRuntimePolicyProjectionBoundaryTable/header_read/zero_must_not_select_Go_unbounded_timeout",
+      "TestServerRuntimePolicyProjectionBoundaryTable/keepalive_idle/zero_must_not_select_Go_unbounded_timeout",
+      "TestServerRuntimePolicyProjectionBoundaryTable/header_read",
+      "TestServerRuntimePolicyProjectionBoundaryTable/keepalive_idle",
+      "TestServerRuntimePolicyProjectionBoundaryTable/response_write/zero_must_not_select_Go_unbounded_timeout",
+      "TestServerRuntimePolicyProjectionBoundaryTable/whole_request_read/zero_must_not_select_Go_unbounded_timeout",
+      "TestServerRuntimePolicyProjectionBoundaryTable/whole_request_read",
+      "TestServerRuntimePolicyProjectionBoundaryTable/response_write"
+    ],
+    "evidence": "mutation-runtime-table-zero-timeout-admitted.json"
+  },
+  {
+    "label": "runtime-table-owning-policy-drops-header-refusal",
+    "before": "\t\theaderErr,",
+    "after": "\t\tfunc() error { _ = headerErr; return nil }(),",
+    "outcome": "killed in policy table",
+    "failed_callbacks": [
+      "TestServerRuntimeHeaderExtentBoundaryTable/overflow_class_refuses_before_Go_conversion_or_read_allowance_addition",
+      "TestServerRuntimeHeaderExtentBoundaryTable/absent_extent_cannot_select_Go_default"
+    ],
+    "evidence": "mutation-runtime-table-owning-policy-drops-header-refusal.json"
+  }
+]

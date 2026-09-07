@@ -323,8 +323,8 @@ func TestEvaluateSurvivesUptimeBeyondTheRollbackTolerance(t *testing.T) {
 	startedAt := fixtureObservation(t, 10*minute)
 	durable := fixtureInstant(10 * minute)
 
-	for tick := 1; tick <= 12; tick++ {
-		wall := 10*minute + int64(tick)*10*minute
+	for tick := range 12 {
+		wall := 10*minute + int64(tick+1)*10*minute
 		got, err := lease.Evaluate(lease.EvaluateRequest{
 			Decision:         verified,
 			DurableHighWater: durable,
@@ -332,18 +332,18 @@ func TestEvaluateSurvivesUptimeBeyondTheRollbackTolerance(t *testing.T) {
 			ObservedAt:       fixtureObservation(t, wall),
 		})
 		if err != nil {
-			t.Fatalf("tick %d lease.Evaluate() error = %v, want nil", tick, err)
+			t.Fatalf("tick %d lease.Evaluate() error = %v, want nil", tick+1, err)
 		}
 		effective, effectiveErr := got.EffectiveAt()
 		if effectiveErr != nil {
-			t.Fatalf("tick %d Assessment.EffectiveAt() error = %v, want nil", tick, effectiveErr)
+			t.Fatalf("tick %d Assessment.EffectiveAt() error = %v, want nil", tick+1, effectiveErr)
 		}
 		nanoseconds, nanosecondErr := effective.Nanoseconds()
 		if nanosecondErr != nil {
-			t.Fatalf("tick %d Instant.Nanoseconds() error = %v, want nil", tick, nanosecondErr)
+			t.Fatalf("tick %d Instant.Nanoseconds() error = %v, want nil", tick+1, nanosecondErr)
 		}
 		if nanoseconds != wall {
-			t.Fatalf("tick %d effective = %d, want the real wall reading %d", tick, nanoseconds, wall)
+			t.Fatalf("tick %d effective = %d, want the real wall reading %d", tick+1, nanoseconds, wall)
 		}
 		durable = effective
 	}

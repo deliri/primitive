@@ -5,7 +5,6 @@ import (
 	"io"
 	"net/http"
 	"net/http/httptest"
-	"os"
 	"path/filepath"
 	"testing"
 
@@ -27,9 +26,9 @@ func BenchmarkUpload10MiBFileOverLoopback(b *testing.B) {
 	tempDir := b.TempDir()
 	sourcePath := filepath.Join(tempDir, "source.bin")
 	writeDeterministicFile(b, sourcePath, testLargeTransferBytes)
-	source, err := os.Open(sourcePath)
+	source, err := openExchangeFixtureFile(b, sourcePath)
 	if err != nil {
-		b.Fatalf("os.Open(%q) setup error = %v, want nil", sourcePath, err)
+		b.Fatalf("Filestore fixture open(%q) setup error = %v, want nil", sourcePath, err)
 	}
 	defer func() {
 		if closeErr := source.Close(); closeErr != nil {
@@ -121,11 +120,11 @@ func BenchmarkUpload10MiBFileOverLoopback(b *testing.B) {
 				serverGot.writeErr,
 			)
 		}
-		if got.Metadata.Bytes.Uint64() != testLargeTransferBytes ||
+		if got.DeclaredRequestBytes.Uint64() != testLargeTransferBytes ||
 			serverGot.bytes != testLargeTransferBytes {
 			b.Fatalf(
 				"upload client/server bytes = (%d, %d), want (%d, %d)",
-				got.Metadata.Bytes.Uint64(),
+				got.DeclaredRequestBytes.Uint64(),
 				serverGot.bytes,
 				testLargeTransferBytes,
 				testLargeTransferBytes,
@@ -138,9 +137,9 @@ func BenchmarkDownload10MiBFileOverLoopback(b *testing.B) {
 	tempDir := b.TempDir()
 	sourcePath := filepath.Join(tempDir, "source.bin")
 	writeDeterministicFile(b, sourcePath, testLargeTransferBytes)
-	source, err := os.Open(sourcePath)
+	source, err := openExchangeFixtureFile(b, sourcePath)
 	if err != nil {
-		b.Fatalf("os.Open(%q) setup error = %v, want nil", sourcePath, err)
+		b.Fatalf("Filestore fixture open(%q) setup error = %v, want nil", sourcePath, err)
 	}
 	defer func() {
 		if closeErr := source.Close(); closeErr != nil {

@@ -1,0 +1,5 @@
+{
+  "execution": "closed-source-tests.json",
+  "all_recorded_sources_match": true,
+  "no_go_source_edits_during_final_phase": true
+}

@@ -965,7 +965,7 @@ func TestZeroResultAndExitCodeRefuseProjection(t *testing.T) {
 func TestClosedEnumsExhaustAllBackingValues(t *testing.T) {
 	t.Parallel()
 
-	for raw := 0; raw <= math.MaxUint8; raw++ {
+	for raw := range math.MaxUint8 + 1 {
 		environmentMode := process.EnvironmentMode(raw)
 		wantEnvironmentValid := environmentMode == process.EnvironmentModeInherit ||
 			environmentMode == process.EnvironmentModeExact

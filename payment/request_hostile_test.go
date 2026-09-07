@@ -269,7 +269,7 @@ func TestPaymentSigningDomainExhaustsPublishedAndFutureByteValues(t *testing.T) 
 	t.Parallel()
 
 	admitted := 0
-	for value := 0; value <= 255; value++ {
+	for value := range 256 {
 		domain := SigningDomain(value)
 		if !domain.IsValid() {
 			if err := domain.Validate(); !errors.Is(err, core.ErrPaymentContract) {
@@ -402,7 +402,7 @@ func signedQueryPadJSON(encoded []byte, length int) []byte {
 		return nil
 	}
 	padded := make([]byte, length)
-	for index := 0; index < length-len(encoded); index++ {
+	for index := range length - len(encoded) {
 		padded[index] = ' '
 	}
 	copy(padded[length-len(encoded):], encoded)

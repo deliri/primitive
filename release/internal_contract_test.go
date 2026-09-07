@@ -235,7 +235,10 @@ func TestExternalIngressFuzzInventoryMatchesEveryPublicDecoder(t *testing.T) {
 		t.Fatalf("exportedJSONReceiverNames() error = %v, want nil", err)
 	}
 	var wantJSON []string
-	for door := releaseJSONDoorUnknown + 1; door < releaseJSONDoorLimit; door++ {
+	for door := range releaseJSONDoorLimit {
+		if door < releaseJSONDoorUnknown+1 {
+			continue
+		}
 		name := door.receiverName()
 		if name == "" {
 			t.Fatalf("release JSON fuzz door %d has no compiler-visible receiver", door)
@@ -249,7 +252,10 @@ func TestExternalIngressFuzzInventoryMatchesEveryPublicDecoder(t *testing.T) {
 
 	gotText := []string{"ParseBuildTag", "ParseMainPackage"}
 	var wantText []string
-	for door := releaseTextDoorUnknown + 1; door < releaseTextDoorLimit; door++ {
+	for door := range releaseTextDoorLimit {
+		if door < releaseTextDoorUnknown+1 {
+			continue
+		}
 		name := door.functionName()
 		if name == "" {
 			t.Fatalf("release text fuzz door %d has no compiler-visible function", door)

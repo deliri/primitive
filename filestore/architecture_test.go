@@ -31,6 +31,7 @@ const heldDirectoryCloseMethodName = "HeldDirectory.Close"
 // filestoreContractInventory classifies every production struct by its real
 // role. The generic arguments make every inventory entry compiler-visible.
 type filestoreContractInventory struct {
+	Pipe                    capabilityWrapper[Pipe]
 	Location                capabilityWrapper[Location]
 	DirectoryRequest        validatedRequest[DirectoryRequest]
 	ReadRequest             validatedRequest[ReadRequest]
@@ -155,6 +156,7 @@ func TestFilestorePublicSurfaceIsExactRatchet(t *testing.T) {
 		"Inspection",
 		"Location",
 		"PathKind",
+		"Pipe",
 		"ReadHandleRequest",
 		"ReadRequest",
 		"RenameRequest",
@@ -189,6 +191,7 @@ func TestFilestorePublicSurfaceIsExactRatchet(t *testing.T) {
 		"OpenDirectory",
 		"OpenLockFile",
 		"OpenParent",
+		"OpenPipe",
 		"OpenRead",
 		"OpenRoot",
 		"OpenStagedRead",
@@ -277,6 +280,7 @@ func TestFilestorePublicSurfaceIsExactRatchet(t *testing.T) {
 		"Ownership.UID",
 		"Ownership.Validate",
 		"PermissionRequest.Validate",
+		"Pipe.Validate",
 		"Permissions.Bits",
 		"Permissions.FileMode",
 		"Permissions.IsSet",

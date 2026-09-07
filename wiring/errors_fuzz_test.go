@@ -10,7 +10,10 @@ import (
 )
 
 func FuzzErrorKindJSONSemanticOracle(f *testing.F) {
-	for kind := ErrorKindUnknown + 1; kind < errorKindLimit; kind++ {
+	for kind := range errorKindLimit {
+		if kind < ErrorKindUnknown+1 {
+			continue
+		}
 		canonical, err := kind.MarshalJSON()
 		if err != nil {
 			f.Fatalf("ErrorKind(%d).MarshalJSON() seed error = %v, want nil", kind, err)
@@ -106,7 +109,10 @@ func FuzzErrorKindJSONSemanticOracle(f *testing.F) {
 }
 
 func knownErrorKindToken(token string) bool {
-	for kind := ErrorKindUnknown + 1; kind < errorKindLimit; kind++ {
+	for kind := range errorKindLimit {
+		if kind < ErrorKindUnknown+1 {
+			continue
+		}
 		if kind.String() == token {
 			return true
 		}

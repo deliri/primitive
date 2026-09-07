@@ -1,0 +1,23 @@
+[
+  {
+    "label": "runtime-close-uses-canceled-graceful-drain",
+    "before": "if err := r.server.Close(); err != nil {",
+    "after": "ctx, cancel := context.WithCancel(context.Background())\n cancel()\n if err := r.server.Shutdown(ctx); err != nil {",
+    "outcome": "killed in active request table",
+    "failed_callbacks": [
+      "TestServerRuntimeActiveConnectionOwnershipTable/canceled_graceful_drain_preserves_active_request_until_force_close",
+      "TestServerRuntimeActiveConnectionOwnershipTable/force_close_cancels_the_active_Go_request"
+    ],
+    "evidence": "mutation-runtime-close-uses-canceled-graceful-drain.json"
+  },
+  {
+    "label": "runtime-shutdown-erases-native-cancellation",
+    "before": "if err := r.server.Shutdown(ctx); err != nil {\n\t\treturn transportError(err)",
+    "after": "if err := r.server.Shutdown(ctx); err != nil {\n\t\treturn nil",
+    "outcome": "killed in active request table",
+    "failed_callbacks": [
+      "TestServerRuntimeActiveConnectionOwnershipTable/canceled_graceful_drain_preserves_active_request_until_force_close"
+    ],
+    "evidence": "mutation-runtime-shutdown-erases-native-cancellation.json"
+  }
+]

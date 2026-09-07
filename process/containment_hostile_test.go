@@ -17,7 +17,7 @@ func TestIsolationAdmitsOnlyTheClosedDomain(t *testing.T) {
 	t.Parallel()
 
 	valid := []process.Isolation{process.IsolationDirect, process.IsolationGroup}
-	for raw := 0; raw <= math.MaxUint8; raw++ {
+	for raw := range math.MaxUint8 + 1 {
 		isolation := process.Isolation(raw)
 		admitted := false
 		for _, member := range valid {
@@ -50,7 +50,7 @@ func TestCancelSignalAdmitsOnlyTheClosedDomain(t *testing.T) {
 		process.CancelSignalInterrupt,
 		process.CancelSignalTerminate,
 	}
-	for raw := 0; raw <= math.MaxUint8; raw++ {
+	for raw := range math.MaxUint8 + 1 {
 		signal := process.CancelSignal(raw)
 		admitted := false
 		for _, member := range valid {
@@ -72,7 +72,7 @@ func TestLivenessAdmitsOnlyTheClosedDomain(t *testing.T) {
 	t.Parallel()
 
 	valid := []process.Liveness{process.LivenessAlive, process.LivenessGone}
-	for raw := 0; raw <= math.MaxUint8; raw++ {
+	for raw := range math.MaxUint8 + 1 {
 		liveness := process.Liveness(raw)
 		admitted := false
 		for _, member := range valid {

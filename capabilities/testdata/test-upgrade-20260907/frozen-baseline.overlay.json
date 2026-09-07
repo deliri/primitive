@@ -1,0 +1,15 @@
+{
+  "Replace": {
+    "/Users/d/code/primitive/capabilities/classification.go": "/Users/d/code/primitive/capabilities/testdata/test-upgrade-20260907/baseline-source/classification.go",
+    "/Users/d/code/primitive/capabilities/standard_symbol.go": "/Users/d/code/primitive/capabilities/testdata/test-upgrade-20260907/baseline-source/standard_symbol.go",
+    "/Users/d/code/primitive/capabilities/compiler_strings.go": "/Users/d/code/primitive/capabilities/testdata/test-upgrade-20260907/baseline-source/compiler_strings.go",
+    "/Users/d/code/primitive/capabilities/requirement.go": "/Users/d/code/primitive/capabilities/testdata/test-upgrade-20260907/baseline-source/requirement.go",
+    "/Users/d/code/primitive/capabilities/catalog.go": "/Users/d/code/primitive/capabilities/testdata/test-upgrade-20260907/baseline-source/catalog.go",
+    "/Users/d/code/primitive/capabilities/operation.go": "/Users/d/code/primitive/capabilities/testdata/test-upgrade-20260907/baseline-source/operation.go",
+    "/Users/d/code/primitive/capabilities/data_flow_inventory.go": "/Users/d/code/primitive/capabilities/testdata/test-upgrade-20260907/baseline-source/data_flow_inventory.go",
+    "/Users/d/code/primitive/capabilities/catalog_strings.go": "/Users/d/code/primitive/capabilities/testdata/test-upgrade-20260907/baseline-source/catalog_strings.go",
+    "/Users/d/code/primitive/capabilities/effect.go": "/Users/d/code/primitive/capabilities/testdata/test-upgrade-20260907/baseline-source/effect.go",
+    "/Users/d/code/primitive/capabilities/standard_method.go": "/Users/d/code/primitive/capabilities/testdata/test-upgrade-20260907/baseline-source/standard_method.go",
+    "/Users/d/code/primitive/capabilities/identity.go": "/Users/d/code/primitive/capabilities/testdata/test-upgrade-20260907/baseline-source/identity.go"
+  }
+}

@@ -1,0 +1,67 @@
+[
+  {
+    "label": "listen-keeps-mapped-wildcard",
+    "before": ".WithZone(\"\").Unmap().IsUnspecified()",
+    "after": ".WithZone(\"\").IsUnspecified()",
+    "outcome": "killed inside fuzz callback",
+    "failed_callbacks": [
+      "FuzzParseListenAddressSemanticClosure/seed#6",
+      "FuzzParseListenAddressSemanticClosure/seed#8"
+    ],
+    "evidence": "mutation-listen-keeps-mapped-wildcard.json"
+  },
+  {
+    "label": "listen-keeps-zoned-wildcard",
+    "before": ".WithZone(\"\").Unmap().IsUnspecified()",
+    "after": ".Unmap().IsUnspecified()",
+    "outcome": "killed inside fuzz callback",
+    "failed_callbacks": [
+      "FuzzParseListenAddressSemanticClosure/seed#7"
+    ],
+    "evidence": "mutation-listen-keeps-zoned-wildcard.json"
+  },
+  {
+    "label": "listen-refuses-all-valid-literals",
+    "before": "func ParseListenAddress(value string) (ListenAddress, error) {",
+    "after": "func ParseListenAddress(value string) (ListenAddress, error) {\n\tif value != \"\" { return ListenAddress{}, core.ErrExchangeContract }",
+    "outcome": "killed inside fuzz callback",
+    "failed_callbacks": [
+      "FuzzParseListenAddressSemanticClosure/seed#0",
+      "FuzzParseListenAddressSemanticClosure/seed#1"
+    ],
+    "evidence": "mutation-listen-refuses-all-valid-literals.json"
+  },
+  {
+    "label": "listen-substitutes-valid-host",
+    "before": "address := ListenAddress{value: parsed}",
+    "after": "address := ListenAddress{value: netip.AddrPortFrom(netip.IPv6Loopback(), parsed.Port())}",
+    "outcome": "killed inside fuzz callback",
+    "failed_callbacks": [
+      "FuzzParseListenAddressSemanticClosure/seed#0",
+      "FuzzParseListenAddressSemanticClosure/seed#6",
+      "FuzzParseListenAddressSemanticClosure/seed#7",
+      "FuzzParseListenAddressSemanticClosure/seed#8"
+    ],
+    "evidence": "mutation-listen-substitutes-valid-host.json"
+  },
+  {
+    "label": "listen-admits-port-zero",
+    "before": " || a.value.Port() == 0",
+    "after": "",
+    "outcome": "killed inside fuzz callback",
+    "failed_callbacks": [
+      "FuzzParseListenAddressSemanticClosure/seed#3"
+    ],
+    "evidence": "mutation-listen-admits-port-zero.json"
+  },
+  {
+    "label": "listen-silently-trims-input",
+    "before": "netip.ParseAddrPort(value)",
+    "after": "netip.ParseAddrPort(strings.TrimSpace(value))",
+    "outcome": "killed inside fuzz callback",
+    "failed_callbacks": [
+      "FuzzParseListenAddressSemanticClosure/seed#10"
+    ],
+    "evidence": "mutation-listen-silently-trims-input.json"
+  }
+]

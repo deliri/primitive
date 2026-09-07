@@ -21,7 +21,8 @@ const (
 	HeaderValueMaximumCount = 64
 	// IdempotencyKeyMaximumBytes bounds one request identity.
 	IdempotencyKeyMaximumBytes = 255
-	// TransferBufferBytes is the fixed streaming copy buffer.
+	// TransferBufferBytes is the growth floor for buffered response storage.
+	// Streaming copy buffer selection belongs to Go's io.Copy.
 	TransferBufferBytes = 32 * 1024
 )
 
@@ -202,6 +203,25 @@ type IdempotencyKey struct {
 type IdempotencyBound interface {
 	core.Validatable
 	IdempotencyKey() (IdempotencyKey, error)
+}
+
+// observedIdempotencyKey admits the caller's projection before it can become
+// transport identity. Equality of two unset keys is not evidence of binding.
+func observedIdempotencyKey(body IdempotencyBound) (key IdempotencyKey, err error) {
+	defer func() {
+		if recover() != nil {
+			key = IdempotencyKey{}
+			err = requestError(core.ErrExchangeIdempotencyBinding)
+		}
+	}()
+	key, err = body.IdempotencyKey()
+	if err != nil {
+		return IdempotencyKey{}, requestError(errors.Join(core.ErrExchangeIdempotencyBinding, err))
+	}
+	if err := key.Validate(); err != nil {
+		return IdempotencyKey{}, requestError(errors.Join(core.ErrExchangeIdempotencyBinding, err))
+	}
+	return key, nil
 }
 
 // ParseIdempotencyKey validates and owns one key.

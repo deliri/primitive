@@ -363,7 +363,7 @@ func fixtureProvenance(t *testing.T) release.BuildProvenance {
 	return provenance
 }
 
-func fixtureCapability(t *testing.T, index int) objectstore.UploadCapability {
+func fixtureCapability(t testing.TB, index int) objectstore.UploadCapability {
 	t.Helper()
 	target := "https://storage.googleapis.com/bucket/object-" + strconv.Itoa(index) +
 		"?X-Goog-Signature=signature&X-Goog-SignedHeaders=" +
@@ -389,7 +389,7 @@ func fixtureCapability(t *testing.T, index int) objectstore.UploadCapability {
 }
 
 func fixtureCommitment(
-	t *testing.T,
+	t testing.TB,
 	capability objectstore.UploadCapability,
 ) objectstore.UploadCapabilityCommitment {
 	t.Helper()
@@ -400,7 +400,7 @@ func fixtureCommitment(
 	return commitment
 }
 
-func fixtureIntegrity(t *testing.T, payload []byte) objectstore.Integrity {
+func fixtureIntegrity(t testing.TB, payload []byte) objectstore.Integrity {
 	t.Helper()
 	digest := sha256.Sum256(payload)
 	length, err := core.NewByteLength(uint64(len(payload)))
@@ -413,13 +413,13 @@ func fixtureIntegrity(t *testing.T, payload []byte) objectstore.Integrity {
 	}
 }
 
-func fixtureReleaseIntegrity(t *testing.T, payload []byte) release.ArtifactIntegrity {
+func fixtureReleaseIntegrity(t testing.TB, payload []byte) release.ArtifactIntegrity {
 	t.Helper()
 	return fixtureReleaseIntegrityFromObjectstore(t, fixtureIntegrity(t, payload))
 }
 
 func fixtureReleaseIntegrityFromObjectstore(
-	t *testing.T,
+	t testing.TB,
 	integrity objectstore.Integrity,
 ) release.ArtifactIntegrity {
 	t.Helper()

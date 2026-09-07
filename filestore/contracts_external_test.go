@@ -22,7 +22,7 @@ func TestInstallModeExhaustsUnderlyingDomain(t *testing.T) {
 		filestore.InstallCreate,
 		filestore.InstallReplace,
 	}
-	for raw := uint16(0); raw <= math.MaxUint8; raw++ {
+	for raw := range uint16(math.MaxUint8) + 1 {
 		got := filestore.InstallMode(raw)
 		gotErr := got.Validate()
 		if slices.Contains(admitted, got) {
@@ -51,7 +51,7 @@ func TestPermissionModeHostileBoundaryMatrix(t *testing.T) {
 		}
 	})
 	location := filestore.Location{Root: root, Path: mustRelativePath(t, "target")}
-	for raw := uint32(0); raw <= uint32(fs.ModePerm); raw++ {
+	for raw := range uint32(fs.ModePerm) + 1 {
 		mode := fs.FileMode(raw)
 		gotErr := (filestore.DirectoryRequest{Location: location, Mode: mode}).Validate()
 		if mode == 0 {

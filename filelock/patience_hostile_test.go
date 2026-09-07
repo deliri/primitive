@@ -19,7 +19,7 @@ func TestExclusivityClosesItsEntireByteDomain(t *testing.T) {
 
 	seen := make(map[string]filelock.Exclusivity)
 	gotAdmitted := 0
-	for value := 0; value <= math.MaxUint8; value++ {
+	for value := range math.MaxUint8 + 1 {
 		exclusivity := filelock.Exclusivity(value)
 		gotErr := exclusivity.Validate()
 		wantValid := exclusivity == filelock.Exclusive || exclusivity == filelock.Shared
@@ -66,7 +66,7 @@ func TestPatienceClosesItsEntireByteDomain(t *testing.T) {
 
 	seen := make(map[string]filelock.Patience)
 	gotAdmitted := 0
-	for value := 0; value <= math.MaxUint8; value++ {
+	for value := range math.MaxUint8 + 1 {
 		patience := filelock.Patience(value)
 		gotErr := patience.Validate()
 		wantValid := patience == filelock.Immediate || patience == filelock.Blocking
