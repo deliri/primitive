@@ -10,7 +10,7 @@ import (
 func TestClosedEnumDomainsRejectEveryUnknownAndFutureValue(t *testing.T) {
 	t.Parallel()
 
-	for raw := 0; raw <= 255; raw++ {
+	for raw := range 256 {
 		effect := Effect(raw)
 		wantEffectValid := effect >= EffectFilesystem && effect <= EffectObjectStorage
 		if effect.IsValid() != wantEffectValid {
@@ -161,7 +161,10 @@ func TestCapabilityOwnershipConservesNeutralityAcrossTheCompleteCrossProduct(t *
 	gotOwned := 0
 	gotNeutral := 0
 	for capability := range catalog.Capabilities() {
-		for effect := EffectFilesystem; effect < effectLimit; effect++ {
+		for effect := range effectLimit {
+			if effect < EffectFilesystem {
+				continue
+			}
 			if capability.Owns(effect) {
 				gotOwned++
 				continue

@@ -2,6 +2,7 @@ package capabilities
 
 // Shared mechanical spellings have one compiler-visible owner.
 const (
+	catalogArchitectureContradiction           = "capability contradicts the Primitive architecture"
 	catalogMathRand                            = "math/rand"
 	catalogMathRandV2                          = "math/rand/v2"
 	catalogNetHttp                             = "net/http"

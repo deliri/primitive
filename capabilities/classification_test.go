@@ -12,7 +12,7 @@ import (
 // Exhausts the complete disposition byte domain against every effect owner.
 func TestClassificationLayerTriad(t *testing.T) {
 	t.Parallel()
-	for raw := 0; raw <= 255; raw++ {
+	for raw := range 256 {
 		for owner := EffectUnknown; int(owner) <= IdentityCount+1; owner++ {
 			fact := Classification{Disposition: StandardSymbolDisposition(raw), Effect: owner}
 			wantValid := (raw == int(StandardSymbolEffect) && owner.Validate() == nil) ||
@@ -100,6 +100,10 @@ func FuzzClassificationJSONSemanticClosure(f *testing.F) {
 		baseline := Classification{Disposition: StandardSymbolPure}
 		got := baseline
 		err := got.UnmarshalJSON(data)
+		want, admitted := classificationJSONOracle(data)
+		if (err == nil) != admitted || (admitted && !got.Equal(want)) {
+			t.Fatalf("classification source projection = (%+v,%v), want %+v admitted %t", got, err, want, admitted)
+		}
 		if err != nil {
 			if !errors.Is(err, core.ErrCapabilitiesContract) || !got.Equal(baseline) {
 				t.Fatalf("rejected classification = (%+v,%v), want unchanged and %v", got, err, core.ErrCapabilitiesContract)
@@ -137,6 +141,10 @@ func FuzzStandardSymbolDispositionJSONSemanticClosure(f *testing.F) {
 	f.Fuzz(func(t *testing.T, data []byte) {
 		got := StandardSymbolPure
 		err := got.UnmarshalJSON(data)
+		want, admitted := jsonEnumOracle(data, dispositionDomain())
+		if (err == nil) != admitted || (admitted && got != want) {
+			t.Fatalf("disposition source projection = (%v,%v), want %v admitted %t", got, err, want, admitted)
+		}
 		if err != nil {
 			if !errors.Is(err, core.ErrCapabilitiesContract) || got != StandardSymbolPure {
 				t.Fatalf("decode = (%v,%v), want unchanged typed refusal", got, err)

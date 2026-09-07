@@ -3,6 +3,7 @@ package capabilities
 import (
 	"errors"
 	"github.com/deliri/primitive/v2026/core"
+	"reflect"
 	"testing"
 
 	"github.com/deliri/primitive/v2026/gomodule"
@@ -17,14 +18,15 @@ func TestStandardSymbolOwnershipLayerTriad(t *testing.T) {
 		selector      string
 		want          StandardSymbolDisposition
 		wantEffect    Effect
-		wantSecondary Effect
+		wantSecondary []Effect
+		wantOperation Operation
 	}{
-		{name: "positive os ReadFile belongs to filesystem", importPath: "os", selector: "ReadFile", want: StandardSymbolEffect, wantEffect: EffectFilesystem},
+		{name: "positive os ReadFile belongs to filesystem", wantOperation: OperationReadFile, importPath: "os", selector: "ReadFile", want: StandardSymbolEffect, wantEffect: EffectFilesystem},
 		{name: "positive os Getenv belongs to host", importPath: "os", selector: "Getenv", want: StandardSymbolEffect, wantEffect: EffectHost},
 		{name: "positive HTTP Get belongs to transport", importPath: "net/http", selector: "Get", want: StandardSymbolEffect, wantEffect: EffectTransport},
-		{name: "positive HTTP ServeFile retains transport and filesystem", importPath: "net/http", selector: "ServeFile", want: StandardSymbolEffect, wantEffect: EffectTransport, wantSecondary: EffectFilesystem},
+		{name: "positive HTTP ServeFile retains transport and filesystem", importPath: "net/http", selector: "ServeFile", want: StandardSymbolEffect, wantEffect: EffectTransport, wantSecondary: []Effect{EffectFilesystem}},
 		{name: "positive process exit belongs to process", importPath: "os", selector: "Exit", want: StandardSymbolEffect, wantEffect: EffectProcess},
-		{name: "positive time Now belongs to time", importPath: "time", selector: "Now", want: StandardSymbolEffect, wantEffect: EffectTime},
+		{name: "positive time Now belongs to time", wantOperation: OperationObserveTime, importPath: "time", selector: "Now", want: StandardSymbolEffect, wantEffect: EffectTime},
 		{name: "positive syscall Flock belongs to locking", importPath: "syscall", selector: "Flock", want: StandardSymbolEffect, wantEffect: EffectLocking},
 		{name: "positive unix Flock belongs to locking", importPath: "golang.org/x/sys/unix", selector: "Flock", want: StandardSymbolEffect, wantEffect: EffectLocking},
 
@@ -40,7 +42,7 @@ func TestStandardSymbolOwnershipLayerTriad(t *testing.T) {
 		{name: "future process function is not assumed effectful", importPath: "os/exec", selector: "FutureCommand", want: StandardSymbolUnresolved},
 		{name: "negative parser file requires syntax context", importPath: "go/parser", selector: "ParseFile", want: StandardSymbolContextual},
 		{name: "neutral filepath Join is pure", importPath: "path/filepath", selector: "Join", want: StandardSymbolPure},
-		{name: "neutral SHA256 Sum256 is pure by package", importPath: "crypto/sha256", selector: "Sum256", want: StandardSymbolPure},
+		{name: "neutral reviewed SHA256 Sum256 is pure", importPath: "crypto/sha256", selector: "Sum256", want: StandardSymbolPure},
 		{name: "negative unknown os selector remains unresolved", importPath: "os", selector: "FutureEffect", want: StandardSymbolUnresolved},
 	}
 	for _, tc := range cases {
@@ -62,12 +64,9 @@ func TestStandardSymbolOwnershipLayerTriad(t *testing.T) {
 			if err := got.Validate(); err != nil {
 				t.Fatalf("ResolveStandardSymbol().Validate() error = %v, want nil", err)
 			}
-			secondary := EffectUnknown
-			if len(got.Secondary) == 1 {
-				secondary = got.Secondary[0]
-			}
-			if got.Disposition != tc.want || got.Effect != tc.wantEffect || secondary != tc.wantSecondary {
-				t.Fatalf("ResolveStandardSymbol() = disposition:%v effect:%v secondary:%v, want %v/%v/%v", got.Disposition, got.Effect, secondary, tc.want, tc.wantEffect, tc.wantSecondary)
+			want := Classification{Disposition: tc.want, Effect: tc.wantEffect, Secondary: tc.wantSecondary, Operation: tc.wantOperation}
+			if !got.Classification.Equal(want) || got.Symbol != (StandardSymbol{ImportPath: path, Selector: selector}) {
+				t.Fatalf("ResolveStandardSymbol = %+v, want source symbol and complete classification %+v", got, want)
 			}
 		})
 	}
@@ -126,24 +125,23 @@ func TestStandardSymbolReceiverOwnershipLayerTriad(t *testing.T) {
 	t.Parallel()
 	cases := []struct {
 		name, imported, receiver, selector string
-		want                               StandardSymbolDisposition
-		effect                             Effect
+		want                               Classification
 	}{
-		{"file close is a filesystem effect", "os", "File", "Close", StandardSymbolEffect, EffectFilesystem},
-		{"file name is a pure coordinate", "os", "File", "Name", StandardSymbolPure, EffectUnknown},
-		{"unknown receiver cannot inherit the function classification", "os", "FutureFile", "ReadFile", StandardSymbolUnresolved, EffectUnknown},
-		{"root metadata is a filesystem effect", "os", "Root", "Stat", StandardSymbolEffect, EffectFilesystem},
-		{"process wait owns process observation", "os", "Process", "Wait", StandardSymbolEffect, EffectProcess},
-		{"command run owns execution", "os/exec", "Cmd", "Run", StandardSymbolEffect, EffectProcess},
-		{"command environment owns host observation", "os/exec", "Cmd", "Environ", StandardSymbolEffect, EffectHost},
-		{"command rendering does not execute", "os/exec", "Cmd", "String", StandardSymbolPure, EffectUnknown},
-		{"HTTP client performs transport", "net/http", "Client", "Do", StandardSymbolEffect, EffectTransport},
-		{"HTTP header formatting is pure", "net/http", "Header", "Get", StandardSymbolPure, EffectUnknown},
-		{"connection write performs transport", "net", "Conn", "Write", StandardSymbolEffect, EffectTransport},
-		{"timer stop changes the clock facility", "time", "Timer", "Stop", StandardSymbolEffect, EffectTime},
-		{"time formatting is pure", "time", "Time", "String", StandardSymbolPure, EffectUnknown},
-		{"descriptor control owns the host boundary", "syscall", "RawConn", "Control", StandardSymbolEffect, EffectHost},
-		{"unknown method stays unknown", "os", "File", "FutureMethod", StandardSymbolUnresolved, EffectUnknown},
+		{"file close is a filesystem effect", "os", "File", "Close", Classification{Disposition: StandardSymbolEffect, Effect: EffectFilesystem}},
+		{"file name is a pure coordinate", "os", "File", "Name", Classification{Disposition: StandardSymbolPure, Effect: EffectUnknown}},
+		{"unknown receiver cannot inherit the function classification", "os", "FutureFile", "ReadFile", Classification{Disposition: StandardSymbolUnresolved, Effect: EffectUnknown}},
+		{"root metadata is a filesystem effect", "os", "Root", "Stat", Classification{Disposition: StandardSymbolEffect, Effect: EffectFilesystem}},
+		{"process wait owns process observation", "os", "Process", "Wait", Classification{Disposition: StandardSymbolEffect, Effect: EffectProcess}},
+		{"command run owns execution", "os/exec", "Cmd", "Run", Classification{Disposition: StandardSymbolEffect, Effect: EffectProcess, Operation: OperationRunProcess}},
+		{"command environment owns host observation", "os/exec", "Cmd", "Environ", Classification{Disposition: StandardSymbolEffect, Effect: EffectHost}},
+		{"command rendering does not execute", "os/exec", "Cmd", "String", Classification{Disposition: StandardSymbolPure, Effect: EffectUnknown}},
+		{"HTTP client performs transport", "net/http", "Client", "Do", Classification{Disposition: StandardSymbolEffect, Effect: EffectTransport}},
+		{"HTTP header formatting is pure", "net/http", "Header", "Get", Classification{Disposition: StandardSymbolPure, Effect: EffectUnknown}},
+		{"connection write performs transport", "net", "Conn", "Write", Classification{Disposition: StandardSymbolEffect, Effect: EffectTransport}},
+		{"timer stop changes the clock facility", "time", "Timer", "Stop", Classification{Disposition: StandardSymbolEffect, Effect: EffectTime}},
+		{"time formatting is pure", "time", "Time", "String", Classification{Disposition: StandardSymbolPure, Effect: EffectUnknown}},
+		{"descriptor control owns the host boundary", "syscall", "RawConn", "Control", Classification{Disposition: StandardSymbolEffect, Effect: EffectHost}},
+		{"unknown method stays unknown", "os", "File", "FutureMethod", Classification{Disposition: StandardSymbolUnresolved, Effect: EffectUnknown}},
 	}
 	for _, tc := range cases {
 		t.Run(tc.name, func(t *testing.T) {
@@ -156,8 +154,8 @@ func TestStandardSymbolReceiverOwnershipLayerTriad(t *testing.T) {
 			}
 			request := StandardSymbol{ImportPath: imported, Selector: selector, Receiver: &receiver}
 			got, err := ResolveStandardSymbol(request)
-			if err != nil || got.Disposition != tc.want || got.Effect != tc.effect || len(got.Secondary) != 0 {
-				t.Fatalf("ResolveStandardSymbol(%s.%s.%s) = (%v/%v, %v), want (%v/%v, nil)", tc.imported, tc.receiver, tc.selector, got.Disposition, got.Effect, err, tc.want, tc.effect)
+			if err != nil || !got.Classification.Equal(tc.want) || !reflect.DeepEqual(got.Symbol, request) {
+				t.Fatalf("ResolveStandardSymbol(%+v) = (%+v,%v), want complete classification %+v", request, got, err, tc.want)
 			}
 			if err := got.Validate(); err != nil {
 				t.Fatalf("resolved fact Validate() error = %v, want nil", err)

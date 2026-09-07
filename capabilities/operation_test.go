@@ -66,7 +66,7 @@ func TestCallableOperationsLayerTriad(t *testing.T) {
 			}
 		})
 	}
-	for raw := 0; raw <= 255; raw++ {
+	for raw := range 256 {
 		operation := Operation(raw)
 		contract, found, err := operation.Contract()
 		if raw >= int(operationLimit) {
@@ -106,6 +106,10 @@ func FuzzOperationJSONSemanticClosure(f *testing.F) {
 	f.Fuzz(func(t *testing.T, data []byte) {
 		got := OperationReadFile
 		err := got.UnmarshalJSON(data)
+		want, admitted := jsonEnumOracle(data, operationDomain())
+		if (err == nil) != admitted || (admitted && got != want) {
+			t.Fatalf("operation source projection = (%v,%v), want %v admitted %t", got, err, want, admitted)
+		}
 		if err != nil {
 			if !errors.Is(err, core.ErrCapabilitiesContract) || got != OperationReadFile {
 				t.Fatalf("operation decode = (%v,%v), want unchanged and typed refusal", got, err)

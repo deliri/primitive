@@ -31,7 +31,7 @@ func (c Capability) Validate() error {
 		return err
 	}
 	if c != want {
-		return contractError("capability contradicts the Primitive architecture")
+		return contractError(catalogArchitectureContradiction)
 	}
 	return nil
 }
@@ -45,10 +45,11 @@ func (c Capability) ImportPath() (string, error) {
 }
 
 // Owns reports whether this package is the canonical product-facing owner of
-// effect. It returns false for invalid effects and unrelated capabilities.
+// effect. It returns false for invalid effects, invalid capabilities, and
+// unrelated capabilities.
 func (c Capability) Owns(effect Effect) bool {
 	owner, err := effectOwner(effect)
-	return err == nil && owner == c.Package
+	return err == nil && owner == c.Package && c.Validate() == nil
 }
 
 // Catalog is the complete validated view of Primitive's compiled architecture.
@@ -71,15 +72,16 @@ func (c Catalog) Validate() error {
 	if err := c.architecture.Validate(); err != nil {
 		return errors.Join(core.ErrCapabilitiesContract, err)
 	}
+	authority := core.PrimitiveArchitecture()
 	count := 0
 	var roleCounts [core.PrimitivePackageCount]uint16
 	for contract := range c.architecture.Packages() {
-		capability, err := capabilityFromContract(contract)
-		if err != nil {
-			return err
-		}
-		if err := capability.Validate(); err != nil {
-			return err
+		// The complete input catalog was validated above. Compare each entry
+		// directly with core's authority; do not validate that entire authority
+		// again for every entry through Capability.Validate.
+		expected, found := authority.Lookup(contract.Identity)
+		if !found || contract != expected {
+			return contractError(catalogArchitectureContradiction)
 		}
 		roleCounts[int(contract.Role-core.PackageRoleValueContract)]++
 		count++

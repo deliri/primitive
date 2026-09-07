@@ -88,7 +88,10 @@ func (s StandardSymbol) Validate() error {
 	if s.Receiver != nil {
 		err = errors.Join(err, s.Receiver.Validate())
 	}
-	return err
+	if err != nil {
+		return errors.Join(core.ErrCapabilitiesContract, err)
+	}
+	return nil
 }
 
 // StandardSymbolFact is Primitive's ownership fact for one observed symbol.

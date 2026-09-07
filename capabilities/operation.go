@@ -69,7 +69,7 @@ type OperationContract struct {
 
 func (c OperationContract) Validate() error {
 	if err := errors.Join(c.Function.Validate(), c.Result.Validate(), c.ResultPackage.Validate()); err != nil {
-		return err
+		return errors.Join(core.ErrCapabilitiesContract, err)
 	}
 	if c.Function.Receiver != nil {
 		return contractError("operation requires a package function")
@@ -142,18 +142,34 @@ func (f StandardSymbolFact) Replacement() (Operation, error) {
 	if err := f.Validate(); err != nil {
 		return OperationUnavailable, err
 	}
-	path, selector := f.Symbol.ImportPath.String(), f.Symbol.Selector.String()
 	if f.Disposition != StandardSymbolEffect {
 		return OperationUnavailable, nil
 	}
-	if f.Symbol.Receiver != nil {
-		if path == catalogOsExec && f.Symbol.Receiver.String() == "Cmd" && selector == "Run" {
-			return OperationRunProcess, nil
-		}
-		return OperationUnavailable, nil
+	operation := symbolReplacement(f.Symbol)
+	owner, err := operation.effect()
+	if err != nil {
+		return OperationUnavailable, err
 	}
-	return functionReplacement(path, selector), nil
+	if operation != OperationUnavailable && owner != f.Effect {
+		return OperationUnavailable, contractError("replacement contradicts the supplied effect")
+	}
+	if f.Operation != OperationUnavailable && f.Operation != operation {
+		return OperationUnavailable, contractError("replacement contradicts the retained operation")
+	}
+	return operation, nil
 }
+
+func symbolReplacement(symbol StandardSymbol) Operation {
+	path, selector := symbol.ImportPath.String(), symbol.Selector.String()
+	if symbol.Receiver == nil {
+		return functionReplacement(path, selector)
+	}
+	if path == catalogOsExec && symbol.Receiver.String() == "Cmd" && selector == "Run" {
+		return OperationRunProcess
+	}
+	return OperationUnavailable
+}
+
 func functionReplacement(path, selector string) Operation {
 	switch path {
 	case "os":

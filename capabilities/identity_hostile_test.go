@@ -10,10 +10,10 @@ import (
 func TestIdentityExhaustsCompilerOwnedEffectDomain(t *testing.T) {
 	t.Parallel()
 
-	for raw := uint8(0); raw <= uint8(effectLimit); raw++ {
+	for raw := range 256 {
 		effect := Effect(raw)
 		identity, err := IdentityForEffect(effect)
-		wantValid := effect.IsValid()
+		wantValid := effect >= EffectFilesystem && effect < effectLimit
 		if wantValid {
 			gotEffect, gotErr := identity.Effect()
 			if err != nil || gotErr != nil || gotEffect != effect || identity.String() != effect.String() {
@@ -28,7 +28,10 @@ func TestIdentityExhaustsCompilerOwnedEffectDomain(t *testing.T) {
 }
 
 func FuzzIdentityJSONSemanticClosure(f *testing.F) {
-	for effect := EffectFilesystem; effect < effectLimit; effect++ {
+	for effect := range effectLimit {
+		if effect < EffectFilesystem {
+			continue
+		}
 		identity, err := IdentityForEffect(effect)
 		if err != nil {
 			f.Fatalf("IdentityForEffect(%v) error = %v, want nil", effect, err)
@@ -50,6 +53,10 @@ func FuzzIdentityJSONSemanticClosure(f *testing.F) {
 		}
 		got := seed
 		gotErr := got.UnmarshalJSON(data)
+		want, admitted := jsonEnumOracle(data, identityDomain())
+		if (gotErr == nil) != admitted || (admitted && got != want) {
+			t.Fatalf("identity source projection = (%v,%v), want %v admitted %t", got, gotErr, want, admitted)
+		}
 		if gotErr != nil {
 			if !errors.Is(gotErr, core.ErrCapabilitiesContract) || got != seed {
 				t.Fatalf("Identity.UnmarshalJSON(rejected) = (%v, %v), want preserved and errors.Is(..., %v)", got, gotErr, core.ErrCapabilitiesContract)
