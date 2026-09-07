@@ -251,6 +251,7 @@ func TestTemporalPublicSurfaceMatchesReviewedContract(t *testing.T) {
 		"const PrecisionUnknown",
 		"const RFC3339MaximumTextBytes",
 		"const RFC3339MinimumTextBytes",
+		"const CompactUTCTextBytes",
 		"const TemporalJSONDocumentSlackBytes",
 		"func AggregateDurationFromDuration",
 		"func AggregateDurationFromNanoseconds",
@@ -274,6 +275,8 @@ func TestTemporalPublicSurfaceMatchesReviewedContract(t *testing.T) {
 		"func ParseAggregateDuration",
 		"func ParseDuration",
 		"func ParseRFC3339",
+		"func ParseRFC3339UTC",
+		"func ParseCompactUTC",
 		"func Wait",
 		"func WithDeadline",
 		"func WithTimeout",
@@ -305,6 +308,7 @@ func TestTemporalPublicSurfaceMatchesReviewedContract(t *testing.T) {
 		"method Instant.MarshalJSON",
 		"method Instant.Nanoseconds",
 		"method Instant.RFC3339",
+		"method Instant.CompactUTC",
 		"method Instant.RFC3339Nano",
 		"method Instant.Since",
 		"method Instant.Subtract",
@@ -385,6 +389,7 @@ func TestTemporalProductionStaysOnGoContextAndTimePrimitives(t *testing.T) {
 		"math",
 		"math/bits",
 		"strconv",
+		"strings",
 		"time",
 	}
 	if !slices.Equal(got.imports, wantImports) {

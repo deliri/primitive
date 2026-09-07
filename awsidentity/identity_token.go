@@ -7,9 +7,9 @@ import (
 	"net/url"
 	"strconv"
 	"strings"
-	"time"
 
 	"github.com/deliri/primitive/v2026/core"
+	"github.com/deliri/primitive/v2026/temporal"
 )
 
 const (
@@ -35,7 +35,6 @@ const (
 	amazonSecurityTokenQuery   = "X-Amz-Security-Token"
 	amazonCredentialService    = "sts"
 	amazonCredentialTerminal   = "aws4_request"
-	amazonDateLayout           = "20060102T150405Z"
 	amazonSignedURLMaximumSecs = 300
 	// amazonResponseNamespace is the XML namespace AWS publishes for the STS
 	// API version this package signs for. It is composed from the same version
@@ -136,13 +135,9 @@ func validateAmazonExpiration(expiration amazonExpirationElement) error {
 	if expiration.XMLName.Space != amazonResponseNamespace || len(expiration.Unexpected) != 0 {
 		return core.ErrAWSIdentityContract
 	}
-	parsed, err := time.Parse(time.RFC3339Nano, expiration.Value)
-	if err != nil || parsed.IsZero() {
-		return errors.Join(core.ErrAWSIdentityContract, err)
-	}
-	_, offset := parsed.Zone()
-	if offset != 0 {
-		return core.ErrAWSIdentityContract
+	_, err := temporal.ParseRFC3339UTC(expiration.Value)
+	if err != nil {
+		return contractError(err)
 	}
 	return nil
 }
@@ -274,7 +269,7 @@ func Acquire(
 
 func amazonResponseToken(body []byte) (Token, error) {
 	var document amazonResponse
-	if err := xml.Unmarshal(body, &document); err != nil {
+	if err := decodeAmazonResponse(body, &document); err != nil {
 		return Token{}, requestFailure(contractError(err))
 	}
 	value, err := amazonToken(document)
@@ -304,7 +299,10 @@ func validateAmazonWebServicesEndpoint(
 	if !ok {
 		return core.ErrAWSIdentityContract
 	}
-	query := target.Query()
+	query, err := url.ParseQuery(target.RawQuery)
+	if err != nil {
+		return contractError(err)
+	}
 	if !validAmazonActionQuery(query, audience) ||
 		!validAmazonSignatureQuery(query, region) ||
 		!exactAmazonQueryDomain(query) {
@@ -418,10 +416,8 @@ func validAmazonDate(value, credential string) bool {
 	if len(credentialParts) != 5 || len(value) < 8 {
 		return false
 	}
-	parsed, err := time.Parse(amazonDateLayout, value)
-	return err == nil &&
-		parsed.Format(amazonDateLayout) == value &&
-		credentialParts[1] == value[:8]
+	_, err := temporal.ParseCompactUTC(value)
+	return err == nil && credentialParts[1] == value[:8]
 }
 
 func validAmazonExpiry(value string) bool {

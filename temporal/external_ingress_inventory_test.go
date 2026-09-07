@@ -17,6 +17,9 @@ type externalIngressFuzzContract[Door any] struct {
 }
 
 var (
+	_ = externalIngressFuzzContract[func(string) (temporal.Instant, error)]{Door: temporal.ParseCompactUTC, Fuzz: FuzzCompactUTCExactTime}
+	_ = externalIngressFuzzContract[func(string) (temporal.Instant, error)]{Door: temporal.ParseRFC3339UTC, Fuzz: FuzzRFC3339UTCExactOffset}
+
 	_ = externalIngressFuzzContract[func(string) (temporal.Duration, error)]{
 		Door: temporal.ParseDuration,
 		Fuzz: FuzzParseDurationSemanticClosure,
