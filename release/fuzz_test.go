@@ -41,6 +41,11 @@ func FuzzLatestDocumentJSON(f *testing.F) {
 		if len(canonical) > documentExtentMaximum {
 			t.Fatalf("canonical LatestDocument extent = %d, want <= %d", len(canonical), documentExtentMaximum)
 		}
+		inputValue, inputErr := releaseFuzzJSONMeaning(data)
+		outputValue, outputErr := releaseFuzzJSONMeaning(canonical)
+		if inputErr != nil || outputErr != nil || !bytes.Equal(inputValue, outputValue) {
+			t.Fatalf("admitted latest JSON = (%s, %v), want exact input facts (%s, %v)", outputValue, outputErr, inputValue, inputErr)
+		}
 		var roundTrip LatestDocument
 		if err := roundTrip.UnmarshalJSON(canonical); err != nil {
 			t.Fatalf("canonical LatestDocument.UnmarshalJSON() error = %v, want nil", err)

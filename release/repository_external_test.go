@@ -1,15 +1,16 @@
 package release_test
 
 import (
+	"bytes"
 	"context"
 	"errors"
-	"os"
-	"os/exec"
 	"path/filepath"
 	"strings"
 	"testing"
 
 	"github.com/deliri/primitive/v2026/core"
+	"github.com/deliri/primitive/v2026/filestore"
+	"github.com/deliri/primitive/v2026/hostfacts"
 	"github.com/deliri/primitive/v2026/process"
 	"github.com/deliri/primitive/v2026/release"
 	"github.com/deliri/primitive/v2026/temporal"
@@ -24,9 +25,9 @@ type repositoryFixture struct {
 }
 
 type repositoryFileWrite struct {
-	name    string
-	body    string
-	fixture repositoryFixture
+	name string
+	body string
+	root core.AbsolutePath
 }
 
 // TestVerifyRepositoryPressuresEveryObservableCheckoutState drives the real
@@ -46,19 +47,20 @@ func TestVerifyRepositoryPressuresEveryObservableCheckoutState(t *testing.T) {
 			runRepositoryGitForTest(t, fixture, "tag", "reviewed")
 		}},
 		{name: "negative tracked modification is dirty", mutate: func(t *testing.T, fixture repositoryFixture) {
-			writeRepositoryFileForTest(t, repositoryFileWrite{fixture: fixture, name: "tracked.txt", body: "changed\n"})
+			writeRepositoryFileForTest(t, repositoryFileWrite{root: fixture.root, name: "tracked.txt", body: "changed\n"})
 		}},
 		{name: "negative staged addition is dirty", mutate: func(t *testing.T, fixture repositoryFixture) {
-			writeRepositoryFileForTest(t, repositoryFileWrite{fixture: fixture, name: "staged.txt", body: "staged\n"})
+			writeRepositoryFileForTest(t, repositoryFileWrite{root: fixture.root, name: "staged.txt", body: "staged\n"})
 			runRepositoryGitForTest(t, fixture, "add", "--", "staged.txt")
 		}},
 		{name: "negative tracked deletion is dirty", mutate: func(t *testing.T, fixture repositoryFixture) {
-			if err := os.Remove(filepath.Join(fixture.root.String(), "tracked.txt")); err != nil {
-				t.Fatalf("Remove(tracked file) error = %v", err)
+			location := releaseFixtureLocation(t, absolutePathForTest(t, filepath.Join(fixture.root.String(), "tracked.txt")))
+			if err := filestore.Remove(t.Context(), filestore.RemovalRequest{Location: location}); err != nil {
+				t.Fatalf("filestore.Remove(tracked file) error = %v, want nil", err)
 			}
 		}},
 		{name: "negative untracked addition is dirty", mutate: func(t *testing.T, fixture repositoryFixture) {
-			writeRepositoryFileForTest(t, repositoryFileWrite{fixture: fixture, name: "untracked.txt", body: "untracked\n"})
+			writeRepositoryFileForTest(t, repositoryFileWrite{root: fixture.root, name: "untracked.txt", body: "untracked\n"})
 		}},
 		{name: "boundary oversized status is still typed dirty", mutate: writeOversizedRepositoryStatusForTest},
 		// The next three rows are the reason VerifyRepository passes Git policy
@@ -68,32 +70,30 @@ func TestVerifyRepositoryPressuresEveryObservableCheckoutState(t *testing.T) {
 		// dirty worktree as clean, which is a false release admission.
 		{name: "negative global excludes file cannot hide an untracked file", mutate: func(t *testing.T, fixture repositoryFixture) {
 			writeGlobalGitExcludesForTest(t, fixture, "*.txt\n")
-			writeRepositoryFileForTest(t, repositoryFileWrite{fixture: fixture, name: "hidden.txt", body: "untracked\n"})
+			writeRepositoryFileForTest(t, repositoryFileWrite{root: fixture.root, name: "hidden.txt", body: "untracked\n"})
 		}},
 		{name: "negative global excludes wildcard cannot hide every untracked file", mutate: func(t *testing.T, fixture repositoryFixture) {
 			writeGlobalGitExcludesForTest(t, fixture, "*\n")
-			writeRepositoryFileForTest(t, repositoryFileWrite{fixture: fixture, name: "hidden.dat", body: "untracked\n"})
+			writeRepositoryFileForTest(t, repositoryFileWrite{root: fixture.root, name: "hidden.dat", body: "untracked\n"})
 		}},
 		{name: "neutral global excludes file does not fabricate dirt in a clean checkout", clean: true, mutate: func(t *testing.T, fixture repositoryFixture) {
 			writeGlobalGitExcludesForTest(t, fixture, "*\n")
 		}},
 		{name: "negative tracked modification survives a global excludes file", mutate: func(t *testing.T, fixture repositoryFixture) {
 			writeGlobalGitExcludesForTest(t, fixture, "*\n")
-			writeRepositoryFileForTest(t, repositoryFileWrite{fixture: fixture, name: "tracked.txt", body: "changed\n"})
+			writeRepositoryFileForTest(t, repositoryFileWrite{root: fixture.root, name: "tracked.txt", body: "changed\n"})
 		}},
 		{name: "negative repository info attributes cannot normalize a tracked modification", mutate: func(t *testing.T, fixture repositoryFixture) {
 			writeRepositoryInfoAttributesForTest(t, fixture, "*.txt filter=normalize-review\n")
 			runRepositoryGitForTest(t, fixture, "config", "filter.normalize-review.clean", "printf 'initial\\n'")
-			writeRepositoryFileForTest(t, repositoryFileWrite{fixture: fixture, name: "tracked.txt", body: "changed\n"})
+			writeRepositoryFileForTest(t, repositoryFileWrite{root: fixture.root, name: "tracked.txt", body: "changed\n"})
 		}},
 		{name: "negative local attributes file cannot normalize a tracked modification", mutate: func(t *testing.T, fixture repositoryFixture) {
 			attributes := filepath.Join(fixture.home, "local-attributes")
-			if err := os.WriteFile(attributes, []byte("*.txt filter=normalize-review\n"), 0o600); err != nil {
-				t.Fatalf("WriteFile(local attributes) error = %v", err)
-			}
+			writeRepositoryFileForTest(t, repositoryFileWrite{root: absolutePathForTest(t, fixture.home), name: "local-attributes", body: "*.txt filter=normalize-review\n"})
 			runRepositoryGitForTest(t, fixture, "config", "core.attributesFile", attributes)
 			runRepositoryGitForTest(t, fixture, "config", "filter.normalize-review.clean", "printf 'initial\\n'")
-			writeRepositoryFileForTest(t, repositoryFileWrite{fixture: fixture, name: "tracked.txt", body: "changed\n"})
+			writeRepositoryFileForTest(t, repositoryFileWrite{root: fixture.root, name: "tracked.txt", body: "changed\n"})
 		}},
 		{name: "negative nonempty repository info attributes policy is unverifiable", mutate: func(t *testing.T, fixture repositoryFixture) {
 			writeRepositoryInfoAttributesForTest(t, fixture, "# local policy is still uncommitted input\n")
@@ -103,65 +103,81 @@ func TestVerifyRepositoryPressuresEveryObservableCheckoutState(t *testing.T) {
 		}},
 		{name: "negative repository info exclude cannot hide an untracked file", mutate: func(t *testing.T, fixture repositoryFixture) {
 			writeRepositoryInfoExcludeForTest(t, fixture, "*\n")
-			writeRepositoryFileForTest(t, repositoryFileWrite{fixture: fixture, name: "hidden-by-info.dat", body: "untracked\n"})
+			writeRepositoryFileForTest(t, repositoryFileWrite{root: fixture.root, name: "hidden-by-info.dat", body: "untracked\n"})
 		}},
 		{name: "negative local file mode policy cannot hide a mode change", mutate: func(t *testing.T, fixture repositoryFixture) {
 			runRepositoryGitForTest(t, fixture, "config", "core.fileMode", "false")
-			if err := os.Chmod(filepath.Join(fixture.root.String(), "tracked.txt"), 0o700); err != nil {
-				t.Fatalf("Chmod(tracked file) error = %v", err)
+			location := releaseFixtureLocation(t, absolutePathForTest(t, filepath.Join(fixture.root.String(), "tracked.txt")))
+			if err := filestore.SetPermissions(t.Context(), filestore.PermissionRequest{Location: location, Mode: 0o700}); err != nil {
+				t.Fatalf("filestore.SetPermissions(tracked file) error = %v, want nil", err)
 			}
 		}},
 		{name: "negative weakened stat policy cannot hide same size content replacement", mutate: func(t *testing.T, fixture repositoryFixture) {
-			path := filepath.Join(fixture.root.String(), "tracked.txt")
-			info, err := os.Stat(path)
+			path := absolutePathForTest(t, filepath.Join(fixture.root.String(), "tracked.txt"))
+			observed, err := filestore.Inspect(t.Context(), path)
 			if err != nil {
-				t.Fatalf("Stat(tracked file) error = %v", err)
+				t.Fatalf("filestore.Inspect(tracked file) error = %v, want nil", err)
+			}
+			stamp, err := observed.ModifiedAt()
+			if err != nil {
+				t.Fatalf("Inspection.ModifiedAt() error = %v, want nil", err)
 			}
 			runRepositoryGitForTest(t, fixture, "config", "core.trustctime", "false")
 			runRepositoryGitForTest(t, fixture, "config", "core.checkStat", "minimal")
-			writeRepositoryFileForTest(t, repositoryFileWrite{fixture: fixture, name: "tracked.txt", body: "changed\n"})
-			if err := os.Chtimes(path, info.ModTime(), info.ModTime()); err != nil {
-				t.Fatalf("Chtimes(tracked file) error = %v", err)
+			location := releaseFixtureLocation(t, path)
+			held, err := filestore.OpenUpdate(t.Context(), filestore.UpdateHandleRequest{Location: location})
+			if err != nil {
+				t.Fatalf("filestore.OpenUpdate(tracked file) error = %v, want nil", err)
+			}
+			defer func() {
+				if err := held.Close(); err != nil {
+					t.Errorf("tracked update Close() error = %v, want nil", err)
+				}
+			}()
+			replacement := []byte("changed\n")
+			if count, err := held.WriteAt(replacement, 0); err != nil || count != len(replacement) {
+				t.Fatalf("tracked in-place WriteAt() = (%d, %v), want (%d, nil)", count, err, len(replacement))
+			}
+			if err := filestore.Touch(t.Context(), filestore.TouchRequest{Location: location, ModifiedAt: stamp}); err != nil {
+				t.Fatalf("filestore.Touch(tracked file) error = %v, want nil", err)
+			}
+			standing, err := filestore.ObserveHeldStanding(t.Context(), held, path)
+			if err != nil || standing != filestore.HeldStandingSame {
+				t.Fatalf("in-place standing = (%v, %v), want same and nil", standing, err)
 			}
 		}},
 		{name: "negative assume unchanged index bit cannot hide a tracked modification", mutate: func(t *testing.T, fixture repositoryFixture) {
 			runRepositoryGitForTest(t, fixture, "update-index", "--assume-unchanged", "--", "tracked.txt")
-			writeRepositoryFileForTest(t, repositoryFileWrite{fixture: fixture, name: "tracked.txt", body: "changed\n"})
+			writeRepositoryFileForTest(t, repositoryFileWrite{root: fixture.root, name: "tracked.txt", body: "changed\n"})
 		}},
 		{name: "negative skip worktree index bit cannot hide a tracked modification", mutate: func(t *testing.T, fixture repositoryFixture) {
 			runRepositoryGitForTest(t, fixture, "update-index", "--skip-worktree", "--", "tracked.txt")
-			writeRepositoryFileForTest(t, repositoryFileWrite{fixture: fixture, name: "tracked.txt", body: "changed\n"})
+			writeRepositoryFileForTest(t, repositoryFileWrite{root: fixture.root, name: "tracked.txt", body: "changed\n"})
 		}},
 		{name: "neutral detached HEAD at the same commit stays clean", clean: true, mutate: func(t *testing.T, fixture repositoryFixture) {
 			runRepositoryGitForTest(t, fixture, "checkout", "--quiet", "--detach", "HEAD")
 		}},
 		{name: "negative untracked file inside a nested directory is dirty", mutate: func(t *testing.T, fixture repositoryFixture) {
-			nested := filepath.Join(fixture.root.String(), "nested", "deeper")
-			if err := os.MkdirAll(nested, 0o750); err != nil {
-				t.Fatalf("MkdirAll(nested) error = %v", err)
-			}
-			if err := os.WriteFile(filepath.Join(nested, "buried.txt"), []byte("x\n"), 0o600); err != nil {
-				t.Fatalf("WriteFile(buried) error = %v", err)
-			}
+			ensureRepositoryDirectoryForTest(t, fixture.root, filepath.Join("nested", "deeper"))
+			writeRepositoryFileForTest(t, repositoryFileWrite{root: fixture.root, name: filepath.Join("nested", "deeper", "buried.txt"), body: "x\n"})
 		}},
 		{name: "negative empty untracked file with no content is still dirty", mutate: func(t *testing.T, fixture repositoryFixture) {
-			writeRepositoryFileForTest(t, repositoryFileWrite{fixture: fixture, name: "empty.txt"})
+			writeRepositoryFileForTest(t, repositoryFileWrite{root: fixture.root, name: "empty.txt"})
 		}},
 		{name: "negative staged deletion of the only tracked file is dirty", mutate: func(t *testing.T, fixture repositoryFixture) {
 			runRepositoryGitForTest(t, fixture, "rm", "--quiet", "--", "tracked.txt")
 		}},
 		{name: "negative tracked file replaced by a directory is dirty", mutate: func(t *testing.T, fixture repositoryFixture) {
-			path := filepath.Join(fixture.root.String(), "tracked.txt")
-			if err := os.Remove(path); err != nil {
-				t.Fatalf("Remove(tracked file) error = %v", err)
+			location := releaseFixtureLocation(t, absolutePathForTest(t, filepath.Join(fixture.root.String(), "tracked.txt")))
+			if err := filestore.Remove(t.Context(), filestore.RemovalRequest{Location: location}); err != nil {
+				t.Fatalf("filestore.Remove(tracked file) error = %v, want nil", err)
 			}
-			if err := os.Mkdir(path, 0o750); err != nil {
-				t.Fatalf("Mkdir(over tracked file) error = %v", err)
-			}
+			ensureRepositoryDirectoryForTest(t, fixture.root, "tracked.txt")
 		}},
 		{name: "negative mode-only change on a tracked file is dirty", mutate: func(t *testing.T, fixture repositoryFixture) {
-			if err := os.Chmod(filepath.Join(fixture.root.String(), "tracked.txt"), 0o700); err != nil {
-				t.Fatalf("Chmod(tracked file) error = %v", err)
+			location := releaseFixtureLocation(t, absolutePathForTest(t, filepath.Join(fixture.root.String(), "tracked.txt")))
+			if err := filestore.SetPermissions(t.Context(), filestore.PermissionRequest{Location: location, Mode: 0o700}); err != nil {
+				t.Fatalf("filestore.SetPermissions(tracked file) error = %v, want nil", err)
 			}
 		}},
 	}
@@ -169,7 +185,7 @@ func TestVerifyRepositoryPressuresEveryObservableCheckoutState(t *testing.T) {
 	for _, tc := range cases {
 		t.Run(tc.name, func(t *testing.T) {
 			t.Parallel()
-			fixture := newRepositoryFixture(t)
+			fixture := newRepositoryFixtureAt(t, t.TempDir(), t.TempDir())
 			if tc.mutate != nil {
 				tc.mutate(t, fixture)
 			}
@@ -211,7 +227,7 @@ func TestVerifyRepositoryRejectsSubstitutionAndHostileCapabilities(t *testing.T)
 		t.Fatalf("zero RepositoryDirtyError.Validate() error = %v, want %v", err, core.ErrReleaseContract)
 	}
 
-	fixture := newRepositoryFixture(t)
+	fixture := newRepositoryFixtureAt(t, t.TempDir(), t.TempDir())
 	request := repositoryRequestForTest(t, fixture)
 	environmentCases := []struct {
 		name  string
@@ -295,11 +311,9 @@ func TestVerifyRepositoryRejectsSubstitutionAndHostileCapabilities(t *testing.T)
 			request.Root = absolutePathForTest(t, filepath.Join(t.TempDir(), "absent"))
 		}},
 		{name: "repository root that is a regular file", mutate: func(t *testing.T, request *release.RepositoryVerificationRequest) {
-			path := filepath.Join(t.TempDir(), "regular")
-			if err := os.WriteFile(path, []byte("x"), 0o600); err != nil {
-				t.Fatalf("WriteFile(regular root) error = %v", err)
-			}
-			request.Root = absolutePathForTest(t, path)
+			directory := absolutePathForTest(t, t.TempDir())
+			writeRepositoryFileForTest(t, repositoryFileWrite{root: directory, name: "regular", body: "x"})
+			request.Root = absolutePathForTest(t, filepath.Join(directory.String(), "regular"))
 		}},
 		{name: "repository with no commits cannot resolve HEAD", mutate: func(t *testing.T, request *release.RepositoryVerificationRequest) {
 			empty := repositoryFixture{
@@ -347,8 +361,8 @@ func TestVerifyRepositoryRejectsSubstitutionAndHostileCapabilities(t *testing.T)
 func TestVerifyRepositoryRefusesDirtySubmoduleDespiteRepositoryIgnorePolicy(t *testing.T) {
 	t.Parallel()
 
-	parent := newRepositoryFixture(t)
-	child := newRepositoryFixture(t)
+	parent := newRepositoryFixtureAt(t, t.TempDir(), t.TempDir())
+	child := newRepositoryFixtureAt(t, t.TempDir(), t.TempDir())
 	runRepositoryGitForTest(t, parent,
 		"-c", "protocol.file.allow=always", "submodule", "add", "--quiet", "--",
 		child.root.String(), "dependency",
@@ -357,7 +371,7 @@ func TestVerifyRepositoryRefusesDirtySubmoduleDespiteRepositoryIgnorePolicy(t *t
 	parent.commit = repositoryHeadForTest(t, parent)
 	runRepositoryGitForTest(t, parent, "config", "submodule.dependency.ignore", "all")
 	writeRepositoryFileForTest(t, repositoryFileWrite{
-		fixture: parent, name: filepath.Join("dependency", "tracked.txt"), body: "changed\n",
+		root: parent.root, name: filepath.Join("dependency", "tracked.txt"), body: "changed\n",
 	})
 
 	proof, err := release.VerifyRepository(t.Context(), repositoryRequestForTest(t, parent))
@@ -370,31 +384,26 @@ func TestVerifyRepositoryRefusesDirtySubmoduleDespiteRepositoryIgnorePolicy(t *t
 	}
 }
 
-func newRepositoryFixture(t *testing.T) repositoryFixture {
-	t.Helper()
-	return newRepositoryFixtureAt(t, t.TempDir(), t.TempDir())
-}
-
 func newRepositoryFixtureAt(t *testing.T, rootText, home string) repositoryFixture {
 	t.Helper()
-	gitText, err := exec.LookPath("git")
+	name, err := core.ParsePathComponent("git")
 	if err != nil {
-		t.Fatalf("LookPath(git) error = %v", err)
+		t.Fatalf("ParsePathComponent(git) error = %v, want nil", err)
 	}
-	git, err := filepath.Abs(gitText)
+	git, err := process.Resolve(t.Context(), name)
 	if err != nil {
-		t.Fatalf("Abs(git) error = %v", err)
+		t.Fatalf("process.Resolve(git) error = %v, want nil", err)
 	}
 	fixture := repositoryFixture{
 		home:        home,
 		root:        absolutePathForTest(t, rootText),
-		git:         absolutePathForTest(t, git),
+		git:         git,
 		environment: repositoryEnvironmentForTest(t, home),
 	}
 	runRepositoryGitForTest(t, fixture, "init", "--quiet")
 	runRepositoryGitForTest(t, fixture, "config", "user.email", "release@example.invalid")
 	runRepositoryGitForTest(t, fixture, "config", "user.name", "Primitive Release Test")
-	writeRepositoryFileForTest(t, repositoryFileWrite{fixture: fixture, name: "tracked.txt", body: "initial\n"})
+	writeRepositoryFileForTest(t, repositoryFileWrite{root: fixture.root, name: "tracked.txt", body: "initial\n"})
 	runRepositoryGitForTest(t, fixture, "add", "--", "tracked.txt")
 	runRepositoryGitForTest(t, fixture, "commit", "--quiet", "-m", "initial")
 	fixture.commit = repositoryHeadForTest(t, fixture)
@@ -432,10 +441,23 @@ func repositoryRequestForTest(t *testing.T, fixture repositoryFixture) release.R
 func repositoryEnvironmentForTest(t *testing.T, home string) process.Environment {
 	t.Helper()
 	values := []string{"HOME=" + home, "USERPROFILE=" + home}
-	for _, name := range [...]string{"PATH", "SYSTEMROOT"} {
-		if value := os.Getenv(name); value != "" {
-			values = append(values, name+"="+value)
+	ambient, err := hostfacts.AmbientEnvironment()
+	if err != nil {
+		t.Fatalf("hostfacts.AmbientEnvironment() error = %v, want nil", err)
+	}
+	for _, variable := range ambient.Variables {
+		name, err := variable.Name.Value()
+		if err != nil {
+			t.Fatalf("EnvironmentName.Value() error = %v, want nil", err)
 		}
+		if name != "PATH" && name != "SYSTEMROOT" {
+			continue
+		}
+		value, err := variable.Value.Value()
+		if err != nil {
+			t.Fatalf("EnvironmentValue.Value() error = %v, want nil", err)
+		}
+		values = append(values, name+"="+value)
 	}
 	return exactEnvironmentForTest(t, values)
 }
@@ -448,14 +470,11 @@ func repositoryEnvironmentForTest(t *testing.T, home string) process.Environment
 // worktree reports itself clean.
 func writeGlobalGitExcludesForTest(t *testing.T, fixture repositoryFixture, patterns string) {
 	t.Helper()
+	home := absolutePathForTest(t, fixture.home)
 	excludes := filepath.Join(fixture.home, "global-excludes")
-	if err := os.WriteFile(excludes, []byte(patterns), 0o600); err != nil {
-		t.Fatalf("WriteFile(global excludes) error = %v", err)
-	}
+	writeRepositoryFileForTest(t, repositoryFileWrite{root: home, name: "global-excludes", body: patterns})
 	config := "[core]\n\texcludesFile = " + excludes + "\n"
-	if err := os.WriteFile(filepath.Join(fixture.home, ".gitconfig"), []byte(config), 0o600); err != nil {
-		t.Fatalf("WriteFile(global gitconfig) error = %v", err)
-	}
+	writeRepositoryFileForTest(t, repositoryFileWrite{root: home, name: ".gitconfig", body: config})
 }
 
 // writeRepositoryInfoExcludeForTest installs an ignore rule in repository
@@ -464,25 +483,33 @@ func writeGlobalGitExcludesForTest(t *testing.T, fixture repositoryFixture, patt
 // build input can disappear from the cleanliness observation.
 func writeRepositoryInfoExcludeForTest(t *testing.T, fixture repositoryFixture, patterns string) {
 	t.Helper()
-	directory := filepath.Join(fixture.root.String(), ".git", "info")
-	if err := os.MkdirAll(directory, 0o750); err != nil {
-		t.Fatalf("MkdirAll(repository info) error = %v", err)
-	}
-	path := filepath.Join(directory, "exclude")
-	if err := os.WriteFile(path, []byte(patterns), 0o600); err != nil {
-		t.Fatalf("WriteFile(repository info exclude) error = %v", err)
-	}
+	ensureRepositoryDirectoryForTest(t, fixture.root, filepath.Join(".git", "info"))
+	writeRepositoryFileForTest(t, repositoryFileWrite{root: fixture.root, name: filepath.Join(".git", "info", "exclude"), body: patterns})
 }
 
 func writeRepositoryInfoAttributesForTest(t *testing.T, fixture repositoryFixture, attributes string) {
 	t.Helper()
-	directory := filepath.Join(fixture.root.String(), ".git", "info")
-	if err := os.MkdirAll(directory, 0o750); err != nil {
-		t.Fatalf("MkdirAll(repository info) error = %v", err)
+	ensureRepositoryDirectoryForTest(t, fixture.root, filepath.Join(".git", "info"))
+	writeRepositoryFileForTest(t, repositoryFileWrite{root: fixture.root, name: filepath.Join(".git", "info", "attributes"), body: attributes})
+}
+
+func ensureRepositoryDirectoryForTest(t *testing.T, directory core.AbsolutePath, name string) {
+	t.Helper()
+	root, err := filestore.OpenRoot(t.Context(), directory)
+	if err != nil {
+		t.Fatalf("filestore.OpenRoot(fixture directory) error = %v, want nil", err)
 	}
-	path := filepath.Join(directory, "attributes")
-	if err := os.WriteFile(path, []byte(attributes), 0o600); err != nil {
-		t.Fatalf("WriteFile(repository info attributes) error = %v", err)
+	defer func() {
+		if err := root.Close(); err != nil {
+			t.Errorf("fixture directory root Close() error = %v, want nil", err)
+		}
+	}()
+	path, err := core.ParseRelativePath(name)
+	if err != nil {
+		t.Fatalf("ParseRelativePath(fixture directory) error = %v, want nil", err)
+	}
+	if err := filestore.EnsureDirectory(t.Context(), filestore.DirectoryRequest{Location: filestore.Location{Root: root, Path: path}, Mode: 0o750}); err != nil {
+		t.Fatalf("filestore.EnsureDirectory(%s) error = %v, want nil", name, err)
 	}
 }
 
@@ -501,17 +528,20 @@ func runRepositoryGitForTest(t *testing.T, fixture repositoryFixture, arguments 
 	// signing on would otherwise fail every fixture commit on the operator's
 	// machine and nowhere else. The fixture deliberately does not neutralize
 	// core.excludesFile, because one case installs that setting on purpose.
-	hooks := filepath.Join(fixture.home, "empty-hooks")
-	if err := os.MkdirAll(hooks, 0o750); err != nil {
-		t.Fatalf("MkdirAll(empty hooks) error = %v", err)
+	hooks := absolutePathForTest(t, filepath.Join(fixture.home, "empty-hooks"))
+	location, err := filestore.OpenParent(t.Context(), hooks)
+	if err != nil {
+		t.Fatalf("filestore.OpenParent(hooks) error = %v, want nil", err)
+	}
+	err = filestore.EnsureDirectory(t.Context(), filestore.DirectoryRequest{Location: location, Mode: 0o750})
+	if err = errors.Join(err, location.Root.Close()); err != nil {
+		t.Fatalf("prepare hooks error = %v, want nil", err)
 	}
 	arguments = append([]string{
 		"-c", "commit.gpgsign=false",
 		"-c", "init.templateDir=",
-		"-c", "core.hooksPath=" + hooks,
+		"-c", "core.hooksPath=" + hooks.String(),
 	}, arguments...)
-	command := exec.CommandContext(t.Context(), fixture.git.String(), arguments...)
-	command.Dir = fixture.root.String()
 	base, err := fixture.environment.Strings()
 	if err != nil {
 		t.Fatalf("Environment.Strings() error = %v", err)
@@ -521,22 +551,76 @@ func runRepositoryGitForTest(t *testing.T, fixture repositoryFixture, arguments 
 		"GIT_ATTR_NOSYSTEM=1",
 		"GIT_OPTIONAL_LOCKS=0",
 		"GIT_TERMINAL_PROMPT=0",
+		"GIT_AUTHOR_DATE=2000-01-01T00:00:00Z",
+		"GIT_COMMITTER_DATE=2000-01-01T00:00:00Z",
 	))
-	command.Env, err = commandEnvironment.Strings()
+	args, err := process.ParseArguments(arguments)
 	if err != nil {
-		t.Fatalf("command Environment.Strings() error = %v", err)
+		t.Fatalf("process.ParseArguments(git) error = %v, want nil", err)
 	}
-	output, err := command.CombinedOutput()
+	wait, err := temporal.DurationFromSeconds(2)
 	if err != nil {
-		t.Fatalf("git %v error = %v; output = %q", arguments, err, output)
+		t.Fatalf("temporal.DurationFromSeconds() error = %v, want nil", err)
 	}
-	return string(output)
+	limit, err := core.NewByteCount(4 << 20)
+	if err != nil {
+		t.Fatalf("core.NewByteCount() error = %v, want nil", err)
+	}
+	return runFixtureProcess(t.Context(), t, process.Request{
+		Command: fixture.git, WorkingDirectory: fixture.root, Arguments: args,
+		Environment: commandEnvironment, WaitDelay: wait, OutputLimit: limit,
+		Containment: process.Containment{Isolation: process.IsolationDirect, CancelSignal: process.CancelSignalKill},
+	})
+}
+
+func runFixtureProcess(ctx context.Context, t testing.TB, request process.Request) string {
+	t.Helper()
+	var stdout, stderr bytes.Buffer
+	request.Streams = process.Streams{Stdin: strings.NewReader(""), Stdout: &stdout, Stderr: &stderr}
+	result, err := process.Run(ctx, request)
+	if err != nil {
+		t.Fatalf("process.Run(fixture) error = %v, want nil; stderr = %q", err, stderr.String())
+	}
+	exit, err := result.ExitCode()
+	if err != nil {
+		t.Fatalf("process.Result.ExitCode() error = %v, want nil", err)
+	}
+	success, err := exit.Success()
+	if err != nil || !success {
+		t.Fatalf("fixture process success = %t, error = %v, want true, nil; stderr = %q", success, err, stderr.String())
+	}
+	return stdout.String()
 }
 
 func writeRepositoryFileForTest(t *testing.T, request repositoryFileWrite) {
 	t.Helper()
-	if err := os.WriteFile(filepath.Join(request.fixture.root.String(), request.name), []byte(request.body), 0o600); err != nil {
-		t.Fatalf("WriteFile(%s) error = %v", request.name, err)
+	path, err := request.root.ResolveText(request.name)
+	if err != nil {
+		t.Fatalf("AbsolutePath.ResolveText(fixture) error = %v, want nil", err)
+	}
+	location, err := filestore.OpenParent(t.Context(), path)
+	if err != nil {
+		t.Fatalf("filestore.OpenParent(fixture) error = %v, want nil", err)
+	}
+	defer func() {
+		if err := location.Root.Close(); err != nil {
+			t.Errorf("fixture root Close() error = %v, want nil", err)
+		}
+	}()
+	temporary, err := core.ParseRelativePath("release-fixture-stage")
+	if err != nil {
+		t.Fatalf("core.ParseRelativePath(stage) error = %v, want nil", err)
+	}
+	maximum, err := core.NewByteCount(uint64(max(1, len(request.body))))
+	if err != nil {
+		t.Fatalf("core.NewByteCount(fixture) error = %v, want nil", err)
+	}
+	recovery, err := filestore.Write(t.Context(), filestore.WriteRequest{
+		Source: strings.NewReader(request.body), Location: location, Temporary: temporary,
+		Mode: 0o600, Install: filestore.InstallReplace, MaximumBytes: maximum,
+	})
+	if err != nil {
+		t.Fatalf("filestore.Write(%s) error = %v, recovery = %v, want nil", request.name, err, recovery)
 	}
 }
 
@@ -544,7 +628,7 @@ func writeOversizedRepositoryStatusForTest(t *testing.T, fixture repositoryFixtu
 	t.Helper()
 	for index := range 32 {
 		name := strings.Repeat(string(rune('a'+index%26)), 180) + string(rune('A'+index%26))
-		writeRepositoryFileForTest(t, repositoryFileWrite{fixture: fixture, name: name, body: "dirty\n"})
+		writeRepositoryFileForTest(t, repositoryFileWrite{root: fixture.root, name: name, body: "dirty\n"})
 	}
 }
 

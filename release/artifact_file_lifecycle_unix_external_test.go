@@ -8,72 +8,61 @@ import (
 	"testing"
 
 	"github.com/deliri/primitive/v2026/core"
+	"github.com/deliri/primitive/v2026/filestore"
 	"github.com/deliri/primitive/v2026/release"
 )
 
 func TestBuiltArtifactFileInspectionLayerTriad(t *testing.T) {
 	t.Parallel()
-	// This local lifecycle triad complements, and does not replace, the package
-	// pressure matrices: twelve accepted real build/strip combinations, more
-	// than thirty typed refusals, and exact path/extent/format/stamp boundaries.
-
-	t.Run("positive executable file closes into exact artifact authority", func(t *testing.T) {
-		t.Parallel()
-
-		build := inspectionFileTriadBuild(t)
-		assignments := mustInspectionAssignments(t, inspectionProductValue)
-		path := buildInspectionFixture(t, buildInspectionFixtureRequest{
-			Directory: inspectionAbsolutePath(t, t.TempDir()), Build: build,
-			ProductValue: inspectionProductValue, StripFlags: releaseStripFlags,
-		})
-		got, gotErr := release.InspectBuiltArtifact(t.Context(), release.ArtifactInspectionRequest{
-			Path: path, Build: build, LinkerAssignments: assignments,
-		})
-		if gotErr != nil || got.Validate() != nil || got.Build() != build {
-			t.Fatalf("release.InspectBuiltArtifact(executable file) = (%v, %v), want exact valid artifact and nil", got, gotErr)
-		}
-	})
-
-	t.Run("negative unreadable and nonexecutable native bytes acquire no artifact authority", func(t *testing.T) {
-		t.Parallel()
-
-		build := inspectionFileTriadBuild(t)
-		assignments := mustInspectionAssignments(t, inspectionProductValue)
-		path := buildInspectionFixture(t, buildInspectionFixtureRequest{
-			Directory: inspectionAbsolutePath(t, t.TempDir()), Build: build,
-			ProductValue: inspectionProductValue, StripFlags: releaseStripFlags,
-		})
-		cases := []struct {
-			name    string
-			mode    os.FileMode
-			wantErr core.ErrorIdentity
-		}{
-			{name: "readable without executable standing", mode: 0o600, wantErr: core.ErrProcessContract},
-			{name: "inaccessible before executable standing", mode: 0, wantErr: core.ErrFilestoreSource},
-		}
-		for _, tc := range cases {
-			if err := os.Chmod(path.String(), tc.mode); err != nil {
-				t.Fatalf("os.Chmod(%s) error = %v, want nil", tc.name, err)
+	for _, tc := range []struct {
+		name    string
+		mode    os.FileMode
+		zero    bool
+		wantErr error
+	}{
+		{name: "executable closes into exact artifact authority", mode: 0o700},
+		{name: "readable bytes without executable standing cannot become authority", mode: 0o600, wantErr: core.ErrProcessContract},
+		{name: "inaccessible bytes cannot become authority", wantErr: core.ErrFilestoreSource},
+		{name: "zero intent cannot acquire artifact authority", zero: true, wantErr: core.ErrReleaseContract},
+	} {
+		t.Run(tc.name, func(t *testing.T) {
+			t.Parallel()
+			var request release.ArtifactInspectionRequest
+			if !tc.zero {
+				build := inspectionFileTriadBuild(t)
+				path := buildInspectionFixture(t, buildInspectionFixtureRequest{
+					Directory: inspectionAbsolutePath(t, t.TempDir()), Build: build,
+					ProductValue: inspectionProductValue, StripFlags: releaseStripFlags,
+				})
+				location := releaseFixtureLocation(t, path)
+				held, err := filestore.OpenUpdate(t.Context(), filestore.UpdateHandleRequest{Location: location})
+				if err != nil {
+					t.Fatalf("filestore.OpenUpdate(permission fixture) error = %v, want nil", err)
+				}
+				// The native handle permits hostile mode zero, which Filestore's
+				// durable permission request intentionally refuses to create.
+				if err := errors.Join(held.Chmod(tc.mode), held.Close()); err != nil {
+					t.Fatalf("permission fixture Chmod/Close() error = %v, want nil", err)
+				}
+				request = release.ArtifactInspectionRequest{Path: path, Build: build, LinkerAssignments: mustInspectionAssignments(t, inspectionProductValue)}
 			}
-			got, gotErr := release.InspectBuiltArtifact(t.Context(), release.ArtifactInspectionRequest{
-				Path: path, Build: build, LinkerAssignments: assignments,
-			})
-			if !errors.Is(gotErr, core.ErrReleaseContract) || !errors.Is(gotErr, tc.wantErr) ||
-				got != (release.Artifact{}) {
-				t.Fatalf("release.InspectBuiltArtifact(%s) = (%v, %v), want exact zero, %v, and %v",
-					tc.name, got, gotErr, core.ErrReleaseContract, tc.wantErr)
+			got, err := release.InspectBuiltArtifact(t.Context(), request)
+			if !errors.Is(err, tc.wantErr) {
+				t.Fatalf("InspectBuiltArtifact() error = %v, want %v", err, tc.wantErr)
 			}
-		}
-	})
-
-	t.Run("neutral zero request acquires no artifact authority", func(t *testing.T) {
-		t.Parallel()
-
-		got, gotErr := release.InspectBuiltArtifact(t.Context(), release.ArtifactInspectionRequest{})
-		if !errors.Is(gotErr, core.ErrReleaseContract) || got != (release.Artifact{}) {
-			t.Fatalf("release.InspectBuiltArtifact(zero) = (%v, %v), want exact zero and %v", got, gotErr, core.ErrReleaseContract)
-		}
-	})
+			if tc.wantErr != nil {
+				if !errors.Is(err, core.ErrReleaseContract) || got != (release.Artifact{}) {
+					t.Fatalf("refused artifact = (%v, %v), want zero and Release refusal", got, err)
+				}
+				return
+			}
+			sha, crc, length := digestInspectionFixture(t, request.Path)
+			wantExtent := mustInspectionExtent(t, length.Uint64())
+			if got.Validate() != nil || got.Build() != request.Build || got.Integrity().SHA256() != sha || got.Integrity().CRC32C() != crc || got.Integrity().Extent() != wantExtent {
+				t.Fatalf("admitted artifact = %v, want build %v and exact independently read hashes/extent (%v, %v, %v)", got, request.Build, sha, crc, length)
+			}
+		})
+	}
 }
 
 func BenchmarkInspectBuiltArtifactRealExecutable(b *testing.B) {
@@ -95,27 +84,49 @@ func benchmarkInspectBuiltArtifactRealExecutable(b *testing.B, padding int64) {
 		Directory: inspectionAbsolutePath(b, b.TempDir()), Build: build,
 		ProductValue: inspectionProductValue, StripFlags: releaseStripFlags,
 	})
-	info, err := os.Stat(path.String())
+	location := releaseFixtureLocation(b, path)
+	held, err := filestore.OpenUpdate(b.Context(), filestore.UpdateHandleRequest{Location: location})
 	if err != nil {
-		b.Fatalf("os.Stat(executable fixture) error = %v, want nil", err)
+		b.Fatalf("filestore.OpenUpdate(benchmark fixture) error = %v, want nil", err)
 	}
-	if err := os.Truncate(path.String(), info.Size()+padding); err != nil {
-		b.Fatalf("os.Truncate(executable fixture) error = %v, want nil", err)
-	}
-	info, err = os.Stat(path.String())
+	b.Cleanup(func() {
+		if err := held.Close(); err != nil {
+			b.Errorf("benchmark fixture Close() error = %v, want nil", err)
+		}
+	})
+	info, err := held.Stat()
 	if err != nil {
-		b.Fatalf("os.Stat(padded executable fixture) error = %v, want nil", err)
+		b.Fatalf("benchmark fixture Stat() error = %v, want nil", err)
+	}
+	if err := held.Truncate(info.Size() + padding); err != nil {
+		b.Fatalf("benchmark fixture Truncate() error = %v, want nil", err)
+	}
+	info, err = held.Stat()
+	if err != nil {
+		b.Fatalf("padded benchmark fixture Stat() error = %v, want nil", err)
 	}
 	request := release.ArtifactInspectionRequest{
 		Path: path, Build: build, LinkerAssignments: assignments,
 	}
+	sha, crc, length := digestInspectionFixture(b, path)
+	want, err := release.NewArtifact(release.ArtifactRequest{
+		Build: build, Extent: mustInspectionExtent(b, length.Uint64()), SHA256: sha, CRC32C: crc,
+	})
+	if err != nil || length.Uint64() != uint64(info.Size()) {
+		b.Fatalf("benchmark oracle = (%v, %v), want the exact %d-byte fixture", want, err, info.Size())
+	}
+	shaText, err := sha.Hex()
+	if err != nil {
+		b.Fatalf("benchmark fixture SHA256.Hex error = %v, want nil", err)
+	}
+	b.Logf("artifact fixture bytes=%d sha256=%s", length.Uint64(), shaText)
 	b.ReportAllocs()
 	b.SetBytes(info.Size())
 	b.ResetTimer()
 	for b.Loop() {
 		artifact, err := release.InspectBuiltArtifact(b.Context(), request)
-		if err != nil || artifact.Validate() != nil || artifact.Build() != build {
-			b.Fatalf("release.InspectBuiltArtifact() = (%v, %v), want exact valid artifact", artifact, err)
+		if err != nil || artifact != want {
+			b.Fatalf("release.InspectBuiltArtifact() = (%v, %v), want exact independently hashed artifact %v", artifact, err, want)
 		}
 	}
 }

@@ -326,6 +326,15 @@ type ManifestDocument struct {
 	Attestation attest.Envelope[Domain] `json:"attestation"`
 }
 
+// The encoding projection suppresses methods without duplicating fields.
+// The ingress carrier retains pointers to distinguish absent required fields.
+type manifestDocumentEncoding ManifestDocument
+
+type manifestDocumentWire struct {
+	Fact        *ManifestFact            `json:"fact"`
+	Attestation *attest.Envelope[Domain] `json:"attestation"`
+}
+
 func (d ManifestDocument) Validate() error {
 	if err := d.Fact.Validate(); err != nil {
 		return manifestError(err)
@@ -340,11 +349,10 @@ func (d ManifestDocument) Validate() error {
 }
 
 func (d ManifestDocument) MarshalJSON() ([]byte, error) {
-	type wire ManifestDocument
 	if err := d.Validate(); err != nil {
 		return nil, err
 	}
-	encoded, err := json.Marshal(wire(d))
+	encoded, err := json.Marshal(manifestDocumentEncoding(d))
 	if err != nil || len(encoded) > documentExtentMaximum {
 		return nil, jsonError(errors.New("manifest document extent exceeded"), err)
 	}
@@ -355,11 +363,8 @@ func (d *ManifestDocument) UnmarshalJSON(data []byte) error {
 	if d == nil {
 		return jsonError(errors.New("manifest document receiver is nil"))
 	}
-	type wire struct {
-		Fact        *ManifestFact            `json:"fact"`
-		Attestation *attest.Envelope[Domain] `json:"attestation"`
-	}
-	decoded, err := decodeStructure[wire](data)
+
+	decoded, err := decodeStructure[manifestDocumentWire](data)
 	if err != nil {
 		return err
 	}

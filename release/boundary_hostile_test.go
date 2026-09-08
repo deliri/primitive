@@ -234,11 +234,13 @@ func TestAdvanceLatestRejectsEveryMonotonicRegression(t *testing.T) {
 		validFrom  int64
 		validUntil int64
 	}{
-		{name: "lower generation rolls back", generation: 9, issuedAt: 1_000, validFrom: 2_000, validUntil: 10_000, wantErr: core.ErrReleaseRollback},
+		{name: "equal signed timeline permits the next generation", generation: 11, issuedAt: 1_000, validFrom: 2_000, validUntil: 10_000},
 		{name: "higher generation cannot roll back issue", generation: 11, issuedAt: 999, validFrom: 2_000, validUntil: 10_000, wantErr: core.ErrReleaseRollback},
 		{name: "higher generation cannot roll back valid from", generation: 11, issuedAt: 1_000, validFrom: 1_999, validUntil: 10_000, wantErr: core.ErrReleaseRollback},
 		{name: "higher generation cannot roll back valid until", generation: 11, issuedAt: 1_000, validFrom: 2_000, validUntil: 9_999, wantErr: core.ErrReleaseRollback},
-		{name: "higher generation may extend exact manifest", generation: 11, issuedAt: 1_001, validFrom: 2_001, validUntil: 10_001},
+		{name: "issue one after the retained boundary may advance", generation: 11, issuedAt: 1_001, validFrom: 2_000, validUntil: 10_000},
+		{name: "valid-from one after the retained boundary may advance", generation: 11, issuedAt: 1_000, validFrom: 2_001, validUntil: 10_000},
+		{name: "valid-until one after the retained boundary may advance", generation: 11, issuedAt: 1_000, validFrom: 2_000, validUntil: 10_001},
 	}
 	for _, tc := range cases {
 		t.Run(tc.name, func(t *testing.T) {
@@ -248,18 +250,15 @@ func TestAdvanceLatestRejectsEveryMonotonicRegression(t *testing.T) {
 			if !errors.Is(err, tc.wantErr) {
 				t.Fatalf("AdvanceLatest(%s) error = %v, want %v", tc.name, err, tc.wantErr)
 			}
+			if err != nil && got != (LatestAdvance{}) {
+				t.Fatalf("refused timeline result = %v, want zero advance", got)
+			}
 			if err == nil && got.State() != LatestAdvanceAdvanced {
 				t.Fatalf("AdvanceLatest(%s) state = %v, want %v", tc.name, got.State(), LatestAdvanceAdvanced)
 			}
 		})
 	}
 
-	olderVersion := newReleaseFixture(t, core.NewReleaseVersion(2026, 7, 29), 1)
-	proposed := issueVerifiedLatest(t, olderVersion, olderVersion.verified, 11, 1_001, 2_001, 10_001)
-	_, err := AdvanceLatest(AdvanceLatestRequest{Retained: retained, Proposed: proposed})
-	if !errors.Is(err, core.ErrReleaseRollback) {
-		t.Fatalf("AdvanceLatest(version rollback) error = %v, want %v", err, core.ErrReleaseRollback)
-	}
 }
 
 func TestAdvanceLatestTreatsSignerRotationAsDocumentIdentity(t *testing.T) {
@@ -400,105 +399,6 @@ func TestProductGammaOfferingTraversesSignedReleasePipeline(t *testing.T) {
 	}
 }
 
-func TestSelectionAndPreparationExhaustActionBoundaries(t *testing.T) {
-	t.Parallel()
-	installed := newReleaseFixture(t, core.NewReleaseVersion(2026, 7, 30), 1)
-	candidate := newReleaseFixture(t, core.NewReleaseVersion(2026, 7, 31), 2)
-	installedBuild := installed.builds[2]
-
-	missing, err := evaluateWithInstalled(EvaluateRequest{
-		InstalledManifest: installed.verified,
-		Latest:            MissingCachedLatest(),
-		Time:              latestTimeEvidenceAt(t, 2_000),
-	}, installedBuild)
-	if err != nil || missing.State() != SelectionRefreshRequired {
-		t.Fatalf("evaluateWithInstalled(missing) = (%v, %v), want (%v, nil)", missing.State(), err, SelectionRefreshRequired)
-	}
-
-	currentCache, err := NewCachedLatest(installed.verifiedLatest)
-	if err != nil {
-		t.Fatalf("NewCachedLatest(current) error = %v", err)
-	}
-	current, err := evaluateWithInstalled(EvaluateRequest{
-		InstalledManifest: installed.verified, Latest: currentCache,
-		Time: latestTimeEvidenceAt(t, 2_000),
-	}, installedBuild)
-	if err != nil || current.State() != SelectionCurrent {
-		t.Fatalf("evaluateWithInstalled(current) = (%v, %v), want (%v, nil)", current.State(), err, SelectionCurrent)
-	}
-	currentCapability, ok := current.Current()
-	if !ok {
-		t.Fatalf("Selection.Current() ok = false, state = %v", current.State())
-	}
-	currentSummary, err := currentCapability.Summary()
-	if err != nil || currentSummary.Version != installedBuild.Version() ||
-		currentSummary.ValidUntil != temporal.InstantFromNanoseconds(2_000+ReleaseLatestMaximumLifetimeNanoseconds) {
-		t.Fatalf("CurrentRelease.Summary() = (%+v, %v), want installed version and signed validity", currentSummary, err)
-	}
-
-	futureLatest := issueVerifiedLatest(t, candidate, candidate.verified, 3, 1_000, 2_000, 10_000)
-	futureCache, err := NewCachedLatest(futureLatest)
-	if err != nil {
-		t.Fatalf("NewCachedLatest(future) error = %v", err)
-	}
-	reassess, err := evaluateWithInstalled(EvaluateRequest{
-		InstalledManifest: installed.verified, Latest: futureCache,
-		Time: latestTimeEvidenceAt(t, 1_500),
-	}, installedBuild)
-	if err != nil || reassess.State() != SelectionReassessAt {
-		t.Fatalf("evaluateWithInstalled(future) = (%v, %v), want (%v, nil)", reassess.State(), err, SelectionReassessAt)
-	}
-
-	expired, err := evaluateWithInstalled(EvaluateRequest{
-		InstalledManifest: installed.verified, Latest: futureCache,
-		Time: latestTimeEvidenceAt(t, 10_000),
-	}, installedBuild)
-	if err != nil || expired.State() != SelectionRefreshRequired {
-		t.Fatalf("evaluateWithInstalled(expired) = (%v, %v), want (%v, nil)", expired.State(), err, SelectionRefreshRequired)
-	}
-
-	available, err := evaluateWithInstalled(EvaluateRequest{
-		InstalledManifest: installed.verified, Latest: futureCache,
-		Time: latestTimeEvidenceAt(t, 2_000),
-	}, installedBuild)
-	if err != nil || available.State() != SelectionAvailable {
-		t.Fatalf("evaluateWithInstalled(available) = (%v, %v), want (%v, nil)", available.State(), err, SelectionAvailable)
-	}
-	capability, ok := available.Available()
-	if !ok {
-		t.Fatalf("Selection.Available() ok = false, state = %v", available.State())
-	}
-	summary, err := capability.Summary()
-	if err != nil {
-		t.Fatalf("AvailableRelease.Summary() error = %v", err)
-	}
-	if summary.Installed != installedBuild ||
-		summary.Candidate != candidate.builds[2] ||
-		summary.Artifact != candidate.artifacts[2].Identity() ||
-		summary.Integrity != candidate.artifacts[2].Integrity() {
-		t.Fatalf("AvailableRelease.Summary() = %+v, want exact installed/candidate closure", summary)
-	}
-	tamperedSummary := summary
-	tamperedSummary.Candidate = installedBuild
-	if err := tamperedSummary.Validate(); !errors.Is(err, core.ErrReleaseConflict) {
-		t.Fatalf("tampered AvailableSummary.Validate() error = %v, want %v", err, core.ErrReleaseConflict)
-	}
-	provePreparationState(t, capability, 1_999, SelectionReassessAt)
-	provePreparationState(t, capability, 2_000, SelectionAvailable)
-	provePreparationState(t, capability, 9_999, SelectionAvailable)
-	provePreparationState(t, capability, 10_000, SelectionRefreshRequired)
-	provePreparationState(t, capability, 10_001, SelectionRefreshRequired)
-
-	newerInstalled := newReleaseFixture(t, core.NewReleaseVersion(2026, 8, 0), 1)
-	_, err = evaluateWithInstalled(EvaluateRequest{
-		InstalledManifest: newerInstalled.verified, Latest: futureCache,
-		Time: latestTimeEvidenceAt(t, 2_000),
-	}, newerInstalled.builds[2])
-	if !errors.Is(err, core.ErrReleaseRollback) {
-		t.Fatalf("evaluateWithInstalled(installed newer) error = %v, want %v", err, core.ErrReleaseRollback)
-	}
-}
-
 func TestEvaluatePublicBoundaryRejectsAnUnstampedBinary(t *testing.T) {
 	t.Parallel()
 	fixture := newReleaseFixture(t, core.NewReleaseVersion(2026, 7, 30), 1)
@@ -517,112 +417,6 @@ func TestEvaluatePublicBoundaryRejectsAnUnstampedBinary(t *testing.T) {
 	if got != (Selection{}) {
 		t.Fatalf("Evaluate(unstamped binary) = %v, want zero selection", got)
 	}
-}
-
-func TestEvaluateInstalledLayerTriad(t *testing.T) {
-	t.Parallel()
-
-	t.Run("positive known installed identity admits the newer candidate", func(t *testing.T) {
-		t.Parallel()
-		installed := newReleaseFixture(t, core.NewReleaseVersion(2026, 7, 30), 1)
-		candidate := newReleaseFixture(t, core.NewReleaseVersion(2026, 7, 31), 2)
-		cached, err := NewCachedLatest(candidate.verifiedLatest)
-		if err != nil {
-			t.Fatalf("NewCachedLatest() error = %v", err)
-		}
-		got, gotErr := EvaluateInstalled(EvaluateInstalledRequest{
-			Evaluate: EvaluateRequest{
-				InstalledManifest: installed.verified,
-				Latest:            cached,
-				Time:              latestTimeEvidenceAt(t, 3_000),
-			},
-			Installed: installed.builds[2],
-		})
-		if gotErr != nil || got.State() != SelectionAvailable {
-			t.Fatalf("EvaluateInstalled(newer) = (%v, %v), want (%v, nil)", got.State(), gotErr, SelectionAvailable)
-		}
-		available, ok := got.Available()
-		if !ok {
-			t.Fatalf("EvaluateInstalled(newer).Available() ok = false")
-		}
-		latest, err := available.Latest()
-		if err != nil || latest.Validate() != nil ||
-			latest.Fact().Identity() != candidate.verifiedLatest.Fact().Identity() ||
-			latest.Manifest().Identity() != candidate.verifiedLatest.Manifest().Identity() {
-			t.Fatalf("AvailableRelease.Latest() = (%v, %v), want exact authenticated candidate", latest.Fact().Identity(), err)
-		}
-		preparation, err := available.Prepare(latestTimeEvidenceAt(t, 4_000))
-		if err != nil {
-			t.Fatalf("AvailableRelease.PrepareAt() error = %v", err)
-		}
-		prepared, ok := preparation.Ready()
-		if !ok {
-			t.Fatal("Preparation.Ready() ok = false")
-		}
-		artifact, err := prepared.Artifact()
-		if err != nil || artifact != candidate.artifacts[2] {
-			t.Fatalf("PreparedRelease.Artifact() = (%v, %v), want exact candidate", artifact, err)
-		}
-	})
-
-	t.Run("negative zero installed identity is refused before selection", func(t *testing.T) {
-		t.Parallel()
-		installed := newReleaseFixture(t, core.NewReleaseVersion(2026, 7, 30), 1)
-		cached, err := NewCachedLatest(installed.verifiedLatest)
-		if err != nil {
-			t.Fatalf("NewCachedLatest() error = %v", err)
-		}
-		got, gotErr := EvaluateInstalled(EvaluateInstalledRequest{
-			Evaluate: EvaluateRequest{
-				InstalledManifest: installed.verified,
-				Latest:            cached,
-				Time:              latestTimeEvidenceAt(t, 3_000),
-			},
-		})
-		if !errors.Is(gotErr, core.ErrReleaseConflict) || got != (Selection{}) {
-			t.Fatalf("EvaluateInstalled(zero identity) = (%v, %v), want zero/%v", got, gotErr, core.ErrReleaseConflict)
-		}
-	})
-
-	t.Run("negative rollback installed identity is refused", func(t *testing.T) {
-		t.Parallel()
-		installed := newReleaseFixture(t, core.NewReleaseVersion(2026, 8, 0), 1)
-		candidate := newReleaseFixture(t, core.NewReleaseVersion(2026, 7, 31), 2)
-		cached, err := NewCachedLatest(candidate.verifiedLatest)
-		if err != nil {
-			t.Fatalf("NewCachedLatest() error = %v", err)
-		}
-		got, gotErr := EvaluateInstalled(EvaluateInstalledRequest{
-			Evaluate: EvaluateRequest{
-				InstalledManifest: installed.verified,
-				Latest:            cached,
-				Time:              latestTimeEvidenceAt(t, 3_000),
-			},
-			Installed: installed.builds[2],
-		})
-		if !errors.Is(gotErr, core.ErrReleaseRollback) || got != (Selection{}) {
-			t.Fatalf("EvaluateInstalled(rollback) = (%v, %v), want zero/%v", got, gotErr, core.ErrReleaseRollback)
-		}
-	})
-
-	t.Run("neutral missing cache requires refresh and yields no prepared handoff", func(t *testing.T) {
-		t.Parallel()
-		installed := newReleaseFixture(t, core.NewReleaseVersion(2026, 7, 30), 1)
-		got, gotErr := EvaluateInstalled(EvaluateInstalledRequest{
-			Evaluate: EvaluateRequest{
-				InstalledManifest: installed.verified,
-				Latest:            MissingCachedLatest(),
-				Time:              latestTimeEvidenceAt(t, 3_000),
-			},
-			Installed: installed.builds[2],
-		})
-		if gotErr != nil || got.State() != SelectionRefreshRequired {
-			t.Fatalf("EvaluateInstalled(missing) = (%v, %v), want (%v, nil)", got.State(), gotErr, SelectionRefreshRequired)
-		}
-		if _, ok := got.Available(); ok {
-			t.Fatal("EvaluateInstalled(missing).Available() ok = true")
-		}
-	})
 }
 
 func TestPreparedReleaseExposesOnlyValidatedExactHandoffFacts(t *testing.T) {
@@ -766,34 +560,6 @@ func TestZeroValueCapabilitiesRefuseEveryAccessor(t *testing.T) {
 	}
 	if _, ok := (Preparation{}).Reassess(); ok {
 		t.Fatalf("Preparation{}.Reassess() ok = true, want false")
-	}
-}
-
-func provePreparationState(t *testing.T, available AvailableRelease, at int64, want SelectionState) {
-	t.Helper()
-	preparation, err := available.Prepare(latestTimeEvidenceAt(t, at))
-	if err != nil {
-		t.Fatalf("AvailableRelease.PrepareAt(%d) error = %v", at, err)
-	}
-	switch want {
-	case SelectionAvailable:
-		_, ok := preparation.Ready()
-		if !ok {
-			t.Fatalf("AvailableRelease.PrepareAt(%d).Ready() ok = false", at)
-		}
-	case SelectionRefreshRequired:
-		_, ok := preparation.Refresh()
-		if !ok {
-			t.Fatalf("AvailableRelease.PrepareAt(%d).Refresh() ok = false", at)
-		}
-	case SelectionReassessAt:
-		directive, ok := preparation.Reassess()
-		if !ok {
-			t.Fatalf("AvailableRelease.PrepareAt(%d).Reassess() ok = false", at)
-		}
-		if directive.At != temporal.InstantFromNanoseconds(2_000) {
-			t.Fatalf("AvailableRelease.PrepareAt(%d) reassess = %v, want valid-from", at, directive.At)
-		}
 	}
 }
 

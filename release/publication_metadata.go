@@ -534,6 +534,9 @@ func buildProvenanceFromWire(w buildProvenanceWire) (BuildProvenance, error) {
 // already canonical, so a reordered or duplicated set is rejected by the owning
 // constructor rather than silently canonicalized.
 func buildSelectorsFromWire(w buildProvenanceWire) (LinkerAssignments, BuildTags, error) {
+	if w.LinkerAssignments == nil || w.BuildTags == nil {
+		return LinkerAssignments{}, BuildTags{}, manifestError(errors.New("build provenance selector collection is missing"))
+	}
 	linkers, err := linkerAssignmentsFromWire(w.LinkerAssignments)
 	if err != nil {
 		return LinkerAssignments{}, BuildTags{}, err

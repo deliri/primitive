@@ -6,11 +6,13 @@ import (
 	"crypto/sha256"
 	"errors"
 	"hash/crc32"
+	"io"
 	"os"
 	"path/filepath"
 	"testing"
 
 	"github.com/deliri/primitive/v2026/core"
+	"github.com/deliri/primitive/v2026/filestore"
 	"github.com/deliri/primitive/v2026/release"
 )
 
@@ -41,18 +43,14 @@ func FuzzInspectBuiltArtifactFileSemanticClosure(f *testing.F) {
 		Directory: directory, Build: build,
 		ProductValue: inspectionProductValue, StripFlags: releaseStripFlags,
 	})
-	canonical, err := os.ReadFile(seedPath.String())
-	if err != nil {
-		f.Fatalf("os.ReadFile(canonical built artifact) error = %v, want nil", err)
-	}
+	canonical := readReleaseFileFixture(f, seedPath, release.BuiltArtifactMaximumBytes)
 	seedArtifactInspectionFuzzCorpus(f, canonical)
 
 	f.Fuzz(func(t *testing.T, data []byte, modeSelector uint8, bindingSelector uint8) {
 		directory := t.TempDir()
 		mode := inspectionFuzzMode(modeSelector)
-		path := writeInspectionFuzzFile(t, inspectionFuzzFileWrite{
-			Directory: directory, Data: data, Mode: mode,
-		})
+		path := inspectionAbsolutePath(t, filepath.Join(directory, "artifact"))
+		held := writeReleaseFileFixture(t, releaseFileFixture{Path: path, Data: data, Mode: mode})
 		request := inspectionFuzzRequest(t, inspectionFuzzRequestInput{
 			Path: path, Build: build, BindingSelector: bindingSelector,
 		})
@@ -75,7 +73,7 @@ func FuzzInspectBuiltArtifactFileSemanticClosure(f *testing.F) {
 				}
 			}
 			proveInspectionFuzzFileUnchanged(t, inspectionFuzzFileProof{
-				Path: path, Data: data, WantMode: mode,
+				Path: path, Held: held, Data: data, WantMode: mode,
 			})
 			return
 		}
@@ -107,7 +105,7 @@ func FuzzInspectBuiltArtifactFileSemanticClosure(f *testing.F) {
 			t.Fatalf("release.InspectBuiltArtifact(fuzz second closure) = (%v, %v), want (%v, nil)", second, secondErr, got)
 		}
 		proveInspectionFuzzFileUnchanged(t, inspectionFuzzFileProof{
-			Path: path, Data: data, WantMode: mode,
+			Path: path, Held: held, Data: data, WantMode: mode,
 		})
 	})
 }
@@ -175,22 +173,8 @@ func inspectionFuzzOfferingBuild(t *testing.T, base core.BuildIdentity) core.Bui
 	return build
 }
 
-type inspectionFuzzFileWrite struct {
-	Directory string
-	Data      []byte
-	Mode      os.FileMode
-}
-
-func writeInspectionFuzzFile(t *testing.T, request inspectionFuzzFileWrite) core.AbsolutePath {
-	t.Helper()
-	path := inspectionAbsolutePath(t, filepath.Join(request.Directory, "artifact"))
-	if err := os.WriteFile(path.String(), request.Data, request.Mode); err != nil {
-		t.Fatalf("os.WriteFile(fuzz artifact) error = %v, want nil", err)
-	}
-	return path
-}
-
 type inspectionFuzzFileProof struct {
+	Held     *os.File
 	Path     core.AbsolutePath
 	Data     []byte
 	WantMode os.FileMode
@@ -198,24 +182,25 @@ type inspectionFuzzFileProof struct {
 
 func proveInspectionFuzzFileUnchanged(t *testing.T, proof inspectionFuzzFileProof) {
 	t.Helper()
-	info, err := os.Stat(proof.Path.String())
+	info, err := proof.Held.Stat()
 	if err != nil {
-		t.Fatalf("os.Stat(fuzz artifact after inspection) error = %v, want nil", err)
+		t.Fatalf("held.Stat(fuzz artifact after inspection) error = %v, want nil", err)
 	}
 	if info.Mode().Perm() != proof.WantMode.Perm() {
 		t.Fatalf("fuzz artifact mode after inspection = %v, want %v", info.Mode().Perm(), proof.WantMode.Perm())
 	}
-	if proof.WantMode.Perm()&0o400 == 0 {
-		if err := os.Chmod(proof.Path.String(), 0o600); err != nil {
-			t.Fatalf("os.Chmod(fuzz artifact oracle read) error = %v, want nil", err)
-		}
+	standing, err := filestore.ObserveHeldStanding(t.Context(), proof.Held, proof.Path)
+	if err != nil || standing != filestore.HeldStandingSame {
+		t.Fatalf("fixture path standing = (%v, %v), want same held file and nil", standing, err)
 	}
-	got, err := os.ReadFile(proof.Path.String())
+	digest := sha256.New()
+	count, err := io.CopyBuffer(digest, io.NewSectionReader(proof.Held, 0, int64(len(proof.Data))+1), make([]byte, 64<<10))
 	if err != nil {
-		t.Fatalf("os.ReadFile(fuzz artifact after inspection) error = %v, want nil", err)
+		t.Fatalf("held fixture hash error = %v, want nil", err)
 	}
-	if info.Size() != int64(len(proof.Data)) || sha256.Sum256(got) != sha256.Sum256(proof.Data) {
-		t.Fatalf("fuzz artifact after inspection = (extent %d, digest %x), want (%d, %x)",
-			info.Size(), sha256.Sum256(got), len(proof.Data), sha256.Sum256(proof.Data))
+	got := [core.SHA256DigestBytes]byte(digest.Sum(nil))
+	want := sha256.Sum256(proof.Data)
+	if info.Size() != int64(len(proof.Data)) || count != int64(len(proof.Data)) || got != want {
+		t.Fatalf("fuzz artifact after inspection = (extent %d, read %d, digest %x), want (%d, %d, %x)", info.Size(), count, got, len(proof.Data), len(proof.Data), want)
 	}
 }

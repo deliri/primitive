@@ -92,7 +92,10 @@ func (v VerifiedBuildTools) GoExecutableDigest() core.SHA256Digest { return v.go
 
 // VerifyBuildTools inspects the executable file and executes the selected Go
 // command with bounded output. Operator-supplied version strings are never
-// accepted as evidence.
+// accepted as evidence. Filestore resolves the supplied absolute path first;
+// inspection, execution and the returned proof all name that resolved path.
+// Links may name targets outside their directory. Resolution and standing are
+// observations, not reservations against subsequent filesystem mutation.
 func VerifyBuildTools(
 	ctx context.Context,
 	request BuildToolVerificationRequest,
@@ -109,6 +112,11 @@ func VerifyBuildTools(
 	if err := validatePackageCapability(); err != nil {
 		return VerifiedBuildTools{}, err
 	}
+	resolved, err := filestore.Canonicalize(ctx, request.GoExecutable)
+	if err != nil {
+		return VerifiedBuildTools{}, contractError(errors.New("resolve build tool executable"), err)
+	}
+	request.GoExecutable = resolved
 	goToolchain := CurrentGoToolchain()
 	goDigest, hostPlatform, err := verifyGoTool(ctx, request, goToolchain)
 	if err != nil {
@@ -131,8 +139,8 @@ func verifyGoTool(
 	toolchain GoToolchainIdentity,
 ) (core.SHA256Digest, core.Platform, error) {
 	info, digest, err := inspectBuildTool(ctx, request.GoExecutable)
-	if err != nil {
-		return core.SHA256Digest{}, core.Platform{}, err
+	if err != nil || info == nil {
+		return core.SHA256Digest{}, core.Platform{}, contractError(errors.New("inspect go build identity"), err)
 	}
 	version, err := toolchain.Version()
 	if err != nil || info.Path != goCommandModulePath || info.GoVersion != version {
@@ -157,26 +165,48 @@ func inspectBuildTool(ctx context.Context, path core.AbsolutePath) (*buildinfo.B
 		closeErr := location.Root.Close()
 		return nil, core.SHA256Digest{}, contractError(errors.New("open build tool executable"), errors.Join(err, closeErr))
 	}
-	build, digest, inspectErr := inspectOpenedBuildTool(file)
+	build, digest, inspectErr := inspectOpenedBuildTool(ctx, file, path)
+	standingErr := validateInspectionStanding(ctx, file, path)
 	closeErr := closeBuildToolResources(location, file)
-	return build, digest, errors.Join(inspectErr, closeErr)
-}
-
-func inspectOpenedBuildTool(file *os.File) (*buildinfo.BuildInfo, core.SHA256Digest, error) {
-	info, err := file.Stat()
-	if err := validateBuildToolFileInfo(info, err); err != nil {
+	if err := errors.Join(inspectErr, standingErr, closeErr); err != nil {
 		return nil, core.SHA256Digest{}, err
 	}
-	build, err := buildinfo.Read(file)
-	if err != nil {
-		return nil, core.SHA256Digest{}, contractError(errors.New("read build tool identity"), err)
+	return build, digest, nil
+}
+
+func inspectOpenedBuildTool(ctx context.Context, file *os.File, path core.AbsolutePath) (*buildinfo.BuildInfo, core.SHA256Digest, error) {
+	if err := validateInspectionStanding(ctx, file, path); err != nil {
+		return nil, core.SHA256Digest{}, err
 	}
-	if _, err := file.Seek(0, io.SeekStart); err != nil {
-		return nil, core.SHA256Digest{}, contractError(errors.New("rewind build tool executable"), err)
+	info, err := file.Stat()
+	extent, err := buildToolFileExtent(info, err)
+	if err != nil {
+		return nil, core.SHA256Digest{}, err
+	}
+	return inspectBuildToolExtent(ctx, file, extent)
+}
+
+// inspectBuildToolExtent binds parsing and hashing to the extent observed on
+// the held regular file. The caller owns the file and validates its size bound.
+func inspectBuildToolExtent(ctx context.Context, file io.ReaderAt, extent int64) (*buildinfo.BuildInfo, core.SHA256Digest, error) {
+	if err := ctx.Err(); err != nil {
+		return nil, core.SHA256Digest{}, contractError(err)
+	}
+	build, err := buildinfo.Read(io.NewSectionReader(file, 0, extent))
+	if err = errors.Join(err, ctx.Err()); err != nil {
+		return nil, core.SHA256Digest{}, contractError(errors.New("read build tool identity"), err)
 	}
 	writer := core.NewDigestWriter()
 	buffer := make([]byte, 64<<10)
-	if _, err := io.CopyBuffer(writer, file, buffer); err != nil {
+	// The admitted extent is at most 128 MiB, so the one-byte growth probe
+	// cannot overflow. Neither a growing file nor a forged executable offset
+	// can turn this observation into an unbounded read.
+	count, err := io.CopyBuffer(writer, io.NewSectionReader(file, 0, extent+1), buffer)
+	err = errors.Join(err, ctx.Err())
+	if count < extent {
+		err = errors.Join(err, io.ErrUnexpectedEOF)
+	}
+	if err != nil || count != extent {
 		return nil, core.SHA256Digest{}, contractError(errors.New(digestBuildToolDiagnostic), err)
 	}
 	toolDigest, _, err := writer.Seal()
@@ -186,17 +216,18 @@ func inspectOpenedBuildTool(file *os.File) (*buildinfo.BuildInfo, core.SHA256Dig
 	return build, toolDigest, nil
 }
 
-func validateBuildToolFileInfo(info fs.FileInfo, statErr error) error {
+func buildToolFileExtent(info fs.FileInfo, statErr error) (int64, error) {
 	if statErr != nil {
-		return contractError(errors.New("inspect build tool executable"), statErr)
+		return 0, contractError(errors.New("inspect build tool executable"), statErr)
 	}
 	if info == nil || !info.Mode().IsRegular() {
-		return contractError(errors.New("build tool executable is not a regular file"))
+		return 0, contractError(errors.New("build tool executable is not a regular file"))
 	}
-	if info.Size() <= 0 || info.Size() > buildToolExecutableMaximumBytes {
-		return contractError(errors.New("build tool executable extent is outside the admitted interval"))
+	extent := info.Size()
+	if extent <= 0 || extent > buildToolExecutableMaximumBytes {
+		return 0, contractError(errors.New("build tool executable extent is outside the admitted interval"))
 	}
-	return nil
+	return extent, nil
 }
 
 func closeBuildToolResources(location filestore.Location, file *os.File) error {

@@ -1,14 +1,14 @@
 package release_test
 
 import (
-	"bytes"
 	"context"
 	"errors"
-	"os"
+	"io"
 	"path/filepath"
 	"testing"
 
 	"github.com/deliri/primitive/v2026/core"
+	"github.com/deliri/primitive/v2026/filestore"
 	"github.com/deliri/primitive/v2026/process"
 	"github.com/deliri/primitive/v2026/release"
 	"github.com/deliri/primitive/v2026/temporal"
@@ -164,25 +164,30 @@ func TestVerifyBuildToolsIsIndependentOfRepeatedObservation(t *testing.T) {
 
 func writeToolFixture(t *testing.T, directory, name string, content []byte) core.AbsolutePath {
 	t.Helper()
-	path := filepath.Join(directory, name)
-	if err := os.WriteFile(path, content, 0o700); err != nil { // #nosec G306 -- executable fixture.
-		t.Fatalf("os.WriteFile(%q) error = %v, want nil", name, err)
-	}
-	return absoluteToolPath(t, path)
+	path := absoluteToolPath(t, filepath.Join(directory, name))
+	writeReleaseFileFixture(t, releaseFileFixture{Path: path, Data: content, Mode: 0o700})
+	return path
 }
 
 // truncatedToolBytes returns a real executable prefix. It parses as a native
 // image header but cannot carry a complete Go build identity.
 func truncatedToolBytes(t *testing.T, source core.AbsolutePath) []byte {
 	t.Helper()
-	content, err := os.ReadFile(source.String()) // #nosec G304 -- validated test tool path.
+	location := releaseFixtureLocation(t, source)
+	file, err := filestore.OpenRead(t.Context(), filestore.ReadHandleRequest{Location: location})
 	if err != nil {
-		t.Fatalf("os.ReadFile(tool) error = %v, want nil", err)
+		t.Fatalf("filestore.OpenRead(tool prefix) error = %v, want nil", err)
 	}
-	if len(content) < 4096 {
-		t.Fatalf("tool fixture size = %d, want a multi-page executable", len(content))
+	defer func() {
+		if err := file.Close(); err != nil {
+			t.Errorf("tool prefix Close() error = %v, want nil", err)
+		}
+	}()
+	content := make([]byte, 4096)
+	if count, err := io.ReadFull(file, content); err != nil || count != len(content) {
+		t.Fatalf("tool prefix ReadFull() = (%d, %v), want (%d, nil)", count, err, len(content))
 	}
-	return bytes.Clone(content[:4096])
+	return content
 }
 
 func absoluteToolPath(t *testing.T, value string) core.AbsolutePath {

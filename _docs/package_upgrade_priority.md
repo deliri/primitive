@@ -1,9 +1,10 @@
-# Primitive upgrade priority — 2026-09-07
+# Primitive upgrade priority — 2026-09-08
 
-Approved release checkpoint: **v2026.1.23**, September 8, 2026. The user
-reviewed Keygen and explicitly authorized the version bump, commit and push.
-See [release notes](release_v2026.1.23.md). The preceding published release was
-v2026.1.22, commit `e18a69e381e29188444b586a47d8fa8ddf4a58cd`.
+Current approved publication: **v2026.1.24**, September 8, 2026. The user
+reviewed Release, including the Grok follow-up, and explicitly authorized bump,
+commit and push. See [release notes](release_v2026.1.24.md). The preceding
+published checkpoint is Keygen v2026.1.23, commit
+`afcab259661321720ed0fb9d8744412c71e307be`.
 The preceding GoToolchain/Filestore/Core integration was published in v2026.1.21.
 Exchange/Filestore were published in
 v2026.1.19 and Temporal/Hostfacts in v2026.1.20.
@@ -14,7 +15,13 @@ review and makes a profile-informed recovery optimization. See
 oracles and profiled benchmarks are covered in [the review](../controlwire/upgrade_review.md).
 **Keygen is reviewed and approved**, with production changes, hostile tests,
 semantic fuzzing and ten profiled before/after pairs recorded in
-[the Keygen review](../keygen/upgrade_review.md). **Release is next**.
+[the Keygen review](../keygen/upgrade_review.md). **Release is reviewed and approved**: hostile admission,
+repository binding, exact dependency unions, constant-time sealed access, seed
+custody, and bounded/cooperative executable observation are upgraded. Final scoped
+race/analyzer checks and Linux/Windows cross-compilation passed. Profiled
+comparisons retain exact sources, matching binaries and frozen executable inputs.
+The Grok follow-up also fixes symlink-to-tool path composition and checks standing
+before executable reads. See [the Release review](../release/upgrade_review.md).
 
 The initial execution-value priority was Exchange → Filestore → Temporal →
 Hostfacts → Process. Process and Core improvements are now checkpointed in
@@ -131,7 +138,7 @@ the user explicitly approved the scoped Temporal/Hostfacts release. AWS identity
 local evidence, with the promised manual compliance re-review still pending.
 Chit's original baseline is retained; its upgrade is paused for this priority.
 
-`release`, `objectstore`, `chit`, `attest`, `controlplane`, `gcsobjects`, `shutdown`, `currency`, `id`, `distribution`, `lineio`, `fuzzfinder`, `runprotocol`, `lease`, `retrieval`, `manual`, `receipt`, `payment`, `submission`, `compass`, `googleidentity`, `filelock`, `submissionauth`, `proofledger`, `runnercontrol`, `secretstore`, `version`, `chitauth`, `distributionauth`, `paymentauth`, `retrievalauth`, `upgrade`, `deploy`, `wiring`, `github`, `gomodule`, `timeproof`, `awsidentity`, `capabilities`, `controlplanetest`, `gitrepo`, `gotoolchain`, `machineprobe`, `paypal`, `plunk`, `runworkspace`, `sourceclaim`, `sourceobservation`, `sourceproof`, `stripe`, `testserial`, `twilio`.
+`objectstore`, `chit`, `attest`, `controlplane`, `gcsobjects`, `shutdown`, `currency`, `id`, `distribution`, `lineio`, `fuzzfinder`, `runprotocol`, `lease`, `retrieval`, `manual`, `receipt`, `payment`, `submission`, `compass`, `googleidentity`, `filelock`, `submissionauth`, `proofledger`, `runnercontrol`, `secretstore`, `version`, `chitauth`, `distributionauth`, `paymentauth`, `retrievalauth`, `upgrade`, `deploy`, `wiring`, `github`, `gomodule`, `timeproof`, `awsidentity`, `capabilities`, `controlplanetest`, `gitrepo`, `gotoolchain`, `machineprobe`, `paypal`, `plunk`, `runworkspace`, `sourceclaim`, `sourceobservation`, `sourceproof`, `stripe`, `testserial`, `twilio`.
 
 ## Release checkpoint
 
@@ -143,8 +150,8 @@ editing. Benchmark comparisons use declared, checked workloads and retain both
 CPU and memory profiles, binaries, commands and source bindings. Remaining known
 surfaces keep the package open. Follow the entire local testing protocol.
 
-The user approved v2026.1.23 on September 8, 2026. Contextstate, Controlwire
-and Keygen are reviewed. Each new slice retains the
+The user approved v2026.1.24 on September 8, 2026. Contextstate, Controlwire,
+Keygen and Release are reviewed. Objectstore is next. Each new slice retains the
 same package-by-package review standards and requires review before commit.
 
 Then update Blink Kernel, Peachfuzz, Bug and Witness to that published version,

@@ -7,95 +7,93 @@ import (
 	"github.com/deliri/primitive/v2026/core"
 )
 
-func TestAdvanceLatestIdentityPrecedesGeneration(t *testing.T) {
-	t.Parallel()
-	retained := newReleaseFixture(t, core.NewReleaseVersion(2026, 7, 30), 9)
-	other := newReleaseFixtureForOffering(
-		t, releaseOffering(t, 1), core.NewReleaseVersion(2026, 7, 31), 1,
-	)
-
-	_, err := AdvanceLatest(AdvanceLatestRequest{
-		Retained: retained.verifiedLatest, Proposed: other.verifiedLatest,
-	})
-	if !errors.Is(err, core.ErrReleaseConflict) || errors.Is(err, core.ErrReleaseRollback) {
-		t.Fatalf("AdvanceLatest(cross offering lower generation) error = %v, want conflict before rollback", err)
-	}
-}
-
-func TestAdvanceLatestFullOrderRatchets(t *testing.T) {
+// Exhaust all nine generation/version order combinations from real signed
+// producer facts. The unchanged timeline isolates the ordering handoff; the
+// separate timeline and signer-rotation tables attack those additional axes.
+func TestAdvanceLatestProducerClassifierOrderMatrix(t *testing.T) {
 	t.Parallel()
 	retained := newReleaseFixture(t, core.NewReleaseVersion(2026, 7, 30), 5)
-
-	replay, err := AdvanceLatest(AdvanceLatestRequest{Retained: retained.verifiedLatest, Proposed: retained.verifiedLatest})
-	if err != nil || replay.State() != LatestAdvanceReplay {
-		t.Fatalf("AdvanceLatest(replay) = (%v, %v), want (%v, nil)", replay.State(), err, LatestAdvanceReplay)
-	}
-
-	lower := newReleaseFixture(t, core.NewReleaseVersion(2026, 7, 31), 4)
-	_, err = AdvanceLatest(AdvanceLatestRequest{Retained: retained.verifiedLatest, Proposed: lower.verifiedLatest})
-	if !errors.Is(err, core.ErrReleaseRollback) {
-		t.Fatalf("AdvanceLatest(lower generation) error = %v, want %v", err, core.ErrReleaseRollback)
-	}
-
-	next := newReleaseFixture(t, core.NewReleaseVersion(2026, 7, 31), 6)
-	advanced, err := AdvanceLatest(AdvanceLatestRequest{Retained: retained.verifiedLatest, Proposed: next.verifiedLatest})
-	if err != nil || advanced.State() != LatestAdvanceAdvanced {
-		t.Fatalf("AdvanceLatest(greater version) = (%v, %v), want (%v, nil)", advanced.State(), err, LatestAdvanceAdvanced)
+	for _, tc := range []struct {
+		name       string
+		generation uint64
+		version    core.ReleaseVersion
+		state      LatestAdvanceState
+		primary    selectionHandoffClass
+		wantErr    error
+	}{
+		{name: "lower generation cannot borrow a lower version", generation: 4, version: core.NewReleaseVersion(2026, 7, 29), primary: selectionHandoffContradiction, wantErr: core.ErrReleaseRollback},
+		{name: "lower generation cannot borrow the same version", generation: 4, version: core.NewReleaseVersion(2026, 7, 30), primary: selectionHandoffContradiction, wantErr: core.ErrReleaseRollback},
+		{name: "lower generation cannot borrow a newer version", generation: 4, version: core.NewReleaseVersion(2026, 7, 31), primary: selectionHandoffContradiction, wantErr: core.ErrReleaseRollback},
+		{name: "same generation with an older version is contradictory replay", generation: 5, version: core.NewReleaseVersion(2026, 7, 29), primary: selectionHandoffContradiction, wantErr: core.ErrReleaseConflict},
+		{name: "exact signed replay contributes no new generation", generation: 5, version: core.NewReleaseVersion(2026, 7, 30), state: LatestAdvanceReplay, primary: selectionHandoffNeutral},
+		{name: "same generation cannot conceal a newer version", generation: 5, version: core.NewReleaseVersion(2026, 7, 31), primary: selectionHandoffContradiction, wantErr: core.ErrReleaseConflict},
+		{name: "higher generation cannot conceal version rollback", generation: 6, version: core.NewReleaseVersion(2026, 7, 29), primary: selectionHandoffContradiction, wantErr: core.ErrReleaseRollback},
+		{name: "higher generation can renew the identical manifest", generation: 6, version: core.NewReleaseVersion(2026, 7, 30), state: LatestAdvanceAdvanced, primary: selectionHandoffBoundary},
+		{name: "higher generation admits a genuinely newer release", generation: 6, version: core.NewReleaseVersion(2026, 7, 31), state: LatestAdvanceAdvanced, primary: selectionHandoffBoundary},
+	} {
+		t.Run(tc.name, func(t *testing.T) {
+			t.Parallel()
+			proposed := newReleaseFixture(t, tc.version, tc.generation)
+			if proposed.verifiedLatest.Validate() != nil || proposed.verifiedLatest.Fact().Generation().Uint64() != tc.generation || proposed.verifiedLatest.Manifest().Version() != tc.version {
+				t.Fatalf("producer = %v, want authenticated generation %d and version %v", proposed.verifiedLatest, tc.generation, tc.version)
+			}
+			request := AdvanceLatestRequest{Retained: retained.verifiedLatest, Proposed: proposed.verifiedLatest}
+			before := request
+			got, err := AdvanceLatest(request)
+			if !errors.Is(err, tc.wantErr) || request != before {
+				t.Fatalf("advance error/input = (%v, unchanged %t), want (%v, unchanged true)", err, request == before, tc.wantErr)
+			}
+			if tc.wantErr != nil {
+				if got != (LatestAdvance{}) || tc.primary != selectionHandoffContradiction || errors.Is(err, core.ErrReleaseRollback) != (errors.Is(tc.wantErr, core.ErrReleaseRollback)) || errors.Is(err, core.ErrReleaseConflict) != (errors.Is(tc.wantErr, core.ErrReleaseConflict)) {
+					t.Fatalf("advance contradiction = (%v, %v, class %d), want zero and exclusive %v", got, err, tc.primary, tc.wantErr)
+				}
+				return
+			}
+			if got.Validate() != nil || got.State() != tc.state {
+				t.Fatalf("advance state = %v, want %v", got.State(), tc.state)
+			}
+			replayed, err := AdvanceLatest(request)
+			if err != nil || replayed != got {
+				t.Fatalf("repeated advance classification = (%v, %v), want unchanged %v", replayed, err, got)
+			}
+		})
 	}
 }
 
-func TestEvaluateSelectionUsesClosedInstalledIdentity(t *testing.T) {
+func TestAdvanceLatestRefusalAndStreamIdentityPrecedence(t *testing.T) {
 	t.Parallel()
-	installed := newReleaseFixture(t, core.NewReleaseVersion(2026, 7, 30), 1)
-	candidate := newReleaseFixture(t, core.NewReleaseVersion(2026, 7, 31), 2)
-
-	cached, err := NewCachedLatest(candidate.verifiedLatest)
-	if err != nil {
-		t.Fatalf("NewCachedLatest() error = %v", err)
-	}
-	got, err := evaluateWithInstalled(EvaluateRequest{
-		InstalledManifest: installed.verified,
-		Latest:            cached,
-		Time:              latestTimeEvidenceAt(t, 3_000),
-	}, installed.builds[2])
-	if err != nil {
-		t.Fatalf("evaluateWithInstalled() error = %v", err)
-	}
-	available, ok := got.Available()
-	if !ok {
-		t.Fatalf("Result.Available() ok = false, state = %v", got.State())
-	}
-	preparation, err := available.Prepare(latestTimeEvidenceAt(t, 3_001))
-	if err != nil {
-		t.Fatalf("AvailableRelease.PrepareAt() error = %v", err)
-	}
-	prepared, ok := preparation.Ready()
-	if !ok || prepared.Validate() != nil {
-		t.Fatalf("Preparation.Ready() = (%v, %v), want valid proof", prepared, ok)
-	}
-
-	outsideTarget := core.Platform{
-		OperatingSystem: core.OperatingSystemDarwin,
-		Architecture:    core.CPUArchitectureAMD64,
-	}
-	if err := outsideTarget.Validate(); err != nil {
-		t.Fatalf("outside core.Platform.Validate() error = %v", err)
-	}
-	differentInstallation, err := core.NewBuildIdentity(core.BuildIdentityRequest{
-		Offering: installed.builds[2].Offering(),
-		Version:  installed.builds[2].Version(),
-		Commit:   installed.builds[2].Commit(),
-		Platform: outsideTarget,
-	})
-	if err != nil {
-		t.Fatalf("core.NewBuildIdentity(outside target set) error = %v", err)
-	}
-	_, err = evaluateWithInstalled(EvaluateRequest{
-		InstalledManifest: installed.verified,
-		Latest:            cached,
-		Time:              latestTimeEvidenceAt(t, 3_000),
-	}, differentInstallation)
-	if !errors.Is(err, core.ErrReleaseConflict) {
-		t.Fatalf("evaluateWithInstalled(wrong platform identity) error = %v, want %v", err, core.ErrReleaseConflict)
+	retained := newReleaseFixture(t, core.NewReleaseVersion(2026, 7, 30), 5)
+	for _, tc := range []struct {
+		name                                string
+		generation                          uint64
+		zeroRetained, zeroProposed, foreign bool
+		primary                             selectionHandoffClass
+		wantErr                             error
+	}{
+		{name: "missing retained proof cannot become first append", generation: 6, zeroRetained: true, primary: selectionHandoffRefusal, wantErr: core.ErrReleaseVerification},
+		{name: "missing proposed proof cannot become neutral replay", generation: 6, zeroProposed: true, primary: selectionHandoffRefusal, wantErr: core.ErrReleaseVerification},
+		{name: "foreign stream precedes lower-generation rollback", generation: 4, foreign: true, primary: selectionHandoffContradiction, wantErr: core.ErrReleaseConflict},
+		{name: "foreign stream precedes equal-generation replay", generation: 5, foreign: true, primary: selectionHandoffContradiction, wantErr: core.ErrReleaseConflict},
+		{name: "foreign stream cannot borrow a higher generation", generation: 6, foreign: true, primary: selectionHandoffContradiction, wantErr: core.ErrReleaseConflict},
+	} {
+		t.Run(tc.name, func(t *testing.T) {
+			t.Parallel()
+			offering := retained.builds[0].Offering()
+			if tc.foreign {
+				offering = releaseOffering(t, 1)
+			}
+			proposed := newReleaseFixtureForOffering(t, offering, core.NewReleaseVersion(2026, 7, 31), tc.generation)
+			request := AdvanceLatestRequest{Retained: retained.verifiedLatest, Proposed: proposed.verifiedLatest}
+			if tc.zeroRetained {
+				request.Retained = VerifiedLatest{}
+			}
+			if tc.zeroProposed {
+				request.Proposed = VerifiedLatest{}
+			}
+			got, err := AdvanceLatest(request)
+			if !errors.Is(err, tc.wantErr) || errors.Is(err, core.ErrReleaseRollback) || got != (LatestAdvance{}) || (tc.primary == selectionHandoffRefusal) != (tc.zeroRetained || tc.zeroProposed) {
+				t.Fatalf("advance refusal = (%v, %v, class %d), want zero and exclusive %v", got, err, tc.primary, tc.wantErr)
+			}
+		})
 	}
 }

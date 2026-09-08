@@ -51,11 +51,18 @@ func (r BuildDependencyObservationRequest) Validate() error {
 	if r.WaitDelay.IsZero() {
 		return contractError(errors.New("build dependency wait delay is zero"))
 	}
+	if r.WorkingDirectory != r.Repository.Root() {
+		return contractError(errors.New("dependency working directory differs from the verified repository"))
+	}
+	if r.Plan.request.Commit != r.Repository.Commit() {
+		return contractError(errors.New("dependency plan commit differs from the verified repository"))
+	}
 	return r.Plan.request.ModuleMode.validateChecksumObservable()
 }
 
 type goListModuleWire struct {
 	Replace *goListModuleWire
+	Error   *goListErrorWire
 	Path    string
 	Version string
 	Sum     string
@@ -112,8 +119,7 @@ func ObserveBuildDependencies(
 			return BuildDependencies{}, err
 		}
 	}
-	modules := slices.Clone(combined.modules)
-	return newBuildDependencies(combined.main, request.Tools.GoToolchain(), modules)
+	return newBuildDependencies(combined.main, request.Tools.GoToolchain(), combined.modules)
 }
 
 // observeBuildCommandDependencies fills observed with one target's closure. The
@@ -244,7 +250,7 @@ func decodeBuildDependencies(source io.Reader, observed *dependencyObservation) 
 func decodeBuildDependencyStream(source io.Reader, observed *dependencyObservation) error {
 	decoder := jsontext.NewDecoder(source)
 	for packageCount := 0; ; packageCount++ {
-		if packageCount >= buildPackageObservationMaximumCount {
+		if packageCount >= buildPackageObservationMaximumCount && decoder.PeekKind() != 0 {
 			return contractError(errors.New("build package count exceeds its bound"))
 		}
 		var wire goListPackageWire
@@ -272,7 +278,7 @@ func (o *dependencyObservation) addPackage(wire goListPackageWire) error {
 	if wire.Module == nil {
 		return validateStandardPackageObservation(wire.Standard)
 	}
-	if wire.Standard || wire.Module.Replace != nil {
+	if wire.Standard || wire.Module.Replace != nil || wire.Module.Error != nil {
 		return contractError(errors.New("go package module is substituted or inconsistent"))
 	}
 	return o.addPackageModule(*wire.Module)
@@ -287,6 +293,9 @@ func validateStandardPackageObservation(standard bool) error {
 
 func (o *dependencyObservation) addPackageModule(moduleWire goListModuleWire) error {
 	if moduleWire.Main {
+		if moduleWire.Version != "" || moduleWire.Sum != "" {
+			return contractError(errors.New("main module carries selected dependency facts"))
+		}
 		main, err := parseGoModulePath(moduleWire.Path)
 		if err != nil {
 			return err

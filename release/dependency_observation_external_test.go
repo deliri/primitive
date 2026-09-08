@@ -2,31 +2,40 @@ package release_test
 
 import (
 	"context"
+	json "encoding/json/v2"
 	"errors"
 	"io"
-	"os"
 	"strings"
 	"testing"
 
 	"github.com/deliri/primitive/v2026/core"
+	"github.com/deliri/primitive/v2026/hostfacts"
 	"github.com/deliri/primitive/v2026/process"
 	"github.com/deliri/primitive/v2026/release"
 	"github.com/deliri/primitive/v2026/temporal"
 )
 
 const (
-	// observedMainModule is Primitive's own module, which every observed target
-	// closure must agree on.
-	observedMainModule = "github.com/deliri/primitive/v2026"
-	// observedDependencyModule is the one external module Primitive requires. It
-	// is reached through hostfacts' platform files, so observing it proves the
-	// module parser and union are not vacuous.
-	observedDependencyModule = "golang.org/x/sys"
-	// observedDependencyPackage is a Primitive package whose closure actually
-	// contains an external module. Observing a package with no external modules
-	// would leave every module-collection path unexecuted.
-	observedDependencyPackage = "github.com/deliri/primitive/v2026/hostfacts"
+	// The isolated module imports x/sys/cpu on every target. Its pinned facts
+	// come from cmd/go's cached module metadata, never a copied version literal.
+	observedMainModule        = "github.com/deliri/primitive/v2026"
+	observedDependencyModule  = "golang.org/x/sys"
+	observedDependencyPackage = observedMainModule
 )
+
+// This projection consumes cmd/go's public module output; it carries no
+// independently invented release protocol or live resource ownership.
+type dependencyFixtureModule struct {
+	Path     string
+	Version  string
+	Sum      string
+	GoModSum string
+}
+
+type dependencyLiveFixture struct {
+	request release.BuildDependencyObservationRequest
+	module  dependencyFixtureModule
+}
 
 // TestObserveBuildDependenciesReturnsTheRealCrossTargetModuleUnion is the
 // production-path proof. It drives the real verified Go executable across all
@@ -38,8 +47,8 @@ const (
 func TestObserveBuildDependenciesReturnsTheRealCrossTargetModuleUnion(t *testing.T) {
 	t.Parallel()
 
-	dependencies, err := release.ObserveBuildDependencies(
-		t.Context(), dependencyObservationRequestForLiveTest(t, observedDependencyPackage))
+	fixture := dependencyObservationFixture(t, t.TempDir(), t.TempDir(), observedDependencyPackage)
+	dependencies, err := release.ObserveBuildDependencies(t.Context(), fixture.request)
 	if err != nil {
 		t.Fatalf("release.ObserveBuildDependencies() error = %v, want nil", err)
 	}
@@ -55,10 +64,8 @@ func TestObserveBuildDependenciesReturnsTheRealCrossTargetModuleUnion(t *testing
 		if got := dependencies.GoToolchain(); got != release.CurrentGoToolchain() {
 			t.Fatalf("Go toolchain = %v, want %v", got, release.CurrentGoToolchain())
 		}
-		if dependencies.Count() == 0 {
-			t.Fatalf("observed module count = 0, want the closure of %s to carry %s; "+
-				"a zero-module observation proves no module fact was ever parsed",
-				observedDependencyPackage, observedDependencyModule)
+		if dependencies.Count() != 1 {
+			t.Fatalf("observed module count = %d, want exactly one %s module", dependencies.Count(), observedDependencyModule)
 		}
 		found := false
 		for index := range dependencies.Count() {
@@ -80,11 +87,11 @@ func TestObserveBuildDependenciesReturnsTheRealCrossTargetModuleUnion(t *testing
 				continue
 			}
 			found = true
-			if !strings.HasPrefix(module.Version().String(), "v") {
-				t.Fatalf("%s version = %q, want a cmd/go module version", observedDependencyModule, module.Version().String())
+			if module.Version().String() != fixture.module.Version {
+				t.Fatalf("%s version = %q, want %q", observedDependencyModule, module.Version().String(), fixture.module.Version)
 			}
-			if !strings.HasPrefix(module.Sum().String(), "h1:") {
-				t.Fatalf("%s sum = %q, want an h1 module checksum", observedDependencyModule, module.Sum().String())
+			if module.Sum().String() != fixture.module.Sum {
+				t.Fatalf("%s sum = %q, want %q", observedDependencyModule, module.Sum().String(), fixture.module.Sum)
 			}
 		}
 		if !found {
@@ -102,9 +109,6 @@ func TestObserveBuildDependenciesReturnsTheRealCrossTargetModuleUnion(t *testing
 		document, err := dependencies.MarshalJSON()
 		if err != nil {
 			t.Fatalf("release.BuildDependencies.MarshalJSON() error = %v, want nil", err)
-		}
-		if !strings.Contains(string(document), observedDependencyModule) {
-			t.Fatalf("dependency document = %s, want it to name %s", document, observedDependencyModule)
 		}
 		var decoded release.BuildDependencies
 		if err := decoded.UnmarshalJSON(document); err != nil {
@@ -152,9 +156,11 @@ func TestObserveBuildDependenciesReturnsTheRealCrossTargetModuleUnion(t *testing
 func TestObserveBuildDependenciesRejectsEveryIncompleteRequest(t *testing.T) {
 	t.Parallel()
 
-	valid := dependencyObservationRequestForLiveTest(t, observedDependencyPackage)
+	fixture := dependencyObservationFixture(t, t.TempDir(), t.TempDir(), observedDependencyPackage)
+	valid := fixture.request
 	vendorPlan := buildPlanRequestForHostileTest(t)
 	vendorPlan.ModuleMode = release.BuildModuleVendor
+	vendorPlan.Commit = valid.Repository.Commit()
 	vendored, err := release.PrepareBuildPlan(vendorPlan)
 	if err != nil {
 		t.Fatalf("release.PrepareBuildPlan(vendor) error = %v, want nil", err)
@@ -225,27 +231,31 @@ func TestObserveBuildDependenciesRejectsEveryIncompleteRequest(t *testing.T) {
 func TestObserveBuildDependenciesRefusesUnusableContexts(t *testing.T) {
 	t.Parallel()
 
-	valid := dependencyObservationRequestForLiveTest(t, observedDependencyPackage)
+	fixture := dependencyObservationFixture(t, t.TempDir(), t.TempDir(), observedDependencyPackage)
+	valid := fixture.request
 	cases := []struct {
 		wantErr error
-		ctx     func() context.Context
+		ctx     func(*testing.T) context.Context
 		name    string
 	}{
 		{
-			name: "nil context is refused", ctx: func() context.Context { return nil },
+			name: "nil context is refused", ctx: func(*testing.T) context.Context { return nil },
 			wantErr: core.ErrNilContext,
 		},
 		{
-			name: "pre-cancelled context starts no Go process", ctx: func() context.Context {
-				ctx, cancel := context.WithCancel(context.Background())
+			name: "pre-cancelled context starts no Go process", ctx: func(t *testing.T) context.Context {
+				ctx, cancel := context.WithCancel(t.Context())
 				cancel()
 				return ctx
 			},
 			wantErr: context.Canceled,
 		},
 		{
-			name: "expired deadline starts no Go process", ctx: func() context.Context {
-				ctx, cancel := context.WithTimeout(context.Background(), 0)
+			name: "expired deadline starts no Go process", ctx: func(t *testing.T) context.Context {
+				ctx, cancel, err := temporal.WithTimeout(temporal.TimeoutRequest{Parent: t.Context(), Duration: temporal.Duration{}})
+				if err != nil {
+					t.Fatalf("temporal.WithTimeout(expired fixture) error = %v, want nil", err)
+				}
 				cancel()
 				return ctx
 			},
@@ -257,7 +267,7 @@ func TestObserveBuildDependenciesRefusesUnusableContexts(t *testing.T) {
 			t.Parallel()
 
 			//nolint:staticcheck // The nil-context contract is the behavior under test.
-			dependencies, err := release.ObserveBuildDependencies(tc.ctx(), valid)
+			dependencies, err := release.ObserveBuildDependencies(tc.ctx(t), valid)
 			if !errors.Is(err, tc.wantErr) {
 				t.Fatalf("release.ObserveBuildDependencies() error = %v, want errors.Is(..., %v)", err, tc.wantErr)
 			}
@@ -274,8 +284,9 @@ func TestObserveBuildDependenciesRefusesUnusableContexts(t *testing.T) {
 func TestObserveBuildDependenciesFailsLoudlyOnAnAbsentPackage(t *testing.T) {
 	t.Parallel()
 
-	request := dependencyObservationRequestForLiveTest(t,
+	fixture := dependencyObservationFixture(t, t.TempDir(), t.TempDir(),
 		observedMainModule+"/this-package-does-not-exist")
+	request := fixture.request
 	dependencies, err := release.ObserveBuildDependencies(t.Context(), request)
 	if !errors.Is(err, core.ErrReleaseContract) {
 		t.Fatalf("release.ObserveBuildDependencies() error = %v, want errors.Is(..., %v)",
@@ -286,35 +297,138 @@ func TestObserveBuildDependenciesFailsLoudlyOnAnAbsentPackage(t *testing.T) {
 	}
 }
 
-func dependencyObservationRequestForLiveTest(
-	t *testing.T,
-	mainPackage string,
-) release.BuildDependencyObservationRequest {
+func dependencyObservationFixture(t *testing.T, root, home, mainPackage string) dependencyLiveFixture {
 	t.Helper()
-
+	tools := verifiedBuildToolsForLiveTest(t)
+	working, err := hostfacts.WorkingDirectory()
+	if err != nil {
+		t.Fatalf("hostfacts.WorkingDirectory() error = %v, want nil", err)
+	}
+	ambient, err := hostfacts.AmbientEnvironment()
+	if err != nil {
+		t.Fatalf("hostfacts.AmbientEnvironment() error = %v, want nil", err)
+	}
+	values, err := ambient.Strings()
+	if err != nil {
+		t.Fatalf("Environment.Strings() error = %v, want nil", err)
+	}
+	environment, err := process.ParseEffectiveEnvironment(append(values,
+		"GOWORK=off", "GOPROXY=off", "GOSUMDB=off", "GOTOOLCHAIN=local", "GOENV=off", "GOFLAGS=",
+	))
+	if err != nil {
+		t.Fatalf("process.ParseEffectiveEnvironment() error = %v, want nil", err)
+	}
+	arguments, err := process.ParseArguments([]string{"list", "-m", "-json", observedDependencyModule})
+	if err != nil {
+		t.Fatalf("process.ParseArguments(module) error = %v, want nil", err)
+	}
+	wait, err := temporal.DurationFromSeconds(10)
+	if err != nil {
+		t.Fatalf("temporal.DurationFromSeconds() error = %v, want nil", err)
+	}
+	limit, err := core.NewByteCount(1 << 20)
+	if err != nil {
+		t.Fatalf("core.NewByteCount() error = %v, want nil", err)
+	}
+	output := runFixtureProcess(t.Context(), t, process.Request{
+		Command: tools.GoExecutable(), WorkingDirectory: working, Arguments: arguments,
+		Environment: environment, WaitDelay: wait, OutputLimit: limit,
+		Containment: process.Containment{Isolation: process.IsolationDirect, CancelSignal: process.CancelSignalKill},
+	})
+	var module dependencyFixtureModule
+	if err := json.Unmarshal([]byte(output), &module); err != nil {
+		t.Fatalf("decode Go module fixture error = %v, want nil", err)
+	}
+	if module.Path != observedDependencyModule || module.Version == "" || module.Sum == "" || module.GoModSum == "" {
+		t.Fatalf("cached Go module facts = %+v, want exact dependency with version and both checksums", module)
+	}
+	repository := newRepositoryFixtureAt(t, root, home)
+	version, err := tools.GoToolchain().Version()
+	if err != nil {
+		t.Fatalf("GoToolchain.Version() error = %v, want nil", err)
+	}
+	for _, file := range []repositoryFileWrite{
+		{root: repository.root, name: "go.mod", body: "module " + observedMainModule + "\n\ngo " + strings.TrimPrefix(version, "go") + "\n\nrequire " + module.Path + " " + module.Version + "\n"},
+		{root: repository.root, name: "go.sum", body: module.Path + " " + module.Version + " " + module.Sum + "\n" + module.Path + " " + module.Version + "/go.mod " + module.GoModSum + "\n"},
+		{root: repository.root, name: "facts.go", body: "package facts\nimport \"golang.org/x/sys/cpu\"\nvar _ cpu.CacheLinePad\n"},
+	} {
+		writeRepositoryFileForTest(t, file)
+	}
+	runRepositoryGitForTest(t, repository, "add", "--", "go.mod", "go.sum", "facts.go")
+	runRepositoryGitForTest(t, repository, "commit", "--quiet", "-m", "dependency fixture")
+	repository.commit = repositoryHeadForTest(t, repository)
+	verified, err := release.VerifyRepository(t.Context(), repositoryRequestForTest(t, repository))
+	if err != nil {
+		t.Fatalf("release.VerifyRepository(module) error = %v, want nil", err)
+	}
 	parsed, err := release.ParseMainPackage(mainPackage)
 	if err != nil {
-		t.Fatalf("release.ParseMainPackage(%q) error = %v, want nil", mainPackage, err)
+		t.Fatalf("release.ParseMainPackage() error = %v, want nil", err)
 	}
 	planRequest := buildPlanRequestForHostileTest(t)
-	planRequest.MainPackage = parsed
+	planRequest.MainPackage, planRequest.Commit = parsed, verified.Commit()
 	plan, err := release.PrepareBuildPlan(planRequest)
 	if err != nil {
 		t.Fatalf("release.PrepareBuildPlan() error = %v, want nil", err)
 	}
-	environment, err := process.ParseExactEnvironment(os.Environ())
+	return dependencyLiveFixture{module: module, request: release.BuildDependencyObservationRequest{
+		Stderr: io.Discard, WorkingDirectory: verified.Root(), HostEnvironment: environment,
+		Repository: verified, Tools: tools, Plan: plan, WaitDelay: wait,
+	}}
+}
+
+// Repository and commit equality are independent, binary ownership relations.
+// All four combinations are exhausted; malformed fields have a separate table.
+func TestDependencyObservationBindsVerifiedRootAndCommitBeforeEffects(t *testing.T) {
+	t.Parallel()
+	fixture := dependencyObservationFixture(t, t.TempDir(), t.TempDir(), observedDependencyPackage)
+	foreignRoot := absolutePathForTest(t, t.TempDir())
+	planRequest := buildPlanRequestForHostileTest(t)
+	main, err := release.ParseMainPackage(observedDependencyPackage)
 	if err != nil {
-		t.Fatalf("process.ParseExactEnvironment() error = %v, want nil", err)
+		t.Fatalf("release.ParseMainPackage(fixture) error = %v, want nil", err)
 	}
-	verification := buildToolVerificationRequestForLiveTest(t)
-	_, repository := verifiedRepositoryForBuildProcessTest(t)
-	return release.BuildDependencyObservationRequest{
-		Stderr:           io.Discard,
-		WorkingDirectory: verification.WorkingDirectory,
-		HostEnvironment:  environment,
-		Repository:       repository,
-		Tools:            verifiedBuildToolsForLiveTest(t),
-		Plan:             plan,
-		WaitDelay:        verification.WaitDelay,
+	planRequest.MainPackage = main
+	if planRequest.Commit == fixture.request.Repository.Commit() {
+		t.Fatalf("foreign commit = %v, want distinct from fixture commit %v", planRequest.Commit, fixture.request.Repository.Commit())
+	}
+	foreignPlan, err := release.PrepareBuildPlan(planRequest)
+	if err != nil {
+		t.Fatalf("release.PrepareBuildPlan(foreign) error = %v, want nil", err)
+	}
+	for _, tc := range []struct {
+		name          string
+		foreignRoot   bool
+		foreignCommit bool
+		wantErr       error
+	}{
+		{name: "same verified root and commit admit observation"},
+		{name: "foreign root with verified commit refuses substitution", foreignRoot: true, wantErr: core.ErrReleaseContract},
+		{name: "verified root with foreign commit refuses false attribution", foreignCommit: true, wantErr: core.ErrReleaseContract},
+		{name: "foreign root and commit cannot borrow verification", foreignRoot: true, foreignCommit: true, wantErr: core.ErrReleaseContract},
+	} {
+		t.Run(tc.name, func(t *testing.T) {
+			t.Parallel()
+			request := fixture.request
+			if tc.foreignRoot {
+				request.WorkingDirectory = foreignRoot
+			}
+			if tc.foreignCommit {
+				request.Plan = foreignPlan
+			}
+			if got := request.Validate(); !errors.Is(got, tc.wantErr) {
+				t.Fatalf("request.Validate() error = %v, want %v", got, tc.wantErr)
+			}
+			if tc.wantErr == nil {
+				return
+			}
+			got, err := release.ObserveBuildDependencies(t.Context(), request)
+			if !errors.Is(err, tc.wantErr) {
+				t.Fatalf("ObserveBuildDependencies() error = %v, want %v", err, tc.wantErr)
+			}
+			if got != (release.BuildDependencies{}) {
+				t.Fatalf("refused dependencies = %v, want zero", got)
+			}
+		})
 	}
 }

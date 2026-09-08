@@ -1,125 +1,100 @@
 package release
 
 import (
+	"bytes"
+	json "encoding/json/v2"
 	"errors"
-	"fmt"
-	"strings"
 	"testing"
 
 	"github.com/deliri/primitive/v2026/core"
 )
 
+// Each accepted stream is checked against complete independently declared
+// module facts. Refusals must clear a previously populated target buffer.
 func TestDecodeBuildDependenciesLayerTriadPressuresGoListProtocol(t *testing.T) {
 	t.Parallel()
-
-	const (
-		mainPath = "example.com/product"
-		zeroSum  = "h1:AAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAA="
-		oneSum   = "h1:AQAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAA="
-	)
-	main := goListPackageFixture(mainPath, "", "", true)
-	depA := goListPackageFixture("example.com/a", "v1.2.3", zeroSum, false)
-	depB := goListPackageFixture("example.com/b/v2", "v2.0.0-20260804010203-0123456789ab", oneSum, false)
-	standard := `{"ImportPath":"io","Standard":true}`
-	cases := []struct {
-		wantErr   error
-		name      string
-		input     string
-		wantMain  string
-		wantCount int
+	main := goListPackage(goListModuleWire{Path: testMainModule, Main: true})
+	depA := goListPackage(goListModuleWire{Path: "example.com/a", Version: "v1.2.3", Sum: testModuleSumA})
+	depB := goListPackage(goListModuleWire{Path: "example.com/b/v2", Version: "v2.0.0-20260804010203-0123456789ab", Sum: testModuleSumB})
+	wantA := buildDependencyWire{Path: "example.com/a", Version: "v1.2.3", Sum: testModuleSumA}
+	wantB := buildDependencyWire{Path: "example.com/b/v2", Version: "v2.0.0-20260804010203-0123456789ab", Sum: testModuleSumB}
+	standard := goListPackageWire{ImportPath: "io", Standard: true}
+	for _, tc := range []struct {
+		name    string
+		input   []byte
+		want    []buildDependencyWire
+		wantErr error
 	}{
-		{name: "positive main package only", input: main, wantMain: mainPath},
-		{name: "positive standard package before main", input: standard + main, wantMain: mainPath},
-		{name: "positive one dependency", input: depA + main, wantMain: mainPath, wantCount: 1},
-		{name: "positive repeated package from one dependency", input: depA + depA + main, wantMain: mainPath, wantCount: 1},
-		{name: "positive reverse dependency order is canonicalized", input: depB + depA + main, wantMain: mainPath, wantCount: 2},
-		{name: "positive forward dependency order remains canonical", input: depA + depB + main, wantMain: mainPath, wantCount: 2},
-		{name: "positive repeated main module is one identity", input: main + main, wantMain: mainPath},
-		{name: "positive ignored documented fields do not alter facts", input: `{"ImportPath":"io","Standard":true,"Dir":"/ignored","GoFiles":["ignored.go"]}` + main, wantMain: mainPath},
-		{name: "positive pseudo-version is retained", input: depB + main, wantMain: mainPath, wantCount: 1},
-		{name: "positive major-version module path is retained", input: main + depB, wantMain: mainPath, wantCount: 1},
-		{name: "negative empty stream", wantErr: core.ErrReleaseContract},
-		{name: "negative empty package object", input: `{}`, wantErr: core.ErrReleaseContract},
-		{name: "negative truncated object", input: `{"ImportPath":`, wantErr: core.ErrReleaseContract},
-		{name: "negative malformed object", input: `{not-json}`, wantErr: core.ErrReleaseContract},
-		{name: "negative incomplete package", input: `{"ImportPath":"example.com/p","Incomplete":true}` + main, wantErr: core.ErrReleaseContract},
-		{name: "negative package error", input: `{"ImportPath":"example.com/p","Error":{"Err":"broken"}}` + main, wantErr: core.ErrReleaseContract},
-		{name: "negative nonstandard package without module", input: `{"ImportPath":"example.com/p"}` + main, wantErr: core.ErrReleaseContract},
-		{name: "negative standard package with module", input: strings.Replace(depA, `"ImportPath"`, `"Standard":true,"ImportPath"`, 1) + main, wantErr: core.ErrReleaseContract},
-		{name: "negative replaced dependency", input: strings.Replace(depA, `"Main":false`, `"Main":false,"Replace":{"Path":"example.com/local"}`, 1) + main, wantErr: core.ErrReleaseContract},
-		{name: "negative dependency missing version", input: goListPackageFixture("example.com/a", "", zeroSum, false) + main, wantErr: core.ErrReleaseContract},
-		{name: "negative dependency missing sum", input: goListPackageFixture("example.com/a", "v1.2.3", "", false) + main, wantErr: core.ErrReleaseContract},
-		{name: "negative dependency malformed sum", input: goListPackageFixture("example.com/a", "v1.2.3", "h1:not-base64", false) + main, wantErr: core.ErrReleaseContract},
-		{name: "negative dependency malformed path", input: goListPackageFixture("-flag/path", "v1.2.3", zeroSum, false) + main, wantErr: core.ErrReleaseContract},
-		{name: "negative distinct main modules", input: main + goListPackageFixture("example.com/other", "", "", true), wantErr: core.ErrReleaseContract},
-		{name: "negative conflicting repeated module version", input: depA + goListPackageFixture("example.com/a", "v1.2.4", zeroSum, false) + main, wantErr: core.ErrReleaseContract},
-		{name: "negative conflicting repeated module sum", input: depA + goListPackageFixture("example.com/a", "v1.2.3", oneSum, false) + main, wantErr: core.ErrReleaseContract},
-	}
-	for _, tc := range cases {
+		{name: "main-only stream clears previous target modules", input: goListStreamFixture(t, main)},
+		{name: "standard package creates no dependency fact", input: goListStreamFixture(t, standard, main)},
+		{name: "dependency retains exact path version and sum", input: goListStreamFixture(t, depA, main), want: []buildDependencyWire{wantA}},
+		{name: "repeated package from one module is a no-op", input: goListStreamFixture(t, depA, depA, main), want: []buildDependencyWire{wantA}},
+		{name: "reverse module order preserves every sorted fact", input: goListStreamFixture(t, depB, depA, main), want: []buildDependencyWire{wantA, wantB}},
+		{name: "repeated main package retains one root", input: goListStreamFixture(t, main, main)},
+		{name: "standard-only stream cannot manufacture a main root", input: goListStreamFixture(t, standard), wantErr: core.ErrReleaseContract},
+		{name: "empty package path cannot borrow a valid module identity", input: goListStreamFixture(t, mutateGoListPackage(depA, func(w *goListPackageWire) { w.ImportPath = "" }), main), wantErr: core.ErrReleaseContract},
+		{name: "truncated next record discards an already complete prefix", input: append(goListStreamFixture(t, depA, main), '{'), wantErr: core.ErrReleaseContract},
+		{name: "malformed next token discards an already complete prefix", input: append(goListStreamFixture(t, depA, main), '!'), wantErr: core.ErrReleaseContract},
+		{name: "incomplete package cannot contribute valid-looking module facts", input: goListStreamFixture(t, mutateGoListPackage(depA, func(w *goListPackageWire) { w.Incomplete = true }), main), wantErr: core.ErrReleaseContract},
+		{name: "package error cannot contribute valid-looking module facts", input: goListStreamFixture(t, mutateGoListPackage(depA, func(w *goListPackageWire) { w.Error = &goListErrorWire{Err: "package failed"} }), main), wantErr: core.ErrReleaseContract},
+		{name: "nonstandard package must name its module", input: goListStreamFixture(t, goListPackageWire{ImportPath: "example.com/unowned"}, main), wantErr: core.ErrReleaseContract},
+		{name: "standard flag contradicts a module identity", input: goListStreamFixture(t, mutateGoListPackage(depA, func(w *goListPackageWire) { w.Standard = true }), main), wantErr: core.ErrReleaseContract},
+		{name: "replacement cannot stand in for the selected dependency", input: goListStreamFixture(t, mutateGoListPackage(depA, func(w *goListPackageWire) { w.Module.Replace = &goListModuleWire{Path: "example.com/replacement"} }), main), wantErr: core.ErrReleaseContract},
+		{name: "missing version cannot become a selected dependency", input: goListStreamFixture(t, mutateGoListPackage(depA, func(w *goListPackageWire) { w.Module.Version = "" }), main), wantErr: core.ErrReleaseContract},
+		{name: "missing checksum cannot become authenticated bytes", input: goListStreamFixture(t, mutateGoListPackage(depA, func(w *goListPackageWire) { w.Module.Sum = "" }), main), wantErr: core.ErrReleaseContract},
+		{name: "malformed module path cannot become a dependency", input: goListStreamFixture(t, mutateGoListPackage(depA, func(w *goListPackageWire) { w.Module.Path = "-flag/path" }), main), wantErr: core.ErrReleaseContract},
+		{name: "different main modules cannot share one closure", input: goListStreamFixture(t, main, goListPackage(goListModuleWire{Path: "example.com/other", Main: true})), wantErr: core.ErrReleaseContract},
+		{name: "same module version conflict cannot choose first evidence", input: goListStreamFixture(t, depA, mutateGoListPackage(depA, func(w *goListPackageWire) { w.Module.Version = "v1.2.4" }), main), wantErr: core.ErrReleaseContract},
+		{name: "same module checksum conflict cannot choose first evidence", input: goListStreamFixture(t, depA, mutateGoListPackage(depA, func(w *goListPackageWire) { w.Module.Sum = testModuleSumB }), main), wantErr: core.ErrReleaseContract},
+	} {
 		t.Run(tc.name, func(t *testing.T) {
 			t.Parallel()
-			observed := &dependencyObservation{}
-			err := decodeBuildDependencies(strings.NewReader(tc.input), observed)
+			observed := dependencyObservation{main: mustModulePath(t, "example.com/previous"), modules: numberedModules(t, 1)}
+			err := decodeBuildDependencies(bytes.NewReader(tc.input), &observed)
+			if !errors.Is(err, tc.wantErr) {
+				t.Fatalf("decodeBuildDependencies() error = %v, want %v", err, tc.wantErr)
+			}
 			if tc.wantErr != nil {
-				if !errors.Is(err, tc.wantErr) {
-					t.Fatalf("decodeBuildDependencies() error = %v, want errors.Is(..., %v)", err, tc.wantErr)
-				}
 				if observed.main != (GoModulePath{}) || len(observed.modules) != 0 {
-					t.Fatalf("decodeBuildDependencies() = %v, want zero facts on rejection", *observed)
+					t.Fatalf("refused stream = %v, want zero root and no modules", observed)
 				}
 				return
 			}
-			if err != nil {
-				t.Fatalf("decodeBuildDependencies() error = %v, want nil", err)
+			if observed.main.String() != testMainModule || len(observed.modules) != len(tc.want) {
+				t.Fatalf("stream facts = (%v, %d modules), want (%s, %d)", observed.main, len(observed.modules), testMainModule, len(tc.want))
 			}
-			if observed.main.String() != tc.wantMain || len(observed.modules) != tc.wantCount {
-				t.Fatalf("decodeBuildDependencies() = (%q, %d modules), want (%q, %d)", observed.main.String(), len(observed.modules), tc.wantMain, tc.wantCount)
-			}
-			for index := range len(observed.modules) {
-				if index < 1 {
-					continue
-				}
-				if observed.modules[index-1].Path().String() >= observed.modules[index].Path().String() {
-					t.Fatalf("module slots %d and %d are not path-sorted", index-1, index)
+			for index, want := range tc.want {
+				got := observed.modules[index]
+				if got.Validate() != nil || got.Path().String() != want.Path || got.Version().String() != want.Version || got.Sum().String() != want.Sum {
+					t.Fatalf("stream module %d = %v, want exact facts %v", index, got, want)
 				}
 			}
 		})
 	}
 }
 
-// TestDecodeBuildDependenciesReplacesThePriorTargetObservation proves the
-// reusable fixed buffer represents exactly one target. Retaining the preceding
-// target's modules would make a later target appear to contain dependencies it
-// never reported and could hide a broken target observation in the final union.
-func TestDecodeBuildDependenciesReplacesThePriorTargetObservation(t *testing.T) {
-	t.Parallel()
-
-	const (
-		mainPath  = "example.com/product"
-		moduleSum = "h1:AAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAA="
-	)
-	observed := &dependencyObservation{}
-	first := goListPackageFixture("example.com/first", "v1.2.3", moduleSum, false) +
-		goListPackageFixture(mainPath, "", "", true)
-	if err := decodeBuildDependencies(strings.NewReader(first), observed); err != nil {
-		t.Fatalf("decodeBuildDependencies(first target) error = %v, want nil", err)
-	}
-	if len(observed.modules) != 1 {
-		t.Fatalf("first target module count = %d, want 1", len(observed.modules))
-	}
-	second := goListPackageFixture(mainPath, "", "", true)
-	if err := decodeBuildDependencies(strings.NewReader(second), observed); err != nil {
-		t.Fatalf("decodeBuildDependencies(second target) error = %v, want nil", err)
-	}
-	if observed.main.String() != mainPath || len(observed.modules) != 0 {
-		t.Fatalf("second target observation = (%q, %d modules), want (%q, 0)",
-			observed.main.String(), len(observed.modules), mainPath)
-	}
+func goListPackage(module goListModuleWire) goListPackageWire {
+	return goListPackageWire{ImportPath: module.Path + "/package", Module: &module}
 }
 
-func goListPackageFixture(path, version, sum string, main bool) string {
-	return fmt.Sprintf(
-		`{"ImportPath":%q,"Module":{"Path":%q,"Version":%q,"Sum":%q,"Main":%t}}`,
-		path+"/package", path, version, sum, main,
-	)
+func mutateGoListPackage(base goListPackageWire, mutate func(*goListPackageWire)) goListPackageWire {
+	if base.Module != nil {
+		module := *base.Module
+		base.Module = &module
+	}
+	mutate(&base)
+	return base
+}
+
+func goListStreamFixture(t testing.TB, packages ...goListPackageWire) []byte {
+	t.Helper()
+	var stream bytes.Buffer
+	for _, pkg := range packages {
+		encoded, err := json.Marshal(pkg)
+		if err != nil {
+			t.Fatalf("Go Marshal(package stream) error = %v, want nil", err)
+		}
+		stream.Write(encoded)
+	}
+	return stream.Bytes()
 }

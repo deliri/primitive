@@ -365,101 +365,92 @@ func TestNewBuildDependenciesLayerTriadCanonicalizesTheModuleUnion(t *testing.T)
 	}
 }
 
-// TestDependencyObservationMergeUnionsTargetClosures proves the cross-target
-// union directly. The live four-target observation cannot prove conflict
-// detection, because a healthy repository reports agreeing facts on every
-// target, so the disagreement paths need their own proof.
-func TestDependencyObservationMergeUnionsTargetClosures(t *testing.T) {
+// This handoff collects exact facts; it does not classify them. Each target is
+// decoded by the real producer before merging. A failed private accumulator is
+// scratch that ObserveBuildDependencies discards, not a transactional collection.
+func TestDependencyObservationMergeLayerTriadUnionsExactTargetFacts(t *testing.T) {
 	t.Parallel()
-
-	cases := []struct {
-		wantErr   error
-		name      string
-		left      string
-		right     string
-		wantMain  string
-		wantOrder []string
-	}{
-		{
-			name:  "positive disjoint target closures union in canonical order",
-			left:  goListPackageFixture("example.com/b", "v1.0.0", testModuleSumA, false) + mainFixture(),
-			right: goListPackageFixture("example.com/a", "v1.0.0", testModuleSumA, false) + mainFixture(),
-			// This is the exact shape a platform-conditional import produces.
-			wantMain: testMainModule, wantOrder: []string{"example.com/a", "example.com/b"},
-		},
-		{
-			name:     "positive identical target closures deduplicate",
-			left:     goListPackageFixture("example.com/a", "v1.0.0", testModuleSumA, false) + mainFixture(),
-			right:    goListPackageFixture("example.com/a", "v1.0.0", testModuleSumA, false) + mainFixture(),
-			wantMain: testMainModule, wantOrder: []string{"example.com/a"},
-		},
-		{
-			name:     "neutral empty right closure preserves the left union",
-			left:     goListPackageFixture("example.com/a", "v1.0.0", testModuleSumA, false) + mainFixture(),
-			right:    mainFixture(),
-			wantMain: testMainModule, wantOrder: []string{"example.com/a"},
-		},
-		{
-			name:     "neutral empty left closure adopts the right union",
-			left:     mainFixture(),
-			right:    goListPackageFixture("example.com/a", "v1.0.0", testModuleSumA, false) + mainFixture(),
-			wantMain: testMainModule, wantOrder: []string{"example.com/a"},
-		},
-		{
-			name:    "negative disagreeing main modules",
-			left:    mainFixture(),
-			right:   goListPackageFixture("example.com/other", "", "", true),
-			wantErr: core.ErrReleaseContract,
-		},
-		{
-			name:    "negative same module at conflicting versions across targets",
-			left:    goListPackageFixture("example.com/a", "v1.0.0", testModuleSumA, false) + mainFixture(),
-			right:   goListPackageFixture("example.com/a", "v1.0.1", testModuleSumA, false) + mainFixture(),
-			wantErr: core.ErrReleaseContract,
-		},
-		{
-			name:    "negative same module at conflicting checksums across targets",
-			left:    goListPackageFixture("example.com/a", "v1.0.0", testModuleSumA, false) + mainFixture(),
-			right:   goListPackageFixture("example.com/a", "v1.0.0", testModuleSumB, false) + mainFixture(),
-			wantErr: core.ErrReleaseContract,
-		},
+	a := buildDependencyWire{Path: "example.com/a", Version: "v1.2.3", Sum: testModuleSumA}
+	b := buildDependencyWire{Path: "example.com/b", Version: "v2.3.4", Sum: testModuleSumB}
+	changedVersion, changedSum := b, b
+	changedVersion.Version = "v2.3.5"
+	changedSum.Sum = testModuleSumA
+	maximum := make([]buildDependencyWire, 0, BuildDependencyMaximumCount+1)
+	for _, path := range numberedModulePaths(BuildDependencyMaximumCount + 1) {
+		maximum = append(maximum, buildDependencyWire{Path: path, Version: a.Version, Sum: a.Sum})
 	}
-	for _, tc := range cases {
+	for _, tc := range []struct {
+		name              string
+		left, right, want []buildDependencyWire
+		rightMain         string
+		wantErr           error
+	}{
+		{name: "empty targets retain an empty closure"},
+		{name: "first dependency cannot disappear into empty accumulator", right: []buildDependencyWire{a}, want: []buildDependencyWire{a}},
+		{name: "empty target cannot erase prior evidence", left: []buildDependencyWire{a}, want: []buildDependencyWire{a}},
+		{name: "identical repeated target contributes once", left: []buildDependencyWire{a}, right: []buildDependencyWire{a}, want: []buildDependencyWire{a}},
+		{name: "reverse target order retains distinct versions and sums", left: []buildDependencyWire{b}, right: []buildDependencyWire{a}, want: []buildDependencyWire{a, b}},
+		{name: "forward target order gives the same complete union", left: []buildDependencyWire{a}, right: []buildDependencyWire{b}, want: []buildDependencyWire{a, b}},
+		{name: "overlap does not erase the target-only dependency", left: []buildDependencyWire{a}, right: []buildDependencyWire{b, a}, want: []buildDependencyWire{a, b}},
+		{name: "different roots cannot share an empty union", rightMain: "example.com/foreign", wantErr: core.ErrReleaseContract},
+		{name: "version conflict cannot select the first target", left: []buildDependencyWire{b}, right: []buildDependencyWire{changedVersion}, wantErr: core.ErrReleaseContract},
+		{name: "checksum conflict cannot select the first target", left: []buildDependencyWire{b}, right: []buildDependencyWire{changedSum}, wantErr: core.ErrReleaseContract},
+		{name: "earlier valid insertion cannot hide a later conflict", left: []buildDependencyWire{b}, right: []buildDependencyWire{a, changedSum}, wantErr: core.ErrReleaseContract},
+		{name: "union one below ceiling preserves every fact", left: maximum[:BuildDependencyMaximumCount-2], right: maximum[BuildDependencyMaximumCount-2 : BuildDependencyMaximumCount-1], want: maximum[:BuildDependencyMaximumCount-1]},
+		{name: "union at ceiling preserves every fact", left: maximum[:BuildDependencyMaximumCount-1], right: maximum[BuildDependencyMaximumCount-1 : BuildDependencyMaximumCount], want: maximum[:BuildDependencyMaximumCount]},
+		{name: "duplicate at ceiling remains a no-op", left: maximum[:BuildDependencyMaximumCount], right: maximum[:1], want: maximum[:BuildDependencyMaximumCount]},
+		{name: "distinct module beyond ceiling cannot truncate to success", left: maximum[:BuildDependencyMaximumCount], right: maximum[BuildDependencyMaximumCount:], wantErr: core.ErrReleaseContract},
+	} {
 		t.Run(tc.name, func(t *testing.T) {
 			t.Parallel()
-
-			left, right := &dependencyObservation{}, &dependencyObservation{}
-			if err := decodeBuildDependencies(strings.NewReader(tc.left), left); err != nil {
-				t.Fatalf("decode left closure error = %v, want nil", err)
+			rightMain := tc.rightMain
+			if rightMain == "" {
+				rightMain = testMainModule
 			}
-			if err := decodeBuildDependencies(strings.NewReader(tc.right), right); err != nil {
-				t.Fatalf("decode right closure error = %v, want nil", err)
+			left := decodeTargetFixture(t, testMainModule, tc.left)
+			right := decodeTargetFixture(t, rightMain, tc.right)
+			rightBefore := slices.Clone(right.modules)
+			err := left.merge(&right)
+			if !errors.Is(err, tc.wantErr) {
+				t.Fatalf("merge error = %v, want %v", err, tc.wantErr)
 			}
-			before := *left
-			err := left.merge(right)
+			if right.main.String() != rightMain || !slices.Equal(right.modules, rightBefore) {
+				t.Fatalf("merge changed input target = %v, want original root %s and modules %v", right, rightMain, rightBefore)
+			}
 			if tc.wantErr != nil {
-				if !errors.Is(err, tc.wantErr) {
-					t.Fatalf("merge() error = %v, want errors.Is(..., %v)", err, core.ErrReleaseContract)
-				}
-				if left.main != before.main || !slices.Equal(left.modules, before.modules) {
-					t.Fatalf("merge() mutated the left closure on rejection")
-				}
 				return
 			}
+			published, err := newBuildDependencies(left.main, CurrentGoToolchain(), left.modules)
 			if err != nil {
-				t.Fatalf("merge() error = %v, want nil", err)
+				t.Fatalf("publish merged facts error = %v, want nil", err)
 			}
-			if left.main.String() != tc.wantMain || len(left.modules) != len(tc.wantOrder) {
-				t.Fatalf("merge() = (%q, %d modules), want (%q, %d)",
-					left.main.String(), len(left.modules), tc.wantMain, len(tc.wantOrder))
+			encoded, err := published.MarshalJSON()
+			if err != nil {
+				t.Fatalf("marshal merged facts error = %v, want nil", err)
 			}
-			for index, want := range tc.wantOrder {
-				if got := left.modules[index].Path().String(); got != want {
-					t.Fatalf("merged module %d = %q, want %q", index, got, want)
-				}
+			var wire buildDependenciesWire
+			if err := json.Unmarshal(encoded, &wire); err != nil {
+				t.Fatalf("Go decode publication error = %v, want nil", err)
+			}
+			version, err := CurrentGoToolchain().Version()
+			if err != nil || wire.MainModule != testMainModule || wire.GoToolchain != version || !slices.Equal(wire.Modules, tc.want) {
+				t.Fatalf("published union = (%v, %v), want root %s toolchain %s and exact modules %v", wire, err, testMainModule, version, tc.want)
 			}
 		})
 	}
+}
+
+func decodeTargetFixture(t testing.TB, root string, modules []buildDependencyWire) dependencyObservation {
+	t.Helper()
+	packages := []goListPackageWire{goListPackage(goListModuleWire{Path: root, Main: true})}
+	for _, module := range modules {
+		packages = append(packages, goListPackage(goListModuleWire{Path: module.Path, Version: module.Version, Sum: module.Sum}))
+	}
+	var observed dependencyObservation
+	if err := decodeBuildDependencies(strings.NewReader(string(goListStreamFixture(t, packages...))), &observed); err != nil {
+		t.Fatalf("decode target fixture error = %v, want nil", err)
+	}
+	return observed
 }
 
 // TestDependencyObservationRejectsClosuresPastItsBound proves the fixed storage
@@ -545,7 +536,7 @@ func TestBuildDependenciesDocumentRejectsNoncanonicalPublications(t *testing.T) 
 			`"version":"v1.0.0"`, `"version":"1.0.0"`, 1)},
 		{name: "main module listed as its own dependency is rejected", data: strings.Replace(string(encoded),
 			`"path":"example.com/a"`, `"path":"`+testMainModule+`"`, 1)},
-		{name: "module count past the ceiling is rejected", data: oversizedDependencyDocument()},
+		{name: "module count past the ceiling is rejected", data: oversizedDependencyDocument(t)},
 	}
 	for _, tc := range cases {
 		t.Run(tc.name, func(t *testing.T) {
@@ -567,21 +558,22 @@ func TestBuildDependenciesDocumentRejectsNoncanonicalPublications(t *testing.T) 
 	}
 }
 
-func oversizedDependencyDocument() string {
-	var document strings.Builder
-	document.WriteString(`{"main_module":"` + testMainModule + `","go_toolchain":"1.26.1","modules":[`)
-	for index := range BuildDependencyMaximumCount + 1 {
-		if index > 0 {
-			document.WriteString(",")
-		}
-		document.WriteString(`{"path":"example.com/m` + strconv.Itoa(index) +
-			`","version":"v1.0.0","sum":"` + testModuleSumA + `"}`)
+func oversizedDependencyDocument(t testing.TB) string {
+	t.Helper()
+	version, err := CurrentGoToolchain().Version()
+	if err != nil {
+		t.Fatalf("current toolchain version error = %v, want nil", err)
 	}
-	document.WriteString(`]}`)
-	return document.String()
+	wire := buildDependenciesWire{MainModule: testMainModule, GoToolchain: version}
+	for _, path := range numberedModulePaths(BuildDependencyMaximumCount + 1) {
+		wire.Modules = append(wire.Modules, buildDependencyWire{Path: path, Version: "v1.0.0", Sum: testModuleSumA})
+	}
+	encoded, err := json.Marshal(wire)
+	if err != nil {
+		t.Fatalf("Go marshal oversized closure error = %v, want nil", err)
+	}
+	return string(encoded)
 }
-
-func mainFixture() string { return goListPackageFixture(testMainModule, "", "", true) }
 
 func mustModulePath(t testing.TB, value string) GoModulePath {
 	t.Helper()

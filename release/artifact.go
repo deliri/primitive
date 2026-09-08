@@ -472,6 +472,11 @@ func (s *ArtifactSet) UnmarshalJSON(data []byte) error {
 	return nil
 }
 
+type artifactIdentityWire struct {
+	Build     core.BuildIdentity `json:"build"`
+	Integrity ArtifactIntegrity  `json:"integrity"`
+}
+
 func artifactDigest(artifact Artifact) (core.SHA256Digest, error) {
 	if err := artifact.build.Validate(); err != nil {
 		return core.SHA256Digest{}, manifestError(err)
@@ -479,10 +484,7 @@ func artifactDigest(artifact Artifact) (core.SHA256Digest, error) {
 	if err := artifact.integrity.Validate(); err != nil {
 		return core.SHA256Digest{}, err
 	}
-	body, err := json.Marshal(struct {
-		Build     core.BuildIdentity `json:"build"`
-		Integrity ArtifactIntegrity  `json:"integrity"`
-	}{Build: artifact.build, Integrity: artifact.integrity})
+	body, err := json.Marshal(artifactIdentityWire{Build: artifact.build, Integrity: artifact.integrity})
 	if err != nil {
 		return core.SHA256Digest{}, manifestError(err)
 	}

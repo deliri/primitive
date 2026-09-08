@@ -18,7 +18,7 @@ import (
 func TestPrepareBuildProcessReplacesEveryTargetControlledEnvironmentFact(t *testing.T) {
 	t.Parallel()
 
-	fixture, repository := verifiedRepositoryForBuildProcessTest(t)
+	fixture, repository := verifiedRepositoryForBuildProcessTest(t, t.TempDir(), t.TempDir())
 	planRequest := buildPlanRequestForHostileTest(t)
 	planRequest.Commit = fixture.commit
 	plan, err := release.PrepareBuildPlan(planRequest)
@@ -127,7 +127,7 @@ func TestPrepareBuildProcessReplacesEveryTargetControlledEnvironmentFact(t *test
 func TestPrepareBuildProcessRejectsAmbientOrUnusableHostExecutionInputs(t *testing.T) {
 	t.Parallel()
 
-	valid := buildProcessRequestForHostileTest(t)
+	valid := buildProcessRequestForHostileTest(t, t.TempDir(), t.TempDir())
 	foreignPlanRequest := buildPlanRequestForHostileTest(t)
 	foreignCommit, err := core.ParseBuildCommit(strings.Repeat("b", 40))
 	if err != nil {
@@ -191,10 +191,10 @@ func zeroProcessRequest(request process.Request) bool {
 		request.WaitDelay == (temporal.Duration{})
 }
 
-func buildProcessRequestForHostileTest(t *testing.T) release.BuildProcessRequest {
+func buildProcessRequestForHostileTest(t *testing.T, root, home string) release.BuildProcessRequest {
 	t.Helper()
 
-	fixture, repository := verifiedRepositoryForBuildProcessTest(t)
+	fixture, repository := verifiedRepositoryForBuildProcessTest(t, root, home)
 	planRequest := buildPlanRequestForHostileTest(t)
 	planRequest.Commit = fixture.commit
 	plan, err := release.PrepareBuildPlan(planRequest)
@@ -227,9 +227,9 @@ func buildProcessRequestForHostileTest(t *testing.T) release.BuildProcessRequest
 	}
 }
 
-func verifiedRepositoryForBuildProcessTest(t *testing.T) (repositoryFixture, release.VerifiedRepository) {
+func verifiedRepositoryForBuildProcessTest(t *testing.T, root, home string) (repositoryFixture, release.VerifiedRepository) {
 	t.Helper()
-	fixture := newRepositoryFixture(t)
+	fixture := newRepositoryFixtureAt(t, root, home)
 	verified, err := release.VerifyRepository(t.Context(), repositoryRequestForTest(t, fixture))
 	if err != nil {
 		t.Fatalf("release.VerifyRepository(build worktree) error = %v, want nil", err)

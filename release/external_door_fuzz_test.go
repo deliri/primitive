@@ -2,8 +2,10 @@ package release
 
 import (
 	"bytes"
+	"encoding/json/jsontext"
 	json "encoding/json/v2"
 	"errors"
+	"math"
 	"testing"
 
 	"github.com/deliri/primitive/v2026/controlwire"
@@ -142,6 +144,16 @@ func FuzzReleaseExternalJSONDoorInventory(f *testing.F) {
 	for _, seed := range releaseJSONSeedsForFuzz(f, fixtures) {
 		f.Add(uint8(seed.door), seed.document)
 	}
+	// Exact integers above float64's precision range must never alias adjacent
+	// generation values in either production or the independent JSON oracle.
+	for _, value := range []uint64{1<<53 - 1, 1 << 53, 1<<53 + 1, math.MaxUint64} {
+		generation, err := NewGeneration(value)
+		if err != nil {
+			f.Fatalf("NewGeneration(seed) error = %v, want nil", err)
+		}
+		seed := releaseJSONSeedForFuzz(f, releaseJSONDoorGeneration, generation)
+		f.Add(uint8(seed.door), seed.document)
+	}
 	for _, hostile := range [][]byte{
 		nil,
 		{},
@@ -158,7 +170,9 @@ func FuzzReleaseExternalJSONDoorInventory(f *testing.F) {
 	}
 
 	f.Fuzz(func(t *testing.T, rawDoor uint8, data []byte) {
-		door := releaseJSONDoor(rawDoor)
+		// The selector is harness input, not a wire enum. Every byte selects a
+		// real ingress; unknown selectors must not consume runs without testing it.
+		door := releaseJSONDoor((rawDoor-1)%uint8(releaseJSONDoorLimit-1)) + 1
 		switch door {
 		case releaseJSONDoorAvailableSummary:
 			fuzzReleaseJSONValue(t, data, fixtures.available)
@@ -209,9 +223,9 @@ func FuzzReleaseExternalJSONDoorInventory(f *testing.F) {
 		case releaseJSONDoorReleaseSigningSeed:
 			fuzzReleaseJSONValue(t, data, fixtures.releaseSigningSeed)
 		case releaseJSONDoorUnknown, releaseJSONDoorLimit:
-			return
+			t.Fatalf("selected JSON door = %v, want a registered receiver", door)
 		default:
-			return
+			t.Fatalf("selected JSON door = %v, want a registered receiver", door)
 		}
 	})
 }
@@ -254,7 +268,8 @@ func FuzzReleaseExternalTextDoorInventory(f *testing.F) {
 	}
 
 	f.Fuzz(func(t *testing.T, rawDoor uint8, value string) {
-		switch releaseTextDoor(rawDoor) {
+		door := releaseTextDoor((rawDoor-1)%uint8(releaseTextDoorLimit-1)) + 1
+		switch door {
 		case releaseTextDoorMainPackage:
 			got, gotErr := ParseMainPackage(value)
 			if gotErr != nil {
@@ -286,14 +301,17 @@ func FuzzReleaseExternalTextDoorInventory(f *testing.F) {
 					roundTrip, roundTripErr)
 			}
 		case releaseTextDoorUnknown, releaseTextDoorLimit:
-			return
+			t.Fatalf("selected text door = %v, want a registered parser", door)
 		default:
-			return
+			t.Fatalf("selected text door = %v, want a registered parser", door)
 		}
 	})
 }
 
-func fuzzReleaseJSONValue[T core.ValidatedJSONMarshaler](
+func fuzzReleaseJSONValue[T core.ValidatedJSONMarshaler, P interface {
+	*T
+	json.Unmarshaler
+}](
 	t *testing.T,
 	data []byte,
 	seed T,
@@ -305,14 +323,11 @@ func fuzzReleaseJSONValue[T core.ValidatedJSONMarshaler](
 		t.Fatalf("seed MarshalJSON() error = %v, want nil", err)
 	}
 	var candidate T
-	decoder, ok := any(&candidate).(json.Unmarshaler)
-	if !ok {
-		t.Fatalf("release JSON door receiver %T lacks json.Unmarshaler", &candidate)
-	}
+	decoder := P(&candidate)
 	if err := decoder.UnmarshalJSON(before); err != nil {
 		t.Fatalf("release JSON door independent receiver setup error = %v, want nil", err)
 	}
-	defer destroyReleaseFuzzValue(&candidate)
+	defer destroyReleaseFuzzValue(t, &candidate)
 	decodeErr := decoder.UnmarshalJSON(data)
 	if decodeErr != nil {
 		if !errors.Is(decodeErr, core.ErrReleaseContract) ||
@@ -338,15 +353,20 @@ func fuzzReleaseJSONValue[T core.ValidatedJSONMarshaler](
 		t.Fatalf("accepted release JSON canonical extent = %d, want <= %d",
 			len(canonical), core.JSONDocumentMaximumBytes)
 	}
-	var roundTrip T
-	roundTripDecoder, ok := any(&roundTrip).(json.Unmarshaler)
-	if !ok {
-		t.Fatalf("release round-trip receiver %T lacks json.Unmarshaler", &roundTrip)
+	// Go compares the admitted input and emitted output without invoking any
+	// Release decoder. Object order and JSON string escapes are irrelevant;
+	// integer and floating tokens retain exact precision and representation.
+	inputValue, inputErr := releaseFuzzJSONMeaning(data)
+	outputValue, outputErr := releaseFuzzJSONMeaning(canonical)
+	if inputErr != nil || outputErr != nil || !bytes.Equal(inputValue, outputValue) {
+		t.Fatalf("release JSON door %T changed admitted input: input=%q output=%q errors=(%v, %v), want equal Go JSON values", candidate, inputValue, outputValue, inputErr, outputErr)
 	}
+	var roundTrip T
+	roundTripDecoder := P(&roundTrip)
 	if err := roundTripDecoder.UnmarshalJSON(canonical); err != nil {
 		t.Fatalf("canonical release JSON decode error = %v, want nil", err)
 	}
-	defer destroyReleaseFuzzValue(&roundTrip)
+	defer destroyReleaseFuzzValue(t, &roundTrip)
 	if err := roundTrip.Validate(); err != nil {
 		t.Fatalf("round-trip release JSON validation error = %v, want nil", err)
 	}
@@ -356,9 +376,20 @@ func fuzzReleaseJSONValue[T core.ValidatedJSONMarshaler](
 	}
 }
 
-func destroyReleaseFuzzValue(value any) {
+// Numbers must retain their original tokens: default JCS rounding would let
+// a wrong generation above 2^53 appear equal to its adjacent correct value.
+func releaseFuzzJSONMeaning(data []byte) (jsontext.Value, error) {
+	value := jsontext.Value(bytes.Clone(data))
+	err := value.Canonicalize(jsontext.CanonicalizeRawInts(false), jsontext.CanonicalizeRawFloats(false))
+	return value, err
+}
+
+func destroyReleaseFuzzValue(t *testing.T, value any) {
+	t.Helper()
 	if destroyable, ok := value.(interface{ Destroy() error }); ok {
-		_ = destroyable.Destroy()
+		if err := destroyable.Destroy(); err != nil {
+			t.Errorf("Destroy(%T) error = %v, want nil", value, err)
+		}
 	}
 }
 
@@ -544,11 +575,17 @@ func materialFixturesForFuzz(
 	if err != nil {
 		t.Fatalf("NewReleaseSigningSeed() error = %v, want nil", err)
 	}
-	server, err := keygen.GenerateSigningKey()
+	var serverSeed [keygen.SeedSize]byte
+	serverSeed[0] = 0x72
+	server, err := keygen.AdoptSigningKey(serverSeed)
 	if err != nil {
-		t.Fatalf("GenerateSigningKey() error = %v, want nil", err)
+		t.Fatalf("AdoptSigningKey() error = %v, want nil", err)
 	}
-	t.Cleanup(func() { _ = server.Destroy() })
+	t.Cleanup(func() {
+		if err := server.Destroy(); err != nil {
+			t.Errorf("SigningKey.Destroy() error = %v, want nil", err)
+		}
+	})
 	public, err := server.PublicKey()
 	if err != nil {
 		t.Fatalf("SigningKey.PublicKey() error = %v, want nil", err)
@@ -560,7 +597,11 @@ func materialFixturesForFuzz(
 	if err := response.Validate(); err != nil {
 		t.Fatalf("MaterialResponse.Validate() error = %v, want nil", err)
 	}
-	t.Cleanup(func() { _ = response.Destroy() })
+	t.Cleanup(func() {
+		if err := response.Destroy(); err != nil {
+			t.Errorf("MaterialResponse.Destroy() error = %v, want nil", err)
+		}
+	})
 	return request, signing, response
 }
 

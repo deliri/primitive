@@ -10,6 +10,7 @@ import (
 	"testing"
 
 	"github.com/deliri/primitive/v2026/core"
+	"github.com/deliri/primitive/v2026/filestore"
 	"github.com/deliri/primitive/v2026/testserial"
 )
 
@@ -192,9 +193,25 @@ func TestInspectBuiltArtifactRejectsEveryObservedExtentOutsideItsBound(t *testin
 					Directory: t.TempDir(), Extent: tc.extent, Mode: 0o700,
 				})
 			}
-			_, gotErr := InspectBuiltArtifact(t.Context(), request)
-			if !errors.Is(gotErr, core.ErrReleaseContract) {
-				t.Fatalf("InspectBuiltArtifact() error = %v, want %v", gotErr, core.ErrReleaseContract)
+			// Separate extent admission from format refusal. Otherwise all six
+			// rows could pass even if the size guard rejected every file.
+			opened, openErr := openBuiltArtifactInspection(t.Context(), request)
+			outside := tc.zeroPath || tc.extent == 0 || tc.extent > BuiltArtifactMaximumBytes
+			if outside {
+				if !errors.Is(openErr, core.ErrReleaseContract) || opened != (openedArtifactInspection{}) {
+					t.Fatalf("extent admission = (%v, %v), want no handle and typed refusal", opened, openErr)
+				}
+			} else {
+				if openErr != nil {
+					t.Fatalf("extent admission at %d bytes error = %v, want nil before native format inspection", tc.extent, openErr)
+				}
+				if err := opened.close(); err != nil {
+					t.Fatalf("admitted extent Close error = %v, want nil", err)
+				}
+			}
+			got, gotErr := InspectBuiltArtifact(t.Context(), request)
+			if !errors.Is(gotErr, core.ErrReleaseContract) || got != (Artifact{}) {
+				t.Fatalf("InspectBuiltArtifact() = (%v, %v), want zero and %v", got, gotErr, core.ErrReleaseContract)
 			}
 		})
 	}
@@ -256,26 +273,47 @@ type inspectionContentRequest struct {
 
 func writeInspectionContent(t *testing.T, request inspectionContentRequest) core.AbsolutePath {
 	t.Helper()
-	path := filepath.Join(request.Directory, "artifact")
-	file, err := os.OpenFile(path, os.O_CREATE|os.O_EXCL|os.O_WRONLY, request.Mode)
+	absolute, err := core.ParseAbsolutePath(filepath.Join(request.Directory, "artifact"))
 	if err != nil {
-		t.Fatalf("os.OpenFile(inspection content) error = %v, want nil", err)
+		t.Fatalf("ParseAbsolutePath(inspection content) error = %v, want nil", err)
 	}
-	if len(request.Content) != 0 {
-		written, writeErr := file.Write(request.Content)
-		if writeErr != nil || written != len(request.Content) {
-			_ = file.Close()
-			t.Fatalf("inspection content Write() = (%d, %v), want (%d, nil)", written, writeErr, len(request.Content))
+	extent, err := core.CheckedInt64FromUint64(request.Extent)
+	if err != nil {
+		t.Fatalf("CheckedInt64FromUint64(fixture extent) error = %v, want nil", err)
+	}
+	location, err := filestore.OpenParent(t.Context(), absolute)
+	if err != nil {
+		t.Fatalf("filestore.OpenParent(content) error = %v, want nil", err)
+	}
+	defer func() {
+		if err := location.Root.Close(); err != nil {
+			t.Errorf("content parent Close() error = %v, want nil", err)
 		}
-	}
-	truncateErr := file.Truncate(int64(request.Extent))
-	closeErr := file.Close()
-	if err := errors.Join(truncateErr, closeErr); err != nil {
-		t.Fatalf("inspection content finalize error = %v, want nil", err)
-	}
-	absolute, err := core.ParseAbsolutePath(path)
+	}()
+	temporary, err := core.ParseRelativePath("inspection-content-stage")
 	if err != nil {
-		t.Fatalf("core.ParseAbsolutePath(inspection content) error = %v, want nil", err)
+		t.Fatalf("ParseRelativePath(content stage) error = %v, want nil", err)
+	}
+	maximum, err := core.NewByteCount(uint64(max(1, len(request.Content))))
+	if err != nil {
+		t.Fatalf("NewByteCount(content) error = %v, want nil", err)
+	}
+	recovery, err := filestore.Write(t.Context(), filestore.WriteRequest{
+		Location: location, Temporary: temporary, Source: bytes.NewReader(request.Content),
+		MaximumBytes: maximum, Mode: 0o600, Install: filestore.InstallCreate,
+	})
+	if err != nil {
+		t.Fatalf("filestore.Write(content) error = %v, recovery = %v, want nil", err, recovery)
+	}
+	held, err := filestore.OpenUpdate(t.Context(), filestore.UpdateHandleRequest{Location: location})
+	if err != nil {
+		t.Fatalf("filestore.OpenUpdate(content) error = %v, want nil", err)
+	}
+	truncateErr := held.Truncate(extent)
+	modeErr := held.Chmod(request.Mode)
+	closeErr := held.Close()
+	if err := errors.Join(truncateErr, modeErr, closeErr); err != nil {
+		t.Fatalf("held content finalize error = %v, want nil", err)
 	}
 	return absolute
 }

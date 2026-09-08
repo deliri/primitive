@@ -3,9 +3,7 @@ package release
 import (
 	"errors"
 	"go/ast"
-	"go/parser"
 	"go/token"
-	"os"
 	"reflect"
 	"sort"
 	"strings"
@@ -26,16 +24,16 @@ func TestEmbeddedBuildIdentityLinkSymbolsNameOwnedVariables(t *testing.T) {
 		embeddedBuildAssignmentsVariableName: embeddedBuildAssignmentsLinkSymbol,
 	}
 	packagePath := reflect.TypeFor[embeddedBuildIdentityText]().PkgPath()
-	entries, err := os.ReadDir(".")
+	entries, err := releaseContractSources.ReadDir(".")
 	if err != nil {
-		t.Fatalf("os.ReadDir(release package) error = %v, want nil", err)
+		t.Fatalf("embedded ReadDir(release package) error = %v, want nil", err)
 	}
 	for _, entry := range entries {
 		filename := entry.Name()
 		if entry.IsDir() || !strings.HasSuffix(filename, ".go") || strings.HasSuffix(filename, "_test.go") {
 			continue
 		}
-		file, parseErr := parser.ParseFile(token.NewFileSet(), filename, nil, parser.SkipObjectResolution)
+		file, parseErr := parseReleaseContractFile(token.NewFileSet(), filename)
 		if parseErr != nil {
 			t.Fatalf("parser.ParseFile(%q) error = %v, want nil", filename, parseErr)
 		}

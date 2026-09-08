@@ -3,7 +3,6 @@ package release
 import (
 	json "encoding/json/v2"
 	"errors"
-	"runtime"
 	"testing"
 
 	"github.com/deliri/primitive/v2026/core"
@@ -23,8 +22,9 @@ func BenchmarkVerifyLatest(b *testing.B) {
 	for b.Loop() {
 		got, err = VerifyLatest(request)
 	}
-	runtime.KeepAlive(got)
-	runtime.KeepAlive(err)
+	if err != nil || got.Document() != request.Document || got.Validate() != nil {
+		b.Fatalf("VerifyLatest() = (%v, %v), want exact verified document and nil", got, err)
+	}
 }
 
 func BenchmarkAssessLatest(b *testing.B) {
@@ -56,8 +56,10 @@ func BenchmarkAssessLatest(b *testing.B) {
 	for b.Loop() {
 		got, err = AssessLatest(request)
 	}
-	runtime.KeepAlive(got)
-	runtime.KeepAlive(err)
+	if err != nil || got.Validate() != nil || got.Freshness() != LatestFreshnessCurrent ||
+		got.EffectiveAt() != request.Time.DurableHighWater || got.ValidUntil() != request.Latest.Fact().ValidUntil() {
+		b.Fatalf("AssessLatest() = (%v, %v), want exact current assessment and nil", got, err)
+	}
 }
 
 func BenchmarkLatestDocumentJSON(b *testing.B) {
@@ -69,8 +71,13 @@ func BenchmarkLatestDocumentJSON(b *testing.B) {
 	for b.Loop() {
 		got, err = json.Marshal(fixture.latest)
 	}
-	runtime.KeepAlive(got)
-	runtime.KeepAlive(err)
+	if err != nil || len(got) == 0 || len(got) > documentExtentMaximum {
+		b.Fatalf("json.Marshal(LatestDocument) = (%d bytes, %v), want bounded nonempty document and nil", len(got), err)
+	}
+	var decoded LatestDocument
+	if err := decoded.UnmarshalJSON(got); err != nil || decoded != fixture.latest {
+		b.Fatalf("LatestDocument.UnmarshalJSON(benchmark output) = (%v, %v), want exact fixture and nil", decoded, err)
+	}
 }
 
 func BenchmarkBuildDependenciesUnmarshalSparse(b *testing.B) {

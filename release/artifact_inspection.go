@@ -51,9 +51,11 @@ func (r ArtifactInspectionRequest) Validate() error {
 }
 
 // InspectBuiltArtifact proves the executable format, target architecture,
-// executable standing, stable held-file identity, stripping, exact observed
-// extent, dual integrity, and embedded release stamps. The source is never
-// retained and memory use is independent of its extent.
+// executable standing, stripping, exact observed extent, dual integrity, and
+// embedded release stamps. Path standing is checked before and after reading;
+// callers must own the file against concurrent writes. These observations are
+// not an atomic filesystem snapshot. Hashing and stamp scanning use fixed
+// buffers; Go's executable parsers allocate metadata within the file bound.
 func InspectBuiltArtifact(ctx context.Context, request ArtifactInspectionRequest) (Artifact, error) {
 	if err := request.Validate(); err != nil {
 		return Artifact{}, err
@@ -115,26 +117,39 @@ func inspectOpenedBuiltArtifact(ctx context.Context, inspection openedArtifactIn
 	if err != nil || resolved != inspection.request.Path {
 		return Artifact{}, contractError(errors.New("artifact is not the exact runnable path"), err)
 	}
-	standing, err := filestore.ObserveHeldStanding(ctx, inspection.source, inspection.request.Path)
-	if err != nil || standing != filestore.HeldStandingSame {
-		return Artifact{}, contractError(errors.New("artifact path no longer names the opened file"), err)
+	if err := validateInspectionStanding(ctx, inspection.source, inspection.request.Path); err != nil {
+		return Artifact{}, err
 	}
 	extentValue, err := inspection.extent.Int64()
 	if err != nil {
 		return Artifact{}, contractError(err)
 	}
 	bounded := io.NewSectionReader(inspection.source, 0, extentValue)
-	if err := inspectExecutable(bounded, inspection.request.Build.Platform()); err != nil {
-		return Artifact{}, err
+	if err := errors.Join(inspectExecutable(bounded, inspection.request.Build.Platform()), ctx.Err()); err != nil {
+		return Artifact{}, contractError(err)
 	}
 	integrity, err := inspection.inspectBytes(bounded, extentValue)
-	if err != nil {
+	if err = errors.Join(err, ctx.Err()); err != nil {
+		return Artifact{}, contractError(err)
+	}
+	if err := validateInspectionStanding(ctx, inspection.source, inspection.request.Path); err != nil {
 		return Artifact{}, err
 	}
 	return NewArtifact(ArtifactRequest{
 		Build: inspection.request.Build, Extent: inspection.extent,
 		SHA256: integrity.sha256, CRC32C: integrity.crc32c,
 	})
+}
+
+// validateInspectionStanding observes the caller-owned path at a read phase
+// boundary. Go regular-file reads cannot interrupt an in-flight OS read;
+// cancellation is cooperative between the bounded parsing and hashing phases.
+func validateInspectionStanding(ctx context.Context, file *os.File, path core.AbsolutePath) error {
+	standing, err := filestore.ObserveHeldStanding(ctx, file, path)
+	if err != nil || standing != filestore.HeldStandingSame {
+		return contractError(errors.New("inspection path no longer names the opened file"), err)
+	}
+	return nil
 }
 
 func inspectExecutable(source io.ReaderAt, platform core.Platform) error {

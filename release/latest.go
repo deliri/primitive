@@ -236,6 +236,11 @@ func (f LatestFact) WriteCanonical(destination io.Writer) error {
 	return nil
 }
 
+type latestIdentityWire struct {
+	Offering core.Offering `json:"offering"`
+	Revision Revision      `json:"revision"`
+}
+
 func latestIdentity(revision Revision, offering core.Offering) (LatestIdentity, error) {
 	if err := revision.Validate(); err != nil {
 		return LatestIdentity{}, latestError(err)
@@ -243,10 +248,7 @@ func latestIdentity(revision Revision, offering core.Offering) (LatestIdentity, 
 	if err := offering.Validate(); err != nil {
 		return LatestIdentity{}, latestError(err)
 	}
-	body, err := json.Marshal(struct {
-		Offering core.Offering `json:"offering"`
-		Revision Revision      `json:"revision"`
-	}{Revision: revision, Offering: offering})
+	body, err := json.Marshal(latestIdentityWire{Revision: revision, Offering: offering})
 	if err != nil {
 		return LatestIdentity{}, latestError(err)
 	}
@@ -263,6 +265,15 @@ type LatestDocument struct {
 	Attestation attest.Envelope[Domain] `json:"attestation"`
 }
 
+// The encoding projection suppresses methods without duplicating fields.
+// The ingress carrier retains pointers to distinguish absent required fields.
+type latestDocumentEncoding LatestDocument
+
+type latestDocumentWire struct {
+	Fact        *LatestFact              `json:"fact"`
+	Attestation *attest.Envelope[Domain] `json:"attestation"`
+}
+
 func (d LatestDocument) Validate() error {
 	if err := d.Fact.Validate(); err != nil {
 		return latestError(err)
@@ -277,11 +288,10 @@ func (d LatestDocument) Validate() error {
 }
 
 func (d LatestDocument) MarshalJSON() ([]byte, error) {
-	type wire LatestDocument
 	if err := d.Validate(); err != nil {
 		return nil, err
 	}
-	encoded, err := json.Marshal(wire(d))
+	encoded, err := json.Marshal(latestDocumentEncoding(d))
 	if err != nil || len(encoded) > documentExtentMaximum {
 		return nil, jsonError(errors.New("latest document extent exceeded"), err)
 	}
@@ -292,11 +302,8 @@ func (d *LatestDocument) UnmarshalJSON(data []byte) error {
 	if d == nil {
 		return jsonError(errors.New("latest document receiver is nil"))
 	}
-	type wire struct {
-		Fact        *LatestFact              `json:"fact"`
-		Attestation *attest.Envelope[Domain] `json:"attestation"`
-	}
-	decoded, err := decodeStructure[wire](data)
+
+	decoded, err := decodeStructure[latestDocumentWire](data)
 	if err != nil {
 		return err
 	}

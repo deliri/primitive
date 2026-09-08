@@ -1,10 +1,10 @@
 package release
 
 import (
+	"embed"
 	"go/ast"
 	"go/parser"
 	"go/token"
-	"os"
 	"slices"
 	"strings"
 	"testing"
@@ -12,14 +12,26 @@ import (
 	"github.com/deliri/primitive/v2026/core"
 )
 
+//go:embed *.go
+var releaseContractSources embed.FS
+
 type (
 	protocolFact[T any]      struct{}
+	wireProtocol[T any]      struct{}
 	internalFlow[T any]      struct{}
 	capabilityWrapper[T any] struct{}
 	failureDetail[T any]     struct{}
 )
 
 type releaseContractInventory struct {
+	latestIdentityWire       wireProtocol[latestIdentityWire]
+	artifactIdentityWire     wireProtocol[artifactIdentityWire]
+	latestDocumentEncoding   wireProtocol[latestDocumentEncoding]
+	latestDocumentWire       wireProtocol[latestDocumentWire]
+	manifestDocumentEncoding wireProtocol[manifestDocumentEncoding]
+	manifestDocumentWire     wireProtocol[manifestDocumentWire]
+	availableSummaryWire     wireProtocol[availableSummaryWire]
+
 	embeddedBuildIdentityText         internalFlow[embeddedBuildIdentityText]
 	MainPackage                       protocolFact[MainPackage]
 	LinkerAssignment                  protocolFact[LinkerAssignment]
@@ -45,12 +57,12 @@ type releaseContractInventory struct {
 	BuildDependency                   protocolFact[BuildDependency]
 	BuildDependencies                 protocolFact[BuildDependencies]
 	buildDependencyStorage            internalFlow[buildDependencyStorage]
-	buildDependencyWire               internalFlow[buildDependencyWire]
-	buildDependenciesWire             internalFlow[buildDependenciesWire]
+	buildDependencyWire               wireProtocol[buildDependencyWire]
+	buildDependenciesWire             wireProtocol[buildDependenciesWire]
 	BuildDependencyObservationRequest protocolFact[BuildDependencyObservationRequest]
-	goListModuleWire                  internalFlow[goListModuleWire]
-	goListErrorWire                   failureDetail[goListErrorWire]
-	goListPackageWire                 internalFlow[goListPackageWire]
+	goListModuleWire                  wireProtocol[goListModuleWire]
+	goListErrorWire                   wireProtocol[goListErrorWire]
+	goListPackageWire                 wireProtocol[goListPackageWire]
 	dependencyObservation             internalFlow[dependencyObservation]
 	dependencyProcessOutcome          internalFlow[dependencyProcessOutcome]
 	ArtifactInspectionRequest         protocolFact[ArtifactInspectionRequest]
@@ -62,30 +74,30 @@ type releaseContractInventory struct {
 	ArtifactIdentity                  protocolFact[ArtifactIdentity]
 	BinaryFilename                    protocolFact[BinaryFilename]
 	ArtifactIntegrity                 protocolFact[ArtifactIntegrity]
-	artifactIntegrityWire             internalFlow[artifactIntegrityWire]
+	artifactIntegrityWire             wireProtocol[artifactIntegrityWire]
 	ArtifactRequest                   protocolFact[ArtifactRequest]
 	Artifact                          protocolFact[Artifact]
-	artifactWire                      internalFlow[artifactWire]
+	artifactWire                      wireProtocol[artifactWire]
 	TargetSet                         protocolFact[TargetSet]
 	ArtifactSetRequest                protocolFact[ArtifactSetRequest]
 	ArtifactSet                       protocolFact[ArtifactSet]
 	MetadataAssetRequest              protocolFact[MetadataAssetRequest]
 	MetadataInspectionRequest         protocolFact[MetadataInspectionRequest]
 	MetadataAsset                     protocolFact[MetadataAsset]
-	metadataAssetWire                 internalFlow[metadataAssetWire]
+	metadataAssetWire                 wireProtocol[metadataAssetWire]
 	MetadataSetRequest                protocolFact[MetadataSetRequest]
 	MetadataSet                       protocolFact[MetadataSet]
 	BuildProvenanceRequest            protocolFact[BuildProvenanceRequest]
 	BuildProvenance                   protocolFact[BuildProvenance]
-	linkerAssignmentWire              internalFlow[linkerAssignmentWire]
-	buildProvenanceWire               internalFlow[buildProvenanceWire]
+	linkerAssignmentWire              wireProtocol[linkerAssignmentWire]
+	buildProvenanceWire               wireProtocol[buildProvenanceWire]
 	AssessLatestRequest               protocolFact[AssessLatestRequest]
 	LatestTimeEvidence                protocolFact[LatestTimeEvidence]
 	LatestAssessment                  capabilityWrapper[LatestAssessment]
 	Generation                        protocolFact[Generation]
 	LatestIdentity                    protocolFact[LatestIdentity]
 	LatestFact                        protocolFact[LatestFact]
-	latestFactWire                    internalFlow[latestFactWire]
+	latestFactWire                    wireProtocol[latestFactWire]
 	LatestDocument                    protocolFact[LatestDocument]
 	IssueLatestRequest                protocolFact[IssueLatestRequest]
 	VerifyLatestRequest               protocolFact[VerifyLatestRequest]
@@ -94,8 +106,8 @@ type releaseContractInventory struct {
 	ManifestDocumentDigest            protocolFact[ManifestDocumentDigest]
 	ManifestFactRequest               protocolFact[ManifestFactRequest]
 	ManifestFact                      protocolFact[ManifestFact]
-	manifestFactWire                  internalFlow[manifestFactWire]
-	manifestIdentityWire              internalFlow[manifestIdentityWire]
+	manifestFactWire                  wireProtocol[manifestFactWire]
+	manifestIdentityWire              wireProtocol[manifestIdentityWire]
 	ManifestDocument                  protocolFact[ManifestDocument]
 	IssueManifestRequest              protocolFact[IssueManifestRequest]
 	VerifyManifestRequest             protocolFact[VerifyManifestRequest]
@@ -116,16 +128,24 @@ type releaseContractInventory struct {
 	Preparation                       capabilityWrapper[Preparation]
 	OfferingMismatchError             failureDetail[OfferingMismatchError]
 	MaterialRequest                   protocolFact[MaterialRequest]
-	materialRequestWire               internalFlow[materialRequestWire]
+	materialRequestWire               wireProtocol[materialRequestWire]
 	MaterialRequestInput              protocolFact[MaterialRequestInput]
 	ReleaseSigningSeed                protocolFact[ReleaseSigningSeed]
 	MaterialResponse                  protocolFact[MaterialResponse]
-	materialResponseWire              internalFlow[materialResponseWire]
+	materialResponseWire              wireProtocol[materialResponseWire]
 	Material                          capabilityWrapper[Material]
 }
 
 var (
 	_ releaseContractInventory
+	_ = releaseContractInventory{}.latestIdentityWire
+	_ = releaseContractInventory{}.artifactIdentityWire
+	_ = releaseContractInventory{}.latestDocumentEncoding
+	_ = releaseContractInventory{}.latestDocumentWire
+	_ = releaseContractInventory{}.manifestDocumentEncoding
+	_ = releaseContractInventory{}.manifestDocumentWire
+	_ = releaseContractInventory{}.availableSummaryWire
+
 	_ = releaseContractInventory{}.embeddedBuildIdentityText
 	_ = releaseContractInventory{}.artifactIntegrityWire
 	_ = releaseContractInventory{}.artifactWire
@@ -250,7 +270,16 @@ func TestExternalIngressFuzzInventoryMatchesEveryPublicDecoder(t *testing.T) {
 		t.Fatalf("public JSON receivers = %v, fuzz inventory = %v", gotJSON, wantJSON)
 	}
 
-	gotText := []string{"ParseBuildTag", "ParseMainPackage"}
+	functions, err := exportedFunctionNames()
+	if err != nil {
+		t.Fatalf("exportedFunctionNames error = %v, want nil", err)
+	}
+	var gotText []string
+	for _, name := range functions {
+		if strings.HasPrefix(name, "Parse") {
+			gotText = append(gotText, name)
+		}
+	}
 	var wantText []string
 	for door := range releaseTextDoorLimit {
 		if door < releaseTextDoorUnknown+1 {
@@ -268,136 +297,170 @@ func TestExternalIngressFuzzInventoryMatchesEveryPublicDecoder(t *testing.T) {
 	}
 }
 
-func TestEvaluateObtainsInstalledIdentityOnlyFromReleaseEmbedding(t *testing.T) {
+// This is a syntax contract: these two public request shapes and their direct
+// embedded-identity calls stay explicit. Behavioral selection tests separately
+// prove the resulting identities and refusals.
+func TestSelectionIdentitySourceContracts(t *testing.T) {
 	t.Parallel()
-
-	set := token.NewFileSet()
-	file, err := parser.ParseFile(set, "selection.go", nil, parser.SkipObjectResolution)
-	if err != nil {
-		t.Fatalf("parser.ParseFile(selection.go) error = %v", err)
+	for _, tc := range []struct {
+		name, request, function string
+		fields                  []string
+		embedded                bool
+	}{
+		{name: "running identity is acquired by Evaluate", request: "EvaluateRequest", function: "Evaluate", fields: []string{"Time", "InstalledManifest", "Latest"}, embedded: true},
+		{name: "supplied identity stays supplied to EvaluateInstalled", request: "EvaluateInstalledRequest", function: "EvaluateInstalled", fields: []string{"Installed", "Evaluate"}},
+	} {
+		t.Run(tc.name, func(t *testing.T) {
+			t.Parallel()
+			file, err := parseReleaseContractFile(token.NewFileSet(), "selection.go")
+			if err != nil {
+				t.Fatalf("parse selection source error = %v, want nil", err)
+			}
+			fields, embedded, found := releaseSelectionShape(file, tc.request, tc.function)
+			if !found || !slices.Equal(fields, tc.fields) || embedded != tc.embedded {
+				t.Fatalf("%s shape = (%v, embedded %t, found %t), want (%v, embedded %t, found true)", tc.function, fields, embedded, found, tc.fields, tc.embedded)
+			}
+		})
 	}
-	var requestFields []string
-	embeddedCall := false
+}
+
+func releaseSelectionShape(file *ast.File, request, function string) ([]string, bool, bool) {
+	var fields []string
+	var foundRequest, foundFunction, embedded bool
 	for _, declaration := range file.Decls {
 		switch node := declaration.(type) {
 		case *ast.GenDecl:
 			for _, raw := range node.Specs {
 				spec, ok := raw.(*ast.TypeSpec)
-				if !ok || spec.Name.Name != "EvaluateRequest" {
+				if !ok || spec.Name.Name != request {
 					continue
 				}
-				structure := spec.Type.(*ast.StructType)
+				structure, ok := ast.Unparen(spec.Type).(*ast.StructType)
+				if !ok {
+					continue
+				}
+				foundRequest = true
 				for _, field := range structure.Fields.List {
+					if len(field.Names) == 0 {
+						fields = append(fields, "")
+					}
 					for _, name := range field.Names {
-						requestFields = append(requestFields, name.Name)
+						fields = append(fields, name.Name)
 					}
 				}
 			}
 		case *ast.FuncDecl:
-			if node.Name.Name != "Evaluate" {
+			if node.Recv != nil || node.Name.Name != function || node.Body == nil {
 				continue
 			}
+			foundFunction = true
 			ast.Inspect(node.Body, func(raw ast.Node) bool {
 				call, ok := raw.(*ast.CallExpr)
 				if !ok {
 					return true
 				}
-				function, ok := call.Fun.(*ast.Ident)
-				if ok && function.Name == "EmbeddedBuildIdentity" {
-					embeddedCall = true
+				name, ok := ast.Unparen(call.Fun).(*ast.Ident)
+				if ok && name.Name == "EmbeddedBuildIdentity" {
+					embedded = true
 				}
 				return true
 			})
 		}
 	}
-	wantFields := []string{"Time", "InstalledManifest", "Latest"}
-	if !slices.Equal(requestFields, wantFields) {
-		t.Fatalf("EvaluateRequest fields = %v, want %v", requestFields, wantFields)
-	}
-	if !embeddedCall {
-		t.Fatalf("Evaluate does not call EmbeddedBuildIdentity")
-	}
+	return fields, embedded, foundRequest && foundFunction
 }
 
-func TestEvaluateInstalledDoesNotReadTheRunningBinaryStamp(t *testing.T) {
-	t.Parallel()
-
-	set := token.NewFileSet()
-	file, err := parser.ParseFile(set, "selection.go", nil, parser.SkipObjectResolution)
-	if err != nil {
-		t.Fatalf("parser.ParseFile(selection.go) error = %v", err)
-	}
-	var requestFields []string
-	embeddedCall := false
-	for _, declaration := range file.Decls {
-		switch node := declaration.(type) {
-		case *ast.GenDecl:
-			for _, raw := range node.Specs {
-				spec, ok := raw.(*ast.TypeSpec)
-				if !ok || spec.Name.Name != "EvaluateInstalledRequest" {
-					continue
-				}
-				structure := spec.Type.(*ast.StructType)
-				for _, field := range structure.Fields.List {
-					for _, name := range field.Names {
-						requestFields = append(requestFields, name.Name)
-					}
-				}
-			}
-		case *ast.FuncDecl:
-			if node.Name.Name != "EvaluateInstalled" {
-				continue
-			}
-			ast.Inspect(node.Body, func(raw ast.Node) bool {
-				call, ok := raw.(*ast.CallExpr)
-				if !ok {
-					return true
-				}
-				function, ok := call.Fun.(*ast.Ident)
-				if ok && function.Name == "EmbeddedBuildIdentity" {
-					embeddedCall = true
-				}
-				return true
-			})
-		}
-	}
-	wantFields := []string{"Evaluate", "Installed"}
-	slices.Sort(requestFields)
-	if !slices.Equal(requestFields, wantFields) {
-		t.Fatalf("EvaluateInstalledRequest fields = %v, want %v", requestFields, wantFields)
-	}
-	if embeddedCall {
-		t.Fatalf("EvaluateInstalled EmbeddedBuildIdentity call = %t, want false", embeddedCall)
-	}
-}
-
-func productionStructNames() ([]string, error) {
-	files, err := productionFiles()
+func parseReleaseContractFile(set *token.FileSet, name string) (*ast.File, error) {
+	data, err := releaseContractSources.ReadFile(name)
 	if err != nil {
 		return nil, err
 	}
-	var names []string
+	return parser.ParseFile(set, name, data, parser.SkipObjectResolution)
+}
+
+func productionStructNames() ([]string, error) {
+	names, err := productionFiles()
+	if err != nil {
+		return nil, err
+	}
 	set := token.NewFileSet()
-	for _, name := range files {
-		file, err := parser.ParseFile(set, name, nil, parser.SkipObjectResolution)
+	var files []*ast.File
+	for _, name := range names {
+		file, err := parseReleaseContractFile(set, name)
 		if err != nil {
 			return nil, err
 		}
+		files = append(files, file)
+	}
+	return releaseStructNames(set, files), nil
+}
+
+// Inventory every named struct, including defined projections. Local and
+// anonymous carriers retain source coordinates and therefore cannot match a
+// package-level compiler inventory entry. The resolver only follows this
+// package's finite declarations; it does not model imported packages.
+func releaseStructNames(set *token.FileSet, files []*ast.File) []string {
+	declarations := make(map[string]ast.Expr)
+	topLevel := make(map[*ast.TypeSpec]bool)
+	namedLiterals := make(map[*ast.StructType]bool)
+	for _, file := range files {
 		for _, declaration := range file.Decls {
 			generic, ok := declaration.(*ast.GenDecl)
-			if !ok || generic.Tok != token.TYPE {
+			if !ok {
 				continue
 			}
 			for _, raw := range generic.Specs {
-				spec := raw.(*ast.TypeSpec)
-				if _, ok := spec.Type.(*ast.StructType); ok {
-					names = append(names, spec.Name.Name)
+				spec, ok := raw.(*ast.TypeSpec)
+				if !ok {
+					continue
 				}
+				declarations[spec.Name.Name] = spec.Type
+				topLevel[spec] = true
 			}
 		}
 	}
+	var names []string
+	for name, expression := range declarations {
+		if releaseUnderlyingStruct(expression, declarations, len(declarations)) != nil {
+			names = append(names, name)
+		}
+	}
+	for _, file := range files {
+		ast.Inspect(file, func(node ast.Node) bool {
+			if spec, ok := node.(*ast.TypeSpec); ok {
+				if literal, ok := ast.Unparen(spec.Type).(*ast.StructType); ok {
+					namedLiterals[literal] = true
+				}
+				if !topLevel[spec] && releaseUnderlyingStruct(spec.Type, declarations, len(declarations)) != nil {
+					names = append(names, set.Position(spec.Pos()).String()+" local "+spec.Name.Name)
+				}
+			}
+			if structure, ok := node.(*ast.StructType); ok && !namedLiterals[structure] {
+				names = append(names, set.Position(structure.Pos()).String()+" anonymous struct")
+			}
+			return true
+		})
+	}
 	slices.Sort(names)
-	return names, nil
+	return names
+}
+
+func releaseUnderlyingStruct(expression ast.Expr, declarations map[string]ast.Expr, remaining int) *ast.StructType {
+	if remaining < 0 {
+		return nil
+	}
+	switch value := ast.Unparen(expression).(type) {
+	case *ast.StructType:
+		return value
+	case *ast.Ident:
+		return releaseUnderlyingStruct(declarations[value.Name], declarations, remaining-1)
+	case *ast.IndexExpr:
+		return releaseUnderlyingStruct(value.X, declarations, remaining-1)
+	case *ast.IndexListExpr:
+		return releaseUnderlyingStruct(value.X, declarations, remaining-1)
+	default:
+		return nil
+	}
 }
 
 func exportedJSONReceiverNames() ([]string, error) {
@@ -408,33 +471,49 @@ func exportedJSONReceiverNames() ([]string, error) {
 	set := token.NewFileSet()
 	var names []string
 	for _, name := range files {
-		file, err := parser.ParseFile(set, name, nil, parser.SkipObjectResolution)
+		file, err := parseReleaseContractFile(set, name)
 		if err != nil {
 			return nil, err
 		}
-		for _, declaration := range file.Decls {
-			function, ok := declaration.(*ast.FuncDecl)
-			if !ok || function.Name.Name != "UnmarshalJSON" || function.Recv == nil ||
-				len(function.Recv.List) != 1 {
-				continue
-			}
-			pointer, ok := function.Recv.List[0].Type.(*ast.StarExpr)
-			if !ok {
-				continue
-			}
-			receiver, ok := pointer.X.(*ast.Ident)
-			if ok && receiver.IsExported() {
-				names = append(names, receiver.Name)
-			}
-		}
+		names = append(names, releaseJSONReceiverNames(file)...)
 	}
 	slices.Sort(names)
 	return names, nil
 }
 
+func releaseJSONReceiverNames(file *ast.File) []string {
+	var names []string
+	for _, declaration := range file.Decls {
+		function, ok := declaration.(*ast.FuncDecl)
+		if !ok || function.Name.Name != "UnmarshalJSON" || function.Recv == nil || len(function.Recv.List) != 1 {
+			continue
+		}
+		if name := releaseReceiverName(function.Recv.List[0].Type); ast.IsExported(name) {
+			names = append(names, name)
+		}
+	}
+	slices.Sort(names)
+	return names
+}
+
+func releaseReceiverName(expression ast.Expr) string {
+	switch value := ast.Unparen(expression).(type) {
+	case *ast.Ident:
+		return value.Name
+	case *ast.StarExpr:
+		return releaseReceiverName(value.X)
+	case *ast.IndexExpr:
+		return releaseReceiverName(value.X)
+	case *ast.IndexListExpr:
+		return releaseReceiverName(value.X)
+	default:
+		return ""
+	}
+}
+
 func inventoryStructNames() ([]string, error) {
 	set := token.NewFileSet()
-	file, err := parser.ParseFile(set, "internal_contract_test.go", nil, parser.SkipObjectResolution)
+	file, err := parseReleaseContractFile(set, "internal_contract_test.go")
 	if err != nil {
 		return nil, err
 	}
@@ -470,7 +549,7 @@ func exportedFunctionNames() ([]string, error) {
 	set := token.NewFileSet()
 	var names []string
 	for _, name := range files {
-		file, err := parser.ParseFile(set, name, nil, parser.SkipObjectResolution)
+		file, err := parseReleaseContractFile(set, name)
 		if err != nil {
 			return nil, err
 		}
@@ -486,7 +565,7 @@ func exportedFunctionNames() ([]string, error) {
 }
 
 func productionFiles() ([]string, error) {
-	entries, err := os.ReadDir(".")
+	entries, err := releaseContractSources.ReadDir(".")
 	if err != nil {
 		return nil, err
 	}

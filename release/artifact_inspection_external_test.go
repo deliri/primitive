@@ -1,22 +1,22 @@
 package release_test
 
 import (
-	"context"
 	"crypto/sha256"
 	"errors"
 	"hash/crc32"
 	"io"
-	"os"
-	"os/exec"
 	"path/filepath"
 	"slices"
 	"strconv"
 	"strings"
 	"testing"
-	"time"
 
 	"github.com/deliri/primitive/v2026/core"
+	"github.com/deliri/primitive/v2026/filestore"
+	"github.com/deliri/primitive/v2026/hostfacts"
+	"github.com/deliri/primitive/v2026/process"
 	"github.com/deliri/primitive/v2026/release"
+	"github.com/deliri/primitive/v2026/temporal"
 )
 
 const (
@@ -67,12 +67,8 @@ func TestInspectBuiltArtifactProvesEveryShippedExecutable(t *testing.T) {
 			if err != nil {
 				t.Fatalf("release.InspectBuiltArtifact() error = %v", err)
 			}
-			wantSHA, wantCRC := digestInspectionFixture(t, path)
-			info, err := os.Stat(path.String())
-			if err != nil {
-				t.Fatalf("os.Stat() error = %v, want nil", err)
-			}
-			wantExtent := mustInspectionExtent(t, uint64(info.Size()))
+			wantSHA, wantCRC, length := digestInspectionFixture(t, path)
+			wantExtent := mustInspectionExtent(t, length.Uint64())
 			if artifact.Build() != build || artifact.Integrity().Extent() != wantExtent ||
 				artifact.Integrity().SHA256() != wantSHA || artifact.Integrity().CRC32C() != wantCRC {
 				t.Fatalf("release.InspectBuiltArtifact() artifact does not describe exact fixture bytes")
@@ -188,7 +184,14 @@ type buildInspectionFixtureRequest struct {
 
 func buildInspectionFixture(t testing.TB, request buildInspectionFixtureRequest) core.AbsolutePath {
 	t.Helper()
-	context, cancel := context.WithTimeout(context.Background(), 2*time.Minute)
+	duration, err := temporal.DurationFromSeconds(120)
+	if err != nil {
+		t.Fatalf("DurationFromSeconds(build timeout) error = %v, want nil", err)
+	}
+	ctx, cancel, err := temporal.WithTimeout(temporal.TimeoutRequest{Parent: t.Context(), Duration: duration})
+	if err != nil {
+		t.Fatalf("WithTimeout(build fixture) error = %v, want nil", err)
+	}
 	defer cancel()
 	name := strings.ReplaceAll(request.Build.Platform().String(), "-", "_") +
 		"_" + strings.ReplaceAll(strings.TrimSpace(request.StripFlags), " ", "") + "_strip"
@@ -196,18 +199,36 @@ func buildInspectionFixture(t testing.TB, request buildInspectionFixtureRequest)
 		name += ".exe"
 	}
 	output := inspectionAbsolutePath(t, filepath.Join(request.Directory.String(), name))
-	goExecutable, err := exec.LookPath("go")
+	nameComponent, err := core.ParsePathComponent("go")
 	if err != nil {
-		t.Fatalf("exec.LookPath(go) error = %v", err)
+		t.Fatalf("ParsePathComponent(go) error = %v, want nil", err)
 	}
-	arguments := inspectionGoBuildArguments(t, request, output)
-	command := exec.CommandContext(context, goExecutable, arguments...)
-	command.Dir = "."
-	command.Env = inspectionBuildEnvironment(request.Build.Platform(), goExecutable)
-	combined, err := command.CombinedOutput()
+	goExecutable, err := process.Resolve(ctx, nameComponent)
 	if err != nil {
-		t.Fatalf("go build fixture error = %v, output = %s", err, combined)
+		t.Fatalf("process.Resolve(go) error = %v, want nil", err)
 	}
+	arguments, err := process.ParseArguments(inspectionGoBuildArguments(t, request, output))
+	if err != nil {
+		t.Fatalf("process.ParseArguments(build fixture) error = %v, want nil", err)
+	}
+	directory, err := hostfacts.WorkingDirectory()
+	if err != nil {
+		t.Fatalf("hostfacts.WorkingDirectory() error = %v, want nil", err)
+	}
+	environment := inspectionBuildEnvironment(t, request.Build.Platform(), goExecutable)
+	wait, err := temporal.DurationFromSeconds(2)
+	if err != nil {
+		t.Fatalf("DurationFromSeconds(process wait) error = %v, want nil", err)
+	}
+	maximum, err := core.NewByteCount(4 << 20)
+	if err != nil {
+		t.Fatalf("NewByteCount(build output) error = %v, want nil", err)
+	}
+	runFixtureProcess(ctx, t, process.Request{
+		Command: goExecutable, WorkingDirectory: directory, Arguments: arguments,
+		Environment: environment, WaitDelay: wait, OutputLimit: maximum,
+		Containment: process.Containment{Isolation: process.IsolationDirect, CancelSignal: process.CancelSignalKill},
+	})
 	return output
 }
 
@@ -292,41 +313,67 @@ func lowerInspectionGoArguments(t testing.TB, request lowerInspectionGoArguments
 	return goArguments
 }
 
-func inspectionBuildEnvironment(platform core.Platform, goExecutable string) []string {
+func inspectionBuildEnvironment(t testing.TB, platform core.Platform, goExecutable core.AbsolutePath) process.Environment {
+	t.Helper()
 	values := []string{
 		"CGO_ENABLED=0", "GOARCH=" + platform.Architecture.String(),
 		"GOOS=" + platform.OperatingSystem.String(), "GOTOOLCHAIN=local",
 		"GOENV=off", "GOFLAGS=", "GOEXPERIMENT=", "GOFIPS140=off", "GOWORK=off",
-		"PATH=" + filepath.Dir(goExecutable),
+		"PATH=" + filepath.Dir(goExecutable.String()),
 	}
 	if platform.Architecture == core.CPUArchitectureAMD64 {
 		values = append(values, "GOAMD64=v1")
 	} else {
 		values = append(values, "GOARM64=v8.0")
 	}
-	for _, name := range []string{"HOME", "GOCACHE", "GOMODCACHE", "GOPATH"} {
-		if value := os.Getenv(name); value != "" {
+	ambient, err := hostfacts.AmbientEnvironment()
+	if err != nil {
+		t.Fatalf("hostfacts.AmbientEnvironment() error = %v, want nil", err)
+	}
+	for _, variable := range ambient.Variables {
+		name, err := variable.Name.Value()
+		if err != nil {
+			t.Fatalf("ambient variable Name.Value() error = %v, want nil", err)
+		}
+		if slices.Contains([]string{"HOME", "GOCACHE", "GOMODCACHE", "GOPATH", "SYSTEMROOT"}, name) {
+			value, err := variable.Value.Value()
+			if err != nil {
+				t.Fatalf("ambient variable Value.Value(%s) error = %v, want nil", name, err)
+			}
 			values = append(values, name+"="+value)
 		}
 	}
-	return values
+	environment, err := process.ParseExactEnvironment(values)
+	if err != nil {
+		t.Fatalf("process.ParseExactEnvironment(build fixture) error = %v, want nil", err)
+	}
+	return environment
 }
 
-func digestInspectionFixture(t *testing.T, path core.AbsolutePath) (core.SHA256Digest, core.CRC32C) {
+func digestInspectionFixture(t testing.TB, path core.AbsolutePath) (core.SHA256Digest, core.CRC32C, core.ByteLength) {
 	t.Helper()
-	file, err := os.Open(path.String())
+	location, err := filestore.OpenParent(t.Context(), path)
 	if err != nil {
-		t.Fatalf("os.Open() error = %v", err)
+		t.Fatalf("filestore.OpenParent(digest fixture) error = %v, want nil", err)
 	}
-	closeInspectionFile(t, file)
+	defer func() {
+		if err := location.Root.Close(); err != nil {
+			t.Errorf("digest parent Close() error = %v, want nil", err)
+		}
+	}()
+	maximum, err := core.NewByteCount(release.BuiltArtifactMaximumBytes)
+	if err != nil {
+		t.Fatalf("NewByteCount(digest ceiling) error = %v, want nil", err)
+	}
 	sha := sha256.New()
 	crc := crc32.New(crc32.MakeTable(crc32.Castagnoli))
-	if _, err := io.CopyBuffer(io.MultiWriter(sha, crc), file, make([]byte, 64<<10)); err != nil {
-		t.Fatalf("io.CopyBuffer() error = %v", err)
+	count, err := filestore.Read(t.Context(), filestore.ReadRequest{
+		Location: location, Destination: io.MultiWriter(sha, crc), MaximumBytes: maximum,
+	})
+	if err != nil {
+		t.Fatalf("filestore.Read(digest fixture) error = %v, want nil", err)
 	}
-	var digest [sha256.Size]byte
-	copy(digest[:], sha.Sum(nil))
-	return core.NewSHA256Digest(digest), core.NewCRC32C(crc.Sum32())
+	return core.NewSHA256Digest([core.SHA256DigestBytes]byte(sha.Sum(nil))), core.NewCRC32C(crc.Sum32()), count
 }
 
 func inspectionAbsolutePath(t testing.TB, value string) core.AbsolutePath {
@@ -338,16 +385,7 @@ func inspectionAbsolutePath(t testing.TB, value string) core.AbsolutePath {
 	return path
 }
 
-func closeInspectionFile(t *testing.T, file *os.File) {
-	t.Helper()
-	t.Cleanup(func() {
-		if err := file.Close(); err != nil {
-			t.Errorf("(*os.File).Close() error = %v, want nil", err)
-		}
-	})
-}
-
-func mustInspectionExtent(t *testing.T, value uint64) core.ByteCount {
+func mustInspectionExtent(t testing.TB, value uint64) core.ByteCount {
 	t.Helper()
 	extent, err := core.NewByteCount(value)
 	if err != nil {

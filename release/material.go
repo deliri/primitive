@@ -52,7 +52,10 @@ func NewMaterialRequest(input MaterialRequestInput) (MaterialRequest, error) {
 		Nonce: input.Nonce, Revision: controlwire.Revision2026V1,
 		Primitive: primitiveTag,
 	}
-	return request, request.Validate()
+	if err := request.Validate(); err != nil {
+		return MaterialRequest{}, err
+	}
+	return request, nil
 }
 
 func (r MaterialRequest) Validate() error {
@@ -132,14 +135,14 @@ type ReleaseSigningSeed struct {
 }
 
 func NewReleaseSigningSeed(value [keygen.SeedSize]byte) (ReleaseSigningSeed, error) {
+	defer clear(value[:])
 	material, err := core.NewSecretMaterial(value[:])
 	if err != nil {
 		return ReleaseSigningSeed{}, contractError(err)
 	}
 	seed := ReleaseSigningSeed{material: material}
 	if err := seed.Validate(); err != nil {
-		_ = material.Destroy()
-		return ReleaseSigningSeed{}, err
+		return ReleaseSigningSeed{}, errors.Join(err, material.Destroy())
 	}
 	return seed, nil
 }
@@ -174,43 +177,67 @@ func (s ReleaseSigningSeed) SigningKey() (keygen.SigningKey, error) {
 	return keygen.AdoptSigningKey(seed)
 }
 
-func (s ReleaseSigningSeed) MarshalJSON() ([]byte, error) {
+func (s ReleaseSigningSeed) encodedText() (string, error) {
 	if err := s.Validate(); err != nil {
-		return nil, jsonError(err)
+		return "", err
 	}
 	raw, err := s.material.CopyBytes()
 	if err != nil {
-		return nil, jsonError(contractError(err))
+		return "", contractError(err)
 	}
 	defer clear(raw)
-	return json.Marshal(base64.StdEncoding.EncodeToString(raw))
+	return base64.StdEncoding.EncodeToString(raw), nil
+}
+
+func (s ReleaseSigningSeed) MarshalJSON() ([]byte, error) {
+	text, err := s.encodedText()
+	if err != nil {
+		return nil, jsonError(err)
+	}
+	return json.Marshal(text)
+}
+
+// parseReleaseSigningSeed admits only the exact standard Base64 representation
+// before acquiring Core custody. The extra destination byte safely admits the
+// decoder's largest possible output for a malformed unpadded final group.
+func parseReleaseSigningSeed(text string) (ReleaseSigningSeed, error) {
+	if len(text) != base64.StdEncoding.EncodedLen(keygen.SeedSize) {
+		return ReleaseSigningSeed{}, jsonError(errors.New("release signing seed has invalid encoded extent"))
+	}
+	var decoded [keygen.SeedSize + 1]byte
+	defer clear(decoded[:])
+	count, err := base64.StdEncoding.Strict().Decode(decoded[:], []byte(text))
+	if err != nil || count != keygen.SeedSize {
+		return ReleaseSigningSeed{}, jsonError(errors.New("release signing seed is not canonical base64"), err)
+	}
+	var fixed [keygen.SeedSize]byte
+	copy(fixed[:], decoded[:count])
+	defer clear(fixed[:])
+	seed, err := NewReleaseSigningSeed(fixed)
+	if err != nil {
+		return ReleaseSigningSeed{}, jsonError(err)
+	}
+	return seed, nil
 }
 
 func (s *ReleaseSigningSeed) UnmarshalJSON(data []byte) error {
 	if s == nil {
 		return jsonError(errors.New("release signing seed receiver is nil"))
 	}
-	value, err := core.DecodeJSONStringToken(data)
+	if len(data) > documentExtentMaximum {
+		return jsonError(errors.New("release signing seed document exceeds its bound"))
+	}
+	text, err := core.DecodeJSONStringToken(data)
 	if err != nil {
 		return jsonError(err)
 	}
-	decoded, err := base64.StdEncoding.DecodeString(value)
-	if err != nil || len(decoded) != keygen.SeedSize || base64.StdEncoding.EncodeToString(decoded) != value {
-		clear(decoded)
-		return jsonError(errors.New("release signing seed is not canonical base64"), err)
-	}
-	defer clear(decoded)
-	var fixed [keygen.SeedSize]byte
-	copy(fixed[:], decoded)
-	parsed, err := NewReleaseSigningSeed(fixed)
-	clear(fixed[:])
+	parsed, err := parseReleaseSigningSeed(text)
 	if err != nil {
-		return jsonError(err)
+		return err
 	}
 	if s.material != (core.SecretMaterial{}) {
 		if err := s.Destroy(); err != nil {
-			_ = parsed.Destroy()
-			return jsonError(err)
+			return jsonError(errors.Join(err, parsed.Destroy()))
 		}
 	}
 	*s = parsed
@@ -237,7 +264,7 @@ type MaterialResponse struct {
 
 type materialResponseWire struct {
 	Request            *MaterialRequest       `json:"request"`
-	ReleaseSigningSeed *ReleaseSigningSeed    `json:"release_signing_seed"`
+	ReleaseSigningSeed *string                `json:"release_signing_seed"`
 	ServerPublicKey    *core.Ed25519PublicKey `json:"server_public_key"`
 }
 
@@ -257,7 +284,11 @@ func (r MaterialResponse) MarshalJSON() ([]byte, error) {
 	if err := r.Validate(); err != nil {
 		return nil, jsonError(err)
 	}
-	request, signing, server := r.Request, r.ReleaseSigningSeed, r.ServerPublicKey
+	signing, err := r.ReleaseSigningSeed.encodedText()
+	if err != nil {
+		return nil, jsonError(err)
+	}
+	request, server := r.Request, r.ServerPublicKey
 	return json.Marshal(materialResponseWire{
 		Request: &request, ReleaseSigningSeed: &signing,
 		ServerPublicKey: &server,
@@ -275,16 +306,21 @@ func (r *MaterialResponse) UnmarshalJSON(data []byte) error {
 	if wire.Request == nil || wire.ReleaseSigningSeed == nil || wire.ServerPublicKey == nil {
 		return jsonError(errors.New("release material response field is missing"))
 	}
+	// The wire carrier owns text only. Missing, malformed or invalid sibling
+	// fields cannot allocate secret custody through a nested JSON decoder.
+	signing, err := parseReleaseSigningSeed(*wire.ReleaseSigningSeed)
+	if err != nil {
+		return err
+	}
 	candidate := MaterialResponse{
-		Request: *wire.Request, ReleaseSigningSeed: *wire.ReleaseSigningSeed,
+		Request: *wire.Request, ReleaseSigningSeed: signing,
 		ServerPublicKey: *wire.ServerPublicKey,
 	}
 	if err := candidate.Validate(); err != nil {
 		return jsonError(errors.Join(err, candidate.Destroy()))
 	}
 	if err := r.Destroy(); err != nil {
-		_ = candidate.Destroy()
-		return jsonError(err)
+		return jsonError(errors.Join(err, candidate.Destroy()))
 	}
 	*r = candidate
 	return nil
@@ -319,8 +355,7 @@ func (r *MaterialResponse) Open() (Material, error) {
 	}
 	signing, err := r.ReleaseSigningSeed.SigningKey()
 	if err != nil {
-		_ = r.Destroy()
-		return Material{}, err
+		return Material{}, errors.Join(err, r.Destroy())
 	}
 	opened := Material{
 		SigningKey: signing, ServerPublicKey: r.ServerPublicKey,

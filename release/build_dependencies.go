@@ -5,7 +5,6 @@ import (
 	json "encoding/json/v2"
 	"errors"
 	"slices"
-	"sort"
 	"strings"
 	"unicode/utf8"
 
@@ -138,16 +137,18 @@ type GoModuleSum struct {
 }
 
 func parseGoModuleSum(value string) (GoModuleSum, error) {
-	encoded, found := strings.CutPrefix(value, goModuleSumPrefix)
-	if !found {
+	if len(value) != goModuleSumMaximumBytes || !strings.HasPrefix(value, goModuleSumPrefix) {
 		return GoModuleSum{}, contractError(errors.New(goModuleSumInvalidDiagnostic))
 	}
-	decoded, err := base64.StdEncoding.DecodeString(encoded)
-	if err != nil || len(decoded) != core.SHA256DigestBytes {
+	// A full unpadded group could decode one extra byte. Reserve it so even
+	// malformed input remains inside the Go decoder's destination contract.
+	var decoded [core.SHA256DigestBytes + 1]byte
+	count, err := base64.StdEncoding.Strict().Decode(decoded[:], []byte(value[len(goModuleSumPrefix):]))
+	if err != nil || count != core.SHA256DigestBytes {
 		return GoModuleSum{}, contractError(errors.New(goModuleSumInvalidDiagnostic), err)
 	}
 	var digest [core.SHA256DigestBytes]byte
-	copy(digest[:], decoded)
+	copy(digest[:], decoded[:count])
 	return GoModuleSum{digest: digest, valid: true}, nil
 }
 
@@ -162,7 +163,7 @@ func (s GoModuleSum) String() string {
 	if s.Validate() != nil {
 		return ""
 	}
-	return "h1:" + base64.StdEncoding.EncodeToString(s.digest[:])
+	return goModuleSumPrefix + base64.StdEncoding.EncodeToString(s.digest[:])
 }
 
 // BuildDependency is one non-main module in the exact package closure.
@@ -215,6 +216,8 @@ type buildDependencyStorage struct {
 	modules []BuildDependency
 }
 
+// newBuildDependencies takes exclusive ownership of modules. Both production
+// callers supply freshly built private storage and retain no writable alias.
 func newBuildDependencies(
 	main GoModulePath,
 	toolchain GoToolchainIdentity,
@@ -223,11 +226,10 @@ func newBuildDependencies(
 	if len(modules) > BuildDependencyMaximumCount {
 		return BuildDependencies{}, contractError(errors.New(buildDependencyCountDiagnostic))
 	}
-	ordered := slices.Clone(modules)
-	sort.Slice(ordered, func(left, right int) bool {
-		return ordered[left].path.value < ordered[right].path.value
+	slices.SortFunc(modules, func(left, right BuildDependency) int {
+		return strings.Compare(left.path.value, right.path.value)
 	})
-	storage := &buildDependencyStorage{modules: ordered}
+	storage := &buildDependencyStorage{modules: modules}
 	value := BuildDependencies{storage: storage, main: main, goToolchain: toolchain, valid: true}
 	if err := value.Validate(); err != nil {
 		return BuildDependencies{}, err
@@ -312,6 +314,9 @@ func (d *BuildDependencies) UnmarshalJSON(data []byte) error {
 }
 
 func buildDependenciesFromWire(w buildDependenciesWire) (BuildDependencies, error) {
+	if w.Modules == nil {
+		return BuildDependencies{}, contractError(errors.New("dependency module collection is missing"))
+	}
 	main, err := parseGoModulePath(w.MainModule)
 	if err != nil {
 		return BuildDependencies{}, err
@@ -342,14 +347,18 @@ func buildDependenciesFromWire(w buildDependenciesWire) (BuildDependencies, erro
 
 func (d BuildDependencies) MainModule() GoModulePath         { return d.main }
 func (d BuildDependencies) GoToolchain() GoToolchainIdentity { return d.goToolchain }
+
+// Count reads already-admitted, exclusively owned storage. No public operation
+// can mutate that storage; replacement decoding constructs a new collection.
+// Full validation remains at construction and JSON publication boundaries.
 func (d BuildDependencies) Count() int {
-	if d.Validate() != nil {
+	if !d.valid || d.storage == nil {
 		return 0
 	}
 	return len(d.storage.modules)
 }
 func (d BuildDependencies) At(index int) (BuildDependency, bool) {
-	if d.Validate() != nil || index < 0 || index >= len(d.storage.modules) {
+	if !d.valid || d.storage == nil || index < 0 || index >= len(d.storage.modules) {
 		return BuildDependency{}, false
 	}
 	return d.storage.modules[index], true

@@ -18,3 +18,16 @@ BenchmarkInspectBuiltArtifactRealExecutablePlusTenMiB-10    	     122	   9713852
 
 All benches use `b.Loop()` or `for range b.N` where the timer must pause, `b.ReportAllocs()`, and observe the result.
 No `unsafe`, no C.
+
+## September 8, 2026 sweep
+
+The measurements above are historical. The final comparisons and their
+limitations are recorded in [the review](upgrade_review.md#final-measured-comparisons)
+and [source-bound evidence](upgrade_evidence.json). The maximum dependency sample
+reduced memory from 485,339 to 361,990 B/op while timing increased from 1,195,153
+to 1,307,867 ns/op. Seed decoding changed from 256 B / 5 allocations to 112 B /
+2 allocations. Walking 1,024 dependencies changed from 330,201,305 to 11,252 ns/op
+after removing repeated whole-collection validation from sealed indexed access.
+All twelve comparisons retain CPU/memory profiles and matching binaries. Each is
+one paired sample; timing results are mixed and establish no statistical trend.
+The user reviewed and approved this package for v2026.1.24 publication.
