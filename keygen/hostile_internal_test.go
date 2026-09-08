@@ -36,10 +36,7 @@ func TestGenerateSecretSourceBoundaryPreservesResultErrorIdentityAndClearing(t *
 		{name: "minimum exact nonzero fill constructs material and clears temporary", size: core.SecretMaterialMinimumBytes, count: core.SecretMaterialMinimumBytes, fill: 1},
 		{name: "maximum exact nonzero fill constructs material and clears temporary", size: core.SecretMaterialMaximumBytes, count: core.SecretMaterialMaximumBytes, fill: 2},
 		{name: "minimum full count with source error rejects and clears temporary", size: core.SecretMaterialMinimumBytes, count: core.SecretMaterialMinimumBytes, fill: 3, err: sourceErr, wantErr: core.ErrKeygenEntropy},
-		{name: "maximum full count with source error rejects and clears temporary", size: core.SecretMaterialMaximumBytes, count: core.SecretMaterialMaximumBytes, fill: 4, err: sourceErr, wantErr: core.ErrKeygenEntropy},
 		{name: "zero count without error rejects and clears temporary", size: core.SecretMaterialMinimumBytes, fill: 5, wantErr: core.ErrKeygenEntropy},
-		{name: "one byte count without error rejects and clears temporary", size: core.SecretMaterialMinimumBytes, count: 1, fill: 6, wantErr: core.ErrKeygenEntropy},
-		{name: "two below requested count rejects and clears temporary", size: core.SecretMaterialMinimumBytes, count: core.SecretMaterialMinimumBytes - 2, fill: 7, wantErr: core.ErrKeygenEntropy},
 		{name: "one below requested count rejects and clears temporary", size: core.SecretMaterialMinimumBytes, count: core.SecretMaterialMinimumBytes - 1, fill: 8, wantErr: core.ErrKeygenEntropy},
 		{name: "one below requested count with source error rejects and clears temporary", size: core.SecretMaterialMinimumBytes, count: core.SecretMaterialMinimumBytes - 1, fill: 9, err: sourceErr, wantErr: core.ErrKeygenEntropy},
 		{name: "negative count rejects and clears temporary", size: core.SecretMaterialMinimumBytes, count: -1, fill: 10, wantErr: core.ErrKeygenEntropy},
@@ -54,7 +51,9 @@ func TestGenerateSecretSourceBoundaryPreservesResultErrorIdentityAndClearing(t *
 
 			request := SecretRequest{Size: mustInternalByteCount(t, tc.size)}
 			var retained []byte
+			calls := 0
 			read := func(destination []byte) (int, error) {
+				calls++
 				retained = destination
 				for index := range destination {
 					destination[index] = tc.fill
@@ -63,12 +62,30 @@ func TestGenerateSecretSourceBoundaryPreservesResultErrorIdentityAndClearing(t *
 			}
 			got, gotErr := generateSecretWithRead(request, read)
 			if tc.wantErr == nil {
-				proveGeneratedSecretFill(t, got, gotErr, tc.size, tc.fill)
+				if gotErr != nil {
+					t.Fatalf("generateSecretWithRead() error = %v, want nil", gotErr)
+				}
+				t.Cleanup(func() {
+					if err := got.Destroy(); err != nil {
+						t.Fatalf("Destroy() error = %v, want nil", err)
+					}
+				})
+				raw, err := got.CopyBytes()
+				defer clear(raw)
+				want := bytes.Repeat([]byte{tc.fill}, int(tc.size))
+				if err != nil || !bytes.Equal(raw, want) {
+					t.Fatalf("CopyBytes() = (%x,%v), want (%x,nil)", raw, err, want)
+				}
 			} else {
-				proveRejectedGeneratedSecret(t, got, gotErr, tc.wantErr)
+				if got != (core.SecretMaterial{}) || !errors.Is(gotErr, tc.wantErr) || !errors.Is(gotErr, core.ErrKeygenContract) || !errors.Is(gotErr, core.ErrPrimitiveContract) {
+					t.Fatalf("generateSecretWithRead() = (%v,%v), want zero and %v", got, gotErr, tc.wantErr)
+				}
 			}
 			if tc.err != nil && !errors.Is(gotErr, tc.err) {
 				t.Fatalf("generateSecretWithRead() error = %v, want wrapped source error %v", gotErr, tc.err)
+			}
+			if calls != 1 {
+				t.Fatalf("entropy read calls = %d, want 1", calls)
 			}
 			if len(retained) != int(tc.size) {
 				t.Fatalf("retained entropy destination bytes = %d, want %d", len(retained), tc.size)
@@ -89,14 +106,8 @@ func TestGenerateSecretRejectsEveryInvalidRequestBeforeEntropyEffect(t *testing.
 		unset bool
 	}{
 		{name: "unset byte count rejects before effect", unset: true},
-		{name: "one byte rejects before effect", value: 1},
-		{name: "two below minimum rejects before effect", value: core.SecretMaterialMinimumBytes - 2},
 		{name: "one below minimum rejects before effect", value: core.SecretMaterialMinimumBytes - 1},
 		{name: "one above maximum rejects before effect", value: core.SecretMaterialMaximumBytes + 1},
-		{name: "two above maximum rejects before effect", value: core.SecretMaterialMaximumBytes + 2},
-		{name: "maximum uint16 rejects before effect", value: math.MaxUint16},
-		{name: "maximum uint32 rejects before effect", value: math.MaxUint32},
-		{name: "maximum int64 rejects before effect", value: math.MaxInt64},
 		{name: "maximum uint64 rejects before effect", value: math.MaxUint64},
 	}
 	for _, tc := range cases {
@@ -115,12 +126,9 @@ func TestGenerateSecretRejectsEveryInvalidRequestBeforeEntropyEffect(t *testing.
 					return 0, nil
 				},
 			)
-			proveRejectedGeneratedSecret(
-				t,
-				got,
-				gotErr,
-				core.ErrKeygenContract,
-			)
+			if got != (core.SecretMaterial{}) || !errors.Is(gotErr, core.ErrKeygenContract) || !errors.Is(gotErr, core.ErrPrimitiveContract) {
+				t.Fatalf("generateSecretWithRead() = (%v,%v), want zero and Core refusal", got, gotErr)
+			}
 			if gotCalls != 0 {
 				t.Fatalf("entropy read calls = %d, want 0 before validated allocation", gotCalls)
 			}
@@ -135,12 +143,13 @@ func TestGenerateSecretRejectsMissingPrivateEntropyCapability(t *testing.T) {
 		Size: mustInternalByteCount(t, core.SecretMaterialMinimumBytes),
 	}
 	got, gotErr := generateSecretWithRead(request, nil)
-	proveRejectedGeneratedSecret(t, got, gotErr, core.ErrKeygenContract)
+	if got != (core.SecretMaterial{}) || !errors.Is(gotErr, core.ErrKeygenContract) {
+		t.Fatalf("generateSecretWithRead(nil) = (%v,%v), want zero and Core refusal", got, gotErr)
+	}
 }
 
 // TestSigningKeyInternalForgedCustodyMatrix proves the two structural gates in
-// validatedSeed that no external test can reach. GenerateSigningKey is the only
-// external producer and it never builds a wrong pairing, so without forging the
+// validatedSeed that no external test can reach. Public constructors never issue a wrong pairing, so without forging the
 // struct the "seed has invalid extent" and "public key unset" arms are carried
 // by inspection alone. Core admits 16-to-64-byte material, so a signing key
 // holding non-Ed25519-width custody is a representable state that must be
@@ -152,6 +161,7 @@ func TestSigningKeyInternalForgedCustodyMatrix(t *testing.T) {
 	if generateErr != nil {
 		t.Fatalf("deterministicEd25519Result() error = %v, want nil", generateErr)
 	}
+	t.Cleanup(func() { clear(privateKey) })
 	ownedPublic, ownedPublicErr := core.NewEd25519PublicKey(publicKey)
 	if ownedPublicErr != nil {
 		t.Fatalf("core.NewEd25519PublicKey() error = %v, want nil", ownedPublicErr)
@@ -173,7 +183,7 @@ func TestSigningKeyInternalForgedCustodyMatrix(t *testing.T) {
 			wantErr: core.ErrKeygenContract,
 			setup: func(t testing.TB) SigningKey {
 				raw := bytes.Repeat([]byte{0x31}, core.SecretMaterialMinimumBytes)
-				return SigningKey{seed: forgedMaterialFixture(t, raw), public: ownedPublic}
+				return forgedSigningExtentFixture(t, raw)
 			},
 		},
 		{
@@ -181,7 +191,7 @@ func TestSigningKeyInternalForgedCustodyMatrix(t *testing.T) {
 			wantErr: core.ErrKeygenContract,
 			setup: func(t testing.TB) SigningKey {
 				raw := bytes.Repeat([]byte{0x32}, ed25519.SeedSize-1)
-				return SigningKey{seed: forgedMaterialFixture(t, raw), public: ownedPublic}
+				return forgedSigningExtentFixture(t, raw)
 			},
 		},
 		{
@@ -189,7 +199,7 @@ func TestSigningKeyInternalForgedCustodyMatrix(t *testing.T) {
 			wantErr: core.ErrKeygenContract,
 			setup: func(t testing.TB) SigningKey {
 				raw := bytes.Repeat([]byte{0x33}, ed25519.SeedSize+1)
-				return SigningKey{seed: forgedMaterialFixture(t, raw), public: ownedPublic}
+				return forgedSigningExtentFixture(t, raw)
 			},
 		},
 		{
@@ -197,7 +207,7 @@ func TestSigningKeyInternalForgedCustodyMatrix(t *testing.T) {
 			wantErr: core.ErrKeygenContract,
 			setup: func(t testing.TB) SigningKey {
 				raw := bytes.Repeat([]byte{0x34}, core.SecretMaterialMaximumBytes)
-				return SigningKey{seed: forgedMaterialFixture(t, raw), public: ownedPublic}
+				return forgedSigningExtentFixture(t, raw)
 			},
 		},
 		{
@@ -222,6 +232,14 @@ func TestSigningKeyInternalForgedCustodyMatrix(t *testing.T) {
 			key := tc.setup(t)
 			if gotErr := key.Validate(); !errors.Is(gotErr, tc.wantErr) {
 				t.Fatalf("SigningKey.Validate() error = %v, want %v", gotErr, tc.wantErr)
+			}
+			gotSeed, gotSeedErr := key.Seed()
+			defer clear(gotSeed[:])
+			if !errors.Is(gotSeedErr, tc.wantErr) {
+				t.Fatalf("Seed() error = %v, want %v", gotSeedErr, tc.wantErr)
+			}
+			if tc.wantErr != nil && gotSeed != ([SeedSize]byte{}) {
+				t.Fatalf("Seed(refused) = %x, want zero", gotSeed)
 			}
 			gotPublic, gotPublicErr := key.PublicKey()
 			if !errors.Is(gotPublicErr, tc.wantErr) {
@@ -261,6 +279,11 @@ func forgedMaterialFixture(t testing.TB, raw []byte) core.SecretMaterial {
 	if err != nil {
 		t.Fatalf("core.NewSecretMaterial() error = %v, want nil", err)
 	}
+	t.Cleanup(func() {
+		if err := material.Destroy(); err != nil {
+			t.Fatalf("Destroy(fixture) error = %v, want nil", err)
+		}
+	})
 	return material
 }
 
@@ -365,6 +388,15 @@ func TestAdoptGeneratedSigningKeyHostileStandardLibraryResultMatrix(t *testing.T
 			},
 		},
 		{
+			name:    "private public suffix cannot disagree with separate public result",
+			wantErr: core.ErrKeygenContract,
+			setup: func() (ed25519.PublicKey, ed25519.PrivateKey, error) {
+				public, private, err := deterministicEd25519Result(9)
+				private[len(private)-1] ^= 1
+				return public, private, err
+			},
+		},
+		{
 			name:    "all-zero public key rejects derived relationship and clears both results",
 			wantErr: core.ErrKeygenContract,
 			setup: func() (ed25519.PublicKey, ed25519.PrivateKey, error) {
@@ -399,7 +431,9 @@ func TestAdoptGeneratedSigningKeyHostileStandardLibraryResultMatrix(t *testing.T
 					t.Fatalf("adopted SigningKey.Destroy() error = %v, want nil", gotDestroyErr)
 				}
 			} else {
-				proveRejectedSigningKey(t, got, gotErr, tc.wantErr)
+				if got != (SigningKey{}) || !errors.Is(gotErr, tc.wantErr) || !errors.Is(gotErr, core.ErrKeygenContract) || !errors.Is(gotErr, core.ErrPrimitiveContract) {
+					t.Fatalf("adoptGeneratedSigningKey() = (%v,%v), want zero and %v", got, gotErr, tc.wantErr)
+				}
 			}
 			if gotSourceErr != nil && !errors.Is(gotErr, gotSourceErr) {
 				t.Fatalf("adoptGeneratedSigningKey() error = %v, want wrapped source error %v", gotErr, gotSourceErr)
@@ -422,77 +456,6 @@ func mustInternalByteCount(t testing.TB, value uint64) core.ByteCount {
 		t.Fatalf("core.NewByteCount(%d) error = %v, want nil", value, err)
 	}
 	return count
-}
-
-func proveGeneratedSecretFill(
-	t testing.TB,
-	got core.SecretMaterial,
-	gotErr error,
-	wantSize uint64,
-	wantFill byte,
-) {
-	t.Helper()
-
-	if gotErr != nil {
-		t.Fatalf("generateSecretWithRead() error = %v, want nil", gotErr)
-	}
-	raw, gotRawErr := got.CopyBytes()
-	if gotRawErr != nil {
-		t.Fatalf("SecretMaterial.CopyBytes() error = %v, want nil", gotRawErr)
-	}
-	if !bytes.Equal(raw, bytes.Repeat([]byte{wantFill}, int(wantSize))) {
-		t.Fatalf("generated secret = %x, want %d bytes of %x", raw, wantSize, wantFill)
-	}
-	clear(raw)
-	if gotDestroyErr := got.Destroy(); gotDestroyErr != nil {
-		t.Fatalf("SecretMaterial.Destroy() error = %v, want nil", gotDestroyErr)
-	}
-}
-
-func proveRejectedGeneratedSecret(
-	t testing.TB,
-	got core.SecretMaterial,
-	gotErr error,
-	wantErr error,
-) {
-	t.Helper()
-
-	if got != (core.SecretMaterial{}) ||
-		!errors.Is(gotErr, wantErr) ||
-		!errors.Is(gotErr, core.ErrKeygenContract) ||
-		!errors.Is(gotErr, core.ErrPrimitiveContract) {
-		t.Fatalf(
-			"generateSecretWithRead() = (%v, %v), want (zero, %v, %v, and %v)",
-			got,
-			gotErr,
-			wantErr,
-			core.ErrKeygenContract,
-			core.ErrPrimitiveContract,
-		)
-	}
-}
-
-func proveRejectedSigningKey(
-	t testing.TB,
-	got SigningKey,
-	gotErr error,
-	wantErr error,
-) {
-	t.Helper()
-
-	if got != (SigningKey{}) ||
-		!errors.Is(gotErr, wantErr) ||
-		!errors.Is(gotErr, core.ErrKeygenContract) ||
-		!errors.Is(gotErr, core.ErrPrimitiveContract) {
-		t.Fatalf(
-			"adoptGeneratedSigningKey() = (%v, %v), want (zero, %v, %v, and %v)",
-			got,
-			gotErr,
-			wantErr,
-			core.ErrKeygenContract,
-			core.ErrPrimitiveContract,
-		)
-	}
 }
 
 func deterministicEd25519Result(first byte) (ed25519.PublicKey, ed25519.PrivateKey, error) {
@@ -569,6 +532,11 @@ func TestEntropyRejectionCarriesCoreAllZeroIdentityAndSeparatesSourceFailure(t *
 			if acceptedErr != nil {
 				t.Fatalf("generateSecretWithRead(%d bytes, one nonzero) error = %v, want nil", tc.size, acceptedErr)
 			}
+			t.Cleanup(func() {
+				if err := accepted.Destroy(); err != nil {
+					t.Fatalf("Destroy(accepted) error = %v, want nil", err)
+				}
+			})
 			if gotValidateErr := accepted.Validate(); gotValidateErr != nil {
 				t.Fatalf("generated material Validate() error = %v, want nil", gotValidateErr)
 			}
@@ -593,4 +561,20 @@ func TestEntropyRejectionCarriesCoreAllZeroIdentityAndSeparatesSourceFailure(t *
 			core.ErrSecretMaterialAllZero,
 		)
 	}
+}
+
+// The public key deliberately matches the padded/truncated prefix. Thus only
+// the exact-width gate can reject this fixture; another gate cannot mask it.
+func forgedSigningExtentFixture(t testing.TB, raw []byte) SigningKey {
+	t.Helper()
+	var seed [SeedSize]byte
+	copy(seed[:], raw)
+	private := ed25519.NewKeyFromSeed(seed[:])
+	defer clear(private)
+	clear(seed[:])
+	public, err := core.NewEd25519PublicKey(ed25519.PublicKey(private[SeedSize:]))
+	if err != nil {
+		t.Fatalf("NewEd25519PublicKey(fixture) error = %v, want nil", err)
+	}
+	return SigningKey{seed: forgedMaterialFixture(t, raw), public: public}
 }

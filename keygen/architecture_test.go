@@ -1,15 +1,16 @@
 package keygen
 
 import (
+	"embed"
 	"go/ast"
 	"go/parser"
 	"go/token"
-	"os"
-	"path/filepath"
+	"io/fs"
 	"slices"
 	"strconv"
 	"strings"
 	"testing"
+	"testing/fstest"
 
 	"github.com/deliri/primitive/v2026/core"
 )
@@ -31,10 +32,13 @@ type keygenContractInventory struct {
 
 var _ = keygenContractInventory{}
 
+//go:embed *.go
+var keygenSources embed.FS
+
 func TestKeygenProductionStructsHaveCompilerVisibleDataFlowRoles(t *testing.T) {
 	t.Parallel()
 
-	gotScan, gotErr := scanKeygenArchitecture(".")
+	gotScan, gotErr := scanKeygenArchitecture(keygenSources)
 	if gotErr != nil {
 		t.Fatalf("scanKeygenArchitecture() error = %v, want nil", gotErr)
 	}
@@ -50,7 +54,7 @@ func TestKeygenProductionStructsHaveCompilerVisibleDataFlowRoles(t *testing.T) {
 func TestKeygenExactPublicSurfaceFieldsAndNoAliases(t *testing.T) {
 	t.Parallel()
 
-	gotScan, gotErr := scanKeygenArchitecture(".")
+	gotScan, gotErr := scanKeygenArchitecture(keygenSources)
 	if gotErr != nil {
 		t.Fatalf("scanKeygenArchitecture() error = %v, want nil", gotErr)
 	}
@@ -97,7 +101,7 @@ func TestKeygenExactPublicSurfaceFieldsAndNoAliases(t *testing.T) {
 func TestKeygenProductionImportsStayOnExactStandardLibraryAndCoreSubstrate(t *testing.T) {
 	t.Parallel()
 
-	gotScan, gotErr := scanKeygenArchitecture(".")
+	gotScan, gotErr := scanKeygenArchitecture(keygenSources)
 	if gotErr != nil {
 		t.Fatalf("scanKeygenArchitecture() error = %v, want nil", gotErr)
 	}
@@ -119,10 +123,10 @@ func TestKeygenProductionImportsStayOnExactStandardLibraryAndCoreSubstrate(t *te
 	}
 }
 
-func TestKeygenUsesOnlyGo126ProtectedProductionEntropyEffects(t *testing.T) {
+func TestKeygenUsesGoProductionEntropyEffects(t *testing.T) {
 	t.Parallel()
 
-	gotScan, gotErr := scanKeygenArchitecture(".")
+	gotScan, gotErr := scanKeygenArchitecture(keygenSources)
 	if gotErr != nil {
 		t.Fatalf("scanKeygenArchitecture() error = %v, want nil", gotErr)
 	}
@@ -148,7 +152,7 @@ func TestKeygenUsesOnlyGo126ProtectedProductionEntropyEffects(t *testing.T) {
 func TestKeygenProductionOwnsNoMapBasedProtocolOrState(t *testing.T) {
 	t.Parallel()
 
-	gotScan, gotErr := scanKeygenArchitecture(".")
+	gotScan, gotErr := scanKeygenArchitecture(keygenSources)
 	if gotErr != nil {
 		t.Fatalf("scanKeygenArchitecture() error = %v, want nil", gotErr)
 	}
@@ -160,7 +164,7 @@ func TestKeygenProductionOwnsNoMapBasedProtocolOrState(t *testing.T) {
 func TestKeygenProductionDeclaresNoSecretContentPredicate(t *testing.T) {
 	t.Parallel()
 
-	gotScan, gotErr := scanKeygenArchitecture(".")
+	gotScan, gotErr := scanKeygenArchitecture(keygenSources)
 	if gotErr != nil {
 		t.Fatalf("scanKeygenArchitecture() error = %v, want nil", gotErr)
 	}
@@ -209,6 +213,20 @@ func TestKeygenArchitectureMatcherClassifiesSyntheticBoundaries(t *testing.T) {
 			name: "method on private receiver stays outside public surface",
 			code: "package synthetic\ntype request struct{}\nfunc (request) Validate() {}\n",
 			want: keygenArchitectureScan{structs: []string{"request"}},
+		},
+		{
+			name: "locally named struct cannot evade data-flow classification",
+			code: "package synthetic\ntype base struct{ Size uint64 }; type wrapped base\n",
+			want: keygenArchitectureScan{structs: []string{"base", "wrapped"}, exportedFields: []string{"base.Size", "wrapped.Size"}},
+		},
+		{
+			name: "generic struct projection cannot evade classification",
+			code: "package synthetic\ntype base[T any] struct{ Value T }; type wrapped base[uint64]\n",
+			want: keygenArchitectureScan{structs: []string{"base", "wrapped"}, exportedFields: []string{"base.Value", "wrapped.Value"}},
+		},
+		{
+			name: "cyclic invalid declarations terminate the syntax scan",
+			code: "package synthetic\ntype first second; type second first\n",
 		},
 		{
 			name: "exported nominal type enters public surface",
@@ -308,6 +326,11 @@ func TestKeygenArchitectureMatcherClassifiesSyntheticBoundaries(t *testing.T) {
 			},
 		},
 		{
+			name: "parentheses cannot hide a Go entropy call",
+			code: "package synthetic\nimport \"crypto/rand\"\nfunc draw(b []byte) { _, _ = (rand.Read)(b) }\n",
+			want: keygenArchitectureScan{imports: []string{"crypto/rand"}, cryptographicSelectors: []string{"synthetic.go:rand.Read"}},
+		},
+		{
 			name: "cryptographic selector reference is not misclassified as a call",
 			code: "package synthetic\nimport \"crypto/ed25519\"\nfunc generate() { _ = ed25519.GenerateKey }\n",
 			want: keygenArchitectureScan{imports: []string{"crypto/ed25519"}},
@@ -358,12 +381,8 @@ func TestKeygenArchitectureMatcherClassifiesSyntheticBoundaries(t *testing.T) {
 		t.Run(tc.name, func(t *testing.T) {
 			t.Parallel()
 
-			root := t.TempDir()
-			path := filepath.Join(root, "synthetic.go")
-			if gotErr := os.WriteFile(path, []byte(tc.code), 0o600); gotErr != nil {
-				t.Fatalf("os.WriteFile(%q) error = %v, want nil", path, gotErr)
-			}
-			got, gotErr := scanKeygenArchitecture(root)
+			source := fstest.MapFS{"synthetic.go": &fstest.MapFile{Data: []byte(tc.code)}}
+			got, gotErr := scanKeygenArchitecture(source)
 			if gotErr != nil {
 				t.Fatalf("scanKeygenArchitecture(synthetic) error = %v, want nil", gotErr)
 			}
@@ -387,25 +406,32 @@ type keygenArchitectureScan struct {
 	bytePredicates         []string
 }
 
-func scanKeygenArchitecture(root string) (keygenArchitectureScan, error) {
-	files, err := keygenProductionGoFiles(root)
+func scanKeygenArchitecture(source fs.FS) (keygenArchitectureScan, error) {
+	files, err := keygenProductionGoFiles(source)
 	if err != nil {
 		return keygenArchitectureScan{}, err
 	}
 	var scan keygenArchitectureScan
 	fileSet := token.NewFileSet()
+	var parsed []*ast.File
 	for _, name := range files {
+		data, readErr := fs.ReadFile(source, name)
+		if readErr != nil {
+			return keygenArchitectureScan{}, readErr
+		}
 		file, parseErr := parser.ParseFile(
 			fileSet,
-			filepath.Join(root, name),
-			nil,
+			name,
+			data,
 			parser.SkipObjectResolution,
 		)
 		if parseErr != nil {
 			return keygenArchitectureScan{}, parseErr
 		}
 		scanKeygenFile(name, file, &scan)
+		parsed = append(parsed, file)
 	}
+	scanKeygenProjectedStructs(parsed, &scan)
 	sortKeygenArchitectureScan(&scan)
 	return scan, nil
 }
@@ -431,7 +457,7 @@ func scanKeygenFile(name string, file *ast.File, scan *keygenArchitectureScan) {
 		if !ok {
 			return true
 		}
-		owner, ok := selector.X.(*ast.Ident)
+		owner, ok := ast.Unparen(selector.X).(*ast.Ident)
 		if !ok {
 			return true
 		}
@@ -451,11 +477,11 @@ func scanKeygenCryptographicCall(
 	call *ast.CallExpr,
 	scan *keygenArchitectureScan,
 ) {
-	selector, ok := call.Fun.(*ast.SelectorExpr)
+	selector, ok := ast.Unparen(call.Fun).(*ast.SelectorExpr)
 	if !ok {
 		return
 	}
-	owner, ok := selector.X.(*ast.Ident)
+	owner, ok := ast.Unparen(selector.X).(*ast.Ident)
 	if !ok {
 		return
 	}
@@ -573,7 +599,7 @@ func scanKeygenExportedFields(
 }
 
 func keygenReceiverName(expression ast.Expr) string {
-	switch typed := expression.(type) {
+	switch typed := ast.Unparen(expression).(type) {
 	case *ast.Ident:
 		return typed.Name
 	case *ast.StarExpr:
@@ -618,8 +644,8 @@ func keygenArchitectureScansEqual(
 		slices.Equal(got.bytePredicates, want.bytePredicates)
 }
 
-func keygenProductionGoFiles(root string) ([]string, error) {
-	entries, err := os.ReadDir(root)
+func keygenProductionGoFiles(source fs.FS) ([]string, error) {
+	entries, err := fs.ReadDir(source, ".")
 	if err != nil {
 		return nil, err
 	}
@@ -638,10 +664,14 @@ func keygenProductionGoFiles(root string) ([]string, error) {
 
 func classifiedKeygenStructs() ([]string, error) {
 	fileSet := token.NewFileSet()
+	data, readErr := keygenSources.ReadFile("architecture_test.go")
+	if readErr != nil {
+		return nil, readErr
+	}
 	file, err := parser.ParseFile(
 		fileSet,
 		"architecture_test.go",
-		nil,
+		data,
 		parser.SkipObjectResolution,
 	)
 	if err != nil {
@@ -672,4 +702,51 @@ func classifiedKeygenStructs() ([]string, error) {
 		}
 	}
 	return nil, core.ErrKeygenContract
+}
+
+// Resolve local underlying struct declarations, including named generic
+// projections. The compiler rejects unresolved/cyclic types; this syntax guard
+// stops after the finite declaration count and does not model dependency code.
+func scanKeygenProjectedStructs(files []*ast.File, scan *keygenArchitectureScan) {
+	declarations := make(map[string]ast.Expr)
+	for _, file := range files {
+		for _, decl := range file.Decls {
+			gen, ok := decl.(*ast.GenDecl)
+			if !ok {
+				continue
+			}
+			for _, spec := range gen.Specs {
+				if spec, ok := spec.(*ast.TypeSpec); ok {
+					declarations[spec.Name.Name] = spec.Type
+				}
+			}
+		}
+	}
+	for name, expression := range declarations {
+		if _, direct := expression.(*ast.StructType); direct {
+			continue
+		}
+		if structure := keygenUnderlyingStruct(expression, declarations, len(declarations)); structure != nil {
+			scan.structs = append(scan.structs, name)
+			scanKeygenExportedFields(name, structure, scan)
+		}
+	}
+}
+
+func keygenUnderlyingStruct(expression ast.Expr, declarations map[string]ast.Expr, remaining int) *ast.StructType {
+	if remaining < 0 {
+		return nil
+	}
+	switch value := ast.Unparen(expression).(type) {
+	case *ast.StructType:
+		return value
+	case *ast.Ident:
+		return keygenUnderlyingStruct(declarations[value.Name], declarations, remaining-1)
+	case *ast.IndexExpr:
+		return keygenUnderlyingStruct(value.X, declarations, remaining-1)
+	case *ast.IndexListExpr:
+		return keygenUnderlyingStruct(value.X, declarations, remaining-1)
+	default:
+		return nil
+	}
 }

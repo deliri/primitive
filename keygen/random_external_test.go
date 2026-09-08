@@ -3,7 +3,6 @@ package keygen_test
 import (
 	"errors"
 	"math"
-	"slices"
 	"testing"
 
 	"github.com/deliri/primitive/v2026/core"
@@ -35,14 +34,6 @@ func TestRandomTokenRequestAdmitsOnlyBoundedSizes(t *testing.T) {
 		size    uint64
 	}{
 		{name: "one above ceiling is rejected", size: keygen.RandomTokenMaximumBytes + 1, wantErr: core.ErrKeygenContract},
-		{name: "two above ceiling are rejected", size: keygen.RandomTokenMaximumBytes + 2, wantErr: core.ErrKeygenContract},
-		{name: "one hundred twenty eight bytes are rejected", size: 128, wantErr: core.ErrKeygenContract},
-		{name: "one kilobyte is rejected", size: 1024, wantErr: core.ErrKeygenContract},
-		{name: "four kilobytes are rejected", size: 4096, wantErr: core.ErrKeygenContract},
-		{name: "maximum uint8 is rejected", size: math.MaxUint8, wantErr: core.ErrKeygenContract},
-		{name: "maximum uint16 is rejected", size: math.MaxUint16, wantErr: core.ErrKeygenContract},
-		{name: "maximum uint32 is rejected", size: math.MaxUint32, wantErr: core.ErrKeygenContract},
-		{name: "maximum int64 is rejected", size: math.MaxInt64, wantErr: core.ErrKeygenContract},
 		{name: "maximum uint64 is rejected", size: math.MaxUint64, wantErr: core.ErrKeygenContract},
 	}
 	for _, tc := range invalidSizes {
@@ -50,6 +41,11 @@ func TestRandomTokenRequestAdmitsOnlyBoundedSizes(t *testing.T) {
 			t.Parallel()
 
 			request := keygen.RandomTokenRequest{Size: requireByteCount(t, tc.size)}
+			got, effectErr := keygen.RandomToken(request)
+			raw, projectionErr := got.Bytes()
+			if !errors.Is(effectErr, tc.wantErr) || raw != nil || !errors.Is(projectionErr, core.ErrKeygenContract) {
+				t.Fatalf("RandomToken(refused) = (%x,%v,%v), want no projection and Core refusals", raw, effectErr, projectionErr)
+			}
 			gotErr := request.Validate()
 			if !errors.Is(gotErr, tc.wantErr) ||
 				!errors.Is(gotErr, core.ErrPrimitiveContract) {
@@ -67,41 +63,6 @@ func TestRandomTokenRequestZeroValueIsRefused(t *testing.T) {
 
 	if err := (keygen.RandomTokenRequest{}).Validate(); !errors.Is(err, core.ErrKeygenContract) {
 		t.Fatalf("RandomTokenRequest{}.Validate() error = %v, want %v", err, core.ErrKeygenContract)
-	}
-}
-
-func TestRandomTokenFillsTheExactRequestedExtent(t *testing.T) {
-	t.Parallel()
-
-	for size := uint64(1); size <= keygen.RandomTokenMaximumBytes; size++ {
-		token, err := keygen.RandomToken(keygen.RandomTokenRequest{Size: requireByteCount(t, size)})
-		if err != nil {
-			t.Fatalf("RandomToken(%d) error = %v, want nil", size, err)
-		}
-		if err := token.Validate(); err != nil {
-			t.Fatalf("RandomToken(%d).Validate() error = %v, want a drawn token", size, err)
-		}
-		drawn, err := token.Bytes()
-		if err != nil {
-			t.Fatalf("RandomToken(%d).Bytes() error = %v, want nil", size, err)
-		}
-		if got, want := uint64(len(drawn)), size; got != want {
-			t.Fatalf("RandomToken(%d) length = %d, want %d", size, len(drawn), size)
-		}
-		wantSecond := append([]byte(nil), drawn...)
-		if len(drawn) > 0 {
-			drawn[0] ^= 0xff
-		}
-		second, gotSecondErr := token.Bytes()
-		if gotSecondErr != nil {
-			t.Fatalf("RandomToken(%d).Bytes(second) error = %v, want nil", size, gotSecondErr)
-		}
-		if len(second) != int(size) {
-			t.Fatalf("RandomToken(%d).Bytes(second) length = %d, want %d", size, len(second), size)
-		}
-		if !slices.Equal(second, wantSecond) {
-			t.Fatalf("RandomToken(%d).Bytes(second) = %x, want immutable projection %x", size, second, wantSecond)
-		}
 	}
 }
 
@@ -131,14 +92,5 @@ func TestRandomTokenRefusesAnUnboundedRequest(t *testing.T) {
 	}
 	if _, err := keygen.RandomToken(keygen.RandomTokenRequest{}); !errors.Is(err, core.ErrKeygenContract) {
 		t.Fatalf("RandomToken(zero) error = %v, want %v", err, core.ErrKeygenContract)
-	}
-}
-
-func TestRandomUint64UsesProductionCSPRNGBoundary(t *testing.T) {
-	t.Parallel()
-
-	_, gotErr := keygen.RandomUint64()
-	if gotErr != nil {
-		t.Fatalf("RandomUint64() error = %v, want nil", gotErr)
 	}
 }

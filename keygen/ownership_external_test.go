@@ -2,6 +2,7 @@ package keygen_test
 
 import (
 	"bytes"
+	"crypto/ed25519"
 	"errors"
 	"fmt"
 	"testing"
@@ -10,130 +11,123 @@ import (
 	"github.com/deliri/primitive/v2026/keygen"
 )
 
-func TestSigningKeyFormattingIsAlwaysExactlyRedacted(t *testing.T) {
+func TestSigningKeyCustodyAndProjectionLayerTriad(t *testing.T) {
 	t.Parallel()
-
-	key, gotErr := keygen.GenerateSigningKey()
-	if gotErr != nil {
-		t.Fatalf("GenerateSigningKey() error = %v, want nil", gotErr)
-	}
-	cases := []struct {
-		name   string
-		format string
+	for _, tc := range []struct {
+		name              string
+		active, destroyed bool
+		wantErr           error
 	}{
-		{name: "default verb redacts", format: "%v"},
-		{name: "field verb redacts", format: "%+v"},
-		{name: "Go syntax verb redacts", format: "%#v"},
-		{name: "string verb redacts", format: "%s"},
-		{name: "quoted string verb redacts", format: "%q"},
-		{name: "lower hexadecimal verb redacts", format: "%x"},
-		{name: "upper hexadecimal verb redacts", format: "%X"},
-		{name: "decimal verb redacts", format: "%d"},
-		{name: "binary verb redacts", format: "%b"},
-		{name: "Unicode verb redacts", format: "%U"},
-	}
-	for _, tc := range cases {
+		{name: "unissued key refuses every projection", wantErr: core.ErrKeygenContract},
+		{name: "active key projects independent Go values", active: true},
+		{name: "destroyed copy refuses every projection", active: true, destroyed: true, wantErr: core.ErrKeygenContract},
+	} {
 		t.Run(tc.name, func(t *testing.T) {
 			t.Parallel()
-
-			got := fmt.Sprintf(tc.format, key)
-			if got != core.RedactedValueText {
-				t.Fatalf(
-					"fmt.Sprintf(%q, SigningKey) = %q, want %q",
-					tc.format,
-					got,
-					core.RedactedValueText,
-				)
+			var key keygen.SigningKey
+			seed := nonZeroSeed()
+			if tc.active {
+				var err error
+				key, err = keygen.AdoptSigningKey(seed)
+				if err != nil {
+					t.Fatalf("AdoptSigningKey(fixture) error = %v, want nil", err)
+				}
+				t.Cleanup(func() {
+					if err := key.Destroy(); err != nil {
+						t.Fatalf("Destroy(cleanup) error = %v, want nil", err)
+					}
+				})
+			}
+			copied := key
+			if tc.destroyed {
+				if err := copied.Destroy(); err != nil {
+					t.Fatalf("Destroy(copy) error = %v, want nil", err)
+				}
+			}
+			if err := key.Validate(); !errors.Is(err, tc.wantErr) {
+				t.Fatalf("Validate() error = %v, want %v", err, tc.wantErr)
+			}
+			gotSeed, seedErr := key.Seed()
+			defer clear(gotSeed[:])
+			gotPublic, publicErr := key.PublicKey()
+			gotPrivate, privateErr := key.PrivateKey()
+			defer clear(gotPrivate)
+			if !errors.Is(seedErr, tc.wantErr) || !errors.Is(publicErr, tc.wantErr) || !errors.Is(privateErr, tc.wantErr) {
+				t.Fatalf("projection errors = (%v,%v,%v), want %v", seedErr, publicErr, privateErr, tc.wantErr)
+			}
+			if tc.wantErr != nil {
+				if gotSeed != ([keygen.SeedSize]byte{}) || gotPublic != (core.Ed25519PublicKey{}) || gotPrivate != nil {
+					t.Fatalf("refused projections = (%x,%v,%x), want zero,zero,nil", gotSeed, gotPublic, gotPrivate)
+				}
+				destroyErr := key.Destroy()
+				wantDestroyErr := tc.wantErr
+				if tc.destroyed {
+					wantDestroyErr = nil
+				}
+				if !errors.Is(destroyErr, wantDestroyErr) {
+					t.Fatalf("Destroy() error = %v, want %v", destroyErr, wantDestroyErr)
+				}
+				return
+			}
+			wantPrivate := ed25519.NewKeyFromSeed(seed[:])
+			defer clear(wantPrivate)
+			if gotSeed != seed || !bytes.Equal(gotPrivate, wantPrivate) {
+				t.Fatalf("projections = (%x,%x), want (%x,%x)", gotSeed, gotPrivate, seed, wantPrivate)
+			}
+			for index := range gotPrivate {
+				gotPrivate[index] ^= 0xff
+			}
+			clear(gotSeed[:])
+			after, err := key.PrivateKey()
+			defer clear(after)
+			if err != nil || !bytes.Equal(after, wantPrivate) {
+				t.Fatalf("PrivateKey(after caller mutation) = (%x,%v), want (%x,nil)", after, err, wantPrivate)
+			}
+			if err := copied.Destroy(); err != nil {
+				t.Fatalf("Destroy(copy) error = %v, want nil", err)
+			}
+			// Previously projected caller-owned material remains the caller's, even
+			// though every future projection through either handle must refuse.
+			if !bytes.Equal(after, wantPrivate) {
+				t.Fatalf("caller-owned private bytes = %x, want preserved %x", after, wantPrivate)
+			}
+			refused, err := key.PrivateKey()
+			if refused != nil || !errors.Is(err, core.ErrKeygenContract) {
+				t.Fatalf("PrivateKey(after copy destroy) = (%x,%v), want nil and Core refusal", refused, err)
 			}
 		})
 	}
 }
 
-func TestPrivateKeyProjectionIsAnIndependentCallerOwnedCopy(t *testing.T) {
+func TestSigningKeyFormattingNeverDisclosesCustody(t *testing.T) {
 	t.Parallel()
-
-	key, gotErr := keygen.GenerateSigningKey()
-	if gotErr != nil {
-		t.Fatalf("GenerateSigningKey() error = %v, want nil", gotErr)
-	}
-	first, gotFirstErr := key.PrivateKey()
-	if gotFirstErr != nil {
-		t.Fatalf("SigningKey.PrivateKey(first) error = %v, want nil", gotFirstErr)
-	}
-	second, gotSecondErr := key.PrivateKey()
-	if gotSecondErr != nil {
-		t.Fatalf("SigningKey.PrivateKey(second) error = %v, want nil", gotSecondErr)
-	}
-	if !bytes.Equal(first, second) {
-		t.Fatal("independent private-key equality before mutation = false, want true")
-	}
-	for index := range first {
-		first[index] ^= 0xff
-	}
-	third, gotThirdErr := key.PrivateKey()
-	if gotThirdErr != nil {
-		t.Fatalf("SigningKey.PrivateKey(after mutation) error = %v, want nil", gotThirdErr)
-	}
-	if !bytes.Equal(second, third) {
-		t.Fatal("owned private-key equality after caller mutation = false, want true")
-	}
-	clear(first)
-	clear(second)
-	clear(third)
-}
-
-func TestSigningKeyCopiesShareCoreOwnedDestruction(t *testing.T) {
-	t.Parallel()
-
-	key, gotErr := keygen.GenerateSigningKey()
-	if gotErr != nil {
-		t.Fatalf("GenerateSigningKey() error = %v, want nil", gotErr)
-	}
-	copyOfKey := key
-	privateBeforeDestroy, gotPrivateErr := copyOfKey.PrivateKey()
-	if gotPrivateErr != nil {
-		t.Fatalf("SigningKey.PrivateKey() error = %v, want nil", gotPrivateErr)
-	}
-	defer clear(privateBeforeDestroy)
-	if gotDestroyErr := key.Destroy(); gotDestroyErr != nil {
-		t.Fatalf("SigningKey.Destroy() error = %v, want nil", gotDestroyErr)
-	}
-	for _, candidate := range []keygen.SigningKey{key, copyOfKey} {
-		if gotValidateErr := candidate.Validate(); !errors.Is(gotValidateErr, core.ErrKeygenContract) ||
-			!errors.Is(gotValidateErr, core.ErrPrimitiveContract) {
-			t.Fatalf("destroyed SigningKey.Validate() error = %v, want %v and %v", gotValidateErr, core.ErrKeygenContract, core.ErrPrimitiveContract)
-		}
-		if gotPrivate, gotPrivateErr := candidate.PrivateKey(); gotPrivate != nil ||
-			!errors.Is(gotPrivateErr, core.ErrKeygenContract) {
-			t.Fatalf("destroyed SigningKey.PrivateKey() = (%v, %v), want (nil, %v)", gotPrivate, gotPrivateErr, core.ErrKeygenContract)
-		}
-	}
-	if gotDestroyErr := copyOfKey.Destroy(); gotDestroyErr != nil {
-		t.Fatalf("repeated SigningKey.Destroy() error = %v, want nil", gotDestroyErr)
-	}
-}
-
-func TestZeroSigningKeyRejectsEveryOwnedBoundary(t *testing.T) {
-	t.Parallel()
-
-	var key keygen.SigningKey
-	cases := []struct {
-		run  func() error
-		name string
-	}{
-		{name: "validation rejects", run: key.Validate},
-		{name: "public projection rejects", run: func() error { _, err := key.PublicKey(); return err }},
-		{name: "private projection rejects", run: func() error { _, err := key.PrivateKey(); return err }},
-		{name: "destruction rejects unset state", run: key.Destroy},
-	}
-	for _, tc := range cases {
+	for _, tc := range []struct{ name, format string }{
+		{name: "default fields", format: "%v"}, {name: "named fields", format: "%+v"}, {name: "Go field syntax", format: "%#v"},
+		{name: "text", format: "%s"}, {name: "quoted text", format: "%q"}, {name: "hex bytes", format: "%x"},
+		{name: "width and precision cannot expose backing storage", format: "%100.1v"},
+	} {
 		t.Run(tc.name, func(t *testing.T) {
 			t.Parallel()
-
-			gotErr := tc.run()
-			if !errors.Is(gotErr, core.ErrKeygenContract) ||
-				!errors.Is(gotErr, core.ErrPrimitiveContract) {
-				t.Fatalf("zero SigningKey boundary error = %v, want %v and %v", gotErr, core.ErrKeygenContract, core.ErrPrimitiveContract)
+			key, err := keygen.AdoptSigningKey(nonZeroSeed())
+			if err != nil {
+				t.Fatalf("AdoptSigningKey(fixture) error = %v, want nil", err)
+			}
+			t.Cleanup(func() {
+				if err := key.Destroy(); err != nil {
+					t.Fatalf("Destroy() error = %v, want nil", err)
+				}
+			})
+			for _, value := range []keygen.SigningKey{key, {}} {
+				got := fmt.Sprintf(tc.format, value)
+				if got != core.RedactedValueText {
+					t.Fatalf("formatted key = %q, want %q", got, core.RedactedValueText)
+				}
+			}
+			if err := key.Destroy(); err != nil {
+				t.Fatalf("Destroy() error = %v, want nil", err)
+			}
+			if got := fmt.Sprintf(tc.format, key); got != core.RedactedValueText {
+				t.Fatalf("formatted destroyed key = %q, want %q", got, core.RedactedValueText)
 			}
 		})
 	}

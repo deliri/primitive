@@ -1,8 +1,9 @@
 # Primitive upgrade priority — 2026-09-07
 
-Current approved release checkpoint: **v2026.1.22**, September 8, 2026.
-The user reviewed and approved Contextstate and Controlwire, including the
-version bump, commit and push. See [release notes](release_v2026.1.22.md).
+Approved release checkpoint: **v2026.1.23**, September 8, 2026. The user
+reviewed Keygen and explicitly authorized the version bump, commit and push.
+See [release notes](release_v2026.1.23.md). The preceding published release was
+v2026.1.22, commit `e18a69e381e29188444b586a47d8fa8ddf4a58cd`.
 The preceding GoToolchain/Filestore/Core integration was published in v2026.1.21.
 Exchange/Filestore were published in
 v2026.1.19 and Temporal/Hostfacts in v2026.1.20.
@@ -11,7 +12,9 @@ Reviewed checkpoint: **Contextstate**. The resumed slice closes its test and ben
 review and makes a profile-informed recovery optimization. See
 [Contextstate's review](../contextstate/upgrade_review.md). **Controlwire is reviewed and approved.** Its production, table tests, fuzz
 oracles and profiled benchmarks are covered in [the review](../controlwire/upgrade_review.md).
-**Keygen is next.**
+**Keygen is reviewed and approved**, with production changes, hostile tests,
+semantic fuzzing and ten profiled before/after pairs recorded in
+[the Keygen review](../keygen/upgrade_review.md). **Release is next**.
 
 The initial execution-value priority was Exchange → Filestore → Temporal →
 Hostfacts → Process. Process and Core improvements are now checkpointed in
@@ -128,7 +131,7 @@ the user explicitly approved the scoped Temporal/Hostfacts release. AWS identity
 local evidence, with the promised manual compliance re-review still pending.
 Chit's original baseline is retained; its upgrade is paused for this priority.
 
-`keygen`, `release`, `objectstore`, `chit`, `attest`, `controlplane`, `gcsobjects`, `shutdown`, `currency`, `id`, `distribution`, `lineio`, `fuzzfinder`, `runprotocol`, `lease`, `retrieval`, `manual`, `receipt`, `payment`, `submission`, `compass`, `googleidentity`, `filelock`, `submissionauth`, `proofledger`, `runnercontrol`, `secretstore`, `version`, `chitauth`, `distributionauth`, `paymentauth`, `retrievalauth`, `upgrade`, `deploy`, `wiring`, `github`, `gomodule`, `timeproof`, `awsidentity`, `capabilities`, `controlplanetest`, `gitrepo`, `gotoolchain`, `machineprobe`, `paypal`, `plunk`, `runworkspace`, `sourceclaim`, `sourceobservation`, `sourceproof`, `stripe`, `testserial`, `twilio`.
+`release`, `objectstore`, `chit`, `attest`, `controlplane`, `gcsobjects`, `shutdown`, `currency`, `id`, `distribution`, `lineio`, `fuzzfinder`, `runprotocol`, `lease`, `retrieval`, `manual`, `receipt`, `payment`, `submission`, `compass`, `googleidentity`, `filelock`, `submissionauth`, `proofledger`, `runnercontrol`, `secretstore`, `version`, `chitauth`, `distributionauth`, `paymentauth`, `retrievalauth`, `upgrade`, `deploy`, `wiring`, `github`, `gomodule`, `timeproof`, `awsidentity`, `capabilities`, `controlplanetest`, `gitrepo`, `gotoolchain`, `machineprobe`, `paypal`, `plunk`, `runworkspace`, `sourceclaim`, `sourceobservation`, `sourceproof`, `stripe`, `testserial`, `twilio`.
 
 ## Release checkpoint
 
@@ -140,8 +143,8 @@ editing. Benchmark comparisons use declared, checked workloads and retain both
 CPU and memory profiles, binaries, commands and source bindings. Remaining known
 surfaces keep the package open. Follow the entire local testing protocol.
 
-The user approved v2026.1.22 on September 8, 2026. Contextstate and Controlwire
-are reviewed; Keygen is the next slice. Each new slice retains the
+The user approved v2026.1.23 on September 8, 2026. Contextstate, Controlwire
+and Keygen are reviewed. Each new slice retains the
 same package-by-package review standards and requires review before commit.
 
 Then update Blink Kernel, Peachfuzz, Bug and Witness to that published version,

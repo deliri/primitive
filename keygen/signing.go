@@ -49,19 +49,20 @@ func (k SigningKey) Seed() ([SeedSize]byte, error) {
 // AdoptPrivateKey takes custody of one 64-byte standard-library private key a
 // wire contract or store already carries, admitting exactly the value
 // PrivateKey projects. Only the seed half is kept: the trailing public half
-// is determined by the seed, so keygen re-derives it rather than trusting
-// what arrived, and a delivered pair that disagrees with itself can never
-// sign. A product whose persisted form is its own chooses the seed and
+// is determined by the seed. Keygen verifies that relationship and refuses
+// an inconsistent pair without repairing it or changing the caller's bytes.
+// A product whose persisted form is its own chooses the seed and
 // AdoptSigningKey instead; this door exists for the forms other parties
 // already speak.
 func AdoptPrivateKey(private ed25519.PrivateKey) (SigningKey, error) {
 	if len(private) != ed25519.PrivateKeySize {
 		return SigningKey{}, contractError(errors.New("keygen private key has invalid extent"))
 	}
-	var seed [SeedSize]byte
-	copy(seed[:], private[:SeedSize])
-	defer clear(seed[:])
-	return AdoptSigningKey(seed)
+	var ownedPrivate [ed25519.PrivateKeySize]byte
+	var ownedPublic [ed25519.PublicKeySize]byte
+	copy(ownedPrivate[:], private)
+	copy(ownedPublic[:], private[SeedSize:])
+	return adoptGeneratedSigningKey(ownedPublic[:], ownedPrivate[:], nil)
 }
 
 // AdoptSigningKey takes custody of one RFC 8032 seed a product already holds,
@@ -76,6 +77,7 @@ func AdoptPrivateKey(private ed25519.PrivateKey) (SigningKey, error) {
 // a caller cannot supply a pair that disagrees with itself.
 func AdoptSigningKey(seed [ed25519.SeedSize]byte) (SigningKey, error) {
 	private := ed25519.NewKeyFromSeed(seed[:])
+	clear(seed[:])
 	public := make(ed25519.PublicKey, ed25519.PublicKeySize)
 	copy(public, private[ed25519.SeedSize:])
 	return adoptGeneratedSigningKey(public, private, nil)
@@ -95,6 +97,9 @@ func adoptGeneratedSigningKey(
 		len(private) != ed25519.PrivateKeySize {
 		return SigningKey{}, contractError(errors.New("keygen standard Ed25519 result has invalid extent"))
 	}
+	if subtle.ConstantTimeCompare(public, private[ed25519.SeedSize:]) != 1 {
+		return SigningKey{}, contractError(errors.New("keygen public and private results disagree"))
+	}
 	seed := private.Seed()
 	defer clear(seed)
 	material, err := core.NewSecretMaterial(seed)
@@ -106,13 +111,11 @@ func adoptGeneratedSigningKey(
 	}
 	ownedPublic, err := core.NewEd25519PublicKey(public)
 	if err != nil {
-		_ = material.Destroy()
-		return SigningKey{}, contractError(err)
+		return SigningKey{}, errors.Join(contractError(err), material.Destroy())
 	}
 	key := SigningKey{seed: material, public: ownedPublic}
 	if err := key.Validate(); err != nil {
-		_ = material.Destroy()
-		return SigningKey{}, err
+		return SigningKey{}, errors.Join(err, material.Destroy())
 	}
 	return key, nil
 }
@@ -136,13 +139,17 @@ func (k SigningKey) PublicKey() (core.Ed25519PublicKey, error) {
 // PrivateKey explicitly projects an independent standard-library private-key
 // copy. The caller owns and should clear the returned mutable slice.
 func (k SigningKey) PrivateKey() (ed25519.PrivateKey, error) {
-	seed, err := k.validatedSeed()
+	seed, err := k.seedBytes()
 	if err != nil {
 		clear(seed[:])
 		return nil, err
 	}
 	private := ed25519.NewKeyFromSeed(seed[:])
 	clear(seed[:])
+	if err := validatePublicBytes(private[ed25519.SeedSize:], k.public); err != nil {
+		clear(private)
+		return nil, err
+	}
 	return private, nil
 }
 
@@ -163,34 +170,33 @@ func (k SigningKey) Format(state fmt.State, _ rune) {
 }
 
 func (k SigningKey) validatedSeed() ([ed25519.SeedSize]byte, error) {
-	if err := k.seed.Validate(); err != nil {
-		return [ed25519.SeedSize]byte{}, contractError(err)
-	}
-	count, err := k.seed.ByteCount()
+	seed, err := k.seedBytes()
 	if err != nil {
-		return [ed25519.SeedSize]byte{}, contractError(err)
+		return [ed25519.SeedSize]byte{}, err
 	}
-	size, err := count.Uint64()
-	if err != nil || size != ed25519.SeedSize {
-		return [ed25519.SeedSize]byte{}, contractError(
-			errors.New("keygen signing seed has invalid extent"),
-			err,
-		)
+	if err := validateDerivedPublic(seed, k.public); err != nil {
+		clear(seed[:])
+		return [ed25519.SeedSize]byte{}, err
 	}
-	if err := k.public.Validate(); err != nil {
-		return [ed25519.SeedSize]byte{}, contractError(err)
-	}
+	return seed, nil
+}
+
+// CopyBytes validates Core's custody under its own lock. Keygen owns only
+// the narrower Ed25519 extent; no repeated lock/validation pass is needed.
+func (k SigningKey) seedBytes() ([ed25519.SeedSize]byte, error) {
 	raw, err := k.seed.CopyBytes()
 	if err != nil {
 		return [ed25519.SeedSize]byte{}, contractError(err)
 	}
 	defer clear(raw)
+	if len(raw) != ed25519.SeedSize {
+		return [ed25519.SeedSize]byte{}, contractError(errors.New("keygen signing seed has invalid extent"))
+	}
+	if err := k.public.Validate(); err != nil {
+		return [ed25519.SeedSize]byte{}, contractError(err)
+	}
 	var seed [ed25519.SeedSize]byte
 	copy(seed[:], raw)
-	if err := validateDerivedPublic(seed, k.public); err != nil {
-		clear(seed[:])
-		return [ed25519.SeedSize]byte{}, err
-	}
 	return seed, nil
 }
 
@@ -200,13 +206,17 @@ func validateDerivedPublic(
 ) error {
 	private := ed25519.NewKeyFromSeed(seed[:])
 	defer clear(private)
-	publicBytes, err := public.Bytes()
+	return validatePublicBytes(private[ed25519.SeedSize:], public)
+}
+
+func validatePublicBytes(derived []byte, public core.Ed25519PublicKey) error {
+	derivedPublic, err := core.NewEd25519PublicKey(derived)
 	if err != nil {
 		return contractError(err)
 	}
-	defer clear(publicBytes)
-	derived := private[ed25519.SeedSize:]
-	if subtle.ConstantTimeCompare(derived, publicBytes) != 1 {
+	// These are public identities. Compare Core's values directly instead of
+	// allocating an exported byte slice merely to compare it.
+	if derivedPublic != public {
 		return contractError(errors.New("keygen signing public key does not match its seed"))
 	}
 	return nil
