@@ -1,5 +1,8 @@
 # temporal after
 
+Historical measurements from an earlier inspection. The current upgrade has
+[a separate profiled comparison](upgrade_benchmarks.md).
+
 No production change this pass. Cost tracks admitted work, not a compiler ceiling.
 
 ## Measured
@@ -12,5 +15,6 @@ BenchmarkParseRFC3339Canonical-10              	14523331	        77.76 ns/op	   
 BenchmarkAggregateDurationDecimalMaximum-10    	 3821091	       319.5 ns/op	      48 B/op	       1 allocs/op
 ```
 
-All benches use `b.Loop()` or `for range b.N` where the timer must pause, `b.ReportAllocs()`, and observe the result.
-No `unsafe`, no C.
+These three historical benchmarks discarded their results and used the default
+benchmark duration and CPU settings. Their numbers are retained as history;
+they are not the baseline for the current upgrade.

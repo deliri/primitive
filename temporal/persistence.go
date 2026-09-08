@@ -2,6 +2,7 @@ package temporal
 
 import (
 	"bytes"
+	"encoding/json/jsontext"
 	json "encoding/json/v2"
 	"strconv"
 )
@@ -14,7 +15,8 @@ func decodeNanosecondJSON(data []byte, maximumBytes int) (string, error) {
 	if err := json.Unmarshal(data, &decimal); err != nil {
 		return "", jsonContractError("temporal JSON is not one string", err)
 	}
-	canonical, err := json.Marshal(decimal)
+	var quoted [AggregateDurationJSONMaximumBytes]byte
+	canonical, err := jsontext.AppendQuote(quoted[:0], decimal)
 	if err != nil || !bytes.Equal(bytes.TrimSpace(data), canonical) {
 		return "", jsonContractError("temporal JSON string is not canonical", err)
 	}
@@ -29,7 +31,11 @@ func decodeNumericNanoseconds(data []byte, maximumBytes int) (int64, error) {
 	if len(data) == 0 || len(data) > maximumBytes {
 		return 0, jsonContractError("temporal numeric JSON extent is outside its bound")
 	}
-	return parseSignedNanoseconds(string(data))
+	value, err := parseSignedNanoseconds(string(data))
+	if err != nil {
+		return 0, jsonContractError("temporal numeric JSON decimal is invalid", err)
+	}
+	return value, nil
 }
 
 // parseSignedNanoseconds admits exactly the decimal spelling strconv emits for
@@ -37,7 +43,8 @@ func decodeNumericNanoseconds(data []byte, maximumBytes int) (int64, error) {
 // grammar; the standard library remains the parser and canonical projector.
 func parseSignedNanoseconds(decimal string) (int64, error) {
 	value, err := strconv.ParseInt(decimal, 10, 64)
-	if err != nil || strconv.FormatInt(value, 10) != decimal {
+	var canonical [NumericInstantCanonicalJSONMaximumBytes]byte
+	if err != nil || string(strconv.AppendInt(canonical[:0], value, 10)) != decimal {
 		return 0, contractError("signed nanosecond decimal is not canonical", err)
 	}
 	return value, nil

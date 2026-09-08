@@ -282,6 +282,7 @@ func TestGoOOMBannerStateJSONExhaustsClosedDomain(t *testing.T) {
 		{name: "escaped canonical token", wire: `"pre\u0073ent"`},
 		{name: "embedded NUL", wire: `"present\u0000"`},
 		{name: "unquoted token", wire: `present`},
+		{name: "Go raw string literal is not JSON", wire: "`" + goOOMPresentToken + "`"},
 		{name: "array token", wire: `[]`},
 		{name: "object token", wire: `{}`},
 		{name: "numeric token", wire: `1`},
@@ -424,16 +425,21 @@ func FuzzGoOOMBannerClassifier(f *testing.F) {
 	f.Add([]byte(GoOOMPrefixedBanner), uint32(7))
 	f.Add([]byte("fatal error: out of memorx"), uint32(3))
 	f.Add([]byte{}, uint32(1))
+	f.Add(bytes.Repeat([]byte{'x'}, GoOOMMaximumEvidenceBytes+1), uint32(goOOMBufferBytes-1))
 
 	f.Fuzz(func(t *testing.T, data []byte, chunk uint32) {
-		if len(data) > GoOOMMaximumEvidenceBytes {
-			return
-		}
 		maximum := int(chunk%uint32(goOOMBufferBytes)) + 1
+		source := &chunkReader{data: data, maximum: maximum}
 		got, gotErr := ClassifyGoOOMBanner(context.Background(), GoOOMBannerRequest{
-			Source: &chunkReader{data: append([]byte(nil), data...), maximum: maximum},
+			Source: source,
 			Length: mustByteLength(t, uint64(len(data))),
 		})
+		if len(data) > GoOOMMaximumEvidenceBytes {
+			if !errors.Is(gotErr, core.ErrHostFactsContract) || got != (GoOOMBannerEvidence{}) || len(source.data) != len(data) {
+				t.Fatalf("oversize banner = %+v/%v remaining=%d, want zero unread refusal", got, gotErr, len(source.data))
+			}
+			return
+		}
 		if gotErr != nil {
 			t.Fatalf("ClassifyGoOOMBanner(%d bytes) error = %v, want nil", len(data), gotErr)
 		}
@@ -472,21 +478,20 @@ func classifiedEvidenceFixture(t testing.TB, extent uint64, state GoOOMBannerSta
 }
 
 func referenceGoOOMBannerStateJSON(data []byte) (GoOOMBannerState, error) {
-	if len(data) == 0 || len(data) > len(strconv.Quote(goOOMPresentToken)) {
-		return GoOOMBannerUnknown, core.ErrJSONContract
+	// Exhaust the two exact wire words; no production decoder or unquoting path
+	// decides whether the hostile representation should have been accepted.
+	for _, candidate := range []struct {
+		token string
+		state GoOOMBannerState
+	}{
+		{token: goOOMAbsentToken, state: GoOOMBannerAbsent},
+		{token: goOOMPresentToken, state: GoOOMBannerPresent},
+	} {
+		if len(data) == len(candidate.token)+2 && data[0] == '"' && data[len(data)-1] == '"' && string(data[1:len(data)-1]) == candidate.token {
+			return candidate.state, nil
+		}
 	}
-	token, err := strconv.Unquote(string(data))
-	if err != nil || !bytes.Equal(strconv.AppendQuote(nil, token), data) {
-		return GoOOMBannerUnknown, core.ErrJSONContract
-	}
-	switch token {
-	case goOOMAbsentToken:
-		return GoOOMBannerAbsent, nil
-	case goOOMPresentToken:
-		return GoOOMBannerPresent, nil
-	default:
-		return GoOOMBannerUnknown, core.ErrJSONContract
-	}
+	return GoOOMBannerUnknown, core.ErrJSONContract
 }
 
 func referenceGoOOMBannerEvidenceJSON(data []byte) (GoOOMBannerEvidence, error) {
@@ -531,15 +536,16 @@ func benchmarkGoOOMBanner(b *testing.B, size int) {
 	b.Helper()
 	data := bytes.Repeat([]byte{'x'}, size)
 	length := mustByteLength(b, uint64(size))
+	b.SetBytes(int64(len(data)))
 	b.ResetTimer()
 
 	for b.Loop() {
-		_, err := ClassifyGoOOMBanner(context.Background(), GoOOMBannerRequest{
+		got, err := ClassifyGoOOMBanner(context.Background(), GoOOMBannerRequest{
 			Source: bytes.NewReader(data),
 			Length: length,
 		})
-		if err != nil {
-			b.Fatalf("ClassifyGoOOMBanner(%d bytes) error = %v", size, err)
+		if err != nil || got.State() != GoOOMBannerAbsent || got.BytesExamined() != length {
+			b.Fatalf("ClassifyGoOOMBanner(%d bytes) = %+v/%v, want exact absent evidence", size, got, err)
 		}
 	}
 }

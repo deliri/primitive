@@ -6,6 +6,7 @@ import (
 	"errors"
 	"io"
 	"io/fs"
+	"os"
 	"path"
 	"path/filepath"
 	"strconv"
@@ -262,26 +263,28 @@ func parseCgroupMembershipLine(line []byte) (cgroupMembership, error) {
 	if len(line) == 0 || len(line) > procLineMaximumBytes {
 		return cgroupMembership{}, core.ErrHostFactsObservation
 	}
-	parts := bytes.SplitN(line, []byte{':'}, 3)
-	if len(parts) != 3 || len(parts[2]) == 0 {
+	hierarchy, rest, found := bytes.Cut(line, []byte{':'})
+	if !found {
 		return cgroupMembership{}, core.ErrHostFactsObservation
 	}
-	membership := cgroupMembership{path: string(parts[2])}
-	if string(parts[0]) == cgroupV2HierarchyToken && len(parts[1]) == 0 {
+	controllers, groupPath, found := bytes.Cut(rest, []byte{':'})
+	if !found || len(groupPath) == 0 {
+		return cgroupMembership{}, core.ErrHostFactsObservation
+	}
+	var membership cgroupMembership
+	switch {
+	case string(hierarchy) == cgroupV2HierarchyToken && len(controllers) == 0:
 		membership.source = WorkloadMemoryLimitSourceCgroupV2
-		if err := membership.Validate(); err != nil {
-			return cgroupMembership{}, err
-		}
-		return membership, nil
-	}
-	if commaTokenContains(string(parts[1]), cgroupMemoryController) {
+	case commaByteTokenContains(controllers, cgroupMemoryController):
 		membership.source = WorkloadMemoryLimitSourceCgroupV1
-		if err := membership.Validate(); err != nil {
-			return cgroupMembership{}, err
-		}
-		return membership, nil
+	default:
+		return cgroupMembership{}, nil
 	}
-	return cgroupMembership{}, nil
+	membership.path = string(groupPath)
+	if err := membership.Validate(); err != nil {
+		return cgroupMembership{}, err
+	}
+	return membership, nil
 }
 
 func parseMountInfoLine(line []byte, source WorkloadMemoryLimitSource) (cgroupMount, bool, error) {
@@ -378,6 +381,12 @@ func foldCgroupLimits(
 	membership cgroupMembership,
 	mount cgroupMount,
 ) (WorkloadMemoryLimit, error) {
+	if err := errors.Join(membership.Validate(), mount.Validate()); err != nil {
+		return WorkloadMemoryLimit{}, err
+	}
+	if membership.source != mount.source {
+		return WorkloadMemoryLimit{}, core.ErrHostFactsObservation
+	}
 	current, err := resolveCgroupDirectory(membership.path, mount)
 	if err != nil {
 		return WorkloadMemoryLimit{}, err
@@ -398,12 +407,15 @@ func foldCgroupLimits(
 		}
 		var parent core.AbsolutePath
 		parent, err = current.Parent()
-		if err != nil || parent == current {
+		if err != nil {
 			return WorkloadMemoryLimit{}, errors.Join(core.ErrHostFactsObservation, err)
+		}
+		if parent == current {
+			return WorkloadMemoryLimit{}, core.ErrCgroupContainment
 		}
 		current = parent
 	}
-	return WorkloadMemoryLimit{}, core.ErrHostFactsObservation
+	return WorkloadMemoryLimit{}, core.ErrCgroupContainment
 }
 
 // cgroupLevelRequest binds one cgroup directory to the interface it is read
@@ -432,16 +444,39 @@ func foldOneCgroupLevel(
 
 // readCgroupLevelLimit reads one level's declaration. A missing interface file is
 // the kernel reporting that this level declares no memory ceiling, so it folds in
-// as an absent declaration instead of failing the whole observation.
+// as an absent declaration. Failure to acquire its directory is an observation
+// failure; it cannot prove the absence of a declaration.
 func readCgroupLevelLimit(
 	ctx context.Context,
 	interfacePath core.AbsolutePath,
 	source WorkloadMemoryLimitSource,
-) (cgroupLevelLimit, error) {
-	value, unlimited, err := readCgroupLimit(ctx, interfacePath, source)
+) (level cgroupLevelLimit, err error) {
+	location, err := filestore.OpenParent(ctx, interfacePath)
+	if err != nil {
+		return cgroupLevelLimit{}, err
+	}
+	defer func() {
+		if closeErr := location.Root.Close(); closeErr != nil {
+			level = cgroupLevelLimit{}
+			err = errors.Join(err, closeErr)
+		}
+	}()
+	return readCgroupLevelAt(ctx, location, source)
+}
+
+func readCgroupLevelAt(ctx context.Context, location filestore.Location, source WorkloadMemoryLimitSource) (cgroupLevelLimit, error) {
+	file, err := filestore.OpenRead(ctx, filestore.ReadHandleRequest{Location: location})
 	if errors.Is(err, fs.ErrNotExist) {
 		return cgroupLevelLimit{state: cgroupLevelLimitAbsent}, nil
 	}
+	if err != nil {
+		return cgroupLevelLimit{}, err
+	}
+	data, err := readVirtualFile(ctx, file, limitValueMaximumBytes)
+	if err != nil {
+		return cgroupLevelLimit{}, err
+	}
+	value, unlimited, err := parseCgroupLimit(data, source)
 	if err != nil {
 		return cgroupLevelLimit{}, err
 	}
@@ -461,7 +496,7 @@ func resolveCgroupDirectory(membershipPath string, mount cgroupMount) (core.Abso
 	} else if after, ok := strings.CutPrefix(membershipPath, mount.root+"/"); ok {
 		relative = after
 	} else {
-		return core.AbsolutePath{}, core.ErrHostFactsObservation
+		return core.AbsolutePath{}, core.ErrCgroupContainment
 	}
 	resolved := filepath.Join(mount.mountPoint.String(), filepath.FromSlash(relative))
 	return core.ParseAbsolutePath(resolved)
@@ -478,17 +513,7 @@ func limitComponent(source WorkloadMemoryLimitSource) (core.PathComponent, error
 	}
 }
 
-func readCgroupLimit(
-	ctx context.Context,
-	interfacePath core.AbsolutePath,
-	source WorkloadMemoryLimitSource,
-) (uint64, bool, error) {
-	data, err := readVirtualValue(ctx, virtualFileRequest{
-		Path: interfacePath, MaximumBytes: limitValueMaximumBytes,
-	})
-	if err != nil {
-		return 0, false, err
-	}
+func parseCgroupLimit(data []byte, source WorkloadMemoryLimitSource) (uint64, bool, error) {
 	token, err := canonicalVirtualValueToken(data)
 	if err != nil {
 		return 0, false, err
@@ -620,45 +645,21 @@ func finishLines(line []byte, visit func([]byte) error) error {
 	return visit(line)
 }
 
-func readVirtualValue(
-	ctx context.Context,
-	request virtualFileRequest,
-) ([]byte, error) {
-	if err := request.Validate(); err != nil {
-		return nil, err
-	}
-	location, err := filestore.OpenParent(ctx, request.Path)
-	if err != nil {
-		return nil, err
-	}
-	closedRoot := false
+// readVirtualFile consumes and closes an already acquired file. Path absence is
+// classified only at acquisition; read and close failures remain failures.
+func readVirtualFile(ctx context.Context, file *os.File, maximum uint64) (data []byte, err error) {
 	defer func() {
-		if !closedRoot {
-			_ = location.Root.Close()
+		if closeErr := file.Close(); closeErr != nil {
+			err = errors.Join(err, closeErr)
 		}
 	}()
-	file, err := filestore.OpenRead(ctx, filestore.ReadHandleRequest{Location: location})
-	if err != nil {
-		return nil, errors.Join(err, location.Root.Close())
-	}
-	closedFile := false
-	defer func() {
-		if !closedFile {
-			_ = file.Close()
-		}
-	}()
-	data, readErr := readBoundedValue(ctx, file, request.MaximumBytes)
-	fileCloseErr := file.Close()
-	closedFile = true
-	rootCloseErr := location.Root.Close()
-	closedRoot = true
-	return data, errors.Join(readErr, fileCloseErr, rootCloseErr)
+	return readBoundedValue(ctx, file, maximum)
 }
 
 func readBoundedValue(ctx context.Context, reader io.Reader, maximum uint64) ([]byte, error) {
 	// The ceiling is an admission limit, not a reservation. Grow with the
 	// observed bytes and keep one spare to prove a ceiling violation.
-	if maximum != uint64(int(maximum)) {
+	if maximum > virtualFileMaximumBytes {
 		return nil, core.ErrHostFactsObservation
 	}
 	maximumInt := int(maximum)
@@ -670,9 +671,6 @@ func readBoundedValue(ctx context.Context, reader io.Reader, maximum uint64) ([]
 		}
 		if written == len(storage) {
 			next := min(len(storage)*2, maximumInt+1)
-			if next <= len(storage) {
-				return nil, core.ErrHostFactsObservation
-			}
 			grown := make([]byte, next)
 			copy(grown, storage)
 			storage = grown
@@ -682,8 +680,9 @@ func readBoundedValue(ctx context.Context, reader io.Reader, maximum uint64) ([]
 			return nil, err
 		}
 		written += count
-		writtenBytes, err := core.CheckedUint64FromInt64(int64(written))
-		if err != nil || writtenBytes > maximum {
+		// Validated read counts and the package ceiling keep written nonnegative
+		// and bounded by maximum+1, so this conversion cannot narrow.
+		if uint64(written) > maximum {
 			return nil, core.ErrHostFactsObservation
 		}
 		emptyReads = nextEmptyReads(emptyReads, count)
@@ -709,18 +708,6 @@ func finishValueRead(readErr error) (bool, error) {
 	return false, nil
 }
 
-func commaTokenContains(value, token string) bool {
-	if token == "" {
-		return false
-	}
-	for item := range strings.SplitSeq(value, ",") {
-		if item == token {
-			return true
-		}
-	}
-	return false
-}
-
 func validCgroupPath(value string) bool {
 	return value != "" && utf8.ValidString(value) && strings.HasPrefix(value, "/") &&
 		path.Clean(value) == value && !strings.ContainsRune(value, '\x00') &&
@@ -731,6 +718,16 @@ func decodeMountInfoPath(value string) (string, error) {
 	if len(value) > procLineMaximumBytes {
 		return "", core.ErrHostFactsObservation
 	}
+	if !strings.ContainsRune(value, '\\') {
+		if !utf8.ValidString(value) {
+			return "", core.ErrHostFactsObservation
+		}
+		return value, nil
+	}
+	return decodeEscapedMountInfoPath(value)
+}
+
+func decodeEscapedMountInfoPath(value string) (string, error) {
 	var decodedStorage [procLineMaximumBytes]byte
 	decoded := decodedStorage[:0]
 	for index := 0; index < len(value); {
@@ -763,4 +760,77 @@ func decodeMountInfoPath(value string) (string, error) {
 		return "", core.ErrHostFactsObservation
 	}
 	return string(decoded), nil
+}
+
+const procCgroupMaximumBytes = 64 << 10
+
+func observeCgroupMembership(ctx context.Context, procPath core.AbsolutePath) (cgroupMembership, bool, error) {
+	var v2, v1 cgroupMembership
+	v2Count, v1Count := 0, 0
+	err := scanVirtualLines(ctx, virtualFileRequest{Path: procPath, MaximumBytes: procCgroupMaximumBytes}, func(line []byte) error {
+		membership, parseErr := parseCgroupMembershipLine(line)
+		if parseErr != nil {
+			return parseErr
+		}
+		switch membership.source {
+		case WorkloadMemoryLimitSourceCgroupV2:
+			v2, v2Count = membership, v2Count+1
+		case WorkloadMemoryLimitSourceCgroupV1:
+			v1, v1Count = membership, v1Count+1
+		}
+		return nil
+	})
+	if err != nil {
+		return cgroupMembership{}, false, errors.Join(core.ErrHostFactsObservation, err)
+	}
+	if v2Count > 1 || v1Count > 1 {
+		return cgroupMembership{}, false, core.ErrCgroupMembershipDuplicate
+	}
+	// An explicitly attached v1 memory controller owns memory on a hybrid
+	// host. Go's internal/runtime/cgroup applies this same ownership rule.
+	if v1Count == 1 {
+		return v1, true, v1.Validate()
+	}
+	if v2Count == 1 {
+		return v2, true, v2.Validate()
+	}
+	return cgroupMembership{}, false, nil
+}
+
+func scanVirtualLines(
+	ctx context.Context,
+	request virtualFileRequest,
+	visit func([]byte) error,
+) error {
+	if err := request.Validate(); err != nil {
+		return err
+	}
+	location, err := filestore.OpenParent(ctx, request.Path)
+	if err != nil {
+		return err
+	}
+	closedRoot := false
+	defer func() {
+		if !closedRoot {
+			_ = location.Root.Close()
+		}
+	}()
+	file, err := filestore.OpenRead(ctx, filestore.ReadHandleRequest{Location: location})
+	if err != nil {
+		return errors.Join(err, location.Root.Close())
+	}
+	closedFile := false
+	defer func() {
+		if !closedFile {
+			_ = file.Close()
+		}
+	}()
+	scanErr := (boundedLineScan{
+		reader: file, maximum: request.MaximumBytes, visit: visit,
+	}).run(ctx)
+	fileCloseErr := file.Close()
+	closedFile = true
+	rootCloseErr := location.Root.Close()
+	closedRoot = true
+	return errors.Join(scanErr, fileCloseErr, rootCloseErr)
 }

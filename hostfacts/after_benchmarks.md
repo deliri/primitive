@@ -1,4 +1,8 @@
-# hostfacts after
+# Hostfacts historical allocation checkpoint result
+
+These original measurements are preserved for history. They did not capture
+CPU/memory profiles with the measurement and are not the current acceptance
+comparison. See [the profiled comparison](upgrade_benchmarks.md).
 
 readBoundedValue grows from 4 KiB instead of reserving 1 MiB+1. Sparse 4144 B/op.
 
@@ -14,5 +18,7 @@ BenchmarkCgroupMountInfoStreaming1MiB-10    	     502	   2380407 ns/op	   69704 
 BenchmarkReadBoundedValueSparse-10          	 1944958	       621.2 ns/op	    4144 B/op	       2 allocs/op
 ```
 
-All benches use `b.Loop()` or `for range b.N` where the timer must pause, `b.ReportAllocs()`, and observe the result.
+The original OOM benchmarks discarded their result; the previous claim that
+all benchmarks observed results was incorrect. The current checked workloads
+and exact-result checks are documented in the new comparison.
 No `unsafe`, no C.

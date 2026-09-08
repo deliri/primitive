@@ -21,10 +21,11 @@ type Hostname struct {
 	value string
 }
 
-// Validate rejects the unset value.
+// Validate enforces the complete platform-label admission rule.
 func (h Hostname) Validate() error {
-	if h.value == "" {
-		return errors.Join(core.ErrHostFactsContract, errors.New("hostname is unset"))
+	if h.value == "" || len(h.value) > hostnameMaximumBytes || !utf8.ValidString(h.value) ||
+		strings.ContainsFunc(h.value, func(r rune) bool { return r < 0x20 || r == 0x7f }) {
+		return errors.Join(core.ErrHostFactsContract, errors.New("hostname is outside the admitted form"))
 	}
 	return nil
 }
@@ -40,11 +41,11 @@ func (h Hostname) String() string {
 // never a value, because a label built from it would carry bytes no admission
 // downstream should ever meet.
 func admitHostname(value string) (Hostname, error) {
-	if value == "" || len(value) > hostnameMaximumBytes || !utf8.ValidString(value) ||
-		strings.ContainsFunc(value, func(r rune) bool { return r < 0x20 || r == 0x7f }) {
+	hostname := Hostname{value: value}
+	if hostname.Validate() != nil {
 		return Hostname{}, errors.Join(core.ErrHostFactsObservation, errors.New("platform hostname is outside the admitted form"))
 	}
-	return Hostname{value: value}, nil
+	return hostname, nil
 }
 
 // admitObservedPath admits one platform-reported base path. A host answer that

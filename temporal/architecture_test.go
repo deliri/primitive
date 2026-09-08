@@ -7,6 +7,7 @@ import (
 	"go/token"
 	"os"
 	"path/filepath"
+	"reflect"
 	"slices"
 	"strconv"
 	"strings"
@@ -17,11 +18,11 @@ import (
 )
 
 type (
-	temporalSealedValue[T any]      struct{}
-	temporalIngressRequest[T any]   struct{}
-	temporalPersistenceFact[T any]  struct{}
-	temporalCapabilityIntent[T any] struct{}
-	temporalDefinitionFact[T any]   struct{}
+	temporalSealedValue[T any]      struct{ Value T }
+	temporalIngressRequest[T any]   struct{ Value T }
+	temporalPersistenceFact[T any]  struct{ Value T }
+	temporalCapabilityIntent[T any] struct{ Value T }
+	temporalDefinitionFact[T any]   struct{ Value T }
 )
 
 type temporalContractInventory struct {
@@ -55,6 +56,7 @@ type temporalInstantSignature interface {
 	Time() (time.Time, error)
 	RFC3339() (string, error)
 	RFC3339Nano() (string, error)
+	CompactUTC() (string, error)
 	Add(Duration) (Instant, error)
 	Subtract(Duration) (Instant, error)
 	Since(Instant) (Duration, error)
@@ -156,6 +158,8 @@ var (
 
 	_ func(time.Time) (Instant, error)                                   = NewInstant
 	_ func(string) (Instant, error)                                      = ParseRFC3339
+	_ func(string) (Instant, error)                                      = ParseRFC3339UTC
+	_ func(string) (Instant, error)                                      = ParseCompactUTC
 	_ func(int64) Instant                                                = InstantFromNanoseconds
 	_ func(time.Duration) (Duration, error)                              = NewDuration
 	_ func(int64) (Duration, error)                                      = DurationFromNanoseconds
@@ -197,24 +201,20 @@ func TestTemporalProductionStructsHaveCompilerVisibleDataFlowRoles(t *testing.T)
 	if gotErr != nil {
 		t.Fatalf("scanTemporalArchitecture() error = %v, want nil", gotErr)
 	}
-	want := []string{
-		"AggregateDuration",
-		"DeadlineRequest",
-		"Duration",
-		"Instant",
-		"Interval",
-		"IntervalBounds",
-		"IntervalRequest",
-		"NumericDuration",
-		"NumericInstant",
-		"Observation",
-		"Ticker",
-		"TickerRequest",
-		"TimeoutRequest",
-		"WaitRequest",
-		"contextConstruction",
-		"precisionFact",
+	inventory := reflect.TypeFor[temporalContractInventory]()
+	want := make([]string, 0, inventory.NumField())
+	for field := range inventory.Fields() {
+		value := field.Type.Field(0).Type
+		if value.Kind() != reflect.Struct || value.PkgPath() != reflect.TypeFor[Instant]().PkgPath() {
+			t.Fatalf("inventory field %s binds %v, want a Temporal production struct", field.Name, value)
+		}
+		want = append(want, value.Name())
 	}
+	slices.Sort(want)
+	if len(slices.Compact(slices.Clone(want))) != len(want) {
+		t.Fatalf("inventory = %q, want each struct exactly once", want)
+	}
+
 	if !slices.Equal(got.structs, want) {
 		t.Fatalf("Temporal production structs = %q, want classified %q", got.structs, want)
 	}
@@ -382,6 +382,7 @@ func TestTemporalProductionStaysOnGoContextAndTimePrimitives(t *testing.T) {
 	wantImports := []string{
 		"bytes",
 		"context",
+		"encoding/json/jsontext",
 		"encoding/json/v2",
 		"errors",
 		"github.com/deliri/primitive/v2026/contextstate",

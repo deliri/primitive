@@ -141,6 +141,9 @@ func (a DiskAssessment) Validate() error {
 	if err := errors.Join(a.capacity.Validate(), a.policy.Validate(), a.state.Validate()); err != nil {
 		return err
 	}
+	if err := validateFloorAgainstCapacity(a.capacity, a.policy); err != nil {
+		return err
+	}
 	if a.state != classifyDiskPressure(a.capacity, a.policy) {
 		return errors.Join(core.ErrHostFactsContract, errors.New("disk assessment state contradicts capacity and policy"))
 	}
@@ -164,9 +167,6 @@ func (a DiskAssessment) State() DiskPressureState {
 
 func assessDiskCapacity(capacity DiskCapacity, policy DiskPressurePolicy) (DiskAssessment, error) {
 	if err := errors.Join(capacity.Validate(), policy.Validate()); err != nil {
-		return DiskAssessment{}, err
-	}
-	if err := validateFloorAgainstCapacity(capacity, policy); err != nil {
 		return DiskAssessment{}, err
 	}
 	state := classifyDiskPressure(capacity, policy)

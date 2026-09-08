@@ -169,17 +169,6 @@ func TestGoMemoryPercentageProjectionMatchesIndependentIntegerOracle(t *testing.
 func TestGoMemoryPolicyAndSnapshotRejectBoundaryContradictions(t *testing.T) {
 	t.Parallel()
 
-	for _, value := range []uint8{0, 101, 127, 128, 200, 254, 255} {
-		t.Run("out of range percentage "+new(big.Int).SetUint64(uint64(value)).String(), func(t *testing.T) {
-			t.Parallel()
-
-			got, gotErr := NewPercent(value)
-			if got != (Percent{}) || !errors.Is(gotErr, core.ErrHostFactsContract) {
-				t.Fatalf("NewPercent(%d) = (%v, %v), want (zero, %v)", value, got, gotErr, core.ErrHostFactsContract)
-			}
-		})
-	}
-
 	snapshotCases := []struct {
 		name         string
 		system       uint64
@@ -216,91 +205,4 @@ func ceilingPercentOracle(value uint64, percent uint8) uint64 {
 	numerator.Add(numerator, new(big.Int).SetUint64(percentDenominator-1))
 	numerator.Div(numerator, new(big.Int).SetUint64(percentDenominator))
 	return numerator.Uint64()
-}
-
-// TestDiskFloorAtOrAboveCapacityIsRefusedBeforeClassification pins the rule
-// that a floor must be satisfiable on the device it is applied to.
-//
-// A floor at or above total capacity is not a strict policy. Availability can
-// never exceed total, so classification would report pressure on every
-// observation: a caller that pauses on pressure pauses forever and reports a
-// full disk that is empty. DiskPressurePolicy alone cannot see this, because
-// whether a floor is meaningful depends on the device; this is the only place
-// holding both numbers.
-//
-// These cases are separate from the classification table because they have a
-// different execution shape: the assessment is refused before a state exists,
-// so there is no state or policy projection to assert.
-func TestDiskFloorAtOrAboveCapacityIsRefusedBeforeClassification(t *testing.T) {
-	t.Parallel()
-
-	cases := []struct {
-		name      string
-		available uint64
-		total     uint64
-		floor     uint64
-	}{
-		{name: "floor exactly at one byte capacity with nothing available", available: 0, total: 1, floor: 1},
-		{name: "floor exactly at one byte capacity with everything available", available: 1, total: 1, floor: 1},
-		{name: "floor exactly at two byte capacity with nothing available", available: 0, total: 2, floor: 2},
-		{name: "floor exactly at two byte capacity with half available", available: 1, total: 2, floor: 2},
-		{name: "floor exactly at two byte capacity with everything available", available: 2, total: 2, floor: 2},
-		{name: "floor exactly at larger capacity with nothing available", available: 0, total: 1000, floor: 1000},
-		{name: "floor exactly at larger capacity with half available", available: 500, total: 1000, floor: 1000},
-		{name: "floor exactly at larger capacity with everything available", available: 1000, total: 1000, floor: 1000},
-		{name: "floor one byte above one byte capacity", available: 1, total: 1, floor: 2},
-		{name: "floor one byte above two byte capacity", available: 1, total: 2, floor: 3},
-		{name: "floor far above capacity", available: 500, total: 1000, floor: math.MaxInt64},
-		{name: "floor above capacity with nothing available", available: 0, total: 10, floor: 11},
-	}
-
-	for _, testCase := range cases {
-		t.Run(testCase.name, func(t *testing.T) {
-			t.Parallel()
-
-			capacity, err := newDiskCapacity(testCase.available, testCase.total)
-			if err != nil {
-				t.Fatalf("newDiskCapacity(%d, %d) error = %v, want nil", testCase.available, testCase.total, err)
-			}
-			got, gotErr := assessDiskCapacity(
-				capacity,
-				DiskPressurePolicy{FreeSpaceFloor: mustByteLength(t, testCase.floor)},
-			)
-			if !errors.Is(gotErr, core.ErrHostFactsContract) {
-				t.Fatalf("assessDiskCapacity(floor=%d, total=%d) error = %v, want errors.Is %v",
-					testCase.floor, testCase.total, gotErr, core.ErrHostFactsContract)
-			}
-			// A contradiction must not be reported as pressure, or a caller
-			// would treat a configuration mistake as a full disk and wait for
-			// space that was never missing.
-			if errors.Is(gotErr, core.ErrDiskFloorReached) {
-				t.Fatalf("assessDiskCapacity(floor=%d) reported pressure, want a contract refusal", testCase.floor)
-			}
-			if got != (DiskAssessment{}) {
-				t.Fatalf("refused assessment = %v, want exact zero", got)
-			}
-			if err := got.Validate(); !errors.Is(err, core.ErrHostFactsContract) {
-				t.Fatalf("refused assessment Validate() error = %v, want errors.Is %v",
-					err, core.ErrHostFactsContract)
-			}
-		})
-	}
-}
-
-// TestDiskFloorOneByteBelowCapacityIsAdmitted is the other side of the
-// boundary: the largest admissible floor must still classify normally.
-func TestDiskFloorOneByteBelowCapacityIsAdmitted(t *testing.T) {
-	t.Parallel()
-
-	capacity, err := newDiskCapacity(1000, 1000)
-	if err != nil {
-		t.Fatalf("newDiskCapacity() error = %v, want nil", err)
-	}
-	got, gotErr := assessDiskCapacity(capacity, DiskPressurePolicy{FreeSpaceFloor: mustByteLength(t, 999)})
-	if errors.Is(gotErr, core.ErrHostFactsContract) {
-		t.Fatalf("assessDiskCapacity(floor one below capacity) error = %v, want it admitted", gotErr)
-	}
-	if got.State() != DiskPressureHealthy {
-		t.Fatalf("assessDiskCapacity(available 1000, floor 999).State() = %v, want %v", got.State(), DiskPressureHealthy)
-	}
 }

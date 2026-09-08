@@ -1,0 +1,54 @@
+{
+  "version": "v2026.1.20",
+  "approval": "User reviewed Temporal and Hostfacts and authorized bump, commit and push on 2026-09-08",
+  "command": [
+    "go",
+    "test",
+    "-json",
+    "-count=1",
+    "./compass",
+    "./version"
+  ],
+  "exit_status": 0,
+  "test_events": {
+    "pass": 72,
+    "fail": 0,
+    "skip": 0
+  },
+  "toolchain": {
+    "argv": [
+      "go",
+      "version"
+    ],
+    "exit_status": 0,
+    "stdout": "go version go1.27.1 darwin/arm64",
+    "stderr": ""
+  },
+  "files": [
+    {
+      "path": "compass/config.json",
+      "sha256": "9fb2c6c43214ad414cd462a4b9379e28e3e9a1281855f4cc9dab0ba57fcee0c7",
+      "bytes": 217
+    },
+    {
+      "path": "_docs/release_v2026.1.20.md",
+      "sha256": "8ea4ee349c5fecfee3cda7f3e6355f71ad87cd7f4ba9f70fd8c44a15c40df628",
+      "bytes": 2188
+    },
+    {
+      "path": "hostfacts/testdata/test-upgrade-20260907/release-v2026-1-20-version.json",
+      "sha256": "05c5e1b5ce538a28aeb5d4460bb4e82068046853b4e8c5977af12c0564007ae5",
+      "bytes": 493706
+    },
+    {
+      "path": "hostfacts/testdata/test-upgrade-20260907/release-v2026-1-20-version.stdout.txt",
+      "sha256": "f0ec129e0133d23f0e87067b4ac5c81c7a07e86dac4bb6d95daada4f853c88f8",
+      "bytes": 137369
+    },
+    {
+      "path": "hostfacts/testdata/test-upgrade-20260907/release-v2026-1-20-version.stderr.txt",
+      "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+      "bytes": 0
+    }
+  ]
+}

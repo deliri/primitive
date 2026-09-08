@@ -13,7 +13,6 @@ filesystem, runtime, cgroup, terminal, or platform probe.
 - block-device rotation when the platform can answer it;
 - Go logical CPU count and Go-managed memory pressure;
 - physical memory and the effective Linux cgroup memory limit;
-- logical regular-file extent below one held root;
 - bounded Go runtime OOM-banner evidence;
 - terminal attachment and column geometry for one open descriptor;
 - hostname and the current platform; and

@@ -164,7 +164,7 @@ func (a *AggregateDuration) UnmarshalJSON(data []byte) error {
 	}
 	parsed, err := ParseAggregateDuration(decimal)
 	if err != nil {
-		return err
+		return jsonContractError(temporalJSONValueInvalidReason, err)
 	}
 	*a = parsed
 	return nil

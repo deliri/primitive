@@ -20,12 +20,12 @@ const (
 
 type Request struct {
 	Collector        runprotocol.EvidenceAuthority    `json:"collector"`
-	Bash             core.AbsolutePath             `json:"bash"`
-	Script           core.AbsolutePath             `json:"script"`
-	WorkingDirectory core.AbsolutePath             `json:"working_directory"`
-	Environment      process.Environment           `json:"-"`
-	ObservedAt       temporal.Instant              `json:"observed_at"`
-	WaitDelay        temporal.Duration             `json:"wait_delay"`
+	Bash             core.AbsolutePath                `json:"bash"`
+	Script           core.AbsolutePath                `json:"script"`
+	WorkingDirectory core.AbsolutePath                `json:"working_directory"`
+	Environment      process.Environment              `json:"-"`
+	ObservedAt       temporal.Instant                 `json:"observed_at"`
+	WaitDelay        temporal.Duration                `json:"wait_delay"`
 	ObservationID    runprotocol.MachineObservationID `json:"observation_id"`
 	GenerationID     runprotocol.MachineGenerationID  `json:"generation_id"`
 }

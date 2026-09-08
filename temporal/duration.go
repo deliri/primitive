@@ -174,11 +174,11 @@ func (d *Duration) UnmarshalJSON(data []byte) error {
 	}
 	nanoseconds, err := parseSignedNanoseconds(decimal)
 	if err != nil {
-		return err
+		return jsonContractError(temporalJSONValueInvalidReason, err)
 	}
 	parsed, err := DurationFromNanoseconds(nanoseconds)
 	if err != nil {
-		return err
+		return jsonContractError(temporalJSONValueInvalidReason, err)
 	}
 	*d = parsed
 	return nil

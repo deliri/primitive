@@ -12,53 +12,32 @@ import (
 
 func TestObservationElapsedLayerTriad(t *testing.T) {
 	t.Parallel()
-
-	t.Run("positive exact observations preserve elapsed nanoseconds", func(t *testing.T) {
-		t.Parallel()
-
-		start, startErr := NewObservation(time.Unix(-1, 999_999_997).UTC())
-		finish, finishErr := NewObservation(time.Unix(0, 2).UTC())
-		got, gotErr := finish.Since(start)
-		if startErr != nil || finishErr != nil || gotErr != nil || got.Nanoseconds() != 5 {
-			t.Fatalf(
-				"Observation.Since() = (%d, %v) after construction (%v, %v), want (5, nil)",
-				got.Nanoseconds(),
-				gotErr,
-				startErr,
-				finishErr,
-			)
-		}
-	})
-
-	t.Run("negative standard subtraction saturation is rejected", func(t *testing.T) {
-		t.Parallel()
-
-		start, startErr := NewObservation(time.Unix(0, math.MinInt64).UTC())
-		finish, finishErr := NewObservation(time.Unix(0, math.MaxInt64).UTC())
-		got, gotErr := finish.Since(start)
-		if startErr != nil || finishErr != nil ||
-			!errors.Is(gotErr, core.ErrTemporalOverflow) ||
-			got != (Duration{}) {
-			t.Fatalf(
-				"Observation.Since(saturating span) = (%v, %v) after construction (%v, %v), want zero/%v",
-				got,
-				gotErr,
-				startErr,
-				finishErr,
-				core.ErrTemporalOverflow,
-			)
-		}
-	})
-
-	t.Run("neutral same observation produces no elapsed time", func(t *testing.T) {
-		t.Parallel()
-
-		point, pointErr := NewObservation(time.Unix(0, 7).UTC())
-		got, gotErr := point.Since(point)
-		if pointErr != nil || gotErr != nil || !got.IsZero() {
-			t.Fatalf("Observation.Since(same) = (%v, %v) after %v, want zero/nil", got, gotErr, pointErr)
-		}
-	})
+	for _, tc := range []struct {
+		name                string
+		start, finish, want int64
+		wantErr             error
+	}{
+		{name: "point observation is neutral", start: 7, finish: 7},
+		{name: "elapsed crosses epoch without rounding", start: -3, finish: 2, want: 5},
+		{name: "maximum elapsed before epoch is exact", start: math.MinInt64, finish: -1, want: math.MaxInt64},
+		{name: "maximum elapsed after epoch is exact", finish: math.MaxInt64, want: math.MaxInt64},
+		{name: "one above maximum elapsed cannot saturate", start: math.MinInt64, wantErr: core.ErrTemporalOverflow},
+		{name: "full signed span cannot saturate", start: math.MinInt64, finish: math.MaxInt64, wantErr: core.ErrTemporalOverflow},
+		{name: "reversed observations cannot become positive elapsed", start: 1, wantErr: core.ErrTemporalContract},
+	} {
+		t.Run(tc.name, func(t *testing.T) {
+			t.Parallel()
+			start, startErr := NewObservation(time.Unix(0, tc.start))
+			finish, finishErr := NewObservation(time.Unix(0, tc.finish))
+			if startErr != nil || finishErr != nil {
+				t.Fatalf("observation fixtures = (%v,%v), want nil", startErr, finishErr)
+			}
+			got, gotErr := finish.Since(start)
+			if !errors.Is(gotErr, tc.wantErr) || got.Nanoseconds() != tc.want {
+				t.Fatalf("elapsed = (%d,%v), want (%d,%v)", got.Nanoseconds(), gotErr, tc.want, tc.wantErr)
+			}
+		})
+	}
 }
 
 func TestObservationUsesGoClockWithoutClockFramework(t *testing.T) {
@@ -172,67 +151,43 @@ func TestObservationRejectsEveryUnusableCarrierBeforeProjection(t *testing.T) {
 	}
 }
 
-func TestIntervalConstructionLayerTriad(t *testing.T) {
+func TestIntervalBoundsConstructionLayerTriad(t *testing.T) {
 	t.Parallel()
-
-	t.Run("positive observed interval derives a closed end", func(t *testing.T) {
-		t.Parallel()
-
-		start, _ := NewObservation(time.Unix(-1, 999_999_997).UTC())
-		finish, _ := NewObservation(time.Unix(0, 2).UTC())
-		got, gotErr := NewInterval(IntervalRequest{Start: start, Finish: finish})
-		gotStart, gotStartErr := got.Start()
-		gotEnd, gotEndErr := got.End()
-		gotElapsed, gotElapsedErr := got.Elapsed()
-		startNanoseconds, _ := gotStart.Nanoseconds()
-		endNanoseconds, _ := gotEnd.Nanoseconds()
-		if gotErr != nil || gotStartErr != nil || gotEndErr != nil ||
-			gotElapsedErr != nil || startNanoseconds != -3 ||
-			endNanoseconds != 2 || gotElapsed.Nanoseconds() != 5 {
-			t.Fatalf(
-				"NewInterval() = (start:%d end:%d elapsed:%d errors:%v/%v/%v/%v), want -3/2/5 and nil errors",
-				startNanoseconds,
-				endNanoseconds,
-				gotElapsed.Nanoseconds(),
-				gotErr,
-				gotStartErr,
-				gotEndErr,
-				gotElapsedErr,
-			)
-		}
-	})
-
-	t.Run("negative reversed bounds are rejected", func(t *testing.T) {
-		t.Parallel()
-
-		got, gotErr := IntervalFromBounds(IntervalBounds{
-			Start: InstantFromNanoseconds(1),
-			End:   InstantFromNanoseconds(0),
+	for _, tc := range []struct {
+		name             string
+		start, end, want int64
+		wantErr          error
+	}{
+		{name: "minimum point is neutral", start: math.MinInt64, end: math.MinInt64},
+		{name: "maximum point is neutral", start: math.MaxInt64, end: math.MaxInt64},
+		{name: "epoch crossing preserves exact endpoints", start: -3, end: 2, want: 5},
+		{name: "maximum elapsed ending before epoch", start: math.MinInt64, end: -1, want: math.MaxInt64},
+		{name: "maximum elapsed starting at epoch", end: math.MaxInt64, want: math.MaxInt64},
+		{name: "one beyond elapsed domain is refused", start: math.MinInt64, wantErr: core.ErrTemporalOverflow},
+		{name: "reversed endpoints are refused", start: 1, wantErr: core.ErrTemporalContract},
+	} {
+		t.Run(tc.name, func(t *testing.T) {
+			t.Parallel()
+			bounds := IntervalBounds{Start: InstantFromNanoseconds(tc.start), End: InstantFromNanoseconds(tc.end)}
+			got, gotErr := IntervalFromBounds(bounds)
+			if !errors.Is(gotErr, tc.wantErr) || !errors.Is(bounds.Validate(), tc.wantErr) {
+				t.Fatalf("bounds admission = (%v,%v), want %v", gotErr, bounds.Validate(), tc.wantErr)
+			}
+			if tc.wantErr != nil {
+				if got != (Interval{}) {
+					t.Fatalf("refused interval = %v, want zero", got)
+				}
+				return
+			}
+			start, startErr := got.Start()
+			end, endErr := got.End()
+			elapsed, elapsedErr := got.Elapsed()
+			projected, projectErr := got.Bounds()
+			if startErr != nil || endErr != nil || elapsedErr != nil || projectErr != nil || start != bounds.Start || end != bounds.End || elapsed.Nanoseconds() != tc.want || projected != bounds {
+				t.Fatalf("interval facts = (%v,%v,%v,%v,%v,%v,%v,%v), want exact %v and elapsed %d", start, end, elapsed, projected, startErr, endErr, elapsedErr, projectErr, bounds, tc.want)
+			}
 		})
-		if !errors.Is(gotErr, core.ErrTemporalContract) || got != (Interval{}) {
-			t.Fatalf("IntervalFromBounds(reversed) = (%v, %v), want zero/%v", got, gotErr, core.ErrTemporalContract)
-		}
-	})
-
-	t.Run("neutral point bounds produce a zero closed interval", func(t *testing.T) {
-		t.Parallel()
-
-		point := InstantFromNanoseconds(math.MinInt64)
-		got, gotErr := IntervalFromBounds(IntervalBounds{Start: point, End: point})
-		gotElapsed, gotElapsedErr := got.Elapsed()
-		gotBounds, gotBoundsErr := got.Bounds()
-		if gotErr != nil || gotElapsedErr != nil || gotBoundsErr != nil ||
-			!gotElapsed.IsZero() || gotBounds.Start != point || gotBounds.End != point {
-			t.Fatalf(
-				"point IntervalFromBounds() = (elapsed:%v bounds:%v errors:%v/%v/%v), want zero and identical bounds",
-				gotElapsed,
-				gotBounds,
-				gotErr,
-				gotElapsedErr,
-				gotBoundsErr,
-			)
-		}
-	})
+	}
 }
 
 func TestIntervalRejectsEveryContradictoryOwnedFact(t *testing.T) {
@@ -335,6 +290,9 @@ func TestInternalDurationValidationBlocksCorruptArithmetic(t *testing.T) {
 		{name: "addition rejects corrupt receiver", run: func() error { _, err := corrupt.Add(valid); return err }},
 		{name: "addition rejects corrupt operand", run: func() error { _, err := valid.Add(corrupt); return err }},
 		{name: "subtraction rejects corrupt receiver", run: func() error { _, err := corrupt.Subtract(valid); return err }},
+		{name: "subtraction rejects corrupt operand", run: func() error { _, err := valid.Subtract(corrupt); return err }},
+		{name: "zero multiplication cannot hide corrupt receiver", run: func() error { _, err := corrupt.Multiply(0); return err }},
+		{name: "comparison rejects corrupt receiver", run: func() error { _, err := corrupt.Compare(valid); return err }},
 		{name: "comparison rejects corrupt operand", run: func() error { _, err := valid.Compare(corrupt); return err }},
 		{name: "aggregate addition rejects corrupt duration", run: func() error {
 			_, err := AggregateDuration{}.AddDuration(corrupt)

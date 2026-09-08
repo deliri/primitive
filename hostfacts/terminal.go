@@ -173,7 +173,10 @@ func (g TerminalGeometry) Columns() (TerminalColumns, error) {
 
 func newAttachedTerminalGeometry(columns TerminalColumns) (TerminalGeometry, error) {
 	geometry := TerminalGeometry{attachment: TerminalAttachmentTerminal, columns: columns}
-	return geometry, geometry.Validate()
+	if err := geometry.Validate(); err != nil {
+		return TerminalGeometry{}, err
+	}
+	return geometry, nil
 }
 
 func newDetachedTerminalGeometry() (TerminalGeometry, error) {

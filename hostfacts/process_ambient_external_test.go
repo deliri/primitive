@@ -5,6 +5,7 @@ import (
 	"errors"
 	"os"
 	"slices"
+	"strings"
 	"testing"
 
 	"github.com/deliri/primitive/v2026/core"
@@ -61,49 +62,95 @@ func TestWorkingDirectoryNamesTheCallingProcessDirectory(t *testing.T) {
 	}
 }
 
-func TestLookupAmbientEnvironmentDistinguishesAbsentEmptyAndValue(t *testing.T) {
-	testserial.Declare(t, core.TestIsolationDeclaration{
-		Hazard: core.TestIsolationHazardProcessEnvironment,
-		Scope:  core.TestIsolationScopePackageProcess,
-	})
-
+func TestAmbientLookupLayerTriad(t *testing.T) {
+	testserial.Declare(t, core.TestIsolationDeclaration{Hazard: core.TestIsolationHazardProcessEnvironment, Scope: core.TestIsolationScopePackageProcess})
 	const probeName = "PRIMITIVE_HOSTFACTS_LOOKUP_PROBE"
 	name, err := process.NewEnvironmentName(probeName)
 	if err != nil {
-		t.Fatalf("process.NewEnvironmentName() error = %v, want nil", err)
+		t.Fatalf("probe name = %v, want nil", err)
 	}
-
-	t.Setenv(probeName, "")
-	empty, err := hostfacts.LookupAmbientEnvironment(name)
-	if err != nil {
-		t.Fatalf("LookupAmbientEnvironment(present empty) error = %v, want nil", err)
+	for _, tc := range []struct {
+		name, value string
+		present     bool
+		invalidName bool
+		wantErr     error
+	}{
+		{name: "absent variable cannot become present empty"},
+		{name: "zero name is caller refusal even with present OS value", present: true, value: "present", invalidName: true, wantErr: core.ErrProcessContract},
+		{name: "present empty is distinct from absence", present: true},
+		{name: "equals sign remains value data", present: true, value: "left=right"},
+		{name: "unicode remains exact value data", present: true, value: "café"},
+		{name: "multiline value is not trimmed", present: true, value: " first\nlast "},
+		{name: "exact value ceiling remains admitted", present: true, value: strings.Repeat("v", int(process.EnvironmentValueMaximumBytes))},
+		{name: "one above value ceiling returns no partial lookup", present: true, value: strings.Repeat("v", int(process.EnvironmentValueMaximumBytes)+1), wantErr: core.ErrProcessContract},
+	} {
+		t.Run(tc.name, func(t *testing.T) {
+			testserial.Declare(t, core.TestIsolationDeclaration{Hazard: core.TestIsolationHazardProcessEnvironment, Scope: core.TestIsolationScopePackageProcess})
+			t.Setenv(probeName, tc.value)
+			if !tc.present {
+				if err := os.Unsetenv(probeName); err != nil {
+					t.Fatalf("unset probe = %v, want nil", err)
+				}
+			}
+			input := name
+			if tc.invalidName {
+				input = process.EnvironmentName{}
+			}
+			got, err := hostfacts.LookupAmbientEnvironment(input)
+			if !errors.Is(err, tc.wantErr) {
+				t.Fatalf("lookup = %+v/%v, want %v", got, err, tc.wantErr)
+			}
+			if tc.wantErr != nil {
+				wantIdentity, forbiddenIdentity := core.ErrHostFactsObservation, core.ErrHostFactsContract
+				if tc.invalidName {
+					wantIdentity, forbiddenIdentity = forbiddenIdentity, wantIdentity
+				}
+				if got != (process.EnvironmentLookup{}) || !errors.Is(err, wantIdentity) || errors.Is(err, forbiddenIdentity) {
+					t.Fatalf("refused lookup = %+v/%v, want zero with correct caller/OS identity", got, err)
+				}
+				return
+			}
+			want := process.EnvironmentLookup{Presence: process.EnvironmentPresenceAbsent}
+			if tc.present {
+				value, err := process.NewEnvironmentValue(tc.value)
+				if err != nil {
+					t.Fatalf("value fixture = %v, want nil", err)
+				}
+				want = process.EnvironmentLookup{Presence: process.EnvironmentPresencePresent, Value: value}
+			}
+			if got != want || got.Validate() != nil {
+				t.Fatalf("lookup = %+v, want %+v", got, want)
+			}
+		})
 	}
-	emptyValue, valueErr := empty.Value.Value()
-	if valueErr != nil || empty.Presence != process.EnvironmentPresencePresent || emptyValue != "" {
-		t.Fatalf("LookupAmbientEnvironment(present empty) = %+v/%q error:%v, want present empty", empty, emptyValue, valueErr)
-	}
-
-	t.Setenv(probeName, "ambient-value")
-	present, err := hostfacts.LookupAmbientEnvironment(name)
-	if err != nil {
-		t.Fatalf("LookupAmbientEnvironment(present value) error = %v, want nil", err)
-	}
-	presentValue, valueErr := present.Value.Value()
-	if valueErr != nil || present.Presence != process.EnvironmentPresencePresent || presentValue != "ambient-value" {
-		t.Fatalf("LookupAmbientEnvironment(present value) = %+v/%q error:%v, want present ambient-value", present, presentValue, valueErr)
-	}
-
 }
 
-func TestLookupAmbientEnvironmentRejectsZeroNameBeforeObservation(t *testing.T) {
+func TestResolveWorkingPathCallerBoundaryTable(t *testing.T) {
 	t.Parallel()
-
-	got, err := hostfacts.LookupAmbientEnvironment(process.EnvironmentName{})
-	if !errors.Is(err, core.ErrHostFactsObservation) || !errors.Is(err, core.ErrProcessContract) {
-		t.Fatalf("LookupAmbientEnvironment(zero name) error = %v, want HostFacts observation and Process contract", err)
+	working, err := hostfacts.WorkingDirectory()
+	if err != nil {
+		t.Fatal(err)
 	}
-	if got != (process.EnvironmentLookup{}) {
-		t.Fatalf("LookupAmbientEnvironment(zero name) = %+v, want zero", got)
+	for _, tc := range []struct {
+		name, text string
+		want       core.AbsolutePath
+		wantErr    error
+	}{
+		{name: "relative dot retains observed coordinate", text: ".", want: working},
+		{name: "absolute coordinate is not joined twice", text: working.String(), want: working},
+		{name: "empty input cannot become working directory", wantErr: core.ErrHostFactsContract},
+		{name: "embedded NUL cannot reach file system", text: "child\x00tail", wantErr: core.ErrHostFactsContract},
+	} {
+		t.Run(tc.name, func(t *testing.T) {
+			t.Parallel()
+			got, err := hostfacts.ResolveWorkingPath(t.Context(), tc.text)
+			if got != tc.want || !errors.Is(err, tc.wantErr) || errors.Is(err, core.ErrHostFactsObservation) {
+				t.Fatalf("resolve = %v/%v, want %v/%v without observation identity", got, err, tc.want, tc.wantErr)
+			}
+			if tc.wantErr != nil && !errors.Is(err, core.ErrPrimitiveContract) {
+				t.Fatalf("refusal = %v, lost Core contract", err)
+			}
+		})
 	}
 }
 

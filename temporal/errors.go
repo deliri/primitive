@@ -6,6 +6,8 @@ import (
 	"github.com/deliri/primitive/v2026/core"
 )
 
+const temporalJSONValueInvalidReason = "temporal JSON value is invalid"
+
 func contractError(reason string, causes ...error) error {
 	joined := []error{core.ErrTemporalContract, errors.New(reason)}
 	joined = append(joined, causes...)

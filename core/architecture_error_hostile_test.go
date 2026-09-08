@@ -221,6 +221,8 @@ func TestErrorIdentityExhaustsClosedDomainAndParentDecisions(t *testing.T) {
 			switch identity {
 			case ErrHostFacts, ErrHostFactsObservation, ErrHostFactsUnsupported,
 				ErrHostFactsPressure, ErrHostFactsEvidence,
+				ErrCgroupMembershipDisappeared, ErrCgroupMembershipChanged, ErrCgroupMembershipDuplicate,
+				ErrCgroupMountMissing, ErrCgroupMountAmbiguous, ErrCgroupContainment,
 				ErrDiskCapacityUnsupported,
 				ErrDiskFloorReached, ErrMemoryLimitReached,
 				ErrFileLockUnavailable:

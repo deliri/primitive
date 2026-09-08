@@ -152,10 +152,14 @@ func containContextConstructorPanic(result *contextConstruction) {
 	}
 }
 
-// Wait blocks on one real standard-library timer or the caller's context.
+// Wait uses a standard-library timer or the caller's context. A validated zero
+// duration returns immediately without acquiring a timer.
 func Wait(request WaitRequest) error {
 	if err := request.Validate(); err != nil {
 		return err
+	}
+	if request.Duration.IsZero() {
+		return nil
 	}
 	duration, err := request.Duration.Stdlib()
 	if err != nil {
@@ -201,15 +205,17 @@ func OpenTicker(request TickerRequest) (*Ticker, error) {
 // Validate rejects an unset ticker capability.
 func (t *Ticker) Validate() error {
 	if t == nil || t.ticker == nil {
-		return contractError("ticker is unset")
+		return core.ErrTemporalContract
 	}
 	return nil
 }
 
-// Ticks returns the real standard-library tick channel.
+// Ticks returns the real standard-library tick channel. An unset capability
+// panics with ErrTemporalContract, rather than returning a channel that blocks
+// forever. Stop retains the channel, matching time.Ticker.
 func (t *Ticker) Ticks() <-chan time.Time {
-	if t == nil || t.ticker == nil {
-		return nil
+	if err := t.Validate(); err != nil {
+		panic(err)
 	}
 	return t.ticker.C
 }

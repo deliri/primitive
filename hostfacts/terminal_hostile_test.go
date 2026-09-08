@@ -89,45 +89,44 @@ func TestTerminalGeometryValidatesAttachmentAgainstColumns(t *testing.T) {
 	}
 }
 
-func TestTerminalGeometryConstructorsSealEveryObservation(t *testing.T) {
+func TestTerminalGeometryConstructorLayerTriad(t *testing.T) {
 	t.Parallel()
-
-	attached, err := newAttachedTerminalGeometry(121)
-	if err != nil {
-		t.Fatalf("newAttachedTerminalGeometry(121) error = %v, want nil", err)
-	}
-	if attachment, err := attached.Attachment(); err != nil || attachment != TerminalAttachmentTerminal {
-		t.Fatalf("attached.Attachment() = (%v, %v), want (%v, nil)", attachment, err, TerminalAttachmentTerminal)
-	}
-	if columns, err := attached.Columns(); err != nil || columns != 121 {
-		t.Fatalf("attached.Columns() = (%v, %v), want (121, nil)", columns, err)
-	}
-
-	if _, err := newAttachedTerminalGeometry(0); !errors.Is(err, core.ErrHostFactsContract) {
-		t.Fatalf("newAttachedTerminalGeometry(0) error = %v, want %v", err, core.ErrHostFactsContract)
-	}
-
-	detached, err := newDetachedTerminalGeometry()
-	if err != nil {
-		t.Fatalf("newDetachedTerminalGeometry() error = %v, want nil", err)
-	}
-	if attachment, err := detached.Attachment(); err != nil || attachment != TerminalAttachmentNotTerminal {
-		t.Fatalf("detached.Attachment() = (%v, %v), want (%v, nil)", attachment, err, TerminalAttachmentNotTerminal)
-	}
-	if columns, err := detached.Columns(); !errors.Is(err, core.ErrHostFactsContract) || columns != 0 {
-		t.Fatalf("detached.Columns() = (%v, %v), want (0, %v)", columns, err, core.ErrHostFactsContract)
-	}
-
-	geometryless, err := newTerminalWithoutGeometry()
-	if err != nil {
-		t.Fatalf("newTerminalWithoutGeometry() error = %v, want nil", err)
-	}
-	if attachment, err := geometryless.Attachment(); err != nil || attachment != TerminalAttachmentTerminalWithoutGeometry {
-		t.Fatalf("geometryless.Attachment() = (%v, %v), want (%v, nil)",
-			attachment, err, TerminalAttachmentTerminalWithoutGeometry)
-	}
-	if columns, err := geometryless.Columns(); !errors.Is(err, core.ErrHostFactsContract) || columns != 0 {
-		t.Fatalf("geometryless.Columns() = (%v, %v), want (0, %v)", columns, err, core.ErrHostFactsContract)
+	for _, tc := range []struct {
+		name                    string
+		construct               func() (TerminalGeometry, error)
+		want                    TerminalGeometry
+		wantErr, wantColumnsErr error
+	}{
+		{name: "smallest attached width seals exact columns", construct: func() (TerminalGeometry, error) { return newAttachedTerminalGeometry(1) }, want: TerminalGeometry{attachment: TerminalAttachmentTerminal, columns: 1}},
+		{name: "largest attached width does not truncate", construct: func() (TerminalGeometry, error) { return newAttachedTerminalGeometry(math.MaxUint16) }, want: TerminalGeometry{attachment: TerminalAttachmentTerminal, columns: math.MaxUint16}},
+		{name: "zero width refuses an attached observation", construct: func() (TerminalGeometry, error) { return newAttachedTerminalGeometry(0) }, wantErr: core.ErrHostFactsContract},
+		{name: "detachment carries no columns", construct: newDetachedTerminalGeometry, want: TerminalGeometry{attachment: TerminalAttachmentNotTerminal}, wantColumnsErr: core.ErrHostFactsContract},
+		{name: "geometryless attachment does not claim detachment", construct: newTerminalWithoutGeometry, want: TerminalGeometry{attachment: TerminalAttachmentTerminalWithoutGeometry}, wantColumnsErr: core.ErrHostFactsContract},
+	} {
+		t.Run(tc.name, func(t *testing.T) {
+			t.Parallel()
+			got, err := tc.construct()
+			if !errors.Is(err, tc.wantErr) {
+				t.Fatalf("constructor = %+v/%v, want error %v", got, err, tc.wantErr)
+			}
+			if tc.wantErr != nil {
+				if got != (TerminalGeometry{}) {
+					t.Fatalf("refused geometry = %+v, want zero", got)
+				}
+				return
+			}
+			if got != tc.want {
+				t.Fatalf("geometry = %+v, want %+v", got, tc.want)
+			}
+			attachment, err := got.Attachment()
+			if err != nil || attachment != tc.want.attachment {
+				t.Fatalf("attachment = %v/%v, want %v", attachment, err, tc.want.attachment)
+			}
+			columns, err := got.Columns()
+			if !errors.Is(err, tc.wantColumnsErr) || columns != tc.want.columns {
+				t.Fatalf("columns = %d/%v, want %d/%v", columns, err, tc.want.columns, tc.wantColumnsErr)
+			}
+		})
 	}
 }
 

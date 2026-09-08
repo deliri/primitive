@@ -300,7 +300,7 @@ func (i *Instant) UnmarshalJSON(data []byte) error {
 	}
 	nanoseconds, err := parseSignedNanoseconds(decimal)
 	if err != nil {
-		return err
+		return jsonContractError(temporalJSONValueInvalidReason, err)
 	}
 	*i = InstantFromNanoseconds(nanoseconds)
 	return nil

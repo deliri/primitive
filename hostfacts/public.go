@@ -107,7 +107,7 @@ func ClassifyGoOOMBanner(ctx context.Context, request GoOOMBannerRequest) (GoOOM
 		return GoOOMBannerEvidence{}, err
 	}
 	scanner := oomScanner{
-		source: request.Source, matcher: newBannerMatcher(), remaining: request.Length.Uint64(),
+		source: request.Source, remaining: request.Length.Uint64(),
 	}
 	for scanner.remaining > 0 {
 		if err := scanner.read(ctx); err != nil {
@@ -115,7 +115,7 @@ func ClassifyGoOOMBanner(ctx context.Context, request GoOOMBannerRequest) (GoOOM
 		}
 	}
 	state := GoOOMBannerAbsent
-	if scanner.matcher.found {
+	if scanner.found {
 		state = GoOOMBannerPresent
 	}
 	evidence := GoOOMBannerEvidence{examined: request.Length, state: state}

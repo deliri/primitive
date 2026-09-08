@@ -3,6 +3,7 @@ package temporal_test
 import (
 	"errors"
 	"math"
+	"regexp"
 	"testing"
 	"time"
 
@@ -96,57 +97,60 @@ func TestRFC3339InstantTextLayerTriadHostileMatrix(t *testing.T) {
 	}
 }
 
-func TestRFC3339NanoProjectionRejectsUnsetInstant(t *testing.T) {
-	t.Parallel()
-
-	got, gotErr := (temporal.Instant{}).RFC3339Nano()
-	if got != "" || !errors.Is(gotErr, core.ErrTemporalContract) {
-		t.Fatalf("Instant{}.RFC3339Nano() = (%q, %v), want (empty, %v)", got, gotErr, core.ErrTemporalContract)
-	}
-}
+// The regexp is an independent statement of the admitted grammar. Go owns
+// calendar arithmetic; the oracle never asks Temporal whether refusal is valid.
+var temporalRFC3339Grammar = regexp.MustCompile(`^[0-9]{4}-[0-9]{2}-[0-9]{2}T[0-9]{2}:[0-9]{2}:[0-9]{2}(\.[0-9]{1,9})?(Z|[+-]([01][0-9]|2[0-3]):[0-5][0-9])$`)
 
 func FuzzParseRFC3339SemanticClosure(f *testing.F) {
-	seed := temporal.InstantFromNanoseconds(1_787_236_672_123_456_789)
-	canonical, err := seed.RFC3339Nano()
-	if err != nil {
-		f.Fatalf("Instant.RFC3339Nano() seed error = %v, want nil", err)
+	for _, nanos := range []int64{math.MinInt64, -1, 0, 1, math.MaxInt64} {
+		seed := temporal.InstantFromNanoseconds(nanos)
+		if err := seed.Validate(); err != nil {
+			f.Fatal(err)
+		}
+		wire, err := seed.RFC3339Nano()
+		if err != nil {
+			f.Fatal(err)
+		}
+		f.Add(wire)
 	}
-	f.Add(canonical)
-	f.Add("")
-	f.Add("2026-08-20T14:37:52Z")
-	f.Add("2026-08-20T16:37:52+02:00")
-
+	for _, malformed := range []string{"", "2026-08-20T4:37:52Z", "2026-08-20T14:37:52,1Z", "2026-08-20T14:37:52.1234567890Z", "2026-08-20T14:37:52+24:00", "1677-09-21T00:12:43.145224191Z", "2262-04-11T23:47:16.854775808Z"} {
+		f.Add(malformed)
+	}
 	f.Fuzz(func(t *testing.T, value string) {
 		got, gotErr := temporal.ParseRFC3339(value)
-		stdlib, stdlibErr := time.Parse(time.RFC3339Nano, value)
-		if stdlibErr != nil {
-			if !errors.Is(gotErr, core.ErrTemporalContract) || got.IsSet() {
-				t.Fatalf("ParseRFC3339(%q) = (%v, %v), want zero and %v", value, got, gotErr, core.ErrTemporalContract)
+		if len(value) < temporal.RFC3339MinimumTextBytes || len(value) > temporal.RFC3339MaximumTextBytes {
+			if !errors.Is(gotErr, core.ErrTemporalContract) || got != (temporal.Instant{}) {
+				t.Fatalf("extent refusal = (%v,%v), want zero typed refusal", got, gotErr)
 			}
 			return
 		}
-
-		if gotErr != nil {
-			if !errors.Is(gotErr, core.ErrTemporalContract) || got.IsSet() {
-				t.Fatalf("ParseRFC3339(%q) = (%v, %v), want zero and typed strict-syntax refusal", value, got, gotErr)
+		parsed, parseErr := time.Parse(time.RFC3339Nano, value)
+		syntax := parseErr == nil && temporalRFC3339Grammar.MatchString(value)
+		bounded := time.Unix(0, parsed.UnixNano()).Equal(parsed)
+		wantAccepted := syntax && bounded
+		if !wantAccepted {
+			if !errors.Is(gotErr, core.ErrTemporalContract) || got != (temporal.Instant{}) {
+				t.Fatalf("parse = (%v,%v), want zero refusal for syntax=%t bounded=%t", got, gotErr, syntax, bounded)
 			}
-			if value == canonical {
-				t.Fatalf("ParseRFC3339(canonical seed %q) error = %v, want nil", value, gotErr)
+			if syntax && !errors.Is(gotErr, core.ErrTemporalOverflow) {
+				t.Fatalf("range refusal = %v, want %v", gotErr, core.ErrTemporalOverflow)
+			}
+			if parseErr != nil {
+				if _, ok := errors.AsType[*time.ParseError](gotErr); !ok {
+					t.Fatalf("parse cause = %v, want *time.ParseError", gotErr)
+				}
 			}
 			return
 		}
-		want, wantErr := temporal.NewInstant(stdlib)
-		if wantErr != nil {
-			t.Fatalf("ParseRFC3339(%q) succeeded with %v, but NewInstant(stdlib) error = %v", value, got, wantErr)
-		}
-		if gotErr != nil || got != want {
-			t.Fatalf("ParseRFC3339(%q) = (%v, %v), want (%v, nil)", value, got, gotErr, want)
-		}
+		nanos, nanosErr := got.Nanoseconds()
 		canonical, canonicalErr := got.RFC3339Nano()
-		roundTrip, roundTripErr := temporal.ParseRFC3339(canonical)
+		if gotErr != nil || nanosErr != nil || canonicalErr != nil || got.Validate() != nil || nanos != parsed.UnixNano() || canonical != parsed.UTC().Format(time.RFC3339Nano) {
+			t.Fatalf("parse facts = (%v,%v,%v,%v,%q), want exact admitted Go time %v", nanos, gotErr, nanosErr, canonicalErr, canonical, parsed)
+		}
+		roundTrip, roundErr := temporal.ParseRFC3339(canonical)
 		second, secondErr := roundTrip.RFC3339Nano()
-		if canonicalErr != nil || roundTripErr != nil || secondErr != nil || roundTrip != got || second != canonical {
-			t.Fatalf("RFC3339 semantic closure = (canonical:%q round:%v second:%q errors:%v/%v/%v), want exact stable round trip", canonical, roundTrip, second, canonicalErr, roundTripErr, secondErr)
+		if roundErr != nil || secondErr != nil || roundTrip != got || second != canonical {
+			t.Fatalf("closure = (%v,%v,%q,%v), want %v and %q", roundTrip, roundErr, second, secondErr, got, canonical)
 		}
 	})
 }

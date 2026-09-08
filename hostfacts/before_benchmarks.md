@@ -1,4 +1,7 @@
-# hostfacts before
+# Hostfacts historical allocation checkpoint
+
+This predates the current upgrade. It is not the before measurement for the
+current candidate; use [the profiled comparison](upgrade_benchmarks.md).
 
 readBoundedValue reserved maximum+1 bytes (up to virtualFileMaximumBytes = 1 MiB) for a few-byte cgroup token.
 

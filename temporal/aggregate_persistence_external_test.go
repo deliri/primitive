@@ -24,87 +24,102 @@ const (
 	maximumUint128Decimal = "340282366920938463463374607431768211455"
 )
 
-func TestAggregateDurationCrossesBothLimbsExactly(t *testing.T) {
+func TestAggregateDurationParserLayerTriad(t *testing.T) {
 	t.Parallel()
-
-	maximumDuration, maximumDurationErr := temporal.DurationFromNanoseconds(math.MaxInt64)
-	if maximumDurationErr != nil {
-		t.Fatalf("DurationFromNanoseconds(maximum) error = %v, want nil", maximumDurationErr)
-	}
-	fromDuration, fromDurationErr := temporal.AggregateDurationFromDuration(maximumDuration)
-	if fromDurationErr != nil {
-		t.Fatalf("AggregateDurationFromDuration(maximum) error = %v, want nil", fromDurationErr)
-	}
-	viaMethod, viaMethodErr := maximumDuration.Aggregate()
-	if viaMethodErr != nil {
-		t.Fatalf("Duration.Aggregate() error = %v, want nil", viaMethodErr)
-	}
-	fromNanoseconds := temporal.AggregateDurationFromNanoseconds(math.MaxUint64)
-	if gotErr := fromDuration.Validate(); gotErr != nil ||
-		fromDuration.Decimal() != "9223372036854775807" ||
-		fromNanoseconds.Decimal() != maximumUint64Decimal ||
-		viaMethod != fromDuration {
-		t.Fatalf(
-			"aggregate constructors = (duration:%q nanoseconds:%q method:%q validate:%v), want exact bounded/max-uint64/bounded/nil",
-			fromDuration.Decimal(),
-			fromNanoseconds.Decimal(),
-			viaMethod.Decimal(),
-			gotErr,
-		)
-	}
-
-	cases := []struct {
-		name string
-		text string
+	for _, tc := range []struct {
+		name, input string
+		wantErr     error
 	}{
-		{name: "zero is canonical", text: "0"},
-		{name: "one is canonical", text: "1"},
-		{name: "JavaScript unsafe integer stays exact", text: "9007199254740993"},
-		{name: "maximum low limb stays exact", text: maximumUint64Decimal},
-		{name: "first high limb value stays exact", text: uint64HighLimbDecimal},
-		{name: "both limbs carry values", text: "18446744073709551617"},
-		{name: "maximum unsigned 128 value stays exact", text: maximumUint128Decimal},
-	}
-	for _, tc := range cases {
+		{name: "zero preserves the additive identity", input: "0"},
+		{name: "one preserves the minimum positive value", input: "1"},
+		{name: "last one digit decimal", input: "9"},
+		{name: "first two digit decimal", input: "10"},
+		{name: "integer above floating point exactness", input: "9007199254740993"},
+		{name: "maximum signed duration", input: "9223372036854775807"},
+		{name: "first unsigned signed-bit value", input: "9223372036854775808"},
+		{name: "maximum low limb", input: "18446744073709551615"},
+		{name: "first high limb", input: "18446744073709551616"},
+		{name: "highest aggregate bit remains positive", input: "170141183460469231731687303715884105728"},
+		{name: "empty magnitude", input: "", wantErr: core.ErrTemporalContract},
+		{name: "negative magnitude", input: "-1", wantErr: core.ErrTemporalContract},
+		{name: "positive sign is noncanonical", input: "+1", wantErr: core.ErrTemporalContract},
+		{name: "leading zero is noncanonical", input: "01", wantErr: core.ErrTemporalContract},
+		{name: "fraction cannot round", input: "1.5", wantErr: core.ErrTemporalContract},
+		{name: "exponent cannot rescale", input: "1e3", wantErr: core.ErrTemporalContract},
+		{name: "embedded whitespace", input: "1 0", wantErr: core.ErrTemporalContract},
+		{name: "unknown unit suffix", input: "1ns", wantErr: core.ErrTemporalContract},
+		{name: "non ASCII decimal digit", input: "１", wantErr: core.ErrTemporalContract},
+		{name: "hexadecimal prefix", input: "0x10", wantErr: core.ErrTemporalContract},
+		{name: "one below floating point exactness ceiling", input: "9007199254740991"},
+		{name: "exact floating point integer ceiling", input: "9007199254740992"},
+		{name: "one below signed ceiling", input: "9223372036854775806"},
+		{name: "one below low limb ceiling", input: "18446744073709551614"},
+		{name: "first high limb plus one retains low limb", input: "18446744073709551617"},
+		{name: "one below aggregate sign bit", input: "170141183460469231731687303715884105727"},
+		{name: "one above aggregate sign bit", input: "170141183460469231731687303715884105729"},
+		{name: "one below unsigned maximum", input: "340282366920938463463374607431768211454"},
+		{name: "exact unsigned maximum", input: "340282366920938463463374607431768211455"},
+		{name: "one above unsigned maximum overflows during digit addition", input: "340282366920938463463374607431768211456", wantErr: core.ErrTemporalOverflow},
+		{name: "maximum width multiplication overflow", input: "999999999999999999999999999999999999999", wantErr: core.ErrTemporalOverflow},
+		{name: "largest one below maximum decimal width", input: "99999999999999999999999999999999999999"},
+		{name: "smallest exact maximum decimal width", input: "100000000000000000000000000000000000000"},
+		{name: "one above maximum decimal width", input: "1000000000000000000000000000000000000000", wantErr: core.ErrTemporalContract},
+		{name: "negative zero cannot alias zero", input: "-0", wantErr: core.ErrTemporalContract},
+		{name: "leading whitespace changes the representation", input: " 1", wantErr: core.ErrTemporalContract},
+		{name: "trailing whitespace changes the representation", input: "1 ", wantErr: core.ErrTemporalContract},
+		{name: "digit just below ASCII zero", input: "/", wantErr: core.ErrTemporalContract},
+		{name: "digit just above ASCII nine", input: ":", wantErr: core.ErrTemporalContract},
+		{name: "duplicate decimal zero", input: "00", wantErr: core.ErrTemporalContract},
+	} {
 		t.Run(tc.name, func(t *testing.T) {
 			t.Parallel()
-
-			got, gotErr := temporal.ParseAggregateDuration(tc.text)
-			gotWire, gotWireErr := json.Marshal(got)
-			wantWire := strconv.Quote(tc.text)
-			if gotErr != nil || gotWireErr != nil || got.Decimal() != tc.text ||
-				string(gotWire) != wantWire {
-				t.Fatalf(
-					"aggregate parse/project = (%q, %s, %v, %v), want (%q, %s, nil, nil)",
-					got.Decimal(),
-					gotWire,
-					gotErr,
-					gotWireErr,
-					tc.text,
-					wantWire,
-				)
+			got, gotErr := temporal.ParseAggregateDuration(tc.input)
+			if !errors.Is(gotErr, tc.wantErr) {
+				t.Fatalf("aggregate parse error = %v, want %v", gotErr, tc.wantErr)
+			}
+			if tc.wantErr != nil {
+				if got != (temporal.AggregateDuration{}) || !errors.Is(gotErr, core.ErrTemporalContract) {
+					t.Fatalf("aggregate refusal = (%v,%v), want zero typed refusal", got, gotErr)
+				}
+				if errors.Is(tc.wantErr, core.ErrTemporalOverflow) && !errors.Is(gotErr, core.ErrNumericOverflow) {
+					t.Fatalf("overflow = %v, want numeric identity", gotErr)
+				}
+				return
+			}
+			wire, wireErr := got.MarshalJSON()
+			var decoded temporal.AggregateDuration
+			decodeErr := decoded.UnmarshalJSON(wire)
+			if got.Validate() != nil || got.Decimal() != tc.input || wireErr != nil || string(wire) != strconv.Quote(tc.input) || decodeErr != nil || decoded != got {
+				t.Fatalf("aggregate facts = (%q,%q,%v,%v,%v), want exact %q", got.Decimal(), wire, wireErr, decoded, decodeErr, tc.input)
 			}
 		})
 	}
+}
 
-	lowMaximum, _ := temporal.ParseAggregateDuration(maximumUint64Decimal)
-	highFloor, _ := temporal.ParseAggregateDuration(uint64HighLimbDecimal)
-	if got := lowMaximum.Compare(highFloor); got != core.ComparisonLess {
-		t.Fatalf("low-limb maximum Compare(high-limb floor) = %v, want %v", got, core.ComparisonLess)
-	}
-	if got := highFloor.Compare(lowMaximum); got != core.ComparisonGreater {
-		t.Fatalf("high-limb floor Compare(low-limb maximum) = %v, want %v", got, core.ComparisonGreater)
-	}
-	if got := highFloor.Compare(highFloor); got != core.ComparisonEqual {
-		t.Fatalf("high-limb floor Compare(itself) = %v, want %v", got, core.ComparisonEqual)
-	}
-	lowOne := temporal.AggregateDurationFromNanoseconds(1)
-	lowTwo := temporal.AggregateDurationFromNanoseconds(2)
-	if got := lowOne.Compare(lowTwo); got != core.ComparisonLess {
-		t.Fatalf("low one Compare(low two) = %v, want %v", got, core.ComparisonLess)
-	}
-	if got := lowTwo.Compare(lowOne); got != core.ComparisonGreater {
-		t.Fatalf("low two Compare(low one) = %v, want %v", got, core.ComparisonGreater)
+func TestAggregateDurationWideningPreservesEverySourceBit(t *testing.T) {
+	t.Parallel()
+	for _, tc := range []struct {
+		name  string
+		nanos int64
+	}{
+		{name: "zero stays neutral"},
+		{name: "minimum positive elapsed stays positive", nanos: 1},
+		{name: "maximum duration does not narrow during widening", nanos: math.MaxInt64},
+	} {
+		t.Run(tc.name, func(t *testing.T) {
+			t.Parallel()
+			duration, err := temporal.DurationFromNanoseconds(tc.nanos)
+			if err != nil {
+				t.Fatal(err)
+			}
+			direct, directErr := temporal.AggregateDurationFromDuration(duration)
+			viaMethod, methodErr := duration.Aggregate()
+			viaNanos := temporal.AggregateDurationFromNanoseconds(uint64(tc.nanos))
+			accumulated, addErr := temporal.AggregateDuration{}.AddDuration(duration)
+			if directErr != nil || methodErr != nil || addErr != nil || direct.Decimal() != strconv.FormatInt(tc.nanos, 10) || direct != viaMethod || direct != viaNanos || direct != accumulated {
+				t.Fatalf("widening = (%v,%v,%v,%v,%v,%v,%v), want exact %d", direct, viaMethod, viaNanos, accumulated, directErr, methodErr, addErr, tc.nanos)
+			}
+		})
 	}
 }
 
@@ -148,7 +163,7 @@ func TestAggregateDurationArithmeticAttacksCarryAndOverflow(t *testing.T) {
 				got, gotErr = input.Multiply(tc.multiplier)
 			}
 			if tc.wantErr != nil {
-				if !errors.Is(gotErr, tc.wantErr) ||
+				if !errors.Is(gotErr, tc.wantErr) || got != (temporal.AggregateDuration{}) ||
 					!errors.Is(gotErr, core.ErrNumericOverflow) {
 					t.Fatalf("aggregate arithmetic error = %v, want %v and %v", gotErr, tc.wantErr, core.ErrNumericOverflow)
 				}
@@ -335,21 +350,6 @@ func TestTemporalPersistencePreservesSignedAndWideExtremes(t *testing.T) {
 		})
 	}
 
-	aggregate, parseErr := temporal.ParseAggregateDuration(maximumUint128Decimal)
-	wire, marshalErr := json.Marshal(aggregate)
-	var got temporal.AggregateDuration
-	unmarshalErr := json.Unmarshal(wire, &got)
-	if parseErr != nil || marshalErr != nil || unmarshalErr != nil ||
-		got.Decimal() != maximumUint128Decimal {
-		t.Fatalf(
-			"Aggregate JSON maximum round trip = (%q, %s, %v, %v, %v), want exact maximum",
-			got.Decimal(),
-			wire,
-			parseErr,
-			marshalErr,
-			unmarshalErr,
-		)
-	}
 }
 
 func TestTemporalJSONMethodsEnforceExactDocumentBounds(t *testing.T) {
@@ -578,7 +578,7 @@ func FuzzSignedTemporalCanonicalRoundTrip(f *testing.F) {
 		if instantErr != nil {
 			retained, retainedErr := instant.Nanoseconds()
 			if wantInstantAccepted ||
-				(!errors.Is(instantErr, core.ErrTemporalContract) && !errors.Is(instantErr, core.ErrTemporalOverflow)) ||
+				(!errors.Is(instantErr, core.ErrTemporalContract) || !errors.Is(instantErr, core.ErrJSONContract)) ||
 				retainedErr != nil || retained != 7 {
 				t.Fatalf("Instant.UnmarshalJSON(%q) = (retained:%d/%v error:%v), want accepted=%t or retained 7/typed refusal", wire, retained, retainedErr, instantErr, wantInstantAccepted)
 			}
@@ -588,7 +588,7 @@ func FuzzSignedTemporalCanonicalRoundTrip(f *testing.F) {
 			var roundTrip temporal.Instant
 			roundTripErr := roundTrip.UnmarshalJSON(gotWire)
 			secondWire, secondWireErr := roundTrip.MarshalJSON()
-			if !wantInstantAccepted || gotErr != nil || got != parsed || gotWireErr != nil ||
+			if !wantInstantAccepted || gotErr != nil || got != parsed || gotWireErr != nil || len(gotWire) > temporal.InstantCanonicalJSONMaximumBytes || string(gotWire) != strconv.Quote(strconv.FormatInt(parsed, 10)) ||
 				roundTripErr != nil || roundTrip != instant || secondWireErr != nil || !bytes.Equal(secondWire, gotWire) {
 				t.Fatalf("Instant.UnmarshalJSON(%q) closure = (value:%d errors:%v/%v/%v/%v wire:%s/%s), want accepted=%t value=%d stable", wire, got, gotErr, gotWireErr, roundTripErr, secondWireErr, gotWire, secondWire, wantInstantAccepted, parsed)
 			}
@@ -603,7 +603,7 @@ func FuzzSignedTemporalCanonicalRoundTrip(f *testing.F) {
 		wantDurationAccepted := len(wire) > 0 && len(wire) <= temporal.DurationJSONMaximumBytes && canonicalWire && canonicalDecimal && parsed >= 0
 		if durationErr != nil {
 			if wantDurationAccepted ||
-				(!errors.Is(durationErr, core.ErrTemporalContract) && !errors.Is(durationErr, core.ErrTemporalOverflow)) ||
+				(!errors.Is(durationErr, core.ErrTemporalContract) || !errors.Is(durationErr, core.ErrJSONContract)) ||
 				duration != retainedDuration {
 				t.Fatalf("Duration.UnmarshalJSON(%q) = (retained:%v error:%v), want accepted=%t or retained %v/typed refusal", wire, duration, durationErr, wantDurationAccepted, retainedDuration)
 			}
@@ -613,7 +613,7 @@ func FuzzSignedTemporalCanonicalRoundTrip(f *testing.F) {
 		var roundTrip temporal.Duration
 		roundTripErr := roundTrip.UnmarshalJSON(gotWire)
 		secondWire, secondWireErr := roundTrip.MarshalJSON()
-		if !wantDurationAccepted || duration.Nanoseconds() != parsed || gotWireErr != nil ||
+		if !wantDurationAccepted || duration.Validate() != nil || duration.Nanoseconds() != parsed || gotWireErr != nil || len(gotWire) > temporal.DurationCanonicalJSONMaximumBytes || string(gotWire) != strconv.Quote(strconv.FormatInt(parsed, 10)) ||
 			roundTripErr != nil || roundTrip != duration || secondWireErr != nil || !bytes.Equal(secondWire, gotWire) {
 			t.Fatalf("Duration.UnmarshalJSON(%q) closure = (value:%d errors:%v/%v/%v wire:%s/%s), want accepted=%t value=%d stable", wire, duration.Nanoseconds(), gotWireErr, roundTripErr, secondWireErr, gotWire, secondWire, wantDurationAccepted, parsed)
 		}
@@ -670,7 +670,7 @@ func FuzzAggregateDurationJSONSemanticClosure(f *testing.F) {
 		gotErr := got.UnmarshalJSON(wire)
 		if gotErr != nil {
 			if wantAccepted ||
-				(!errors.Is(gotErr, core.ErrTemporalContract) && !errors.Is(gotErr, core.ErrTemporalOverflow)) ||
+				(!errors.Is(gotErr, core.ErrTemporalContract) || !errors.Is(gotErr, core.ErrJSONContract)) ||
 				got != retained {
 				t.Fatalf("AggregateDuration.UnmarshalJSON(%q) = (retained:%q error:%v), want accepted=%t or retained %q/typed refusal", wire, got.Decimal(), gotErr, wantAccepted, retained.Decimal())
 			}
@@ -681,7 +681,7 @@ func FuzzAggregateDurationJSONSemanticClosure(f *testing.F) {
 		var roundTrip temporal.AggregateDuration
 		roundTripErr := roundTrip.UnmarshalJSON(gotWire)
 		secondWire, secondWireErr := roundTrip.MarshalJSON()
-		if !wantAccepted || got.Validate() != nil || got.Decimal() != independent.String() || gotWireErr != nil ||
+		if !wantAccepted || got.Validate() != nil || got.Decimal() != independent.String() || gotWireErr != nil || len(gotWire) > temporal.AggregateDurationCanonicalJSONMaximumBytes || string(gotWire) != strconv.Quote(independent.String()) ||
 			roundTripErr != nil || roundTrip != got || secondWireErr != nil || !bytes.Equal(secondWire, gotWire) {
 			t.Fatalf("AggregateDuration.UnmarshalJSON(%q) closure = (value:%q errors:%v/%v/%v wire:%s/%s), want accepted=%t value=%q stable", wire, got.Decimal(), gotWireErr, roundTripErr, secondWireErr, gotWire, secondWire, wantAccepted, independent.String())
 		}

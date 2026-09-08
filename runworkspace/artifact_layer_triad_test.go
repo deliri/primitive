@@ -9,8 +9,8 @@ import (
 	"github.com/deliri/primitive/v2026/core"
 	"github.com/deliri/primitive/v2026/filestore"
 	"github.com/deliri/primitive/v2026/runnercontrol"
-	"github.com/deliri/primitive/v2026/runworkspace"
 	"github.com/deliri/primitive/v2026/runprotocol"
+	"github.com/deliri/primitive/v2026/runworkspace"
 )
 
 func TestExpectedArtifactLayerTriad(t *testing.T) {

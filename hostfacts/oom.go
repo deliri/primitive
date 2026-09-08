@@ -96,12 +96,13 @@ func (s *GoOOMBannerState) UnmarshalJSON(data []byte) error {
 }
 
 func decodeBannerToken(data []byte) (string, error) {
-	maximum := len(strconv.Quote(goOOMPresentToken))
+	const maximum = len(goOOMPresentToken) + 2
 	if len(data) == 0 || len(data) > maximum {
 		return "", errors.Join(core.ErrJSONContract, core.ErrHostFactsEvidence)
 	}
 	token, err := strconv.Unquote(string(data))
-	if err != nil || !bytes.Equal(strconv.AppendQuote(nil, token), data) {
+	var canonical [maximum]byte
+	if err != nil || !bytes.Equal(strconv.AppendQuote(canonical[:0], token), data) {
 		return "", errors.Join(core.ErrJSONContract, core.ErrHostFactsEvidence, err)
 	}
 	return token, nil
@@ -212,98 +213,46 @@ func (e *GoOOMBannerEvidence) UnmarshalJSON(data []byte) error {
 	return nil
 }
 
-type bannerMatcher struct {
-	prefixed bannerCursor
-	plain    bannerCursor
-	found    bool
-}
-
-type bannerCursor struct {
-	pattern string
-	matched int
-}
-
-func newBannerMatcher() bannerMatcher {
-	return bannerMatcher{
-		prefixed: bannerCursor{pattern: GoOOMPrefixedBanner},
-		plain:    bannerCursor{pattern: GoOOMPlainBanner},
-	}
-}
-
-func (m *bannerMatcher) write(data []byte) {
-	for _, value := range data {
-		m.found = m.prefixed.advance(value, m.found)
-		m.found = m.plain.advance(value, m.found)
-	}
-}
-
-func (c *bannerCursor) advance(value byte, found bool) bool {
-	if found {
-		return true
-	}
-	if c.pattern[c.matched] == value {
-		c.matched++
-		if c.matched == len(c.pattern) {
-			c.matched = 0
-			return true
-		}
-		return false
-	}
-	for candidate := c.matched; candidate > 0; candidate-- {
-		if c.suffixMatches(value, candidate) {
-			c.matched = candidate
-			return false
-		}
-	}
-	if c.pattern[0] == value {
-		c.matched = 1
-		return false
-	}
-	c.matched = 0
-	return false
-}
-
-func (c bannerCursor) suffixMatches(value byte, candidate int) bool {
-	sequenceLength := c.matched + 1
-	start := sequenceLength - candidate
-	for index := range candidate {
-		position := start + index
-		observed := value
-		if position < c.matched {
-			observed = c.pattern[position]
-		}
-		if observed != c.pattern[index] {
-			return false
-		}
-	}
-	return true
-}
-
 type oomScanner struct {
 	source     io.Reader
-	matcher    bannerMatcher
+	found      bool
+	carry      int
 	remaining  uint64
 	emptyReads int
-	buffer     [goOOMBufferBytes]byte
+	buffer     [goOOMBufferBytes + goOOMOverlapBytes]byte
 }
 
 func (s *oomScanner) read(ctx context.Context) error {
 	if err := contextstate.Validate(ctx); err != nil {
 		return err
 	}
-	maximum := min(uint64(len(s.buffer)), s.remaining)
-	count, readErr := s.source.Read(s.buffer[:maximum])
+	maximum := min(uint64(goOOMBufferBytes), s.remaining)
+	count, readErr := s.source.Read(s.buffer[s.carry : s.carry+int(maximum)])
 	if count < 0 || uint64(count) > maximum {
 		return errors.Join(core.ErrHostFactsObservation, errors.New("reader returned an invalid count"))
 	}
 	if count > 0 {
-		s.matcher.write(s.buffer[:count])
+		s.match(count)
 		s.remaining -= uint64(count)
 		s.emptyReads = 0
 	} else {
 		s.emptyReads++
 	}
 	return classifyOOMRead(s.remaining, s.emptyReads, readErr)
+}
+
+// A match crossing two reads needs only the longest banner minus one byte
+// from the previous read. bytes.Contains owns the search implementation.
+const goOOMOverlapBytes = max(len(GoOOMPlainBanner), len(GoOOMPrefixedBanner)) - 1
+
+func (s *oomScanner) match(count int) {
+	if s.found {
+		return
+	}
+	data := s.buffer[:s.carry+count]
+	s.found = bytes.Contains(data, []byte(GoOOMPlainBanner)) || bytes.Contains(data, []byte(GoOOMPrefixedBanner))
+	s.carry = min(len(data), goOOMOverlapBytes)
+	copy(s.buffer[:s.carry], data[len(data)-s.carry:])
 }
 
 func classifyOOMRead(remaining uint64, emptyReads int, readErr error) error {

@@ -49,7 +49,7 @@ func ResolveWorkingPath(ctx context.Context, text string) (core.AbsolutePath, er
 	}
 	path, err := working.ResolveText(text)
 	if err != nil {
-		return core.AbsolutePath{}, errors.Join(core.ErrHostFactsObservation, err)
+		return core.AbsolutePath{}, errors.Join(core.ErrHostFactsContract, err)
 	}
 	return path, nil
 }
@@ -68,11 +68,11 @@ func AmbientEnvironment() (process.Environment, error) {
 // the process's complete environment.
 func LookupAmbientEnvironment(name process.EnvironmentName) (process.EnvironmentLookup, error) {
 	if err := name.Validate(); err != nil {
-		return process.EnvironmentLookup{}, errors.Join(core.ErrHostFactsObservation, err)
+		return process.EnvironmentLookup{}, errors.Join(core.ErrHostFactsContract, err)
 	}
 	nameText, err := name.Value()
 	if err != nil {
-		return process.EnvironmentLookup{}, errors.Join(core.ErrHostFactsObservation, err)
+		return process.EnvironmentLookup{}, errors.Join(core.ErrHostFactsContract, err)
 	}
 	value, present := os.LookupEnv(nameText)
 	lookup := process.EnvironmentLookup{Presence: process.EnvironmentPresenceAbsent}

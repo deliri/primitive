@@ -167,6 +167,14 @@ func FuzzCompactUTCExactTime(f *testing.F) {
 	f.Add("20260229T000000Z")
 	f.Add("22620411T234717Z")
 	f.Fuzz(func(t *testing.T, value string) {
+		if len(value) != temporal.CompactUTCTextBytes {
+			got, gotErr := temporal.ParseCompactUTC(value)
+			if !errors.Is(gotErr, core.ErrTemporalContract) || got != (temporal.Instant{}) {
+				t.Fatalf("compact extent refusal = (%v,%v), want zero typed refusal", got, gotErr)
+			}
+			return
+		}
+
 		// The stdlib layout is obtained from the production formatter's reference
 		// instant, so the test does not maintain a second protocol layout literal.
 		reference, err := temporal.NewInstant(time.Date(2006, time.January, 2, 15, 4, 5, 0, time.UTC))
@@ -178,8 +186,8 @@ func FuzzCompactUTCExactTime(f *testing.F) {
 			t.Fatalf("reference layout error = %v, want nil", err)
 		}
 		parsed, parseErr := time.Parse(layout, value)
-		want, wantErr := temporal.NewInstant(parsed)
-		valid := parseErr == nil && wantErr == nil && len(value) == temporal.CompactUTCTextBytes && parsed.Format(layout) == value
+		want := temporal.InstantFromNanoseconds(parsed.UnixNano())
+		valid := parseErr == nil && time.Unix(0, parsed.UnixNano()).Equal(parsed) && len(value) == temporal.CompactUTCTextBytes && parsed.Format(layout) == value
 		got, gotErr := temporal.ParseCompactUTC(value)
 		if !valid {
 			if !errors.Is(gotErr, core.ErrTemporalContract) || got != (temporal.Instant{}) {
@@ -206,10 +214,18 @@ func FuzzRFC3339UTCExactOffset(f *testing.F) {
 	f.Add("1970-01-01T00:00:00-00:00")
 	f.Add("")
 	f.Fuzz(func(t *testing.T, value string) {
+		if len(value) < temporal.RFC3339MinimumTextBytes || len(value) > temporal.RFC3339MaximumTextBytes {
+			got, gotErr := temporal.ParseRFC3339UTC(value)
+			if !errors.Is(gotErr, core.ErrTemporalContract) || got != (temporal.Instant{}) {
+				t.Fatalf("UTC extent refusal = (%v,%v), want zero typed refusal", got, gotErr)
+			}
+			return
+		}
+
 		raw, rawErr := time.Parse(time.RFC3339Nano, value)
 		_, offset := raw.Zone()
-		bounded, boundedErr := temporal.ParseRFC3339(value)
-		wantValid := rawErr == nil && boundedErr == nil && offset == 0
+		bounded := temporal.InstantFromNanoseconds(raw.UnixNano())
+		wantValid := len(value) >= temporal.RFC3339MinimumTextBytes && len(value) <= temporal.RFC3339MaximumTextBytes && rawErr == nil && temporalRFC3339Grammar.MatchString(value) && time.Unix(0, raw.UnixNano()).Equal(raw) && offset == 0
 		got, err := temporal.ParseRFC3339UTC(value)
 		if !wantValid {
 			if !errors.Is(err, core.ErrTemporalContract) || got != (temporal.Instant{}) {

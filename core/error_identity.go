@@ -149,6 +149,18 @@ const (
 	ErrHostFactsPressure
 	// ErrHostFactsEvidence identifies invalid persisted host evidence.
 	ErrHostFactsEvidence
+	// ErrCgroupMembershipDisappeared identifies cgroup membership disappeared.
+	ErrCgroupMembershipDisappeared
+	// ErrCgroupMembershipChanged identifies cgroup membership changed.
+	ErrCgroupMembershipChanged
+	// ErrCgroupMembershipDuplicate identifies cgroup membership is duplicated.
+	ErrCgroupMembershipDuplicate
+	// ErrCgroupMountMissing identifies cgroup mount is missing.
+	ErrCgroupMountMissing
+	// ErrCgroupMountAmbiguous identifies cgroup mount is ambiguous.
+	ErrCgroupMountAmbiguous
+	// ErrCgroupContainment identifies cgroup walk escaped its mount.
+	ErrCgroupContainment
 	// ErrDiskCapacityUnsupported identifies unsupported disk-capacity observation.
 	ErrDiskCapacityUnsupported
 	// ErrDiskFloorReached identifies insufficient available disk capacity.
@@ -553,6 +565,12 @@ func errorIdentityDiagnostics() [errorIdentityLimit]errorIdentityDiagnostic {
 		{identity: ErrHostFactsUnsupported, text: "host facts observation unsupported"},
 		{identity: ErrHostFactsPressure, text: "host facts pressure reached"},
 		{identity: ErrHostFactsEvidence, text: "host facts evidence invalid"},
+		{identity: ErrCgroupMembershipDisappeared, text: "cgroup membership disappeared"},
+		{identity: ErrCgroupMembershipChanged, text: "cgroup membership changed"},
+		{identity: ErrCgroupMembershipDuplicate, text: "cgroup membership is duplicated"},
+		{identity: ErrCgroupMountMissing, text: "cgroup mount is missing"},
+		{identity: ErrCgroupMountAmbiguous, text: "cgroup mount is ambiguous"},
+		{identity: ErrCgroupContainment, text: "cgroup walk escaped its mount"},
 		{identity: ErrDiskCapacityUnsupported, text: "disk capacity observation unsupported"},
 		{identity: ErrDiskFloorReached, text: "disk floor reached"},
 		{identity: ErrMemoryLimitReached, text: "memory limit reached"},
@@ -859,6 +877,7 @@ func errorIdentityParents(identity ErrorIdentity) errorIdentityParentSet {
 	}
 	if errorIdentityIn(identity, ErrHostFacts, ErrHostFactsContract, ErrHostFactsObservation,
 		ErrHostFactsUnsupported, ErrHostFactsPressure, ErrHostFactsEvidence,
+		ErrCgroupMembershipDisappeared, ErrCgroupMembershipChanged, ErrCgroupMembershipDuplicate, ErrCgroupMountMissing, ErrCgroupMountAmbiguous, ErrCgroupContainment,
 		ErrDiskCapacityUnsupported,
 		ErrDiskFloorReached, ErrMemoryLimitReached) {
 		return errorIdentityParentsHostFacts(identity)
@@ -943,6 +962,9 @@ func errorIdentityProviderParent(identity ErrorIdentity) ErrorIdentity {
 }
 
 func errorIdentityParentsHostFacts(identity ErrorIdentity) errorIdentityParentSet {
+	if errorIdentityIn(identity, ErrCgroupMembershipDisappeared, ErrCgroupMembershipChanged, ErrCgroupMembershipDuplicate, ErrCgroupMountMissing, ErrCgroupMountAmbiguous, ErrCgroupContainment) {
+		return oneErrorIdentityParent(ErrHostFactsObservation)
+	}
 	if identity == ErrHostFacts {
 		return errorIdentityParentSet{}
 	}

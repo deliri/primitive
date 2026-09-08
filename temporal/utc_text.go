@@ -21,7 +21,8 @@ func ParseCompactUTC(value string) (Instant, error) {
 	if err != nil {
 		return Instant{}, contractError("compact UTC timestamp is invalid", err)
 	}
-	if parsed.Format(compactUTCLayout) != value {
+	var canonical [CompactUTCTextBytes]byte
+	if string(parsed.AppendFormat(canonical[:0], compactUTCLayout)) != value {
 		return Instant{}, contractError("compact UTC timestamp is not canonical")
 	}
 	instant, err := NewInstant(parsed)

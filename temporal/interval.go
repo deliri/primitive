@@ -14,16 +14,10 @@ type IntervalRequest struct {
 
 // Validate checks both observation boundaries and their ordering.
 func (r IntervalRequest) Validate() error {
-	if err := r.Start.Validate(); err != nil {
-		return contractError(intervalStartInvalidReason, err)
-	}
-	if err := r.Finish.Validate(); err != nil {
-		return contractError("interval finish is invalid", err)
-	}
-	if _, err := r.Finish.Since(r.Start); err != nil {
-		return contractError("interval observations are invalid", err)
-	}
-	return nil
+	// Construction is the complete rule: elapsed time and the derived wall end
+	// must both be representable. Keep validation and construction identical.
+	_, err := NewInterval(r)
+	return err
 }
 
 // IntervalBounds supplies exact persisted wall bounds.
@@ -34,16 +28,8 @@ type IntervalBounds struct {
 
 // Validate checks both exact bounds and their ordering.
 func (b IntervalBounds) Validate() error {
-	if err := b.Start.Validate(); err != nil {
-		return contractError("interval start bound is invalid", err)
-	}
-	if err := b.End.Validate(); err != nil {
-		return contractError("interval end bound is invalid", err)
-	}
-	if _, err := b.End.Since(b.Start); err != nil {
-		return contractError("interval bounds are invalid", err)
-	}
-	return nil
+	_, err := IntervalFromBounds(b)
+	return err
 }
 
 // Interval is a start, derived end, and exact nonnegative elapsed duration.
@@ -56,9 +42,6 @@ type Interval struct {
 // NewInterval constructs an interval from observations, preserving monotonic
 // elapsed time and deriving the end from start plus elapsed.
 func NewInterval(request IntervalRequest) (Interval, error) {
-	if err := request.Validate(); err != nil {
-		return Interval{}, err
-	}
 	start, err := request.Start.Instant()
 	if err != nil {
 		return Interval{}, err
@@ -76,9 +59,6 @@ func NewInterval(request IntervalRequest) (Interval, error) {
 
 // IntervalFromBounds constructs an interval from exact wall bounds.
 func IntervalFromBounds(bounds IntervalBounds) (Interval, error) {
-	if err := bounds.Validate(); err != nil {
-		return Interval{}, err
-	}
 	elapsed, err := bounds.End.Since(bounds.Start)
 	if err != nil {
 		return Interval{}, err

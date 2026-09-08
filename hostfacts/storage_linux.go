@@ -104,3 +104,26 @@ func readRotationalFlag(ctx context.Context, deviceDirectory string) (DiskRotati
 	}
 	return classifyRotationalFlag(data)
 }
+
+func readVirtualValue(
+	ctx context.Context,
+	request virtualFileRequest,
+) (data []byte, err error) {
+	if err := request.Validate(); err != nil {
+		return nil, err
+	}
+	location, err := filestore.OpenParent(ctx, request.Path)
+	if err != nil {
+		return nil, err
+	}
+	defer func() {
+		if closeErr := location.Root.Close(); closeErr != nil {
+			err = errors.Join(err, closeErr)
+		}
+	}()
+	file, err := filestore.OpenRead(ctx, filestore.ReadHandleRequest{Location: location})
+	if err != nil {
+		return nil, err
+	}
+	return readVirtualFile(ctx, file, request.MaximumBytes)
+}

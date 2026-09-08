@@ -1,13 +1,22 @@
 # Primitive upgrade priority — 2026-09-07
 
-Active package: **Exchange**, per the user's instruction. Complete its production,
-tests, semantic fuzzing, and profiled benchmarks before advancing.
+Approved release: **Temporal and Hostfacts, v2026.1.20** (September 8, 2026).
+Exchange and Filestore were published in v2026.1.19. The requested analyzer and
+test gates passed; the user reviewed and approved this batch for bump, commit
+and push. See [Temporal's review](../temporal/upgrade_review.md),
+[Hostfacts' review](../hostfacts/upgrade_review.md), the
+[bug-report follow-up](../hostfacts/review_followup.md) and
+[release notes](release_v2026.1.20.md).
 
-The first release batch is Exchange → Filestore → Temporal → Hostfacts → Process.
-This is an execution-value priority, not a claim that these are the five largest
-raw import counts. Core and Contextstate rank highly by direct import breadth and
-remain the first two packages after this batch. Necessary shared-owner fixes must
-be proved at their owning boundary when encountered.
+Next review batch: **Process → Core → Contextstate**, handled one package at a
+time. Start Process with a complete protocol read and profiled baseline before
+production edits. New work requires user review before its next commit.
+
+The initial execution-value priority is Exchange → Filestore → Temporal →
+Hostfacts → Process. The user split publication into reviewable batches: the
+Exchange/Filestore release is complete, and Temporal/Hostfacts are the approved
+v2026.1.20 release. Core and Contextstate remain first after Process. Necessary
+shared-owner gate fixes are proved at their owning boundary when encountered.
 
 Exchange covers Blink HTTP ingress/egress and the three tools' control-plane and
 commercial clients. Filestore covers rooted reads/writes/walks and durable output
@@ -112,8 +121,8 @@ pinned vendor version.
 Order by descending direct production import breadth, then consumer breadth,
 then package name. Recheck the scan at each release because usage may change.
 Previously upgraded packages still require closure of known review gaps; a prior
-commit is not a waiver. Attest's inventory binding gap is explicitly open and
-must be resolved before the next release. AWS identity and Capabilities retain
+commit is not a waiver. Attest's inventory binding gap remains recorded for its own follow-up;
+the user explicitly approved the scoped Temporal/Hostfacts release. AWS identity and Capabilities retain
 local evidence, with the promised manual compliance re-review still pending.
 Chit's original baseline is retained; its upgrade is paused for this priority.
 
@@ -129,19 +138,19 @@ editing. Benchmark comparisons use declared, checked workloads and retain both
 CPU and memory profiles, binaries, commands and source bindings. Remaining known
 surfaces keep the package open. Follow the entire local testing protocol.
 
-After all five packages are closed, choose the next unused version, run the
-release gate on the candidate, resolve failures, commit and publish the exact
-version. This user-authorized five-package checkpoint supersedes the earlier
-instruction to defer gates until every package is upgraded. No broad gate has
-been run for this prioritization work.
+The user approved Temporal and Hostfacts on September 8, 2026 and authorized
+v2026.1.20 publication. Process follows, then Core and Contextstate in order.
+The new batch retains the same package-by-package review standards.
 
 Then update Blink Kernel, Peachfuzz, Bug and Witness to that published version,
 regenerate complete vendor trees where applicable, update actual call sites for
 any contract change, and validate each consumer against the published module
-with workspace replacement disabled. Blink currently declares v2026.1.18;
-Peachfuzz, Bug and Witness declare v2026.1.5 and have vendor trees. Their shared
+with workspace replacement disabled. At the original usage snapshot, Blink declared v2026.1.18;
+Peachfuzz, Bug and Witness declared v2026.1.5 and had vendor trees. Recheck their
+actual versions before migration. Their shared
 workspace points at local Primitive, so an ordinary workspace build alone cannot
 prove published-version adoption. Preserve unrelated dirty consumer work.
 
-These steps are pending; this priority report does not claim a package upgrade,
-release gate, version bump, publication or consumer migration has completed.
+Consumer migration and publication of the current review batch remain pending.
+This report preserves historical usage evidence without treating it as proof of
+current published-version adoption.

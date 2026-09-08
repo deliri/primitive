@@ -256,16 +256,17 @@ func FuzzCgroupLimitFileSemanticClosure(f *testing.F) {
 		if selector%2 == 1 {
 			source = WorkloadMemoryLimitSourceCgroupV1
 		}
-		gotValue, gotUnlimited, gotErr := readCgroupLimit(context.Background(), interfacePath, source)
+		level, gotErr := readCgroupLevelLimit(context.Background(), interfacePath, source)
+		gotValue, gotUnlimited := level.value, level.state == cgroupLevelLimitUnlimited
 		wantValue, wantUnlimited, wantErr := referenceCgroupLimit(data, source)
 		if wantErr != nil {
 			if !errors.Is(gotErr, core.ErrHostFactsObservation) || gotValue != 0 || gotUnlimited {
-				t.Fatalf("readCgroupLimit(rejected %d bytes) = (%d, %t, %v), want zero finite typed refusal", len(data), gotValue, gotUnlimited, gotErr)
+				t.Fatalf("readCgroupLevelLimit(rejected %d bytes) = (%d, %t, %v), want zero finite typed refusal", len(data), gotValue, gotUnlimited, gotErr)
 			}
 			return
 		}
 		if gotErr != nil || gotValue != wantValue || gotUnlimited != wantUnlimited {
-			t.Fatalf("readCgroupLimit(%q, %v) = (%d, %t, %v), want (%d, %t, nil)", data, source, gotValue, gotUnlimited, gotErr, wantValue, wantUnlimited)
+			t.Fatalf("readCgroupLevelLimit(%q, %v) = (%d, %t, %v), want (%d, %t, nil)", data, source, gotValue, gotUnlimited, gotErr, wantValue, wantUnlimited)
 		}
 	})
 }

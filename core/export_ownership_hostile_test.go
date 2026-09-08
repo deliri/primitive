@@ -16,7 +16,7 @@ import (
 const (
 	coreExportInventoryMaximum      = 512
 	coreExportDependencyMaximum     = 32
-	coreSpecialExportAdmissionCount = 68
+	coreSpecialExportAdmissionCount = 75
 	coreProviderExportContractCount = 61
 )
 
@@ -151,6 +151,15 @@ func coreSpecialExportAdmissions() [coreSpecialExportAdmissionCount]coreSpecialE
 		architectureCatalogAdmission("PrimitiveModulePath", PrimitiveModulePath),
 		architectureCatalogAdmission("PrimitivePackagePathPrefix", PrimitivePackagePathPrefix),
 		coherentDomainContractAdmission("SecretMaterialMaximumBytes", SecretMaterialMaximumBytes),
+		// HTTP wire declarations and OS units/error identities stay in their Core-owned domains,
+		// even when one execution package currently consumes them.
+		coherentDomainContractAdmission("HTTPExpectContinueValue", HTTPExpectContinueValue),
+		coherentDomainContractAdmission("HTTPHeaderExpect", HTTPHeaderExpect),
+		coherentDomainContractAdmission("HTTPHeaderTrailer", HTTPHeaderTrailer),
+		coherentDomainContractAdmission("HTTPServerHeaderMaximumBytes", HTTPServerHeaderMaximumBytes),
+		coherentDomainContractAdmission("POSIXAllocationBlockBytes", POSIXAllocationBlockBytes),
+		coherentDomainContractAdmission("WindowsFileLockViolation", WindowsFileLockViolation),
+		coherentDomainContractAdmission("WindowsFileSharingViolation", WindowsFileSharingViolation),
 		testIsolationContractAdmission("TestIsolationCorePackagePath", TestIsolationCorePackagePath),
 		testIsolationContractAdmission("TestIsolationDeclarationPackagePath", TestIsolationDeclarationPackagePath),
 		testIsolationContractAdmission("TestIsolationDeclarationFunctionName", TestIsolationDeclarationFunctionName),

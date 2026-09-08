@@ -78,6 +78,16 @@ func TestNumericInstantEncodesBareNumbersAcrossTheSignedDomain(t *testing.T) {
 			if string(got) != testCase.want {
 				t.Fatalf("json.Marshal() = %s, want %s", got, testCase.want)
 			}
+			var decoded temporal.NumericInstant
+			if err := decoded.UnmarshalJSON(got); err != nil {
+				t.Fatal(err)
+			}
+			point, pointErr := decoded.Instant()
+			nanos, nanosErr := point.Nanoseconds()
+			if pointErr != nil || nanosErr != nil || nanos != testCase.nanoseconds {
+				t.Fatalf("decoded instant = (%d,%v,%v), want %d", nanos, pointErr, nanosErr, testCase.nanoseconds)
+			}
+
 			if strings.ContainsRune(string(got), '"') {
 				t.Fatalf("json.Marshal() = %s, want a bare number with no quotes", got)
 			}
@@ -118,6 +128,14 @@ func TestNumericDurationEncodesBareNonNegativeNumbers(t *testing.T) {
 			if string(got) != testCase.want {
 				t.Fatalf("json.Marshal() = %s, want %s", got, testCase.want)
 			}
+			var decoded temporal.NumericDuration
+			if err := decoded.UnmarshalJSON(got); err != nil {
+				t.Fatal(err)
+			}
+			if nanos := decoded.Duration().Nanoseconds(); nanos != testCase.nanoseconds {
+				t.Fatalf("decoded duration = %d, want %d", nanos, testCase.nanoseconds)
+			}
+
 		})
 	}
 }
@@ -177,26 +195,17 @@ func TestNumericInstantDecodeRejectsEveryNoncanonicalEncoding(t *testing.T) {
 			if !errors.Is(err, core.ErrTemporalContract) && !errors.Is(err, core.ErrTemporalOverflow) {
 				t.Fatalf("UnmarshalJSON(%q) error = %v, want ErrTemporalContract or ErrTemporalOverflow", testCase.in, err)
 			}
-			gotNanoseconds := requireNanoseconds(t, got)
-			wantNanoseconds := requireNanoseconds(t, retained)
+			gotInstant, gotInstantErr := got.Instant()
+			gotNanoseconds, gotNanosecondsErr := gotInstant.Nanoseconds()
+			if gotInstantErr != nil || gotNanosecondsErr != nil {
+				t.Fatalf("numeric projection = (%v,%v), want nil", gotInstantErr, gotNanosecondsErr)
+			}
+			wantNanoseconds := int64(7)
 			if gotNanoseconds != wantNanoseconds {
 				t.Fatalf("receiver after rejection = %d, want %d unchanged", gotNanoseconds, wantNanoseconds)
 			}
 		})
 	}
-}
-
-func requireNanoseconds(t *testing.T, value temporal.NumericInstant) int64 {
-	t.Helper()
-	instant, err := value.Instant()
-	if err != nil {
-		t.Fatalf("Instant() error = %v, want nil", err)
-	}
-	nanoseconds, err := instant.Nanoseconds()
-	if err != nil {
-		t.Fatalf("Nanoseconds() error = %v, want nil", err)
-	}
-	return nanoseconds
 }
 
 // TestNumericDurationDecodeRejectsNegativeAndNoncanonicalInput adds the
@@ -239,37 +248,6 @@ func TestNumericDurationDecodeRejectsNegativeAndNoncanonicalInput(t *testing.T) 
 				t.Fatalf("receiver after rejection = %d, want %d unchanged", got.Duration().Nanoseconds(), retained.Duration().Nanoseconds())
 			}
 		})
-	}
-}
-
-// TestNumericValuesAcceptTheirExactBoundaryEncodings holds the accepted side of
-// the extent boundary that the rejection tables hold from above.
-func TestNumericValuesAcceptTheirExactBoundaryEncodings(t *testing.T) {
-	t.Parallel()
-
-	minimum := strconv.FormatInt(math.MinInt64, 10)
-	if len(minimum) != temporal.NumericInstantCanonicalJSONMaximumBytes {
-		t.Fatalf("minimum instant encoding = %d bytes, want exactly the canonical bound %d", len(minimum), temporal.NumericInstantCanonicalJSONMaximumBytes)
-	}
-	maximum := strconv.FormatInt(math.MaxInt64, 10)
-	if len(maximum) != temporal.NumericDurationCanonicalJSONMaximumBytes {
-		t.Fatalf("maximum duration encoding = %d bytes, want exactly the canonical bound %d", len(maximum), temporal.NumericDurationCanonicalJSONMaximumBytes)
-	}
-
-	var instant temporal.NumericInstant
-	if err := instant.UnmarshalJSON([]byte(minimum)); err != nil {
-		t.Fatalf("UnmarshalJSON(%s) error = %v, want nil at the exact extent", minimum, err)
-	}
-	if got := requireNanoseconds(t, instant); got != math.MinInt64 {
-		t.Fatalf("decoded instant = %d, want %d", got, int64(math.MinInt64))
-	}
-
-	var duration temporal.NumericDuration
-	if err := duration.UnmarshalJSON([]byte(maximum)); err != nil {
-		t.Fatalf("UnmarshalJSON(%s) error = %v, want nil at the exact extent", maximum, err)
-	}
-	if got := duration.Duration().Nanoseconds(); got != math.MaxInt64 {
-		t.Fatalf("decoded duration = %d, want %d", got, int64(math.MaxInt64))
 	}
 }
 
@@ -317,7 +295,12 @@ func TestNumericValuesRoundTripThroughARealWireStruct(t *testing.T) {
 			if err := json.Unmarshal(encoded, &decoded); err != nil {
 				t.Fatalf("json.Unmarshal() error = %v, want nil", err)
 			}
-			if got := requireNanoseconds(t, decoded.StartUnixNanos); got != testCase.start {
+			point, pointErr := decoded.StartUnixNanos.Instant()
+			got, nanosErr := point.Nanoseconds()
+			if pointErr != nil || nanosErr != nil {
+				t.Fatalf("decoded projection errors = (%v,%v), want nil", pointErr, nanosErr)
+			}
+			if got != testCase.start {
 				t.Fatalf("decoded start = %d, want %d", got, testCase.start)
 			}
 			if got := decoded.ElapsedNanos.Duration().Nanoseconds(); got != elapsed {
@@ -335,96 +318,114 @@ func TestNumericValuesRoundTripThroughARealWireStruct(t *testing.T) {
 	}
 }
 
-// TestNumericZeroValuesFollowTheirProjectedTypes holds the neutral case: an
-// unset instant refuses to encode, while a zero duration is a real observation.
-func TestNumericZeroValuesFollowTheirProjectedTypes(t *testing.T) {
+func TestNumericValueProjectionLayerTriad(t *testing.T) {
 	t.Parallel()
-
-	var instant temporal.NumericInstant
-	if instant.IsSet() {
-		t.Fatal("zero NumericInstant IsSet() = true, want false")
-	}
-	if err := instant.Validate(); !errors.Is(err, core.ErrTemporalContract) {
-		t.Fatalf("zero NumericInstant Validate() error = %v, want ErrTemporalContract", err)
-	}
-	if _, err := instant.Instant(); !errors.Is(err, core.ErrTemporalContract) {
-		t.Fatalf("zero NumericInstant Instant() error = %v, want ErrTemporalContract", err)
-	}
-	if _, err := json.Marshal(instant); !errors.Is(err, core.ErrTemporalContract) {
-		t.Fatalf("json.Marshal(zero NumericInstant) error = %v, want errors.Is %v", err, core.ErrTemporalContract)
-	}
-
-	var duration temporal.NumericDuration
-	if !duration.IsZero() {
-		t.Fatal("zero NumericDuration IsZero() = false, want true")
-	}
-	if err := duration.Validate(); err != nil {
-		t.Fatalf("zero NumericDuration Validate() error = %v, want nil", err)
-	}
-	encoded, err := json.Marshal(duration)
-	if err != nil {
-		t.Fatalf("json.Marshal(zero NumericDuration) error = %v, want nil", err)
-	}
-	if string(encoded) != "0" {
-		t.Fatalf("json.Marshal(zero NumericDuration) = %s, want 0", encoded)
+	for _, tc := range []struct {
+		name           string
+		start          temporal.Instant
+		duration       int64
+		wantInstantErr error
+	}{
+		{name: "unset instant remains invalid beside real zero duration", wantInstantErr: core.ErrTemporalContract},
+		{name: "epoch remains set beside real zero duration", start: temporal.InstantFromNanoseconds(0)},
+		{name: "negative instant stays signed beside positive elapsed", start: temporal.InstantFromNanoseconds(-1), duration: 1},
+		{name: "minimum instant and maximum elapsed remain exact", start: temporal.InstantFromNanoseconds(math.MinInt64), duration: math.MaxInt64},
+		{name: "maximum instant survives numeric projection", start: temporal.InstantFromNanoseconds(math.MaxInt64), duration: 9_007_199_254_740_993},
+	} {
+		t.Run(tc.name, func(t *testing.T) {
+			t.Parallel()
+			instant, instantErr := temporal.NewNumericInstant(tc.start)
+			projected, projectionErr := instant.Instant()
+			wire, wireErr := instant.MarshalJSON()
+			if !errors.Is(instantErr, tc.wantInstantErr) || !errors.Is(instant.Validate(), tc.wantInstantErr) || !errors.Is(projectionErr, tc.wantInstantErr) || !errors.Is(wireErr, tc.wantInstantErr) || instant.IsSet() != tc.start.IsSet() || projected != tc.start {
+				t.Fatalf("numeric instant = (%v,%v,%v,%v,%v), want %v with %v", instant, instantErr, projected, projectionErr, wireErr, tc.start, tc.wantInstantErr)
+			}
+			if tc.wantInstantErr != nil {
+				if wire != nil || instant != (temporal.NumericInstant{}) {
+					t.Fatalf("unset projection = (%q,%v), want nil and zero", wire, instant)
+				}
+			} else {
+				nanos, err := tc.start.Nanoseconds()
+				if err != nil {
+					t.Fatal(err)
+				}
+				if string(wire) != strconv.FormatInt(nanos, 10) {
+					t.Fatalf("instant wire = %q, want exact bare %d", wire, nanos)
+				}
+			}
+			duration, err := temporal.DurationFromNanoseconds(tc.duration)
+			if err != nil {
+				t.Fatal(err)
+			}
+			numeric, numericErr := temporal.NewNumericDuration(duration)
+			durationWire, durationWireErr := numeric.MarshalJSON()
+			if numericErr != nil || numeric.Validate() != nil || numeric.Duration() != duration || numeric.IsZero() != (tc.duration == 0) || durationWireErr != nil || string(durationWire) != strconv.FormatInt(tc.duration, 10) {
+				t.Fatalf("numeric duration = (%v,%v,%q,%v), want exact %v", numeric, numericErr, durationWire, durationWireErr, duration)
+			}
+		})
 	}
 }
 
-// TestNumericConstructorsRejectUnsetAndTypedNilReceivers closes the two
-// remaining ingress boundaries.
-func TestNumericConstructorsRejectUnsetAndTypedNilReceivers(t *testing.T) {
+func TestNumericNilReceiversRefuseBeforeMutation(t *testing.T) {
 	t.Parallel()
-
-	if _, err := temporal.NewNumericInstant(temporal.Instant{}); !errors.Is(err, core.ErrTemporalContract) {
-		t.Fatalf("NewNumericInstant(unset) error = %v, want ErrTemporalContract", err)
-	}
-	if _, err := temporal.NewNumericDuration(temporal.Duration{}); err != nil {
-		t.Fatalf("NewNumericDuration(zero) error = %v, want nil because a zero duration is real", err)
-	}
-
-	var nilInstant *temporal.NumericInstant
-	if err := nilInstant.UnmarshalJSON([]byte("1")); !errors.Is(err, core.ErrJSONContract) {
-		t.Fatalf("nil NumericInstant UnmarshalJSON() error = %v, want ErrJSONContract", err)
-	}
-	var nilDuration *temporal.NumericDuration
-	if err := nilDuration.UnmarshalJSON([]byte("1")); !errors.Is(err, core.ErrJSONContract) {
-		t.Fatalf("nil NumericDuration UnmarshalJSON() error = %v, want ErrJSONContract", err)
+	for _, tc := range []struct {
+		name   string
+		decode func([]byte) error
+	}{
+		{name: "nil instant receiver", decode: (*temporal.NumericInstant)(nil).UnmarshalJSON},
+		{name: "nil duration receiver", decode: (*temporal.NumericDuration)(nil).UnmarshalJSON},
+	} {
+		t.Run(tc.name, func(t *testing.T) {
+			t.Parallel()
+			if gotErr := tc.decode([]byte("1")); !errors.Is(gotErr, core.ErrJSONContract) || !errors.Is(gotErr, core.ErrTemporalContract) {
+				t.Fatalf("nil receiver error = %v, want typed JSON and Temporal refusal", gotErr)
+			}
+		})
 	}
 }
 
-// TestNumericProjectionPreservesInstantValueSemantics proves the projection
-// adds encoding only: the carried Instant remains the same Primitive value and
-// still routes through Primitive arithmetic.
 func TestNumericProjectionPreservesInstantValueSemantics(t *testing.T) {
 	t.Parallel()
-
-	start := mustInstant(t, 1_000)
-	instant, err := start.Instant()
-	if err != nil {
-		t.Fatalf("Instant() error = %v, want nil", err)
-	}
-	step, err := temporal.DurationFromNanoseconds(500)
-	if err != nil {
-		t.Fatalf("DurationFromNanoseconds() error = %v, want nil", err)
-	}
-	advanced, err := instant.Add(step)
-	if err != nil {
-		t.Fatalf("Add() error = %v, want nil", err)
-	}
-	projected, err := temporal.NewNumericInstant(advanced)
-	if err != nil {
-		t.Fatalf("NewNumericInstant() error = %v, want nil", err)
-	}
-	if got := requireNanoseconds(t, projected); got != 1_500 {
-		t.Fatalf("projected instant = %d, want 1500", got)
-	}
-
-	comparison, err := advanced.Compare(instant)
-	if err != nil {
-		t.Fatalf("Compare() error = %v, want nil", err)
-	}
-	if comparison != core.ComparisonGreater {
-		t.Fatalf("Compare() = %v, want %v", comparison, core.ComparisonGreater)
+	for _, tc := range []struct {
+		name              string
+		start, step, want int64
+		wantOrder         core.Comparison
+		wantErr           error
+	}{
+		{name: "zero displacement is neutral", start: -1, want: -1, wantOrder: core.ComparisonEqual},
+		{name: "advance crosses epoch exactly", start: -1, step: 1, want: 0, wantOrder: core.ComparisonGreater},
+		{name: "largest elapsed spans minimum to negative one", start: math.MinInt64, step: math.MaxInt64, want: -1, wantOrder: core.ComparisonGreater},
+		{name: "maximum instant refuses further displacement", start: math.MaxInt64, step: 1, wantErr: core.ErrTemporalOverflow},
+	} {
+		t.Run(tc.name, func(t *testing.T) {
+			t.Parallel()
+			numeric := mustInstant(t, tc.start)
+			start, startErr := numeric.Instant()
+			if startErr != nil {
+				t.Fatal(startErr)
+			}
+			step, stepErr := temporal.DurationFromNanoseconds(tc.step)
+			if stepErr != nil {
+				t.Fatal(stepErr)
+			}
+			advanced, gotErr := start.Add(step)
+			if !errors.Is(gotErr, tc.wantErr) {
+				t.Fatalf("advance error = %v, want %v", gotErr, tc.wantErr)
+			}
+			if tc.wantErr != nil {
+				if advanced != (temporal.Instant{}) {
+					t.Fatalf("refused advance = %v, want zero", advanced)
+				}
+				return
+			}
+			projected, projectErr := temporal.NewNumericInstant(advanced)
+			got, gotProjectionErr := projected.Instant()
+			nanos, nanosErr := got.Nanoseconds()
+			order, orderErr := got.Compare(start)
+			if projectErr != nil || gotProjectionErr != nil || nanosErr != nil || orderErr != nil || nanos != tc.want || order != tc.wantOrder {
+				t.Fatalf("advance facts = (%d,%v,%v,%v,%v,%v), want %d and %v", nanos, order, projectErr, gotProjectionErr, nanosErr, orderErr, tc.want, tc.wantOrder)
+			}
+		})
 	}
 }
 
@@ -471,7 +472,7 @@ func FuzzNumericInstantJSON(f *testing.F) {
 		got := retained
 
 		if err := got.UnmarshalJSON(data); err != nil {
-			if wantAccepted || (!errors.Is(err, core.ErrTemporalContract) && !errors.Is(err, core.ErrTemporalOverflow)) {
+			if wantAccepted || (!errors.Is(err, core.ErrTemporalContract) || !errors.Is(err, core.ErrJSONContract)) {
 				t.Fatalf("UnmarshalJSON(%q) error = %v, want accepted=%t or a stable temporal identity", data, err, wantAccepted)
 			}
 			instant, instantErr := got.Instant()
@@ -488,7 +489,11 @@ func FuzzNumericInstantJSON(f *testing.F) {
 			return
 		}
 
-		gotNanoseconds := requireNanoseconds(t, got)
+		gotInstant, gotInstantErr := got.Instant()
+		gotNanoseconds, gotNanosecondsErr := gotInstant.Nanoseconds()
+		if gotInstantErr != nil || gotNanosecondsErr != nil {
+			t.Fatalf("numeric projection = (%v,%v), want nil", gotInstantErr, gotNanosecondsErr)
+		}
 		if gotErr := got.Validate(); !wantAccepted || gotErr != nil || gotNanoseconds != independent {
 			t.Fatalf("UnmarshalJSON(%q) = (value:%d validate:%v), want accepted=%t value=%d", data, gotNanoseconds, gotErr, wantAccepted, independent)
 		}
@@ -504,7 +509,11 @@ func FuzzNumericInstantJSON(f *testing.F) {
 			t.Fatalf("second UnmarshalJSON(%s) error = %v, want nil", encoded, err)
 		}
 		second, err := roundTrip.MarshalJSON()
-		roundTripNanoseconds := requireNanoseconds(t, roundTrip)
+		roundTripInstant, roundTripInstantErr := roundTrip.Instant()
+		roundTripNanoseconds, roundTripNanosErr := roundTripInstant.Nanoseconds()
+		if roundTripInstantErr != nil || roundTripNanosErr != nil {
+			t.Fatalf("round trip projection errors = (%v,%v), want nil", roundTripInstantErr, roundTripNanosErr)
+		}
 		if err != nil || roundTripNanoseconds != gotNanoseconds || string(second) != string(encoded) {
 			t.Fatalf("numeric instant closure = (%s, %v, %d), want (%s, nil, %d)", second, err, roundTripNanoseconds, encoded, gotNanoseconds)
 		}
@@ -562,7 +571,7 @@ func FuzzNumericDurationJSON(f *testing.F) {
 		got := retained
 
 		if err := got.UnmarshalJSON(data); err != nil {
-			if wantAccepted || (!errors.Is(err, core.ErrTemporalContract) && !errors.Is(err, core.ErrTemporalOverflow)) {
+			if wantAccepted || (!errors.Is(err, core.ErrTemporalContract) || !errors.Is(err, core.ErrJSONContract)) {
 				t.Fatalf("UnmarshalJSON(%q) error = %v, want accepted=%t or a stable temporal identity", data, err, wantAccepted)
 			}
 			if got.Duration().Nanoseconds() != 13 {

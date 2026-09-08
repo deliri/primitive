@@ -207,23 +207,24 @@ func TestCgroupLimitTokenHostileBoundaryTable(t *testing.T) {
 			if err := os.WriteFile(valuePath, []byte(tc.token), 0o600); err != nil {
 				t.Fatalf("os.WriteFile(limit) error = %v", err)
 			}
-			gotValue, gotUnlimited, gotErr := readCgroupLimit(
+			level, gotErr := readCgroupLevelLimit(
 				context.Background(),
 				mustAbsolutePathForHostfactsTest(t, valuePath),
 				tc.source,
 			)
+			gotValue, gotUnlimited := level.value, level.state == cgroupLevelLimitUnlimited
 			if tc.wantErr != nil {
 				if !errors.Is(gotErr, tc.wantErr) {
-					t.Fatalf("readCgroupLimit(%q) error = %v, want %v", tc.token, gotErr, tc.wantErr)
+					t.Fatalf("readCgroupLevelLimit(%q) error = %v, want %v", tc.token, gotErr, tc.wantErr)
 				}
 				if gotValue != 0 || gotUnlimited {
-					t.Fatalf("readCgroupLimit(%q) = (%d, %t), want zero finite refusal", tc.token, gotValue, gotUnlimited)
+					t.Fatalf("readCgroupLevelLimit(%q) = (%d, %t), want zero finite refusal", tc.token, gotValue, gotUnlimited)
 				}
 				return
 			}
 			if gotErr != nil || gotValue != tc.wantValue || gotUnlimited != tc.wantUnlimited {
 				t.Fatalf(
-					"readCgroupLimit(%q) = (%d, %t, %v), want (%d, %t, nil)",
+					"readCgroupLevelLimit(%q) = (%d, %t, %v), want (%d, %t, nil)",
 					tc.token,
 					gotValue,
 					gotUnlimited,
@@ -468,6 +469,11 @@ func benchmarkCgroupMountInfoStreaming(b *testing.B, size int) {
 	b.Helper()
 	line := []byte("30 23 0:27 / /sys/fs/cgroup rw,nosuid,nodev,noexec,relatime - ext4 /dev/disk rw\n")
 	data := bytes.Repeat(line, size/len(line))
+	wantLines := size / len(line)
+	if wantLines == 0 {
+		b.Fatalf("mount workload lines = %d, want a positive count", wantLines)
+	}
+	b.SetBytes(int64(len(data)))
 	b.ResetTimer()
 
 	for b.Loop() {
@@ -483,8 +489,8 @@ func benchmarkCgroupMountInfoStreaming(b *testing.B, size int) {
 				return nil
 			},
 		}).run(context.Background())
-		if err != nil || lines == 0 {
-			b.Fatalf("boundedLineScan(%d bytes) = %d lines, %v; want positive lines and nil", size, lines, err)
+		if err != nil || lines != wantLines {
+			b.Fatalf("boundedLineScan(%d bytes) = %d lines, %v; want exact line count and nil", size, lines, err)
 		}
 	}
 }

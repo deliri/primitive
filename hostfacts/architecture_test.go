@@ -5,7 +5,9 @@ import (
 	"go/parser"
 	"go/token"
 	"path/filepath"
+	"reflect"
 	"slices"
+	"strings"
 	"testing"
 )
 
@@ -63,68 +65,85 @@ func TestPublicOperationsAreExactIntentEntryPoints(t *testing.T) {
 	}
 }
 
+type hostfactsIngress[T any] struct{ Value T }
+type hostfactsObservation[T any] struct{ Value T }
+type hostfactsKernelFlow[T any] struct{ Value T }
+type hostfactsPersistence[T any] struct{ Value T }
+type hostfactsCapability[T any] struct{ Value T }
+type hostfactsError[T any] struct{ Value T }
+
+type hostfactsStructInventory struct {
+	Failure                   hostfactsError[Failure]
+	DiskPressurePolicy        hostfactsIngress[DiskPressurePolicy]
+	DiskAssessmentRequest     hostfactsIngress[DiskAssessmentRequest]
+	DiskRotationRequest       hostfactsIngress[DiskRotationRequest]
+	GoMemoryPressurePolicy    hostfactsIngress[GoMemoryPressurePolicy]
+	GoMemoryAssessmentRequest hostfactsIngress[GoMemoryAssessmentRequest]
+	GoOOMBannerRequest        hostfactsIngress[GoOOMBannerRequest]
+	TerminalGeometryRequest   hostfactsIngress[TerminalGeometryRequest]
+	DiskCapacity              hostfactsObservation[DiskCapacity]
+	DiskAssessment            hostfactsObservation[DiskAssessment]
+	GoMemorySnapshot          hostfactsObservation[GoMemorySnapshot]
+	GoMemoryAssessment        hostfactsObservation[GoMemoryAssessment]
+	Hostname                  hostfactsObservation[Hostname]
+	LogicalCPUCount           hostfactsObservation[LogicalCPUCount]
+	PhysicalMemory            hostfactsObservation[PhysicalMemory]
+	WorkloadMemoryLimit       hostfactsObservation[WorkloadMemoryLimit]
+	GoOOMBannerEvidence       hostfactsPersistence[GoOOMBannerEvidence]
+	Percent                   hostfactsIngress[Percent]
+	TerminalGeometry          hostfactsObservation[TerminalGeometry]
+	OOMWire                   hostfactsPersistence[goOOMBannerWire]
+	OOMScan                   hostfactsKernelFlow[oomScanner]
+	Membership                hostfactsKernelFlow[cgroupMembership]
+	Mount                     hostfactsKernelFlow[cgroupMount]
+	MountSelection            hostfactsKernelFlow[cgroupMountSelection]
+	LimitFold                 hostfactsKernelFlow[cgroupLimitFold]
+	LevelLimit                hostfactsKernelFlow[cgroupLevelLimit]
+	LevelRequest              hostfactsKernelFlow[cgroupLevelRequest]
+	VirtualFileRequest        hostfactsKernelFlow[virtualFileRequest]
+	LineScan                  hostfactsKernelFlow[boundedLineScan]
+	Root                      hostfactsCapability[platformRoot]
+}
+
 func TestProductionStructDataFlowInventory(t *testing.T) {
 	t.Parallel()
-
 	files, err := filepath.Glob("*.go")
 	if err != nil {
-		t.Fatalf("filepath.Glob() error = %v, want nil", err)
+		t.Fatalf("source inventory = %v, want nil", err)
 	}
-	set := token.NewFileSet()
-	found := 0
-	for _, filePath := range files {
-		if filepath.Ext(filePath) != ".go" ||
-			len(filePath) >= len("_test.go") &&
-				filePath[len(filePath)-len("_test.go"):] == "_test.go" {
+	var got []string
+	for _, name := range files {
+		if strings.HasSuffix(name, "_test.go") {
 			continue
 		}
-		file, parseErr := parser.ParseFile(set, filePath, nil, parser.SkipObjectResolution)
-		if parseErr != nil {
-			t.Fatalf("parser.ParseFile(%q) error = %v, want nil", filePath, parseErr)
+		file, err := parser.ParseFile(token.NewFileSet(), name, nil, parser.SkipObjectResolution)
+		if err != nil {
+			t.Fatalf("parse %s = %v, want nil", name, err)
 		}
 		ast.Inspect(file, func(node ast.Node) bool {
 			spec, ok := node.(*ast.TypeSpec)
 			if !ok {
 				return true
 			}
-			if _, ok := spec.Type.(*ast.StructType); !ok {
-				return true
+			if _, ok := spec.Type.(*ast.StructType); ok {
+				got = append(got, spec.Name.Name)
 			}
-			role, classified := productionStructRole(spec.Name.Name)
-			if !classified || role == "" {
-				t.Errorf("production struct %s has role %q classified %t, want precise data-flow role", spec.Name.Name, role, classified)
-			}
-			found++
 			return false
 		})
 	}
-	if found < 20 {
-		t.Fatalf("production struct inventory found %d structs, want at least 20", found)
+	slices.Sort(got)
+	got = slices.Compact(got) // platformRoot has one platform-specific definition per build.
+	inventory := reflect.TypeFor[hostfactsStructInventory]()
+	var want []string
+	for entry := range inventory.Fields() {
+		value := entry.Type.Field(0).Type
+		if value.Kind() != reflect.Struct || value.Name() == "" {
+			t.Fatalf("inventory %s = %v, want named production struct", entry.Name, value)
+		}
+		want = append(want, value.Name())
 	}
-}
-
-func productionStructRole(name string) (string, bool) {
-	switch name {
-	case "Failure":
-		return "typed error context", true
-	case "DiskPressurePolicy", "DiskAssessmentRequest", "DiskRotationRequest",
-		"GoMemoryPressurePolicy", "GoMemoryAssessmentRequest",
-		"GoOOMBannerRequest", "TerminalGeometryRequest":
-		return "public execution ingress", true
-	case "DiskCapacity", "DiskAssessment", "GoMemorySnapshot",
-		"GoMemoryAssessment", "Hostname", "LogicalCPUCount", "PhysicalMemory", "WorkloadMemoryLimit",
-		"GoOOMBannerEvidence", "Percent", "RegularFileCount", "TerminalGeometry":
-		return "validated immutable observation or policy fact", true
-	case "goOOMBannerWire":
-		return "bounded persistence projection", true
-	case "bannerMatcher", "bannerCursor", "oomScanner":
-		return "internal bounded streaming flow", true
-	case "cgroupMembership", "cgroupMount", "cgroupMountSelection", "cgroupLimitFold",
-		"cgroupLevelLimit", "cgroupLevelRequest", "virtualFileRequest", "boundedLineScan":
-		return "internal typed kernel-interface fact", true
-	case "platformRoot":
-		return "held operating-system capability", true
-	default:
-		return "", false
+	slices.Sort(want)
+	if !slices.Equal(got, want) {
+		t.Fatalf("production structs = %q, want exactly typed inventory %q", got, want)
 	}
 }

@@ -77,17 +77,26 @@ func TestInstantConstructionAndProjectionHostileBoundaries(t *testing.T) {
 
 func TestInstantRFC3339ProjectsCanonicalUTCText(t *testing.T) {
 	t.Parallel()
-
-	instant, err := temporal.NewInstant(time.Date(2026, time.July, 31, 12, 34, 56, 987_654_321, time.FixedZone("east", 2*60*60)))
-	if err != nil {
-		t.Fatal(err)
-	}
-	got, err := instant.RFC3339()
-	if err != nil || got != "2026-07-31T10:34:56Z" {
-		t.Fatalf("Instant.RFC3339() = (%q, %v), want (%q, nil)", got, err, "2026-07-31T10:34:56Z")
-	}
-	if got, gotErr := (temporal.Instant{}).RFC3339(); got != "" || !errors.Is(gotErr, core.ErrTemporalContract) {
-		t.Fatalf("zero Instant.RFC3339() = (%q, %v), want (empty, %v)", got, gotErr, core.ErrTemporalContract)
+	for _, tc := range []struct {
+		name                 string
+		instant              temporal.Instant
+		wantSecond, wantNano string
+		wantErr              error
+	}{
+		{name: "unset cannot be formatted", wantErr: core.ErrTemporalContract},
+		{name: "epoch is a set zero", instant: temporal.InstantFromNanoseconds(0), wantSecond: "1970-01-01T00:00:00Z", wantNano: "1970-01-01T00:00:00Z"},
+		{name: "negative fractional instant floors to preceding second", instant: temporal.InstantFromNanoseconds(-1), wantSecond: "1969-12-31T23:59:59Z", wantNano: "1969-12-31T23:59:59.999999999Z"},
+		{name: "signed minimum retains all nine fraction digits", instant: temporal.InstantFromNanoseconds(math.MinInt64), wantSecond: "1677-09-21T00:12:43Z", wantNano: "1677-09-21T00:12:43.145224192Z"},
+		{name: "signed maximum cannot round upward", instant: temporal.InstantFromNanoseconds(math.MaxInt64), wantSecond: "2262-04-11T23:47:16Z", wantNano: "2262-04-11T23:47:16.854775807Z"},
+	} {
+		t.Run(tc.name, func(t *testing.T) {
+			t.Parallel()
+			second, secondErr := tc.instant.RFC3339()
+			nano, nanoErr := tc.instant.RFC3339Nano()
+			if second != tc.wantSecond || nano != tc.wantNano || !errors.Is(secondErr, tc.wantErr) || !errors.Is(nanoErr, tc.wantErr) {
+				t.Fatalf("UTC projections = (%q,%q,%v,%v), want (%q,%q,%v)", second, nano, secondErr, nanoErr, tc.wantSecond, tc.wantNano, tc.wantErr)
+			}
+		})
 	}
 }
 
@@ -175,7 +184,7 @@ func TestInstantSinceAndTruncatePressurePastAndFuture(t *testing.T) {
 				temporal.InstantFromNanoseconds(tc.earlier),
 			)
 			if tc.wantErr != nil {
-				if !errors.Is(gotErr, tc.wantErr) {
+				if !errors.Is(gotErr, tc.wantErr) || got != (temporal.Duration{}) {
 					t.Fatalf("Instant.Since() error = %v, want %v", gotErr, tc.wantErr)
 				}
 				return
@@ -208,7 +217,7 @@ func TestInstantSinceAndTruncatePressurePastAndFuture(t *testing.T) {
 
 			got, gotErr := temporal.InstantFromNanoseconds(tc.value).Truncate(tc.precision)
 			if tc.wantErr != nil {
-				if !errors.Is(gotErr, tc.wantErr) {
+				if !errors.Is(gotErr, tc.wantErr) || got != (temporal.Instant{}) {
 					t.Fatalf("Instant.Truncate() error = %v, want %v", gotErr, tc.wantErr)
 				}
 				return
@@ -530,7 +539,7 @@ func TestDurationArithmeticAndComparisonHostileMatrix(t *testing.T) {
 			}
 			got, gotErr := tc.operation(left, right, tc.multiplier)
 			if tc.wantErr != nil {
-				if !errors.Is(gotErr, tc.wantErr) ||
+				if !errors.Is(gotErr, tc.wantErr) || got != (temporal.Duration{}) ||
 					!errors.Is(gotErr, core.ErrNumericOverflow) {
 					t.Fatalf("duration arithmetic error = %v, want %v and %v", gotErr, tc.wantErr, core.ErrNumericOverflow)
 				}

@@ -17,6 +17,8 @@ type externalIngressFuzzContract[Door any] struct {
 }
 
 var (
+	_ = externalIngressFuzzContract[func(context.Context, core.AbsolutePath) (cgroupMembership, bool, error)]{Door: observeCgroupMembership, Fuzz: FuzzCgroupMembershipFileSemanticClosure}
+	_ = externalIngressFuzzContract[func(uint8) (Percent, error)]{Door: NewPercent, Fuzz: FuzzPercentProjectionSemanticClosure}
 	_ = externalIngressFuzzContract[func(string) (Hostname, error)]{
 		Door: admitHostname,
 		Fuzz: FuzzHostnameIngressSemanticClosure,
@@ -37,8 +39,8 @@ var (
 		Door: parseMountInfoLine,
 		Fuzz: FuzzMountInfoLineSemanticClosure,
 	}
-	_ = externalIngressFuzzContract[func(context.Context, core.AbsolutePath, WorkloadMemoryLimitSource) (uint64, bool, error)]{
-		Door: readCgroupLimit,
+	_ = externalIngressFuzzContract[func(context.Context, core.AbsolutePath, WorkloadMemoryLimitSource) (cgroupLevelLimit, error)]{
+		Door: readCgroupLevelLimit,
 		Fuzz: FuzzCgroupLimitFileSemanticClosure,
 	}
 	_ = externalIngressFuzzContract[func(context.Context, GoOOMBannerRequest) (GoOOMBannerEvidence, error)]{

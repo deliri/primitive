@@ -38,8 +38,16 @@ func ObservePhysicalMemory(ctx context.Context) (PhysicalMemory, error) {
 		return PhysicalMemory{}, err
 	}
 	total, err := observePhysicalMemory()
+	return observedPhysicalMemory(total, err)
+}
+
+func observedPhysicalMemory(total uint64, err error) (PhysicalMemory, error) {
 	if err != nil {
-		return PhysicalMemory{}, fail(OperationPhysicalMemory, core.ErrHostFactsObservation, err)
+		identity := core.ErrHostFactsObservation
+		if errors.Is(err, core.ErrHostFactsUnsupported) {
+			identity = core.ErrHostFactsUnsupported
+		}
+		return PhysicalMemory{}, fail(OperationPhysicalMemory, identity, err)
 	}
 	if total == 0 {
 		return PhysicalMemory{}, fail(
